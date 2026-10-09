@@ -1,0 +1,47 @@
+{
+  "schema": "uor-r4.scoped-review/1",
+  "reviewed_commit": "dc547ec34a22c44ead1164ac5553b1b1e22cc7dd",
+  "source_sha256": {
+    "coupled_episode_learning.rs": "3f0daf51b15e6567f9e4195e61d470cf2572f195eb39eddf7db28e68ffdefe81",
+    "gradient_vector_prefix.rs": "9871e03c64321a0e74d102e53e8419078b29ef25aa7be0f76ec1ffa08be599c1",
+    "context_cue_coadapt.rs": "9c41c4843520fa555499248171a4f5018c660ebfcaf5b78f8ef749e3d9030b75"
+  },
+  "mathematics": {
+    "reviewer": "emission_math",
+    "status": "PASS_SOURCE_ONLY",
+    "scope": "Projection and actual displacement; original epoch; complete changed-key union including cancellation; deterministic selection and restage before atomic commit; current donor/incidence and frozen Generate order; resource lifetime",
+    "execution": "No tests or model execution by reviewer"
+  },
+  "adversarial": {
+    "reviewer": "emission_adversarial",
+    "status": "PASS_SOURCE_ONLY",
+    "scope": "Raw master/gradient bit binding, pure1920 rank, derived391 affected union, ascending guard traversal and gate states, exact Generate960 order/epoch/minimum selection, final master bytes, fresh-only/reverse recovery and positive artifact policy; all-domain prevalidation before swaps",
+    "execution": "No tests or model execution by reviewer"
+  },
+  "fixture_scope": "Two authored native rows with six-token vocabulary; legal Generate subset from native reducer; production selection/commit helpers, real native scorer/reducer; not full391 parent construction",
+  "limitations": [
+    "Full original-parent vector run NOT_RUN",
+    "Complete generated replies and language gain NOT_RUN",
+    "Source reviews are not independent numerical replications"
+  ],
+  "initial_reviewed_commit": "f6d5afd5060948cd9cd1c8c515c2904adabba725",
+  "initial_vector_sha256": "5cdb7f1abcec5c3624050082fe5db80bc01109b7446e66ae7decf23cd3e1dca6",
+  "test_only_followup": {
+    "change": "8 additions/1 deletion; no production change",
+    "reason": "Original -1.7 already has nativeQ4 -7, so policy correctly preservesfractionalbits; faultytest expectedcanonical -1.75. Add -1.6 changed-code case and retain actualdelta check.",
+    "reviewers": [
+      "emission_math",
+      "emission_adversarial"
+    ],
+    "status": "PASS_SOURCE_ONLY",
+    "patch": "test-correction.patch"
+  },
+  "integration_review": {
+    "head": "df613c194d6c17c91517dc5a1bb4e2c22acab8da",
+    "upstream_main": "86134d980",
+    "reviewer": "emission_adversarial",
+    "status": "PASS_SOURCE_ONLY",
+    "scope": "Reviewed3Rustblobs unchanged; intended13pathdiff againstfreshmain; peerentriespreserved; modelNOT_RUN and8/512/9/15 scopesretained",
+    "integrated_test_execution": "Recorded separately in final validation; not claimed by review"
+  }
+}

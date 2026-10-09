@@ -1,0 +1,47 @@
+{
+  "schema": "uor-r4.scoped-validation/1",
+  "execution_source": "dc547ec34a22c44ead1164ac5553b1b1e22cc7dd",
+  "base": "80a6a9a6bac2c3e6082c55181d590d138876d56d",
+  "features": "default, CPU native fixtures",
+  "command": "cargo test --offline --locked --release --jobs 2 -p uor-r4-training --example geometric-frozen-map-fit coupled_episode_learning",
+  "tests": {
+    "passed": 25,
+    "failed": 0,
+    "filtered": 111,
+    "new_tests": 9,
+    "test_execution_seconds": 0.01
+  },
+  "attempts": [
+    {
+      "log": "focused-tests-attempt1.log",
+      "status": "FAILED_TEST_EXPECTATION_24_OF_25_PASSED",
+      "source": "f6d5afd5060948cd9cd1c8c515c2904adabba725",
+      "wall_seconds": 150.91,
+      "max_rss_bytes": 2059583488,
+      "log_sha256": "83824b384e270dd6f5e96c85d8d885fa34bf10cc13d32b52c6f0d3724455c38d"
+    },
+    {
+      "log": "focused-tests-attempt2.log",
+      "status": "PASS_25_OF_25",
+      "source": "dc547ec34a22c44ead1164ac5553b1b1e22cc7dd",
+      "wall_seconds": 237.83,
+      "max_rss_bytes": 1469923328,
+      "log_sha256": "aad36175ee665cfb89fcd4633e03c14723abf55e802986ab6df7c142facbe06a"
+    }
+  ],
+  "actual_parent_model_run": "NOT_RUN",
+  "scope": "two authored native rows/six-token vocabulary; production selection and commit helpers; full391 construction NOT_RUN",
+  "test_binary": {
+    "sha256": "7828509bb89013fda926224e74b94824c59a2e1ece6205db5759216e31bc85fe",
+    "bytes": 8318384
+  },
+  "production_build": {
+    "status": "PASS",
+    "wall_seconds": 39.11,
+    "max_rss_bytes": 1054572544,
+    "binary_sha256": "f4f5fffc95634ae14d60bb8ae680b459a82ba3ee273ea597d1bef2c9053949b4",
+    "binary_bytes": 10615504,
+    "log_sha256": "06e6f02fcdf334465c2d8d589632988cb26e18c007b44fa72180fe2634d2e53d",
+    "command": "cargo build --offline --locked --release --jobs 2 -p uor-r4-training --example geometric-frozen-map-fit"
+  }
+}

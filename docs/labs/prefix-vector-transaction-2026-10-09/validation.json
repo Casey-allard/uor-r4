@@ -1,0 +1,51 @@
+{
+  "status": "PASS_SCOPED_IMPLEMENTATION",
+  "execution_source": "df613c194d6c17c91517dc5a1bb4e2c22acab8da",
+  "integrated_main": "86134d980",
+  "source_sha256": {
+    "coupled_episode_learning.rs": "3f0daf51b15e6567f9e4195e61d470cf2572f195eb39eddf7db28e68ffdefe81",
+    "gradient_vector_prefix.rs": "9871e03c64321a0e74d102e53e8419078b29ef25aa7be0f76ec1ffa08be599c1",
+    "context_cue_coadapt.rs": "9c41c4843520fa555499248171a4f5018c660ebfcaf5b78f8ef749e3d9030b75"
+  },
+  "environment": {
+    "features": "default",
+    "device": "CPU",
+    "CARGO_TARGET_DIR": "owned local/target",
+    "CARGO_BUILD_JOBS": 2,
+    "CARGO_INCREMENTAL": 0,
+    "RAYON_NUM_THREADS": 2,
+    "UOR_BUILD_SOURCE_COMMIT": "df613c194d6c17c91517dc5a1bb4e2c22acab8da"
+  },
+  "tests": {
+    "status": "PASS",
+    "command": "cargo test --offline --locked --release --jobs 2 -p uor-r4-training --example geometric-frozen-map-fit coupled_episode_learning",
+    "wall_seconds": 319.91,
+    "max_rss_bytes": 3142057984,
+    "log_sha256": "c7fb2589fcb4f6951941e6a5b1fe098f26e0697473b8f1f465d285b46b44901c",
+    "passed": 25,
+    "failed": 0,
+    "new_tests": 9,
+    "filtered": 111,
+    "test_execution_seconds": 0.01,
+    "scope": "two authored native rows with six-token vocabulary plus arithmetic, recovery, authority and atomicity checks; not production391-row construction"
+  },
+  "production_build": {
+    "status": "PASS",
+    "command": "cargo build --offline --locked --release --jobs 2 -p uor-r4-training --example geometric-frozen-map-fit",
+    "wall_seconds": 40.02,
+    "max_rss_bytes": 1054949376,
+    "log_sha256": "e68ac76e44e22fe9a39043a2e703bec4aefb7e24438afe08aa3177096798a31f"
+  },
+  "format": "PASS named changedRustpaths",
+  "wording": "PASS check_claim_wording.py",
+  "diff": "PASS git diff --check",
+  "model_scope": "Actual-parent backward/construction/export/autoregressive qualification NOT_RUN; accepted8/512 and separate corrected-donor9/15 unchanged",
+  "runtime": {
+    "sha256": "0a8fce020fd63a135b75dc5f47a11f6eef1dca97374e0677bc2dae09936c0c85",
+    "bytes": 10616384
+  },
+  "test_runtime": {
+    "sha256": "5f0f6a2d5ce82f8a610b5d98e8446cadabddffefc5af5b59ed267a6ab1aefc42",
+    "bytes": 8318560
+  }
+}

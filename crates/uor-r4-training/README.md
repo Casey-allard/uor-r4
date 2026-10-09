@@ -27,6 +27,16 @@ Prefix gradients change, factual Generate gradients remain bitwise identical to
 legacy, and the complete conditional gate stays negative at 9/15. The candidate
 remains unselected; accepted whole-answer performance stays 8/512.
 
+The opt-in [coordinated Prefix policy](../../docs/labs/prefix-vector-transaction-2026-10-09/README.md)
+is configured with `coupled_episode_learning.prefix_transaction: "gradient_vector_prefix"`.
+It uses four quantized full-gradient vectors from the original initializer, followed
+by the existing Generate coordinate pass. It requires fresh `full_pool_utility`
+credit and preserves the combined-loss, seventeen-reference and 380-guard gates.
+All vector trials use one original epoch; a selected trial is restaged and
+verified before atomic commit to retain the existing cache cap. Omission keeps
+the historical adjacent-coordinate policy. No original-parent vector result
+or complete-answer improvement is claimed by its implementation fixtures.
+
 ## Complete-prefix native dialogue learning
 
 `dialogue-prefix-fit` connects the strict retained R1d parameter import to exact

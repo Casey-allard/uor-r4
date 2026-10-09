@@ -1,0 +1,30 @@
+{
+  "schema": "uor-r4.resource-extension/1",
+  "recorded_utc": "2026-10-09T19:16:53.991457+00:00",
+  "complete_work_started_utc": "2026-10-09T19:11:16Z",
+  "authority": "Standing owner local extension authorization; M2 claim6087615293",
+  "purpose": "Generic coordinated Prefix source implementation, cold build, native fixtures, review, preservation and protected delivery",
+  "shared_ledger_path": "/Users/casey.allard/.local/share/uor-r4/ledger/model-time.json",
+  "shared_before": {
+    "cumulative_ms": 1433835028,
+    "limit_ms": 1434600028
+  },
+  "shared_after": {
+    "cumulative_ms": 1433835028,
+    "limit_ms": 1441800028
+  },
+  "shared_limit_increment_ms": 7200000,
+  "projected_complete_seconds": 7200,
+  "lab_prior_cumulative_projection_seconds": 649770,
+  "lab_updated_cumulative_projection_seconds": 656970,
+  "previous_piece_actual_seconds": 1107.495432,
+  "cpu_workers": 2,
+  "peak_ram_bytes": 8589934592,
+  "new_storage_bytes": 8589934592,
+  "retained_evidence_bytes": 268435456,
+  "storage_stop_margin_bytes": 134217728,
+  "disk_floor_bytes": 32212254720,
+  "admission_free_gib": 44,
+  "paid_compute": false,
+  "actual_parent_model_run": "NOT_RUN"
+}

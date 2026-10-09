@@ -137,6 +137,10 @@ learning. It evaluates complete native donor alternatives to capture interaction
 a lane-by-lane state tangent can miss. The [original-parent run](docs/labs/full-donor-run-2026-10-09/README.md)
 changes Prefix credit and lowers conditional loss, but the complete episode remains
 9/15; the candidate is unselected and accepted whole-answer performance remains 8/512.
+An opt-in [coordinated Prefix transaction](docs/labs/prefix-vector-transaction-2026-10-09/README.md)
+uses four fixed full-gradient vector proposals with the same native acceptance and
+memory protections. Its implementation checks do not establish a model benefit;
+the original-parent vector run remains unmeasured.
 
 **Models trained**
 

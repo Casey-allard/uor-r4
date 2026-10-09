@@ -1,0 +1,11 @@
+{
+  "command": "CARGO_TARGET_DIR=owned/local/target CARGO_BUILD_JOBS=2 CARGO_INCREMENTAL=0 cargo build --offline --locked --release --jobs 2 -p uor-r4-training --lib",
+  "status": "PASS",
+  "scope": "Cold default-feature training library dependencies; example vector source not compiled in this stage",
+  "base": "80a6a9a6bac2c3e6082c55181d590d138876d56d",
+  "wall_seconds": 768.07,
+  "user_seconds": 1050.56,
+  "system_seconds": 47.07,
+  "max_rss_bytes": 1490780160,
+  "log_sha256": "e6ca97eb0f2c953ff15f5af6d5e7785589372e4005a46242cd7fdb39e289117a"
+}

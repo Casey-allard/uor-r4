@@ -11,6 +11,9 @@ use uor_r4_training::geometric_generate_learning::vocabulary_marginal_loss_with_
 use uor_r4_training::geometric_occurrence_consumer::source_realizer::{
     CueAngularWeights, PrefixAngularWeights,
 };
+#[path = "gradient_vector_prefix.rs"]
+mod gradient_vector_prefix;
+
 const PREFIX: &str = "prefix.coefficients";
 const GENERATE: &str = "generate.unary";
 const COUNT: usize = 960;
@@ -59,9 +62,53 @@ fn credit_mode(a: &Args) -> DonorCredit {
         .map(|c| c.donor_credit)
         .unwrap_or_default()
 }
+/// Offline construction policy; omitted fields retain the historical coordinate pass.
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub(super) enum PrefixTransaction {
+    #[default]
+    CoordinateAdjacent,
+    GradientVectorPrefix,
+}
+impl PrefixTransaction {
+    fn legacy(&self) -> bool {
+        *self == Self::CoordinateAdjacent
+    }
+}
+fn validate_transaction(
+    mode: PrefixTransaction,
+    credit: DonorCredit,
+    retained: bool,
+) -> Result<()> {
+    replay_require(mode.legacy() || (credit == DonorCredit::FullPoolUtility && !retained),
+        "gradient-vector Prefix requires fresh full-pool utility credit and forbids retained science")
+}
+fn transaction_mode(a: &Args) -> PrefixTransaction {
+    a.coupled_episode_learning
+        .as_ref()
+        .map(|c| c.prefix_transaction)
+        .unwrap_or_default()
+}
+fn validate_inherited_transaction(
+    requested: PrefixTransaction,
+    producer: PrefixTransaction,
+    receipt: &Value,
+) -> Result<()> {
+    let recorded = if receipt["prefix_transaction"].is_null() {
+        PrefixTransaction::CoordinateAdjacent
+    } else {
+        serde_json::from_value(receipt["prefix_transaction"].clone())?
+    };
+    replay_require(
+        requested == producer && requested == recorded,
+        "retained Prefix transaction identity differs",
+    )
+}
 #[derive(Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub(super) struct Config {
+    #[serde(default, skip_serializing_if = "PrefixTransaction::legacy")]
+    pub prefix_transaction: PrefixTransaction,
     #[serde(default, skip_serializing_if = "DonorCredit::legacy")]
     pub donor_credit: DonorCredit,
     pub original_inputs: prefix::Config,
@@ -154,6 +201,7 @@ impl Config {
 pub(super) fn validate_settings(a: &Args) -> Result<()> {
     if let Some(c) = &a.coupled_episode_learning {
         validate_credit_recovery(c.donor_credit, c.retained_mode())?;
+        validate_transaction(c.prefix_transaction, c.donor_credit, c.retained_mode())?;
         replay_require(
             a.mode == Mode::JointContinuation
                 && a.updates == 1
@@ -265,7 +313,22 @@ fn policy_for(mode: DonorCredit) -> Value {
     }
     p
 }
-#[derive(Clone, Serialize)]
+fn policy_for_modes(credit: DonorCredit, transaction: PrefixTransaction) -> Value {
+    let mut p = policy_for(credit);
+    if !transaction.legacy() {
+        p["prefix_transaction"] = json!(transaction);
+        p["prefix"] = json!("four original-epoch gradient vectors radii1,2,4,7; eta=(f64(radius)*0.25)/maxabs; clamp originalm-eta*g; castf32 then nativequantize; unchangedcodes retain originalfractional bits; actualdelta dot<0");
+        p["rank"] = json!("original mixed1920 frozen gradient order retained as authority; Generate960 relative order only after one selected Prefix vector; no rerank");
+        p["maximum_alternatives"] = json!(13444);
+        p["vector_selection"] = json!("minimum feasible original-epoch current CE; exact tie earlier radius; compact best only and one exact selected restage before atomic swap");
+        p["affected_scope"] = json!("union of all changed Prefix keys over complete physical aliases, including cancelling net deltas");
+    }
+    p
+}
+fn policy_for_args(a: &Args) -> Value {
+    policy_for_modes(credit_mode(a), transaction_mode(a))
+}
+#[derive(Clone, Deserialize, Serialize)]
 struct Coordinate {
     family: String,
     index: usize,
@@ -930,12 +993,15 @@ fn gradients(
         "coupled-gradient-receipt.json",
         &json!({"weighted_roles":32,"physical_backward_calls":31,"prebackward_native_parity_graph_forwards":31,"gradient_graph_forwards":31,"extracted_families":[PREFIX,GENERATE],
         "perterm":terms,"files":aggregate,"aggregate_sum":"ordered f32 sum of already weighted31physical gradients; no synthetic32arrays",
-        "weighted_graph_ce":graph_ce,"surrogate":policy_for(credit_mode(a))["gradient_surrogate"],"context_gradient":"NOT_RUN","donor_cache_peak_bytes":donor.peak}),
+        "weighted_graph_ce":graph_ce,"surrogate":policy_for_args(a)["gradient_surrogate"],"context_gradient":"NOT_RUN","donor_cache_peak_bytes":donor.peak}),
     )?;
     if credit_mode(a) == DonorCredit::FullPoolUtility {
         let leaf = a.out.join("coupled-gradient-receipt.json");
         let mut receipt = read(&leaf)?;
         receipt["donor_credit"] = json!(credit_mode(a));
+        if !transaction_mode(a).legacy() {
+            receipt["prefix_transaction"] = json!(transaction_mode(a));
+        }
         receipt["full_pool_utility_file"] = json!("coupled-full-pool-donor-utilities.json");
         receipt["full_pool_utility_sha256"] = json!(sha256_file(
             &a.out.join("coupled-full-pool-donor-utilities.json")
@@ -1084,6 +1150,7 @@ fn retained_gradients(
     )?;
     let receipt = read(&receipt_file)?;
     validate_inherited_credit(c.donor_credit, old.donor_credit, &receipt)?;
+    validate_inherited_transaction(c.prefix_transaction, old.prefix_transaction, &receipt)?;
     replay_require(
         receipt["physical_backward_calls"] == 31
             && receipt["weighted_roles"] == 32
@@ -1442,6 +1509,11 @@ fn recover_export_state(
     validate_inherited_credit(
         c.donor_credit,
         old.donor_credit,
+        &read(&e.retained_failed_root.join("coupled-gradient-receipt.json"))?,
+    )?;
+    validate_inherited_transaction(
+        c.prefix_transaction,
+        old.prefix_transaction,
         &read(&e.retained_failed_root.join("coupled-gradient-receipt.json"))?,
     )?;
     replay_require(
@@ -1813,16 +1885,40 @@ fn construct(
     let mut native = native_with_unary(p, &unary)?;
     let mut accepted_prefix = 0usize;
     let mut accepted_generate = 0usize;
+    let vector = transaction_mode(a) == PrefixTransaction::GradientVectorPrefix;
+    let mut vector_receipt = Value::Null;
     let mut alternatives_count = 0u64;
+    if vector {
+        let outcome = gradient_vector_prefix::run(
+            a, start, p, frames, map, spec, pm, pg, &native, caches, posts, donors, incidences,
+            legal, red, &mut pc, &baseline,
+        )?;
+        prefix = outcome.masters;
+        current = outcome.current;
+        accepted_prefix = usize::from(outcome.committed);
+        epoch = accepted_prefix as u64;
+        alternatives_count = outcome.evaluated;
+        vector_receipt = outcome.journal;
+    }
     let file = fs::OpenOptions::new()
         .write(true)
         .create_new(true)
         .open(a.out.join("coupled-construction.json"))?;
     let mut journal = std::io::BufWriter::new(file);
     journal.write_all(b"{\"policy\":")?;
-    serde_json::to_writer(&mut journal, &policy_for(credit_mode(a)))?;
+    serde_json::to_writer(&mut journal, &policy_for_args(a))?;
+    if vector {
+        journal.write_all(
+            b",\"schema\":\"uor-r4.gradient-vector-prefix-construction/1\",\"prefix_vector\":",
+        )?;
+        serde_json::to_writer(&mut journal, &vector_receipt)?;
+    }
     journal.write_all(b",\"coordinate_records\":[")?;
-    for (ordinal, coordinate) in ranked.iter().enumerate() {
+    for (ordinal, coordinate) in ranked
+        .iter()
+        .filter(|r| !vector || r.family == GENERATE)
+        .enumerate()
+    {
         shared::progress(a, start)?;
         let before_epoch = epoch;
         let mut alternatives = Vec::new();
@@ -2036,10 +2132,10 @@ fn construct(
             "incumbent_epoch":before_epoch,"epoch_after":epoch,"alternatives":alternatives,"selected":selected}),
         )?;
     }
-    let summary = json!({"coordinates":1920,"maximum_alternatives":14400,"evaluated_alternatives":alternatives_count,
+    let summary = json!({"coordinates":if vector{960}else{1920},"maximum_alternatives":if vector{13444}else{14400},"evaluated_alternatives":alternatives_count,
         "accepted_prefix":accepted_prefix,"accepted_generate":accepted_generate,"accepted_epoch":epoch,"revisited":0,
         "initial":baseline,"final":current,"immutable_post_cache_peak_bytes":pc.peak,"immutable_post_bridge_calls":pc.calls,
-        "selected_restage_count":0});
+        "selected_restage_count":if vector{accepted_prefix}else{0}});
     journal.write_all(b"],\"summary\":")?;
     serde_json::to_writer(&mut journal, &summary)?;
     journal.write_all(b"}\n")?;
@@ -2073,6 +2169,28 @@ fn capacity_projection(max_copy: usize, legal: usize) -> Result<Value> {
     )
 }
 
+fn capacity_for_mode(max_copy: usize, legal: usize, mode: PrefixTransaction) -> Result<Value> {
+    let mut cap = capacity_projection(max_copy, legal)?;
+    if !mode.legacy() {
+        let compact = 2 * 1024 * 1024u64;
+        cap["vector_compact_best_and_four_receipts_bound"] = json!(compact);
+        cap["cache_upper_bound"] = json!(
+            cap["cache_upper_bound"]
+                .as_u64()
+                .ok_or_else(|| bad("cache bound missing"))?
+                + compact
+        );
+        cap["vector_restage_lifetime"]=json!("one all391 replacement batch; compact best only; selected restage after all proposal batches dropped");
+    }
+    Ok(cap)
+}
+fn journal_bound_for_mode(mode: PrefixTransaction) -> Result<u64> {
+    let legacy = journal_upper_bound()?;
+    // Legacy reserves960 full Prefix records. Four vector records each add960
+    // projectedu32 bits and all391 change tuples, plus one selected receipt;
+    // a4MiB explicit reserve covers these additions without subtracting legacy.
+    Ok(legacy + if mode.legacy() { 0 } else { 4 * 1024 * 1024 })
+}
 fn journal_objective(v: &Value) -> Value {
     json!({"combined":v["combined"],"task":v["task"],"reference":v["reference"],
         "correct_reference_frames":v["correct_reference_frames"],"all_phase_winners":v["all_phase_winners"],
@@ -2190,7 +2308,7 @@ fn pregradient_projection(a: &Args, c: &Config, frames: &[shared::Frame]) -> Res
     // Authenticate all377 retained physical alias counts before gradients;512
     // conservatively covers the two sealed supplements and objective-derived p3.
     // Every actual380 row is rechecked before constructor allocation.
-    let cap = capacity_projection(max_copy, VOCAB)?;
+    let cap = capacity_for_mode(max_copy, VOCAB, c.prefix_transaction)?;
     let cache = cap["cache_upper_bound"]
         .as_u64()
         .ok_or_else(|| bad("cache bound missing"))?;
@@ -2240,8 +2358,15 @@ fn pregradient_projection(a: &Args, c: &Config, frames: &[shared::Frame]) -> Res
         + 128 * 1024 * 1024
         + retained_export_copy_peak
         + utility_numeric_bound;
+    let vector_population_transient = if c.prefix_transaction.legacy() {
+        0
+    } else {
+        16 * 1024 * 1024u64
+    };
+    let numeric = numeric + vector_population_transient;
+    let process = process + vector_population_transient;
     let reload_max = 535837u64;
-    let journal = journal_upper_bound()?;
+    let journal = journal_bound_for_mode(c.prefix_transaction)?;
     let report = (reload_max + 16384) * UNION as u64
         + journal
         + 57780353
@@ -2250,7 +2375,7 @@ fn pregradient_projection(a: &Args, c: &Config, frames: &[shared::Frame]) -> Res
         + utility_report_bound;
     let v = json!({"stage":if c.retained_export.is_some(){"BEFORE_RETAINED_EXPORT_ADMISSION"}else if c.retained_mode(){"BEFORE_RETAINED_GRADIENT_ADMISSION_AND_FINITE_RESTART"}else{"BEFORE_ANY_BACKWARD"},"capacity":cap,"typed_guard_frame_bound":typed,
         "actual31_full_serialized_native_bytes":full,"numeric_upper_bound":numeric,"donor_utility_serialized_bound":utility_report_bound,"donor_utility_numeric_bound":utility_numeric_bound,"retained_export_copy_peak_bytes":retained_export_copy_peak,
-        "retained_export_copy_projection":"full journal byte-copy buffer plus4MiB typed commitments/summary; alternatives ignored by typed decoder","numeric_cap":512*1024*1024u64,
+        "retained_export_copy_projection":"full journal byte-copy buffer plus4MiB typed commitments/summary; alternatives ignored by typed decoder","numeric_cap":512*1024*1024u64,"vector_population_keyset_transient_bound":vector_population_transient,
         "process_ram_projection_bytes":process,"process_ram_cap":4*1024*1024*1024u64,
         "report_upper_bound":report,"report_cap":a.maximum_report_bytes,"streamed_journal_reserve":journal,
         "native391_snapshot_max_measured_bytes":reload_max,"fresh_family_gradient_bytes":if c.retained_mode(){0}else{2*32*3840},"retained_family_gradient_bytes":if c.retained_mode(){2*32*3840}else{0},
@@ -2392,23 +2517,28 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
     for f in &frames {
         validated_prefix_keys(f.ids.len(), &f.cue_keys)?;
     }
-    let rows=frames.iter().enumerate().map(|(i,f)|json!({"row":i,"input_index":f.input,"position":f.position,
+    let rows=frames.iter().enumerate().map(|(i,f)|{
+        let mut row=json!({"row":i,"input_index":f.input,"position":f.position,
         "id":f.id,"actual_prefix_ids":f.prefix,"target_label_only":f.target,"zero_weight_guard":i<GUARDS,
         "guard_weight":0.,"coalesced_objective_weight":f.weight,"donor":pools[i].donor,
-        "post_state":pools[i].post.iter().map(|x|x.index()).collect::<Vec<_>>()})).collect::<Vec<_>>();
+        "post_state":pools[i].post.iter().map(|x|x.index()).collect::<Vec<_>>()});
+        if !c.prefix_transaction.legacy(){row["prefix_key_union"]=json!(validated_prefix_keys(f.ids.len(),&f.cue_keys)?.iter().flatten().flatten().copied().collect::<BTreeSet<_>>());}
+        Ok(row)
+    }).collect::<Result<Vec<_>>>()?;
     write(
         a,
         "coupled-population.json",
         &json!({"rows":rows,"objective_row_map":map,"roles":spec.roles,
         "guard_population":authority,"guards":GUARDS,"unique_union":UNION,"weighted_roles":32,"physical_frames":31}),
     )?;
+    drop(rows); // No population JSON/key-set authority retained alongside live staging.
     let legal = reducer.legal_token_ids().to_vec();
     let max_copy = frames.iter().map(|f| f.ids.len()).max().unwrap_or(0);
     replay_require(
         max_copy <= 512,
         "coupled actual physical aliases exceed pregradient bound",
     )?;
-    let cap = capacity_projection(512, legal.len())?;
+    let cap = capacity_for_mode(512, legal.len(), c.prefix_transaction)?;
     write(
         a,
         "coupled-constructor-resource-projection.json",
@@ -2566,7 +2696,7 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
         .max();
     Ok(
         json!({"schema":"uor-r4.coupled-episode-report/1","status":"COMPLETED","mode":"coupled_episode_learning",
-        "source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"policy":policy_for(c.donor_credit),"selected_model":false,
+        "source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"policy":policy_for_modes(c.donor_credit,c.prefix_transaction),"selected_model":false,
         "finite_episode_positive":gate["passed"],"final_gate":gate,"baseline_objective":initial,"candidate_objective":value,
         "construction_summary":construction,"inherited_learning":inherited_learning,"inherited_construction":inherited_construction,
         "new_constructor_calls":if c.retained_export.is_some(){0}else{1},"new_proposals":if c.retained_export.is_some(){0}else{construction["evaluated_alternatives"].as_u64().unwrap_or(0)},
@@ -2766,7 +2896,7 @@ fn export_reload(
             "preserved_generic_prefix":"checkpoint-0001/prefix-before-cue-rebind"}),
         )?;
         receipt["mode"] = json!("coupled_episode_learning");
-        receipt["policy"] = policy_for(credit_mode(a));
+        receipt["policy"] = policy_for_args(a);
         receipt["active_parameter_names"] = json!([PREFIX, GENERATE]);
         receipt["fresh_adam"] = json!(false);
         receipt["optimizer_updates"] = json!(0);
@@ -2804,7 +2934,7 @@ fn export_reload(
         receipt["extracted_family_gradients"] = json!(2);
         receipt["credit_scope"]=json!("one31 factual fullaliasloss joint pullback: Prefix direct gather plus detached conditional donor contrast and factual Generate unary coefficient STE; only two960 gradients extracted/proposed; no Context/Cue/U extraction");
         if credit_mode(a) == DonorCredit::FullPoolUtility {
-            receipt["credit_scope"] = policy_for(credit_mode(a))["gradient_surrogate"].clone();
+            receipt["credit_scope"] = policy_for_args(a)["gradient_surrogate"].clone();
         }
 
         receipt["frozen_numerical_scope"]=json!("all Source/Context/Potential/map/Cue angular+joint/Generate pair+bias+prototype/bridge/U masters frozen; Prefix960 and Generate unary960 only");
@@ -2873,6 +3003,8 @@ fn export_reload(
 #[derive(Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub(super) struct ArtifactAuthority {
+    #[serde(default, skip_serializing_if = "PrefixTransaction::legacy")]
+    pub prefix_transaction: PrefixTransaction,
     #[serde(default, skip_serializing_if = "DonorCredit::legacy")]
     pub donor_credit: DonorCredit,
     pub expected_report_sha256: String,
@@ -2884,6 +3016,7 @@ pub(super) struct ArtifactAuthority {
     pub expected_continuation_sha256: String,
 }
 pub(super) fn validate_artifact_authority(p: &ArtifactAuthority) -> Result<()> {
+    validate_transaction(p.prefix_transaction, p.donor_credit, false)?;
     replay_require(
         [
             &p.expected_report_sha256,
@@ -2916,10 +3049,16 @@ pub(super) fn authenticate_positive_artifact(
         )?;
         replay_require(
             candidate_config.donor_credit == pin.donor_credit
-                && v["policy"] == policy_for(pin.donor_credit),
+                && candidate_config.prefix_transaction == pin.prefix_transaction
+                && v["policy"] == policy_for_modes(pin.donor_credit, pin.prefix_transaction),
             "coupled artifact donor-credit authority differs",
         )?;
         validate_credit_recovery(
+            candidate_config.donor_credit,
+            candidate_config.retained_mode(),
+        )?;
+        validate_transaction(
+            candidate_config.prefix_transaction,
             candidate_config.donor_credit,
             candidate_config.retained_mode(),
         )?;
@@ -3064,12 +3203,41 @@ pub(super) fn authenticate_positive_artifact(
         .as_array()
         .ok_or_else(|| bad("coupled journal absent"))?;
     replay_require(
-        records.len() == 1920
-            && journal["summary"]["coordinates"] == 1920
+        records.len()
+            == (if pin.prefix_transaction.legacy() {
+                1920
+            } else {
+                960
+            })
+            && journal["summary"]["coordinates"]
+                == (if pin.prefix_transaction.legacy() {
+                    1920
+                } else {
+                    960
+                })
             && journal["summary"]["revisited"] == 0
-            && journal["summary"]["maximum_alternatives"] == 14400,
+            && journal["summary"]["maximum_alternatives"]
+                == (if pin.prefix_transaction.legacy() {
+                    14400
+                } else {
+                    13444
+                }),
         "coupled finite once-only population differs",
     )?;
+    if !pin.prefix_transaction.legacy() {
+        let ranked: Vec<Coordinate> =
+            serde_json::from_value(read(&root.join("coupled-coordinate-order.json"))?)?;
+        let population = read(&root.join("coupled-population.json"))?;
+        gradient_vector_prefix::authenticate(
+            &journal,
+            &ranked,
+            &population,
+            root,
+            &gradient,
+            &a.checkpoint,
+        )?;
+        validate_inherited_transaction(pin.prefix_transaction, pin.prefix_transaction, &gradient)?;
+    }
     let mut seen = BTreeSet::new();
     let mut g_alternatives = 0usize;
     for row in records {

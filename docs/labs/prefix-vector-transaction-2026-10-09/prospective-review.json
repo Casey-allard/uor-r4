@@ -1,0 +1,67 @@
+{
+  "schema": "uor-r4.scoped-review/1",
+  "scope": "Prospective policy and source integration on base80a6a9a6; not implementation or model verification",
+  "mathematics": {
+    "reviewer": "emission_math",
+    "decision": "Policy is coherent with clarifications",
+    "conditions": [
+      "Fixed radius is continuous displacement in quarter-master quanta, not exhaustive legal search",
+      "Finite960-element masters and gradients, explicit zero-gradient NOOP",
+      "Existing f32 ties-away quantizer; original fractional bytes retained for unchanged native codes",
+      "Actual canonical-master displacement for linear filter",
+      "All four candidates same original epoch, baseline included, strictCE plus17/380",
+      "All changed physical aliases and multiplicities, donor provenance even with unchanged poststate",
+      "Original relative Generate order frozen before optional Prefix commit",
+      "Selected restage before all mutation, exact receipt parity; restage costs separate"
+    ],
+    "limitations": "Four finite proposals plus fixedGenerate; neither capacity nor language qualification"
+  },
+  "engineering": {
+    "reviewer": "emission_engineering",
+    "decision": "Integrate with compact-best restaging",
+    "three_complete_batches_bytes": 287626920,
+    "cache_cap_bytes": 268435456,
+    "one391row_batch_bytes": 87487032,
+    "resolution": "Retain compact selected master+receipt, discard each original-epoch replacement batch, restage selected vector once and require parity beforecommit",
+    "integration_boundaries": [
+      "config/default",
+      "recovery both directions",
+      "policy and journal",
+      "positive artifact authority",
+      "resource projections",
+      "atomic replacement and currentGenerate incidence"
+    ]
+  },
+  "adversarial": {
+    "reviewer": "emission_adversarial",
+    "status": "Preflight only; final source review pending",
+    "conditions": [
+      "No partial commit before all restage and domainchecks",
+      "Legacy recovery cannot relabel vector science",
+      "Positive authority binds distinctvector journal",
+      "Test late guard veto, restage mismatch, donor/incidence changes and legacydefault"
+    ]
+  },
+  "draft_findings": [
+    {
+      "finding": "Net-score affected predicate excluded cancelling rows although the fixed policy declares changed-key incidence union",
+      "source": "parent and mathematics review",
+      "disposition": "Repaired in frozen f6d5afd5060948cd9cd1c8c515c2904adabba725; both final source reviews pass, see review.json"
+    },
+    {
+      "finding": "Positive authority trusted ranking JSON masters/gradients without binding authenticated aggregate/master files",
+      "source": "adversarial draft review",
+      "disposition": "Repaired in frozen f6d5afd5060948cd9cd1c8c515c2904adabba725; both final source reviews pass, see review.json"
+    },
+    {
+      "finding": "Claimed feasible receipt could give empty guard coverage rather than derived complete affected union",
+      "source": "adversarial draft review",
+      "disposition": "Repaired in frozen f6d5afd5060948cd9cd1c8c515c2904adabba725; both final source reviews pass, see review.json"
+    },
+    {
+      "finding": "Vector journal Generate records lacked exact frozen relative order and epoch binding",
+      "source": "adversarial draft review",
+      "disposition": "Repaired in frozen f6d5afd5060948cd9cd1c8c515c2904adabba725; both final source reviews pass, see review.json"
+    }
+  ]
+}

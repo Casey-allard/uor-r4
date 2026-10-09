@@ -1,0 +1,13 @@
+{
+  "name": "codex-prefix-vector-transaction-20261009",
+  "remote": "icloud:UOR-R4/results/codex/codex-prefix-vector-transaction-20261009.tar",
+  "archive_bytes": 38397440,
+  "archive_md5": "a7bb4d42eff2272e7407d492c9c89f82",
+  "tool_roundtrip": "PASS",
+  "fresh_remote_md5": "a7bb4d42eff2272e7407d492c9c89f82",
+  "remote_index": "PASS;2026-10-09T19:48:02Z",
+  "inventory_sha256": "67d2356f002ba666c7312214798fe5d96f74116dccb2abf8db5185b0a2a35cd5",
+  "payload_files_excluding_inventory": 26,
+  "payload_bytes_excluding_inventory": 38302326,
+  "scope": "Pre-delivery source, logs, runtimes and record snapshot; final source/docs onmain and delivery closeout onPR2079"
+}
