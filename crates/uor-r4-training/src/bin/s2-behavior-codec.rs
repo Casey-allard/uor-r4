@@ -73,6 +73,9 @@ fn integer_reply(
         ids,
         eos: false,
         cycle: None,
+        trace: Vec::new(),
+        stopped_at: None,
+        copy_stop: None,
     })
 }
 
@@ -263,6 +266,9 @@ fn greedy_reply_with_head(
         ids,
         eos: false,
         cycle: None,
+        trace: Vec::new(),
+        stopped_at: None,
+        copy_stop: None,
     })
 }
 

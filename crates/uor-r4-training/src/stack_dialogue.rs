@@ -33,8 +33,8 @@ use crate::dialogue_episodes::{
     EpisodeBatch, EpisodeContract, EpisodeIndex, PrefixPolicy, SourceSpan, EPISODE_CONTEXT,
 };
 use crate::geometric_stack::{
-    PointerRowStats, ReadSupervisionGroup, ReadSupervisionRow, ReadSupervisionTarget, StackModel,
-    TargetScores,
+    CopyStopReport, CopyStopRun, CopyTraceStep, PointerRowStats, ReadSupervisionGroup,
+    ReadSupervisionRow, ReadSupervisionTarget, StackModel, TargetScores,
 };
 use crate::reference_eval::short_cycle_period_with;
 use crate::{invalid, Result};
@@ -741,10 +741,23 @@ pub fn check_panel(
 /// A generated reply: its ids (ending in EOS when the model ended it),
 /// whether the model ended it, and the period of the short terminal cycle
 /// that stopped it, if one did.
+#[derive(Default)]
 pub struct Reply {
     pub ids: Vec<u32>,
     pub eos: bool,
     pub cycle: Option<usize>,
+    /// The copied span the serving-time copy-stop rule stopped at, when one
+    /// did ([`StackModel::set_pointer_copy_stop`]); `None` under the default
+    /// decoder and for every other stop.
+    pub copy_stop: Option<CopyStopReport>,
+    /// The step that emitted the reply's last id, when the decoder counted
+    /// them ([`StackModel::set_pointer_copy_trace`]); `None` under the
+    /// historical decoder.
+    pub stopped_at: Option<usize>,
+    /// The pointer's own selection at every step of the reply, when the model
+    /// was asked for a copy trace ([`StackModel::set_pointer_copy_trace`]);
+    /// empty under the historical decoder.
+    pub trace: Vec<CopyTraceStep>,
 }
 
 impl Reply {
@@ -762,22 +775,25 @@ impl Reply {
                 ids: ids.to_vec(),
                 eos: true,
                 cycle: None,
+                ..Default::default()
             });
         }
         short_cycle_period_with(ids, cycle_repeats).map(|period| Self {
             ids: ids.to_vec(),
             eos: false,
             cycle: Some(period),
+            ..Default::default()
         })
     }
 
-    /// How the reply stopped: `"eos"`, `{"short_cycle": period}` or
-    /// `"max_new_tokens"`.
+    /// How the reply stopped: `"eos"`, `{"short_cycle": period}`,
+    /// `{"pointer_copy": span}` or `"max_new_tokens"`.
     pub fn stop_record(&self) -> Value {
-        match (self.eos, self.cycle) {
-            (true, _) => json!("eos"),
-            (false, Some(period)) => json!({"short_cycle": period}),
-            (false, None) => json!("max_new_tokens"),
+        match (self.eos, self.cycle, self.copy_stop) {
+            (true, _, _) => json!("eos"),
+            (false, Some(period), _) => json!({"short_cycle": period}),
+            (false, None, Some(report)) => json!({"pointer_copy": report.copied}),
+            (false, None, None) => json!("max_new_tokens"),
         }
     }
 }
@@ -913,6 +929,102 @@ pub fn greedy_reply_with(
     eos: u32,
     cycle_repeats: usize,
 ) -> Result<Reply> {
+    greedy_reply_with_copy_stop(model, history, cap, eos, cycle_repeats)
+}
+
+/// [`greedy_reply_with`] under the model's own serving-time copy-stop rule
+/// ([`StackModel::set_pointer_copy_stop`]), if it has one: the same greedy
+/// loop, the same EOS and short-cycle stops, except that a step whose emitted
+/// id does not extend a run of at least [`CopyStop::min_span`] ids copied from
+/// the window the pointer selected ends the reply there. The stop is recorded
+/// in the reply's own `copy_stop` field and stop record
+/// (`{"pointer_copy": span}`). With no rule set and no trace asked for this is
+/// [`greedy_reply_with`] bit for bit: no extra observation, no extra forward.
+pub fn greedy_reply_with_copy_stop(
+    model: &StackModel,
+    history: &[u32],
+    cap: usize,
+    eos: u32,
+    cycle_repeats: usize,
+) -> Result<Reply> {
+    let trace = model.pointer_copy_trace();
+    if model.pointer_copy_stop().is_none() && !trace {
+        return greedy_reply_plain(model, history, cap, eos, cycle_repeats);
+    }
+    let mut window = history.to_vec();
+    let mut ids = Vec::with_capacity(cap);
+    let mut steps = Vec::new();
+    let mut copy_stop = model.pointer_copy_stop().map(CopyStopRun::new);
+    for step in 0..cap {
+        if window.len() > model.config.context {
+            return Err(invalid("the reply outgrew the context"));
+        }
+        // The last position's logits, or a pointer model's mixture scores.
+        let (last, selection) = model.next_scores_with_pointer(&window)?;
+        if let Some(run) = copy_stop.as_mut() {
+            run.observe(selection);
+        }
+        let mut best = 0usize;
+        for (i, v) in last.iter().enumerate() {
+            if *v > last[best] {
+                best = i;
+            }
+        }
+        let next = best as u32;
+        ids.push(next);
+        window.push(next);
+        if trace {
+            let source = selection.map(|s| s.source);
+            steps.push(CopyTraceStep {
+                step,
+                id: next,
+                source,
+                source_id: source.and_then(|i| window.get(i).copied()),
+                matches_source: source.is_some_and(|i| window.get(i).copied() == Some(next)),
+                attention: selection.map_or(0.0, |s| s.attention),
+                gate: selection.map_or(0.0, |s| s.gate),
+                raw_gate: selection.map_or(0.0, |s| s.raw_gate),
+            });
+        }
+        let stopped = Reply::stop_with(&ids, eos, cycle_repeats).or_else(|| {
+            copy_stop
+                .as_mut()
+                .and_then(|run| run.after(&window, window.len() - 1, history.len()))
+                .map(|report| Reply {
+                    ids: ids.clone(),
+                    eos: false,
+                    cycle: None,
+                    copy_stop: Some(report),
+                    stopped_at: None,
+                    trace: Vec::new(),
+                })
+        });
+        if let Some(mut reply) = stopped {
+            reply.stopped_at = Some(step);
+            reply.trace = steps;
+            return Ok(reply);
+        }
+    }
+    Ok(Reply {
+        ids,
+        eos: false,
+        cycle: None,
+        copy_stop: None,
+        stopped_at: Some(cap.saturating_sub(1)),
+        trace: steps,
+    })
+}
+
+/// The historical greedy loop: the highest score (ties to the lower id) until
+/// EOS, a short terminal cycle or `cap` ids. Exactly [`greedy_reply_with`]
+/// before the serving-time rules existed.
+fn greedy_reply_plain(
+    model: &StackModel,
+    history: &[u32],
+    cap: usize,
+    eos: u32,
+    cycle_repeats: usize,
+) -> Result<Reply> {
     let mut window = history.to_vec();
     let mut ids = Vec::with_capacity(cap);
     for _ in 0..cap {
@@ -938,6 +1050,9 @@ pub fn greedy_reply_with(
         ids,
         eos: false,
         cycle: None,
+        copy_stop: None,
+        stopped_at: Some(cap.saturating_sub(1)),
+        trace: Vec::new(),
     })
 }
 
@@ -1331,6 +1446,7 @@ mod tests {
                     ids: vec![protocol.eos_id],
                     eos: true,
                     cycle: None,
+                    ..Default::default()
                 })
             },
         );

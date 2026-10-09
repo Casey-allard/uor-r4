@@ -1096,6 +1096,9 @@ impl<C: TurnCompiler> GroundedSession<C> {
                 ids: turn.reply_ids.clone(),
                 eos,
                 cycle,
+                trace: Vec::new(),
+                stopped_at: None,
+                copy_stop: None,
             };
             self.validate_reply(&reply)?;
             let text_end = reply.ids.len() - usize::from(eos);
@@ -1699,6 +1702,9 @@ mod tests {
                     ids: generated.clone(),
                     eos: false,
                     cycle: None,
+                    trace: Vec::new(),
+                    stopped_at: None,
+                    copy_stop: None,
                 })
             })
             .expect("controlled leading-space reply");
@@ -1778,6 +1784,9 @@ mod tests {
                     ids: vec![u32::from(b' ') + 3, u32::from(b'x') + 3],
                     eos: false,
                     cycle: None,
+                    trace: Vec::new(),
+                    stopped_at: None,
+                    copy_stop: None,
                 })
             })
             .expect("legacy reply");
@@ -1810,6 +1819,9 @@ mod tests {
                     ids: vec![u32::from(b'o') + 3, u32::from(b'k') + 3],
                     eos: false,
                     cycle: None,
+                    trace: Vec::new(),
+                    stopped_at: None,
+                    copy_stop: None,
                 })
             })
             .expect("fixture turn")
@@ -2656,6 +2668,9 @@ mod tests {
                         ids: vec![114, 110],
                         eos: false,
                         cycle: None,
+                        trace: Vec::new(),
+                        stopped_at: None,
+                        copy_stop: None,
                     })
                 })
                 .is_err()
