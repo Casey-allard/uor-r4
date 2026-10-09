@@ -74,7 +74,11 @@
 //! for [`ReadScore::Lorentz`] `-beta arcosh(1 + e)` with the excess `e =
 //! lift(q_t) lift(k_j) - q_t . k_j - 1`, `lift(x) = sqrt(1 + |x|^2)` (the form
 //! of the fused Lorentz read) and the learned positive scale `beta =
-//! exp(pointer.log_beta)`. The attention `a_t` is the softmax of the scores
+//! exp(pointer.log_beta)`. A Dot pointer may add the token-identity term
+//! [`PointerIdentity`] to that score: the multiset overlap of the source's own
+//! premise window with the query's, mixed at a configurable weight
+//! ([`PointerConfig::identity`], `pointer_score`'s companion). The attention
+//! `a_t` is the softmax of the scores
 //! over the sources the pointer's **own** [`PointerConfig::select`] keeps
 //! ([`PointerSelect`]: the shared flock, or the `k` best alone, `TopK(1)`
 //! being the single-source pointer; `None` keeps every source), so a single
@@ -949,6 +953,58 @@ pub fn parse_pointer_route(text: &str) -> Result<Option<PrimeRoute>> {
     Ok(Some(route))
 }
 
+/// The token-identity term the pointer adds to its learned dot score: for a
+/// candidate source `j`, the multiset Jaccard overlap of the
+/// [`POINTER_IDENTITY_WINDOW`] tokens strictly before `j` (the premise the
+/// source's token follows) with the same window strictly before the query `t`,
+/// times [`POINTER_IDENTITY_SHARPNESS`]. It is the token-level generalization
+/// of the pointer route's key match: unordered and count-based, so a repeated
+/// premise scores even when the order or the surrounding words differ, which is
+/// exactly the case where the route's exact n-let admission froze
+/// (docs/evidence/routed_pointer_frozen_2026-10-09.txt) and where a novel value
+/// shares no n-gram with the question asking about it. A source whose window
+/// would overlap the query's own window (`j + W > t`) scores 0: an overlapping
+/// window shares the query's own positions rather than an earlier occurrence,
+/// and adjacent windows are near-identical whatever the text (the route's own
+/// rule). The source's own token is excluded: it is the candidate value, and in
+/// the recall case it is precisely what the query's premise does not contain.
+/// It matches the window's input tokens, never a routed key fold
+/// ([`StackModel::set_pointer_key_fold`], which stays inert without a route).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PointerIdentity {
+    /// The mixing weight in basis points, 0 to 10000: the scored source is
+    /// `(1 - w) dot_j + w identity_j`, so 0 is the learned dot score alone
+    /// (what an absent field means) and 10000 the identity term alone. Basis
+    /// points keep the weight exact in the configuration and its records.
+    pub weight_bp: u16,
+}
+
+/// Whether a pointer carries no token-identity term: the default, absent from
+/// a saved configuration.
+fn is_no_identity(identity: &Option<PointerIdentity>) -> bool {
+    identity.is_none()
+}
+
+impl PointerIdentity {
+    /// The identity term at mixing weight `weight` in `0.0..=1.0`.
+    pub fn from_weight(weight: f64) -> Result<Self> {
+        if !(weight.is_finite() && (0.0..=1.0).contains(&weight)) {
+            return Err(invalid(format!(
+                "the pointer's identity weight is {weight}: a mixing weight in 0..=1"
+            )));
+        }
+        Ok(Self {
+            weight_bp: (weight * 10_000.0).round() as u16,
+        })
+    }
+
+    /// The mixing weight in `0..=1`.
+    pub fn weight(self) -> f32 {
+        f32::from(self.weight_bp) / 10_000.0
+    }
+}
+
 /// The pointer-copy head (A1): `dim` is the width of its query and key.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PointerConfig {
@@ -959,6 +1015,11 @@ pub struct PointerConfig {
     /// `pointer.log_beta`.
     #[serde(default = "default_pointer_score", skip_serializing_if = "is_dot")]
     pub score: ReadScore,
+    /// The token-identity term of the dot score ([`PointerIdentity`]); absent
+    /// (the default, and what a configuration saved before the field means)
+    /// scores by the learned dot product alone, bit for bit.
+    #[serde(default, skip_serializing_if = "is_no_identity")]
+    pub identity: Option<PointerIdentity>,
     /// The sources the pointer softmaxes over; `None` keeps them all. It is the
     /// pointer's own: [`StackConfig::select`] never applies to it.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1057,6 +1118,12 @@ fn is_false(flag: &bool) -> bool {
 pub const MAX_ROUTE_WINDOW: usize = 6;
 /// The fixed sharpness of the route's softmax over `ln gcd` scores.
 pub const ROUTE_SHARPNESS: f64 = 4.0;
+/// Tokens of context each side of the pointer's token-identity term compares:
+/// the source's own premise window and the query's ([`PointerIdentity`]).
+pub const POINTER_IDENTITY_WINDOW: usize = 6;
+/// The score of a source whose premise window the query's window repeats
+/// exactly: the identity term's sharpness, the analogue of [`ROUTE_SHARPNESS`].
+pub const POINTER_IDENTITY_SHARPNESS: f32 = 4.0;
 /// The weight of recency in a route score, below `ln 2`.
 const ROUTE_RECENCY: f64 = 0.5;
 /// How many token ids have a registered prime.
@@ -1241,6 +1308,7 @@ impl PointerConfig {
         Self {
             dim,
             score: ReadScore::Dot,
+            identity: None,
             select: None,
             init_seed: None,
             route: None,
@@ -1259,11 +1327,32 @@ impl PointerConfig {
             if self.select.is_some() {
                 return Err(invalid("a routed pointer has no selection"));
             }
+            if self.identity.is_some() {
+                return Err(invalid(
+                    "a routed pointer has no identity term: the route replaces the learned score \
+                     the identity mixes with",
+                ));
+            }
         }
         if self.score == ReadScore::L2 {
             return Err(invalid(
                 "the pointer head scores with dot or lorentz; the L2 control is a read score only",
             ));
+        }
+        if let Some(identity) = &self.identity {
+            if identity.weight_bp > 10_000 {
+                return Err(invalid(format!(
+                    "the pointer's identity weight is {} basis points: a mixing weight in \
+                     0..=10000 (0 is the dot score alone, what an absent field means)",
+                    identity.weight_bp
+                )));
+            }
+            if self.score != ReadScore::Dot {
+                return Err(invalid(
+                    "the pointer's identity term mixes with the dot score: it needs \
+                     pointer_score=dot (a Lorentz pointer has the learned scale instead)",
+                ));
+            }
         }
         Ok(())
     }
@@ -2038,6 +2127,35 @@ impl StackModel {
                 return Err(invalid("the model has no pointer head to select for"))
             }
             None => {}
+        }
+        Ok(())
+    }
+
+    /// Replace the token-identity term the pointer adds to its dot score
+    /// ([`PointerIdentity`]), or clear it. The parameters do not change: the
+    /// term is a function of the input tokens alone, so this applies it to
+    /// weights trained without one and clearing it restores the learned dot
+    /// score bit for bit. `Some` is refused on a model without a pointer head,
+    /// on a routed or Lorentz pointer, and outside the weight bounds.
+    pub fn set_pointer_identity(&mut self, identity: Option<PointerIdentity>) -> Result<()> {
+        let Some(pointer) = self.config.pointer else {
+            return match identity {
+                Some(_) => Err(invalid(
+                    "the model has no pointer head to score by identity",
+                )),
+                None => Ok(()),
+            };
+        };
+        if identity.is_some() && pointer.route.is_some() {
+            return Err(invalid(
+                "a routed pointer has no identity term; clear the route first",
+            ));
+        }
+        let mut edited = pointer;
+        edited.identity = identity;
+        edited.validate()?;
+        if let Some(pointer) = self.config.pointer.as_mut() {
+            pointer.identity = identity;
         }
         Ok(())
     }
@@ -7042,6 +7160,7 @@ impl StackModel {
                 time,
                 dim: pointer.dim,
                 score: pointer.score,
+                identity: pointer.identity,
                 select: pointer.select,
                 route: pointer.route,
                 ids: ids.to_vec(),
@@ -7460,13 +7579,20 @@ impl StackModel {
         let rule = PointerRule {
             dim: pointer.dim,
             score: pointer.score,
+            identity: pointer.identity,
             select: pointer.select,
             beta: one_value(&self.pointer_beta(&p)?)?,
             route: pointer.route,
         };
+        // A routed pointer matches keys on the fold; the token-identity term
+        // matches on the input tokens, so a fold stays inert without a route.
         let keys = self.pointer_route_keys(ids);
-        let attention =
-            pointer_attention(&side, 0, time - 1, &rule, keys.as_deref().unwrap_or(ids))?;
+        let matched: &[u32] = if pointer.route.is_some() {
+            keys.as_deref().unwrap_or(ids)
+        } else {
+            ids
+        };
+        let attention = pointer_attention(&side, 0, time - 1, &rule, matched)?;
         let gate = sigmoid_f64(f64::from(
             side[(time - 1) * (2 * pointer.dim + 1) + 2 * pointer.dim],
         ));
@@ -8052,6 +8178,7 @@ impl StackModel {
             time,
             dim: pointer.dim,
             score: pointer.score,
+            identity: pointer.identity,
             select: pointer.select,
             route: pointer.route,
             ids: ids.to_vec(),
@@ -8127,13 +8254,20 @@ impl StackModel {
         let rule = PointerRule {
             dim: pointer.dim,
             score: pointer.score,
+            identity: pointer.identity,
             select: pointer.select,
             beta: one_value(&self.pointer_beta(&p)?)?,
             route: pointer.route,
         };
+        // A routed pointer matches keys on the fold; the token-identity term
+        // matches on the input tokens, so a fold stays inert without a route.
         let keys = self.pointer_route_keys(ids);
-        let attention =
-            pointer_attention(&side, 0, time - 1, &rule, keys.as_deref().unwrap_or(ids))?;
+        let matched: &[u32] = if pointer.route.is_some() {
+            keys.as_deref().unwrap_or(ids)
+        } else {
+            ids
+        };
+        let attention = pointer_attention(&side, 0, time - 1, &rule, matched)?;
         let gate = sigmoid_f64(f64::from(
             side[(time - 1) * (2 * pointer.dim + 1) + 2 * pointer.dim],
         ));
@@ -14034,6 +14168,7 @@ pub fn pointer_mixture_loss(
             time,
             dim: (width - 1) / 2,
             score,
+            identity: None,
             select: None,
             route: None,
             ids: ids.to_vec(),
@@ -14097,6 +14232,7 @@ pub fn pointer_mixture_loss_supervised(
             time,
             dim: (width - 1) / 2,
             score,
+            identity: None,
             select: None,
             route: None,
             ids: ids.to_vec(),
@@ -14177,6 +14313,9 @@ struct PointerRule {
     /// Width of the pointer's query and key.
     dim: usize,
     score: ReadScore,
+    /// The token-identity term mixed into the dot score, if any
+    /// ([`PointerIdentity`]).
+    identity: Option<PointerIdentity>,
     /// The pointer's own selection; the reads' flock is not consulted.
     select: Option<PointerSelect>,
     /// The Lorentz scale `exp(pointer.log_beta)`; Dot has none.
@@ -14232,27 +14371,96 @@ fn lorentz_terms(query: &[f32], key: &[f32]) -> LorentzTerms {
     }
 }
 
+/// The pointer's token-identity score of every source `0..=t` of position `t`
+/// (row `first + t` of `side`; `ids` is indexed like `side`'s rows):
+/// `POINTER_IDENTITY_SHARPNESS` times the multiset Jaccard overlap
+/// `|A ∩ B| / |A ∪ B|` of the [`POINTER_IDENTITY_WINDOW`] tokens strictly
+/// before the source `j` (`A`, the premise the source's token follows) with the
+/// same window strictly before the query (`B`), 0 on a source whose window
+/// would overlap the query's own (`j + W > t`) and on the query itself. The
+/// source's own token is excluded; see [`PointerIdentity`].
+fn pointer_identity_scores(ids: &[u32], first: usize, t: usize) -> Vec<f32> {
+    let window = POINTER_IDENTITY_WINDOW;
+    let query = &ids[first + t.saturating_sub(window)..first + t];
+    (0..=t)
+        .map(|j| {
+            if j + window > t {
+                return 0.0;
+            }
+            let source = &ids[first + j.saturating_sub(window)..first + j];
+            // The multiset intersection: each occurrence of a token counts once
+            // while both windows still hold one.
+            let mut overlap = 0usize;
+            for (position, &token) in source.iter().enumerate() {
+                let in_source = source[..=position].iter().filter(|&&x| x == token).count();
+                let in_query = query.iter().filter(|&&x| x == token).count();
+                if in_source <= in_query {
+                    overlap += 1;
+                }
+            }
+            let union = source.len() + query.len() - overlap;
+            if union == 0 {
+                return 0.0;
+            }
+            POINTER_IDENTITY_SHARPNESS * (overlap as f32 / union as f32)
+        })
+        .collect()
+}
+
 /// The pointer's scores of position `t` (row `first + t` of `side`) over the
 /// sources `0..=t`: `q_t . k_j / sqrt(dim)` for Dot, `-beta arcosh(1 + e)` for
-/// Lorentz, rounded to f32 as the reads' scores are.
-fn pointer_scores(side: &[f32], first: usize, t: usize, rule: &PointerRule) -> Vec<f32> {
+/// Lorentz, rounded to f32 as the reads' scores are. A Dot pointer with an
+/// identity term ([`PointerConfig::identity`]) scores the convex mix
+/// `(1 - w) q_t . k_j / sqrt(dim) + w identity_j` of that dot product with
+/// [`pointer_identity_scores`], whose ids are therefore needed; with no
+/// identity term (the default, and every configuration saved before the field)
+/// the Dot score is the expression below alone, bit for bit.
+fn pointer_scores(
+    side: &[f32],
+    first: usize,
+    t: usize,
+    rule: &PointerRule,
+    ids: &[u32],
+) -> candle_core::Result<Vec<f32>> {
     let query = pointer_query(side, rule.dim, first + t);
     match rule.score {
         ReadScore::Dot => {
             let scale = 1.0 / (rule.dim as f32).sqrt();
-            (0..=t)
+            let dot_scores: Vec<f32> = (0..=t)
                 .map(|j| dot(query, pointer_key(side, rule.dim, first + j)) * scale)
-                .collect()
+                .collect();
+            let Some(identity) = rule.identity else {
+                return Ok(dot_scores);
+            };
+            if identity.weight_bp == 0 {
+                // The lower bound: the mix is the dot score alone, bit for bit,
+                // and needs no ids.
+                return Ok(dot_scores);
+            }
+            if ids.get(first..=first + t).is_none() {
+                candle_core::bail!("an identity pointer needs the window's token ids");
+            }
+            let identity_scores = pointer_identity_scores(ids, first, t);
+            // 0 basis points is the dot score alone (and an absent field), 10000
+            // the identity term alone: `(1 - w) dot + w identity` at both ends.
+            let weight = identity.weight();
+            Ok(dot_scores
+                .iter()
+                .zip(&identity_scores)
+                .map(|(&dot_score, &identity_score)| {
+                    (1.0 - weight) * dot_score + weight * identity_score
+                })
+                .collect())
         }
-        ReadScore::Lorentz => (0..=t)
+        ReadScore::Lorentz => Ok((0..=t)
             .map(|j| {
                 let key = pointer_key(side, rule.dim, first + j);
                 (-rule.beta * lorentz_terms(query, key).distance) as f32
             })
-            .collect(),
+            .collect()),
         // Unreachable: PointerConfig::validate refuses an L2 pointer. The
         // flat distance is the forward value it would have.
-        ReadScore::L2 => (0..=t)
+        ReadScore::L2 => Ok((0..=t)
             .map(|j| {
                 let key = pointer_key(side, rule.dim, first + j);
                 let squared: f64 = query
@@ -14262,7 +14470,7 @@ fn pointer_scores(side: &[f32], first: usize, t: usize, rule: &PointerRule) -> V
                     .sum();
                 (-rule.beta * l2_distance(squared)) as f32
             })
-            .collect(),
+            .collect()),
     }
 }
 
@@ -14307,12 +14515,12 @@ fn pointer_attention(
         // The window's tokens: `ids` is indexed like `side`'s rows.
         Some(route) => match ids.get(first..=first + t) {
             Some(window) if route.ranked => {
-                ranked_attention(pointer_scores(side, first, t, rule), window, t, route)
+                ranked_attention(pointer_scores(side, first, t, rule, ids)?, window, t, route)
             }
             Some(window) => Ok(route_attention(window, t, route)),
             None => candle_core::bail!("a routed pointer needs the window's token ids"),
         },
-        None => pointer_weights(pointer_scores(side, first, t, rule), rule.select),
+        None => pointer_weights(pointer_scores(side, first, t, rule, ids)?, rule.select),
     }
 }
 
@@ -14368,6 +14576,10 @@ struct PointerMixture {
     time: usize,
     dim: usize,
     score: ReadScore,
+    /// The token-identity term mixed into the dot score, if any
+    /// ([`PointerIdentity`]); it is a function of `ids` alone, so it adds no
+    /// parameter and no gradient.
+    identity: Option<PointerIdentity>,
     select: Option<PointerSelect>,
     /// Exact prime routing of the sources ([`PrimeRoute`]): no score gradient.
     route: Option<PrimeRoute>,
@@ -14416,6 +14628,7 @@ impl PointerMixture {
         PointerRule {
             dim: self.dim,
             score: self.score,
+            identity: self.identity,
             select: self.select,
             beta,
             route: self.route,
@@ -14433,9 +14646,15 @@ impl PointerMixture {
         let (first, t) = (n - n % self.time, n % self.time);
         let target = self.targets[n];
         // A routed pointer matches keys on `keys` (canonical ids) when set;
-        // what it copies is always the input token.
-        let keys = self.keys.as_deref().unwrap_or(&self.ids);
-        let attention = pointer_attention(side, first, t, &self.rule(beta), keys)?;
+        // what it copies is always the input token, and the token-identity term
+        // (never set with a route) matches on the input tokens, so a key fold
+        // stays inert without a route.
+        let matched: &[u32] = if self.route.is_some() {
+            self.keys.as_deref().unwrap_or(&self.ids)
+        } else {
+            &self.ids
+        };
+        let attention = pointer_attention(side, first, t, &self.rule(beta), matched)?;
         let copy: f64 = attention
             .iter()
             .zip(&self.ids[first..=first + t])
@@ -14605,6 +14824,12 @@ impl CustomOp3 for PointerMixture {
         let stride = 2 * dim + 1;
         let scale = 1.0 / (dim as f64).sqrt();
         let lorentz = self.score == ReadScore::Lorentz;
+        // The token-identity term is a function of the ids alone: it moves the
+        // score, and so the softmax, but the derivative of the score is the dot
+        // product's alone at the mixing weight `1 - w`. Without the term the
+        // factor is exactly 1, so the query and key gradients are the ones
+        // computed before it existed, bit for bit.
+        let mix = 1.0 - f64::from(self.identity.map_or(0.0, PointerIdentity::weight));
         let z = logits.flatten_all()?.to_vec1::<f32>()?;
         let s = side.flatten_all()?.to_vec1::<f32>()?;
         let beta_value = beta
@@ -14720,7 +14945,7 @@ impl CustomOp3 for PointerMixture {
                         } else {
                             d_score[j] = d_source;
                             for (slot, &value) in d_query.iter_mut().zip(key) {
-                                *slot += d_source * scale * f64::from(value);
+                                *slot += d_source * mix * scale * f64::from(value);
                             }
                         }
                     }
@@ -14755,7 +14980,7 @@ impl CustomOp3 for PointerMixture {
                         }
                     } else {
                         for (slot, &value) in d_key.iter_mut().zip(query) {
-                            *slot += c * scale * f64::from(value);
+                            *slot += c * mix * scale * f64::from(value);
                         }
                     }
                 }
@@ -23820,6 +24045,7 @@ mod tests {
                     let rule = PointerRule {
                         dim,
                         score,
+                        identity: None,
                         select,
                         beta,
                         route: None,
@@ -23892,6 +24118,7 @@ mod tests {
         let rule = PointerRule {
             dim: width,
             score: ReadScore::Lorentz,
+            identity: None,
             select: None,
             beta,
             route: None,
@@ -23907,6 +24134,475 @@ mod tests {
                 );
             }
         }
+        Ok(())
+    }
+
+    /// A dot-score pointer rule of width 1 (side rows are `[q, k, gate]`) with
+    /// the identity term at `weight_bp` basis points.
+    fn identity_rule(weight_bp: u16) -> PointerRule {
+        PointerRule {
+            dim: 1,
+            score: ReadScore::Dot,
+            identity: Some(PointerIdentity { weight_bp }),
+            select: None,
+            beta: 0.0,
+            route: None,
+        }
+    }
+
+    /// Side rows `[1, key_j, 0]` of width 1: the query is 1 everywhere, so the
+    /// Dot score of source `j` is exactly `key_j` (`1 / sqrt(1) = 1`).
+    fn identity_side(keys: &[f32]) -> Vec<f32> {
+        keys.iter().flat_map(|&key| [1.0f32, key, 0.0]).collect()
+    }
+
+    /// The window of the identity tests: turn 1 is `101 102 103 104 105`, the
+    /// query's own window (positions 5..10) repeats `101 102`, and its last
+    /// token is 205. Source 2 (`j = 2`) is the source a token-identity match
+    /// names: its whole premise window `{101, 102}` is repeated (`2 / 6` of the
+    /// union), against source 3's `{101, 102, 103}` (`2 / 7`) and source 1's
+    /// `{101}` (`1 / 6`). Everything from position 6 on is ineligible: its
+    /// window would overlap the query's own.
+    fn identity_ids() -> Vec<u32> {
+        vec![101, 102, 103, 104, 105, 101, 102, 201, 202, 203, 204, 205]
+    }
+
+    #[test]
+    fn the_identity_term_scores_a_source_the_dot_product_cannot_name() -> Result<()> {
+        let ids = identity_ids();
+        let t = ids.len() - 1;
+        // The dot product prefers source 3 (key 1 against key 0 elsewhere); the
+        // identity term must put its mass on source 2 instead.
+        let side = identity_side(&[0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
+        let plain = PointerRule {
+            identity: None,
+            ..identity_rule(0)
+        };
+        let dot_scores = pointer_scores(&side, 0, t, &plain, &ids)?;
+        assert_eq!(
+            dot_scores.iter().position(|&s| s == 1.0),
+            Some(3),
+            "{dot_scores:?}"
+        );
+        let mut best = 0usize;
+        for (j, &score) in dot_scores.iter().enumerate() {
+            if score > dot_scores[best] {
+                best = j;
+            }
+        }
+        assert_eq!(best, 3, "the dot product names source 3: {dot_scores:?}");
+
+        // The identity term alone names source 2: `|{101, 102}| / |{101, 102} ∪
+        // {101, 102, 201, 202, 203, 204}| = 2/6`, against source 3's
+        // `2 / |{101, 102, 103} ∪ B| = 2/7`.
+        let identity = pointer_identity_scores(&ids, 0, t);
+        let want = |overlap: f32, union: f32| POINTER_IDENTITY_SHARPNESS * (overlap / union);
+        assert_eq!(identity[2], want(2.0, 6.0), "{identity:?}");
+        assert_eq!(identity[3], want(2.0, 7.0), "{identity:?}");
+        assert_eq!(identity[0], 0.0, "{identity:?}");
+        // A source whose window would overlap the query's own, and every source
+        // after it, scores 0 whatever the tokens are.
+        assert!(identity[6..].iter().all(|&s| s == 0.0), "{identity:?}");
+
+        // Pure dot (the default) keeps source 3; the mixed and pure identity
+        // scores move the whole attention to source 2, and the mass there only
+        // grows with the weight.
+        let mut mass = Vec::new();
+        for weight_bp in [0u16, 2_500, 5_000, 7_500, 10_000] {
+            let rule = identity_rule(weight_bp);
+            let scores = pointer_scores(&side, 0, t, &rule, &ids)?;
+            let weight = rule.identity.expect("the rule's identity").weight();
+            for j in 0..=t {
+                let mixed = (1.0 - weight) * dot_scores[j] + weight * identity[j];
+                assert_eq!(scores[j], mixed, "weight {weight_bp}, source {j}");
+            }
+            let attention = pointer_attention(&side, 0, t, &rule, &ids)?;
+            mass.push(attention[2]);
+        }
+        assert_eq!(mass[0], pointer_attention(&side, 0, t, &plain, &ids)?[2]);
+        assert!(
+            mass.windows(2).all(|pair| pair[0] < pair[1]),
+            "the mass on the identity source must grow with the weight: {mass:?}"
+        );
+        let pure_identity = pointer_attention(&side, 0, t, &identity_rule(10_000), &ids)?;
+        let argmax = pure_identity
+            .iter()
+            .enumerate()
+            .max_by(|a, b| a.1.total_cmp(b.1))
+            .map(|(j, _)| j);
+        assert_eq!(argmax, Some(2), "{pure_identity:?}");
+        Ok(())
+    }
+
+    #[test]
+    fn a_zero_identity_weight_is_the_dot_score_bit_for_bit() -> Result<()> {
+        let ids = identity_ids();
+        let t = ids.len() - 1;
+        let side = identity_side(&[
+            0.3, -0.2, 0.7, 1.4, -0.9, 0.1, 0.0, 0.5, -1.3, 0.2, 0.8, -0.4,
+        ]);
+        let plain = PointerRule {
+            identity: None,
+            ..identity_rule(0)
+        };
+        // `weight_bp = 0` is the lower bound: the dot score alone, bit for bit,
+        // and it needs no ids at all (an empty slice is enough).
+        for zero in [
+            PointerIdentity { weight_bp: 0 },
+            PointerIdentity::from_weight(0.0)?,
+        ] {
+            let rule = PointerRule {
+                identity: Some(zero),
+                ..plain
+            };
+            let scored = pointer_scores(&side, 0, t, &rule, &ids)?;
+            let plain_scores = pointer_scores(&side, 0, t, &plain, &ids)?;
+            let without_ids = pointer_scores(&side, 0, t, &rule, &[])?;
+            for j in 0..=t {
+                assert_eq!(scored[j].to_bits(), plain_scores[j].to_bits(), "source {j}");
+                assert_eq!(
+                    without_ids[j].to_bits(),
+                    plain_scores[j].to_bits(),
+                    "source {j}"
+                );
+            }
+            for select in [None, Some(PointerSelect::TopK(2))] {
+                let rule = PointerRule { select, ..rule };
+                let plain = PointerRule { select, ..plain };
+                let a = pointer_attention(&side, 0, t, &rule, &ids)?;
+                let b = pointer_attention(&side, 0, t, &plain, &ids)?;
+                for j in 0..=t {
+                    assert_eq!(a[j].to_bits(), b[j].to_bits(), "{select:?} source {j}");
+                }
+            }
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn a_zero_identity_term_only_rescales_the_dot_scores() -> Result<()> {
+        // All tokens distinct: no source window shares a token with the
+        // query's, so every identity score is exactly 0.
+        let ids: Vec<u32> = (300..312u32).collect();
+        let t = ids.len() - 1;
+        let side = identity_side(&[
+            0.3, -0.2, 0.7, 1.4, -0.9, 0.1, 0.0, 0.5, -1.3, 0.2, 0.8, -0.4,
+        ]);
+        let identity = pointer_identity_scores(&ids, 0, t);
+        assert!(identity.iter().all(|&s| s == 0.0), "{identity:?}");
+        let plain = PointerRule {
+            identity: None,
+            ..identity_rule(0)
+        };
+        let dot_scores = pointer_scores(&side, 0, t, &plain, &ids)?;
+        let half = pointer_scores(&side, 0, t, &identity_rule(5_000), &ids)?;
+        for j in 0..=t {
+            // (1 - w) dot + w 0 with w = 0.5 is exactly half the dot score.
+            assert_eq!(half[j], 0.5 * dot_scores[j], "source {j}");
+        }
+        // The ranking is the dot ranking, unchanged.
+        let order = |scores: &[f32]| {
+            let mut order: Vec<usize> = (0..scores.len()).collect();
+            order.sort_by(|&a, &b| scores[b].total_cmp(&scores[a]));
+            order
+        };
+        assert_eq!(order(&half), order(&dot_scores));
+        Ok(())
+    }
+
+    #[test]
+    fn the_identity_mixture_keeps_the_dot_gradients_exact() -> Result<()> {
+        // The term is a function of the ids alone, so it adds no parameter and
+        // no gradient: the op's query and key gradients are the dot ones and
+        // must still be the derivative of the mixture it scores.
+        let (vocabulary, time, dim) = (4usize, 6usize, 2usize);
+        let stride = 2 * dim + 1;
+        let ids = vec![1u32, 2, 1, 3, 2, 1];
+        let targets = vec![2u32, 1, 3, 1, 1, 2];
+        let mut rng = Initializer(9);
+        let logit_rows: Vec<f32> = (0..time * vocabulary)
+            .map(|_| (rng.normal() * 0.7) as f32)
+            .collect();
+        let side_values: Vec<f32> = (0..time * stride)
+            .map(|_| (rng.normal() * 0.9) as f32)
+            .collect();
+        let weighted = Some(PointerIdentity { weight_bp: 5_000 });
+        let op = |identity: Option<PointerIdentity>| PointerMixture {
+            time,
+            dim,
+            score: ReadScore::Dot,
+            identity,
+            select: None,
+            route: None,
+            ids: ids.clone(),
+            keys: None,
+            targets: targets.clone(),
+            weights: None,
+            supervise: false,
+        };
+        // The op's forward value in f64, as its mean over the rows.
+        let value = |side: &[f32], identity: Option<PointerIdentity>| -> Result<f64> {
+            let mut sum = 0.0;
+            for n in 0..time {
+                let row = op(identity).evaluate(
+                    &logit_rows[n * vocabulary..(n + 1) * vocabulary],
+                    side,
+                    0.0,
+                    n,
+                )?;
+                sum -= row.log_mixture;
+            }
+            Ok(sum / time as f64)
+        };
+        let logits = Var::from_vec(logit_rows.clone(), (time, vocabulary), &cpu())?;
+        let side = Var::from_vec(side_values.clone(), (time, stride), &cpu())?;
+        let beta = Var::from_vec(vec![0.0f32], 1, &cpu())?;
+        let loss =
+            logits
+                .as_tensor()
+                .apply_op3(side.as_tensor(), beta.as_tensor(), op(weighted))?;
+        let forward = f64::from(loss.to_scalar::<f32>()?);
+        let reference = value(&side_values, weighted)?;
+        assert!(
+            (forward - reference).abs() < 1e-5 * reference.abs().max(1.0),
+            "{forward} against {reference}"
+        );
+        // The term moves the loss, and the dot-only value is the plain mixture.
+        let plain = value(&side_values, None)?;
+        assert!(
+            (plain - reference).abs() > 1e-6,
+            "{plain} against {reference}"
+        );
+        let grads = loss.backward()?;
+        let d_side = grads
+            .get(side.as_tensor())
+            .ok_or_else(|| invalid("no side gradient"))?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        for i in 0..side_values.len() {
+            let (mut plus, mut minus) = (side_values.clone(), side_values.clone());
+            plus[i] += 1e-3;
+            minus[i] -= 1e-3;
+            let step = f64::from(plus[i]) - f64::from(minus[i]);
+            let want = (value(&plus, weighted)? - value(&minus, weighted)?) / step;
+            assert!(
+                (f64::from(d_side[i]) - want).abs() < 2e-3,
+                "side {i}: {} against {want}",
+                d_side[i]
+            );
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn a_key_fold_is_inert_without_a_route_for_the_identity_term() -> Result<()> {
+        // The fold is the routed pointer's key matching device
+        // (`StackModel::set_pointer_key_fold`); the identity term matches the
+        // window's input tokens, so a folded key sequence scores exactly the
+        // attention no fold does.
+        let (vocabulary, time, dim) = (4usize, 6usize, 2usize);
+        let stride = 2 * dim + 1;
+        let ids = vec![1u32, 2, 1, 3, 2, 1];
+        let targets = vec![0u32; time];
+        let logit_rows: Vec<f32> = (0..time * vocabulary)
+            .map(|i| 0.1 * i as f32 - 0.5)
+            .collect();
+        let side: Vec<f32> = (0..time * stride).map(|i| 0.2 * i as f32 - 1.0).collect();
+        let mixture = |keys: Option<Vec<u32>>| PointerMixture {
+            time,
+            dim,
+            score: ReadScore::Dot,
+            identity: Some(PointerIdentity { weight_bp: 5_000 }),
+            select: None,
+            route: None,
+            ids: ids.clone(),
+            keys,
+            targets: targets.clone(),
+            weights: None,
+            supervise: false,
+        };
+        let plain = mixture(None);
+        // A fold that renames every token: were it read, no source would score.
+        let folded = mixture(Some(vec![7u32; time]));
+        for n in 0..time {
+            let a = plain.evaluate(
+                &logit_rows[n * vocabulary..(n + 1) * vocabulary],
+                &side,
+                0.0,
+                n,
+            )?;
+            let b = folded.evaluate(
+                &logit_rows[n * vocabulary..(n + 1) * vocabulary],
+                &side,
+                0.0,
+                n,
+            )?;
+            assert_eq!(
+                a.attention.iter().map(|w| w.to_bits()).collect::<Vec<_>>(),
+                b.attention.iter().map(|w| w.to_bits()).collect::<Vec<_>>(),
+                "row {n}"
+            );
+            assert_eq!(a.log_mixture.to_bits(), b.log_mixture.to_bits(), "row {n}");
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn the_identity_weight_bounds_are_pure_dot_and_pure_identity() -> Result<()> {
+        let ids = identity_ids();
+        let t = ids.len() - 1;
+        let side = identity_side(&[
+            0.3, -0.2, 0.7, 1.4, -0.9, 0.1, 0.0, 0.5, -1.3, 0.2, 0.8, -0.4,
+        ]);
+        let identity = pointer_identity_scores(&ids, 0, t);
+        // 1.0 is the upper bound: the identity score alone, exactly, whatever
+        // the queries and keys are.
+        let pure = pointer_scores(&side, 0, t, &identity_rule(10_000), &ids)?;
+        for j in 0..=t {
+            assert_eq!(pure[j], identity[j], "source {j}");
+        }
+        let other = identity_side(&[
+            88.0, 7.0, -5.0, 3.5, -0.25, 12.0, 1.0, -9.0, 2.0, 0.0, 6.0, -3.0,
+        ]);
+        let pure_other = pointer_scores(&other, 0, t, &identity_rule(10_000), &ids)?;
+        for j in 0..=t {
+            assert_eq!(pure_other[j], pure[j], "source {j}: the dot term survived");
+        }
+        // 0.0 is the lower bound: the dot score alone (the absence of the term).
+        let plain = PointerRule {
+            identity: None,
+            ..identity_rule(0)
+        };
+        let dot_scores = pointer_scores(&side, 0, t, &plain, &ids)?;
+        let zero = pointer_scores(&side, 0, t, &identity_rule(0), &ids)?;
+        for j in 0..=t {
+            assert_eq!(zero[j].to_bits(), dot_scores[j].to_bits(), "source {j}");
+            if identity[j] != 0.0 {
+                assert_ne!(pure[j], zero[j], "source {j}");
+            }
+        }
+        // The weight's bounds and the conversion to basis points.
+        assert_eq!(PointerIdentity::from_weight(0.0)?.weight_bp, 0);
+        assert_eq!(PointerIdentity::from_weight(0.5)?.weight_bp, 5_000);
+        assert_eq!(PointerIdentity::from_weight(1.0)?.weight_bp, 10_000);
+        assert_eq!(PointerIdentity { weight_bp: 5_000 }.weight(), 0.5);
+        for bad in [-0.1, 1.1, f64::NAN, f64::INFINITY] {
+            assert!(PointerIdentity::from_weight(bad).is_err(), "{bad}");
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn a_pointer_saved_without_the_identity_field_scores_as_before() -> Result<()> {
+        // The saved configuration of a Dot pointer is the same JSON as before
+        // the field existed: the identity term is absent, not null or zero.
+        let config = PointerConfig::new(8);
+        let saved = serde_json::to_value(config)?;
+        assert_eq!(saved, serde_json::json!({"dim": 8}), "{saved}");
+        let legacy: PointerConfig = serde_json::from_str("{\"dim\":8}")?;
+        assert_eq!(legacy, config);
+        assert!(legacy.identity.is_none());
+        // A saved identity pointer round-trips exactly, and an unknown weight
+        // field is refused rather than silently ignored.
+        let identity = PointerConfig {
+            identity: Some(PointerIdentity::from_weight(0.25)?),
+            ..config
+        };
+        let json = serde_json::to_string(&identity)?;
+        assert_eq!(
+            serde_json::from_str::<PointerConfig>(&json)?,
+            identity,
+            "{json}"
+        );
+        assert!(
+            serde_json::from_str::<PointerConfig>("{\"dim\":8,\"identity\":{\"weight\":0.5}}")
+                .is_err()
+        );
+        // The term is a dot-score term, and a route replaces the learned score
+        // it mixes with; a weight above 1 is refused.
+        for bad in [
+            PointerConfig {
+                score: ReadScore::Lorentz,
+                ..identity
+            },
+            PointerConfig {
+                route: Some(PrimeRoute::exact(2)),
+                ..identity
+            },
+            PointerConfig {
+                identity: Some(PointerIdentity { weight_bp: 10_001 }),
+                ..config
+            },
+        ] {
+            assert!(bad.validate().is_err(), "{bad:?}");
+        }
+        assert!(identity.validate().is_ok());
+        // The default head and a head whose identity term is off at weight 0
+        // have the same weights (the term has no parameters) and the same loss,
+        // bit for bit.
+        let ids: Vec<u32> = (0..24u32).map(|i| (i * 5 + 1) % 6).collect();
+        let targets: Vec<u32> = (0..24u32).map(|i| (i * 3 + 2) % 6).collect();
+        let weights: Vec<f32> = (0..24).map(|_| 1.0).collect();
+        let mut plain = pointer_model(ReadScore::Dot, None, 0)?;
+        let mut zero = pointer_model(ReadScore::Dot, None, 0)?;
+        assert_eq!(plain.parameter_count(), zero.parameter_count());
+        zero.set_pointer_identity(Some(PointerIdentity::from_weight(0.0)?))?;
+        for (name, var) in plain.variables() {
+            let other = &zero.variables()[name];
+            assert_eq!(
+                var.as_tensor().flatten_all()?.to_vec1::<f32>()?,
+                other.as_tensor().flatten_all()?.to_vec1::<f32>()?,
+                "{name}"
+            );
+        }
+        let a = plain.weighted_loss(&ids, &targets, &weights, 2, 12)?;
+        let b = zero.weighted_loss(&ids, &targets, &weights, 2, 12)?;
+        assert_eq!(
+            a.to_scalar::<f32>()?.to_bits(),
+            b.to_scalar::<f32>()?.to_bits()
+        );
+        // Turning the term on needs the ids and moves the loss (the tiny
+        // model's tokens do repeat, so its identity scores are not all zero).
+        zero.set_pointer_identity(Some(PointerIdentity::from_weight(1.0)?))?;
+        let c = zero.weighted_loss(&ids, &targets, &weights, 2, 12)?;
+        assert_ne!(
+            c.to_scalar::<f32>()?.to_bits(),
+            a.to_scalar::<f32>()?.to_bits()
+        );
+        // Clearing it restores the plain mixture bit for bit, and a model
+        // without a head refuses the term.
+        zero.set_pointer_identity(None)?;
+        let again = zero.weighted_loss(&ids, &targets, &weights, 2, 12)?;
+        assert_eq!(
+            again.to_scalar::<f32>()?.to_bits(),
+            a.to_scalar::<f32>()?.to_bits()
+        );
+        assert!(StackModel::new(
+            tiny(StackArch::Geometric, "ar", ReadScore::Lorentz, true),
+            &cpu()
+        )?
+        .set_pointer_identity(Some(PointerIdentity::from_weight(0.5)?))
+        .is_err());
+        // `weighted_loss` of the plain model already uses a head trained
+        // without the term: the term is not a parameter, so the two models
+        // above are the same weights with a different score.
+        plain.set_pointer_identity(Some(PointerIdentity::from_weight(0.5)?))?;
+        let mixed = plain.weighted_loss(&ids, &targets, &weights, 2, 12)?;
+        assert!(mixed.to_scalar::<f32>()?.is_finite());
+        // A saved model carries the term: the reloaded head scores and losses
+        // exactly as the saved one.
+        let directory =
+            std::env::temp_dir().join(format!("uor-r4-pointer-identity-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&directory);
+        plain.save(&directory)?;
+        let loaded = StackModel::load(&directory, &cpu())?;
+        assert_eq!(loaded.config.pointer, plain.config.pointer);
+        let reloaded = loaded.weighted_loss(&ids, &targets, &weights, 2, 12)?;
+        assert_eq!(
+            reloaded.to_scalar::<f32>()?.to_bits(),
+            mixed.to_scalar::<f32>()?.to_bits()
+        );
+        fs::remove_dir_all(&directory)?;
         Ok(())
     }
 
@@ -25115,6 +25811,7 @@ mod tests {
             time,
             dim,
             score: ReadScore::Dot,
+            identity: None,
             select: None,
             route: None,
             ids: ids.clone(),
@@ -25193,6 +25890,7 @@ mod tests {
                 time,
                 dim,
                 score,
+                identity: None,
                 select: None,
                 route: None,
                 ids: ids.clone(),
@@ -25250,6 +25948,7 @@ mod tests {
             time: 2,
             dim: 1,
             score: ReadScore::Dot,
+            identity: None,
             select: None,
             route: None,
             ids: ids.clone(),
@@ -25624,6 +26323,7 @@ mod tests {
         new.pointer = Some(PointerConfig {
             dim: 4,
             score: ReadScore::Lorentz,
+            identity: None,
             select: Some(PointerSelect::TopK(1)),
             init_seed: Some(7),
             route: None,

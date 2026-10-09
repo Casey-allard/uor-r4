@@ -257,12 +257,12 @@ fn quantize_matrix_compensated_packed(values: &[f32], rows: usize, cols: usize) 
 
 /// Refuse a configuration no integer export or engine serves yet, whose
 /// artifacts would not compute the model that was trained: a pointer-copy
-/// head with its own selection or a prime route (the integer engines keep
-/// every source, scored by the learned dot or Lorentz score), a pointer on the
-/// transformer control (its Llama export has no pointer head), or a flock
-/// selection of the reads (compare-and-select, but no export or engine
-/// implements it). A plain pointer on a geometric stack exports
-/// ([`export_stack`]) and both integer engines serve its mixture. Every
+/// head with its own selection, a prime route or a token-identity term (the
+/// integer engines keep every source, scored by the learned dot or Lorentz
+/// score), a pointer on the transformer control (its Llama export has no
+/// pointer head), or a flock selection of the reads (compare-and-select, but no
+/// export or engine implements it). A plain pointer on a geometric stack
+/// exports ([`export_stack`]) and both integer engines serve its mixture. Every
 /// export path calls this before it writes.
 pub fn check_export_config(config: &StackConfig) -> Result<()> {
     if let Some(pointer) = &config.pointer {
@@ -279,6 +279,15 @@ pub fn check_export_config(config: &StackConfig) -> Result<()> {
                  integer port: the integer engines score every source by the learned score, so \
                  no export writes this model",
                 route.window
+            )));
+        }
+        if let Some(identity) = pointer.identity {
+            return Err(invalid(format!(
+                "the pointer head scores its sources by token identity (weight {} basis points), \
+                 which has no integer port: the integer engines score every source by the \
+                 learned dot product, so no export writes this model (clear it with \
+                 pointer_identity=none to export the dot pointer)",
+                identity.weight_bp
             )));
         }
         if config.arch != StackArch::Geometric {
@@ -1993,6 +2002,13 @@ mod tests {
             });
         }
         refused(&routed, "no integer port");
+        // The token-identity term scores by the input tokens, which no integer
+        // engine reads: refused by name, and a dot pointer without it exports.
+        let mut weighted = base.clone();
+        if let Some(pointer) = weighted.pointer.as_mut() {
+            pointer.identity = Some(crate::geometric_stack::PointerIdentity { weight_bp: 5_000 });
+        }
+        refused(&weighted, "token identity (weight 5000 basis points)");
         let mut control = base.clone();
         control.arch = StackArch::Transformer;
         refused(&control, "Llama export has no pointer head");

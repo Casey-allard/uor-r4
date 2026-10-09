@@ -221,7 +221,8 @@
 //! Training episodes fill the model's context; the development panel stays
 //! the retained study's 256-ID panel.
 //!
-//! `select=flock:WINDOW:K`, `pointer=DIM`, `pointer_score=dot|lorentz` and
+//! `select=flock:WINDOW:K`, `pointer=DIM`, `pointer_score=dot|lorentz`,
+//! `pointer_identity=none|WEIGHT` and
 //! `pointer_select=none|flock:WINDOW:K|top:K` (`dialogue-train`, for fresh
 //! shapes and after `init=` alike) are the A1 retrieval mechanisms of
 //! `uor_r4_training::geometric_stack`, selecting with the shared
@@ -233,7 +234,13 @@
 //! (`pointer_score=`: `dot`, the default, or `lorentz`, the fused read's
 //! hyperboloid form with a learned scale) and its own selection
 //! (`pointer_select=`, default none, which keeps every source; `top:K` keeps
-//! the K best alone, so `top:1` is the single-source pointer). `dialogue-train`
+//! the K best alone, so `top:1` is the single-source pointer). A dot pointer
+//! may also add a token-identity term to that score
+//! (`pointer_identity=WEIGHT`, default none): the multiset overlap of the six
+//! tokens before a source with the six before the query, mixed into the dot
+//! score at that weight (0 is the dot score alone, 1 the identity term alone).
+//! It needs the window's token ids, has no parameters, and is refused with
+//! `pointer_score=lorentz` and with a route. `dialogue-train`
 //! refuses `top:1`, given or carried by an `init=` head: its one kept source
 //! gives the query, key and scale no gradient, so the single-source pointer is
 //! soft-trained weights with `top:1` applied by `m-world evaluate`. The reads'
@@ -247,6 +254,9 @@
 //! drawn fresh from `seed=` (default: the saved model's seed). That seed is
 //! recorded in the head's `init_seed` and in the report (`flock_and_pointer`);
 //! a resume verifies it (a different one is refused) and carries it forward.
+//! `pointer_identity=` replaces the saved head's identity term (the weights do
+//! not change: the term has none), which is how a checkpoint trained without it
+//! is continued with it.
 //! `pointer_route=prime:WINDOW` (`dialogue-train`) replaces the pointer's
 //! learned scores by the exact prime route of ADR-0003
 //! (`uor_r4_training::geometric_stack::PrimeRoute`): a source is admitted when
@@ -306,9 +316,9 @@ use uor_r4_training::dialogue_episodes::{EpisodeIndex, PrefixPolicy, EPISODE_CON
 use uor_r4_training::flock::FlockSelect;
 use uor_r4_training::geometric_stack::{
     average_replica_gradients, logits_cross_entropy, parse_flock_select, parse_pointer_route,
-    parse_pointer_select, D11Interim, MapCodec, PointerConfig, PointerSelect, Precision,
-    PrimeRoute, ReadLineage, ReadScore, RotationGroup, ServedStatistics, StackAdamW, StackArch,
-    StackConfig, StackModel, TransportSnap, TransportUsage,
+    parse_pointer_select, D11Interim, MapCodec, PointerConfig, PointerIdentity, PointerSelect,
+    Precision, PrimeRoute, ReadLineage, ReadScore, RotationGroup, ServedStatistics, StackAdamW,
+    StackArch, StackConfig, StackModel, TransportSnap, TransportUsage,
 };
 use uor_r4_training::lut_export::export_llama;
 use uor_r4_training::stack_dialogue::{
@@ -853,12 +863,16 @@ fn select_arg(args: &Args) -> Result<Option<Option<FlockSelect>>> {
 }
 
 /// The pointer options of a run as given: `pointer=none|<dim>`,
-/// `pointer_score=dot|lorentz` and `pointer_select=none|flock:<window>:<k>|top:<k>`.
+/// `pointer_score=dot|lorentz`, `pointer_identity=none|<weight>` and
+/// `pointer_select=none|flock:<window>:<k>|top:<k>`.
 struct PointerArgs {
     /// `pointer=`: `Some(None)` is `none`, `None` is not given.
     head: Option<Option<usize>>,
     /// `pointer_score=`; `None` is not given.
     score: Option<ReadScore>,
+    /// `pointer_identity=`: `Some(None)` is `none` (it clears a saved term),
+    /// `None` is not given.
+    identity: Option<Option<PointerIdentity>>,
     /// `pointer_select=`: `Some(None)` is `none` (it clears a saved selection),
     /// `None` is not given.
     select: Option<Option<PointerSelect>>,
@@ -877,19 +891,25 @@ impl PointerArgs {
         Some(PointerConfig {
             dim,
             score: self.score.unwrap_or(ReadScore::Dot),
+            identity: self.identity.flatten(),
             select: self.select.flatten(),
             init_seed: seed,
             route: self.route.flatten(),
         })
     }
 
-    /// `pointer_score=`, `pointer_select=` and `pointer_route=` have nothing
-    /// to configure without a head, given or saved.
+    /// `pointer_score=`, `pointer_identity=`, `pointer_select=` and
+    /// `pointer_route=` have nothing to configure without a head, given or
+    /// saved.
     fn refuse_without_head(&self) -> Result<()> {
-        if self.score.is_some() || self.select.is_some() || self.route.is_some() {
+        if self.score.is_some()
+            || self.identity.is_some()
+            || self.select.is_some()
+            || self.route.is_some()
+        {
             return Err(invalid(
-                "pointer_score=, pointer_select= and pointer_route= configure a pointer head: \
-                 give pointer=<dim> (the model has none)",
+                "pointer_score=, pointer_identity=, pointer_select= and pointer_route= configure \
+                 a pointer head: give pointer=<dim> (the model has none)",
             ));
         }
         Ok(())
@@ -919,6 +939,23 @@ fn pointer_args(args: &Args) -> Result<PointerArgs> {
             )))
         }
     };
+    let identity = match args.optional("pointer_identity").as_deref() {
+        None => None,
+        Some("none") => Some(None),
+        Some(text) => match text.parse::<f64>() {
+            // A weight of 0 is the dot score alone, so it clears the term
+            // rather than storing a field that changes nothing.
+            Ok(weight) => Some(match PointerIdentity::from_weight(weight)? {
+                identity if identity.weight_bp == 0 => None,
+                identity => Some(identity),
+            }),
+            Err(_) => {
+                return Err(invalid(format!(
+                    "invalid pointer_identity={text} (none, or a mixing weight in 0..=1)"
+                )))
+            }
+        },
+    };
     let select = args
         .optional("pointer_select")
         .map(|text| parse_pointer_select(&text))
@@ -930,6 +967,7 @@ fn pointer_args(args: &Args) -> Result<PointerArgs> {
     Ok(PointerArgs {
         head,
         score,
+        identity,
         select,
         route,
     })
@@ -4107,11 +4145,13 @@ struct DialogueSettings {
     key_shift: KeyShift,
     /// `read_lineage=conv8|carrier` (Step 7a); `None` without it.
     read_lineage: Option<ReadLineage>,
-    /// `select=`, `pointer=`, `pointer_score=`, `pointer_select=` and
-    /// `pointer_route=` as given (the A1 read mechanisms and the prime route).
+    /// `select=`, `pointer=`, `pointer_score=`, `pointer_identity=`,
+    /// `pointer_select=` and `pointer_route=` as given (the A1 read mechanisms
+    /// and the prime route).
     select: Option<String>,
     pointer: Option<String>,
     pointer_score: Option<String>,
+    pointer_identity: Option<String>,
     pointer_select: Option<String>,
     pointer_route: Option<String>,
     policy: PrefixPolicy,
@@ -4184,6 +4224,9 @@ impl DialogueSettings {
         }
         if let Some(score) = &self.pointer_score {
             record["pointer_score"] = json!(score);
+        }
+        if let Some(identity) = &self.pointer_identity {
+            record["pointer_identity"] = json!(identity);
         }
         if let Some(select) = &self.pointer_select {
             record["pointer_select"] = json!(select);
@@ -4467,6 +4510,7 @@ fn dialogue_train_mode(arguments: &[String]) -> Result<()> {
             "select",
             "pointer",
             "pointer_score",
+            "pointer_identity",
             "pointer_select",
             "pointer_route",
             "protocol",
@@ -4503,6 +4547,7 @@ fn dialogue_train_mode(arguments: &[String]) -> Result<()> {
         select: args.optional("select"),
         pointer: args.optional("pointer"),
         pointer_score: args.optional("pointer_score"),
+        pointer_identity: args.optional("pointer_identity"),
         pointer_select: args.optional("pointer_select"),
         pointer_route: args.optional("pointer_route"),
         policy: PrefixPolicy::parse(args.optional("policy").as_deref())?,
@@ -4610,9 +4655,10 @@ fn dialogue_train_mode(arguments: &[String]) -> Result<()> {
 }
 
 /// The configuration of a `dialogue-train` run from `init=`'s saved model with
-/// the run's options applied. `select=` replaces the saved flock and
-/// `pointer_select=` the saved pointer's own selection (no weights change by
-/// either). `pointer=DIM` and `pointer_score=` must agree with a saved head,
+/// the run's options applied. `select=` replaces the saved flock,
+/// `pointer_select=` the saved pointer's own selection and `pointer_identity=`
+/// its token-identity term (no weights change by any of them). `pointer=DIM`
+/// and `pointer_score=` must agree with a saved head,
 /// which cannot be removed. On a model saved without one, `pointer=DIM` asks
 /// for a new head (the returned flag), scoring by `pointer_score=` (default
 /// dot), whose weights are drawn from `seed=` (default: the saved model's
@@ -4658,6 +4704,12 @@ fn init_extended_config(args: &Args, saved: &StackConfig) -> Result<(StackConfig
                         score_name(existing.score)
                     )));
                 }
+            }
+            if let Some(identity) = asked.identity {
+                config.pointer = Some(PointerConfig {
+                    identity,
+                    ..existing
+                });
             }
             if let Some(select) = asked.select {
                 config.pointer = Some(PointerConfig { select, ..existing });
@@ -4842,11 +4894,13 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
                     model.set_select(config.select)?;
                     if let Some(pointer) = config.pointer {
                         // A saved head keeps its weights, its recorded seed and
-                        // (unless the run replaces them) its selection and route.
+                        // (unless the run replaces them) its selection, route
+                        // and identity term.
                         model.add_pointer(pointer, pointer_seed)?;
                         model.set_pointer_route(None)?;
                         model.set_pointer_select(pointer.select)?;
                         model.set_pointer_route(pointer.route)?;
+                        model.set_pointer_identity(pointer.identity)?;
                     }
                     if model.config != config {
                         return Err(invalid(
@@ -5266,6 +5320,7 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
             "select": model.config.select,
             "pointer": model.config.pointer,
             "pointer_score": model.config.pointer.map(|pointer| score_name(pointer.score)),
+            "pointer_identity": model.config.pointer.and_then(|pointer| pointer.identity),
             "pointer_select": model.config.pointer.and_then(|pointer| pointer.select),
             "pointer_route": model.config.pointer.and_then(|pointer| pointer.route),
             "pointer_head_added_to_init": pointer_added,
@@ -5287,7 +5342,7 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
                 "weight": supervision,
                 "objective": "mixture NLL + weight * (gate_bce + pointer_nll) over the scored response targets: on a target whose id an input position 0..=t of its window holds, gate_bce = -log g and pointer_nll = -log p_copy(target) (the pointer's mass summed over every position holding the id); on any other target gate_bce = -log(1 - g) and pointer_nll = 0; both are weighted means like the mixture's NLL. train_response_nll in the curve stays the mixture's NLL; train_gate_bce, train_pointer_nll and train_objective are window means.",
             })),
-            "scope": "Flock selection of the reads (sink at position 0, last WINDOW positions and the K best-scoring other sources per read row, by the shared crate::flock selector; unkept sources weigh and receive exactly 0; the NoRead slot stays outside the selection) applies to every read of the model and never to the pointer. The pointer head scores each source of the window with its own score (`pointer_score`: dot, or the fused read's Lorentz form with a learned scale) and softmaxes over the sources its own selection keeps (`pointer_select`: none keeps all, top:1 is the single-source pointer), copies the input tokens at the attended positions, and a gate g = sigmoid(w.h + b) (b starts at -2) mixes that with the ordinary distribution; when no kept source holds a target the mixture is (1 - g) softmax alone, with no floor. `response_mean_nll`, the losses and the greedy replies are the mixture's. `pointer` diagnostics are over the scored dev targets. Neither a flock nor a pointer selection or route has a D11 port; `export` writes a pointer that keeps every source (both integer engines serve its mixture), and `qat=true` refuses a pointer. Offline float training only; not a served or quality result.",
+            "scope": "Flock selection of the reads (sink at position 0, last WINDOW positions and the K best-scoring other sources per read row, by the shared crate::flock selector; unkept sources weigh and receive exactly 0; the NoRead slot stays outside the selection) applies to every read of the model and never to the pointer. The pointer head scores each source of the window with its own score (`pointer_score`: dot, or the fused read's Lorentz form with a learned scale) and softmaxes over the sources its own selection keeps (`pointer_select`: none keeps all, top:1 is the single-source pointer), copies the input tokens at the attended positions, and a gate g = sigmoid(w.h + b) (b starts at -2) mixes that with the ordinary distribution; when no kept source holds a target the mixture is (1 - g) softmax alone, with no floor. A dot pointer may add the token-identity term (`pointer_identity`: the multiset overlap of the 6 tokens before a source with the 6 before the query, mixed at that weight, no parameters and no integer port). `response_mean_nll`, the losses and the greedy replies are the mixture's. `pointer` diagnostics are over the scored dev targets. Neither a flock nor a pointer selection, route or identity term has a D11 port; `export` writes a pointer that keeps every source (both integer engines serve its mixture), and `qat=true` refuses a pointer. Offline float training only; not a served or quality result.",
         });
     }
     fs::write(out.join("report.json"), serde_json::to_vec_pretty(&report)?)?;
@@ -5872,6 +5927,7 @@ geometric-stack dialogue-train out=NEW_REPORT_ROOT tokenizer=TOKENIZER.json \\
   (init=ROOT/model | arch=geometric|transformer [width= heads= layers= pattern= read= rotation= \\
   stack_mlp= mlp=]) [qat=false|true] [transport_snap=none|icosian] [key_shift=false|true|add] \\
   [select=none|flock:WINDOW:K] [pointer=none|DIM] [pointer_score=dot|lorentz] \\
+  [pointer_identity=none|WEIGHT] \\
   [pointer_select=none|flock:WINDOW:K|top:K] \\
   [pointer_route=none|prime:WINDOW|prime-ranked:WINDOW|ngram:WINDOW|ngram-ranked:WINDOW] \\
   [pointer_gate_supervision=0] \\
@@ -5898,11 +5954,22 @@ geometric-stack dialogue-train out=NEW_REPORT_ROOT tokenizer=TOKENIZER.json \\
                          report, and a resume must carry the same one. Refused with qat=true and
                          by the evaluators that read raw logits (snap-evaluate,
                          rounding-attribution, lut-evaluate). export writes it when it keeps every
-                         source (no pointer_select, no pointer_route); both integer engines serve
-                         its mixture.
+                         source (no pointer_select, no pointer_route, no pointer_identity); both
+                         integer engines serve its mixture.
   pointer_score=...      the pointer's own score of a source: dot (default, q.k/sqrt(DIM)) or
                          lorentz (the fused read's hyperboloid form, with a learned scale
                          pointer.log_beta). With init=, must agree with a saved head.
+  pointer_identity=W     none (default) or the weight of the pointer's token-identity term in
+                         0..=1: a dot pointer scores each source (1 - W) q.k/sqrt(DIM) + W * 4 *
+                         |A n B| / |A u B|, where A is the multiset of the six tokens before the
+                         source and B the six before the query (a source whose window would
+                         overlap the query's own scores 0, and the source's own token is
+                         excluded, it being the candidate value). Token identity, unordered and
+                         count-based, in place of the route's exact n-let match; it needs the
+                         window's token ids, adds no parameters and no gradient, and is refused
+                         with pointer_score=lorentz and with a route. W=0 (and none) is the dot
+                         score alone, bit for bit; W=1 is the identity term alone. With init=,
+                         replaces the saved head's term (the weights do not change).
   pointer_select=...     the sources the pointer softmaxes over (default none: all): the flock
                          WINDOW:K, or top:K (the K best alone; top:1 is the single-source
                          pointer). Its own selection, not select=. Training stays soft unless
@@ -5919,7 +5986,8 @@ geometric-stack dialogue-train out=NEW_REPORT_ROOT tokenizer=TOKENIZER.json \\
                          plus the route's (learned pointer where none is admitted). ngram:WINDOW
                          and ngram-ranked:WINDOW admit by the longest ordered n-let match
                          (n up to WINDOW) instead of any shared atom. Excludes
-                         pointer_select=. With init=, replaces the saved head's route.
+                         pointer_select= and pointer_identity=. With init=, replaces the saved
+                         head's route.
   pointer_gate_supervision=W
                          copy-gate supervision (default 0: off, the run is unchanged). On each
                          scored target whose id an input position 0..=t holds, adds W (BCE(g, 1)
@@ -6043,10 +6111,11 @@ fn main() -> Result<()> {
 mod tests {
     use super::*;
 
-    const KEYS: [&str; 6] = [
+    const KEYS: [&str; 7] = [
         "select",
         "pointer",
         "pointer_score",
+        "pointer_identity",
         "pointer_select",
         "pointer_route",
         "seed",
@@ -6098,6 +6167,9 @@ mod tests {
             "pointer=0",
             "pointer=x",
             "pointer_score=hyperbolic",
+            "pointer_identity=half",
+            "pointer_identity=1.5",
+            "pointer_identity=-0.1",
             "pointer_select=top:0",
             "pointer_select=flock:0:1",
             "pointer_select=window:3",
@@ -6108,6 +6180,32 @@ mod tests {
         ] {
             assert!(pointer_args(&args(&[bad])).is_err(), "{bad}");
         }
+        // The identity term's weight, its clearing and its bounds.
+        assert_eq!(
+            pointer_args(&args(&["pointer_identity=0.5"]))
+                .expect("a weighted term")
+                .identity,
+            Some(Some(PointerIdentity { weight_bp: 5_000 }))
+        );
+        assert_eq!(
+            pointer_args(&args(&["pointer_identity=1"]))
+                .expect("the upper bound")
+                .identity,
+            Some(Some(PointerIdentity { weight_bp: 10_000 }))
+        );
+        for cleared in ["pointer_identity=none", "pointer_identity=0"] {
+            assert_eq!(
+                pointer_args(&args(&[cleared])).expect("cleared").identity,
+                Some(None),
+                "{cleared}"
+            );
+        }
+        assert_eq!(
+            pointer_args(&args(&["pointer_identity=0.125"]))
+                .expect("a fine weight")
+                .identity,
+            Some(Some(PointerIdentity { weight_bp: 1_250 }))
+        );
         assert_eq!(
             pointer_args(&args(&["pointer_route=prime:2"]))
                 .expect("a route")
@@ -6126,6 +6224,54 @@ mod tests {
                 .route,
             Some(None)
         );
+    }
+
+    #[test]
+    fn a_saved_head_takes_an_identity_term_without_new_weights() {
+        let with_head = saved_with_head();
+        let identity = PointerIdentity::from_weight(0.5).expect("a weight");
+        // The term has no parameters, so init= can switch it on for a head
+        // trained without one: nothing but the configuration changes.
+        let (config, added) =
+            init_extended_config(&args(&["pointer_identity=0.5"]), &with_head).expect("a term");
+        assert!(!added);
+        assert_eq!(
+            config.pointer,
+            Some(PointerConfig {
+                identity: Some(identity),
+                init_seed: Some(3),
+                ..PointerConfig::new(8)
+            })
+        );
+        let mut weighted = with_head.clone();
+        weighted.pointer = config.pointer;
+        let (cleared, _) =
+            init_extended_config(&args(&["pointer_identity=none"]), &weighted).expect("cleared");
+        assert_eq!(cleared.pointer, with_head.pointer);
+        // A new head may carry it from the start, and a route refuses it (the
+        // route replaces the learned score it mixes with).
+        let (config, added) =
+            init_extended_config(&args(&["pointer=8", "pointer_identity=1"]), &saved())
+                .expect("a new identity head");
+        assert!(added);
+        assert_eq!(
+            config.pointer.and_then(|pointer| pointer.identity),
+            Some(PointerIdentity { weight_bp: 10_000 })
+        );
+        assert!(init_extended_config(
+            &args(&["pointer=8", "pointer_identity=0.5", "pointer_route=prime:2"]),
+            &saved()
+        )
+        .is_err());
+        assert!(init_extended_config(&args(&["pointer_identity=0.5"]), &saved()).is_err());
+        // It is a dot-score term: a Lorentz head refuses it.
+        let mut lorentz = saved_with_head();
+        lorentz.pointer = Some(PointerConfig {
+            score: ReadScore::Lorentz,
+            init_seed: Some(3),
+            ..PointerConfig::new(8)
+        });
+        assert!(init_extended_config(&args(&["pointer_identity=0.5"]), &lorentz).is_err());
     }
 
     #[test]
@@ -6282,6 +6428,7 @@ mod tests {
             Some(PointerConfig {
                 dim: 8,
                 score: ReadScore::Lorentz,
+                identity: None,
                 select: Some(PointerSelect::TopK(1)),
                 init_seed: Some(9),
                 route: None,

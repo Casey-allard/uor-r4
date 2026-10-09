@@ -1629,10 +1629,15 @@ struct CudaPointerPass {
 
 impl PointerMixture {
     /// Whether the CUDA kernels cover this configuration: Dot or Lorentz
-    /// scores over every source. A selection, a prime route (and the L2
-    /// score `PointerConfig::validate` refuses) run on the host.
+    /// scores over every source. A selection, a prime route, the token-identity
+    /// term of the Dot score (the kernels score by the learned dot product
+    /// alone) and the L2 score `PointerConfig::validate` refuses run on the
+    /// host.
     pub(super) fn cuda_covered(&self) -> bool {
-        self.select.is_none() && self.route.is_none() && self.score != ReadScore::L2
+        self.select.is_none()
+            && self.route.is_none()
+            && self.identity.is_none()
+            && self.score != ReadScore::L2
     }
 
     pub(super) fn cuda_dims(
@@ -1759,7 +1764,8 @@ impl PointerMixture {
             }
             if !self.cuda_covered() {
                 candle_core::bail!(
-                    "precision=bf16 has no bf16 pointer kernel for a selection or a prime route"
+                    "precision=bf16 has no bf16 pointer kernel for a selection, a prime route or \
+                     the identity score"
                 );
             }
             return self.cuda_fwd_impl_bf(s1, l1, s2, l2, s3, l3);
