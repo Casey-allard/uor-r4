@@ -1,3 +1,51 @@
+## 2026-10-09 — Cap 96 does not raise open-reply acceptance: the budget explains the cut, not the failure (deepseek, #2029)
+
+Result 4 measured that the open reply panel's mid-clause failures are the 64-token budget. This is the measurement it
+justified: **give the model 50% more room and see whether acceptance moves.** It does not. Record:
+[open-reply-panel-2026-10-09](../labs/open-reply-panel-2026-10-09/README.md) Result 5; pre-registered on #2029
+before any pod was created. CPU-bound generation on pod `260rd8ondf4mzg` (1×5090, `device=cpu` as the sealed run
+used), grading by the gated judge; **≈$1.00**, inside the approved envelope.
+
+**Run A, the control at 64 tokens, and Run B at 96 — same machine, same build, same panel bytes, same model
+`d8a3c971…`, same tokenizer `d36d3e87…`, same grader digest `845dbda0…`, same context 384; the cap is the only
+declared delta.** A: **44/232** acceptable (fluent 69, relevant 54). B: **38/232** (fluent 62, relevant 48).
+**B − A = −6 cells**, inside the pre-registered ±14-cell judge-noise floor, so **not a result**: a −6-cell move is
+not evidence that more room helps, and certainly not evidence that the truncated replies would have been acceptable.
+The decision rule fires on the negative side: **the budget explanation is bounded** at what Result 4 measured — it
+explains why replies are *cut* (45.0% of the 189 failures) and not why the model *fails*.
+
+**Movement underneath the total.** 3 of A's 188 failures became acceptable (`heldout-036`, `-114`, `-174`) and 9
+acceptable rows were lost (`heldout-010`, `-024`, `-061`, `-071`, `-073`, `-082`, `-090`, `-185`, `-192`); exact
+McNemar p = 0.146. **Of the 85 mid-clause failures that were at the 64-token cap — the exact population Result 4
+identified — 2 became acceptable and 83 stayed failed.** And 96 is simply the next wall: 91 replies at exactly 96
+and 34 at exactly 95, failures at or above the cap 92 of 194 (47.4%) against 87 of 189 (46.0%) at 64. Both judge
+components fell the same way (fluent 69→62, relevant 54→48), so it is not a re-labelling artefact.
+
+**Three consequences.** (1) **Criterion 1 does not need a declared cap** — raising it does not help, so a token
+ceiling is not what holds the reading down; the criterion's surviving defect is that it is judge-only with no
+deterministic check to be primary. (2) **The 62 completed-but-wrong replies are the whole story**: failures that
+finish their sentences and are still rejected are where the capability gap lives, and that is where the next piece
+should point, not at the decoder. (3) **No 128-token arm** — the rule says stop, the piece is closed, and the
+100M artifact stayed out of scope.
+
+**Run A was load-bearing.** The frozen binary `a5071cfe…` is **Mach-O arm64** — a macOS executable that exits
+**126** on Linux — and its `attempt.json` records a macOS `argv[0]`, so **the sealed 43/232 was produced on the
+laptop, not on a pod**, and its reproducibility on the platform the project now uses was unproven. A closes that:
+against the sealed run at the same cap, `acceptable` **43 → 44 (+1)** and **all 232 replies byte-identical**, one
+judge verdict flip on `heldout-199` with no reply change. So the platform is not a confound, the four greedy-loop
+commits since 2026-10-03 (#1846, #2040, #2047, #2062) behave as their opt-in documentation claims **as measured
+rather than asserted**, and the cap is the only thing that moved. Without A, a −6 swing would have been
+unreadable — platform, code changes and cap all in play at once. **B versus A is the primary reading; A versus the
+sealed 43/232 is the cross-platform anchor.** Two launches failed first and are recorded with their exact symptoms
+(lost shell quoting, exit 127; the platform error, exit 126); neither reached `report_output::claim` and no number
+comes from them. Evidence bundle `icloud:UOR-R4/results/deepseek/reply-panel-cap96-2026-10-09.tar` (1,417,728 B,
+md5 `3de8c41eb9eb7532e1243450365ce335`).
+
+**Next:** point the next piece at the **completed-but-wrong** failures — the 62 rows that end with terminal
+punctuation and are still rejected — rather than at the decoder; repair criterion 1's judge-only reading with
+deterministic row checks or a stated tolerance before any candidate number on this panel is accepted; and if the
+panel is attacked at all, use a fresh sealed panel scored at a declared cap, because Step 0a read every failing row
+of this one and the cap is now known to be a measurement choice rather than a lever.
 ## Native VSA retraining: trained VSA term helps (KEEP); icosian-root codes lose to the hash — October 9
 
 The [pre-registered test](../labs/vsa-native-test-2026-10-09/README.md) retrained the native prose learner with the VSA term in its objective: 4 arms × 2 seeds, scored on two held-out slices.

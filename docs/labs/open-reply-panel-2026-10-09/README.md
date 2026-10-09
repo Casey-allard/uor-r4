@@ -367,6 +367,93 @@ at the cap (65.5%) against `K-ill-posed` 8/46 (17.4%). The finding is not a prop
 diffusion is not a property of the 29M model; it is stable across a 3.3× scale
 step, which is also what the recorded 43–46/232 plateau from 29M to 96M says.
 
+## Result 5 — the token budget does not explain the acceptance gap: 96 tokens moves it by −6 cells (amendment, 2026-10-09 later)
+
+Result 4 measured *that* the mid-clause failures are the 64-token budget (95.2% of them end within one token of it). It could not say **how much of 43/232 the budget is**. This is that measurement, pre-registered on #2029 before any pod was created, and it comes back **null**.
+
+### The frozen binary is macOS-only, and that is a finding in its own right
+
+`chat-grade-a5071cfe…` — the executable the sealed report names — is **Mach-O 64-bit executable arm64**. Uploaded to a Linux pod it exits **126, "cannot execute binary file: Exec format error"**. The sealed report's own `attempt.json` agrees: its `argv[0]` is `/Users/casey.allard/.local/share/uor-r4/bin/chat-grade-a621514c`, a macOS path.
+
+**So the 43/232 baseline was generated on the laptop, not on a pod, by a binary that does not run on Linux.** The panel's "frozen, sealed" number is a macOS-only artifact, and its reproducibility on the platform the project now uses for GPU work was, until this result, unproven. Result 5 closes that: **the sealed replies reproduce on Linux byte for byte** (below). The *binary* is not portable; the *behaviour* is.
+
+### Run set, and why it is four runs' worth of confounds resolved by one control
+
+Two runs on pod `260rd8ondf4mzg` (1 × RTX 5090), both **`device=cpu`** — the sealed run's `attempt.json` passes no `device=` and `device_name(None)` is `cpu`, so the judge is the only GPU user:
+
+| | Run A (control) | Run B (measurement) |
+|---|---|---|
+| executable | `/workspace/bin/4a5fd0d1…-sm120/chat-grade`, sha256 `77256a3a3058ca9a8a8e74c3bba2485598b801038ebc1b1b5fba06fcfe71c1be` — the pod's own Linux build of main at `4a5fd0d1` | same |
+| panel | `everyday-32.json` `945c0c97…`, `heldout-200-a.json` `019cc6f6…`, `heldout-200-b.json` `5434cfd9…` | same |
+| model / tokenizer | `d8a3c971ef07a82ca0db0704b34821e24782c7734baaafb504fd754f82988068` / `d36d3e87…` | same |
+| grader | `qwen2.5:7b` digest gated at `845dbda0ea48ed749caafd9e6037047aa19acfcfd82e704d7ca97d631a0b697e`, temperature 0, seed 1 | same |
+| context, protocol | 384, `uor-r4.literal-role-dialogue/2` | same |
+| `max_new_tokens` | **64** | **96** |
+| result | **44/232** acceptable (fluent 69, relevant 54), 12m47s | **38/232** (fluent 62, relevant 48), 16m58s |
+
+`check_panel` fits at both caps (worst case 168 positions at 64, 232 at 96, of 384), so context stays 384 and **the cap is the only declared delta between A and B**. The macOS binary could not be used, and the Linux build differs from it in three ways at once — platform, and the four greedy-loop commits since 2026-10-03 (#1846, #2040, #2047, #2062) — so A exists to separate those from the cap. It does:
+
+**Anchor — sealed macOS 64 → Linux control A 64, same cap.** `acceptable` **43 → 44 (+1)**; **all 232 replies are byte-identical**; the single cell is one judge verdict flip on `heldout-199`, with no reply change; exact McNemar p = 1.0. So (a) the four greedy-loop commits are opt-in for this model **as measured, not as asserted** — a model with no `pointer_copy_stop` falls through to `greedy_reply_plain` bit for bit; (b) the platform is not a confound; and (c) the judge alone moved one cell on identical text, which is the noise floor showing up at its smallest scale.
+
+**Run A did more work than its job description.** Without it, a −6-cell swing would have been unreadable: platform, four code changes and the cap would all have been in play at once, and no reading of the result would have been decisive. With it, the platform and the code changes are pinned (byte-identical replies, one cell of judge noise) and the cap is the only thing that moved. **The control converted an ambiguous comparison into a decisive one**, and it cost twelve minutes.
+
+### Primary reading — A (64) versus B (96), same machine and build
+
+**44/232 → 38/232. Delta −6 cells.** The pre-registered noise floor is ±14 cells on 232 (the judge differed on 4 of 64 rows at the same digest in the v4 work, ≈6%), so **−6 is not a result, whatever its sign**. Movement underneath it:
+
+| | count |
+|---|---:|
+| A's failures | 188 |
+| **A's failures that became `acceptable` at 96** | **3** (`heldout-036`, `heldout-114`, `heldout-174`) |
+| A's failures unchanged | 185 |
+| A's `acceptable` rows that failed at 96 | **9** (`heldout-010`, `-024`, `-061`, `-071`, `-073`, `-082`, `-090`, `-185`, `-192`) |
+| exact McNemar p | 0.146 |
+| replies identical between the runs | 90 of 232 |
+
+**The sharpest sub-question, and the answer.** Of A's **85 mid-clause failures that were at the 64-token cap** — the exact population Result 4 identified — **2 became `acceptable` at 96 and 83 stayed failed.** Of all 125 mid-clause failures, 3 became acceptable. Giving the cut replies 50% more room converted **2.4% of them**.
+
+**96 is simply the next wall.** B's reply lengths cluster on the new cap exactly as A's did on the old one: **91 replies at exactly 96 tokens and 34 at exactly 95**, against 95 at exactly 64 and 41 at exactly 63. Failures at or above the cap: **92 of 194 (47.4%)** at 96 against **87 of 189 (46.0%)** at 64. B's mid-clause failures are 124, of which 89 are at or above 96. Nothing about the cap's relationship to failure changed; only the wall moved.
+
+**Per tier and per category** (`acceptable`, A → B):
+
+| tier | rows | A | B |
+|---|---:|---:|---:|
+| `everyday` | 32 | 9 | 9 |
+| `K-clean` | 133 | 19 | **12** |
+| `K-ill-posed` | 67 | 16 | 17 |
+
+| category | rows | A | B |
+|---|---:|---:|---:|
+| `smalltalk` | 8 | 6 | 6 |
+| `simple_question` | 8 | 1 | 1 |
+| `simple_instruction` | 8 | 1 | 1 |
+| `follow_up` | 8 | 1 | 1 |
+| `heldout_first_turn` | 200 | 35 | **29** |
+
+Verdict classes: `acceptable` 44 → 38, `fluent_only` 25 → 24, `neither` 153 → 160, `relevant_only` 10 → 10. Fluent 69 → 62 and relevant 54 → 48: the longer replies were judged slightly *less* fluent and *less* relevant, not more.
+
+### What this says and does not say
+
+**The frozen decision rule fires, and it fires on the negative side.** Under 14 cells is not a result whatever its sign, so **a −6-cell move is not evidence that more room helps, and it is certainly not evidence that the truncated replies would have been acceptable.** The pre-registration's caveat is now measured rather than asserted: the cut replies were given 50% more room and did not become acceptable. It measures **how much of the gap is the token budget: none of it that this instrument can see.**
+
+Three consequences, stated plainly:
+
+1. **Criterion 1 does not need a declared cap.** Raising the cap does not help acceptance, so a token ceiling is not what is holding the reading down. The criterion's real defect is still the other one — it is judge-only, with no deterministic check to be primary — and that repair stands unchanged.
+2. **The completed-but-wrong replies are the whole story.** Failures that finish their sentences and are still rejected are where the capability gap lives: 62 such rows at 64 tokens, 9 acceptable rows newly lost at 96, and 83 of the 85 cap-cut failures still failing with more room. That is where the next piece should point, **not at the decoder**.
+3. **No 128-token arm.** The decision rule says stop; the piece is closed; the local-route idea for a second point is moot and it will not be run.
+
+Also recorded, because it rules out a re-labelling artefact: **both judge components fell the same way** — fluent 69 → 62 and relevant 54 → 48 — which is why the `acceptable` count dropped by 6. The longer replies were judged slightly less fluent *and* slightly less relevant, not traded from one class to another.
+
+- **The macOS-only binary finding stands as a result**: the baseline the criterion is written against was produced on a platform the project no longer uses for pod work, and its *behaviour* (not its binary) is what reproduces on Linux. Any future re-run of this panel should use a Linux build of the current source and take this A as its anchor.
+- **The 100M artifact stayed out of scope**, as pre-registered.
+
+### Costs, and the two failed launches
+
+Pod `260rd8ondf4mzg` existed 21:51Z–22:41Z, 1 × 5090 at $1.19/h → **≈$1.00**, against a pre-registered estimate of ≈$1.65 and a worst case of $3.57. Two launches failed before the runs and are recorded with their exact symptoms, because they are why the design is right: (1) `uor-pod run … -- sh -c "cd … && …"` lost its shell quoting and ran from `/root` (**exit 127**), fixed by uploading a script and invoking `bash`; (2) the platform failure above (**exit 126**). **Neither reached `report_output::claim`, `grades/` stayed empty until Run A, and no number in this record comes from them.** The lease ran to 00:50:07Z and was released at 22:41Z with nothing running; the pod was then deleted. Its `run-env-*.txt` and `grade-*.log` were not copied back before deletion — every identity they carried (executable, model, tokenizer, grader digest, cap, argv) is in the sealed `report.json` / `manifest.json` / `attempt.json` in the bundle below.
+
+**Evidence bundle.** `icloud:UOR-R4/results/deepseek/reply-panel-cap96-2026-10-09.tar` (1,417,728 B, md5 `3de8c41eb9eb7532e1243450365ce335`,
+`~/.local/share/uor-r4/bin/cloud-store fetch reply-panel-cap96-2026-10-09 <dest>`): both runs' sealed reports, manifests and attempts, the sealed macOS report for the anchor, the two comparison summaries and per-row tables, both runs' reply texts and token counts, the comparison script and the run script.
+
 ## Decision
 
 **The failures are diffuse. Phase 2 is NOT opened: no candidate, no
@@ -464,27 +551,24 @@ own tree.
 
 ## Next:
 
-Result 4 changes one thing and leaves the rest standing. The mid-clause failures are the
-decoding budget, so a lever now exists where the first pass said none did — but it is a
-budget lever, not a knowledge lever, and it must not be confused with one.
+Result 5 closed the decoder question, and it closed it on the negative side. The budget is
+not the lever; the completed-but-wrong set is. What follows points there.
 
-1. **Repair criterion 1's reading** — add deterministic row checks to the reply panel (the
+1. **Point the next piece at the completed-but-wrong failures, not at the decoder.** At 64
+   tokens, 62 of the 189 failures end with terminal punctuation and are still rejected:
+   finished sentences, judged neither fluent-and-relevant. Result 3's per-category and
+   per-tier tables and Result 5's movement tables name them; Result 4's mid-clause population
+   is now a measurement artefact of the cap and not a defect to chase.
+2. **Repair criterion 1's reading** — add deterministic row checks to the reply panel (the
    v4/v5 pattern) or state a tolerance for the judge — before anyone trains against 116/232.
-   The criterion currently cannot distinguish a real gain from judge noise, and no candidate
-   number on it should be accepted until that is fixed.
-2. **The one bounded measurement Result 4 justifies**: a declared run of the same sealed
-   panel at a larger `max_new_tokens` (96 or 128) on the same two artifacts, same grader,
-   same protocol, the cap change pre-registered as the only delta. It answers the question
-   Result 4 cannot — whether the cut replies would have become *correct* with room, or only
-   longer. It is a decoder-budget experiment, not a training one, and it is worth doing
-   before any corpus/knowledge spend, because 45.0% of the current failures are budget-caused
-   and the 43→46/232 plateau may be partly a plateau at 64 tokens.
-3. **Decide whether the reply panel is worth attacking at all** beyond that run. Even at a
-   larger cap, 62 failures end with terminal punctuation and are wrong on content; the
-   recorded lever for those remains the float model's corpus/knowledge/capacity, which the
-   frozen Step 0a decision already named and which no bounded readiness instrument reaches.
-   If it is attacked, it needs a fresh sealed panel, because Step 0a read every failing row
-   of this one.
+   This is now the *only* surviving criterion defect: the cap question is answered, the judge
+   question is not, and no candidate number on this panel should be accepted until it is.
+3. **Decide whether the reply panel is worth attacking at all.** The recorded lever for the
+   completed-but-wrong set is the float model's corpus/knowledge/capacity, which the frozen
+   Step 0a decision already named and which no bounded readiness instrument reaches. If it is
+   attacked, it needs a fresh sealed panel, because Step 0a read every failing row of this one —
+   and it should be scored at a declared cap, since the cap is now known to be a measurement
+   choice rather than a lever.
 
 The open reply panel's failures are not one thing, and a 2.7× target is not
 reachable by one bounded intervention. That is the result, and no candidate

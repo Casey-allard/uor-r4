@@ -323,6 +323,20 @@ RAYON_NUM_THREADS=2 target/release/chat-grade grade \
   > $L/grades/$NAME-powered-7b.log 2>&1
 ```
 
+**Two things to know before you re-run this panel (measured 2026-10-09, #2029):**
+
+- **The frozen report's binary is macOS-only, and the cap is a measurement choice, not a lever.** The sealed
+  43/232 (`chat-grade` executable sha256 `a5071cfe…`) was produced on the laptop by a **Mach-O arm64** binary,
+  which exits 126 on a Linux pod. A Linux build of current main reproduces its replies **byte for byte** at the
+  same cap (44/232 acceptable, one judge verdict flip on `heldout-199`), so build locally or on the pod from
+  source and treat that as the anchor. Raising `max_new_tokens` to 96 moves acceptance by **−6 cells
+  (44 → 38)**, inside the ±14-cell judge-noise floor: **the token budget explains why replies are cut, not why
+  they fail.** Declare the cap you use and compare only at the same cap.
+- **The panel is judge-only.** It has no frozen row checks, so `check_pass` is 0 and `acceptable` is the only
+  reading, carrying the judge's instability with it (4 of 64 rows changed verdict at the same digest in the v4
+  work). Details and the full per-category tables:
+  [open-reply-panel-2026-10-09](../labs/open-reply-panel-2026-10-09/README.md) Results 4 and 5.
+
 ### 6.3 Grader questions, controls, and McNemar test
 
 - **Judge questions:**
