@@ -51,6 +51,7 @@
 //! checks the step and every kernel for multiply, divide and floating-point
 //! instructions.
 
+mod chat;
 pub mod flock;
 mod format;
 pub(crate) mod kernels;
@@ -59,6 +60,8 @@ mod session;
 mod tests;
 
 use std::fmt;
+
+pub use chat::{StackChat, StackChatError, StackReply, StackStop, CHAT_CONTEXT, CYCLE_REPEATS};
 
 pub use flock::{
     flock_select_integer, rank_table_q31, raw_rank_weights_q16, top_k_select_integer, FlockEntry,

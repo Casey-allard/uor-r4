@@ -16,6 +16,7 @@ use uor_r4_integer::generation::conversation::{
 use uor_r4_integer::generation::Stop;
 use uor_r4_integer::model::{IntegerModel, IntegerSession, IntegerStep};
 use uor_r4_integer::sampling::SamplePolicy;
+use uor_r4_integer::stack::{IntegerStackModel, StackChat, StackChatError, StackError, StackReply};
 use uor_r4_integer::{IntegerError, Result};
 use uor_r4_tokenizer::dialogue::{DialogueProtocol, Message};
 
@@ -30,6 +31,15 @@ const ANSI_RESET: &str = "\x1b[0m";
 
 struct CliArgs {
     bundle_path: Option<PathBuf>,
+    /// A `UORLUT01` geometric-stack artifact (`--stack`): served directly by
+    /// the D11 stack engine instead of a sealed bundle.
+    stack_path: Option<PathBuf>,
+    tokenizer_path: Option<PathBuf>,
+    /// Literal-role dialogue version for the stack artifact (default 1).
+    protocol: u8,
+    threads: usize,
+    /// One-shot turn: answer this message, print the record and exit.
+    say: Option<String>,
     system_prompt: Option<String>,
     temperature: f64,
     top_k: usize,
@@ -43,6 +53,11 @@ impl Default for CliArgs {
     fn default() -> Self {
         Self {
             bundle_path: None,
+            stack_path: None,
+            tokenizer_path: None,
+            protocol: 1,
+            threads: 1,
+            say: None,
             system_prompt: None,
             temperature: 0.0,
             top_k: 16,
@@ -56,11 +71,22 @@ impl Default for CliArgs {
 
 fn print_usage() {
     eprintln!("Usage: uor-chat --bundle <PATH> [OPTIONS]");
+    eprintln!("       uor-chat --stack <ARTIFACT.lut> --tokenizer <TOKENIZER.json> [OPTIONS]");
     eprintln!();
     eprintln!("Options:");
     eprintln!(
         "  -b, --bundle <PATH>         Path to model bundle directory containing bundle.json"
     );
+    eprintln!(
+        "      --stack <ARTIFACT>      UORLUT01 geometric-stack artifact (model.lut); served"
+    );
+    eprintln!("                              directly by the D11 integer stack engine");
+    eprintln!("      --tokenizer <PATH>      tokenizer.json for --stack (required with it)");
+    eprintln!(
+        "      --protocol <1|2>        literal-role dialogue version for --stack (default: 1)"
+    );
+    eprintln!("      --threads <INT>         worker threads for --stack steps (default: 1)");
+    eprintln!("      --say <TEXT>            answer one turn, print a JSON record and exit");
     eprintln!("  -s, --system <PROMPT>       Initial persistent system persona");
     eprintln!(
         "  -t, --temperature <FLOAT>   Sampling temperature (0.0 = greedy, >0.0 = categorical)"
@@ -111,6 +137,66 @@ fn parse_cli_args() -> CliArgs {
                     args.system_prompt = Some(raw[idx].clone());
                 } else {
                     eprintln!("{ANSI_RED_BOLD}error:{ANSI_RESET} missing argument for '--system'");
+                    process::exit(1);
+                }
+            }
+            "--stack" => {
+                idx += 1;
+                if idx < raw.len() {
+                    args.stack_path = Some(PathBuf::from(&raw[idx]));
+                } else {
+                    eprintln!("{ANSI_RED_BOLD}error:{ANSI_RESET} missing argument for '--stack'");
+                    process::exit(1);
+                }
+            }
+            "--tokenizer" => {
+                idx += 1;
+                if idx < raw.len() {
+                    args.tokenizer_path = Some(PathBuf::from(&raw[idx]));
+                } else {
+                    eprintln!(
+                        "{ANSI_RED_BOLD}error:{ANSI_RESET} missing argument for '--tokenizer'"
+                    );
+                    process::exit(1);
+                }
+            }
+            "--protocol" => {
+                idx += 1;
+                match raw.get(idx).map(String::as_str) {
+                    Some("1") => args.protocol = 1,
+                    Some("2") => args.protocol = 2,
+                    Some(other) => {
+                        eprintln!(
+                            "{ANSI_RED_BOLD}error:{ANSI_RESET} invalid value for '--protocol': {other} (expected 1 or 2)"
+                        );
+                        process::exit(1);
+                    }
+                    None => {
+                        eprintln!(
+                            "{ANSI_RED_BOLD}error:{ANSI_RESET} missing argument for '--protocol'"
+                        );
+                        process::exit(1);
+                    }
+                }
+            }
+            "--threads" => {
+                idx += 1;
+                match raw.get(idx).map(String::as_str).map(str::parse::<usize>) {
+                    Some(Ok(value)) if value > 0 => args.threads = value,
+                    _ => {
+                        eprintln!(
+                            "{ANSI_RED_BOLD}error:{ANSI_RESET} '--threads' takes a positive integer"
+                        );
+                        process::exit(1);
+                    }
+                }
+            }
+            "--say" => {
+                idx += 1;
+                if idx < raw.len() {
+                    args.say = Some(raw[idx].clone());
+                } else {
+                    eprintln!("{ANSI_RED_BOLD}error:{ANSI_RESET} missing argument for '--say'");
                     process::exit(1);
                 }
             }
@@ -214,8 +300,26 @@ fn parse_cli_args() -> CliArgs {
         idx += 1;
     }
 
-    if args.bundle_path.is_none() && !args.verify_kernel {
-        eprintln!("{ANSI_RED_BOLD}error:{ANSI_RESET} missing required argument '--bundle <path>'");
+    if args.bundle_path.is_some() && args.stack_path.is_some() {
+        eprintln!(
+            "{ANSI_RED_BOLD}error:{ANSI_RESET} '--bundle' and '--stack' are different serving paths; pass one"
+        );
+        process::exit(1);
+    }
+    if args.stack_path.is_some() && args.tokenizer_path.is_none() {
+        eprintln!(
+            "{ANSI_RED_BOLD}error:{ANSI_RESET} '--stack' requires '--tokenizer <tokenizer.json>'"
+        );
+        process::exit(1);
+    }
+    if args.tokenizer_path.is_some() && args.stack_path.is_none() {
+        eprintln!("{ANSI_RED_BOLD}error:{ANSI_RESET} '--tokenizer' is only used with '--stack'");
+        process::exit(1);
+    }
+    if args.bundle_path.is_none() && args.stack_path.is_none() && !args.verify_kernel {
+        eprintln!(
+            "{ANSI_RED_BOLD}error:{ANSI_RESET} missing required argument '--bundle <path>' or '--stack <artifact.lut>'"
+        );
         print_usage();
         process::exit(1);
     }
@@ -750,10 +854,348 @@ mod tests {
     }
 }
 
+// ---------------------------------------------------------------------------
+// Stack serving path (`--stack`): a `UORLUT01` geometric-stack artifact served
+// directly by the D11 integer stack engine, under the literal-role dialogue
+// protocol. The sealed-bundle path above serves the retained recurrent model;
+// the two containers describe different models and no conversion exists.
+
+/// A refused stack CLI operation.
+#[derive(Debug)]
+enum StackCliError {
+    Chat(StackChatError),
+    Model(StackError),
+    Io(std::io::Error),
+    Json(serde_json::Error),
+    Usage(String),
+}
+
+impl std::fmt::Display for StackCliError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Chat(error) => write!(formatter, "{error}"),
+            Self::Model(error) => write!(formatter, "{error}"),
+            Self::Io(error) => write!(formatter, "I/O: {error}"),
+            Self::Json(error) => write!(formatter, "JSON: {error}"),
+            Self::Usage(message) => formatter.write_str(message),
+        }
+    }
+}
+
+impl From<serde_json::Error> for StackCliError {
+    fn from(error: serde_json::Error) -> Self {
+        Self::Json(error)
+    }
+}
+
+impl From<StackChatError> for StackCliError {
+    fn from(error: StackChatError) -> Self {
+        Self::Chat(error)
+    }
+}
+
+impl From<StackError> for StackCliError {
+    fn from(error: StackError) -> Self {
+        Self::Model(error)
+    }
+}
+
+impl From<std::io::Error> for StackCliError {
+    fn from(error: std::io::Error) -> Self {
+        Self::Io(error)
+    }
+}
+
+/// The initial history of a stack conversation: BOS alone, or BOS and a system
+/// turn encoded by the literal-role protocol.
+fn stack_initial_history(
+    chat: &StackChat<'_>,
+    system_prompt: Option<&str>,
+) -> std::result::Result<Vec<u32>, StackCliError> {
+    let encoder = chat
+        .protocol()
+        .bind(chat.tokenizer())
+        .map_err(|error| StackCliError::Usage(format!("dialogue protocol: {error}")))?;
+    Ok(match system_prompt {
+        Some(prompt) if !prompt.trim().is_empty() => {
+            let encoded = encoder.encode_open_history(&[Message {
+                role: "system",
+                content: prompt.trim(),
+            }]);
+            if encoded.emitted_turns != 1 || encoded.special_token_occurrences != 0 {
+                return Err(StackCliError::Usage(
+                    "the system persona is not one plain system turn".into(),
+                ));
+            }
+            encoded.tokens
+        }
+        _ => vec![chat.protocol().bos_id],
+    })
+}
+
+fn print_stack_banner(
+    chat: &StackChat<'_>,
+    artifact: &Path,
+    tokenizer_path: &Path,
+    threads: usize,
+) {
+    let shape = chat.model().shape();
+    let sha = chat.model().artifact_sha256();
+    let sha_short = if sha.len() > 16 { &sha[..16] } else { sha };
+    println!("================================================================================");
+    println!("  UOR-R4 Geometric Conversational Chatbot (uor-chat)");
+    println!("  Zero Transformers | Zero Hardware MatMul | D11 integer stack engine");
+    println!("================================================================================");
+    println!("  Artifact          : {}", artifact.display());
+    println!("  Artifact SHA-256  : {sha_short}...");
+    println!("  Tokenizer         : {}", tokenizer_path.display());
+    println!(
+        "  Stack Shape       : vocab {} | width {} | heads {} | mlp {} | pattern {}",
+        shape.vocab, shape.width, shape.heads, shape.mlp, shape.pattern
+    );
+    println!(
+        "  Read / Transport  : {} | rotation {} | pointer {}",
+        shape.read,
+        shape.rotation,
+        if shape.pointer.is_some() { "yes" } else { "no" }
+    );
+    println!(
+        "  Context Capacity  : {} tokens (artifact declaration)",
+        shape.context
+    );
+    println!(
+        "  Dialogue Protocol : {} ({})",
+        chat.protocol().schema,
+        chat.protocol().tokenizer_cid
+    );
+    println!("  Decoding          : greedy integer argmax (stack_argmax), no float sampling");
+    println!("  Worker Threads    : {threads}");
+    if !chat.declares_chat_context() {
+        println!(
+            "  [notice] The sealed bundle contract fixes context at {}; this artifact declares {}.",
+            uor_r4_integer::stack::CHAT_CONTEXT,
+            shape.context
+        );
+    }
+    println!("  Type /help for slash commands, /quit to exit.");
+    println!("================================================================================");
+}
+
+/// One reply, resetting the conversation once when the turn does not fit the
+/// artifact's context. Nothing is truncated silently: the reset is reported.
+fn stack_reply(
+    chat: &mut StackChat<'_>,
+    initial: &[u32],
+    user: &str,
+    max_tokens: usize,
+) -> std::result::Result<StackReply, StackCliError> {
+    match chat.reply(user, max_tokens) {
+        Ok(reply) => Ok(reply),
+        Err(StackChatError::Context { needed, context }) => {
+            println!(
+                "{ANSI_YELLOW_BOLD}[notice]{ANSI_RESET} The turn needs {needed} of {context} positions; starting a new conversation."
+            );
+            chat.reset();
+            chat.seed(initial)?;
+            Ok(chat.reply(user, max_tokens)?)
+        }
+        Err(error) => Err(StackCliError::Chat(error)),
+    }
+}
+
+fn print_stack_reply(reply: &StackReply, positions: usize, seconds: f64) {
+    // The `Assistant>` prompt was printed before the reply was generated.
+    println!("{}", reply.text);
+    let rate = if seconds > 0.0 {
+        reply.ids.len() as f64 / seconds
+    } else {
+        0.0
+    };
+    println!(
+        "{ANSI_MAGENTA_BOLD}[served]{ANSI_RESET} {} id(s) | stop {} | history {positions} | {rate:.2} id/s",
+        reply.ids.len(),
+        reply.stop.name()
+    );
+}
+
+fn stack_help() {
+    println!("{ANSI_YELLOW_BOLD}[uor-chat]{ANSI_RESET} Available Slash Commands (stack path):");
+    println!("  /reset, /clear        Reset dialogue history and start a fresh conversation");
+    println!("  /history              Display the exact token history length and context");
+    println!("  /tokens               Display the exact token ids of the conversation");
+    println!("  /stats                Display session telemetry and process RSS");
+    println!("  /quit, /exit          Exit uor-chat cleanly");
+    println!("  /help                 Display this command help menu");
+}
+
+fn stack_stats(chat: &StackChat<'_>) {
+    let rss = match get_process_rss_mb() {
+        Some(rss) => format!("{rss:.2} MB"),
+        None => "Unavailable".to_string(),
+    };
+    println!("{ANSI_MAGENTA_BOLD}+----------------------------------------------------------------------------+{ANSI_RESET}");
+    println!("| Stack Session Telemetry                                                    |");
+    println!("{ANSI_MAGENTA_BOLD}+----------------------------------------------------------------------------+{ANSI_RESET}");
+    println!(
+        "| History Tokens         : {:<50}|",
+        format!("{} / {}", chat.tokens().len(), chat.context())
+    );
+    println!("| Engine Steps           : {:<50}|", chat.position());
+    println!("| Process RSS            : {:<50}|", rss);
+    println!("{ANSI_MAGENTA_BOLD}+----------------------------------------------------------------------------+{ANSI_RESET}");
+}
+
+/// Serve a geometric-stack artifact: one `--say` turn, or a REPL.
+fn run_stack_chat(cli: &CliArgs) -> std::result::Result<(), StackCliError> {
+    let artifact = cli
+        .stack_path
+        .as_deref()
+        .ok_or_else(|| StackCliError::Usage("--stack requires an artifact path".into()))?;
+    let tokenizer_path = cli
+        .tokenizer_path
+        .as_deref()
+        .ok_or_else(|| StackCliError::Usage("--stack requires --tokenizer".into()))?;
+    if cli.temperature > 0.0 {
+        return Err(StackCliError::Usage(
+            "the D11 stack engine serves greedy decoding (integer argmax) only: the retained \
+             bundle path keeps its Q48 categorical sampler, but this engine has no integer \
+             sampler to draw from, so --temperature must be 0"
+                .into(),
+        ));
+    }
+    let mut model = IntegerStackModel::load(artifact)?;
+    model.set_threads(cli.threads)?;
+    let mut chat = StackChat::from_tokenizer_path(&model, tokenizer_path, cli.protocol)?;
+    if cli.read_mode == ReadMode::NoRead {
+        eprintln!(
+            "{ANSI_YELLOW_BOLD}[notice]{ANSI_RESET} --read-mode is fixed by the artifact's own read \
+             geometry ({}); it does not apply to the stack path.",
+            model.shape().read
+        );
+    }
+    let initial = stack_initial_history(&chat, cli.system_prompt.as_deref())?;
+    chat.seed(&initial)?;
+
+    if let Some(text) = cli.say.as_deref() {
+        let started = std::time::Instant::now();
+        let reply = stack_reply(&mut chat, &initial, text, cli.max_tokens)?;
+        let seconds = started.elapsed().as_secs_f64();
+        let record = serde_json::json!({
+            "schema": "uor-r4.uor-chat-stack-reply/1",
+            "artifact": artifact,
+            "artifact_sha256": model.artifact_sha256(),
+            "tokenizer": tokenizer_path,
+            "tokenizer_cid": chat.protocol().tokenizer_cid,
+            "protocol": chat.protocol(),
+            "context": chat.context(),
+            "decoding": "greedy stack_argmax",
+            "user": text,
+            "reply_text": reply.text,
+            "reply_ids": reply.ids,
+            "stop": reply.stop.name(),
+            "history_tokens": chat.tokens().len(),
+            "seconds": seconds,
+        });
+        println!("{}", serde_json::to_string_pretty(&record)?);
+        return Ok(());
+    }
+
+    print_stack_banner(&chat, artifact, tokenizer_path, cli.threads);
+    let stdin = io::stdin();
+    let mut reader = stdin.lock();
+    let mut turns = 0usize;
+    loop {
+        print!("{ANSI_CYAN_BOLD}User>{ANSI_RESET} ");
+        if io::stdout().flush().is_err() {
+            break;
+        }
+        let mut line = String::new();
+        match reader.read_line(&mut line) {
+            Ok(0) => {
+                println!();
+                println!("{ANSI_YELLOW_BOLD}[uor-chat]{ANSI_RESET} Exiting session.");
+                return Ok(());
+            }
+            Ok(_) => {
+                let trimmed = line.trim();
+                if trimmed.is_empty() {
+                    continue;
+                }
+                if trimmed.starts_with('/') {
+                    match trimmed.split_whitespace().next().unwrap_or(trimmed) {
+                        "/quit" | "/exit" => {
+                            println!(
+                                "{ANSI_YELLOW_BOLD}[uor-chat]{ANSI_RESET} Session ended. Goodbye!"
+                            );
+                            return Ok(());
+                        }
+                        "/help" => stack_help(),
+                        "/reset" | "/clear" => {
+                            chat.reset();
+                            chat.seed(&initial)?;
+                            turns = 0;
+                            println!(
+                                "{ANSI_YELLOW_BOLD}[uor-chat]{ANSI_RESET} Dialogue history reset cleanly."
+                            );
+                        }
+                        "/history" => println!(
+                            "{ANSI_YELLOW_BOLD}[uor-chat]{ANSI_RESET} Dialogue history: {turns} completed turns, {} active tokens in context (capacity {}).",
+                            chat.tokens().len(),
+                            chat.context()
+                        ),
+                        "/tokens" => println!(
+                            "{ANSI_YELLOW_BOLD}[uor-chat]{ANSI_RESET} Token ids: {:?}",
+                            chat.tokens()
+                        ),
+                        "/stats" => stack_stats(&chat),
+                        unknown => eprintln!(
+                            "{ANSI_RED_BOLD}[error]{ANSI_RESET} Unknown command '{unknown}'. Type /help for available commands."
+                        ),
+                    }
+                    continue;
+                }
+                print!("{ANSI_GREEN_BOLD}Assistant>{ANSI_RESET} ");
+                io::stdout().flush().ok();
+                let started = std::time::Instant::now();
+                match stack_reply(&mut chat, &initial, trimmed, cli.max_tokens) {
+                    Ok(reply) => {
+                        let seconds = started.elapsed().as_secs_f64();
+                        print_stack_reply(&reply, chat.tokens().len(), seconds);
+                        turns += 1;
+                    }
+                    Err(error) => {
+                        eprintln!("{ANSI_RED_BOLD}[error]{ANSI_RESET} Generation failed: {error}");
+                    }
+                }
+            }
+            Err(error) => {
+                eprintln!("{ANSI_RED_BOLD}[error]{ANSI_RESET} Input failed: {error}");
+                return Err(StackCliError::Io(error));
+            }
+        }
+    }
+    Ok(())
+}
+
 fn main() {
     retain_kernel_symbols();
 
     let cli = parse_cli_args();
+
+    if cli.stack_path.is_some() {
+        if cli.verify_kernel {
+            eprintln!(
+                "{ANSI_RED_BOLD}error:{ANSI_RESET} '--verify-kernel' verifies the retained bundle \
+                 kernel; it does not apply to the stack path"
+            );
+            process::exit(1);
+        }
+        if let Err(error) = run_stack_chat(&cli) {
+            eprintln!("{ANSI_RED_BOLD}error:{ANSI_RESET} {error}");
+            process::exit(1);
+        }
+        process::exit(0);
+    }
 
     if cli.verify_kernel {
         let bundle = match cli.bundle_path.as_deref() {

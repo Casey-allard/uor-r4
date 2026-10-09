@@ -1460,3 +1460,196 @@ fn test_pointer_copy_retrieval_boost_argmax_override_and_duplicate_accumulation(
         "under extremal i32::MAX scale, boosted logits must exceed unit-scale copy logits"
     );
 }
+
+// ---------------------------------------------------------------------------
+// Dialogue serving (`stack::chat`): the chat CLI's path to a stack artifact.
+
+/// The GPT-2 byte-to-character alphabet of the tokenizer crate.
+fn alphabet() -> [char; 256] {
+    let mut table = ['\0'; 256];
+    let mut extra = 0u32;
+    for byte in 0u32..256 {
+        let printable = (0x21..=0x7e).contains(&byte)
+            || (0xa1..=0xac).contains(&byte)
+            || (0xae..=0xff).contains(&byte);
+        table[byte as usize] = if printable {
+            char::from_u32(byte).expect("printable byte")
+        } else {
+            extra += 1;
+            char::from_u32(255 + extra).expect("byte mapping")
+        };
+    }
+    table
+}
+
+/// A byte-level tokenizer with the three dialogue specials at ids 0-2 and
+/// exactly [`VOCAB`] entries: the bytes the literal-role markers and the test
+/// messages need, then filler bytes.
+fn chat_tokenizer_json() -> Vec<u8> {
+    let table = alphabet();
+    let mut bytes: Vec<u8> = b"User: Assistant: System:\nHilmotwae".to_vec();
+    bytes.sort_unstable();
+    bytes.dedup();
+    for byte in 0u8..=255 {
+        if bytes.len() == VOCAB - 3 {
+            break;
+        }
+        if !bytes.contains(&byte) {
+            bytes.push(byte);
+        }
+    }
+    bytes.sort_unstable();
+    bytes.truncate(VOCAB - 3);
+    let mut vocab = serde_json::Map::new();
+    for (id, surface) in ["<|bos|>", "<|eos|>", "<|unk|>"].iter().enumerate() {
+        vocab.insert((*surface).to_owned(), json!(id));
+    }
+    for (index, byte) in bytes.iter().enumerate() {
+        vocab.insert(table[*byte as usize].to_string(), json!(index + 3));
+    }
+    let added: Vec<Value> = ["<|bos|>", "<|eos|>", "<|unk|>"]
+        .iter()
+        .enumerate()
+        .map(|(id, surface)| json!({"id": id, "content": surface}))
+        .collect();
+    serde_json::to_vec(&json!({
+        "pre_tokenizer": {"type": "ByteLevel", "add_prefix_space": false},
+        "added_tokens": added,
+        "model": {"type": "BPE", "vocab": vocab, "merges": []},
+    }))
+    .expect("tokenizer json")
+}
+
+fn chat(seed: u64) -> Result<(IntegerStackModel, Vec<u8>), StackError> {
+    Ok((
+        IntegerStackModel::parse(&artifact(seed))?,
+        chat_tokenizer_json(),
+    ))
+}
+
+fn open_chat<'m>(
+    model: &'m IntegerStackModel,
+    json: &[u8],
+) -> Result<super::StackChat<'m>, Box<dyn std::error::Error>> {
+    Ok(super::StackChat::from_tokenizer_json(model, json, 1)?)
+}
+
+type ChatTest = Result<(), Box<dyn std::error::Error>>;
+
+/// The greedy continuation of `history` on a fresh session, as the float
+/// stack's `greedy_reply` computes it: the highest served score (ties to the
+/// lower id) until EOS, a terminal cycle of length 1..=4 repeated three times,
+/// or the cap.
+fn greedy_reference(
+    model: &IntegerStackModel,
+    history: &[u32],
+    cap: usize,
+    eos: u32,
+) -> Result<Vec<u32>, StackError> {
+    let mut session = model.session();
+    let mut scores = Vec::new();
+    for &id in history {
+        scores = session.step(id)?.to_vec();
+    }
+    let mut ids = Vec::new();
+    for _ in 0..cap {
+        let next = super::stack_argmax(&scores) as u32;
+        ids.push(next);
+        if next == eos || crate::generation::short_cycle(&ids).is_some() {
+            break;
+        }
+        scores = session.step(next)?.to_vec();
+    }
+    Ok(ids)
+}
+
+#[test]
+fn stack_chat_greedy_reply_is_the_engines_own_continuation() -> ChatTest {
+    let (model, json) = chat(11)?;
+    let mut chat = open_chat(&model, &json)?;
+    let eos = chat.protocol().eos_id;
+    let history = [chat.protocol().bos_id, 3, 4];
+    chat.seed(&history[..1])?;
+    let reply = chat.reply_history(&history, 3)?;
+    assert_eq!(reply.ids, greedy_reference(&model, &history, 3, eos)?);
+    assert_eq!(
+        chat.tokens(),
+        &[history.as_slice(), reply.ids.as_slice()].concat()[..],
+        "the history keeps every token, terminal token included"
+    );
+    // Determinism: the same history asks the same question again.
+    let again = chat.reply_history(&history, 3)?;
+    assert_eq!(again.ids, reply.ids);
+    Ok(())
+}
+
+#[test]
+fn stack_chat_extends_the_session_instead_of_replaying_it() -> ChatTest {
+    let (model, json) = chat(13)?;
+    let mut chat = open_chat(&model, &json)?;
+    let bos = chat.protocol().bos_id;
+    chat.seed(&[bos])?;
+    let first = chat.reply_history(&[bos, 3], 2)?;
+    let steps_after_first = chat.position();
+    let mut second_history = vec![bos, 3];
+    second_history.extend_from_slice(&first.ids);
+    second_history.push(4);
+    let second = chat.reply_history(&second_history, 1)?;
+    // The first reply's ids were fed once: the second turn steps its own new
+    // suffix (the pending terminal id and token 4), not the whole history.
+    let stepped = if second.stop == super::StackStop::MaximumNewTokens {
+        second_history.len() + second.ids.len()
+    } else {
+        second_history.len() + second.ids.len() - 1
+    };
+    assert_eq!(chat.position(), stepped);
+    assert!(
+        chat.position() - steps_after_first <= 2,
+        "the session replayed the history"
+    );
+    Ok(())
+}
+
+#[test]
+fn stack_chat_refuses_a_turn_that_does_not_fit_the_context() -> ChatTest {
+    let (model, json) = chat(17)?;
+    let mut chat = open_chat(&model, &json)?;
+    assert_eq!(chat.context(), CONTEXT);
+    chat.seed(&[0])?;
+    let full = [0u32, 1, 2, 3, 4, 5];
+    let error = chat
+        .reply_history(&full, 1)
+        .expect_err("a seven-position turn cannot fit a six-position context");
+    assert!(matches!(error, super::StackChatError::Context { .. }));
+    assert_eq!(chat.tokens(), &[0], "a refused turn changes nothing");
+    Ok(())
+}
+
+#[test]
+fn stack_chat_rejects_a_message_with_literal_special_tokens() -> ChatTest {
+    let (model, json) = chat(19)?;
+    let mut chat = open_chat(&model, &json)?;
+    chat.seed(&[0])?;
+    let error = chat.reply("Hi <|eos|>", 2).expect_err("special tokens");
+    assert!(matches!(error, super::StackChatError::NotAUserTurn));
+    Ok(())
+}
+
+#[test]
+fn stack_chat_reset_and_seed_start_a_fresh_conversation() -> ChatTest {
+    let (model, json) = chat(23)?;
+    let mut chat = open_chat(&model, &json)?;
+    chat.seed(&[0])?;
+    let reply = chat.reply_history(&[0, 3], 2)?;
+    assert!(chat.tokens().len() > 2);
+    chat.reset();
+    chat.seed(&[0])?;
+    assert_eq!(chat.tokens(), &[0]);
+    assert_eq!(chat.position(), 1);
+    assert_eq!(
+        chat.reply_history(&[0, 3], 2)?.ids,
+        reply.ids,
+        "a fresh conversation with the same history serves the same ids"
+    );
+    Ok(())
+}
