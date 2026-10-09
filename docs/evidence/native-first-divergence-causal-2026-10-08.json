@@ -1,0 +1,1120 @@
+{
+  "schema": "uor-r4.first-divergence-causal-evidence/1",
+  "status": "COMPLETED_NATIVE_CAPTURE_AND_INDEPENDENT_SAVED_AUDIT_PROTECTED_DELIVERY_PENDING",
+  "owning_issue": 820,
+  "prospective_card": 6071254980,
+  "recovery_correction": 6071276224,
+  "parent_delivery": {
+    "pr": 1976,
+    "actual_merge": "5376eb0ef0e2f6909c51175c694256fcf3f1f887",
+    "verified": "freshmain/owned5paths/integratedtree"
+  },
+  "source_commit": "8a66377b6807c11868957da9bcede7982bd232a2",
+  "source_sha256": "ea42201c47dfc70caba231f0091917325fe3c3f48393dc443c92a0011f5d72ea",
+  "binary_sha256": "146695bbd680bfcce208ad431566f525dd2e73f72165f1720b6a46af22bb08af",
+  "config_sha256": "1b0e2aa22f1be67ec31125dc178c7fcd04a0a8cdd2a95c188d9371879b8a4365",
+  "capture_verification": {
+    "status": "PASS",
+    "seconds": 0.07064495235681534,
+    "verifier_sha256": "d90411116c702dc4149fc055706f34c276c1ead29c5b0ec95600c30cc976326d",
+    "report_sha256": "6ffd9e2bfcb5070c4a1ff4ec155d74b52341dec83a4d1021f44311853fd192c7",
+    "manifest_sha256": "da9bb4627ac0e118e8d1cb2960aebae7ab3ec8e39e3eae10d5984e0dba6379ff"
+  },
+  "capture_execution": {
+    "exit_code": 0,
+    "started_utc": "2026-10-08T23:53:25.165639+00:00",
+    "ended_utc": "2026-10-08T23:53:35.233388+00:00",
+    "elapsed_seconds": 10.06777086108923,
+    "children_max_rss_kib": 135164,
+    "binary_sha256": "146695bbd680bfcce208ad431566f525dd2e73f72165f1720b6a46af22bb08af",
+    "config_sha256": "1b0e2aa22f1be67ec31125dc178c7fcd04a0a8cdd2a95c188d9371879b8a4365"
+  },
+  "native_report_elapsed_seconds": 1.7636732510000002,
+  "original_full_reused": {
+    "report": "c9b9fe10b6fbb4332cf919a5df7ba31403ad3d51ac6f877d94daeabd99672bee",
+    "seal": "de90ba0ba2809ed37ca868ef2bcf94b6ceb8b176a60b86ae88801876dafbd0e5",
+    "full_witness_sha256": "fcde63e9fc12f218b866b71323601485db7f93fd1b69a54beec91e87a7b84fad",
+    "array_indices": [
+      231,
+      80
+    ],
+    "native_reexecution": "NOT_RUN"
+  },
+  "independent_saved_audit": {
+    "reader_sha256": "3ee4c75622c090a27a931f0117dd460facc47ba79466e2276b520de6f9c17de7",
+    "arithmetic_module_sha256": "c8681bfc7e7847cae29be2dd2198bb01f64711821584e27949fa06ed2a298c8a",
+    "result_sha256": "2e903bf74e40b215e3244d320dc91783c32d38a3b9cbb9689093ba7459b5b69a",
+    "manifest_sha256": "cb926fb6751d71f1f5c897e7c8b2c9203a9ec200eef6dc981616dfbbdfd037f2",
+    "execution": {
+      "exit_code": 0,
+      "elapsed_seconds": 15.393177520483732,
+      "max_rss_kib": 923832,
+      "argv": [
+        "/usr/bin/python3",
+        "/workspace/uor-r4/codex/sol-first-divergence-causal/audit-readers/independent-reader.py",
+        "/workspace/uor-r4/codex/sol-first-divergence-causal/runs/candidate-first-divergence-0001-attempt1",
+        "--config",
+        "/workspace/uor-r4/codex/sol-first-divergence-causal/configs/candidate-first-divergence-0001-attempt1.json",
+        "--config-sha256",
+        "1b0e2aa22f1be67ec31125dc178c7fcd04a0a8cdd2a95c188d9371879b8a4365",
+        "--expected-source",
+        "8a66377b6807c11868957da9bcede7982bd232a2",
+        "--binary",
+        "/workspace/uor-r4/codex/sol-first-divergence-causal/publications/runtime-8a66377b68-attempt1/native-reached-prefix-attribution",
+        "--binary-sha256",
+        "146695bbd680bfcce208ad431566f525dd2e73f72165f1720b6a46af22bb08af",
+        "--execution",
+        "/workspace/uor-r4/codex/sol-first-divergence-causal/observations/candidate-first-divergence-0001-attempt1/execution.json",
+        "--audit-root",
+        "/workspace/uor-r4/codex/sol-first-divergence-causal/audits/attempt2"
+      ],
+      "reader_sha256": "3ee4c75622c090a27a931f0117dd460facc47ba79466e2276b520de6f9c17de7",
+      "completed_utc": "2026-10-08T23:56:09.788218+00:00"
+    },
+    "full_pool_reductions": 8,
+    "packed_token_factors": 4096,
+    "scope": "All4096 saved packed Generate/U/Cue/Prefix/bridge arithmetic, original reused+candidate2 fullpools and four mixedpool reductions. No encoder/backward/newgradient/proposal/native model or rollout; source annotations posthoc. BLAKE3 actualverification is separate Rust parent evidence."
+  },
+  "results": [
+    {
+      "input_index": 245,
+      "position": 2,
+      "prefix": [
+        617,
+        2097
+      ],
+      "original_full_array_index": 231,
+      "original_file_sha256": "fcde63e9fc12f218b866b71323601485db7f93fd1b69a54beec91e87a7b84fad",
+      "candidate_frame_sha256": "f129f442f8641c50605244efcfac981af63cd344375416a556a0e3a39266477c",
+      "desired_token_posthoc": 315,
+      "rival_token_posthoc": 1717,
+      "desired_copy_ordinals": [],
+      "rival_copy_ordinals": [
+        1
+      ],
+      "original_BASE_donor": 7,
+      "candidate_BASE_donor": 13,
+      "desired_alias_identities": [],
+      "rival_alias_identities": [
+        {
+          "bank_index": 1,
+          "context_position": 15,
+          "event": 0,
+          "occurrence": {
+            "commit": 1,
+            "record": 1,
+            "token_id": 1717,
+            "token_offset": 1
+          },
+          "segment_index": 1
+        }
+      ],
+      "direct_Prefix_physical_deltas": [
+        {
+          "ordinal": 0,
+          "token_id": 1074,
+          "prefix_keys": [
+            119,
+            147,
+            311,
+            462,
+            519,
+            602,
+            836,
+            906
+          ],
+          "BASECopy_delta_q24": -16777216
+        },
+        {
+          "ordinal": 1,
+          "token_id": 1717,
+          "prefix_keys": [
+            117,
+            221,
+            259,
+            469,
+            490,
+            607,
+            756,
+            947
+          ],
+          "BASECopy_delta_q24": 0
+        },
+        {
+          "ordinal": 2,
+          "token_id": 79,
+          "prefix_keys": [
+            86,
+            208,
+            302,
+            447,
+            597,
+            635,
+            809,
+            844
+          ],
+          "BASECopy_delta_q24": -4194304
+        },
+        {
+          "ordinal": 3,
+          "token_id": 820,
+          "prefix_keys": [
+            111,
+            206,
+            288,
+            473,
+            522,
+            674,
+            751,
+            877
+          ],
+          "BASECopy_delta_q24": -4194304
+        },
+        {
+          "ordinal": 4,
+          "token_id": 2394,
+          "prefix_keys": [
+            4,
+            188,
+            241,
+            463,
+            509,
+            610,
+            837,
+            860
+          ],
+          "BASECopy_delta_q24": -12582912
+        },
+        {
+          "ordinal": 5,
+          "token_id": 689,
+          "prefix_keys": [
+            53,
+            134,
+            276,
+            447,
+            580,
+            645,
+            773,
+            842
+          ],
+          "BASECopy_delta_q24": -12582912
+        },
+        {
+          "ordinal": 6,
+          "token_id": 1057,
+          "prefix_keys": [
+            119,
+            147,
+            311,
+            462,
+            519,
+            602,
+            836,
+            906
+          ],
+          "BASECopy_delta_q24": -16777216
+        },
+        {
+          "ordinal": 7,
+          "token_id": 267,
+          "prefix_keys": [
+            31,
+            221,
+            348,
+            445,
+            508,
+            615,
+            745,
+            896
+          ],
+          "BASECopy_delta_q24": -12582912
+        },
+        {
+          "ordinal": 8,
+          "token_id": 307,
+          "prefix_keys": [
+            54,
+            233,
+            256,
+            421,
+            508,
+            693,
+            722,
+            864
+          ],
+          "BASECopy_delta_q24": -12582912
+        },
+        {
+          "ordinal": 9,
+          "token_id": 397,
+          "prefix_keys": [
+            97,
+            165,
+            258,
+            412,
+            536,
+            719,
+            759,
+            883
+          ],
+          "BASECopy_delta_q24": -4194304
+        },
+        {
+          "ordinal": 10,
+          "token_id": 324,
+          "prefix_keys": [
+            27,
+            211,
+            279,
+            376,
+            543,
+            669,
+            802,
+            913
+          ],
+          "BASECopy_delta_q24": -8388608
+        },
+        {
+          "ordinal": 11,
+          "token_id": 91,
+          "prefix_keys": [
+            8,
+            167,
+            264,
+            470,
+            589,
+            690,
+            747,
+            895
+          ],
+          "BASECopy_delta_q24": -12582912
+        },
+        {
+          "ordinal": 12,
+          "token_id": 2795,
+          "prefix_keys": [
+            75,
+            161,
+            282,
+            431,
+            578,
+            714,
+            738,
+            923
+          ],
+          "BASECopy_delta_q24": -4194304
+        },
+        {
+          "ordinal": 13,
+          "token_id": 770,
+          "prefix_keys": [
+            81,
+            143,
+            281,
+            468,
+            530,
+            697,
+            756,
+            921
+          ],
+          "BASECopy_delta_q24": 0
+        },
+        {
+          "ordinal": 14,
+          "token_id": 397,
+          "prefix_keys": [
+            47,
+            150,
+            249,
+            431,
+            514,
+            649,
+            786,
+            945
+          ],
+          "BASECopy_delta_q24": -12582912
+        },
+        {
+          "ordinal": 15,
+          "token_id": 471,
+          "prefix_keys": [
+            23,
+            150,
+            324,
+            444,
+            514,
+            605,
+            829,
+            883
+          ],
+          "BASECopy_delta_q24": -4194304
+        }
+      ],
+      "original_donor_identity": {
+        "bank_index": 7,
+        "context_position": 40,
+        "event": 1,
+        "occurrence": {
+          "commit": 2,
+          "record": 2,
+          "token_id": 267,
+          "token_offset": 1
+        },
+        "segment_index": 3
+      },
+      "candidate_donor_identity": {
+        "bank_index": 13,
+        "context_position": 46,
+        "event": 1,
+        "occurrence": {
+          "commit": 2,
+          "record": 2,
+          "token_id": 770,
+          "token_offset": 7
+        },
+        "segment_index": 3
+      },
+      "original_post": [
+        106,
+        24,
+        54,
+        99,
+        98,
+        76,
+        19,
+        64
+      ],
+      "candidate_post": [
+        85,
+        108,
+        54,
+        84,
+        47,
+        76,
+        75,
+        10
+      ],
+      "Generate_vector_changed": true,
+      "direct_Copy_changed": true,
+      "original": {
+        "pool": {
+          "legal_generate_actions": 4096,
+          "copy_actions": 16,
+          "max_score_q24": 23068672,
+          "total_weight_q31": 31321010179,
+          "chosen_token_id": 315,
+          "chosen_weight_q31": 2147483648,
+          "generate_weight_q31": 30777887463,
+          "copy_weight_q31": 543122716,
+          "chosen_generate_weight_q31": 2147483648,
+          "chosen_copy_weight_q31": 0,
+          "clipped_low_actions": 0,
+          "clipped_high_actions": 0,
+          "raw_max_score_q24": 23068672,
+          "raw_total_weight_q31": 31321010179,
+          "raw_chosen_token_id": 315,
+          "raw_chosen_weight_q31": 2147483648,
+          "chosen_raw_mass_rank": 1,
+          "raw_chosen_clipped_mass_rank": 1,
+          "token_winner_changed_by_clip": false
+        },
+        "desired": {
+          "token_id": 315,
+          "weight_q31": 2147483648,
+          "generate_weight_q31": 2147483648,
+          "copy_weight_q31": 0
+        },
+        "rival": {
+          "token_id": 1717,
+          "weight_q31": 45444789,
+          "generate_weight_q31": 5666389,
+          "copy_weight_q31": 39778400
+        },
+        "desired_winner": true,
+        "rival_winner": false,
+        "desired_rival_mass_gap": 2102038859
+      },
+      "candidate": {
+        "pool": {
+          "legal_generate_actions": 4096,
+          "copy_actions": 16,
+          "max_score_q24": -24117248,
+          "total_weight_q31": 456587023008,
+          "chosen_token_id": 1717,
+          "chosen_weight_q31": 2233502427,
+          "generate_weight_q31": 451075183868,
+          "copy_weight_q31": 5511839140,
+          "chosen_generate_weight_q31": 1571132600,
+          "chosen_copy_weight_q31": 662369827,
+          "clipped_low_actions": 0,
+          "clipped_high_actions": 0,
+          "raw_max_score_q24": -24117248,
+          "raw_total_weight_q31": 456587023008,
+          "raw_chosen_token_id": 1717,
+          "raw_chosen_weight_q31": 2233502427,
+          "chosen_raw_mass_rank": 1,
+          "raw_chosen_clipped_mass_rank": 1,
+          "token_winner_changed_by_clip": false
+        },
+        "desired": {
+          "token_id": 315,
+          "weight_q31": 422864603,
+          "generate_weight_q31": 422864603,
+          "copy_weight_q31": 0
+        },
+        "rival": {
+          "token_id": 1717,
+          "weight_q31": 2233502427,
+          "generate_weight_q31": 1571132600,
+          "copy_weight_q31": 662369827
+        },
+        "desired_winner": false,
+        "rival_winner": true,
+        "desired_rival_mass_gap": -1810637824
+      },
+      "mixed_originalG_candidateCopy": {
+        "pool": {
+          "legal_generate_actions": 4096,
+          "copy_actions": 16,
+          "max_score_q24": 23068672,
+          "total_weight_q31": 31108899138,
+          "chosen_token_id": 315,
+          "chosen_weight_q31": 2147483648,
+          "generate_weight_q31": 30777887463,
+          "copy_weight_q31": 331011675,
+          "chosen_generate_weight_q31": 2147483648,
+          "chosen_copy_weight_q31": 0,
+          "clipped_low_actions": 0,
+          "clipped_high_actions": 0,
+          "raw_max_score_q24": 23068672,
+          "raw_total_weight_q31": 31108899138,
+          "raw_chosen_token_id": 315,
+          "raw_chosen_weight_q31": 2147483648,
+          "chosen_raw_mass_rank": 1,
+          "raw_chosen_clipped_mass_rank": 1,
+          "token_winner_changed_by_clip": false
+        },
+        "desired": {
+          "token_id": 315,
+          "weight_q31": 2147483648,
+          "generate_weight_q31": 2147483648,
+          "copy_weight_q31": 0
+        },
+        "rival": {
+          "token_id": 1717,
+          "weight_q31": 45444789,
+          "generate_weight_q31": 5666389,
+          "copy_weight_q31": 39778400
+        },
+        "desired_winner": true,
+        "rival_winner": false,
+        "desired_rival_mass_gap": 2102038859
+      },
+      "mixed_candidateG_originalCopy": {
+        "pool": {
+          "legal_generate_actions": 4096,
+          "copy_actions": 16,
+          "max_score_q24": -16777215,
+          "total_weight_q31": 297075131551,
+          "chosen_token_id": 267,
+          "chosen_weight_q31": 2161953279,
+          "generate_weight_q31": 291236012486,
+          "copy_weight_q31": 5839119065,
+          "chosen_generate_weight_q31": 14469631,
+          "chosen_copy_weight_q31": 2147483648,
+          "clipped_low_actions": 0,
+          "clipped_high_actions": 0,
+          "raw_max_score_q24": -16777215,
+          "raw_total_weight_q31": 297075131551,
+          "raw_chosen_token_id": 267,
+          "raw_chosen_weight_q31": 2161953279,
+          "chosen_raw_mass_rank": 1,
+          "raw_chosen_clipped_mass_rank": 1,
+          "token_winner_changed_by_clip": false
+        },
+        "desired": {
+          "token_id": 315,
+          "weight_q31": 273021892,
+          "generate_weight_q31": 273021892,
+          "copy_weight_q31": 0
+        },
+        "rival": {
+          "token_id": 1717,
+          "weight_q31": 1442057466,
+          "generate_weight_q31": 1014399388,
+          "copy_weight_q31": 427658078
+        },
+        "desired_winner": false,
+        "rival_winner": false,
+        "desired_rival_mass_gap": -1169035574
+      },
+      "diagnostic_classification": "Generate_change_sufficient_Copy_change_not_sufficient",
+      "scope": "Mixed pool diagnostics only; frozenU on both channels. No new serving policy or source correctness/representation-capacity inference."
+    },
+    {
+      "input_index": 13,
+      "position": 7,
+      "prefix": [
+        617,
+        2097,
+        315,
+        261,
+        92,
+        607,
+        770
+      ],
+      "original_full_array_index": 80,
+      "original_file_sha256": "fcde63e9fc12f218b866b71323601485db7f93fd1b69a54beec91e87a7b84fad",
+      "candidate_frame_sha256": "0f31a0190ba347dd2fc4b418fb2776771d0d6dca5b0a322e15e44e054d3c2e65",
+      "desired_token_posthoc": 397,
+      "rival_token_posthoc": 3123,
+      "desired_copy_ordinals": [
+        9
+      ],
+      "rival_copy_ordinals": [
+        1
+      ],
+      "original_BASE_donor": 9,
+      "candidate_BASE_donor": 1,
+      "desired_alias_identities": [
+        {
+          "bank_index": 9,
+          "context_position": 37,
+          "event": 1,
+          "occurrence": {
+            "commit": 2,
+            "record": 2,
+            "token_id": 397,
+            "token_offset": 4
+          },
+          "segment_index": 3
+        }
+      ],
+      "rival_alias_identities": [
+        {
+          "bank_index": 1,
+          "context_position": 14,
+          "event": 0,
+          "occurrence": {
+            "commit": 1,
+            "record": 1,
+            "token_id": 3123,
+            "token_offset": 1
+          },
+          "segment_index": 1
+        }
+      ],
+      "direct_Prefix_physical_deltas": [
+        {
+          "ordinal": 0,
+          "token_id": 683,
+          "prefix_keys": [
+            90,
+            216,
+            293,
+            373,
+            511,
+            672,
+            753,
+            909
+          ],
+          "BASECopy_delta_q24": -8388608
+        },
+        {
+          "ordinal": 1,
+          "token_id": 3123,
+          "prefix_keys": [
+            53,
+            165,
+            304,
+            451,
+            498,
+            638,
+            722,
+            948
+          ],
+          "BASECopy_delta_q24": -12582912
+        },
+        {
+          "ordinal": 2,
+          "token_id": 2211,
+          "prefix_keys": [
+            1,
+            137,
+            295,
+            450,
+            545,
+            630,
+            765,
+            874
+          ],
+          "BASECopy_delta_q24": -12582912
+        },
+        {
+          "ordinal": 3,
+          "token_id": 1202,
+          "prefix_keys": [
+            92,
+            211,
+            343,
+            391,
+            578,
+            653,
+            785,
+            888
+          ],
+          "BASECopy_delta_q24": -4194304
+        },
+        {
+          "ordinal": 4,
+          "token_id": 520,
+          "prefix_keys": [
+            41,
+            129,
+            293,
+            434,
+            485,
+            659,
+            777,
+            897
+          ],
+          "BASECopy_delta_q24": -16777216
+        },
+        {
+          "ordinal": 5,
+          "token_id": 261,
+          "prefix_keys": [
+            90,
+            216,
+            293,
+            373,
+            511,
+            672,
+            753,
+            909
+          ],
+          "BASECopy_delta_q24": -8388608
+        },
+        {
+          "ordinal": 6,
+          "token_id": 92,
+          "prefix_keys": [
+            53,
+            165,
+            268,
+            425,
+            595,
+            670,
+            784,
+            903
+          ],
+          "BASECopy_delta_q24": 4194304
+        },
+        {
+          "ordinal": 7,
+          "token_id": 607,
+          "prefix_keys": [
+            48,
+            204,
+            263,
+            471,
+            537,
+            666,
+            791,
+            871
+          ],
+          "BASECopy_delta_q24": -12582912
+        },
+        {
+          "ordinal": 8,
+          "token_id": 770,
+          "prefix_keys": [
+            7,
+            135,
+            248,
+            402,
+            593,
+            710,
+            821,
+            950
+          ],
+          "BASECopy_delta_q24": -12582912
+        },
+        {
+          "ordinal": 9,
+          "token_id": 397,
+          "prefix_keys": [
+            8,
+            233,
+            260,
+            453,
+            542,
+            710,
+            724,
+            921
+          ],
+          "BASECopy_delta_q24": -25165824
+        },
+        {
+          "ordinal": 10,
+          "token_id": 471,
+          "prefix_keys": [
+            87,
+            140,
+            255,
+            425,
+            519,
+            710,
+            831,
+            950
+          ],
+          "BASECopy_delta_q24": -12582912
+        }
+      ],
+      "original_donor_identity": {
+        "bank_index": 9,
+        "context_position": 37,
+        "event": 1,
+        "occurrence": {
+          "commit": 2,
+          "record": 2,
+          "token_id": 397,
+          "token_offset": 4
+        },
+        "segment_index": 3
+      },
+      "candidate_donor_identity": {
+        "bank_index": 1,
+        "context_position": 14,
+        "event": 0,
+        "occurrence": {
+          "commit": 1,
+          "record": 1,
+          "token_id": 3123,
+          "token_offset": 1
+        },
+        "segment_index": 1
+      },
+      "original_post": [
+        97,
+        94,
+        30,
+        63,
+        98,
+        90,
+        87,
+        37
+      ],
+      "candidate_post": [
+        40,
+        119,
+        30,
+        28,
+        27,
+        24,
+        41,
+        28
+      ],
+      "Generate_vector_changed": true,
+      "direct_Copy_changed": true,
+      "original": {
+        "pool": {
+          "legal_generate_actions": 4096,
+          "copy_actions": 11,
+          "max_score_q24": 32447422,
+          "total_weight_q31": 20119265643,
+          "chosen_token_id": 397,
+          "chosen_weight_q31": 2148162764,
+          "generate_weight_q31": 16262352160,
+          "copy_weight_q31": 3856913483,
+          "chosen_generate_weight_q31": 679116,
+          "chosen_copy_weight_q31": 2147483648,
+          "clipped_low_actions": 0,
+          "clipped_high_actions": 0,
+          "raw_max_score_q24": 32447422,
+          "raw_total_weight_q31": 20119265643,
+          "raw_chosen_token_id": 397,
+          "raw_chosen_weight_q31": 2148162764,
+          "chosen_raw_mass_rank": 1,
+          "raw_chosen_clipped_mass_rank": 1,
+          "token_winner_changed_by_clip": false
+        },
+        "desired": {
+          "token_id": 397,
+          "weight_q31": 2148162764,
+          "generate_weight_q31": 679116,
+          "copy_weight_q31": 2147483648
+        },
+        "rival": {
+          "token_id": 3123,
+          "weight_q31": 1220465491,
+          "generate_weight_q31": 1119672,
+          "copy_weight_q31": 1219345819
+        },
+        "desired_winner": true,
+        "rival_winner": false,
+        "desired_rival_mass_gap": 927697273
+      },
+      "candidate": {
+        "pool": {
+          "legal_generate_actions": 4096,
+          "copy_actions": 11,
+          "max_score_q24": 10368891,
+          "total_weight_q31": 62855823599,
+          "chosen_token_id": 3123,
+          "chosen_weight_q31": 2152214093,
+          "generate_weight_q31": 57724502580,
+          "copy_weight_q31": 5131321019,
+          "chosen_generate_weight_q31": 4730445,
+          "chosen_copy_weight_q31": 2147483648,
+          "clipped_low_actions": 0,
+          "clipped_high_actions": 0,
+          "raw_max_score_q24": 10368891,
+          "raw_total_weight_q31": 62855823599,
+          "raw_chosen_token_id": 3123,
+          "raw_chosen_weight_q31": 2152214093,
+          "chosen_raw_mass_rank": 1,
+          "raw_chosen_clipped_mass_rank": 1,
+          "token_winner_changed_by_clip": false
+        },
+        "desired": {
+          "token_id": 397,
+          "weight_q31": 1798619090,
+          "generate_weight_q31": 12079615,
+          "copy_weight_q31": 1786539475
+        },
+        "rival": {
+          "token_id": 3123,
+          "weight_q31": 2152214093,
+          "generate_weight_q31": 4730445,
+          "copy_weight_q31": 2147483648
+        },
+        "desired_winner": false,
+        "rival_winner": true,
+        "desired_rival_mass_gap": -353595003
+      },
+      "mixed_originalG_candidateCopy": {
+        "pool": {
+          "legal_generate_actions": 4096,
+          "copy_actions": 11,
+          "max_score_q24": 10368891,
+          "total_weight_q31": 65764133447,
+          "chosen_token_id": 3123,
+          "chosen_weight_q31": 2151658251,
+          "generate_weight_q31": 60632812428,
+          "copy_weight_q31": 5131321019,
+          "chosen_generate_weight_q31": 4174603,
+          "chosen_copy_weight_q31": 2147483648,
+          "clipped_low_actions": 0,
+          "clipped_high_actions": 0,
+          "raw_max_score_q24": 10368891,
+          "raw_total_weight_q31": 65764133447,
+          "raw_chosen_token_id": 3123,
+          "raw_chosen_weight_q31": 2151658251,
+          "chosen_raw_mass_rank": 1,
+          "raw_chosen_clipped_mass_rank": 1,
+          "token_winner_changed_by_clip": false
+        },
+        "desired": {
+          "token_id": 397,
+          "weight_q31": 1789071500,
+          "generate_weight_q31": 2532025,
+          "copy_weight_q31": 1786539475
+        },
+        "rival": {
+          "token_id": 3123,
+          "weight_q31": 2151658251,
+          "generate_weight_q31": 4174603,
+          "copy_weight_q31": 2147483648
+        },
+        "desired_winner": false,
+        "rival_winner": true,
+        "desired_rival_mass_gap": -362586751
+      },
+      "mixed_candidateG_originalCopy": {
+        "pool": {
+          "legal_generate_actions": 4096,
+          "copy_actions": 11,
+          "max_score_q24": 32447422,
+          "total_weight_q31": 19339226728,
+          "chosen_token_id": 397,
+          "chosen_weight_q31": 2150723527,
+          "generate_weight_q31": 15482313245,
+          "copy_weight_q31": 3856913483,
+          "chosen_generate_weight_q31": 3239879,
+          "chosen_copy_weight_q31": 2147483648,
+          "clipped_low_actions": 0,
+          "clipped_high_actions": 0,
+          "raw_max_score_q24": 32447422,
+          "raw_total_weight_q31": 19339226728,
+          "raw_chosen_token_id": 397,
+          "raw_chosen_weight_q31": 2150723527,
+          "chosen_raw_mass_rank": 1,
+          "raw_chosen_clipped_mass_rank": 1,
+          "token_winner_changed_by_clip": false
+        },
+        "desired": {
+          "token_id": 397,
+          "weight_q31": 2150723527,
+          "generate_weight_q31": 3239879,
+          "copy_weight_q31": 2147483648
+        },
+        "rival": {
+          "token_id": 3123,
+          "weight_q31": 1220614574,
+          "generate_weight_q31": 1268755,
+          "copy_weight_q31": 1219345819
+        },
+        "desired_winner": true,
+        "rival_winner": false,
+        "desired_rival_mass_gap": 930108953
+      },
+      "diagnostic_classification": "Copy_change_sufficient_Generate_change_not_sufficient",
+      "scope": "Mixed pool diagnostics only; frozenU on both channels. No new serving policy or source correctness/representation-capacity inference."
+    }
+  ],
+  "limitations": [
+    "Matched-prefix saved-score controls, no generated counterfactual replies",
+    "Task245 Generate-only control loses315 to267, not fullcandidate1717; sufficient loss differs from exact rival reproduction",
+    "Row13 Copy-only regression persists with originalGenerate; donor-only repair cannot address both",
+    "Candidate remains unselected; no serving changes, new learning, original recapture, AR replay or capacity/geometric advantage claim",
+    "Parent wrapper setup failure before reader is sealed, retained and not model-quality evidence"
+  ],
+  "next_dependency": "After actual protected merge, authenticate complete original correct-prefix guard population; ask whether original fixed gradient/rank can improve later-fragment objective while preserving all original correct trajectories. Generic learning coverage, no two special labels/runtime cases. Prospective resource/causal admission required; NOT_RUN/NOT_ADMITTED.",
+  "reviews": {
+    "prospective-math-review.json": {
+      "sha256": "58c1d4fd2431f5ddb0369390b9edd3a422db3805e08620d4b579422dba03f7ac",
+      "bytes": 5532
+    },
+    "prospective-adversarial-review.json": {
+      "sha256": "067e46dc2f6d9587670fb36fb2598aea76fefe0c73b4549a568c7c0088798752",
+      "bytes": 5326
+    },
+    "source-adversarial-review.json": {
+      "sha256": "ee6165207b00197444dca8f37a836fd69a807b984144bc2ae130942e784acf70",
+      "bytes": 3309
+    },
+    "reader-adversarial-review.json": {
+      "sha256": "7291cd16520a243791b8f852615731f571b60c0aff06d4e84f1dd2e5058fd542",
+      "bytes": 2822
+    },
+    "result-adversarial-review.json": {
+      "sha256": "7da75fa768e897e90227ff433c8d349105c1909dd8fa169178709a54bed9bdd4",
+      "bytes": 3711
+    },
+    "result-math-review.json": {
+      "bytes": 19022,
+      "sha256": "49c70bf1a7788defec2e1ba4e7bbfc3527d0f6a47d668d4705d99d7a78298347"
+    }
+  },
+  "runtime_preservation": {
+    "revision": "3d82a746cb88a0f286ca65e1a13d9fc101164276",
+    "prefix": "codex/sol-first-divergence-causal/runtime-8a66377b68-attempt1",
+    "all_fresh_download_verified": true,
+    "files": {
+      "SHA256-manifest.json": {
+        "sha256": "cdc619c4ee13c2945b0faafe505d4f24b29beabb4b0f836a14bc87892e26c52c",
+        "bytes": 1617
+      },
+      "capture-supervise.py": {
+        "sha256": "035a8a4609f7ebdeb513653c959aee6a1d6f30f1bb5094119339078428aa92d2",
+        "bytes": 3314
+      },
+      "checks.log": {
+        "sha256": "19e18cdbe5e5aee794c87c04ec79fd8e6377462775963f6986e504525f16ddbb",
+        "bytes": 4416
+      },
+      "checks.sh": {
+        "sha256": "aee98e60a2c0c0f48a3142ea70185a4a29021e9828ea59f6ea854824b1aadc5b",
+        "bytes": 1026
+      },
+      "config.json": {
+        "sha256": "1b0e2aa22f1be67ec31125dc178c7fcd04a0a8cdd2a95c188d9371879b8a4365",
+        "bytes": 2322
+      },
+      "engineering-source-packet.json": {
+        "sha256": "d8870c1ca60ab42368469e1e15d5d6135da3e6090fbbe6453ef27f0c23b111f8",
+        "bytes": 4759
+      },
+      "identity.json": {
+        "sha256": "5b206aad67749aeb4d19fbd666f6ad9284919bfbe96e20429b79879f887a7033",
+        "bytes": 231
+      },
+      "native-reached-prefix-attribution": {
+        "sha256": "146695bbd680bfcce208ad431566f525dd2e73f72165f1720b6a46af22bb08af",
+        "bytes": 3311360
+      },
+      "prospective-adversarial-review.json": {
+        "sha256": "067e46dc2f6d9587670fb36fb2598aea76fefe0c73b4549a568c7c0088798752",
+        "bytes": 5326
+      },
+      "prospective-math-review.json": {
+        "sha256": "58c1d4fd2431f5ddb0369390b9edd3a422db3805e08620d4b579422dba03f7ac",
+        "bytes": 5532
+      },
+      "resource-ledger.json": {
+        "sha256": "90cfc89e796461ea7c6aba53001d7244aa189a0d7fae0ddafc7d57439b190115",
+        "bytes": 1656
+      },
+      "source-adversarial-review.json": {
+        "sha256": "ee6165207b00197444dca8f37a836fd69a807b984144bc2ae130942e784acf70",
+        "bytes": 3309
+      },
+      "source.tar.gz": {
+        "sha256": "cc7a9dbd9a29d1c5f1f8b34c6042251ebf0de0b42f3b91ebeb1be1e3308307e2",
+        "bytes": 99675263
+      }
+    },
+    "seconds": 26.767748039215803,
+    "completed_utc": "2026-10-08T23:53:11.232843+00:00"
+  },
+  "resources": {
+    "continuous_cost_from": "2026-10-08T23:41:07Z",
+    "task_projection_seconds": 7200,
+    "cumulative_projected_seconds": 558870,
+    "increment": 0,
+    "cpu_threads": 2,
+    "ram_bytes": 4294967296,
+    "cache_bytes": 67108864,
+    "report_bytes": 134217728,
+    "temporary_bytes": 268435456,
+    "retained_bytes": 268435456,
+    "local": "POD_ONLY"
+  },
+  "complete_preservation": {
+    "revision": "16f7e532255a47aa9e43840acbd747324a1d6ccf",
+    "prefix": "codex/sol-first-divergence-causal/first-divergence-0001-8a66377b68",
+    "all_fresh_download_verified": true,
+    "files": {
+      "SHA256-manifest.json": {
+        "sha256": "45f2e662e23de6edbead446deb5f882c2b9b47b445cfb5093f93a640abe40170",
+        "bytes": 1259
+      },
+      "first-divergence-0001-8a66377b68.tar.gz": {
+        "sha256": "ca347c9e1457b70a7acce1a61f4098a90232f9ec5b72e7be3c65e3d3aaa2811e",
+        "bytes": 858012
+      }
+    },
+    "manifest": {
+      "source_commit": "8a66377b6807c11868957da9bcede7982bd232a2",
+      "runtime_hf_revision": "3d82a746cb88a0f286ca65e1a13d9fc101164276",
+      "runtime_manifest_sha256": "cdc619c4ee13c2945b0faafe505d4f24b29beabb4b0f836a14bc87892e26c52c",
+      "binary_sha256": "146695bbd680bfcce208ad431566f525dd2e73f72165f1720b6a46af22bb08af",
+      "config_sha256": "1b0e2aa22f1be67ec31125dc178c7fcd04a0a8cdd2a95c188d9371879b8a4365",
+      "report_sha256": "6ffd9e2bfcb5070c4a1ff4ec155d74b52341dec83a4d1021f44311853fd192c7",
+      "report_manifest_sha256": "da9bb4627ac0e118e8d1cb2960aebae7ab3ec8e39e3eae10d5984e0dba6379ff",
+      "audit_sha256": "2e903bf74e40b215e3244d320dc91783c32d38a3b9cbb9689093ba7459b5b69a",
+      "files": {
+        "first-divergence-0001-8a66377b68.tar.gz": {
+          "sha256": "ca347c9e1457b70a7acce1a61f4098a90232f9ec5b72e7be3c65e3d3aaa2811e",
+          "bytes": 858012
+        }
+      },
+      "scope": "Two target-free candidate first-divergence native frames, authentic original full witnesses reused. Independent saved eight fullpool reductions and factors PASS. Task245 Generate-only change loses desired315 but to267 rather than fullcandidate1717; row13 Copy-only change reproduces3123. FixedU unchanged. No original recapture, fit, gradient or autoregressive replay; candidate unselected."
+    },
+    "seconds": 6.650734376162291,
+    "completed_utc": "2026-10-09T00:00:57.238643+00:00"
+  },
+  "validation": "COMPLETE at declared scopes; exactfinalheadcompile/review and protectedmerge remain delivery"
+}
