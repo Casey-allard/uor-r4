@@ -4,6 +4,7 @@ Written 3 October 2026 (Eastern Time) by the support lab from [PR #1649](https:/
 
 ## 1. Scope and non-claims
 
+- **Running it from your own Runpod account:** [pods-quickstart.md](pods-quickstart.md).
 - **What it is:** an optional `cuda` Cargo feature of `uor-r4-training` and a `device=cuda` option of the `geometric-stack` example, for **offline training and evaluation only**.
 - **What it is not:** no CUDA serving. The integer serving path (D11) is unchanged and does not use this feature.
 - **Unsafe code:** the default build still forbids `unsafe`. With `cuda`, only the kernel launcher module `cuda_stack_kernels::cuda` allows it (one `unsafe` launch block).

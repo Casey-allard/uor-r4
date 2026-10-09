@@ -36,16 +36,29 @@
 # (the repository `--ref` must exist on) and UOR_POD_GIT_DIR (the checkout used to
 # expand a short SHA) override defaults. Bootstrap logs: $STATE/logs/ and, on the
 # pod's volume, /workspace/uor-r4/pods/bootstrap-<pod>-<UTC>.log.
+# Outside this project's Runpod account (scripts/pod/config.example,
+# docs/compute/pods-quickstart.md) these also override defaults:
+# UOR_POD_REPO_SLUG (GitHub repo for board comments), UOR_POD_CANONICAL_DC,
+# UOR_POD_VOLUME_ID (the canonical network volume), UOR_POD_NEW_VOLUME_GB,
+# UOR_POD_IMAGE (used when UOR_POD_TEMPLATE is none), UOR_POD_BOARD=none (no
+# GitHub comments; the ledger is still written) and UOR_HF_STORE (the Hugging
+# Face dataset the bootstrap fetches data from; passed as --hf-store).
+# Config file: ${UOR_POD_CONFIG:-~/.config/uor-pod/config}, sourced when it
+# exists. It uses the form `: "${VAR:=value}"`, so the environment wins.
 # Secrets: this tool never reads ~/.runpod/config.toml and never prints pod env.
 set -euo pipefail
 
-REPO_SLUG=UOR-Foundation/uor-r4
+UOR_POD_CONFIG=${UOR_POD_CONFIG:-$HOME/.config/uor-pod/config}
+# shellcheck disable=SC1090  # the user's own config file
+if [ -f "$UOR_POD_CONFIG" ]; then . "$UOR_POD_CONFIG"; echo "uor-pod: config $UOR_POD_CONFIG loaded" >&2; fi
+REPO_SLUG=${UOR_POD_REPO_SLUG:-UOR-Foundation/uor-r4}
+DEFAULT_REPO_URL=https://github.com/UOR-Foundation/uor-r4.git
 REPO_URL=${UOR_POD_REPO_URL:-https://github.com/$REPO_SLUG.git}
 STATE=${UOR_POD_STATE:-$HOME/.local/share/uor-r4/compute}
 DRY=${UOR_POD_DRY_RUN:-0}
-BOARD=${UOR_POD_BOARD:-2037}
+BOARD=${UOR_POD_BOARD-2037}   # set but empty means none, like UOR_POD_BOARD=none
 SSH_KEY=${UOR_POD_SSH_KEY:-$HOME/.ssh/uor_compute}
-TEMPLATE_ID=${UOR_POD_TEMPLATE:-h15vb984sw}
+TEMPLATE_ID=${UOR_POD_TEMPLATE-h15vb984sw}   # set but empty means none (create from UOR_POD_IMAGE)
 # Placement order: the network-volume datacenters that list RTX 5090 stock.
 # EUR-NO-1's volume is the canonical store; the others get uor-shared-<DC> lazily.
 VOLUME_DCS=${UOR_POD_VOLUME_DCS:-EUR-NO-1 EU-RO-1 EUR-IS-1}
@@ -57,12 +70,19 @@ VOLUME_DCS=${UOR_POD_VOLUME_DCS:-EUR-NO-1 EU-RO-1 EUR-IS-1}
 # gets its own uor-shared-<DC> volume and is non-canonical, as in EU-RO-1.
 EXTRA_VOLUME_DCS="US-CO-1 US-NC-2 US-IL-1 US-KS-2 US-TX-3 CA-MTL-1"
 [ -z "${UOR_POD_VOLUME_DCS+set}" ] || EXTRA_VOLUME_DCS=''
-CANONICAL_DC=EUR-NO-1
-VOLUME_ID=lmd1pfah3y
-NEW_VOLUME_GB=100
-# Owner's spending rule (2026-10-05), not a Runpod limit: <= 4 pods, <= $8/h in
-# total, so each lab can run its own 2 x 5090 pod in parallel. Only
-# --owner-approved overrides it; the variables exist for the dry-run tests.
+CANONICAL_DC=${UOR_POD_CANONICAL_DC:-EUR-NO-1}
+case " $VOLUME_DCS " in *" $CANONICAL_DC "*) ;; *)
+  echo "uor-pod: warning: canonical DC $CANONICAL_DC is not in UOR_POD_VOLUME_DCS ($VOLUME_DCS); up may create volumes there" >&2;; esac
+VOLUME_ID=${UOR_POD_VOLUME_ID:-lmd1pfah3y}
+NEW_VOLUME_GB=${UOR_POD_NEW_VOLUME_GB:-100}
+# Public image the project's private template h15vb984sw wraps; used when
+# UOR_POD_TEMPLATE is none or empty.
+IMAGE=${UOR_POD_IMAGE:-runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404}
+# Caps. Within this project the owner's spending rule (2026-10-05, AGENTS.md),
+# not a Runpod limit, applies: <= 4 pods, <= $8/h in total, so each lab can run
+# its own 2 x 5090 pod in parallel; only --owner-approved overrides it, and the
+# variables exist for the dry-run tests. Users outside the project set their
+# own caps (UOR_POD_MAX_PODS, UOR_POD_MAX_RATE) in the config file.
 MAX_PODS=${UOR_POD_MAX_PODS:-4}
 MAX_RATE=${UOR_POD_MAX_RATE:-8.00}
 IDLE_MIN=${UOR_POD_IDLE_MIN:-20}
@@ -209,6 +229,7 @@ ledger() {  # ledger EVENT LAB POD [JSON-OBJECT]  (caller holds the lock or the 
 
 board() {  # board TEXT -> one-line comment on the Compute board issue
   local text="[uor-pod] $1"
+  case $BOARD in none|'') return 0;; esac  # no board: the ledger alone records the event
   if is_dry; then echo "DRY-RUN: gh issue comment $BOARD: $text" >&2; return 0; fi
   gh issue comment "$BOARD" -R "$REPO_SLUG" --body "$text" >/dev/null 2>&1 ||
     warn "could not post to Compute board #$BOARD (event is in the ledger)"
@@ -722,7 +743,8 @@ up_create() {  # COUNT NAME REQ
       is_dry || [ -n "$(volume_for_dc "$dc")" ] || new_vol=1  # created by this call, not pre-existing
       vol=$(ensure_volume "$dc") || { lock_release; die "could not find or create volume uor-shared-$dc"; }
     fi
-    args=(pod create --template-id "$TEMPLATE_ID" --name "$name" --gpu-id "$UP_GID" --gpu-count "$count"
+    case $TEMPLATE_ID in none|'') args=(pod create --image "$IMAGE");; *) args=(pod create --template-id "$TEMPLATE_ID");; esac
+    args+=(--name "$name" --gpu-id "$UP_GID" --gpu-count "$count"
       --data-center-ids "$dc" --cloud-type SECURE --min-cuda-version 12.8
       --container-disk-in-gb "$CONTAINER_DISK_GB" --ports 22/tcp -o json)
     if [ "$off" = 1 ]; then args+=(--volume-in-gb "$OFF_VOLUME_DISK_GB"); else args+=(--network-volume-id "$vol"); fi
@@ -1314,6 +1336,10 @@ bootstrap_args() {  # SHA POD OFF-VOLUME(true|false) [CANONICAL(true|false)] -> 
   if [ "$OLLAMA" = 1 ]; then BOOT_ARGS+=(--with-ollama); fi
   if [ "$3" = true ]; then BOOT_ARGS+=(--off-volume); fi
   if [ "${4:-true}" = false ]; then BOOT_ARGS+=(--non-canonical); fi
+  # A fork's URL reaches the pod. A plain laptop path (/..., the tests' stand-in
+  # for --ref checks) is not passed; a file:// URL is, and fails to fetch on the pod.
+  case $REPO_URL in "$DEFAULT_REPO_URL"|/*) ;; *) BOOT_ARGS+=(--repo-url "$REPO_URL");; esac
+  if [ -n "${UOR_HF_STORE:-}" ]; then BOOT_ARGS+=(--hf-store "$UOR_HF_STORE"); fi
 }
 preflight_bootstrap_args() {  # SHA -> dies unless the bootstrap accepts every argument vector `up` may pass
   local off out

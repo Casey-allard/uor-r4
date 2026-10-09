@@ -3,6 +3,7 @@
 # `uor-pod up`/`uor-pod bootstrap` copies this file to /root and runs it as root:
 #
 #   bash /root/uor-pod-bootstrap.sh --sha FULL_SHA [--pod ID] [--with-ollama] [--off-volume] [--non-canonical]
+#        [--repo-url URL] [--hf-store NAME]   (values limited to [A-Za-z0-9:/._@-])
 #
 # Everything slow is cached on the shared network volume (/workspace) so the
 # second pod of a kind starts in seconds:
@@ -18,7 +19,7 @@ set -euo pipefail
 # `--check-args` validates the arguments exactly as a real run would and exits 0
 # without touching anything: `uor-pod up` runs it on the laptop before creating
 # (and paying for) a pod, so a bad argument never reaches a billed pod.
-SHA='' POD='' OLLAMA=0 OFF=0 NONCANON=0 CHECK_ARGS=0
+SHA='' POD='' OLLAMA=0 OFF=0 NONCANON=0 CHECK_ARGS=0 ARG_REPO_URL='' ARG_HF_STORE=''
 while [ $# -gt 0 ]; do
   case $1 in
     --sha|--pod) [ $# -ge 2 ] || { echo "$1 needs a value" >&2; exit 2; }
@@ -26,6 +27,10 @@ while [ $# -gt 0 ]; do
     --with-ollama) OLLAMA=1; shift;;
     --off-volume) OFF=1; shift;;
     --non-canonical) NONCANON=1; shift;;
+    --repo-url|--hf-store) [ $# -ge 2 ] || { echo "$1 needs a value" >&2; exit 2; }
+      # uor-pod passes these unquoted inside a remote shell string: allow no shell metacharacters
+      case $2 in *[!A-Za-z0-9:/._@-]*|'') echo "$1 may contain only [A-Za-z0-9:/._@-] (got '$2')" >&2; exit 2;; esac
+      if [ "$1" = --repo-url ]; then ARG_REPO_URL=$2; else ARG_HF_STORE=$2; fi; shift 2;;
     --check-args) CHECK_ARGS=1; shift;;
     *) echo "unknown argument $1" >&2; exit 2;;
   esac
@@ -38,7 +43,7 @@ case $POD in *[!a-zA-Z0-9-]*) echo "--pod must be alphanumeric (got '$POD')" >&2
 if [ "$CHECK_ARGS" = 1 ]; then echo "bootstrap arguments OK"; exit 0; fi
 
 RUST_VERSION=1.97.1
-REPO_URL=https://github.com/UOR-Foundation/uor-r4.git
+REPO_URL=${ARG_REPO_URL:-https://github.com/UOR-Foundation/uor-r4.git}
 BINS_EXAMPLES="geometric-stack m-world mqar-bench"
 BINS_BINS="chat-grade dialogue-recall-corpus mix-chat-corpus"
 T0=$(date +%s)
@@ -244,14 +249,15 @@ mkdir -p /root/leases /workspace/uor-r4/jobs /workspace/uor-r4/pods /workspace/b
 
 # ---- non-canonical volume: fetch the small data set from the private Hugging
 # Face dataset store (token copied by `uor-pod up`). Download only, never
-# upload; any failure is a warning and the bootstrap continues.
-if [ "$NONCANON" = 1 ]; then
+# upload; any failure is a warning and the bootstrap continues. --hf-store (a
+# user's own volume outside the project) also fetches, from that dataset.
+if [ "$NONCANON" = 1 ] || [ -n "$ARG_HF_STORE" ]; then
   DATA=/workspace/uor-r4/data missing=''
   for f in tokenizer.json.tar ft-balp.tar ft-dev.tar step5-inputs.tar MD5SUMS hot/sieve-panel.tar; do
     if [ ! -e "$DATA/$f" ]; then missing="$missing $f"; fi
   done
   if [ -n "$missing" ]; then
-    store=${UOR_HF_STORE:-caseyallard/uor-r4-store}
+    store=${ARG_HF_STORE:-${UOR_HF_STORE:-caseyallard/uor-r4-store}}
     log "non-canonical volume: fetching$missing from HF dataset $store"
     if pip install -q --break-system-packages "huggingface_hub[cli]" &&
        hf download "$store" --repo-type dataset $(for f in $missing; do printf -- "--include data/%s " "$f"; done) --local-dir /workspace/uor-r4/; then

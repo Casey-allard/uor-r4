@@ -1,0 +1,40 @@
+# uor-pod configuration for use outside the UOR-R4 project's Runpod account.
+# Copy to ~/.config/uor-pod/config (or point UOR_POD_CONFIG at it) and edit.
+# Every line uses `: "${VAR:=value}"`, so a variable already set in the
+# environment wins over this file. With no file, uor-pod uses the project's
+# own account values. Quick start: docs/compute/pods-quickstart.md.
+
+# Your network volume (Runpod > Storage) and the datacenter it lives in.
+: "${UOR_POD_VOLUME_ID:=YOUR_VOLUME_ID}"
+: "${UOR_POD_CANONICAL_DC:=YOUR_DC}"          # for example EUR-NO-1
+# Datacenters `up` may place pods in, in order. Setting this also turns off the
+# project's extra any-region fallback list.
+: "${UOR_POD_VOLUME_DCS:=YOUR_DC}"
+: "${UOR_POD_NEW_VOLUME_GB:=100}"             # size of volumes `up` creates in other DCs
+
+# The project's template is private. `none` creates pods from this public image
+# (CUDA 12.8, Ubuntu 24.04); the bootstrap installs Rust and builds on the pod.
+: "${UOR_POD_TEMPLATE:=none}"
+: "${UOR_POD_IMAGE:=runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404}"
+
+# Your own spending limits. Within the UOR-R4 project the owner's rule
+# (<= 4 pods, <= $8/h in total) applies instead.
+: "${UOR_POD_MAX_PODS:=1}"
+: "${UOR_POD_MAX_RATE:=2.00}"
+
+# SSH key whose public half is in your Runpod account settings.
+: "${UOR_POD_SSH_KEY:=$HOME/.ssh/id_ed25519}"
+
+# No GitHub comments on the project's compute board (the local ledger is still written).
+# `none` and an empty value both turn comments off.
+: "${UOR_POD_BOARD:=none}"
+# For a fork: the repository pods clone and the repository for board comments.
+# : "${UOR_POD_REPO_SLUG:=you/uor-r4}"
+# : "${UOR_POD_REPO_URL:=https://github.com/you/uor-r4.git}"
+
+# Hugging Face dataset the bootstrap fetches the project's data set from. The
+# public one holds the tokenizer, TinyStories (tokenized) and the dialogue sets;
+# the bootstrap's fixed file list is the project's fine-tune set, so files the
+# public store does not have are skipped with a warning. Download the rest in
+# your job with `hf download caseyallard/uor-r4-data --repo-type dataset ...`.
+: "${UOR_HF_STORE:=caseyallard/uor-r4-data}"

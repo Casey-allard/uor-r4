@@ -26,6 +26,8 @@ trap 'rm -rf "$W"' EXIT
 mkdir -p "$W/bin" "$W/fake"
 export UOR_POD_STATE=$W/state UOR_POD_DRY_RUN=1 FAKE=$W/fake PATH="$W/bin:$PATH"
 unset UOR_POD_SESSION UOR_POD_MAX_PODS UOR_POD_MAX_RATE
+export UOR_POD_CONFIG=$W/no-config  # a real user config never loads
+unset UOR_POD_REPO_SLUG UOR_POD_CANONICAL_DC UOR_POD_VOLUME_ID UOR_POD_NEW_VOLUME_GB UOR_POD_IMAGE UOR_POD_BOARD UOR_POD_TEMPLATE UOR_HF_STORE
 # A local stand-in for the GitHub repository `--ref` is checked against (no
 # network): main (2 commits), branch feature (2 commits), and a clone holding
 # one commit that was never pushed.
@@ -212,6 +214,20 @@ export UOR_POD_MAX_PODS=9 UOR_POD_MAX_RATE=99
 expect "up: no 5090 in EUR-NO-1 -> EU-RO-1, never 4090" 0 "Creating 2 x 5090 .* in EU-RO-1 volume dryrunvolume \\(non-canonical\\) for codex/x1" -- up "${X1[@]}" --purpose x --hours 1 --count 2
 expect "up: creates uor-shared-EU-RO-1 lazily" 0 "network-volume create --name uor-shared-EU-RO-1 --size 100 --data-center-id EU-RO-1" -- up "${X1[@]}" --purpose x --hours 1 --count 2
 expect "up --gpu 4090 explicit -> EUR-NO-1 canonical" 0 "Creating 2 x 4090 .* in EUR-NO-1 for codex/x1" -- up "${X1[@]}" --gpu 4090 --purpose x --hours 1 --count 2
+# ---- portability (up): config file, environment over config, UOR_POD_TEMPLATE=none, a bad --hf-store
+cat > "$W/user-config" <<'C'
+: "${UOR_POD_VOLUME_ID:=testvol123}"
+: "${UOR_POD_CANONICAL_DC:=EUR-NO-1}"
+C
+UOR_POD_CONFIG=$W/user-config expect "config file sets the canonical volume" 0 "--network-volume-id testvol123" -- up "${X1[@]}" --gpu 4090 --purpose x --hours 1 --count 2
+UOR_POD_CONFIG=$W/user-config UOR_POD_VOLUME_ID=envvol456 expect "environment beats the config file" 0 "--network-volume-id envvol456" -- up "${X1[@]}" --gpu 4090 --purpose x --hours 1 --count 2
+UOR_POD_TEMPLATE=none expect "UOR_POD_TEMPLATE=none creates from the public image" 0 "runpodctl pod create --image runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404 --name" -- up "${X1[@]}" --gpu 4090 --purpose x --hours 1 --count 2
+hasnt "UOR_POD_TEMPLATE=none passes no --template-id" "--template-id"
+UOR_POD_TEMPLATE= expect "empty UOR_POD_TEMPLATE also creates from the public image" 0 "runpodctl pod create --image runpod/pytorch:" -- up "${X1[@]}" --gpu 4090 --purpose x --hours 1 --count 2
+hasnt "empty UOR_POD_TEMPLATE passes no --template-id" "--template-id"
+UOR_POD_CONFIG=$W/user-config expect "a loaded config file is reported" 0 "uor-pod: config $W/user-config loaded" -- status
+UOR_POD_CANONICAL_DC=US-CO-1 expect "canonical DC outside UOR_POD_VOLUME_DCS warns" 0 "warning: canonical DC US-CO-1 is not in UOR_POD_VOLUME_DCS" -- status
+UOR_HF_STORE='a;b' expect "up refuses a bad --hf-store before any API call" 1 "the bootstrap rejects the arguments up would pass .*--hf-store may contain only" -- up "${X1[@]}" --gpu 4090 --purpose x --hours 1 --count 2
 UOR_POD_VOLUME_DCS="EUR-NO-1 EUR-IS-1" expect "up --gpu 5090: no 5090 in volume DCs refuses (no silent fallback)" 1 "no 5090 stock in EUR-NO-1 EUR-IS-1.*--wait" -- up "${X1[@]}" --gpu 5090 --purpose x --hours 1 --count 2
 has "refusal prints the stock table" "4090 \\\$0.74: EUR-NO-1\\*=Low"
 UOR_POD_VOLUME_DCS="EUR-NO-1 EUR-IS-1" expect "up --wait retries every minute" 0 "would retry every 1 min" -- up "${X1[@]}" --gpu 5090 --purpose x --hours 1 --count 2 --wait --wait-hours 1
@@ -672,6 +688,21 @@ else
 fi
 tar -czf "$W/serve/ollama-linux-amd64.tgz" -C "$W/opkg" bin
 olla "legacy .tgz still works when the .tar.zst is missing" "AFTER OLLAMA: status=ready"
+
+# ---- portability: config file, BOARD/TEMPLATE none, --hf-store/--repo-url to the pod
+expect "default board posts a gh issue comment" 0 "DRY-RUN: gh issue comment 2037" -- keep poda --purpose portability
+if UOR_POD_BOARD=none "$TOOL" keep poda --purpose portability > "$W/out" 2>&1; then ok "UOR_POD_BOARD=none still runs"; else bad "UOR_POD_BOARD=none still runs"; fi
+hasnt "UOR_POD_BOARD=none posts no gh issue comment" "gh issue comment"
+if UOR_POD_BOARD= "$TOOL" keep poda --purpose portability > "$W/out" 2>&1; then ok "empty UOR_POD_BOARD still runs"; else bad "empty UOR_POD_BOARD still runs"; fi
+hasnt "empty UOR_POD_BOARD posts no gh issue comment" "gh issue comment"
+"$TOOL" log -n 1 > "$W/out" 2>&1; has "UOR_POD_BOARD=none still writes the ledger" "keep .*portability"
+expect "default bootstrap args carry no --hf-store/--repo-url" 0 "run: bash /root/uor-pod-bootstrap.sh --sha $MAIN_SHA --pod poda \|" -- bootstrap poda --force --ref main
+UOR_HF_STORE=caseyallard/uor-r4-data expect "UOR_HF_STORE reaches the bootstrap as --hf-store" 0 "uor-pod-bootstrap.sh --sha $MAIN_SHA --pod poda --hf-store caseyallard/uor-r4-data \|" -- bootstrap poda --force --ref main
+UOR_POD_REPO_URL=file://$W/origin.git expect "a fork URL reaches the bootstrap as --repo-url" 0 "--pod poda --repo-url file://$W/origin.git \|" -- bootstrap poda --force --ref main
+chk "bootstrap --check-args accepts --hf-store and --repo-url" 0 "bootstrap arguments OK" --sha "$MAIN_SHA" --pod podx --hf-store caseyallard/uor-r4-data --repo-url https://github.com/me/fork.git
+chk "bootstrap --check-args rejects a ; in --hf-store" 2 "--hf-store may contain only" --sha "$MAIN_SHA" --hf-store 'a;b'
+chk "bootstrap --check-args rejects a space in --repo-url" 2 "--repo-url may contain only" --sha "$MAIN_SHA" --repo-url 'https://x y'
+chk "bootstrap --check-args rejects --hf-store without a value" 2 "--hf-store needs a value" --sha "$MAIN_SHA" --hf-store
 
 echo "passed $pass, failed $fail"
 [ "$fail" = 0 ]

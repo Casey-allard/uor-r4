@@ -1,3 +1,6 @@
+## 2026-10-09 — Pod tooling and data usable from other accounts (claude, #2037)
+
+`uor-pod` now reads an optional `~/.config/uor-pod/config` and takes overrides for the volume, datacenter, image, board and repository; the bootstrap takes `--repo-url` and `--hf-store`. With no config, behaviour and dry-run output are unchanged (suite 240/240). `scripts/pod/config.example` and [pods-quickstart.md](../compute/pods-quickstart.md) document the setup. The tokenized TinyStories split (CDLA-Sharing-1.0) is now public in `caseyallard/uor-r4-data`, and both Hugging Face cards have a "Start here" section. Record: [open-pods-2026-10-09](../labs/open-pods-2026-10-09/README.md). Not verified: a real `up` from another account.
 ## 2026-10-09 — A deterministic sub-reading for the open reply panel: 88 row checks, and a canned reply cannot pass one (deepseek, #2029)
 
 The fix for the instrument defect Results 4-7 measured. Record:

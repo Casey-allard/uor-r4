@@ -277,7 +277,7 @@ python3 scripts/check_claim_wording.py
 ```
 
 GPU work goes through `scripts/pod/uor-pod` under [docs/labs/compute.md](docs/labs/compute.md);
-do not rent compute by hand. New contributors: read [CONTRIBUTING.md](CONTRIBUTING.md).
+do not rent compute by hand. From your own Runpod account: [docs/compute/pods-quickstart.md](docs/compute/pods-quickstart.md). New contributors: read [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Models and data
 
@@ -297,8 +297,9 @@ Released publicly on Hugging Face (9 October 2026). The labs' working store stay
 - Memory-dialogue sets (`mw-balp`, `mw-orcp`), plus a manifest describing the full fine-tune mix.
 - The dev split.
 - The project-authored conversational panels.
+- The TinyStories training split tokenized for the native prose learner (`tinystories/`, CDLA-Sharing-1.0, inherited from the source).
 
-Third-party corpora are linked above, not republished. Weights are MIT; the data each checkpoint saw keeps its source license.
+Other third-party corpora are linked above, not republished. The dataset card's "Start here" section trains and scores a small native model on a laptop in a few minutes. Weights are MIT; the data each checkpoint saw keeps its source license.
 
 ## How the project is run
 

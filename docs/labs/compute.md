@@ -14,6 +14,8 @@ follow without reading this file are inline in [AGENTS.md](../../AGENTS.md)
 ("GPU pods") and printed by `uor-pod` with no arguments and at the top of
 `uor-pod status`.
 
+Outside the project's Runpod account? See [pods-quickstart.md](../compute/pods-quickstart.md) and `scripts/pod/config.example`.
+
 ## Identity: lab + session
 
 Every mutating command takes `--lab L --session S` (or `UOR_POD_SESSION=S`).
