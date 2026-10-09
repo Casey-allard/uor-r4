@@ -216,6 +216,35 @@ built and tested, trained policy, with broad language qualification unfinished. 
 route (`PrimeAtom`, `SemiprimeExpert`) is canary-scale, and whether a trained model calls it has not
 been verified.
 
+## 8. VSA hypervectors and Hamming similarity
+
+<img src="figures/geometry/vsa-hypervectors.svg" width="100%" alt="A token's 4096-bit bipolar code, XOR and popcount to a Hamming distance and bipolar cosine, and where the codes come from">
+
+**What it is.** Each token has a 4096-bit bipolar hypervector (64 × `u64` words, bit set = +1, clear =
+−1). Two codes are compared with an XOR and a popcount, which gives a Hamming distance d; the bipolar
+cosine is 1 − 2d/4096. A context hypervector bundles the codes of the recent tokens. The similarity is
+a statistic of the code bits; it is only as meaningful as the way the codes were assigned.
+
+**What the model does with it.** In the native prose learner (line B) the VSA term adds
+`vsa_scale · similarity` to the root and leaf scores. Three code modes exist. Mode 0 is a fixed token-id
+hash (historical; it is disconnected from the learned 120-root assignment, which is why it was
+described as mis-wired). Mode 1 derives each code from the learned icosian-root assignment (a token's
+nearest of the 120 roots, a Voronoi cell over the learned embeddings), and since PR #2077 these codes
+are trainable and refresh during training. Mode 2 binds the root code with a readout-hash residual.
+
+**Status.** Built and tested. A pre-registered retraining test (M1, #2029) is running; no measured
+advantage is claimed here. VSA is not tied to SpiralCore (next section).
+
+## 9. What carries route history (and what SpiralCore is)
+
+| Question | Answer | Where |
+| --- | --- | --- |
+| What carries route order? | The stack's quaternion recurrence: quaternion products are order-dependent, so the state encodes the order of rotations. Trained and served. | `geometric_stack.rs` |
+| What tracks accumulated phase? | `hopf_metric.rs` tracks a cumulative U(1) holonomy phase and a geodesic distance. Line B only. | `native_geometric/` |
+| What are chirality and polarity? | Exact signs on Z[φ]. Line B only. | `native_geometric/` |
+| What is SpiralCore? | `spiralcore_operator.rs` reproduces the SpiralCore v63 octonion/Cl(0,6) convention exactly (oriented Fano cycles (124)(235)(346)(457)(561)(672)(713); 15 bivectors ↔ 15 semiprimes; a 64-state composition table). It is an exact finite control in `recursive_geometric_attention.rs` (A10), re-checked in graph-certify, and sits on no training or serving path (0 references in `uor-r4-training`, `uor-r4-integer`, `uor-r4-api`). The Fano cycles are the same algebra as N3mesis's octonion material. | `uor-r4-core/src/spiralcore_operator.rs` |
+| What was tried and what is pre-registered? | Recursive geometric attention over earlier tokens (A1) was stopped on 1 October (D18) because a reusable state erased order. A route-holonomy read (rank earlier positions by the angle of h_j⁻¹·h_t, softmax-free) and an octonion-signed binding test that may promote SpiralCore to a state carrier are pre-registered on M1 (#2029). | #2029 |
+
 ## Life of one token
 
 Follow one byte-BPE token through the stack (text path):

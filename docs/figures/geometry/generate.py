@@ -835,7 +835,97 @@ def fig_next_token():
     fg.save()
 
 
+# ================================================================ FIG 9
+def fig_vsa():
+    import random
+    rng = random.Random(7)
+    A = [rng.choice((1, -1)) for _ in range(64)]
+    B = [(-a if rng.random() < 0.3 else a) for a in A]
+    gray = [rng.choice((1, -1)) for _ in range(32)]
+    learned = [rng.choice((1, -1)) for _ in range(32)]
+    d = sum(1 for a, b in zip(A[:32], B[:32]) if a != b)
+    cosv = 1 - 2 * d / 32
+    fg = Fig("vsa-hypervectors.svg", "VSA hypervectors: Hamming similarity",
+             "Each token has a 4096-bit bipolar hypervector stored as 64 u64 words. Two codes are compared by XOR and popcount to get a Hamming distance, then a bipolar cosine. Codes come from a fixed token-id hash (historical, disconnected from the learned 120 roots) or from the learned icosian root assignment (trained since PR 2077).",
+             ["Bipolar cosine = 1 - 2d/4096, with d = popcount(A XOR B); the VSA term adds vsa_scale x cosine to the root and leaf scores.",
+              "Built and tested; a pre-registered retraining test (#2029) is running. Bit patterns and example values here are illustrative."])
+    pc = lambda v: BLUE if v > 0 else ORANGE
+    for x, t in ((40, "1  a token has a code"), (350, "2  compare two codes"), (690, "3  where codes come from")):
+        fg.text(x, 100, t, 16, INK, weight="bold")
+    # left: token -> 8x8 bit grid
+    fg.rect(40, 118, 120, 34, "#f6f9fc", FAINT, 1.2, 8)
+    fg.text(100, 140, "token “cat”", 14, INK, "middle", weight="bold")
+    fg.arrow(100, 154, 100, 178, GRID, 2, 9)
+    for i, v in enumerate(A):
+        fg.rect(40 + (i % 8) * 24 + 1, 184 + (i // 8) * 24 + 1, 22, 22, pc(v), "#fff", 1, 3, fop=0.85)
+    fg.text(40, 394, "4096-bit bipolar code", 14, INK, weight="bold")
+    fg.text(40, 413, "64 of 4096 bits shown;", 12.5, MUTED)
+    fg.text(40, 430, "stored as 64 × u64 words", 12.5, MUTED)
+    fg.text(40, 452, "blue = +1, orange = −1", 12.5, MUTED)
+    # middle: XOR strips
+    cw = 9
+    for k, (lab, vec) in enumerate((("code A (first 32 bits)", A[:32]), ("code B (another token)", B[:32]))):
+        y = 124 + 50 * k
+        fg.text(350, y, lab, 12.5, MUTED)
+        for i, v in enumerate(vec):
+            fg.rect(350 + i * cw, y + 8, cw - 1, 16, pc(v), "#fff", 0.6, 1.5, fop=0.85)
+    fg.text(350, 224, "A XOR B  (red = bits that differ)", 12.5, MUTED)
+    for i in range(32):
+        diff = A[i] != B[i]
+        fg.rect(350 + i * cw, 232, cw - 1, 16, VERM if diff else "#eef1f4", "#fff", 0.6, 1.5)
+    fg.arrow(494, 252, 494, 280, GRID, 2, 9)
+    fg.rect(350, 284, 288, 52, "#fff4cf", INK, 1.4, 10)
+    fg.text(494, 306, "popcount → Hamming distance d", 13.5, INK, "middle", weight="bold")
+    fg.text(494, 326, f"shown bits: d = {d} of 32", 12.5, MUTED, "middle")
+    fg.arrow(494, 338, 494, 362, GRID, 2, 9)
+    fg.rect(350, 366, 288, 74, "#f2faf6", GREEN, 1.4, 10)
+    fg.text(494, 388, "bipolar cosine = 1 − 2d / 4096", 13.5, "#00704f", "middle", weight="bold")
+    fg.text(494, 408, "d = 0 → +1;  d ≈ 2048 → 0;  d = 4096 → −1", 12, INK, "middle")
+    fg.text(494, 427, f"shown bits only: 1 − 2·{d}/32 = {f(cosv)}", 12, MUTED, "middle")
+    fg.rect(350, 460, 288, 76, "#f6f9fc", FAINT, 1.2, 10)
+    fg.text(494, 482, "context hypervector", 13.5, INK, "middle", weight="bold")
+    fg.text(494, 501, "bundles the recent tokens' codes;", 12, MUTED, "middle")
+    fg.text(494, 519, "score += vsa_scale · cosine (root, leaf)", 12, MUTED, "middle")
+    # right: provenance of codes
+    fg.rect(690, 118, 270, 122, "#f4f5f7", FAINT, 1.2, 12)
+    fg.text(704, 140, "(a) mode 0: fixed token-id hash", 13.5, MUTED, weight="bold")
+    for i, v in enumerate(gray):
+        fg.rect(704 + i * 8, 150, 7, 14, "#b9c1cb" if v > 0 else "#8a97a6", "#fff", 0.5, 1.2)
+    fg.text(704, 188, "historical; disconnected from the", 12, MUTED)
+    fg.text(704, 205, "learned 120-root assignment", 12, MUTED)
+    fg.text(704, 226, "(mis-wired, kept as a control)", 12, MUTED, style="italic")
+    fg.rect(690, 256, 270, 196, "#eef6fc", BLUE, 1.6, 12)
+    fg.text(704, 278, "(b) mode 1: learned icosian root", 13.5, "#0b4f7c", weight="bold")
+    rcx, rcy, rr = 750, 346, 42
+    hit = 17
+    for i in range(120):
+        a = 2 * pi * i / 120 - pi / 2
+        x, y = rcx + rr * cos(a), rcy + rr * sin(a)
+        if i == hit:
+            fg.circle(x, y, 5, VERM, "#fff", 1.2)
+        else:
+            fg.circle(x, y, 2.2, BLUE, fop=0.6)
+    fg.text(rcx, rcy + 4, "120", 13, INK, "middle", weight="bold")
+    fg.text(rcx, rcy + 18, "roots", 11.5, MUTED, "middle")
+    fg.text(704, 410, "token → nearest of 120 roots", 12, INK)
+    fg.arrow(808, 340, 836, 340, BLUE, 2, 9)
+    for i, v in enumerate(learned[:16]):
+        fg.rect(842 + (i % 4) * 26 / 1.0 * 0.9, 322 + (i // 4) * 9 - 0, 20, 8, pc(v), "#fff", 0.5, 1.2, fop=0.85)
+    fg.text(704, 427, "code from the root (Voronoi cell);", 12, INK)
+    fg.text(704, 444, "trained since #2077", 12, "#0b4f7c", weight="bold")
+    fg.text(690, 476, "mode 2: root code bound with a", 12, MUTED)
+    fg.text(690, 493, "readout-hash residual", 12, MUTED)
+    # legend
+    fg.rect(40, 566, 920, 40, "#f6f9fc", FAINT, 1.2, 12)
+    lx = 58
+    for col, lab, w in ((BLUE, "+1 bit", 100), (ORANGE, "−1 bit", 100), (VERM, "bit differs after XOR", 190), ("#8a97a6", "fixed-hash code (historical)", 230)):
+        fg.rect(lx, 580, 14, 14, col, "#fff", 1, 3)
+        fg.text(lx + 22, 592, lab, 12.5, INK)
+        lx += w + 30
+    fg.save()
+
+
 if __name__ == "__main__":
-    for fn in (fig_quaternion, fig_s3, fig_hopf, fig_600cell, fig_golden, fig_zeta, fig_primes, fig_next_token):
+    for fn in (fig_quaternion, fig_s3, fig_hopf, fig_600cell, fig_golden, fig_zeta, fig_primes, fig_next_token, fig_vsa):
         fn()
-    print("wrote 8 figures to", OUT)
+    print("wrote 9 figures to", OUT)

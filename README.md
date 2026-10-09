@@ -88,6 +88,9 @@ For an illustrated walkthrough of the geometry, see [docs/geometry.md](docs/geom
 For one token end to end (embedding, quaternion recurrence, Lorentz read, copy head, integer serving), see
 [How the next token is predicted](docs/geometry.md#how-the-next-token-is-predicted).
 
+For the 4096-bit VSA hypervectors and their Hamming similarity, see
+[VSA hypervectors and Hamming similarity](docs/geometry.md#8-vsa-hypervectors-and-hamming-similarity).
+
 <img src="docs/figures/geometry/600-cell-icosians.svg" alt="The 120 unit icosians (600-cell vertices) used as a rotation codebook" width="100%">
 
 Each mechanism lists its implemented role and its status. Architectural priority
@@ -333,7 +336,7 @@ reference for teacher models), [`docs/`](docs), [`scripts/`](scripts), [`researc
 - **Alex Flom** (UOR Foundation, [@afflom](https://github.com/afflom)): the upstream UOR framework, addressing and Lean sources this project builds on, and review of its early design.
 - **Ari** (UOR, [@auser](https://github.com/auser)): migrated the transformerless engine into this workspace and authored the R4G1/graph-compiler design and early certify measurement work (July to August 2026, 154 commits).
 - **Maura** (UOR, [@maurathat](https://github.com/maurathat)): UOR contributions including uor-addr, and a README correction here (PR #235).
-- **N3mesis**: geometry research in [NEMESIS-Theory](https://github.com/markrnd87-cmd/NEMESIS-Theory), whose structure-carrying criteria (bijective state representation, transition fidelity, native primitive interpretation) frame the lowering contract.
+- **N3mesis**: geometry research in [NEMESIS-Theory](https://github.com/markrnd87-cmd/NEMESIS-Theory), whose structure-carrying criteria (bijective state representation, transition fidelity, native primitive interpretation) frame the lowering contract, and an octonion/Fano and integer XOR/Hamming state sketch (NEMESIS-Theory) that motivates the pre-registered Hamming-rank read and octonion-signed binding (ideas only; no text copied).
 - **Matthew**: author of SpiralCore (v63 Cl(0,6) octonion operator convention, reproduced in `crates/uor-r4-core/src/spiralcore_operator.rs` as a geometric control, and the v68 schema in `research/spiralcore-v68/`).
 - **DarkUnicorn**: author of GoldSnnail and goldworm-coder, reviewed as external sources whose state-layout patterns and evaluation ideas (contamination canary, Goodhart audit set, hash-chained gate log, score-then-verify coding loop) inform the gate and coding-loop plans.
 - **The AI research labs** (Claude, Codex, DeepSeek), which do most implementation under the owner's direction; owner and principal investigator Casey Allard.

@@ -108,6 +108,9 @@ correction; it is never silently replaced.
   never yours. Never fall back to the laptop CPU for GPU work. Leases are tracked on
   [#2037](https://github.com/UOR-Foundation/uor-r4/issues/2037); details in
   [docs/labs/compute.md](docs/labs/compute.md).
+- Never put project data, builds or downloads in `/tmp` or `/private/tmp`; use gitignored paths
+  inside your worktree (`/local/`, `target/`), so `uor-hygiene` and worktree removal reclaim them.
+- Never run model training, fine-tuning or grading on the laptop CPU; use `uor-pod`.
 - Never read or print API keys. No new paid or external compute class without the owner.
 
 ## Claim wording and evidence

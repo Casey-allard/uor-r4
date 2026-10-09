@@ -12,9 +12,12 @@
 #      file was written to for IDLE_HOURS and that no running cargo/rustc uses.
 #   3. ~/uor-r4-local/<dir> already in the iCloud store (cloud-store index) with
 #      an upload time after the folder's newest file: moved to the Trash.
-#   4. git gc --auto, and `uv cache prune` when uv is idle.
+#   4. Stale temporary folders: direct children of /private/tmp (and /tmp if
+#      different) owned by you, directories or files > 50 MB, idle for
+#      IDLE_HOURS and not open in any process: moved to the Trash.
+#   5. git gc --auto, and `uv cache prune` when uv is idle.
 # It never touches the main checkout's files, a dirty worktree, anything
-# written within IDLE_HOURS, ~/.local/share/uor-r4 (runner, ledger, tooling),
+# written within IDLE_HOURS, a running process's open files, claude-* session dirs, ~/.local/share/uor-r4 (runner, ledger, tooling),
 # a folder that is not in iCloud, ~/uor-r4-local/{bin,handoff,workspace}, or any
 # folder holding a .keep-local marker. It never empties the Trash.
 set -uo pipefail
@@ -96,7 +99,26 @@ if [ -x "$CLOUD" ] && [ -d "$LOCAL" ]; then
   rm -f "$idx"
 fi
 
-# 4. Git and package caches
+# 4. Stale temporary folders (/private/tmp, and /tmp if it is a different directory)
+tmp_roots=/private/tmp
+[ "$(cd -P /tmp 2>/dev/null && pwd)" != "$(cd -P /private/tmp 2>/dev/null && pwd)" ] && [ -d /tmp ] && tmp_roots="$tmp_roots /tmp"
+for root in $tmp_roots; do
+  [ -d "$root" ] || continue
+  while IFS= read -r -d '' p; do
+    n=$(basename "$p")
+    case "$n" in claude-*|com.apple.*|.X11-unix|.font-unix|powerlog|*.sock|*\'*) continue ;; esac
+    if [ -d "$p" ]; then
+      [ -n "$(lsof +D "$p" 2>/dev/null | head -n 1)" ] && { say "keep   temp $p (in use by a running process)"; continue; }
+    else
+      [ -n "$(lsof "$p" 2>/dev/null | head -n 1)" ] && { say "keep   temp $p (in use by a running process)"; continue; }
+    fi
+    if ! idle "$p"; then say "keep   temp $p (written within ${IDLE_HOURS} h)"; continue; fi
+    k=$(kb "$p")
+    act "$k" "move stale temp $p to the Trash ($((k / 1024)) MB, idle > ${IDLE_HOURS} h)" sh -c "mkdir -p '$TRASH' && mv '$p' '$TRASH/'"
+  done < <(find "$root" -mindepth 1 -maxdepth 1 -user "$(id -un)" \( -type d -o \( -type f -size +50M \) \) -print0 2>/dev/null)
+done
+
+# 5. Git and package caches
 if [ $APPLY = 1 ]; then
   git -C "$REPO" gc --auto --quiet && say "done   git gc --auto"
   if command -v uv >/dev/null; then UV_LOCK_TIMEOUT=5 uv cache prune >/dev/null 2>&1 && say "done   uv cache prune" || say "skip   uv cache prune (uv busy)"; fi
