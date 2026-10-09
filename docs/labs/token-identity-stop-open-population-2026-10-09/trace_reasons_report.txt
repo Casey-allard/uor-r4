@@ -1,0 +1,597 @@
+# arm arm-ptr, F=0.5, token-identity stop, WITH trace
+2x2: (a) 20 (b) 3 (c) 52 (d) 9
+
+==============================================================================
+## (d) no fire, not exact   n=9
+==============================================================================
+- natural/n_ithmar expected=ithmar    why=C     steps= 9 matched_steps=8 src_on_value=4 attempt_lens=[8] reply=" My name is Ithmar." stop=eos present=Y
+      step  0 id=2496  source=4    MATCH  win[src]=2496
+      step  1 id=1412  source=28   MATCH  win[src]=1412
+      step  2 id=435   source=6    MATCH  win[src]=435
+      step  3 id=427   source=7    MATCHV win[src]=427
+      step  4 id=74    source=8    MATCHV win[src]=74
+      step  5 id=79    source=9    MATCHV win[src]=79
+      step  6 id=291   source=10   MATCHV win[src]=291
+      step  7 id=16    source=11   MATCH  win[src]=16
+      step  8 id=1     source=36          win[src]=-
+- natural/n_iyandel expected=iyandel   why=C     steps= 4 matched_steps=4 src_on_value=0 attempt_lens=[4] reply=" My name is" stop=eos present=n
+      step  0 id=2496  source=18   MATCH  win[src]=2496
+      step  1 id=1412  source=29   MATCH  win[src]=1412
+      step  2 id=435   source=20   MATCH  win[src]=435
+      step  3 id=1     source=21   MATCH  win[src]=1
+- sure/n_ithmar expected=ithmar    why=C     steps= 9 matched_steps=8 src_on_value=4 attempt_lens=[8] reply=" My name is Ithmar." stop=eos present=Y
+      step  0 id=2496  source=4    MATCH  win[src]=2496
+      step  1 id=1412  source=29   MATCH  win[src]=1412
+      step  2 id=435   source=6    MATCH  win[src]=435
+      step  3 id=427   source=7    MATCHV win[src]=427
+      step  4 id=74    source=8    MATCHV win[src]=74
+      step  5 id=79    source=9    MATCHV win[src]=79
+      step  6 id=291   source=10   MATCHV win[src]=291
+      step  7 id=16    source=11   MATCH  win[src]=16
+      step  8 id=1     source=31          win[src]=201
+- sure/n_iyandel expected=iyandel   why=C     steps= 9 matched_steps=8 src_on_value=4 attempt_lens=[8] reply=" My name is Iyandel." stop=eos present=Y
+      step  0 id=2496  source=4    MATCH  win[src]=2496
+      step  1 id=1412  source=29   MATCH  win[src]=1412
+      step  2 id=435   source=6    MATCH  win[src]=435
+      step  3 id=340   source=7    MATCHV win[src]=340
+      step  4 id=91    source=8    MATCHV win[src]=91
+      step  5 id=789   source=9    MATCHV win[src]=789
+      step  6 id=418   source=10   MATCHV win[src]=418
+      step  7 id=16    source=11   MATCH  win[src]=16
+      step  8 id=1     source=4           win[src]=2496
+- sure/n_orvynn expected=orvynn    why=B     steps=10 matched_steps=8 src_on_value=6 attempt_lens=[1, 7] reply=" My name is Orvynn." stop=eos present=Y
+      step  0 id=2496  source=7         V win[src]=1399
+      step  1 id=1412  source=30   MATCH  win[src]=1412
+      step  2 id=435   source=6    MATCH  win[src]=435
+      step  3 id=1399  source=7    MATCHV win[src]=1399
+      step  4 id=84    source=8    MATCHV win[src]=84
+      step  5 id=88    source=9    MATCHV win[src]=88
+      step  6 id=91    source=10   MATCHV win[src]=91
+      step  7 id=729   source=11   MATCHV win[src]=729
+      step  8 id=16    source=12   MATCH  win[src]=16
+      step  9 id=1     source=4           win[src]=2496
+- sure/n_therrick expected=therrick  why=C     steps= 4 matched_steps=4 src_on_value=0 attempt_lens=[1, 1, 2] reply=" Sss." stop=eos present=n
+      step  0 id=301   source=18   MATCH  win[src]=301
+      step  1 id=560   source=14   MATCH  win[src]=560
+      step  2 id=16    source=20   MATCH  win[src]=16
+      step  3 id=1     source=21   MATCH  win[src]=1
+- noted/n_ithmar expected=ithmar    why=C     steps= 9 matched_steps=8 src_on_value=4 attempt_lens=[8] reply=" My name is Ithmar." stop=eos present=Y
+      step  0 id=2496  source=4    MATCH  win[src]=2496
+      step  1 id=1412  source=30   MATCH  win[src]=1412
+      step  2 id=435   source=6    MATCH  win[src]=435
+      step  3 id=427   source=7    MATCHV win[src]=427
+      step  4 id=74    source=8    MATCHV win[src]=74
+      step  5 id=79    source=9    MATCHV win[src]=79
+      step  6 id=291   source=10   MATCHV win[src]=291
+      step  7 id=16    source=11   MATCH  win[src]=16
+      step  8 id=1     source=32          win[src]=201
+- noted/n_iyandel expected=iyandel   why=C     steps= 5 matched_steps=4 src_on_value=0 attempt_lens=[5] reply=" Noted." stop=eos present=n
+      step  0 id=2237  source=18   MATCH  win[src]=2237
+      step  1 id=302   source=19   MATCH  win[src]=302
+      step  2 id=266   source=20   MATCH  win[src]=266
+      step  3 id=16    source=21   MATCH  win[src]=16
+      step  4 id=1     source=32          win[src]=201
+- noted/n_therrick expected=therrick  why=C     steps= 5 matched_steps=5 src_on_value=0 attempt_lens=[5] reply=" Noted." stop=eos present=n
+      step  0 id=2237  source=18   MATCH  win[src]=2237
+      step  1 id=302   source=19   MATCH  win[src]=302
+      step  2 id=266   source=20   MATCH  win[src]=266
+      step  3 id=16    source=21   MATCH  win[src]=16
+      step  4 id=1     source=22   MATCH  win[src]=1
+
+  -> reasons: A=0, B=1, C=8, D=0, fired=0   present 5/9
+
+==============================================================================
+## (c) no fire, EXACT   n=52
+==============================================================================
+- natural/n_candrake expected=candrake  why=C     steps= 6 matched_steps=6 src_on_value=4 attempt_lens=[5, 1] reply=" Candrake." stop=eos present=Y
+      step  0 id=772   source=7    MATCHV win[src]=772
+      step  1 id=789   source=8    MATCHV win[src]=789
+      step  2 id=84    source=9    MATCHV win[src]=84
+      step  3 id=420   source=21   MATCHV win[src]=420
+      step  4 id=16    source=11   MATCH  win[src]=16
+      step  5 id=1     source=23   MATCH  win[src]=1
+- natural/n_deltrix expected=deltrix   why=C     steps= 6 matched_steps=5 src_on_value=4 attempt_lens=[5] reply=" Deltrix." stop=eos present=Y
+      step  0 id=671   source=7    MATCHV win[src]=671
+      step  1 id=528   source=8    MATCHV win[src]=528
+      step  2 id=321   source=9    MATCHV win[src]=321
+      step  3 id=90    source=10   MATCHV win[src]=90
+      step  4 id=16    source=11   MATCH  win[src]=16
+      step  5 id=1     source=12          win[src]=201
+- natural/n_drovik expected=drovik    why=C     steps= 6 matched_steps=6 src_on_value=4 attempt_lens=[5, 1] reply=" Drovik." stop=eos present=Y
+      step  0 id=671   source=7    MATCHV win[src]=671
+      step  1 id=791   source=8    MATCHV win[src]=791
+      step  2 id=88    source=9    MATCHV win[src]=88
+      step  3 id=3565  source=10   MATCHV win[src]=3565
+      step  4 id=16    source=11   MATCH  win[src]=16
+      step  5 id=1     source=23   MATCH  win[src]=1
+- natural/n_fennor expected=fennor    why=C     steps= 6 matched_steps=6 src_on_value=4 attempt_lens=[5, 1] reply=" Fennor." stop=eos present=Y
+      step  0 id=598   source=7    MATCHV win[src]=598
+      step  1 id=303   source=8    MATCHV win[src]=303
+      step  2 id=80    source=9    MATCHV win[src]=80
+      step  3 id=306   source=10   MATCHV win[src]=306
+      step  4 id=16    source=11   MATCH  win[src]=16
+      step  5 id=1     source=23   MATCH  win[src]=1
+- natural/n_gullam expected=gullam    why=C     steps= 5 matched_steps=5 src_on_value=3 attempt_lens=[4, 1] reply=" Gullam." stop=eos present=Y
+      step  0 id=1155  source=7    MATCHV win[src]=1155
+      step  1 id=746   source=8    MATCHV win[src]=746
+      step  2 id=308   source=9    MATCHV win[src]=308
+      step  3 id=16    source=10   MATCH  win[src]=16
+      step  4 id=1     source=21   MATCH  win[src]=1
+- natural/n_harrowen expected=harrowen  why=C     steps= 6 matched_steps=5 src_on_value=4 attempt_lens=[5] reply=" Harrowen." stop=eos present=Y
+      step  0 id=310   source=7    MATCHV win[src]=310
+      step  1 id=291   source=8    MATCHV win[src]=291
+      step  2 id=1592  source=9    MATCHV win[src]=1592
+      step  3 id=303   source=10   MATCHV win[src]=303
+      step  4 id=16    source=11   MATCH  win[src]=16
+      step  5 id=1     source=12          win[src]=201
+- natural/n_kelbrin expected=kelbrin   why=C     steps= 6 matched_steps=6 src_on_value=4 attempt_lens=[5, 1] reply=" Kelbrin." stop=eos present=Y
+      step  0 id=935   source=7    MATCHV win[src]=935
+      step  1 id=418   source=8    MATCHV win[src]=418
+      step  2 id=1986  source=9    MATCHV win[src]=1986
+      step  3 id=272   source=21   MATCHV win[src]=272
+      step  4 id=16    source=11   MATCH  win[src]=16
+      step  5 id=1     source=23   MATCH  win[src]=1
+- natural/n_kestril expected=kestril   why=C     steps= 6 matched_steps=5 src_on_value=4 attempt_lens=[5] reply=" Kestril." stop=eos present=Y
+      step  0 id=935   source=7    MATCHV win[src]=935
+      step  1 id=2219  source=8    MATCHV win[src]=2219
+      step  2 id=84    source=9    MATCHV win[src]=84
+      step  3 id=316   source=10   MATCHV win[src]=316
+      step  4 id=16    source=11   MATCH  win[src]=16
+      step  5 id=1     source=12          win[src]=201
+- natural/n_miskel expected=miskel    why=C     steps= 6 matched_steps=5 src_on_value=4 attempt_lens=[5] reply=" Miskel." stop=eos present=Y
+      step  0 id=379   source=7    MATCHV win[src]=379
+      step  1 id=289   source=8    MATCHV win[src]=289
+      step  2 id=346   source=9    MATCHV win[src]=346
+      step  3 id=78    source=10   MATCHV win[src]=78
+      step  4 id=16    source=11   MATCH  win[src]=16
+      step  5 id=1     source=12          win[src]=201
+- natural/n_morbeth expected=morbeth   why=C     steps= 6 matched_steps=6 src_on_value=4 attempt_lens=[5, 1] reply=" Morbeth." stop=eos present=Y
+      step  0 id=379   source=7    MATCHV win[src]=379
+      step  1 id=306   source=8    MATCHV win[src]=306
+      step  2 id=68    source=9    MATCHV win[src]=68
+      step  3 id=2347  source=10   MATCHV win[src]=2347
+      step  4 id=16    source=11   MATCH  win[src]=16
+      step  5 id=1     source=23   MATCH  win[src]=1
+- natural/n_orlind expected=orlind    why=C     steps= 6 matched_steps=6 src_on_value=4 attempt_lens=[5, 1] reply=" Orlind." stop=eos present=Y
+      step  0 id=1399  source=7    MATCHV win[src]=1399
+      step  1 id=84    source=8    MATCHV win[src]=84
+      step  2 id=78    source=9    MATCHV win[src]=78
+      step  3 id=445   source=10   MATCHV win[src]=445
+      step  4 id=16    source=11   MATCH  win[src]=16
+      step  5 id=1     source=23   MATCH  win[src]=1
+- natural/n_orvynn expected=orvynn    why=C     steps= 7 matched_steps=7 src_on_value=5 attempt_lens=[6, 1] reply=" Orvynn." stop=eos present=Y
+      step  0 id=1399  source=7    MATCHV win[src]=1399
+      step  1 id=84    source=8    MATCHV win[src]=84
+      step  2 id=88    source=9    MATCHV win[src]=88
+      step  3 id=91    source=10   MATCHV win[src]=91
+      step  4 id=729   source=11   MATCHV win[src]=729
+      step  5 id=16    source=12   MATCH  win[src]=16
+      step  6 id=1     source=25   MATCH  win[src]=1
+- natural/n_pellum expected=pellum    why=C     steps= 5 matched_steps=4 src_on_value=3 attempt_lens=[4, 1] reply=" Pellum." stop=eos present=Y
+      step  0 id=971   source=7    MATCHV win[src]=971
+      step  1 id=540   source=8    MATCHV win[src]=540
+      step  2 id=494   source=9    MATCHV win[src]=494
+      step  3 id=16    source=6           win[src]=435
+      step  4 id=1     source=21   MATCH  win[src]=1
+- natural/n_quarnil expected=quarnil   why=C     steps= 7 matched_steps=6 src_on_value=4 attempt_lens=[6] reply=" Quarnil." stop=eos present=Y
+      step  0 id=223   source=7    MATCH  win[src]=223
+      step  1 id=51    source=8    MATCHV win[src]=51
+      step  2 id=87    source=9    MATCHV win[src]=87
+      step  3 id=596   source=10   MATCHV win[src]=596
+      step  4 id=316   source=11   MATCHV win[src]=316
+      step  5 id=16    source=12   MATCH  win[src]=16
+      step  6 id=1     source=13          win[src]=201
+- natural/n_skavel expected=skavel    why=C     steps= 6 matched_steps=6 src_on_value=4 attempt_lens=[5, 1] reply=" Skavel." stop=eos present=Y
+      step  0 id=301   source=7    MATCHV win[src]=301
+      step  1 id=77    source=8    MATCHV win[src]=77
+      step  2 id=605   source=9    MATCHV win[src]=605
+      step  3 id=78    source=10   MATCHV win[src]=78
+      step  4 id=16    source=11   MATCH  win[src]=16
+      step  5 id=1     source=23   MATCH  win[src]=1
+- natural/n_sylbex expected=sylbex    why=C     steps= 7 matched_steps=6 src_on_value=5 attempt_lens=[6] reply=" Sylbex." stop=eos present=Y
+      step  0 id=301   source=7    MATCHV win[src]=301
+      step  1 id=91    source=8    MATCHV win[src]=91
+      step  2 id=78    source=9    MATCHV win[src]=78
+      step  3 id=68    source=10   MATCHV win[src]=68
+      step  4 id=839   source=11   MATCHV win[src]=839
+      step  5 id=16    source=12   MATCH  win[src]=16
+      step  6 id=1     source=4           win[src]=2496
+- natural/n_tavren expected=tavren    why=C     steps= 5 matched_steps=5 src_on_value=3 attempt_lens=[4, 1] reply=" Tavren." stop=eos present=Y
+      step  0 id=273   source=7    MATCHV win[src]=273
+      step  1 id=1410  source=8    MATCHV win[src]=1410
+      step  2 id=1646  source=9    MATCHV win[src]=1646
+      step  3 id=16    source=10   MATCH  win[src]=16
+      step  4 id=1     source=21   MATCH  win[src]=1
+- natural/n_vantel expected=vantel    why=C     steps= 5 matched_steps=4 src_on_value=3 attempt_lens=[4] reply=" Vantel." stop=eos present=Y
+      step  0 id=3821  source=7    MATCHV win[src]=3821
+      step  1 id=714   source=8    MATCHV win[src]=714
+      step  2 id=418   source=9    MATCHV win[src]=418
+      step  3 id=16    source=10   MATCH  win[src]=16
+      step  4 id=1     source=31          win[src]=201
+- sure/n_candrake expected=candrake  why=C     steps= 6 matched_steps=5 src_on_value=4 attempt_lens=[5] reply=" Candrake." stop=eos present=Y
+      step  0 id=772   source=7    MATCHV win[src]=772
+      step  1 id=789   source=8    MATCHV win[src]=789
+      step  2 id=84    source=9    MATCHV win[src]=84
+      step  3 id=420   source=10   MATCHV win[src]=420
+      step  4 id=16    source=11   MATCH  win[src]=16
+      step  5 id=1     source=12          win[src]=201
+- sure/n_deltrix expected=deltrix   why=C     steps= 6 matched_steps=5 src_on_value=4 attempt_lens=[5] reply=" Deltrix." stop=eos present=Y
+      step  0 id=671   source=7    MATCHV win[src]=671
+      step  1 id=528   source=8    MATCHV win[src]=528
+      step  2 id=321   source=9    MATCHV win[src]=321
+      step  3 id=90    source=10   MATCHV win[src]=90
+      step  4 id=16    source=11   MATCH  win[src]=16
+      step  5 id=1     source=12          win[src]=201
+- sure/n_drovik expected=drovik    why=C     steps= 6 matched_steps=5 src_on_value=4 attempt_lens=[5] reply=" Drovik." stop=eos present=Y
+      step  0 id=671   source=7    MATCHV win[src]=671
+      step  1 id=791   source=8    MATCHV win[src]=791
+      step  2 id=88    source=9    MATCHV win[src]=88
+      step  3 id=3565  source=10   MATCHV win[src]=3565
+      step  4 id=16    source=11   MATCH  win[src]=16
+      step  5 id=1     source=12          win[src]=201
+- sure/n_fennor expected=fennor    why=C     steps= 6 matched_steps=5 src_on_value=4 attempt_lens=[5] reply=" Fennor." stop=eos present=Y
+      step  0 id=598   source=7    MATCHV win[src]=598
+      step  1 id=303   source=8    MATCHV win[src]=303
+      step  2 id=80    source=9    MATCHV win[src]=80
+      step  3 id=306   source=10   MATCHV win[src]=306
+      step  4 id=16    source=11   MATCH  win[src]=16
+      step  5 id=1     source=4           win[src]=2496
+- sure/n_gullam expected=gullam    why=C     steps= 5 matched_steps=4 src_on_value=3 attempt_lens=[4] reply=" Gullam." stop=eos present=Y
+      step  0 id=1155  source=7    MATCHV win[src]=1155
+      step  1 id=746   source=8    MATCHV win[src]=746
+      step  2 id=308   source=9    MATCHV win[src]=308
+      step  3 id=16    source=10   MATCH  win[src]=16
+      step  4 id=1     source=11          win[src]=201
+- sure/n_jorvex expected=jorvex    why=C     steps= 6 matched_steps=5 src_on_value=4 attempt_lens=[5] reply=" Jorvex." stop=eos present=Y
+      step  0 id=595   source=7    MATCHV win[src]=595
+      step  1 id=306   source=8    MATCHV win[src]=306
+      step  2 id=354   source=9    MATCHV win[src]=354
+      step  3 id=90    source=10   MATCHV win[src]=90
+      step  4 id=16    source=11   MATCH  win[src]=16
+      step  5 id=1     source=12          win[src]=201
+- sure/n_kelbrin expected=kelbrin   why=C     steps= 6 matched_steps=5 src_on_value=4 attempt_lens=[5] reply=" Kelbrin." stop=eos present=Y
+      step  0 id=935   source=7    MATCHV win[src]=935
+      step  1 id=418   source=8    MATCHV win[src]=418
+      step  2 id=1986  source=9    MATCHV win[src]=1986
+      step  3 id=272   source=10   MATCHV win[src]=272
+      step  4 id=16    source=11   MATCH  win[src]=16
+      step  5 id=1     source=12          win[src]=201
+- sure/n_kestril expected=kestril   why=C     steps= 6 matched_steps=5 src_on_value=4 attempt_lens=[5] reply=" Kestril." stop=eos present=Y
+      step  0 id=935   source=7    MATCHV win[src]=935
+      step  1 id=2219  source=8    MATCHV win[src]=2219
+      step  2 id=84    source=9    MATCHV win[src]=84
+      step  3 id=316   source=10   MATCHV win[src]=316
+      step  4 id=16    source=11   MATCH  win[src]=16
+      step  5 id=1     source=12          win[src]=201
+- sure/n_miskel expected=miskel    why=C     steps= 6 matched_steps=5 src_on_value=4 attempt_lens=[5] reply=" Miskel." stop=eos present=Y
+      step  0 id=379   source=7    MATCHV win[src]=379
+      step  1 id=289   source=8    MATCHV win[src]=289
+      step  2 id=346   source=9    MATCHV win[src]=346
+      step  3 id=78    source=10   MATCHV win[src]=78
+      step  4 id=16    source=11   MATCH  win[src]=16
+      step  5 id=1     source=12          win[src]=201
+- sure/n_morbeth expected=morbeth   why=C     steps= 6 matched_steps=5 src_on_value=4 attempt_lens=[5] reply=" Morbeth." stop=eos present=Y
+      step  0 id=379   source=7    MATCHV win[src]=379
+      step  1 id=306   source=8    MATCHV win[src]=306
+      step  2 id=68    source=9    MATCHV win[src]=68
+      step  3 id=2347  source=10   MATCHV win[src]=2347
+      step  4 id=16    source=11   MATCH  win[src]=16
+      step  5 id=1     source=12          win[src]=201
+- sure/n_orlind expected=orlind    why=C     steps= 6 matched_steps=5 src_on_value=4 attempt_lens=[5] reply=" Orlind." stop=eos present=Y
+      step  0 id=1399  source=7    MATCHV win[src]=1399
+      step  1 id=84    source=8    MATCHV win[src]=84
+      step  2 id=78    source=9    MATCHV win[src]=78
+      step  3 id=445   source=10   MATCHV win[src]=445
+      step  4 id=16    source=11   MATCH  win[src]=16
+      step  5 id=1     source=12          win[src]=201
+- sure/n_skavel expected=skavel    why=C     steps= 6 matched_steps=5 src_on_value=4 attempt_lens=[5] reply=" Skavel." stop=eos present=Y
+      step  0 id=301   source=7    MATCHV win[src]=301
+      step  1 id=77    source=8    MATCHV win[src]=77
+      step  2 id=605   source=9    MATCHV win[src]=605
+      step  3 id=78    source=10   MATCHV win[src]=78
+      step  4 id=16    source=11   MATCH  win[src]=16
+      step  5 id=1     source=12          win[src]=201
+- sure/n_tavren expected=tavren    why=C     steps= 5 matched_steps=4 src_on_value=3 attempt_lens=[4] reply=" Tavren." stop=eos present=Y
+      step  0 id=273   source=7    MATCHV win[src]=273
+      step  1 id=1410  source=8    MATCHV win[src]=1410
+      step  2 id=1646  source=9    MATCHV win[src]=1646
+      step  3 id=16    source=10   MATCH  win[src]=16
+      step  4 id=1     source=10          win[src]=16
+- sure/n_wrendal expected=wrendal   why=C     steps= 6 matched_steps=5 src_on_value=4 attempt_lens=[5] reply=" Wrendal." stop=eos present=Y
+      step  0 id=534   source=7    MATCHV win[src]=534
+      step  1 id=275   source=8    MATCHV win[src]=275
+      step  2 id=264   source=9    MATCHV win[src]=264
+      step  3 id=421   source=10   MATCHV win[src]=421
+      step  4 id=16    source=11   MATCH  win[src]=16
+      step  5 id=1     source=12          win[src]=201
+- noted/n_candrake expected=candrake  why=C     steps= 6 matched_steps=6 src_on_value=4 attempt_lens=[5, 1] reply=" Candrake." stop=eos present=Y
+      step  0 id=772   source=7    MATCHV win[src]=772
+      step  1 id=789   source=8    MATCHV win[src]=789
+      step  2 id=84    source=9    MATCHV win[src]=84
+      step  3 id=420   source=10   MATCHV win[src]=420
+      step  4 id=16    source=11   MATCH  win[src]=16
+      step  5 id=1     source=22   MATCH  win[src]=1
+- noted/n_deltrix expected=deltrix   why=C     steps= 6 matched_steps=5 src_on_value=4 attempt_lens=[5] reply=" Deltrix." stop=eos present=Y
+      step  0 id=671   source=7    MATCHV win[src]=671
+      step  1 id=528   source=8    MATCHV win[src]=528
+      step  2 id=321   source=9    MATCHV win[src]=321
+      step  3 id=90    source=10   MATCHV win[src]=90
+      step  4 id=16    source=11   MATCH  win[src]=16
+      step  5 id=1     source=12          win[src]=201
+- noted/n_drovik expected=drovik    why=C     steps= 6 matched_steps=5 src_on_value=4 attempt_lens=[5] reply=" Drovik." stop=eos present=Y
+      step  0 id=671   source=7    MATCHV win[src]=671
+      step  1 id=791   source=8    MATCHV win[src]=791
+      step  2 id=88    source=9    MATCHV win[src]=88
+      step  3 id=3565  source=10   MATCHV win[src]=3565
+      step  4 id=16    source=11   MATCH  win[src]=16
+      step  5 id=1     source=12          win[src]=201
+- noted/n_fennor expected=fennor    why=C     steps= 6 matched_steps=5 src_on_value=4 attempt_lens=[5] reply=" Fennor." stop=eos present=Y
+      step  0 id=598   source=7    MATCHV win[src]=598
+      step  1 id=303   source=8    MATCHV win[src]=303
+      step  2 id=80    source=9    MATCHV win[src]=80
+      step  3 id=306   source=10   MATCHV win[src]=306
+      step  4 id=16    source=11   MATCH  win[src]=16
+      step  5 id=1     source=12          win[src]=201
+- noted/n_gullam expected=gullam    why=C     steps= 5 matched_steps=4 src_on_value=3 attempt_lens=[4] reply=" Gullam." stop=eos present=Y
+      step  0 id=1155  source=7    MATCHV win[src]=1155
+      step  1 id=746   source=8    MATCHV win[src]=746
+      step  2 id=308   source=9    MATCHV win[src]=308
+      step  3 id=16    source=10   MATCH  win[src]=16
+      step  4 id=1     source=11          win[src]=201
+- noted/n_harrowen expected=harrowen  why=C     steps= 6 matched_steps=5 src_on_value=4 attempt_lens=[5] reply=" Harrowen." stop=eos present=Y
+      step  0 id=310   source=7    MATCHV win[src]=310
+      step  1 id=291   source=8    MATCHV win[src]=291
+      step  2 id=1592  source=9    MATCHV win[src]=1592
+      step  3 id=303   source=10   MATCHV win[src]=303
+      step  4 id=16    source=21   MATCH  win[src]=16
+      step  5 id=1     source=12          win[src]=201
+- noted/n_jorvex expected=jorvex    why=C     steps= 6 matched_steps=5 src_on_value=4 attempt_lens=[5] reply=" Jorvex." stop=eos present=Y
+      step  0 id=595   source=7    MATCHV win[src]=595
+      step  1 id=306   source=8    MATCHV win[src]=306
+      step  2 id=354   source=9    MATCHV win[src]=354
+      step  3 id=90    source=10   MATCHV win[src]=90
+      step  4 id=16    source=11   MATCH  win[src]=16
+      step  5 id=1     source=12          win[src]=201
+- noted/n_kelbrin expected=kelbrin   why=C     steps= 6 matched_steps=5 src_on_value=4 attempt_lens=[5] reply=" Kelbrin." stop=eos present=Y
+      step  0 id=935   source=7    MATCHV win[src]=935
+      step  1 id=418   source=8    MATCHV win[src]=418
+      step  2 id=1986  source=9    MATCHV win[src]=1986
+      step  3 id=272   source=10   MATCHV win[src]=272
+      step  4 id=16    source=11   MATCH  win[src]=16
+      step  5 id=1     source=12          win[src]=201
+- noted/n_kestril expected=kestril   why=C     steps= 6 matched_steps=5 src_on_value=4 attempt_lens=[5] reply=" Kestril." stop=eos present=Y
+      step  0 id=935   source=7    MATCHV win[src]=935
+      step  1 id=2219  source=8    MATCHV win[src]=2219
+      step  2 id=84    source=9    MATCHV win[src]=84
+      step  3 id=316   source=10   MATCHV win[src]=316
+      step  4 id=16    source=11   MATCH  win[src]=16
+      step  5 id=1     source=12          win[src]=201
+- noted/n_miskel expected=miskel    why=C     steps= 6 matched_steps=5 src_on_value=4 attempt_lens=[5] reply=" Miskel." stop=eos present=Y
+      step  0 id=379   source=7    MATCHV win[src]=379
+      step  1 id=289   source=8    MATCHV win[src]=289
+      step  2 id=346   source=9    MATCHV win[src]=346
+      step  3 id=78    source=10   MATCHV win[src]=78
+      step  4 id=16    source=11   MATCH  win[src]=16
+      step  5 id=1     source=12          win[src]=201
+- noted/n_morbeth expected=morbeth   why=C     steps= 6 matched_steps=5 src_on_value=4 attempt_lens=[5] reply=" Morbeth." stop=eos present=Y
+      step  0 id=379   source=7    MATCHV win[src]=379
+      step  1 id=306   source=8    MATCHV win[src]=306
+      step  2 id=68    source=9    MATCHV win[src]=68
+      step  3 id=2347  source=10   MATCHV win[src]=2347
+      step  4 id=16    source=11   MATCH  win[src]=16
+      step  5 id=1     source=12          win[src]=201
+- noted/n_orlind expected=orlind    why=C     steps= 6 matched_steps=5 src_on_value=4 attempt_lens=[5] reply=" Orlind." stop=eos present=Y
+      step  0 id=1399  source=7    MATCHV win[src]=1399
+      step  1 id=84    source=8    MATCHV win[src]=84
+      step  2 id=78    source=9    MATCHV win[src]=78
+      step  3 id=445   source=10   MATCHV win[src]=445
+      step  4 id=16    source=11   MATCH  win[src]=16
+      step  5 id=1     source=12          win[src]=201
+- noted/n_orvynn expected=orvynn    why=C     steps= 7 matched_steps=6 src_on_value=5 attempt_lens=[6] reply=" Orvynn." stop=eos present=Y
+      step  0 id=1399  source=7    MATCHV win[src]=1399
+      step  1 id=84    source=8    MATCHV win[src]=84
+      step  2 id=88    source=9    MATCHV win[src]=88
+      step  3 id=91    source=10   MATCHV win[src]=91
+      step  4 id=729   source=11   MATCHV win[src]=729
+      step  5 id=16    source=12   MATCH  win[src]=16
+      step  6 id=1     source=33          win[src]=201
+- noted/n_pellum expected=pellum    why=C     steps= 5 matched_steps=4 src_on_value=3 attempt_lens=[4] reply=" Pellum." stop=eos present=Y
+      step  0 id=971   source=7    MATCHV win[src]=971
+      step  1 id=540   source=8    MATCHV win[src]=540
+      step  2 id=494   source=9    MATCHV win[src]=494
+      step  3 id=16    source=20   MATCH  win[src]=16
+      step  4 id=1     source=11          win[src]=201
+- noted/n_quarnil expected=quarnil   why=C     steps= 7 matched_steps=6 src_on_value=4 attempt_lens=[6] reply=" Quarnil." stop=eos present=Y
+      step  0 id=223   source=7    MATCH  win[src]=223
+      step  1 id=51    source=8    MATCHV win[src]=51
+      step  2 id=87    source=9    MATCHV win[src]=87
+      step  3 id=596   source=10   MATCHV win[src]=596
+      step  4 id=316   source=11   MATCHV win[src]=316
+      step  5 id=16    source=12   MATCH  win[src]=16
+      step  6 id=1     source=13          win[src]=201
+- noted/n_skavel expected=skavel    why=C     steps= 6 matched_steps=5 src_on_value=4 attempt_lens=[5] reply=" Skavel." stop=eos present=Y
+      step  0 id=301   source=7    MATCHV win[src]=301
+      step  1 id=77    source=8    MATCHV win[src]=77
+      step  2 id=605   source=9    MATCHV win[src]=605
+      step  3 id=78    source=10   MATCHV win[src]=78
+      step  4 id=16    source=11   MATCH  win[src]=16
+      step  5 id=1     source=12          win[src]=201
+- noted/n_sylbex expected=sylbex    why=C     steps= 7 matched_steps=6 src_on_value=5 attempt_lens=[6] reply=" Sylbex." stop=eos present=Y
+      step  0 id=301   source=7    MATCHV win[src]=301
+      step  1 id=91    source=8    MATCHV win[src]=91
+      step  2 id=78    source=9    MATCHV win[src]=78
+      step  3 id=68    source=10   MATCHV win[src]=68
+      step  4 id=839   source=11   MATCHV win[src]=839
+      step  5 id=16    source=12   MATCH  win[src]=16
+      step  6 id=1     source=33          win[src]=201
+- noted/n_tavren expected=tavren    why=C     steps= 5 matched_steps=4 src_on_value=3 attempt_lens=[4] reply=" Tavren." stop=eos present=Y
+      step  0 id=273   source=7    MATCHV win[src]=273
+      step  1 id=1410  source=8    MATCHV win[src]=1410
+      step  2 id=1646  source=9    MATCHV win[src]=1646
+      step  3 id=16    source=10   MATCH  win[src]=16
+      step  4 id=1     source=10          win[src]=16
+- noted/n_vantel expected=vantel    why=C     steps= 5 matched_steps=4 src_on_value=3 attempt_lens=[4] reply=" Vantel." stop=eos present=Y
+      step  0 id=3821  source=7    MATCHV win[src]=3821
+      step  1 id=714   source=8    MATCHV win[src]=714
+      step  2 id=418   source=9    MATCHV win[src]=418
+      step  3 id=16    source=10   MATCH  win[src]=16
+      step  4 id=1     source=31          win[src]=201
+- noted/n_wrendal expected=wrendal   why=C     steps= 6 matched_steps=5 src_on_value=4 attempt_lens=[5] reply=" Wrendal." stop=eos present=Y
+      step  0 id=534   source=7    MATCHV win[src]=534
+      step  1 id=275   source=8    MATCHV win[src]=275
+      step  2 id=264   source=9    MATCHV win[src]=264
+      step  3 id=421   source=10   MATCHV win[src]=421
+      step  4 id=16    source=11   MATCH  win[src]=16
+      step  5 id=1     source=12          win[src]=201
+
+  -> reasons: A=0, B=0, C=52, D=0, fired=0   present 52/52
+
+==============================================================================
+## (b) fired, not exact   n=3
+==============================================================================
+- natural/n_therrick expected=therrick  why=fired steps= 3 matched_steps=2 src_on_value=1 attempt_lens=[2] reply=" What is" stop=pointer_copy present=n
+      step  0 id=1601  source=26   MATCH  win[src]=1601
+      step  1 id=435   source=27   MATCH  win[src]=435
+      step  2 id=265   source=7         V win[src]=287
+- natural/n_wrendal expected=wrendal   why=fired steps= 3 matched_steps=2 src_on_value=3 attempt_lens=[2] reply=" Wre" stop=pointer_copy present=n
+      step  0 id=534   source=7    MATCHV win[src]=534
+      step  1 id=275   source=8    MATCHV win[src]=275
+      step  2 id=435   source=9         V win[src]=264
+- sure/n_sylbex expected=sylbex    why=fired steps= 3 matched_steps=3 src_on_value=2 attempt_lens=[2, 1] reply=" Sy" stop=pointer_copy present=n
+      step  0 id=301   source=7    MATCHV win[src]=301
+      step  1 id=91    source=8    MATCHV win[src]=91
+      step  2 id=16    source=21   MATCH  win[src]=16
+
+  -> reasons: A=0, B=0, C=0, D=0, fired=3   present 0/3
+
+==============================================================================
+## (a) fired, exact   n=20
+==============================================================================
+- natural/n_brindor expected=brindor   why=fired steps= 5 matched_steps=5 src_on_value=4 attempt_lens=[4, 1] reply=" Brindor" stop=pointer_copy present=Y
+      step  0 id=376   source=7    MATCHV win[src]=376
+      step  1 id=321   source=8    MATCHV win[src]=321
+      step  2 id=264   source=9    MATCHV win[src]=264
+      step  3 id=306   source=10   MATCHV win[src]=306
+      step  4 id=652   source=15   MATCH  win[src]=652
+- natural/n_eskavar expected=eskavar   why=fired steps= 6 matched_steps=6 src_on_value=5 attempt_lens=[5, 1] reply=" Eskavar" stop=pointer_copy present=Y
+      step  0 id=737   source=7    MATCHV win[src]=737
+      step  1 id=85    source=8    MATCHV win[src]=85
+      step  2 id=77    source=9    MATCHV win[src]=77
+      step  3 id=1410  source=10   MATCHV win[src]=1410
+      step  4 id=291   source=11   MATCHV win[src]=291
+      step  5 id=435   source=6    MATCH  win[src]=435
+- natural/n_harniel expected=harniel   why=fired steps= 5 matched_steps=5 src_on_value=4 attempt_lens=[4, 1] reply=" Harniel" stop=pointer_copy present=Y
+      step  0 id=310   source=7    MATCHV win[src]=310
+      step  1 id=596   source=8    MATCHV win[src]=596
+      step  2 id=75    source=9    MATCHV win[src]=75
+      step  3 id=418   source=10   MATCHV win[src]=418
+      step  4 id=435   source=6    MATCH  win[src]=435
+- natural/n_jorvex expected=jorvex    why=fired steps= 5 matched_steps=5 src_on_value=4 attempt_lens=[4, 1] reply=" Jorvex" stop=pointer_copy present=Y
+      step  0 id=595   source=7    MATCHV win[src]=595
+      step  1 id=306   source=8    MATCHV win[src]=306
+      step  2 id=354   source=9    MATCHV win[src]=354
+      step  3 id=90    source=10   MATCHV win[src]=90
+      step  4 id=1412  source=31   MATCH  win[src]=1412
+- natural/n_lunavar expected=lunavar   why=fired steps= 5 matched_steps=5 src_on_value=4 attempt_lens=[4, 1] reply=" Lunavar" stop=pointer_copy present=Y
+      step  0 id=363   source=7    MATCHV win[src]=363
+      step  1 id=357   source=8    MATCHV win[src]=357
+      step  2 id=1410  source=9    MATCHV win[src]=1410
+      step  3 id=291   source=10   MATCHV win[src]=291
+      step  4 id=435   source=6    MATCH  win[src]=435
+- natural/n_nuvrix expected=nuvrix    why=fired steps= 6 matched_steps=6 src_on_value=5 attempt_lens=[5, 1] reply=" Nuvrix" stop=pointer_copy present=Y
+      step  0 id=2237  source=7    MATCHV win[src]=2237
+      step  1 id=87    source=8    MATCHV win[src]=87
+      step  2 id=88    source=9    MATCHV win[src]=88
+      step  3 id=321   source=10   MATCHV win[src]=321
+      step  4 id=90    source=11   MATCHV win[src]=90
+      step  5 id=435   source=6    MATCH  win[src]=435
+- sure/n_brindor expected=brindor   why=fired steps= 5 matched_steps=5 src_on_value=4 attempt_lens=[4, 1] reply=" Brindor" stop=pointer_copy present=Y
+      step  0 id=376   source=7    MATCHV win[src]=376
+      step  1 id=321   source=8    MATCHV win[src]=321
+      step  2 id=264   source=9    MATCHV win[src]=264
+      step  3 id=306   source=10   MATCHV win[src]=306
+      step  4 id=652   source=15   MATCH  win[src]=652
+- sure/n_eskavar expected=eskavar   why=fired steps= 6 matched_steps=6 src_on_value=5 attempt_lens=[5, 1] reply=" Eskavar" stop=pointer_copy present=Y
+      step  0 id=737   source=7    MATCHV win[src]=737
+      step  1 id=85    source=8    MATCHV win[src]=85
+      step  2 id=77    source=9    MATCHV win[src]=77
+      step  3 id=1410  source=10   MATCHV win[src]=1410
+      step  4 id=291   source=11   MATCHV win[src]=291
+      step  5 id=435   source=6    MATCH  win[src]=435
+- sure/n_harniel expected=harniel   why=fired steps= 5 matched_steps=5 src_on_value=4 attempt_lens=[4, 1] reply=" Harniel" stop=pointer_copy present=Y
+      step  0 id=310   source=7    MATCHV win[src]=310
+      step  1 id=596   source=8    MATCHV win[src]=596
+      step  2 id=75    source=9    MATCHV win[src]=75
+      step  3 id=418   source=10   MATCHV win[src]=418
+      step  4 id=435   source=27   MATCH  win[src]=435
+- sure/n_harrowen expected=harrowen  why=fired steps= 5 matched_steps=5 src_on_value=4 attempt_lens=[4, 1] reply=" Harrowen" stop=pointer_copy present=Y
+      step  0 id=310   source=7    MATCHV win[src]=310
+      step  1 id=291   source=8    MATCHV win[src]=291
+      step  2 id=1592  source=9    MATCHV win[src]=1592
+      step  3 id=303   source=10   MATCHV win[src]=303
+      step  4 id=201   source=22   MATCH  win[src]=201
+- sure/n_lunavar expected=lunavar   why=fired steps= 5 matched_steps=5 src_on_value=4 attempt_lens=[4, 1] reply=" Lunavar" stop=pointer_copy present=Y
+      step  0 id=363   source=7    MATCHV win[src]=363
+      step  1 id=357   source=8    MATCHV win[src]=357
+      step  2 id=1410  source=9    MATCHV win[src]=1410
+      step  3 id=291   source=10   MATCHV win[src]=291
+      step  4 id=435   source=6    MATCH  win[src]=435
+- sure/n_nuvrix expected=nuvrix    why=fired steps= 6 matched_steps=6 src_on_value=5 attempt_lens=[5, 1] reply=" Nuvrix" stop=pointer_copy present=Y
+      step  0 id=2237  source=7    MATCHV win[src]=2237
+      step  1 id=87    source=8    MATCHV win[src]=87
+      step  2 id=88    source=9    MATCHV win[src]=88
+      step  3 id=321   source=10   MATCHV win[src]=321
+      step  4 id=90    source=11   MATCHV win[src]=90
+      step  5 id=435   source=6    MATCH  win[src]=435
+- sure/n_pellum expected=pellum    why=fired steps= 4 matched_steps=4 src_on_value=3 attempt_lens=[3, 1] reply=" Pellum" stop=pointer_copy present=Y
+      step  0 id=971   source=7    MATCHV win[src]=971
+      step  1 id=540   source=8    MATCHV win[src]=540
+      step  2 id=494   source=9    MATCHV win[src]=494
+      step  3 id=435   source=6    MATCH  win[src]=435
+- sure/n_quarnil expected=quarnil   why=fired steps= 6 matched_steps=5 src_on_value=4 attempt_lens=[5] reply=" Quarnil" stop=pointer_copy present=Y
+      step  0 id=223   source=7    MATCH  win[src]=223
+      step  1 id=51    source=8    MATCHV win[src]=51
+      step  2 id=87    source=9    MATCHV win[src]=87
+      step  3 id=596   source=10   MATCHV win[src]=596
+      step  4 id=316   source=11   MATCHV win[src]=316
+      step  5 id=435   source=12          win[src]=16
+- sure/n_vantel expected=vantel    why=fired steps= 4 matched_steps=3 src_on_value=3 attempt_lens=[3] reply=" Vantel" stop=pointer_copy present=Y
+      step  0 id=3821  source=7    MATCHV win[src]=3821
+      step  1 id=714   source=8    MATCHV win[src]=714
+      step  2 id=418   source=9    MATCHV win[src]=418
+      step  3 id=435   source=10          win[src]=16
+- noted/n_brindor expected=brindor   why=fired steps= 5 matched_steps=5 src_on_value=4 attempt_lens=[4, 1] reply=" Brindor" stop=pointer_copy present=Y
+      step  0 id=376   source=7    MATCHV win[src]=376
+      step  1 id=321   source=8    MATCHV win[src]=321
+      step  2 id=264   source=9    MATCHV win[src]=264
+      step  3 id=306   source=10   MATCHV win[src]=306
+      step  4 id=652   source=15   MATCH  win[src]=652
+- noted/n_eskavar expected=eskavar   why=fired steps= 6 matched_steps=6 src_on_value=5 attempt_lens=[5, 1] reply=" Eskavar" stop=pointer_copy present=Y
+      step  0 id=737   source=7    MATCHV win[src]=737
+      step  1 id=85    source=8    MATCHV win[src]=85
+      step  2 id=77    source=9    MATCHV win[src]=77
+      step  3 id=1410  source=10   MATCHV win[src]=1410
+      step  4 id=291   source=11   MATCHV win[src]=291
+      step  5 id=435   source=6    MATCH  win[src]=435
+- noted/n_harniel expected=harniel   why=fired steps= 5 matched_steps=5 src_on_value=4 attempt_lens=[4, 1] reply=" Harniel" stop=pointer_copy present=Y
+      step  0 id=310   source=7    MATCHV win[src]=310
+      step  1 id=596   source=8    MATCHV win[src]=596
+      step  2 id=75    source=9    MATCHV win[src]=75
+      step  3 id=418   source=10   MATCHV win[src]=418
+      step  4 id=435   source=6    MATCH  win[src]=435
+- noted/n_lunavar expected=lunavar   why=fired steps= 5 matched_steps=5 src_on_value=4 attempt_lens=[4, 1] reply=" Lunavar" stop=pointer_copy present=Y
+      step  0 id=363   source=7    MATCHV win[src]=363
+      step  1 id=357   source=8    MATCHV win[src]=357
+      step  2 id=1410  source=9    MATCHV win[src]=1410
+      step  3 id=291   source=10   MATCHV win[src]=291
+      step  4 id=435   source=6    MATCH  win[src]=435
+- noted/n_nuvrix expected=nuvrix    why=fired steps= 6 matched_steps=6 src_on_value=5 attempt_lens=[5, 1] reply=" Nuvrix" stop=pointer_copy present=Y
+      step  0 id=2237  source=7    MATCHV win[src]=2237
+      step  1 id=87    source=8    MATCHV win[src]=87
+      step  2 id=88    source=9    MATCHV win[src]=88
+      step  3 id=321   source=10   MATCHV win[src]=321
+      step  4 id=90    source=11   MATCHV win[src]=90
+      step  5 id=435   source=6    MATCH  win[src]=435
+
+  -> reasons: A=0, B=0, C=0, D=0, fired=20   present 20/20
+

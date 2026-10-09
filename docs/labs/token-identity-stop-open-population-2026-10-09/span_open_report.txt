@@ -1,0 +1,96 @@
+# arm-ptr F=0.5 identity: where the rule opened, on the cells that did not fire
+2x2: (a) 20 (b) 3 (c) 52 (d) 9
+
+## (d) no fire, not exact  n=9
+
+| cell | expected | reply | runs opened | run starts | starts in value | runs covering value | runs that reached min_span then broke | present |
+|---|---|---|---|---|---|---|---|---|
+| natural/n_ithmar | ithmar | " My name is Ithmar." | 1 | [4] | 0 | 1 | 1 | YES |
+| natural/n_iyandel | iyandel | " My name is" | 1 | [18] | 0 | 0 | 0 | no |
+| sure/n_ithmar | ithmar | " My name is Ithmar." | 1 | [4] | 0 | 1 | 1 | YES |
+| sure/n_iyandel | iyandel | " My name is Iyandel." | 1 | [4] | 0 | 1 | 1 | YES |
+| sure/n_orvynn | orvynn | " My name is Orvynn." | 2 | [30, 6] | 0 | 1 | 1 | YES |
+| sure/n_therrick | therrick | " Sss." | 3 | [18, 14, 20] | 0 | 0 | 0 | no |
+| noted/n_ithmar | ithmar | " My name is Ithmar." | 1 | [4] | 0 | 1 | 1 | YES |
+| noted/n_iyandel | iyandel | " Noted." | 1 | [18] | 0 | 0 | 0 | no |
+| noted/n_therrick | therrick | " Noted." | 1 | [18] | 0 | 0 | 0 | no |
+
+- runs opened at all:            9/9
+- a run started inside the value: 0/9
+- a run covered the value:        5/9
+- a run reached min_span then broke (EOS-first hid it): 5/9
+- value present in the reply:     5/9
+
+## (c) no fire, exact  n=52
+
+| cell | expected | reply | runs opened | run starts | starts in value | runs covering value | runs that reached min_span then broke | present |
+|---|---|---|---|---|---|---|---|---|
+| natural/n_candrake | candrake | " Candrake." | 2 | [7, 23] | 1 | 0 | 1 | YES |
+| natural/n_deltrix | deltrix | " Deltrix." | 1 | [7] | 1 | 0 | 1 | YES |
+| natural/n_drovik | drovik | " Drovik." | 2 | [7, 23] | 1 | 0 | 1 | YES |
+| natural/n_fennor | fennor | " Fennor." | 2 | [7, 23] | 1 | 0 | 1 | YES |
+| natural/n_gullam | gullam | " Gullam." | 2 | [7, 21] | 1 | 0 | 1 | YES |
+| natural/n_harrowen | harrowen | " Harrowen." | 1 | [7] | 1 | 0 | 1 | YES |
+| natural/n_kelbrin | kelbrin | " Kelbrin." | 2 | [7, 23] | 1 | 0 | 1 | YES |
+| natural/n_kestril | kestril | " Kestril." | 1 | [7] | 1 | 0 | 1 | YES |
+| natural/n_miskel | miskel | " Miskel." | 1 | [7] | 1 | 0 | 1 | YES |
+| natural/n_morbeth | morbeth | " Morbeth." | 2 | [7, 23] | 1 | 0 | 1 | YES |
+| natural/n_orlind | orlind | " Orlind." | 2 | [7, 23] | 1 | 0 | 1 | YES |
+| natural/n_orvynn | orvynn | " Orvynn." | 2 | [7, 25] | 1 | 0 | 1 | YES |
+| natural/n_pellum | pellum | " Pellum." | 2 | [7, 21] | 1 | 0 | 1 | YES |
+| natural/n_quarnil | quarnil | " Quarnil." | 1 | [7] | 0 | 0 | 1 | YES |
+| natural/n_skavel | skavel | " Skavel." | 2 | [7, 23] | 1 | 0 | 1 | YES |
+| natural/n_sylbex | sylbex | " Sylbex." | 1 | [7] | 1 | 1 | 1 | YES |
+| natural/n_tavren | tavren | " Tavren." | 2 | [7, 21] | 1 | 0 | 1 | YES |
+| natural/n_vantel | vantel | " Vantel." | 1 | [7] | 1 | 0 | 1 | YES |
+| sure/n_candrake | candrake | " Candrake." | 1 | [7] | 1 | 1 | 1 | YES |
+| sure/n_deltrix | deltrix | " Deltrix." | 1 | [7] | 1 | 1 | 1 | YES |
+| sure/n_drovik | drovik | " Drovik." | 1 | [7] | 1 | 1 | 1 | YES |
+| sure/n_fennor | fennor | " Fennor." | 1 | [7] | 1 | 1 | 1 | YES |
+| sure/n_gullam | gullam | " Gullam." | 1 | [7] | 1 | 1 | 1 | YES |
+| sure/n_jorvex | jorvex | " Jorvex." | 1 | [7] | 1 | 1 | 1 | YES |
+| sure/n_kelbrin | kelbrin | " Kelbrin." | 1 | [7] | 1 | 1 | 1 | YES |
+| sure/n_kestril | kestril | " Kestril." | 1 | [7] | 1 | 1 | 1 | YES |
+| sure/n_miskel | miskel | " Miskel." | 1 | [7] | 1 | 1 | 1 | YES |
+| sure/n_morbeth | morbeth | " Morbeth." | 1 | [7] | 1 | 1 | 1 | YES |
+| sure/n_orlind | orlind | " Orlind." | 1 | [7] | 1 | 1 | 1 | YES |
+| sure/n_skavel | skavel | " Skavel." | 1 | [7] | 1 | 1 | 1 | YES |
+| sure/n_tavren | tavren | " Tavren." | 1 | [7] | 1 | 1 | 1 | YES |
+| sure/n_wrendal | wrendal | " Wrendal." | 1 | [7] | 1 | 1 | 1 | YES |
+| noted/n_candrake | candrake | " Candrake." | 2 | [7, 22] | 1 | 1 | 1 | YES |
+| noted/n_deltrix | deltrix | " Deltrix." | 1 | [7] | 1 | 1 | 1 | YES |
+| noted/n_drovik | drovik | " Drovik." | 1 | [7] | 1 | 1 | 1 | YES |
+| noted/n_fennor | fennor | " Fennor." | 1 | [7] | 1 | 1 | 1 | YES |
+| noted/n_gullam | gullam | " Gullam." | 1 | [7] | 1 | 1 | 1 | YES |
+| noted/n_harrowen | harrowen | " Harrowen." | 1 | [7] | 1 | 1 | 1 | YES |
+| noted/n_jorvex | jorvex | " Jorvex." | 1 | [7] | 1 | 1 | 1 | YES |
+| noted/n_kelbrin | kelbrin | " Kelbrin." | 1 | [7] | 1 | 1 | 1 | YES |
+| noted/n_kestril | kestril | " Kestril." | 1 | [7] | 1 | 1 | 1 | YES |
+| noted/n_miskel | miskel | " Miskel." | 1 | [7] | 1 | 1 | 1 | YES |
+| noted/n_morbeth | morbeth | " Morbeth." | 1 | [7] | 1 | 1 | 1 | YES |
+| noted/n_orlind | orlind | " Orlind." | 1 | [7] | 1 | 1 | 1 | YES |
+| noted/n_orvynn | orvynn | " Orvynn." | 1 | [7] | 1 | 1 | 1 | YES |
+| noted/n_pellum | pellum | " Pellum." | 1 | [7] | 1 | 1 | 1 | YES |
+| noted/n_quarnil | quarnil | " Quarnil." | 1 | [7] | 0 | 1 | 1 | YES |
+| noted/n_skavel | skavel | " Skavel." | 1 | [7] | 1 | 1 | 1 | YES |
+| noted/n_sylbex | sylbex | " Sylbex." | 1 | [7] | 1 | 1 | 1 | YES |
+| noted/n_tavren | tavren | " Tavren." | 1 | [7] | 1 | 1 | 1 | YES |
+| noted/n_vantel | vantel | " Vantel." | 1 | [7] | 1 | 1 | 1 | YES |
+| noted/n_wrendal | wrendal | " Wrendal." | 1 | [7] | 1 | 1 | 1 | YES |
+
+- runs opened at all:            52/52
+- a run started inside the value: 50/52
+- a run covered the value:        35/52
+- a run reached min_span then broke (EOS-first hid it): 52/52
+- value present in the reply:     52/52
+
+## Counterfactual: consult the copy stop BEFORE the EOS stop
+
+The probe's reply TEXT is the decode of the reply ids with EOS removed, so
+two replies with the same non-EOS id sequence have the same text and the
+same exactness. This counts how many replies the reordering changes.
+
+
+cells whose reply_ids change        : 0/84
+cells whose reply TEXT changes      : 0/84
+REORDERING-COST 0 exact cells (a gain of 0 and a loss of 0 follow, since exactness is a function of the text)

@@ -1,0 +1,181 @@
+UOR-R4 — The token-identity stop's non-firing population: it is 9 of 84 cells, the span OPENS in 9 of 9 of them, and no span-open relaxation can recover any of them
+Date: 2026-10-09 (session deepseek/idstop2). DeepSeek. References #820.
+Follows token_identity_stop_breakthrough_2026-10-09.txt (#2041) and
+copy_stop_pointer_branch_2026-10-09.txt (#2009). Negative result: closes the
+question the new best's own stated limit left open.
+
+THE QUESTION, TAKEN FROM THE RESULT'S OWN STATED LIMIT
+  The identity rule "can only fire if the emitted id OPENS a span at the pointer's argmax source. So a
+  cell where the pointer's source is right but the generator's FIRST emitted token is not the value's
+  first token never fires, and its reply runs on." This round quantifies that population and tests
+  whether it is recoverable without reintroducing the template failure the strict open exists to
+  prevent.
+
+WHAT RAN
+  arm-ptr at gate floor F=0.5 with the token-identity copy stop (pointer_copy_stop=2,
+  pointer_copy_stop_identity=1), protocol 2, greedy, max_new_tokens 40, device=cuda,
+  28 invented values x 3 conditions = 84 cells. A per-step pointer trace (copy_trace=1) was taken on
+  the same 84 cells: `reply_trace` records the emitted id, the pointer's argmax source, that source's
+  window id, `matches_source`, attention, gate and raw gate at every step - exactly what the rule
+  consumes. Inference only: no training, no new parameters, no serialization change, and NO CODE
+  CHANGE - step 3's precondition was not met, so no relaxation was implemented.
+
+THE PARSER WAS SELF-CHECKED FIRST, AND PASSED
+  Before any new number, the scoring path reproduced the sealed references exactly:
+    arm-ptr      35/84  channels gate 0.5149 / ptr 0.8351 / read 0.5610 / pmix 0.4901 (as published)
+    arm-a-w05    10/84  channels 0.1163 / 0.8399 / 0.5044 / 0.1300
+    arm-c-ctrl   24/84  channels 0.2439 / 0.7415 / 0.4455 / 0.2292
+  PARSER-CHECK PASS. The published 72/84 also reproduces: fired 23, 20 exact.
+
+STEP 1 - THE 2x2 (arm-ptr, F=0.5, token-identity stop, min_span=2; 84 cells)
+
+                        exact     not exact     total
+    rule FIRES            (a) 20      (b) 3         23
+    rule does NOT fire    (c) 52      (d) 9         61
+    total                    72         12          84
+
+  exact 72/84 = 0.8571, Wilson [0.7667, 0.9163].
+  Every cell in (c) and (d) ended with EOS; NOT ONE ran on to the 40-token cap. The premise that a
+  non-firing cell's "reply runs on" is therefore FALSE at F=0.5.
+  (c) is not dead weight: 52 of 84 cells are exact WITHOUT the rule firing, because the model emits
+  the bare value and EOS ends the reply before the rule can be consulted. The rule's contribution at
+  this floor is the 23 cells it fires on, 20 of them exact.
+
+STEP 2 - WHY THE (d) CELLS DID NOT FIRE: the span opens in 9 of 9, at the PREMISE, not at the value
+
+  Replaying the rule's own open/extend logic from the recorded traces:
+
+    runs opened at all                                    9/9
+    a run started inside the value's own span             0/9
+    a run covered the value                               5/9
+    a run reached min_span and then broke (a fire was due) 5/9
+    value present in the reply                            5/9
+
+  Per cell (run starts are window positions):
+
+    cell               expected   reply                    runs   run starts    starts in value
+    natural/n_ithmar   ithmar     " My name is Ithmar."    1      [4]           0
+    natural/n_iyandel  iyandel    " My name is"            1      [18]          0
+    sure/n_ithmar      ithmar     " My name is Ithmar."    1      [4]           0
+    sure/n_iyandel     iyandel    " My name is Iyandel."   1      [4]           0
+    sure/n_orvynn      orvynn     " My name is Orvynn."    2      [30, 6]       0
+    sure/n_therrick    therrick   " Sss."                  3      [18, 14, 20]  0
+    noted/n_ithmar     ithmar     " My name is Ithmar."    1      [4]           0
+    noted/n_iyandel    iyandel    " Noted."                1      [18]          0
+    noted/n_therrick   therrick   " Noted."                1      [18]          0
+
+  The three reasons the brief named, counted:
+    pointer's argmax source wrong (no run opened at all)                     0/9
+    source right but the first emitted id differs from the window id there   1/9  (sure/n_orvynn)
+    min_span / other refusal (a run opened but never fired)                  8/9
+  and the 8 are not a min_span refusal either: in 5 of them the run reached min_span and broke, so a
+  fire was due and was suppressed by the decoder's ordering - the EOS/short-cycle stop is tested
+  BEFORE the copy stop in greedy_reply_with_copy_stop, so a break that IS the EOS id never reaches
+  the rule.
+
+  WHY THE OPEN DOES NOT HELP. The premise sentence is "My name is Ithmar."; the value's own span sits
+  at window positions 7..10, and the run opens at position 4 and reproduces positions 4..11 - the
+  whole premise sentence, with the value INSIDE it. The reply is the user's own sentence read back,
+  so it carries the " My name is" prefix. In the other 4 cells the model never emits the value at all
+  (" My name is" then EOS, " Sss.", " Noted." twice).
+  The (c) cells are the mirror image and they confirm the reading: in 52 of 52 a run opened and in 50
+  of 52 it opened exactly AT the value's own span start (position 7), which is why those replies are
+  the bare value.
+
+WHY STEP 3 WAS NOT EXECUTED, AND WHY A RELAXATION CANNOT HELP THESE CELLS
+  The brief's precondition is "ONLY IF (d) is dominated by 'pointer source right, first emitted id
+  different'". It is not: that reason is 1 of 9, and the dominant reason (8 of 9) is that a span DID
+  open. The strict open is not the bottleneck on this population.
+
+  Measured directly from the traces, what the BEST POSSIBLE span-open relaxation could buy - force the
+  earliest run that COVERS the value to fire on each (d) cell and look at the ids it would leave:
+
+    natural/n_ithmar  forced run = 8 ids [2496,1412,435,427,74,79,291,16];   value = 4 ids  NOT equal
+    sure/n_ithmar     forced run = 8 ids [2496,1412,435,427,74,79,291,16];   value = 4 ids  NOT equal
+    sure/n_iyandel    forced run = 8 ids [2496,1412,435,340,91,789,418,16];  value = 4 ids  NOT equal
+    sure/n_orvynn     forced run = 7 ids [435,1399,84,88,91,729,16];         value = 5 ids  NOT equal
+    the other 4 cells NO run covers the value at all -> nothing to fire
+
+  The forced replies are the premise sentence: longer than, and not equal to, the value. So the maximum
+  any span-open relaxation can add on (d) is ZERO exact cells, on all 9.
+
+  Counterfactual control: reordering the decoder to consult the copy stop BEFORE the EOS stop changes
+  0 of 84 reply id sequences and 0 of 84 reply texts, so that ordering costs exactly 0 exact cells (it
+  would only relabel the stop and drop a terminating EOS from reply_ids).
+
+  TEMPLATE-FIRING - the failure the strict open was introduced to prevent - is NOT reintroduced and was
+  measured on the rule as it stands: of the 23 cells the identity rule fires on at F=0.5, the fired
+  span lies FULLY INSIDE the value's own span on 21, and overlaps it on 22. That is the direct contrast
+  with the run-length rule (fully inside on 20 of 79 at F=1.0) and it is the positive control the
+  previous round lacked. The rule's failures are not template firings: they are cells where the
+  pointer, correctly, sustained the premise sentence.
+
+THE DEFAULT IS PROVEN UNCHANGED, TWICE, AND THE RULE IS MAIN'S
+  No code was changed this round. The rule-off F=0 records were compared RECORD BY RECORD against the
+  sealed references with the project's own comparator - reply, reply_ids, reply_eos, window_ids,
+  window_text, span positions and sizes, every read mass, the pointer gate/attention/span masses and
+  the marker probabilities, at any depth - on 9 of 9 arm-condition files:
+    * with the binary that produced the sealed grid (bind-probe-exact-idstop,
+      sha256 eb8cb85c42b2dbf12e307bce248c42aff079a5440ab547b2aa57844b4ddfeeef): 288 records, 0
+      differing fields, SEALED-COMPARE PASS.
+    * with a binary BUILT FROM MAIN (bind-probe-exact-main, sha256
+      9a320224799dfae6d2baa6ebb5bdd1b0633ed3e6e8b246a6e8281c115ae87b09, built from a source tree whose
+      geometric_stack.rs / stack_dialogue.rs md5s are c4754336641379fbd1d9fa91afb46613 /
+      dc46881aa39be1cdc3f6f76eba4dd113, byte-identical to origin/main): 288 records, 0 differing
+      fields, SEALED-COMPARE PASS. Counts reproduce arm-ptr 35/84, arm-a-w05 10/84, arm-c-ctrl 24/84.
+    * the four focused copy-stop tests pass on main (4 passed, 0 failed, 812 filtered out).
+  THE MAIN BUILD MATTERS because the probe source crates/uor-r4-training/examples/bind-probe-exact.rs
+  is a pod artefact and is NOT in main, and the pod's build tree carries the PRE-MERGE form of the rule
+  (CopyStop { min_span, identity: bool } with CopyStopRun::after_identity, matching against
+  &window[..position]) while main carries the merged form (CopyStop { min_span, mode: CopyStopMode },
+  645a218d7 / PR #2047, matching against the full window). The two differ in whether a source equal to
+  the just-written position can open a run. Measured: the main-built binary gives the SAME 72/84,
+  the same fired=23 / 20-exact, the same 2x2 (a20 b3 c52 d9), the same (d) reasons (A=0 B=1 C=8) and
+  the same "runs opened 9/9, started in the value 0/9" - and identical reply_ids to the pod-built
+  binary on the natural condition. The pre/post-merge difference does not manifest on this panel, so
+  the sealed 72/84 IS main's rule.
+
+A CORRECTION TO THE BRIEF'S DATA LOCATION (this cost real pod money this round)
+  The brief places the checkpoints, rows and probe under /workspace/uor-r4/deepseek/term-weight/ on the
+  pod volume. That path does NOT exist on the canonical EUR-NO-1 volume (lmd1pfah3y): verified by ls
+  and by find over the whole volume for term-weight, arm-ptr*, ptrident*, bind-probe*. The Oct-9
+  term-weight work ran on pod 6m3tbmf40c27rk = EU-RO-1, volume rfsx702p68 (uor-shared-EU-RO-1,
+  non-canonical). Everything the experiment needs - the three checkpoints, rows_rate_*.json, the sealed
+  reference records, the tokenizer, and the probe source, which is not in main - lives only on
+  rfsx702p68. A canonical pod cannot see any of it. Placement must be pinned:
+  UOR_POD_VOLUME_DCS=EU-RO-1 uor-pod up ..., otherwise up() tries EUR-NO-1 first and lands on the wrong
+  volume. The identity arms are also NOT in iCloud, although gate_floor_run_card_2026-10-09.txt says
+  the three arms "are also in iCloud" - only tw-arm-ptr is.
+
+BUILD LOCATION (as asked)
+  Built ON THE POD. A local CUDA build is not possible on this machine: no nvcc is installed and the
+  cuda feature needs NVRTC, so cargo build --release -p uor-r4-training --features cuda --example
+  bind-probe-exact cannot be produced here; the alternative was cross-compiling a Linux/CUDA binary
+  from macOS, which has no toolkit. The source was streamed from the laptop (a git archive of
+  origin/main plus the probe example) into my own tree src-idstop2 on the volume; the shared, dirty
+  src/ tree that the sibling session was using was never touched. Build 2m44s.
+
+SCOPE AND WHAT REMAINS UNKNOWN
+  84 cells, one checkpoint (arm-ptr), one seed, one floor (F=0.5), greedy, protocol 2, 40 tokens, one
+  session, cuda. The trace is a diagnostic channel, not a scored one. NOT measured: any other arm at
+  F=0.5 WITH a trace (the identity arms were scored but not traced), any other floor with a trace, a
+  non-greedy decoder, any other panel, or any integer/D11 port - export still refuses a pointer with
+  an identity term, so this remains an offline-capability result.
+  The EOS-before-copy-stop ordering is a real property of the merged decoder and it suppresses a fire
+  on 52 of the 84 cells at this floor; that costs 0 exact cells AS MEASURED HERE, but a reader who
+  wants the stop report to be the rule's own account of every span should know the report is silent
+  wherever EOS arrives at the break.
+  A relaxation of the kind the brief proposed was NOT implemented and NOT run, so the template-firing
+  count it asks for does not exist; what exists instead is the measurement that no such relaxation can
+  gain a cell on this population.
+
+ARTEFACTS
+  Pod volume, my own directory /workspace/uor-r4/deepseek/term-weight/bindprobe/idstop2/:
+    stageB.sh, stageC.sh          the run records (stageC builds from main)
+    bind-probe-exact-main         the main-built probe (sha256 9a320224...)
+    rate-arm-ptr-f0.5-ident-main-{natural,sure,noted}.json        the 72/84 run (pod-built binary)
+    rate-arm-ptr-f0.5-ident-mainrun-{...}.json                    the same run, main-built binary
+    rate-arm-ptr-f0.5-ident-{main,mainrun}-trace-{...}.json       the traced runs (10.5k trace steps)
+    rate-{arm}-f0-mainbuild-{...}.json                            the sealed-reproduction runs
+  Analysis (laptop, ~/uor-r4-local/idstop2/): stats.py (self-checked Wilson/McNemar/Newcombe),
+    classify.py, two_by_two.py, trace_reasons.py, span_open.py, and their reports.

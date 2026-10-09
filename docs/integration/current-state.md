@@ -1,3 +1,29 @@
+## 2026-10-09 — Token-identity copy stop: the open population is empty (deepseek, #2029)
+
+The token-identity copy stop holds **72/84 = 0.8571** [0.7667, 0.9163] exact recall of never-seen values
+on arm-ptr at gate floor 0.5, against 49/84 for the same floor with no stop and 0/84 for the no-pointer
+control. This entry records why it does not go further, which is now measured rather than conjectured.
+
+2x2 at F=0.5: fires+exact 20, fires+not-exact 3, no-fire+exact 52, no-fire+not-exact 9 - reproduced
+independently twice, the second time also with a binary **built from main**.
+
+The 9 non-firing failures do not fire because **the span opens in 9 of 9 of them, at the premise, not at
+the value**: the run opens at window position 4 and reproduces 4..11, the whole premise sentence with the
+value inside it, so the reply is the user's own sentence read back. The proposed relaxation premise
+("source right, first emitted id differs") holds for **1 of 9**; a run **opened but never fired** in 8 of
+9. The mirror confirms it: of the 52 non-firing-but-exact cells, 52/52 opened a run and 50/52 opened
+exactly at the value start. **All 61 non-firing cells ended with EOS - none ran to the token cap.** The
+maximum gain from the most favourable relaxation is **0 exact cells**, so it was not implemented.
+
+Template firing was **not** reintroduced: of the 23 fires the span is fully inside the value's own span on
+21 and overlaps on 22, against the run-length rule's 20 of 79 at floor 1.0. The default is unchanged,
+proved field-for-field twice (9/9 files, 288 records, 0 differing fields), including with a binary built
+from main, which matters because the pod tree carried the pre-merge rule.
+
+Offline only: export refuses a pointer carrying an identity term, so there is no integer port and none of
+this is served. The remaining 4 failures are a generator/EOS failure that no serving-time rule can touch.
+Record: [docs/labs/token-identity-stop-open-population-2026-10-09](docs/labs/token-identity-stop-open-population-2026-10-09/README.md).
+
 # Current UOR-R4 research state
 
 ## Pair proposals never correct the first error despite high initial credit coverage — October 9
