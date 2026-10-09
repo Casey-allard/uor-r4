@@ -15,7 +15,13 @@ panel for Step 6c. **v3 is now a development panel**: its misses were inspected,
 no longer counts as held-out evidence. v4 was written without opening the dialogue-recall
 training generator, any Step 6 local material, or #820 comments after 2026-10-05 18:00 UTC,
 and without searching for the templates of any training generator. It is an independent
-test, not a sample of a training distribution. No model has replied to a v4 request.
+test, not a sample of a training distribution. Models have replied to v4 since (Step 8, and
+the Step 11 binding probe, which inspected the misses), so **v4 is a development panel too
+from 2026-10-09**: its 31/40 `exact` check pass was reproduced from the artifact and its nine
+misses classified by mechanism
+([record](../../docs/labs/v4-memory-panel-reproduction-2026-10-09/README.md)), so a future
+held-out acceptance number needs a freshly frozen panel. The five hashed files below are
+unchanged; only this README gained the status note.
 
 64 rows, ids `conv-v4-*` (tier C), two categories only. `conversational-v4-a.json` holds rows
 1–32 and `-b.json` rows 33–64 (pass both); rows interleave memory and unknowable rows, and the
@@ -89,8 +95,8 @@ and the novelty script have read it. sha256 (also in `MANIFEST.sha256`):
 | `conversational-v4-checks.tsv` | `b4238e112e5e66cfd773de75f71ae8eb39c9077c172fe8ff0f4ba8b33cc5793e` |
 | `conversational-v4-swaps.tsv` | `465b5fd4f555facdddbd71ed96e03b958b8458d0aecb002468c293d69eeb381c` |
 
-Any edit makes a new panel with a new name. Do not inspect v4 replies row by row before the
-Step 6c acceptance run; after that run v4 becomes a development panel too.
+Any edit makes a new panel with a new name. Replies were not inspected row by row before the
+Step 6c acceptance run; after that run v4 became a development panel, as recorded above.
 
 ## Tiered eval v2: panel `conversational-v3*` and the missing-material K split
 

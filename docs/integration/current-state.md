@@ -44,9 +44,83 @@ far. A negative names the implementation that failed, never the family.
 **Next:** test geometric mechanisms as serving-contract instruments from the start - integer/table-lookup scoring
 and selection, no `exp` - even when they score worse on a capability panel, because a gain on an unservable
 mechanism buys nothing here. The active M1 piece (v4 memory panel at the 214M base, graded by the frozen
-`chat-grade`) runs on the existing serving path and does not touch this mechanism.
+`chat-grade`) does not touch this mechanism, and the round that ran it measured that its own artifact is a float
+pointer model with no QAT port either, so that number is offline-only as well
+([record](../labs/v4-memory-panel-reproduction-2026-10-09/README.md)).
 
 # Current UOR-R4 research state
+
+## 2026-10-09 — v4 memory panel: 31/40 reproduced from the artifact, nine misses in two mechanisms, no bounded lever (deepseek, #2029)
+
+The [v4 memory-panel round](../labs/v4-memory-panel-reproduction-2026-10-09/README.md) reproduced the
+ladder's **31/40** exactly with **zero pod spend**, and closes NEGATIVE-ORIENTED: the nine failures are not
+dominated by one mechanism, so no candidate was trained and Phase 2 was not opened. The panel is
+`data/panels/conversational-v4*` — 64 frozen rows, `multi_turn_memory` **40** (`exact` check) and
+`unknowable_or_impossible` 24 — all twenty files verifying against `data/panels/MANIFEST.sha256`
+(`conversational-v4.json` `bea6743c…`, `-checks.tsv` `b4238e11…`). The `exact` check passes a reply iff it
+contains an expected spelling, no forbidden distractor value and no word of the distractor's key
+(`chat-grade.rs` `RowCheck::passes`, lines 924–938).
+
+**Two identities in the round's brief were wrong, and both mattered.** (1) **`31/40` is chat-grade's
+`check_pass`, not its `acceptable`** (fluent ∧ relevant ∧ check), which is **27/40** for that category; the
+ladder column is `check_pass` throughout, so criterion 1's `≥ 34/40` is a **three**-cell gap read that way
+and a **seven**-cell gap read as `acceptable`. Both must be reported for any candidate, and the README's
+cells that mixed the two are corrected. (2) **The 31/40 artifact is not the Plan A base.** It is Step 8 arm
+Q: pretrain `e448de86…` (`bases/geo-214m-e448de86`) plus the Step 7d fine-tune (2,000 steps, `pointer=32`,
+`context=384`, `policy=full_prefix`, no read supervision), model sha256 `9c0d9019…`, taken from the
+recorded `run-step8.sh` in `results/claude/step8-capacity-20261007.tar`. `bases/planA-214m-2b425ccd` and
+`models/chat-214m-planA-af-b8` (`11b84ba7…`) have **no recorded v4 memory number at all**, so there is no
+Plan A baseline to beat.
+
+**Reproduction, two ways.** Re-grading the sealed `replies.json` (`64721530…`) with the same grader digest
+(`qwen2.5:7b` `845dbda0…`) gave the sealed report's numbers line for line — memory `check_pass` 31,
+`acceptable` 27, unknowable `check_pass` 10, whole panel 31 `acceptable` / 41 `check_pass`; 60 of 64 rows
+are field-identical and no headline number moves on the other four. Then the model itself was run end to
+end on the laptop CPU (`device=cpu`; `model_sha256`, tokenizer, protocol and `max_new_tokens` identical to
+the sealed run): **31/40 with the same nine failures and all 64 rows byte-identical to the sealed CUDA
+replies in both reply strings and generated ids**, so this panel number needs no pod to reproduce.
+
+**The nine, per category, mechanism named.** Every one fails because the expected value is not in the
+reply: **3 wrong value** — the reply names the row's forbidden distractor in the asked slot (`mem-11`
+`turquoise` for `pelican`; `mem-20` `jigsaw` for `raincoat`; `mem-29` `Juniper` for `47`) — and **6 no
+value** — neither expected nor forbidden value, nor a distractor key (`mem-23`, `mem-24`, `mem-28`,
+`mem-30`, `mem-35`, `mem-37`), four of them fluent non-answers assembled from the question or the setup.
+**0** form/prefix failures, **0** wrong-key bindings, **0** abstentions. The pre-registered binding probe
+(#1764) had already classified these same nine at Step 11 as **5 swap / 4 readout / 0 unreached**, which
+matches: the 5 swaps are the 3 wrong-value cells plus 2 of the no-value cells.
+
+**No single mechanism dominates, and the one on-point lever is already negative.** The nine split 5/4 by
+the probe and 3/6 by the check; and the majority class's only tested lever was measured on this exact base
+and panel — arm P (same pretrain, same fine-tune, plus `read_binding_supervision=0.1` at layer 14) scored
+**29/40** against arm Q's 31/40 and was rejected. A config delta against swaps is a repeat of a measured
+negative, not a new experiment. Frozen for the record: success would have been ≥ 34/40 `check_pass` with
+the baseline re-measured alongside the candidate, per-category reporting and any D11/export impact
+measured; nothing was spent because nothing followed.
+
+**D11/export.** Not assumed away and not claimed as measured: the artifact is a **float pointer model**, and
+the training tool's own recorded scope states that a pointer's selection has no D11 port, that `export`
+writes a pointer keeping every source, and that `qat=true` refuses a pointer — so **no QAT/4-bit artifact
+can be built for this model**, which is the path the served BPB target is measured on. `export` was not run
+here.
+
+Scope and limitations: offline float capability, one artifact, one seed (Step 11 measured seed 2 at 30/40,
+so the arm's spread is 30–31); the v4 panel is a **development panel** from here, since its own freeze
+statement makes row-by-row reply inspection the end of its held-out status and criterion 3 requires exactly
+that inspection; the 5/4 probe split is quoted from the recorded Step 11 result rather than re-measured (a
+second 214M laptop generation is exactly what the no-laptop-CPU-fallback rule forbids); the raw pretrain
+and the Plan A artifacts were **not** scored. Grader verdicts are not perfectly stable (4 of 64 rows
+differ between the pod run and the laptop re-grade at the same digest), which is the argument for reading
+the deterministic `check_pass` first. Cost: **zero pod spend**; laptop 4 min 53 s build, 11 min 1 s
+re-grade, 17 min 30 s CPU regeneration. STATUS/ROADMAP and the #2028 table are unchanged — no served model,
+BPB headline or milestone moved.
+
+**Next:** treat criterion 1's memory half as closed on this panel and do not spend on it again. What would
+change the answer, in order: (1) score the base actually on the serving path (`chat-214m-planA-af-b8`, or
+the 19.9M served stack) on a **freshly frozen** memory panel and take that as the baseline, because v4 is
+now development evidence and Plan A has no recorded memory number; (2) design the next memory mechanism as
+a serving-contract instrument from the start — this artifact has no QAT port, so a float recall win cannot
+become a D11 result; (3) put the effort into the open reply panel (36/232 `acceptable` against a 116/232
+target), which is the hard half of the acceptance bar while the memory gap is the small part.
 
 ## Corrected constructor attribution: five residuals have no offered winner; EOS has measured rejections — October 9
 

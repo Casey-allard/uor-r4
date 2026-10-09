@@ -145,8 +145,8 @@ changes Prefix credit and lowers conditional loss, but the complete episode rema
 | 8M stack (L2 read) | ~8M | chat-v0-p2; token count not recorded | not recorded | 1.1199 BPB held-out; Kneser-Ney 5-gram 1.2803 BPB |
 | 19.9M chat stack | 19,929,136 | chat-v0-p2, 150M tokens, 12,207 steps | 1 x RTX 5090, 164k tok/s | 0.877 BPB float; 0.933 BPB served multiplier-free (11.9 MB) |
 | 20M / 29M ladder | 20M / 29M | 300M / 434M tokens | not recorded | Dev NLL 1.388 / 1.286 to 1.299 (like-for-like step) |
-| ~96M chat | ~96M | chat plus balanced curriculum | not recorded | Recall panel 26/40; open panel 20/232 |
-| 214M base (Step 8) | 214M (16 layers, width 1536, 24 heads) | 1.85B tokens: TinyStories 0.7, TinyDialogues 0.1, chat-v0-p2 0.2 | 2 x RTX 5090, about 12 h | TinyStories val NLL 1.032; recall panel 31/40; open panel 36/232 |
+| ~96M chat | ~96M | chat plus balanced curriculum | not recorded | Step 7d fine-tune: v4 memory panel 26/40 (`exact` check pass); open panel 20/232 acceptable |
+| 214M base (Step 8) | 214M (16 layers, width 1536, 24 heads) | 1.85B tokens: TinyStories 0.7, TinyDialogues 0.1, chat-v0-p2 0.2 | 2 x RTX 5090, about 12 h | TinyStories val NLL 1.032; the base itself has no recorded panel score — its Step 7d fine-tune (arm Q) scores v4 memory 31/40 (`exact` check pass; 27/40 acceptable) and open panel 36/232 acceptable |
 | 214M base (Plan A) | 214M, initialised from the Step 8 base | 1.84B tokens (150k steps, batch 32, context 384) from SmolLM-Corpus (FineWeb-Edu and Cosmopedia-v2 shards) | 1 x RTX PRO 6000, 11.8 h | FineWeb dev NLL 2.90 to 2.073 |
 
 NLL rows use different corpora and are not one curve; the 20M to 29M step is the
@@ -201,7 +201,7 @@ Every row holds at its exact artifact, data, operator and budget.
 | 19.9M chat stack | 0.877 BPB float, 0.933 BPB served multiplier-free | 11.9 MB artifact; lab chat evaluation |
 | Sealed 8M stack | 1.1199 BPB | Sealed report; Kneser-Ney 5-gram 1.2803 BPB |
 | 214M Plan A base | FineWeb dev NLL 2.90 to 2.073 | Open development split; rewrite and summarize usable, code and math wrong |
-| Recall panel | 31/40 at 214M, 26/40 at 96M | 40 tasks; one training family |
+| v4 memory panel (frozen `exact` check pass) | 31/40 at 214M, 26/40 at 96M | 40 memory rows of `conversational-v4*`; Step 7d fine-tunes, one seed; chat-grade `acceptable` is 27/40 at 214M |
 | Native grounded learner | 8/512 complete replies; best conditional gate 9/15 | Frozen 512-episode panel; about 40 later candidates kept 8 |
 | D11 serving engine | Bit-exact with the float path | NLL equal on 3,072 targets |
 | MQAR toy (1.37M) | 0.99919 in-class vs 0.2534 control | Synthetic task; advantage confined to a learning-rate band |
@@ -258,7 +258,7 @@ Released publicly on Hugging Face (9 October 2026). The labs' working store stay
 
 | Checkpoint | What it is | Result |
 | --- | --- | --- |
-| `base-tinystories/` | Step 8 base: TinyStories, TinyDialogues and chat-v0-p2 | TinyStories val NLL 1.032; recall 31/40 |
+| `base-tinystories/` | Step 8 base: TinyStories, TinyDialogues and chat-v0-p2 | TinyStories val NLL 1.032; the checkpoint itself has no recorded panel score — its Step 7d fine-tune scores v4 memory 31/40 (`exact` check pass) |
 | `base-planA/` | The base above, continued for 1.84B SmolLM-Corpus tokens | FineWeb dev NLL 2.90 to 2.073 |
 | `chat-planA-b8/` | Plan A base plus an assistant fine-tune (173M-token mix, 8k steps) | Rewrite and summarize usable; code and arithmetic wrong |
 | `chat-smoltalk-b16/` | Step 8 base plus the same fine-tune mix (16k steps) | Rewrite and summarize usable |
