@@ -4712,7 +4712,13 @@ fn init_extended_config(args: &Args, saved: &StackConfig) -> Result<(StackConfig
                 });
             }
             if let Some(select) = asked.select {
-                config.pointer = Some(PointerConfig { select, ..existing });
+                // Build from the CURRENT pointer config, not the saved head: an earlier
+                // branch in this function may already have set a field (the identity term),
+                // and rebuilding from `existing` silently discarded it. The route branch
+                // below uses this same pattern.
+                config.pointer = config
+                    .pointer
+                    .map(|pointer| PointerConfig { select, ..pointer });
             }
             if let Some(route) = asked.route {
                 config.pointer = config
