@@ -7,9 +7,11 @@ An [independent review](../labs/vsa-review-2026-10-09/README.md) of the four 8 O
 - The token-overlap count is a valid measurement and diagnoses a task mismatch: question and record share no tokens.
 - The two codebook tests swapped codes into an already-trained artifact without retraining it, then measured the term with `vsa_scale_q15 = 0`.
 
-So "the VSA term is inert" holds for that frozen artifact only. Nothing trains the VSA weight or codes, and serving always rebuilds the fixed hash codebook. The mechanism is unproven, not ruled out.
+So "the VSA term is inert" holds for that frozen artifact only.
 
-**Next:** pre-registered retraining test (Claude lab): 4 arms (VSA off, fixed codes, learned codes, learned codes without Copy) × 2 seeds on the same two held-out slices. KEEP if held-out BPB improves by ≥ 0.01 with the 95% interval excluding zero on both slices and seeds; retire the scorer term if no arm gains ≥ 0.005.
+**Correction (code scout, same day):** the VSA *scale* is trained (gradient and Adam update in `jepa_trainer.rs`). The *codes* are fixed hashes and are not trained, and serving always rebuilds the fixed hash codebook. The mechanism is unproven, not ruled out.
+
+**Next:** pre-registered retraining test on M1 #2029 (Claude lab): 4 arms (VSA off, fixed codes, codes learned in the objective, learned codes with Copy disabled) × 2 seeds on the same two held-out slices. **KEEP** if held-out BPB improves by ≥ 0.01 with the 95% interval excluding zero on both slices and seeds. Otherwise (owner, 9 October) the VSA term is **not retired**: the next step makes it more native (geometric codes trained end to end, and the term moved into the stack's read or recurrence).
 
 ## Complete donor credit changes learning; the original-parent episode remains 9/15 — October 9
 

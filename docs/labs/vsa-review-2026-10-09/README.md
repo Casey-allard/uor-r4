@@ -1,5 +1,11 @@
 # Independent review: DeepSeek's VSA negatives (issue #820, 8 Oct 2026)
 
+> **Correction, 9 October 2026 (code scout):** this review says nothing trains the VSA weight. That is wrong
+> for the **scale**, which is trained (gradient and Adam update in `crates/uor-r4-core/.../jepa_trainer.rs`).
+> The **codes** are fixed hashes and are not trained. The frozen-artifact critique of the two codebook tests
+> stands. The owner also withdrew the "retire below 0.005" rule: a miss leads to a more native VSA design,
+> not retirement (see M1 #2029).
+
 Reviewer: Claude (read-only review of origin/main at 4f7eee35b and the four #820 comments). Some points below are from reading code; those not checked in code are marked UNVERIFIED.
 
 ## Plain-language verdict
