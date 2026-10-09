@@ -49,6 +49,9 @@ pub type ActiveSession = Session;
 
 #[derive(Debug, Clone)]
 pub struct Session {
+    /// VSA codebook of the loaded prose tables, built once per session (modes 1 and 2
+    /// derive it from the artifact's learned codes; rebuilding it per token was costly).
+    pub(super) vsa_codebook_cache: Option<std::sync::Arc<super::vsa::codebook::Codebook<64>>>,
     pub(super) field_composition: Option<super::field_composition::FieldState>,
     pub(super) routing_decision: Option<super::RoutingDecision>,
     pub(super) word_copy: Option<super::word_copy_types::WordCopyState>,
@@ -83,6 +86,11 @@ impl Session {
             .capacity()
             .saturating_mul(std::mem::size_of::<Candidate>());
         Self {
+            vsa_codebook_cache: model
+                .geometric_prose_tables
+                .as_ref()
+                .filter(|tables| tables.vsa_scale_q15 != 0)
+                .map(|tables| std::sync::Arc::new(tables.vsa_codebook())),
             field_composition: model.field_composition.as_ref().map(|_| Default::default()),
             routing_decision: None,
             word_copy: model
@@ -917,7 +925,10 @@ impl Session {
 
         let (vsa_codebook, prose_vsa) = if let Some(tables) = &model.geometric_prose_tables {
             if tables.vsa_scale_q15 != 0 && self.length > 0 {
-                let codebook = Codebook::<64>::on_demand(tables.vocab_size, tables.vsa_seed);
+                let codebook = match &self.vsa_codebook_cache {
+                    Some(cached) => std::sync::Arc::clone(cached),
+                    None => std::sync::Arc::new(tables.vsa_codebook()),
+                };
                 let vsa_vec =
                     tables.context_vsa_from_ring(&codebook, &self.ring, self.cursor, self.length);
                 (Some(codebook), Some(vsa_vec))
@@ -929,7 +940,7 @@ impl Session {
         };
 
         let vsa_context = match (&vsa_codebook, &prose_vsa) {
-            (Some(c), Some(v)) => Some((c, v)),
+            (Some(c), Some(v)) => Some((&**c, v)),
             _ => None,
         };
 

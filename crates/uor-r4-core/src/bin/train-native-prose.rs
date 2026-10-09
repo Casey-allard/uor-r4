@@ -484,6 +484,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut lr = 0.01;
     let mut lanes = 4;
     let mut run_benchmark = false;
+    // VSA native test switches (M1 #2029): seed, corpus offset, and term on/off.
+    let mut seed: u64 = 2026_09_17;
+    let mut corpus_offset: usize = 0;
+    let mut vsa_enabled = true;
+    let mut engram_enabled = true;
+    let mut vsa_code_mode: u8 = 0;
+    let mut vsa_codes_explicit = false;
+    let mut vsa_code_refresh: usize = 1000;
 
     let mut idx = 1;
     while idx < args.len() {
@@ -569,6 +577,43 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             "--benchmark" => {
                 run_benchmark = true;
             }
+            "--seed" => {
+                idx += 1;
+                if idx < args.len() {
+                    seed = args[idx].parse().unwrap_or(2026_09_17);
+                }
+            }
+            "--offset" => {
+                idx += 1;
+                if idx < args.len() {
+                    corpus_offset = args[idx].parse().unwrap_or(0);
+                }
+            }
+            "--vsa-codes" => {
+                vsa_codes_explicit = true;
+                idx += 1;
+                vsa_code_mode = match args.get(idx).map(String::as_str) {
+                    Some("fixed") => 0,
+                    Some("root") => 1,
+                    Some("readout") => 2,
+                    other => {
+                        eprintln!("--vsa-codes expects fixed|root|readout, got {other:?}");
+                        std::process::exit(2);
+                    }
+                };
+            }
+            "--vsa-code-refresh" => {
+                idx += 1;
+                if idx < args.len() {
+                    vsa_code_refresh = args[idx].parse().unwrap_or(1000);
+                }
+            }
+            "--no-vsa" => {
+                vsa_enabled = false;
+            }
+            "--no-engram" => {
+                engram_enabled = false;
+            }
             "--help" | "-h" => {
                 println!(
                     "train-native-prose [OPTIONS]\n\
@@ -576,6 +621,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                      --data PATH         Path to raw text slice\n\
                      --tokenizer PATH    Path to tokenizer.json\n\
                      --tokens INT        Token budget (default: 1,000,000)\n\
+                     --offset INT        Start of the training window in the corpus (default: 0)\n\
+                     --seed INT          Trainer seed (default: 2026_09_17)\n\
+                     --vsa-codes M       VSA code source: fixed (default), root, readout\n\
+                     --vsa-code-refresh N  Rebuild learned codes every N steps (default 1000)\n\
+                     --no-vsa            Hold the VSA term at scale 0 (no update, exports 0)\n\
+                     --no-engram         Disable the exact engram n-gram table in eval and export\n\
                      --epochs INT        Number of epochs (default: 1)\n\
                      --threads INT       Rayon worker threads (default: 8)\n\
                      --batch-size INT    Batch size (default: 256)\n\
@@ -623,9 +674,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             (corpus_slice.len() * 2) as f64 / (1024.0 * 1024.0)
         );
 
-        let target_tokens = token_budget.unwrap_or(1_000_000).min(total_corpus_tokens);
+        let corpus_offset = corpus_offset.min(total_corpus_tokens);
+        let corpus_slice = &corpus_slice[corpus_offset..];
+        let target_tokens = token_budget
+            .unwrap_or(1_000_000)
+            .min(total_corpus_tokens - corpus_offset);
         let eval_token_count = 64_000.min(target_tokens / 5);
         let _train_token_count = target_tokens - eval_token_count;
+        println!(
+            "Window: corpus offset {}, seed {}, vsa_enabled {}, engram_enabled {}, vsa_codes {} (refresh {})",
+            corpus_offset,
+            seed,
+            vsa_enabled,
+            engram_enabled,
+            ["fixed", "root", "readout"][vsa_code_mode as usize],
+            vsa_code_refresh
+        );
 
         let eval_tokens = &corpus_slice[..eval_token_count];
         let train_tokens = &corpus_slice[eval_token_count..target_tokens];
@@ -682,10 +746,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             jepa_weight: 0.25,
             weight_decay: 1e-4,
             grad_clip: 1.0,
+            vsa_enabled,
+            engram_enabled,
+            vsa_code_mode,
+            vsa_export_follows_training: vsa_codes_explicit,
+            vsa_code_refresh,
             ..JepaTrainerConfig::default()
         };
 
-        let mut trainer = JepaTrainer::new(config, 2026_09_17);
+        let mut trainer = JepaTrainer::new(config, seed);
 
         // Curriculum Stage 1: Fast Empirical Lattice Fitting & Collocations
         println!("\n=== Curriculum Stage 1: Fast Empirical Lattice Fitting & Collocations ===");

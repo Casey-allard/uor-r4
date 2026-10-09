@@ -20,7 +20,7 @@ use crate::native_geometric::hopf_metric::{
     mul_shift_add, HopfFiberPointQ30, UnitS2, UnitS2Q30, UnitS3, UnitS3Q30, EPSILON,
 };
 use crate::native_geometric::lattice_table::{ContinuousLatticeTables, HierarchicalLatticeTables};
-use crate::native_geometric::learner::vsa_codes::build_root_codebook;
+use crate::native_geometric::learner::vsa_codes::{build_readout_codebook, build_root_codebook};
 use crate::native_geometric::vsa::{
     encode_attended_multiscale_context, encode_multiscale_context, Codebook, HierarchicalCodebook,
     Hypervector, Hypervector4096,
@@ -227,6 +227,10 @@ pub fn default_vsa_seed() -> u64 {
     DEFAULT_VSA_SEED
 }
 
+fn default_true() -> bool {
+    true
+}
+
 /// Configuration for the Native Geometric JEPA Trainer.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JepaTrainerConfig {
@@ -249,6 +253,32 @@ pub struct JepaTrainerConfig {
     pub total_steps: usize,
     #[serde(default)]
     pub min_lr: f64,
+    /// Experiment switch (VSA native test, M1 #2029): when false the VSA term is
+    /// held at scale 0, receives no update and exports `vsa_scale_q15 = 0`.
+    #[serde(default = "default_true")]
+    pub vsa_enabled: bool,
+    /// Experiment switch: when false the exact engram n-gram table is not used in
+    /// evaluation and is not exported, removing the exact-lookup term that could
+    /// mask a VSA effect.
+    #[serde(default = "default_true")]
+    pub engram_enabled: bool,
+    /// VSA code source used in training and exported for serving: `0` = fixed token-id hash,
+    /// `1` = learned icosian-root codes, `2` = root codes bound with the readout-hash residual.
+    #[serde(default)]
+    pub vsa_code_mode: u8,
+    /// When true the artifact declares the code mode it trained with (experiment arms need
+    /// training and serving to use the same codes). When false (default) a mode-0 trainer
+    /// keeps the historical export: declared mode 1 with a root-space hierarchy.
+    #[serde(default)]
+    pub vsa_export_follows_training: bool,
+    /// In modes 1 and 2, rebuild the codebook (and everything derived from it) from the current
+    /// token-to-root assignment every this many training steps.
+    #[serde(default = "default_vsa_code_refresh")]
+    pub vsa_code_refresh: usize,
+}
+
+fn default_vsa_code_refresh() -> usize {
+    1000
 }
 
 impl Default for JepaTrainerConfig {
@@ -267,6 +297,11 @@ impl Default for JepaTrainerConfig {
             warmup_steps: 0,
             total_steps: 0,
             min_lr: 0.0,
+            vsa_enabled: true,
+            engram_enabled: true,
+            vsa_code_mode: 0,
+            vsa_export_follows_training: false,
+            vsa_code_refresh: default_vsa_code_refresh(),
         }
     }
 }
@@ -1426,14 +1461,18 @@ impl JepaTrainer {
             config.num_lanes,
             seed,
             config.vsa_seed,
-            config.vsa_weight,
+            if config.vsa_enabled {
+                config.vsa_weight
+            } else {
+                0.0
+            },
         );
         let v_size = config.vocab_size;
         let num_lanes = config.num_lanes;
         let partition =
             VoronoiLatticePartition::build(v_size, &model.embeddings, &model.vsa_codebook);
 
-        Self {
+        let mut trainer = Self {
             adam_emb_base: AdamMoments::with_capacity(v_size * 4),
             adam_emb_comp: AdamMoments::with_capacity(v_size * 4),
             adam_tables: (0..num_lanes)
@@ -1455,6 +1494,60 @@ impl JepaTrainer {
             step_count: 0,
             partition,
             token_counts: vec![0u64; v_size],
+        };
+        trainer.refresh_vsa_codes();
+        trainer
+    }
+
+    /// Learned-code modes (1, 2): replace the model's VSA codebook with the codes implied by the
+    /// CURRENT token-to-root assignment (and, for mode 2, the quantized readout exactly as export
+    /// quantizes it), then rebuild the lattice partition and its root anchors from it. Mode 0 is
+    /// a no-op, so fixed-hash training is unchanged.
+    pub fn refresh_vsa_codes(&mut self) {
+        if self.config.vsa_code_mode == 0 {
+            return;
+        }
+        let vocab = self.config.vocab_size;
+        let token_to_root: Vec<u8> = (0..vocab)
+            .map(|t| self.model.embeddings.nearest_h4_root(t) as u8)
+            .collect();
+        self.model.vsa_codebook = if self.config.vsa_code_mode == 2 {
+            build_readout_codebook(
+                vocab,
+                &token_to_root,
+                &self.quantized_s2_readout(),
+                self.config.vsa_seed,
+            )
+        } else {
+            build_root_codebook(vocab, &token_to_root, self.config.vsa_seed)
+        };
+        self.refresh_lattice_partitioning();
+    }
+
+    /// The per-token S2 readout quantized exactly as the exported artifact stores it.
+    fn quantized_s2_readout(&self) -> Vec<[i16; 5]> {
+        self.model
+            .s2_readout
+            .iter()
+            .map(|r| {
+                [
+                    (r[0] * 16384.0).clamp(-32767.0, 32767.0).round() as i16,
+                    (r[1] * 16384.0).clamp(-32767.0, 32767.0).round() as i16,
+                    (r[2] * 16384.0).clamp(-32767.0, 32767.0).round() as i16,
+                    (r[3] * 16384.0).clamp(-32767.0, 32767.0).round() as i16,
+                    (r[4] * 16384.0).clamp(-32767.0, 32767.0).round() as i16,
+                ]
+            })
+            .collect()
+    }
+
+    /// The codebook the hierarchical lattice must be built in: the model's own in learned modes,
+    /// the fixed hash in mode 0.
+    fn hierarchy_codebook(&self) -> Codebook<64> {
+        if self.config.vsa_code_mode == 0 {
+            Codebook::<64>::new(self.config.vocab_size, self.config.vsa_seed)
+        } else {
+            self.model.vsa_codebook.clone()
         }
     }
 
@@ -1476,7 +1569,7 @@ impl JepaTrainer {
             .iter()
             .map(|&r| r as u8)
             .collect();
-        let vsa_codebook = Codebook::<64>::new(self.config.vocab_size, self.config.vsa_seed);
+        let vsa_codebook = self.hierarchy_codebook();
         let hierarchical =
             HierarchicalCodebook::new(self.config.vocab_size, &token_to_root, &vsa_codebook);
         let (token_to_cluster, num_clusters) = hierarchical.build_token_to_cluster();
@@ -1494,7 +1587,7 @@ impl JepaTrainer {
             .iter()
             .map(|&r| r as u8)
             .collect();
-        let vsa_codebook = Codebook::<64>::new(self.config.vocab_size, self.config.vsa_seed);
+        let vsa_codebook = self.hierarchy_codebook();
         let hierarchical =
             HierarchicalCodebook::new(self.config.vocab_size, &token_to_root, &vsa_codebook);
         let (token_to_cluster, num_clusters) = hierarchical.build_token_to_cluster();
@@ -2238,7 +2331,11 @@ impl JepaTrainer {
 
     /// Evaluates bits-per-byte on a held-out evaluation sequence without updating weights.
     pub fn evaluate_bpb<T: AsTokenIndex>(&self, tokens: &[T]) -> f64 {
-        let engram_table = self.collocations.build_engram_table();
+        let engram_table = if self.config.engram_enabled {
+            self.collocations.build_engram_table()
+        } else {
+            EngramTable::default()
+        };
         self.evaluate_bpb_with_engram(tokens, &engram_table)
     }
 
@@ -2510,6 +2607,12 @@ impl JepaTrainer {
     /// Perform an Adam parameter optimization step.
     fn step_adam(&mut self) {
         self.step_count += 1;
+        if self.config.vsa_code_mode != 0
+            && self.config.vsa_code_refresh > 0
+            && self.step_count % self.config.vsa_code_refresh as u64 == 0
+        {
+            self.refresh_vsa_codes();
+        }
         let lr = self.scheduled_lr();
         let beta1 = 0.9;
         let beta2 = 0.999;
@@ -2632,12 +2735,16 @@ impl JepaTrainer {
             *b = (*b).clamp(-2.0, 2.0);
         }
 
-        // 6. Update VSA context scale
-        let mut vsa_p = [self.model.vsa_scale];
-        let vsa_g = [self.model.grad_vsa_scale];
-        self.adam_vsa
-            .update(&mut vsa_p, &vsa_g, lr, beta1, beta2, wd, step);
-        self.model.vsa_scale = vsa_p[0];
+        // 6. Update VSA context scale (held at 0 when the VSA term is switched off)
+        if self.config.vsa_enabled {
+            let mut vsa_p = [self.model.vsa_scale];
+            let vsa_g = [self.model.grad_vsa_scale];
+            self.adam_vsa
+                .update(&mut vsa_p, &vsa_g, lr, beta1, beta2, wd, step);
+            self.model.vsa_scale = vsa_p[0];
+        } else {
+            self.model.vsa_scale = 0.0;
+        }
 
         // 7. Update continuous hierarchical lattice tables
         if let Some(lattice) = &mut self.continuous_lattice {
@@ -2670,20 +2777,7 @@ impl JepaTrainer {
             })
             .collect();
 
-        let discrete_s2_readout = self
-            .model
-            .s2_readout
-            .iter()
-            .map(|r| {
-                [
-                    (r[0] * 16384.0).clamp(-32767.0, 32767.0).round() as i16,
-                    (r[1] * 16384.0).clamp(-32767.0, 32767.0).round() as i16,
-                    (r[2] * 16384.0).clamp(-32767.0, 32767.0).round() as i16,
-                    (r[3] * 16384.0).clamp(-32767.0, 32767.0).round() as i16,
-                    (r[4] * 16384.0).clamp(-32767.0, 32767.0).round() as i16,
-                ]
-            })
-            .collect();
+        let discrete_s2_readout = self.quantized_s2_readout();
 
         let quantize_16 = |arr: &[f64]| -> Vec<i16> {
             arr.iter()
@@ -2732,8 +2826,24 @@ impl JepaTrainer {
         // build would leave the router comparing vectors from two different spaces. The loaders
         // also call `prepare_vsa_code_mode`, so a mismatched artifact is corrected on load rather
         // than silently incoherent.
-        let vsa_codebook =
-            build_root_codebook(self.config.vocab_size, &token_to_root, self.config.vsa_seed);
+        // A mode-0 trainer keeps the historical export (declared mode 1, root-space hierarchy);
+        // runs trained with learned codes (1, 2) export the mode they trained with.
+        let export_mode =
+            if self.config.vsa_code_mode == 0 && !self.config.vsa_export_follows_training {
+                1
+            } else {
+                self.config.vsa_code_mode
+            };
+        let vsa_codebook = if export_mode == 2 {
+            build_readout_codebook(
+                self.config.vocab_size,
+                &token_to_root,
+                &discrete_s2_readout,
+                self.config.vsa_seed,
+            )
+        } else {
+            build_root_codebook(self.config.vocab_size, &token_to_root, self.config.vsa_seed)
+        };
         let hierarchical =
             HierarchicalCodebook::new(self.config.vocab_size, &token_to_root, &vsa_codebook);
         let engram_table = self.collocations.build_engram_table();
@@ -2753,9 +2863,13 @@ impl JepaTrainer {
             discrete_jepa_fiber_bias,
             vsa_seed: self.config.vsa_seed,
             vsa_scale_q15,
-            vsa_code_mode: 1,
+            vsa_code_mode: export_mode,
             hierarchical_codebook: Some(hierarchical),
-            engram_table: Some(engram_table),
+            engram_table: if self.config.engram_enabled {
+                Some(engram_table)
+            } else {
+                None
+            },
             hierarchical_lattice,
         }
     }

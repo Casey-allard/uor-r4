@@ -532,9 +532,9 @@ impl ExportedGeometricModel {
         // Byte 26 of the header is `_reserved[0]` and carries the VSA code mode, so the format
         // stays size-compatible with artifacts written before the field existed (those read 0).
         let vsa_code_mode = bytes[26];
-        if vsa_code_mode > 1 {
+        if vsa_code_mode > 2 {
             return Err(BinaryModelError::CorruptedData(
-                "vsa_code_mode is not 0 (fixed) or 1 (learned-root codes)",
+                "vsa_code_mode is not 0 (fixed), 1 (learned-root codes) or 2 (readout codes)",
             ));
         }
         let section_count = u32::from_le_bytes(bytes[28..32].try_into().unwrap()) as usize;
@@ -960,9 +960,9 @@ impl MmapGeometricModel {
         let vsa_scale_q15 = i16::from_le_bytes(mmap[24..26].try_into().unwrap());
         // `_reserved[0]` carries the VSA code mode; see `ExportedGeometricModel::vsa_code_mode`.
         let vsa_code_mode = mmap[26];
-        if vsa_code_mode > 1 {
+        if vsa_code_mode > 2 {
             return Err(BinaryModelError::CorruptedData(
-                "vsa_code_mode is not 0 (fixed) or 1 (learned-root codes)",
+                "vsa_code_mode is not 0 (fixed), 1 (learned-root codes) or 2 (readout codes)",
             ));
         }
         let _reserved = [mmap[26], mmap[27]];
