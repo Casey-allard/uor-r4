@@ -1,0 +1,55 @@
+UOR-R4 — Retraction: "extend the run" is wrong for this axis; further fine-tuning COSTS recall
+Date: 2026-10-09. DeepSeek session. References #820. Follows identity_term_control_refined_2026-10-09.txt.
+
+WHAT WAS ADVISED, AND BY WHOM
+  After the pointer arm first emitted a recalled value, the expert review recommended extending that run
+  rather than redesigning it - the standing project rule is that a healthy run should be extended, not
+  cancelled, and the pointer's selection curve had not plateaued. I repeated that recommendation in two
+  later write-ups. THE MATCHED CONTROL NOW REFUTES IT FOR THIS AXIS.
+
+THE MEASUREMENT
+  A control arm ran the IDENTICAL fine-tune as the two identity arms - same checkpoint, same mixture,
+  same recipe, same 12,207 steps - with only the identity term omitted. It scored 24/84 = 0.2857 exact
+  copies against the un-fine-tuned baseline's 35/84 = 0.4167. So THE ADDITIONAL FINE-TUNING ALONE COSTS
+  ABOUT 13 POINTS OF RECALL (Newcombe interval for the difference against the baseline is wide but the
+  direction is unambiguous at this sample), and the identity arms' larger losses are that cost PLUS the
+  term's own cost (-0.1667 at w=0.5 against the control, exact McNemar p=0.0161).
+
+WHY THIS IS A RETRACTION AND NOT A NUANCE
+  "The selection curve had not plateaued, so extend it" assumed that the quantity plotted in the curve
+  was the quantity that matters. The session had ALREADY shown three times that the trainer's
+  dev_pointer_hit_rate does not track novel-value copying - it sits at the baseline's level (0.2448) and
+  the control's (0.2444) for an arm whose exact copies fell to 10/84, and it is frozen to all printed
+  digits for an arm that cannot copy at all. So the recommendation rested on a diagnostic the evidence
+  had already disqualified, and the control supplies the missing outcome measurement: EXTENDING DEGRADES
+  THE BEHAVIOUR.
+
+WHAT THIS CHANGES, CONCRETELY
+  1. THE BEST MEASURED BINDING STATE IS THE ORIGINAL arm-ptr CHECKPOINT, not a longer run of it. Any
+     future arm on this lineage must be scored against arm-ptr's 35/84 and must account for the fact
+     that the fine-tuning itself moves the number - so a new arm needs a matched fine-tune control, not
+     just the checkpoint it started from. That is now the required design, not an optional extra.
+  2. THE STANDING RULE STILL STANDS IN GENERAL. Extending a healthy run is right when the curve tracks
+     the objective; the rule is not "always extend", it is "do not cancel a healthy run for a self-set
+     budget floor". Here the run was healthy by its own diagnostic and harmful by the outcome measure,
+     which is precisely the case the session's repeated warning about development metrics was about.
+  3. THE FAILURE MODE IS LOCALISED TO THE GATE. Pointer mass on the value's span is 0.8399 in the
+     identity arm against the control's 0.7415 - i.e. attention to the value is INTACT or better - while
+     the copy gate falls from 0.2439 to 0.1163 and the emitted probability of the value falls from
+     0.2292 to 0.1300. So the thing to sharpen is what USES the span, and the thing to protect is the
+     gate. This is consistent with the earlier gate-supervision sweep (which could raise the gate but
+     damaged compliance) and it means the remaining lever is not "more training" and not "more identity",
+     but a change that keeps the gate high while preserving the span attention.
+
+HONEST POSITION
+  A retraction of advice I gave twice, from a measurement that only existed because a control arm was
+  run. It is the third time this session that a matched control changed what a result meant, and the
+  second time that a trainer diagnostic was shown to be a poor proxy for the behaviour being optimised.
+  The night's solved result is untouched: ten of ten form compliance with correct content on the
+  demand-store configurations, and 0.93277 bits/byte served with a multiplier-free engine exact to
+  1e-6 nats.
+
+SCOPE
+  One control arm, one lineage, one mixture, 84 cells, single seed. The claim is about this lineage and
+  this recipe; it does not establish that fine-tuning always costs recall, only that on this mixture and
+  this checkpoint it does, measured against the checkpoint it started from.
