@@ -1,3 +1,61 @@
+## 2026-10-09 — Frozen held-out acceptance panel `conversational-v5*` for criterion 1 (deepseek, #2029)
+
+Acceptance criterion 1 of #2029 is `≥ 34/40` `check_pass` on the chat-grade v4 memory panel, and that panel is
+no longer held out: models have replied to it and its misses were inspected by name, so it is development
+evidence. A fresh, equivalent panel has therefore been **drawn and sealed before any candidate exists** —
+the only moment at which this is honest, since freezing it after a candidate is chosen would repeat the
+problem it is meant to solve. Record: [panel-freeze-2026-10-09](../labs/panel-freeze-2026-10-09/README.md).
+
+`data/panels/conversational-v5*` is 64 rows, ids `conv-v5-*`, tier C: `multi_turn_memory` **40** (`exact`,
+`history=recall`) and `unknowable_or_impossible` **24** (`abstain_exact`, 12 single-turn and 12 multi-turn).
+Same six-column checks file, same binding-swap control, same `RowCheck::passes` rule, same manifest seal. Its
+six files verify against `data/panels/MANIFEST.sha256` (26 files, 26 `OK`, run from `data/panels/` because the
+manifest has always listed bare filenames). `conversational-v5.json` `e766cfe9…`, `-checks.tsv` `737c4dfd…`,
+`-provenance.tsv` `60e72c49…`.
+
+**Every value is drawn from a named source, not authored.** 320 drawn values: personal names from
+`/usr/share/dict/propernames` (`626d634b…`), place names from `/usr/share/dict/web2` (`be41ad97…`), both
+filtered through Penn Treebank (`fcea919f…`, committed in-repo) as an attestation filter, and two-digit
+numbers from a recorded arithmetic rule over the numbers absent from every earlier panel. The deterministic
+rule is `panel-v5-draw/1` in `scripts/panel_v5_draw.py`, re-runnable byte for byte; the in-panel provenance
+file names each value's source and sha256 digest, and the full record with source lines, pool indices and
+pool sizes is in `docs/labs/panel-freeze-2026-10-09/provenance-draw.tsv`. The sentence frames, keys and scene
+catalogue are authored and are not values. No model was loaded, run or consulted, no `chat-grade` invocation
+was made, and pod spend is zero.
+
+**Frozen before any model sees it:** primary ≥ **34 of the memory rows** at `check_pass`, per category, with
+every failing row named; `acceptable` reported secondarily and not gating, with the rows the unstable judge
+changed its mind on named; the parent baseline measured before any candidate; the run declared in advance and
+run **once**, passing `checks=data/panels/conversational-v5-checks.tsv` because the frozen binary embeds only
+the v2/v3/v4 checks. No criterion is met by this piece: criterion 1 is not met and cannot be until a candidate
+runs the frozen acceptance once.
+
+**Verified by three checks, all passing.** `scripts/check_panel_v4_novelty.py` unchanged: pass, 140 v4 value
+words and 43 v4 names against a 2,417-word vocabulary from 23 files (the v5 files are now in that vocabulary,
+the strongest form of the check). `scripts/check_panel_v5_novelty.py`: pass, 75 v5 value words and 109 v5
+names against 2,142 words from 22 earlier files, and v4's 155 value and name words against the v5 files.
+`scripts/check_panel_v5_conformance.py` (a port of `validate_checks`, `abstention_fault`,
+`fabricated_specifics`, `copy_replies`, `check_only_controls` and the M-world leak rule): pass — bare expected
+spelling 40/40, binding swap 0/40, echo last and echo history 0 on both categories, copy-first 20/40 and
+copy-last 20/40, constants 0/0/0 on memory, constant 1 24/24 on unknowable, adversarial abstentions 0/24,
+zero M-world phrasing leaks over 1,834 patterns. The copy split is deliberate: half the memory rows state the
+expected value first and half last, so neither copy control is vacuous.
+
+**Limitations, stated in the record.** `chat-grade check` was not run, by this round's constraint, so the
+authoritative structural validation (including the context/token-position check against the ladder tokenizer)
+remains and must run before the acceptance run; the port is not the binary and the binary wins if they
+disagree. No model has replied to any v5 request, so the panel's difficulty is unmeasured and no equivalence
+to v4's 31/40 is claimed beyond the shared rule and shape; the value classes are deliberately narrower
+(names, places, two-digit numbers) because those are the classes with a named non-invented source. The two
+dictionaries are machine-local and pinned by sha256 rather than committed, so the draw is reproducible given
+those files. STATUS.md, ROADMAP.md and #2028 are unchanged: no served model, BPB headline or milestone moved,
+and a new panel makes a milestone measurable rather than moving it.
+
+**Next:** declare the v5 acceptance run on #2029 and run it once on the current parent artifact — `chat-grade
+check` with `checks=data/panels/conversational-v5-checks.tsv` first, then `chat-grade grade` with the same
+argument — reporting `check_pass` and `acceptable` per category with the failures named. Do not let any model
+reply to v5 before that declared run; the first reply makes it development evidence exactly as v4 became.
+
 ## Coordinated Prefix proposals with atomic native acceptance — October 9
 
 The [coordinated transaction implementation](../labs/prefix-vector-transaction-2026-10-09/README.md) adds explicit `prefix_transaction: "gradient_vector_prefix"` to the coupled learner. It proposes four fixed, quantized vectors from the complete original Prefix gradient, accepts at most one under strict native combined-CE descent and all seventeen references/380 guards, then runs the existing Generate pass. Donor, post-state and incidence changes commit together after the selected vector is restaged and verified; the legacy adjacent policy remains the default. This is a generic offline proposal change, with no new serving cases or parameter families.
@@ -5,7 +63,6 @@ The [coordinated transaction implementation](../labs/prefix-vector-transaction-2
 The integrated source passes 25 focused tests, including a native two-row/six-token transaction fixture; source reviews pass. Actual-parent vector construction and complete-answer benefit remain NOT_RUN. The accepted development result stays **8/512**; corrected donor **9/15** is a separate, unselected conditional result.
 
 **Next:** After protected delivery and cleanup, execute the prospectively fixed four-radius policy from the original selected initializer with fresh complete donor credit and exact run authorities. Compare offered crossings and objective/guard rejection with the retained adjacent policy. Preserve all fifteen-position, seventeen-reference and 380-guard requirements; immediately check actual-artifact whole-answer/EOS behavior only if the complete conditional gate passes. A negative changes the causal question rather than authorizing an unchanged sweep.
-
 ## Corrected-donor earliest residual: useful local credit, insufficient adjacent displacement — October 9
 
 The [saved pooled competition](../labs/residual-pool-competition-2026-10-09/README.md) at #2069 input245/position7 checks all4,096 Generate +16physicalCopy atoms against retained native token masses. Target324 has Copy801100048 +Generate222793 versus rival307 Copy2147483648 +Generate391014. One physical alias each, no clipping; distinct eight-key Prefix incidences with nonsaturated coefficients. Fourteen accepted helpful adjacent changes improved the local raw Copy contrast by3.5 nats, but a16,543,477 Q24 deficit remains. Initial frozen directions are not current gradients or protected-feasibility evidence. Source-only contributions are explicitly derived, not independently replayed.

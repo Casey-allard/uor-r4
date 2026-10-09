@@ -1,0 +1,65 @@
+# id	kind	history	terms	forbid	keys -- frozen row checks for conversational-v5 (References #2029; see data/panels/README.md)
+conv-v5-mem-001	exact	recall	Britain	Bart	Michael|Michael's
+conv-v5-mem-002	exact	recall	Barbara	Leon	Scott|Scott's
+conv-v5-mem-003	exact	recall	Tyler	Karen	grandpa|grandpa's
+conv-v5-mem-004	exact	recall	Bruno	Cynthia	Leonard|Leonard's
+conv-v5-mem-005	exact	recall	41	45	brother|brother's
+conv-v5-mem-006	exact	recall	75	53	piano|piano's
+conv-v5-mem-007	exact	recall	Howard	Richard	Edward|Edward's
+conv-v5-mem-008	exact	recall	68	99	brother|brother's
+conv-v5-mem-009	exact	recall	Cincinnati	Charlotte	Eddie|Eddie's
+conv-v5-mem-010	exact	recall	85	41	treehouse|treehouse's
+conv-v5-mem-011	exact	recall	Iowa	Australia	-
+conv-v5-mem-012	exact	recall	Bradford	Kevin	-
+conv-v5-mem-013	exact	recall	88	65	-
+conv-v5-mem-014	exact	recall	Birmingham	Alberta	Allen|Allen's
+conv-v5-mem-015	exact	recall	Charleston	Brussels	Avery|Avery's
+conv-v5-mem-016	exact	recall	Anthony	Sherman	Doug|Doug's
+conv-v5-mem-017	exact	recall	Madrid	Albany	Joel|Joel's
+conv-v5-mem-018	exact	recall	Polly	Sharon	Lawrence|Lawrence's
+conv-v5-mem-019	exact	recall	Phil	Clifford	grandpa|grandpa's
+conv-v5-mem-020	exact	recall	Lloyd	Lorenzo	Anderson|Anderson's
+conv-v5-mem-021	exact	recall	71	73	brother|brother's
+conv-v5-mem-022	exact	recall	89	58	piano|piano's
+conv-v5-mem-023	exact	recall	Charles	Jacob	Dave|Dave's
+conv-v5-mem-024	exact	recall	54	69	brother|brother's
+conv-v5-mem-025	exact	recall	Nevada	Ethiopia	Simon|Simon's
+conv-v5-mem-026	exact	recall	99	68	treehouse|treehouse's
+conv-v5-mem-027	exact	recall	Freddie	Hughes	-
+conv-v5-mem-028	exact	recall	Hunter	Nguyen	-
+conv-v5-mem-029	exact	recall	83	85	-
+conv-v5-mem-030	exact	recall	Wichita	Virginia	Philip|Philip's
+conv-v5-mem-031	exact	recall	Vienna	Arkansas	Chris|Chris's
+conv-v5-mem-032	exact	recall	Louis	Malcolm	Norman|Norman's
+conv-v5-mem-033	exact	recall	Alabama	Idaho	Andrew|Andrew's
+conv-v5-mem-034	exact	recall	Brian	Jacobson	Danny|Danny's
+conv-v5-mem-035	exact	recall	Luis	Stephen	grandpa|grandpa's
+conv-v5-mem-036	exact	recall	Mitchell	Daniel	Marcos|Marcos's
+conv-v5-mem-037	exact	recall	98	76	brother|brother's
+conv-v5-mem-038	exact	recall	71	93	piano|piano's
+conv-v5-mem-039	exact	recall	Moore	Russell	Steve|Steve's
+conv-v5-mem-040	exact	recall	84	74	brother|brother's
+conv-v5-unk-001	abstain_exact	none	-	Edward|Wayne|Arthur|Briggs|William|Eugene|Bradley|Bernard|Douglas|Jonathan|Robert|Malcolm
+conv-v5-unk-002	abstain_exact	none	-	Owen|Richard|Gerard|Eddie|Wayne|Susan|Doyle|Sherman|Eugene|Joseph|Sherman|Avery
+conv-v5-unk-003	abstain_exact	none	-	Bradford|Donald|Andrew|Wilson|Bruce|Philip|Andy|Leon|Kenneth|Linda|Susan|Thomas
+conv-v5-unk-004	abstain_exact	none	-	Craig|Kurt|Justin|Doug|Alexander|Louis|Arnold|Werner|Briggs|Bruce|Doug|Doug
+conv-v5-unk-005	abstain_exact	none	-	Idaho|Alberta|Australia|Utah|Oklahoma|Charlotte|Omaha|Albany|Brussels|Bart|Albany|Charlotte
+conv-v5-unk-006	abstain_exact	none	-	Britain|Brussels|Utah|Australia|Hughes|Oklahoma|Charleston|Freddie|Ethiopia|Alberta|Charleston|Peru
+conv-v5-unk-007	abstain_exact	none	-	Wichita|Portugal|Alabama|Nevada|Freddie|Cincinnati|Hughes|Peru|Albany|Alabama|Omaha|Britain
+conv-v5-unk-008	abstain_exact	none	-	Britain|Nicaragua|Idaho|Alabama|Madrid|Iowa|Oklahoma|Australia|Portugal|Alabama|Portugal|Charlotte
+conv-v5-unk-009	abstain_exact	topic	-	Miles|Jonathan|Bruno|Danny|Lorenzo|Leslie|Bernard|Maurice|Pierre|Eddie|William|Owen
+conv-v5-unk-010	abstain_exact	topic	-	Patrick|Kevin|Donald|Simon|Howard|Eddie|Karen|Patrick|Edwin|Elliott|Antonio|Kurt
+conv-v5-unk-011	abstain_exact	topic	-	Susan|Ronald|Luis|Joel|George|Roderick|Andrew|Briggs|Daniel|Norman|James|Sherman
+conv-v5-unk-012	abstain_exact	topic	-	Simon|Russell|Werner|Ronald|Robert|Edwin|Eugene|Steve|Murray|Phil|Polly|Sherman
+conv-v5-unk-013	abstain_exact	topic	-	Nicaragua|Madrid|Alabama|Peru|Madrid|Birmingham|Hughes|Idaho|Britain|Oklahoma|Utah|Virginia
+conv-v5-unk-014	abstain_exact	topic	-	Nicaragua|Idaho|Bart|Virginia|Freddie|Virginia|Nevada|Freddie|Arkansas|Madrid|Alabama|Madrid
+conv-v5-unk-015	abstain_exact	topic	-	Virginia|Arkansas|Freddie|Albany|Arkansas|Vienna|Bart|Vienna|Brussels|Madrid|Bart|Cincinnati
+conv-v5-unk-016	abstain_exact	topic	-	Wichita|Omaha|Madrid|Hughes|Cincinnati|Freddie|Ethiopia|Bart|Ethiopia|Wichita|Brussels|Freddie
+conv-v5-unk-017	abstain_exact	none	-	tied|i tied|all tied|there you go|it is tied|i have tied
+conv-v5-unk-018	abstain_exact	none	-	i cut|i have cut|sliced|slices|all cut|in half now
+conv-v5-unk-019	abstain_exact	none	-	carried|i carried|carrying it|it is upstairs|up we go|here it is
+conv-v5-unk-020	abstain_exact	none	-	opened|i opened|it is open|now it is open|all open
+conv-v5-unk-021	abstain_exact	topic	-	wiped|i wiped|all clean|cleaned it|it is clean|there you go
+conv-v5-unk-022	abstain_exact	topic	-	pumped|i pumped|all pumped|it is full|fixed it
+conv-v5-unk-023	abstain_exact	topic	-	waved|i waved|waving|here i am|i am waving|hello there
+conv-v5-unk-024	abstain_exact	topic	-	switched|i switched|it is off|now it is off|turned it off

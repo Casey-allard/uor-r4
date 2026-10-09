@@ -1,0 +1,41 @@
+# id	reply -- binding-swap control for the conversational-v5 memory rows (References #2029; see data/panels/README.md). Each reply names a value stated in the conversation bound to the wrong key: the expected value with the distractor's key, or the superseded value of an update row. Every reply must fail its row's exact check.
+conv-v5-mem-001	Michael lives in Britain.
+conv-v5-mem-002	Scott's puppy is called Barbara.
+conv-v5-mem-003	grandpa's boat is called Tyler.
+conv-v5-mem-004	Leonard's band is called Bruno.
+conv-v5-mem-005	My brother takes bus 41.
+conv-v5-mem-006	My piano lesson is in room 75.
+conv-v5-mem-007	Edward's parrot is called Howard.
+conv-v5-mem-008	My brother's locker number is 68.
+conv-v5-mem-009	Eddie moved to Cincinnati.
+conv-v5-mem-010	The treehouse code is 85.
+conv-v5-mem-011	We are going to Australia.
+conv-v5-mem-012	We called the kitten Kevin.
+conv-v5-mem-013	Our tent number is 65.
+conv-v5-mem-014	Allen went to Birmingham.
+conv-v5-mem-015	Avery lives in Charleston.
+conv-v5-mem-016	Doug's puppy is called Anthony.
+conv-v5-mem-017	Joel lives in Madrid.
+conv-v5-mem-018	Lawrence's puppy is called Polly.
+conv-v5-mem-019	grandpa's boat is called Phil.
+conv-v5-mem-020	Anderson's band is called Lloyd.
+conv-v5-mem-021	My brother takes bus 71.
+conv-v5-mem-022	My piano lesson is in room 89.
+conv-v5-mem-023	Dave's parrot is called Charles.
+conv-v5-mem-024	My brother's locker number is 54.
+conv-v5-mem-025	Simon moved to Nevada.
+conv-v5-mem-026	The treehouse code is 99.
+conv-v5-mem-027	We are going to Hughes.
+conv-v5-mem-028	We called the kitten Nguyen.
+conv-v5-mem-029	Our tent number is 85.
+conv-v5-mem-030	Philip went to Wichita.
+conv-v5-mem-031	Chris lives in Vienna.
+conv-v5-mem-032	Norman's puppy is called Louis.
+conv-v5-mem-033	Andrew lives in Alabama.
+conv-v5-mem-034	Danny's puppy is called Brian.
+conv-v5-mem-035	grandpa's boat is called Luis.
+conv-v5-mem-036	Marcos's band is called Mitchell.
+conv-v5-mem-037	My brother takes bus 98.
+conv-v5-mem-038	My piano lesson is in room 71.
+conv-v5-mem-039	Steve's parrot is called Moore.
+conv-v5-mem-040	My brother's locker number is 84.

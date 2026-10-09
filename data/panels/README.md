@@ -8,7 +8,7 @@ the failing heldout rows are ill-posed. A 30M–100M model trained mostly on Tin
 chat data cannot be expected to answer open-domain knowledge requests, so on that panel a
 change in conversation or mechanism barely moves the score.
 
-## Held-out memory panel `conversational-v4*` (acceptance panel for Step 6c)
+## Held-out memory panel `conversational-v4*` (development panel since 9 October; was the acceptance panel for Step 6c)
 
 **Status.** `conversational-v4*` was authored blind on 2026-10-05 as the held-out acceptance
 panel for Step 6c. **v3 is now a development panel**: its misses were inspected, so a v3 gain
@@ -20,8 +20,9 @@ the Step 11 binding probe, which inspected the misses), so **v4 is a development
 from 2026-10-09**: its 31/40 `exact` check pass was reproduced from the artifact and its nine
 misses classified by mechanism
 ([record](../../docs/labs/v4-memory-panel-reproduction-2026-10-09/README.md)), so a future
-held-out acceptance number needs a freshly frozen panel. The five hashed files below are
-unchanged; only this README gained the status note.
+held-out acceptance number needs a freshly frozen panel: `conversational-v5*` below is that
+fresh draw, made on 2026-10-09 before any model had replied to it. The five hashed files
+below are unchanged; only this README gained the status note and the pointer.
 
 64 rows, ids `conv-v4-*` (tier C), two categories only. `conversational-v4-a.json` holds rows
 1–32 and `-b.json` rows 33–64 (pass both); rows interleave memory and unknowable rows, and the
@@ -58,9 +59,10 @@ embeds both next to the v2/v3 files (the id sets are disjoint).
 - **New values and names.** No expected or distractor value word and no proper name of v4
   occurs in any earlier `data/panels/` file or `~/uor-r4-local/ladder/panel/*.json`
   (`scripts/check_panel_v4_novelty.py`, chat-grade's word rule; 140 value words and 43 names
-  checked against a 2,520-word vocabulary from 31 files, this README read without its v4
-  section; no collision). Not checked by that script: key words and the answer-class lists of
-  the unknowable rows (ordinary words by design, never stated in a v4 turn).
+  checked against the vocabulary of every earlier file, this README read without its v4
+  section; no collision, including against the v5 files added later). Not checked by that
+  script: key words and the answer-class lists of the unknowable rows (ordinary words by
+  design, never stated in a v4 turn).
 - **Leakage.** The unit test `panels_v3_v4_share_no_m_world_phrasing` checks every v4 turn
   against the M-world string literals (whole template or 4-word run); six turns were reworded
   while authoring until it passed. The corpus leak check (`chat-grade leak corpora=...`) was not
@@ -98,10 +100,92 @@ and the novelty script have read it. sha256 (also in `MANIFEST.sha256`):
 Any edit makes a new panel with a new name. Replies were not inspected row by row before the
 Step 6c acceptance run; after that run v4 became a development panel, as recorded above.
 
+## Held-out memory acceptance panel `conversational-v5*` (References #2029)
+
+**Status.** `conversational-v5*` was drawn and sealed on 2026-10-09, before any model had
+replied to any of its requests, as the held-out acceptance panel for acceptance criterion 1
+of #2029. Its acceptance criteria are frozen in the
+[canonical record](../../docs/labs/panel-freeze-2026-10-09/README.md) and in its own checks
+file. `conversational-v4*` above is a development panel from 2026-10-09 — its misses were
+read and classified by name — so no held-out acceptance number can be measured on it any
+more; v5 is the fresh draw that replaces it for that purpose.
+
+64 rows, ids `conv-v5-*` (tier C), the same two categories, the same six-column check format
+and the same rule as v4. `conversational-v5-a.json` holds the first 32 rows and `-b.json`
+the rest (pass both). Row ids are zero-padded to three digits (`conv-v5-mem-001`) on purpose:
+the novelty script reads every file here as a bag of words, so a two-digit id suffix
+tokenises to a bare number, and two such numbers happen to be value words of the v4 panel.
+
+| Category | Rows | Turns | Check |
+|---|---|---|---|
+| `multi_turn_memory` | 22 with three, 14 with two, 4 with four | 2–4 | `exact` (same rule as v3 and v4) |
+| `unknowable_or_impossible` | 12 single, 12 with two | 1–2 | `abstain_exact` (same rule as v3 and v4) |
+
+- **Values are drawn, never chosen.** Every expected value, every distractor and every
+  answer-class word is selected by the deterministic rule `panel-v5-draw/1`
+  (`scripts/panel_v5_draw.py`) from a named, hashable source, and each is recorded in
+  `conversational-v5-provenance.tsv` with its source, that source's sha256 and the sha256
+  digest that selects it; the source line, pool index and pool size of every draw are in the
+  canonical record. The sentence frames, the keys and the scene catalogue are authored in
+  that script and are not values. No model was consulted and no value was invented.
+- **Subjects.** Personal names (the `propernames` list), place names (capitalised Webster's
+  headwords attested in running English) and two-digit numbers. That is narrower than v4's
+  subject range, and it is a declared deviation: these are the value classes for which this
+  workspace has a named, hashable, non-invented source. The check rule, the row shape, the
+  category split and the control set are unchanged.
+- **Copy controls are not vacuous.** Half the memory rows state the expected value first and
+  half state it last, so the check-only controls read `copy_first_stated` 20 and
+  `copy_last_stated` 20 of the memory rows, against 20 of 20 for a bare expected spelling, 0
+  for every constant, 0 for echoing the last turn and 0 for echoing the history. Constant 1
+  passes every `unknowable_or_impossible` check (24 of 24), so that category is read only
+  against its best constant, and each of the three adversarial abstentions passes 0 of 24.
+- **New values and names.** No expected or distractor value word and no proper name of v5
+  occurs in any earlier `data/panels/` file (`scripts/check_panel_v5_novelty.py`, the v4
+  script's rule). The v4 checker passes unchanged against the enlarged vocabulary.
+- **Leakage.** No v5 turn matches an M-world literal whole or as a template, or shares four
+  consecutive words with one; the port of that unit test is
+  `scripts/check_panel_v5_conformance.py`, which also re-checks the row shape and every
+  check-only control listed above.
+
+```text
+chat-grade check requests=conversational-v5-a.json,conversational-v5-b.json tokenizer=T.json context=384 \
+  checks=data/panels/conversational-v5-checks.tsv
+python3 scripts/check_panel_v5_novelty.py
+python3 scripts/check_panel_v5_conformance.py
+```
+
+**An acceptance run must pass `checks=`.** The frozen `chat-grade` binary embeds the v2, v3
+and v4 checks files only, and this round was restricted to panel construction with no grader
+run at all, so the v5 checks are not embedded in it. A run that omits `checks=` leaves every
+v5 row unchecked, and a multi-turn row with no check is a hard error. The graded report
+records the checks path and its sha256, so the run stays bound to this file.
+
+**Freeze statement (v5).** Drawn and written on 2026-10-09. Only `scripts/panel_v5_draw.py`
+(no model is loaded or consulted), `scripts/check_panel_v5_novelty.py`,
+`scripts/check_panel_v5_conformance.py` and `shasum` have read it. sha256 (also in
+`MANIFEST.sha256`):
+
+| file | sha256 |
+|---|---|
+| `conversational-v5.json` | `e766cfe9a311eb85c465dba7a9d5b74961f8ccb75cd9f93b3b3e9337b992c750` |
+| `conversational-v5-a.json` | `9345b60d1762be56d8b488521887574bfc54ce1e588e31be386c012a2f9f6e3d` |
+| `conversational-v5-b.json` | `4daa10eee83020014df4322d3593c419d838f1bb0865c9f3305f825e0177813d` |
+| `conversational-v5-checks.tsv` | `737c4dfd5a65fe49c207afe40e88bf354c7cf9dd45fa173c54e639bb0aa0dbc8` |
+| `conversational-v5-swaps.tsv` | `6e3ae51469863239ff30b733af4ec0423cf230213ae2673fe71b0e79a9a484c8` |
+| `conversational-v5-provenance.tsv` | `60e72c498294c61d997f643f4305bad8b936d78fbd456217498cadd11754b254` |
+
+Any edit makes a new panel with a new name. **No model has replied to any v5 request.** Three
+things a held-out claim needs from here: the panel must not be inspected by any model before
+the acceptance run; the acceptance run must be declared in advance and run once, with the
+frozen criteria applied as written; and the first model that replies to it makes it a
+development panel like v4, after which any further number on it is open-development
+evidence. `shasum -a 256 -c MANIFEST.sha256` from this directory verifies every file.
+
 ## Tiered eval v2: panel `conversational-v3*` and the missing-material K split
 
-**Status (5 October, later):** development panel. Its misses were inspected; held-out
-acceptance uses `conversational-v4*` above.
+**Status (5 October, later; 9 October):** development panel. Its misses were inspected. Held-out
+acceptance is `conversational-v5*` above; v4, which took that role in between, is a
+development panel too since 9 October.
 
 The #1724 review and the re-score (#1733) found five faults in the first tiered instrument:
 (1) the qwen grader cannot fail a memory reply that recalls the wrong fact; (2) many

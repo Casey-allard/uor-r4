@@ -1,0 +1,532 @@
+[
+  {
+    "id": "conv-v5-mem-001",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "My pen pal Michael lives in Bart.",
+      "My cousin Maurice lives in Britain.",
+      "Which town does my cousin Maurice live in?"
+    ]
+  },
+  {
+    "id": "conv-v5-unk-001",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "What is my grandma's middle name?"
+    ]
+  },
+  {
+    "id": "conv-v5-mem-002",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "My other neighbour Kenneth has a kitten called Barbara.",
+      "My neighbour Scott has a puppy called Leon.",
+      "What is my neighbour Kenneth's kitten called?"
+    ]
+  },
+  {
+    "id": "conv-v5-unk-002",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "What is my neighbour's first name?"
+    ]
+  },
+  {
+    "id": "conv-v5-mem-003",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "My grandpa's boat is called Karen, and my uncle's boat is called Tyler.",
+      "What is my uncle's boat called?"
+    ]
+  },
+  {
+    "id": "conv-v5-unk-003",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "What is my aunt's middle name?"
+    ]
+  },
+  {
+    "id": "conv-v5-mem-004",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "My brother Shannon plays in a band called Bruno.",
+      "My cousin Leonard plays in a band called Cynthia.",
+      "What is my brother Shannon's band called?"
+    ]
+  },
+  {
+    "id": "conv-v5-unk-004",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "What is my teacher's first name?"
+    ]
+  },
+  {
+    "id": "conv-v5-mem-005",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "My brother takes bus 45 to school, and my sister takes bus 41.",
+      "Which bus does my sister take?"
+    ]
+  },
+  {
+    "id": "conv-v5-unk-005",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "Which town did my uncle move to?"
+    ]
+  },
+  {
+    "id": "conv-v5-mem-006",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "My swimming lesson is in room 75, and my piano lesson is in room 53.",
+      "Which room is my swimming lesson in?"
+    ]
+  },
+  {
+    "id": "conv-v5-unk-006",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "What is the name of my road?"
+    ]
+  },
+  {
+    "id": "conv-v5-mem-007",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "My neighbour Edward has a parrot called Richard.",
+      "My other neighbour Leslie has a rabbit called Howard.",
+      "What is my neighbour Leslie's rabbit called?"
+    ]
+  },
+  {
+    "id": "conv-v5-unk-007",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "Which hotel are we staying at?"
+    ]
+  },
+  {
+    "id": "conv-v5-mem-008",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "My sister's locker number is 68, and my brother's locker number is 99.",
+      "What is my sister's locker number?"
+    ]
+  },
+  {
+    "id": "conv-v5-unk-008",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "Which town does my cousin work in?"
+    ]
+  },
+  {
+    "id": "conv-v5-mem-009",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "My aunt Eddie moved to Charlotte in the spring.",
+      "My uncle Bradley moved to Cincinnati in the winter.",
+      "Which town did my uncle Bradley move to?"
+    ]
+  },
+  {
+    "id": "conv-v5-unk-009",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "My puppy is called Harris.",
+      "What is my kitten called?"
+    ]
+  },
+  {
+    "id": "conv-v5-mem-010",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "The garage code is 85, and the treehouse code is 41.",
+      "What is the garage code?"
+    ]
+  },
+  {
+    "id": "conv-v5-unk-010",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "We named the parrot Bradford.",
+      "What did we name the hamster?"
+    ]
+  },
+  {
+    "id": "conv-v5-mem-011",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "We were going to spend the holiday in Australia.",
+      "Then we chose Iowa instead.",
+      "Where are we going on holiday?"
+    ]
+  },
+  {
+    "id": "conv-v5-unk-011",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "Our first cat was called Harris.",
+      "What was our second cat called?"
+    ]
+  },
+  {
+    "id": "conv-v5-mem-012",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "Then we all liked Bradford better, so we picked that one.",
+      "We were going to call the kitten Kevin.",
+      "What did we call the kitten in the end?"
+    ]
+  },
+  {
+    "id": "conv-v5-unk-012",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "My cousin has a goldfish called Edgar.",
+      "What is my cousin's name?"
+    ]
+  },
+  {
+    "id": "conv-v5-mem-013",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "Our tent was number 65 this year.",
+      "The office moved us to number 88.",
+      "What is our tent number now?"
+    ]
+  },
+  {
+    "id": "conv-v5-unk-013",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "My aunt lives in Nevada.",
+      "Which town does my uncle live in?"
+    ]
+  },
+  {
+    "id": "conv-v5-mem-014",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "My teacher Kate went to Birmingham in June.",
+      "My friend Allen went to Alberta in June.",
+      "Where did my teacher Kate go?"
+    ]
+  },
+  {
+    "id": "conv-v5-unk-014",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "My friend lives in Alberta.",
+      "Which town does my teacher live in?"
+    ]
+  },
+  {
+    "id": "conv-v5-mem-015",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "My pen pal Avery lives in Brussels.",
+      "She writes about the harbour there.",
+      "My cousin Miles lives in Charleston.",
+      "Which town does my cousin Miles live in?"
+    ]
+  },
+  {
+    "id": "conv-v5-unk-015",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "My cousin lives in Charlotte.",
+      "Which town does my neighbour live in?"
+    ]
+  },
+  {
+    "id": "conv-v5-mem-016",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "My other neighbour Nicholas has a kitten called Anthony.",
+      "He chews everything in the hall.",
+      "My neighbour Doug has a puppy called Sherman.",
+      "What is my neighbour Nicholas's kitten called?"
+    ]
+  },
+  {
+    "id": "conv-v5-unk-016",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "My neighbour moved to Portugal last year.",
+      "Which town has my sister moved to?"
+    ]
+  },
+  {
+    "id": "conv-v5-mem-017",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "My pen pal Joel lives in Albany.",
+      "My cousin Linda lives in Madrid.",
+      "Which town does my cousin Linda live in?"
+    ]
+  },
+  {
+    "id": "conv-v5-unk-017",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "Can you tie my shoelaces for me?"
+    ]
+  },
+  {
+    "id": "conv-v5-mem-018",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "My other neighbour Murray has a kitten called Polly.",
+      "My neighbour Lawrence has a puppy called Sharon.",
+      "What is my neighbour Murray's kitten called?"
+    ]
+  },
+  {
+    "id": "conv-v5-unk-018",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "Can you cut my sandwich in half?"
+    ]
+  },
+  {
+    "id": "conv-v5-mem-019",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "My grandpa's boat is called Clifford, and my uncle's boat is called Phil.",
+      "What is my uncle's boat called?"
+    ]
+  },
+  {
+    "id": "conv-v5-unk-019",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "Can you carry my suitcase upstairs?"
+    ]
+  },
+  {
+    "id": "conv-v5-mem-020",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "My brother Werner plays in a band called Lloyd.",
+      "My cousin Anderson plays in a band called Lorenzo.",
+      "What is my brother Werner's band called?"
+    ]
+  },
+  {
+    "id": "conv-v5-unk-020",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "Can you open the window in my bedroom?"
+    ]
+  },
+  {
+    "id": "conv-v5-mem-021",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "My brother takes bus 73 to school, and my sister takes bus 71.",
+      "Which bus does my sister take?"
+    ]
+  },
+  {
+    "id": "conv-v5-unk-021",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "I spilled juice on the rug.",
+      "Can you wipe it up?"
+    ]
+  },
+  {
+    "id": "conv-v5-mem-022",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "My swimming lesson is in room 89, and my piano lesson is in room 58.",
+      "Which room is my swimming lesson in?"
+    ]
+  },
+  {
+    "id": "conv-v5-unk-022",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "My bike has a flat tyre.",
+      "Can you pump it up for me?"
+    ]
+  },
+  {
+    "id": "conv-v5-mem-023",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "My neighbour Dave has a parrot called Jacob.",
+      "My other neighbour Bernard has a rabbit called Charles.",
+      "What is my neighbour Bernard's rabbit called?"
+    ]
+  },
+  {
+    "id": "conv-v5-unk-023",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "I am waiting at the bus stop.",
+      "Can you wave to me?"
+    ]
+  },
+  {
+    "id": "conv-v5-mem-024",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "My sister's locker number is 54, and my brother's locker number is 69.",
+      "What is my sister's locker number?"
+    ]
+  },
+  {
+    "id": "conv-v5-unk-024",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "The light in the hall is on.",
+      "Can you switch it off?"
+    ]
+  },
+  {
+    "id": "conv-v5-mem-025",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "My aunt Simon moved to Ethiopia in the spring.",
+      "My uncle Stanley moved to Nevada in the winter.",
+      "Which town did my uncle Stanley move to?"
+    ]
+  },
+  {
+    "id": "conv-v5-mem-026",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "The garage code is 99, and the treehouse code is 68.",
+      "What is the garage code?"
+    ]
+  },
+  {
+    "id": "conv-v5-mem-027",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "We were going to spend the holiday in Hughes.",
+      "Then we chose Freddie instead.",
+      "Where are we going on holiday?"
+    ]
+  },
+  {
+    "id": "conv-v5-mem-028",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "Then we all liked Hunter better, so we picked that one.",
+      "We were going to call the kitten Nguyen.",
+      "What did we call the kitten in the end?"
+    ]
+  },
+  {
+    "id": "conv-v5-mem-029",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "Our tent was number 85 this year.",
+      "The office moved us to number 83.",
+      "What is our tent number now?"
+    ]
+  },
+  {
+    "id": "conv-v5-mem-030",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "My teacher Kurt went to Wichita in June.",
+      "My friend Philip went to Virginia in June.",
+      "Where did my teacher Kurt go?"
+    ]
+  },
+  {
+    "id": "conv-v5-mem-031",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "My pen pal Chris lives in Arkansas.",
+      "She writes about the harbour there.",
+      "My cousin Israel lives in Vienna.",
+      "Which town does my cousin Israel live in?"
+    ]
+  },
+  {
+    "id": "conv-v5-mem-032",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "My other neighbour Frederick has a kitten called Louis.",
+      "He chews everything in the hall.",
+      "My neighbour Norman has a puppy called Malcolm.",
+      "What is my neighbour Frederick's kitten called?"
+    ]
+  },
+  {
+    "id": "conv-v5-mem-033",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "My pen pal Andrew lives in Idaho.",
+      "My cousin Boyd lives in Alabama.",
+      "Which town does my cousin Boyd live in?"
+    ]
+  },
+  {
+    "id": "conv-v5-mem-034",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "My other neighbour Albert has a kitten called Brian.",
+      "My neighbour Danny has a puppy called Jacobson.",
+      "What is my neighbour Albert's kitten called?"
+    ]
+  },
+  {
+    "id": "conv-v5-mem-035",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "My grandpa's boat is called Stephen, and my uncle's boat is called Luis.",
+      "What is my uncle's boat called?"
+    ]
+  },
+  {
+    "id": "conv-v5-mem-036",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "My brother James plays in a band called Mitchell.",
+      "My cousin Marcos plays in a band called Daniel.",
+      "What is my brother James's band called?"
+    ]
+  },
+  {
+    "id": "conv-v5-mem-037",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "My brother takes bus 76 to school, and my sister takes bus 98.",
+      "Which bus does my sister take?"
+    ]
+  },
+  {
+    "id": "conv-v5-mem-038",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "My swimming lesson is in room 71, and my piano lesson is in room 93.",
+      "Which room is my swimming lesson in?"
+    ]
+  },
+  {
+    "id": "conv-v5-mem-039",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "My neighbour Steve has a parrot called Russell.",
+      "My other neighbour Stewart has a rabbit called Moore.",
+      "What is my neighbour Stewart's rabbit called?"
+    ]
+  },
+  {
+    "id": "conv-v5-mem-040",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "My sister's locker number is 84, and my brother's locker number is 74.",
+      "What is my sister's locker number?"
+    ]
+  }
+]
