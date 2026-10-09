@@ -220,3 +220,9 @@ holding the index. Object `icloud:UOR-R4/results/deepseek/ds-bundle-icloud.tar`,
 branches with tips matching the table above. The patches here are readable records but are NOT reliably
 applicable on their own (0 of 6 plain, 1 of 6 three-way), because the branches predate `main`'s
 movement - use the bundle to restore.
+
+## Codex saved-incidence reader superseded I/O — October 9
+
+| Retained source | Status | Restore base | Evidence |
+|---|---|---|---|
+| [Unbuffered reader](codex_saved-pair-incidence-unbuffered-20261009.patch) | Superseded analysis I/O; no model change | Apply to the buffered `native-saved-pair-incidence.rs` delivered with this row; final file SHA-256 `bc24d467eef6a4714bc7404715ed1cb3d45d480d4d7467a5e8cdb9912490665a` | [Both sealed attempts and exact source](../../labs/saved-pair-incidence-2026-10-09/README.md); restored source SHA-256 `2a1a5713f0a275eceaf7c9f687f3e79183c17ae438e787707c6d783a8fc068b8` |

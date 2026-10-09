@@ -1,0 +1,46 @@
+{
+  "archives": [
+    {
+      "file": "attempt-0001.tar.gz",
+      "sha256": "4a25063d8f83e8b8861987a78ca55f699ba13ca216c9a161d068cf1af02b4c89",
+      "bytes": 1319114,
+      "members": {
+        "report.json": {
+          "bytes": 52587796,
+          "sha256": "7a85e06f88c301cbb8a85fdcf582b61d9cf31b50f3bed61ce07bf16b08f19d7e"
+        },
+        "manifest.json": {
+          "bytes": 492,
+          "sha256": "d65c0d4a679b8e3aa8227a152022326a10b6974f5d38d1aae367417b48a0d7b5"
+        },
+        "attempt.json": {
+          "bytes": 526,
+          "sha256": "47bd31d42fd0cb97a3434eecce815bd76bbd6b90d34bae3140fd98cffb943e38"
+        }
+      },
+      "archive_roundtrip": "PASS"
+    },
+    {
+      "file": "attempt-0002.tar.gz",
+      "sha256": "8aea481a63efd5e2aac473da79f5f816f9e4a313b38e81bdddd0fbebac752410",
+      "bytes": 1319119,
+      "members": {
+        "report.json": {
+          "bytes": 52587794,
+          "sha256": "c3abba90dc1795f695b9531602d71965144d379767efc79e55616a7735c5fdd7"
+        },
+        "manifest.json": {
+          "bytes": 492,
+          "sha256": "9ba36e0f952b3e1753bf23811bbbbde8a03eb7428ee9aaa81b92be2fb2dfd3f7"
+        },
+        "attempt.json": {
+          "bytes": 526,
+          "sha256": "7b7b755e134f7ec2f966cc91abdd9a89e2d3a712dccd0ee32f9cb6656648548e"
+        }
+      },
+      "archive_roundtrip": "PASS"
+    }
+  ],
+  "source_inputs_retained": "Pinned private-store revision fb1a0509de6a574def9472c5e33d4530f569a5b9; recovery.json",
+  "no_new_model_artifact": true
+}

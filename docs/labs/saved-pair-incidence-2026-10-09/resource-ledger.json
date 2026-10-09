@@ -1,0 +1,43 @@
+{
+  "status": "ANALYSIS_COMPLETE_PENDING_MAIN",
+  "started_utc": "2026-10-09T15:04:15.080848+00:00",
+  "previous_ledger": "docs/labs/coupled-residual-mechanism-2026-10-09/resource-ledger.json",
+  "previous_cumulative_projected_seconds": 594870,
+  "increment_seconds": 3600,
+  "cumulative_projected_seconds": 598470,
+  "cpu_threads": 2,
+  "ram_bytes": 4294967296,
+  "new_evidence_cap_bytes": 134217728,
+  "temporary_local_storage_cap_bytes": 3221225472,
+  "stop_margin_bytes": 134217728,
+  "owner_direction": "2026-10-09 owner explicitly selected local execution despite reported26GiB reserve; clean unnecessary files. This supersedes the old claim local admission hold for this task. No pod.",
+  "reason": "Existing Generate pair-incidence and protected-sharing discriminator; no model fit or fresh encoder capture. Dedicated artifacts and build cache removed after protected delivery.",
+  "work_card": "https://github.com/UOR-Foundation/uor-r4/issues/2030#issuecomment-6083397074",
+  "source_commit": "178d988f3131b8dfd88350a4b999f084a585f77b",
+  "cleanup_before": {
+    "unused_codex_upgrade_staging_directories": 88,
+    "logical_bytes": 1615778621,
+    "open_handles": 0,
+    "installed_plugin_symlinks_into_staging": 0
+  },
+  "legacy_local_ledger": "ABSENT_NO_RESET_USE_RETAINED_CUMULATIVE_LEDGER",
+  "analysis_ram_bytes": 2147483648,
+  "build_ram_bytes": 4294967296,
+  "resource_extensions": [
+    {
+      "utc": "2026-10-09T15:08:10.774734+00:00",
+      "reason": "Fresh optimized core dependency compilation observed2.45GiB RSS; allow4GiB build RAM under standing local allowance. Two jobs unchanged; analysis remains2GiB.",
+      "increment_build_ram_bytes": 2147483648
+    }
+  ],
+  "buffered_seconds": 9.033442125,
+  "unbuffered_seconds": 308.771432667,
+  "buffered_peak_rss_bytes": 851394560,
+  "updated_utc": "2026-10-09T15:20:59.717088+00:00",
+  "attempt_equality": "PASS",
+  "new_pods": 0,
+  "completed_analysis_utc": "2026-10-09T15:25:46.328558+00:00",
+  "elapsed_since_admission_seconds": 1291.247951,
+  "retained_evidence_bytes_before_delivery": 2841611,
+  "icloud_roundtrip": "PASS_INPUT_AND_RESULT_RUNTIME"
+}

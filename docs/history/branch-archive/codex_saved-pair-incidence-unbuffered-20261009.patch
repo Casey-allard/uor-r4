@@ -1,0 +1,13 @@
+--- a/crates/uor-r4-core/examples/native-saved-pair-incidence.rs
++++ b/crates/uor-r4-core/examples/native-saved-pair-incidence.rs
+@@ -29,9 +29,7 @@
+     Ok(())
+ }
+ fn read(p: &Path) -> Result<Value> {
+-    Ok(serde_json::from_reader(io::BufReader::new(
+-        fs::File::open(p)?,
+-    ))?)
++    Ok(serde_json::from_reader(fs::File::open(p)?)?)
+ }
+ fn hash(p: &Path) -> Result<String> {
+     use std::io::Read;

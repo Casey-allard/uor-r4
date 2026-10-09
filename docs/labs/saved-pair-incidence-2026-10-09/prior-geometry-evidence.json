@@ -1,0 +1,14 @@
+{
+  "scope": "Retained successful independent audit reused for original/final Generate geometry equality; no audit rerun claimed.",
+  "prior_audit_sha256": "8152fbb044bec0d7416370aeaa3a74626ba28f294745227f3e21a4ebf061938f",
+  "prior_audit_reader_sha256": "d47937a9606cda264fc49a5a38744c8fe801c963148d80232308af3ecac4bc91",
+  "geometry_check": "saved-arithmetic-reader.py compares entire candidate Generate payload with original payload modified only in 960 unary nibbles; algebra/prototypes/ordered edges and metadata other than payload digest are equal.",
+  "source_lines": "662-674",
+  "prior_audit_report_sha256": "0aa9b3c0c2d1defaaa6d93611a78fb348be0016aefe5d7548563250b9a687b8c",
+  "prior_audit_status": "PASS",
+  "original_state_scope": "coupled-population.json carries original population donors and posts; this preflight must verify journal transitions and frozen bridge reconstruction against those states.",
+  "interpretation_limits": [
+    "No original full-pool scores reconstructed in this task.",
+    "No candidate generation, gradient, parameter update, or whole-answer improvement is implied."
+  ]
+}

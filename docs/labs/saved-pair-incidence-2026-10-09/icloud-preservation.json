@@ -1,0 +1,14 @@
+{
+  "status": "PASS",
+  "receipts": [
+    {
+      "receipt": "stored codex-coupled-export-outcome-20261009 (50622464 bytes, md5 db94d9acb75430fae31decfb9456d96c) at icloud:UOR-R4/results/codex/codex-coupled-export-outcome-20261009.tar",
+      "verification": "cloud-store streamed download MD5 round trip and remote index write succeeded"
+    },
+    {
+      "receipt": "stored codex-saved-pair-incidence-20261009 (4321792 bytes, md5 96f180da20a574f0ee9bb3fa91c8cda3) at icloud:UOR-R4/results/codex/codex-saved-pair-incidence-20261009.tar",
+      "verification": "cloud-store streamed download MD5 round trip and remote index write succeeded"
+    }
+  ],
+  "temporary_copy_disposition": "Remove after protected main delivery; runtime/source/input/results recoverable from iCloud and compressed scientific evidence also on main."
+}

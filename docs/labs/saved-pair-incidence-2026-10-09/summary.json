@@ -1,0 +1,634 @@
+{
+  "status": "PASS",
+  "raw_report_sha256": "c3abba90dc1795f695b9531602d71965144d379767efc79e55616a7735c5fdd7",
+  "original_and_final_frames_each": 391,
+  "legal_tokens_each": 4096,
+  "all_token_calls": 3203072,
+  "pair_incidences": 12812288,
+  "unary_incidences": 25624576,
+  "original_bridge_states_validated": 391,
+  "bridge_reconstruction_calls": 548,
+  "bridge_action_scores": 526080,
+  "historical_veto_alternatives": 7,
+  "historical_veto_states": 1,
+  "unary937_signed_contrasts": {
+    "EOS": -1,
+    "guard": 1
+  },
+  "compatible_unary_directions": 15,
+  "compatible_pair_directions": 8,
+  "signed_direction_sharing": [
+    {
+      "EOS_signed_incidence": -1,
+      "algebraic_direction": "negative",
+      "family": "unary",
+      "guard_signed_incidence": 0,
+      "key": 57,
+      "sharing": [
+        {
+          "state_scope": "unselected final candidate states",
+          "guard_frames": 380,
+          "guard_generate_token_incidences": 12969,
+          "guard_required_winner_incidences": 1,
+          "reference_frames": 17,
+          "reference_required_winner_incidences": 0
+        },
+        {
+          "state_scope": "original selected population states; fixed prototype/algebra/edge continuity reused from prior numerical audit",
+          "guard_frames": 380,
+          "guard_generate_token_incidences": 12973,
+          "guard_required_winner_incidences": 3,
+          "reference_frames": 17,
+          "reference_required_winner_incidences": 0
+        }
+      ]
+    },
+    {
+      "EOS_signed_incidence": 1,
+      "algebraic_direction": "positive",
+      "family": "unary",
+      "guard_signed_incidence": 0,
+      "key": 90,
+      "sharing": [
+        {
+          "state_scope": "unselected final candidate states",
+          "guard_frames": 380,
+          "guard_generate_token_incidences": 12972,
+          "guard_required_winner_incidences": 2,
+          "reference_frames": 17,
+          "reference_required_winner_incidences": 0
+        },
+        {
+          "state_scope": "original selected population states; fixed prototype/algebra/edge continuity reused from prior numerical audit",
+          "guard_frames": 380,
+          "guard_generate_token_incidences": 12969,
+          "guard_required_winner_incidences": 3,
+          "reference_frames": 17,
+          "reference_required_winner_incidences": 1
+        }
+      ]
+    },
+    {
+      "EOS_signed_incidence": -1,
+      "algebraic_direction": "negative",
+      "family": "unary",
+      "guard_signed_incidence": 0,
+      "key": 208,
+      "sharing": [
+        {
+          "state_scope": "unselected final candidate states",
+          "guard_frames": 380,
+          "guard_generate_token_incidences": 12965,
+          "guard_required_winner_incidences": 8,
+          "reference_frames": 17,
+          "reference_required_winner_incidences": 0
+        },
+        {
+          "state_scope": "original selected population states; fixed prototype/algebra/edge continuity reused from prior numerical audit",
+          "guard_frames": 380,
+          "guard_generate_token_incidences": 12966,
+          "guard_required_winner_incidences": 8,
+          "reference_frames": 17,
+          "reference_required_winner_incidences": 0
+        }
+      ]
+    },
+    {
+      "EOS_signed_incidence": 1,
+      "algebraic_direction": "positive",
+      "family": "unary",
+      "guard_signed_incidence": 0,
+      "key": 237,
+      "sharing": [
+        {
+          "state_scope": "unselected final candidate states",
+          "guard_frames": 380,
+          "guard_generate_token_incidences": 12958,
+          "guard_required_winner_incidences": 6,
+          "reference_frames": 17,
+          "reference_required_winner_incidences": 0
+        },
+        {
+          "state_scope": "original selected population states; fixed prototype/algebra/edge continuity reused from prior numerical audit",
+          "guard_frames": 380,
+          "guard_generate_token_incidences": 12958,
+          "guard_required_winner_incidences": 6,
+          "reference_frames": 17,
+          "reference_required_winner_incidences": 0
+        }
+      ]
+    },
+    {
+      "EOS_signed_incidence": 1,
+      "algebraic_direction": "positive",
+      "family": "unary",
+      "guard_signed_incidence": 0,
+      "key": 338,
+      "sharing": [
+        {
+          "state_scope": "unselected final candidate states",
+          "guard_frames": 380,
+          "guard_generate_token_incidences": 12954,
+          "guard_required_winner_incidences": 3,
+          "reference_frames": 17,
+          "reference_required_winner_incidences": 0
+        },
+        {
+          "state_scope": "original selected population states; fixed prototype/algebra/edge continuity reused from prior numerical audit",
+          "guard_frames": 380,
+          "guard_generate_token_incidences": 12957,
+          "guard_required_winner_incidences": 4,
+          "reference_frames": 17,
+          "reference_required_winner_incidences": 0
+        }
+      ]
+    },
+    {
+      "EOS_signed_incidence": -1,
+      "algebraic_direction": "negative",
+      "family": "unary",
+      "guard_signed_incidence": 0,
+      "key": 339,
+      "sharing": [
+        {
+          "state_scope": "unselected final candidate states",
+          "guard_frames": 380,
+          "guard_generate_token_incidences": 12954,
+          "guard_required_winner_incidences": 4,
+          "reference_frames": 17,
+          "reference_required_winner_incidences": 0
+        },
+        {
+          "state_scope": "original selected population states; fixed prototype/algebra/edge continuity reused from prior numerical audit",
+          "guard_frames": 380,
+          "guard_generate_token_incidences": 12956,
+          "guard_required_winner_incidences": 4,
+          "reference_frames": 17,
+          "reference_required_winner_incidences": 0
+        }
+      ]
+    },
+    {
+      "EOS_signed_incidence": 1,
+      "algebraic_direction": "positive",
+      "family": "unary",
+      "guard_signed_incidence": 0,
+      "key": 419,
+      "sharing": [
+        {
+          "state_scope": "unselected final candidate states",
+          "guard_frames": 380,
+          "guard_generate_token_incidences": 12967,
+          "guard_required_winner_incidences": 1,
+          "reference_frames": 17,
+          "reference_required_winner_incidences": 0
+        },
+        {
+          "state_scope": "original selected population states; fixed prototype/algebra/edge continuity reused from prior numerical audit",
+          "guard_frames": 380,
+          "guard_generate_token_incidences": 12966,
+          "guard_required_winner_incidences": 1,
+          "reference_frames": 17,
+          "reference_required_winner_incidences": 0
+        }
+      ]
+    },
+    {
+      "EOS_signed_incidence": -1,
+      "algebraic_direction": "negative",
+      "family": "unary",
+      "guard_signed_incidence": 0,
+      "key": 478,
+      "sharing": [
+        {
+          "state_scope": "unselected final candidate states",
+          "guard_frames": 380,
+          "guard_generate_token_incidences": 12975,
+          "guard_required_winner_incidences": 8,
+          "reference_frames": 17,
+          "reference_required_winner_incidences": 0
+        },
+        {
+          "state_scope": "original selected population states; fixed prototype/algebra/edge continuity reused from prior numerical audit",
+          "guard_frames": 380,
+          "guard_generate_token_incidences": 12976,
+          "guard_required_winner_incidences": 8,
+          "reference_frames": 17,
+          "reference_required_winner_incidences": 0
+        }
+      ]
+    },
+    {
+      "EOS_signed_incidence": -1,
+      "algebraic_direction": "negative",
+      "family": "unary",
+      "guard_signed_incidence": 0,
+      "key": 510,
+      "sharing": [
+        {
+          "state_scope": "unselected final candidate states",
+          "guard_frames": 380,
+          "guard_generate_token_incidences": 12981,
+          "guard_required_winner_incidences": 5,
+          "reference_frames": 17,
+          "reference_required_winner_incidences": 0
+        },
+        {
+          "state_scope": "original selected population states; fixed prototype/algebra/edge continuity reused from prior numerical audit",
+          "guard_frames": 380,
+          "guard_generate_token_incidences": 12983,
+          "guard_required_winner_incidences": 4,
+          "reference_frames": 17,
+          "reference_required_winner_incidences": 0
+        }
+      ]
+    },
+    {
+      "EOS_signed_incidence": 1,
+      "algebraic_direction": "positive",
+      "family": "unary",
+      "guard_signed_incidence": 0,
+      "key": 535,
+      "sharing": [
+        {
+          "state_scope": "unselected final candidate states",
+          "guard_frames": 380,
+          "guard_generate_token_incidences": 12979,
+          "guard_required_winner_incidences": 1,
+          "reference_frames": 17,
+          "reference_required_winner_incidences": 0
+        },
+        {
+          "state_scope": "original selected population states; fixed prototype/algebra/edge continuity reused from prior numerical audit",
+          "guard_frames": 380,
+          "guard_generate_token_incidences": 12979,
+          "guard_required_winner_incidences": 1,
+          "reference_frames": 17,
+          "reference_required_winner_incidences": 0
+        }
+      ]
+    },
+    {
+      "EOS_signed_incidence": 1,
+      "algebraic_direction": "positive",
+      "family": "unary",
+      "guard_signed_incidence": 0,
+      "key": 665,
+      "sharing": [
+        {
+          "state_scope": "unselected final candidate states",
+          "guard_frames": 380,
+          "guard_generate_token_incidences": 12922,
+          "guard_required_winner_incidences": 5,
+          "reference_frames": 17,
+          "reference_required_winner_incidences": 0
+        },
+        {
+          "state_scope": "original selected population states; fixed prototype/algebra/edge continuity reused from prior numerical audit",
+          "guard_frames": 380,
+          "guard_generate_token_incidences": 12928,
+          "guard_required_winner_incidences": 4,
+          "reference_frames": 17,
+          "reference_required_winner_incidences": 0
+        }
+      ]
+    },
+    {
+      "EOS_signed_incidence": -1,
+      "algebraic_direction": "negative",
+      "family": "unary",
+      "guard_signed_incidence": 0,
+      "key": 672,
+      "sharing": [
+        {
+          "state_scope": "unselected final candidate states",
+          "guard_frames": 380,
+          "guard_generate_token_incidences": 12997,
+          "guard_required_winner_incidences": 6,
+          "reference_frames": 17,
+          "reference_required_winner_incidences": 0
+        },
+        {
+          "state_scope": "original selected population states; fixed prototype/algebra/edge continuity reused from prior numerical audit",
+          "guard_frames": 380,
+          "guard_generate_token_incidences": 13030,
+          "guard_required_winner_incidences": 6,
+          "reference_frames": 17,
+          "reference_required_winner_incidences": 0
+        }
+      ]
+    },
+    {
+      "EOS_signed_incidence": -1,
+      "algebraic_direction": "negative",
+      "family": "unary",
+      "guard_signed_incidence": 0,
+      "key": 783,
+      "sharing": [
+        {
+          "state_scope": "unselected final candidate states",
+          "guard_frames": 380,
+          "guard_generate_token_incidences": 12961,
+          "guard_required_winner_incidences": 3,
+          "reference_frames": 17,
+          "reference_required_winner_incidences": 0
+        },
+        {
+          "state_scope": "original selected population states; fixed prototype/algebra/edge continuity reused from prior numerical audit",
+          "guard_frames": 380,
+          "guard_generate_token_incidences": 12961,
+          "guard_required_winner_incidences": 3,
+          "reference_frames": 17,
+          "reference_required_winner_incidences": 0
+        }
+      ]
+    },
+    {
+      "EOS_signed_incidence": 1,
+      "algebraic_direction": "positive",
+      "family": "unary",
+      "guard_signed_incidence": 0,
+      "key": 785,
+      "sharing": [
+        {
+          "state_scope": "unselected final candidate states",
+          "guard_frames": 380,
+          "guard_generate_token_incidences": 12981,
+          "guard_required_winner_incidences": 9,
+          "reference_frames": 17,
+          "reference_required_winner_incidences": 0
+        },
+        {
+          "state_scope": "original selected population states; fixed prototype/algebra/edge continuity reused from prior numerical audit",
+          "guard_frames": 380,
+          "guard_generate_token_incidences": 12985,
+          "guard_required_winner_incidences": 8,
+          "reference_frames": 17,
+          "reference_required_winner_incidences": 0
+        }
+      ]
+    },
+    {
+      "EOS_signed_incidence": 1,
+      "algebraic_direction": "positive",
+      "family": "unary",
+      "guard_signed_incidence": 0,
+      "key": 858,
+      "sharing": [
+        {
+          "state_scope": "unselected final candidate states",
+          "guard_frames": 380,
+          "guard_generate_token_incidences": 12963,
+          "guard_required_winner_incidences": 6,
+          "reference_frames": 17,
+          "reference_required_winner_incidences": 0
+        },
+        {
+          "state_scope": "original selected population states; fixed prototype/algebra/edge continuity reused from prior numerical audit",
+          "guard_frames": 380,
+          "guard_generate_token_incidences": 12963,
+          "guard_required_winner_incidences": 6,
+          "reference_frames": 17,
+          "reference_required_winner_incidences": 0
+        }
+      ]
+    },
+    {
+      "EOS_signed_incidence": -1,
+      "algebraic_direction": "negative",
+      "family": "ordered_pair",
+      "guard_signed_incidence": 0,
+      "key": 7888,
+      "sharing": [
+        {
+          "state_scope": "unselected final candidate states",
+          "guard_frames": 123,
+          "guard_generate_token_incidences": 123,
+          "guard_required_winner_incidences": 0,
+          "reference_frames": 5,
+          "reference_required_winner_incidences": 0
+        },
+        {
+          "state_scope": "original selected population states; fixed prototype/algebra/edge continuity reused from prior numerical audit",
+          "guard_frames": 124,
+          "guard_generate_token_incidences": 124,
+          "guard_required_winner_incidences": 0,
+          "reference_frames": 5,
+          "reference_required_winner_incidences": 0
+        }
+      ]
+    },
+    {
+      "EOS_signed_incidence": 1,
+      "algebraic_direction": "positive",
+      "family": "ordered_pair",
+      "guard_signed_incidence": 0,
+      "key": 11877,
+      "sharing": [
+        {
+          "state_scope": "unselected final candidate states",
+          "guard_frames": 115,
+          "guard_generate_token_incidences": 115,
+          "guard_required_winner_incidences": 0,
+          "reference_frames": 7,
+          "reference_required_winner_incidences": 0
+        },
+        {
+          "state_scope": "original selected population states; fixed prototype/algebra/edge continuity reused from prior numerical audit",
+          "guard_frames": 113,
+          "guard_generate_token_incidences": 113,
+          "guard_required_winner_incidences": 0,
+          "reference_frames": 6,
+          "reference_required_winner_incidences": 0
+        }
+      ]
+    },
+    {
+      "EOS_signed_incidence": 1,
+      "algebraic_direction": "positive",
+      "family": "ordered_pair",
+      "guard_signed_incidence": 0,
+      "key": 27179,
+      "sharing": [
+        {
+          "state_scope": "unselected final candidate states",
+          "guard_frames": 124,
+          "guard_generate_token_incidences": 124,
+          "guard_required_winner_incidences": 0,
+          "reference_frames": 7,
+          "reference_required_winner_incidences": 0
+        },
+        {
+          "state_scope": "original selected population states; fixed prototype/algebra/edge continuity reused from prior numerical audit",
+          "guard_frames": 126,
+          "guard_generate_token_incidences": 126,
+          "guard_required_winner_incidences": 0,
+          "reference_frames": 7,
+          "reference_required_winner_incidences": 0
+        }
+      ]
+    },
+    {
+      "EOS_signed_incidence": -1,
+      "algebraic_direction": "negative",
+      "family": "ordered_pair",
+      "guard_signed_incidence": 0,
+      "key": 27358,
+      "sharing": [
+        {
+          "state_scope": "unselected final candidate states",
+          "guard_frames": 98,
+          "guard_generate_token_incidences": 98,
+          "guard_required_winner_incidences": 0,
+          "reference_frames": 2,
+          "reference_required_winner_incidences": 0
+        },
+        {
+          "state_scope": "original selected population states; fixed prototype/algebra/edge continuity reused from prior numerical audit",
+          "guard_frames": 101,
+          "guard_generate_token_incidences": 101,
+          "guard_required_winner_incidences": 0,
+          "reference_frames": 2,
+          "reference_required_winner_incidences": 0
+        }
+      ]
+    },
+    {
+      "EOS_signed_incidence": -1,
+      "algebraic_direction": "negative",
+      "family": "ordered_pair",
+      "guard_signed_incidence": 0,
+      "key": 33432,
+      "sharing": [
+        {
+          "state_scope": "unselected final candidate states",
+          "guard_frames": 104,
+          "guard_generate_token_incidences": 105,
+          "guard_required_winner_incidences": 1,
+          "reference_frames": 5,
+          "reference_required_winner_incidences": 0
+        },
+        {
+          "state_scope": "original selected population states; fixed prototype/algebra/edge continuity reused from prior numerical audit",
+          "guard_frames": 104,
+          "guard_generate_token_incidences": 105,
+          "guard_required_winner_incidences": 1,
+          "reference_frames": 5,
+          "reference_required_winner_incidences": 0
+        }
+      ]
+    },
+    {
+      "EOS_signed_incidence": 1,
+      "algebraic_direction": "positive",
+      "family": "ordered_pair",
+      "guard_signed_incidence": 0,
+      "key": 36425,
+      "sharing": [
+        {
+          "state_scope": "unselected final candidate states",
+          "guard_frames": 91,
+          "guard_generate_token_incidences": 92,
+          "guard_required_winner_incidences": 0,
+          "reference_frames": 2,
+          "reference_required_winner_incidences": 0
+        },
+        {
+          "state_scope": "original selected population states; fixed prototype/algebra/edge continuity reused from prior numerical audit",
+          "guard_frames": 89,
+          "guard_generate_token_incidences": 90,
+          "guard_required_winner_incidences": 0,
+          "reference_frames": 2,
+          "reference_required_winner_incidences": 0
+        }
+      ]
+    },
+    {
+      "EOS_signed_incidence": -1,
+      "algebraic_direction": "negative",
+      "family": "ordered_pair",
+      "guard_signed_incidence": 0,
+      "key": 51817,
+      "sharing": [
+        {
+          "state_scope": "unselected final candidate states",
+          "guard_frames": 116,
+          "guard_generate_token_incidences": 116,
+          "guard_required_winner_incidences": 0,
+          "reference_frames": 4,
+          "reference_required_winner_incidences": 0
+        },
+        {
+          "state_scope": "original selected population states; fixed prototype/algebra/edge continuity reused from prior numerical audit",
+          "guard_frames": 117,
+          "guard_generate_token_incidences": 117,
+          "guard_required_winner_incidences": 0,
+          "reference_frames": 4,
+          "reference_required_winner_incidences": 0
+        }
+      ]
+    },
+    {
+      "EOS_signed_incidence": 1,
+      "algebraic_direction": "positive",
+      "family": "ordered_pair",
+      "guard_signed_incidence": 0,
+      "key": 51978,
+      "sharing": [
+        {
+          "state_scope": "unselected final candidate states",
+          "guard_frames": 111,
+          "guard_generate_token_incidences": 111,
+          "guard_required_winner_incidences": 0,
+          "reference_frames": 6,
+          "reference_required_winner_incidences": 0
+        },
+        {
+          "state_scope": "original selected population states; fixed prototype/algebra/edge continuity reused from prior numerical audit",
+          "guard_frames": 110,
+          "guard_generate_token_incidences": 110,
+          "guard_required_winner_incidences": 0,
+          "reference_frames": 5,
+          "reference_required_winner_incidences": 0
+        }
+      ]
+    }
+  ],
+  "final_residual_distinctions": [
+    {
+      "position": 7,
+      "unary_lanes": 8,
+      "ordered_pair_edges": 4
+    },
+    {
+      "position": 8,
+      "unary_lanes": 8,
+      "ordered_pair_edges": 4
+    },
+    {
+      "position": 9,
+      "unary_lanes": 8,
+      "ordered_pair_edges": 4
+    },
+    {
+      "position": 10,
+      "unary_lanes": 8,
+      "ordered_pair_edges": 4
+    },
+    {
+      "position": 13,
+      "unary_lanes": 8,
+      "ordered_pair_edges": 4
+    },
+    {
+      "position": 14,
+      "unary_lanes": 8,
+      "ordered_pair_edges": 4
+    }
+  ],
+  "attempt_scientific_content_equality": "PASS excluding elapsed_seconds and output path only",
+  "unbuffered_seconds": 308.771432667,
+  "buffered_seconds": 9.033442125,
+  "buffered_peak_rss_bytes": 851394560,
+  "scope": "Incidence and saved bridge transport; no new Generate scores, pool reductions, parameter proposals, gradients, model steps or whole-answer qualification."
+}

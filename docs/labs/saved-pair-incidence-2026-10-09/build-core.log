@@ -1,0 +1,107 @@
+   Compiling proc-macro2 v1.0.106
+   Compiling quote v1.0.46
+   Compiling unicode-ident v1.0.24
+   Compiling version_check v0.9.5
+   Compiling generic-array v0.14.7
+   Compiling syn v2.0.119
+   Compiling libc v0.2.186
+   Compiling cfg-if v1.0.4
+   Compiling find-msvc-tools v0.1.9
+   Compiling typenum v1.20.1
+   Compiling libm v0.2.16
+   Compiling shlex v2.0.1
+   Compiling cc v1.2.67
+   Compiling serde_core v1.0.228
+   Compiling blake3 v1.5.0
+   Compiling cpufeatures v0.2.17
+   Compiling crypto-common v0.1.7
+   Compiling block-buffer v0.10.4
+   Compiling constant_time_eq v0.3.1
+   Compiling serde v1.0.228
+   Compiling arrayvec v0.7.8
+   Compiling arrayref v0.3.9 (/Users/casey.allard/.codex/worktrees/saved-pair-incidence/uor-r4/third_party/arrayref)
+   Compiling digest v0.10.7
+   Compiling uor-foundation v0.5.2 (https://github.com/UOR-Foundation/UOR-Framework.git?rev=51c01382200b0179d6640b07e9c8119364ab69a1#51c01382)
+   Compiling serde_derive v1.0.228
+   Compiling uor-foundation-sdk v0.5.2 (https://github.com/UOR-Foundation/UOR-Framework.git?rev=51c01382200b0179d6640b07e9c8119364ab69a1#51c01382)
+   Compiling syn v3.0.3
+   Compiling crossbeam-utils v0.8.22
+   Compiling bytemuck_derive v1.12.0
+   Compiling zmij v1.0.23
+   Compiling crossbeam-epoch v0.9.20
+   Compiling bytemuck v1.25.2
+   Compiling sha2 v0.10.9
+   Compiling keccak v0.1.6
+   Compiling serde_json v1.0.150
+   Compiling crossbeam-deque v0.8.7
+   Compiling sha3 v0.10.9
+   Compiling uor-matmul-core v0.1.0 (https://github.com/UOR-Foundation/uor-matmul.git?rev=b13c98449948174f590e337c4dc25dfc394a07d0#b13c9844)
+   Compiling uor-prism-numerics v0.4.0
+   Compiling zerocopy v0.8.55
+   Compiling memchr v2.8.3
+   Compiling rayon-core v1.13.0
+   Compiling itoa v1.0.18
+   Compiling uor-prism-tensor v0.4.0
+   Compiling uor-prism-crypto v0.4.0
+   Compiling uor-prism-fhe v0.4.0
+   Compiling zerocopy-derive v0.8.55
+   Compiling uor-prism v0.4.0
+   Compiling uor-matmul-kernels v0.1.0 (https://github.com/UOR-Foundation/uor-matmul.git?rev=b13c98449948174f590e337c4dc25dfc394a07d0#b13c9844)
+   Compiling uor-matmul-codec v0.1.0 (https://github.com/UOR-Foundation/uor-matmul.git?rev=b13c98449948174f590e337c4dc25dfc394a07d0#b13c9844)
+   Compiling ryu v1.0.23
+   Compiling either v1.16.0
+   Compiling rayon v1.12.0
+   Compiling uor-addr v0.2.0 (https://github.com/UOR-Foundation/uor-addr.git?rev=165b51e3e2113ee5d032730cde709335d4fe9b60#165b51e3)
+   Compiling uor-matmul-gemm v0.1.0 (https://github.com/UOR-Foundation/uor-matmul.git?rev=b13c98449948174f590e337c4dc25dfc394a07d0#b13c9844)
+   Compiling half v2.7.1
+   Compiling hex v0.4.3
+   Compiling once_cell v1.21.4
+   Compiling ciborium-io v0.2.2
+   Compiling ciborium-ll v0.2.2
+   Compiling tracing-core v0.1.36
+   Compiling uor-matmul v0.1.0 (https://github.com/UOR-Foundation/uor-matmul.git?rev=b13c98449948174f590e337c4dc25dfc394a07d0#b13c9844)
+   Compiling uor-r4-graph-format v0.1.0 (/Users/casey.allard/.codex/worktrees/saved-pair-incidence/uor-r4/crates/uor-r4-graph-format)
+   Compiling safetensors v0.6.2
+   Compiling uor-r4-tokenizer v0.1.0 (/Users/casey.allard/.codex/worktrees/saved-pair-incidence/uor-r4/crates/uor-r4-tokenizer)
+   Compiling pin-project-lite v0.2.17
+   Compiling tracing v0.1.44
+   Compiling uor-r4-integer v0.1.0 (/Users/casey.allard/.codex/worktrees/saved-pair-incidence/uor-r4/crates/uor-r4-integer)
+warning: method `score_source_cue` is never used
+   --> crates/uor-r4-integer/src/geometric_cue_carrier.rs:389:19
+    |
+280 | impl<'a> NativeCueCarrier<'a> {
+    | ----------------------------- method in this implementation
+...
+389 |     pub(crate) fn score_source_cue(
+    |                   ^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+   Compiling uor-r4-model-source v0.1.0 (/Users/casey.allard/.codex/worktrees/saved-pair-incidence/uor-r4/crates/uor-r4-model-source)
+warning: `uor-r4-integer` (lib) generated 1 warning
+   Compiling uor-r4-graph-runtime v0.1.0 (/Users/casey.allard/.codex/worktrees/saved-pair-incidence/uor-r4/crates/uor-r4-graph-runtime)
+   Compiling ciborium v0.2.2
+   Compiling memmap2 v0.9.11
+   Compiling uor-r4-core v0.1.0 (/Users/casey.allard/.codex/worktrees/saved-pair-incidence/uor-r4/crates/uor-r4-core)
+warning: method `position` is never used
+   --> crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs:175:8
+    |
+168 | impl ObservedSpan {
+    | ----------------- method in this implementation
+...
+175 |     fn position(&self) -> (u32, u32, usize) {
+    |        ^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `example` is never used
+    --> crates/uor-r4-core/src/native_geometric/learner/transferable_lexical.rs:1590:8
+     |
+1405 | impl TlTrainer {
+     | -------------- method in this implementation
+...
+1590 |     fn example(&self, q: &TlQuant, ex: &TlExample) -> TlGrads {
+     |        ^^^^^^^
+
+warning: `uor-r4-core` (lib) generated 2 warnings
+    Finished `release` profile [optimized] target(s) in 5m 07s

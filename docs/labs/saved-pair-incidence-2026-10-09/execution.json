@@ -1,0 +1,10 @@
+{
+  "source_sha256": "bc24d467eef6a4714bc7404715ed1cb3d45d480d4d7467a5e8cdb9912490665a",
+  "binary_sha256": "e05b0deb8d432619fade1273d4e4094cd787a065e4e60f129332697fb3048985",
+  "base_commit": "178d988f3131b8dfd88350a4b999f084a585f77b",
+  "tests": 4,
+  "build": "PASS release offline locked",
+  "format": "PASS named rustfmt",
+  "native_claim_seal_verify": "PASS both attempts",
+  "new_pods": 0
+}

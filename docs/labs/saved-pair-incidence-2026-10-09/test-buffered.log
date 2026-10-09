@@ -1,0 +1,63 @@
+warning: method `score_source_cue` is never used
+   --> crates/uor-r4-integer/src/geometric_cue_carrier.rs:389:19
+    |
+280 | impl<'a> NativeCueCarrier<'a> {
+    | ----------------------------- method in this implementation
+...
+389 |     pub(crate) fn score_source_cue(
+    |                   ^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `uor-r4-integer` (lib) generated 1 warning
+warning: method `position` is never used
+   --> crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs:175:8
+    |
+168 | impl ObservedSpan {
+    | ----------------- method in this implementation
+...
+175 |     fn position(&self) -> (u32, u32, usize) {
+    |        ^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `example` is never used
+    --> crates/uor-r4-core/src/native_geometric/learner/transferable_lexical.rs:1590:8
+     |
+1405 | impl TlTrainer {
+     | -------------- method in this implementation
+...
+1590 |     fn example(&self, q: &TlQuant, ex: &TlExample) -> TlGrads {
+     |        ^^^^^^^
+
+warning: `uor-r4-core` (lib) generated 2 warnings
+   Compiling uor-r4-core v0.1.0 (/Users/casey.allard/.codex/worktrees/saved-pair-incidence/uor-r4/crates/uor-r4-core)
+    Finished `release` profile [optimized] target(s) in 2.40s
+     Running unittests examples/native-saved-pair-incidence.rs (/Users/casey.allard/uor-r4-local/workspace/research/codex-pair-incidence-20261009/target/release/examples/native_saved_pair_incidence-53191be6075d71b8)
+
+running 4 tests
+test tests::committed_donor_change_has_exact_reverse_and_shape_guard ... ok
+test tests::invalid_h4_is_rejected ... ok
+test tests::staged_prefix_and_generate_incumbents_are_distinct ... ok
+test tests::rejected_prefix_does_not_reverse_history ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+        2.60 real         1.14 user         0.45 sys
+           204324864  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+               31213  page reclaims
+                7235  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   3  signals received
+                1771  voluntary context switches
+               10012  involuntary context switches
+          1466150004  instructions retired
+           655509189  cycles elapsed
+            55575224  peak memory footprint

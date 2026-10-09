@@ -1,0 +1,11 @@
+{
+  "status": "PASS",
+  "revision": "fb1a0509de6a574def9472c5e33d4530f569a5b9",
+  "prefix": "codex/sol-coupled-episode-learning/outcome-export-attempt3",
+  "archive_sha256": "c50ca2d93f98b600ed1a028352cd156a66356e6fdd437ec1ea7cb5d5ad6fa3fe",
+  "identity_sha256": "27217f74eec1b1c531a65adb737304b2d3c36a5277a1bf41506645bf293ec1cd",
+  "complete_file_set": true,
+  "verified_files": 578,
+  "bytes": 323009746,
+  "first_extraction_attempt": "Local Python lacked filter keyword; failed before extracting any file; recovered using exclusive regular-file writes and per-member path/set/size/SHA validation."
+}

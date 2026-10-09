@@ -1,0 +1,9 @@
+{
+  "attempt": "0001",
+  "source_sha256": "2a1a5713f0a275eceaf7c9f687f3e79183c17ae438e787707c6d783a8fc068b8",
+  "binary_sha256": "5519113d673f79a563152b8f05ae4edb764b5bc41a76a656616e241d6b553fed",
+  "base_commit": "178d988f3131b8dfd88350a4b999f084a585f77b",
+  "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+  "diagnosis": "One-second sample shows JSON from_reader(File) issuing bytewise File reads. Healthy run is allowed to complete. Final tool buffers JSON input; a fresh attempt will check exact scientific-content equality, excluding elapsed time and output path.",
+  "profile_sha256": "21a01aeb873f0af97fe8320b9d6dd722eec1cc41e9788e684c6f417ce40aac3b"
+}
