@@ -318,14 +318,124 @@ passed it), but it does not by itself explain the failures, and it must not be r
 **Criterion 1 remains NOT MET and 43/232 is unchanged.** This makes the instrument express
 discrimination rather than only presence. It does not move the criterion.
 
+## The `clarify` kind: measuring a behaviour the model does not have (target, not scoreboard)
+
+The first piece measured that a `question`-kind clarify check **would be passed by the canned greeting
+on all 67 ill-posed rows**, and so kept `abstain_exact` instead. The question this piece answers is
+whether a check can require the right behaviour — *asking for the thing that is missing* — rather
+than merely asking.
+
+### The measurement, before the kind
+
+Two independent readings of the same sealed 29M replies, on two different denominators, agree.
+
+**Every reply in the panel flagged as asking a question** (the Lead's reading, from
+`verdicts-29m.tsv`), only **two of which are ill-posed at all**:
+
+| row | ill-posed? | reply | what it does |
+|---|---|---|---|
+| `follow-02` | no | "Could you tell me more about what you mean?" | generic, names nothing |
+| `follow-03` | no | "What type of boat are you interested in?" | **invents** a specific |
+| `heldout-029` | no | "What type of art are you interested in?" | invents |
+| `heldout-088` | no | "What type of camping trip are you in the mood for?" | invents |
+| `heldout-107` | **yes** | "What specific area of information do you need?" | generic; what is missing is the **text to edit**, unnamed |
+| `heldout-119` | no | parrots the request back | **not a clarify at all** |
+| `heldout-189` | **yes** | "Hello! How can I help you today?" | **the canned greeting** |
+| `heldout-193` | no | "What's on your mind?" | generic |
+
+**The 8 ill-posed rows whose reply asks a question** (this piece's reading, from
+`heldout-ill-posed-v3-ids.txt`): **five of the eight are the canned greeting verbatim**
+(`heldout-006/009/019/102/131`, all bare salutations), and the other three are `heldout-107`
+("What specific area of information do you need?"), `heldout-118` ("Which one do you mean?") and
+`heldout-189` (the greeting). **Zero of the eight name the missing material.**
+
+Three findings, and they are the reason the kind is built as a target:
+
+1. **The `question` flag is noisy** — `heldout-119` is a restatement, not a question, so the flag
+   over-counts clarify behaviour. It cannot be the basis of a kind.
+2. **The behaviour is essentially absent.** Zero of the 67 ill-posed rows demonstrate it. The five
+   "asking" rows that look like partial success are the canned attractor again.
+3. **The trap is confirmed on a live row.** `heldout-189` *is* `Hello! How can I help you today?`,
+   sitting on an ill-posed row and flagged as asking a question. A `question`-kind check would pass
+   the most-memorised string in the panel exactly where it must fail. That is no longer hypothetical.
+
+**What the 27 fabricated-specific replies do** — the failure mode the model actually exhibits:
+
+| what they invent | rows |
+|---|---:|
+| invent a **capitalised name** the request never gave (`heldout-105` invents "the capital of China" for a passage that was never supplied) | 15 |
+| invent a **value for a `[placeholder]`** (`heldout-015`: "The weather in [city] is quite pleasant") | 4 |
+| **echo a `[placeholder]` verbatim** (`heldout-013`, `heldout-049`) | 4 |
+| invent a **number** (`heldout-038`: "The total number of sales is 1, 2, 3, 4, 5, and 6.") | 4 |
+
+So the distinction the Lead asked about is real and deterministic: *asked for the missing thing* vs
+*invented a specific*. The negative half already exists — `abstain_exact`'s built-in
+`fabricated_specifics` rule catches exactly these 27.
+
+### The kind
+
+**`CheckKind::Clarify`**, at the same six sites as `reply_exact`. It passes only when the reply
+**asks a question AND contains a row-specific phrase naming the missing material** ("which city",
+"which text", "which words"), and contains none of the row's forbidden terms or keys. A bare question
+cannot pass, because the phrase is row-specific and the request does not contain it.
+
+**27 of the 67 ill-posed rows got a key** — the rows whose missing material has a name. The other 40
+keep `abstain_exact`, **not replaced**: for a bare salutation ("Hi Dr. Smith,"), a bare fragment or a
+constraint-only stub there is nothing to name, and inventing a phrasing key for them would be
+loosening the key rather than measuring the behaviour.
+
+A defect the focused test caught and the parser now refuses: a clarify term that is also a forbidden
+term or a key would make the check unsatisfiable, so `parse_checks` rejects it.
+
+### The controls that must fail — and they do
+
+Run by the grader's own `RowCheck::passes` through `chat-grade check constants=`, against all 88
+checks, with `check_panel` pass:
+
+| control | why it is the control | result |
+|---|---|---|
+| `Hello! How can I help you today?` | **the live risk**: it is the sealed reply on ill-posed row `heldout-189` | **0 of 88** |
+| `Could you clarify?` | a bare generic question | **0 of 88** |
+| `?` | an empty question mark with no content | **0 of 88** |
+| `What type of boat are you interested in?` | **invents** a specific the request never contained — the sealed reply on `follow-03` | **0 of 88** |
+| the 13 observed memorised strings (`reply-panel-canned.txt`) | the original control arm | **0 of 88** |
+
+**If a bare generic question had passed, the kind was not ready.** None passed, and nothing was
+loosened to make that true: the key is a phrase the request does not contain, so it cannot be
+satisfied by asking in general.
+
+### The reading, and why this is a target and not a scoreboard
+
+| population | checked | `check_pass` |
+|---|---:|---:|
+| content rows, `any` | 16 | 1 |
+| content rows, `reply_exact` | 5 | 1 |
+| **ill-posed rows, `clarify`** | **27** | **0** |
+| ill-posed rows, `abstain_exact` | 40 | 0 |
+| **total** | **88** | **2** |
+
+Only **1 of the 27** clarify-row replies even asks a question, and it does not name the missing
+material. **The `clarify` kind scores zero — and that is the intended reading, because the behaviour
+is absent today.** Building the kind does not raise the score; it **creates the ability to measure a
+behaviour the model does not have**. It is a target, not a scoreboard, and it must not be described
+as coverage won or as rows that might now pass.
+
+**Criterion 1 remains NOT MET and 43/232 is unchanged.** 27 previously unscorable rows are now
+scorable and all 27 fail: a larger instrument, the same model.
+
 ## Next
 
-Build the additive **clarify** kind for the 67 ill-posed rows — "the reply asks for the missing
-material AND is not a canned reply", which the first piece measured as unsafe with the existing
-grammar because a `question`-kind check is passed by the canned greeting on all 67 rows. `reply_exact`
-now supplies the machinery it needs (required terms, forbidden distractors, keys, no recall
-precondition); what it still cannot say is "asks a question", so the clarify kind needs a required
-question form plus the same `forbid`/`keys` exclusions. Then restate criterion 1's reply half as a
-deterministic sub-reading over the checked rows, reported per kind and per category with the failures
-named, and **do not gate the open-ended 62.1 % on a judge.** Criterion 1 remains **NOT MET** and
-43/232 is unchanged: this is a new instrument, not a met milestone.
+**The measured target is now "an ill-posed request answered by asking for the missing material", and
+the score is 0 of 27.** Two things follow, in this order. **First, the model side:** this is the first
+deterministic, diagnosable target in this line whose correct behaviour is absent rather than merely
+rare, so a bounded intervention can now be scored against it — 27 rows, a fixed key list, and a
+control arm that already proves the canned greeting cannot pass. **Second, the instrument side:** the
+40 ill-posed rows with no nameable missing material still need a criterion — the honest options are a
+clarify variant keyed on the *request form* ("what would you like me to do") for the bare salutations,
+with a control proving a canned greeting cannot pass it, or leaving those rows unscored. Do not
+replace `abstain_exact` on them with an unproven positive check.
+
+Then restate criterion 1's reply half as a deterministic sub-reading over the checked rows, reported
+per kind and per category with the failures named, and **do not gate the open-ended 62.1 % on a
+judge.** Criterion 1 remains **NOT MET** and 43/232 is unchanged: this is a new instrument, not a met
+milestone.

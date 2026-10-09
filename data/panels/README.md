@@ -191,9 +191,10 @@ aside. These files add the deterministic component over the rows where a judge-f
 
 | file | contents |
 |---|---|
-| `reply-panel-checks.tsv` | eighty-eight row checks: kind `any` on 16 content rows (row-specific required content), kind `reply_exact` on 5 of them (required content **and** forbidden distractors, on a single-turn row), and kind `abstain_exact` on 67 rows from the recorded ill-posed id list |
+| `reply-panel-checks.tsv` | eighty-eight row checks: kind `any` on 16 content rows (row-specific required content), `reply_exact` on 5 of them (required content **and** forbidden distractors, on a single-turn row), `clarify` on 27 of the recorded ill-posed rows (a question that **names the missing material**), and `abstain_exact` on the rest |
 | `reply-panel-checks-provenance.tsv` | one provenance row per check: the anchor, its source, and why it is not answerable from the request |
 | `reply-panel-canned.txt` | 13 observed memorised replies, the input to the canned-reply control (`chat-grade check constants=`) |
+| `reply-panel-controls.txt` | 4 adversarial controls that must fail: the canned greeting, "Could you clarify?", a bare "?", and a reply that invents a specific |
 
 **Coverage is the point: eighty-eight of the 232 rows (37.9 %) are exactly determinable; the other 144 are
 open-ended requests with no expected content, so no deterministic check exists for them.** The
@@ -207,6 +208,11 @@ The panel's requests are unchanged; these files add checks over them.
 `reply_exact` is `exact`'s matching rule without the recall precondition, added at #2029 so a
 single-turn row can carry all three components. It changes no existing kind's behaviour, and the
 canned-reply control still reports zero passes over the eighty-eight checks.
+
+
+`clarify` is the newest kind: it passes only when the reply **asks a question AND names the missing
+material** ("which city", "which text"), so a bare question cannot pass. All four adversarial controls
+and all thirteen memorised strings score zero against the eighty-eight checks.
 
 ## Tiered eval v2: panel `conversational-v3*` and the missing-material K split
 

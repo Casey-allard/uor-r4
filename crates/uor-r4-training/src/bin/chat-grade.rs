@@ -674,6 +674,13 @@ enum CheckKind {
     /// required content and not the wrong one" — presence *and* discrimination
     /// on a row whose request states neither.
     ReplyExact(Vec<Vec<String>>),
+    /// A clarification of an ill-posed request: the reply asks a question
+    /// **about the material the request refers to but does not contain**, named
+    /// by a row-specific phrase (`which city`, `what text`, `which words`).
+    /// Asking a question is not enough — that would make a canned greeting pass
+    /// every ill-posed row — and naming the missing material is the whole
+    /// behaviour, so the terms are required and the reply must also ask.
+    Clarify(Vec<Vec<String>>),
     /// Abstention without a fabricated specific or agreement (panel v3
     /// unknowable rows): see [`abstention_fault`]; additionally none of the
     /// row's forbidden words (the answer class of the question, e.g. colours
@@ -690,6 +697,7 @@ impl CheckKind {
             CheckKind::Question => "question",
             CheckKind::Exact(_) => "exact",
             CheckKind::ReplyExact(_) => "reply_exact",
+            CheckKind::Clarify(_) => "clarify",
             CheckKind::AbstainExact => "abstain_exact",
         }
     }
@@ -942,6 +950,12 @@ impl RowCheck {
                     && !self.keys.iter().any(|t| contains_phrase(&reply_words, t))
                     && terms.iter().any(|t| contains_phrase(&reply_words, t))
             }
+            CheckKind::Clarify(terms) => {
+                reply.contains('?')
+                    && !forbidden
+                    && !self.keys.iter().any(|t| contains_phrase(&reply_words, t))
+                    && terms.iter().any(|t| contains_phrase(&reply_words, t))
+            }
             CheckKind::AbstainExact => !forbidden && abstention_fault(users, reply).is_none(),
         }
     }
@@ -1006,6 +1020,7 @@ fn parse_checks(text: &str) -> Result<BTreeMap<String, RowCheck>, Error> {
             ("any", terms) => CheckKind::Any(term_list(terms)?),
             ("exact", terms) if terms != "-" => CheckKind::Exact(term_list(terms)?),
             ("reply_exact", terms) if terms != "-" => CheckKind::ReplyExact(term_list(terms)?),
+            ("clarify", terms) if terms != "-" => CheckKind::Clarify(term_list(terms)?),
             ("abstain", "-") => CheckKind::Abstain,
             ("abstain_exact", "-") => CheckKind::AbstainExact,
             ("question", "-") => CheckKind::Question,
@@ -1017,9 +1032,13 @@ fn parse_checks(text: &str) -> Result<BTreeMap<String, RowCheck>, Error> {
         };
         let forbid = match (&kind, forbid) {
             (_, "-") => Vec::new(),
-            (CheckKind::Exact(_) | CheckKind::ReplyExact(_) | CheckKind::AbstainExact, forbid) => {
-                term_list(forbid)?
-            }
+            (
+                CheckKind::Exact(_)
+                | CheckKind::ReplyExact(_)
+                | CheckKind::AbstainExact
+                | CheckKind::Clarify(_),
+                forbid,
+            ) => term_list(forbid)?,
             _ => {
                 return Err(format!(
                     "checks line {}: this kind takes no forbidden terms",
@@ -1030,7 +1049,9 @@ fn parse_checks(text: &str) -> Result<BTreeMap<String, RowCheck>, Error> {
         };
         let keys = match (&kind, keys) {
             (_, "-") => Vec::new(),
-            (CheckKind::Exact(_) | CheckKind::ReplyExact(_), keys) => term_list(keys)?,
+            (CheckKind::Exact(_) | CheckKind::ReplyExact(_) | CheckKind::Clarify(_), keys) => {
+                term_list(keys)?
+            }
             _ => {
                 return Err(format!(
                     "checks line {}: only exact and reply_exact take distractor keys",
@@ -1058,6 +1079,22 @@ fn parse_checks(text: &str) -> Result<BTreeMap<String, RowCheck>, Error> {
             if let Some(t) = terms.iter().find(|t| forbid.contains(t)) {
                 return Err(format!(
                     "checks line {}: '{}' is both expected and forbidden",
+                    number + 1,
+                    t.join(" ")
+                )
+                .into());
+            }
+        }
+        if let CheckKind::Clarify(terms) = &kind {
+            // A clarify row needs no distractor (asking about the missing material
+            // is the whole behaviour), but a term that is also forbidden or a key
+            // would make the check unsatisfiable, so both are refused.
+            if let Some(t) = terms
+                .iter()
+                .find(|t| forbid.contains(t) || keys.contains(t))
+            {
+                return Err(format!(
+                    "checks line {}: '{}' is both a clarify term and excluded",
                     number + 1,
                     t.join(" ")
                 )
@@ -1265,6 +1302,32 @@ fn validate_checks(checks: &Checks, requests: &[Request]) -> Result<Vec<String>,
                         request.id
                     )
                     .into());
+                }
+            }
+            CheckKind::Clarify(terms) => {
+                // Same rule as `any` for the terms — a phrase the request already
+                // contains is not the model's own work — plus the same distractor
+                // exclusions as `reply_exact`. The kind's whole content is that the
+                // reply ASKS about the missing material, which is why the question
+                // mark is required at evaluation and never here.
+                if let Some(t) = any_in(terms, last) {
+                    return Err(format!(
+                        "row {}: clarify term '{t}' is in the last user turn",
+                        request.id
+                    )
+                    .into());
+                }
+                if let Some(t) = any_in(&check.forbid, &turns) {
+                    return Err(format!(
+                        "row {}: clarify forbidden word '{t}' is in a user turn",
+                        request.id
+                    )
+                    .into());
+                }
+                if let Some(t) = any_in(&check.keys, &turns) {
+                    return Err(
+                        format!("row {}: clarify key '{t}' is in a user turn", request.id).into(),
+                    );
                 }
             }
             CheckKind::Abstain | CheckKind::Question => {
@@ -4086,6 +4149,87 @@ mod tests {
         assert!(validate_checks(&checks, &[single("r1", "Is it honey?")]).is_err());
         assert!(validate_checks(&checks, &[single("r1", "Vinegar?")]).is_err());
         assert!(validate_checks(&checks, &[single("r1", "A wasp?")]).is_err());
+    }
+
+    #[test]
+    fn clarify_requires_a_question_that_names_the_missing_material() {
+        // The risk this kind exists to avoid, measured on the live panel: a bare
+        // question is not a clarify, and "Hello! How can I help you today?" is the
+        // actual reply on ill-posed row heldout-189.
+        let checks = Checks {
+            rows: parse_checks(
+                "c1\tclarify\tnone\twhich city\t-\t-\n\
+                 c2\tclarify\tnone\twhich text\t-\t-\n\
+                 c3\tclarify\tnone\twhich words\tswear\t-\n",
+            )
+            .unwrap(),
+            source: json!("test"),
+        };
+        assert_eq!(
+            checks.of_reply("c1", "Which city are you visiting?"),
+            Some(true)
+        );
+        assert_eq!(
+            checks.of_reply("c1", "Could you tell me which city you mean?"),
+            Some(true)
+        );
+        // The four controls that must fail, the first two on every row.
+        for id in ["c1", "c2", "c3"] {
+            assert_eq!(
+                checks.of_reply(id, "Hello! How can I help you today?"),
+                Some(false)
+            );
+            assert_eq!(checks.of_reply(id, "Could you clarify?"), Some(false));
+            assert_eq!(checks.of_reply(id, "?"), Some(false));
+        }
+        // Inventing a specific the request never contained is the failure mode the
+        // model actually exhibits; a statement is not a clarify either.
+        assert_eq!(
+            checks.of_reply("c1", "The weather in Paris is pleasant today."),
+            Some(false)
+        );
+        assert_eq!(checks.of_reply("c1", "Which city you mean."), Some(false));
+        // The reply must name the missing material AND add nothing forbidden.
+        assert_eq!(
+            checks.of_reply("c3", "Which words, the swear words?"),
+            Some(false)
+        );
+        assert_eq!(
+            checks.of_reply("c3", "Which words should I avoid?"),
+            Some(true)
+        );
+        // A clarify check needs terms, takes forbid and keys, and refuses a phrase
+        // the request already contains.
+        assert!(parse_checks("c\tclarify\tnone\t-\t-\t-\n").is_err());
+        assert!(parse_checks("c\tclarify\tnone\twhich city\twhich city\n").is_err());
+        let single = |id: &str, turn: &str| Request {
+            id: id.into(),
+            category: "heldout_first_turn".into(),
+            user_turns: vec![turn.to_owned()],
+        };
+        assert!(validate_checks(
+            &checks,
+            &[single(
+                "c1",
+                "What are some popular tourist attractions in [city]?"
+            )]
+        )
+        .is_ok());
+        // The same row as `exact` is refused: exact needs a recall row.
+        let exact = Checks {
+            rows: parse_checks("c1\texact\tnone\twhich city\twhich town\n").unwrap(),
+            source: json!("test"),
+        };
+        assert!(validate_checks(
+            &exact,
+            &[single(
+                "c1",
+                "What are some popular tourist attractions in [city]?"
+            )]
+        )
+        .is_err());
+        // A clarify phrase the request already contains is not the model's work.
+        assert!(validate_checks(&checks, &[single("c1", "Which city are you in?")]).is_err());
     }
 
     #[test]

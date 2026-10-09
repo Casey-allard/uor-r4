@@ -101,6 +101,39 @@ CONTENT_DISTRACTORS = {
                     "why": "cout, System.out and console.log are C++, Java and JavaScript, not C"},
 }
 
+# CLARIFY keys for the ill-posed rows whose missing material has a NAME, as a question phrase the
+# request does not itself contain ("Which city are you visiting?"). Asking a question is not enough:
+# `Hello! How can I help you today?` is a question, and on `heldout-189` it is the reply to an
+# ill-posed row, so a bare question check would pass the most-memorised string in the panel exactly
+# where it must fail. The phrase names the missing material, so no single generic string passes more
+# than the rows whose missing material it happens to name.
+#
+# Rows NOT listed here have no nameable missing material - bare salutations ("Hi Dr. Smith,"), bare
+# fragments and constraint-only stubs - so only a phrasing key could be invented for them, which
+# would be loosening the key rather than measuring the behaviour. They keep `abstain_exact`.
+CLARIFY_KEYS = {
+    "heldout-001": "which recipe", "heldout-002": "which words", "heldout-012": "which query",
+    "heldout-013": "which city", "heldout-015": "which city", "heldout-037": "which article",
+    "heldout-038": "which figures", "heldout-039": "which passage", "heldout-049": "which city",
+    "heldout-051": "which query", "heldout-063": "which code", "heldout-067": "which passage",
+    "heldout-073": "which description", "heldout-079": "which text", "heldout-080": "which beverage",
+    "heldout-085": "which sport", "heldout-086": "which region", "heldout-095": "which code",
+    "heldout-107": "which text", "heldout-117": "which words", "heldout-144": "which words",
+    "heldout-147": "which argument", "heldout-154": "which text", "heldout-162": "which supplies",
+    "heldout-182": "which event", "heldout-190": "which introduction", "heldout-191": "which essay",
+}
+
+# ADVERSARIAL CONTROLS: strings that must FAIL every check. The first is the live risk the
+# measurement proved (it is the actual sealed reply on ill-posed row heldout-189); the second and
+# third are degenerate clarify attempts; the fourth invents a specific the request never contained,
+# which is the failure mode the model actually exhibits (the sealed reply on follow-03).
+ADVERSARIAL_CONTROLS = [
+    "Hello! How can I help you today?",
+    "Could you clarify?",
+    "?",
+    "What type of boat are you interested in?",
+]
+
 CANNED = [
     "Hello! How can I help you today?",
     "I'm good, thanks for asking.",
@@ -155,14 +188,27 @@ def main():
         row = by_id[row_id]
         last = words(row["user_turns"][-1])
         if row_id in ill_posed:
-            checks.append((row_id, "abstain_exact", "none", "-", "-", "-"))
-            provenance.append({
-                "id": row_id, "kind": "abstain_exact", "anchor": "-",
-                "source": "data/panels/heldout-ill-posed-v3-ids.txt",
-                "why": "the request's text does not contain the material it refers to "
-                       "(chat-grade's missing_material rule); the check requires an abstention "
-                       "and rejects a fabricated specific",
-            })
+            key = CLARIFY_KEYS.get(row_id)
+            if key:
+                checks.append((row_id, "clarify", "none", key, "-", "-"))
+                provenance.append({
+                    "id": row_id, "kind": "clarify", "anchor": key,
+                    "source": "authored from the request's missing material in "
+                              "scripts/reply_panel_checks_build.py CLARIFY_KEYS",
+                    "why": "the reply must ASK a question that NAMES the missing material; a bare "
+                           "question cannot pass, because the phrase is row-specific and the "
+                           "request does not contain it",
+                })
+            else:
+                checks.append((row_id, "abstain_exact", "none", "-", "-", "-"))
+                provenance.append({
+                    "id": row_id, "kind": "abstain_exact", "anchor": "-",
+                    "source": "data/panels/heldout-ill-posed-v3-ids.txt",
+                    "why": "the request's text does not contain the material it refers to "
+                           "(chat-grade's missing_material rule); the check requires an abstention "
+                           "and rejects a fabricated specific. No clarify key: this row's missing "
+                           "material has no name, so only an invented phrasing key would fit",
+                })
             continue
         anchors = CONTENT_ANCHORS.get(row_id)
         if not anchors:
@@ -262,6 +308,8 @@ def main():
                          + "\n")
     with open(args.out_canned, "w") as handle:
         handle.write("\n".join(CANNED) + "\n")
+    with open(os.path.join(os.path.dirname(args.out_canned), "reply-panel-controls.txt"), "w") as h:
+        h.write("\n".join(ADVERSARIAL_CONTROLS) + "\n")
 
     counts = {}
     for _, kind, *_ in checks:

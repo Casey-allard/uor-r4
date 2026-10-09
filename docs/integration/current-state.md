@@ -1,3 +1,67 @@
+## 2026-10-09 — `clarify`: the first deterministic target whose correct behaviour is absent, scored 0 of 27 (deepseek, #2029)
+
+The piece the deterministic sub-reading's `Next:` named, measured before it was built. Record:
+[reply-panel-deterministic-checks-2026-10-09](../labs/reply-panel-deterministic-checks-2026-10-09/README.md).
+**CPU only, no pod, $0.**
+
+**THE MEASUREMENT, two readings on two denominators that agree.** Every panel reply flagged as asking
+a question (the Lead's reading from `verdicts-29m.tsv`, only **two** of which are ill-posed): a bare
+generic question, three that **invent** a specific ("What type of boat are you interested in?"), one
+that parrots the request back (`heldout-119` — so **the flag over-counts clarify behaviour and cannot
+be the basis of a kind**), and `heldout-189` which **is** `Hello! How can I help you today?`. The 8
+**ill-posed** rows whose reply asks (this piece's reading): **five are the canned greeting verbatim**
+(`heldout-006/009/019/102/131`), the rest are `heldout-107` ("What specific area of information do you
+need?"), `heldout-118` and `heldout-189`. **Zero of the eight name the missing material — and zero of
+the 67 ill-posed rows demonstrate the behaviour at all.**
+
+**THE TRAP IS NOW LIVE, NOT HYPOTHETICAL:** `heldout-189` is the canned greeting sitting on an
+ill-posed row and flagged as asking a question, so a `question`-kind check would pass the
+most-memorised string in the panel exactly where it must fail.
+
+**WHAT THE 27 FABRICATED-SPECIFIC REPLIES DO** (the failure mode the model actually exhibits): 15
+invent a capitalised name the request never gave (`heldout-105` invents "the capital of China" for a
+passage that was never supplied), 4 invent a value for a `[placeholder]`, 4 echo the placeholder
+verbatim, 4 invent a number. So "asked for the missing thing" vs "invented a specific" is a real,
+deterministic distinction — and `abstain_exact`'s built-in `fabricated_specifics` rule already
+catches the negative half.
+
+**WHAT WAS BUILT: `CheckKind::Clarify`**, same six sites as `reply_exact`. It passes only when the
+reply **asks a question AND contains a row-specific phrase naming the missing material** ("which
+city", "which text", "which words") and contains no forbidden term or key. **27 of the 67 ill-posed
+rows got a key** — the rows whose missing material has a name; the other 40 keep **`abstain_exact`,
+not replaced**, because a bare salutation or constraint-only stub has nothing to name and inventing a
+phrase key for them would be loosening the key. The focused test caught a real defect (a clarify term
+that is also forbidden made the check unsatisfiable) and the parser now refuses it.
+
+**THE CONTROLS THAT MUST FAIL, AND DO — run by the grader's own `RowCheck::passes` through
+`chat-grade check constants=`, against all 88 checks:** the canned greeting **0 of 88**; "Could you
+clarify?" **0**; a bare "?" **0**; "What type of boat are you interested in?" (invents a specific,
+the sealed reply on `follow-03`) **0**; and the 13 observed memorised strings **0**. Nothing was
+loosened to make that true — the key is a phrase the request does not contain, so it cannot be
+satisfied by asking in general.
+
+**THE READING, AND WHAT THIS KIND IS FOR:** `any` 1/16, `reply_exact` 1/5, **`clarify` 0/27**,
+`abstain_exact` 0/40 — **2 of 88, unchanged.** Only 1 of the 27 clarify-row replies even asks a
+question. **So the `clarify` kind is a TARGET, NOT A SCOREBOARD: building it does not raise the score,
+it creates the ability to measure a behaviour the model does not have.** 27 previously unscorable rows
+are now scorable and all 27 fail. It must not be described as coverage won or as rows that might now
+pass.
+
+**Sealed and re-validated:** checks sha256 `aba96550fb89cbb0…`, kinds `any` 16 / `reply_exact` 5 /
+`clarify` 27 / `abstain_exact` 40, still **88 checked rows (37.9 %)**, `check_panel` **pass**,
+worst-case context position **168** of 384, `checks_without_loaded_request: []`, `shasum -a 256 -c
+MANIFEST.sha256` from `data/panels/` → **30 files, 30 OK**, both novelty checkers **pass**, and the
+bin's focused tests **18 passed, 0 failed**.
+
+**Criterion 1 remains NOT MET and 43/232 is unchanged.** STATUS/ROADMAP/#2028 unchanged — checked, not
+assumed.
+
+**Next:** the measured target is now "an ill-posed request answered by asking for the missing
+material", scored **0 of 27** — the first deterministic target in this line whose correct behaviour is
+absent rather than rare, so a bounded intervention can be scored against it. The remaining instrument
+gap is the 40 ill-posed rows with no nameable missing material; the honest options are a request-form
+clarify variant with a control proving a canned greeting cannot pass it, or leaving them unscored.
+
 ## 2026-10-09 — `reply_exact`: discrimination becomes expressible on a single-turn row, and it changes no verdict (deepseek, #2029)
 
 Follow-up to the deterministic sub-reading, and the piece its `Next:` named. Record:
