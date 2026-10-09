@@ -1,0 +1,11 @@
+{
+  "status": "PASS",
+  "revision": "f3aebf0ce691af27a4f24f6fdcc912dd06fc5657",
+  "prefix": "codex/sol-prefix-vector-20261009/runtime-cc079744-attempt1",
+  "all_fresh_download_verified": true,
+  "source_commit": "cc079744f4824e91a6ad739e2e7cf45c8d374527",
+  "binary_sha256": "a02a7452ade26e3ca7eca67746a68c88a5b5231f75a21c1eb007b9add9f0038d",
+  "config_sha256": "b13e13675dfc871f6517ad00ed522fe5878252e0f262bfb7228ae8dd5eb751cf",
+  "payload_bytes": 57585493,
+  "seconds": 18.738280431833118
+}

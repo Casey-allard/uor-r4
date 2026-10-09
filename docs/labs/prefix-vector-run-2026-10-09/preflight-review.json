@@ -1,0 +1,19 @@
+{
+  "status": "PASS_SOURCE_ONLY",
+  "source_commit": "cc079744f4824e91a6ad739e2e7cf45c8d374527",
+  "reviewer": "emission_adversarial",
+  "files": {
+    "compare-vector.py": "f536e8b5b4612ce52edfbea0e6749b42feb89fdb09f34ca04d5fa406bd4d5720",
+    "verify-inputs.py": "a63214e5cb58b5b4ea838404f0c8c97752352ab75b93afbe5f816b07378cd457",
+    "prepare-prefix-vector-actual9.py": "d9f96f3304eed36e88f1dfce30faeed652327db83db52516b86918ac864daf19",
+    "run-prefix-vector.py": "e6eb8d871c14dc3aa07970d1dc776b1c8a6b58bf0a2abe272fdb1438b7a6976b"
+  },
+  "findings": "Earlier missing vector artifact-authority pin corrected; no blocking schema mismatches. Saved arithmetic scope only, not native-score/backward/reload replication.",
+  "tested": false,
+  "final_factory_delta_review": {
+    "status": "PASS_SOURCE_ONLY",
+    "reviewed_sha256": "d9f96f3304eed36e88f1dfce30faeed652327db83db52516b86918ac864daf19",
+    "prior_sha256": "b53f8b98e64d2123e30c2718fbe35a1005979bed9d9187db716ddb26a4f19f22",
+    "changes": "require gradient transaction binding and record transaction in decision; prior review carries forward; no model execution by reviewer"
+  }
+}

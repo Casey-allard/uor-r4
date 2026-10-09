@@ -1,0 +1,24 @@
+{
+  "status": "PASS",
+  "source_commit": "cc079744f4824e91a6ad739e2e7cf45c8d374527",
+  "revision": "b1192489b94d06811948fe7e8ac13e3482050cf4",
+  "prefix": "codex/sol-prefix-vector-20261009/outcome-prefix-vector-0001-attempt1",
+  "all_fresh_download_verified": true,
+  "full_archive_inventory_verified": true,
+  "files": {
+    "identity.json": {
+      "sha256": "9441333ece03ff341b7e1ba187bcd721313dec0a98756888c0a5f4ff4bce5383",
+      "bytes": 115961
+    },
+    "outcome.tar.gz": {
+      "sha256": "8bd694a0e8a698f3d5ecffd2bc09f631982ec50718747a562467c0382fa66e4b",
+      "bytes": 66721419
+    }
+  },
+  "uncompressed_bytes": 375108296,
+  "archived_files": 599,
+  "seconds": 25.931670878082514,
+  "selected_model": false,
+  "scope": "NOT_RUN_CONSTRUCTION_NEGATIVE",
+  "selection": "NOT_PERFORMED_BY_PRESERVATION"
+}

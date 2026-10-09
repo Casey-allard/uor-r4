@@ -1,0 +1,2170 @@
+{
+  "schema": "uor-r4.saved-prefix-vector-comparison/1",
+  "status": "PASS_SAVED_COMPARISON",
+  "candidate_source": "cc079744f4824e91a6ad739e2e7cf45c8d374527",
+  "baseline_source": "4f7eee35b250b6d5bf9e250fc0ea00d356998695",
+  "source_contract_sha256": {
+    "coupled_episode_learning.rs": "3f0daf51b15e6567f9e4195e61d470cf2572f195eb39eddf7db28e68ffdefe81",
+    "gradient_vector_prefix.rs": "9871e03c64321a0e74d102e53e8419078b29ef25aa7be0f76ec1ffa08be599c1",
+    "generate_episode_learning.rs": "30ac874b799a41cbfc57893944ac82cf7ac0c4a2681d2d95747da08017b2c769"
+  },
+  "candidate_root": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1",
+  "baseline_root": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1",
+  "gradient_comparison": {
+    "prefix.coefficients": {
+      "aggregate_bitwise_equal": true,
+      "term_bitwise_equal": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "max_aggregate_absolute_difference": 0.0
+    },
+    "generate.unary": {
+      "aggregate_bitwise_equal": true,
+      "term_bitwise_equal": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "max_aggregate_absolute_difference": 0.0
+    }
+  },
+  "construction": {
+    "four_vectors": [
+      {
+        "radius": 1,
+        "actual_linear_delta": -0.38996080681681633,
+        "changed_coordinates": 11,
+        "objective": {
+          "all_phase_winners": false,
+          "combined": 4.810593300198,
+          "correct_reference_frames": 17,
+          "objective_masses": [
+            [
+              2147483648,
+              62084866759,
+              617
+            ],
+            [
+              2147483648,
+              75299628546,
+              2097
+            ],
+            [
+              2147483648,
+              31403869289,
+              315
+            ],
+            [
+              2147616909,
+              5849100206,
+              1057
+            ],
+            [
+              298564088,
+              13032098233,
+              307
+            ],
+            [
+              774238165,
+              34120232922,
+              91
+            ],
+            [
+              231413000,
+              61324302988,
+              1717
+            ],
+            [
+              24273087,
+              3983167254,
+              307
+            ],
+            [
+              55892519,
+              28654403017,
+              307
+            ],
+            [
+              185494285,
+              18829262896,
+              397
+            ],
+            [
+              94349882,
+              21492432812,
+              397
+            ],
+            [
+              2218517124,
+              63427261017,
+              397
+            ],
+            [
+              299787912,
+              11564675613,
+              307
+            ],
+            [
+              2837001,
+              23420264377,
+              2795
+            ],
+            [
+              60919422,
+              64357953378,
+              3329
+            ],
+            [
+              2147640262,
+              3146914956,
+              261
+            ],
+            [
+              2147586627,
+              2595012823,
+              92
+            ],
+            [
+              2147489148,
+              2194403770,
+              683
+            ],
+            [
+              2147524609,
+              2893822334,
+              3123
+            ],
+            [
+              2147520431,
+              2515772040,
+              261
+            ],
+            [
+              2147514946,
+              3396531025,
+              92
+            ],
+            [
+              2147504725,
+              2281061870,
+              683
+            ],
+            [
+              2150658138,
+              2390954195,
+              3123
+            ],
+            [
+              2147526577,
+              2212820348,
+              683
+            ],
+            [
+              2147486189,
+              2310869859,
+              3123
+            ],
+            [
+              2147511077,
+              2806822334,
+              261
+            ],
+            [
+              2147527215,
+              3122710179,
+              92
+            ],
+            [
+              2147549446,
+              2248483142,
+              683
+            ],
+            [
+              2147909369,
+              4193733214,
+              3123
+            ],
+            [
+              2147493924,
+              2221520447,
+              261
+            ],
+            [
+              2147509685,
+              3214368681,
+              92
+            ]
+          ],
+          "reference": 0.2690415548230112,
+          "task": 4.5415517453749885
+        },
+        "guard_status": "FIRST_VETO",
+        "first_failure": {
+          "chosen": 291,
+          "guard_index": 173,
+          "required": 315
+        },
+        "feasible": false,
+        "staged_rows": 108,
+        "donor_changes": 1,
+        "post_incidence_rebuilds": 1
+      },
+      {
+        "radius": 2,
+        "actual_linear_delta": -1.8185962485149503,
+        "changed_coordinates": 84,
+        "objective": {
+          "all_phase_winners": false,
+          "combined": 3.5897934038638346,
+          "correct_reference_frames": 17,
+          "objective_masses": [
+            [
+              2147483648,
+              62927453858,
+              617
+            ],
+            [
+              2147483648,
+              75328730809,
+              2097
+            ],
+            [
+              2147483648,
+              31563434899,
+              315
+            ],
+            [
+              2147501683,
+              2944625056,
+              1057
+            ],
+            [
+              1336998113,
+              13671577724,
+              307
+            ],
+            [
+              2154893356,
+              24028024258,
+              307
+            ],
+            [
+              1594477013,
+              62494364228,
+              1717
+            ],
+            [
+              229624247,
+              4866345345,
+              307
+            ],
+            [
+              405410638,
+              29620949642,
+              307
+            ],
+            [
+              1064474189,
+              16421472575,
+              397
+            ],
+            [
+              443801309,
+              15473993156,
+              2795
+            ],
+            [
+              2166845723,
+              13143306287,
+              397
+            ],
+            [
+              2147923648,
+              14336472272,
+              471
+            ],
+            [
+              7244536,
+              25670892812,
+              2795
+            ],
+            [
+              60919422,
+              64487613191,
+              3329
+            ],
+            [
+              2147578640,
+              2783588966,
+              261
+            ],
+            [
+              2147563848,
+              2505098829,
+              92
+            ],
+            [
+              2147489148,
+              2203110244,
+              683
+            ],
+            [
+              2147524609,
+              2895228406,
+              3123
+            ],
+            [
+              2147505958,
+              2402038889,
+              261
+            ],
+            [
+              2147508023,
+              3192115978,
+              92
+            ],
+            [
+              2147490283,
+              2223645344,
+              683
+            ],
+            [
+              2150658138,
+              2394001500,
+              3123
+            ],
+            [
+              2147519515,
+              2208276239,
+              683
+            ],
+            [
+              2147485189,
+              2274412680,
+              3123
+            ],
+            [
+              2147489881,
+              3015514021,
+              261
+            ],
+            [
+              2147517578,
+              2918166036,
+              92
+            ],
+            [
+              2147523556,
+              2215942084,
+              683
+            ],
+            [
+              2147741861,
+              3617347594,
+              3123
+            ],
+            [
+              2147493924,
+              2403833200,
+              261
+            ],
+            [
+              2147503926,
+              3004604637,
+              92
+            ]
+          ],
+          "reference": 0.2021495471965518,
+          "task": 3.3876438566672826
+        },
+        "guard_status": "FIRST_VETO",
+        "first_failure": {
+          "chosen": 786,
+          "guard_index": 89,
+          "required": 2997
+        },
+        "feasible": false,
+        "staged_rows": 105,
+        "donor_changes": 6,
+        "post_incidence_rebuilds": 6
+      },
+      {
+        "radius": 4,
+        "actual_linear_delta": -3.8277183938771486,
+        "changed_coordinates": 136,
+        "objective": {
+          "all_phase_winners": false,
+          "combined": 2.925994507074501,
+          "correct_reference_frames": 16,
+          "objective_masses": [
+            [
+              2147483648,
+              63801934544,
+              617
+            ],
+            [
+              2147483648,
+              75265894664,
+              2097
+            ],
+            [
+              1895147556,
+              29794457511,
+              267
+            ],
+            [
+              2147485549,
+              3799575769,
+              1057
+            ],
+            [
+              2147829000,
+              6171650068,
+              267
+            ],
+            [
+              2148264626,
+              4637331865,
+              307
+            ],
+            [
+              2156433723,
+              33498889232,
+              397
+            ],
+            [
+              2147608835,
+              7218674600,
+              324
+            ],
+            [
+              2148579264,
+              30100000903,
+              91
+            ],
+            [
+              2147955688,
+              11813863523,
+              2795
+            ],
+            [
+              1548279300,
+              11857145725,
+              2795
+            ],
+            [
+              2151728639,
+              4217240304,
+              397
+            ],
+            [
+              2147734353,
+              4481322140,
+              471
+            ],
+            [
+              780978,
+              15032674666,
+              1717
+            ],
+            [
+              60919422,
+              64663413858,
+              3329
+            ],
+            [
+              2147500155,
+              2302491639,
+              261
+            ],
+            [
+              2147497585,
+              2231841826,
+              92
+            ],
+            [
+              2147489148,
+              2654171012,
+              683
+            ],
+            [
+              2147489191,
+              2248904419,
+              3123
+            ],
+            [
+              2147489148,
+              2224868796,
+              261
+            ],
+            [
+              2147487884,
+              2371708771,
+              92
+            ],
+            [
+              2147490283,
+              4282447481,
+              683
+            ],
+            [
+              2148044696,
+              2192403109,
+              3123
+            ],
+            [
+              2147519515,
+              2274389191,
+              683
+            ],
+            [
+              2147485039,
+              2313967689,
+              3123
+            ],
+            [
+              2147489881,
+              4338435030,
+              683
+            ],
+            [
+              2147489545,
+              2284590086,
+              92
+            ],
+            [
+              2147515300,
+              2257910877,
+              683
+            ],
+            [
+              2147528519,
+              2461700226,
+              3123
+            ],
+            [
+              2147493924,
+              4345337869,
+              261
+            ],
+            [
+              2147487173,
+              2308423318,
+              92
+            ]
+          ],
+          "reference": 0.21429720925987883,
+          "task": 2.711697297814622
+        },
+        "guard_status": "NOT_CHECKED_OBJECTIVE_GATE_FALSE",
+        "first_failure": null,
+        "feasible": false,
+        "staged_rows": 31,
+        "donor_changes": 7,
+        "post_incidence_rebuilds": 7
+      },
+      {
+        "radius": 7,
+        "actual_linear_delta": -6.261634005699307,
+        "changed_coordinates": 170,
+        "objective": {
+          "all_phase_winners": false,
+          "combined": 2.236264102679737,
+          "correct_reference_frames": 15,
+          "objective_masses": [
+            [
+              2061675352,
+              63052963703,
+              267
+            ],
+            [
+              2147483648,
+              75229406231,
+              2097
+            ],
+            [
+              329327265,
+              6989065371,
+              267
+            ],
+            [
+              2147485549,
+              4375250253,
+              1057
+            ],
+            [
+              2147520048,
+              2658700604,
+              267
+            ],
+            [
+              2147565963,
+              2425644857,
+              307
+            ],
+            [
+              2148674650,
+              5605317659,
+              397
+            ],
+            [
+              2147500590,
+              2788909836,
+              324
+            ],
+            [
+              2147614501,
+              6111209877,
+              91
+            ],
+            [
+              2147533401,
+              3285039316,
+              2795
+            ],
+            [
+              2147521138,
+              4098261985,
+              770
+            ],
+            [
+              2148192205,
+              2302167869,
+              397
+            ],
+            [
+              2147517578,
+              2540318811,
+              471
+            ],
+            [
+              4443843,
+              16444608971,
+              79
+            ],
+            [
+              44725144,
+              49145564086,
+              267
+            ],
+            [
+              2147493661,
+              2263648746,
+              261
+            ],
+            [
+              2147495292,
+              2235574905,
+              92
+            ],
+            [
+              2147489148,
+              4351056296,
+              261
+            ],
+            [
+              2147489191,
+              2247971328,
+              3123
+            ],
+            [
+              2147489148,
+              2247011757,
+              261
+            ],
+            [
+              2147485671,
+              2238074384,
+              92
+            ],
+            [
+              2147490283,
+              4346324152,
+              683
+            ],
+            [
+              2148044696,
+              2194334866,
+              3123
+            ],
+            [
+              2147519515,
+              2324351247,
+              683
+            ],
+            [
+              2147485039,
+              2373021424,
+              3123
+            ],
+            [
+              2147489881,
+              4351539232,
+              683
+            ],
+            [
+              2147485549,
+              2194194285,
+              92
+            ],
+            [
+              2147515300,
+              2301934598,
+              683
+            ],
+            [
+              2147510864,
+              2339675257,
+              3123
+            ],
+            [
+              2147493924,
+              4351535364,
+              261
+            ],
+            [
+              2147484731,
+              2201262768,
+              92
+            ]
+          ],
+          "reference": 0.24483542678727035,
+          "task": 1.9914286758924666
+        },
+        "guard_status": "NOT_CHECKED_OBJECTIVE_GATE_FALSE",
+        "first_failure": null,
+        "feasible": false,
+        "staged_rows": 31,
+        "donor_changes": 9,
+        "post_incidence_rebuilds": 9
+      }
+    ],
+    "selected": {
+      "epoch_after": 0,
+      "incumbent_epoch": 0,
+      "status": "unchanged"
+    },
+    "Generate_alternative_gate_counts": {
+      "NOT_CHECKED_OBJECTIVE_GATE_FALSE": 9632,
+      "FIRST_VETO": 2056,
+      "FULL_PASS": 1752
+    },
+    "summary": {
+      "accepted_epoch": 320,
+      "accepted_generate": 320,
+      "accepted_prefix": 0,
+      "coordinates": 960,
+      "evaluated_alternatives": 13444,
+      "final": {
+        "all_phase_winners": false,
+        "combined": 3.611677384164191,
+        "correct_reference_frames": 17,
+        "objective_masses": [
+          [
+            2147483648,
+            6208582788,
+            617
+          ],
+          [
+            2147483648,
+            4250620834,
+            2097
+          ],
+          [
+            2147483648,
+            4338485147,
+            315
+          ],
+          [
+            2148599426,
+            17111001119,
+            1057
+          ],
+          [
+            298564088,
+            9967849109,
+            307
+          ],
+          [
+            469251768,
+            20430267659,
+            91
+          ],
+          [
+            231074474,
+            29016145758,
+            1717
+          ],
+          [
+            24229842,
+            3378027499,
+            307
+          ],
+          [
+            55340983,
+            15206660953,
+            307
+          ],
+          [
+            185307524,
+            12391563185,
+            397
+          ],
+          [
+            94325567,
+            13012520113,
+            397
+          ],
+          [
+            2229263084,
+            39456174279,
+            397
+          ],
+          [
+            299734662,
+            7825171776,
+            307
+          ],
+          [
+            327912727,
+            14037278806,
+            2795
+          ],
+          [
+            2147483648,
+            79543492724,
+            1
+          ],
+          [
+            2147578640,
+            2641516369,
+            261
+          ],
+          [
+            2147546108,
+            2468422703,
+            92
+          ],
+          [
+            2147501482,
+            2282997300,
+            683
+          ],
+          [
+            2147522127,
+            2501785222,
+            3123
+          ],
+          [
+            2147491358,
+            2366649401,
+            261
+          ],
+          [
+            2147495163,
+            3365616974,
+            92
+          ],
+          [
+            2147514314,
+            2542391806,
+            683
+          ],
+          [
+            2148451813,
+            2267867945,
+            3123
+          ],
+          [
+            2147515055,
+            2186987427,
+            683
+          ],
+          [
+            2147485289,
+            2267670270,
+            3123
+          ],
+          [
+            2147622941,
+            3194228303,
+            261
+          ],
+          [
+            2147517578,
+            2670359447,
+            92
+          ],
+          [
+            2147511077,
+            2205161890,
+            683
+          ],
+          [
+            2147726217,
+            3706073081,
+            3123
+          ],
+          [
+            2147497133,
+            2214773756,
+            261
+          ],
+          [
+            2147493845,
+            2718042923,
+            92
+          ]
+        ],
+        "phases": [
+          {
+            "chosen": 617,
+            "position": 0,
+            "target": 617,
+            "target_mass": 2147483648,
+            "total_mass": 6208582788
+          },
+          {
+            "chosen": 2097,
+            "position": 1,
+            "target": 2097,
+            "target_mass": 2147483648,
+            "total_mass": 4250620834
+          },
+          {
+            "chosen": 315,
+            "position": 2,
+            "target": 315,
+            "target_mass": 2147483648,
+            "total_mass": 4338485147
+          },
+          {
+            "chosen": 1057,
+            "position": 3,
+            "target": 1057,
+            "target_mass": 2148599426,
+            "total_mass": 17111001119
+          },
+          {
+            "chosen": 307,
+            "position": 4,
+            "target": 267,
+            "target_mass": 298564088,
+            "total_mass": 9967849109
+          },
+          {
+            "chosen": 91,
+            "position": 5,
+            "target": 307,
+            "target_mass": 469251768,
+            "total_mass": 20430267659
+          },
+          {
+            "chosen": 1717,
+            "position": 6,
+            "target": 397,
+            "target_mass": 231074474,
+            "total_mass": 29016145758
+          },
+          {
+            "chosen": 307,
+            "position": 7,
+            "target": 324,
+            "target_mass": 24229842,
+            "total_mass": 3378027499
+          },
+          {
+            "chosen": 307,
+            "position": 8,
+            "target": 91,
+            "target_mass": 55340983,
+            "total_mass": 15206660953
+          },
+          {
+            "chosen": 397,
+            "position": 9,
+            "target": 2795,
+            "target_mass": 185307524,
+            "total_mass": 12391563185
+          },
+          {
+            "chosen": 397,
+            "position": 10,
+            "target": 770,
+            "target_mass": 94325567,
+            "total_mass": 13012520113
+          },
+          {
+            "chosen": 397,
+            "position": 11,
+            "target": 397,
+            "target_mass": 2229263084,
+            "total_mass": 39456174279
+          },
+          {
+            "chosen": 307,
+            "position": 12,
+            "target": 471,
+            "target_mass": 299734662,
+            "total_mass": 7825171776
+          },
+          {
+            "chosen": 2795,
+            "position": 13,
+            "target": 16,
+            "target_mass": 327912727,
+            "total_mass": 14037278806
+          },
+          {
+            "chosen": 1,
+            "position": 14,
+            "target": 1,
+            "target_mass": 2147483648,
+            "total_mass": 79543492724
+          }
+        ],
+        "reference": 0.2900283445872421,
+        "task": 3.3216490395769487
+      },
+      "immutable_post_bridge_calls": 165,
+      "immutable_post_cache_peak_bytes": 174376,
+      "initial": {
+        "all_phase_winners": false,
+        "combined": 5.111520730202647,
+        "correct_reference_frames": 17,
+        "objective_masses": [
+          [
+            2147483648,
+            62080022341,
+            617
+          ],
+          [
+            2147483648,
+            75292522085,
+            2097
+          ],
+          [
+            2147483648,
+            31321010179,
+            315
+          ],
+          [
+            2148468319,
+            27641462769,
+            1057
+          ],
+          [
+            298710449,
+            16027151659,
+            307
+          ],
+          [
+            470319905,
+            33816314662,
+            91
+          ],
+          [
+            231413000,
+            61041394069,
+            1717
+          ],
+          [
+            24273087,
+            3983167254,
+            307
+          ],
+          [
+            55892519,
+            28579317778,
+            307
+          ],
+          [
+            185494285,
+            18816515488,
+            397
+          ],
+          [
+            94349882,
+            21041503246,
+            397
+          ],
+          [
+            2238692437,
+            80498209918,
+            397
+          ],
+          [
+            299787912,
+            11201321095,
+            307
+          ],
+          [
+            2837001,
+            23403478613,
+            2795
+          ],
+          [
+            60919422,
+            64357532809,
+            3329
+          ],
+          [
+            2147640262,
+            3142524890,
+            261
+          ],
+          [
+            2147615876,
+            2696282568,
+            92
+          ],
+          [
+            2147514946,
+            2408766146,
+            683
+          ],
+          [
+            2147524609,
+            2893822334,
+            3123
+          ],
+          [
+            2147520431,
+            2507570318,
+            261
+          ],
+          [
+            2147523835,
+            3745954815,
+            92
+          ],
+          [
+            2147639383,
+            3026979616,
+            683
+          ],
+          [
+            2150658138,
+            2390954195,
+            3123
+          ],
+          [
+            2147526577,
+            2212656928,
+            683
+          ],
+          [
+            2147486189,
+            2305235652,
+            3123
+          ],
+          [
+            2147686317,
+            3863061368,
+            261
+          ],
+          [
+            2147527215,
+            3122710179,
+            92
+          ],
+          [
+            2147549446,
+            2248217437,
+            683
+          ],
+          [
+            2147909369,
+            4134446021,
+            3123
+          ],
+          [
+            2147507314,
+            2262128559,
+            261
+          ],
+          [
+            2147509685,
+            3214368681,
+            92
+          ]
+        ],
+        "phases": [
+          {
+            "chosen": 617,
+            "position": 0,
+            "target": 617,
+            "target_mass": 2147483648,
+            "total_mass": 62080022341
+          },
+          {
+            "chosen": 2097,
+            "position": 1,
+            "target": 2097,
+            "target_mass": 2147483648,
+            "total_mass": 75292522085
+          },
+          {
+            "chosen": 315,
+            "position": 2,
+            "target": 315,
+            "target_mass": 2147483648,
+            "total_mass": 31321010179
+          },
+          {
+            "chosen": 1057,
+            "position": 3,
+            "target": 1057,
+            "target_mass": 2148468319,
+            "total_mass": 27641462769
+          },
+          {
+            "chosen": 307,
+            "position": 4,
+            "target": 267,
+            "target_mass": 298710449,
+            "total_mass": 16027151659
+          },
+          {
+            "chosen": 91,
+            "position": 5,
+            "target": 307,
+            "target_mass": 470319905,
+            "total_mass": 33816314662
+          },
+          {
+            "chosen": 1717,
+            "position": 6,
+            "target": 397,
+            "target_mass": 231413000,
+            "total_mass": 61041394069
+          },
+          {
+            "chosen": 307,
+            "position": 7,
+            "target": 324,
+            "target_mass": 24273087,
+            "total_mass": 3983167254
+          },
+          {
+            "chosen": 307,
+            "position": 8,
+            "target": 91,
+            "target_mass": 55892519,
+            "total_mass": 28579317778
+          },
+          {
+            "chosen": 397,
+            "position": 9,
+            "target": 2795,
+            "target_mass": 185494285,
+            "total_mass": 18816515488
+          },
+          {
+            "chosen": 397,
+            "position": 10,
+            "target": 770,
+            "target_mass": 94349882,
+            "total_mass": 21041503246
+          },
+          {
+            "chosen": 397,
+            "position": 11,
+            "target": 397,
+            "target_mass": 2238692437,
+            "total_mass": 80498209918
+          },
+          {
+            "chosen": 307,
+            "position": 12,
+            "target": 471,
+            "target_mass": 299787912,
+            "total_mass": 11201321095
+          },
+          {
+            "chosen": 2795,
+            "position": 13,
+            "target": 16,
+            "target_mass": 2837001,
+            "total_mass": 23403478613
+          },
+          {
+            "chosen": 3329,
+            "position": 14,
+            "target": 1,
+            "target_mass": 60919422,
+            "total_mass": 64357532809
+          }
+        ],
+        "reference": 0.40908709114276476,
+        "task": 4.702433639059882
+      },
+      "maximum_alternatives": 13444,
+      "revisited": 0,
+      "selected_restage_count": 0
+    },
+    "new_native_score_replay": false,
+    "staged_digest_recomputed": false
+  },
+  "conditional_outcomes": {
+    "candidate_correct_positions": [
+      0,
+      1,
+      2,
+      3,
+      11,
+      14
+    ],
+    "baseline_correct_positions": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      11,
+      12
+    ],
+    "gained": [
+      14
+    ],
+    "lost": [
+      4,
+      5,
+      6,
+      12
+    ],
+    "candidate_final_gate": {
+      "actual_wholeanswer_EOS": "NOT_RUN_SEPARATE_QUALIFICATION",
+      "all15_conditional_winners": false,
+      "all17_references": true,
+      "all380_original_winners": true,
+      "passed": false,
+      "strict_combined_descent": true,
+      "strict_episode_descent": true
+    },
+    "baseline_final_gate": {
+      "actual_wholeanswer_EOS": "NOT_RUN_SEPARATE_QUALIFICATION",
+      "all15_conditional_winners": false,
+      "all17_references": true,
+      "all380_original_winners": true,
+      "passed": false,
+      "strict_combined_descent": true,
+      "strict_episode_descent": true
+    }
+  },
+  "scope": {
+    "normative_seal_verification": "CALLER_PREREQUISITE",
+    "native_score_replication": "NOT_RUN",
+    "independent_backward_replication": "NOT_RUN",
+    "391_native_reload": "PRODUCER_RECEIPT_ONLY",
+    "selected_restage": "EXACT_SAVED_RECEIPT_EQUALITY_ONLY",
+    "Generate_affected_incidence": "SAVED_IDENTITIES_ONLY",
+    "language_qualification": "SEPARATE_ACTUAL9_REPORT",
+    "full512": "NOT_RUN"
+  },
+  "used_files": [
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/configs/prefix-vector-0001-attempt1.json",
+      "sha256": "b13e13675dfc871f6517ad00ed522fe5878252e0f262bfb7228ae8dd5eb751cf",
+      "bytes": 8783
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/config.json",
+      "sha256": "b13e13675dfc871f6517ad00ed522fe5878252e0f262bfb7228ae8dd5eb751cf",
+      "bytes": 8783
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/report.json",
+      "sha256": "4bf46fa4810b1b2b647c1acca259a8f1a2fed5bc9c16bdc0f9ad68572f5a066d",
+      "bytes": 43781
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/manifest.json",
+      "sha256": "254e017c9e1cf80602abed971791599af0b16fd733f5bf0cdf48e712ef596b54",
+      "bytes": 93006
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/report.json",
+      "sha256": "56faa224da29b5da1db6fe82e21c4d19b6474be1316fef7fcb4716013cdd01a8",
+      "bytes": 42826
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/manifest.json",
+      "sha256": "9c19b82392b9e8f2263257992bf321ef5ed939e3b6e7788b783aa21328e45726",
+      "bytes": 93000
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/config.json",
+      "sha256": "f778b5affdb17e9da1c29ce517f280357e9333082618c34eee06a0015b7f6692",
+      "bytes": 8725
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-receipt.json",
+      "sha256": "3aa4d4c410b909d72fa6d362d53917bee34a665398135c10415c4f2b029b016f",
+      "bytes": 23288
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-prefix.coefficients-term-00.f32le",
+      "sha256": "f3fc890cd6170a0784fcb9a844273f7d4792b3407a7f975ac396dee28567dcbe",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-generate.unary-term-00.f32le",
+      "sha256": "accf293fe4f8923a364aaa7698c5fe1d36ca18f5713036cef4c6c159a18fad5b",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-prefix.coefficients-term-01.f32le",
+      "sha256": "bc2fffb9ab3f750f98328b7b376ad4ae23193085783390c690bdaf75d348e2d2",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-generate.unary-term-01.f32le",
+      "sha256": "3380dd34df48971a0050a3a5736e4884b7d486bcf6ff9cf2eec68ecc2aa0b18f",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-prefix.coefficients-term-02.f32le",
+      "sha256": "7581805bac3fe7c22bec3f2ba76f345bad84be7b5af502c6fc06c559366bd900",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-generate.unary-term-02.f32le",
+      "sha256": "05abd12652885ecfcd025a496da48503e684ec6fbc44639644798809d655973b",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-prefix.coefficients-term-03.f32le",
+      "sha256": "d28bf0cd291571408b30db54a1b6d94dfbeba84918a2394be48f1f9644e50892",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-generate.unary-term-03.f32le",
+      "sha256": "f7b2e05e56930a6ad87bd8a1313b1b92e60478b365cb7b5975c50de0fb03b980",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-prefix.coefficients-term-04.f32le",
+      "sha256": "89335e33ac31c51627509ca92f22ee3bf3a22c28d3a9cc7c5628cf3130d03af6",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-generate.unary-term-04.f32le",
+      "sha256": "4aaa5a43c87a54bdf7490754c34c2c6afb76532823e44ad901747d0e71b1e548",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-prefix.coefficients-term-05.f32le",
+      "sha256": "eacae540e8d6158847be723e8f571458f657a7f0c762afc095cf31802afa3247",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-generate.unary-term-05.f32le",
+      "sha256": "568006c0614250e5c97bc65e0c2d2e038c042484eedf7c04ac20f2f85c3adc7e",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-prefix.coefficients-term-06.f32le",
+      "sha256": "0d22863609bfe70a0567804e3991ffbc274ea9e5a3c293883f6b85e9561b48fd",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-generate.unary-term-06.f32le",
+      "sha256": "960101301bd6cc743de646f0c8dc49797a9463ae13bd8494ae6f70cca3b50f7b",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-prefix.coefficients-term-07.f32le",
+      "sha256": "ec43eec0a90a299b72b5bb51e42f0f8f3fff7680f2c744ae80f46e510f324d95",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-generate.unary-term-07.f32le",
+      "sha256": "fa21b52d4d4d0de23a80871785799f32bd467fb341daeacaeb29f88e05101ee3",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-prefix.coefficients-term-08.f32le",
+      "sha256": "f042e7894b4fe03437067c4f365202b7a1d9f0f03cba56f2830f3608560d5f32",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-generate.unary-term-08.f32le",
+      "sha256": "26ed1a4991c475327a2975dbb45c5dc549f92d1ed328e4bb5245b471eb3e1d99",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-prefix.coefficients-term-09.f32le",
+      "sha256": "e893b24c61e04f2c6c3849068ddf877c5b815c043048108b4604dd9f2d75973c",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-generate.unary-term-09.f32le",
+      "sha256": "c2741d7ce83f1dc13d918ab82de3d75f5609e5efddcf523092ac7dd74c9a5b73",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-prefix.coefficients-term-10.f32le",
+      "sha256": "1cdc627ae4b73834ddeb25041dc88a22e13d2b96c5543251dcfd6d8d9e729492",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-generate.unary-term-10.f32le",
+      "sha256": "fc21f7c08a63a873c18bb8d4f3433980f15401dc47efcb51286af3305169b51c",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-prefix.coefficients-term-11.f32le",
+      "sha256": "338d51181165508c0ee950900514e3eb5cc130f7ee1d2f3b137efcfbcfdef1ee",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-generate.unary-term-11.f32le",
+      "sha256": "df31b1132bd3038804e584e4adf0e7f5b1d4766c969c0ab96f329536a8f88036",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-prefix.coefficients-term-12.f32le",
+      "sha256": "a5295db85ebe0464663bee8f2ae3df4117723f74ce9ab7c90b7b04f7cf86d359",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-generate.unary-term-12.f32le",
+      "sha256": "3b0a133878dd0aecdd421af36a56d8d9e3131da791a3e48f4ae02b0870b9d29e",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-prefix.coefficients-term-13.f32le",
+      "sha256": "212d19fd98ed4c0f3577de5c5eafe468ebb1377637b23f103f801dca3f549c3a",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-generate.unary-term-13.f32le",
+      "sha256": "eb06d2a3ae0bb2363b336b9581a2556a070126508f162e07034593d304a0f315",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-prefix.coefficients-term-14.f32le",
+      "sha256": "9d308b9ebe009954b1cb6e1b2ed3f93f89a9f8a098e986a6e748bd975d66ca5e",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-generate.unary-term-14.f32le",
+      "sha256": "ebaacc63b126281e5cc57fdeaefd7a7ea4d3631a3d822fed99209195495f918f",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-prefix.coefficients-term-15.f32le",
+      "sha256": "8c620029cb1e9bd3f4cb5eb5c86f757ae8eeabde0342dfab9cdaa3ed409f7751",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-generate.unary-term-15.f32le",
+      "sha256": "a28b5d6eb15c876eec2b994a008df05bbabbdb24747fe3128b860269be318752",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-prefix.coefficients-term-16.f32le",
+      "sha256": "ed9d04bb0678e6433e00a686a80f66d1edc89b52895e81c914ae3ed67538fbf1",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-generate.unary-term-16.f32le",
+      "sha256": "9bd08511ade730c9c4bfb9910ed7f42711a44215e7e25ba5c004e4021b2d8aee",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-prefix.coefficients-term-17.f32le",
+      "sha256": "9201ca37c274546b80ade2ed88fd91bba36ca072a8797beccfa0e19b9aa1377f",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-generate.unary-term-17.f32le",
+      "sha256": "0b434d56322734af21fbc1c5d402044985872413171b687855da645bb16fbd8d",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-prefix.coefficients-term-18.f32le",
+      "sha256": "3d29c96431c1b07bb2587351838225554b916257adf7c2f4ec3d04cf0863a374",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-generate.unary-term-18.f32le",
+      "sha256": "a353265f19529078892b2b08a80706d714bbf048bb1fc071678c6c58346e3388",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-prefix.coefficients-term-19.f32le",
+      "sha256": "e106f2cdc1bff996ee492e6ad1e2b86e201e49dd0c9c1f4970dcfe391ca28ec5",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-generate.unary-term-19.f32le",
+      "sha256": "ac12912016de25e95734d9a510bf91ba3e1f7b6c1abdb91ac9a7496ff9150e04",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-prefix.coefficients-term-20.f32le",
+      "sha256": "48b27ba082656771b5891cfb10222e94609c60ca7a5366d8be2c47e012a5393d",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-generate.unary-term-20.f32le",
+      "sha256": "96992f8b83ae3d03b6e3b687990adfcd73bd3c7f152b1e4564d198a5cb42d4a2",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-prefix.coefficients-term-21.f32le",
+      "sha256": "664ea9c255f33b692c1acf28dcd1c594187ba66b4ec4006b954106e0e7547b25",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-generate.unary-term-21.f32le",
+      "sha256": "1073c53f372720a4cef186e766a497f9d25e5b705e2b7294cd359d37b3cef842",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-prefix.coefficients-term-22.f32le",
+      "sha256": "cb1bf9ae194f11fe8bf7effa568bb8e27703bd1f944087ea567b5069d1baf1dd",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-generate.unary-term-22.f32le",
+      "sha256": "a42dcd6908e97db92628ff2167a92481280ee449951e5dbe036564ff61408d03",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-prefix.coefficients-term-23.f32le",
+      "sha256": "97d69456d917cfe58ba311d9357980db303a426a9a4f44d353c83564d94f96cf",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-generate.unary-term-23.f32le",
+      "sha256": "c169edbf4621f0b994a6147e8da7157df4d8808a84a661144a2bde83e20969b1",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-prefix.coefficients-term-24.f32le",
+      "sha256": "8bc1db79c2fcd6ae0d511b915bf595e8a701c927a00d6b85fed875515410b383",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-generate.unary-term-24.f32le",
+      "sha256": "68704471107dbc8e048a38aa4b7e2e10306fd9dd8000a3cfb039aec9194d8290",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-prefix.coefficients-term-25.f32le",
+      "sha256": "a1eefd7f84803f13179c8f4346dad75a5a40c73d77cec5f792e08f719cf8b4cd",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-generate.unary-term-25.f32le",
+      "sha256": "b5f0b48022bf0aebec2df87a32bccaa426afda87badfe332abafa71049c2bc4c",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-prefix.coefficients-term-26.f32le",
+      "sha256": "a6826058a45eca4c6d1ca26dd5c2258bddd2fa8eb6d9731444c575d32a63571b",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-generate.unary-term-26.f32le",
+      "sha256": "568cc7b676c019e9e7794c609c20e31c79fbc201e0735f7cac1c29c4ba168632",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-prefix.coefficients-term-27.f32le",
+      "sha256": "3985b2ff61ff6c0c85f2b100d43e8987c20b67cd06bb18827f208f0b35ddb46e",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-generate.unary-term-27.f32le",
+      "sha256": "a0fea77ea85b5db22ba1d8deb775cbaf7ac879da20943e024d5e88db12099ee2",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-prefix.coefficients-term-28.f32le",
+      "sha256": "6d1f2dbb5ef2d8abcc0098fb1cd3277ed9cecd925397d20e5142a82411b5e9c2",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-generate.unary-term-28.f32le",
+      "sha256": "db3299e04d0c9f18ca137722ccd330a8127839e872449848d5a05ceb7842eb0c",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-prefix.coefficients-term-29.f32le",
+      "sha256": "209549328796b997d6238d16e27fd06bd81375660cf96d08b00b1ad099f3a9a7",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-generate.unary-term-29.f32le",
+      "sha256": "3742a2c6626f53f792793e79224b87b90ca9ae3d994e38ee8da44c6f95f3c7e3",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-prefix.coefficients-term-30.f32le",
+      "sha256": "1cfa023a1a56c8876f6790f25304635ee2682d17a00e68416af65cf4495486d4",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-gradient-generate.unary-term-30.f32le",
+      "sha256": "ea318e89a2f535941fe25e31bce889d45722cb3eb199a1ee3e169a9b0e311bb4",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-prefix.coefficients-gradient.f32le",
+      "sha256": "9493faf22a1a9b3b7a580d893131a478e3a727f622b48bbf31421118df5d8701",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-prefix.coefficients-initial-master.f32le",
+      "sha256": "1e47a7dff9134d393043a2313a7da50ea234d1b1ae7888d895e3604855ac0fe3",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-generate.unary-gradient.f32le",
+      "sha256": "1ac171335b2bb95f17d4ebab51a4473f2e31b51bfae4c8baa12a6fa8c84e82ac",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-generate.unary-initial-master.f32le",
+      "sha256": "e4aba499c6e9fd109f05a8c609dafec662cf3ff417e6ab681360b3038c2d6ce7",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-receipt.json",
+      "sha256": "61f4da5025f929a328c2d2ef2c237f48a260d862bb591b8eff0db613c487495e",
+      "bytes": 23242
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-prefix.coefficients-term-00.f32le",
+      "sha256": "f3fc890cd6170a0784fcb9a844273f7d4792b3407a7f975ac396dee28567dcbe",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-generate.unary-term-00.f32le",
+      "sha256": "accf293fe4f8923a364aaa7698c5fe1d36ca18f5713036cef4c6c159a18fad5b",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-prefix.coefficients-term-01.f32le",
+      "sha256": "bc2fffb9ab3f750f98328b7b376ad4ae23193085783390c690bdaf75d348e2d2",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-generate.unary-term-01.f32le",
+      "sha256": "3380dd34df48971a0050a3a5736e4884b7d486bcf6ff9cf2eec68ecc2aa0b18f",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-prefix.coefficients-term-02.f32le",
+      "sha256": "7581805bac3fe7c22bec3f2ba76f345bad84be7b5af502c6fc06c559366bd900",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-generate.unary-term-02.f32le",
+      "sha256": "05abd12652885ecfcd025a496da48503e684ec6fbc44639644798809d655973b",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-prefix.coefficients-term-03.f32le",
+      "sha256": "d28bf0cd291571408b30db54a1b6d94dfbeba84918a2394be48f1f9644e50892",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-generate.unary-term-03.f32le",
+      "sha256": "f7b2e05e56930a6ad87bd8a1313b1b92e60478b365cb7b5975c50de0fb03b980",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-prefix.coefficients-term-04.f32le",
+      "sha256": "89335e33ac31c51627509ca92f22ee3bf3a22c28d3a9cc7c5628cf3130d03af6",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-generate.unary-term-04.f32le",
+      "sha256": "4aaa5a43c87a54bdf7490754c34c2c6afb76532823e44ad901747d0e71b1e548",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-prefix.coefficients-term-05.f32le",
+      "sha256": "eacae540e8d6158847be723e8f571458f657a7f0c762afc095cf31802afa3247",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-generate.unary-term-05.f32le",
+      "sha256": "568006c0614250e5c97bc65e0c2d2e038c042484eedf7c04ac20f2f85c3adc7e",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-prefix.coefficients-term-06.f32le",
+      "sha256": "0d22863609bfe70a0567804e3991ffbc274ea9e5a3c293883f6b85e9561b48fd",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-generate.unary-term-06.f32le",
+      "sha256": "960101301bd6cc743de646f0c8dc49797a9463ae13bd8494ae6f70cca3b50f7b",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-prefix.coefficients-term-07.f32le",
+      "sha256": "ec43eec0a90a299b72b5bb51e42f0f8f3fff7680f2c744ae80f46e510f324d95",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-generate.unary-term-07.f32le",
+      "sha256": "fa21b52d4d4d0de23a80871785799f32bd467fb341daeacaeb29f88e05101ee3",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-prefix.coefficients-term-08.f32le",
+      "sha256": "f042e7894b4fe03437067c4f365202b7a1d9f0f03cba56f2830f3608560d5f32",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-generate.unary-term-08.f32le",
+      "sha256": "26ed1a4991c475327a2975dbb45c5dc549f92d1ed328e4bb5245b471eb3e1d99",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-prefix.coefficients-term-09.f32le",
+      "sha256": "e893b24c61e04f2c6c3849068ddf877c5b815c043048108b4604dd9f2d75973c",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-generate.unary-term-09.f32le",
+      "sha256": "c2741d7ce83f1dc13d918ab82de3d75f5609e5efddcf523092ac7dd74c9a5b73",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-prefix.coefficients-term-10.f32le",
+      "sha256": "1cdc627ae4b73834ddeb25041dc88a22e13d2b96c5543251dcfd6d8d9e729492",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-generate.unary-term-10.f32le",
+      "sha256": "fc21f7c08a63a873c18bb8d4f3433980f15401dc47efcb51286af3305169b51c",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-prefix.coefficients-term-11.f32le",
+      "sha256": "338d51181165508c0ee950900514e3eb5cc130f7ee1d2f3b137efcfbcfdef1ee",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-generate.unary-term-11.f32le",
+      "sha256": "df31b1132bd3038804e584e4adf0e7f5b1d4766c969c0ab96f329536a8f88036",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-prefix.coefficients-term-12.f32le",
+      "sha256": "a5295db85ebe0464663bee8f2ae3df4117723f74ce9ab7c90b7b04f7cf86d359",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-generate.unary-term-12.f32le",
+      "sha256": "3b0a133878dd0aecdd421af36a56d8d9e3131da791a3e48f4ae02b0870b9d29e",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-prefix.coefficients-term-13.f32le",
+      "sha256": "212d19fd98ed4c0f3577de5c5eafe468ebb1377637b23f103f801dca3f549c3a",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-generate.unary-term-13.f32le",
+      "sha256": "eb06d2a3ae0bb2363b336b9581a2556a070126508f162e07034593d304a0f315",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-prefix.coefficients-term-14.f32le",
+      "sha256": "9d308b9ebe009954b1cb6e1b2ed3f93f89a9f8a098e986a6e748bd975d66ca5e",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-generate.unary-term-14.f32le",
+      "sha256": "ebaacc63b126281e5cc57fdeaefd7a7ea4d3631a3d822fed99209195495f918f",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-prefix.coefficients-term-15.f32le",
+      "sha256": "8c620029cb1e9bd3f4cb5eb5c86f757ae8eeabde0342dfab9cdaa3ed409f7751",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-generate.unary-term-15.f32le",
+      "sha256": "a28b5d6eb15c876eec2b994a008df05bbabbdb24747fe3128b860269be318752",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-prefix.coefficients-term-16.f32le",
+      "sha256": "ed9d04bb0678e6433e00a686a80f66d1edc89b52895e81c914ae3ed67538fbf1",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-generate.unary-term-16.f32le",
+      "sha256": "9bd08511ade730c9c4bfb9910ed7f42711a44215e7e25ba5c004e4021b2d8aee",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-prefix.coefficients-term-17.f32le",
+      "sha256": "9201ca37c274546b80ade2ed88fd91bba36ca072a8797beccfa0e19b9aa1377f",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-generate.unary-term-17.f32le",
+      "sha256": "0b434d56322734af21fbc1c5d402044985872413171b687855da645bb16fbd8d",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-prefix.coefficients-term-18.f32le",
+      "sha256": "3d29c96431c1b07bb2587351838225554b916257adf7c2f4ec3d04cf0863a374",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-generate.unary-term-18.f32le",
+      "sha256": "a353265f19529078892b2b08a80706d714bbf048bb1fc071678c6c58346e3388",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-prefix.coefficients-term-19.f32le",
+      "sha256": "e106f2cdc1bff996ee492e6ad1e2b86e201e49dd0c9c1f4970dcfe391ca28ec5",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-generate.unary-term-19.f32le",
+      "sha256": "ac12912016de25e95734d9a510bf91ba3e1f7b6c1abdb91ac9a7496ff9150e04",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-prefix.coefficients-term-20.f32le",
+      "sha256": "48b27ba082656771b5891cfb10222e94609c60ca7a5366d8be2c47e012a5393d",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-generate.unary-term-20.f32le",
+      "sha256": "96992f8b83ae3d03b6e3b687990adfcd73bd3c7f152b1e4564d198a5cb42d4a2",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-prefix.coefficients-term-21.f32le",
+      "sha256": "664ea9c255f33b692c1acf28dcd1c594187ba66b4ec4006b954106e0e7547b25",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-generate.unary-term-21.f32le",
+      "sha256": "1073c53f372720a4cef186e766a497f9d25e5b705e2b7294cd359d37b3cef842",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-prefix.coefficients-term-22.f32le",
+      "sha256": "cb1bf9ae194f11fe8bf7effa568bb8e27703bd1f944087ea567b5069d1baf1dd",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-generate.unary-term-22.f32le",
+      "sha256": "a42dcd6908e97db92628ff2167a92481280ee449951e5dbe036564ff61408d03",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-prefix.coefficients-term-23.f32le",
+      "sha256": "97d69456d917cfe58ba311d9357980db303a426a9a4f44d353c83564d94f96cf",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-generate.unary-term-23.f32le",
+      "sha256": "c169edbf4621f0b994a6147e8da7157df4d8808a84a661144a2bde83e20969b1",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-prefix.coefficients-term-24.f32le",
+      "sha256": "8bc1db79c2fcd6ae0d511b915bf595e8a701c927a00d6b85fed875515410b383",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-generate.unary-term-24.f32le",
+      "sha256": "68704471107dbc8e048a38aa4b7e2e10306fd9dd8000a3cfb039aec9194d8290",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-prefix.coefficients-term-25.f32le",
+      "sha256": "a1eefd7f84803f13179c8f4346dad75a5a40c73d77cec5f792e08f719cf8b4cd",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-generate.unary-term-25.f32le",
+      "sha256": "b5f0b48022bf0aebec2df87a32bccaa426afda87badfe332abafa71049c2bc4c",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-prefix.coefficients-term-26.f32le",
+      "sha256": "a6826058a45eca4c6d1ca26dd5c2258bddd2fa8eb6d9731444c575d32a63571b",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-generate.unary-term-26.f32le",
+      "sha256": "568cc7b676c019e9e7794c609c20e31c79fbc201e0735f7cac1c29c4ba168632",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-prefix.coefficients-term-27.f32le",
+      "sha256": "3985b2ff61ff6c0c85f2b100d43e8987c20b67cd06bb18827f208f0b35ddb46e",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-generate.unary-term-27.f32le",
+      "sha256": "a0fea77ea85b5db22ba1d8deb775cbaf7ac879da20943e024d5e88db12099ee2",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-prefix.coefficients-term-28.f32le",
+      "sha256": "6d1f2dbb5ef2d8abcc0098fb1cd3277ed9cecd925397d20e5142a82411b5e9c2",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-generate.unary-term-28.f32le",
+      "sha256": "db3299e04d0c9f18ca137722ccd330a8127839e872449848d5a05ceb7842eb0c",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-prefix.coefficients-term-29.f32le",
+      "sha256": "209549328796b997d6238d16e27fd06bd81375660cf96d08b00b1ad099f3a9a7",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-generate.unary-term-29.f32le",
+      "sha256": "3742a2c6626f53f792793e79224b87b90ca9ae3d994e38ee8da44c6f95f3c7e3",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-prefix.coefficients-term-30.f32le",
+      "sha256": "1cfa023a1a56c8876f6790f25304635ee2682d17a00e68416af65cf4495486d4",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-gradient-generate.unary-term-30.f32le",
+      "sha256": "ea318e89a2f535941fe25e31bce889d45722cb3eb199a1ee3e169a9b0e311bb4",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-prefix.coefficients-gradient.f32le",
+      "sha256": "9493faf22a1a9b3b7a580d893131a478e3a727f622b48bbf31421118df5d8701",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-prefix.coefficients-initial-master.f32le",
+      "sha256": "1e47a7dff9134d393043a2313a7da50ea234d1b1ae7888d895e3604855ac0fe3",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-generate.unary-gradient.f32le",
+      "sha256": "1ac171335b2bb95f17d4ebab51a4473f2e31b51bfae4c8baa12a6fa8c84e82ac",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-generate.unary-initial-master.f32le",
+      "sha256": "e4aba499c6e9fd109f05a8c609dafec662cf3ff417e6ab681360b3038c2d6ce7",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-population.json",
+      "sha256": "91e492099444d6553db085d2f3de73a9201ebe8915706749c90fa14cc6e2a212",
+      "bytes": 401374
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1/coupled-population.json",
+      "sha256": "441ff58cafb5e7cc993fac36d22f2dd4498bb47e395e40fefe3384b46188150d",
+      "bytes": 238824
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-coordinate-order.json",
+      "sha256": "170a1f05ed2bff3021df6504043f369a4f2e4aabb615dc8bd2c004c6d2eb2cce",
+      "bytes": 403340
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/coupled-construction.json",
+      "sha256": "8bcbe0896fc8befa413eaa2aa144f81f64867e42a2247e1a03800f55f4892f57",
+      "bytes": 42670838
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/checkpoint-0001/prefix/prefix-source-f32.bin",
+      "sha256": "1e47a7dff9134d393043a2313a7da50ea234d1b1ae7888d895e3604855ac0fe3",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/checkpoint-0001/generate-source/generate.unary.f32le",
+      "sha256": "324af524e78be9c34ea297995cca4c1006ce910dcdb5e157913d694861ef2c54",
+      "bytes": 3840
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1/final-trajectory-guards.json",
+      "sha256": "bb2c158ec6c995c17811dc0c4047e94916f9d7081560d3df3a4a081ada1c1be1",
+      "bytes": 109730
+    }
+  ],
+  "script_sha256": "f536e8b5b4612ce52edfbea0e6749b42feb89fdb09f34ca04d5fa406bd4d5720",
+  "seconds": 2.2480751988478005,
+  "peak_rss_bytes": 281378816
+}

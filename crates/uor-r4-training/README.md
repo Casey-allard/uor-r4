@@ -34,8 +34,10 @@ by the existing Generate coordinate pass. It requires fresh `full_pool_utility`
 credit and preserves the combined-loss, seventeen-reference and 380-guard gates.
 All vector trials use one original epoch; a selected trial is restaged and
 verified before atomic commit to retain the existing cache cap. Omission keeps
-the historical adjacent-coordinate policy. No original-parent vector result
-or complete-answer improvement is claimed by its implementation fixtures.
+the historical adjacent-coordinate policy. The [original-parent run](../../docs/labs/prefix-vector-run-2026-10-09/README.md)
+rejects all four Prefix vectors under the unchanged protections. The subsequent
+Generate pass reaches 6/15 conditional positions; it is unselected and does not
+improve the accepted 8/512 complete-answer result.
 
 ## Complete-prefix native dialogue learning
 

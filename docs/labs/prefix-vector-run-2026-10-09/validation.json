@@ -1,0 +1,43 @@
+[
+  {
+    "stage": "build",
+    "argv": [
+      "cargo",
+      "build",
+      "--release",
+      "--locked",
+      "--offline",
+      "-p",
+      "uor-r4-training",
+      "--features",
+      "cuda",
+      "--example",
+      "geometric-frozen-map-fit"
+    ],
+    "exit_code": 0,
+    "seconds": 172.65977263217792,
+    "child_max_rss_bytes": 2205904896
+  },
+  {
+    "stage": "coupled-tests",
+    "argv": [
+      "cargo",
+      "test",
+      "--release",
+      "--locked",
+      "--offline",
+      "-p",
+      "uor-r4-training",
+      "--features",
+      "cuda",
+      "--example",
+      "geometric-frozen-map-fit",
+      "coupled_episode_learning",
+      "--",
+      "--test-threads=2"
+    ],
+    "exit_code": 0,
+    "seconds": 25.779450353700668,
+    "child_max_rss_bytes": 2205904896
+  }
+]

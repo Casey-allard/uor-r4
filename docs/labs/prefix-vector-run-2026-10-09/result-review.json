@@ -1,0 +1,7 @@
+{
+  "status": "PASS_SAVED_RESULT_INTERPRETATION",
+  "reviewer": "emission_math",
+  "scope": "Read saved records only; no model/backward/native replication",
+  "conclusion": "All62 raw gradients and both aggregates bitwise equal to #2069. Four original-gradient vectors lower loss but each violates measured reference or guard constraints; larger vectors offer previously absent corrections while losing retained positions. Final6/15 negative is separate from adjacent9/15 and accepted8/512.",
+  "next": "Prospectively specify protected-constraint-aware joint quantized direction formation; retain all exact native guards; mechanical active sets only. No unchanged radius sweep, guard weakening or negative composition."
+}

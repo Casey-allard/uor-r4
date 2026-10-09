@@ -1,0 +1,457 @@
+{
+  "scope": "Derived saved objective winners, not newly executed model outputs; none accepted",
+  "audit_sha256": "34997f2a1c09f987007ec56793580a940e15ca35af1423acd921c0b67e2af9d1",
+  "population_sha256": "91e492099444d6553db085d2f3de73a9201ebe8915706749c90fa14cc6e2a212",
+  "vectors": [
+    {
+      "radius": 1,
+      "correct_positions": [
+        0,
+        1,
+        2,
+        3,
+        11
+      ],
+      "phases": [
+        {
+          "input_index": 245,
+          "position": 0,
+          "target": 617,
+          "chosen": 617
+        },
+        {
+          "input_index": 245,
+          "position": 1,
+          "target": 2097,
+          "chosen": 2097
+        },
+        {
+          "input_index": 245,
+          "position": 2,
+          "target": 315,
+          "chosen": 315
+        },
+        {
+          "input_index": 245,
+          "position": 3,
+          "target": 1057,
+          "chosen": 1057
+        },
+        {
+          "input_index": 245,
+          "position": 4,
+          "target": 267,
+          "chosen": 307
+        },
+        {
+          "input_index": 245,
+          "position": 5,
+          "target": 307,
+          "chosen": 91
+        },
+        {
+          "input_index": 245,
+          "position": 6,
+          "target": 397,
+          "chosen": 1717
+        },
+        {
+          "input_index": 245,
+          "position": 7,
+          "target": 324,
+          "chosen": 307
+        },
+        {
+          "input_index": 245,
+          "position": 8,
+          "target": 91,
+          "chosen": 307
+        },
+        {
+          "input_index": 245,
+          "position": 9,
+          "target": 2795,
+          "chosen": 397
+        },
+        {
+          "input_index": 245,
+          "position": 10,
+          "target": 770,
+          "chosen": 397
+        },
+        {
+          "input_index": 245,
+          "position": 11,
+          "target": 397,
+          "chosen": 397
+        },
+        {
+          "input_index": 245,
+          "position": 12,
+          "target": 471,
+          "chosen": 307
+        },
+        {
+          "input_index": 245,
+          "position": 13,
+          "target": 16,
+          "chosen": 2795
+        },
+        {
+          "input_index": 245,
+          "position": 14,
+          "target": 1,
+          "chosen": 3329
+        }
+      ],
+      "combined_CE": 4.810593300198,
+      "correct_reference_frames": 17,
+      "first_guard_veto": {
+        "chosen": 291,
+        "guard_index": 173,
+        "required": 315
+      },
+      "guard_status": "FIRST_VETO",
+      "accepted": false
+    },
+    {
+      "radius": 2,
+      "correct_positions": [
+        0,
+        1,
+        2,
+        3,
+        5,
+        11,
+        12
+      ],
+      "phases": [
+        {
+          "input_index": 245,
+          "position": 0,
+          "target": 617,
+          "chosen": 617
+        },
+        {
+          "input_index": 245,
+          "position": 1,
+          "target": 2097,
+          "chosen": 2097
+        },
+        {
+          "input_index": 245,
+          "position": 2,
+          "target": 315,
+          "chosen": 315
+        },
+        {
+          "input_index": 245,
+          "position": 3,
+          "target": 1057,
+          "chosen": 1057
+        },
+        {
+          "input_index": 245,
+          "position": 4,
+          "target": 267,
+          "chosen": 307
+        },
+        {
+          "input_index": 245,
+          "position": 5,
+          "target": 307,
+          "chosen": 307
+        },
+        {
+          "input_index": 245,
+          "position": 6,
+          "target": 397,
+          "chosen": 1717
+        },
+        {
+          "input_index": 245,
+          "position": 7,
+          "target": 324,
+          "chosen": 307
+        },
+        {
+          "input_index": 245,
+          "position": 8,
+          "target": 91,
+          "chosen": 307
+        },
+        {
+          "input_index": 245,
+          "position": 9,
+          "target": 2795,
+          "chosen": 397
+        },
+        {
+          "input_index": 245,
+          "position": 10,
+          "target": 770,
+          "chosen": 2795
+        },
+        {
+          "input_index": 245,
+          "position": 11,
+          "target": 397,
+          "chosen": 397
+        },
+        {
+          "input_index": 245,
+          "position": 12,
+          "target": 471,
+          "chosen": 471
+        },
+        {
+          "input_index": 245,
+          "position": 13,
+          "target": 16,
+          "chosen": 2795
+        },
+        {
+          "input_index": 245,
+          "position": 14,
+          "target": 1,
+          "chosen": 3329
+        }
+      ],
+      "combined_CE": 3.5897934038638346,
+      "correct_reference_frames": 17,
+      "first_guard_veto": {
+        "chosen": 786,
+        "guard_index": 89,
+        "required": 2997
+      },
+      "guard_status": "FIRST_VETO",
+      "accepted": false
+    },
+    {
+      "radius": 4,
+      "correct_positions": [
+        0,
+        1,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        11,
+        12
+      ],
+      "phases": [
+        {
+          "input_index": 245,
+          "position": 0,
+          "target": 617,
+          "chosen": 617
+        },
+        {
+          "input_index": 245,
+          "position": 1,
+          "target": 2097,
+          "chosen": 2097
+        },
+        {
+          "input_index": 245,
+          "position": 2,
+          "target": 315,
+          "chosen": 267
+        },
+        {
+          "input_index": 245,
+          "position": 3,
+          "target": 1057,
+          "chosen": 1057
+        },
+        {
+          "input_index": 245,
+          "position": 4,
+          "target": 267,
+          "chosen": 267
+        },
+        {
+          "input_index": 245,
+          "position": 5,
+          "target": 307,
+          "chosen": 307
+        },
+        {
+          "input_index": 245,
+          "position": 6,
+          "target": 397,
+          "chosen": 397
+        },
+        {
+          "input_index": 245,
+          "position": 7,
+          "target": 324,
+          "chosen": 324
+        },
+        {
+          "input_index": 245,
+          "position": 8,
+          "target": 91,
+          "chosen": 91
+        },
+        {
+          "input_index": 245,
+          "position": 9,
+          "target": 2795,
+          "chosen": 2795
+        },
+        {
+          "input_index": 245,
+          "position": 10,
+          "target": 770,
+          "chosen": 2795
+        },
+        {
+          "input_index": 245,
+          "position": 11,
+          "target": 397,
+          "chosen": 397
+        },
+        {
+          "input_index": 245,
+          "position": 12,
+          "target": 471,
+          "chosen": 471
+        },
+        {
+          "input_index": 245,
+          "position": 13,
+          "target": 16,
+          "chosen": 1717
+        },
+        {
+          "input_index": 245,
+          "position": 14,
+          "target": 1,
+          "chosen": 3329
+        }
+      ],
+      "combined_CE": 2.925994507074501,
+      "correct_reference_frames": 16,
+      "first_guard_veto": null,
+      "guard_status": "NOT_CHECKED_OBJECTIVE_GATE_FALSE",
+      "accepted": false
+    },
+    {
+      "radius": 7,
+      "correct_positions": [
+        1,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      "phases": [
+        {
+          "input_index": 245,
+          "position": 0,
+          "target": 617,
+          "chosen": 267
+        },
+        {
+          "input_index": 245,
+          "position": 1,
+          "target": 2097,
+          "chosen": 2097
+        },
+        {
+          "input_index": 245,
+          "position": 2,
+          "target": 315,
+          "chosen": 267
+        },
+        {
+          "input_index": 245,
+          "position": 3,
+          "target": 1057,
+          "chosen": 1057
+        },
+        {
+          "input_index": 245,
+          "position": 4,
+          "target": 267,
+          "chosen": 267
+        },
+        {
+          "input_index": 245,
+          "position": 5,
+          "target": 307,
+          "chosen": 307
+        },
+        {
+          "input_index": 245,
+          "position": 6,
+          "target": 397,
+          "chosen": 397
+        },
+        {
+          "input_index": 245,
+          "position": 7,
+          "target": 324,
+          "chosen": 324
+        },
+        {
+          "input_index": 245,
+          "position": 8,
+          "target": 91,
+          "chosen": 91
+        },
+        {
+          "input_index": 245,
+          "position": 9,
+          "target": 2795,
+          "chosen": 2795
+        },
+        {
+          "input_index": 245,
+          "position": 10,
+          "target": 770,
+          "chosen": 770
+        },
+        {
+          "input_index": 245,
+          "position": 11,
+          "target": 397,
+          "chosen": 397
+        },
+        {
+          "input_index": 245,
+          "position": 12,
+          "target": 471,
+          "chosen": 471
+        },
+        {
+          "input_index": 245,
+          "position": 13,
+          "target": 16,
+          "chosen": 79
+        },
+        {
+          "input_index": 245,
+          "position": 14,
+          "target": 1,
+          "chosen": 267
+        }
+      ],
+      "combined_CE": 2.236264102679737,
+      "correct_reference_frames": 15,
+      "first_guard_veto": null,
+      "guard_status": "NOT_CHECKED_OBJECTIVE_GATE_FALSE",
+      "accepted": false
+    }
+  ]
+}

@@ -1,0 +1,97 @@
+{
+  "pod": "46kv933tdvfnkp",
+  "status": "RELEASED_AND_DELETED",
+  "events": [
+    {
+      "ts": "2026-10-09T19:58:15Z",
+      "event": "up",
+      "lab": "codex",
+      "session": "sol-prefix-vector-20261009",
+      "pod": "46kv933tdvfnkp",
+      "by": "casey.allard@Caseys-MacBook-Pro",
+      "gpu": "5090",
+      "count": 1,
+      "dc": "EUR-NO-1",
+      "volume": "lmd1pfah3y",
+      "canonical": true,
+      "usd_per_h": 1.19,
+      "purpose": "M2 original-parent four-radius coordinated Prefix run after PR2079",
+      "card": "https://github.com/UOR-Foundation/uor-r4/issues/2030#issuecomment-6088259116",
+      "gpu_choice": "explicit"
+    },
+    {
+      "ts": "2026-10-09T19:58:44Z",
+      "event": "ssh-ready",
+      "lab": "codex",
+      "session": "sol-prefix-vector-20261009",
+      "pod": "46kv933tdvfnkp",
+      "by": "casey.allard@Caseys-MacBook-Pro",
+      "create_to_ssh_s": 29
+    },
+    {
+      "ts": "2026-10-09T20:02:22Z",
+      "event": "bootstrap",
+      "lab": "codex",
+      "session": "sol-prefix-vector-20261009",
+      "pod": "46kv933tdvfnkp",
+      "by": "casey.allard@Caseys-MacBook-Pro",
+      "sha": "cc079744f4824e91a6ad739e2e7cf45c8d374527",
+      "rc": 0,
+      "seconds": 199,
+      "log": "/workspace/uor-r4/pods/bootstrap-46kv933tdvfnkp-20261009T195851Z.log",
+      "local_log": "/Users/casey.allard/.local/share/uor-r4/compute/logs/bootstrap-46kv933tdvfnkp-20261009T195851Z.log",
+      "ollama": "off"
+    },
+    {
+      "ts": "2026-10-09T20:02:35Z",
+      "event": "run",
+      "lab": "codex",
+      "session": "sol-prefix-vector-20261009",
+      "pod": "46kv933tdvfnkp",
+      "by": "casey.allard@Caseys-MacBook-Pro",
+      "gpu": "0",
+      "cmd": "python3 /workspace/uor-r4/codex/sol-prefix-vector-20261009/build-runtime.py",
+      "log": "/workspace/uor-r4/jobs/codex/20261009T200235Z-sol-prefix-vector-20261009-gpu0.log"
+    },
+    {
+      "ts": "2026-10-09T20:07:10Z",
+      "event": "run",
+      "lab": "codex",
+      "session": "sol-prefix-vector-20261009",
+      "pod": "46kv933tdvfnkp",
+      "by": "casey.allard@Caseys-MacBook-Pro",
+      "gpu": "0",
+      "cmd": "python3 /workspace/uor-r4/codex/sol-prefix-vector-20261009/run-prefix-vector.py",
+      "log": "/workspace/uor-r4/jobs/codex/20261009T200710Z-sol-prefix-vector-20261009-gpu0.log"
+    },
+    {
+      "ts": "2026-10-09T20:12:37Z",
+      "event": "run",
+      "lab": "codex",
+      "session": "sol-prefix-vector-20261009",
+      "pod": "46kv933tdvfnkp",
+      "by": "casey.allard@Caseys-MacBook-Pro",
+      "gpu": "0",
+      "cmd": "python3 /workspace/uor-r4/codex/sol-prefix-vector-20261009/run-audit.py",
+      "log": "/workspace/uor-r4/jobs/codex/20261009T201237Z-sol-prefix-vector-20261009-gpu0.log"
+    },
+    {
+      "ts": "2026-10-09T20:14:50Z",
+      "event": "release",
+      "lab": "codex",
+      "session": "sol-prefix-vector-20261009",
+      "pod": "46kv933tdvfnkp",
+      "by": "casey.allard@Caseys-MacBook-Pro"
+    },
+    {
+      "ts": "2026-10-09T20:15:00Z",
+      "event": "down",
+      "lab": "codex",
+      "session": "sol-prefix-vector-20261009",
+      "pod": "46kv933tdvfnkp",
+      "by": "casey.allard@Caseys-MacBook-Pro",
+      "usd_per_h": 1.19,
+      "uptime_s": 983
+    }
+  ]
+}

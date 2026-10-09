@@ -1,0 +1,11 @@
+{
+  "status": "PASS",
+  "package": "codex-prefix-vector-outcome-20261009",
+  "remote": "icloud:UOR-R4/results/codex/codex-prefix-vector-outcome-20261009.tar",
+  "archive_bytes": 66846720,
+  "archive_md5": "44e875f21755e3c298ea8b4a49a64a49",
+  "tool_roundtrip": true,
+  "fresh_streamed_md5_match": true,
+  "index_match": true,
+  "index_timestamp_utc": "2026-10-09T20:14:43Z"
+}

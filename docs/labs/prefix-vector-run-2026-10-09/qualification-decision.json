@@ -1,0 +1,47 @@
+{
+  "schema": "uor-r4.prefix-vector-actual9-config-decision/1",
+  "candidate_report_sha256": "4bf46fa4810b1b2b647c1acca259a8f1a2fed5bc9c16bdc0f9ad68572f5a066d",
+  "candidate_manifest_sha256": "254e017c9e1cf80602abed971791599af0b16fd733f5bf0cdf48e712ef596b54",
+  "model_source_commit": "cc079744f4824e91a6ad739e2e7cf45c8d374527",
+  "binary_sha256": "a02a7452ade26e3ca7eca67746a68c88a5b5231f75a21c1eb007b9add9f0038d",
+  "model_config_sha256": "b13e13675dfc871f6517ad00ed522fe5878252e0f262bfb7228ae8dd5eb751cf",
+  "verification": [
+    {
+      "root": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1",
+      "argv": [
+        "/workspace/uor-r4/codex/sol-intermediate-word-boundary/publications/runtime-76e10b53f7-attempt2/native-reached-prefix-attribution",
+        "verify-report",
+        "/workspace/uor-r4/codex/sol-prefix-vector-20261009/runs/prefix-vector-0001-attempt1"
+      ],
+      "exit_code": 0,
+      "seconds": 1.1759104961529374,
+      "stdout": "",
+      "stderr": "",
+      "manifest_sha256": "254e017c9e1cf80602abed971791599af0b16fd733f5bf0cdf48e712ef596b54"
+    },
+    {
+      "root": "/workspace/uor-r4/codex/sol-prefix-vector-20261009/observations/prefix-vector-0001-attempt1",
+      "argv": [
+        "/workspace/uor-r4/codex/sol-intermediate-word-boundary/publications/runtime-76e10b53f7-attempt2/native-reached-prefix-attribution",
+        "verify-report",
+        "/workspace/uor-r4/codex/sol-prefix-vector-20261009/observations/prefix-vector-0001-attempt1"
+      ],
+      "exit_code": 0,
+      "seconds": 0.012285511940717697,
+      "stdout": "",
+      "stderr": "",
+      "manifest_sha256": "969744435ea07c146f8e5b32095c8bcaa1a0678bfad3d5cb4e2931a9ce55c037"
+    }
+  ],
+  "verifier_sha256": "d90411116c702dc4149fc055706f34c276c1ead29c5b0ec95600c30cc976326d",
+  "actual9_executed": false,
+  "canonical": "NOT_RUN",
+  "full512": "NOT_RUN",
+  "arithmetic_audit_prerequisite": false,
+  "donor_credit": "full_pool_utility",
+  "prefix_transaction": "gradient_vector_prefix",
+  "runtime_revision": "f3aebf0ce691af27a4f24f6fdcc912dd06fc5657",
+  "runtime_identity_sha256": "ab4279d7627e998c294416744d2816d9b89fb02423aeeba2be655f18c134818e",
+  "status": "NOT_RUN_CONSTRUCTION_NEGATIVE",
+  "cheap9_config_written": false
+}

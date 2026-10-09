@@ -38,6 +38,10 @@ A native fixture establishes an arithmetic or transaction boundary; it is not a 
 
 The [verified iCloud package](preservation.json), `codex-prefix-vector-transaction-20261009`, retains source snapshots, pre-integration and integrated runtimes, the initial failed check, all passing checks, reviews and a pre-delivery record snapshot. Its 38,397,440-byte archive has MD5 `a7bb4d42eff2272e7407d492c9c89f82`; a fresh remote read and the index agree. Final source and documentation are authoritative on main. [PR #2079](https://github.com/UOR-Foundation/uor-r4/pull/2079) retains the exact-head validation, verified merge and final cleanup/cumulative-cost receipt.
 
-## Next
+## Follow-up
+
+The [original-parent run](../prefix-vector-run-2026-10-09/README.md) completed: all four Prefix vectors were rejected by unchanged protections; the final candidate reaches6/15 and is unselected. Implementation-stage NOT_RUN statements above retain their dated scope.
+
+## Next (historical)
 
 After verified merge and cleanup, admit one original-parent vector run with a complete resource projection and exact data/config/executable identities. Retain the fixed four radii, complete episode and all protections; compare offered crossings, CE rejection, first guard veto and accepted changes against the retained adjacent-policy result. A positive complete conditional gate immediately triggers actual-artifact whole-answer/EOS qualification. A negative remains a bounded result of this finite policy and must change the next causal question; it does not authorize an unchanged larger sweep.

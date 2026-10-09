@@ -1,0 +1,16 @@
+{
+  "before": {
+    "cumulative_ms": 1436511250,
+    "limit_ms": 1441800028
+  },
+  "after": {
+    "cumulative_ms": 1436511250,
+    "limit_ms": 1449000028
+  },
+  "increment_ms": 7200000,
+  "recorded_utc": "2026-10-09T19:58:12.736643+00:00",
+  "claim": "https://github.com/UOR-Foundation/uor-r4/issues/2030#issuecomment-6088259116",
+  "authority": "standing owner local extension and approved uor-pod caps",
+  "projection_seconds": 7200,
+  "lab_cumulative_projection_seconds": 664170
+}

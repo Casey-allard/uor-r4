@@ -1,0 +1,133 @@
+{
+  "schema": "uor-r4.prefix-vector-run-resource/1",
+  "complete_accounting_start_utc": "2026-10-09T19:55:52.221528+00:00",
+  "start_scope": "Previous charge cutoff; includes its final preservation/publication tail and this piece preparation without a gap or double charge.",
+  "claim": "https://github.com/UOR-Foundation/uor-r4/issues/2030#issuecomment-6088259116",
+  "complete_projection_seconds": 7200,
+  "lab_cumulative_projection_seconds": 664170,
+  "cpu_workers": 2,
+  "pod_process_ram_bytes": 8589934592,
+  "pod_new_storage_bytes": 12884901888,
+  "local_new_storage_bytes": 2147483648,
+  "local_retained_bytes": 536870912,
+  "stop_margin_bytes": 134217728,
+  "local_floor_bytes": 32212254720,
+  "gpu": {
+    "pod": "46kv933tdvfnkp",
+    "session": "sol-prefix-vector-20261009",
+    "lab": "codex",
+    "count": 1,
+    "type": "RTX5090",
+    "rate_per_hour_usd": 1.19,
+    "lease_hours": 2
+  },
+  "bootstrap": {
+    "seconds": 196,
+    "cold_build_seconds": 133,
+    "parity_seconds": 46,
+    "parity_passed": 37,
+    "parity_ignored": 3,
+    "note": "Tool-managed bootstrap used15 build workers; scoped learner build/test and model supervision use2. Bootstrap compatibility parity is not a language result."
+  },
+  "build_and_tests": [
+    {
+      "stage": "build",
+      "argv": [
+        "cargo",
+        "build",
+        "--release",
+        "--locked",
+        "--offline",
+        "-p",
+        "uor-r4-training",
+        "--features",
+        "cuda",
+        "--example",
+        "geometric-frozen-map-fit"
+      ],
+      "exit_code": 0,
+      "seconds": 172.65977263217792,
+      "child_max_rss_bytes": 2205904896
+    },
+    {
+      "stage": "coupled-tests",
+      "argv": [
+        "cargo",
+        "test",
+        "--release",
+        "--locked",
+        "--offline",
+        "-p",
+        "uor-r4-training",
+        "--features",
+        "cuda",
+        "--example",
+        "geometric-frozen-map-fit",
+        "coupled_episode_learning",
+        "--",
+        "--test-threads=2"
+      ],
+      "exit_code": 0,
+      "seconds": 25.779450353700668,
+      "child_max_rss_bytes": 2205904896
+    }
+  ],
+  "input_verification_seconds": 10.875332857016474,
+  "model": {
+    "exit_code": 0,
+    "started_utc": "2026-10-09T20:07:10.822756+00:00",
+    "ended_utc": "2026-10-09T20:12:12.226080+00:00",
+    "elapsed_seconds": 301.403367606923,
+    "children_max_rss_kib": 2710724,
+    "binary_sha256": "a02a7452ade26e3ca7eca67746a68c88a5b5231f75a21c1eb007b9add9f0038d",
+    "config_sha256": "b13e13675dfc871f6517ad00ed522fe5878252e0f262bfb7228ae8dd5eb751cf",
+    "lane": "cuda-learning"
+  },
+  "paid_compute_scope": "approved uor-pod GPU class; no new spending class",
+  "orchestration": {
+    "status": "MODEL_AND_CONDITIONAL_QUALIFICATION_FINISHED",
+    "source_commit": "cc079744f4824e91a6ad739e2e7cf45c8d374527",
+    "started_utc": "2026-10-09T20:07:10.635779+00:00",
+    "seconds": 303.18351094285026,
+    "construction_report_sha256": "4bf46fa4810b1b2b647c1acca259a8f1a2fed5bc9c16bdc0f9ad68572f5a066d",
+    "construction_manifest_sha256": "254e017c9e1cf80602abed971791599af0b16fd733f5bf0cdf48e712ef596b54",
+    "actual9": "NOT_RUN_CONSTRUCTION_NEGATIVE",
+    "actual9_config_decision": "NOT_RUN_CONSTRUCTION_NEGATIVE",
+    "independent_saved_audit": "NOT_RUN",
+    "full512": "NOT_RUN"
+  },
+  "saved_audit": {
+    "exit_code": 0,
+    "error": null,
+    "seconds": 6.440147278830409,
+    "child_max_rss_bytes": 281378816,
+    "reader_sha256": "f536e8b5b4612ce52edfbea0e6749b42feb89fdb09f34ca04d5fa406bd4d5720"
+  },
+  "outcome_preservation": {
+    "status": "PASS",
+    "source_commit": "cc079744f4824e91a6ad739e2e7cf45c8d374527",
+    "revision": "b1192489b94d06811948fe7e8ac13e3482050cf4",
+    "prefix": "codex/sol-prefix-vector-20261009/outcome-prefix-vector-0001-attempt1",
+    "all_fresh_download_verified": true,
+    "full_archive_inventory_verified": true,
+    "files": {
+      "identity.json": {
+        "sha256": "9441333ece03ff341b7e1ba187bcd721313dec0a98756888c0a5f4ff4bce5383",
+        "bytes": 115961
+      },
+      "outcome.tar.gz": {
+        "sha256": "8bd694a0e8a698f3d5ecffd2bc09f631982ec50718747a562467c0382fa66e4b",
+        "bytes": 66721419
+      }
+    },
+    "uncompressed_bytes": 375108296,
+    "archived_files": 599,
+    "seconds": 25.931670878082514,
+    "selected_model": false,
+    "scope": "NOT_RUN_CONSTRUCTION_NEGATIVE",
+    "selection": "NOT_PERFORMED_BY_PRESERVATION"
+  },
+  "pod_uptime_seconds": 983,
+  "approximate_gpu_cost_usd": 0.3249361111111111,
+  "pod_closeout": "pod-closeout.json"
+}
