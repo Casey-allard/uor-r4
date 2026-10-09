@@ -238,3 +238,53 @@ any candidate is selected: `chat-grade check` with
 argument, reporting `check_pass` and `acceptable` per category with the failures named. Until
 that number exists, criterion 1 is unmeasured, and after the first reply v5 becomes development
 evidence exactly as v4 did.
+
+## Structural validation by the frozen binary — RUN AND PASSED (2026-10-09, after merge)
+
+The panel round could not run `chat-grade check` because the Lead's brief prohibited `chat-grade`
+outright. That prohibition was WRONG: `check` is a STRUCTURAL validation with no model - it runs the
+panel's context/turn check against a tokenizer and validates the row checks. It has now been run on a
+release binary built from main `7d7cb5492`, and it passes.
+
+    chat-grade check requests=data/panels/conversational-v5.json \
+      checks=data/panels/conversational-v5-checks.tsv tokenizer=<ladder tokenizer.json>
+
+Two argument facts worth recording, because both cost a step to discover: the subcommand takes
+`requests=`, NOT `panel=`, and it takes no `out=`.
+
+Result, verbatim highlights:
+
+    check_panel                        pass
+    requests 64   multi_turn 52   context 384   max_new_tokens 64   excluded 0
+    categories                         multi_turn_memory 40, unknowable_or_impossible 24
+    checked_rows_by_category_and_kind  multi_turn_memory/exact 40, unknowable_or_impossible/abstain_exact 24
+    checks_without_loaded_request      []          (no orphan checks)
+    checks sha256                      737c4dfd5a65fe49c207afe40e88bf354c7cf9dd45fa173c54e639bb0aa0dbc8
+    worst_case_history                 conv-v5-mem-031, 358 positions (inside the 384 context)
+
+The `checked_rows_by_category_and_kind` line is the one that matters operatively: EVERY row is checked,
+so the `checks=` requirement is satisfied and no row is silently unchecked. And `worst_case_history` is
+the context/token-position check this record previously listed as outstanding.
+
+Check-only controls, all as designed: expected_value 40/40 (bare expected spelling passes);
+binding_swap 0/40 (every swap fails); echo_last 0/40; echo_history 0/40; copy_first_stated 20/40 and
+copy_last_stated 20/40 (neither copy control vacuous); memory constants 0/0/0 of 40; unknowable
+constants 24/0/0 of 24 - the abstention constant passes all 24, which is what makes a model scoring
+below the constant visible; adversarial abstentions 0 in both categories; unknowable expected_value
+0/0 (no expected values on abstention rows).
+
+STATUS CHANGE: the panel is no longer "ready, conditionally". It is drawn, sealed, novel,
+provenance-recorded, control-verified and STRUCTURALLY VALIDATED BY THE FROZEN BINARY, with no model
+having replied to any v5 request. Criterion 1 is still NOT met and cannot be until a candidate runs the
+frozen acceptance once, declared in advance.
+
+## The declared acceptance run (stated now so it cannot be improvised later)
+
+    chat-grade grade-replies out=NEW_REPORT_ROOT replies=<candidate replies.json> \
+      checks=data/panels/conversational-v5-checks.tsv
+    # then read check_pass per category, with EVERY failing row named
+
+Target: >= 34 of the 40 multi_turn_memory rows at `check_pass`. `acceptable` and judge-changed rows are
+secondary and non-gating, because the judge is not deterministic (4 of 64 rows differed at the same
+digest in the v4 work). The run is declared ONCE and happens ONCE: the first model that replies to v5
+makes it development evidence exactly as v4 became.

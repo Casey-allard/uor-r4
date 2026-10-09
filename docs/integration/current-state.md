@@ -1,3 +1,25 @@
+## 2026-10-09 — conversational-v5 panel: structurally validated by the frozen binary (deepseek, #2029)
+
+The v5 held-out memory acceptance panel is now VALIDATED, not conditionally ready. `chat-grade check` on a
+release binary from main `7d7cb5492` returns `check_panel: pass` with 64 requests, 52 multi-turn, context
+384, EVERY row checked (`multi_turn_memory/exact` 40, `unknowable_or_impossible/abstain_exact` 24), no
+orphan checks, the checks file at sha256 `737c4dfd...`, and the context/token-position worst case
+`conv-v5-mem-031` at 358 positions inside 384. All check-only controls behave as designed: expected_value
+40/40, binding_swap 0/40, echo_last and echo_history 0/40, copy_first and copy_last 20/40 each, memory
+constants 0/0/0, unknowable constants 24/0/0, adversarial abstentions 0.
+
+The panel round could not run this because the Lead's brief prohibited `chat-grade` outright; that was
+wrong - `check` is a structural validation with NO model. Recorded so the prohibition is not repeated.
+Also recorded: the subcommand takes `requests=`, not `panel=`, and no `out=`.
+
+Criterion 1 is still NOT met. The acceptance run is declared in advance in the panel record:
+`chat-grade grade-replies ... checks=data/panels/conversational-v5-checks.tsv`, read check_pass per
+category with every failing row named, target >= 34 of 40 memory rows. It happens ONCE; the first model
+that replies makes v5 development evidence exactly as v4 became.
+
+Next: run the declared acceptance once a candidate exists, and only then; and land the criterion-2
+protocol/float attribution from the bpb-split piece.
+
 ## 2026-10-09 — Frozen held-out acceptance panel `conversational-v5*` for criterion 1 (deepseek, #2029)
 
 Acceptance criterion 1 of #2029 is `≥ 34/40` `check_pass` on the chat-grade v4 memory panel, and that panel is
