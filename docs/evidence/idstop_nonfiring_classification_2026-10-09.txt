@@ -136,6 +136,10 @@ REPRODUCING THIS ROUND (and the 72/84 result it classifies)
     sha256 of the built driver: 56ebcae040dd2dabe8791bf89ec6d7685e13ae1dee3bc07bd380017cff2974f6
   Two concurrent builds of this example deadlock the rustup component sync (both write the
   same .partial path); build once, serially, before starting parallel GPU jobs.
+  On the owner's laptop checkout, `cargo` fails with `Not a directory (os error 20)` because
+  ~/uor-r4/target is a symlink to an unmounted volume: set CARGO_TARGET_DIR=/tmp/<dir> (and
+  use the rustup-managed ~/.cargo/bin/cargo, not the cargo-ai wrapper on PATH). The failure
+  reads like a broken tree and is not.
 
   RUN (one process per condition; device=cuda; the trace run of this round):
     $B model=$W/arm-ptr/model tokenizer=$D/tokenizer.json rows=$P/rows_rate_natural.json \
@@ -146,13 +150,60 @@ REPRODUCING THIS ROUND (and the 72/84 result it classifies)
   the default-unchanged proof (run on all three arms: arm-ptr/model,
   ptrident/arm-a-w05/model, ptrident/arm-c-ctrl/model).
 
-  SCORE (laptop CPU, no GPU):
-    python3 score.py check                      the parser self-check on the sealed files
-    python3 score.py classify grid::rate-arm-ptr-f0.5-ident
-    python3 score.py simcheck trace::trace-arm-ptr-f0.5-ident    the offline rule replay
-    python3 score.py report  trace::trace-arm-ptr-f0.5-ident     the 2x2 + class counts
-    python3 score.py reasons trace::trace-arm-ptr-f0.5-ident     the (d) breakdown
-    python3 crosschecks.py ; python3 turn1check.py
-  Field-for-field default comparison: python3 compare_records.py (each pair is
-  sealed.json=new.json). score.py, crosschecks.py, turn1check.py, compare_records.py and
-  the runs live on the volume under bindprobe/idstop3/ and bindprobe/idstop/.
+  SCORE (laptop CPU, no GPU; the four scripts live in scripts/ on main):
+    python3 scripts/idstop-score.py check          the parser self-check on the sealed files
+    python3 scripts/idstop-score.py classify rate-arm-ptr-f0.5-ident   the sealed 2x2
+    python3 scripts/idstop-score.py simcheck trace-arm-ptr-f0.5-ident  the offline rule replay
+    python3 scripts/idstop-score.py report  trace-arm-ptr-f0.5-ident   the 2x2 + class counts
+    python3 scripts/idstop-score.py reasons trace-arm-ptr-f0.5-ident   the (d) breakdown
+    python3 scripts/idstop-crosschecks.py          class x 2x2, firing anatomy, reply identity
+    python3 scripts/idstop-turn1check.py           turn-1 window changes
+  Field-for-field default comparison: python3 scripts/idstop-compare-records.py with each
+  argument of the form sealed.json=new.json. The scripts and the runs live on the volume
+  (rfsx702p68) under bindprobe/idstop3/ and bindprobe/idstop/; nothing but the scripts and
+  this file is in git.
+
+REPRODUCING THE CLASSIFICATION (instrument -> runs -> scripts -> numbers, all from main)
+  The chain is: this file's driver (crates/uor-r4-training/examples/bind-probe-exact.rs) is
+  built as above and run with the RUN line; the four scorer scripts are in scripts/; the
+  inputs and the outputs are on the EU-RO-1 volume rfsx702p68 = uor-shared-EU-RO-1. With
+  W=/workspace/uor-r4/deepseek/term-weight the scripts default to the right places (--work
+  defaults to $IDSTOP_WORK, else W); point --work/--rate/--ptrident/--grid/--round at a
+  mirror to run anywhere else. A bare tag resolves against --round/trace, --round/default,
+  --grid, --rate, --ptrident in that order; DIR::TAG forces a directory.
+  FILE MAP (the scratch names of this round -> the names landed in scripts/):
+    score.py -> scripts/idstop-score.py, crosschecks.py -> scripts/idstop-crosschecks.py,
+    turn1check.py -> scripts/idstop-turn1check.py,
+    compare_records.py -> scripts/idstop-compare-records.py.
+  The scratch copies hardcoded a /tmp/idstop3 mirror; the landed copies take --work and the
+  four directory options (defaults = the volume layout above) and resolve bare tags, so they
+  run standalone on the pod or against any mirror.
+  ORDER, and the value each step must print:
+   1. scripts/idstop-score.py check
+        PARSER-CHECK PASS; arm-ptr 35/84 with channels 0.5149/0.8351/0.5610/0.4901;
+        arm-a-w05 10/84; arm-c-ctrl 24/84. Run this BEFORE any new number.
+   2. scripts/idstop-score.py simcheck trace-arm-ptr-f0.5-ident
+        SIM-CHECK PASS: fire 84 agree / 0 differ; fired-span 23 agree / 0 differ. This proves
+        the offline replay of CopyStopRun matches the recorded rule on every cell, which is
+        what licenses the reason counts below.
+   3. scripts/idstop-score.py report trace-arm-ptr-f0.5-ident
+        exact 72/84; 2x2 20 / 3 / 52 / 9; FIRINGS 23/84 (21 fully inside the value span, 1
+        fully outside); A 5/84, B 71/84, C 8/84, D/E 0/84; truncation-recoverable 0/84.
+   4. scripts/idstop-score.py reasons trace-arm-ptr-f0.5-ident
+        (d) 9 cells, present 5/9; 4 class A and 5 class C; 0 recoverable.
+   5. scripts/idstop-score.py classify rate-arm-ptr-f0.5-ident
+        the same 2x2 from the sealed grid file, bit-identical to step 3 (the trace run's head
+        must read pointer_gate_floor=0.5, pointer_copy_stop=2, pointer_copy_stop_identity=1).
+   6. scripts/idstop-crosschecks.py and scripts/idstop-turn1check.py
+        class x 2x2, 56 of 61 non-firing cells byte-identical to the same floor without the
+        stop, 5 differing through turn 1, and HOW THE REPLY ENDED
+        {('fire','no_run'): 23, ('eos','run_alive'): 61}.
+   7. scripts/idstop-compare-records.py with the nine SEALED=default pairs
+        SEALED-COMPARE PASS: 288 records, 0 differing fields on 9 of 9 files.
+  HONEST LIMITS: the scripts need the volume data (the rows, the sealed runs, the grid, this
+  round's trace/ and default/ runs) -- none of that is in git, and each script's header
+  records the volume path (rfsx702p68 = uor-shared-EU-RO-1). The scripts have no third-party
+  dependencies (standard library only) and were checked with python3 -m py_compile; the
+  scorer's own output was re-verified against these numbers after the path plumbing was made
+  argument-driven. `scripts/__pycache__/` is deliberately NOT committed: the repo root does
+  not ignore it and this round did not add a root .gitignore convention.
