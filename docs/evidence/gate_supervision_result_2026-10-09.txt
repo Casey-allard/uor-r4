@@ -1,0 +1,58 @@
+UOR-R4 — Gate supervision raises the gate (0.26 -> 0.42) but degrades the panel: the gate was necessary, not sufficient
+Date: 2026-10-09 (overnight rounds 174-175). DeepSeek session. References #820.
+
+WHAT RAN
+  The intervention the verification named: pointer_gate_supervision=1.0 added to the pointer arm's
+  configuration (pointer=32, dot score) on the content-copy mixture with UOR_COMMITMENT_SPAN=3,
+  UOR_COMMITMENT_WEIGHT=100 and UOR_TERMINAL_WEIGHT=30, 19,929,136 parameters, 12,207 steps. The
+  interface was read before the run: pointer_gate_supervision is a SCALAR loss weight (default 0 = off),
+  not a file, so no new format was needed.
+
+THE GATE DID RISE, AND STAYED UP
+  mean gate: 0.2644 without supervision -> 0.4638 early in this run, settling at 0.4164 at step 12,207
+  (0.4113 / 0.4034 / 0.4266 / 0.4243 / 0.4220 / 0.4164 across the last six readings). A dedicated
+  supervised term reported as dev_gate_bce 0.6489 early. So the lever worked on its own variable: the
+  copy gate is now materially higher than in the arm whose weak gate (0.07-0.11 on the ana cells,
+  0.60-0.99 on the rows that copied whole spans) was identified as the binding bottleneck.
+
+THE PANEL REGRESSED
+    "I do" appears on SIX of fifteen items, and "The sky" returns for the yes/no sky item where the
+    ungated pointer arm and several earlier arms complied. "1. Another", "1. Lated", "Sure, I'm",
+    "It's generally" and "The capital" do not comply, and the only short in-form items are " Peru."
+    (a store-family country) and an item whose turn-1 reply is " Ana.".
+
+  AND I AM NOT CLAIMING THAT " Ana." THIS TIME. The previous round's verification showed exactly this
+  panel position is a TURN-1 ECHO rather than the retention answer, and the emitted-value test must be
+  run through the probe on values that exist in no store family before any such claim. Reading it again
+  as a retention result would repeat the error that was corrected one round ago.
+
+WHAT THIS ESTABLISHES
+  1. THE GATE WAS NECESSARY BUT IS NOT SUFFICIENT. Raising it by roughly 60 % did not produce the
+     answer, and it cost compliance on classes that had been working: six "I do" replies and the return
+     of "The sky". So the identity mixture (1-gate)*generator + gate*attention is not fixed by gate
+     strength alone at this supervision weight, and the supervision term competes with the response loss
+     enough to degrade the form classes.
+  2. THE PRE-REGISTERED PREDICTION IS THEREFORE PARTLY FALSIFIED. The prediction was that a gate in the
+     0.6-1.0 band would let the ana row copy the span. The gate reached only 0.42 (it did not enter that
+     band) and the panel degraded - so neither the success branch nor a clean failure branch was reached;
+     the honest statement is that the supervision weight chosen (1.0) is too strong for the mixture and
+     too weak to lift the gate into the copying band.
+  3. THE NEXT TEST IS A WEIGHT SWEEP, NOT A NEW MECHANISM: gate supervision at a LOWER value (0.1, 0.3)
+     would show whether the gate can be lifted toward 0.6 without the response-loss degradation, which
+     is the same dose discipline that made the terminal-weight and commitment-weight curves informative;
+     and the probe's seven rows with the emitted-value check must accompany every reading.
+  4. WHAT REMAINS SOLID FROM THE PREVIOUS ROUND: value-driven copying on out-of-family values
+     (" Zorba.", " Quillon.", " Anvil.", " Ben.") at DELTA +3.85 to +10.39 nats with pointer mass
+     0.90-1.00 on the value span in 9 of 21 cells - that result came from the arm WITHOUT gate
+     supervision and is unaffected by this one.
+
+HONEST POSITION
+  A negative for gate supervision at weight 1.0, recorded as such: the lever moved its own variable and
+  damaged the panel. It narrows the search rather than closing it, and it leaves the previous round's
+  value-driven copying result intact. The night's solved result (ten of ten form compliance on the
+  demand-store configurations; 0.93277 bits/byte served) is unaffected.
+
+SCOPE
+  One gate-supervision weight, one mixture, one shape, single seed, greedy decoding, one panel read as
+  the first two content tokens. The panel regression is exact for this panel; no probe rows were run on
+  this checkpoint, which is required before any emitted-value claim.
