@@ -1,0 +1,27 @@
+[
+  {
+    "path": "/Users/casey.allard/.codex/worktrees/astra-joint-credit/uor-r4",
+    "head": "c65157b33ac1026ee7fc21b085193e8870bda15f",
+    "status": "REMOVED_CLEAN_PRESERVED"
+  },
+  {
+    "path": "/Users/casey.allard/uor-r4/.worktrees/bf16-phase1",
+    "head": "44608ba283741905a3b2905a964370671665d6e5",
+    "status": "REMOVED_CLEAN_PRESERVED"
+  },
+  {
+    "path": "/Users/casey.allard/uor-r4/.worktrees/bf16-phase2a",
+    "head": "b2a149945081c9686a7b136a4c029a2c2e9425ae",
+    "status": "REMOVED_CLEAN_PRESERVED"
+  },
+  {
+    "path": "/Users/casey.allard/uor-r4/.worktrees/bf16-phase2b",
+    "head": "f917318e344390f36e62a967cef7fcc7209f1dec",
+    "status": "REMOVED_CLEAN_PRESERVED"
+  },
+  {
+    "path": "/Users/casey.allard/uor-r4/.worktrees/delta-rule-memory",
+    "head": "00efb6900df23ced83e3a0e3d8fb2259f513a6a6",
+    "status": "REMOVED_CLEAN_PRESERVED"
+  }
+]

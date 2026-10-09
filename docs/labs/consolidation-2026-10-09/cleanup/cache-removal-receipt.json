@@ -1,0 +1,3635 @@
+{
+  "utc": "2026-10-09T13:16:26.255044+00:00",
+  "entries": [
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-0CrAMT",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-0DvvQe",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-0f2euO",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-0ffLz4",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-0i7u6Q",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-0jCpdM",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-0jmOo1",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-0tZ3r6",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-0yCbjk",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-13V0mZ",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-16KYgr",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-1C9t7D",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-1Cgzxv",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-1Gbuy2",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-1U9okk",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-1USvB3",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-1ZBZEC",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-1ZErG7",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-1k7A11",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-1otSPC",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-20qwsv",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-26FYOM",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-29ZgXb",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-2PNq0A",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-2bEZiG",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-2kGVw8",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-2oiK1d",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-2sj4SZ",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-2wVJyJ",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-2zFjp0",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-35yxPi",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-3B9WDg",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-3GMhGV",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-3I6lrI",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 171257856
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-3JunRI",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 149721088
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-3Nrlsc",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-3qJLjd",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-3sGrTt",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-3sHRFW",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 181051392
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-3uSQtA",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-3xypfl",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-40wCq0",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-47JO7V",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-4HZgHP",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-4N5P0c",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-4PPDd2",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-4Qv3VB",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-4VtxzW",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-4X8csj",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-4X9AxH",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-4Z2bK1",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-4bUee0",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-4mmGl0",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-51mMAE",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-52LfbH",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-56IwhL",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-5BlMBH",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-5CsvBl",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-5FohuL",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-5GkY3J",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-5NblgS",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-5NrMYU",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-5PWQ78",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-5Yqez3",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-5eBgzf",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-5kftFN",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-5riqPg",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-60xr10",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-63wjw6",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 191959040
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-69sP7l",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-6Ik5xB",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-6OZWiY",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-6RX7Eq",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-6ezZpc",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-6jJMbd",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-6kWrAo",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-6q87RI",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-6y7XD5",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-72V0S3",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-73gxiW",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-74p9rW",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-7L6eY9",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-7NNfKl",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-7Uquwc",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-7WQyBd",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-7iDxoZ",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-7pWW7D",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-82TsCQ",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-84uVp5",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-85176h",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-8BbsK1",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-8GYlnS",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-8JWOGQ",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-8Mg3lJ",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-8UjkcH",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-8dQTr5",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-8hMus1",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-8qtcxD",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-8thPfh",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-93MGe1",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-99wvQp",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-9C01qZ",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-9E7Ivl",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-9Ghb2k",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-9L35ZA",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-9O3DmV",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-9U7SAt",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-9UVWtX",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-9YBDMp",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-9ePzmv",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-9ghZuh",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-9hb7xb",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-9obW7R",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-A4ldId",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-A7FfsA",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-ANQ5lz",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-ASaUu7",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-AVZO22",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-AY9TmQ",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-AYmzCF",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-AYwYvc",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-AbK1sh",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-AeH1Xm",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-Af9fT6",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-AjWvni",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-AjsHY2",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-AnwIUS",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-Aqzhst",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-Ar7cgg",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-B1ZKEk",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-B5IvOz",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-B8g13y",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-BBmf1h",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-BIpQtE",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-BV70s5",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-Baw8hS",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-BcD3H4",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-BdLudq",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-BdWSAE",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-BdZEg8",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-Bl13Ih",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-BrqDoh",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-BxtNXy",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-C1cgR9",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-CBfe1J",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-CNcTRm",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-CSHj0f",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 125947904
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-Cb0Sl7",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-Cbu9WB",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-CeO1DN",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-CgRzCm",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-CgkVvI",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-D57BYQ",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-DCHEEq",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-DD46ec",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-DIulzi",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-DLSpb8",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-DYcSMB",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-DaaSfh",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-DbCa6i",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-E2PWgQ",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-E3Mk8d",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-E5UmEz",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-EAY8BX",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-EKjeVq",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-ER3ajR",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-EVYvzh",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-EZK7GM",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-Ep9AHb",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-Eul6Rz",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-F0tkeM",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 121745408
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-F0yTAP",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-F6n8sz",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 187486208
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-F9jxs4",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-FFwjUl",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-FLfOOz",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-FMI3W8",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-FOZhxh",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-FfAxj2",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-FftCk4",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-FgeU2e",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-Fh5Chr",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-FlKQqW",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-FlcVl7",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-Fopvb3",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-FrWsJt",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-FvKpsW",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-FyN94E",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-FzrM45",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-G2AZ7N",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-G68JqY",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-G7xYJU",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-GOlGHT",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-GQQyjM",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-GQpJKp",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-Gco4R8",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-GiSQUK",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-GkYEuV",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 145813504
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-GmFfmT",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-Gn4XBd",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-Go8pyt",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-GsR7co",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-GvUCiG",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-GzZi4W",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-H9iLLH",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-HGGHdV",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-HQ6C4n",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-HSZLSw",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-HViwNN",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-HZBKWz",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-He3VEP",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-HiWuC0",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-HisAR4",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-Hj9FHY",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-HmCTom",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-HoCZJH",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-HoE5jO",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-HqjAyP",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-HrmLh5",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-Ht030W",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-HyeYJH",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-I670ir",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-IAqGG2",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-IBqQ1g",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-IGQoKh",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-IGvU4d",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-IJu03y",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-IUXmcC",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-IWyd1E",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-IYcCiZ",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-IbQgnV",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-Ij9MN5",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-J2wZeC",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-JBqszf",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-JJFZK5",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-JMHqW4",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-JPWhVN",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-JYiBfT",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-JZ4elY",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-JdWzui",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-JmmWAx",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 130211840
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-JpxPVs",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-JuTYZ1",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-K1M9EK",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-KLVLq5",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-KVsdUW",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-KXGK0B",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-KhleZD",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 169275392
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-Khp0Aa",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-Ki1oao",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-KoCDHE",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-KoGdd3",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-KqOovI",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-KzksaY",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-L4SdLo",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-L9kzl6",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-LFGSHr",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-LFHtIZ",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-LLiROb",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-LLz3Cn",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-LSkYvf",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-LbiNZ5",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-LvnqBw",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-Lx752o",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-Lx7p5q",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 125534208
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-Lydqkn",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-M59FaD",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-M6X9n4",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-MLbRfB",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-MXoMUa",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-Mbnemb",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-MeTMmG",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-NJ96gH",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-NMJzeX",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-NNL4oi",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-NPqS8Q",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-NahxBI",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-NmaPXe",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-NsZdAQ",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-NuCHSk",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-O2E16v",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-O5jJfW",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-OU5z7F",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-OpV9ft",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-OuwdIB",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-OyhItK",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-P0qyjp",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-P4aB8h",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-PGK9mk",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-PJuBlh",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-PLq81p",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-PMN2Dk",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-PU9f4w",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-PUfNfp",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-PaO3Lm",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-Pj7yIU",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-PsH8gj",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-Q5dYiL",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-QFF5IH",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-QGUCyZ",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-QWIT2x",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-QhyxoM",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-Qj0b6q",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-QrbPDX",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-R8ffDC",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-RPBraU",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-RSGUn7",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-RV3iaI",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-RVS4HK",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-RVw95r",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-Ra3Cwc",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-RenTlG",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-RgFpz0",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-RixU2h",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-Rpbgo0",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-RtIv85",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 160047104
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-Rv88wi",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-RvYT96",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-Rvzxq4",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-S2i5M9",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-SCTLbs",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-SGlhd0",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-SJdcVI",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-SLpzuv",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-SdgbKD",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-St7qHI",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-SyKkwC",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-TC737b",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-TV9fly",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-TXe5HG",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-Tbm7DS",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-Tch9cS",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-TdjRdb",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-Tmmv1G",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-TpnXeG",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-TsojK3",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-TtwYxh",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-TuK1rA",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-U3hjUs",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-UKL9ck",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-UMxpIJ",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-UVgezv",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-UWZVVw",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-UYBOvz",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-UiLHH1",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-UjIuWr",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-Uok4CG",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-UuRvfe",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 124727296
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-UuzCyy",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-UxXwKt",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-V0XrZV",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-V0dHoa",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-V3jbVa",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-VF2U1Q",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-VF31pu",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-VIGgcy",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-VQ1WaH",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-VRSmFT",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-VRc3Gf",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-VUM4pc",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-W9pqcc",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-WABgEm",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-WCNaMz",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-WFr1lG",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-WHKrpD",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-WI4cd1",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-WQe3tM",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 185364480
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-WVgbnn",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-WctX5e",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-Wf4etN",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-WfMEJI",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-Wfhadx",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-Wflt0w",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-Wjw8eZ",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 150102016
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-WlnOSg",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-WmfQcO",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-Wp8Cph",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-Wpj5GB",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-WuiQE0",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-WvZxBB",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-X3Qx8z",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-XDnzDJ",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-XEsX5g",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-XEyKmU",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-XNWlUL",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-XOQSBA",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-XPxZGb",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-XRQhOG",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-Xagx9B",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-XjshzK",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-XoRkZP",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-Xy4p7m",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-Y0dMFr",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-Y6Zk25",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-YG7JUJ",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-YKv99q",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-YP1peX",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-YTGpqn",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-YUaKat",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 147595264
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-YV560z",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-YeZye2",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-YfgLWv",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-YiuZDJ",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-YyUclz",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-YydxSm",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-Z71dQt",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-Z7Un0E",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-ZDUPMn",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-ZMj5ES",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-ZMmmG2",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 146829312
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-ZMnEoK",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-ZNV7xg",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-ZO9mjA",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-ZWXAKk",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-ZeZyIz",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-ZlilJT",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-ZltdLU",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-ZmiAIj",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-ZpDZE0",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-ZsCEA2",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-a4z9KK",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-a60y5O",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-aLj7UK",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-aPNRPv",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-aPRCyq",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-aRUz0U",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-aTmV9U",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-aojrM1",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-apZXRW",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-atQJD7",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-bVRJMr",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-bXYudu",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-bZN1Mr",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 148525056
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-bcJYte",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-bg1Iv9",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-bhY4NW",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-bmBWqS",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-bocEcU",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-bqtfwn",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-bwR5cd",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-bwfpLt",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-c1m5ak",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-c86Aua",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-cFngEB",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-cGoc7r",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-cNr2a6",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 162365440
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-cW8ejf",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-cY3Z7q",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-cbsvh0",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-ccnszG",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-cffj63",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-coXHEK",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-cqNPV7",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-cyCKZT",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-d9H39a",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-dWViou",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-dZ2Ytp",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-dahoQh",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-dq924m",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-dtuFW0",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-du2oCd",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-dviiqM",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-e4LdH1",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-eCPBwh",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-eDUYkb",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-eDyahV",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 174055424
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-eN5N49",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-eV9xji",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-eeko4m",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-f6ZVVJ",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-f8slWe",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-fFXi4g",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-fNuWzB",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-fWlnRs",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-fYdqBi",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-fdZ0aw",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-fdk2gE",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-ffUMZm",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-ffz4Zb",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-fiQ532",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-g0ADGa",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-gDRmy9",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-gdoQVL",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-gpDkMY",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-gu2ZxM",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-gw2E1z",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-gwb1lI",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-h6MGIH",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-h9W0sx",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-hDlqLb",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-hGQm7p",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-hGjxO5",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-hKXND0",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-hMXYiE",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 177496064
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-hMcphF",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-hQCRzz",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-hSu7Rh",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-hYXwCA",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-hpEC7T",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-hqiQAC",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-hyNPSS",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-hzHGMP",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-i0FBmz",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-i4PjAB",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-i8EtSk",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-i9E75n",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-i9kah8",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-iH2gOE",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-iWNiBA",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-ia5Rpv",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-iaLjTv",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-igMcxZ",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-iiLpvs",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-iyQDyf",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-izeONM",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-j5M6yG",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-jA7V1W",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-jBo0FJ",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-jC3AVL",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-jCZEaO",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-jFZHCE",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-jLt4cp",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-jOvnTp",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-jROPl2",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-jWJCNP",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-jrIDME",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-jvhSUr",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 145469440
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-k0PLs0",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-k3ybBH",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-k5bwHr",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-k5jexU",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-k9XeZk",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-kAZYvo",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-kEjdfv",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-kG5hWj",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-kJEEAc",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-kNeZ0V",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-kOhSEx",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-kR7dTf",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-kXY0UB",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-khaFLg",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-krZQRM",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-kteWhM",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-l1PYiw",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-l7R49y",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-lTsfH0",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-lUbR8n",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-lhDu2K",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-lj9tHE",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-lmhXcj",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-lnkssq",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-m1G8Ky",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-m6DWS5",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-m9lKnT",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-m9xVov",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-mFWq30",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-mIr3RU",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-mS0jkN",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-mSvXAG",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-mgIBRF",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-mjSXtg",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-mkUU6m",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-mmZFAq",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-mnC9j1",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-mojkja",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-mp5xdb",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-mq9tRF",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-mrOIQX",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-mtdAT1",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 121643008
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-munWgq",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-n0RbJW",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-n32c9I",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-n3l6BL",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-n6DMXR",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 239337472
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-n7Mr3e",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-nCS70e",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-nG32By",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-nR8iiw",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-nRYuWa",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-nT4AxU",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-nab3mY",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-ne27lt",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-neSiEy",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-npRUnE",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-nuGCLI",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-nutHWg",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-nw3Wce",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-o1KkPC",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-o45Rmh",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-oBcCbM",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-oQsaOd",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-oR9uZv",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-oVSPg5",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-obA1og",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-oghWwz",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-oqVCFH",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-p6jn18",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-p7ZTPo",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-pAycLK",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-pBeiEB",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-pJmjV3",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-pKHvqQ",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-pRf6PF",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-pYMm21",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-pYWQxa",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-pcDZ5K",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 146452480
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-pfN5X1",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-pggBJS",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-pmeSAQ",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-pubD7t",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-px64oo",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-q3BYAG",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-qPslD4",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-qVaL3b",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-qWFSo8",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-qcwaEj",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-qfDasi",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-qmBi4O",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-qsEfj1",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-qvBbj7",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-qvxKBO",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-r5JUiK",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-r9jVNE",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 142848000
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-rAEQ1u",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-rD7E93",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-rNlRju",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-rOMyxi",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-rkD5aE",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-rmuFod",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-rqHImP",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-ryk6R3",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-ryxQvT",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-s7yQU4",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-sG0P0W",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-sYTIS0",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 176599040
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-saYhos",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-sbVGEz",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-skpBao",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-stxOGB",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-t0Q3wP",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-tGsxoZ",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-tH8jez",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-tMQfBF",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-tMc1Yz",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-tRO43e",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-tWZnhK",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-tjhC0L",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-tnoS2A",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 81920
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-ts0sdo",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-ty6yMj",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-u0XzBo",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-u1XM68",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 117559296
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-u5TPhR",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-uNL32J",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-uWuMq1",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-uXAf1B",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-ufPJvK",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-uihCpZ",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-ull3dH",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-un5cUC",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-usUeWR",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-uuuCU5",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-v79d1c",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-vATjGe",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-vOuYZX",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-vPSY1l",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 175185920
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-vQEqaE",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-vddGsu",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-ve7nKC",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-vei8aI",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-vsGovN",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-vua8QI",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-vuj2vx",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-w2UOD6",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-w2tvFb",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-w6O12q",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-w6fco5",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-wAYlwf",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-wCzUgv",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-wGbi58",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-wGiZdR",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-wI0r71",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-wKWzz7",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-wWWiBk",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-wZO50J",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-waXCIQ",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-wboCiv",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-whClzi",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-wir4OX",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-wljgEX",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-wu0v3m",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-x6p4NR",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-xAFdaq",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-xCzol6",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-xK5DFY",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-xPwR6y",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-xbKpsu",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-xcEBC3",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-xoHAgc",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-xwfiL4",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-xxqnZ2",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-y9p1tW",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-yGksHv",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-yJqz17",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-yL49RN",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-yM2gMZ",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-yS7dp7",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-yVXb4Z",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-yWuHSe",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-yfBp5L",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-ymUpOJ",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-yqwm3K",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-z3Uvqh",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-z6Q6MU",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-zEXt7m",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-zEvHO5",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-zJ5V7P",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-zJUTIK",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-zK0Tsm",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-zVeOzf",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-zWwdcc",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-zd3JfG",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-zf9WtW",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-zfn5WB",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-zj8r6C",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/Users/casey.allard/.codex/.tmp/marketplaces/.staging/marketplace-upgrade-zwwZgK",
+      "status": "REMOVED_REGENERABLE_CACHE",
+      "allocated_bytes": 0
+    }
+  ]
+}

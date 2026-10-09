@@ -1,0 +1,24 @@
+{
+  "merge": "7c76c7437c4d8ed55614ccb2eca5e89390187e45",
+  "status": "PASS",
+  "removed": [
+    {
+      "path": "/Users/casey.allard/uor-r4/.worktrees/chat-v0-phase-a",
+      "retained_pr": 2018,
+      "files": 12,
+      "status": "REMOVED_AFTER_EXACT_MAIN_PRESERVATION"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.worktrees/d19-emitter-eval",
+      "retained_pr": 2018,
+      "files": 1,
+      "status": "REMOVED_AFTER_EXACT_MAIN_PRESERVATION"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.worktrees/distance-curriculum",
+      "retained_pr": 2018,
+      "files": 1,
+      "status": "REMOVED_AFTER_EXACT_MAIN_PRESERVATION"
+    }
+  ]
+}

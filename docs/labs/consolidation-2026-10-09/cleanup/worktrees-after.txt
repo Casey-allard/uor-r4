@@ -1,0 +1,7 @@
+worktree /Users/casey.allard/uor-r4
+HEAD 7c76c7437c4d8ed55614ccb2eca5e89390187e45
+branch refs/heads/codex/main-cleanup-receipt-20261009
+
+worktree /Users/casey.allard/uor-r4/.worktrees/entry-isolation
+HEAD efcfe3cd0e5b706be5f742110f4c32ab7e47769d
+branch refs/heads/deepseek/branch-archive

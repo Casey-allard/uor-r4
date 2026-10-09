@@ -1,0 +1,2783 @@
+[
+  {
+    "original": "/Users/casey.allard/uor-r4-local/workspace/uor-r4-lab/codex-track-b-conversion-20260929",
+    "trash": "/Users/casey.allard/.Trash/codex-preserved-20261009-codex-track-b-conversion-20260929",
+    "remote": "icloud:UOR-R4/results/codex/codex-track-b-conversion-20260929.tar",
+    "complete_source_file_set_sha256": "PASS",
+    "appledouble_metadata_retained_in_archive": [
+      "._codex-track-b-conversion-20260929",
+      "codex-track-b-conversion-20260929/._charge-checkpoint-3.json",
+      "codex-track-b-conversion-20260929/._cost-check-1",
+      "codex-track-b-conversion-20260929/._draft-harmonics.rs",
+      "codex-track-b-conversion-20260929/._parity-1-launch.sh",
+      "codex-track-b-conversion-20260929/._.DS_Store",
+      "codex-track-b-conversion-20260929/._charge-checkpoint-2.json",
+      "codex-track-b-conversion-20260929/._draft-model.rs",
+      "codex-track-b-conversion-20260929/._parity-2",
+      "codex-track-b-conversion-20260929/._parity-3",
+      "codex-track-b-conversion-20260929/._charge-checkpoint-5.json",
+      "codex-track-b-conversion-20260929/._charge-checkpoint-4.json",
+      "codex-track-b-conversion-20260929/._parity-1.log",
+      "codex-track-b-conversion-20260929/._charge-checkpoint-8.json",
+      "codex-track-b-conversion-20260929/._parity-2.log",
+      "codex-track-b-conversion-20260929/._parity-3.log",
+      "codex-track-b-conversion-20260929/._parity-1-launch-failure.json",
+      "codex-track-b-conversion-20260929/._charge-checkpoint-7.json",
+      "codex-track-b-conversion-20260929/._parity-3-exit.json",
+      "codex-track-b-conversion-20260929/._parity-3-launch.sh",
+      "codex-track-b-conversion-20260929/._charge-checkpoint-6.json",
+      "codex-track-b-conversion-20260929/._charge-checkpoint-1.json",
+      "codex-track-b-conversion-20260929/._charge-volume-reconciliation-1.json",
+      "codex-track-b-conversion-20260929/._parity-2-launch.sh",
+      "codex-track-b-conversion-20260929/._parity-2-exit.json",
+      "codex-track-b-conversion-20260929/._build-shared-1-exit.json",
+      "codex-track-b-conversion-20260929/._build-shared-1.log",
+      "codex-track-b-conversion-20260929/parity-3/._launch.sh",
+      "codex-track-b-conversion-20260929/parity-3/._result.json",
+      "codex-track-b-conversion-20260929/parity-3/._closed-process.log",
+      "codex-track-b-conversion-20260929/parity-3/._reference-logits.f32le",
+      "codex-track-b-conversion-20260929/parity-3/._inputs.json",
+      "codex-track-b-conversion-20260929/parity-3/._manifest.json",
+      "codex-track-b-conversion-20260929/parity-3/._attempt.json",
+      "codex-track-b-conversion-20260929/parity-2/._launch.sh",
+      "codex-track-b-conversion-20260929/parity-2/._result.json",
+      "codex-track-b-conversion-20260929/parity-2/._closed-process.log",
+      "codex-track-b-conversion-20260929/parity-2/._reference-logits.f32le",
+      "codex-track-b-conversion-20260929/parity-2/._inputs.json",
+      "codex-track-b-conversion-20260929/parity-2/._manifest.json",
+      "codex-track-b-conversion-20260929/parity-2/._attempt.json",
+      "codex-track-b-conversion-20260929/cost-check-1/._compile.log",
+      "codex-track-b-conversion-20260929/cost-check-1/._tests.log",
+      "codex-track-b-conversion-20260929/cost-check-1/._cost-tests",
+      "codex-track-b-conversion-20260929/cost-check-1/._receipt.json"
+    ],
+    "files": {
+      "charge-checkpoint-3.json": {
+        "sha256": "427e474610658bf5d8caa777808d6535f4e8a9df58867d50f72c62361ea5bf12",
+        "bytes": 519
+      },
+      "draft-harmonics.rs": {
+        "sha256": "1562bde96989cd83827f089639da7668cb7965aafea30fd8e522cb965c9fff40",
+        "bytes": 22316
+      },
+      "parity-1-launch.sh": {
+        "sha256": "fa6003c5b93ed9fdb1ce67f723f52af6e7a461e7abdf8796f70f1234066fa06c",
+        "bytes": 1345
+      },
+      ".DS_Store": {
+        "sha256": "e42005579a118183dcbfe8800c71daa5a027e6ae44005e12a71f94af1f5ccff0",
+        "bytes": 6148
+      },
+      "charge-checkpoint-2.json": {
+        "sha256": "c863c4055b28b22fb24476bc3af7c1a6f23e6c50e700f4033ba5a9b1ba5f724a",
+        "bytes": 519
+      },
+      "draft-model.rs": {
+        "sha256": "059decc6f54b1355276eac58a8e55edd0e97eccc7483e982b53ee5bbb7e748b6",
+        "bytes": 22472
+      },
+      "charge-checkpoint-5.json": {
+        "sha256": "b31413966d0c0e51028aea41cf1a3cf52f9c81b03da755f9a5b404ec716e4372",
+        "bytes": 519
+      },
+      "charge-checkpoint-4.json": {
+        "sha256": "a9569a1880d7b55bbaad6e72beb484602eb5ad73d0d7d029816c72d69e7a1ba9",
+        "bytes": 520
+      },
+      "parity-1.log": {
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "charge-checkpoint-8.json": {
+        "sha256": "e53b87eaf8ed9e2e2876d71233abcc1ddfac20ce80d041f6982c9f95357c5e15",
+        "bytes": 519
+      },
+      "parity-2.log": {
+        "sha256": "7ae1fde8906c27cc54c46902ff552421c19f49bac3790036b6d2995d75705a20",
+        "bytes": 1767
+      },
+      "parity-3.log": {
+        "sha256": "d8aa18cce5662bc224fe532c2afce53b478b291d749a81555759a294d572e819",
+        "bytes": 2724
+      },
+      "parity-1-launch-failure.json": {
+        "sha256": "bd21270b63bcab252124dae59f2b7f5af7a3e5ef2b7558ccf33b651d9afad5ad",
+        "bytes": 249
+      },
+      "charge-checkpoint-7.json": {
+        "sha256": "2e161a1f869ed33061be38906de393815c2b04b3df02718fb9f5e70b2f547724",
+        "bytes": 519
+      },
+      "parity-3-exit.json": {
+        "sha256": "fb7e566978d40410c23d167bef2930207f4b0fb857ef6a79344cee32032a5665",
+        "bytes": 56
+      },
+      "parity-3-launch.sh": {
+        "sha256": "7e40309e7c62c9c23a30c4729490025343f84325b54697194595479df33d9c2d",
+        "bytes": 1345
+      },
+      "charge-checkpoint-6.json": {
+        "sha256": "9b0e49013a9281cf0a05c497f5915e0815936f94540fb2099092d993891f71bf",
+        "bytes": 520
+      },
+      "charge-checkpoint-1.json": {
+        "sha256": "068bfc4232d682ac9134646a37b4855d1cb74576adf294777b0355fb88337a32",
+        "bytes": 520
+      },
+      "charge-volume-reconciliation-1.json": {
+        "sha256": "878a66a7e9a40f4bbbf2fd3d2533c6e8287a4376d0c930c293c7bdda79d19e85",
+        "bytes": 519
+      },
+      "parity-2-launch.sh": {
+        "sha256": "0b70ee8caeca5c191efe13ddfa95e0c42253f8426dd4e48bcee2590ee2c03895",
+        "bytes": 1345
+      },
+      "parity-2-exit.json": {
+        "sha256": "488546321e4c62f2196b0a55abbc075ff7c644f302fb9294a18fcfc72b790f61",
+        "bytes": 56
+      },
+      "build-shared-1-exit.json": {
+        "sha256": "afb0a90de05fc466a69f59e4923ac7c2f6cf68cd181724a32c1217100b70036b",
+        "bytes": 283
+      },
+      "build-shared-1.log": {
+        "sha256": "7c0768ab9553051fc18446743711d9aafe70a8584037af2389940b0e72393cb0",
+        "bytes": 4181
+      },
+      "cost-check-1/compile.log": {
+        "sha256": "f6ce419c8017158fa02f7fe308fc40ff35cf7ca51dacb30fecc8c9b731d664e2",
+        "bytes": 777
+      },
+      "cost-check-1/tests.log": {
+        "sha256": "ccad748d8d32c62f345bfa3d6ebec944ca05e8d162b7f6475708813be9905a23",
+        "bytes": 1562
+      },
+      "cost-check-1/cost-tests": {
+        "sha256": "6cec30ba40d36ad74f7d4c8255f0075f142129d2fdbeb70eb5f0d5bdfe8dc2bc",
+        "bytes": 1085208
+      },
+      "cost-check-1/receipt.json": {
+        "sha256": "e25612b5b8e256443f705cce19fb80117681fe5502147ce4cd867d2292defc9f",
+        "bytes": 355
+      },
+      "parity-2/launch.sh": {
+        "sha256": "0b70ee8caeca5c191efe13ddfa95e0c42253f8426dd4e48bcee2590ee2c03895",
+        "bytes": 1345
+      },
+      "parity-2/result.json": {
+        "sha256": "d3f3283d8ab887b3dedecae908f48ac9509f99c1b00278a0fa0c87fa321c5944",
+        "bytes": 753
+      },
+      "parity-2/closed-process.log": {
+        "sha256": "7ae1fde8906c27cc54c46902ff552421c19f49bac3790036b6d2995d75705a20",
+        "bytes": 1767
+      },
+      "parity-2/reference-logits.f32le": {
+        "sha256": "2362ba67b4e0faad1ac3b2de83e34a8528814b987ad476a141cf5042ff35dae1",
+        "bytes": 983040
+      },
+      "parity-2/inputs.json": {
+        "sha256": "e223bbf3a0750ef74c8b9047b2d40c439b8d506839dc252c1e9bc854a38c09b5",
+        "bytes": 1753
+      },
+      "parity-2/manifest.json": {
+        "sha256": "4bb227e053c5a8c79fc56cbd852a05dc620df4b00df48bf70bba9c847ad9238e",
+        "bytes": 1071
+      },
+      "parity-2/attempt.json": {
+        "sha256": "5deb6ebfccbedfdb3e3c702142abd9eb96b7e71e432ee3c68749cbef5d840e0c",
+        "bytes": 456
+      },
+      "parity-3/launch.sh": {
+        "sha256": "7e40309e7c62c9c23a30c4729490025343f84325b54697194595479df33d9c2d",
+        "bytes": 1345
+      },
+      "parity-3/result.json": {
+        "sha256": "69addc8df1fe82109907e485ebf6a2d28cd68f0460b9cdb63c6d0bbe6e9dc3ac",
+        "bytes": 910
+      },
+      "parity-3/closed-process.log": {
+        "sha256": "d8aa18cce5662bc224fe532c2afce53b478b291d749a81555759a294d572e819",
+        "bytes": 2724
+      },
+      "parity-3/reference-logits.f32le": {
+        "sha256": "84d5dc57fb1ac398bdbd1bd45a3170349973e64d16e965ed1dcd7809b77b0223",
+        "bytes": 4915200
+      },
+      "parity-3/inputs.json": {
+        "sha256": "32dada2e6d10bb2fae8d03b9e3c5c14d37f350a062ada7252d5ccf4e6415b73a",
+        "bytes": 1753
+      },
+      "parity-3/manifest.json": {
+        "sha256": "6b49ebedac0c6541acb6f261a29f8f7ae755febedfd5b08f632098fd3a1987a2",
+        "bytes": 1072
+      },
+      "parity-3/attempt.json": {
+        "sha256": "229fbca42f90b33d6f9f9ea5466f965841d3001dab7a674d9d0ad8f1ab9222d9",
+        "bytes": 456
+      }
+    }
+  },
+  {
+    "original": "/Users/casey.allard/uor-r4-local/workspace/uor-r4-lab/fourth-lab-sequential-code-choice-fit-1",
+    "trash": "/Users/casey.allard/.Trash/codex-preserved-20261009-fourth-lab-sequential-code-choice-fit-1",
+    "remote": "icloud:UOR-R4/results/codex/fourth-lab-sequential-code-choice-fit-1.tar",
+    "complete_source_file_set_sha256": "PASS",
+    "appledouble_metadata_retained_in_archive": [
+      "._fourth-lab-sequential-code-choice-fit-1",
+      "fourth-lab-sequential-code-choice-fit-1/._campaign.json",
+      "fourth-lab-sequential-code-choice-fit-1/._preparation.json",
+      "fourth-lab-sequential-code-choice-fit-1/._.DS_Store",
+      "fourth-lab-sequential-code-choice-fit-1/._result.json",
+      "fourth-lab-sequential-code-choice-fit-1/._checkpoint-00000128",
+      "fourth-lab-sequential-code-choice-fit-1/._learning-curve.jsonl",
+      "fourth-lab-sequential-code-choice-fit-1/._checkpoint-00000032",
+      "fourth-lab-sequential-code-choice-fit-1/._checkpoint-final",
+      "fourth-lab-sequential-code-choice-fit-1/._execution-binding.json",
+      "fourth-lab-sequential-code-choice-fit-1/._manifest.json",
+      "fourth-lab-sequential-code-choice-fit-1/._attempt.json",
+      "fourth-lab-sequential-code-choice-fit-1/checkpoint-final/._campaign.json",
+      "fourth-lab-sequential-code-choice-fit-1/checkpoint-final/._checkpoint.json",
+      "fourth-lab-sequential-code-choice-fit-1/checkpoint-final/._rounding-variables.safetensors",
+      "fourth-lab-sequential-code-choice-fit-1/checkpoint-final/._optimizer.safetensors",
+      "fourth-lab-sequential-code-choice-fit-1/checkpoint-final/._manifest.json",
+      "fourth-lab-sequential-code-choice-fit-1/checkpoint-final/._attempt.json",
+      "fourth-lab-sequential-code-choice-fit-1/checkpoint-final/._optimizer.json",
+      "fourth-lab-sequential-code-choice-fit-1/checkpoint-00000032/._campaign.json",
+      "fourth-lab-sequential-code-choice-fit-1/checkpoint-00000032/._checkpoint.json",
+      "fourth-lab-sequential-code-choice-fit-1/checkpoint-00000032/._rounding-variables.safetensors",
+      "fourth-lab-sequential-code-choice-fit-1/checkpoint-00000032/._optimizer.safetensors",
+      "fourth-lab-sequential-code-choice-fit-1/checkpoint-00000032/._manifest.json",
+      "fourth-lab-sequential-code-choice-fit-1/checkpoint-00000032/._attempt.json",
+      "fourth-lab-sequential-code-choice-fit-1/checkpoint-00000032/._optimizer.json",
+      "fourth-lab-sequential-code-choice-fit-1/checkpoint-00000128/._campaign.json",
+      "fourth-lab-sequential-code-choice-fit-1/checkpoint-00000128/._checkpoint.json",
+      "fourth-lab-sequential-code-choice-fit-1/checkpoint-00000128/._rounding-variables.safetensors",
+      "fourth-lab-sequential-code-choice-fit-1/checkpoint-00000128/._optimizer.safetensors",
+      "fourth-lab-sequential-code-choice-fit-1/checkpoint-00000128/._manifest.json",
+      "fourth-lab-sequential-code-choice-fit-1/checkpoint-00000128/._attempt.json",
+      "fourth-lab-sequential-code-choice-fit-1/checkpoint-00000128/._optimizer.json"
+    ],
+    "files": {
+      "campaign.json": {
+        "sha256": "29d27d11006a2f6bf2e52b61017a3853086082ad1d5f9c7b1650a39c6dd22e40",
+        "bytes": 1984
+      },
+      "preparation.json": {
+        "sha256": "9173fc43e66327001ce93bb1304289fffc77ac72d31a4b87193df1ca8f45aded",
+        "bytes": 26592
+      },
+      ".DS_Store": {
+        "sha256": "c5c622da11d00b02ef2b1ae49e68801de348f06e991b3e9ea92c57c0a89da537",
+        "bytes": 6148
+      },
+      "result.json": {
+        "sha256": "0064d17c0d1c5ede7fb18de46d55c480fdb9f1f74c61e007f3c156106df2dacc",
+        "bytes": 79074
+      },
+      "learning-curve.jsonl": {
+        "sha256": "f1d9df035cbe599cbae208095b0727de837bd1a3bbb2a4eb4424c3f6f1cde278",
+        "bytes": 765250
+      },
+      "execution-binding.json": {
+        "sha256": "ab6056978461d715c92231cb0cc9589b4ab683c710bf7c9ca47b58d21e48c4a5",
+        "bytes": 954
+      },
+      "manifest.json": {
+        "sha256": "e92e7d2417207a6717ca068aa7376f0224a3997f6d5d64d51a417fa2588b6caa",
+        "bytes": 4693
+      },
+      "attempt.json": {
+        "sha256": "00dbcf3d119ed382a81805bb275ec107bbc942d9ced8fde5a4a9f2e3fb643410",
+        "bytes": 549
+      },
+      "checkpoint-00000128/campaign.json": {
+        "sha256": "29d27d11006a2f6bf2e52b61017a3853086082ad1d5f9c7b1650a39c6dd22e40",
+        "bytes": 1984
+      },
+      "checkpoint-00000128/checkpoint.json": {
+        "sha256": "26609cc7a8fab7521d903b42cb138af84f799b0eac4e8f2b9c0a33d91e2aea2b",
+        "bytes": 34033
+      },
+      "checkpoint-00000128/rounding-variables.safetensors": {
+        "sha256": "a16f713a2bd0fd454e2a2befb2337ff18b912afd1fb3b3efbe45602a9a6d4802",
+        "bytes": 21721056
+      },
+      "checkpoint-00000128/optimizer.safetensors": {
+        "sha256": "1af56818a14ad72133ada35ed260c965c33feba0d8e3ed40216fc304081a7831",
+        "bytes": 43442224
+      },
+      "checkpoint-00000128/manifest.json": {
+        "sha256": "1d861ea632ffd788de48cf932b9787815b11d58b9c10008e615841e0c6b0f12e",
+        "bytes": 1118
+      },
+      "checkpoint-00000128/attempt.json": {
+        "sha256": "2ef79f8332787aca435419bbc63371694933d1566509bde27351c80058e66308",
+        "bytes": 549
+      },
+      "checkpoint-00000128/optimizer.json": {
+        "sha256": "e4b8c0108d0833771bd7bd6cc1c4b0078ba9ce136ff38d84b1f4d2dfd22a1979",
+        "bytes": 2791
+      },
+      "checkpoint-00000032/campaign.json": {
+        "sha256": "29d27d11006a2f6bf2e52b61017a3853086082ad1d5f9c7b1650a39c6dd22e40",
+        "bytes": 1984
+      },
+      "checkpoint-00000032/checkpoint.json": {
+        "sha256": "9a355766c02f56ea2266d157474223293a759a86bbdc6a7c8a20b4fdaa3bb27f",
+        "bytes": 34008
+      },
+      "checkpoint-00000032/rounding-variables.safetensors": {
+        "sha256": "b19be5324115c50b295245a94410bfd7e9644ee3fa523943d77243ce1b591623",
+        "bytes": 21721056
+      },
+      "checkpoint-00000032/optimizer.safetensors": {
+        "sha256": "e5ad871ab20a2b2e9c17b655c696a18ba2d2fba23186a6463e9c450509ddd62d",
+        "bytes": 43442224
+      },
+      "checkpoint-00000032/manifest.json": {
+        "sha256": "e80424f06735315faacd830632059339cf346f3a2f6c9f8e0b6a6c7084bb0ec8",
+        "bytes": 1118
+      },
+      "checkpoint-00000032/attempt.json": {
+        "sha256": "dc3825b062e04f13d206dc17f4294cc205239f4f98e2e378d0b47f46ae018ff9",
+        "bytes": 549
+      },
+      "checkpoint-00000032/optimizer.json": {
+        "sha256": "62aab9226bb7371a40a712ccbaeebb3844abd730a13e878a1c272c900e39667b",
+        "bytes": 2769
+      },
+      "checkpoint-final/campaign.json": {
+        "sha256": "29d27d11006a2f6bf2e52b61017a3853086082ad1d5f9c7b1650a39c6dd22e40",
+        "bytes": 1984
+      },
+      "checkpoint-final/checkpoint.json": {
+        "sha256": "1b2508fa51ab96e0cd0540deb2b5d7d158ddac4f8463c303631f00395f5dcc01",
+        "bytes": 34033
+      },
+      "checkpoint-final/rounding-variables.safetensors": {
+        "sha256": "c9535303b77e3a6aed7d2700af1eefd8dcc3cea85fe6c3dd665650d6ffa1399e",
+        "bytes": 21721056
+      },
+      "checkpoint-final/optimizer.safetensors": {
+        "sha256": "5fe13f232027f955c0ef7acfcdb0adebcf3cf4d9e93cebf9445ed3070270598d",
+        "bytes": 43442224
+      },
+      "checkpoint-final/manifest.json": {
+        "sha256": "f3f7c0acfa81e9eac9bbcca2d8d1afab6310cae969a5b7b958fc981f6d09a1bd",
+        "bytes": 1115
+      },
+      "checkpoint-final/attempt.json": {
+        "sha256": "482488e4a20dacc28ab7b971a91a3392fb3f42657a276cde52ed0056b1c06933",
+        "bytes": 549
+      },
+      "checkpoint-final/optimizer.json": {
+        "sha256": "4e686d96b29fc0be81ac63ec2cf3edb529a54261110714c3d3d6633eeaa29abf",
+        "bytes": 2791
+      }
+    }
+  },
+  {
+    "original": "/Users/casey.allard/uor-r4-local/workspace/codex-active-attention",
+    "trash": "/Users/casey.allard/.Trash/codex-preserved-20261009-codex-active-attention",
+    "remote": "icloud:UOR-R4/results/codex/codex-active-attention.tar",
+    "complete_source_file_set_sha256": "PASS",
+    "appledouble_metadata_retained_in_archive": [
+      "._codex-active-attention",
+      "codex-active-attention/._native-generate-claim.json",
+      "codex-active-attention/._source-bound-receipts-20261006",
+      "codex-active-attention/._native-cuda-claim.json",
+      "codex-active-attention/._native-cuda-receipts-20261006",
+      "codex-active-attention/._source-bound-pr.md",
+      "codex-active-attention/._cleanup-board-20261006.md",
+      "codex-active-attention/._source-bound-work-card.md",
+      "codex-active-attention/._composed-state-receipts-20261006",
+      "codex-active-attention/._cleanup-20261006.json",
+      "codex-active-attention/._coadapt-pr-final.md",
+      "codex-active-attention/._composed-state-claim.json",
+      "codex-active-attention/._compute-tool-main",
+      "codex-active-attention/._generate-design-20261006",
+      "codex-active-attention/._source-bound-claim.json",
+      "codex-active-attention/._coadapt-probe-receipts-20261006",
+      "codex-active-attention/._native-cuda-preservation-receipt.json",
+      "codex-active-attention/._composed-state-work-card.md",
+      "codex-active-attention/._native-cuda-work-card.md",
+      "codex-active-attention/coadapt-probe-receipts-20261006/._freeze-config-1.py",
+      "codex-active-attention/coadapt-probe-receipts-20261006/._probe-1-receipt.json",
+      "codex-active-attention/coadapt-probe-receipts-20261006/._source-overlay.tar",
+      "codex-active-attention/coadapt-probe-receipts-20261006/._report.json",
+      "codex-active-attention/coadapt-probe-receipts-20261006/._source-inventory.json",
+      "codex-active-attention/coadapt-probe-receipts-20261006/._checks-1.json",
+      "codex-active-attention/coadapt-probe-receipts-20261006/._adversarial-result-review-1.json",
+      "codex-active-attention/coadapt-probe-receipts-20261006/._run-probe-1.py",
+      "codex-active-attention/coadapt-probe-receipts-20261006/._work-card.md",
+      "codex-active-attention/coadapt-probe-receipts-20261006/._checks-1.py",
+      "codex-active-attention/coadapt-probe-receipts-20261006/._gradient.json",
+      "codex-active-attention/coadapt-probe-receipts-20261006/._adversarial-result-review-2-factorization-addendum.json",
+      "codex-active-attention/coadapt-probe-receipts-20261006/._prediction-freeze-1.json",
+      "codex-active-attention/generate-design-20261006/._joint-potential-data-coverage-inspection.json",
+      "codex-active-attention/generate-design-20261006/._real-b8-representative-cost-config.json",
+      "codex-active-attention/generate-design-20261006/._main-pod-tool",
+      "codex-active-attention/generate-design-20261006/._archive-joint-potential-host-failure.py",
+      "codex-active-attention/generate-design-20261006/._state-utility-build-preserved",
+      "codex-active-attention/generate-design-20261006/._seed1001-margin-result-summary.json",
+      "codex-active-attention/generate-design-20261006/._seed1001-ce-and-native-prototype-audit.json",
+      "codex-active-attention/generate-design-20261006/._balanced-admission-independent-review.json",
+      "codex-active-attention/generate-design-20261006/._build-checks-6.sh",
+      "codex-active-attention/generate-design-20261006/._real-representative-cost-results.json",
+      "codex-active-attention/generate-design-20261006/._discrete-gradient-literature-20261006.md",
+      "codex-active-attention/generate-design-20261006/._codex-checkpoint-cross-build-attempt2.py",
+      "codex-active-attention/generate-design-20261006/._prefix-temporal-utility-source-review.json",
+      "codex-active-attention/generate-design-20261006/._state-ceiling-joint-attempt1-receipt.json",
+      "codex-active-attention/generate-design-20261006/._joint-seed1003-cost-retry-independent-pi-review.json",
+      "codex-active-attention/generate-design-20261006/._source-contrast-derived-run.py",
+      "codex-active-attention/generate-design-20261006/._run-balanced-fit1-retry.sh",
+      "codex-active-attention/generate-design-20261006/._checkpoint-state-ceiling-terminal-20261006T1045Z.json",
+      "codex-active-attention/generate-design-20261006/._native-score-feasibility-and-readout-capacity-review.json",
+      "codex-active-attention/generate-design-20261006/._seed1002-output-only-independent-pi-review.json",
+      "codex-active-attention/generate-design-20261006/._source-query-tests-run.py",
+      "codex-active-attention/generate-design-20261006/._live-work-card.md",
+      "codex-active-attention/generate-design-20261006/._learned-token-tuple-shared-potential-design.json",
+      "codex-active-attention/generate-design-20261006/._checkpoint-fit-ceiling-build-20261006T0825Z.json",
+      "codex-active-attention/generate-design-20261006/._spiralcore-and-admission-github-update.md",
+      "codex-active-attention/generate-design-20261006/._temporal-credit-diagnosis-receipt.json",
+      "codex-active-attention/generate-design-20261006/._balanced-admission-root-execution-summary.json",
+      "codex-active-attention/generate-design-20261006/._joint-fixed-copy-certificate-preserved",
+      "codex-active-attention/generate-design-20261006/._resource-projection.json",
+      "codex-active-attention/generate-design-20261006/._resource-extension-margin-seed1002-20261006.json",
+      "codex-active-attention/generate-design-20261006/._spiralcore-v68-source-math-reuse-review.md",
+      "codex-active-attention/generate-design-20261006/._margin-executed-issue-update.md",
+      "codex-active-attention/generate-design-20261006/._repair-and-margin-result-update.md",
+      "codex-active-attention/generate-design-20261006/._native-shadow-gap-audit.json",
+      "codex-active-attention/generate-design-20261006/._joint-seed1003-attempt3-full-initial-parity-independent-pi-review.json",
+      "codex-active-attention/generate-design-20261006/._joint-potential-validation-attempt4.py",
+      "codex-active-attention/generate-design-20261006/._joint-potential-first-copy-clamp-audit-20261006.json",
+      "codex-active-attention/generate-design-20261006/._phase-fit-ef8c049.bundle",
+      "codex-active-attention/generate-design-20261006/._cleanup-receipt-20261006.json",
+      "codex-active-attention/generate-design-20261006/._claim-native-phase-target-20261006T1822Z.json",
+      "codex-active-attention/generate-design-20261006/._build-checks-2.sh",
+      "codex-active-attention/generate-design-20261006/._phase-balanced-terminal-update-20261006.md",
+      "codex-active-attention/generate-design-20261006/._joint-potential-source-review-9410c92b.json",
+      "codex-active-attention/generate-design-20261006/._alias-objective-source-identifiability-next-training.md",
+      "codex-active-attention/generate-design-20261006/._run-balanced-cuda-parity.sh",
+      "codex-active-attention/generate-design-20261006/._native-generate-reuse.md",
+      "codex-active-attention/generate-design-20261006/._balanced-joint-admission-run.py",
+      "codex-active-attention/generate-design-20261006/._seed1001-effective-state-conflict-audit.json",
+      "codex-active-attention/generate-design-20261006/._selected-source-reference-checks-execution-attempt1.json",
+      "codex-active-attention/generate-design-20261006/._native-generate-progress.md",
+      "codex-active-attention/generate-design-20261006/._phase-loss-validation-attempt2.py",
+      "codex-active-attention/generate-design-20261006/._phase-loss-b2dfe4df.bundle",
+      "codex-active-attention/generate-design-20261006/._checkpoint-cross-results",
+      "codex-active-attention/generate-design-20261006/._checkpoint-cross-independent-review-complete-20261006T1243Z.json",
+      "codex-active-attention/generate-design-20261006/._balanced-seed1001-completed-independent-pi-review.json",
+      "codex-active-attention/generate-design-20261006/._state-ceiling-joint-attempt1",
+      "codex-active-attention/generate-design-20261006/._checkpoint-phase-native-final-evaluation-20261006.json",
+      "codex-active-attention/generate-design-20261006/._build-checks-3.sh",
+      "codex-active-attention/generate-design-20261006/._seed1002-joint-independent-pi-review.json",
+      "codex-active-attention/generate-design-20261006/._checkpoint-phase-fit-and-target-audit-20261006T1818Z.json",
+      "codex-active-attention/generate-design-20261006/._fit-output-only-seed1003-temporal-config.json",
+      "codex-active-attention/generate-design-20261006/._prospective-real-fit-amendment.md",
+      "codex-active-attention/generate-design-20261006/._balanced-admission-work-card.md",
+      "codex-active-attention/generate-design-20261006/._second-pair-issue-update.md",
+      "codex-active-attention/generate-design-20261006/._prefix-temporal-cpu-check-receipt.json",
+      "codex-active-attention/generate-design-20261006/._joint-potential-validation-attempt1.py",
+      "codex-active-attention/generate-design-20261006/._source-query-group-tests-run.py",
+      "codex-active-attention/generate-design-20261006/._state-utility-audit-attempt1-receipt.json",
+      "codex-active-attention/generate-design-20261006/._build-checks-7.sh",
+      "codex-active-attention/generate-design-20261006/._seed1002-joint-completed-audit.json",
+      "codex-active-attention/generate-design-20261006/._codex-checkpoint-cross-build-attempt3.py",
+      "codex-active-attention/generate-design-20261006/._state-utility-joint-attempt1",
+      "codex-active-attention/generate-design-20261006/._state-ceiling-build-attempt1-receipt.json",
+      "codex-active-attention/generate-design-20261006/._prefix-temporal-progress.md",
+      "codex-active-attention/generate-design-20261006/._codex-checkpoint-cross-build.py",
+      "codex-active-attention/generate-design-20261006/._PR-body.md",
+      "codex-active-attention/generate-design-20261006/._inspect-joint-copy-ceiling.py",
+      "codex-active-attention/generate-design-20261006/._checkpoint-field-credit-audit-live-20261006T1121Z.json",
+      "codex-active-attention/generate-design-20261006/._phase-validation-compile-recovery.md",
+      "codex-active-attention/generate-design-20261006/._fit-ceiling-build-c7222d7e.sh",
+      "codex-active-attention/generate-design-20261006/._native-code-probe-actual-review.md",
+      "codex-active-attention/generate-design-20261006/._fit-joint-seed1001-temporal-config.json",
+      "codex-active-attention/generate-design-20261006/._balanced-fit1-cost-retry-card.md",
+      "codex-active-attention/generate-design-20261006/._joint-potential-attempt6-saved-reply-diagnosis.md",
+      "codex-active-attention/generate-design-20261006/._joint-potential-final-versus-initial.json",
+      "codex-active-attention/generate-design-20261006/._joint-potential-fit-run-attempt2.py",
+      "codex-active-attention/generate-design-20261006/._checkpoint-balanced-fit1-retry-live-20261006T0920Z.json",
+      "codex-active-attention/generate-design-20261006/._balanced-cuda-parity-build-receipt.json",
+      "codex-active-attention/generate-design-20261006/._native-code-probe-conditional-run-card-20261006.md",
+      "codex-active-attention/generate-design-20261006/._real-chunk-parity-results.txt",
+      "codex-active-attention/generate-design-20261006/._checkpoint-cross-control-pass-joint-queued-20261006T1232Z.json",
+      "codex-active-attention/generate-design-20261006/._run-temporal-output-only.sh",
+      "codex-active-attention/generate-design-20261006/._balanced-initializer-check-receipt.json",
+      "codex-active-attention/generate-design-20261006/._temporal-credit-diagnosis.sh",
+      "codex-active-attention/generate-design-20261006/._balanced-initializer-exact-head-source-review.json",
+      "codex-active-attention/generate-design-20261006/._codex-copy-potential-checks-attempt1.py",
+      "codex-active-attention/generate-design-20261006/._checkpoint-native-state-utility-implementation-20261006T1304Z.json",
+      "codex-active-attention/generate-design-20261006/._rejoin-status.md",
+      "codex-active-attention/generate-design-20261006/._joint-seed1003-retry-workcard.md",
+      "codex-active-attention/generate-design-20261006/._checkpoint-shadow-review-balanced-live-20261006T0947Z.json",
+      "codex-active-attention/generate-design-20261006/._read-state-implementation-card-20261006.md",
+      "codex-active-attention/generate-design-20261006/._state-ceiling-joint-independent-review.json",
+      "codex-active-attention/generate-design-20261006/._build-checks-10.sh",
+      "codex-active-attention/generate-design-20261006/._fit-output-only-seed1001-config.json",
+      "codex-active-attention/generate-design-20261006/._real-b8-admission-config.json",
+      "codex-active-attention/generate-design-20261006/._fit-terminal-and-attribution-repair.md",
+      "codex-active-attention/generate-design-20261006/._temporal-repair-checks.sh",
+      "codex-active-attention/generate-design-20261006/._joint-potential-adversarial-architecture-review.md",
+      "codex-active-attention/generate-design-20261006/._run-balanced-admission.py",
+      "codex-active-attention/generate-design-20261006/._joint-potential-fit-run-attempt6.py",
+      "codex-active-attention/generate-design-20261006/._adversarial-bank-generate-fit-source-review.json",
+      "codex-active-attention/generate-design-20261006/._checkpoint-state-ceiling-preserved-poddown-20261006T1047Z.json",
+      "codex-active-attention/generate-design-20261006/._real-b8-chunk-parity-config.json",
+      "codex-active-attention/generate-design-20261006/._state-utility-and-ceiling-preserved",
+      "codex-active-attention/generate-design-20261006/._summary-measured.json",
+      "codex-active-attention/generate-design-20261006/._run-native-code-probe.py",
+      "codex-active-attention/generate-design-20261006/._field-credit-results",
+      "codex-active-attention/generate-design-20261006/._temporal-credit-repair-checks-receipt.json",
+      "codex-active-attention/generate-design-20261006/._contextual-target-pairs-declaration-20261006.json",
+      "codex-active-attention/generate-design-20261006/._checkpoint-state-ceiling-build-20261006T1038Z.json",
+      "codex-active-attention/generate-design-20261006/._source-contrast-tests-execution-attempt3.json",
+      "codex-active-attention/generate-design-20261006/._checkpoint-cross-queue-pid-storage-20261006T1236Z.json",
+      "codex-active-attention/generate-design-20261006/._build-checks-8.sh",
+      "codex-active-attention/generate-design-20261006/._checkpoint-field-credit-source-ready-pod-created-20261006T1104Z.json",
+      "codex-active-attention/generate-design-20261006/._balanced-joint-admission-prep.py",
+      "codex-active-attention/generate-design-20261006/._temporal-repair-progress.md",
+      "codex-active-attention/generate-design-20261006/._fit-live-progress.md",
+      "codex-active-attention/generate-design-20261006/._build-checks-11.sh",
+      "codex-active-attention/generate-design-20261006/._checkpoint-balanced-cuda-parity-build-20261006T0858Z.json",
+      "codex-active-attention/generate-design-20261006/._paired-complete-update-20261006T0940Z.md",
+      "codex-active-attention/generate-design-20261006/._codex-state-ceiling-joint-attempt1.py",
+      "codex-active-attention/generate-design-20261006/._balanced-probe-outcome-issue.md",
+      "codex-active-attention/generate-design-20261006/._fit-ceiling-c7222d7e-source-review.json",
+      "codex-active-attention/generate-design-20261006/._checkpoint-field-credit-terminal-balanced-admission-wait-20261006T1134Z.json",
+      "codex-active-attention/generate-design-20261006/._pr1792-body.md",
+      "codex-active-attention/generate-design-20261006/._selected-source-reference-checks-attempt1.py",
+      "codex-active-attention/generate-design-20261006/._checkpoint-balanced-joint-terminal-20261006T1300Z.json",
+      "codex-active-attention/generate-design-20261006/._joint-seed1003-attempt3-initial-parity-independent-pi-review.json",
+      "codex-active-attention/generate-design-20261006/._completed-target-audit-update-20261006.md",
+      "codex-active-attention/generate-design-20261006/._balanced-check-issue-update.md",
+      "codex-active-attention/generate-design-20261006/._conditional-state-review-update-20261006.md",
+      "codex-active-attention/generate-design-20261006/._real-temporal-utility-admission-results.json",
+      "codex-active-attention/generate-design-20261006/._build-checks-9.sh",
+      "codex-active-attention/generate-design-20261006/._checkpoint-second-pair-20261006T0817Z.json",
+      "codex-active-attention/generate-design-20261006/._pr1792-current-body-20261006.md",
+      "codex-active-attention/generate-design-20261006/._attribution-cap-repair-correction.md",
+      "codex-active-attention/generate-design-20261006/._checkpoint-balanced-fit1-live-20261006T0915Z.json",
+      "codex-active-attention/generate-design-20261006/._checkpoint-joint-potential-validation-20261006T1446Z.json",
+      "codex-active-attention/generate-design-20261006/._source-contrast-tests-run.py",
+      "codex-active-attention/generate-design-20261006/._seed1001-first-position-audit.json",
+      "codex-active-attention/generate-design-20261006/._b2e18d5c-compile-source-inventory-expanded.json",
+      "codex-active-attention/generate-design-20261006/._a762f63a-compile-source-inventory.json",
+      "codex-active-attention/generate-design-20261006/._joint-potential-fit-run-attempt3.py",
+      "codex-active-attention/generate-design-20261006/._balanced-joint-lease-watch.log",
+      "codex-active-attention/generate-design-20261006/._potential-attribution-source-review-27ace214.json",
+      "codex-active-attention/generate-design-20261006/._workcard-progress-20261006T0554.md",
+      "codex-active-attention/generate-design-20261006/._fit-output-only-seed1002-temporal-config.json",
+      "codex-active-attention/generate-design-20261006/._checkpoint-event.json",
+      "codex-active-attention/generate-design-20261006/._checkpoint-native-code-probe-ready-20261006T1009Z.json",
+      "codex-active-attention/generate-design-20261006/._build-native-code-probe.py",
+      "codex-active-attention/generate-design-20261006/._prospective-review-issue-update.md",
+      "codex-active-attention/generate-design-20261006/._checkpoint-balanced-cuda-check-queued-20261006T0900Z.json",
+      "codex-active-attention/generate-design-20261006/._coefficient-only-phase-adjoint-replay-design.md",
+      "codex-active-attention/generate-design-20261006/._policy-repair-note.md",
+      "codex-active-attention/generate-design-20261006/._run-joint-seed1003-retry.sh",
+      "codex-active-attention/generate-design-20261006/._state-reachability-work-card.md",
+      "codex-active-attention/generate-design-20261006/._native-context-generate-fourway-counterfactual-f6136103.md",
+      "codex-active-attention/generate-design-20261006/._state-ceiling-manifest.json",
+      "codex-active-attention/generate-design-20261006/._temporal-real-admission.sh",
+      "codex-active-attention/generate-design-20261006/._joint-potential-source-review-b3c19905.json",
+      "codex-active-attention/generate-design-20261006/._fit-output-only-seed1001-temporal-config.json",
+      "codex-active-attention/generate-design-20261006/._native-categorical-code-learning-options.md",
+      "codex-active-attention/generate-design-20261006/._time-fit-retry-5100.py",
+      "codex-active-attention/generate-design-20261006/._build-checks-12.sh",
+      "codex-active-attention/generate-design-20261006/._seed1001-paired-diagnostic.json",
+      "codex-active-attention/generate-design-20261006/._joint-potential-attribution-work-card.md",
+      "codex-active-attention/generate-design-20261006/._checkpoint-cross-review-full-head-20261006T1244Z.json",
+      "codex-active-attention/generate-design-20261006/._state-ceiling-balanced-independent-pi-review.json",
+      "codex-active-attention/generate-design-20261006/._joint-potential-host-failure-archive-receipt.json",
+      "codex-active-attention/generate-design-20261006/._codex-state-utility-build-attempt1.py",
+      "codex-active-attention/generate-design-20261006/._joint-potential-fit-run-attempt4.py",
+      "codex-active-attention/generate-design-20261006/._balanced-capacity-864bbe96.md",
+      "codex-active-attention/generate-design-20261006/._joint-fixed-copy-ceiling-inspection.json",
+      "codex-active-attention/generate-design-20261006/._native-alternative-implementation-card-20261006.md",
+      "codex-active-attention/generate-design-20261006/._host-failure-cloud-and-local-cleanup-receipt.json",
+      "codex-active-attention/generate-design-20261006/._balanced-prospective-config-independent-pi-review.json",
+      "codex-active-attention/generate-design-20261006/._balanced-joint-control-prospective-review-f6136103.md",
+      "codex-active-attention/generate-design-20261006/._codex-checkpoint-cross-run.py",
+      "codex-active-attention/generate-design-20261006/._balanced-initial-final-phase-ce-replay.md",
+      "codex-active-attention/generate-design-20261006/._source-contrast-tests-execution-attempt1.json",
+      "codex-active-attention/generate-design-20261006/._phase-fit-completion-receipts-20261006",
+      "codex-active-attention/generate-design-20261006/._temporal-fit-final-build.sh",
+      "codex-active-attention/generate-design-20261006/._temporal-release-event.json",
+      "codex-active-attention/generate-design-20261006/._joint-potential-fit-build-receipt-update.md",
+      "codex-active-attention/generate-design-20261006/._native-prototype-objective-cache-20261006.md",
+      "codex-active-attention/generate-design-20261006/._margin-audit-exact-head-source-review.json",
+      "codex-active-attention/generate-design-20261006/._balanced-cuda-parity-work-card.md",
+      "codex-active-attention/generate-design-20261006/._bank-generate-integration-plan-1.md",
+      "codex-active-attention/generate-design-20261006/._policy-pin-repair.json",
+      "codex-active-attention/generate-design-20261006/._temporal-carry-workcard.md",
+      "codex-active-attention/generate-design-20261006/._checkpoint-balanced-probe-terminal-20261006T103155Z.json",
+      "codex-active-attention/generate-design-20261006/._context-target-c917e7e4.bundle",
+      "codex-active-attention/generate-design-20261006/._generate-copy-causal-route-review.md",
+      "codex-active-attention/generate-design-20261006/._actual-progress-2.md",
+      "codex-active-attention/generate-design-20261006/._contextual-target-pairs-20261006.json",
+      "codex-active-attention/generate-design-20261006/._retained-native-code-learning-reuse-20261006.md",
+      "codex-active-attention/generate-design-20261006/._joint-potential-fit-workcard.md",
+      "codex-active-attention/generate-design-20261006/._joint-potential-fit-run-attempt1.py",
+      "codex-active-attention/generate-design-20261006/._temporal-utility-after-step-review.json",
+      "codex-active-attention/generate-design-20261006/._phase-balanced-work-card.md",
+      "codex-active-attention/generate-design-20261006/._checkpoint-native-code-probe-build-live-20261006T0958Z.json",
+      "codex-active-attention/generate-design-20261006/._seed1003-joint-and-three-pair-independent-pi-review.json",
+      "codex-active-attention/generate-design-20261006/._balanced-first-copy-reachability-audit.md",
+      "codex-active-attention/generate-design-20261006/._phase-fit-start-card.md",
+      "codex-active-attention/generate-design-20261006/._state-utility-finite-loss-independent-review.json",
+      "codex-active-attention/generate-design-20261006/._seed1001-margin-independent-pi-review.json",
+      "codex-active-attention/generate-design-20261006/._work-card.md",
+      "codex-active-attention/generate-design-20261006/._seed1002-margin-result-summary.json",
+      "codex-active-attention/generate-design-20261006/._margin-seed1002-workcard.md",
+      "codex-active-attention/generate-design-20261006/._run-temporal-joint.sh",
+      "codex-active-attention/generate-design-20261006/._balanced-seed1001-attempt2-independent-pi-review.json",
+      "codex-active-attention/generate-design-20261006/._balanced-fit1-launcher-independent-pi-review.json",
+      "codex-active-attention/generate-design-20261006/._balanced-frozen-field-copy-ceiling-joined-audit.md",
+      "codex-active-attention/generate-design-20261006/._time-fit-command.py",
+      "codex-active-attention/generate-design-20261006/._state-ceiling-report.json",
+      "codex-active-attention/generate-design-20261006/._adversarial-update-and-discrete-reachability-review.md",
+      "codex-active-attention/generate-design-20261006/._state-ceiling-attempt1-execution-receipt.json",
+      "codex-active-attention/generate-design-20261006/._attribution-recovery-attempt7.py",
+      "codex-active-attention/generate-design-20261006/._phase-balanced-loss-minimal-source-design.md",
+      "codex-active-attention/generate-design-20261006/._build-checks-13.sh",
+      "codex-active-attention/generate-design-20261006/._context-target-audit-run-attempt1.py",
+      "codex-active-attention/generate-design-20261006/._copy-potential-cuda-result-github.md",
+      "codex-active-attention/generate-design-20261006/._native-shadow-gap-independent-pi-review.json",
+      "codex-active-attention/generate-design-20261006/._verify-a762f63a-full-source.py",
+      "codex-active-attention/generate-design-20261006/._joint-potential-host-envelope-repair.md",
+      "codex-active-attention/generate-design-20261006/._checkpoint-repaired-fit-and-margin-20261006T0843Z.json",
+      "codex-active-attention/generate-design-20261006/._joint-potential-fit-run-attempt5.py",
+      "codex-active-attention/generate-design-20261006/._native-state-utility-discriminator-review.md",
+      "codex-active-attention/generate-design-20261006/._checkpoint-prospective-review-20261006T0807Z.json",
+      "codex-active-attention/generate-design-20261006/._run-balanced-fit1.sh",
+      "codex-active-attention/generate-design-20261006/._temporal-claim-event.json",
+      "codex-active-attention/generate-design-20261006/._balanced-joint-admission-thin",
+      "codex-active-attention/generate-design-20261006/._a762f63a-compile-source-inventory-expanded.json",
+      "codex-active-attention/generate-design-20261006/._fit-joint-seed1002-temporal-config.json",
+      "codex-active-attention/generate-design-20261006/._checkpoint-joint-potential-validation-20261006-final.json",
+      "codex-active-attention/generate-design-20261006/._verify-b2e18d5c-full-source-lfs.py",
+      "codex-active-attention/generate-design-20261006/._b2e18d5c-full-source-inventory-lfs.json",
+      "codex-active-attention/generate-design-20261006/._phase-loss-validation-attempt1.py",
+      "codex-active-attention/generate-design-20261006/._field-credit-work-card.md",
+      "codex-active-attention/generate-design-20261006/._checkpoint-balanced-joint-live-20261006T1206Z.json",
+      "codex-active-attention/generate-design-20261006/._resource-extension-joint-seed1003-retry-20261006.json",
+      "codex-active-attention/generate-design-20261006/._fit-joint-seed1001-config.json",
+      "codex-active-attention/generate-design-20261006/._full120-temporal-carry-design-review.json",
+      "codex-active-attention/generate-design-20261006/._completed-joint-cloud-receipt-20261006.md",
+      "codex-active-attention/generate-design-20261006/._joint-potential-integration-work-card.md",
+      "codex-active-attention/generate-design-20261006/._attribution-cap-638b8f12.bundle",
+      "codex-active-attention/generate-design-20261006/._integrated-language-design-review-1.md",
+      "codex-active-attention/generate-design-20261006/._finite-loss-convexity-review-20261006.md",
+      "codex-active-attention/generate-design-20261006/._prefix-temporal-cpu-after-step-review.json",
+      "codex-active-attention/generate-design-20261006/._seed1001-prototype-audit.json",
+      "codex-active-attention/generate-design-20261006/._actual-update-and-crossed.json",
+      "codex-active-attention/generate-design-20261006/._coord-claim.json",
+      "codex-active-attention/generate-design-20261006/._context-target-audit-work-card.md",
+      "codex-active-attention/generate-design-20261006/._margin-execution-receipt.json",
+      "codex-active-attention/generate-design-20261006/._probe-balanced-coordinate0-review-next-discriminator.md",
+      "codex-active-attention/generate-design-20261006/._native-code-probe-source-manifest.json",
+      "codex-active-attention/generate-design-20261006/._balanced-seed1001-attempt2-full-initial-independent-pi-review.json",
+      "codex-active-attention/generate-design-20261006/._seed1002-margin-independent-pi-review.json",
+      "codex-active-attention/generate-design-20261006/._prediction-panel-sufficiency-source-review.md",
+      "codex-active-attention/generate-design-20261006/._joint-potential-validation-attempt2.py",
+      "codex-active-attention/generate-design-20261006/._static-balanced-codes-next-discriminator-20261006.md",
+      "codex-active-attention/generate-design-20261006/._build-checks-4.sh",
+      "codex-active-attention/generate-design-20261006/._joint-potential-progress-github.md",
+      "codex-active-attention/generate-design-20261006/._a762f63a-full-source-inventory.json",
+      "codex-active-attention/generate-design-20261006/._fit-ceiling-c7222d7e-execution-receipt.json",
+      "codex-active-attention/generate-design-20261006/._prefix-temporal-workcard.md",
+      "codex-active-attention/generate-design-20261006/._codex-state-utility-audit-attempt1.py",
+      "codex-active-attention/generate-design-20261006/._real-b8-temporal-utility-config.json",
+      "codex-active-attention/generate-design-20261006/._balanced-fit1-work-card.md",
+      "codex-active-attention/generate-design-20261006/._checkpoint-balanced-joint-terminal-clean-handles-20261006T1300Z.json",
+      "codex-active-attention/generate-design-20261006/._build-balanced-cuda-parity.sh",
+      "codex-active-attention/generate-design-20261006/._phase-balanced-fit-run-attempt1.py",
+      "codex-active-attention/generate-design-20261006/._balanced-first-state-collision-audit.md",
+      "codex-active-attention/generate-design-20261006/._joint-potential-validation-attempt3.py",
+      "codex-active-attention/generate-design-20261006/._conditional-context-learning-next-discriminator.md",
+      "codex-active-attention/generate-design-20261006/._selected-occurrence-version-next-step-a762f63a.md",
+      "codex-active-attention/generate-design-20261006/._seed1003-output-only-independent-pi-review.json",
+      "codex-active-attention/generate-design-20261006/._full120-temporal-carry-exact-head-review.json",
+      "codex-active-attention/generate-design-20261006/._build-checks-5.sh",
+      "codex-active-attention/generate-design-20261006/._fit-joint-seed1003-temporal-config.json",
+      "codex-active-attention/generate-design-20261006/._copy-potential-cuda-checks-preserved",
+      "codex-active-attention/generate-design-20261006/._seed1001-issue-update.md",
+      "codex-active-attention/generate-design-20261006/._native-code-probe-build-summary.txt",
+      "codex-active-attention/generate-design-20261006/._balanced-cuda-parity-source-review.json",
+      "codex-active-attention/generate-design-20261006/._seed1002-output-only-completed-audit.json",
+      "codex-active-attention/generate-design-20261006/._checkpoint-paired-complete-balanced-live-20261006T0940Z.json",
+      "codex-active-attention/generate-design-20261006/._seed1001-readout-capacity-after-step-review.json",
+      "codex-active-attention/generate-design-20261006/._checkpoint-native-state-utility-build-terminal-20261006T1317Z.json",
+      "codex-active-attention/generate-design-20261006/._resource-extension-temporal-fit.json",
+      "codex-active-attention/generate-design-20261006/._bound-input-import-source-review-4c24b344.json",
+      "codex-active-attention/generate-design-20261006/._joint-potential-range-source-inspection.json",
+      "codex-active-attention/generate-design-20261006/._balanced-joint-admission-build.py",
+      "codex-active-attention/generate-design-20261006/._fixed-copy-certificate-finite-loss-independent-review.json",
+      "codex-active-attention/generate-design-20261006/._build-checks-1.sh",
+      "codex-active-attention/generate-design-20261006/._codex-balanced-joint-lease-watch.py",
+      "codex-active-attention/generate-design-20261006/._representative-admission-cost-review.json",
+      "codex-active-attention/generate-design-20261006/._joint-potential-fit-review-update.md",
+      "codex-active-attention/generate-design-20261006/copy-potential-cuda-checks-preserved/._20261006T140916Z-native-geometric-generate-gpu0.log",
+      "codex-active-attention/generate-design-20261006/copy-potential-cuda-checks-preserved/._copy-potential-checks-attempt1-receipt.json",
+      "codex-active-attention/generate-design-20261006/copy-potential-cuda-checks-preserved/._host-and-review.json",
+      "codex-active-attention/generate-design-20261006/balanced-joint-admission-thin/._balanced-joint-first-credit-admission-attempt1-receipt.json",
+      "codex-active-attention/generate-design-20261006/balanced-joint-admission-thin/._balanced-joint-admission-build-attempt1-receipt.json",
+      "codex-active-attention/generate-design-20261006/balanced-joint-admission-thin/._balanced-joint-first-credit-prep-attempt1",
+      "codex-active-attention/generate-design-20261006/balanced-joint-admission-thin/._admission-balanced-joint-first-credit-attempt1",
+      "codex-active-attention/generate-design-20261006/balanced-joint-admission-thin/admission-balanced-joint-first-credit-attempt1/._input-admission.json",
+      "codex-active-attention/generate-design-20261006/balanced-joint-admission-thin/admission-balanced-joint-first-credit-attempt1/._report.json",
+      "codex-active-attention/generate-design-20261006/balanced-joint-admission-thin/admission-balanced-joint-first-credit-attempt1/._admission-cost-sample.json",
+      "codex-active-attention/generate-design-20261006/balanced-joint-admission-thin/admission-balanced-joint-first-credit-attempt1/._development-0000.json",
+      "codex-active-attention/generate-design-20261006/balanced-joint-admission-thin/admission-balanced-joint-first-credit-attempt1/._first-b8-admission.json",
+      "codex-active-attention/generate-design-20261006/balanced-joint-admission-thin/balanced-joint-first-credit-prep-attempt1/._config.json",
+      "codex-active-attention/generate-design-20261006/balanced-joint-admission-thin/balanced-joint-first-credit-prep-attempt1/._comparison.json",
+      "codex-active-attention/generate-design-20261006/phase-fit-completion-receipts-20261006/._exact-head-tests-build-fit.log",
+      "codex-active-attention/generate-design-20261006/field-credit-results/._field-credit-balanced-seed1001-attempt1-independent-review.json",
+      "codex-active-attention/generate-design-20261006/field-credit-results/._field-credit-build-attempt1-receipt.json",
+      "codex-active-attention/generate-design-20261006/field-credit-results/._field-credit-balanced-seed1001-attempt1-receipt.json",
+      "codex-active-attention/generate-design-20261006/field-credit-results/._field-credit-balanced-seed1001-attempt1",
+      "codex-active-attention/generate-design-20261006/field-credit-results/._field-credit-balanced-seed1001-attempt1-independent-review.md",
+      "codex-active-attention/generate-design-20261006/field-credit-results/field-credit-balanced-seed1001-attempt1/._generate.bias.phase-0.f32le",
+      "codex-active-attention/generate-design-20261006/field-credit-results/field-credit-balanced-seed1001-attempt1/._generate.bias.phase-2.f32le",
+      "codex-active-attention/generate-design-20261006/field-credit-results/field-credit-balanced-seed1001-attempt1/._report.json",
+      "codex-active-attention/generate-design-20261006/field-credit-results/field-credit-balanced-seed1001-attempt1/._generate.pair.phase-3.f32le",
+      "codex-active-attention/generate-design-20261006/field-credit-results/field-credit-balanced-seed1001-attempt1/._generate.pair.phase-1.f32le",
+      "codex-active-attention/generate-design-20261006/field-credit-results/field-credit-balanced-seed1001-attempt1/._generate.bias.phase-3.f32le",
+      "codex-active-attention/generate-design-20261006/field-credit-results/field-credit-balanced-seed1001-attempt1/._generate.bias.phase-1.f32le",
+      "codex-active-attention/generate-design-20261006/field-credit-results/field-credit-balanced-seed1001-attempt1/._generate.pair.phase-0.f32le",
+      "codex-active-attention/generate-design-20261006/field-credit-results/field-credit-balanced-seed1001-attempt1/._generate.pair.phase-2.f32le",
+      "codex-active-attention/generate-design-20261006/field-credit-results/field-credit-balanced-seed1001-attempt1/._generate.unary.phase-0.f32le",
+      "codex-active-attention/generate-design-20261006/field-credit-results/field-credit-balanced-seed1001-attempt1/._generate.unary.phase-2.f32le",
+      "codex-active-attention/generate-design-20261006/field-credit-results/field-credit-balanced-seed1001-attempt1/._manifest.json",
+      "codex-active-attention/generate-design-20261006/field-credit-results/field-credit-balanced-seed1001-attempt1/._attempt.json",
+      "codex-active-attention/generate-design-20261006/field-credit-results/field-credit-balanced-seed1001-attempt1/._generate.unary.phase-3.f32le",
+      "codex-active-attention/generate-design-20261006/field-credit-results/field-credit-balanced-seed1001-attempt1/._generate.unary.phase-1.f32le",
+      "codex-active-attention/generate-design-20261006/state-utility-and-ceiling-preserved/._state-ceiling-joint-attempt1-receipt.json",
+      "codex-active-attention/generate-design-20261006/state-utility-and-ceiling-preserved/._state-ceiling-joint-attempt1",
+      "codex-active-attention/generate-design-20261006/state-utility-and-ceiling-preserved/._state-utility-audit-attempt1-receipt.json",
+      "codex-active-attention/generate-design-20261006/state-utility-and-ceiling-preserved/._state-utility-joint-attempt1",
+      "codex-active-attention/generate-design-20261006/state-utility-and-ceiling-preserved/._state-utility-finite-loss-independent-review.json",
+      "codex-active-attention/generate-design-20261006/state-utility-and-ceiling-preserved/._finite-loss-convexity-review-20261006.md",
+      "codex-active-attention/generate-design-20261006/state-utility-and-ceiling-preserved/state-utility-joint-attempt1/._report.json",
+      "codex-active-attention/generate-design-20261006/state-utility-and-ceiling-preserved/state-utility-joint-attempt1/._manifest.json",
+      "codex-active-attention/generate-design-20261006/state-utility-and-ceiling-preserved/state-utility-joint-attempt1/._attempt.json",
+      "codex-active-attention/generate-design-20261006/state-utility-and-ceiling-preserved/state-ceiling-joint-attempt1/._report.json",
+      "codex-active-attention/generate-design-20261006/state-utility-and-ceiling-preserved/state-ceiling-joint-attempt1/._manifest.json",
+      "codex-active-attention/generate-design-20261006/state-utility-and-ceiling-preserved/state-ceiling-joint-attempt1/._attempt.json",
+      "codex-active-attention/generate-design-20261006/state-utility-joint-attempt1/._report.json",
+      "codex-active-attention/generate-design-20261006/state-utility-joint-attempt1/._manifest.json",
+      "codex-active-attention/generate-design-20261006/state-utility-joint-attempt1/._attempt.json",
+      "codex-active-attention/generate-design-20261006/state-ceiling-joint-attempt1/._report.json",
+      "codex-active-attention/generate-design-20261006/state-ceiling-joint-attempt1/._manifest.json",
+      "codex-active-attention/generate-design-20261006/state-ceiling-joint-attempt1/._attempt.json",
+      "codex-active-attention/generate-design-20261006/checkpoint-cross-results/._control-thin.tar.gz",
+      "codex-active-attention/generate-design-20261006/checkpoint-cross-results/._joint-root-analysis.json",
+      "codex-active-attention/generate-design-20261006/checkpoint-cross-results/._joint-thin.tar.gz",
+      "codex-active-attention/generate-design-20261006/checkpoint-cross-results/._control-independent-review.json",
+      "codex-active-attention/generate-design-20261006/checkpoint-cross-results/._build-attempt3-receipt.failed-transfer.empty",
+      "codex-active-attention/generate-design-20261006/checkpoint-cross-results/._build-attempt3-observed-receipt.json",
+      "codex-active-attention/generate-design-20261006/checkpoint-cross-results/._joint-independent-review.json",
+      "codex-active-attention/generate-design-20261006/joint-fixed-copy-certificate-preserved/._inspect-joint-copy-ceiling.py",
+      "codex-active-attention/generate-design-20261006/joint-fixed-copy-certificate-preserved/._state-ceiling-joint-independent-review.json",
+      "codex-active-attention/generate-design-20261006/joint-fixed-copy-certificate-preserved/._joint-fixed-copy-ceiling-inspection.json",
+      "codex-active-attention/generate-design-20261006/joint-fixed-copy-certificate-preserved/._fixed-copy-certificate-finite-loss-independent-review.json",
+      "codex-active-attention/generate-design-20261006/state-utility-build-preserved/._local-verification.json",
+      "codex-active-attention/generate-design-20261006/state-utility-build-preserved/._geometric-generate-code-probe.gz",
+      "codex-active-attention/generate-design-20261006/state-utility-build-preserved/._build-thin.tar.gz",
+      "codex-active-attention/generate-design-20261006/main-pod-tool/._docs",
+      "codex-active-attention/generate-design-20261006/main-pod-tool/._scripts",
+      "codex-active-attention/generate-design-20261006/main-pod-tool/scripts/._pod",
+      "codex-active-attention/generate-design-20261006/main-pod-tool/scripts/pod/._bf16-parity-gate.sh",
+      "codex-active-attention/generate-design-20261006/main-pod-tool/scripts/pod/._uor-reaper.sh",
+      "codex-active-attention/generate-design-20261006/main-pod-tool/scripts/pod/._uor-pod-bootstrap.sh",
+      "codex-active-attention/generate-design-20261006/main-pod-tool/scripts/pod/._step5-tabulate.py",
+      "codex-active-attention/generate-design-20261006/main-pod-tool/scripts/pod/._bf16-phase2b-gate.sh",
+      "codex-active-attention/generate-design-20261006/main-pod-tool/scripts/pod/._uor-pod",
+      "codex-active-attention/generate-design-20261006/main-pod-tool/scripts/pod/._tests",
+      "codex-active-attention/generate-design-20261006/main-pod-tool/scripts/pod/._step2-parity-bench.sh",
+      "codex-active-attention/generate-design-20261006/main-pod-tool/scripts/pod/._bf16-parity-gate.py",
+      "codex-active-attention/generate-design-20261006/main-pod-tool/scripts/pod/._hot-set.txt",
+      "codex-active-attention/generate-design-20261006/main-pod-tool/scripts/pod/._bf16-phase2b-gate.py",
+      "codex-active-attention/generate-design-20261006/main-pod-tool/scripts/pod/._run-sessions-parallel.sh",
+      "codex-active-attention/generate-design-20261006/main-pod-tool/scripts/pod/._step4-corpus.sh",
+      "codex-active-attention/generate-design-20261006/main-pod-tool/scripts/pod/._step5-knowledge.sh",
+      "codex-active-attention/generate-design-20261006/main-pod-tool/scripts/pod/tests/._uor-pod-dryrun.sh",
+      "codex-active-attention/generate-design-20261006/main-pod-tool/docs/._labs",
+      "codex-active-attention/generate-design-20261006/main-pod-tool/docs/labs/._compute.md",
+      "codex-active-attention/compute-tool-main/._scripts",
+      "codex-active-attention/compute-tool-main/scripts/._pod",
+      "codex-active-attention/compute-tool-main/scripts/pod/._bf16-parity-gate.sh",
+      "codex-active-attention/compute-tool-main/scripts/pod/._uor-reaper.sh",
+      "codex-active-attention/compute-tool-main/scripts/pod/._uor-pod-bootstrap.sh",
+      "codex-active-attention/compute-tool-main/scripts/pod/._step5-tabulate.py",
+      "codex-active-attention/compute-tool-main/scripts/pod/._bf16-phase2b-gate.sh",
+      "codex-active-attention/compute-tool-main/scripts/pod/._uor-pod",
+      "codex-active-attention/compute-tool-main/scripts/pod/._tests",
+      "codex-active-attention/compute-tool-main/scripts/pod/._step2-parity-bench.sh",
+      "codex-active-attention/compute-tool-main/scripts/pod/._bf16-parity-gate.py",
+      "codex-active-attention/compute-tool-main/scripts/pod/._hot-set.txt",
+      "codex-active-attention/compute-tool-main/scripts/pod/._bf16-phase2b-gate.py",
+      "codex-active-attention/compute-tool-main/scripts/pod/._run-sessions-parallel.sh",
+      "codex-active-attention/compute-tool-main/scripts/pod/._step4-corpus.sh",
+      "codex-active-attention/compute-tool-main/scripts/pod/._step5-knowledge.sh",
+      "codex-active-attention/compute-tool-main/scripts/pod/tests/._uor-pod-dryrun.sh",
+      "codex-active-attention/composed-state-receipts-20261006/._native-generate-architecture.md",
+      "codex-active-attention/composed-state-receipts-20261006/._prepare-probe-1.py",
+      "codex-active-attention/composed-state-receipts-20261006/._independent-outcome-doc-review-1.json",
+      "codex-active-attention/composed-state-receipts-20261006/._source-review-composed-before-full-choice.json",
+      "codex-active-attention/composed-state-receipts-20261006/._pr-body.md",
+      "codex-active-attention/composed-state-receipts-20261006/._source-review-transport-ls.json",
+      "codex-active-attention/composed-state-receipts-20261006/._native-cuda-feasibility.json",
+      "codex-active-attention/composed-state-receipts-20261006/._source-inventory-1.json",
+      "codex-active-attention/composed-state-receipts-20261006/._run-probe-1.py",
+      "codex-active-attention/composed-state-receipts-20261006/._source-review-native-generate.json",
+      "codex-active-attention/composed-state-receipts-20261006/._independent-full120-source-review-1.json",
+      "codex-active-attention/composed-state-receipts-20261006/._checks-1.py",
+      "codex-active-attention/composed-state-receipts-20261006/._retained-state-120-credit-feasibility.md",
+      "codex-active-attention/composed-state-receipts-20261006/._execution-results.json",
+      "codex-active-attention/composed-state-receipts-20261006/._copy-credit-migration-1698aa79.md",
+      "codex-active-attention/composed-state-receipts-20261006/._live-job.json",
+      "codex-active-attention/composed-state-receipts-20261006/._ordinary-token-donor-audit.md",
+      "codex-active-attention/composed-state-receipts-20261006/._collect-1.py",
+      "codex-active-attention/native-cuda-receipts-20261006/._gpu-selection.json",
+      "codex-active-attention/native-cuda-receipts-20261006/._source-review-realizer-probe.json",
+      "codex-active-attention/native-cuda-receipts-20261006/._independent-cuda-outcome-review-1.json",
+      "codex-active-attention/native-cuda-receipts-20261006/._canonical-probe-config-read-1.json",
+      "codex-active-attention/native-cuda-receipts-20261006/._pr-body.md",
+      "codex-active-attention/native-cuda-receipts-20261006/._pr1780-native-predictive-scope-review-1.md",
+      "codex-active-attention/native-cuda-receipts-20261006/._independent-credit-cuda-source-review-1.json",
+      "codex-active-attention/native-cuda-receipts-20261006/._source-inventory-2.json",
+      "codex-active-attention/native-cuda-receipts-20261006/._source-inventory-1.json",
+      "codex-active-attention/native-cuda-receipts-20261006/._probe-config-1.json",
+      "codex-active-attention/native-cuda-receipts-20261006/._next-step-cuda-fit-versus-generate.json",
+      "codex-active-attention/native-cuda-receipts-20261006/._probe-config-input-seal-presence-1.json",
+      "codex-active-attention/native-cuda-receipts-20261006/._independent-cuda-outcome-review-2.json",
+      "codex-active-attention/native-cuda-receipts-20261006/._source-review-context-kernels.json",
+      "codex-active-attention/native-cuda-receipts-20261006/._pod-thin",
+      "codex-active-attention/native-cuda-receipts-20261006/pod-thin/._probe.sh",
+      "codex-active-attention/native-cuda-receipts-20261006/pod-thin/._example.log",
+      "codex-active-attention/native-cuda-receipts-20261006/pod-thin/._composed.log",
+      "codex-active-attention/native-cuda-receipts-20261006/pod-thin/._context.log",
+      "codex-active-attention/native-cuda-receipts-20261006/pod-thin/._timing-summary.json",
+      "codex-active-attention/native-cuda-receipts-20261006/pod-thin/._transport.log",
+      "codex-active-attention/native-cuda-receipts-20261006/pod-thin/._probe-1",
+      "codex-active-attention/native-cuda-receipts-20261006/pod-thin/._binary.sha256",
+      "codex-active-attention/native-cuda-receipts-20261006/pod-thin/._time-command.py",
+      "codex-active-attention/native-cuda-receipts-20261006/pod-thin/._checks.sh",
+      "codex-active-attention/native-cuda-receipts-20261006/pod-thin/._checks-status.txt",
+      "codex-active-attention/native-cuda-receipts-20261006/pod-thin/._build.log",
+      "codex-active-attention/native-cuda-receipts-20261006/pod-thin/probe-1/._report.json",
+      "codex-active-attention/native-cuda-receipts-20261006/pod-thin/probe-1/._cpu-cuda-state-credit.json",
+      "codex-active-attention/native-cuda-receipts-20261006/pod-thin/probe-1/._manifest.json",
+      "codex-active-attention/source-bound-receipts-20261006/._source-inventory-4.json",
+      "codex-active-attention/source-bound-receipts-20261006/._source-inventory.json",
+      "codex-active-attention/source-bound-receipts-20261006/._source-review-endpoints.json",
+      "codex-active-attention/source-bound-receipts-20261006/._source-inventory-3.json",
+      "codex-active-attention/source-bound-receipts-20261006/._integrated-predictive-geometry-review.md",
+      "codex-active-attention/source-bound-receipts-20261006/._source-inventory-2.json",
+      "codex-active-attention/source-bound-receipts-20261006/._source-review-admission-4.json",
+      "codex-active-attention/source-bound-receipts-20261006/._adversarial-result-recount.json",
+      "codex-active-attention/source-bound-receipts-20261006/._investigative-design-review.json",
+      "codex-active-attention/source-bound-receipts-20261006/._investigating-ranking-next.json",
+      "codex-active-attention/source-bound-receipts-20261006/._adversarial-geometric-learning-assessment.json",
+      "codex-active-attention/source-bound-receipts-20261006/._independent-outcome-review-1.json",
+      "codex-active-attention/source-bound-receipts-20261006/._execution-results.json",
+      "codex-active-attention/source-bound-receipts-20261006/._source-review-reducer.json"
+    ],
+    "files": {
+      "native-generate-claim.json": {
+        "sha256": "17fa08e065411450d9195165d522482ec8db1f4105a02ab5622f6ff21fc26535",
+        "bytes": 526
+      },
+      "native-cuda-claim.json": {
+        "sha256": "25baaeb2dbd8b56d8cc42cebb7676c1766ea79358f1f5e1c6b42ce5ad500b110",
+        "bytes": 512
+      },
+      "source-bound-pr.md": {
+        "sha256": "c5849757db7bea2b84ef0b3e1b042980fb3e5ab4bc625ef00d5c33b249250280",
+        "bytes": 2567
+      },
+      "cleanup-board-20261006.md": {
+        "sha256": "2379816bf5daf071dc07b9a8d15f57e8cc62fbf802792fb619b1ced0c60b5f34",
+        "bytes": 1553
+      },
+      "source-bound-work-card.md": {
+        "sha256": "4269b540c48f9da26799c0995c5ac9260e0ff73d78810e4f60a14111cfea6a75",
+        "bytes": 2188
+      },
+      "cleanup-20261006.json": {
+        "sha256": "93d67e3350d559bec0fdc998c0c7e58b74cb12fc416f144b5a60c3d317bb59bd",
+        "bytes": 590
+      },
+      "coadapt-pr-final.md": {
+        "sha256": "74b37839e6ed9e60fff2670d0d17f8b91e2f31008e5f8bcb72b141229ebed48d",
+        "bytes": 1796
+      },
+      "composed-state-claim.json": {
+        "sha256": "2bb44d86684cb32d691622086d89776802dd68f9774a401dbb0992346e987704",
+        "bytes": 523
+      },
+      "source-bound-claim.json": {
+        "sha256": "a0d84840f1ead2ddaf7b82ed09e51d3671dad1ea49a3fca8ff389e6b2c396fe3",
+        "bytes": 477
+      },
+      "native-cuda-preservation-receipt.json": {
+        "sha256": "6006fac9f36a48466772b6125fff5c6cf566e7ed1c38cef52017fb78cad71db3",
+        "bytes": 731
+      },
+      "composed-state-work-card.md": {
+        "sha256": "9324878441cce121ff37f0dd969c02d6b0499b14d7d46ea4c515505b4c5240e2",
+        "bytes": 1938
+      },
+      "native-cuda-work-card.md": {
+        "sha256": "8db3b80b58b9779efdb473c898f1e8af814387d33fdd853c77eec0f05d556445",
+        "bytes": 2033
+      },
+      "source-bound-receipts-20261006/source-inventory-4.json": {
+        "sha256": "00a85ad10a67db156e4695a552af390d90b727f5640a0593f0102d731db77ae3",
+        "bytes": 2677
+      },
+      "source-bound-receipts-20261006/source-inventory.json": {
+        "sha256": "5e74da33fb237e4ee874787c59f6b7fdce53b9833371c07f7f14fa442050ec6c",
+        "bytes": 2677
+      },
+      "source-bound-receipts-20261006/source-review-endpoints.json": {
+        "sha256": "9f4e80248619d7b975d92e19bd87adb3e84dc2be826d4a184b5af24edaec51ac",
+        "bytes": 3149
+      },
+      "source-bound-receipts-20261006/source-inventory-3.json": {
+        "sha256": "8b510f5faf643ae9ad363cb1af734952f5f5681d2802612aa60929c96ad676b6",
+        "bytes": 2677
+      },
+      "source-bound-receipts-20261006/integrated-predictive-geometry-review.md": {
+        "sha256": "db4b2de06d264e337ccd8d86dd19ae561a16e51329173960afe61e9e305b19ca",
+        "bytes": 10004
+      },
+      "source-bound-receipts-20261006/source-inventory-2.json": {
+        "sha256": "5a85134b998b0af7eb52a911dd8cf9873c594d5df6cda4ce94956e92229d68cb",
+        "bytes": 2677
+      },
+      "source-bound-receipts-20261006/source-review-admission-4.json": {
+        "sha256": "7202a2de23950feee26e77f9a82ec0babc352657e6755ca6d412fbffe5ce78c3",
+        "bytes": 3394
+      },
+      "source-bound-receipts-20261006/adversarial-result-recount.json": {
+        "sha256": "a73c7fd3e606e587ccc0fa4aaaeb70d3d5035ac3d316a5cf0b61de8a3898f3af",
+        "bytes": 121574
+      },
+      "source-bound-receipts-20261006/investigative-design-review.json": {
+        "sha256": "75de1a532b389a19323528155ba9b8a7e8c2ad233e05f091680dda787c79eeda",
+        "bytes": 9505
+      },
+      "source-bound-receipts-20261006/investigating-ranking-next.json": {
+        "sha256": "aaf1366f98b7e9f1b73c0880f4ff68116192981216867a8dff9ed9d867f74e8c",
+        "bytes": 10120
+      },
+      "source-bound-receipts-20261006/adversarial-geometric-learning-assessment.json": {
+        "sha256": "2a6ffbbc54fb2d96327a1cccfa3d3ee19d71e3e61aac86a8a582ab119a531104",
+        "bytes": 6584
+      },
+      "source-bound-receipts-20261006/independent-outcome-review-1.json": {
+        "sha256": "5b8dab465b97940fa28ce8775402e1bb5ceb781ca3641243cb99852b9b72947b",
+        "bytes": 26110
+      },
+      "source-bound-receipts-20261006/execution-results.json": {
+        "sha256": "85f16ea52ae8719049c155cbfbb0a2c4f70065663ed75bd9f4ad887abe8a3247",
+        "bytes": 15276
+      },
+      "source-bound-receipts-20261006/source-review-reducer.json": {
+        "sha256": "9c83d8e86a4ee6cedce95846575c6868c5632ea51d4423ed6baee67fbcf0f9c8",
+        "bytes": 3936
+      },
+      "native-cuda-receipts-20261006/gpu-selection.json": {
+        "sha256": "63218db2fc83122609c7cab866b390af59c0fa87ed1d770b5b7405836315d82c",
+        "bytes": 505
+      },
+      "native-cuda-receipts-20261006/source-review-realizer-probe.json": {
+        "sha256": "0e87d809f13c07501d7233d07bcfdc4410dcbabba2b5c4d7e21727b3f4e70e10",
+        "bytes": 4603
+      },
+      "native-cuda-receipts-20261006/independent-cuda-outcome-review-1.json": {
+        "sha256": "6fed814203c63b394c5162f22b1550b38843a94a349ad8a19991e4f677d1c82a",
+        "bytes": 3542
+      },
+      "native-cuda-receipts-20261006/canonical-probe-config-read-1.json": {
+        "sha256": "b7304c2265b79b7940fcfc6d48d16d9fdea65b48b7ab29004c81ce11880f6d27",
+        "bytes": 2581
+      },
+      "native-cuda-receipts-20261006/pr-body.md": {
+        "sha256": "b5cba2ae0cb76687379e9e36be8dc1ced6747c24263cee238bf2a8964e4310a2",
+        "bytes": 1357
+      },
+      "native-cuda-receipts-20261006/pr1780-native-predictive-scope-review-1.md": {
+        "sha256": "760ed57df4070495de5ece64c77dd5ccf20846764f599aee81d48026d91ac4e6",
+        "bytes": 3319
+      },
+      "native-cuda-receipts-20261006/independent-credit-cuda-source-review-1.json": {
+        "sha256": "3a4199a7ab0931f5ff3ddcc83bca65876a667452b05e5c83a3700f62eb595b6a",
+        "bytes": 3730
+      },
+      "native-cuda-receipts-20261006/source-inventory-2.json": {
+        "sha256": "67bd53689c6a0639316d30cb2b0980e5465699a8bd9ef115d2e9fa3d88a21a9b",
+        "bytes": 1594
+      },
+      "native-cuda-receipts-20261006/source-inventory-1.json": {
+        "sha256": "cd36d21678ef867b7585ee6d0d404d0d8cb245c6ac6e502c130758a48406cc2f",
+        "bytes": 1804
+      },
+      "native-cuda-receipts-20261006/probe-config-1.json": {
+        "sha256": "059eb377d6480924561ee2af2a9b8f74ae3218805f2b3635d12c5152a9132912",
+        "bytes": 2574
+      },
+      "native-cuda-receipts-20261006/next-step-cuda-fit-versus-generate.json": {
+        "sha256": "f52347c9ac8eb71270c6517709d8f6ec6ae8e39ececb53b660ef5a0f88ec22ba",
+        "bytes": 6102
+      },
+      "native-cuda-receipts-20261006/probe-config-input-seal-presence-1.json": {
+        "sha256": "7d4f0c2a1169497c99b426f239383aae22568e11c47eb694166eeea96228de5f",
+        "bytes": 1610
+      },
+      "native-cuda-receipts-20261006/independent-cuda-outcome-review-2.json": {
+        "sha256": "2f3324415e1d185c6000b6d19ba23ec8332b80902c851c2f6863c6ee5c0aa7c2",
+        "bytes": 8573
+      },
+      "native-cuda-receipts-20261006/source-review-context-kernels.json": {
+        "sha256": "3b52af5bdce5f5b680d9d4eb92548dc2578475a37d44789c39c0d6ccc4e0678e",
+        "bytes": 3865
+      },
+      "composed-state-receipts-20261006/native-generate-architecture.md": {
+        "sha256": "cc75c2dbfa944f5fe91ffebfdb41cd2144f67342792d3544574f6fd083496955",
+        "bytes": 9382
+      },
+      "composed-state-receipts-20261006/prepare-probe-1.py": {
+        "sha256": "4df548f1bb1e58e4cee6634807666ae6a9e82f33425ca8d635eb9773601762c7",
+        "bytes": 580
+      },
+      "composed-state-receipts-20261006/independent-outcome-doc-review-1.json": {
+        "sha256": "aa9c4848664cf08712afcd295522638e48b24b8347d13920a6e630a97197f053",
+        "bytes": 2703
+      },
+      "composed-state-receipts-20261006/source-review-composed-before-full-choice.json": {
+        "sha256": "5172436bab259b890024fd3f3961410beb57d5d5f0027ea998c7cbac55ceb44b",
+        "bytes": 3295
+      },
+      "composed-state-receipts-20261006/pr-body.md": {
+        "sha256": "22198041c482f5180cc55d47a65e28e479a3d67d5d5edd9a27ca91000e09c4fc",
+        "bytes": 2105
+      },
+      "composed-state-receipts-20261006/source-review-transport-ls.json": {
+        "sha256": "8eb37b1e292aaf98f94bdc1ec95edd8ce3e73c2bb122408c1e44652117316de6",
+        "bytes": 4308
+      },
+      "composed-state-receipts-20261006/native-cuda-feasibility.json": {
+        "sha256": "b08e459e6a7ff73acdb358d0017d21e554c5a7f0d1d74a77ec6af5e5a1400548",
+        "bytes": 5030
+      },
+      "composed-state-receipts-20261006/source-inventory-1.json": {
+        "sha256": "da30db09e7f5c12693c9fb158b7348d91cece8151814997f2096f9f444cb6e59",
+        "bytes": 1475
+      },
+      "composed-state-receipts-20261006/run-probe-1.py": {
+        "sha256": "091f65b7fefa7b22aa45eee49f124d555c5bc29b9165bc32dbfbca3a0672dfef",
+        "bytes": 3195
+      },
+      "composed-state-receipts-20261006/source-review-native-generate.json": {
+        "sha256": "d99eb23a1b030fdd8f3c22034fa898829f4af07d38774bcd244b9e238c9ea8b1",
+        "bytes": 12110
+      },
+      "composed-state-receipts-20261006/independent-full120-source-review-1.json": {
+        "sha256": "e5c561dcf682d6d20f56d6ce15961fcae347302ed79342cb7432f5ded9cc000d",
+        "bytes": 4046
+      },
+      "composed-state-receipts-20261006/checks-1.py": {
+        "sha256": "9703e8510cc558026e6e38201b56b3b76070d252f66f90f851fca0d587a2ef5c",
+        "bytes": 3127
+      },
+      "composed-state-receipts-20261006/retained-state-120-credit-feasibility.md": {
+        "sha256": "f285df54bbd467eb1f272c5704937a92bb436c211f1e70540bc5545ff1428979",
+        "bytes": 8090
+      },
+      "composed-state-receipts-20261006/execution-results.json": {
+        "sha256": "b7d043f3c9bd46b6d84699364260df8470c58ada70ab0ef49739433c959a5401",
+        "bytes": 16124
+      },
+      "composed-state-receipts-20261006/copy-credit-migration-1698aa79.md": {
+        "sha256": "0d19b6ab7c82f48cf6e782f867915f09adc2fb31ae59ecc1020d418e53cf9da6",
+        "bytes": 8614
+      },
+      "composed-state-receipts-20261006/live-job.json": {
+        "sha256": "598471fcbacad971c77c05c97ca090e5fc6efb09dabd64d4470a743fe8fd7ce5",
+        "bytes": 475
+      },
+      "composed-state-receipts-20261006/ordinary-token-donor-audit.md": {
+        "sha256": "b7ba8fddbe9c3aa75552c2a8ecf88edc4d99402aed2f45ae37e521c31cdc1708",
+        "bytes": 1924
+      },
+      "composed-state-receipts-20261006/collect-1.py": {
+        "sha256": "d66372e5e5228786a1de581b85fab9e812604421652e1be79ae88bfadda611c1",
+        "bytes": 2014
+      },
+      "generate-design-20261006/joint-potential-data-coverage-inspection.json": {
+        "sha256": "c951d71679574c3b73b664e70524d76392540c04e52690d930290c071a4dc29b",
+        "bytes": 833
+      },
+      "generate-design-20261006/real-b8-representative-cost-config.json": {
+        "sha256": "c913479992d49040c92c34d17c1060db8f3953caac2f92ca76b7d86d7f158156",
+        "bytes": 1748
+      },
+      "generate-design-20261006/archive-joint-potential-host-failure.py": {
+        "sha256": "1ff79655c66f7c9621e64c001cb3eb53abc171e2f099494976cd6b835a8a3247",
+        "bytes": 1086
+      },
+      "generate-design-20261006/seed1001-margin-result-summary.json": {
+        "sha256": "54fdef61bdc511b4042f815cef71d2b58c53ec08c4278343a26eae1f0df08fa9",
+        "bytes": 9213
+      },
+      "generate-design-20261006/seed1001-ce-and-native-prototype-audit.json": {
+        "sha256": "1d64efee0322254ab2b52ad955361153dcd2ccfa811f82f5ab9143489a3c20f5",
+        "bytes": 3357
+      },
+      "generate-design-20261006/balanced-admission-independent-review.json": {
+        "sha256": "d56d9c6746e4be9caa12b089bfef49f8f7a15a2c8ef6b0e76df6a3ed31947506",
+        "bytes": 7496
+      },
+      "generate-design-20261006/build-checks-6.sh": {
+        "sha256": "1ddf953085483e4171444aff882fc6817444d4c5f455a88d1f62ac4f6e132a7a",
+        "bytes": 2511
+      },
+      "generate-design-20261006/real-representative-cost-results.json": {
+        "sha256": "b26d8581620aa33e4e3221073e493d31204abf190514e6f74db5de5d75f608f8",
+        "bytes": 15688
+      },
+      "generate-design-20261006/discrete-gradient-literature-20261006.md": {
+        "sha256": "b6430c2fa3486d1ccf8c36de2f2c9d60c57860ad26f8a7b124907ea665a79479",
+        "bytes": 1944
+      },
+      "generate-design-20261006/codex-checkpoint-cross-build-attempt2.py": {
+        "sha256": "df0c7ac6b845f0a3322e1b3cbd2e517807ebe1aa9f03a3e4c9decbd2d1166296",
+        "bytes": 3061
+      },
+      "generate-design-20261006/prefix-temporal-utility-source-review.json": {
+        "sha256": "1ee6e4f2170691eba5f0bb0bacb66aeee4adb9fbe1b7569aa886e1de789202eb",
+        "bytes": 3358
+      },
+      "generate-design-20261006/state-ceiling-joint-attempt1-receipt.json": {
+        "sha256": "91607fd2031b8bdd5396b9f07f2d75df33a5aead70b75d4d0c302acdb946a442",
+        "bytes": 833
+      },
+      "generate-design-20261006/joint-seed1003-cost-retry-independent-pi-review.json": {
+        "sha256": "9ab3c22a283a68c2b7a362d1bb4df26209a16c9bdcacb2e638f1ed2603fe5a58",
+        "bytes": 2576
+      },
+      "generate-design-20261006/source-contrast-derived-run.py": {
+        "sha256": "b6a80be04cee913f3ba24c146c19ab86ccfef0a36ac3e8fff0173f369a986542",
+        "bytes": 3401
+      },
+      "generate-design-20261006/run-balanced-fit1-retry.sh": {
+        "sha256": "52af773a7d154194926eb5440a1f3f5d766bde13019e671c419cc804350f7ae2",
+        "bytes": 1328
+      },
+      "generate-design-20261006/checkpoint-state-ceiling-terminal-20261006T1045Z.json": {
+        "sha256": "46d4d462cb7ff5c41374dda7c23351f0eba95e4e4a0f6492f566ba1a29a06cec",
+        "bytes": 10590
+      },
+      "generate-design-20261006/native-score-feasibility-and-readout-capacity-review.json": {
+        "sha256": "c795669be4b155898ce6947e4821100fec9e6bc8e43730e28b38c1fa946cf904",
+        "bytes": 3185
+      },
+      "generate-design-20261006/seed1002-output-only-independent-pi-review.json": {
+        "sha256": "987669c6e3bc280f0b3b3c30fd425dc85cb01fb26a9d79bfea62748fd05e17e2",
+        "bytes": 2160
+      },
+      "generate-design-20261006/source-query-tests-run.py": {
+        "sha256": "e1eb8c7e644c03f11306518bdd82673de60de5102f1cfa06a17d44c3773e0884",
+        "bytes": 2636
+      },
+      "generate-design-20261006/live-work-card.md": {
+        "sha256": "189cd155be8673927129d735e0c3e95eaea1f8d94f6c912892bf20751f4f4564",
+        "bytes": 2699
+      },
+      "generate-design-20261006/learned-token-tuple-shared-potential-design.json": {
+        "sha256": "e996a7d8ccd67847e39167435bf232682def724437f89f7aea4dff7486cc1405",
+        "bytes": 16636
+      },
+      "generate-design-20261006/checkpoint-fit-ceiling-build-20261006T0825Z.json": {
+        "sha256": "fde1ab1f9be478eaaf0adc9c357cfe891387b2617fc9d89f5e9e08a623449055",
+        "bytes": 4954
+      },
+      "generate-design-20261006/spiralcore-and-admission-github-update.md": {
+        "sha256": "92aa7cc110f327fc435782ef8aa1976d7c1393b2e70f34e11e4c63075c819d17",
+        "bytes": 2417
+      },
+      "generate-design-20261006/temporal-credit-diagnosis-receipt.json": {
+        "sha256": "dd506920a1ba4bfb632f38b2debb2e7f5c3570ce6e35cfe240ef1f222c22eb28",
+        "bytes": 688
+      },
+      "generate-design-20261006/balanced-admission-root-execution-summary.json": {
+        "sha256": "1925eac8fa0e5a27acf7e34a18d0268778ee08abaceee53c82c38c1e464b6ea2",
+        "bytes": 522
+      },
+      "generate-design-20261006/resource-projection.json": {
+        "sha256": "762bf38eabf52c1776a9e53b31bbfa1e078cf13acba78a233750ce6e76160cb9",
+        "bytes": 1278
+      },
+      "generate-design-20261006/resource-extension-margin-seed1002-20261006.json": {
+        "sha256": "9eb5112c8235f6f42a972d0dc92a2524d51e9fda32e387d44df25e6a25bbec0b",
+        "bytes": 1051
+      },
+      "generate-design-20261006/spiralcore-v68-source-math-reuse-review.md": {
+        "sha256": "d2229c8699e5f849013a3bb33a6582e88770a9302734a807251f7747ce3d0654",
+        "bytes": 8724
+      },
+      "generate-design-20261006/margin-executed-issue-update.md": {
+        "sha256": "61dca08391bb7b2c78cfa6939e771b282b1e9de36e236645d447629c725166f2",
+        "bytes": 1507
+      },
+      "generate-design-20261006/repair-and-margin-result-update.md": {
+        "sha256": "4f92f65b70bf0a1d65ac0e0c0a06e043f9b4b53b6cda1d374a6f9acde8ad3c72",
+        "bytes": 1390
+      },
+      "generate-design-20261006/native-shadow-gap-audit.json": {
+        "sha256": "0e3fb7ad78659448f681cfe86e172e8e18f57374c150dd1574fff5b627dfdbb4",
+        "bytes": 4348
+      },
+      "generate-design-20261006/joint-seed1003-attempt3-full-initial-parity-independent-pi-review.json": {
+        "sha256": "971503e60808daa91002a047f75d935e442e43d42f85c578c2db9f7dbb471a06",
+        "bytes": 1446
+      },
+      "generate-design-20261006/joint-potential-validation-attempt4.py": {
+        "sha256": "3f54e506e136694c5c5279ca2399a6a7ab87adbc1a779639f8a72ff90c18f55a",
+        "bytes": 2766
+      },
+      "generate-design-20261006/joint-potential-first-copy-clamp-audit-20261006.json": {
+        "sha256": "17274a302a2bfe8d0c8e290baed62e12a18da7c401372d9f4c11dab671fa1c18",
+        "bytes": 6554
+      },
+      "generate-design-20261006/phase-fit-ef8c049.bundle": {
+        "sha256": "f2249ba363469cfb70ac0ea6ed37b49494c978b7c37fa680d170c7f424e1e3e9",
+        "bytes": 9918
+      },
+      "generate-design-20261006/cleanup-receipt-20261006.json": {
+        "sha256": "ac1749a97d589bed9056444676d40b16dd114040768213ac55c9632a30174a38",
+        "bytes": 546
+      },
+      "generate-design-20261006/claim-native-phase-target-20261006T1822Z.json": {
+        "sha256": "7559fb96a89b5c08b9e9d72fbb4a26c43e83e8dcfec3f4a205a59b6183497e4e",
+        "bytes": 1506
+      },
+      "generate-design-20261006/build-checks-2.sh": {
+        "sha256": "435bb67577d2c155ed18a4692f796b27133d4e661430ebee60d7c1c230f6dab6",
+        "bytes": 2371
+      },
+      "generate-design-20261006/phase-balanced-terminal-update-20261006.md": {
+        "sha256": "88dd18572c51e500f7fd1c12a712b0e9d6202ae1678df2ac153c527a7cfb0495",
+        "bytes": 2054
+      },
+      "generate-design-20261006/joint-potential-source-review-9410c92b.json": {
+        "sha256": "d51d8d09e9290645e39e0b5244fb1e52107e1e8adab6323c998f3f0d34da4767",
+        "bytes": 1574
+      },
+      "generate-design-20261006/alias-objective-source-identifiability-next-training.md": {
+        "sha256": "780f370fe373fe21ac27c07057a59f7dcd47cc23da3be7c2fa0e184eb08e4f6e",
+        "bytes": 9320
+      },
+      "generate-design-20261006/run-balanced-cuda-parity.sh": {
+        "sha256": "f6e99d455355af1b9135803631e08f5391817b310e8a9d2c9e475ac73e1f8e21",
+        "bytes": 981
+      },
+      "generate-design-20261006/native-generate-reuse.md": {
+        "sha256": "38bf8abd409dd12c655ff1c19fab0ee1fa75c66b5250fd10926d4dcc2a16f1ae",
+        "bytes": 18244
+      },
+      "generate-design-20261006/balanced-joint-admission-run.py": {
+        "sha256": "d8d85838a3f18ca1aba86b03a7faf4e322b33ee45793da1ebb42d37e49626188",
+        "bytes": 2122
+      },
+      "generate-design-20261006/seed1001-effective-state-conflict-audit.json": {
+        "sha256": "f19a267a9c80ed9cc762978bb4fd3fd842657547341fcacba938e02e7082d61f",
+        "bytes": 21553
+      },
+      "generate-design-20261006/selected-source-reference-checks-execution-attempt1.json": {
+        "sha256": "3c6e5cb1b88df7005f595bba41f648314c8c809b1bd47b42330a7575a5633704",
+        "bytes": 2241
+      },
+      "generate-design-20261006/native-generate-progress.md": {
+        "sha256": "76fdd3f941a5c441dd778470db90dd360fc4fb091c2b69e5e97187e947416bb5",
+        "bytes": 1231
+      },
+      "generate-design-20261006/phase-loss-validation-attempt2.py": {
+        "sha256": "45cf8dca701720c952ff30c79b1aceef0a12de86747b8ab9fa6fdd4fd8d5c52a",
+        "bytes": 3503
+      },
+      "generate-design-20261006/phase-loss-b2dfe4df.bundle": {
+        "sha256": "4f1295bface215ca97b847cf820e3bc33089c68c19c7b0105660234b39788e4d",
+        "bytes": 7543
+      },
+      "generate-design-20261006/checkpoint-cross-independent-review-complete-20261006T1243Z.json": {
+        "sha256": "bb9268839b0a3149abfd28e33acc3f2b376ef1bf3af5a12f905aa2a1e075ffb2",
+        "bytes": 18869
+      },
+      "generate-design-20261006/balanced-seed1001-completed-independent-pi-review.json": {
+        "sha256": "e16ac250c9b1cffe1aa4953376d486c9bb51f5aed3623d9b437d5956f0881905",
+        "bytes": 3762
+      },
+      "generate-design-20261006/checkpoint-phase-native-final-evaluation-20261006.json": {
+        "sha256": "742aeb639ca1adee28bf3bd14c4990a16adf1abdd27ee18798a9fd150ca5839c",
+        "bytes": 1483
+      },
+      "generate-design-20261006/build-checks-3.sh": {
+        "sha256": "7fec2bad6b599dc5c6668767a3fb1511dddab8765b38466dcbdf1ea6fac1444d",
+        "bytes": 2366
+      },
+      "generate-design-20261006/seed1002-joint-independent-pi-review.json": {
+        "sha256": "8c35e3585b40638ba33607f0c75ac83ff4e90ca58c6897bf6638e4b0d0f8a769",
+        "bytes": 1966
+      },
+      "generate-design-20261006/checkpoint-phase-fit-and-target-audit-20261006T1818Z.json": {
+        "sha256": "e8a55f85f2b5c47b31990520bbddbb532209c6b39e64e87ac3b3d2c43ae7085c",
+        "bytes": 1127
+      },
+      "generate-design-20261006/fit-output-only-seed1003-temporal-config.json": {
+        "sha256": "c6af1f68feada788ec3f4370e1c1f5489706ebc693be5d4907617b4479e40129",
+        "bytes": 1784
+      },
+      "generate-design-20261006/prospective-real-fit-amendment.md": {
+        "sha256": "03d627cf365c178487e95a12ec934e18454674b2bb5809d81871856a1ef92e69",
+        "bytes": 2465
+      },
+      "generate-design-20261006/balanced-admission-work-card.md": {
+        "sha256": "56cbf69ec4e95859c8349e1e9913654d58b898f349cf1a9a5d44539f2701967c",
+        "bytes": 1056
+      },
+      "generate-design-20261006/second-pair-issue-update.md": {
+        "sha256": "3bcefb8d31c2bbac6b14f885ca95b3c7c0629ae4ee836d45c339e736c643853d",
+        "bytes": 1472
+      },
+      "generate-design-20261006/prefix-temporal-cpu-check-receipt.json": {
+        "sha256": "a4db0774305b0d99125dbcb4c91a0d85c2133d50a705fe8f403c09facd80fcbc",
+        "bytes": 1743
+      },
+      "generate-design-20261006/joint-potential-validation-attempt1.py": {
+        "sha256": "017ca42d4c01ba5c8122026128c634750c2026762657119357386bb620e5c945",
+        "bytes": 3962
+      },
+      "generate-design-20261006/source-query-group-tests-run.py": {
+        "sha256": "9092b70b142b4105307bcb9fb4035c375dedcd6f870f184f36e1e01fb27573b9",
+        "bytes": 2636
+      },
+      "generate-design-20261006/state-utility-audit-attempt1-receipt.json": {
+        "sha256": "f9453ac1b066bafeb32923b7a7dac1047f372db34ca2fbfdde2452a86f56981a",
+        "bytes": 833
+      },
+      "generate-design-20261006/build-checks-7.sh": {
+        "sha256": "ad4eb239173eef08897702cdde6f3768763fa4da8631df8fe42a353ad7f86a92",
+        "bytes": 2357
+      },
+      "generate-design-20261006/seed1002-joint-completed-audit.json": {
+        "sha256": "c1bad1e32c0c862166bf65084185c7b574eb55fadee12815324773c5f58bc550",
+        "bytes": 1392
+      },
+      "generate-design-20261006/codex-checkpoint-cross-build-attempt3.py": {
+        "sha256": "f5bbe3a09071b6529558797bb7d08a1557f04d57c8356f4584dff448bd84891f",
+        "bytes": 3100
+      },
+      "generate-design-20261006/state-ceiling-build-attempt1-receipt.json": {
+        "sha256": "d6fffce14d083125a7e8f37287b68e1dc35c98cca07903e63a2834429689ff5c",
+        "bytes": 1190
+      },
+      "generate-design-20261006/prefix-temporal-progress.md": {
+        "sha256": "5d0edebb1a2a6c4080b9c842b0605d5926fcb32242a07381e923e0357c0359cb",
+        "bytes": 997
+      },
+      "generate-design-20261006/codex-checkpoint-cross-build.py": {
+        "sha256": "d432273f7974bcbb3c2e7add54fb6aca364229cc1ead2eb1999fe4ee8ccd0096",
+        "bytes": 2989
+      },
+      "generate-design-20261006/PR-body.md": {
+        "sha256": "72780830fdc6d9394ffa1c5befa4392e5e9405fe04df01d76bf605fb60cc7869",
+        "bytes": 1175
+      },
+      "generate-design-20261006/inspect-joint-copy-ceiling.py": {
+        "sha256": "a0704df22018245c757009bfd3c18f63cfeb897585d02676db034c4cd154a8c3",
+        "bytes": 5501
+      },
+      "generate-design-20261006/checkpoint-field-credit-audit-live-20261006T1121Z.json": {
+        "sha256": "4adc96b7e854d4e3df156a5b4db3faa6cd8032fd2b9552872547abc274a223e8",
+        "bytes": 11949
+      },
+      "generate-design-20261006/phase-validation-compile-recovery.md": {
+        "sha256": "44ac95cfe28dff558213093daa1902ff85cad0588b8b37da11199b7dcf40e089",
+        "bytes": 681
+      },
+      "generate-design-20261006/fit-ceiling-build-c7222d7e.sh": {
+        "sha256": "98aa960d67c0a47c10990402d87ba8fb69232b75a2edee757f9f88ed3524865c",
+        "bytes": 846
+      },
+      "generate-design-20261006/native-code-probe-actual-review.md": {
+        "sha256": "8d956ee5e7bfe5ca9fc65663fc35f06bc9df8602ca547581883d1f90a1b3f5af",
+        "bytes": 449
+      },
+      "generate-design-20261006/fit-joint-seed1001-temporal-config.json": {
+        "sha256": "72adb953bcbf09d8e23cf1fed84379237242c4c42a83d067444c407b23c972af",
+        "bytes": 1772
+      },
+      "generate-design-20261006/balanced-fit1-cost-retry-card.md": {
+        "sha256": "2da03539f5d50804c312fd6ad9a02508273ce79d758078fc864f8da6c1258d83",
+        "bytes": 881
+      },
+      "generate-design-20261006/joint-potential-attempt6-saved-reply-diagnosis.md": {
+        "sha256": "d8e379c9410cb8b84b54b64bb5c5b2e7f59659a25d695af7df3de3470c760972",
+        "bytes": 5570
+      },
+      "generate-design-20261006/joint-potential-final-versus-initial.json": {
+        "sha256": "b698fa3de5c1bfa31101f55bf297a57b61b0b9b913754e77173bdb07040fb377",
+        "bytes": 121571
+      },
+      "generate-design-20261006/joint-potential-fit-run-attempt2.py": {
+        "sha256": "747782d197d4bfb64143403dcadf98195cc1f3e7f04a66a76dd46ca42a89569a",
+        "bytes": 4474
+      },
+      "generate-design-20261006/checkpoint-balanced-fit1-retry-live-20261006T0920Z.json": {
+        "sha256": "99763b08fd63129f7aaf42d4f60e83810cb8a2baf95549baaf80b6a3fee601b4",
+        "bytes": 7908
+      },
+      "generate-design-20261006/balanced-cuda-parity-build-receipt.json": {
+        "sha256": "908556523fe3c102ffdf2c1f7185d26b0aa46e019ae5337decd8ca50631ae52a",
+        "bytes": 970
+      },
+      "generate-design-20261006/native-code-probe-conditional-run-card-20261006.md": {
+        "sha256": "f96d0cd730fe1ac5bd65395a4f8827280d634258df9e08428d0a6200fefc70b1",
+        "bytes": 1679
+      },
+      "generate-design-20261006/real-chunk-parity-results.txt": {
+        "sha256": "56f9b2929c9202d679bcb61f22e5ed214655d88b71d82f46034a7a5714b9f690",
+        "bytes": 10239
+      },
+      "generate-design-20261006/checkpoint-cross-control-pass-joint-queued-20261006T1232Z.json": {
+        "sha256": "61a7ebafebf89cd5a7c3bdb66673b0b5413ce8fad01ea257e939e580284eef7f",
+        "bytes": 18201
+      },
+      "generate-design-20261006/run-temporal-output-only.sh": {
+        "sha256": "e885de89a4d18b864750abc8e87d6bceef7ea230e15daf7f95f60832fa7b4baf",
+        "bytes": 815
+      },
+      "generate-design-20261006/balanced-initializer-check-receipt.json": {
+        "sha256": "ff649b716a4db8d5c0c63a67937ccb95c90264afb64b805eae30beeac1f419c6",
+        "bytes": 1357
+      },
+      "generate-design-20261006/temporal-credit-diagnosis.sh": {
+        "sha256": "865af4d6378535878b73420a078675da3468e39f32a267703d1d575d231c7993",
+        "bytes": 1201
+      },
+      "generate-design-20261006/balanced-initializer-exact-head-source-review.json": {
+        "sha256": "f320136d78734c490439b1ab92289f6e5dd598ee7f3e5f8abcdb02ef92ddaf68",
+        "bytes": 1619
+      },
+      "generate-design-20261006/codex-copy-potential-checks-attempt1.py": {
+        "sha256": "3af19f66735c878a9c82a12a02dc6fee071d14e5a6828501a2165f7bae785aea",
+        "bytes": 2872
+      },
+      "generate-design-20261006/checkpoint-native-state-utility-implementation-20261006T1304Z.json": {
+        "sha256": "3066b9f00109f4350046d1cb42eb42293ee87bddf56ca9e5aa30315a04be87a7",
+        "bytes": 20963
+      },
+      "generate-design-20261006/rejoin-status.md": {
+        "sha256": "fa76032d7b452c48215bb52d23ff115721a0862233b2c99174e85c99ed8bf0f8",
+        "bytes": 681
+      },
+      "generate-design-20261006/joint-seed1003-retry-workcard.md": {
+        "sha256": "82f1032a8b8fd44d7fa66bfa5f17099e104d04339f02286f5b44cf0a79c516b4",
+        "bytes": 860
+      },
+      "generate-design-20261006/checkpoint-shadow-review-balanced-live-20261006T0947Z.json": {
+        "sha256": "cfd24e2a8c8751fb4e4d238abd8f4f555f58e92f97fad5056742c0a4e20233ce",
+        "bytes": 8223
+      },
+      "generate-design-20261006/read-state-implementation-card-20261006.md": {
+        "sha256": "ac0d7172dd2a2dca7ce4873e05b8bb1bf2609402d07aec56838e40c642293d13",
+        "bytes": 2932
+      },
+      "generate-design-20261006/state-ceiling-joint-independent-review.json": {
+        "sha256": "184ab8a559dafb64303f34a7f7ea1c3f8535c397c2707c7ba0e2d5d191e23fb9",
+        "bytes": 2138
+      },
+      "generate-design-20261006/build-checks-10.sh": {
+        "sha256": "e9360060a6edaf0a08b46f3d4b333aabb27f162cd160e8c528667e8bb6d5830f",
+        "bytes": 2459
+      },
+      "generate-design-20261006/fit-output-only-seed1001-config.json": {
+        "sha256": "4f36f796740d7fc15458825f74197ecdafac1f6496befd417ebb14a6f19dc874",
+        "bytes": 1746
+      },
+      "generate-design-20261006/real-b8-admission-config.json": {
+        "sha256": "00483614bd7d7245f9bec59390100cb92aa056de9e473220a52b9264b3cb79a4",
+        "bytes": 1638
+      },
+      "generate-design-20261006/fit-terminal-and-attribution-repair.md": {
+        "sha256": "11be0b9738a3a91748fa10e7b9fc2045e30d3e54b82e28426e065c99e51294bb",
+        "bytes": 558
+      },
+      "generate-design-20261006/temporal-repair-checks.sh": {
+        "sha256": "3df3251ac0f277a9fc49922c4ca4ab0c0d8062e77dba91cc483fa1bdceacb9c2",
+        "bytes": 1146
+      },
+      "generate-design-20261006/joint-potential-adversarial-architecture-review.md": {
+        "sha256": "ccff180b2cc6d7de9c450717d61f940b5c97f1f17cab414ffa8668f2deae317a",
+        "bytes": 7202
+      },
+      "generate-design-20261006/run-balanced-admission.py": {
+        "sha256": "f0be4f51c06c058aab6f179f747fc8c7802f91f8304cac4da9f2d105cac02d48",
+        "bytes": 2539
+      },
+      "generate-design-20261006/joint-potential-fit-run-attempt6.py": {
+        "sha256": "f72ffaac0f6ee8ab5115c8bb6a6b6d76ebc0bf9fe04c09d39ebe8d3bbced3d45",
+        "bytes": 4229
+      },
+      "generate-design-20261006/adversarial-bank-generate-fit-source-review.json": {
+        "sha256": "36d5b9ffe469bfd608a8e18ec9745a394add8ce06c04c45b9e168de815f077bf",
+        "bytes": 2744
+      },
+      "generate-design-20261006/checkpoint-state-ceiling-preserved-poddown-20261006T1047Z.json": {
+        "sha256": "42ce7975fc73ae18c790bc814cee21bbb3b6e77ec873ce4e0cfd7e8c240dbf55",
+        "bytes": 11167
+      },
+      "generate-design-20261006/real-b8-chunk-parity-config.json": {
+        "sha256": "9981a879d687e803b00898bc3ef951f5a192d9775ae1481c82437c98cb2bd2f9",
+        "bytes": 1770
+      },
+      "generate-design-20261006/summary-measured.json": {
+        "sha256": "9d91e99dab9f084bac4fc471602b6e750e47d70f4b13fc364d446ac9282e83e2",
+        "bytes": 1804
+      },
+      "generate-design-20261006/run-native-code-probe.py": {
+        "sha256": "2cd8a69a465eedd01f01ed27baf6814a2bf46b8226bb5abd761a6c3c83671911",
+        "bytes": 2529
+      },
+      "generate-design-20261006/temporal-credit-repair-checks-receipt.json": {
+        "sha256": "f6f68dc26f9762022d153e57765afb6eca09034b64d12fe34276b1f00fa9a842",
+        "bytes": 691
+      },
+      "generate-design-20261006/contextual-target-pairs-declaration-20261006.json": {
+        "sha256": "d3f077c1f5f3884f2fc60823af52028fbe9b777c0cf2343e251dabd7cda908c9",
+        "bytes": 673
+      },
+      "generate-design-20261006/checkpoint-state-ceiling-build-20261006T1038Z.json": {
+        "sha256": "4e17cd32f926325a280aae4a09eddfa058d03397a621e2ac134943b7e960b79d",
+        "bytes": 10446
+      },
+      "generate-design-20261006/source-contrast-tests-execution-attempt3.json": {
+        "sha256": "731391f29987686ff55aaf164bfac8830c46fe165c98359412f743c5b8a0fc62",
+        "bytes": 836
+      },
+      "generate-design-20261006/checkpoint-cross-queue-pid-storage-20261006T1236Z.json": {
+        "sha256": "840d1e85b70c285d72dd94883d9410e0def9770f23874f5c7a1b546e61100720",
+        "bytes": 18554
+      },
+      "generate-design-20261006/build-checks-8.sh": {
+        "sha256": "f2b12a46f73bcfffd4c14d1fd2ec3c00eee33c03b3ae11d3c9e80e8a57552255",
+        "bytes": 1777
+      },
+      "generate-design-20261006/checkpoint-field-credit-source-ready-pod-created-20261006T1104Z.json": {
+        "sha256": "6ae8727bc60a30df4e5c9da06c93df8c5baaa9be7ea005f6d8830d666f217424",
+        "bytes": 11632
+      },
+      "generate-design-20261006/balanced-joint-admission-prep.py": {
+        "sha256": "8872472dab09f74865996d114cb3c582235002eda7ee905b6c916fc60c97a45e",
+        "bytes": 1506
+      },
+      "generate-design-20261006/temporal-repair-progress.md": {
+        "sha256": "826cc2ae134228e08238adb0682380462e7fed2437ba4f18456b506960e82464",
+        "bytes": 2555
+      },
+      "generate-design-20261006/fit-live-progress.md": {
+        "sha256": "b00bfb530987e17c8c8d9b44fff5c7289f26198419b1f0c2965699d3f80d9d89",
+        "bytes": 1010
+      },
+      "generate-design-20261006/build-checks-11.sh": {
+        "sha256": "c5a822adc3863482f1779e2f30565fd814442ffe8f969f13f54e9f9318d126a1",
+        "bytes": 2842
+      },
+      "generate-design-20261006/checkpoint-balanced-cuda-parity-build-20261006T0858Z.json": {
+        "sha256": "300c771f7f375627ab2a570d571de4db067aea4338ba1c565feaba3a56624b9c",
+        "bytes": 6276
+      },
+      "generate-design-20261006/paired-complete-update-20261006T0940Z.md": {
+        "sha256": "1c16b76f3a07b3a9cd1f076eb23e939fe6124f58a7719063d690afa01a720545",
+        "bytes": 1389
+      },
+      "generate-design-20261006/codex-state-ceiling-joint-attempt1.py": {
+        "sha256": "fc8f556b2c14364b47cd7a0335dff68a4c7f22330e88c47afcb3131784d0a315",
+        "bytes": 1830
+      },
+      "generate-design-20261006/balanced-probe-outcome-issue.md": {
+        "sha256": "a1551e2cb4b844105e477d68418dd3ff01fa738d8a8254b0f2d6bc7d1ecbbf0f",
+        "bytes": 1083
+      },
+      "generate-design-20261006/fit-ceiling-c7222d7e-source-review.json": {
+        "sha256": "fb3e22a9ae92b2b42381b704d6526cc39e0ae99295547f24fe9d07ce30755246",
+        "bytes": 859
+      },
+      "generate-design-20261006/checkpoint-field-credit-terminal-balanced-admission-wait-20261006T1134Z.json": {
+        "sha256": "55f64ec16e8c29cc1882b3efab509ebc3cb1e0f3df7cd6b37fa81304973eae95",
+        "bytes": 12849
+      },
+      "generate-design-20261006/pr1792-body.md": {
+        "sha256": "fca6da8e0b07d258d25cd48b5a4206a845828cc430ec3a8a308f38a3dd1fc744",
+        "bytes": 5866
+      },
+      "generate-design-20261006/selected-source-reference-checks-attempt1.py": {
+        "sha256": "50bcb8df80b48f2705e82f3681cbbfac72c664ffb37ae165451e26f2e3ae7ed7",
+        "bytes": 4402
+      },
+      "generate-design-20261006/checkpoint-balanced-joint-terminal-20261006T1300Z.json": {
+        "sha256": "5d0ea58f70b73fd9858009435be5715ba94b939e1acf6762dbe2c4db1d9f3a00",
+        "bytes": 20270
+      },
+      "generate-design-20261006/joint-seed1003-attempt3-initial-parity-independent-pi-review.json": {
+        "sha256": "1a136c08114f3df0c5aae59c5bbf05a56315aeea30c8d7eb03fbdc149d1d2cfc",
+        "bytes": 1409
+      },
+      "generate-design-20261006/completed-target-audit-update-20261006.md": {
+        "sha256": "1c843888de70c0611533c2e70154fb37206c74c4d0f7b0ab06932d6efca89c66",
+        "bytes": 2113
+      },
+      "generate-design-20261006/balanced-check-issue-update.md": {
+        "sha256": "c349bab199ae609d117271ce3905d68232f015c28f9a1dac28ae8c1da6a84066",
+        "bytes": 1191
+      },
+      "generate-design-20261006/conditional-state-review-update-20261006.md": {
+        "sha256": "2d552ea410596c36e1ff9d47ef027419738dbbdb108376060b0e97c413dd4aff",
+        "bytes": 1293
+      },
+      "generate-design-20261006/real-temporal-utility-admission-results.json": {
+        "sha256": "727f097e649c266a9db3b1ae7d16e7edda35dfc8f8ce79e3dc0b86f7c58096c1",
+        "bytes": 9359
+      },
+      "generate-design-20261006/build-checks-9.sh": {
+        "sha256": "21709770f3715f94fcf52ee2cdcc564a437874a26caaf7608f819841af4bc1e9",
+        "bytes": 2594
+      },
+      "generate-design-20261006/checkpoint-second-pair-20261006T0817Z.json": {
+        "sha256": "19970a6a33acab2b0f439518f794284d730b229e6c627c98ff914e643fd86639",
+        "bytes": 4647
+      },
+      "generate-design-20261006/pr1792-current-body-20261006.md": {
+        "sha256": "97765e098c9abc4ed8e2f92e41e7b1d3861ab4f916cf7d7776ab7c35d61bacb5",
+        "bytes": 4824
+      },
+      "generate-design-20261006/attribution-cap-repair-correction.md": {
+        "sha256": "aa3be337214c50e5dae94e7404afdcfc02a126d530e202cd008ab152bea8aff4",
+        "bytes": 553
+      },
+      "generate-design-20261006/checkpoint-balanced-fit1-live-20261006T0915Z.json": {
+        "sha256": "1f779f4bc8c8e7808a8058867b3e66efcc6c4cef52b9b754d570a57879f8921f",
+        "bytes": 7680
+      },
+      "generate-design-20261006/checkpoint-joint-potential-validation-20261006T1446Z.json": {
+        "sha256": "6fb044cdde819596e165afaa4e31803df253a44ac10cf29f88f8da1484f60de5",
+        "bytes": 1661
+      },
+      "generate-design-20261006/source-contrast-tests-run.py": {
+        "sha256": "68ae53e370f67a248c4e1bba0e54f0e07c283ad29c95f70e8deab46f8436bd24",
+        "bytes": 2636
+      },
+      "generate-design-20261006/seed1001-first-position-audit.json": {
+        "sha256": "cacd266c7af12f57f5e27e42e6df192daee128889abc32816de0b07961a78ed4",
+        "bytes": 2522
+      },
+      "generate-design-20261006/b2e18d5c-compile-source-inventory-expanded.json": {
+        "sha256": "f76e4ebfd30813e16105970523e64a1e7c6219959076e9d91a5754db49c69170",
+        "bytes": 265983
+      },
+      "generate-design-20261006/a762f63a-compile-source-inventory.json": {
+        "sha256": "3fcf1aae78a6425d64479183b9b1979ae4cd89f9e6f8d4a41f4d93eda9dc4494",
+        "bytes": 228660
+      },
+      "generate-design-20261006/joint-potential-fit-run-attempt3.py": {
+        "sha256": "ab5c25653dbe817266bb807b59db978fda2ef4ea4d427030045fe7ef44d79cc0",
+        "bytes": 4474
+      },
+      "generate-design-20261006/balanced-joint-lease-watch.log": {
+        "sha256": "c9ebde5f8a7e3ba86fd6829cbe5a1fac6c2fdec0145af33ad52b0c0540b9c7e2",
+        "bytes": 964
+      },
+      "generate-design-20261006/potential-attribution-source-review-27ace214.json": {
+        "sha256": "367e349df94f91582585b443d5574ab087996ba138024be63b160f59ff72efe7",
+        "bytes": 3382
+      },
+      "generate-design-20261006/workcard-progress-20261006T0554.md": {
+        "sha256": "742d0364f895aa7aac725ea1791c9e4afd045bf06b442877715a555c79577498",
+        "bytes": 1676
+      },
+      "generate-design-20261006/fit-output-only-seed1002-temporal-config.json": {
+        "sha256": "70de1dc6e9e98175f645f47a8593ef0c903af8e77651c3928a3a689687ae6071",
+        "bytes": 1784
+      },
+      "generate-design-20261006/checkpoint-event.json": {
+        "sha256": "38b6a013a2eb8a30df9306d881045ce87bc5689dbe7112bc11f2b5d77c93db8d",
+        "bytes": 3893
+      },
+      "generate-design-20261006/checkpoint-native-code-probe-ready-20261006T1009Z.json": {
+        "sha256": "ae5d265c1d0740d11f9a2ce3725233c73ea8122d389d8b3f9dc3bdafc821a038",
+        "bytes": 9538
+      },
+      "generate-design-20261006/build-native-code-probe.py": {
+        "sha256": "9bae069e0b0408deb33be286b9b3bb75c7b137700436c448d18eae4739daa497",
+        "bytes": 3326
+      },
+      "generate-design-20261006/prospective-review-issue-update.md": {
+        "sha256": "1a1a11f0dbdebe73b1af548bda0b0cb85c05fa2a42bfbf7db7372ee84a34db3f",
+        "bytes": 1274
+      },
+      "generate-design-20261006/checkpoint-balanced-cuda-check-queued-20261006T0900Z.json": {
+        "sha256": "8d1ca51d39f93d09568846954e829859bb553ae734931c0459de20fe055a40a0",
+        "bytes": 6607
+      },
+      "generate-design-20261006/coefficient-only-phase-adjoint-replay-design.md": {
+        "sha256": "a2570632e703099d559d1fd227bf161e3a9730a74a1d5d9886379a4ae204d896",
+        "bytes": 9813
+      },
+      "generate-design-20261006/policy-repair-note.md": {
+        "sha256": "0aac2596d3c00311cbf3e3579289d02ebda25ad825c81048ae2fb5a00bfbf1de",
+        "bytes": 674
+      },
+      "generate-design-20261006/run-joint-seed1003-retry.sh": {
+        "sha256": "a8a6a03475b9b21e7e49337bd85f748434ac99137521ce68571fd88dcfd29e2d",
+        "bytes": 773
+      },
+      "generate-design-20261006/state-reachability-work-card.md": {
+        "sha256": "7d366bd800e9b6521655625f80fca0efc2ca2df6eb468ae7b87d532913f2e8d8",
+        "bytes": 1468
+      },
+      "generate-design-20261006/native-context-generate-fourway-counterfactual-f6136103.md": {
+        "sha256": "8bed0ef0c4a871c064d31d701932842d84c9d070cdb868ee9fe12fed617a9dd1",
+        "bytes": 7940
+      },
+      "generate-design-20261006/state-ceiling-manifest.json": {
+        "sha256": "3241e10eac0622a8a6db8e72eb65968bbcecc363e0da977930767e6485797c74",
+        "bytes": 486
+      },
+      "generate-design-20261006/temporal-real-admission.sh": {
+        "sha256": "b0cb7455fd99a4d603cb3098c45d5ee602f130800d0ba3e2a43198aca7df2f46",
+        "bytes": 1495
+      },
+      "generate-design-20261006/joint-potential-source-review-b3c19905.json": {
+        "sha256": "6b2b0c1c128a637b46b0adef22a9a0b3e68088e4bcf70f0131d2211b78ef5e76",
+        "bytes": 3050
+      },
+      "generate-design-20261006/fit-output-only-seed1001-temporal-config.json": {
+        "sha256": "12fa0fe6ce4038e6feab54401cc36ceedd542b7bce71f560a5395db6a13f9599",
+        "bytes": 1784
+      },
+      "generate-design-20261006/native-categorical-code-learning-options.md": {
+        "sha256": "aef55d4f84e08f4f07444f433e43287093c21fc2bc1afd0d658d005d4efbb1c5",
+        "bytes": 9040
+      },
+      "generate-design-20261006/time-fit-retry-5100.py": {
+        "sha256": "c44baf86e4d2835c168d0799e1c0d46894e39ab2dab07a64ed55b095b74931d5",
+        "bytes": 398
+      },
+      "generate-design-20261006/build-checks-12.sh": {
+        "sha256": "918f6cc89ebbc3e295a80b3dbf13c6d65d98974e1a090d4ba0589f2e7e07902a",
+        "bytes": 2069
+      },
+      "generate-design-20261006/seed1001-paired-diagnostic.json": {
+        "sha256": "d97128ce261a70c1315a5cb3d6e5e5b911a30b39b798b9201d672c4d29c0c96b",
+        "bytes": 85589
+      },
+      "generate-design-20261006/joint-potential-attribution-work-card.md": {
+        "sha256": "6a1dfb048f073fe51f440a3036fcacaeecef4ef74a166a672f602a39d7ff15cb",
+        "bytes": 1309
+      },
+      "generate-design-20261006/checkpoint-cross-review-full-head-20261006T1244Z.json": {
+        "sha256": "7f3ea0997d641af28e82a1cd207ad0d0caf7f3ba703f1f51989643a3fde5ef51",
+        "bytes": 18890
+      },
+      "generate-design-20261006/state-ceiling-balanced-independent-pi-review.json": {
+        "sha256": "2c5fb1656e5fdffb8a5f0dc459bb76b39acb83626d81e90c0f66231b479f7897",
+        "bytes": 2978
+      },
+      "generate-design-20261006/joint-potential-host-failure-archive-receipt.json": {
+        "sha256": "ffa63fc50aa0d803792dcb6e2f55253643633a11de11af1efc0067960f476db8",
+        "bytes": 424
+      },
+      "generate-design-20261006/codex-state-utility-build-attempt1.py": {
+        "sha256": "6ad009194abbea0e97378025b0681296cf0acdb98c6f83b5c34ba5671752b697",
+        "bytes": 2991
+      },
+      "generate-design-20261006/joint-potential-fit-run-attempt4.py": {
+        "sha256": "161d4765245576a353e9a7b7e11438e41bd3a709ba314f8ac6440cbcfbec7b57",
+        "bytes": 4483
+      },
+      "generate-design-20261006/balanced-capacity-864bbe96.md": {
+        "sha256": "143d673f261441b7abff61b2183817fb47cbc20e21461784970f235d98a0034d",
+        "bytes": 7931
+      },
+      "generate-design-20261006/joint-fixed-copy-ceiling-inspection.json": {
+        "sha256": "23bb72569c61913a9acf14d346165cc8261dd1d7b81513369c9d25cada14efb6",
+        "bytes": 292400
+      },
+      "generate-design-20261006/native-alternative-implementation-card-20261006.md": {
+        "sha256": "5d8cde8ef932c9d2706a67229871fc0792b1ab155eac648bf799522446366e9b",
+        "bytes": 1643
+      },
+      "generate-design-20261006/host-failure-cloud-and-local-cleanup-receipt.json": {
+        "sha256": "ad5367443e706a34f8e37e00f29d14c138cc5228b57660379c5a99df43aa0dda",
+        "bytes": 439
+      },
+      "generate-design-20261006/balanced-prospective-config-independent-pi-review.json": {
+        "sha256": "9f6d4e995b9d449140bd07e83cfb02e0be817553b2fcdbdbad3bf96d5e9cacef",
+        "bytes": 3807
+      },
+      "generate-design-20261006/balanced-joint-control-prospective-review-f6136103.md": {
+        "sha256": "926be2aa9fa7d1d7823ebf5f68716bb9fad846ba5a9e2bd08119b5aeadd68a9b",
+        "bytes": 6646
+      },
+      "generate-design-20261006/codex-checkpoint-cross-run.py": {
+        "sha256": "22c33bd9ca9d64d96f045a7c7d37c640e1a59507ef4f39859e1d03ac46c07391",
+        "bytes": 3737
+      },
+      "generate-design-20261006/balanced-initial-final-phase-ce-replay.md": {
+        "sha256": "31dc197655d425e1ed92c13fbefbb7ee2e50f3da35baadb219d3b311d2d3c150",
+        "bytes": 3790
+      },
+      "generate-design-20261006/source-contrast-tests-execution-attempt1.json": {
+        "sha256": "f280e432d4b83226ba01eced0a01b112dfe88854ef9fae08a4afdb8519c532da",
+        "bytes": 836
+      },
+      "generate-design-20261006/temporal-fit-final-build.sh": {
+        "sha256": "9e8dce006db7a5dce648ebc43ae6ff2fec2212057661c24ded203260ed298348",
+        "bytes": 1540
+      },
+      "generate-design-20261006/temporal-release-event.json": {
+        "sha256": "8098a46871d1ba899637210580faaceb83922e2f5ebfeca072184896c08d81b4",
+        "bytes": 153
+      },
+      "generate-design-20261006/joint-potential-fit-build-receipt-update.md": {
+        "sha256": "d89bd935e67deb7dd6b5c2bf2d027756251ee31711a74ffcd5b0b53591fb50f2",
+        "bytes": 1307
+      },
+      "generate-design-20261006/native-prototype-objective-cache-20261006.md": {
+        "sha256": "5e5ec221f78e4b468c324f40f7c40418e6cbba21bbe142c45fecb50343cae698",
+        "bytes": 7848
+      },
+      "generate-design-20261006/margin-audit-exact-head-source-review.json": {
+        "sha256": "57eea815035178c4576bf94e71ce61047474ac7a9944973b7f394bb09848f259",
+        "bytes": 2912
+      },
+      "generate-design-20261006/balanced-cuda-parity-work-card.md": {
+        "sha256": "6dd770958c5391c3eada39184908a608661eec5ac8bb578d0bc965a71272c925",
+        "bytes": 760
+      },
+      "generate-design-20261006/bank-generate-integration-plan-1.md": {
+        "sha256": "89fdd3cb403063b4c83c038d1b2ab078dc4868f6bda2e90715559311c1b1d64b",
+        "bytes": 8543
+      },
+      "generate-design-20261006/policy-pin-repair.json": {
+        "sha256": "62dde31febb0768c50a2073af231db6c668021cb95b8bd27831afe1af4aa79c0",
+        "bytes": 1178
+      },
+      "generate-design-20261006/temporal-carry-workcard.md": {
+        "sha256": "2afd929d3b995d816354d1a0255a92439b501bf261a22d7d3d52e0ab0b6b4d8f",
+        "bytes": 1442
+      },
+      "generate-design-20261006/checkpoint-balanced-probe-terminal-20261006T103155Z.json": {
+        "sha256": "cb7c16a312eccdae31cd81bd91fd9280e00febcf0d548d9a669cc5316179148a",
+        "bytes": 9821
+      },
+      "generate-design-20261006/context-target-c917e7e4.bundle": {
+        "sha256": "eb71ca82f92bafc08977a9885a240ebc75631a2023b4416cd47e9cbb7f60b3ab",
+        "bytes": 14109
+      },
+      "generate-design-20261006/generate-copy-causal-route-review.md": {
+        "sha256": "b6051b32fdcf753d9f03e24066422743e85e0657fde8154a0f68c8e0fb166b11",
+        "bytes": 5640
+      },
+      "generate-design-20261006/actual-progress-2.md": {
+        "sha256": "8f8dde973025b00df6decabe42e0ccd8394e7bab07f26973b061df1305fe0485",
+        "bytes": 1750
+      },
+      "generate-design-20261006/contextual-target-pairs-20261006.json": {
+        "sha256": "bdb646db2f02fddaf82fe88a31dc199dfc29a927acc09536dbea3c05a15ccdcd",
+        "bytes": 5397
+      },
+      "generate-design-20261006/retained-native-code-learning-reuse-20261006.md": {
+        "sha256": "780631b1fe80e27628f62af43b2deeca7f5ab3b965af7c9de190d4b9e8904ae6",
+        "bytes": 9922
+      },
+      "generate-design-20261006/joint-potential-fit-workcard.md": {
+        "sha256": "bfabeb205a65e8c3a61d6f065580cc097b73d9bb3143f716607575d9a098fd19",
+        "bytes": 1740
+      },
+      "generate-design-20261006/joint-potential-fit-run-attempt1.py": {
+        "sha256": "3883fe9bc8ffd7cb87ef564655cb0408dab42d2042ebfbabe7f1c322e370fac8",
+        "bytes": 4474
+      },
+      "generate-design-20261006/temporal-utility-after-step-review.json": {
+        "sha256": "fc448de7a0d9f865f43625fae9b2d933cbe4d56cbe33b9634ea4b8af49990703",
+        "bytes": 2906
+      },
+      "generate-design-20261006/phase-balanced-work-card.md": {
+        "sha256": "aaf19b244f6e08073b892bbd7d638d327c8e142276bb0535ecf2c81b8a3f150d",
+        "bytes": 2144
+      },
+      "generate-design-20261006/checkpoint-native-code-probe-build-live-20261006T0958Z.json": {
+        "sha256": "bedc4a110c70d9dd170319868ba20b8d0e8083818a014b7ee0aa5939aae8c899",
+        "bytes": 8949
+      },
+      "generate-design-20261006/seed1003-joint-and-three-pair-independent-pi-review.json": {
+        "sha256": "e50428692334f0bdabfc15cbb7cff367f7c3168dcfbec2edb02a6b9dfc746e03",
+        "bytes": 11493
+      },
+      "generate-design-20261006/balanced-first-copy-reachability-audit.md": {
+        "sha256": "b6fdcc3e99bae1359752f6bc29cccdc6f56e5017aba7ba408a7ddb13116e6cc1",
+        "bytes": 5465
+      },
+      "generate-design-20261006/phase-fit-start-card.md": {
+        "sha256": "0018b6dbfaeabb795c789488dc1ac38fab5e0332bd5e48320230a647700e19d0",
+        "bytes": 2350
+      },
+      "generate-design-20261006/state-utility-finite-loss-independent-review.json": {
+        "sha256": "8163b95dc7aa2e4dfd91a16e980e7625cfe76b2ec50ed5a23290b13b2ddaab6b",
+        "bytes": 4179
+      },
+      "generate-design-20261006/seed1001-margin-independent-pi-review.json": {
+        "sha256": "9050063b7db9450c241c79bad23f7dfdf8cb0dc05a347ffb917568d25802dcb3",
+        "bytes": 3771
+      },
+      "generate-design-20261006/work-card.md": {
+        "sha256": "189cd155be8673927129d735e0c3e95eaea1f8d94f6c912892bf20751f4f4564",
+        "bytes": 2699
+      },
+      "generate-design-20261006/seed1002-margin-result-summary.json": {
+        "sha256": "461acf578d522b9084163c2f0b614597946ad88dd568a4b6ac2b30d6cdc751d0",
+        "bytes": 3799
+      },
+      "generate-design-20261006/margin-seed1002-workcard.md": {
+        "sha256": "b2aab3315d40eb3bd441189c894d4998882479fdf79a0d45d948176e8ad35870",
+        "bytes": 699
+      },
+      "generate-design-20261006/run-temporal-joint.sh": {
+        "sha256": "611500b7c6418192a856e75ad38564857ff88818cb66f67f3e2cf37e513bbacf",
+        "bytes": 803
+      },
+      "generate-design-20261006/balanced-seed1001-attempt2-independent-pi-review.json": {
+        "sha256": "0156821ac74b37865d726ff2b95f72093865d57a2ff4fec4493563dc09a28764",
+        "bytes": 2083
+      },
+      "generate-design-20261006/balanced-fit1-launcher-independent-pi-review.json": {
+        "sha256": "31c0e61d479e09a5c8ebddb5cf792236900998ace25a4e24b82a0a54dd777127",
+        "bytes": 1781
+      },
+      "generate-design-20261006/balanced-frozen-field-copy-ceiling-joined-audit.md": {
+        "sha256": "4bbe6b0a1d9fc9d6f4ea5193991c5ae93ba755dab49df9cf90a5fcaa799b2972",
+        "bytes": 8995
+      },
+      "generate-design-20261006/time-fit-command.py": {
+        "sha256": "a70a2c52623c2fb88a53e785220c0dc5ba466888e15cef63704404bfb0e7cbbb",
+        "bytes": 398
+      },
+      "generate-design-20261006/state-ceiling-report.json": {
+        "sha256": "2f8afec02c784497eb06e105cbbde83365df66985e248783072294ccaa24d240",
+        "bytes": 664032
+      },
+      "generate-design-20261006/adversarial-update-and-discrete-reachability-review.md": {
+        "sha256": "034c8b489f12bc79147ea9155cac54d1cb5545441c5a7bca24ea39f601ad694f",
+        "bytes": 3832
+      },
+      "generate-design-20261006/state-ceiling-attempt1-execution-receipt.json": {
+        "sha256": "b9ca06397c43b17b9606cf53a69bf37b147d6d568961a4052039197b1c07e2f1",
+        "bytes": 888
+      },
+      "generate-design-20261006/attribution-recovery-attempt7.py": {
+        "sha256": "030b477853e0b47e3c0c6761682db087bea79acff232017b5ca392385385041b",
+        "bytes": 3376
+      },
+      "generate-design-20261006/phase-balanced-loss-minimal-source-design.md": {
+        "sha256": "baac977095777dce6b9054e069ffd65dec5749ab4245bbe1c0e66ad7bba536f2",
+        "bytes": 6083
+      },
+      "generate-design-20261006/build-checks-13.sh": {
+        "sha256": "c8433d4f1796717bda012cdc538f8711d9403258642027f8fb07696c3f7348cb",
+        "bytes": 2078
+      },
+      "generate-design-20261006/context-target-audit-run-attempt1.py": {
+        "sha256": "3996d71b2532be592a7476623fac6fbca33a6582d60750ec0bb56e8d95badb62",
+        "bytes": 3682
+      },
+      "generate-design-20261006/copy-potential-cuda-result-github.md": {
+        "sha256": "a869f1e068eea94243d72af98846f6f84a33dace3dbbb75b4e67132bb2b57883",
+        "bytes": 1378
+      },
+      "generate-design-20261006/native-shadow-gap-independent-pi-review.json": {
+        "sha256": "0167187554bbdcc19eab0b6984d5fd75f322ebfcd6f1012a7719612d46db668a",
+        "bytes": 7998
+      },
+      "generate-design-20261006/verify-a762f63a-full-source.py": {
+        "sha256": "965fb8c8b9ff3f6921d07833acd8786abbd296204d296dcb4717c48dc0f046f2",
+        "bytes": 888
+      },
+      "generate-design-20261006/joint-potential-host-envelope-repair.md": {
+        "sha256": "e5efd58a0f9359ab6330447f753bd3358e22829cbb641ffd426ce0db55962065",
+        "bytes": 986
+      },
+      "generate-design-20261006/checkpoint-repaired-fit-and-margin-20261006T0843Z.json": {
+        "sha256": "65ebea18165189b640675e3c39b0e706c259ae4544dbbfdda0d81b6258533862",
+        "bytes": 5581
+      },
+      "generate-design-20261006/joint-potential-fit-run-attempt5.py": {
+        "sha256": "5628df027c20b871bbf02f74e1ff82e164073c2f79a09c1f2dd0ff5a53abcbf6",
+        "bytes": 4295
+      },
+      "generate-design-20261006/native-state-utility-discriminator-review.md": {
+        "sha256": "592413559ae2c08c2a48062d2ad2d2c1108746528bed541b4c692bfae109bb77",
+        "bytes": 8438
+      },
+      "generate-design-20261006/checkpoint-prospective-review-20261006T0807Z.json": {
+        "sha256": "6ae0abbc5ab09a582fd4fcb18a0b8a1628095816c95dd242afb05fe7d3490489",
+        "bytes": 4347
+      },
+      "generate-design-20261006/run-balanced-fit1.sh": {
+        "sha256": "dc71d9a8491acb9455ef7075f432acc91463a0e4fb85296822aab367fdfb8d5a",
+        "bytes": 1316
+      },
+      "generate-design-20261006/temporal-claim-event.json": {
+        "sha256": "09f84310bf15ee2a12deb7be4836f7b8ab78fa14cd19cbfa42dce0e032ae21a0",
+        "bytes": 1336
+      },
+      "generate-design-20261006/a762f63a-compile-source-inventory-expanded.json": {
+        "sha256": "d38d1e22fca1d4526306a17b300d72fb69905b8352bd843e09e486d284461062",
+        "bytes": 265922
+      },
+      "generate-design-20261006/fit-joint-seed1002-temporal-config.json": {
+        "sha256": "801c7abbcc3b8a1f724beabb07a878be86ab835e21b0ef4b54c0092d4e040a0a",
+        "bytes": 1772
+      },
+      "generate-design-20261006/checkpoint-joint-potential-validation-20261006-final.json": {
+        "sha256": "f87aa3f2d6179b26e7c6c877dfbeed193767349eab4d18a23df39b37caf0a893",
+        "bytes": 5708
+      },
+      "generate-design-20261006/verify-b2e18d5c-full-source-lfs.py": {
+        "sha256": "1b28139a88b0234ed07b030a044cd0f73d9098ad81bafb996b876deea6e06475",
+        "bytes": 1136
+      },
+      "generate-design-20261006/b2e18d5c-full-source-inventory-lfs.json": {
+        "sha256": "497ea95d3b32c426e96d98a1b70d259b2563b930a1ed1d091843e0347b0866f7",
+        "bytes": 3579806
+      },
+      "generate-design-20261006/phase-loss-validation-attempt1.py": {
+        "sha256": "aefeb5644e31c04a45ee08a4e25091af2b4b3d61bba29db3b2c7cdab839a372e",
+        "bytes": 3506
+      },
+      "generate-design-20261006/field-credit-work-card.md": {
+        "sha256": "1945cffba0a4693d760dbad4076ef3ce3c37f61f05732b1187640f2e15a0e306",
+        "bytes": 2427
+      },
+      "generate-design-20261006/checkpoint-balanced-joint-live-20261006T1206Z.json": {
+        "sha256": "e0909744d4a7a73815d2270d6df03cf3516c9567e6447bb9d1bd528be4f57fb8",
+        "bytes": 14828
+      },
+      "generate-design-20261006/resource-extension-joint-seed1003-retry-20261006.json": {
+        "sha256": "bd0c5c9d52565a464d620e709b77deb44b75c70d9e5415cfcb320e45920d2aec",
+        "bytes": 1377
+      },
+      "generate-design-20261006/fit-joint-seed1001-config.json": {
+        "sha256": "cb5e5fc0183c1bb812457e562f905b741c8fa629d5415fdb5b77ed308f69ff43",
+        "bytes": 1734
+      },
+      "generate-design-20261006/full120-temporal-carry-design-review.json": {
+        "sha256": "567986300a31397b45b0de899b63ce44de3db19e81d38f18b47046c709f62c7b",
+        "bytes": 3813
+      },
+      "generate-design-20261006/completed-joint-cloud-receipt-20261006.md": {
+        "sha256": "edc555235e447dd1f22d0447a67c5e941572c29ce76c81c65a4e299679eb7ac8",
+        "bytes": 937
+      },
+      "generate-design-20261006/joint-potential-integration-work-card.md": {
+        "sha256": "b1dd436ebed5bfe2e39f608a09f9ac6a1ecaa4b4d0a99d2f223bb5b244af1449",
+        "bytes": 1619
+      },
+      "generate-design-20261006/attribution-cap-638b8f12.bundle": {
+        "sha256": "8004a7cf67ced2302832c16b6ac3459abc3a173f4b1f64c2a0ac4d24526261c3",
+        "bytes": 2435
+      },
+      "generate-design-20261006/integrated-language-design-review-1.md": {
+        "sha256": "cbc5a868ff83a597d599da6d9f0c785df78d00cc7d66211b38abd119303730c4",
+        "bytes": 13119
+      },
+      "generate-design-20261006/finite-loss-convexity-review-20261006.md": {
+        "sha256": "e309efd99efd8b272564363726452c474ee27cb38af0db5fb8bac583d67529ed",
+        "bytes": 4920
+      },
+      "generate-design-20261006/prefix-temporal-cpu-after-step-review.json": {
+        "sha256": "15e89babeaff557e2b3426c81cd770cbb7970959287ad48cb0da207313e7bf42",
+        "bytes": 2086
+      },
+      "generate-design-20261006/seed1001-prototype-audit.json": {
+        "sha256": "9e148e10138b494ae7dc5f44c70d623f47d0c44e385e354068bb6d98add44b7c",
+        "bytes": 1362
+      },
+      "generate-design-20261006/actual-update-and-crossed.json": {
+        "sha256": "a7d1d95c666c2fbf2e5c55406a8ca5549407034eb7fb3c25b0779cb60a0b8c15",
+        "bytes": 1233417
+      },
+      "generate-design-20261006/coord-claim.json": {
+        "sha256": "1f97f80a0f98ba1da29dd6a7cb9ed37786164ca11ba6f00513f07f3ad0360f4c",
+        "bytes": 929
+      },
+      "generate-design-20261006/context-target-audit-work-card.md": {
+        "sha256": "006c3033391e908c507fee55708518dcc611441f986d8a1259866d07d32c2888",
+        "bytes": 1831
+      },
+      "generate-design-20261006/margin-execution-receipt.json": {
+        "sha256": "c426a77f63f718befebcfe5982a325343bb97d26ceacafa5dd6bea423328011c",
+        "bytes": 1225
+      },
+      "generate-design-20261006/probe-balanced-coordinate0-review-next-discriminator.md": {
+        "sha256": "7997ce7df6dac2ffd669264c1806f411dbbb94241d001501da5616dbb448a4d6",
+        "bytes": 7980
+      },
+      "generate-design-20261006/native-code-probe-source-manifest.json": {
+        "sha256": "c47fdd39d6bbce2fb5966420cd129de513896c3eeab00a48951671d9a3353104",
+        "bytes": 3308668
+      },
+      "generate-design-20261006/balanced-seed1001-attempt2-full-initial-independent-pi-review.json": {
+        "sha256": "9df912b33d73e17427a485070dbcdbd33521a4a93c11c3922c6f4edecefcdcd4",
+        "bytes": 1807
+      },
+      "generate-design-20261006/seed1002-margin-independent-pi-review.json": {
+        "sha256": "b77a154c6cef6888692d7cf155d8e002350237d79c27ec69c77c1ca3d83f5fc8",
+        "bytes": 3002
+      },
+      "generate-design-20261006/prediction-panel-sufficiency-source-review.md": {
+        "sha256": "71fc0866164962d02c0d0563e5c4155be1916f744bfee1bd4f8f80b54265a784",
+        "bytes": 4305
+      },
+      "generate-design-20261006/joint-potential-validation-attempt2.py": {
+        "sha256": "4a4e939e866cbe875cf33db70239a69fd543e7636d2396f16a79246f53415b7d",
+        "bytes": 3968
+      },
+      "generate-design-20261006/static-balanced-codes-next-discriminator-20261006.md": {
+        "sha256": "5f5888987cc7ad57336adba7a1905283ffb6a64872c2c07ab2a2cc612bc9da25",
+        "bytes": 10437
+      },
+      "generate-design-20261006/build-checks-4.sh": {
+        "sha256": "962512d94003ad458bed9084d14b593eb23b56f84d2b069780ee7233721b4478",
+        "bytes": 2232
+      },
+      "generate-design-20261006/joint-potential-progress-github.md": {
+        "sha256": "002dd13be5c3adaa91fb9892d090c91db0ef22d8161b0e74138f0963a6e51bca",
+        "bytes": 1422
+      },
+      "generate-design-20261006/a762f63a-full-source-inventory.json": {
+        "sha256": "31cb8a1a8807c3543615a68b4ce2b8a8103b7fd35d3fbabab332cb3781a2028b",
+        "bytes": 3392223
+      },
+      "generate-design-20261006/fit-ceiling-c7222d7e-execution-receipt.json": {
+        "sha256": "e5927c1cb215c90ba6da55393adea3f027ce3e4e9b613d17c7a9a2c216c31f99",
+        "bytes": 1104
+      },
+      "generate-design-20261006/prefix-temporal-workcard.md": {
+        "sha256": "4ca7b80e1df43eba936c45f6e44c37e6a572b483e53afec748d1248c346c947b",
+        "bytes": 891
+      },
+      "generate-design-20261006/codex-state-utility-audit-attempt1.py": {
+        "sha256": "e169ff2160349f152666c14323fe8470333e592949446f669dc81722db851661",
+        "bytes": 1830
+      },
+      "generate-design-20261006/real-b8-temporal-utility-config.json": {
+        "sha256": "378b245621175fe2e2aeb94a059603f86b91f62af6490b8b3079590ecce1a3d3",
+        "bytes": 1774
+      },
+      "generate-design-20261006/balanced-fit1-work-card.md": {
+        "sha256": "44eed93b23e9fab1fc92d1adc9d1a327396340ecfe789df00f12cdbdd3882da2",
+        "bytes": 1656
+      },
+      "generate-design-20261006/checkpoint-balanced-joint-terminal-clean-handles-20261006T1300Z.json": {
+        "sha256": "9db0284fe11707c7f1df95561efaeed85020dc9721e22fb03a1bdd52f9809343",
+        "bytes": 20686
+      },
+      "generate-design-20261006/build-balanced-cuda-parity.sh": {
+        "sha256": "4cce1861cb2fd638e69955557db5cbb56c541c440bac2a471c643dfdf0a05f1f",
+        "bytes": 2113
+      },
+      "generate-design-20261006/phase-balanced-fit-run-attempt1.py": {
+        "sha256": "1e33093deeb0d6cd6cb8fdf160dee127cb9bb92eec93c843390d7b3bb4fee685",
+        "bytes": 3378
+      },
+      "generate-design-20261006/balanced-first-state-collision-audit.md": {
+        "sha256": "ef6d8ed29024d7f1014ccb2f50bf89c6f6f882598a898fa8deabd852f9d111d5",
+        "bytes": 2973
+      },
+      "generate-design-20261006/joint-potential-validation-attempt3.py": {
+        "sha256": "8b622ac3917ab452e35749a0dff643fa0aaba84ab124af6637748d5b9af2194c",
+        "bytes": 2766
+      },
+      "generate-design-20261006/conditional-context-learning-next-discriminator.md": {
+        "sha256": "60c4dc89c662c71b2d92fbc4fcb6b16422bdfeb389e99a1898394e7b4f4a76f4",
+        "bytes": 7429
+      },
+      "generate-design-20261006/selected-occurrence-version-next-step-a762f63a.md": {
+        "sha256": "71ea65c5ad63f4b5ac91e2c08c2d169c75e34d9e781c54850a906020569c38af",
+        "bytes": 10274
+      },
+      "generate-design-20261006/seed1003-output-only-independent-pi-review.json": {
+        "sha256": "9cc49c7f1a6ab111786cfa43c6d84f3d1152443e527394a79a77c1d04d018161",
+        "bytes": 2081
+      },
+      "generate-design-20261006/full120-temporal-carry-exact-head-review.json": {
+        "sha256": "ca04bad7d0ea8fc75d6b64ab3bd125a66240f32d837b0704a580071e4b43c998",
+        "bytes": 3045
+      },
+      "generate-design-20261006/build-checks-5.sh": {
+        "sha256": "ac32e5a4f5ebb4135e6ba34841a0842cb0e808c3897982bb194da2227b0e0c41",
+        "bytes": 2291
+      },
+      "generate-design-20261006/fit-joint-seed1003-temporal-config.json": {
+        "sha256": "7ebdc79feb46aaa47eb40da952c1df4762277d3bf019d258e9d01610b3022993",
+        "bytes": 1772
+      },
+      "generate-design-20261006/seed1001-issue-update.md": {
+        "sha256": "128a13f8412f4d17c11c2fa4b93867b3ec257649f709262dac4931fd62a5491c",
+        "bytes": 1332
+      },
+      "generate-design-20261006/native-code-probe-build-summary.txt": {
+        "sha256": "e9fa911b55bf66a86177b147c964f3935bc209870b6d59999f70c9309ff61a81",
+        "bytes": 1701
+      },
+      "generate-design-20261006/balanced-cuda-parity-source-review.json": {
+        "sha256": "3854a9205fa86c7ff66e846e2241d17ca9c2075509a79ba633f1ca0d74b62811",
+        "bytes": 404
+      },
+      "generate-design-20261006/seed1002-output-only-completed-audit.json": {
+        "sha256": "f73656b37e4f4699f0162f4191f42af038211c421a8229dceadf21f562b605b6",
+        "bytes": 1266
+      },
+      "generate-design-20261006/checkpoint-paired-complete-balanced-live-20261006T0940Z.json": {
+        "sha256": "a6ba97bad52e25c6c9d3bf0e1b2e7c5fa8d56868f6c27143403e9e3041a07b07",
+        "bytes": 8030
+      },
+      "generate-design-20261006/seed1001-readout-capacity-after-step-review.json": {
+        "sha256": "1b7df108942c79c11e397ff2d8b6de905c3116f319c04ed44ee35caa6c23e5a3",
+        "bytes": 4374
+      },
+      "generate-design-20261006/checkpoint-native-state-utility-build-terminal-20261006T1317Z.json": {
+        "sha256": "c6b1b719e11d9e4e588014d89f19f1d2dfe7392aebe6f4d06f326afb4522e597",
+        "bytes": 24357
+      },
+      "generate-design-20261006/resource-extension-temporal-fit.json": {
+        "sha256": "7ebd92f16e99465964f9d0598914add0f08fee2c57970d42b45478fd74ecd198",
+        "bytes": 1419
+      },
+      "generate-design-20261006/bound-input-import-source-review-4c24b344.json": {
+        "sha256": "6c5dd250644fa83ee0d9a82b5757a8a0fb89395a44fe1592cc5283e3727387d5",
+        "bytes": 1272
+      },
+      "generate-design-20261006/joint-potential-range-source-inspection.json": {
+        "sha256": "aa8b70b2bc5ecc080f7a5610813d3364ab5a8a433476be6df4a374fa9cb4ad88",
+        "bytes": 1284
+      },
+      "generate-design-20261006/balanced-joint-admission-build.py": {
+        "sha256": "73ff8e9d57f6957a44288f238b8be6c53d0732cb0f7f118d01bc7d2e4f5065b3",
+        "bytes": 2410
+      },
+      "generate-design-20261006/fixed-copy-certificate-finite-loss-independent-review.json": {
+        "sha256": "5cc70597c07d9df6f95ebb8dd0ea90c684148735cf6b0bdee0e1333d0f96ff32",
+        "bytes": 247174
+      },
+      "generate-design-20261006/build-checks-1.sh": {
+        "sha256": "db8588e3e536b70f20fab237d33471c832b3faee6b8a5362dcb0d67799fbb6f1",
+        "bytes": 2319
+      },
+      "generate-design-20261006/codex-balanced-joint-lease-watch.py": {
+        "sha256": "7a9c3ff7ea6f3fa608b99b4a3b80ccd8bbf370ca34da8db7c7bc75624dc60db8",
+        "bytes": 2358
+      },
+      "generate-design-20261006/representative-admission-cost-review.json": {
+        "sha256": "776e156b7461dc368e91fd813463c35bfb9982287c1d42250f51321a0ebb7e9e",
+        "bytes": 4060
+      },
+      "generate-design-20261006/joint-potential-fit-review-update.md": {
+        "sha256": "c2279edd611cc4251e8b3c74065bf3fc841d0539f32d0a5a72443b71c15cc07e",
+        "bytes": 1063
+      },
+      "coadapt-probe-receipts-20261006/freeze-config-1.py": {
+        "sha256": "f61a8c2f293b9a2554fa0a36990011d13f5d99640f820ec58e329af02232cef4",
+        "bytes": 1711
+      },
+      "coadapt-probe-receipts-20261006/probe-1-receipt.json": {
+        "sha256": "793d9dbdf7ad71f76a06fb1098f7ac1d7766194be7913247c8642612dcca5af8",
+        "bytes": 679
+      },
+      "coadapt-probe-receipts-20261006/source-overlay.tar": {
+        "sha256": "b689c75fb95dd21f38b90850b2ccd85f1636a701e6b639edbd2625fba984779b",
+        "bytes": 757760
+      },
+      "coadapt-probe-receipts-20261006/report.json": {
+        "sha256": "fcfcdde5a2d1521aa94161542894979d90e00bd544b15f44717ff92b29a8077f",
+        "bytes": 23422
+      },
+      "coadapt-probe-receipts-20261006/source-inventory.json": {
+        "sha256": "198844e9584997e3e72cbe6c3795585dd8393d4189c8cd05739c9d0c0a14874c",
+        "bytes": 1478
+      },
+      "coadapt-probe-receipts-20261006/checks-1.json": {
+        "sha256": "5320d1180fb67f795dea18b5435e93d797bfcdd005ec556db87a0d6c553d0f46",
+        "bytes": 1657
+      },
+      "coadapt-probe-receipts-20261006/adversarial-result-review-1.json": {
+        "sha256": "5444343036f9f4ab2b41ce6bf8c9653331a0fdecc576423cad873243b6029c3c",
+        "bytes": 11085
+      },
+      "coadapt-probe-receipts-20261006/run-probe-1.py": {
+        "sha256": "ca91e022360a36cec5de0e350ceeb6339ad9103314d0af3875823639d7cccef7",
+        "bytes": 3371
+      },
+      "coadapt-probe-receipts-20261006/work-card.md": {
+        "sha256": "d20843db043e9ab4fdde101435706fe0e60fb6420149fa9dbc7903176aa95615",
+        "bytes": 2462
+      },
+      "coadapt-probe-receipts-20261006/checks-1.py": {
+        "sha256": "595388e46f38f000dd1cb4142ace8935aac9f90f50aa97c5ef17c578ec287949",
+        "bytes": 2861
+      },
+      "coadapt-probe-receipts-20261006/gradient.json": {
+        "sha256": "e402ee40533cb2bfb51c252f13ee51a8ec85564b01903c0dc02656e982ec0629",
+        "bytes": 17955
+      },
+      "coadapt-probe-receipts-20261006/adversarial-result-review-2-factorization-addendum.json": {
+        "sha256": "59068b5b878cad2a3b7f73161dcefa0cd2dea4ba6fd9de7af8f26e31ef17c056",
+        "bytes": 2382
+      },
+      "coadapt-probe-receipts-20261006/prediction-freeze-1.json": {
+        "sha256": "1c64e04cf976b142d8ab7d8668fc7a01554f2e8d62572f78a0e63c7469463100",
+        "bytes": 684
+      },
+      "generate-design-20261006/state-utility-build-preserved/local-verification.json": {
+        "sha256": "087f80ac4a3dfc398050ea547c39babb91b2e9954889c50d4d51fcc634320dfe",
+        "bytes": 310
+      },
+      "generate-design-20261006/state-utility-build-preserved/geometric-generate-code-probe.gz": {
+        "sha256": "df46f26477608fb57daafd76c8627016375145e57dbd97c432118440228da959",
+        "bytes": 4785639
+      },
+      "generate-design-20261006/state-utility-build-preserved/build-thin.tar.gz": {
+        "sha256": "34ea516c6287b6d6c8c955a1f044c9afff072b54b2d1810447b4cb5e47587804",
+        "bytes": 3288
+      },
+      "generate-design-20261006/joint-fixed-copy-certificate-preserved/inspect-joint-copy-ceiling.py": {
+        "sha256": "a0704df22018245c757009bfd3c18f63cfeb897585d02676db034c4cd154a8c3",
+        "bytes": 5501
+      },
+      "generate-design-20261006/joint-fixed-copy-certificate-preserved/state-ceiling-joint-independent-review.json": {
+        "sha256": "184ab8a559dafb64303f34a7f7ea1c3f8535c397c2707c7ba0e2d5d191e23fb9",
+        "bytes": 2138
+      },
+      "generate-design-20261006/joint-fixed-copy-certificate-preserved/joint-fixed-copy-ceiling-inspection.json": {
+        "sha256": "23bb72569c61913a9acf14d346165cc8261dd1d7b81513369c9d25cada14efb6",
+        "bytes": 292400
+      },
+      "generate-design-20261006/joint-fixed-copy-certificate-preserved/fixed-copy-certificate-finite-loss-independent-review.json": {
+        "sha256": "5cc70597c07d9df6f95ebb8dd0ea90c684148735cf6b0bdee0e1333d0f96ff32",
+        "bytes": 247174
+      },
+      "generate-design-20261006/checkpoint-cross-results/control-thin.tar.gz": {
+        "sha256": "371e0cee29b5fdf343e87dd1eb454aed3c07da26bfbce75ba57b85fb59c476e2",
+        "bytes": 224281
+      },
+      "generate-design-20261006/checkpoint-cross-results/joint-root-analysis.json": {
+        "sha256": "5addcb31a944d925cc979054481e7f8e517a578b1f416bc3b776cca182653ffc",
+        "bytes": 1621
+      },
+      "generate-design-20261006/checkpoint-cross-results/joint-thin.tar.gz": {
+        "sha256": "19620e251e6201f2724c0893c5d20ee768ae01052409724c299fd073f63f5838",
+        "bytes": 514926
+      },
+      "generate-design-20261006/checkpoint-cross-results/control-independent-review.json": {
+        "sha256": "8a13e8e057fadba5af306e869e82660fc5de9109418b9f4d5b03d6f6a60aa453",
+        "bytes": 3815
+      },
+      "generate-design-20261006/checkpoint-cross-results/build-attempt3-receipt.failed-transfer.empty": {
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "generate-design-20261006/checkpoint-cross-results/build-attempt3-observed-receipt.json": {
+        "sha256": "c7aed579bc770e91b740eaee7658a014943b84c3483c7b9a480a8c8d5ff6ff54",
+        "bytes": 629
+      },
+      "generate-design-20261006/checkpoint-cross-results/joint-independent-review.json": {
+        "sha256": "80931755a7079be151b79053bc00a41dd0c35e9e299a948e5ffbb73af1d47087",
+        "bytes": 8105
+      },
+      "generate-design-20261006/state-ceiling-joint-attempt1/report.json": {
+        "sha256": "2f0755df14dcb5fd42bc3e372cb6fe6f20b46d810e472155d96e90e7919ce8e1",
+        "bytes": 664943
+      },
+      "generate-design-20261006/state-ceiling-joint-attempt1/manifest.json": {
+        "sha256": "6d3b3f05f9ad2ea968d3768780a8537310d5987289118ef60bc9db688cbb0835",
+        "bytes": 474
+      },
+      "generate-design-20261006/state-ceiling-joint-attempt1/attempt.json": {
+        "sha256": "57851baddf55fc7b141094d80ec274cbc34e110193aa030b90ed106bc6c2a8c9",
+        "bytes": 569
+      },
+      "generate-design-20261006/state-utility-joint-attempt1/report.json": {
+        "sha256": "a66cb3c4e3f0f2671a3233f9bb0f25b4d9da1472a9930d697a02a779e1315ee2",
+        "bytes": 409470
+      },
+      "generate-design-20261006/state-utility-joint-attempt1/manifest.json": {
+        "sha256": "f192958dba33c5f880f4153e32de0a96c46c80060ed3acd846b6a733d9337c37",
+        "bytes": 474
+      },
+      "generate-design-20261006/state-utility-joint-attempt1/attempt.json": {
+        "sha256": "1b308223a68ba48f72582fbb4058e3f44d18e368f4467f560d0764386d71f308",
+        "bytes": 569
+      },
+      "generate-design-20261006/state-utility-and-ceiling-preserved/state-ceiling-joint-attempt1-receipt.json": {
+        "sha256": "91607fd2031b8bdd5396b9f07f2d75df33a5aead70b75d4d0c302acdb946a442",
+        "bytes": 833
+      },
+      "generate-design-20261006/state-utility-and-ceiling-preserved/state-utility-audit-attempt1-receipt.json": {
+        "sha256": "f9453ac1b066bafeb32923b7a7dac1047f372db34ca2fbfdde2452a86f56981a",
+        "bytes": 833
+      },
+      "generate-design-20261006/state-utility-and-ceiling-preserved/state-utility-finite-loss-independent-review.json": {
+        "sha256": "8163b95dc7aa2e4dfd91a16e980e7625cfe76b2ec50ed5a23290b13b2ddaab6b",
+        "bytes": 4179
+      },
+      "generate-design-20261006/state-utility-and-ceiling-preserved/finite-loss-convexity-review-20261006.md": {
+        "sha256": "e309efd99efd8b272564363726452c474ee27cb38af0db5fb8bac583d67529ed",
+        "bytes": 4920
+      },
+      "generate-design-20261006/field-credit-results/field-credit-balanced-seed1001-attempt1-independent-review.json": {
+        "sha256": "4e9550e612a8a7d03d347940d632d4a3b6230edc05dd82872e04e5776f72191f",
+        "bytes": 8998
+      },
+      "generate-design-20261006/field-credit-results/field-credit-build-attempt1-receipt.json": {
+        "sha256": "9ca90c38a56b6354529178bf61eecd98a9926a415eedefbc85600a0a97202dab",
+        "bytes": 1631
+      },
+      "generate-design-20261006/field-credit-results/field-credit-balanced-seed1001-attempt1-receipt.json": {
+        "sha256": "b1f507987df7707dea7e4c24564306cb9b54fc70882630e57ee1904768d372c9",
+        "bytes": 943
+      },
+      "generate-design-20261006/field-credit-results/field-credit-balanced-seed1001-attempt1-independent-review.md": {
+        "sha256": "9143e0183cbb2362769cb0804861aefe83ad5859527bdb44e53fa3028da1bb95",
+        "bytes": 4434
+      },
+      "generate-design-20261006/phase-fit-completion-receipts-20261006/exact-head-tests-build-fit.log": {
+        "sha256": "79129f3898c0c0fa9e44ed178c2148a528d63f1652d5f0b151e2ae2a52d831b5",
+        "bytes": 8656
+      },
+      "generate-design-20261006/balanced-joint-admission-thin/balanced-joint-first-credit-admission-attempt1-receipt.json": {
+        "sha256": "e52febe89d6a1daea5779709d9c0748c2bbd6c91012da26bfcb5a7ae7170424c",
+        "bytes": 651
+      },
+      "generate-design-20261006/balanced-joint-admission-thin/balanced-joint-admission-build-attempt1-receipt.json": {
+        "sha256": "3a0cdeae817ed26f868dc451c2cd2d01ae33ea968542b772eb7ab3a2f5708c89",
+        "bytes": 942
+      },
+      "generate-design-20261006/copy-potential-cuda-checks-preserved/20261006T140916Z-native-geometric-generate-gpu0.log": {
+        "sha256": "0e3acb97eeacc2ebcb2b3aa381be54c16379e31de57d0ba27af1eb9bc846d446",
+        "bytes": 11408
+      },
+      "generate-design-20261006/copy-potential-cuda-checks-preserved/copy-potential-checks-attempt1-receipt.json": {
+        "sha256": "bce46290f280dcc5e440933ba7291d412416fe92f87b636f9ab6e392f84e6328",
+        "bytes": 1229
+      },
+      "generate-design-20261006/copy-potential-cuda-checks-preserved/host-and-review.json": {
+        "sha256": "6f91dd575f49c7cf458c66aac4dad9a4078eae85c81e1c2ccad6e3de401c5b1b",
+        "bytes": 583
+      },
+      "generate-design-20261006/balanced-joint-admission-thin/balanced-joint-first-credit-prep-attempt1/config.json": {
+        "sha256": "675d22a271b9d08376811bf76d5a45ffa5bff17aa244ce3d49e0aef00e7c5da3",
+        "bytes": 1858
+      },
+      "generate-design-20261006/balanced-joint-admission-thin/balanced-joint-first-credit-prep-attempt1/comparison.json": {
+        "sha256": "c3ca01a87c0ff214733950e4fd07f277b33779e787a228915b3d416bf89c9329",
+        "bytes": 745
+      },
+      "generate-design-20261006/balanced-joint-admission-thin/admission-balanced-joint-first-credit-attempt1/input-admission.json": {
+        "sha256": "8100ea8387cc3ef37374cf5956de5a26c5fde8a7ca06ae1523487e77b7dff1e0",
+        "bytes": 3412
+      },
+      "generate-design-20261006/balanced-joint-admission-thin/admission-balanced-joint-first-credit-attempt1/report.json": {
+        "sha256": "d0195443c85c34b9d63d85ea029a43eda3d0d625b386fbbdd6b07cb8c000e378",
+        "bytes": 5979
+      },
+      "generate-design-20261006/balanced-joint-admission-thin/admission-balanced-joint-first-credit-attempt1/admission-cost-sample.json": {
+        "sha256": "9fc79d9e9761c070a5e677c8814d427cb6a23b2bec510c6b1bb76ae191cf0d0c",
+        "bytes": 622
+      },
+      "generate-design-20261006/balanced-joint-admission-thin/admission-balanced-joint-first-credit-attempt1/development-0000.json": {
+        "sha256": "0324b78f893e3af804f2337294fa6c4669f24e437cb07f24d324ab9768ffd11e",
+        "bytes": 3694
+      },
+      "generate-design-20261006/balanced-joint-admission-thin/admission-balanced-joint-first-credit-attempt1/first-b8-admission.json": {
+        "sha256": "e9125e4d96cb089c1bbaf5317a4834870a21cd7dcae519ccc02b2269001899da",
+        "bytes": 20593
+      },
+      "generate-design-20261006/field-credit-results/field-credit-balanced-seed1001-attempt1/generate.bias.phase-0.f32le": {
+        "sha256": "65999d823149580794bf1286975577b843d1e9234b68d1c05f7d84a86acd3b9d",
+        "bytes": 16384
+      },
+      "generate-design-20261006/field-credit-results/field-credit-balanced-seed1001-attempt1/generate.bias.phase-2.f32le": {
+        "sha256": "0abd68a26d34d77c833e451674e6dc23ae5f9eeab93fd4720776f05a1659e6b2",
+        "bytes": 16384
+      },
+      "generate-design-20261006/field-credit-results/field-credit-balanced-seed1001-attempt1/report.json": {
+        "sha256": "b7dd7164b3015aff694668bcf61ff7813d99219615fb2ad3a9c276b0e236b724",
+        "bytes": 7885
+      },
+      "generate-design-20261006/field-credit-results/field-credit-balanced-seed1001-attempt1/generate.pair.phase-3.f32le": {
+        "sha256": "b74a663df5c25ac236c771104e963671696bbe8abff78f7ccc81de0140c0edea",
+        "bytes": 230400
+      },
+      "generate-design-20261006/field-credit-results/field-credit-balanced-seed1001-attempt1/generate.pair.phase-1.f32le": {
+        "sha256": "0570e5389a24f1a2da81d1a80a5298bdd6f461d4a6daf89c7291f8f62c6e2765",
+        "bytes": 230400
+      },
+      "generate-design-20261006/field-credit-results/field-credit-balanced-seed1001-attempt1/generate.bias.phase-3.f32le": {
+        "sha256": "a751325c2956cf7634f5f759e35b0104af9e0dc0da62bf50e6d2925e9a416aca",
+        "bytes": 16384
+      },
+      "generate-design-20261006/field-credit-results/field-credit-balanced-seed1001-attempt1/generate.bias.phase-1.f32le": {
+        "sha256": "3eb00ffa4d4f6aaf5d8843a7eb608150b0c07d4ba234aefa687d9f565b68eee8",
+        "bytes": 16384
+      },
+      "generate-design-20261006/field-credit-results/field-credit-balanced-seed1001-attempt1/generate.pair.phase-0.f32le": {
+        "sha256": "f4a0875bdc9dfd3846cf2c0b4e5c9d3b4dc9f3ad6b05219264531d5c4fd73729",
+        "bytes": 230400
+      },
+      "generate-design-20261006/field-credit-results/field-credit-balanced-seed1001-attempt1/generate.pair.phase-2.f32le": {
+        "sha256": "0fc8307f8a1790fee22c45932407a273be4e4b85e0baaa522cd1c68ac331ff16",
+        "bytes": 230400
+      },
+      "generate-design-20261006/field-credit-results/field-credit-balanced-seed1001-attempt1/generate.unary.phase-0.f32le": {
+        "sha256": "e23e3edf96157bd9b16fa7279666e0c2c8b73ace62c77fab212e67e3af45310a",
+        "bytes": 3840
+      },
+      "generate-design-20261006/field-credit-results/field-credit-balanced-seed1001-attempt1/generate.unary.phase-2.f32le": {
+        "sha256": "539b99c940633cd85a8e1b1ea1036080b77c84cc6c6ec91aba8ced3e17f35686",
+        "bytes": 3840
+      },
+      "generate-design-20261006/field-credit-results/field-credit-balanced-seed1001-attempt1/manifest.json": {
+        "sha256": "075a332accbdb9d4ddfe9c7470124e230d93e1c87ab63efb44c786b2424eddae",
+        "bytes": 2443
+      },
+      "generate-design-20261006/field-credit-results/field-credit-balanced-seed1001-attempt1/attempt.json": {
+        "sha256": "b5e25e917b5ffb8430aadf0efcd515e3170efe895421e6ed43db2cf6d81f9d48",
+        "bytes": 605
+      },
+      "generate-design-20261006/field-credit-results/field-credit-balanced-seed1001-attempt1/generate.unary.phase-3.f32le": {
+        "sha256": "efa93c38bf44ec294f577ae23534401981a21b35638da10befb27e9ecf570c46",
+        "bytes": 3840
+      },
+      "generate-design-20261006/field-credit-results/field-credit-balanced-seed1001-attempt1/generate.unary.phase-1.f32le": {
+        "sha256": "dbb5d2e5c6a8e9e73a9ed75f4fa3c933b65a92035fbea39c3db6fd0b27d32c15",
+        "bytes": 3840
+      },
+      "generate-design-20261006/state-utility-and-ceiling-preserved/state-ceiling-joint-attempt1/report.json": {
+        "sha256": "2f0755df14dcb5fd42bc3e372cb6fe6f20b46d810e472155d96e90e7919ce8e1",
+        "bytes": 664943
+      },
+      "generate-design-20261006/state-utility-and-ceiling-preserved/state-ceiling-joint-attempt1/manifest.json": {
+        "sha256": "6d3b3f05f9ad2ea968d3768780a8537310d5987289118ef60bc9db688cbb0835",
+        "bytes": 474
+      },
+      "generate-design-20261006/state-utility-and-ceiling-preserved/state-ceiling-joint-attempt1/attempt.json": {
+        "sha256": "57851baddf55fc7b141094d80ec274cbc34e110193aa030b90ed106bc6c2a8c9",
+        "bytes": 569
+      },
+      "generate-design-20261006/state-utility-and-ceiling-preserved/state-utility-joint-attempt1/report.json": {
+        "sha256": "a66cb3c4e3f0f2671a3233f9bb0f25b4d9da1472a9930d697a02a779e1315ee2",
+        "bytes": 409470
+      },
+      "generate-design-20261006/state-utility-and-ceiling-preserved/state-utility-joint-attempt1/manifest.json": {
+        "sha256": "f192958dba33c5f880f4153e32de0a96c46c80060ed3acd846b6a733d9337c37",
+        "bytes": 474
+      },
+      "generate-design-20261006/state-utility-and-ceiling-preserved/state-utility-joint-attempt1/attempt.json": {
+        "sha256": "1b308223a68ba48f72582fbb4058e3f44d18e368f4467f560d0764386d71f308",
+        "bytes": 569
+      },
+      "generate-design-20261006/main-pod-tool/scripts/pod/bf16-parity-gate.sh": {
+        "sha256": "0b33cffedacabf9cb40bc8e4a689e580855fa12a74ad85bf6719ff6a0a5e871b",
+        "bytes": 6766
+      },
+      "generate-design-20261006/main-pod-tool/scripts/pod/uor-reaper.sh": {
+        "sha256": "0b40972c1a9b4558ebc201743f4510570d10122034570eb626c0e2532fe94956",
+        "bytes": 4784
+      },
+      "generate-design-20261006/main-pod-tool/scripts/pod/uor-pod-bootstrap.sh": {
+        "sha256": "0b30f64bb7694013c67266aedfdcfa77942fcbb33582a0b673284e2109785947",
+        "bytes": 19258
+      },
+      "generate-design-20261006/main-pod-tool/scripts/pod/step5-tabulate.py": {
+        "sha256": "9f57ae9359b47d8f02e3a762d8fd8e2bfea6bf04fc297023fe77d2dcd7ca4064",
+        "bytes": 10805
+      },
+      "generate-design-20261006/main-pod-tool/scripts/pod/bf16-phase2b-gate.sh": {
+        "sha256": "a722e3610b35d5c73d4a626f6c871ee687434ad5078a6628ce477cd0f73b5d98",
+        "bytes": 5574
+      },
+      "generate-design-20261006/main-pod-tool/scripts/pod/uor-pod": {
+        "sha256": "69716456607deb6a9557ed41395265ffb00565f3d95aa12a2a233afe400ec693",
+        "bytes": 78864
+      },
+      "generate-design-20261006/main-pod-tool/scripts/pod/step2-parity-bench.sh": {
+        "sha256": "ae4bdee60af5c531be483fcfe3ceb9e2dbbb23f2eaa7a3e2576d851438fb5958",
+        "bytes": 8434
+      },
+      "generate-design-20261006/main-pod-tool/scripts/pod/bf16-parity-gate.py": {
+        "sha256": "63fcf965133e55320eeff30cd11227591f2913dc4a7a99d6cd8059f0848a66b9",
+        "bytes": 6238
+      },
+      "generate-design-20261006/main-pod-tool/scripts/pod/hot-set.txt": {
+        "sha256": "4863ce35688d89daafa938de7a567d5c7bcd133be7dff7d301bb0f3cf79cde6d",
+        "bytes": 1144
+      },
+      "generate-design-20261006/main-pod-tool/scripts/pod/bf16-phase2b-gate.py": {
+        "sha256": "192951f4318b79a317e835b75ab9c590f6dda811c2c6dc617ca5295eaf361756",
+        "bytes": 5242
+      },
+      "generate-design-20261006/main-pod-tool/scripts/pod/run-sessions-parallel.sh": {
+        "sha256": "7d302e84e4b09f94318873fc96a71cbbcefdbb05f3dba04dcec6dd6e440ac79e",
+        "bytes": 5922
+      },
+      "generate-design-20261006/main-pod-tool/scripts/pod/step4-corpus.sh": {
+        "sha256": "36ce237a1e92dd852a546801bc67758b759f875c285d08b78e285bf5810c20b9",
+        "bytes": 5548
+      },
+      "generate-design-20261006/main-pod-tool/scripts/pod/step5-knowledge.sh": {
+        "sha256": "e6dad271ba81f49f9e34b2dadde3f16be7a800e60d009f77d769f3cbb5190749",
+        "bytes": 18761
+      },
+      "generate-design-20261006/main-pod-tool/scripts/pod/tests/uor-pod-dryrun.sh": {
+        "sha256": "be678b6aee277e0316991bbfe2ad4320adf2a28fb0dfa61fe81dc1f08e3c3baa",
+        "bytes": 48221
+      },
+      "generate-design-20261006/main-pod-tool/docs/labs/compute.md": {
+        "sha256": "7ff1eadafa73514fe3096849600ad4bdd92b22c186b7475de0b2ea7e64d78ec0",
+        "bytes": 24026
+      },
+      "compute-tool-main/scripts/pod/bf16-parity-gate.sh": {
+        "sha256": "0b33cffedacabf9cb40bc8e4a689e580855fa12a74ad85bf6719ff6a0a5e871b",
+        "bytes": 6766
+      },
+      "compute-tool-main/scripts/pod/uor-reaper.sh": {
+        "sha256": "0b40972c1a9b4558ebc201743f4510570d10122034570eb626c0e2532fe94956",
+        "bytes": 4784
+      },
+      "compute-tool-main/scripts/pod/uor-pod-bootstrap.sh": {
+        "sha256": "0b30f64bb7694013c67266aedfdcfa77942fcbb33582a0b673284e2109785947",
+        "bytes": 19258
+      },
+      "compute-tool-main/scripts/pod/step5-tabulate.py": {
+        "sha256": "9f57ae9359b47d8f02e3a762d8fd8e2bfea6bf04fc297023fe77d2dcd7ca4064",
+        "bytes": 10805
+      },
+      "compute-tool-main/scripts/pod/bf16-phase2b-gate.sh": {
+        "sha256": "a722e3610b35d5c73d4a626f6c871ee687434ad5078a6628ce477cd0f73b5d98",
+        "bytes": 5574
+      },
+      "compute-tool-main/scripts/pod/uor-pod": {
+        "sha256": "d1ebb65769d4505b585507aa6de82a5a0a50e8e2f73e06cc562ef241f1583b08",
+        "bytes": 78533
+      },
+      "compute-tool-main/scripts/pod/step2-parity-bench.sh": {
+        "sha256": "ae4bdee60af5c531be483fcfe3ceb9e2dbbb23f2eaa7a3e2576d851438fb5958",
+        "bytes": 8434
+      },
+      "compute-tool-main/scripts/pod/bf16-parity-gate.py": {
+        "sha256": "63fcf965133e55320eeff30cd11227591f2913dc4a7a99d6cd8059f0848a66b9",
+        "bytes": 6238
+      },
+      "compute-tool-main/scripts/pod/hot-set.txt": {
+        "sha256": "4863ce35688d89daafa938de7a567d5c7bcd133be7dff7d301bb0f3cf79cde6d",
+        "bytes": 1144
+      },
+      "compute-tool-main/scripts/pod/bf16-phase2b-gate.py": {
+        "sha256": "192951f4318b79a317e835b75ab9c590f6dda811c2c6dc617ca5295eaf361756",
+        "bytes": 5242
+      },
+      "compute-tool-main/scripts/pod/run-sessions-parallel.sh": {
+        "sha256": "7d302e84e4b09f94318873fc96a71cbbcefdbb05f3dba04dcec6dd6e440ac79e",
+        "bytes": 5922
+      },
+      "compute-tool-main/scripts/pod/step4-corpus.sh": {
+        "sha256": "36ce237a1e92dd852a546801bc67758b759f875c285d08b78e285bf5810c20b9",
+        "bytes": 5548
+      },
+      "compute-tool-main/scripts/pod/step5-knowledge.sh": {
+        "sha256": "e6dad271ba81f49f9e34b2dadde3f16be7a800e60d009f77d769f3cbb5190749",
+        "bytes": 18761
+      },
+      "compute-tool-main/scripts/pod/tests/uor-pod-dryrun.sh": {
+        "sha256": "8ed4d1f1f0e813bd72308b10bc0cb6e7db249aa787c8021dab7c8113310e65fe",
+        "bytes": 31266
+      },
+      "native-cuda-receipts-20261006/pod-thin/probe.sh": {
+        "sha256": "fdf5f64a3881b78ce3f7997e7e11348b70ac61102a872dd4aca00f10048f09dc",
+        "bytes": 534
+      },
+      "native-cuda-receipts-20261006/pod-thin/example.log": {
+        "sha256": "c6d9e831aaeca85b66ff17fbc77a294d4b3d97db3bc37daf873f04959bafb581",
+        "bytes": 8278
+      },
+      "native-cuda-receipts-20261006/pod-thin/composed.log": {
+        "sha256": "fa93693f4460e106ababc145e95497a418f19f7ec6d3a6814516871d5f18c1a3",
+        "bytes": 1887
+      },
+      "native-cuda-receipts-20261006/pod-thin/context.log": {
+        "sha256": "07b82cd5b61060cfdc76c7f6f461992c9229ac8c9db0e0424a6ebdfd4dde4b27",
+        "bytes": 5305
+      },
+      "native-cuda-receipts-20261006/pod-thin/timing-summary.json": {
+        "sha256": "7fce7e1bdf4b8f02ef1d93cde7108886c6d7d7e09ad8ad5efbf34ca92ccdaf0d",
+        "bytes": 517
+      },
+      "native-cuda-receipts-20261006/pod-thin/transport.log": {
+        "sha256": "f33fa1baef6bfffa964731682127c90dbb12bbf07a30f28f2b5660988874fd5d",
+        "bytes": 2393
+      },
+      "native-cuda-receipts-20261006/pod-thin/binary.sha256": {
+        "sha256": "6af6a1b0ae5e61c523d333af61f9a4fd830263db5ede50daaf32810eff305292",
+        "bytes": 140
+      },
+      "native-cuda-receipts-20261006/pod-thin/time-command.py": {
+        "sha256": "6e86a088e7f9a1349798b415606a9a9825e251aeea32842542a21180527339d6",
+        "bytes": 364
+      },
+      "native-cuda-receipts-20261006/pod-thin/checks.sh": {
+        "sha256": "1b4f61363549c595e45ffbd0e7ee019d5e72a79c4ab6a130a2db8c2f146f5a4d",
+        "bytes": 1524
+      },
+      "native-cuda-receipts-20261006/pod-thin/checks-status.txt": {
+        "sha256": "e7b7787fec309b2a23af15a52961713fee743e6229844e1718b8bd08b3d41e3c",
+        "bytes": 76
+      },
+      "native-cuda-receipts-20261006/pod-thin/build.log": {
+        "sha256": "e761ae1454c5d1fefaca7d9cfa108dd1fac90a29c719a0bd4eaf88e651f5338c",
+        "bytes": 2917
+      },
+      "native-cuda-receipts-20261006/pod-thin/probe-1/report.json": {
+        "sha256": "8f586acaaa5589cc52ede79a84bc9a48bbcfd35cec4272f23040e70e727757a4",
+        "bytes": 3497
+      },
+      "native-cuda-receipts-20261006/pod-thin/probe-1/cpu-cuda-state-credit.json": {
+        "sha256": "1a821bca78d89ac3409b6a900bc61c2733472dec7f5b0890d0d87db1b99c4ecd",
+        "bytes": 98215
+      },
+      "native-cuda-receipts-20261006/pod-thin/probe-1/manifest.json": {
+        "sha256": "d6dac2cc59d7e4af5118602c4294cb7bdf578dafb610047aab4abf02b4ebb27b",
+        "bytes": 6817
+      }
+    }
+  }
+]

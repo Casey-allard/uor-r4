@@ -1,0 +1,25 @@
+{
+  "pr": 2016,
+  "head": "63855169a1ba817bc6f77bcee2c89a786e3dbc3f",
+  "merge": "20a62312f7211a73a8a2e4c78fd5e400fa0b2529",
+  "verified_files": [
+    ".gitattributes",
+    "AGENTS.md",
+    "docs/integration/agent-execution-policy.json",
+    "docs/integration/agent-execution-policy.md",
+    "docs/labs/consolidation-2026-10-09/README.md",
+    "docs/labs/consolidation-2026-10-09/branch-runtime-integration-inventory.json",
+    "docs/labs/consolidation-2026-10-09/github-branches.json",
+    "docs/labs/consolidation-2026-10-09/local-branches.tsv",
+    "docs/labs/consolidation-2026-10-09/preserve-heads.json",
+    "docs/labs/consolidation-2026-10-09/preserved-source.bundle",
+    "docs/labs/consolidation-2026-10-09/pull-requests.json",
+    "docs/labs/consolidation-2026-10-09/reconciliation-analysis.json",
+    "docs/labs/consolidation-2026-10-09/runtime-integration-pending-summary.json",
+    "docs/labs/consolidation-2026-10-09/source-bundle-receipt.json",
+    "docs/labs/consolidation-2026-10-09/worktrees.txt",
+    "docs/labs/operations.md",
+    "docs/labs/protocol.md"
+  ],
+  "status": "PASS"
+}
