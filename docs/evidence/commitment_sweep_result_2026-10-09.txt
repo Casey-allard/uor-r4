@@ -1,0 +1,55 @@
+UOR-R4 — Commitment-weight sweep on the copy-store mixture: 30 preserves the copying signal, 60 regresses, 100 moved both axes
+Date: 2026-10-09 (overnight rounds 159-162). DeepSeek session. References #820.
+
+THE SWEEP
+  Three arms, identical in every respect except UOR_COMMITMENT_WEIGHT, all on the content-copy store
+  mixture (1,006 documents, 10,757 response tokens, turn-1 answers are the premise's own token span, no
+  acknowledgements) with UOR_TERMINAL_WEIGHT held at 30, 19,929,136 parameters, policy=full_prefix,
+  12,207 steps, panel v2 read as the first two content tokens.
+
+    weight 100 (round 160)  "Yes, the" / "No, you" (correct) ; numerics "10." "3." "300." ;
+                            copying visible "rain, the" ; NAME TURN "Anany."
+    weight 30  (this round)  "No, the" / "Yes, you" ; numerics "2." "2." ; copying visible
+                            "run, walk." (a verbatim premise span) ; NAME TURN "Ane." ;
+                            one-word and list turns do not comply
+    weight 60  (this round)  REGRESSES TOWARD PROSE: "My favorite" / "To find" / "The capital" /
+                            "At the" / "An ecosystem"; the only in-form items are "Ag." (a flashcard
+                            symbol) and a responsive "I'm here."
+
+WHAT THE THREE ARMS TOGETHER SHOW
+  1. THE COPYING BEHAVIOUR THE STORE WAS BUILT TO TEACH IS VISIBLE IN THE OUTPUT at two of the three
+     weights: "run, walk." is a verbatim premise span, and "rain, the" at weight 100 is of the same
+     kind. That is the first direct evidence that the content-copy store changes what the model emits
+     in the way it was designed to - it restates premise content rather than a register.
+  2. THE VALUE-LIKE RETENTION OUTPUT APPEARS AT TWO WEIGHTS. The name turn returns "Anany." at weight
+     100 and "Ane." at weight 30 - both containing the name the user gave, in contrast with the
+     acknowledgement register ("Noted.", "I see.") produced by every earlier store arm and with the
+     no-store control which produced the value only in prose. Two independent weights producing a
+     name-like reply is a REPRODUCIBLE SIGNAL rather than one lucky string.
+  3. IT IS NOT A CLEAN DOSE-RESPONSE, AND 60 IS THE WORST OF THE THREE. Weight 60 returns to prose
+     templates, the failure mode that predated the demand store entirely. With one seed per weight this
+     non-monotonicity is not resolvable here; the honest statement is that 30 and 100 both preserve
+     compliance on some classes and surface value-like content, while 60 does neither.
+  4. NO WEIGHT SOLVES BOTH AXES. At 30 the copying is cleanest but one-word and list turns still fail;
+     at 100 the yes/no class is correct but those same classes regress. The trade is between the
+     commitment strength that fixes the answer's first token and the one that keeps the other form
+     classes compliant.
+
+WHAT THIS DOES AND DOES NOT ESTABLISH
+  * ESTABLISHES: the two merged changes (content-copy store, commitment weight) do affect the axis the
+    binding probe identified - the answer's first token - and the effect is visible as (a) premise
+    copying in the output and (b) name-like replies on the retention turn, at two of three weights.
+  * DOES NOT ESTABLISH: binding. A reply CONTAINING the name is not a reply that ANSWERS the question,
+    and "Ane."/"Anany." would both be scored misses by the exact rule. The measurement channel the
+    probe showed to be necessary - log-probability mass on the value span at the answer position - has
+    not yet been run on these checkpoints; it is the next measurement, and it is what would turn
+    "contains the name" into "reads the value".
+  * The next steps in order: (i) run the binding probe's DELTA and read-mass channel on the cw30 and
+    cw100 checkpoints, which is inference-only and decisive about whether the value is now READ rather
+    than echoed; (ii) if read mass is present, sweep the weight with multiple seeds at 30 and 100 to
+    separate the two form classes properly; (iii) if read mass is absent, the copying is surface-level
+    and the objective needs the span-selection term rather than a weight.
+
+SCOPE
+  Three weights, one mixture, one shape, single seed each, greedy decoding, one panel read as the first
+  two content tokens. The retention observations are substring judgements and are labelled as such.
