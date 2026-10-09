@@ -1,3 +1,9 @@
+## XOR/Hamming proposal overlaps existing geometry metrics; learning repair remains open — October 9
+
+The owner-requested [expert comparison](../labs/nemesis-xor-review-2026-10-09/README.md) reads both pages of *R4 XoR Hamming Distance* and traces the corresponding source on main. XOR/popcount and geometry-bound Hamming distance already exist; the proposal does not establish a new semantic metric, E8/icosian composition law, globally optimal route or a remedy for the protected-direction conflict recorded in #2084. Existing H4 antipodes have distance90/120 in the retained signature census, so the paper's full-bit complement cannot be substituted for geometric negation. KEEP the typed metric/transition-contract ideas as advisory; new mechanism and language benefit are NOT YET PROMOTED, with no model run, accepted-artifact change or milestone-status change.
+
+**Next:** Continue the protected-constraint-aware joint quantized direction task from #2084, retaining all native acceptance criteria. Reuse existing typed metric and transition contracts where that implementation needs them; require a specific encoding/caller gap before any separate Hamming consolidation or metric experiment.
+
 ## Original-gradient vectors offer corrections but violate protected winners — October 9
 
 The [original-parent coordinated run](../labs/prefix-vector-run-2026-10-09/README.md) evaluates all four fixed Prefix vectors with fresh full-pool donor credit. All62 raw gradients and both aggregates are bitwise identical to the adjacent-policy comparison. Each vector lowers combined CE; radii1/2 first veto on guards173/89, while radii4/7 retain only16/15 of17 references and do not examine the remaining guards. Radius4 offers new conditional corrections including position7, but loses a previously correct position; these offers are rejected. This establishes a preservation conflict along the tested gradient ray, not global infeasibility.
