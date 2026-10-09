@@ -1,0 +1,39 @@
+file tokens.u16: 114522 bytes, header token count 57229, payload 57229 u16 tokens
+file response_mask.u8: 57229 bytes
+sha256 tokens.u16      = 86ab194e53f4d53c2d87c322da0ef11163296a523f69d1ee84835ab629ed3d3f
+sha256 response_mask.u8= b2821f367cac620f09206a80f0dd04864976b16376cef0a1a2570d16900416ed
+sha256 manifest.json   = c538810e2ab0afc3c5868bd1b7dcf72c3d147dcaa1c523cf87082e6ffff061c3
+documents (BOS-delimited): 1006
+(b) id-level: turn-2 answer token-identical to turn-1 answer: 0
+(b) id-level: turn-2 answer token span inside a user turn: 0
+(b) id-level: turn-2 answer token span inside the PREMISE: 0
+(c) manifest acknowledgements_present = 0 (case-insensitive 0)
+(b) manifest turn2_answer_in_a_user_turn = 0
+(b) manifest turn2_answer_equals_turn1_answer = 0
+(b) manifest turn1_answer_not_a_premise_span = 0
+decoded document 0: premise 'Animals: cat, dog.' -> turn-1 'cat, dog.' -> demand 'Answer in one word. Which position did cat take?' -> turn-2 'first.'
+(b) independent word-level: turn-2 answer core in a user turn: 0 of 1006
+validation (independent Python reader, 16 clauses): 0 offenders (acknowledgement hits 0, dependency hits 0)
+  clause store_mask_length: 0
+  clause document_bos_unmasked: 0
+  clause document_bos_follows_eos: 0
+  clause document_terminal_masked_eos: 0
+  clause document_no_interior_eos: 0
+  clause document_no_interior_bos: 0
+  clause document_vocabulary: 0
+  clause document_mask_binary: 0
+  clause user_marker_exact: 0
+  clause response_single_run: 0
+  clause response_nonempty: 0
+  clause response_marker_present: 0
+  clause response_marker_unmasked: 0
+  clause response_marker_exact: 0
+  clause response_terminal_eos: 0
+  clause response_no_interior_eos: 0
+response tokens (mask sum): 10757
+turn-1 answer tokens: total 4860, mean 4.8310, max 10
+turn-2 answer tokens: total 3885, mean 3.8618, max 8
+manifest diversity: 393 (value, template) combinations over 69 values and 94 templates
+manifest reader: {"admitted_response_tokens": 10757, "admitted_responses": 2012, "context": 256, "documents": 1006, "excluded_over_context": 0, "identical_prefixes": 0, "response_runs": 2012, "response_tokens": 10757, "source": "DialogueSplit::load + EpisodeIndex"}
+
+OK: every independent check passed

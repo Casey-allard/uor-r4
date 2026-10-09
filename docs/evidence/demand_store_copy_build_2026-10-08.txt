@@ -1,0 +1,113 @@
+emitted: 1006 two-turn documents, 57229 tokens, 10757 response tokens, 2012 response runs
+  family conversion: 296 documents from 384 candidates
+  family count: 170 documents from 1890 candidates
+  family name: 150 documents from 156 candidates
+  family number: 230 documents from 324 candidates
+  family ordinal: 160 documents from 5670 candidates
+answer lengths (b, response-content tokens, EOS excluded) over 1006 documents: turn 1 mean 4.8310 max 10 (histogram length:count {2: 95, 3: 148, 4: 399, 5: 64, 6: 84, 7: 28, 8: 122, 9: 26, 10: 40}); turn 2 mean 3.8618 max 8 (histogram {2: 183, 3: 297, 4: 257, 5: 94, 6: 135, 8: 40}); total content tokens 4860/3885
+response mass (c vs the compliant store and the diluted variant): 10757 response tokens, 0.3461 of 31084 (65.39% below), 1.1493 of the diluted 9360 (-14.93% above), mean turn-1 answer 4.8310 tokens (max 10), mean turn-2 answer 3.8618 tokens (max 8) over 1006 documents
+evidence (c) acknowledgements: 0 exact, 0 case-insensitive, forbidden set ["Noted.", "I see.", "Got it.", "Understood.", "Right.", "Sure.", "Okay.", "OK.", "Alright.", "Very well.", "Of course.", "Certainly."]
+evidence (b) dependency: turn-2 answer as a WORD in a user turn 0 of 1006; turn-2 answer token-identical to turn-1 answer 0; annex (byte-level token span of turn-2's answer inside a user turn, a BPE boundary artifact): 0; annex: turn-2 answer anywhere in the prefix 0; turn-1 answer NOT a span of its premise 0
+transformation census (b): 1006/1006 documents (1.000000) have a turn-2 answer that is NOT token-identical to turn 1's answer; identical (a copy policy would pass): 0
+  turn-2 answer inside a USER turn (a premise-copy policy would pass): 0 of 1006 (0.000000); annex: contiguous span of turn-1's answer 0 (0.000000), anywhere in the prefix 0 (0.000000)
+  family conversion: 296 documents, identical 0, span-of-turn-1 0, span-of-prefix 0, in-user-turn 0
+  family count: 170 documents, identical 0, span-of-turn-1 0, span-of-prefix 0, in-user-turn 0
+  family name: 150 documents, identical 0, span-of-turn-1 0, span-of-prefix 0, in-user-turn 0
+  family number: 230 documents, identical 0, span-of-turn-1 0, span-of-prefix 0, in-user-turn 0
+  family ordinal: 160 documents, identical 0, span-of-turn-1 0, span-of-prefix 0, in-user-turn 0
+diversity (rule 4): 1006 documents, 69 distinct demanded values, 94 distinct demand templates, 393 distinct (value, template) combinations
+  family conversion: 296 documents, 22 values, 64 templates, 173 (value, template) combinations; min distinct values per template 2 (worst template "conversion|Answer with digits only. Convert that to grams."), min distinct templates per value 7 (worst value "120"); top value "120" holds 14 documents (0.0473)
+  family count: 170 documents, 3 values, 6 templates, 18 (value, template) combinations; min distinct values per template 3 (worst template "count|Answer with digits only. How many items did I list?"), min distinct templates per value 6 (worst value "2"); top value "2" holds 57 documents (0.3353)
+  family name: 150 documents, 26 values, 12 templates, 78 (value, template) combinations; min distinct values per template 5 (worst template "name|Answer in one word. What capital did I give?"), min distinct templates per value 3 (worst value "Ag"); top value "Ag" holds 6 documents (0.0400)
+  family number: 230 documents, 18 values, 6 templates, 106 (value, template) combinations; min distinct values per template 16 (worst template "number|Reply with digits only. What is that number?"), min distinct templates per value 5 (worst value "60"); top value "1" holds 13 documents (0.0565)
+  family ordinal: 160 documents, 3 values, 6 templates, 18 (value, template) combinations; min distinct values per template 3 (worst template "ordinal|Answer in one word. Which position did {item} take?"), min distinct templates per value 6 (worst value "first"); top value "first" holds 54 documents (0.3375)
+  family conversion demand slots (22 distinct): ["12 metres", "15 minutes", "2 hours", "2 litres", "20 centimetres", "25 metres", "250 grams", "3 litres"]
+  family count demand slots (8 distinct): ["Animals", "Colours", "Drinks", "Flowers", "Tools", "Trees", "Verbs", "Weather"]
+  family name demand slots (26 distinct): ["Ag", "Athens", "Au", "Cairo", "Cu", "Egypt", "Fe", "France"]
+  family number demand slots (18 distinct): ["eight", "eighty", "eleven", "fifty", "five", "forty", "four", "nine"]
+  family ordinal demand slots (16 distinct): ["blue", "cat", "dog", "lily", "milk", "oak", "pine", "plane"]
+validation (multi-turn document reading): 16 clauses, 0 offenders (acknowledgement hits 0, dependency hits 0)
+  clause store_mask_length: 0
+  clause document_bos_unmasked: 0
+  clause document_bos_follows_eos: 0
+  clause document_terminal_masked_eos: 0
+  clause document_no_interior_eos: 0
+  clause document_no_interior_bos: 0
+  clause document_vocabulary: 0
+  clause document_mask_binary: 0
+  clause user_marker_exact: 0
+  clause response_single_run: 0
+  clause response_nonempty: 0
+  clause response_marker_present: 0
+  clause response_marker_unmasked: 0
+  clause response_marker_exact: 0
+  clause response_terminal_eos: 0
+  clause response_no_interior_eos: 0
+validation (literal single-turn reading, one unit per assistant turn): 16 clauses, 0 offenders (acknowledgement hits 0, dependency hits 0)
+  clause store_mask_length: 0
+  clause document_bos_unmasked: 0
+  clause document_bos_follows_eos: 0
+  clause document_terminal_masked_eos: 0
+  clause document_no_interior_eos: 0
+  clause document_no_interior_bos: 0
+  clause document_vocabulary: 0
+  clause document_mask_binary: 0
+  clause user_marker_exact: 0
+  clause response_single_run: 0
+  clause response_nonempty: 0
+  clause response_marker_present: 0
+  clause response_marker_unmasked: 0
+  clause response_marker_exact: 0
+  clause response_terminal_eos: 0
+  clause response_no_interior_eos: 0
+annex (literal single-turn clauses over whole two-turn documents, expected non-zero): documents_with_more_than_one_masked_run 1006, documents_with_an_interior_eos 1006
+corruption test (in-memory store before writing): document 503 spans [28653,28719); leaving its terminal EOS unmasked in memory only
+  case (terminal EOS of document 503 unmasked): 3 offenders over 16 clauses
+    clause document_terminal_masked_eos: 1
+    clause response_single_run: 1
+    clause response_terminal_eos: 1
+    offending document 503 clause document_terminal_masked_eos: final token 1 carries mask 0
+    offending document 503 clause response_single_run: the masked stretch after the marker at offset 54 does not close at its own EOS followed by an unmasked token
+    offending document 503 clause response_terminal_eos: last response token is 16 with mask 1
+    training-path EpisodeIndex rejected it: invalid reference request: dialogue response must retain exact unmasked marker and genuine terminal EOS
+  restored (original bytes): 0 offenders over 16 clauses
+reader (DialogueSplit::load + EpisodeIndex, context 256): documents 1006, response runs 2012, response tokens 10757, ADMITTED 2012, admitted response tokens 10757, EXCLUDED over context 0, identical prefixes 0
+  fractions: response/token 0.187964, tokens/document 56.888, runs/document 2.000
+corruption test (emitted store re-read from disk): document 503 spans [28653,28719); leaving its terminal EOS unmasked in memory only
+  case (terminal EOS of document 503 unmasked): 3 offenders over 16 clauses
+    clause document_terminal_masked_eos: 1
+    clause response_single_run: 1
+    clause response_terminal_eos: 1
+    offending document 503 clause document_terminal_masked_eos: final token 1 carries mask 0
+    offending document 503 clause response_single_run: the masked stretch after the marker at offset 54 does not close at its own EOS followed by an unmasked token
+    offending document 503 clause response_terminal_eos: last response token is 16 with mask 1
+    training-path EpisodeIndex rejected it: invalid reference request: dialogue response must retain exact unmasked marker and genuine terminal EOS
+  restored (original bytes): 0 offenders over 16 clauses
+document 0 (family ordinal, premise "Animals: cat, dog.", turn-1 answer "cat, dog.", demand "Answer in one word. Which position did cat take?", turn-2 answer "first."): <|bos|>User: Animals: cat, dog. \n Assistant: cat, dog.<|eos|> \n User: Answer in one word. Which position did cat take? \n Assistant: first.<|eos|>
+  tokens: [0, 55, 2728, 28, 439, 80, 778, 85, 28, 462, 14, 466, 16, 201, 35, 560, 652, 714, 28, 462, 14, 466, 16, 1, 201, 55, 2728, 28, 439, 80, 1903, 284, 315, 731, 2708, 16, 1044, 1788, 682, 85, 276, 848, 454, 462, 754, 33, 201, 35, 560, 652, 714, 28, 1180, 16, 1]
+  mask:   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1]
+  turn-1 answer ids [462, 14, 466, 16] (mask 1), turn-2 answer ids [1180, 16] (mask 1), user spans [(4, 13), (28, 46)]
+document 1 (family conversion, premise "time: 6 hours.", turn-1 answer "6 hours.", demand "Answer with digits only. What does 6 hours become in minutes?", turn-2 answer "360."): <|bos|>User: time: 6 hours. \n Assistant: 6 hours.<|eos|> \n User: Answer with digits only. What does 6 hours become in minutes? \n Assistant: 360.<|eos|>
+  tokens: [0, 55, 2728, 28, 400, 28, 223, 24, 3838, 16, 201, 35, 560, 652, 714, 28, 223, 24, 3838, 16, 1, 201, 55, 2728, 28, 439, 80, 1903, 284, 331, 2572, 276, 85, 1370, 16, 1601, 1303, 223, 24, 3838, 2678, 315, 3748, 33, 201, 35, 560, 652, 714, 28, 2774, 24, 18, 16, 1]
+  mask:   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1]
+  turn-1 answer ids [223, 24, 3838, 16] (mask 1), turn-2 answer ids [2774, 24, 18, 16] (mask 1), user spans [(4, 10), (25, 44)]
+document 2 (family conversion, premise "The distance is 25 metres.", turn-1 answer "25 metres.", demand "Digits only. How many centimetres are in 25 metres?", turn-2 answer "2500."): <|bos|>User: The distance is 25 metres. \n Assistant: 25 metres.<|eos|> \n User: Digits only. How many centimetres are in 25 metres? \n Assistant: 2500.<|eos|>
+  tokens: [0, 55, 2728, 28, 287, 2125, 1651, 435, 223, 20, 23, 1018, 275, 85, 16, 201, 35, 560, 652, 714, 28, 223, 20, 23, 1018, 275, 85, 16, 1, 201, 55, 2728, 28, 671, 313, 276, 85, 1370, 16, 2577, 664, 280, 380, 293, 309, 275, 85, 484, 315, 223, 20, 23, 1018, 275, 85, 33, 201, 35, 560, 652, 714, 28, 223, 20, 23, 18, 18, 16, 1]
+  mask:   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1]
+  turn-1 answer ids [223, 20, 23, 1018, 275, 85, 16] (mask 1), turn-2 answer ids [223, 20, 23, 18, 18, 16] (mask 1), user spans [(4, 15), (33, 56)]
+samples (1 per family):
+  [ordinal] premise "Animals: cat, dog." -> turn-1 "cat, dog." -> demand "Answer in one word. Which position did cat take?" -> turn-2 "first."
+    <|bos|>User: Animals: cat, dog. \n Assistant: cat, dog.<|eos|> \n User: Answer in one word. Which position did cat take? \n Assistant: first.<|eos|>
+  [conversion] premise "time: 6 hours." -> turn-1 "6 hours." -> demand "Answer with digits only. What does 6 hours become in minutes?" -> turn-2 "360."
+    <|bos|>User: time: 6 hours. \n Assistant: 6 hours.<|eos|> \n User: Answer with digits only. What does 6 hours become in minutes? \n Assistant: 360.<|eos|>
+  [number] premise "My number is thirty." -> turn-1 "thirty." -> demand "Answer with digits only. What number did I give, in digits?" -> turn-2 "30."
+    <|bos|>User: My number is thirty. \n Assistant: thirty.<|eos|> \n User: Answer with digits only. What number did I give, in digits? \n Assistant: 30.<|eos|>
+  [name] premise "Country: Egypt." -> turn-1 "Egypt." -> demand "One word only. Name the country I gave." -> turn-2 "Cairo."
+    <|bos|>User: Country: Egypt. \n Assistant: Egypt.<|eos|> \n User: One word only. Name the country I gave. \n Assistant: Cairo.<|eos|>
+  [count] premise "Animals list: cat, dog, fox." -> turn-1 "cat, dog, fox." -> demand "Answer with digits only. How many items were in my list?" -> turn-2 "3."
+    <|bos|>User: Animals list: cat, dog, fox. \n Assistant: cat, dog, fox.<|eos|> \n User: Answer with digits only. How many items were in my list? \n Assistant: 3.<|eos|>
+wrote 1006 documents to /tmp/dscopy/runB (57229 tokens, 57229 mask bytes)
+  tokenizer sha256 d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89; seed 0x636f707973746f72
+  tokens.u16 sha256 86ab194e53f4d53c2d87c322da0ef11163296a523f69d1ee84835ab629ed3d3f (114522 bytes incl. 64-byte UORT header)
+  response_mask.u8 sha256 b2821f367cac620f09206a80f0dd04864976b16376cef0a1a2570d16900416ed (57229 bytes)
+  manifest.json sha256 c538810e2ab0afc3c5868bd1b7dcf72c3d147dcaa1c523cf87082e6ffff061c3
