@@ -181,6 +181,28 @@ frozen criteria applied as written; and the first model that replies to it makes
 development panel like v4, after which any further number on it is open-development
 evidence. `shasum -a 256 -c MANIFEST.sha256` from this directory verifies every file.
 
+## Deterministic row checks for the open reply panel (`reply-panel-*`, References #2029)
+
+The open reply panel (`everyday-32.json`, `heldout-200-a.json`, `heldout-200-b.json`, 232 rows,
+archived as `ladder.tar`) is **not in this directory** and is **not a held-out panel**: Step 0a read
+every failing row, and Results 6 and 7 measured that its reading is judge-only and that its accepted
+set is not separable from its rejected set by any judge-free property once one canned greeting is set
+aside. These files add the deterministic component over the rows where a judge-free criterion exists:
+
+| file | contents |
+|---|---|
+| `reply-panel-checks.tsv` | eighty-eight row checks: kind `any` on 21 content rows (row-specific required content), kind `abstain_exact` on 67 rows from the recorded ill-posed id list |
+| `reply-panel-checks-provenance.tsv` | one provenance row per check: the anchor, its source, and why it is not answerable from the request |
+| `reply-panel-canned.txt` | 13 observed memorised replies, the input to the canned-reply control (`chat-grade check constants=`) |
+
+**Coverage is the point: eighty-eight of the 232 rows (37.9 %) are exactly determinable; the other 144 are
+open-ended requests with no expected content, so no deterministic check exists for them.** The
+control was run and passes: **zero of the eighty-eight checks are passed by any of the 13 memorised strings**,
+including the greeting that carries 18.6 % of accepted rows at 29M and 23.9 % at 100M. Validation and
+the frozen target are in
+[docs/labs/reply-panel-deterministic-checks-2026-10-09](../../docs/labs/reply-panel-deterministic-checks-2026-10-09/README.md).
+The panel's requests are unchanged; these files add checks over them.
+
 ## Tiered eval v2: panel `conversational-v3*` and the missing-material K split
 
 **Status (5 October, later; 9 October):** development panel. Its misses were inspected. Held-out

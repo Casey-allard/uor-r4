@@ -623,6 +623,16 @@ own tree.
   training seed (decoding is greedy, `seed` is not in the graded record), and no
   other artifact on this panel was scored here.
 
+
+**Follow-up (2026-10-09 later): the deterministic replacement was built, and its coverage is the
+headline.** [reply-panel-deterministic-checks-2026-10-09](../reply-panel-deterministic-checks-2026-10-09/README.md)
+adds 88 row checks over the rows where a judge-free criterion exists and runs the canned-reply
+control through `chat-grade check constants=`: **zero of the 88 checks are passed by any memorised
+string**, including `Hello! How can I help you today?`. **88 of 232 rows (37.9 %) are exactly
+determinable; the other 144 are open-ended requests for which no judge-free correct answer exists.**
+So this panel can carry a deterministic SUB-READING, not a replacement for 116/232, and criterion 1
+remains NOT MET.
+
 ## Next:
 
 Results 4 to 7 have closed this line's questions on the negative side, one after another: the

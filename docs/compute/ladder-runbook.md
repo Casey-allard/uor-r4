@@ -337,6 +337,15 @@ RAYON_NUM_THREADS=2 target/release/chat-grade grade \
   work). Details and the full per-category tables:
   [open-reply-panel-2026-10-09](../labs/open-reply-panel-2026-10-09/README.md) Results 4 and 5.
 
+**Deterministic checks now exist for part of this panel (2026-10-09, #2029).** Only **88 of the 232
+rows** have a judge-free criterion — 21 content rows (`any`, required content) and 67 ill-posed rows
+(`abstain_exact`) — because the rest are open-ended requests. Run them with
+`checks=data/panels/reply-panel-checks.tsv`, and run the canned-reply control in the same command with
+`constants=data/panels/reply-panel-canned.txt`: `chat-grade check` then reports, per category, how many
+rows each memorised reply passes, and the answer must be zero (it is: 0 of 88 for all 13, including the
+greeting that carries 18.6 % of accepted rows). `check_panel` passes with a worst-case context position
+of 168 of 384. Details: [reply-panel-deterministic-checks-2026-10-09](../labs/reply-panel-deterministic-checks-2026-10-09/README.md).
+
 ### 6.3 Grader questions, controls, and McNemar test
 
 - **Judge questions:**

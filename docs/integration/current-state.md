@@ -1,3 +1,66 @@
+## 2026-10-09 — A deterministic sub-reading for the open reply panel: 88 row checks, and a canned reply cannot pass one (deepseek, #2029)
+
+The fix for the instrument defect Results 4-7 measured. Record:
+[reply-panel-deterministic-checks-2026-10-09](../labs/reply-panel-deterministic-checks-2026-10-09/README.md).
+**CPU only, no pod, $0** — a 5m37s source build of `chat-grade` at main plus `chat-grade check`.
+
+**THE HEADLINE IS THE COVERAGE, measured before a single check was authored: 88 of the 232 rows are
+exactly determinable (37.9 %) and 144 (62.1 %) are not.** The 144 are open-ended requests ("What are
+the key components of a successful marketing campaign?", "Develop a catchphrase for a bike shop.")
+where any fluent on-topic reply is as correct as any other, so **there is no judge-free correct
+answer to check**. That is a stronger statement than Result 6's: not that the instrument is
+judge-only, but that for most of this panel there is nothing deterministic to score. **A panel
+two-thirds of which cannot be scored deterministically cannot gate a milestone no matter how good
+its judge is.** So the panel can carry a deterministic **sub-reading**, not a replacement for
+116/232 — and **criterion 1 remains NOT MET**; a new instrument is not a met milestone.
+
+**The canned-reply control PASSES, run by the grader itself.** `chat-grade check constants=` uses the
+frozen `RowCheck::passes` through `check_only_controls`, so the control arm is the instrument, not a
+reimplementation of it. **Thirteen memorised strings, 88 checked rows, zero rows passed** — including
+`Hello! How can I help you today?`, which carries 18.6 % of accepted rows at 29M and 23.9 % at 100M.
+That is the measurement Result 7 predicted, and it is what makes a future number on this sub-reading
+interpretable.
+
+**What was built:** `data/panels/reply-panel-checks.tsv` (88 checks, sha256 `ad4e9a14…`),
+`reply-panel-checks-provenance.tsv` (88 provenance rows recording that each anchor is NOT present in
+the request and NOT present in any canned reply — the property that makes a check meaningful), and
+`reply-panel-canned.txt` (13 observed memorised replies). 21 content rows use kind `any` with
+row-specific required content — the anchors differ per row, so **a single canned string cannot pass
+across rows: it would have to contain every row's content word at once**. 67 ill-posed rows use
+`abstain_exact`, selected by chat-grade's own recorded `heldout-ill-posed-v3-ids.txt` rather than by
+hand, which rejects a fabricated specific. The panel's requests are unchanged and it remains
+development evidence.
+
+**Structural validation at current main:** `check_panel` **pass**, **88 of 88 rows checked**
+(`checks_without_loaded_request: []`), **worst-case context position 168** of 384 (`follow-02`);
+`shasum -a 256 -c MANIFEST.sha256` from `data/panels/` → **29 files, 29 OK**; both novelty checkers
+re-run unchanged with the new files present and both **pass**. Recorded: the frozen macOS artifact
+`a5071cfe…` **predates the `check` subcommand** (usage `extract|grade`), so validation used a source
+build at main; `check` is dispatched at `chat-grade.rs:216`.
+
+**First reading, retrospective** on the sealed 29M replies: **2 of 88** — 2 of 21 content rows
+(`ask-03` "hydrated", `ask-06` names a horse) and 0 of 67 ill-posed rows. The 0/67 is a real
+diagnostic with one measured limit: no reply both abstains and avoids fabrication, and **27 of 67
+name a fabricated specific**, but `abstain_exact` does not credit a clarifying question and **8 of 67
+ask one**. It is used because the alternative is unsafe as it stands — a `question`-kind clarify
+check **would be passed by the canned greeting on all 67 rows**.
+
+**The unfinished part, named:** `forbid`/`keys` are **not expressible for a single-turn row** with
+the current grammar (they are parsed only for `exact`, which `validate_checks` requires to be a
+multi-turn recall row, and for `abstain_exact`). The fix is an additive kind — `reply_exact`, i.e.
+`exact`'s rule without the recall requirement — which is the Next:.
+
+**Recommendation, stated:** restate criterion 1's reply half as a deterministic sub-reading over the
+37.9 % that is determinable, and **give the open-ended remainder no gate at all** rather than build a
+second instrument for it — a gate there would be the judge again, and Step 0a already recorded that
+the lever for this panel is the float model's corpus/knowledge/capacity.
+
+**Next:** build the additive `reply_exact` check kind in `chat-grade` (`exact`'s rule without the
+recall/multi-turn requirement, permitted with `history=none`) so single-turn rows can carry expected
+content, forbidden distractors and distractor keys; use it to give the 67 ill-posed rows a
+canned-reply-proof clarify criterion and the 21 content rows their `forbid`/`keys`; then restate
+criterion 1's reply half as a deterministic sub-reading over the checked rows. Do not gate the
+open-ended 62.1 % on a judge.
 ## Protected joint direction passes continuously but fails quantized screens — October 9
 
 The [protected joint constructor](../labs/protected-joint-construction-2026-10-09/README.md) integrates native pooled winner/rival margins with Prefix and Generate credit on the original coupled initializer. After 411 backwards / 822 training-graph forwards, the fixed 256-pass continuous direction passes all380 surrogate constraints, but the four quantized displacements violate104/170/98/93 respectively; all retain first-order CE descent and none reaches native proposal scoring. No update is committed: independently reloaded391 native states retain the original5/15 conditional winners,17 references and380 guards, with combined CE unchanged at5.111520730202647. **KEEP** the integration and diagnostic evidence; **REJECT** this candidate, with actual-nine/full512/fresh/multi-turn NOT_RUN_CONSTRUCTION_NEGATIVE and accepted8/512 unchanged. Execution setup failures are retained separately; this is not measured native winner loss or global infeasibility.
