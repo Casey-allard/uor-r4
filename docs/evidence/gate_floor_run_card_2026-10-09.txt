@@ -1,0 +1,63 @@
+UOR-R4 — Run card: a SERVING-SIDE gate floor tests the gate hypothesis with zero training
+Date: 2026-10-09. DeepSeek session. References #820.
+
+THE CONVERGENCE THE EVIDENCE NOW POINTS AT
+  Three measurements from tonight meet here.
+  1. The best binding state is the ORIGINAL arm-ptr checkpoint, and FURTHER FINE-TUNING COSTS RECALL
+     (0.4167 -> 0.2857 for an identical fine-tune with no other change). So the next experiment should
+     not train anything.
+  2. The identity term's failure is a GATE COLLAPSE WITH SPAN MASS INTACT: pointer mass on the value's
+     span 0.8399 against the matched control's 0.7415, while the copy gate falls 0.2439 -> 0.1163 and
+     the emitted probability of the value falls 0.2292 -> 0.1300. The model still FINDS the value and
+     stops USING it.
+  3. Gate SUPERVISION during training raises the gate (0.2644 -> 0.2959 at weight 0.1, -> 0.3559 at
+     0.3, -> 0.4164 at 1.0) but degrades the panel monotonically, so the gate cannot be bought with a
+     loss term.
+  Together: the gate is the bottleneck, it is not reachable by training, and training is now known to be
+  harmful on this axis. THE REMAINING TEST IS THEREFORE AT SERVING TIME.
+
+THE EXPERIMENT: A GATE FLOOR IN THE IDENTITY MIXTURE
+  The pointer's identity mixture is (1 - gate) * generator + gate * pointer attention. Introduce an
+  OPTIONAL SERVING-TIME FLOOR on the gate - for example `pointer_gate_floor=F` (0..=1, default 0 =
+  unchanged) that computes gate' = max(gate, F) - and score the EXISTING arm-ptr checkpoint (and, for
+  contrast, an identity arm whose gate collapsed) with F = 0, 0.25, 0.5, 0.75, 1.0.
+  This is a read-out change only: no training, no new parameters, no fine-tuning, and the default leaves
+  every existing run bit-for-bit unchanged.
+
+WHY IT IS THE RIGHT NEXT TEST
+  * IT TESTS THE MECHANISM, NOT A HYPOTHESIS ABOUT THE MECHANISM. The claim is that the value is
+    available and under-used. Raising the gate at inference directly increases how much of the output
+    comes from the pointer attention that is already landing on the span. If the claim is right, exact
+    copying should rise with F; if it is wrong, nothing will move or the generator's output will be
+    crowded out and the panel will degrade.
+  * IT IS FREE AND IT IS REVERSIBLE. Inference only, minutes per condition, on artefacts that already
+    exist on the pod (arm-ptr, arm-a-w05, arm-c-ctrl) and are also in iCloud.
+  * IT SEPARATES "THE GATE IS TOO LOW" FROM "THE POINTER KNOWS THE WRONG THING". If a floor recovers
+    copies, the learned attention already contains the answer and only its MIXING WEIGHT was wrong -
+    which would be a strikingly simple fix for a problem that has resisted eight routes. If a floor
+    does not recover copies, then the attention mass on the span, though high, does not carry the value
+    into the output, and the next target is the READ itself rather than the gate.
+
+PREDICTIONS, FIXED BEFORE THE RUN
+  * If the gate is the binding constraint: exact copy rises monotonically with F on arm-ptr, and MORE
+    on the identity arm whose gate had collapsed (0.1163), since it has the most headroom; a floor of
+    1.0 should approach pure pointer attention.
+  * If the span mass is not informative: no monotone rise, and F = 1.0 should be WORSE than the
+    untrained mix, because pure attention discards the generator that supplies fluency.
+  * Control: the no-pointer arm (arm-cw30) has no pointer mixture and cannot be scored this way - use
+    the matched fine-tune control (arm-c-ctrl) as the second reference, since it shows what the same
+    recipe produces without any identity term.
+
+HOW TO RUN IT (for whoever picks this up)
+  Score with the probe binary that reads the model directly - export refuses an identity pointer ("no
+  integer port"), and a probe built before the identity field scores identity models WRONGLY (8 of 32
+  rows differed on arm A while the dot-only arm was bit-identical), so use the probe built from current
+  main. Rows: bindprobe/rate/rows_rate_{natural,sure,noted}.json, 28 invented values, three conditions,
+  40 tokens, greedy, protocol 2. Report exact copies with Wilson intervals per floor, per value gains
+  and losses, and the gate / span-mass / p_mixture channels, so the mechanism is visible alongside the
+  outcome. Score arm-ptr and arm-c-ctrl in the same session as references.
+
+SCOPE
+  A run card: no code has been written and no measurement made in this round. Its value is that the
+  experiment is chosen by three independent measurements and needs no training - which, given tonight's
+  finding that training this lineage costs recall, is now a requirement rather than a convenience.
