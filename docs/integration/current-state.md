@@ -1,3 +1,43 @@
+## 2026-10-09 — CORRECTION: the pointer line's mechanism is softmax-based and cannot be served (deepseek, #2029)
+
+Recorded at the owner's request after a session review. This corrects how the pointer/gate-floor/identity-stop
+entries below should be read, and it is a correction to my own framing, not to the measurements.
+
+**What the mechanism actually computes**, from the code rather than from prose:
+
+    geometric_stack.rs:88-90   a_t = (1 - g_t) softmax(z_t)[v] + g_t p_copy(v | t)
+    geometric_stack.rs:8463    .map(|&z| (1.0 - gate) * (f64::from(z) - lse).exp())
+    geometric_stack.rs:1053    "attention is the softmax of ROUTE_SHARPNESS times that score over the admitted sources"
+    geometric_stack.rs:27      "the control layer is RoPE softmax attention plus a SwiGLU MLP"
+
+The pointer's attention is a **softmax over sources** and its mixture is an **exp/log-sum-exp**. Geometry is present
+in the **score** (`pointer_score=dot|lorentz`, Lorentzian) and in the **routes** (`prime:WINDOW`, prime addresses),
+but the **normalisation and mixture are not geometric** - they are softmax. The trained object that produces these
+numbers is therefore a softmax attention mixture, and it must not be described as the geometric mechanism.
+
+**Why this matters for the mission.** D11 forbids floating point and transcendentals in served kernels, so
+`exp`/log-sum-exp **cannot be served at all**; export additionally refuses a pointer carrying an identity term
+because there is no integer port. Every result in this line is therefore **offline capability only**, which the
+individual entries do say - but they present it in the same register as the serving work, and that framing is
+wrong. **A capability gain on an unservable mechanism is not progress toward the served model.** Training may use
+float and matmul, so nothing here broke the training rules; the error is strategic, in treating a softmax-attention
+result as advancement toward a geometric, multiplier-free target.
+
+**Scope of the recorded VSA negative.** "VSA codebooks inert" refers to a **specific implementation** - the `fixed`
+token-id-hash codebook against the `root` and `learned` code modes, measured in
+`docs/evidence/native_geometric_vsa_code_mode_ablation_2026-10-08.txt` (with the wiring and repair records of
+2026-09-19). It does **not** rule out the geometry as a family, and the one-line summary on M1 compresses it too
+far. A negative names the implementation that failed, never the family.
+
+**What this does not change:** the served chat stack is unaffected - it is the separate multiplier-free engine at
+0.93277 BPB with the D11 fidelity measured on 16,384 targets (D11 vs D10 exact, integer vs float +0.0077 nats,
+0.8802 top-1). No served artifact depends on the softmax pointer path, and the identity-stop line never exported.
+
+**Next:** test geometric mechanisms as serving-contract instruments from the start - integer/table-lookup scoring
+and selection, no `exp` - even when they score worse on a capability panel, because a gain on an unservable
+mechanism buys nothing here. The active M1 piece (v4 memory panel at the 214M base, graded by the frozen
+`chat-grade`) runs on the existing serving path and does not touch this mechanism.
+
 # Current UOR-R4 research state
 
 ## DeepSeek's VSA "inert" result re-scoped: valid only for a frozen artifact; retraining test pre-registered — October 9
