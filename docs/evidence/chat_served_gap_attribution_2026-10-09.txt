@@ -1,0 +1,114 @@
+UOR-R4 — Criterion 2: quantisation, engine and model quality separated on identical positions
+Date: 2026-10-09. DeepSeek lab. References #2029.
+
+THE QUESTION
+  M1 criterion 2 wants the exported, served artifact at <= 0.90 BPB on the chat held-out
+  stream. The recorded position is "float 0.877, served 0.933, quantisation 0.00883". That is
+  a 0.0552 BPB gap, and the 0.0330 "gap to target" is a subtraction of a FLOAT number from a
+  SERVED number taken on a different position set. This round asks what part of that is
+  quantisation, what part is engine/protocol, and what part is the float model's own quality.
+
+WHAT WAS DONE
+  CPU only. No training, no pod, no float model *generation* (float scoring of an existing
+  checkpoint through its own forward pass is evaluation, not generation). Every number below
+  comes from an existing artifact on an identical position set.
+
+ARTIFACTS (all identities verified by sha256 in this run)
+  artifact   tw-export-big2/model.lut
+             11891588 B
+             sha256 10d8d60be3eed25f50d1668a159b8f93e73c75426ea2fb3393327f0cb4a5b966
+             GPTQ, 64 calibration windows, damp 0.01, calibration_positions 24576
+             transport_snap = None (free transport; D10 comparator applies)
+  model      tw-arm-big2/model/model.safetensors
+             79726120 B, 19,929,136 parameters, width 512, heads 8, context 384,
+             pattern rrarrarr, read l2, rotation true, seed 1, vocab 4096
+             sha256 4ef5f38feb53cda11b53ac812b45fc804908997c14d0cde3ebe60a691972b43b
+  valid      chat-v0-p2/heldout/tokens.u16, 12389242 B, 6194589 tokens
+             sha256 e5f400b0e676791fd0458ce810163c5d2542adda80dccc8282f37d9ca8904cef
+  tokenizer  d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89
+             109457 B, 4096 vocab, 3 added tokens. Byte basis reproduced exactly:
+             6,194,589 tokens, 17,576,697 bytes, 0 out-of-vocabulary, max id 4095,
+             2.837427 bytes/token -- the sealed-league byte basis.
+
+  Where they were found: iCloud UOR-R4/results/deepseek/{tw-export-big2,tw-arm-big2}.tar
+  (MD5 b7.../af91... verified against the cloud-store index at fetch), and
+  UOR-R4/results/deepseek/chat-v0-p2.tar for the held-out stream. The record's own model
+  (batch 32, lr 4e-4, chat-v0-p2 train only) is NOT in the index; see LIMITATION 1.
+
+THE MATCHED MEASUREMENT -- 64 windows, 24,576 targets
+  geometric-stack lut-evaluate artifact=... model=... valid=... lens=... windows=64 \
+    threads=6 reference=true out=...
+
+    float       (the checkpoint's own forward)          nll 3.5340307   1.796884 BPB
+    reference   (the artifact dequantized, in f32)      nll 3.5420724   1.800973 BPB
+    integer     (the multiplier-free served engine)     nll 3.5420708   1.800973 BPB
+
+    quantisation   float -> reference   0.0080417 nats   0.004089 BPB
+    engine         reference -> integer -0.0000015 nats  -0.00000077 BPB
+    total          float -> integer     0.0080402 nats   0.004088 BPB
+    top-1 agreement engine vs float: 0.88265
+
+THE MATCHED MEASUREMENT -- 512 windows, 196,608 targets (same two files, same rule)
+
+    float                                               nll 3.4666163   1.767493 BPB
+    reference                                           nll 3.4741697   1.771344 BPB
+    integer                                             nll 3.4741654   1.771342 BPB
+
+    quantisation                                        0.0075534 nats  0.003841 BPB
+    engine                                             -0.0000043 nats -0.0000022 BPB
+    top-1 agreement: 0.88000
+
+INDEPENDENT CHECKS ON THE SAME FILE
+  d11-evaluate, 64 windows: d11 nll 3.5420708435, d10 nll 3.5420708435,
+    d11_minus_d10_nll 0.0, top1_agreement 1.0, max_abs_logit_difference 0,
+    positions_with_a_difference 0, first_difference null.
+  lut-evaluate integer column, 64 windows: 3.5420708435 -- identical to 10 decimals.
+  lut-evaluate integer column, 512 windows, run twice (once with model=, once without):
+    3.4741654130 both times, difference 0.000e+00.
+  So the served number is a property of the artifact, not of who else is in the process.
+
+WHY THE ABSOLUTE NUMBER MOVES AND THE QUANTISATION TERM DOES NOT
+  64 windows:   per-window float mean nll sd 0.9758 nats = 0.503 BPB
+                se(mean) 0.1220 nats = 0.063 BPB
+  512 windows:  per-window float mean nll sd 0.8709 nats = 0.444 BPB
+                se(mean) 0.0385 nats = 0.0196 BPB  (re-sampling se for a 64-window draw)
+  The 64-window and 512-window slices differ by 0.029 BPB on the same model, which is inside
+  the 0.063 BPB re-sampling se of the smaller slice. The two window sets share only their
+  first window (strides 96784 and 12074).
+  The quantisation term is ~50x less position-sensitive: 0.00804 +- 0.00274 nats (64 w) and
+  0.00755 +- 0.00093 nats (512 w) per window, i.e. 0.00409 +- 0.00141 BPB and
+  0.00384 +- 0.00049 BPB. It is small and it is stable; the absolute score is neither.
+
+WHAT THIS DOES TO THE RECORDED ARITHMETIC
+  1. The 0.0552 BPB "served gap" is 0.0088 of quantisation measured on identical positions
+     and 0.0464 of pure position-set difference. On matched positions the gap is 0.004-0.009
+     BPB in two independent cells. The engine's own contribution is ~1e-6 BPB.
+  2. The 0.0330 "gap to target" is float 0.877 (512-window fused float) minus served 0.933
+     (64-window integer) minus 0.00883. It subtracts numbers from different position sets and
+     different protocols. Its three parts are not separable as written.
+  3. The part that IS separable, on identical positions, is: quantisation 0.0038-0.0088 BPB
+     (26 % of 0.0330 at the high cell, 12 % at the low cell), engine < 1e-5 BPB, everything
+     else window sampling. The serving path is faithful.
+  4. If the 0.877 float cell is taken at face value, the residual to 0.90 is ~0.024 BPB and it
+     is NOT protocol -- it is float model quality. Perfecting the quantiser buys at most 0.0088
+     and cannot reach 0.90 alone, which is the arithmetic the round set out to test.
+
+LIMITATIONS
+  1. The artifact measured is NOT the artifact that produced the recorded 0.877/0.933 pair.
+     The record's model (batch 32, lr 4e-4, warmup 500, chat-v0-p2 train only) is not in the
+     cloud-store index and is not on this laptop. What is available, and what was measured, is
+     the term-weight 19.9 M family: same architecture, 19,929,136 parameters, same 12,207
+     steps, no transport snap -- but batch 16, lr 6e-4, mixed-t2 training corpus, a different
+     export recipe (round-to-nearest) and a different GPTQ calibration set. Its absolute BPB
+     (1.77-1.80) is far worse than the recorded model's (0.92), so this is a protocol and
+     structure measurement, not a re-measurement of that model.
+  2. The 0.877 float cell's own validity is unresolved. Two matched float cells of one model
+     here differ by 0.029 BPB, and the one reported cell of the record's model (0.877) is 0.047
+     BPB below the 64-window float cell of the recorded pair's own table (0.92394). A 0.047 BPB
+     swing from window draw is larger than the 0.033 gap itself, so "0.877" is a position-set
+     number, not a model property. Settling it needs the recorded artifact, not more analysis.
+  3. Both absolute levels here are on a model that is 0.88 BPB worse than the record's, so the
+     quantisation costs measured (0.0038, 0.0041) are specific to this artifact; the record's
+     0.00883 is the comparable cell for its own artifact.
+  4. criterion 2 is NOT claimed and no served-model movement is claimed. STATUS/ROADMAP/#2028
+     are unchanged.
