@@ -1,0 +1,2465 @@
+diff --git a/crates/uor-r4-training/src/lib.rs b/crates/uor-r4-training/src/lib.rs
+index 2f3d80331..baa214809 100644
+--- a/crates/uor-r4-training/src/lib.rs
++++ b/crates/uor-r4-training/src/lib.rs
+@@ -44,9 +44,11 @@ pub mod read_localize;
+ pub mod reference_campaign;
+ pub mod reference_eval;
+ pub mod stack_aerm;
++pub mod stack_checkpoint;
+ pub mod stack_dialogue;
+ pub mod stack_export;
+ pub mod stack_memory;
++pub mod stack_store;
+ pub mod stack_tracking;
+ 
+ #[cfg(test)]
+diff --git a/crates/uor-r4-training/src/stack_checkpoint.rs b/crates/uor-r4-training/src/stack_checkpoint.rs
+new file mode 100644
+index 000000000..e5ad243c8
+--- /dev/null
++++ b/crates/uor-r4-training/src/stack_checkpoint.rs
+@@ -0,0 +1,1172 @@
++//! A sealed inference checkpoint of the geometric stack with its session
++//! store (I1).
++//!
++//! # Contents
++//!
++//! A checkpoint is one report root, claimed exclusively
++//! ([`report_output::claim`]) and sealed ([`report_output::seal`]):
++//!
++//! | File | Content |
++//! |---|---|
++//! | `attempt.json` | the claim sentinel |
++//! | `config.json`, `model.safetensors` | the [`StackModel`], written by its own `save` |
++//! | `identity.json` | the [`CheckpointRecord`]: schema, restore kind, provenance identities and digests |
++//! | `memory.json` | the session [`StackStore`] in `Memory`'s own serialization, when a store is given |
++//! | `manifest.json` | the seal: every file with its size and BLAKE3 digest |
++//!
++//! # Inference reload, not training resume
++//!
++//! This is an **inference** checkpoint. It restores the model's configuration
++//! and weights, the model's provenance identities and the session store. A
++//! reloaded session therefore computes the same logits and reads the same
++//! memory. The checkpoint holds none of the following:
++//! - optimizer moments (`StackAdamW`);
++//! - the learning-rate schedule position;
++//! - the data-sampler position;
++//! - RNG state.
++//!
++//! Training cannot resume from it. The training driver's own resumable
++//! checkpoints (`geometric-stack dialogue-train`, `checkpoint/`) remain the
++//! resume path.
++//!
++//! # What load checks
++//!
++//! 1. The seal (`report_output::verify`): every listed file is unchanged, and
++//!    there is no unlisted file.
++//! 2. The exact file set of a checkpoint. A failed save leaves `error.json`
++//!    and never loads.
++//! 3. The schema and restore kind of `identity.json`.
++//! 4. The declared identities: their formats, the tokenizer the protocol
++//!    names, and the recomputed protocol identity.
++//! 5. The recorded SHA-256 of `config.json`, `model.safetensors` and
++//!    `memory.json`.
++//! 6. The model: its configuration and tensor shapes (`StackModel::load`),
++//!    its parameter count, and the protocol's special ids against its
++//!    vocabulary.
++//! 7. The store:
++//!    - `Memory`'s validation and the token encoding;
++//!    - the recorded lineage, so a foreign lineage is rejected;
++//!    - capacity, commit, record count and history digest;
++//!    - every stored token against the vocabulary.
++//!
++//! The seal and the digests detect changed, missing and added files. They are
++//! an integrity check, not authentication: a writer who rewrites every file
++//! consistently and reseals produces a checkpoint that loads.
++//!
++//! Reload restores the float weights bit for bit. On the same build and
++//! backend, the reloaded model's logits are bit-identical; this is tested on
++//! the CPU. Equality across backends is not claimed.
++
++use std::collections::BTreeSet;
++use std::fmt;
++use std::fs;
++use std::io::Write;
++use std::path::Path;
++
++use candle_core::Device;
++use serde::{Deserialize, Serialize};
++use serde_json::Value;
++use uor_r4_core::native_geometric::learner::realtext_support::sha256_hex;
++use uor_r4_core::report_output;
++use uor_r4_tokenizer::dialogue::{DialogueError, DialogueProtocol, SCHEMA as DIALOGUE_SCHEMA};
++use uor_r4_tokenizer::ByteBpeTokenizer;
++
++use crate::geometric_stack::{StackConfig, StackModel};
++use crate::stack_store::{StackStore, StackStoreError};
++use crate::{sha256_file, TrainingError};
++
++/// The schema of `identity.json`.
++pub const CHECKPOINT_SCHEMA: &str = "uor-r4.stack-checkpoint/1";
++/// The only restore kind: inference reload, never training resume.
++pub const RESTORE_INFERENCE: &str = "inference";
++/// The files `StackModel::save` writes.
++pub const CONFIG_FILE: &str = "config.json";
++pub const MODEL_FILE: &str = "model.safetensors";
++pub const IDENTITY_FILE: &str = "identity.json";
++pub const MEMORY_FILE: &str = "memory.json";
++/// Written beside a failed save before its root is sealed. A root holding it
++/// never loads.
++pub const ERROR_FILE: &str = "error.json";
++
++const RESTORE_SCOPE: &str = "Inference reload of the geometric stack: configuration, weights, \
++provenance identities and the optional session store. No optimizer moments, learning-rate \
++schedule position, data-sampler position or RNG state: training cannot resume from this \
++checkpoint.";
++
++const CHECKPOINT_FILES: [&str; 5] = [
++    report_output::ATTEMPT_FILE,
++    CONFIG_FILE,
++    MODEL_FILE,
++    IDENTITY_FILE,
++    MEMORY_FILE,
++];
++
++/// The content identity of one training input.
++#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
++#[serde(deny_unknown_fields)]
++pub struct DataIdentity {
++    /// A caller label, unique within a checkpoint, such as `train_tokens`.
++    pub label: String,
++    pub bytes: u64,
++    /// Lowercase hex SHA-256 of the content.
++    pub sha256: String,
++}
++
++impl DataIdentity {
++    /// The identity of a file's current contents.
++    pub fn of_file(label: impl Into<String>, path: &Path) -> Result<Self, StackCheckpointError> {
++        Ok(Self {
++            label: label.into(),
++            bytes: fs::metadata(path)?.len(),
++            sha256: sha256_file(path)?,
++        })
++    }
++}
++
++/// The provenance a caller declares for a checkpoint.
++#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
++#[serde(deny_unknown_fields)]
++pub struct CheckpointIdentity {
++    /// Lowercase hex SHA-256 of the `tokenizer.json` bytes.
++    pub tokenizer_sha256: String,
++    /// The tokenizer's content address, `ByteBpeTokenizer::address`:
++    /// `blake3:` and 64 lowercase hex digits.
++    pub tokenizer_cid: String,
++    /// The dialogue protocol the model was trained under. Its identity is
++    /// recorded, and it is recomputed on load.
++    pub protocol: DialogueProtocol,
++    /// The training data.
++    pub data: Vec<DataIdentity>,
++    /// SHA-256 of the sealed training report's `manifest.json`
++    /// ([`sealed_manifest_sha256`]).
++    pub training_manifest_sha256: String,
++}
++
++impl CheckpointIdentity {
++    /// The identity of a model trained with `tokenizer_json` under the
++    /// literal-role dialogue protocol. The SHA-256, the CID and the protocol
++    /// all come from the same bytes.
++    pub fn from_tokenizer(
++        tokenizer_json: &[u8],
++        data: Vec<DataIdentity>,
++        training_manifest_sha256: String,
++    ) -> Result<Self, StackCheckpointError> {
++        let tokenizer = ByteBpeTokenizer::from_tokenizer_json_bytes(tokenizer_json)
++            .ok_or_else(|| identity_error("unreadable tokenizer.json"))?;
++        let identity = Self {
++            tokenizer_sha256: sha256_hex(tokenizer_json),
++            tokenizer_cid: tokenizer.address(),
++            protocol: DialogueProtocol::literal_roles_v1(&tokenizer)?,
++            data,
++            training_manifest_sha256,
++        };
++        identity.validate()?;
++        Ok(identity)
++    }
++
++    /// Check that `tokenizer_json` is the declared tokenizer and that the
++    /// protocol binds to it.
++    pub fn check_tokenizer(&self, tokenizer_json: &[u8]) -> Result<(), StackCheckpointError> {
++        let actual = sha256_hex(tokenizer_json);
++        if actual != self.tokenizer_sha256 {
++            return Err(identity_error(format!(
++                "tokenizer.json has SHA-256 {actual}; the checkpoint declares {}",
++                self.tokenizer_sha256
++            )));
++        }
++        let tokenizer = ByteBpeTokenizer::from_tokenizer_json_bytes(tokenizer_json)
++            .ok_or_else(|| identity_error("unreadable tokenizer.json"))?;
++        if tokenizer.address() != self.tokenizer_cid {
++            return Err(identity_error(
++                "the tokenizer's content address differs from the declared CID",
++            ));
++        }
++        self.protocol.bind(&tokenizer)?;
++        Ok(())
++    }
++
++    /// Check that each declared identity is well formed and that the
++    /// protocol names the declared tokenizer.
++    pub fn validate(&self) -> Result<(), StackCheckpointError> {
++        if !is_sha256_hex(&self.tokenizer_sha256) {
++            return Err(identity_error(
++                "tokenizer_sha256 must be 64 lowercase hex digits",
++            ));
++        }
++        if !self
++            .tokenizer_cid
++            .strip_prefix("blake3:")
++            .is_some_and(is_sha256_hex)
++        {
++            return Err(identity_error(
++                "tokenizer_cid must be blake3: and 64 lowercase hex digits",
++            ));
++        }
++        if self.protocol.schema != DIALOGUE_SCHEMA {
++            return Err(identity_error(format!(
++                "unsupported dialogue protocol {}",
++                self.protocol.schema
++            )));
++        }
++        if self.protocol.tokenizer_cid != self.tokenizer_cid {
++            return Err(identity_error(
++                "the dialogue protocol names another tokenizer",
++            ));
++        }
++        if self.data.is_empty() {
++            return Err(identity_error("no training data identity is declared"));
++        }
++        let mut labels = BTreeSet::new();
++        for data in &self.data {
++            if data.label.is_empty() || !labels.insert(data.label.as_str()) {
++                return Err(identity_error(format!(
++                    "data label {:?} is empty or repeated",
++                    data.label
++                )));
++            }
++            if !is_sha256_hex(&data.sha256) {
++                return Err(identity_error(format!(
++                    "data {} needs a 64-digit lowercase hex SHA-256",
++                    data.label
++                )));
++            }
++        }
++        if !is_sha256_hex(&self.training_manifest_sha256) {
++            return Err(identity_error(
++                "training_manifest_sha256 must be 64 lowercase hex digits",
++            ));
++        }
++        Ok(())
++    }
++}
++
++/// The identity of a checkpoint's session store (`memory.json`).
++#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
++#[serde(deny_unknown_fields)]
++pub struct MemoryRecord {
++    pub sha256: String,
++    pub bytes: u64,
++    /// The store's lineage. A file of any other lineage is rejected.
++    pub lineage: u64,
++    pub capacity: usize,
++    pub commit: u64,
++    pub records: usize,
++    /// `Memory::history_sha256` at the latest commit.
++    pub history_sha256: String,
++}
++
++/// `identity.json`: what a checkpoint is and what it binds.
++#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
++#[serde(deny_unknown_fields)]
++pub struct CheckpointRecord {
++    /// Always [`CHECKPOINT_SCHEMA`].
++    pub schema: String,
++    /// Always [`RESTORE_INFERENCE`].
++    pub restore: String,
++    /// A plain statement of what a load restores.
++    pub scope: String,
++    pub identity: CheckpointIdentity,
++    /// `DialogueProtocol::identity` of `identity.protocol`.
++    pub protocol_identity: String,
++    /// SHA-256 of `config.json`.
++    pub config_sha256: String,
++    /// SHA-256 of `model.safetensors`.
++    pub model_sha256: String,
++    pub parameters: usize,
++    pub memory: Option<MemoryRecord>,
++}
++
++/// A loaded, verified checkpoint.
++pub struct StackCheckpoint {
++    pub model: StackModel,
++    /// The verified `identity.json`.
++    pub record: CheckpointRecord,
++    /// The session store, when the checkpoint holds one.
++    pub memory: Option<StackStore>,
++}
++
++impl StackCheckpoint {
++    /// The provenance the checkpoint declares.
++    pub fn identity(&self) -> &CheckpointIdentity {
++        &self.record.identity
++    }
++}
++
++impl fmt::Debug for StackCheckpoint {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        f.debug_struct("StackCheckpoint")
++            .field("config", &self.model.config)
++            .field("record", &self.record)
++            .field("memory", &self.memory)
++            .finish()
++    }
++}
++
++/// Classified failures at the checkpoint boundary.
++#[derive(Debug)]
++pub enum StackCheckpointError {
++    /// The root could not be claimed exclusively. It may exist; choose a new
++    /// path.
++    Claim(std::io::Error),
++    /// `report_output::verify` refused the root: a changed, missing or
++    /// unlisted file.
++    Seal(std::io::Error),
++    Io(std::io::Error),
++    Json(serde_json::Error),
++    /// Saving or loading the model, or hashing a file, failed.
++    Training(TrainingError),
++    Store(StackStoreError),
++    Protocol(DialogueError),
++    /// `identity.json` names a schema other than [`CHECKPOINT_SCHEMA`].
++    Schema {
++        found: String,
++    },
++    /// A declared identity is malformed or inconsistent with the model.
++    Identity(String),
++    /// The sealed files are not a checkpoint's file set.
++    FileSet(String),
++    /// A file differs from its recorded SHA-256.
++    Digest {
++        file: &'static str,
++        recorded: String,
++        actual: String,
++    },
++    /// The store differs from its recorded identity.
++    Memory(String),
++    /// The model is in served (QAT) mode. Its forward reads the export's
++    /// values, which an inference checkpoint does not store, so a reload
++    /// would silently run the float weights. Save with served mode off, or
++    /// export the model instead.
++    ServedMode,
++}
++
++impl fmt::Display for StackCheckpointError {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        match self {
++            Self::Claim(error) => write!(f, "stack checkpoint root not claimed: {error}"),
++            Self::Seal(error) => write!(f, "stack checkpoint seal: {error}"),
++            Self::Io(error) => write!(f, "stack checkpoint I/O: {error}"),
++            Self::Json(error) => write!(f, "stack checkpoint JSON: {error}"),
++            Self::Training(error) => write!(f, "stack checkpoint model: {error}"),
++            Self::Store(error) => write!(f, "stack checkpoint memory: {error}"),
++            Self::Protocol(error) => write!(f, "stack checkpoint protocol: {error}"),
++            Self::Schema { found } => write!(
++                f,
++                "stack checkpoint schema {found:?} is not {CHECKPOINT_SCHEMA:?}"
++            ),
++            Self::Identity(message) => write!(f, "stack checkpoint identity: {message}"),
++            Self::FileSet(message) => write!(f, "stack checkpoint file set: {message}"),
++            Self::Digest {
++                file,
++                recorded,
++                actual,
++            } => write!(
++                f,
++                "stack checkpoint {file} has SHA-256 {actual}; {recorded} is recorded"
++            ),
++            Self::Memory(message) => write!(f, "stack checkpoint memory record: {message}"),
++            Self::ServedMode => write!(
++                f,
++                "stack checkpoint: the model is in served (QAT) mode; its forward reads exported \
++                 values that an inference checkpoint does not store"
++            ),
++        }
++    }
++}
++
++impl std::error::Error for StackCheckpointError {
++    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
++        match self {
++            Self::Claim(error) | Self::Seal(error) | Self::Io(error) => Some(error),
++            Self::Json(error) => Some(error),
++            Self::Training(error) => Some(error),
++            Self::Store(error) => Some(error),
++            Self::Protocol(error) => Some(error),
++            _ => None,
++        }
++    }
++}
++
++macro_rules! convert {
++    ($source:ty, $variant:ident) => {
++        impl From<$source> for StackCheckpointError {
++            fn from(error: $source) -> Self {
++                Self::$variant(error)
++            }
++        }
++    };
++}
++convert!(std::io::Error, Io);
++convert!(serde_json::Error, Json);
++convert!(TrainingError, Training);
++convert!(StackStoreError, Store);
++convert!(DialogueError, Protocol);
++
++/// The SHA-256 of a sealed report's `manifest.json`, after the report's
++/// complete file set verifies. This is the value
++/// [`CheckpointIdentity::training_manifest_sha256`] binds.
++pub fn sealed_manifest_sha256(report_root: &Path) -> Result<String, StackCheckpointError> {
++    report_output::verify(report_root).map_err(StackCheckpointError::Seal)?;
++    Ok(sha256_file(
++        &report_root.join(report_output::MANIFEST_FILE),
++    )?)
++}
++
++/// Write a sealed inference checkpoint of `model` and, when given, the
++/// session store `memory` to the new root `root`.
++///
++/// Every argument is checked, and the store serialized, before the root is
++/// claimed. An existing root is refused and left unchanged. If a write fails
++/// after the claim, the attempt is sealed beside `error.json`. It is kept as
++/// evidence and never loads, and a retry needs a new root.
++pub fn save_checkpoint(
++    root: &Path,
++    model: &StackModel,
++    identity: &CheckpointIdentity,
++    memory: Option<&StackStore>,
++) -> Result<CheckpointRecord, StackCheckpointError> {
++    if model.served_codec().is_some() {
++        return Err(StackCheckpointError::ServedMode);
++    }
++    identity.validate()?;
++    check_against_model(identity, &model.config)?;
++    let protocol_identity = identity.protocol.identity()?;
++    let memory = memory
++        .map(|store| prepare_memory(store, model.config.vocab_size))
++        .transpose()?;
++    report_output::claim(root).map_err(StackCheckpointError::Claim)?;
++    match write_checkpoint(root, model, identity, protocol_identity, memory) {
++        Ok(record) => {
++            report_output::seal(root)?;
++            report_output::verify(root).map_err(StackCheckpointError::Seal)?;
++            Ok(record)
++        }
++        Err(error) => {
++            // The primary error is returned. A failure to record it cannot
++            // make the root loadable, because the file set is incomplete.
++            let note = serde_json::json!({ "error": error.to_string() });
++            if let Ok(bytes) = serde_json::to_vec_pretty(&note) {
++                let _ = write_new(&root.join(ERROR_FILE), &bytes);
++            }
++            let _ = report_output::seal(root);
++            Err(error)
++        }
++    }
++}
++
++/// Verify and load the sealed checkpoint at `root` onto `device`. The
++/// module docs list the checks.
++pub fn load_checkpoint(
++    root: &Path,
++    device: &Device,
++) -> Result<StackCheckpoint, StackCheckpointError> {
++    report_output::verify(root).map_err(StackCheckpointError::Seal)?;
++    let listed = sealed_files(root)?;
++    for name in [
++        report_output::ATTEMPT_FILE,
++        CONFIG_FILE,
++        MODEL_FILE,
++        IDENTITY_FILE,
++    ] {
++        if !listed.contains(name) {
++            return Err(StackCheckpointError::FileSet(format!("{name} is missing")));
++        }
++    }
++    if let Some(name) = listed
++        .iter()
++        .find(|name| !CHECKPOINT_FILES.contains(&name.as_str()))
++    {
++        return Err(StackCheckpointError::FileSet(format!(
++            "{name} is not a checkpoint file"
++        )));
++    }
++    let record = read_record(&root.join(IDENTITY_FILE))?;
++    if record.restore != RESTORE_INFERENCE {
++        return Err(identity_error(format!(
++            "restore kind {:?} is not {RESTORE_INFERENCE:?}",
++            record.restore
++        )));
++    }
++    if listed.contains(MEMORY_FILE) != record.memory.is_some() {
++        return Err(StackCheckpointError::FileSet(
++            "memory.json and the recorded memory identity disagree".into(),
++        ));
++    }
++    record.identity.validate()?;
++    if record.identity.protocol.identity()? != record.protocol_identity {
++        return Err(identity_error(
++            "the recorded protocol identity differs from the protocol's",
++        ));
++    }
++    check_digest(root, CONFIG_FILE, &record.config_sha256)?;
++    check_digest(root, MODEL_FILE, &record.model_sha256)?;
++    let model = StackModel::load(root, device)?;
++    check_against_model(&record.identity, &model.config)?;
++    if model.parameter_count() != record.parameters {
++        return Err(identity_error(format!(
++            "the model has {} parameters; {} are recorded",
++            model.parameter_count(),
++            record.parameters
++        )));
++    }
++    let memory = record
++        .memory
++        .as_ref()
++        .map(|entry| load_memory(root, entry, model.config.vocab_size))
++        .transpose()?;
++    Ok(StackCheckpoint {
++        model,
++        record,
++        memory,
++    })
++}
++
++fn identity_error(message: impl Into<String>) -> StackCheckpointError {
++    StackCheckpointError::Identity(message.into())
++}
++
++fn is_sha256_hex(value: &str) -> bool {
++    value.len() == 64
++        && value
++            .bytes()
++            .all(|b| matches!(b, b'0'..=b'9' | b'a'..=b'f'))
++}
++
++/// The protocol's special ids must be tokens of the model.
++fn check_against_model(
++    identity: &CheckpointIdentity,
++    config: &StackConfig,
++) -> Result<(), StackCheckpointError> {
++    let protocol = &identity.protocol;
++    for (name, id) in [
++        ("BOS", protocol.bos_id),
++        ("EOS", protocol.eos_id),
++        ("UNK", protocol.unk_id),
++    ] {
++        if id as usize >= config.vocab_size {
++            return Err(identity_error(format!(
++                "the protocol's {name} id {id} is outside the model's vocabulary of {}",
++                config.vocab_size
++            )));
++        }
++    }
++    Ok(())
++}
++
++fn prepare_memory(
++    store: &StackStore,
++    vocab_size: usize,
++) -> Result<(Vec<u8>, MemoryRecord), StackCheckpointError> {
++    store.check_vocabulary(vocab_size)?;
++    let bytes = store.to_bytes()?;
++    let record = MemoryRecord {
++        sha256: sha256_hex(&bytes),
++        bytes: bytes.len() as u64,
++        lineage: store.lineage(),
++        capacity: store.capacity(),
++        commit: store.commit(),
++        records: store.records(),
++        history_sha256: store.history_sha256()?,
++    };
++    Ok((bytes, record))
++}
++
++fn write_checkpoint(
++    root: &Path,
++    model: &StackModel,
++    identity: &CheckpointIdentity,
++    protocol_identity: String,
++    memory: Option<(Vec<u8>, MemoryRecord)>,
++) -> Result<CheckpointRecord, StackCheckpointError> {
++    model.save(root)?;
++    let memory = match memory {
++        Some((bytes, record)) => {
++            write_new(&root.join(MEMORY_FILE), &bytes)?;
++            Some(record)
++        }
++        None => None,
++    };
++    let record = CheckpointRecord {
++        schema: CHECKPOINT_SCHEMA.to_owned(),
++        restore: RESTORE_INFERENCE.to_owned(),
++        scope: RESTORE_SCOPE.to_owned(),
++        identity: identity.clone(),
++        protocol_identity,
++        config_sha256: sha256_file(&root.join(CONFIG_FILE))?,
++        model_sha256: sha256_file(&root.join(MODEL_FILE))?,
++        parameters: model.parameter_count(),
++        memory,
++    };
++    write_new(
++        &root.join(IDENTITY_FILE),
++        &serde_json::to_vec_pretty(&record)?,
++    )?;
++    Ok(record)
++}
++
++/// Write a file that must not exist yet.
++fn write_new(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
++    fs::File::create_new(path)?.write_all(bytes)
++}
++
++/// The files the seal lists, from `manifest.json`.
++fn sealed_files(root: &Path) -> Result<BTreeSet<String>, StackCheckpointError> {
++    let manifest: Value =
++        serde_json::from_slice(&fs::read(root.join(report_output::MANIFEST_FILE))?)?;
++    let files = manifest["files"]
++        .as_array()
++        .ok_or_else(|| StackCheckpointError::FileSet("the manifest lists no files".into()))?;
++    files
++        .iter()
++        .map(|entry| {
++            entry["path"]
++                .as_str()
++                .map(str::to_owned)
++                .ok_or_else(|| StackCheckpointError::FileSet("a manifest entry has no path".into()))
++        })
++        .collect()
++}
++
++/// Parse `identity.json`, checking its schema before its fields.
++fn read_record(path: &Path) -> Result<CheckpointRecord, StackCheckpointError> {
++    let value: Value = serde_json::from_slice(&fs::read(path)?)?;
++    match value.get("schema").and_then(Value::as_str) {
++        Some(CHECKPOINT_SCHEMA) => Ok(serde_json::from_value(value)?),
++        found => Err(StackCheckpointError::Schema {
++            found: found.unwrap_or("none").to_owned(),
++        }),
++    }
++}
++
++fn check_digest(
++    root: &Path,
++    file: &'static str,
++    recorded: &str,
++) -> Result<(), StackCheckpointError> {
++    let actual = sha256_file(&root.join(file))?;
++    if actual == recorded {
++        Ok(())
++    } else {
++        Err(StackCheckpointError::Digest {
++            file,
++            recorded: recorded.to_owned(),
++            actual,
++        })
++    }
++}
++
++fn load_memory(
++    root: &Path,
++    entry: &MemoryRecord,
++    vocab_size: usize,
++) -> Result<StackStore, StackCheckpointError> {
++    let bytes = fs::read(root.join(MEMORY_FILE))?;
++    let actual = sha256_hex(&bytes);
++    if actual != entry.sha256 {
++        return Err(StackCheckpointError::Digest {
++            file: MEMORY_FILE,
++            recorded: entry.sha256.clone(),
++            actual,
++        });
++    }
++    let store = StackStore::from_bytes(&bytes, entry.lineage)?;
++    let found = (
++        bytes.len() as u64,
++        store.capacity(),
++        store.commit(),
++        store.records(),
++        store.history_sha256()?,
++    );
++    let recorded = (
++        entry.bytes,
++        entry.capacity,
++        entry.commit,
++        entry.records,
++        entry.history_sha256.clone(),
++    );
++    if found != recorded {
++        return Err(StackCheckpointError::Memory(format!(
++            "the store has (bytes, capacity, commit, records, history) {found:?}; {recorded:?} is recorded"
++        )));
++    }
++    store.check_vocabulary(vocab_size)?;
++    Ok(store)
++}
++
++#[cfg(test)]
++mod tests {
++    use std::path::PathBuf;
++
++    use serde_json::json;
++
++    use super::*;
++    use crate::geometric_stack::{ReadScore, StackArch};
++    use crate::stack_store::{test_store, HistoryView, Update, VIEWS};
++
++    const VOCAB: usize = 64;
++
++    fn scratch(name: &str) -> PathBuf {
++        let nonce = std::time::SystemTime::now()
++            .duration_since(std::time::UNIX_EPOCH)
++            .map(|d| d.as_nanos())
++            .unwrap_or(0);
++        std::env::temp_dir().join(format!(
++            "uor-r4-stack-checkpoint-{}-{nonce}-{name}",
++            std::process::id()
++        ))
++    }
++
++    /// A `vocab`-token tokenizer with the literal-role specials at ids 0, 1
++    /// and 2.
++    fn tokenizer_json(vocab: usize) -> Vec<u8> {
++        let mut entries = serde_json::Map::new();
++        for id in 0..vocab as u32 {
++            let token = match id {
++                0 => "<|bos|>".to_owned(),
++                1 => "<|eos|>".to_owned(),
++                2 => "<|unk|>".to_owned(),
++                _ => format!("v{id}"),
++            };
++            entries.insert(token, json!(id));
++        }
++        json!({
++            "model": {"type": "BPE", "vocab": entries, "merges": []},
++            "pre_tokenizer": {"type": "ByteLevel", "add_prefix_space": false},
++            "added_tokens": [
++                {"id": 0, "content": "<|bos|>"},
++                {"id": 1, "content": "<|eos|>"},
++                {"id": 2, "content": "<|unk|>"}
++            ]
++        })
++        .to_string()
++        .into_bytes()
++    }
++
++    /// A fresh base directory and an identity built from real bytes: a
++    /// tokenizer, a data file and a sealed stand-in training report.
++    fn fixture(name: &str) -> (PathBuf, CheckpointIdentity) {
++        let base = scratch(name);
++        fs::create_dir_all(&base).expect("base");
++        let data = base.join("train.tokens");
++        fs::write(&data, [1u8, 2, 3, 4]).expect("data");
++        let report = base.join("training-report");
++        report_output::claim(&report).expect("claim training report");
++        fs::write(report.join("report.json"), b"{\"steps\":1}").expect("report");
++        report_output::seal(&report).expect("seal training report");
++        let identity = CheckpointIdentity::from_tokenizer(
++            &tokenizer_json(VOCAB),
++            vec![DataIdentity::of_file("train_tokens", &data).expect("data identity")],
++            sealed_manifest_sha256(&report).expect("manifest digest"),
++        )
++        .expect("identity");
++        (base, identity)
++    }
++
++    /// The main-line layout, `rrarra` with quaternion transport, at test
++    /// width.
++    fn tiny_model() -> StackModel {
++        let config = StackConfig {
++            arch: StackArch::Geometric,
++            vocab_size: VOCAB,
++            width: 16,
++            heads: 2,
++            mlp_hidden: 24,
++            context: 12,
++            pattern: "rrarra".into(),
++            read: ReadScore::Lorentz,
++            rotation: true,
++            seed: 5,
++            memory: None,
++        };
++        StackModel::new(config, &Device::Cpu).expect("tiny stack")
++    }
++
++    fn logit_bits(model: &StackModel) -> Vec<u32> {
++        let ids: Vec<u32> = (0..24u32).map(|i| (i * 7 + 3) % VOCAB as u32).collect();
++        model
++            .forward(&ids, 2, 12)
++            .expect("forward")
++            .flatten_all()
++            .expect("flatten")
++            .to_vec1::<f32>()
++            .expect("logits")
++            .into_iter()
++            .map(f32::to_bits)
++            .collect()
++    }
++
++    /// A saved checkpoint of the tiny model and the test store.
++    fn saved(
++        base: &Path,
++        name: &str,
++        identity: &CheckpointIdentity,
++    ) -> (PathBuf, StackModel, StackStore) {
++        let (model, store) = (tiny_model(), test_store(41));
++        let root = base.join(name);
++        save_checkpoint(&root, &model, identity, Some(&store)).expect("save");
++        (root, model, store)
++    }
++
++    /// Copy `source`'s checkpoint files into the new sealed root `target`
++    /// after `edit`. The copy's seal verifies, so only the checkpoint's own
++    /// checks can reject it.
++    fn reseal(source: &Path, target: &Path, edit: impl FnOnce(&Path)) {
++        report_output::claim(target).expect("claim");
++        for name in [CONFIG_FILE, MODEL_FILE, IDENTITY_FILE, MEMORY_FILE] {
++            if source.join(name).exists() {
++                fs::copy(source.join(name), target.join(name)).expect("copy");
++            }
++        }
++        edit(target);
++        report_output::seal(target).expect("seal");
++    }
++
++    fn edit_record(root: &Path, edit: impl FnOnce(&mut Value)) {
++        let path = root.join(IDENTITY_FILE);
++        let mut value: Value =
++            serde_json::from_slice(&fs::read(&path).expect("read")).expect("record");
++        edit(&mut value);
++        fs::write(&path, serde_json::to_vec_pretty(&value).expect("record")).expect("write");
++    }
++
++    fn load_error(root: &Path) -> StackCheckpointError {
++        match load_checkpoint(root, &Device::Cpu) {
++            Ok(_) => panic!("{} loaded", root.display()),
++            Err(error) => error,
++        }
++    }
++
++    #[test]
++    fn save_and_load_reproduce_logits_and_memory_reads_bit_for_bit() {
++        let (base, identity) = fixture("round-trip");
++        let (root, model, store) = saved(&base, "checkpoint", &identity);
++        let loaded = load_checkpoint(&root, &Device::Cpu).expect("load");
++        assert_eq!(loaded.identity(), &identity);
++        assert_eq!(loaded.record.schema, CHECKPOINT_SCHEMA);
++        assert_eq!(loaded.record.restore, RESTORE_INFERENCE);
++        assert_eq!(
++            loaded.record.model_sha256,
++            sha256_file(&root.join(MODEL_FILE)).expect("digest")
++        );
++        assert_eq!(loaded.model.config, model.config);
++        assert_eq!(logit_bits(&loaded.model), logit_bits(&model));
++        let memory = loaded.memory.as_ref().expect("memory");
++        assert_eq!(memory, &store);
++        for address in store.addresses().expect("addresses") {
++            for view in VIEWS {
++                let (scope, entity, relation) = (&address.scope, &address.entity, address.relation);
++                assert_eq!(
++                    memory.read(scope, entity, relation, view),
++                    store.read(scope, entity, relation, view),
++                    "{address:?} {view:?}"
++                );
++            }
++        }
++        // The session continues identically after reload.
++        let (mut before, mut after) = (store.clone(), memory.clone());
++        for (value, update) in [(&[30u32][..], Update::Assert), (&[31], Update::Correct)] {
++            assert_eq!(
++                before.write(b"alice", &[3, 4], 1, value, update),
++                after.write(b"alice", &[3, 4], 1, value, update)
++            );
++        }
++        for view in VIEWS {
++            assert_eq!(
++                after.read(b"alice", &[3, 4], 1, view),
++                before.read(b"alice", &[3, 4], 1, view)
++            );
++        }
++        assert_eq!(
++            before.to_bytes().expect("bytes"),
++            after.to_bytes().expect("bytes")
++        );
++        // The identity binds the tokenizer it was built from, and no other.
++        identity
++            .check_tokenizer(&tokenizer_json(VOCAB))
++            .expect("the declared tokenizer");
++        assert!(matches!(
++            identity.check_tokenizer(&tokenizer_json(VOCAB + 1)),
++            Err(StackCheckpointError::Identity(_))
++        ));
++        // Without a store, a checkpoint has no memory file and loads without one.
++        let bare = base.join("bare");
++        save_checkpoint(&bare, &model, &identity, None).expect("save");
++        assert!(!bare.join(MEMORY_FILE).exists());
++        let loaded = load_checkpoint(&bare, &Device::Cpu).expect("load");
++        assert!(loaded.memory.is_none() && loaded.record.memory.is_none());
++        assert_eq!(logit_bits(&loaded.model), logit_bits(&model));
++        fs::remove_dir_all(&base).expect("clean");
++    }
++
++    #[test]
++    fn a_tampered_file_is_rejected() {
++        let (base, identity) = fixture("tampered");
++        let (clean, _, store) = saved(&base, "clean", &identity);
++        let (root, _, _) = saved(&base, "checkpoint", &identity);
++        // A change under the seal.
++        let mut weights = fs::read(root.join(MODEL_FILE)).expect("read");
++        let last = weights.len() - 1;
++        weights[last] ^= 1;
++        fs::write(root.join(MODEL_FILE), &weights).expect("write");
++        assert!(matches!(load_error(&root), StackCheckpointError::Seal(_)));
++        // The same change, resealed, fails the recorded digest.
++        let resealed = base.join("resealed-model");
++        reseal(&root, &resealed, |_| {});
++        assert!(matches!(
++            load_error(&resealed),
++            StackCheckpointError::Digest {
++                file: MODEL_FILE,
++                ..
++            }
++        ));
++        // Another valid store of the same lineage, resealed, fails the memory
++        // digest.
++        let mut other = store.clone();
++        other
++            .write(b"alice", &[5], 1, &[20], Update::Correct)
++            .expect("write");
++        let other = other.to_bytes().expect("bytes");
++        let swapped = base.join("resealed-memory");
++        reseal(&clean, &swapped, |root| {
++            fs::write(root.join(MEMORY_FILE), &other).expect("write")
++        });
++        assert!(matches!(
++            load_error(&swapped),
++            StackCheckpointError::Digest {
++                file: MEMORY_FILE,
++                ..
++            }
++        ));
++        // An edited recorded identity, resealed, fails its recomputation.
++        let edited = base.join("resealed-identity");
++        reseal(&clean, &edited, |root| {
++            edit_record(root, |record| {
++                record["protocol_identity"] = json!(format!("blake3:{}", "0".repeat(64)))
++            })
++        });
++        assert!(matches!(
++            load_error(&edited),
++            StackCheckpointError::Identity(_)
++        ));
++        load_checkpoint(&clean, &Device::Cpu).expect("the clean checkpoint loads");
++        fs::remove_dir_all(&base).expect("clean");
++    }
++
++    #[test]
++    fn a_missing_file_is_rejected() {
++        let (base, identity) = fixture("missing");
++        let (root, _, _) = saved(&base, "checkpoint", &identity);
++        // Files absent from a sealed set: the file-set check.
++        for (name, missing) in [
++            ("no-memory", MEMORY_FILE),
++            ("no-model", MODEL_FILE),
++            ("no-identity", IDENTITY_FILE),
++            ("no-config", CONFIG_FILE),
++        ] {
++            let target = base.join(name);
++            reseal(&root, &target, |root| {
++                fs::remove_file(root.join(missing)).expect("remove")
++            });
++            assert!(
++                matches!(load_error(&target), StackCheckpointError::FileSet(_)),
++                "{missing}"
++            );
++        }
++        // An unexpected file beside a checkpoint is refused too.
++        let target = base.join("extra");
++        reseal(&root, &target, |root| {
++            fs::write(root.join(ERROR_FILE), b"{}").expect("write")
++        });
++        assert!(matches!(
++            load_error(&target),
++            StackCheckpointError::FileSet(_)
++        ));
++        // A sealed file deleted after sealing: the seal check.
++        fs::remove_file(root.join(MEMORY_FILE)).expect("remove");
++        match load_error(&root) {
++            StackCheckpointError::Seal(error) => {
++                assert_eq!(error.kind(), std::io::ErrorKind::NotFound)
++            }
++            other => panic!("{other}"),
++        }
++        fs::remove_dir_all(&base).expect("clean");
++    }
++
++    #[test]
++    fn a_wrong_schema_is_rejected() {
++        let (base, identity) = fixture("schema");
++        let (root, _, _) = saved(&base, "checkpoint", &identity);
++        let target = base.join("older");
++        reseal(&root, &target, |root| {
++            edit_record(root, |record| {
++                record["schema"] = json!("uor-r4.stack-checkpoint/0")
++            })
++        });
++        match load_error(&target) {
++            StackCheckpointError::Schema { found } => {
++                assert_eq!(found, "uor-r4.stack-checkpoint/0")
++            }
++            other => panic!("{other}"),
++        }
++        let target = base.join("unnamed");
++        reseal(&root, &target, |root| {
++            edit_record(root, |record| {
++                record.as_object_mut().expect("object").remove("schema");
++            })
++        });
++        assert!(matches!(
++            load_error(&target),
++            StackCheckpointError::Schema { found } if found == "none"
++        ));
++        // Schema 1 is an inference checkpoint and has no optimizer state.
++        let target = base.join("resume");
++        reseal(&root, &target, |root| {
++            edit_record(root, |record| record["restore"] = json!("training"))
++        });
++        assert!(matches!(
++            load_error(&target),
++            StackCheckpointError::Identity(_)
++        ));
++        let target = base.join("optimizer");
++        reseal(&root, &target, |root| {
++            edit_record(root, |record| record["optimizer"] = json!("adamw"))
++        });
++        assert!(matches!(load_error(&target), StackCheckpointError::Json(_)));
++        fs::remove_dir_all(&base).expect("clean");
++    }
++
++    #[test]
++    fn a_foreign_lineage_memory_is_rejected() {
++        let (base, identity) = fixture("lineage");
++        let (root, _, store) = saved(&base, "checkpoint", &identity);
++        // The same records under another lineage, with the recorded digest
++        // and size updated, so that only the lineage differs.
++        let mut memory = store.memory().clone();
++        memory.lineage = 42;
++        let foreign = memory.to_bytes().expect("bytes");
++        let target = base.join("foreign-file");
++        reseal(&root, &target, |root| {
++            fs::write(root.join(MEMORY_FILE), &foreign).expect("write");
++            edit_record(root, |record| {
++                record["memory"]["sha256"] = json!(sha256_hex(&foreign));
++                record["memory"]["bytes"] = json!(foreign.len());
++            });
++        });
++        assert!(matches!(
++            load_error(&target),
++            StackCheckpointError::Store(StackStoreError::ForeignLineage {
++                expected: 41,
++                found: 42
++            })
++        ));
++        // A record that declares another session's lineage for this file.
++        let target = base.join("foreign-record");
++        reseal(&root, &target, |root| {
++            edit_record(root, |record| record["memory"]["lineage"] = json!(40))
++        });
++        assert!(matches!(
++            load_error(&target),
++            StackCheckpointError::Store(StackStoreError::ForeignLineage {
++                expected: 40,
++                found: 41
++            })
++        ));
++        fs::remove_dir_all(&base).expect("clean");
++    }
++
++    #[test]
++    fn a_model_in_served_mode_is_refused_before_claiming() {
++        let (base, identity) = fixture("served");
++        let config = StackConfig {
++            arch: StackArch::Geometric,
++            vocab_size: VOCAB,
++            width: 32,
++            heads: 2,
++            mlp_hidden: 24,
++            context: 12,
++            pattern: "rar".into(),
++            read: ReadScore::Lorentz,
++            rotation: true,
++            seed: 7,
++            memory: None,
++        };
++        let mut model = StackModel::new(config, &Device::Cpu).expect("stack");
++        model
++            .set_served_representation(Some(std::sync::Arc::new(
++                crate::geometric_stack::D11Interim,
++            )))
++            .expect("served mode");
++        let root = base.join("served-checkpoint");
++        match save_checkpoint(&root, &model, &identity, None) {
++            Err(StackCheckpointError::ServedMode) => {}
++            other => panic!("{other:?}"),
++        }
++        assert!(!root.exists(), "no root is claimed for a served-mode model");
++    }
++
++    #[test]
++    fn save_refuses_an_existing_root_and_invalid_inputs_before_claiming() {
++        let (base, identity) = fixture("refusals");
++        let (root, model, store) = saved(&base, "checkpoint", &identity);
++        let manifest = fs::read(root.join(report_output::MANIFEST_FILE)).expect("manifest");
++        match save_checkpoint(&root, &model, &identity, Some(&store)) {
++            Err(StackCheckpointError::Claim(error)) => {
++                assert_eq!(error.kind(), std::io::ErrorKind::AlreadyExists)
++            }
++            other => panic!("{other:?}"),
++        }
++        assert_eq!(
++            fs::read(root.join(report_output::MANIFEST_FILE)).expect("manifest"),
++            manifest
++        );
++        load_checkpoint(&root, &Device::Cpu).expect("the first checkpoint still loads");
++        // Invalid identities are refused before any root is claimed.
++        let mut upper = identity.clone();
++        upper.tokenizer_sha256 = "A".repeat(64);
++        let mut other_tokenizer = identity.clone();
++        other_tokenizer.protocol.tokenizer_cid = format!("blake3:{}", "0".repeat(64));
++        let mut outside = identity.clone();
++        outside.protocol.eos_id = VOCAB as u32;
++        let mut no_data = identity.clone();
++        no_data.data.clear();
++        let mut repeated = identity.clone();
++        repeated.data.push(identity.data[0].clone());
++        for (name, candidate) in [
++            ("uppercase", upper),
++            ("cid", other_tokenizer),
++            ("eos", outside),
++            ("no-data", no_data),
++            ("repeated-data", repeated),
++        ] {
++            let target = base.join(name);
++            assert!(
++                matches!(
++                    save_checkpoint(&target, &model, &candidate, None),
++                    Err(StackCheckpointError::Identity(_))
++                ),
++                "{name}"
++            );
++            assert!(!target.exists(), "{name}: no root is claimed");
++        }
++        // A store whose tokens the model cannot represent is refused too.
++        let mut wide = StackStore::new(41, 2).expect("store");
++        wide.write(b"s", &[1], 1, &[VOCAB as u32], Update::Assert)
++            .expect("write");
++        let target = base.join("vocabulary");
++        assert!(matches!(
++            save_checkpoint(&target, &model, &identity, Some(&wide)),
++            Err(StackCheckpointError::Store(
++                StackStoreError::TokenOutOfVocabulary { .. }
++            ))
++        ));
++        assert!(!target.exists());
++        // The reloaded store answers the previous-distinct view it was saved with.
++        let loaded = load_checkpoint(&root, &Device::Cpu).expect("load");
++        let memory = loaded.memory.expect("memory");
++        assert_eq!(
++            memory.read(b"alice", &[3, 4], 1, HistoryView::PreviousDistinctValue),
++            store.read(b"alice", &[3, 4], 1, HistoryView::PreviousDistinctValue)
++        );
++        fs::remove_dir_all(&base).expect("clean");
++    }
++}
+diff --git a/crates/uor-r4-training/src/stack_store.rs b/crates/uor-r4-training/src/stack_store.rs
+new file mode 100644
+index 000000000..7b8c31621
+--- /dev/null
++++ b/crates/uor-r4-training/src/stack_store.rs
+@@ -0,0 +1,1265 @@
++//! The product store bridge for the geometric stack (I1): a token-level API
++//! over the scoped-memory contract's exact versioned store, [`Memory`]
++//! (`uor_r4_core::native_geometric::learner::scoped_memory`).
++//!
++//! The semantics are that module's, reused and not reimplemented. Version
++//! order, the predecessor chain, pinned views, conflict marking, same-value
++//! reassertion, capacity eviction, lineage and serialization all run through
++//! `Memory` itself. This module adds only three things:
++//! - the token encoding of addresses and values;
++//! - a fixed status vocabulary for re-entry into the model;
++//! - load-time checks of that encoding.
++//!
++//! # The six typed distinctions (ROADMAP §2b, decided 2026-09-28)
++//!
++//! | Distinction | Request or outcome | `Memory` semantics |
++//! |---|---|---|
++//! | current | `HistoryView::Current` | the head of the chain at the pinned view |
++//! | previous record | `HistoryView::PreviousAssertion` | the immediate predecessor, including a same-value reassertion |
++//! | previous distinct value | `HistoryView::PreviousDistinctValue` | the nearest earlier record whose value differs from the head's |
++//! | initial occurrence | `HistoryView::Initial` | the earliest record of the chain |
++//! | absent | [`StoreRead::Absent`] | no record at the address is visible at the pinned view |
++//! | evicted | [`StoreRead::Evicted`] | the required record exists, but declared capacity released its tokens |
++//!
++//! A seventh outcome, [`StoreRead::NoHistory`], says that the address exists
++//! but the requested position does not; a one-record chain, for example, has
++//! no previous record. Eviction is never reported as absence.
++//!
++//! Writes take `Update::Assert` or `Update::Correct`, with `Memory`'s rules:
++//! - An assertion of the current value is a **same-value reassertion**. It
++//!   appends a record, so history is never deduplicated.
++//! - A bare assertion of a different value becomes current and is **marked
++//!   `conflict`**.
++//! - A correction supersedes and is never marked `conflict`. A correction
++//!   that restates the current value still appends a revision.
++//!
++//! # Mapping onto `Memory`, and what does not map one to one
++//!
++//! 1. **Relation width.** `Memory` addresses `(scope bytes, entity bytes,
++//!    relation byte)`. The stack's relation id is token-width (`u32`): M1's
++//!    pointer head and D2's probe both address a relation by a token id,
++//!    which one byte cannot hold. The store therefore carries the entity
++//!    tokens and then the relation id as little-endian `u32` words inside
++//!    `Memory`'s entity field, and writes the fixed [`TOKEN_RECORD_TAG`] into
++//!    the relation byte. `encode_key` length-delimits the scope and the
++//!    entity field, and the words have fixed width, so the key is injective in
++//!    `(scope, entity token ids, relation id)`. `Memory` uses these fields only
++//!    for key encoding, emptiness checks and its history digest, so none of
++//!    its semantics change.
++//!    A raw `Record`, however, shows the relation inside `entity` and the tag
++//!    in `relation`; [`StackStore::addresses`] decodes them.
++//! 2. **Value identity and owned tokens.** `Memory` keeps a record's exact
++//!    lexical identity (`value`, used for equality) apart from its owned
++//!    emitted tokens (`payload`). The store sets the payload to the value
++//!    tokens and the identity to their little-endian bytes. Same-value
++//!    reassertion, conflict and previous-distinct are therefore exact
++//!    token-sequence equality. At capacity `Memory` releases the payload but
++//!    keeps the identity bytes in a tombstone, as it declares ("metadata and
++//!    lexical values remain available as tombstones"). A released record's
++//!    tokens thus remain in its `value` field. A read never returns them; it
++//!    reports `Evicted`. This is a storage fact, not an erasure guarantee.
++//! 3. **Single-address reads.** Every record is written with
++//!    `continues = false` and `parse_score = 0`. Dependent multi-hop reads and
++//!    the parse-confidence control belong to the language runtime
++//!    (`ScopedMemoryRuntime`) and are not exposed here. Load rejects a record
++//!    that sets them. `source` is 0 unless [`StackStore::write_from`] supplies
++//!    one, for example the token position of a write.
++//! 4. **Capacity.** As `Memory` declares, capacity bounds the records whose
++//!    tokens each `(scope, entity, relation)` chain retains. The number of
++//!    addresses is not bounded, and tombstones persist.
++//! 5. **Previous distinct keeps `Memory`'s eviction barrier.** A
++//!    previous-distinct read does not traverse a released predecessor, even
++//!    one whose value equals the head's; it reports `Evicted`.
++//! 6. **Serialization.** [`StackStore::to_bytes`] is `Memory`'s own JSON
++//!    (store version 2). [`StackStore::from_bytes`] decodes and validates it
++//!    with `Memory::from_bytes`. It then rejects a foreign lineage and any
++//!    record that is not in this token encoding.
++//!
++//! # Scope
++//!
++//! Exact host-side infrastructure. Reads and writes are binary search, byte
++//! comparison and copies, with no floating point. A lookup allocates, and
++//! persistence is JSON, so this is not a steady-state serving kernel and is
++//! not audited against D11. It is not a learned read or write. Nothing here
++//! wires the store into the stack's forward pass (M1, G).
++
++use std::fmt;
++
++use serde::{Deserialize, Serialize};
++use uor_r4_core::native_geometric::learner::realtext_support::sha256_hex;
++use uor_r4_core::native_geometric::learner::scoped_memory::{
++    encode_key, Lookup, Memory, Record, ScopedMemoryError,
++};
++
++pub use uor_r4_core::native_geometric::learner::scoped_memory::{HistoryView, Update, Written};
++
++/// The byte every stack record carries in `Memory`'s one-byte relation field.
++/// The relation id itself travels in the entity field (module docs, mapping
++/// 1); load checks the tag.
++pub const TOKEN_RECORD_TAG: u8 = b'T';
++
++/// Bytes per token id in the store's encodings: little-endian `u32`.
++const TOKEN_BYTES: usize = 4;
++
++/// Statuses a read re-enters the model with.
++pub const STATUS_COUNT: usize = 4;
++const VIEW_BITS: u32 = 2;
++/// Requestable views.
++pub const VIEW_COUNT: usize = 1 << VIEW_BITS;
++/// Symbols of the status-and-view vocabulary ([`StoreSignal`]).
++pub const SIGNAL_COUNT: usize = STATUS_COUNT << VIEW_BITS;
++
++/// The requestable views, in code order.
++pub const VIEWS: [HistoryView; VIEW_COUNT] = [
++    HistoryView::Current,
++    HistoryView::PreviousAssertion,
++    HistoryView::PreviousDistinctValue,
++    HistoryView::Initial,
++];
++
++/// The fixed status vocabulary a read re-enters the model with.
++#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
++pub enum StoreStatus {
++    /// A record was selected, and its tokens are owned.
++    Found,
++    /// No record at the address is visible at the pinned view.
++    Absent,
++    /// The address exists, but the requested historical position does not.
++    NoHistory,
++    /// The required record exists, but declared capacity released its tokens.
++    Evicted,
++}
++
++impl StoreStatus {
++    /// Every status, in code order.
++    pub const ALL: [Self; STATUS_COUNT] =
++        [Self::Found, Self::Absent, Self::NoHistory, Self::Evicted];
++
++    /// The fixed code, in `0..STATUS_COUNT`.
++    pub const fn code(self) -> u32 {
++        match self {
++            Self::Found => 0,
++            Self::Absent => 1,
++            Self::NoHistory => 2,
++            Self::Evicted => 3,
++        }
++    }
++
++    pub const fn from_code(code: u32) -> Option<Self> {
++        match code {
++            0 => Some(Self::Found),
++            1 => Some(Self::Absent),
++            2 => Some(Self::NoHistory),
++            3 => Some(Self::Evicted),
++            _ => None,
++        }
++    }
++}
++
++/// The fixed code of a requested view, in `0..VIEW_COUNT` (the order of
++/// [`VIEWS`]).
++pub const fn view_code(view: HistoryView) -> u32 {
++    match view {
++        HistoryView::Current => 0,
++        HistoryView::PreviousAssertion => 1,
++        HistoryView::PreviousDistinctValue => 2,
++        HistoryView::Initial => 3,
++    }
++}
++
++pub const fn view_from_code(code: u32) -> Option<HistoryView> {
++    match code {
++        0 => Some(HistoryView::Current),
++        1 => Some(HistoryView::PreviousAssertion),
++        2 => Some(HistoryView::PreviousDistinctValue),
++        3 => Some(HistoryView::Initial),
++        _ => None,
++    }
++}
++
++/// A read's status with the view it answered. The pair is one symbol of a
++/// fixed `SIGNAL_COUNT`-symbol vocabulary, status-major, for an embedding
++/// table. Codes use shifts and masks only.
++#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
++pub struct StoreSignal {
++    pub status: StoreStatus,
++    pub view: HistoryView,
++}
++
++impl StoreSignal {
++    /// The fixed code, in `0..SIGNAL_COUNT`.
++    pub const fn code(self) -> u32 {
++        (self.status.code() << VIEW_BITS) | view_code(self.view)
++    }
++
++    pub const fn from_code(code: u32) -> Option<Self> {
++        match (
++            StoreStatus::from_code(code >> VIEW_BITS),
++            view_from_code(code & (VIEW_COUNT as u32 - 1)),
++        ) {
++            (Some(status), Some(view)) => Some(Self { status, view }),
++            _ => None,
++        }
++    }
++}
++
++/// The record a successful read selected.
++#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
++pub struct StoreValue {
++    /// The owned value tokens.
++    pub tokens: Vec<u32>,
++    /// The record's exact id.
++    pub record: u64,
++    /// The commit that wrote the record.
++    pub commit: u64,
++    /// How the record was written.
++    pub update: Update,
++    /// A bare assertion contradicted the then-current value.
++    pub conflict: bool,
++}
++
++/// The typed outcome of one read.
++#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
++pub enum StoreRead {
++    Found(StoreValue),
++    /// No record at the address is visible at the pinned view.
++    Absent,
++    /// The address exists, but the requested historical position does not.
++    NoHistory,
++    /// The required record exists, but declared capacity released its tokens.
++    Evicted,
++}
++
++impl StoreRead {
++    pub fn status(&self) -> StoreStatus {
++        match self {
++            Self::Found(_) => StoreStatus::Found,
++            Self::Absent => StoreStatus::Absent,
++            Self::NoHistory => StoreStatus::NoHistory,
++            Self::Evicted => StoreStatus::Evicted,
++        }
++    }
++
++    /// The re-entry symbol of this outcome as the answer to `view`.
++    pub fn signal(&self, view: HistoryView) -> StoreSignal {
++        StoreSignal {
++            status: self.status(),
++            view,
++        }
++    }
++
++    pub fn value(&self) -> Option<&StoreValue> {
++        match self {
++            Self::Found(value) => Some(value),
++            _ => None,
++        }
++    }
++}
++
++/// One address of the store, decoded from its records.
++#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
++pub struct StoreAddress {
++    pub scope: Vec<u8>,
++    pub entity: Vec<u32>,
++    pub relation: u32,
++}
++
++/// Classified failures at the stack store's boundary.
++#[derive(Clone, Debug, PartialEq, Eq)]
++pub enum StackStoreError {
++    /// The scoped-memory store refused a write, or failed to encode, decode or
++    /// validate.
++    Memory(ScopedMemoryError),
++    /// A scope must be at least one byte.
++    EmptyScope,
++    /// An entity must be at least one token.
++    EmptyEntity,
++    /// A value must be at least one token.
++    EmptyValue,
++    /// Declared chain capacity must be positive.
++    ZeroCapacity,
++    /// A pinned view later than the committed history.
++    ViewAfterCommit { view: u64, commit: u64 },
++    /// Loaded bytes belong to another store lineage (session).
++    ForeignLineage { expected: u64, found: u64 },
++    /// A loaded record is not in the stack store's token encoding.
++    Encoding { record: u64, reason: &'static str },
++    /// A stored token id is outside the model's vocabulary.
++    TokenOutOfVocabulary {
++        record: u64,
++        token: u32,
++        vocab_size: usize,
++    },
++}
++
++impl fmt::Display for StackStoreError {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        match self {
++            Self::Memory(error) => write!(f, "stack store: {error}"),
++            Self::EmptyScope => write!(f, "stack store: a scope must be at least one byte"),
++            Self::EmptyEntity => write!(f, "stack store: an entity must be at least one token"),
++            Self::EmptyValue => write!(f, "stack store: a value must be at least one token"),
++            Self::ZeroCapacity => write!(f, "stack store: chain capacity must be positive"),
++            Self::ViewAfterCommit { view, commit } => write!(
++                f,
++                "stack store: view {view} is later than the committed history ({commit})"
++            ),
++            Self::ForeignLineage { expected, found } => write!(
++                f,
++                "stack store: lineage {found} is foreign to the expected lineage {expected}"
++            ),
++            Self::Encoding { record, reason } => {
++                write!(f, "stack store: record {record} is not token-encoded: {reason}")
++            }
++            Self::TokenOutOfVocabulary {
++                record,
++                token,
++                vocab_size,
++            } => write!(
++                f,
++                "stack store: record {record} holds token {token}, outside the vocabulary of {vocab_size}"
++            ),
++        }
++    }
++}
++
++impl std::error::Error for StackStoreError {}
++
++impl From<ScopedMemoryError> for StackStoreError {
++    fn from(error: ScopedMemoryError) -> Self {
++        Self::Memory(error)
++    }
++}
++
++/// The stack's session store: [`Memory`] addressed and valued by token ids.
++#[derive(Clone, Debug, PartialEq, Eq)]
++pub struct StackStore {
++    memory: Memory,
++}
++
++impl StackStore {
++    /// An empty store. `lineage` identifies the session across save and
++    /// reload. `capacity` is the declared number of records whose tokens each
++    /// `(scope, entity, relation)` chain retains.
++    pub fn new(lineage: u64, capacity: usize) -> Result<Self, StackStoreError> {
++        if capacity == 0 {
++            return Err(StackStoreError::ZeroCapacity);
++        }
++        Ok(Self {
++            memory: Memory::new(lineage, capacity),
++        })
++    }
++
++    pub fn lineage(&self) -> u64 {
++        self.memory.lineage
++    }
++
++    pub fn capacity(&self) -> usize {
++        self.memory.capacity
++    }
++
++    /// The latest commit. A read pinned here cannot see later writes.
++    pub fn commit(&self) -> u64 {
++        self.memory.commit
++    }
++
++    /// Records written, released ones included.
++    pub fn records(&self) -> usize {
++        self.memory.records.len()
++    }
++
++    /// The underlying scoped-memory store, read-only.
++    pub fn memory(&self) -> &Memory {
++        &self.memory
++    }
++
++    /// The `Memory` key of an address (module docs, mapping 1).
++    pub fn key(scope: &[u8], entity: &[u32], relation: u32) -> Result<Vec<u8>, StackStoreError> {
++        check_address(scope, entity)?;
++        Ok(encode_key(
++            scope,
++            &entity_field(entity, relation),
++            TOKEN_RECORD_TAG,
++        ))
++    }
++
++    /// Commit `value` at `(scope, entity, relation)` with source 0.
++    pub fn write(
++        &mut self,
++        scope: &[u8],
++        entity: &[u32],
++        relation: u32,
++        value: &[u32],
++        update: Update,
++    ) -> Result<Written, StackStoreError> {
++        self.write_from(scope, entity, relation, value, update, 0)
++    }
++
++    /// [`write`](Self::write), recording `source`, for example the token
++    /// position of the write, in the record.
++    pub fn write_from(
++        &mut self,
++        scope: &[u8],
++        entity: &[u32],
++        relation: u32,
++        value: &[u32],
++        update: Update,
++        source: u64,
++    ) -> Result<Written, StackStoreError> {
++        check_address(scope, entity)?;
++        if value.is_empty() {
++            return Err(StackStoreError::EmptyValue);
++        }
++        Ok(self.memory.write(
++            scope,
++            &entity_field(entity, relation),
++            TOKEN_RECORD_TAG,
++            &token_bytes(value),
++            value,
++            source,
++            update,
++            false,
++            0,
++        )?)
++    }
++
++    /// Read `view` of an address at the latest commit.
++    pub fn read(
++        &self,
++        scope: &[u8],
++        entity: &[u32],
++        relation: u32,
++        view: HistoryView,
++    ) -> Result<StoreRead, StackStoreError> {
++        self.read_at(scope, entity, relation, view, self.memory.commit)
++    }
++
++    /// Read `view` of an address at the pinned commit `pinned`, through
++    /// `Memory::lookup`. Records committed after the pin are invisible. A
++    /// record visible at the pin but released since reads as `Evicted`.
++    pub fn read_at(
++        &self,
++        scope: &[u8],
++        entity: &[u32],
++        relation: u32,
++        view: HistoryView,
++        pinned: u64,
++    ) -> Result<StoreRead, StackStoreError> {
++        if pinned > self.memory.commit {
++            return Err(StackStoreError::ViewAfterCommit {
++                view: pinned,
++                commit: self.memory.commit,
++            });
++        }
++        let key = Self::key(scope, entity, relation)?;
++        Ok(match self.memory.lookup(&key, pinned, view) {
++            Lookup::Found(record) => StoreRead::Found(StoreValue {
++                tokens: record.payload.clone(),
++                record: record.id,
++                commit: record.commit,
++                update: record.action,
++                conflict: record.conflict,
++            }),
++            Lookup::Absent => StoreRead::Absent,
++            Lookup::NoHistory => StoreRead::NoHistory,
++            Lookup::Evicted => StoreRead::Evicted,
++        })
++    }
++
++    /// Every address with at least one record, in `Memory`'s key order.
++    pub fn addresses(&self) -> Result<Vec<StoreAddress>, StackStoreError> {
++        self.memory
++            .chains
++            .iter()
++            .map(|(_, ids)| {
++                let record = ids
++                    .first()
++                    .and_then(|id| self.memory.record_ref(*id))
++                    .ok_or(StackStoreError::Encoding {
++                        record: 0,
++                        reason: "a chain has no record",
++                    })?;
++                let (entity, relation) = decode_entity_field(record)?;
++                Ok(StoreAddress {
++                    scope: record.scope.clone(),
++                    entity,
++                    relation,
++                })
++            })
++            .collect()
++    }
++
++    /// `Memory`'s immutable-history digest at the latest commit.
++    pub fn history_sha256(&self) -> Result<String, StackStoreError> {
++        Ok(self.memory.history_sha256(self.memory.commit)?)
++    }
++
++    /// Check that every entity and value token is below `vocab_size`. This
++    /// includes the value identity a released record keeps. The relation id
++    /// is an opaque id and is not checked.
++    pub fn check_vocabulary(&self, vocab_size: usize) -> Result<(), StackStoreError> {
++        for record in &self.memory.records {
++            let (entity, _) = decode_entity_field(record)?;
++            let value = decode_tokens(&record.value).ok_or(StackStoreError::Encoding {
++                record: record.id,
++                reason: "the value is not whole token ids",
++            })?;
++            if let Some(token) = entity
++                .into_iter()
++                .chain(value)
++                .find(|token| *token as usize >= vocab_size)
++            {
++                return Err(StackStoreError::TokenOutOfVocabulary {
++                    record: record.id,
++                    token,
++                    vocab_size,
++                });
++            }
++        }
++        Ok(())
++    }
++
++    /// `Memory`'s own serialization.
++    pub fn to_bytes(&self) -> Result<Vec<u8>, StackStoreError> {
++        Ok(self.memory.to_bytes()?)
++    }
++
++    /// Decode and validate with `Memory::from_bytes`, then reject a lineage
++    /// other than `lineage` and any record not in this token encoding.
++    pub fn from_bytes(bytes: &[u8], lineage: u64) -> Result<Self, StackStoreError> {
++        let memory = Memory::from_bytes(bytes)?;
++        if memory.lineage != lineage {
++            return Err(StackStoreError::ForeignLineage {
++                expected: lineage,
++                found: memory.lineage,
++            });
++        }
++        for record in &memory.records {
++            check_record(record)?;
++        }
++        Ok(Self { memory })
++    }
++}
++
++fn check_address(scope: &[u8], entity: &[u32]) -> Result<(), StackStoreError> {
++    if scope.is_empty() {
++        return Err(StackStoreError::EmptyScope);
++    }
++    if entity.is_empty() {
++        return Err(StackStoreError::EmptyEntity);
++    }
++    Ok(())
++}
++
++/// Little-endian bytes of `tokens`. The width is fixed, so the map is
++/// injective.
++fn token_bytes(tokens: &[u32]) -> Vec<u8> {
++    tokens
++        .iter()
++        .flat_map(|token| token.to_le_bytes())
++        .collect()
++}
++
++/// The tokens of a little-endian byte string whose length is a whole number
++/// of tokens.
++fn decode_tokens(bytes: &[u8]) -> Option<Vec<u32>> {
++    let chunks = bytes.chunks_exact(TOKEN_BYTES);
++    if !chunks.remainder().is_empty() {
++        return None;
++    }
++    chunks
++        .map(|chunk| chunk.try_into().ok().map(u32::from_le_bytes))
++        .collect()
++}
++
++/// `Memory`'s entity field for an address: the entity tokens, then the
++/// relation id.
++fn entity_field(entity: &[u32], relation: u32) -> Vec<u8> {
++    let mut field = token_bytes(entity);
++    field.extend_from_slice(&relation.to_le_bytes());
++    field
++}
++
++fn decode_entity_field(record: &Record) -> Result<(Vec<u32>, u32), StackStoreError> {
++    let bad = |reason: &'static str| StackStoreError::Encoding {
++        record: record.id,
++        reason,
++    };
++    let mut words =
++        decode_tokens(&record.entity).ok_or_else(|| bad("the entity field is not whole words"))?;
++    let relation = words
++        .pop()
++        .ok_or_else(|| bad("the entity field has no relation id"))?;
++    if words.is_empty() {
++        return Err(bad("the entity field has no entity token"));
++    }
++    Ok((words, relation))
++}
++
++/// The token-encoding invariants `write_from` establishes, which
++/// `Memory::validate` does not know.
++fn check_record(record: &Record) -> Result<(), StackStoreError> {
++    let bad = |reason: &'static str| StackStoreError::Encoding {
++        record: record.id,
++        reason,
++    };
++    if record.relation != TOKEN_RECORD_TAG {
++        return Err(bad("the relation byte is not the token-record tag"));
++    }
++    decode_entity_field(record)?;
++    let value = decode_tokens(&record.value).ok_or_else(|| bad("the value is not whole tokens"))?;
++    if !record.evicted && record.payload != value {
++        return Err(bad("the value identity differs from the owned tokens"));
++    }
++    // The witness binds a released record's identity to the tokens it owned.
++    if record.payload_sha256 != sha256_hex(&record.value) {
++        return Err(bad("the payload witness differs from the value identity"));
++    }
++    if record.continues || record.parse_score != 0 {
++        return Err(bad("language-runtime continuation or parse score is set"));
++    }
++    Ok(())
++}
++
++/// A store that exercises every distinction across several scopes, entities
++/// and relations. It holds a reassertion, conflicts, corrections, released
++/// records and a single-record chain. Every token is below 32. Tests only.
++#[cfg(test)]
++pub(crate) fn test_store(lineage: u64) -> StackStore {
++    let writes: [(&[u8], &[u32], u32, &[u32], Update); 9] = [
++        (b"alice", &[3, 4], 1, &[10, 11], Update::Assert),
++        // A bare contradiction: conflict.
++        (b"alice", &[3, 4], 1, &[12], Update::Assert),
++        // A same-value reassertion; capacity 2 releases the first record.
++        (b"alice", &[3, 4], 1, &[12], Update::Assert),
++        // The same entity under another relation.
++        (b"alice", &[3, 4], 2, &[13], Update::Assert),
++        // A single-record chain.
++        (b"alice", &[5], 1, &[14, 15, 16], Update::Assert),
++        // The same entity and relation in another scope.
++        (b"bob", &[3, 4], 1, &[17], Update::Assert),
++        (b"bob", &[3, 4], 1, &[18], Update::Correct),
++        (b"bob", &[3, 4], 1, &[17], Update::Assert),
++        // A correction that restates the current value.
++        (b"alice", &[3, 4], 2, &[13], Update::Correct),
++    ];
++    let mut store = StackStore::new(lineage, 2).expect("test store");
++    for (scope, entity, relation, value, update) in writes {
++        store
++            .write(scope, entity, relation, value, update)
++            .expect("test store write");
++    }
++    store
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++
++    const SCOPE: &[u8] = b"session";
++    const ENTITY: &[u32] = &[11, 12];
++    const RELATION: u32 = 7;
++    const A: &[u32] = &[21, 22];
++    const B: &[u32] = &[31];
++    const C: &[u32] = &[41, 42, 43];
++    const D: &[u32] = &[51];
++    const E: &[u32] = &[52];
++
++    /// The expected outcome of one read of a written address: a value and its
++    /// record id, or a typed missing position. Absence is checked directly
++    /// against `StoreRead::Absent`.
++    #[derive(Debug)]
++    enum Want {
++        Found(&'static [u32], u64),
++        NoHistory,
++        Evicted,
++    }
++
++    fn check(read: &StoreRead, want: &Want, context: &str) {
++        match (read, want) {
++            (StoreRead::Found(value), Want::Found(tokens, record)) => {
++                assert_eq!(value.tokens.as_slice(), *tokens, "{context}");
++                assert_eq!(value.record, *record, "{context}");
++            }
++            (StoreRead::NoHistory, Want::NoHistory) | (StoreRead::Evicted, Want::Evicted) => {}
++            _ => panic!("{context}: read {read:?}, wanted {want:?}"),
++        }
++    }
++
++    fn read(store: &StackStore, view: HistoryView) -> StoreRead {
++        store.read(SCOPE, ENTITY, RELATION, view).expect("read")
++    }
++
++    fn write(store: &mut StackStore, value: &[u32], update: Update) -> Written {
++        store
++            .write(SCOPE, ENTITY, RELATION, value, update)
++            .expect("write")
++    }
++
++    /// Every write history against every view: current, previous record,
++    /// previous distinct and initial, with and without eviction. Each write
++    /// also carries its expected conflict mark, and the absent neighbouring
++    /// addresses are checked beside each history.
++    #[test]
++    fn views_answer_the_declared_distinction_for_every_history() {
++        use Update::{Assert, Correct};
++        use Want::{Evicted, Found, NoHistory};
++        // (value, update, expected conflict mark)
++        type History = Vec<(&'static [u32], Update, bool)>;
++        // Wanted reads in VIEWS order: current, previous record, previous
++        // distinct, initial.
++        let cases: Vec<(&str, usize, History, [Want; VIEW_COUNT])> = vec![
++            (
++                "first assertion",
++                8,
++                vec![(A, Assert, false)],
++                [Found(A, 1), NoHistory, NoHistory, Found(A, 1)],
++            ),
++            (
++                "update to a new value",
++                8,
++                vec![(A, Assert, false), (B, Assert, true)],
++                [Found(B, 2), Found(A, 1), Found(A, 1), Found(A, 1)],
++            ),
++            (
++                "same-value reassertion",
++                8,
++                vec![(A, Assert, false), (A, Assert, false)],
++                [Found(A, 2), Found(A, 1), NoHistory, Found(A, 1)],
++            ),
++            (
++                "reassertion after an update",
++                8,
++                vec![(A, Assert, false), (B, Assert, true), (B, Assert, false)],
++                [Found(B, 3), Found(B, 2), Found(A, 1), Found(A, 1)],
++            ),
++            (
++                "reassertion after a correction",
++                8,
++                vec![(A, Assert, false), (B, Correct, false), (B, Assert, false)],
++                [Found(B, 3), Found(B, 2), Found(A, 1), Found(A, 1)],
++            ),
++            (
++                "correction restating the current value",
++                8,
++                vec![(A, Assert, false), (A, Correct, false)],
++                [Found(A, 2), Found(A, 1), NoHistory, Found(A, 1)],
++            ),
++            (
++                "initial after several updates",
++                8,
++                vec![
++                    (A, Assert, false),
++                    (B, Correct, false),
++                    (C, Assert, true),
++                    (A, Correct, false),
++                ],
++                [Found(A, 4), Found(C, 3), Found(C, 3), Found(A, 1)],
++            ),
++            (
++                "capacity releases the initial record",
++                2,
++                vec![(A, Assert, false), (B, Assert, true), (C, Assert, true)],
++                [Found(C, 3), Found(B, 2), Found(B, 2), Evicted],
++            ),
++            (
++                "capacity releases every expired record",
++                2,
++                vec![
++                    (A, Assert, false),
++                    (B, Correct, false),
++                    (C, Correct, false),
++                    (D, Correct, false),
++                    (E, Correct, false),
++                ],
++                [Found(E, 5), Found(D, 4), Found(D, 4), Evicted],
++            ),
++            (
++                "released distinct value behind a reassertion",
++                2,
++                vec![(A, Assert, false), (B, Assert, true), (B, Assert, false)],
++                [Found(B, 3), Found(B, 2), Evicted, Evicted],
++            ),
++            (
++                "capacity one keeps only the head",
++                1,
++                vec![(A, Assert, false), (A, Assert, false)],
++                [Found(A, 2), Evicted, Evicted, Evicted],
++            ),
++            (
++                "capacity one still compares against the retained head",
++                1,
++                vec![(A, Assert, false), (B, Assert, true), (B, Assert, false)],
++                [Found(B, 3), Evicted, Evicted, Evicted],
++            ),
++        ];
++        for (name, capacity, history, wants) in cases {
++            let mut store = StackStore::new(1, capacity).expect("store");
++            for (position, (value, update, conflict)) in history.into_iter().enumerate() {
++                let written = write(&mut store, value, update);
++                assert_eq!(
++                    (written.revision, written.conflict),
++                    (position as u64 + 1, conflict),
++                    "{name}: write {position}"
++                );
++            }
++            for (view, want) in VIEWS.iter().zip(&wants) {
++                let got = read(&store, *view);
++                check(&got, want, &format!("{name}, {view:?}"));
++                assert_ne!(
++                    got,
++                    StoreRead::Absent,
++                    "{name}: a written key is never absent"
++                );
++            }
++            // Neighbouring addresses are absent at every view.
++            let neighbours: [(&[u8], &[u32], u32); 3] = [
++                (b"other", ENTITY, RELATION),
++                (SCOPE, &[11], RELATION),
++                (SCOPE, ENTITY, RELATION + 1),
++            ];
++            for view in VIEWS {
++                for (scope, entity, relation) in neighbours {
++                    assert_eq!(
++                        store.read(scope, entity, relation, view).expect("read"),
++                        StoreRead::Absent,
++                        "{name}: {view:?} of a neighbour"
++                    );
++                }
++            }
++        }
++    }
++
++    #[test]
++    fn previous_record_and_previous_distinct_differ_after_a_reassertion() {
++        let mut store = StackStore::new(2, 8).expect("store");
++        for value in [A, B, B] {
++            write(&mut store, value, Update::Assert);
++        }
++        let previous = read(&store, HistoryView::PreviousAssertion);
++        let distinct = read(&store, HistoryView::PreviousDistinctValue);
++        assert_ne!(previous, distinct);
++        assert_eq!(
++            previous.value().map(|v| (v.tokens.as_slice(), v.record)),
++            Some((B, 2))
++        );
++        assert_eq!(
++            distinct.value().map(|v| (v.tokens.as_slice(), v.record)),
++            Some((A, 1))
++        );
++    }
++
++    #[test]
++    fn a_correction_and_a_bare_contradiction_differ_in_the_conflict_mark() {
++        let mut store = StackStore::new(3, 8).expect("store");
++        let first = write(&mut store, A, Update::Assert);
++        assert_eq!(
++            (first.revision, first.conflict, first.superseded),
++            (1, false, 0)
++        );
++        let reassert = write(&mut store, A, Update::Assert);
++        assert_eq!(
++            (reassert.revision, reassert.conflict, reassert.superseded),
++            (2, false, first.id)
++        );
++        let bare = write(&mut store, B, Update::Assert);
++        assert_eq!((bare.revision, bare.conflict), (3, true));
++        let current = read(&store, HistoryView::Current);
++        assert_eq!(
++            current
++                .value()
++                .map(|v| (v.tokens.as_slice(), v.update, v.conflict)),
++            Some((B, Update::Assert, true))
++        );
++        let corrected = write(&mut store, C, Update::Correct);
++        assert_eq!(
++            (corrected.revision, corrected.conflict, corrected.superseded),
++            (4, false, bare.id)
++        );
++        let current = read(&store, HistoryView::Current);
++        assert_eq!(
++            current
++                .value()
++                .map(|v| (v.tokens.as_slice(), v.update, v.conflict)),
++            Some((C, Update::Correct, false))
++        );
++        // The superseded bare assertion keeps its conflict mark in history.
++        let previous = read(&store, HistoryView::PreviousAssertion);
++        assert_eq!(
++            previous.value().map(|v| (v.record, v.conflict)),
++            Some((bare.id, true))
++        );
++        // A first write that is a correction is not a conflict either.
++        let mut fresh = StackStore::new(3, 8).expect("store");
++        let written = write(&mut fresh, B, Update::Correct);
++        assert_eq!((written.revision, written.conflict), (1, false));
++    }
++
++    #[test]
++    fn absent_differs_from_no_history_and_pinned_views_hide_later_writes() {
++        let mut store = StackStore::new(4, 8).expect("store");
++        for view in VIEWS {
++            assert_eq!(
++                read(&store, view),
++                StoreRead::Absent,
++                "{view:?} before a write"
++            );
++        }
++        write(&mut store, A, Update::Assert);
++        let pin = store.commit();
++        assert_eq!(
++            read(&store, HistoryView::PreviousAssertion),
++            StoreRead::NoHistory
++        );
++        assert_eq!(
++            read(&store, HistoryView::PreviousDistinctValue),
++            StoreRead::NoHistory
++        );
++        write(&mut store, B, Update::Correct);
++        let at = |view, pinned| {
++            store
++                .read_at(SCOPE, ENTITY, RELATION, view, pinned)
++                .expect("read")
++        };
++        check(
++            &at(HistoryView::Current, pin),
++            &Want::Found(A, 1),
++            "pinned current",
++        );
++        check(
++            &at(HistoryView::Current, store.commit()),
++            &Want::Found(B, 2),
++            "latest current",
++        );
++        assert_eq!(
++            at(HistoryView::PreviousAssertion, pin),
++            StoreRead::NoHistory
++        );
++        // Before the first commit nothing is visible at the address.
++        assert_eq!(at(HistoryView::Current, 0), StoreRead::Absent);
++        assert_eq!(
++            store.read_at(SCOPE, ENTITY, RELATION, HistoryView::Current, pin + 2),
++            Err(StackStoreError::ViewAfterCommit { view: 3, commit: 2 })
++        );
++
++        // A record visible at an earlier pin but released since reads as
++        // Evicted, never as Absent.
++        let mut small = StackStore::new(4, 2).expect("store");
++        write(&mut small, A, Update::Assert);
++        let early = small.commit();
++        write(&mut small, B, Update::Correct);
++        write(&mut small, C, Update::Correct);
++        for view in [HistoryView::Current, HistoryView::Initial] {
++            assert_eq!(
++                small
++                    .read_at(SCOPE, ENTITY, RELATION, view, early)
++                    .expect("read"),
++                StoreRead::Evicted,
++                "{view:?} at the early pin"
++            );
++        }
++        assert_eq!(
++            small
++                .read_at(SCOPE, ENTITY, RELATION, HistoryView::Current, 0)
++                .expect("read"),
++            StoreRead::Absent
++        );
++    }
++
++    #[test]
++    fn scopes_entities_and_relations_are_independent_injective_addresses() {
++        let addresses: [(&[u8], &[u32], u32); 7] = [
++            (b"alice", &[5], 1),
++            (b"bob", &[5], 1),
++            (b"alice", &[5, 6], 1),
++            (b"alice", &[5], 6),
++            (b"alice", &[6], 1),
++            // Naive concatenation gives these two the same bytes:
++            // "a", 05 00 00 00, 06 00 00 00, 01 00 00 00.
++            (b"a\x05\x00\x00\x00", &[6], 1),
++            (b"a", &[5, 6], 1),
++        ];
++        let keys: Vec<Vec<u8>> = addresses
++            .iter()
++            .map(|(scope, entity, relation)| {
++                StackStore::key(scope, entity, *relation).expect("key")
++            })
++            .collect();
++        for (i, a) in keys.iter().enumerate() {
++            for b in &keys[i + 1..] {
++                assert_ne!(a, b, "two addresses share a key");
++            }
++        }
++        // Capacity 1: a second write releases only its own chain's record.
++        let mut store = StackStore::new(5, 1).expect("store");
++        for (index, (scope, entity, relation)) in addresses.iter().enumerate() {
++            store
++                .write(
++                    scope,
++                    entity,
++                    *relation,
++                    &[100 + index as u32],
++                    Update::Assert,
++                )
++                .expect("write");
++        }
++        store
++            .write(b"alice", &[5], 1, &[200], Update::Correct)
++            .expect("write");
++        for (index, (scope, entity, relation)) in addresses.iter().enumerate() {
++            let current = store
++                .read(scope, entity, *relation, HistoryView::Current)
++                .expect("read");
++            let initial = store
++                .read(scope, entity, *relation, HistoryView::Initial)
++                .expect("read");
++            if index == 0 {
++                assert_eq!(current.value().map(|v| v.tokens.clone()), Some(vec![200]));
++                assert_eq!(initial, StoreRead::Evicted);
++            } else {
++                let own = Some(vec![100 + index as u32]);
++                assert_eq!(current.value().map(|v| v.tokens.clone()), own);
++                assert_eq!(initial.value().map(|v| v.tokens.clone()), own);
++            }
++        }
++        let mut decoded = store.addresses().expect("addresses");
++        decoded.sort();
++        let mut declared: Vec<StoreAddress> = addresses
++            .iter()
++            .map(|(scope, entity, relation)| StoreAddress {
++                scope: scope.to_vec(),
++                entity: entity.to_vec(),
++                relation: *relation,
++            })
++            .collect();
++        declared.sort();
++        assert_eq!(decoded, declared);
++        // Full-width token and relation ids round-trip.
++        let mut wide = StackStore::new(5, 2).expect("store");
++        let entity = [u32::MAX, 0, 256];
++        wide.write(b"s", &entity, u32::MAX, &[65_536, u32::MAX], Update::Assert)
++            .expect("write");
++        assert_eq!(
++            wide.addresses().expect("addresses"),
++            vec![StoreAddress {
++                scope: b"s".to_vec(),
++                entity: entity.to_vec(),
++                relation: u32::MAX,
++            }]
++        );
++        assert_eq!(
++            wide.read(b"s", &entity, u32::MAX, HistoryView::Current)
++                .expect("read")
++                .value()
++                .map(|v| v.tokens.clone()),
++            Some(vec![65_536, u32::MAX])
++        );
++    }
++
++    #[test]
++    fn save_then_load_gives_identical_reads_at_every_pin_and_identical_later_behaviour() {
++        let store = test_store(21);
++        let bytes = store.to_bytes().expect("to bytes");
++        let loaded = StackStore::from_bytes(&bytes, 21).expect("from bytes");
++        assert_eq!(loaded, store);
++        assert_eq!(
++            loaded.history_sha256().expect("history"),
++            store.history_sha256().expect("history")
++        );
++        let addresses = store.addresses().expect("addresses");
++        assert_eq!(loaded.addresses().expect("addresses"), addresses);
++        assert_eq!(addresses.len(), 4);
++        let mut statuses = std::collections::BTreeSet::new();
++        for address in &addresses {
++            for pin in 0..=store.commit() {
++                for view in VIEWS {
++                    let want = store
++                        .read_at(&address.scope, &address.entity, address.relation, view, pin)
++                        .expect("read");
++                    let got = loaded
++                        .read_at(&address.scope, &address.entity, address.relation, view, pin)
++                        .expect("read");
++                    assert_eq!(got, want, "{address:?} {view:?} at {pin}");
++                    statuses.insert(want.status());
++                }
++            }
++        }
++        // The fixture reaches every status.
++        assert_eq!(statuses.len(), STATUS_COUNT);
++        // Later writes behave identically, down to the serialized bytes.
++        let (mut before, mut after) = (store.clone(), loaded);
++        let writes: [(&[u8], &[u32], u32, &[u32], Update); 4] = [
++            (b"alice", &[3, 4], 1, &[12], Update::Assert),
++            (b"alice", &[3, 4], 1, &[19], Update::Assert),
++            (b"bob", &[3, 4], 1, &[20], Update::Correct),
++            (b"carol", &[7], 3, &[21], Update::Assert),
++        ];
++        for (scope, entity, relation, value, update) in writes {
++            assert_eq!(
++                before.write(scope, entity, relation, value, update),
++                after.write(scope, entity, relation, value, update)
++            );
++        }
++        assert_eq!(
++            before.to_bytes().expect("to bytes"),
++            after.to_bytes().expect("to bytes")
++        );
++    }
++
++    #[test]
++    fn load_rejects_foreign_lineage_malformed_bytes_and_records_not_token_encoded() {
++        let store = test_store(9);
++        let bytes = store.to_bytes().expect("to bytes");
++        assert_eq!(
++            StackStore::from_bytes(&bytes, 10),
++            Err(StackStoreError::ForeignLineage {
++                expected: 10,
++                found: 9
++            })
++        );
++        assert!(matches!(
++            StackStore::from_bytes(b"{", 9),
++            Err(StackStoreError::Memory(_))
++        ));
++        // Structural corruption is Memory's own validation.
++        let mut memory = store.memory().clone();
++        memory.records[0].commit += 7;
++        assert!(matches!(
++            StackStore::from_bytes(&memory.to_bytes().expect("bytes"), 9),
++            Err(StackStoreError::Memory(_))
++        ));
++        // A value identity that disagrees with its owned tokens passes
++        // Memory's validation and fails the token encoding. The single-record
++        // chain has no successor whose conflict mark depends on it.
++        let mut memory = store.memory().clone();
++        let single = memory
++            .chains
++            .iter()
++            .find(|(_, ids)| ids.len() == 1)
++            .map(|(_, ids)| ids[0])
++            .expect("a single-record chain");
++        let index = memory
++            .records
++            .iter()
++            .position(|record| record.id == single)
++            .expect("record");
++        memory.records[index].value = token_bytes(&[14, 15, 17]);
++        assert!(memory.validate().is_ok(), "Memory alone accepts it");
++        assert!(matches!(
++            StackStore::from_bytes(&memory.to_bytes().expect("bytes"), 9),
++            Err(StackStoreError::Encoding { .. })
++        ));
++        // A language-runtime memory is valid Memory but not a stack store.
++        for relation in [0, TOKEN_RECORD_TAG] {
++            let mut language = Memory::new(9, 8);
++            language
++                .write(
++                    b"alpha",
++                    b"Ova",
++                    relation,
++                    b"Bramble",
++                    &[1, 2, 3],
++                    7,
++                    Update::Assert,
++                    false,
++                    0,
++                )
++                .expect("language write");
++            assert!(matches!(
++                StackStore::from_bytes(&language.to_bytes().expect("bytes"), 9),
++                Err(StackStoreError::Encoding { .. })
++            ));
++        }
++    }
++
++    #[test]
++    fn the_status_vocabulary_is_fixed_and_round_trips() {
++        assert_eq!(StoreStatus::ALL.map(StoreStatus::code), [0, 1, 2, 3]);
++        assert_eq!(VIEWS.map(view_code), [0, 1, 2, 3]);
++        let mut seen = [false; SIGNAL_COUNT];
++        for status in StoreStatus::ALL {
++            assert_eq!(StoreStatus::from_code(status.code()), Some(status));
++            for view in VIEWS {
++                assert_eq!(view_from_code(view_code(view)), Some(view));
++                let signal = StoreSignal { status, view };
++                let code = signal.code() as usize;
++                assert!(code < SIGNAL_COUNT && !seen[code]);
++                seen[code] = true;
++                assert_eq!(StoreSignal::from_code(signal.code()), Some(signal));
++            }
++        }
++        assert!(seen.iter().all(|s| *s));
++        assert_eq!(StoreStatus::from_code(4), None);
++        assert_eq!(view_from_code(4), None);
++        assert_eq!(StoreSignal::from_code(SIGNAL_COUNT as u32), None);
++        // Reads map onto the vocabulary.
++        let mut store = StackStore::new(6, 1).expect("store");
++        let signal = |store: &StackStore, view| read(store, view).signal(view);
++        assert_eq!(
++            signal(&store, HistoryView::Initial),
++            StoreSignal {
++                status: StoreStatus::Absent,
++                view: HistoryView::Initial
++            }
++        );
++        write(&mut store, A, Update::Assert);
++        assert_eq!(
++            signal(&store, HistoryView::PreviousAssertion).status,
++            StoreStatus::NoHistory
++        );
++        write(&mut store, B, Update::Assert);
++        assert_eq!(
++            signal(&store, HistoryView::Current).status,
++            StoreStatus::Found
++        );
++        assert_eq!(
++            signal(&store, HistoryView::Initial).status,
++            StoreStatus::Evicted
++        );
++    }
++
++    #[test]
++    fn rejects_empty_addresses_zero_capacity_and_out_of_vocabulary_tokens() {
++        assert_eq!(StackStore::new(1, 0), Err(StackStoreError::ZeroCapacity));
++        let mut store = StackStore::new(1, 1).expect("store");
++        assert_eq!(
++            store.write(b"", ENTITY, RELATION, A, Update::Assert),
++            Err(StackStoreError::EmptyScope)
++        );
++        assert_eq!(
++            store.write(SCOPE, &[], RELATION, A, Update::Assert),
++            Err(StackStoreError::EmptyEntity)
++        );
++        assert_eq!(
++            store.write(SCOPE, ENTITY, RELATION, &[], Update::Assert),
++            Err(StackStoreError::EmptyValue)
++        );
++        assert_eq!(
++            store.read(SCOPE, &[], RELATION, HistoryView::Current),
++            Err(StackStoreError::EmptyEntity)
++        );
++        assert_eq!((store.records(), store.commit()), (0, 0));
++        write(&mut store, &[36, 40], Update::Assert);
++        // Capacity 1 releases the record holding token 40; its value identity
++        // is still checked.
++        write(&mut store, &[1], Update::Correct);
++        assert_eq!(read(&store, HistoryView::Initial), StoreRead::Evicted);
++        assert_eq!(store.check_vocabulary(41), Ok(()));
++        assert_eq!(
++            store.check_vocabulary(37),
++            Err(StackStoreError::TokenOutOfVocabulary {
++                record: 1,
++                token: 40,
++                vocab_size: 37
++            })
++        );
++        assert_eq!(
++            store.check_vocabulary(12),
++            Err(StackStoreError::TokenOutOfVocabulary {
++                record: 1,
++                token: 12,
++                vocab_size: 12
++            })
++        );
++    }
++}

@@ -1,0 +1,141 @@
+diff --git a/crates/uor-r4-training/src/bin/teacher-paraphrase.rs b/crates/uor-r4-training/src/bin/teacher-paraphrase.rs
+index c6e70fea5..dbe10ba91 100644
+--- a/crates/uor-r4-training/src/bin/teacher-paraphrase.rs
++++ b/crates/uor-r4-training/src/bin/teacher-paraphrase.rs
+@@ -4,7 +4,7 @@
+ //! ```text
+ //! teacher-paraphrase out=NEW_REPORT_ROOT teacher=SMOLLM2_INSTRUCT_DIR world_tokenizer=T.json \
+ //!   [per_template=8] [max_new=160] [temperature=0.8] [top_k=40] [seed=1] [draws=3000] \
+-//!   [probe=false]
++//!   [probe=false] [set=relation|chat|memory]
+ //! ```
+ //!
+ //! A local SmolLM2-Instruct checkpoint is an **offline data source only**; it
+@@ -32,7 +32,7 @@ use uor_r4_core::report_output;
+ use uor_r4_model_source::{HuggingFaceLlamaOracle, State, TeacherExecutionConfig};
+ use uor_r4_tokenizer::ByteBpeTokenizer;
+ use uor_r4_training::milestone_world::{normalized, MWorld, Split};
+-use uor_r4_training::milestone_world_v2::{Cell, MWorld2, Mix};
++use uor_r4_training::milestone_world_v2::{memory_tables, Cell, MWorld2, Mix};
+ use uor_r4_training::relation_compiler::{label, NONE};
+ use uor_r4_training::sha256_file;
+ use uor_r4_training::stack_tracking::Rng;
+@@ -149,11 +149,17 @@ fn templates(
+     Ok(found)
+ }
+ 
+-/// The chat and instruction templates of `phrasing` (`set=chat`): every
+-/// social, share, fact and instruction table, with the intent as the
+-/// template's relation and `request` as its act.
+-fn chat_templates(phrasing: Split) -> BTreeSet<Template> {
+-    MWorld::chat_tables()
++/// The templates of `phrasing` in a table set, with the intent as the
++/// template's relation and `request` as its act: `chat` is every v1
++/// social, share, fact and instruction table; `memory` is v2's copy and MQAR
++/// tables.
++fn table_templates(set: &str, phrasing: Split) -> BTreeSet<Template> {
++    let tables = if set == "memory" {
++        memory_tables()
++    } else {
++        MWorld::chat_tables()
++    };
++    tables
+         .into_iter()
+         .flat_map(|(intent, train, development)| {
+             let side = match phrasing {
+@@ -568,10 +574,13 @@ fn run() -> Result<(), Error> {
+     let probe: bool = args.number("probe", false)?;
+     let workers: usize = args.number("workers", 4)?;
+     let probe_template: usize = args.number("probe_template", 0)?;
+-    let chat = match args.0.get("set").map(String::as_str) {
+-        None | Some("relation") => false,
+-        Some("chat") => true,
+-        Some(other) => return Err(format!("set must be relation or chat, got {other}").into()),
++    let set: &'static str = match args.0.get("set").map(String::as_str) {
++        None | Some("relation") => "relation",
++        Some("chat") => "chat",
++        Some("memory") => "memory",
++        Some(other) => {
++            return Err(format!("set must be relation, chat or memory, got {other}").into())
++        }
+     };
+     if per_template == 0 || max_new == 0 || draws == 0 || top_k == 0 || temperature <= 0.0 {
+         return Err("per_template, max_new, draws, top_k and temperature must be positive".into());
+@@ -585,7 +594,7 @@ fn run() -> Result<(), Error> {
+         &world_tokenizer_path,
+         workers,
+         probe_template,
+-        chat,
++        set,
+         (
+             per_template,
+             max_new,
+@@ -616,7 +625,7 @@ fn generate_all(
+     world_tokenizer_path: &Path,
+     workers: NonZeroUsize,
+     probe_template: usize,
+-    chat: bool,
++    set: &'static str,
+     (per_template, max_new, temperature, top_k, seed, draws, probe): (
+         usize,
+         usize,
+@@ -632,10 +641,10 @@ fn generate_all(
+         ByteBpeTokenizer::from_tokenizer_json_bytes(&fs::read(world_tokenizer_path)?)
+             .ok_or("world_tokenizer is not a supported tokenizer.json")?;
+     let count = |text: &str| world_tokenizer.encode(text).len();
+-    let (train, development) = if chat {
++    let (train, development) = if set != "relation" {
+         (
+-            chat_templates(Split::Train),
+-            chat_templates(Split::Development),
++            table_templates(set, Split::Train),
++            table_templates(set, Split::Development),
+         )
+     } else {
+         (
+@@ -659,7 +668,7 @@ fn generate_all(
+         "{} training and {} development {} templates",
+         train.len(),
+         development.len(),
+-        if chat { "chat" } else { "relation" }
++        set
+     );
+     let tokenizer_path = teacher_dir.join("tokenizer.json");
+     let loading = Instant::now();
+@@ -795,7 +804,7 @@ fn generate_all(
+             "per_template": per_template, "max_new": max_new, "temperature": temperature,
+             "top_k": top_k, "seed": seed, "draws": draws, "probe": probe, "workers": workers.get(),
+         },
+-        "set": if chat { "chat" } else { "relation" },
++        "set": set,
+         "templates": {"training": train.len(), "development_screen": development.len()},
+         "screen": "a line must keep exactly its template's slots ({v}, {x}, {a}, {b}, {n}), each once; it is dropped if it equals a training template, repeats within its reply, equals a development template or shares a four-word sequence with one (words lowercased, punctuation removed, each slot as one word)",
+         "per_relation_act": tallies
+diff --git a/crates/uor-r4-training/src/milestone_world_v2.rs b/crates/uor-r4-training/src/milestone_world_v2.rs
+index 78ee4382d..fd3dafc71 100644
+--- a/crates/uor-r4-training/src/milestone_world_v2.rs
++++ b/crates/uor-r4-training/src/milestone_world_v2.rs
+@@ -453,6 +453,23 @@ fn reserved() -> &'static BTreeSet<String> {
+     })
+ }
+ 
++/// v2's copy and MQAR phrasing tables by intent name: `(intent, train,
++/// development)`, for teacher paraphrases (`teacher-paraphrase set=memory`).
++pub fn memory_tables() -> Vec<(
++    &'static str,
++    &'static [&'static str],
++    &'static [&'static str],
++)> {
++    [
++        ("copy", &COPY),
++        ("mqar_assert", &MQAR_LEAD),
++        ("mqar_query", &MQAR_QUERY),
++    ]
++    .into_iter()
++    .map(|(intent, p)| (intent, p.train, p.development))
++    .collect()
++}
++
+ /// Every user phrasing template of `split` in v1 and v2.
+ fn split_templates(split: Split) -> BTreeSet<&'static str> {
+     let side = |p: &Phrasings| match split {

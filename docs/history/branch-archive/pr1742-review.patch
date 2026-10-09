@@ -1,0 +1,654 @@
+diff --git a/crates/uor-r4-training/examples/m-world.rs b/crates/uor-r4-training/examples/m-world.rs
+index 524ad0419..b42518a6e 100644
+--- a/crates/uor-r4-training/examples/m-world.rs
++++ b/crates/uor-r4-training/examples/m-world.rs
+@@ -146,6 +146,16 @@
+ //!   line just before the query's own user turn instead, so that the question
+ //!   stays the last turn.
+ //!
++//! `device=cpu|cuda|metal` (`evaluate`, `evaluate-cells`, `probe` and
++//! `session`; default `cpu`, so a command without it is unchanged) runs the
++//! emitter's float forward passes there, and a session's op-model `trunk=`
++//! and `evaluate`'s `route_trunk=` with it. Compiler tables, the sieve, the
++//! exact store and judging stay on the CPU. `cuda` needs a `--features cuda`
++//! build (`metal`: `--features metal`); the card is ordinal 0 of
++//! CUDA_VISIBLE_DEVICES. There is no fallback, TF32 is off, and each report
++//! records the device. Greedy replies can differ from the CPU's where float
++//! reduction order changes an argmax, so compare a device change row by row.
++//!
+ //! A saved transport snap is restored; a saved served representation is
+ //! refused. Every root is claimed before anything is loaded and sealed at the
+ //! end. Set RAYON_NUM_THREADS to bound the threads.
+@@ -290,11 +300,61 @@ impl Selection {
+     }
+ }
+ 
++/// `device=cpu|cuda|metal` of the model-reading modes (`evaluate`,
++/// `evaluate-cells`, `probe`, `session`): where the emitter (and a session's
++/// op-model trunk, and `evaluate`'s `route_trunk=`) runs its float forward
++/// passes. The default is `cpu`, so a command without `device=` is unchanged.
++/// There is no implicit fallback: a device the build lacks (`cuda` needs
++/// `--features cuda`, `metal` needs `--features metal`) is refused while the
++/// arguments are parsed, before any report root is claimed. On CUDA, f32
++/// matmuls keep full precision (TF32 off); replies can still differ from CPU
++/// in float reduction order, so a device change is a recorded condition.
++#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
++enum EvalDevice {
++    #[default]
++    Cpu,
++    Cuda,
++    Metal,
++}
++
++impl EvalDevice {
++    fn parse(text: Option<&str>) -> Result<Self> {
++        match text {
++            None | Some("cpu") => Ok(Self::Cpu),
++            Some("cuda") => Ok(Self::Cuda),
++            Some("metal") => Ok(Self::Metal),
++            Some(other) => Err(invalid(format!(
++                "unknown device={other} (cpu, cuda or metal; no implicit fallback)"
++            ))),
++        }
++    }
++
++    fn name(self) -> &'static str {
++        match self {
++            Self::Cpu => "cpu",
++            Self::Cuda => "cuda",
++            Self::Metal => "metal",
++        }
++    }
++
++    /// Open the device (ordinal 0; select a CUDA card with
++    /// CUDA_VISIBLE_DEVICES). CUDA f32 matmuls are held at full precision.
++    fn open(self) -> Result<Device> {
++        let device = uor_r4_training::baseline_protocol::device(self.name())?;
++        candle_core::cuda::set_gemm_reduced_precision_f32(false);
++        Ok(device)
++    }
++}
++
+ struct Args {
+     pairs: BTreeMap<String, String>,
+     /// `select=` and `pointer_select=`, parsed with the arguments; empty when
+     /// neither was given (and always empty for a mode that does not allow them).
+     selection: Selection,
++    /// `device=` as given (default cpu) and the device it opened: parsed and
++    /// opened with the arguments, before any root is claimed.
++    device_name: EvalDevice,
++    device: Device,
+ }
+ 
+ impl Args {
+@@ -314,7 +374,23 @@ impl Args {
+             pairs.insert(key.to_owned(), value.to_owned());
+         }
+         let selection = Selection::parse(&pairs)?;
+-        Ok(Self { pairs, selection })
++        let device_name = EvalDevice::parse(pairs.get("device").map(String::as_str))?;
++        let device = device_name.open()?;
++        Ok(Self {
++            pairs,
++            selection,
++            device_name,
++            device,
++        })
++    }
++
++    /// The report record of where this run's float forward passes ran.
++    fn device_record(&self) -> Value {
++        json!({
++            "device": self.device_name.name(),
++            "tf32": false,
++            "cuda_visible_devices": std::env::var("CUDA_VISIBLE_DEVICES").ok(),
++        })
+     }
+ 
+     fn required(&self, key: &str) -> Result<String> {
+@@ -1594,7 +1670,7 @@ fn evaluate(args: &Args, out: &Path) -> Result<()> {
+     let encoder = protocol
+         .bind(&tokenizer)
+         .map_err(|e| invalid(format!("protocol: {e}")))?;
+-    let device = Device::Cpu;
++    let device = args.device.clone();
+     let (model, identity, selection_override) = load_model(&model_dir, &device, &args.selection)?;
+     let context = model.config.context;
+     let decode = |ids: &[u32]| tokenizer.decode(ids);
+@@ -1698,6 +1774,7 @@ fn evaluate(args: &Args, out: &Path) -> Result<()> {
+         "model": model_dir.display().to_string(),
+         "model_identity": identity,
+         "selection_override": selection_override,
++        "device": args.device_record(),
+         "tokenizer_sha256": sha256_file(&tokenizer_path)?,
+         "protocol_identity": protocol.identity().map_err(|e| invalid(format!("protocol: {e}")))?,
+         "dialogue_protocol": protocol.schema,
+@@ -1752,7 +1829,7 @@ fn evaluate_v2(args: &Args, out: &Path) -> Result<()> {
+     let encoder = protocol
+         .bind(&tokenizer)
+         .map_err(|e| invalid(format!("protocol: {e}")))?;
+-    let device = Device::Cpu;
++    let device = args.device.clone();
+     let (model, identity, selection_override) = load_model(&model_dir, &device, &args.selection)?;
+     let context = model.config.context;
+     let recall = recall_of(args)?;
+@@ -1952,6 +2029,7 @@ fn evaluate_v2(args: &Args, out: &Path) -> Result<()> {
+         "model": model_dir.display().to_string(),
+         "model_identity": identity,
+         "selection_override": selection_override,
++        "device": args.device_record(),
+         "tokenizer_sha256": sha256_file(&tokenizer_path)?,
+         "protocol_identity": protocol.identity().map_err(|e| invalid(format!("protocol: {e}")))?,
+         "split": split,
+@@ -2317,7 +2395,7 @@ fn evaluate_cells(args: &Args, out: &Path) -> Result<()> {
+     let encoder = protocol
+         .bind(&tokenizer)
+         .map_err(|e| invalid(format!("protocol: {e}")))?;
+-    let device = Device::Cpu;
++    let device = args.device.clone();
+     let (model, identity, selection_override) = open_model(&model_dir, &device, &args.selection)?;
+     let context = model.config.context;
+     let decode = |ids: &[u32]| tokenizer.decode(ids);
+@@ -2434,6 +2512,7 @@ fn evaluate_cells(args: &Args, out: &Path) -> Result<()> {
+         "model": model_dir.display().to_string(),
+         "model_identity": identity,
+         "selection_override": selection_override,
++        "device": args.device_record(),
+         "tokenizer_sha256": sha256_file(&tokenizer_path)?,
+         "protocol_identity": protocol.identity().map_err(|e| invalid(format!("protocol: {e}")))?,
+         "seed": seed,
+@@ -2997,7 +3076,7 @@ fn probe_evaluate(args: &Args, out: &Path) -> Result<()> {
+     let encoder = protocol
+         .bind(&tokenizer)
+         .map_err(|e| invalid(format!("protocol: {e}")))?;
+-    let device = Device::Cpu;
++    let device = args.device.clone();
+     let (model, identity, selection_override) = open_model(&model_dir, &device, &args.selection)?;
+     let context = model.config.context;
+     let decode = |ids: &[u32]| tokenizer.decode(ids);
+@@ -3093,6 +3172,7 @@ fn probe_evaluate(args: &Args, out: &Path) -> Result<()> {
+         "model": model_dir.display().to_string(),
+         "model_identity": identity,
+         "selection_override": selection_override,
++        "device": args.device_record(),
+         "tokenizer_sha256": sha256_file(&tokenizer_path)?,
+         "protocol_identity": protocol.identity().map_err(|e| invalid(format!("protocol: {e}")))?,
+         "history": "reference: the scored turn is answered after the item's own earlier replies",
+@@ -3850,6 +3930,10 @@ fn session(args: &Args, out: &Path) -> Result<()> {
+     if op_policy != OpPolicy::Op && trunk_directory.is_none() {
+         return Err(invalid("op_policy= needs the op model's trunk="));
+     }
++    // `device=`: the emitter and the op model's trunk run their forward passes
++    // there; the compiler's tables, the sieve and the exact store stay on the
++    // CPU (integer and table work, no tensors).
++    let device = args.device.clone();
+     // A combined compiler loads only with the trunk it binds; otherwise the
+     // artifact's own schema chooses the grounded compiler.
+     let load_compiler = || -> Result<GroundedCompiler> {
+@@ -3857,7 +3941,7 @@ fn session(args: &Args, out: &Path) -> Result<()> {
+             Some(directory) => Ok(GroundedCompiler::Legacy(
+                 SavedCompiler::load(
+                     compiler_bytes.clone(),
+-                    Some(Trunk::load(directory, &tokenizer_json, &Device::Cpu)?),
++                    Some(Trunk::load(directory, &tokenizer_json, &device)?),
+                 )?
+                 .with_op_policy(op_policy)?,
+             )),
+@@ -3865,7 +3949,6 @@ fn session(args: &Args, out: &Path) -> Result<()> {
+         }
+     };
+     let compiler = load_compiler()?;
+-    let device = Device::Cpu;
+     // The emitter as a sealed inference checkpoint with an empty store. Its
+     // data identities are the training report's recorded inputs, bound by
+     // the report's sealed manifest.
+@@ -3912,8 +3995,13 @@ fn session(args: &Args, out: &Path) -> Result<()> {
+         sealed_manifest_sha256(&model_root).map_err(|e| invalid(e.to_string()))?,
+     )
+     .map_err(|e| invalid(e.to_string()))?;
+-    let (model, model_identity, _) =
+-        load_model(&model_root.join("model"), &device, &Selection::default())?;
++    // Read on the CPU only to write the checkpoint; each session loads that
++    // checkpoint onto `device`.
++    let (model, model_identity, _) = load_model(
++        &model_root.join("model"),
++        &Device::Cpu,
++        &Selection::default(),
++    )?;
+     let checkpoint = out.join("checkpoint");
+     let store = StackStore::new(1, 8).map_err(|e| invalid(e.to_string()))?;
+     save_checkpoint(&checkpoint, &model, &identity, Some(&store))
+@@ -4153,6 +4241,12 @@ fn session(args: &Args, out: &Path) -> Result<()> {
+         "log_recall": args.optional("log_recall").unwrap_or_else(|| "off".into()),
+         "dialogue_protocol_version": protocol_version,
+         "tokenizer_sha256": sha256_file(&tokenizer_path)?,
++        "device": args.device_record(),
++        "device_placement": {
++            "emitter": args.device_name.name(),
++            "op_model_trunk": trunk_directory.as_ref().map(|_| args.device_name.name()),
++            "cpu": "the compiler's saved tables and op policy, the log sieve, the exact store, checkpoint writing and judging",
++        },
+         "limits": limits,
+         "scope": "MQAR keys have no channel in the one-entity session: MQAR turns compile to unresolved and are scored without recall",
+         "arms": arm_reports,
+@@ -4595,6 +4689,7 @@ fn run_v2_extras(mode: &str, rest: &[String]) -> Option<Result<()>> {
+         "select",
+         "pointer_select",
+         "pointer_route",
++        "device",
+         "mqar_share",
+         "copy_share",
+         "relation_share",
+@@ -4621,6 +4716,7 @@ fn run_v2_extras(mode: &str, rest: &[String]) -> Option<Result<()>> {
+         "select",
+         "pointer_select",
+         "pointer_route",
++        "device",
+     ];
+     let static_probe: &[&str] = &["out", "tokenizer", "context"];
+     let relation_compiler: &[&str] = &[
+@@ -4678,6 +4774,7 @@ fn run_v2_extras(mode: &str, rest: &[String]) -> Option<Result<()>> {
+         "log_recall",
+         "panel",
+         "panel_expected",
++        "device",
+     ];
+     match mode {
+         "compiler" => Some(claimed(rest, relation_compiler, compiler)),
+@@ -4765,6 +4862,7 @@ fn main() -> Result<()> {
+                 "route_acts",
+                 "route_trunk",
+                 "protocol",
++                "device",
+             ],
+         )?,
+         "rejudge" => Args::parse(rest, &["out", "report", "tokenizer"])?,
+@@ -4916,6 +5014,39 @@ mod tests {
+         assert!(parse(&["out=r", "select=none"], &["out", "tokenizer"]).is_err());
+     }
+ 
++    /// `device=` defaults to the CPU (every earlier command is unchanged), is
++    /// one of three names, is refused for a mode that does not take it, and
++    /// is refused (not silently replaced) when the build lacks it.
++    #[test]
++    fn the_device_defaults_to_the_cpu_and_never_falls_back() {
++        let keys = ["out", "device"];
++        let absent = parse(&["out=r"], &keys).expect("no device");
++        assert_eq!(absent.device_name, EvalDevice::Cpu);
++        assert!(absent.device.is_cpu());
++        assert_eq!(absent.device_record()["device"], json!("cpu"));
++        assert_eq!(absent.device_record()["tf32"], json!(false));
++        let cpu = parse(&["out=r", "device=cpu"], &keys).expect("cpu");
++        assert_eq!(cpu.device_name, EvalDevice::Cpu);
++        assert!(cpu.device.is_cpu());
++        for bad in ["device=gpu", "device=CUDA", "device=", "device=cuda:1"] {
++            assert!(parse(&["out=r", bad], &keys).is_err(), "{bad}");
++        }
++        assert_eq!(
++            EvalDevice::parse(Some("cuda")).expect("cuda"),
++            EvalDevice::Cuda
++        );
++        assert_eq!(
++            EvalDevice::parse(Some("metal")).expect("metal"),
++            EvalDevice::Metal
++        );
++        #[cfg(not(feature = "cuda"))]
++        assert!(parse(&["out=r", "device=cuda"], &keys).is_err());
++        #[cfg(not(feature = "metal"))]
++        assert!(parse(&["out=r", "device=metal"], &keys).is_err());
++        // A mode that does not take it refuses it as an unknown argument.
++        assert!(parse(&["out=r", "device=cpu"], &["out"]).is_err());
++    }
++
+     #[test]
+     fn the_protocol_version_is_one_or_two() {
+         let keys = ["out", "protocol"];
+diff --git a/crates/uor-r4-training/src/bin/chat-grade.rs b/crates/uor-r4-training/src/bin/chat-grade.rs
+index 705dea59c..19e1fc87a 100644
+--- a/crates/uor-r4-training/src/bin/chat-grade.rs
++++ b/crates/uor-r4-training/src/bin/chat-grade.rs
+@@ -7,9 +7,9 @@
+ //!   [count=48] [max_words=24] [seed=1]
+ //! chat-grade grade out=NEW_REPORT_ROOT model=ROOT/model tokenizer=T.json \
+ //!   requests=PANEL.json[,MORE.json] [protocol=2] [max_new_tokens=64] \
+-//!   [grader=qwen2.5:1.5b] [ollama_url=http://127.0.0.1:11434]
++//!   [grader=qwen2.5:1.5b] [ollama_url=http://127.0.0.1:11434] [device=cpu|cuda|metal]
+ //! chat-grade reply out=NEW_REPORT_ROOT model=ROOT/model tokenizer=T.json \
+-//!   requests=PANEL.json[,MORE.json] [protocol=2] [max_new_tokens=64]
++//!   requests=PANEL.json[,MORE.json] [protocol=2] [max_new_tokens=64] [device=cpu|cuda|metal]
+ //! chat-grade grade-replies out=NEW_REPORT_ROOT replies=REPLIES.json \
+ //!   [grader=qwen2.5:1.5b] [ollama_url=http://127.0.0.1:11434]
+ //! ```
+@@ -31,6 +31,14 @@
+ //! the `reply_panel` record with each reply's generated ids, seconds and ids
+ //! per second), so a served integer artifact's replies (`geometric-stack
+ //! lut-chat`) can be compared with the float model's id for id.
++//!
++//! `device=` (`grade` and `reply`; default `cpu`, so a command without it is
++//! unchanged) is where the stack model generates its replies; the grader and
++//! everything else stay where they were. `cuda` needs a `--features cuda`
++//! build (ordinal 0 of CUDA_VISIBLE_DEVICES), `metal` a `--features metal`
++//! one; there is no fallback and TF32 is off. The device is opened before
++//! the report root is claimed and recorded in the report. Greedy replies can
++//! differ from the CPU's where float reduction order changes an argmax.
+ 
+ #![forbid(unsafe_code)]
+ 
+@@ -40,6 +48,7 @@ use std::path::{Path, PathBuf};
+ use std::process::ExitCode;
+ use std::time::Instant;
+ 
++use candle_core::Device;
+ use serde_json::{json, Value};
+ use uor_r4_core::native_geometric::mmap_corpus::MmapCorpusReader;
+ use uor_r4_core::report_output;
+@@ -93,6 +102,35 @@ impl Args {
+             Some(v) => v.parse().map_err(|_| format!("invalid {key}={v}").into()),
+         }
+     }
++
++    /// `device=cpu|cuda|metal` (default cpu): its name and the opened device.
++    fn device(&self) -> Result<(&'static str, Device), Error> {
++        let name = device_name(self.0.get("device").map(String::as_str))?;
++        let device = uor_r4_training::baseline_protocol::device(name)?;
++        candle_core::cuda::set_gemm_reduced_precision_f32(false);
++        Ok((name, device))
++    }
++}
++
++/// The name of `device=`, default `cpu`; anything else is refused.
++fn device_name(given: Option<&str>) -> Result<&'static str, Error> {
++    match given {
++        None | Some("cpu") => Ok("cpu"),
++        Some("cuda") => Ok("cuda"),
++        Some("metal") => Ok("metal"),
++        Some(other) => {
++            Err(format!("unknown device={other} (cpu, cuda or metal; no implicit fallback)").into())
++        }
++    }
++}
++
++/// The report record of where the replies were generated.
++fn device_record(name: &str) -> Value {
++    json!({
++        "device": name,
++        "tf32": false,
++        "cuda_visible_devices": std::env::var("CUDA_VISIBLE_DEVICES").ok(),
++    })
+ }
+ 
+ fn run() -> Result<(), Error> {
+@@ -411,6 +449,7 @@ fn grade(arguments: &[String]) -> Result<(), Error> {
+             "max_new_tokens",
+             "grader",
+             "ollama_url",
++            "device",
+         ],
+     )?;
+     let out = PathBuf::from(args.required("out")?);
+@@ -423,6 +462,7 @@ fn grade(arguments: &[String]) -> Result<(), Error> {
+         .collect();
+     let version: u8 = args.number("protocol", 2)?;
+     let max_new_tokens: usize = args.number("max_new_tokens", 64)?;
++    let device = args.device()?;
+     let grader = Grader {
+         url: args
+             .0
+@@ -443,6 +483,7 @@ fn grade(arguments: &[String]) -> Result<(), Error> {
+         &request_paths,
+         version,
+         max_new_tokens,
++        &device,
+         &grader,
+         started,
+     );
+@@ -475,6 +516,7 @@ fn answer(
+     request_paths: &[PathBuf],
+     version: u8,
+     max_new_tokens: usize,
++    device: &Device,
+ ) -> Result<Answered, Error> {
+     let tokenizer = load_tokenizer(tokenizer_path)?;
+     let protocol = DialogueProtocol::literal_roles_version(&tokenizer, version)?;
+@@ -483,7 +525,7 @@ fn answer(
+     for path in request_paths {
+         requests.extend(load_requests(path)?);
+     }
+-    let model = StackModel::load(model_dir, &candle_core::Device::Cpu)?;
++    let model = StackModel::load(model_dir, device)?;
+     let mut costs = Vec::new();
+     let clock = Instant::now();
+     let mut panel = reply_panel(
+@@ -526,6 +568,7 @@ fn reply(arguments: &[String]) -> Result<(), Error> {
+             "requests",
+             "protocol",
+             "max_new_tokens",
++            "device",
+         ],
+     )?;
+     let out = PathBuf::from(args.required("out")?);
+@@ -538,6 +581,7 @@ fn reply(arguments: &[String]) -> Result<(), Error> {
+         .collect();
+     let version: u8 = args.number("protocol", 2)?;
+     let max_new_tokens: usize = args.number("max_new_tokens", 64)?;
++    let (device_label, device) = args.device()?;
+     report_output::claim(&out)?;
+     let result = (|| -> Result<(), Error> {
+         let answered = answer(
+@@ -546,6 +590,7 @@ fn reply(arguments: &[String]) -> Result<(), Error> {
+             &request_paths,
+             version,
+             max_new_tokens,
++            &device,
+         )?;
+         let report = json!({
+             "schema": "uor-r4.chat-grade-reply/1",
+@@ -557,6 +602,7 @@ fn reply(arguments: &[String]) -> Result<(), Error> {
+             "requests": request_paths.iter().map(|p| json!({"path": p.display().to_string(), "sha256": sha256_file(p).ok()})).collect::<Vec<_>>(),
+             "max_new_tokens": max_new_tokens,
+             "decoding": "greedy over the float model's next-token scores (a pointer model's mixture), ties to the lower id; each step recomputes the whole window",
++            "device": device_record(device_label),
+             "panel": answered.panel,
+             "generation_seconds": answered.generation_seconds,
+             "executable_sha256": sha256_file(&std::env::current_exe()?)?,
+@@ -592,6 +638,7 @@ fn grade_into(
+     request_paths: &[PathBuf],
+     version: u8,
+     max_new_tokens: usize,
++    (device_label, device): &(&'static str, Device),
+     grader: &Grader,
+     started: Instant,
+ ) -> Result<(), Error> {
+@@ -607,6 +654,7 @@ fn grade_into(
+         request_paths,
+         version,
+         max_new_tokens,
++        device,
+     )?;
+     let judged = judge_panel(&panel, grader)?;
+     let report = json!({
+@@ -619,6 +667,7 @@ fn grade_into(
+         "requests": request_paths.iter().map(|p| json!({"path": p.display().to_string(), "sha256": sha256_file(p).ok()})).collect::<Vec<_>>(),
+         "max_new_tokens": max_new_tokens,
+         "decoding": "greedy",
++        "device": device_record(device_label),
+         "grader": {
+             "engine": "ollama (local)", "model": grader.model, "digest": grader.digest()?,
+             "role": "offline judge only; it never serves", "temperature": 0, "seed": 1,
+@@ -830,4 +879,33 @@ mod tests {
+         );
+         assert_eq!(first_user_turn("Assistant: Hi"), None);
+     }
++
++    /// `device=` defaults to the CPU, takes three names and never falls back.
++    #[test]
++    fn the_device_defaults_to_the_cpu_and_never_falls_back() {
++        assert_eq!(device_name(None).expect("default"), "cpu");
++        assert_eq!(device_name(Some("cpu")).expect("cpu"), "cpu");
++        assert_eq!(device_name(Some("cuda")).expect("cuda"), "cuda");
++        assert_eq!(device_name(Some("metal")).expect("metal"), "metal");
++        for bad in ["gpu", "CUDA", "", "cuda:1"] {
++            assert!(device_name(Some(bad)).is_err(), "{bad}");
++        }
++        let keys = ["out", "device"];
++        let args = |given: &[&str]| {
++            Args::parse(
++                &given.iter().map(|s| (*s).to_owned()).collect::<Vec<_>>(),
++                &keys,
++            )
++            .expect("arguments")
++        };
++        let (name, device) = args(&["out=r"]).device().expect("cpu by default");
++        assert_eq!(name, "cpu");
++        assert!(device.is_cpu());
++        assert!(args(&["out=r", "device=gpu"]).device().is_err());
++        #[cfg(not(feature = "cuda"))]
++        assert!(args(&["out=r", "device=cuda"]).device().is_err());
++        assert_eq!(device_record("cpu")["tf32"], json!(false));
++        // A mode's key list without `device` refuses it.
++        assert!(Args::parse(&["device=cpu".to_owned()], &["out"]).is_err());
++    }
+ }
+diff --git a/scripts/pod/run-sessions-parallel.sh b/scripts/pod/run-sessions-parallel.sh
+new file mode 100755
+index 000000000..e566370b0
+--- /dev/null
++++ b/scripts/pod/run-sessions-parallel.sh
+@@ -0,0 +1,137 @@
++#!/usr/bin/env bash
++# D19 grounded sessions (`m-world session`, world v2) for several models at once
++# (#820): for each MODEL_ROOT (a dialogue-train report root holding report.json
++# and model/), one sieve-on and one sieve-off session, run concurrently under a
++# fixed CPU-thread budget and, with DEVICE=cuda, spread over the listed GPUs.
++#
++#   scripts/pod/run-sessions-parallel.sh MODEL_ROOT [MODEL_ROOT...]
++#
++# Each session claims its own new report root, which m-world seals and verifies
++# at the end (report_output::claim/seal/verify). A sealed root is skipped; an
++# existing unsealed one stops the script before anything starts (inspect it,
++# then use a NEW OUT). A finished root without manifest.json is a failure.
++#
++# Environment (defaults in brackets):
++#   MWORLD     m-world binary; built with --features cuda for DEVICE=cuda
++#              [/root/target-evalgpu/release/examples/m-world]
++#   T          tokenizer.json [/root/data/tokenizer.json]
++#   COMPILER   saved compiler [/root/data/sieve/compiler-save-op-v25-rawtable/compiler.json]
++#   TRUNK      op-model trunk [/root/data/sieve/op-model-v25/model]; empty: no trunk=
++#   OP_POLICY  [unless_query] (needs TRUNK)
++#   OUT        directory for the new roots [/root/runs/sessions]
++#   TAG        suffix of each root name [the device]: OUT/session-RECALL-NAME-TAG
++#   RECALLS    [sieve off]
++#   DEVICE     cpu|cuda|metal [cpu]
++#   GPUS       CUDA ordinals to round-robin when DEVICE=cuda [0]
++#   THREADS    total CPU threads for all sessions together [8]
++#   JOBS       sessions at once [number of sessions, at most THREADS]
++#   CONVERSATIONS [300]  SEED [9101]  MAX_NEW_TOKENS [64]  ARMS [default]  RELOAD [0]
++#   EXTRA      further key=value arguments for every session []
++#
++# Each job gets max(1, THREADS / JOBS) threads (RAYON_NUM_THREADS, and the
++# BLAS/OpenMP variables). Logs go to ROOT.log; a summary line per root to
++# OUT/sessions-parallel.log. The exit status is non-zero if any session failed.
++set -euo pipefail
++
++if [ $# -lt 1 ]; then
++  sed -n '2,32p' "$0" >&2
++  exit 2
++fi
++
++MWORLD=${MWORLD:-/root/target-evalgpu/release/examples/m-world}
++T=${T:-/root/data/tokenizer.json}
++COMPILER=${COMPILER:-/root/data/sieve/compiler-save-op-v25-rawtable/compiler.json}
++TRUNK=${TRUNK-/root/data/sieve/op-model-v25/model}
++OP_POLICY=${OP_POLICY:-unless_query}
++OUT=${OUT:-/root/runs/sessions}
++DEVICE=${DEVICE:-cpu}
++TAG=${TAG:-$DEVICE}
++read -r -a RECALL_LIST <<< "${RECALLS:-sieve off}"
++read -r -a GPU_LIST <<< "$(echo "${GPUS:-0}" | tr ',' ' ')"
++THREADS=${THREADS:-8}
++CONVERSATIONS=${CONVERSATIONS:-300}
++SEED=${SEED:-9101}
++MAX_NEW_TOKENS=${MAX_NEW_TOKENS:-64}
++ARMS=${ARMS:-default}
++RELOAD=${RELOAD:-0}
++read -r -a EXTRA_ARGS <<< "${EXTRA:-}"
++
++case $DEVICE in cpu|cuda|metal) ;; *) echo "DEVICE must be cpu, cuda or metal" >&2; exit 2 ;; esac
++[ -x "$MWORLD" ] || { echo "no m-world binary at $MWORLD" >&2; exit 2; }
++for file in "$T" "$COMPILER"; do [ -f "$file" ] || { echo "missing $file" >&2; exit 2; }; done
++TRUNK_ARGS=()
++if [ -n "$TRUNK" ]; then
++  [ -d "$TRUNK" ] || { echo "missing trunk $TRUNK" >&2; exit 2; }
++  TRUNK_ARGS=("trunk=$TRUNK" "op_policy=$OP_POLICY")
++fi
++mkdir -p "$OUT"
++log() { echo "$(date -u +%FT%TZ) $*" | tee -a "$OUT/sessions-parallel.log"; }
++
++# The planned sessions: "MODEL_ROOT RECALL ROOT" per line; sealed roots are skipped.
++PLAN=()
++for model_root in "$@"; do
++  [ -f "$model_root/report.json" ] && [ -d "$model_root/model" ] ||
++    { echo "$model_root is not a dialogue-train root (report.json and model/)" >&2; exit 2; }
++  name=$(basename "$model_root")
++  for recall in "${RECALL_LIST[@]}"; do
++    root=$OUT/session-$recall-$name-$TAG
++    if [ -f "$root/manifest.json" ]; then log "skip $root (sealed)"; continue; fi
++    if [ -e "$root" ]; then
++      echo "$root exists but is not sealed: inspect it, then use a new OUT or TAG" >&2
++      exit 1
++    fi
++    PLAN+=("$model_root $recall $root")
++  done
++done
++if [ ${#PLAN[@]} -eq 0 ]; then log "nothing to run"; exit 0; fi
++
++JOBS=${JOBS:-${#PLAN[@]}}
++[ "$JOBS" -gt "$THREADS" ] && JOBS=$THREADS
++[ "$JOBS" -lt 1 ] && JOBS=1
++PER_JOB=$(( THREADS / JOBS ))
++[ "$PER_JOB" -lt 1 ] && PER_JOB=1
++log "plan ${#PLAN[@]} sessions, $JOBS at once, $PER_JOB threads each, device=$DEVICE gpus=${GPU_LIST[*]} conversations=$CONVERSATIONS"
++
++run_one() {  # run_one MODEL_ROOT RECALL ROOT GPU
++  local model_root=$1 recall=$2 root=$3 gpu=$4 started status
++  started=$(date +%s)
++  set +e
++  CUDA_VISIBLE_DEVICES=$gpu RAYON_NUM_THREADS=$PER_JOB OMP_NUM_THREADS=$PER_JOB \
++    OPENBLAS_NUM_THREADS=$PER_JOB MKL_NUM_THREADS=$PER_JOB VECLIB_MAXIMUM_THREADS=$PER_JOB \
++    "$MWORLD" session out="$root" world=v2 model_root="$model_root" tokenizer="$T" \
++    compiler="$COMPILER" ${TRUNK_ARGS[@]+"${TRUNK_ARGS[@]}"} log_recall="$recall" \
++    conversations="$CONVERSATIONS" seed="$SEED" max_new_tokens="$MAX_NEW_TOKENS" \
++    arms="$ARMS" reload="$RELOAD" device="$DEVICE" ${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"} \
++    > "$root.log" 2>&1
++  status=$?
++  set -e
++  local seconds=$(( $(date +%s) - started ))
++  if [ $status -ne 0 ] || [ ! -f "$root/manifest.json" ]; then
++    log "FAILED $root (exit $status, ${seconds}s; see $root.log)"
++    return 1
++  fi
++  log "sealed $root (${seconds}s, gpu ${gpu}) $(grep -m1 '^arm default' "$root.log" || true)"
++}
++
++failures=0
++index=0
++running=0
++for entry in "${PLAN[@]}"; do
++  read -r model_root recall root <<< "$entry"
++  gpu=${GPU_LIST[$(( index % ${#GPU_LIST[@]} ))]}
++  if [ "$DEVICE" != cuda ]; then gpu=""; fi
++  index=$(( index + 1 ))
++  log "start $root (model $model_root, recall $recall${gpu:+, gpu $gpu})"
++  run_one "$model_root" "$recall" "$root" "$gpu" &
++  running=$(( running + 1 ))
++  if [ "$running" -ge "$JOBS" ]; then
++    wait -n || failures=$(( failures + 1 ))
++    running=$(( running - 1 ))
++  fi
++done
++while [ "$running" -gt 0 ]; do
++  wait -n || failures=$(( failures + 1 ))
++  running=$(( running - 1 ))
++done
++log "done: ${#PLAN[@]} sessions, $failures failed"
++[ "$failures" -eq 0 ]

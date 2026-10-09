@@ -1,0 +1,1702 @@
+diff --git a/Cargo.lock b/Cargo.lock
+index 4b1aaa03d..44cc5f7af 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -3136,6 +3136,7 @@ version = "0.1.0"
+ dependencies = [
+  "blake3",
+  "hex",
++ "rayon",
+  "serde",
+  "serde_json",
+  "sha2",
+diff --git a/crates/uor-r4-integer/Cargo.toml b/crates/uor-r4-integer/Cargo.toml
+index 26a8acb5f..d7e892ed3 100644
+--- a/crates/uor-r4-integer/Cargo.toml
++++ b/crates/uor-r4-integer/Cargo.toml
+@@ -11,6 +11,7 @@ serde_json = "1.0"
+ sha2 = "0.10.8"
+ hex = "0.4.3"
+ blake3 = "=1.5.0"
++rayon = "1.10"
+ 
+ uor-r4-tokenizer = { path = "../uor-r4-tokenizer" }
+ 
+diff --git a/crates/uor-r4-integer/src/stack/kernels.rs b/crates/uor-r4-integer/src/stack/kernels.rs
+index 09c85d19c..73b888f8b 100644
+--- a/crates/uor-r4-integer/src/stack/kernels.rs
++++ b/crates/uor-r4-integer/src/stack/kernels.rs
+@@ -98,16 +98,19 @@ fn bit_length(value: u64) -> i32 {
+ }
+ 
+ /// `(16 + m) a` by shifts and additions (`m < 16`), wrapping as the D10
+-/// engine's release build.
++/// engine's release build: `((((2 a + m_3 a) 2 + m_2 a) 2 + m_1 a) 2 + m_0 a`
++/// over the bits `m_k` of `m`. Each bit selects `a` through a mask (`0` or
++/// all ones) rather than a branch: a group scale is data, and a branch on its
++/// bits is mispredicted about twice per weight group. The chain of shifts
++/// keeps the four terms dependent, so the vectorizer does not move them into
++/// SIMD registers (whose transfer back the R1 audit refuses).
+ #[inline(always)]
+ pub(crate) fn scale_16_plus(a: i64, m: u8) -> i64 {
+-    let mut t = a << 4;
+-    for bit in 0..4 {
+-        if m & (1 << bit) != 0 {
+-            t = t.wrapping_add(a << bit);
+-        }
+-    }
+-    t
++    let select = |bit: u32| a & i64::from((m >> bit) & 1).wrapping_neg();
++    let t = (a << 1).wrapping_add(select(3));
++    let t = (t << 1).wrapping_add(select(2));
++    let t = (t << 1).wrapping_add(select(1));
++    (t << 1).wrapping_add(select(0))
+ }
+ 
+ /// Whether `code` is a grid code: zero, or `|code| = (e + 64) << 4 | m` with
+@@ -544,31 +547,55 @@ pub(crate) struct PackedMatrix {
+     pub min_de: Vec<u8>,
+ }
+ 
+-/// `out[r] = sum_c W[r][c] x[c]` at the residual exponent, for `x` given by
+-/// its activation tables (built from the 16-bit vector at exponent `x_exp`).
+-/// Per weight: one table read and one addition; per group of 32: the scale
++/// Byte offsets of row `row`'s nibbles and group scales in a map with
++/// `row_bytes` nibble bytes per row (16 per group of 32 weights, one scale
++/// byte per group): a digit-table product, so that a row range starts
++/// without a multiplier instruction.
++#[inline(always)]
++fn row_offsets(row: usize, row_bytes: usize) -> (usize, usize) {
++    if row == 0 {
++        return (0, 0);
++    }
++    let nibble_at = stack_mul_u64(row as u64, row_bytes as u64) as usize;
++    (nibble_at, nibble_at >> 4)
++}
++
++/// `out[r] = sum_c W[r][c] x[c]` at the residual exponent for the rows
++/// `first_row..first_row + out.len()`, for `x` given by its activation
++/// tables (built from the 16-bit vector at exponent `x_exp`). Per weight: one
++/// table read and one addition; per group of 32: the scale
+ /// `(16 + m) 2^(de - de_min)` by shifts and additions. The group sums and the
+-/// row accumulator are the D10 kernel's exact integers.
++/// row accumulator are the D10 kernel's exact integers. A row range lets
++/// disjoint ranges of one map run on different threads.
+ /// The loader's shape checks make every size agree, so the early returns are
+ /// unreachable: a debug build asserts, a release build returns rather than
+ /// read out of bounds.
+ #[inline(never)]
+-pub(crate) fn stack_gemv(m: &PackedMatrix, tables: &[[i32; 16]], x_exp: i32, out: &mut [i32]) {
++pub(crate) fn stack_gemv(
++    m: &PackedMatrix,
++    tables: &[[i32; 16]],
++    x_exp: i32,
++    first_row: usize,
++    out: &mut [i32],
++) {
+     let row_bytes = m.cols >> 1;
+     let groups = m.cols >> 5;
+     debug_assert!(
+-        out.len() == m.rows && m.min_de.len() == m.rows && tables.len() >= m.cols,
+-        "stack_gemv: {} outputs and {} activation tables for a {}x{} map",
++        first_row + out.len() <= m.rows && m.min_de.len() == m.rows && tables.len() >= m.cols,
++        "stack_gemv: rows {first_row}.. ({} outputs) and {} activation tables for a {}x{} map",
+         out.len(),
+         tables.len(),
+         m.rows,
+         m.cols
+     );
+-    let Some(tables) = tables.get(..m.cols) else {
++    let (Some(tables), Some(min_de)) = (
++        tables.get(..m.cols),
++        m.min_de.get(first_row..first_row + out.len()),
++    ) else {
+         return;
+     };
+-    let (mut nibble_at, mut scale_at) = (0usize, 0usize);
+-    for (slot, &min_de) in out.iter_mut().zip(&m.min_de).take(m.rows) {
++    let (mut nibble_at, mut scale_at) = row_offsets(first_row, row_bytes);
++    for (slot, &min_de) in out.iter_mut().zip(min_de) {
+         let (row, scales) = (
+             m.nibbles.get(nibble_at..nibble_at + row_bytes),
+             m.scales.get(scale_at..scale_at + groups),
+@@ -638,31 +665,38 @@ pub(crate) fn stack_pair_tables(tables: &[[i32; 16]], pairs: &mut [[i32; 256]])
+ }
+ 
+ /// [`stack_gemv`] reading pair tables ([`stack_pair_tables`]): one table
+-/// read and one addition per weight byte, that is per two weights. The group
+-/// sums, and so the outputs, are the same integers. The early returns are
+-/// unreachable after loading, as in [`stack_gemv`].
++/// read and one addition per weight byte, that is per two weights, for the
++/// rows `first_row..first_row + out.len()` of the map. The group sums, and so
++/// the outputs, are the same integers. A row range lets disjoint ranges of
++/// one map run on different threads; its starting byte offsets are
++/// digit-table products. The early returns are unreachable after loading, as
++/// in [`stack_gemv`].
+ #[inline(never)]
+ pub(crate) fn stack_gemv_pairs(
+     m: &PackedMatrix,
+     pairs: &[[i32; 256]],
+     x_exp: i32,
++    first_row: usize,
+     out: &mut [i32],
+ ) {
+     let row_bytes = m.cols >> 1;
+     let groups = m.cols >> 5;
+     debug_assert!(
+-        out.len() == m.rows && m.min_de.len() == m.rows && pairs.len() >= row_bytes,
+-        "stack_gemv_pairs: {} outputs and {} pair tables for a {}x{} map",
++        first_row + out.len() <= m.rows && m.min_de.len() == m.rows && pairs.len() >= row_bytes,
++        "stack_gemv_pairs: rows {first_row}.. ({} outputs) and {} pair tables for a {}x{} map",
+         out.len(),
+         pairs.len(),
+         m.rows,
+         m.cols
+     );
+-    let Some(pairs) = pairs.get(..row_bytes) else {
++    let (Some(pairs), Some(min_de)) = (
++        pairs.get(..row_bytes),
++        m.min_de.get(first_row..first_row + out.len()),
++    ) else {
+         return;
+     };
+-    let (mut nibble_at, mut scale_at) = (0usize, 0usize);
+-    for (slot, &min_de) in out.iter_mut().zip(&m.min_de).take(m.rows) {
++    let (mut nibble_at, mut scale_at) = row_offsets(first_row, row_bytes);
++    for (slot, &min_de) in out.iter_mut().zip(min_de) {
+         let (row, scales) = (
+             m.nibbles.get(nibble_at..nibble_at + row_bytes),
+             m.scales.get(scale_at..scale_at + groups),
+@@ -705,172 +739,6 @@ pub(crate) fn stack_gemv_pairs(
+     }
+ }
+ 
+-/// [`stack_gemv_pairs`] unrolled across 4 adjacent matrix rows.
+-///
+-/// Groups 4 adjacent rows to share each 1 KB pair table reference across 4 row activations
+-/// (locality hypothesis for pair table cache reuse; unmeasured cache traffic reduction in serving),
+-/// producing bit-for-bit identical outputs to [`stack_gemv_pairs`].
+-#[allow(dead_code)]
+-#[inline(never)]
+-pub(crate) fn stack_gemv_pairs_blocked4(
+-    m: &PackedMatrix,
+-    pairs: &[[i32; 256]],
+-    x_exp: i32,
+-    out: &mut [i32],
+-) {
+-    let row_bytes = m.cols >> 1;
+-    let groups = m.cols >> 5;
+-    debug_assert!(
+-        out.len() == m.rows && m.min_de.len() == m.rows && pairs.len() >= row_bytes,
+-        "stack_gemv_pairs_blocked4: {} outputs and {} pair tables for a {}x{} map",
+-        out.len(),
+-        pairs.len(),
+-        m.rows,
+-        m.cols
+-    );
+-    let Some(pairs) = pairs.get(..row_bytes) else {
+-        return;
+-    };
+-
+-    let full_blocks = m.rows / 4;
+-    let mut row_offset = 0usize;
+-    let mut scale_offset = 0usize;
+-
+-    for b in 0..full_blocks {
+-        let r0 = b * 4;
+-        let r1 = r0 + 1;
+-        let r2 = r0 + 2;
+-        let r3 = r0 + 3;
+-
+-        let b0_start = row_offset;
+-        let b1_start = b0_start + row_bytes;
+-        let b2_start = b1_start + row_bytes;
+-        let b3_start = b2_start + row_bytes;
+-
+-        let s0_start = scale_offset;
+-        let s1_start = s0_start + groups;
+-        let s2_start = s1_start + groups;
+-        let s3_start = s2_start + groups;
+-
+-        let (Some(b0), Some(b1), Some(b2), Some(b3)) = (
+-            m.nibbles.get(b0_start..b0_start + row_bytes),
+-            m.nibbles.get(b1_start..b1_start + row_bytes),
+-            m.nibbles.get(b2_start..b2_start + row_bytes),
+-            m.nibbles.get(b3_start..b3_start + row_bytes),
+-        ) else {
+-            return;
+-        };
+-
+-        let (Some(s0), Some(s1), Some(s2), Some(s3)) = (
+-            m.scales.get(s0_start..s0_start + groups),
+-            m.scales.get(s1_start..s1_start + groups),
+-            m.scales.get(s2_start..s2_start + groups),
+-            m.scales.get(s3_start..s3_start + groups),
+-        ) else {
+-            return;
+-        };
+-
+-        let min_de0 = m.min_de[r0];
+-        let min_de1 = m.min_de[r1];
+-        let min_de2 = m.min_de[r2];
+-        let min_de3 = m.min_de[r3];
+-
+-        let mut acc0 = 0i64;
+-        let mut acc1 = 0i64;
+-        let mut acc2 = 0i64;
+-        let mut acc3 = 0i64;
+-
+-        for g in 0..groups {
+-            let chunk_bytes = g * 16;
+-            let chunk_tables = g * 16;
+-
+-            let tables = &pairs[chunk_tables..chunk_tables + 16];
+-            let g_b0 = &b0[chunk_bytes..chunk_bytes + 16];
+-            let g_b1 = &b1[chunk_bytes..chunk_bytes + 16];
+-            let g_b2 = &b2[chunk_bytes..chunk_bytes + 16];
+-            let g_b3 = &b3[chunk_bytes..chunk_bytes + 16];
+-
+-            let mut sum0 = 0i32;
+-            let mut sum1 = 0i32;
+-            let mut sum2 = 0i32;
+-            let mut sum3 = 0i32;
+-
+-            for i in 0..16 {
+-                let t = &tables[i];
+-                sum0 = sum0.wrapping_add(t[usize::from(g_b0[i])]);
+-                sum1 = sum1.wrapping_add(t[usize::from(g_b1[i])]);
+-                sum2 = sum2.wrapping_add(t[usize::from(g_b2[i])]);
+-                sum3 = sum3.wrapping_add(t[usize::from(g_b3[i])]);
+-            }
+-
+-            let sc0 = s0[g];
+-            let sc1 = s1[g];
+-            let sc2 = s2[g];
+-            let sc3 = s3[g];
+-
+-            acc0 = acc0
+-                .wrapping_add(scale_16_plus(i64::from(sum0), sc0 & 15) << ((sc0 >> 4) - min_de0));
+-            acc1 = acc1
+-                .wrapping_add(scale_16_plus(i64::from(sum1), sc1 & 15) << ((sc1 >> 4) - min_de1));
+-            acc2 = acc2
+-                .wrapping_add(scale_16_plus(i64::from(sum2), sc2 & 15) << ((sc2 >> 4) - min_de2));
+-            acc3 = acc3
+-                .wrapping_add(scale_16_plus(i64::from(sum3), sc3 & 15) << ((sc3 >> 4) - min_de3));
+-        }
+-
+-        out[r0] = to_exp_i32(
+-            acc0,
+-            m.exp_base + i32::from(min_de0) - 4 + x_exp,
+-            RESIDUAL_EXP,
+-        );
+-        out[r1] = to_exp_i32(
+-            acc1,
+-            m.exp_base + i32::from(min_de1) - 4 + x_exp,
+-            RESIDUAL_EXP,
+-        );
+-        out[r2] = to_exp_i32(
+-            acc2,
+-            m.exp_base + i32::from(min_de2) - 4 + x_exp,
+-            RESIDUAL_EXP,
+-        );
+-        out[r3] = to_exp_i32(
+-            acc3,
+-            m.exp_base + i32::from(min_de3) - 4 + x_exp,
+-            RESIDUAL_EXP,
+-        );
+-
+-        row_offset += 4 * row_bytes;
+-        scale_offset += 4 * groups;
+-    }
+-
+-    // Remainder rows if rows is not a multiple of 4
+-    let rem_start = full_blocks * 4;
+-    for (slot, &min_de) in out[rem_start..].iter_mut().zip(&m.min_de[rem_start..]) {
+-        let (row, scales) = (
+-            m.nibbles.get(row_offset..row_offset + row_bytes),
+-            m.scales.get(scale_offset..scale_offset + groups),
+-        );
+-        let (Some(row), Some(scales)) = (row, scales) else {
+-            return;
+-        };
+-        let mut acc = 0i64;
+-        for ((bytes, tables), &s) in row.chunks_exact(16).zip(pairs.chunks_exact(16)).zip(scales) {
+-            let mut sum = 0i32;
+-            for i in 0..16 {
+-                sum = sum.wrapping_add(tables[i][usize::from(bytes[i])]);
+-            }
+-            acc = acc.wrapping_add(scale_16_plus(i64::from(sum), s & 15) << ((s >> 4) - min_de));
+-        }
+-        *slot = to_exp_i32(
+-            acc,
+-            m.exp_base + i32::from(min_de) - 4 + x_exp,
+-            RESIDUAL_EXP,
+-        );
+-        row_offset += row_bytes;
+-        scale_offset += groups;
+-    }
+-}
+-
+ /// Row `row` of a packed matrix at the residual exponent (the embedding). The
+ /// step checks the token against the vocabulary, so the early return is
+ /// unreachable, as in [`stack_gemv`].
+@@ -1432,8 +1300,8 @@ mod tests {
+             let mut pairs = vec![[0i32; 256]; cols / 2];
+             stack_pair_tables(&tables, &mut pairs);
+             let (mut nibble_out, mut pair_out) = (vec![0i32; rows], vec![0i32; rows]);
+-            stack_gemv(&m, &tables, x_exp, &mut nibble_out);
+-            stack_gemv_pairs(&m, &pairs, x_exp, &mut pair_out);
++            stack_gemv(&m, &tables, x_exp, 0, &mut nibble_out);
++            stack_gemv_pairs(&m, &pairs, x_exp, 0, &mut pair_out);
+             assert_eq!(nibble_out, pair_out, "{rows}x{cols}");
+             for r in 0..rows {
+                 let mut exact = 0i128;
+@@ -1480,9 +1348,9 @@ mod tests {
+             let mut out = vec![untouched; 2];
+             let panicked = panics(&mut || {
+                 if pairs_kernel {
+-                    stack_gemv_pairs(&m, &pairs, -14, &mut out);
++                    stack_gemv_pairs(&m, &pairs, -14, 0, &mut out);
+                 } else {
+-                    stack_gemv(&m, &tables, -14, &mut out);
++                    stack_gemv(&m, &tables, -14, 0, &mut out);
+                 }
+             });
+             assert_eq!(panicked, cfg!(debug_assertions), "pairs {pairs_kernel}");
+@@ -1499,6 +1367,37 @@ mod tests {
+         }
+     }
+ 
++    /// The branch-free group scale is the wrapping product `(16 + m) a` for
++    /// every `m` and for edge and random `a`.
++    #[test]
++    fn the_group_scale_is_the_wrapping_product() {
++        let mut values = vec![
++            0i64,
++            1,
++            -1,
++            i64::MAX,
++            i64::MIN,
++            i64::MAX >> 4,
++            i64::MIN >> 4,
++        ];
++        let mut x = 0x9E37_79B9_7F4A_7C15u64;
++        for _ in 0..200 {
++            x ^= x << 13;
++            x ^= x >> 7;
++            x ^= x << 17;
++            values.push(x as i64 >> (x % 60));
++        }
++        for &a in &values {
++            for m in 0..16u8 {
++                assert_eq!(
++                    scale_16_plus(a, m),
++                    a.wrapping_mul(16 + i64::from(m)),
++                    "a {a} m {m}"
++                );
++            }
++        }
++    }
++
+     /// The digit-table mixture equals the plain wrapping definition, on edge
+     /// values (zero, the `u64` and Q31 limits, coefficients near `2^128`) and
+     /// random weights of every magnitude.
+diff --git a/crates/uor-r4-integer/src/stack/mod.rs b/crates/uor-r4-integer/src/stack/mod.rs
+index a4c8421b7..e42b65820 100644
+--- a/crates/uor-r4-integer/src/stack/mod.rs
++++ b/crates/uor-r4-integer/src/stack/mod.rs
+@@ -42,7 +42,11 @@
+ //!
+ //! The engine is dense: every weight map is read in full per token
+ //! ([`IntegerStackModel::weights_per_token`]), the labelled interim stepping
+-//! stone of R3, and it is single-threaded. The instruction audit of the
++//! stone of R3. The rows of a large map run on a worker pool
++//! ([`IntegerStackModel::set_threads`]; one thread, the calling one, by
++//! default); each output row is computed whole by one
++//! thread with the same kernel, so every thread count gives the same
++//! integers. The instruction audit of the
+ //! `uor-r4-stack` binary (`scripts/audit_zero_matmul_serving.py --stack`)
+ //! checks the step and every kernel for multiply, divide and floating-point
+ //! instructions.
+@@ -146,6 +150,8 @@ pub enum StackError {
+     /// A positive copy scale was set on (or restored into) a model with a
+     /// pointer-copy head, whose mixture D10 forms from unboosted logits.
+     CopyScaleWithPointer,
++    /// A thread count of zero, or a worker pool that could not be built.
++    Threads(String),
+ }
+ 
+ impl fmt::Display for StackError {
+@@ -218,6 +224,7 @@ impl fmt::Display for StackError {
+                 f,
+                 "a model with a pointer-copy head refuses a positive copy scale"
+             ),
++            Self::Threads(reason) => write!(f, "stack engine threads: {reason}"),
+         }
+     }
+ }
+diff --git a/crates/uor-r4-integer/src/stack/session.rs b/crates/uor-r4-integer/src/stack/session.rs
+index 08a2898ad..6b7e7a4c4 100644
+--- a/crates/uor-r4-integer/src/stack/session.rs
++++ b/crates/uor-r4-integer/src/stack/session.rs
+@@ -142,6 +142,26 @@ pub struct IntegerStackModel {
+     gelu_table: Vec<i32>,
+     arcosh: Vec<u32>,
+     weights_per_token: u64,
++    /// Threads that a step's weight maps run on (1: the calling thread only).
++    threads: usize,
++    /// The worker pool of `threads > 1`; `None` steps on the calling thread.
++    pool: Option<rayon::ThreadPool>,
++}
++
++/// A worker pool of `threads` threads, or `None` for one thread.
++fn thread_pool(threads: usize) -> Result<Option<rayon::ThreadPool>, StackError> {
++    match threads {
++        0 => Err(StackError::Threads(
++            "the thread count must be positive".to_owned(),
++        )),
++        1 => Ok(None),
++        _ => rayon::ThreadPoolBuilder::new()
++            .num_threads(threads)
++            .thread_name(|index| format!("uor-r4-stack-{index}"))
++            .build()
++            .map(Some)
++            .map_err(|error| StackError::Threads(error.to_string())),
++    }
+ }
+ 
+ fn packed(view: MatrixView<'_>, name: &str) -> Result<PackedMatrix, StackError> {
+@@ -342,9 +362,27 @@ impl IntegerStackModel {
+             gelu_table,
+             arcosh,
+             weights_per_token: weights,
++            threads: 1,
++            pool: None,
+         })
+     }
+ 
++    /// Threads that a step's weight maps run on. Every thread count computes
++    /// the same integers: each output row of a map is one thread's whole sum.
++    pub fn threads(&self) -> usize {
++        self.threads
++    }
++
++    /// Run the weight maps of every step on `threads` threads (1: the calling
++    /// thread only, the default: laptop jobs register their thread counts in
++    /// a shared budget, so a loaded model never starts threads by itself).
++    /// The outputs do not depend on it.
++    pub fn set_threads(&mut self, threads: usize) -> Result<(), StackError> {
++        self.pool = thread_pool(threads)?;
++        self.threads = threads;
++        Ok(())
++    }
++
+     pub fn shape(&self) -> &StackShape {
+         &self.shape
+     }
+@@ -447,11 +485,11 @@ impl IntegerStackModel {
+                 k: vec![0; d],
+                 v: vec![0; d],
+                 null: vec![0; s.heads],
+-                query_tables: vec![[0; 16]; self.head_dim],
+-                scores: vec![0; context],
+-                weights: vec![0; context],
++                query_tables: vec![[0; 16]; d],
++                scores: vec![0; s.heads * context],
++                weights: vec![0; s.heads * context],
+                 pointer_weights: vec![0; context],
+-                mix: vec![0; self.head_dim],
++                mix: vec![0; d],
+                 proj: vec![0; d],
+                 gate: vec![0; s.mlp],
+                 up: vec![0; s.mlp],
+@@ -596,9 +634,12 @@ struct Buffers {
+     k: Vec<i32>,
+     v: Vec<i32>,
+     null: Vec<i32>,
++    /// Per read head (`[head][head_dim]`): the query's multiple tables.
+     query_tables: Vec<[i64; 16]>,
++    /// Per read head (`[head][context]`; the pointer head uses the first row).
+     scores: Vec<i64>,
+     weights: Vec<u64>,
++    /// Per read head (`[head][head_dim]`).
+     mix: Vec<i128>,
+     proj: Vec<i32>,
+     gate: Vec<i32>,
+@@ -1333,118 +1374,236 @@ impl IntegerStackSession<'_> {
+     /// Feed one token at the next position; returns the next-token logits
+     /// (value `v` means `v * 2^-16`): the D10 engine's integers (see the
+     /// module documentation for how that is tested).
++    /// The step runs on the model's worker pool when it has one
++    /// ([`IntegerStackModel::set_threads`]); the integers do not depend on it.
+     #[inline(never)]
+     pub fn step(&mut self, token: u32) -> Result<&[i32], StackError> {
+         let model = self.model;
+-        let (s, n) = (&model.shape, &model.numerics);
+-        let (d, heads, mlp) = (s.width, s.heads, s.mlp);
+-        if token as usize >= s.vocab {
+-            return Err(StackError::Token {
+-                token,
+-                vocab: s.vocab,
+-            });
+-        }
+-        if self.position >= s.context {
+-            return Err(StackError::ContextFull { context: s.context });
+-        }
+-        let b = &mut self.b;
+-        stack_dequant_row(&model.embed, token as usize, &mut b.x);
+-        let last_read_idx = model
+-            .layers
+-            .iter()
+-            .rposition(|l| matches!(l.mixer, Mixer::Read(_)));
+-        for (idx, (layer, state)) in model.layers.iter().zip(self.states.iter_mut()).enumerate() {
+-            let norm_exp = stack_rms_norm(&b.x, n.rms_eps, &mut b.scratch[..d], &mut b.norm);
+-            stack_activation_tables(&b.norm, &mut b.tables[..d]);
+-            stack_pair_tables(&b.tables[..d], &mut b.pairs);
+-            match (&layer.mixer, state.as_mut()) {
+-                (Mixer::Recurrence(r), LayerState::Recurrence { state, history }) => {
+-                    stack_recurrence(model, r, state, history, b, norm_exp)
+-                }
+-                (
+-                    Mixer::Read(r),
+-                    LayerState::Read {
+-                        keys,
+-                        values,
+-                        lifts,
+-                    },
+-                ) => stack_read(
+-                    model,
+-                    r,
+-                    Cache {
+-                        keys,
+-                        values,
+-                        lifts,
+-                        position: self.position,
+-                        at: self.cache_at,
+-                        lift_at: self.lift_at,
+-                    },
+-                    b,
+-                    norm_exp,
+-                    Some(idx) == last_read_idx && self.copy_scale_q16 > 0,
+-                ),
+-                _ => {
+-                    // `session` builds every layer's state from the model's
+-                    // own pattern, so a mismatch is unreachable.
+-                    debug_assert!(
+-                        false,
+-                        "stack step: a layer's state does not match its mixer"
+-                    );
+-                    return Err(StackError::SessionState);
+-                }
+-            }
+-            for (x, p) in b.x.iter_mut().zip(&b.proj) {
+-                *x = x.saturating_add(*p);
+-            }
+-            // MLP block.
+-            let norm_exp = stack_rms_norm(&b.x, n.rms_eps, &mut b.scratch[..d], &mut b.norm);
+-            stack_activation_tables(&b.norm, &mut b.tables[..d]);
+-            stack_pair_tables(&b.tables[..d], &mut b.pairs);
+-            stack_gemv_pairs(&layer.gate, &b.pairs, norm_exp, &mut b.gate);
+-            stack_gemv_pairs(&layer.up, &b.pairs, norm_exp, &mut b.up);
+-            stack_swiglu(model, &b.gate, &b.up, &mut b.scratch[..mlp]);
+-            let act_exp = stack_quantize16(&b.scratch[..mlp], PRODUCT_EXP, &mut b.act[..mlp]);
+-            stack_activation_tables(&b.act[..mlp], &mut b.tables[..mlp]);
+-            stack_gemv(&layer.down, &b.tables, act_exp, &mut b.proj);
+-            for (x, p) in b.x.iter_mut().zip(&b.proj) {
+-                *x = x.saturating_add(*p);
+-            }
++        match &model.pool {
++            Some(pool) => pool.install(|| stack_step(self, token, true))?,
++            None => stack_step(self, token, false)?,
+         }
++        Ok(&self.b.logits)
++    }
++}
++
++/// [`IntegerStackSession::step`]'s work: with `parallel` (on the model's
++/// pool), the rows of the large weight maps are split across its threads.
++#[inline(never)]
++fn stack_step(
++    session: &mut IntegerStackSession<'_>,
++    token: u32,
++    parallel: bool,
++) -> Result<(), StackError> {
++    let model = session.model;
++    let (s, n) = (&model.shape, &model.numerics);
++    let (d, heads, mlp) = (s.width, s.heads, s.mlp);
++    if token as usize >= s.vocab {
++        return Err(StackError::Token {
++            token,
++            vocab: s.vocab,
++        });
++    }
++    if session.position >= s.context {
++        return Err(StackError::ContextFull { context: s.context });
++    }
++    let b = &mut session.b;
++    stack_dequant_row(&model.embed, token as usize, &mut b.x);
++    let last_read_idx = model
++        .layers
++        .iter()
++        .rposition(|l| matches!(l.mixer, Mixer::Read(_)));
++    for (idx, (layer, state)) in model
++        .layers
++        .iter()
++        .zip(session.states.iter_mut())
++        .enumerate()
++    {
+         let norm_exp = stack_rms_norm(&b.x, n.rms_eps, &mut b.scratch[..d], &mut b.norm);
+         stack_activation_tables(&b.norm, &mut b.tables[..d]);
+         stack_pair_tables(&b.tables[..d], &mut b.pairs);
+-        stack_gemv_pairs(&model.head, &b.pairs, norm_exp, &mut b.logits);
+-        if self.copy_scale_q16 > 0 {
+-            let scale = i128::from(self.copy_scale_q16);
+-            for (j, &tok) in self.tokens[..self.position].iter().enumerate() {
+-                if (tok as usize) < s.vocab {
+-                    let pw = i128::from(self.b.pointer_weights[j]);
+-                    let boost = shift_wide(mul_i128(pw, scale), 31) as i32;
+-                    self.b.logits[tok as usize] = self.b.logits[tok as usize].saturating_add(boost);
+-                }
++        match (&layer.mixer, state.as_mut()) {
++            (Mixer::Recurrence(r), LayerState::Recurrence { state, history }) => {
++                stack_recurrence(model, r, state, history, b, norm_exp, parallel)
+             }
+-        }
+-        self.tokens.push(token);
+-        if let Some(p) = &model.pointer {
+-            stack_pointer(
++            (
++                Mixer::Read(r),
++                LayerState::Read {
++                    keys,
++                    values,
++                    lifts,
++                },
++            ) => stack_read(
+                 model,
+-                p,
+-                PointerCache {
+-                    tokens: &self.tokens,
+-                    keys: &mut self.pointer_keys,
+-                    lifts: &mut self.pointer_lifts,
+-                    position: self.position,
+-                    at: self.pointer_at,
++                r,
++                Cache {
++                    keys,
++                    values,
++                    lifts,
++                    position: session.position,
++                    at: session.cache_at,
++                    lift_at: session.lift_at,
+                 },
+-                &mut self.b,
++                b,
+                 norm_exp,
+-            );
+-            self.pointer_at += p.dim;
++                Some(idx) == last_read_idx && session.copy_scale_q16 > 0,
++                parallel,
++            ),
++            _ => {
++                // `session` builds every layer's state from the model's
++                // own pattern, so a mismatch is unreachable.
++                debug_assert!(
++                    false,
++                    "stack step: a layer's state does not match its mixer"
++                );
++                return Err(StackError::SessionState);
++            }
+         }
+-        self.position += 1;
+-        self.cache_at += d;
+-        self.lift_at += heads;
+-        Ok(&self.b.logits)
++        for (x, p) in b.x.iter_mut().zip(&b.proj) {
++            *x = x.saturating_add(*p);
++        }
++        // MLP block.
++        let norm_exp = stack_rms_norm(&b.x, n.rms_eps, &mut b.scratch[..d], &mut b.norm);
++        stack_activation_tables(&b.norm, &mut b.tables[..d]);
++        stack_pair_tables(&b.tables[..d], &mut b.pairs);
++        stack_map_pairs2(
++            parallel,
++            &b.pairs,
++            norm_exp,
++            (&layer.gate, &mut b.gate),
++            (&layer.up, &mut b.up),
++        );
++        stack_swiglu(model, &b.gate, &b.up, &mut b.scratch[..mlp]);
++        let act_exp = stack_quantize16(&b.scratch[..mlp], PRODUCT_EXP, &mut b.act[..mlp]);
++        stack_activation_tables(&b.act[..mlp], &mut b.tables[..mlp]);
++        stack_map_nibbles(parallel, &layer.down, &b.tables, act_exp, &mut b.proj);
++        for (x, p) in b.x.iter_mut().zip(&b.proj) {
++            *x = x.saturating_add(*p);
++        }
++    }
++    let norm_exp = stack_rms_norm(&b.x, n.rms_eps, &mut b.scratch[..d], &mut b.norm);
++    stack_activation_tables(&b.norm, &mut b.tables[..d]);
++    stack_pair_tables(&b.tables[..d], &mut b.pairs);
++    stack_map_pairs(parallel, &model.head, &b.pairs, norm_exp, &mut b.logits);
++    if session.copy_scale_q16 > 0 {
++        let scale = i128::from(session.copy_scale_q16);
++        for (j, &tok) in session.tokens[..session.position].iter().enumerate() {
++            if (tok as usize) < s.vocab {
++                let pw = i128::from(session.b.pointer_weights[j]);
++                let boost = shift_wide(mul_i128(pw, scale), 31) as i32;
++                session.b.logits[tok as usize] =
++                    session.b.logits[tok as usize].saturating_add(boost);
++            }
++        }
++    }
++    session.tokens.push(token);
++    if let Some(p) = &model.pointer {
++        stack_pointer(
++            model,
++            p,
++            PointerCache {
++                tokens: &session.tokens,
++                keys: &mut session.pointer_keys,
++                lifts: &mut session.pointer_lifts,
++                position: session.position,
++                at: session.pointer_at,
++            },
++            &mut session.b,
++            norm_exp,
++        );
++        session.pointer_at += p.dim;
++    }
++    session.position += 1;
++    session.cache_at += d;
++    session.lift_at += heads;
++    Ok(())
++}
++
++/// Rows of one task of a weight map split across threads, as a power of two
++/// (two rows in the unit tests, so that their small maps split too).
++const TASK_ROWS_LOG2: u32 = if cfg!(test) { 1 } else { 6 };
++/// A map with fewer rows runs whole on the calling thread.
++const PARALLEL_MIN_ROWS: usize = 2 << TASK_ROWS_LOG2;
++
++/// `kernel(first, part)` over `out` (elements `first..first + out.len()`),
++/// halved by `rayon::join` at task boundaries (multiples of `2^task_log2`)
++/// down to tasks of at most `2^task_log2` elements. Must run on the model's
++/// pool.
++fn split_rows<T, F>(first: usize, out: &mut [T], task_log2: u32, kernel: &F)
++where
++    T: Send,
++    F: Fn(usize, &mut [T]) + Sync,
++{
++    let task = 1usize << task_log2;
++    if out.len() <= task {
++        kernel(first, out);
++        return;
++    }
++    // A task boundary at or below the middle, so every task but the last is full.
++    let mid = (((out.len() >> 1) >> task_log2) << task_log2).max(task);
++    let (low, high) = out.split_at_mut(mid);
++    rayon::join(
++        || split_rows(first, low, task_log2, kernel),
++        || split_rows(first + mid, high, task_log2, kernel),
++    );
++}
++
++/// A pair-table weight map ([`stack_gemv_pairs`]) into `out`; with `parallel`
++/// (on the model's pool) a large map's rows are split across its threads.
++/// Each row is one task's whole sum, so the outputs are those of the whole-map
++/// kernel.
++#[inline(never)]
++fn stack_map_pairs(
++    parallel: bool,
++    m: &PackedMatrix,
++    pairs: &[[i32; 256]],
++    x_exp: i32,
++    out: &mut [i32],
++) {
++    if parallel && out.len() >= PARALLEL_MIN_ROWS {
++        split_rows(0, out, TASK_ROWS_LOG2, &|first, rows: &mut [i32]| {
++            stack_gemv_pairs(m, pairs, x_exp, first, rows)
++        });
++    } else {
++        stack_gemv_pairs(m, pairs, x_exp, 0, out);
++    }
++}
++
++/// An activation-table weight map ([`stack_gemv`]) into `out`, split as
++/// [`stack_map_pairs`].
++#[inline(never)]
++fn stack_map_nibbles(
++    parallel: bool,
++    m: &PackedMatrix,
++    tables: &[[i32; 16]],
++    x_exp: i32,
++    out: &mut [i32],
++) {
++    if parallel && out.len() >= PARALLEL_MIN_ROWS {
++        split_rows(0, out, TASK_ROWS_LOG2, &|first, rows: &mut [i32]| {
++            stack_gemv(m, tables, x_exp, first, rows)
++        });
++    } else {
++        stack_gemv(m, tables, x_exp, 0, out);
++    }
++}
++
++/// Two pair-table maps of the same input, concurrently with `parallel`.
++fn stack_map_pairs2(
++    parallel: bool,
++    pairs: &[[i32; 256]],
++    x_exp: i32,
++    (m0, out0): (&PackedMatrix, &mut [i32]),
++    (m1, out1): (&PackedMatrix, &mut [i32]),
++) {
++    if parallel {
++        rayon::join(
++            || stack_map_pairs(true, m0, pairs, x_exp, out0),
++            || stack_map_pairs(true, m1, pairs, x_exp, out1),
++        );
++    } else {
++        stack_gemv_pairs(m0, pairs, x_exp, 0, out0);
++        stack_gemv_pairs(m1, pairs, x_exp, 0, out1);
+     }
+ }
+ 
+@@ -1468,12 +1627,18 @@ fn stack_recurrence(
+     history: &mut [i32],
+     b: &mut Buffers,
+     norm_exp: i32,
++    parallel: bool,
+ ) {
+     let (s, n) = (&model.shape, &model.numerics);
+     let d = s.width;
+     let lanes = s.lanes();
+-    stack_gemv_pairs(&r.input, &b.pairs, norm_exp, &mut b.branches);
+-    stack_gemv_pairs(&r.gates, &b.pairs, norm_exp, &mut b.gate_out);
++    stack_map_pairs2(
++        parallel,
++        &b.pairs,
++        norm_exp,
++        (&r.input, &mut b.branches),
++        (&r.gates, &mut b.gate_out),
++    );
+     for (g, bias) in b.gate_out.iter_mut().zip(&r.gate_bias) {
+         *g = g.saturating_add(*bias);
+     }
+@@ -1497,10 +1662,76 @@ fn stack_recurrence(
+     history.copy_within(..history.len() - d, d);
+     history[..d].copy_from_slice(drive);
+     let (decays, rotations) = b.gate_out.split_at(lanes);
++    let (wide, rates) = (&b.wide[..d], &r.rates[..]);
++    let lanes_of = |first: usize, held: &mut [i64], trace: Option<&mut SnapTrace>| {
++        // `first` is a channel index (four per lane); without learned
++        // rotations there are no rotation logits.
++        let (lane, count, channels) = (first >> 2, held.len() >> 2, held.len());
++        let rotations = if s.rotation {
++            rotations.get(first..first + channels)
++        } else {
++            Some(rotations)
++        };
++        let (Some(pushed), Some(decays), Some(rates), Some(rotations)) = (
++            wide.get(first..first + channels),
++            decays.get(lane..lane + count),
++            rates.get(lane..lane + count),
++            rotations,
++        ) else {
++            debug_assert!(
++                false,
++                "stack_recurrence: a lane range lies outside the layer"
++            );
++            return;
++        };
++        stack_lanes(model, held, pushed, decays, rates, rotations, trace)
++    };
++    match &mut b.snap_trace {
++        // The opt-in snap trace records lanes in order, on one thread.
++        Some(trace) => lanes_of(0, state, Some(trace)),
++        None if parallel && lanes >= 2 << LANE_TASK_LOG2 => {
++            split_rows(0, state, LANE_TASK_LOG2 + 2, &|first, held: &mut [i64]| {
++                lanes_of(first, held, None)
++            });
++        }
++        None => lanes_of(0, state, None),
++    }
++    // Output h gelu(g) at exponent -32, then the output map.
++    for ((o, &h), &g) in b.scratch.iter_mut().zip(state.iter()).zip(gate) {
++        let h = shift(h, RESIDUAL_EXP - STATE_EXP);
++        let g = stack_activation(g, &model.gelu_table, n.gelu_step_log2, n.gelu_range_log2);
++        *o = saturating_product(h, i64::from(g));
++    }
++    let act_exp = stack_quantize16(&b.scratch[..d], PRODUCT_EXP, &mut b.act[..d]);
++    stack_activation_tables(&b.act[..d], &mut b.tables[..d]);
++    stack_map_nibbles(parallel, &r.out, &b.tables, act_exp, &mut b.proj);
++}
++
++/// Lanes of a recurrence task when its lanes are split across threads, as a
++/// power of two (one lane in the unit tests).
++const LANE_TASK_LOG2: u32 = if cfg!(test) { 0 } else { 5 };
++
++/// The recurrence's per-lane transport: decay, drive weight, transition
++/// quaternion and state update, for the lanes of `state` (four channels
++/// each) from their convolved drive `wide`, decay logits `decays`, decay
++/// rates `rates` and raw rotations (four per lane; empty without learned
++/// rotations). Lanes are independent, so any split of them computes the same
++/// integers.
++#[inline(never)]
++fn stack_lanes(
++    model: &IntegerStackModel,
++    state: &mut [i64],
++    wide: &[i64],
++    decays: &[i32],
++    rates: &[i16],
++    rotations: &[i32],
++    mut trace: Option<&mut SnapTrace>,
++) {
++    let (s, n) = (&model.shape, &model.numerics);
+     for (lane, ((held, pushed), (&decay, &rate))) in state
+         .chunks_exact_mut(4)
+-        .zip(b.wide.chunks_exact(4))
+-        .zip(decays.iter().zip(&r.rates))
++        .zip(wide.chunks_exact(4))
++        .zip(decays.iter().zip(rates))
+         .enumerate()
+     {
+         // Decay gate, decay and the drive's weight, all Q31.
+@@ -1523,7 +1754,7 @@ fn stack_recurrence(
+             ];
+             if model.snapped {
+                 let transition = stack_snap_rotation(raw, lambda);
+-                if let Some(trace) = &mut b.snap_trace {
++                if let Some(trace) = trace.as_deref_mut() {
+                     // The same deterministic selection the transition used.
+                     trace.record(stack_snap_select(raw));
+                 }
+@@ -1542,15 +1773,6 @@ fn stack_recurrence(
+             *h = shift_wide(m.wrapping_add(drive << 16), 31);
+         }
+     }
+-    // Output h gelu(g) at exponent -32, then the output map.
+-    for ((o, &h), &g) in b.scratch.iter_mut().zip(state.iter()).zip(gate) {
+-        let h = shift(h, RESIDUAL_EXP - STATE_EXP);
+-        let g = stack_activation(g, &model.gelu_table, n.gelu_step_log2, n.gelu_range_log2);
+-        *o = saturating_product(h, i64::from(g));
+-    }
+-    let act_exp = stack_quantize16(&b.scratch[..d], PRODUCT_EXP, &mut b.act[..d]);
+-    stack_activation_tables(&b.act[..d], &mut b.tables[..d]);
+-    stack_gemv(&r.out, &b.tables, act_exp, &mut b.proj);
+ }
+ 
+ /// `lambda raw / |raw|` per coordinate: the unit rotation (Q30, rounded toward
+@@ -1601,10 +1823,11 @@ fn stack_read(
+     b: &mut Buffers,
+     norm_exp: i32,
+     capture_pointer: bool,
++    parallel: bool,
+ ) {
+-    let (s, n) = (&model.shape, &model.numerics);
+-    let (d, heads, hd, context) = (s.width, s.heads, model.head_dim, s.context);
+-    let (lorentz, l2) = (model.lorentz, model.l2);
++    let s = &model.shape;
++    let (d, heads, hd) = (s.width, s.heads, model.head_dim);
++    let lorentz = model.lorentz;
+     let Cache {
+         keys,
+         values,
+@@ -1613,10 +1836,20 @@ fn stack_read(
+         at,
+         lift_at,
+     } = cache;
+-    stack_gemv_pairs(&r.query, &b.pairs, norm_exp, &mut b.q);
+-    stack_gemv_pairs(&r.key, &b.pairs, norm_exp, &mut b.k);
+-    stack_gemv_pairs(&r.value, &b.pairs, norm_exp, &mut b.v);
+-    stack_gemv_pairs(&r.null, &b.pairs, norm_exp, &mut b.null);
++    stack_map_pairs2(
++        parallel,
++        &b.pairs,
++        norm_exp,
++        (&r.query, &mut b.q),
++        (&r.key, &mut b.k),
++    );
++    stack_map_pairs2(
++        parallel,
++        &b.pairs,
++        norm_exp,
++        (&r.value, &mut b.v),
++        (&r.null, &mut b.null),
++    );
+     keys[at..at + d].copy_from_slice(&b.k);
+     values[at..at + d].copy_from_slice(&b.v);
+     if lorentz {
+@@ -1626,34 +1859,227 @@ fn stack_read(
+             from += hd;
+         }
+     }
++    let read = HeadRead {
++        model,
++        r,
++        keys,
++        values,
++        lifts,
++        q: &b.q,
++        null: &b.null,
++        position,
++    };
++    let parts = HeadParts {
++        first: 0,
++        count: heads,
++        wide: &mut b.wide[..d],
++        query_tables: &mut b.query_tables[..d],
++        scores: &mut b.scores,
++        weights: &mut b.weights,
++        mix: &mut b.mix[..d],
++        pointer_weights: if capture_pointer {
++            Some(&mut b.pointer_weights)
++        } else {
++            None
++        },
++    };
++    if parallel && heads > 1 {
++        split_heads(&read, parts);
++    } else {
++        stack_heads(&read, parts);
++    }
++    let act_exp = stack_quantize16(&b.wide[..d], RESIDUAL_EXP, &mut b.act[..d]);
++    stack_activation_tables(&b.act[..d], &mut b.tables[..d]);
++    stack_map_nibbles(parallel, &r.out, &b.tables, act_exp, &mut b.proj);
++}
++
++/// What every head of one read step reads: the layer, its caches (this
++/// position's key and value already written) and the step's projections.
++struct HeadRead<'a> {
++    model: &'a IntegerStackModel,
++    r: &'a Read,
++    keys: &'a [i32],
++    values: &'a [i32],
++    lifts: &'a [u64],
++    q: &'a [i32],
++    null: &'a [i32],
++    position: usize,
++}
++
++/// The heads `first..first + count` of a read step and their disjoint
++/// buffers: output columns, query tables and mixtures (`head_dim` per head),
++/// scores and weights (`context` per head), and the pointer copy weights for
++/// the part that holds head 0 when the step captures them.
++struct HeadParts<'a> {
++    first: usize,
++    count: usize,
++    wide: &'a mut [i64],
++    query_tables: &'a mut [[i64; 16]],
++    scores: &'a mut [i64],
++    weights: &'a mut [u64],
++    mix: &'a mut [i128],
++    pointer_weights: Option<&'a mut [u64]>,
++}
++
++/// [`stack_heads`] with the heads halved by `rayon::join` down to one head
++/// per task. Each head writes only its own buffers, so the outputs are those
++/// of one thread. Must run on the model's pool.
++fn split_heads(read: &HeadRead<'_>, parts: HeadParts<'_>) {
++    if parts.count <= 1 {
++        stack_heads(read, parts);
++        return;
++    }
++    let (hd, context) = (read.model.head_dim, read.model.shape.context);
++    let low = parts.count >> 1;
++    // Element offsets of head `first + low`: digit-table products.
++    let (head_at, row_at) = (
++        stack_mul_u64(low as u64, hd as u64) as usize,
++        stack_mul_u64(low as u64, context as u64) as usize,
++    );
++    let HeadParts {
++        first,
++        count,
++        wide,
++        query_tables,
++        scores,
++        weights,
++        mix,
++        pointer_weights,
++    } = parts;
++    if wide.len() < head_at
++        || query_tables.len() < head_at
++        || mix.len() < head_at
++        || scores.len() < row_at
++        || weights.len() < row_at
++    {
++        debug_assert!(false, "split_heads: a head lies outside the read buffers");
++        return;
++    }
++    let (wide_low, wide_high) = wide.split_at_mut(head_at);
++    let (tables_low, tables_high) = query_tables.split_at_mut(head_at);
++    let (mix_low, mix_high) = mix.split_at_mut(head_at);
++    let (scores_low, scores_high) = scores.split_at_mut(row_at);
++    let (weights_low, weights_high) = weights.split_at_mut(row_at);
++    rayon::join(
++        || {
++            split_heads(
++                read,
++                HeadParts {
++                    first,
++                    count: low,
++                    wide: wide_low,
++                    query_tables: tables_low,
++                    scores: scores_low,
++                    weights: weights_low,
++                    mix: mix_low,
++                    pointer_weights,
++                },
++            )
++        },
++        || {
++            split_heads(
++                read,
++                HeadParts {
++                    first: first + low,
++                    count: count - low,
++                    wide: wide_high,
++                    query_tables: tables_high,
++                    scores: scores_high,
++                    weights: weights_high,
++                    mix: mix_high,
++                    pointer_weights: None,
++                },
++            )
++        },
++    );
++}
++
++/// The heads of `parts`, one after another: each head's scores over the
++/// cached positions and NoRead, its softmax weights, and its weighted value
++/// mixture into its output columns of `wide` (exponent -16).
++#[inline(never)]
++fn stack_heads(read: &HeadRead<'_>, parts: HeadParts<'_>) {
++    let HeadRead {
++        model,
++        r,
++        keys,
++        values,
++        lifts,
++        q,
++        null,
++        position,
++    } = *read;
++    let (s, n) = (&model.shape, &model.numerics);
++    let (d, heads, hd, context) = (s.width, s.heads, model.head_dim, s.context);
++    let (lorentz, l2) = (model.lorentz, model.l2);
++    let HeadParts {
++        first,
++        count,
++        wide,
++        query_tables,
++        scores,
++        weights,
++        mix,
++        mut pointer_weights,
++    } = parts;
+     let positions = position + 1;
+-    let (mut head_at, mut age_at) = (0usize, 0usize);
+-    for h in 0..heads {
+-        let query = &b.q[head_at..head_at + hd];
++    let head_at = stack_mul_u64(first as u64, hd as u64) as usize;
++    let age_at = stack_mul_u64(first as u64, context as u64) as usize;
++    let (mut head_at, mut age_at, mut local_at, mut row_at) = (head_at, age_at, 0usize, 0usize);
++    for h in first..first + count {
++        let (
++            Some(query),
++            Some(query_tables),
++            Some(mix),
++            Some(out),
++            Some(scores),
++            Some(weights),
++            Some(ages),
++            Some(&null_logit),
++            Some(&null_bias),
++        ) = (
++            q.get(head_at..head_at + hd),
++            query_tables.get_mut(local_at..local_at + hd),
++            mix.get_mut(local_at..local_at + hd),
++            wide.get_mut(local_at..local_at + hd),
++            scores.get_mut(row_at..row_at + positions),
++            weights.get_mut(row_at..row_at + positions),
++            r.age.get(age_at..age_at + context),
++            null.get(h),
++            r.null_bias.get(h),
++        )
++        else {
++            debug_assert!(false, "stack_heads: a head lies outside the read buffers");
++            return;
++        };
++        // A Dot read has no scale or offset.
++        let (offset, beta) = (
++            r.offset.get(h).copied().unwrap_or(0),
++            r.beta.get(h).copied().unwrap_or(0),
++        );
+         // The L2 read needs no inner product, so no query tables.
+         if !l2 {
+-            stack_query_tables(query, &mut b.query_tables);
++            stack_query_tables(query, query_tables);
+         }
+         let query_lift = if lorentz { stack_lift(query) } else { 0 };
+-        let null_score = i64::from(b.null[h]) + i64::from(r.null_bias[h]);
+-        let ages = &r.age[age_at..age_at + context];
++        let null_score = i64::from(null_logit) + i64::from(null_bias);
+         let mut max = null_score;
+         let (mut key_at, mut lift_index) = (head_at, h);
+-        for (j, score_slot) in b.scores[..positions].iter_mut().enumerate() {
++        for (j, score_slot) in scores.iter_mut().enumerate() {
+             let key = &keys[key_at..key_at + hd];
+             let score = if l2 {
+                 // At most 2^44, so the difference and the grid product fit.
+                 let distance = stack_l2_distance(query, key) as i64;
+-                let scaled = grid_apply(distance - i64::from(r.offset[h]), r.beta[h]);
++                let scaled = grid_apply(distance - i64::from(offset), beta);
+                 shift(scaled.wrapping_neg(), SCORE_EXP - DISTANCE_EXP)
+             } else if lorentz {
+-                let dot = stack_dot(&b.query_tables, key);
++                let dot = stack_dot(query_tables, key);
+                 let distance =
+                     stack_lorentz_distance(query_lift, lifts[lift_index], dot, &model.arcosh);
+-                let scaled = grid_apply(i64::from(distance) - i64::from(r.offset[h]), r.beta[h]);
++                let scaled = grid_apply(i64::from(distance) - i64::from(offset), beta);
+                 shift(scaled.wrapping_neg(), SCORE_EXP - DISTANCE_EXP)
+             } else {
+-                let dot = stack_dot(&b.query_tables, key);
++                let dot = stack_dot(query_tables, key);
+                 // Exponent -32 times Q30 is exponent -62.
+                 shift_wide(
+                     mul_i128(dot, i128::from(n.score_scale_q30)),
+@@ -1673,10 +2099,7 @@ fn stack_read(
+             &model.exp_table,
+             n.exp_step_log2,
+         );
+-        for (w, &score) in b.weights[..positions]
+-            .iter_mut()
+-            .zip(&b.scores[..positions])
+-        {
++        for (w, &score) in weights.iter_mut().zip(scores.iter()) {
+             *w = stack_exp_neg(
+                 max.wrapping_sub(score),
+                 SCORE_EXP,
+@@ -1685,32 +2108,31 @@ fn stack_read(
+             );
+             total = total.wrapping_add(*w);
+         }
+-        b.mix.fill(0);
++        mix.fill(0);
+         let mut value_at = head_at;
+-        for &w in &b.weights[..positions] {
++        for &w in weights.iter() {
+             if w != 0 {
+-                stack_mix_row(w, &values[value_at..value_at + hd], &mut b.mix);
++                stack_mix_row(w, &values[value_at..value_at + hd], mix);
+             }
+             value_at += d;
+         }
+         // Q31-weighted sum over the Q31 total, back to exponent -16.
+         let reciprocal = i128::from(stack_div_u128(1u128 << 62, u128::from(total.max(1))) as u64);
+-        if capture_pointer && h == 0 {
+-            for j in 0..positions {
+-                let w = b.weights[j];
+-                let norm_w = shift_wide(mul_i128(i128::from(w), reciprocal), 31) as u64;
+-                b.pointer_weights[j] = norm_w;
++        if h == 0 {
++            if let Some(captured) = pointer_weights.take() {
++                for (slot, &w) in captured.iter_mut().zip(weights.iter()) {
++                    *slot = shift_wide(mul_i128(i128::from(w), reciprocal), 31) as u64;
++                }
+             }
+         }
+-        for (slot, &m) in b.wide[head_at..head_at + hd].iter_mut().zip(&b.mix) {
++        for (slot, &m) in out.iter_mut().zip(mix.iter()) {
+             *slot = shift_wide(mul_i128(m, reciprocal), 62);
+         }
+         head_at += hd;
++        local_at += hd;
+         age_at += context;
++        row_at += context;
+     }
+-    let act_exp = stack_quantize16(&b.wide[..d], RESIDUAL_EXP, &mut b.act[..d]);
+-    stack_activation_tables(&b.act[..d], &mut b.tables[..d]);
+-    stack_gemv(&r.out, &b.tables, act_exp, &mut b.proj);
+ }
+ 
+ /// The pointer head's cache and where this position writes.
+@@ -1744,9 +2166,9 @@ fn stack_pointer(
+         position,
+         at,
+     } = cache;
+-    stack_gemv_pairs(&p.query, &b.pairs, norm_exp, &mut b.pointer_query);
+-    stack_gemv_pairs(&p.key, &b.pairs, norm_exp, &mut b.pointer_key);
+-    stack_gemv_pairs(&p.gate, &b.pairs, norm_exp, &mut b.pointer_gate);
++    stack_gemv_pairs(&p.query, &b.pairs, norm_exp, 0, &mut b.pointer_query);
++    stack_gemv_pairs(&p.key, &b.pairs, norm_exp, 0, &mut b.pointer_key);
++    stack_gemv_pairs(&p.gate, &b.pairs, norm_exp, 0, &mut b.pointer_gate);
+     keys[at..at + dim].copy_from_slice(&b.pointer_key);
+     if p.lorentz {
+         lifts[position] = stack_lift(&b.pointer_key);
+diff --git a/crates/uor-r4-integer/src/stack/tests.rs b/crates/uor-r4-integer/src/stack/tests.rs
+index 08683da12..aa60d5e1c 100644
+--- a/crates/uor-r4-integer/src/stack/tests.rs
++++ b/crates/uor-r4-integer/src/stack/tests.rs
+@@ -552,104 +552,145 @@ fn the_snap_trace_records_every_selection() {
+     assert_eq!(with_trace, without_trace);
+ }
+ 
+-#[test]
+-fn test_gemv_pairs_blocked4_bit_identical_to_scalar() {
+-    use super::kernels::{
+-        stack_activation_tables, stack_gemv_pairs, stack_gemv_pairs_blocked4, stack_pair_tables,
+-        PackedMatrix,
+-    };
+-
+-    let (rows, cols) = (16usize, 32usize);
+-    let mut rng = Lcg(12345);
++/// A random packed map and a random 16-bit input with its nibble and pair
++/// tables, for the weight-map kernel tests.
++struct RandomMap {
++    matrix: super::kernels::PackedMatrix,
++    tables: Vec<[i32; 16]>,
++    pairs: Vec<[i32; 256]>,
++}
+ 
++fn random_map(rows: usize, cols: usize, seed: u64) -> RandomMap {
++    use super::kernels::{stack_activation_tables, stack_pair_tables, PackedMatrix};
++    let mut rng = Lcg(seed);
+     let nibbles: Vec<u8> = (0..rows * cols / 2)
+         .map(|_| (rng.next() & 0xFF) as u8)
+         .collect();
++    // Heterogeneous group scales, so that rows shift their groups apart.
+     let scales: Vec<u8> = (0..rows * cols / 32)
+-        .map(|_| (rng.next() & 0x3F) as u8)
++        .map(|_| ((rng.next() & 0x3F) as u8).max(1))
+         .collect();
+     let min_de: Vec<u8> = scales
+         .chunks_exact(cols / 32)
+-        .map(|row_scales| row_scales.iter().map(|&s| s >> 4).min().unwrap_or(0))
++        .map(|row| row.iter().map(|&s| s >> 4).min().unwrap_or(0))
+         .collect();
+-
+     let matrix = PackedMatrix {
+         rows,
+         cols,
+-        exp_base: -9,
++        exp_base: -10,
+         nibbles,
+         scales,
+         min_de,
+     };
++    let x: Vec<i16> = (0..cols).map(|_| (rng.next() as i16).max(-32767)).collect();
++    let mut tables = vec![[0i32; 16]; cols];
++    stack_activation_tables(&x, &mut tables);
++    let mut pairs = vec![[0i32; 256]; cols / 2];
++    stack_pair_tables(&tables, &mut pairs);
++    RandomMap {
++        matrix,
++        tables,
++        pairs,
++    }
++}
+ 
+-    let x: Vec<i16> = (0..cols).map(|_| (rng.next() as i16) >> 4).collect();
+-    let mut act_tables = vec![[0i32; 16]; cols];
+-    stack_activation_tables(&x, &mut act_tables);
+-
+-    let mut pair_tables = vec![[0i32; 256]; cols / 2];
+-    stack_pair_tables(&act_tables, &mut pair_tables);
+-
+-    let mut out_scalar = vec![0i32; rows];
+-    let mut out_blocked = vec![0i32; rows];
+-
+-    stack_gemv_pairs(&matrix, &pair_tables, -14, &mut out_scalar);
+-    stack_gemv_pairs_blocked4(&matrix, &pair_tables, -14, &mut out_blocked);
+-
+-    assert_eq!(
+-        out_scalar, out_blocked,
+-        "stack_gemv_pairs_blocked4 must produce bit-for-bit identical outputs to stack_gemv_pairs"
+-    );
++/// The row-blocked pair-table kernel, over the whole map and over every split
++/// of it into two row ranges (the threaded path's unit of work), computes the
++/// row-by-row nibble-table kernel's integers, including partial row blocks.
++#[test]
++fn gemv_pairs_row_blocks_and_ranges_equal_the_nibble_kernel() {
++    use super::kernels::{stack_gemv, stack_gemv_pairs};
++    for (rows, cols, seed) in [
++        (1, 32, 1),
++        (7, 64, 2),
++        (19, 64, 3),
++        (40, 96, 4),
++        (67, 32, 5),
++    ] {
++        let map = random_map(rows, cols, seed);
++        let mut expected = vec![0i32; rows];
++        stack_gemv(&map.matrix, &map.tables, -14, 0, &mut expected);
++        let mut whole = vec![0i32; rows];
++        stack_gemv_pairs(&map.matrix, &map.pairs, -14, 0, &mut whole);
++        assert_eq!(whole, expected, "{rows}x{cols}");
++        for split in 1..rows {
++            let mut parts = vec![0i32; rows];
++            let (head, tail) = parts.split_at_mut(split);
++            stack_gemv_pairs(&map.matrix, &map.pairs, -14, 0, head);
++            stack_gemv_pairs(&map.matrix, &map.pairs, -14, split, tail);
++            assert_eq!(parts, expected, "{rows}x{cols} split at {split}");
++        }
++    }
+ }
+ 
++/// Every thread count serves the same logits, copy weights and snap trace:
++/// on the Lorentz, L2 and Dot reads, the free and the snapped transport, with
++/// and without the copy scale. Under `cfg(test)` the maps split into tasks of
++/// two rows and the recurrence into tasks of one lane, so these small stacks
++/// take every split path, including uneven remainders.
+ #[test]
+-fn test_gemv_pairs_blocked4_multiple_groups_and_remainder_rows() {
+-    use super::kernels::{
+-        stack_activation_tables, stack_gemv_pairs, stack_gemv_pairs_blocked4, stack_pair_tables,
+-        PackedMatrix,
++fn every_thread_count_serves_the_same_integers() {
++    let lorentz = artifact(13);
++    let relabel = |read: &'static str| {
++        with_header(&lorentz, move |header| {
++            header["shape"]["read"] = json!(read);
++        })
+     };
+-
+-    // Width 64 (2 groups of 32), 19 rows (4 full blocks of 4 + 3 remainder rows)
+-    let (rows, cols) = (19usize, 64usize);
+-    let mut rng = Lcg(54321);
+-
+-    let nibbles: Vec<u8> = (0..rows * cols / 2)
+-        .map(|_| (rng.next() & 0xFF) as u8)
+-        .collect();
+-    // Heterogeneous scales across groups (cols / 32 = 2 groups per row)
+-    let scales: Vec<u8> = (0..rows * cols / 32)
+-        .map(|_| ((rng.next() & 0x3F) as u8).max(1))
+-        .collect();
+-    let min_de: Vec<u8> = scales
+-        .chunks_exact(cols / 32)
+-        .map(|row_scales| row_scales.iter().map(|&s| s >> 4).min().unwrap_or(0))
+-        .collect();
+-
+-    let matrix = PackedMatrix {
+-        rows,
+-        cols,
+-        exp_base: -10,
+-        nibbles,
+-        scales,
+-        min_de,
++    let snapped = with_header(&lorentz, |header| {
++        header["transport_snap"] = snap_record();
++    });
++    let ids = [3u32, 39, 0, 17, 17, 8];
++    let serve = |bytes: &[u8], threads: usize, copy: bool, trace: bool| {
++        let mut model = IntegerStackModel::parse(bytes).expect("parse");
++        model.set_threads(threads).expect("threads");
++        assert_eq!(model.threads(), threads);
++        let mut session = model.session();
++        if copy {
++            session.set_copy_scale(1 << 16).expect("copy scale");
++        }
++        if trace {
++            session.enable_snap_trace();
++        }
++        let mut served = Vec::new();
++        for &id in &ids {
++            served.push(session.step(id).expect("step").to_vec());
++            served.push(
++                session
++                    .pointer_weights()
++                    .iter()
++                    .map(|&w| w as i32)
++                    .collect(),
++            );
++        }
++        let roots: Vec<usize> = session
++            .snap_trace()
++            .unwrap_or_default()
++            .iter()
++            .map(|entry| entry.root)
++            .collect();
++        (served, roots)
+     };
+-
+-    let x: Vec<i16> = (0..cols).map(|_| (rng.next() as i16) >> 4).collect();
+-    let mut act_tables = vec![[0i32; 16]; cols];
+-    stack_activation_tables(&x, &mut act_tables);
+-
+-    let mut pair_tables = vec![[0i32; 256]; cols / 2];
+-    stack_pair_tables(&act_tables, &mut pair_tables);
+-
+-    let mut out_scalar = vec![0i32; rows];
+-    let mut out_blocked = vec![0i32; rows];
+-
+-    stack_gemv_pairs(&matrix, &pair_tables, -14, &mut out_scalar);
+-    stack_gemv_pairs_blocked4(&matrix, &pair_tables, -14, &mut out_blocked);
+-
+-    assert_eq!(
+-        out_scalar, out_blocked,
+-        "blocked4 must match scalar across multiple groups and remainder rows"
+-    );
++    for (name, bytes) in [
++        ("lorentz", lorentz.clone()),
++        ("l2", relabel("l2")),
++        ("dot", relabel("dot")),
++        ("snapped", snapped),
++    ] {
++        for (copy, trace) in [(false, false), (true, false), (false, true)] {
++            let one = serve(&bytes, 1, copy, trace);
++            for threads in [2, 3, 4] {
++                assert_eq!(
++                    serve(&bytes, threads, copy, trace),
++                    one,
++                    "{name}: {threads} threads (copy {copy}, trace {trace})"
++                );
++            }
++        }
++    }
++    // A loaded model starts no threads of its own.
++    let mut model = IntegerStackModel::parse(&lorentz).expect("parse");
++    assert_eq!(model.threads(), 1);
++    assert!(matches!(model.set_threads(0), Err(StackError::Threads(_))));
+ }
+ 
+ #[test]
+diff --git a/crates/uor-r4-training/examples/geometric-stack.rs b/crates/uor-r4-training/examples/geometric-stack.rs
+index afe4fab9a..21f6efc96 100644
+--- a/crates/uor-r4-training/examples/geometric-stack.rs
++++ b/crates/uor-r4-training/examples/geometric-stack.rs
+@@ -171,9 +171,11 @@
+ //! stops exactly as the float model's `reply_panel` (`chat-grade grade|reply`)
+ //! has them, so the integer and float replies compare id for id. Sampling
+ //! options (`temperature`, `top_k`, `top_p`, `seed`) are refused for a pointer
+-//! artifact, and `engine=` for a plain one. Its `chat.json`
+-//! (`uor-r4.geometric-stack-lut-chat/2`) records each reply's generated ids,
+-//! seconds and ids per second, and the panel totals.
++//! artifact, and `engine=` for a plain one. The D11 engine runs its weight
++//! maps on `threads=` threads (default 1); the integers do not depend on it. Its
++//! `chat.json` (`uor-r4.geometric-stack-lut-chat/2`) records the engine's
++//! thread count, each reply's generated ids, seconds and ids per second, and
++//! the panel totals.
+ //!
+ //! `policy=` (`dialogue-train`) sets the training episodes' prefix; the
+ //! development panel always keeps its full prefix. `full_prefix` (the default)
+@@ -3030,8 +3032,10 @@ fn d11_evaluate_mode(arguments: &[String]) -> Result<()> {
+     let result = (|| -> Result<()> {
+         let bytes = fs::read(&artifact_path)?;
+         let clock = Instant::now();
+-        let d11 = IntegerStackModel::parse(&bytes).map_err(|e| invalid(e.to_string()))?;
++        let mut d11 = IntegerStackModel::parse(&bytes).map_err(|e| invalid(e.to_string()))?;
+         let d11_load_seconds = clock.elapsed().as_secs_f64();
++        d11.set_threads(threads)
++            .map_err(|e| invalid(e.to_string()))?;
+         if let Some(snap) = d11.transport_snap() {
+             // The D10 comparator serves the free transport and refuses this
+             // artifact; compare against the snapped float forward instead.
+@@ -3163,7 +3167,7 @@ fn d11_evaluate_mode(arguments: &[String]) -> Result<()> {
+             "engine": {
+                 "d11_step_seconds": d11_seconds,
+                 "d11_tokens_per_second": targets as f64 / d11_seconds,
+-                "d11_threads": 1,
++                "d11_threads": d11.threads(),
+                 "d11_load_seconds": d11_load_seconds,
+                 "d10_step_seconds": d10_seconds,
+                 "d10_tokens_per_second": targets as f64 / d10_seconds,
+@@ -3286,7 +3290,7 @@ fn d11_evaluate_snapped(
+         "engine": {
+             "d11_step_seconds": d11_seconds,
+             "d11_tokens_per_second": targets as f64 / d11_seconds,
+-            "d11_threads": 1,
++            "d11_threads": d11.threads(),
+             "d11_load_seconds": d11_load_seconds,
+             "float_forward_seconds": float_seconds,
+             "scope": "the D11 step calls only, timed separately from the float forward",
+@@ -4592,9 +4596,12 @@ fn mixture_chat(
+     let no_head = || invalid("the artifact's schema names a pointer head the engine did not load");
+     let (mut record, failure, artifact_sha256, backend, threads, seconds) = match engine {
+         MixtureEngine::D11 => {
+-            let model = uor_r4_integer::stack::IntegerStackModel::parse(&bytes)
++            let mut model = uor_r4_integer::stack::IntegerStackModel::parse(&bytes)
+                 .map_err(|e| invalid(e.to_string()))?;
+             model.pointer().ok_or_else(no_head)?;
++            model
++                .set_threads(threads)
++                .map_err(|e| invalid(e.to_string()))?;
+             let clock = Instant::now();
+             let (record, failure) = chat_with(
+                 &|| D11Mixture(model.session()),
+@@ -4614,7 +4621,7 @@ fn mixture_chat(
+                 failure,
+                 model.artifact_sha256().to_owned(),
+                 "d11 multiplier-free scalar".to_owned(),
+-                None,
++                Some(model.threads()),
+                 seconds,
+             )
+         }
+diff --git a/scripts/audit_zero_matmul_serving.py b/scripts/audit_zero_matmul_serving.py
+index 57c90ae3e..d3f09a32e 100755
+--- a/scripts/audit_zero_matmul_serving.py
++++ b/scripts/audit_zero_matmul_serving.py
+@@ -655,6 +655,9 @@ STACK_MANDATORY_SYMBOLS = [
+         "mangled": re.compile(r"__RNv.*19IntegerStackSession(?:L[0-9A-Za-z_]*E)?4step\b"),
+         "description": "D11 stack step: embedding, mixers, MLPs, final norm and head",
+     },
++    _stack_kernel("stack_step", "session", "D11 stack step body (run on the calling thread or the model's pool)"),
++    _stack_kernel("stack_map_pairs", "session", "Pair-table weight map, rows split across the pool"),
++    _stack_kernel("stack_map_nibbles", "session", "Activation-table weight map, rows split across the pool"),
+     _stack_kernel("stack_recurrence", "session", "Quaternion transport recurrence mixer"),
+     _stack_kernel("stack_rotation", "session", "Unit rotation quaternion by long division"),
+     _stack_kernel("stack_read", "session", "Dot/Lorentz/L2 read mixer with NoRead softmax"),
+@@ -692,6 +695,20 @@ STACK_MANDATORY_SYMBOLS = [
+     _stack_kernel("stack_snap_rotation", "kernels", "Snapped rotation by shift-add golden-ratio terms"),
+ ]
+ 
++# The stack engine's worker pool (`IntegerStackModel::set_threads`) schedules
++# the rows of its weight maps through rayon-core's work-stealing registry and
++# crossbeam's deques. That scheduling code computes no model value (it picks a
++# victim thread, indexes a job deque and waits on latches), and it contains
++# multiplies and divides (`find_work`'s random victim, deque slot indexing), so
++# a stack audit does not descend into it. Every kernel a task runs remains a
++# mandatory symbol above and is reached from the step's single-thread path.
++STACK_SCHEDULER_ALLOW = [
++    r"rayon_core",
++    r"crossbeam_deque",
++    r"crossbeam_epoch",
++    r"crossbeam_utils",
++]
++
+ # Call-graph roots of the stack engine (v0-mangled names, as `otool -tvV`
+ # prints them): its step and the greedy selection, as (name, pattern). A stack
+ # audit runs the call graph and fails unless every root is found, so a build
+@@ -1337,12 +1354,13 @@ def find_serving_roots(functions, keywords, extra_roots):
+     return roots, missing
+ 
+ 
+-def run_call_graph_audit(path, disasm_choice="auto", extra_roots=()):
++def run_call_graph_audit(path, disasm_choice="auto", extra_roots=(), extra_allow=()):
+     """Transitive call-graph reachability traversal from serving roots.
+     Checks 100% of reachable numerical serving functions in compiled binaries.
+     `extra_roots` are (name, compiled pattern) pairs naming further roots (the
+-    stack set). Returns the functions visited, the violations and the names of
+-    the `extra_roots` that no function matched."""
++    stack set); `extra_allow` are further name patterns the traversal does not
++    enter (the stack set's thread-pool scheduler). Returns the functions visited,
++    the violations and the names of the `extra_roots` that no function matched."""
+     try:
+         output = subprocess.check_output(["otool", "-tvV", path]).decode("utf-8", errors="ignore")
+     except Exception as e:
+@@ -1415,7 +1433,7 @@ def run_call_graph_audit(path, disasm_choice="auto", extra_roots=()):
+         r"load",
+         r"from_file",
+         r"from_serialized",
+-    ]
++    ] + list(extra_allow)
+ 
+     def is_allowlisted(name):
+         return any(re.search(pat, name) for pat in allow_patterns)
+@@ -1558,6 +1576,7 @@ def main():
+             target_path,
+             args.disassembler,
+             extra_roots=STACK_CALL_GRAPH_ROOTS if stack else (),
++            extra_allow=STACK_SCHEDULER_ALLOW if stack else (),
+         )
+         results["call_graph_checked"] = cg_visited
+         results["call_graph_violations"] = cg_violations

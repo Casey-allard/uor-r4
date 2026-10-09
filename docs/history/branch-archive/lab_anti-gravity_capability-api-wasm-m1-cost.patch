@@ -1,0 +1,3079 @@
+diff --git a/crates/uor-r4-integer/src/capability_api.rs b/crates/uor-r4-integer/src/capability_api.rs
+new file mode 100644
+index 000000000..3675b7f54
+--- /dev/null
++++ b/crates/uor-r4-integer/src/capability_api.rs
+@@ -0,0 +1,412 @@
++//! Capability API for native UOR-R4 integer serving.
++//!
++//! A lifetime-free session container over one loaded [`Bundle`] for host
++//! applications: bundle metadata, a scoped capability status matrix, session
++//! creation with an optional persistent system prompt, user-turn ingestion,
++//! token generation and session save/restore. Safe Rust under the crate's
++//! `#![forbid(unsafe_code)]`.
++//!
++//! The metadata declares the numerical serving contract; it does not certify
++//! it. Qualification belongs to the instruction audit of the delivered release
++//! binary and to measured, sealed reports, never to constants in this module.
++
++use crate::bundle::Bundle;
++use crate::config::ReadMode;
++use crate::model::{SessionState, SlotTarget, PERSISTENT_CAPACITY};
++use crate::sampling::{SamplePolicy, Sampler};
++use crate::session::{ChatSession, RoleTokens, SerializedChatSession};
++use crate::{invalid, Result};
++use serde::{Deserialize, Serialize};
++use std::collections::HashMap;
++use std::sync::atomic::{AtomicU32, Ordering};
++use std::sync::Mutex;
++
++pub const CAPABILITY_API_SCHEMA: &str = "uor-r4.integer-capability-api/1";
++
++/// Numerical serving contract the integer runtime is written to (owner decision D11).
++pub const DECLARED_NUMERICAL_CONTRACT: &str = "D11";
++
++/// What a declaration of [`DECLARED_NUMERICAL_CONTRACT`] does and does not establish.
++pub const CONTRACT_QUALIFICATION_NOTE: &str = "Declared, not certified by this API. \
++Qualification requires the ARM64 instruction audit of the delivered release binary \
++(scripts/audit_zero_matmul_serving.py) and a measured, sealed report.";
++
++/// Capability status statements, each scoped to what is implemented or
++/// established; unestablished capabilities are marked UNQUALIFIED.
++#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
++pub struct CapabilityTruthMatrix {
++    pub language_prose: String,
++    pub causal_attention: String,
++    pub multi_step_reasoning: String,
++    pub executable_coding: String,
++    pub durable_memory: String,
++    pub serving_guarantees: String,
++    pub m1_performance_profile: String,
++    pub general_ai_disavowal: String,
++}
++
++impl Default for CapabilityTruthMatrix {
++    fn default() -> Self {
++        Self {
++            language_prose: "UNQUALIFIED: general prose is not established. Replay parity with a recorded dialogue panel is a runtime check, not a language-quality result.".into(),
++            causal_attention: "Implemented: causal integer-softmax reads over bounded addressed memory (persistent slots, dialogue ring, L2 pages). A structural description, not a measured capability.".into(),
++            multi_step_reasoning: "UNQUALIFIED: general reasoning is not established.".into(),
++            executable_coding: "UNQUALIFIED: general coding is not established.".into(),
++            durable_memory: "Implemented: bounded session memory with save and restore through uor-r4.integer-session/1. That schema omits the width-576 value stores, so a restored width-576 session does not continue identically. Durable-memory capability is not established.".into(),
++            serving_guarantees: format!("Declared contract {DECLARED_NUMERICAL_CONTRACT}: no floating point and no multiply or divide instruction in served kernels. {CONTRACT_QUALIFICATION_NOTE}"),
++            m1_performance_profile: "UNQUALIFIED: no sealed M1 cost report is bound to this API.".into(),
++            general_ai_disavowal: "Pre-alpha: general prose, general reasoning and frontier capability remain unproven.".into(),
++        }
++    }
++}
++
++/// Metadata describing the loaded native integer model.
++#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
++pub struct ModelCapabilityMetadata {
++    pub api_schema_version: String,
++    pub bundle_identity: String,
++    pub width: usize,
++    pub vocab_size: usize,
++    pub context_capacity: usize,
++    pub read_geometry: String,
++    /// The contract the runtime is written to; see `contract_qualification`.
++    pub declared_numerical_contract: String,
++    /// What the declaration does not establish on its own.
++    pub contract_qualification: String,
++    pub truth_matrix: CapabilityTruthMatrix,
++}
++
++/// Configuration for creating a managed integer chat session.
++#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
++pub struct SessionConfig {
++    pub system_prompt: Option<String>,
++    pub seed: u64,
++    pub read_mode: ReadMode,
++    pub policy: SamplePolicy,
++}
++
++impl Default for SessionConfig {
++    fn default() -> Self {
++        Self {
++            system_prompt: None,
++            seed: 0,
++            read_mode: ReadMode::Enabled,
++            policy: SamplePolicy::Greedy,
++        }
++    }
++}
++
++/// Session telemetry snapshot.
++#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
++pub struct SessionTelemetry {
++    pub session_id: u32,
++    pub active_tokens: usize,
++    pub context_capacity: usize,
++    pub read_mode: ReadMode,
++    pub policy: SamplePolicy,
++    pub prng_state: u64,
++}
++
++/// Owned conversational session state managed by the API.
++struct ManagedSession {
++    state: SessionState,
++    roles: RoleTokens,
++    sampler: Sampler,
++    read_mode: ReadMode,
++    policy: SamplePolicy,
++}
++
++/// Capability API container managing bundle lifetime and session state.
++pub struct IntegerCapabilityApi {
++    bundle: Bundle,
++    sessions: Mutex<HashMap<u32, ManagedSession>>,
++    next_session_id: AtomicU32,
++}
++
++impl IntegerCapabilityApi {
++    /// Create a new Capability API instance over a loaded bundle.
++    pub fn new(bundle: Bundle) -> Self {
++        Self {
++            bundle,
++            sessions: Mutex::new(HashMap::new()),
++            next_session_id: AtomicU32::new(1),
++        }
++    }
++
++    /// Bundle identity, configuration and the declared (uncertified) contract.
++    pub fn metadata(&self) -> ModelCapabilityMetadata {
++        let config = self.bundle.model().config();
++        ModelCapabilityMetadata {
++            api_schema_version: CAPABILITY_API_SCHEMA.into(),
++            bundle_identity: self.bundle.identity().into(),
++            width: config.width,
++            vocab_size: config.vocab_size,
++            context_capacity: config.context,
++            read_geometry: format!("{:?}", config.read_geometry),
++            declared_numerical_contract: DECLARED_NUMERICAL_CONTRACT.into(),
++            contract_qualification: CONTRACT_QUALIFICATION_NOTE.into(),
++            truth_matrix: CapabilityTruthMatrix::default(),
++        }
++    }
++
++    /// Instantiate a new managed conversational session with configuration.
++    pub fn create_session(&self, config: SessionConfig) -> Result<u32> {
++        let session_id = self.next_session_id.fetch_add(1, Ordering::SeqCst);
++        let roles = RoleTokens::from_tokenizer(self.bundle.tokenizer())?;
++        let mut state = self.bundle.model().new_conversational_session();
++        if self.bundle.model().is_lorentz() {
++            state.enable_hyperbolic_cache();
++        }
++
++        let mut managed = ManagedSession {
++            state,
++            roles,
++            sampler: Sampler::new(config.seed),
++            read_mode: config.read_mode,
++            policy: config.policy,
++        };
++
++        if let Some(prompt) = config.system_prompt {
++            if !prompt.trim().is_empty() {
++                let text_tokens = self.bundle.tokenizer().encode(&prompt);
++                let mut tokens = Vec::with_capacity(text_tokens.len() + 2);
++                tokens.push(managed.roles.system_id);
++                tokens.extend(text_tokens);
++                tokens.push(managed.roles.turn_end_id);
++
++                if tokens.len() > PERSISTENT_CAPACITY {
++                    return Err(invalid(format!(
++                        "system prompt length {} exceeds persistent slot capacity {}",
++                        tokens.len(),
++                        PERSISTENT_CAPACITY
++                    )));
++                }
++                for &token in &tokens {
++                    self.bundle.model().step_conversational_into(
++                        &mut managed.state,
++                        token,
++                        SlotTarget::Persistent,
++                        ReadMode::Enabled,
++                    )?;
++                }
++                managed.state.seal_persistent();
++            }
++        }
++
++        let mut lock = self
++            .sessions
++            .lock()
++            .map_err(|_| invalid("session lock poisoned"))?;
++        lock.insert(session_id, managed);
++        Ok(session_id)
++    }
++
++    /// Ingest a user prompt into the specified session. An empty prompt is
++    /// rejected before any session state changes.
++    pub fn ingest_user_turn(&self, session_id: u32, prompt: &str) -> Result<usize> {
++        if prompt.trim().is_empty() {
++            return Err(invalid("empty user turn prompt"));
++        }
++        let mut lock = self
++            .sessions
++            .lock()
++            .map_err(|_| invalid("session lock poisoned"))?;
++        let session = lock
++            .get_mut(&session_id)
++            .ok_or_else(|| invalid(format!("session {session_id} not found")))?;
++
++        let user_tokens = self.bundle.tokenizer().encode(prompt);
++        let mut tokens = Vec::with_capacity(user_tokens.len() + 3);
++        tokens.push(session.roles.user_id);
++        tokens.extend(user_tokens);
++        tokens.push(session.roles.turn_end_id);
++        tokens.push(session.roles.assistant_id);
++
++        session.state.start_turn();
++        for &token in &tokens {
++            self.bundle.model().step_conversational_into(
++                &mut session.state,
++                token,
++                SlotTarget::Dialogue,
++                session.read_mode,
++            )?;
++        }
++        Ok(tokens.len())
++    }
++
++    /// Execute a single step with a token ID and return the next selected token.
++    pub fn step_token(&self, session_id: u32, token_id: u32) -> Result<u32> {
++        let mut lock = self
++            .sessions
++            .lock()
++            .map_err(|_| invalid("session lock poisoned"))?;
++        let session = lock
++            .get_mut(&session_id)
++            .ok_or_else(|| invalid(format!("session {session_id} not found")))?;
++
++        self.bundle.model().step_conversational_into(
++            &mut session.state,
++            token_id,
++            SlotTarget::Dialogue,
++            session.read_mode,
++        )?;
++
++        let vocab_size = self.bundle.model().config().vocab_size;
++        let probs = &session.state.last_probabilities[..vocab_size];
++        let selected = session
++            .sampler
++            .select(probs, session.policy)
++            .map_err(|e| invalid(format!("sampling error: {e}")))?;
++        Ok(selected as u32)
++    }
++
++    /// Generate an assistant response turn up to `max_tokens`. A selected
++    /// turn-end or EOS token is committed to the session before returning; a
++    /// failed commit is returned as an error.
++    pub fn generate_text(&self, session_id: u32, max_tokens: usize) -> Result<String> {
++        let mut lock = self
++            .sessions
++            .lock()
++            .map_err(|_| invalid("session lock poisoned"))?;
++        let session = lock
++            .get_mut(&session_id)
++            .ok_or_else(|| invalid(format!("session {session_id} not found")))?;
++
++        let vocab_size = self.bundle.model().config().vocab_size;
++        let turn_end_id = session.roles.turn_end_id;
++        let eos_id = session.roles.eos_id;
++
++        let mut generated_tokens = Vec::with_capacity(max_tokens);
++        for _ in 0..max_tokens {
++            let probs = &session.state.last_probabilities[..vocab_size];
++            let next_tok = session
++                .sampler
++                .select(probs, session.policy)
++                .map_err(|e| invalid(format!("sampling error: {e}")))?
++                as u32;
++
++            self.bundle.model().step_conversational_into(
++                &mut session.state,
++                next_tok,
++                SlotTarget::Dialogue,
++                session.read_mode,
++            )?;
++            if next_tok == turn_end_id || next_tok == eos_id {
++                break;
++            }
++            generated_tokens.push(next_tok);
++        }
++
++        Ok(self.bundle.tokenizer().decode(&generated_tokens))
++    }
++
++    /// Save session state, sampler state, sampling policy and read mode.
++    pub fn save_session(&self, session_id: u32) -> Result<SerializedChatSession> {
++        let lock = self
++            .sessions
++            .lock()
++            .map_err(|_| invalid("session lock poisoned"))?;
++        let session = lock
++            .get(&session_id)
++            .ok_or_else(|| invalid(format!("session {session_id} not found")))?;
++
++        let temp_session = ChatSession::from_parts(
++            &self.bundle,
++            session.state.clone(),
++            session.roles,
++            session.sampler.clone(),
++            session.read_mode,
++            session.policy,
++        );
++        Ok(temp_session.to_serialized(Some(self.bundle.identity())))
++    }
++
++    /// Restore a saved session as a new session, keeping its saved sampler
++    /// state, sampling policy and read mode. `uor-r4.integer-session/1` does
++    /// not carry the width-576 value stores, so a restored width-576 session
++    /// reads empty values and does not continue identically.
++    pub fn restore_session(&self, serialized: SerializedChatSession) -> Result<u32> {
++        let restored =
++            ChatSession::from_serialized(&self.bundle, serialized, self.bundle.identity())?;
++        let roles = restored.roles();
++        let sampler = restored.sampler().clone();
++        let read_mode = restored.read_mode();
++        let policy = restored.policy();
++        let managed = ManagedSession {
++            state: restored.into_state(),
++            roles,
++            sampler,
++            read_mode,
++            policy,
++        };
++
++        let mut lock = self
++            .sessions
++            .lock()
++            .map_err(|_| invalid("session lock poisoned"))?;
++        let session_id = self.next_session_id.fetch_add(1, Ordering::SeqCst);
++        lock.insert(session_id, managed);
++        Ok(session_id)
++    }
++
++    /// Inspect session telemetry.
++    pub fn get_telemetry(&self, session_id: u32) -> Result<SessionTelemetry> {
++        let lock = self
++            .sessions
++            .lock()
++            .map_err(|_| invalid("session lock poisoned"))?;
++        let session = lock
++            .get(&session_id)
++            .ok_or_else(|| invalid(format!("session {session_id} not found")))?;
++        Ok(SessionTelemetry {
++            session_id,
++            active_tokens: session.state.dialogue_len(),
++            context_capacity: self.bundle.model().config().context,
++            read_mode: session.read_mode,
++            policy: session.policy,
++            prng_state: session.sampler.state(),
++        })
++    }
++
++    /// Free a session handle and release memory.
++    pub fn close_session(&self, session_id: u32) -> bool {
++        if let Ok(mut lock) = self.sessions.lock() {
++            lock.remove(&session_id).is_some()
++        } else {
++            false
++        }
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use crate::bundle::create_test_bundle_with_byte_vocab;
++
++    #[test]
++    fn generate_text_returns_a_failed_turn_end_commit() -> Result<()> {
++        let api = IntegerCapabilityApi::new(create_test_bundle_with_byte_vocab());
++        let id = api.create_session(SessionConfig::default())?;
++        api.ingest_user_turn(id, "hello")?;
++        {
++            let mut lock = api
++                .sessions
++                .lock()
++                .map_err(|_| invalid("session lock poisoned"))?;
++            let session = lock
++                .get_mut(&id)
++                .ok_or_else(|| invalid("session missing"))?;
++            // Force EOS as the only candidate and make its commit step fail.
++            let eos = session.roles.eos_id as usize;
++            session.state.last_probabilities.fill(0);
++            session.state.last_probabilities[eos] = crate::PROBABILITY_TOTAL;
++            session.state.identity = "injected identity mismatch".into();
++        }
++        let error = match api.generate_text(id, 4) {
++            Ok(text) => return Err(invalid(format!("expected an error, got {text:?}"))),
++            Err(error) => error,
++        };
++        assert!(error.to_string().contains("identity"), "{error}");
++        Ok(())
++    }
++}
+diff --git a/crates/uor-r4-integer/src/lib.rs b/crates/uor-r4-integer/src/lib.rs
+index 9d99fb57b..03bbd1fae 100644
+--- a/crates/uor-r4-integer/src/lib.rs
++++ b/crates/uor-r4-integer/src/lib.rs
+@@ -8,6 +8,7 @@
+ #![forbid(unsafe_code)]
+ 
+ pub mod bundle;
++pub mod capability_api;
+ pub mod config;
+ pub mod format;
+ pub mod generation;
+@@ -22,8 +23,13 @@ pub mod sampling;
+ pub mod session;
+ pub mod stack;
+ pub mod tables;
++pub mod wasm;
+ 
+ pub use bundle::{create_test_bundle_with_byte_vocab, Bundle};
++pub use capability_api::{
++    CapabilityTruthMatrix, IntegerCapabilityApi, ModelCapabilityMetadata, SessionConfig,
++    SessionTelemetry, CAPABILITY_API_SCHEMA,
++};
+ pub use config::{JointConfig, ReadGeometry, ReadMode, Transport};
+ pub use model::{
+     atan2_q30, compress_barycenter_key_fibonacci, compute_turn_prime_signature,
+diff --git a/crates/uor-r4-integer/src/math.rs b/crates/uor-r4-integer/src/math.rs
+index c4b72ad52..cf1a92790 100644
+--- a/crates/uor-r4-integer/src/math.rs
++++ b/crates/uor-r4-integer/src/math.rs
+@@ -326,7 +326,7 @@ pub fn mul_i32_radix4(left: i32, right: i32) -> i64 {
+     }
+     let mut acc = 0u64;
+     while v != 0 {
+-        let chunk = (v & 3) as u32;
++        let chunk = (core::hint::black_box(v) & 3) as u32;
+         match chunk {
+             1 => acc = acc.wrapping_add(u),
+             2 => acc = acc.wrapping_add(u << 1),
+diff --git a/crates/uor-r4-integer/src/session.rs b/crates/uor-r4-integer/src/session.rs
+index 40717bd83..af088924c 100644
+--- a/crates/uor-r4-integer/src/session.rs
++++ b/crates/uor-r4-integer/src/session.rs
+@@ -569,6 +569,33 @@ impl<'a> ChatSession<'a> {
+         Ok(session)
+     }
+ 
++    /// Construct a ChatSession from parts already held by a validated session.
++    /// Crate-internal: it performs none of the checks of `from_serialized`, so
++    /// external state enters only through `new` or `from_serialized`.
++    pub(crate) fn from_parts(
++        bundle: &'a Bundle,
++        state: SessionState,
++        roles: RoleTokens,
++        sampler: Sampler,
++        read_mode: ReadMode,
++        policy: SamplePolicy,
++    ) -> Self {
++        Self {
++            bundle,
++            state,
++            roles,
++            sampler,
++            last_step: None,
++            read_mode,
++            policy,
++        }
++    }
++
++    /// Extract inner session state (crate-internal counterpart of `from_parts`).
++    pub(crate) fn into_state(self) -> SessionState {
++        self.state
++    }
++
+     /// Synchronize the optional cached `IntegerStep` in-place without heap reallocations.
+     pub fn sync_last_step(&mut self) {
+         let vocab_size = self.bundle.model().config().vocab_size;
+diff --git a/crates/uor-r4-integer/src/wasm.rs b/crates/uor-r4-integer/src/wasm.rs
+new file mode 100644
+index 000000000..2b66b6494
+--- /dev/null
++++ b/crates/uor-r4-integer/src/wasm.rs
+@@ -0,0 +1,138 @@
++//! C-ABI helper functions for WebAssembly builds of the integer runtime.
++//!
++//! These thirteen functions return model constants or wrap single integer
++//! kernels (Min-P threshold, Hopf projection, zeta phase step, Galois LFSR,
++//! turn prime signature, Q30 arctangent, token salience). There is no load,
++//! session or step export, so a module built from this crate is not a serving
++//! runtime. The functions are not `#[no_mangle]` (the crate forbids unsafe
++//! code), so a module exposes them only when it is built with the `rlib` and
++//! `cdylib` crate types together and linked with `--export-all`; with `cdylib`
++//! alone the unreferenced helpers are dropped before linking.
++//!
++//! The source is written to the declared D11 contract; that does not make a
++//! compiled module D11-clean. A WebAssembly build can contain `i64.mul` where
++//! the source uses shift-and-add: the frozen 2026-09-28 module has `i64.mul`
++//! by 3 in `UnitS3Q30::hopf_project` and `UnitS3Q30::from_i32_coords`, which
++//! the Hopf helpers call. See `scripts/audit_zero_matmul_wasm.py --call-graph`.
++
++use crate::math::{atan2_q30, UnitS3Q30};
++use crate::model::{galois_lfsr_step, score_token_salience, KEY_DIM};
++use crate::sampling::exact_min_p_threshold;
++
++/// API version identifier: 0x00010000 = v1.0.0
++#[inline(never)]
++pub extern "C" fn uor_wasm_version() -> u32 {
++    0x00010000
++}
++
++/// Width-576 dialogue model state dimension (a constant, not read from a bundle).
++#[inline(never)]
++pub extern "C" fn uor_wasm_state_dim() -> u32 {
++    576
++}
++
++/// Vocabulary size (a constant, not read from a bundle).
++#[inline(never)]
++pub extern "C" fn uor_wasm_vocab_size() -> u32 {
++    4096
++}
++
++/// Context capacity (a constant, not read from a bundle).
++#[inline(never)]
++pub extern "C" fn uor_wasm_context_capacity() -> u32 {
++    256
++}
++
++/// Min-P threshold from `sampling::exact_min_p_threshold`.
++#[inline(never)]
++pub extern "C" fn uor_wasm_exact_min_p_threshold(p_max: u64, min_p_q16: u32) -> u64 {
++    exact_min_p_threshold(p_max, min_p_q16)
++}
++
++/// Hopf S3 -> S2 projection, base coordinate X in Q30.
++#[inline(never)]
++pub extern "C" fn uor_wasm_hopf_project_x(q0: i32, q1: i32, q2: i32, q3: i32) -> i32 {
++    let u = UnitS3Q30::from_i32_coords(&[q0, q1, q2, q3]);
++    let [x, _, _] = u.hopf_project();
++    x
++}
++
++/// Hopf S3 -> S2 projection, base coordinate Y in Q30.
++#[inline(never)]
++pub extern "C" fn uor_wasm_hopf_project_y(q0: i32, q1: i32, q2: i32, q3: i32) -> i32 {
++    let u = UnitS3Q30::from_i32_coords(&[q0, q1, q2, q3]);
++    let [_, y, _] = u.hopf_project();
++    y
++}
++
++/// Hopf S3 -> S2 projection, base coordinate Z in Q30.
++#[inline(never)]
++pub extern "C" fn uor_wasm_hopf_project_z(q0: i32, q1: i32, q2: i32, q3: i32) -> i32 {
++    let u = UnitS3Q30::from_i32_coords(&[q0, q1, q2, q3]);
++    let [_, _, z] = u.hopf_project();
++    z
++}
++
++/// Scalar zeta phase step modulo 2^31, with the frequency multiple formed by
++/// shift-and-add over the four low bits of `k`.
++#[inline(never)]
++pub extern "C" fn uor_wasm_step_zeta_phase_scalar(
++    phase: i32,
++    freq_val: i32,
++    token: u32,
++    j: u32,
++) -> i32 {
++    let freq = freq_val as i64;
++    let k = 1i64 + (((token as i64) + (j as i64)) & 0x07);
++
++    // 4-bit unrolled shift-add multiplication: k in [1, 8]
++    let mut prod = 0i64;
++    if k & 1 != 0 {
++        prod += freq;
++    }
++    if k & 2 != 0 {
++        prod += freq << 1;
++    }
++    if k & 4 != 0 {
++        prod += freq << 2;
++    }
++    if k & 8 != 0 {
++        prod += freq << 3;
++    }
++
++    let next_phase = (phase as i64) + prod;
++    let wrapped = ((next_phase % (1i64 << 31)) + (1i64 << 31)) % (1i64 << 31);
++    wrapped as i32
++}
++
++/// Galois LFSR state update from `model::galois_lfsr_step`.
++#[inline(never)]
++pub extern "C" fn uor_wasm_galois_lfsr_step(state: u64) -> u64 {
++    galois_lfsr_step(state)
++}
++
++/// Prime signature of a one-token turn from `model::compute_turn_prime_signature`.
++#[inline(never)]
++pub extern "C" fn uor_wasm_compute_turn_prime_signature(
++    turn_id: u32,
++    token: u32,
++    start_seq: u64,
++    end_seq: u64,
++) -> u64 {
++    let tokens = [token];
++    let slots = [0usize];
++    crate::model::compute_turn_prime_signature(&tokens, &slots, turn_id, start_seq, end_seq)
++}
++
++/// Fixed-point Q30 arctangent from `math::atan2_q30`.
++#[inline(never)]
++pub extern "C" fn uor_wasm_atan2_q30(y: i32, x: i32) -> i32 {
++    atan2_q30(y, x)
++}
++
++/// Token salience score against an all-zero key, from `model::score_token_salience`.
++#[inline(never)]
++pub extern "C" fn uor_wasm_score_token_salience_default_key(token: u32) -> i32 {
++    let key = [0i32; KEY_DIM];
++    score_token_salience(token, &key)
++}
+diff --git a/crates/uor-r4-integer/tests/capability_api_tests.rs b/crates/uor-r4-integer/tests/capability_api_tests.rs
+new file mode 100644
+index 000000000..8121720e3
+--- /dev/null
++++ b/crates/uor-r4-integer/tests/capability_api_tests.rs
+@@ -0,0 +1,176 @@
++//! Tests for the capability API (`IntegerCapabilityApi`).
++//!
++//! The synthetic byte-vocabulary bundle covers the API contract on every run.
++//! The width-576 tests need the local `dialogue-child-bundle-1` fixture; they
++//! are ignored by default and fail when run without it. The width-576
++//! continuation test is also a known failure: the session schema omits the
++//! 576-wide value stores, so a restored width-576 session diverges.
++
++use std::path::Path;
++use uor_r4_integer::capability_api::{
++    IntegerCapabilityApi, SessionConfig, CAPABILITY_API_SCHEMA, DECLARED_NUMERICAL_CONTRACT,
++};
++use uor_r4_integer::config::ReadMode;
++use uor_r4_integer::sampling::SamplePolicy;
++use uor_r4_integer::{create_test_bundle_with_byte_vocab, Bundle, IntegerError, Result};
++
++const DIALOGUE576_BUNDLE_PATH: &str =
++    "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-child-bundle-1";
++
++fn require_fixture(path: &Path) -> Result<()> {
++    if path.exists() {
++        Ok(())
++    } else {
++        Err(IntegerError::Invalid(format!(
++            "required fixture {} is missing; this ignored test needs the local dialogue-child-bundle-1 fixture",
++            path.display()
++        )))
++    }
++}
++
++fn saved_json(api: &IntegerCapabilityApi, session_id: u32) -> Result<serde_json::Value> {
++    Ok(serde_json::to_value(api.save_session(session_id)?)?)
++}
++
++/// Restore a saved session: its telemetry and its saved form must equal the
++/// original's. Returns the restored session.
++fn restore_and_compare_saved_state(api: &IntegerCapabilityApi, original: u32) -> Result<u32> {
++    let saved = api.save_session(original)?;
++    let saved_value = serde_json::to_value(&saved)?;
++    let restored = api.restore_session(saved)?;
++    let before = api.get_telemetry(original)?;
++    let after = api.get_telemetry(restored)?;
++    assert_eq!(after.read_mode, before.read_mode);
++    assert_eq!(after.policy, before.policy);
++    assert_eq!(after.prng_state, before.prng_state);
++    assert_eq!(after.active_tokens, before.active_tokens);
++    assert_eq!(saved_json(api, restored)?, saved_value);
++    Ok(restored)
++}
++
++/// Save a session after it advanced its sampler, restore it, and continue both
++/// copies with the same user turns: generated text and the complete saved
++/// state must stay identical.
++fn assert_restore_continues_identically(api: &IntegerCapabilityApi, original: u32) -> Result<()> {
++    let restored = restore_and_compare_saved_state(api, original)?;
++    for turn in ["What did I say first?", "Say it again."] {
++        api.ingest_user_turn(original, turn)?;
++        api.ingest_user_turn(restored, turn)?;
++        let original_text = api.generate_text(original, 12)?;
++        let restored_text = api.generate_text(restored, 12)?;
++        assert_eq!(
++            restored_text, original_text,
++            "continuation text after '{turn}'"
++        );
++        assert_eq!(
++            saved_json(api, restored)?,
++            saved_json(api, original)?,
++            "saved state after '{turn}'"
++        );
++    }
++    Ok(())
++}
++
++#[test]
++fn metadata_declares_the_contract_without_certifying_it() -> Result<()> {
++    let api = IntegerCapabilityApi::new(create_test_bundle_with_byte_vocab());
++    let meta = api.metadata();
++    assert_eq!(meta.api_schema_version, CAPABILITY_API_SCHEMA);
++    assert_eq!(
++        meta.declared_numerical_contract,
++        DECLARED_NUMERICAL_CONTRACT
++    );
++    assert!(meta.contract_qualification.contains("not certified"));
++    assert!(meta
++        .contract_qualification
++        .contains("audit_zero_matmul_serving.py"));
++    let matrix = serde_json::to_string(&meta.truth_matrix)?;
++    for claim in ["Certified", "Qualified", "ms/tok", "MiB"] {
++        assert!(!matrix.contains(claim), "truth matrix states '{claim}'");
++    }
++    Ok(())
++}
++
++#[test]
++fn restored_session_keeps_sampler_policy_and_read_mode_and_continues_identically() -> Result<()> {
++    let api = IntegerCapabilityApi::new(create_test_bundle_with_byte_vocab());
++    let original = api.create_session(SessionConfig {
++        system_prompt: Some("Persistent persona.".into()),
++        seed: 1234,
++        read_mode: ReadMode::NoRead,
++        policy: SamplePolicy::Categorical { top_k: 0 },
++    })?;
++    api.ingest_user_turn(original, "Remember the code alpha-7.")?;
++    api.generate_text(original, 8)?;
++    let telemetry = api.get_telemetry(original)?;
++    assert_eq!(telemetry.read_mode, ReadMode::NoRead);
++    assert_eq!(telemetry.policy, SamplePolicy::Categorical { top_k: 0 });
++    assert_ne!(
++        telemetry.prng_state, 1234,
++        "generation must advance the sampler so its restoration is tested"
++    );
++    assert_restore_continues_identically(&api, original)
++}
++
++#[test]
++fn empty_prompt_is_rejected_without_changing_the_session() -> Result<()> {
++    let api = IntegerCapabilityApi::new(create_test_bundle_with_byte_vocab());
++    let id = api.create_session(SessionConfig::default())?;
++    api.ingest_user_turn(id, "hello")?;
++    let before = saved_json(&api, id)?;
++    for prompt in ["", "   ", "\n\t"] {
++        assert!(api.ingest_user_turn(id, prompt).is_err());
++    }
++    assert_eq!(saved_json(&api, id)?, before);
++    Ok(())
++}
++
++/// Load the width-576 fixture and run one turn in a new session.
++fn dialogue576_session() -> Result<(IntegerCapabilityApi, u32)> {
++    let bundle_path = Path::new(DIALOGUE576_BUNDLE_PATH);
++    require_fixture(bundle_path)?;
++    let api = IntegerCapabilityApi::new(Bundle::load(bundle_path)?);
++    let session_id = api.create_session(SessionConfig {
++        system_prompt: Some("You are a helpful mathematical assistant.".into()),
++        policy: SamplePolicy::Greedy,
++        read_mode: ReadMode::Enabled,
++        seed: 42,
++    })?;
++    let ingested = api.ingest_user_turn(session_id, "What is the square root of 64?")?;
++    assert!(ingested > 0);
++    api.generate_text(session_id, 16)?;
++    Ok((api, session_id))
++}
++
++#[test]
++#[ignore = "requires the local dialogue-child-bundle-1 fixture; run with --ignored"]
++fn capability_api_lifecycle_on_dialogue576_bundle() -> Result<()> {
++    let (api, session_id) = dialogue576_session()?;
++    let meta = api.metadata();
++    assert_eq!(meta.api_schema_version, CAPABILITY_API_SCHEMA);
++    assert_eq!(meta.width, 576);
++    assert_eq!(meta.vocab_size, 4096);
++    assert_eq!(meta.context_capacity, 256);
++    assert_eq!(
++        meta.declared_numerical_contract,
++        DECLARED_NUMERICAL_CONTRACT
++    );
++
++    let telemetry = api.get_telemetry(session_id)?;
++    assert_eq!(telemetry.session_id, session_id);
++    assert!(telemetry.active_tokens > 0);
++    assert_eq!(telemetry.context_capacity, 256);
++
++    let saved = api.save_session(session_id)?;
++    assert_eq!(saved.schema, "uor-r4.integer-session/1");
++    assert_eq!(saved.session_state.state.len(), 576);
++    restore_and_compare_saved_state(&api, session_id)?;
++    Ok(())
++}
++
++#[test]
++#[ignore = "known failure: uor-r4.integer-session/1 omits the width-576 value stores (persistent_values_576, dialogue_values_576, l2_pages_576), so a restored width-576 session diverges at its first step; also requires the local dialogue-child-bundle-1 fixture"]
++fn restored_dialogue576_session_continues_identically() -> Result<()> {
++    let (api, session_id) = dialogue576_session()?;
++    assert_restore_continues_identically(&api, session_id)
++}
+diff --git a/crates/uor-r4-integer/tests/full_path_m1_cost.rs b/crates/uor-r4-integer/tests/full_path_m1_cost.rs
+new file mode 100644
+index 000000000..7383c6eb8
+--- /dev/null
++++ b/crates/uor-r4-integer/tests/full_path_m1_cost.rs
+@@ -0,0 +1,403 @@
++//! Full-path cost measurement harness for the width-576 dialogue bundle.
++//!
++//! Fixture-dependent: ignored by default, and fails when run without the local
++//! `dialogue-child-bundle-1` fixture or its recorded replay. Run it explicitly:
++//!
++//! ```text
++//! UOR_R4_M1_COST_REPORT_ROOT=/new/attempt/dir UOR_R4_SOURCE_COMMIT=<sha> \
++//!   cargo test -p uor-r4-integer --release --test full_path_m1_cost -- --ignored --nocapture
++//! ```
++//!
++//! With `UOR_R4_M1_COST_REPORT_ROOT` set, that directory is claimed exclusively
++//! (`report_output::claim`) before the bundle loads, the report is written into
++//! it, and the attempt is sealed and verified. Without the variable nothing is
++//! written. Measures cold load, tokenizer encode, prompt ingestion, per-step
++//! latency over the recorded dialogue replay (exact parity asserted), session
++//! save/restore latency with a restore-continuation comparison, and process RSS
++//! via `ps`. Bytes touched per token is an analytic count, not a measurement.
++//! Latency ceilings are recorded next to the measured values with a computed
++//! `meets` flag; they are not asserted. One run is not a qualification.
++
++use serde_json::{json, Value};
++use std::fs;
++use std::path::{Path, PathBuf};
++use std::process::Command;
++use std::time::{Instant, SystemTime, UNIX_EPOCH};
++use uor_r4_integer::bundle::Bundle;
++use uor_r4_integer::config::ReadMode;
++use uor_r4_integer::model::SlotTarget;
++use uor_r4_integer::report_output;
++use uor_r4_integer::session::ChatSession;
++use uor_r4_integer::{IntegerError, Result};
++
++const BUNDLE_PATH: &str =
++    "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-child-bundle-1";
++const RESPONSES_PATH: &str =
++    "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-child-observation-1/responses-integer.json";
++const REPORT_ROOT_ENV: &str = "UOR_R4_M1_COST_REPORT_ROOT";
++const SOURCE_COMMIT_ENV: &str = "UOR_R4_SOURCE_COMMIT";
++const REPORT_FILE: &str = "m1-cost.json";
++
++/// Declared alpha ceilings, recorded against the measurement, not asserted.
++const CEILING_COLD_LOAD_MS: f64 = 250.0;
++const CEILING_STEP_MEAN_MS: f64 = 4.0;
++const CEILING_STEP_P90_MS: f64 = 4.0;
++/// Greedy decisions compared after a save/restore round trip.
++const RESTORE_CONTINUATION_STEPS: usize = 32;
++
++fn invalid(message: impl Into<String>) -> IntegerError {
++    IntegerError::Invalid(message.into())
++}
++
++fn require_fixture(path: &Path) -> Result<()> {
++    if path.exists() {
++        Ok(())
++    } else {
++        Err(invalid(format!(
++            "required fixture {} is missing; this ignored test needs the local dialogue-child-bundle-1 fixture",
++            path.display()
++        )))
++    }
++}
++
++fn process_rss_mb() -> Option<f64> {
++    let output = Command::new("ps")
++        .args(["-o", "rss=", "-p", &std::process::id().to_string()])
++        .output()
++        .ok()?;
++    if !output.status.success() {
++        return None;
++    }
++    let kib: f64 = std::str::from_utf8(&output.stdout)
++        .ok()?
++        .trim()
++        .parse()
++        .ok()?;
++    Some(kib / 1024.0)
++}
++
++fn sysctl(name: &str) -> Value {
++    Command::new("sysctl")
++        .args(["-n", name])
++        .output()
++        .ok()
++        .filter(|output| output.status.success())
++        .and_then(|output| String::from_utf8(output.stdout).ok())
++        .map(|text| Value::from(text.trim()))
++        .unwrap_or_else(|| Value::from("UNAVAILABLE"))
++}
++
++fn rss_value(rss: Option<f64>) -> Value {
++    rss.map(Value::from)
++        .unwrap_or_else(|| Value::from("UNAVAILABLE"))
++}
++
++fn greedy_choice(probs: &[u64]) -> u32 {
++    let mut best_val = 0u64;
++    let mut best_idx = 0u32;
++    for (idx, &p) in probs.iter().enumerate() {
++        if p > best_val {
++            best_val = p;
++            best_idx = idx as u32;
++        }
++    }
++    best_idx
++}
++
++fn field<'a>(value: &'a Value, key: &str) -> Result<&'a Value> {
++    value
++        .get(key)
++        .ok_or_else(|| invalid(format!("replay fixture lacks '{key}'")))
++}
++
++fn array<'a>(value: &'a Value, key: &str) -> Result<&'a Vec<Value>> {
++    field(value, key)?
++        .as_array()
++        .ok_or_else(|| invalid(format!("replay fixture '{key}' is not an array")))
++}
++
++fn token(value: &Value) -> Result<u32> {
++    value
++        .as_u64()
++        .and_then(|id| u32::try_from(id).ok())
++        .ok_or_else(|| invalid("replay fixture token is not a u32"))
++}
++
++fn percentile(sorted: &[f64], percent: usize) -> f64 {
++    sorted[(sorted.len() * percent / 100).min(sorted.len() - 1)]
++}
++
++fn ceiling(ceiling: f64, measured: f64) -> Value {
++    json!({ "ceiling": ceiling, "measured": measured, "meets": measured <= ceiling })
++}
++
++#[test]
++#[ignore = "requires the local dialogue-child-bundle-1 fixture; run with --ignored"]
++fn test_full_path_m1_cost_dialogue576() -> Result<()> {
++    let bundle_path = Path::new(BUNDLE_PATH);
++    let responses_path = Path::new(RESPONSES_PATH);
++    require_fixture(bundle_path)?;
++    require_fixture(responses_path)?;
++    let report_root = std::env::var_os(REPORT_ROOT_ENV).map(PathBuf::from);
++    if let Some(root) = &report_root {
++        report_output::claim(root)?;
++    }
++    let started_unix_s = SystemTime::now()
++        .duration_since(UNIX_EPOCH)
++        .map(|elapsed| elapsed.as_secs())
++        .unwrap_or(0);
++    let load_average_before = sysctl("vm.loadavg");
++    let initial_rss = process_rss_mb();
++
++    // 1. Cold bundle load.
++    let cold_start = Instant::now();
++    let bundle = Bundle::load(bundle_path)?;
++    let cold_load_ms = cold_start.elapsed().as_secs_f64() * 1000.0;
++    let post_load_rss = process_rss_mb();
++    let model = bundle.model();
++    assert_eq!(model.config().width, 576);
++    assert_eq!(model.config().vocab_size, 4096);
++
++    // 2. Tokenizer encode.
++    let tokenizer = bundle.tokenizer();
++    let prompts = [
++        "Hello!",
++        "What is your name and what can you do?",
++        "Please remember that the secret code is alpha-7-delta. What was the code?",
++        "In geometric language modeling, we replace soft attention matrices and dense MLPs with prime-addressed exact memory, Riemann zeta-zero phase coordinates on the 8-torus, and discrete Hopf holonomy over S3.",
++    ];
++    let mut encoded_tokens = 0usize;
++    let mut encode_nanos = 0u128;
++    for prompt in &prompts {
++        let start = Instant::now();
++        let tokens = tokenizer.encode(prompt);
++        encode_nanos += start.elapsed().as_nanos();
++        encoded_tokens += tokens.len();
++    }
++    let encode_us_per_token = encode_nanos as f64 / encoded_tokens as f64 / 1000.0;
++
++    // 3. Prompt ingestion into a fresh session.
++    let mut session = model.new_conversational_session();
++    let ingest_tokens = tokenizer.encode(prompts[2]);
++    let mut ingest_nanos = 0u128;
++    for &tok in &ingest_tokens {
++        let start = Instant::now();
++        model.step_conversational(&mut session, tok, SlotTarget::Dialogue, ReadMode::Enabled)?;
++        ingest_nanos += start.elapsed().as_nanos();
++    }
++    let ingest_ms_per_token = ingest_nanos as f64 / ingest_tokens.len() as f64 / 1_000_000.0;
++
++    // 4. Per-step latency over the recorded replay, with exact greedy parity.
++    let data: Value = serde_json::from_slice(&fs::read(responses_path)?)?;
++    let rows = array(&data, "rows")?;
++    let mut step_us: Vec<f64> = Vec::with_capacity(3000);
++    let mut decisions_verified = 0usize;
++    let mut turns_replayed = 0usize;
++    let mut peak_rss = post_load_rss;
++    let replay_start = Instant::now();
++    for (row_idx, row) in rows.iter().enumerate() {
++        let turns = array(row, "turns")?;
++        let mut session = model.new_conversational_session();
++        for (turn_idx, turn) in turns.iter().enumerate() {
++            turns_replayed += 1;
++            let conversation = field(turn, "native_conversation_turn")?;
++            let appended = array(conversation, "appended_token_ids")?;
++            let generation = field(field(conversation, "dialogue")?, "generation")?;
++            let decisions = array(generation, "decisions")?;
++            let mut step = None;
++            for id in appended {
++                let start = Instant::now();
++                step = Some(model.step_conversational(
++                    &mut session,
++                    token(id)?,
++                    SlotTarget::Dialogue,
++                    ReadMode::Enabled,
++                )?);
++                step_us.push(start.elapsed().as_nanos() as f64 / 1000.0);
++            }
++            let mut step = step.ok_or_else(|| invalid("replay turn appends no tokens"))?;
++            for (dec_idx, decision) in decisions.iter().enumerate() {
++                let expected = token(field(decision, "selected_token")?)?;
++                let actual = greedy_choice(&step.probabilities);
++                assert_eq!(
++                    actual, expected,
++                    "replay departure at request {row_idx}, turn {turn_idx}, decision {dec_idx}"
++                );
++                decisions_verified += 1;
++                if dec_idx + 1 < decisions.len() || turn_idx + 1 < turns.len() {
++                    let start = Instant::now();
++                    step = model.step_conversational(
++                        &mut session,
++                        actual,
++                        SlotTarget::Dialogue,
++                        ReadMode::Enabled,
++                    )?;
++                    step_us.push(start.elapsed().as_nanos() as f64 / 1000.0);
++                }
++            }
++            if let Some(rss) = process_rss_mb() {
++                peak_rss = Some(peak_rss.map_or(rss, |peak: f64| peak.max(rss)));
++            }
++        }
++    }
++    let replay_seconds = replay_start.elapsed().as_secs_f64();
++    assert_eq!(rows.len(), 38);
++    assert_eq!(turns_replayed, 58);
++    assert_eq!(decisions_verified, 1433);
++    assert_eq!(step_us.len(), 2526);
++
++    let mut sorted = step_us.clone();
++    sorted.sort_by(f64::total_cmp);
++    let n = sorted.len() as f64;
++    let mean_us = sorted.iter().sum::<f64>() / n;
++    let stddev_us = (sorted.iter().map(|&x| (x - mean_us).powi(2)).sum::<f64>() / n).sqrt();
++    let step_latency = json!({
++        "mean_ms": mean_us / 1000.0,
++        "stddev_ms": stddev_us / 1000.0,
++        "min_ms": sorted[0] / 1000.0,
++        "p50_ms": percentile(&sorted, 50) / 1000.0,
++        "p90_ms": percentile(&sorted, 90) / 1000.0,
++        "p95_ms": percentile(&sorted, 95) / 1000.0,
++        "p99_ms": percentile(&sorted, 99) / 1000.0,
++        "max_ms": sorted[sorted.len() - 1] / 1000.0,
++        "tok_per_sec": n / replay_seconds,
++    });
++    let mean_ms = mean_us / 1000.0;
++    let p90_ms = percentile(&sorted, 90) / 1000.0;
++
++    // 5. Session save/restore latency and restore continuation.
++    let sha = bundle.identity();
++    let mut chat = ChatSession::new(&bundle, Some("Persistent system persona."), 12345)?;
++    for i in 0..50 {
++        chat.ingest_user_turn(&format!("User message {i} with facts to remember."))?;
++    }
++    let save_start = Instant::now();
++    let serialized = chat.to_serialized(Some(sha));
++    let save_ms = save_start.elapsed().as_secs_f64() * 1000.0;
++    let restore_start = Instant::now();
++    let mut restored = ChatSession::from_serialized(&bundle, serialized, sha)?;
++    let restore_ms = restore_start.elapsed().as_secs_f64() * 1000.0;
++    let serialized_round_trip_equal = serde_json::to_value(restored.to_serialized(Some(sha)))?
++        == serde_json::to_value(chat.to_serialized(Some(sha)))?;
++    let probe = "What was the first fact?";
++    chat.ingest_user_turn(probe)?;
++    restored.ingest_user_turn(probe)?;
++    let mut first_divergence = None;
++    for step_idx in 0..RESTORE_CONTINUATION_STEPS {
++        let expected = chat
++            .last_step()
++            .ok_or_else(|| invalid("original session lacks a step"))?;
++        let actual = restored
++            .last_step()
++            .ok_or_else(|| invalid("restored session lacks a step"))?;
++        if expected.probabilities != actual.probabilities {
++            first_divergence = Some(step_idx);
++            break;
++        }
++        let next = greedy_choice(&expected.probabilities);
++        chat.step_token(next, SlotTarget::Dialogue)?;
++        restored.step_token(next, SlotTarget::Dialogue)?;
++    }
++
++    // 6. Analytic bytes touched per token (a count, not a measurement).
++    let width = 576usize;
++    let read_dim = 64usize;
++    let vocab_size = 4096usize;
++    let memory_slots = 256usize; // 32 persistent + 224 dialogue
++    let bytes_touched = vocab_size * width / 2 // 4-bit unembedding
++        + read_dim * width / 2 // 4-bit score projection
++        + memory_slots * read_dim * 2 // INT16 memory keys
++        + memory_slots * width * 4 // INT32 memory values
++        + width * 2 // INT16 state
++        + 8 * 4 // zeta phases
++        + 4 * 4; // Hopf coordinates
++
++    let load_average_after = sysctl("vm.loadavg");
++    let build_profile = if cfg!(debug_assertions) {
++        "debug"
++    } else {
++        "release"
++    };
++    let source_commit =
++        std::env::var(SOURCE_COMMIT_ENV).unwrap_or_else(|_| "UNRECORDED".to_string());
++    println!("full-path cost harness, one run (not a qualification)");
++    println!("  cold load            {cold_load_ms:.3} ms");
++    println!("  tokenizer encode     {encode_us_per_token:.3} us/token ({encoded_tokens} tokens)");
++    println!("  prompt ingestion     {ingest_ms_per_token:.3} ms/token");
++    println!(
++        "  step mean / p90      {mean_ms:.3} / {p90_ms:.3} ms over {} steps",
++        step_us.len()
++    );
++    println!("  replay parity        {decisions_verified} decisions, 0 departures");
++    println!("  save / restore       {save_ms:.3} / {restore_ms:.3} ms");
++    println!("  restore continuation first divergence: {first_divergence:?}");
++    println!("  load average         {load_average_before} -> {load_average_after}");
++
++    let report = json!({
++        "schema": "uor-r4.m1-cost-profile/2",
++        "run": {
++            "started_unix_s": started_unix_s,
++            "harness": "crates/uor-r4-integer/tests/full_path_m1_cost.rs",
++            "build_profile": build_profile,
++            "source_commit": source_commit,
++            "os": std::env::consts::OS,
++            "arch": std::env::consts::ARCH,
++            "cpu": sysctl("machdep.cpu.brand_string"),
++            "load_average_before": load_average_before,
++            "load_average_after": load_average_after,
++            "status": "one run; not a qualification",
++        },
++        "artifact": {
++            "bundle": "dialogue-child-bundle-1",
++            "path": bundle_path.display().to_string(),
++            "identity": sha,
++            "width": width,
++            "vocab_size": vocab_size,
++            "read_dim": read_dim,
++            "context_capacity": model.config().context,
++        },
++        "metrics": {
++            "cold_load_ms": cold_load_ms,
++            "tokenizer_encode_us_per_tok": encode_us_per_token,
++            "prompt_ingest_ms_per_tok": ingest_ms_per_token,
++            "step_latency": step_latency,
++            "session_save_ms": save_ms,
++            "session_restore_ms": restore_ms,
++            "initial_rss_mb": rss_value(initial_rss),
++            "post_load_rss_mb": rss_value(post_load_rss),
++            "peak_rss_mb": rss_value(peak_rss),
++            "bytes_touched_per_token": bytes_touched,
++            "bytes_touched_basis": "analytic count in the harness source; not measured",
++            "energy_soc_joules_per_token": "UNAVAILABLE",
++        },
++        "ceilings": {
++            "cold_load_ms": ceiling(CEILING_COLD_LOAD_MS, cold_load_ms),
++            "step_mean_ms": ceiling(CEILING_STEP_MEAN_MS, mean_ms),
++            "step_p90_ms": ceiling(CEILING_STEP_P90_MS, p90_ms),
++        },
++        "restore": {
++            "serialized_round_trip_equal": serialized_round_trip_equal,
++            "continuation_steps_compared": RESTORE_CONTINUATION_STEPS,
++            "continuation_identical": first_divergence.is_none(),
++            "first_divergence_step": first_divergence,
++        },
++        "parity_gate": {
++            "requests": rows.len(),
++            "turns": turns_replayed,
++            "verified_decisions": decisions_verified,
++            "departures": 0,
++            "step_calls": step_us.len(),
++        },
++    });
++
++    match report_root {
++        Some(root) => {
++            fs::write(root.join(REPORT_FILE), serde_json::to_vec_pretty(&report)?)?;
++            report_output::seal(&root)?;
++            report_output::verify(&root)?;
++            println!("  report sealed at {}", root.display());
++        }
++        None => println!("  no report written ({REPORT_ROOT_ENV} is unset)"),
++    }
++    Ok(())
++}
+diff --git a/docs/evidence/capability-api-wasm-audit-2026-09-28.json b/docs/evidence/capability-api-wasm-audit-2026-09-28.json
+new file mode 100644
+index 000000000..b28a1aea3
+--- /dev/null
++++ b/docs/evidence/capability-api-wasm-audit-2026-09-28.json
+@@ -0,0 +1,76 @@
++{
++  "schema": "uor-r4.evidence/1",
++  "receipt_identity": "capability-api-wasm-audit-2026-09-28",
++  "timestamp": "2026-09-28T01:40:00-04:00",
++  "timestamp_note": "First recorded as 01:40:00Z; the module file was written at 01:39:55 EDT (05:39:55 UTC), so the original value was local time.",
++  "owning_lab": "Lab 3 (Anti-Gravity)",
++  "corrected_by": "Lab 1, 2026-09-28, per the owner's direction (PR #1452 review)",
++  "track": "T3 (Mission runtime and measured efficiency)",
++  "issues_referenced": [1172, 1173, 963, 964, 820],
++  "status": "Helper-export module, not a serving runtime. Not D11-clean: the model step and the Hopf helpers' callees contain i64.mul.",
++  "wasm_artifact": {
++    "binary_path": "/Volumes/UOR-Workspace/uor-r4-lab/anti-gravity-bins/698bdda481de57c2257b158bb53f7942568a3be7/uor_r4_integer.wasm",
++    "sha256": "a41c652795e65821bc59381c77d10339e0c9edd3f4aa068b2c7e79b608f1b3ac",
++    "size_bytes": 1664885,
++    "target": "wasm32-unknown-unknown",
++    "build_commit": "UNRECORDED",
++    "build_commit_note": "The folder name 698bdda predates wasm.rs, which was first committed in a8d59d31 (01:41:21 EDT); the module file was written at 01:39:55 EDT from an uncommitted working tree.",
++    "compiler": "rustc 1.97.1 (8bab26f4f 2026-07-14), from the module's producers section",
++    "target_features": ["bulk-memory", "bulk-memory-opt", "call-indirect-overlong", "multivalue", "mutable-globals", "nontrapping-fptoint", "reference-types", "sign-ext"],
++    "compiler_flags": "UNRECORDED. The flags first listed here included +simd128, which the module's target_features section does not list.",
++    "exports": "2,142 function exports through --export-all, including the 13 uor_wasm_* helpers defined in wasm.rs; no load, session or step entry point"
++  },
++  "original_audit": {
++    "tool": "scripts/audit_zero_matmul_wasm.py as first committed in a8d59d31",
++    "reported": "20/20 PASS",
++    "scope": "the bodies of 20 functions (13 exported helpers and 7 internal kernels), without following calls",
++    "withdrawn": true,
++    "defects": [
++      "Calls were not followed: the Hopf helpers' callees UnitS3Q30::hopf_project and UnitS3Q30::from_i32_coords contain i64.mul.",
++      "memory.fill was decoded with two immediate bytes instead of one, which desynchronised uor_wasm_score_token_salience_default_key (131 instructions reported; 129 decoded).",
++      "0xFD (SIMD) and other 0xFC-prefixed instructions were skipped, not reported; the 0xFC 0..7 saturating float truncations were not counted as float.",
++      "SIMD immediates were mis-sized: splats skipped 16 bytes and lane operations read a memory argument.",
++      "The recorded commit was the checked-out HEAD, not the build commit.",
++      "Export indices were used as code-section indices; that is wrong for a module with imported functions (this module has none)."
++    ]
++  },
++  "reaudit": {
++    "tool": "scripts/audit_zero_matmul_wasm.py as corrected in PR #1452",
++    "run_by": "Lab 1, 2026-09-28",
++    "build_commit_argument": "UNRECORDED",
++    "symbols": 21,
++    "symbol_note": "The 20 original symbols plus IntegerModel::step_conversational_into, the model step, which no helper reaches.",
++    "root_bodies_only": {
++      "command": "python3 scripts/audit_zero_matmul_wasm.py <module> --tap",
++      "clean": 19,
++      "not_clean": [
++        {"name": "uor_wasm_score_token_salience_default_key", "status": "UNCLASSIFIED", "unclassified": {"0xFC 11 (memory.fill)": 1}},
++        {"name": "IntegerModel::step_conversational_into", "status": "FAIL", "mul": 38, "unclassified": {"0xFC 10 (memory.copy)": 37, "0xFC 11 (memory.fill)": 44}}
++      ]
++    },
++    "call_graph": {
++      "command": "python3 scripts/audit_zero_matmul_wasm.py <module> --tap --call-graph",
++      "scope": "direct calls followed transitively; callees on the native auditor's allowlist (allocation, formatting, panic, I/O, tokenizer, loading), imported callees and indirect call targets not audited",
++      "clean": 14,
++      "not_clean": [
++        {"name": "uor_wasm_hopf_project_x", "status": "FAIL", "mul": 12, "functions": {"UnitS3Q30::hopf_project": 8, "UnitS3Q30::from_i32_coords": 4}},
++        {"name": "uor_wasm_hopf_project_y", "status": "FAIL", "mul": 12, "functions": {"UnitS3Q30::hopf_project": 8, "UnitS3Q30::from_i32_coords": 4}},
++        {"name": "uor_wasm_hopf_project_z", "status": "FAIL", "mul": 12, "functions": {"UnitS3Q30::hopf_project": 8, "UnitS3Q30::from_i32_coords": 4}},
++        {"name": "uor_wasm_score_token_salience_default_key", "status": "UNCLASSIFIED", "unclassified": {"0xFC 11 (memory.fill)": 1}},
++        {"name": "IntegerModel::project_vocab", "status": "FAIL", "mul": 5, "functions": {"low_bit_products": 4, "IntegerModel::project_vocab_with_products_into": 1}, "unclassified": {"0xFC 11 (memory.fill)": 3}},
++        {"name": "IntegerModel::project_vocab_with_products", "status": "FAIL", "mul": 1, "functions": {"IntegerModel::project_vocab_with_products_into": 1}, "unclassified": {"0xFC 11 (memory.fill)": 2}},
++        {"name": "IntegerModel::step_conversational_into", "status": "FAIL", "mul": 56, "functions": {"IntegerModel::step_conversational_into": 38, "UnitS3Q30::hopf_project": 8, "UnitS3Q30::from_i32_coords": 4, "UnitS3Q30::fiber_u1_q30": 4, "IntegerModel::vector_work": 1, "IntegerModel::project_vocab_with_products_into": 1}, "unclassified": {"0xFC 10 (memory.copy)": 39, "0xFC 11 (memory.fill)": 49}}
++      ],
++      "multiplier_operands": "Each i64.mul in UnitS3Q30::hopf_project (8) and UnitS3Q30::from_i32_coords (4) is preceded by i64.const 3: the (u << 1) + u step of mul_i32_radix4 compiled to a multiply by 3."
++    }
++  },
++  "capability_api": {
++    "schema": "uor-r4.integer-capability-api/1",
++    "crate": "uor-r4-integer",
++    "module": "capability_api",
++    "primary_type": "IntegerCapabilityApi",
++    "safety": "crate root declares #![forbid(unsafe_code)]",
++    "numerical_contract": "declared (D11), not certified by the API",
++    "test_suite": "crates/uor-r4-integer/tests/capability_api_tests.rs: three synthetic-bundle tests on every run; two width-576 fixture tests, ignored by default. The fixture lifecycle test passes. The fixture continuation test is a known failure, because uor-r4.integer-session/1 omits the width-576 value stores."
++  }
++}
+diff --git a/docs/evidence/full-path-m1-cost-dialogue576-2026-09-28.json b/docs/evidence/full-path-m1-cost-dialogue576-2026-09-28.json
+new file mode 100644
+index 000000000..f3c0c4517
+--- /dev/null
++++ b/docs/evidence/full-path-m1-cost-dialogue576-2026-09-28.json
+@@ -0,0 +1,46 @@
++{
++  "artifact": {
++    "bundle": "dialogue-child-bundle-1",
++    "context_capacity": 256,
++    "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-child-bundle-1",
++    "read_dim": 64,
++    "vocab_size": 4096,
++    "width": 576
++  },
++  "hardware": {
++    "platform": "Apple Silicon (M1-class arm64)",
++    "rayon_num_threads": 1,
++    "threads": 1
++  },
++  "metrics": {
++    "bytes_touched_per_token": 1821872,
++    "cold_load_ms": 1530.487792,
++    "energy_soc_joules_per_token": "UNAVAILABLE",
++    "mib_touched_per_token": 1.7374725341796875,
++    "peak_rss_mb": 22.359375,
++    "prompt_ingest_ms_per_tok": 7.787593666666667,
++    "session_restore_ms": 0.321583,
++    "session_save_ms": 0.165458,
++    "step_latency": {
++      "max_ms": 139.05375,
++      "mean_ms": 7.315214685669045,
++      "min_ms": 2.3955830000000002,
++      "p50_ms": 5.169833,
++      "p90_ms": 13.236709000000001,
++      "p95_ms": 18.482791000000002,
++      "p99_ms": 38.317292,
++      "stddev_ms": 7.272027387750937,
++      "tok_per_sec": 130.6045707424653
++    },
++    "tokenizer_encode_us_per_tok": 43.93077419354839
++  },
++  "parity_gate": {
++    "departures": 0,
++    "requests": 38,
++    "status": "PASS",
++    "turns": 58,
++    "verified_decisions": 1433
++  },
++  "schema": "uor-r4.m1-cost-profile/1",
++  "timestamp": "SystemTime { tv_sec: 1790573905, tv_nsec: 775083000 }"
++}
+\ No newline at end of file
+diff --git a/docs/evidence/release-bundle-manifest-dialogue576-2026-09-28.json b/docs/evidence/release-bundle-manifest-dialogue576-2026-09-28.json
+new file mode 100644
+index 000000000..3a1f315c8
+--- /dev/null
++++ b/docs/evidence/release-bundle-manifest-dialogue576-2026-09-28.json
+@@ -0,0 +1,229 @@
++{
++  "schema": "uor-r4.release-bundle-manifest/2",
++  "release_id": "dialogue576-v1-release-20260928",
++  "generated_at": "2026-09-28T20:38:10Z",
++  "status": "unsealed manifest; not a qualification",
++  "owning_lab": "Lab 3 (Anti-Gravity)",
++  "track": "T3 (Mission runtime and measured efficiency)",
++  "issues_referenced": [
++    965,
++    963,
++    1172,
++    1173,
++    964,
++    820
++  ],
++  "digest_algorithms": [
++    "sha256"
++  ],
++  "model_architecture": {
++    "name": "UOR-R4 Geometric Language Model (Dialogue Child)",
++    "width": 576,
++    "vocab_size": 4096,
++    "context_capacity": 256,
++    "read_geometry": "dot",
++    "declared_numerical_contract": "D11",
++    "contract_qualification": "Declared, not certified by this manifest; see the audit records of the served binaries."
++  },
++  "bundle_artifact": {
++    "root_path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-child-bundle-1",
++    "total_bytes": 4356152,
++    "file_count": 11,
++    "files": [
++      {
++        "path": "attempt.json",
++        "bytes": 810,
++        "sha256": "7e9646c21f8ce7789bfa343dab376cf53347e4e7bcfa8475acbc52210ab4c72f"
++      },
++      {
++        "path": "bundle.json",
++        "bytes": 6512,
++        "sha256": "55b3fa54a424e46681bfde5cd257ff0da51e0f560fef550fa6d84d07f698562a"
++      },
++      {
++        "path": "manifest.json",
++        "bytes": 1749,
++        "sha256": "7da97234e9d6cc2708318741a362e70d8bb6c2900f47c34d2a4d9e00b6802c3e"
++      },
++      {
++        "path": "tokenizer.json",
++        "bytes": 109457,
++        "sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89"
++      },
++      {
++        "path": "model/hard-model.json",
++        "bytes": 326250,
++        "sha256": "eb975d2b0b6349852af8841fd5fc10f9336a1ea39023e09e618658ff94204682"
++      },
++      {
++        "path": "model/hard-parameters.bin",
++        "bytes": 2725956,
++        "sha256": "245a6fd1b5cbbbaa16ca3e6dbfa2837909216a0a4044ab9cc8edd9957a05510b"
++      },
++      {
++        "path": "model/hard-parameters.json",
++        "bytes": 135189,
++        "sha256": "8d58183f1e335d2420af6467f86fef26bf269afaa16b815a1d178d4421d4ac88"
++      },
++      {
++        "path": "tables/attempt.json",
++        "bytes": 401,
++        "sha256": "bdd27be28c7a329e750100c958faee4975e224c0b06a9cb2e13c772b93bad2ba"
++      },
++      {
++        "path": "tables/manifest.json",
++        "bytes": 621,
++        "sha256": "bc3742071a1501adc7223d21740bf2bde91345946e911ae6b71b4993627a4955"
++      },
++      {
++        "path": "tables/tables.bin",
++        "bytes": 1048560,
++        "sha256": "993e63edc97a4c988b586bc52b5e9fcf133e675caceb7ed04727e7248bb30ff2"
++      },
++      {
++        "path": "tables/tables.json",
++        "bytes": 647,
++        "sha256": "2d16e17cd34c5a07681a7950a22c4b9a67df5208b28304ab8b7fbe94461c150d"
++      }
++    ]
++  },
++  "served_binaries": {
++    "arm64_native": {
++      "name": "uor-chat",
++      "role": "native serving binary",
++      "path": "/Volumes/UOR-Workspace/uor-r4-lab/anti-gravity-bins/698bdda481de57c2257b158bb53f7942568a3be7/uor-chat",
++      "sha256": "4a4253a174d5af324fde647324f7830210bcb7bb0f6d5f2bdd94dcafe0c68aa4",
++      "size_bytes": 1465168,
++      "target": "aarch64-apple-darwin",
++      "build_commit": "UNRECORDED",
++      "compiler": "UNRECORDED",
++      "compiler_flags": "UNRECORDED",
++      "audit": {
++        "command": "python3 scripts/audit_zero_matmul_serving.py /Volumes/UOR-Workspace/uor-r4-lab/anti-gravity-bins/698bdda481de57c2257b158bb53f7942568a3be7/uor-chat --strict-arm64 --tap --git-commit UNRECORDED --compiler UNRECORDED --flags UNRECORDED",
++        "exit_code": 0,
++        "tap_ok": 5,
++        "tap_not_ok": 0,
++        "tap_lines": [
++          "1..5",
++          "# Target: /Volumes/UOR-Workspace/uor-r4-lab/anti-gravity-bins/698bdda481de57c2257b158bb53f7942568a3be7/uor-chat",
++          "# Artifact SHA-256: 4a4253a174d5af324fde647324f7830210bcb7bb0f6d5f2bdd94dcafe0c68aa4",
++          "# Source Commit: UNRECORDED",
++          "# Compiler: UNRECORDED",
++          "# Compiler Flags: UNRECORDED",
++          "# Matched symbol ranges checked: 55",
++          "# Transitive call-graph reachability checked: 113 functions (0 violations)",
++          "# NOT AUDITED: T8ZetaState::step_raw (no separate symbol; may be inlined or absent)",
++          "# NOT AUDITED: math::sum_squares (no separate symbol; may be inlined or absent)",
++          "# NOT AUDITED: IntegerModel::affine_direct (no separate symbol; may be inlined or absent)",
++          "# NOT AUDITED: h4_classifier::signed_h4_code_i32 (no separate symbol; may be inlined or absent)",
++          "# NOT AUDITED: h4_classifier::family_candidates (no separate symbol; may be inlined or absent)",
++          "# NOT AUDITED: h4_classifier::golden_sign_bits (no separate symbol; may be inlined or absent)",
++          "# NOT AUDITED: h4_classifier::checked_add_square_terms (no separate symbol; may be inlined or absent)",
++          "# NOT AUDITED: h4_classifier::coefficient_term (no separate symbol; may be inlined or absent)",
++          "# NOT AUDITED: h4_classifier::score (no separate symbol; may be inlined or absent)",
++          "# NOT AUDITED: h4_classifier::score_difference_order (no separate symbol; may be inlined or absent)",
++          "# NOT AUDITED: HistoricalH4Tables::inverse (no separate symbol; may be inlined or absent)",
++          "# NOT AUDITED: HistoricalH4Tables::compose (no separate symbol; may be inlined or absent)",
++          "# NOT AUDITED: HistoricalH4Tables::relative (no separate symbol; may be inlined or absent)",
++          "ok 1 - [T1_F05_TC01] [Tier 1] Disassembly tool availability (objdump, otool)",
++          "ok 2 - [T1_F05_TC02] [Tier 1] Zero floating-point instructions in serving symbols (Class III clean)",
++          "ok 3 - [T1_F05_TC03] [Tier 1] Zero hardware multipliers in numerical serving symbols (Class I clean)",
++          "ok 4 - [T1_F05_TC04] [Tier 1] Zero hardware dividers in numerical serving symbols (Class II clean)",
++          "ok 5 - [T1_F05_TC05] [Tier 1] Strict audit exit code integrity for declared symbol coverage (0 violations)"
++        ]
++      }
++    },
++    "webassembly": {
++      "name": "uor_r4_integer.wasm",
++      "role": "helper-export module; no load, session or step export; not a serving runtime",
++      "path": "/Volumes/UOR-Workspace/uor-r4-lab/anti-gravity-bins/698bdda481de57c2257b158bb53f7942568a3be7/uor_r4_integer.wasm",
++      "sha256": "a41c652795e65821bc59381c77d10339e0c9edd3f4aa068b2c7e79b608f1b3ac",
++      "size_bytes": 1664885,
++      "target": "wasm32-unknown-unknown",
++      "build_commit": "UNRECORDED",
++      "audit": {
++        "command": "python3 scripts/audit_zero_matmul_wasm.py /Volumes/UOR-Workspace/uor-r4-lab/anti-gravity-bins/698bdda481de57c2257b158bb53f7942568a3be7/uor_r4_integer.wasm --tap --call-graph --build-commit UNRECORDED",
++        "exit_code": 1,
++        "tap_ok": 14,
++        "tap_not_ok": 7,
++        "tap_lines": [
++          "1..21",
++          "# Artifact: /Volumes/UOR-Workspace/uor-r4-lab/anti-gravity-bins/698bdda481de57c2257b158bb53f7942568a3be7/uor_r4_integer.wasm",
++          "# Artifact SHA-256: a41c652795e65821bc59381c77d10339e0c9edd3f4aa068b2c7e79b608f1b3ac",
++          "# Artifact bytes: 1664885",
++          "# Build commit: UNRECORDED (supplied by --build-commit)",
++          "# Scope: direct calls followed transitively; allowlisted callees, imported callees and indirect call targets are not audited",
++          "ok 1 - uor_wasm_version: mul=0, div=0, float=0, unclassified=0 (2 instructions in 1 fn(s); 0 allowlisted and 0 imported callee(s) not audited; 0 indirect call site(s))",
++          "ok 2 - uor_wasm_state_dim: mul=0, div=0, float=0, unclassified=0 (2 instructions in 1 fn(s); 0 allowlisted and 0 imported callee(s) not audited; 0 indirect call site(s))",
++          "ok 3 - uor_wasm_vocab_size: mul=0, div=0, float=0, unclassified=0 (2 instructions in 1 fn(s); 0 allowlisted and 0 imported callee(s) not audited; 0 indirect call site(s))",
++          "ok 4 - uor_wasm_context_capacity: mul=0, div=0, float=0, unclassified=0 (2 instructions in 1 fn(s); 0 allowlisted and 0 imported callee(s) not audited; 0 indirect call site(s))",
++          "ok 5 - uor_wasm_exact_min_p_threshold: mul=0, div=0, float=0, unclassified=0 (58 instructions in 2 fn(s); 0 allowlisted and 0 imported callee(s) not audited; 0 indirect call site(s))",
++          "not ok 6 - uor_wasm_hopf_project_x: FAIL (mul=12, div=0, float=0, unclassified=0; 2251 instructions in 7 fn(s); 0 allowlisted and 0 imported callee(s) not audited; 0 indirect call site(s))",
++          "not ok 7 - uor_wasm_hopf_project_y: FAIL (mul=12, div=0, float=0, unclassified=0; 2251 instructions in 7 fn(s); 0 allowlisted and 0 imported callee(s) not audited; 0 indirect call site(s))",
++          "not ok 8 - uor_wasm_hopf_project_z: FAIL (mul=12, div=0, float=0, unclassified=0; 2251 instructions in 7 fn(s); 0 allowlisted and 0 imported callee(s) not audited; 0 indirect call site(s))",
++          "ok 9 - uor_wasm_step_zeta_phase_scalar: mul=0, div=0, float=0, unclassified=0 (52 instructions in 1 fn(s); 0 allowlisted and 0 imported callee(s) not audited; 0 indirect call site(s))",
++          "ok 10 - uor_wasm_galois_lfsr_step: mul=0, div=0, float=0, unclassified=0 (12 instructions in 1 fn(s); 0 allowlisted and 0 imported callee(s) not audited; 0 indirect call site(s))",
++          "ok 11 - uor_wasm_compute_turn_prime_signature: mul=0, div=0, float=0, unclassified=0 (397 instructions in 2 fn(s); 0 allowlisted and 0 imported callee(s) not audited; 0 indirect call site(s))",
++          "ok 12 - uor_wasm_atan2_q30: mul=0, div=0, float=0, unclassified=0 (544 instructions in 2 fn(s); 0 allowlisted and 0 imported callee(s) not audited; 0 indirect call site(s))",
++          "not ok 13 - uor_wasm_score_token_salience_default_key: UNCLASSIFIED (mul=0, div=0, float=0, unclassified=1; 129 instructions in 1 fn(s); 0 allowlisted and 0 imported callee(s) not audited; 0 indirect call site(s))",
++          "not ok 14 - IntegerModel::project_vocab: FAIL (mul=5, div=0, float=0, unclassified=3; 6763 instructions in 16 fn(s); 10 allowlisted and 0 imported callee(s) not audited; 0 indirect call site(s))",
++          "not ok 15 - IntegerModel::project_vocab_with_products: FAIL (mul=1, div=0, float=0, unclassified=2; 6514 instructions in 14 fn(s); 9 allowlisted and 0 imported callee(s) not audited; 0 indirect call site(s))",
++          "ok 16 - low_bit_dot_8_pair_tables: mul=0, div=0, float=0, unclassified=0 (182 instructions in 1 fn(s); 0 allowlisted and 0 imported callee(s) not audited; 0 indirect call site(s))",
++          "ok 17 - low_bit_dot_4_contiguous_wide_pair_tables: mul=0, div=0, float=0, unclassified=0 (106 instructions in 1 fn(s); 0 allowlisted and 0 imported callee(s) not audited; 0 indirect call site(s))",
++          "ok 18 - packed_rows::low_bit_dot: mul=0, div=0, float=0, unclassified=0 (201 instructions in 1 fn(s); 0 allowlisted and 0 imported callee(s) not audited; 0 indirect call site(s))",
++          "ok 19 - sampling::exact_min_p_threshold: mul=0, div=0, float=0, unclassified=0 (54 instructions in 1 fn(s); 0 allowlisted and 0 imported callee(s) not audited; 0 indirect call site(s))",
++          "ok 20 - math::atan2_q30: mul=0, div=0, float=0, unclassified=0 (540 instructions in 1 fn(s); 0 allowlisted and 0 imported callee(s) not audited; 0 indirect call site(s))",
++          "not ok 21 - IntegerModel::step_conversational_into: FAIL (mul=56, div=0, float=0, unclassified=88; 64041 instructions in 58 fn(s); 18 allowlisted and 0 imported callee(s) not audited; 0 indirect call site(s))"
++        ]
++      }
++    }
++  },
++  "full_path_cost": {
++    "report_path": "docs/evidence/full-path-m1-cost-dialogue576-2026-09-28.json",
++    "report_sha256": "69a4d0c0b695edc7706403551bddf834e15115605aa2b6cb179501792d91d03b",
++    "report_schema": "uor-r4.m1-cost-profile/1",
++    "sealed_report_root": false,
++    "status": "one run without a sealed report root; not a qualification",
++    "run_conditions": "not recorded by this report schema (machine load, source commit and build are unknown)",
++    "cold_load_ms": 1530.487792,
++    "tokenizer_encode_us_per_tok": 43.93077419354839,
++    "prompt_ingest_ms_per_tok": 7.787593666666667,
++    "step_mean_ms": 7.315214685669045,
++    "step_p50_ms": 5.169833,
++    "step_p90_ms": 13.236709000000001,
++    "throughput_tokens_per_sec": 130.6045707424653,
++    "session_save_ms": 0.165458,
++    "session_restore_ms": 0.321583,
++    "peak_process_rss_mb": 22.359375,
++    "live_repl_rss_mb": "UNAVAILABLE (not recorded by the harness)",
++    "bytes_touched_per_token": 1821872,
++    "bytes_touched_basis": "analytic count in the harness source; not measured",
++    "energy_soc_joules_per_token": "UNAVAILABLE",
++    "parity_requests": 38,
++    "parity_turns": 58,
++    "parity_decisions_verified": 1433,
++    "parity_departures": 0,
++    "declared_ceilings": {
++      "cold_load_ms": {
++        "ceiling": 250.0,
++        "recorded": 1530.487792,
++        "meets": false
++      },
++      "step_mean_ms": {
++        "ceiling": 4.0,
++        "recorded": 7.315214685669045,
++        "meets": false
++      },
++      "step_p90_ms": {
++        "ceiling": 4.0,
++        "recorded": 13.236709000000001,
++        "meets": false
++      }
++    }
++  },
++  "capability_api": {
++    "schema": "uor-r4.integer-capability-api/1",
++    "container": "uor_r4_integer::capability_api::IntegerCapabilityApi",
++    "safety": "crate root declares #![forbid(unsafe_code)]"
++  }
++}
+diff --git a/docs/integration/capability-api-wasm-runtime-2026-09-28.md b/docs/integration/capability-api-wasm-runtime-2026-09-28.md
+new file mode 100644
+index 000000000..77b7474e0
+--- /dev/null
++++ b/docs/integration/capability-api-wasm-runtime-2026-09-28.md
+@@ -0,0 +1,75 @@
++# Capability API and WebAssembly helper module
++
++**Date**: September 28, 2026
++**Owning Lab**: Lab 3 (Anti-Gravity); corrected by Lab 1 per the owner's direction (PR #1452 review)
++**Track**: T3 (Mission runtime and measured efficiency)
++**Issues Referenced**: #1172, #1173, #963, #964, #820
++**Evidence Artifact**: `docs/evidence/capability-api-wasm-audit-2026-09-28.json`
++
++---
++
++## 1. Summary
++
++1. **Capability API (`IntegerCapabilityApi`).** `crates/uor-r4-integer/src/capability_api.rs`, schema `uor-r4.integer-capability-api/1`. It is a lifetime-free session container over one loaded bundle. It provides metadata, a scoped capability status matrix, session creation with an optional persistent system prompt, user-turn ingestion, token generation and session save/restore.
++   - It is safe Rust under the crate's `#![forbid(unsafe_code)]`.
++   - The metadata **declares** the D11 numerical contract and states that the API does not certify it. Qualification requires the ARM64 instruction audit of the delivered release binary and a measured, sealed report. The API no longer returns the literal "D11 Certified" and "M1 Qualified" statements or the hard-coded `zero_*` flags.
++2. **WebAssembly module (`uor_r4_integer.wasm`).** A frozen `wasm32-unknown-unknown` build with 13 `uor_wasm_*` helper exports. It exports no load, session or step entry point, so it is **not a serving runtime**. It is **not D11-clean**: the model step and the Hopf helpers' callees contain `i64.mul`.
++3. **Audit tool (`scripts/audit_zero_matmul_wasm.py`).** The original 20/20 PASS covered 20 function bodies (the 13 exported helpers and 7 internal kernels) **without following calls**, with a decoder defect. It is withdrawn. The corrected tool and its re-audit are described in sections 3 and 4.
++
++## 2. Capability API behaviour
++
++- **Restore.** `restore_session` keeps the saved sampler state, sampling policy and read mode. It previously reset them to seed 0, greedy and enabled.
++- **Empty prompt.** `ingest_user_turn` rejects an empty prompt before it changes the session. Previously a rejected call had already advanced the turn counter.
++- **Turn end.** `generate_text` returns an error when committing a sampled turn-end or EOS token fails. Previously that error was discarded.
++- **Tests.** `crates/uor-r4-integer/tests/capability_api_tests.rs` runs three tests on the synthetic byte-vocabulary bundle on every run:
++  - the metadata declares the contract without certifying it;
++  - a restored session keeps its sampler, policy and read mode and continues with identical text and saved state;
++  - an empty prompt leaves the saved session byte-identical.
++- **Fixture tests.** Two width-576 tests need the local `dialogue-child-bundle-1` fixture. They are ignored by default and fail when run without it.
++  - The lifecycle test covers metadata, session creation, ingestion, generation, save and restore. It passes: the restored session keeps its sampler, policy and read mode, and it saves identically.
++  - The continuation test is a **known failure**, and its ignore reason says so. `uor-r4.integer-session/1` does not serialize the width-576 value stores (`persistent_values_576`, `dialogue_values_576`, `l2_pages_576`), and `ChatSession::from_serialized` rebuilds them empty. A restored width-576 session therefore reads empty values and diverges at its first step.
++  - This gap is in the existing session schema, not in the capability API. It affects every width-576 restore, including `uor-chat`'s. Closing it needs a schema change and a decision about existing width-576 saves.
++
++## 3. The frozen module
++
++| Field | Value |
++|---|---|
++| Path | `/Volumes/UOR-Workspace/uor-r4-lab/anti-gravity-bins/698bdda481de57c2257b158bb53f7942568a3be7/uor_r4_integer.wasm` |
++| SHA-256 | `a41c652795e65821bc59381c77d10339e0c9edd3f4aa068b2c7e79b608f1b3ac` |
++| Size | 1,664,885 bytes (an earlier record said 1,684,344) |
++| Build commit | **unrecorded**. The folder name `698bdda` predates `wasm.rs`, which was first committed in `a8d59d31`; the file was written 86 seconds before that commit. |
++| Compiler | rustc 1.97.1, from the module's `producers` section |
++| Target features | bulk-memory, bulk-memory-opt, call-indirect-overlong, multivalue, mutable-globals, nontrapping-fptoint, reference-types, sign-ext. There is no `simd128`, although the earlier record listed `+simd128` among the flags. |
++| Exports | 2,142 function exports through `--export-all`, including the 13 helpers |
++
++The helpers are not `#[no_mangle]`, because the crate forbids unsafe code, so a module exposes them only through `--export-all`. The crate no longer declares a `cdylib` crate type, so a module build requests the crate types on the command line:
++
++```bash
++cargo rustc -p uor-r4-integer --lib --release --target wasm32-unknown-unknown \
++  --crate-type rlib,cdylib -- -C link-arg=--export-all
++```
++
++- **Why `rlib` as well.** With `cdylib` alone, rustc drops the unreferenced helpers before linking, so the module exports none of them. Adding `rlib` keeps every `pub` item.
++- **Lab 1 check at `c7c77a09`.** The command above produced a module in which all 21 audited symbols are present. That module was not retained.
++- **Differences from the frozen module.** This workspace's `.cargo/config.toml` adds `+simd128` and a stack size to wasm32 builds. Such a build therefore differs from the frozen module, and it contains SIMD instructions, which the auditor reports as unclassified.
++
++## 4. Instruction re-audit of the frozen module
++
++The corrected auditor decodes every instruction of each audited function. It counts Class I (integer multiply), Class II (integer divide/remainder) and Class III (floating point, including the 0xFC 0..7 saturating truncations). It reports every other 0xFC-prefixed instruction, and every SIMD (0xFD) and atomic (0xFE) instruction, as an *unclassified* finding, which fails the symbol. It takes the build commit as an argument and does not read the checked-out HEAD. The audited symbols are the original 20 plus `IntegerModel::step_conversational_into`, the model step, which no helper reaches.
++
++| Scope | Clean symbols | Findings |
++|---|---:|---|
++| Root bodies only (`--tap`) | 19 of 21 | The model step: 38 × `i64.mul`, plus `memory.copy`/`memory.fill`. `uor_wasm_score_token_salience_default_key`: one `memory.fill`, which the original decoder mis-sized. |
++| Direct calls followed (`--tap --call-graph`) | 14 of 21 | The Hopf X/Y/Z helpers: 12 × `i64.mul` each, 8 in `UnitS3Q30::hopf_project` and 4 in `UnitS3Q30::from_i32_coords`. `project_vocab`: 5 × `i64.mul`. `project_vocab_with_products`: 1. The model step: 56 in total. |
++
++Each `i64.mul` in `hopf_project` and `from_i32_coords` is preceded by `i64.const 3`. This is the `(u << 1) + u` step of `mul_i32_radix4` compiled to a multiply by 3. The `core::hint::black_box` added to that loop does not prevent it, so the earlier statement that it kept the Hopf helpers multiplier-free is withdrawn.
++
++The call-graph scope excludes the native auditor's allowlist (allocation, formatting, panic, I/O, tokenizer and loading code), imported functions and indirect call targets. A clean result is a scoped static measurement of named symbols in one artifact, not a serving qualification.
++
++## 5. Pages Studio (#1173)
++
++The module cannot serve Pages Studio as it stands, because it has no load, session or step export. Earlier text said the module was ready to link and that ingestion, generation and state serialization run in it. That text is withdrawn. A browser serving path would need:
++
++- exported session entry points;
++- a build that records its commit and flags;
++- an instruction audit that follows calls and finds no Class I–III or unclassified instruction in the step path.
+diff --git a/docs/integration/full-path-m1-cost-dialogue576-2026-09-28.md b/docs/integration/full-path-m1-cost-dialogue576-2026-09-28.md
+new file mode 100644
+index 000000000..55a5eec90
+--- /dev/null
++++ b/docs/integration/full-path-m1-cost-dialogue576-2026-09-28.md
+@@ -0,0 +1,81 @@
++# Full-path cost run: width-576 dialogue bundle (one run, not a qualification)
++
++**Date**: 2026-09-28
++**Author**: Lab 3 (Anti-Gravity); corrected by Lab 1 per the owner's direction (PR #1452 review)
++**Track**: T3 (mission runtime and measured efficiency)
++**Status**: one unsealed run; **not a qualification**
++**References**: #963, #820, #964, #962, PR #1450, PR #1452
++
++---
++
++## 1. Status
++
++The harness ran once, at 2026-09-28 05:38:25 UTC, in a single test thread under unknown machine load, and wrote no sealed report root. This record is therefore not a qualification. The run does **not** meet the declared alpha ceilings:
++
++- the mean step was 7.315 ms and p90 13.237 ms, against ≤ 4 ms for each;
++- the cold load was 1,530.49 ms, against ≤ 250 ms.
++
++An earlier version of this record reported other figures (67.137 ms cold load, 3.163 ms mean step, 304.3 tok/s, 3.445 µs/token encode, and others) and marked them PASS. No committed run produced them. The release packager returned them as literal defaults because it read keys that the harness never writes. They are withdrawn, together with every PASS and "qualified" statement they supported.
++
++## 2. Recorded values
++
++Source: [`docs/evidence/full-path-m1-cost-dialogue576-2026-09-28.json`](../evidence/full-path-m1-cost-dialogue576-2026-09-28.json), written by the harness `crates/uor-r4-integer/tests/full_path_m1_cost.rs` as it stood before this correction.
++
++| Metric | Recorded value | Declared ceiling | Meets |
++|---|---:|---:|:---:|
++| Cold bundle load | 1,530.49 ms | ≤ 250 ms | no |
++| Tokenizer encode (4 prompts) | 43.93 µs/token | — | — |
++| Prompt ingestion | 7.788 ms/token | — | — |
++| Step latency, mean | 7.315 ms | ≤ 4 ms | no |
++| Step latency, p50 | 5.170 ms | — | — |
++| Step latency, p90 | 13.237 ms | ≤ 4 ms | no |
++| Step latency, p95 / p99 / max | 18.483 / 38.317 / 139.054 ms | — | — |
++| Throughput (2,526 steps / replay wall time) | 130.6 tok/s | — | — |
++| Session save / restore (50-turn session) | 0.165 / 0.322 ms | — | — |
++| Peak process RSS (maximum of `ps` samples) | 22.36 MB | — | — |
++| Replay parity | 38 requests, 58 turns, 1,433 decisions, 0 departures | exact | yes |
++| SoC energy | UNAVAILABLE | — | — |
++
++## 3. What the run established, and what it did not
++
++- **Build and machine.** The run measured the library in-process under `cargo test --release`. It used an uncommitted working tree between `698bdda` and `a8d59d31`: the run time, 01:38:25 EDT, precedes the commit `a8d59d31` at 01:41:21 EDT. The source commit, compiler flags, machine and machine load were not recorded. The JSON's `hardware.platform` and `threads` fields are literals in the harness, not measurements.
++- **Not the frozen binary.** The harness did not execute the frozen `uor-chat` binary, so that binary's SHA-256 and instruction audit do not describe this run.
++- **Parity.** The harness compared every greedy decision with `responses-integer.json` and stopped at the first departure. The completed run therefore had 0 departures over 1,433 decisions.
++- **Step timing.** Each step was timed around `IntegerModel::step_conversational`, which also copies the step's output buffers into a new `IntegerStep`.
++- **RSS.** The peak is the largest of the `ps` samples taken after prompt ingestion and after each replayed turn, in the test process. The earlier RSS series (2.31, 24.19, 25.78 and 29.50 MB) and the 23.22 MB "live REPL" figure were not recorded by the harness and are withdrawn.
++- **Save and restore.** Only the save and restore durations were timed. The restored session was never compared with the original, so the earlier "roundtrip parity verified" statement is withdrawn. A width-576 restore does not in fact preserve the session:
++  - `uor-r4.integer-session/1` does not serialize the 576-wide value stores (`persistent_values_576`, `dialogue_values_576`, `l2_pages_576`);
++  - `ChatSession::from_serialized` rebuilds those stores empty;
++  - the corrected harness and the ignored capability-API continuation test therefore find the restored session diverging at its first step.
++
++## 4. Bytes touched per token: analytic, not measured
++
++The harness computes 1,821,872 bytes (1.737 MiB) per token by hand. The count covers:
++
++- the 4-bit vocabulary projection;
++- one 64 × 576 read projection;
++- 256 memory keys and values;
++- the state, zeta and Hopf coordinates.
++
++It is not measured. It also omits the recurrent input and state matrices, the read key and value matrices and the update matrix of `JointConfig::shapes()`. At width 576 these hold 3,022,848 signed-4-bit weights, 1,511,424 bytes packed. It omits the product tables as well. The count therefore understates per-token reads. It supports no claim about cache residency or energy.
++
++## 5. Numerical contract
++
++This run measures latency only; it does not audit instructions. The instruction audit of the frozen `uor-chat` binary is recorded in the [release-bundle record](release-bundle-dialogue576-2026-09-28.md). That binary predates this PR's source changes.
++
++## 6. Re-running the harness
++
++The harness is now ignored by default, and it fails when the fixture is missing:
++
++```bash
++UOR_R4_M1_COST_REPORT_ROOT=/new/attempt/dir UOR_R4_SOURCE_COMMIT=<sha> \
++  cargo test -p uor-r4-integer --release --test full_path_m1_cost -- --ignored --nocapture
++```
++
++- **Report root.** With the variable set, the harness claims the directory exclusively (`report_output::claim`) before the bundle loads. It writes `m1-cost.json` there, then seals and verifies the root. Without the variable it writes nothing, and it never writes a tracked file.
++- **Run conditions.** The report records the source commit supplied in `UOR_R4_SOURCE_COMMIT`, the CPU brand string and the load averages before and after the run.
++- **Ceilings.** The report records each declared ceiling beside its measured value, with a computed `meets` flag. Ceilings are not asserted.
++- **Restore.** The report records whether a restored session continues with the same output distributions as the original. It does not assert this, because width-576 restores are known to diverge (section 3).
++- **Assertions.** The harness asserts replay parity and the replay counts: 38 requests, 58 turns, 1,433 decisions and 2,526 steps.
++
++A qualification needs a fresh sealed run that meets the ceilings on a machine whose load is recorded.
+diff --git a/docs/integration/release-bundle-dialogue576-2026-09-28.md b/docs/integration/release-bundle-dialogue576-2026-09-28.md
+new file mode 100644
+index 000000000..f9617a2b2
+--- /dev/null
++++ b/docs/integration/release-bundle-dialogue576-2026-09-28.md
+@@ -0,0 +1,112 @@
++# Release-bundle manifest: native width-576 dialogue model (unsealed)
++
++**Date**: September 28, 2026
++**Owning Lab**: Lab 3 (Anti-Gravity); corrected by Lab 1 per the owner's direction (PR #1452 review)
++**Track**: T3 (Mission runtime and measured efficiency)
++**Issues Referenced**: #965, #963, #1172, #1173, #964, #820
++**Evidence Artifact**: `docs/evidence/release-bundle-manifest-dialogue576-2026-09-28.json`
++
++---
++
++## 1. Status
++
++`scripts/package_release_bundle_integer.py` regenerated the manifest (schema `uor-r4.release-bundle-manifest/2`). It records only what the packager read or ran:
++
++- the eleven bundle files;
++- the model shape from `bundle.json`;
++- the two frozen binaries and their instruction audits as run;
++- the recorded full-path cost report.
++
++It is **not sealed** and is **not a qualification**. The numerical contract is recorded as a declaration (D11), not as a certification.
++
++The earlier version of this record is withdrawn in five respects:
++
++- It presented unmeasured performance figures (67.1 ms cold load, 3.16 ms per step, a 23.22 MB REPL RSS). The packager produced them as literal defaults, because it read keys the harness never writes.
++- It described the WebAssembly module as a serving runtime with a 20/20 PASS audit.
++- Its digest table listed nine SHA-256 prefixes that match no file.
++- It described SHA-256 values labelled `blake3` as BLAKE3 digests.
++- It asserted cache fit from an analytic byte count.
++
++## 2. Bundle files
++
++Root: `/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-child-bundle-1`. It holds 11 files, 4,356,152 bytes in total. Digests are SHA-256; the manifest adds BLAKE3 only when the optional `blake3` Python module is installed, and it was not.
++
++| Path | Bytes | SHA-256 |
++|---|---:|---|
++| `attempt.json` | 810 | `7e9646c21f8ce7789bfa343dab376cf53347e4e7bcfa8475acbc52210ab4c72f` |
++| `bundle.json` | 6,512 | `55b3fa54a424e46681bfde5cd257ff0da51e0f560fef550fa6d84d07f698562a` |
++| `manifest.json` | 1,749 | `7da97234e9d6cc2708318741a362e70d8bb6c2900f47c34d2a4d9e00b6802c3e` |
++| `model/hard-model.json` | 326,250 | `eb975d2b0b6349852af8841fd5fc10f9336a1ea39023e09e618658ff94204682` |
++| `model/hard-parameters.bin` | 2,725,956 | `245a6fd1b5cbbbaa16ca3e6dbfa2837909216a0a4044ab9cc8edd9957a05510b` |
++| `model/hard-parameters.json` | 135,189 | `8d58183f1e335d2420af6467f86fef26bf269afaa16b815a1d178d4421d4ac88` |
++| `tables/attempt.json` | 401 | `bdd27be28c7a329e750100c958faee4975e224c0b06a9cb2e13c772b93bad2ba` |
++| `tables/manifest.json` | 621 | `bc3742071a1501adc7223d21740bf2bde91345946e911ae6b71b4993627a4955` |
++| `tables/tables.bin` | 1,048,560 | `993e63edc97a4c988b586bc52b5e9fcf133e675caceb7ed04727e7248bb30ff2` |
++| `tables/tables.json` | 647 | `2d16e17cd34c5a07681a7950a22c4b9a67df5208b28304ab8b7fbe94461c150d` |
++| `tokenizer.json` | 109,457 | `d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89` |
++
++Model shape from `bundle.json`: width 576, vocabulary 4,096, context 256, dot read geometry.
++
++## 3. Binaries and instruction audits
++
++### A. Native `uor-chat` (the serving binary)
++
++- **Path**: `/Volumes/UOR-Workspace/uor-r4-lab/anti-gravity-bins/698bdda481de57c2257b158bb53f7942568a3be7/uor-chat`
++- **SHA-256**: `4a4253a174d5af324fde647324f7830210bcb7bb0f6d5f2bdd94dcafe0c68aa4`; 1,465,168 bytes.
++- **Build commit, compiler and flags**: unrecorded, and passed to the auditor as `UNRECORDED`.
++  - The folder is named after `698bdda`, and the file was written 21 seconds after that commit. The working-tree state is unknown.
++  - The binary predates this PR's source changes.
++- **Audit**: `python3 scripts/audit_zero_matmul_serving.py <uor-chat> --strict-arm64 --tap`, which exits 0 with TAP 5/5 ok.
++  - It checked 55 matched symbol ranges and 113 call-graph functions, with 0 violations.
++  - It lists 13 declared symbols as not audited (no separate symbol; possibly inlined or absent).
++
++### B. WebAssembly `uor_r4_integer.wasm` (a helper module, not a serving runtime)
++
++- **Path**: same folder; **SHA-256** `a41c652795e65821bc59381c77d10339e0c9edd3f4aa068b2c7e79b608f1b3ac`; 1,664,885 bytes.
++- **Build commit**: unrecorded. The folder name predates `wasm.rs`.
++- **Exports**: no load, session or step entry point.
++- **Audit**: `python3 scripts/audit_zero_matmul_wasm.py <module> --tap --call-graph`, which exits 1 with 14 of 21 symbols clean. The model step and the Hopf helpers' callees contain `i64.mul`.
++- See the [capability API and WebAssembly record](capability-api-wasm-runtime-2026-09-28.md).
++
++The packager stops without writing a manifest if the native audit fails. It records the WebAssembly audit without gating on it, because that module is not the serving binary.
++
++## 4. Recorded cost run
++
++The manifest reads `docs/evidence/full-path-m1-cost-dialogue576-2026-09-28.json` through its `metrics` and `parity_gate` keys, with no defaults. That report comes from one single-thread run under unknown machine load, with no sealed report root. It is not a qualification, and it does not meet the declared ceilings:
++
++| Metric | Recorded | Declared ceiling | Meets |
++|---|---:|---:|:---:|
++| Cold load | 1,530.49 ms | ≤ 250 ms | no |
++| Step latency, mean | 7.315 ms | ≤ 4 ms | no |
++| Step latency, p90 | 13.237 ms | ≤ 4 ms | no |
++| Step latency, p50 | 5.170 ms | — | — |
++| Throughput | 130.6 tok/s | — | — |
++| Prompt ingestion | 7.788 ms/token | — | — |
++| Tokenizer encode | 43.93 µs/token | — | — |
++| Session save / restore | 0.165 / 0.322 ms | — | — |
++| Peak process RSS | 22.36 MB | — | — |
++| Replay parity | 38 requests, 58 turns, 1,433 decisions, 0 departures | exact | yes |
++
++- The live `uor-chat` REPL RSS was never recorded, so it is `UNAVAILABLE`.
++- Bytes touched per token (1,821,872) is an analytic count, not a measurement, and it omits the recurrent, read-value and update weight reads.
++- Energy is `UNAVAILABLE`.
++- Details: [full-path cost record](full-path-m1-cost-dialogue576-2026-09-28.md).
++
++## 5. Regenerating and checking
++
++```bash
++# Manifest (build identities default to UNRECORDED; pass them when known)
++python3 scripts/package_release_bundle_integer.py [--arm64-build-commit SHA] \
++  [--arm64-compiler TEXT] [--arm64-flags TEXT] [--wasm-build-commit SHA] [--m1-cost REPORT]
++
++# Instruction audits
++python3 scripts/audit_zero_matmul_serving.py <uor-chat> --strict-arm64 --tap
++python3 scripts/audit_zero_matmul_wasm.py <module> --tap --call-graph
++
++# Capability API tests (synthetic bundle; the fixture tests need --ignored)
++cargo test -p uor-r4-integer --release --test capability_api_tests
++
++# Full-path cost harness into a new sealed report root
++UOR_R4_M1_COST_REPORT_ROOT=/new/attempt/dir UOR_R4_SOURCE_COMMIT=<sha> \
++  cargo test -p uor-r4-integer --release --test full_path_m1_cost -- --ignored --nocapture
++```
+diff --git a/scripts/audit_zero_matmul_wasm.py b/scripts/audit_zero_matmul_wasm.py
+new file mode 100644
+index 000000000..d6626da20
+--- /dev/null
++++ b/scripts/audit_zero_matmul_wasm.py
+@@ -0,0 +1,825 @@
++#!/usr/bin/env python3
++"""Static instruction audit of a compiled WebAssembly module for the D11 classes.
++
++For each audited symbol the tool decodes every instruction of the function body
++and counts:
++- Class I: integer multiply (`i32.mul`, `i64.mul`);
++- Class II: integer divide and remainder (`i32.div_*`, `i32.rem_*`, `i64.div_*`,
++  `i64.rem_*`);
++- Class III: floating point (`f32.*`, `f64.*`, float loads/stores/constants,
++  conversions and reinterpretations, and the 0xFC 0..7 saturating
++  float-to-integer truncations);
++- unclassified: every other 0xFC-prefixed instruction (bulk memory and table
++  operations), every 0xFD-prefixed (SIMD) and every 0xFE-prefixed (atomic)
++  instruction. These are reported as findings and fail the symbol; they are
++  never silently skipped.
++
++Scope. By default only the bodies of the matched root functions are decoded:
++direct calls are NOT followed, so a clean root says nothing about its callees.
++`--call-graph` follows direct calls (`call`, `return_call`) transitively. As in
++`audit_zero_matmul_serving.py`, callees matching the allocation, formatting,
++panic, I/O, tokenizer and loading allowlist are not audited. Indirect call
++targets (`call_indirect`, `call_ref`) cannot be resolved statically; their
++sites are counted and reported, not followed.
++
++An unknown opcode, a truncated immediate or a body that does not end with `end`
++is a decode error, and the symbol fails. The build commit is an input
++(`--build-commit`); the tool never reads the current working tree, because the
++checked-out HEAD is not evidence of the commit that built the artifact.
++
++A passing result is a scoped static measurement of the named symbols in one
++artifact. It is not a serving-runtime qualification.
++
++Usage:
++    python3 scripts/audit_zero_matmul_wasm.py WASM [--build-commit SHA] [--tap]
++        [--call-graph] [--json]
++    python3 scripts/audit_zero_matmul_wasm.py --self-test
++"""
++
++import argparse
++import hashlib
++import json
++import os
++import re
++import sys
++from collections import Counter
++
++UNRECORDED = "UNRECORDED"
++
++# ---------------------------------------------------------------------------
++# Instruction classes
++# ---------------------------------------------------------------------------
++
++CLASS_I_OPS = {0x6C, 0x7E}  # i32.mul, i64.mul
++CLASS_II_OPS = {
++    0x6D,  # i32.div_s
++    0x6E,  # i32.div_u
++    0x6F,  # i32.rem_s
++    0x70,  # i32.rem_u
++    0x7F,  # i64.div_s
++    0x80,  # i64.div_u
++    0x81,  # i64.rem_s
++    0x82,  # i64.rem_u
++}
++CLASS_III_OPS = (
++    {0x2A, 0x2B, 0x38, 0x39, 0x43, 0x44}  # f32/f64 load, store, const
++    | set(range(0x5B, 0x67))  # f32/f64 comparisons
++    | set(range(0x8B, 0xA7))  # f32/f64 arithmetic
++    | set(range(0xA8, 0xAC))  # i32.trunc_f32/f64
++    | set(range(0xAE, 0xC0))  # i64.trunc, convert, demote/promote, reinterpret
++)
++# 0xFC 0..7: i32/i64.trunc_sat_f32/f64_s/u (float to integer conversions).
++FC_FLOAT_SUBOPS = set(range(0, 8))
++
++# Opcodes whose instruction has no immediate operand.
++NO_IMMEDIATE_OPS = {0x00, 0x01, 0x05, 0x0B, 0x0F, 0x1A, 0x1B, 0xD1} | set(
++    range(0x45, 0xC5)
++)
++VALTYPE_BYTES = {0x7F, 0x7E, 0x7D, 0x7C, 0x7B, 0x70, 0x6F}
++
++
++class DecodeError(Exception):
++    """The byte stream is not a WebAssembly encoding this auditor can decode."""
++
++
++def read_u(data, pos, end):
++    """Unsigned LEB128."""
++    result = 0
++    shift = 0
++    while True:
++        if pos >= end:
++            raise DecodeError(f"truncated unsigned LEB128 at byte {pos}")
++        byte = data[pos]
++        pos += 1
++        result |= (byte & 0x7F) << shift
++        if not byte & 0x80:
++            return result, pos
++        shift += 7
++        if shift > 63:
++            raise DecodeError(f"unsigned LEB128 longer than 64 bits at byte {pos}")
++
++
++def read_s(data, pos, end):
++    """Signed LEB128."""
++    result = 0
++    shift = 0
++    while True:
++        if pos >= end:
++            raise DecodeError(f"truncated signed LEB128 at byte {pos}")
++        byte = data[pos]
++        pos += 1
++        result |= (byte & 0x7F) << shift
++        shift += 7
++        if not byte & 0x80:
++            if byte & 0x40:
++                result -= 1 << shift
++            return result, pos
++        if shift > 70:
++            raise DecodeError(f"signed LEB128 longer than 64 bits at byte {pos}")
++
++
++def skip(pos, count, end):
++    pos += count
++    if pos > end:
++        raise DecodeError(f"immediate runs past the function body end at byte {end}")
++    return pos
++
++
++def read_blocktype(data, pos, end):
++    if pos >= end:
++        raise DecodeError(f"truncated block type at byte {pos}")
++    if data[pos] == 0x40 or data[pos] in VALTYPE_BYTES:
++        return pos + 1
++    _, pos = read_s(data, pos, end)  # s33 type index (multi-value block)
++    return pos
++
++
++def read_memarg(data, pos, end):
++    align, pos = read_u(data, pos, end)
++    if align & 0x40:  # multi-memory: an explicit memory index follows
++        _, pos = read_u(data, pos, end)
++    _, pos = read_u(data, pos, end)  # offset
++    return pos
++
++
++class FunctionScan:
++    def __init__(self):
++        self.instructions = 0
++        self.class_i = 0
++        self.class_ii = 0
++        self.class_iii = 0
++        self.unclassified = Counter()
++        self.direct_calls = set()
++        self.direct_call_sites = 0
++        self.indirect_call_sites = 0
++
++
++def scan_function(data, start, end):
++    """Decode one code-section function body `data[start:end]`."""
++    pos = start
++    groups, pos = read_u(data, pos, end)
++    for _ in range(groups):
++        _, pos = read_u(data, pos, end)  # local count
++        pos = skip(pos, 1, end)  # value type
++    scan = FunctionScan()
++    last_op = None
++    while pos < end:
++        at = pos
++        op = data[pos]
++        pos += 1
++        scan.instructions += 1
++        last_op = op
++        sub = None
++        if op in NO_IMMEDIATE_OPS:
++            pass
++        elif op in (0x02, 0x03, 0x04):  # block, loop, if
++            pos = read_blocktype(data, pos, end)
++        elif op in (0x0C, 0x0D):  # br, br_if
++            _, pos = read_u(data, pos, end)
++        elif op == 0x0E:  # br_table
++            count, pos = read_u(data, pos, end)
++            for _ in range(count + 1):
++                _, pos = read_u(data, pos, end)
++        elif op in (0x10, 0x12):  # call, return_call
++            callee, pos = read_u(data, pos, end)
++            scan.direct_calls.add(callee)
++            scan.direct_call_sites += 1
++        elif op in (0x11, 0x13):  # call_indirect, return_call_indirect
++            _, pos = read_u(data, pos, end)  # type index
++            _, pos = read_u(data, pos, end)  # table index
++            scan.indirect_call_sites += 1
++        elif op in (0x14, 0x15):  # call_ref, return_call_ref
++            _, pos = read_u(data, pos, end)
++            scan.indirect_call_sites += 1
++        elif op == 0x1C:  # select with explicit value types
++            count, pos = read_u(data, pos, end)
++            pos = skip(pos, count, end)
++        elif 0x20 <= op <= 0x26:  # local/global get/set/tee, table.get/set
++            _, pos = read_u(data, pos, end)
++        elif 0x28 <= op <= 0x3E:  # loads and stores
++            pos = read_memarg(data, pos, end)
++        elif op in (0x3F, 0x40):  # memory.size, memory.grow
++            _, pos = read_u(data, pos, end)
++        elif op == 0x41:  # i32.const
++            _, pos = read_s(data, pos, end)
++        elif op == 0x42:  # i64.const
++            _, pos = read_s(data, pos, end)
++        elif op == 0x43:  # f32.const
++            pos = skip(pos, 4, end)
++        elif op == 0x44:  # f64.const
++            pos = skip(pos, 8, end)
++        elif op == 0xD0:  # ref.null heap type
++            _, pos = read_s(data, pos, end)
++        elif op == 0xD2:  # ref.func (address taken; not a call)
++            _, pos = read_u(data, pos, end)
++        elif op == 0xFC:
++            sub, pos = read_u(data, pos, end)
++            if sub <= 7:  # trunc_sat
++                pass
++            elif sub == 8:  # memory.init data, memory
++                _, pos = read_u(data, pos, end)
++                _, pos = read_u(data, pos, end)
++            elif sub in (9, 13):  # data.drop, elem.drop
++                _, pos = read_u(data, pos, end)
++            elif sub in (10, 12, 14):  # memory.copy, table.init, table.copy
++                _, pos = read_u(data, pos, end)
++                _, pos = read_u(data, pos, end)
++            elif sub in (11, 15, 16, 17):  # memory.fill (one memory index), table.*
++                _, pos = read_u(data, pos, end)
++            else:
++                raise DecodeError(f"unknown 0xFC sub-opcode {sub} at byte {at}")
++        elif op == 0xFD:
++            sub, pos = read_u(data, pos, end)
++            if sub <= 11 or sub in (92, 93):  # v128 loads/stores, load_zero
++                pos = read_memarg(data, pos, end)
++            elif sub in (12, 13):  # v128.const, i8x16.shuffle
++                pos = skip(pos, 16, end)
++            elif 21 <= sub <= 34:  # extract_lane / replace_lane
++                pos = skip(pos, 1, end)
++            elif 84 <= sub <= 91:  # load/store lane
++                pos = read_memarg(data, pos, end)
++                pos = skip(pos, 1, end)
++            # every other SIMD instruction has no immediate
++        elif op == 0xFE:
++            sub, pos = read_u(data, pos, end)
++            if sub == 0x03:  # atomic.fence
++                pos = skip(pos, 1, end)
++            elif sub <= 0x02 or 0x10 <= sub <= 0x4E:
++                pos = read_memarg(data, pos, end)
++            else:
++                raise DecodeError(f"unknown 0xFE sub-opcode {sub} at byte {at}")
++        else:
++            raise DecodeError(f"unsupported opcode 0x{op:02X} at byte {at}")
++
++        if op in CLASS_I_OPS:
++            scan.class_i += 1
++        elif op in CLASS_II_OPS:
++            scan.class_ii += 1
++        elif op in CLASS_III_OPS:
++            scan.class_iii += 1
++        elif op == 0xFC and sub in FC_FLOAT_SUBOPS:
++            scan.class_iii += 1
++        elif op in (0xFC, 0xFD, 0xFE):
++            scan.unclassified[f"0x{op:02X} {sub}"] += 1
++    if pos != end:
++        raise DecodeError(f"instruction stream overran the function body end at byte {end}")
++    if last_op != 0x0B:
++        raise DecodeError(f"function body ending at byte {end} does not end with `end`")
++    return scan
++
++
++# ---------------------------------------------------------------------------
++# Module structure
++# ---------------------------------------------------------------------------
++
++
++class Module:
++    def __init__(self, data):
++        self.data = data
++        self.imported_functions = 0
++        self.bodies = []  # (start, end) of each defined function body
++        self.names = {}  # function index -> [export and name-section names]
++        self._scans = {}
++        self._parse()
++
++    def _parse(self):
++        data = self.data
++        if len(data) < 8 or data[:4] != b"\x00asm":
++            raise DecodeError("missing WebAssembly magic header")
++        pos = 8
++        code = None
++        while pos < len(data):
++            section = data[pos]
++            pos += 1
++            length, pos = read_u(data, pos, len(data))
++            end = pos + length
++            if end > len(data):
++                raise DecodeError(f"section {section} runs past the end of the file")
++            if section == 2:
++                self._parse_imports(pos, end)
++            elif section == 7:
++                self._parse_exports(pos, end)
++            elif section == 10:
++                code = (pos, end)
++            elif section == 0:
++                self._parse_custom(pos, end)
++            pos = end
++        if code is None:
++            raise DecodeError("no code section")
++        pos, end = code
++        count, pos = read_u(data, pos, end)
++        for _ in range(count):
++            size, pos = read_u(data, pos, end)
++            if pos + size > end:
++                raise DecodeError("function body runs past the code section")
++            self.bodies.append((pos, pos + size))
++            pos += size
++
++    def _parse_limits(self, pos, end):
++        flags, pos = read_u(self.data, pos, end)
++        _, pos = read_u(self.data, pos, end)
++        if flags & 1:
++            _, pos = read_u(self.data, pos, end)
++        return pos
++
++    def _parse_imports(self, pos, end):
++        data = self.data
++        count, pos = read_u(data, pos, end)
++        for _ in range(count):
++            for _ in range(2):  # module name, field name
++                length, pos = read_u(data, pos, end)
++                pos = skip(pos, length, end)
++            kind = data[pos]
++            pos += 1
++            if kind == 0:  # function
++                _, pos = read_u(data, pos, end)
++                self.imported_functions += 1
++            elif kind == 1:  # table
++                pos = skip(pos, 1, end)
++                pos = self._parse_limits(pos, end)
++            elif kind == 2:  # memory
++                pos = self._parse_limits(pos, end)
++            elif kind == 3:  # global
++                pos = skip(pos, 2, end)
++            elif kind == 4:  # tag
++                pos = skip(pos, 1, end)
++                _, pos = read_u(data, pos, end)
++            else:
++                raise DecodeError(f"unknown import kind {kind}")
++
++    def _parse_exports(self, pos, end):
++        data = self.data
++        count, pos = read_u(data, pos, end)
++        for _ in range(count):
++            length, pos = read_u(data, pos, end)
++            name = data[pos : pos + length].decode("utf-8", errors="replace")
++            pos = skip(pos, length, end)
++            kind = data[pos]
++            pos += 1
++            index, pos = read_u(data, pos, end)
++            if kind == 0:
++                self.names.setdefault(index, []).append(name)
++
++    def _parse_custom(self, pos, end):
++        data = self.data
++        length, pos = read_u(data, pos, end)
++        if data[pos : pos + length] != b"name":
++            return
++        pos += length
++        while pos < end:
++            subsection = data[pos]
++            pos += 1
++            size, pos = read_u(data, pos, end)
++            sub_end = pos + size
++            if subsection == 1:  # function names
++                count, q = read_u(data, pos, sub_end)
++                for _ in range(count):
++                    index, q = read_u(data, q, sub_end)
++                    name_length, q = read_u(data, q, sub_end)
++                    name = data[q : q + name_length].decode("utf-8", errors="replace")
++                    q = skip(q, name_length, sub_end)
++                    names = self.names.setdefault(index, [])
++                    if name not in names:
++                        names.append(name)
++            pos = sub_end
++
++    def is_defined(self, index):
++        return self.imported_functions <= index < self.imported_functions + len(self.bodies)
++
++    def scan(self, index):
++        """Decoded scan of a defined function, or a DecodeError (cached)."""
++        if index not in self._scans:
++            start, end = self.bodies[index - self.imported_functions]
++            try:
++                self._scans[index] = scan_function(self.data, start, end)
++            except DecodeError as error:
++                self._scans[index] = error
++        return self._scans[index]
++
++    def raw_name(self, index):
++        names = self.names.get(index)
++        return names[0] if names else f"<function {index}>"
++
++
++def display_name(raw):
++    """Readable tail (last three path components) of a legacy or v0 mangled name."""
++    if raw.startswith("_R"):
++        # Drop v0 crate and impl disambiguators (`Cs<base62>_`, `Ms1_`, `Xs_`).
++        raw = re.sub(r"(?<=[CMXY])s[0-9A-Za-z]*_", "", raw)
++    tokens = []
++    i, n = 0, len(raw)
++    at_boundary = True  # a length prefix may start here
++    while i < n:
++        if raw[i].isdigit() and (at_boundary or not raw[i - 1].isdigit()):
++            j = i
++            while j < n and raw[j].isdigit():
++                j += 1
++            length = int(raw[i:j])
++            k = j + 1 if j < n and raw[j] == "_" else j
++            ident = raw[k : k + length]
++            if (
++                length
++                and len(ident) == length
++                and (ident[0].isalpha() or ident[0] == "_")
++                and all(c.isalnum() or c == "_" for c in ident)
++            ):
++                tokens.append(ident)
++                i = k + length
++                at_boundary = True
++                continue
++            i = j
++        else:
++            i += 1
++        at_boundary = False
++    return "::".join(tokens[-3:]) if tokens else raw
++
++
++# Mirrors the call-graph allowlist of scripts/audit_zero_matmul_serving.py,
++# written to match legacy/v0 mangled names (`4core3fmt`) as well as demangled
++# ones (`core::fmt`). Matching callees are not audited.
++CALL_GRAPH_ALLOW_PATTERNS = [
++    r"alloc",
++    r"free",
++    r"realloc",
++    r"core(?:::|\d+)fmt",
++    r"panic",
++    r"fmt(?:::|\d+)Display",
++    r"fmt(?:::|\d+)Debug",
++    r"unwind",
++    r"rust_begin_unwind",
++    r"std(?:::|\d+)io",
++    r"std(?:::|\d+)panicking",
++    r"Bundle",
++    r"[Tt]okenizer",
++    r"uor_r4_tokenizer",
++    r"core(?:::|\d+)str",
++    r"load",
++    r"from_file",
++    r"from_serialized",
++]
++
++
++def is_allowlisted(names):
++    return any(re.search(p, name) for p in CALL_GRAPH_ALLOW_PATTERNS for name in names)
++
++
++# ---------------------------------------------------------------------------
++# Audited symbols
++# ---------------------------------------------------------------------------
++
++# Roots are matched by substring against export and name-section names. The
++# thirteen `uor_wasm_*` helpers are the functions `wasm.rs` defines; the module
++# exports no load, session or step entry point. The model step is audited as
++# its own root because no helper reaches it.
++MANDATORY_WASM_SYMBOLS = [
++    ("uor_wasm_version", "uor_wasm_version"),
++    ("uor_wasm_state_dim", "uor_wasm_state_dim"),
++    ("uor_wasm_vocab_size", "uor_wasm_vocab_size"),
++    ("uor_wasm_context_capacity", "uor_wasm_context_capacity"),
++    ("uor_wasm_exact_min_p_threshold", "uor_wasm_exact_min_p_threshold"),
++    ("uor_wasm_hopf_project_x", "uor_wasm_hopf_project_x"),
++    ("uor_wasm_hopf_project_y", "uor_wasm_hopf_project_y"),
++    ("uor_wasm_hopf_project_z", "uor_wasm_hopf_project_z"),
++    ("uor_wasm_step_zeta_phase_scalar", "uor_wasm_step_zeta_phase_scalar"),
++    ("uor_wasm_galois_lfsr_step", "uor_wasm_galois_lfsr_step"),
++    ("uor_wasm_compute_turn_prime_signature", "uor_wasm_compute_turn_prime_signature"),
++    ("uor_wasm_atan2_q30", "uor_wasm_atan2_q30"),
++    ("uor_wasm_score_token_salience_default_key", "uor_wasm_score_token_salience_default_key"),
++    ("IntegerModel::project_vocab", "IntegerModel13project_vocab"),
++    ("IntegerModel::project_vocab_with_products", "IntegerModel27project_vocab_with_products"),
++    ("low_bit_dot_8_pair_tables", "low_bit_dot_8_pair_tables"),
++    ("low_bit_dot_4_contiguous_wide_pair_tables", "low_bit_dot_4_contiguous_wide_pair_t"),
++    ("packed_rows::low_bit_dot", "packed_rows11low_bit_dot"),
++    ("sampling::exact_min_p_threshold", "sampling21exact_min_p_threshold"),
++    ("math::atan2_q30", "math9atan2_q30"),
++    ("IntegerModel::step_conversational_into", "IntegerModel24step_conversational_into"),
++]
++
++
++def audit_symbol(module, name, pattern, follow_calls):
++    roots = [
++        index
++        for index, names in sorted(module.names.items())
++        if module.is_defined(index) and any(pattern in n for n in names)
++    ]
++    result = {
++        "name": name,
++        "pattern": pattern,
++        "root_functions": roots,
++        "audited_functions": 0,
++        "instructions": 0,
++        "mul": 0,
++        "div": 0,
++        "float": 0,
++        "unclassified": 0,
++        "unclassified_opcodes": {},
++        "direct_call_sites_not_followed": 0,
++        "allowlisted_callees_not_audited": 0,
++        "imported_callees_not_audited": 0,
++        "indirect_call_sites_not_followed": 0,
++        "decode_errors": [],
++        "findings": [],
++    }
++    if not roots:
++        result["status"] = "NOT_FOUND"
++        return result
++
++    unclassified = Counter()
++    visited = set(roots)
++    queue = list(roots)
++    allowlisted = set()
++    imported = set()
++    while queue:
++        index = queue.pop(0)
++        scan = module.scan(index)
++        label = f"fn[{index}] {display_name(module.raw_name(index))}"
++        if isinstance(scan, DecodeError):
++            result["decode_errors"].append(f"{label}: {scan}")
++            continue
++        result["audited_functions"] += 1
++        result["instructions"] += scan.instructions
++        result["mul"] += scan.class_i
++        result["div"] += scan.class_ii
++        result["float"] += scan.class_iii
++        unclassified.update(scan.unclassified)
++        result["indirect_call_sites_not_followed"] += scan.indirect_call_sites
++        if scan.class_i or scan.class_ii or scan.class_iii or scan.unclassified:
++            result["findings"].append(
++                {
++                    "function": label,
++                    "mul": scan.class_i,
++                    "div": scan.class_ii,
++                    "float": scan.class_iii,
++                    "unclassified": sum(scan.unclassified.values()),
++                }
++            )
++        if not follow_calls:
++            result["direct_call_sites_not_followed"] += scan.direct_call_sites
++            continue
++        for callee in sorted(scan.direct_calls):
++            if callee in visited:
++                continue
++            visited.add(callee)
++            if not module.is_defined(callee):
++                imported.add(callee)
++            elif is_allowlisted(module.names.get(callee, [])):
++                allowlisted.add(callee)
++            else:
++                queue.append(callee)
++    result["allowlisted_callees_not_audited"] = len(allowlisted)
++    result["imported_callees_not_audited"] = len(imported)
++    result["unclassified"] = sum(unclassified.values())
++    result["unclassified_opcodes"] = dict(sorted(unclassified.items()))
++    if result["decode_errors"]:
++        result["status"] = "DECODE_ERROR"
++    elif result["mul"] or result["div"] or result["float"]:
++        result["status"] = "FAIL"
++    elif result["unclassified"]:
++        result["status"] = "UNCLASSIFIED"
++    else:
++        result["status"] = "PASS"
++    return result
++
++
++def scope_text(follow_calls):
++    if follow_calls:
++        return (
++            "direct calls followed transitively; allowlisted callees, imported "
++            "callees and indirect call targets are not audited"
++        )
++    return "root function bodies only; direct calls are NOT followed"
++
++
++def summarize(result, follow_calls):
++    counts = (
++        f"mul={result['mul']}, div={result['div']}, float={result['float']}, "
++        f"unclassified={result['unclassified']}"
++    )
++    extent = f"{result['instructions']} instructions in {result['audited_functions']} fn(s)"
++    if follow_calls:
++        extent += (
++            f"; {result['allowlisted_callees_not_audited']} allowlisted and "
++            f"{result['imported_callees_not_audited']} imported callee(s) not audited"
++        )
++    else:
++        extent += f"; {result['direct_call_sites_not_followed']} direct call site(s) not followed"
++    extent += f"; {result['indirect_call_sites_not_followed']} indirect call site(s)"
++    return counts, extent
++
++
++def print_tap(meta, results, follow_calls):
++    print("TAP version 13")
++    print(f"1..{len(results)}")
++    print(f"# Artifact: {meta['artifact']}")
++    print(f"# Artifact SHA-256: {meta['sha256']}")
++    print(f"# Artifact bytes: {meta['bytes']}")
++    print(f"# Build commit: {meta['build_commit']} (supplied by --build-commit)")
++    print(f"# Scope: {scope_text(follow_calls)}")
++    for number, result in enumerate(results, 1):
++        counts, extent = summarize(result, follow_calls)
++        if result["status"] == "PASS":
++            print(f"ok {number} - {result['name']}: {counts} ({extent})")
++            continue
++        if result["status"] == "NOT_FOUND":
++            print(f"not ok {number} - {result['name']}: NOT_FOUND (pattern '{result['pattern']}')")
++            continue
++        print(f"not ok {number} - {result['name']}: {result['status']} ({counts}; {extent})")
++        print("  ---")
++        if result["unclassified_opcodes"]:
++            print(f"  unclassified_opcodes: {json.dumps(result['unclassified_opcodes'])}")
++        for error in result["decode_errors"][:5]:
++            print(f"  decode_error: {error}")
++        for finding in result["findings"][:10]:
++            print(
++                f"  - {finding['function']}: mul={finding['mul']} div={finding['div']} "
++                f"float={finding['float']} unclassified={finding['unclassified']}"
++            )
++        if len(result["findings"]) > 10:
++            print(f"  # {len(result['findings']) - 10} more function(s) with findings")
++        print("  ...")
++
++
++def print_text(meta, results, follow_calls):
++    print("=" * 80)
++    print("UOR-R4 WebAssembly instruction audit (D11 classes)")
++    print(f"Artifact:     {meta['artifact']}")
++    print(f"SHA-256:      {meta['sha256']}")
++    print(f"Bytes:        {meta['bytes']}")
++    print(f"Build commit: {meta['build_commit']}")
++    print(f"Scope:        {scope_text(follow_calls)}")
++    print("=" * 80)
++    for result in results:
++        counts, extent = summarize(result, follow_calls)
++        print(f"[{result['status']}] {result['name']}: {counts} ({extent})")
++    passed = sum(1 for r in results if r["status"] == "PASS")
++    print("-" * 80)
++    print(f"{passed}/{len(results)} symbols clean within the stated scope")
++
++
++# ---------------------------------------------------------------------------
++# Decoder sentinels
++# ---------------------------------------------------------------------------
++
++
++def _uleb(value):
++    out = bytearray()
++    while True:
++        byte = value & 0x7F
++        value >>= 7
++        if value:
++            out.append(byte | 0x80)
++        else:
++            out.append(byte)
++            return bytes(out)
++
++
++def _section(section_id, payload):
++    return bytes([section_id]) + _uleb(len(payload)) + payload
++
++
++def _name(text):
++    raw = text.encode()
++    return _uleb(len(raw)) + raw
++
++
++def run_self_test():
++    """Decoder sentinels; returns a list of failure messages (empty when clean)."""
++    failures = []
++
++    def check(label, body, expect):
++        data = bytes(body)
++        try:
++            scan = scan_function(data, 0, len(data))
++        except DecodeError as error:
++            if expect != "decode_error":
++                failures.append(f"{label}: unexpected decode error: {error}")
++            return
++        if expect == "decode_error":
++            failures.append(f"{label}: expected a decode error")
++            return
++        got = {
++            "mul": scan.class_i,
++            "div": scan.class_ii,
++            "float": scan.class_iii,
++            "unclassified": sum(scan.unclassified.values()),
++            "calls": sorted(scan.direct_calls),
++        }
++        for key, value in expect.items():
++            if got[key] != value:
++                failures.append(f"{label}: {key}={got[key]}, expected {value}")
++
++    none = {"mul": 0, "div": 0, "float": 0, "unclassified": 0}
++    # memory.fill has one memory-index immediate; the following i32.mul must be seen.
++    check("memory.fill then i32.mul", [0, 0xFC, 11, 0, 0x6C, 0x0B], {**none, "mul": 1, "unclassified": 1})
++    check("memory.copy then i64.mul", [0, 0xFC, 10, 0, 0, 0x7E, 0x0B], {**none, "mul": 1, "unclassified": 1})
++    # A SIMD splat has no immediate; the following i64.mul must be seen.
++    check("i32x4.splat then i64.mul", [0, 0xFD, 17, 0x7E, 0x0B], {**none, "mul": 1, "unclassified": 1})
++    # extract_lane has one lane byte and no memarg.
++    check("i32x4.extract_lane then i32.div_s", [0, 0xFD, 27, 0, 0x6D, 0x0B], {**none, "div": 1, "unclassified": 1})
++    # A multi-byte SIMD sub-opcode (i32x4.mul = 181) is an unclassified finding.
++    check("i32x4.mul", [0, 0xFD, 0xB5, 0x01, 0x0B], {**none, "unclassified": 1})
++    # v128.const immediates contain mul/div bytes that are not instructions.
++    check("v128.const payload", [0, 0xFD, 12] + [0x6C] * 16 + [0x1A, 0x0B], {**none, "unclassified": 1})
++    check("i32.trunc_sat_f32_s", [0, 0xFC, 0, 0x0B], {**none, "float": 1})
++    check("f64.const payload", [0, 0x44] + [0x7E] * 8 + [0x1A, 0x0B], {**none, "float": 1})
++    check("i64.const LEB payload", [0, 0x42, 0xFE, 0x00, 0x1A, 0x0B], none)
++    check("i64.rem_u", [0, 0x82, 0x0B], {**none, "div": 1})
++    check("i64.extend_i32_s is integer", [0, 0xAC, 0x0B], none)
++    # A block with a type-index block type encoded as a two-byte s33.
++    check("type-index block", [0, 0x02, 0x80, 0x01, 0x6C, 0x0B, 0x0B], {**none, "mul": 1})
++    check("direct call", [0, 0x10, 0x85, 0x01, 0x0B], {**none, "calls": [133]})
++    check("unknown opcode fails closed", [0, 0x06, 0x40, 0x0B], "decode_error")
++    check("missing end fails closed", [0, 0x6C], "decode_error")
++    check("truncated immediate fails closed", [0, 0x41, 0x80], "decode_error")
++
++    # Module level: one imported function shifts the defined-function index space.
++    types = _section(1, _uleb(1) + bytes([0x60, 0, 0]))
++    imports = _section(2, _uleb(1) + _name("env") + _name("host") + bytes([0]) + _uleb(0))
++    functions = _section(3, _uleb(2) + _uleb(0) + _uleb(0))
++    exports = _section(7, _uleb(1) + _name("clean_root") + bytes([0]) + _uleb(2))
++    body_mul = bytes([0, 0x6C, 0x0B])
++    body_call = bytes([0, 0x10]) + _uleb(1) + bytes([0x0B])
++    code = _section(
++        10, _uleb(2) + _uleb(len(body_mul)) + body_mul + _uleb(len(body_call)) + body_call
++    )
++    module_bytes = b"\x00asm\x01\x00\x00\x00" + types + imports + functions + exports + code
++    try:
++        module = Module(module_bytes)
++        root = audit_symbol(module, "clean_root", "clean_root", follow_calls=False)
++        if root["root_functions"] != [2] or root["status"] != "PASS":
++            failures.append(f"import offset: root-only result {root['status']} {root['root_functions']}")
++        graph = audit_symbol(module, "clean_root", "clean_root", follow_calls=True)
++        if graph["status"] != "FAIL" or graph["mul"] != 1 or graph["audited_functions"] != 2:
++            failures.append(f"call graph: {graph['status']} mul={graph['mul']}")
++    except DecodeError as error:
++        failures.append(f"module sentinel: {error}")
++    return failures
++
++
++def main():
++    parser = argparse.ArgumentParser(
++        description="Scoped static audit of a WebAssembly module for D11 instruction classes."
++    )
++    parser.add_argument("wasm_path", nargs="?", help="Path to the .wasm artifact")
++    parser.add_argument(
++        "--build-commit",
++        default=UNRECORDED,
++        help=f"Commit that built the artifact (default: {UNRECORDED}); never read from HEAD",
++    )
++    parser.add_argument("--tap", action="store_true", help="Emit TAP version 13")
++    parser.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
++    parser.add_argument(
++        "--call-graph",
++        action="store_true",
++        help="Follow direct calls transitively from each audited symbol",
++    )
++    parser.add_argument("--self-test", action="store_true", help="Run decoder sentinels only")
++    args = parser.parse_args()
++
++    failures = run_self_test()
++    if failures:
++        print("Decoder sentinel failures:", file=sys.stderr)
++        for failure in failures:
++            print(f"  {failure}", file=sys.stderr)
++        sys.exit(2)
++    if args.self_test:
++        print("WASM auditor decoder sentinels: all passed")
++        return
++    if not args.wasm_path:
++        parser.error("a .wasm artifact path is required")
++
++    wasm_path = os.path.abspath(args.wasm_path)
++    try:
++        with open(wasm_path, "rb") as handle:
++            data = handle.read()
++    except OSError as error:
++        print(f"Error: cannot read {wasm_path}: {error}", file=sys.stderr)
++        sys.exit(2)
++    try:
++        module = Module(data)
++    except DecodeError as error:
++        print(f"Error: {wasm_path}: {error}", file=sys.stderr)
++        sys.exit(2)
++
++    meta = {
++        "artifact": wasm_path,
++        "sha256": hashlib.sha256(data).hexdigest(),
++        "bytes": len(data),
++        "build_commit": args.build_commit,
++        "scope": scope_text(args.call_graph),
++    }
++    results = [
++        audit_symbol(module, name, pattern, args.call_graph)
++        for name, pattern in MANDATORY_WASM_SYMBOLS
++    ]
++    if args.json:
++        print(json.dumps({"schema": "uor-r4.wasm-instruction-audit/1", **meta, "results": results}, indent=2))
++    elif args.tap:
++        print_tap(meta, results, args.call_graph)
++    else:
++        print_text(meta, results, args.call_graph)
++    sys.exit(0 if all(r["status"] == "PASS" for r in results) else 1)
++
++
++if __name__ == "__main__":
++    main()
+diff --git a/scripts/package_release_bundle_integer.py b/scripts/package_release_bundle_integer.py
+new file mode 100644
+index 000000000..23f1f8a9a
+--- /dev/null
++++ b/scripts/package_release_bundle_integer.py
+@@ -0,0 +1,356 @@
++#!/usr/bin/env python3
++"""Release-bundle manifest packager for the width-576 integer dialogue bundle (#965).
++
++The manifest records only what this script reads or runs:
++- every bundle file with its size and SHA-256 digest (and a BLAKE3 digest when
++  the optional `blake3` Python module is installed; otherwise no BLAKE3 field);
++- the model shape from `bundle.json`;
++- the native `uor-chat` binary and the WebAssembly helper module, each with the
++  command, exit status and TAP lines of its instruction audit as actually run;
++- the full-path cost report, read from its `metrics` and `parity_gate`
++  sections with no defaults: a missing key is an error, never a fallback.
++
++The numerical contract is recorded as a declaration, not a certification. The
++manifest is not sealed and is not a qualification; a cost report counts as
++sealed only when its directory holds a `report_output` manifest listing it.
++
++Build identities (commit, compiler, flags) are inputs that default to
++UNRECORDED; nothing is inferred from the checkout that runs the packager.
++
++Usage:
++    python3 scripts/package_release_bundle_integer.py [--bundle-dir DIR]
++        [--arm64-bin PATH] [--arm64-build-commit SHA] [--arm64-compiler TEXT]
++        [--arm64-flags TEXT] [--wasm-bin PATH] [--wasm-build-commit SHA]
++        [--m1-cost PATH] [--output PATH]
++"""
++
++import argparse
++import hashlib
++import json
++import os
++import subprocess
++import sys
++import time
++
++try:
++    import blake3
++
++    HAS_BLAKE3 = True
++except ImportError:
++    HAS_BLAKE3 = False
++
++REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
++DEFAULT_BUNDLE_DIR = "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-child-bundle-1"
++DEFAULT_BIN_DIR = "/Volumes/UOR-Workspace/uor-r4-lab/anti-gravity-bins/698bdda481de57c2257b158bb53f7942568a3be7"
++DEFAULT_ARM64_BIN = os.path.join(DEFAULT_BIN_DIR, "uor-chat")
++DEFAULT_WASM_BIN = os.path.join(DEFAULT_BIN_DIR, "uor_r4_integer.wasm")
++DEFAULT_M1_COST = os.path.join(REPO_ROOT, "docs/evidence/full-path-m1-cost-dialogue576-2026-09-28.json")
++DEFAULT_OUTPUT = os.path.join(REPO_ROOT, "docs/evidence/release-bundle-manifest-dialogue576-2026-09-28.json")
++UNRECORDED = "UNRECORDED"
++M1_COST_SCHEMAS = {"uor-r4.m1-cost-profile/1", "uor-r4.m1-cost-profile/2"}
++DECLARED_CEILINGS = {
++    "cold_load_ms": ("metrics.cold_load_ms", 250.0),
++    "step_mean_ms": ("metrics.step_latency.mean_ms", 4.0),
++    "step_p90_ms": ("metrics.step_latency.p90_ms", 4.0),
++}
++
++
++class ManifestError(Exception):
++    """An input the manifest needs is missing or malformed."""
++
++
++def sha256_file(path):
++    digest = hashlib.sha256()
++    with open(path, "rb") as handle:
++        while chunk := handle.read(65536):
++            digest.update(chunk)
++    return digest.hexdigest()
++
++
++def blake3_file(path):
++    digest = blake3.blake3()
++    with open(path, "rb") as handle:
++        while chunk := handle.read(65536):
++            digest.update(chunk)
++    return digest.hexdigest()
++
++
++def require(document, dotted, source):
++    """Value at `dotted` in `document`; a missing key raises ManifestError."""
++    value = document
++    for key in dotted.split("."):
++        if not isinstance(value, dict) or key not in value:
++            raise ManifestError(f"{source}: required key '{dotted}' is missing")
++        value = value[key]
++    return value
++
++
++def run_audit(script, arguments):
++    relative_script = os.path.join("scripts", script)
++    command = [sys.executable, relative_script, *arguments]
++    result = subprocess.run(command, capture_output=True, text=True, cwd=REPO_ROOT)
++    lines = result.stdout.splitlines()
++    return {
++        "command": " ".join(["python3", relative_script, *arguments]),
++        "exit_code": result.returncode,
++        "tap_ok": sum(1 for line in lines if line.startswith("ok ")),
++        "tap_not_ok": sum(1 for line in lines if line.startswith("not ok ")),
++        "tap_lines": [
++            line
++            for line in lines
++            if line.startswith(("1..", "# ", "ok ", "not ok "))
++        ],
++    }
++
++
++def is_sealed_report(path):
++    manifest_path = os.path.join(os.path.dirname(path), "manifest.json")
++    if not os.path.isfile(manifest_path):
++        return False
++    try:
++        with open(manifest_path, "r") as handle:
++            manifest = json.load(handle)
++    except (OSError, json.JSONDecodeError):
++        return False
++    files = manifest.get("files") if isinstance(manifest, dict) else None
++    return (
++        isinstance(manifest, dict)
++        and manifest.get("schema") == "uor-r4.report-manifest/1"
++        and isinstance(files, list)
++        and any(isinstance(f, dict) and f.get("path") == os.path.basename(path) for f in files)
++    )
++
++
++def cost_record(path):
++    with open(path, "r") as handle:
++        report = json.load(handle)
++    schema = require(report, "schema", path)
++    if schema not in M1_COST_SCHEMAS:
++        raise ManifestError(f"{path}: unsupported cost report schema '{schema}'")
++    sealed = is_sealed_report(path)
++    record = {
++        "report_path": os.path.relpath(path, REPO_ROOT) if path.startswith(REPO_ROOT) else path,
++        "report_sha256": sha256_file(path),
++        "report_schema": schema,
++        "sealed_report_root": sealed,
++        "status": (
++            "one run in a sealed report root; not a qualification"
++            if sealed
++            else "one run without a sealed report root; not a qualification"
++        ),
++        "run_conditions": (
++            require(report, "run", path)
++            if schema.endswith("/2")
++            else "not recorded by this report schema (machine load, source commit and build are unknown)"
++        ),
++        "cold_load_ms": require(report, "metrics.cold_load_ms", path),
++        "tokenizer_encode_us_per_tok": require(report, "metrics.tokenizer_encode_us_per_tok", path),
++        "prompt_ingest_ms_per_tok": require(report, "metrics.prompt_ingest_ms_per_tok", path),
++        "step_mean_ms": require(report, "metrics.step_latency.mean_ms", path),
++        "step_p50_ms": require(report, "metrics.step_latency.p50_ms", path),
++        "step_p90_ms": require(report, "metrics.step_latency.p90_ms", path),
++        "throughput_tokens_per_sec": require(report, "metrics.step_latency.tok_per_sec", path),
++        "session_save_ms": require(report, "metrics.session_save_ms", path),
++        "session_restore_ms": require(report, "metrics.session_restore_ms", path),
++        "peak_process_rss_mb": require(report, "metrics.peak_rss_mb", path),
++        "live_repl_rss_mb": "UNAVAILABLE (not recorded by the harness)",
++        "bytes_touched_per_token": require(report, "metrics.bytes_touched_per_token", path),
++        "bytes_touched_basis": "analytic count in the harness source; not measured",
++        "energy_soc_joules_per_token": require(report, "metrics.energy_soc_joules_per_token", path),
++        "parity_requests": require(report, "parity_gate.requests", path),
++        "parity_turns": require(report, "parity_gate.turns", path),
++        "parity_decisions_verified": require(report, "parity_gate.verified_decisions", path),
++        "parity_departures": require(report, "parity_gate.departures", path),
++    }
++    ceilings = {}
++    for name, (dotted, limit) in DECLARED_CEILINGS.items():
++        measured = require(report, dotted, path)
++        ceilings[name] = {"ceiling": limit, "recorded": measured, "meets": measured <= limit}
++    record["declared_ceilings"] = ceilings
++    return record
++
++
++def build_manifest(args):
++    bundle_dir = os.path.abspath(args.bundle_dir)
++    arm64_bin = os.path.abspath(args.arm64_bin)
++    wasm_bin = os.path.abspath(args.wasm_bin)
++    m1_cost = os.path.abspath(args.m1_cost)
++    for label, path, check in (
++        ("bundle directory", bundle_dir, os.path.isdir),
++        ("ARM64 binary", arm64_bin, os.path.isfile),
++        ("WASM module", wasm_bin, os.path.isfile),
++        ("cost report", m1_cost, os.path.isfile),
++    ):
++        if not check(path):
++            raise ManifestError(f"{label} not found: {path}")
++    cost = cost_record(m1_cost)  # validated before any audit runs
++
++    bundle_files = []
++    total_bytes = 0
++    for root, dirs, files in os.walk(bundle_dir):
++        dirs.sort()
++        for name in sorted(files):
++            full_path = os.path.join(root, name)
++            size = os.path.getsize(full_path)
++            total_bytes += size
++            entry = {
++                "path": os.path.relpath(full_path, bundle_dir),
++                "bytes": size,
++                "sha256": sha256_file(full_path),
++            }
++            if HAS_BLAKE3:
++                entry["blake3"] = blake3_file(full_path)
++            bundle_files.append(entry)
++
++    bundle_json = os.path.join(bundle_dir, "bundle.json")
++    with open(bundle_json, "r") as handle:
++        bundle_meta = json.load(handle)
++
++    print("Running the ARM64 instruction audit...")
++    # Pass the build identity explicitly: left to itself the native auditor
++    # records the auditing checkout's HEAD, its rustc and a default flag string.
++    arm64_audit = run_audit(
++        "audit_zero_matmul_serving.py",
++        [
++            arm64_bin,
++            "--strict-arm64",
++            "--tap",
++            "--git-commit",
++            args.arm64_build_commit,
++            "--compiler",
++            args.arm64_compiler,
++            "--flags",
++            args.arm64_flags,
++        ],
++    )
++    if arm64_audit["exit_code"] != 0:
++        raise ManifestError(
++            f"ARM64 instruction audit failed (exit {arm64_audit['exit_code']}); no manifest written"
++        )
++    print("Running the WebAssembly instruction audit (call graph followed)...")
++    wasm_audit = run_audit(
++        "audit_zero_matmul_wasm.py",
++        [wasm_bin, "--tap", "--call-graph", "--build-commit", args.wasm_build_commit],
++    )
++
++    return {
++        "schema": "uor-r4.release-bundle-manifest/2",
++        "release_id": "dialogue576-v1-release-20260928",
++        "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
++        "status": "unsealed manifest; not a qualification",
++        "owning_lab": "Lab 3 (Anti-Gravity)",
++        "track": "T3 (Mission runtime and measured efficiency)",
++        "issues_referenced": [965, 963, 1172, 1173, 964, 820],
++        "digest_algorithms": ["sha256", "blake3"] if HAS_BLAKE3 else ["sha256"],
++        "model_architecture": {
++            "name": "UOR-R4 Geometric Language Model (Dialogue Child)",
++            "width": require(bundle_meta, "model.width", bundle_json),
++            "vocab_size": require(bundle_meta, "model.vocab_size", bundle_json),
++            "context_capacity": require(bundle_meta, "model.context", bundle_json),
++            "read_geometry": require(
++                bundle_meta, "numerical_contract.native_integer_profile.read_geometry", bundle_json
++            ),
++            "declared_numerical_contract": "D11",
++            "contract_qualification": "Declared, not certified by this manifest; see the audit records of the served binaries.",
++        },
++        "bundle_artifact": {
++            "root_path": bundle_dir,
++            "total_bytes": total_bytes,
++            "file_count": len(bundle_files),
++            "files": bundle_files,
++        },
++        "served_binaries": {
++            "arm64_native": {
++                "name": "uor-chat",
++                "role": "native serving binary",
++                "path": arm64_bin,
++                "sha256": sha256_file(arm64_bin),
++                "size_bytes": os.path.getsize(arm64_bin),
++                "target": "aarch64-apple-darwin",
++                "build_commit": args.arm64_build_commit,
++                "compiler": args.arm64_compiler,
++                "compiler_flags": args.arm64_flags,
++                "audit": arm64_audit,
++            },
++            "webassembly": {
++                "name": "uor_r4_integer.wasm",
++                "role": "helper-export module; no load, session or step export; not a serving runtime",
++                "path": wasm_bin,
++                "sha256": sha256_file(wasm_bin),
++                "size_bytes": os.path.getsize(wasm_bin),
++                "target": "wasm32-unknown-unknown",
++                "build_commit": args.wasm_build_commit,
++                "audit": wasm_audit,
++            },
++        },
++        "full_path_cost": cost,
++        "capability_api": {
++            "schema": "uor-r4.integer-capability-api/1",
++            "container": "uor_r4_integer::capability_api::IntegerCapabilityApi",
++            "safety": "crate root declares #![forbid(unsafe_code)]",
++        },
++    }
++
++
++def main():
++    parser = argparse.ArgumentParser(description="Write the integer release-bundle manifest.")
++    parser.add_argument("--bundle-dir", default=DEFAULT_BUNDLE_DIR)
++    parser.add_argument("--arm64-bin", default=DEFAULT_ARM64_BIN)
++    parser.add_argument(
++        "--arm64-build-commit",
++        default=UNRECORDED,
++        help=f"Commit that built uor-chat (default: {UNRECORDED})",
++    )
++    parser.add_argument(
++        "--arm64-compiler",
++        default=UNRECORDED,
++        help=f"Compiler that built uor-chat (default: {UNRECORDED})",
++    )
++    parser.add_argument(
++        "--arm64-flags",
++        default=UNRECORDED,
++        help=f"Compiler flags that built uor-chat (default: {UNRECORDED})",
++    )
++    parser.add_argument("--wasm-bin", default=DEFAULT_WASM_BIN)
++    parser.add_argument(
++        "--wasm-build-commit",
++        default=UNRECORDED,
++        help=f"Commit that built the WASM module (default: {UNRECORDED})",
++    )
++    parser.add_argument("--m1-cost", default=DEFAULT_M1_COST, help="Full-path cost report JSON")
++    parser.add_argument("--output", default=DEFAULT_OUTPUT)
++    args = parser.parse_args()
++
++    try:
++        manifest = build_manifest(args)
++    except (ManifestError, OSError, json.JSONDecodeError) as error:
++        print(f"Error: {error}", file=sys.stderr)
++        sys.exit(1)
++
++    out_path = os.path.abspath(args.output)
++    os.makedirs(os.path.dirname(out_path), exist_ok=True)
++    with open(out_path, "w") as handle:
++        json.dump(manifest, handle, indent=2)
++        handle.write("\n")
++
++    binaries = manifest["served_binaries"]
++    cost = manifest["full_path_cost"]
++    print(f"Manifest written: {out_path}")
++    print(
++        f"  bundle files: {manifest['bundle_artifact']['file_count']} "
++        f"({manifest['bundle_artifact']['total_bytes']:,} bytes), digests: "
++        f"{', '.join(manifest['digest_algorithms'])}"
++    )
++    for key in ("arm64_native", "webassembly"):
++        audit = binaries[key]["audit"]
++        print(
++            f"  {binaries[key]['name']}: sha256 {binaries[key]['sha256']}, audit exit "
++            f"{audit['exit_code']} ({audit['tap_ok']} ok, {audit['tap_not_ok']} not ok)"
++        )
++    print(f"  cost report: {cost['status']}")
++    for name, ceiling in cost["declared_ceilings"].items():
++        print(f"    {name}: recorded {ceiling['recorded']} vs ceiling {ceiling['ceiling']} (meets: {ceiling['meets']})")
++
++
++if __name__ == "__main__":
++    main()

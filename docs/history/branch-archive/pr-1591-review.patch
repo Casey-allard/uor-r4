@@ -1,0 +1,648 @@
+diff --git a/crates/uor-r4-tokenizer/src/dialogue.rs b/crates/uor-r4-tokenizer/src/dialogue.rs
+index 969862943..a32517a36 100644
+--- a/crates/uor-r4-tokenizer/src/dialogue.rs
++++ b/crates/uor-r4-tokenizer/src/dialogue.rs
+@@ -13,6 +13,13 @@ use std::fmt;
+ /// Documents ending in a non-assistant turn receive an unmasked terminal EOS.
+ /// Assistant content and its EOS alone receive response-mask value 1.
+ pub const SCHEMA: &str = "uor-r4.literal-role-dialogue/1";
++/// Version 2 of the literal-role format: each role marker ends at its colon
++/// (`User:`, `Assistant:`) and the message content carries the separating
++/// space, so a message's first word is encoded as it is mid-sentence (with
++/// its leading-space token) and a reply can copy a word from its context. A
++/// reply's decoded text drops that one space ([`DialogueProtocol::reply_text`]).
++/// Everything else (separators, BOS/EOS, masks) is version 1's.
++pub const SCHEMA_V2: &str = "uor-r4.literal-role-dialogue/2";
+ const BOS: &str = "<|bos|>";
+ const EOS: &str = "<|eos|>";
+ const UNK: &str = "<|unk|>";
+@@ -97,8 +104,29 @@ fn special(tokenizer: &ByteBpeTokenizer, surface: &'static str) -> Result<u32> {
+ 
+ impl DialogueProtocol {
+     pub fn literal_roles_v1(tokenizer: &ByteBpeTokenizer) -> Result<Self> {
++        Self::literal_roles(tokenizer, SCHEMA)
++    }
++
++    /// The version 2 format ([`SCHEMA_V2`]).
++    pub fn literal_roles_v2(tokenizer: &ByteBpeTokenizer) -> Result<Self> {
++        Self::literal_roles(tokenizer, SCHEMA_V2)
++    }
++
++    /// Version 1 or 2 of the literal-role format by number; other versions
++    /// are refused.
++    pub fn literal_roles_version(tokenizer: &ByteBpeTokenizer, version: u8) -> Result<Self> {
++        match version {
++            1 => Self::literal_roles_v1(tokenizer),
++            2 => Self::literal_roles_v2(tokenizer),
++            other => Err(DialogueError::UnsupportedSchema(format!(
++                "literal-role dialogue version {other}"
++            ))),
++        }
++    }
++
++    fn literal_roles(tokenizer: &ByteBpeTokenizer, schema: &str) -> Result<Self> {
+         Ok(Self {
+-            schema: SCHEMA.to_owned(),
++            schema: schema.to_owned(),
+             tokenizer_cid: tokenizer.address(),
+             bos_id: special(tokenizer, BOS)?,
+             eos_id: special(tokenizer, EOS)?,
+@@ -114,6 +142,32 @@ impl DialogueProtocol {
+         Ok(protocol)
+     }
+ 
++    /// Whether message content carries the space after its role marker
++    /// ([`SCHEMA_V2`]).
++    pub fn spaced_content(&self) -> bool {
++        self.schema == SCHEMA_V2
++    }
++
++    /// The literal marker that opens an assistant turn.
++    pub fn assistant_marker(&self) -> &'static str {
++        if self.spaced_content() {
++            "Assistant:"
++        } else {
++            "Assistant: "
++        }
++    }
++
++    /// A reply's text from its decoded tokens: under [`SCHEMA_V2`] the one
++    /// space the content carries after the marker is dropped; version 1
++    /// text is returned as decoded.
++    pub fn reply_text<'s>(&self, decoded: &'s str) -> &'s str {
++        if self.spaced_content() {
++            decoded.strip_prefix(' ').unwrap_or(decoded)
++        } else {
++            decoded
++        }
++    }
++
+     /// Stable digest of the schema, tokenizer CID and resolved special IDs.
+     pub fn identity(&self) -> Result<String> {
+         let bytes = serde_json::to_vec(self).map_err(DialogueError::Json)?;
+@@ -121,7 +175,7 @@ impl DialogueProtocol {
+     }
+ 
+     pub fn bind<'a>(&self, tokenizer: &'a ByteBpeTokenizer) -> Result<DialogueEncoder<'a>> {
+-        if self.schema != SCHEMA {
++        if self.schema != SCHEMA && self.schema != SCHEMA_V2 {
+             return Err(DialogueError::UnsupportedSchema(self.schema.clone()));
+         }
+         let actual = tokenizer.address();
+@@ -277,10 +331,14 @@ impl DialogueEncoder<'_> {
+                 out.skipped_empty += 1;
+                 continue;
+             }
+-            let (marker, assistant) = match message.role {
+-                "system" => ("System: ", false),
+-                "user" => ("User: ", false),
+-                "assistant" => ("Assistant: ", true),
++            let spaced = self.protocol.spaced_content();
++            let (marker, assistant) = match (message.role, spaced) {
++                ("system", false) => ("System: ", false),
++                ("user", false) => ("User: ", false),
++                ("assistant", false) => ("Assistant: ", true),
++                ("system", true) => ("System:", false),
++                ("user", true) => ("User:", false),
++                ("assistant", true) => ("Assistant:", true),
+                 _ => {
+                     out.skipped_unknown_role += 1;
+                     continue;
+@@ -290,7 +348,11 @@ impl DialogueEncoder<'_> {
+                 self.append(&mut out, "\n", 0);
+             }
+             self.append(&mut out, marker, 0);
+-            self.append(&mut out, content, u8::from(assistant));
++            if spaced {
++                self.append(&mut out, &format!(" {content}"), u8::from(assistant));
++            } else {
++                self.append(&mut out, content, u8::from(assistant));
++            }
+             if assistant {
+                 out.tokens.push(self.protocol.eos_id);
+                 out.response_mask.push(1);
+@@ -302,7 +364,7 @@ impl DialogueEncoder<'_> {
+             if out.emitted_turns != 0 {
+                 self.append(&mut out, "\n", 0);
+             }
+-            self.append(&mut out, "Assistant: ", 0);
++            self.append(&mut out, self.protocol.assistant_marker(), 0);
+         } else if matches!(ending, Ending::Document) && out.emitted_turns != 0 && !last_assistant {
+             out.tokens.push(self.protocol.eos_id);
+             out.response_mask.push(0);
+@@ -350,6 +412,93 @@ mod tests {
+         text.bytes().map(|b| u32::from(b) + 3).collect()
+     }
+ 
++    #[test]
++    fn version_two_puts_the_space_in_the_content_so_a_reply_word_is_copyable() -> Result<()> {
++        let tokenizer = fixture(true, true);
++        let messages = [
++            Message {
++                role: "user",
++                content: "Hi",
++            },
++            Message {
++                role: "assistant",
++                content: "Hi there",
++            },
++        ];
++        // Version 1: the marker owns the space, so a reply's first word
++        // starts with the bare byte and never with the merged " H" (259).
++        let v1 = DialogueProtocol::literal_roles_v1(&tokenizer)?.bind(&tokenizer)?;
++        let one = v1.encode_document(&messages);
++        let mut expected = vec![0];
++        expected.extend(bytes(
++            "User: Hi
++Assistant: Hi there",
++        ));
++        expected.push(1);
++        assert_eq!(one.tokens, expected);
++        // Version 2: the content carries the space, so the user's word and
++        // the reply's first word are the same token, as mid-sentence.
++        let protocol = DialogueProtocol::literal_roles_v2(&tokenizer)?;
++        let v2 = protocol.bind(&tokenizer)?;
++        let two = v2.encode_document(&messages);
++        let mut expected = vec![0];
++        expected.extend(bytes("User:"));
++        expected.push(259);
++        expected.extend(bytes(
++            "i
++Assistant:",
++        ));
++        expected.push(259);
++        expected.extend(bytes("i there"));
++        expected.push(1);
++        assert_eq!(two.tokens, expected);
++        // The reply (its leading-space token included) and its EOS are the
++        // response; markers and the user turn are not.
++        let reply_start = 1
++            + bytes("User:").len()
++            + 1
++            + bytes(
++                "i
++Assistant:",
++            )
++            .len();
++        for (i, &mask) in two.response_mask.iter().enumerate() {
++            assert_eq!(mask, u8::from(i >= reply_start), "position {i}");
++        }
++        // The next-reply prompt ends at the colon, and the reply's text drops
++        // the one space its tokens carry.
++        let prompt = v2.encode_assistant_prefix(&messages[..1]);
++        assert!(prompt.tokens.ends_with(&bytes(
++            "
++Assistant:"
++        )));
++        assert_eq!(protocol.assistant_marker(), "Assistant:");
++        assert_eq!(protocol.reply_text(" Hi there"), "Hi there");
++        assert_eq!(protocol.reply_text("Hi"), "Hi");
++        let first = DialogueProtocol::literal_roles_v1(&tokenizer)?;
++        assert_eq!(first.reply_text(" Hi"), " Hi");
++        assert_eq!(first.assistant_marker(), "Assistant: ");
++        // Incremental encoding keeps the same stream.
++        let open = v2.encode_open_history(&messages);
++        let user = v2.encode_user_prefix("Hi", true);
++        let mut combined = open.tokens;
++        combined.extend(user.tokens);
++        let mut whole = messages.to_vec();
++        whole.push(messages[0]);
++        assert_eq!(combined, v2.encode_assistant_prefix(&whole).tokens);
++        // The schema is part of the identity, binds, round-trips, and only
++        // versions 1 and 2 exist.
++        assert_ne!(protocol.identity()?, first.identity()?);
++        let json = serde_json::to_vec(&protocol).map_err(DialogueError::Json)?;
++        assert_eq!(DialogueProtocol::from_json(&json, &tokenizer)?, protocol);
++        assert_eq!(
++            DialogueProtocol::literal_roles_version(&tokenizer, 2)?,
++            protocol
++        );
++        assert!(DialogueProtocol::literal_roles_version(&tokenizer, 3).is_err());
++        Ok(())
++    }
++
+     #[test]
+     fn incremental_prefix_retains_segment_boundaries_and_history_eos() -> Result<()> {
+         let tokenizer = fixture(true, true);
+diff --git a/crates/uor-r4-training/examples/geometric-stack.rs b/crates/uor-r4-training/examples/geometric-stack.rs
+index 73459bc8d..b55bc65ff 100644
+--- a/crates/uor-r4-training/examples/geometric-stack.rs
++++ b/crates/uor-r4-training/examples/geometric-stack.rs
+@@ -48,7 +48,7 @@
+ //!   [policy=full_prefix|role_only|truncated_prefix[:KEEP]] [data_seed=1] [steps=1024] [batch=16] [lr=0.001] [warmup=50] \
+ //!   [min_lr=0.1] [weight_decay=0.1] [clip=1.0] [eval_every=128] [dev_seed=1] [dev_per_source=32] \
+ //!   [checkpoint_every=128] [resume=OLD_ROOT/checkpoint] [max_seconds=inf] [requests=REQUESTS.json] \
+-//!   [max_new_tokens=96]
++//!   [max_new_tokens=96] [protocol=1|2]
+ //! geometric-stack lut-chat artifact=ROOT/model.lut tokenizer=TOKENIZER.json out=NEW_REPORT_ROOT \
+ //!   [requests=REQUESTS.json] [max_new_tokens=96] [temperature=0] [top_k=40] [top_p=1] [seed=1] \
+ //!   [threads=1]
+@@ -239,7 +239,7 @@ use uor_r4_training::geometric_stack::{
+ };
+ use uor_r4_training::lut_export::export_llama;
+ use uor_r4_training::stack_dialogue::{
+-    check_panel, development, episode_contract, episode_contract_at, greedy_reply, load_requests,
++    check_panel, development, episode_contract, episode_contract_for, greedy_reply, load_requests,
+     reply_panel, trim, DialogueSplit, Reply, MAX_NEW_TOKENS,
+ };
+ use uor_r4_training::stack_export::{
+@@ -3185,6 +3185,9 @@ struct DialogueSettings {
+     max_seconds: f64,
+     requests: Option<PathBuf>,
+     max_new_tokens: usize,
++    /// `protocol=1|2`: the literal-role dialogue version of both corpora
++    /// (their assistant markers locate the scored responses).
++    protocol: u8,
+ }
+ 
+ impl DialogueSettings {
+@@ -3201,6 +3204,9 @@ impl DialogueSettings {
+             "dev_per_source": self.dev_per_source, "checkpoint_every": self.checkpoint_every,
+             "requests": self.requests, "max_new_tokens": self.max_new_tokens,
+         });
++        if self.protocol != 1 {
++            record["protocol"] = json!(self.protocol);
++        }
+         // As given on the command line; only when given, so other runs'
+         // records are unchanged. The configuration (`config`) has the result.
+         if let Some(select) = &self.select {
+@@ -3248,6 +3254,9 @@ impl DialogueSettings {
+         if self.qat {
+             lineage["qat"] = json!({"codec": qat_codec().name()});
+         }
++        if self.protocol != 1 {
++            lineage["protocol"] = json!(self.protocol);
++        }
+         if let Some(snap) = self.transport_snap {
+             lineage["transport_snap"] = snap.record();
+         }
+@@ -3339,6 +3348,7 @@ fn dialogue_train_mode(arguments: &[String]) -> Result<()> {
+             "pointer_score",
+             "pointer_select",
+             "pointer_route",
++            "protocol",
+         ],
+     )?;
+     // Validate the A1 options before anything is claimed or loaded.
+@@ -3382,6 +3392,11 @@ fn dialogue_train_mode(arguments: &[String]) -> Result<()> {
+         max_seconds: args.number("max_seconds", f64::INFINITY)?,
+         requests: args.optional("requests").map(PathBuf::from),
+         max_new_tokens: args.number("max_new_tokens", 32)?,
++        protocol: match args.optional("protocol").as_deref() {
++            None | Some("1") => 1,
++            Some("2") => 2,
++            Some(other) => return Err(invalid(format!("invalid protocol={other} (1 or 2)"))),
++        },
+     };
+     if settings.steps == 0
+         || !(1..=64).contains(&settings.batch)
+@@ -3613,9 +3628,9 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
+     }
+     // Training episodes fill the model's context; the development panel stays
+     // the retained study's 256-ID panel, so its scores stay comparable.
+-    let (protocol, contract) = episode_contract_at(&tokenizer, vocab, config.context)?;
++    let (protocol, contract) = episode_contract_for(&tokenizer, vocab, config.context, s.protocol)?;
+     let train = train_split.index_for(contract, s.policy)?;
+-    let (_, dev_contract) = episode_contract(&tokenizer, vocab)?;
++    let (_, dev_contract) = episode_contract_for(&tokenizer, vocab, EPISODE_CONTEXT, s.protocol)?;
+     let dev = dev_split.index(dev_contract)?;
+     let panel = dialogue_development::select(&dev, s.dev_seed, s.dev_per_source)?;
+     let requests = s.requests.as_deref().map(load_requests).transpose()?;
+@@ -4245,7 +4260,8 @@ geometric-stack dialogue-train out=NEW_REPORT_ROOT tokenizer=TOKENIZER.json \\
+   [data_seed=] \\
+   [steps=] \\
+   [batch=] [lr=] [warmup=] [min_lr=] [weight_decay=] [clip=] [eval_every=] [dev_seed=] \\
+-  [dev_per_source=] [checkpoint_every=] [resume=] [max_seconds=] [requests=] [max_new_tokens=]
++  [dev_per_source=] [checkpoint_every=] [resume=] [max_seconds=] [requests=] [max_new_tokens=] \\
++  [protocol=1|2]
+ 
+   select=flock:WINDOW:K  every read row (geometric reads and the control's attention) softmaxes
+                          over the sink (position 0), the last WINDOW positions and the K
+@@ -4281,6 +4297,9 @@ geometric-stack dialogue-train out=NEW_REPORT_ROOT tokenizer=TOKENIZER.json \\
+                          and ngram-ranked:WINDOW admit by the longest ordered n-let match
+                          (n up to WINDOW) instead of any shared atom. Excludes
+                          pointer_select=. With init=, replaces the saved head's route.
++  protocol=1|2           the literal-role dialogue version of both corpora (default 1); 2 puts
++                         the space after a role marker into the message (m-world corpus
++                         protocol=2), so a reply's first word can be copied from context.
+   reports                each eval adds dev_pointer_mean_gate / dev_pointer_hit_rate /
+                          dev_pointer_reachable_rate to the curve; all settings are in the saved
+                          config.json and the report's config and flock_and_pointer.
+diff --git a/crates/uor-r4-training/examples/m-world.rs b/crates/uor-r4-training/examples/m-world.rs
+index e09df0e13..a119d9762 100644
+--- a/crates/uor-r4-training/examples/m-world.rs
++++ b/crates/uor-r4-training/examples/m-world.rs
+@@ -10,7 +10,7 @@
+ //! m-world corpus world=v2 out=NEW_REPORT_ROOT tokenizer=TOKENIZER.json [chat=CHAT_V0_TRAIN_DIR] \
+ //!   [exclude=REQUESTS.json] [conversations=5600] [seed=1] \
+ //!   [mqar_share=0.35] [copy_share=0.10] [relation_share=0.30] [other_share=0.25] \
+-//!   [recall=off|oracle|sieve] [recall_at=reply|query] [context=256]
++//!   [recall=off|oracle|sieve] [recall_at=reply|query] [context=256] [protocol=1|2]
+ //! m-world evaluate [world=v1] out=NEW_REPORT_ROOT model=MODEL_DIR tokenizer=TOKENIZER.json \
+ //!   [split=development|train] [conversations=300] [seed=9101] [max_new_tokens=32] \
+ //!   [panel=REQUESTS.json] [select=none|flock:W:K] [pointer_select=none|flock:W:K|top:K] \
+@@ -20,7 +20,8 @@
+ //!   [panel=REQUESTS.json] [mqar_share=..] [copy_share=..] [relation_share=..] [other_share=..] \
+ //!   [select=none|flock:W:K] [pointer_select=none|flock:W:K|top:K] \
+ //!   [pointer_route=none|prime:W|prime-ranked:W|ngram:W|ngram-ranked:W] [recall=off|oracle|sieve|route] \
+-//!   [recall_at=reply|query] [route_paraphrases=A.jsonl[,B.jsonl...]] [route_acts=fact|any] [route_trunk=MODEL_DIR]
++//!   [recall_at=reply|query] [route_paraphrases=A.jsonl[,B.jsonl...]] [route_acts=fact|any] [route_trunk=MODEL_DIR] \
++//!   [protocol=1|2]
+ //! m-world rejudge out=NEW_REPORT_ROOT report=OLD_ROOT/m_world_evaluation.json [tokenizer=T.json]
+ //! m-world evaluate-cells [world=v2] out=NEW_REPORT_ROOT model=MODEL_DIR tokenizer=TOKENIZER.json \
+ //!   [conversations=300] [seed=9101] [max_new_tokens=32] [teacher_forced=true] \
+@@ -72,6 +73,14 @@
+ //! gate: MQAR recall >= 0.9 at every distance AND open-relation recall >= 0.9,
+ //! computed on this report's split (the gate counts on `split=development`).
+ //!
++//! `protocol=2` (`corpus` and `evaluate`, world=v2) uses literal-role dialogue
++//! version 2 (`uor_r4_tokenizer::dialogue::SCHEMA_V2`): the space after a role
++//! marker belongs to the message, so a reply's first word is the token it is
++//! mid-sentence and can be copied from context. A version 2 corpus has no
++//! `chat=` part (chat-v0 is prepared in version 1) and records
++//! `dialogue_protocol` in its manifest; evaluate a model in the version it was
++//! trained in. Replies are scored without the leading space.
++//!
+ //! `rejudge` re-judges an evaluation's saved replies with this build's oracle;
+ //! a v2 report needs `tokenizer=` (its MQAR distances depend on it).
+ //!
+@@ -158,8 +167,8 @@ use uor_r4_training::milestone_world_v2::{
+     judge_v2, render, Conversation2, Kind, MWorld2, Mix, Pool, Scorecard, Turn2, CONTEXT,
+ };
+ use uor_r4_training::stack_dialogue::{
+-    check_panel, episode_contract, greedy_reply, load_requests, reply_panel, DialogueSplit, Reply,
+-    Request,
++    check_panel, episode_contract, episode_contract_for, greedy_reply, load_requests, reply_panel,
++    DialogueSplit, Reply, Request,
+ };
+ use uor_r4_training::stack_memory_replies::score_memory;
+ use uor_r4_training::stack_tracking::Rng;
+@@ -376,6 +385,19 @@ fn recall_at_of(args: &Args) -> Result<RecallAt> {
+     }
+ }
+ 
++/// `protocol=1|2` (`corpus` and `evaluate` with world=v2): the literal-role
++/// dialogue version a corpus is encoded and an evaluation prompts in (default
++/// 1). Version 2 puts the space after a role marker into the message, so a
++/// reply's first word is the token it is mid-sentence; a model trained on one
++/// version is evaluated in it.
++fn protocol_version_of(args: &Args) -> Result<u8> {
++    match args.optional("protocol").as_deref() {
++        None | Some("1") => Ok(1),
++        Some("2") => Ok(2),
++        Some(other) => Err(invalid(format!("invalid protocol={other} (1 or 2)"))),
++    }
++}
++
+ fn recall_of(args: &Args) -> Result<Recall> {
+     match args.optional("recall").as_deref() {
+         None | Some("off") => Ok(Recall::Off),
+@@ -985,7 +1007,13 @@ fn corpus_v2(args: &Args, out: &Path) -> Result<()> {
+     }
+     let mut recall_lines = 0usize;
+     let tokenizer = load_tokenizer(&tokenizer_path)?;
+-    let protocol = DialogueProtocol::literal_roles_v1(&tokenizer)
++    let version = protocol_version_of(args)?;
++    if version != 1 && args.optional("chat").is_some() {
++        return Err(invalid(
++            "chat= documents are prepared in protocol 1; a protocol=2 corpus is M-world alone",
++        ));
++    }
++    let protocol = DialogueProtocol::literal_roles_version(&tokenizer, version)
+         .map_err(|e| invalid(format!("protocol: {e}")))?;
+     let encoder = protocol
+         .bind(&tokenizer)
+@@ -1005,6 +1033,7 @@ fn corpus_v2(args: &Args, out: &Path) -> Result<()> {
+             .map_err(|_| invalid("the tokenizer's vocabulary does not fit the token store"))?,
+     };
+     let count = |text: &str| tokenizer.encode(text).len();
++    let spaced_meter = uor_r4_training::milestone_world_v2::Meter::spaced(&count);
+     let mut world = MWorld2::new(&count, mix)?;
+     let mut rng = Rng::new(seed);
+     // Training excludes the sealed English probe by an overlap rule: a
+@@ -1062,10 +1091,18 @@ fn corpus_v2(args: &Args, out: &Path) -> Result<()> {
+                 "M-world v2 conversation {index} did not encode"
+             )));
+         }
+-        if encoded.tokens.len() != conversation.tokens {
++        // Conversations are drawn under version 1's meter, so both versions
++        // encode the same conversations; a version 2 document is checked
++        // against version 2's layout.
++        let metered = if version == 1 {
++            conversation.tokens
++        } else {
++            spaced_meter.document(&conversation.turns)
++        };
++        if encoded.tokens.len() != metered {
+             return Err(invalid(format!(
+                 "M-world v2 conversation {index}: the meter counted {} tokens, the protocol {}",
+-                conversation.tokens,
++                metered,
+                 encoded.tokens.len()
+             )));
+         }
+@@ -1324,10 +1361,15 @@ fn corpus_v2(args: &Args, out: &Path) -> Result<()> {
+         "mask_sha256": sha256_file(&mask_path)?,
+         "composition": composition,
+     });
++    let mut manifest = manifest;
++    // Recorded only for version 2, so version 1 manifests are unchanged.
++    if version != 1 {
++        manifest["dialogue_protocol"] = json!(protocol.schema);
++    }
+     let manifest_path = train.join("manifest.json");
+     fs::write(&manifest_path, serde_json::to_vec_pretty(&manifest)?)?;
+     // The split must load and index exactly as `dialogue-train` will read it.
+-    let (_, contract) = episode_contract(&tokenizer, vocab as usize)?;
++    let (_, contract) = episode_contract_for(&tokenizer, vocab as usize, CONTEXT, version)?;
+     let split = DialogueSplit::load(&tokens_path, &mask_path, &manifest_path)?;
+     let index = split.index(contract)?;
+     let sources: Vec<Value> = index
+@@ -1587,6 +1629,7 @@ fn evaluate(args: &Args, out: &Path) -> Result<()> {
+         "selection_override": selection_override,
+         "tokenizer_sha256": sha256_file(&tokenizer_path)?,
+         "protocol_identity": protocol.identity().map_err(|e| invalid(format!("protocol: {e}")))?,
++        "dialogue_protocol": protocol.schema,
+         "world": "m-world-v1",
+         "split": split,
+         "seed": seed,
+@@ -1633,7 +1676,7 @@ fn evaluate_v2(args: &Args, out: &Path) -> Result<()> {
+     let max_new_tokens: usize = args.number("max_new_tokens", 32)?;
+     let mix = mix_of(args)?;
+     let tokenizer = load_tokenizer(&tokenizer_path)?;
+-    let protocol = DialogueProtocol::literal_roles_v1(&tokenizer)
++    let protocol = DialogueProtocol::literal_roles_version(&tokenizer, protocol_version_of(args)?)
+         .map_err(|e| invalid(format!("protocol: {e}")))?;
+     let encoder = protocol
+         .bind(&tokenizer)
+@@ -1759,7 +1802,10 @@ fn evaluate_v2(args: &Args, out: &Path) -> Result<()> {
+                     .copied()
+                     .filter(|&id| id != protocol.eos_id)
+                     .collect();
+-                (decode(&text_ids), generated.stop_record())
++                (
++                    protocol.reply_text(&decode(&text_ids)).to_owned(),
++                    generated.stop_record(),
++                )
+             };
+             let pass = judge_v2(&turn.checks, &turn.user, &text);
+             all &= pass;
+@@ -3659,6 +3705,7 @@ fn main() -> Result<()> {
+                 "recall",
+                 "recall_at",
+                 "context",
++                "protocol",
+             ],
+         )?,
+         "evaluate" => Args::parse(
+@@ -3685,13 +3732,26 @@ fn main() -> Result<()> {
+                 "route_paraphrases",
+                 "route_acts",
+                 "route_trunk",
++                "protocol",
+             ],
+         )?,
+         "rejudge" => Args::parse(rest, &["out", "report", "tokenizer"])?,
+         other => return Err(invalid(format!("unknown mode {other}"))),
+     };
+     // `recall=` and `recall_at=` are checked before the root is claimed: a
+-    // malformed value, or one given to world=v1, claims nothing.
++    // malformed value, or one given to world=v1, claims nothing. So is
++    // `protocol=`, which only world=v2 encodes, and never with chat=.
++    if mode == "corpus" || mode == "evaluate" {
++        let version = protocol_version_of(&args)?;
++        if version != 1 && world_of(&args)? != World::V2 {
++            return Err(invalid("protocol=2 needs world=v2"));
++        }
++        if version != 1 && args.optional("chat").is_some() {
++            return Err(invalid(
++                "chat= documents are prepared in protocol 1; a protocol=2 corpus is M-world alone",
++            ));
++        }
++    }
+     if mode == "corpus" {
+         let recall = recall_of(&args)?;
+         recall_at_of(&args)?;
+@@ -3826,6 +3886,19 @@ mod tests {
+         assert!(parse(&["out=r", "select=none"], &["out", "tokenizer"]).is_err());
+     }
+ 
++    #[test]
++    fn the_protocol_version_is_one_or_two() {
++        let keys = ["out", "protocol"];
++        let version =
++            |given: &[&str]| parse(given, &keys).and_then(|args| protocol_version_of(&args));
++        assert_eq!(version(&["out=r"]).expect("default"), 1);
++        assert_eq!(version(&["out=r", "protocol=1"]).expect("one"), 1);
++        assert_eq!(version(&["out=r", "protocol=2"]).expect("two"), 2);
++        for bad in ["protocol=3", "protocol=v2", "protocol="] {
++            assert!(version(&["out=r", bad]).is_err(), "{bad}");
++        }
++    }
++
+     #[test]
+     fn only_the_reference_row_of_the_baselines_report_carries_a_gate() {
+         let run = RuleRun::default();
+diff --git a/crates/uor-r4-training/src/milestone_world_v2.rs b/crates/uor-r4-training/src/milestone_world_v2.rs
+index 3a2f7512d..8743fd7fa 100644
+--- a/crates/uor-r4-training/src/milestone_world_v2.rs
++++ b/crates/uor-r4-training/src/milestone_world_v2.rs
+@@ -1097,12 +1097,15 @@ impl Mix {
+ /// `DialogueProtocol::literal_roles_v1` encodes a document: BOS, then for each
+ /// exchange "\n" (after the first), "User: ", the trimmed user text, "\n",
+ /// "Assistant: ", the trimmed reply and EOS. `count` is the number of tokens of
+-/// a text.
++/// a text. [`Meter::spaced`] counts version 2's layout instead.
+ pub struct Meter<'a> {
+     count: &'a dyn Fn(&str) -> usize,
+     newline: usize,
+     user: usize,
+     assistant: usize,
++    /// Version 2: markers end at the colon and each content carries its
++    /// leading space.
++    spaced: bool,
+ }
+ 
+ impl<'a> Meter<'a> {
+@@ -1112,12 +1115,29 @@ impl<'a> Meter<'a> {
+             newline: count("\n"),
+             user: count("User: "),
+             assistant: count("Assistant: "),
++            spaced: false,
++        }
++    }
++
++    /// The meter of `DialogueProtocol::literal_roles_v2`'s layout: "User:"
++    /// and "Assistant:", each followed by " " and the trimmed content.
++    pub fn spaced(count: &'a dyn Fn(&str) -> usize) -> Self {
++        Self {
++            count,
++            newline: count("\n"),
++            user: count("User:"),
++            assistant: count("Assistant:"),
++            spaced: true,
+         }
+     }
+ 
+     /// Tokens of a content text.
+     pub fn text(&self, text: &str) -> usize {
+-        (self.count)(text.trim())
++        if self.spaced {
++            (self.count)(&format!(" {}", text.trim()))
++        } else {
++            (self.count)(text.trim())
++        }
+     }
+ 
+     /// Tokens of the exchange at position `index` of a document.
+@@ -4318,6 +4338,10 @@ mod tests {
+         let protocol = DialogueProtocol::literal_roles_v1(&tokenizer).expect("a protocol");
+         let encoder = protocol.bind(&tokenizer).expect("an encoder");
+         let count = |text: &str| tokenizer.encode(text).len();
++        // Version 2 encodes the same conversations; its own meter counts them.
++        let spaced_protocol = DialogueProtocol::literal_roles_v2(&tokenizer).expect("version 2");
++        let spaced_encoder = spaced_protocol.bind(&tokenizer).expect("an encoder");
++        let spaced = Meter::spaced(&count);
+         let mut world = MWorld2::new(&count, Mix::default()).expect("a world");
+         let mut longest = 0;
+         for split in [Split::Train, Split::Development] {
+@@ -4347,6 +4371,12 @@ mod tests {
+                     "{:?}",
+                     conversation.turns
+                 );
++                assert_eq!(
++                    spaced_encoder.encode_document(&messages).tokens.len(),
++                    spaced.document(&conversation.turns),
++                    "{:?}",
++                    conversation.turns
++                );
+                 assert!(encoded.tokens.len() <= CONTEXT);
+                 longest = longest.max(encoded.tokens.len());
+                 if let Some(mqar) = conversation.turns.last().and_then(|t| t.tag.mqar.as_ref()) {
+diff --git a/crates/uor-r4-training/src/stack_dialogue.rs b/crates/uor-r4-training/src/stack_dialogue.rs
+index 029560543..52739dc76 100644
+--- a/crates/uor-r4-training/src/stack_dialogue.rs
++++ b/crates/uor-r4-training/src/stack_dialogue.rs
+@@ -138,8 +138,20 @@ pub fn episode_contract_at(
+     vocab_size: usize,
+     context: usize,
+ ) -> Result<(DialogueProtocol, EpisodeContract)> {
+-    let protocol =
+-        DialogueProtocol::literal_roles_v1(tokenizer).map_err(|e| invalid(e.to_string()))?;
++    episode_contract_for(tokenizer, vocab_size, context, 1)
++}
++
++/// [`episode_contract_at`] under literal-role dialogue `version` (1 or 2,
++/// [`DialogueProtocol::literal_roles_version`]): the assistant marker that
++/// opens each scored response is that version's.
++pub fn episode_contract_for(
++    tokenizer: &ByteBpeTokenizer,
++    vocab_size: usize,
++    context: usize,
++    version: u8,
++) -> Result<(DialogueProtocol, EpisodeContract)> {
++    let protocol = DialogueProtocol::literal_roles_version(tokenizer, version)
++        .map_err(|e| invalid(e.to_string()))?;
+     let encoder = protocol
+         .bind(tokenizer)
+         .map_err(|e| invalid(e.to_string()))?;

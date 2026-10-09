@@ -1,0 +1,973 @@
+diff --git a/crates/uor-r4-graph-certify/src/score.rs b/crates/uor-r4-graph-certify/src/score.rs
+index 0be7879f7..9a9faa15d 100644
+--- a/crates/uor-r4-graph-certify/src/score.rs
++++ b/crates/uor-r4-graph-certify/src/score.rs
+@@ -122,6 +122,83 @@
+ //! [`evaluate_gate_c`] from the construction split alone; the artifact
+ //! format, the serving scorer's default path, the witness and the replay
+ //! contract are all untouched.
++//!
++//! # Latent right-context mixture (#446 M2) — causally legitimate
++//!
++//! The M1 rows above cannot be quoted because the right key is read at
++//! SERVING time. M2 keeps the right context as a LATENT variable that is
++//! observed only during CONSTRUCTION and marginalized away at serving:
++//!
++//! In prose, the mixture is `P(next | left) = SUM over classes c of
++//! P(c | left) P(next | left, c)`.
++//!
++//! where c is a coarse class of the right graded code. Construction (the
++//! non-held-out positions, which may legitimately look both ways because
++//! nothing is being predicted there) accumulates two tables: the
++//! class-conditional emission counts N(next | left prefix, c) and the
++//! class posterior counts N(c | left prefix). Serving reads the LEFT key
++//! only: it forms P(c | left) from the posterior table and mixes the
++//! class-conditional distributions. No token after the target is touched
++//! at evaluation time, so `rule12_latent_mix` IS a generation-legitimate
++//! number.
++//!
++//! Four arms are reported on the identical Gate C held-out population:
++//! `rule12_latent_mix` (the M2 arm), the left-only `rule12_precedence`
++//! baseline it must beat, `rule12_latent_oracle` (the SAME tables with
++//! the TRUE right class supplied at evaluation time — an upper bound,
++//! NOT causal, and never quotable), and `rule12_latent_shuffled` (the
++//! falsifier: the class posterior is taken from a FOREIGN left key under
++//! a fixed rotation, holding class cardinality, emission tables,
++//! smoothing and backoff constant). Without the falsifier row the
++//! mixture row is not interpretable.
++//!
++//! EXIT RULE, pre-declared. `rule12_latent_mix` is a POSITIVE result if
++//! and only if it beats the left-only Rule 1+2 baseline by at least two
++//! percentage points of top-1 agreement on the same population AND beats
++//! the shuffled-class falsifier's top-1. Anything else is a negative
++//! result and must be reported as one. Bits per token are reported for
++//! every arm regardless of the top-1 verdict, and
++//! `latent_headroom_fraction` reports where the mixture sits between the
++//! baseline and the oracle as a fraction of the available top-1
++//! headroom.
++//!
++//! # Hard-select and top-k right-class arms (#446 M3)
++//!
++//! M2 measured NEGATIVE on top-1: the mixture lost half a point to the
++//! left-only baseline while the oracle, using the SAME class-conditional
++//! tables at the same class depth, gained more than five. The
++//! class-conditional distributions are therefore sharp and correct and
++//! it is the AVERAGING that destroys the argmax — a mixture of sharp
++//! disagreeing modes has a flat mode. M3 tests the obvious repair:
++//! SELECT a class instead of averaging over all of them.
++//!
++//! `rule12_latent_hard` picks the single most probable class from the
++//! left key alone, `c* = argmax over c of P(c | left)` with the
++//! canonical tie-break to the lowest class id, and predicts from
++//! `P(next | left, c*)` under the same backoff, support gate and
++//! Witten-Bell mixing as M2. `rule12_latent_topk` mixes only the `k`
++//! highest-posterior classes renormalized (`R4_LATENT_TOPK`, default
++//! three), interpolating between hard-select at `k = 1` and the full M2
++//! marginalization at large `k`. Both read the LEFT key only, so both
++//! are causally legitimate generation numbers.
++//!
++//! The quantity that decides whether the whole latent-class direction
++//! can work is CLASS PREDICTABILITY: how often the left key's most
++//! probable class IS the true right class. `latent_class_top1_accuracy`
++//! reports it over the held-out positions carrying a right window, split
++//! by whether the left key resolved at FULL graded depth or at a
++//! backed-off prefix, and `latent_class_mean_entropy` reports the mean
++//! entropy of the posterior in bits against
++//! `latent_class_mean_support`. Near-chance accuracy means the direction
++//! is dead and must be recorded plainly; high accuracy means hard-select
++//! should approach the oracle.
++//!
++//! EXIT RULE, pre-declared. `rule12_latent_hard` is a POSITIVE result if
++//! and only if it beats the left-only Rule 1+2 baseline by at least
++//! [`LATENT_EXIT_MARGIN`] of top-1 agreement on the same population AND
++//! beats the shuffled-class falsifier. Every arm's top-1 and bits per
++//! token are reported regardless of the verdict, and every pre-existing
++//! Gate C row is kept intact and reproducing.
+ 
+ use rayon::prelude::*;
+ use serde::Serialize;
+@@ -2275,6 +2352,82 @@ pub struct GateCOutcome {
+     pub twosided_full_left_cells: usize,
+     pub twosided_full_pair_keys: usize,
+     pub twosided_keys_per_full_left: f64,
++    /// #446 M2, THE CAUSALLY LEGITIMATE ROW. The latent right-context
++    /// mixture over ALL held-out positions: the right context is
++    /// observed only during construction and marginalized away at
++    /// serving, where the left key alone is read. Quotable as a
++    /// generation number.
++    pub rule12_latent_mix: GateCMetrics,
++    /// #446 M2: the mixture arm on its LIVE slice, and Rule 1+2 on that
++    /// identical slice.
++    pub rule12_latent_mix_live: GateCMetrics,
++    pub rule12_on_latent_mix_live: GateCMetrics,
++    /// #446 M2 UPPER BOUND, NOT CAUSAL. The same construction tables
++    /// with the TRUE right class supplied at evaluation time instead of
++    /// the class posterior. Measures how much of the two-sided gain the
++    /// marginalization gives up. Never quotable as a generation number.
++    pub rule12_latent_oracle: GateCMetrics,
++    /// #446 M2 FALSIFIER. Identical machinery with the class posterior
++    /// lifted from a FOREIGN left key under a fixed rotation, so class
++    /// cardinality, emission tables, smoothing, support gate and backoff
++    /// are held constant. Without this row the mixture row is not
++    /// interpretable.
++    pub rule12_latent_shuffled: GateCMetrics,
++    pub latent_oracle_live_positions: usize,
++    pub latent_shuffled_live_positions: usize,
++    /// Bytes of the right graded code forming the latent class.
++    pub latent_class_depth: usize,
++    /// Construction-split class structure at FULL left depth: distinct
++    /// left cells, distinct (left, class) cells, and their ratio.
++    pub latent_full_left_cells: usize,
++    pub latent_full_class_cells: usize,
++    pub latent_classes_per_full_left: f64,
++    /// Where `rule12_latent_mix` sits between `rule12_precedence` and
++    /// `rule12_latent_oracle` as a fraction of the available top-1
++    /// headroom. Zero when the oracle does not exceed the baseline.
++    pub latent_headroom_fraction: f64,
++    /// The pre-declared #446 M2 exit rule: the mixture beat the
++    /// left-only Rule 1+2 baseline by at least
++    /// [`LATENT_EXIT_MARGIN`] of top-1 agreement on the same population
++    /// AND beat the shuffled-class falsifier.
++    pub latent_exit_rule_met: bool,
++    /// #446 M3, CAUSALLY LEGITIMATE. HARD-SELECT: predict from the
++    /// single most probable class given the left key alone, preserving
++    /// that class's mode instead of averaging it away. Quotable as a
++    /// generation number.
++    pub rule12_latent_hard: GateCMetrics,
++    /// #446 M3, CAUSALLY LEGITIMATE. TOP-K-SELECT: mix only the
++    /// `latent_topk` highest-posterior classes, renormalized. With
++    /// hard-select and the M2 mixture this maps the sharpness/coverage
++    /// trade-off.
++    pub rule12_latent_topk: GateCMetrics,
++    pub latent_hard_live_positions: usize,
++    pub latent_topk_live_positions: usize,
++    /// The `k` the top-k arm used.
++    pub latent_topk: usize,
++    /// #446 M3 DIAGNOSTIC — class predictability, the quantity that
++    /// decides whether the latent-class direction can work at all: how
++    /// often the left key's most probable class IS the true right class,
++    /// over the held-out positions carrying both a resolved left key and
++    /// a right window, split by whether the left key resolved at FULL
++    /// graded depth or at a backed-off prefix. Accuracy near chance
++    /// (roughly the reciprocal of the class support) means the direction
++    /// is dead; high accuracy means hard-select should approach the
++    /// oracle.
++    pub latent_class_scored_positions: usize,
++    pub latent_class_top1_accuracy: f64,
++    pub latent_class_full_depth_positions: usize,
++    pub latent_class_top1_accuracy_full_depth: f64,
++    pub latent_class_backoff_positions: usize,
++    pub latent_class_top1_accuracy_backoff: f64,
++    /// Mean entropy of the class posterior in bits, against the mean
++    /// class support it is spread over.
++    pub latent_class_mean_entropy: f64,
++    pub latent_class_mean_support: f64,
++    /// The pre-declared #446 M3 exit rule, applied to the HARD-SELECT
++    /// arm: at least [`LATENT_EXIT_MARGIN`] of top-1 over the left-only
++    /// Rule 1+2 baseline AND above the shuffled-class falsifier.
++    pub latent_hard_exit_rule_met: bool,
+     /// #399 B′: predicted-anchor accuracy on the anchor-reachable
+     /// population (numerator/denominator + rate).
+     pub anchor_hat_population: usize,
+@@ -2714,6 +2867,255 @@ fn apply_two_sided_arm(
+     )
+ }
+ 
++/// #446 M2: how many bytes of the RIGHT graded code form the latent
++/// class, unless `R4_LATENT_CLASS_DEPTH` overrides it.
++///
++/// One byte (at most 256 classes) is the default because the class
++/// posterior has to be ESTIMABLE from the left key alone. The class
++/// posterior at a deep left prefix is supported by the construction
++/// records sharing that prefix — on the order of tens of records for a
++/// full graded code on a 500k corpus — so a two-byte class (up to 65,536
++/// values) would leave nearly every class a singleton and the posterior
++/// would be pure noise. One byte keeps the per-left-key class support in
++/// the right order of magnitude while still splitting the over-diluted
++/// full-code cells.
++const LATENT_CLASS_DEPTH_DEFAULT: usize = 1;
++
++/// #446 M2 class-posterior smoothing: Jeffreys (add one half) mass over
++/// the classes OBSERVED at the left key. Classes never observed there
++/// have an empty emission cell and so contribute nothing to the mixture;
++/// spreading mass onto them would only rescale the mixture. Adding half
++/// a count to each observed class keeps a single-record class from
++/// carrying a full unit of posterior mass.
++const LATENT_CLASS_ALPHA: f64 = 0.5;
++
++/// The pre-declared #446 M2 exit margin: two percentage points of top-1
++/// agreement over the left-only Rule 1+2 baseline on the same held-out
++/// population. Declared here, before any number was measured.
++pub const LATENT_EXIT_MARGIN: f64 = 0.02;
++
++/// #446 M3: how many highest-posterior classes the top-k arm mixes
++/// unless `R4_LATENT_TOPK` overrides it. Three sits between the
++/// mode-preserving hard-select and the mode-flattening full
++/// marginalization, which is where the trade-off the M2 negative
++/// exposed has to be probed.
++const LATENT_TOPK_DEFAULT: usize = 3;
++
++/// #446 M2: the construction-time tables of the latent right-context
++/// mixture, one level per left graded-prefix depth one through
++/// [`STAGES`].
++///
++/// `emission[d]` is keyed by `pack_two_sided(left[..d], class)` and its
++/// entries are next-token counts. `posterior[d]` is keyed by the left
++/// prefix alone and its entries are CLASS counts, so the two levels
++/// reuse the same compact sorted representation.
++///
++/// Both are built from the CONSTRUCTION split only. Reading them at
++/// serving time touches the left key and the class posterior, never the
++/// right context, so the mixture arm is causally legitimate.
++struct LatentRightTable {
++    class_depth: usize,
++    emission: Vec<TwoSidedLevel>,
++    posterior: Vec<TwoSidedLevel>,
++}
++
++impl LatentRightTable {
++    fn build(
++        corpus: &Corpus,
++        is_held_out: &[bool],
++        left_codes: &[[u8; STAGES]],
++        right_codes: &[([u8; STAGES], bool)],
++        class_depth: usize,
++    ) -> Self {
++        let mut emission = Vec::with_capacity(STAGES + 1);
++        let mut posterior = Vec::with_capacity(STAGES + 1);
++        emission.push(TwoSidedLevel::default());
++        posterior.push(TwoSidedLevel::default());
++        for depth in 1..=STAGES {
++            let mut emission_pairs: Vec<(TwoSidedKey, u32)> = Vec::new();
++            let mut posterior_pairs: Vec<(TwoSidedKey, u32)> = Vec::new();
++            for position in 0..corpus.n {
++                if is_held_out[position] || !right_codes[position].1 {
++                    continue;
++                }
++                let left = pack_prefix(&left_codes[position], depth);
++                let class = pack_prefix(&right_codes[position].0, class_depth);
++                emission_pairs.push((pack_two_sided(left, class), corpus.next[position]));
++                posterior_pairs.push((TwoSidedKey::from(left), class));
++            }
++            emission.push(TwoSidedLevel::from_pairs(emission_pairs));
++            posterior.push(TwoSidedLevel::from_pairs(posterior_pairs));
++        }
++        LatentRightTable {
++            class_depth,
++            emission,
++            posterior,
++        }
++    }
++
++    /// BACKOFF, serving side. Walk the left graded prefix from full
++    /// depth down to depth one and take the DEEPEST populated left
++    /// prefix whose class-posterior total clears the D4 EXCT support
++    /// gate ([`score_runtime::EXCT_SUPPORT_MIN`]) — exactly the
++    /// deepest-populated-prefix discipline the store's exact-context
++    /// probe uses. `None` means no left prefix carries enough
++    /// construction evidence; the arm is then INERT and the position
++    /// falls through to the Rule 1+2 selection, which itself already
++    /// backs off through the graph to the root cell, so the final
++    /// fallback of the chain is the unigram-like root distribution.
++    fn resolve_left(&self, left: &[u8; STAGES]) -> Option<(usize, u32, TwoSidedCell<'_>)> {
++        for depth in (1..=STAGES).rev() {
++            let prefix = pack_prefix(left, depth);
++            if let Some(cell) = self.posterior[depth].get(TwoSidedKey::from(prefix)) {
++                if cell.total >= EXCT_SUPPORT_MIN {
++                    return Some((depth, prefix, cell));
++                }
++            }
++        }
++        None
++    }
++
++    /// The class posterior at a GIVEN depth and left prefix (used by the
++    /// falsifier, which must read a foreign left key at the own arm's
++    /// resolved depth so that only the posterior source varies).
++    fn posterior_at(&self, depth: usize, prefix: u32) -> Option<TwoSidedCell<'_>> {
++        self.posterior[depth].get(TwoSidedKey::from(prefix))
++    }
++
++    fn emission_at(&self, depth: usize, prefix: u32, class: u32) -> Option<TwoSidedCell<'_>> {
++        self.emission[depth].get(pack_two_sided(prefix, class))
++    }
++
++    /// Mean number of latent classes per distinct FULL-depth left code
++    /// on the construction split — the share of the M1 subdivision the
++    /// coarse class retains.
++    fn classes_per_full_left(&self) -> (usize, usize, f64) {
++        let left_cells = self.posterior[STAGES].keys.len();
++        let class_cells = self.emission[STAGES].keys.len();
++        let ratio = if left_cells == 0 {
++            0.0
++        } else {
++            class_cells as f64 / left_cells as f64
++        };
++        (left_cells, class_cells, ratio)
++    }
++}
++
++/// #446 M2: the class posterior P(c | left) under the documented
++/// Jeffreys rule, as a weight vector that sums to one.
++fn latent_class_weights(cell: &TwoSidedCell<'_>) -> Vec<(u32, f64)> {
++    let classes = cell.entries.len() as f64;
++    let denominator = f64::from(cell.total) + LATENT_CLASS_ALPHA * classes;
++    cell.entries
++        .iter()
++        .map(|&(class, count)| (class, (f64::from(count) + LATENT_CLASS_ALPHA) / denominator))
++        .collect()
++}
++
++/// #446 M3: the `k` highest-posterior classes, RENORMALIZED to sum to
++/// one. Ordering is by posterior weight descending with the canonical
++/// tie-break to the LOWEST class id — the Jeffreys rule is monotone in
++/// the raw count, so this is exactly "the k most probable classes given
++/// the left key" and `k = 1` is the hard-select argmax.
++///
++/// This interpolates between hard-select (`k = 1`, mode preserved, no
++/// coverage) and the full M2 marginalization (`k` at or above the class
++/// support, full coverage, mode flattened), so the arms together map the
++/// sharpness/coverage trade-off. Only the left key is read, so every
++/// value of `k` is causally legitimate.
++fn latent_top_classes(weights: &[(u32, f64)], k: usize) -> Vec<(u32, f64)> {
++    if k == 0 || weights.is_empty() {
++        return Vec::new();
++    }
++    let mut ordered = weights.to_vec();
++    ordered.sort_by(|a, b| {
++        b.1.partial_cmp(&a.1)
++            .unwrap_or(std::cmp::Ordering::Equal)
++            .then_with(|| a.0.cmp(&b.0))
++    });
++    ordered.truncate(k);
++    let mass: f64 = ordered.iter().map(|&(_, weight)| weight).sum();
++    if mass <= 0.0 {
++        return Vec::new();
++    }
++    for entry in &mut ordered {
++        entry.1 /= mass;
++    }
++    ordered
++}
++
++/// #446 M3 diagnostic: the Shannon entropy of the class posterior in
++/// bits. Zero means the left key pins the right class exactly; log2 of
++/// the class support means the left key says nothing about it.
++fn latent_class_entropy(weights: &[(u32, f64)]) -> f64 {
++    -weights
++        .iter()
++        .filter(|&&(_, weight)| weight > 0.0)
++        .map(|&(_, weight)| weight * weight.log2())
++        .sum::<f64>()
++}
++
++/// #446 M2: evaluate one latent arm — mix the class-conditional
++/// emission cells at `(depth, prefix)` under the supplied class weights.
++///
++/// Each class contributes a Witten-Bell mixture of its emission cell
++/// over the Rule 1+2 distribution, `lambda = total / (total + types)`,
++/// exactly as the M1 two-sided arm does, and a class with no emission
++/// cell at this left prefix contributes the Rule 1+2 distribution
++/// itself. The weights sum to one and each per-class term is a proper
++/// distribution, so the mixture is a proper code length on the same
++/// scale as every other Gate C row.
++///
++/// Selection: where the arm is live the mixture PREEMPTS with the argmax
++/// of the class-mixed evidence mass (ties to the lowest token id), the
++/// same D4-style precedence the M1 arm applies; where it is inert the
++/// arm IS Rule 1+2.
++fn apply_latent_arm(
++    table: &LatentRightTable,
++    depth: usize,
++    prefix: u32,
++    weights: &[(u32, f64)],
++    rule12_selected: u32,
++    rule12_bits: f64,
++    next: u32,
++) -> (u32, f64, bool) {
++    let rule12_probability = (-rule12_bits).exp2();
++    let mut mass: BTreeMap<u32, f64> = BTreeMap::new();
++    let mut mixed = 0f64;
++    let mut live = false;
++    for &(class, weight) in weights {
++        if weight <= 0.0 {
++            continue;
++        }
++        match table.emission_at(depth, prefix, class) {
++            Some(cell) => {
++                live = true;
++                let total = f64::from(cell.total);
++                let types = cell.entries.len() as f64;
++                let lambda = total / (total + types);
++                for &(token, count) in cell.entries {
++                    *mass.entry(token).or_insert(0.0) += weight * lambda * f64::from(count) / total;
++                }
++                mixed += weight
++                    * (lambda * f64::from(cell.count(next)) / total
++                        + (1.0 - lambda) * rule12_probability);
++            }
++            None => mixed += weight * rule12_probability,
++        }
++    }
++    if !live {
++        return (rule12_selected, rule12_bits, false);
++    }
++    let selected = mass
++        .iter()
++        .fold(None::<(u32, f64)>, |best, (&token, &value)| match best {
++            Some((_, high)) if high >= value => best,
++            _ => Some((token, value)),
++        })
++        .map_or(rule12_selected, |(token, _)| token);
++    (selected, -mixed.max(1e-300).log2(), true)
++}
++
+ pub fn evaluate_gate_c(
+     r4g1: &[u8],
+     artifact_container: &[u8],
+@@ -2850,6 +3252,39 @@ pub fn evaluate_gate_c(
+     let mut shuffled_live_bits = 0f64;
+     let mut rule12_shuffled_live_hits = 0u64;
+     let mut rule12_shuffled_live_bits = 0f64;
++    // #446 M2 latent right-context mixture accumulators. The mix arm is
++    // CAUSAL; the oracle arm is an upper bound and the shuffled-class
++    // arm is its falsifier.
++    let mut hits_latent = 0u64;
++    let mut bits_latent_total = 0f64;
++    let mut latent_live_positions = 0usize;
++    let mut latent_live_hits = 0u64;
++    let mut latent_live_bits = 0f64;
++    let mut rule12_latent_live_hits = 0u64;
++    let mut rule12_latent_live_bits = 0f64;
++    let mut hits_latent_oracle = 0u64;
++    let mut bits_latent_oracle_total = 0f64;
++    let mut latent_oracle_live_positions = 0usize;
++    let mut hits_latent_shuffled = 0u64;
++    let mut bits_latent_shuffled_total = 0f64;
++    let mut latent_shuffled_live_positions = 0usize;
++    // #446 M3 hard-select / top-k accumulators and the class
++    // predictability diagnostic.
++    let mut hits_latent_hard = 0u64;
++    let mut bits_latent_hard_total = 0f64;
++    let mut latent_hard_live_positions = 0usize;
++    let mut hits_latent_topk = 0u64;
++    let mut bits_latent_topk_total = 0f64;
++    let mut latent_topk_live_positions = 0usize;
++    let mut class_scored = 0usize;
++    let mut class_correct = 0u64;
++    let mut class_scored_full = 0usize;
++    let mut class_correct_full = 0u64;
++    let mut class_scored_backoff = 0usize;
++    let mut class_correct_backoff = 0u64;
++    let mut class_entropy_sum = 0f64;
++    let mut class_entropy_positions = 0usize;
++    let mut class_support_sum = 0u64;
+     // Per-status Rule 1+2 accumulators: [ExactContext, Graph, Novel].
+     let mut status_positions = [0usize; 3];
+     let mut status_hits = [0u64; 3];
+@@ -2965,7 +3400,28 @@ pub fn evaluate_gate_c(
+         .map(|position| runtime::code_plain(artifacts, &gate_rotations, corpus, position))
+         .collect();
+     let two_sided = TwoSidedTable::build(corpus, &is_held_out, &left_codes, &right_codes);
+-    drop(left_codes);
++    // #446 M2: the latent right-context mixture tables, built from the
++    // same construction split. CAUSALLY LEGITIMATE at serving: the right
++    // context is observed here, during construction, and marginalized
++    // away by the class posterior when the arm is read.
++    let latent_class_depth = std::env::var("R4_LATENT_CLASS_DEPTH")
++        .ok()
++        .and_then(|value| value.trim().parse::<usize>().ok())
++        .filter(|depth| (1..=STAGES).contains(depth))
++        .unwrap_or(LATENT_CLASS_DEPTH_DEFAULT);
++    // #446 M3: how many highest-posterior classes the top-k arm mixes.
++    let latent_topk = std::env::var("R4_LATENT_TOPK")
++        .ok()
++        .and_then(|value| value.trim().parse::<usize>().ok())
++        .filter(|k| *k >= 1)
++        .unwrap_or(LATENT_TOPK_DEFAULT);
++    let latent = LatentRightTable::build(
++        corpus,
++        &is_held_out,
++        &left_codes,
++        &right_codes,
++        latent_class_depth,
++    );
+     let held_positions: Vec<usize> = held_out
+         .iter()
+         .map(|observation| observation.position as usize)
+@@ -2989,6 +3445,9 @@ pub fn evaluate_gate_c(
+         fwd_table: &fwd_table,
+         story_pos: &story_pos,
+         two_sided: &two_sided,
++        latent: &latent,
++        latent_topk,
++        left_codes: &left_codes,
+         right_codes: &right_codes,
+         held_positions: &held_positions,
+         shuffle_rotation,
+@@ -3261,6 +3720,43 @@ pub fn evaluate_gate_c(
+                 row.hits[2],
+             );
+         }
++        hits_latent += u64::from(row.hit_latent);
++        bits_latent_total += row.bits_latent;
++        if row.latent_live {
++            latent_live_positions += 1;
++            latent_live_hits += u64::from(row.hit_latent);
++            latent_live_bits += row.bits_latent;
++            rule12_latent_live_hits += u64::from(row.hits[2]);
++            rule12_latent_live_bits += row.bits[2];
++        }
++        hits_latent_oracle += u64::from(row.hit_latent_oracle);
++        bits_latent_oracle_total += row.bits_latent_oracle;
++        latent_oracle_live_positions += usize::from(row.latent_oracle_live);
++        hits_latent_shuffled += u64::from(row.hit_latent_shuffled);
++        bits_latent_shuffled_total += row.bits_latent_shuffled;
++        latent_shuffled_live_positions += usize::from(row.latent_shuffled_live);
++        hits_latent_hard += u64::from(row.hit_latent_hard);
++        bits_latent_hard_total += row.bits_latent_hard;
++        latent_hard_live_positions += usize::from(row.latent_hard_live);
++        hits_latent_topk += u64::from(row.hit_latent_topk);
++        bits_latent_topk_total += row.bits_latent_topk;
++        latent_topk_live_positions += usize::from(row.latent_topk_live);
++        if let Some(correct) = row.latent_class_correct {
++            class_scored += 1;
++            class_correct += u64::from(correct);
++            if row.latent_class_full_depth {
++                class_scored_full += 1;
++                class_correct_full += u64::from(correct);
++            } else {
++                class_scored_backoff += 1;
++                class_correct_backoff += u64::from(correct);
++            }
++        }
++        if let Some(entropy) = row.latent_class_entropy_bits {
++            class_entropy_sum += entropy;
++            class_entropy_positions += 1;
++            class_support_sum += row.latent_class_support as u64;
++        }
+         if let Some(correct) = row.anchor_hat_correct {
+             anchor_hat_population += 1;
+             anchor_hat_correct_count += u64::from(correct);
+@@ -3369,6 +3865,73 @@ pub fn evaluate_gate_c(
+         twosided_exct_positions,
+     );
+     outcome.rule12_twosided_exct_slice_live = twosided_exct_live;
++    // #446 M2: the latent mixture rows, plus the pre-declared exit rule.
++    outcome.rule12_latent_mix = metrics(hits_latent, bits_latent_total);
++    outcome.rule12_latent_mix_live =
++        live_metrics(latent_live_hits, latent_live_bits, latent_live_positions);
++    outcome.rule12_on_latent_mix_live = live_metrics(
++        rule12_latent_live_hits,
++        rule12_latent_live_bits,
++        latent_live_positions,
++    );
++    outcome.rule12_latent_oracle = metrics(hits_latent_oracle, bits_latent_oracle_total);
++    outcome.rule12_latent_shuffled = metrics(hits_latent_shuffled, bits_latent_shuffled_total);
++    outcome.latent_oracle_live_positions = latent_oracle_live_positions;
++    outcome.latent_shuffled_live_positions = latent_shuffled_live_positions;
++    outcome.latent_class_depth = latent_class_depth;
++    let (latent_left_cells, latent_class_cells, latent_ratio) = latent.classes_per_full_left();
++    outcome.latent_full_left_cells = latent_left_cells;
++    outcome.latent_full_class_cells = latent_class_cells;
++    outcome.latent_classes_per_full_left = latent_ratio;
++    {
++        let baseline = outcome.rule12_precedence.top1_agreement;
++        let mix = outcome.rule12_latent_mix.top1_agreement;
++        let oracle = outcome.rule12_latent_oracle.top1_agreement;
++        outcome.latent_headroom_fraction = if oracle > baseline {
++            (mix - baseline) / (oracle - baseline)
++        } else {
++            0.0
++        };
++        outcome.latent_exit_rule_met = mix - baseline >= LATENT_EXIT_MARGIN
++            && mix > outcome.rule12_latent_shuffled.top1_agreement;
++    }
++    // #446 M3: the select-instead-of-average arms and the class
++    // predictability diagnostic that decides whether the latent-class
++    // direction can work at all.
++    outcome.rule12_latent_hard = metrics(hits_latent_hard, bits_latent_hard_total);
++    outcome.rule12_latent_topk = metrics(hits_latent_topk, bits_latent_topk_total);
++    outcome.latent_hard_live_positions = latent_hard_live_positions;
++    outcome.latent_topk_live_positions = latent_topk_live_positions;
++    outcome.latent_topk = latent_topk;
++    let rate = |correct: u64, scored: usize| {
++        if scored == 0 {
++            0.0
++        } else {
++            correct as f64 / scored as f64
++        }
++    };
++    outcome.latent_class_scored_positions = class_scored;
++    outcome.latent_class_top1_accuracy = rate(class_correct, class_scored);
++    outcome.latent_class_top1_accuracy_full_depth = rate(class_correct_full, class_scored_full);
++    outcome.latent_class_full_depth_positions = class_scored_full;
++    outcome.latent_class_top1_accuracy_backoff = rate(class_correct_backoff, class_scored_backoff);
++    outcome.latent_class_backoff_positions = class_scored_backoff;
++    outcome.latent_class_mean_entropy = if class_entropy_positions == 0 {
++        0.0
++    } else {
++        class_entropy_sum / class_entropy_positions as f64
++    };
++    outcome.latent_class_mean_support = if class_entropy_positions == 0 {
++        0.0
++    } else {
++        class_support_sum as f64 / class_entropy_positions as f64
++    };
++    {
++        let baseline = outcome.rule12_precedence.top1_agreement;
++        let hard = outcome.rule12_latent_hard.top1_agreement;
++        outcome.latent_hard_exit_rule_met = hard - baseline >= LATENT_EXIT_MARGIN
++            && hard > outcome.rule12_latent_shuffled.top1_agreement;
++    }
+     let (full_left_cells, full_pair_keys) = two_sided.full_depth_subdivision();
+     outcome.twosided_full_left_cells = full_left_cells;
+     outcome.twosided_full_pair_keys = full_pair_keys;
+@@ -3738,6 +4301,38 @@ struct GateCRow {
+     hit_twosided_shuffled: bool,
+     bits_twosided_shuffled: f64,
+     twosided_shuffled_live: bool,
++    /// #446 M2: the latent right-context mixture arm's triplet. CAUSAL —
++    /// only the left key is read at this position.
++    hit_latent: bool,
++    bits_latent: f64,
++    latent_live: bool,
++    /// #446 M2 upper bound: the same tables with the TRUE right class
++    /// supplied at evaluation time. NOT causal — never quotable.
++    hit_latent_oracle: bool,
++    bits_latent_oracle: f64,
++    latent_oracle_live: bool,
++    /// #446 M2 falsifier: the class posterior lifted from a FOREIGN left
++    /// key at the same resolved depth.
++    hit_latent_shuffled: bool,
++    bits_latent_shuffled: f64,
++    latent_shuffled_live: bool,
++    /// #446 M3: the HARD-SELECT arm's triplet — predict from the single
++    /// most probable class given the left key. CAUSAL.
++    hit_latent_hard: bool,
++    bits_latent_hard: f64,
++    latent_hard_live: bool,
++    /// #446 M3: the TOP-K-SELECT arm's triplet. CAUSAL.
++    hit_latent_topk: bool,
++    bits_latent_topk: f64,
++    latent_topk_live: bool,
++    /// #446 M3 diagnostic: whether the hard-select class equalled the
++    /// TRUE right class (`None` where no right window or no resolved
++    /// left key existed), whether the left key resolved at FULL graded
++    /// depth, the class posterior's entropy in bits, and its support.
++    latent_class_correct: Option<bool>,
++    latent_class_full_depth: bool,
++    latent_class_entropy_bits: Option<f64>,
++    latent_class_support: usize,
+ }
+ 
+ struct GateCContext<'a> {
+@@ -3763,6 +4358,15 @@ struct GateCContext<'a> {
+     /// #446 M1: the two-sided (left prefix, right prefix) evidence table
+     /// built from the construction split. NOT causal — infill/analysis.
+     two_sided: &'a TwoSidedTable,
++    /// #446 M2: the latent right-context mixture tables (emission and
++    /// class posterior), built from the construction split. Read with
++    /// the LEFT key only at serving — causally legitimate.
++    latent: &'a LatentRightTable,
++    /// #446 M3: how many highest-posterior classes the top-k arm mixes.
++    latent_topk: usize,
++    /// Left graded code of every corpus position. Needed by the #446 M2
++    /// falsifier, which lifts a class posterior from a FOREIGN left key.
++    left_codes: &'a [[u8; STAGES]],
+     /// #446 M1: the right graded code of every corpus position, with a
+     /// flag for "an in-story right window existed here".
+     right_codes: &'a [([u8; STAGES], bool)],
+@@ -4391,6 +4995,120 @@ fn evaluate_gate_c_row(
+     let (shuffled_selected, bits_twosided_shuffled, twosided_shuffled_live) =
+         apply_two_sided_arm(resolved_shuffled, rule12.selected, bits[2], next);
+ 
++    // ---- #446 M2: latent right-context mixture (CAUSALLY LEGITIMATE) ----
++    // Serving reads the LEFT key only. `resolve_left` backs off to the
++    // deepest populated left prefix with support; the class posterior
++    // there supplies P(c | left) and the class-conditional emission
++    // cells are mixed under it. The ORACLE arm replaces that posterior
++    // with the point mass on the TRUE right class (an upper bound, NOT
++    // causal). The SHUFFLED arm replaces it with the posterior of a
++    // FOREIGN left key at the same depth, holding the emission tables,
++    // smoothing, support gate and backoff constant.
++    let mut latent_selected = rule12.selected;
++    let mut bits_latent = bits[2];
++    let mut latent_live = false;
++    let mut latent_oracle_selected = rule12.selected;
++    let mut bits_latent_oracle = bits[2];
++    let mut latent_oracle_live = false;
++    let mut latent_shuffled_selected = rule12.selected;
++    let mut bits_latent_shuffled = bits[2];
++    let mut latent_shuffled_live = false;
++    let mut latent_hard_selected = rule12.selected;
++    let mut bits_latent_hard = bits[2];
++    let mut latent_hard_live = false;
++    let mut latent_topk_selected = rule12.selected;
++    let mut bits_latent_topk = bits[2];
++    let mut latent_topk_live = false;
++    let mut latent_class_correct: Option<bool> = None;
++    let mut latent_class_full_depth = false;
++    let mut latent_class_entropy_bits: Option<f64> = None;
++    let mut latent_class_support = 0usize;
++    if let Some((latent_depth, latent_prefix, posterior)) = context.latent.resolve_left(&code) {
++        let weights = latent_class_weights(&posterior);
++        (latent_selected, bits_latent, latent_live) = apply_latent_arm(
++            context.latent,
++            latent_depth,
++            latent_prefix,
++            &weights,
++            rule12.selected,
++            bits[2],
++            next,
++        );
++        // #446 M3: SELECT instead of averaging. Hard-select takes the
++        // single most probable class; top-k mixes the k most probable,
++        // renormalized. Both read the left key only.
++        let hard = latent_top_classes(&weights, 1);
++        if !hard.is_empty() {
++            (latent_hard_selected, bits_latent_hard, latent_hard_live) = apply_latent_arm(
++                context.latent,
++                latent_depth,
++                latent_prefix,
++                &hard,
++                rule12.selected,
++                bits[2],
++                next,
++            );
++        }
++        let topk = latent_top_classes(&weights, context.latent_topk);
++        if !topk.is_empty() {
++            (latent_topk_selected, bits_latent_topk, latent_topk_live) = apply_latent_arm(
++                context.latent,
++                latent_depth,
++                latent_prefix,
++                &topk,
++                rule12.selected,
++                bits[2],
++                next,
++            );
++        }
++        // #446 M3 diagnostic: class predictability and posterior
++        // entropy. The predicted class is the hard-select class; the
++        // true class is read here for MEASUREMENT ONLY and never feeds
++        // the causal arms.
++        latent_class_full_depth = latent_depth == STAGES;
++        latent_class_entropy_bits = Some(latent_class_entropy(&weights));
++        latent_class_support = weights.len();
++        let right = &context.right_codes[position];
++        if right.1 {
++            let true_class = pack_prefix(&right.0, context.latent.class_depth);
++            latent_class_correct = hard.first().map(|&(class, _)| class == true_class);
++            (
++                latent_oracle_selected,
++                bits_latent_oracle,
++                latent_oracle_live,
++            ) = apply_latent_arm(
++                context.latent,
++                latent_depth,
++                latent_prefix,
++                &[(true_class, 1.0)],
++                rule12.selected,
++                bits[2],
++                next,
++            );
++        }
++        let foreign_prefix = if shuffled_source < context.corpus.n {
++            pack_prefix(&context.left_codes[shuffled_source], latent_depth)
++        } else {
++            latent_prefix
++        };
++        if let Some(foreign) = context.latent.posterior_at(latent_depth, foreign_prefix) {
++            let foreign_weights = latent_class_weights(&foreign);
++            (
++                latent_shuffled_selected,
++                bits_latent_shuffled,
++                latent_shuffled_live,
++            ) = apply_latent_arm(
++                context.latent,
++                latent_depth,
++                latent_prefix,
++                &foreign_weights,
++                rule12.selected,
++                bits[2],
++                next,
++            );
++        }
++    }
++
+     let hit_fwd = fwd_selected == teacher_argmax;
+     let hit_fwd_self = fwd_self_selected == teacher_argmax;
+     let hit_fwd_gated = fwd_gated_selected == teacher_argmax;
+@@ -4470,6 +5188,25 @@ fn evaluate_gate_c_row(
+         hit_twosided_shuffled: shuffled_selected == teacher_argmax,
+         bits_twosided_shuffled,
+         twosided_shuffled_live,
++        hit_latent: latent_selected == teacher_argmax,
++        bits_latent,
++        latent_live,
++        hit_latent_oracle: latent_oracle_selected == teacher_argmax,
++        bits_latent_oracle,
++        latent_oracle_live,
++        hit_latent_shuffled: latent_shuffled_selected == teacher_argmax,
++        bits_latent_shuffled,
++        latent_shuffled_live,
++        hit_latent_hard: latent_hard_selected == teacher_argmax,
++        bits_latent_hard,
++        latent_hard_live,
++        hit_latent_topk: latent_topk_selected == teacher_argmax,
++        bits_latent_topk,
++        latent_topk_live,
++        latent_class_correct,
++        latent_class_full_depth,
++        latent_class_entropy_bits,
++        latent_class_support,
+     })
+ }
+ 
+@@ -4543,6 +5280,32 @@ fn evaluate_gate_c_row(
+ /// never be quoted as a generation number; the table is built inside the
+ /// Gate C evaluation from the construction split alone, so the artifact
+ /// format, the serving scorer and the replay contract are untouched.
++/// Schema twenty-four is the #446 M2 LATENT right-context mixture in
++/// `gate_c`: `rule12_latent_mix` and its live-slice pair, the
++/// `rule12_latent_oracle` upper bound, the `rule12_latent_shuffled`
++/// foreign-posterior falsifier, the class-structure counts
++/// (`latent_class_depth`, `latent_classes_per_full_left` and its two
++/// cell counts), `latent_headroom_fraction` and the pre-declared
++/// `latent_exit_rule_met` verdict. The mixture treats the right context
++/// as a LATENT variable observed only during CONSTRUCTION and
++/// marginalized away at serving, where the left key alone is read, so
++/// unlike every schema-twenty-three two-sided row `rule12_latent_mix` IS
++/// causally available to left-to-right generation and IS quotable as a
++/// generation number; the oracle row is an upper bound and remains not
++/// causal. Nothing here changes the artifact format, the serving
++/// scorer's default path, the witness or the replay contract.
++/// Schema twenty-five is the #446 M3 SELECT-instead-of-average arms and
++/// the class-predictability diagnostic: `rule12_latent_hard` predicts
++/// from the single most probable class given the left key,
++/// `rule12_latent_topk` mixes only the `latent_topk` highest-posterior
++/// classes renormalized, and both read the left key alone and so are
++/// causally legitimate generation numbers. The diagnostic fields
++/// (`latent_class_top1_accuracy` overall and split full-depth versus
++/// backed-off, `latent_class_mean_entropy` against
++/// `latent_class_mean_support`) measure whether the left key can predict
++/// the right class at all, and `latent_hard_exit_rule_met` records the
++/// pre-declared verdict for the hard-select arm. Every schema
++/// twenty-four row is retained unchanged.
+ #[derive(Debug, Clone, Serialize)]
+ pub struct ScoreReport {
+     pub schema: u32,
+@@ -4735,7 +5498,7 @@ pub fn build_score_report_with_quality_profile(
+         can_measure_generalization: strict_exct_miss_rate >= MIN_EXCT_MISS_RATE_FOR_GATE_C,
+     };
+     ScoreReport {
+-        schema: 23,
++        schema: 25,
+         inputs,
+         config: ScoreReportConfig {
+             transition_out_degree: config.transition_out_degree,
+diff --git a/crates/uor-r4-graph-cli/src/lib.rs b/crates/uor-r4-graph-cli/src/lib.rs
+index a131472fd..0dc2cc290 100644
+--- a/crates/uor-r4-graph-cli/src/lib.rs
++++ b/crates/uor-r4-graph-cli/src/lib.rs
+@@ -1258,6 +1258,11 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
+     );
+     row("1+2 + TWO-SIDED (#446 M1)", &gate_c.rule12_twosided);
+     row("1+2 + two-sided SHUFFLED", &gate_c.rule12_twosided_shuffled);
++    row("1+2 + LATENT-MIX (#446 M2)", &gate_c.rule12_latent_mix);
++    row("1+2 + latent ORACLE-RIGHT", &gate_c.rule12_latent_oracle);
++    row("1+2 + latent SHUF-CLASS", &gate_c.rule12_latent_shuffled);
++    row("1+2 + HARD-SELECT (#446 M3)", &gate_c.rule12_latent_hard);
++    row("1+2 + TOP-K-SELECT (#446 M3)", &gate_c.rule12_latent_topk);
+     let live_line = |name: &str, fused: &score::GateCMetrics, base: &score::GateCMetrics| {
+         println!(
+             "  {name} live slice ({} positions): fused {:.1}% vs rule 1+2 {:.1}% | bits {:.4} vs {:.4}",
+@@ -1303,6 +1308,11 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
+         &gate_c.rule12_twosided_shuffled_live,
+         &gate_c.rule12_on_twosided_shuffled_live,
+     );
++    live_line(
++        "latent-mix ",
++        &gate_c.rule12_latent_mix_live,
++        &gate_c.rule12_on_latent_mix_live,
++    );
+     println!(
+         "  two-sided pair-resolution depth: {}",
+         gate_c
+@@ -1339,6 +1349,75 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
+          prospectively a construction-time signal. Never quote it as a \
+          generation number."
+     );
++    println!(
++        "  latent class structure (construction, full left depth): class depth {} byte(s), {:.3} classes per full left code ({} class cells / {} left cells); oracle live {}, shuffled-class live {}",
++        gate_c.latent_class_depth,
++        gate_c.latent_classes_per_full_left,
++        gate_c.latent_full_class_cells,
++        gate_c.latent_full_left_cells,
++        gate_c.latent_oracle_live_positions,
++        gate_c.latent_shuffled_live_positions,
++    );
++    println!(
++        "  latent headroom: baseline {:.1}% -> latent-mix {:.1}% -> oracle-right {:.1}% = {:.1}% of available top-1 headroom | EXIT RULE (>= 2.0pp over baseline AND beats shuffled-class): {}",
++        100.0 * gate_c.rule12_precedence.top1_agreement,
++        100.0 * gate_c.rule12_latent_mix.top1_agreement,
++        100.0 * gate_c.rule12_latent_oracle.top1_agreement,
++        100.0 * gate_c.latent_headroom_fraction,
++        if gate_c.latent_exit_rule_met {
++            "MET (positive)"
++        } else {
++            "NOT MET (negative)"
++        },
++    );
++    println!(
++        "  latent SHARPNESS curve (k classes mixed, all causal): k=1 hard-select {:.2}% / {:.4} bits (live {}) | k={} top-k {:.2}% / {:.4} bits (live {}) | k=all marginalize {:.2}% / {:.4} bits (live {}) | baseline {:.2}% / {:.4} bits | oracle {:.2}% / {:.4} bits",
++        100.0 * gate_c.rule12_latent_hard.top1_agreement,
++        gate_c.rule12_latent_hard.bits_per_token,
++        gate_c.latent_hard_live_positions,
++        gate_c.latent_topk,
++        100.0 * gate_c.rule12_latent_topk.top1_agreement,
++        gate_c.rule12_latent_topk.bits_per_token,
++        gate_c.latent_topk_live_positions,
++        100.0 * gate_c.rule12_latent_mix.top1_agreement,
++        gate_c.rule12_latent_mix.bits_per_token,
++        gate_c.rule12_latent_mix_live.positions,
++        100.0 * gate_c.rule12_precedence.top1_agreement,
++        gate_c.rule12_precedence.bits_per_token,
++        100.0 * gate_c.rule12_latent_oracle.top1_agreement,
++        gate_c.rule12_latent_oracle.bits_per_token,
++    );
++    println!(
++        "  latent CLASS PREDICTABILITY: argmax P(c|left) = true class {:.2}% ({} positions) | full-depth left key {:.2}% ({}) | backed-off left key {:.2}% ({}) | mean posterior entropy {:.4} bits over mean support {:.2} classes (uniform-chance {:.2}%)",
++        100.0 * gate_c.latent_class_top1_accuracy,
++        gate_c.latent_class_scored_positions,
++        100.0 * gate_c.latent_class_top1_accuracy_full_depth,
++        gate_c.latent_class_full_depth_positions,
++        100.0 * gate_c.latent_class_top1_accuracy_backoff,
++        gate_c.latent_class_backoff_positions,
++        gate_c.latent_class_mean_entropy,
++        gate_c.latent_class_mean_support,
++        if gate_c.latent_class_mean_support > 0.0 {
++            100.0 / gate_c.latent_class_mean_support
++        } else {
++            0.0
++        },
++    );
++    println!(
++        "  EXIT RULE (#446 M3, hard-select >= 2.0pp over baseline AND beats shuffled-class): {}",
++        if gate_c.latent_hard_exit_rule_met {
++            "MET (positive)"
++        } else {
++            "NOT MET (negative)"
++        },
++    );
++    println!(
++        "  NOTE (#446 M2): the LATENT-MIX row reads the LEFT key only at \
++         serving — the right context is observed during construction and \
++         marginalized away — so it IS causally legitimate and quotable as a \
++         generation number. ORACLE-RIGHT supplies the true right class at \
++         evaluation time and is an upper bound only, NOT causal."
++    );
+     println!(
+         "  predicted-anchor accuracy: {:.1}% ({}/{})",
+         100.0 * gate_c.anchor_hat_accuracy,

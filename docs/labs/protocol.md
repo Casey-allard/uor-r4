@@ -44,7 +44,9 @@ artifact inputs, deliverable, next checkpoint, reviewer need and host reservatio
 Only one active claim owns a given mutating task/overlapping path set. Resolve
 collisions through the coordination record; independent readers need no write
 claim. Work in a full isolated worktree based on refreshed main, never the owner
-checkout. New branches default to `codex/`; preserve existing shared branches.
+checkout. Name a branch `<lab>/<topic>`; it lives only until its PR merges, then
+the branch and worktree are deleted. All work, including negative results,
+lands in `main` (see the October 9 rule in [AGENTS.md](../../AGENTS.md)).
 
 ## Work loop, leases and recovery
 

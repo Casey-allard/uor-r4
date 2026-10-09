@@ -10,6 +10,22 @@
 > Scientific integrity, D11/D5, unique-material preservation, live job ownership
 > and resource admission remain. See [D19](docs/integration/DECISIONS.md#d19--grounded-conversation-and-durable-memory-first).
 
+> **Owner direction, October 9 — `origin/main` is the single source of truth.**
+> All work is merged into `main` before anything else starts. A branch is only
+> the transport for one pull request (main's ruleset requires a PR) and is
+> deleted as soon as that PR merges, normally in the same session. Do not keep
+> long-lived lab, director, review, evidence, merge-train or stacked branches:
+> review a PR in a throwaway worktree and delete it afterwards. Work that will
+> not land as code (negative, superseded or abandoned) still lands in `main`,
+> as a patch plus an index row in
+> [docs/history/branch-archive/](docs/history/branch-archive/INDEX.md), so
+> nothing exists only on a branch. After each merge: verify it on fresh
+> `origin/main`, delete the branch on GitHub and locally, remove the worktree
+> and clear used local outputs (iCloud via `cloud-store put`). Never start new
+> work while your own completed work is unmerged. The one standing exception
+> is the `codex/lab-state` coordination record, which holds no research work.
+> This overrides any older text below that asks to preserve branches.
+
 **Owner clarification, September 19:** D0-b, D1 and D2 in [DECISIONS.md](docs/integration/DECISIONS.md) are owner-approved. D0-b supersedes the old blanket prohibition on additive mathematical linear maps. Offline Rust training may use matrix multiplication. The [takeover review](docs/integration/takeover-review-2026-09-19.md) and latest current-state entry reconcile the three model paths and the next bounded task; dated experiment instructions do not override them.
 
 The owner-directed mode is `native_geometric_ai`. Build a learned local language model using the project's prime/zeta/R4 geometry, exact addressed memory and shared typed operators. The objective is useful conversation/memory and coding/reasoning, ultimately frontier capability on consumer M1-class laptops with lower energy and wasted compute. The model remains pre-alpha.
@@ -189,7 +205,7 @@ Compile and exercise a changed Rust path with focused checks for real arithmetic
 
 Main's ruleset requires five historical status names as compatibility acknowledgements; they execute no formatting, Clippy or tests. Since 3 October 2026 (owner-approved) one CI job, `required-transport`, publishes all five, so a PR or merge-queue entry waits for one shared GitHub runner slot instead of five. Removing the names from ruleset 19597522 altogether is the owner's decision and needs an organization admin. Checks executed at the exact PR head, locally or on the approved GPU pod, carry validation and are posted on the PR before it is queued. Manual native/release QA is available when the changed boundary warrants it. Do not confuse absent fixtures, unrun tests or queue acknowledgements with PASS.
 
-Stage named paths. Push a branch and deliver through a protected PR; never direct-push main, bypass protection, fabricate checks or use admin merge. **Owner clarification, October 7: branches and PRs are temporary delivery steps. Completed, validated work must be merged into `main`; creating a branch, pushing commits, opening a PR or entering the merge queue is not completion. Continue through the protected merge and verify the actual merge commit on fresh `origin/main` plus the delivered source/tree before reporting delivery. Do not leave completed work on an unmerged branch or start its dependent successor while that delivery remains unfinished. If a concrete blocker prevents merge, report the exact blocker and keep the work explicitly pending.** A partial result says `References #N`, not `Closes #N`. Inspect actual merge and source/tree equality when reporting delivery. Update the owning issue and current state with outcome, retained artifact, limitations and next action. Close issues only when their complete acceptance is met; assignment denotes actively working, not future ownership.
+Stage named paths. Push a short-lived branch and deliver through a protected PR, then delete the branch and worktree once it merges (October 9 rule above); never direct-push main, bypass protection, fabricate checks or use admin merge. **Owner clarification, October 7: branches and PRs are temporary delivery steps. Completed, validated work must be merged into `main`; creating a branch, pushing commits, opening a PR or entering the merge queue is not completion. Continue through the protected merge and verify the actual merge commit on fresh `origin/main` plus the delivered source/tree before reporting delivery. Do not leave completed work on an unmerged branch or start its dependent successor while that delivery remains unfinished. If a concrete blocker prevents merge, report the exact blocker and keep the work explicitly pending.** A partial result says `References #N`, not `Closes #N`. Inspect actual merge and source/tree equality when reporting delivery. Update the owning issue and current state with outcome, retained artifact, limitations and next action. Close issues only when their complete acceptance is met; assignment denotes actively working, not future ownership.
 
 ## Historical contracts and pitfalls
 

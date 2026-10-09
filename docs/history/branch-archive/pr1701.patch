@@ -1,0 +1,772 @@
+diff --git a/crates/uor-r4-training/examples/mqar-bench.rs b/crates/uor-r4-training/examples/mqar-bench.rs
+index bb57fcd97..ee36551e6 100644
+--- a/crates/uor-r4-training/examples/mqar-bench.rs
++++ b/crates/uor-r4-training/examples/mqar-bench.rs
+@@ -6,9 +6,10 @@
+ //! mqar-bench out=NEW_REPORT_ROOT [device=cpu|metal] [context=512] [pairs_per_bucket=8] \
+ //!   [batch=8] [steps=1800] [lr=0.001] [warmup=100] [min_lr=0.1] [weight_decay=0.1] [clip=1.0] \
+ //!   [eval_every=100] [curve_sequences=8] [final_sequences=64] [seed=1] [max_seconds=1200] \
++//!   [probe_steps=0,600,final|none] [probe_sequences=16] \
+ //!   [mode=train|task-baselines] [arm=stack] ARM OPTIONS
+ //! arm=stack: [pattern=aaaaaa] [read=l2|dot|lorentz] [rotation=true|false] [width=128] [heads=4] \
+-//!   [mlp=384] [age=default|flat]
++//!   [mlp=384] [age=default|flat|spread] [key_shift=false|true]
+ //! ```
+ //!
+ //! Each sequence is a fixed-length window of filler tokens holding
+@@ -46,8 +47,11 @@ use std::time::Instant;
+ use candle_core::{Device, Tensor};
+ use serde_json::{json, Value};
+ use uor_r4_core::report_output;
++#[cfg(test)]
++use uor_r4_training::geometric_stack::quaternion_j_left;
+ use uor_r4_training::geometric_stack::{
+-    ReadScore, RotationGroup, StackAdamW, StackArch, StackConfig, StackModel,
++    ReadBinding, ReadBindingTarget, ReadScore, RotationGroup, StackAdamW, StackArch, StackConfig,
++    StackModel,
+ };
+ use uor_r4_training::{Result, TrainingError};
+ 
+@@ -323,6 +327,57 @@ trait ContextArm {
+     fn positions_scored(&self, position: usize) -> usize;
+     /// What `positions_scored` counts, for the report.
+     fn access_note(&self) -> String;
++    /// The (layer, head) read heads whose source weights the probe observes;
++    /// empty for an arm without position-scoring reads.
++    fn read_heads(&self) -> Vec<(usize, usize)> {
++        Vec::new()
++    }
++    /// The read weight of head (`layer`, `head`) on each row's sources, for
++    /// rows of (batch item, query position, source positions), at most one
++    /// row per batch item. Observation only: it changes no logits.
++    fn source_mass(
++        &self,
++        _ids: &[u32],
++        _batch: usize,
++        _time: usize,
++        _layer: usize,
++        _head: usize,
++        _rows: &[(usize, usize, Vec<usize>)],
++    ) -> Result<Vec<f32>> {
++        Err(invalid("this arm has no read heads to probe"))
++    }
++}
++
++/// Initial values of the reads' learned per-distance age bias.
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++enum AgeInit {
++    /// The stack's own: head `h` of `H` starts at slope `2^(-8 (h + 1) / H)`.
++    Default,
++    /// Zero at every distance.
++    Flat,
++    /// F1: slopes spread geometrically, `2^(-2 - 4 h)` for `h < H - 1`, and
++    /// exactly zero for the last head, so it reaches every distance at init.
++    Spread,
++}
++
++impl AgeInit {
++    fn name(self) -> &'static str {
++        match self {
++            AgeInit::Default => "default",
++            AgeInit::Flat => "flat",
++            AgeInit::Spread => "spread",
++        }
++    }
++
++    /// The slope of `head` of `heads`, or `None` to keep the stack's own.
++    fn slope(self, head: usize, heads: usize) -> Option<f64> {
++        match self {
++            AgeInit::Default => None,
++            AgeInit::Flat => Some(0.0),
++            AgeInit::Spread if head + 1 == heads => Some(0.0),
++            AgeInit::Spread => Some(2f64.powi(-2 - 4 * head as i32)),
++        }
++    }
+ }
+ 
+ /// The arm registry: one variant per context-access mechanism.
+@@ -337,9 +392,10 @@ enum ArmSpec {
+         width: usize,
+         heads: usize,
+         mlp_hidden: usize,
+-        /// The reads' learned per-distance age bias starts at zero instead of
+-        /// the stack's recency slopes.
+-        flat_age: bool,
++        age: AgeInit,
++        /// F2: every read key also carries the previous position's key,
++        /// turned by the unit quaternion `j` (`StackModel::set_read_key_shift`).
++        key_shift: bool,
+     },
+ }
+ 
+@@ -358,11 +414,13 @@ impl ArmSpec {
+                 width: args.parsed("width", 128usize)?,
+                 heads: args.parsed("heads", 4usize)?,
+                 mlp_hidden: args.parsed("mlp", 384usize)?,
+-                flat_age: match args.take("age").as_deref() {
+-                    None | Some("default") => false,
+-                    Some("flat") => true,
++                age: match args.take("age").as_deref() {
++                    None | Some("default") => AgeInit::Default,
++                    Some("flat") => AgeInit::Flat,
++                    Some("spread") => AgeInit::Spread,
+                     Some(other) => return Err(invalid(format!("invalid age={other}"))),
+                 },
++                key_shift: args.parsed("key_shift", false)?,
+             }),
+             Some(other) => Err(invalid(format!("unknown arm={other}"))),
+         }
+@@ -374,11 +432,18 @@ impl ArmSpec {
+             ArmSpec::Stack {
+                 pattern,
+                 read,
+-                flat_age,
++                rotation,
++                age,
++                key_shift,
+                 ..
+             } => format!(
+-                "stack-{pattern}-{read:?}{}",
+-                if *flat_age { "-flat-age" } else { "" }
++                "stack-{pattern}-{read:?}{}{}{}",
++                match age {
++                    AgeInit::Default => String::new(),
++                    other => format!("-{}-age", other.name()),
++                },
++                if *key_shift { "-key-shift" } else { "" },
++                if *rotation { "" } else { "-no-rotation" },
+             )
+             .to_lowercase(),
+         }
+@@ -387,7 +452,14 @@ impl ArmSpec {
+     /// Validates without building, so a bad arm fails before the report claim.
+     fn validate(&self, common: &Common) -> Result<()> {
+         match self {
+-            ArmSpec::Stack { .. } => self.stack_config(common)?.validate(),
++            ArmSpec::Stack {
++                pattern, key_shift, ..
++            } => {
++                if *key_shift && !pattern.contains('a') {
++                    return Err(invalid("key_shift=true needs a read layer"));
++                }
++                self.stack_config(common)?.validate()
++            }
+         }
+     }
+ 
+@@ -426,20 +498,34 @@ impl ArmSpec {
+ 
+     fn build(&self, common: &Common, device: &Device) -> Result<Box<dyn ContextArm>> {
+         match self {
+-            ArmSpec::Stack { flat_age, .. } => {
+-                let model = StackModel::new(self.stack_config(common)?, device)?;
+-                if *flat_age {
++            ArmSpec::Stack { age, key_shift, .. } => {
++                let config = self.stack_config(common)?;
++                let mut model = StackModel::new(config.clone(), device)?;
++                if *age != AgeInit::Default {
+                     for (name, var) in model.variables() {
+-                        if name.ends_with(".read.age") {
+-                            var.set(&var.as_tensor().zeros_like()?)?;
++                        if !name.ends_with(".read.age") {
++                            continue;
++                        }
++                        let mut values = Vec::with_capacity(config.heads * config.context);
++                        for head in 0..config.heads {
++                            let slope = age
++                                .slope(head, config.heads)
++                                .ok_or_else(|| invalid("age init without a slope"))?;
++                            values.extend((0..config.context).map(|d| (-slope * d as f64) as f32));
+                         }
++                        var.set(&Tensor::from_vec(
++                            values,
++                            (config.heads, config.context),
++                            device,
++                        )?)?;
+                     }
+                 }
++                model.set_read_key_shift(*key_shift)?;
+                 let optimizer = StackAdamW::new(&model, common.weight_decay, common.clip)?;
+                 Ok(Box::new(StackArm {
+                     model,
+                     optimizer,
+-                    flat_age: *flat_age,
++                    age: *age,
+                 }))
+             }
+         }
+@@ -449,7 +535,7 @@ impl ArmSpec {
+ struct StackArm {
+     model: StackModel,
+     optimizer: StackAdamW,
+-    flat_age: bool,
++    age: AgeInit,
+ }
+ 
+ impl StackArm {
+@@ -469,9 +555,15 @@ impl ContextArm for StackArm {
+     }
+ 
+     fn record(&self) -> Value {
++        let heads = self.model.config.heads;
+         json!({
+             "stack_config": self.model.config,
+-            "age_init": if self.flat_age { "flat" } else { "default" },
++            "age_init": self.age.name(),
++            "age_init_slopes": (0..heads)
++                .map(|h| self.age.slope(h, heads)
++                    .unwrap_or_else(|| 2f64.powf(-8.0 * (h + 1) as f64 / heads as f64)))
++                .collect::<Vec<_>>(),
++            "read_key_shift": self.model.read_key_shift(),
+             "read_layers": self.read_layers(),
+             "recurrence_layers": self.model.config.layers() - self.read_layers(),
+             "recurrent_state_floats_per_layer": self.model.config.width,
+@@ -513,6 +605,142 @@ impl ContextArm for StackArm {
+     fn access_note(&self) -> String {
+         "read layers x heads x (position + 1): every causal position is scored by each read head (plus one NoRead slot, not counted); recurrence layers score no positions".into()
+     }
++
++    fn read_heads(&self) -> Vec<(usize, usize)> {
++        let config = &self.model.config;
++        (0..config.layers())
++            .filter(|&layer| config.pattern.as_bytes()[layer] == b'a')
++            .flat_map(|layer| (0..config.heads).map(move |head| (layer, head)))
++            .collect()
++    }
++
++    fn source_mass(
++        &self,
++        ids: &[u32],
++        batch: usize,
++        time: usize,
++        layer: usize,
++        head: usize,
++        rows: &[(usize, usize, Vec<usize>)],
++    ) -> Result<Vec<f32>> {
++        let target = ReadBindingTarget {
++            layer,
++            head,
++            rows: rows
++                .iter()
++                .map(|(batch, query, sources)| ReadBinding {
++                    batch: *batch,
++                    query: *query,
++                    sources: sources.clone(),
++                })
++                .collect(),
++        };
++        Ok(self
++            .model
++            .read_binding_masses(ids, batch, time, &target)?
++            .flatten_all()?
++            .to_device(&Device::Cpu)?
++            .to_vec1::<f32>()?)
++    }
++}
++
++/// The deciding probe: each read head's softmax weight on the true key
++/// position `q - d` and on the value position `q - d + 1` after it, by bucket.
++/// One query per probe sequence and bucket (its first of that bucket).
++fn read_probe(
++    arm: &dyn ContextArm,
++    sequences: &[Sequence],
++    context: usize,
++    buckets: &[Bucket],
++) -> Result<Value> {
++    let heads = arm.read_heads();
++    if heads.is_empty() {
++        return Ok(json!({"status": "UNAVAILABLE: the arm has no read heads"}));
++    }
++    let (ids, _, _) = batch_arrays(sequences, context);
++    let mut by_bucket = serde_json::Map::new();
++    for (b, bucket) in buckets.iter().enumerate() {
++        let picks: Vec<(usize, &Query)> = sequences
++            .iter()
++            .enumerate()
++            .filter_map(|(s, sequence)| {
++                sequence
++                    .queries
++                    .iter()
++                    .find(|query| query.bucket == b)
++                    .map(|query| (s, query))
++            })
++            .collect();
++        let uniform = picks
++            .iter()
++            .map(|(_, query)| 1.0 / (query.position + 1) as f64)
++            .sum::<f64>()
++            / picks.len().max(1) as f64;
++        let mut per_head = Vec::new();
++        let (mut best_key, mut best_value) = (0f64, 0f64);
++        for &(layer, head) in &heads {
++            let mut means = [0f64; 2];
++            let mut over_half = [0usize; 2];
++            for (which, offset) in [(0usize, 0usize), (1, 1)] {
++                let rows: Vec<(usize, usize, Vec<usize>)> = picks
++                    .iter()
++                    .map(|(s, query)| {
++                        (
++                            *s,
++                            query.position,
++                            vec![query.position - query.distance + offset],
++                        )
++                    })
++                    .collect();
++                let masses = arm.source_mass(&ids, sequences.len(), context, layer, head, &rows)?;
++                means[which] =
++                    masses.iter().map(|&m| f64::from(m)).sum::<f64>() / masses.len().max(1) as f64;
++                over_half[which] = masses.iter().filter(|&&m| m > 0.5).count();
++            }
++            best_key = best_key.max(means[0]);
++            best_value = best_value.max(means[1]);
++            per_head.push(json!({
++                "layer": layer, "head": head,
++                "mean_weight_on_key": means[0], "mean_weight_on_value": means[1],
++                "queries_over_half_on_key": over_half[0],
++                "queries_over_half_on_value": over_half[1],
++            }));
++        }
++        by_bucket.insert(
++            bucket.name.into(),
++            json!({
++                "queries": picks.len(),
++                "uniform_weight_reference": uniform,
++                "best_head_mean_weight_on_key": best_key,
++                "best_head_mean_weight_on_value": best_value,
++                "heads": per_head,
++            }),
++        );
++    }
++    Ok(json!({"by_bucket": by_bucket}))
++}
++
++fn probe_line(probe: &Value, buckets: &[Bucket]) -> String {
++    buckets
++        .iter()
++        .map(|b| {
++            let entry = &probe["by_bucket"][b.name];
++            format!(
++                "{} key {:.3} value {:.3} (uniform {:.4})",
++                b.name,
++                entry["best_head_mean_weight_on_key"]
++                    .as_f64()
++                    .unwrap_or(f64::NAN),
++                entry["best_head_mean_weight_on_value"]
++                    .as_f64()
++                    .unwrap_or(f64::NAN),
++                entry["uniform_weight_reference"]
++                    .as_f64()
++                    .unwrap_or(f64::NAN),
++            )
++        })
++        .collect::<Vec<_>>()
++        .join("; ")
+ }
+ 
+ /// The value written most recently before `query` (by any pair): what a pure
+@@ -717,6 +945,9 @@ struct Common {
+     final_sequences: usize,
+     seed: u64,
+     max_seconds: f64,
++    /// Steps at which the read probe runs (0 = before training).
++    probe_steps: Vec<usize>,
++    probe_sequences: usize,
+ }
+ 
+ impl Common {
+@@ -739,6 +970,7 @@ impl Common {
+             "eval_every": self.eval_every, "curve_sequences": self.curve_sequences,
+             "final_sequences": self.final_sequences, "seed": self.seed,
+             "max_seconds": self.max_seconds,
++            "probe_steps": self.probe_steps, "probe_sequences": self.probe_sequences,
+         })
+     }
+ }
+@@ -771,7 +1003,29 @@ fn settings() -> Result<(Common, ArmSpec, bool)> {
+         final_sequences: args.parsed("final_sequences", 64usize)?,
+         seed: args.parsed("seed", 1u64)?,
+         max_seconds: args.parsed("max_seconds", 1200f64)?,
++        probe_steps: Vec::new(),
++        probe_sequences: args.parsed("probe_sequences", 16usize)?,
+     };
++    let mut common = common;
++    let probe_text = args
++        .take("probe_steps")
++        .unwrap_or_else(|| "0,600,final".into());
++    if probe_text != "none" {
++        for part in probe_text.split(',') {
++            let step = match part {
++                "final" => common.steps,
++                number => number
++                    .parse()
++                    .map_err(|_| invalid(format!("invalid probe step {number}")))?,
++            };
++            if step > common.steps {
++                return Err(invalid(format!("probe step {step} beyond steps")));
++            }
++            common.probe_steps.push(step);
++        }
++        common.probe_steps.sort_unstable();
++        common.probe_steps.dedup();
++    }
+     let arm = ArmSpec::parse(&mut args)?;
+     args.finish()?;
+     if common.batch == 0
+@@ -798,6 +1052,7 @@ const CURVE_DOMAIN: u64 = 0x6375_7276_65;
+ const CURVE_IN_CLASS_DOMAIN: u64 = 0x6375_7276_63;
+ const HELD_OUT_DOMAIN: u64 = 0x6865_6C64;
+ const IN_CLASS_DOMAIN: u64 = 0x636C_6173_73;
++const PROBE_DOMAIN: u64 = 0x7072_6F62_65;
+ 
+ fn sequences(
+     s: &Common,
+@@ -830,6 +1085,33 @@ fn bucket_line(result: &Value, buckets: &[Bucket]) -> String {
+         .join(" ")
+ }
+ 
++/// Runs the read probe at its declared steps and keeps the results.
++struct Prober<'a> {
++    set: &'a [Sequence],
++    steps: &'a [usize],
++    context: usize,
++    buckets: &'a [Bucket],
++    probes: Vec<Value>,
++    seconds: f64,
++}
++
++impl Prober<'_> {
++    fn run(&mut self, arm: &dyn ContextArm, step: usize, log: &mut fs::File) -> Result<()> {
++        use std::io::Write;
++        if !self.steps.contains(&step) || self.probes.iter().any(|p| p["step"] == step) {
++            return Ok(());
++        }
++        let clock = Instant::now();
++        let result = read_probe(arm, self.set, self.context, self.buckets)?;
++        let line = format!("probe step {step}: {}", probe_line(&result, self.buckets));
++        eprintln!("{line}");
++        writeln!(log, "{line}")?;
++        self.probes.push(json!({"step": step, "probe": result}));
++        self.seconds += clock.elapsed().as_secs_f64();
++        Ok(())
++    }
++}
++
+ /// Trains `arm` on the task and scores it; returns the arm-independent
+ /// results block of the report.
+ fn run(s: &Common, arm: &mut dyn ContextArm, log: &mut fs::File) -> Result<Value> {
+@@ -867,12 +1149,24 @@ fn run(s: &Common, arm: &mut dyn ContextArm, log: &mut fs::File) -> Result<Value
+         "in_class": evaluate(&*arm, &curve_in_class, s.context, &buckets, chunk)?,
+         "held_out": evaluate(&*arm, &curve_held_out, s.context, &buckets, chunk)?,
+     }));
++    let probe_set = sequences(s, &buckets, PROBE_DOMAIN, s.probe_sequences, Pairing::Train)?;
++    let mut prober = Prober {
++        set: &probe_set,
++        steps: &s.probe_steps,
++        context: s.context,
++        buckets: &buckets,
++        probes: Vec::new(),
++        seconds: 0.0,
++    };
++    prober.run(&*arm, 0, log)?;
+     let (mut window_loss, mut window_steps) = (0f64, 0usize);
+     let mut step_seconds = Vec::new();
+     let mut stopped_early = false;
+     let mut step = 0;
+     while step < s.steps {
+-        if started.elapsed().as_secs_f64() > s.max_seconds {
++        // The probe is observation, not training: its time is not charged
++        // against the training cap (it is reported separately).
++        if started.elapsed().as_secs_f64() - prober.seconds > s.max_seconds {
+             stopped_early = true;
+             break;
+         }
+@@ -922,6 +1216,10 @@ fn run(s: &Common, arm: &mut dyn ContextArm, log: &mut fs::File) -> Result<Value
+             window_loss = 0.0;
+             window_steps = 0;
+         }
++        prober.run(&*arm, step, log)?;
++    }
++    if stopped_early {
++        prober.run(&*arm, s.steps, log)?;
+     }
+     let train_seconds: f64 = step_seconds.iter().sum();
+     let eval_clock = Instant::now();
+@@ -965,6 +1263,8 @@ fn run(s: &Common, arm: &mut dyn ContextArm, log: &mut fs::File) -> Result<Value
+         },
+         "steps_completed": step,
+         "stopped_early_at_max_seconds": stopped_early,
++        "read_probe": prober.probes,
++        "probe_seconds": prober.seconds,
+         "final_in_class_fresh_pairings": in_class,
+         "final_held_out_class_pairings": held_out,
+         "curve": curve,
+@@ -1190,6 +1490,8 @@ mod tests {
+             final_sequences: 2,
+             seed: 3,
+             max_seconds: 60.0,
++            probe_steps: vec![0],
++            probe_sequences: 2,
+         };
+         let spec = ArmSpec::Stack {
+             pattern: "rar".into(),
+@@ -1198,7 +1500,8 @@ mod tests {
+             width: 16,
+             heads: 2,
+             mlp_hidden: 16,
+-            flat_age: true,
++            age: AgeInit::Flat,
++            key_shift: true,
+         };
+         spec.validate(&common).expect("valid arm");
+         let mut arm = spec.build(&common, &Device::Cpu).expect("arm");
+@@ -1214,6 +1517,16 @@ mod tests {
+         let report = evaluate(&*arm, &batch, common.context, &buckets, 2).expect("evaluate");
+         assert_eq!(report["total"], 2 * 2 * buckets.len());
+         assert_eq!(arm.record()["age_init"], "flat");
++        assert_eq!(arm.record()["read_key_shift"], true);
++        let probe = read_probe(&*arm, &batch, common.context, &buckets).expect("probe");
++        for bucket in &buckets {
++            let entry = &probe["by_bucket"][bucket.name];
++            assert_eq!(entry["heads"].as_array().map(Vec::len), Some(2));
++            let key = entry["best_head_mean_weight_on_key"]
++                .as_f64()
++                .expect("mass");
++            assert!((0.0..=1.0).contains(&key));
++        }
+     }
+ 
+     #[test]
+@@ -1228,4 +1541,95 @@ mod tests {
+             }
+         }
+     }
++
++    fn small(pattern: &str, rotation: bool) -> StackConfig {
++        StackConfig {
++            arch: StackArch::Geometric,
++            vocab_size: VOCAB,
++            width: 16,
++            heads: 2,
++            mlp_hidden: 16,
++            context: 12,
++            pattern: pattern.into(),
++            read: ReadScore::L2,
++            rotation,
++            rotation_group: RotationGroup::Quaternion,
++            seed: 5,
++            memory: None,
++            select: None,
++            pointer: None,
++        }
++    }
++
++    fn last_logits(model: &StackModel, ids: &[u32]) -> Vec<Vec<f32>> {
++        model
++            .forward(ids, 1, ids.len())
++            .and_then(|t| Ok(t.to_vec2::<f32>()?))
++            .expect("logits")
++    }
++
++    #[test]
++    fn the_j_turn_is_the_exact_quaternion_product() {
++        let x = Tensor::from_vec(
++            vec![1f32, 2., 3., 4., -5., 6., 7., -8.],
++            (1, 1, 8),
++            &Device::Cpu,
++        )
++        .expect("tensor");
++        let turned = quaternion_j_left(&x).expect("turn");
++        let values = turned
++            .flatten_all()
++            .and_then(|t| t.to_vec1::<f32>())
++            .expect("values");
++        // j (a + bi + cj + dk) = -c + d i + a j - b k.
++        assert_eq!(values, vec![-3., 4., 1., -2., -7., -8., -5., -6.]);
++        let mut four = x.clone();
++        for _ in 0..4 {
++            four = quaternion_j_left(&four).expect("turn");
++        }
++        assert_eq!(
++            four.flatten_all()
++                .and_then(|t| t.to_vec1::<f32>())
++                .expect("values"),
++            x.flatten_all()
++                .and_then(|t| t.to_vec1::<f32>())
++                .expect("values")
++        );
++    }
++
++    #[test]
++    fn the_key_shift_is_causal_reads_the_previous_token_and_refuses_save() {
++        let mut model = StackModel::new(small("aa", true), &Device::Cpu).expect("model");
++        let ids: Vec<u32> = (0..12).map(|i| 64 + 7 * i).collect();
++        let plain = last_logits(&model, &ids);
++        model.set_read_key_shift(true).expect("shift");
++        let shifted = last_logits(&model, &ids);
++        assert_ne!(plain[11], shifted[11], "the shift changes the read");
++        // Causal: changing the last token leaves every earlier row unchanged.
++        let mut changed = ids.clone();
++        changed[11] = 300;
++        let after = last_logits(&model, &changed);
++        for t in 0..11 {
++            assert_eq!(after[t], shifted[t]);
++        }
++        // Position 0 has no predecessor: its key is unchanged by the shift.
++        assert_eq!(plain[0], shifted[0]);
++        let dir = std::env::temp_dir().join(format!("mqar-key-shift-{}", std::process::id()));
++        assert!(model.save(&dir).is_err());
++        assert!(!dir.exists());
++    }
++
++    #[test]
++    fn rotation_has_no_effect_on_an_all_read_stack() {
++        // F3 finding: `rotation` parameterizes only the recurrence's transport.
++        let on = small("aaa", true);
++        let off = small("aaa", false);
++        assert_eq!(on.shapes(), off.shapes());
++        let a = StackModel::new(on, &Device::Cpu).expect("model");
++        let b = StackModel::new(off, &Device::Cpu).expect("model");
++        let ids: Vec<u32> = (0..12).map(|i| 64 + 5 * i).collect();
++        assert_eq!(last_logits(&a, &ids), last_logits(&b, &ids));
++        // ...while a recurrence layer does take rotation rows.
++        assert_ne!(small("ra", true).shapes(), small("ra", false).shapes());
++    }
+ }
+diff --git a/crates/uor-r4-training/src/geometric_stack.rs b/crates/uor-r4-training/src/geometric_stack.rs
+index 7c926986d..d67b1ce27 100644
+--- a/crates/uor-r4-training/src/geometric_stack.rs
++++ b/crates/uor-r4-training/src/geometric_stack.rs
+@@ -1343,6 +1343,9 @@ pub struct StackModel {
+     /// Direct paired content/context geometry, with no q/k projection maps.
+     geometric_address: Option<GeometricAddressConfig>,
+     geometric_span: Option<GeometricSpanConfig>,
++    /// Each read key also carries the previous position's key, turned by the
++    /// fixed unit quaternion `j` ([`Self::set_read_key_shift`]).
++    read_key_shift: bool,
+ }
+ 
+ impl StackModel {
+@@ -1445,6 +1448,7 @@ impl StackModel {
+             read_identity_latch: None,
+             geometric_address: None,
+             geometric_span: None,
++            read_key_shift: false,
+         })
+     }
+ 
+@@ -1850,6 +1854,9 @@ impl StackModel {
+             let input = if part == "value" { &u } else { &identity };
+             let mut projected =
+                 Self::linear(input, p.layer(layer, &format!("read.{part}.weight"))?)?;
++            if part == "key" && self.read_key_shift {
++                projected = previous_key_channel(&projected)?;
++            }
+             if part != "value" {
+                 if let Some(identity) = &latched {
+                     projected = projected.add(&Self::linear(
+@@ -2116,6 +2123,41 @@ impl StackModel {
+         self.geometric_address.as_ref()
+     }
+ 
++    /// Opt into a previous-token key channel at every geometric read: the key
++    /// at `t` becomes `k_t + j * k_{t-1}` (zero before position 0), where
++    /// `k = W_key u` is the ordinary key projection and `j *` is left
++    /// multiplication of each four-channel lane by the unit quaternion `j`, a
++    /// fixed signed permutation `(a, b, c, d) -> (-c, d, a, -b)`
++    /// ([`quaternion_j_left`]). It adds no parameters and no matrix product:
++    /// one causal shift, a signed permutation and an addition. Queries,
++    /// values, NoRead and age are unchanged. A query can then match "the
++    /// position whose predecessor carried my key" through the `j`-turned
++    /// channel, separately from the current-token channel.
++    ///
++    /// Offline float research only: there is no saved or served form, so
++    /// [`Self::save`] refuses a model with it enabled. The default is false.
++    pub fn set_read_key_shift(&mut self, enabled: bool) -> Result<()> {
++        if enabled {
++            if self.config.arch != StackArch::Geometric || !self.config.pattern.contains('a') {
++                return Err(invalid(
++                    "the read key shift needs a geometric stack with a read layer",
++                ));
++            }
++            if self.served.is_some() || self.geometric_address.is_some() {
++                return Err(invalid(
++                    "the read key shift has no served or geometric-address form",
++                ));
++            }
++        }
++        self.read_key_shift = enabled;
++        Ok(())
++    }
++
++    /// Whether every read key carries the `j`-turned previous key.
++    pub fn read_key_shift(&self) -> bool {
++        self.read_key_shift
++    }
++
+     /// Replace the geometric reader's scalar Held latch with an ordered token
+     /// action producer. Enable after geometric addressing and before creating
+     /// the optimizer. Static actions use original selected embedding rows;
+@@ -6367,6 +6409,11 @@ impl StackModel {
+     /// and pins its digest in config.json; a default save removes stale carry
+     /// metadata and retains the legacy config byte format.
+     pub fn save(&self, directory: &Path) -> Result<()> {
++        if self.read_key_shift {
++            return Err(invalid(
++                "the read key shift is an unsaved research option; refusing to save without it",
++            ));
++        }
+         if let Some(span) = &self.geometric_span {
+             span.validate(self.config.width)?;
+             if self.geometric_address.is_none() || self.read_identity_latch.is_some() {
+@@ -6854,6 +6901,7 @@ impl StackModel {
+             read_identity_latch,
+             geometric_address,
+             geometric_span,
++            read_key_shift: false,
+         };
+         model.set_transport_snap(Self::saved_transport_snap(directory)?)?;
+         model.set_read_identity_carry(Self::saved_read_identity_carry(directory)?)?;
+@@ -8831,6 +8879,43 @@ impl CustomOp2 for QuaternionScan {
+ }
+ 
+ /// Runs the quaternion transport recurrence over whole windows.
++/// Left multiplication by the unit quaternion `j` of every four-channel lane
++/// of the last dimension: `j (a + b i + c j + d k) = -c + d i + a j - b k`,
++/// the signed permutation `(a, b, c, d) -> (-c, d, a, -b)`. Exact (no
++/// rounding); a quarter turn in S3 that preserves norms and inner products.
++pub fn quaternion_j_left(x: &Tensor) -> Result<Tensor> {
++    let dims = x.dims().to_vec();
++    let width = *dims
++        .last()
++        .ok_or_else(|| invalid("quaternion lanes need a last dimension"))?;
++    if width == 0 || !width.is_multiple_of(4) {
++        return Err(invalid("quaternion lanes need a width divisible by 4"));
++    }
++    let mut lanes = dims.clone();
++    lanes.pop();
++    lanes.push(width / 4);
++    lanes.push(4);
++    let q = x.reshape(lanes.as_slice())?;
++    let axis = lanes.len() - 1;
++    let part = |i: usize| q.narrow(axis, i, 1);
++    let turned = Tensor::cat(
++        &[&part(2)?.neg()?, &part(3)?, &part(0)?, &part(1)?.neg()?],
++        axis,
++    )?;
++    Ok(turned.reshape(dims.as_slice())?)
++}
++
++/// `k_t + j * k_{t-1}` for keys [batch, time, width], zero before position 0.
++fn previous_key_channel(key: &Tensor) -> Result<Tensor> {
++    let (batch, time, width) = key.dims3()?;
++    if time == 1 {
++        return Ok(key.clone());
++    }
++    let zero = Tensor::zeros((batch, 1, width), key.dtype(), key.device())?;
++    let previous = Tensor::cat(&[&zero, &key.narrow(1, 0, time - 1)?], 1)?;
++    Ok(key.add(&quaternion_j_left(&previous)?)?)
++}
++
+ pub fn quaternion_scan(transition: &Tensor, drive: &Tensor) -> Result<Tensor> {
+     if transition.dtype() != DType::F32 || drive.dtype() != DType::F32 {
+         return Err(invalid("quaternion_scan requires F32 tensors"));

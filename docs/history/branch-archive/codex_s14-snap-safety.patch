@@ -1,0 +1,596 @@
+diff --git a/crates/uor-r4-lut/src/stack.rs b/crates/uor-r4-lut/src/stack.rs
+index c763c57e0..7d97a010f 100644
+--- a/crates/uor-r4-lut/src/stack.rs
++++ b/crates/uor-r4-lut/src/stack.rs
+@@ -161,6 +161,18 @@ impl StackModel {
+     }
+ 
+     pub fn from_artifact(artifact: StackArtifact) -> Result<Self> {
++        // This engine computes the free transport. An artifact that records a
++        // trained-in transport snap is served only by the multiplier-free
++        // engine, so refuse it here as well as in the serving parse: an
++        // artifact from the offline `StackArtifact::parse_for_reference` must
++        // not reach this engine.
++        if let Some(snap) = &artifact.header.transport_snap {
++            return Err(format_error(format!(
++                "the artifact records transport_snap={} ({} roots), which only the \
++                 multiplier-free stack engine serves; this engine computes the free transport",
++                snap.name, snap.roots
++            )));
++        }
+         let shape = artifact.header.shape.clone();
+         let numerics = artifact.header.numerics.clone();
+         let (d, heads, mlp) = (shape.width, shape.heads, shape.mlp);
+@@ -881,6 +893,59 @@ mod tests {
+     use super::*;
+     use crate::kernels::{arcosh_grid, grid_encode, ARCOSH_FRACTION_BITS};
+ 
++    /// A header-only stack artifact, with or without a transport snap record.
++    fn header_only(snapped: bool) -> Vec<u8> {
++        use crate::format::{Fixed, StackArtifactBuilder};
++        let shape = StackShape {
++            vocab: 64,
++            width: 64,
++            heads: 2,
++            mlp: 64,
++            pattern: "ra".to_owned(),
++            read: "lorentz".to_owned(),
++            rotation: true,
++            context: 8,
++        };
++        let numerics = StackNumerics {
++            rms_eps: Fixed {
++                mantissa: 1,
++                exp: -48,
++            },
++            score_scale_q30: 1 << 28,
++            exp_step_log2: -8,
++            silu_step_log2: -8,
++            silu_range_log2: 4,
++            gelu_step_log2: -8,
++            gelu_range_log2: 4,
++        };
++        let mut builder = StackArtifactBuilder::new(shape, numerics, serde_json::json!({}))
++            .expect("a valid shape");
++        if snapped {
++            builder.set_transport_snap("icosian".to_owned(), 120, "ab".repeat(32));
++        }
++        builder.finish().expect("the header writes")
++    }
++
++    /// The offline reference parse keeps a snapped artifact, but this engine
++    /// refuses it at construction, before reading any matrix. An unsnapped
++    /// header-only artifact fails later, on its first missing matrix.
++    #[test]
++    fn from_artifact_refuses_a_snapped_artifact_from_the_reference_parse() {
++        let snapped = StackArtifact::parse_for_reference(header_only(true))
++            .expect("the reference parse accepts the snap record");
++        let refusal = match StackModel::from_artifact(snapped) {
++            Err(error) => error.to_string(),
++            Ok(_) => panic!("the D10 engine must refuse a snapped artifact"),
++        };
++        assert!(refusal.contains("transport_snap=icosian"), "{refusal}");
++        let unsnapped = StackArtifact::parse(header_only(false)).expect("a snap-free parse");
++        let other = match StackModel::from_artifact(unsnapped) {
++            Err(error) => error.to_string(),
++            Ok(_) => panic!("a header-only artifact has no matrices"),
++        };
++        assert!(!other.contains("transport_snap"), "{other}");
++    }
++
+     #[test]
+     fn hamilton_product_matches_floats() {
+         let a = [3i64, -1, 4, 1];
+diff --git a/crates/uor-r4-training/examples/geometric-stack.rs b/crates/uor-r4-training/examples/geometric-stack.rs
+index 2ac039762..606f1495e 100644
+--- a/crates/uor-r4-training/examples/geometric-stack.rs
++++ b/crates/uor-r4-training/examples/geometric-stack.rs
+@@ -2061,7 +2061,9 @@ fn snap_evaluate_mode(arguments: &[String]) -> Result<()> {
+     report_output::claim(&out)?;
+     let result = (|| -> Result<()> {
+         let started = Instant::now();
+-        let model = StackModel::load(&model_dir, &Device::Cpu)?;
++        // `load` restores a trained-in snap; this diagnostic's fused baseline
++        // is the free transport, taken explicitly below.
++        let mut model = StackModel::load(&model_dir, &Device::Cpu)?;
+         let valid = read_tokens(&valid_path, model.config.vocab_size)?;
+         let time = model.config.context;
+         if valid.len() <= time + windows {
+@@ -2086,7 +2088,8 @@ fn snap_evaluate_mode(arguments: &[String]) -> Result<()> {
+                 targets.extend_from_slice(&valid[start + 1..start + time + 1]);
+             }
+             let rows = targets.len();
+-            let fused = model.forward(&ids, group.len(), time)?;
++            let fused =
++                model.with_unsnapped_transport(|free| free.forward(&ids, group.len(), time))?;
+             let snapped = model.logits_with_transport(&ids, group.len(), time, Some(&roots))?;
+             if index == 0 {
+                 // The composed reference must equal the fused forward, so the
+@@ -2162,6 +2165,17 @@ fn rounding_attribution_mode(arguments: &[String]) -> Result<()> {
+     let result = (|| -> Result<()> {
+         let started = Instant::now();
+         let float = StackModel::load(&model_dir, &Device::Cpu)?;
++        // The D10 comparator computes the free transport; a snap-trained
++        // model is served only by the multiplier-free engine.
++        if let Some(snap) = float.transport_snap() {
++            return Err(invalid(format!(
++                "rounding attribution measures the D10 comparator, which computes the free \
++                 transport; {} records the {} transport snap, which only the multiplier-free \
++                 engine serves (use stack-snap-parity or d11-evaluate)",
++                model_dir.display(),
++                snap.name()
++            )));
++        }
+         let artifact =
+             uor_r4_lut::format::StackArtifact::parse(fs::read(&artifact_path)?).map_err(lut)?;
+         let reference = stack_grid_reference(&float, &artifact)?;
+@@ -2355,6 +2369,16 @@ fn lut_evaluate_mode(arguments: &[String]) -> Result<()> {
+             if model.config.vocab_size != engine.vocabulary() || model.config.context != time {
+                 return Err(invalid("the float model and the artifact differ in shape"));
+             }
++            // The D10 comparator computes the free transport; a snap-trained
++            // model is served only by the multiplier-free engine.
++            if let Some(snap) = model.transport_snap() {
++                return Err(invalid(format!(
++                    "lut-evaluate measures the D10 comparator, which computes the free transport; \
++                     the model records the {} transport snap, which only the multiplier-free \
++                     engine serves (use stack-snap-parity or d11-evaluate)",
++                    snap.name()
++                )));
++            }
+         }
+         let reference = match (&float, use_reference) {
+             (Some(model), true) => Some(match &engine {
+diff --git a/crates/uor-r4-training/src/bin/d4-float-reference.rs b/crates/uor-r4-training/src/bin/d4-float-reference.rs
+index f6a526702..94c7dd4ff 100644
+--- a/crates/uor-r4-training/src/bin/d4-float-reference.rs
++++ b/crates/uor-r4-training/src/bin/d4-float-reference.rs
+@@ -279,6 +279,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
+ 
+         // 3. Load model and validation tokens
+         let float_model = StackModel::load(&args.model_dir, &Device::Cpu)?;
++        // Every arm below exports for the D10 comparator, which computes the
++        // free transport. `load` restores a trained-in snap, which only the
++        // multiplier-free engine serves, so refuse instead of exporting a
++        // model other than the one that was trained.
++        if let Some(snap) = float_model.transport_snap() {
++            return Err(format!(
++                "d4-float-reference measures the D10 comparator, which computes the free \
++                 transport; {} records the {} transport snap (use stack-snap-parity or d11-evaluate)",
++                args.model_dir.display(),
++                snap.name()
++            )
++            .into());
++        }
+         let time = float_model.config.context;
+         let vocab_size = float_model.config.vocab_size;
+         let tokens = read_u16_tokens(&args.valid_path, vocab_size)?;
+diff --git a/crates/uor-r4-training/src/geometric_stack.rs b/crates/uor-r4-training/src/geometric_stack.rs
+index 2274e36e5..35ad46f88 100644
+--- a/crates/uor-r4-training/src/geometric_stack.rs
++++ b/crates/uor-r4-training/src/geometric_stack.rs
+@@ -1040,8 +1040,10 @@ impl StackModel {
+     /// record existed. With a transport snap set, [`TRANSPORT_RECORD`]
+     /// beside them records it ([`Self::saved_transport_snap`]); a save
+     /// without one removes a stale record, so the directory never claims a
+-    /// snap its weights were not saved with. [`Self::load`] ignores both
+-    /// records and loads in float.
++    /// snap its weights were not saved with. [`Self::load`] restores the
++    /// transport snap from its record, so a loaded model's forward pass is the
++    /// one that was trained. It does not restore the served representation;
++    /// its callers read [`Self::saved_served_representation`].
+     pub fn save(&self, directory: &Path) -> Result<()> {
+         fs::create_dir_all(directory)?;
+         let tensors: std::collections::HashMap<String, Tensor> = self
+@@ -1113,6 +1115,13 @@ impl StackModel {
+         Ok(Some(snap))
+     }
+ 
++    /// Load a saved model. A directory whose [`TRANSPORT_RECORD`] records a
++    /// transport snap loads with it set ([`Self::saved_transport_snap`] checks
++    /// its roots; [`Self::set_transport_snap`] checks the configuration), so
++    /// evaluation and export see the model that was trained. Training modes
++    /// then set the snap their arguments ask for; [`Self::with_unsnapped_transport`]
++    /// gives the free-transport view explicitly. The served representation is
++    /// not restored.
+     pub fn load(directory: &Path, device: &Device) -> Result<Self> {
+         let config: StackConfig =
+             serde_json::from_slice(&fs::read(directory.join("config.json"))?)?;
+@@ -1132,13 +1141,15 @@ impl StackModel {
+             }
+             variables.insert(name, Var::from_tensor(tensor)?);
+         }
+-        Ok(Self {
++        let mut model = Self {
+             config,
+             variables,
+             device: device.clone(),
+             served: None,
+             transport: None,
+-        })
++        };
++        model.set_transport_snap(Self::saved_transport_snap(directory)?)?;
++        Ok(model)
+     }
+ }
+ 
+@@ -6452,34 +6463,77 @@ mod tests {
+             fs::read(free_dir.join("config.json"))?,
+             fs::read(snapped_dir.join("config.json"))?
+         );
+-        // Both load, without the snap, with the saved weights.
++        // Each loads the model that was saved: the free save without a snap,
++        // the snapped save with its snap, and the same forward pass.
+         let ids = token_ids(12, 37, 137);
+         let free = bits(&model.with_unsnapped_transport(|m| m.forward(&ids, 1, 12))?)?;
+-        for directory in [&free_dir, &snapped_dir] {
+-            let loaded = StackModel::load(directory, &cpu())?;
+-            assert_eq!(loaded.transport_snap(), None);
+-            assert_eq!(bits(&loaded.forward(&ids, 1, 12)?)?, free);
+-        }
+-        // Setting the recorded snap restores the snapped forward.
++        let snapped = bits(&model.forward(&ids, 1, 12)?)?;
++        let loaded_free = StackModel::load(&free_dir, &cpu())?;
++        assert_eq!(loaded_free.transport_snap(), None);
++        assert_eq!(bits(&loaded_free.forward(&ids, 1, 12)?)?, free);
+         let mut loaded = StackModel::load(&snapped_dir, &cpu())?;
+-        loaded.set_transport_snap(StackModel::saved_transport_snap(&snapped_dir)?)?;
++        assert_eq!(loaded.transport_snap(), Some(TransportSnap::Icosian));
++        assert_eq!(bits(&loaded.forward(&ids, 1, 12)?)?, snapped);
++        // The free-transport view of the snapped save is explicit.
+         assert_eq!(
+-            bits(&loaded.forward(&ids, 1, 12)?)?,
+-            bits(&model.forward(&ids, 1, 12)?)?
++            bits(&loaded.with_unsnapped_transport(|m| m.forward(&ids, 1, 12))?)?,
++            free
+         );
+-        // A save without the snap over a snapped one removes the record.
+-        StackModel::load(&snapped_dir, &cpu())?.save(&snapped_dir)?;
++        // A load and save round trip keeps the record; dropping the snap is
++        // explicit, and a save without it removes the record.
++        loaded.save(&snapped_dir)?;
++        assert_eq!(
++            StackModel::saved_transport_snap(&snapped_dir)?,
++            Some(TransportSnap::Icosian)
++        );
++        loaded.set_transport_snap(None)?;
++        loaded.save(&snapped_dir)?;
+         assert_eq!(StackModel::saved_transport_snap(&snapped_dir)?, None);
+-        // A record of other roots is refused.
++        assert_eq!(
++            StackModel::load(&snapped_dir, &cpu())?.transport_snap(),
++            None
++        );
++        // A record of other roots is refused, by the reader and by the load.
+         fs::write(
+             free_dir.join(TRANSPORT_RECORD),
+             br#"{"schema":"uor-r4.stack-transport/1","snap":"icosian","roots":120,"roots_sha256":"00","scope":""}"#,
+         )?;
+         assert!(StackModel::saved_transport_snap(&free_dir).is_err());
++        assert!(StackModel::load(&free_dir, &cpu()).is_err());
+         fs::remove_dir_all(&root)?;
+         Ok(())
+     }
+ 
++    /// The exact bypass #1506's review found: a snapped export read through
++    /// the offline `parse_for_reference` must not construct the D10 engine,
++    /// which computes the free transport. The multiplier-free engine serves
++    /// the same bytes.
++    #[test]
++    fn the_d10_engine_refuses_a_snapped_export_read_for_reference() -> Result<()> {
++        let mut model = spread_transport(
++            tiny(StackArch::Geometric, "rrarra", ReadScore::Lorentz, true),
++            149,
++        )?;
++        model.set_transport_snap(Some(TransportSnap::Icosian))?;
++        let (bytes, _) = crate::stack_export::export_stack(
++            &model,
++            serde_json::json!({"test": "d10-bypass"}),
++            None,
++            Some(TransportSnap::Icosian),
++        )?;
++        uor_r4_integer::stack::IntegerStackModel::parse(&bytes)
++            .map_err(|e| invalid(e.to_string()))?;
++        let reference = uor_r4_lut::format::StackArtifact::parse_for_reference(bytes)
++            .map_err(|e| invalid(e.to_string()))?;
++        assert!(reference.header.transport_snap.is_some());
++        let refusal = match uor_r4_lut::stack::StackModel::from_artifact(reference) {
++            Err(error) => error.to_string(),
++            Ok(_) => return Err(invalid("the D10 engine accepted a snapped artifact")),
++        };
++        assert!(refusal.contains("transport_snap=icosian"), "{refusal}");
++        Ok(())
++    }
++
+     #[test]
+     fn the_transport_snap_composes_with_the_served_representation() -> Result<()> {
+         let roots = icosians();
+diff --git a/crates/uor-r4-training/src/stack_snap_parity.rs b/crates/uor-r4-training/src/stack_snap_parity.rs
+index 86b7005ce..2d0e79716 100644
+--- a/crates/uor-r4-training/src/stack_snap_parity.rs
++++ b/crates/uor-r4-training/src/stack_snap_parity.rs
+@@ -3,13 +3,18 @@
+ //! root selection and logit by logit, on evenly spaced windows of given
+ //! tokens.
+ //!
+-//! This is the S1.4 acceptance vehicle, decomposed as in
++//! This is the S1.4 parity vehicle, decomposed as in
+ //! `docs/integration/s1-stack-serving-measurements-2026-09-28.md`:
+ //!
+ //! - `kernel`: the D11 engine against the artifact's own dequantized float
+-//!   reference (same weights, snap set) — the residual is fixed-point
+-//!   arithmetic only. This is the acceptance gate. Near-ties are counted
+-//!   from the same-weights reference margin (float margin < 1e-4).
++//!   reference (same weights, snap set). Weights and snap are shared, so a
++//!   divergence comes from the integer arithmetic of the kernel or from a
++//!   near-tie at a snap boundary; `kernel_first_divergence` isolates each
++//!   window's first one, cascade-free. Mismatches after a window has
++//!   diverged are not classified here: they may be cascade through the
++//!   recurrence or a kernel error on a rare branch. No numeric acceptance
++//!   threshold is coded. Near-ties are counted from the same-weights
++//!   reference margin (float margin < 1e-4).
+ //! - `serving_profile.weight_rounding`: the reference against the trained
+ //!   unquantized float model — the 4-bit weight-rounding cost. Near-ties use
+ //!   the trained model's margin.
+@@ -378,8 +383,8 @@ mod tests {
+         let tokens: Vec<u32> = (0..40).map(|i| (i * 5 + 1) % 64).collect();
+         let report = snap_parity_report(&dir, &tokens, 2).expect("report");
+         assert_eq!(report["schema"], "uor-r4.stack-snap-parity/2");
+-        // The kernel block is the acceptance gate: same weights, so only
+-        // fixed-point arithmetic separates the two engines.
++        // Same weights and snap: on this tiny model the kernel block shows no
++        // root mismatch and full top-1 agreement.
+         let kernel = &report["kernel"];
+         assert_eq!(kernel["root_mismatches"], 0);
+         assert_eq!(kernel["top1_agreement"], 1.0);
+diff --git a/crates/uor-r4-training/tests/d4_map_codec_adapter.rs b/crates/uor-r4-training/tests/d4_map_codec_adapter.rs
+index b421d04bd..1a95040c5 100644
+--- a/crates/uor-r4-training/tests/d4_map_codec_adapter.rs
++++ b/crates/uor-r4-training/tests/d4_map_codec_adapter.rs
+@@ -212,7 +212,8 @@ fn qat_head_compensated_end_to_end_export_and_exactness() -> Result<()> {
+ 
+     // 6. Export stack artifact without calibration (using QAT weights)
+     check_export_representation(record.as_ref(), false)?;
+-    let (lut_bytes, summary) = export_stack(&model, "head-compensated-qat-test".into(), None)?;
++    let (lut_bytes, summary) =
++        export_stack(&model, "head-compensated-qat-test".into(), None, None)?;
+     assert!(!lut_bytes.is_empty());
+     assert_eq!(
+         summary["method"]["quantizer"],
+@@ -352,7 +353,7 @@ fn qat_min_mse_end_to_end_export_and_exactness() -> Result<()> {
+ 
+     // 6. Export stack artifact without calibration (using QAT weights)
+     check_export_representation(record.as_ref(), false)?;
+-    let (lut_bytes, summary) = export_stack(&model, "qat-min-mse-test".into(), None)?;
++    let (lut_bytes, summary) = export_stack(&model, "qat-min-mse-test".into(), None, None)?;
+     assert!(!lut_bytes.is_empty());
+     assert_eq!(
+         summary["method"]["quantizer"],
+@@ -588,7 +589,7 @@ fn test_exported_artifact_dequantized_weights_equal_served_view_element_by_eleme
+         model.set_served_representation(Some(codec.clone()))?;
+ 
+         let (lut_bytes, _summary) =
+-            export_stack(&model, serde_json::json!({"test": "parity"}), None)?;
++            export_stack(&model, serde_json::json!({"test": "parity"}), None, None)?;
+         let artifact = StackArtifact::parse(lut_bytes)
+             .map_err(|e| uor_r4_training::TrainingError::Invalid(e.to_string()))?;
+ 
+@@ -778,7 +779,7 @@ fn qat_rec_out_min_mse_end_to_end_export_and_exactness() -> Result<()> {
+     // 6. Export stack artifact without calibration (using QAT weights)
+     check_export_representation(record.as_ref(), false)?;
+     assert!(check_export_representation(record.as_ref(), true).is_err());
+-    let (lut_bytes, summary) = export_stack(&model, "rec-out-min-mse-qat-test".into(), None)?;
++    let (lut_bytes, summary) = export_stack(&model, "rec-out-min-mse-qat-test".into(), None, None)?;
+     assert!(!lut_bytes.is_empty());
+     assert_eq!(
+         summary["method"]["quantizer"],
+@@ -1007,7 +1008,7 @@ fn test_export_stack_directly_refuses_e8_matched_bit() -> Result<()> {
+     let mut model = StackModel::new(config, &device)?;
+     model.set_served_representation(Some(Arc::new(E8MatchedBitMapCodec::default())))?;
+ 
+-    let err = export_stack(&model, "e8-direct-refusal-test".into(), None).unwrap_err();
++    let err = export_stack(&model, "e8-direct-refusal-test".into(), None, None).unwrap_err();
+     assert!(
+         err.to_string().contains("stack export does not write"),
+         "expected export refusal for E8 served codec, got: {err}"
+@@ -1043,7 +1044,7 @@ fn test_s2_real_proportions_exported_artifact_dequantized_weights_equal_served_v
+         model.set_served_representation(Some(codec.clone()))?;
+ 
+         let (lut_bytes, summary) =
+-            export_stack(&model, serde_json::json!({"test": "s2_parity"}), None)?;
++            export_stack(&model, serde_json::json!({"test": "s2_parity"}), None, None)?;
+         assert_eq!(summary["method"]["quantizer"], codec.name());
+ 
+         let artifact = StackArtifact::parse(lut_bytes.clone())
+@@ -1160,8 +1161,12 @@ fn test_s2_real_proportions_exported_artifact_dequantized_weights_equal_served_v
+         reloaded.set_served_representation(Some(recovered_codec.clone()))?;
+         assert_eq!(reloaded.served_codec().unwrap().name(), codec.name());
+ 
+-        let (reloaded_bytes, reloaded_summary) =
+-            export_stack(&reloaded, serde_json::json!({"test": "s2_reloaded"}), None)?;
++        let (reloaded_bytes, reloaded_summary) = export_stack(
++            &reloaded,
++            serde_json::json!({"test": "s2_reloaded"}),
++            None,
++            None,
++        )?;
+         assert_eq!(reloaded_summary["method"]["quantizer"], codec.name());
+         assert_eq!(
+             reloaded_bytes,
+diff --git a/docs/evidence/s1-4-snap-parity-2026-09-29.json b/docs/evidence/s1-4-snap-parity-2026-09-29.json
+new file mode 100644
+index 000000000..83223b7cb
+--- /dev/null
++++ b/docs/evidence/s1-4-snap-parity-2026-09-29.json
+@@ -0,0 +1,154 @@
++{
++  "schema": "uor-r4.evidence-extract/1",
++  "subject": "#1506 S1.4: D11 icosian transport snap kernel against the artifact own dequantized float reference (arm A, chat-v0 heldout)",
++  "extracted_for": "#1533 (S1.4 safety successor)",
++  "source": {
++    "root": "/Volumes/UOR-Workspace/uor-r4-lab/s1-4-parity-arm-a-5",
++    "files": {
++      "snap-parity.json": "313645996327328adedfee37fd8f3bc78d619ba5e6cd35792ca0966a1342fe6f",
++      "attempt.json": "ddce53b7dc358d8b81142ff074d29235ceb3b39a9e763ba11db5a86793829f04"
++    },
++    "seal": "UNSEALED: the root holds attempt.json and snap-parity.json only, with no report_output manifest; the file hashes above bind this extract",
++    "argv": "stack-snap-parity model=.../kimi-s4-fit-20260929/arm-a-snap-1/model tokens=.../chat-v0-20260925/prepared/heldout/tokens.u16 windows=16 (from attempt.json)"
++  },
++  "result_schema": "uor-r4.stack-snap-parity/2",
++  "windows": 16,
++  "positions": 4096,
++  "transport_snap": {
++    "roots": 120,
++    "roots_sha256": "69c969ebc9cfcf8c56109eb9d6fc853d446361f1d0c80a7b805ecfa65bbbaa2d",
++    "snap": "icosian"
++  },
++  "model": "/Volumes/UOR-Workspace/uor-r4-lab/kimi-s4-fit-20260929/arm-a-snap-1/model",
++  "kernel": {
++    "max_abs_logit_gap_nats": 1.2598389610648155,
++    "mean_abs_logit_gap_nats": 0.013782082642708525,
++    "mismatch_margin_below_1e-2": 2335,
++    "mismatch_margin_below_1e-3": 1240,
++    "mismatch_margin_max": 0.09959405660629272,
++    "near_tie_margin_source": "reference",
++    "near_ties": 1770,
++    "root_mismatches": 2477,
++    "selections_compared": 1177878,
++    "top1_agreement": 0.991943359375,
++    "top1_flip_rate": 0.008056640625
++  },
++  "kernel_first_divergence": {
++    "max_reference_margin": 0.0002810955047607422,
++    "per_window": [
++      {
++        "layer": 1,
++        "position": 9,
++        "reference_margin": 0.000007271766662597656,
++        "window": 0
++      },
++      {
++        "layer": 1,
++        "position": 14,
++        "reference_margin": 0.000036597251892089844,
++        "window": 1
++      },
++      {
++        "layer": 0,
++        "position": 159,
++        "reference_margin": 0.0000040531158447265625,
++        "window": 2
++      },
++      {
++        "layer": 1,
++        "position": 14,
++        "reference_margin": 0.000041961669921875,
++        "window": 3
++      },
++      {
++        "layer": 1,
++        "position": 26,
++        "reference_margin": 0.000004172325134277344,
++        "window": 4
++      },
++      {
++        "layer": 1,
++        "position": 21,
++        "reference_margin": 1.7881393432617188E-7,
++        "window": 5
++      },
++      {
++        "layer": 1,
++        "position": 15,
++        "reference_margin": 4.76837158203125E-7,
++        "window": 6
++      },
++      {
++        "layer": 1,
++        "position": 10,
++        "reference_margin": 0.00007581710815429688,
++        "window": 7
++      },
++      {
++        "layer": 1,
++        "position": 45,
++        "reference_margin": 0.0002810955047607422,
++        "window": 8
++      },
++      {
++        "layer": 1,
++        "position": 10,
++        "reference_margin": 0.0001379251480102539,
++        "window": 9
++      },
++      {
++        "layer": 1,
++        "position": 10,
++        "reference_margin": 0.00004690885543823242,
++        "window": 10
++      },
++      {
++        "layer": 1,
++        "position": 47,
++        "reference_margin": 0.000030219554901123047,
++        "window": 11
++      },
++      {
++        "layer": 1,
++        "position": 48,
++        "reference_margin": 0.000038743019104003906,
++        "window": 12
++      },
++      {
++        "layer": 1,
++        "position": 48,
++        "reference_margin": 0.00006645917892456055,
++        "window": 13
++      },
++      {
++        "layer": 1,
++        "position": 35,
++        "reference_margin": 0.00003808736801147461,
++        "window": 14
++      },
++      {
++        "layer": 1,
++        "position": 23,
++        "reference_margin": 0.0000133514404296875,
++        "window": 15
++      }
++    ]
++  },
++  "mean_log_prob_over_window_targets": {
++    "artifact_reference": -3.097624939664698,
++    "integer": -3.097578421792205,
++    "integer_minus_reference": 0.000046517872493101464,
++    "integer_minus_trained": -0.01424199015528238,
++    "reference_minus_trained": -0.014288508027775482,
++    "targets": 4096,
++    "trained_float": -3.0833364316369227
++  },
++  "scope": [
++    "kernel compares the D11 integer engine with the artifact own dequantized float reference: same weights and snap",
++    "first divergences only: each window first root mismatch, in layer-major, position, lane order, has reference margin at most max_reference_margin (2.811e-4); these 16 are near-ties at a snap boundary",
++    "the remaining root mismatches (root_mismatches minus the 16 first divergences, about 2,461) occur after a window diverged and are UNCLASSIFIED: cascade through the recurrence or a kernel error on a rare branch is not distinguished; no claim that every mismatch is a near-tie; broader parity stays open",
++    "near_ties counts selections below the near-tie margin taken from the reference; they are excluded from root_mismatches by construction",
++    "mean log-probability is not NLL; one model, one held-out file, 16 windows",
++    "cost (not in this file): +9.17% ms/token against free transport from three interleaved pairs on a contended host; no quiet absolute latency"
++  ]
++}
+diff --git a/docs/integration/current-state.md b/docs/integration/current-state.md
+index eeafce90f..179fbd39c 100644
+--- a/docs/integration/current-state.md
++++ b/docs/integration/current-state.md
+@@ -44,6 +44,12 @@ latest PR/incident state.
+   - Not promoted (D12).
+ - **#1482, merged:** Lab 2's AERM probe checkpoint save/load and reload evaluation.
+ - **S4, merged (#1483); the trained-in 2I transport is adopted (Lab 1, [05:34 UTC 09-29](https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5884326637)) — the first geometric mechanism to pass its gate trained into the model.** The pre-registered fit (`/Volumes/UOR-Workspace/uor-r4-lab/kimi-s4-fit-20260929/`; manifests `2aabdc73…`, `e4926422…`, `56d29a49…`) scored arm A snapped **2.547953579954328** (model `2b3b5681…`, `transport.json` = icosian) against arm B free **2.5373633745806394** (model `fcc3099b…`): a **+0.010590** gap, inside the ≤ 0.02 band (0.0094 from the threshold, more than 0.005), so no second seed. Both arms ran executable `fbeedde1…`; arm A's step-0 unsnapped score reproduces S2's 2.520916; the post-hoc snap costs +0.01770 on B, of which training recovers +0.00711. Root usage (A, final): 120/120 roots, identity share 7.50%, entropy 6.32 of 6.91 bits. Scope: one seed; the 161-response development panel; 512 updates after a schedule restart (the restart, not the snap, is why both arms end above S2); S2 `8cb11d8f…` stays the loss-level reference; replies differ in 36 of 38 requests. Later phases (memory port, then QAT) continue from arm A with the snap on; arm B is the matched control. The exact D11 icosian serving kernel (S1.4) is not yet built.
++- **S1.4, merged (#1506, `0dcdb6e9`); safety successor #1533 in review.**
++  - The multiplier-free D11 engine serves the trained-in icosian snap.
++  - Against the artifact's own float reference, each window's first root divergence is a near-tie (margin ≤ 2.811e-4, 16 windows). The later 2,477 − 16 mismatches are unclassified, so broader parity stays open.
++  - Cost is +9.17% ms/token against free transport, from three interleaved pairs on a contended host.
++  - [Evidence extract](../evidence/s1-4-snap-parity-2026-09-29.json) (an unsealed root, bound by file SHA-256).
++  - The successor refuses snapped artifacts in the D10 comparator at construction, and `StackModel::load` restores a saved snap.
+ - **#1479, open:** its cost numbers are unqualified until Lab 1's fresh-root re-run on a quiet machine.
+ 
+ **The next deliverable is unchanged:** usable learned geometry and exact memory in the same saved dialogue stack, through its native learning and serving bridge. This handover asserts no new model result.

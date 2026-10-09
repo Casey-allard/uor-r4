@@ -1,0 +1,69 @@
+diff --git a/Cargo.lock b/Cargo.lock
+index 3888a0bce..1f3fcf785 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -1804,7 +1804,7 @@ dependencies = [
+ [[package]]
+ name = "uor-matmul"
+ version = "0.1.0"
+-source = "git+https://github.com/UOR-Foundation/uor-matmul.git?rev=b13c98449948174f590e337c4dc25dfc394a07d0#b13c98449948174f590e337c4dc25dfc394a07d0"
++source = "git+https://github.com/Casey-allard/uor-matmul.git?branch=issue-37-exact-fixed-weight-gemv#74123499a646264943d889e3fb98d04ae6305072"
+ dependencies = [
+  "uor-matmul-codec",
+  "uor-matmul-core",
+@@ -1815,7 +1815,7 @@ dependencies = [
+ [[package]]
+ name = "uor-matmul-codec"
+ version = "0.1.0"
+-source = "git+https://github.com/UOR-Foundation/uor-matmul.git?rev=b13c98449948174f590e337c4dc25dfc394a07d0#b13c98449948174f590e337c4dc25dfc394a07d0"
++source = "git+https://github.com/Casey-allard/uor-matmul.git?branch=issue-37-exact-fixed-weight-gemv#74123499a646264943d889e3fb98d04ae6305072"
+ dependencies = [
+  "bytemuck",
+  "uor-matmul-core",
+@@ -1824,7 +1824,7 @@ dependencies = [
+ [[package]]
+ name = "uor-matmul-core"
+ version = "0.1.0"
+-source = "git+https://github.com/UOR-Foundation/uor-matmul.git?rev=b13c98449948174f590e337c4dc25dfc394a07d0#b13c98449948174f590e337c4dc25dfc394a07d0"
++source = "git+https://github.com/Casey-allard/uor-matmul.git?branch=issue-37-exact-fixed-weight-gemv#74123499a646264943d889e3fb98d04ae6305072"
+ dependencies = [
+  "bytemuck",
+ ]
+@@ -1832,7 +1832,7 @@ dependencies = [
+ [[package]]
+ name = "uor-matmul-gemm"
+ version = "0.1.0"
+-source = "git+https://github.com/UOR-Foundation/uor-matmul.git?rev=b13c98449948174f590e337c4dc25dfc394a07d0#b13c98449948174f590e337c4dc25dfc394a07d0"
++source = "git+https://github.com/Casey-allard/uor-matmul.git?branch=issue-37-exact-fixed-weight-gemv#74123499a646264943d889e3fb98d04ae6305072"
+ dependencies = [
+  "bytemuck",
+  "uor-matmul-codec",
+@@ -1843,7 +1843,7 @@ dependencies = [
+ [[package]]
+ name = "uor-matmul-kernels"
+ version = "0.1.0"
+-source = "git+https://github.com/UOR-Foundation/uor-matmul.git?rev=b13c98449948174f590e337c4dc25dfc394a07d0#b13c98449948174f590e337c4dc25dfc394a07d0"
++source = "git+https://github.com/Casey-allard/uor-matmul.git?branch=issue-37-exact-fixed-weight-gemv#74123499a646264943d889e3fb98d04ae6305072"
+ dependencies = [
+  "bytemuck",
+  "uor-matmul-core",
+diff --git a/crates/uor-r4-graph-cli/Cargo.toml b/crates/uor-r4-graph-cli/Cargo.toml
+index f70756b9c..0b50d3741 100644
+--- a/crates/uor-r4-graph-cli/Cargo.toml
++++ b/crates/uor-r4-graph-cli/Cargo.toml
+@@ -33,4 +33,4 @@ libc = "0.2"
+ # uor_matmul_core::dot_tropical_ref (parity test), pinning our ⊗/⊕/-inf
+ # conventions to the shared implementation. Never a dependency of shipped
+ # code; the runtime keeps its own P-4-scanned source.
+-uor-matmul-core = { version = "0.1.0", git = "https://github.com/UOR-Foundation/uor-matmul.git", rev = "b13c98449948174f590e337c4dc25dfc394a07d0", default-features = false }
++uor-matmul-core = { version = "0.1.0", git = "https://github.com/Casey-allard/uor-matmul.git", branch = "issue-37-exact-fixed-weight-gemv", default-features = false }
+diff --git a/crates/uor-r4-model-source/Cargo.toml b/crates/uor-r4-model-source/Cargo.toml
+index c6c8fae91..957bb3e73 100644
+--- a/crates/uor-r4-model-source/Cargo.toml
++++ b/crates/uor-r4-model-source/Cargo.toml
+@@ -24,4 +24,4 @@ hex = "0.4.3"
+ # wires it into the teacher executor in place of the Accelerate `cblas_*` FFI.
+ # no_std, forbid(unsafe), zero-heap — its numerical path is byte-identical across
+ # targets, so promoting it makes teacher output cross-machine reproducible.
+-uor-matmul = { git = "https://github.com/UOR-Foundation/uor-matmul.git", version = "0.1.0", rev = "b13c98449948174f590e337c4dc25dfc394a07d0", default-features = false }
++uor-matmul = { git = "https://github.com/Casey-allard/uor-matmul.git", version = "0.1.0", branch = "issue-37-exact-fixed-weight-gemv", default-features = false }

@@ -1,0 +1,593 @@
+diff --git a/crates/uor-r4-training/examples/geometric-stack.rs b/crates/uor-r4-training/examples/geometric-stack.rs
+index c070b38e5..0e6a73e48 100644
+--- a/crates/uor-r4-training/examples/geometric-stack.rs
++++ b/crates/uor-r4-training/examples/geometric-stack.rs
+@@ -8,7 +8,7 @@
+ //! geometric-stack train train=TRAIN.u16[,MORE.u16] [train_weights=W1,W2] valid=VALID.u16 \
+ //!   out=NEW_REPORT_ROOT (init=ROOT/model | arch=transformer|geometric) [pattern=rrarra] \
+ //!   [read=lorentz|dot|l2] [rotation=true|false] [rotation_group=quaternion|u1] [qat=false|true] \
+-//!   [transport_snap=none|icosian] \
++//!   [transport_snap=none|icosian] [key_shift=false|true|add] \
+ //!   [seed=1] [steps=7324] [batch=16] [lr=0.002] [warmup=200] [min_lr=0.1] [weight_decay=0.1] \
+ //!   [clip=1.0] [eval_every=250] [eval_windows=64] [final_windows=512] [lens=LENS.u16] \
+ //!   [merges=MERGES.txt] [checkpoint_every=250] [resume=OLD_ROOT/checkpoint] [max_seconds=inf] \
+@@ -42,7 +42,8 @@
+ //!   train_tokens=TRAIN.uort train_mask=TRAIN.mask train_manifest=TRAIN/manifest.json \
+ //!   dev_tokens=DEV.uort dev_mask=DEV.mask dev_manifest=DEV/manifest.json \
+ //!   (init=ROOT/model | arch=geometric|transformer [shape options as train]) [qat=false|true] \
+-//!   [transport_snap=none|icosian] [select=none|flock:WINDOW:K] [pointer=none|DIM] \
++//!   [transport_snap=none|icosian] [key_shift=false|true|add] [select=none|flock:WINDOW:K] \
++//!   [pointer=none|DIM] \
+ //!   [pointer_score=dot|lorentz] [pointer_select=none|flock:WINDOW:K|top:K] \
+ //!   [pointer_route=none|prime:WINDOW|prime-ranked:WINDOW|ngram:WINDOW|ngram-ranked:WINDOW] \
+ //!   [context=256] \
+@@ -93,6 +94,20 @@
+ //! count of the configuration they control (`read=lorentz`,
+ //! `rotation_group=quaternion`, the default).
+ //!
++//! `key_shift=true` (in `train` and `dialogue-train`) trains every geometric
++//! read with the previous-token key channel (`StackModel::set_read_key_shift`):
++//! each read key also carries the previous position's key turned by the unit
++//! quaternion `j`, with no parameters. The saved model records it in its
++//! `config.json` and every later load restores it. After `init=` the setting
++//! must equal the saved model's: `key_shift=false` from a shifted model is
++//! refused (it would silently change its reads), and `key_shift=true` from an
++//! unshifted one is refused too. `key_shift=add` is the explicit way to add
++//! the channel to a model trained without it (a design choice: its weights
++//! are kept and its reads change from the first step, so the run's report and
++//! lineage record `added_to_init`). A resume must present the same setting.
++//! It has no served representation or integer export yet, so `qat=true`
++//! refuses it and the export modes refuse a model with it.
++//!
+ //! `transport_snap=icosian` (in `train` and `dialogue-train`, after `init=`
+ //! and on a resume alike) trains with every recurrence's unit transport
+ //! quaternion snapped to the nearest of the 120 unit icosians of 2I before
+@@ -684,6 +699,8 @@ struct Settings {
+     qat: bool,
+     /// Train with the transport snapped (`transport_snap=`).
+     transport_snap: Option<TransportSnap>,
++    /// `key_shift=`: the reads' previous-token key channel.
++    key_shift: KeyShift,
+     steps: usize,
+     batch: usize,
+     lr: f64,
+@@ -949,6 +966,85 @@ impl InitFiles {
+         })
+     }
+ }
++/// `key_shift=false|true|add` (default false); see the module notes.
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++enum KeyShift {
++    Off,
++    On,
++    /// Add the channel to an `init=` model saved without it.
++    AddToInit,
++}
++
++impl KeyShift {
++    fn enabled(self) -> bool {
++        self != KeyShift::Off
++    }
++
++    fn name(self) -> &'static str {
++        match self {
++            KeyShift::Off => "false",
++            KeyShift::On => "true",
++            KeyShift::AddToInit => "added_to_init",
++        }
++    }
++
++    /// Set the requested key shift on a model just built (`from_init`
++    /// false) or loaded from `init=` (true), refusing any silent change.
++    fn apply(self, model: &mut StackModel, from_init: bool) -> Result<()> {
++        let saved = model.read_key_shift();
++        match (self, from_init, saved) {
++            (KeyShift::Off, _, false) | (KeyShift::On, _, true) => Ok(()),
++            (KeyShift::On, false, false) | (KeyShift::AddToInit, true, false) => {
++                model.set_read_key_shift(true)
++            }
++            (KeyShift::Off, _, true) => Err(invalid(
++                "init='s model has the read key shift; key_shift=false would drop it",
++            )),
++            (KeyShift::On, true, false) => Err(invalid(
++                "init='s model has no read key shift; key_shift=add adds it explicitly",
++            )),
++            (KeyShift::AddToInit, true, true) => Err(invalid(
++                "init='s model already has the read key shift; use key_shift=true",
++            )),
++            (KeyShift::AddToInit, false, _) => Err(invalid(
++                "key_shift=add needs init= of a model without the shift",
++            )),
++        }
++    }
++
++    /// A resumed model must carry the setting its run requested.
++    fn check_resumed(self, model: &StackModel) -> Result<()> {
++        if model.read_key_shift() != self.enabled() {
++            return Err(invalid(
++                "the checkpoint's model and key_shift= disagree on the read key shift",
++            ));
++        }
++        Ok(())
++    }
++}
++
++fn key_shift_arg(args: &Args) -> Result<KeyShift> {
++    let shift = match args.optional("key_shift").as_deref() {
++        None | Some("false") => KeyShift::Off,
++        Some("true") => KeyShift::On,
++        Some("add") => KeyShift::AddToInit,
++        Some(other) => {
++            return Err(invalid(format!(
++                "invalid key_shift={other} (false, true or add)"
++            )))
++        }
++    };
++    if shift.enabled() && qat_flag(args)? {
++        return Err(invalid(
++            "the read key shift has no served representation; train it without qat=true",
++        ));
++    }
++    if shift == KeyShift::AddToInit && args.optional("init").is_none() {
++        return Err(invalid("key_shift=add needs init="));
++    }
++    Ok(shift)
++}
++
+ /// `transport_snap=none|icosian` (default none).
+ fn transport_snap_arg(args: &Args) -> Result<Option<TransportSnap>> {
+     match args.optional("transport_snap").as_deref() {
+@@ -983,6 +1079,7 @@ impl Settings {
+             "config": self.config, "init": init,
+             "qat": self.qat, "qat_codec": self.qat.then(|| qat_codec().name().to_owned()),
+             "transport_snap": self.transport_snap,
++            "key_shift": self.key_shift.name(),
+             "steps": self.steps, "batch": self.batch, "lr": self.lr,
+             "warmup": self.warmup, "min_lr": self.min_lr, "weight_decay": self.weight_decay,
+             "clip": self.clip, "eval_every": self.eval_every, "eval_windows": self.eval_windows,
+@@ -1008,6 +1105,10 @@ impl Settings {
+         if let Some(snap) = self.transport_snap {
+             lineage["transport_snap"] = snap.record();
+         }
++        // Only when set, so earlier runs' checkpoints still resume.
++        if self.key_shift.enabled() {
++            lineage["key_shift"] = json!(self.key_shift.name());
++        }
+         lineage
+     }
+ 
+@@ -1310,6 +1411,13 @@ fn train_settings(args: &Args) -> Result<Settings> {
+     if let Some(snap) = transport_snap {
+         snap.check(&config)?;
+     }
++    let key_shift = key_shift_arg(args)?;
++    if key_shift.enabled() && (config.arch != StackArch::Geometric || !config.pattern.contains('a'))
++    {
++        return Err(invalid(
++            "key_shift needs a geometric stack with a read layer",
++        ));
++    }
+     let train: Vec<PathBuf> = args
+         .required("train")?
+         .split(',')
+@@ -1343,6 +1451,7 @@ fn train_settings(args: &Args) -> Result<Settings> {
+         init,
+         qat,
+         transport_snap,
++        key_shift,
+         steps: args.number("steps", 7324)?,
+         batch: args.number("batch", 16)?,
+         lr: args.number("lr", 0.002)?,
+@@ -1839,9 +1948,14 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
+                         return Err(invalid("init='s model differs from its config.json"));
+                     }
+                     model.config = saved;
++                    settings.key_shift.apply(&mut model, true)?;
++                    model
++                }
++                None => {
++                    let mut model = StackModel::new(settings.config.clone(), &device)?;
++                    settings.key_shift.apply(&mut model, false)?;
+                     model
+                 }
+-                None => StackModel::new(settings.config.clone(), &device)?,
+             };
+             let optimizer = StackAdamW::new(&model, settings.weight_decay, settings.clip)?;
+             let progress = Progress {
+@@ -1855,6 +1969,7 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
+         Some(checkpoint) => {
+             let (model, optimizer, progress, state) =
+                 load_checkpoint(checkpoint, &lineage, &device)?;
++            settings.key_shift.check_resumed(&model)?;
+             (model, optimizer, progress, Some(state))
+         }
+     };
+@@ -1876,7 +1991,8 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
+     // data_parallel=2: a replica on GPU 1 with the primary's current weights
+     // (after init= or a resume alike).
+     let replica = if settings.data_parallel == 2 {
+-        let replica = StackModel::new(model.config.clone(), &Device::new_cuda(1)?)?;
++        let mut replica = StackModel::new(model.config.clone(), &Device::new_cuda(1)?)?;
++        replica.set_read_key_shift(model.read_key_shift())?;
+         replica.copy_variables_from(&model)?;
+         eprintln!(
+             "data parallel: replica on GPU 1, batch halves of {}",
+@@ -3445,6 +3561,8 @@ struct DialogueSettings {
+     qat: bool,
+     /// Train with the transport snapped (`transport_snap=`), as `train` does.
+     transport_snap: Option<TransportSnap>,
++    /// `key_shift=`, as `train` takes it.
++    key_shift: KeyShift,
+     /// `select=`, `pointer=`, `pointer_score=`, `pointer_select=` and
+     /// `pointer_route=` as given (the A1 read mechanisms and the prime route).
+     select: Option<String>,
+@@ -3484,6 +3602,7 @@ impl DialogueSettings {
+             "init": self.init,
+             "qat": self.qat, "qat_codec": self.qat.then(|| qat_codec().name().to_owned()),
+             "transport_snap": self.transport_snap,
++            "key_shift": self.key_shift.name(),
+             "policy": self.policy, "data_seed": self.data_seed,
+             "steps": self.steps, "batch": self.batch, "lr": self.lr, "warmup": self.warmup,
+             "min_lr": self.min_lr, "weight_decay": self.weight_decay, "clip": self.clip,
+@@ -3547,6 +3666,10 @@ impl DialogueSettings {
+         if let Some(snap) = self.transport_snap {
+             lineage["transport_snap"] = snap.record();
+         }
++        // Only when set, so earlier runs' checkpoints still resume.
++        if self.key_shift.enabled() {
++            lineage["key_shift"] = json!(self.key_shift.name());
++        }
+         Ok(lineage)
+     }
+ }
+@@ -3632,6 +3755,7 @@ fn dialogue_train_mode(arguments: &[String]) -> Result<()> {
+             "device",
+             "qat",
+             "transport_snap",
++            "key_shift",
+             "select",
+             "pointer",
+             "pointer_score",
+@@ -3660,6 +3784,7 @@ fn dialogue_train_mode(arguments: &[String]) -> Result<()> {
+         init: args.optional("init").map(PathBuf::from),
+         qat: qat_flag(&args)?,
+         transport_snap: transport_snap_arg(&args)?,
++        key_shift: key_shift_arg(&args)?,
+         select: args.optional("select"),
+         pointer: args.optional("pointer"),
+         pointer_score: args.optional("pointer_score"),
+@@ -3956,9 +4081,14 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
+                             "the extended init= model differs from its configuration",
+                         ));
+                     }
++                    s.key_shift.apply(&mut model, true)?;
++                    model
++                }
++                None => {
++                    let mut model = StackModel::new(config.clone(), &device)?;
++                    s.key_shift.apply(&mut model, false)?;
+                     model
+                 }
+-                None => StackModel::new(config.clone(), &device)?,
+             };
+             // The optimizer is built after any pointer head is added.
+             let optimizer = StackAdamW::new(&model, s.weight_decay, s.clip)?;
+@@ -3985,6 +4115,7 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
+                     "the checkpoint's model records a different pointer init seed than its lineage",
+                 ));
+             }
++            s.key_shift.check_resumed(&model)?;
+             (model, optimizer, progress, Some(state))
+         }
+     };
+@@ -4844,7 +4975,7 @@ geometric-stack dialogue-train out=NEW_REPORT_ROOT tokenizer=TOKENIZER.json \\
+   train_tokens=TRAIN.uort train_mask=TRAIN.mask train_manifest=TRAIN/manifest.json \\
+   dev_tokens=DEV.uort dev_mask=DEV.mask dev_manifest=DEV/manifest.json \\
+   (init=ROOT/model | arch=geometric|transformer [width= heads= layers= pattern= read= rotation= \\
+-  stack_mlp= mlp=]) [qat=false|true] [transport_snap=none|icosian] \\
++  stack_mlp= mlp=]) [qat=false|true] [transport_snap=none|icosian] [key_shift=false|true|add] \\
+   [select=none|flock:WINDOW:K] [pointer=none|DIM] [pointer_score=dot|lorentz] \\
+   [pointer_select=none|flock:WINDOW:K|top:K] \\
+   [pointer_route=none|prime:WINDOW|prime-ranked:WINDOW|ngram:WINDOW|ngram-ranked:WINDOW] \\
+@@ -4962,6 +5093,7 @@ fn main() -> Result<()> {
+                     "init",
+                     "qat",
+                     "transport_snap",
++                    "key_shift",
+                     "data_parallel",
+                     "tf32",
+                 ],
+@@ -5452,4 +5584,45 @@ mod tests {
+         assert!(refuse_mixture_sampling(&[]).is_ok());
+         Ok(())
+     }
++
++    #[test]
++    fn key_shift_is_never_changed_silently() -> Result<()> {
++        let config = StackConfig::geometric_matched_to(
++            &StackConfig::transformer(16, 2, 3, 24, 12, 5)?,
++            "rra",
++            ReadScore::L2,
++            true,
++        )?;
++        let fresh = || StackModel::new(config.clone(), &Device::Cpu);
++        // A new model takes the request.
++        let mut model = fresh()?;
++        KeyShift::On.apply(&mut model, false)?;
++        assert!(model.read_key_shift());
++        KeyShift::On.check_resumed(&model)?;
++        assert!(KeyShift::Off.check_resumed(&model).is_err());
++        assert!(KeyShift::AddToInit.apply(&mut fresh()?, false).is_err());
++        // From init=: equal settings pass, adding needs key_shift=add, dropping is refused.
++        let mut plain = fresh()?;
++        KeyShift::Off.apply(&mut plain, true)?;
++        assert!(!plain.read_key_shift());
++        assert!(KeyShift::On.apply(&mut plain, true).is_err());
++        KeyShift::AddToInit.apply(&mut plain, true)?;
++        assert!(plain.read_key_shift());
++        assert!(KeyShift::Off.apply(&mut plain, true).is_err());
++        assert!(KeyShift::AddToInit.apply(&mut plain, true).is_err());
++        KeyShift::On.apply(&mut plain, true)?;
++        // qat has no served form for it; add needs init=.
++        let keys = ["key_shift", "qat", "init"];
++        let parse = |pairs: &[&str]| {
++            let arguments: Vec<String> = pairs.iter().map(|p| (*p).to_owned()).collect();
++            Args::parse(&arguments, &keys).and_then(|args| key_shift_arg(&args))
++        };
++        assert_eq!(parse(&[])?, KeyShift::Off);
++        assert_eq!(parse(&["key_shift=true"])?, KeyShift::On);
++        assert!(parse(&["key_shift=true", "qat=true"]).is_err());
++        assert!(parse(&["key_shift=add"]).is_err());
++        assert_eq!(parse(&["key_shift=add", "init=x"])?, KeyShift::AddToInit);
++        assert!(parse(&["key_shift=yes"]).is_err());
++        Ok(())
++    }
+ }
+diff --git a/crates/uor-r4-training/examples/mqar-bench.rs b/crates/uor-r4-training/examples/mqar-bench.rs
+index ee36551e6..31a12df6a 100644
+--- a/crates/uor-r4-training/examples/mqar-bench.rs
++++ b/crates/uor-r4-training/examples/mqar-bench.rs
+@@ -1598,7 +1598,7 @@ mod tests {
+     }
+ 
+     #[test]
+-    fn the_key_shift_is_causal_reads_the_previous_token_and_refuses_save() {
++    fn the_key_shift_is_causal_reads_the_previous_token_and_survives_save() {
+         let mut model = StackModel::new(small("aa", true), &Device::Cpu).expect("model");
+         let ids: Vec<u32> = (0..12).map(|i| 64 + 7 * i).collect();
+         let plain = last_logits(&model, &ids);
+@@ -1615,8 +1615,11 @@ mod tests {
+         // Position 0 has no predecessor: its key is unchanged by the shift.
+         assert_eq!(plain[0], shifted[0]);
+         let dir = std::env::temp_dir().join(format!("mqar-key-shift-{}", std::process::id()));
+-        assert!(model.save(&dir).is_err());
+-        assert!(!dir.exists());
++        model.save(&dir).expect("save");
++        let loaded = StackModel::load(&dir, &Device::Cpu).expect("load");
++        assert!(loaded.read_key_shift());
++        assert_eq!(last_logits(&loaded, &changed), after);
++        std::fs::remove_dir_all(&dir).expect("cleanup");
+     }
+ 
+     #[test]
+diff --git a/crates/uor-r4-training/src/geometric_attention_native.rs b/crates/uor-r4-training/src/geometric_attention_native.rs
+index 87c8b5015..5ded9a121 100644
+--- a/crates/uor-r4-training/src/geometric_attention_native.rs
++++ b/crates/uor-r4-training/src/geometric_attention_native.rs
+@@ -442,6 +442,7 @@ impl<'a> CompiledGeometricAttention<'a> {
+             || c.pointer.is_some()
+             || model.served_codec().is_some()
+             || model.read_identity_carry()
++            || model.read_key_shift()
+             || model.read_identity_latch().is_some()
+         {
+             return Err(invalid(
+diff --git a/crates/uor-r4-training/src/geometric_stack.rs b/crates/uor-r4-training/src/geometric_stack.rs
+index feef8a3d7..d82ef1775 100644
+--- a/crates/uor-r4-training/src/geometric_stack.rs
++++ b/crates/uor-r4-training/src/geometric_stack.rs
+@@ -2134,8 +2134,11 @@ impl StackModel {
+     /// position whose predecessor carried my key" through the `j`-turned
+     /// channel, separately from the current-token channel.
+     ///
+-    /// Offline float research only: there is no saved or served form, so
+-    /// [`Self::save`] refuses a model with it enabled. The default is false.
++    /// [`Self::save`] records it as `"read_key_shift": true` in
++    /// `config.json` ([`READ_KEY_SHIFT_FIELD`]) and [`Self::load`] restores
++    /// it; a model without it keeps the legacy config bytes exactly. It has
++    /// no served (QAT) representation and no integer export yet: both refuse
++    /// it. The default is false.
+     pub fn set_read_key_shift(&mut self, enabled: bool) -> Result<()> {
+         if enabled {
+             if self.config.arch != StackArch::Geometric || !self.config.pattern.contains('a') {
+@@ -6409,11 +6412,6 @@ impl StackModel {
+     /// and pins its digest in config.json; a default save removes stale carry
+     /// metadata and retains the legacy config byte format.
+     pub fn save(&self, directory: &Path) -> Result<()> {
+-        if self.read_key_shift {
+-            return Err(invalid(
+-                "the read key shift is an unsaved research option; refusing to save without it",
+-            ));
+-        }
+         if let Some(span) = &self.geometric_span {
+             span.validate(self.config.width)?;
+             if self.geometric_address.is_none() || self.read_identity_latch.is_some() {
+@@ -6566,6 +6564,12 @@ impl StackModel {
+                 Err(error) => return Err(error.into()),
+             }
+         }
++        if self.read_key_shift {
++            // Only when set, so every model without it keeps its exact bytes.
++            let mut with_field: serde_json::Value = serde_json::from_slice(&config)?;
++            with_field[READ_KEY_SHIFT_FIELD] = serde_json::Value::Bool(true);
++            config = serde_json::to_vec_pretty(&with_field)?;
++        }
+         fs::write(directory.join("config.json"), config)?;
+         let record = directory.join(TRANSPORT_RECORD);
+         match self.transport {
+@@ -6620,6 +6624,22 @@ impl StackModel {
+         Ok(Some(snap))
+     }
+ 
++    /// Whether `directory`'s `config.json` records the read key shift
++    /// ([`Self::set_read_key_shift`]). Absent means false, as for every model
++    /// saved before the field existed; only `true` is ever written, so any
++    /// other value is refused rather than read as false.
++    pub fn saved_read_key_shift(directory: &Path) -> Result<bool> {
++        let config: serde_json::Value =
++            serde_json::from_slice(&fs::read(directory.join("config.json"))?)?;
++        match config.get(READ_KEY_SHIFT_FIELD) {
++            None => Ok(false),
++            Some(serde_json::Value::Bool(true)) => Ok(true),
++            Some(_) => Err(invalid(format!(
++                "config.json's {READ_KEY_SHIFT_FIELD} must be absent or true"
++            ))),
++        }
++    }
++
+     /// Read and verify the opt-in carry record. Legacy directories without a
+     /// marker or sidecar mean false. A declared-but-missing, undeclared-extra,
+     /// stale or mismatched record is refused, including unknown operations.
+@@ -6905,6 +6925,7 @@ impl StackModel {
+         };
+         model.set_transport_snap(Self::saved_transport_snap(directory)?)?;
+         model.set_read_identity_carry(Self::saved_read_identity_carry(directory)?)?;
++        model.set_read_key_shift(Self::saved_read_key_shift(directory)?)?;
+         Ok(model)
+     }
+ }
+@@ -8091,6 +8112,9 @@ impl StackModel {
+             Some(_) if self.read_identity_carry => {
+                 return Err(invalid("read identity carry has no served representation"));
+             }
++            Some(_) if self.read_key_shift => {
++                return Err(invalid("the read key shift has no served representation"));
++            }
+             Some(_) if self.read_identity_latch.is_some() => {
+                 return Err(invalid("read identity latch has no served representation"));
+             }
+@@ -8878,6 +8902,10 @@ impl CustomOp2 for QuaternionScan {
+     }
+ }
+ 
++/// The `config.json` field that records the read key shift
++/// ([`StackModel::set_read_key_shift`]); written only when it is set.
++pub const READ_KEY_SHIFT_FIELD: &str = "read_key_shift";
++
+ /// Left multiplication by the unit quaternion `j` of every four-channel lane
+ /// of the last dimension: `j (a + b i + c j + d k) = -c + d i + a j - b k`,
+ /// the signed permutation `(a, b, c, d) -> (-c, d, a, -b)`. Exact (no
+@@ -17259,6 +17287,67 @@ mod tests {
+         Ok(())
+     }
+ 
++    #[test]
++    fn read_key_shift_save_load_is_bit_exact_and_default_format_stays_legacy() -> Result<()> {
++        let root =
++            std::env::temp_dir().join(format!("stack-read-key-shift-{}", std::process::id()));
++        let (free_dir, shift_dir) = (root.join("free"), root.join("shift"));
++        let mut model = StackModel::new(
++            tiny(StackArch::Geometric, "rra", ReadScore::L2, true),
++            &cpu(),
++        )?;
++        let ids = [1, 2, 3, 4, 5, 6, 7, 8];
++        model.save(&free_dir)?;
++        assert_eq!(
++            fs::read(free_dir.join("config.json"))?,
++            serde_json::to_vec_pretty(&model.config)?
++        );
++        assert!(!StackModel::saved_read_key_shift(&free_dir)?);
++        assert!(!StackModel::load(&free_dir, &cpu())?.read_key_shift());
++        let unshifted = bits(&model.forward(&ids, 1, ids.len())?)?;
++        model.set_read_key_shift(true)?;
++        let expected = bits(&model.forward(&ids, 1, ids.len())?)?;
++        assert_ne!(expected, unshifted);
++        model.save(&shift_dir)?;
++        let config: serde_json::Value =
++            serde_json::from_slice(&fs::read(shift_dir.join("config.json"))?)?;
++        assert_eq!(config[READ_KEY_SHIFT_FIELD], serde_json::json!(true));
++        // The field sits beside an unchanged StackConfig.
++        assert_eq!(
++            serde_json::from_value::<StackConfig>(config.clone())?,
++            model.config
++        );
++        assert!(StackModel::saved_read_key_shift(&shift_dir)?);
++        let loaded = StackModel::load(&shift_dir, &cpu())?;
++        assert!(loaded.read_key_shift());
++        assert_eq!(bits(&loaded.forward(&ids, 1, ids.len())?)?, expected);
++        // Only `true` is ever written; any other value is refused, not read as false.
++        for bad in [serde_json::json!(false), serde_json::json!("yes")] {
++            let mut altered = config.clone();
++            altered[READ_KEY_SHIFT_FIELD] = bad;
++            fs::write(
++                shift_dir.join("config.json"),
++                serde_json::to_vec_pretty(&altered)?,
++            )?;
++            assert!(StackModel::load(&shift_dir, &cpu()).is_err());
++        }
++        fs::remove_dir_all(root)?;
++        // No served form: refused in both orders (on a Dot read, which has one).
++        let mut config = tiny(StackArch::Geometric, "ra", ReadScore::Dot, true);
++        config.width = 32;
++        config.mlp_hidden = 64;
++        let mut served = StackModel::new(config.clone(), &cpu())?;
++        served.set_served_representation(Some(Arc::new(D11Interim)))?;
++        assert!(served.set_read_key_shift(true).is_err());
++        let mut shifted = StackModel::new(config, &cpu())?;
++        shifted.set_read_key_shift(true)?;
++        assert!(shifted
++            .set_served_representation(Some(Arc::new(D11Interim)))
++            .is_err());
++        assert!(shifted.read_key_shift() && shifted.served_codec().is_none());
++        Ok(())
++    }
++
+     #[test]
+     fn read_identity_carry_refuses_served_mode_in_both_orders() -> Result<()> {
+         let mut config = tiny(StackArch::Geometric, "ra", ReadScore::Dot, true);
+diff --git a/crates/uor-r4-training/src/stack_export.rs b/crates/uor-r4-training/src/stack_export.rs
+index 64c4f91a9..69abcdc92 100644
+--- a/crates/uor-r4-training/src/stack_export.rs
++++ b/crates/uor-r4-training/src/stack_export.rs
+@@ -343,6 +343,11 @@ pub fn export_stack(
+     if model.read_identity_carry() {
+         return Err(invalid("read identity carry has no integer export"));
+     }
++    if model.read_key_shift() {
++        return Err(invalid(
++            "the read key shift has no integer export yet (no D11 served form)",
++        ));
++    }
+     if model.geometric_span().is_some() {
+         return Err(invalid("geometric span producer has no integer export"));
+     }
+@@ -983,6 +988,11 @@ pub fn stack_grid_reference(
+     model: &StackModel,
+     artifact: &uor_r4_lut::format::StackArtifact,
+ ) -> Result<GridReference> {
++    if model.read_key_shift() {
++        return Err(invalid(
++            "the read key shift has no integer grid reference yet (no D11 served form)",
++        ));
++    }
+     if model.read_identity_carry() {
+         return Err(invalid("read identity carry has no integer grid reference"));
+     }
+@@ -1712,6 +1722,17 @@ mod tests {
+         Ok(())
+     }
+ 
++    #[test]
++    fn read_key_shift_refuses_export_and_grid_reference() -> Result<()> {
++        let mut model = small("rra", ReadScore::L2, true);
++        let (bytes, _) = export_stack(&model, json!({}), None, None)?;
++        let artifact = StackArtifact::parse(bytes).map_err(lut_error)?;
++        model.set_read_key_shift(true)?;
++        assert!(export_stack(&model, json!({}), None, None).is_err());
++        assert!(stack_grid_reference(&model, &artifact).is_err());
++        Ok(())
++    }
++
+     #[test]
+     fn read_identity_latch_refuses_export_and_grid_reference() -> Result<()> {
+         for mode in [

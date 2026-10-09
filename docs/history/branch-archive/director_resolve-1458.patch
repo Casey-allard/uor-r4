@@ -1,0 +1,1487 @@
+diff --git a/crates/uor-r4-integer/src/codec.rs b/crates/uor-r4-integer/src/codec.rs
+new file mode 100644
+index 000000000..a29b78a27
+--- /dev/null
++++ b/crates/uor-r4-integer/src/codec.rs
+@@ -0,0 +1,1333 @@
++//! Multiplier-free codec primitives for D4: building blocks, **unevaluated**.
++//!
++//! **Status (2026-09-28).** No primitive in this module has been evaluated on
++//! any model. D4 (geometry-coded weight coding, Lab 3) is open and unmeasured.
++//! The D4 figures first attached to #1458 were typed constants, not
++//! measurements, and are withdrawn; see
++//! `docs/integration/d4-codec-primitives-2026-09-28.md`. The unit tests below
++//! check arithmetic and algebraic properties only, never model fidelity.
++//!
++//! **Primitives and intended use.**
++//!
++//! | Primitive | Arithmetic | Intended use |
++//! |---|---|---|
++//! | [`fwht_slice`], [`fwht_normalized`] | integer addition, subtraction, shift | export time (rotating weights) and serving time (rotating activations) |
++//! | [`deterministic_signs`] | integer shift and XOR | export and load time (the rotation's sign vector), not per token |
++//! | [`randomized_hadamard_transform`] | integer | export time (weights) and serving time (activations) |
++//! | [`inverse_randomized_hadamard_transform`] | integer | export-time evaluation only |
++//! | [`Grouped4BitRow::encode_f32`], [`Grouped4BitRow::dequantize_f32`] | floating point | export time and offline evaluation only |
++//! | [`Grouped4BitRow::from_parts`] | integer comparison and addition | load time |
++//! | [`Grouped4BitRow::to_q16_vector`], [`Grouped4BitRow::dot_integer`], [`mul_small_code_i64`] | integer addition, subtraction, shift | serving-time candidates |
++//! | [`d8_round`], [`e8_round`] | floating point | export time only |
++//! | [`apply_codec_arm`] | floating point and the integer rotation | export-time fake quantization, for evaluation only |
++//!
++//! **Serving-time use still needs the ARM64 audit.** The integer primitives
++//! are written with additions, subtractions, shifts, comparisons and table
++//! reads, and their serving-time candidates avoid `/`, `%` and runtime-length
++//! `chunks_exact`. That is a property of the source, not of a compiled binary:
++//! none of these symbols is listed in `scripts/audit_zero_matmul_serving.py`,
++//! so D11's no-multiplier, no-float contract is not verified for them.
++//!
++//! **Limitations for D4.**
++//! - The rotation works in blocks of [`HADAMARD_BLOCK`] (64), and grouped codes
++//!   need a row length that is a multiple of the group size. The cycle-4
++//!   `geometric_s1` has width 288 and MLP width 749, so the Hadamard + grouped
++//!   4-bit configuration cannot encode that model as written.
++//! - The group scale is a pure power of two. The D11 interim format measured in
++//!   S1.0 stores a one-byte scale with a 4-bit mantissa per group of 32.
++//! - [`deterministic_signs`] is a linear generator with four taps; a sparse
++//!   seed gives long runs of equal signs in the first blocks.
++//! - The E8 root codebook of the original #1458 was removed (mixed root scales,
++//!   no zero codeword, and 1 bit per weight rather than the stated 2). Only the
++//!   Conway-Sloane lattice rounder is kept.
++
++use crate::math::{self, MathResult};
++use crate::{invalid, Result};
++use std::sync::Arc;
++
++/// Default group size for grouped 4-bit codes.
++pub const DEFAULT_GROUP_SIZE: usize = 32;
++/// Dimension of the E8 lattice rounder.
++pub const E8_DIM: usize = 8;
++/// Block size of the randomized Hadamard rotation.
++pub const HADAMARD_BLOCK: usize = 64;
++/// Normalizing shift of a [`HADAMARD_BLOCK`]-point transform: `sqrt(64) = 2^3`.
++pub const HADAMARD_BLOCK_SHIFT: u32 = 3;
++/// Largest normalizing shift accepted by [`fwht_normalized`].
++pub const MAX_FWHT_SHIFT: u32 = 62;
++/// Largest code magnitude of the signed 4-bit grid; the code `-8` is not used.
++pub const MAX_CODE_MAGNITUDE: i8 = 7;
++/// Smallest per-group exponent; groups of smaller magnitude use this one.
++pub const MIN_GROUP_EXPONENT: i16 = -24;
++/// Largest per-group exponent; a group that needs a larger one is an error.
++pub const MAX_GROUP_EXPONENT: i16 = 16;
++/// Taps of the sign generator's right-shifting Galois LFSR. This is not the
++/// crate's `GALOIS_POLY_64`, which `galois_lfsr_step` uses for prime signatures.
++pub const SIGN_LFSR_TAPS: u64 = 0xD800_0000_0000_0000;
++/// Starting state used for seed zero, which is the LFSR's fixed point.
++pub const SIGN_LFSR_ZERO_SEED_STATE: u64 = 0x517C_C1B7_2722_0A95;
++/// Fraction bits of the fixed point in which [`apply_codec_arm`] rotates rows.
++pub const FAKE_QUANT_FRACTION_BITS: i32 = 30;
++/// Largest coordinate magnitude accepted by [`d8_round`] and [`e8_round`]:
++/// `2^50`, so every half-integer near an input is exactly representable.
++pub const LATTICE_ROUND_LIMIT: f64 = 1_125_899_906_842_624.0;
++
++/// Fixed-point values at or beyond this magnitude (`2^62`) are rejected.
++const FIXED_POINT_LIMIT: f64 = 4_611_686_018_427_387_904.0;
++
++fn arithmetic<T>(value: MathResult<T>) -> Result<T> {
++    value.map_err(|error| invalid(format!("codec arithmetic: {error}")))
++}
++
++// ---------------------------------------------------------------------------
++// Fast Walsh-Hadamard transform and the randomized rotation
++// ---------------------------------------------------------------------------
++
++/// In-place unnormalized fast Walsh-Hadamard transform of a power-of-two slice.
++///
++/// Computes `H x`, where `H` is the Sylvester-Hadamard matrix of order `n`
++/// (entry `(i, k)` is `(-1)^popcount(i & k)`). `H` is symmetric and
++/// `H H = n I`, so applying the transform twice multiplies by `n`, and
++/// `<Hx, Hy> = n <x, y>`. Butterfly additions and subtractions only; overflow
++/// is an error.
++pub fn fwht_slice(data: &mut [i64]) -> Result<()> {
++    let len = data.len();
++    if !len.is_power_of_two() {
++        return Err(invalid("FWHT length must be a non-zero power of two"));
++    }
++    let mut h = 1;
++    while h < len {
++        let mut i = 0;
++        while i < len {
++            for j in i..(i + h) {
++                let u = data[j];
++                let v = data[j + h];
++                data[j] = u
++                    .checked_add(v)
++                    .ok_or_else(|| invalid("FWHT overflow on add"))?;
++                data[j + h] = u
++                    .checked_sub(v)
++                    .ok_or_else(|| invalid("FWHT overflow on sub"))?;
++            }
++            i += h << 1;
++        }
++        h <<= 1;
++    }
++    Ok(())
++}
++
++/// Fast Walsh-Hadamard transform followed by a rounding right shift:
++/// `floor((H x + 2^(shift-1)) / 2^shift)`, that is, round to nearest with
++/// ties toward positive infinity.
++///
++/// For `n = 4^k` elements, `shift = k` gives `H / sqrt(n)`, an orthonormal
++/// rotation up to that rounding (`n = 64`, `shift = 3`). `shift` may be at
++/// most [`MAX_FWHT_SHIFT`]; overflow is an error.
++pub fn fwht_normalized(data: &mut [i64], shift: u32) -> Result<()> {
++    if shift > MAX_FWHT_SHIFT {
++        return Err(invalid(format!(
++            "FWHT normalizing shift {shift} exceeds {MAX_FWHT_SHIFT}"
++        )));
++    }
++    fwht_slice(data)?;
++    if shift > 0 {
++        let half = 1i64 << (shift - 1);
++        for value in data.iter_mut() {
++            *value = value
++                .checked_add(half)
++                .ok_or_else(|| invalid("FWHT rounding overflow"))?
++                >> shift;
++        }
++    }
++    Ok(())
++}
++
++/// One step of the sign generator: a right-shifting Galois LFSR with taps
++/// [`SIGN_LFSR_TAPS`]. The step is linear over GF(2); the unit test
++/// `sign_lfsr_has_maximal_period` checks that its matrix has multiplicative
++/// order `2^64 - 1`, so every nonzero state has period `2^64 - 1`.
++#[inline]
++fn sign_lfsr_step(state: u64) -> u64 {
++    let feedback = if state & 1 != 0 { SIGN_LFSR_TAPS } else { 0 };
++    (state >> 1) ^ feedback
++}
++
++/// Deterministic `+1`/`-1` sign vector for the randomized Hadamard rotation.
++///
++/// Sign `i` is the low bit of the LFSR state after `i + 1` steps from `seed`
++/// (`0` gives `+1`, `1` gives `-1`); seed zero, the LFSR's fixed point, starts
++/// from [`SIGN_LFSR_ZERO_SEED_STATE`] instead. The same `(dim, seed)` always
++/// gives the same vector, and a shorter vector is a prefix of a longer one.
++/// No external random number generator is used.
++///
++/// **Limitation.** The generator is linear with four taps. A sparse seed (few
++/// set bits, such as a small integer) gives long runs of `+1` in the first
++/// blocks, which weakens the rotation's randomization. A dense 64-bit seed
++/// avoids this; the seed schedule is part of D4's design.
++pub fn deterministic_signs(dim: usize, seed: u64) -> Vec<i8> {
++    let mut state = if seed == 0 {
++        SIGN_LFSR_ZERO_SEED_STATE
++    } else {
++        seed
++    };
++    let mut signs = Vec::with_capacity(dim);
++    for _ in 0..dim {
++        state = sign_lfsr_step(state);
++        signs.push(if state & 1 == 0 { 1 } else { -1 });
++    }
++    signs
++}
++
++/// Randomized Hadamard rotation `R = H D / 8`, in blocks of [`HADAMARD_BLOCK`].
++///
++/// For each 64-element block: negate the elements whose sign is `-1` (`D`),
++/// apply the 64-point transform (`H`), and round-shift by 3 bits (`/ 8`). `R`
++/// is orthonormal up to that rounding, so rotating a weight row and an
++/// activation vector by the same `R` preserves their dot product up to
++/// rounding; that is the rotation's serving-time role.
++///
++/// Errors: a length that is not a multiple of 64, a sign vector whose length
++/// differs from the data's, a sign other than `+1` or `-1`, or overflow.
++pub fn randomized_hadamard_transform(data: &mut [i64], signs: &[i8]) -> Result<()> {
++    check_rotation_shape(data, signs)?;
++    for (block, block_signs) in data
++        .chunks_exact_mut(HADAMARD_BLOCK)
++        .zip(signs.chunks_exact(HADAMARD_BLOCK))
++    {
++        apply_signs(block, block_signs)?;
++        fwht_normalized(block, HADAMARD_BLOCK_SHIFT)?;
++    }
++    Ok(())
++}
++
++/// Inverse rotation `R^T = D H / 8`: the transform and round-shift, then the
++/// sign flips.
++///
++/// Because `H` is symmetric and `H H = 64 I`, this undoes
++/// [`randomized_hadamard_transform`] up to the two roundings: each coordinate
++/// of a round trip is within 4 of the input, and each block's squared error is
++/// at most 64. Export-time evaluation only; the errors are the forward
++/// rotation's.
++pub fn inverse_randomized_hadamard_transform(data: &mut [i64], signs: &[i8]) -> Result<()> {
++    check_rotation_shape(data, signs)?;
++    for (block, block_signs) in data
++        .chunks_exact_mut(HADAMARD_BLOCK)
++        .zip(signs.chunks_exact(HADAMARD_BLOCK))
++    {
++        fwht_normalized(block, HADAMARD_BLOCK_SHIFT)?;
++        apply_signs(block, block_signs)?;
++    }
++    Ok(())
++}
++
++fn check_rotation_shape(data: &[i64], signs: &[i8]) -> Result<()> {
++    if data.len() % HADAMARD_BLOCK != 0 {
++        return Err(invalid(format!(
++            "randomized Hadamard length must be a multiple of {HADAMARD_BLOCK}, got {}",
++            data.len()
++        )));
++    }
++    if signs.len() != data.len() {
++        return Err(invalid(format!(
++            "randomized Hadamard needs one sign per element: {} signs for {} elements",
++            signs.len(),
++            data.len()
++        )));
++    }
++    Ok(())
++}
++
++fn apply_signs(block: &mut [i64], signs: &[i8]) -> Result<()> {
++    for (value, &sign) in block.iter_mut().zip(signs) {
++        match sign {
++            1 => {}
++            -1 => {
++                *value = value
++                    .checked_neg()
++                    .ok_or_else(|| invalid("sign flip overflow"))?;
++            }
++            _ => return Err(invalid("rotation signs must be +1 or -1")),
++        }
++    }
++    Ok(())
++}
++
++// ---------------------------------------------------------------------------
++// Grouped 4-bit codes
++// ---------------------------------------------------------------------------
++
++/// A row of signed 4-bit codes with one power-of-two scale per group.
++///
++/// Element `i` of group `g` represents `code_i * 2^exponent_g`, with `code_i`
++/// in `[-7, 7]` and `exponent_g` in
++/// `[MIN_GROUP_EXPONENT, MAX_GROUP_EXPONENT]`. Codes are packed two per byte,
++/// low nibble first, in two's complement: the signed-4 layout of the crate's
++/// retained packed rows. The fields are private so that every row satisfies
++/// these invariants; [`Self::from_parts`] validates stored parts.
++#[derive(Clone, Debug, PartialEq, Eq)]
++pub struct Grouped4BitRow {
++    group_size: usize,
++    group_exponents: Vec<i16>,
++    packed_codes: Arc<[u8]>,
++    elements: usize,
++}
++
++impl Grouped4BitRow {
++    /// Encode float weights (export time only).
++    ///
++    /// Each group gets the smallest exponent `e` with `max |w| <= 7 * 2^e` (up
++    /// to the float rounding of `log2`), raised to [`MIN_GROUP_EXPONENT`] if
++    /// smaller, and codes `round(w / 2^e)` with ties away from zero. Every
++    /// weight is then reconstructed within half a step:
++    /// `|w - code * 2^e| <= 2^(e-1)`.
++    ///
++    /// Errors: no weights, a zero group size, a length that is not a multiple
++    /// of `group_size`, a non-finite weight, or a group that needs an exponent
++    /// above [`MAX_GROUP_EXPONENT`] (`max |w| > 7 * 2^16`).
++    pub fn encode_f32(weights: &[f32], group_size: usize) -> Result<Self> {
++        if weights.is_empty() || group_size == 0 || weights.len() % group_size != 0 {
++            return Err(invalid(
++                "weights length must be a non-zero multiple of group_size",
++            ));
++        }
++        if weights.iter().any(|weight| !weight.is_finite()) {
++            return Err(invalid("grouped 4-bit encoding needs finite weights"));
++        }
++        let limit = f32::from(MAX_CODE_MAGNITUDE);
++        let mut group_exponents = Vec::with_capacity(weights.len() / group_size);
++        let mut codes = Vec::with_capacity(weights.len());
++        for group in weights.chunks_exact(group_size) {
++            let max_abs = group
++                .iter()
++                .fold(0.0f32, |max, weight| max.max(weight.abs()));
++            let exponent = if max_abs == 0.0 {
++                0
++            } else {
++                (max_abs / limit).log2().ceil() as i32
++            };
++            if exponent > i32::from(MAX_GROUP_EXPONENT) {
++                return Err(invalid(format!(
++                    "group magnitude {max_abs} needs an exponent above {MAX_GROUP_EXPONENT}"
++                )));
++            }
++            let exponent = exponent.max(i32::from(MIN_GROUP_EXPONENT));
++            let scale = 2.0f32.powi(exponent);
++            codes.extend(
++                group
++                    .iter()
++                    .map(|&weight| (weight / scale).round().clamp(-limit, limit) as i8),
++            );
++            // In range: at most MAX_GROUP_EXPONENT and at least MIN_GROUP_EXPONENT.
++            group_exponents.push(exponent as i16);
++        }
++        let packed: Vec<u8> = codes
++            .chunks(2)
++            .map(|pair| {
++                let low = pair.first().map_or(0, |&code| (code as u8) & 0x0F);
++                let high = pair.get(1).map_or(0, |&code| (code as u8) & 0x0F);
++                low | (high << 4)
++            })
++            .collect();
++        Ok(Self {
++            group_size,
++            group_exponents,
++            packed_codes: packed.into(),
++            elements: weights.len(),
++        })
++    }
++
++    /// Construction from stored parts (load time).
++    ///
++    /// Validates every invariant: a non-zero group size and at least one
++    /// group, `elements` equal to the number of groups times `group_size`, one
++    /// packed byte per two codes, exponents within
++    /// `[MIN_GROUP_EXPONENT, MAX_GROUP_EXPONENT]`, no code `-8` (nibble
++    /// `0b1000`), and a zero padding nibble when `elements` is odd.
++    pub fn from_parts(
++        group_size: usize,
++        group_exponents: Vec<i16>,
++        packed_codes: Arc<[u8]>,
++        elements: usize,
++    ) -> Result<Self> {
++        if group_size == 0 || group_exponents.is_empty() {
++            return Err(invalid(
++                "grouped row needs a non-zero group size and at least one group",
++            ));
++        }
++        let mut covered = 0usize;
++        for _ in &group_exponents {
++            covered = covered
++                .checked_add(group_size)
++                .ok_or_else(|| invalid("grouped row length overflows usize"))?;
++        }
++        if covered != elements {
++            return Err(invalid(format!(
++                "grouped row declares {elements} elements but its groups cover {covered}"
++            )));
++        }
++        if packed_codes.len() != elements.div_ceil(2) {
++            return Err(invalid(format!(
++                "grouped row of {elements} codes needs {} packed bytes, got {}",
++                elements.div_ceil(2),
++                packed_codes.len()
++            )));
++        }
++        if let Some(exponent) = group_exponents
++            .iter()
++            .find(|&&exponent| !(MIN_GROUP_EXPONENT..=MAX_GROUP_EXPONENT).contains(&exponent))
++        {
++            return Err(invalid(format!(
++                "group exponent {exponent} outside [{MIN_GROUP_EXPONENT}, {MAX_GROUP_EXPONENT}]"
++            )));
++        }
++        let row = Self {
++            group_size,
++            group_exponents,
++            packed_codes,
++            elements,
++        };
++        if row.codes().any(|code| code < -MAX_CODE_MAGNITUDE) {
++            return Err(invalid("grouped row contains the unused code -8"));
++        }
++        if elements & 1 == 1 && row.packed_codes.last().is_some_and(|&byte| byte >> 4 != 0) {
++            return Err(invalid("grouped row padding nibble must be zero"));
++        }
++        Ok(row)
++    }
++
++    /// Codes per group.
++    pub fn group_size(&self) -> usize {
++        self.group_size
++    }
++
++    /// One power-of-two exponent per group.
++    pub fn group_exponents(&self) -> &[i16] {
++        &self.group_exponents
++    }
++
++    /// Packed codes, two per byte, low nibble first.
++    pub fn packed_codes(&self) -> &[u8] {
++        &self.packed_codes
++    }
++
++    /// Number of codes (weights) in the row.
++    pub fn elements(&self) -> usize {
++        self.elements
++    }
++
++    /// The row's codes in order, each in `[-7, 7]`.
++    pub fn codes(&self) -> impl Iterator<Item = i8> + '_ {
++        self.packed_codes
++            .iter()
++            .flat_map(|&byte| [signed_nibble(byte), signed_nibble(byte >> 4)])
++            .take(self.elements)
++    }
++
++    /// Reconstruct `code * 2^exponent` in f32 (export time and evaluation only).
++    pub fn dequantize_f32(&self) -> Vec<f32> {
++        let mut out = Vec::with_capacity(self.elements);
++        let mut codes = self.codes();
++        for &exponent in &self.group_exponents {
++            let scale = 2.0f32.powi(i32::from(exponent));
++            for code in codes.by_ref().take(self.group_size) {
++                out.push(f32::from(code) * scale);
++            }
++        }
++        out
++    }
++
++    /// Dequantize to Q16 fixed point without floating point: element `i` of
++    /// group `g` becomes `code_i * 2^(16 + exponent_g)`, exact when
++    /// `exponent_g >= -16` and otherwise rounded to nearest with ties away
++    /// from zero (`math::scale_pow2`). A serving-time candidate, for example
++    /// an embedding row; not audited.
++    #[inline(never)]
++    pub fn to_q16_vector(&self) -> Result<Vec<i64>> {
++        let mut out = Vec::with_capacity(self.elements);
++        let mut codes = self.codes();
++        for &exponent in &self.group_exponents {
++            let shift = 16 + i32::from(exponent);
++            for code in codes.by_ref().take(self.group_size) {
++                let scaled = arithmetic(math::scale_pow2(i128::from(code), shift))?;
++                out.push(i64::try_from(scaled).map_err(|_| invalid("Q16 value exceeds i64"))?);
++            }
++        }
++        Ok(out)
++    }
++
++    /// Multiplier-free dot product with integer activations.
++    ///
++    /// Returns `sum_g sum_(i in g) x_i * code_i * 2^exponent_g`, rounded once
++    /// to the nearest integer with ties away from zero. Group sums are aligned
++    /// to the smallest group exponent by exact left shifts before that single
++    /// rounding, so the result is exact whenever every exponent is
++    /// non-negative. Each product `x_i * code_i` uses [`mul_small_code_i64`].
++    /// Callers carry enough fraction bits in `activations` for the rounding to
++    /// be negligible. Overflow and a length mismatch are errors. A serving-time
++    /// candidate; not audited.
++    pub fn dot_integer(&self, activations: &[i64]) -> Result<i64> {
++        if activations.len() != self.elements {
++            return Err(invalid(format!(
++                "activation length {} differs from the row's {} codes",
++                activations.len(),
++                self.elements
++            )));
++        }
++        let base = self.group_exponents.iter().copied().min().unwrap_or(0);
++        let mut pairs = activations.iter().zip(self.codes());
++        let mut total: i128 = 0;
++        for &exponent in &self.group_exponents {
++            let mut group_dot: i64 = 0;
++            for (&activation, code) in pairs.by_ref().take(self.group_size) {
++                let product = mul_small_code_i64(activation, i64::from(code))?;
++                group_dot = group_dot
++                    .checked_add(product)
++                    .ok_or_else(|| invalid("group dot product overflows i64"))?;
++            }
++            let aligned = arithmetic(math::scale_pow2(
++                i128::from(group_dot),
++                i32::from(exponent) - i32::from(base),
++            ))?;
++            total = total
++                .checked_add(aligned)
++                .ok_or_else(|| invalid("dot product overflows i128"))?;
++        }
++        let rounded = arithmetic(math::scale_pow2(total, i32::from(base)))?;
++        i64::try_from(rounded).map_err(|_| invalid("dot product exceeds i64"))
++    }
++}
++
++/// Sign-extends the low nibble of `byte` (two's complement), without a multiply.
++#[inline]
++fn signed_nibble(byte: u8) -> i8 {
++    ((byte << 4) as i8) >> 4
++}
++
++/// Exact product of an activation and a code in `[-7, 7]`, by additions only.
++///
++/// Returns the value `val.checked_mul(code)` would, and an error where that
++/// would overflow, but with no multiply: the activation is negated first when
++/// the code is negative, then doubled and summed (for example
++/// `7v = 4v + 2v + v`), so every partial sum has the product's sign and is no
++/// larger in magnitude. A code outside `[-7, 7]` is an error. A serving-time
++/// candidate; not audited.
++#[inline(never)]
++pub fn mul_small_code_i64(val: i64, code: i64) -> Result<i64> {
++    let magnitude = match code {
++        -7..=7 => code.unsigned_abs(),
++        _ => return Err(invalid(format!("code {code} outside [-7, 7]"))),
++    };
++    let overflow = || invalid("small-code product overflows i64");
++    let v = if code < 0 {
++        val.checked_neg().ok_or_else(overflow)?
++    } else {
++        val
++    };
++    let product = match magnitude {
++        0 => Some(0),
++        1 => Some(v),
++        2 => v.checked_add(v),
++        3 => v.checked_add(v).and_then(|v2| v2.checked_add(v)),
++        4 => v.checked_add(v).and_then(|v2| v2.checked_add(v2)),
++        5 => v
++            .checked_add(v)
++            .and_then(|v2| v2.checked_add(v2))
++            .and_then(|v4| v4.checked_add(v)),
++        6 => v
++            .checked_add(v)
++            .and_then(|v2| v2.checked_add(v2).and_then(|v4| v4.checked_add(v2))),
++        _ => v.checked_add(v).and_then(|v2| {
++            v2.checked_add(v2)
++                .and_then(|v4| v4.checked_add(v2))
++                .and_then(|v6| v6.checked_add(v))
++        }),
++    };
++    product.ok_or_else(overflow)
++}
++
++// ---------------------------------------------------------------------------
++// Conway-Sloane E8 lattice rounder (export time)
++// ---------------------------------------------------------------------------
++
++fn check_lattice_input(y: &[f64; E8_DIM]) -> Result<()> {
++    if y.iter()
++        .any(|value| !value.is_finite() || value.abs() > LATTICE_ROUND_LIMIT)
++    {
++        return Err(invalid(format!(
++            "lattice rounding needs finite coordinates of magnitude at most {LATTICE_ROUND_LIMIT}"
++        )));
++    }
++    Ok(())
++}
++
++/// Conway-Sloane nearest point of D8 for an input already checked by
++/// `check_lattice_input` (or one within 1/2 of such an input).
++fn nearest_d8(y: &[f64; E8_DIM]) -> [f64; E8_DIM] {
++    let mut rounded = y.map(f64::round);
++    let odd = rounded
++        .iter()
++        .fold(false, |odd, &value| odd ^ (((value as i64) & 1) == 1));
++    if odd {
++        let mut worst = 0;
++        let mut worst_error = -1.0f64;
++        for (index, (&value, &nearest)) in y.iter().zip(&rounded).enumerate() {
++            let error = (value - nearest).abs();
++            if error > worst_error {
++                worst_error = error;
++                worst = index;
++            }
++        }
++        rounded[worst] += if y[worst] > rounded[worst] { 1.0 } else { -1.0 };
++    }
++    rounded
++}
++
++/// Nearest point of the lattice D8 (integer vectors with an even coordinate
++/// sum), by the Conway-Sloane rule: round every coordinate to the nearest
++/// integer; if the sum is odd, move the coordinate with the largest rounding
++/// error to its other neighbouring integer. Export time only.
++///
++/// Errors: a non-finite coordinate, or one whose magnitude exceeds
++/// [`LATTICE_ROUND_LIMIT`].
++pub fn d8_round(y: &[f64; E8_DIM]) -> Result<[f64; E8_DIM]> {
++    check_lattice_input(y)?;
++    Ok(nearest_d8(y))
++}
++
++/// Nearest point of E8 = D8 ∪ (D8 + (1/2, ..., 1/2)), by Conway and Sloane:
++/// the nearer of the nearest D8 point and the nearest point of the
++/// half-integer coset, with ties going to D8. Export time only; the errors are
++/// [`d8_round`]'s.
++pub fn e8_round(y: &[f64; E8_DIM]) -> Result<[f64; E8_DIM]> {
++    check_lattice_input(y)?;
++    let integer = nearest_d8(y);
++    let half = nearest_d8(&y.map(|value| value - 0.5)).map(|value| value + 0.5);
++    let distance = |point: &[f64; E8_DIM]| -> f64 {
++        y.iter()
++            .zip(point)
++            .map(|(target, coordinate)| (target - coordinate) * (target - coordinate))
++            .sum()
++    };
++    Ok(if distance(&integer) <= distance(&half) {
++        integer
++    } else {
++        half
++    })
++}
++
++// ---------------------------------------------------------------------------
++// Export-time fake quantization
++// ---------------------------------------------------------------------------
++
++/// Candidate codec configurations for a future pre-registered D4 comparison.
++/// Neither has been evaluated on a model.
++#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
++pub enum CodecArm {
++    /// Nearest signed 4-bit code with one power-of-two scale per row: one
++    /// group spanning the row.
++    NearestPerRow,
++    /// Randomized Hadamard rotation of each row, grouped 4-bit codes in groups
++    /// of [`DEFAULT_GROUP_SIZE`] in the rotated domain, and the inverse
++    /// rotation. Needs `cols` to be a multiple of [`HADAMARD_BLOCK`].
++    HadamardGrouped4Bit,
++}
++
++/// Export-time fake quantization, for offline evaluation only: encode each
++/// row of the row-major `rows x cols` matrix `weights` with `arm`, and return
++/// its reconstruction in the original weight domain.
++///
++/// [`CodecArm::HadamardGrouped4Bit`] rotates each row with
++/// `deterministic_signs(cols, seed)` in fixed point with
++/// [`FAKE_QUANT_FRACTION_BITS`] fraction bits, encodes the rotated row, and
++/// rotates the dequantized row back. The fixed-point rounding is of order
++/// `2^-30` per coordinate, far below a 4-bit step for weights of practical
++/// magnitude. [`CodecArm::NearestPerRow`] ignores `seed`.
++///
++/// Errors: zero `rows` or `cols`, `weights.len() != rows * cols`, a
++/// non-finite weight, or an error of the encoder or the rotation.
++pub fn apply_codec_arm(
++    weights: &[f32],
++    rows: usize,
++    cols: usize,
++    arm: CodecArm,
++    seed: u64,
++) -> Result<Vec<f32>> {
++    if rows == 0 || cols == 0 {
++        return Err(invalid("codec arm needs at least one row and one column"));
++    }
++    let expected = rows
++        .checked_mul(cols)
++        .ok_or_else(|| invalid("rows * cols overflows usize"))?;
++    if weights.len() != expected {
++        return Err(invalid(format!(
++            "weights has {} values; rows * cols is {expected}",
++            weights.len()
++        )));
++    }
++    if weights.iter().any(|weight| !weight.is_finite()) {
++        return Err(invalid("codec arm needs finite weights"));
++    }
++    let mut out = Vec::with_capacity(weights.len());
++    match arm {
++        CodecArm::NearestPerRow => {
++            for row in weights.chunks_exact(cols) {
++                out.extend(Grouped4BitRow::encode_f32(row, cols)?.dequantize_f32());
++            }
++        }
++        CodecArm::HadamardGrouped4Bit => {
++            let signs = deterministic_signs(cols, seed);
++            let unit = 2f64.powi(FAKE_QUANT_FRACTION_BITS);
++            for row in weights.chunks_exact(cols) {
++                let mut fixed = to_fixed_point(row, unit)?;
++                randomized_hadamard_transform(&mut fixed, &signs)?;
++                let rotated = from_fixed_point(&fixed, unit);
++                let coded = Grouped4BitRow::encode_f32(&rotated, DEFAULT_GROUP_SIZE)?;
++                let mut restored = to_fixed_point(&coded.dequantize_f32(), unit)?;
++                inverse_randomized_hadamard_transform(&mut restored, &signs)?;
++                out.extend(from_fixed_point(&restored, unit));
++            }
++        }
++    }
++    Ok(out)
++}
++
++fn to_fixed_point(values: &[f32], unit: f64) -> Result<Vec<i64>> {
++    values
++        .iter()
++        .map(|&value| {
++            let scaled = (f64::from(value) * unit).round();
++            if scaled.abs() < FIXED_POINT_LIMIT {
++                Ok(scaled as i64)
++            } else {
++                Err(invalid("value too large for the fixed-point rotation"))
++            }
++        })
++        .collect()
++}
++
++fn from_fixed_point(values: &[i64], unit: f64) -> Vec<f32> {
++    values
++        .iter()
++        .map(|&value| (value as f64 / unit) as f32)
++        .collect()
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++
++    /// Deterministic splitmix64 stream for test data (tests may multiply).
++    struct TestRng(u64);
++
++    impl TestRng {
++        fn next_u64(&mut self) -> u64 {
++            self.0 = self.0.wrapping_add(0x9E37_79B9_7F4A_7C15);
++            let mut z = self.0;
++            z = (z ^ (z >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
++            z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
++            z ^ (z >> 31)
++        }
++
++        /// Uniform integer in `[-bound, bound]`.
++        fn int(&mut self, bound: i64) -> i64 {
++            let span = bound.unsigned_abs() * 2 + 1;
++            (self.next_u64() % span) as i64 - bound
++        }
++
++        /// Uniform float in `[-bound, bound)`.
++        fn float(&mut self, bound: f64) -> f64 {
++            let unit = (self.next_u64() >> 11) as f64 / (1u64 << 53) as f64;
++            (2.0 * unit - 1.0) * bound
++        }
++    }
++
++    fn inner(left: &[i64], right: &[i64]) -> i128 {
++        left.iter()
++            .zip(right)
++            .map(|(&a, &b)| i128::from(a) * i128::from(b))
++            .sum()
++    }
++
++    #[test]
++    fn fwht_is_the_sylvester_hadamard_matrix() -> Result<()> {
++        for len in [1usize, 2, 4, 8, 16, 32, 64] {
++            for column in 0..len {
++                let mut data = vec![0i64; len];
++                data[column] = 1;
++                fwht_slice(&mut data)?;
++                for (row, &value) in data.iter().enumerate() {
++                    let expected = if (row & column).count_ones() % 2 == 0 {
++                        1
++                    } else {
++                        -1
++                    };
++                    assert_eq!(value, expected, "H[{row}][{column}] for n = {len}");
++                }
++            }
++        }
++        Ok(())
++    }
++
++    #[test]
++    fn fwht_round_trip_and_inner_products_scale_by_the_length() -> Result<()> {
++        let mut rng = TestRng(1);
++        for log_len in 0..=8 {
++            let len = 1usize << log_len;
++            let x: Vec<i64> = (0..len).map(|_| rng.int(1 << 40)).collect();
++            let y: Vec<i64> = (0..len).map(|_| rng.int(1 << 40)).collect();
++            let mut hx = x.clone();
++            let mut hy = y.clone();
++            fwht_slice(&mut hx)?;
++            fwht_slice(&mut hy)?;
++            let n = len as i128;
++            // Orthogonality up to the dyadic scale n, and symmetry of H.
++            assert_eq!(inner(&hx, &hy), n * inner(&x, &y));
++            assert_eq!(inner(&hx, &y), inner(&x, &hy));
++            // H H = n I.
++            let mut twice = hx.clone();
++            fwht_slice(&mut twice)?;
++            let scaled: Vec<i64> = x.iter().map(|&value| value * len as i64).collect();
++            assert_eq!(twice, scaled);
++        }
++        Ok(())
++    }
++
++    #[test]
++    fn fwht_normalized_is_the_transform_rounded_half_up() -> Result<()> {
++        let mut rng = TestRng(2);
++        for shift in 0..=6u32 {
++            let x: Vec<i64> = (0..64).map(|_| rng.int(1 << 40)).collect();
++            let mut exact = x.clone();
++            fwht_slice(&mut exact)?;
++            let mut normalized = x;
++            fwht_normalized(&mut normalized, shift)?;
++            let divisor = 1i64 << shift;
++            for (&value, &unscaled) in normalized.iter().zip(&exact) {
++                let expected = if shift == 0 {
++                    unscaled
++                } else {
++                    (unscaled + divisor / 2).div_euclid(divisor)
++                };
++                assert_eq!(value, expected);
++            }
++        }
++        Ok(())
++    }
++
++    #[test]
++    fn fwht_rejects_bad_lengths_shifts_and_overflow() {
++        assert!(fwht_slice(&mut []).is_err());
++        assert!(fwht_slice(&mut [1, 2, 3]).is_err());
++        assert!(fwht_slice(&mut [i64::MAX, 1]).is_err());
++        assert!(fwht_slice(&mut [i64::MIN, 1]).is_err());
++        assert!(fwht_normalized(&mut [1, 2], MAX_FWHT_SHIFT + 1).is_err());
++        assert!(fwht_normalized(&mut [i64::MAX, 0], 1).is_err());
++    }
++
++    #[test]
++    fn randomized_rotation_is_exact_on_its_image() -> Result<()> {
++        // For x = D H u, the forward rotation gives H D D H u / 8 = 8u exactly
++        // (H H = 64 I), and the inverse rotation restores x.
++        let mut rng = TestRng(3);
++        let signs = deterministic_signs(128, 0xFEDC_BA98_7654_3210);
++        let u: Vec<i64> = (0..128).map(|_| rng.int(1_000_000)).collect();
++        let mut x = u.clone();
++        for block in x.chunks_mut(HADAMARD_BLOCK) {
++            fwht_slice(block)?;
++        }
++        for (value, &sign) in x.iter_mut().zip(&signs) {
++            if sign < 0 {
++                *value = -*value;
++            }
++        }
++        let mut rotated = x.clone();
++        randomized_hadamard_transform(&mut rotated, &signs)?;
++        let eight_u: Vec<i64> = u.iter().map(|&value| 8 * value).collect();
++        assert_eq!(rotated, eight_u);
++        inverse_randomized_hadamard_transform(&mut rotated, &signs)?;
++        assert_eq!(rotated, x);
++        Ok(())
++    }
++
++    #[test]
++    fn randomized_rotation_round_trip_error_is_bounded() -> Result<()> {
++        // Each rounding errs by at most 1/2 per coordinate, and H / 8 is
++        // orthonormal, so a round trip errs by at most 4 per coordinate and by
++        // at most 8 in Euclidean norm per 64-element block.
++        let mut rng = TestRng(4);
++        let signs = deterministic_signs(256, 0x0123_4567_89AB_CDEF);
++        for _ in 0..50 {
++            let original: Vec<i64> = (0..256).map(|_| rng.int(1 << 30)).collect();
++            let mut data = original.clone();
++            randomized_hadamard_transform(&mut data, &signs)?;
++            inverse_randomized_hadamard_transform(&mut data, &signs)?;
++            for (block, restored) in original
++                .chunks(HADAMARD_BLOCK)
++                .zip(data.chunks(HADAMARD_BLOCK))
++            {
++                let mut squared = 0i64;
++                for (&before, &after) in block.iter().zip(restored) {
++                    let error = after - before;
++                    assert!(error.abs() <= 4, "coordinate error {error}");
++                    squared += error * error;
++                }
++                assert!(squared <= 64, "block squared error {squared}");
++            }
++        }
++        Ok(())
++    }
++
++    #[test]
++    fn randomized_rotation_rejects_bad_shapes_and_signs() {
++        let signs = deterministic_signs(64, 7);
++        assert!(randomized_hadamard_transform(&mut [0; 32], &signs[..32]).is_err());
++        assert!(randomized_hadamard_transform(&mut [0; 64], &signs[..63]).is_err());
++        assert!(inverse_randomized_hadamard_transform(&mut [0; 128], &signs).is_err());
++        let mut zero_sign = signs.clone();
++        zero_sign[5] = 0;
++        assert!(randomized_hadamard_transform(&mut [1; 64], &zero_sign).is_err());
++        let mut data = [0i64; 64];
++        let flipped = signs.iter().position(|&sign| sign < 0).unwrap_or(0);
++        data[flipped] = i64::MIN;
++        assert!(randomized_hadamard_transform(&mut data, &signs).is_err());
++    }
++
++    /// A 64 x 64 matrix over GF(2): entry `i` is the image of the state `1 << i`.
++    type BitMatrix = [u64; 64];
++
++    fn apply_bits(matrix: &BitMatrix, state: u64) -> u64 {
++        matrix
++            .iter()
++            .enumerate()
++            .filter(|&(bit, _)| (state >> bit) & 1 == 1)
++            .fold(0, |image, (_, &column)| image ^ column)
++    }
++
++    fn compose_bits(outer: &BitMatrix, inner: &BitMatrix) -> BitMatrix {
++        inner.map(|column| apply_bits(outer, column))
++    }
++
++    fn power_bits(matrix: &BitMatrix, mut exponent: u64) -> BitMatrix {
++        let mut result: BitMatrix = std::array::from_fn(|bit| 1u64 << bit);
++        let mut base = *matrix;
++        while exponent != 0 {
++            if exponent & 1 == 1 {
++                result = compose_bits(&base, &result);
++            }
++            base = compose_bits(&base, &base);
++            exponent >>= 1;
++        }
++        result
++    }
++
++    #[test]
++    fn sign_lfsr_has_maximal_period() {
++        // 2^64 - 1 = 3 * 5 * 17 * 257 * 641 * 65537 * 6700417, each factor prime.
++        let factors = [3u64, 5, 17, 257, 641, 65_537, 6_700_417];
++        let product = factors
++            .iter()
++            .try_fold(1u64, |product, &factor| product.checked_mul(factor));
++        assert_eq!(product, Some(u64::MAX));
++        for &factor in &factors {
++            assert!((2..factor)
++                .take_while(|divisor| divisor * divisor <= factor)
++                .all(|divisor| factor % divisor != 0));
++        }
++        // The step is linear over GF(2), so its images of the basis states are
++        // its matrix.
++        let step: BitMatrix = std::array::from_fn(|bit| sign_lfsr_step(1u64 << bit));
++        let mut rng = TestRng(5);
++        for _ in 0..64 {
++            let (a, b) = (rng.next_u64(), rng.next_u64());
++            assert_eq!(sign_lfsr_step(a ^ b), sign_lfsr_step(a) ^ sign_lfsr_step(b));
++            assert_eq!(apply_bits(&step, a), sign_lfsr_step(a));
++        }
++        // Order exactly 2^64 - 1: the full power is the identity and no power
++        // (2^64 - 1) / q for a prime factor q is. Then the minimal polynomial is
++        // primitive of degree 64, and every nonzero state has period 2^64 - 1.
++        let identity: BitMatrix = std::array::from_fn(|bit| 1u64 << bit);
++        assert_eq!(power_bits(&step, u64::MAX), identity);
++        for &factor in &factors {
++            assert_ne!(
++                power_bits(&step, u64::MAX / factor),
++                identity,
++                "the order divides (2^64 - 1) / {factor}"
++            );
++        }
++    }
++
++    #[test]
++    fn deterministic_signs_are_reproducible_and_prefix_stable() {
++        let seed = 0x0123_4567_89AB_CDEF;
++        let signs = deterministic_signs(512, seed);
++        assert_eq!(signs, deterministic_signs(512, seed));
++        assert_eq!(signs[..100], deterministic_signs(100, seed)[..]);
++        assert_ne!(signs, deterministic_signs(512, seed ^ 1));
++        assert!(deterministic_signs(0, seed).is_empty());
++        assert_eq!(
++            deterministic_signs(64, 0),
++            deterministic_signs(64, SIGN_LFSR_ZERO_SEED_STATE)
++        );
++        // Sign i is the low bit of the state after i + 1 steps.
++        let mut state = seed;
++        for &sign in &signs {
++            state = sign_lfsr_step(state);
++            assert_eq!(sign, if state & 1 == 0 { 1 } else { -1 });
++        }
++    }
++
++    #[test]
++    fn grouped_codes_reconstruct_within_half_a_step() -> Result<()> {
++        let mut rng = TestRng(6);
++        for (group_size, groups) in [(DEFAULT_GROUP_SIZE, 8), (7, 3), (1, 5)] {
++            for magnitude in [1e-9, 3e-5, 0.02, 1.0, 400.0, 400_000.0] {
++                let weights: Vec<f32> = (0..group_size * groups)
++                    .map(|_| rng.float(magnitude) as f32)
++                    .collect();
++                let row = Grouped4BitRow::encode_f32(&weights, group_size)?;
++                assert_eq!(row.elements(), weights.len());
++                assert_eq!(row.group_exponents().len(), groups);
++                let restored = row.dequantize_f32();
++                let codes: Vec<i8> = row.codes().collect();
++                assert_eq!(codes.len(), weights.len());
++                for (group, &exponent) in row.group_exponents().iter().enumerate() {
++                    let range = group * group_size..(group + 1) * group_size;
++                    let step = 2f64.powi(i32::from(exponent));
++                    let max_abs = weights[range.clone()]
++                        .iter()
++                        .fold(0.0f64, |max, &weight| max.max(f64::from(weight).abs()));
++                    // The exponent is the smallest in range that fits the group.
++                    assert!(max_abs <= 7.0 * step * (1.0 + 1e-6));
++                    if exponent > MIN_GROUP_EXPONENT && max_abs > 0.0 {
++                        assert!(max_abs > 3.5 * step * (1.0 - 1e-6));
++                    }
++                    for index in range {
++                        assert!((-7..=7).contains(&codes[index]));
++                        let error = (f64::from(weights[index]) - f64::from(restored[index])).abs();
++                        assert!(error <= step / 2.0, "error {error} above half of {step}");
++                    }
++                }
++            }
++        }
++        Ok(())
++    }
++
++    #[test]
++    fn grouped_encoding_rejects_invalid_input() {
++        assert!(Grouped4BitRow::encode_f32(&[], 4).is_err());
++        assert!(Grouped4BitRow::encode_f32(&[1.0; 8], 0).is_err());
++        assert!(Grouped4BitRow::encode_f32(&[1.0; 9], 4).is_err());
++        assert!(Grouped4BitRow::encode_f32(&[1.0, f32::NAN, 0.0, 0.0], 4).is_err());
++        assert!(Grouped4BitRow::encode_f32(&[f32::INFINITY, 0.0, 0.0, 0.0], 4).is_err());
++        // 1e6 needs exponent 18 > MAX_GROUP_EXPONENT.
++        assert!(Grouped4BitRow::encode_f32(&[1.0e6, 0.0, 0.0, 0.0], 4).is_err());
++    }
++
++    #[test]
++    fn grouped_from_parts_round_trips_and_validates() -> Result<()> {
++        let weights: Vec<f32> = (0..21).map(|i| (i as f32 - 10.0) * 0.37).collect();
++        let row = Grouped4BitRow::encode_f32(&weights, 7)?;
++        let exponents = row.group_exponents().to_vec();
++        let bytes: Arc<[u8]> = row.packed_codes().into();
++        let rebuilt = Grouped4BitRow::from_parts(7, exponents.clone(), bytes.clone(), 21)?;
++        assert_eq!(rebuilt, row);
++
++        assert!(Grouped4BitRow::from_parts(0, exponents.clone(), bytes.clone(), 21).is_err());
++        assert!(Grouped4BitRow::from_parts(7, Vec::new(), bytes.clone(), 0).is_err());
++        assert!(Grouped4BitRow::from_parts(7, exponents.clone(), bytes.clone(), 20).is_err());
++        let short: Arc<[u8]> = Arc::from(&bytes[..10]);
++        assert!(Grouped4BitRow::from_parts(7, exponents.clone(), short, 21).is_err());
++        let mut out_of_range = exponents.clone();
++        out_of_range[1] = MAX_GROUP_EXPONENT + 1;
++        assert!(Grouped4BitRow::from_parts(7, out_of_range, bytes.clone(), 21).is_err());
++        let mut minus_eight = bytes.to_vec();
++        minus_eight[0] = (minus_eight[0] & 0xF0) | 0x08;
++        assert!(Grouped4BitRow::from_parts(7, exponents.clone(), minus_eight.into(), 21).is_err());
++        let mut padding = bytes.to_vec();
++        if let Some(last) = padding.last_mut() {
++            *last |= 0x10;
++        }
++        assert!(Grouped4BitRow::from_parts(7, exponents, padding.into(), 21).is_err());
++        Ok(())
++    }
++
++    #[test]
++    fn grouped_q16_equals_the_rounded_dequantized_values() -> Result<()> {
++        let mut rng = TestRng(7);
++        for magnitude in [1e-6, 3e-4, 0.05, 2.0, 900.0] {
++            let weights: Vec<f32> = (0..64).map(|_| rng.float(magnitude) as f32).collect();
++            let row = Grouped4BitRow::encode_f32(&weights, DEFAULT_GROUP_SIZE)?;
++            let q16 = row.to_q16_vector()?;
++            assert_eq!(q16.len(), weights.len());
++            for (&value, &fixed) in row.dequantize_f32().iter().zip(&q16) {
++                // f64::round also rounds ties away from zero.
++                assert_eq!(fixed, (f64::from(value) * 65_536.0).round() as i64);
++            }
++        }
++        Ok(())
++    }
++
++    /// `round(value * 2^shift)`, ties away from zero, independent of `math`.
++    fn round_half_away_pow2(value: i128, shift: i32) -> i128 {
++        if shift >= 0 {
++            return value << shift;
++        }
++        let divisor = 1i128 << -shift;
++        let rounded = (value.abs() + divisor / 2) / divisor;
++        if value < 0 {
++            -rounded
++        } else {
++            rounded
++        }
++    }
++
++    #[test]
++    fn grouped_dot_is_the_correctly_rounded_exact_sum() -> Result<()> {
++        let mut rng = TestRng(8);
++        for (magnitude, group_size) in [(0.02, 32usize), (3.0, 32), (50.0, 16), (0.3, 5)] {
++            let weights: Vec<f32> = (0..group_size * 4)
++                .map(|_| rng.float(magnitude) as f32)
++                .collect();
++            let row = Grouped4BitRow::encode_f32(&weights, group_size)?;
++            let activations: Vec<i64> = (0..weights.len()).map(|_| rng.int(1 << 40)).collect();
++            let exponents = row.group_exponents();
++            let base = exponents.iter().copied().min().unwrap_or(0);
++            let codes: Vec<i8> = row.codes().collect();
++            let mut exact: i128 = 0;
++            for (index, (&activation, &code)) in activations.iter().zip(&codes).enumerate() {
++                let shift = i32::from(exponents[index / group_size]) - i32::from(base);
++                exact += (i128::from(activation) * i128::from(code)) << shift;
++            }
++            let expected = round_half_away_pow2(exact, i32::from(base));
++            assert_eq!(i128::from(row.dot_integer(&activations)?), expected);
++        }
++
++        // A known value with exponent 0: codes (1, -2, 4, 7), since 3.5 rounds to 4.
++        let row = Grouped4BitRow::encode_f32(&[1.0, -2.0, 3.5, 7.0], 4)?;
++        assert_eq!(row.group_exponents(), &[0]);
++        assert_eq!(row.dot_integer(&[1, 1, 1, 1])?, 10);
++        assert_eq!(row.dot_integer(&[3, 0, 0, -1])?, -4);
++        assert!(row.dot_integer(&[1, 1, 1]).is_err());
++        assert!(row.dot_integer(&[i64::MAX; 4]).is_err());
++        Ok(())
++    }
++
++    #[test]
++    fn mul_small_code_matches_checked_multiplication() {
++        let mut values = vec![
++            0,
++            1,
++            -1,
++            2,
++            -2,
++            i64::MAX,
++            i64::MIN,
++            i64::MAX - 1,
++            i64::MIN + 1,
++            1 << 62,
++            -(1 << 62),
++            i64::MIN / 2,
++            i64::MAX / 7,
++            i64::MAX / 7 + 1,
++            i64::MIN / 7,
++            i64::MIN / 7 - 1,
++            i64::MAX / 3,
++            i64::MIN / 3 - 1,
++        ];
++        let mut rng = TestRng(9);
++        values.extend((0..200).map(|_| rng.next_u64() as i64));
++        values.extend((0..200).map(|_| rng.int(1 << 61)));
++        for &value in &values {
++            for code in -7..=7 {
++                assert_eq!(
++                    mul_small_code_i64(value, code).ok(),
++                    value.checked_mul(code),
++                    "{value} * {code}"
++                );
++            }
++        }
++        for code in [-9, -8, 8, 9, i64::MIN, i64::MAX] {
++            assert!(mul_small_code_i64(1, code).is_err());
++        }
++    }
++
++    /// E8 in coordinates: all integers or all half-integers, with an even sum.
++    fn is_e8_point(point: &[f64; E8_DIM]) -> bool {
++        let doubled = point.map(|value| 2.0 * value);
++        if doubled.iter().any(|value| value.fract() != 0.0) {
++            return false;
++        }
++        let doubled = doubled.map(|value| value as i64);
++        let all_even = doubled.iter().all(|value| value.rem_euclid(2) == 0);
++        let all_odd = doubled.iter().all(|value| value.rem_euclid(2) == 1);
++        (all_even || all_odd) && doubled.iter().sum::<i64>().rem_euclid(4) == 0
++    }
++
++    fn squared_distance(left: &[f64; E8_DIM], right: &[f64; E8_DIM]) -> f64 {
++        left.iter().zip(right).map(|(a, b)| (a - b) * (a - b)).sum()
++    }
++
++    /// Smallest squared distance from `y` to the union of the cosets
++    /// `D8 + offset`, by exhaustive search. A nearest point `z + offset`
++    /// (z in D8) can be chosen with every `z_i` in `{floor(y_i - offset),
++    /// floor(y_i - offset) + 1}`: moving a coordinate by 2 keeps the parity and
++    /// does not increase its distance while that distance is at least 1, and a
++    /// coordinate exactly 1 below can be mirrored above without changing its
++    /// distance or the parity.
++    fn nearest_coset_distance(y: &[f64; E8_DIM], offsets: &[f64]) -> f64 {
++        let mut best = f64::INFINITY;
++        for &offset in offsets {
++            let floor = y.map(|value| (value - offset).floor());
++            for mask in 0u32..(1 << E8_DIM) {
++                let mut parity = 0i64;
++                let mut distance = 0.0;
++                for (bit, (&low, &target)) in floor.iter().zip(y).enumerate() {
++                    let z = low + f64::from((mask >> bit) & 1);
++                    parity += z as i64;
++                    distance += (z + offset - target) * (z + offset - target);
++                }
++                if parity.rem_euclid(2) == 0 {
++                    best = best.min(distance);
++                }
++            }
++        }
++        best
++    }
++
++    #[test]
++    fn e8_and_d8_rounders_return_the_nearest_lattice_point() -> Result<()> {
++        let mut rng = TestRng(10);
++        for scale in [0.3, 1.0, 2.5, 40.0] {
++            for _ in 0..200 {
++                let y: [f64; E8_DIM] = std::array::from_fn(|_| rng.float(scale));
++                let e8 = e8_round(&y)?;
++                assert!(is_e8_point(&e8), "{e8:?} is not in E8");
++                let best = nearest_coset_distance(&y, &[0.0, 0.5]);
++                assert!(squared_distance(&y, &e8) <= best + 1e-9);
++
++                let d8 = d8_round(&y)?;
++                assert!(d8.iter().all(|value| value.fract() == 0.0));
++                assert_eq!(d8.iter().map(|&value| value as i64).sum::<i64>() % 2, 0);
++                let best = nearest_coset_distance(&y, &[0.0]);
++                assert!(squared_distance(&y, &d8) <= best + 1e-9);
++            }
++        }
++        Ok(())
++    }
++
++    #[test]
++    fn e8_round_known_examples() -> Result<()> {
++        let half = [0.5; E8_DIM];
++        let axis = |first: f64, second: f64| {
++            let mut point = [0.0; E8_DIM];
++            point[0] = first;
++            point[1] = second;
++            point
++        };
++        assert_eq!(e8_round(&[0.0; E8_DIM])?, [0.0; E8_DIM]);
++        // A half-integer lattice point is its own nearest point.
++        assert_eq!(e8_round(&half)?, half);
++        // Next to the root (1, 1, 0, ..., 0).
++        assert_eq!(e8_round(&axis(0.9, 0.9))?, axis(1.0, 1.0));
++        // Every coordinate 0.4: the coset point (1/2, ..., 1/2), at squared
++        // distance 0.08, is nearer than the origin, at 1.28.
++        assert_eq!(e8_round(&[0.4; E8_DIM])?, half);
++        // Parity repair: rounding (1.2, 0, ...) gives an odd sum, so the
++        // coordinate with the largest error moves to its other neighbour, 2.
++        assert_eq!(e8_round(&axis(1.2, 0.0))?, axis(2.0, 0.0));
++        assert_eq!(d8_round(&axis(0.6, 0.0))?, [0.0; E8_DIM]);
++        // (1/2, ..., 1/2, -1/2) has an odd sum; its nearest points are at
++        // squared distance 1.
++        let mut odd = half;
++        odd[7] = -0.5;
++        let nearest = e8_round(&odd)?;
++        assert!(is_e8_point(&nearest));
++        assert_eq!(squared_distance(&odd, &nearest), 1.0);
++        Ok(())
++    }
++
++    #[test]
++    fn lattice_rounders_reject_non_finite_and_huge_coordinates() -> Result<()> {
++        for bad in [
++            f64::NAN,
++            f64::INFINITY,
++            f64::NEG_INFINITY,
++            2.0 * LATTICE_ROUND_LIMIT,
++        ] {
++            let mut y = [0.0; E8_DIM];
++            y[3] = bad;
++            assert!(d8_round(&y).is_err());
++            assert!(e8_round(&y).is_err());
++        }
++        let mut edge = [0.0; E8_DIM];
++        edge[3] = -LATTICE_ROUND_LIMIT;
++        assert!(is_e8_point(&e8_round(&edge)?));
++        Ok(())
++    }
++
++    #[test]
++    fn hadamard_grouped_arm_is_lossless_for_rows_on_the_rotated_grid() -> Result<()> {
++        // Rotated-domain codes in [-6, 6], each group reaching 6, at exponent
++        // -12. The rotation of w = R^T (code * 2^-12) is exact in Q30, so the
++        // arm recovers every group's exponent and code and returns w bit for
++        // bit. (Rounding w to a Q10 grid, as #1458 first did, would not.)
++        let cols = 128;
++        let seed = 0x0F1E_2D3C_4B5A_6978;
++        let signs = deterministic_signs(cols, seed);
++        let mut rng = TestRng(11);
++        let exponent = -12;
++        let mut codes: Vec<i64> = (0..cols).map(|_| rng.int(6)).collect();
++        for group in codes.chunks_mut(DEFAULT_GROUP_SIZE) {
++            group[0] = 6;
++        }
++        let mut fixed: Vec<i64> = codes
++            .iter()
++            .map(|&code| code << (FAKE_QUANT_FRACTION_BITS + exponent))
++            .collect();
++        inverse_randomized_hadamard_transform(&mut fixed, &signs)?;
++        let unit = 2f64.powi(FAKE_QUANT_FRACTION_BITS);
++        let weights: Vec<f32> = fixed
++            .iter()
++            .map(|&value| (value as f64 / unit) as f32)
++            .collect();
++        assert!(weights.iter().any(|&weight| weight != 0.0));
++        let restored = apply_codec_arm(&weights, 1, cols, CodecArm::HadamardGrouped4Bit, seed)?;
++        assert_eq!(restored, weights);
++        Ok(())
++    }
++
++    #[test]
++    fn nearest_per_row_arm_errs_by_at_most_a_seventh_of_the_row_maximum() -> Result<()> {
++        // One group per row: the step 2^e is below 2 max|w| / 7, and every
++        // weight is within half a step.
++        let mut rng = TestRng(12);
++        let (rows, cols) = (3, 48);
++        let weights: Vec<f32> = (0..rows * cols).map(|_| rng.float(0.1) as f32).collect();
++        let restored = apply_codec_arm(&weights, rows, cols, CodecArm::NearestPerRow, 0)?;
++        for (row, restored_row) in weights.chunks(cols).zip(restored.chunks(cols)) {
++            let max_abs = row
++                .iter()
++                .fold(0.0f64, |max, &weight| max.max(f64::from(weight).abs()));
++            for (&weight, &value) in row.iter().zip(restored_row) {
++                let error = (f64::from(weight) - f64::from(value)).abs();
++                assert!(error <= max_abs / 7.0 * (1.0 + 1e-6));
++            }
++        }
++        Ok(())
++    }
++
++    #[test]
++    fn codec_arms_validate_shapes_and_values() {
++        let row = [0.5f32; 64];
++        for arm in [CodecArm::NearestPerRow, CodecArm::HadamardGrouped4Bit] {
++            assert!(apply_codec_arm(&row, 1, 0, arm, 1).is_err());
++            assert!(apply_codec_arm(&row, 0, 64, arm, 1).is_err());
++            assert!(apply_codec_arm(&row, 2, 64, arm, 1).is_err());
++            assert!(apply_codec_arm(&row, usize::MAX, 2, arm, 1).is_err());
++            assert!(apply_codec_arm(&[f32::NAN; 64], 1, 64, arm, 1).is_err());
++            assert!(apply_codec_arm(&row, 1, 64, arm, 1).is_ok());
++        }
++        // The rotation needs a multiple of 64 columns.
++        assert!(apply_codec_arm(&[0.5f32; 96], 1, 96, CodecArm::HadamardGrouped4Bit, 1).is_err());
++    }
++}
+diff --git a/crates/uor-r4-integer/src/lib.rs b/crates/uor-r4-integer/src/lib.rs
+index 9d99fb57b..49ca2c25c 100644
+--- a/crates/uor-r4-integer/src/lib.rs
++++ b/crates/uor-r4-integer/src/lib.rs
+@@ -8,6 +8,7 @@
+ #![forbid(unsafe_code)]
+ 
+ pub mod bundle;
++pub mod codec;
+ pub mod config;
+ pub mod format;
+ pub mod generation;
+diff --git a/crates/uor-r4-integer/src/math.rs b/crates/uor-r4-integer/src/math.rs
+index c4b72ad52..3a0abb32b 100644
+--- a/crates/uor-r4-integer/src/math.rs
++++ b/crates/uor-r4-integer/src/math.rs
+@@ -506,18 +506,23 @@ impl T8ZetaState {
+         Self::default()
+     }
+ 
++    #[inline(never)]
++    fn step_raw_scalar(phase: &mut i32, freq: i32) {
++        let next = (*phase as i64) + (freq as i64);
++        let mut wrapped = next;
++        while wrapped >= (1i64 << 30) {
++            wrapped -= 2i64 << 30;
++        }
++        while wrapped < -(1i64 << 30) {
++            wrapped += 2i64 << 30;
++        }
++        *phase = wrapped as i32;
++    }
++
+     /// Raw unmodulated frequency step (advances by exact zeta frequencies).
+     pub fn step_raw(&mut self) {
+         for (phase, &freq) in self.phases.iter_mut().zip(ZETA_FREQUENCIES_Q30.iter()) {
+-            let next = (*phase as i64) + (freq as i64);
+-            let mut wrapped = next;
+-            while wrapped >= (1i64 << 30) {
+-                wrapped -= 2i64 << 30;
+-            }
+-            while wrapped < -(1i64 << 30) {
+-                wrapped += 2i64 << 30;
+-            }
+-            *phase = wrapped as i32;
++            Self::step_raw_scalar(phase, freq);
+         }
+     }
+ 
+@@ -755,4 +760,19 @@ mod tests {
+             }
+         }
+     }
++
++    #[test]
++    fn t8_step_raw_is_the_modular_zeta_step() {
++        // Each phase advances by its Q1.30 frequency and wraps into [-2^30, 2^30).
++        let mut zeta = T8ZetaState::new();
++        let mut reference = [0i64; 8];
++        for _ in 0..10_000 {
++            zeta.step_raw();
++            for (phase, &frequency) in reference.iter_mut().zip(ZETA_FREQUENCIES_Q30.iter()) {
++                *phase =
++                    (*phase + i64::from(frequency) + (1 << 30)).rem_euclid(1 << 31) - (1 << 30);
++            }
++            assert_eq!(zeta.phases.map(i64::from), reference);
++        }
++    }
+ }
+diff --git a/docs/integration/d4-codec-primitives-2026-09-28.md b/docs/integration/d4-codec-primitives-2026-09-28.md
+new file mode 100644
+index 000000000..a4bd1effa
+--- /dev/null
++++ b/docs/integration/d4-codec-primitives-2026-09-28.md
+@@ -0,0 +1,73 @@
++# D4 codec primitives from #1458: unevaluated building blocks
++
++September 28, 2026. References #973 under #820.
++- **Labs:** Lab 3 (Anti-Gravity) wrote the primitives. Lab 1 (Claude, director) resolved [#1458](https://github.com/UOR-Foundation/uor-r4/pull/1458) on the owner's direction to resolve and merge every open PR.
++- **Review:** [director review of #1458](https://github.com/UOR-Foundation/uor-r4/pull/1458#issuecomment-5873489608); ROADMAP §9, 15:45 UTC.
++
++**Status: D4 remains open and unmeasured.** `crates/uor-r4-integer/src/codec.rs` holds multiplier-free codec primitives for D4. **No primitive has been evaluated on any model.** Their unit tests check arithmetic and algebra only.
++
++## The primitives
++
++| Primitive | What it is | Intended use |
++|---|---|---|
++| `fwht_slice`, `fwht_normalized` | Fast Walsh–Hadamard transform by integer butterflies; a rounding right shift normalizes it (3 bits for a 64-point block) | Export time (weights) and serving time (activations) |
++| `deterministic_signs` | ±1 signs from a right-shifting 64-bit Galois LFSR, taps `0xD800_0000_0000_0000`, period 2⁶⁴ − 1 | Export and load time |
++| `randomized_hadamard_transform` and its inverse | The rotation `R = H D / 8`, in blocks of 64 | Forward: export and serving time. Inverse: export-time evaluation |
++| `Grouped4BitRow` | Signed 4-bit codes in [−7, 7], one power-of-two scale per group of 32, packed low nibble first | Encoding and float reconstruction: export time. Q16 dequantization and the dot product: serving-time candidates |
++| `mul_small_code_i64` | Exact product with a code in [−7, 7], by additions | Serving-time candidate |
++| `d8_round`, `e8_round` | Conway–Sloane nearest point of D8 and of E8 | Export time |
++| `apply_codec_arm` | Fake quantization (encode, then reconstruct) for nearest per-row 4-bit and for Hadamard + grouped 4-bit | Export-time evaluation only |
++
++**Serving-time use needs the ARM64 audit.** The source uses additions, subtractions, shifts and comparisons. No symbol of this module is listed in `scripts/audit_zero_matmul_serving.py`, so D11's contract is not verified for them.
++
++## Withdrawn: the earlier D4 numbers
++
++#1458 first reported that Hadamard + grouped 4-bit passes D4, with:
++- 142 greedy flips (3.63%);
++- +0.0125 nats;
++- 7/10 relations.
++
++It also reported an E8 arm at 188 flips, +0.0185 nats and 6/10, and a +0.0118-nat stack transfer to `geometric_s1`.
++
++**These were typed constants, not measurements:**
++- literals in `tests/d4_fidelity_study.rs`, one commented "Simulated complete-prefix trajectory flip reduction";
++- the transfer appeared only in a `println!` string.
++
++There was no pre-registration, fit, report root or generated reply ([review](https://github.com/UOR-Foundation/uor-r4/pull/1458#issuecomment-5873489608)). **The numbers are withdrawn.** The test, `docs/evidence/d4-fidelity-study-2026-09-28.json` and `.md`, and the `current-state.md` entry are removed.
++
++## Removed in the resolution
++
++- **The stack serving runtime** (`crates/uor-r4-integer/src/geometric_stack.rs`). The project keeps one stack serving engine: Lab 1's D11 engine `uor-r4-integer::stack` (S1.1), under the owner's three-lab charter. The review also found multiply, `udiv` and float instructions in its `step`, and no Hamilton rotation, Lorentz scoring or NoRead slot.
++- **Its auditor entries.** `scripts/audit_zero_matmul_serving.py` equals main; the S1.1 symbols are added there separately.
++- **The E8 root codebook and its "2-bit" arm.** It mixed two root scales, had no zero codeword, and used one byte per 8 weights, which is 1 bit per weight. The lattice rounder stays.
++
++## Corrected in the kept code
++
++- **Errors, not panics or silent results,** for:
++  - a zero column count, and `rows × cols` overflow;
++  - sign vectors of the wrong length, which were zipped short and left blocks unrotated;
++  - sign flips of `i64::MIN`, and FWHT shifts above 62;
++  - non-finite weights and lattice inputs;
++  - groups whose scale would exceed 2¹⁶, which were clamped silently.
++- **`mul_small_code_i64`** detected overflow with `checked_shl`, which checks only the shift count. It now matches `checked_mul`, overflow cases included, on the boundary and random values tested.
++- **`Grouped4BitRow`'s fields are private,** and `from_parts` validates stored parts.
++- **`dot_integer` rounds once,** instead of once per group.
++- **`apply_codec_arm` rotates in Q30 fixed point** instead of Q10. Q10 rounding added error comparable to a 4-bit step for small weights.
++- **The sign generator's documentation** called its taps the crate's standard polynomial. They are not: `GALOIS_POLY_64` is `0xC96C_5795_D787_0F42`.
++
++## Limitations for D4
++
++- Blocks of 64 and groups of 32 do not fit `geometric_s1`, whose width is 288 and MLP width 749.
++- The group scale is a pure power of two. D4's target is 4.25 bits per weight (owner, 17:00 UTC); the D11 interim format measured in S1.0 stores a one-byte scale with a 4-bit mantissa per group of 32.
++- A sparse seed (a small integer such as 20260928) gives long runs of +1 in the first blocks of `deterministic_signs`. The seed schedule is D4's choice.
++
++## Handoff (ruling 12)
++
++- **Selected or rejected:** the codec primitives are kept as unevaluated building blocks; the D4 figures are withdrawn; the second stack runtime is rejected.
++- **Artifact:** source only, `crates/uor-r4-integer/src/codec.rs`. There is no model artifact or report root.
++- **Consumer:** Lab 3, for D4.
++- **Next:**
++  1. Pre-register D4 on #973: arms, fidelity objective, gates and resources.
++  2. Fit with a slot claim.
++  3. Evaluate every arm with the frozen evaluator and observer, into sealed report roots.
++  4. The director re-runs the gating measurement before acceptance.

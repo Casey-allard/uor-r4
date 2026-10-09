@@ -1,0 +1,3158 @@
+diff --git a/crates/uor-r4-training/examples/mqar-bench.rs b/crates/uor-r4-training/examples/mqar-bench.rs
+index 31a12df6a..c2c02e573 100644
+--- a/crates/uor-r4-training/examples/mqar-bench.rs
++++ b/crates/uor-r4-training/examples/mqar-bench.rs
+@@ -3,15 +3,25 @@
+ //! recall and measure in-context recall accuracy by query distance.
+ //!
+ //! ```text
+-//! mqar-bench out=NEW_REPORT_ROOT [device=cpu|metal] [context=512] [pairs_per_bucket=8] \
++//! mqar-bench out=NEW_REPORT_ROOT [device=cpu|metal|cuda] [context=512] [pairs_per_bucket=8] \
+ //!   [batch=8] [steps=1800] [lr=0.001] [warmup=100] [min_lr=0.1] [weight_decay=0.1] [clip=1.0] \
+ //!   [eval_every=100] [curve_sequences=8] [final_sequences=64] [seed=1] [max_seconds=1200] \
+-//!   [probe_steps=0,600,final|none] [probe_sequences=16] \
+-//!   [mode=train|task-baselines] [arm=stack] ARM OPTIONS
++//!   [probe_steps=0,600,final|none] [probe_sequences=16] [save_model=false|true] \
++//!   [mode=train|task-baselines] [layout=synthetic|fact] FACT OPTIONS [arm=stack] ARM OPTIONS
+ //! arm=stack: [pattern=aaaaaa] [read=l2|dot|lorentz] [rotation=true|false] [width=128] [heads=4] \
+-//!   [mlp=384] [age=default|flat|spread] [key_shift=false|true]
++//!   [mlp=384] [age=default|flat|spread] [key_shift=false|true] \
++//!   [lineage=none|f2|qk|qk_jj|identity|so4|conv|wprev] [learned_init=lag1|zero]
++//! layout=fact: tokenizer=TOKENIZER_JSON [gaps=0,1,2,3] [forms=rehearse,bare]
++//!   (context <= 384; defaults pairs_per_bucket=4, final_sequences=256)
++//! mqar-bench mode=decide runs=DIR_OF_SEALED_FACT_ROOTS out=NEW_REPORT_ROOT
+ //! ```
+ //!
++//! `layout=fact` (Step 2, the deployment-parity bench) and `mode=decide` (its
++//! frozen decision table) are documented in `mqar_bench_step2/fact.rs` and
++//! `mqar_bench_step2/decide.rs`. `lineage` selects the key/query lineage arm
++//! (`StackModel::set_read_key_shift` for `f2`, `StackModel::set_read_lineage`
++//! for the research-only controls); `key_shift=true` is kept as `lineage=f2`.
++//!
+ //! Each sequence is a fixed-length window of filler tokens holding
+ //! `pairs_per_bucket` key-value pairs per distance bucket. A pair writes its
+ //! key at position `p` and its value at `p + 1`; its single query writes the key
+@@ -50,11 +60,16 @@ use uor_r4_core::report_output;
+ #[cfg(test)]
+ use uor_r4_training::geometric_stack::quaternion_j_left;
+ use uor_r4_training::geometric_stack::{
+-    ReadBinding, ReadBindingTarget, ReadScore, RotationGroup, StackAdamW, StackArch, StackConfig,
+-    StackModel,
++    ReadBinding, ReadBindingTarget, ReadLineage, ReadScore, RotationGroup, StackAdamW, StackArch,
++    StackConfig, StackModel,
+ };
+ use uor_r4_training::{Result, TrainingError};
+ 
++#[path = "mqar_bench_step2/decide.rs"]
++mod decide;
++#[path = "mqar_bench_step2/fact.rs"]
++mod fact;
++
+ const VOCAB: usize = 512;
+ /// Filler tokens: noise between the pairs and queries.
+ const FILLER: (u32, u32) = (8, 64);
+@@ -327,6 +342,9 @@ trait ContextArm {
+     fn positions_scored(&self, position: usize) -> usize;
+     /// What `positions_scored` counts, for the report.
+     fn access_note(&self) -> String;
++    /// Saves the arm's weights under `directory` (`save_model=true`); an arm
++    /// without a saved form refuses.
++    fn save(&self, directory: &Path) -> Result<()>;
+     /// The (layer, head) read heads whose source weights the probe observes;
+     /// empty for an arm without position-scoring reads.
+     fn read_heads(&self) -> Vec<(usize, usize)> {
+@@ -380,6 +398,52 @@ impl AgeInit {
+     }
+ }
+ 
++/// The key/query lineage of a stack arm (Step 2 arms).
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++enum LineageArm {
++    /// No lineage: the plain read keys.
++    None,
++    /// F2: `k_t + j k_{t-1}` (`StackModel::set_read_key_shift`, saveable).
++    F2,
++    /// A research-only lineage (`StackModel::set_read_lineage`).
++    Research(ReadLineage),
++}
++
++impl LineageArm {
++    fn name(self) -> &'static str {
++        match self {
++            LineageArm::None => "none",
++            LineageArm::F2 => "f2",
++            LineageArm::Research(lineage) => lineage.name(),
++        }
++    }
++
++    /// `lineage=NAME`; `seed` seeds the random SO(4) map, `lag1` the learned
++    /// controls' initial lag-1 channel (identity) or its absence (zero).
++    fn parse(name: &str, seed: u64, lag1: bool) -> Result<Self> {
++        Ok(match name {
++            "none" => LineageArm::None,
++            "f2" => LineageArm::F2,
++            "qk" => LineageArm::Research(ReadLineage::QueryKeyJ),
++            "qk_jj" => LineageArm::Research(ReadLineage::QueryKeyJSame),
++            "identity" => LineageArm::Research(ReadLineage::IdentityShift),
++            "so4" => LineageArm::Research(ReadLineage::RandomSo4 { seed }),
++            "conv" => LineageArm::Research(ReadLineage::LearnedConv { init_lag1: lag1 }),
++            "wprev" => LineageArm::Research(ReadLineage::LearnedPrev {
++                init_identity: lag1,
++            }),
++            other => return Err(invalid(format!("invalid lineage={other}"))),
++        })
++    }
++
++    fn record(self) -> Value {
++        match self {
++            LineageArm::None | LineageArm::F2 => json!({"name": self.name()}),
++            LineageArm::Research(lineage) => json!({"name": self.name(), "spec": lineage}),
++        }
++    }
++}
++
+ /// The arm registry: one variant per context-access mechanism.
+ #[derive(Clone, Debug)]
+ enum ArmSpec {
+@@ -393,14 +457,32 @@ enum ArmSpec {
+         heads: usize,
+         mlp_hidden: usize,
+         age: AgeInit,
+-        /// F2: every read key also carries the previous position's key,
+-        /// turned by the unit quaternion `j` (`StackModel::set_read_key_shift`).
+-        key_shift: bool,
++        /// The key/query lineage. F2 (`key_shift=true` or `lineage=f2`):
++        /// every read key also carries the previous position's key, turned by
++        /// the unit quaternion `j` (`StackModel::set_read_key_shift`).
++        lineage: LineageArm,
+     },
+ }
+ 
+ impl ArmSpec {
+-    fn parse(args: &mut Args) -> Result<Self> {
++    fn parse(args: &mut Args, seed: u64) -> Result<Self> {
++        let key_shift: bool = args.parsed("key_shift", false)?;
++        let lag1 = match args.take("learned_init").as_deref() {
++            None | Some("lag1") => true,
++            Some("zero") => false,
++            Some(other) => return Err(invalid(format!("invalid learned_init={other}"))),
++        };
++        let lineage = match args.take("lineage") {
++            None if key_shift => LineageArm::F2,
++            None => LineageArm::None,
++            Some(name) => {
++                let lineage = LineageArm::parse(&name, seed, lag1)?;
++                if key_shift && lineage != LineageArm::F2 {
++                    return Err(invalid("key_shift=true is lineage=f2; give one of them"));
++                }
++                lineage
++            }
++        };
+         match args.take("arm").as_deref() {
+             None | Some("stack") => Ok(ArmSpec::Stack {
+                 pattern: args.take("pattern").unwrap_or_else(|| "aaaaaa".into()),
+@@ -420,7 +502,7 @@ impl ArmSpec {
+                     Some("spread") => AgeInit::Spread,
+                     Some(other) => return Err(invalid(format!("invalid age={other}"))),
+                 },
+-                key_shift: args.parsed("key_shift", false)?,
++                lineage,
+             }),
+             Some(other) => Err(invalid(format!("unknown arm={other}"))),
+         }
+@@ -434,7 +516,7 @@ impl ArmSpec {
+                 read,
+                 rotation,
+                 age,
+-                key_shift,
++                lineage,
+                 ..
+             } => format!(
+                 "stack-{pattern}-{read:?}{}{}{}",
+@@ -442,7 +524,11 @@ impl ArmSpec {
+                     AgeInit::Default => String::new(),
+                     other => format!("-{}-age", other.name()),
+                 },
+-                if *key_shift { "-key-shift" } else { "" },
++                match lineage {
++                    LineageArm::None => String::new(),
++                    LineageArm::F2 => "-key-shift".into(),
++                    other => format!("-lineage-{}", other.name()),
++                },
+                 if *rotation { "" } else { "-no-rotation" },
+             )
+             .to_lowercase(),
+@@ -453,10 +539,16 @@ impl ArmSpec {
+     fn validate(&self, common: &Common) -> Result<()> {
+         match self {
+             ArmSpec::Stack {
+-                pattern, key_shift, ..
++                pattern,
++                lineage,
++                width,
++                ..
+             } => {
+-                if *key_shift && !pattern.contains('a') {
+-                    return Err(invalid("key_shift=true needs a read layer"));
++                if *lineage != LineageArm::None && !pattern.contains('a') {
++                    return Err(invalid("a key/query lineage needs a read layer"));
++                }
++                if *lineage != LineageArm::None && !width.is_multiple_of(4) {
++                    return Err(invalid("a key/query lineage needs four-channel lanes"));
+                 }
+                 self.stack_config(common)?.validate()
+             }
+@@ -476,7 +568,7 @@ impl ArmSpec {
+             } => {
+                 let config = StackConfig {
+                     arch: StackArch::Geometric,
+-                    vocab_size: VOCAB,
++                    vocab_size: common.vocab,
+                     width: *width,
+                     heads: *heads,
+                     mlp_hidden: *mlp_hidden,
+@@ -498,7 +590,7 @@ impl ArmSpec {
+ 
+     fn build(&self, common: &Common, device: &Device) -> Result<Box<dyn ContextArm>> {
+         match self {
+-            ArmSpec::Stack { age, key_shift, .. } => {
++            ArmSpec::Stack { age, lineage, .. } => {
+                 let config = self.stack_config(common)?;
+                 let mut model = StackModel::new(config.clone(), device)?;
+                 if *age != AgeInit::Default {
+@@ -520,12 +612,18 @@ impl ArmSpec {
+                         )?)?;
+                     }
+                 }
+-                model.set_read_key_shift(*key_shift)?;
++                // Before the optimizer: learned lineages add variables.
++                match lineage {
++                    LineageArm::None => {}
++                    LineageArm::F2 => model.set_read_key_shift(true)?,
++                    LineageArm::Research(research) => model.set_read_lineage(Some(*research))?,
++                }
+                 let optimizer = StackAdamW::new(&model, common.weight_decay, common.clip)?;
+                 Ok(Box::new(StackArm {
+                     model,
+                     optimizer,
+                     age: *age,
++                    lineage: *lineage,
+                 }))
+             }
+         }
+@@ -536,6 +634,7 @@ struct StackArm {
+     model: StackModel,
+     optimizer: StackAdamW,
+     age: AgeInit,
++    lineage: LineageArm,
+ }
+ 
+ impl StackArm {
+@@ -564,6 +663,8 @@ impl ContextArm for StackArm {
+                     .unwrap_or_else(|| 2f64.powf(-8.0 * (h + 1) as f64 / heads as f64)))
+                 .collect::<Vec<_>>(),
+             "read_key_shift": self.model.read_key_shift(),
++            "lineage": self.lineage.name(),
++            "lineage_record": self.lineage.record(),
+             "read_layers": self.read_layers(),
+             "recurrence_layers": self.model.config.layers() - self.read_layers(),
+             "recurrent_state_floats_per_layer": self.model.config.width,
+@@ -606,6 +707,10 @@ impl ContextArm for StackArm {
+         "read layers x heads x (position + 1): every causal position is scored by each read head (plus one NoRead slot, not counted); recurrence layers score no positions".into()
+     }
+ 
++    fn save(&self, directory: &Path) -> Result<()> {
++        self.model.save(directory)
++    }
++
+     fn read_heads(&self) -> Vec<(usize, usize)> {
+         let config = &self.model.config;
+         (0..config.layers())
+@@ -931,6 +1036,11 @@ impl Args {
+ struct Common {
+     out: PathBuf,
+     device_name: String,
++    /// The model vocabulary: `VOCAB` for the synthetic layout, the
++    /// tokenizer's for `layout=fact`.
++    vocab: usize,
++    /// Save the trained weights under `model/` of the report root.
++    save_model: bool,
+     context: usize,
+     pairs_per_bucket: usize,
+     batch: usize,
+@@ -957,7 +1067,8 @@ impl Common {
+             "device": self.device_name,
+             "threads": std::env::var("RAYON_NUM_THREADS").ok(),
+             "context": self.context,
+-            "vocab": VOCAB,
++            "vocab": self.vocab,
++            "save_model": self.save_model,
+             "token_ranges": {"filler": FILLER, "keys": KEYS, "values": VALUES},
+             "pairing_split": {
+                 "classes": CLASSES, "held_out_class": HELD_OUT_CLASS,
+@@ -975,13 +1086,23 @@ impl Common {
+     }
+ }
+ 
+-fn settings() -> Result<(Common, ArmSpec, bool)> {
+-    let mut args = Args::parse()?;
+-    let baselines_only = match args.take("mode").as_deref() {
+-        None | Some("train") => false,
+-        Some("task-baselines") => true,
++/// What `main` runs.
++enum Mode {
++    Train,
++    TaskBaselines,
++}
++
++fn settings(mut args: Args) -> Result<(Common, ArmSpec, Mode, Option<fact::FactTask>)> {
++    let mode = match args.take("mode").as_deref() {
++        None | Some("train") => Mode::Train,
++        Some("task-baselines") => Mode::TaskBaselines,
+         Some(other) => return Err(invalid(format!("invalid mode={other}"))),
+     };
++    let fact_layout = match args.take("layout").as_deref() {
++        None | Some("synthetic") => false,
++        Some("fact") => true,
++        Some(other) => return Err(invalid(format!("invalid layout={other}"))),
++    };
+     let out = PathBuf::from(
+         args.take("out")
+             .ok_or_else(|| invalid("out=NEW_REPORT_ROOT is required"))?,
+@@ -989,8 +1110,17 @@ fn settings() -> Result<(Common, ArmSpec, bool)> {
+     let common = Common {
+         out,
+         device_name: args.take("device").unwrap_or_else(|| "cpu".into()),
+-        context: args.parsed("context", 512usize)?,
+-        pairs_per_bucket: args.parsed("pairs_per_bucket", 8usize)?,
++        vocab: VOCAB,
++        save_model: args.parsed("save_model", false)?,
++        context: args.parsed(
++            "context",
++            if fact_layout {
++                fact::SERVED_CONTEXT
++            } else {
++                512usize
++            },
++        )?,
++        pairs_per_bucket: args.parsed("pairs_per_bucket", if fact_layout { 4 } else { 8usize })?,
+         batch: args.parsed("batch", 8usize)?,
+         steps: args.parsed("steps", 1800usize)?,
+         lr: args.parsed("lr", 1e-3f64)?,
+@@ -1000,7 +1130,7 @@ fn settings() -> Result<(Common, ArmSpec, bool)> {
+         clip: args.parsed("clip", 1.0f64)?,
+         eval_every: args.parsed("eval_every", 100usize)?,
+         curve_sequences: args.parsed("curve_sequences", 8usize)?,
+-        final_sequences: args.parsed("final_sequences", 64usize)?,
++        final_sequences: args.parsed("final_sequences", if fact_layout { 256 } else { 64usize })?,
+         seed: args.parsed("seed", 1u64)?,
+         max_seconds: args.parsed("max_seconds", 1200f64)?,
+         probe_steps: Vec::new(),
+@@ -1009,7 +1139,11 @@ fn settings() -> Result<(Common, ArmSpec, bool)> {
+     let mut common = common;
+     let probe_text = args
+         .take("probe_steps")
+-        .unwrap_or_else(|| "0,600,final".into());
++        // The fact layout probes once, after training (or never: `none`).
++        .unwrap_or_else(|| if fact_layout { "final" } else { "0,600,final" }.into());
++    if fact_layout && !matches!(probe_text.as_str(), "final" | "none") {
++        return Err(invalid("layout=fact takes probe_steps=final|none"));
++    }
+     if probe_text != "none" {
+         for part in probe_text.split(',') {
+             let step = match part {
+@@ -1026,7 +1160,14 @@ fn settings() -> Result<(Common, ArmSpec, bool)> {
+         common.probe_steps.sort_unstable();
+         common.probe_steps.dedup();
+     }
+-    let arm = ArmSpec::parse(&mut args)?;
++    let fact_task = if fact_layout {
++        let task = fact::FactTask::parse(&mut args, &common)?;
++        common.vocab = task.vocab.vocab;
++        Some(task)
++    } else {
++        None
++    };
++    let arm = ArmSpec::parse(&mut args, common.seed)?;
+     args.finish()?;
+     if common.batch == 0
+         || common.steps == 0
+@@ -1044,7 +1185,7 @@ fn settings() -> Result<(Common, ArmSpec, bool)> {
+         return Err(invalid("the context holds no distance bucket"));
+     }
+     arm.validate(&common)?;
+-    Ok((common, arm, baselines_only))
++    Ok((common, arm, mode, fact_task))
+ }
+ 
+ const TRAIN_DOMAIN: u64 = 0x7472_6169_6E;
+@@ -1276,6 +1417,18 @@ fn run(s: &Common, arm: &mut dyn ContextArm, log: &mut fs::File) -> Result<Value
+     }))
+ }
+ 
++/// `save_model=true`: the arm's weights under `model/` of the report root,
++/// or the refusal of an arm without a saved form (recorded, not fatal).
++fn save_model(common: &Common, arm: &dyn ContextArm) -> Value {
++    if !common.save_model {
++        return json!({"requested": false});
++    }
++    match arm.save(&common.out.join("model")) {
++        Ok(()) => json!({"requested": true, "saved": true, "path": "model"}),
++        Err(error) => json!({"requested": true, "saved": false, "refusal": error.to_string()}),
++    }
++}
++
+ fn write_json(path: &Path, value: &Value) -> Result<()> {
+     fs::write(path, serde_json::to_vec_pretty(value)?)?;
+     Ok(())
+@@ -1311,8 +1464,16 @@ fn task_baselines_report(common: &Common) -> Result<Value> {
+ }
+ 
+ fn main() -> Result<()> {
+-    let (common, spec, baselines_only) = settings()?;
+-    if baselines_only {
++    let mut args = Args::parse()?;
++    if args.0.get("mode").map(String::as_str) == Some("decide") {
++        args.take("mode");
++        return decide::main(args);
++    }
++    let (common, spec, mode, fact_task) = settings(args)?;
++    if let Some(task) = fact_task {
++        return fact::main(&common, &spec, matches!(mode, Mode::TaskBaselines), &task);
++    }
++    if matches!(mode, Mode::TaskBaselines) {
+         report_output::claim(&common.out)?;
+         let report = task_baselines_report(&common)?;
+         write_json(&common.out.join("report.json"), &report)?;
+@@ -1338,7 +1499,8 @@ fn main() -> Result<()> {
+             "parameters": arm.parameters(),
+             "config": arm.record(),
+         });
+-        let results = run(&common, arm.as_mut(), &mut log)?;
++        let mut results = run(&common, arm.as_mut(), &mut log)?;
++        results["model_save"] = save_model(&common, arm.as_ref());
+         Ok((arm_record, results))
+     })();
+     drop(log);
+@@ -1476,6 +1638,8 @@ mod tests {
+         let common = Common {
+             out: PathBuf::from("unused"),
+             device_name: "cpu".into(),
++            vocab: VOCAB,
++            save_model: false,
+             context: 64,
+             pairs_per_bucket: 2,
+             batch: 2,
+@@ -1501,7 +1665,7 @@ mod tests {
+             heads: 2,
+             mlp_hidden: 16,
+             age: AgeInit::Flat,
+-            key_shift: true,
++            lineage: LineageArm::F2,
+         };
+         spec.validate(&common).expect("valid arm");
+         let mut arm = spec.build(&common, &Device::Cpu).expect("arm");
+@@ -1518,6 +1682,7 @@ mod tests {
+         assert_eq!(report["total"], 2 * 2 * buckets.len());
+         assert_eq!(arm.record()["age_init"], "flat");
+         assert_eq!(arm.record()["read_key_shift"], true);
++        assert_eq!(arm.record()["lineage"], "f2");
+         let probe = read_probe(&*arm, &batch, common.context, &buckets).expect("probe");
+         for bucket in &buckets {
+             let entry = &probe["by_bucket"][bucket.name];
+diff --git a/crates/uor-r4-training/examples/mqar_bench_step2/decide.rs b/crates/uor-r4-training/examples/mqar_bench_step2/decide.rs
+new file mode 100644
+index 000000000..8ba6c2437
+--- /dev/null
++++ b/crates/uor-r4-training/examples/mqar_bench_step2/decide.rs
+@@ -0,0 +1,666 @@
++//! `mode=decide runs=DIR out=NEW_REPORT_ROOT`: the Step 2 decision table
++//! (References #820). It reads every sealed `layout=fact` report root
++//! directly under `runs` (each verified against its manifest), and applies
++//! the rules frozen in `final-assessment.md` Step 2 with the ordering fix of
++//! `completeness-critique.md` point 5. The rules and thresholds are the
++//! constants below; they were fixed before any full run.
++//!
++//! **Cells and metric.** The decision cells are `g >= 1` with a multi-piece
++//! key (2 or 3 pieces), for each reply form: 6 per form. The metric is the
++//! full-value accuracy (every value piece, teacher forced) on the final
++//! in-class fresh-pairing evaluation. A cell **passes** for an arm when every
++//! seed scores at least `PASS` on it and the arm has at least its required
++//! seeds. A form passes when all its decision cells pass; the arm passes
++//! when both forms do.
++//!
++//! **Rules, per production pattern (`rararr`, `rrarra`), in this order:**
++//! 1. `none` passes: there is no lag problem in this pattern; stop lineage
++//!    research. Evaluated first: when it fires, rules 2 and 3 cannot assign
++//!    credit to a lineage and are reported as not informative.
++//! 2. Otherwise, `f2` passes: F2 is sufficient.
++//! 3. Only when `none` fails: if the learned depthwise conv is within `TIE`
++//!    of F2 (seed means) on every decision cell, the geometric claim for `j`
++//!    is retracted (F2 is kept as the cheapest exact form); if it is more
++//!    than `TIE` below F2 on some cell, the claim stands against the conv
++//!    control. Added guard: when F2 itself does not pass, rule 3 is not
++//!    informative (two failing arms tying says nothing about `j`); the
++//!    literal tie is still recorded (`r3_literal_tie_within_0_03`). A conv
++//!    that exceeds F2 by more than `TIE` somewhere, and is nowhere more than
++//!    `TIE` below it, also retracts the claim.
++//! 4. If every arm present passes REHEARSE and fails BARE, the remaining gap
++//!    is reply form/data ("{k} is {v}" targets), not mechanism.
++//! 5. Capability: an arm counts on a cell only when the cell passes and its
++//!    seed mean meets the rehearse + R-nlet reference rule's accuracy on the
++//!    same evaluation sets (mean at least rule mean minus `RULE_TOLERANCE`).
++//!    `meets_rule` and `beats_rule` are also reported per cell.
++//! 6. Conditional Step 2b: if the conv fails a decision cell that some
++//!    lineage arm passes, Step 2b (lags 0-3) is justified.
++//! 7. Informational: cells where `qk` (query + key lineage) passes and `f2`
++//!    fails (query-side lineage needed).
++//!
++//! Rules 1-3 are decided only when none, F2 and conv have all their seeds,
++//! and rule 6 only when conv has. Rules 1-3 and 6 are applied to both forms
++//! together and to each form alone. `aaaaaa` is diagnostic: tabulated, never decided.
++
++use std::collections::BTreeSet;
++
++use super::fact::{cell_name, relevant_cell, Form, FACT_SCHEMA};
++use super::*;
++
++const PASS: f64 = 0.95;
++const TIE: f64 = 0.03;
++const RULE_TOLERANCE: f64 = 0.01;
++const PRODUCTION_PATTERNS: [&str; 2] = ["rararr", "rrarra"];
++const DIAGNOSTIC_PATTERNS: [&str; 1] = ["aaaaaa"];
++const LINEAGE_ARMS: [&str; 6] = ["f2", "qk", "qk_jj", "identity", "so4", "wprev"];
++const DECISION_SCHEMA: &str = "uor-r4/mqar-bench/step2-decision/v1";
++
++/// Seeds each arm needs before its cells can pass.
++fn required_seeds(arm: &str) -> usize {
++    match arm {
++        "none" | "f2" | "qk" | "conv" => 3,
++        _ => 2,
++    }
++}
++
++fn decision_cells(form: Option<Form>) -> Vec<String> {
++    let forms = match form {
++        Some(form) => vec![form],
++        None => vec![Form::Rehearse, Form::Bare],
++    };
++    let mut cells = Vec::new();
++    for form in forms {
++        for gap in 1..=3 {
++            for key_len in 2..=3 {
++                if relevant_cell(gap, key_len) {
++                    cells.push(cell_name(form, gap, key_len));
++                }
++            }
++        }
++    }
++    cells
++}
++
++/// One seed of one (pattern, arm): its per-cell model and rule accuracy.
++struct SeedRun {
++    seed: u64,
++    root: String,
++    cells: BTreeMap<String, (f64, f64)>,
++}
++
++#[derive(Default)]
++struct ArmRuns {
++    seeds: Vec<SeedRun>,
++}
++
++impl ArmRuns {
++    fn mean(&self, cell: &str, which: usize) -> Option<f64> {
++        let values: Vec<f64> = self
++            .seeds
++            .iter()
++            .filter_map(|run| run.cells.get(cell))
++            .map(|pair| if which == 0 { pair.0 } else { pair.1 })
++            .collect();
++        (!values.is_empty()).then(|| values.iter().sum::<f64>() / values.len() as f64)
++    }
++
++    fn min(&self, cell: &str) -> Option<f64> {
++        self.seeds
++            .iter()
++            .map(|run| run.cells.get(cell).map(|pair| pair.0))
++            .collect::<Option<Vec<f64>>>()
++            .and_then(|values| values.into_iter().reduce(f64::min))
++    }
++
++    fn cell_passes(&self, arm: &str, cell: &str) -> bool {
++        self.seeds.len() >= required_seeds(arm) && self.min(cell).is_some_and(|m| m >= PASS)
++    }
++
++    fn passes(&self, arm: &str, cells: &[String]) -> bool {
++        cells.iter().all(|cell| self.cell_passes(arm, cell))
++    }
++}
++
++/// Reads the sealed fact roots under `runs`, keyed by (pattern, arm).
++fn collect(runs: &Path) -> Result<(BTreeMap<(String, String), ArmRuns>, Vec<Value>)> {
++    let mut grouped: BTreeMap<(String, String), ArmRuns> = BTreeMap::new();
++    let mut skipped = Vec::new();
++    let mut seen = BTreeSet::new();
++    let mut shared_config: Option<(Value, String)> = None;
++    let mut entries: Vec<PathBuf> = fs::read_dir(runs)?
++        .map(|entry| entry.map(|e| e.path()))
++        .collect::<std::io::Result<_>>()?;
++    entries.sort();
++    for root in entries.into_iter().filter(|path| path.is_dir()) {
++        let name = root.display().to_string();
++        if let Err(error) = report_output::verify(&root) {
++            skipped.push(
++                json!({"root": name, "reason": format!("not a verified sealed root: {error}")}),
++            );
++            continue;
++        }
++        let report: Value = serde_json::from_slice(&fs::read(root.join("report.json"))?)?;
++        if report["schema"] != FACT_SCHEMA || report.get("mode").is_some() {
++            skipped.push(json!({"root": name, "reason": "not a fact training report"}));
++            continue;
++        }
++        if report["status"] != "complete" {
++            skipped.push(
++                json!({"root": name, "reason": "status is not complete", "error": report["error"]}),
++            );
++            continue;
++        }
++        // A seed counts only if it trained its full budget: a run cut short by
++        // max_seconds is a different (smaller) experiment, not a seed of this one.
++        let planned = report["task"]["common"]["steps"].as_u64();
++        let completed = report["results"]["steps_completed"].as_u64();
++        if report["results"]["stopped_early_at_max_seconds"] == true || completed != planned {
++            skipped.push(json!({
++                "root": name,
++                "reason": "did not train its full step budget",
++                "steps_completed": report["results"]["steps_completed"],
++                "steps_planned": report["task"]["common"]["steps"],
++            }));
++            continue;
++        }
++        // Every counted seed must share one training configuration; only the
++        // seed and the execution environment may differ.
++        let fingerprint = training_fingerprint(&report);
++        match &shared_config {
++            None => shared_config = Some((fingerprint, name.clone())),
++            Some((first, first_root)) if *first != fingerprint => {
++                return Err(invalid(format!(
++                    "{name} was trained with a different configuration than {first_root}; \
++                     decide one grid at a time"
++                )));
++            }
++            Some(_) => {}
++        }
++        let config = &report["arm"]["config"];
++        let pattern = config["stack_config"]["pattern"]
++            .as_str()
++            .ok_or_else(|| invalid(format!("{name}: no pattern")))?
++            .to_owned();
++        let arm = config["lineage"]
++            .as_str()
++            .ok_or_else(|| invalid(format!("{name}: no lineage")))?
++            .to_owned();
++        let seed = report["task"]["common"]["seed"]
++            .as_u64()
++            .ok_or_else(|| invalid(format!("{name}: no seed")))?;
++        if !seen.insert((pattern.clone(), arm.clone(), seed)) {
++            return Err(invalid(format!(
++                "two complete roots for pattern {pattern} arm {arm} seed {seed}; keep one"
++            )));
++        }
++        let cells = report["results"]["final_in_class_fresh_pairings"]["cells"]
++            .as_object()
++            .ok_or_else(|| invalid(format!("{name}: no cells")))?
++            .iter()
++            .map(|(cell, record)| {
++                (
++                    cell.clone(),
++                    (
++                        record["full_accuracy"].as_f64().unwrap_or(f64::NAN),
++                        record["rule_full_accuracy"].as_f64().unwrap_or(f64::NAN),
++                    ),
++                )
++            })
++            .collect();
++        grouped
++            .entry((pattern, arm))
++            .or_default()
++            .seeds
++            .push(SeedRun {
++                seed,
++                root: name,
++                cells,
++            });
++    }
++    for runs in grouped.values_mut() {
++        runs.seeds.sort_by_key(|run| run.seed);
++    }
++    Ok((grouped, skipped))
++}
++
++/// The parts of a fact report that define the experiment: the shared task
++/// settings and the fact layout, without the per-run seed and execution
++/// environment (device, threads, model saving, the wall-time cap, probe).
++fn training_fingerprint(report: &Value) -> Value {
++    let mut common = report["task"]["common"].clone();
++    if let Some(map) = common.as_object_mut() {
++        for key in [
++            "seed",
++            "threads",
++            "device",
++            "save_model",
++            "max_seconds",
++            "probe_steps",
++            "probe_sequences",
++        ] {
++            map.remove(key);
++        }
++    }
++    json!({"common": common, "fact": report["task"]["fact"]})
++}
++
++/// Rules 1-3 and 6 on `cells` for one pattern.
++fn core_rules(arms: &BTreeMap<&str, &ArmRuns>, cells: &[String]) -> Value {
++    let present = |arm: &str| arms.get(arm).copied();
++    let passes = |arm: &str| present(arm).is_some_and(|runs| runs.passes(arm, cells));
++    let complete =
++        |arm: &str| present(arm).is_some_and(|runs| runs.seeds.len() >= required_seeds(arm));
++    let missing: Vec<&str> = ["none", "f2", "conv"]
++        .into_iter()
++        .filter(|arm| !complete(arm))
++        .collect();
++    let none_passes = passes("none");
++    let mut verdicts = Vec::new();
++    if !missing.is_empty() {
++        verdicts.push(format!(
++            "INCOMPLETE: arms below their required seeds: {missing:?}"
++        ));
++    }
++    let decided = missing.is_empty();
++    // Rule 1 first; rules 1-3 only with every required seed of none, F2, conv.
++    if !decided {
++        verdicts.push("R1-R3 NOT_DECIDED: none, F2 and conv need all their seeds".into());
++    } else if none_passes {
++        verdicts.push("R1 NO_LAG_PROBLEM: none passes every decision cell on every seed; stop lineage research".into());
++    } else if passes("f2") {
++        verdicts.push(
++            "R2 F2_SUFFICIENT: none fails, F2 passes every decision cell on every seed".into(),
++        );
++    }
++    // Rule 3, only when none fails.
++    let conv_gaps: Vec<Value> = cells
++        .iter()
++        .map(|cell| {
++            let conv = present("conv").and_then(|r| r.mean(cell, 0));
++            let f2 = present("f2").and_then(|r| r.mean(cell, 0));
++            json!({"cell": cell, "conv_mean": conv, "f2_mean": f2,
++                "f2_minus_conv": conv.zip(f2).map(|(c, f)| f - c)})
++        })
++        .collect();
++    let diffs: Vec<Option<f64>> = conv_gaps
++        .iter()
++        .map(|gap| gap["f2_minus_conv"].as_f64())
++        .collect();
++    let literal_tie = diffs.iter().all(|d| d.is_some_and(|d| d.abs() <= TIE));
++    let conv_never_worse = diffs.iter().all(|d| d.is_some_and(|d| d <= TIE));
++    let rule3 = if !decided {
++        None
++    } else if none_passes {
++        Some("R3 NOT_INFORMATIVE: none passes, so a conv tie cannot speak to j".to_string())
++    } else if !passes("f2") {
++        // Guard added to the frozen rule: a tie of two failing arms is a
++        // shared failure, not evidence about j (the literal tie is recorded).
++        Some(format!(
++            "R3 NOT_INFORMATIVE: F2 does not pass, so the conv comparison cannot credit or retract j (literal tie within 0.03: {literal_tie})"
++        ))
++    } else if conv_never_worse {
++        Some(format!(
++            "R3 J_CLAIM_RETRACTED: none fails, F2 passes and the learned conv is never more than 0.03 below F2 on a decision cell (within 0.03 everywhere: {literal_tie}); F2 kept only as the cheapest exact form"
++        ))
++    } else {
++        Some("R3 J_CLAIM_STANDS_OVER_CONV: none fails, F2 passes and the learned conv is more than 0.03 below F2 on some decision cell".into())
++    };
++    verdicts.extend(rule3);
++    // Rule 6.
++    let step2b: Vec<Value> = cells
++        .iter()
++        .filter(|_| complete("conv"))
++        .filter(|cell| present("conv").is_some_and(|runs| !runs.cell_passes("conv", cell)))
++        .filter_map(|cell| {
++            let passing: Vec<&str> = LINEAGE_ARMS
++                .into_iter()
++                .filter(|arm| present(arm).is_some_and(|runs| runs.cell_passes(arm, cell)))
++                .collect();
++            (!passing.is_empty()).then(|| json!({"cell": cell, "lineage_arms_passing": passing}))
++        })
++        .collect();
++    if !step2b.is_empty() {
++        verdicts.push("R6 STEP_2B_JUSTIFIED: the learned conv fails a decision cell that a lineage arm passes".into());
++    }
++    json!({
++        "verdicts": verdicts,
++        "none_passes": none_passes,
++        "f2_passes": passes("f2"),
++        "conv_passes": passes("conv"),
++        "qk_passes": passes("qk"),
++        "conv_vs_f2": conv_gaps,
++        "r3_literal_tie_within_0_03": literal_tie,
++        "step2b_cells": step2b,
++    })
++}
++
++fn pattern_table(arms: &BTreeMap<&str, &ArmRuns>, cells: &[String]) -> Value {
++    let mut table = serde_json::Map::new();
++    for (&arm, runs) in arms {
++        let per_cell: serde_json::Map<String, Value> = cells
++            .iter()
++            .map(|cell| {
++                let mean = runs.mean(cell, 0);
++                let rule = runs.mean(cell, 1);
++                (
++                    cell.clone(),
++                    json!({
++                        "seeds": runs.seeds.iter()
++                            .map(|run| run.cells.get(cell).map(|pair| pair.0)).collect::<Vec<_>>(),
++                        "mean": mean, "min": runs.min(cell), "passes": runs.cell_passes(arm, cell),
++                        "rule_mean": rule,
++                        "meets_rule": mean.zip(rule).map(|(m, r)| m >= r - RULE_TOLERANCE),
++                        "capability": runs.cell_passes(arm, cell)
++                            && mean.zip(rule).is_some_and(|(m, r)| m >= r - RULE_TOLERANCE),
++                        "beats_rule": mean.zip(rule).map(|(m, r)| m > r + RULE_TOLERANCE),
++                    }),
++                )
++            })
++            .collect();
++        let count = |field: &str| per_cell.values().filter(|c| c[field] == true).count();
++        let (meets, capability) = (count("meets_rule"), count("capability"));
++        table.insert(
++            arm.to_string(),
++            json!({
++                "seeds": runs.seeds.iter().map(|run| run.seed).collect::<Vec<_>>(),
++                "roots": runs.seeds.iter().map(|run| run.root.clone()).collect::<Vec<_>>(),
++                "required_seeds": required_seeds(arm),
++                "passes_all": runs.passes(arm, &decision_cells(None)),
++                "passes_rehearse": runs.passes(arm, &decision_cells(Some(Form::Rehearse))),
++                "passes_bare": runs.passes(arm, &decision_cells(Some(Form::Bare))),
++                "decision_cells_meeting_rule": meets,
++                "decision_cells_capability": capability,
++                "cells": per_cell,
++            }),
++        );
++    }
++    Value::Object(table)
++}
++
++fn decide(grouped: &BTreeMap<(String, String), ArmRuns>) -> Value {
++    let all_cells = decision_cells(None);
++    let mut patterns = serde_json::Map::new();
++    let names: BTreeSet<&str> = grouped.keys().map(|(p, _)| p.as_str()).collect();
++    for pattern in names {
++        let arms: BTreeMap<&str, &ArmRuns> = grouped
++            .iter()
++            .filter(|((p, _), _)| p == pattern)
++            .map(|((_, arm), runs)| (arm.as_str(), runs))
++            .collect();
++        let table = pattern_table(&arms, &all_cells);
++        let entry = if PRODUCTION_PATTERNS.contains(&pattern) {
++            let rehearse = decision_cells(Some(Form::Rehearse));
++            let bare = decision_cells(Some(Form::Bare));
++            let reply_form = !arms.is_empty()
++                && arms
++                    .iter()
++                    .all(|(arm, runs)| runs.passes(arm, &rehearse) && !runs.passes(arm, &bare));
++            let query_lineage: Vec<&String> = all_cells
++                .iter()
++                .filter(|cell| {
++                    arms.get("qk").is_some_and(|r| r.cell_passes("qk", cell))
++                        && !arms.get("f2").is_some_and(|r| r.cell_passes("f2", cell))
++                })
++                .collect();
++            json!({
++                "role": "production",
++                "both_forms": core_rules(&arms, &all_cells),
++                "rehearse_only": core_rules(&arms, &rehearse),
++                "bare_only": core_rules(&arms, &bare),
++                "r4_reply_form_gap": reply_form,
++                "r7_query_lineage_cells": query_lineage,
++                "arms": table,
++            })
++        } else {
++            json!({
++                "role": if DIAGNOSTIC_PATTERNS.contains(&pattern) { "diagnostic" } else { "other (not decided)" },
++                "arms": table,
++            })
++        };
++        patterns.insert(pattern.to_string(), entry);
++    }
++    let headline: Vec<String> = PRODUCTION_PATTERNS
++        .iter()
++        .map(|pattern| match patterns.get(*pattern) {
++            None => format!("{pattern}: NO RUNS"),
++            Some(entry) => format!(
++                "{pattern}: {}{}",
++                entry["both_forms"]["verdicts"]
++                    .as_array()
++                    .map(|v| v
++                        .iter()
++                        .filter_map(Value::as_str)
++                        .collect::<Vec<_>>()
++                        .join("; "))
++                    .unwrap_or_default(),
++                if entry["r4_reply_form_gap"] == true {
++                    "; R4 REPLY_FORM_GAP: every arm passes rehearse and fails bare"
++                } else {
++                    ""
++                }
++            ),
++        })
++        .collect();
++    json!({
++        "schema": DECISION_SCHEMA,
++        "rules": {
++            "pass": PASS, "tie": TIE, "rule_tolerance": RULE_TOLERANCE,
++            "metric": "full-value accuracy, final in-class fresh pairings",
++            "decision_cells": all_cells,
++            "required_seeds": {"none": 3, "f2": 3, "qk": 3, "conv": 3, "other": 2},
++            "production_patterns": PRODUCTION_PATTERNS,
++            "diagnostic_patterns": DIAGNOSTIC_PATTERNS,
++            "order": "R1 none passes (first) -> R2 F2 passes -> R3 conv tie only if none fails -> R4 reply form -> R5 rule comparison -> R6 Step 2b -> R7 query lineage",
++        },
++        "headline": headline,
++        "patterns": patterns,
++    })
++}
++
++fn markdown(decision: &Value, skipped: &[Value]) -> String {
++    let mut out = String::from("# Step 2 parity bench decision table\n\n");
++    for line in decision["headline"].as_array().into_iter().flatten() {
++        out.push_str(&format!("- {}\n", line.as_str().unwrap_or_default()));
++    }
++    out.push_str("\nMetric: full-value accuracy on the final in-class fresh pairings. Decision cells: g >= 1, key pieces >= 2. `min` is the minimum over decision cells of the seed mean; `pass` needs every seed >= 0.95 on every decision cell with the required seeds.\n");
++    for (pattern, entry) in decision["patterns"].as_object().into_iter().flatten() {
++        out.push_str(&format!(
++            "\n## {pattern} ({})\n\n| arm | seeds | min rehearse | min bare | pass rehearse | pass bare | cells meeting rule (of 12) | capability cells (of 12) |\n|---|---|---|---|---|---|---|---|\n",
++            entry["role"].as_str().unwrap_or_default()
++        ));
++        for (arm, record) in entry["arms"].as_object().into_iter().flatten() {
++            let min_of = |prefix: &str| {
++                record["cells"]
++                    .as_object()
++                    .into_iter()
++                    .flatten()
++                    .filter(|(cell, _)| cell.starts_with(prefix))
++                    .filter_map(|(_, c)| c["mean"].as_f64())
++                    .fold(f64::INFINITY, f64::min)
++            };
++            out.push_str(&format!(
++                "| {arm} | {} | {:.3} | {:.3} | {} | {} | {} | {} |\n",
++                record["seeds"],
++                min_of("rehearse"),
++                min_of("bare"),
++                record["passes_rehearse"],
++                record["passes_bare"],
++                record["decision_cells_meeting_rule"],
++                record["decision_cells_capability"],
++            ));
++        }
++        for scope in ["both_forms", "rehearse_only", "bare_only"] {
++            if let Some(verdicts) = entry[scope]["verdicts"].as_array() {
++                out.push_str(&format!("\n{scope}:\n"));
++                for verdict in verdicts {
++                    out.push_str(&format!("- {}\n", verdict.as_str().unwrap_or_default()));
++                }
++            }
++        }
++    }
++    if !skipped.is_empty() {
++        out.push_str(&format!(
++            "\n{} roots skipped (see decision.json).\n",
++            skipped.len()
++        ));
++    }
++    out
++}
++
++pub(super) fn main(mut args: Args) -> Result<()> {
++    let runs = PathBuf::from(
++        args.take("runs")
++            .ok_or_else(|| invalid("mode=decide needs runs=DIR"))?,
++    );
++    let out = PathBuf::from(
++        args.take("out")
++            .ok_or_else(|| invalid("out=NEW_REPORT_ROOT is required"))?,
++    );
++    args.finish()?;
++    if !runs.is_dir() {
++        return Err(invalid(format!(
++            "runs={} is not a directory",
++            runs.display()
++        )));
++    }
++    if out.starts_with(&runs) {
++        return Err(invalid("the decision root must not sit under runs="));
++    }
++    let (grouped, skipped) = collect(&runs)?;
++    report_output::claim(&out)?;
++    let mut decision = decide(&grouped);
++    decision["runs"] = json!(runs);
++    decision["skipped"] = json!(skipped);
++    decision["argv"] = json!(std::env::args().collect::<Vec<_>>());
++    write_json(&out.join("decision.json"), &decision)?;
++    fs::write(out.join("decision.md"), markdown(&decision, &skipped))?;
++    report_output::seal(&out)?;
++    report_output::verify(&out)?;
++    eprintln!("{}", markdown(&decision, &skipped));
++    Ok(())
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++
++    fn runs(arm: &str, seeds: usize, value: impl Fn(&str) -> f64) -> ArmRuns {
++        let cells: Vec<String> = decision_cells(None);
++        ArmRuns {
++            seeds: (0..seeds)
++                .map(|seed| SeedRun {
++                    seed: seed as u64,
++                    root: format!("{arm}-{seed}"),
++                    cells: cells.iter().map(|c| (c.clone(), (value(c), 1.0))).collect(),
++                })
++                .collect(),
++        }
++    }
++
++    fn grouped(arms: Vec<(&str, ArmRuns)>) -> BTreeMap<(String, String), ArmRuns> {
++        arms.into_iter()
++            .map(|(arm, r)| (("rararr".to_string(), arm.to_string()), r))
++            .collect()
++    }
++
++    fn verdicts(decision: &Value) -> String {
++        decision["patterns"]["rararr"]["both_forms"]["verdicts"].to_string()
++    }
++
++    #[test]
++    fn none_passing_is_decided_first_and_mutes_the_conv_tie() {
++        let decision = decide(&grouped(vec![
++            ("none", runs("none", 3, |_| 0.99)),
++            ("f2", runs("f2", 3, |_| 0.99)),
++            ("conv", runs("conv", 3, |_| 0.99)),
++        ]));
++        let text = verdicts(&decision);
++        assert!(text.contains("R1 NO_LAG_PROBLEM"), "{text}");
++        assert!(!text.contains("R2"), "{text}");
++        assert!(text.contains("R3 NOT_INFORMATIVE"), "{text}");
++    }
++
++    #[test]
++    fn f2_sufficiency_conv_tie_reply_form_and_step2b() {
++        let bare_low = |c: &str| if c.starts_with("bare") { 0.5 } else { 0.99 };
++        // none fails; F2 passes; the conv ties F2 everywhere.
++        let decision = decide(&grouped(vec![
++            ("none", runs("none", 3, |_| 0.6)),
++            ("f2", runs("f2", 3, |_| 0.99)),
++            ("conv", runs("conv", 3, |_| 0.98)),
++        ]));
++        let text = verdicts(&decision);
++        assert!(text.contains("R2 F2_SUFFICIENT"), "{text}");
++        assert!(text.contains("R3 J_CLAIM_RETRACTED"), "{text}");
++        // The conv falls short: the claim stands, and Step 2b opens.
++        let decision = decide(&grouped(vec![
++            ("none", runs("none", 3, |_| 0.6)),
++            ("f2", runs("f2", 3, |_| 0.99)),
++            ("conv", runs("conv", 3, |_| 0.8)),
++        ]));
++        let text = verdicts(&decision);
++        assert!(text.contains("R3 J_CLAIM_STANDS_OVER_CONV"), "{text}");
++        assert!(text.contains("R6 STEP_2B_JUSTIFIED"), "{text}");
++        // Two failing arms tying is not evidence about j (guard).
++        let decision = decide(&grouped(vec![
++            ("none", runs("none", 3, |_| 0.1)),
++            ("f2", runs("f2", 3, |_| 0.1)),
++            ("conv", runs("conv", 3, |_| 0.1)),
++        ]));
++        let text = verdicts(&decision);
++        assert!(
++            text.contains("R3 NOT_INFORMATIVE: F2 does not pass"),
++            "{text}"
++        );
++        assert_eq!(
++            decision["patterns"]["rararr"]["both_forms"]["r3_literal_tie_within_0_03"],
++            true
++        );
++        // Every arm passes rehearse and fails bare: reply form.
++        let decision = decide(&grouped(vec![
++            ("none", runs("none", 3, bare_low)),
++            ("f2", runs("f2", 3, bare_low)),
++            ("conv", runs("conv", 3, bare_low)),
++        ]));
++        assert_eq!(decision["patterns"]["rararr"]["r4_reply_form_gap"], true);
++        let rehearse = decision["patterns"]["rararr"]["rehearse_only"]["verdicts"].to_string();
++        assert!(rehearse.contains("R1 NO_LAG_PROBLEM"), "{rehearse}");
++        // Too few seeds never pass, and are flagged.
++        let decision = decide(&grouped(vec![
++            ("none", runs("none", 2, |_| 0.99)),
++            ("f2", runs("f2", 3, |_| 0.99)),
++            ("conv", runs("conv", 3, |_| 0.995)),
++        ]));
++        let text = verdicts(&decision);
++        assert!(
++            text.contains("INCOMPLETE") && text.contains("NOT_DECIDED") && !text.contains("R2 "),
++            "{text}"
++        );
++        assert_eq!(
++            decision["patterns"]["rararr"]["arms"]["none"]["passes_all"],
++            false
++        );
++        // Within 0.01 of the reference rule (1.0 here) a cell counts; far
++        // below it, none does.
++        assert_eq!(
++            decision["patterns"]["rararr"]["arms"]["conv"]["decision_cells_meeting_rule"],
++            12
++        );
++        let decision = decide(&grouped(vec![("none", runs("none", 3, |_| 0.5))]));
++        assert_eq!(
++            decision["patterns"]["rararr"]["arms"]["none"]["decision_cells_meeting_rule"],
++            0
++        );
++    }
++
++    #[test]
++    fn the_decision_cells_are_the_g1_multi_piece_cells_of_both_forms() {
++        let cells = decision_cells(None);
++        assert_eq!(cells.len(), 12);
++        assert!(cells.contains(&"rehearse.g1.k2".to_string()));
++        assert!(cells.contains(&"bare.g3.k3".to_string()));
++        assert!(!cells
++            .iter()
++            .any(|c| c.contains(".g0.") || c.ends_with(".k1")));
++    }
++}
+diff --git a/crates/uor-r4-training/examples/mqar_bench_step2/fact.rs b/crates/uor-r4-training/examples/mqar_bench_step2/fact.rs
+new file mode 100644
+index 000000000..fe7236e1e
+--- /dev/null
++++ b/crates/uor-r4-training/examples/mqar_bench_step2/fact.rs
+@@ -0,0 +1,1295 @@
++//! `layout=fact`: the Step 2 deployment-parity MQAR bench (References #820;
++//! `docs/research/barrier-assessment-2026-10-05/final-assessment.md` Step 2
++//! and `completeness-critique.md` points 2, 5 and 6).
++//!
++//! Each window of at most 384 tokens (the trained and served context; the
++//! served engine refuses positions beyond it) holds facts and their queries
++//! written in pieces of the real #1017 tokenizer:
++//!
++//! - **Fact:** `key ++ gap ++ value`. A key is 1-3 BPE pieces: a lowercase
++//!   space-prefixed word piece followed by 0-2 lowercase continuation pieces,
++//!   kept only when the tokenizer encodes its own decoded text back to exactly
++//!   those pieces (a canonical tuple). The gap (copula) is `g` pieces,
++//!   `g` in `gaps` (default 0..=3), drawn from a pool of function-word pieces
++//!   (" is", " =", ":", ...) plus random word pieces of the key/value pools,
++//!   so gap and key/value vocabularies overlap. A value is one word piece, a
++//!   canonical two-piece word, or a numeral `" d"` encoded as the tokenizer
++//!   writes it (a bare space piece and a digit piece).
++//! - **Query**, after its fact at a distance drawn inside a bucket:
++//!   - `rehearse`: `key ++ gap ++ value`, the fact's own pieces, so the
++//!     position predicting the first value piece holds the last copula piece
++//!     (as in D19 "{k} is"), or the last key piece when `g = 0`;
++//!   - `bare`: `key ++ BARE_PREFIX ++ value`, the "It's {v}" reply form, which
++//!     never repeats the copula.
++//!
++//!   The targets are the value pieces (teacher forced after the first).
++//!
++//! Inside one window all key pieces are distinct from every other key and
++//! value piece and from every gap piece, value tuples are distinct, and the
++//! filler excludes every key and value piece: the query identifies its fact
++//! uniquely. Pairings are fresh in every window. The held-out evaluation
++//! draws keys whose first piece id is `0 mod 4`; training never draws one.
++//!
++//! Scores per cell `(form, g, key pieces)`: the first piece, the first
++//! content piece (after a whitespace-only piece) and the full value (every
++//! piece, teacher forced). Every item is also scored by the non-learned
++//! rehearse + R-nlet reference rule ([`reference_rule`]) so that arms are
++//! compared with it.
++
++use std::collections::BTreeSet;
++
++use sha2::{Digest, Sha256};
++use uor_r4_tokenizer::ByteBpeTokenizer;
++
++use super::*;
++
++/// The trained and served context of the D19 rungs.
++pub(super) const SERVED_CONTEXT: usize = 384;
++pub(super) const FACT_SCHEMA: &str = "uor-r4/mqar-bench/fact-record/v1";
++/// The pools are task identity: one fixed seed, independent of `seed`.
++const POOL_SEED: u64 = 0x5354_4550_3250;
++/// Canonical multi-piece tuples kept per length.
++const POOL_TARGET: usize = 4000;
++const POOL_ATTEMPTS: usize = 400_000;
++const GAP_WORDS: [&str; 16] = [
++    " is", " was", " are", " =", ":", " has", " of", " the", " to", " in", " and", " a", ",",
++    " called", " means", " -",
++];
++/// Random key/value word pieces added to the gap pool (the overlap).
++const GAP_OVERLAP: usize = 16;
++const BARE_PREFIX: &str = "? It's";
++/// The longest n-let of the reference rule's backoff.
++pub(super) const RULE_MAX_N: usize = 4;
++const FACT_TRAIN_DOMAIN: u64 = 0x6661_6374_74;
++const FACT_CURVE_DOMAIN: u64 = 0x6661_6374_63;
++const FACT_CURVE_IN_CLASS_DOMAIN: u64 = 0x6661_6374_69;
++const FACT_HELD_OUT_DOMAIN: u64 = 0x6661_6374_68;
++const FACT_IN_CLASS_DOMAIN: u64 = 0x6661_6374_6B;
++const FACT_PROBE_DOMAIN: u64 = 0x6661_6374_70;
++
++#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
++pub(super) enum Form {
++    Rehearse,
++    Bare,
++}
++
++impl Form {
++    pub(super) fn name(self) -> &'static str {
++        match self {
++            Form::Rehearse => "rehearse",
++            Form::Bare => "bare",
++        }
++    }
++}
++
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++enum ValueKind {
++    Word1,
++    Word2,
++    Numeral,
++}
++
++impl ValueKind {
++    fn name(self) -> &'static str {
++        match self {
++            ValueKind::Word1 => "word1",
++            ValueKind::Word2 => "word2",
++            ValueKind::Numeral => "numeral",
++        }
++    }
++}
++
++/// The cell name of `(form, g, key pieces)`.
++pub(super) fn cell_name(form: Form, gap: usize, key_len: usize) -> String {
++    format!("{}.g{gap}.k{key_len}", form.name())
++}
++
++/// Pieces of the #1017 tokenizer the facts are written in.
++pub(super) struct FactVocab {
++    pub(super) vocab: usize,
++    tokenizer_sha256: String,
++    tokenizer_address: String,
++    /// Decoded text of every id.
++    texts: Vec<String>,
++    /// Canonical key tuples by length - 1, split by class (`[train, held]`).
++    keys: [[Vec<Vec<u32>>; 2]; 3],
++    word_values: [Vec<Vec<u32>>; 2],
++    numerals: Vec<Vec<u32>>,
++    gap_pool: Vec<u32>,
++    bare_prefix: Vec<u32>,
++    filler: Vec<u32>,
++    pools_sha256: String,
++}
++
++fn hex_sha256(bytes: &[u8]) -> String {
++    Sha256::digest(bytes)
++        .iter()
++        .map(|b| format!("{b:02x}"))
++        .collect()
++}
++
++fn lower_alpha(text: &str) -> bool {
++    !text.is_empty() && text.bytes().all(|b| b.is_ascii_lowercase())
++}
++
++impl FactVocab {
++    pub(super) fn load(path: &Path) -> Result<Self> {
++        let bytes = fs::read(path)?;
++        let tokenizer = ByteBpeTokenizer::from_tokenizer_json_bytes(&bytes)
++            .ok_or_else(|| invalid("tokenizer= is not a byte-level BPE tokenizer.json"))?;
++        Self::from_tokenizer(&tokenizer, hex_sha256(&bytes))
++    }
++
++    fn from_tokenizer(tokenizer: &ByteBpeTokenizer, sha256: String) -> Result<Self> {
++        let vocab = tokenizer.vocab_size();
++        let texts: Vec<String> = (0..vocab as u32)
++            .map(|id| tokenizer.decode(&[id]))
++            .collect();
++        let special = |text: &str| text.starts_with("<|") && text.ends_with("|>");
++        let canonical = |ids: &[u32]| tokenizer.encode(&tokenizer.decode(ids)) == ids;
++        let starts: Vec<u32> = (0..vocab as u32)
++            .filter(|&id| {
++                let text = &texts[id as usize];
++                text.len() >= 3
++                    && text.starts_with(' ')
++                    && lower_alpha(&text[1..])
++                    && canonical(&[id])
++            })
++            .collect();
++        let continuations: Vec<u32> = (0..vocab as u32)
++            .filter(|&id| lower_alpha(&texts[id as usize]))
++            .collect();
++        if starts.len() < 64 || continuations.len() < 64 {
++            return Err(invalid("the tokenizer has too few lowercase word pieces"));
++        }
++        let mut rng = Rng::new(POOL_SEED, 1, 0);
++        let mut tuples = |length: usize| -> Result<Vec<Vec<u32>>> {
++            let mut seen = BTreeSet::new();
++            let mut kept = Vec::new();
++            for _ in 0..POOL_ATTEMPTS {
++                if kept.len() == POOL_TARGET {
++                    break;
++                }
++                let mut ids = vec![starts[(rng.next() % starts.len() as u64) as usize]];
++                while ids.len() < length {
++                    ids.push(continuations[(rng.next() % continuations.len() as u64) as usize]);
++                }
++                if canonical(&ids) && seen.insert(ids.clone()) {
++                    kept.push(ids);
++                }
++            }
++            if kept.len() < 256 {
++                return Err(invalid(format!(
++                    "only {} canonical {length}-piece keys",
++                    kept.len()
++                )));
++            }
++            Ok(kept)
++        };
++        let singles: Vec<Vec<u32>> = starts.iter().map(|&id| vec![id]).collect();
++        let (pairs, triples) = (tuples(2)?, tuples(3)?);
++        let split = |pool: &[Vec<u32>]| -> [Vec<Vec<u32>>; 2] {
++            let (held, train): (Vec<_>, Vec<_>) =
++                pool.iter().cloned().partition(|key| key[0] % 4 == 0);
++            [train, held]
++        };
++        let keys = [split(&singles), split(&pairs), split(&triples)];
++        let numerals: Vec<Vec<u32>> = (0..10)
++            .map(|digit| tokenizer.encode(&format!(" {digit}")))
++            .filter(|ids| (1..=2).contains(&ids.len()))
++            .collect();
++        if numerals.len() < 5 {
++            return Err(invalid(
++                "the tokenizer writes too few one- or two-piece numerals",
++            ));
++        }
++        let mut gap_pool: Vec<u32> = GAP_WORDS
++            .iter()
++            .map(|word| tokenizer.encode(word))
++            .filter(|ids| ids.len() == 1)
++            .map(|ids| ids[0])
++            .collect();
++        let mut overlap_rng = Rng::new(POOL_SEED, 2, 0);
++        let mut added = 0;
++        while added < GAP_OVERLAP {
++            let id = starts[(overlap_rng.next() % starts.len() as u64) as usize];
++            if !gap_pool.contains(&id) {
++                gap_pool.push(id);
++                added += 1;
++            }
++        }
++        let bare_prefix = tokenizer.encode(BARE_PREFIX);
++        let filler: Vec<u32> = (0..vocab as u32)
++            .filter(|&id| !texts[id as usize].is_empty() && !special(&texts[id as usize]))
++            .collect();
++        let pools = json!({
++            "keys": keys, "word_values": [&singles, &pairs], "numerals": numerals,
++            "gap_pool": gap_pool, "bare_prefix": bare_prefix, "filler": filler,
++        });
++        Ok(Self {
++            vocab,
++            tokenizer_sha256: sha256,
++            tokenizer_address: tokenizer.address(),
++            pools_sha256: hex_sha256(&serde_json::to_vec(&pools)?),
++            texts,
++            keys,
++            word_values: [singles, pairs],
++            numerals,
++            gap_pool,
++            bare_prefix,
++            filler,
++        })
++    }
++
++    fn decoded(&self, ids: &[u32]) -> Vec<&str> {
++        ids.iter()
++            .map(|&id| self.texts[id as usize].as_str())
++            .collect()
++    }
++
++    fn record(&self) -> Value {
++        json!({
++            "vocab": self.vocab,
++            "tokenizer_sha256": self.tokenizer_sha256,
++            "tokenizer_address": self.tokenizer_address,
++            "pools_sha256": self.pools_sha256,
++            "pool_seed": POOL_SEED,
++            "key_pool_sizes_train_held": self.keys.iter()
++                .map(|split| [split[0].len(), split[1].len()]).collect::<Vec<_>>(),
++            "word_value_pool_sizes": [self.word_values[0].len(), self.word_values[1].len()],
++            "numerals": self.numerals.iter()
++                .map(|ids| json!({"ids": ids, "pieces": self.decoded(ids)})).collect::<Vec<_>>(),
++            "gap_pool": self.gap_pool.iter()
++                .map(|&id| json!({"id": id, "piece": self.texts[id as usize]})).collect::<Vec<_>>(),
++            "bare_prefix": {"text": BARE_PREFIX, "ids": self.bare_prefix,
++                "pieces": self.decoded(&self.bare_prefix)},
++            "filler_pool_size": self.filler.len(),
++        })
++    }
++
++    /// The index of the value's first piece that is not whitespace only.
++    fn first_content(&self, value: &[u32]) -> usize {
++        value
++            .iter()
++            .position(|&id| !self.texts[id as usize].trim().is_empty())
++            .unwrap_or(0)
++    }
++}
++
++/// The fact task: the vocabulary and the cells it draws.
++pub(super) struct FactTask {
++    pub(super) vocab: FactVocab,
++    tokenizer_path: PathBuf,
++    gaps: Vec<usize>,
++    forms: Vec<Form>,
++}
++
++impl FactTask {
++    pub(super) fn parse(args: &mut Args, common: &Common) -> Result<Self> {
++        let tokenizer_path = PathBuf::from(
++            args.take("tokenizer")
++                .ok_or_else(|| invalid("layout=fact needs tokenizer=TOKENIZER_JSON"))?,
++        );
++        let gaps = args
++            .take("gaps")
++            .unwrap_or_else(|| "0,1,2,3".into())
++            .split(',')
++            .map(|part| {
++                part.parse::<usize>()
++                    .ok()
++                    .filter(|&g| g <= 3)
++                    .ok_or_else(|| invalid(format!("invalid gap {part} (0..=3)")))
++            })
++            .collect::<Result<BTreeSet<_>>>()?
++            .into_iter()
++            .collect();
++        let forms = args
++            .take("forms")
++            .unwrap_or_else(|| "rehearse,bare".into())
++            .split(',')
++            .map(|part| match part {
++                "rehearse" => Ok(Form::Rehearse),
++                "bare" => Ok(Form::Bare),
++                other => Err(invalid(format!("invalid form {other}"))),
++            })
++            .collect::<Result<BTreeSet<_>>>()?
++            .into_iter()
++            .collect();
++        if common.context > SERVED_CONTEXT {
++            return Err(invalid(format!(
++                "layout=fact needs context <= {SERVED_CONTEXT} (the served context)"
++            )));
++        }
++        Ok(Self {
++            vocab: FactVocab::load(&tokenizer_path)?,
++            tokenizer_path,
++            gaps,
++            forms,
++        })
++    }
++
++    fn record(&self) -> Value {
++        json!({
++            "layout": "fact",
++            "tokenizer_path": self.tokenizer_path,
++            "vocabulary": self.vocab.record(),
++            "gaps": self.gaps,
++            "forms": self.forms.iter().map(|f| f.name()).collect::<Vec<_>>(),
++            "key_pieces": [1, 2, 3],
++            "value_kinds": ["word1", "word2", "numeral"],
++            "held_out_split": "keys whose first piece id is 0 mod 4; training never draws one",
++            "targets": "every value piece of every query (teacher forced after the first)",
++            "reference_rule": format!(
++                "rehearse + R-nlet backoff: the longest n <= {RULE_MAX_N} whose last-n pieces before the value recur earlier; copy the pieces after that occurrence (bare: the fixed bare prefix is stripped first)"
++            ),
++        })
++    }
++}
++
++#[derive(Clone, Debug)]
++pub(super) struct FactItem {
++    form: Form,
++    gap: usize,
++    key_len: usize,
++    kind: ValueKind,
++    bucket: usize,
++    distance: usize,
++    key: Vec<u32>,
++    gap_tokens: Vec<u32>,
++    value: Vec<u32>,
++    fact_start: usize,
++    query_start: usize,
++    /// Positions whose next-token targets are `value[i]`.
++    predict: Vec<usize>,
++}
++
++impl FactItem {
++    #[cfg(test)]
++    fn fact_len(&self) -> usize {
++        self.key.len() + self.gap + self.value.len()
++    }
++
++    fn key_last(&self) -> usize {
++        self.fact_start + self.key.len() - 1
++    }
++
++    fn value_first(&self) -> usize {
++        self.fact_start + self.key.len() + self.gap
++    }
++}
++
++#[derive(Clone, Debug)]
++pub(super) struct FactSequence {
++    tokens: Vec<u32>,
++    items: Vec<FactItem>,
++}
++
++fn pick<'a, T>(rng: &mut Rng, pool: &'a [T]) -> &'a T {
++    &pool[(rng.next() % pool.len() as u64) as usize]
++}
++
++fn generate_fact(
++    rng: &mut Rng,
++    task: &FactTask,
++    context: usize,
++    buckets: &[Bucket],
++    pairs_per_bucket: usize,
++    pairing: Pairing,
++) -> Result<FactSequence> {
++    let vocab = &task.vocab;
++    let class = usize::from(pairing == Pairing::HeldOut);
++    let mut key_pieces = BTreeSet::new();
++    let mut used_pieces = BTreeSet::new();
++    let mut values_seen = BTreeSet::new();
++    let mut order: Vec<usize> = (0..buckets.len()).collect();
++    order.sort_by_key(|&b| std::cmp::Reverse(buckets[b].high));
++    let mut items = Vec::new();
++    // 1. Keys and values, all pieces of every key distinct from the rest.
++    for &b in &order {
++        for _ in 0..pairs_per_bucket {
++            let form = *pick(rng, &task.forms);
++            let gap = *pick(rng, &task.gaps);
++            let key_len = rng.range(1, 3);
++            let pool = &vocab.keys[key_len - 1][class];
++            let key = (0..PLACEMENT_ATTEMPTS)
++                .map(|_| pick(rng, pool))
++                .find(|key| key.iter().all(|id| !used_pieces.contains(id)))
++                .cloned()
++                .ok_or_else(|| invalid("no key with fresh pieces"))?;
++            key_pieces.extend(key.iter().copied());
++            used_pieces.extend(key.iter().copied());
++            let kind = *pick(
++                rng,
++                &[ValueKind::Word1, ValueKind::Word2, ValueKind::Numeral],
++            );
++            let value = (0..PLACEMENT_ATTEMPTS)
++                .map(|_| match kind {
++                    ValueKind::Word1 => pick(rng, &vocab.word_values[0]),
++                    ValueKind::Word2 => pick(rng, &vocab.word_values[1]),
++                    ValueKind::Numeral => pick(rng, &vocab.numerals),
++                })
++                .find(|value| {
++                    !values_seen.contains(*value) && value.iter().all(|id| !key_pieces.contains(id))
++                })
++                .cloned()
++                .ok_or_else(|| invalid("no fresh value"))?;
++            values_seen.insert(value.clone());
++            used_pieces.extend(value.iter().copied());
++            items.push(FactItem {
++                form,
++                gap,
++                key_len,
++                kind,
++                bucket: b,
++                distance: 0,
++                key,
++                gap_tokens: Vec::new(),
++                value,
++                fact_start: 0,
++                query_start: 0,
++                predict: Vec::new(),
++            });
++        }
++    }
++    // 2. Gaps, after every key: no gap piece is a key piece of the window.
++    for item in &mut items {
++        for _ in 0..item.gap {
++            let piece = (0..PLACEMENT_ATTEMPTS)
++                .map(|_| *pick(rng, &vocab.gap_pool))
++                .find(|id| !key_pieces.contains(id))
++                .ok_or_else(|| invalid("no gap piece outside the keys"))?;
++            item.gap_tokens.push(piece);
++        }
++    }
++    // 3. Placement: fact span, then its query span `distance` later.
++    let mut tokens: Vec<u32> = Vec::with_capacity(context);
++    while tokens.len() < context {
++        let id = *pick(rng, &vocab.filler);
++        if !used_pieces.contains(&id) {
++            tokens.push(id);
++        }
++    }
++    let mut used = vec![false; context];
++    for item in &mut items {
++        let middle: Vec<u32> = match item.form {
++            Form::Rehearse => item.gap_tokens.clone(),
++            Form::Bare => vocab.bare_prefix.clone(),
++        };
++        let query: Vec<u32> = [item.key.as_slice(), &middle, &item.value].concat();
++        let fact: Vec<u32> = [item.key.as_slice(), &item.gap_tokens, &item.value].concat();
++        let bucket = buckets[item.bucket];
++        let mut placed = None;
++        for _ in 0..PLACEMENT_ATTEMPTS {
++            let distance = rng.range(bucket.low, bucket.high);
++            if distance < fact.len() || distance + query.len() > context {
++                continue;
++            }
++            let start = rng.range(0, context - distance - query.len());
++            let free = |from: usize, len: usize| (from..from + len).all(|p| !used[p]);
++            if free(start, fact.len()) && free(start + distance, query.len()) {
++                placed = Some((start, distance));
++                break;
++            }
++        }
++        let (start, distance) =
++            placed.ok_or_else(|| invalid("could not place a fact in the window"))?;
++        let query_start = start + distance;
++        for (offset, &id) in fact.iter().enumerate() {
++            tokens[start + offset] = id;
++            used[start + offset] = true;
++        }
++        for (offset, &id) in query.iter().enumerate() {
++            tokens[query_start + offset] = id;
++            used[query_start + offset] = true;
++        }
++        let value_start = query_start + item.key.len() + middle.len();
++        item.distance = distance;
++        item.fact_start = start;
++        item.query_start = query_start;
++        item.predict = (0..item.value.len()).map(|i| value_start - 1 + i).collect();
++    }
++    items.sort_by_key(|item| item.query_start);
++    Ok(FactSequence { tokens, items })
++}
++
++fn fact_arrays(sequences: &[FactSequence], context: usize) -> (Vec<u32>, Vec<u32>, Vec<f32>) {
++    let total = sequences.len() * context;
++    let (mut ids, mut targets, mut weights) = (
++        Vec::with_capacity(total),
++        vec![0u32; total],
++        vec![0f32; total],
++    );
++    for (s, sequence) in sequences.iter().enumerate() {
++        ids.extend_from_slice(&sequence.tokens);
++        for item in &sequence.items {
++            for (&position, &piece) in item.predict.iter().zip(&item.value) {
++                targets[s * context + position] = piece;
++                weights[s * context + position] = 1.0;
++            }
++        }
++    }
++    (ids, targets, weights)
++}
++
++/// The R-nlet rule: the latest occurrence, ending before `predict`, of the
++/// `n` pieces ending at `predict`; returns the `len` pieces after it.
++pub(super) fn nlet_rule(tokens: &[u32], predict: usize, n: usize, len: usize) -> Option<Vec<u32>> {
++    if n == 0 || n > predict + 1 {
++        return None;
++    }
++    let pattern = &tokens[predict + 1 - n..=predict];
++    (n - 1..predict)
++        .rev()
++        .find(|&end| &tokens[end + 1 - n..=end] == pattern)
++        .map(|end| tokens[end + 1..(end + 1 + len).min(tokens.len())].to_vec())
++}
++
++/// Backoff over `n = RULE_MAX_N..=1`: the longest n-let that recurs.
++fn nlet_backoff(tokens: &[u32], predict: usize, len: usize) -> Option<Vec<u32>> {
++    (1..=RULE_MAX_N)
++        .rev()
++        .find_map(|n| nlet_rule(tokens, predict, n, len))
++}
++
++/// The non-learned rehearse + R-nlet reference: on a rehearsed query the
++/// n-let backoff at the position before the value; on a bare query the fixed
++/// bare prefix (known to the rule) is stripped first, so the n-let ends at
++/// the key and the rule copies what followed the key in the fact (the value
++/// only when `g = 0`). It is told the value's piece count.
++pub(super) fn reference_rule(tokens: &[u32], item: &FactItem, bare_len: usize) -> bool {
++    let predict = item.predict[0];
++    let end = match item.form {
++        Form::Rehearse => predict,
++        Form::Bare => predict - bare_len,
++    };
++    nlet_backoff(tokens, end, item.value.len()).as_deref() == Some(item.value.as_slice())
++}
++
++#[derive(Clone, Default)]
++struct FactTally {
++    total: usize,
++    first: usize,
++    first_content: usize,
++    full: usize,
++    nll_first_content: f64,
++    rule: usize,
++    rule_n: [usize; RULE_MAX_N],
++}
++
++impl FactTally {
++    fn record(&self) -> Value {
++        let rate = |n: usize| n as f64 / self.total.max(1) as f64;
++        json!({
++            "total": self.total,
++            "first_piece_accuracy": rate(self.first),
++            "first_content_piece_accuracy": rate(self.first_content),
++            "full_accuracy": rate(self.full),
++            "full_correct": self.full,
++            "mean_nll_first_content_piece": self.nll_first_content / self.total.max(1) as f64,
++            "rule_full_accuracy": rate(self.rule),
++            "rule_n_full_accuracy": self.rule_n.iter().map(|&n| rate(n)).collect::<Vec<_>>(),
++        })
++    }
++}
++
++/// Per-item outcome before tallying.
++struct Outcome {
++    first: bool,
++    first_content: bool,
++    full: bool,
++    nll_first_content: f64,
++    rule: bool,
++    rule_n: [bool; RULE_MAX_N],
++}
++
++fn tally(map: &mut BTreeMap<String, FactTally>, key: String, outcome: &Outcome) {
++    let entry = map.entry(key).or_default();
++    entry.total += 1;
++    entry.first += usize::from(outcome.first);
++    entry.first_content += usize::from(outcome.first_content);
++    entry.full += usize::from(outcome.full);
++    entry.nll_first_content += outcome.nll_first_content;
++    entry.rule += usize::from(outcome.rule);
++    for (n, hit) in outcome.rule_n.iter().enumerate() {
++        entry.rule_n[n] += usize::from(*hit);
++    }
++}
++
++fn argmax(scores: &[f32]) -> usize {
++    scores
++        .iter()
++        .enumerate()
++        .fold((0usize, f32::NEG_INFINITY), |best, (i, &v)| {
++            if v > best.1 {
++                (i, v)
++            } else {
++                best
++            }
++        })
++        .0
++}
++
++/// The decision cells: `g >= 1` with a multi-piece key, every form.
++pub(super) fn relevant_cell(gap: usize, key_len: usize) -> bool {
++    gap >= 1 && key_len >= 2
++}
++
++/// The reference rule over a set alone (no arm): per-cell rule accuracy.
++fn rule_only(task: &FactTask, sequences: &[FactSequence]) -> Value {
++    let bare_len = task.vocab.bare_prefix.len();
++    let mut cells = BTreeMap::new();
++    for sequence in sequences {
++        for item in &sequence.items {
++            let rule = reference_rule(&sequence.tokens, item, bare_len);
++            let outcome = Outcome {
++                first: false,
++                first_content: false,
++                full: false,
++                nll_first_content: 0.0,
++                rule,
++                rule_n: rule_n(&sequence.tokens, item),
++            };
++            tally(
++                &mut cells,
++                cell_name(item.form, item.gap, item.key_len),
++                &outcome,
++            );
++        }
++    }
++    json!({
++        "cells": cells.iter().map(|(k, t)| (k.clone(), json!({
++            "total": t.total,
++            "rule_full_accuracy": t.rule as f64 / t.total.max(1) as f64,
++            "rule_n_full_accuracy": t.rule_n.iter().map(|&n| n as f64 / t.total.max(1) as f64).collect::<Vec<_>>(),
++        }))).collect::<serde_json::Map<_, _>>(),
++    })
++}
++
++fn rule_n(tokens: &[u32], item: &FactItem) -> [bool; RULE_MAX_N] {
++    let mut hits = [false; RULE_MAX_N];
++    for (n, hit) in hits.iter_mut().enumerate() {
++        *hit = nlet_rule(tokens, item.predict[0], n + 1, item.value.len()).as_deref()
++            == Some(item.value.as_slice());
++    }
++    hits
++}
++
++/// Recall per cell and marginal: argmax over the whole vocabulary at every
++/// value position, teacher forced.
++fn evaluate_fact(
++    arm: &dyn ContextArm,
++    task: &FactTask,
++    sequences: &[FactSequence],
++    context: usize,
++    buckets: &[Bucket],
++    chunk: usize,
++) -> Result<Value> {
++    let bare_len = task.vocab.bare_prefix.len();
++    let mut cells: BTreeMap<String, FactTally> = BTreeMap::new();
++    let mut marginals: BTreeMap<String, FactTally> = BTreeMap::new();
++    for group in sequences.chunks(chunk.max(1)) {
++        let (ids, _, _) = fact_arrays(group, context);
++        let logits = arm.logits(&ids, group.len(), context)?;
++        let mut rows = Vec::new();
++        for (s, sequence) in group.iter().enumerate() {
++            for item in &sequence.items {
++                rows.extend(item.predict.iter().map(|&p| (s * context + p) as u32));
++            }
++        }
++        let index = Tensor::from_vec(rows.clone(), rows.len(), arm.device())?;
++        let selected = logits
++            .index_select(&index, 0)?
++            .to_device(&Device::Cpu)?
++            .to_vec2::<f32>()?;
++        let mut row = 0;
++        for sequence in group {
++            for item in &sequence.items {
++                let content = task.vocab.first_content(&item.value);
++                let mut hits = Vec::with_capacity(item.value.len());
++                let mut nll = 0.0;
++                for (i, &piece) in item.value.iter().enumerate() {
++                    let scores = &selected[row];
++                    row += 1;
++                    hits.push(argmax(scores) == piece as usize);
++                    if i == content {
++                        let maximum = scores.iter().copied().fold(f32::NEG_INFINITY, f32::max);
++                        let sum: f64 = scores.iter().map(|&v| f64::from(v - maximum).exp()).sum();
++                        nll = sum.ln() - f64::from(scores[piece as usize] - maximum);
++                    }
++                }
++                let outcome = Outcome {
++                    first: hits[0],
++                    first_content: hits[content],
++                    full: hits.iter().all(|&h| h),
++                    nll_first_content: nll,
++                    rule: reference_rule(&sequence.tokens, item, bare_len),
++                    rule_n: rule_n(&sequence.tokens, item),
++                };
++                tally(
++                    &mut cells,
++                    cell_name(item.form, item.gap, item.key_len),
++                    &outcome,
++                );
++                for key in [
++                    "all".to_string(),
++                    format!("form.{}", item.form.name()),
++                    format!("gap.{}", item.gap),
++                    format!("key_pieces.{}", item.key_len),
++                    format!("value.{}", item.kind.name()),
++                    format!("bucket.{}", buckets[item.bucket].name),
++                    format!("relevant.{}", relevant_cell(item.gap, item.key_len)),
++                ] {
++                    tally(&mut marginals, key, &outcome);
++                }
++            }
++        }
++    }
++    let relevant_min = cells
++        .iter()
++        .filter(|(name, _)| {
++            let parts: Vec<&str> = name.split('.').collect();
++            let gap = parts[1][1..].parse::<usize>().unwrap_or(0);
++            let key_len = parts[2][1..].parse::<usize>().unwrap_or(0);
++            relevant_cell(gap, key_len)
++        })
++        .map(|(_, t)| t.full as f64 / t.total.max(1) as f64)
++        .fold(f64::INFINITY, f64::min);
++    let distance: BTreeMap<String, f64> = buckets
++        .iter()
++        .enumerate()
++        .map(|(b, bucket)| {
++            let (sum, count) = sequences
++                .iter()
++                .flat_map(|s| &s.items)
++                .filter(|item| item.bucket == b)
++                .fold((0usize, 0usize), |(sum, count), item| {
++                    (sum + item.distance, count + 1)
++                });
++            (bucket.name.to_string(), sum as f64 / count.max(1) as f64)
++        })
++        .collect();
++    Ok(json!({
++        "cells": cells.iter().map(|(k, t)| (k.clone(), t.record())).collect::<serde_json::Map<_, _>>(),
++        "marginals": marginals.iter().map(|(k, t)| (k.clone(), t.record())).collect::<serde_json::Map<_, _>>(),
++        "relevant_cell_min_full_accuracy": if relevant_min.is_finite() { json!(relevant_min) } else { Value::Null },
++        "mean_distance_by_bucket": distance,
++    }))
++}
++
++/// The final read probe: each read head's weight, at the position that
++/// predicts the first value piece, on the fact's first value piece and on
++/// its last key piece, by gap (one item per probe sequence and gap).
++fn fact_probe(
++    arm: &dyn ContextArm,
++    task: &FactTask,
++    sequences: &[FactSequence],
++    context: usize,
++) -> Result<Value> {
++    let heads = arm.read_heads();
++    if heads.is_empty() {
++        return Ok(json!({"status": "UNAVAILABLE: the arm has no read heads"}));
++    }
++    let (ids, _, _) = fact_arrays(sequences, context);
++    let mut by_gap = serde_json::Map::new();
++    for &gap in &task.gaps {
++        let picks: Vec<(usize, &FactItem)> = sequences
++            .iter()
++            .enumerate()
++            .filter_map(|(s, sequence)| {
++                sequence
++                    .items
++                    .iter()
++                    .find(|item| item.gap == gap && item.form == Form::Rehearse)
++                    .map(|item| (s, item))
++            })
++            .collect();
++        if picks.is_empty() {
++            continue;
++        }
++        let mut per_head = Vec::new();
++        let (mut best_value, mut best_key) = (0f64, 0f64);
++        for &(layer, head) in &heads {
++            let mut means = [0f64; 2];
++            for (which, source) in [(0usize, true), (1, false)] {
++                let rows: Vec<(usize, usize, Vec<usize>)> = picks
++                    .iter()
++                    .map(|(s, item)| {
++                        let position = if source {
++                            item.value_first()
++                        } else {
++                            item.key_last()
++                        };
++                        (*s, item.predict[0], vec![position])
++                    })
++                    .collect();
++                let masses = arm.source_mass(&ids, sequences.len(), context, layer, head, &rows)?;
++                means[which] =
++                    masses.iter().map(|&m| f64::from(m)).sum::<f64>() / masses.len().max(1) as f64;
++            }
++            best_value = best_value.max(means[0]);
++            best_key = best_key.max(means[1]);
++            per_head.push(json!({
++                "layer": layer, "head": head,
++                "mean_weight_on_fact_value_first": means[0],
++                "mean_weight_on_fact_key_last": means[1],
++            }));
++        }
++        by_gap.insert(
++            format!("g{gap}"),
++            json!({
++                "form": "rehearse",
++                "queries": picks.len(),
++                "best_head_mean_weight_on_fact_value_first": best_value,
++                "best_head_mean_weight_on_fact_key_last": best_key,
++                "heads": per_head,
++            }),
++        );
++    }
++    Ok(json!({"by_gap": by_gap}))
++}
++
++fn fact_sequences(
++    s: &Common,
++    task: &FactTask,
++    buckets: &[Bucket],
++    domain: u64,
++    count: usize,
++    pairing: Pairing,
++) -> Result<Vec<FactSequence>> {
++    (0..count)
++        .map(|i| {
++            let mut rng = Rng::new(s.seed, domain, i as u64);
++            generate_fact(
++                &mut rng,
++                task,
++                s.context,
++                buckets,
++                s.pairs_per_bucket,
++                pairing,
++            )
++        })
++        .collect()
++}
++
++fn summary(result: &Value) -> String {
++    let m = &result["marginals"];
++    format!(
++        "full {:.3} first-content {:.3} rehearse {:.3} bare {:.3} relevant-min {:.3} (rule {:.3})",
++        m["all"]["full_accuracy"].as_f64().unwrap_or(f64::NAN),
++        m["all"]["first_content_piece_accuracy"]
++            .as_f64()
++            .unwrap_or(f64::NAN),
++        m["form.rehearse"]["full_accuracy"]
++            .as_f64()
++            .unwrap_or(f64::NAN),
++        m["form.bare"]["full_accuracy"].as_f64().unwrap_or(f64::NAN),
++        result["relevant_cell_min_full_accuracy"]
++            .as_f64()
++            .unwrap_or(f64::NAN),
++        m["all"]["rule_full_accuracy"].as_f64().unwrap_or(f64::NAN),
++    )
++}
++
++/// Trains `arm` on the fact task and scores it.
++fn run_fact(
++    s: &Common,
++    task: &FactTask,
++    arm: &mut dyn ContextArm,
++    log: &mut fs::File,
++) -> Result<Value> {
++    use std::io::Write;
++    let started = Instant::now();
++    let buckets = buckets_for(s.context);
++    let line = format!(
++        "{} {}: {} parameters, context {}, fact layout, buckets {:?}",
++        arm.kind(),
++        arm.record(),
++        arm.parameters(),
++        s.context,
++        buckets.iter().map(|b| b.name).collect::<Vec<_>>()
++    );
++    eprintln!("{line}");
++    writeln!(log, "{line}")?;
++    let curve_in_class = fact_sequences(
++        s,
++        task,
++        &buckets,
++        FACT_CURVE_IN_CLASS_DOMAIN,
++        s.curve_sequences,
++        Pairing::Train,
++    )?;
++    let curve_held_out = fact_sequences(
++        s,
++        task,
++        &buckets,
++        FACT_CURVE_DOMAIN,
++        s.curve_sequences,
++        Pairing::HeldOut,
++    )?;
++    let chunk = s.batch;
++    let evaluate = |arm: &dyn ContextArm, set: &[FactSequence]| {
++        evaluate_fact(arm, task, set, s.context, &buckets, chunk)
++    };
++    let mut curve = vec![json!({
++        "step": 0,
++        "in_class": evaluate(&*arm, &curve_in_class)?,
++        "held_out": evaluate(&*arm, &curve_held_out)?,
++    })];
++    let (mut window_loss, mut window_steps) = (0f64, 0usize);
++    let mut step_seconds = Vec::new();
++    let mut stopped_early = false;
++    let mut step = 0;
++    while step < s.steps {
++        if started.elapsed().as_secs_f64() > s.max_seconds {
++            stopped_early = true;
++            break;
++        }
++        let clock = Instant::now();
++        let lr = cosine_rate(s.lr, s.warmup, s.min_lr, s.steps, step);
++        let batch: Vec<FactSequence> = (0..s.batch)
++            .map(|b| {
++                let mut rng = Rng::new(s.seed, FACT_TRAIN_DOMAIN, (step * s.batch + b) as u64);
++                generate_fact(
++                    &mut rng,
++                    task,
++                    s.context,
++                    &buckets,
++                    s.pairs_per_bucket,
++                    Pairing::Train,
++                )
++            })
++            .collect::<Result<_>>()?;
++        let (ids, targets, weights) = fact_arrays(&batch, s.context);
++        let loss = arm.loss(&ids, &targets, &weights, s.batch, s.context)?;
++        let value = f64::from(loss.to_scalar::<f32>()?);
++        if !value.is_finite() {
++            return Err(invalid(format!("nonfinite loss at step {step}")));
++        }
++        let grad_norm = arm.update(&loss, lr)?;
++        step += 1;
++        step_seconds.push(clock.elapsed().as_secs_f64());
++        window_loss += value;
++        window_steps += 1;
++        if step % s.eval_every == 0 || step == s.steps {
++            let in_class = evaluate(&*arm, &curve_in_class)?;
++            let held_out = evaluate(&*arm, &curve_held_out)?;
++            let train_loss = window_loss / window_steps.max(1) as f64;
++            let line = format!(
++                "step {step} lr {lr:.2e} train value NLL {train_loss:.4} grad {grad_norm:.3} in-class {} | held-out full {:.3} ({:.0}s)",
++                summary(&in_class),
++                held_out["marginals"]["all"]["full_accuracy"].as_f64().unwrap_or(f64::NAN),
++                started.elapsed().as_secs_f64()
++            );
++            eprintln!("{line}");
++            writeln!(log, "{line}")?;
++            curve.push(json!({
++                "step": step, "lr": lr, "train_value_nll": train_loss,
++                "grad_norm": grad_norm, "in_class": in_class, "held_out": held_out,
++                "elapsed_seconds": started.elapsed().as_secs_f64(),
++            }));
++            window_loss = 0.0;
++            window_steps = 0;
++        }
++    }
++    let train_seconds: f64 = step_seconds.iter().sum();
++    let eval_clock = Instant::now();
++    let in_class_set = fact_sequences(
++        s,
++        task,
++        &buckets,
++        FACT_IN_CLASS_DOMAIN,
++        s.final_sequences,
++        Pairing::Train,
++    )?;
++    let in_class = evaluate(&*arm, &in_class_set)?;
++    let held_out_set = fact_sequences(
++        s,
++        task,
++        &buckets,
++        FACT_HELD_OUT_DOMAIN,
++        s.final_sequences / 2,
++        Pairing::HeldOut,
++    )?;
++    let held_out = evaluate(&*arm, &held_out_set)?;
++    let line = format!(
++        "final in-class fresh {}; held-out-class {}",
++        summary(&in_class),
++        summary(&held_out)
++    );
++    eprintln!("{line}");
++    writeln!(log, "{line}")?;
++    let final_eval_seconds = eval_clock.elapsed().as_secs_f64();
++    let probe = if s.probe_steps.is_empty() {
++        json!({"status": "not requested (probe_steps=none)"})
++    } else {
++        let probe_set = fact_sequences(
++            s,
++            task,
++            &buckets,
++            FACT_PROBE_DOMAIN,
++            s.probe_sequences,
++            Pairing::Train,
++        )?;
++        fact_probe(&*arm, task, &probe_set, s.context)?
++    };
++    let mut sorted = step_seconds.clone();
++    sorted.sort_by(f64::total_cmp);
++    let mean_positions = (0..s.context)
++        .map(|t| arm.positions_scored(t) as f64)
++        .sum::<f64>()
++        / s.context as f64;
++    let targets_per_step: usize = (0..s.batch)
++        .map(|b| {
++            let mut rng = Rng::new(s.seed, FACT_TRAIN_DOMAIN, b as u64);
++            generate_fact(
++                &mut rng,
++                task,
++                s.context,
++                &buckets,
++                s.pairs_per_bucket,
++                Pairing::Train,
++            )
++            .map(|seq| seq.items.iter().map(|i| i.value.len()).sum::<usize>())
++            .unwrap_or(0)
++        })
++        .sum();
++    Ok(json!({
++        "context_access": {
++            "positions_scored_per_token_mean_over_window": mean_positions,
++            "positions_scored_at_last_position": arm.positions_scored(s.context - 1),
++            "counts": arm.access_note(),
++        },
++        "steps_completed": step,
++        "stopped_early_at_max_seconds": stopped_early,
++        "final_in_class_fresh_pairings": in_class,
++        "final_held_out_class_pairings": held_out,
++        "final_read_probe": probe,
++        "curve": curve,
++        "train_seconds": train_seconds,
++        "median_step_seconds": sorted.get(sorted.len() / 2).copied(),
++        "final_eval_seconds": final_eval_seconds,
++        "wall_seconds": started.elapsed().as_secs_f64(),
++        "facts_seen": step * s.batch * buckets.len() * s.pairs_per_bucket,
++        "value_targets_in_first_batch": targets_per_step,
++    }))
++}
++
++/// `layout=fact`: claim, train (or `mode=task-baselines`: the reference
++/// rule alone), report and seal.
++pub(super) fn main(
++    common: &Common,
++    spec: &ArmSpec,
++    baselines_only: bool,
++    task: &FactTask,
++) -> Result<()> {
++    let argv = std::env::args().collect::<Vec<_>>();
++    let task_record = json!({"common": common.record(), "fact": task.record()});
++    // Claimed exclusively after argument validation, before any model work.
++    report_output::claim(&common.out)?;
++    if baselines_only {
++        let buckets = buckets_for(common.context);
++        let in_class = fact_sequences(
++            common,
++            task,
++            &buckets,
++            FACT_IN_CLASS_DOMAIN,
++            common.final_sequences,
++            Pairing::Train,
++        )?;
++        let held_out = fact_sequences(
++            common,
++            task,
++            &buckets,
++            FACT_HELD_OUT_DOMAIN,
++            common.final_sequences / 2,
++            Pairing::HeldOut,
++        )?;
++        let report = json!({
++            "schema": FACT_SCHEMA, "status": "complete", "mode": "task-baselines",
++            "task": task_record, "argv": argv,
++            "final_in_class_fresh_pairings": rule_only(task, &in_class),
++            "final_held_out_class_pairings": rule_only(task, &held_out),
++        });
++        write_json(&common.out.join("report.json"), &report)?;
++        report_output::seal(&common.out)?;
++        report_output::verify(&common.out)?;
++        return Ok(());
++    }
++    write_json(
++        &common.out.join("config.json"),
++        &json!({"schema": FACT_SCHEMA, "task": task_record, "arm_label": spec.label(), "argv": argv}),
++    )?;
++    let mut log = fs::File::create(common.out.join("log.txt"))?;
++    let result = (|| -> Result<(Value, Value)> {
++        let device = uor_r4_training::baseline_protocol::device(&common.device_name)?;
++        let mut arm = spec.build(common, &device)?;
++        let arm_record = json!({
++            "label": spec.label(),
++            "kind": arm.kind(),
++            "parameters": arm.parameters(),
++            "config": arm.record(),
++        });
++        let mut results = run_fact(common, task, arm.as_mut(), &mut log)?;
++        results["model_save"] = save_model(common, arm.as_ref());
++        Ok((arm_record, results))
++    })();
++    drop(log);
++    let report = match &result {
++        Ok((arm, results)) => json!({
++            "schema": FACT_SCHEMA, "status": "complete", "task": task_record, "argv": argv,
++            "arm": arm, "results": results,
++        }),
++        Err(error) => json!({
++            "schema": FACT_SCHEMA, "status": "failed", "task": task_record, "argv": argv,
++            "arm": {"label": spec.label()}, "error": error.to_string(),
++        }),
++    };
++    write_json(&common.out.join("report.json"), &report)?;
++    report_output::seal(&common.out)?;
++    report_output::verify(&common.out)?;
++    result.map(|_| ())
++}
++
++#[cfg(test)]
++pub(super) mod tests {
++    use super::*;
++
++    /// The real #1017 tokenizer when present (the tests that need it skip
++    /// with a note otherwise; they are not counted as passing evidence then).
++    pub(in super::super) fn tokenizer_path() -> Option<PathBuf> {
++        let path = std::env::var_os("UOR_R4_FACT_TOKENIZER")
++            .map(PathBuf::from)
++            .or_else(|| {
++                std::env::var_os("HOME").map(|home| {
++                    PathBuf::from(home).join(
++                        "uor-r4-local/inputs/claude-t4-1433-resume/bundle-learned-1/tokenizer.json",
++                    )
++                })
++            })?;
++        path.exists().then_some(path)
++    }
++
++    pub(in super::super) fn task() -> Option<FactTask> {
++        let path = tokenizer_path()?;
++        Some(FactTask {
++            vocab: FactVocab::load(&path).expect("tokenizer"),
++            tokenizer_path: path,
++            gaps: vec![0, 1, 2, 3],
++            forms: vec![Form::Rehearse, Form::Bare],
++        })
++    }
++
++    #[test]
++    fn the_nlet_rule_copies_after_the_latest_earlier_occurrence() {
++        let tokens = [9, 1, 2, 5, 6, 1, 2, 7, 8, 1, 2];
++        // Last 2-let (1, 2) at 9..=10; latest earlier occurrence ends at 6.
++        assert_eq!(nlet_rule(&tokens, 10, 2, 2), Some(vec![7, 8]));
++        assert_eq!(nlet_rule(&tokens, 10, 1, 1), Some(vec![7]));
++        assert_eq!(nlet_rule(&tokens, 10, 4, 1), None);
++        assert_eq!(nlet_rule(&tokens, 2, 2, 1), None);
++        assert_eq!(nlet_backoff(&tokens, 10, 1), Some(vec![7]));
++    }
++
++    #[test]
++    fn fact_windows_hold_their_facts_queries_and_targets() {
++        let Some(task) = task() else {
++            eprintln!("SKIPPED: the #1017 tokenizer is absent");
++            return;
++        };
++        let buckets = buckets_for(SERVED_CONTEXT);
++        assert_eq!(buckets.len(), 3);
++        let vocab = &task.vocab;
++        assert!(vocab.vocab >= 4096);
++        // Numerals are written as the tokenizer writes them: " " then a digit.
++        for numeral in &vocab.numerals {
++            assert_eq!(vocab.first_content(numeral), numeral.len() - 1);
++        }
++        let mut cells = BTreeSet::new();
++        let mut rule_rehearse = (0usize, 0usize);
++        for (pairing, domain) in [
++            (Pairing::Train, FACT_TRAIN_DOMAIN),
++            (Pairing::HeldOut, FACT_HELD_OUT_DOMAIN),
++        ] {
++            for index in 0..64 {
++                let mut rng = Rng::new(5, domain, index);
++                let sequence = generate_fact(&mut rng, &task, SERVED_CONTEXT, &buckets, 4, pairing)
++                    .expect("window");
++                assert_eq!(sequence.tokens.len(), SERVED_CONTEXT);
++                assert_eq!(sequence.items.len(), 12);
++                let mut key_pieces = BTreeSet::new();
++                for item in &sequence.items {
++                    assert_eq!(item.key.len(), item.key_len);
++                    assert!((1..=3).contains(&item.key_len) && item.gap <= 3);
++                    assert_eq!(item.key[0] % 4 == 0, pairing == Pairing::HeldOut);
++                    for &piece in &item.key {
++                        assert!(key_pieces.insert(piece), "a key piece repeats");
++                    }
++                    let t = &sequence.tokens;
++                    let f = item.fact_start;
++                    assert_eq!(&t[f..f + item.key_len], item.key.as_slice());
++                    assert_eq!(
++                        &t[f + item.key_len..f + item.key_len + item.gap],
++                        item.gap_tokens.as_slice()
++                    );
++                    assert_eq!(
++                        &t[item.value_first()..item.value_first() + item.value.len()],
++                        item.value.as_slice()
++                    );
++                    assert!(item.query_start >= f + item.fact_len());
++                    assert_eq!(item.query_start - f, item.distance);
++                    let bucket = buckets[item.bucket];
++                    assert!((bucket.low..=bucket.high).contains(&item.distance));
++                    let q = item.query_start;
++                    assert_eq!(&t[q..q + item.key_len], item.key.as_slice());
++                    let middle = match item.form {
++                        Form::Rehearse => item.gap_tokens.clone(),
++                        Form::Bare => vocab.bare_prefix.clone(),
++                    };
++                    assert_eq!(
++                        &t[q + item.key_len..q + item.key_len + middle.len()],
++                        middle.as_slice()
++                    );
++                    // The predicting position holds the last copula piece
++                    // (or the last key piece when g = 0, or the bare prefix).
++                    let p0 = item.predict[0];
++                    let expected = match (item.form, item.gap) {
++                        (Form::Rehearse, 0) => *item.key.last().expect("key"),
++                        (Form::Rehearse, _) => *item.gap_tokens.last().expect("gap"),
++                        (Form::Bare, _) => *vocab.bare_prefix.last().expect("prefix"),
++                    };
++                    assert_eq!(t[p0], expected);
++                    for (i, &piece) in item.value.iter().enumerate() {
++                        assert_eq!(t[item.predict[i] + 1], piece);
++                    }
++                    // The key's full tuple occurs exactly twice: fact and query.
++                    let occurrences = (0..=t.len() - item.key_len)
++                        .filter(|&p| t[p..p + item.key_len] == item.key[..])
++                        .count();
++                    assert_eq!(occurrences, 2);
++                    cells.insert(cell_name(item.form, item.gap, item.key_len));
++                    if item.form == Form::Rehearse {
++                        rule_rehearse.1 += 1;
++                        rule_rehearse.0 +=
++                            usize::from(reference_rule(t, item, vocab.bare_prefix.len()));
++                    }
++                }
++                // Gap pieces are never key pieces of the window.
++                for item in &sequence.items {
++                    assert!(item.gap_tokens.iter().all(|g| !key_pieces.contains(g)));
++                }
++                // Weights fall on value pieces only.
++                let (_, targets, weights) =
++                    fact_arrays(std::slice::from_ref(&sequence), SERVED_CONTEXT);
++                let weighted = weights.iter().filter(|&&w| w > 0.0).count();
++                let pieces: usize = sequence.items.iter().map(|i| i.value.len()).sum();
++                assert_eq!(weighted, pieces);
++                for item in &sequence.items {
++                    assert_eq!(targets[item.predict[0]], item.value[0]);
++                }
++            }
++        }
++        assert_eq!(cells.len(), 24, "every (form, gap, key pieces) cell occurs");
++        // A rehearsed query is solved by the n-let backoff (the rule's ceiling).
++        assert_eq!(rule_rehearse.0, rule_rehearse.1);
++    }
++}
+diff --git a/crates/uor-r4-training/src/geometric_attention_native.rs b/crates/uor-r4-training/src/geometric_attention_native.rs
+index 5ded9a121..f7e4e6be1 100644
+--- a/crates/uor-r4-training/src/geometric_attention_native.rs
++++ b/crates/uor-r4-training/src/geometric_attention_native.rs
+@@ -443,6 +443,7 @@ impl<'a> CompiledGeometricAttention<'a> {
+             || model.served_codec().is_some()
+             || model.read_identity_carry()
+             || model.read_key_shift()
++            || model.read_lineage().is_some()
+             || model.read_identity_latch().is_some()
+         {
+             return Err(invalid(
+diff --git a/crates/uor-r4-training/src/geometric_stack.rs b/crates/uor-r4-training/src/geometric_stack.rs
+index d82ef1775..218024a04 100644
+--- a/crates/uor-r4-training/src/geometric_stack.rs
++++ b/crates/uor-r4-training/src/geometric_stack.rs
+@@ -1346,6 +1346,10 @@ pub struct StackModel {
+     /// Each read key also carries the previous position's key, turned by the
+     /// fixed unit quaternion `j` ([`Self::set_read_key_shift`]).
+     read_key_shift: bool,
++    /// A research-only read-lineage control ([`Self::set_read_lineage`]).
++    read_lineage: Option<ReadLineage>,
++    /// The fixed block-diagonal SO(4) map of [`ReadLineage::RandomSo4`].
++    read_lineage_so4: Option<Tensor>,
+ }
+ 
+ impl StackModel {
+@@ -1449,6 +1453,8 @@ impl StackModel {
+             geometric_address: None,
+             geometric_span: None,
+             read_key_shift: false,
++            read_lineage: None,
++            read_lineage_so4: None,
+         })
+     }
+ 
+@@ -1857,6 +1863,9 @@ impl StackModel {
+             if part == "key" && self.read_key_shift {
+                 projected = previous_key_channel(&projected)?;
+             }
++            if let Some(lineage) = self.read_lineage {
++                projected = self.read_lineage_projection(p, layer, lineage, part, projected)?;
++            }
+             if part != "value" {
+                 if let Some(identity) = &latched {
+                     projected = projected.add(&Self::linear(
+@@ -2151,6 +2160,11 @@ impl StackModel {
+                     "the read key shift has no served or geometric-address form",
+                 ));
+             }
++            if self.read_lineage.is_some() {
++                return Err(invalid(
++                    "the read key shift and a read lineage are exclusive",
++                ));
++            }
+         }
+         self.read_key_shift = enabled;
+         Ok(())
+@@ -2161,6 +2175,165 @@ impl StackModel {
+         self.read_key_shift
+     }
+ 
++    /// Opt into a research-only read-lineage control (Step 2 parity bench,
++    /// #820), or `None` to remove it. Each variant changes the read keys (and
++    /// for the two query-key variants also the queries) of every geometric
++    /// read layer; values, NoRead and age are unchanged:
++    ///
++    /// - `QueryKeyJ`: keys `k_t + j k_{t-1}` (as F2) and queries
++    ///   `q_t + j^{-1} q_{t-1}` ([`quaternion_j_inv_left`]).
++    /// - `QueryKeyJSame`: keys `k_t + j k_{t-1}` and queries `q_t + j q_{t-1}`.
++    /// - `IdentityShift`: keys `k_t + k_{t-1}`.
++    /// - `RandomSo4`: keys `k_t + R k_{t-1}`, `R` a fixed block-diagonal map
++    ///   with one Haar-random SO(4) block per four-channel lane, drawn from
++    ///   `seed` (not learned).
++    /// - `LearnedConv`: keys `sum_{i<4} w_i (.) k_{t-i}`, a learned depthwise
++    ///   width-4 causal convolution (one weight per channel and lag, the
++    ///   RWKV/H3 token-shift control).
++    /// - `LearnedPrev`: keys `k_t + W k_{t-1}`, `W` a learned width x width map.
++    ///
++    /// Zero stands before position 0 in every shift. The learned variants add
++    /// variables (`read.lineage_conv.weight`, `read.lineage_prev`, neither
++    /// weight-decayed), so set the lineage before creating the optimizer. None
++    /// of these has a saved, served or exported form: [`Self::save`], served
++    /// mode and the integer export refuse a model with one. F2
++    /// ([`Self::set_read_key_shift`]) is the saveable form and excludes these.
++    pub fn set_read_lineage(&mut self, lineage: Option<ReadLineage>) -> Result<()> {
++        if lineage.is_some() {
++            if self.config.arch != StackArch::Geometric || !self.config.pattern.contains('a') {
++                return Err(invalid(
++                    "a read lineage needs a geometric stack with a read layer",
++                ));
++            }
++            if self.served.is_some()
++                || self.geometric_address.is_some()
++                || self.read_identity_latch.is_some()
++            {
++                return Err(invalid(
++                    "a read lineage has no served, geometric-address or latch form",
++                ));
++            }
++            if self.read_key_shift {
++                return Err(invalid(
++                    "a read lineage and the read key shift are exclusive",
++                ));
++            }
++            if !self.config.width.is_multiple_of(4) {
++                return Err(invalid("a read lineage needs four-channel lanes"));
++            }
++        }
++        self.variables
++            .retain(|name, _| !name.contains(READ_LINEAGE_PREFIX));
++        self.read_lineage_so4 = None;
++        let width = self.config.width;
++        let read_layers: Vec<usize> = (0..self.config.layers())
++            .filter(|&layer| self.config.pattern.as_bytes()[layer] == b'a')
++            .collect();
++        match lineage {
++            Some(ReadLineage::LearnedConv { init_lag1 }) => {
++                for &layer in &read_layers {
++                    let values: Vec<f32> = (0..width * 4)
++                        .map(|index| match index % 4 {
++                            0 => 1.0,
++                            1 if init_lag1 => 1.0,
++                            _ => 0.0,
++                        })
++                        .collect();
++                    self.variables.insert(
++                        layer_name(layer, READ_LINEAGE_CONV),
++                        Var::from_vec(values, (width, 4), &self.device)?,
++                    );
++                }
++            }
++            Some(ReadLineage::LearnedPrev { init_identity }) => {
++                for &layer in &read_layers {
++                    let values: Vec<f32> = (0..width * width)
++                        .map(|index| {
++                            if init_identity && index / width == index % width {
++                                1.0
++                            } else {
++                                0.0
++                            }
++                        })
++                        .collect();
++                    self.variables.insert(
++                        layer_name(layer, READ_LINEAGE_PREV),
++                        Var::from_vec(values, (width, width), &self.device)?,
++                    );
++                }
++            }
++            Some(ReadLineage::RandomSo4 { seed }) => {
++                let blocks = random_so4_blocks(width / 4, seed);
++                let mut matrix = vec![0f32; width * width];
++                for (lane, block) in blocks.iter().enumerate() {
++                    for (row, values) in block.iter().enumerate() {
++                        for (column, &value) in values.iter().enumerate() {
++                            matrix[(4 * lane + row) * width + 4 * lane + column] = value as f32;
++                        }
++                    }
++                }
++                self.read_lineage_so4 =
++                    Some(Tensor::from_vec(matrix, (width, width), &self.device)?);
++            }
++            _ => {}
++        }
++        self.read_lineage = lineage;
++        Ok(())
++    }
++
++    /// The research-only read lineage, if set ([`Self::set_read_lineage`]).
++    pub fn read_lineage(&self) -> Option<ReadLineage> {
++        self.read_lineage
++    }
++
++    /// The `part` projection (`query`, `key` or `value`) of one read layer
++    /// after the read lineage: see [`Self::set_read_lineage`].
++    fn read_lineage_projection(
++        &self,
++        p: &Params<'_>,
++        layer: usize,
++        lineage: ReadLineage,
++        part: &str,
++        projected: Tensor,
++    ) -> Result<Tensor> {
++        match (part, lineage) {
++            ("query", ReadLineage::QueryKeyJ) => {
++                let previous = causal_shift(&projected, 1)?;
++                Ok(projected.add(&quaternion_j_inv_left(&previous)?)?)
++            }
++            ("query", ReadLineage::QueryKeyJSame) => previous_key_channel(&projected),
++            ("key", ReadLineage::QueryKeyJ | ReadLineage::QueryKeyJSame) => {
++                previous_key_channel(&projected)
++            }
++            ("key", ReadLineage::IdentityShift) => {
++                Ok(projected.add(&causal_shift(&projected, 1)?)?)
++            }
++            ("key", ReadLineage::RandomSo4 { .. }) => {
++                let rotation = self
++                    .read_lineage_so4
++                    .as_ref()
++                    .ok_or_else(|| invalid("the random SO(4) lineage map is missing"))?;
++                let previous = causal_shift(&projected, 1)?;
++                Ok(projected.add(&Self::linear(&previous, rotation)?)?)
++            }
++            ("key", ReadLineage::LearnedPrev { .. }) => {
++                let map = p.layer(layer, READ_LINEAGE_PREV)?;
++                let previous = causal_shift(&projected, 1)?;
++                Ok(projected.add(&Self::linear(&previous, map)?)?)
++            }
++            ("key", ReadLineage::LearnedConv { .. }) => {
++                let weight = p.layer(layer, READ_LINEAGE_CONV)?;
++                let mut mixed = projected.broadcast_mul(&weight.narrow(1, 0, 1)?.squeeze(1)?)?;
++                for lag in 1..4 {
++                    let tap = weight.narrow(1, lag, 1)?.squeeze(1)?;
++                    mixed = mixed.add(&causal_shift(&projected, lag)?.broadcast_mul(&tap)?)?;
++                }
++                Ok(mixed)
++            }
++            _ => Ok(projected),
++        }
++    }
++
+     /// Replace the geometric reader's scalar Held latch with an ordered token
+     /// action producer. Enable after geometric addressing and before creating
+     /// the optimizer. Static actions use original selected embedding rows;
+@@ -6412,6 +6585,12 @@ impl StackModel {
+     /// and pins its digest in config.json; a default save removes stale carry
+     /// metadata and retains the legacy config byte format.
+     pub fn save(&self, directory: &Path) -> Result<()> {
++        if let Some(lineage) = self.read_lineage {
++            return Err(invalid(format!(
++                "the research-only read lineage {} has no saved form",
++                lineage.name()
++            )));
++        }
+         if let Some(span) = &self.geometric_span {
+             span.validate(self.config.width)?;
+             if self.geometric_address.is_none() || self.read_identity_latch.is_some() {
+@@ -6922,6 +7101,8 @@ impl StackModel {
+             geometric_address,
+             geometric_span,
+             read_key_shift: false,
++            read_lineage: None,
++            read_lineage_so4: None,
+         };
+         model.set_transport_snap(Self::saved_transport_snap(directory)?)?;
+         model.set_read_identity_carry(Self::saved_read_identity_carry(directory)?)?;
+@@ -8115,6 +8296,9 @@ impl StackModel {
+             Some(_) if self.read_key_shift => {
+                 return Err(invalid("the read key shift has no served representation"));
+             }
++            Some(_) if self.read_lineage.is_some() => {
++                return Err(invalid("a read lineage has no served representation"));
++            }
+             Some(_) if self.read_identity_latch.is_some() => {
+                 return Err(invalid("read identity latch has no served representation"));
+             }
+@@ -8932,6 +9116,105 @@ pub fn quaternion_j_left(x: &Tensor) -> Result<Tensor> {
+     Ok(turned.reshape(dims.as_slice())?)
+ }
+ 
++/// Research-only read-lineage controls for the Step 2 parity bench (#820);
++/// see [`StackModel::set_read_lineage`].
++#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
++#[serde(rename_all = "snake_case", tag = "kind")]
++pub enum ReadLineage {
++    /// Queries `q_t + j^{-1} q_{t-1}` with keys `k_t + j k_{t-1}`.
++    QueryKeyJ,
++    /// Queries `q_t + j q_{t-1}` with keys `k_t + j k_{t-1}`.
++    QueryKeyJSame,
++    /// Keys `k_t + k_{t-1}`.
++    IdentityShift,
++    /// Keys `k_t + R k_{t-1}`, `R` fixed Haar-random SO(4) per lane.
++    RandomSo4 { seed: u64 },
++    /// Keys `sum_{i<4} w_i (.) k_{t-i}`, learned; always `w_0 = 1` and
++    /// `w_2 = w_3 = 0` at the start, and `w_1 = 1` if `init_lag1` (else 0).
++    LearnedConv { init_lag1: bool },
++    /// Keys `k_t + W k_{t-1}`, learned; `W` starts at the identity or zero.
++    LearnedPrev { init_identity: bool },
++}
++
++impl ReadLineage {
++    /// A short stable name for reports.
++    pub fn name(self) -> &'static str {
++        match self {
++            ReadLineage::QueryKeyJ => "qk",
++            ReadLineage::QueryKeyJSame => "qk_jj",
++            ReadLineage::IdentityShift => "identity",
++            ReadLineage::RandomSo4 { .. } => "so4",
++            ReadLineage::LearnedConv { .. } => "conv",
++            ReadLineage::LearnedPrev { .. } => "wprev",
++        }
++    }
++}
++
++/// Variable names of the learned read lineages ([`ReadLineage`]).
++const READ_LINEAGE_PREFIX: &str = ".read.lineage_";
++const READ_LINEAGE_CONV: &str = "read.lineage_conv.weight";
++const READ_LINEAGE_PREV: &str = "read.lineage_prev";
++
++/// Left multiplication by `j^{-1} = -j`: `(a, b, c, d) -> (c, -d, -a, b)`
++/// per four-channel lane, the inverse (and transpose) of
++/// [`quaternion_j_left`]. Note `<j^{-1} a, j b> = -<a, b>`.
++pub fn quaternion_j_inv_left(x: &Tensor) -> Result<Tensor> {
++    Ok(quaternion_j_left(x)?.neg()?)
++}
++
++/// `x` delayed by `lag` positions along time ([batch, time, width]), zero
++/// before position `lag`.
++fn causal_shift(x: &Tensor, lag: usize) -> Result<Tensor> {
++    let (batch, time, width) = x.dims3()?;
++    if lag == 0 {
++        return Ok(x.clone());
++    }
++    if lag >= time {
++        return Ok(x.zeros_like()?);
++    }
++    let zero = Tensor::zeros((batch, lag, width), x.dtype(), x.device())?;
++    Ok(Tensor::cat(&[&zero, &x.narrow(1, 0, time - lag)?], 1)?)
++}
++
++/// Quaternion product `a b` of (w, x, y, z) components.
++fn quaternion_product_f64(a: [f64; 4], b: [f64; 4]) -> [f64; 4] {
++    [
++        a[0] * b[0] - a[1] * b[1] - a[2] * b[2] - a[3] * b[3],
++        a[0] * b[1] + a[1] * b[0] + a[2] * b[3] - a[3] * b[2],
++        a[0] * b[2] - a[1] * b[3] + a[2] * b[0] + a[3] * b[1],
++        a[0] * b[3] + a[1] * b[2] - a[2] * b[1] + a[3] * b[0],
++    ]
++}
++
++/// `lanes` Haar-random SO(4) matrices from `seed`: each is `x -> p x conj(q)`
++/// for independent uniform unit quaternions `p`, `q` (row-major 4x4).
++pub fn random_so4_blocks(lanes: usize, seed: u64) -> Vec<[[f64; 4]; 4]> {
++    let mut rng = Initializer(seed ^ 0x736F_345F_6C69_6E65);
++    let mut unit = || loop {
++        let v = [rng.normal(), rng.normal(), rng.normal(), rng.normal()];
++        let norm = v.iter().map(|x| x * x).sum::<f64>().sqrt();
++        if norm > 1e-6 {
++            break v.map(|x| x / norm);
++        }
++    };
++    (0..lanes)
++        .map(|_| {
++            let (p, q) = (unit(), unit());
++            let conj = [q[0], -q[1], -q[2], -q[3]];
++            let mut block = [[0f64; 4]; 4];
++            for column in 0..4 {
++                let mut basis = [0f64; 4];
++                basis[column] = 1.0;
++                let image = quaternion_product_f64(quaternion_product_f64(p, basis), conj);
++                for (row, values) in block.iter_mut().enumerate() {
++                    values[column] = image[row];
++                }
++            }
++            block
++        })
++        .collect()
++}
++
+ /// `k_t + j * k_{t-1}` for keys [batch, time, width], zero before position 0.
+ fn previous_key_channel(key: &Tensor) -> Result<Tensor> {
+     let (batch, time, width) = key.dims3()?;
+@@ -17348,6 +17631,200 @@ mod tests {
+         Ok(())
+     }
+ 
++    fn lineage_variants() -> Vec<ReadLineage> {
++        vec![
++            ReadLineage::QueryKeyJ,
++            ReadLineage::QueryKeyJSame,
++            ReadLineage::IdentityShift,
++            ReadLineage::RandomSo4 { seed: 11 },
++            ReadLineage::LearnedConv { init_lag1: true },
++            ReadLineage::LearnedConv { init_lag1: false },
++            ReadLineage::LearnedPrev {
++                init_identity: true,
++            },
++            ReadLineage::LearnedPrev {
++                init_identity: false,
++            },
++        ]
++    }
++
++    fn dot(a: &Tensor, b: &Tensor) -> Result<f32> {
++        Ok(a.mul(b)?.sum_all()?.to_scalar::<f32>()?)
++    }
++
++    #[test]
++    fn the_j_lineage_channels_are_orthogonal_and_j_inverse_undoes_j() -> Result<()> {
++        let mut rng = Initializer(91);
++        let draw = |rng: &mut Initializer| -> Result<Tensor> {
++            let values: Vec<f32> = (0..2 * 3 * 16).map(|_| rng.normal() as f32).collect();
++            Ok(Tensor::from_vec(values, (2, 3, 16), &cpu())?)
++        };
++        let (a, b) = (draw(&mut rng)?, draw(&mut rng)?);
++        // A key's current and j-turned channels are orthogonal per lane: the
++        // F2/QK predecessor channel cannot alias the current-token channel.
++        let lanes = |x: &Tensor| x.reshape((2 * 3 * 4, 4));
++        let per_lane = lanes(&a)?
++            .mul(&lanes(&quaternion_j_left(&a)?)?)?
++            .sum(1)?
++            .to_vec1::<f32>()?;
++        assert!(per_lane.iter().all(|v| v.abs() < 1e-5), "{per_lane:?}");
++        assert!(dot(&a, &quaternion_j_inv_left(&a)?)?.abs() < 1e-4);
++        // j^{-1} is the inverse and the transpose of j.
++        assert_eq!(
++            bits(&quaternion_j_inv_left(&quaternion_j_left(&a)?)?)?,
++            bits(&a)?
++        );
++        let tolerance = 1e-3 * dot(&a, &a)?.abs().max(1.0);
++        assert!(
++            (dot(&quaternion_j_left(&a)?, &b)? - dot(&a, &quaternion_j_inv_left(&b)?)?).abs()
++                < tolerance
++        );
++        // Same-turn pairs keep the inner product; the QK (j^{-1}, j) pairing
++        // enters the predecessor-predecessor term with a negative sign.
++        let ab = dot(&a, &b)?;
++        assert!((dot(&quaternion_j_left(&a)?, &quaternion_j_left(&b)?)? - ab).abs() < tolerance);
++        assert!(
++            (dot(&quaternion_j_inv_left(&a)?, &quaternion_j_left(&b)?)? + ab).abs() < tolerance
++        );
++        Ok(())
++    }
++
++    #[test]
++    fn random_so4_lineage_blocks_are_rotations() {
++        for block in random_so4_blocks(8, 3) {
++            for i in 0..4 {
++                for j in 0..4 {
++                    let product: f64 = (0..4).map(|r| block[r][i] * block[r][j]).sum();
++                    let expected = if i == j { 1.0 } else { 0.0 };
++                    assert!((product - expected).abs() < 1e-12);
++                }
++            }
++            // Determinant +1 by cofactor expansion along the first row.
++            let minor = |skip: usize| {
++                let rows: Vec<Vec<f64>> = (1..4)
++                    .map(|r| (0..4).filter(|&c| c != skip).map(|c| block[r][c]).collect())
++                    .collect();
++                rows[0][0] * (rows[1][1] * rows[2][2] - rows[1][2] * rows[2][1])
++                    - rows[0][1] * (rows[1][0] * rows[2][2] - rows[1][2] * rows[2][0])
++                    + rows[0][2] * (rows[1][0] * rows[2][1] - rows[1][1] * rows[2][0])
++            };
++            let det: f64 = (0..4)
++                .map(|c| if c % 2 == 0 { 1.0 } else { -1.0 } * block[0][c] * minor(c))
++                .sum();
++            assert!((det - 1.0).abs() < 1e-9, "det {det}");
++        }
++        assert_ne!(random_so4_blocks(1, 3), random_so4_blocks(1, 4));
++        assert_eq!(random_so4_blocks(2, 3), random_so4_blocks(2, 3));
++    }
++
++    #[test]
++    fn read_lineages_are_causal_learnable_and_research_only() -> Result<()> {
++        let config = tiny(StackArch::Geometric, "rara", ReadScore::L2, true);
++        let ids = [1u32, 2, 3, 4, 5, 6, 7, 8];
++        let plain_model = StackModel::new(config.clone(), &cpu())?;
++        let plain = plain_model.forward(&ids, 1, ids.len())?.to_vec2::<f32>()?;
++        let base_count = plain_model.parameter_count();
++        for lineage in lineage_variants() {
++            let mut model = StackModel::new(config.clone(), &cpu())?;
++            model.set_read_lineage(Some(lineage))?;
++            assert_eq!(model.read_lineage(), Some(lineage));
++            let logits = model.forward(&ids, 1, ids.len())?;
++            assert_eq!(logits.dims(), &[ids.len(), config.vocab_size]);
++            let rows = logits.to_vec2::<f32>()?;
++            // Position 0 has no predecessor: every lineage leaves it unchanged.
++            assert_eq!(rows[0], plain[0], "{lineage:?}");
++            let starts_plain = matches!(
++                lineage,
++                ReadLineage::LearnedConv { init_lag1: false }
++                    | ReadLineage::LearnedPrev {
++                        init_identity: false
++                    }
++            );
++            assert_eq!(rows[7] == plain[7], starts_plain, "{lineage:?}");
++            // Causal: a later token changes no earlier row.
++            let mut changed = ids;
++            changed[7] = 30;
++            let after = model.forward(&changed, 1, ids.len())?.to_vec2::<f32>()?;
++            for t in 0..7 {
++                assert_eq!(after[t], rows[t], "{lineage:?} row {t}");
++            }
++            assert_ne!(after[7], rows[7]);
++            // Learned lineages add their variables, which receive gradients.
++            let extra = match lineage {
++                ReadLineage::LearnedConv { .. } => 2 * config.width * 4,
++                ReadLineage::LearnedPrev { .. } => 2 * config.width * config.width,
++                _ => 0,
++            };
++            assert_eq!(model.parameter_count(), base_count + extra);
++            let mut optimizer = StackAdamW::new(&model, 0.1, 1.0)?;
++            let targets = [2u32, 3, 4, 5, 6, 7, 8, 9];
++            let loss = model.loss(&ids, &targets, 1, ids.len())?;
++            let grads = loss.backward()?;
++            for (name, var) in model.variables() {
++                if name.contains(READ_LINEAGE_PREFIX) {
++                    let grad = grads.get(var.as_tensor()).expect("lineage gradient");
++                    assert!(grad.sqr()?.sum_all()?.to_scalar::<f32>()? > 0.0, "{name}");
++                }
++            }
++            optimizer.update(&model, &grads, 1e-3)?;
++            // Research only: no saved, served or F2-combined form.
++            let dir = std::env::temp_dir().join(format!(
++                "stack-read-lineage-{}-{}",
++                lineage.name(),
++                std::process::id()
++            ));
++            assert!(model.save(&dir).is_err());
++            assert!(!dir.join("model.safetensors").exists());
++            assert!(model.set_read_key_shift(true).is_err());
++            // Removing the lineage restores the plain inventory.
++            model.set_read_lineage(None)?;
++            assert_eq!(model.parameter_count(), base_count);
++            model.set_read_key_shift(true)?;
++            assert!(model.set_read_lineage(Some(lineage)).is_err());
++        }
++        let mut dot_config = tiny(StackArch::Geometric, "ra", ReadScore::Dot, true);
++        dot_config.width = 32;
++        dot_config.mlp_hidden = 64;
++        let mut served = StackModel::new(dot_config.clone(), &cpu())?;
++        served.set_served_representation(Some(Arc::new(D11Interim)))?;
++        assert!(served
++            .set_read_lineage(Some(ReadLineage::QueryKeyJ))
++            .is_err());
++        let mut lineage = StackModel::new(dot_config, &cpu())?;
++        lineage.set_read_lineage(Some(ReadLineage::IdentityShift))?;
++        assert!(lineage
++            .set_served_representation(Some(Arc::new(D11Interim)))
++            .is_err());
++        let mut recurrent = StackModel::new(
++            tiny(StackArch::Geometric, "rr", ReadScore::L2, true),
++            &cpu(),
++        )?;
++        assert!(recurrent
++            .set_read_lineage(Some(ReadLineage::QueryKeyJ))
++            .is_err());
++        Ok(())
++    }
++
++    #[test]
++    fn the_qk_lineage_turns_the_query_and_the_key_shift_alone_does_not() -> Result<()> {
++        // QK differs from F2 only through the query channel.
++        let config = tiny(StackArch::Geometric, "aa", ReadScore::L2, true);
++        let ids = [1u32, 2, 3, 4, 5, 6];
++        let mut f2 = StackModel::new(config.clone(), &cpu())?;
++        f2.set_read_key_shift(true)?;
++        let mut qk = StackModel::new(config.clone(), &cpu())?;
++        qk.set_read_lineage(Some(ReadLineage::QueryKeyJ))?;
++        let mut same = StackModel::new(config, &cpu())?;
++        same.set_read_lineage(Some(ReadLineage::QueryKeyJSame))?;
++        let f2_rows = f2.forward(&ids, 1, ids.len())?.to_vec2::<f32>()?;
++        let qk_rows = qk.forward(&ids, 1, ids.len())?.to_vec2::<f32>()?;
++        let same_rows = same.forward(&ids, 1, ids.len())?.to_vec2::<f32>()?;
++        assert_eq!(f2_rows[0], qk_rows[0]);
++        assert_ne!(f2_rows[5], qk_rows[5]);
++        assert_ne!(qk_rows[5], same_rows[5]);
++        Ok(())
++    }
++
+     #[test]
+     fn read_identity_carry_refuses_served_mode_in_both_orders() -> Result<()> {
+         let mut config = tiny(StackArch::Geometric, "ra", ReadScore::Dot, true);
+diff --git a/crates/uor-r4-training/src/stack_export.rs b/crates/uor-r4-training/src/stack_export.rs
+index 69abcdc92..3f4f7c273 100644
+--- a/crates/uor-r4-training/src/stack_export.rs
++++ b/crates/uor-r4-training/src/stack_export.rs
+@@ -343,9 +343,9 @@ pub fn export_stack(
+     if model.read_identity_carry() {
+         return Err(invalid("read identity carry has no integer export"));
+     }
+-    if model.read_key_shift() {
++    if model.read_key_shift() || model.read_lineage().is_some() {
+         return Err(invalid(
+-            "the read key shift has no integer export yet (no D11 served form)",
++            "the read key shift or read lineage has no integer export yet (no D11 served form)",
+         ));
+     }
+     if model.geometric_span().is_some() {
+@@ -988,9 +988,9 @@ pub fn stack_grid_reference(
+     model: &StackModel,
+     artifact: &uor_r4_lut::format::StackArtifact,
+ ) -> Result<GridReference> {
+-    if model.read_key_shift() {
++    if model.read_key_shift() || model.read_lineage().is_some() {
+         return Err(invalid(
+-            "the read key shift has no integer grid reference yet (no D11 served form)",
++            "the read key shift or read lineage has no integer grid reference yet (no D11 served form)",
+         ));
+     }
+     if model.read_identity_carry() {
+diff --git a/scripts/pod/step2-parity-bench.sh b/scripts/pod/step2-parity-bench.sh
+new file mode 100755
+index 000000000..d57123b95
+--- /dev/null
++++ b/scripts/pod/step2-parity-bench.sh
+@@ -0,0 +1,126 @@
++#!/usr/bin/env bash
++# Step 2 deployment-parity MQAR bench: the full grid and its decision table
++# (References #820; docs/research/barrier-assessment-2026-10-05/
++# final-assessment.md Step 2 and completeness-critique.md points 2, 5, 6).
++#
++# Runs `mqar-bench layout=fact` for patterns rararr, rrarra (production) and
++# aaaaaa (diagnostic) x arms none/f2/qk/conv (3 seeds) and identity/so4/
++# wprev/qk_jj (2 seeds): 60 runs, K at a time, round-robin over the GPUs.
++# Every run writes its own exclusively claimed, sealed report root under
++# $OUT_ROOT/runs; a rerun of this script skips every (pattern, arm, seed)
++# that already has a complete sealed root and gives a failed one a new
++# attempt root (a root is never reused). Then `mode=decide` writes a new
++# sealed decision root $OUT_ROOT/decision-<UTC stamp> with decision.json and
++# decision.md.
++#
++# Required:  TOKENIZER=/path/to/#1017/tokenizer.json  OUT_ROOT=/new/or/resumed/dir
++# Optional:  K=8 GPUS="0 1" DEVICE=cuda STEPS=4000 BATCH=16 LR=0.001
++#            WARMUP=200 EVAL_EVERY=250 FINAL_SEQUENCES=256 MAX_SECONDS=3600
++#            THREADS=2 CUDA_COMPUTE_CAP=89 SKIP_BUILD=0 REPO=<this checkout>
++#            BIN=<prebuilt mqar-bench> (implies SKIP_BUILD=1)
++#            PATTERNS="rararr rrarra aaaaaa"
++#            ARMS="none:3 f2:3 qk:3 conv:3 identity:2 so4:2 wprev:2 qk_jj:2" (arm:seeds)
++# A calibration run of one job: PATTERNS=rararr ARMS=none:1 K=1 (its root is
++# then reused by the full grid, which skips complete roots).
++set -euo pipefail
++
++: "${TOKENIZER:?set TOKENIZER to the #1017 tokenizer.json}"
++: "${OUT_ROOT:?set OUT_ROOT}"
++REPO=${REPO:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}
++K=${K:-8}
++GPUS=${GPUS:-"0 1"}
++DEVICE=${DEVICE:-cuda}
++STEPS=${STEPS:-4000}
++BATCH=${BATCH:-16}
++LR=${LR:-0.001}
++WARMUP=${WARMUP:-200}
++EVAL_EVERY=${EVAL_EVERY:-250}
++FINAL_SEQUENCES=${FINAL_SEQUENCES:-256}
++MAX_SECONDS=${MAX_SECONDS:-3600}
++THREADS=${THREADS:-2}
++TOKENIZER_SHA256=d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89
++
++sha256() { if command -v sha256sum >/dev/null; then sha256sum "$1"; else shasum -a 256 "$1"; fi | cut -d' ' -f1; }
++
++got=$(sha256 "$TOKENIZER")
++if [ "$got" != "$TOKENIZER_SHA256" ]; then
++  echo "tokenizer sha256 $got is not the #1017 tokenizer ($TOKENIZER_SHA256)" >&2
++  exit 1
++fi
++
++if [ -n "${BIN:-}" ]; then SKIP_BUILD=1; fi
++BIN=${BIN:-"$REPO/target/release/examples/mqar-bench"}
++if [ "${SKIP_BUILD:-0}" != 1 ]; then
++  if [ "$DEVICE" = cuda ]; then
++    export PATH=/usr/local/cuda/bin:$PATH
++    (cd "$REPO" && CARGO_INCREMENTAL=0 CUDA_COMPUTE_CAP=${CUDA_COMPUTE_CAP:-89} \
++      cargo build --release -p uor-r4-training --features cuda --example mqar-bench)
++  else
++    (cd "$REPO" && CARGO_INCREMENTAL=0 cargo build --release -p uor-r4-training --example mqar-bench)
++  fi
++fi
++
++mkdir -p "$OUT_ROOT/runs" "$OUT_ROOT/logs"
++{
++  echo "utc_start $(date -u +%Y-%m-%dT%H:%M:%SZ)"
++  echo "source $(git -C "$REPO" rev-parse HEAD) dirty_paths $(git -C "$REPO" status --porcelain | wc -l)"
++  echo "binary_sha256 $(sha256 "$BIN")"
++  echo "tokenizer_sha256 $got"
++  echo "rustc $(rustc -V 2>/dev/null || echo UNAVAILABLE)"
++  command -v nvidia-smi >/dev/null && nvidia-smi --query-gpu=name,driver_version --format=csv,noheader
++  echo "settings PATTERNS=${PATTERNS:-default} ARMS=${ARMS:-default} K=$K GPUS=$GPUS DEVICE=$DEVICE STEPS=$STEPS BATCH=$BATCH LR=$LR WARMUP=$WARMUP EVAL_EVERY=$EVAL_EVERY FINAL_SEQUENCES=$FINAL_SEQUENCES MAX_SECONDS=$MAX_SECONDS THREADS=$THREADS"
++} >> "$OUT_ROOT/pod-manifest.txt"
++
++complete() { [ -f "$1/manifest.json" ] && grep -q '"status": "complete"' "$1/report.json" 2>/dev/null; }
++
++# One job: "<index> <pattern> <arm> <seed>".
++run_job() {
++  local index=$1 pattern=$2 arm=$3 seed=$4
++  local name="$pattern-$arm-s$seed" root attempt=1
++  for root in "$OUT_ROOT/runs/$name" "$OUT_ROOT/runs/$name"-a*; do
++    if [ -d "$root" ] && complete "$root"; then
++      echo "skip $name: complete at $root"
++      return 0
++    fi
++  done
++  root="$OUT_ROOT/runs/$name"
++  while [ -e "$root" ]; do attempt=$((attempt + 1)); root="$OUT_ROOT/runs/$name-a$attempt"; done
++  local gpus=($GPUS)
++  local gpu=${gpus[$((index % ${#gpus[@]}))]}
++  local start=$SECONDS
++  echo "start $name on gpu $gpu -> $root"
++  if CUDA_VISIBLE_DEVICES=$gpu RAYON_NUM_THREADS=$THREADS "$BIN" \
++      "out=$root" layout=fact "tokenizer=$TOKENIZER" "device=$DEVICE" context=384 \
++      pairs_per_bucket=4 "batch=$BATCH" "steps=$STEPS" "lr=$LR" "warmup=$WARMUP" \
++      min_lr=0.1 weight_decay=0.1 clip=1.0 "eval_every=$EVAL_EVERY" curve_sequences=16 \
++      "final_sequences=$FINAL_SEQUENCES" probe_sequences=16 probe_steps=final \
++      "seed=$seed" "max_seconds=$MAX_SECONDS" save_model=true gaps=0,1,2,3 forms=rehearse,bare \
++      arm=stack "pattern=$pattern" read=l2 rotation=true width=128 heads=4 mlp=384 \
++      age=default "lineage=$arm" learned_init=lag1 \
++      > "$OUT_ROOT/logs/$(basename "$root").stdout" 2> "$OUT_ROOT/logs/$(basename "$root").stderr"; then
++    echo "done $name in $((SECONDS - start))s: $(grep '^final' "$OUT_ROOT/logs/$(basename "$root").stderr" || true)"
++  else
++    echo "FAILED $name after $((SECONDS - start))s (see $OUT_ROOT/logs/$(basename "$root").stderr)"
++  fi
++}
++export -f run_job complete
++export OUT_ROOT GPUS BIN TOKENIZER DEVICE BATCH STEPS LR WARMUP EVAL_EVERY FINAL_SEQUENCES MAX_SECONDS THREADS
++
++jobs=()
++index=0
++for pattern in ${PATTERNS:-rararr rrarra aaaaaa}; do
++  for spec in ${ARMS:-none:3 f2:3 qk:3 conv:3 identity:2 so4:2 wprev:2 qk_jj:2}; do
++    arm=${spec%:*}
++    for seed in $(seq 1 "${spec#*:}"); do
++      jobs+=("$index $pattern $arm $seed")
++      index=$((index + 1))
++    done
++  done
++done
++echo "${#jobs[@]} runs, $K at a time"
++printf '%s\n' "${jobs[@]}" | xargs -P "$K" -L 1 bash -c 'run_job "$@"' _ | tee -a "$OUT_ROOT/grid.log"
++
++stamp=$(date -u +%Y%m%dT%H%M%SZ)
++"$BIN" mode=decide "runs=$OUT_ROOT/runs" "out=$OUT_ROOT/decision-$stamp" 2> "$OUT_ROOT/logs/decision-$stamp.stderr"
++cat "$OUT_ROOT/decision-$stamp/decision.md"
++echo "utc_end $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$OUT_ROOT/pod-manifest.txt"

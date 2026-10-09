@@ -1,0 +1,833 @@
+diff --git a/crates/uor-r4-training/src/cuda_stack_kernels.rs b/crates/uor-r4-training/src/cuda_stack_kernels.rs
+index 28b2f3a7f..08cc27668 100644
+--- a/crates/uor-r4-training/src/cuda_stack_kernels.rs
++++ b/crates/uor-r4-training/src/cuda_stack_kernels.rs
+@@ -940,6 +940,420 @@ extern "C" __global__ void read_dbeta(
+     d_aux[read_beta_offset(d) + id] = (float)sum;
+ }
+ 
++// ---------------------------------------------------------------------------
++// 7b. Tiled read kernels (the default; `UOR_CUDA_READ_LEGACY=1` selects the
++// kernels above). Each output accumulates the same f32/f64 terms in the same
++// order with the same operations as its legacy kernel, so the results are
++// bitwise identical; only the thread mapping, shared-memory staging and
++// memory-level parallelism differ.
++// ---------------------------------------------------------------------------
++
++// The read_tile_inner epilogue for one output.
++__device__ __forceinline__ void read_tile_store(
++    float acc, uint t, uint j, uint index, const float* aux,
++    const double* query_lift, const double* key_lift,
++    float* out, double* excess, ReadDims d, Geom geom
++) {
++    uint time = d.time;
++    if (t >= time || j > t) return;
++    u64 slot = ((u64)index * time + t) * time + j;
++    if (geom.mode == 0) {
++        out[slot] = acc;
++        return;
++    }
++    uint head = index % d.heads;
++    float age = d.age_on != 0 ? aux[read_age_offset(d) + (u64)head * time + (t - j)] : 0.0f;
++    float score;
++    if (d.score == 0) {
++        float scale = 1.0f / sqrtf((float)d.key);
++        score = acc * scale + age;
++    } else {
++        double lq = query_lift[(u64)index * time + t];
++        double lk = key_lift[(u64)index * time + j];
++        double e = d.score == 1 ? lq * lk - (double)acc - 1.0 : lq + lk - 2.0 * (double)acc;
++        if (geom.write_excess != 0) {
++            excess[slot] = e;
++        }
++        u64 beta_offset = read_beta_offset(d);
++        double beta = (double)aux[beta_offset + head];
++        double offset = (double)aux[beta_offset + d.heads + head];
++        score = (float)(-beta * (read_distance(d, e) - offset)) + age;
++    }
++    out[slot] = score;
++}
++
++// read_tile_inner over 32 x 32 output tiles: 16 x 16 threads, 2 x 2 outputs
++// per thread (four products per four shared loads instead of one per two).
++// The columns still advance in zero-padded chunks of 16, as the legacy kernel.
++extern "C" __global__ void read_tile_inner32(
++    const float* a, const float* b, const float* aux,
++    const double* query_lift, const double* key_lift,
++    float* out, double* excess, ReadDims d, Geom geom
++) {
++    uint jt = blockIdx.x;
++    uint tt = blockIdx.y;
++    if (jt > tt) return;
++    uint index = blockIdx.z;
++    uint time = d.time;
++    __shared__ float tile_a[32][17];
++    __shared__ float tile_b[32][17];
++    uint lx = threadIdx.x;
++    uint ly = threadIdx.y;
++    float acc00 = 0.0f;
++    float acc01 = 0.0f;
++    float acc10 = 0.0f;
++    float acc11 = 0.0f;
++    for (uint c0 = 0; c0 < geom.length; c0 += 16) {
++        uint c = c0 + lx;
++        for (uint h = 0; h < 2; ++h) {
++            uint r = ly + 16 * h;
++            uint t = tt * 32 + r;
++            uint b_row = jt * 32 + r;
++            tile_a[r][lx] = (t < time && c < geom.length)
++                ? a[((u64)index * time + t) * geom.a_stride + geom.a_offset + c] : 0.0f;
++            tile_b[r][lx] = (b_row < time && c < geom.length)
++                ? b[((u64)index * time + b_row) * geom.b_stride + geom.b_offset + c] : 0.0f;
++        }
++        __syncthreads();
++        #pragma unroll
++        for (uint k = 0; k < 16; ++k) {
++            float a0 = tile_a[ly][k];
++            float a1 = tile_a[ly + 16][k];
++            float b0 = tile_b[lx][k];
++            float b1 = tile_b[lx + 16][k];
++            acc00 += a0 * b0;
++            acc01 += a0 * b1;
++            acc10 += a1 * b0;
++            acc11 += a1 * b1;
++        }
++        __syncthreads();
++    }
++    uint t0 = tt * 32 + ly;
++    uint j0 = jt * 32 + lx;
++    read_tile_store(acc00, t0, j0, index, aux, query_lift, key_lift, out, excess, d, geom);
++    read_tile_store(acc01, t0, j0 + 16, index, aux, query_lift, key_lift, out, excess, d, geom);
++    read_tile_store(acc10, t0 + 16, j0, index, aux, query_lift, key_lift, out, excess, d, geom);
++    read_tile_store(acc11, t0 + 16, j0 + 16, index, aux, query_lift, key_lift, out, excess, d, geom);
++}
++
++// acc[k] += sum_{j <= t} g[index, t, j] x[index, j, x_offset + c] in
++// ascending j (the legacy read_mix/read_dq order) for t = t0 + y + 8k and
++// c = blockIdx.x * 32 + x. Blocks are 32 x 8 threads; g and x tiles of 32
++// are staged in shared memory.
++__device__ __forceinline__ void read_lower_tiles(
++    const float* g, const float* x, uint x_stride, uint x_offset, uint cols,
++    u64 index, uint t0, uint time, float* acc, float (*gs)[33], float (*xs)[33]
++) {
++    uint cx = threadIdx.x;
++    uint ty = threadIdx.y;
++    uint c = blockIdx.x * 32 + cx;
++    uint t_end = min(t0 + 32, time);
++    for (uint j0 = 0; j0 < t_end; j0 += 32) {
++        for (uint r = ty; r < 32; r += 8) {
++            uint t = t0 + r;
++            uint j = j0 + cx;
++            gs[r][cx] = (t < time && j <= t) ? g[((u64)index * time + t) * time + j] : 0.0f;
++            uint jr = j0 + r;
++            xs[r][cx] = (jr < time && c < cols)
++                ? x[((u64)index * time + jr) * x_stride + x_offset + c] : 0.0f;
++        }
++        __syncthreads();
++        if (j0 + 32 <= t0) {
++            // Below the diagonal tile: every j <= t, so no per-term test.
++            #pragma unroll 8
++            for (uint jj = 0; jj < 32; ++jj) {
++                float xv = xs[jj][cx];
++                #pragma unroll
++                for (uint k = 0; k < 4; ++k) acc[k] += gs[ty + 8 * k][jj] * xv;
++            }
++        } else {
++            uint jn = min(32u, t_end - j0);
++            for (uint jj = 0; jj < jn; ++jj) {
++                float xv = xs[jj][cx];
++                uint j = j0 + jj;
++                #pragma unroll
++                for (uint k = 0; k < 4; ++k) {
++                    if (j <= t0 + ty + 8 * k) acc[k] += gs[ty + 8 * k][jj] * xv;
++                }
++            }
++        }
++        __syncthreads();
++    }
++}
++
++// read_mix: blocks (value tile, t tile, index) of 32 x 8 threads.
++extern "C" __global__ void read_mix_tiled(
++    const float* probabilities, const float* kv, float* out, ReadDims d
++) {
++    __shared__ float gs[32][33];
++    __shared__ float xs[32][33];
++    u64 index = blockIdx.z;
++    uint t0 = blockIdx.y * 32;
++    uint time = d.time;
++    float acc[4] = {0.0f, 0.0f, 0.0f, 0.0f};
++    read_lower_tiles(probabilities, kv, d.key + d.value, d.key, d.value, index, t0, time, acc, gs, xs);
++    uint c = blockIdx.x * 32 + threadIdx.x;
++    if (c >= d.value) return;
++    for (uint k = 0; k < 4; ++k) {
++        uint t = t0 + threadIdx.y + 8 * k;
++        if (t < time) out[((u64)index * time + t) * d.value + c] = acc[k];
++    }
++}
++
++// read_dq: blocks (key tile, t tile, index) of 32 x 8 threads.
++extern "C" __global__ void read_dq_tiled(
++    const float* inner_grad, const float* query, const float* kv, const double* query_self,
++    float* dq, ReadDims d
++) {
++    __shared__ float gs[32][33];
++    __shared__ float xs[32][33];
++    u64 index = blockIdx.z;
++    uint t0 = blockIdx.y * 32;
++    uint time = d.time;
++    float acc[4] = {0.0f, 0.0f, 0.0f, 0.0f};
++    read_lower_tiles(inner_grad, kv, d.key + d.value, 0, d.key, index, t0, time, acc, gs, xs);
++    uint c = blockIdx.x * 32 + threadIdx.x;
++    if (c >= d.key) return;
++    for (uint k = 0; k < 4; ++k) {
++        uint t = t0 + threadIdx.y + 8 * k;
++        if (t >= time) continue;
++        u64 row = index * time + t;
++        u64 id = row * d.key + c;
++        float accum = acc[k];
++        if (d.score != 0) {
++            accum += (float)query_self[row] * query[id];
++        }
++        dq[id] = accum;
++    }
++}
++
++// read_dkv: blocks (column tile of key + value, j tile, index) of 32 x 8
++// threads; t advances from the tile's first j in ascending order.
++extern "C" __global__ void read_dkv_tiled(
++    const float* inner_grad, const float* probabilities, const float* query, const float* kv,
++    const float* d_out, const double* key_self, float* dkv, ReadDims d
++) {
++    __shared__ float gk[32][33];
++    __shared__ float gv[32][33];
++    __shared__ float xs[32][33];
++    uint cx = threadIdx.x;
++    uint ty = threadIdx.y;
++    u64 index = blockIdx.z;
++    uint j0 = blockIdx.y * 32;
++    uint time = d.time;
++    uint width = d.key + d.value;
++    uint c_first = blockIdx.x * 32;
++    uint c = c_first + cx;
++    bool need_k = c_first < d.key;
++    bool need_v = c_first + 32 > d.key;
++    bool is_key = c < d.key;
++    float acc[4] = {0.0f, 0.0f, 0.0f, 0.0f};
++    for (uint t0 = j0; t0 < time; t0 += 32) {
++        for (uint r = ty; r < 32; r += 8) {
++            uint t = t0 + r;
++            uint j = j0 + cx;
++            bool inside = t < time && j < time;
++            u64 slot = ((u64)index * time + t) * time + j;
++            if (need_k) gk[r][cx] = inside ? inner_grad[slot] : 0.0f;
++            if (need_v) gv[r][cx] = inside ? probabilities[slot] : 0.0f;
++            float xv = 0.0f;
++            if (t < time) {
++                if (c < d.key) {
++                    xv = query[((u64)index * time + t) * d.key + c];
++                } else if (c < width) {
++                    xv = d_out[((u64)index * time + t) * d.value + (c - d.key)];
++                }
++            }
++            xs[r][cx] = xv;
++        }
++        __syncthreads();
++        float (*g)[33] = is_key ? gk : gv;
++        uint tn = min(32u, time - t0);
++        if (t0 >= j0 + 32 && tn == 32) {
++            // Past the diagonal tile: every t >= j, so no per-term test.
++            #pragma unroll 8
++            for (uint tt = 0; tt < 32; ++tt) {
++                float xv = xs[tt][cx];
++                #pragma unroll
++                for (uint k = 0; k < 4; ++k) acc[k] += g[tt][ty + 8 * k] * xv;
++            }
++        } else {
++            for (uint tt = 0; tt < tn; ++tt) {
++                float xv = xs[tt][cx];
++                uint t = t0 + tt;
++                #pragma unroll
++                for (uint k = 0; k < 4; ++k) {
++                    uint jj = ty + 8 * k;
++                    if (t >= j0 + jj) acc[k] += g[tt][jj] * xv;
++                }
++            }
++        }
++        __syncthreads();
++    }
++    if (c >= width) return;
++    for (uint k = 0; k < 4; ++k) {
++        uint j = j0 + ty + 8 * k;
++        if (j >= time) continue;
++        u64 row = index * time + j;
++        u64 id = row * width + c;
++        float accum = acc[k];
++        if (is_key && d.score != 0) {
++            accum += (float)key_self[row] * kv[id];
++        }
++        dkv[id] = accum;
++    }
++}
++
++// read_dage over blocks of 256 threads per (32 consecutive distances, head).
++// For one (window, t) the 32 distances read 32 adjacent ds entries, so the
++// eight warps stage 64 (window, t) rows at a time with coalesced loads and
++// warp 0 adds them, lane = distance, in the legacy (window, t) order. Rows
++// with t < distance stage +0.0; adding +0.0 leaves the f64 sum unchanged
++// (the sum starts at +0.0 and round-to-nearest addition never produces -0.0
++// from a +0.0 operand), so the result is the legacy sum bit for bit.
++extern "C" __global__ void read_dage_staged(const double* ds, float* d_aux, ReadDims d) {
++    __shared__ double staged[64][33];
++    uint time = d.time;
++    uint head = blockIdx.y;
++    uint d0 = blockIdx.x * 32;
++    uint lane = threadIdx.x & 31;
++    uint warp = threadIdx.x >> 5;
++    uint distance = d0 + lane;
++    uint per = time - d0;
++    uint n = d.batch * per;
++    double sum = 0.0;
++    for (uint base = 0; base < n; base += 64) {
++        for (uint r = warp; r < 64; r += 8) {
++            uint i = base + r;
++            double v = 0.0;
++            if (i < n) {
++                uint b = i / per;
++                uint t = d0 + i % per;
++                if (t >= distance) {
++                    u64 index = (u64)b * d.heads + head;
++                    v = ds[(index * time + t) * time + (t - distance)];
++                }
++            }
++            staged[r][lane] = v;
++        }
++        __syncthreads();
++        if (warp == 0) {
++            uint m = min(64u, n - base);
++            for (uint r = 0; r < m; ++r) sum += staged[r][lane];
++        }
++        __syncthreads();
++    }
++    if (warp == 0 && distance < time) {
++        d_aux[read_age_offset(d) + (u64)head * time + distance] = (float)sum;
++    }
++}
++
++// read_key_self over blocks of 32 threads per (32 consecutive j, index): the
++// lanes walk t together from the block's first j, so the ds and excess loads
++// of one t are adjacent; each lane adds only its t >= j terms, in the legacy
++// order with the legacy operations.
++extern "C" __global__ void read_key_self_coalesced(
++    const double* ds, const double* excess, const float* aux,
++    const double* query_lift, const double* key_lift, double* key_self, ReadDims d
++) {
++    uint time = d.time;
++    uint j0 = blockIdx.x * 32;
++    uint j = j0 + threadIdx.x;
++    u64 index = blockIdx.y;
++    uint head = (uint)(index % d.heads);
++    u64 beta_offset = read_beta_offset(d);
++    double beta = (double)aux[beta_offset + head];
++    u64 id = index * time + j;
++    double sum = 0.0;
++    for (uint t = j0; t < time; ++t) {
++        if (t < j || j >= time) continue;
++        u64 slot = (index * time + t) * time + j;
++        double e = excess[slot];
++        if (d.score == 1) {
++            if (e > LORENTZ_MIN_EXCESS) {
++                double de = -beta * ds[slot] / sqrt(e * (e + 2.0));
++                sum += de * query_lift[index * time + t] / key_lift[id];
++            }
++        } else if (e > L2_MIN_SQUARED) {
++            double ds_ds = -beta * ds[slot] / (2.0 * read_distance(d, e));
++            sum += 2.0 * ds_ds;
++        }
++    }
++    if (j < time) key_self[id] = sum;
++}
++
++// read_lift over blocks of 32 threads per 32 rows: the rows' columns are
++// staged 32 at a time with coalesced loads and each lane sums its own row in
++// the legacy order.
++extern "C" __global__ void read_lift_staged(
++    const float* query, const float* kv, double* query_lift, double* key_lift, ReadDims d
++) {
++    __shared__ float qs[32][33];
++    __shared__ float ks[32][33];
++    uint lane = threadIdx.x;
++    uint rows = d.batch * d.heads * d.time;
++    uint row0 = blockIdx.x * 32;
++    uint width = d.key + d.value;
++    float qq = 0.0f;
++    float kk = 0.0f;
++    for (uint c0 = 0; c0 < d.key; c0 += 32) {
++        uint c = c0 + lane;
++        for (uint r = 0; r < 32; ++r) {
++            uint row = row0 + r;
++            bool inside = row < rows && c < d.key;
++            qs[r][lane] = inside ? query[(u64)row * d.key + c] : 0.0f;
++            ks[r][lane] = inside ? kv[(u64)row * width + c] : 0.0f;
++        }
++        __syncwarp();
++        uint cn = min(32u, d.key - c0);
++        for (uint k = 0; k < cn; ++k) {
++            float q = qs[lane][k];
++            float kv_value = ks[lane][k];
++            qq += q * q;
++            kk += kv_value * kv_value;
++        }
++        __syncwarp();
++    }
++    uint id = row0 + lane;
++    if (id >= rows) return;
++    if (d.score == 1) {
++        query_lift[id] = sqrt(1.0 + (double)qq);
++        key_lift[id] = sqrt(1.0 + (double)kk);
++    } else {
++        query_lift[id] = (double)qq;
++        key_lift[id] = (double)kk;
++    }
++}
++
++// read_dbeta with one 256-thread block per output: the block stages the
++// row partials in shared memory and thread 0 sums them in the legacy order.
++extern "C" __global__ void read_dbeta_block(
++    const double* row_beta, const double* row_offset, float* d_aux, ReadDims d
++) {
++    __shared__ double staged[256];
++    uint id = blockIdx.x;
++    if (id >= 2 * d.heads) return;
++    uint head = id % d.heads;
++    const double* source = id < d.heads ? row_beta : row_offset;
++    uint n = d.batch * d.time;
++    double sum = 0.0;
++    for (uint base = 0; base < n; base += 256) {
++        uint i = base + threadIdx.x;
++        if (i < n) {
++            uint b = i / d.time;
++            uint t = i % d.time;
++            staged[threadIdx.x] = source[((u64)b * d.heads + head) * d.time + t];
++        }
++        __syncthreads();
++        if (threadIdx.x == 0) {
++            uint m = min(256u, n - base);
++            for (uint k = 0; k < m; ++k) sum += staged[k];
++        }
++        __syncthreads();
++    }
++    if (threadIdx.x == 0) d_aux[read_beta_offset(d) + id] = (float)sum;
++}
++
+ // ---------------------------------------------------------------------------
+ // 8. AdamW step in place, the CPU `adam_step`'s f32 operations in its order
+ // (non-contracting intrinsics, IEEE sqrt and division).
+@@ -1375,6 +1789,38 @@ extern "C" __global__ void pointer_sum(
+         Ok(())
+     }
+ 
++    /// The fused read's kernel family: 0 follows `UOR_CUDA_READ_LEGACY`,
++    /// 1 forces the legacy kernels, 2 forces the tiled kernels.
++    static READ_KERNELS: std::sync::atomic::AtomicU8 = std::sync::atomic::AtomicU8::new(0);
++
++    /// Whether the fused read launches the legacy per-output kernels instead
++    /// of the tiled ones (bitwise identical results; the tiled kernels are
++    /// the default). `UOR_CUDA_READ_LEGACY=1` selects the legacy kernels
++    /// unless [`set_legacy_read_kernels`] overrides it.
++    pub fn legacy_read_kernels() -> bool {
++        match READ_KERNELS.load(std::sync::atomic::Ordering::Relaxed) {
++            1 => true,
++            2 => false,
++            _ => {
++                static ENV: OnceLock<bool> = OnceLock::new();
++                *ENV.get_or_init(|| {
++                    std::env::var_os("UOR_CUDA_READ_LEGACY").is_some_and(|value| value == "1")
++                })
++            }
++        }
++    }
++
++    /// Overrides the fused read's kernel family process-wide (`None`
++    /// restores the environment's choice); used by the parity tests.
++    pub fn set_legacy_read_kernels(legacy: Option<bool>) {
++        let code = match legacy {
++            None => 0,
++            Some(true) => 1,
++            Some(false) => 2,
++        };
++        READ_KERNELS.store(code, std::sync::atomic::Ordering::Relaxed);
++    }
++
+     /// `UOR_CUDA_PROFILE=1` synchronizes after each launched kernel and
+     /// reports its wall time on stderr (diagnostic only; it serializes the GPU).
+     fn profiling() -> bool {
+diff --git a/crates/uor-r4-training/src/geometric_stack/cuda_ops.rs b/crates/uor-r4-training/src/geometric_stack/cuda_ops.rs
+index b97550e25..03653f426 100644
+--- a/crates/uor-r4-training/src/geometric_stack/cuda_ops.rs
++++ b/crates/uor-r4-training/src/geometric_stack/cuda_ops.rs
+@@ -15,7 +15,7 @@ use candle_core::{CpuStorage, CudaDevice, CudaStorage, CustomOp1, Storage};
+ use cudarc::driver::{CudaSlice, CudaView};
+ 
+ use super::*;
+-use crate::cuda_stack_kernels::cuda::{launch, launch_groups, zeros, Arg};
++use crate::cuda_stack_kernels::cuda::{launch, launch_groups, legacy_read_kernels, zeros, Arg};
+ 
+ type CResult<T> = candle_core::Result<T>;
+ type Forward = CResult<(CudaStorage, Shape)>;
+@@ -777,20 +777,25 @@ impl FusedRead {
+         let write_excess = scaled && keep_excess;
+         let excess = zeros::<f64>(device, if write_excess { square } else { 1 })?;
+         if scaled {
+-            launch(
+-                device,
+-                "read_lift",
+-                rows,
+-                &[
+-                    Arg::F(query.slice(..)),
+-                    Arg::F(kv.slice(..)),
+-                    Arg::d(&query_lift),
+-                    Arg::d(&key_lift),
+-                    Arg::Dims(dims),
+-                ],
+-            )?;
++            let args = [
++                Arg::F(query.slice(..)),
++                Arg::F(kv.slice(..)),
++                Arg::d(&query_lift),
++                Arg::d(&key_lift),
++                Arg::Dims(dims),
++            ];
++            if legacy_read_kernels() {
++                launch(device, "read_lift", rows, &args)?;
++            } else {
++                launch_groups(
++                    device,
++                    "read_lift_staged",
++                    (rows.div_ceil(32), 1, 1),
++                    (32, 1, 1),
++                    &args,
++                )?;
++            }
+         }
+-        let tiles = self.time.div_ceil(16);
+         let geometry = [
+             u32_of(self.key, "key")?,
+             0,
+@@ -800,11 +805,8 @@ impl FusedRead {
+             1,
+             u32::from(write_excess),
+         ];
+-        launch_groups(
++        self.launch_tile_inner(
+             device,
+-            "read_tile_inner",
+-            (tiles, tiles, self.batch * self.heads),
+-            (16, 16, 1),
+             &[
+                 Arg::F(query),
+                 Arg::F(kv),
+@@ -837,6 +839,50 @@ impl FusedRead {
+         })
+     }
+ 
++    /// Launches the causal score kernel: the legacy `read_tile_inner` (16 x 16
++    /// tiles, one output per thread) or `read_tile_inner32` (32 x 32 tiles,
++    /// 2 x 2 outputs per thread); the two are bitwise identical.
++    fn launch_tile_inner(&self, device: &CudaDevice, args: &[Arg<'_>]) -> CResult<()> {
++        let (name, tile) = if legacy_read_kernels() {
++            ("read_tile_inner", 16)
++        } else {
++            ("read_tile_inner32", 32)
++        };
++        let tiles = self.time.div_ceil(tile);
++        launch_groups(
++            device,
++            name,
++            (tiles, tiles, self.batch * self.heads),
++            (16, 16, 1),
++            args,
++        )
++    }
++
++    /// Launches `read_mix`, `read_dq` or `read_dkv`: the legacy kernel with
++    /// one thread per output (`outputs` in all), or its `_tiled` variant over
++    /// (32-column tile of `columns`, 32-row tile, window x head) blocks of
++    /// 32 x 8 threads; the two are bitwise identical.
++    fn launch_read(
++        &self,
++        device: &CudaDevice,
++        name: &str,
++        outputs: usize,
++        columns: usize,
++        args: &[Arg<'_>],
++    ) -> CResult<()> {
++        let groups = self.batch * self.heads;
++        if legacy_read_kernels() || groups > 65_535 {
++            return launch(device, name, outputs, args);
++        }
++        launch_groups(
++            device,
++            &format!("{name}_tiled"),
++            (columns.div_ceil(32), self.time.div_ceil(32), groups),
++            (32, 8, 1),
++            args,
++        )
++    }
++
+     fn cuda_check(&self) -> CResult<()> {
+         if self.batch == 0 || self.heads == 0 || self.time == 0 || self.key == 0 || self.value == 0
+         {
+@@ -878,10 +924,11 @@ impl FusedRead {
+         let pass = self.cuda_pass(device, query, kv.slice(..), aux, false)?;
+         let total = rows * value;
+         let out = zeros::<f32>(device, total)?;
+-        launch(
++        self.launch_read(
+             device,
+             "read_mix",
+             total,
++            value,
+             &[
+                 Arg::f(&pass.probabilities),
+                 Arg::F(kv),
+@@ -939,7 +986,6 @@ impl FusedRead {
+         let dkv = zeros::<f32>(device, kvt.elem_count())?;
+         let aux_parts = self.null || self.age || scaled;
+         let d_aux = zeros::<f32>(device, a.elem_count())?;
+-        let tiles = self.time.div_ceil(16);
+         let geometry = [
+             u32_of(self.value, "value")?,
+             0,
+@@ -949,11 +995,8 @@ impl FusedRead {
+             0,
+             0,
+         ];
+-        launch_groups(
++        self.launch_tile_inner(
+             device,
+-            "read_tile_inner",
+-            (tiles, tiles, self.batch * self.heads),
+-            (16, 16, 1),
+             &[
+                 Arg::F(dyv.slice(..)),
+                 Arg::F(kvv.slice(..)),
+@@ -988,25 +1031,33 @@ impl FusedRead {
+             ],
+         )?;
+         if scaled {
+-            launch(
+-                device,
+-                "read_key_self",
+-                rows,
+-                &[
+-                    Arg::d(&d_scores),
+-                    Arg::d(&pass.excess),
+-                    Arg::F(av),
+-                    Arg::d(&pass.query_lift),
+-                    Arg::d(&pass.key_lift),
+-                    Arg::d(&key_self),
+-                    Arg::Dims(dims),
+-                ],
+-            )?;
++            let args = [
++                Arg::d(&d_scores),
++                Arg::d(&pass.excess),
++                Arg::F(av),
++                Arg::d(&pass.query_lift),
++                Arg::d(&pass.key_lift),
++                Arg::d(&key_self),
++                Arg::Dims(dims),
++            ];
++            let groups = self.batch * self.heads;
++            if legacy_read_kernels() || groups > 65_535 {
++                launch(device, "read_key_self", rows, &args)?;
++            } else {
++                launch_groups(
++                    device,
++                    "read_key_self_coalesced",
++                    (self.time.div_ceil(32), groups, 1),
++                    (32, 1, 1),
++                    &args,
++                )?;
++            }
+         }
+-        launch(
++        self.launch_read(
+             device,
+             "read_dq",
+             q.elem_count(),
++            self.key,
+             &[
+                 Arg::f(&inner_grad),
+                 Arg::F(qv.slice(..)),
+@@ -1016,10 +1067,11 @@ impl FusedRead {
+                 Arg::Dims(dims),
+             ],
+         )?;
+-        launch(
++        self.launch_read(
+             device,
+             "read_dkv",
+             kvt.elem_count(),
++            self.width(),
+             &[
+                 Arg::f(&inner_grad),
+                 Arg::f(&pass.probabilities),
+@@ -1032,25 +1084,37 @@ impl FusedRead {
+             ],
+         )?;
+         if self.age {
+-            launch(
+-                device,
+-                "read_dage",
+-                self.heads * self.time,
+-                &[Arg::d(&d_scores), Arg::f(&d_aux), Arg::Dims(dims)],
+-            )?;
++            let args = [Arg::d(&d_scores), Arg::f(&d_aux), Arg::Dims(dims)];
++            if legacy_read_kernels() {
++                launch(device, "read_dage", self.heads * self.time, &args)?;
++            } else {
++                launch_groups(
++                    device,
++                    "read_dage_staged",
++                    (self.time.div_ceil(32), self.heads, 1),
++                    (256, 1, 1),
++                    &args,
++                )?;
++            }
+         }
+         if scaled {
+-            launch(
+-                device,
+-                "read_dbeta",
+-                2 * self.heads,
+-                &[
+-                    Arg::d(&row_beta),
+-                    Arg::d(&row_offset),
+-                    Arg::f(&d_aux),
+-                    Arg::Dims(dims),
+-                ],
+-            )?;
++            let args = [
++                Arg::d(&row_beta),
++                Arg::d(&row_offset),
++                Arg::f(&d_aux),
++                Arg::Dims(dims),
++            ];
++            if legacy_read_kernels() {
++                launch(device, "read_dbeta", 2 * self.heads, &args)?;
++            } else {
++                launch_groups(
++                    device,
++                    "read_dbeta_block",
++                    (2 * self.heads, 1, 1),
++                    (256, 1, 1),
++                    &args,
++                )?;
++            }
+         }
+         let d_aux = if aux_parts {
+             tensor(d_aux, device, aux.shape())
+diff --git a/crates/uor-r4-training/tests/cuda_stack_ops_parity.rs b/crates/uor-r4-training/tests/cuda_stack_ops_parity.rs
+index 367d27c57..80808edc6 100644
+--- a/crates/uor-r4-training/tests/cuda_stack_ops_parity.rs
++++ b/crates/uor-r4-training/tests/cuda_stack_ops_parity.rs
+@@ -1119,6 +1119,97 @@ fn test_fused_read_general_parity() -> uor_r4_training::Result<()> {
+     Ok(())
+ }
+ 
++/// The tiled read kernels (the default) against the legacy per-output
++/// kernels: the forward output and every gradient must be bitwise identical,
++/// since each output sums the same terms in the same order. The shapes cover
++/// partial 32-tiles, a key/value boundary inside a 32-column tile, more than
++/// one tile in every direction, and the CPU reference within tolerance.
++#[cfg(feature = "cuda")]
++#[test]
++fn test_fused_read_tiled_kernels_match_legacy_bitwise() -> uor_r4_training::Result<()> {
++    use uor_r4_training::cuda_stack_kernels::cuda::set_legacy_read_kernels;
++    use uor_r4_training::geometric_stack::{fused_aux_len, ReadScore};
++    let cuda_dev = match candle_core::Device::new_cuda(0) {
++        Ok(dev) => dev,
++        Err(e) => return no_device(e),
++    };
++    let cpu_dev = candle_core::Device::Cpu;
++    let shapes = [
++        (2usize, 3usize, 13usize, 8usize, 9usize),
++        (1, 2, 37, 40, 24),
++        (2, 2, 70, 64, 64),
++        (1, 1, 1, 4, 4),
++        (1, 2, 97, 16, 48),
++    ];
++    let configs = [
++        (ReadScore::Dot, false, false),
++        (ReadScore::Dot, true, true),
++        (ReadScore::Lorentz, true, true),
++        (ReadScore::Lorentz, false, false),
++        (ReadScore::L2, true, true),
++        (ReadScore::L2, false, false),
++    ];
++    let mut case = 0u64;
++    let mut outcome = Ok(());
++    'cases: for &shape in &shapes {
++        let (batch, heads, time, key, value) = shape;
++        for &(score, null, age) in &configs {
++            case += 1;
++            let seed = 5000 + 31 * case;
++            let q_data = noise(batch * heads * time * key, seed, 0.8);
++            let k_data = noise(batch * heads * time * key, seed + 1, 0.8);
++            let v_data = noise(batch * heads * time * value, seed + 2, 1.0);
++            let aux_len = fused_aux_len(batch, heads, time, score, null, age).max(1);
++            let mut aux_data = noise(aux_len, seed + 3, 0.5);
++            if score.scaled() {
++                let base = aux_len - 2 * heads;
++                for h in 0..heads {
++                    aux_data[base + h] = 0.7 + 0.3 * h as f32;
++                    aux_data[base + heads + h] = 0.2 * h as f32 - 0.1;
++                }
++            }
++            let w_data = noise(batch * heads * time * value, seed + 4, 1.0);
++            let data = [&q_data, &k_data, &v_data, &aux_data, &w_data];
++            set_legacy_read_kernels(Some(true));
++            let legacy = read_run(&cuda_dev, data, shape, score, null, age);
++            set_legacy_read_kernels(Some(false));
++            let tiled = read_run(&cuda_dev, data, shape, score, null, age);
++            set_legacy_read_kernels(None);
++            let (legacy, tiled) = match (legacy, tiled) {
++                (Ok(l), Ok(t)) => (l, t),
++                (Err(e), _) | (_, Err(e)) => {
++                    outcome = Err(e);
++                    break 'cases;
++                }
++            };
++            let cpu = read_run(&cpu_dev, data, shape, score, null, age)?;
++            let label = format!(
++                "FusedRead {score:?} null{null} age{age} b{batch} h{heads} t{time} k{key} v{value}"
++            );
++            for (k, name) in ["out", "dq", "dk", "dv", "d_aux"].iter().enumerate() {
++                let differing = legacy[k]
++                    .iter()
++                    .zip(&tiled[k])
++                    .filter(|(a, b)| a.to_bits() != b.to_bits())
++                    .count();
++                assert_eq!(
++                    differing, 0,
++                    "{label} {name}: {differing} of {} values differ between legacy and tiled kernels",
++                    legacy[k].len()
++                );
++                compare(
++                    &cpu[k],
++                    &tiled[k],
++                    1e-3,
++                    &format!("{label} {name} (tiled vs CPU)"),
++                );
++            }
++            println!("{label}: tiled == legacy bitwise");
++        }
++    }
++    outcome
++}
++
+ /// Timing of the training-size read and recurrence, forward plus backward,
+ /// on CUDA and CPU. Run explicitly: `--ignored --nocapture`.
+ #[cfg(feature = "cuda")]

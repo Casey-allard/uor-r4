@@ -1,0 +1,4418 @@
+diff --git a/.github/workflows/cuda-build.yml b/.github/workflows/cuda-build.yml
+new file mode 100644
+index 000000000..cd693b461
+--- /dev/null
++++ b/.github/workflows/cuda-build.yml
+@@ -0,0 +1,90 @@
++name: cuda-build
++
++# Compile-only evidence for the CUDA stack kernels on a hosted runner without
++# a GPU: installs a CUDA 12.x toolkit, builds the training example and the
++# CUDA parity test binary with `--features cuda`, compiles the kernel source
++# with nvcc, and runs the NVRTC compile test against the toolkit's driver
++# stub (device tests return early there; nothing executes on a GPU).
++on:
++  push:
++    branches:
++      - 'codex/ci/farm/**'
++  workflow_dispatch:
++
++permissions:
++  contents: read
++
++jobs:
++  cuda-build:
++    runs-on: ubuntu-22.04
++    timeout-minutes: 120
++    env:
++      CUDA_COMPUTE_CAP: '80'
++      CARGO_TERM_COLOR: never
++    steps:
++      - uses: actions/checkout@v4
++
++      - name: Free disk space
++        run: |
++          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL || true
++          df -h /
++
++      - name: Install CUDA toolkit
++        uses: Jimver/cuda-toolkit@v0.2.36
++        id: cuda
++        with:
++          cuda: '12.6.3'
++          method: network
++          sub-packages: '["nvcc", "nvrtc", "nvrtc-dev", "cudart", "cudart-dev", "driver-dev", "cccl"]'
++          non-cuda-sub-packages: '["libcublas", "libcublas-dev", "libcurand", "libcurand-dev"]'
++          use-github-cache: false
++
++      - name: Toolkit
++        run: |
++          echo "CUDA_PATH=${{ steps.cuda.outputs.CUDA_PATH }}"
++          nvcc --version
++          ls "${{ steps.cuda.outputs.CUDA_PATH }}/lib64" | head -50
++          ls "${{ steps.cuda.outputs.CUDA_PATH }}/lib64/stubs" || true
++
++      - name: Rust toolchain
++        run: |
++          rustup show
++          cargo --version
++
++      - name: Cache cargo
++        uses: actions/cache@v4
++        with:
++          path: |
++            ~/.cargo/registry
++            ~/.cargo/git
++            target
++          key: cuda-build-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
++          restore-keys: cuda-build-${{ runner.os }}-
++
++      - name: nvcc compiles the kernel source
++        run: |
++          awk '/pub const CUDA_STACK_SOURCE: &str = r#"/{flag=1; next} /^"#;/{flag=0} flag' \
++            crates/uor-r4-training/src/cuda_stack_kernels.rs > /tmp/uor_stack.cu
++          wc -l /tmp/uor_stack.cu
++          nvcc --ptx -arch=compute_80 -o /tmp/uor_stack.ptx /tmp/uor_stack.cu
++          grep -c '^.visible .entry' /tmp/uor_stack.ptx
++
++      - name: Build geometric-stack example (release, cuda)
++        run: |
++          export LIBRARY_PATH="${{ steps.cuda.outputs.CUDA_PATH }}/lib64/stubs:${LIBRARY_PATH:-}"
++          cargo build --release -p uor-r4-training --features cuda --example geometric-stack
++
++      - name: Build CUDA parity tests (release, cuda, no run)
++        run: |
++          export LIBRARY_PATH="${{ steps.cuda.outputs.CUDA_PATH }}/lib64/stubs:${LIBRARY_PATH:-}"
++          cargo test --release -p uor-r4-training --features cuda --test cuda_stack_ops_parity --no-run
++
++      - name: NVRTC compile test against the driver stub
++        continue-on-error: true
++        run: |
++          STUBS="${{ steps.cuda.outputs.CUDA_PATH }}/lib64/stubs"
++          mkdir -p /tmp/cudastub
++          ln -sf "$STUBS/libcuda.so" /tmp/cudastub/libcuda.so.1
++          export LIBRARY_PATH="$STUBS:${LIBRARY_PATH:-}"
++          export LD_LIBRARY_PATH="/tmp/cudastub:${{ steps.cuda.outputs.CUDA_PATH }}/lib64:${LD_LIBRARY_PATH:-}"
++          cargo test --release -p uor-r4-training --features cuda --test cuda_stack_ops_parity -- --nocapture
+diff --git a/Cargo.lock b/Cargo.lock
+index 0410da0f8..5770188b9 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -95,6 +95,17 @@ version = "1.5.1"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "f2032f911046de80f0a198e0901378627c33f59ea0ac00e363d481118bd70a53"
+ 
++[[package]]
++name = "bindgen_cuda"
++version = "0.1.6"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "282be55fb326843bb67cccceeeaf21c961ef303f60018f9a2ab69494dad8eaf9"
++dependencies = [
++ "glob",
++ "num_cpus",
++ "rayon",
++]
++
+ [[package]]
+ name = "bit-set"
+ version = "0.8.0"
+@@ -213,9 +224,11 @@ version = "0.9.2"
+ dependencies = [
+  "accelerate-src",
+  "byteorder",
++ "candle-kernels",
+  "candle-metal-kernels",
+  "candle-ug",
+- "float8",
++ "cudarc 0.19.10",
++ "float8 0.6.1",
+  "gemm 0.19.0",
+  "half",
+  "libc",
+@@ -234,6 +247,15 @@ dependencies = [
+  "zip",
+ ]
+ 
++[[package]]
++name = "candle-kernels"
++version = "0.9.2"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "b8455f84bd810047c7c41216683c1020c915a9f8a740b3b0eabdd4fb2fbaa660"
++dependencies = [
++ "bindgen_cuda",
++]
++
+ [[package]]
+ name = "candle-metal-kernels"
+ version = "0.9.2"
+@@ -275,6 +297,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "c22d62be69068bf58987a45f690612739d8d2ea1bf508c1b87dc6815a019575d"
+ dependencies = [
+  "ug",
++ "ug-cuda",
+  "ug-metal",
+ ]
+ 
+@@ -557,6 +580,27 @@ dependencies = [
+  "regex-syntax 0.7.5",
+ ]
+ 
++[[package]]
++name = "cudarc"
++version = "0.17.8"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "0bf99ab37ee7072d64d906aa2dada9a3422f1d975cdf8c8055a573bc84897ed8"
++dependencies = [
++ "half",
++ "libloading 0.8.9",
++]
++
++[[package]]
++name = "cudarc"
++version = "0.19.10"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "7359bf1de037ddada72729c3acec9b040f3468400c6e9e740b01ba0cd2e89562"
++dependencies = [
++ "float8 0.7.0",
++ "half",
++ "libloading 0.9.0",
++]
++
+ [[package]]
+ name = "defmt"
+ version = "1.1.1"
+@@ -707,7 +751,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
+ dependencies = [
+  "libc",
+- "windows-sys 0.52.0",
++ "windows-sys 0.61.2",
+ ]
+ 
+ [[package]]
+@@ -745,12 +789,22 @@ version = "0.6.1"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "719a903cc23e4a89e87962c2a80fdb45cdaad0983a89bd150bb57b4c8571a7d5"
+ dependencies = [
++ "cudarc 0.19.10",
+  "half",
+  "num-traits",
+  "rand",
+  "rand_distr",
+ ]
+ 
++[[package]]
++name = "float8"
++version = "0.7.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "c2d1f04709a8ac06e8e8042875a3c466cc4832d3c1a18dbcb9dba3c6e83046bc"
++dependencies = [
++ "half",
++]
++
+ [[package]]
+ name = "fnv"
+ version = "1.0.7"
+@@ -1166,6 +1220,12 @@ dependencies = [
+  "typed-builder",
+ ]
+ 
++[[package]]
++name = "glob"
++version = "0.3.4"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "e4eba85ea1d0a966a983acd07deee566e67395d2d96b6fb39e62b5a833f1eb0b"
++
+ [[package]]
+ name = "globset"
+ version = "0.4.19"
+@@ -1429,6 +1489,16 @@ dependencies = [
+  "windows-link",
+ ]
+ 
++[[package]]
++name = "libloading"
++version = "0.9.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "754ca22de805bb5744484a5b151a9e1a8e837d5dc232c2d7d8c2e3492edc8b60"
++dependencies = [
++ "cfg-if",
++ "windows-link",
++]
++
+ [[package]]
+ name = "libm"
+ version = "0.2.16"
+@@ -2027,7 +2097,7 @@ dependencies = [
+  "errno",
+  "libc",
+  "linux-raw-sys",
+- "windows-sys 0.52.0",
++ "windows-sys 0.61.2",
+ ]
+ 
+ [[package]]
+@@ -2366,7 +2436,7 @@ dependencies = [
+  "getrandom 0.4.3",
+  "once_cell",
+  "rustix",
+- "windows-sys 0.52.0",
++ "windows-sys 0.61.2",
+ ]
+ 
+ [[package]]
+@@ -2376,7 +2446,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "230a1b821ccbd75b185820a1f1ff7b14d21da1e442e22c0863ea5f08771a8874"
+ dependencies = [
+  "rustix",
+- "windows-sys 0.59.0",
++ "windows-sys 0.61.2",
+ ]
+ 
+ [[package]]
+@@ -2563,7 +2633,7 @@ checksum = "76b761acf8af3494640d826a8609e2265e19778fb43306c7f15379c78c9b05b0"
+ dependencies = [
+  "gemm 0.18.2",
+  "half",
+- "libloading",
++ "libloading 0.8.9",
+  "memmap2",
+  "num",
+  "num-traits",
+@@ -2576,6 +2646,19 @@ dependencies = [
+  "yoke 0.7.5",
+ ]
+ 
++[[package]]
++name = "ug-cuda"
++version = "0.5.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "9f0a1fa748f26166778c33b8498255ebb7c6bffb472bcc0a72839e07ebb1d9b5"
++dependencies = [
++ "cudarc 0.17.8",
++ "half",
++ "serde",
++ "thiserror 1.0.69",
++ "ug",
++]
++
+ [[package]]
+ name = "ug-metal"
+ version = "0.5.0"
+@@ -2981,6 +3064,7 @@ dependencies = [
+  "candle-core",
+  "candle-metal-kernels",
+  "candle-nn",
++ "cudarc 0.19.10",
+  "half",
+  "hex",
+  "objc2-metal",
+@@ -3129,7 +3213,7 @@ version = "0.1.11"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
+ dependencies = [
+- "windows-sys 0.52.0",
++ "windows-sys 0.61.2",
+ ]
+ 
+ [[package]]
+diff --git a/crates/uor-r4-training/Cargo.toml b/crates/uor-r4-training/Cargo.toml
+index 69a72dd6e..98a4d6a2d 100644
+--- a/crates/uor-r4-training/Cargo.toml
++++ b/crates/uor-r4-training/Cargo.toml
+@@ -13,6 +13,7 @@ metal = [
+     "dep:candle-metal-kernels",
+     "dep:objc2-metal",
+ ]
++cuda = ["candle-core/cuda", "candle-nn/cuda", "dep:cudarc"]
+ cpu-accelerate = ["candle-core/accelerate", "candle-nn/accelerate"]
+ reference-accelerate = ["uor-r4-model-source/observation-blas-exception"]
+ 
+@@ -22,6 +23,7 @@ candle-core = { version = "=0.9.2", default-features = false }
+ candle-nn = { version = "=0.9.2", default-features = false }
+ candle-metal-kernels = { version = "=0.9.2", optional = true }
+ objc2-metal = { version = "=0.3.2", optional = true }
++cudarc = { version = "0.19.0", default-features = false, features = ["std", "driver", "nvrtc", "cuda-version-from-build-system", "dynamic-linking"], optional = true }
+ safetensors = { version = "=0.6.2", default-features = false, features = ["std"] }
+ serde = { version = "1.0", features = ["derive"] }
+ serde_json = "1.0"
+diff --git a/crates/uor-r4-training/examples/geometric-stack.rs b/crates/uor-r4-training/examples/geometric-stack.rs
+index b4876a177..afbb6b40b 100644
+--- a/crates/uor-r4-training/examples/geometric-stack.rs
++++ b/crates/uor-r4-training/examples/geometric-stack.rs
+@@ -681,12 +681,12 @@ struct Settings {
+     resume: Option<PathBuf>,
+     max_seconds: f64,
+     sample_tokens: usize,
+-    /// `device=cpu|metal` (default cpu). A Metal run needs the `metal` feature
+-    /// and every executed op to have a Metal kernel.
++    /// `device=cpu|metal|cuda` (default cpu). A Metal or CUDA run needs the
++    /// `metal` or `cuda` feature; ops without a GPU kernel run on host copies.
+     device: Device,
+ }
+ 
+-/// `device=cpu|metal` (default cpu); no implicit fallback.
++/// `device=cpu|metal|cuda` (default cpu); no implicit fallback.
+ fn device_arg(args: &Args) -> Result<Device> {
+     match args.optional("device") {
+         None => Ok(Device::Cpu),
+@@ -3329,8 +3329,8 @@ struct DialogueSettings {
+     /// `protocol=1|2`: the literal-role dialogue version of both corpora
+     /// (their assistant markers locate the scored responses).
+     protocol: u8,
+-    /// `device=cpu|metal` (default cpu). A Metal run needs the `metal` feature
+-    /// and every executed op to have a Metal kernel.
++    /// `device=cpu|metal|cuda` (default cpu). A Metal or CUDA run needs the
++    /// `metal` or `cuda` feature; ops without a GPU kernel run on host copies.
+     device: Device,
+ }
+ 
+diff --git a/crates/uor-r4-training/src/baseline_protocol.rs b/crates/uor-r4-training/src/baseline_protocol.rs
+index 8a42ce095..379b8562e 100644
+--- a/crates/uor-r4-training/src/baseline_protocol.rs
++++ b/crates/uor-r4-training/src/baseline_protocol.rs
+@@ -115,6 +115,18 @@ pub fn device(name: &str) -> Result<Device> {
+                 Err(invalid("Metal requested without compiled Metal feature"))
+             }
+         }
+-        _ => Err(invalid("device must be cpu or metal; no implicit fallback")),
++        "cuda" => {
++            #[cfg(feature = "cuda")]
++            {
++                Ok(Device::new_cuda(0)?)
++            }
++            #[cfg(not(feature = "cuda"))]
++            {
++                Err(invalid("CUDA requested without compiled CUDA feature"))
++            }
++        }
++        _ => Err(invalid(
++            "device must be cpu, metal or cuda; no implicit fallback",
++        )),
+     }
+ }
+diff --git a/crates/uor-r4-training/src/cuda_stack_kernels.rs b/crates/uor-r4-training/src/cuda_stack_kernels.rs
+new file mode 100644
+index 000000000..11e1a077c
+--- /dev/null
++++ b/crates/uor-r4-training/src/cuda_stack_kernels.rs
+@@ -0,0 +1,1171 @@
++//! Native CUDA forward and backward kernels for the geometric stack ops.
++//!
++//! The CUDA counterpart of [`crate::metal_stack_kernels`]: one CUDA C source
++//! compiled at runtime with NVRTC (no `nvcc` at build time), loaded once per
++//! device as a Candle custom module, and launched on the device's stream.
++//! The kernels port the Metal kernels' math one-to-one, with three
++//! deliberate differences that bring them closer to the exact CPU reference:
++//!
++//! - where the CPU computes in `f64` (RMSNorm statistics, cross-entropy
++//!   log-sum-exp, the recurrence's parameter partials and `log a`, the
++//!   read's Lorentz/L2 lifts, excesses and distances, and the read
++//!   backward's softmax gradient and per-head reductions) the kernels use
++//!   `double` too; every other quantity is `float`, as on the CPU;
++//! - the U(1) recurrence control and the L2 read control have kernels (Metal
++//!   runs them on the host);
++//! - the AdamW update uses non-contracting `__fmul_rn`/`__fadd_rn`, so its
++//!   f32 operations are the CPU's operations in the CPU's order.
++//!
++//! The GELU gate keeps the Metal numerics fix: `tanhf` of an argument clamped
++//! to `[-20, 20]` (exactly `+-1` in f32 there), never a fast approximation.
++//! The source is compiled without `--use_fast_math`, so `expf`, `logf`,
++//! `tanhf`, division and `sqrtf` are the accurate CUDA functions.
++//!
++//! This module contains the crate's only `unsafe` code (kernel launches and a
++//! `DeviceRepr`-free argument list); it exists only with the `cuda` feature.
++
++#[cfg(feature = "cuda")]
++#[allow(unsafe_code)]
++pub mod cuda {
++    use std::sync::OnceLock;
++
++    use candle_core::{CudaDevice, Error, Result};
++    use cudarc::driver::{CudaSlice, CudaView, LaunchConfig, PushKernelArg};
++
++    /// The Candle custom-module name the stack kernels are loaded under.
++    const MODULE: &str = "uor_r4_geometric_stack";
++
++    pub const CUDA_STACK_SOURCE: &str = r#"
++typedef unsigned int uint;
++typedef unsigned long long u64;
++
++#define LORENTZ_MIN_EXCESS 1e-7
++#define L2_MIN_SQUARED 1e-7
++#define RMS_EPSILON 1e-5
++
++// score: 0 Dot, 1 Lorentz, 2 L2.
++struct ReadDims {
++    uint batch;
++    uint heads;
++    uint time;
++    uint key;
++    uint value;
++    uint null_on;
++    uint age_on;
++    uint score;
++};
++
++struct Geom {
++    uint a_stride;
++    uint a_offset;
++    uint b_stride;
++    uint b_offset;
++    uint length;
++    uint mode;
++    uint write_excess;
++};
++
++// [scale, beta1, rest1, beta2, rest2, correct1, correct2, epsilon, keep, lr]
++struct AdamConstants {
++    float c[10];
++};
++
++__device__ __forceinline__ float neg_inf() { return __int_as_float(0xff800000); }
++
++__device__ __forceinline__ float warp_sum(float v) {
++    for (int o = 16; o > 0; o >>= 1) v += __shfl_xor_sync(0xffffffffu, v, o);
++    return v;
++}
++
++__device__ __forceinline__ double warp_sum_d(double v) {
++    for (int o = 16; o > 0; o >>= 1) v += __shfl_xor_sync(0xffffffffu, v, o);
++    return v;
++}
++
++__device__ __forceinline__ float warp_max(float v) {
++    for (int o = 16; o > 0; o >>= 1) v = fmaxf(v, __shfl_xor_sync(0xffffffffu, v, o));
++    return v;
++}
++
++// Block reductions; blockDim.x is a multiple of 32 (at most 1024). Every
++// thread receives the result.
++__device__ double block_sum_d(double v, double* shared) {
++    v = warp_sum_d(v);
++    uint lane = threadIdx.x & 31;
++    uint warp = threadIdx.x >> 5;
++    if (lane == 0) shared[warp] = v;
++    __syncthreads();
++    uint warps = (blockDim.x + 31) >> 5;
++    double total = 0.0;
++    for (uint i = 0; i < warps; ++i) total += shared[i];
++    __syncthreads();
++    return total;
++}
++
++__device__ float block_max(float v, float* shared) {
++    v = warp_max(v);
++    uint lane = threadIdx.x & 31;
++    uint warp = threadIdx.x >> 5;
++    if (lane == 0) shared[warp] = v;
++    __syncthreads();
++    uint warps = (blockDim.x + 31) >> 5;
++    float m = neg_inf();
++    for (uint i = 0; i < warps; ++i) m = fmaxf(m, shared[i]);
++    __syncthreads();
++    return m;
++}
++
++__device__ __forceinline__ float4 ld4(const float* p) {
++    return make_float4(p[0], p[1], p[2], p[3]);
++}
++
++__device__ __forceinline__ void st4(float* p, float4 v) {
++    p[0] = v.x; p[1] = v.y; p[2] = v.z; p[3] = v.w;
++}
++
++__device__ __forceinline__ float4 add4(float4 a, float4 b) {
++    return make_float4(a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w);
++}
++
++__device__ __forceinline__ float4 sub4(float4 a, float4 b) {
++    return make_float4(a.x - b.x, a.y - b.y, a.z - b.z, a.w - b.w);
++}
++
++__device__ __forceinline__ float4 scale4(float4 a, float s) {
++    return make_float4(a.x * s, a.y * s, a.z * s, a.w * s);
++}
++
++__device__ __forceinline__ float4 mul4(float4 a, float4 b) {
++    return make_float4(a.x * b.x, a.y * b.y, a.z * b.z, a.w * b.w);
++}
++
++__device__ __forceinline__ float dot4(float4 a, float4 b) {
++    return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
++}
++
++__device__ __forceinline__ float comp4(float4 a, uint k) {
++    return k == 0 ? a.x : (k == 1 ? a.y : (k == 2 ? a.z : a.w));
++}
++
++// Hamilton product.
++__device__ __forceinline__ float4 quat_mul(float4 a, float4 b) {
++    return make_float4(
++        a.x * b.x - a.y * b.y - a.z * b.z - a.w * b.w,
++        a.x * b.y + a.y * b.x + a.z * b.w - a.w * b.z,
++        a.x * b.z - a.y * b.w + a.z * b.x + a.w * b.y,
++        a.x * b.w + a.y * b.z - a.z * b.y + a.w * b.x
++    );
++}
++
++__device__ __forceinline__ float4 quat_conj(float4 a) {
++    return make_float4(a.x, -a.y, -a.z, -a.w);
++}
++
++__device__ __forceinline__ float sigmoid_f(float x) {
++    return 1.0f / (1.0f + expf(-x));
++}
++
++// ---------------------------------------------------------------------------
++// 1. Straight-through
++// ---------------------------------------------------------------------------
++extern "C" __global__ void straight_through_fwd(const float* src, float* dst, uint total) {
++    uint id = blockIdx.x * blockDim.x + threadIdx.x;
++    if (id < total) dst[id] = src[id];
++}
++
++// ---------------------------------------------------------------------------
++// 2. SwiGLU
++// ---------------------------------------------------------------------------
++extern "C" __global__ void swiglu_fwd(const float* gate, const float* up, float* out, uint total) {
++    uint id = blockIdx.x * blockDim.x + threadIdx.x;
++    if (id >= total) return;
++    float g = gate[id];
++    float u = up[id];
++    out[id] = g * sigmoid_f(g) * u;
++}
++
++extern "C" __global__ void swiglu_bwd(
++    const float* gate, const float* up, const float* grad,
++    float* d_gate, float* d_up, uint total
++) {
++    uint id = blockIdx.x * blockDim.x + threadIdx.x;
++    if (id >= total) return;
++    float g = gate[id];
++    float u = up[id];
++    float d = grad[id];
++    float s = sigmoid_f(g);
++    d_up[id] = d * g * s;
++    d_gate[id] = d * u * s * (1.0f + g * (1.0f - s));
++}
++
++// ---------------------------------------------------------------------------
++// 3. RMSNorm: f64 statistics as the CPU; one block per row.
++// ---------------------------------------------------------------------------
++extern "C" __global__ void rms_norm_fwd(
++    const float* x, const float* w, float* out, uint width
++) {
++    __shared__ double shared[32];
++    u64 offset = (u64)blockIdx.x * width;
++    double sum_sq = 0.0;
++    for (uint i = threadIdx.x; i < width; i += blockDim.x) {
++        double v = (double)x[offset + i];
++        sum_sq += v * v;
++    }
++    double total = block_sum_d(sum_sq, shared);
++    float r = (float)(1.0 / sqrt(total / (double)width + RMS_EPSILON));
++    for (uint i = threadIdx.x; i < width; i += blockDim.x) {
++        out[offset + i] = x[offset + i] * r * w[i];
++    }
++}
++
++// dx = r (g w - xhat mean(g w xhat)); also stores the row's r for dw.
++extern "C" __global__ void rms_norm_bwd_dx(
++    const float* x, const float* w, const float* grad, float* dx,
++    double* row_r, uint width
++) {
++    __shared__ double shared[32];
++    u64 offset = (u64)blockIdx.x * width;
++    double sum_sq = 0.0;
++    for (uint i = threadIdx.x; i < width; i += blockDim.x) {
++        double v = (double)x[offset + i];
++        sum_sq += v * v;
++    }
++    double total = block_sum_d(sum_sq, shared);
++    double r = 1.0 / sqrt(total / (double)width + RMS_EPSILON);
++    double projection = 0.0;
++    for (uint i = threadIdx.x; i < width; i += blockDim.x) {
++        double xhat = (double)x[offset + i] * r;
++        projection += (double)grad[offset + i] * (double)w[i] * xhat;
++    }
++    projection = block_sum_d(projection, shared) / (double)width;
++    for (uint i = threadIdx.x; i < width; i += blockDim.x) {
++        double xhat = (double)x[offset + i] * r;
++        dx[offset + i] = (float)(r * ((double)grad[offset + i] * (double)w[i] - xhat * projection));
++    }
++    if (threadIdx.x == 0) row_r[blockIdx.x] = r;
++}
++
++// partials[chunk, col] = sum over the chunk's rows of g xhat, in f64.
++extern "C" __global__ void rms_norm_dw_partial(
++    const float* x, const float* grad, const double* row_r, double* partials,
++    uint rows, uint width, uint chunk_rows
++) {
++    uint id = blockIdx.x * blockDim.x + threadIdx.x;
++    uint chunks = (rows + chunk_rows - 1) / chunk_rows;
++    if (id >= chunks * width) return;
++    uint col = id % width;
++    uint chunk = id / width;
++    uint end = (chunk + 1) * chunk_rows < rows ? (chunk + 1) * chunk_rows : rows;
++    double sum = 0.0;
++    for (uint r = chunk * chunk_rows; r < end; ++r) {
++        u64 at = (u64)r * width + col;
++        sum += (double)grad[at] * ((double)x[at] * row_r[r]);
++    }
++    partials[id] = sum;
++}
++
++extern "C" __global__ void rms_norm_dw_reduce(
++    const double* partials, float* dw, uint chunks, uint width
++) {
++    uint col = blockIdx.x * blockDim.x + threadIdx.x;
++    if (col >= width) return;
++    double sum = 0.0;
++    for (uint c = 0; c < chunks; ++c) sum += partials[(u64)c * width + col];
++    dw[col] = (float)sum;
++}
++
++// ---------------------------------------------------------------------------
++// 4. Quaternion transport scan
++// ---------------------------------------------------------------------------
++extern "C" __global__ void quaternion_scan_fwd(
++    const float* transition, const float* drive, float* state_out,
++    uint time, uint lanes, uint total_seqs
++) {
++    uint seq_id = blockIdx.x * blockDim.x + threadIdx.x;
++    if (seq_id >= total_seqs) return;
++    uint b = seq_id / lanes;
++    uint lane = seq_id % lanes;
++    float4 held = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
++    for (uint t = 0; t < time; ++t) {
++        u64 idx = ((u64)(b * time + t) * lanes + lane) * 4;
++        float4 moved = quat_mul(ld4(transition + idx), held);
++        held = add4(moved, ld4(drive + idx));
++        st4(state_out + idx, held);
++    }
++}
++
++extern "C" __global__ void quaternion_scan_bwd(
++    const float* transition, const float* state, const float* grad,
++    float* dq, float* db, uint time, uint lanes, uint total_seqs
++) {
++    uint seq_id = blockIdx.x * blockDim.x + threadIdx.x;
++    if (seq_id >= total_seqs) return;
++    uint b = seq_id / lanes;
++    uint lane = seq_id % lanes;
++    float4 carried = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
++    for (int t = (int)time - 1; t >= 0; --t) {
++        u64 idx = ((u64)(b * time + (uint)t) * lanes + lane) * 4;
++        float4 total = ld4(grad + idx);
++        if ((uint)(t + 1) < time) {
++            u64 next_idx = ((u64)(b * time + (uint)(t + 1)) * lanes + lane) * 4;
++            total = add4(total, quat_mul(quat_conj(ld4(transition + next_idx)), carried));
++        }
++        st4(db + idx, total);
++        if (t > 0) {
++            u64 prev_idx = ((u64)(b * time + (uint)(t - 1)) * lanes + lane) * 4;
++            st4(dq + idx, quat_mul(total, quat_conj(ld4(state + prev_idx))));
++        } else {
++            st4(dq + idx, make_float4(0.0f, 0.0f, 0.0f, 0.0f));
++        }
++        carried = total;
++    }
++}
++
++// ---------------------------------------------------------------------------
++// 5. Cross-entropy: f64 log-sum-exp per row as the CPU; elementwise gradient.
++// ---------------------------------------------------------------------------
++extern "C" __global__ void cross_entropy_rows(
++    const float* logits, const uint* targets, double* lse, double* loss, uint vocab
++) {
++    __shared__ float shared_max[32];
++    __shared__ double shared_sum[32];
++    u64 offset = (u64)blockIdx.x * vocab;
++    float m = neg_inf();
++    for (uint i = threadIdx.x; i < vocab; i += blockDim.x) m = fmaxf(m, logits[offset + i]);
++    float row_max = block_max(m, shared_max);
++    double sum = 0.0;
++    for (uint i = threadIdx.x; i < vocab; i += blockDim.x) {
++        sum += exp((double)(logits[offset + i] - row_max));
++    }
++    double total = block_sum_d(sum, shared_sum);
++    if (threadIdx.x == 0) {
++        double z = (double)row_max + log(total);
++        lse[blockIdx.x] = z;
++        loss[blockIdx.x] = z - (double)logits[offset + targets[blockIdx.x]];
++    }
++}
++
++extern "C" __global__ void cross_entropy_grad(
++    const float* logits, const uint* targets, const double* lse, const double* scale,
++    float* grad, uint rows, uint vocab
++) {
++    u64 id = (u64)blockIdx.x * blockDim.x + threadIdx.x;
++    if (id >= (u64)rows * vocab) return;
++    uint row = (uint)(id / vocab);
++    uint i = (uint)(id % vocab);
++    double s = scale[row];
++    float slot = (float)(exp((double)logits[id] - lse[row]) * s);
++    if (i == targets[row]) slot -= (float)s;
++    grad[id] = slot;
++}
++
++// ---------------------------------------------------------------------------
++// 6. Recurrence core. rotation: 0 none, 1 quaternion (S3), 2 U(1).
++// ---------------------------------------------------------------------------
++__device__ __forceinline__ float gelu_value(float x) {
++    const float K = 0.7978846f;
++    const float C = 0.044715f;
++    float v = K * (x + C * x * x * x);
++    float t = tanhf(fminf(fmaxf(v, -20.0f), 20.0f));
++    return 0.5f * x * (1.0f + t);
++}
++
++__device__ __forceinline__ float2 gelu_value_slope(float x) {
++    const float K = 0.7978846f;
++    const float C = 0.044715f;
++    float v = K * (x + C * x * x * x);
++    float t = tanhf(fminf(fmaxf(v, -20.0f), 20.0f));
++    float value = 0.5f * x * (1.0f + t);
++    float slope = 0.5f * (1.0f + t) + 0.5f * x * (1.0f - t * t) * K * (1.0f + 3.0f * C * x * x);
++    return make_float2(value, slope);
++}
++
++// log a = -softplus(-decay) = -ln(1 + e^{-decay}) per lane, in f64 as the CPU.
++extern "C" __global__ void recurrence_log_a(
++    const float* params, float* log_a, uint width, uint lanes
++) {
++    uint id = blockIdx.x * blockDim.x + threadIdx.x;
++    if (id >= lanes) return;
++    double d = (double)params[5 * width + id];
++    log_a[id] = (float)(-log1p(exp(-d)));
++}
++
++// The transport unit quaternion of one lane at one position, as the CPU
++// `unit_quaternion` (U(1) zeroes j and k first).
++__device__ __forceinline__ float4 transport_unit(
++    const float* gates, u64 gate_row, uint lanes, uint lane, uint rotation, float* norm
++) {
++    if (rotation == 0) {
++        *norm = 1.0f;
++        return make_float4(1.0f, 0.0f, 0.0f, 0.0f);
++    }
++    u64 r = gate_row + lanes + 4 * lane;
++    float4 raw = ld4(gates + r);
++    if (rotation == 2) {
++        raw.z = 0.0f;
++        raw.w = 0.0f;
++    }
++    float n = sqrtf(raw.x * raw.x + raw.y * raw.y + raw.z * raw.z + raw.w * raw.w + 1e-6f);
++    *norm = n;
++    return make_float4(raw.x / n, raw.y / n, raw.z / n, raw.w / n);
++}
++
++extern "C" __global__ void recurrence_core_fwd(
++    const float* branches, const float* gates, const float* params, const float* log_a,
++    float* state_out, float* drive_out, float* out,
++    uint time, uint width, uint lanes, uint gate_width, uint rotation, uint total_lanes
++) {
++    uint lane_id = blockIdx.x * blockDim.x + threadIdx.x;
++    if (lane_id >= total_lanes) return;
++    uint b = lane_id / lanes;
++    uint lane = lane_id % lanes;
++    uint ch = 4 * lane;
++    u64 two_w = 2 * (u64)width;
++    const float* taps = params;
++    const float* bias = params + 4 * width;
++    float la = log_a[lane];
++    float4 held = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
++    for (uint t = 0; t < time; ++t) {
++        u64 row = (u64)b * time + t;
++        float c[4];
++        for (uint k = 0; k < 4; ++k) {
++            float c_val = bias[ch + k];
++            for (uint shift = 0; shift < 4 && shift <= t; ++shift) {
++                c_val += taps[shift * width + ch + k] * branches[(row - shift) * two_w + ch + k];
++            }
++            c[k] = c_val;
++        }
++        float4 drive = make_float4(c[0], c[1], c[2], c[3]);
++        u64 base = row * width + ch;
++        st4(drive_out + base, drive);
++
++        u64 gate_row = row * gate_width;
++        float opening = sigmoid_f(gates[gate_row + lane]);
++        float lambda = expf(8.0f * opening * la);
++        float complement = 1.0f - lambda * lambda;
++        float keep = (complement < 1e-6f) ? 1e-3f : sqrtf(complement);
++        float norm;
++        float4 unit = transport_unit(gates, gate_row, lanes, lane, rotation, &norm);
++        float4 q = scale4(unit, lambda);
++        held = add4(quat_mul(q, held), scale4(drive, keep));
++        st4(state_out + base, held);
++
++        u64 branch_base = row * two_w + width + ch;
++        out[base + 0] = held.x * gelu_value(branches[branch_base + 0]);
++        out[base + 1] = held.y * gelu_value(branches[branch_base + 1]);
++        out[base + 2] = held.z * gelu_value(branches[branch_base + 2]);
++        out[base + 3] = held.w * gelu_value(branches[branch_base + 3]);
++    }
++}
++
++// One thread per (window, lane): the reverse sweep of the CPU backward.
++// Writes d_branches and d_gates in full and the window's f64 parameter
++// partials (taps, bias, d log a) into partials[window * param_len ..].
++extern "C" __global__ void recurrence_core_bwd(
++    const float* branches, const float* gates, const float* params, const float* log_a,
++    const float* state, const float* drive, const float* d_out,
++    float* d_branches, float* d_gates, double* partials,
++    uint time, uint width, uint lanes, uint gate_width, uint rotation, uint total_lanes,
++    uint param_len
++) {
++    uint lane_id = blockIdx.x * blockDim.x + threadIdx.x;
++    if (lane_id >= total_lanes) return;
++    uint b = lane_id / lanes;
++    uint lane = lane_id % lanes;
++    uint ch = 4 * lane;
++    u64 two_w = 2 * (u64)width;
++    const float* taps = params;
++    float la = log_a[lane];
++
++    for (uint t = 0; t < time; ++t) {
++        u64 src = ((u64)b * time + t) * two_w + ch;
++        st4(d_branches + src, make_float4(0.0f, 0.0f, 0.0f, 0.0f));
++    }
++
++    float4 held = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
++    float4 q_next = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
++    double d_bias[4] = {0.0, 0.0, 0.0, 0.0};
++    double d_tap[4][4] = {{0.0, 0.0, 0.0, 0.0}, {0.0, 0.0, 0.0, 0.0},
++                          {0.0, 0.0, 0.0, 0.0}, {0.0, 0.0, 0.0, 0.0}};
++    double d_log_a = 0.0;
++
++    for (int ti = (int)time - 1; ti >= 0; --ti) {
++        uint t = (uint)ti;
++        u64 row = (u64)b * time + t;
++        u64 base = row * width + ch;
++        u64 branch_row = row * two_w;
++        float4 st = ld4(state + base);
++        float4 dy = ld4(d_out + base);
++        float direct[4];
++        for (uint k = 0; k < 4; ++k) {
++            float2 vs = gelu_value_slope(branches[branch_row + width + ch + k]);
++            d_branches[branch_row + width + ch + k] = comp4(dy, k) * comp4(st, k) * vs.y;
++            direct[k] = comp4(dy, k) * vs.x;
++        }
++        u64 gate_row = row * gate_width;
++        float opening = sigmoid_f(gates[gate_row + lane]);
++        float lambda = expf(8.0f * opening * la);
++        float complement = 1.0f - lambda * lambda;
++        bool clamped = complement < 1e-6f;
++        float keep = clamped ? 1e-3f : sqrtf(complement);
++        float norm;
++        float4 unit = transport_unit(gates, gate_row, lanes, lane, rotation, &norm);
++        float4 total = make_float4(direct[0], direct[1], direct[2], direct[3]);
++        if (t + 1 < time) {
++            total = add4(total, quat_mul(quat_conj(q_next), held));
++        }
++        held = total;
++        float4 c = ld4(drive + base);
++        float d_keep = dot4(total, c);
++        float4 dd = scale4(total, keep);
++        float4 dq = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
++        if (t > 0) {
++            dq = quat_mul(total, quat_conj(ld4(state + base - width)));
++        }
++        float d_lambda = dot4(dq, unit);
++        if (!clamped) {
++            d_lambda -= d_keep * lambda / keep;
++        }
++        float d_log_lambda = d_lambda * lambda;
++        float d_opening = d_log_lambda * 8.0f * la;
++        d_log_a += (double)(d_log_lambda * 8.0f * opening);
++        d_gates[gate_row + lane] = d_opening * opening * (1.0f - opening);
++        if (rotation != 0) {
++            float4 du = scale4(dq, lambda);
++            float projection = dot4(du, unit);
++            u64 r = gate_row + lanes + ch;
++            d_gates[r + 0] = (du.x - unit.x * projection) / norm;
++            d_gates[r + 1] = (du.y - unit.y * projection) / norm;
++            if (rotation == 2) {
++                // j and k were zeroed before normalization.
++                d_gates[r + 2] = 0.0f;
++                d_gates[r + 3] = 0.0f;
++            } else {
++                d_gates[r + 2] = (du.z - unit.z * projection) / norm;
++                d_gates[r + 3] = (du.w - unit.w * projection) / norm;
++            }
++        }
++        q_next = scale4(unit, lambda);
++        // Convolution: c_t = bias + sum_shift taps_shift * a_{t - shift}.
++        for (uint k = 0; k < 4; ++k) d_bias[k] += (double)comp4(dd, k);
++        for (uint shift = 0; shift < 4 && shift <= t; ++shift) {
++            u64 src = (row - shift) * two_w + ch;
++            for (uint k = 0; k < 4; ++k) {
++                float ddk = comp4(dd, k);
++                d_tap[shift][k] += (double)(ddk * branches[src + k]);
++                d_branches[src + k] += taps[shift * width + ch + k] * ddk;
++            }
++        }
++    }
++    double* p = partials + (u64)b * param_len;
++    for (uint k = 0; k < 4; ++k) {
++        p[0 * width + ch + k] = d_tap[0][k];
++        p[1 * width + ch + k] = d_tap[1][k];
++        p[2 * width + ch + k] = d_tap[2][k];
++        p[3 * width + ch + k] = d_tap[3][k];
++        p[4 * width + ch + k] = d_bias[k];
++    }
++    p[5 * width + lane] = d_log_a;
++}
++
++// Sums the windows' f64 parameter partials; d log a / d decay = sigma(-decay).
++extern "C" __global__ void recurrence_param_reduce(
++    const double* partials, const float* params, float* d_params,
++    uint batch, uint param_len, uint width
++) {
++    uint id = blockIdx.x * blockDim.x + threadIdx.x;
++    if (id >= param_len) return;
++    double sum = 0.0;
++    for (uint b = 0; b < batch; ++b) sum += partials[(u64)b * param_len + id];
++    if (id >= 5 * width) {
++        sum *= 1.0 / (1.0 + exp((double)params[id]));
++    }
++    d_params[id] = (float)sum;
++}
++
++// ---------------------------------------------------------------------------
++// 7. General fused read: Dot, Lorentz or L2 score, NoRead slot, age table.
++// Blocks are index = window * heads + head; rows are index * time + t; the
++// square scratch is [index, t, j] with j <= t used.
++// ---------------------------------------------------------------------------
++__device__ __forceinline__ u64 read_age_offset(ReadDims d) {
++    return d.null_on != 0 ? (u64)d.batch * d.heads * d.time : 0;
++}
++
++__device__ __forceinline__ u64 read_beta_offset(ReadDims d) {
++    return read_age_offset(d) + (d.age_on != 0 ? (u64)d.heads * d.time : 0);
++}
++
++// Lorentz: arcosh(1 + e) clamped; L2: sqrt(s) clamped. In f64 as the CPU.
++__device__ __forceinline__ double read_distance(ReadDims d, double e) {
++    if (d.score == 1) {
++        double x = fmax(e, LORENTZ_MIN_EXCESS);
++        return log1p(x + sqrt(x * (x + 2.0)));
++    }
++    return sqrt(fmax(e, L2_MIN_SQUARED));
++}
++
++// Lorentz lifts sqrt(1 + |x|^2), or for L2 the squared norms |x|^2, in f64.
++extern "C" __global__ void read_lift(
++    const float* query, const float* kv, double* query_lift, double* key_lift, ReadDims d
++) {
++    uint id = blockIdx.x * blockDim.x + threadIdx.x;
++    uint rows = d.batch * d.heads * d.time;
++    if (id >= rows) return;
++    const float* q = query + (u64)id * d.key;
++    const float* k = kv + (u64)id * (d.key + d.value);
++    float qq = 0.0f;
++    float kk = 0.0f;
++    for (uint c = 0; c < d.key; ++c) {
++        qq += q[c] * q[c];
++        kk += k[c] * k[c];
++    }
++    if (d.score == 1) {
++        query_lift[id] = sqrt(1.0 + (double)qq);
++        key_lift[id] = sqrt(1.0 + (double)kk);
++    } else {
++        query_lift[id] = (double)qq;
++        key_lift[id] = (double)kk;
++    }
++}
++
++// Tiled causal inner products of one block: out[index, t, j] for j <= t of
++// sum_c a[index * time + t][c] b[index * time + j][c] over `length` columns.
++// Mode 0 stores the raw product; mode 1 stores the read score (with age)
++// and, with write_excess, the Lorentz excess or L2 squared distance.
++// Blocks are 16 x 16 threads over (j tile, t tile, index).
++extern "C" __global__ void read_tile_inner(
++    const float* a, const float* b, const float* aux,
++    const double* query_lift, const double* key_lift,
++    float* out, double* excess, ReadDims d, Geom geom
++) {
++    uint jt = blockIdx.x;
++    uint tt = blockIdx.y;
++    if (jt > tt) return;
++    uint index = blockIdx.z;
++    uint time = d.time;
++    __shared__ float tile_a[16][17];
++    __shared__ float tile_b[16][17];
++    uint lx = threadIdx.x;
++    uint ly = threadIdx.y;
++    uint t = tt * 16 + ly;
++    uint j = jt * 16 + lx;
++    uint b_row = jt * 16 + ly;
++    float acc = 0.0f;
++    for (uint c0 = 0; c0 < geom.length; c0 += 16) {
++        uint c = c0 + lx;
++        tile_a[ly][lx] = (t < time && c < geom.length)
++            ? a[((u64)index * time + t) * geom.a_stride + geom.a_offset + c] : 0.0f;
++        tile_b[ly][lx] = (b_row < time && c < geom.length)
++            ? b[((u64)index * time + b_row) * geom.b_stride + geom.b_offset + c] : 0.0f;
++        __syncthreads();
++        for (uint k = 0; k < 16; ++k) {
++            acc += tile_a[ly][k] * tile_b[lx][k];
++        }
++        __syncthreads();
++    }
++    if (t >= time || j > t) return;
++    u64 slot = ((u64)index * time + t) * time + j;
++    if (geom.mode == 0) {
++        out[slot] = acc;
++        return;
++    }
++    uint head = index % d.heads;
++    float age = d.age_on != 0 ? aux[read_age_offset(d) + (u64)head * time + (t - j)] : 0.0f;
++    float score;
++    if (d.score == 0) {
++        float scale = 1.0f / sqrtf((float)d.key);
++        score = acc * scale + age;
++    } else {
++        double lq = query_lift[(u64)index * time + t];
++        double lk = key_lift[(u64)index * time + j];
++        double e = d.score == 1 ? lq * lk - (double)acc - 1.0 : lq + lk - 2.0 * (double)acc;
++        if (geom.write_excess != 0) {
++            excess[slot] = e;
++        }
++        u64 beta_offset = read_beta_offset(d);
++        double beta = (double)aux[beta_offset + head];
++        double offset = (double)aux[beta_offset + d.heads + head];
++        score = (float)(-beta * (read_distance(d, e) - offset)) + age;
++    }
++    out[slot] = score;
++}
++
++// Softmax of each row over j <= t and the NoRead slot, in place, one warp
++// per row; the NoRead probability goes to null_probability[row].
++extern "C" __global__ void read_softmax_warp(
++    float* scores, const float* aux, float* null_probability, ReadDims d
++) {
++    uint id = blockIdx.x * blockDim.x + threadIdx.x;
++    uint time = d.time;
++    uint row = id / 32;
++    uint lane = id % 32;
++    if (row >= d.batch * d.heads * time) return;
++    uint t = row % time;
++    float* s = scores + (u64)row * time;
++    float null_score = d.null_on != 0 ? aux[row] : neg_inf();
++    float maximum = null_score;
++    for (uint j = lane; j <= t; j += 32) maximum = fmaxf(maximum, s[j]);
++    maximum = warp_max(maximum);
++    float total = 0.0f;
++    for (uint j = lane; j <= t; j += 32) {
++        float w = expf(s[j] - maximum);
++        s[j] = w;
++        total += w;
++    }
++    total = warp_sum(total);
++    float null_weight = d.null_on != 0 ? expf(null_score - maximum) : 0.0f;
++    total += null_weight;
++    float inverse = 1.0f / total;
++    for (uint j = lane; j <= t; j += 32) s[j] *= inverse;
++    if (lane == 0) null_probability[row] = null_weight * inverse;
++}
++
++// out[index, t, v] = sum_{j <= t} p[t, j] value[j, v].
++extern "C" __global__ void read_mix(
++    const float* probabilities, const float* kv, float* out, ReadDims d
++) {
++    u64 id = (u64)blockIdx.x * blockDim.x + threadIdx.x;
++    uint time = d.time;
++    if (id >= (u64)d.batch * d.heads * time * d.value) return;
++    uint v = (uint)(id % d.value);
++    u64 row = id / d.value;
++    uint t = (uint)(row % time);
++    u64 index = row / time;
++    uint width = d.key + d.value;
++    const float* p = probabilities + row * time;
++    const float* values = kv + index * time * width + d.key + v;
++    float accum = 0.0f;
++    for (uint j = 0; j <= t; ++j) accum += p[j] * values[(u64)j * width];
++    out[id] = accum;
++}
++
++// Per row, one warp: the softmax backward in f64 as the CPU. Writes
++// ds = p (dp - <p, dp>) (f64), the inner-product gradients (f32), the NoRead
++// logit gradient (into d_aux), and for Lorentz/L2 the query self coefficient
++// and the row's beta and offset partials (f64).
++extern "C" __global__ void read_row_grad_warp(
++    const float* probabilities, const float* dp, double* ds_out, float* inner_grad,
++    const double* excess, const float* null_probability, const float* aux,
++    const double* query_lift, const double* key_lift,
++    double* query_self, double* row_beta, double* row_offset, float* d_aux, ReadDims d
++) {
++    uint id = blockIdx.x * blockDim.x + threadIdx.x;
++    uint time = d.time;
++    uint row = id / 32;
++    uint lane = id % 32;
++    if (row >= d.batch * d.heads * time) return;
++    uint t = row % time;
++    uint index = row / time;
++    uint head = index % d.heads;
++    const float* p = probabilities + (u64)row * time;
++    const float* g = dp + (u64)row * time;
++    double* dsr = ds_out + (u64)row * time;
++    float* ig = inner_grad + (u64)row * time;
++    double row_dot = 0.0;
++    for (uint j = lane; j <= t; j += 32) row_dot += (double)p[j] * (double)g[j];
++    row_dot = warp_sum_d(row_dot);
++    if (d.null_on != 0 && lane == 0) {
++        d_aux[row] = (float)(-(double)null_probability[row] * row_dot);
++    }
++    double scale = 1.0 / sqrt((double)d.key);
++    double beta = 0.0;
++    double offset = 0.0;
++    if (d.score != 0) {
++        u64 beta_offset = read_beta_offset(d);
++        beta = (double)aux[beta_offset + head];
++        offset = (double)aux[beta_offset + d.heads + head];
++    }
++    double self_q = 0.0;
++    double d_beta = 0.0;
++    double d_offset = 0.0;
++    for (uint j = lane; j <= t; j += 32) {
++        double ds = (double)p[j] * ((double)g[j] - row_dot);
++        dsr[j] = ds;
++        if (d.score == 0) {
++            ig[j] = (float)(ds * scale);
++        } else {
++            double e = excess[(u64)row * time + j];
++            double distance = read_distance(d, e);
++            d_beta -= ds * (distance - offset);
++            d_offset += ds * beta;
++            if (d.score == 1) {
++                if (e > LORENTZ_MIN_EXCESS) {
++                    double de = -beta * ds / sqrt(e * (e + 2.0));
++                    self_q += de * key_lift[(u64)index * time + j] / query_lift[row];
++                    ig[j] = (float)(-de);
++                } else {
++                    ig[j] = 0.0f;
++                }
++            } else {
++                if (e > L2_MIN_SQUARED) {
++                    double ds_ds = -beta * ds / (2.0 * distance);
++                    self_q += 2.0 * ds_ds;
++                    ig[j] = (float)(-2.0 * ds_ds);
++                } else {
++                    ig[j] = 0.0f;
++                }
++            }
++        }
++    }
++    if (d.score != 0) {
++        self_q = warp_sum_d(self_q);
++        d_beta = warp_sum_d(d_beta);
++        d_offset = warp_sum_d(d_offset);
++        if (lane == 0) {
++            query_self[row] = self_q;
++            row_beta[row] = d_beta;
++            row_offset[row] = d_offset;
++        }
++    }
++}
++
++// Lorentz/L2 key self coefficient per (index, j), recomputed in f64 from ds:
++// Lorentz sum_{t >= j} de[t, j] lift_q[t] / lift_k[j]; L2 sum 2 dscore/ds.
++extern "C" __global__ void read_key_self(
++    const double* ds, const double* excess, const float* aux,
++    const double* query_lift, const double* key_lift, double* key_self, ReadDims d
++) {
++    uint id = blockIdx.x * blockDim.x + threadIdx.x;
++    uint time = d.time;
++    if (id >= d.batch * d.heads * time) return;
++    uint j = id % time;
++    uint index = id / time;
++    uint head = index % d.heads;
++    u64 beta_offset = read_beta_offset(d);
++    double beta = (double)aux[beta_offset + head];
++    double sum = 0.0;
++    for (uint t = j; t < time; ++t) {
++        u64 slot = ((u64)index * time + t) * time + j;
++        double e = excess[slot];
++        if (d.score == 1) {
++            if (e > LORENTZ_MIN_EXCESS) {
++                double de = -beta * ds[slot] / sqrt(e * (e + 2.0));
++                sum += de * query_lift[(u64)index * time + t] / key_lift[id];
++            }
++        } else if (e > L2_MIN_SQUARED) {
++            double ds_ds = -beta * ds[slot] / (2.0 * read_distance(d, e));
++            sum += 2.0 * ds_ds;
++        }
++    }
++    key_self[id] = sum;
++}
++
++// dq[index, t, c] = sum_{j <= t} g[t, j] key[j, c] (+ the self term).
++extern "C" __global__ void read_dq(
++    const float* inner_grad, const float* query, const float* kv, const double* query_self,
++    float* dq, ReadDims d
++) {
++    u64 id = (u64)blockIdx.x * blockDim.x + threadIdx.x;
++    uint time = d.time;
++    if (id >= (u64)d.batch * d.heads * time * d.key) return;
++    uint c = (uint)(id % d.key);
++    u64 row = id / d.key;
++    uint t = (uint)(row % time);
++    u64 index = row / time;
++    uint width = d.key + d.value;
++    const float* g = inner_grad + row * time;
++    const float* keys = kv + index * time * width + c;
++    float accum = 0.0f;
++    for (uint j = 0; j <= t; ++j) accum += g[j] * keys[(u64)j * width];
++    if (d.score != 0) {
++        accum += (float)query_self[row] * query[id];
++    }
++    dq[id] = accum;
++}
++
++// dkv[index, j, c]: keys sum_{t >= j} g[t, j] query[t, c] (+ the self term);
++// values sum_{t >= j} p[t, j] d_out[t, c - key].
++extern "C" __global__ void read_dkv(
++    const float* inner_grad, const float* probabilities, const float* query, const float* kv,
++    const float* d_out, const double* key_self, float* dkv, ReadDims d
++) {
++    u64 id = (u64)blockIdx.x * blockDim.x + threadIdx.x;
++    uint time = d.time;
++    uint width = d.key + d.value;
++    if (id >= (u64)d.batch * d.heads * time * width) return;
++    uint c = (uint)(id % width);
++    u64 row = id / width;
++    uint j = (uint)(row % time);
++    u64 index = row / time;
++    float accum = 0.0f;
++    if (c < d.key) {
++        for (uint t = j; t < time; ++t) {
++            accum += inner_grad[(index * time + t) * time + j] * query[(index * time + t) * d.key + c];
++        }
++        if (d.score != 0) {
++            accum += (float)key_self[row] * kv[id];
++        }
++    } else {
++        uint v = c - d.key;
++        for (uint t = j; t < time; ++t) {
++            accum += probabilities[(index * time + t) * time + j] * d_out[(index * time + t) * d.value + v];
++        }
++    }
++    dkv[id] = accum;
++}
++
++// Age-table gradient per (head, distance): the f64 sum over windows and
++// positions of ds[t, t - distance].
++extern "C" __global__ void read_dage(const double* ds, float* d_aux, ReadDims d) {
++    uint id = blockIdx.x * blockDim.x + threadIdx.x;
++    uint time = d.time;
++    if (id >= d.heads * time) return;
++    uint distance = id % time;
++    uint head = id / time;
++    double sum = 0.0;
++    for (uint b = 0; b < d.batch; ++b) {
++        u64 index = (u64)b * d.heads + head;
++        for (uint t = distance; t < time; ++t) {
++            sum += ds[(index * time + t) * time + (t - distance)];
++        }
++    }
++    d_aux[read_age_offset(d) + id] = (float)sum;
++}
++
++// Lorentz/L2 beta and offset gradients per head from the rows' f64 partials.
++extern "C" __global__ void read_dbeta(
++    const double* row_beta, const double* row_offset, float* d_aux, ReadDims d
++) {
++    uint id = blockIdx.x * blockDim.x + threadIdx.x;
++    if (id >= 2 * d.heads) return;
++    uint head = id % d.heads;
++    const double* source = id < d.heads ? row_beta : row_offset;
++    double sum = 0.0;
++    for (uint b = 0; b < d.batch; ++b) {
++        u64 index = (u64)b * d.heads + head;
++        for (uint t = 0; t < d.time; ++t) sum += source[index * d.time + t];
++    }
++    d_aux[read_beta_offset(d) + id] = (float)sum;
++}
++
++// RoPE of the read, the CPU `rope_rotate` exactly: rows [index * time + t]
++// of `stride` features, of which the first `d.key` are rotated by position
++// t with rotate-half pairing (i, i + key / 2); the rest are copied. The
++// cosine and sine tables [time, key / 2] are the host's `rope_tables`.
++// `inverse` rotates by -t (the transpose, mapping gradients back).
++// Non-contracting intrinsics keep the CPU's f32 operations (no FMA).
++extern "C" __global__ void read_rope(
++    const float* src, float* dst, const float* cosine, const float* sine,
++    ReadDims d, uint stride, uint inverse
++) {
++    u64 id = (u64)blockIdx.x * blockDim.x + threadIdx.x;
++    u64 rows = (u64)d.batch * d.heads * d.time;
++    if (id >= rows * stride) return;
++    uint c = (uint)(id % stride);
++    u64 row = id / stride;
++    if (c >= d.key) {
++        dst[id] = src[id];
++        return;
++    }
++    uint t = (uint)(row % d.time);
++    uint half = d.key / 2;
++    uint i = c < half ? c : c - half;
++    const float* base = src + row * stride;
++    float a = base[i];
++    float b = base[i + half];
++    float cs = cosine[(u64)t * half + i];
++    float sn = inverse ? -sine[(u64)t * half + i] : sine[(u64)t * half + i];
++    if (c < half) {
++        dst[id] = __fsub_rn(__fmul_rn(a, cs), __fmul_rn(b, sn));
++    } else {
++        dst[id] = __fadd_rn(__fmul_rn(b, cs), __fmul_rn(a, sn));
++    }
++}
++
++// ---------------------------------------------------------------------------
++// 8. AdamW step in place, the CPU `adam_step`'s f32 operations in its order
++// (non-contracting intrinsics, IEEE sqrt and division).
++// ---------------------------------------------------------------------------
++extern "C" __global__ void adam_update(
++    float* p, float* m, float* v, const float* g, AdamConstants k, uint n
++) {
++    uint i = blockIdx.x * blockDim.x + threadIdx.x;
++    if (i >= n) return;
++    const float* c = k.c;
++    float grad = __fmul_rn(g[i], c[0]);
++    float first = __fadd_rn(__fmul_rn(m[i], c[1]), __fmul_rn(grad, c[2]));
++    float second = __fadd_rn(__fmul_rn(v[i], c[3]), __fmul_rn(__fmul_rn(grad, grad), c[4]));
++    m[i] = first;
++    v[i] = second;
++    float step = __fdiv_rn(__fmul_rn(first, c[5]), __fadd_rn(__fsqrt_rn(__fmul_rn(second, c[6])), c[7]));
++    p[i] = __fadd_rn(__fmul_rn(p[i], c[8]), -__fmul_rn(step, c[9]));
++}
++"#;
++
++    /// The stack kernels' PTX, compiled once per process by NVRTC.
++    fn ptx() -> Result<&'static str> {
++        static PTX: OnceLock<std::result::Result<String, String>> = OnceLock::new();
++        let compiled = PTX.get_or_init(|| {
++            let options = cudarc::nvrtc::CompileOptions {
++                use_fast_math: Some(false),
++                prec_sqrt: Some(true),
++                prec_div: Some(true),
++                ftz: Some(false),
++                name: Some("uor_r4_geometric_stack.cu".to_string()),
++                ..Default::default()
++            };
++            cudarc::nvrtc::compile_ptx_with_opts(CUDA_STACK_SOURCE, options)
++                .map(|ptx| ptx.to_src())
++                .map_err(|error| error.to_string())
++        });
++        match compiled {
++            Ok(source) => Ok(source.as_str()),
++            Err(error) => Err(Error::Msg(format!(
++                "NVRTC compilation of the geometric stack kernels failed: {error}"
++            ))),
++        }
++    }
++
++    /// Compiles the kernel source with NVRTC (no device needed): a check that
++    /// the CUDA C source is valid for the installed toolkit.
++    pub fn compile_check() -> Result<()> {
++        ptx().map(|_| ())
++    }
++
++    /// One kernel argument, in parameter order.
++    pub enum Arg<'a> {
++        /// An f32 device buffer (read, written or both).
++        F(CudaView<'a, f32>),
++        /// An f64 device buffer.
++        D(CudaView<'a, f64>),
++        /// A u32 device buffer.
++        U(CudaView<'a, u32>),
++        U32(u32),
++        /// `ReadDims` by value.
++        Dims([u32; 8]),
++        /// `Geom` by value.
++        Geom([u32; 7]),
++        /// `AdamConstants` (ten f32 bit patterns) by value.
++        Adam([u32; 10]),
++    }
++
++    impl<'a> Arg<'a> {
++        pub fn f(slice: &'a CudaSlice<f32>) -> Self {
++            Arg::F(slice.as_view())
++        }
++
++        pub fn d(slice: &'a CudaSlice<f64>) -> Self {
++            Arg::D(slice.as_view())
++        }
++
++        pub fn u(slice: &'a CudaSlice<u32>) -> Self {
++            Arg::U(slice.as_view())
++        }
++    }
++
++    /// A zero-filled device buffer of `len` elements (at least one, so a
++    /// placeholder argument is always a valid pointer).
++    pub fn zeros<T>(device: &CudaDevice, len: usize) -> Result<CudaSlice<T>>
++    where
++        T: cudarc::driver::DeviceRepr + cudarc::driver::ValidAsZeroBits,
++    {
++        device.alloc_zeros::<T>(len.max(1))
++    }
++
++    /// Threads per block of a 1-D launch.
++    const BLOCK: usize = 256;
++
++    /// Launches `name` over `threads` threads (a 1-D grid of 256-thread blocks).
++    pub fn launch(device: &CudaDevice, name: &str, threads: usize, args: &[Arg<'_>]) -> Result<()> {
++        if threads == 0 {
++            return Ok(());
++        }
++        let blocks = threads.div_ceil(BLOCK);
++        dispatch(device, name, (blocks, 1, 1), (BLOCK, 1, 1), args)
++    }
++
++    /// Launches `name` over `groups` blocks of `group` threads each.
++    pub fn launch_groups(
++        device: &CudaDevice,
++        name: &str,
++        groups: (usize, usize, usize),
++        group: (usize, usize, usize),
++        args: &[Arg<'_>],
++    ) -> Result<()> {
++        if groups.0 * groups.1 * groups.2 == 0 {
++            return Ok(());
++        }
++        dispatch(device, name, groups, group, args)
++    }
++
++    fn dim(value: usize, limit: usize, what: &str) -> Result<u32> {
++        if value == 0 || value > limit {
++            return Err(Error::Msg(format!(
++                "CUDA launch {what} {value} outside 1..={limit}"
++            )));
++        }
++        Ok(value as u32)
++    }
++
++    fn dispatch(
++        device: &CudaDevice,
++        name: &str,
++        groups: (usize, usize, usize),
++        group: (usize, usize, usize),
++        args: &[Arg<'_>],
++    ) -> Result<()> {
++        let config = LaunchConfig {
++            grid_dim: (
++                dim(groups.0, i32::MAX as usize, "grid x")?,
++                dim(groups.1, 65_535, "grid y")?,
++                dim(groups.2, 65_535, "grid z")?,
++            ),
++            block_dim: (
++                dim(group.0, 1024, "block x")?,
++                dim(group.1, 1024, "block y")?,
++                dim(group.2, 64, "block z")?,
++            ),
++            shared_mem_bytes: 0,
++        };
++        let function = device.get_or_load_custom_func(name, MODULE, ptx()?)?;
++        let started = profiling().then(std::time::Instant::now);
++        let mut builder = function.builder();
++        for arg in args {
++            match arg {
++                Arg::F(view) => {
++                    builder.arg(view);
++                }
++                Arg::D(view) => {
++                    builder.arg(view);
++                }
++                Arg::U(view) => {
++                    builder.arg(view);
++                }
++                Arg::U32(value) => {
++                    builder.arg(value);
++                }
++                Arg::Dims(words) => {
++                    builder.arg(words);
++                }
++                Arg::Geom(words) => {
++                    builder.arg(words);
++                }
++                Arg::Adam(words) => {
++                    builder.arg(words);
++                }
++            }
++        }
++        // SAFETY: every kernel in CUDA_STACK_SOURCE takes exactly the
++        // arguments its Rust caller passes, in order (device pointers for
++        // buffers, `uint`s, and `ReadDims`/`Geom`/`AdamConstants` structs of
++        // 4-byte words matching the `[u32; N]` arrays); callers size every
++        // buffer for the kernel's index range and bounds-check the grid.
++        unsafe { builder.launch(config) }.map_err(|error| Error::Cuda(Box::new(error)))?;
++        if let Some(started) = started {
++            device
++                .cuda_stream()
++                .synchronize()
++                .map_err(|error| Error::Cuda(Box::new(error)))?;
++            eprintln!("cuda-kernel {name} {} us", started.elapsed().as_micros());
++        }
++        Ok(())
++    }
++
++    /// `UOR_CUDA_PROFILE=1` synchronizes after each launched kernel and
++    /// reports its wall time on stderr (diagnostic only; it serializes the GPU).
++    fn profiling() -> bool {
++        static PROFILE: OnceLock<bool> = OnceLock::new();
++        *PROFILE.get_or_init(|| std::env::var_os("UOR_CUDA_PROFILE").is_some())
++    }
++}
+diff --git a/crates/uor-r4-training/src/geometric_stack.rs b/crates/uor-r4-training/src/geometric_stack.rs
+index 949dcbf6e..d63355935 100644
+--- a/crates/uor-r4-training/src/geometric_stack.rs
++++ b/crates/uor-r4-training/src/geometric_stack.rs
+@@ -98,6 +98,8 @@ use std::sync::{Arc, Mutex, OnceLock};
+ use std::time::Instant;
+ 
+ use candle_core::backend::BackendStorage;
++#[cfg(feature = "cuda")]
++use candle_core::CudaStorage;
+ use candle_core::{CpuStorage, CustomOp2, CustomOp3, DType, Device, Layout, Shape, Tensor, Var};
+ #[cfg(feature = "metal")]
+ use candle_core::{MetalStorage, Storage};
+@@ -123,6 +125,9 @@ use crate::stack_prime_route::PrimeRegistry;
+ use crate::{invalid, Result};
+ use uor_r4_integer::geometric_span::SpanAction;
+ 
++#[cfg(feature = "cuda")]
++mod cuda_ops;
++
+ /// Lower bound on `z - 1` in the Lorentz score. Below it the distance is
+ /// clamped and carries no gradient.
+ const LORENTZ_MIN_EXCESS: f64 = 1e-7;
+@@ -7882,6 +7887,17 @@ impl CustomOp2 for StraightThrough {
+         ))
+     }
+ 
++    #[cfg(feature = "cuda")]
++    fn cuda_fwd(
++        &self,
++        s1: &CudaStorage,
++        l1: &Layout,
++        s2: &CudaStorage,
++        l2: &Layout,
++    ) -> candle_core::Result<(CudaStorage, Shape)> {
++        cuda_ops::straight_through_fwd(s1, l1, s2, l2)
++    }
++
+     fn bwd(
+         &self,
+         _source: &Tensor,
+@@ -8336,7 +8352,7 @@ impl StackAdamW {
+         lr: f64,
+     ) -> Result<f64> {
+         let mut total = 0f64;
+-        if matches!(model.device(), Device::Metal(_)) {
++        if matches!(model.device(), Device::Metal(_) | Device::Cuda(_)) {
+             // One host synchronization for the whole norm: each variable's
+             // squared sum stays on the device, then their f32 sum is read.
+             let sums = model
+@@ -8397,6 +8413,11 @@ impl StackAdamW {
+                 adam_step_metal(device, var, grad, m, v, &constants)?;
+                 continue;
+             }
++            #[cfg(feature = "cuda")]
++            if let Device::Cuda(device) = var.device() {
++                cuda_ops::adam_step_cuda(device, var, grad, m, v, &constants)?;
++                continue;
++            }
+             let mut parameters = var.as_tensor().flatten_all()?.to_vec1::<f32>()?;
+             let gradient = grad.flatten_all()?.to_vec1::<f32>()?;
+             let mut first_moment = m.as_tensor().flatten_all()?.to_vec1::<f32>()?;
+@@ -8601,6 +8622,17 @@ impl CustomOp2 for QuaternionScan {
+ 
+     /// Reverse scan: `g_t = dh_t + conj(q_{t+1}) * g_{t+1}` is the total
+     /// gradient of `h_t`; then `db_t = g_t` and `dq_t = g_t * conj(h_{t-1})`.
++    #[cfg(feature = "cuda")]
++    fn cuda_fwd(
++        &self,
++        s1: &CudaStorage,
++        l1: &Layout,
++        s2: &CudaStorage,
++        l2: &Layout,
++    ) -> candle_core::Result<(CudaStorage, Shape)> {
++        cuda_ops::quaternion_scan_fwd(s1, l1, s2, l2)
++    }
++
+     fn bwd(
+         &self,
+         transition: &Tensor,
+@@ -8608,6 +8640,11 @@ impl CustomOp2 for QuaternionScan {
+         state: &Tensor,
+         grad: &Tensor,
+     ) -> candle_core::Result<(Option<Tensor>, Option<Tensor>)> {
++        #[cfg(feature = "cuda")]
++        if let Device::Cuda(device) = transition.device() {
++            let (first, second) = cuda_ops::quaternion_scan_bwd(device, transition, state, grad)?;
++            return Ok((Some(first), Some(second)));
++        }
+         #[cfg(feature = "metal")]
+         if let Device::Metal(device) = transition.device() {
+             if transition.dtype() != DType::F32
+@@ -9235,6 +9272,19 @@ impl CustomOp3 for RecurrenceCore {
+         ))
+     }
+ 
++    #[cfg(feature = "cuda")]
++    fn cuda_fwd(
++        &self,
++        s1: &CudaStorage,
++        l1: &Layout,
++        s2: &CudaStorage,
++        l2: &Layout,
++        s3: &CudaStorage,
++        l3: &Layout,
++    ) -> candle_core::Result<(CudaStorage, Shape)> {
++        self.cuda_fwd_impl(s1, l1, s2, l2, s3, l3)
++    }
++
+     fn bwd(
+         &self,
+         branches: &Tensor,
+@@ -9243,6 +9293,12 @@ impl CustomOp3 for RecurrenceCore {
+         _out: &Tensor,
+         grad: &Tensor,
+     ) -> candle_core::Result<(Option<Tensor>, Option<Tensor>, Option<Tensor>)> {
++        #[cfg(feature = "cuda")]
++        if let (Device::Cuda(device), true) = (branches.device(), self.cuda_covered()) {
++            let (d_branches, d_gates, d_parameters) =
++                self.cuda_bwd(device, branches, gates, parameters, grad)?;
++            return Ok((Some(d_branches), Some(d_gates), Some(d_parameters)));
++        }
+         #[cfg(feature = "metal")]
+         if let (Device::Metal(device), true) = (branches.device(), self.metal_covered()) {
+             let (d_branches, d_gates, d_parameters) =
+@@ -10369,6 +10425,19 @@ impl CustomOp3 for FusedRead {
+         ))
+     }
+ 
++    #[cfg(feature = "cuda")]
++    fn cuda_fwd(
++        &self,
++        s1: &CudaStorage,
++        l1: &Layout,
++        s2: &CudaStorage,
++        l2: &Layout,
++        s3: &CudaStorage,
++        l3: &Layout,
++    ) -> candle_core::Result<(CudaStorage, Shape)> {
++        self.cuda_fwd_impl(s1, l1, s2, l2, s3, l3)
++    }
++
+     fn bwd(
+         &self,
+         query: &Tensor,
+@@ -10377,6 +10446,11 @@ impl CustomOp3 for FusedRead {
+         _out: &Tensor,
+         grad: &Tensor,
+     ) -> candle_core::Result<(Option<Tensor>, Option<Tensor>, Option<Tensor>)> {
++        #[cfg(feature = "cuda")]
++        if let (Device::Cuda(device), true) = (query.device(), self.cuda_covered()) {
++            let (dq, dkv, d_aux) = self.cuda_bwd(device, query, kv, aux, grad)?;
++            return Ok((Some(dq), Some(dkv), Some(d_aux)));
++        }
+         #[cfg(feature = "metal")]
+         if let Device::Metal(device) = query.device() {
+             if self.metal_covered() {
+@@ -10839,6 +10913,17 @@ impl CustomOp2 for RmsNorm {
+         ))
+     }
+ 
++    #[cfg(feature = "cuda")]
++    fn cuda_fwd(
++        &self,
++        s1: &CudaStorage,
++        l1: &Layout,
++        s2: &CudaStorage,
++        l2: &Layout,
++    ) -> candle_core::Result<(CudaStorage, Shape)> {
++        cuda_ops::rms_norm_fwd(s1, l1, s2, l2)
++    }
++
+     fn bwd(
+         &self,
+         x: &Tensor,
+@@ -10846,6 +10931,11 @@ impl CustomOp2 for RmsNorm {
+         _out: &Tensor,
+         grad: &Tensor,
+     ) -> candle_core::Result<(Option<Tensor>, Option<Tensor>)> {
++        #[cfg(feature = "cuda")]
++        if let Device::Cuda(device) = x.device() {
++            let (first, second) = cuda_ops::rms_norm_bwd(device, x, w, grad)?;
++            return Ok((Some(first), Some(second)));
++        }
+         #[cfg(feature = "metal")]
+         if let Device::Metal(device) = x.device() {
+             if x.dtype() != DType::F32 || w.dtype() != DType::F32 || grad.dtype() != DType::F32 {
+@@ -11054,6 +11144,17 @@ impl CustomOp2 for SwiGlu {
+         ))
+     }
+ 
++    #[cfg(feature = "cuda")]
++    fn cuda_fwd(
++        &self,
++        s1: &CudaStorage,
++        l1: &Layout,
++        s2: &CudaStorage,
++        l2: &Layout,
++    ) -> candle_core::Result<(CudaStorage, Shape)> {
++        cuda_ops::swiglu_fwd(s1, l1, s2, l2)
++    }
++
+     fn bwd(
+         &self,
+         gate: &Tensor,
+@@ -11061,6 +11162,11 @@ impl CustomOp2 for SwiGlu {
+         _out: &Tensor,
+         grad: &Tensor,
+     ) -> candle_core::Result<(Option<Tensor>, Option<Tensor>)> {
++        #[cfg(feature = "cuda")]
++        if let Device::Cuda(device) = gate.device() {
++            let (first, second) = cuda_ops::swiglu_bwd(device, gate, up, grad)?;
++            return Ok((Some(first), Some(second)));
++        }
+         #[cfg(feature = "metal")]
+         if let Device::Metal(device) = gate.device() {
+             if gate.dtype() != DType::F32 || up.dtype() != DType::F32 || grad.dtype() != DType::F32
+@@ -11280,12 +11386,27 @@ impl candle_core::CustomOp1 for CrossEntropy {
+         ))
+     }
+ 
++    #[cfg(feature = "cuda")]
++    fn cuda_fwd(
++        &self,
++        storage: &CudaStorage,
++        layout: &Layout,
++    ) -> candle_core::Result<(CudaStorage, Shape)> {
++        cuda_ops::cross_entropy_fwd(self, storage, layout)
++    }
++
+     fn bwd(
+         &self,
+         logits: &Tensor,
+         _loss: &Tensor,
+         grad: &Tensor,
+     ) -> candle_core::Result<Option<Tensor>> {
++        #[cfg(feature = "cuda")]
++        if let Device::Cuda(device) = logits.device() {
++            return Ok(Some(cuda_ops::cross_entropy_bwd(
++                self, device, logits, grad,
++            )?));
++        }
+         let (rows, vocabulary) = logits.dims2()?;
+         #[cfg(feature = "metal")]
+         if self.weights.is_none() {
+@@ -11778,6 +11899,19 @@ impl CustomOp3 for PointerMixture {
+         metal_via_host(self, [(s1, l1), (s2, l2), (s3, l3)])
+     }
+ 
++    #[cfg(feature = "cuda")]
++    fn cuda_fwd(
++        &self,
++        s1: &CudaStorage,
++        l1: &Layout,
++        s2: &CudaStorage,
++        l2: &Layout,
++        s3: &CudaStorage,
++        l3: &Layout,
++    ) -> candle_core::Result<(CudaStorage, Shape)> {
++        cuda_ops::via_host3(self, [(s1, l1), (s2, l2), (s3, l3)])
++    }
++
+     fn bwd(
+         &self,
+         logits: &Tensor,
+diff --git a/crates/uor-r4-training/src/geometric_stack/cuda_ops.rs b/crates/uor-r4-training/src/geometric_stack/cuda_ops.rs
+new file mode 100644
+index 000000000..9d753e046
+--- /dev/null
++++ b/crates/uor-r4-training/src/geometric_stack/cuda_ops.rs
+@@ -0,0 +1,1193 @@
++//! CUDA forward and backward paths of the geometric stack ops.
++//!
++//! Each op's `cuda_fwd` and its backward's `Device::Cuda` branch call into
++//! this module. Configurations without a kernel (a transport snap, a flock
++//! selection in the read, the pointer mixture, non-contiguous inputs)
++//! run the exact CPU forward on host copies ([`via_host1`] and friends), and
++//! their backward takes the generic host path, so CUDA training always
++//! computes what the CPU computes. The kernels live in
++//! [`crate::cuda_stack_kernels`].
++
++use candle_core::backend::{BackendDevice, BackendStorage};
++use candle_core::op::BackpropOp;
++use candle_core::{CpuStorage, CudaDevice, CudaStorage, CustomOp1, Storage};
++use cudarc::driver::{CudaSlice, CudaView};
++
++use super::*;
++use crate::cuda_stack_kernels::cuda::{launch, launch_groups, zeros, Arg};
++
++type CResult<T> = candle_core::Result<T>;
++type Forward = CResult<(CudaStorage, Shape)>;
++
++// ---------------------------------------------------------------------------
++// Host fallbacks and buffer helpers.
++
++/// Uploads a host forward's F32 result to `device`.
++fn upload(device: &CudaDevice, out: CpuStorage, shape: Shape, name: &str) -> Forward {
++    if !matches!(out, CpuStorage::F32(_)) {
++        candle_core::bail!("{name} host fallback expects F32 output");
++    }
++    Ok((device.storage_from_cpu_storage(&out)?, shape))
++}
++
++/// Runs a one-input op's exact CPU forward on a host copy of its CUDA input.
++pub(super) fn via_host1(op: &impl CustomOp1, s1: &CudaStorage, l1: &Layout) -> Forward {
++    let (out, shape) = op.cpu_fwd(&s1.to_cpu_storage()?, l1)?;
++    upload(&s1.device, out, shape, op.name())
++}
++
++/// Runs a two-input op's exact CPU forward on host copies of its CUDA inputs.
++pub(super) fn via_host2(
++    op: &impl CustomOp2,
++    s1: &CudaStorage,
++    l1: &Layout,
++    s2: &CudaStorage,
++    l2: &Layout,
++) -> Forward {
++    let (out, shape) = op.cpu_fwd(&s1.to_cpu_storage()?, l1, &s2.to_cpu_storage()?, l2)?;
++    upload(&s1.device, out, shape, op.name())
++}
++
++/// Runs a three-input op's exact CPU forward on host copies of its CUDA
++/// inputs; used where no CUDA kernel covers the op's configuration.
++pub(super) fn via_host3(op: &impl CustomOp3, inputs: [(&CudaStorage, &Layout); 3]) -> Forward {
++    let [(s1, l1), (s2, l2), (s3, l3)] = inputs;
++    let (out, shape) = op.cpu_fwd(
++        &s1.to_cpu_storage()?,
++        l1,
++        &s2.to_cpu_storage()?,
++        l2,
++        &s3.to_cpu_storage()?,
++        l3,
++    )?;
++    upload(&s1.device, out, shape, op.name())
++}
++
++/// The F32 elements of a contiguous CUDA input (any start offset), or `None`
++/// when the layout is not contiguous or the dtype is not F32.
++fn input<'a>(storage: &'a CudaStorage, layout: &Layout) -> CResult<Option<CudaView<'a, f32>>> {
++    if !layout.is_contiguous() || storage.dtype() != DType::F32 {
++        return Ok(None);
++    }
++    let slice = storage.as_cuda_slice::<f32>()?;
++    let start = layout.start_offset();
++    let len = layout.shape().elem_count();
++    match slice.try_slice(start..start + len) {
++        Some(view) => Ok(Some(view)),
++        None => candle_core::bail!("CUDA input layout exceeds its buffer"),
++    }
++}
++
++/// The F32 elements of a CUDA tensor's storage prepared by [`ready`].
++fn view<'a>(storage: &'a Storage, layout: &Layout) -> CResult<CudaView<'a, f32>> {
++    let Storage::Cuda(storage) = storage else {
++        candle_core::bail!("expected a CUDA tensor");
++    };
++    match input(storage, layout)? {
++        Some(view) => Ok(view),
++        None => candle_core::bail!("CUDA stack kernels need contiguous F32 tensors"),
++    }
++}
++
++/// A CUDA F32 tensor laid out contiguously (copied only when it is not).
++fn ready(tensor: &Tensor) -> CResult<Tensor> {
++    if tensor.dtype() != DType::F32 {
++        candle_core::bail!("CUDA stack kernels require F32 tensors");
++    }
++    if tensor.is_contiguous() {
++        Ok(tensor.clone())
++    } else {
++        tensor.force_contiguous()
++    }
++}
++
++fn storage(slice: CudaSlice<f32>, device: &CudaDevice) -> CudaStorage {
++    CudaStorage::wrap_cuda_slice(slice, device.clone())
++}
++
++/// A gradient tensor over a fresh CUDA buffer.
++fn tensor(slice: CudaSlice<f32>, device: &CudaDevice, shape: &Shape) -> Tensor {
++    Tensor::from_storage(
++        Storage::Cuda(storage(slice, device)),
++        shape.clone(),
++        BackpropOp::none(),
++        false,
++    )
++}
++
++fn u32_of(value: usize, what: &str) -> CResult<u32> {
++    u32::try_from(value).map_err(|_| candle_core::Error::Msg(format!("CUDA {what} too large")))
++}
++
++// ---------------------------------------------------------------------------
++// StraightThrough, SwiGLU, RMSNorm, the quaternion scan.
++
++pub(super) fn straight_through_fwd(
++    s1: &CudaStorage,
++    l1: &Layout,
++    s2: &CudaStorage,
++    l2: &Layout,
++) -> Forward {
++    if l1.shape() != l2.shape() {
++        candle_core::bail!("straight-through inputs must have one shape");
++    }
++    let total = l2.shape().elem_count();
++    if total == 0 {
++        candle_core::bail!("straight-through requires non-empty tensors");
++    }
++    if s1.dtype() != DType::F32 {
++        candle_core::bail!("straight-through requires F32 tensors");
++    }
++    let Some(served) = input(s2, l2)? else {
++        return via_host2(&StraightThrough, s1, l1, s2, l2);
++    };
++    let device = &s2.device;
++    let out = zeros::<f32>(device, total)?;
++    launch(
++        device,
++        "straight_through_fwd",
++        total,
++        &[
++            Arg::F(served),
++            Arg::f(&out),
++            Arg::U32(u32_of(total, "size")?),
++        ],
++    )?;
++    Ok((storage(out, device), l2.shape().clone()))
++}
++
++pub(super) fn swiglu_fwd(s1: &CudaStorage, l1: &Layout, s2: &CudaStorage, l2: &Layout) -> Forward {
++    if l1.shape() != l2.shape() {
++        candle_core::bail!("SwiGLU inputs must match");
++    }
++    let (Some(gate), Some(up)) = (input(s1, l1)?, input(s2, l2)?) else {
++        return via_host2(&SwiGlu, s1, l1, s2, l2);
++    };
++    let device = &s1.device;
++    let total = l1.shape().elem_count();
++    let out = zeros::<f32>(device, total)?;
++    launch(
++        device,
++        "swiglu_fwd",
++        total,
++        &[
++            Arg::F(gate),
++            Arg::F(up),
++            Arg::f(&out),
++            Arg::U32(u32_of(total, "size")?),
++        ],
++    )?;
++    Ok((storage(out, device), l1.shape().clone()))
++}
++
++pub(super) fn swiglu_bwd(
++    device: &CudaDevice,
++    gate: &Tensor,
++    up: &Tensor,
++    grad: &Tensor,
++) -> CResult<(Tensor, Tensor)> {
++    if gate.shape() != up.shape() || grad.shape() != gate.shape() {
++        candle_core::bail!("CUDA SwiGLU backward inputs must match");
++    }
++    let (g, u, d) = (ready(gate)?, ready(up)?, ready(grad)?);
++    let total = g.elem_count();
++    let (gs, gl) = g.storage_and_layout();
++    let (us, ul) = u.storage_and_layout();
++    let (ds, dl) = d.storage_and_layout();
++    let d_gate = zeros::<f32>(device, total)?;
++    let d_up = zeros::<f32>(device, total)?;
++    launch(
++        device,
++        "swiglu_bwd",
++        total,
++        &[
++            Arg::F(view(&gs, gl)?),
++            Arg::F(view(&us, ul)?),
++            Arg::F(view(&ds, dl)?),
++            Arg::f(&d_gate),
++            Arg::f(&d_up),
++            Arg::U32(u32_of(total, "size")?),
++        ],
++    )?;
++    Ok((
++        tensor(d_gate, device, gate.shape()),
++        tensor(d_up, device, up.shape()),
++    ))
++}
++
++/// Threads per block of the row reductions (a multiple of 32).
++const ROW_THREADS: usize = 256;
++/// Rows per partial sum of the RMSNorm weight gradient.
++const RMS_CHUNK_ROWS: usize = 256;
++
++pub(super) fn rms_norm_fwd(
++    s1: &CudaStorage,
++    l1: &Layout,
++    s2: &CudaStorage,
++    l2: &Layout,
++) -> Forward {
++    let width = l2.shape().elem_count();
++    if width == 0 || l1.shape().dims().last() != Some(&width) {
++        candle_core::bail!("RMSNorm weight must match the last dimension");
++    }
++    let (Some(x), Some(w)) = (input(s1, l1)?, input(s2, l2)?) else {
++        return via_host2(&RmsNorm, s1, l1, s2, l2);
++    };
++    let device = &s1.device;
++    let total = l1.shape().elem_count();
++    let rows = total / width;
++    let out = zeros::<f32>(device, total)?;
++    launch_groups(
++        device,
++        "rms_norm_fwd",
++        (rows, 1, 1),
++        (ROW_THREADS, 1, 1),
++        &[
++            Arg::F(x),
++            Arg::F(w),
++            Arg::f(&out),
++            Arg::U32(u32_of(width, "width")?),
++        ],
++    )?;
++    Ok((storage(out, device), l1.shape().clone()))
++}
++
++pub(super) fn rms_norm_bwd(
++    device: &CudaDevice,
++    x: &Tensor,
++    w: &Tensor,
++    grad: &Tensor,
++) -> CResult<(Tensor, Tensor)> {
++    let width = w.elem_count();
++    if width == 0 || x.dims().last() != Some(&width) || grad.shape() != x.shape() {
++        candle_core::bail!("CUDA RMSNorm backward shapes disagree");
++    }
++    let (xr, wr, gr) = (ready(x)?, ready(w)?, ready(grad)?);
++    let total = xr.elem_count();
++    let rows = total / width;
++    let (xs, xl) = xr.storage_and_layout();
++    let (ws, wl) = wr.storage_and_layout();
++    let (gs, gl) = gr.storage_and_layout();
++    let (xv, wv, gv) = (view(&xs, xl)?, view(&ws, wl)?, view(&gs, gl)?);
++    let dx = zeros::<f32>(device, total)?;
++    let row_r = zeros::<f64>(device, rows)?;
++    launch_groups(
++        device,
++        "rms_norm_bwd_dx",
++        (rows, 1, 1),
++        (ROW_THREADS, 1, 1),
++        &[
++            Arg::F(xv.slice(..)),
++            Arg::F(wv),
++            Arg::F(gv.slice(..)),
++            Arg::f(&dx),
++            Arg::d(&row_r),
++            Arg::U32(u32_of(width, "width")?),
++        ],
++    )?;
++    let chunks = rows.div_ceil(RMS_CHUNK_ROWS);
++    let partials = zeros::<f64>(device, chunks * width)?;
++    launch(
++        device,
++        "rms_norm_dw_partial",
++        chunks * width,
++        &[
++            Arg::F(xv),
++            Arg::F(gv),
++            Arg::d(&row_r),
++            Arg::d(&partials),
++            Arg::U32(u32_of(rows, "rows")?),
++            Arg::U32(u32_of(width, "width")?),
++            Arg::U32(RMS_CHUNK_ROWS as u32),
++        ],
++    )?;
++    let dw = zeros::<f32>(device, width)?;
++    launch(
++        device,
++        "rms_norm_dw_reduce",
++        width,
++        &[
++            Arg::d(&partials),
++            Arg::f(&dw),
++            Arg::U32(u32_of(chunks, "chunks")?),
++            Arg::U32(u32_of(width, "width")?),
++        ],
++    )?;
++    Ok((tensor(dx, device, x.shape()), tensor(dw, device, w.shape())))
++}
++
++pub(super) fn quaternion_scan_fwd(
++    s1: &CudaStorage,
++    l1: &Layout,
++    s2: &CudaStorage,
++    l2: &Layout,
++) -> Forward {
++    let (batch, time, lanes, four) = l1.shape().dims4()?;
++    if four != 4 || l2.shape() != l1.shape() {
++        candle_core::bail!("quaternion scan needs matching [batch, time, lanes, 4] inputs");
++    }
++    if batch == 0 || time == 0 || lanes == 0 {
++        candle_core::bail!("quaternion scan requires positive dimensions");
++    }
++    let (Some(transition), Some(drive)) = (input(s1, l1)?, input(s2, l2)?) else {
++        return via_host2(&QuaternionScan, s1, l1, s2, l2);
++    };
++    let device = &s1.device;
++    let total = l1.shape().elem_count();
++    let out = zeros::<f32>(device, total)?;
++    launch(
++        device,
++        "quaternion_scan_fwd",
++        batch * lanes,
++        &[
++            Arg::F(transition),
++            Arg::F(drive),
++            Arg::f(&out),
++            Arg::U32(u32_of(time, "time")?),
++            Arg::U32(u32_of(lanes, "lanes")?),
++            Arg::U32(u32_of(batch * lanes, "sequences")?),
++        ],
++    )?;
++    Ok((storage(out, device), l1.shape().clone()))
++}
++
++pub(super) fn quaternion_scan_bwd(
++    device: &CudaDevice,
++    transition: &Tensor,
++    state: &Tensor,
++    grad: &Tensor,
++) -> CResult<(Tensor, Tensor)> {
++    let (batch, time, lanes, four) = transition.dims4()?;
++    if four != 4 || state.shape() != transition.shape() || grad.shape() != transition.shape() {
++        candle_core::bail!(
++            "CUDA quaternion scan backward inputs must match [batch, time, lanes, 4]"
++        );
++    }
++    let (t, s, g) = (ready(transition)?, ready(state)?, ready(grad)?);
++    let total = t.elem_count();
++    let (ts, tl) = t.storage_and_layout();
++    let (ss, sl) = s.storage_and_layout();
++    let (gs, gl) = g.storage_and_layout();
++    let dq = zeros::<f32>(device, total)?;
++    let db = zeros::<f32>(device, total)?;
++    launch(
++        device,
++        "quaternion_scan_bwd",
++        batch * lanes,
++        &[
++            Arg::F(view(&ts, tl)?),
++            Arg::F(view(&ss, sl)?),
++            Arg::F(view(&gs, gl)?),
++            Arg::f(&dq),
++            Arg::f(&db),
++            Arg::U32(u32_of(time, "time")?),
++            Arg::U32(u32_of(lanes, "lanes")?),
++            Arg::U32(u32_of(batch * lanes, "sequences")?),
++        ],
++    )?;
++    Ok((
++        tensor(dq, device, transition.shape()),
++        tensor(db, device, transition.shape()),
++    ))
++}
++
++// ---------------------------------------------------------------------------
++// Cross-entropy.
++
++/// Row log-sum-exps and losses (f64) of `[rows, vocabulary]` logits.
++fn cross_entropy_rows(
++    device: &CudaDevice,
++    logits: CudaView<'_, f32>,
++    targets: &CudaSlice<u32>,
++    rows: usize,
++    vocabulary: usize,
++) -> CResult<(CudaSlice<f64>, CudaSlice<f64>)> {
++    let lse = zeros::<f64>(device, rows)?;
++    let loss = zeros::<f64>(device, rows)?;
++    launch_groups(
++        device,
++        "cross_entropy_rows",
++        (rows, 1, 1),
++        (ROW_THREADS, 1, 1),
++        &[
++            Arg::F(logits),
++            Arg::u(targets),
++            Arg::d(&lse),
++            Arg::d(&loss),
++            Arg::U32(u32_of(vocabulary, "vocabulary")?),
++        ],
++    )?;
++    Ok((lse, loss))
++}
++
++fn check_targets(op: &CrossEntropy, rows: usize, vocabulary: usize) -> CResult<()> {
++    if rows == 0 || vocabulary == 0 {
++        candle_core::bail!("CrossEntropy requires positive rows and vocabulary");
++    }
++    if op.targets.len() != rows || op.weights.as_ref().is_some_and(|w| w.len() != rows) {
++        candle_core::bail!("CrossEntropy needs one target and one weight per row");
++    }
++    if op.targets.iter().any(|&t| t as usize >= vocabulary) {
++        candle_core::bail!("CrossEntropy target outside the vocabulary");
++    }
++    Ok(())
++}
++
++pub(super) fn cross_entropy_fwd(op: &CrossEntropy, s: &CudaStorage, l: &Layout) -> Forward {
++    let (rows, vocabulary) = l.shape().dims2()?;
++    check_targets(op, rows, vocabulary)?;
++    let Some(logits) = input(s, l)? else {
++        return via_host1(op, s, l);
++    };
++    let device = &s.device;
++    let targets = device.clone_htod(&op.targets)?;
++    let (_, loss) = cross_entropy_rows(device, logits, &targets, rows, vocabulary)?;
++    let row_losses = device.clone_dtoh(&loss)?;
++    let mean = match &op.weights {
++        None => row_losses.iter().sum::<f64>() / rows as f64,
++        Some(weights) => {
++            let total: f64 = row_losses
++                .iter()
++                .zip(weights)
++                .filter(|(_, &w)| w != 0.0)
++                .map(|(&l, &w)| f64::from(w) * l)
++                .sum();
++            total / weights.iter().map(|&w| f64::from(w)).sum::<f64>()
++        }
++    };
++    let out = device.clone_htod(&vec![mean as f32])?;
++    Ok((storage(out, device), Shape::from(())))
++}
++
++pub(super) fn cross_entropy_bwd(
++    op: &CrossEntropy,
++    device: &CudaDevice,
++    logits: &Tensor,
++    grad: &Tensor,
++) -> CResult<Tensor> {
++    let (rows, vocabulary) = logits.dims2()?;
++    check_targets(op, rows, vocabulary)?;
++    let grad = f64::from(grad.to_scalar::<f32>()?);
++    let scales: Vec<f64> = match &op.weights {
++        None => vec![grad / rows as f64; rows],
++        Some(weights) => {
++            let total: f64 = weights.iter().map(|&w| f64::from(w)).sum();
++            weights
++                .iter()
++                .map(|&w| {
++                    if w == 0.0 {
++                        0.0
++                    } else {
++                        grad * f64::from(w) / total
++                    }
++                })
++                .collect()
++        }
++    };
++    let l = ready(logits)?;
++    let (ls, ll) = l.storage_and_layout();
++    let lv = view(&ls, ll)?;
++    let targets = device.clone_htod(&op.targets)?;
++    let scale = device.clone_htod(&scales)?;
++    let (lse, _) = cross_entropy_rows(device, lv.slice(..), &targets, rows, vocabulary)?;
++    let out = zeros::<f32>(device, rows * vocabulary)?;
++    launch(
++        device,
++        "cross_entropy_grad",
++        rows * vocabulary,
++        &[
++            Arg::F(lv),
++            Arg::u(&targets),
++            Arg::d(&lse),
++            Arg::d(&scale),
++            Arg::f(&out),
++            Arg::U32(u32_of(rows, "rows")?),
++            Arg::U32(u32_of(vocabulary, "vocabulary")?),
++        ],
++    )?;
++    Ok(tensor(out, device, logits.shape()))
++}
++
++// ---------------------------------------------------------------------------
++// The recurrence core.
++
++impl RecurrenceCore {
++    /// Whether the CUDA kernels cover this configuration (both rotation
++    /// groups; a transport snap runs on the host).
++    pub(super) fn cuda_covered(&self) -> bool {
++        self.snap.is_none()
++    }
++
++    /// Kernel rotation mode: 0 none, 1 quaternion (S3), 2 U(1).
++    fn cuda_rotation(&self) -> u32 {
++        match (self.rotation, self.group) {
++            (false, _) => 0,
++            (true, RotationGroup::Quaternion) => 1,
++            (true, RotationGroup::U1) => 2,
++        }
++    }
++
++    fn cuda_check(&self) -> CResult<()> {
++        if self.batch == 0 || self.time == 0 || self.width == 0 || self.width % 4 != 0 {
++            candle_core::bail!(
++                "CUDA RecurrenceCore requires positive dimensions with width divisible by 4"
++            );
++        }
++        Ok(())
++    }
++
++    /// `log a` per lane on the device.
++    fn cuda_log_a(
++        &self,
++        device: &CudaDevice,
++        parameters: CudaView<'_, f32>,
++    ) -> CResult<CudaSlice<f32>> {
++        let lanes = self.lanes();
++        let log_a = zeros::<f32>(device, lanes)?;
++        launch(
++            device,
++            "recurrence_log_a",
++            lanes,
++            &[
++                Arg::F(parameters),
++                Arg::f(&log_a),
++                Arg::U32(u32_of(self.width, "width")?),
++                Arg::U32(u32_of(lanes, "lanes")?),
++            ],
++        )?;
++        Ok(log_a)
++    }
++
++    /// The forward recurrence: states, drives and outputs.
++    #[allow(clippy::type_complexity)]
++    fn cuda_forward(
++        &self,
++        device: &CudaDevice,
++        branches: CudaView<'_, f32>,
++        gates: CudaView<'_, f32>,
++        parameters: CudaView<'_, f32>,
++        log_a: &CudaSlice<f32>,
++    ) -> CResult<(CudaSlice<f32>, CudaSlice<f32>, CudaSlice<f32>)> {
++        let (time, width, lanes) = (self.time, self.width, self.lanes());
++        let total = self.batch * time * width;
++        let state = zeros::<f32>(device, total)?;
++        let drive = zeros::<f32>(device, total)?;
++        let out = zeros::<f32>(device, total)?;
++        launch(
++            device,
++            "recurrence_core_fwd",
++            self.batch * lanes,
++            &[
++                Arg::F(branches),
++                Arg::F(gates),
++                Arg::F(parameters),
++                Arg::f(log_a),
++                Arg::f(&state),
++                Arg::f(&drive),
++                Arg::f(&out),
++                Arg::U32(u32_of(time, "time")?),
++                Arg::U32(u32_of(width, "width")?),
++                Arg::U32(u32_of(lanes, "lanes")?),
++                Arg::U32(u32_of(self.gate_width(), "gate width")?),
++                Arg::U32(self.cuda_rotation()),
++                Arg::U32(u32_of(self.batch * lanes, "lanes")?),
++            ],
++        )?;
++        Ok((state, drive, out))
++    }
++
++    pub(super) fn cuda_fwd_impl(
++        &self,
++        s1: &CudaStorage,
++        l1: &Layout,
++        s2: &CudaStorage,
++        l2: &Layout,
++        s3: &CudaStorage,
++        l3: &Layout,
++    ) -> Forward {
++        if !self.cuda_covered() {
++            return via_host3(self, [(s1, l1), (s2, l2), (s3, l3)]);
++        }
++        self.cuda_check()?;
++        let (time, width) = (self.time, self.width);
++        if l1.shape().elem_count() != self.batch * time * 2 * width
++            || l2.shape().elem_count() != self.batch * time * self.gate_width()
++            || l3.shape().elem_count() != self.parameter_len()
++        {
++            candle_core::bail!("recurrence core inputs have the wrong sizes");
++        }
++        let (Some(branches), Some(gates), Some(parameters)) =
++            (input(s1, l1)?, input(s2, l2)?, input(s3, l3)?)
++        else {
++            return via_host3(self, [(s1, l1), (s2, l2), (s3, l3)]);
++        };
++        let device = &s1.device;
++        let log_a = self.cuda_log_a(device, parameters.slice(..))?;
++        let (_, _, out) = self.cuda_forward(device, branches, gates, parameters, &log_a)?;
++        Ok((storage(out, device), Shape::from((self.batch, time, width))))
++    }
++
++    /// The exact backward on CUDA: recomputes the forward states, sweeps
++    /// each (window, lane) in reverse, then reduces the windows' f64
++    /// parameter partials.
++    pub(super) fn cuda_bwd(
++        &self,
++        device: &CudaDevice,
++        branches: &Tensor,
++        gates: &Tensor,
++        parameters: &Tensor,
++        grad: &Tensor,
++    ) -> CResult<(Tensor, Tensor, Tensor)> {
++        self.cuda_check()?;
++        let (b, g, p, dy) = (
++            ready(branches)?,
++            ready(gates)?,
++            ready(parameters)?,
++            ready(grad)?,
++        );
++        let (time, width, lanes) = (self.time, self.width, self.lanes());
++        let gate_width = self.gate_width();
++        let param_len = self.parameter_len();
++        if b.elem_count() != self.batch * time * 2 * width
++            || g.elem_count() != self.batch * time * gate_width
++            || p.elem_count() != param_len
++            || dy.elem_count() != self.batch * time * width
++        {
++            candle_core::bail!("CUDA recurrence backward inputs have the wrong sizes");
++        }
++        let (bs, bl) = b.storage_and_layout();
++        let (gs, gl) = g.storage_and_layout();
++        let (ps, pl) = p.storage_and_layout();
++        let (ds, dl) = dy.storage_and_layout();
++        let (bv, gv, pv, dv) = (
++            view(&bs, bl)?,
++            view(&gs, gl)?,
++            view(&ps, pl)?,
++            view(&ds, dl)?,
++        );
++        let log_a = self.cuda_log_a(device, pv.slice(..))?;
++        let (state, drive, _) =
++            self.cuda_forward(device, bv.slice(..), gv.slice(..), pv.slice(..), &log_a)?;
++        let d_branches = zeros::<f32>(device, b.elem_count())?;
++        let d_gates = zeros::<f32>(device, g.elem_count())?;
++        let partials = zeros::<f64>(device, self.batch * param_len)?;
++        let d_parameters = zeros::<f32>(device, param_len)?;
++        launch(
++            device,
++            "recurrence_core_bwd",
++            self.batch * lanes,
++            &[
++                Arg::F(bv),
++                Arg::F(gv),
++                Arg::F(pv.slice(..)),
++                Arg::f(&log_a),
++                Arg::f(&state),
++                Arg::f(&drive),
++                Arg::F(dv),
++                Arg::f(&d_branches),
++                Arg::f(&d_gates),
++                Arg::d(&partials),
++                Arg::U32(u32_of(time, "time")?),
++                Arg::U32(u32_of(width, "width")?),
++                Arg::U32(u32_of(lanes, "lanes")?),
++                Arg::U32(u32_of(gate_width, "gate width")?),
++                Arg::U32(self.cuda_rotation()),
++                Arg::U32(u32_of(self.batch * lanes, "lanes")?),
++                Arg::U32(u32_of(param_len, "parameters")?),
++            ],
++        )?;
++        launch(
++            device,
++            "recurrence_param_reduce",
++            param_len,
++            &[
++                Arg::d(&partials),
++                Arg::F(pv),
++                Arg::f(&d_parameters),
++                Arg::U32(u32_of(self.batch, "batch")?),
++                Arg::U32(u32_of(param_len, "parameters")?),
++                Arg::U32(u32_of(width, "width")?),
++            ],
++        )?;
++        Ok((
++            tensor(d_branches, device, branches.shape()),
++            tensor(d_gates, device, gates.shape()),
++            tensor(d_parameters, device, parameters.shape()),
++        ))
++    }
++}
++
++// ---------------------------------------------------------------------------
++// The fused read.
++
++/// RoPE-rotated copies of a read's queries and key-value rows, and the
++/// tables that rotated them (reused to map gradients back).
++struct RotatedRead {
++    query: CudaSlice<f32>,
++    kv: CudaSlice<f32>,
++    tables: (CudaSlice<f32>, CudaSlice<f32>),
++}
++
++/// The device buffers of one recomputed read: probabilities [index, t, j]
++/// (j <= t used), NoRead probabilities, the f64 query and key lifts and,
++/// when asked for, the f64 Lorentz excesses or L2 squared distances.
++struct CudaReadPass {
++    probabilities: CudaSlice<f32>,
++    null_probability: CudaSlice<f32>,
++    query_lift: CudaSlice<f64>,
++    key_lift: CudaSlice<f64>,
++    excess: CudaSlice<f64>,
++}
++
++impl FusedRead {
++    /// Whether the CUDA kernels cover this configuration (all three scores,
++    /// with or without RoPE; flock selection runs on the host).
++    pub(super) fn cuda_covered(&self) -> bool {
++        self.select.is_none() && (!self.rope || self.key % 2 == 0)
++    }
++
++    /// The host's exact RoPE tables ([`rope_tables`]) on `device`.
++    fn cuda_rope_tables(&self, device: &CudaDevice) -> CResult<(CudaSlice<f32>, CudaSlice<f32>)> {
++        let (cosine, sine) = rope_tables(self.time, self.key);
++        Ok((device.clone_htod(&cosine)?, device.clone_htod(&sine)?))
++    }
++
++    /// A copy of `rows` ([index * time + t] rows of `stride` features) with
++    /// the first `key` features of each rotated by position, exactly as
++    /// [`rope_rotate`]; `inverse` applies the transpose (for gradients).
++    fn cuda_rope(
++        &self,
++        device: &CudaDevice,
++        rows: CudaView<'_, f32>,
++        stride: usize,
++        tables: &(CudaSlice<f32>, CudaSlice<f32>),
++        inverse: bool,
++    ) -> CResult<CudaSlice<f32>> {
++        let len = self.batch * self.heads * self.time * stride;
++        if rows.len() != len {
++            candle_core::bail!("CUDA RoPE input has the wrong size");
++        }
++        let out = zeros::<f32>(device, len)?;
++        launch(
++            device,
++            "read_rope",
++            len,
++            &[
++                Arg::F(rows),
++                Arg::f(&out),
++                Arg::f(&tables.0),
++                Arg::f(&tables.1),
++                Arg::Dims(self.cuda_dims()?),
++                Arg::U32(u32_of(stride, "RoPE stride")?),
++                Arg::U32(u32::from(inverse)),
++            ],
++        )?;
++        Ok(out)
++    }
++
++    /// Queries and keys rotated by RoPE (values copied), when the read has it.
++    fn cuda_rotated(
++        &self,
++        device: &CudaDevice,
++        query: CudaView<'_, f32>,
++        kv: CudaView<'_, f32>,
++    ) -> CResult<Option<RotatedRead>> {
++        if !self.rope {
++            return Ok(None);
++        }
++        let tables = self.cuda_rope_tables(device)?;
++        let query = self.cuda_rope(device, query, self.key, &tables, false)?;
++        let kv = self.cuda_rope(device, kv, self.width(), &tables, false)?;
++        Ok(Some(RotatedRead { query, kv, tables }))
++    }
++
++    fn cuda_dims(&self) -> CResult<[u32; 8]> {
++        Ok([
++            u32_of(self.batch, "batch")?,
++            u32_of(self.heads, "heads")?,
++            u32_of(self.time, "time")?,
++            u32_of(self.key, "key")?,
++            u32_of(self.value, "value")?,
++            u32::from(self.null),
++            u32::from(self.age),
++            match self.score {
++                ReadScore::Dot => 0,
++                ReadScore::Lorentz => 1,
++                ReadScore::L2 => 2,
++            },
++        ])
++    }
++
++    /// Scores and softmax of every row on the device.
++    fn cuda_pass(
++        &self,
++        device: &CudaDevice,
++        query: CudaView<'_, f32>,
++        kv: CudaView<'_, f32>,
++        aux: CudaView<'_, f32>,
++        keep_excess: bool,
++    ) -> CResult<CudaReadPass> {
++        let dims = self.cuda_dims()?;
++        let rows = self.batch * self.heads * self.time;
++        let square = rows * self.time;
++        let scaled = self.score.scaled();
++        let probabilities = zeros::<f32>(device, square)?;
++        let null_probability = zeros::<f32>(device, rows)?;
++        let lift_len = if scaled { rows } else { 1 };
++        let query_lift = zeros::<f64>(device, lift_len)?;
++        let key_lift = zeros::<f64>(device, lift_len)?;
++        let write_excess = scaled && keep_excess;
++        let excess = zeros::<f64>(device, if write_excess { square } else { 1 })?;
++        if scaled {
++            launch(
++                device,
++                "read_lift",
++                rows,
++                &[
++                    Arg::F(query.slice(..)),
++                    Arg::F(kv.slice(..)),
++                    Arg::d(&query_lift),
++                    Arg::d(&key_lift),
++                    Arg::Dims(dims),
++                ],
++            )?;
++        }
++        let tiles = self.time.div_ceil(16);
++        let geometry = [
++            u32_of(self.key, "key")?,
++            0,
++            u32_of(self.width(), "width")?,
++            0,
++            u32_of(self.key, "key")?,
++            1,
++            u32::from(write_excess),
++        ];
++        launch_groups(
++            device,
++            "read_tile_inner",
++            (tiles, tiles, self.batch * self.heads),
++            (16, 16, 1),
++            &[
++                Arg::F(query),
++                Arg::F(kv),
++                Arg::F(aux.slice(..)),
++                Arg::d(&query_lift),
++                Arg::d(&key_lift),
++                Arg::f(&probabilities),
++                Arg::d(&excess),
++                Arg::Dims(dims),
++                Arg::Geom(geometry),
++            ],
++        )?;
++        launch(
++            device,
++            "read_softmax_warp",
++            32 * rows,
++            &[
++                Arg::f(&probabilities),
++                Arg::F(aux),
++                Arg::f(&null_probability),
++                Arg::Dims(dims),
++            ],
++        )?;
++        Ok(CudaReadPass {
++            probabilities,
++            null_probability,
++            query_lift,
++            key_lift,
++            excess,
++        })
++    }
++
++    fn cuda_check(&self) -> CResult<()> {
++        if self.batch == 0 || self.heads == 0 || self.time == 0 || self.key == 0 || self.value == 0
++        {
++            candle_core::bail!("CUDA FusedRead requires positive dimensions");
++        }
++        Ok(())
++    }
++
++    pub(super) fn cuda_fwd_impl(
++        &self,
++        s1: &CudaStorage,
++        l1: &Layout,
++        s2: &CudaStorage,
++        l2: &Layout,
++        s3: &CudaStorage,
++        l3: &Layout,
++    ) -> Forward {
++        if !self.cuda_covered() {
++            return via_host3(self, [(s1, l1), (s2, l2), (s3, l3)]);
++        }
++        self.cuda_check()?;
++        let (time, value) = (self.time, self.value);
++        let rows = self.batch * self.heads * time;
++        let expected_aux = fused_aux_len(
++            self.batch, self.heads, time, self.score, self.null, self.age,
++        )
++        .max(1);
++        if l1.shape().elem_count() != rows * self.key
++            || l2.shape().elem_count() != rows * self.width()
++            || l3.shape().elem_count() != expected_aux
++        {
++            candle_core::bail!("FusedRead input element counts do not match declared dimensions");
++        }
++        let (Some(query), Some(kv), Some(aux)) = (input(s1, l1)?, input(s2, l2)?, input(s3, l3)?)
++        else {
++            return via_host3(self, [(s1, l1), (s2, l2), (s3, l3)]);
++        };
++        let device = &s1.device;
++        // With RoPE the whole read runs on rotated queries and keys, as the
++        // CPU's `block` rotates them before every product.
++        let rotated = self.cuda_rotated(device, query.slice(..), kv.slice(..))?;
++        let (query, kv) = match &rotated {
++            Some(rotated) => (rotated.query.as_view(), rotated.kv.as_view()),
++            None => (query, kv),
++        };
++        let pass = self.cuda_pass(device, query, kv.slice(..), aux, false)?;
++        let total = rows * value;
++        let out = zeros::<f32>(device, total)?;
++        launch(
++            device,
++            "read_mix",
++            total,
++            &[
++                Arg::f(&pass.probabilities),
++                Arg::F(kv),
++                Arg::f(&out),
++                Arg::Dims(self.cuda_dims()?),
++            ],
++        )?;
++        Ok((
++            storage(out, device),
++            Shape::from((self.batch, self.heads, time, value)),
++        ))
++    }
++
++    /// The exact backward on CUDA.
++    pub(super) fn cuda_bwd(
++        &self,
++        device: &CudaDevice,
++        query: &Tensor,
++        kv: &Tensor,
++        aux: &Tensor,
++        grad: &Tensor,
++    ) -> CResult<(Tensor, Tensor, Tensor)> {
++        self.cuda_check()?;
++        let (q, kvt, a, dy) = (ready(query)?, ready(kv)?, ready(aux)?, ready(grad)?);
++        let rows = self.batch * self.heads * self.time;
++        if q.elem_count() != rows * self.key
++            || kvt.elem_count() != rows * self.width()
++            || dy.elem_count() != rows * self.value
++        {
++            candle_core::bail!("CUDA read backward inputs have the wrong sizes");
++        }
++        let (qs, ql) = q.storage_and_layout();
++        let (ks, kl) = kvt.storage_and_layout();
++        let (as_, al) = a.storage_and_layout();
++        let (ds, dl) = dy.storage_and_layout();
++        let (qv, kvv, av, dyv) = (
++            view(&qs, ql)?,
++            view(&ks, kl)?,
++            view(&as_, al)?,
++            view(&ds, dl)?,
++        );
++        let scaled = self.score.scaled();
++        let rotated = self.cuda_rotated(device, qv.slice(..), kvv.slice(..))?;
++        let (qv, kvv) = match &rotated {
++            Some(rotated) => (rotated.query.as_view(), rotated.kv.as_view()),
++            None => (qv, kvv),
++        };
++        let pass = self.cuda_pass(device, qv.slice(..), kvv.slice(..), av.slice(..), true)?;
++        let dims = self.cuda_dims()?;
++        let square = rows * self.time;
++        let dp = zeros::<f32>(device, square)?;
++        let d_scores = zeros::<f64>(device, square)?;
++        let inner_grad = zeros::<f32>(device, square)?;
++        let row_len = if scaled { rows } else { 1 };
++        let query_self = zeros::<f64>(device, row_len)?;
++        let row_beta = zeros::<f64>(device, row_len)?;
++        let row_offset = zeros::<f64>(device, row_len)?;
++        let key_self = zeros::<f64>(device, row_len)?;
++        let dq = zeros::<f32>(device, q.elem_count())?;
++        let dkv = zeros::<f32>(device, kvt.elem_count())?;
++        let aux_parts = self.null || self.age || scaled;
++        let d_aux = zeros::<f32>(device, a.elem_count())?;
++        let tiles = self.time.div_ceil(16);
++        let geometry = [
++            u32_of(self.value, "value")?,
++            0,
++            u32_of(self.width(), "width")?,
++            u32_of(self.key, "key")?,
++            u32_of(self.value, "value")?,
++            0,
++            0,
++        ];
++        launch_groups(
++            device,
++            "read_tile_inner",
++            (tiles, tiles, self.batch * self.heads),
++            (16, 16, 1),
++            &[
++                Arg::F(dyv.slice(..)),
++                Arg::F(kvv.slice(..)),
++                Arg::F(av.slice(..)),
++                Arg::d(&pass.query_lift),
++                Arg::d(&pass.key_lift),
++                Arg::f(&dp),
++                Arg::d(&pass.excess),
++                Arg::Dims(dims),
++                Arg::Geom(geometry),
++            ],
++        )?;
++        launch(
++            device,
++            "read_row_grad_warp",
++            32 * rows,
++            &[
++                Arg::f(&pass.probabilities),
++                Arg::f(&dp),
++                Arg::d(&d_scores),
++                Arg::f(&inner_grad),
++                Arg::d(&pass.excess),
++                Arg::f(&pass.null_probability),
++                Arg::F(av.slice(..)),
++                Arg::d(&pass.query_lift),
++                Arg::d(&pass.key_lift),
++                Arg::d(&query_self),
++                Arg::d(&row_beta),
++                Arg::d(&row_offset),
++                Arg::f(&d_aux),
++                Arg::Dims(dims),
++            ],
++        )?;
++        if scaled {
++            launch(
++                device,
++                "read_key_self",
++                rows,
++                &[
++                    Arg::d(&d_scores),
++                    Arg::d(&pass.excess),
++                    Arg::F(av),
++                    Arg::d(&pass.query_lift),
++                    Arg::d(&pass.key_lift),
++                    Arg::d(&key_self),
++                    Arg::Dims(dims),
++                ],
++            )?;
++        }
++        launch(
++            device,
++            "read_dq",
++            q.elem_count(),
++            &[
++                Arg::f(&inner_grad),
++                Arg::F(qv.slice(..)),
++                Arg::F(kvv.slice(..)),
++                Arg::d(&query_self),
++                Arg::f(&dq),
++                Arg::Dims(dims),
++            ],
++        )?;
++        launch(
++            device,
++            "read_dkv",
++            kvt.elem_count(),
++            &[
++                Arg::f(&inner_grad),
++                Arg::f(&pass.probabilities),
++                Arg::F(qv),
++                Arg::F(kvv),
++                Arg::F(dyv),
++                Arg::d(&key_self),
++                Arg::f(&dkv),
++                Arg::Dims(dims),
++            ],
++        )?;
++        if self.age {
++            launch(
++                device,
++                "read_dage",
++                self.heads * self.time,
++                &[Arg::d(&d_scores), Arg::f(&d_aux), Arg::Dims(dims)],
++            )?;
++        }
++        if scaled {
++            launch(
++                device,
++                "read_dbeta",
++                2 * self.heads,
++                &[
++                    Arg::d(&row_beta),
++                    Arg::d(&row_offset),
++                    Arg::f(&d_aux),
++                    Arg::Dims(dims),
++                ],
++            )?;
++        }
++        let (dq, dkv) = match &rotated {
++            // Gradients of the rotated rows map back by the inverse rotation
++            // (after the Lorentz/L2 self terms, as on the CPU); value
++            // gradients are copied.
++            Some(rotated) => (
++                self.cuda_rope(device, dq.as_view(), self.key, &rotated.tables, true)?,
++                self.cuda_rope(device, dkv.as_view(), self.width(), &rotated.tables, true)?,
++            ),
++            None => (dq, dkv),
++        };
++        let d_aux = if aux_parts {
++            tensor(d_aux, device, aux.shape())
++        } else {
++            // The placeholder auxiliary input carries no gradient.
++            Tensor::zeros(aux.shape(), DType::F32, aux.device())?
++        };
++        Ok((
++            tensor(dq, device, query.shape()),
++            tensor(dkv, device, kv.shape()),
++            d_aux,
++        ))
++    }
++}
++
++// ---------------------------------------------------------------------------
++// AdamW.
++
++/// [`adam_step`] on CUDA, in place in the variable's and moments' buffers,
++/// with the same f32 operations in the same order.
++pub(super) fn adam_step_cuda(
++    device: &CudaDevice,
++    var: &Var,
++    grad: &Tensor,
++    m: &Var,
++    v: &Var,
++    c: &AdamConstants,
++) -> CResult<()> {
++    let gradient = ready(grad)?;
++    let n = var.elem_count();
++    if gradient.elem_count() != n || m.elem_count() != n || v.elem_count() != n {
++        candle_core::bail!("CUDA AdamW sizes disagree");
++    }
++    let (ps, pl) = var.as_tensor().storage_and_layout();
++    let (gs, gl) = gradient.storage_and_layout();
++    let (ms, ml) = m.as_tensor().storage_and_layout();
++    let (vs, vl) = v.as_tensor().storage_and_layout();
++    let constants = [
++        c.scale, c.beta1, c.rest1, c.beta2, c.rest2, c.correct1, c.correct2, c.epsilon, c.keep,
++        c.lr,
++    ]
++    .map(f32::to_bits);
++    launch(
++        device,
++        "adam_update",
++        n,
++        &[
++            Arg::F(view(&ps, pl)?),
++            Arg::F(view(&ms, ml)?),
++            Arg::F(view(&vs, vl)?),
++            Arg::F(view(&gs, gl)?),
++            Arg::Adam(constants),
++            Arg::U32(u32_of(n, "size")?),
++        ],
++    )
++}
+diff --git a/crates/uor-r4-training/src/lib.rs b/crates/uor-r4-training/src/lib.rs
+index 6bab8baae..1ed583e11 100644
+--- a/crates/uor-r4-training/src/lib.rs
++++ b/crates/uor-r4-training/src/lib.rs
+@@ -5,13 +5,17 @@
+ //! serving path. Its purpose is to establish a real language-loss gradient
+ //! through attention before building and measuring a discrete bridge.
+ 
+-#![forbid(unsafe_code)]
++// Without the `cuda` feature the crate forbids unsafe code. With it, only the
++// CUDA kernel launcher (`cuda_stack_kernels::cuda`) opts in.
++#![cfg_attr(not(feature = "cuda"), forbid(unsafe_code))]
++#![cfg_attr(feature = "cuda", deny(unsafe_code))]
+ 
+ pub mod addressing_arms;
+ pub mod b3_e8_codecs;
+ pub mod baseline_counts;
+ pub mod baseline_protocol;
+ pub mod cache_memory;
++pub mod cuda_stack_kernels;
+ pub mod d4_codecs;
+ pub use d4_codecs::{codec_by_name, HeadCompensatedMapCodec, RecurrenceOutMinMseMapCodec};
+ pub mod dialogue_artifact;
+diff --git a/crates/uor-r4-training/tests/cuda_stack_ops_parity.rs b/crates/uor-r4-training/tests/cuda_stack_ops_parity.rs
+new file mode 100644
+index 000000000..dc202dc0c
+--- /dev/null
++++ b/crates/uor-r4-training/tests/cuda_stack_ops_parity.rs
+@@ -0,0 +1,1319 @@
++//! Numerical Parity Tests: CPU Reference vs Native CUDA Stack Kernels.
++//!
++//! Mirrors `metal_stack_ops_parity.rs` (same shapes and tolerances) for the
++//! CUDA kernels in `cuda_stack_kernels.rs`, plus the configurations only
++//! CUDA runs on the device: the U(1) recurrence control and the L2 read
++//! control. Without a CUDA device every device test prints that it was
++//! skipped and returns `Ok(())`, so a pass count proves nothing; set
++//! `UOR_REQUIRE_CUDA=1` to make a missing device fail every device test (use it
++//! on GPU hosts and in any lane that claims GPU results). The NVRTC compile
++//! test needs only the toolkit.
++
++/// A missing device: a failure under `UOR_REQUIRE_CUDA=1`, otherwise a
++/// printed skip (never a silent pass).
++#[cfg(feature = "cuda")]
++fn no_device(error: impl std::fmt::Display) -> uor_r4_training::Result<()> {
++    if std::env::var("UOR_REQUIRE_CUDA").is_ok_and(|v| v == "1") {
++        panic!("UOR_REQUIRE_CUDA=1 but no CUDA device: {error}");
++    }
++    println!("SKIPPED (no CUDA device): {error}");
++    Ok(())
++}
++
++/// The kernel source compiles with the installed NVRTC (no device needed).
++#[cfg(feature = "cuda")]
++#[test]
++fn test_cuda_kernels_compile_with_nvrtc() -> uor_r4_training::Result<()> {
++    uor_r4_training::cuda_stack_kernels::cuda::compile_check()?;
++    Ok(())
++}
++
++#[cfg(feature = "cuda")]
++#[test]
++fn test_cuda_device_available() -> uor_r4_training::Result<()> {
++    match candle_core::Device::new_cuda(0) {
++        Ok(device) => {
++            println!("CUDA device 0 initialized successfully: {:?}", device);
++            Ok(())
++        }
++        Err(e) => no_device(e),
++    }
++}
++
++#[cfg(feature = "cuda")]
++fn assert_finite_and_close(cpu: &[f32], cuda: &[f32], tol: f32, op_name: &str) -> f32 {
++    assert_eq!(cpu.len(), cuda.len(), "{op_name}: length mismatch");
++    let mut max_diff = 0.0f32;
++    for (i, (&c, &m)) in cpu.iter().zip(cuda.iter()).enumerate() {
++        assert!(
++            c.is_finite(),
++            "{op_name} at index {i}: CPU value is not finite ({c})"
++        );
++        assert!(
++            m.is_finite(),
++            "{op_name} at index {i}: CUDA value is not finite ({m})"
++        );
++        let diff = (c - m).abs();
++        assert!(
++            diff.is_finite(),
++            "{op_name} at index {i}: diff is not finite ({diff})"
++        );
++        if diff > max_diff {
++            max_diff = diff;
++        }
++    }
++    assert!(
++        max_diff < tol,
++        "{op_name} diff too large: {max_diff} >= {tol}"
++    );
++    max_diff
++}
++
++#[cfg(feature = "cuda")]
++#[test]
++fn test_straight_through_parity() -> uor_r4_training::Result<()> {
++    let cuda_dev = match candle_core::Device::new_cuda(0) {
++        Ok(dev) => dev,
++        Err(e) => return no_device(e),
++    };
++    let cpu_dev = candle_core::Device::Cpu;
++
++    let len = 256;
++    let cont_data: Vec<f32> = (0..len).map(|i| i as f32 * 0.1).collect();
++    let quant_data: Vec<f32> = (0..len).map(|i| (i as f32 * 0.1).round()).collect();
++
++    let cont_cpu = candle_core::Tensor::from_vec(cont_data.clone(), (1, len), &cpu_dev)?;
++    let quant_cpu = candle_core::Tensor::from_vec(quant_data.clone(), (1, len), &cpu_dev)?;
++
++    let cont_cuda = candle_core::Tensor::from_vec(cont_data, (1, len), &cuda_dev)?;
++    let quant_cuda = candle_core::Tensor::from_vec(quant_data, (1, len), &cuda_dev)?;
++
++    let out_cpu = uor_r4_training::geometric_stack::straight_through(&cont_cpu, &quant_cpu)?;
++    let out_cuda = uor_r4_training::geometric_stack::straight_through(&cont_cuda, &quant_cuda)?;
++
++    let v_cpu = out_cpu.flatten_all()?.to_vec1::<f32>()?;
++    let v_cuda = out_cuda.flatten_all()?.to_vec1::<f32>()?;
++
++    for (c, m) in v_cpu.iter().zip(v_cuda.iter()) {
++        assert!(c.is_finite() && m.is_finite());
++    }
++    assert_eq!(v_cpu, v_cuda);
++    Ok(())
++}
++
++#[cfg(feature = "cuda")]
++#[test]
++fn test_swiglu_parity() -> uor_r4_training::Result<()> {
++    let cuda_dev = match candle_core::Device::new_cuda(0) {
++        Ok(dev) => dev,
++        Err(e) => return no_device(e),
++    };
++    let cpu_dev = candle_core::Device::Cpu;
++
++    let len = 1024;
++    let gate_data: Vec<f32> = (0..len).map(|i| (i as f32 * 0.01 - 5.0).sin()).collect();
++    let up_data: Vec<f32> = (0..len).map(|i| (i as f32 * 0.02 + 1.0).cos()).collect();
++
++    let gate_cpu = candle_core::Tensor::from_vec(gate_data.clone(), (1, len), &cpu_dev)?;
++    let up_cpu = candle_core::Tensor::from_vec(up_data.clone(), (1, len), &cpu_dev)?;
++
++    let gate_cuda = candle_core::Tensor::from_vec(gate_data, (1, len), &cuda_dev)?;
++    let up_cuda = candle_core::Tensor::from_vec(up_data, (1, len), &cuda_dev)?;
++
++    let out_cpu = uor_r4_training::geometric_stack::swiglu(&gate_cpu, &up_cpu)?;
++    let out_cuda = uor_r4_training::geometric_stack::swiglu(&gate_cuda, &up_cuda)?;
++
++    let v_cpu = out_cpu.flatten_all()?.to_vec1::<f32>()?;
++    let v_cuda = out_cuda.flatten_all()?.to_vec1::<f32>()?;
++
++    let max_diff = assert_finite_and_close(&v_cpu, &v_cuda, 1e-5, "SwiGLU");
++    println!("SwiGLU max diff CPU vs CUDA: {max_diff}");
++    Ok(())
++}
++
++#[cfg(feature = "cuda")]
++#[test]
++fn test_rms_norm_parity() -> uor_r4_training::Result<()> {
++    let cuda_dev = match candle_core::Device::new_cuda(0) {
++        Ok(dev) => dev,
++        Err(e) => return no_device(e),
++    };
++    let cpu_dev = candle_core::Device::Cpu;
++
++    let rows = 4;
++    let width = 288;
++    let total = rows * width;
++    let x_data: Vec<f32> = (0..total).map(|i| (i as f32 * 0.03).sin()).collect();
++    let w_data: Vec<f32> = (0..width).map(|i| i as f32 * 0.01 + 0.5).collect();
++
++    let x_cpu = candle_core::Tensor::from_vec(x_data.clone(), (rows, width), &cpu_dev)?;
++    let w_cpu = candle_core::Tensor::from_vec(w_data.clone(), (width,), &cpu_dev)?;
++
++    let x_cuda = candle_core::Tensor::from_vec(x_data, (rows, width), &cuda_dev)?;
++    let w_cuda = candle_core::Tensor::from_vec(w_data, (width,), &cuda_dev)?;
++
++    let out_cpu = uor_r4_training::geometric_stack::rms_norm(&x_cpu, &w_cpu)?;
++    let out_cuda = uor_r4_training::geometric_stack::rms_norm(&x_cuda, &w_cuda)?;
++
++    let v_cpu = out_cpu.flatten_all()?.to_vec1::<f32>()?;
++    let v_cuda = out_cuda.flatten_all()?.to_vec1::<f32>()?;
++
++    let max_diff = assert_finite_and_close(&v_cpu, &v_cuda, 1e-4, "RMSNorm");
++    println!("RMSNorm max diff CPU vs CUDA: {max_diff}");
++    Ok(())
++}
++
++#[cfg(feature = "cuda")]
++#[test]
++fn test_quaternion_scan_parity() -> uor_r4_training::Result<()> {
++    let cuda_dev = match candle_core::Device::new_cuda(0) {
++        Ok(dev) => dev,
++        Err(e) => return no_device(e),
++    };
++    let cpu_dev = candle_core::Device::Cpu;
++
++    let batch = 2;
++    let time = 16;
++    let lanes = 12;
++    let total = batch * time * lanes * 4;
++
++    // Unit-ish quaternions for transitions
++    let trans_data: Vec<f32> = (0..total)
++        .map(|i| {
++            if i % 4 == 0 {
++                0.999f32
++            } else {
++                (i as f32 * 0.001).sin() * 0.01f32
++            }
++        })
++        .collect();
++    let drive_data: Vec<f32> = (0..total)
++        .map(|i| (i as f32 * 0.05).cos() * 0.1f32)
++        .collect();
++
++    let shape = (batch, time, lanes, 4);
++    let t_cpu = candle_core::Tensor::from_vec(trans_data.clone(), shape, &cpu_dev)?;
++    let d_cpu = candle_core::Tensor::from_vec(drive_data.clone(), shape, &cpu_dev)?;
++
++    let t_cuda = candle_core::Tensor::from_vec(trans_data, shape, &cuda_dev)?;
++    let d_cuda = candle_core::Tensor::from_vec(drive_data, shape, &cuda_dev)?;
++
++    let out_cpu = uor_r4_training::geometric_stack::quaternion_scan(&t_cpu, &d_cpu)?;
++    let out_cuda = uor_r4_training::geometric_stack::quaternion_scan(&t_cuda, &d_cuda)?;
++
++    let v_cpu = out_cpu.flatten_all()?.to_vec1::<f32>()?;
++    let v_cuda = out_cuda.flatten_all()?.to_vec1::<f32>()?;
++
++    let max_diff = assert_finite_and_close(&v_cpu, &v_cuda, 1e-4, "QuaternionScan");
++    println!("QuaternionScan max diff CPU vs CUDA: {max_diff}");
++    Ok(())
++}
++
++#[cfg(feature = "cuda")]
++#[test]
++fn test_cross_entropy_parity() -> uor_r4_training::Result<()> {
++    let cuda_dev = match candle_core::Device::new_cuda(0) {
++        Ok(dev) => dev,
++        Err(e) => return no_device(e),
++    };
++    let cpu_dev = candle_core::Device::Cpu;
++
++    let rows: usize = 8;
++    let vocab: usize = 256;
++    let logits_data: Vec<f32> = (0..rows * vocab).map(|i| (i as f32 * 0.01).sin()).collect();
++    let targets: Vec<u32> = (0..rows).map(|r| (r * 17) as u32 % vocab as u32).collect();
++
++    let l_cpu = candle_core::Tensor::from_vec(logits_data.clone(), (rows, vocab), &cpu_dev)?;
++    let l_cuda = candle_core::Tensor::from_vec(logits_data, (rows, vocab), &cuda_dev)?;
++
++    let loss_cpu = uor_r4_training::geometric_stack::cross_entropy(&l_cpu, &targets)?;
++    let loss_cuda = uor_r4_training::geometric_stack::cross_entropy(&l_cuda, &targets)?;
++
++    let c_val = loss_cpu.to_scalar::<f32>()?;
++    let m_val = loss_cuda.to_scalar::<f32>()?;
++
++    assert!(
++        c_val.is_finite(),
++        "CrossEntropy CPU value is not finite ({c_val})"
++    );
++    assert!(
++        m_val.is_finite(),
++        "CrossEntropy CUDA value is not finite ({m_val})"
++    );
++    let diff = (c_val - m_val).abs();
++    assert!(diff.is_finite(), "CrossEntropy diff is not finite ({diff})");
++    println!("CrossEntropy CPU ({c_val}) vs CUDA ({m_val}) diff: {diff}");
++    assert!(diff < 1e-4, "CrossEntropy diff too large: {diff}");
++    Ok(())
++}
++
++#[cfg(feature = "cuda")]
++#[test]
++fn test_swiglu_backward_parity() -> uor_r4_training::Result<()> {
++    let cuda_dev = match candle_core::Device::new_cuda(0) {
++        Ok(dev) => dev,
++        Err(e) => return no_device(e),
++    };
++    let cpu_dev = candle_core::Device::Cpu;
++
++    let len = 512;
++    let gate_data: Vec<f32> = (0..len).map(|i| (i as f32 * 0.02 - 3.0).sin()).collect();
++    let up_data: Vec<f32> = (0..len).map(|i| (i as f32 * 0.03 + 0.5).cos()).collect();
++    let grad_data: Vec<f32> = (0..len).map(|i| (i as f32 * 0.01).cos()).collect();
++
++    let g_cpu = candle_core::Var::from_tensor(&candle_core::Tensor::from_vec(
++        gate_data.clone(),
++        (1, len),
++        &cpu_dev,
++    )?)?;
++    let u_cpu = candle_core::Var::from_tensor(&candle_core::Tensor::from_vec(
++        up_data.clone(),
++        (1, len),
++        &cpu_dev,
++    )?)?;
++    let weights_cpu = candle_core::Tensor::from_vec(grad_data.clone(), (1, len), &cpu_dev)?;
++
++    let out_cpu = uor_r4_training::geometric_stack::swiglu(g_cpu.as_tensor(), u_cpu.as_tensor())?;
++    let loss_cpu = out_cpu.mul(&weights_cpu)?.sum_all()?;
++    let grads_cpu = loss_cpu.backward()?;
++    let dg_cpu = grads_cpu
++        .get(g_cpu.as_tensor())
++        .expect("dg_cpu")
++        .flatten_all()?
++        .to_vec1::<f32>()?;
++    let du_cpu = grads_cpu
++        .get(u_cpu.as_tensor())
++        .expect("du_cpu")
++        .flatten_all()?
++        .to_vec1::<f32>()?;
++
++    let g_cuda = candle_core::Var::from_tensor(&candle_core::Tensor::from_vec(
++        gate_data,
++        (1, len),
++        &cuda_dev,
++    )?)?;
++    let u_cuda = candle_core::Var::from_tensor(&candle_core::Tensor::from_vec(
++        up_data,
++        (1, len),
++        &cuda_dev,
++    )?)?;
++    let weights_cuda = candle_core::Tensor::from_vec(grad_data, (1, len), &cuda_dev)?;
++
++    let out_cuda =
++        uor_r4_training::geometric_stack::swiglu(g_cuda.as_tensor(), u_cuda.as_tensor())?;
++    let loss_cuda = out_cuda.mul(&weights_cuda)?.sum_all()?;
++    let grads_cuda = loss_cuda.backward()?;
++    let dg_cuda = grads_cuda
++        .get(g_cuda.as_tensor())
++        .expect("dg_cuda")
++        .flatten_all()?
++        .to_vec1::<f32>()?;
++    let du_cuda = grads_cuda
++        .get(u_cuda.as_tensor())
++        .expect("du_cuda")
++        .flatten_all()?
++        .to_vec1::<f32>()?;
++
++    let max_dg_diff = assert_finite_and_close(&dg_cpu, &dg_cuda, 1e-4, "SwiGLU backward dg");
++    let max_du_diff = assert_finite_and_close(&du_cpu, &du_cuda, 1e-4, "SwiGLU backward du");
++
++    println!("SwiGLU backward max diff dg: {max_dg_diff}, du: {max_du_diff}");
++    Ok(())
++}
++
++#[cfg(feature = "cuda")]
++#[test]
++fn test_rms_norm_backward_parity() -> uor_r4_training::Result<()> {
++    let cuda_dev = match candle_core::Device::new_cuda(0) {
++        Ok(dev) => dev,
++        Err(e) => return no_device(e),
++    };
++    let cpu_dev = candle_core::Device::Cpu;
++
++    let rows: usize = 4;
++    let width: usize = 128;
++    let total = rows * width;
++    let x_data: Vec<f32> = (0..total).map(|i| (i as f32 * 0.05).sin()).collect();
++    let w_data: Vec<f32> = (0..width).map(|i| i as f32 * 0.02 + 0.8).collect();
++    let grad_data: Vec<f32> = (0..total).map(|i| (i as f32 * 0.03).cos()).collect();
++
++    let x_cpu = candle_core::Var::from_tensor(&candle_core::Tensor::from_vec(
++        x_data.clone(),
++        (rows, width),
++        &cpu_dev,
++    )?)?;
++    let w_cpu = candle_core::Var::from_tensor(&candle_core::Tensor::from_vec(
++        w_data.clone(),
++        (width,),
++        &cpu_dev,
++    )?)?;
++    let weights_cpu = candle_core::Tensor::from_vec(grad_data.clone(), (rows, width), &cpu_dev)?;
++
++    let out_cpu = uor_r4_training::geometric_stack::rms_norm(x_cpu.as_tensor(), w_cpu.as_tensor())?;
++    let loss_cpu = out_cpu.mul(&weights_cpu)?.sum_all()?;
++    let grads_cpu = loss_cpu.backward()?;
++    let dx_cpu = grads_cpu
++        .get(x_cpu.as_tensor())
++        .expect("dx_cpu")
++        .flatten_all()?
++        .to_vec1::<f32>()?;
++    let dw_cpu = grads_cpu
++        .get(w_cpu.as_tensor())
++        .expect("dw_cpu")
++        .flatten_all()?
++        .to_vec1::<f32>()?;
++
++    let x_cuda = candle_core::Var::from_tensor(&candle_core::Tensor::from_vec(
++        x_data,
++        (rows, width),
++        &cuda_dev,
++    )?)?;
++    let w_cuda = candle_core::Var::from_tensor(&candle_core::Tensor::from_vec(
++        w_data,
++        (width,),
++        &cuda_dev,
++    )?)?;
++    let weights_cuda = candle_core::Tensor::from_vec(grad_data, (rows, width), &cuda_dev)?;
++
++    let out_cuda =
++        uor_r4_training::geometric_stack::rms_norm(x_cuda.as_tensor(), w_cuda.as_tensor())?;
++    let loss_cuda = out_cuda.mul(&weights_cuda)?.sum_all()?;
++    let grads_cuda = loss_cuda.backward()?;
++    let dx_cuda = grads_cuda
++        .get(x_cuda.as_tensor())
++        .expect("dx_cuda")
++        .flatten_all()?
++        .to_vec1::<f32>()?;
++    let dw_cuda = grads_cuda
++        .get(w_cuda.as_tensor())
++        .expect("dw_cuda")
++        .flatten_all()?
++        .to_vec1::<f32>()?;
++
++    let max_dx_diff = assert_finite_and_close(&dx_cpu, &dx_cuda, 1e-4, "RMSNorm backward dx");
++    let max_dw_diff = assert_finite_and_close(&dw_cpu, &dw_cuda, 1e-4, "RMSNorm backward dw");
++
++    println!("RMSNorm backward max diff dx: {max_dx_diff}, dw: {max_dw_diff}");
++    Ok(())
++}
++
++#[cfg(feature = "cuda")]
++#[test]
++fn test_cross_entropy_backward_parity() -> uor_r4_training::Result<()> {
++    let cuda_dev = match candle_core::Device::new_cuda(0) {
++        Ok(dev) => dev,
++        Err(e) => return no_device(e),
++    };
++    let cpu_dev = candle_core::Device::Cpu;
++
++    let rows: usize = 4;
++    let vocab: usize = 128;
++    let logits_data: Vec<f32> = (0..rows * vocab).map(|i| (i as f32 * 0.02).sin()).collect();
++    let targets: Vec<u32> = (0..rows).map(|r| (r * 13) as u32 % vocab as u32).collect();
++
++    let l_cpu = candle_core::Var::from_tensor(&candle_core::Tensor::from_vec(
++        logits_data.clone(),
++        (rows, vocab),
++        &cpu_dev,
++    )?)?;
++    let loss_cpu = uor_r4_training::geometric_stack::cross_entropy(l_cpu.as_tensor(), &targets)?;
++    let grads_cpu = loss_cpu.backward()?;
++    let dl_cpu = grads_cpu
++        .get(l_cpu.as_tensor())
++        .expect("dl_cpu")
++        .flatten_all()?
++        .to_vec1::<f32>()?;
++
++    let l_cuda = candle_core::Var::from_tensor(&candle_core::Tensor::from_vec(
++        logits_data,
++        (rows, vocab),
++        &cuda_dev,
++    )?)?;
++    let loss_cuda = uor_r4_training::geometric_stack::cross_entropy(l_cuda.as_tensor(), &targets)?;
++    let grads_cuda = loss_cuda.backward()?;
++    let dl_cuda = grads_cuda
++        .get(l_cuda.as_tensor())
++        .expect("dl_cuda")
++        .flatten_all()?
++        .to_vec1::<f32>()?;
++
++    let max_dl_diff = assert_finite_and_close(&dl_cpu, &dl_cuda, 1e-4, "CrossEntropy backward dl");
++
++    println!("CrossEntropy backward max diff dl: {max_dl_diff}");
++    Ok(())
++}
++
++/// The weighted mean cross-entropy (with a zero-weight row), forward and
++/// backward: CUDA computes the weighted gradient on the device.
++#[cfg(feature = "cuda")]
++#[test]
++fn test_weighted_cross_entropy_parity() -> uor_r4_training::Result<()> {
++    let cuda_dev = match candle_core::Device::new_cuda(0) {
++        Ok(dev) => dev,
++        Err(e) => return no_device(e),
++    };
++    let (rows, vocab) = (6usize, 300usize);
++    let logits_data: Vec<f32> = (0..rows * vocab)
++        .map(|i| (i as f32 * 0.013).sin() * 4.0)
++        .collect();
++    let targets: Vec<u32> = (0..rows).map(|r| (r * 47 % vocab) as u32).collect();
++    let weights = [1.0f32, 0.0, 2.5, 0.25, 1.0, 3.0];
++    let run = |device: &candle_core::Device| -> uor_r4_training::Result<(f32, Vec<f32>)> {
++        let logits = candle_core::Var::from_tensor(&candle_core::Tensor::from_vec(
++            logits_data.clone(),
++            (rows, vocab),
++            device,
++        )?)?;
++        let loss = uor_r4_training::geometric_stack::logits_cross_entropy(
++            logits.as_tensor(),
++            &targets,
++            Some(&weights),
++        )?;
++        let grads = (&loss * 1.7)?.backward()?;
++        let grad = grads
++            .get(logits.as_tensor())
++            .expect("logit gradient")
++            .flatten_all()?
++            .to_device(&candle_core::Device::Cpu)?
++            .to_vec1::<f32>()?;
++        Ok((
++            loss.to_device(&candle_core::Device::Cpu)?
++                .to_scalar::<f32>()?,
++            grad,
++        ))
++    };
++    let (loss_cpu, grad_cpu) = run(&candle_core::Device::Cpu)?;
++    let (loss_cuda, grad_cuda) = run(&cuda_dev)?;
++    assert!(
++        (loss_cpu - loss_cuda).abs() <= 1e-5 * loss_cpu.abs().max(1.0),
++        "weighted loss {loss_cpu} vs {loss_cuda}"
++    );
++    assert_finite_and_close(
++        &grad_cpu,
++        &grad_cuda,
++        1e-5,
++        "Weighted CrossEntropy backward",
++    );
++    // The zero-weight row has an exactly zero gradient on both devices.
++    assert!(grad_cuda[vocab..2 * vocab].iter().all(|&g| g == 0.0));
++    Ok(())
++}
++
++#[cfg(feature = "cuda")]
++#[test]
++fn test_quaternion_scan_backward_parity() -> uor_r4_training::Result<()> {
++    let cuda_dev = match candle_core::Device::new_cuda(0) {
++        Ok(dev) => dev,
++        Err(e) => return no_device(e),
++    };
++    let cpu_dev = candle_core::Device::Cpu;
++
++    let batch = 2;
++    let time = 8;
++    let lanes = 4;
++    let total = batch * time * lanes * 4;
++
++    let trans_data: Vec<f32> = (0..total)
++        .map(|i| {
++            if i % 4 == 0 {
++                0.999f32
++            } else {
++                (i as f32 * 0.01).sin() * 0.01f32
++            }
++        })
++        .collect();
++    let drive_data: Vec<f32> = (0..total)
++        .map(|i| (i as f32 * 0.05).cos() * 0.1f32)
++        .collect();
++    let grad_data: Vec<f32> = (0..total)
++        .map(|i| (i as f32 * 0.02).sin() * 0.05f32)
++        .collect();
++
++    let shape = (batch, time, lanes, 4);
++    let t_cpu = candle_core::Var::from_tensor(&candle_core::Tensor::from_vec(
++        trans_data.clone(),
++        shape,
++        &cpu_dev,
++    )?)?;
++    let d_cpu = candle_core::Var::from_tensor(&candle_core::Tensor::from_vec(
++        drive_data.clone(),
++        shape,
++        &cpu_dev,
++    )?)?;
++    let weights_cpu = candle_core::Tensor::from_vec(grad_data.clone(), shape, &cpu_dev)?;
++
++    let out_cpu =
++        uor_r4_training::geometric_stack::quaternion_scan(t_cpu.as_tensor(), d_cpu.as_tensor())?;
++    let loss_cpu = out_cpu.mul(&weights_cpu)?.sum_all()?;
++    let grads_cpu = loss_cpu.backward()?;
++    let dt_cpu = grads_cpu
++        .get(t_cpu.as_tensor())
++        .expect("dt_cpu")
++        .flatten_all()?
++        .to_vec1::<f32>()?;
++    let dd_cpu = grads_cpu
++        .get(d_cpu.as_tensor())
++        .expect("dd_cpu")
++        .flatten_all()?
++        .to_vec1::<f32>()?;
++
++    let t_cuda = candle_core::Var::from_tensor(&candle_core::Tensor::from_vec(
++        trans_data, shape, &cuda_dev,
++    )?)?;
++    let d_cuda = candle_core::Var::from_tensor(&candle_core::Tensor::from_vec(
++        drive_data, shape, &cuda_dev,
++    )?)?;
++    let weights_cuda = candle_core::Tensor::from_vec(grad_data, shape, &cuda_dev)?;
++
++    let out_cuda =
++        uor_r4_training::geometric_stack::quaternion_scan(t_cuda.as_tensor(), d_cuda.as_tensor())?;
++    let loss_cuda = out_cuda.mul(&weights_cuda)?.sum_all()?;
++    let grads_cuda = loss_cuda.backward()?;
++    let dt_cuda = grads_cuda
++        .get(t_cuda.as_tensor())
++        .expect("dt_cuda")
++        .flatten_all()?
++        .to_vec1::<f32>()?;
++    let dd_cuda = grads_cuda
++        .get(d_cuda.as_tensor())
++        .expect("dd_cuda")
++        .flatten_all()?
++        .to_vec1::<f32>()?;
++
++    let max_dt_diff =
++        assert_finite_and_close(&dt_cpu, &dt_cuda, 1e-4, "QuaternionScan backward dt");
++    let max_dd_diff =
++        assert_finite_and_close(&dd_cpu, &dd_cuda, 1e-4, "QuaternionScan backward dd");
++
++    println!("QuaternionScan backward max diff dt: {max_dt_diff}, dd: {max_dd_diff}");
++    Ok(())
++}
++
++#[cfg(feature = "cuda")]
++#[test]
++fn test_cuda_stack_ops_throughput_and_speedup() -> uor_r4_training::Result<()> {
++    use std::time::Instant;
++
++    let cuda_dev = match candle_core::Device::new_cuda(0) {
++        Ok(dev) => dev,
++        Err(e) => return no_device(e),
++    };
++    let cpu_dev = candle_core::Device::Cpu;
++
++    println!("\n=== CUDA GPU vs CPU Stack Ops Throughput & Speedup Benchmark ===");
++
++    // Benchmark SwiGLU: batch=16, seq=256 -> 4,096 tokens, dim=768
++    let tokens = 4096;
++    let dim = 768;
++    let total = tokens * dim;
++    let g_data: Vec<f32> = (0..total).map(|i| (i as f32 * 0.001).sin()).collect();
++    let u_data: Vec<f32> = (0..total).map(|i| (i as f32 * 0.002).cos()).collect();
++
++    let g_cpu = candle_core::Tensor::from_vec(g_data.clone(), (tokens, dim), &cpu_dev)?;
++    let u_cpu = candle_core::Tensor::from_vec(u_data.clone(), (tokens, dim), &cpu_dev)?;
++    let g_cuda = candle_core::Tensor::from_vec(g_data, (tokens, dim), &cuda_dev)?;
++    let u_cuda = candle_core::Tensor::from_vec(u_data, (tokens, dim), &cuda_dev)?;
++
++    // Warmup
++    let _ = uor_r4_training::geometric_stack::swiglu(&g_cpu, &u_cpu)?;
++    let _ = uor_r4_training::geometric_stack::swiglu(&g_cuda, &u_cuda)?;
++    cuda_dev.synchronize()?;
++
++    let iters = 30;
++    let start_cpu = Instant::now();
++    for _ in 0..iters {
++        let _ = uor_r4_training::geometric_stack::swiglu(&g_cpu, &u_cpu)?;
++    }
++    let cpu_dur = start_cpu.elapsed().as_secs_f64();
++    let cpu_tok_s = (tokens * iters) as f64 / cpu_dur;
++
++    let start_cuda = Instant::now();
++    for _ in 0..iters {
++        let _ = uor_r4_training::geometric_stack::swiglu(&g_cuda, &u_cuda)?;
++    }
++    cuda_dev.synchronize()?;
++    let cuda_dur = start_cuda.elapsed().as_secs_f64();
++    let cuda_tok_s = (tokens * iters) as f64 / cuda_dur;
++    let speedup_swiglu = cuda_tok_s / cpu_tok_s;
++
++    println!(
++        "SwiGLU (tokens={tokens}, dim={dim}): CPU = {cpu_tok_s:.0} tok/s ({cpu_dur:.4}s), CUDA = {cuda_tok_s:.0} tok/s ({cuda_dur:.4}s) -> Speedup: {speedup_swiglu:.2}x"
++    );
++
++    // Benchmark RMSNorm: batch=16, seq=256 -> 4,096 tokens, dim=288
++    let dim_norm = 288;
++    let total_norm = tokens * dim_norm;
++    let x_data: Vec<f32> = (0..total_norm).map(|i| (i as f32 * 0.003).sin()).collect();
++    let w_data: Vec<f32> = (0..dim_norm)
++        .map(|i| 1.0 + (i as f32 * 0.01).cos() * 0.1)
++        .collect();
++
++    let x_cpu = candle_core::Tensor::from_vec(x_data.clone(), (tokens, dim_norm), &cpu_dev)?;
++    let w_cpu = candle_core::Tensor::from_vec(w_data.clone(), (dim_norm,), &cpu_dev)?;
++    let x_cuda = candle_core::Tensor::from_vec(x_data, (tokens, dim_norm), &cuda_dev)?;
++    let w_cuda = candle_core::Tensor::from_vec(w_data, (dim_norm,), &cuda_dev)?;
++
++    let _ = uor_r4_training::geometric_stack::rms_norm(&x_cpu, &w_cpu)?;
++    let _ = uor_r4_training::geometric_stack::rms_norm(&x_cuda, &w_cuda)?;
++    cuda_dev.synchronize()?;
++
++    let start_norm_cpu = Instant::now();
++    for _ in 0..iters {
++        let _ = uor_r4_training::geometric_stack::rms_norm(&x_cpu, &w_cpu)?;
++    }
++    let cpu_dur_norm = start_norm_cpu.elapsed().as_secs_f64();
++    let cpu_tok_s_norm = (tokens * iters) as f64 / cpu_dur_norm;
++
++    let start_norm_cuda = Instant::now();
++    for _ in 0..iters {
++        let _ = uor_r4_training::geometric_stack::rms_norm(&x_cuda, &w_cuda)?;
++    }
++    cuda_dev.synchronize()?;
++    let cuda_dur_norm = start_norm_cuda.elapsed().as_secs_f64();
++    let cuda_tok_s_norm = (tokens * iters) as f64 / cuda_dur_norm;
++    let speedup_norm = cuda_tok_s_norm / cpu_tok_s_norm;
++
++    println!(
++        "RMSNorm (tokens={tokens}, dim={dim_norm}): CPU = {cpu_tok_s_norm:.0} tok/s ({cpu_dur_norm:.4}s), CUDA = {cuda_tok_s_norm:.0} tok/s ({cuda_dur_norm:.4}s) -> Speedup: {speedup_norm:.2}x"
++    );
++
++    // Benchmark CrossEntropy: batch=16, seq=256 -> 4,096 tokens, vocab=4096
++    let vocab = 4096;
++    let total_ce = tokens * vocab;
++    let l_data: Vec<f32> = (0..total_ce).map(|i| (i as f32 * 0.001).sin()).collect();
++    let t_data: Vec<u32> = (0..tokens).map(|i| (i % vocab) as u32).collect();
++
++    let l_cpu = candle_core::Tensor::from_vec(l_data.clone(), (tokens, vocab), &cpu_dev)?;
++    let l_cuda = candle_core::Tensor::from_vec(l_data, (tokens, vocab), &cuda_dev)?;
++
++    let _ = uor_r4_training::geometric_stack::cross_entropy(&l_cpu, &t_data)?;
++    let _ = uor_r4_training::geometric_stack::cross_entropy(&l_cuda, &t_data)?;
++    cuda_dev.synchronize()?;
++
++    let start_ce_cpu = Instant::now();
++    for _ in 0..iters {
++        let _ = uor_r4_training::geometric_stack::cross_entropy(&l_cpu, &t_data)?;
++    }
++    let cpu_dur_ce = start_ce_cpu.elapsed().as_secs_f64();
++    let cpu_tok_s_ce = (tokens * iters) as f64 / cpu_dur_ce;
++
++    let start_ce_cuda = Instant::now();
++    for _ in 0..iters {
++        let _ = uor_r4_training::geometric_stack::cross_entropy(&l_cuda, &t_data)?;
++    }
++    cuda_dev.synchronize()?;
++    let cuda_dur_ce = start_ce_cuda.elapsed().as_secs_f64();
++    let cuda_tok_s_ce = (tokens * iters) as f64 / cuda_dur_ce;
++    let speedup_ce = cuda_tok_s_ce / cpu_tok_s_ce;
++
++    println!(
++        "CrossEntropy (tokens={tokens}, vocab={vocab}): CPU = {cpu_tok_s_ce:.0} tok/s ({cpu_dur_ce:.4}s), CUDA = {cuda_tok_s_ce:.0} tok/s ({cuda_dur_ce:.4}s) -> Speedup: {speedup_ce:.2}x"
++    );
++
++    assert!(
++        speedup_swiglu > 0.5,
++        "SwiGLU GPU kernel unexpectedly degraded"
++    );
++    assert!(
++        speedup_norm > 0.5,
++        "RMSNorm GPU kernel unexpectedly degraded"
++    );
++    assert!(
++        speedup_ce > 0.5,
++        "CrossEntropy GPU kernel unexpectedly degraded"
++    );
++
++    Ok(())
++}
++
++#[cfg(feature = "cuda")]
++#[test]
++fn test_fused_read_parity() -> uor_r4_training::Result<()> {
++    let cuda_dev = match candle_core::Device::new_cuda(0) {
++        Ok(dev) => dev,
++        Err(e) => return no_device(e),
++    };
++    let cpu_dev = candle_core::Device::Cpu;
++
++    let batch = 2;
++    let heads = 4;
++    let time = 8;
++    let key_dim = 16;
++    let val_dim = 16;
++
++    let q_data: Vec<f32> = (0..batch * heads * time * key_dim)
++        .map(|i| (i as f32 * 0.05).sin())
++        .collect();
++    let k_data: Vec<f32> = (0..batch * heads * time * key_dim)
++        .map(|i| (i as f32 * 0.03).cos())
++        .collect();
++    let v_data: Vec<f32> = (0..batch * heads * time * val_dim)
++        .map(|i| (i as f32 * 0.02 + 0.1).sin())
++        .collect();
++    let aux_data = vec![0.0f32];
++
++    let q_cpu =
++        candle_core::Tensor::from_vec(q_data.clone(), (batch, heads, time, key_dim), &cpu_dev)?;
++    let k_cpu =
++        candle_core::Tensor::from_vec(k_data.clone(), (batch, heads, time, key_dim), &cpu_dev)?;
++    let v_cpu =
++        candle_core::Tensor::from_vec(v_data.clone(), (batch, heads, time, val_dim), &cpu_dev)?;
++    let aux_cpu = candle_core::Tensor::from_vec(aux_data.clone(), (1,), &cpu_dev)?;
++
++    let q_cuda = candle_core::Tensor::from_vec(q_data, (batch, heads, time, key_dim), &cuda_dev)?;
++    let k_cuda = candle_core::Tensor::from_vec(k_data, (batch, heads, time, key_dim), &cuda_dev)?;
++    let v_cuda = candle_core::Tensor::from_vec(v_data, (batch, heads, time, val_dim), &cuda_dev)?;
++    let aux_cuda = candle_core::Tensor::from_vec(aux_data, (1,), &cuda_dev)?;
++
++    let out_cpu = uor_r4_training::geometric_stack::fused_read(
++        &q_cpu,
++        &k_cpu,
++        &v_cpu,
++        &aux_cpu,
++        uor_r4_training::geometric_stack::ReadScore::Dot,
++        false,
++        false,
++        false,
++    )?;
++    let out_cuda = uor_r4_training::geometric_stack::fused_read(
++        &q_cuda,
++        &k_cuda,
++        &v_cuda,
++        &aux_cuda,
++        uor_r4_training::geometric_stack::ReadScore::Dot,
++        false,
++        false,
++        false,
++    )?;
++
++    let c_vec = out_cpu.flatten_all()?.to_vec1::<f32>()?;
++    let m_vec = out_cuda.flatten_all()?.to_vec1::<f32>()?;
++    assert_eq!(c_vec.len(), m_vec.len());
++
++    let max_diff = assert_finite_and_close(&c_vec, &m_vec, 1e-4, "FusedRead Dot");
++    println!("FusedRead Dot max diff CPU vs CUDA: {max_diff}");
++
++    Ok(())
++}
++
++#[cfg(feature = "cuda")]
++#[test]
++fn test_recurrence_core_parity() -> uor_r4_training::Result<()> {
++    let cuda_dev = match candle_core::Device::new_cuda(0) {
++        Ok(dev) => dev,
++        Err(e) => return no_device(e),
++    };
++    let cpu_dev = candle_core::Device::Cpu;
++
++    let batch = 2;
++    let time = 8;
++    let width = 32;
++    let lanes = width / 4;
++    let gate_width = lanes + width;
++
++    let b_data: Vec<f32> = (0..batch * time * 2 * width)
++        .map(|i| (i as f32 * 0.01).sin() * 0.1)
++        .collect();
++    let g_data: Vec<f32> = (0..batch * time * gate_width)
++        .map(|i| (i as f32 * 0.02).cos() * 0.1)
++        .collect();
++    let p_len = (4 + 1) * width + lanes;
++    let p_data: Vec<f32> = (0..p_len).map(|i| (i as f32 * 0.03).sin() * 0.05).collect();
++
++    let b_cpu = candle_core::Tensor::from_vec(b_data.clone(), (batch, time, 2 * width), &cpu_dev)?;
++    let g_cpu = candle_core::Tensor::from_vec(g_data.clone(), (batch, time, gate_width), &cpu_dev)?;
++    let p_cpu = candle_core::Tensor::from_vec(p_data.clone(), (p_len,), &cpu_dev)?;
++
++    let b_cuda = candle_core::Tensor::from_vec(b_data, (batch, time, 2 * width), &cuda_dev)?;
++    let g_cuda = candle_core::Tensor::from_vec(g_data, (batch, time, gate_width), &cuda_dev)?;
++    let p_cuda = candle_core::Tensor::from_vec(p_data, (p_len,), &cuda_dev)?;
++
++    let out_cpu = uor_r4_training::geometric_stack::recurrence_core(
++        &b_cpu, &g_cpu, &p_cpu, batch, time, width, true, None,
++    )?;
++    let out_cuda = uor_r4_training::geometric_stack::recurrence_core(
++        &b_cuda, &g_cuda, &p_cuda, batch, time, width, true, None,
++    )?;
++
++    let c_vec = out_cpu.flatten_all()?.to_vec1::<f32>()?;
++    let m_vec = out_cuda.flatten_all()?.to_vec1::<f32>()?;
++    assert_eq!(c_vec.len(), m_vec.len());
++
++    let max_diff = assert_finite_and_close(&c_vec, &m_vec, 1e-4, "RecurrenceCore");
++    println!("RecurrenceCore max diff CPU vs CUDA: {max_diff}");
++
++    Ok(())
++}
++
++// ---------------------------------------------------------------------------
++// Backward parity of the recurrence core and the general fused read.
++// ---------------------------------------------------------------------------
++
++/// Deterministic pseudo-random values in [-scale, scale].
++#[cfg(feature = "cuda")]
++fn noise(len: usize, seed: u64, scale: f32) -> Vec<f32> {
++    let mut state = seed
++        .wrapping_mul(6364136223846793005)
++        .wrapping_add(1442695040888963407);
++    (0..len)
++        .map(|_| {
++            state = state
++                .wrapping_mul(6364136223846793005)
++                .wrapping_add(1442695040888963407);
++            let unit = ((state >> 40) as f32) / ((1u64 << 24) as f32);
++            (2.0 * unit - 1.0) * scale
++        })
++        .collect()
++}
++
++/// Max absolute error and max error relative to the CPU tensor's largest
++/// magnitude; asserts finiteness and `relative < tol`.
++#[cfg(feature = "cuda")]
++fn compare(cpu: &[f32], cuda: &[f32], tol: f32, name: &str) -> (f32, f32) {
++    assert_eq!(cpu.len(), cuda.len(), "{name}: length mismatch");
++    let mut max_abs = 0f32;
++    let mut peak = 0f32;
++    for (i, (&c, &m)) in cpu.iter().zip(cuda).enumerate() {
++        assert!(
++            c.is_finite() && m.is_finite(),
++            "{name}[{i}]: cpu {c} cuda {m}"
++        );
++        max_abs = max_abs.max((c - m).abs());
++        peak = peak.max(c.abs());
++    }
++    let relative = max_abs / peak.max(1e-6);
++    println!("{name}: max abs {max_abs:.3e}, max rel {relative:.3e} (peak {peak:.3e})");
++    assert!(relative < tol, "{name}: relative error {relative} >= {tol}");
++    (max_abs, relative)
++}
++
++#[cfg(feature = "cuda")]
++fn values(t: &candle_core::Tensor) -> uor_r4_training::Result<Vec<f32>> {
++    Ok(t.flatten_all()?
++        .to_device(&candle_core::Device::Cpu)?
++        .to_vec1::<f32>()?)
++}
++
++/// Output and input gradients of the recurrence core for a weighted-sum loss.
++#[cfg(feature = "cuda")]
++#[allow(clippy::too_many_arguments)]
++fn recurrence_run(
++    device: &candle_core::Device,
++    data: [&Vec<f32>; 4],
++    batch: usize,
++    time: usize,
++    width: usize,
++    rotation: bool,
++    group: uor_r4_training::geometric_stack::RotationGroup,
++    gate_width: usize,
++) -> uor_r4_training::Result<Vec<Vec<f32>>> {
++    let p_len = 5 * width + width / 4;
++    let b = candle_core::Var::from_tensor(&candle_core::Tensor::from_vec(
++        data[0].clone(),
++        (batch, time, 2 * width),
++        device,
++    )?)?;
++    let g = candle_core::Var::from_tensor(&candle_core::Tensor::from_vec(
++        data[1].clone(),
++        (batch, time, gate_width),
++        device,
++    )?)?;
++    let p = candle_core::Var::from_tensor(&candle_core::Tensor::from_vec(
++        data[2].clone(),
++        (p_len,),
++        device,
++    )?)?;
++    let w = candle_core::Tensor::from_vec(data[3].clone(), (batch, time, width), device)?;
++    let out = uor_r4_training::geometric_stack::recurrence_core_grouped(
++        b.as_tensor(),
++        g.as_tensor(),
++        p.as_tensor(),
++        batch,
++        time,
++        width,
++        rotation,
++        group,
++        None,
++    )?;
++    let grads = out.mul(&w)?.sum_all()?.backward()?;
++    let mut results = vec![values(&out)?];
++    for var in [&b, &g, &p] {
++        results.push(values(grads.get(var.as_tensor()).expect("gradient"))?);
++    }
++    Ok(results)
++}
++
++#[cfg(feature = "cuda")]
++#[test]
++fn test_recurrence_core_backward_parity() -> uor_r4_training::Result<()> {
++    let cuda_dev = match candle_core::Device::new_cuda(0) {
++        Ok(dev) => dev,
++        Err(e) => return no_device(e),
++    };
++    let cpu_dev = candle_core::Device::Cpu;
++    use uor_r4_training::geometric_stack::RotationGroup;
++    // (batch, time, width, rotation, group)
++    for (case, &(batch, time, width, rotation, group)) in [
++        (2usize, 7usize, 16usize, true, RotationGroup::Quaternion),
++        (3, 13, 32, false, RotationGroup::Quaternion),
++        (2, 37, 64, true, RotationGroup::Quaternion),
++        (1, 5, 4, true, RotationGroup::Quaternion),
++        (2, 7, 16, true, RotationGroup::U1),
++        (2, 37, 64, true, RotationGroup::U1),
++    ]
++    .iter()
++    .enumerate()
++    {
++        let lanes = width / 4;
++        let gate_width = lanes + if rotation { width } else { 0 };
++        let seed = 100 + case as u64 * 10;
++        let b_data = noise(batch * time * 2 * width, seed, 1.0);
++        let mut g_data = noise(batch * time * gate_width, seed + 1, 1.5);
++        if rotation {
++            // Keep rotation quaternions away from zero norm.
++            for row in g_data.chunks_mut(gate_width) {
++                for lane in 0..lanes {
++                    row[lanes + 4 * lane] += 1.0;
++                }
++            }
++        }
++        let mut p_data = noise(5 * width + lanes, seed + 2, 0.5);
++        for (i, value) in p_data.iter_mut().enumerate().skip(5 * width) {
++            *value = -1.0 + 2.0 * (i % 5) as f32;
++        }
++        let w_data = noise(batch * time * width, seed + 3, 1.0);
++        let data = [&b_data, &g_data, &p_data, &w_data];
++        let cpu = recurrence_run(
++            &cpu_dev, data, batch, time, width, rotation, group, gate_width,
++        )?;
++        let cuda = recurrence_run(
++            &cuda_dev, data, batch, time, width, rotation, group, gate_width,
++        )?;
++        for (k, name) in ["out", "d_branches", "d_gates", "d_parameters"]
++            .iter()
++            .enumerate()
++        {
++            compare(
++                &cpu[k],
++                &cuda[k],
++                1e-3,
++                &format!("RecurrenceCore b{batch} t{time} w{width} rot{rotation} {group:?} {name}"),
++            );
++        }
++    }
++    Ok(())
++}
++
++/// Output and input gradients of the fused read for a weighted-sum loss.
++#[cfg(feature = "cuda")]
++fn read_run(
++    device: &candle_core::Device,
++    data: [&Vec<f32>; 5],
++    shape: (usize, usize, usize, usize, usize),
++    score: uor_r4_training::geometric_stack::ReadScore,
++    null: bool,
++    age: bool,
++) -> uor_r4_training::Result<Vec<Vec<f32>>> {
++    read_run_with(device, data, shape, score, null, age, false)
++}
++
++/// [`read_run`] with RoPE of queries and keys when `rope` is set.
++#[cfg(feature = "cuda")]
++#[allow(clippy::too_many_arguments)]
++fn read_run_with(
++    device: &candle_core::Device,
++    data: [&Vec<f32>; 5],
++    shape: (usize, usize, usize, usize, usize),
++    score: uor_r4_training::geometric_stack::ReadScore,
++    null: bool,
++    age: bool,
++    rope: bool,
++) -> uor_r4_training::Result<Vec<Vec<f32>>> {
++    let (batch, heads, time, key, value) = shape;
++    let q = candle_core::Var::from_tensor(&candle_core::Tensor::from_vec(
++        data[0].clone(),
++        (batch, heads, time, key),
++        device,
++    )?)?;
++    let k = candle_core::Var::from_tensor(&candle_core::Tensor::from_vec(
++        data[1].clone(),
++        (batch, heads, time, key),
++        device,
++    )?)?;
++    let v = candle_core::Var::from_tensor(&candle_core::Tensor::from_vec(
++        data[2].clone(),
++        (batch, heads, time, value),
++        device,
++    )?)?;
++    let aux_len = data[3].len();
++    let a = candle_core::Var::from_tensor(&candle_core::Tensor::from_vec(
++        data[3].clone(),
++        (aux_len,),
++        device,
++    )?)?;
++    let w = candle_core::Tensor::from_vec(data[4].clone(), (batch, heads, time, value), device)?;
++    let out = uor_r4_training::geometric_stack::fused_read(
++        q.as_tensor(),
++        k.as_tensor(),
++        v.as_tensor(),
++        a.as_tensor(),
++        score,
++        null,
++        age,
++        rope,
++    )?;
++    let grads = out.mul(&w)?.sum_all()?.backward()?;
++    let mut results = vec![values(&out)?];
++    for var in [&q, &k, &v, &a] {
++        results.push(values(grads.get(var.as_tensor()).expect("gradient"))?);
++    }
++    Ok(results)
++}
++
++#[cfg(feature = "cuda")]
++#[test]
++fn test_fused_read_general_parity() -> uor_r4_training::Result<()> {
++    use uor_r4_training::geometric_stack::{fused_aux_len, ReadScore};
++    let cuda_dev = match candle_core::Device::new_cuda(0) {
++        Ok(dev) => dev,
++        Err(e) => return no_device(e),
++    };
++    let cpu_dev = candle_core::Device::Cpu;
++    let shapes = [
++        (2usize, 3usize, 13usize, 8usize, 9usize),
++        (1, 2, 37, 16, 16),
++        (2, 4, 5, 4, 5),
++        (1, 1, 1, 4, 4),
++    ];
++    let configs = [
++        (ReadScore::Dot, false, false),
++        (ReadScore::Dot, true, true),
++        (ReadScore::Lorentz, true, true),
++        (ReadScore::Lorentz, false, false),
++        (ReadScore::Lorentz, true, false),
++        (ReadScore::L2, true, true),
++        (ReadScore::L2, false, false),
++    ];
++    let mut case = 0u64;
++    for &shape in &shapes {
++        let (batch, heads, time, key, value) = shape;
++        for &(score, null, age) in &configs {
++            case += 1;
++            let seed = 1000 + 17 * case;
++            let q_data = noise(batch * heads * time * key, seed, 0.8);
++            let k_data = noise(batch * heads * time * key, seed + 1, 0.8);
++            let v_data = noise(batch * heads * time * value, seed + 2, 1.0);
++            let aux_len = fused_aux_len(batch, heads, time, score, null, age).max(1);
++            let mut aux_data = noise(aux_len, seed + 3, 0.5);
++            if score.scaled() {
++                let base = aux_len - 2 * heads;
++                for h in 0..heads {
++                    // beta (already exponentiated) and offset.
++                    aux_data[base + h] = 0.7 + 0.3 * h as f32;
++                    aux_data[base + heads + h] = 0.2 * h as f32 - 0.1;
++                }
++            }
++            let w_data = noise(batch * heads * time * value, seed + 4, 1.0);
++            let data = [&q_data, &k_data, &v_data, &aux_data, &w_data];
++            let cpu = read_run(&cpu_dev, data, shape, score, null, age)?;
++            let cuda = read_run(&cuda_dev, data, shape, score, null, age)?;
++            for (k, name) in ["out", "dq", "dk", "dv", "d_aux"].iter().enumerate() {
++                compare(
++                    &cpu[k],
++                    &cuda[k],
++                    1e-3,
++                    &format!(
++                        "FusedRead {score:?} null{null} age{age} b{batch} h{heads} t{time} k{key} v{value} {name}"
++                    ),
++                );
++            }
++        }
++    }
++    Ok(())
++}
++
++/// RoPE reads on the device (the transformer control's `read=dot` with
++/// rope, and the Lorentz/L2 scores with rope) against the CPU: outputs and
++/// the query, key, value and auxiliary gradients, over shapes with time not a
++/// multiple of 16, several heads and even key widths.
++#[cfg(feature = "cuda")]
++#[test]
++fn test_fused_read_rope_parity() -> uor_r4_training::Result<()> {
++    use uor_r4_training::geometric_stack::{fused_aux_len, ReadScore};
++    let cuda_dev = match candle_core::Device::new_cuda(0) {
++        Ok(dev) => dev,
++        Err(e) => return no_device(e),
++    };
++    let cpu_dev = candle_core::Device::Cpu;
++    let shapes = [
++        (2usize, 3usize, 13usize, 8usize, 9usize),
++        (1, 2, 37, 16, 16),
++        (2, 4, 5, 4, 5),
++        (1, 1, 1, 4, 4),
++        (1, 2, 64, 32, 24),
++        (2, 2, 19, 2, 3),
++    ];
++    let configs = [
++        (ReadScore::Dot, false, false),
++        (ReadScore::Dot, true, false),
++        (ReadScore::Dot, false, true),
++        (ReadScore::Dot, true, true),
++        (ReadScore::Lorentz, true, true),
++        (ReadScore::Lorentz, false, false),
++        (ReadScore::L2, true, true),
++        (ReadScore::L2, false, false),
++    ];
++    let mut case = 0u64;
++    for &shape in &shapes {
++        let (batch, heads, time, key, value) = shape;
++        for &(score, null, age) in &configs {
++            case += 1;
++            let seed = 5000 + 23 * case;
++            let q_data = noise(batch * heads * time * key, seed, 0.8);
++            let k_data = noise(batch * heads * time * key, seed + 1, 0.8);
++            let v_data = noise(batch * heads * time * value, seed + 2, 1.0);
++            let aux_len = fused_aux_len(batch, heads, time, score, null, age).max(1);
++            let mut aux_data = noise(aux_len, seed + 3, 0.5);
++            if score.scaled() {
++                let base = aux_len - 2 * heads;
++                for h in 0..heads {
++                    // beta (already exponentiated) and offset.
++                    aux_data[base + h] = 0.7 + 0.3 * h as f32;
++                    aux_data[base + heads + h] = 0.2 * h as f32 - 0.1;
++                }
++            }
++            let w_data = noise(batch * heads * time * value, seed + 4, 1.0);
++            let data = [&q_data, &k_data, &v_data, &aux_data, &w_data];
++            let cpu = read_run_with(&cpu_dev, data, shape, score, null, age, true)?;
++            let cuda = read_run_with(&cuda_dev, data, shape, score, null, age, true)?;
++            for (k, name) in ["out", "dq", "dk", "dv", "d_aux"].iter().enumerate() {
++                compare(
++                    &cpu[k],
++                    &cuda[k],
++                    1e-3,
++                    &format!(
++                        "FusedRead rope {score:?} null{null} age{age} b{batch} h{heads} t{time} k{key} v{value} {name}"
++                    ),
++                );
++            }
++        }
++    }
++    Ok(())
++}
++
++/// Timing of the training-size read and recurrence, forward plus backward,
++/// on CUDA and CPU. Run explicitly: `--ignored --nocapture`.
++#[cfg(feature = "cuda")]
++#[test]
++#[ignore]
++fn bench_training_size_read_and_recurrence() -> uor_r4_training::Result<()> {
++    use std::time::Instant;
++    use uor_r4_training::geometric_stack::{fused_aux_len, ReadScore};
++    let cuda_dev = match candle_core::Device::new_cuda(0) {
++        Ok(dev) => dev,
++        Err(e) => return no_device(e),
++    };
++    let (batch, heads, time, key, value, width) = (16, 8, 384, 64, 64, 512);
++    let shape = (batch, heads, time, key, value);
++    let q = noise(batch * heads * time * key, 1, 0.5);
++    let k = noise(batch * heads * time * key, 2, 0.5);
++    let v = noise(batch * heads * time * value, 3, 1.0);
++    let mut aux = noise(
++        fused_aux_len(batch, heads, time, ReadScore::Lorentz, true, true),
++        4,
++        0.5,
++    );
++    let n = aux.len();
++    for h in 0..heads {
++        aux[n - 2 * heads + h] = 1.0;
++    }
++    let w = noise(batch * heads * time * value, 5, 1.0);
++    let lanes = width / 4;
++    let gate_width = lanes + width;
++    let b_data = noise(batch * time * 2 * width, 6, 1.0);
++    let g_data = noise(batch * time * gate_width, 7, 1.0);
++    let p_data = noise(5 * width + lanes, 8, 0.5);
++    let rw = noise(batch * time * width, 9, 1.0);
++    for device in [cuda_dev.clone(), candle_core::Device::Cpu] {
++        for round in 0..3 {
++            let start = Instant::now();
++            read_run(
++                &device,
++                [&q, &k, &v, &aux, &w],
++                shape,
++                ReadScore::Lorentz,
++                true,
++                true,
++            )?;
++            let read = start.elapsed();
++            let start = Instant::now();
++            recurrence_run(
++                &device,
++                [&b_data, &g_data, &p_data, &rw],
++                batch,
++                time,
++                width,
++                true,
++                uor_r4_training::geometric_stack::RotationGroup::Quaternion,
++                gate_width,
++            )?;
++            let recurrence = start.elapsed();
++            println!("{device:?} round {round}: read {read:?}, recurrence {recurrence:?}");
++        }
++    }
++    Ok(())
++}
++
++/// The recurrence forward with a GELU gate far outside the usual range: the
++/// CUDA output must stay finite and equal the CPU's (a fast `tanh` once
++/// returned NaN here and stopped a Metal training run at step 995; the CUDA
++/// kernel keeps the same clamped accurate `tanhf`).
++#[test]
++fn test_recurrence_core_large_gate_parity() -> uor_r4_training::Result<()> {
++    let cuda_dev = match candle_core::Device::new_cuda(0) {
++        Ok(dev) => dev,
++        Err(e) => return no_device(e),
++    };
++    let cpu_dev = candle_core::Device::Cpu;
++    let (batch, time, width) = (2, 9, 32);
++    let lanes = width / 4;
++    let gate_width = lanes + width;
++    let scales = [50.0f32, 120.0, 2000.0];
++    let b_data: Vec<f32> = (0..batch * time * 2 * width)
++        .map(|i| {
++            let wave = (i as f32 * 0.37).sin();
++            if (i / width) % 2 == 1 {
++                // The gate half of each row: large positive and negative values.
++                wave * scales[i % scales.len()]
++            } else {
++                wave * 0.5
++            }
++        })
++        .collect();
++    let g_data: Vec<f32> = (0..batch * time * gate_width)
++        .map(|i| (i as f32 * 0.02).cos() * 0.5)
++        .collect();
++    let p_len = (4 + 1) * width + lanes;
++    let p_data: Vec<f32> = (0..p_len).map(|i| (i as f32 * 0.03).sin() * 0.05).collect();
++    let run = |device: &candle_core::Device| -> uor_r4_training::Result<Vec<f32>> {
++        let b = candle_core::Tensor::from_vec(b_data.clone(), (batch, time, 2 * width), device)?;
++        let g = candle_core::Tensor::from_vec(g_data.clone(), (batch, time, gate_width), device)?;
++        let p = candle_core::Tensor::from_vec(p_data.clone(), (p_len,), device)?;
++        let out = uor_r4_training::geometric_stack::recurrence_core(
++            &b, &g, &p, batch, time, width, true, None,
++        )?;
++        Ok(out.flatten_all()?.to_vec1::<f32>()?)
++    };
++    let (cpu, cuda) = (run(&cpu_dev)?, run(&cuda_dev)?);
++    assert!(
++        cuda.iter().all(|v| v.is_finite()),
++        "CUDA output has nonfinite values"
++    );
++    let worst = cpu
++        .iter()
++        .zip(&cuda)
++        .map(|(c, m)| (c - m).abs() / c.abs().max(1.0))
++        .fold(0f32, f32::max);
++    assert!(worst < 1e-3, "relative error {worst}");
++    Ok(())
++}
+diff --git a/docs/evidence/cuda-delivery-2026-10-03.json b/docs/evidence/cuda-delivery-2026-10-03.json
+new file mode 100644
+index 000000000..e906fd707
+--- /dev/null
++++ b/docs/evidence/cuda-delivery-2026-10-03.json
+@@ -0,0 +1,30 @@
++{
++  "schema": "uor-r4.cuda-source-delivery/1",
++  "source_original": "e92108a34402b61f8ee36069693d682ed7f970d6",
++  "source_integration": "667c545b",
++  "status": "DRAFT_EXISTING_DEVICE_LOGS_NOT_SOURCE_OR_EXECUTABLE_BOUND",
++  "scope": "Optional Rust offline training only; no CUDA serving or new paid run. Actual existing logs are retained separately; exact device run source/executable identity is pending Claude receipt.",
++  "reported_parity": {
++    "passed": 18,
++    "failed": 0,
++    "ignored": 1,
++    "relative_error_approx": 3.4e-06
++  },
++  "logs": [
++    {
++      "path": "/Users/casey.allard/uor-r4-local/ladder/gpu-pod-20261003/parity-full.log",
++      "bytes": 21235,
++      "sha256": "3479e2ddac3c5826cce8ec177b031f8d61c3279eebef139b2ef28b6fdebe1210"
++    },
++    {
++      "path": "/Users/casey.allard/uor-r4-local/ladder/gpu-pod-20261003/gpu-runs.log",
++      "bytes": 1091,
++      "sha256": "0a993b705c529cc7a3ba92e3c2da986b57ab6f3ca0f76b63191fb5f83ea2541e"
++    },
++    {
++      "path": "/Users/casey.allard/uor-r4-local/ladder/gpu-pod-20261003/trace-8m-s2.log",
++      "bytes": 4287,
++      "sha256": "3720d42e6341717b3bcdd65214b306aed684962c4efe8a94e3003c20d9f08cbd"
++    }
++  ]
++}

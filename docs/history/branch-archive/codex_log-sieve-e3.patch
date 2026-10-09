@@ -1,0 +1,2193 @@
+diff --git a/crates/uor-r4-training/examples/m-world.rs b/crates/uor-r4-training/examples/m-world.rs
+index 467a96991..d22bb6918 100644
+--- a/crates/uor-r4-training/examples/m-world.rs
++++ b/crates/uor-r4-training/examples/m-world.rs
+@@ -17,8 +17,8 @@
+ //! m-world evaluate world=v2 out=NEW_REPORT_ROOT model=MODEL_DIR tokenizer=TOKENIZER.json \
+ //!   [split=development|train] [conversations=300] [seed=9101] [max_new_tokens=32] \
+ //!   [panel=REQUESTS.json] [mqar_share=..] [copy_share=..] [relation_share=..] [other_share=..] \
+-//!   [select=none|flock:W:K] [pointer_select=none|flock:W:K|top:K] [recall=off|oracle|sieve] \
+-//!   [recall_at=reply|query]
++//!   [select=none|flock:W:K] [pointer_select=none|flock:W:K|top:K] [recall=off|oracle|sieve|route] \
++//!   [recall_at=reply|query] [route_paraphrases=A.jsonl[,B.jsonl...]] [route_acts=fact|any] [route_trunk=MODEL_DIR]
+ //! m-world rejudge out=NEW_REPORT_ROOT report=OLD_ROOT/m_world_evaluation.json [tokenizer=T.json]
+ //! m-world evaluate-cells [world=v2] out=NEW_REPORT_ROOT model=MODEL_DIR tokenizer=TOKENIZER.json \
+ //!   [conversations=300] [seed=9101] [max_new_tokens=32] [teacher_forced=true] \
+@@ -30,6 +30,9 @@
+ //! m-world route world=v2 out=NEW_REPORT_ROOT tokenizer=TOKENIZER.json \
+ //!   [split=development|train] [conversations=2000] [seed=9101] [cells=true] \
+ //!   [mqar_share=..] [copy_share=..] [relation_share=..] [other_share=..]
++//! m-world compiler world=v2 out=NEW_REPORT_ROOT model=MODEL_DIR tokenizer=TOKENIZER.json \
++//!   [train_conversations=2000] [eval_conversations=1000] [seed=9101] [steps=400] [rate=0.5] [l2=0.0001] \
++//!   [lexical=true|false] [paraphrases=A.jsonl[,B.jsonl...]]
+ //! m-world probe out=NEW_REPORT_ROOT model=MODEL_DIR tokenizer=TOKENIZER.json [max_new_tokens=48] \
+ //!   [select=none|flock:W:K] [pointer_select=none|flock:W:K|top:K]
+ //! m-world probe-static out=NEW_REPORT_ROOT tokenizer=TOKENIZER.json [context=256]
+@@ -153,15 +156,20 @@ use uor_r4_training::{sha256_file, Result, TrainingError};
+ 
+ // The council's A1 amendments: cells, rule baselines, the sealed English probe.
+ use uor_r4_training::milestone_world_v2::{
+-    freeze_report, is_retrieval, oracle_recall, recall_line, run_route, run_rules, sieve_value,
+-    takes_recall, Category2, Cell, CellScores, Meter, RuleRun, Tag, FREEZE_LIMIT, REFERENCE,
+-    REVISION,
++    freeze_report, is_retrieval, oracle_recall, recall_line, relation_names, reserved_words,
++    run_route, run_rules, sieve_value, takes_recall, Category2, Cell, CellScores, Meter, RuleRun,
++    Tag, FREEZE_LIMIT, REFERENCE, REVISION,
+ };
++// E3 of the log-sieve design: the relation compiler.
+ use uor_r4_training::milestone_world_v2_probe::{
+     answer_layout, conversation_excluding_probe, history_messages, probe, probe_ngrams,
+     probe_sha256, shares_ngram, static_report, teacher_forced, NllCard, ProbeGroup, Rejected,
+     EXCLUSION_NGRAM,
+ };
++use uor_r4_training::relation_compiler::{
++    collect, label, paraphrase_examples, score, trunk_features, Example, Lexicon, RelationRoute,
++    Softmax, SparseSoftmax, ACTS, NONE as RC_NONE,
++};
+ 
+ fn invalid(message: impl Into<String>) -> TrainingError {
+     TrainingError::Invalid(message.into())
+@@ -295,6 +303,9 @@ enum Recall {
+     Off,
+     Oracle,
+     Sieve,
++    /// The whole route: the identity channel, then the relation channel
++    /// (`uor_r4_training::relation_compiler::RelationRoute`).
++    Route,
+ }
+ 
+ /// `recall_at=` of `evaluate world=v2`: where the recall line goes, just
+@@ -306,6 +317,17 @@ enum RecallAt {
+     Query,
+ }
+ 
++/// `route_acts=` of `evaluate recall=route`: whether the route's lookup needs
++/// a statement the table names an assert or update (`fact`, the default), or
++/// only one that holds a value (`any`). Returns whether `fact` applies.
++fn route_acts_of(args: &Args) -> Result<bool> {
++    match args.optional("route_acts").as_deref() {
++        None | Some("fact") => Ok(true),
++        Some("any") => Ok(false),
++        Some(other) => Err(invalid(format!("unknown route_acts={other}: fact or any"))),
++    }
++}
++
+ fn recall_at_of(args: &Args) -> Result<RecallAt> {
+     match args.optional("recall_at").as_deref() {
+         None | Some("reply") => Ok(RecallAt::Reply),
+@@ -321,8 +343,9 @@ fn recall_of(args: &Args) -> Result<Recall> {
+         None | Some("off") => Ok(Recall::Off),
+         Some("oracle") => Ok(Recall::Oracle),
+         Some("sieve") => Ok(Recall::Sieve),
++        Some("route") => Ok(Recall::Route),
+         Some(other) => Err(invalid(format!(
+-            "unknown recall={other}: off, oracle or sieve"
++            "unknown recall={other}: off, oracle, sieve or route"
+         ))),
+     }
+ }
+@@ -1019,7 +1042,8 @@ fn corpus_v2(args: &Args, out: &Path) -> Result<()> {
+                 .enumerate()
+                 .map(|(i, turn)| match recall {
+                     _ if !takes_recall(turn) => None,
+-                    Recall::Off => None,
++                    // Refused for a corpus before the root is claimed.
++                    Recall::Off | Recall::Route => None,
+                     Recall::Oracle => Some(recall_line(oracle_recall(turn))),
+                     Recall::Sieve => Some(recall_line(
+                         sieve_value(&conversation.turns[..i], turn).as_deref(),
+@@ -1581,10 +1605,56 @@ fn evaluate_v2(args: &Args, out: &Path) -> Result<()> {
+     let context = model.config.context;
+     let recall = recall_of(args)?;
+     let recall_at = recall_at_of(args)?;
++    let route_fact_acts = route_acts_of(args)?;
+     let decode = |ids: &[u32]| tokenizer.decode(ids);
+     let mut reply =
+         |history: &[u32], cap: usize| greedy_reply(&model, history, cap, protocol.eos_id);
+     let count = |text: &str| tokenizer.encode(text).len();
++    // recall=route fits the relation channel's word table first, from the
++    // training-phrasing draws `compiler` uses (and any teacher paraphrases),
++    // with `route_trunk=`'s features of each turn beside its words.
++    let route_trunk = match args.optional("route_trunk") {
++        Some(directory) => {
++            let (trunk, identity, _) =
++                load_model(Path::new(&directory), &device, &Selection::default())?;
++            Some((
++                trunk,
++                json!({"model": directory, "model_identity": identity}),
++            ))
++        }
++        None => None,
++    };
++    let trunk_cache: std::cell::RefCell<BTreeMap<String, Vec<f64>>> = Default::default();
++    let trunk_of = |text: &str| -> Result<Option<Vec<f64>>> {
++        let Some((trunk, _)) = &route_trunk else {
++            return Ok(None);
++        };
++        if let Some(features) = trunk_cache.borrow().get(text) {
++            return Ok(Some(features.clone()));
++        }
++        let features = trunk_features(trunk, &encoder, protocol.bos_id, text)?;
++        trunk_cache
++            .borrow_mut()
++            .insert(text.to_owned(), features.clone());
++        Ok(Some(features))
++    };
++    let (route, route_record) = if recall == Recall::Route {
++        let features =
++            |text: &str| -> Result<Vec<f64>> { trunk_of(text)?.ok_or_else(|| invalid("no trunk")) };
++        let trunk = route_trunk.as_ref().map(|(_, identity)| {
++            (
++                &features as &dyn Fn(&str) -> Result<Vec<f64>>,
++                identity.clone(),
++            )
++        });
++        let (route, record) = fit_route(&count, args.optional("route_paraphrases"), trunk)?;
++        (Some(route), Some(record))
++    } else {
++        (None, None)
++    };
++    let reserved = reserved_words();
++    // Relation queries the route's table named correctly, of those evaluated.
++    let mut route_named = (0usize, 0usize);
+     let mut world = MWorld2::new(&count, mix)?;
+     let mut rng = Rng::new(seed);
+     let mut card = Scorecard::default();
+@@ -1596,13 +1666,30 @@ fn evaluate_v2(args: &Args, out: &Path) -> Result<()> {
+         let mut all = true;
+         let mut turns = Vec::with_capacity(conversation.turns.len());
+         for (t, turn) in conversation.turns.iter().enumerate() {
+-            let line = match recall {
+-                Recall::Off => None,
++            let history = &conversation.turns[..t];
++            let line = match (recall, &route) {
++                (Recall::Off, _) => None,
+                 _ if !takes_recall(turn) => None,
+-                Recall::Oracle => Some(recall_line(oracle_recall(turn))),
+-                Recall::Sieve => Some(recall_line(
+-                    sieve_value(&conversation.turns[..t], turn).as_deref(),
+-                )),
++                (Recall::Oracle, _) => Some(recall_line(oracle_recall(turn))),
++                (Recall::Sieve, _) => Some(recall_line(sieve_value(history, turn).as_deref())),
++                (Recall::Route, Some(route)) => {
++                    if turn.category == Category2::Relation {
++                        let dense = trunk_of(&turn.user)?;
++                        route_named.1 += 1;
++                        route_named.0 += usize::from(
++                            route.classify(&turn.user, dense.as_deref())?.0 == label(turn).0,
++                        );
++                    }
++                    let value = match sieve_value(history, turn) {
++                        Some(value) => Some(value),
++                        None => {
++                            let mut trunk = |text: &str| trunk_of(text);
++                            route.value(history, turn, reserved, route_fact_acts, &mut trunk)?
++                        }
++                    };
++                    Some(recall_line(value.as_deref()))
++                }
++                (Recall::Route, None) => return Err(invalid("recall=route without a route")),
+             };
+             let mut messages = messages_through(&conversation.turns, t);
+             if let Some(line) = &line {
+@@ -1739,6 +1826,17 @@ fn evaluate_v2(args: &Args, out: &Path) -> Result<()> {
+             "overflow_rule": "a query whose recall line leaves no room to reply is \
+                               answered empty and fails",
+         });
++        if let Some(record) = route_record {
++            report["recall"]["route"] = record;
++            report["recall"]["route"]["lookup_acts"] =
++                json!(if route_fact_acts { "fact" } else { "any" });
++            report["recall"]["route"]["relation_queries_named"] =
++                rate_json((route_named.0, route_named.1));
++            println!(
++                "route: the word table named the relation of {}/{} relation queries",
++                route_named.0, route_named.1
++            );
++        }
+     }
+     // Written before the panel, so a panel error cannot discard it.
+     fs::write(
+@@ -2389,6 +2487,326 @@ fn route(args: &Args, out: &Path) -> Result<()> {
+     Ok(())
+ }
+ 
++/// Teacher paraphrases from a comma-separated list of `teacher-paraphrase`
++/// files, filled with `train`'s values (`paraphrase_examples`), with each
++/// file's SHA-256 and counts.
++fn load_paraphrases(list: &str, train: &[Example]) -> Result<(Vec<Example>, Value)> {
++    let (mut all, mut files) = (Vec::new(), Vec::new());
++    for path in list.split(',').filter(|p| !p.trim().is_empty()) {
++        let path = PathBuf::from(path.trim());
++        let (examples, skipped) = paraphrase_examples(&fs::read_to_string(&path)?, train)?;
++        files.push(json!({
++            "path": path.display().to_string(),
++            "sha256": sha256_file(&path)?,
++            "examples": examples.len(),
++            "skipped_without_a_value": skipped,
++        }));
++        all.extend(examples);
++    }
++    if files.is_empty() {
++        return Err(invalid("paraphrases= names no file"));
++    }
++    let record = json!({"files": files, "examples": all.len()});
++    Ok((all, record))
++}
++
++/// The relation channel's word table for `evaluate recall=route`: fitted on
++/// every user turn of relation-heavy draws with training phrasings (both value
++/// splits, 2,000 conversations each, seed 9,101: `compiler`'s draw), plus any
++/// teacher paraphrases, by 400 sparse gradient steps (rate 0.5, l2 1e-4).
++fn fit_route(
++    count: &dyn Fn(&str) -> usize,
++    paraphrases: Option<String>,
++    trunk: Option<(&dyn Fn(&str) -> Result<Vec<f64>>, Value)>,
++) -> Result<(RelationRoute, Value)> {
++    let mix = Mix {
++        mqar: 0.15,
++        copy: 0.05,
++        relation: 0.60,
++        other: 0.20,
++        ..Mix::default()
++    };
++    let mut train = Vec::new();
++    for value in [Split::Train, Split::Development] {
++        let mut world = MWorld2::new(count, mix)?;
++        let mut rng = Rng::new(9_101);
++        train.extend(collect(
++            &mut world,
++            &mut rng,
++            Cell::new(Split::Train, value),
++            2_000,
++        )?);
++    }
++    let turns = train.len();
++    let paraphrase_record = match paraphrases {
++        Some(list) => {
++            let (examples, record) = load_paraphrases(&list, &train)?;
++            train.extend(examples);
++            Some(record)
++        }
++        None => None,
++    };
++    let (route, trunk_record) = match trunk {
++        None => (RelationRoute::fit(&train, 400, 0.5, 1e-4)?, Value::Null),
++        Some((features, identity)) => {
++            let x: Vec<Vec<f64>> = train
++                .iter()
++                .map(|e| features(&e.text))
++                .collect::<Result<_>>()?;
++            (
++                RelationRoute::fit_with(&train, Some(&x), 400, 0.5, 1e-4)?,
++                identity,
++            )
++        }
++    };
++    let record = json!({
++        "trunk": trunk_record,
++        "channels": "identity (R-sieve) first; then the relation channel: the latest earlier user turn the word table names as asserting or updating the asked relation, and its words outside the world's fixed vocabulary",
++        "table": "sparse softmax over the words of a turn, 400 full-batch steps, rate 0.5, l2 1e-4",
++        "training_turns": turns,
++        "draw": "relation-heavy mix (MQAR .15, copy .05, relation .60, other .20), training phrasings, both value splits, 2,000 conversations each, seed 9101",
++        "paraphrases": paraphrase_record,
++    });
++    Ok((route, record))
++}
++
++/// `compiler` (E3 of the log-sieve design): softmax heads that name a user
++/// turn's relation and act, fitted on turns with training phrasings and scored
++/// on turns with development phrasings, from the frozen trunk's states and,
++/// as a control, from the turn's words (`uor_r4_training::relation_compiler`).
++/// Relation accuracy is over the turns that state, update or ask a relation;
++/// act accuracy is over every user turn.
++fn compiler(args: &Args, out: &Path) -> Result<()> {
++    let started = Instant::now();
++    if args.optional("world").as_deref() != Some("v2") {
++        return Err(invalid("compiler needs world=v2"));
++    }
++    let model_dir = PathBuf::from(args.required("model")?);
++    let tokenizer_path = PathBuf::from(args.required("tokenizer")?);
++    let train_conversations: usize = args.number("train_conversations", 2_000)?;
++    let eval_conversations: usize = args.number("eval_conversations", 1_000)?;
++    let seed: u64 = args.number("seed", 9_101)?;
++    let steps: usize = args.number("steps", 400)?;
++    let rate: f64 = args.number("rate", 0.5)?;
++    let l2: f64 = args.number("l2", 1e-4)?;
++    let lexical_head: bool = args.number("lexical", true)?;
++    let tokenizer = load_tokenizer(&tokenizer_path)?;
++    let protocol = DialogueProtocol::literal_roles_v1(&tokenizer)
++        .map_err(|e| invalid(format!("protocol: {e}")))?;
++    let encoder = protocol
++        .bind(&tokenizer)
++        .map_err(|e| invalid(format!("protocol: {e}")))?;
++    let device = Device::Cpu;
++    let (model, identity, _) = load_model(&model_dir, &device, &args.selection)?;
++    let count = |text: &str| tokenizer.encode(text).len();
++    // Relation-heavy episodes: more relation turns per draw, the same templates.
++    let mix = Mix {
++        mqar: 0.15,
++        copy: 0.05,
++        relation: 0.60,
++        other: 0.20,
++        ..Mix::default()
++    };
++    let draw = |cell: Cell, conversations: usize, seed: u64| -> Result<Vec<Example>> {
++        let mut world = MWorld2::new(&count, mix)?;
++        let mut rng = Rng::new(seed);
++        collect(&mut world, &mut rng, cell, conversations)
++    };
++    let mut train = Vec::new();
++    for value in [Split::Train, Split::Development] {
++        train.extend(draw(
++            Cell::new(Split::Train, value),
++            train_conversations,
++            seed,
++        )?);
++    }
++    // Teacher paraphrases (`teacher-paraphrase`), filled with training values,
++    // join the training turns; the development turns are untouched.
++    let paraphrases = match args.optional("paraphrases") {
++        Some(list) => {
++            let (examples, record) = load_paraphrases(&list, &train)?;
++            train.extend(examples);
++            Some(record)
++        }
++        None => None,
++    };
++    let tests: Vec<(Cell, Vec<Example>)> = [Split::Development, Split::Train]
++        .into_iter()
++        .map(|value| {
++            let cell = Cell::new(Split::Development, value);
++            Ok((cell, draw(cell, eval_conversations, seed + 1)?))
++        })
++        .collect::<Result<_>>()?;
++    let relations: Vec<String> = relation_names()
++        .iter()
++        .map(|name| (*name).to_owned())
++        .chain([RC_NONE.to_owned()])
++        .collect();
++    let acts: Vec<String> = ACTS.iter().map(|act| (*act).to_owned()).collect();
++    let relation_index = |example: &Example| {
++        relations
++            .iter()
++            .position(|r| *r == example.relation)
++            .unwrap_or(relations.len() - 1)
++    };
++    let act_index = |example: &Example| {
++        ACTS.iter()
++            .position(|a| *a == example.act)
++            .unwrap_or(ACTS.len() - 1)
++    };
++    let none = relations.len() - 1;
++    let lexicon = Lexicon::fit(train.iter().map(|e| e.text.as_str()));
++    let trunk = |examples: &[Example]| -> Result<Vec<Vec<f64>>> {
++        examples
++            .iter()
++            .map(|e| trunk_features(&model, &encoder, protocol.bos_id, &e.text))
++            .collect()
++    };
++    let lexical = |examples: &[Example]| -> Vec<Vec<f64>> {
++        examples.iter().map(|e| lexicon.features(&e.text)).collect()
++    };
++    let train_relation: Vec<usize> = train.iter().map(relation_index).collect();
++    let train_act: Vec<usize> = train.iter().map(act_index).collect();
++    // The dense heads: the trunk's states; and, unless `lexical=false` (the
++    // word heads depend on the turns alone, not on the trunk), the turn's
++    // words and both together. The sparse `table` head is the route's word
++    // table (`recall=route`): present words at their standardized scale.
++    let dense = |name: &str, trunk_x: &[Vec<f64>], examples: &[Example]| -> Vec<Vec<f64>> {
++        match name {
++            "trunk" => trunk_x.to_vec(),
++            "lexical" => lexical(examples),
++            _ => trunk_x
++                .iter()
++                .zip(lexical(examples))
++                .map(|(t, w)| t.iter().copied().chain(w).collect())
++                .collect(),
++        }
++    };
++    let dense_names: &[&str] = if lexical_head {
++        &["trunk", "lexical", "combined"]
++    } else {
++        &["trunk"]
++    };
++    let train_trunk = trunk(&train)?;
++    let mut heads = BTreeMap::new();
++    for name in dense_names {
++        let x = dense(name, &train_trunk, &train);
++        let relation_head = Softmax::fit(&x, &train_relation, relations.len(), steps, rate, l2)?;
++        let act_head = Softmax::fit(&x, &train_act, acts.len(), steps, rate, l2)?;
++        heads.insert(*name, (relation_head, act_head));
++    }
++    let table_rows: Vec<Vec<(usize, f64)>> =
++        train.iter().map(|e| lexicon.scaled(&e.text)).collect();
++    let dim = lexicon.len().max(1);
++    let table = (
++        SparseSoftmax::fit(
++            &table_rows,
++            &train_relation,
++            relations.len(),
++            dim,
++            steps,
++            rate,
++            l2,
++        )?,
++        SparseSoftmax::fit(&table_rows, &train_act, acts.len(), dim, steps, rate, l2)?,
++    );
++    let mut cells_json = BTreeMap::new();
++    for (cell, examples) in &tests {
++        let truth_relation: Vec<usize> = examples.iter().map(relation_index).collect();
++        let truth_act: Vec<usize> = examples.iter().map(act_index).collect();
++        let test_trunk = trunk(examples)?;
++        let mut predictions: Vec<(&str, Vec<usize>, Vec<usize>)> = Vec::new();
++        for (name, (relation_head, act_head)) in &heads {
++            let x = dense(name, &test_trunk, examples);
++            predictions.push((
++                *name,
++                x.iter().map(|row| relation_head.predict(row)).collect(),
++                x.iter().map(|row| act_head.predict(row)).collect(),
++            ));
++        }
++        let rows_x: Vec<Vec<(usize, f64)>> =
++            examples.iter().map(|e| lexicon.scaled(&e.text)).collect();
++        predictions.push((
++            "table",
++            rows_x.iter().map(|row| table.0.predict(row)).collect(),
++            rows_x.iter().map(|row| table.1.predict(row)).collect(),
++        ));
++        let mut rows = BTreeMap::new();
++        for (name, predicted_relation, predicted_act) in predictions {
++            let relation_turns = score(&relations, &truth_relation, &predicted_relation, |t| {
++                t != none
++            });
++            let all_turns = score(&relations, &truth_relation, &predicted_relation, |_| true);
++            let act = score(&acts, &truth_act, &predicted_act, |_| true);
++            println!(
++                "{} {name}: relation {}/{} ({:.3}) on relation turns; act {}/{} ({:.3})",
++                cell.key(),
++                relation_turns["pass"],
++                relation_turns["of"],
++                relation_turns["rate"].as_f64().unwrap_or(0.0),
++                act["pass"],
++                act["of"],
++                act["rate"].as_f64().unwrap_or(0.0),
++            );
++            rows.insert(
++                (*name).to_owned(),
++                json!({
++                    "relation_on_relation_turns": relation_turns,
++                    "relation_on_all_turns": all_turns,
++                    "act_on_all_turns": act,
++                }),
++            );
++        }
++        cells_json.insert(cell.key(), json!(rows));
++    }
++    let gate_row = &cells_json[Cell::GATED.key()]["trunk"];
++    let gate = gate_row["relation_on_relation_turns"]["rate"]
++        .as_f64()
++        .unwrap_or(0.0)
++        >= 0.9
++        && gate_row["act_on_all_turns"]["rate"].as_f64().unwrap_or(0.0) >= 0.95;
++    println!("E3 gate (trunk, dev x dev: relation >= 0.9 and act >= 0.95): {gate}");
++    let report = json!({
++        "schema": "uor-r4.m-world-compiler/1",
++        "executable_sha256": sha256_file(&std::env::current_exe()?)?,
++        "world": "m-world-v2",
++        "world_digest": MWorld2::digest(),
++        "revision": REVISION,
++        "model": model_dir.display().to_string(),
++        "model_identity": identity,
++        "tokenizer_sha256": sha256_file(&tokenizer_path)?,
++        "mix": mix,
++        "seed": seed,
++        "train": {
++            "cells": ["train_phrasing_train_value", "train_phrasing_dev_value"],
++            "conversations_per_cell": train_conversations,
++            "turns": train.len(),
++            "relation_turns": train_relation.iter().filter(|&&r| r != none).count(),
++            "paraphrases": paraphrases,
++            "lexicon_words": lexicon.len(),
++        },
++        "eval_conversations_per_cell": eval_conversations,
++        "fit": {"steps": steps, "rate": rate, "l2": l2, "lexical_head": lexical_head, "features": {
++            "trunk": "final normalized state at the assistant marker and its mean over the turn read alone (2 x width)",
++            "lexical": "binary words of the training turns (a control)",
++            "combined": "trunk and lexical features together (dense, standardized)",
++            "table": "the route's sparse word table: present words at their standardized scale sqrt((1-p)/p), fitted without standardizing absent ones",
++        }},
++        "labels": {"relations": relations, "acts": acts},
++        "gate": {
++            "rule": "trunk head on dev_phrasing x dev_value: relation accuracy >= 0.9 on relation turns and act accuracy >= 0.95 on all turns",
++            "met": gate,
++        },
++        "cells": cells_json,
++        "wall_seconds": started.elapsed().as_secs_f64(),
++    });
++    fs::write(
++        out.join("m_world_compiler.json"),
++        serde_json::to_vec_pretty(&report)?,
++    )?;
++    Ok(())
++}
++
+ /// `probe`: the sealed 40-item English retrieval probe, answered greedily after
+ /// each item's reference history and teacher-forced.
+ fn probe_evaluate(args: &Args, out: &Path) -> Result<()> {
+@@ -2588,7 +3006,24 @@ fn run_v2_extras(mode: &str, rest: &[String]) -> Option<Result<()>> {
+         "pointer_select",
+     ];
+     let static_probe: &[&str] = &["out", "tokenizer", "context"];
++    let relation_compiler: &[&str] = &[
++        "out",
++        "world",
++        "model",
++        "tokenizer",
++        "train_conversations",
++        "eval_conversations",
++        "seed",
++        "steps",
++        "rate",
++        "l2",
++        "lexical",
++        "paraphrases",
++        "select",
++        "pointer_select",
++    ];
+     match mode {
++        "compiler" => Some(claimed(rest, relation_compiler, compiler)),
+         "evaluate-cells" => Some(claimed(rest, cells, evaluate_cells)),
+         "baselines" => Some(claimed(rest, baseline, baselines)),
+         "route" => Some(claimed(rest, baseline, route)),
+@@ -2662,6 +3097,9 @@ fn main() -> Result<()> {
+                 "pointer_select",
+                 "recall",
+                 "recall_at",
++                "route_paraphrases",
++                "route_acts",
++                "route_trunk",
+             ],
+         )?,
+         "rejudge" => Args::parse(rest, &["out", "report", "tokenizer"])?,
+@@ -2683,6 +3121,11 @@ fn main() -> Result<()> {
+         if recall == Recall::Off && args.optional("recall_at").is_some() {
+             return Err(invalid("recall_at= needs recall=oracle or recall=sieve"));
+         }
++        if recall == Recall::Route {
++            return Err(invalid(
++                "a corpus takes recall=oracle or recall=sieve; route is for evaluate",
++            ));
++        }
+         if args.number("context", CONTEXT)? < CONTEXT {
+             return Err(invalid(format!("context must be at least {CONTEXT}")));
+         }
+@@ -2696,6 +3139,15 @@ fn main() -> Result<()> {
+         if recall == Recall::Off && args.optional("recall_at").is_some() {
+             return Err(invalid("recall_at= needs recall=oracle or recall=sieve"));
+         }
++        if recall != Recall::Route
++            && (args.optional("route_paraphrases").is_some()
++                || args.optional("route_acts").is_some())
++        {
++            return Err(invalid(
++                "route_paraphrases=, route_acts= and route_trunk= need recall=route",
++            ));
++        }
++        route_acts_of(&args)?;
+     }
+     let world = if mode == "rejudge" {
+         World::V1
+diff --git a/crates/uor-r4-training/src/bin/teacher-paraphrase.rs b/crates/uor-r4-training/src/bin/teacher-paraphrase.rs
+new file mode 100644
+index 000000000..09fbb40d8
+--- /dev/null
++++ b/crates/uor-r4-training/src/bin/teacher-paraphrase.rs
+@@ -0,0 +1,604 @@
++//! Teacher paraphrases of M-world v2's relation templates, for the relation
++//! compiler (E3 of the log-sieve design; owner ruling on #1552).
++//!
++//! ```text
++//! teacher-paraphrase out=NEW_REPORT_ROOT teacher=SMOLLM2_INSTRUCT_DIR world_tokenizer=T.json \
++//!   [per_template=8] [max_new=160] [temperature=0.8] [top_k=40] [seed=1] [draws=3000] \
++//!   [probe=false]
++//! ```
++//!
++//! A local SmolLM2-Instruct checkpoint is an **offline data source only**; it
++//! never serves. For every relation template the world draws with *training*
++//! phrasings (relation, act, template with its `{v}` slot), the teacher is
++//! asked for `per_template` other wordings, sampled with a fixed seed. Each
++//! line is cleaned, must keep the slot exactly when the template has one, and
++//! is **screened out** if it equals a development template or shares a
++//! four-word sequence with one, so the development cells stay held out. The
++//! kept wordings go to `paraphrases.jsonl`; the report root is claimed first
++//! and sealed at the end. `probe=true` generates for one template only and
++//! reports the speed.
++
++#![forbid(unsafe_code)]
++
++use std::collections::{BTreeMap, BTreeSet};
++use std::fs;
++use std::num::NonZeroUsize;
++use std::path::{Path, PathBuf};
++use std::process::ExitCode;
++use std::time::Instant;
++
++use serde_json::{json, Value};
++use uor_r4_core::report_output;
++use uor_r4_model_source::{HuggingFaceLlamaOracle, State, TeacherExecutionConfig};
++use uor_r4_tokenizer::ByteBpeTokenizer;
++use uor_r4_training::milestone_world::{normalized, Split};
++use uor_r4_training::milestone_world_v2::{Cell, MWorld2, Mix};
++use uor_r4_training::relation_compiler::{label, NONE};
++use uor_r4_training::sha256_file;
++use uor_r4_training::stack_tracking::Rng;
++
++type Error = Box<dyn std::error::Error>;
++
++const IM_START: u32 = 1;
++const IM_END: u32 = 2;
++const SLOT: &str = "{v}";
++
++fn main() -> ExitCode {
++    match run() {
++        Ok(()) => ExitCode::SUCCESS,
++        Err(error) => {
++            eprintln!("teacher-paraphrase: {error}");
++            ExitCode::FAILURE
++        }
++    }
++}
++
++struct Args(BTreeMap<String, String>);
++
++impl Args {
++    fn parse() -> Result<Self, Error> {
++        const KEYS: [&str; 12] = [
++            "out",
++            "teacher",
++            "world_tokenizer",
++            "per_template",
++            "max_new",
++            "temperature",
++            "top_k",
++            "seed",
++            "draws",
++            "probe",
++            "workers",
++            "probe_template",
++        ];
++        let mut pairs = BTreeMap::new();
++        for argument in std::env::args().skip(1) {
++            let (key, value) = argument
++                .split_once('=')
++                .ok_or_else(|| format!("expected key=value, got {argument}"))?;
++            if !KEYS.contains(&key) || pairs.insert(key.to_owned(), value.to_owned()).is_some() {
++                return Err(format!("unknown or repeated argument {key}").into());
++            }
++        }
++        Ok(Self(pairs))
++    }
++
++    fn path(&self, key: &str) -> Result<PathBuf, Error> {
++        Ok(PathBuf::from(
++            self.0.get(key).ok_or_else(|| format!("missing {key}="))?,
++        ))
++    }
++
++    fn number<T: std::str::FromStr>(&self, key: &str, default: T) -> Result<T, Error> {
++        match self.0.get(key) {
++            None => Ok(default),
++            Some(value) => value
++                .parse()
++                .map_err(|_| format!("invalid {key}={value}").into()),
++        }
++    }
++}
++
++/// A relation template of the world: its relation, act and text.
++#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
++struct Template {
++    relation: String,
++    act: &'static str,
++    text: String,
++}
++
++/// The relation templates the world draws in `phrasing`, over every value split.
++fn templates(
++    count: &dyn Fn(&str) -> usize,
++    phrasing: Split,
++    draws: usize,
++    seed: u64,
++) -> Result<BTreeSet<Template>, Error> {
++    let mix = Mix {
++        mqar: 0.0,
++        copy: 0.0,
++        relation: 1.0,
++        other: 0.0,
++        ..Mix::default()
++    };
++    let mut found = BTreeSet::new();
++    for value in [Split::Train, Split::Development] {
++        let mut world = MWorld2::new(count, mix)?;
++        let mut rng = Rng::new(seed);
++        for _ in 0..draws {
++            for turn in world
++                .conversation_in(&mut rng, Cell::new(phrasing, value))?
++                .turns
++            {
++                let (relation, act) = label(&turn);
++                if relation == NONE {
++                    continue;
++                }
++                if let Some(text) = turn.tag.template {
++                    found.insert(Template {
++                        relation,
++                        act,
++                        text,
++                    });
++                }
++            }
++        }
++    }
++    Ok(found)
++}
++
++/// The words of a template with the slot as one word.
++fn slot_words(text: &str) -> Vec<String> {
++    normalized(&text.replace(SLOT, " slotvalue "))
++        .split(' ')
++        .filter(|w| !w.is_empty())
++        .map(str::to_owned)
++        .collect()
++}
++
++fn four_grams(text: &str) -> BTreeSet<Vec<String>> {
++    let words = slot_words(text);
++    words.windows(4).map(<[String]>::to_vec).collect()
++}
++
++/// The worked example shown before each request, on a topic that is no
++/// M-world relation (a car), so it teaches the format without suggesting
++/// any development wording.
++fn example(act: &str) -> (&'static str, &'static [&'static str]) {
++    match act {
++        "assert" => (
++            "My car is a {v}.",
++            &[
++                "I drive a {v}.",
++                "The car I own is a {v}.",
++                "I have a {v} as my car.",
++                "{v} is the car I drive.",
++            ],
++        ),
++        "update" => (
++            "Actually, my car is a {v} now.",
++            &[
++                "I changed cars, it's a {v} now.",
++                "Correction: I drive a {v} these days.",
++                "These days my car is a {v}.",
++                "I switched to a {v}.",
++            ],
++        ),
++        _ => (
++            "What car do I drive?",
++            &[
++                "Which car do I have?",
++                "What kind of car do I own?",
++                "What's my car again?",
++                "Do you know what car I drive?",
++            ],
++        ),
++    }
++}
++
++/// The request, split where the template enters: a prefix shared by every
++/// template of one act and slot shape (its teacher state is computed once),
++/// and the template's own suffix.
++fn prompt(template: &Template, per_template: usize) -> (String, String) {
++    let (sample, rewrites) = example(template.act);
++    let slot_rule = if template.text.contains(SLOT) {
++        format!(" Keep {SLOT} exactly as written, once in each line.")
++    } else {
++        String::new()
++    };
++    (
++        format!(
++            "Rewrite the sentence in {per_template} different ways that mean the same thing, in \
++             everyday English.{slot_rule} Write one per line.\n\nSentence: {sample}\nRewrites:\n\
++             {}\n\nSentence: ",
++            rewrites.join("\n")
++        ),
++        format!("{}\nRewrites:", template.text),
++    )
++}
++
++/// SmolLM2-Instruct's chat format up to the request's prefix: its default
++/// system turn, then the user turn's opening.
++fn prefix_ids(tokenizer: &ByteBpeTokenizer, prefix: &str) -> Vec<u32> {
++    let mut ids = vec![IM_START];
++    ids.extend(
++        tokenizer
++            .encode("system\nYou are a helpful AI assistant named SmolLM, trained by Hugging Face"),
++    );
++    ids.push(IM_END);
++    ids.extend(tokenizer.encode("\n"));
++    ids.push(IM_START);
++    ids.extend(tokenizer.encode("user\n"));
++    ids.extend(tokenizer.encode(prefix));
++    ids
++}
++
++/// The rest of the user turn, then the assistant's opening.
++fn suffix_ids(tokenizer: &ByteBpeTokenizer, suffix: &str) -> Vec<u32> {
++    let mut ids = tokenizer.encode(suffix);
++    ids.push(IM_END);
++    ids.extend(tokenizer.encode("\n"));
++    ids.push(IM_START);
++    ids.extend(tokenizer.encode("assistant\n"));
++    ids
++}
++
++/// A teacher state after a shared prefix, with its logits and length.
++#[derive(Clone)]
++struct Prefix {
++    state: State,
++    logits: Vec<f32>,
++    len: usize,
++}
++
++/// Room left after a prefix for a template's suffix and the reply.
++const SUFFIX_ROOM: usize = 96;
++
++fn run_prefix(
++    oracle: &HuggingFaceLlamaOracle,
++    ids: &[u32],
++    max_new: usize,
++) -> Result<Prefix, Error> {
++    let mut state = oracle
++        .new_state_bounded(ids.len() + SUFFIX_ROOM + max_new)
++        .map_err(|e| format!("teacher state: {e:?}"))?;
++    let mut logits = vec![0f32; oracle.cfg().vocab];
++    for (position, &id) in ids.iter().enumerate() {
++        oracle
++            .step_state(&mut state, id as usize, position, &mut logits)
++            .map_err(|e| format!("teacher step: {e:?}"))?;
++    }
++    Ok(Prefix {
++        state,
++        logits,
++        len: ids.len(),
++    })
++}
++
++/// Whether a reply has finished its first block of rewrites.
++fn finished(text: &str) -> bool {
++    let body = text.trim_start();
++    body.contains("\n\n") || body.contains("\nSentence") || body.contains("\nRewrite")
++}
++
++/// The first block of a reply's lines: up to a blank line, or a line that
++/// opens a new example.
++fn first_block(text: &str) -> Vec<&str> {
++    let mut lines = Vec::new();
++    for line in text.trim_start().lines() {
++        let trimmed = line.trim();
++        if trimmed.is_empty() || trimmed.starts_with("Sentence") || trimmed.starts_with("Rewrite") {
++            break;
++        }
++        lines.push(line);
++    }
++    lines
++}
++
++struct Sampler(u64);
++
++impl Sampler {
++    fn uniform(&mut self) -> f64 {
++        self.0 = self.0.wrapping_add(0x9e37_79b9_7f4a_7c15);
++        let mut z = self.0;
++        z = (z ^ (z >> 30)).wrapping_mul(0xbf58_476d_1ce4_e5b9);
++        z = (z ^ (z >> 27)).wrapping_mul(0x94d0_49bb_1331_11eb);
++        ((z ^ (z >> 31)) >> 11) as f64 / (1u64 << 53) as f64
++    }
++
++    /// Sample from the `top_k` largest logits at `temperature`.
++    fn sample(&mut self, logits: &[f32], temperature: f64, top_k: usize) -> u32 {
++        let mut order: Vec<usize> = (0..logits.len()).collect();
++        order.sort_by(|&a, &b| logits[b].total_cmp(&logits[a]).then(a.cmp(&b)));
++        order.truncate(top_k.max(1));
++        let top = f64::from(logits[order[0]]);
++        let weights: Vec<f64> = order
++            .iter()
++            .map(|&i| ((f64::from(logits[i]) - top) / temperature.max(1e-6)).exp())
++            .collect();
++        let total: f64 = weights.iter().sum();
++        let mut u = self.uniform() * total;
++        for (&i, w) in order.iter().zip(&weights) {
++            if u < *w {
++                return i as u32;
++            }
++            u -= w;
++        }
++        order[order.len() - 1] as u32
++    }
++}
++
++/// The teacher's reply after `prefix` and `suffix`: sampled ids up to
++/// `max_new`, `<|im_end|>`, or the end of the first block of rewrites.
++/// Returns the reply and the teacher steps it took (suffix and reply).
++#[allow(clippy::too_many_arguments)]
++fn generate(
++    oracle: &HuggingFaceLlamaOracle,
++    tokenizer: &ByteBpeTokenizer,
++    prefix: &Prefix,
++    suffix: &[u32],
++    max_new: usize,
++    temperature: f64,
++    top_k: usize,
++    sampler: &mut Sampler,
++) -> Result<(Vec<u32>, usize), Error> {
++    if suffix.len() + max_new > SUFFIX_ROOM + max_new {
++        return Err("a template's suffix does not fit the cached prefix's room".into());
++    }
++    let mut state = prefix.state.clone();
++    let mut logits = prefix.logits.clone();
++    let mut position = prefix.len;
++    for &id in suffix {
++        oracle
++            .step_state(&mut state, id as usize, position, &mut logits)
++            .map_err(|e| format!("teacher step: {e:?}"))?;
++        position += 1;
++    }
++    let mut out = Vec::new();
++    for _ in 0..max_new {
++        let next = sampler.sample(&logits, temperature, top_k);
++        if next == IM_END {
++            break;
++        }
++        out.push(next);
++        if finished(&tokenizer.decode(&out)) {
++            break;
++        }
++        oracle
++            .step_state(&mut state, next as usize, position, &mut logits)
++            .map_err(|e| format!("teacher step: {e:?}"))?;
++        position += 1;
++    }
++    Ok((out, position - prefix.len))
++}
++
++/// Clean one generated line: strip numbering, bullets and quotes.
++fn clean(line: &str) -> String {
++    let mut text = line.trim();
++    let numbered = text
++        .char_indices()
++        .take_while(|(_, c)| c.is_ascii_digit())
++        .last()
++        .map(|(i, _)| i + 1);
++    if let Some(end) = numbered {
++        if let Some(rest) = text[end..].strip_prefix(['.', ')']) {
++            text = rest.trim();
++        }
++    }
++    text = text.trim_start_matches(['-', '*', '•']).trim();
++    text.trim_matches(['"', '\u{201c}', '\u{201d}', '\''])
++        .trim()
++        .to_owned()
++}
++
++fn run() -> Result<(), Error> {
++    let started = Instant::now();
++    let args = Args::parse()?;
++    let out = args.path("out")?;
++    let teacher_dir = args.path("teacher")?;
++    let world_tokenizer_path = args.path("world_tokenizer")?;
++    let per_template: usize = args.number("per_template", 8)?;
++    let max_new: usize = args.number("max_new", 160)?;
++    let temperature: f64 = args.number("temperature", 0.8)?;
++    let top_k: usize = args.number("top_k", 40)?;
++    let seed: u64 = args.number("seed", 1)?;
++    let draws: usize = args.number("draws", 3_000)?;
++    let probe: bool = args.number("probe", false)?;
++    let workers: usize = args.number("workers", 4)?;
++    let probe_template: usize = args.number("probe_template", 0)?;
++    if per_template == 0 || max_new == 0 || draws == 0 || top_k == 0 || temperature <= 0.0 {
++        return Err("per_template, max_new, draws, top_k and temperature must be positive".into());
++    }
++    let workers = NonZeroUsize::new(workers).ok_or("workers must be positive")?;
++    report_output::claim(&out)?;
++    let result = generate_all(
++        &out,
++        &teacher_dir,
++        &world_tokenizer_path,
++        workers,
++        probe_template,
++        (
++            per_template,
++            max_new,
++            temperature,
++            top_k,
++            seed,
++            draws,
++            probe,
++        ),
++        started,
++    );
++    if let Err(error) = &result {
++        fs::write(
++            out.join("error.json"),
++            serde_json::to_vec_pretty(&json!({"error": error.to_string()}))?,
++        )?;
++    }
++    report_output::seal(&out)?;
++    report_output::verify(&out)?;
++    result
++}
++
++#[allow(clippy::type_complexity)]
++fn generate_all(
++    out: &Path,
++    teacher_dir: &Path,
++    world_tokenizer_path: &Path,
++    workers: NonZeroUsize,
++    probe_template: usize,
++    (per_template, max_new, temperature, top_k, seed, draws, probe): (
++        usize,
++        usize,
++        f64,
++        usize,
++        u64,
++        usize,
++        bool,
++    ),
++    started: Instant,
++) -> Result<(), Error> {
++    let world_tokenizer =
++        ByteBpeTokenizer::from_tokenizer_json_bytes(&fs::read(world_tokenizer_path)?)
++            .ok_or("world_tokenizer is not a supported tokenizer.json")?;
++    let count = |text: &str| world_tokenizer.encode(text).len();
++    let train = templates(&count, Split::Train, draws, seed)?;
++    let development = templates(&count, Split::Development, draws, seed)?;
++    let dev_texts: BTreeSet<String> = development
++        .iter()
++        .map(|t| slot_words(&t.text).join(" "))
++        .collect();
++    let dev_grams: BTreeSet<Vec<String>> = development
++        .iter()
++        .flat_map(|t| four_grams(&t.text))
++        .collect();
++    let train_texts: BTreeSet<String> = train
++        .iter()
++        .map(|t| slot_words(&t.text).join(" "))
++        .collect();
++    println!(
++        "{} training and {} development relation templates",
++        train.len(),
++        development.len()
++    );
++    let tokenizer_path = teacher_dir.join("tokenizer.json");
++    let tokenizer = ByteBpeTokenizer::from_tokenizer_json_bytes(&fs::read(&tokenizer_path)?)
++        .ok_or("the teacher's tokenizer.json is not supported")?;
++    let loading = Instant::now();
++    let oracle = HuggingFaceLlamaOracle::load_with_execution(
++        teacher_dir,
++        TeacherExecutionConfig::fixed_workers(workers),
++    )
++    .map_err(|e| format!("teacher load: {e:?}"))?;
++    let load_seconds = loading.elapsed().as_secs_f64();
++    let mut sampler = Sampler(seed);
++    let mut kept = Vec::new();
++    let mut tallies: BTreeMap<String, (usize, usize, usize, usize)> = BTreeMap::new();
++    let (mut generated_tokens, mut generation_seconds) = (0usize, 0f64);
++    let todo: Vec<&Template> = if probe {
++        train.iter().skip(probe_template).take(1).collect()
++    } else {
++        train.iter().collect()
++    };
++    // Teacher states after each distinct shared prefix, computed once.
++    let mut prefixes: BTreeMap<String, Prefix> = BTreeMap::new();
++    for template in todo {
++        let (prefix_text, suffix_text) = prompt(template, per_template);
++        let clock = Instant::now();
++        if !prefixes.contains_key(&prefix_text) {
++            let ids = prefix_ids(&tokenizer, &prefix_text);
++            generated_tokens += ids.len();
++            prefixes.insert(prefix_text.clone(), run_prefix(&oracle, &ids, max_new)?);
++        }
++        let prefix = &prefixes[&prefix_text];
++        let suffix = suffix_ids(&tokenizer, &suffix_text);
++        let (reply, steps) = generate(
++            &oracle,
++            &tokenizer,
++            prefix,
++            &suffix,
++            max_new,
++            temperature,
++            top_k,
++            &mut sampler,
++        )?;
++        generation_seconds += clock.elapsed().as_secs_f64();
++        generated_tokens += steps;
++        let text = tokenizer.decode(&reply);
++        let key = format!("{}/{}", template.relation, template.act);
++        let tally = tallies.entry(key).or_default();
++        let mut seen = BTreeSet::new();
++        for line in first_block(&text) {
++            let line = clean(line);
++            if line.is_empty() {
++                continue;
++            }
++            tally.0 += 1;
++            let has_slot = template.text.contains(SLOT);
++            if line.matches(SLOT).count() != usize::from(has_slot) {
++                continue;
++            }
++            let words = slot_words(&line).join(" ");
++            if words.is_empty() || train_texts.contains(&words) || !seen.insert(words.clone()) {
++                continue;
++            }
++            if dev_texts.contains(&words) || four_grams(&line).iter().any(|g| dev_grams.contains(g))
++            {
++                tally.1 += 1;
++                continue;
++            }
++            tally.2 += 1;
++            kept.push(json!({
++                "relation": template.relation,
++                "act": template.act,
++                "text": line,
++                "source_template": template.text,
++            }));
++        }
++        tally.3 += 1;
++        if probe {
++            println!("template: {}\nreply:\n{text}", template.text);
++        }
++    }
++    let mut jsonl = String::new();
++    for row in &kept {
++        jsonl.push_str(&serde_json::to_string(row)?);
++        jsonl.push('\n');
++    }
++    fs::write(out.join("paraphrases.jsonl"), jsonl)?;
++    let rate = generated_tokens as f64 / generation_seconds.max(1e-9);
++    println!(
++        "kept {} paraphrases; {generated_tokens} teacher tokens in {generation_seconds:.0} s ({rate:.1}/s); load {load_seconds:.0} s",
++        kept.len()
++    );
++    let report = json!({
++        "schema": "uor-r4.teacher-paraphrase/1",
++        "role": "offline teacher as a data source only; it never serves",
++        "teacher": {
++            "path": teacher_dir.display().to_string(),
++            "config_sha256": sha256_file(&teacher_dir.join("config.json"))?,
++            "model_sha256": sha256_file(&teacher_dir.join("model.safetensors"))?,
++            "tokenizer_sha256": sha256_file(&tokenizer_path)?,
++        },
++        "world_tokenizer_sha256": sha256_file(world_tokenizer_path)?,
++        "executable_sha256": sha256_file(&std::env::current_exe()?)?,
++        "settings": {
++            "per_template": per_template, "max_new": max_new, "temperature": temperature,
++            "top_k": top_k, "seed": seed, "draws": draws, "probe": probe, "workers": workers.get(),
++        },
++        "templates": {"training": train.len(), "development_screen": development.len()},
++        "screen": "a line must keep {v} exactly when its template has it; it is dropped if it equals a training template, repeats within its reply, equals a development template or shares a four-word sequence with one (words lowercased, punctuation removed, {v} as one word)",
++        "per_relation_act": tallies
++            .iter()
++            .map(|(key, (lines, screened, kept, prompts))| (key.clone(), json!({
++                "prompts": prompts, "lines": lines, "screened_development": screened, "kept": kept,
++            })))
++            .collect::<BTreeMap<_, Value>>(),
++        "kept": kept.len(),
++        "teacher_tokens": generated_tokens,
++        "generation_seconds": generation_seconds,
++        "load_seconds": load_seconds,
++        "wall_seconds": started.elapsed().as_secs_f64(),
++    });
++    fs::write(out.join("report.json"), serde_json::to_vec_pretty(&report)?)?;
++    Ok(())
++}
+diff --git a/crates/uor-r4-training/src/lib.rs b/crates/uor-r4-training/src/lib.rs
+index 5dc02144f..e4a9a0c9c 100644
+--- a/crates/uor-r4-training/src/lib.rs
++++ b/crates/uor-r4-training/src/lib.rs
+@@ -52,6 +52,7 @@ pub mod ngram;
+ pub mod read_localize;
+ pub mod reference_campaign;
+ pub mod reference_eval;
++pub mod relation_compiler;
+ pub mod s8_panel_count;
+ pub mod stack_aerm;
+ pub mod stack_checkpoint;
+diff --git a/crates/uor-r4-training/src/milestone_world_v2.rs b/crates/uor-r4-training/src/milestone_world_v2.rs
+index 1d1f81ac5..3a2f7512d 100644
+--- a/crates/uor-r4-training/src/milestone_world_v2.rs
++++ b/crates/uor-r4-training/src/milestone_world_v2.rs
+@@ -796,6 +796,14 @@ static COLOR_QUERY: Phrasings = Phrasings {
+     ],
+ };
+ 
++/// The names of the relation table's relations, in table order: open
++/// relations first, then the closed minority. A relation turn's intent is
++/// `{name}_assert`, `_update`, `_query` or (a query of an unstated relation)
++/// `_absent`.
++pub fn relation_names() -> Vec<&'static str> {
++    relations().iter().map(|relation| relation.name).collect()
++}
++
+ /// The relation table: open relations first, then the closed minority.
+ fn relations() -> &'static [Rel] {
+     static TABLE: OnceLock<Vec<Rel>> = OnceLock::new();
+diff --git a/crates/uor-r4-training/src/relation_compiler.rs b/crates/uor-r4-training/src/relation_compiler.rs
+new file mode 100644
+index 000000000..2f06e6b5b
+--- /dev/null
++++ b/crates/uor-r4-training/src/relation_compiler.rs
+@@ -0,0 +1,946 @@
++//! E3 of the log-sieve design (`docs/integration/log-sieve-retrieval-design-2026-10-01.md`
++//! §2.3): can a learned head name the relation and the act of a user turn
++//! under paraphrase? This is the language-to-atom compiler #958 lacked.
++//!
++//! Every user turn of M-world v2 is labelled from the generator's typed intent:
++//! its relation (one of [`relation_names`], or [`NONE`]) and its act
++//! (assert, update, query, or [`NONE`]; a query of an unstated relation is a
++//! query). Two softmax classifiers are fitted on turns drawn with *training*
++//! phrasings and scored on turns drawn with *development* phrasings, whose
++//! templates the fit never sees:
++//!
++//! - **trunk**: the frozen stack's final normalized states for the turn read
++//!   alone (BOS, the user prefix and the assistant marker), last position and
++//!   mean over positions;
++//! - **lexical**: the words of the turn (a control: development phrasings
++//!   change content words, so words unseen in training carry nothing).
++//!
++//! The fit is full-batch gradient descent on standardized features, in f64,
++//! with no randomness, so a run is a function of its inputs.
++
++use std::collections::BTreeMap;
++
++use serde_json::{json, Value};
++use uor_r4_tokenizer::dialogue::DialogueEncoder;
++
++use crate::geometric_stack::StackModel;
++use crate::milestone_world::words;
++use crate::milestone_world_v2::{relation_names, Cell, MWorld2, Turn2};
++use crate::stack_tracking::Rng;
++use crate::{invalid, Result};
++
++/// The label of a turn that states, updates or asks no relation.
++pub const NONE: &str = "none";
++/// The acts, in label order.
++pub const ACTS: [&str; 4] = ["assert", "update", "query", NONE];
++
++/// A user turn and its labels.
++#[derive(Clone, Debug)]
++pub struct Example {
++    pub text: String,
++    pub relation: String,
++    pub act: &'static str,
++    /// The phrasing template the turn was drawn from, slot unfilled.
++    pub template: Option<String>,
++}
++
++impl Example {
++    /// The value filling the template's `{v}` slot in the text, if the turn
++    /// has a one-slot template that the text matches.
++    pub fn slot_value(&self) -> Option<&str> {
++        let template = self.template.as_deref()?;
++        let (before, after) = template.split_once("{v}")?;
++        let value = self.text.strip_prefix(before)?.strip_suffix(after)?;
++        (!value.trim().is_empty()).then_some(value)
++    }
++}
++
++/// Training examples from teacher paraphrases (one JSON object per line with
++/// `relation`, `act` and `text`): each `{v}` is filled with a value the
++/// training draws gave that relation, in turn (a paraphrase whose relation
++/// has no recorded value is skipped). Returns the examples and the count
++/// skipped.
++pub fn paraphrase_examples(jsonl: &str, training: &[Example]) -> Result<(Vec<Example>, usize)> {
++    let mut values: BTreeMap<&str, Vec<&str>> = BTreeMap::new();
++    for example in training {
++        if let Some(value) = example.slot_value() {
++            let pool = values.entry(example.relation.as_str()).or_default();
++            if !pool.contains(&value) {
++                pool.push(value);
++            }
++        }
++    }
++    let mut next: BTreeMap<String, usize> = BTreeMap::new();
++    let (mut examples, mut skipped) = (Vec::new(), 0usize);
++    for line in jsonl.lines().filter(|line| !line.trim().is_empty()) {
++        let row: Value = serde_json::from_str(line)?;
++        let (Some(relation), Some(act), Some(text)) = (
++            row["relation"].as_str(),
++            row["act"].as_str(),
++            row["text"].as_str(),
++        ) else {
++            return Err(invalid("a paraphrase row needs relation, act and text"));
++        };
++        let act = ACTS
++            .iter()
++            .copied()
++            .find(|a| *a == act && *a != NONE)
++            .ok_or_else(|| invalid(format!("unknown paraphrase act {act}")))?;
++        if !relation_names().contains(&relation) {
++            return Err(invalid(format!("unknown paraphrase relation {relation}")));
++        }
++        let text = if text.contains("{v}") {
++            let Some(pool) = values.get(relation).filter(|pool| !pool.is_empty()) else {
++                skipped += 1;
++                continue;
++            };
++            let i = next.entry(relation.to_owned()).or_default();
++            let value = pool[*i % pool.len()];
++            *i += 1;
++            text.replace("{v}", value)
++        } else {
++            text.to_owned()
++        };
++        examples.push(Example {
++            text,
++            relation: relation.to_owned(),
++            act,
++            template: None,
++        });
++    }
++    Ok((examples, skipped))
++}
++
++/// A turn's relation and act from its typed intent.
++pub fn label(turn: &Turn2) -> (String, &'static str) {
++    for name in relation_names() {
++        if let Some(act) = turn
++            .intent
++            .strip_prefix(name)
++            .and_then(|rest| rest.strip_prefix('_'))
++        {
++            let act = match act {
++                "assert" => "assert",
++                "update" => "update",
++                "query" | "absent" => "query",
++                _ => continue,
++            };
++            return (name.to_owned(), act);
++        }
++    }
++    (NONE.to_owned(), NONE)
++}
++
++/// Every user turn of `conversations` episodes of `cell`, labelled.
++pub fn collect(
++    world: &mut MWorld2<'_>,
++    rng: &mut Rng,
++    cell: Cell,
++    conversations: usize,
++) -> Result<Vec<Example>> {
++    let mut examples = Vec::new();
++    for _ in 0..conversations {
++        for turn in world.conversation_in(rng, cell)?.turns {
++            let (relation, act) = label(&turn);
++            examples.push(Example {
++                text: turn.user,
++                relation,
++                act,
++                template: turn.tag.template,
++            });
++        }
++    }
++    Ok(examples)
++}
++
++/// The frozen trunk's features of a user turn read alone: the final
++/// normalized state at the last position (the assistant marker) and the mean
++/// over all positions, `2 * width` values.
++pub fn trunk_features(
++    model: &StackModel,
++    encoder: &DialogueEncoder<'_>,
++    bos: u32,
++    text: &str,
++) -> Result<Vec<f64>> {
++    let prefix = encoder.encode_user_prefix(text, false);
++    if prefix.emitted_turns != 1 || prefix.special_token_occurrences != 0 {
++        return Err(invalid("a user turn did not encode as one plain turn"));
++    }
++    let mut ids = vec![bos];
++    ids.extend(&prefix.tokens);
++    if ids.len() > model.config.context {
++        return Err(invalid("a user turn is longer than the model's context"));
++    }
++    let width = model.config.width;
++    let states = model
++        .hidden(&ids, 1, ids.len())?
++        .flatten_all()?
++        .to_vec1::<f32>()?;
++    let rows = states.len() / width;
++    let mut features = vec![0f64; 2 * width];
++    for (i, value) in states[(rows - 1) * width..].iter().enumerate() {
++        features[i] = f64::from(*value);
++    }
++    for row in states.chunks(width) {
++        for (i, value) in row.iter().enumerate() {
++            features[width + i] += f64::from(*value) / rows as f64;
++        }
++    }
++    Ok(features)
++}
++
++/// Binary bag-of-words features over a fixed vocabulary.
++pub struct Lexicon {
++    index: BTreeMap<String, usize>,
++    /// Per word, `sqrt((1 - p) / p)` for its document frequency `p` in the
++    /// fitted texts: the value a present word takes when standardized, so a
++    /// sparse table can weigh rare words as a standardized fit does.
++    scale: Vec<f64>,
++}
++
++impl Lexicon {
++    /// The vocabulary of `texts` (lowercased words without punctuation).
++    pub fn fit<'a>(texts: impl IntoIterator<Item = &'a str>) -> Self {
++        let mut index = BTreeMap::new();
++        let mut documents: Vec<usize> = Vec::new();
++        let mut total = 0usize;
++        for text in texts {
++            total += 1;
++            let mut seen = std::collections::BTreeSet::new();
++            for word in words(text) {
++                let next = index.len();
++                let i = *index.entry(word).or_insert(next);
++                if i == documents.len() {
++                    documents.push(0);
++                }
++                if seen.insert(i) {
++                    documents[i] += 1;
++                }
++            }
++        }
++        let scale = documents
++            .iter()
++            .map(|&d| {
++                let p = d as f64 / total.max(1) as f64;
++                if p >= 1.0 {
++                    1.0
++                } else {
++                    ((1.0 - p) / p).sqrt()
++                }
++            })
++            .collect();
++        Self { index, scale }
++    }
++
++    /// The present words of `text` with their standardized scale, sorted.
++    pub fn scaled(&self, text: &str) -> Vec<(usize, f64)> {
++        self.active(text)
++            .into_iter()
++            .map(|i| (i, self.scale[i]))
++            .collect()
++    }
++
++    pub fn len(&self) -> usize {
++        self.index.len()
++    }
++
++    pub fn is_empty(&self) -> bool {
++        self.index.is_empty()
++    }
++
++    /// The vocabulary indices of `text`'s words, sorted and distinct.
++    pub fn active(&self, text: &str) -> Vec<usize> {
++        let mut active: Vec<usize> = words(text)
++            .iter()
++            .filter_map(|word| self.index.get(word).copied())
++            .collect();
++        active.sort_unstable();
++        active.dedup();
++        active
++    }
++
++    /// The features of `text`; words outside the vocabulary carry nothing.
++    pub fn features(&self, text: &str) -> Vec<f64> {
++        let mut features = vec![0f64; self.index.len()];
++        for word in words(text) {
++            if let Some(&i) = self.index.get(&word) {
++                features[i] = 1.0;
++            }
++        }
++        features
++    }
++}
++
++/// A softmax classifier on standardized features.
++pub struct Softmax {
++    classes: usize,
++    dim: usize,
++    mean: Vec<f64>,
++    scale: Vec<f64>,
++    weights: Vec<f64>,
++    bias: Vec<f64>,
++}
++
++impl Softmax {
++    /// Fit by `steps` full-batch gradient steps of size `rate` on the mean
++    /// cross-entropy plus `l2` times the squared weights.
++    pub fn fit(
++        x: &[Vec<f64>],
++        y: &[usize],
++        classes: usize,
++        steps: usize,
++        rate: f64,
++        l2: f64,
++    ) -> Result<Self> {
++        let dim = x.first().map_or(0, Vec::len);
++        if x.is_empty()
++            || x.len() != y.len()
++            || classes < 2
++            || y.iter().any(|&label| label >= classes)
++            || x.iter().any(|row| row.len() != dim)
++        {
++            return Err(invalid("a classifier needs labelled rows of one width"));
++        }
++        let n = x.len() as f64;
++        let mut mean = vec![0f64; dim];
++        for row in x {
++            for (m, v) in mean.iter_mut().zip(row) {
++                *m += v / n;
++            }
++        }
++        let mut scale = vec![0f64; dim];
++        for row in x {
++            for ((s, v), m) in scale.iter_mut().zip(row).zip(&mean) {
++                *s += (v - m) * (v - m) / n;
++            }
++        }
++        for s in &mut scale {
++            *s = if *s > 1e-12 { s.sqrt() } else { 1.0 };
++        }
++        let mut model = Self {
++            classes,
++            dim,
++            mean,
++            scale,
++            weights: vec![0f64; classes * dim],
++            bias: vec![0f64; classes],
++        };
++        let standardized: Vec<Vec<f64>> = x.iter().map(|row| model.standardize(row)).collect();
++        for _ in 0..steps {
++            let mut grad_w = vec![0f64; classes * dim];
++            let mut grad_b = vec![0f64; classes];
++            for (row, &label) in standardized.iter().zip(y) {
++                let p = model.probabilities_standardized(row);
++                for c in 0..classes {
++                    let g = (p[c] - f64::from(u8::from(c == label))) / n;
++                    grad_b[c] += g;
++                    for (w, v) in grad_w[c * dim..(c + 1) * dim].iter_mut().zip(row) {
++                        *w += g * v;
++                    }
++                }
++            }
++            for (w, g) in model.weights.iter_mut().zip(&grad_w) {
++                *w -= rate * (g + l2 * *w);
++            }
++            for (b, g) in model.bias.iter_mut().zip(&grad_b) {
++                *b -= rate * g;
++            }
++        }
++        Ok(model)
++    }
++
++    fn standardize(&self, row: &[f64]) -> Vec<f64> {
++        row.iter()
++            .zip(&self.mean)
++            .zip(&self.scale)
++            .map(|((v, m), s)| (v - m) / s)
++            .collect()
++    }
++
++    fn probabilities_standardized(&self, row: &[f64]) -> Vec<f64> {
++        let logits: Vec<f64> = (0..self.classes)
++            .map(|c| {
++                self.bias[c]
++                    + self.weights[c * self.dim..(c + 1) * self.dim]
++                        .iter()
++                        .zip(row)
++                        .map(|(w, v)| w * v)
++                        .sum::<f64>()
++            })
++            .collect();
++        let top = logits.iter().copied().fold(f64::NEG_INFINITY, f64::max);
++        let exp: Vec<f64> = logits.iter().map(|l| (l - top).exp()).collect();
++        let total: f64 = exp.iter().sum();
++        exp.iter().map(|e| e / total).collect()
++    }
++
++    /// The most probable class of a raw feature row (ties to the lower class).
++    pub fn predict(&self, row: &[f64]) -> usize {
++        let p = self.probabilities_standardized(&self.standardize(row));
++        let mut best = 0;
++        for c in 1..p.len() {
++            if p[c] > p[best] {
++                best = c;
++            }
++        }
++        best
++    }
++}
++
++/// A softmax classifier on sparse features (each row's present indices with
++/// their values), so a row costs only its present features. With the
++/// lexicon's standardized scale ([`Lexicon::scaled`]) it weighs rare words as a
++/// standardized fit does. In serving it is a table of word weights summed per
++/// class.
++pub struct SparseSoftmax {
++    classes: usize,
++    dim: usize,
++    weights: Vec<f64>,
++    bias: Vec<f64>,
++}
++
++impl SparseSoftmax {
++    /// Full-batch gradient descent on the mean cross-entropy plus `l2` times
++    /// the squared weights (applied as a shrink each step).
++    pub fn fit(
++        rows: &[Vec<(usize, f64)>],
++        y: &[usize],
++        classes: usize,
++        dim: usize,
++        steps: usize,
++        rate: f64,
++        l2: f64,
++    ) -> Result<Self> {
++        if rows.is_empty()
++            || rows.len() != y.len()
++            || classes < 2
++            || y.iter().any(|&label| label >= classes)
++            || rows
++                .iter()
++                .flatten()
++                .any(|&(i, v)| i >= dim || !v.is_finite())
++        {
++            return Err(invalid(
++                "a sparse classifier needs labelled rows inside its width",
++            ));
++        }
++        let n = rows.len() as f64;
++        let mut model = Self {
++            classes,
++            dim,
++            weights: vec![0f64; classes * dim],
++            bias: vec![0f64; classes],
++        };
++        for _ in 0..steps {
++            let mut grad_w = vec![0f64; classes * dim];
++            let mut grad_b = vec![0f64; classes];
++            for (row, &label) in rows.iter().zip(y) {
++                let p = model.probabilities(row);
++                for c in 0..classes {
++                    let g = (p[c] - f64::from(u8::from(c == label))) / n;
++                    grad_b[c] += g;
++                    for &(i, v) in row {
++                        grad_w[c * dim + i] += g * v;
++                    }
++                }
++            }
++            let shrink = 1.0 - rate * l2;
++            for (w, g) in model.weights.iter_mut().zip(&grad_w) {
++                *w = *w * shrink - rate * g;
++            }
++            for (b, g) in model.bias.iter_mut().zip(&grad_b) {
++                *b -= rate * g;
++            }
++        }
++        Ok(model)
++    }
++
++    fn probabilities(&self, row: &[(usize, f64)]) -> Vec<f64> {
++        let logits: Vec<f64> = (0..self.classes)
++            .map(|c| {
++                self.bias[c]
++                    + row
++                        .iter()
++                        .map(|&(i, v)| self.weights[c * self.dim + i] * v)
++                        .sum::<f64>()
++            })
++            .collect();
++        let top = logits.iter().copied().fold(f64::NEG_INFINITY, f64::max);
++        let exp: Vec<f64> = logits.iter().map(|l| (l - top).exp()).collect();
++        let total: f64 = exp.iter().sum();
++        exp.iter().map(|e| e / total).collect()
++    }
++
++    /// The most probable class of a row (ties to the lower class).
++    pub fn predict(&self, row: &[(usize, f64)]) -> usize {
++        let p = self.probabilities(row);
++        let mut best = 0;
++        for c in 1..p.len() {
++            if p[c] > p[best] {
++                best = c;
++            }
++        }
++        best
++    }
++}
++
++/// The standardization of dense features appended to a sparse word row.
++struct DenseNorm {
++    mean: Vec<f64>,
++    scale: Vec<f64>,
++}
++
++/// The relation channel of the log-sieve design (§2.3) as a route: a word
++/// table naming each user turn's relation and act, fitted on labelled turns,
++/// optionally with a frozen trunk's features of the turn appended to each word
++/// row at their standardized values.
++pub struct RelationRoute {
++    lexicon: Lexicon,
++    relation_head: SparseSoftmax,
++    act_head: SparseSoftmax,
++    relations: Vec<String>,
++    trunk: Option<DenseNorm>,
++}
++
++/// A turn's row: its present words at their standardized scale, then any
++/// trunk features, standardized, after the vocabulary.
++fn route_row(
++    lexicon: &Lexicon,
++    norm: Option<&DenseNorm>,
++    text: &str,
++    dense: Option<&[f64]>,
++) -> Result<Vec<(usize, f64)>> {
++    let mut row = lexicon.scaled(text);
++    match (norm, dense) {
++        (None, None) => {}
++        (Some(norm), Some(x)) if x.len() == norm.mean.len() => {
++            let base = lexicon.len();
++            row.extend(
++                x.iter()
++                    .enumerate()
++                    .map(|(j, v)| (base + j, (v - norm.mean[j]) / norm.scale[j])),
++            );
++        }
++        _ => {
++            return Err(invalid(
++                "trunk features must accompany exactly a route fitted with them",
++            ))
++        }
++    }
++    Ok(row)
++}
++
++impl RelationRoute {
++    pub fn fit(train: &[Example], steps: usize, rate: f64, l2: f64) -> Result<Self> {
++        Self::fit_with(train, None, steps, rate, l2)
++    }
++
++    /// [`Self::fit`] with `trunk[i]`, the trunk's features of `train[i]`,
++    /// appended to each word row.
++    pub fn fit_with(
++        train: &[Example],
++        trunk: Option<&[Vec<f64>]>,
++        steps: usize,
++        rate: f64,
++        l2: f64,
++    ) -> Result<Self> {
++        let lexicon = Lexicon::fit(train.iter().map(|e| e.text.as_str()));
++        let relations: Vec<String> = relation_names()
++            .iter()
++            .map(|name| (*name).to_owned())
++            .chain([NONE.to_owned()])
++            .collect();
++        let norm = match trunk {
++            None => None,
++            Some(x) => {
++                let width = x.first().map_or(0, Vec::len);
++                if x.len() != train.len() || width == 0 || x.iter().any(|row| row.len() != width) {
++                    return Err(invalid(
++                        "one trunk feature row of one width per training turn",
++                    ));
++                }
++                let n = x.len() as f64;
++                let mut mean = vec![0f64; width];
++                for row in x {
++                    for (m, v) in mean.iter_mut().zip(row) {
++                        *m += v / n;
++                    }
++                }
++                let mut scale = vec![0f64; width];
++                for row in x {
++                    for ((s, v), m) in scale.iter_mut().zip(row).zip(&mean) {
++                        *s += (v - m) * (v - m) / n;
++                    }
++                }
++                for s in &mut scale {
++                    *s = if *s > 1e-12 { s.sqrt() } else { 1.0 };
++                }
++                Some(DenseNorm { mean, scale })
++            }
++        };
++        let rows: Vec<Vec<(usize, f64)>> = train
++            .iter()
++            .enumerate()
++            .map(|(i, e)| {
++                route_row(
++                    &lexicon,
++                    norm.as_ref(),
++                    &e.text,
++                    trunk.map(|x| x[i].as_slice()),
++                )
++            })
++            .collect::<Result<_>>()?;
++        let relation_y: Vec<usize> = train
++            .iter()
++            .map(|e| {
++                relations
++                    .iter()
++                    .position(|r| *r == e.relation)
++                    .unwrap_or(relations.len() - 1)
++            })
++            .collect();
++        let act_y: Vec<usize> = train
++            .iter()
++            .map(|e| {
++                ACTS.iter()
++                    .position(|a| *a == e.act)
++                    .unwrap_or(ACTS.len() - 1)
++            })
++            .collect();
++        let dim = (lexicon.len() + norm.as_ref().map_or(0, |n| n.mean.len())).max(1);
++        Ok(Self {
++            relation_head: SparseSoftmax::fit(
++                &rows,
++                &relation_y,
++                relations.len(),
++                dim,
++                steps,
++                rate,
++                l2,
++            )?,
++            act_head: SparseSoftmax::fit(&rows, &act_y, ACTS.len(), dim, steps, rate, l2)?,
++            lexicon,
++            relations,
++            trunk: norm,
++        })
++    }
++
++    /// Whether the route reads trunk features beside the words.
++    pub fn needs_trunk(&self) -> bool {
++        self.trunk.is_some()
++    }
++
++    /// The relation and act the table names for a user turn, given its trunk
++    /// features exactly when the route was fitted with them.
++    pub fn classify(&self, text: &str, dense: Option<&[f64]>) -> Result<(&str, &'static str)> {
++        let row = route_row(&self.lexicon, self.trunk.as_ref(), text, dense)?;
++        Ok((
++            self.relations[self.relation_head.predict(&row)].as_str(),
++            ACTS[self.act_head.predict(&row)],
++        ))
++    }
++
++    /// The value the log gives for a relation query: the latest earlier user
++    /// turn the table names as the asked relation, and its words outside the
++    /// world's fixed vocabulary (`reserved`, instrument knowledge, as R-sieve's
++    /// content cut). With `fact_acts` the turn must also be named an assert or
++    /// update; without, the value's presence alone marks a statement (a query
++    /// states no value). `None` when the query names no relation or no such
++    /// turn holds a value.
++    /// `trunk` gives a turn's trunk features (`None` for a route fitted
++    /// without them).
++    pub fn value(
++        &self,
++        history: &[Turn2],
++        query: &Turn2,
++        reserved: &std::collections::BTreeSet<String>,
++        fact_acts: bool,
++        trunk: &mut dyn FnMut(&str) -> Result<Option<Vec<f64>>>,
++    ) -> Result<Option<String>> {
++        let dense = trunk(&query.user)?;
++        let (asked, _) = self.classify(&query.user, dense.as_deref())?;
++        if asked == NONE {
++            return Ok(None);
++        }
++        for turn in history.iter().rev() {
++            let dense = trunk(&turn.user)?;
++            let (relation, act) = self.classify(&turn.user, dense.as_deref())?;
++            if relation != asked || (fact_acts && !matches!(act, "assert" | "update")) {
++                continue;
++            }
++            let value: Vec<String> = words(&turn.user)
++                .into_iter()
++                .filter(|word| !reserved.contains(word))
++                .collect();
++            if !value.is_empty() {
++                return Ok(Some(value.join(" ")));
++            }
++        }
++        Ok(None)
++    }
++}
++
++/// Accuracy of `predicted` against `truth` over the rows `keep` selects,
++/// with per-label tallies and the most frequent confusions.
++pub fn score(
++    labels: &[String],
++    truth: &[usize],
++    predicted: &[usize],
++    keep: impl Fn(usize) -> bool,
++) -> Value {
++    let (mut pass, mut of) = (0usize, 0usize);
++    let mut per: BTreeMap<&str, (usize, usize)> = BTreeMap::new();
++    let mut confusions: BTreeMap<(&str, &str), usize> = BTreeMap::new();
++    for (&t, &p) in truth.iter().zip(predicted) {
++        if !keep(t) {
++            continue;
++        }
++        of += 1;
++        let tally = per.entry(labels[t].as_str()).or_default();
++        tally.1 += 1;
++        if t == p {
++            pass += 1;
++            tally.0 += 1;
++        } else {
++            *confusions
++                .entry((labels[t].as_str(), labels[p].as_str()))
++                .or_default() += 1;
++        }
++    }
++    let mut top: Vec<((&str, &str), usize)> = confusions.into_iter().collect();
++    top.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
++    top.truncate(8);
++    json!({
++        "pass": pass,
++        "of": of,
++        "rate": if of == 0 { 0.0 } else { pass as f64 / of as f64 },
++        "per_label": per
++            .iter()
++            .map(|(label, (p, o))| (label.to_string(), json!({"pass": p, "of": o})))
++            .collect::<BTreeMap<_, _>>(),
++        "top_confusions": top
++            .iter()
++            .map(|((t, p), n)| json!({"truth": t, "predicted": p, "count": n}))
++            .collect::<Vec<_>>(),
++    })
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use crate::milestone_world_v2::{Category2, Tag};
++
++    fn turn(intent: &str) -> Turn2 {
++        Turn2 {
++            intent: intent.into(),
++            category: Category2::Relation,
++            user: String::new(),
++            reply: String::new(),
++            checks: Vec::new(),
++            tag: Tag::default(),
++        }
++    }
++
++    #[test]
++    fn turns_are_labelled_from_their_typed_intent() {
++        assert_eq!(
++            label(&turn("friend_name_assert")),
++            ("friend_name".into(), "assert")
++        );
++        assert_eq!(
++            label(&turn("user_name_update")),
++            ("user_name".into(), "update")
++        );
++        assert_eq!(
++            label(&turn("lucky_number_query")),
++            ("lucky_number".into(), "query")
++        );
++        // A query of a relation never stated is still a query of it.
++        assert_eq!(
++            label(&turn("hometown_absent")),
++            ("hometown".into(), "query")
++        );
++        for other in ["mqar_query", "mqar_assert", "copy", "capital", "thanks"] {
++            assert_eq!(label(&turn(other)), (NONE.into(), NONE), "{other}");
++        }
++        assert!(relation_names().len() >= 10);
++    }
++
++    #[test]
++    fn the_softmax_fit_separates_classes_and_is_deterministic() -> Result<()> {
++        let x: Vec<Vec<f64>> = (0..30)
++            .map(|i| {
++                let class = i % 3;
++                vec![class as f64 + 0.1 * (i % 5) as f64, (i % 7) as f64]
++            })
++            .collect();
++        let y: Vec<usize> = (0..30).map(|i| i % 3).collect();
++        let a = Softmax::fit(&x, &y, 3, 400, 0.5, 1e-4)?;
++        let b = Softmax::fit(&x, &y, 3, 400, 0.5, 1e-4)?;
++        let predicted: Vec<usize> = x.iter().map(|row| a.predict(row)).collect();
++        assert_eq!(
++            predicted,
++            x.iter().map(|row| b.predict(row)).collect::<Vec<_>>()
++        );
++        assert_eq!(predicted, y);
++        assert!(Softmax::fit(&x, &y[..29], 3, 1, 0.5, 0.0).is_err());
++        let labels: Vec<String> = ["a", "b", "c"].iter().map(|s| s.to_string()).collect();
++        let report = score(&labels, &y, &predicted, |label| label != 2);
++        assert_eq!(report["of"], 20);
++        assert_eq!(report["rate"], 1.0);
++        Ok(())
++    }
++
++    #[test]
++    fn paraphrases_are_filled_with_the_relations_training_values() -> Result<()> {
++        let example = |text: &str, relation: &str, act, template: &str| Example {
++            text: text.into(),
++            relation: relation.into(),
++            act,
++            template: Some(template.into()),
++        };
++        let training = [
++            example(
++                "My friend is Sam.",
++                "friend_name",
++                "assert",
++                "My friend is {v}.",
++            ),
++            example(
++                "Tam is my friend.",
++                "friend_name",
++                "assert",
++                "{v} is my friend.",
++            ),
++            example(
++                "Who is my friend?",
++                "friend_name",
++                "query",
++                "Who is my friend?",
++            ),
++        ];
++        assert_eq!(training[0].slot_value(), Some("Sam"));
++        assert_eq!(training[1].slot_value(), Some("Tam"));
++        assert_eq!(training[2].slot_value(), None);
++        let jsonl = concat!(
++            r#"{"relation":"friend_name","act":"assert","text":"My buddy is {v}."}"#,
++            "\n",
++            r#"{"relation":"friend_name","act":"assert","text":"{v} is a pal of mine."}"#,
++            "\n",
++            r#"{"relation":"friend_name","act":"query","text":"Who's my pal?"}"#,
++            "\n",
++            r#"{"relation":"hometown","act":"assert","text":"I grew up in {v}."}"#,
++            "\n",
++        );
++        let (examples, skipped) = paraphrase_examples(jsonl, &training)?;
++        // Values are used in turn; a relation without one is skipped.
++        assert_eq!(skipped, 1);
++        let texts: Vec<&str> = examples.iter().map(|e| e.text.as_str()).collect();
++        assert_eq!(
++            texts,
++            ["My buddy is Sam.", "Tam is a pal of mine.", "Who's my pal?"]
++        );
++        assert_eq!(examples[2].act, "query");
++        assert!(
++            paraphrase_examples(r#"{"relation":"nope","act":"query","text":"x"}"#, &training)
++                .is_err()
++        );
++        Ok(())
++    }
++
++    #[test]
++    fn the_relation_route_finds_the_latest_statement_of_the_asked_relation() -> Result<()> {
++        let example = |text: &str, relation: &str, act| Example {
++            text: text.into(),
++            relation: relation.into(),
++            act,
++            template: None,
++        };
++        let train = [
++            example("My friend is Sam.", "friend_name", "assert"),
++            example("Who is my friend?", "friend_name", "query"),
++            example("My dog is Rex.", "pet_name", "assert"),
++            example("What is my dog called?", "pet_name", "query"),
++            example("The weather is nice.", NONE, NONE),
++        ];
++        let route = RelationRoute::fit(&train, 300, 0.5, 1e-4)?;
++        assert!(!route.needs_trunk());
++        assert_eq!(
++            route.classify("Who is my friend?", None)?,
++            ("friend_name", "query")
++        );
++        assert_eq!(
++            route.classify("My dog is Max.", None)?,
++            ("pet_name", "assert")
++        );
++        // A route without trunk features refuses them, and one with them
++        // refuses a turn without them.
++        assert!(route.classify("Who is my friend?", Some(&[0.5])).is_err());
++        let trunk: Vec<Vec<f64>> = (0..train.len()).map(|i| vec![i as f64, 1.0]).collect();
++        let with = RelationRoute::fit_with(&train, Some(&trunk), 300, 0.5, 1e-4)?;
++        assert!(with.needs_trunk());
++        assert!(with.classify("Who is my friend?", None).is_err());
++        assert!(with
++            .classify("Who is my friend?", Some(&[1.0, 1.0]))
++            .is_ok());
++        let mut none = |_: &str| -> Result<Option<Vec<f64>>> { Ok(None) };
++        let user = |text: &str| Turn2 {
++            intent: String::new(),
++            category: Category2::Relation,
++            user: text.into(),
++            reply: String::new(),
++            checks: Vec::new(),
++            tag: Tag::default(),
++        };
++        let history = [
++            user("My friend is Zorvik."),
++            user("My dog is Plimbo."),
++            user("My friend is Quandle."),
++        ];
++        // Words outside the fixed vocabulary are the value; the latest wins.
++        let reserved: std::collections::BTreeSet<String> =
++            ["my", "friend", "is", "dog", "who", "what", "called"]
++                .iter()
++                .map(|w| (*w).to_owned())
++                .collect();
++        assert_eq!(
++            route
++                .value(
++                    &history,
++                    &user("Who is my friend?"),
++                    &reserved,
++                    true,
++                    &mut none
++                )?
++                .as_deref(),
++            Some("quandle")
++        );
++        assert_eq!(
++            route
++                .value(
++                    &history,
++                    &user("What is my dog called?"),
++                    &reserved,
++                    false,
++                    &mut none
++                )?
++                .as_deref(),
++            Some("plimbo")
++        );
++        assert_eq!(
++            route.value(&[], &user("Who is my friend?"), &reserved, true, &mut none)?,
++            None
++        );
++        // The sparse fit refuses an index outside its width.
++        assert!(SparseSoftmax::fit(&[vec![(3, 1.0)]], &[0], 2, 3, 1, 0.5, 0.0).is_err());
++        Ok(())
++    }
++
++    #[test]
++    fn the_lexicon_ignores_words_it_never_saw() {
++        let lexicon = Lexicon::fit(["My friend is Sam.", "What is my name?"]);
++        assert_eq!(lexicon.len(), 6);
++        let features = lexicon.features("My buddy is Tam.");
++        assert_eq!(features.iter().filter(|&&v| v == 1.0).count(), 2);
++    }
++}
