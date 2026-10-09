@@ -1,0 +1,54 @@
+UOR-R4 — The token-id route FREEZES the pointer: reachability becomes a fixed property of the admission rule, and it is lower
+Date: 2026-10-09 (overnight rounds 185-186). DeepSeek session. References #820.
+
+WHAT RAN
+  The review's recommended lever, reached as CONFIGURATION rather than new code: the trainer's pointer route
+  derives keys from TOKEN IDS (`pointer_route_keys`, geometric_stack.rs:3281) instead of from hidden states.
+  Flag validated with a 20-step smoke test first (and corrected once: the route's key window is 1 to 6
+  tokens, not 8). Full arm: pointer=32, pointer_select=none, pointer_route=ngram:4, content-copy mixture,
+  UOR_COMMITMENT_SPAN=3, UOR_COMMITMENT_WEIGHT=100, UOR_TERMINAL_WEIGHT=30, 19.9M, 12,207 steps.
+
+THE MEASUREMENT THAT MATTERS - THE POINTER'S QUANTITIES ARE FROZEN
+    step 3000   hit rate 0.16116248348745046   reachable 0.18185821224130339
+    step 4000   hit rate 0.16116248348745046   reachable 0.18185821224130339
+    step 5000   hit rate 0.16116248348745046   reachable 0.18185821224130339
+    step 6000   hit rate 0.16116248348745046   reachable 0.18185821224130339
+    step 7000   hit rate 0.16116248348745046   reachable 0.18185821224130339
+  IDENTICAL TO FIFTEEN DECIMAL PLACES ACROSS FOUR THOUSAND STEPS. Compare the unrouted pointer arm, whose
+  quantities MOVED every evaluation: hit rate 0.1079 at step 1,000 rising to 0.2387 at step 12,207, with
+  reachability 0.4729. A quantity that does not change at all under training is not being learned.
+  AND REACHABILITY IS LOWER, NOT HIGHER: 0.182 with token-id route keys against 0.473 with learned keys -
+  a 61 % reduction in how often the value's span is addressable at all.
+
+WHAT THIS MEANS
+  1. THE ROUTE'S KEYS ARE DETERMINISTIC, SO THE POINTER'S REACH IS A PROPERTY OF THE ADMISSION RULE
+     RATHER THAN OF LEARNING. The route admits candidate sources by shared prime factors / n-gram overlap
+     over a key window; with a value that shares no n-gram with the question asking about it - which is
+     exactly the recall case, and exactly the case the review warned about - the admission set is fixed in
+     advance and training cannot enlarge it. That is why the quantity is frozen.
+  2. IT SEPARATES TWO THINGS THE REVIEW HAD BUNDLED: "a token-identity KEY" (which the identity mixture
+     wants, because identity copying is what the successful copies are) from "a prime/ngram ADMISSION
+     RULE" (which novel-value recall does not want). This arm swapped BOTH at once and the result is a
+     lower, frozen reachability - so the evidence does not support the token-id route as the fix, and it
+     does support keeping the LEARNED keys while changing what the pointer is asked to MATCH.
+  3. THE NEXT CHANGE IS THEREFORE SMALL AND SPECIFIC: keep the learned query/key pathway (reachability
+     0.473, hit rate rising) and add a TOKEN-IDENTITY MATCHING TERM to it - for example a component that
+     scores a candidate source by whether its tokens appear in the question's premise, which is neither
+     the n-gram admission rule nor a pure hidden-state dot product. That is a bounded change to the
+     pointer's score, not a new architecture, and the instrument that would judge it is already built:
+     the 28-row novel-value rate with its 0.000 control, the gate stratification, and the value-versus
+     -prior rows.
+  4. THE RECALL RESULT IS UNTOUCHED. The unrouted pointer still copies never-seen values at 0.417 of
+     cells against 0.000 for the no-pointer control at every budget, with the read landing (pointer mass
+     0.90-1.00 on the value's span) and the gate near-necessary-not-sufficient. This arm adds a negative
+     about ONE way of changing the matching, not about the mechanism.
+
+HONEST POSITION
+  A clean, early negative that cost one smoke test and one partial run: the routed arm's panel is not needed
+  to reach the conclusion, because the pointer's own quantities never moved, which is a stronger and
+  simpler signal than any panel reading. Recorded as the sixth route explored for binding and the first
+  one whose failure mode is visible in the training curve itself.
+
+SCOPE
+  One route configuration (ngram:4), one mixture, one shape, single seed, 12,207 steps; the panel was
+  still pending when the frozen quantities settled the question. Exact for these readings.
