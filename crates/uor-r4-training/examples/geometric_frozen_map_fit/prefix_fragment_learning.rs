@@ -1278,6 +1278,104 @@ fn prepare_episode(
     )?;
     Ok(spec)
 }
+
+/// Original witness assembly shared with the Generate-only offline experiment.
+/// No Prefix gradient/update or encoder replay; all inherited authority checks remain.
+pub(super) fn prepare_generate_objective(
+    a: &Args,
+    c: &Config,
+    original: &ContinuationParent,
+) -> Result<(Vec<shared::Frame>, shared::ObjectiveSpec)> {
+    let e = c
+        .episode
+        .as_ref()
+        .ok_or_else(|| bad("Generate requires complete episode inputs"))?;
+    replay_require(
+        c.joint.is_none() && c.trajectory.is_none(),
+        "Generate input mode conflict",
+    )?;
+    shared::sealed(
+        &c.retained_intermediate_root,
+        shared::P_REPORT,
+        shared::P_SEAL,
+    )?;
+    shared::sealed(&c.retained_probe_root, shared::B_REPORT, shared::B_SEAL)?;
+    let sw = SourceRealizerWeights::load_context_potential_on_device(
+        &a.checkpoint.join("source"),
+        &fs::read(a.checkpoint.join("native/tokenizer.json"))?,
+        &Device::Cpu,
+    )?;
+    let native = NativeSourceRealizer::load(
+        &a.checkpoint.join("native"),
+        &sw,
+        &shared::dec::<ConsumerIdentity>(
+            &read(&a.checkpoint.join("native/metadata.json"))?["identity"],
+        )?,
+    )?;
+    let cue = CueAngularWeights::load(
+        &a.checkpoint.join("cue"),
+        &native,
+        &a.checkpoint.join("native"),
+    )?;
+    let carrier = native.compile_cue_carrier(cue.native()?)?;
+    let prefix = PrefixAngularWeights::load(
+        &a.checkpoint.join("prefix"),
+        &native,
+        &a.checkpoint.join("native"),
+        &a.checkpoint.join("cue"),
+        &carrier,
+    )?;
+    replay_require(
+        sha256_file(&a.checkpoint.join("prefix/prefix-q4.bin"))?
+            == "c2e8ec992996055450f77237ec64730c28b2e7cd53f9ae49cdb7a28128236d0a"
+            && sha256_file(&a.checkpoint.join("prefix/prefix-source-f32.bin"))?
+                == "1e47a7dff9134d393043a2313a7da50ea234d1b1ae7888d895e3604855ac0fe3",
+        "Generate original frozen Prefix differs",
+    )?;
+    let parent = shared::floats(&a.checkpoint.join("prefix/prefix-source-f32.bin"))?;
+    let seed = shared::Config {
+        retained_intermediate_root: c.retained_intermediate_root.clone(),
+        retained_probe_root: c.retained_probe_root.clone(),
+        retained_finite_root: c.retained_probe_root.clone(),
+    };
+    let (mut frames, _) = shared::prepare_frames(a, &seed, original, original, true)?;
+    let spec = prepare_episode(a, e, original, &prefix, &parent, &mut frames)?;
+    Ok((frames, spec))
+}
+pub(super) fn prepare_generate_guards(
+    a: &Args,
+    c: &Config,
+    original: &ContinuationParent,
+    frames: &[shared::Frame],
+    spec: &shared::ObjectiveSpec,
+) -> Result<(Vec<shared::Frame>, Vec<shared::Pool>, Value)> {
+    let e = c
+        .episode
+        .as_ref()
+        .ok_or_else(|| bad("Generate episode absent"))?;
+    let tc = TrajectoryConfig {
+        retained_prefix_learning_root: PathBuf::new(),
+        retained_supplement_root: e.retained_supplement_root.clone(),
+        expected_supplement_report_sha256: e.expected_supplement_report_sha256.clone(),
+        expected_supplement_manifest_sha256: e.expected_supplement_manifest_sha256.clone(),
+    };
+    let parent = shared::floats(&a.checkpoint.join("prefix/prefix-source-f32.bin"))?;
+    let mut cache = shared::DonorCache::with_limit(original, 128 * 1024 * 1024)?;
+    let mut reducer =
+        NativeVocabularyActions::new(original.integer.binding().clone(), &original.exp)?;
+    prepare_trajectory_guards(
+        a,
+        c,
+        &tc,
+        frames,
+        Some(spec),
+        original,
+        &parent,
+        &mut cache,
+        &mut reducer,
+    )
+}
+
 pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
     validate_settings(a)?;
     let c = a
@@ -1984,6 +2082,8 @@ pub(super) struct ArtifactConfig {
     pub joint_candidate: Option<TrajectoryArtifactAuthority>,
     #[serde(default)]
     pub episode_candidate: Option<TrajectoryArtifactAuthority>,
+    #[serde(default)]
+    pub generate_episode_candidate: Option<GenerateArtifactAuthority>,
 }
 #[derive(Clone, Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
@@ -1992,6 +2092,29 @@ pub(super) struct TrajectoryArtifactAuthority {
     pub expected_manifest_sha256: String,
     pub expected_prefix_packed_sha256: String,
     pub expected_prefix_master_sha256: String,
+}
+#[derive(Clone, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
+pub(super) struct GenerateArtifactAuthority {
+    pub expected_report_sha256: String,
+    pub expected_manifest_sha256: String,
+    pub expected_generate_sha256: String,
+    pub expected_unary_master_sha256: String,
+    pub expected_continuation_sha256: String,
+}
+fn validate_generate_artifact_authority(c: &GenerateArtifactAuthority) -> Result<()> {
+    replay_require(
+        [
+            &c.expected_report_sha256,
+            &c.expected_manifest_sha256,
+            &c.expected_generate_sha256,
+            &c.expected_unary_master_sha256,
+            &c.expected_continuation_sha256,
+        ]
+        .iter()
+        .all(|h| h.len() == 64 && h.bytes().all(|b| b.is_ascii_hexdigit())),
+        "Generate artifact external identity hashes invalid",
+    )
 }
 fn validate_trajectory_artifact_authority(c: &TrajectoryArtifactAuthority) -> Result<()> {
     replay_require(
@@ -2013,6 +2136,7 @@ pub(super) fn validate_artifact_settings(a: &Args) -> Result<()> {
                 c.trajectory_candidate.is_some(),
                 c.joint_candidate.is_some(),
                 c.episode_candidate.is_some(),
+                c.generate_episode_candidate.is_some(),
             ]
             .into_iter()
             .filter(|x| *x)
@@ -2020,6 +2144,9 @@ pub(super) fn validate_artifact_settings(a: &Args) -> Result<()> {
                 <= 1,
             "cheap artifact endpoint modes exclusive",
         )?;
+        if let Some(g) = &c.generate_episode_candidate {
+            validate_generate_artifact_authority(g)?;
+        }
         if let Some(t) = c
             .episode_candidate
             .as_ref()
@@ -2033,6 +2160,7 @@ pub(super) fn validate_artifact_settings(a: &Args) -> Result<()> {
                 && a.updates == 1
                 && a.loss_scope == LossScope::All
                 && a.prefix_fragment_learning.is_none()
+                && a.generate_episode_learning.is_none()
                 && a.context_cue_coadapt.is_none()
                 && a.prefix_context_credit.is_none()
                 && a.context_path_credit.is_none()
@@ -2094,28 +2222,40 @@ pub(super) fn run_artifact_check(a: &Args, start: Instant) -> Result<Value> {
         .prefix_artifact_check
         .as_ref()
         .ok_or_else(|| bad("Prefix artifact config absent"))?;
-    let (report_pin, seal_pin, packed_pin, master_pin) = if let Some(t) = c
-        .episode_candidate
-        .as_ref()
-        .or(c.joint_candidate.as_ref())
-        .or(c.trajectory_candidate.as_ref())
-    {
-        validate_trajectory_artifact_authority(t)?;
-        (
-            t.expected_report_sha256.as_str(),
-            t.expected_manifest_sha256.as_str(),
-            t.expected_prefix_packed_sha256.as_str(),
-            t.expected_prefix_master_sha256.as_str(),
-        )
-    } else {
-        (
-            CANDIDATE_REPORT,
-            CANDIDATE_SEAL,
-            PREFIX_PACKED,
-            PREFIX_MASTER,
-        )
-    };
+    let (report_pin, seal_pin, packed_pin, master_pin) =
+        if let Some(g) = &c.generate_episode_candidate {
+            validate_generate_artifact_authority(g)?;
+            (
+                g.expected_report_sha256.as_str(),
+                g.expected_manifest_sha256.as_str(),
+                "c2e8ec992996055450f77237ec64730c28b2e7cd53f9ae49cdb7a28128236d0a",
+                "1e47a7dff9134d393043a2313a7da50ea234d1b1ae7888d895e3604855ac0fe3",
+            )
+        } else if let Some(t) = c
+            .episode_candidate
+            .as_ref()
+            .or(c.joint_candidate.as_ref())
+            .or(c.trajectory_candidate.as_ref())
+        {
+            validate_trajectory_artifact_authority(t)?;
+            (
+                t.expected_report_sha256.as_str(),
+                t.expected_manifest_sha256.as_str(),
+                t.expected_prefix_packed_sha256.as_str(),
+                t.expected_prefix_master_sha256.as_str(),
+            )
+        } else {
+            (
+                CANDIDATE_REPORT,
+                CANDIDATE_SEAL,
+                PREFIX_PACKED,
+                PREFIX_MASTER,
+            )
+        };
     let report = shared::sealed(&c.retained_candidate_root, report_pin, seal_pin)?;
+    if c.generate_episode_candidate.is_some() {
+        super::generate_episode_learning::authenticate_positive_artifact(a, c, &report)?;
+    }
     if c.episode_candidate.is_some() {
         let gradient = read(
             &c.retained_candidate_root
@@ -2244,23 +2384,33 @@ pub(super) fn run_artifact_check(a: &Args, start: Instant) -> Result<Value> {
         shared::P_REPORT,
         shared::P_SEAL,
     )?;
-    replay_require(
-        report["mode"]
-            == if c.episode_candidate.is_some() {
-                "prefix_episode_progression_learning"
-            } else if c.joint_candidate.is_some() {
-                "prefix_joint_fragment_learning"
-            } else if c.trajectory_candidate.is_some() {
-                "prefix_trajectory_learning"
-            } else {
-                "prefix_fragment_learning"
-            }
-            && report["finite_prefix_positive"] == true
-            && report["actual_fragment_corrected"] == true
-            && report["qualified_fragment"] == true
-            && report["candidate_objective"]["correct_reference_frames"] == 17,
-        "Prefix cheap qualification requires completed positive construction",
-    )?;
+    if c.generate_episode_candidate.is_some() {
+        replay_require(
+            report["mode"] == "generate_episode_learning"
+                && report["finite_episode_positive"] == true
+                && report["final_gate"]["passed"] == true
+                && report["candidate_objective"]["correct_reference_frames"] == 17,
+            "Generate cheap qualification requires positive complete episode construction",
+        )?;
+    } else {
+        replay_require(
+            report["mode"]
+                == if c.episode_candidate.is_some() {
+                    "prefix_episode_progression_learning"
+                } else if c.joint_candidate.is_some() {
+                    "prefix_joint_fragment_learning"
+                } else if c.trajectory_candidate.is_some() {
+                    "prefix_trajectory_learning"
+                } else {
+                    "prefix_fragment_learning"
+                }
+                && report["finite_prefix_positive"] == true
+                && report["actual_fragment_corrected"] == true
+                && report["qualified_fragment"] == true
+                && report["candidate_objective"]["correct_reference_frames"] == 17,
+            "Prefix cheap qualification requires completed positive construction",
+        )?;
+    }
     replay_require(
         parent_report["selected_model"] == true
             && parent_report["candidate_artifact_status"] == "QUALIFIED_NATIVE_GATE_AND_RETENTION",
@@ -2279,8 +2429,14 @@ pub(super) fn run_artifact_check(a: &Args, start: Instant) -> Result<Value> {
     let cp = ContinuationParent::from_checkpoint(&a.checkpoint)?;
     replay_require(
         cp.binding.metadata_sha256 == shared::SOURCE
-            && sha256_bytes(&cp.generate) == shared::G_SHA
-            && sha256_file(&a.checkpoint.join("continuation-field.bin"))? == shared::U_SHA
+            && sha256_bytes(&cp.generate)
+                == c.generate_episode_candidate
+                    .as_ref()
+                    .map_or(shared::G_SHA, |g| g.expected_generate_sha256.as_str())
+            && sha256_file(&a.checkpoint.join("continuation-field.bin"))?
+                == c.generate_episode_candidate
+                    .as_ref()
+                    .map_or(shared::U_SHA, |g| g.expected_continuation_sha256.as_str())
             && sha256_file(&a.checkpoint.join("prefix/prefix-q4.bin"))? == packed_pin
             && sha256_file(&a.checkpoint.join("prefix/prefix-source-f32.bin"))? == master_pin
             && read(&a.checkpoint.join("receipt.json"))? == report["candidate_receipt"],
@@ -2344,7 +2500,7 @@ pub(super) fn run_artifact_check(a: &Args, start: Instant) -> Result<Value> {
             "original pilot raw row authority differs",
         )?;
     }
-    let task_index = if c.episode_candidate.is_some() {
+    let task_index = if c.episode_candidate.is_some() || c.generate_episode_candidate.is_some() {
         shared::idx(&report["episode_request"]["input_index"])?
     } else {
         245
@@ -2429,9 +2585,12 @@ pub(super) fn run_artifact_check(a: &Args, start: Instant) -> Result<Value> {
     let boundary_witness = json!({"actual_prefix_comparable":comparable_prefix,
       "position4_target267":if !comparable_prefix {json!("NO_COMPARABLE_ACTUAL_PREFIX")} else if ids.len()<=4 {json!("NOT_REACHED")} else {json!(ids[4]==267)},
       "authority":"posthoc specific boundary witness; typed-oracle full reply acceptance does not require canonical tokenization"});
-    let joint_word_witness = if c.joint_candidate.is_some() || c.episode_candidate.is_some() {
+    let joint_word_witness = if c.joint_candidate.is_some()
+        || c.episode_candidate.is_some()
+        || c.generate_episode_candidate.is_some()
+    {
         let canonical: Vec<u32> = shared::dec(&old_task["canonical_target_ids_labels_only"])?;
-        json!({"phases":(if c.episode_candidate.is_some(){0..canonical.len()}else{4..7}).map(|position| {
+        json!({"phases":(if c.episode_candidate.is_some() || c.generate_episode_candidate.is_some(){0..canonical.len()}else{4..7}).map(|position| {
             let comparable=ids.len()>=position&&canonical.len()>position&&ids[..position]==canonical[..position];
             json!({"position":position,"canonical_target_label_only":canonical.get(position),"actual_prefix_comparable":comparable,
                 "actual_target":if !comparable {json!("NO_COMPARABLE_ACTUAL_PREFIX")}else if ids.len()<=position {json!("NOT_REACHED")}else{json!(ids[position]==canonical[position])}})

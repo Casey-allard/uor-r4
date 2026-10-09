@@ -91,7 +91,7 @@ pub(super) fn progress(a: &Args, start: Instant) -> Result<()> {
             "elapsed-estimate-extension-needed.json",
             &json!({"elapsed_seconds":start.elapsed().as_secs_f64(),
             "estimated_seconds":a.maximum_seconds,"action":"continue healthy finite work; parent renews lease and records resource estimate extension",
-            "hard_stop":false,"termination":if a.prefix_fragment_learning.as_ref().is_some_and(|c|c.episode.is_some()){"exactly960 rankedcoordinates plus391 unique episode/guard native exportedreload steps"}else if a.prefix_fragment_learning.as_ref().is_some_and(|c|c.joint.is_some()){"exactly960 rankedcoordinates plus383 unique joint/guard native exportedreload steps"}else if a.prefix_fragment_learning.as_ref().is_some_and(|c|c.trajectory.is_some()){"exactly960 reused rankedcoordinates plus380uniqueguard+1task exported reloadedsteps"}else{"exactly960 rankedcoordinates plus18exportedreloadedsteps"}}),
+            "hard_stop":false,"termination":if a.generate_episode_learning.is_some(){"960 coordinates/13440 alllegal alternatives/391 reloadedsteps"}else if a.prefix_fragment_learning.as_ref().is_some_and(|c|c.episode.is_some()){"exactly960 rankedcoordinates plus391 unique episode/guard native exportedreload steps"}else if a.prefix_fragment_learning.as_ref().is_some_and(|c|c.joint.is_some()){"exactly960 rankedcoordinates plus383 unique joint/guard native exportedreload steps"}else if a.prefix_fragment_learning.as_ref().is_some_and(|c|c.trajectory.is_some()){"exactly960 reused rankedcoordinates plus380uniqueguard+1task exported reloadedsteps"}else{"exactly960 rankedcoordinates plus18exportedreloadedsteps"}}),
         )?;
     }
     Ok(())

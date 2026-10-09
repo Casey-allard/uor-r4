@@ -1,0 +1,725 @@
+{
+  "schema": "uor-r4.native-generate-episode-learning/1",
+  "status": "MEASURED_CONDITIONAL_CONSTRUCTION_NEGATIVE_UNSELECTED",
+  "root": "/workspace/uor-r4/codex/sol-generate-episode-learning",
+  "objective": {
+    "ordered_episode_positions": 15,
+    "task_weight_each": "1/15",
+    "unchanged_reference_roles": 17,
+    "reference_weight_each": "1/17",
+    "weighted_roles": 32,
+    "unique_gradient_frames": 31,
+    "p3_overlap": "one physical gradient with summed task/reference weights; both CE roles retained",
+    "zero_loss_original_winner_guards": 380,
+    "unique_native_reload_frames": 391,
+    "typed_authority_sha256": "5003f117b15249a214243430cd4201aa022f7eb2c25139f9849f4c09e1165103",
+    "occurrence_auxiliary": "NOT_INCLUDED"
+  },
+  "learning_producer": {
+    "source_commit": "bf09a1aa7419adee2ec12e6202565f13d08ca3ef",
+    "config_sha256": "f504d1eee00abc8517e19cbb2c2e2e067e5529820d549ff3fb0c71e9fdea4120",
+    "binary_sha256": "d475bea4133a49beca1d97452fd41e769da2e620d3a2d99757e31b93ffbb309b",
+    "failed_export_report_sha256": "fe11475c744759af845a30d5bb4938bfd2f2492366771ddee25c92002ae15625",
+    "failed_export_manifest_sha256": "4bd01644814324e8537a4228644c49ecd747b2d93a8f82662d8463bdaf1714cf",
+    "actual_backward_calls": 31,
+    "active_family": "generate.unary",
+    "active_scalars": 960,
+    "legal_alternatives": 13440,
+    "accepted_coordinates": 320,
+    "revisits": 0,
+    "row_patches": 1401440,
+    "selected_pending_restage_count": 0,
+    "optimizer_updates": 0,
+    "execution": {
+      "exit_code": 1,
+      "started_utc": "2026-10-09T06:40:54.183405+00:00",
+      "ended_utc": "2026-10-09T06:42:54.498863+00:00",
+      "elapsed_seconds": 120.3154788389802,
+      "children_max_rss_kib": 2679692,
+      "binary_sha256": "d475bea4133a49beca1d97452fd41e769da2e620d3a2d99757e31b93ffbb309b",
+      "config_sha256": "f504d1eee00abc8517e19cbb2c2e2e067e5529820d549ff3fb0c71e9fdea4120",
+      "lane": "cuda-learning"
+    },
+    "policy": "one frozen fresh-gradient potential order; all14 legal codes per coordinate at same incumbent epoch; lowest feasible native CE, deterministic signed-code tie; atomic17/380 guards; no repeat learning"
+  },
+  "completion_producer": {
+    "source_commit": "c51bf1cf6cd089e56042937c8971b38dad80a98e",
+    "config_sha256": "6dadffa7880f502f90545ed86e85213abfe4954a91bd236696d55203837ed763",
+    "binary_sha256": "50a4eb5b7b8d4b730d2d6f5cfedb8e339474fc589aaefd339e665f7681a8436c",
+    "report_sha256": "aae71cb87f0072a902f9979348611168a53707ad188df29f77a21bca4b840044",
+    "manifest_sha256": "643fa6699b43fa3ff7359efab2a70859c9749f2ac727a7c80cc838172a701595",
+    "new_backward_calls": 0,
+    "new_rankings": 0,
+    "new_proposals": 0,
+    "finite_candidate_full_pool_reductions": 391,
+    "unfinished_native_reload_steps_completed": 391,
+    "protected_normalization_internal_reductions": "UNAVAILABLE_NOT_INSTRUMENTED",
+    "execution": {
+      "exit_code": 0,
+      "started_utc": "2026-10-09T08:05:14.947426+00:00",
+      "ended_utc": "2026-10-09T08:08:05.124829+00:00",
+      "elapsed_seconds": 170.17743536829948,
+      "children_max_rss_kib": 2341596,
+      "binary_sha256": "50a4eb5b7b8d4b730d2d6f5cfedb8e339474fc589aaefd339e665f7681a8436c",
+      "config_sha256": "6dadffa7880f502f90545ed86e85213abfe4954a91bd236696d55203837ed763",
+      "lane": "cpu-artifact"
+    },
+    "parent_master_bits_unchanged": true,
+    "parent_restoration": "NOT_APPLICABLE_NO_PARENT_MASTER_MUTATION",
+    "repair": "full parsed Cue/Prefix native-metadata identity then restore original bytes; missing frozen Prefix files copied; complete sidecar sets verified; copied learning science post-normalization byte-identical"
+  },
+  "initialization": {
+    "original_selected_seed": true,
+    "negative_Prefix_initializer": false,
+    "original_Source_sha256": "9f0b272e7852a47bbbad0f549e8157a44ff3212af86905907501ec11f3e7989b",
+    "original_Generate_sha256": "4248245471db609b1fc19482e8f180380b292c5832fc90c81ce69947bc4b7737",
+    "original_U_coefficient_artifact_sha256": "82ae9daeb402b288e64492d5b299110b36849907019c952609a1cae6612673ee",
+    "frozen_families": [
+      "Generate pair",
+      "Generate bias",
+      "Generate prototypes",
+      "Source/Context",
+      "Cue",
+      "Prefix",
+      "bridge",
+      "U coefficients"
+    ]
+  },
+  "measured": {
+    "baseline_ce": {
+      "combined": 5.111520730202647,
+      "task": 4.702433639059882,
+      "reference": 0.40908709114276476
+    },
+    "candidate_ce": {
+      "combined": 3.611677384164191,
+      "task": 3.3216490395769487,
+      "reference": 0.2900283445872421
+    },
+    "conditional_correct_original": [
+      0,
+      1,
+      2,
+      3,
+      11
+    ],
+    "conditional_correct_candidate": [
+      0,
+      1,
+      2,
+      3,
+      11,
+      14
+    ],
+    "original_count": 5,
+    "candidate_count": 6,
+    "EOS_conditional_winner": true,
+    "all17_references_preserved": true,
+    "all380_original_correct_prefixes_preserved": true,
+    "final_gate": {
+      "actual_wholeanswer_EOS": "NOT_RUN_SEPARATE_QUALIFICATION",
+      "all15_conditional_winners": false,
+      "all17_references": true,
+      "all380_original_winners": true,
+      "passed": false,
+      "strict_combined_descent": true,
+      "strict_episode_descent": true
+    },
+    "phases": [
+      {
+        "chosen": 617,
+        "position": 0,
+        "target": 617,
+        "target_mass": 2147483648,
+        "total_mass": 6208582788
+      },
+      {
+        "chosen": 2097,
+        "position": 1,
+        "target": 2097,
+        "target_mass": 2147483648,
+        "total_mass": 4250620834
+      },
+      {
+        "chosen": 315,
+        "position": 2,
+        "target": 315,
+        "target_mass": 2147483648,
+        "total_mass": 4338485147
+      },
+      {
+        "chosen": 1057,
+        "position": 3,
+        "target": 1057,
+        "target_mass": 2148599426,
+        "total_mass": 17111001119
+      },
+      {
+        "chosen": 307,
+        "position": 4,
+        "target": 267,
+        "target_mass": 298564088,
+        "total_mass": 9967849109
+      },
+      {
+        "chosen": 91,
+        "position": 5,
+        "target": 307,
+        "target_mass": 469251768,
+        "total_mass": 20430267659
+      },
+      {
+        "chosen": 1717,
+        "position": 6,
+        "target": 397,
+        "target_mass": 231074474,
+        "total_mass": 29016145758
+      },
+      {
+        "chosen": 307,
+        "position": 7,
+        "target": 324,
+        "target_mass": 24229842,
+        "total_mass": 3378027499
+      },
+      {
+        "chosen": 307,
+        "position": 8,
+        "target": 91,
+        "target_mass": 55340983,
+        "total_mass": 15206660953
+      },
+      {
+        "chosen": 397,
+        "position": 9,
+        "target": 2795,
+        "target_mass": 185307524,
+        "total_mass": 12391563185
+      },
+      {
+        "chosen": 397,
+        "position": 10,
+        "target": 770,
+        "target_mass": 94325567,
+        "total_mass": 13012520113
+      },
+      {
+        "chosen": 397,
+        "position": 11,
+        "target": 397,
+        "target_mass": 2229263084,
+        "total_mass": 39456174279
+      },
+      {
+        "chosen": 307,
+        "position": 12,
+        "target": 471,
+        "target_mass": 299734662,
+        "total_mass": 7825171776
+      },
+      {
+        "chosen": 2795,
+        "position": 13,
+        "target": 16,
+        "target_mass": 327912727,
+        "total_mass": 14037278806
+      },
+      {
+        "chosen": 1,
+        "position": 14,
+        "target": 1,
+        "target_mass": 2147483648,
+        "total_mass": 79543492724
+      }
+    ],
+    "candidate_Generate_sha256": "31e8cc52e17d40701aa03cc95d01676ab7c708a956c4dc9ba93718b22b04e5a3",
+    "candidate_unary_master_sha256": "324af524e78be9c34ea297995cca4c1006ce910dcdb5e157913d694861ef2c54",
+    "selected": false,
+    "actual9": "NOT_RUN_CONSTRUCTION_NEGATIVE",
+    "full512": "NOT_RUN",
+    "multiturn": "NOT_RUN",
+    "prior_conditional_comparison": {
+      "scope": "same authored canonicalconditional15 positions; no new actual reply or recombined artifact",
+      "prior_prefix_correct_positions": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        11,
+        12
+      ],
+      "generate_correct_positions": [
+        0,
+        1,
+        2,
+        3,
+        11,
+        14
+      ],
+      "union_correct_positions": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        11,
+        12,
+        14
+      ],
+      "both_wrong_positions": [
+        7,
+        8,
+        9,
+        10,
+        13
+      ]
+    }
+  },
+  "setup_failures": {
+    "learning_attempt1": "typed optional-default identity mismatch before backward",
+    "learning_attempt2": "file passed to directory size walker before backward",
+    "learning_attempt3": "all31 backward/all13440 completed; export stopped on equivalent native metadata key order; state retained and completed without repeat",
+    "completion_attempt1": "completed-only authority helper rejected intentionally FAILED sealed learning authority, before science",
+    "completion_attempt2": "flat donor copier rejected nested checkpoint, before candidate steps",
+    "compiler_interface_faults": "retained exact logs/source; no model-quality evidence",
+    "classification": "execution/setup defects, distinct from final measured conditional negative"
+  },
+  "audit": {
+    "result_sha256": "c11cf25e3fc880fe2596e9e7a5dbd3b753262489152713c5dd6c90f7a1d8edfa",
+    "manifest_sha256": "9e5c70764762e981069f943962afc9140c82058e4d873ab12137f111fdeccddd",
+    "result": {
+      "schema": "uor-r4.generate-episode-independent-audit/1",
+      "status": "PASS",
+      "source": "c51bf1cf6cd089e56042937c8971b38dad80a98e",
+      "report_sha256": "aae71cb87f0072a902f9979348611168a53707ad188df29f77a21bca4b840044",
+      "reader_sha256": "8e5383e5ac93133c071ab540cf85cece0edc6e70d95367a4230d8574906ec8f4",
+      "import_sha256": "099a4d0a6e127f774e7707014f523c79f0c792e090ce230721b214c012ddc494",
+      "literal_arithmetic_import_sha256": "c8681bfc7e7847cae29be2dd2198bb01f64711821584e27949fa06ed2a298c8a",
+      "saved_scientific_gradient_terms": 31,
+      "inherited_gradient_terms": 31,
+      "new_completion_gradient_terms": 0,
+      "weighted_roles": 32,
+      "coordinates": 960,
+      "alternative_codes": 13440,
+      "protected_population": 380,
+      "native_union": 391,
+      "constructor": {
+        "accepted": 320,
+        "alternative_codes": 13440,
+        "row_patches": 1401440,
+        "maximum_copy_aliases": 31,
+        "revisited": 0
+      },
+      "snapshots": {
+        "native_snapshots": 391,
+        "complete_snapshot_pool_validations": 391,
+        "full_saved_factor_pool_reconstructions": 391
+      },
+      "complete_inventories": {
+        "model": {
+          "files": 502,
+          "bytes": 297904094,
+          "manifest_sha256": "643fa6699b43fa3ff7359efab2a70859c9749f2ac727a7c80cc838172a701595",
+          "blake3": "SEPARATE_RUST_VERIFY_REQUIRED"
+        },
+        "retained": {
+          "files": 497,
+          "bytes": 353529993,
+          "manifest_sha256": "3e0c502da4952b177e9485e18303b88df33d36e08d27c99a405619fc8c077df2",
+          "blake3": "SEPARATE_RUST_VERIFY_REQUIRED"
+        },
+        "/workspace/uor-r4/codex/sol-readout-intermediate-candidate/runs/intermediate-0001-attempt1": {
+          "files": 1100,
+          "bytes": 378554003,
+          "manifest_sha256": "de90ba0ba2809ed37ca868ef2bcf94b6ceb8b176a60b86ae88801876dafbd0e5",
+          "blake3": "SEPARATE_RUST_VERIFY_REQUIRED"
+        },
+        "/workspace/uor-r4/codex/sol-prefix-context-credit/runs/prefix-context-credit-0001-attempt1": {
+          "files": 122,
+          "bytes": 204338578,
+          "manifest_sha256": "c43bbbe81eeea18338b2ea541c50f8f01d24dcfbe9a32662b73e2d2ebc03b332",
+          "blake3": "SEPARATE_RUST_VERIFY_REQUIRED"
+        },
+        "/workspace/uor-r4/codex/sol-prefix-trajectory-learning/runs/supplement-0001-attempt1": {
+          "files": 6,
+          "bytes": 4017121,
+          "manifest_sha256": "5ae8d12f32ee68b2d1a7d82626305cc8fa0e30be1b118f89291b8ac116dad45d",
+          "blake3": "SEPARATE_RUST_VERIFY_REQUIRED"
+        },
+        "/workspace/uor-r4/codex/sol-joint-fragment-learning/runs/joint-fragment-0001-attempt1": {
+          "files": 469,
+          "bytes": 291011945,
+          "manifest_sha256": "f7d8e706576c65bcf1f24dbd4baa62ed646449b2dad9326ef392de21e99d5706",
+          "blake3": "SEPARATE_RUST_VERIFY_REQUIRED"
+        },
+        "/workspace/uor-r4/codex/sol-joint-fragment-learning/runs/conditional-0001-attempt1": {
+          "files": 5,
+          "bytes": 2017404,
+          "manifest_sha256": "bb8d87abf5f98ebb50db95e23c3ec92e9209e945d13d9da31c37dd4fb5632f2d",
+          "blake3": "SEPARATE_RUST_VERIFY_REQUIRED"
+        },
+        "/workspace/uor-r4/codex/sol-sequence-progress-causal/runs/candidate-sequence-progress-0001-attempt1": {
+          "files": 5,
+          "bytes": 2000518,
+          "manifest_sha256": "5f13bc5d80ea5893801cbb2442ac78edf832331772741dc57b9ad75d12414bbb",
+          "blake3": "SEPARATE_RUST_VERIFY_REQUIRED"
+        },
+        "/workspace/uor-r4/codex/sol-episode-progression-learning/runs/conditional-position-08-attempt1": {
+          "files": 5,
+          "bytes": 2014035,
+          "manifest_sha256": "bac7c1d2ab69d2e8f006e84ba4a4489c83b74ec5335bfe17e5183124a4a55c9a",
+          "blake3": "SEPARATE_RUST_VERIFY_REQUIRED"
+        },
+        "/workspace/uor-r4/codex/sol-episode-progression-learning/runs/conditional-position-09-attempt1": {
+          "files": 5,
+          "bytes": 2010211,
+          "manifest_sha256": "690f418959970f5547998bc9a452df93de501de67252fdbcc654d0bd552fa63b",
+          "blake3": "SEPARATE_RUST_VERIFY_REQUIRED"
+        },
+        "/workspace/uor-r4/codex/sol-episode-progression-learning/runs/conditional-position-10-attempt1": {
+          "files": 5,
+          "bytes": 2012018,
+          "manifest_sha256": "7595cf07ccc56a367bac511ce39eff20a4172e1090dbde8e727b4e99bbb8f9b2",
+          "blake3": "SEPARATE_RUST_VERIFY_REQUIRED"
+        },
+        "/workspace/uor-r4/codex/sol-episode-progression-learning/runs/conditional-position-11-attempt1": {
+          "files": 5,
+          "bytes": 2020368,
+          "manifest_sha256": "7f248708952cbf84300c581bc47ab231d0f541b982acc6a055b4896ddaba7ca1",
+          "blake3": "SEPARATE_RUST_VERIFY_REQUIRED"
+        },
+        "/workspace/uor-r4/codex/sol-episode-progression-learning/runs/conditional-position-12-attempt1": {
+          "files": 5,
+          "bytes": 2008619,
+          "manifest_sha256": "76674eff8e74e5515a4e291f44dd1127a2a8c2874f4544ea42420c53bc470d4b",
+          "blake3": "SEPARATE_RUST_VERIFY_REQUIRED"
+        },
+        "/workspace/uor-r4/codex/sol-episode-progression-learning/runs/conditional-position-13-attempt1": {
+          "files": 5,
+          "bytes": 2014417,
+          "manifest_sha256": "01ce2d280b9e58e3e6330aad7b601b38d0b8b382d361e15c1efe5bd205af1e5b",
+          "blake3": "SEPARATE_RUST_VERIFY_REQUIRED"
+        },
+        "/workspace/uor-r4/codex/sol-episode-progression-learning/runs/conditional-position-14-attempt1": {
+          "files": 5,
+          "bytes": 2021120,
+          "manifest_sha256": "82aa35a7eafb9ef4c58b30c1341b004d71ac4c2fa7652fad8345abb24a32498a",
+          "blake3": "SEPARATE_RUST_VERIFY_REQUIRED"
+        }
+      },
+      "completion_authority": {
+        "learning": {
+          "expected_learning_runtime_identity_sha256": "90273f2bbca9a2269f2edb789be0aa0157d3e6f9911b2ef510f3627fa79dd9bb",
+          "expected_learning_observation_manifest_sha256": "2a0e7014cdbbcd2ef753d7ab9e7030d8c0c8103ee23fe4f8fbd75938bfd5a051",
+          "expected_report_sha256": "fe11475c744759af845a30d5bb4938bfd2f2492366771ddee25c92002ae15625",
+          "expected_manifest_sha256": "4bd01644814324e8537a4228644c49ecd747b2d93a8f82662d8463bdaf1714cf",
+          "expected_learning_config_sha256": "f504d1eee00abc8517e19cbb2c2e2e067e5529820d549ff3fb0c71e9fdea4120",
+          "expected_learning_source_commit": "bf09a1aa7419adee2ec12e6202565f13d08ca3ef",
+          "expected_learning_binary_sha256": "d475bea4133a49beca1d97452fd41e769da2e620d3a2d99757e31b93ffbb309b",
+          "expected_constructor_sha256": "68e2e926c05de46eb929d986675e39a18c50a1cc300e5cd059fafebd7add22ff",
+          "expected_unary_master_sha256": "324af524e78be9c34ea297995cca4c1006ce910dcdb5e157913d694861ef2c54"
+        },
+        "inventories": {
+          "failed_learning": {
+            "files": 100,
+            "bytes": 102691683,
+            "manifest_sha256": "4bd01644814324e8537a4228644c49ecd747b2d93a8f82662d8463bdaf1714cf",
+            "blake3": "SEPARATE_RUST_VERIFY_REQUIRED"
+          },
+          "learning_observation": {
+            "files": 5,
+            "bytes": 3761,
+            "manifest_sha256": "2a0e7014cdbbcd2ef753d7ab9e7030d8c0c8103ee23fe4f8fbd75938bfd5a051",
+            "blake3": "SEPARATE_RUST_VERIFY_REQUIRED"
+          }
+        },
+        "scientific_files": 56,
+        "new_backward_calls": 0,
+        "new_proposals": 0,
+        "finite_candidate_pool_reductions": 391,
+        "native_reload_steps": 391
+      },
+      "scientific_learning_source": "bf09a1aa7419adee2ec12e6202565f13d08ca3ef",
+      "new_completion_backward_calls": 0,
+      "final_gate": {
+        "strict_combined_descent": true,
+        "strict_episode_descent": true,
+        "all15_conditional_winners": false,
+        "all17_references": true,
+        "all380_original_winners": true,
+        "passed": false,
+        "actual_wholeanswer_EOS": "NOT_RUN_SEPARATE_QUALIFICATION"
+      },
+      "actual_qualification": {
+        "status": "NOT_RUN",
+        "reason": "complete conditional construction negative"
+      },
+      "elapsed_seconds": 208.35491382703185,
+      "peak_rss_bytes": 1206542336,
+      "scope": "Independent saved integer factor/incidence/sparse full-alias pool arithmetic, fresh saved31 rawf32 order and ALL13440 same-epoch alternatives/selection/380/391 export. No encoder/backward replication, gradient/model/newproposal orautoregressive execution. Operational cache scan/fallback flags are boundedproducer witnesses; in-RAM restoration is a producer receipt. Rust completeBLAKE3 verification is separate. No useful conversation or feasibility claim."
+    },
+    "actual_execution": {
+      "status": "PASS",
+      "exit_code": 0,
+      "elapsed_seconds": 210.54214412346482,
+      "max_rss_kib": 1178264,
+      "reader_sha256": "8e5383e5ac93133c071ab540cf85cece0edc6e70d95367a4230d8574906ec8f4",
+      "binary_sha256": "50a4eb5b7b8d4b730d2d6f5cfedb8e339474fc589aaefd339e665f7681a8436c",
+      "source_commit": "c51bf1cf6cd089e56042937c8971b38dad80a98e",
+      "config_sha256": "6dadffa7880f502f90545ed86e85213abfe4954a91bd236696d55203837ed763",
+      "soft_estimate_seconds": 10800,
+      "healthy_estimate_overrun_killed": false,
+      "resource_cap_stop": null,
+      "failure": null,
+      "completed_utc": "2026-10-09T08:27:56.189481+00:00",
+      "scope": "Saved31 raw gradients/32roles;960 coordinates ALL13440 same-epoch alternatives and380 guards/391 snapshots; actual9 saved evidence only if native construction positive. No encoder/backward/model/AR execution."
+    },
+    "scope": "independent saved arithmetic/provenance audit, not independent backward/encoder/AR replication"
+  },
+  "checks": {
+    "status": "PASS_EXACT_HEAD_SCOPED_CHECKS",
+    "source_head": "c51bf1cf6cd089e56042937c8971b38dad80a98e",
+    "job": "20261009T075201Z",
+    "example_tests": 104,
+    "mandatory_cuda_coefficient_only_parity_tests": "REUSED_BF09_ACTUAL_1_PASS",
+    "cuda_parity_previous_source": "bf09a1aa7419adee2ec12e6202565f13d08ca3ef",
+    "cuda_parity_previous_log_sha256": "af1356de7499f849dec681b17e8ff262be3b3b2f4dcf77fdf734571644135eab",
+    "cuda_filtered_not_run": 822,
+    "formatting": "PASS_NAMED_FOUR",
+    "claim_wording": "PASS",
+    "diff": "PASS",
+    "optimized_build": "PASS",
+    "log_sha256": "284ead1338e719a6da1311615c1cdb35284b3ca63cf0d52d23a53443c9241eb6",
+    "training_binary_sha256": "50a4eb5b7b8d4b730d2d6f5cfedb8e339474fc589aaefd339e665f7681a8436c",
+    "training_binary_bytes": 35556320,
+    "ended_at": "2026-10-09T07:53:36Z",
+    "new_learning_execution": "NOT_RUN_COMPLETION_ONLY",
+    "test_compile_seconds": 70.546,
+    "optimized_build_seconds": 23.687
+  },
+  "resource": {
+    "ledger_sha256": "0524f09e2784816bf584eec5aa366802a9c8d4737407b5c8bcebf7a5e69b4e2b",
+    "continuous_from": "2026-10-09T05:15:02Z",
+    "projected_complete_seconds": 21600,
+    "cumulative_projected_seconds": 569670,
+    "caps": {
+      "cpu_threads": 2,
+      "ram_bytes": 4294967296,
+      "numeric_bytes": 536870912,
+      "report_bytes": 536870912,
+      "temporary_bytes": 268435456,
+      "new_retained_bytes": 3129999360,
+      "stop_margin_bytes": 134217728
+    },
+    "completion_projection": {
+      "backward_calls": 0,
+      "cache_cap": 268435456,
+      "continuation_json_inflation_factor": 4,
+      "coordinate_search": 0,
+      "csr_cache": "NOT_ALLOCATED",
+      "finite_candidate_full_pool_reductions": 391,
+      "generate_patch_caches": "NOT_ALLOCATED",
+      "model_compiled_tables_and_CPU_parameters": "separate process RAM; fresh gradient/CSR/pending caches absent",
+      "native_reload_frames": 391,
+      "normalization_cache_dropped_before_candidate391": true,
+      "normalization_donor_cache_cap": 134217728,
+      "numeric_cap": 536870912,
+      "numeric_upper_bound": 123681584,
+      "numerical_temporary_and_container_reserve": 33554432,
+      "pool_capacity_payload_bytes": 64170608,
+      "prior_learning_projection": {
+        "actual_original31_serialized_bytes": 42799649,
+        "cache_cap": 268435456,
+        "cache_scope": "CSR+opaque caches+best pending+current pending+container overhead; model/device RAM is separate",
+        "cache_upper_bound": 174948352,
+        "compact_alternative_receipt_reserve": 16777216,
+        "construction_receipts": "streamed coordinate records, never retain13440 alternative Values in RAM",
+        "constructor_lifetime": "guard full pool buffers dropped after opaque cache admission, before CSR and all-code construction",
+        "estimate_not_hard_stop": true,
+        "fresh_backwards_completed": 0,
+        "graph_lifetime": "31 streamed coefficient graphs; Generate/device/prepared tensors dropped before guard380 load",
+        "numeric_cap": 536870912,
+        "numeric_upper_bound": 451406712,
+        "prior_pregradient_projection": {
+          "actual_compact_objective_projection_bytes": 24126817,
+          "actual_saved_objective_bytes": 42799649,
+          "coexistence": "full objective JSON/typed pools/Prefix leaf/one frozen Generate graph; later compact objective+380 current/staged+cache; maxphase RAM not summed sequentialgraphs",
+          "estimate_not_hard_stop": true,
+          "extra_compact_bytes": 12708838,
+          "extra_full_bytes": 19382774,
+          "fresh_backwards_completed": 0,
+          "graphs": "stream31 then dropped before380guard allocation",
+          "native_reload_union": 391,
+          "numeric_cap": 536870912,
+          "numerical_projection_bytes": 527281976,
+          "objective_physical_frames": 31,
+          "prior_projection": {
+            "actual_retained_guard_pool_bytes": 62484576,
+            "donor_cache_cap": 134217728,
+            "export_projection_margin_per_guard": 327680,
+            "fresh_joint_backwards_completed_before_guard_coexistence": true,
+            "metadata_allocator_margin": 33554432,
+            "numeric_cap": 536870912,
+            "numeric_pass": true,
+            "numeric_upper_bound": 412822664,
+            "objective_terms_full_raw_pool_parity_before_omission": 20,
+            "objective_typed_pool_bytes": 7888640,
+            "original18_full_raw_pool_parity_before_omission": false,
+            "original377_complete_raw_summary_mass_parity_before_retention": true,
+            "original_objective_serialized_bytes_before_omission": 23416875,
+            "original_serialized_guard_native_bytes": 190469197,
+            "owner_donor_cache_cap": 268435456,
+            "process_ram_cap": 4294967296,
+            "report_cap": 536870912,
+            "report_pass": true,
+            "report_projection_bytes": 463317336,
+            "retained_objective_serialized_bytes_after_omission": 11417979,
+            "scope": "twenty streamed backwards completed; coexisting current/staged380 pools, compact20frame authorities, cache; no retained Generate gradient graphs; tensors separately charged RAM",
+            "temporary_cap": 268435456,
+            "typed_guard_frame_bound": 20848880
+          },
+          "process_ram_cap": 4294967296,
+          "process_ram_projection_bytes": 3274936240,
+          "protected377_loading": "streamed one row at a time, dropped before Generate graph",
+          "report_cap": 536870912,
+          "report_projection_bytes": 493710158,
+          "weighted_roles": 32
+        },
+        "prior_projection": {
+          "actual_retained_guard_pool_bytes": 62484576,
+          "donor_cache_cap": 134217728,
+          "export_projection_margin_per_guard": 327680,
+          "fresh_joint_backwards_completed_before_guard_coexistence": true,
+          "metadata_allocator_margin": 33554432,
+          "numeric_cap": 536870912,
+          "numeric_pass": true,
+          "numeric_upper_bound": 518868024,
+          "objective_terms_full_raw_pool_parity_before_omission": 31,
+          "objective_typed_pool_bytes": 12230560,
+          "original18_full_raw_pool_parity_before_omission": false,
+          "original377_complete_raw_summary_mass_parity_before_retention": true,
+          "original_objective_serialized_bytes_before_omission": 42799649,
+          "original_serialized_guard_native_bytes": 190469197,
+          "owner_donor_cache_cap": 268435456,
+          "process_ram_cap": 4294967296,
+          "report_cap": 536870912,
+          "report_pass": true,
+          "report_projection_bytes": 482700110,
+          "retained_objective_serialized_bytes_after_omission": 24130909,
+          "scope": "31 coalesced streamed backwards completed;32roles/31compact physical authorities, current/staged380 pools/cache; no retained Generate gradient graphs; tensors charged RAM",
+          "temporary_cap": 268435456,
+          "typed_guard_frame_bound": 20848880
+        },
+        "process_ram_cap": 4294967296,
+        "process_ram_projection_bytes": 3342045104,
+        "projected_alternatives": 13440,
+        "replaced_previous_construction_bytes": 73199998,
+        "report_cap": 536870912,
+        "report_projection_bytes": 364301690,
+        "retained_previous_output_bytes": 353615608
+      },
+      "process_ram_cap": 4294967296,
+      "protected_saved_normalization_internal_reductions": "UNAVAILABLE_NOT_INSTRUMENTED_IN_REUSED_HELPER",
+      "report_bytes_before_reload": 102742238,
+      "report_cap_bytes": 536870912,
+      "report_projection_bytes": 505395422,
+      "reserved_candidate391_serialization_bytes": 402653184,
+      "retained_continuation_json_bytes": 1276916,
+      "saved_objective_full_pool_reductions": 31,
+      "scope": "CPU saved frame normalization plus one candidate finite score/reduction per391, then unfinished391 native steps; no learning repeat",
+      "typed_guard_frame_bound": 20848880
+    },
+    "POD_ONLY": true,
+    "foreign_lab_material": "UNTOUCHED"
+  },
+  "retained_receipts": {
+    "implementation-packet.json": {
+      "sha256": "1fff5a87a2ab28dea7c03589f82f1e34b6e620a5e79872e4ed91350b7ea5be2c",
+      "bytes": 15992
+    },
+    "source-math-review.json": {
+      "sha256": "0fbb6dd857fd634e0a53e4032ffc3415ca32c1e921ff6f3c5da330436b74c9a9",
+      "bytes": 6468
+    },
+    "source-adversarial-review.json": {
+      "sha256": "6c40211444564fc629dfbe366373afac7ae32ed7c32017eaeb9b37e51bd311e7",
+      "bytes": 6170
+    },
+    "actual-checks.json": {
+      "sha256": "154d43df86a0a42cab58dc77ad1db3d60610d3897c9279cc413c26cbe76a906d",
+      "bytes": 945
+    },
+    "independent-reader-design.json": {
+      "sha256": "5c183ec6c2ee21c481d5ecc45356e3402d4830684b8b047d6cf3304a3993a44d",
+      "bytes": 14096
+    },
+    "reader-adapter-adversarial.json": {
+      "sha256": "57044f5ffe9baf69280f62380412eee6579e1d0d3420065df127ce9ee9bc70ab",
+      "bytes": 6974
+    },
+    "reader-repair-adversarial.json": {
+      "sha256": "742d5a1c04e76d4f30e3434ef782e9689c18d9bd9e9341a9deeaa35f43587bac",
+      "bytes": 2305
+    },
+    "reader-repair-upload.json": {
+      "sha256": "e1c78e0aa9081251f5e1662afcd36c3267147868b21ec594407d0c5392390d32",
+      "bytes": 2608
+    },
+    "generate-independent-reader.py": {
+      "sha256": "8e5383e5ac93133c071ab540cf85cece0edc6e70d95367a4230d8574906ec8f4",
+      "bytes": 77538
+    },
+    "result-math-review.json": {
+      "sha256": "a364ff58f495df03ed63036b2a9300c0b3b7d6942c003517d894fe9180477e78",
+      "bytes": 13687
+    },
+    "result-adversarial-review.json": {
+      "sha256": "cac1cf92324c1aec561618d817286bc2ff8817164553329dd5b4972d05a76bdd",
+      "bytes": 4968
+    },
+    "model-rust-verification.json": {
+      "sha256": "eb618a7b6f2e17fbb99d67de89e1e13eabb01781d1bb15c6a168298e8562ab80",
+      "bytes": 797
+    },
+    "audit-rust-verification.json": {
+      "sha256": "e5b24d0245bb79e1d7e271577d151f5e8dc6da1dacd744d913aba4c9b9b5b72a",
+      "bytes": 580
+    },
+    "audit-referenced-roots-rust-verification.json": {
+      "sha256": "ae4ae3d0481c2f56026cf01118f520d21bacc3e251ce7b44b80531040109b383",
+      "bytes": 4284
+    },
+    "complete-archive-verification.json": {
+      "sha256": "8d3ab47138fffa03ccdf9d0660dbb560039748e5dc54cfef612e8eb55b2ca117",
+      "bytes": 589
+    },
+    "reader-repair-packet.json": {
+      "sha256": "8a8e849a09605276345072282d5d75ceaa56212d1b32c056fb52812072e8d99e",
+      "bytes": 4800
+    },
+    "complete-upload.json": {
+      "sha256": "14b12035a00fb8d9ece5240407d80f8ab8323e1ab9f2a16326af048834ac896f",
+      "bytes": 2507
+    }
+  },
+  "private_preservation": {
+    "complete_revision": "4e6c74ffabd91b3d7fca58bdc388ebc318f065bd",
+    "all_fresh_download_verified": true,
+    "receipt_sha256": "14b12035a00fb8d9ece5240407d80f8ab8323e1ab9f2a16326af048834ac896f",
+    "icloud_copy": "NOT_CLAIMED"
+  },
+  "claim_limits": [
+    "one authored canonicalconditional episode, not an actual complete reply",
+    "conditional EOS winner does not qualify whole-answer EOS",
+    "fulllegal unary pass negative is not global geometry/capacity impossibility",
+    "no language/transfer/geometry advantage/energy claim",
+    "original8 ownprefix/EOS and original512 scope not newly reevaluated"
+  ],
+  "next_action": "After actual protected delivery, source-bound JOINT Prefix/Generate full15 credit from ORIGINAL selected seed is prospective; never recombine two unselected negative checkpoints, append a token-chase, cursor, serving if-case, or repeat unchanged family dose. Require a new reviewed work card and native hard/relaxed parity before any compute.",
+  "delivery": "PENDING_PROTECTED_MERGE_AND_FRESHMAIN_VERIFICATION"
+}

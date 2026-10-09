@@ -70,6 +70,8 @@ mod context_path_credit;
 mod emission_constraints;
 #[path = "geometric_frozen_map_fit/frontier.rs"]
 mod frontier;
+#[path = "geometric_frozen_map_fit/generate_episode_learning.rs"]
+mod generate_episode_learning;
 #[path = "geometric_frozen_map_fit/native_proposals.rs"]
 mod native_proposals;
 #[path = "../../uor-r4-integer/examples/support/source_probe.rs"]
@@ -160,6 +162,14 @@ fn replay_require(ok: bool, message: &str) -> Result<()> {
     }
 }
 fn reference_replay_settings(a: &Args) -> Result<()> {
+    generate_episode_learning::validate_completion_settings(a)?;
+    if a.generate_episode_completion.is_some() {
+        return Ok(());
+    }
+    generate_episode_learning::validate_settings(a)?;
+    if a.generate_episode_learning.is_some() {
+        return Ok(());
+    }
     prefix_fragment_learning::validate_artifact_settings(a)?;
     if a.prefix_artifact_check.is_some() {
         return Ok(());
@@ -531,6 +541,10 @@ struct Args {
     #[serde(default)]
     prefix_fragment_learning: Option<prefix_fragment_learning::Config>,
     #[serde(default)]
+    generate_episode_learning: Option<generate_episode_learning::Config>,
+    #[serde(default)]
+    generate_episode_completion: Option<generate_episode_learning::CompletionConfig>,
+    #[serde(default)]
     prefix_artifact_check: Option<prefix_fragment_learning::ArtifactConfig>,
 }
 const CONTROL_INDICES: [usize; 8] = [0, 1, 4, 5, 8, 9, 12, 13];
@@ -808,6 +822,16 @@ fn args() -> Result<(Args, Vec<u8>)> {
             .iter()
             .filter_map(|c| c.recorded_finite_contrast.as_ref())
             .flat_map(|c| [&c.retained_path_root, &c.retained_probe_root]),
+    )
+    .chain(
+        a.generate_episode_completion
+            .iter()
+            .flat_map(|c| c.input_roots()),
+    )
+    .chain(
+        a.generate_episode_learning
+            .iter()
+            .flat_map(|c| c.input_roots()),
     )
     .chain(
         a.prefix_artifact_check
@@ -5320,6 +5344,9 @@ fn joint_row_comparison(before: &Value, after: &Value) -> Result<Value> {
 }
 
 fn run_joint_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
+    if a.generate_episode_learning.is_some() {
+        return generate_episode_learning::run(a, start, d);
+    }
     if a.prefix_fragment_learning.is_some() {
         return prefix_fragment_learning::run(a, start, d);
     }
@@ -6293,6 +6320,9 @@ fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
 }
 
 fn run(a: &Args, start: Instant) -> Result<Value> {
+    if a.generate_episode_completion.is_some() {
+        return generate_episode_learning::run_completion(a, start);
+    }
     if a.prefix_artifact_check.is_some() {
         return prefix_fragment_learning::run_artifact_check(a, start);
     }
@@ -6586,6 +6616,8 @@ fn main() -> Result<()> {
         if a.context_path_credit.is_some()
             || a.prefix_artifact_check.is_some()
             || a.prefix_fragment_learning.is_some()
+            || a.generate_episode_learning.is_some()
+            || a.generate_episode_completion.is_some()
             || a.context_cue_coadapt.is_some()
             || a.prefix_context_credit.is_some()
             || a.readout_coadaptation
