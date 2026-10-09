@@ -46,7 +46,12 @@ busy() {
   # a shell, a copy) also makes it busy; ignore this script's own process tree.
   local pid
   for pid in $(lsof -t +D "$1" 2>/dev/null | sort -u); do
-    [ "$pid" = "$$" ] || [ "$pid" = "$PPID" ] || return 0
+    [ "$pid" = "$$" ] || [ "$pid" = "$PPID" ] && continue
+    # System indexers and backups touch every file briefly; they are not live work.
+    case "$(ps -o comm= -p "$pid" 2>/dev/null)" in
+      *mdworker*|*mds*|*mdsync*|*Spotlight*|*fseventsd*|*backupd*|*revisiond*|*bird*|*cloudd*) continue ;;
+    esac
+    return 0
   done
   return 1
 }
