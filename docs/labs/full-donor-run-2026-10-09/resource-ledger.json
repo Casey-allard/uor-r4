@@ -1,0 +1,112 @@
+{
+  "status": "PRESERVED_POD_DELETED_DELIVERY_PENDING",
+  "started_utc": "2026-10-09T17:53:56+00:00",
+  "source": "4f7eee35b250b6d5bf9e250fc0ea00d356998695",
+  "claim": "https://github.com/UOR-Foundation/uor-r4/issues/2030#issuecomment-6086345262",
+  "previous_ledger": "docs/labs/occurrence-joint-credit-2026-10-09/resource-ledger.json",
+  "previous_actual_closeout_seconds": 1392.069,
+  "previous_cumulative_projected_seconds": 628170,
+  "increment_seconds": 14400,
+  "cumulative_projected_seconds": 642570,
+  "local_bytes_cap": 2147483648,
+  "pod_new_bytes_cap": 17179869184,
+  "retained_result_cap": 1073741824,
+  "build_ram_cap": 8589934592,
+  "model_process_ram_cap": 4294967296,
+  "build_workers": 2,
+  "cpu_threads": 2,
+  "gpu_count": 1,
+  "free_local_floor_bytes": 32212254720,
+  "storage_stop_margin": 134217728,
+  "donor_credit": "full_pool_utility",
+  "actual_parent_fit": "COMPLETED_NEGATIVE",
+  "pod": "01y12cabmvmmnq",
+  "pod_rate_usd_per_hour": 1.19,
+  "pod_gpu": "1x RTX5090",
+  "volume": "rfsx702p68",
+  "condition": "Exact original parent, sealed objective roots, source/config/runtime must verify before model compute",
+  "placement_reason": "Existing EU-RO-1 original authorities and Rust caches, automatic GPU ladder, one GPU, no unrelated bootstrap",
+  "legacy_model_time": "ABSENT; prior per-deliverable cumulative chain and closeout costs retained",
+  "build_job_log": "/workspace/uor-r4/jobs/codex/20261009T180115Z-sol-full-donor-20261009-gpu0.log",
+  "input_roots_verified": 16,
+  "retained_input_and_legacy_bytes": 1594523458,
+  "config_sha256": "f778b5affdb17e9da1c29ce517f280357e9333082618c34eee06a0015b7f6692",
+  "input_verification_seconds": 23.64088639104739,
+  "setup_failures": [
+    {
+      "stage": "build-launch",
+      "exit": 127,
+      "cause": "GNU time absent; before compilation/model",
+      "repair": "Installed time and Python venv tooling; preserved failed evidence; fresh build attempt."
+    },
+    {
+      "stage": "sealer-build",
+      "exit": 101,
+      "cause": "Locked bit-set dependency absent from restored registry; offline fetch rejected before sealer compilation. Learner build and16tests passed.",
+      "repair": "Build only sealer with --locked and online dependency retrieval; fresh separate evidence directory, no model replay."
+    }
+  ],
+  "model_job_log": "/workspace/uor-r4/jobs/codex/20261009T181315Z-sol-full-donor-20261009-gpu0.log",
+  "runtime_preservation": {
+    "revision": "1252d474bae09a3423d8251a81ad24f369815f8a",
+    "payload_bytes": 49279685,
+    "seconds": 18.089456764049828,
+    "all_fresh_download_verified": true
+  },
+  "model_elapsed_seconds": 170.50683947489597,
+  "model_peak_rss_bytes": 2771300352,
+  "orchestrator_seconds": 173.24031862802804,
+  "audit_seconds": 10.82500955206342,
+  "audit_max_child_rss_bytes": 55111680,
+  "actual9": "NOT_RUN_CONSTRUCTION_NEGATIVE",
+  "full512": "NOT_RUN",
+  "physical_backward_calls": 31,
+  "forced_donor_reductions": 416,
+  "model_cpu_threads": 2,
+  "learner_build": {
+    "Elapsed (wall clock) time (h:mm:ss or m:ss)": "4:22.50",
+    "Maximum resident set size (kbytes)": "3370580",
+    "Exit status": "0"
+  },
+  "focused_tests": {
+    "Elapsed (wall clock) time (h:mm:ss or m:ss)": "0:13.44",
+    "Maximum resident set size (kbytes)": "881620",
+    "Exit status": "0"
+  },
+  "sealer_retry": {
+    "Elapsed (wall clock) time (h:mm:ss or m:ss)": "2:07.43",
+    "Maximum resident set size (kbytes)": "3507136",
+    "Exit status": "0"
+  },
+  "outcome_preservation": {
+    "status": "PASS",
+    "source_commit": "4f7eee35b250b6d5bf9e250fc0ea00d356998695",
+    "revision": "9a4e45942edb31503f0a38825299650f2dd744cc",
+    "prefix": "codex/sol-full-donor-20261009/outcome-full-donor-0001-attempt1",
+    "all_fresh_download_verified": true,
+    "full_archive_inventory_verified": true,
+    "files": {
+      "identity.json": {
+        "sha256": "a687437f618815bac8a6e482dfcc62630e6b6878ced8eb2ceda0f4b75ed46afa",
+        "bytes": 115864
+      },
+      "outcome.tar.gz": {
+        "sha256": "38bd9de53ea64a96e41a268b9aa0f96968c6dfae7c19fe615d950e6f6871c09d",
+        "bytes": 65478480
+      }
+    },
+    "uncompressed_bytes": 372002006,
+    "archived_files": 608,
+    "seconds": 29.36166015593335,
+    "selected_model": false,
+    "scope": "NOT_RUN_CONSTRUCTION_NEGATIVE",
+    "selection": "NOT_PERFORMED_BY_PRESERVATION"
+  },
+  "pod_release_utc": "2026-10-09T18:21:26Z",
+  "pod_deleted_utc": "2026-10-09T18:21:48Z",
+  "pod_uptime_seconds": 1567,
+  "pod_compute_cost_usd_estimate": 0.5179805555555556,
+  "pod_cost_scope": "Recorded pod uptime times rate; not a provider invoice, excludes standing storage charges.",
+  "actual_elapsed_through_record_seconds": 1721.558903,
+  "delivery_cleanup_elapsed": "Final merge/cleanup interval will be recorded on protected PR and closeout receipt; not counted as model time."
+}

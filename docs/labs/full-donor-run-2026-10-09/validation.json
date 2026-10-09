@@ -1,0 +1,25 @@
+{
+  "status": "PASS_EXECUTION_SOURCE_AND_SAVED_RESULT",
+  "execution_source": "4f7eee35b250b6d5bf9e250fc0ea00d356998695",
+  "checks": {
+    "cuda_optimized_build": "PASS",
+    "coupled_focused_tests": "16 passed;0failed",
+    "actual_original_parent_run": "COMPLETED_NEGATIVE9/15;31backwards;391reloads",
+    "normative_input_roots": 16,
+    "normative_result_roots": "model,observation,oldgradient,legacyexport,audit verified",
+    "saved_comparison": "PASS_SAVED_COMPARISON",
+    "actual9": "NOT_RUN_CONSTRUCTION_NEGATIVE",
+    "python_helper_AST": "PASS",
+    "shell_script_syntax": "PASS",
+    "claim_wording": "PASS",
+    "diff_whitespace": "PASS"
+  },
+  "logs": {
+    "evidence/sealer-retry-attempt1/build.log": "a36d31f7ca773a0c8c1d50344ac6bed27914712cb5dae80eb7bc0e4d50186c9e",
+    "evidence/source-bound-build/coupled-tests.log": "082dc6d570160d50d814feed54d605f7edeb8fb0f5e5daec3a865e0565071ee0",
+    "evidence/source-bound-build/sealer-build.log": "6ba35392d9590306c3ada4e72b8f1488059ea479955c95f8107cc839309f171c",
+    "evidence/source-bound-build/build.log": "6c683accd7994351b1980b3a0ca047f8d16e792dac097747694fc76975aabf2a"
+  },
+  "scope": "No Rust source is changed by this result-only deliverable. CUDA checks and actual model execution belong to pinned merged source4f7; final delivery-head documentation/helper checks and review are posted on PR. Later unrelated main changes are not claimed as executed model source.",
+  "delivery_check_correction": "Initial committed diff check found one trailing space in archived launcher copy; local working-tree diff had not included untracked files. Removed in delivered copy, final committed diff checked again; exact executed script remains in preserved runtime. No model rerun."
+}

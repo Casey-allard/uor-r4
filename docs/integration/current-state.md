@@ -1,5 +1,13 @@
 # Current UOR-R4 research state
 
+## Complete donor credit changes learning; the original-parent episode remains 9/15 — October 9
+
+The [original-parent run](../labs/full-donor-run-2026-10-09/README.md) executes the corrected `full_pool_utility` mode on source `4f7eee35`, retaining the original 15-position/17-reference/380-guard objective and Prefix/Generate unary families. It records 416 forced donor pools, 31 fresh backwards, 14,292 constructor alternatives and 956 accepted changes. All 391 final native snapshots reload. Conditional correctness remains **9/15**, with the same correct-position set as the legacy coupled negative; combined CE is 2.277403894726836 versus legacy 2.3306226779693264. All seventeen references and 380 guards are preserved. The candidate is **REJECTED for promotion**; actual-nine/full512/fresh/multi-turn remain NOT_RUN and accepted **8/512** is unchanged.
+
+The saved comparison passes: every factual Generate gradient is bitwise identical to legacy, while Prefix credit and the frozen ranking change (104 aggregate sign reversals; first960 overlap909). At all six residual original frames, none of the enumerated forced donors yields a correct pooled winner with factual Copy and original Generate/U fixed. This does not prove final feasibility or the cause of the negative. Source/build checks, setup failures, complete runtime/negative evidence and scoped reviews are retained in the record; saved arithmetic is not independent backward replication.
+
+**Next:** after protected delivery and cleanup, inspect the new saved constructor journal for residual target-winning alternatives at their actual incumbent epochs. Distinguish objective/reference rejection, protected-pool veto and later loss before selecting another mechanism or transaction change. No unchanged fit, larger sweep, candidate composition or weakened guard.
+
 ## 2026-10-09 — Answer-span supervision: the training lever's target population is empty on the recorded corpus (deepseek, #2029)
 
 The [answer-span supervision round](../labs/answer-span-supervision-2026-10-09/README.md) pre-registered
@@ -51,7 +59,7 @@ inapplicable to the recorded corpus by measurement.
 
 The [coupled credit correction](../labs/occurrence-joint-credit-2026-10-09/README.md) adds explicit `donor_credit: "full_pool_utility"` to the existing Prefix/Generate learner. It uses detached complete native forced-donor pool losses to credit the BASE Copy selector, replacing the indirect state-tangent path while retaining direct Copy and factual Generate gradients. A native two-lane pair fixture demonstrates the finite interaction omitted by the old target-score tangent; zero-forward, gradient isolation, physical alias/clipping and recovery checks pass. Historical configurations retain `state_tangent`. No serving rule or parameter family is added.
 
-This is an implementation result, **NOT YET PROMOTED**. The retained model's donor utilities, fresh backwards and construction are NOT_RUN. Accepted **8/512**, the unselected pair 6/15 and separate coupled 9/15 are unchanged. The source limitation does not establish the cause of the retained 9/15 negative; equal-post donors remain indistinguishable by this indirect credit alone.
+This is an implementation result, **NOT YET PROMOTED**. At this implementation delivery the retained model's donor utilities, fresh backwards and construction were NOT_RUN; the subsequent [original-parent run](../labs/full-donor-run-2026-10-09/README.md) now records their negative result. Accepted **8/512**, the unselected pair 6/15 and separate coupled 9/15 are unchanged. The source limitation does not establish the cause of the retained 9/15 negative; equal-post donors remain indistinguishable by this indirect credit alone.
 
 **Next:** after protected delivery and cleanup, prospectively bind the corrected mode to the exact original parent and complete-episode authorities. Under a separate complete run projection, inspect native donor utilities and fresh credit against the retained legacy result, then perform the bounded constructor with the same fifteen positions, seventeen references and 380 guards. A positive conditional gate must immediately face actual-artifact whole-answer/EOS qualification. No unchanged sweep, negative-candidate composition or answer-specific serving case.
 

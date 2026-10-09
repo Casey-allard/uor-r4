@@ -1,0 +1,45 @@
+{
+  "status": "PASS_SOURCE_ONLY_MODEL_NOT_RUN",
+  "source": "4f7eee35b250b6d5bf9e250fc0ea00d356998695",
+  "config_sha256": "f778b5affdb17e9da1c29ce517f280357e9333082618c34eee06a0015b7f6692",
+  "input_and_runtime_preflight_review": "PASS_SOURCE_ONLY",
+  "runner_factory_review": "PASS_SOURCE_ONLY; source/config/raw-config parity, native gate fields, exclusive report roots, runtime/launch binding, negative NOT_RUN and immediate positive actual9 sequencing checked against source4f7eee35. No execution by reviewer.",
+  "comparison_review": "Parent source read: scope and rank/gradient/native-mass CE arithmetic reviewed; execution pending",
+  "files": {
+    "prepare-full-donor-actual9.py": {
+      "sha256": "09ecbe842246a7e15da1f3238d7184c68a37a386749ef003ff1cb9af8f156aed",
+      "bytes": 12568
+    },
+    "run-full-donor.py": {
+      "sha256": "69d3e961eb257c2ff521fdca2df1269c686dfa11aadc7da0b18996731cfa2aff",
+      "bytes": 6179
+    },
+    "compare-credit.py": {
+      "sha256": "6e6622bf41de4532b06cc13671963b19b744d678c570468ba8bea06c7a3f1e96",
+      "bytes": 16508
+    },
+    "verify-inputs.py": {
+      "sha256": "bfc227ae9e1493fac6b67a1a27cd75084c277f5889aab238b69671df8b2de137",
+      "bytes": 3952
+    },
+    "preserve-runtime.py": {
+      "sha256": "99005efe4e902e291c10cc964744a65f623de69ceb4ba4d4ba0db6d01a08481d",
+      "bytes": 4813
+    },
+    "build-sealer-retry.sh": {
+      "sha256": "17cab96465d9abde20e7e7211f8b84fb416481f28691156bb707a40b61441d30",
+      "bytes": 1052
+    },
+    "run-audit.py": {
+      "sha256": "93438f08db872c95fa3f025611967af376103bb8eeb4e10739cf3b5b618c02f9",
+      "bytes": 8377
+    },
+    "preserve-outcome.py": {
+      "sha256": "eb8b7ef0a10fe55bd13768f3d030cd8b46815e1ff0915b39362ebbf2a245c377",
+      "bytes": 9293
+    }
+  },
+  "sealer_retry_review": "PASS_SOURCE_ONLY: exact clean source, locked dependencies, separate retry evidence, original failure retained, sealer hash and retry exit checked by preserver.",
+  "main_refresh": "fa786e4ef2e3beecf6e0dec925df649d5796d186 differs only in unrelated training geometric-stack example; original merged execution source retained for causal run.",
+  "audit_preservation_review": "PASS_SOURCE_ONLY: exact reader/runtime/config pins, normative verification before saved arithmetic, conditional actual9 first, scoped PASS_SAVED_COMPARISON, full archive and fresh pinned download verification."
+}

@@ -1,0 +1,161 @@
+{
+  "baseline": null,
+  "categorical": "/workspace/uor-r4/codex/sol-prototype/restore/parent-unpacked/native-prediction-control/recomposition-503d64b39-attempt1/checkpoint-0000",
+  "categorical_action_learning": false,
+  "categorical_action_only": false,
+  "ceiling_float": false,
+  "ceiling_scorer": false,
+  "checkpoint": "/workspace/uor-r4/codex/sol-readout-intermediate-candidate/runs/intermediate-0001-attempt1/checkpoint-0001",
+  "constrained_context_learning": false,
+  "constrained_emission_learning": false,
+  "context_cue_coadapt": null,
+  "continuation": null,
+  "credit": "raw_identity",
+  "development_inputs": "/workspace/uor-r4/codex/sol-prototype/restore/parent-unpacked/native-geometric-generate/prose-panel-dev-2/inputs.json",
+  "development_labels": "/workspace/uor-r4/codex/sol-prototype/restore/parent-unpacked/native-geometric-generate/prose-panel-dev-2/labels.json",
+  "generate_episode_learning": null,
+  "joint_continuation": {
+    "context_learning_rate": 0.002,
+    "continuation_learning_rate": 0.03,
+    "generate_learning_rate": 0.003,
+    "potential_learning_rate": 0.003
+  },
+  "loss_scope": "all",
+  "maximum_report_bytes": 536870912,
+  "maximum_seconds": 21600,
+  "mode": "joint_continuation",
+  "native_code_proposals": false,
+  "out": "/workspace/uor-r4/codex/sol-full-donor-20261009/runs/full-donor-0001-attempt1",
+  "panel_inputs": null,
+  "panel_labels": null,
+  "parent_config": "/workspace/uor-r4/codex/sol-prototype/restore/parent-unpacked/native-prediction-control/recomposition-503d64b39-attempt1/report.json",
+  "prefix_context_credit": null,
+  "query_conditioned_read": false,
+  "reached_frontier_objective": false,
+  "read_state_pullback": "categorical",
+  "readout_coadaptation": null,
+  "reference_replay": null,
+  "saved_fit": "/workspace/uor-r4/codex/sol-prototype/restore/parent-unpacked/native-prediction-control/recomposition-503d64b39-attempt1",
+  "seed": 1001,
+  "training_inputs": "/workspace/uor-r4/codex/sol-prototype/restore/parent-unpacked/native-geometric-generate/prose-panel-dev-2/inputs.json",
+  "training_labels": "/workspace/uor-r4/codex/sol-prototype/restore/parent-unpacked/native-geometric-generate/prose-panel-dev-2/labels.json",
+  "updates": 1,
+  "coupled_episode_learning": {
+    "original_inputs": {
+      "episode": {
+        "expected_canonical_row_sha256": "19a333bb095bce39f135a3d1869912907f35759933d98f195be8758492d3748a",
+        "expected_id": "development-diverse-length4-07-swap0-q0-forward-home",
+        "expected_supplement_manifest_sha256": "5ae8d12f32ee68b2d1a7d82626305cc8fa0e30be1b118f89291b8ac116dad45d",
+        "expected_supplement_report_sha256": "0eddd892d5c1a188ee9816856853b672722c3f74ccd67a0f49cbb3e016b8a5d4",
+        "expected_typed_authority_sha256": "5003f117b15249a214243430cd4201aa022f7eb2c25139f9849f4c09e1165103",
+        "input_index": 245,
+        "phases": [
+          {
+            "capture": {
+              "expected_manifest_sha256": "f7d8e706576c65bcf1f24dbd4baa62ed646449b2dad9326ef392de21e99d5706",
+              "expected_report_sha256": "f9fb7f9b6733082d29a9065e8eb2712a3b0a614c230be16892ba03ca37952ef8",
+              "root": "/workspace/uor-r4/codex/sol-joint-fragment-learning/runs/joint-fragment-0001-attempt1"
+            },
+            "normalized_original": {
+              "expected_sha256": "f0a357a73d7f19e375fb7f454e6138f08c53f22753e09fef00c8615c1e60e553",
+              "file": "original-joint-phase-05.json"
+            },
+            "original_prefix_inverse": false,
+            "position": 5
+          },
+          {
+            "capture": {
+              "expected_manifest_sha256": "bb8d87abf5f98ebb50db95e23c3ec92e9209e945d13d9da31c37dd4fb5632f2d",
+              "expected_report_sha256": "9f38a3c165c0caa49a3b56640fc060f2577acb7b2c36fa908c78b4f6a4e80120",
+              "root": "/workspace/uor-r4/codex/sol-joint-fragment-learning/runs/conditional-0001-attempt1"
+            },
+            "original_prefix_inverse": false,
+            "position": 6
+          },
+          {
+            "capture": {
+              "expected_manifest_sha256": "5f13bc5d80ea5893801cbb2442ac78edf832331772741dc57b9ad75d12414bbb",
+              "expected_report_sha256": "32505ccb9114d29046d07cd192ab30f894a004ba95f9e8ad28dc938ae62f5347",
+              "root": "/workspace/uor-r4/codex/sol-sequence-progress-causal/runs/candidate-sequence-progress-0001-attempt1"
+            },
+            "original_prefix_inverse": true,
+            "position": 7
+          },
+          {
+            "capture": {
+              "expected_manifest_sha256": "bac7c1d2ab69d2e8f006e84ba4a4489c83b74ec5335bfe17e5183124a4a55c9a",
+              "expected_report_sha256": "54a87c9a53dd5631499be915611a060728ec4fd17d55926724b8d25cc8891cba",
+              "root": "/workspace/uor-r4/codex/sol-episode-progression-learning/runs/conditional-position-08-attempt1"
+            },
+            "original_prefix_inverse": false,
+            "position": 8
+          },
+          {
+            "capture": {
+              "expected_manifest_sha256": "690f418959970f5547998bc9a452df93de501de67252fdbcc654d0bd552fa63b",
+              "expected_report_sha256": "b8faf8080d9e8956764ddc7a045619eb72948e4ac6291b817a110b192831045d",
+              "root": "/workspace/uor-r4/codex/sol-episode-progression-learning/runs/conditional-position-09-attempt1"
+            },
+            "original_prefix_inverse": false,
+            "position": 9
+          },
+          {
+            "capture": {
+              "expected_manifest_sha256": "7595cf07ccc56a367bac511ce39eff20a4172e1090dbde8e727b4e99bbb8f9b2",
+              "expected_report_sha256": "486c1e630a205608f2be43733bb975d56661427b56fad9358f8eebfa931a391a",
+              "root": "/workspace/uor-r4/codex/sol-episode-progression-learning/runs/conditional-position-10-attempt1"
+            },
+            "original_prefix_inverse": false,
+            "position": 10
+          },
+          {
+            "capture": {
+              "expected_manifest_sha256": "7f248708952cbf84300c581bc47ab231d0f541b982acc6a055b4896ddaba7ca1",
+              "expected_report_sha256": "7e0e57e5793f5e47664b1e91502ea8d3ec307841d6d4666befed68e8a7a9c60a",
+              "root": "/workspace/uor-r4/codex/sol-episode-progression-learning/runs/conditional-position-11-attempt1"
+            },
+            "original_prefix_inverse": false,
+            "position": 11
+          },
+          {
+            "capture": {
+              "expected_manifest_sha256": "76674eff8e74e5515a4e291f44dd1127a2a8c2874f4544ea42420c53bc470d4b",
+              "expected_report_sha256": "a4c9a49dbf254e9fc31b009ea1d1226e4d098768aaebef457aaa501c361e22a5",
+              "root": "/workspace/uor-r4/codex/sol-episode-progression-learning/runs/conditional-position-12-attempt1"
+            },
+            "original_prefix_inverse": false,
+            "position": 12
+          },
+          {
+            "capture": {
+              "expected_manifest_sha256": "01ce2d280b9e58e3e6330aad7b601b38d0b8b382d361e15c1efe5bd205af1e5b",
+              "expected_report_sha256": "7340e3fe6b4839485c0f8d9ec43194189f97ae58e0cd3dc91486d28ed63a5589",
+              "root": "/workspace/uor-r4/codex/sol-episode-progression-learning/runs/conditional-position-13-attempt1"
+            },
+            "original_prefix_inverse": false,
+            "position": 13
+          },
+          {
+            "capture": {
+              "expected_manifest_sha256": "82aa35a7eafb9ef4c58b30c1341b004d71ac4c2fa7652fad8345abb24a32498a",
+              "expected_report_sha256": "2a38fb8c2e126246acd5f15368ad9da6192f3e5cd1e47b0eebb001a970abe874",
+              "root": "/workspace/uor-r4/codex/sol-episode-progression-learning/runs/conditional-position-14-attempt1"
+            },
+            "original_prefix_inverse": false,
+            "position": 14
+          }
+        ],
+        "retained_projection": {
+          "expected_manifest_sha256": "f7d8e706576c65bcf1f24dbd4baa62ed646449b2dad9326ef392de21e99d5706",
+          "expected_report_sha256": "f9fb7f9b6733082d29a9065e8eb2712a3b0a614c230be16892ba03ca37952ef8",
+          "root": "/workspace/uor-r4/codex/sol-joint-fragment-learning/runs/joint-fragment-0001-attempt1"
+        },
+        "retained_supplement_root": "/workspace/uor-r4/codex/sol-prefix-trajectory-learning/runs/supplement-0001-attempt1",
+        "typed_authority": "/workspace/uor-r4/codex/sol-episode-progression-learning/saved-episode-authority.json"
+      },
+      "retained_intermediate_root": "/workspace/uor-r4/codex/sol-readout-intermediate-candidate/runs/intermediate-0001-attempt1",
+      "retained_probe_root": "/workspace/uor-r4/codex/sol-prefix-context-credit/runs/prefix-context-credit-0001-attempt1"
+    },
+    "donor_credit": "full_pool_utility"
+  }
+}

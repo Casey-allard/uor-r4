@@ -1,0 +1,11 @@
+{
+  "status": "PASS",
+  "revision": "1252d474bae09a3423d8251a81ad24f369815f8a",
+  "prefix": "codex/sol-full-donor-20261009/runtime-4f7eee35-attempt1",
+  "all_fresh_download_verified": true,
+  "source_commit": "4f7eee35b250b6d5bf9e250fc0ea00d356998695",
+  "binary_sha256": "bd4742b103485f60d73e9361c20a97e871300576f44349f120e01906ef024acd",
+  "config_sha256": "f778b5affdb17e9da1c29ce517f280357e9333082618c34eee06a0015b7f6692",
+  "payload_bytes": 49279685,
+  "seconds": 18.089456764049828
+}

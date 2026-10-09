@@ -22,7 +22,10 @@ The [implementation record](../../docs/labs/occurrence-joint-credit-2026-10-09/R
 binds the native pair fixture, gradient isolation checks and compatibility scope.
 This is an offline credit correction, not a hard-argmax derivative or a measured
 conversation improvement. The original 15-position episode, 17 references and
-380 winner guards remain the prospective model gate.
+380 winner guards are retained in the [original-parent run](../../docs/labs/full-donor-run-2026-10-09/README.md):
+Prefix gradients change, factual Generate gradients remain bitwise identical to
+legacy, and the complete conditional gate stays negative at 9/15. The candidate
+remains unselected; accepted whole-answer performance stays 8/512.
 
 ## Complete-prefix native dialogue learning
 

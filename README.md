@@ -131,7 +131,9 @@ bf16 activations with f32 master weights on CUDA. Final inference does not depen
 The native grounded learner also offers an explicit offline [complete donor-utility
 credit rule](docs/labs/occurrence-joint-credit-2026-10-09/README.md) for joint Prefix/Generate
 learning. It evaluates complete native donor alternatives to capture interactions that
-a lane-by-lane state tangent can miss. Mechanism fixtures pass; model benefit is unmeasured.
+a lane-by-lane state tangent can miss. The [original-parent run](docs/labs/full-donor-run-2026-10-09/README.md)
+changes Prefix credit and lowers conditional loss, but the complete episode remains
+9/15; the candidate is unselected and accepted whole-answer performance remains 8/512.
 
 **Models trained**
 

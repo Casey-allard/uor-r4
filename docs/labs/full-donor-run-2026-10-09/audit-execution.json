@@ -1,0 +1,8 @@
+{
+  "exit_code": 0,
+  "status": "PASS",
+  "error": null,
+  "started_utc": "2026-10-09T18:16:46.128915+00:00",
+  "seconds": 10.82500955206342,
+  "children_max_rss_kib": 53820
+}

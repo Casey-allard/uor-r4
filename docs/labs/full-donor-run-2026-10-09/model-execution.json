@@ -1,0 +1,10 @@
+{
+  "exit_code": 0,
+  "started_utc": "2026-10-09T18:13:16.132479+00:00",
+  "ended_utc": "2026-10-09T18:16:06.639298+00:00",
+  "elapsed_seconds": 170.50683947489597,
+  "children_max_rss_kib": 2706348,
+  "binary_sha256": "bd4742b103485f60d73e9361c20a97e871300576f44349f120e01906ef024acd",
+  "config_sha256": "f778b5affdb17e9da1c29ce517f280357e9333082618c34eee06a0015b7f6692",
+  "lane": "cuda-learning"
+}

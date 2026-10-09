@@ -48,3 +48,7 @@ The [verified iCloud receipt](preservation.json) retains the production/test bin
 ## Next
 
 After protected delivery and cleanup, recover the exact original parent and complete-episode authorities. Prospectively bind the new donor-credit mode, inspect its recorded original-frame native donor utilities and fresh credit against the retained legacy result, then perform the bounded native construction only within a separately recorded complete run projection. Retain all negatives and the 17/380 controls. A positive fifteen-position conditional gate must immediately pass the existing actual-artifact whole-answer/EOS check before broader qualification; neither a nonzero gradient nor a fixture result is a language gain.
+
+## Subsequent original-parent measurement
+
+The [complete donor run](../full-donor-run-2026-10-09/README.md) executes this mode on the original authorities. It changes Prefix credit and lowers conditional CE, with factual Generate gradients bitwise unchanged, but retains the same 9/15 correct-position set and remains unselected. The implementation-only NOT_RUN statements above preserve the scope at this earlier delivery.

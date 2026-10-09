@@ -1,0 +1,24 @@
+{
+  "status": "PASS",
+  "source_commit": "4f7eee35b250b6d5bf9e250fc0ea00d356998695",
+  "revision": "9a4e45942edb31503f0a38825299650f2dd744cc",
+  "prefix": "codex/sol-full-donor-20261009/outcome-full-donor-0001-attempt1",
+  "all_fresh_download_verified": true,
+  "full_archive_inventory_verified": true,
+  "files": {
+    "identity.json": {
+      "sha256": "a687437f618815bac8a6e482dfcc62630e6b6878ced8eb2ceda0f4b75ed46afa",
+      "bytes": 115864
+    },
+    "outcome.tar.gz": {
+      "sha256": "38bd9de53ea64a96e41a268b9aa0f96968c6dfae7c19fe615d950e6f6871c09d",
+      "bytes": 65478480
+    }
+  },
+  "uncompressed_bytes": 372002006,
+  "archived_files": 608,
+  "seconds": 29.36166015593335,
+  "selected_model": false,
+  "scope": "NOT_RUN_CONSTRUCTION_NEGATIVE",
+  "selection": "NOT_PERFORMED_BY_PRESERVATION"
+}

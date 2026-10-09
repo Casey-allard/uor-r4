@@ -1,0 +1,18 @@
+{
+  "status": "PASS",
+  "private_runtime_revision": "1252d474bae09a3423d8251a81ad24f369815f8a",
+  "private_outcome_revision": "9a4e45942edb31503f0a38825299650f2dd744cc",
+  "outcome_archive_sha256": "38bd9de53ea64a96e41a268b9aa0f96968c6dfae7c19fe615d950e6f6871c09d",
+  "outcome_archive_bytes": 65478480,
+  "complete_member_inventory_verified_on_pod_and_laptop": true,
+  "members": 608,
+  "logical_bytes": 372002006,
+  "icloud_package": "codex-full-donor-outcome-20261009",
+  "icloud_archive_bytes": 65613312,
+  "icloud_md5": "c2b23178e023832f765192212caf2a2a",
+  "fresh_remote_download_md5_matches": true,
+  "icloud_index_matches": true,
+  "indexed_utc": "2026-10-09T18:21:01Z",
+  "contents": "Full negative checkpoint, model/observation/analysis seals, original and changed gradients, native donor utilities, all proposals, runtime binaries and source identity, configs, scripts, setup failures and job logs. Current docs and later delivery receipts are separate source records on main.",
+  "model_selected": false
+}

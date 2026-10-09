@@ -1,0 +1,166 @@
+{
+  "roots": [
+    {
+      "root": "/workspace/uor-r4/codex/sol-episode-progression-learning/runs/episode-0001-attempt1",
+      "report_sha256": "54ffd2ae5c81b00e0474aa8e815d82af75cb0cccf36efc6c8a24b1755f4258b6",
+      "manifest_sha256": "3e0c502da4952b177e9485e18303b88df33d36e08d27c99a405619fc8c077df2",
+      "files": 497,
+      "bytes": 353529993,
+      "complete_set_verified": true
+    },
+    {
+      "root": "/workspace/uor-r4/codex/sol-readout-intermediate-candidate/runs/intermediate-0001-attempt1",
+      "report_sha256": "c9b9fe10b6fbb4332cf919a5df7ba31403ad3d51ac6f877d94daeabd99672bee",
+      "manifest_sha256": "de90ba0ba2809ed37ca868ef2bcf94b6ceb8b176a60b86ae88801876dafbd0e5",
+      "files": 1100,
+      "bytes": 378554003,
+      "complete_set_verified": true
+    },
+    {
+      "root": "/workspace/uor-r4/codex/sol-prefix-context-credit/runs/prefix-context-credit-0001-attempt1",
+      "report_sha256": "1f7a51fe58e56862f6e8cd269225445bf9d42354d3cfe7eaf96a5910707568c9",
+      "manifest_sha256": "c43bbbe81eeea18338b2ea541c50f8f01d24dcfbe9a32662b73e2d2ebc03b332",
+      "files": 122,
+      "bytes": 204338578,
+      "complete_set_verified": true
+    },
+    {
+      "root": "/workspace/uor-r4/codex/sol-prefix-trajectory-learning/runs/supplement-0001-attempt1",
+      "report_sha256": "0eddd892d5c1a188ee9816856853b672722c3f74ccd67a0f49cbb3e016b8a5d4",
+      "manifest_sha256": "5ae8d12f32ee68b2d1a7d82626305cc8fa0e30be1b118f89291b8ac116dad45d",
+      "files": 6,
+      "bytes": 4017121,
+      "complete_set_verified": true
+    },
+    {
+      "root": "/workspace/uor-r4/codex/sol-joint-fragment-learning/runs/joint-fragment-0001-attempt1",
+      "report_sha256": "f9fb7f9b6733082d29a9065e8eb2712a3b0a614c230be16892ba03ca37952ef8",
+      "manifest_sha256": "f7d8e706576c65bcf1f24dbd4baa62ed646449b2dad9326ef392de21e99d5706",
+      "files": 469,
+      "bytes": 291011945,
+      "complete_set_verified": true
+    },
+    {
+      "root": "/workspace/uor-r4/codex/sol-joint-fragment-learning/runs/conditional-0001-attempt1",
+      "report_sha256": "9f38a3c165c0caa49a3b56640fc060f2577acb7b2c36fa908c78b4f6a4e80120",
+      "manifest_sha256": "bb8d87abf5f98ebb50db95e23c3ec92e9209e945d13d9da31c37dd4fb5632f2d",
+      "files": 5,
+      "bytes": 2017404,
+      "complete_set_verified": true
+    },
+    {
+      "root": "/workspace/uor-r4/codex/sol-sequence-progress-causal/runs/candidate-sequence-progress-0001-attempt1",
+      "report_sha256": "32505ccb9114d29046d07cd192ab30f894a004ba95f9e8ad28dc938ae62f5347",
+      "manifest_sha256": "5f13bc5d80ea5893801cbb2442ac78edf832331772741dc57b9ad75d12414bbb",
+      "files": 5,
+      "bytes": 2000518,
+      "complete_set_verified": true
+    },
+    {
+      "root": "/workspace/uor-r4/codex/sol-episode-progression-learning/runs/conditional-position-08-attempt1",
+      "report_sha256": "54a87c9a53dd5631499be915611a060728ec4fd17d55926724b8d25cc8891cba",
+      "manifest_sha256": "bac7c1d2ab69d2e8f006e84ba4a4489c83b74ec5335bfe17e5183124a4a55c9a",
+      "files": 5,
+      "bytes": 2014035,
+      "complete_set_verified": true
+    },
+    {
+      "root": "/workspace/uor-r4/codex/sol-episode-progression-learning/runs/conditional-position-09-attempt1",
+      "report_sha256": "b8faf8080d9e8956764ddc7a045619eb72948e4ac6291b817a110b192831045d",
+      "manifest_sha256": "690f418959970f5547998bc9a452df93de501de67252fdbcc654d0bd552fa63b",
+      "files": 5,
+      "bytes": 2010211,
+      "complete_set_verified": true
+    },
+    {
+      "root": "/workspace/uor-r4/codex/sol-episode-progression-learning/runs/conditional-position-10-attempt1",
+      "report_sha256": "486c1e630a205608f2be43733bb975d56661427b56fad9358f8eebfa931a391a",
+      "manifest_sha256": "7595cf07ccc56a367bac511ce39eff20a4172e1090dbde8e727b4e99bbb8f9b2",
+      "files": 5,
+      "bytes": 2012018,
+      "complete_set_verified": true
+    },
+    {
+      "root": "/workspace/uor-r4/codex/sol-episode-progression-learning/runs/conditional-position-11-attempt1",
+      "report_sha256": "7e0e57e5793f5e47664b1e91502ea8d3ec307841d6d4666befed68e8a7a9c60a",
+      "manifest_sha256": "7f248708952cbf84300c581bc47ab231d0f541b982acc6a055b4896ddaba7ca1",
+      "files": 5,
+      "bytes": 2020368,
+      "complete_set_verified": true
+    },
+    {
+      "root": "/workspace/uor-r4/codex/sol-episode-progression-learning/runs/conditional-position-12-attempt1",
+      "report_sha256": "a4c9a49dbf254e9fc31b009ea1d1226e4d098768aaebef457aaa501c361e22a5",
+      "manifest_sha256": "76674eff8e74e5515a4e291f44dd1127a2a8c2874f4544ea42420c53bc470d4b",
+      "files": 5,
+      "bytes": 2008619,
+      "complete_set_verified": true
+    },
+    {
+      "root": "/workspace/uor-r4/codex/sol-episode-progression-learning/runs/conditional-position-13-attempt1",
+      "report_sha256": "7340e3fe6b4839485c0f8d9ec43194189f97ae58e0cd3dc91486d28ed63a5589",
+      "manifest_sha256": "01ce2d280b9e58e3e6330aad7b601b38d0b8b382d361e15c1efe5bd205af1e5b",
+      "files": 5,
+      "bytes": 2014417,
+      "complete_set_verified": true
+    },
+    {
+      "root": "/workspace/uor-r4/codex/sol-episode-progression-learning/runs/conditional-position-14-attempt1",
+      "report_sha256": "2a38fb8c2e126246acd5f15368ad9da6192f3e5cd1e47b0eebb001a970abe874",
+      "manifest_sha256": "82aa35a7eafb9ef4c58b30c1341b004d71ac4c2fa7652fad8345abb24a32498a",
+      "files": 5,
+      "bytes": 2021120,
+      "complete_set_verified": true
+    },
+    {
+      "root": "/workspace/uor-r4/codex/sol-coupled-episode-learning/runs/coupled-episode-0001-attempt2",
+      "report_sha256": "d3a5b210d6627296e63aabf08ddb09fd16db45ca7cfad52ba819ce6a6d618cf8",
+      "manifest_sha256": "11079e130773e8fd467fe10ec78c7f5205fec1157a87bd893eed086c9f17f9a8",
+      "files": 91,
+      "bytes": 22204900,
+      "complete_set_verified": true
+    },
+    {
+      "root": "/workspace/uor-r4/codex/sol-coupled-episode-learning/runs/coupled-export-completion-0001-attempt3",
+      "report_sha256": "0aa9b3c0c2d1defaaa6d93611a78fb348be0016aefe5d7548563250b9a687b8c",
+      "manifest_sha256": "e7667312b7d18b502e72b0fc41bf2d7d52a4977a020501ecd527da6ef628f9aa",
+      "files": 551,
+      "bytes": 322748208,
+      "complete_set_verified": true
+    }
+  ],
+  "original_config_sha256": "4c33cf1bb35f5bc984f47a224d2c07ef1ba56393c7b2732ea48439baf56c2497",
+  "verifier_sha256": "d90411116c702dc4149fc055706f34c276c1ead29c5b0ec95600c30cc976326d",
+  "learning_policy_change": "donor_credit: full_pool_utility only; out is a fresh path",
+  "training_inputs": {
+    "file": "/workspace/uor-r4/codex/sol-prototype/restore/parent-unpacked/native-geometric-generate/prose-panel-dev-2/inputs.json",
+    "sha256": "b9661606b280884217a64e0a5b643f8324a90390e47ade7241da0889a5f7c86a",
+    "bytes": 1020550
+  },
+  "training_labels": {
+    "file": "/workspace/uor-r4/codex/sol-prototype/restore/parent-unpacked/native-geometric-generate/prose-panel-dev-2/labels.json",
+    "sha256": "84991e0657b5697c0e061eaa3fe86e4a0ec7ce6bc2be8371b62698c6b8126155",
+    "bytes": 112736
+  },
+  "development_inputs": {
+    "file": "/workspace/uor-r4/codex/sol-prototype/restore/parent-unpacked/native-geometric-generate/prose-panel-dev-2/inputs.json",
+    "sha256": "b9661606b280884217a64e0a5b643f8324a90390e47ade7241da0889a5f7c86a",
+    "bytes": 1020550
+  },
+  "development_labels": {
+    "file": "/workspace/uor-r4/codex/sol-prototype/restore/parent-unpacked/native-geometric-generate/prose-panel-dev-2/labels.json",
+    "sha256": "84991e0657b5697c0e061eaa3fe86e4a0ec7ce6bc2be8371b62698c6b8126155",
+    "bytes": 112736
+  },
+  "parent_config": {
+    "file": "/workspace/uor-r4/codex/sol-prototype/restore/parent-unpacked/native-prediction-control/recomposition-503d64b39-attempt1/report.json",
+    "sha256": "a1277d2be4ff962100f857d0da553257ad5596ac8bc72d9257299e74d2f2e278",
+    "bytes": 18457
+  },
+  "status": "PASS",
+  "seconds": 23.64088639104739,
+  "config": "/workspace/uor-r4/codex/sol-full-donor-20261009/configs/full-donor-0001-attempt1.json",
+  "config_sha256": "f778b5affdb17e9da1c29ce517f280357e9333082618c34eee06a0015b7f6692",
+  "source": "4f7eee35b250b6d5bf9e250fc0ea00d356998695",
+  "scope": "fourteen original sealed roots plus historical gradient and completed negative roots; no backward or model execution"
+}
