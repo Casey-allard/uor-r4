@@ -1,0 +1,73 @@
+UOR-R4 — A serving-time gate floor at 0.5 recovers recall on every arm with ZERO losses; the identity arm becomes the best measured
+Date: 2026-10-09. DeepSeek session. References #820. Follows gate_floor_run_card_2026-10-09.txt.
+
+WHAT RAN
+  The run card's experiment, exactly: an optional serving-time floor on the pointer's copy gate,
+  gate' = max(gate, F), default 0 = bit-for-bit unchanged, applied at the two serving mixture sites only
+  (greedy replies and the reported gate/mixture). NO training, no new parameters, no serialization
+  change, no export change. Scored on existing checkpoints: arm-ptr (the best binding arm, 35/84),
+  ptrident/arm-a-w05 (the identity arm whose gate collapsed to 0.1163, 10/84) and ptrident/arm-c-ctrl
+  (the matched fine-tune, 24/84). 28 invented values, three conditions, 84 cells per arm per floor.
+
+THE RESULT - A CONSTANT RECOVERS THE COPIES
+
+    arm            F=0              F=0.5             delta        significance, gains/losses
+    arm-ptr        35/84 = 0.4167   49/84 = 0.5833    +14/84       p=1.22e-4   14 gained / 0 lost
+    arm-a-w05      10/84 = 0.1190   59/84 = 0.7024    +49/84       p=3.55e-15  49 gained / 0 lost
+    arm-c-ctrl     24/84 = 0.2857   52/84 = 0.6190    +28/84       p=7.45e-9   28 gained / 0 lost
+
+  NOT ONE CELL IS LOST ON ANY ARM. And the arm whose identity term had destroyed its recall - the one
+  written off two rounds ago - becomes THE BEST ARM MEASURED ON THIS PANEL at 59/84 = 0.7024, above
+  arm-ptr at any floor. Per value at F=0.5 the identity arm repairs 22 of 28 values ("A Lunavar." ->
+  "Lunavar.", "Liskel." -> "Miskel.", "Lrendal." -> "Wrendal.") and loses none; arm-ptr gains 8 values
+  and loses none.
+
+THE MECHANISM IS CONFIRMED AND IT IS PURELY A MIXING WEIGHT
+  Span mass and read mass are FLAT across F - bit-identical wherever the window is unchanged (arm-ptr
+  0.8351 -> 0.8321; arm-a-w05 0.8399 -> 0.8392) - while the gate rises (0.5149 -> 0.6817; 0.1163 ->
+  0.5089) and exact copies rise with it. On the 79 of 84 cells whose window is unchanged, the reported
+  gate equals max(gate_F0, F) with ZERO mismatches and the generator, read and pointer masses are
+  bit-identical. SO THE LEARNED ATTENTION ALREADY CONTAINED THE ANSWER AND ONLY ITS MIXING WEIGHT WAS
+  WRONG. The identity term's damage was a serving-time miscalibration, not a loss of information.
+
+THE SHAPE OF THE CURVE, AND A THIRD POSITION THE CARD DID NOT NAME
+  The pre-registered monotonicity test FAILS: exact copies peak at F=0.5 and collapse afterwards
+  (arm-ptr 35 -> 40 -> 49 -> 16 -> 6; arm-a-w05 10 -> 17 -> 59 -> 42 -> 26). As the card predicted,
+  F=1.0 is far WORSE than F=0 on arm-ptr (-29/84, 1 gained / 30 lost, p=2.98e-8).
+  WHY, MEASURED: at F=1.0 the gate is exactly 1.0000 and p_mixture of the value's first token is 0.8700,
+  and the value is PRESENT in 79/84 replies (versus 55/84 at F=0) - yet exact copies are 6/84, because
+  with the generator crowded out the replies degenerate: "Fennor.\n\nAss name is Fennor. Fennor.\n\nAss
+  name is Fennor. Fennor.\n\nA"; "Candrake. name is Candrake. name is Candrake. ...". So ABOVE ~0.5 THE
+  BINDING CONSTRAINT IS THE GENERATOR'S CONTRIBUTION TO THE REPLY'S SHAPE AND TERMINATION, not the
+  value's identity. The card's dichotomy was incomplete and the third position is the one the data
+  shows: the gate is the constraint only up to about half; beyond it the generator is needed for the
+  reply to terminate and read as the value alone.
+
+THE DEFAULT IS PROVABLY UNCHANGED
+  The F=0 run's records are IDENTICAL in all three conditions to the previously recorded arm-ptr files
+  across every field - reply, reply_ids, reply_eos, window_ids, window_text, span positions and sizes,
+  all read masses, the pointer gate/attention/span masses, the marker generator and mixture
+  probabilities per spelling, pattern and miss class - with the added floor header field the only
+  difference (canonical-JSON sha256 f380b871 / 5a2368de / 36007e4d on both sides). The recorded channels
+  reproduce exactly on all three arms.
+
+WHAT THIS MEANS FOR THE BINDING PROBLEM
+  1. THE BEST MEASURED CONFIGURATION IS NOW: the identity-lineage arm with a serving-time gate floor of
+     0.5, at 59/84 = 0.7024 exact recall of never-seen values, against 0.4167 for the previous best and
+     0.0000 for the no-pointer control. That is a 69 % relative improvement over the previous best and
+     it costs one constant, computed at inference, with no training.
+  2. THE IDENTITY TERM SHOULD NOT BE WRITTEN OFF. Its loss was entirely a gate calibration problem: the
+     same checkpoint goes from 0.1190 to 0.7024 by flooring the gate. The two negatives it produced
+     (identity_score_negative, identity_term_control_refined) remain correct AS MEASURED - the term
+     degrades an unfloored read-out - and are superseded in practice by this result.
+  3. THE NEXT TARGET IS THE READ-OUT'S TERMINATION, not the gate and not the read: a conditional or
+     decaying floor schedule, or an explicit stop rule on the pointer branch, is what the F=1.0
+     degeneration points at. The gate curve says the useful band is around 0.5, and a flat floor is
+     evidently the crudest member of that family.
+
+HONEST POSITION
+  F=0.5 was the card's PRE-REGISTERED MIDPOINT and is the argmax on all three arms independently, so it
+  was not chosen post hoc. 84 cells, one seed per arm, greedy, one session, F=0 reproduced bit-for-bit.
+  The mechanism claim (the floor moves only the mixing weight) is arithmetic-verified on 79 of 84 cells.
+  Not measured: any floor schedule, any other panel, and any integer/D11 port - export still refuses a
+  pointer with an identity term ("no integer port"), so this is an offline-capability result so far.

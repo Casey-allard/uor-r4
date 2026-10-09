@@ -1869,6 +1869,11 @@ pub struct StackModel {
     /// A routed pointer matches keys on these canonical ids
     /// ([`Self::set_pointer_key_fold`]); not saved.
     pointer_key_fold: Option<Arc<CopyIdentity>>,
+    /// Serving-time floor on the pointer's copy gate
+    /// ([`Self::set_pointer_gate_floor`]): both serving mixtures use
+    /// `max(gate, floor)` in place of the head's own gate. `0.0`, the default,
+    /// is the head's gate exactly. Not saved.
+    pointer_gate_floor: f64,
 }
 
 impl StackModel {
@@ -1976,6 +1981,7 @@ impl StackModel {
             read_lineage: None,
             read_lineage_so4: None,
             pointer_key_fold: None,
+            pointer_gate_floor: 0.0,
         })
     }
 
@@ -3392,6 +3398,49 @@ impl StackModel {
     /// The copy-identity table a routed pointer matches keys on, if set.
     pub fn pointer_key_fold(&self) -> Option<&CopyIdentity> {
         self.pointer_key_fold.as_deref()
+    }
+
+    /// Floor the pointer's copy gate at serving time: the identity mixture of
+    /// a pointer model is `(1 - gate) * generator + gate * pointer attention`
+    /// with `gate = sigmoid(w_g . h + b_g)`, and both serving mixtures
+    /// ([`Self::next_scores`] and [`Self::read_span_probe`]) use
+    /// `max(gate, floor)` in place of the head's own gate. `0.0`, the default,
+    /// leaves every reply, mixture probability and reported gate bit for bit
+    /// as it was. This is a read-out change only: no parameter, no gradient
+    /// and no training path is touched, and the floor is not saved
+    /// ([`Self::save`] does not record it and [`Self::load`] does not restore
+    /// it). A positive floor is refused on a model without a pointer head.
+    pub fn set_pointer_gate_floor(&mut self, floor: f64) -> Result<()> {
+        if !floor.is_finite() || !(0.0..=1.0).contains(&floor) {
+            return Err(invalid(format!(
+                "the pointer gate floor {floor} is not a probability in 0..=1"
+            )));
+        }
+        if floor > 0.0 && self.config.pointer.is_none() {
+            return Err(invalid(
+                "the model has no pointer head to floor the gate of",
+            ));
+        }
+        self.pointer_gate_floor = floor;
+        Ok(())
+    }
+
+    /// The serving-time pointer gate floor, `0.0` when unset
+    /// ([`Self::set_pointer_gate_floor`]).
+    pub fn pointer_gate_floor(&self) -> f64 {
+        self.pointer_gate_floor
+    }
+
+    /// The pointer's copy gate at one position from its gate logit: the head's
+    /// own `sigmoid(logit)`, floored by [`Self::pointer_gate_floor`] when that
+    /// is positive. A floor of zero returns the sigmoid unchanged.
+    fn floored_gate(&self, logit: f64) -> f64 {
+        let gate = sigmoid_f64(logit);
+        if self.pointer_gate_floor > 0.0 {
+            gate.max(self.pointer_gate_floor)
+        } else {
+            gate
+        }
     }
 
     /// The ids a routed pointer matches its keys on, when a fold is set and
@@ -7593,7 +7642,7 @@ impl StackModel {
             ids
         };
         let attention = pointer_attention(&side, 0, time - 1, &rule, matched)?;
-        let gate = sigmoid_f64(f64::from(
+        let gate = self.floored_gate(f64::from(
             side[(time - 1) * (2 * pointer.dim + 1) + 2 * pointer.dim],
         ));
         let mut mixture: Vec<f64> = generator.iter().map(|&q| (1.0 - gate) * q).collect();
@@ -8268,7 +8317,7 @@ impl StackModel {
             ids
         };
         let attention = pointer_attention(&side, 0, time - 1, &rule, matched)?;
-        let gate = sigmoid_f64(f64::from(
+        let gate = self.floored_gate(f64::from(
             side[(time - 1) * (2 * pointer.dim + 1) + 2 * pointer.dim],
         ));
         let lse = row_log_sum_exp(&logits);
@@ -8864,6 +8913,7 @@ impl StackModel {
             read_lineage: None,
             read_lineage_so4: None,
             pointer_key_fold: None,
+            pointer_gate_floor: 0.0,
         };
         model.set_transport_snap(Self::saved_transport_snap(directory)?)?;
         model.set_read_identity_carry(Self::saved_read_identity_carry(directory)?)?;
