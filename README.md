@@ -90,25 +90,33 @@ For an illustrated walkthrough of the geometry, see [docs/geometry.md](docs/geom
 Each mechanism lists its implemented role and its status. Architectural priority
 does not imply measured predictive advantage.
 
-- **R4/S3 quaternion state and transport.** Unit-quaternion state and directed
-  transport drive the stack's recurrence and reads. Status: trained and served.
+- **R4/S3 quaternion state and transport.** The stack's recurrence (`r` layers) moves its
+  quaternion state by a learned unit quaternion each step:
+  h_t = λ_t (u_t · h_{t−1}) + √(1−λ_t²) a_t. Status: trained and served.
   Hopf observation (S3 to S2) loses fiber information unless it is retained
   explicitly, so R4/S3 compute, Hopf observation and retained fiber stay distinct.
 - **H4 / icosian and paired-H4.** `E8 = H4 x H4` is project shorthand for the
   concrete golden/Galois-coupled icosian construction `H4 + phi H4`. Status:
-  implemented and unit-tested; used by tables and classifiers in the native learner.
-- **Exact `Z[phi]`.** Golden-ratio arithmetic stays exact. Status: implemented.
-- **Prime (UOR) addressing and routing.** Ordered n-lets of primes address memory
-  pages. A prime or hash identity is an identifier, not a semantic distance. Status:
+  implemented and unit-tested; used by tables and classifiers in the native learner, and as
+  an optional training-time snap of each rotation u_t to the nearest of the 120 unit
+  icosians (straight-through gradient). Which headline checkpoints used the snap is not verified.
+- **Exact `Z[phi]`.** Icosian coordinates are exact numbers a + bφ (`ZPhi { a, b }`), with no
+  rounding. Status: implemented.
+- **Prime (UOR) addressing and routing.** An address is a product of primes; the
+  prime-route memory port admits records that share a factor (gcd of the prime products > 1)
+  or the longest matching ordered n-let of primes. A prime or hash identity is an identifier, not a semantic distance. Status:
   implemented; a measured advantage is not established.
-- **Fixed zeta-zero phases.** Finite zeta-zero phases are bound to each artifact; they
-  do not require solving the Riemann hypothesis. Status: used in the native learner's
-  score tables.
-- **Chirality and polarity** are preserved rather than dropped. Status: implemented.
+- **Fixed zeta-zero phases.** A fixed table of 512 zeta zeros γ gives each pair of primes
+  the phase γ·(log p − log q). The table is not learned and is not part of the stack's
+  quaternion recurrence; it is used in the native learner's score tables. It does not
+  require solving the Riemann hypothesis.
+- **Chirality and polarity** are exact signs of `Z[phi]` coordinates, kept rather than
+  dropped. Status: implemented.
 - **Exact addressed memory.** An addressed store keyed by entity and relation tokens,
   intended as an index into an exact log of the conversation. Status: inside the native
   learner; not yet in the served stack model.
-- **Lorentz and dot-product reads.** Two read scores in the stack. Status: trained;
+- **Lorentz and dot-product reads.** The stack's read layers (`a` layers) score earlier
+  positions with a Lorentz or dot product plus an age term and a NoRead slot. Status: trained;
   the Lorentz read has its own packed serving contract.
 
 ## Training

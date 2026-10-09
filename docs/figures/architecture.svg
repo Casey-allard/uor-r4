@@ -89,7 +89,7 @@
 <text x="133.4" y="721" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">BUILT &amp; TESTED</text>
 <rect x="276" y="606" width="204" height="130" rx="10" fill="#E4EFF8" stroke="#0072B2" stroke-width="1.75"/>
 <text x="290" y="632" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >Zeta phases</text>
-<text x="290" y="653" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >fixed positional phases;</text>
+<text x="290" y="653" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >fixed γ·(log p − log q) table;</text>
 <text x="290" y="669" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >line B tables</text>
 <rect x="290" y="706" width="119" height="22" rx="11" fill="#0072B2" stroke="#0072B2" stroke-width="1.5"/>
 <text x="349.4" y="721" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">BUILT &amp; TESTED</text>

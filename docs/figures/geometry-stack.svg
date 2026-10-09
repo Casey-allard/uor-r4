@@ -27,7 +27,7 @@
 <rect x="40" y="230" width="1120" height="78" rx="10" fill="#F6F8FA" stroke="#D0D7DE"/>
 <rect x="40" y="230" width="8" height="78" rx="4" fill="#0072B2" opacity="0.90"/>
 <text x="62" y="260" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >Zeta phases</text>
-<text x="355" y="258" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >fixed zero-phase positional features,</text>
+<text x="355" y="258" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >fixed γ·(log p − log q) phase table,</text>
 <text x="355" y="275" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >artifact-bound</text>
 <text x="62" y="286" font-size="11.5" font-weight="400" fill="#57606A" text-anchor="start" >layer 2</text>
 <rect x="735" y="244" width="118" height="22" rx="11" fill="#0072B2" stroke="#0072B2" stroke-width="1.5"/>
