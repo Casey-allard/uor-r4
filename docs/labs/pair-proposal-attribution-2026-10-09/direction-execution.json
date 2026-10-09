@@ -1,0 +1,17 @@
+{
+  "elapsed_seconds": 0.916813,
+  "execution_kind": "one-worker saved-data attribution",
+  "exit_code": 0,
+  "model_execution": false,
+  "new_gradients": 0,
+  "new_native_proposals": 0,
+  "new_native_scores": 0,
+  "normative_seal": "PENDING_PARENT",
+  "peak_RSS_bytes": 92782592,
+  "recorded_at_utc": "2026-10-09T16:57:14.967103+00:00",
+  "report_sha256": "2e11a675db11cf5d5bba6ba9627571cc6fe75bb124e4f12234f16094072cc369",
+  "schema": "uor-r4.saved-attribution-execution/1",
+  "script_sha256": "d41881d6813df46981ee8c690f62a9d9fe3a5b5ad178b008ab5c257bf41b47cd",
+  "status": "PASS",
+  "workers": 1
+}

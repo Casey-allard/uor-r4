@@ -1,0 +1,17 @@
+{
+  "status": "PASS",
+  "source_module": "crates/uor-r4-integer/src/report_output.rs",
+  "module_sha256": "cda30f9ba4ef8ff3e245ae352cd28932f9a24ab78598f683607e6996598fa810",
+  "binary_sha256": "79e8370646462717a5fd94f6e868383baca90ed491fc583646bb93d187cea0de",
+  "model_root_verified": true,
+  "audit_root_verified": true,
+  "output_root": "local/attribution-attempt1",
+  "exclusive_claim_before_reader": true,
+  "note": "Tiny offline adapter calls unchanged normative module reexported by core; no model build or execution.",
+  "final_binary_sha256": "79e8370646462717a5fd94f6e868383baca90ed491fc583646bb93d187cea0de",
+  "claim_wrapper_source_preserved": "runtime/report-claim-main.rs in iCloud result",
+  "sealed_verified": {
+    "attribution-attempt1": "5529a9894c00c22ced441faeaf71fa0927479e6281e35a48cd35551402d09fd8",
+    "direction-attempt1": "5ec0867f682b16ac612c8a287092492b14be06bc1e72a377c716d96274b74004"
+  }
+}

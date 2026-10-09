@@ -1,0 +1,211 @@
+{
+  "aggregate_opposed_available_descent_potential": 2.084781635858235e-05,
+  "aggregate_opposed_share": 0.0052525081466297,
+  "authenticated_inputs": {
+    "generate-coordinate-order.json": {
+      "bytes": 5604,
+      "sha256": "386eb508814b75878c8628ab4cb026193ea016caa94dcc546374dd09183f23bd"
+    },
+    "generate-gradient-receipt.json": {
+      "bytes": 14440,
+      "sha256": "59ded47f2937d89bc290059b4632cbe448e90124fdb69bedf50f7f15d1f15c9a"
+    },
+    "generate-gradient-term-00.f32le": {
+      "bytes": 230400,
+      "sha256": "2ee69561a042ef48db58c26e8ae793e9d96da8f19c2297835e3dde5df5f3eb98"
+    },
+    "generate-gradient-term-01.f32le": {
+      "bytes": 230400,
+      "sha256": "232ac7e9932b4317239376d8c13e7b91f2bbde51aac28f680b0c1cbd5923f0a3"
+    },
+    "generate-gradient-term-02.f32le": {
+      "bytes": 230400,
+      "sha256": "6ad772521dd95fab5c99dc95fab5cee64b63f148f9b9874607f5b02a4503a68c"
+    },
+    "generate-gradient-term-03.f32le": {
+      "bytes": 230400,
+      "sha256": "9d7d5184c4e48448e27f65b6b3979459d9b3ffd73d0df978bdfacaeb6f909084"
+    },
+    "generate-gradient-term-04.f32le": {
+      "bytes": 230400,
+      "sha256": "8fb61b679f4cf209ec521ce1e54cf7e81c4d58844b3799b8c5cc7701f5c1e3f8"
+    },
+    "generate-gradient-term-05.f32le": {
+      "bytes": 230400,
+      "sha256": "c6b4b373f4751b08d77fc3679d4e69079c467aadd9c698242bf3acf542247707"
+    },
+    "generate-gradient-term-06.f32le": {
+      "bytes": 230400,
+      "sha256": "7537adde44c1d5f600f4d8202cdc11e87cbc12c3c45a33c3f36a7033d4b32b24"
+    },
+    "generate-gradient-term-07.f32le": {
+      "bytes": 230400,
+      "sha256": "6e5a5e52370072adcd5eede305d96b0c112cf60a633f2e4694680a98d5234af0"
+    },
+    "generate-gradient-term-08.f32le": {
+      "bytes": 230400,
+      "sha256": "990f15a8d3fcb5bf6f7c16da4f93ffd8536eaf3d0b57bf0a8e76172de7eb7ba5"
+    },
+    "generate-gradient-term-09.f32le": {
+      "bytes": 230400,
+      "sha256": "bcc78a1308d318cb5d292183702fe1c1dd820301fbce4f81ce0ad57801269c22"
+    },
+    "generate-gradient-term-10.f32le": {
+      "bytes": 230400,
+      "sha256": "3ebf0f38ea07f88435322e7210e6959b956ff045162c3a28919cc0d078d7ad60"
+    },
+    "generate-gradient-term-11.f32le": {
+      "bytes": 230400,
+      "sha256": "a3e0f93880a8fa4d3e7395385458af1ad7924db09aaa2d3321c93a312968c06b"
+    },
+    "generate-gradient-term-12.f32le": {
+      "bytes": 230400,
+      "sha256": "6ff527e944da3f5c68e4ba6ccb16e48018abca5211cdaaf7ead5e3313b5273ea"
+    },
+    "generate-gradient-term-13.f32le": {
+      "bytes": 230400,
+      "sha256": "875b2715eb336a7358c5a7177474e03b28af10ff0b47c5eab01d30e4c97105d0"
+    },
+    "generate-gradient-term-14.f32le": {
+      "bytes": 230400,
+      "sha256": "515dab6364c1ef48219448388e411999a41d4bcfff05d5dfd178ae38ef511774"
+    },
+    "generate-gradient-term-15.f32le": {
+      "bytes": 230400,
+      "sha256": "bab1856b19103a7212cee180be38053d4bfe0590cd4b8a774d0f34b9d86d944c"
+    },
+    "generate-gradient-term-16.f32le": {
+      "bytes": 230400,
+      "sha256": "3c68a49371d36bf9c73e5038f24af17522167e6edd04147a628cb5b8617751f5"
+    },
+    "generate-gradient-term-17.f32le": {
+      "bytes": 230400,
+      "sha256": "a817ec3e60d179bba2170d7972187574fcf10a703cdbf072a597b05ac5cde8f8"
+    },
+    "generate-gradient-term-18.f32le": {
+      "bytes": 230400,
+      "sha256": "682f1fc19824b8a145881d446f14d05465560cc7998ac043a4877d750b388bd5"
+    },
+    "generate-gradient-term-19.f32le": {
+      "bytes": 230400,
+      "sha256": "ff88bf0dbda231ce0a4fa1b430d350c708c818fa4b7d88ec65f2159fca610598"
+    },
+    "generate-gradient-term-20.f32le": {
+      "bytes": 230400,
+      "sha256": "3a9a1bc508dbd59d87d94abd7b68be2a96c65dd8de4697768905805b49b6f9c0"
+    },
+    "generate-gradient-term-21.f32le": {
+      "bytes": 230400,
+      "sha256": "e2cb45487c8fabe942667f3518149aa7c1d6db5a8df7a63232f0d8b28adcac79"
+    },
+    "generate-gradient-term-22.f32le": {
+      "bytes": 230400,
+      "sha256": "02e2b3a07e28f61dcc1a93925ad6950a9dbd37b9609be14f0989f95fae9a277b"
+    },
+    "generate-gradient-term-23.f32le": {
+      "bytes": 230400,
+      "sha256": "02d2b2819e7e2403f8cb9e077f1358295c477855773b915685150ff74e346fbc"
+    },
+    "generate-gradient-term-24.f32le": {
+      "bytes": 230400,
+      "sha256": "4502535fb85b3e6a6a5b61fe3f1594ba4811772d115cafee34b9475c6bb5635c"
+    },
+    "generate-gradient-term-25.f32le": {
+      "bytes": 230400,
+      "sha256": "31317b271ee7becf00256962ebbcfcb3ddebb487157b5d4630a91f39b3c5e0b4"
+    },
+    "generate-gradient-term-26.f32le": {
+      "bytes": 230400,
+      "sha256": "9944cc1a27dfa6bf5cedb8bab49fd9aa6d820e4a195389a49a14bbb45930c3f2"
+    },
+    "generate-gradient-term-27.f32le": {
+      "bytes": 230400,
+      "sha256": "c99886bee21fa5c69bf75331187aeb9ef31258d24590fa4e21ddfc3758a8ddda"
+    },
+    "generate-gradient-term-28.f32le": {
+      "bytes": 230400,
+      "sha256": "d12e8a1136fbf8105d2ab6983b1451fcdcf11782ba92e2603225b9d06c852492"
+    },
+    "generate-gradient-term-29.f32le": {
+      "bytes": 230400,
+      "sha256": "5b765ef3fdc44858b0606e49a41771b52c7e9dbad6736e63d11bd0c767f9cfd9"
+    },
+    "generate-gradient-term-30.f32le": {
+      "bytes": 230400,
+      "sha256": "ee193c12bd0a9f38a9b83b1c171f252580e7a124c75cf0ad6a13837da7f1d194"
+    },
+    "generate-gradient.f32le": {
+      "bytes": 230400,
+      "sha256": "b2b5cc9f2a00736c78ba88992aae31ff478ff775ef18639f143114f648d94900"
+    },
+    "generate-initial-masters.f32le": {
+      "bytes": 230400,
+      "sha256": "bf8ca5c052005c2b767efaee3bcbf6f748f1e1a69aba593176ad62a21c43f24f"
+    }
+  },
+  "elapsed_seconds": 0.916813,
+  "groups": {
+    "remaining56640": {
+      "available_descent_coordinates": 355,
+      "coordinates": 56640,
+      "helps": {
+        "count": 355,
+        "potential": 0.00028586714556766424
+      },
+      "opposes": {
+        "count": 0,
+        "potential": 0.0
+      },
+      "potential": 0.00028586714556766424,
+      "zero": {
+        "count": 0,
+        "potential": 0.0
+      }
+    },
+    "selected960": {
+      "available_descent_coordinates": 293,
+      "coordinates": 960,
+      "helps": {
+        "count": 292,
+        "potential": 0.0036624014633304114
+      },
+      "opposes": {
+        "count": 1,
+        "potential": 2.084781635858235e-05
+      },
+      "potential": 0.0036832492796889937,
+      "zero": {
+        "count": 0,
+        "potential": 0.0
+      }
+    }
+  },
+  "limits": "Initial local linearized potential is not hard winner feasibility; remaining56640 not native evaluated; no automatic wider sweep.",
+  "new_gradients": 0,
+  "new_native_scores": 0,
+  "new_proposals": 0,
+  "ordered_f32_sum": {
+    "bit_mismatches": 0,
+    "maximum_error": 0.0
+  },
+  "other_terms_at_target_best_destination": {
+    "exact_widened_other_term_positive_utility": 0.04650267119253115,
+    "interpretation": "Positive other-term utility is not aggregate opposition: it may oppose target credit without reversing the aggregate descent direction.",
+    "rounded_aggregate_minus_target_positive_utility": 0.046502668847097084
+  },
+  "peak_RSS_bytes": 92782592,
+  "prior_report_sha256": "9d8886ef565e8bf49b6be6202c8460d6d487dc9adfd23d127399c7a31280f9e4",
+  "producer_source_sha256": "30ac874b799a41cbfc57893944ac82cf7ac0c4a2681d2d95747da08017b2c769",
+  "rounded_aggregate_minus_exact_widened_sum": {
+    "l1_absolute_residual": 7.144349756238455e-08,
+    "maximum_absolute_residual": 2.867508896997606e-09
+  },
+  "schema": "uor-r4.pair-direction-attribution/1",
+  "scope": "Saved already-weighted 31 physical gradients only; static legal-displacement attribution, no native scores or proposals",
+  "script_sha256": "d41881d6813df46981ee8c690f62a9d9fe3a5b5ad178b008ab5c257bf41b47cd",
+  "selected_descent_share": 0.9279771327067639,
+  "source_commit": "a66ecef50848cc11160fc0c5a1f188355731ff98",
+  "status": "PASS",
+  "total_available_descent_potential": 0.003969116425256658,
+  "workers": 1
+}

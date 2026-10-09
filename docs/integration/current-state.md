@@ -1,5 +1,14 @@
 # Current UOR-R4 research state
 
+## Pair proposals never correct the first error despite high initial credit coverage — October 9
+
+[Saved proposal attribution](../labs/pair-proposal-attribution-2026-10-09/README.md) joins all 13,440 pair alternatives to input 245, position 4, target 267, at their actual incumbent epochs. Every alternative chooses 307: 931 accepted changes, 3,215 feasible alternatives not selected, 210 first-guard vetoes and 9,084 CE-only rejections. No target-winning proposal reaches either gate; no accepted correction is later lost. Target pooled probability rises from 0.018637775155279073 to 0.020563290376237518 without a winner crossing.
+
+The selected 960 coordinates contain 92.79771327067639% of the focus term's original legal-displacement first-order descent estimate across all 57,600 pair coordinates. The raw term is present, already weighted by 1/15, and the complete frozen ranking reconstructs exactly. This weakens simple ranking omission; it does not establish native feasibility or global pair capacity. Counts over all nonzero gradients include saturated coordinates and are kept distinct from descent-weighted direction statistics. No new native score, gradient, proposal or model run occurred. Accepted 8/512 and the separate unselected conditional 6/15 and 9/15 remain unchanged.
+
+**Next after protected delivery/cleanup:** bound the maximum possible target pooled mass against the immutable rival Copy contribution over the legal pair box at this fixed state. Retain all physical aliases, frozen U, native clipping/lookup, a shared conservatively complete reference range and smallest-token-ID ties. Strict exclusion would locate a frozen competition/coupling boundary; a surviving optimistic bound would leave coordinated updates and protected feasibility unresolved. This bound is NOT_RUN. No unchanged pair pass, automatic larger sweep or candidate composition is admitted.
+
+
 ## Bounded pair learning corrects conditional EOS; complete episode remains negative — October 9
 
 The [original-parent pair run](../labs/bounded-pair-run-2026-10-09/README.md) completes 31 fresh physical backwards, a single frozen full-family ranking and 13,440 alternatives across the first 960 coordinates. It accepts 931 changes, lowers combined CE from 5.111520730202647 to 4.042881582765773, preserves all 17 references and 380 original winners, and completes 391 independent native reloads. Conditional winners improve from 5/15 to 6/15 solely at EOS (position 14); positions 0–13 retain their original winners, including the first error at position 4. The complete gate is negative and the candidate remains unselected. Actual-nine, full512, fresh and multi-turn qualification are NOT_RUN; **accepted whole-answer performance remains 8/512**. The previous coupled 9/15 is separate and cannot be combined with this candidate's EOS gain.

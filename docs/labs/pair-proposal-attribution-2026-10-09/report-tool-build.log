@@ -1,0 +1,34 @@
+     Locking 19 packages to latest compatible versions
+   Compiling find-msvc-tools v0.1.14
+   Compiling shlex v2.0.1
+   Compiling cc v1.6.0
+   Compiling zmij v1.0.23
+   Compiling serde_core v1.0.229
+   Compiling blake3 v1.5.0
+   Compiling serde_json v1.0.151
+   Compiling cfg-if v1.0.5
+   Compiling memchr v2.8.3
+   Compiling arrayref v0.3.9
+   Compiling arrayvec v0.7.8
+   Compiling itoa v1.0.18
+   Compiling constant_time_eq v0.3.1
+   Compiling pair-attribution-report-tool v0.1.0 (/Users/casey.allard/.codex/worktrees/pair-proposal-audit/uor-r4/docs/labs/pair-proposal-attribution-2026-10-09/report-tool)
+    Finished `release` profile [optimized] target(s) in 9.94s
+       10.00 real         7.23 user         1.26 sys
+           290013184  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+              249397  page reclaims
+               14071  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                  30  signals received
+                1326  voluntary context switches
+               27714  involuntary context switches
+           950416791  instructions retired
+           426470622  cycles elapsed
+            17810104  peak memory footprint

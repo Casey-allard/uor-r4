@@ -1,0 +1,9 @@
+   Compiling pair-attribution-report-tool v0.1.0 (/Users/casey.allard/.codex/worktrees/pair-proposal-audit/uor-r4/docs/labs/pair-proposal-attribution-2026-10-09/report-tool)
+    Finished `release` profile [optimized] target(s) in 2.23s
+     Running unittests src/main.rs (local/report-target/release/deps/pair_attribution_report_tool-6173b9799b1ef48a)
+
+running 2 tests
+test report_output::tests::report_output_existing_report_fails_before_work_and_stays_byte_identical ... ok
+test report_output::tests::report_output_new_path_is_claimed_and_sealed_normally ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s

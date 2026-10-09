@@ -1,0 +1,345 @@
+{
+  "schema": "uor-r4.pair-proposal-attribution/1",
+  "status": "PASS",
+  "scope": "Source-bound saved receipt attribution only; prior independent arithmetic audit reused, not rerun",
+  "focus": {
+    "actual_prefix_ids": [
+      617,
+      2097,
+      315,
+      1057
+    ],
+    "coalesced_objective_weight": 0.06666666666666667,
+    "donor": 2,
+    "guard_weight": 0.0,
+    "id": "development-diverse-length4-07-swap0-q0-forward-home",
+    "input_index": 245,
+    "position": 4,
+    "post_state": [
+      43,
+      101,
+      53,
+      98,
+      88,
+      96,
+      22,
+      111
+    ],
+    "row": 380,
+    "target_label_only": 267,
+    "zero_weight_guard": false,
+    "objective_slot": 4
+  },
+  "source_commit": "a66ecef50848cc11160fc0c5a1f188355731ff98",
+  "producer_source_sha256": "30ac874b799a41cbfc57893944ac82cf7ac0c4a2681d2d95747da08017b2c769",
+  "script_sha256": "f2f1fda71574ca3c5468e3e5fedffc14f74e8bac3cf5662073a82ca720ea5850",
+  "recovered_identity_sha256": "94552d556d9ef7a8a028bdb50b5c5d678ac7c4e38bd824712a482f483be3cbf3",
+  "authenticated_inputs": {
+    "runs/pair-0001-attempt1/report.json": {
+      "sha256": "a4d9f86ed218494b6aedafb13a32fc7b7c923224686722e10545bb78fd4f3b1f",
+      "bytes": 24145
+    },
+    "runs/pair-0001-attempt1/generate-population.json": {
+      "sha256": "a7f5128b7bc6366207dd3d27a8cc5af5034922bd3013463d18d2c6e99d730657",
+      "bytes": 238834
+    },
+    "runs/pair-0001-attempt1/generate-gradient-receipt.json": {
+      "sha256": "59ded47f2937d89bc290059b4632cbe448e90124fdb69bedf50f7f15d1f15c9a",
+      "bytes": 14440
+    },
+    "runs/pair-0001-attempt1/generate-construction.json": {
+      "sha256": "b5037dacf7f97d91b305347c400a8b706272cde48b406b922b6b2488dd83cc1d",
+      "bytes": 21944074
+    },
+    "runs/pair-0001-attempt1/generate-original-master-binding.json": {
+      "sha256": "bccca4d4cf454e757a7877e832723cb0ac6531019c6a659c18372daa6bb07249",
+      "bytes": 668
+    },
+    "runs/pair-0001-attempt1/generate-coordinate-order.json": {
+      "sha256": "386eb508814b75878c8628ab4cb026193ea016caa94dcc546374dd09183f23bd",
+      "bytes": 5604
+    },
+    "audits/pair-0001-attempt1/result.json": {
+      "sha256": "a0c96fc4506f84e5c4c0a9128211e1ab3582840a43a3913c6fcb193ac335f9e6",
+      "bytes": 5319
+    },
+    "runs/pair-0001-attempt1/generate-initial-masters.f32le": {
+      "sha256": "bf8ca5c052005c2b767efaee3bcbf6f748f1e1a69aba593176ad62a21c43f24f",
+      "bytes": 230400
+    },
+    "runs/pair-0001-attempt1/generate-gradient.f32le": {
+      "sha256": "b2b5cc9f2a00736c78ba88992aae31ff478ff775ef18639f143114f648d94900",
+      "bytes": 230400
+    },
+    "runs/pair-0001-attempt1/generate-gradient-term-04.f32le": {
+      "sha256": "8fb61b679f4cf209ec521ce1e54cf7e81c4d58844b3799b8c5cc7701f5c1e3f8",
+      "bytes": 230400
+    },
+    "runs/pair-0001-attempt1/generate-gradient-term-00.f32le": {
+      "sha256": "2ee69561a042ef48db58c26e8ae793e9d96da8f19c2297835e3dde5df5f3eb98",
+      "bytes": 230400
+    },
+    "runs/pair-0001-attempt1/generate-gradient-term-01.f32le": {
+      "sha256": "232ac7e9932b4317239376d8c13e7b91f2bbde51aac28f680b0c1cbd5923f0a3",
+      "bytes": 230400
+    },
+    "runs/pair-0001-attempt1/generate-gradient-term-02.f32le": {
+      "sha256": "6ad772521dd95fab5c99dc95fab5cee64b63f148f9b9874607f5b02a4503a68c",
+      "bytes": 230400
+    },
+    "runs/pair-0001-attempt1/generate-gradient-term-03.f32le": {
+      "sha256": "9d7d5184c4e48448e27f65b6b3979459d9b3ffd73d0df978bdfacaeb6f909084",
+      "bytes": 230400
+    },
+    "runs/pair-0001-attempt1/generate-gradient-term-05.f32le": {
+      "sha256": "c6b4b373f4751b08d77fc3679d4e69079c467aadd9c698242bf3acf542247707",
+      "bytes": 230400
+    },
+    "runs/pair-0001-attempt1/generate-gradient-term-06.f32le": {
+      "sha256": "7537adde44c1d5f600f4d8202cdc11e87cbc12c3c45a33c3f36a7033d4b32b24",
+      "bytes": 230400
+    },
+    "runs/pair-0001-attempt1/generate-gradient-term-07.f32le": {
+      "sha256": "6e5a5e52370072adcd5eede305d96b0c112cf60a633f2e4694680a98d5234af0",
+      "bytes": 230400
+    },
+    "runs/pair-0001-attempt1/generate-gradient-term-08.f32le": {
+      "sha256": "990f15a8d3fcb5bf6f7c16da4f93ffd8536eaf3d0b57bf0a8e76172de7eb7ba5",
+      "bytes": 230400
+    },
+    "runs/pair-0001-attempt1/generate-gradient-term-09.f32le": {
+      "sha256": "bcc78a1308d318cb5d292183702fe1c1dd820301fbce4f81ce0ad57801269c22",
+      "bytes": 230400
+    },
+    "runs/pair-0001-attempt1/generate-gradient-term-10.f32le": {
+      "sha256": "3ebf0f38ea07f88435322e7210e6959b956ff045162c3a28919cc0d078d7ad60",
+      "bytes": 230400
+    },
+    "runs/pair-0001-attempt1/generate-gradient-term-11.f32le": {
+      "sha256": "a3e0f93880a8fa4d3e7395385458af1ad7924db09aaa2d3321c93a312968c06b",
+      "bytes": 230400
+    },
+    "runs/pair-0001-attempt1/generate-gradient-term-12.f32le": {
+      "sha256": "6ff527e944da3f5c68e4ba6ccb16e48018abca5211cdaaf7ead5e3313b5273ea",
+      "bytes": 230400
+    },
+    "runs/pair-0001-attempt1/generate-gradient-term-13.f32le": {
+      "sha256": "875b2715eb336a7358c5a7177474e03b28af10ff0b47c5eab01d30e4c97105d0",
+      "bytes": 230400
+    },
+    "runs/pair-0001-attempt1/generate-gradient-term-14.f32le": {
+      "sha256": "515dab6364c1ef48219448388e411999a41d4bcfff05d5dfd178ae38ef511774",
+      "bytes": 230400
+    },
+    "runs/pair-0001-attempt1/generate-gradient-term-15.f32le": {
+      "sha256": "bab1856b19103a7212cee180be38053d4bfe0590cd4b8a774d0f34b9d86d944c",
+      "bytes": 230400
+    },
+    "runs/pair-0001-attempt1/generate-gradient-term-16.f32le": {
+      "sha256": "3c68a49371d36bf9c73e5038f24af17522167e6edd04147a628cb5b8617751f5",
+      "bytes": 230400
+    },
+    "runs/pair-0001-attempt1/generate-gradient-term-17.f32le": {
+      "sha256": "a817ec3e60d179bba2170d7972187574fcf10a703cdbf072a597b05ac5cde8f8",
+      "bytes": 230400
+    },
+    "runs/pair-0001-attempt1/generate-gradient-term-18.f32le": {
+      "sha256": "682f1fc19824b8a145881d446f14d05465560cc7998ac043a4877d750b388bd5",
+      "bytes": 230400
+    },
+    "runs/pair-0001-attempt1/generate-gradient-term-19.f32le": {
+      "sha256": "ff88bf0dbda231ce0a4fa1b430d350c708c818fa4b7d88ec65f2159fca610598",
+      "bytes": 230400
+    },
+    "runs/pair-0001-attempt1/generate-gradient-term-20.f32le": {
+      "sha256": "3a9a1bc508dbd59d87d94abd7b68be2a96c65dd8de4697768905805b49b6f9c0",
+      "bytes": 230400
+    },
+    "runs/pair-0001-attempt1/generate-gradient-term-21.f32le": {
+      "sha256": "e2cb45487c8fabe942667f3518149aa7c1d6db5a8df7a63232f0d8b28adcac79",
+      "bytes": 230400
+    },
+    "runs/pair-0001-attempt1/generate-gradient-term-22.f32le": {
+      "sha256": "02e2b3a07e28f61dcc1a93925ad6950a9dbd37b9609be14f0989f95fae9a277b",
+      "bytes": 230400
+    },
+    "runs/pair-0001-attempt1/generate-gradient-term-23.f32le": {
+      "sha256": "02d2b2819e7e2403f8cb9e077f1358295c477855773b915685150ff74e346fbc",
+      "bytes": 230400
+    },
+    "runs/pair-0001-attempt1/generate-gradient-term-24.f32le": {
+      "sha256": "4502535fb85b3e6a6a5b61fe3f1594ba4811772d115cafee34b9475c6bb5635c",
+      "bytes": 230400
+    },
+    "runs/pair-0001-attempt1/generate-gradient-term-25.f32le": {
+      "sha256": "31317b271ee7becf00256962ebbcfcb3ddebb487157b5d4630a91f39b3c5e0b4",
+      "bytes": 230400
+    },
+    "runs/pair-0001-attempt1/generate-gradient-term-26.f32le": {
+      "sha256": "9944cc1a27dfa6bf5cedb8bab49fd9aa6d820e4a195389a49a14bbb45930c3f2",
+      "bytes": 230400
+    },
+    "runs/pair-0001-attempt1/generate-gradient-term-27.f32le": {
+      "sha256": "c99886bee21fa5c69bf75331187aeb9ef31258d24590fa4e21ddfc3758a8ddda",
+      "bytes": 230400
+    },
+    "runs/pair-0001-attempt1/generate-gradient-term-28.f32le": {
+      "sha256": "d12e8a1136fbf8105d2ab6983b1451fcdcf11782ba92e2603225b9d06c852492",
+      "bytes": 230400
+    },
+    "runs/pair-0001-attempt1/generate-gradient-term-29.f32le": {
+      "sha256": "5b765ef3fdc44858b0606e49a41771b52c7e9dbad6736e63d11bd0c767f9cfd9",
+      "bytes": 230400
+    },
+    "runs/pair-0001-attempt1/generate-gradient-term-30.f32le": {
+      "sha256": "ee193c12bd0a9f38a9b83b1c171f252580e7a124c75cf0ad6a13837da7f1d194",
+      "bytes": 230400
+    }
+  },
+  "prior_audit_result_sha256": "a0c96fc4506f84e5c4c0a9128211e1ab3582840a43a3913c6fcb193ac335f9e6",
+  "original_master_authority": {
+    "file": "generate-initial-masters.f32le",
+    "sha256": "bf8ca5c052005c2b767efaee3bcbf6f748f1e1a69aba593176ad62a21c43f24f",
+    "binding": "generate-original-master-binding.parameters.generate.pair",
+    "scope": "ALL57600 original fractional values; no reconstruction from negative checkpoint"
+  },
+  "alternatives": {
+    "count": 13440,
+    "classification_counts": {
+      "FEASIBLE_NOT_SELECTED": 3215,
+      "ACCEPTED": 931,
+      "FIRST_ORIGINAL_GUARD_VETO": 210,
+      "CE_REJECTION": 9084
+    },
+    "guard_status_counts": {
+      "PASS": 4146,
+      "VETO": 210,
+      "NOT_RUN_OBJECTIVE_INELIGIBLE": 9084
+    },
+    "chosen_token_counts": {
+      "307": 13440
+    },
+    "probability_relation_to_actual_incumbent_counts": {
+      "EQUAL": 9114,
+      "DECREASE": 3219,
+      "INCREASE": 1107
+    },
+    "best_observed_target_probability": {
+      "order": 956,
+      "index": 16665,
+      "incumbent_epoch": 927,
+      "code": -7,
+      "classification": "ACCEPTED",
+      "target_mass": 319960263,
+      "total_mass": 15559779449,
+      "chosen": 307,
+      "incumbent_mass": 319960263,
+      "incumbent_total": 15559823748,
+      "probability_relation_to_incumbent": "INCREASE",
+      "objective_gate": true,
+      "strict_ce_descent": true,
+      "all17_reference_winners": true,
+      "first_guard_failure": null,
+      "probability": 0.020563290376237518
+    },
+    "first_guard_veto_row_counts": {
+      "137": 10,
+      "341": 3,
+      "33": 46,
+      "9": 21,
+      "19": 16,
+      "56": 17,
+      "13": 27,
+      "67": 1,
+      "66": 6,
+      "43": 6,
+      "76": 7,
+      "163": 5,
+      "305": 2,
+      "325": 1,
+      "349": 6,
+      "116": 1,
+      "226": 4,
+      "93": 3,
+      "210": 4,
+      "123": 2,
+      "199": 1,
+      "125": 2,
+      "303": 1,
+      "308": 1,
+      "358": 3,
+      "246": 1,
+      "224": 1,
+      "170": 3,
+      "294": 2,
+      "299": 4,
+      "180": 1,
+      "161": 2
+    },
+    "target_winner_crossings": [],
+    "accepted_target_winner_orders": [],
+    "accepted_then_lost_orders": [],
+    "winner_outcome": "NO_WINNING_SAVED_PROPOSAL"
+  },
+  "baseline": {
+    "mass": 298710449,
+    "total": 16027151659,
+    "chosen": 307,
+    "probability": 0.018637775155279073
+  },
+  "final": {
+    "mass": 319960263,
+    "total": 15559779449,
+    "chosen": 307,
+    "probability": 0.020563290376237518
+  },
+  "gradient_attribution": {
+    "physical_weight": 0.06666666666666667,
+    "physical_terms": 31,
+    "conceptual_roles": 32,
+    "reweighting": false,
+    "p3_task_reference_separate_gradient": "UNAVAILABLE_COALESCED_PHYSICAL_TERM",
+    "groups": {
+      "selected960": {
+        "coordinates": 960,
+        "target_term_nonzero": 309,
+        "target_term_l1": 0.0021301043334176484,
+        "target_term_l2": 0.0002750342893550594,
+        "negative_legal_displacement_potential": 0.0036832492796889937,
+        "aggregate_rank_direction_helping_target_count": 292,
+        "aggregate_rank_direction_opposing_target_count": 17,
+        "aggregate_abs_over_all_term_abs_on_target_support": 0.9910391097987297,
+        "other_terms_opposing_target_best_destination_positive_utility": 0.046502668847097084,
+        "other_terms_helping_target_best_destination_negative_utility_magnitude": 0.013825750202144604,
+        "target_support_rank_min": 4,
+        "target_support_rank_max": 956
+      },
+      "remaining56640": {
+        "coordinates": 56640,
+        "target_term_nonzero": 16048,
+        "target_term_l1": 0.04040440137953283,
+        "target_term_l2": 0.0007287475815247366,
+        "negative_legal_displacement_potential": 0.00028586714556766424,
+        "aggregate_rank_direction_helping_target_count": 355,
+        "aggregate_rank_direction_opposing_target_count": 15693,
+        "aggregate_abs_over_all_term_abs_on_target_support": 0.9999740259974225,
+        "other_terms_opposing_target_best_destination_positive_utility": 0.0,
+        "other_terms_helping_target_best_destination_negative_utility_magnitude": 0.0013727864214381214,
+        "target_support_rank_min": 961,
+        "target_support_rank_max": 57595
+      }
+    },
+    "selected_share_of_target_negative_legal_potential": 0.9279771327067639,
+    "utility_scope": "Original frozen first-order gradient times actual legal fractional displacement; not native score/proposal/feasibility evaluation",
+    "remaining_coordinates": "NOT_NATIVE_EVALUATED"
+  },
+  "accepted_coordinates": 931,
+  "elapsed_seconds": 2.715487208,
+  "peak_RSS_bytes": 190873600,
+  "workers": 1,
+  "new_scores": 0,
+  "new_gradients": 0,
+  "new_native_proposals": 0,
+  "model_execution": false,
+  "limits": "No feasibility or capacity conclusion for56640 unexamined coordinates; no automatic larger sweep; gradient utility is local first-order attribution, not hard loss improvement"
+}

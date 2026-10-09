@@ -1,0 +1,27 @@
+{
+  "status": "PASS",
+  "files": 24,
+  "bytes": 1257449,
+  "input_object": "codex-bounded-pair-outcome-20261009",
+  "result_object": "codex-pair-proposal-attribution-20261009",
+  "sealed_archives": {
+    "direction-attempt1.tar.gz": {
+      "sha256": "f3e46605b437c621a1e9626e58036f7a100215866732e3f6e2fd9fdd5d0b7310",
+      "bytes": 3652
+    },
+    "attribution-attempt1.tar.gz": {
+      "sha256": "cfa763e5f7d8c22e0912deeb1cb060a758b4a54e1eb5336b1c5cccc5b4734030",
+      "bytes": 5214
+    }
+  },
+  "full_member_roundtrip_verified": true,
+  "icloud": {
+    "object": "codex-pair-proposal-attribution-20261009",
+    "bytes": 1353728,
+    "md5": "6bc9af75d1ffd827cd142bb124a21852",
+    "remote": "results/codex/codex-pair-proposal-attribution-20261009.tar",
+    "uploaded_utc": "2026-10-09T16:59:20Z",
+    "lab": "codex",
+    "fresh_download_md5_verified": true
+  }
+}

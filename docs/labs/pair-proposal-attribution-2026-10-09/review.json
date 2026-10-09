@@ -1,0 +1,16 @@
+{
+  "status": "PASS",
+  "roles": [
+    "emission_engineering: saved attribution and direction supplement",
+    "emission_math: source semantics and next-bound validity",
+    "emission_adversarial: independent source/receipt and scope review",
+    "parent: independent saved winner/gate counts and legal-descent statistics"
+  ],
+  "analysis_sha256": "f2f1fda71574ca3c5468e3e5fedffc14f74e8bac3cf5662073a82ca720ea5850",
+  "supplement_sha256": "d41881d6813df46981ee8c690f62a9d9fe3a5b5ad178b008ab5c257bf41b47cd",
+  "report_sha256": "9d8886ef565e8bf49b6be6202c8460d6d487dc9adfd23d127399c7a31280f9e4",
+  "direction_report_sha256": "2e11a675db11cf5d5bba6ba9627571cc6fe75bb124e4f12234f16094072cc369",
+  "material_correction": "All-support sign counters include B=0 saturation; README and separate B>0 supplement distinguish them from descent-weighted opposition. Rounded aggregate-minus-target is distinguished from exact widened other-term sum. Original completed report is unchanged.",
+  "next_question": "Optimistic fixed-state legal-pair target-mass upper bound versus immutable rival Copy lower mass; same exhaustive conservative reference domain, all aliases, U, clipping, ties. NOT_RUN.",
+  "limitations": "Source/receipt review and independent scalar attribution, not model or backward replication; no unexamined feasibility or capability inference."
+}
