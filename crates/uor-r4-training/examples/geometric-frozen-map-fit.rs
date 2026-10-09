@@ -842,6 +842,20 @@ fn args() -> Result<(Args, Vec<u8>)> {
                 ]
             }),
     )
+    .chain(
+        a.prefix_fragment_learning
+            .iter()
+            .filter_map(|c| c.episode.as_ref())
+            .flat_map(|e| {
+                let mut roots = vec![
+                    &e.typed_authority,
+                    &e.retained_projection.root,
+                    &e.retained_supplement_root,
+                ];
+                roots.extend(e.phases.iter().map(|p| &p.capture.root));
+                roots
+            }),
+    )
     .chain(a.context_cue_coadapt.iter().flat_map(|c| {
         [
             &c.retained_intermediate_root,

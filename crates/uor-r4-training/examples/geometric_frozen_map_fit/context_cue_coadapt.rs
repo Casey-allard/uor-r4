@@ -91,7 +91,7 @@ pub(super) fn progress(a: &Args, start: Instant) -> Result<()> {
             "elapsed-estimate-extension-needed.json",
             &json!({"elapsed_seconds":start.elapsed().as_secs_f64(),
             "estimated_seconds":a.maximum_seconds,"action":"continue healthy finite work; parent renews lease and records resource estimate extension",
-            "hard_stop":false,"termination":if a.prefix_fragment_learning.as_ref().is_some_and(|c|c.trajectory.is_some()){"exactly960 reused rankedcoordinates plus380uniqueguard+1task exported reloadedsteps"}else{"exactly960 rankedcoordinates plus18exportedreloadedsteps"}}),
+            "hard_stop":false,"termination":if a.prefix_fragment_learning.as_ref().is_some_and(|c|c.episode.is_some()){"exactly960 rankedcoordinates plus391 unique episode/guard native exportedreload steps"}else if a.prefix_fragment_learning.as_ref().is_some_and(|c|c.joint.is_some()){"exactly960 rankedcoordinates plus383 unique joint/guard native exportedreload steps"}else if a.prefix_fragment_learning.as_ref().is_some_and(|c|c.trajectory.is_some()){"exactly960 reused rankedcoordinates plus380uniqueguard+1task exported reloadedsteps"}else{"exactly960 rankedcoordinates plus18exportedreloadedsteps"}}),
         )?;
     }
     Ok(())
@@ -459,9 +459,17 @@ fn mass(p: &Pool, target: u32) -> Result<(u64, u64)> {
     Ok((m, d))
 }
 #[derive(Clone, serde::Serialize)]
+pub(super) struct ObjectiveRole {
+    pub(super) input: usize,
+    pub(super) position: usize,
+    pub(super) task: bool,
+    pub(super) weight: f64,
+}
+#[derive(Clone, serde::Serialize)]
 pub(super) struct ObjectiveSpec {
     pub(super) tasks: Vec<(usize, usize)>,
     pub(super) references: usize,
+    pub(super) roles: Option<Vec<ObjectiveRole>>,
 }
 impl ObjectiveSpec {
     pub(super) fn is_task(&self, f: &Frame) -> bool {
@@ -473,6 +481,9 @@ pub(super) fn objective_for_spec(
     pools: &[Pool],
     spec: &ObjectiveSpec,
 ) -> Result<Value> {
+    if let Some(roles) = &spec.roles {
+        return objective_for_roles(frames, pools, spec, roles);
+    }
     replay_require(
         frames.len() == pools.len() && spec.tasks.len() == 3 && spec.references == 17,
         "joint objective shape differs",
@@ -517,6 +528,104 @@ pub(super) fn objective_for_spec(
     )?;
     Ok(
         json!({"combined":task+reference,"task":task,"reference":reference,"correct_reference_frames":refs-violations.len(),"original_reference_violations":violations,"phases":phases,"all_phase_winners":phases.iter().all(|r|r["pool"]["chosen_token_id"]==r["target"]),"terms":rows}),
+    )
+}
+pub(super) fn coalesced_role_weights(
+    roles: &[ObjectiveRole],
+) -> Result<BTreeMap<(usize, usize), f64>> {
+    let mut weights = BTreeMap::new();
+    let mut seen = BTreeSet::new();
+    for r in roles {
+        replay_require(
+            r.weight.is_finite() && r.weight > 0. && seen.insert((r.input, r.position, r.task)),
+            "duplicate/invalid episode role",
+        )?;
+        *weights.entry((r.input, r.position)).or_insert(0.) += r.weight;
+    }
+    Ok(weights)
+}
+fn objective_for_roles(
+    frames: &[Frame],
+    pools: &[Pool],
+    spec: &ObjectiveSpec,
+    roles: &[ObjectiveRole],
+) -> Result<Value> {
+    replay_require(
+        frames.len() == pools.len()
+            && spec.references == 17
+            && spec.tasks.len() == 15
+            && roles.len() == 32
+            && frames.len() == 31,
+        "complete episode role/physical coverage differs",
+    )?;
+    let mut task = 0.;
+    let mut reference = 0.;
+    let mut terms = Vec::new();
+    let mut phases = Vec::new();
+    let mut violations = Vec::new();
+    let physical_weights = coalesced_role_weights(roles)?;
+    for r in roles {
+        let i = frames
+            .iter()
+            .position(|f| f.input == r.input && f.position == r.position)
+            .ok_or_else(|| bad("episode role physical frame missing"))?;
+        let f = &frames[i];
+        let p = &pools[i];
+        let (m, d) = mass(p, f.target)?;
+        let ce = -(m as f64 / d as f64).ln() * r.weight;
+        let row = json!({"input_index":f.input,"position":f.position,"id":f.id,"target":f.target,
+            "weight":r.weight,"physical_index":i,"role":if r.task{"task_phase"}else{"reference"},
+            "weighted_ce":ce,"target_mass":m,"total_mass":d,"pool":p.trace.summary,"donor":p.donor});
+        if r.task {
+            task += ce;
+            phases.push(row.clone());
+        } else {
+            reference += ce;
+            if p.trace.summary.chosen_token_id != f.target {
+                violations.push(row.clone());
+            }
+        }
+        terms.push(row);
+    }
+    replay_require(
+        phases.len() == 15
+            && roles.iter().filter(|r| !r.task).count() == 17
+            && physical_weights.len() == frames.len()
+            && frames.iter().all(|f| {
+                physical_weights
+                    .get(&(f.input, f.position))
+                    .is_some_and(|w| (w - f.weight).abs() < 1e-15)
+            }),
+        "episode coalesced gradient weights differ from role components",
+    )?;
+    Ok(
+        json!({"combined":task+reference,"task":task,"reference":reference,
+        "correct_reference_frames":17-violations.len(),"original_reference_violations":violations,
+        "all_phase_winners":phases.iter().all(|r|r["pool"]["chosen_token_id"]==r["target"]),
+        "phases":phases,"terms":terms,"weighted_roles":roles.len(),"unique_physical_frames":frames.len()}),
+    )
+}
+pub(super) fn episode_gate(b: &Value, v: &Value) -> Result<Value> {
+    let strict = |key: &str| -> Result<bool> {
+        let x = b[key]
+            .as_f64()
+            .ok_or_else(|| bad("episode original CE absent"))?;
+        let y = v[key]
+            .as_f64()
+            .ok_or_else(|| bad("episode candidate CE absent"))?;
+        replay_require(x.is_finite() && y.is_finite(), "episode nonfinite CE")?;
+        Ok(y < x - 1e-10 * (1. + x.abs()))
+    };
+    let combined = strict("combined")?;
+    let episode = strict("task")?;
+    let refs = v["correct_reference_frames"] == 17;
+    let phases = v["all_phase_winners"] == true;
+    Ok(
+        json!({"finite_joint_positive":combined&&episode&&refs&&phases,
+        "combined_ce_descent":combined,"episode_conditional_ce_descent":episode,
+        "all_episode_phase_winners":phases,"all17_reference_winners":refs,
+        "strict_ce_tolerance":"1e-10*(1+abs(original_CE))",
+        "scope":"complete teacherforced episode including EOS; actual typed wholeanswer/EOS separate"}),
     )
 }
 pub(super) fn joint_gate(b: &Value, v: &Value) -> Result<Value> {
@@ -1082,7 +1191,7 @@ pub(super) fn gradient_for_spec(
             .flat_map(|x| x.to_le_bytes())
             .collect::<Vec<_>>();
         fs::write(a.out.join(&file), &bytes)?;
-        perterm.push(json!({"input_index":f.input,"position":f.position,"id":f.id,"weight":f.weight,"file":file,"bytes":bytes.len(),"sha256":sha256_bytes(&bytes),"status":"PRESENT","missing_gradient_filled_zero":false}));
+        perterm.push(json!({"input_index":f.input,"position":f.position,"id":f.id,"weight":f.weight,"file":file,"bytes":bytes.len(),"sha256":sha256_bytes(&bytes),"status":"PRESENT","missing_gradient_filled_zero":false,"all_zero":values.iter().all(|v|*v==0.),"l2_norm":values.iter().map(|v|f64::from(*v).powi(2)).sum::<f64>().sqrt(),"target":f.target,"termination_target":f.target==1,"period_target":f.target==16}));
     }
     replay_require(
         (weighted
