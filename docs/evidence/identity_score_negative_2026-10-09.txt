@@ -1,0 +1,63 @@
+UOR-R4 — The token-identity matching term HURTS recall, monotonically in its weight: 0.458 -> 0.135 -> 0.000
+Date: 2026-10-09. DeepSeek session. References #820.
+
+WHAT RAN
+  The token-identity pointer score (merged as #2002, silent-config bug fixed as #2003) tested against
+  the learned hidden-state match on the same 28 invented values, three conditions, 96 cells per arm,
+  all scored IN THE SAME SESSION with the probe that reads the model directly (export refuses an
+  identity pointer - it has no integer port - so a LUT path would have failed spuriously).
+
+    arm                                    exact copy                contains
+    baseline arm-ptr (learned keys)        44/96 = 0.458 [0.362,0.558]   65/96 = 0.677
+    A: pointer_identity=0.5 (mixed)        13/96 = 0.135 [0.081,0.218]   18/96 = 0.188
+    B: pointer_identity=1   (alone)         0/96 = 0.000 [0.000,0.038]    0/96 = 0.000
+
+  THE IDENTITY TERM DOES NOT HELP. It hurts, and monotonically in its weight: half weight costs about
+  32 points with NON-OVERLAPPING intervals against the baseline, and full weight destroys recall
+  completely, reproducing the no-pointer control's number (0/84 in the earlier run) despite the model
+  having a pointer. The baseline also reproduces its earlier measurement (0.458 here against 0.417 on a
+  slightly different cell count), which is what makes the matched in-session comparison credible.
+
+WHY, FROM THE TRAINING CURVES AND THE DEFINITION
+  * REACHABILITY IS IDENTICAL ACROSS ALL THREE ARMS (0.4729) - and identical to the learned-key arm.
+    So the span is ADDRESSABLE in every configuration, and what differs is purely the score's ability
+    to DISCRIMINATE. Reachability is a property of the data, not of the score, and it cannot be used to
+    judge a matching term.
+  * THE TERM IS ANTI-CORRELATED WITH THE CORRECT SOURCE IN THIS TASK. The value's tokens appear in the
+    PREMISE, so every candidate source near the premise shares those tokens; a local-window Jaccard
+    therefore cannot distinguish the answer's location from its neighbours. Half weight halves the
+    effective weight on the only signal that works; full weight discards it.
+  * The hit-rate curve agreed in advance: arm A's selection rate rose (0.2215 -> 0.2373 over steps
+    6,000-8,000, reaching the baseline's 0.2387 earlier) because the DOT component still carried the
+    run; the copy rate is what exposed the damage.
+
+A METHOD NOTE THAT MATTERED
+  A first extraction printed 0/96 for ALL THREE arms INCLUDING the baseline. That was absurd on its
+  face - the baseline had already measured 0.417 - and it was caught because a known number was
+  compared against. Cause: the probe stores the value inside the record id as "n_vantel", and the
+  parser was comparing "n_vantel" against " Vantel.". The corrected extraction is the table above. This
+  is the third time in this session that the error was in the reading rather than the model, and it is
+  why every number here is checked against something already known before it is believed.
+
+WHAT THIS SETTLES
+  The learned hidden-state match is doing the work, and local token overlap is not merely unhelpful but
+  harmful here. Combined with the earlier route failure (token-id keys with a prime/ngram ADMISSION
+  RULE froze at 15 decimals and lost 61 % of reachability), BOTH ways of injecting token identity into
+  the pointer have now been measured and rejected:
+    - token-id KEYS via a route: reachability collapses (0.182) and the metrics freeze;
+    - token overlap as a SCORE term: recall collapses monotonically (0.458 -> 0.135 -> 0.000).
+  The remaining lever on this axis is therefore to SHARPEN THE LEARNED MATCH itself rather than to
+  replace or augment it with token identity - and the instrument that judges any such change already
+  exists: 28 novel values, three conditions, a matched in-session baseline, Wilson intervals, and a
+  per-value gain/loss check.
+
+HONEST POSITION
+  A clean negative for the eighth route explored on the binding problem, from an arm that reproduced
+  its own baseline - so the negative is about the change, not about the run. The night's solved result
+  is untouched: ten of ten form compliance with correct content on the demand-store configurations,
+  and 0.93277 bits/byte served with a multiplier-free engine exact to 1e-6 nats.
+
+SCOPE
+  Three arms (baseline, identity 0.5, identity 1) x three conditions x 32 rows = 96 cells per arm, one
+  checkpoint lineage, greedy decoding, single seed per arm, scored in one session. The 28 invented
+  values were verified absent from all 19 stores plus the chat corpora (~9.2e8 token positions).
