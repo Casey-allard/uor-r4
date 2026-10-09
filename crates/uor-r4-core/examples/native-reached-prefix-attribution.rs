@@ -60,6 +60,7 @@ enum EndpointKind {
     SelectedReachedU,
     SelectedReadoutIntermediate,
     UnselectedPrefixFragment,
+    SelectedOriginalTrajectorySupplement,
 }
 #[derive(Clone, Copy, Deserialize, serde::Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -177,6 +178,30 @@ fn validate_frames(frames: &[FrameRequest], kind: EndpointKind) -> Result<()> {
                     "recovered factual actual word-boundary prefix differs",
                 )?;
             }
+        }
+    } else if kind == EndpointKind::SelectedOriginalTrajectorySupplement {
+        require(
+            frames.len() == 2 && seen == [(3, 1), (455, 0)].into_iter().collect(),
+            "prospective original trajectory supplement differs",
+        )?;
+        for f in frames {
+            let (prefix, digest) = if f.input_index == 3 {
+                (
+                    vec![617],
+                    "5d527e1e881f3b5937be974309eb6b984099356774f7e73120250b6d6a0cd897",
+                )
+            } else {
+                (
+                    vec![],
+                    "871f1265ccd2fa58d250e80bbd348391e0be2aaa73ef2e59375accbe481e613b",
+                )
+            };
+            require(
+                f.expected_actual_prefix_ids == prefix
+                    && f.expected_saved_row_sha256.as_deref() == Some(digest)
+                    && f.role == FrameRole::SourceControl,
+                "original trajectory supplement prefix/hash/role differs",
+            )?;
         }
     } else if kind == EndpointKind::UnselectedPrefixFragment {
         require(
@@ -512,6 +537,7 @@ fn check_saved(
 }
 fn report_schema(kind: EndpointKind) -> &'static str {
     if kind == EndpointKind::SelectedReadoutIntermediate
+        || kind == EndpointKind::SelectedOriginalTrajectorySupplement
         || kind == EndpointKind::UnselectedPrefixFragment
     {
         "uor-r4.native-reached-prefix-attribution/3"
@@ -540,7 +566,9 @@ fn authenticate_endpoint(report: &Value, receipt: &Value, kind: EndpointKind) ->
             && receipt["step"] == 1,
         "endpoint complete receipt differs",
     )?;
-    if kind == EndpointKind::SelectedReadoutIntermediate {
+    if kind == EndpointKind::SelectedReadoutIntermediate
+        || kind == EndpointKind::SelectedOriginalTrajectorySupplement
+    {
         require(
             report["mode"] == "readout_intermediate_candidate"
                 && report["selected_model"] == true
@@ -604,7 +632,9 @@ fn run(c: &Config, written: &mut u64) -> Result<Value> {
             "selectedUreport/seal differs",
         )?;
     }
-    if c.endpoint_kind == EndpointKind::SelectedReadoutIntermediate {
+    if c.endpoint_kind == EndpointKind::SelectedReadoutIntermediate
+        || c.endpoint_kind == EndpointKind::SelectedOriginalTrajectorySupplement
+    {
         require(
             c.expected_report_sha256
                 == "c9b9fe10b6fbb4332cf919a5df7ba31403ad3d51ac6f877d94daeabd99672bee"
@@ -658,6 +688,15 @@ fn run(c: &Config, written: &mut u64) -> Result<Value> {
     } else {
         None
     };
+    if c.endpoint_kind == EndpointKind::SelectedOriginalTrajectorySupplement {
+        require(
+            file_hash(&cp.join("prefix/prefix-q4.bin"))?
+                == "c2e8ec992996055450f77237ec64730c28b2e7cd53f9ae49cdb7a28128236d0a"
+                && file_hash(&cp.join("prefix/prefix-source-f32.bin"))?
+                    == "1e47a7dff9134d393043a2313a7da50ea234d1b1ae7888d895e3604855ac0fe3",
+            "original trajectory Prefix authority differs",
+        )?;
+    }
     let gen = bytes(&cp.join("generate.bin"))?;
     let bridge = bytes(&cp.join("read-state-bridge-categorical.bin"))?;
     let exp = bytes(&cp.join("native/consumer/exp-q31.bin"))?;
@@ -930,6 +969,7 @@ fn run(c: &Config, written: &mut u64) -> Result<Value> {
                 "alltokenUfactor sum differs",
             )?;
             if c.endpoint_kind == EndpointKind::SelectedReadoutIntermediate
+                || c.endpoint_kind == EndpointKind::SelectedOriginalTrajectorySupplement
                 || c.endpoint_kind == EndpointKind::UnselectedPrefixFragment
             {
                 u_factors.push(json!([u_relative, u_coefficients, u_total]));
@@ -939,7 +979,9 @@ fn run(c: &Config, written: &mut u64) -> Result<Value> {
                 factors.push(json!({"token_id":token,"prototype_codes":&model.prototypes()[token*8..(token+1)*8],"relative_codes":relative,"logical_factor_keys":keys,"unary_codes":unary,"pair_codes":pairs,"bias_code":bias,"score_shift":20,"total_q24":total,"total_scope":"BASEGenerate beforeU","u_total_q24":u_total}));
             }
         }
-        let (generate_only, undo_u_copy) = if qualification.is_some() {
+        let (generate_only, undo_u_copy) = if qualification.is_some()
+            || c.endpoint_kind == EndpointKind::SelectedOriginalTrajectorySupplement
+        {
             (json!("NOT_RUN"), json!("NOT_RUN"))
         } else {
             (
@@ -966,11 +1008,16 @@ fn run(c: &Config, written: &mut u64) -> Result<Value> {
           "pool":step.actions,"generate_counts":step.generate_counts,"factor_attribution_counts":factor_counts,"declared_pair_edges":model.energy().edges(),"factors":factors,"u_factors":u_factors,
           "saved_actual":saved["generation"][position],"saved_canonical_native":saved["canonical"][position]["native"],"controls":{"generate_only":generate_only,"copy_u_removed":undo_u_copy},"control_scope":"savedvector reducer diagnostics; not servingoptions or generatedcounterfactuals","expected_record_query_role":"NOT_LOADED: separately authenticated reference joined posthoc by reader; never inferred from ID/target/bridge donor"});
         if c.endpoint_kind == EndpointKind::SelectedReadoutIntermediate
+            || c.endpoint_kind == EndpointKind::SelectedOriginalTrajectorySupplement
             || c.endpoint_kind == EndpointKind::UnselectedPrefixFragment
         {
             frame["schema"] = json!("uor-r4.native-reached-prefix-frame/3");
             frame["factor_layout"] = compact_factor_layout();
-            frame["request_role_scope"] = json!(if qualification.is_some() {
+            frame["request_role_scope"] = json!(if c.endpoint_kind
+                == EndpointKind::SelectedOriginalTrajectorySupplement
+            {
+                "two authenticated original correct-prefix supplements; labels attached separately after both captures"
+            } else if qualification.is_some() {
                 "two authenticated actual first-divergence frames; labels attached separately after both captures"
             } else {
                 "offline row cohort only; factual_failure includes preceding correct position3; labels attached separately after all captures"
@@ -980,6 +1027,13 @@ fn run(c: &Config, written: &mut u64) -> Result<Value> {
             frame["endpoint_admission"]=json!("UNSELECTED_PREFIX_CANDIDATE; diagnostic capture only; failed cheap qualification retained");
             frame["saved_canonical_native"] = json!("NOT_RUN");
             frame["control_scope"]=json!("NOT_RUN: causal question is original versus candidate same actual prefix, not serving ablation");
+        }
+        if c.endpoint_kind == EndpointKind::SelectedOriginalTrajectorySupplement {
+            frame["endpoint_admission"] =
+                json!("selected original parent; missing correct-prefix witness supplement only");
+            frame["control_scope"] =
+                json!("NOT_RUN: complete trajectory guard recovery, not serving ablation");
+            frame["request_role_scope"]=json!("two authenticated original correct-prefix supplements; labels attached separately after both captures");
         }
         let payload = serde_json::to_vec(&frame)?;
         require(
@@ -1140,6 +1194,39 @@ fn main() -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn original_trajectory_supplement_binds_both_missing_correct_prefixes() -> Result<()> {
+        let mk = |i, prefix: Vec<u32>, sha: &str| FrameRequest {
+            input_index: i,
+            position: prefix.len(),
+            expected_id: format!("id{i}"),
+            expected_saved_row_sha256: Some(sha.into()),
+            expected_actual_prefix_ids: prefix,
+            role: FrameRole::SourceControl,
+        };
+        let mut frames = vec![
+            mk(
+                3,
+                vec![617],
+                "5d527e1e881f3b5937be974309eb6b984099356774f7e73120250b6d6a0cd897",
+            ),
+            mk(
+                455,
+                vec![],
+                "871f1265ccd2fa58d250e80bbd348391e0be2aaa73ef2e59375accbe481e613b",
+            ),
+        ];
+        validate_frames(&frames, EndpointKind::SelectedOriginalTrajectorySupplement)?;
+        frames[0].expected_saved_row_sha256 = Some("a".repeat(64));
+        assert!(
+            validate_frames(&frames, EndpointKind::SelectedOriginalTrajectorySupplement).is_err()
+        );
+        frames.pop();
+        assert!(
+            validate_frames(&frames, EndpointKind::SelectedOriginalTrajectorySupplement).is_err()
+        );
+        Ok(())
+    }
     #[test]
     fn unselected_prefix_capture_requires_exact_actual_two_frame_chain() -> Result<()> {
         let mk = |index, prefix: Vec<u32>| FrameRequest {

@@ -1,0 +1,438 @@
+{
+  "schema": "uor-r4.native-prefix-trajectory-learning-evidence/1",
+  "date": "2026-10-08",
+  "status": "COMPLETED_FINITE_POSITIVE_OWNFEEDBACK_NEGATIVE",
+  "card_comment": 6071526112,
+  "delivery": {
+    "protected_merge": "PENDING_PARENT_DELIVERY",
+    "complete_private_preservation": {
+      "path": "/workspace/uor-r4/codex/sol-prefix-trajectory-learning/preservation.json",
+      "sha256": "6ecf2266b6ac23ca6bf2beaf74b0792daffd636a278875defbb5b5bc4d023794",
+      "receipt": {
+        "revision": "f3893b42a798c16fa8fea618769568e928d8fbee",
+        "prefix": "codex/sol-prefix-trajectory-learning/trajectory-0001-4e9ed13a7c",
+        "all_fresh_download_verified": true,
+        "files": {
+          "SHA256-manifest.json": {
+            "sha256": "e359eff48195086d4acdee92365dc5670c4a8d0790d19309b20d452ecb594182",
+            "bytes": 1281
+          },
+          "trajectory-0001-4e9ed13a7c.tar.gz": {
+            "sha256": "7b40bcae5e41cdd7f3d0189832b741bd1da2a7d5bdd75f4305b671c0f5f8ba14",
+            "bytes": 44382377
+          }
+        },
+        "manifest": {
+          "source_commit": "4e9ed13a7c122769468c6613111edd05ae9d5d82",
+          "runtime_hf_revision": "63dc9c434eb9b1520d7afc5a973b8a3d2410b10d",
+          "runtime_manifest_sha256": "aac37d9dabba435a1ac00a8827c06220491cad4c9fdcc4375058ccae3d403cab",
+          "binary_sha256": "65a3216fb561973aaaaa9876023cadb2e3c71cf39c23d50a7cbf5a85709d6ec5",
+          "config_sha256": "a4cfe1f6e0f224a069594de814ca435fa8cf3cb7612009ba474e822046565f2b",
+          "report_sha256": "77227984640fc55e29067bb6dae935068c7a9faf2bf8c8f0b296b5f0b9c05355",
+          "report_manifest_sha256": "c1309528bcf45f7ceac54643e35657eedac679ff9b682deec3b93cffcf483442",
+          "audit_sha256": "d4de27295246f124890d24782f0421ad11f60f4dbe96f23d49ac18348ed62d8c",
+          "files": {
+            "trajectory-0001-4e9ed13a7c.tar.gz": {
+              "sha256": "7b40bcae5e41cdd7f3d0189832b741bd1da2a7d5bdd75f4305b671c0f5f8ba14",
+              "bytes": 44382377
+            }
+          },
+          "scope": "Shared Prefix training guards all380 original correct prefixes; saved18 gradients and960order reused;351 accepted,381 coherent native reloads; auditPASS. Actualcheap9 preserves8/8 completeEOS but task245p5desired307 loses91/noEOS32; candidate unselected. Includes sealed setup/resource failure, reader serialization failure, saved diagnostic, reviews and full cumulative ledger. No new gradients or serving branches."
+        },
+        "seconds": 16.356077753007412,
+        "completed_utc": "2026-10-09T01:19:38.423995+00:00"
+      }
+    }
+  },
+  "source": {
+    "commit": "4e9ed13a7c122769468c6613111edd05ae9d5d82",
+    "binary_sha256": "65a3216fb561973aaaaa9876023cadb2e3c71cf39c23d50a7cbf5a85709d6ec5",
+    "config_sha256": "a4cfe1f6e0f224a069594de814ca435fa8cf3cb7612009ba474e822046565f2b",
+    "source_packet_sha256": "9f6a501f3b98efe6e516501cb3debc4da41e15b3a0e169ece2f2b83940e91bbe",
+    "source_files": [
+      {
+        "path": "crates/uor-r4-training/examples/geometric-frozen-map-fit.rs",
+        "bytes": 321476,
+        "sha256": "a729b8a8fc52729cad7884ecf9b2ff767dce2aa57a588f1c3a061850613fe620"
+      },
+      {
+        "path": "crates/uor-r4-training/examples/geometric_frozen_map_fit/context_cue_coadapt.rs",
+        "bytes": 73775,
+        "sha256": "b66fb8b517b465d08226a7e9ceb8b00a2249bf44b125dd0aa65c20541d05a2d3"
+      },
+      {
+        "path": "crates/uor-r4-training/examples/geometric_frozen_map_fit/prefix_fragment_learning.rs",
+        "bytes": 71566,
+        "sha256": "2a576dbf563b2ee308608c1369b63624fc3d6c44ac8b71247d8969801f81221f"
+      }
+    ],
+    "checks": {
+      "head": "4e9ed13a7c122769468c6613111edd05ae9d5d82",
+      "job": "20261009T004839Z-sol-prototype-20261008-gpu0",
+      "tests_passed": 87,
+      "release_build_seconds": 20.54,
+      "binary_sha256": "65a3216fb561973aaaaa9876023cadb2e3c71cf39c23d50a7cbf5a85709d6ec5",
+      "status": "PASS"
+    },
+    "runtime": "host native integer construction/reload; CPU master storage for export; no CUDA initialization or autodiff"
+  },
+  "parent": {
+    "report_sha256": "c9b9fe10b6fbb4332cf919a5df7ba31403ad3d51ac6f877d94daeabd99672bee",
+    "manifest_sha256": "de90ba0ba2809ed37ca868ef2bcf94b6ceb8b176a60b86ae88801876dafbd0e5",
+    "source_binding": {
+      "identity": {
+        "parent_checkpoint_manifest_sha256": "07f26ea0aa8de692a7792c914c5c43c882be6cbbdb25764b3594b05d9004c60a",
+        "parent_config_sha256": "0b4041fdedeabc40eb5a5aecabacf49d74561de2145b1e5515c8b5014a549fae",
+        "parent_model_sha256": "47f41ed4cc18b1263735a004512fb488d25b65c949cece5a58e548ea831e0aef",
+        "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89"
+      },
+      "metadata_sha256": "9f0b272e7852a47bbbad0f549e8157a44ff3212af86905907501ec11f3e7989b"
+    },
+    "generate_sha256": "4248245471db609b1fc19482e8f180380b292c5832fc90c81ce69947bc4b7737",
+    "continuation_sha256": "82ae9daeb402b288e64492d5b299110b36849907019c952609a1cae6612673ee",
+    "historical_scope": "Original selected parent8 complete replies from its retained512-row panel; new candidate full512 NOT_RUN."
+  },
+  "construction": {
+    "root": "/workspace/uor-r4/codex/sol-prefix-trajectory-learning/runs/trajectory-0001-attempt2",
+    "report_sha256": "77227984640fc55e29067bb6dae935068c7a9faf2bf8c8f0b296b5f0b9c05355",
+    "manifest_sha256": "c1309528bcf45f7ceac54643e35657eedac679ff9b682deec3b93cffcf483442",
+    "policy": {
+      "active_family": "prefix.coefficients",
+      "construction": "one960 preferredadjacent pass; strictcurrent18CE tolerance1e-10*(1+abs(old)) +17 original objective winners +all380 original correct-prefix winners eachacceptedtransaction; no rerank/refill/revisit",
+      "final": "strictoriginal18CE and exacttaskprobability increase plus380/17retention; actual267chosen separately; cheapownfeedback conditional, not implicit qualification",
+      "frozen": "Source/Context/Potential/Cue/joint/G/map/bridge/Ucoefficients and all Prefix featurestates; Gvectors depend on earliestBASEphysicaldonor",
+      "gradient": "REUSED authenticated original18 weighted raw960 gradient and frozen actualdelta order; zero new backward",
+      "guard_population": "generic ALL selected parent canonical-correct actualprefixes before firstdivergence, including completeEOS;377full+1existingfull+2supplements",
+      "initialization": "ORIGINAL selected parent actual fractionalPrefix/Source9f/Cue/G4248/U82ae",
+      "schema": "uor-r4.prefix-trajectory-learning/1",
+      "selected_model": false
+    },
+    "baseline": {
+      "combined": 4.391651926613631,
+      "correct_reference_frames": 17,
+      "original_reference_violations": [],
+      "reference": 0.40908709114276476,
+      "task": 3.9825648354708663,
+      "task_target_mass": 298710449,
+      "task_total_mass": 16027151659
+    },
+    "candidate": {
+      "combined": 2.6326899825321286,
+      "correct_reference_frames": 17,
+      "original_reference_violations": [],
+      "reference": 0.204554901614357,
+      "task": 2.4281350809177717,
+      "task_target_mass": 2150760253,
+      "task_total_mass": 24384714147
+    },
+    "trial_counts": {
+      "accepted": 351,
+      "rejected": 112,
+      "zero_gradient": 497
+    },
+    "coordinates": 960,
+    "all380_preserved": true,
+    "correct_reference_frames": 17,
+    "fixedprefix267_chosen": true,
+    "native_reload_steps": 381,
+    "new_gradients": 0,
+    "new_backward_calls": 0,
+    "optimizer_updates": 0,
+    "parent_master_bits_restored": true,
+    "selected_model": false,
+    "useful_candidate": false,
+    "prefix_packed_sha256": "9cd7eff1af78cdc9f9ae032cf26b46630208e027fcdf5b76a16f30bd7606ff96",
+    "prefix_master_sha256": "a2d0ec5b2b6957afba4c311d2ce2eeb8c4836fe00c20c7c9551f503c2aa28d30",
+    "execution": {
+      "exit_code": 0,
+      "started_utc": "2026-10-09T00:51:56.386782+00:00",
+      "ended_utc": "2026-10-09T00:53:56.650409+00:00",
+      "elapsed_seconds": 120.26364796608686,
+      "children_max_rss_kib": 2489696,
+      "binary_sha256": "65a3216fb561973aaaaa9876023cadb2e3c71cf39c23d50a7cbf5a85709d6ec5",
+      "config_sha256": "a4cfe1f6e0f224a069594de814ca435fa8cf3cb7612009ba474e822046565f2b"
+    },
+    "pool_trace_scope": "Complete raw Generate/physicalCopy/U, physical identities, bank/bridge,4096 masses+summary retained. Redundant guard action records explicitly omitted as reconstructible; actual fullreduction and381 native reloads executed; task fulltrace retained."
+  },
+  "guard_and_gradient": {
+    "guard_population": 380,
+    "selection": "ALL canonical-correct actual prefixes before first divergence including completeEOS, zero objective weight",
+    "sources": "377 authenticated full pools +existing original245p3 +only2 missing original targetfree supplement captures3p1/455p0",
+    "original377_sha256": "fcde63e9fc12f218b866b71323601485db7f93fd1b69a54beec91e87a7b84fad",
+    "supplement": {
+      "source_commit": "f6ee17ce6004216350a51ed7f0400c88efd12d19",
+      "source_sha256": "f70958eb3a3d7fc6dca82839addb9855f20f5fccd65eb1cdb2cb08214fc99fa7",
+      "root": "/workspace/uor-r4/codex/sol-prefix-trajectory-learning/runs/supplement-0001-attempt1",
+      "report_sha256": "0eddd892d5c1a188ee9816856853b672722c3f74ccd67a0f49cbb3e016b8a5d4",
+      "manifest_sha256": "5ae8d12f32ee68b2d1a7d82626305cc8fa0e30be1b118f89291b8ac116dad45d",
+      "captured_steps": 2,
+      "ownership": "frozen parent-owned; not edited by this packet"
+    },
+    "reused_gradient": {
+      "gradient_receipt_sha256": "056ba2c6d4924d7be2ae4dd63da5ed20e483e4a7cdf1c2a3d8fdf4a33d903eea",
+      "manifest_sha256": "12c1412d049724e6dd7ba1e1cd8fc0383be65f7a3c9f43251a206fc23ba76d32",
+      "new_backward_calls": 0,
+      "objective": "unchanged18; no new guard loss weights",
+      "old427_acceptance_statuses": "NOT_AUTHORITY; all transactions recomputed under complete original380 guard",
+      "ranking_sha256": "5eec881b82b556b102521272a1444578768230a6b807ad71893b695881ec516b",
+      "raw_gradient_sha256": "884ec30f0289b407ead62b558628a6b7eb69643e3b5ec5dd4c1e65a7250d4614",
+      "report_sha256": "71301b77d9d4606dda1501385e43f8e114c4e72af9a502b799f363b604b14cfe",
+      "root": "/workspace/uor-r4/codex/sol-prefix-fragment-learning/runs/prefix-0001-attempt1"
+    },
+    "old427_acceptance_statuses": "NOT_AUTHORITY",
+    "transaction": "Each coordinate once; strict current18CE tolerance1e-10*(1+abs(current)),17 original objective winners and380 trajectory winners. Allaffected guards staged atomically; no rerank/refill/revisit. Earliest BASE physical donor recomputes bridge/Generate before fixedU and fullaliaspool."
+  },
+  "cheap_qualification": {
+    "root": "/workspace/uor-r4/codex/sol-prefix-trajectory-learning/qualifications/ownfeedback-0001-attempt1",
+    "report_sha256": "8a4dbd8c13488df2397a8e01a6af885851ca87d8d0edc62cb18e7257b5b5732d",
+    "manifest_sha256": "ec0235c3e357c4dd5bbdf609602436aa8627e8e8192ca40cd515120ccc583379",
+    "config_sha256": "8cbf19a8552f3a5a536420c2ffed18d4384c0836b066ca2a4a34db9f847024d2",
+    "evaluator_source": "4e9ed13a7c122769468c6613111edd05ae9d5d82",
+    "candidate_producer_source": "4e9ed13a7c122769468c6613111edd05ae9d5d82",
+    "rows": 9,
+    "original8_complete_and_actual_eos": 8,
+    "original8_tokens_identical_to_retained_parent": true,
+    "task_id": "development-diverse-length4-07-swap0-q0-forward-home",
+    "task_row_sha256": "4478c88265533d5222059c35cd2e36fd6133734eebb19abc43627eebda7c5314",
+    "actual_prefix_at_position5": [
+      617,
+      2097,
+      315,
+      1057,
+      267
+    ],
+    "desired_position5": 307,
+    "actual_position5": 91,
+    "position4_267_comparable_prefix_witness": true,
+    "task_complete": false,
+    "task_eos": false,
+    "generated_task_ids": [
+      617,
+      2097,
+      315,
+      1057,
+      267,
+      91,
+      2795,
+      1057,
+      267,
+      307,
+      397,
+      1717,
+      471,
+      2795,
+      397,
+      1717,
+      267,
+      2394,
+      1717,
+      307,
+      91,
+      471,
+      2795,
+      1057,
+      267,
+      2394,
+      397,
+      471,
+      267,
+      2795,
+      1717,
+      397
+    ],
+    "qualification_positive": false,
+    "selected_model": false,
+    "useful_candidate": false,
+    "canonical": "NOT_RUN",
+    "fixed18_repeat": "NOT_RUN",
+    "new_full512": "NOT_RUN",
+    "multiturn": "UNAVAILABLE_FOR_THIS_NATIVE_SOURCE_GENERATE_U_EPOCH",
+    "execution": {
+      "exit_code": 0,
+      "started_utc": "2026-10-09T00:58:08.193287+00:00",
+      "ended_utc": "2026-10-09T00:58:28.283024+00:00",
+      "elapsed_seconds": 20.089763678610325,
+      "children_max_rss_kib": 404692,
+      "binary_sha256": "65a3216fb561973aaaaa9876023cadb2e3c71cf39c23d50a7cbf5a85709d6ec5",
+      "config_sha256": "8cbf19a8552f3a5a536420c2ffed18d4384c0836b066ca2a4a34db9f847024d2"
+    },
+    "primary_acceptance": "Typed wholeanswer membership and actual EOS; canonicaltokenization is separate boundary witness."
+  },
+  "audit": {
+    "root": "/workspace/uor-r4/codex/sol-prefix-trajectory-learning/audits/attempt2",
+    "status": "PASS",
+    "result_sha256": "d4de27295246f124890d24782f0421ad11f60f4dbe96f23d49ac18348ed62d8c",
+    "manifest_sha256": "17ef4612c030eaf9e9d5c4ac456e4c3e5a57ff744b318047d8abc66ef9f3dc0a",
+    "reader_sha256": "6b9a822adc9ed3d516400c94fa92fcfdc6828da50f3c3bb7483f14fc68b85d6a",
+    "reader_seconds": 416.33526730537415,
+    "reader_peak_rss_kib": 944112,
+    "rust_fullverify": {
+      "status": "PASS",
+      "seconds": 0.10230541974306107,
+      "manifest_sha256": "17ef4612c030eaf9e9d5c4ac456e4c3e5a57ff744b318047d8abc66ef9f3dc0a",
+      "result_sha256": "d4de27295246f124890d24782f0421ad11f60f4dbe96f23d49ac18348ed62d8c"
+    },
+    "scope": "Independent saved integer arithmetic/packing/bindings/960 transactions/380 pools+381 finalrows and cheap authority; no independent encoder, backward or autoregressive replication."
+  },
+  "verification": {
+    "constructor": {
+      "path": "/workspace/uor-r4/codex/sol-prefix-trajectory-learning/rust-report-verification.json",
+      "sha256": "0aeffa1c576420eefd739342241d544a32b284e5fe8c686a4377613a026f5a81",
+      "receipt": {
+        "status": "PASS",
+        "exit_code": 0,
+        "seconds": 3.9442904219031334,
+        "report_manifest_sha256": "c1309528bcf45f7ceac54643e35657eedac679ff9b682deec3b93cffcf483442",
+        "report_sha256": "77227984640fc55e29067bb6dae935068c7a9faf2bf8c8f0b296b5f0b9c05355",
+        "verifier_sha256": "d90411116c702dc4149fc055706f34c276c1ead29c5b0ec95600c30cc976326d"
+      }
+    },
+    "qualification": {
+      "path": "/workspace/uor-r4/codex/sol-prefix-trajectory-learning/ownfeedback-rust-verification.json",
+      "sha256": "128077e8f92897bc0eb05095a66c7bd4ef1653f5e1e08b7a47f5e18f90d287a5",
+      "receipt": {
+        "status": "PASS",
+        "exit_code": 0,
+        "seconds": 0.08231888711452484,
+        "report_sha256": "8a4dbd8c13488df2397a8e01a6af885851ca87d8d0edc62cb18e7257b5b5732d",
+        "manifest_sha256": "ec0235c3e357c4dd5bbdf609602436aa8627e8e8192ca40cd515120ccc583379"
+      }
+    }
+  },
+  "reviews": {
+    "trajectory-source-math-review.json": {
+      "path": "/workspace/uor-r4/codex/sol-prefix-trajectory-learning/trajectory-source-math-review.json",
+      "sha256": "9d393148fcb6a1d1b42d817937e4a5c22ec1ab459405113bb05e76257aae722b",
+      "status": "PASS_SOURCE_ONLY",
+      "source_commit": "4e9ed13a7c122769468c6613111edd05ae9d5d82",
+      "scope": "Exact-source or saved-result review; full receipt retained at path, no independent model execution."
+    },
+    "trajectory-source-adversarial-review.json": {
+      "path": "/workspace/uor-r4/codex/sol-prefix-trajectory-learning/trajectory-source-adversarial-review.json",
+      "sha256": "c8089d600c35e1529c950911b7b03955bb1ba07a4db5ba23442b0f2b75db470b",
+      "status": "PASS",
+      "source_commit": "4e9ed13a7c122769468c6613111edd05ae9d5d82",
+      "scope": "Exact-source or saved-result review; full receipt retained at path, no independent model execution."
+    },
+    "trajectory-result-math-review.json": {
+      "path": "/workspace/uor-r4/codex/sol-prefix-trajectory-learning/trajectory-result-math-review.json",
+      "sha256": "b14ad003528f5020b4b34b51848ee1fa26fbfa5ab0714e0366076971542989f9",
+      "status": "PASS_SAVED_ARITHMETIC_AND_SCOPED_ACTUAL_QUALIFICATION_REVIEW",
+      "source_commit": null,
+      "scope": "Exact-source or saved-result review; full receipt retained at path, no independent model execution."
+    },
+    "trajectory-result-adversarial-review.json": {
+      "path": "/workspace/uor-r4/codex/sol-prefix-trajectory-learning/trajectory-result-adversarial-review.json",
+      "sha256": "809e8325b9aab6df3eae134ec07758b52e2f9119517312bc23efd3a2f7b2e541",
+      "status": "PASS_BOUNDED_CONSTRUCTION_AND_NEGATIVE_REPLY_QUALIFICATION",
+      "source_commit": "4e9ed13a7c122769468c6613111edd05ae9d5d82",
+      "scope": "Exact-source or saved-result review; full receipt retained at path, no independent model execution."
+    },
+    "trajectory-reader-adversarial-review.json": {
+      "path": "/workspace/uor-r4/codex/sol-prefix-trajectory-learning/trajectory-reader-adversarial-review.json",
+      "sha256": "3beb4610ca5b4e9bcfb4216899f984bcd69b417f69931db80e20eec9f2938a8d",
+      "status": "PASS",
+      "source_commit": "4e9ed13a7c122769468c6613111edd05ae9d5d82",
+      "scope": "Exact-source or saved-result review; full receipt retained at path, no independent model execution."
+    }
+  },
+  "retained_failures": {
+    "constructor_attempt1": {
+      "root": "/workspace/uor-r4/codex/sol-prefix-trajectory-learning/runs/trajectory-0001-attempt1",
+      "report_sha256": "9ed6700fd51fdd1e761d703b3c498acbfc14f90a7aad57a477f7030bfe62917f",
+      "manifest_sha256": "75f8dd7ad24e8b305f1f5212e6b433f558a1a22f8eba72cfcf656f1454912b33",
+      "classification": "Pre-constructor resourceprojection setupfailure; no proposals/modelnegative",
+      "preservation": {
+        "revision": "27a88188c05bbbd9f63c9cda58e237a7d5f3ad3e",
+        "files": {
+          "SHA256-manifest.json": {
+            "sha256": "ebbb990b9844cedeaf3d469b85a90cae58b843209ae154059c6bc667d65aa0ed",
+            "bytes": 131
+          },
+          "failure.tar.gz": {
+            "sha256": "7b7047b559edbc73c3fe1d88e68231b908ab38c0853bed504f131b679878df72",
+            "bytes": 25800
+          }
+        },
+        "all_fresh_download_verified": true,
+        "seconds": 5.0152550265192986,
+        "completed_utc": "2026-10-09T00:45:54.532744+00:00",
+        "scope": "sealed pre-constructor resource-boundary execution defect, no proposals or candidate model; original gradient/order unchanged"
+      }
+    },
+    "audit_attempt1": {
+      "root": "/workspace/uor-r4/codex/sol-prefix-trajectory-learning/audits/attempt1",
+      "classification": "Saved JSON key-order digest boundary failure; narrow lexicalserialization repair withfresh audit2, same producer model",
+      "preservation": {
+        "revision": "a4ffa7930e97604d4664f625bd43d031dcfa9b15",
+        "all_fresh_download_verified": true,
+        "files": {
+          "SHA256-manifest.json": {
+            "sha256": "c3116c667d76d93bf4d29bd0e7d400843ddf1ce0efcef1087eff992f733c421b",
+            "bytes": 130
+          },
+          "failure.tar.gz": {
+            "sha256": "5b5ad5e15f50319509bb7ee9b5c081d9ade861ab0c1303d15f8537cc2f135698",
+            "bytes": 7919
+          }
+        },
+        "seconds": 4.5513394102454185,
+        "completed_utc": "2026-10-09T01:03:15.077841+00:00"
+      }
+    },
+    "metadata_diagnostic": {
+      "root": "/workspace/uor-r4/codex/sol-prefix-trajectory-learning/diagnostics/baseline-digest-attempt1",
+      "result_sha256": "8c7aa52bbad0ea0372d0528737c72c55805dee8793e82a86a6cb2bd8cf0afd24",
+      "finding": "All380 numericrows equal; lexical sorted JSON reproduces producer baseline digest; no scorer/modelreplay"
+    }
+  },
+  "resources": {
+    "projection": {
+      "actual_retained_guard_pool_bytes": 62484576,
+      "donor_cache_cap": 134217728,
+      "export_projection_margin_per_guard": 327680,
+      "metadata_allocator_margin": 33554432,
+      "numeric_cap": 536870912,
+      "numeric_pass": true,
+      "numeric_upper_bound": 389596264,
+      "objective_typed_pool_bytes": 7099200,
+      "original18_full_raw_pool_parity_before_omission": true,
+      "original377_complete_raw_summary_mass_parity_before_retention": true,
+      "original_objective_serialized_bytes_before_omission": 19397412,
+      "original_serialized_guard_native_bytes": 190469197,
+      "owner_donor_cache_cap": 268435456,
+      "process_ram_cap": 4294967296,
+      "report_cap": 536870912,
+      "report_pass": true,
+      "report_projection_bytes": 459297873,
+      "retained_objective_serialized_bytes_after_omission": 8613359,
+      "scope": "coexisting current/staged380 numericalpools, slim retainedframe authority, cache/metadata/allocator margin; no autodiff tensors in trajectorymode",
+      "temporary_cap": 536870912,
+      "typed_guard_frame_bound": 20848880
+    },
+    "cumulative_projected_seconds": 558870,
+    "retained_cap": 2684354560,
+    "supplement_execution": {
+      "exit_code": 0,
+      "started_utc": "2026-10-09T00:15:19.884175+00:00",
+      "ended_utc": "2026-10-09T00:15:39.980595+00:00",
+      "elapsed_seconds": 20.096443589776754,
+      "children_max_rss_kib": 206324,
+      "binary_sha256": "2ff0eb5bce47768c5e1b913f31a2f384c5a6d400416258e1f71870c0796ae0d2",
+      "config_sha256": "e585b9ad20877efd8730b3279791469dc8f729a1b578d361c8cc8fdc5af2b049"
+    },
+    "cost_scope": "Shared ledger includes preparation/build/reviews/capture/setupretry/constructor/cheapqualification/auditretry/preservation; protecteddelivery pending"
+  },
+  "interpretation": {
+    "established": "This one Prefix construction preserves all selectedparent correctprefix winners and all8 actualcomplete controls; fixed267 correction carries into ownfeedback.",
+    "negative": "Task245 remains incomplete/noEOS and firstdiverges atp5 desired307 vsactual91. Finitefragment pass doesnotqualify fullreply.",
+    "unestablished": [
+      "new complete reply",
+      "new512-row successrate",
+      "general conversation/durable memory/transfer",
+      "geometric advantage/energy savings",
+      "global feasibility or anotherfamily necessity"
+    ],
+    "next_dependency": "After protecteddelivery, recoverfull savedwitnesses atnewlyreached245p5 prefix. Any missing targetfreecapture/originalreconstruction parity requiresprospectivecard. No unchanged960pass/dose/rank orcase-specificservingrule."
+  }
+}

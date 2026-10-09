@@ -12,6 +12,16 @@ const NAME: &str = "prefix.coefficients";
 pub(super) struct Config {
     pub retained_intermediate_root: PathBuf,
     pub retained_probe_root: PathBuf,
+    #[serde(default)]
+    pub trajectory: Option<TrajectoryConfig>,
+}
+#[derive(Clone, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
+pub(super) struct TrajectoryConfig {
+    pub retained_prefix_learning_root: PathBuf,
+    pub retained_supplement_root: PathBuf,
+    pub expected_supplement_report_sha256: String,
+    pub expected_supplement_manifest_sha256: String,
 }
 pub(super) fn validate_settings(a: &Args) -> Result<()> {
     if let Some(c) = &a.prefix_fragment_learning {
@@ -36,10 +46,24 @@ pub(super) fn validate_settings(a: &Args) -> Result<()> {
                 && !a.categorical_action_only,
             "Prefix fragment requires exclusive original-parent one-pass joint mode",
         )?;
+        if let Some(t) = &c.trajectory {
+            replay_require(
+                t.expected_supplement_report_sha256
+                    == "0eddd892d5c1a188ee9816856853b672722c3f74ccd67a0f49cbb3e016b8a5d4"
+                    && t.expected_supplement_manifest_sha256
+                        == "5ae8d12f32ee68b2d1a7d82626305cc8fa0e30be1b118f89291b8ac116dad45d",
+                "trajectory exact supplement authority differs",
+            )?;
+        }
         replay_require(
             fs::canonicalize(&a.checkpoint)?
                 == fs::canonicalize(c.retained_intermediate_root.join("checkpoint-0001"))?
-                && a.maximum_report_bytes <= 256 * 1024 * 1024,
+                && a.maximum_report_bytes
+                    <= if c.trajectory.is_some() {
+                        512 * 1024 * 1024
+                    } else {
+                        256 * 1024 * 1024
+                    },
             "Prefix original parent/report admission differs",
         )?;
     }
@@ -67,16 +91,353 @@ fn transaction_accept(current: &Value, staged: &Value) -> Result<bool> {
     )?;
     Ok(after < before - 1e-10 * (1. + before.abs()) && staged["correct_reference_frames"] == 17)
 }
+
+fn trajectory_policy() -> Value {
+    json!({"schema":"uor-r4.prefix-trajectory-learning/1","active_family":NAME,"initialization":"ORIGINAL selected parent actual fractionalPrefix/Source9f/Cue/G4248/U82ae","gradient":"REUSED authenticated original18 weighted raw960 gradient and frozen actualdelta order; zero new backward","construction":"one960 preferredadjacent pass; strictcurrent18CE tolerance1e-10*(1+abs(old)) +17 original objective winners +all380 original correct-prefix winners eachacceptedtransaction; no rerank/refill/revisit","guard_population":"generic ALL selected parent canonical-correct actualprefixes before firstdivergence, including completeEOS;377full+1existingfull+2supplements","final":"strictoriginal18CE and exacttaskprobability increase plus380/17retention; actual267chosen separately; cheapownfeedback conditional, not implicit qualification","frozen":"Source/Context/Potential/Cue/joint/G/map/bridge/Ucoefficients and all Prefix featurestates; Gvectors depend on earliestBASEphysicaldonor","selected_model":false})
+}
+fn correct_prefix_terms(raw: &Value, index: usize, id: &str) -> Result<Vec<Value>> {
+    replay_require(raw["id"] == id, "trajectory raw ID differs")?;
+    let ids: Vec<u32> = shared::dec(&raw["generated_ids"])?;
+    let targets: Vec<u32> = shared::dec(&raw["canonical_target_ids_labels_only"])?;
+    let steps = raw["generation"]
+        .as_array()
+        .ok_or_else(|| bad("trajectory generation absent"))?;
+    replay_require(
+        steps.len() == ids.len()
+            && raw["eos"] == json!(ids.last() == Some(&1))
+            && !ids[..ids
+                .len()
+                .saturating_sub(usize::from(ids.last() == Some(&1)))]
+                .contains(&1),
+        "trajectory step/EOS coverage differs",
+    )?;
+    for (position, step) in steps.iter().enumerate() {
+        replay_require(
+            step["actual_prefix_ids"] == json!(&ids[..position])
+                && step["pool"]["summary"]["chosen_token_id"] == ids[position],
+            "trajectory actual winner/prefix chain differs",
+        )?;
+    }
+    Ok(ids.iter().zip(&targets).enumerate().take_while(|(_, (a,b))|a==b).map(|(position,(_,target))|json!({"index":index,"position":position,"id":id,"target":target,"actual_prefix_ids":&ids[..position]})).collect())
+}
+fn guard_digest(frames: &[shared::Frame], pools: &[shared::Pool]) -> Result<String> {
+    replay_require(
+        frames.len() == pools.len(),
+        "trajectory guard digest shape differs",
+    )?;
+    Ok(sha256_bytes(&serde_json::to_vec(&frames.iter().zip(pools).map(|(f,p)|json!({"index":f.input,"position":f.position,"target":f.target,"donor":p.donor,"pool":p.trace.summary})).collect::<Vec<_>>())?))
+}
+fn guard_incidence(frames: &[shared::Frame]) -> Result<Vec<Vec<usize>>> {
+    key_incidence(frames.iter().map(|f| &f.cue_keys))
+}
+fn key_incidence<'a>(
+    frames: impl Iterator<Item = &'a Vec<Vec<Option<usize>>>>,
+) -> Result<Vec<Vec<usize>>> {
+    let mut rows = vec![Vec::new(); 960];
+    for (i, candidates) in frames.enumerate() {
+        let mut keys = std::collections::BTreeSet::new();
+        for row in candidates {
+            replay_require(
+                row.len() == 8 && row.iter().all(Option::is_some),
+                "trajectory Prefix incidence must be unmasked eight lanes",
+            )?;
+            for key in row.iter().flatten() {
+                replay_require(*key < 960, "trajectory incidence key outside960")?;
+                keys.insert(*key);
+            }
+        }
+        for key in keys {
+            rows[key].push(i);
+        }
+    }
+    Ok(rows)
+}
+fn stage_affected<T>(
+    affected: &[usize],
+    mut evaluate: impl FnMut(usize) -> Result<T>,
+) -> Result<Vec<(usize, T)>> {
+    affected.iter().map(|i| Ok((*i, evaluate(*i)?))).collect()
+}
+fn compact_guard_pool(mut pool: shared::Pool) -> shared::Pool {
+    pool.trace.actions = Vec::new();
+    pool
+}
+fn pools_numeric_bytes(pools: &[shared::Pool]) -> u64 {
+    pools
+        .iter()
+        .map(|p| {
+            (std::mem::size_of_val(p)
+                + std::mem::size_of_val(&p.generate[..])
+                + std::mem::size_of_val(&p.copy[..])
+                + std::mem::size_of_val(&p.base_copy[..])
+                + std::mem::size_of_val(&p.post[..])
+                + std::mem::size_of_val(&p.trace.actions[..])
+                + std::mem::size_of_val(&p.trace.token_masses[..])) as u64
+        })
+        .sum()
+}
+fn compact_guard_row(f: &shared::Frame, p: &shared::Pool, index: usize) -> Result<Value> {
+    Ok(
+        json!({"guard_index":index,"input_index":f.input,"position":f.position,"required_original_winner":f.target,"chosen":p.trace.summary.chosen_token_id,"donor":p.donor,"pool":p.trace.summary,
+     "generate_q24_sha256":sha256_bytes(&serde_json::to_vec(&p.generate)?),"copy_q24_sha256":sha256_bytes(&serde_json::to_vec(&p.copy)?)}),
+    )
+}
+fn prepare_trajectory_guards(
+    a: &Args,
+    c: &Config,
+    tc: &TrajectoryConfig,
+    frames: &[shared::Frame],
+    p: &ContinuationParent,
+    parent: &[f32],
+    cache: &mut shared::DonorCache,
+    reducer: &mut NativeVocabularyActions,
+) -> Result<(Vec<shared::Frame>, Vec<shared::Pool>, Value)> {
+    let report = shared::sealed(
+        &c.retained_intermediate_root,
+        shared::P_REPORT,
+        shared::P_SEAL,
+    )?;
+    let supplement = shared::sealed(
+        &tc.retained_supplement_root,
+        &tc.expected_supplement_report_sha256,
+        &tc.expected_supplement_manifest_sha256,
+    )?;
+    replay_require(
+        supplement["status"] == "COMPLETED"
+            && supplement["endpoint_kind"] == "selected_original_trajectory_supplement"
+            && supplement["frame_count"] == 2
+            && supplement["source_binding"] == json!(p.binding)
+            && supplement["generate_sha256"] == shared::G_SHA
+            && supplement["continuation_sha256"] == shared::U_SHA,
+        "trajectory supplement epoch/cohort differs",
+    )?;
+    let fullfile = c
+        .retained_intermediate_root
+        .join("exported-candidate-protected-pools.json");
+    replay_require(
+        sha256_file(&fullfile)?
+            == "fcde63e9fc12f218b866b71323601485db7f93fd1b69a54beec91e87a7b84fad",
+        "trajectory original377 pool pin differs",
+    )?;
+    // Deserialize once: no intermediate Value clone of the full377 tree.
+    let full: Vec<Value> = serde_json::from_reader(fs::File::open(&fullfile)?)?;
+    replay_require(full.len() == 377, "trajectory original377 count differs")?;
+    let mut saved = BTreeMap::new();
+    for row in full {
+        let input = shared::idx(&row["term"]["index"])?;
+        let position = shared::idx(&row["term"]["position"])?;
+        replay_require(
+            saved.insert((input, position), row).is_none(),
+            "duplicate original guard identity",
+        )?;
+    }
+    let mut additions = BTreeMap::new();
+    for f in frames {
+        if !saved.contains_key(&(f.input, f.position)) && !(f.input == 245 && f.position == 4) {
+            replay_require(
+                additions
+                    .insert((f.input, f.position), f.native.clone())
+                    .is_none(),
+                "duplicate objective guard addition",
+            )?;
+        }
+    }
+    for row in supplement["frames"]
+        .as_array()
+        .ok_or_else(|| bad("supplement frames absent"))?
+    {
+        let input = shared::idx(&row["input_index"])?;
+        let position = shared::idx(&row["position"])?;
+        let leaf = row["file"]
+            .as_str()
+            .ok_or_else(|| bad("supplement file absent"))?;
+        replay_require(
+            Path::new(leaf).components().count() == 1,
+            "supplement leaf invalid",
+        )?;
+        let file = tc.retained_supplement_root.join(leaf);
+        replay_require(
+            sha256_file(&file)?
+                == row["sha256"]
+                    .as_str()
+                    .ok_or_else(|| bad("supplement SHA absent"))?,
+            "supplement raw hash differs",
+        )?;
+        let v = read(&file)?;
+        replay_require(
+            v["input_index"] == input
+                && v["position"] == position
+                && v["capture_target_free"] == true
+                && v["label_access_before_capture"] == false
+                && v["controls"]["generate_only"] == "NOT_RUN"
+                && v["controls"]["copy_u_removed"] == "NOT_RUN"
+                && !saved.contains_key(&(input, position))
+                && additions.insert((input, position), v).is_none(),
+            "supplement frame identity/duplicate differs",
+        )?;
+    }
+    replay_require(
+        additions.len() == 3,
+        "trajectory correct-prefix supplement population differs",
+    )?;
+    let mut guards = Vec::new();
+    let mut pools = Vec::new();
+    let mut authority = Vec::new();
+    let mut original_native_serialized_bytes = 0u64;
+    let episodes = read(&a.training_inputs)?;
+    let summaries = report["final_evaluation"]["rows"]
+        .as_array()
+        .ok_or_else(|| bad("selected trajectory rows absent"))?;
+    replay_require(
+        summaries.len() == 512,
+        "selected trajectory512 coverage differs",
+    )?;
+    for (input, row) in summaries.iter().enumerate() {
+        let id = row["id"]
+            .as_str()
+            .ok_or_else(|| bad("trajectory ID absent"))?;
+        replay_require(
+            episodes["cases"][input]["id"] == id,
+            "trajectory input ID differs",
+        )?;
+        let leaf = row["row_file"]
+            .as_str()
+            .ok_or_else(|| bad("trajectory rawfile absent"))?;
+        replay_require(
+            Path::new(leaf).components().count() == 1,
+            "trajectory leaf invalid",
+        )?;
+        let file = c.retained_intermediate_root.join(leaf);
+        let rawhash = sha256_file(&file)?;
+        replay_require(
+            rawhash
+                == row["row_sha256"]
+                    .as_str()
+                    .ok_or_else(|| bad("trajectory raw SHA absent"))?,
+            "trajectory raw receipt differs",
+        )?;
+        let raw = read(&file)?;
+        for term in correct_prefix_terms(&raw, input, id)? {
+            let position = shared::idx(&term["position"])?;
+            let target = term["target"]
+                .as_u64()
+                .ok_or_else(|| bad("guard target absent"))? as u32;
+            let prefix: Vec<u32> = shared::dec(&term["actual_prefix_ids"])?;
+            let (mut native, source) = if let Some(full) = saved.remove(&(input, position)) {
+                replay_require(
+                    full["id"] == id
+                        && full["actual_prefix_ids"] == term["actual_prefix_ids"]
+                        && full["term"]["target"] == target
+                        && full["pool"]["chosen_token_id"] == target,
+                    "original full guard actual binding differs",
+                )?;
+                let g: Vec<i64> = shared::dec(&full["generate_q24"])?;
+                let copy: Vec<i64> = shared::dec(&full["copy_q24"])?;
+                let ids: Vec<u32> = shared::dec(&full["copy_ids"])?;
+                let trace = reducer.reduce_trace(&g, &ids, &copy)?;
+                replay_require(
+                    json!(trace.summary) == full["pool"]
+                        && json!(trace.token_masses) == full["token_masses"],
+                    "original full guard pool replay differs",
+                )?;
+                (
+                    json!({"bank_trace":full["bank_trace"],"bridge":full["bridge"],"generate_q24":g,"copy_q24":copy,"copy_ids":ids,"pool":{"summary":trace.summary,"token_masses":trace.token_masses},
+                 "continuation":{"state_codes":raw["generation"][position]["continuation"]["state_codes"],"query_tokens":raw["generation"][position]["continuation"]["query_tokens"],"actual_prefix_tokens":raw["generation"][position]["continuation"]["actual_prefix_tokens"],"delta_scores_q24":full["frozen_u_q24"]}}),
+                    "retained_full377",
+                )
+            } else {
+                (
+                    additions.remove(&(input, position)).ok_or_else(|| {
+                        bad("selected correct prefix lacks complete native witness")
+                    })?,
+                    "retained_addition",
+                )
+            };
+            native["pool"]
+                .as_object_mut()
+                .ok_or_else(|| bad("guard pool authority absent"))?
+                .remove("actions");
+            native["pool_action_trace"] = json!("OMITTED_RECONSTRUCTIBLE_FROM_COMPLETE_SCORES; complete raw scores/masses/summary retained; no action-record Value allocation");
+            replay_require(
+                native["pool"]["summary"]["chosen_token_id"] == target
+                    && native["pool"]["summary"] == raw["generation"][position]["pool"]["summary"],
+                "guard original fullsummary differs from actual selected output",
+            )?;
+            let delta: Vec<i64> = shared::dec(&native["continuation"]["delta_scores_q24"])?;
+            replay_require(
+                sha256_bytes(&serde_json::to_vec(&delta)?)
+                    == raw["generation"][position]["continuation"]["delta_scores_q24_sha256"]
+                        .as_str()
+                        .ok_or_else(|| bad("guard U SHA absent"))?
+                    && native["continuation"]["state_codes"]
+                        == raw["generation"][position]["continuation"]["state_codes"],
+                "guard U actual state/vector differs",
+            )?;
+            // Guard membership never contributes additional objective weight.
+            let weight = 0.;
+            let mut f = shared::parse_saved_native_frame(
+                input,
+                position,
+                id.into(),
+                prefix,
+                target,
+                weight,
+                &native,
+                p,
+                true,
+            )?;
+            replay_require(
+                f.trace.query.token_ids
+                    == shared::dec::<Vec<u32>>(&episodes["cases"][input]["query_ids"])?,
+                "guard query packet differs",
+            )?;
+            let pool = shared::score(18 + guards.len(), &f, parent, parent, p, cache, reducer)?;
+            replay_require(
+                json!(pool.generate) == native["generate_q24"]
+                    && json!(pool.copy) == native["copy_q24"]
+                    && json!(pool.trace.summary) == native["pool"]["summary"]
+                    && json!(pool.trace.token_masses) == native["pool"]["token_masses"]
+                    && pool.trace.summary.chosen_token_id == target,
+                "guard baseline donor/native fullvector parity differs",
+            )?;
+            native["pool"]
+                .as_object_mut()
+                .ok_or_else(|| bad("guard saved pool object absent"))?
+                .remove("actions");
+            original_native_serialized_bytes = original_native_serialized_bytes
+                .checked_add(serde_json::to_vec(&native)?.len() as u64)
+                .ok_or_else(|| bad("guard serialization size overflow"))?;
+            authority.push(json!({"input_index":input,"position":position,"id":id,"required_original_winner":target,"actual_prefix_ids":f.prefix,"selected_raw_file":leaf,"selected_raw_sha256":rawhash,"witness_source":source}));
+            // Keep only occurrence identity and U encoder receipts; numerical vectors live in typed fields.
+            native = json!({"bank_trace":{"cue_bank":{"bank":{"candidates":native["bank_trace"]["cue_bank"]["bank"]["candidates"]}}},"continuation":{"state_codes":native["continuation"]["state_codes"],"query_tokens":native["continuation"]["query_tokens"],"actual_prefix_tokens":native["continuation"]["actual_prefix_tokens"]}});
+            f.native = native;
+            f.prefix_trace = None;
+            guards.push(f);
+            pools.push(compact_guard_pool(pool));
+        }
+    }
+    replay_require(
+        guards.len() == 380 && saved.is_empty() && additions.is_empty(),
+        "complete selected380 guard population differs",
+    )?;
+    let receipt = json!({"guards":380,"original_native_serialized_bytes":original_native_serialized_bytes,"original_full377_sha256":"fcde63e9fc12f218b866b71323601485db7f93fd1b69a54beec91e87a7b84fad","selected_report_sha256":shared::P_REPORT,"selected_manifest_sha256":shared::P_SEAL,"supplement_report_sha256":tc.expected_supplement_report_sha256,"supplement_manifest_sha256":tc.expected_supplement_manifest_sha256,"terms":authority,"baseline_digest":guard_digest(&guards,&pools)?,"selection":"ALL canonical-correct actual prefixes before first divergence, including original complete EOS; generic identity union, no added runtime labels"});
+    Ok((guards, pools, receipt))
+}
+
 pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
     validate_settings(a)?;
-    replay_require(
-        !d.is_cpu(),
-        "Prefix coefficient graph requires admitted CUDA device",
-    )?;
     let c = a
         .prefix_fragment_learning
         .as_ref()
         .ok_or_else(|| bad("Prefix config absent"))?;
+    replay_require(
+        if c.trajectory.is_some() {
+            d.is_cpu()
+        } else {
+            !d.is_cpu()
+        },
+        "Prefix trajectory uses host integer construction; fresh gradient mode requires CUDA",
+    )?;
     shared::sealed(
         &c.retained_intermediate_root,
         shared::P_REPORT,
@@ -148,7 +509,7 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
         retained_probe_root: c.retained_probe_root.clone(),
         retained_finite_root: c.retained_probe_root.clone(),
     };
-    let (frames, baseline) = shared::prepare_frames(a, &seed, &original, &original, true)?;
+    let (mut frames, baseline) = shared::prepare_frames(a, &seed, &original, &original, true)?;
     let ng = NativeGeometricGenerate::from_bytes(&original.generate, original.integer.binding())?;
     let field = NativeContinuationField::from_bytes(
         &fs::read(a.checkpoint.join("continuation-field.bin"))?,
@@ -194,7 +555,11 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
   "numeric_cap":536870912,"report_cap":a.maximum_report_bytes,"process_ram_cap":4294967296u64,"temporary_cap":536870912,
   "threads":2,"donor_cache_cap":shared::CACHE_LIMIT,"scope":"saved nativeframes/rawvectors/stagedpools/cache; model/autodiff tensors charged separately to process RAM"}),
     )?;
-    let mut cache = shared::DonorCache::new(&original);
+    let mut cache = if c.trajectory.is_some() {
+        shared::DonorCache::with_limit(&original, 128 * 1024 * 1024)?
+    } else {
+        shared::DonorCache::new(&original)
+    };
     let mut reducer =
         NativeVocabularyActions::new(original.integer.binding().clone(), &original.exp)?;
     let mut pools = frames
@@ -208,26 +573,180 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
         "Prefix ORIGINAL native initial objective differs",
     )?;
     write(a, "initial-original-objective.json", &initial)?;
-    let g = GenerateLearningWeights::from_native(original.integer.binding().clone(), &ng, d)?;
-    restore(
-        &a.checkpoint.join("generate-source"),
-        &read(&a.checkpoint.join("generate-source/metadata.json"))?["parameters"],
-        &g.parameters(),
-        d,
-    )?;
-    let gradients = shared::gradient(
-        a,
-        start,
-        &frames,
-        &original,
-        &shared::ActiveCredit::Prefix(&active),
-        &g,
-        &parent,
-        &pools,
-        &mut cache,
-    )?;
-    drop(g);
+    // Check complete original objective hard pools before discarding duplicate
+    // action-record JSON; retain the typed full traces for final task reload.
+    if c.trajectory.is_some() {
+        for (f, pool) in frames.iter().zip(&pools) {
+            replay_require(
+                json!(pool.generate) == f.native["generate_q24"]
+                    && json!(pool.copy) == f.native["copy_q24"]
+                    && json!(pool.trace) == f.native["pool"],
+                "trajectory original18 full rawpool parity differs before authority compaction",
+            )?;
+        }
+        for f in &mut frames {
+            f.native["pool"]
+                .as_object_mut()
+                .ok_or_else(|| bad("objective pool authority absent"))?
+                .remove("actions");
+            f.native["pool_action_trace"] = json!("OMITTED_RECONSTRUCTIBLE_FROM_COMPLETE_SCORES; typed objective traces and complete raw vectors/masses retained");
+        }
+    }
+    let retained_objective_bytes = frames.iter().try_fold(0u64, |sum, f| {
+        Ok::<_, Box<dyn std::error::Error>>(sum + serde_json::to_vec(&f.native)?.len() as u64)
+    })?;
+
+    let (guard_frames, mut guard_pools, guard_authority) = if let Some(tc) = &c.trajectory {
+        prepare_trajectory_guards(
+            a,
+            c,
+            tc,
+            &frames,
+            &original,
+            &parent,
+            &mut cache,
+            &mut reducer,
+        )?
+    } else {
+        (Vec::new(), Vec::new(), Value::Null)
+    };
+    let incidence = guard_incidence(&guard_frames)?;
+    let mut guard_state_digest = guard_digest(&guard_frames, &guard_pools)?;
+    if c.trajectory.is_some() {
+        let pool_bytes = pools_numeric_bytes(&guard_pools);
+        let typed_frames = guard_frames
+            .iter()
+            .map(|f| {
+                f.u.len() as u64 * 8
+                    + f.base_copy.len() as u64 * 8
+                    + f.ids.len() as u64 * 4
+                    + f.sources.iter().map(|s| s.len() as u64).sum::<u64>()
+                    + serde_json::to_vec(&f.native).map_or(u64::MAX, |b| b.len() as u64 * 8)
+                    + 4096
+            })
+            .sum::<u64>();
+        let numerical = cache.limit as u64
+            + 2 * pool_bytes
+            + typed_frames
+            + retained_objective_bytes * 8
+            + pools_numeric_bytes(&pools)
+            + 32 * 1024 * 1024;
+        let original_native = guard_authority["original_native_serialized_bytes"]
+            .as_u64()
+            .ok_or_else(|| bad("guard byte projection absent"))?;
+        let projection = size(&a.checkpoint)?
+            + original_native
+            + 380 * (4096 * 64 + 65536)
+            + saved_bytes
+            + 64 * 1024 * 1024;
+        write(
+            a,
+            "trajectory-resource-projection.json",
+            &json!({"actual_retained_guard_pool_bytes":pool_bytes,"typed_guard_frame_bound":typed_frames,"original_serialized_guard_native_bytes":original_native,"numeric_upper_bound":numerical,"report_projection_bytes":projection,"donor_cache_cap":cache.limit,"owner_donor_cache_cap":268435456,"original_objective_serialized_bytes_before_omission":saved_bytes,"retained_objective_serialized_bytes_after_omission":retained_objective_bytes,"objective_typed_pool_bytes":pools_numeric_bytes(&pools),"metadata_allocator_margin":33554432,"original18_full_raw_pool_parity_before_omission":true,"original377_complete_raw_summary_mass_parity_before_retention":true,"numeric_pass":numerical<=536870912,"report_pass":projection+1048576<a.maximum_report_bytes,"numeric_cap":536870912,"report_cap":a.maximum_report_bytes,"process_ram_cap":4294967296u64,"temporary_cap":536870912,"export_projection_margin_per_guard":327680,"scope":"coexisting current/staged380 numericalpools, slim retainedframe authority, cache/metadata/allocator margin; no autodiff tensors in trajectorymode"}),
+        )?;
+        replay_require(
+            numerical <= 512 * 1024 * 1024 && projection + 1048576 < a.maximum_report_bytes,
+            "trajectory cached numerical/export serialization projection exceeded; persisted projection components",
+        )?;
+        write(a, "trajectory-protected-population.json", &guard_authority)?;
+        write(
+            a,
+            "trajectory-key-incidence.json",
+            &json!({"coordinates":960,"guard_rows":380,"coordinate_rows":incidence,"semantics":"unique affected guard indices from every physical candidate's eight unmasked Prefix keys; duplicate physical multiplicity retained by staged_base"}),
+        )?;
+    }
+    let gradients = if let Some(tc) = &c.trajectory {
+        let old = shared::sealed(
+            &tc.retained_prefix_learning_root,
+            CANDIDATE_REPORT,
+            CANDIDATE_SEAL,
+        )?;
+        replay_require(
+            old["mode"] == "prefix_fragment_learning"
+                && old["baseline_objective"] == baseline
+                && sha256_file(
+                    &tc.retained_prefix_learning_root
+                        .join("prefix-gradient.f32le"),
+                )? == "884ec30f0289b407ead62b558628a6b7eb69643e3b5ec5dd4c1e65a7250d4614"
+                && sha256_file(
+                    &tc.retained_prefix_learning_root
+                        .join("frozen-prefix-ranking.json"),
+                )? == "5eec881b82b556b102521272a1444578768230a6b807ad71893b695881ec516b"
+                && sha256_file(
+                    &tc.retained_prefix_learning_root
+                        .join("prefix-initial-masters.f32le"),
+                )? == "1e47a7dff9134d393043a2313a7da50ea234d1b1ae7888d895e3604855ac0fe3"
+                && sha256_file(
+                    &tc.retained_prefix_learning_root
+                        .join("prefix-gradient-receipt.json"),
+                )? == "056ba2c6d4924d7be2ae4dd63da5ed20e483e4a7cdf1c2a3d8fdf4a33d903eea",
+            "trajectory reused18 gradient/rank authority differs",
+        )?;
+        let old_parent = shared::floats(
+            &tc.retained_prefix_learning_root
+                .join("prefix-initial-masters.f32le"),
+        )?;
+        replay_require(
+            parent
+                .iter()
+                .zip(&old_parent)
+                .all(|(a, b)| a.to_bits() == b.to_bits())
+                && old_parent.len() == 960,
+            "trajectory gradient initial fractional masters differ",
+        )?;
+        let raw_gradient = fs::read(
+            tc.retained_prefix_learning_root
+                .join("prefix-gradient.f32le"),
+        )?;
+        replay_require(
+            raw_gradient.len() == 3840,
+            "trajectory savedgradient byte shape differs",
+        )?;
+        let g = raw_gradient
+            .chunks_exact(4)
+            .map(|b| f32::from_le_bytes([b[0], b[1], b[2], b[3]]))
+            .collect::<Vec<_>>();
+        replay_require(
+            g.len() == 960 && g.iter().all(|x| x.is_finite()),
+            "trajectory savedgradient domain differs",
+        )?;
+        write(
+            a,
+            "reused-prefix-gradient.json",
+            &json!({"root":tc.retained_prefix_learning_root,"report_sha256":CANDIDATE_REPORT,"manifest_sha256":CANDIDATE_SEAL,"raw_gradient_sha256":"884ec30f0289b407ead62b558628a6b7eb69643e3b5ec5dd4c1e65a7250d4614","ranking_sha256":"5eec881b82b556b102521272a1444578768230a6b807ad71893b695881ec516b","gradient_receipt_sha256":"056ba2c6d4924d7be2ae4dd63da5ed20e483e4a7cdf1c2a3d8fdf4a33d903eea","new_backward_calls":0,"old427_acceptance_statuses":"NOT_AUTHORITY; all transactions recomputed under complete original380 guard","objective":"unchanged18; no new guard loss weights"}),
+        )?;
+        g
+    } else {
+        let g = GenerateLearningWeights::from_native(original.integer.binding().clone(), &ng, d)?;
+        restore(
+            &a.checkpoint.join("generate-source"),
+            &read(&a.checkpoint.join("generate-source/metadata.json"))?["parameters"],
+            &g.parameters(),
+            d,
+        )?;
+        shared::gradient(
+            a,
+            start,
+            &frames,
+            &original,
+            &shared::ActiveCredit::Prefix(&active),
+            &g,
+            &parent,
+            &pools,
+            &mut cache,
+        )?
+    };
     let ranking = shared::ranking(&parent, &gradients)?;
+    if let Some(tc) = &c.trajectory {
+        replay_require(
+            json!(ranking)
+                == read(
+                    &tc.retained_prefix_learning_root
+                        .join("frozen-prefix-ranking.json"),
+                )?,
+            "trajectory frozen actualdelta order differs",
+        )?;
+    }
     write(a, "frozen-prefix-ranking.json", &json!(ranking))?;
     let mut current = parent.clone();
     let mut value = initial.clone();
@@ -237,7 +756,7 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
         shared::progress(a, start)?;
         if m.status != "eligible" {
             trials.push(json!({"order":order,"move":m,"status":m.status,"current":value,"staged":"NOT_RUN",
-    "native_effect":"no code displacement; existing18 full pools reused","original_gate":shared::gate(&baseline,&value)?}));
+    "native_effect":"no code displacement; existing18 full pools reused","original_gate":shared::gate(&baseline,&value)?,"trajectory_guard":{"population":guard_frames.len(),"affected_guard_indices":[],"checked_affected":0,"accepted_guard_digest_before":guard_state_digest,"accepted_guard_digest_after":guard_state_digest,"unchanged_no_native_code_displacement":true}}));
             continue;
         }
         let before = value.clone();
@@ -259,15 +778,44 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
             })
             .collect::<Result<Vec<_>>>()?;
         let next = shared::objective(&frames, &staged)?;
-        let accept = transaction_accept(&value, &next)?;
+        let affected = &incidence[m.index];
+        let staged_guards = stage_affected(affected, |i| {
+            shared::score(
+                18 + i,
+                &guard_frames[i],
+                &parent,
+                &proposed,
+                &original,
+                &mut cache,
+                &mut reducer,
+            )
+            .map(compact_guard_pool)
+        })?;
+        let first_failure = staged_guards
+            .iter()
+            .find(|(i, p)| p.trace.summary.chosen_token_id != guard_frames[*i].target)
+            .map(|(i, p)| compact_guard_row(&guard_frames[*i], p, *i))
+            .transpose()?;
+        let objective_gate = transaction_accept(&value, &next)?;
+        let accept = objective_gate && first_failure.is_none();
+        let guard_trial = json!({"population":guard_frames.len(),"affected_guard_indices":affected,"checked_affected":staged_guards.len(),"unaffected_reused":guard_frames.len()-affected.len(),"first_failure":first_failure,
+            "staged_affected_digest":sha256_bytes(&serde_json::to_vec(&staged_guards.iter().map(|(i,p)|compact_guard_row(&guard_frames[*i],p,*i)).collect::<Result<Vec<_>>>()?)?), "staged_digest_scope":"ordered complete affectedguard compact rows; reader independently reconstructs; no fullvector repetition",
+            "accepted_guard_digest_before":guard_state_digest,"all_original380_winners":c.trajectory.is_some() && first_failure.is_none()});
         trials.push(json!({"order":order,"move":m,"status":if accept{"accepted"}else{"rejected"},"before":before,"staged":next,
-   "native_all18_checked":true,"strict_current_ce_and_all17_original_winners":accept,
+   "native_all18_checked":true,"strict_current_ce_and_all17_original_winners":objective_gate,"trajectory_guard":guard_trial,
    "original_task_probability_improved":shared::improved(&baseline,&next)?,"original_gate":shared::gate(&baseline,&next)?}));
         if accept {
+            for (i, pool) in staged_guards {
+                guard_pools[i] = pool;
+            }
+            guard_state_digest = guard_digest(&guard_frames, &guard_pools)?;
             current = proposed;
             pools = staged;
             value = next;
             accepted += 1;
+        }
+        if let Some(last) = trials.last_mut() {
+            last["trajectory_guard"]["accepted_guard_digest_after"] = json!(guard_state_digest);
         }
     }
     write(
@@ -276,7 +824,7 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
         &json!({"coordinates":960,"accepted":accepted,"trials":trials,"initial":initial,
   "final_objective":value,"frozen_order":true,"revisited_coordinates":0,"cache_peak_bytes":cache.peak,
   "donor_recomputations":cache.calls,"cache_identity":{"source_binding":cache.source_binding,"generate_sha256":cache.generate_sha256,"bridge_sha256":cache.bridge_sha256},
-  "cache_key":"physical ordinal/frame/occurrence state within immutable Source/G/bridge epoch","accepted_guard":"all17 original winners on every accepted transaction"}),
+  "cache_key":"physical ordinal/frame/occurrence state within immutable Source/G/bridge epoch","accepted_guard":if c.trajectory.is_some(){"all380 original correct-prefix winners plus17 objective reference winners on every accepted transaction"}else{"all17 original winners on every accepted transaction"},"protected_population":guard_frames.len(),"final_guard_digest":guard_state_digest,"donor_cache_cap":cache.limit}),
     )?;
     let params = active.parameters();
     let saved = np::snapshot(&params)?;
@@ -303,7 +851,8 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
    "categorical":loaded.categorical.as_ref().map(|x|identities(&x.parameters())).transpose()?}),
             "Prefix frozen model master bits changed",
         )?;
-        let (cp, u, receipt) = shared::export_joint(a, &loaded, &cue, Some(&active), &original, d)?;
+        let (cp, u, mut receipt) =
+            shared::export_joint(a, &loaded, &cue, Some(&active), &original, d)?;
         replay_require(
             cp.binding == original.binding
                 && cp.generate == original.generate
@@ -318,7 +867,36 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
                 == fs::read(a.checkpoint.join("cue/cue-source-f32.bin"))?,
             "Prefix frozen Cue f32 bits changed",
         )?;
-        shared::reload_candidate(a, &cp, &u, &frames, &pools)?;
+        if c.trajectory.is_some() {
+            receipt["mode"] = json!("prefix_trajectory_learning");
+            receipt["new_gradients"] = json!(0);
+            receipt["coefficient_backward_calls"] = json!(0);
+            receipt["credit_scope"]=json!("reused original18 Prefix-only gradient/rank; no new backward or optimizer; native380 hardtrajectoryguard");
+            receipt["policy"] = trajectory_policy();
+            receipt["inherited_gradient_credit"] = receipt["credit"].clone();
+            receipt["credit"] = json!({"new_backward_calls":0,"authority":"reused-prefix-gradient.json","selection":"identical authenticated original960 order and actual initial masters; prior accepted statuses are not authority"});
+            let encoded_receipt = serde_json::to_vec_pretty(&receipt)?;
+            for leaf in [
+                "checkpoint-0001/receipt.json",
+                "checkpoint-0001/continuation-source/metadata.json",
+            ] {
+                fs::write(a.out.join(leaf), &encoded_receipt)?;
+            }
+            shared::reload_guard_candidate(a, &cp, &u, &guard_frames, &guard_pools)?;
+            let task_index = frames
+                .iter()
+                .position(|f| f.input == 245 && f.position == 4)
+                .ok_or_else(|| bad("trajectory task missing"))?;
+            shared::reload_candidate(
+                a,
+                &cp,
+                &u,
+                &frames[task_index..task_index + 1],
+                &pools[task_index..task_index + 1],
+            )?;
+        } else {
+            shared::reload_candidate(a, &cp, &u, &frames, &pools)?;
+        }
         Ok(receipt)
     });
     replay_require(
@@ -335,13 +913,24 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
         .ok_or_else(|| bad("Prefix task term absent"))?;
     let corrected = task["pool"]["chosen_token_id"] == 267;
     write(a, "final-objective.json", &value)?;
+    let all_trajectory_preserved = guard_frames
+        .iter()
+        .zip(&guard_pools)
+        .all(|(f, p)| f.target == p.trace.summary.chosen_token_id);
+    if c.trajectory.is_some() {
+        write(
+            a,
+            "final-trajectory-guards.json",
+            &json!({"guards":380,"all_original_winners":all_trajectory_preserved,"digest":guard_state_digest,"terms":guard_frames.iter().zip(&guard_pools).enumerate().map(|(i,(f,p))|compact_guard_row(f,p,i)).collect::<Result<Vec<_>>>()?}),
+        )?;
+    }
     Ok(
-        json!({"schema":"uor-r4.prefix-fragment-learning/1","status":"COMPLETED","mode":"prefix_fragment_learning","policy":policy(),
+        json!({"schema":if c.trajectory.is_some(){"uor-r4.prefix-trajectory-learning/1"}else{"uor-r4.prefix-fragment-learning/1"},"status":"COMPLETED","mode":if c.trajectory.is_some(){"prefix_trajectory_learning"}else{"prefix_fragment_learning"},"policy":if c.trajectory.is_some(){trajectory_policy()}else{policy()},
  "source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"baseline_objective":baseline,"initial_original":initial,"candidate_objective":value,
  "final_gate":final_gate,"finite_prefix_positive":final_gate["finite_joint_positive"],"actual_fragment_corrected":corrected,
- "qualified_fragment":final_gate["finite_joint_positive"]==true && corrected,"selected_model":false,"useful_candidate":false,
- "candidate_receipt":receipt,"parent_master_bits_restored":true,"new_prefix_gradients":1,"prefix_backward_calls":18,
- "new_context_gradients":0,"new_cue_gradients":0,"optimizer_updates":0,"candidate_native_steps":18,"baseline_encoder_calls":0,
+ "qualified_fragment":final_gate["finite_joint_positive"]==true && corrected && all_trajectory_preserved,"all_original380_preserved":c.trajectory.is_some() && all_trajectory_preserved,"protected_population":guard_frames.len(),"selected_model":false,"useful_candidate":false,
+ "candidate_receipt":receipt,"parent_master_bits_restored":true,"new_prefix_gradients":if c.trajectory.is_some(){0}else{1},"prefix_backward_calls":if c.trajectory.is_some(){0}else{18},
+ "new_context_gradients":0,"new_cue_gradients":0,"optimizer_updates":0,"candidate_native_steps":if c.trajectory.is_some(){381}else{18},"baseline_encoder_calls":0,"execution_lane":if c.trajectory.is_some(){"host native integer construction/reload; CPU parameter storage only for coherent artifact export; no CUDA initialization, autodiff forward/backward or accelerator training"}else{"CUDA Prefix-only coefficient gradient then native integer construction"},
  "autoregressive_rollout":"NOT_RUN; parent admits cheap actual-artifact ownprefix/multiturn/original8 only after construction gate"}),
     )
 }
@@ -356,9 +945,35 @@ const PILOT_SHA: &str = "8d1e16617d99da7d63adf033bf685854739db8e0aaab5bcbcd758ae
 pub(super) struct ArtifactConfig {
     pub retained_candidate_root: PathBuf,
     pub retained_intermediate_root: PathBuf,
+    #[serde(default)]
+    pub trajectory_candidate: Option<TrajectoryArtifactAuthority>,
+}
+#[derive(Clone, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
+pub(super) struct TrajectoryArtifactAuthority {
+    pub expected_report_sha256: String,
+    pub expected_manifest_sha256: String,
+    pub expected_prefix_packed_sha256: String,
+    pub expected_prefix_master_sha256: String,
+}
+fn validate_trajectory_artifact_authority(c: &TrajectoryArtifactAuthority) -> Result<()> {
+    replay_require(
+        [
+            &c.expected_report_sha256,
+            &c.expected_manifest_sha256,
+            &c.expected_prefix_packed_sha256,
+            &c.expected_prefix_master_sha256,
+        ]
+        .iter()
+        .all(|h| h.len() == 64 && h.bytes().all(|b| b.is_ascii_hexdigit())),
+        "trajectory artifact external hashes invalid",
+    )
 }
 pub(super) fn validate_artifact_settings(a: &Args) -> Result<()> {
     if let Some(c) = &a.prefix_artifact_check {
+        if let Some(t) = &c.trajectory_candidate {
+            validate_trajectory_artifact_authority(t)?;
+        }
         replay_require(
             a.mode == Mode::JointContinuation
                 && a.updates == 1
@@ -425,14 +1040,74 @@ pub(super) fn run_artifact_check(a: &Args, start: Instant) -> Result<Value> {
         .prefix_artifact_check
         .as_ref()
         .ok_or_else(|| bad("Prefix artifact config absent"))?;
-    let report = shared::sealed(&c.retained_candidate_root, CANDIDATE_REPORT, CANDIDATE_SEAL)?;
+    let (report_pin, seal_pin, packed_pin, master_pin) = if let Some(t) = &c.trajectory_candidate {
+        validate_trajectory_artifact_authority(t)?;
+        (
+            t.expected_report_sha256.as_str(),
+            t.expected_manifest_sha256.as_str(),
+            t.expected_prefix_packed_sha256.as_str(),
+            t.expected_prefix_master_sha256.as_str(),
+        )
+    } else {
+        (
+            CANDIDATE_REPORT,
+            CANDIDATE_SEAL,
+            PREFIX_PACKED,
+            PREFIX_MASTER,
+        )
+    };
+    let report = shared::sealed(&c.retained_candidate_root, report_pin, seal_pin)?;
+    if c.trajectory_candidate.is_some() {
+        let gradient = read(
+            &c.retained_candidate_root
+                .join("reused-prefix-gradient.json"),
+        )?;
+        let protected = read(
+            &c.retained_candidate_root
+                .join("trajectory-protected-population.json"),
+        )?;
+        let final_guard = read(
+            &c.retained_candidate_root
+                .join("final-trajectory-guards.json"),
+        )?;
+        replay_require(
+            report["mode"] == "prefix_trajectory_learning"
+                && report["all_original380_preserved"] == true
+                && report["protected_population"] == 380
+                && report["new_prefix_gradients"] == 0
+                && report["prefix_backward_calls"] == 0
+                && report["selected_model"] == false
+                && gradient["raw_gradient_sha256"]
+                    == "884ec30f0289b407ead62b558628a6b7eb69643e3b5ec5dd4c1e65a7250d4614"
+                && gradient["ranking_sha256"]
+                    == "5eec881b82b556b102521272a1444578768230a6b807ad71893b695881ec516b"
+                && gradient["new_backward_calls"] == 0
+                && protected["guards"] == 380
+                && protected["original_full377_sha256"]
+                    == "fcde63e9fc12f218b866b71323601485db7f93fd1b69a54beec91e87a7b84fad"
+                && final_guard["guards"] == 380
+                && final_guard["all_original_winners"] == true
+                && final_guard["terms"].as_array().is_some_and(|rows| {
+                    rows.len() == 380
+                        && rows
+                            .iter()
+                            .all(|r| r["chosen"] == r["required_original_winner"])
+                }),
+            "trajectory candidate complete guard/savedgradient authority differs",
+        )?;
+    }
     let parent_report = shared::sealed(
         &c.retained_intermediate_root,
         shared::P_REPORT,
         shared::P_SEAL,
     )?;
     replay_require(
-        report["mode"] == "prefix_fragment_learning"
+        report["mode"]
+            == if c.trajectory_candidate.is_some() {
+                "prefix_trajectory_learning"
+            } else {
+                "prefix_fragment_learning"
+            }
             && report["finite_prefix_positive"] == true
             && report["actual_fragment_corrected"] == true
             && report["qualified_fragment"] == true
@@ -459,8 +1134,8 @@ pub(super) fn run_artifact_check(a: &Args, start: Instant) -> Result<Value> {
         cp.binding.metadata_sha256 == shared::SOURCE
             && sha256_bytes(&cp.generate) == shared::G_SHA
             && sha256_file(&a.checkpoint.join("continuation-field.bin"))? == shared::U_SHA
-            && sha256_file(&a.checkpoint.join("prefix/prefix-q4.bin"))? == PREFIX_PACKED
-            && sha256_file(&a.checkpoint.join("prefix/prefix-source-f32.bin"))? == PREFIX_MASTER
+            && sha256_file(&a.checkpoint.join("prefix/prefix-q4.bin"))? == packed_pin
+            && sha256_file(&a.checkpoint.join("prefix/prefix-source-f32.bin"))? == master_pin
             && read(&a.checkpoint.join("receipt.json"))? == report["candidate_receipt"],
         "Prefix artifact checkpoint/binding/actual master identity differs",
     )?;
@@ -535,8 +1210,8 @@ pub(super) fn run_artifact_check(a: &Args, start: Instant) -> Result<Value> {
     write(
         a,
         "artifact-input-authority.json",
-        &json!({"candidate_root":c.retained_candidate_root,"candidate_report_sha256":CANDIDATE_REPORT,
-  "candidate_manifest_sha256":CANDIDATE_SEAL,"candidate_producer_source":report["source_commit"],
+        &json!({"candidate_root":c.retained_candidate_root,"candidate_report_sha256":report_pin,
+  "candidate_manifest_sha256":seal_pin,"candidate_producer_source":report["source_commit"],
   "evaluator_source":option_env!("UOR_BUILD_SOURCE_COMMIT"),"source_binding":cp.binding,
   "original_root":c.retained_intermediate_root,"original_report_sha256":shared::P_REPORT,"original_manifest_sha256":shared::P_SEAL,
   "original8_pilot_sha256":PILOT_SHA,"retained_original_indices":retained,"evaluation_indices":indices,
@@ -615,7 +1290,7 @@ pub(super) fn run_artifact_check(a: &Args, start: Instant) -> Result<Value> {
     Ok(
         json!({"schema":"uor-r4.prefix-artifact-check/1","mode":"prefix_artifact_check","status":"COMPLETED",
   "source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"candidate_producer_source":report["source_commit"],
-  "candidate_report_sha256":CANDIDATE_REPORT,"candidate_manifest_sha256":CANDIDATE_SEAL,
+  "candidate_report_sha256":report_pin,"candidate_manifest_sha256":seal_pin,
   "retained_original8":retained_all,"task245_complete_eos":complete_task,"task245_actual_position4_target267":new_fragment,
   "qualification_positive":retained_all && complete_task,"task245_boundary_witness":boundary_witness,"actual_ownprefix_rows":9,"evaluation":evaluation,
   "gradient_calls":0,"optimizer_updates":0,"construction_passes":0,"fixed18_evaluation":"NOT_RUN","canonical":"NOT_RUN","full512":"NOT_RUN",
@@ -628,6 +1303,92 @@ pub(super) fn run_artifact_check(a: &Args, start: Instant) -> Result<Value> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn trajectory_csr_collapses_rows_but_keeps_physical_alias_multiplicity() -> Result<()> {
+        let row = vec![
+            Some(0),
+            Some(120),
+            Some(240),
+            Some(360),
+            Some(480),
+            Some(600),
+            Some(720),
+            Some(840),
+        ];
+        let mut other = row.clone();
+        other[0] = Some(1);
+        let keys = vec![vec![row.clone(), row], vec![other]];
+        let csr = key_incidence(keys.iter())?;
+        assert_eq!(csr[0], vec![0]);
+        assert_eq!(csr[1], vec![1]);
+        assert_eq!(csr[120], vec![0, 1]);
+        let parent = vec![0f32; 960];
+        let mut next = parent.clone();
+        next[0] = 0.25;
+        assert_eq!(
+            shared::staged_base(&[7, 11], &keys[0], &parent, &next)?,
+            vec![7 + (1 << 22), 11 + (1 << 22)]
+        );
+        assert_eq!(
+            shared::staged_base(&[13], &keys[1], &parent, &next)?,
+            vec![13]
+        );
+        Ok(())
+    }
+    #[test]
+    fn trajectory_correct_population_keeps_eos_and_all_new_correct_prefixes() -> Result<()> {
+        let generated = [617, 2097, 1717];
+        let mut raw = json!({"id":"row","generated_ids":generated,"eos":false,"canonical_target_ids_labels_only":[617,2097,315,1],
+          "generation":generated.iter().enumerate().map(|(i,t)|json!({"actual_prefix_ids":&generated[..i],"pool":{"summary":{"chosen_token_id":t}}})).collect::<Vec<_>>()});
+        let terms = correct_prefix_terms(&raw, 3, "row")?;
+        assert_eq!(terms.len(), 2);
+        assert_eq!(terms[1]["target"], 2097);
+        raw["generation"][1]["actual_prefix_ids"] = json!([315]);
+        assert!(correct_prefix_terms(&raw, 3, "row").is_err());
+        let complete = json!({"id":"eos","generated_ids":[617,1],"eos":true,"canonical_target_ids_labels_only":[617,1],"generation":[{"actual_prefix_ids":[],"pool":{"summary":{"chosen_token_id":617}}},{"actual_prefix_ids":[617],"pool":{"summary":{"chosen_token_id":1}}}]});
+        let terms = correct_prefix_terms(&complete, 455, "eos")?;
+        assert_eq!(terms.len(), 2);
+        assert_eq!(terms[1]["target"], 1);
+        Ok(())
+    }
+    #[test]
+    fn trajectory_late_guard_error_does_not_commit_staged_prefix_or_prior_pool() -> Result<()> {
+        let original = vec![7i64, 11, 13];
+        let mut current = original.clone();
+        let staged: Result<Vec<(usize, i64)>> = stage_affected(&[0, 2], |i| {
+            if i == 2 {
+                Err(bad("late donor/reducer failure"))
+            } else {
+                Ok(-99)
+            }
+        });
+        if let Ok(rows) = staged {
+            for (i, value) in rows {
+                current[i] = value;
+            }
+        }
+        assert_eq!(current, original);
+        let staged = stage_affected(&[0, 2], |i| Ok(original[i] + 1))?;
+        for (i, value) in staged {
+            current[i] = value;
+        }
+        assert_eq!(current, vec![8, 11, 14]); // Unaffected current pool survives unchanged.
+        Ok(())
+    }
+    #[test]
+    fn trajectory_artifact_authority_requires_independent_explicit_hashes() -> Result<()> {
+        let mut c = TrajectoryArtifactAuthority {
+            expected_report_sha256: "a".repeat(64),
+            expected_manifest_sha256: "b".repeat(64),
+            expected_prefix_packed_sha256: "c".repeat(64),
+            expected_prefix_master_sha256: "d".repeat(64),
+        };
+        validate_trajectory_artifact_authority(&c)?;
+        c.expected_prefix_master_sha256 = "quarter-reinitialized".into();
+        assert!(validate_trajectory_artifact_authority(&c).is_err());
+        Ok(())
+    }
     #[test]
     fn artifact_retention_indices_bind_pilot_ids_and_actual_eos() -> Result<()> {
         let indices = vec![2usize, 6, 10, 14, 18, 22, 26, 30];

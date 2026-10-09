@@ -91,7 +91,7 @@ pub(super) fn progress(a: &Args, start: Instant) -> Result<()> {
             "elapsed-estimate-extension-needed.json",
             &json!({"elapsed_seconds":start.elapsed().as_secs_f64(),
             "estimated_seconds":a.maximum_seconds,"action":"continue healthy finite work; parent renews lease and records resource estimate extension",
-            "hard_stop":false,"termination":"exactly960 rankedcoordinates plus18exportedreloadedsteps"}),
+            "hard_stop":false,"termination":if a.prefix_fragment_learning.as_ref().is_some_and(|c|c.trajectory.is_some()){"exactly960 reused rankedcoordinates plus380uniqueguard+1task exported reloadedsteps"}else{"exactly960 rankedcoordinates plus18exportedreloadedsteps"}}),
         )?;
     }
     Ok(())
@@ -270,6 +270,7 @@ pub(super) struct DonorCache {
     pub(super) bytes: usize,
     pub(super) peak: usize,
     pub(super) calls: usize,
+    pub(super) limit: usize,
 }
 impl DonorCache {
     pub(super) fn new(p: &ContinuationParent) -> Self {
@@ -281,7 +282,21 @@ impl DonorCache {
             bytes: 0,
             peak: 0,
             calls: 0,
+            limit: CACHE_LIMIT,
         }
+    }
+    pub(super) fn with_limit(p: &ContinuationParent, limit: usize) -> Result<Self> {
+        replay_require(
+            limit > 0 && limit <= 256 * 1024 * 1024,
+            "donor cache limit outside admitted scope",
+        )?;
+        let mut cache = Self::new(p);
+        cache.limit = limit;
+        if limit > CACHE_LIMIT {
+            cache.bytes = 4096;
+            cache.peak = 4096;
+        }
+        Ok(cache)
     }
     fn get(
         &mut self,
@@ -330,10 +345,18 @@ impl DonorCache {
         let model = NativeGeometricGenerate::from_bytes(&p.generate, p.integer.binding())?;
         let mut g = vec![0; 4096];
         model.score_into(&post, &mut g, &mut GenerateReadCounts::default())?;
-        let bytes = g.len() * 8 + post.len() + 64;
-        if self.bytes + bytes > CACHE_LIMIT {
+        // The expanded trajectory cache also charges conservative container/identity overhead.
+        let overhead = if self.limit > CACHE_LIMIT { 512 } else { 64 };
+        let bytes = g.len() * std::mem::size_of::<i64>()
+            + post.len() * std::mem::size_of::<H4Code>()
+            + overhead;
+        replay_require(
+            bytes + 4096 < self.limit,
+            "donor cache entry exceeds admitted cap",
+        )?;
+        if self.bytes + bytes > self.limit {
             self.values.clear();
-            self.bytes = 0;
+            self.bytes = if self.limit > CACHE_LIMIT { 4096 } else { 0 };
         }
         self.bytes += bytes;
         self.peak = self.peak.max(self.bytes);
@@ -466,6 +489,132 @@ pub(super) fn objective(frames: &[Frame], pools: &[Pool]) -> Result<Value> {
         "original_reference_violations":violations,"task_target_mass":t["target_mass"],"task_total_mass":t["total_mass"],"terms":rows}),
     )
 }
+pub(super) fn parse_saved_native_frame(
+    input: usize,
+    position: usize,
+    id: String,
+    prefix: Vec<u32>,
+    target: u32,
+    weight: f64,
+    v: &Value,
+    p: &ContinuationParent,
+    use_prefix: bool,
+) -> Result<Frame> {
+    let bank = &v["bank_trace"]["cue_bank"]["bank"];
+    let trace = cue_trace(&v["bank_trace"]["cue_bank"]["carrier"])?;
+    replay_require(
+        trace.metadata.parent_artifact == p.binding && query_shape(&v["bridge"]["query_state"]),
+        "saved frame Source/state epoch differs",
+    )?;
+    let ids: Vec<u32> = dec(&v["copy_ids"])?;
+    let u: Vec<i64> = dec(&v["continuation"]["delta_scores_q24"])?;
+    replay_require(
+        u.len() == 4096 && ids.iter().all(|id| *id < 4096),
+        "Cue U/Copy shape differs",
+    )?;
+    let copy: Vec<i64> = dec(&v["copy_q24"])?;
+    replay_require(copy.len() == ids.len(), "Cue physical Copy count differs")?;
+    let base_copy = copy
+        .iter()
+        .zip(&ids)
+        .map(|(x, id)| {
+            x.checked_sub(u[*id as usize])
+                .ok_or_else(|| bad("Cue Copy subtraction overflow"))
+        })
+        .collect::<Result<Vec<_>>>()?;
+    let heads = bank["heads"]
+        .as_array()
+        .ok_or_else(|| bad("Cue bank heads absent"))?;
+    for (j, b) in base_copy.iter().enumerate() {
+        let sum = heads.iter().try_fold(0i64, |s, h| {
+            Ok::<_, Box<dyn std::error::Error>>(
+                s.checked_add(
+                    h["scores_q24"][j]
+                        .as_i64()
+                        .ok_or_else(|| bad("Cue head score missing"))?,
+                )
+                .ok_or_else(|| bad("Cue head sum overflow"))?,
+            )
+        })?;
+        replay_require(sum == *b, "Cue BASECopy head sum differs")?;
+    }
+    let candidates = bank["candidates"]
+        .as_array()
+        .ok_or_else(|| bad("Cue candidates absent"))?;
+    replay_require(
+        candidates.len() == ids.len() && trace.angular_indices.len() == 8,
+        "Cue incidence shape differs",
+    )?;
+    replay_require(
+        trace
+            .angular_indices
+            .iter()
+            .all(|r| r.len() == ids.len() && r.iter().flatten().all(|b| *b < 120))
+            && trace.copy_q24.len() == 2
+            && trace.copy_q24.iter().all(|r| r.len() == ids.len())
+            && query_shape(&v["bridge"]["query_state"]),
+        "Cue incidence/state bounds differ",
+    )?;
+    let mut keys = Vec::new();
+    let mut sources = Vec::new();
+    for (j, x) in candidates.iter().enumerate() {
+        replay_require(
+            x["bank_index"] == j && x["occurrence"]["token_id"] == ids[j],
+            "Cue physical ordinal identity differs",
+        )?;
+        keys.push(
+            (0..8)
+                .map(|l| trace.angular_indices[l][j].map(|b| l * 120 + usize::from(b)))
+                .collect(),
+        );
+        sources.push(codes(
+            &bank["context"]["states"][idx(&x["context_position"])?],
+        )?);
+    }
+    let prefix_trace = if use_prefix {
+        Some(prefix_trace(&v["bank_trace"]["prefix"])?)
+    } else {
+        None
+    };
+    if let Some(prefix) = &prefix_trace {
+        replay_require(
+            prefix.angular_indices.len() == 8
+                && prefix
+                    .angular_indices
+                    .iter()
+                    .all(|row| row.len() == ids.len() && row.iter().all(|b| *b < 120))
+                && prefix.metadata.parent_artifact == p.binding
+                && prefix.metadata.frozen_cue == trace.metadata,
+            "Prefix original unmasked key/Source/Cue binding differs",
+        )?;
+        keys = (0..ids.len())
+            .map(|j| {
+                (0..8)
+                    .map(|lane| Some(lane * 120 + usize::from(prefix.angular_indices[lane][j])))
+                    .collect()
+            })
+            .collect();
+    }
+    let query = codes(&v["bridge"]["query_state"])?;
+    Ok(Frame {
+        input,
+        position,
+        id,
+        prefix,
+        target,
+        weight,
+        native: v.clone(),
+        trace,
+        prefix_trace,
+        ids,
+        base_copy,
+        u,
+        cue_keys: keys,
+        query,
+        sources,
+    })
+}
+
 pub(super) fn prepare_frames(
     a: &Args,
     c: &Config,
@@ -571,98 +720,18 @@ pub(super) fn prepare_frames(
                 trace.metadata.parent_artifact == finite.binding,
                 "Cue trace epoch differs",
             )?;
-            let ids: Vec<u32> = dec(&v["copy_ids"])?;
-            let u: Vec<i64> = dec(&v["continuation"]["delta_scores_q24"])?;
-            replay_require(
-                u.len() == 4096 && ids.iter().all(|id| *id < 4096),
-                "Cue U/Copy shape differs",
+            let frame = parse_saved_native_frame(
+                input,
+                position,
+                e.packet.id.clone(),
+                prefix,
+                target,
+                weight,
+                v,
+                finite,
+                original_seed,
             )?;
-            let copy: Vec<i64> = dec(&v["copy_q24"])?;
-            replay_require(copy.len() == ids.len(), "Cue physical Copy count differs")?;
-            let base_copy = copy
-                .iter()
-                .zip(&ids)
-                .map(|(x, id)| {
-                    x.checked_sub(u[*id as usize])
-                        .ok_or_else(|| bad("Cue Copy subtraction overflow"))
-                })
-                .collect::<Result<Vec<_>>>()?;
-            let heads = bank["heads"]
-                .as_array()
-                .ok_or_else(|| bad("Cue bank heads absent"))?;
-            for (j, b) in base_copy.iter().enumerate() {
-                let sum = heads.iter().try_fold(0i64, |s, h| {
-                    Ok::<_, Box<dyn std::error::Error>>(
-                        s.checked_add(
-                            h["scores_q24"][j]
-                                .as_i64()
-                                .ok_or_else(|| bad("Cue head score missing"))?,
-                        )
-                        .ok_or_else(|| bad("Cue head sum overflow"))?,
-                    )
-                })?;
-                replay_require(sum == *b, "Cue BASECopy head sum differs")?;
-            }
-            let candidates = bank["candidates"]
-                .as_array()
-                .ok_or_else(|| bad("Cue candidates absent"))?;
-            replay_require(
-                candidates.len() == ids.len() && trace.angular_indices.len() == 8,
-                "Cue incidence shape differs",
-            )?;
-            replay_require(
-                trace
-                    .angular_indices
-                    .iter()
-                    .all(|r| r.len() == ids.len() && r.iter().flatten().all(|b| *b < 120))
-                    && trace.copy_q24.len() == 2
-                    && trace.copy_q24.iter().all(|r| r.len() == ids.len())
-                    && query_shape(&v["bridge"]["query_state"]),
-                "Cue incidence/state bounds differ",
-            )?;
-            let mut keys = Vec::new();
-            let mut sources = Vec::new();
-            for (j, x) in candidates.iter().enumerate() {
-                replay_require(
-                    x["bank_index"] == j && x["occurrence"]["token_id"] == ids[j],
-                    "Cue physical ordinal identity differs",
-                )?;
-                keys.push(
-                    (0..8)
-                        .map(|l| trace.angular_indices[l][j].map(|b| l * 120 + usize::from(b)))
-                        .collect(),
-                );
-                sources.push(codes(
-                    &bank["context"]["states"][idx(&x["context_position"])?],
-                )?);
-            }
-            let prefix_trace = if original_seed {
-                Some(prefix_trace(&v["bank_trace"]["prefix"])?)
-            } else {
-                None
-            };
-            if let Some(prefix) = &prefix_trace {
-                replay_require(
-                    prefix.angular_indices.len() == 8
-                        && prefix
-                            .angular_indices
-                            .iter()
-                            .all(|row| row.len() == ids.len() && row.iter().all(|b| *b < 120))
-                        && prefix.metadata.parent_artifact == original.binding
-                        && prefix.metadata.frozen_cue == trace.metadata,
-                    "Prefix original unmasked key/Source/Cue binding differs",
-                )?;
-                keys = (0..ids.len())
-                    .map(|j| {
-                        (0..8)
-                            .map(|lane| {
-                                Some(lane * 120 + usize::from(prefix.angular_indices[lane][j]))
-                            })
-                            .collect()
-                    })
-                    .collect();
-            }
-            let query = codes(&v["bridge"]["query_state"])?;
+            let ids = frame.ids.clone();
             let oldg: Vec<i64> = dec(&old["native"]["generate_q24"])?;
             let oldc: Vec<i64> = dec(&old["native"]["copy_q24"])?;
             let oldids: Vec<u32> = dec(&old["native"]["copy_ids"])?;
@@ -680,23 +749,7 @@ pub(super) fn prepare_frames(
                 base_copy: Vec::new(),
                 trace: ot,
             });
-            frames.push(Frame {
-                input,
-                position,
-                id: e.packet.id.clone(),
-                prefix,
-                target,
-                weight,
-                native: v.clone(),
-                trace,
-                prefix_trace,
-                ids,
-                base_copy,
-                u,
-                cue_keys: keys,
-                query,
-                sources,
-            });
+            frames.push(frame);
         }
     }
     let reconstructed = objective(&frames, &original_pools)?;
@@ -1229,6 +1282,29 @@ pub(super) fn reload_candidate(
     frames: &[Frame],
     pools: &[Pool],
 ) -> Result<()> {
+    reload_candidate_impl(a, cp, field, frames, pools, true)
+}
+pub(super) fn reload_guard_candidate(
+    a: &Args,
+    cp: &ContinuationParent,
+    field: &NativeContinuationField,
+    frames: &[Frame],
+    pools: &[Pool],
+) -> Result<()> {
+    replay_require(
+        pools.iter().all(|p| p.trace.actions.is_empty()),
+        "compact guard pool actions must be omitted only after exact reduction",
+    )?;
+    reload_candidate_impl(a, cp, field, frames, pools, false)
+}
+fn reload_candidate_impl(
+    a: &Args,
+    cp: &ContinuationParent,
+    field: &NativeContinuationField,
+    frames: &[Frame],
+    pools: &[Pool],
+    full_action_trace: bool,
+) -> Result<()> {
     let fields = field.to_bytes()?;
     let hash = sha256_bytes(&fields);
     let mut native = cp.generator()?.with_continuation_field(BoundNativeBytes {
@@ -1256,7 +1332,12 @@ pub(super) fn reload_candidate(
                 && s.copy_raw_scores_q24 == expected.copy
                 && s.copy_token_ids == f.ids
                 && s.post_state == expected.post
-                && s.actions == expected.trace,
+                && (if full_action_trace {
+                    s.actions == expected.trace
+                } else {
+                    s.actions.summary == expected.trace.summary
+                        && s.actions.token_masses == expected.trace.token_masses
+                }),
             "Cue constructed/exported full pool differs",
         )?;
         let bridge = s
@@ -1279,11 +1360,19 @@ pub(super) fn reload_candidate(
                     == idx(&f.native["continuation"]["actual_prefix_tokens"])?,
             "Cue reloaded U state/scores changed",
         )?;
-        let snapshot = json!({"generate_q24":s.generate_raw_scores_q24,"copy_ids":s.copy_token_ids,"copy_q24":s.copy_raw_scores_q24,
+        let mut snapshot = json!({"generate_q24":s.generate_raw_scores_q24,"copy_ids":s.copy_token_ids,"copy_q24":s.copy_raw_scores_q24,
                 "pool":s.actions,"post_state":s.post_state.iter().map(|x|x.index()).collect::<Vec<_>>(),"bank_trace":s.bank_trace,
                 "bridge":{"selected_ordinal":bridge.selected_ordinal,"selected_candidate":bridge.selected_candidate,"query_state":bridge.query_state.iter().map(|x|x.index()).collect::<Vec<_>>(),
                     "source_state":bridge.source_state.iter().map(|x|x.index()).collect::<Vec<_>>(),"action_codes":bridge.action_codes.iter().map(|x|x.index()).collect::<Vec<_>>(),"action_scores_q24":bridge.action_scores_q24,"counts":bridge.counts},
                 "continuation":s.continuation.as_ref().map(|u|json!({"query_tokens":u.query_tokens,"actual_prefix_tokens":u.actual_prefix_tokens,"state_codes":u.state_codes.iter().map(|x|x.index()).collect::<Vec<_>>(),"delta_scores_q24":u.delta_scores_q24,"counts":u.counts,"encoding_coefficient_reads":u.encoding_coefficient_reads}))});
+        if !full_action_trace {
+            snapshot["pool"]
+                .as_object_mut()
+                .ok_or_else(|| bad("native guard pool serialization absent"))?
+                .remove("actions");
+            snapshot["schema"] = json!("uor-r4.native-prefix-trajectory-pool/1");
+            snapshot["pool_action_trace"]=json!("OMITTED_RECONSTRUCTIBLE_FROM_COMPLETE_SCORES; all4096rawGenerate/allphysicalCopy/rawU, complete token masses/summary preserved");
+        }
         write(
             a,
             &format!(

@@ -819,6 +819,17 @@ fn args() -> Result<(Args, Vec<u8>)> {
             .iter()
             .flat_map(|c| [&c.retained_intermediate_root, &c.retained_probe_root]),
     )
+    .chain(
+        a.prefix_fragment_learning
+            .iter()
+            .filter_map(|c| c.trajectory.as_ref())
+            .flat_map(|t| {
+                [
+                    &t.retained_prefix_learning_root,
+                    &t.retained_supplement_root,
+                ]
+            }),
+    )
     .chain(a.context_cue_coadapt.iter().flat_map(|c| {
         [
             &c.retained_intermediate_root,
@@ -6258,6 +6269,12 @@ fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
 fn run(a: &Args, start: Instant) -> Result<Value> {
     if a.prefix_artifact_check.is_some() {
         return prefix_fragment_learning::run_artifact_check(a, start);
+    }
+    if a.prefix_fragment_learning
+        .as_ref()
+        .is_some_and(|c| c.trajectory.is_some())
+    {
+        return prefix_fragment_learning::run(a, start, &Device::Cpu);
     }
     if a.context_path_credit.is_some() {
         return context_path_credit::run(a, start);
