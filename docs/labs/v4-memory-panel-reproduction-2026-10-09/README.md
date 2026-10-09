@@ -72,8 +72,12 @@ Consequence: `bases/planA-214m-2b425ccd` and `models/chat-214m-planA-af-b8` (sha
 The ladder column quoted in #2029 (`31/40` memory, `10/24` unknowable) is `check_pass` throughout, so
 criterion 1's `≥ 34/40` is a **three-cell** gap read that way and a **seven-cell** gap read as the tool's
 `acceptable`. Any candidate must report both, and the record must not let a reader infer which one is
-meant. The README's own cells mix the two metrics (`recall 31/40` is `check_pass`; `open panel 36/232` is
-`acceptable`) — fixed there below.
+meant. **Which one is primary is not a preference: `check_pass` is deterministic and `acceptable` is not.**
+The re-grade below reproduces `check_pass` exactly and `acceptable` exactly, yet **4 of 64 rows carry a
+different grader verdict at the same `qwen2.5:7b` digest** — so `check_pass` is the primary reading,
+`acceptable` the secondary, and a candidate that moves `acceptable` without moving `check_pass` has to show
+which rows the judge changed its mind on. The README's own cells mix the two metrics (`recall 31/40` is
+`check_pass`; `open panel 36/232` is `acceptable`) — fixed there below.
 
 ## Reproduced (measured, laptop CPU, zero pod)
 

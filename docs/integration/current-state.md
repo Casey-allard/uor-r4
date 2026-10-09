@@ -64,9 +64,11 @@ contains an expected spelling, no forbidden distractor value and no word of the 
 **Two identities in the round's brief were wrong, and both mattered.** (1) **`31/40` is chat-grade's
 `check_pass`, not its `acceptable`** (fluent ∧ relevant ∧ check), which is **27/40** for that category; the
 ladder column is `check_pass` throughout, so criterion 1's `≥ 34/40` is a **three**-cell gap read that way
-and a **seven**-cell gap read as `acceptable`. Both must be reported for any candidate, and the README's
-cells that mixed the two are corrected. (2) **The 31/40 artifact is not the Plan A base.** It is Step 8 arm
-Q: pretrain `e448de86…` (`bases/geo-214m-e448de86`) plus the Step 7d fine-tune (2,000 steps, `pointer=32`,
+and a **seven**-cell gap read as `acceptable`. Both must be reported for any candidate, **with `check_pass`
+primary because it is the deterministic one and the LLM judge is not perfectly stable (4 of 64 rows differ
+at the same grader digest)**, and the README's cells that mixed the two are corrected. (2) **The 31/40
+artifact is not the Plan A base.** It is Step 8 arm Q: pretrain `e448de86…` (`bases/geo-214m-e448de86`) plus
+the Step 7d fine-tune (2,000 steps, `pointer=32`,
 `context=384`, `policy=full_prefix`, no read supervision), model sha256 `9c0d9019…`, taken from the
 recorded `run-step8.sh` in `results/claude/step8-capacity-20261007.tar`. `bases/planA-214m-2b425ccd` and
 `models/chat-214m-planA-af-b8` (`11b84ba7…`) have **no recorded v4 memory number at all**, so there is no
