@@ -1,69 +1,36 @@
-# UOR-R4 Geometric Language Model — roadmap
+# UOR-R4 Geometric Language Model - roadmap
 
-Updated 3 October 2026 (Eastern Time). **Pre-alpha.** Useful conversation, broad reasoning,
-coding, frontier capability and lower complete-path energy are not established.
+Updated 9 October 2026. **Pre-alpha.** Useful conversation, broad reasoning, coding, frontier
+capability and lower complete-path energy are not established.
 
-This file is navigation and the standing serving rules. Results live in
-[current state](docs/integration/current-state.md); ordered responsibilities in the
-[canonical plan](docs/integration/project-track.md); owner decisions in
-[DECISIONS](docs/integration/DECISIONS.md); live status and claims on
-[#820](https://github.com/UOR-Foundation/uor-r4/issues/820). The previous roadmap text
-(lab assignments, leadership packet, dead-path register, director log) is preserved
-verbatim in [docs/history/roadmap-2026-09-29-snapshot.md](docs/history/roadmap-2026-09-29-snapshot.md).
+Milestones M1-M8 below, with the standing serving rules in section 0. Live status and claims:
+tracker [#2028](https://github.com/UOR-Foundation/uor-r4/issues/2028); each milestone is its own issue. Results:
+[current state](docs/integration/current-state.md). Owner decisions:
+[DECISIONS](docs/integration/DECISIONS.md). Long-form plan and history:
+[canonical plan](docs/integration/project-track.md). The 29 September roadmap is preserved in
+[docs/history/roadmap-2026-09-29-snapshot.md](docs/history/roadmap-2026-09-29-snapshot.md).
 
-## Direction — owner, 3 October 2026
+## Milestones
 
-- **No transformer baselines.** Comparisons stay inside the geometric design: a mechanism
-  against a matched geometric alternative, and each model against the previous best geometric
-  model. Earlier transformer results keep their recorded scope; the transformer-gap kill rule
-  is withdrawn (see the [3 October comment on #820](https://github.com/UOR-Foundation/uor-r4/issues/820#issuecomment-5971681179)).
-- **Grounded conversation and durable memory first** (D19), then the same model's broader
-  language, coding/reasoning and efficient D11/D5 laptop execution. The integration owner is
-  [#973](https://github.com/UOR-Foundation/uor-r4/issues/973); the active work card is
-  [#1552](https://github.com/UOR-Foundation/uor-r4/issues/1552); geometry and semantic
-  addressing continue on [#1512](https://github.com/UOR-Foundation/uor-r4/issues/1512).
+Two lines meet at M4: line A (language base, M1) and line B (grounded reply from exact memory,
+M2 and M3). Thresholds marked PROPOSED on M1, M2 and M4 await owner confirmation; a milestone
+closes only when its acceptance is met on the saved model.
 
-## Where the geometric stack stands (reported by the Claude lab, 3 October)
+| | Milestone | Status | Goal and acceptance summary | Latest result |
+|---|---|---|---|---|
+| M1 | [Language base](https://github.com/UOR-Foundation/uor-r4/issues/2029) (Claude, DeepSeek) | in progress | A trained geometric language model good enough to carry chat and memory; PROPOSED language-quality threshold on the saved model | 214M base dev NLL 2.073; 19.9M chat stack 0.933 BPB served |
+| M2 | [Grounded reply from exact memory](https://github.com/UOR-Foundation/uor-r4/issues/2030) (Codex) | in progress | Replies emitted from the exact store by learned geometric operators; PROPOSED completion threshold | 8 of 512 complete; gate 9 of 15 |
+| M3 | [Durable conversation memory](https://github.com/UOR-Foundation/uor-r4/issues/2031) | in progress | Memory persists across sessions and answers stay grounded | evaluator and session delivered; not qualified |
+| M4 | [One served model, D11 and CLI](https://github.com/UOR-Foundation/uor-r4/issues/2032) | not started | One model served multiplier-free through the shipped CLI; PROPOSED parity threshold | D11 engine bit-exact; CLI cannot serve the stack yet |
+| M5 | [Laptop cost, D5](https://github.com/UOR-Foundation/uor-r4/issues/2033) | not started | Measured J/token, RSS and tokens/s on the M1 with selected parameter access | none |
+| M6 | [Reasoning and coding](https://github.com/UOR-Foundation/uor-r4/issues/2034) | not started | Executable reasoning and coding on the same model | exact arithmetic is the visible gap |
+| M7 | [API, WASM, Pages Studio](https://github.com/UOR-Foundation/uor-r4/issues/2035) | not started | The model reachable through API, WASM and the Studio | local API only |
+| M8 | [Alpha release](https://github.com/UOR-Foundation/uor-r4/issues/2036) | not started | Owner-declared alpha | none |
 
-These figures are the lab's reports on #820; each names its model and data. None is a
-conversation, coding or efficiency result.
+Standing direction (owner, 3 October): no transformer baselines; mechanisms are compared with matched geometric alternatives and with the previous best geometric model.
 
-| Rung | Configuration | Reported outcome |
-|---|---|---|
-| 8M | width 288, 6 heads, 6 layers, pattern `rrarra` | Done. Controls at this size: quaternion lanes beat U(1) lanes; the flat L2 read beat the Lorentz read. |
-| 20M | width 512, 8 heads, 8 layers, `rrarrarr`, quaternion rotation, flat L2 read, context 384; 300M tokens of TinyStories, TinyDialogues and chat-v0 weighted 0.6/0.15/0.25 | Final TinyStories validation NLL **1.3882** (seed 1) and **1.3858** (seed 2). Learning rate 0.001 beat the 0.002 default by about 0.045 nats at steps 5k and 7.5k; 0.003 was worse; 0.0005 was better still (dev NLL 1.8173 / 1.7294 at steps 5k / 7.5k; the learning-rate checks stopped at 660 s). |
-| 29M | width 576, 8 heads, 10 layers; 434M tokens | Finished at TinyStories validation NLL **1.2857** (learning rate 5e-4) and 1.2989 (learning rate 1e-3). |
-| ~96M | geometric run on two GPUs, 1.5B tokens | Started 5:35 PM ET, 3 October; no result yet. |
-
-**Chat is not achieved.** The `chat-8m-a` D19 grounded session (exact store plus prime-atom
-log-recall sieve) answers 959 of 1,075 turns. On the 232-reply panel judged by
-qwen2.5:7b, 21 replies are acceptable against 8 for the deranged control. The 20M chat
-fine-tune with M-world and chat-v0 data scores 28 acceptable and 40 relevant on the same panel
-(relevant p=0.003 against `chat-8m-a`), with session 960 of 1,075. The 29M chat fine-tune
-(learning rate 5e-4) scores 972 of 1,075 on the D19 session, the best so far (store off: 865;
-MQAR 108 → 1). These are authored development panels, not general chat.
-
-## Order of work
-
-learned saved compiler/store/emitter ([#1552](https://github.com/UOR-Foundation/uor-r4/issues/1552),
-[#1508](https://github.com/UOR-Foundation/uor-r4/issues/1508), #973) → durable grounded
-conversation (#962, #954) → faithful integer serving (#964) → useful language → executable
-reasoning/coding (#955, #1088) → API/WASM/Studio and release (#1172, #1173, #965). Selected
-access and cost ([#963](https://github.com/UOR-Foundation/uor-r4/issues/963)) share that path.
-Track B conversion (#1509) is parked; its original failed parity stands.
-
-## Compute and delivery
-
-- **Training** runs on a rented Runpod 2×RTX 4090 pod, administered by the Claude lab. The
-  optional `cuda` feature for offline training merged in
-  [PR #1649](https://github.com/UOR-Foundation/uor-r4/pull/1649) at `dc28b495` (18 device-parity
-  tests passing at `c17411b8`). **Grading** runs on the M1 laptop.
-- **GitHub hosted runners are reserved for `main`'s required PR and merge-queue checks** (owner
-  direction, 3 October). Do not push `codex/ci/*` branches; run exact-head checks locally or on the
-  pod and record head SHA, clean tree, command and exit codes on the PR.
-- Protected PRs require recorded exact-head review and actual scoped checks; queue status names
-  are acknowledgements, not compile/test evidence. No paid compute beyond the authorized pod, and
-  no destruction of unique material.
+Standing issues: compute board [#2037](https://github.com/UOR-Foundation/uor-r4/issues/2037); open bugs [#1542](https://github.com/UOR-Foundation/uor-r4/issues/1542), [#1476](https://github.com/UOR-Foundation/uor-r4/issues/1476),
+[#1718](https://github.com/UOR-Foundation/uor-r4/issues/1718), [#1738](https://github.com/UOR-Foundation/uor-r4/issues/1738).
 
 ## 0. Mission and hard runtime rules
 

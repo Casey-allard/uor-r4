@@ -37,14 +37,14 @@ source. Updates use atomic Git ref comparison: a conflicting writer rereads and
 reapplies its event; it never force-overwrites the newer state. Local indexes,
 chat summaries and `STATUS.md` are navigation/views, not independent authorities.
 
-Use #820 for programme-level changes and incidents; #1508, #1509 and #1510 for
-Track A, Track B and infrastructure; a standing board per lab; and an existing
-issue for each concrete deliverable where its scope fits. A lab board owns a
+Use tracker #2028 for programme-level changes and incidents; the milestone issues
+#2029 to #2036 for claims and results; the compute board #2037 for pod leases; and an
+existing issue for each concrete deliverable where its scope fits. A milestone issue owns a
 short current pointer, not copied experiment history. A completion record links
 its PR/result and names the next dependency. Edit README only when its overview,
 qualified capability or entry links change.
 
-At join/resume, identify lab/session/client, source SHA, board, worktree,
+At join/resume, identify lab/session/client, source SHA, milestone claim, worktree,
 available tools/models, strengths, quota limitations and observed adapter
 capability. Register before claiming work. A lab is not an individual provider:
 it may use cheap specialist subagents or another available model without
@@ -64,7 +64,7 @@ coordination record is the standing operational exception.
 
 ## Work loop, leases and recovery
 
-1. Read the current roadmap, your board, relevant peers' latest activity, open
+1. Read the current roadmap, your milestone issue, relevant peers' latest activity, open
    PRs, claims and jobs. Recover prior source/artifacts before starting anew.
 2. Select the highest-value ready dependency. Prefer an integrated capability
    or a measurement that changes a decision; use existing tools and source.

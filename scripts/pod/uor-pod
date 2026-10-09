@@ -43,7 +43,7 @@ REPO_SLUG=UOR-Foundation/uor-r4
 REPO_URL=${UOR_POD_REPO_URL:-https://github.com/$REPO_SLUG.git}
 STATE=${UOR_POD_STATE:-$HOME/.local/share/uor-r4/compute}
 DRY=${UOR_POD_DRY_RUN:-0}
-BOARD=${UOR_POD_BOARD:-1750}
+BOARD=${UOR_POD_BOARD:-2037}
 SSH_KEY=${UOR_POD_SSH_KEY:-$HOME/.ssh/uor_compute}
 TEMPLATE_ID=${UOR_POD_TEMPLATE:-h15vb984sw}
 # Placement order: the network-volume datacenters that list RTX 5090 stock.

@@ -6,7 +6,7 @@ later; several sessions of one lab may run at once) uses the same tool,
 delete the owner's Runpod GPU pods. The goals: no pod idles, no session is
 surprised by another's pod, and any session can take over a pod whose lease
 expired. The source of truth is the laptop state directory below. The
-[Compute board #1750](https://github.com/UOR-Foundation/uor-r4/issues/1750) is
+[Compute board #2037](https://github.com/UOR-Foundation/uor-r4/issues/2037) is
 a **log for the owner, not a communication channel**: the tool posts one line
 per event; sessions coordinate through leases and the tool's output, and do not
 read or write the board to ask for anything. The rules every session must
@@ -297,7 +297,7 @@ Never delete another lab's material on the volume; it is the shared archive.
   API does not say (GPU type, datacenter, volume, whether `up` made it).
 * `up`, `down`, `lease`, `release`, `takeover`, `reap`, `prune-stopped`,
   volume creation and `up --wait` outcomes post one log line (owner's view, not
-  a channel) to [#1750](https://github.com/UOR-Foundation/uor-r4/issues/1750).
+  a channel) to [#2037](https://github.com/UOR-Foundation/uor-r4/issues/2037).
 * `UOR_POD_DRY_RUN=1` prints every mutation instead of doing it;
   `scripts/pod/tests/uor-pod-dryrun.sh` exercises the logic against fake
   `runpodctl`/`ssh`/`gh`.

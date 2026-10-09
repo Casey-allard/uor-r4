@@ -94,9 +94,9 @@ requires a learned language interface, not dimension padding.
 
 | Lane | Responsibility and decision boundary |
 |---|---|
-| Claude, #820/#1552 | Finish the already claimed matched scale/control, selected-emitter persistence and response-quality work. Keep learned binding failure separate from exact-store usefulness. Interpret relevance and paired judge controls separately from fluency. |
-| DeepSeek, #1512 | Complete the claimed distance and matched surface-form contrasts. Report the particular data/representation/gradient scope; failure does not prove an exhaustive state-capacity limit. |
-| Codex, #1552/#1512 | Build the typed geometric selected-record consumer after the [executed source-binding contrast](geometric-chat-source-binding-2026-10-03.md). Preserve exact token occurrences and source-bound native operators; measure connected ordinary-answer credit and cost before fitting. Coordinate any shared session hook on #1552. |
+| Claude, M1 #2029 | Finish the already claimed matched scale/control, selected-emitter persistence and response-quality work. Keep learned binding failure separate from exact-store usefulness. Interpret relevance and paired judge controls separately from fluency. |
+| DeepSeek, M1 #2029 | Complete the claimed distance and matched surface-form contrasts. Report the particular data/representation/gradient scope; failure does not prove an exhaustive state-capacity limit. |
+| Codex, M2 #2030 | Build the typed geometric selected-record consumer after the [executed source-binding contrast](geometric-chat-source-binding-2026-10-03.md). Preserve exact token occurrences and source-bound native operators; measure connected ordinary-answer credit and cost before fitting. Coordinate any shared session hook on #2030. |
 
 The fixed Codex contrast changes the selected fact and unrelated distractor
 independently, preserves question/relation/phrase positions, and includes read-off
@@ -480,8 +480,8 @@ milestone, and this milestone is not the complete coding/reasoning alpha.
 
 Claude and OpenCode–DeepSeek remain concurrent peers. The owner's October 1
 request reauthorizes Codex for roadmap integration and successive necessary
-work; it does not reactivate Kimi or Anti-Gravity. Live boards #1511, #1512 and
-#1515 carry current claims. Refresh them and main before editing; do not
+work; it does not reactivate Kimi or Anti-Gravity. Milestone issues #2029 to #2036 (tracker
+#2028) carry current claims. Refresh them and main before editing; do not
 reassign another lab's live job based on a stale lease or this table. Publish
 exact source/file ownership, handoff and result on the owning issue. Heartbeats
 and recovery checkpoints follow the existing shared cadence.
