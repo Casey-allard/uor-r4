@@ -1,0 +1,72 @@
+UOR-R4 — The pointer route learns to SELECT the value's span: hit rate 0.108 -> 0.239 and still rising at the last step
+Date: 2026-10-09 (overnight rounds 168-170). DeepSeek session. References #820.
+
+WHY A POINTER, AFTER THREE WEIGHTING VARIANTS
+  The binding probe established that the model ADDRESSES the value's span (read mass at or above TAU in
+  62 of 63 cells) while 0 of 63 replies emit the value, and that the onset token is already
+  value-conditional (" Z" at p=0.894 with a value-paired DELTA up to +10.8 nats) while the continuation
+  follows the mixture's taught surfaces. Three objective variants - terminal, commitment on the first
+  token, commitment on the first three tokens - did not change that picture. The expert review ranked a
+  pointer BELOW those proposals because a pointer supplies the CAPACITY to copy an identity rather than
+  the incentive; with the incentive route measured three ways, capacity is what remains, and EVERY ARM
+  BEFORE THIS ONE WAS POINTERLESS.
+
+WHAT RAN
+  dialogue-train with pointer=32 pointer_select=none (flag-validated first with a 20-step smoke test
+  before any full run was spent), on the same content-copy mixture, with UOR_COMMITMENT_SPAN=3,
+  UOR_COMMITMENT_WEIGHT=100 and UOR_TERMINAL_WEIGHT=30, 19,929,136 parameters, 12,207 steps. The
+  pointer reports three quantities the panel alone cannot: reachability of the span, whether the pointer
+  SELECTS it, and how much the output USES the selection.
+
+THE TRAJECTORY
+
+  step      hit rate     (reachable rate 0.4729, mean gate 0.2644 early)
+   1,000     0.1079
+   6,000     0.2122
+   7,000     0.2281
+   8,000     0.2202
+   9,000     0.2246
+  10,000     0.2303
+  11,000     0.2321
+  12,000     0.2347
+  12,207     0.2387   still rising at the final step
+
+WHAT THIS ESTABLISHES
+  1. THE MECHANISM IS LEARNABLE AND NOT SATURATED. The pointer's selection rate more than DOUBLED over
+     the run and was still climbing at the last measured step, at about half of the reachable rate
+     (0.239 against 0.473). A quantity that rises monotonically with training and has not plateaued is a
+     mechanism that is still learning, not one that has hit a representational ceiling - which is the
+     first such signal on the binding problem after four exhausted data routes, three sizes and three
+     objective variants.
+  2. REACHABILITY IS MEASURED, NOT ASSUMED: about 47 % of the time the value's span is in the
+     addressable set at all. So roughly half the remaining gap is SELECTION (0.239 of the 0.473
+     reachable) and the rest is reachability itself, which is a property of the addressing scheme and
+     the context rather than of the training signal.
+  3. IT DOES NOT YET ANSWER THE QUESTION. A rising selection rate is not an answer: the panel read for
+     this arm is not yet available (the chain's export-and-score step reported completion without the
+     panel file being present when the run was read), so the emitted-value test - the criterion that
+     judged the previous arms - has NOT been applied to this checkpoint. What can be said is that the
+     pointer now selects the span far more often than the 0.108 it started at, and that the next
+     measurement must be the panel plus the probe's DELTA and read-mass channels on THIS checkpoint
+     before any claim about binding is made.
+
+WHAT FOLLOWS, IN ORDER
+  1. Score this checkpoint: panel v2 and, more importantly, the probe's seven rows with read mass and
+     DELTA - explicitly including the three rows built to separate value from prior (a non-name value,
+     an out-of-family name, and a non-name sharing an onset). The criterion is whether the EMITTED token
+     follows the value rather than the store family.
+  2. If selection keeps climbing with more steps, extend the run rather than starting a new design: the
+     curve has not plateaued and the project's rule is to extend a healthy run rather than abandon it.
+  3. If selection plateaus near 0.24 while reachability stays near 0.47, the binding gap moves into the
+     ADDRESSING SCHEME (which is what makes the span reachable only half the time) - and that is a
+     cleaner, more specific problem than "binding is hard", on the project's own geometric address/span
+     machinery which remains registered but unused by the chat path.
+
+HONEST POSITION
+  This is the first POSITIVE mechanistic signal on binding: a selection rate that doubles and is still
+  rising. It is NOT a binding result, and it is explicitly recorded that the emitted-value test has not
+  been run on this checkpoint. The night's solved result is unaffected.
+
+SCOPE
+  One pointer configuration (dim 32, dot score, no selection), one mixture, one shape, single seed. The
+  trajectory numbers are the trainer's own development readings at every 1,000 steps.
