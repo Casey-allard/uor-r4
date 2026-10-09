@@ -1,0 +1,66 @@
+UOR-R4 — Recall of never-seen values, quantified: the pointer copies exactly 0.417 of the time against 0.000 for the no-pointer control
+Date: 2026-10-09 (overnight rounds 181-182). DeepSeek session. References #820.
+
+WHAT RAN
+  Inference only, on the session's best binding arm (pointer=32, dot score, no gate supervision) and its
+  control (the same mixture without a pointer), over 28 invented values that appear in NO store and NO
+  plausible prior, in three conditions, with the EOS-bearing exact probe path. The novelty claim was
+  MEASURED, not assumed: all 19 term-weight stores plus the chat train and heldout corpora were decoded
+  (about 9.2e8 token positions, GPT-2 byte-level table) and searched case-insensitively - 28 of 28
+  candidates have ZERO occurrences. Controls behave as expected (ben 303,282; ana 805,829; anvil 553
+  occurrences inside "anvil"; zorba 165, inside "razorback").
+
+THE NUMBER
+  EXACT copy (reply equal to the value, case and surrounding punctuation ignored):
+    pointer arm      35 of 84 cells  = 0.417   Wilson 95% [0.317, 0.523]
+                     natural 12/28 = 0.429 [0.265, 0.609]; pinned Sure 10/28 = 0.357; pinned Noted 13/28 = 0.464
+    per VALUE        16 of 28      = 0.571   [0.391, 0.735] copied exactly in at least one condition
+                     24 of 28      = 0.857   emit the value in at least one condition
+    CONTAINS value   55 of 84      = 0.655   [0.548, 0.748] (right value, imperfect surface)
+    NO-POINTER CONTROL   0 of 84 exact AND 0 of 84 contains, identically in all three conditions
+
+  That control figure is the measurement's spine: the same mixture, the same rows, the same conditions,
+  and the value is never emitted without the pointer - reproducing the earlier 0-of-63 class on a
+  different row set. The pointer is what makes a never-seen value available to the output.
+
+WHAT GOVERNS IT - THE GATE IS NEAR-NECESSARY AND NOT SUFFICIENT
+    pointer mass on the value span >= 0.5 :  35/71 = 0.493 exact   (0.761 contain)
+    pointer mass < 0.5                    :   0/13 = 0.000 exact   (1/13 contain)
+    pointer mass >= 0.9                   :  33/63 = 0.524        (+3 points over the 0.5 cut)
+  So a weak gate is fatal (0 of 13) while a strong gate is far from sufficient: about half still fail
+  with the gate wide open, and pushing it from 0.5 to 0.9 buys almost nothing. Means separate cleanly -
+  copies have pointer mass 0.983, gate 0.777, DELTA +6.50 nats; misses have 0.730, 0.328, +4.38 - but
+  DELTA at or above 0.7 holds in 81 of 84 cells, so the pre-registered DELTA split is degenerate and
+  DELTA does not by itself decide. The mechanism is "copy when the gate is high, then often fail at
+  readout", not "copy iff the gate is high" - which is consistent with the gate sweep, where raising the
+  gate by supervision raised it and damaged the response distribution.
+
+THE DOMINANT RESIDUAL FAILURE, NAMED
+  The modal miss is THE CORRECT VALUE FOLLOWED BY OVER-GENERATION: " Jorvex name is Jorvex.",
+  " Lunavar is Lunavar.", " Nuvrix is Nuvrixxx", " Therrick is Therricks Therr...",
+  " Eskavar is Eskavararar". Twenty of the 49 misses have the value present but not exactly; the replies
+  are the copy plus a continuation.
+  The taxonomy of the rest: value absent but its first four letters present (4 cells), value absent with
+  the same first letter (9), and neither (16). Critically, ANOTHER ROW'S VALUE IS EMITTED IN ZERO CELLS
+  (no cross-row contamination), and a store-family first word appears in only 2 of 84 cells, against 18
+  of 84 in the control - so the pointer has displaced the store-family and chat-prior behaviours rather
+  than merely adding to them.
+
+WHAT THIS ESTABLISHES, AND WHAT IT DOES NOT
+  * ESTABLISHES: a learned copy pathway lets this architecture recall a value it has never seen, at a
+    measured rate, against a control that never emits it. Cross-turn binding is therefore not an
+    architectural impossibility at this scale - the session's earlier "capability gap" reading is
+    superseded by a mechanism that works part of the time, with its residual failure localised to the
+    CONTINUATION after a correct copy.
+  * DOES NOT ESTABLISH: a solved binding capability. 0.417 exact per cell with about half failing on an
+    open gate; single checkpoint, single seed, 28 values, one template, one shape.
+  * THE NEXT FIX IS NOW SPECIFIC AND FAMILIAR: the copies succeed and then continue, which is the same
+    continuation pressure the session has fought all night at the objective level. A length-constrained
+    or copy-terminating decoder, or a loss that stops the response once the copied span is complete, acts
+    on exactly the residual failure this measurement isolates - and the gate route is closed, so this is
+    the remaining lever with direct evidence behind it.
+
+SCOPE
+  Two checkpoints (pointer and control), 28 novel values, 3 conditions, one template, greedy decoding,
+  single seed. Exact for these rows; the novelty check covers the project's stores and the chat corpora
+  used in this session, not the whole internet.
