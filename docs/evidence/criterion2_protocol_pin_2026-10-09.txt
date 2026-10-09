@@ -80,6 +80,22 @@ PART 2 — WHAT THE VOLUME DOES HOLD: THE INDEPENDENT RETRAIN OF THE SAME RECIPE
   reports 126,944 tokens/s.  It is an independent retrain of the same declared recipe (the
   earlier current-state note says "an independent retrain reproduces the served nll to 2.1e-6").
 
+ARCHIVE (added after the measurement, same day)
+  The pair existed in exactly one place, the non-canonical EU-RO-1 volume, and in no cloud-store
+  index entry.  It is now archived:
+    cloud-store put deepseek c2p-retrain-pair-20261009
+    -> stored c2p-retrain-pair-20261009 (91700736 bytes, md5 df290deec27236217cb4b4177b4d28d8)
+       at icloud:UOR-R4/results/deepseek/c2p-retrain-pair-20261009.tar
+    index row: c2p-retrain-pair-20261009  91700736  df290deec27236217cb4b4177b4d28d8
+               results/deepseek/c2p-retrain-pair-20261009.tar  2026-10-09T22:01:15Z  deepseek
+  Contents: model-a1/model/model.safetensors (cbef6906..., 79,726,120 B),
+  export-a1/model.lut (721d4bdb..., 11,891,652 B), model-a1/{attempt.json,report.json,
+  model/config.json}, export-a1/{attempt.json,export.json}, snap-a1/snap.json,
+  d11-a1/evaluation.json.
+  Round trip: cloud-store fetch c2p-retrain-pair-20261009 <scratch> -> "md5 verified", and the
+  extracted model.safetensors and model.lut re-hashed to cbef6906... and 721d4bdb... exactly.
+  The local copy was then deleted: exactly one durable copy remains (the iCloud object).
+
 PART 3 — WHICH RUN PRODUCED WHICH PUBLISHED CELL
   Recorded round 10 (chat_stack_served_d11_2026-10-08.txt, artifact 2ac4c306...):
     fused float   nll 1.7250754982233047 @196,608 targets -> 0.877118 BPB  (published "0.8770")
@@ -214,8 +230,10 @@ LIMITATIONS
      full (3 pods, $7.36/h of $8.00/h) and the check confirms rather than discovers.
   3. One window draw: the 512-window number has se 0.0145 BPB.  No second window count was run;
      the 64-window figure quoted is the artifact's own recorded run.
-  4. The retrain pair is not in the 604-entry cloud-store index and exists only on the
-     non-canonical EU-RO-1 volume; a cloud-store put of the pair is the named next step.
+  4. The retrain pair is now archived (see ARCHIVE above): object
+     c2p-retrain-pair-20261009, 91,700,736 bytes, md5 df290deec27236217cb4b4177b4d28d8, at
+     icloud:UOR-R4/results/deepseek/c2p-retrain-pair-20261009.tar; the local copy was deleted
+     after the fetch-back re-verified both artifact digests.
   5. The raw report directory of the completed run was destroyed with the worktree; every field
      above is transcribed from that report and the run is re-runnable from the identities given.
   6. No training, no export, no quantiser tuning, no float generation.  The pod was read-only.

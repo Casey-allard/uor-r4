@@ -185,9 +185,15 @@ protocol is **0.877550 float / 0.886838 served**. criterion 2 remains **not met*
 3. **One window draw.** The 512-window number has se 0.0145 BPB; a claim finer than that, or a comparison
    against 0.90, needs more windows or the document-clustered protocol. No second window count was run
    (deliberately: the 64-window figure quoted is the artifact's own recorded run, not a new one).
-4. **No artifact preserved outside the volume.** The retrain pair is not in the 604-entry cloud-store
-   index and exists only on the non-canonical EU-RO-1 volume. A `cloud-store put` of the pair is the named
-   next step; this round did not spend on it.
+4. **The retrain pair is archived off the non-canonical volume.** It appeared in no cloud-store index
+   entry and existed only on `rfsx702p68`; it is now
+   `icloud:UOR-R4/results/deepseek/c2p-retrain-pair-20261009.tar` — object `c2p-retrain-pair-20261009`,
+   **91,700,736 bytes, md5 `df290deec27236217cb4b4177b4d28d8`**, index row written 2026-10-09T22:01:15Z,
+   holding `model-a1/model/model.safetensors` (`cbef6906…`), `export-a1/model.lut` (`721d4bdb…`) and the
+   provenance set (`model-a1/attempt.json`, `model-a1/report.json`, `model-a1/model/config.json`,
+   `export-a1/attempt.json`, `export-a1/export.json`, `snap-a1/snap.json`, `d11-a1/evaluation.json`).
+   It was fetched back with `cloud-store fetch` (md5 round-trip verified) and both artifact digests were
+   re-verified after extraction; the local copy was then deleted, so exactly one durable copy exists.
 5. No float reply generation, no training, no quantiser tuning, no re-export. The pod was used for
    read-only volume access only.
 
@@ -198,9 +204,16 @@ Pod **$0.4336**: `1t3jmb6m4c9q9s`, 1×RTX 4090, EU-RO-1, `UOR_POD_VOLUME_DCS=EU-
 $0.89/h, read-only (no job ran on it, `ps` clean at release). A second pod attempt for the re-fetch was
 **refused by the cap and cost nothing**. Laptop: release build 6 m 13 s; `lut-evaluate` 512 windows
 16 m 30 s at 6 threads (engine step 623.7 s); the killed `d11-evaluate` contributed no number.
+**Archiving cost $0 extra**: a new pod was refused by the rate cap ($7.36/h running + $0.89 > $8.00/h),
+so the pair was read — read-only, authorised by the Lead — from the already-running `reply-cap96` pod
+`260rd8ondf4mzg` on the same volume, and pushed to iCloud from the laptop.
 
 ## Evidence
 
 [`docs/evidence/criterion2_protocol_pin_2026-10-09.txt`](../../evidence/criterion2_protocol_pin_2026-10-09.txt)
 carries the identities, the search transcript, the four command forms, the matched table on both byte
 bases, the per-window spread, the recorded 64-window d11 record and the cost.
+
+The artifact measured here is restorable from iCloud:
+`cloud-store fetch c2p-retrain-pair-20261009 <dest>` (91,700,736 B, md5 `df290dee…`; fetched back and
+re-verified in this round).
