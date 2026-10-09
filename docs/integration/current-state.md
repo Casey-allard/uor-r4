@@ -1,3 +1,49 @@
+## 2026-10-09 — The open reply panel's mid-clause failures are the 64-token budget (deepseek, #2029)
+
+The question the previous round could not settle was whether the largest text marker on the open reply panel —
+`no_terminal`, 125 of 189 failures — is the `max_new_tokens=64` cap or a voluntary stop mid-sentence. It decides
+what the panel measures: a termination failure in the served stack, or a failure to complete thoughts the model
+chose to start. Amendment: [open-reply-panel-2026-10-09](../labs/open-reply-panel-2026-10-09/README.md) Result 4.
+
+**The tokenizer the report names was found on the laptop**, not missing: `d36d3e87…` at
+`~/uor-r4-local/workspace/uor-r4-lab/claude-t4-1433-resume/bundle-learned-1/tokenizer.json`. The sealed report
+root's own `attempt.json` names that bundle path; the file's sha256 equals the report's `tokenizer_sha256`; and
+`crates/uor-r4-tokenizer/examples/token-counts.rs`, built on the crate's own engine, reproduces the
+`chat-grade check` worst cases already recorded on main for `context=384` — 336 (`conv-v3-mem-16`) and 347
+(`conv-v4-mem-23`) — exactly. The counts are therefore the frozen instrument's counts.
+
+**Answer: CAP-TRUNCATION, split 85 / 34 / 6.** Of the 125 mid-clause failures on the 29M artifact, **85 (68.0%)
+are at 64 tokens or more**, 34 sit at exactly 63 — the band the trimmed stored text and pre-token-boundary
+effects live in, so they spent at least 61 of the 64 steps — and **6 (4.8%) are genuine voluntary stops
+mid-sentence** (`heldout-020` 19 tokens, `heldout-130` 22, `heldout-156` 38, `heldout-060` 55, `heldout-135`
+and `heldout-176` 56). **119 of 125 (95.2%) end within one token of the budget.** Coverage of the 189: 85
+(45.0%) at the cap, 124 (65.6%) within one token, 125 (66.1%) mid-clause in total, and 64 (33.9%) not
+budget-limited at all — 62 of those end with terminal punctuation, i.e. completed replies graded wrong.
+
+**The well-posed/ill-posed asymmetry is the same budget.** Among `K-clean` failures 73 of 115 (63.5%) are at
+the cap, against 14 of 51 (27.5%) for `K-ill-posed`; over all rows 82 of 133 `K-clean` rows (61.7%) reach 64
+tokens against 18 of 67 `K-ill-posed` (26.9%), and the `everyday` tier never reaches it (0 of 32). A well-posed
+request makes the model write until the budget cuts it off; an unanswerable one makes it stop early — which is
+the `fluent_only` concentration in `K-ill-posed`. So the 86.5% versus 76.1% failure rates are a budget effect,
+not a knowledge effect. Acceptance is cap-sensitive too: 13 of 100 at the cap are `acceptable` (13.0%) against
+30 of 132 below it (22.7%). The 96M `chat-100m-C` artifact replicates the shape: 86 of 117 mid-clause failures
+(73.5%) at the cap, one below it, `K-clean` 65.5% against `K-ill-posed` 17.4%.
+
+**What it does not say, and what follows.** It does not say the cut replies would have been *correct* with more
+room — nothing here regenerates a reply. It explains 45.0% of the 189 failures and leaves the rest diffuse, so
+the no-Phase-2 decision stands unchanged; the budget is a decoder setting, not a mechanism. What it adds is one
+bounded, cheap measurement that was believed unavailable: a declared run of the same sealed panel at
+`max_new_tokens` 96 or 128, same artifacts, same grader, the cap as the only pre-registered delta, before any
+corpus/knowledge spend — the 43→46/232 plateau may be partly a plateau at 64 tokens. Also unchanged and still
+first: criterion 1 on this panel is judge-only and needs either deterministic row checks or a stated tolerance.
+CPU only: no model, no generation, no grading, no pod, zero spend; scripts
+`scripts/open_reply_panel_token_counts.py` and `crates/uor-r4-tokenizer/examples/token-counts.rs` carry the
+whole pipeline.
+
+**Next:** run the declared larger-cap measurement on the open reply panel — same sealed panel, same two
+artifacts, same grader digest, `max_new_tokens` the only delta, pre-registered before it runs — to decide
+whether the budget-cut replies become correct or only longer; and repair criterion 1's judge-only reading with
+deterministic row checks or a stated tolerance before any candidate number on that panel is accepted.
 ## Octonion substrate draft has exact sign and projection counterexamples — October 9
 
 **KEEP** typed separation of algebra, state, routing and identity; **REJECT** direct adoption of the supplied orientation/projected route; a new substrate remains **NOT YET PROMOTED**. Full review of Mark (N3mesis)'s 16-slide architecture and 31-page discussion, with a standalone Rust arithmetic witness, finds 176/224 mixed-unit left-alternativity cases for the draft versus 224/224 for the table parsed from existing SpiralCore source; both pass all 64 repeated-basis cases, showing why the draft's basis-only sketch is insufficient. The literal proposed table also fails quadratic norm multiplicativity, the projected route loses the fourth coordinate, and the packing sketch hashes empty input; these are draft defects, not model results. [Record, exact identities and limitations](../labs/octonion-substrate-review-2026-10-09/README.md); canonical Rust operators and accepted 8/512 remain unchanged.

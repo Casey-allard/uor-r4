@@ -230,7 +230,133 @@ N 25.4%, O 29.6%, I 10.1%, T 5.8%, R 2.6% — largest class 29.6%, no majority �
 froze "retrieval cannot move the open panel; panel lever = corpus/knowledge".
 Its `T` (truncation at the 64-token budget) is 11 rows against my looser
 `no_terminal` 125; the two rules are not the same measurement and the difference is
-declared rather than reconciled.
+declared rather than reconciled. **Result 4 below resolves it: the looser rule is
+the budget, and the hand rubric's `T` was counting only the replies whose text ends
+without any punctuation at all.**
+
+## Result 4 — the mid-clause marker IS the 64-token budget (amendment, 2026-10-09 later)
+
+This section is the piece the Limitations of the first pass said could not be done.
+It was, because the tokenizer named in this record **is on the laptop**.
+
+**Where the tokenizer was, and four independent confirmations.** The sealed report's
+own `tokenizer_sha256` is `d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89`.
+The sealed report root's `attempt.json` — extracted for this round from
+`icloud:UOR-R4/results/deepseek/ladder.tar` — records the path the run used:
+
+```text
+tokenizer=/Users/casey.allard/uor-r4-local/inputs/claude-t4-1433-resume/bundle-learned-1/tokenizer.json
+```
+
+The `inputs/` tree is gone, but the same bundle survives under the `workspace/` tree and
+its file hashes to exactly that value:
+
+| | |
+|---|---|
+| path (found) | `~/uor-r4-local/workspace/uor-r4-lab/claude-t4-1433-resume/bundle-learned-1/tokenizer.json` |
+| sha256 | `d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89` |
+| blake3 address reported by the loader | `blake3:3f42bcfce7728512076549c63b88387e13c8156fe35c0f91d9b112439f3739cc` |
+| attempt.json (sealed, 2026-10-03) | names that bundle path |
+| report `tokenizer_sha256` | matches the file's sha256 |
+| `chat-grade check` worst case, v3 / v4 | **336** (`conv-v3-mem-16`) and **347** (`conv-v4-mem-23`) — reproduced exactly with this file |
+
+The last row is the instrument check: `crates/uor-r4-tokenizer/examples/token-counts.rs`
+(the crate's own engine, the one `chat-grade` loads) recomputes `check_panel`'s
+`worst_case_history` from the frozen panels and lands on the two numbers already recorded
+on main for `context=384`. The counts below are therefore the frozen instrument's counts,
+not a re-implementation's.
+
+**Method.** `scripts/open_reply_panel_token_counts.py extract` pulls the 232 stored replies
+out of the sealed report (the last assistant entry of each row's `conversation`, which
+`reply_panel` filled with `decode(ids without EOS)`, then `trim()`ed by
+`panel_conversations`); the example counts tokens per reply; `summarise` cross-tabulates
+against the report's own grades and the classification of Result 3. CPU only: no model, no
+generation, no grading, no pod, zero spend.
+
+**Evidence bundle.** `icloud:UOR-R4/results/deepseek/reply-panel-token-budget-2026-10-09.tar`
+(540,672 B, md5 `ff006fa0f86cdbfa671e8491b108ea06`,
+`~/.local/share/uor-r4/bin/cloud-store fetch reply-panel-token-budget-2026-10-09 <dest>`): the
+tokenizer copy, both token-count files, both per-row tables, both summaries, the extracted
+reply texts, copies of the two instruments and `verify.txt` (hashes plus the 336/347
+instrument check). The store never overwrites a sealed root, so the copy of
+`token-counts.rs` inside it is the revision before `cargo fmt` reflowed it; the file on main
+is canonical and differs only in whitespace.
+
+**Why the count answers the question.** The loop
+(`stack_dialogue::greedy_reply_with`) runs at most `max_new_tokens = 64` steps and leaves
+early only on EOS (`Reply::stop_with`) or on a short repeated cycle (`cycle_repeats=3`).
+So a reply whose *own text* already needs 64 canonical tokens cannot have come from a short
+generation: the model spent essentially the whole budget on it. The reconstruction is not
+exact to the token — the stored text is trimmed, and a model token can cross a GPT-2
+pre-token boundary, both of which move the count by one or two — so the counts are read in
+a band around 64, and the five replies at 65–66 are the calibration of that band (they can
+only be cap runs, so the inflation is +1 to +2).
+
+**The counts, 29M (`chat-29m-B-lr5e-4`, 43/232).** Token count of the stored reply over the
+232 rows: 141 are at 63 or more, of which **95 are at exactly 64 and 41 at exactly 63**;
+below that the mass is thin (2 at 62, 2 at 60, 2 at 59, 1 at 58, and a long sparse tail).
+Split by population:
+
+| population | rows | ≥ 64 tokens (at the cap) | = 63 tokens | ≤ 62 tokens |
+|---|---:|---:|---:|---:|
+| all failures | 189 | **87 (46.0%)** | 37 | 65 |
+| **mid-clause failures (`no_terminal`)** | **125** | **85 (68.0%)** | **34 (27.2%)** | **6 (4.8%)** |
+| failures with terminal punctuation | 64 | 2 (3.1%) | 3 | 59 |
+| tier `K-clean` failures | 115 | **73 (63.5%)** | 20 | 22 |
+| tier `K-ill-posed` failures | 51 | **14 (27.5%)** | 15 | 22 |
+| tier `everyday` failures | 23 | **0** | 2 | 21 |
+
+**The single answer: CAP-TRUNCATION, and the split is 85 / 34 / 6.**
+
+- **85 of the 125 mid-clause failures (68.0%) ran to the 64-token cap.** The model never
+  emitted EOS and never entered a terminal cycle; it was cut mid-clause by the budget.
+- **34 more (27.2%) sit at exactly 63**, one token under the budget, which is the band the
+  trimming and pre-token-boundary effects live in. Their text already needs 63 canonical
+  tokens, so they spent ≥ 61 of the 64 steps. Whether the last step was EOS or the cap,
+  they are budget-limited too.
+- **6 of 125 (4.8%) are genuine voluntary stops mid-sentence**, well inside the budget
+  (`heldout-020` 19 tokens, `heldout-130` 22, `heldout-156` 38, `heldout-060` 55,
+  `heldout-135` 56, `heldout-176` 56).
+
+So **119 of the 125 mid-clause failures (95.2%) end within one token of the 64-token
+budget**, and the marker the first pass reported as "the largest single mechanism, 66.1% of
+the failures" is a *termination* failure, not a failure to finish a thought the model chose
+to start. Coverage of the 189: **85 (45.0%) at the cap, 124 (65.6%) within one token of it,
+125 (66.1%) mid-clause in total, and 64 (33.9%) not budget-limited at all** — 62 of those
+end with terminal punctuation, i.e. completed replies that were graded wrong.
+
+**The well-posed/ill-posed asymmetry the priority correction quotes is the same budget.**
+`K-clean` rows sit at the cap far more often than `K-ill-posed` ones: 82 of 133 `K-clean`
+rows (61.7%) reach 64 tokens against 18 of 67 `K-ill-posed` rows (26.9%), and among failures
+63.5% against 27.5%. A well-posed request makes the model keep writing until the budget
+stops it; an unanswerable one makes it stop early — which is exactly the `fluent_only`
+concentration in `K-ill-posed`. **The 86.5% fail on `K-clean` versus 76.1% on `K-ill-posed`
+is a budget effect, not a knowledge effect.** The `everyday` tier never reaches the cap at
+all (0 of 32), which is why it is the healthiest tier.
+
+**Acceptance is cap-sensitive too.** At the cap 13 of 100 replies are `acceptable` (13.0%);
+below it 30 of 132 are (22.7%). The cap roughly halves the acceptance rate.
+
+**A second artifact, same shape.** The 96M `chat-100m-C` report (46/232, 186 failures,
+token counts computed the same way): **86 of its 117 mid-clause failures (73.5%) are at the
+cap**, 30 at 63, and **1** below that (`heldout-055`, 28 tokens); `K-clean` 76/116 failures
+at the cap (65.5%) against `K-ill-posed` 8/46 (17.4%). The finding is not a property of the
+29M model.
+
+**What this does and does not say.**
+
+- It says the replies were cut by the 64-token decoding budget. It does **not** say the
+  model would have answered correctly with more room: a longer cap would make these replies
+  longer, not necessarily right, and nothing here regenerates a reply. The next measurement
+  that would decide it is a declared run at a larger `max_new_tokens` on the same sealed
+  replies' prompts — a decoder-budget experiment, not a training one.
+- It explains 45.0% of the 189 failures outright and 65.6% inside the one-token band. It
+  does **not** explain the 62 failures that end with terminal punctuation, nor the 6
+  voluntary mid-sentence stops; those remain diffuse, and the earlier decision not to open
+  Phase 2 is unchanged.
+- It also means **this panel's headline number is partly a decoding-budget number**. Any
+  candidate scored on it at `max_new_tokens=64` inherits that; a candidate compared against
+  43/232 must be compared at the same budget.
 
 **A second artifact, same shape.** The 96M `chat-100m-C` report
 (`ladder/grades/chat-100m-C-powered-7b/report.json`, sha256
@@ -258,6 +384,13 @@ lever that is not bounded by this panel, plus one sharp sub-population:
 `K-ill-posed`'s 19 `fluent_only` rows, where a fluent non-answer to an unanswerable
 request is being counted as a failure by a judge that has no way to know the request
 is unanswerable.
+
+**Amendment (2026-10-09 later).** Result 4 below sharpens the largest marker: it is the
+64-token decoding budget, and the `K-clean`/`K-ill-posed` asymmetry is the same budget. The
+Phase 2 decision stands unchanged — 85 of 189 failures are budget-caused, but the budget is
+a decoder setting, not a mechanism, and the remaining 104 are as diffuse as before. What
+Result 4 adds is one bounded, cheap, decision-changing measurement (item 2 of Next) that the
+first pass believed was unavailable.
 
 ### Pre-registered and declined: the judge-stability re-grade
 
@@ -306,10 +439,16 @@ own tree.
   answers yes/no only, so every mechanism below the verdict level is my rule and is
   reproducible only as that rule. The `no_terminal`/`repeat5` boundaries were fixed
   in the script before the numbers were read, and the script has a selftest.
-- **Cap-truncation and cycle-stop are not separated.** The tokenizer
-  (`d36d3e87…`) is not on the laptop and the archive has no `inputs/` tree, so
-  exact reply token counts are unavailable; `no_terminal` covers both "hit the
-  64-token cap" and "stopped on chat-grade's `cycle_repeats=3` rule".
+- **Cap-truncation and cycle-stop are separated as of Result 4 (2026-10-09 later).** The
+  first pass recorded that the tokenizer (`d36d3e87…`) was not on the laptop and that the
+  archive has no `inputs/` tree, and left `no_terminal` covering both "hit the 64-token cap"
+  and "stopped on the `cycle_repeats=3` rule". That was wrong about availability: the file
+  survives at `~/uor-r4-local/workspace/uor-r4-lab/claude-t4-1433-resume/bundle-learned-1/tokenizer.json`,
+  hashes to the value the report names, and is the instrument behind the `chat-grade check`
+  worst cases already on main. Result 4 uses it: `no_terminal` is the budget, not a cycle
+  rule — 85 of the 125 mid-clause failures are at the cap and 119 are within one token of it.
+  Exact reply *ids* still do not exist anywhere: the sealed report stores the decoded text
+  only, so the counts are canonical re-encodings and are read in a band, as Result 4 states.
 - **The judge is not perfectly stable** (the v4 round measured 4 of 64 rows
   changing verdict at the same grader digest) and this panel has no deterministic
   check to fall back on, so **43/232 is a judge verdict with unmeasured noise**.
@@ -325,18 +464,27 @@ own tree.
 
 ## Next:
 
-Two decisions, neither of them another diagnostic:
+Result 4 changes one thing and leaves the rest standing. The mid-clause failures are the
+decoding budget, so a lever now exists where the first pass said none did — but it is a
+budget lever, not a knowledge lever, and it must not be confused with one.
 
-1. **Repair criterion 1's reading** — add deterministic row checks to the reply
-   panel (the v4/v5 pattern) or state a tolerance for the judge — before anyone
-   trains against 116/232. The criterion currently cannot distinguish a real gain
-   from judge noise, and no candidate number on it should be accepted until that is
-   fixed.
-2. **Decide whether the reply panel is worth attacking at all.** On this record the
-   lever is the float model's corpus/knowledge/capacity, which the frozen Step 0a
-   decision already named and which no bounded readiness instrument reaches; if it
-   is attacked, it needs a fresh sealed panel, because Step 0a read every failing
-   row of this one.
+1. **Repair criterion 1's reading** — add deterministic row checks to the reply panel (the
+   v4/v5 pattern) or state a tolerance for the judge — before anyone trains against 116/232.
+   The criterion currently cannot distinguish a real gain from judge noise, and no candidate
+   number on it should be accepted until that is fixed.
+2. **The one bounded measurement Result 4 justifies**: a declared run of the same sealed
+   panel at a larger `max_new_tokens` (96 or 128) on the same two artifacts, same grader,
+   same protocol, the cap change pre-registered as the only delta. It answers the question
+   Result 4 cannot — whether the cut replies would have become *correct* with room, or only
+   longer. It is a decoder-budget experiment, not a training one, and it is worth doing
+   before any corpus/knowledge spend, because 45.0% of the current failures are budget-caused
+   and the 43→46/232 plateau may be partly a plateau at 64 tokens.
+3. **Decide whether the reply panel is worth attacking at all** beyond that run. Even at a
+   larger cap, 62 failures end with terminal punctuation and are wrong on content; the
+   recorded lever for those remains the float model's corpus/knowledge/capacity, which the
+   frozen Step 0a decision already named and which no bounded readiness instrument reaches.
+   If it is attacked, it needs a fresh sealed panel, because Step 0a read every failing row
+   of this one.
 
 The open reply panel's failures are not one thing, and a 2.7× target is not
 reachable by one bounded intervention. That is the result, and no candidate
