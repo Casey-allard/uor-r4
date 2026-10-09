@@ -49,9 +49,9 @@
 <rect x="40" y="411" width="920" height="94" rx="10" fill="#fff8ed" fill-opacity="1" stroke="#D55E00" stroke-width="1.5" stroke-opacity="1"/>
 <text x="60" y="439" font-size="18" fill="#D55E00" fill-opacity="1" text-anchor="start" font-weight="bold">Candidate consolidation: a separate read-only history role</text>
 <text x="60" y="465" font-size="14" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">Retained input position + causal state can become a key without becoming a stored fact or Copy action.</text>
-<text x="60" y="488" font-size="14" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">Not integrated. First trace the actual parent's earliest-query intervention through consumed scores.</text>
+<text x="60" y="488" font-size="14" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">Not integrated. Early cue changes 3981/4096 Generate and 11/11 Copy scores; next: learning integration.</text>
 <text x="40" y="550" font-size="15" fill="#5f6b7a" fill-opacity="1" text-anchor="start" font-weight="normal">No claim that Source-only admission causes the current 8/512 result.</text>
 <text x="40" y="577" font-size="15" fill="#5f6b7a" fill-opacity="1" text-anchor="start" font-weight="normal">No change to Source provenance, accepted artifact, D11 target or native acceptance checks.</text>
-<text x="40" y="648" font-size="14" fill="#5f6b7a">Source/caller trace at main 65f2eb046; no new model run or language-performance claim.</text>
+<text x="40" y="648" font-size="14" fill="#5f6b7a">Caller trace plus token-zero diagnostic: early cue reaches scores; novel replies 0/2, original controls 2/2.</text>
 <text x="40" y="669" font-size="14" fill="#5f6b7a">M1 all-position read is a separate path. A read-only history role is not yet integrated.</text>
 </svg>

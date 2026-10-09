@@ -48,3 +48,12 @@ Geometry documentation and the matching flow figure distinguish the current M2 p
 Projection: 30 minutes preparation, expert/source review, figure/documentation checks and protected delivery; at most 1 GiB RAM and 32 MiB retained evidence plus one owned worktree. No model training, grading, GPU or paid compute. Charge the cumulative ledger, preserve the 30 GiB disk floor plus 128 MiB margin, and remove the delivery branch/worktree after verified merge. Accepted **8/512 complete development replies** remains unchanged; M1 and M3 qualification are unchanged.
 
 **Next:** Run the paired earliest-query intervention through the actual M2 parent under a separately admitted exact configuration, so the next repair is selected by where the answer-relevant distinction survives or disappears. Do not repeat unchanged gradient/radius runs or promote source-only Copy exclusion into an established language failure.
+
+## Follow-through — October 9
+
+The prospective earliest-query comparison above is now complete in the
+[sealed token-zero diagnostic](../early-query-causal-2026-10-09/README.md): the
+early cue changes consumed native scores but both novel requests fail, while
+both original controls complete. The retained parent has no U field. The next
+step is shared protected-margin learning integration; the original prospective
+question and its limits remain on record.

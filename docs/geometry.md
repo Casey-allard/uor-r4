@@ -350,6 +350,13 @@ It is **not yet integrated or qualified**, and source inspection does not establ
 causes the current language errors. The [caller trace and causal comparison](labs/input-access-trace-2026-10-09/README.md)
 keep input influence, explicit read access, donor selection and emission distinct. Existing H4 operators
 can support the comparison; no conversion to E8 is inherently required for this access boundary.
+The [token-zero intervention](labs/early-query-causal-2026-10-09/README.md) now measures
+that influence on one novel job/home pair: 8/8 final state lanes, 3981/4096 Generate
+scores and 11/11 Copy scores differ, with the same Source candidates and donor;
+both novel replies fail, while both original controls complete. Thus total early-cue
+erasure before scoring is excluded for this pair; semantic sufficiency and the
+cause of full512 errors are not established. The next bounded step is shared
+protected-margin learning integration, not automatic promotion of an access rewrite.
 The E1 and Hamming-rank mechanisms in section 11 remain separate pre-registered M1/M4 work.
 
 ## Life of one token

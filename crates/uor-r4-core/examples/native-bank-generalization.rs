@@ -26,6 +26,8 @@ use uor_r4_integer::{
     geometric_source_realizer::NativeArtifactBinding,
     geometric_vocabulary_actions::{VocabularyAction, VocabularyTokenMass, SCORE_CLIP_Q24},
 };
+#[path = "native_bank_generalization/early_query.rs"]
+mod early_query;
 #[path = "../../uor-r4-integer/examples/support/source_probe.rs"]
 mod output_support;
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
@@ -99,6 +101,9 @@ struct Config {
     maximum_report_bytes: u64,
     #[serde(default)]
     baseline_parity: bool,
+    /// Diagnostic evidence only; retain the already computed first-step bank replay.
+    #[serde(default)]
+    retain_entry_bank_trace: bool,
     #[serde(default)]
     continuation_field: Option<PathBuf>,
     #[serde(default)]
@@ -141,7 +146,7 @@ fn write_row(c: &Config, name: &str, row: &Value) -> Result<()> {
     }
     Ok(fs::write(c.output.join(name), bytes)?)
 }
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 struct Panel {
     schema: String,
@@ -174,7 +179,7 @@ enum Segment {
         token_ids: Vec<u32>,
     },
 }
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 struct Labels {
     schema: String,
@@ -182,7 +187,7 @@ struct Labels {
     membership_only: bool,
     cases: Vec<Label>,
 }
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 struct Label {
     id: String,
@@ -533,6 +538,11 @@ fn hex_identity(value: &str, digits: usize) -> bool {
     value.len() == digits && value.bytes().all(|v| v.is_ascii_hexdigit())
 }
 fn admit_model_options(c: &Config) -> Result<()> {
+    if c.retain_entry_bank_trace && c.evaluation_kind != EvaluationKind::OwnPrefix {
+        return Err(bad(
+            "entry bank trace is only supported by own_prefix evaluation",
+        ));
+    }
     if c.evaluation_kind != EvaluationKind::ComponentCrossEntry && c.component_parent.is_some() {
         return Err(bad(
             "component parent is only valid for component_cross_entry",
@@ -836,11 +846,18 @@ fn run(c: &Config) -> Result<Value> {
                 generated.generated_ids.clone(),
             ));
         }
-        let traces = generated
+        let mut traces = generated
             .steps
             .iter()
             .map(|step| step_row(step, local_query_ids.as_deref(), g.continuation_sha256()))
             .collect::<Result<Vec<Value>>>()?;
+        if c.retain_entry_bank_trace {
+            let first = generated
+                .steps
+                .first()
+                .ok_or_else(|| bad("entry step absent"))?;
+            traces[0]["bank_trace"] = serde_json::to_value(&first.bank_trace)?;
+        }
         let mut row = json!({"id":id,"generated_ids":generated.generated_ids,"decoded":decoded,"decoded_utf8_valid":valid_text.is_some(),"decoded_bytes_sha256":hash(&decoded_bytes),"eos":eos,"complete":accepted,"entry_correct":entry_correct,
             "stop":format!("{:?}",generated.stop),"executed_steps":generated.executed_steps,"pin": {"lineage":generated.pin.lineage,"commit":generated.pin.commit,"scope":String::from_utf8(generated.pin.scope)?},"steps":traces,"baseline_parity":parity});
         if let Some(digest) = g.continuation_sha256() {
@@ -2211,8 +2228,11 @@ fn main() -> Result<()> {
     if args.len() == 3 && args[1] == "prepare-zero-continuation" {
         return prepare_zero_continuation(&bytes(Path::new(&args[2]))?);
     }
+    if args.len() == 3 && args[1] == "prepare-early-query" {
+        return early_query::prepare(&bytes(Path::new(&args[2]))?);
+    }
     if args.len() != 2 {
-        return Err(bad("usage: native-bank-generalization CONFIG.json | prepare-zero-continuation ZERO_CONFIG.json | verify-report OUTPUT"));
+        return Err(bad("usage: native-bank-generalization CONFIG.json | prepare-zero-continuation ZERO_CONFIG.json | prepare-early-query PREP_CONFIG.json | verify-report OUTPUT"));
     }
     let raw = bytes(Path::new(&args[1]))?;
     let mut c: Config = serde_json::from_slice(&raw)?;
@@ -2382,6 +2402,18 @@ mod tests {
         c["expected_labels_sha256"] = json!(ENTRY_LABEL_SHA);
         c["maximum_report_bytes"] = json!(64 << 20);
         c
+    }
+    #[test]
+    fn entry_bank_trace_is_opt_in_and_own_prefix_only() -> Result<()> {
+        let legacy: Config = serde_json::from_value(legacy_config())?;
+        assert!(!legacy.retain_entry_bank_trace);
+        let mut enabled = legacy_config();
+        enabled["retain_entry_bank_trace"] = json!(true);
+        admit_model_options(&serde_json::from_value(enabled)?)?;
+        let mut wrong_mode = entry_config();
+        wrong_mode["retain_entry_bank_trace"] = json!(true);
+        assert!(admit_model_options(&serde_json::from_value(wrong_mode)?).is_err());
+        Ok(())
     }
     #[test]
     fn entry_diagnostic_requires_exact_final64_full_panel_and_genuine_u() -> Result<()> {

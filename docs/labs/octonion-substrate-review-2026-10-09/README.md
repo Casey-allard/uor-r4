@@ -202,3 +202,12 @@ comparisons, complete alias pooling and actual native output. Reuse existing
 typed operators at the first evidenced information/credit gap. A future formal
 contribution should target exact table correspondence, canonical serialization
 and route closure/full-state retention before claiming a new substrate.
+
+## Follow-through — October 9
+
+The prospective earliest-query comparison above is now complete in the
+[sealed token-zero diagnostic](../early-query-causal-2026-10-09/README.md): the
+early cue changes consumed native scores but both novel requests fail, while
+both original controls complete. The retained parent has no U field. The next
+step is shared protected-margin learning integration; the original prospective
+question and its limits remain on record.

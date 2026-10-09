@@ -1238,7 +1238,7 @@ def fig_hamming_read():
 def fig_native_input_access():
     fg = Fig("native-input-access.svg", "M2: input influence and explicit read access",
              "All admitted tokens update recurrent geometry; only Source occurrences enter the current bank read and Copy lists.",
-             ["Source/caller trace at main 65f2eb046; no new model run or language-performance claim.",
+             ["Caller trace plus token-zero diagnostic: early cue reaches scores; novel replies 0/2, original controls 2/2.",
               "M1 all-position read is a separate path. A read-only history role is not yet integrated."])
     def box(x, y, w, title, lines, color):
         fg.rect(x, y, w, 98, "#f6f9fc", color, 1.5, 10)
@@ -1261,7 +1261,7 @@ def fig_native_input_access():
     fg.rect(40, 411, 920, 94, "#fff8ed", VERM, 1.5, 10)
     fg.text(60, 439, "Candidate consolidation: a separate read-only history role", 18, VERM, weight="bold")
     fg.text(60, 465, "Retained input position + causal state can become a key without becoming a stored fact or Copy action.", 14, INK)
-    fg.text(60, 488, "Not integrated. First trace the actual parent's earliest-query intervention through consumed scores.", 14, INK)
+    fg.text(60, 488, "Not integrated. Early cue changes 3981/4096 Generate and 11/11 Copy scores; next: learning integration.", 14, INK)
     fg.text(40, 550, "No claim that Source-only admission causes the current 8/512 result.", 15, MUTED)
     fg.text(40, 577, "No change to Source provenance, accepted artifact, D11 target or native acceptance checks.", 15, MUTED)
     fg.save()
