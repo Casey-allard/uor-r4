@@ -573,3 +573,63 @@ not the lever; the completed-but-wrong set is. What follows points there.
 The open reply panel's failures are not one thing, and a 2.7× target is not
 reachable by one bounded intervention. That is the result, and no candidate
 follows from it.
+
+## Result 6 — the completed-but-rejected failures are SHORT WRONG ANSWERS, and the reply-panel criterion cannot carry criterion 1
+
+Measured from `verdicts-29m.tsv` on main, splitting the 189 failures by whether the reply ended with
+terminal punctuation. CPU only: no pod, no generation, no grading, no new artifact.
+
+**Correction: the count is 64 completed-but-rejected, not 62.** Earlier comments in this line said 62;
+the per-row table gives **64 rows with `no_terminal=0` out of 189**. The earlier number was mine and is
+replaced here.
+
+| property | completed-but-rejected (64) | cut by the cap (125) |
+|---|---:|---:|
+| `reply_words` median / mean | **10 / 13.9** | **31 / 31.3** |
+| `repeat5` | **5 %** | **34 %** |
+| `restate_high` | 16 % | 6 % |
+| `code_fence` | 12 % | 0 % |
+| `question` | 6 % | 3 % |
+| `echo_user` / `stub` / `role_leak` / `refusal` | 2 / 3 / 0 / 2 % | 2 / 0 / 0 / 0 % |
+| `verdict_class` | neither 41 (64 %), fluent_only 20 (31 %), relevant_only 3 (5 %) | — |
+| `tier` | everyday 21, K-ill-posed 21, K-clean 22 | — |
+
+### Three findings
+
+1. **The separator is length, not form.** Completed-but-rejected replies are **short (median 10 words)**;
+   cap-cut replies are **long (median 31)**. And `repeat5` at 34 % in the cut set against 5 % in the
+   completed set means **repetition was never a mechanism of the real failures — it is a symptom of
+   running long.** Any analysis that counts repetition as a failure mode is counting the decoder.
+2. **The well-posed-row effect was entirely the cap**, confirmed at the failure level: completed failures
+   sit evenly across tiers (21 / 21 / 22). There is no K-clean defect. The earlier structural claim in
+   this line is refuted twice — once by the token counts, once here.
+3. **They are rejected on both axes.** 64 % are neither fluent nor relevant, with every form marker low.
+   These are bad ANSWERS, not mis-formatted ones: the model gives short answers that are wrong.
+
+**They are also diffuse** — 41 neither, 20 fluent-only, 3 relevant-only, no marker above 16 % — which
+fires this line's pre-registered stop condition. No bounded intervention is proposed and none was run.
+
+### The reply-panel criterion cannot carry criterion 1
+
+Four measured reasons: the failure set is **diffuse**, classified twice with no dominant mechanism; the
+**cap is not the constraint** (2 of 85 cut replies recovered with 50 % more room; 96 tokens scores 38
+against 44); the **instrument is judge-borne only** — no frozen row checks exist for this panel, giving a
+noise floor of order 14 cells on 232; and the **baseline was a macOS-only binary** until Run A re-grounded
+it, its "sealed" status having been assumed rather than tested.
+
+A `>= 116/232` target measured by a judge over diffuse short-wrong-answer failures does not tell anyone
+what to build next. That is a criterion defect, not a model result.
+
+### What should replace it
+
+- **Deterministic checks** for the reply panel in the v4/v5 style — expected substring, forbidden
+  distractors, no word of the distractor's key — so at least one component of the reading cannot move
+  between identical runs. The memory panels have this; the reply panel does not.
+- **A diagnosable target.** "Acceptable replies at 116/232" is a judge's opinion aggregated. "The model
+  answers a well-posed single-turn request without a short wrong answer" is a defect with a name, a count
+  and a fix — and the 64 measured here are exactly that defect, countable deterministically once checks exist.
+- **If a judge is kept, state a tolerance and a noise floor** with the number, and treat a delta under it
+  as no result — the rule applied to the cap run.
+
+Evidence: `verdicts-29m.tsv` and `verdicts-100m.tsv` on main; both run reports in iCloud as
+`reply-panel-cap96-2026-10-09.tar` (1,417,728 bytes, md5 `3de8c41eb9eb7532e1243450365ce335`).

@@ -1,3 +1,24 @@
+## 2026-10-09 — Open reply panel: the completed-but-rejected failures are short wrong answers, and the criterion cannot carry criterion 1 (deepseek, #2029)
+
+Splitting the 189 failures by whether the reply ended with terminal punctuation, from `verdicts-29m.tsv` on
+main: **64 completed-but-rejected** (correction: earlier comments in this line said 62) against 125 cut by
+the cap. The separator is **length, not form**: median **10 words** completed against **31** cut, and
+`repeat5` **5 %** against **34 %** — so repetition was a symptom of running long, never a mechanism of the
+real failures. Completed failures sit **evenly across tiers (21 / 21 / 22)**, confirming at the failure
+level that the well-posed-row effect was entirely the cap. **64 % are neither fluent nor relevant** with
+every form marker low: bad answers, not mis-formatted ones. And they are **diffuse** (41 / 20 / 3, no marker
+above 16 %), which fires the pre-registered stop condition — no intervention proposed or run.
+
+Consequence: **criterion 1's reply-panel half cannot carry the criterion** — diffuse failures, a cap that is
+not the constraint, a judge-borne instrument with no frozen checks (noise floor ~14 cells on 232), and a
+baseline that was macOS-only until Run A re-grounded it. Recommendation recorded: give the panel
+deterministic checks in the v4/v5 style, and replace the target with a diagnosable one (a well-posed
+single-turn request answered without a short wrong answer — the 64 are exactly that defect). CPU only, no
+pod, no generation, no grading.
+
+Next: decide criterion 1's reply half — adopt deterministic checks and a diagnosable target, or withdraw
+the 116/232 wording — and continue the v5 memory panel's single declared acceptance run.
+
 ## 2026-10-09 — Cap 96 does not raise open-reply acceptance: the budget explains the cut, not the failure (deepseek, #2029)
 
 Result 4 measured that the open reply panel's mid-clause failures are the 64-token budget. This is the measurement it
