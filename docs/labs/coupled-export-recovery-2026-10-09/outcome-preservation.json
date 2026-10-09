@@ -1,0 +1,24 @@
+{
+  "status": "PASS",
+  "source_commit": "a6be8f699eef3841a1a4dd7a51faefc06d83dd7c",
+  "revision": "fb1a0509de6a574def9472c5e33d4530f569a5b9",
+  "prefix": "codex/sol-coupled-episode-learning/outcome-export-attempt3",
+  "full_archive_set_size_sha_verified": true,
+  "archived_files": 578,
+  "verified_files": {
+    "outcome.tar.gz": {
+      "sha256": "c50ca2d93f98b600ed1a028352cd156a66356e6fdd437ec1ea7cb5d5ad6fa3fe",
+      "bytes": 50429800,
+      "actual_fresh_path": "/workspace/uor-r4/codex/sol-coupled-episode-learning/redownloads/outcome-export-attempt3/codex/sol-coupled-episode-learning/outcome-export-attempt3/outcome.tar.gz"
+    },
+    "identity.json": {
+      "sha256": "27217f74eec1b1c531a65adb737304b2d3c36a5277a1bf41506645bf293ec1cd",
+      "bytes": 183363,
+      "actual_fresh_path": "/workspace/uor-r4/codex/sol-coupled-episode-learning/redownloads/outcome-export-attempt3/codex/sol-coupled-episode-learning/outcome-export-attempt3/identity.json"
+    }
+  },
+  "payload_bytes": 50613163,
+  "package_plus_fresh_bytes": 101226326,
+  "seconds": 114.26105958968401,
+  "completed_utc": "2026-10-09T14:18:28.726191+00:00"
+}

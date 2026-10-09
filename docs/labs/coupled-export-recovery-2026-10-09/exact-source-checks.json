@@ -1,0 +1,137 @@
+{
+  "schema": "uor-r4.coupled-exact-source-checks/1",
+  "status": "PASS",
+  "source_commit": "a6be8f699eef3841a1a4dd7a51faefc06d83dd7c",
+  "lane": "CPU-affinity0,1 Cargo tests and CUDA-feature optimized build, ownGPU0 job; no learned-model run",
+  "started_utc": "2026-10-09T13:46:26.500236+00:00",
+  "phases": [
+    {
+      "name": "rustfmt",
+      "argv": [
+        "/root/.cargo/bin/rustfmt",
+        "--edition",
+        "2021",
+        "--config",
+        "skip_children=true",
+        "--check",
+        "crates/uor-r4-training/examples/geometric-frozen-map-fit.rs",
+        "crates/uor-r4-training/examples/geometric_frozen_map_fit/context_cue_coadapt.rs",
+        "crates/uor-r4-training/examples/geometric_frozen_map_fit/prefix_fragment_learning.rs",
+        "crates/uor-r4-training/examples/geometric_frozen_map_fit/generate_episode_learning.rs",
+        "crates/uor-r4-training/examples/geometric_frozen_map_fit/coupled_episode_learning.rs"
+      ],
+      "elapsed_seconds": 0.1447191871702671,
+      "exit_code": 0,
+      "log": "/workspace/uor-r4/codex/sol-coupled-episode-learning/exact-source-checks-0009/rustfmt.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_bytes": 0
+    },
+    {
+      "name": "diff-check",
+      "argv": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "elapsed_seconds": 0.015552341938018799,
+      "exit_code": 0,
+      "log": "/workspace/uor-r4/codex/sol-coupled-episode-learning/exact-source-checks-0009/diff-check.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_bytes": 0
+    },
+    {
+      "name": "example-tests",
+      "argv": [
+        "taskset",
+        "-c",
+        "0,1",
+        "/root/.cargo/bin/cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "--release",
+        "-p",
+        "uor-r4-training",
+        "--features",
+        "cuda",
+        "--example",
+        "geometric-frozen-map-fit",
+        "--",
+        "--nocapture"
+      ],
+      "elapsed_seconds": 72.24569309875369,
+      "exit_code": 0,
+      "log": "/workspace/uor-r4/codex/sol-coupled-episode-learning/exact-source-checks-0009/example-tests.log",
+      "log_sha256": "12721f2819da7843e39395f6e6d064de7b9971947fbfa90d6ff8e447e05bf51e",
+      "log_bytes": 17542
+    },
+    {
+      "name": "optimized-build",
+      "argv": [
+        "taskset",
+        "-c",
+        "0,1",
+        "/root/.cargo/bin/cargo",
+        "build",
+        "--locked",
+        "--offline",
+        "--release",
+        "-p",
+        "uor-r4-training",
+        "--features",
+        "cuda",
+        "--example",
+        "geometric-frozen-map-fit"
+      ],
+      "elapsed_seconds": 26.557898331433535,
+      "exit_code": 0,
+      "log": "/workspace/uor-r4/codex/sol-coupled-episode-learning/exact-source-checks-0009/optimized-build.log",
+      "log_sha256": "9c2c1936f45cc92b132a56ed2d3ae45a0cfc943f8a3eb61c49cf37636d76b745",
+      "log_bytes": 5424
+    }
+  ],
+  "source_files": [
+    {
+      "file": "crates/uor-r4-training/examples/geometric-frozen-map-fit.rs",
+      "sha256": "8a29216221842522b37d6ccd010b34363db53fa5cadb8bbff1fc3d77b96e67ad",
+      "bytes": 324244
+    },
+    {
+      "file": "crates/uor-r4-training/examples/geometric_frozen_map_fit/context_cue_coadapt.rs",
+      "sha256": "2efd3f31ca6192fed70edc5056550db2656dad1c9f27e177bb5493eda16773a5",
+      "bytes": 84091
+    },
+    {
+      "file": "crates/uor-r4-training/examples/geometric_frozen_map_fit/prefix_fragment_learning.rs",
+      "sha256": "3ba46ee05eaaab90f50d00ab29866246c41566f6c9d7fa16318de630e258942c",
+      "bytes": 137470
+    },
+    {
+      "file": "crates/uor-r4-training/examples/geometric_frozen_map_fit/generate_episode_learning.rs",
+      "sha256": "b6dc3a5967059f22dd246867131ff41826c7d9e75b382af135e4c83b9c8aa3d7",
+      "bytes": 108694
+    },
+    {
+      "file": "crates/uor-r4-training/examples/geometric_frozen_map_fit/coupled_episode_learning.rs",
+      "sha256": "f16e814ab0f34cdbfefb723fd2203749d5b02d882c8f5ae043d138a33e367671",
+      "bytes": 143294
+    }
+  ],
+  "environment": {
+    "CARGO_TARGET_DIR": "/root/codex/prototype-target",
+    "CARGO_BUILD_JOBS": "2",
+    "UOR_REQUIRE_CUDA": "1",
+    "CUDA_COMPUTE_CAP": "89",
+    "UOR_BUILD_SOURCE_COMMIT": "a6be8f699eef3841a1a4dd7a51faefc06d83dd7c",
+    "OMP_NUM_THREADS": "2",
+    "RAYON_NUM_THREADS": "2",
+    "CUDA_VISIBLE_DEVICES": "0"
+  },
+  "binary": {
+    "file": "/root/codex/prototype-target/release/examples/geometric-frozen-map-fit",
+    "sha256": "a2325d776be052021c567a75cba539d4910b615a0c1345f342418e2b069625b1",
+    "bytes": 36361840
+  },
+  "elapsed_seconds": 99.23779078572989,
+  "finished_utc": "2026-10-09T13:48:05.738027+00:00"
+}

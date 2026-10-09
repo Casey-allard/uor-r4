@@ -13,6 +13,14 @@
 > Work retained rather than activated lands as indexed source patches or a
 > restorable source bundle on main. The sole standing branch exception is
 > `codex/lab-state`, the operational coordination record with no research work.
+> **Later October 9 clarification for Codex:** use an owned isolated worktree,
+> not Casey's `~/uor-r4` checkout; leave that checkout on clean main while
+> preserving owner material. Keep at most one live branch per active PR, plus
+> `codex/lab-state`. Auto-delete is off: after every protected merge, verify
+> fresh `origin/main`, then manually remove the GitHub branch, local branch
+> and owned worktree. New negative, superseded or paused source that is not
+> activated must still land as a patch and INDEX row in
+> `docs/history/branch-archive/`. Previously preserved bundles remain evidence.
 
 > **Current owner direction, October 1 — D19:** grounded conversation and durable
 > memory lead the active canonical plan. Codex rejoins Claude and OpenCode–DeepSeek

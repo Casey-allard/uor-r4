@@ -66,6 +66,8 @@ mod context_constraints;
 mod context_cue_coadapt;
 #[path = "geometric_frozen_map_fit/context_path_credit.rs"]
 mod context_path_credit;
+#[path = "geometric_frozen_map_fit/coupled_episode_learning.rs"]
+mod coupled_episode_learning;
 #[path = "geometric_frozen_map_fit/emission_constraints.rs"]
 mod emission_constraints;
 #[path = "geometric_frozen_map_fit/frontier.rs"]
@@ -162,6 +164,10 @@ fn replay_require(ok: bool, message: &str) -> Result<()> {
     }
 }
 fn reference_replay_settings(a: &Args) -> Result<()> {
+    coupled_episode_learning::validate_settings(a)?;
+    if a.coupled_episode_learning.is_some() {
+        return Ok(());
+    }
     generate_episode_learning::validate_completion_settings(a)?;
     if a.generate_episode_completion.is_some() {
         return Ok(());
@@ -543,6 +549,8 @@ struct Args {
     #[serde(default)]
     generate_episode_learning: Option<generate_episode_learning::Config>,
     #[serde(default)]
+    coupled_episode_learning: Option<coupled_episode_learning::Config>,
+    #[serde(default)]
     generate_episode_completion: Option<generate_episode_learning::CompletionConfig>,
     #[serde(default)]
     prefix_artifact_check: Option<prefix_fragment_learning::ArtifactConfig>,
@@ -825,6 +833,11 @@ fn args() -> Result<(Args, Vec<u8>)> {
     )
     .chain(
         a.generate_episode_completion
+            .iter()
+            .flat_map(|c| c.input_roots()),
+    )
+    .chain(
+        a.coupled_episode_learning
             .iter()
             .flat_map(|c| c.input_roots()),
     )
@@ -5344,6 +5357,9 @@ fn joint_row_comparison(before: &Value, after: &Value) -> Result<Value> {
 }
 
 fn run_joint_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
+    if a.coupled_episode_learning.is_some() {
+        return coupled_episode_learning::run(a, start, d);
+    }
     if a.generate_episode_learning.is_some() {
         return generate_episode_learning::run(a, start, d);
     }
@@ -6320,6 +6336,12 @@ fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
 }
 
 fn run(a: &Args, start: Instant) -> Result<Value> {
+    if a.coupled_episode_learning
+        .as_ref()
+        .is_some_and(|c| c.retained_gradient.is_some() || c.retained_export.is_some())
+    {
+        return coupled_episode_learning::run(a, start, &Device::Cpu);
+    }
     if a.generate_episode_completion.is_some() {
         return generate_episode_learning::run_completion(a, start);
     }
@@ -6616,6 +6638,7 @@ fn main() -> Result<()> {
         if a.context_path_credit.is_some()
             || a.prefix_artifact_check.is_some()
             || a.prefix_fragment_learning.is_some()
+            || a.coupled_episode_learning.is_some()
             || a.generate_episode_learning.is_some()
             || a.generate_episode_completion.is_some()
             || a.context_cue_coadapt.is_some()

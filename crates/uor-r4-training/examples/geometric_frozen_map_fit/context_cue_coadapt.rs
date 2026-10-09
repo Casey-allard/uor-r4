@@ -91,7 +91,7 @@ pub(super) fn progress(a: &Args, start: Instant) -> Result<()> {
             "elapsed-estimate-extension-needed.json",
             &json!({"elapsed_seconds":start.elapsed().as_secs_f64(),
             "estimated_seconds":a.maximum_seconds,"action":"continue healthy finite work; parent renews lease and records resource estimate extension",
-            "hard_stop":false,"termination":if a.generate_episode_learning.is_some(){"960 coordinates/13440 alllegal alternatives/391 reloadedsteps"}else if a.prefix_fragment_learning.as_ref().is_some_and(|c|c.episode.is_some()){"exactly960 rankedcoordinates plus391 unique episode/guard native exportedreload steps"}else if a.prefix_fragment_learning.as_ref().is_some_and(|c|c.joint.is_some()){"exactly960 rankedcoordinates plus383 unique joint/guard native exportedreload steps"}else if a.prefix_fragment_learning.as_ref().is_some_and(|c|c.trajectory.is_some()){"exactly960 reused rankedcoordinates plus380uniqueguard+1task exported reloadedsteps"}else{"exactly960 rankedcoordinates plus18exportedreloadedsteps"}}),
+            "hard_stop":false,"termination":if a.coupled_episode_learning.is_some(){"1920 mixed coordinates/up to14400 alternatives/391 native reloadedsteps"}else if a.generate_episode_learning.is_some(){"960 coordinates/13440 alllegal alternatives/391 reloadedsteps"}else if a.prefix_fragment_learning.as_ref().is_some_and(|c|c.episode.is_some()){"exactly960 rankedcoordinates plus391 unique episode/guard native exportedreload steps"}else if a.prefix_fragment_learning.as_ref().is_some_and(|c|c.joint.is_some()){"exactly960 rankedcoordinates plus383 unique joint/guard native exportedreload steps"}else if a.prefix_fragment_learning.as_ref().is_some_and(|c|c.trajectory.is_some()){"exactly960 reused rankedcoordinates plus380uniqueguard+1task exported reloadedsteps"}else{"exactly960 rankedcoordinates plus18exportedreloadedsteps"}}),
         )?;
     }
     Ok(())
@@ -298,7 +298,7 @@ impl DonorCache {
         }
         Ok(cache)
     }
-    fn get(
+    pub(super) fn get(
         &mut self,
         i: usize,
         j: usize,
@@ -378,7 +378,7 @@ fn earliest(v: &[i64]) -> Result<usize> {
     }
     Ok(winner)
 }
-fn native_code(v: f32) -> Result<i8> {
+pub(super) fn native_code(v: f32) -> Result<i8> {
     replay_require(
         v.is_finite() && (-1.75..=1.75).contains(&v),
         "Cue Q4 master out of range",
@@ -962,7 +962,7 @@ pub(super) fn prepare_frames(
     Ok((frames, reconstructed))
 }
 // Identical detached state contrast to geometric_bank_generate::add_selector_credit.
-fn selector(
+pub(super) fn selector(
     factual: &[H4Code],
     alternatives: &[Vec<H4Code>],
     raw: &Tensor,
@@ -1015,7 +1015,7 @@ impl ActiveCredit<'_> {
             Self::Prefix(x) => x.parameters(),
         }
     }
-    fn credit(&self, frame: &Frame, device: &Device) -> Result<Tensor> {
+    pub(super) fn credit(&self, frame: &Frame, device: &Device) -> Result<Tensor> {
         match self {
             Self::Cue(x) => Ok(x.coefficient_credit(&frame.trace, device)?),
             Self::Prefix(x) => Ok(x.coefficient_credit(
@@ -1371,7 +1371,13 @@ pub(super) fn export_joint(
         &p.binding,
         &NativeGeometricGenerate::from_bytes(&p.generate, p.integer.binding())?,
     )?;
-    let u = ContinuationLearningWeights::from_native(&field, &generate, p.integer.binding(), d)?;
+    let original_generate = NativeGeometricGenerate::from_bytes(&p.generate, p.integer.binding())?;
+    let u = ContinuationLearningWeights::from_native(
+        &field,
+        &original_generate,
+        p.integer.binding(),
+        d,
+    )?;
     restore(
         &a.checkpoint.join("continuation-source"),
         &p.receipt["continuation_parameters"],
@@ -1470,7 +1476,12 @@ pub(super) fn export_joint(
     let loaded = CueAngularWeights::load(&root.join("cue"), &native, &root.join("native"))?;
     replay_require(
         np::same_bits(&masters, &np::snapshot(&loaded.parameters())?)
-            && cp.generate == p.generate
+            && cp.generate
+                == if a.coupled_episode_learning.is_some() {
+                    generate.to_bytes()?
+                } else {
+                    p.generate.clone()
+                }
             && cp.bridge == p.bridge
             && cp.joint == p.joint
             && cp.exp == p.exp

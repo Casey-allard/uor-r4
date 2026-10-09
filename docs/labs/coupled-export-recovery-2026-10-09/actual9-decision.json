@@ -1,0 +1,16 @@
+{
+  "status": "NOT_RUN_CONSTRUCTION_NEGATIVE",
+  "actual9": false,
+  "original_selected_artifact": "UNCHANGED",
+  "report_sha256": "0aa9b3c0c2d1defaaa6d93611a78fb348be0016aefe5d7548563250b9a687b8c",
+  "final_gate": {
+    "actual_wholeanswer_EOS": "NOT_RUN_SEPARATE_QUALIFICATION",
+    "all15_conditional_winners": false,
+    "all17_references": true,
+    "all380_original_winners": true,
+    "passed": false,
+    "strict_combined_descent": true,
+    "strict_episode_descent": true
+  },
+  "correct_conditional_positions": 9
+}

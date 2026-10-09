@@ -179,3 +179,11 @@ Pages source) and `codex/lab-state` were excluded.
 | [`feature/quantum-graph-integration.local`](other-labs-20261009/feature_quantum-graph-integration.local.patch) | 2026-07-23 | 7 | Casey Allard | `1100eb16b8` | `8a573f45cf` | fix(model-source): add #[allow(dead_code)] to fast_matmul_backend on non-macOS targets |
 | [`copilot/fix-width-newtypes-serialization`](other-labs-20261009/copilot_fix-width-newtypes-serialization.patch) | 2026-07-22 | 2 | copilot-swe-agent[bot] | `f9da5f38c0` | `aaa3478156` | fix: eliminate usize at router wasm/JSON serialization boundaries |
 | [`issue-78-resolution-status`](other-labs-20261009/issue-78-resolution-status.patch) | 2026-07-22 | 2 | Casey Allard | `d270b6f6f9` | `139209c615` | Implement ResolutionStatus behavior in the deployed path |
+
+## Codex coupled export recovery and retained negative — October 9
+
+| Branch | Execution source | Patch base | Disposition | Retained evidence |
+|---|---|---|---|---|
+| [`codex/coupled-export-recovery-20261009`](codex_coupled-export-recovery-20261009.patch) | `a6be8f699eef3841a1a4dd7a51faefc06d83dd7c` | `17819bec55cc330806702c0c854b09b20e536148` | Export repair and learner source delivered through PR #2023; 9/15 conditional candidate remains unselected, with no repeated construction | [Native391, full saved audit and exact artifact receipts](../../labs/coupled-export-recovery-2026-10-09/README.md) |
+
+The patch preserves the five executed Rust source paths at the stated source and base; it passed reverse-application checking against the delivered source. Its SHA-256 is `6e50cfb17ae69ad181e93503e25d0a5889eba772a782d314233941cbd4b5d91b`. Source delivery does not select the negative learned artifact.

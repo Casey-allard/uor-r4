@@ -1,0 +1,333 @@
+{
+  "schema": "uor-r4.coupled-episode-implementation-packet/1",
+  "status": "EXCLUSIVE_EXPORT_REPAIR_PENDING_EXACT_CHECKS",
+  "base_main": "17819bec55cc330806702c0c854b09b20e536148",
+  "source_files": [
+    {
+      "file": "crates/uor-r4-training/examples/geometric-frozen-map-fit.rs",
+      "bytes": 324244,
+      "sha256": "8a29216221842522b37d6ccd010b34363db53fa5cadb8bbff1fc3d77b96e67ad"
+    },
+    {
+      "file": "crates/uor-r4-training/examples/geometric_frozen_map_fit/context_cue_coadapt.rs",
+      "bytes": 84091,
+      "sha256": "2efd3f31ca6192fed70edc5056550db2656dad1c9f27e177bb5493eda16773a5"
+    },
+    {
+      "file": "crates/uor-r4-training/examples/geometric_frozen_map_fit/prefix_fragment_learning.rs",
+      "bytes": 137470,
+      "sha256": "3ba46ee05eaaab90f50d00ab29866246c41566f6c9d7fa16318de630e258942c"
+    },
+    {
+      "file": "crates/uor-r4-training/examples/geometric_frozen_map_fit/generate_episode_learning.rs",
+      "bytes": 108694,
+      "sha256": "b6dc3a5967059f22dd246867131ff41826c7d9e75b382af135e4c83b9c8aa3d7"
+    },
+    {
+      "file": "crates/uor-r4-training/examples/geometric_frozen_map_fit/coupled_episode_learning.rs",
+      "bytes": 143294,
+      "sha256": "f16e814ab0f34cdbfefb723fd2203749d5b02d882c8f5ae043d138a33e367671"
+    }
+  ],
+  "source_ownership": "Five archived learner source paths restored from main; coupled exporter stages rebound Prefix exclusively and retains intermediate; no library or serving changes",
+  "configuration": {
+    "learning_key": "coupled_episode_learning",
+    "fields": [
+      "original_inputs: Prefix Config with episode and all sealed phases"
+    ],
+    "sample_file": "/workspace/uor-r4/codex/sol-coupled-episode-learning/configs/coupled-episode-PROSPECTIVE-NOT-ADMITTED.json",
+    "sample_sha256": "5e2a9de6b50758d18b82872526fb4c82c4d7d096b3af21626a4a823723fda028",
+    "sample_scope": "document wrapper contains NOT_ADMITTED marker; parent final Args config contains configuration only",
+    "actual9_key": "prefix_artifact_check.coupled_episode_candidate",
+    "actual9_fields": [
+      "expected_report_sha256",
+      "expected_manifest_sha256",
+      "expected_generate_sha256",
+      "expected_unary_master_sha256",
+      "expected_prefix_packed_sha256",
+      "expected_prefix_master_sha256",
+      "expected_continuation_sha256"
+    ],
+    "actual9_scope": "explicit future measured hashes only, no placeholder fake pins; same typed fullanswer/EOS evaluator and original8, no canonical/full512; immediate if sealed construction positive"
+  },
+  "ordering": "frozen originalf32 g,m widened f64, actual parameter-unit delta; total_cmp/family/index; Prefix adjacent/noop fractional-preserving and Generate all14 rankdestination only",
+  "native_constructor": "all rows current Prefix BASECopy donor beforeU; immutable donor post cache; current-unary Generate; replacement opaque caches/row incidence for Prefix, batchvalidated sparse Generate; all17/380 atomic strictcurrentCE",
+  "gradient": "same loss per31 physicalframes extracting both960 families, raw62 perterms; p3 twoCEroles one physical graph weight1/15+1/17; full31 factual raw G/Copy/U/physical donor/post/fullpool parity before firstbackward",
+  "outputs": {
+    "gradient": "coupled-gradient-receipt.json",
+    "gradient_files": "coupled-gradient-{family}-term-{i:02}.f32le",
+    "aggregate_and_master": "coupled-{family}-{gradient|initial-master}.f32le",
+    "order": "coupled-coordinate-order.json",
+    "population": "coupled-population.json",
+    "incidence": "coupled-incidence.json",
+    "journal": "coupled-construction.json",
+    "initial": "initial-original-objective.json rich saved authority",
+    "final": "final-objective.json compact phases15 + objective_masses31",
+    "guard": "final-trajectory-guards.json terms380",
+    "candidate": "candidate-row-{input:04}-position-{position:02}.json391, native-prefix-trajectory-pool/1 explicit redundant-actions omission",
+    "checkpoint": "checkpoint-0001",
+    "projection": [
+      "coupled-pregradient-resource-projection.json",
+      "coupled-constructor-resource-projection.json"
+    ]
+  },
+  "journal": {
+    "coordinate_records": 1920,
+    "maximum_alternatives": 14400,
+    "generate_alternatives": 13440,
+    "epoch": "incumbent_epoch constant within all14, epoch_after increments onlyoneacceptedcoordinate",
+    "objective_compact": "combined/task/reference/correct_reference_frames/all_phase_winners/objective_masses31; phase values independently derive roles",
+    "changed_rows_encoding": "[row,donor_before,donor_after,post_after8,incidence_replaced,incidence_digest]; before post from incumbent",
+    "digest": "SHA256 compact serde JSON of ordered staged row objects {row,reference_q24,total_weight_q31,chosen_token_id,chosen_weight_q31,target_mass}",
+    "guard_status": [
+      "NOT_CHECKED_OBJECTIVE_GATE_FALSE",
+      "FIRST_VETO",
+      "FULL_PASS"
+    ],
+    "visited": "exact affected_guard_indices/checked_guard_indices/first_failure; no claim unchecked guards visited"
+  },
+  "bounds": {
+    "cache_formula": "391*(rowCache+rowIncidence)+max(391*(replacementCache+replacementIncidence),2*391*max(sparse131072,full98304)+all391changedAtomPairs)+16MiBpost+8MiBcontainers",
+    "cache_cap": 268435456,
+    "numeric_cap": 536870912,
+    "process_cap": 4294967296,
+    "report_cap": 536870912,
+    "tested_worst_journal_bytes": 140572096,
+    "tested_report_upper_bound": 498156940,
+    "raw391_snapshot_measured_max": 535837,
+    "per_snapshot_additional_margin": 16384,
+    "pregradient": "original377 and supplement copycount auth before gradient, complete prior typed-frame/resource projections +31 actual serialization + concrete staging capacity; persist components before checks",
+    "lifetime": "original377 lightweight selection dropped before GPU; device graphs/prepared Generate entirelylocalgradientfunction drop before380; full Pool vectors consumed beforeCSR; no global CSR clone",
+    "reserves": "48MiB normalized/original science;32MiB metadata margin; exact worstjournal+16MiB journalreserve; 1MiB reportstop reserve; owner128MiB diskmargin separate",
+    "process_projection": "max(prior measured380 host2489696KiB, prior fresh31 graph1540696KiB)+512MiBallocator+8*actual31serialized bytes+128MiB second-family/native-stage reserve. Authenticated oldjoint retained_projection/resource-projection.json supplies4GiB cap, separate typed_frame bound; components persisted before first backward.",
+    "cache_upper_bound_bytes": 242377272
+  },
+  "frozen_export": "actualfractional bothfamilies independently loaded/restored and sole changes guarded; frozenCue fullsemanticJSON then originalbytes, learnedPrefix rebound to restoredCue exactfile hashes; frozenSource/Gpairbiasprototypes/Ubytes preserved; actual391reload flags only after success; parentbits restored alloutcomes",
+  "tests": [
+    "mixed_rank_keeps_fractional_prefix_noop_and_signed_zero",
+    "prefix_lane_major_alias_keys_do_not_transpose_occurrences",
+    "late_prefix_replacement_discards_old_pending_identity",
+    "replacement_identity_rejects_late_old_pending_before_any_cache_commit",
+    "changed_donor_post_rebuilds_current_unary_incidence_before_next_generate_patch",
+    "full_cache_bounds_charge_both_prefix_cache_and_incidence",
+    "worst_case_journal_and_export_fit_declared_report_without_dropping_guards",
+    "sealed_supplement_alias_count_uses_flat_frame_and_rejects_missing_identity",
+    "compact_prefix_keys_survive_trace_discard_and_reject_mask_or_lane_erasure",
+    "completed_dual_master_recovery_preserves_fractional_noops_and_rejects_stale_epoch",
+    "frozen_u_initializes_against_original_generate_then_rebinds_changed_generate",
+    "rebound_prefix_publication_preserves_intermediate_and_failed_save"
+  ],
+  "provisional_checks": {
+    "named_rustfmt": "PASS",
+    "git_diff_check": "PASS",
+    "compile": "NOT_RUN",
+    "tests": "NOT_RUN",
+    "export_completion": "NOT_RUN",
+    "native391": "NOT_RUN",
+    "audit": "NOT_RUN"
+  },
+  "checks_scope": "Named three-source rustfmt and git diff --check only; parent exact committed compile/tests/reviews/private/admission pending.",
+  "risks": [
+    "all15 finalconditional gate mayfail despite positiveindividualpieces; no newgradientinformation assumption",
+    "cache/donor incidence is coupled currentepoch, independent fulljournal reader review required",
+    "bounds must pass actual persisted pregradient projection; owner4GiB/512MiB remain hard, wall estimate soft",
+    "teacherforced full15 is development criterion; only actual9typedfullreplyEOS can qualify, no full512/modelpromotion"
+  ],
+  "preserved_initial_base": "c144b8e67d5bf7ace4a24a9c3857c8f891b02acd",
+  "gradient_counts": {
+    "logical_inherited_physical_backwards": 31,
+    "logical_inherited_family_raw_files": 62,
+    "new_training_graph_forwards": 0,
+    "new_backward_calls": 0,
+    "new_gradient_context_encoder_calls": 0,
+    "native_reload_steps_if_completed": 391
+  },
+  "incidence_shape": "Native factor buffer sized lanes+actual pair-edge count; first eight native unary keys consumed; no assumption that an artifact-free fixture has four pair edges. Real8-lane/four-edge artifact retains12 factors.",
+  "source_commit": "a6be8f699eef3841a1a4dd7a51faefc06d83dd7c",
+  "source_tree": "2b10f8fcc2b43a2c6130b8c0adb9794024c5558a",
+  "positive_report_identity": "episode_request is exact authenticated original_inputs.episode; generic input_index supplied to unchanged actual-nine evaluator",
+  "setup_failure_attempt1": {
+    "report_sha256": "63f15dbd76afbb328ee2556c8915679127ec7c651f1df94933dec29a3fec9d42",
+    "manifest_sha256": "32c281a60c392bdc298028103a87afd87bf312cfd285e6cefd9ace5da8681ac7",
+    "private_revision": "7f48e42a7a160e13c3bead4cd2129ad5a02f8f2e",
+    "physical_backward_calls": 0,
+    "constructor_proposals": 0,
+    "cause": "pregradient lightweight supplement alias loader expected native.copy_ids; pinned savedframe/3 has flat copy_ids",
+    "repair": "flatAliases deserialization; no mechanism/arithmetic/caps/input changes"
+  },
+  "origin_source_commit": "3d777f26c94ed0e2727d8ba6cc908e6b8631a038",
+  "changed_paths": [
+    "crates/uor-r4-training/examples/geometric-frozen-map-fit.rs",
+    "crates/uor-r4-training/examples/geometric_frozen_map_fit/context_cue_coadapt.rs",
+    "crates/uor-r4-training/examples/geometric_frozen_map_fit/coupled_episode_learning.rs"
+  ],
+  "retained_gradient_restart": {
+    "configuration": {
+      "coupled_episode_learning": {
+        "original_inputs": "EXACT unchanged typed original_inputs from sealed attempt2 config",
+        "retained_gradient": {
+          "retained_failed_root": "/workspace/uor-r4/codex/sol-coupled-episode-learning/runs/coupled-episode-0001-attempt2",
+          "retained_learning_runtime_root": "/workspace/uor-r4/codex/sol-coupled-episode-learning/publications/runtime-d99df0e1-attempt2",
+          "retained_learning_observation_root": "/workspace/uor-r4/codex/sol-coupled-episode-learning/observations/coupled-episode-0001-attempt2",
+          "expected_report_sha256": "d3a5b210d6627296e63aabf08ddb09fd16db45ca7cfad52ba819ce6a6d618cf8",
+          "expected_manifest_sha256": "11079e130773e8fd467fe10ec78c7f5205fec1157a87bd893eed086c9f17f9a8",
+          "expected_learning_runtime_identity_sha256": "5b3732e628baa78754eba45080dd507a62b1c491c61962bda9ebbfd4a08feabd",
+          "expected_learning_observation_manifest_sha256": "6c2471f0b809bc1eff7863a3210832277b2e22f3055f84cdf54ff82bd63d36c9",
+          "expected_learning_config_sha256": "4c33cf1bb35f5bc984f47a224d2c07ef1ba56393c7b2732ea48439baf56c2497",
+          "expected_learning_source_commit": "d99df0e1b2b60743649bc322ad4f77ad0c4ed102",
+          "expected_learning_binary_sha256": "bc5adeaf4ccf2f6002623676f7298ed210e7f138cb25b67070faca5bc8975b63",
+          "expected_gradient_receipt_sha256": "285e2ca562387afc8a986a2507cb4efda04b37de3ff45bf31711e217cd89b4e5",
+          "expected_coordinate_order_sha256": "d35d1b00bd653eff90e2efa2b334052a0b3b1ca05af6c93948caf2dfc4f25eb6",
+          "expected_forward_parity_sha256": "0fa8c8fd799067d21e29f4456947db1b2b889a948e4b0b6a7ece32d5637e39f4",
+          "expected_partial_journal_sha256": "85367cbf566d267569c57b3eb7460c9d782809a0fb21b7dbb49ec48968e99e10",
+          "inherited_partial_coordinate_records": 19,
+          "inherited_partial_alternatives": 266,
+          "inherited_partial_commits": 18
+        }
+      },
+      "out": "/workspace/uor-r4/codex/sol-coupled-episode-learning/runs/coupled-episode-completion-0001-attempt1"
+    },
+    "authority": "Local full Rust verify accepts only exactly pinned FAILED/error boundary, without changing shared COMPLETED loader. Old launch/execution/runtime source/config/binary/argv/PID authenticate actual producer.",
+    "master_and_gradient_checks": "Raw62 PRESENT finite960 arrays, physical identity/coalesced weight, ordered f32 aggregates, four master/aggregate files; original fractional master bytes exact; original frozen order SHA verified by pure same calculation. No selection from new derivatives.",
+    "execution": "Host dispatch before CUDA creation; no fresh training graph/gradient/backward/captured objective encoding. Original31 physical backwards and62 raw family arrays inherited. Normal native391 independently reloaded steps encode context.",
+    "constructor": "Fresh finite restart from original seed and original frozen order, not partial-state recovery. Old19 coordinate records/266 alternatives/18 commits retained and charged; partial JSON not parsed.",
+    "compact_keys": "All391 physical-occurrence key arrays validated before proposals: ids count,8 unmasked Some keys, each lane-specific120 domain. Existing heavy Prefix trace stays only in31 gradient authority; no enlarged guard trace.",
+    "copied_science": "inherited-gradient-authority.json contains byte/SHA inventory; raw62/four files/order/parity plus original normalized witnesses; own config/attempt binding remains fresh, old report/config/seal/launch/execution separate inherited-learning-* names. Inventory checked after normalization and after construction.",
+    "new_report_fields": [
+      "inherited_learning",
+      "constructor_restart_from_original",
+      "new_training_graph_forwards",
+      "new_backward_calls",
+      "new_gradient_context_encoder_calls",
+      "prior_partial_alternatives_charged",
+      "logical_gradient_producer",
+      "fresh_gradient_files",
+      "native_reload_context_encoding"
+    ],
+    "scope": "Old journal and negative setup evidence immutable; same mathematical full-constructor journal,391 export/reload, eventual positive actual9 authority. No unconditional positive or whole-answer claim.",
+    "cost": "All unchanged numeric/cache/process/report caps and pre-constructor projections retained; copied inherited raw/partial receipts fit existing32MiB metadata reserve. Both old266 finite alternatives and new full finite constructor charged separately."
+  },
+  "retained_export_completion": {
+    "configuration_file": "/workspace/uor-r4/codex/sol-coupled-episode-learning/configs/coupled-export-completion-0001-attempt1.json",
+    "configuration_sha256": "e2eb6e66646e864953e986c4fba92673f37009226bdaeefe6e5bb0ab69cc2e73",
+    "configuration_bytes": 12119,
+    "configuration": {
+      "retained_failed_root": "/workspace/uor-r4/codex/sol-coupled-episode-learning/runs/coupled-episode-completion-0001-attempt1",
+      "retained_runtime_root": "/workspace/uor-r4/codex/sol-coupled-episode-learning/publications/runtime-3d777f26-completion-attempt2",
+      "retained_observation_root": "/workspace/uor-r4/codex/sol-coupled-episode-learning/observations/coupled-episode-completion-0001-attempt1",
+      "expected_report_sha256": "548555a6ce45d71b142847295d50d84fe123730ffebcbc856822cc2061a4e162",
+      "expected_manifest_sha256": "1969749c1c474a3dbccadb1c03bf9e29542449041d232f5f7c6d5151507d02a7",
+      "expected_runtime_identity_sha256": "dfee83e84c312b6a88820661f651f73e680dca1d580ad375a76800a25de8fe96",
+      "expected_observation_manifest_sha256": "bb2d1ae7d36a7fa5e446491e7eea27e3094f841ea2024e3a577bd74d546c06a3",
+      "expected_config_sha256": "fe1f6e2015eb7bbcea7e3c6aaca7158d453b2d3dd1259eb4460c440ae30b6f06",
+      "expected_source_commit": "3d777f26c94ed0e2727d8ba6cc908e6b8631a038",
+      "expected_binary_sha256": "24cf3f29bcb0f3533d6092b170303ab34b15e4b8422c18ae7e4fb5fa6aaa2b56",
+      "expected_complete_journal_sha256": "b3f387d1013fda936163803b3d1166499a2cc2f390335f45136b86db663bca57",
+      "expected_final_objective_sha256": "2eb8917c015372707c5d4fa30bb4a79ed0ebeec100f90c8ecbc63faae610c051",
+      "expected_final_prefix_master_sha256": "0b6f2d7d456375fad2b43f68e4aa1c5d28acdae292facfe36d1fb92e75341896",
+      "expected_final_generate_master_sha256": "f978a119a371cdb96c84800138ea467f3458c938d72171b46a5b4770eca1d47e",
+      "inherited_gradients": {
+        "retained_failed_root": "/workspace/uor-r4/codex/sol-coupled-episode-learning/runs/coupled-episode-0001-attempt2",
+        "retained_learning_runtime_root": "/workspace/uor-r4/codex/sol-coupled-episode-learning/publications/runtime-d99df0e1-attempt2",
+        "retained_learning_observation_root": "/workspace/uor-r4/codex/sol-coupled-episode-learning/observations/coupled-episode-0001-attempt2",
+        "expected_report_sha256": "d3a5b210d6627296e63aabf08ddb09fd16db45ca7cfad52ba819ce6a6d618cf8",
+        "expected_manifest_sha256": "11079e130773e8fd467fe10ec78c7f5205fec1157a87bd893eed086c9f17f9a8",
+        "expected_learning_runtime_identity_sha256": "5b3732e628baa78754eba45080dd507a62b1c491c61962bda9ebbfd4a08feabd",
+        "expected_learning_observation_manifest_sha256": "6c2471f0b809bc1eff7863a3210832277b2e22f3055f84cdf54ff82bd63d36c9",
+        "expected_learning_config_sha256": "4c33cf1bb35f5bc984f47a224d2c07ef1ba56393c7b2732ea48439baf56c2497",
+        "expected_learning_source_commit": "d99df0e1b2b60743649bc322ad4f77ad0c4ed102",
+        "expected_learning_binary_sha256": "bc5adeaf4ccf2f6002623676f7298ed210e7f138cb25b67070faca5bc8975b63",
+        "expected_gradient_receipt_sha256": "285e2ca562387afc8a986a2507cb4efda04b37de3ff45bf31711e217cd89b4e5",
+        "expected_coordinate_order_sha256": "d35d1b00bd653eff90e2efa2b334052a0b3b1ca05af6c93948caf2dfc4f25eb6",
+        "expected_forward_parity_sha256": "0fa8c8fd799067d21e29f4456947db1b2b889a948e4b0b6a7ece32d5637e39f4",
+        "expected_partial_journal_sha256": "85367cbf566d267569c57b3eb7460c9d782809a0fb21b7dbb49ec48968e99e10",
+        "inherited_partial_coordinate_records": 19,
+        "inherited_partial_alternatives": 266,
+        "inherited_partial_commits": 18
+      }
+    },
+    "mutually_exclusive": "retained_export and retained_gradient; retained_export.inherited_gradients authenticates original completed d99 raw arrays separately",
+    "scientific_scope": "No gradient, order(), construct(), proposal calls in retained_export branch. Original raw62/31 backwards inherited; complete constructor1920/14292/875commits inherited from source3d777.",
+    "completed_state": "Typed serde journal reads only unique family/index/original_master_bits/order/epoch/selected commitments plus compact summary, ignoring all alternatives. Restore original fractional960+960, commit exact signedcodes, require summary counters/finalobjective and partialf32/nativepacked hashes.",
+    "producer_authentication": "Full normative verify pinned FAILED report/error/seal, source/config/binary immutable runtime and sealed actual observation launch; nested original raw-gradient authority retained. Scientific copies verified byteexact before expected scoring and after helper writes; fresh binding separate.",
+    "frozen_partial_authentication": "Exact Source recursive directory, bridge bytes, Cue native/f32 arrays and full semantic JSON equality plus file-set identity; frozen Generate pair/bias/prototype actualf32 bytes and exact final native artifact.",
+    "future_writer_fix": "shared export_joint initializes frozen U against original Generate, restores original actual U masters then rebinds export_native(new Source/new Generate); core strict metadata admission unchanged.",
+    "counts": {
+      "new_training_graph_forwards": 0,
+      "new_backward_calls": 0,
+      "new_order_selection_calls": 0,
+      "new_constructor_calls": 0,
+      "new_proposals": 0,
+      "final_cache_preparations": 391,
+      "expected_final_trace_reductions": 391,
+      "independent_native_reload_steps": 391
+    },
+    "report": "inherited_learning (d99) and inherited_construction (3d777) distinct; logical31backward/report active1920 inherited; parent restore applies only actual export temporary CPU variables; generic partial checkpoint receipt preserved historical-only.",
+    "outputs": [
+      "inherited-construction-authority.json",
+      "inherited-partial-checkpoint-receipt.json",
+      "completed-constructor-report.json",
+      "completed-constructor-manifest.json",
+      "completed-constructor-config.json",
+      "completed-constructor-external-config-binding.json",
+      "completed-constructor-inherited-gradient-authority.json"
+    ],
+    "scope_limits": "Saved final9/15 remains conditionalnegative. Original selected artifact unchanged, new actual9 NOT_RUN; no claim of actual reply, full512, model promotion.",
+    "bounds": "All existing4GiBprocess/512MiBnumeric/256MiBcache/512MiBreport/256MiBtemp unchanged. Pre-reconstruction numeric/process projection additionally charges measured journal byte-copy size plus4MiB compact typed commitments/summary. Existing full cache/stage/expectedtrace lifespan bound retained.",
+    "ownership": "Only three named owned source paths; no native/core/library/serving/foreign edits.",
+    "static_config_field_check": {
+      "status": "PASS_STATIC_FIELD_SET_ONLY_NOT_SERDE_EXECUTION",
+      "exact_field_count": 15,
+      "fields": [
+        "expected_binary_sha256",
+        "expected_complete_journal_sha256",
+        "expected_config_sha256",
+        "expected_final_generate_master_sha256",
+        "expected_final_objective_sha256",
+        "expected_final_prefix_master_sha256",
+        "expected_manifest_sha256",
+        "expected_observation_manifest_sha256",
+        "expected_report_sha256",
+        "expected_runtime_identity_sha256",
+        "expected_source_commit",
+        "inherited_gradients",
+        "retained_failed_root",
+        "retained_observation_root",
+        "retained_runtime_root"
+      ],
+      "config_sha256": "e2eb6e66646e864953e986c4fba92673f37009226bdaeefe6e5bb0ab69cc2e73",
+      "config_bytes": 12119
+    },
+    "resource_counters": {
+      "final_cache_preparations": 391,
+      "expected_final_trace_reductions": 391,
+      "missing_native_independent_reload_steps": 391,
+      "new_training_graph_forwards": 0,
+      "new_backward_calls": 0,
+      "new_constructor_calls": 0,
+      "new_proposals": 0,
+      "new_order_selection_calls": 0
+    },
+    "source_binding_check": "U initialized from authenticated original field/original Generate, exported with preliminary finalized Source binding and learned Generate; exact recursive frozen Source bytes checked before native reload; frozen Cue JSON restored then active Prefix metadata rebound.",
+    "post_helper_copy_guarantee": "Both inherited learning and completed-constructor copy inventories are verified again after final-objective/final-trajectory writes and successful export_reload, before COMPLETED report.",
+    "compile_setup_repair": {
+      "scope": "visibility and focused fixture API name only; no quantization/numerical change",
+      "native_code": "pub(super), existing body unchanged",
+      "fixture": "compile_shared_action existing API",
+      "checks": "UNCOMPILED; named rustfmt and git diff --check PASS; no tests/model"
+    },
+    "noop_setup_repair": {
+      "scope": "authenticated Prefix-only selected noop with no code and unchanged epoch/master bits; Generate noop/unknown statuses rejected",
+      "fixture": "fractional noop preserved; noop code and epoch mutation plus unknown status rejected",
+      "checks": "rustfmt/diff PASS; tests/build NOT_RUN"
+    }
+  },
+  "inherited_constructor_source_commit": "3d777f26c94ed0e2727d8ba6cc908e6b8631a038",
+  "main_refresh_receipt": "main-refresh-retained-export-receipt.json",
+  "preserved_precommit_source": "377406755c2ffbd361712997114874f9dbc3c286",
+  "preserved_precommit_producer": {
+    "source_commit": "5ed730d571d414b2d63b56b380611fa2c5211ac1",
+    "source_tree": "771031f84999d4352589d21938a64170c8f141a2",
+    "packet_sha256": "ead5eb8c080c015729b2a06d8c21232ec707a6634574d81d00e41ba413a30b7c"
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "files": [
+    {
+      "blake3": "7f5f8c748f2c4779e026ce95262837773d0867e3934a8157c6ca261758b10eee",
+      "bytes": 328,
+      "path": "attempt.json"
+    },
+    {
+      "blake3": "b126e8aa4a42cabec5890b4a22d917cf832b56789c28ad310ed049373e98a737",
+      "bytes": 867,
+      "path": "execution.json"
+    },
+    {
+      "blake3": "287f82add669f944f874641b3a4391ec7aa542414d30e655a1cc65be04a8b913",
+      "bytes": 1363,
+      "path": "launch.json"
+    },
+    {
+      "blake3": "e95e6ded797d121ac61744683dfefe81602b582481ed278e7c357d0941f6ce17",
+      "bytes": 20,
+      "path": "reader-pid.json"
+    },
+    {
+      "blake3": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+      "bytes": 0,
+      "path": "reader-stderr.log"
+    },
+    {
+      "blake3": "f4e01daf0bb2110c05228781e7678652712e68c75ab477a25167d73c5223d6de",
+      "bytes": 7662,
+      "path": "result.json"
+    },
+    {
+      "blake3": "34297bd3d915303b77aec2f7980f3b675a95ee77f027bc88d141f69b121d1875",
+      "bytes": 9635,
+      "path": "telemetry.jsonl"
+    }
+  ],
+  "root": "/workspace/uor-r4/codex/sol-coupled-episode-learning/audits/attempt1",
+  "schema": "uor-r4.report-manifest/1",
+  "sealed_at": "1791555334"
+}

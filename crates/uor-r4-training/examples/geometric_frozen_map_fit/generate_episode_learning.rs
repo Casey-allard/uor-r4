@@ -188,7 +188,7 @@ fn inherited_inputs_match(raw: &Value, current: &prefix::Config) -> Result<bool>
     let retained: prefix::Config = serde_json::from_value(raw.clone())?;
     Ok(serde_json::to_value(retained)? == serde_json::to_value(current)?)
 }
-fn code(m: f32) -> Result<i8> {
+pub(super) fn code(m: f32) -> Result<i8> {
     replay_require(
         m.is_finite() && (-1.75..=1.75).contains(&m),
         "Generate unary master outside existing strict Q4 admission",
@@ -220,7 +220,10 @@ fn coordinate_order(m: &[f32], g: &[f32]) -> Result<Vec<usize>> {
     rows.sort_by(|a, b| a.1.total_cmp(&b.1).then_with(|| a.0.cmp(&b.0)));
     Ok(rows.into_iter().map(|r| r.0).collect())
 }
-fn saved_pool(f: &shared::Frame, reducer: &mut NativeVocabularyActions) -> Result<shared::Pool> {
+pub(super) fn saved_pool(
+    f: &shared::Frame,
+    reducer: &mut NativeVocabularyActions,
+) -> Result<shared::Pool> {
     let generate: Vec<i64> = shared::dec(&f.native["generate_q24"])?;
     let copy: Vec<i64> = shared::dec(&f.native["copy_q24"])?;
     let trace = reducer.reduce_trace(&generate, &f.ids, &copy)?;
@@ -237,7 +240,7 @@ fn saved_pool(f: &shared::Frame, reducer: &mut NativeVocabularyActions) -> Resul
         trace,
     })
 }
-fn slim(frames: &mut [shared::Frame]) -> Result<()> {
+pub(super) fn slim(frames: &mut [shared::Frame]) -> Result<()> {
     for f in frames {
         f.native["pool"]
             .as_object_mut()
@@ -430,8 +433,8 @@ fn incidence(
     }
     Ok(Incidence { offsets, atoms })
 }
-type Patches = BTreeMap<usize, PendingGeneratePatch>;
-fn view(
+pub(super) type Patches = BTreeMap<usize, PendingGeneratePatch>;
+pub(super) fn view(
     row: usize,
     target: u32,
     caches: &[GeneratePatchCache],
@@ -453,7 +456,7 @@ fn view(
         ))
     }
 }
-fn objective(
+pub(super) fn objective(
     frames: &[shared::Frame],
     map: &[usize],
     spec: &shared::ObjectiveSpec,
@@ -498,7 +501,7 @@ fn objective(
         "all_phase_winners":phases.iter().all(|x|x["target"]==x["chosen"])}),
     )
 }
-fn valid_objective(current: &Value, next: &Value) -> Result<bool> {
+pub(super) fn valid_objective(current: &Value, next: &Value) -> Result<bool> {
     Ok(improves(
         current["combined"]
             .as_f64()
@@ -508,7 +511,7 @@ fn valid_objective(current: &Value, next: &Value) -> Result<bool> {
             .ok_or_else(|| bad("Generate nextCE absent"))?,
     ) && next["correct_reference_frames"] == 17)
 }
-fn final_gate(original: &Value, next: &Value, guards: bool) -> Result<Value> {
+pub(super) fn final_gate(original: &Value, next: &Value, guards: bool) -> Result<Value> {
     let combined = improves(
         original["combined"]
             .as_f64()
@@ -532,7 +535,7 @@ fn final_gate(original: &Value, next: &Value, guards: bool) -> Result<Value> {
         "actual_wholeanswer_EOS":"NOT_RUN_SEPARATE_QUALIFICATION"}),
     )
 }
-fn stage_row(
+pub(super) fn stage_row(
     row: usize,
     changes: &BTreeMap<usize, Vec<(u32, i64)>>,
     caches: &[GeneratePatchCache],
@@ -546,7 +549,7 @@ fn stage_row(
     }
     Ok(())
 }
-fn digest_staged(
+pub(super) fn digest_staged(
     staged: &Patches,
     frames: &[shared::Frame],
     caches: &[GeneratePatchCache],
@@ -725,7 +728,7 @@ fn compact_numeric_projection(prior: &Value) -> Result<u64> {
         .and_then(|x| x.checked_add(additions))
         .ok_or_else(|| bad("Generate numeric phase bound overflow"))
 }
-fn regular_file_bytes(path: &Path) -> Result<u64> {
+pub(super) fn regular_file_bytes(path: &Path) -> Result<u64> {
     let metadata = fs::metadata(path)?;
     replay_require(
         metadata.is_file(),
@@ -784,7 +787,7 @@ fn resource_projection(a: &Args, c: &Config, frames: &[shared::Frame]) -> Result
     )?;
     Ok(())
 }
-fn compact_pool(pool: &mut shared::Pool) {
+pub(super) fn compact_pool(pool: &mut shared::Pool) {
     pool.trace.actions.clear();
     pool.trace.actions.shrink_to_fit();
 }
@@ -1203,7 +1206,7 @@ fn sidecar_identity_matches(
         Ok(original == candidate)
     }
 }
-fn restore_original_sidecar_file(
+pub(super) fn restore_original_sidecar_file(
     original: &Path,
     candidate: &Path,
     native_metadata: bool,
@@ -1256,7 +1259,7 @@ fn copy_completion_checkpoint(original: &Path, candidate: &Path) -> Result<()> {
     Ok(())
 }
 
-fn exact_frozen_directory(original: &Path, candidate: &Path) -> Result<()> {
+pub(super) fn exact_frozen_directory(original: &Path, candidate: &Path) -> Result<()> {
     let mut old = fs::read_dir(original)?
         .map(|e| e.map(|e| e.file_name()))
         .collect::<std::result::Result<Vec<_>, _>>()?;

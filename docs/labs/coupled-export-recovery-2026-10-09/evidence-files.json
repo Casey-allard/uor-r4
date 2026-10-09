@@ -1,0 +1,70 @@
+{
+  "README.md": {
+    "bytes": 7439,
+    "sha256": "56df5a8fcb354e2f1d13e65e1ae44b1a8a7ec49376679c6b68023ddf076566d2"
+  },
+  "actual9-decision.json": {
+    "bytes": 525,
+    "sha256": "c9089130894d745d25a5236003f71146fcf39e55ff3f5931e2abf4b6f6101564"
+  },
+  "audit-execution.json": {
+    "bytes": 867,
+    "sha256": "4a4f0b750834eb1089b25dd79c464a30ebbdf9df61a544dcd1da2606183ca30a"
+  },
+  "audit-manifest.json": {
+    "bytes": 1203,
+    "sha256": "68c8381e14179f8eb9bf63918a222694830c7f30449d807677d117982dda2a3e"
+  },
+  "audit-result.json": {
+    "bytes": 7662,
+    "sha256": "8152fbb044bec0d7416370aeaa3a74626ba28f294745227f3e21a4ebf061938f"
+  },
+  "exact-source-checks.json": {
+    "bytes": 4744,
+    "sha256": "12c20d039dbf49c82f3ebd4d7a8f2681190b2555454be670813f0def319e85ca"
+  },
+  "export-execution.json": {
+    "bytes": 400,
+    "sha256": "23227cf854beaf6aa2142bb06341ecf5e40609c888008a293012ab7f63317fe7"
+  },
+  "export-report.json": {
+    "bytes": 120002,
+    "sha256": "0aa9b3c0c2d1defaaa6d93611a78fb348be0016aefe5d7548563250b9a687b8c"
+  },
+  "helper-peer-review.json": {
+    "bytes": 2940,
+    "sha256": "321466b5e3338923572b3be87fd3c18bfb9d44ffe724b86e08afc75516196b46"
+  },
+  "implementation-packet.json": {
+    "bytes": 24549,
+    "sha256": "350e3c24845936a635831c55e8af20a90bcfdfb49bb15d1edf781b2a9a6fa316"
+  },
+  "model-rust-verification.json": {
+    "bytes": 1257,
+    "sha256": "8199fba8ab7549303faccf6b6aefac3db1c7a80add2e3b66cceba1f9f67caba1"
+  },
+  "outcome-preservation.json": {
+    "bytes": 1133,
+    "sha256": "3f891759b704fa59e0af1465649c7afbdf3f86454f374bed85e4f32eee1db2a2"
+  },
+  "reader-peer-review.json": {
+    "bytes": 1476,
+    "sha256": "b1cc0958a4a0853c21ac413dd5d4f13eaf44100074649478f27fae568fedbd60"
+  },
+  "resource-ledger.json": {
+    "bytes": 9701,
+    "sha256": "c94ec99703f90671eebfa140614dbfc3c8f7ea9fd3b4aa944695a60cd820c558"
+  },
+  "saved-arithmetic-reader.py": {
+    "bytes": 68747,
+    "sha256": "d47937a9606cda264fc49a5a38744c8fe801c963148d80232308af3ecac4bc91"
+  },
+  "source-adversarial-review.json": {
+    "bytes": 1067,
+    "sha256": "9ba4921ed05f60df0412e17f637141c222ccf70cb58e86aa6669b72edc7a43d9"
+  },
+  "source-math-review.json": {
+    "bytes": 1060,
+    "sha256": "ef5adb337f6af9d6731479cde675485d11fb679d349c0269843221418cb45f95"
+  }
+}

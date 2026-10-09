@@ -2084,6 +2084,8 @@ pub(super) struct ArtifactConfig {
     pub episode_candidate: Option<TrajectoryArtifactAuthority>,
     #[serde(default)]
     pub generate_episode_candidate: Option<GenerateArtifactAuthority>,
+    #[serde(default)]
+    pub coupled_episode_candidate: Option<super::coupled_episode_learning::ArtifactAuthority>,
 }
 #[derive(Clone, Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
@@ -2137,6 +2139,7 @@ pub(super) fn validate_artifact_settings(a: &Args) -> Result<()> {
                 c.joint_candidate.is_some(),
                 c.episode_candidate.is_some(),
                 c.generate_episode_candidate.is_some(),
+                c.coupled_episode_candidate.is_some(),
             ]
             .into_iter()
             .filter(|x| *x)
@@ -2144,6 +2147,9 @@ pub(super) fn validate_artifact_settings(a: &Args) -> Result<()> {
                 <= 1,
             "cheap artifact endpoint modes exclusive",
         )?;
+        if let Some(g) = &c.coupled_episode_candidate {
+            super::coupled_episode_learning::validate_artifact_authority(g)?;
+        }
         if let Some(g) = &c.generate_episode_candidate {
             validate_generate_artifact_authority(g)?;
         }
@@ -2161,6 +2167,8 @@ pub(super) fn validate_artifact_settings(a: &Args) -> Result<()> {
                 && a.loss_scope == LossScope::All
                 && a.prefix_fragment_learning.is_none()
                 && a.generate_episode_learning.is_none()
+                && a.coupled_episode_learning.is_none()
+                && a.generate_episode_completion.is_none()
                 && a.context_cue_coadapt.is_none()
                 && a.prefix_context_credit.is_none()
                 && a.context_path_credit.is_none()
@@ -2223,7 +2231,15 @@ pub(super) fn run_artifact_check(a: &Args, start: Instant) -> Result<Value> {
         .as_ref()
         .ok_or_else(|| bad("Prefix artifact config absent"))?;
     let (report_pin, seal_pin, packed_pin, master_pin) =
-        if let Some(g) = &c.generate_episode_candidate {
+        if let Some(g) = &c.coupled_episode_candidate {
+            super::coupled_episode_learning::validate_artifact_authority(g)?;
+            (
+                g.expected_report_sha256.as_str(),
+                g.expected_manifest_sha256.as_str(),
+                g.expected_prefix_packed_sha256.as_str(),
+                g.expected_prefix_master_sha256.as_str(),
+            )
+        } else if let Some(g) = &c.generate_episode_candidate {
             validate_generate_artifact_authority(g)?;
             (
                 g.expected_report_sha256.as_str(),
@@ -2255,6 +2271,9 @@ pub(super) fn run_artifact_check(a: &Args, start: Instant) -> Result<Value> {
     let report = shared::sealed(&c.retained_candidate_root, report_pin, seal_pin)?;
     if c.generate_episode_candidate.is_some() {
         super::generate_episode_learning::authenticate_positive_artifact(a, c, &report)?;
+    }
+    if c.coupled_episode_candidate.is_some() {
+        super::coupled_episode_learning::authenticate_positive_artifact(a, c, &report)?;
     }
     if c.episode_candidate.is_some() {
         let gradient = read(
@@ -2384,7 +2403,15 @@ pub(super) fn run_artifact_check(a: &Args, start: Instant) -> Result<Value> {
         shared::P_REPORT,
         shared::P_SEAL,
     )?;
-    if c.generate_episode_candidate.is_some() {
+    if c.coupled_episode_candidate.is_some() {
+        replay_require(
+            report["mode"] == "coupled_episode_learning"
+                && report["finite_episode_positive"] == true
+                && report["final_gate"]["passed"] == true
+                && report["candidate_objective"]["correct_reference_frames"] == 17,
+            "coupled cheap qualification requires positive complete episode",
+        )?;
+    } else if c.generate_episode_candidate.is_some() {
         replay_require(
             report["mode"] == "generate_episode_learning"
                 && report["finite_episode_positive"] == true
@@ -2430,13 +2457,23 @@ pub(super) fn run_artifact_check(a: &Args, start: Instant) -> Result<Value> {
     replay_require(
         cp.binding.metadata_sha256 == shared::SOURCE
             && sha256_bytes(&cp.generate)
-                == c.generate_episode_candidate
-                    .as_ref()
-                    .map_or(shared::G_SHA, |g| g.expected_generate_sha256.as_str())
+                == c.generate_episode_candidate.as_ref().map_or_else(
+                    || {
+                        c.coupled_episode_candidate
+                            .as_ref()
+                            .map_or(shared::G_SHA, |g| g.expected_generate_sha256.as_str())
+                    },
+                    |g| g.expected_generate_sha256.as_str(),
+                )
             && sha256_file(&a.checkpoint.join("continuation-field.bin"))?
-                == c.generate_episode_candidate
-                    .as_ref()
-                    .map_or(shared::U_SHA, |g| g.expected_continuation_sha256.as_str())
+                == c.generate_episode_candidate.as_ref().map_or_else(
+                    || {
+                        c.coupled_episode_candidate
+                            .as_ref()
+                            .map_or(shared::U_SHA, |g| g.expected_continuation_sha256.as_str())
+                    },
+                    |g| g.expected_continuation_sha256.as_str(),
+                )
             && sha256_file(&a.checkpoint.join("prefix/prefix-q4.bin"))? == packed_pin
             && sha256_file(&a.checkpoint.join("prefix/prefix-source-f32.bin"))? == master_pin
             && read(&a.checkpoint.join("receipt.json"))? == report["candidate_receipt"],
@@ -2500,7 +2537,10 @@ pub(super) fn run_artifact_check(a: &Args, start: Instant) -> Result<Value> {
             "original pilot raw row authority differs",
         )?;
     }
-    let task_index = if c.episode_candidate.is_some() || c.generate_episode_candidate.is_some() {
+    let task_index = if c.episode_candidate.is_some()
+        || c.generate_episode_candidate.is_some()
+        || c.coupled_episode_candidate.is_some()
+    {
         shared::idx(&report["episode_request"]["input_index"])?
     } else {
         245
@@ -2588,9 +2628,10 @@ pub(super) fn run_artifact_check(a: &Args, start: Instant) -> Result<Value> {
     let joint_word_witness = if c.joint_candidate.is_some()
         || c.episode_candidate.is_some()
         || c.generate_episode_candidate.is_some()
+        || c.coupled_episode_candidate.is_some()
     {
         let canonical: Vec<u32> = shared::dec(&old_task["canonical_target_ids_labels_only"])?;
-        json!({"phases":(if c.episode_candidate.is_some() || c.generate_episode_candidate.is_some(){0..canonical.len()}else{4..7}).map(|position| {
+        json!({"phases":(if c.episode_candidate.is_some() || c.generate_episode_candidate.is_some() || c.coupled_episode_candidate.is_some(){0..canonical.len()}else{4..7}).map(|position| {
             let comparable=ids.len()>=position&&canonical.len()>position&&ids[..position]==canonical[..position];
             json!({"position":position,"canonical_target_label_only":canonical.get(position),"actual_prefix_comparable":comparable,
                 "actual_target":if !comparable {json!("NO_COMPARABLE_ACTUAL_PREFIX")}else if ids.len()<=position {json!("NOT_REACHED")}else{json!(ids[position]==canonical[position])}})

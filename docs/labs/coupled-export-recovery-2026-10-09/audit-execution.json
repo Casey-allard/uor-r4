@@ -1,0 +1,16 @@
+{
+  "status": "PASS",
+  "exit_code": 0,
+  "elapsed_seconds": 729.63136542961,
+  "max_rss_kib": 1178352,
+  "reader_sha256": "d47937a9606cda264fc49a5a38744c8fe801c963148d80232308af3ecac4bc91",
+  "binary_sha256": "a2325d776be052021c567a75cba539d4910b615a0c1345f342418e2b069625b1",
+  "source_commit": "a6be8f699eef3841a1a4dd7a51faefc06d83dd7c",
+  "config_sha256": "15e201ad6cf52061ae66c2dd3b5d7ddbcc1a1abe21882edc618a9b4252856938",
+  "soft_estimate_seconds": 7200,
+  "healthy_estimate_overrun_killed": false,
+  "resource_cap_stop": null,
+  "failure": null,
+  "completed_utc": "2026-10-09T14:15:34.395669+00:00",
+  "scope": "Saved62 family gradients/31backwards/32roles;1920 coordinates/Prefixadjacent plusALL13440 same-epoch alternatives and380 guards/391 snapshots; actual9 saved evidence only if native construction positive. No encoder/backward/model/AR execution."
+}

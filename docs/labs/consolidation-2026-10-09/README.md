@@ -36,6 +36,8 @@ entry is not completion. Accepted and negative artifacts, dirty source and other
 labs' active material must survive cleanup. Storage receipts are updated after
 physical free-space measurement; apparent directory sizes are not reclaimed bytes.
 
+Subsequent scoped integration: [the coupled export recovery](../coupled-export-recovery-2026-10-09/README.md) restores and validates its five learner paths, completes native391 and the saved arithmetic audit, and retains the conditional negative. The inventory below remains the dated preservation snapshot; unrelated historical mechanisms are not activated.
+
 ## Pending implementation inventory
 
 The file triage found 143 distinct absent paths, including 59 Rust files, across

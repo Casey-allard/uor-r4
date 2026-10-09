@@ -1,0 +1,31 @@
+{
+  "status": "PASS",
+  "source_commit": "a6be8f699eef3841a1a4dd7a51faefc06d83dd7c",
+  "report_sha256": "0aa9b3c0c2d1defaaa6d93611a78fb348be0016aefe5d7548563250b9a687b8c",
+  "manifest_sha256": "e7667312b7d18b502e72b0fc41bf2d7d52a4977a020501ecd527da6ef628f9aa",
+  "verifier_sha256": "d90411116c702dc4149fc055706f34c276c1ead29c5b0ec95600c30cc976326d",
+  "checks": [
+    {
+      "argv": [
+        "/workspace/uor-r4/codex/sol-intermediate-word-boundary/publications/runtime-76e10b53f7-attempt2/native-reached-prefix-attribution",
+        "verify-report",
+        "/workspace/uor-r4/codex/sol-coupled-episode-learning/runs/coupled-export-completion-0001-attempt3"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/workspace/uor-r4/codex/sol-intermediate-word-boundary/publications/runtime-76e10b53f7-attempt2/native-reached-prefix-attribution",
+        "verify-report",
+        "/workspace/uor-r4/codex/sol-coupled-episode-learning/observations/coupled-export-completion-0001-attempt3"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  ],
+  "seconds": 4.4477952644228935,
+  "scope": "Actual Rust complete file-set and BLAKE3 verification; not independent numerical audit"
+}

@@ -1,0 +1,25 @@
+{
+  "schema": "uor-r4.exact-head-reused-review/1",
+  "status": "PASS_SOURCE_ONLY",
+  "source_commit": "a6be8f699eef3841a1a4dd7a51faefc06d83dd7c",
+  "packet_sha256": "350e3c24845936a635831c55e8af20a90bcfdfb49bb15d1edf781b2a9a6fa316",
+  "reviewer_role": "emission_engineering exact-head boundary review and mechanical identity verification; unchanged prior mathematics reused, no new independent math review",
+  "original_review": {
+    "path": "/workspace/uor-r4/codex/sol-coupled-episode-learning/reader-peer-review-before-191c74ff706cc7bfae96c41a80c999f18e164b3b1e4da2363cc8c7ec44d27cab.json",
+    "sha256": "191c74ff706cc7bfae96c41a80c999f18e164b3b1e4da2363cc8c7ec44d27cab",
+    "bytes": 3727,
+    "status": "PASS_SOURCE_ONLY"
+  },
+  "scope": "publish_rebound_prefix exclusive reservation/staged save/retained prior directory/rename publication; compiler-only Ok(save(...)?) error conversion; all mathematical training/constructor/audit arithmetic unchanged",
+  "execution": "NOT_RUN_BY_THIS_REVIEWER",
+  "reviewed_utc": "2026-10-09T13:47:01.859898+00:00",
+  "reader_sha256": "d47937a9606cda264fc49a5a38744c8fe801c963148d80232308af3ecac4bc91",
+  "reader_bytes": 68747,
+  "identity_only_changes": [
+    "PACKET_SHA",
+    "EXPECTED_SOURCE"
+  ],
+  "arithmetic_bytes_unchanged": true,
+  "previous_reader_sha256": "d657d3233173ba8c02d0c3a5eec2f7a4fc468fde1eccc38ec57dadb1fda5156a",
+  "producer_packet_sha256": "350e3c24845936a635831c55e8af20a90bcfdfb49bb15d1edf781b2a9a6fa316"
+}

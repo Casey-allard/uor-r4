@@ -1,0 +1,10 @@
+{
+  "exit_code": 0,
+  "started_utc": "2026-10-09T13:59:15.755120+00:00",
+  "ended_utc": "2026-10-09T14:02:25.966885+00:00",
+  "elapsed_seconds": 190.2117937207222,
+  "children_max_rss_kib": 2509332,
+  "binary_sha256": "a2325d776be052021c567a75cba539d4910b615a0c1345f342418e2b069625b1",
+  "config_sha256": "15e201ad6cf52061ae66c2dd3b5d7ddbcc1a1abe21882edc618a9b4252856938",
+  "lane": "cpu-artifact"
+}
