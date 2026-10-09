@@ -1,3 +1,51 @@
+## 2026-10-09 — Accepted and completed-but-rejected replies are not separable without the judge; one canned reply is a quarter of the reading (deepseek, #2029)
+
+Supplement to Result 6, and the comparison Result 6 could not make: it profiled the failures and contrasted
+completed against cut, but the accepted set was available too. This compares **accepted against
+completed-but-rejected on fourteen judge-free properties, both directions**, with the cut confound removed (only
+replies ending in terminal punctuation: 27 accepted against 64 rejected). CPU only, no pod, no generation, no
+grading, $0. Record: [open-reply-panel-2026-10-09](../labs/open-reply-panel-2026-10-09/README.md) Result 7.
+
+**Reconciliation first, no correction needed.** 64 rows have `no_terminal=0` (Result 6's count) and 125 are cut;
+of those 64, **62 are below the 64-token cap and 2 reach it** (`heldout-124`, `heldout-139`, both `fluent_only`).
+Result 6's 64 and the earlier 62 differ by exactly those two rows and by nothing else, and no conclusion changes
+under either definition. Also: **16 of the 43 accepted replies are themselves cut** (`no_terminal=1`), so the
+marker means "was cut", not "failed".
+
+**The finding.** Two properties survive a Bonferroni correction — the reply *is* the canned greeting
+`Hello! How can I help you today?` (8 of 27 accepted against 1 of 64, p = 0.0002), and the reply contains a
+question mark (10 of 27 against 4 of 64, p = 0.0006) — **and they are the same observation**: eight of the ten
+accepted replies with a question mark are that greeting. **Remove that one canned reply from both sides and
+nothing separates the sets at all**: median tokens 14 against 20 (Mann-Whitney p = 0.45), question mark 10.5 %
+against 4.8 % (p = 0.33), hello/hi/hey 5.3 % against 11.1 % (p = 0.67), under 15 tokens 52.6 % against 44.4 %
+(p = 0.60), over 40 tokens 26.3 % against 25.4 % (p = 1.00), and acceptance flat across length buckets
+(30.0 / 21.7 / 15.4 / 20.0 / 23.8 %).
+
+**One correction to the natural reading of Result 6's length finding.** Its length contrast is completed versus
+cut and is correct as stated — cut replies ran to the cap and are long. It should not be read as "short replies
+are rejected": against accepted replies of the same terminal-punctuation class the rejected ones are **longer**
+(median 19.5 tokens against 9, p = 0.043 before the canned reply is removed and 0.45 after), and the shortest
+replies in the panel are accepted most often. **Length is not the discriminator; it looks like one only when the
+comparison is against the cap.**
+
+**The instrument statement, measured rather than asserted.** In this population the only property that predicts
+acceptance is that the reply *is* one specific memorised string; strip it and two sets of replies that differ by
+3× in verdict are statistically indistinguishable on all fourteen properties. That is stronger than "the failures
+are diffuse": **the accepted set is not distinguishable from the completed-but-rejected set by anything
+measurable without the judge.** And the string is not a curiosity — it carries **18.6 % of all accepted rows at
+29M (9 occurrences, 8 accepted) and 23.9 % at 100M (19 occurrences, 11 accepted)**, against base rates of 18.5 %
+and 19.8 %.
+
+**Consequence.** This is a second, independent reason for Result 6's conclusion that the reply-panel half cannot
+carry criterion 1, and it adds one requirement to the replacement: the deterministic row checks must make a
+canned reply unable to pass, and any future number on this panel should disclose the canned-reply count beside
+it. Criterion 1 remains **NOT MET** and 43/232 is unchanged; STATUS/ROADMAP/#2028 unchanged. Evidence: sealed
+reports in `icloud:UOR-R4/results/deepseek/reply-panel-cap96-2026-10-09.tar`,
+`scripts/open_reply_panel_completed_classify.py`, and the per-row table in the bundle.
+
+**Next:** build the deterministic replacement for the reply panel's reading — frozen row checks in the v4/v5
+style that a canned reply cannot pass — and report the canned-reply count beside any future number on that
+panel; do not classify this failure set a third time, and do not attack the decoder for it.
 ## 2026-10-09 — Open reply panel: the completed-but-rejected failures are short wrong answers, and the criterion cannot carry criterion 1 (deepseek, #2029)
 
 Splitting the 189 failures by whether the reply ended with terminal punctuation, from `verdicts-29m.tsv` on
