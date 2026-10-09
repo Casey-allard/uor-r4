@@ -748,7 +748,10 @@ pub struct Reply {
     pub cycle: Option<usize>,
     /// The copied span the serving-time copy-stop rule stopped at, when one
     /// did ([`StackModel::set_pointer_copy_stop`]); `None` under the default
-    /// decoder and for every other stop.
+    /// decoder and for every other stop. Under the identity mode
+    /// ([`CopyStopMode::Identity`](crate::geometric_stack::CopyStopMode::Identity))
+    /// the report's `dropped` id is not part of `ids`
+    /// ([`CopyStopReport::dropped`]).
     pub copy_stop: Option<CopyStopReport>,
     /// The step that emitted the reply's last id, when the decoder counted
     /// them ([`StackModel::set_pointer_copy_trace`]); `None` under the
@@ -936,8 +939,11 @@ pub fn greedy_reply_with(
 /// ([`StackModel::set_pointer_copy_stop`]), if it has one: the same greedy
 /// loop, the same EOS and short-cycle stops, except that a step whose emitted
 /// id does not extend a run of at least [`CopyStop::min_span`] ids copied from
-/// the window the pointer selected ends the reply there. The stop is recorded
-/// in the reply's own `copy_stop` field and stop record
+/// the window the pointer selected ends the reply there. The mode decides
+/// what that run is ([`CopyStopMode`](crate::geometric_stack::CopyStopMode)):
+/// the run-length rule keeps the id that breaks it, while the identity rule
+/// drops it, so the reply is exactly the ids the pointer reproduced. The stop
+/// is recorded in the reply's own `copy_stop` field and stop record
 /// (`{"pointer_copy": span}`). With no rule set and no trace asked for this is
 /// [`greedy_reply_with`] bit for bit: no extra observation, no extra forward.
 pub fn greedy_reply_with_copy_stop(
@@ -1000,7 +1006,22 @@ pub fn greedy_reply_with_copy_stop(
                 })
         });
         if let Some(mut reply) = stopped {
-            reply.stopped_at = Some(step);
+            // The identity mode drops the id that left the span, so the reply
+            // is exactly the ids the pointer reproduced and its trace keeps
+            // one step per id.
+            let dropped = reply
+                .copy_stop
+                .is_some_and(|report| report.dropped.is_some());
+            if dropped {
+                reply.ids.pop();
+                window.pop();
+                steps.pop();
+            }
+            reply.stopped_at = Some(if dropped {
+                step.saturating_sub(1)
+            } else {
+                step
+            });
             reply.trace = steps;
             return Ok(reply);
         }

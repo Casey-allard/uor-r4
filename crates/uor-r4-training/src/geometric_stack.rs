@@ -3445,12 +3445,13 @@ impl StackModel {
 
     /// Turn the serving-time copy-stop rule on: generation ends once the ids
     /// the pointer branch emitted reproduce a contiguous span of the window
-    /// the pointer itself selected ([`CopyStop`]). `None`, the default, is the
-    /// historical decoder bit for bit - no rule, no extra observation, no
-    /// change to any reply. Like the gate floor this is a read-out change
-    /// only, and it is not saved. A rule is refused on a model without a
-    /// pointer head, and one whose minimum span is below two ids is refused
-    /// because a single id is not a copied span.
+    /// the pointer itself selected ([`CopyStop`], whose [`CopyStopMode`]
+    /// chooses between the run-length rule and the token-identity rule).
+    /// `None`, the default, is the historical decoder bit for bit - no rule,
+    /// no extra observation, no change to any reply. Like the gate floor this
+    /// is a read-out change only, and it is not saved. A rule is refused on a
+    /// model without a pointer head, and one whose minimum span is below two
+    /// ids is refused because a single id is not a copied span.
     pub fn set_pointer_copy_stop(&mut self, stop: Option<CopyStop>) -> Result<()> {
         if let Some(stop) = stop {
             if self.config.pointer.is_none() {
@@ -15262,23 +15263,72 @@ pub struct PointerSelection {
     pub raw_gate: f64,
 }
 
+/// Which serving-time copy stop a [`CopyStop`] runs
+/// ([`StackModel::set_pointer_copy_stop`]).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CopyStopMode {
+    /// The original rule: generation ends once the emitted ids break a run of
+    /// at least [`CopyStop::min_span`] ids reproduced from the window the
+    /// pointer itself selected. A run opens at that source or at the position
+    /// after it (the head may select the position just read while the pre-read
+    /// position is the one holding the value), and the id that breaks the run
+    /// stays in the reply.
+    RunLength,
+    /// The token-identity rule, the probe's
+    /// `pointer_copy_stop_identity=1` switch (`0`, the default, is
+    /// [`Self::RunLength`]): a span opens only at the selected source itself,
+    /// when the emitted id equals the window id there, and the first id that
+    /// is not the span's next window id ends the reply and is dropped, so the
+    /// reply is exactly the ids the pointer reproduced.
+    Identity,
+}
+
 /// The serving-time copy-stop rule ([`StackModel::set_pointer_copy_stop`]):
 /// generation ends once the ids the pointer branch emitted since the copy
-/// began reproduce a contiguous run of the window that the pointer itself
+/// began reproduce a contiguous span of the window that the pointer itself
 /// selected - the source the head attends most at each step, then the
-/// consecutive positions after it.
+/// consecutive positions after it. [`CopyStopMode`] chooses the rule.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct CopyStop {
     /// The fewest ids that make a copied span. At least 2: one id is not a
     /// span. A run that breaks before reaching it is not a copy, and the
     /// reply continues as if the rule were off.
     pub min_span: usize,
+    /// Which rule runs. [`CopyStopMode::RunLength`] is the default and the
+    /// historical rule bit for bit.
+    pub mode: CopyStopMode,
 }
 
 impl CopyStop {
-    /// A rule that stops at a copied span of at least `min_span` ids.
+    /// The run-length rule that stops at a copied span of at least `min_span`
+    /// ids: what [`StackModel::set_pointer_copy_stop`] meant before the
+    /// token-identity mode existed.
     pub fn new(min_span: usize) -> Self {
-        Self { min_span }
+        Self {
+            min_span,
+            mode: CopyStopMode::RunLength,
+        }
+    }
+
+    /// The token-identity rule that stops at a copied span of at least
+    /// `min_span` ids and drops the id that leaves it
+    /// ([`CopyStopMode::Identity`]).
+    pub fn identity(min_span: usize) -> Self {
+        Self {
+            min_span,
+            mode: CopyStopMode::Identity,
+        }
+    }
+
+    /// [`Self::new`] or [`Self::identity`], chosen by one flag: `false` - what
+    /// the probe's `pointer_copy_stop_identity` defaults to - is the
+    /// run-length rule and `true` the identity rule.
+    pub fn with_identity(min_span: usize, identity: bool) -> Self {
+        if identity {
+            Self::identity(min_span)
+        } else {
+            Self::new(min_span)
+        }
     }
 }
 
@@ -15296,8 +15346,14 @@ pub struct CopyStopReport {
     pub window_index: usize,
     /// How many ids the matched run covers. At least the rule's minimum span.
     pub copied: usize,
-    /// The number of ids the reply had emitted when the rule fired.
+    /// The number of ids the reply had emitted when the rule fired. The
+    /// identity mode drops the id that fired it, so that reply ends with
+    /// `emitted - 1` ids; the run-length rule keeps it.
     pub emitted: usize,
+    /// The id the rule dropped from the reply, when its mode drops one
+    /// ([`CopyStopMode::Identity`]): the first id that did not reproduce the
+    /// span's next window id. `None` for the run-length rule.
+    pub dropped: Option<u32>,
     /// The pointer's attention at the run's first source.
     pub attention: f64,
     /// The gate the mixture used at the run's first source.
@@ -15383,20 +15439,33 @@ impl CopyStopRun {
         }
     }
 
-    /// Try to start a run at the pointer's own selection for an emitted id:
-    /// at the selected source itself, or at the source after it (the head may
-    /// select the position just read while the pre-read position is the one
-    /// holding the value).
+    /// Try to start a run at the pointer's own selection for an emitted id.
+    /// The run-length rule opens at the selected source, or at the source
+    /// after it (the head may select the position just read while the
+    /// pre-read position is the one holding the value); the identity rule
+    /// opens at the selected source alone, which is what keeps it off a run
+    /// the pointer did not select.
     fn open(&mut self, window: &[u32], id: u32) -> bool {
         let Some(source) = self.source else {
             return false;
         };
-        let start = if window.get(source) == Some(&id) {
-            source
-        } else if window.get(source + 1) == Some(&id) {
-            source + 1
-        } else {
-            return false;
+        let start = match self.rule.mode {
+            CopyStopMode::RunLength => {
+                if window.get(source) == Some(&id) {
+                    source
+                } else if window.get(source + 1) == Some(&id) {
+                    source + 1
+                } else {
+                    return false;
+                }
+            }
+            CopyStopMode::Identity => {
+                if window.get(source) == Some(&id) {
+                    source
+                } else {
+                    return false;
+                }
+            }
         };
         self.run_start = start;
         self.run_next = Some(start + 1);
@@ -15405,6 +15474,25 @@ impl CopyStopRun {
         self.run_gate = self.gate;
         self.run_raw_gate = self.raw_gate;
         true
+    }
+
+    /// The report for a span the rule stopped at, `breaking` being the id
+    /// that did not reproduce the span's next window id. The identity mode
+    /// drops it from the reply, so it travels with the report; the run-length
+    /// rule keeps it and reports none.
+    fn fire(&self, copied: usize, emitted: usize, breaking: u32) -> CopyStopReport {
+        CopyStopReport {
+            window_index: self.run_start,
+            copied,
+            emitted,
+            dropped: match self.rule.mode {
+                CopyStopMode::RunLength => None,
+                CopyStopMode::Identity => Some(breaking),
+            },
+            attention: self.run_attention,
+            gate: self.run_gate,
+            raw_gate: self.run_raw_gate,
+        }
     }
 
     /// Account for the id at `position` - the last position of the window the
@@ -15432,16 +15520,10 @@ impl CopyStopRun {
                 self.copied
             }
             Some(_) => {
-                // The run is over. It is a copy only if it reached the span.
+                // The run is over. It is a copy only if it reached the span;
+                // the identity mode ends the reply here and drops `id`.
                 if self.copied >= self.rule.min_span {
-                    return Some(CopyStopReport {
-                        window_index: self.run_start,
-                        copied: self.copied,
-                        emitted,
-                        attention: self.run_attention,
-                        gate: self.run_gate,
-                        raw_gate: self.run_raw_gate,
-                    });
+                    return Some(self.fire(self.copied, emitted, id));
                 }
                 self.copied = 0;
                 self.run_next = None;
@@ -15457,23 +15539,16 @@ impl CopyStopRun {
                 self.copied
             }
         };
-        if copied >= self.rule.min_span {
-            // The run reached the span but may still continue: the next
-            // emitted id decides. A window position whose id equals its
+        if copied >= self.rule.min_span && self.rule.mode == CopyStopMode::RunLength {
+            // The run-length rule's window position whose id equals its
             // successor can never be extended (it would repeat the id), so the
-            // copy ends here - which keeps a repeating value from looping.
+            // copy ends here - which keeps a repeating value from looping. The
+            // identity rule reproduces that id like any other.
             let repeated = self
                 .run_next
                 .and_then(|next| Some((*window.get(next)?, *window.get(next.checked_sub(1)?)?)));
             if repeated.is_some_and(|(position, previous)| position == previous) {
-                return Some(CopyStopReport {
-                    window_index: self.run_start,
-                    copied,
-                    emitted,
-                    attention: self.run_attention,
-                    gate: self.run_gate,
-                    raw_gate: self.run_raw_gate,
-                });
+                return Some(self.fire(copied, emitted, id));
             }
         }
         None
@@ -26997,7 +27072,11 @@ mod tests {
         let model = toy_pointer(PointerConfig::new(16), 0.25, 10.0)?;
         assert_eq!(model.pointer_copy_stop(), None);
         let mut model = model;
-        for refused in [Some(CopyStop::new(0)), Some(CopyStop::new(1))] {
+        for refused in [
+            Some(CopyStop::new(0)),
+            Some(CopyStop::new(1)),
+            Some(CopyStop::identity(1)),
+        ] {
             let error = model
                 .set_pointer_copy_stop(refused)
                 .expect_err("a span below two ids is not a span");
@@ -27116,6 +27195,347 @@ mod tests {
             if ruled.copy_stop.is_none() {
                 assert_eq!(plain.ids, ruled.ids, "gate bias {gate_bias}");
             }
+        }
+        Ok(())
+    }
+
+    /// The token-identity rule fires on a span that opens at the pointer's
+    /// own source and drops the id that leaves it; the run-length rule stops
+    /// at the same span and keeps that id. The decoder hands the rule the
+    /// window with the ids generated so far appended, so the id it judges is
+    /// the window's last.
+    #[test]
+    fn the_identity_copy_stop_fires_on_a_copied_span_and_drops_the_breaking_id() {
+        let history: Vec<u32> = vec![10, 20, 30, 40, 50];
+        // One decoder step: `source` is the pointer's selection and `reply` the
+        // reply so far, whose last id the step just emitted.
+        let step = |run: &mut CopyStopRun, source: usize, reply: &[u32]| {
+            run.observe(Some(PointerSelection {
+                source,
+                attention: 0.9,
+                gate: 1.0,
+                raw_gate: 0.5,
+            }));
+            let mut window = history.clone();
+            window.extend_from_slice(reply);
+            run.after(&window, window.len() - 1, history.len())
+        };
+        // The selected source 1 holds 20, so 20, 30 is a two-id span at it and
+        // 99 is the first id that is not the span's next window id.
+        let mut run = CopyStopRun::new(CopyStop::identity(2));
+        assert_eq!(step(&mut run, 1, &[20]), None);
+        assert_eq!(step(&mut run, 1, &[20, 30]), None);
+        let report = step(&mut run, 1, &[20, 30, 99]).expect("99 is not the span's next id");
+        assert_eq!(report.window_index, 1);
+        assert_eq!(report.copied, 2);
+        assert_eq!(report.emitted, 3);
+        assert_eq!(report.dropped, Some(99));
+        assert_eq!(report.attention, 0.9);
+        assert_eq!(report.gate, 1.0);
+        assert_eq!(report.raw_gate, 0.5);
+        // The run-length rule stops at the same span and reports no drop: the
+        // decoder keeps the id that broke the run.
+        let mut run = CopyStopRun::new(CopyStop::new(2));
+        assert_eq!(step(&mut run, 1, &[20]), None);
+        assert_eq!(step(&mut run, 1, &[20, 30]), None);
+        let report = step(&mut run, 1, &[20, 30, 99]).expect("the same two-id span");
+        assert_eq!(report.window_index, 1);
+        assert_eq!(report.copied, 2);
+        assert_eq!(report.emitted, 3);
+        assert_eq!(report.dropped, None);
+    }
+
+    /// The identity rule drops the id that leaves the span at decoding: on the
+    /// toy pointer, history `[5, 9, 5, 3]` reproduces the window's `5, 9, 5`
+    /// and then emits `9`, which is not the span's next id. The run-length rule
+    /// stops at the same span - same window index, same count, same channels -
+    /// and keeps that `9`; the identity rule drops it, so the reply is exactly
+    /// the ids the pointer reproduced.
+    #[test]
+    fn the_identity_copy_stop_drops_the_id_that_leaves_the_span_at_decoding() -> Result<()> {
+        use crate::stack_dialogue::{greedy_reply, greedy_reply_with_copy_stop};
+        let history: Vec<u32> = vec![5, 9, 5, 3];
+        let mut model = toy_pointer(PointerConfig::new(16), 0.25, 10.0)?;
+        // The default decoder is untouched by the mode: the rule is not set.
+        assert_eq!(model.pointer_copy_stop(), None);
+        let plain = greedy_reply(&model, &history, 6, 1)?;
+        assert_eq!(plain.ids, vec![5, 9, 5, 9, 5, 9]);
+        assert_eq!(plain.stop_record(), serde_json::json!({"short_cycle": 2}));
+        let off = greedy_reply_with_copy_stop(&model, &history, 6, 1, 3)?;
+        assert_eq!(off.ids, plain.ids);
+        assert_eq!(off.stop_record(), plain.stop_record());
+        assert!(off.copy_stop.is_none());
+        // The run-length rule keeps the id that broke the three-id span.
+        model.set_pointer_copy_stop(Some(CopyStop::new(2)))?;
+        let run_length = greedy_reply_with_copy_stop(&model, &history, 6, 1, 3)?;
+        assert_eq!(run_length.ids, vec![5, 9, 5, 9]);
+        let run_length = run_length.copy_stop.expect("the run-length rule stopped");
+        assert_eq!(run_length.window_index, 0);
+        assert_eq!(run_length.copied, 3);
+        assert_eq!(run_length.emitted, 4);
+        assert_eq!(run_length.dropped, None);
+        // The identity rule drops that id and ends the reply one id earlier.
+        model.set_pointer_copy_stop(Some(CopyStop::identity(2)))?;
+        let identity = greedy_reply_with_copy_stop(&model, &history, 6, 1, 3)?;
+        assert_eq!(identity.ids, vec![5, 9, 5]);
+        assert_eq!(
+            identity.stop_record(),
+            serde_json::json!({"pointer_copy": 3})
+        );
+        assert_eq!(identity.stopped_at, Some(2));
+        let report = identity.copy_stop.expect("the identity rule stopped");
+        assert_eq!(report.window_index, 0);
+        assert_eq!(report.copied, 3);
+        // Three ids were emitted, the third of them judged and dropped, so the
+        // reply keeps `emitted - 1` ids - all of them reproduced ones.
+        assert_eq!(report.emitted, 4);
+        assert_eq!(report.dropped, Some(9));
+        assert_eq!(identity.ids.len(), report.emitted - 1);
+        assert_eq!(report.attention, 0.25);
+        assert_eq!(report.gate, 0.9999546021312976);
+        // The dropped step is not traced either: one trace step per kept id.
+        model.set_pointer_copy_trace(true);
+        let traced = greedy_reply_with_copy_stop(&model, &history, 6, 1, 3)?;
+        assert_eq!(traced.ids, identity.ids);
+        assert_eq!(traced.trace.len(), traced.ids.len());
+        assert_eq!(
+            traced
+                .trace
+                .iter()
+                .map(|step| (step.step, step.id))
+                .collect::<Vec<_>>(),
+            vec![(0, 5), (1, 9), (2, 5)]
+        );
+        Ok(())
+    }
+
+    /// The identity rule does not follow a run the pointer did not select. The
+    /// measured failure of the run-length rule was exactly this: at a high
+    /// gate floor the head re-reads the prompt template, the reply walks that
+    /// template, and the run-length rule stops on it - its run may open one
+    /// position after the source it selected. The identity rule opens only at
+    /// the selected source, so that trace never opens a span.
+    #[test]
+    fn the_identity_copy_stop_does_not_follow_the_prompt_template() {
+        // The template is 10, 20, 30 at 0..2; the value is 60, 70 at 3..4. The
+        // reply walks the template and the head selects, at each step, the
+        // position it has just reproduced - one behind the id it is writing,
+        // which is the trace the run-length rule followed the template with.
+        let history: Vec<u32> = vec![10, 20, 30, 60, 70, 80];
+        let step = |run: &mut CopyStopRun, source: usize, reply: &[u32]| {
+            run.observe(Some(PointerSelection {
+                source,
+                attention: 0.9,
+                gate: 1.0,
+                raw_gate: 0.5,
+            }));
+            let mut window = history.clone();
+            window.extend_from_slice(reply);
+            run.after(&window, window.len() - 1, history.len())
+        };
+        let mut run = CopyStopRun::new(CopyStop::new(2));
+        assert_eq!(step(&mut run, 0, &[20]), None);
+        assert_eq!(step(&mut run, 1, &[20, 30]), None);
+        let report = step(&mut run, 2, &[20, 30, 40]).expect("the template run breaks at 40");
+        assert_eq!(report.window_index, 1);
+        assert_eq!(report.copied, 2);
+        assert_eq!(report.dropped, None);
+        // The same trace never opens a span under the identity rule: 20 is not
+        // the id at the selected source 0, 30 is not the id at 1, and 40 is not
+        // the id at 2.
+        let mut run = CopyStopRun::new(CopyStop::identity(2));
+        assert_eq!(step(&mut run, 0, &[20]), None);
+        assert_eq!(step(&mut run, 1, &[20, 30]), None);
+        assert_eq!(step(&mut run, 2, &[20, 30, 40]), None);
+        assert_eq!(step(&mut run, 2, &[20, 30, 40, 50]), None);
+    }
+
+    /// The identity rule's open is strict: a run of window ids that matches
+    /// somewhere after the selected source - the position the run-length rule
+    /// may open at - opens nothing, and the reply continues as if the rule
+    /// were off.
+    #[test]
+    fn the_identity_copy_stop_opens_only_at_the_selected_source() {
+        let history: Vec<u32> = vec![10, 20, 30, 40, 50];
+        let step = |run: &mut CopyStopRun, source: usize, reply: &[u32]| {
+            run.observe(Some(PointerSelection {
+                source,
+                attention: 0.9,
+                gate: 1.0,
+                raw_gate: 0.5,
+            }));
+            let mut window = history.clone();
+            window.extend_from_slice(reply);
+            run.after(&window, window.len() - 1, history.len())
+        };
+        // The head keeps selecting source 0 (10) while the reply reproduces
+        // 20, 30, 40 at 1..3 and then leaves the window with 99.
+        let mut run = CopyStopRun::new(CopyStop::identity(2));
+        assert_eq!(step(&mut run, 0, &[20]), None);
+        assert_eq!(step(&mut run, 0, &[20, 30]), None);
+        assert_eq!(step(&mut run, 0, &[20, 30, 40]), None);
+        assert_eq!(step(&mut run, 0, &[20, 30, 40, 99]), None);
+        // The run-length rule opens one position after the source and fires on
+        // the same ids: that is the difference the strict open makes.
+        let mut run = CopyStopRun::new(CopyStop::new(2));
+        assert_eq!(step(&mut run, 0, &[20]), None);
+        assert_eq!(step(&mut run, 0, &[20, 30]), None);
+        assert_eq!(step(&mut run, 0, &[20, 30, 40]), None);
+        let report = step(&mut run, 0, &[20, 30, 40, 99]).expect("a three-id copy at 1..3");
+        assert_eq!(report.window_index, 1);
+        assert_eq!(report.copied, 3);
+        assert_eq!(report.dropped, None);
+    }
+
+    /// The identity rule keeps its minimum span: a run that breaks before it is
+    /// not a copy, and the mode is refused below two ids like the run-length
+    /// rule. The mode also travels with the rule, so the run-length default is
+    /// what an unset flag means.
+    #[test]
+    fn the_identity_copy_stop_respects_its_minimum_span() -> Result<()> {
+        use crate::stack_dialogue::{greedy_reply, greedy_reply_with_copy_stop};
+        let history: Vec<u32> = vec![10, 20, 30, 40, 50];
+        let step = |run: &mut CopyStopRun, source: usize, reply: &[u32]| {
+            run.observe(Some(PointerSelection {
+                source,
+                attention: 0.9,
+                gate: 1.0,
+                raw_gate: 0.5,
+            }));
+            let mut window = history.clone();
+            window.extend_from_slice(reply);
+            run.after(&window, window.len() - 1, history.len())
+        };
+        // A two-id span is not a copy at min_span 3, and the reply continues.
+        let mut run = CopyStopRun::new(CopyStop::identity(3));
+        assert_eq!(step(&mut run, 1, &[20]), None);
+        assert_eq!(step(&mut run, 1, &[20, 30]), None);
+        assert_eq!(step(&mut run, 1, &[20, 30, 99]), None);
+        assert_eq!(step(&mut run, 1, &[20, 30, 99, 99]), None);
+        // A three-id span is, and the id that leaves it is dropped.
+        let mut run = CopyStopRun::new(CopyStop::identity(3));
+        assert_eq!(step(&mut run, 1, &[20]), None);
+        assert_eq!(step(&mut run, 1, &[20, 30]), None);
+        assert_eq!(step(&mut run, 1, &[20, 30, 40]), None);
+        let report = step(&mut run, 1, &[20, 30, 40, 99]).expect("a three-id span at 1");
+        assert_eq!(report.copied, 3);
+        assert_eq!(report.dropped, Some(99));
+        // On the toy pointer a two-id span fires at min_span 2 and is not a copy
+        // at 3: history `[9, 5, 5, 5]` reproduces `9, 5` only.
+        let mut model = toy_pointer(PointerConfig::new(16), 0.25, 10.0)?;
+        let short: Vec<u32> = vec![9, 5, 5, 5];
+        let plain = greedy_reply(&model, &short, 6, 1)?;
+        assert_eq!(plain.ids, vec![9, 5, 9, 5, 9, 5]);
+        model.set_pointer_copy_stop(Some(CopyStop::identity(2)))?;
+        let two = greedy_reply_with_copy_stop(&model, &short, 6, 1, 3)?;
+        assert_eq!(two.ids, vec![9, 5]);
+        assert_eq!(
+            two.copy_stop.and_then(|report| report.dropped),
+            Some(9),
+            "the two-id span fires at min_span 2"
+        );
+        model.set_pointer_copy_stop(Some(CopyStop::identity(3)))?;
+        let three = greedy_reply_with_copy_stop(&model, &short, 6, 1, 3)?;
+        assert_eq!(three.ids, plain.ids, "a two-id span is not a copy at 3");
+        assert!(three.copy_stop.is_none());
+        Ok(())
+    }
+
+    /// The defaults are the historical ones, and the run-length rule is the
+    /// rule the sealed numbers were measured with. Every value below was read
+    /// off the pre-change revision (178d988f3, code-identical to 1505e7ae3)
+    /// and is asserted here unchanged: the greedy reply and its stop, the
+    /// reply under the ruled decoder with no rule set, the run-length stop and
+    /// its report, and the pointer's own channel values bit for bit.
+    #[test]
+    fn the_copy_stop_defaults_and_the_run_length_rule_are_unchanged() -> Result<()> {
+        use crate::stack_dialogue::{greedy_reply, greedy_reply_with_copy_stop};
+        // `pointer_copy_stop_identity` off: the run-length rule is the default
+        // and the flag is off unless it is asked for.
+        assert_eq!(CopyStop::default().min_span, 2);
+        assert_eq!(CopyStop::default().mode, CopyStopMode::RunLength);
+        assert_eq!(CopyStop::new(2).mode, CopyStopMode::RunLength);
+        assert_eq!(CopyStop::with_identity(2, false), CopyStop::new(2));
+        assert_eq!(CopyStop::with_identity(2, true), CopyStop::identity(2));
+        // (gate bias, history, source, attention bits, gate bits, raw gate
+        // bits, reply ids, stop record, run-length ids, run-length report).
+        let gate = 0.9999546021312976f64;
+        let cases = [
+            (
+                0.0,
+                vec![9, 5, 9, 5, 3, 9, 5],
+                0,
+                4598758478074333402,
+                4602678819172646912,
+                vec![5, 5, 5],
+                serde_json::json!({"short_cycle": 1}),
+                vec![5, 5, 5],
+                None,
+            ),
+            (
+                2.0,
+                vec![9, 5, 9, 5, 3],
+                0,
+                4596373779694328218,
+                4606108734329616841,
+                vec![5, 9, 9, 9],
+                serde_json::json!({"short_cycle": 1}),
+                vec![5, 9, 9],
+                Some(CopyStopReport {
+                    window_index: 1,
+                    copied: 2,
+                    emitted: 3,
+                    dropped: None,
+                    attention: 0.2,
+                    gate: 0.8807970779778823,
+                    raw_gate: 0.8807970779778823,
+                }),
+            ),
+            (
+                10.0,
+                vec![9, 5, 9, 5, 3],
+                0,
+                4596373779694328218,
+                4607182009892368265,
+                vec![5, 9, 9, 9],
+                serde_json::json!({"short_cycle": 1}),
+                vec![5, 9, 9],
+                Some(CopyStopReport {
+                    window_index: 1,
+                    copied: 2,
+                    emitted: 3,
+                    dropped: None,
+                    attention: 0.2,
+                    gate,
+                    raw_gate: gate,
+                }),
+            ),
+        ];
+        for (gate_bias, history, source, attention, gate_bits, ids, stop, ruled_ids, report) in
+            cases
+        {
+            let mut model = toy_pointer(PointerConfig::new(16), 0.25, gate_bias)?;
+            // The pointer's own channels, bit for bit.
+            let selection = model
+                .last_pointer_selection(&history)?
+                .expect("the toy has a pointer head");
+            assert_eq!(selection.source, source, "gate bias {gate_bias}");
+            assert_eq!(selection.attention.to_bits(), attention);
+            assert_eq!(selection.gate.to_bits(), gate_bits);
+            assert_eq!(selection.raw_gate.to_bits(), gate_bits);
+            // The default decoder and the ruled decoder with no rule set.
+            let plain = greedy_reply(&model, &history, 8, 1)?;
+            assert_eq!(plain.ids, ids, "gate bias {gate_bias}");
+            assert_eq!(plain.stop_record(), stop, "gate bias {gate_bias}");
+            let off = greedy_reply_with_copy_stop(&model, &history, 8, 1, 3)?;
+            assert_eq!(off.ids, ids, "gate bias {gate_bias}");
+            assert_eq!(off.stop_record(), stop, "gate bias {gate_bias}");
+            assert!(off.copy_stop.is_none());
+            // The run-length rule, on and reported as it was.
+            model.set_pointer_copy_stop(Some(CopyStop::new(2)))?;
+            let ruled = greedy_reply_with_copy_stop(&model, &history, 8, 1, 3)?;
+            assert_eq!(ruled.ids, ruled_ids, "gate bias {gate_bias}");
+            assert_eq!(ruled.copy_stop, report, "gate bias {gate_bias}");
         }
         Ok(())
     }
