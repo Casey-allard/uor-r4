@@ -191,6 +191,17 @@ or recovery. The [focused validation](../../docs/evidence/chat-stream-error-vali
 uses synthetic library and CLI-helper checks plus a release build, with no
 learned-model execution, spawned CLI exit-status test or chat-quality claim.
 
+
+`uor-chat` serves two different containers, and they hold different models. `--bundle <PATH>` loads
+the sealed recurrent bundle described above. `--stack <model.lut> --tokenizer <TOKENIZER.json>
+[--protocol 1|2] [--threads N] [--say TEXT] [--max-tokens N]` instead serves a `UORLUT01` geometric
+stack artifact directly, through `stack::IntegerStackModel` under the literal-role protocol
+(`stack::StackChat`): the engine's integers and the float stack's stop rules, greedy `stack_argmax`
+over `next_token_scores()` with pointer mixtures included, exact token history, and an over-context
+turn refused rather than truncated. The stack path is **greedy only** — a nonzero `--temperature` is
+refused because this engine has no integer categorical sampler. No conversion exists between the two
+containers in either direction, and none can be written without training a model to the bundle's
+parameter inventory: they share no parameter name or shape. `--say` prints a JSON record.
 ## Arithmetic and cost boundaries
 
 Model values use the retained signed parameter codes, fixed-point state, integer
