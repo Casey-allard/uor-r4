@@ -38,3 +38,9 @@ Claude outputs/
 # Finished numeric run output lives on canonical /workspace or cloud-store.
 /t2/run*/
 /docs/research/minilm-phase0/run*/
+
+# Local-only data and tool state (owner, 9 October 2026): never committed.
+/local/
+/.worktrees/
+/.claude/worktrees/
+.token-optimizer/
