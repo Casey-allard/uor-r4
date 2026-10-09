@@ -285,6 +285,9 @@ positive cycles (123)(145)(167)(246)(257)(347)(356), however, fail alternativity
 norm multiplicativity: `(e1 + e2)(e4 + e7) = 0` despite factor norms 2 and 2. Fano incidence
 is not a complete sign convention. The canonical Rust table above remains unchanged; an
 alternative convention needs a signed basis correspondence, not just the same seven lines.
+For the draft's XOR labelling specifically, an exhaustive search of all 2⁷ = 128 orientations of
+those seven lines finds 16 that give a valid octonion algebra (norm multiplicativity holds). One of
+them reverses three of the draft's lines: (123)(145)(167)(246)(527)(437)(536).
 The sample store route also discards a coordinate after right multiplication and projection,
 and its packing function returns empty bytes. A pre-route embed/project inverse does not
 establish post-route preservation. Modular `ZMod(2^256)` coefficients are neither the real
