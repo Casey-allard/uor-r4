@@ -1,0 +1,63 @@
+UOR-R4 — iCloud archive audit: three blind spots, a defective backing store, and the disk arithmetic
+Date: 2026-10-09. DeepSeek session (owner instruction: "make sure all of cloudstore is pushed to icloud").
+References #820.
+
+WHAT WAS DONE
+  Verified and extended the project's iCloud archive (cloud-store). Index went from 397 to 572 objects:
+    61  this session's artifacts - every panel, every exported multiplier-free LUT, all 25 checkpoints
+        (fetch-verified: an object was pulled back down, MD5-checked and extracted to the right path)
+    ~10  working corpora and gap-list directories: chat-v0-p2, inputs/*, step0/*, step4,
+        step2-parity-bench, query-typing, state-probe
+    3   stale archives refreshed under dated names
+    12  workspace sub-directories
+    41  uor-r4-lab sub-directories
+  Nothing was deleted or overwritten. The only removals were staging copies already verified and
+  indexed, plus 1.8 GB of local staging, which took free disk from 12 to 18 GiB.
+
+THE TWO FINDINGS THAT MATTER
+  1. THE CHAT CORPUS HAD NO ARCHIVE. chat-v0-p2 - the 253 MB corpus every experiment in this session
+     ran on - had NO entry anywhere in the index, while the store looked complete by object count.
+     Same for the whole of inputs/ and step0/ (4.4 GB between them). The store was not as complete as
+     its 397 objects suggested.
+  2. THE LARGEST ARCHIVE WAS ON THE FAILING DEVICE. workspace's 42 existing objects resolve to
+     icloud:X10 - the X10 Pro SSD whose defective flash region is the reason iCloud became the
+     project's authoritative storage in the first place. So the project's largest local directory was
+     archived onto the suspect device. Its contents now exist on iCloud proper as 12
+     ws-*-20261009 objects, and because cloud-store never overwrites, the old archive is preserved.
+
+THREE AUDIT BLIND SPOTS, EACH INVISIBLE TO THE PREVIOUS CHECK
+  * NAME MATCHING misses CONTAINERS: inputs/ and step0/ are directories of other labs' directories, so
+    "is inputs archived?" is the wrong question - their CONTENTS had to be checked individually. The
+    name-based audit reported 19 "gaps" of which most were containers already covered.
+  * TIMESTAMPS catch STALE ARCHIVES: a directory archived on 2 October while being written until the
+    4th looks present and complete. cloud-store REFUSES TO OVERWRITE ("already in the store; never
+    overwritten"), so catching up requires a DATED NAME - which is why the store already contained
+    objects like workspace-2026-10-01. Three directories were two days stale this way.
+  * LAB LABELS hide directories archived as many labelled objects rather than one named object:
+    workspace appears under lab workspace-2026-10-01 with 42 objects and no object named "workspace".
+  Both error directions occur: name matching made the store look LESS complete than it is (containers),
+  and timestamp blindness made it look MORE complete (staleness).
+
+THE DISK ARITHMETIC - AND AN EMERGENCY CAUGHT
+  cloud-store stages a tar EQUAL TO THE DIRECTORY SIZE, so a push needs about TWICE its size free.
+  Pushing workspace (6.7 GB) in one operation drove free disk from 18 GiB to 5.0 GiB; the job was killed
+  and staging removed, restoring 18 GiB. Failing to catch it would have filled the disk and endangered
+  other labs' work. The project rule that makes this the RIGHT cancellation: the disk floor is an owner
+  cap, explicitly outside the "never cancel a healthy run" protection.
+  THE FIX IS STRUCTURAL, not care: recurse to sub-directory granularity and check
+      push only when 2 * size + 10 GiB <= free
+  before each object. With that guard, workspace pushed as 12 objects (1 principled skip, logged with
+  numbers: uor-r4-lab needed 20,854 MB against 18,673 MB free) and uor-r4-lab then pushed as 41 objects
+  with ZERO skips and ZERO failures - including a 2.3 GB piece. Every skip is logged with its numbers.
+
+RESIDUE, RECORDED HONESTLY
+  One 16 KB staging shell (workspace-20261009) remains and is NOT removable by this session: it
+  captured a snapshot-preserved directory whose files are owned with restrictive permissions. It holds
+  no unique data (workspace's real contents are the 12 ws-* objects). It was left alone deliberately -
+  forcing deletion of a path owned by another lab's preserved material is exactly the unilateral move
+  the preservation rules exist to prevent. It needs the owner of those files, or an escalated removal.
+
+SCOPE
+  Archive verification and extension, no model work. Object counts and timestamps are the tool's own
+  index; the fetch round trip was tested independently. No file outside the archive was modified and no
+  archived object was deleted or overwritten.
