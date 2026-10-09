@@ -1,3 +1,14 @@
+## Native VSA retraining: trained VSA term helps (KEEP); icosian-root codes lose to the hash — October 9
+
+The [pre-registered test](../labs/vsa-native-test-2026-10-09/README.md) retrained the native prose learner with the VSA term in its objective: 4 arms × 2 seeds, scored on two held-out slices.
+- **Fixed-code VSA** improves held-out BPB by 0.014–0.023 over VSA-off in every slice and seed. The term's within-model contribution is +0.013 to +0.016, with 95% intervals excluding zero. **KEEP.**
+- **Icosian-root codes** (120 distinct codes for 4,096 tokens) give at most −0.005, because they collapse token identity.
+- **The engram table** carries about 0.2 BPB of exact memory.
+
+DeepSeek's 8 October null was a frozen-artifact effect.
+
+**Next:** mode 2 (root code bound with a per-token residual) after a CPU-parallelism fix, run on the laptop with per-position losses for the cross-arm interval.
+
 ## Earliest-query distinction reaches native scores, but novel phrasing still fails — October 9
 
 The retained Source48/Generate64 parent (no U) answers both original job/home controls correctly with EOS (2/2). In a sealed diagnostic pair that changes only query token zero and preserves the remaining 11 tokens, Source/Context bank and empty prefix, it produces 0/2 correct entry tokens and 0/2 complete answers. The change survives all eight final recurrent/post-bridge lanes and changes 3981/4096 Generate scores and 11/11 Copy scores, with identical Source candidates and bridge donor. **KEEP** this bounded influence witness; it rules out total early-cue erasure before scoring on this pair, not a global capacity or semantic-sufficiency conclusion. [Exact artifacts, outputs, failed storage attempt and limits](../labs/early-query-causal-2026-10-09/README.md). Accepted 8/512 remains unchanged; no training or new substrate.

@@ -273,7 +273,7 @@ Matthew (SpiralCore v63/v69); the octonion and Fano material to Mark (N3mesis, N
 | 2I | exact Z[φ] | icosian coordinates lie in Z[φ]/2 | forced | `ZPhi { a, b }` | native learner |
 | 2I ∪ φ·2I | E8 | the 240 E8 roots (the project's E8 = H4 ⊕ φH4); the bivectors B_ij preserve them | forced | E8 notes in `AGENTS.md` | — |
 | 2I | Hopf S² | S³ → S² maps the 120 icosians onto one orbit of 30 points, every fibre of size 4 (a two-fold-type orbit, not literally the axes of the chosen frame) | forced | `hopf_metric.rs` | native learner |
-| 2I | VSA bit codes | the learned token → icosian-root assignment builds the codes | learned | `vsa_codes.rs` (since #2077) | native learner (VSA test running) |
+| 2I | VSA bit codes | the learned token → icosian-root assignment builds the codes | learned | `vsa_codes.rs` (since #2077) | native learner (VSA test done: trained VSA helps; root-only codes collapse token identity) |
 
 **Cautions for anyone building on this.**
 1. **Half-turns don't compose like bivectors.** Two half-turns whose K6 edges share a vertex multiply to an order-5 rotation, never a half-turn. The prime ↔ half-turn match is a correspondence of sets, not of products.
