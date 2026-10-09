@@ -44,3 +44,7 @@ jobs:
           folder: dist
           branch: gh-pages
           clean: true
+          # gh-pages is a build output, not a work branch: every push to main
+          # rebuilds it, and single-commit replaces it with one fresh commit
+          # instead of adding to its history (owner, 9 October 2026).
+          single-commit: true
