@@ -1,0 +1,57 @@
+UOR-R4 — Correction and confirmation: the "Ana." panel item was a turn-1 echo; the pointer's copying IS value-driven, and a weak gate is what loses the answer
+Date: 2026-10-09 (overnight rounds 171-173). DeepSeek session. References #820.
+
+PART 1 - THE CORRECTION (my own claim, retracted in part)
+  Round 171 recorded that the pointer arm's retention turn returned exactly "Ana.". THAT IS WRONG. The
+  panel item I read is the ASSISTANT'S TURN-1 REPLY, and the document decodes as:
+
+    <|bos|>User: My name is Ana.
+           Assistant: Ana.<|eos|>          <- the "Ana." I reported; it ECHOES the user's own last word
+           User: What is my name?
+           Assistant: Ag.<|eos|>           <- THE RETENTION ANSWER, and it is NOT the value
+
+  The panel re-run is bit-identical to the original on 14 of 14 rows at the same artifact sha256, so this
+  is a reading error on my part, not a scoring discrepancy. "Ana." under a retention question appears
+  ONLY under the pinned condition (turn 1 forced to " Sure."+EOS); in the natural condition and on the
+  panel the retention turn is " Ag.".
+
+PART 2 - WHAT THE VERIFICATION CONFIRMS ANYWAY: THE COPYING IS VALUE-DRIVEN
+  Across seven rows in three conditions, on rows that differ ONLY in the value, the arm emits DIFFERENT
+  replies that MATCH their own values:
+    ben    -> " Ben."        zorba  -> " Zorba."       quillon -> " Quillon."      anvil -> " Anvil."
+  Two of those values, ZORBA and QUILLON, appear in NO store family and NO plausible chat prior - the
+  earlier arms produced "Zn."/"Zinc."/"Anany."/"Ane." in their place. And ana vs anvil, which share an
+  onset, produce DIFFERENT strings. Measured magnitudes: pointer mass on the value's span 0.90-1.00 in 9
+  of 21 cells; read-plus-pointer mass at or above TAU in 14 of 21; value-paired DELTA +3.85 to +10.39
+  nats - against 1 of 7 argmax hits and 0 of 63 value-containing replies for the three commitment-weight
+  arms. The failure class is c_readout in 14 of 21 cells. This is NOT the prior-driven class that the
+  earlier "Anany."/"Ane." reading belonged to.
+
+PART 3 - WHY THE ana ROW STILL LOSES, MEASURED
+  On the ana rows the copy head sits at approximately 0.99 on the value's span - the read succeeds - while
+  the LEARNED GATE is small, 0.07 to 0.11, so the generator outvotes the copy at the second token and the
+  reply becomes " Ag." (shared onset id 439 plus the generator's "g"). On zorba, quillon and anvil the
+  gates are 0.60 to 0.99 and the WHOLE SPAN is copied. The binding failure in this arm is therefore not
+  retrieval, not the objective's weighting, and not the copy head: it is the GATE that decides whether
+  the copy reaches the output, and it is weak exactly where the answer matters.
+
+WHAT FOLLOWS, NAMED AND CHEAP
+  1. SUPERVISE THE GATE. The review already identified the control: the project has pointer gate
+     supervision (pointer_gate_supervision=) which was NOT used in this arm. With gates of 0.60-0.99 the
+     span is copied whole (three rows demonstrate it); raising the gate on the answer positions is the
+     direct intervention the measurement calls for.
+  2. The count pair still fails everywhere (read mass below TAU on cats2/cats5 in all three conditions),
+     so numeric recall is a separate gap from identity recall and should not be folded into the same claim.
+  3. Any further claim must be read on the panel AND the probe, with the emitted-value test on rows whose
+     values exist in no store family - which is how this correction was caught.
+
+HONEST POSITION
+  My round-171 claim was an over-read of a panel echo and is retracted here; the underlying mechanism it
+  pointed at is nonetheless confirmed by this verification: a pointer on this mixture copies values it
+  has never seen, value-conditionally, with the gate as the binding bottleneck. The night's solved result
+  is unaffected (ten of ten form compliance on the demand-store configurations; served 0.93277
+  bits/byte).
+
+SCOPE
+  One pointer checkpoint, one seed, seven rows, three conditions, greedy decoding, single artifact
+  (sha256 e52daa2d...9e3d58). Exact for these rows only; read mass is thin (1-7 of 16 heads).
