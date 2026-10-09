@@ -1,0 +1,13 @@
+{
+  "status": "VERIFIED_FRESH_REMOTE_MD5_ROUND_TRIP_AND_INDEX",
+  "name": "codex-occurrence-joint-credit-20261009",
+  "bytes": 19009536,
+  "md5": "6b862a261543a357621db37748b3e8ff",
+  "remote": "results/codex/codex-occurrence-joint-credit-20261009.tar",
+  "uploaded_utc": "2026-10-09T17:48:06Z",
+  "lab": "codex",
+  "file_inventory_entries": 16,
+  "logical_payload_bytes": 18945593,
+  "scope": "checked production and test binaries, changed source, logs and pre-delivery record; final delivery receipts live on main/PR",
+  "index_line": "codex-occurrence-joint-credit-20261009\t19009536\t6b862a261543a357621db37748b3e8ff\tresults/codex/codex-occurrence-joint-credit-20261009.tar\t2026-10-09T17:48:06Z\tcodex"
+}

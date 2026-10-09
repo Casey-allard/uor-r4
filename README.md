@@ -128,6 +128,11 @@ does not imply measured predictive advantage.
 Training is offline Rust autodiff (floating point, matrix multiplication allowed);
 bf16 activations with f32 master weights on CUDA. Final inference does not depend on it.
 
+The native grounded learner also offers an explicit offline [complete donor-utility
+credit rule](docs/labs/occurrence-joint-credit-2026-10-09/README.md) for joint Prefix/Generate
+learning. It evaluates complete native donor alternatives to capture interactions that
+a lane-by-lane state tangent can miss. Mechanism fixtures pass; model benefit is unmeasured.
+
 **Models trained**
 
 | Model | Parameters | Data, tokens | Compute | Key result |

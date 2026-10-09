@@ -19,9 +19,51 @@ const GUARDS: usize = 380;
 const UNION: usize = 391;
 const CACHE_CAP: usize = 256 * 1024 * 1024;
 const POST_CAP: usize = 16 * 1024 * 1024;
+/// Offline Prefix donor adjoint. Native donor selection is unchanged.
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub(super) enum DonorCredit {
+    #[default]
+    StateTangent,
+    FullPoolUtility,
+}
+impl DonorCredit {
+    fn legacy(&self) -> bool {
+        *self == Self::StateTangent
+    }
+}
+fn validate_credit_recovery(mode: DonorCredit, retained: bool) -> Result<()> {
+    replay_require(
+        mode.legacy() || !retained,
+        "full-pool donor credit cannot inherit state-tangent gradients/export",
+    )
+}
+fn validate_inherited_credit(
+    requested: DonorCredit,
+    producer: DonorCredit,
+    receipt: &Value,
+) -> Result<()> {
+    let recorded = if receipt["donor_credit"].is_null() {
+        DonorCredit::StateTangent
+    } else {
+        serde_json::from_value(receipt["donor_credit"].clone())?
+    };
+    replay_require(
+        requested == producer && recorded == requested,
+        "retained donor-credit producer/config/gradient mode differs",
+    )
+}
+fn credit_mode(a: &Args) -> DonorCredit {
+    a.coupled_episode_learning
+        .as_ref()
+        .map(|c| c.donor_credit)
+        .unwrap_or_default()
+}
 #[derive(Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub(super) struct Config {
+    #[serde(default, skip_serializing_if = "DonorCredit::legacy")]
+    pub donor_credit: DonorCredit,
     pub original_inputs: prefix::Config,
     #[serde(default)]
     pub retained_gradient: Option<RetainedGradient>,
@@ -111,6 +153,7 @@ impl Config {
 }
 pub(super) fn validate_settings(a: &Args) -> Result<()> {
     if let Some(c) = &a.coupled_episode_learning {
+        validate_credit_recovery(c.donor_credit, c.retained_mode())?;
         replay_require(
             a.mode == Mode::JointContinuation
                 && a.updates == 1
@@ -212,6 +255,15 @@ pub(super) fn policy() -> Value {
         "final":"original normalized episode+combined CE descent/all15 inclEOS/17/380",
         "actual9":"immediate separate typed wholeanswer/EOS qualification only after positive sealed construction",
         "serving_changes":false})
+}
+fn policy_for(mode: DonorCredit) -> Value {
+    let mut p = policy();
+    if mode == DonorCredit::FullPoolUtility {
+        p["donor_credit"] = json!(mode);
+        p["gradient_surrogate"] = json!("direct Prefix gather plus detached complete forced-physical-donor native alias-pool CE softmax adjoint; factual Generate unary STE only; no state-tangent branch or duplicate indirect credit");
+        p["donor_utility_scope"] = json!("offline forced-donor loss is a local surrogate, not a hard-argmax derivative; current factual Copy and frozen U preserved; no serving donor override");
+    }
+    p
 }
 #[derive(Clone, Serialize)]
 struct Coordinate {
@@ -433,6 +485,126 @@ fn native_with_unary(p: &ContinuationParent, values: &[f32]) -> Result<NativeGeo
     Ok(weights.export_native()?)
 }
 
+struct DonorUtility {
+    losses: Vec<f32>,
+    receipt: Value,
+}
+fn forced_pool_loss(
+    red: &mut NativeVocabularyActions,
+    base_generate: &[i64],
+    u: &[i64],
+    ids: &[u32],
+    copy: &[i64],
+    target: u32,
+) -> Result<(f64, u64, u64, u32)> {
+    replay_require(
+        base_generate.len() == u.len() && ids.len() == copy.len(),
+        "donor utility score/physical alias shape differs",
+    )?;
+    let generate = base_generate
+        .iter()
+        .zip(u)
+        .map(|(&g, &u)| {
+            g.checked_add(u)
+                .ok_or_else(|| bad("forced-donor Generate/U overflow"))
+        })
+        .collect::<Result<Vec<_>>>()?;
+    let trace = red.reduce_trace(&generate, ids, copy)?;
+    let mass = trace
+        .token_masses
+        .iter()
+        .find(|m| m.token_id == target)
+        .ok_or_else(|| bad("forced-donor target not admitted"))?
+        .weight_q31;
+    let total = trace.summary.total_weight_q31;
+    replay_require(
+        mass > 0 && total > 0 && mass <= total,
+        "forced-donor native mass invalid",
+    )?;
+    let loss = -(mass as f64 / total as f64).ln();
+    replay_require(
+        loss.is_finite() && (loss as f32).is_finite(),
+        "forced-donor CE not finite",
+    )?;
+    Ok((loss, mass, total, trace.summary.chosen_token_id))
+}
+fn donor_utility(
+    f: &shared::Frame,
+    pool: &shared::Pool,
+    row: usize,
+    p: &ContinuationParent,
+    donor: &mut shared::DonorCache,
+) -> Result<DonorUtility> {
+    replay_require(
+        !f.ids.is_empty()
+            && f.ids.len() == pool.base_copy.len()
+            && f.ids.len() == pool.copy.len()
+            && pool.donor < f.ids.len(),
+        "donor utility physical occurrence shape differs",
+    )?;
+    let mut red = NativeVocabularyActions::new(p.integer.binding().clone(), &p.exp)?;
+    let mut native_losses = Vec::with_capacity(f.ids.len());
+    let mut records = Vec::with_capacity(f.ids.len());
+    for j in 0..f.ids.len() {
+        let (post, raw_g) = donor.get(row, j, f, p)?;
+        let (ce, mass, total, chosen) =
+            forced_pool_loss(&mut red, &raw_g, &f.u, &f.ids, &pool.copy, f.target)?;
+        if j == pool.donor {
+            let generate = raw_g
+                .iter()
+                .zip(&f.u)
+                .map(|(&g, &u)| {
+                    g.checked_add(u)
+                        .ok_or_else(|| bad("factual-donor overflow"))
+                })
+                .collect::<Result<Vec<_>>>()?;
+            let factual = red.reduce_trace(&generate, &f.ids, &pool.copy)?;
+            replay_require(
+                post == pool.post
+                    && generate == pool.generate
+                    && serde_json::to_value(&factual)? == serde_json::to_value(&pool.trace)?,
+                "forced factual donor complete pool differs before backward",
+            )?;
+        }
+        native_losses.push(ce);
+        records.push(json!({"physical_ordinal":j,"physical_candidate":f.native["bank_trace"]["cue_bank"]["bank"]["candidates"][j],
+            "post_state":post.iter().map(|c|c.index()).collect::<Vec<_>>(),"base_generate_sha256":sha256_bytes(&serde_json::to_vec(&raw_g)?),
+            "target_mass":mass,"total_mass":total,"chosen":chosen,"native_ce_f64":ce}));
+    }
+    let factual_ce = native_losses[pool.donor];
+    let losses = native_losses
+        .iter()
+        .map(|ce| (ce - factual_ce) as f32)
+        .collect::<Vec<_>>();
+    replay_require(
+        losses.iter().all(|x| x.is_finite()),
+        "centered donor utility not finite",
+    )?;
+    for (record, &contrast) in records.iter_mut().zip(&losses) {
+        record["adjoint_factual_centered_contrast_f32"] = json!(contrast);
+    }
+    let receipt = json!({"input_index":f.input,"position":f.position,"id":f.id,"actual_prefix_ids":f.prefix,
+        "target_label_only":f.target,"factual_physical_donor":pool.donor,"physical_copy_aliases":f.ids.len(),
+        "donor_fullpool_reductions":f.ids.len(),"factual_parity_reductions":1,"weight_applied_by_outer_loss_once":f.weight,
+        "factual_native_ce_f64":factual_ce,"utility_conversion":"native u64 masses -> f64 CE, subtract factual-donor f64 CE, then explicit f32 detached contrast; no exact floating equivalence claimed",
+        "frozen_copy_sha256":sha256_bytes(&serde_json::to_vec(&pool.copy)?),"frozen_U_sha256":sha256_bytes(&serde_json::to_vec(&f.u)?),"donors":records});
+    // The cache cap and complete pregradient projection are admitted before this loop.
+    replay_require(
+        serde_json::to_vec(&receipt)?.len() <= 2 * 1024 * 1024,
+        "donor utility per-frame receipt exceeds projected bound",
+    )?;
+    Ok(DonorUtility { losses, receipt })
+}
+fn zero_forward_donor_loss(raw: &Tensor, losses: &[f32]) -> Result<Tensor> {
+    replay_require(
+        raw.dims() == [losses.len()] && !losses.is_empty() && losses.iter().all(|v| v.is_finite()),
+        "donor utility graph shape/nonfinite",
+    )?;
+    let weights = candle_nn::ops::softmax(raw, 0)?;
+    let detached = Tensor::from_vec(losses.to_vec(), losses.len(), raw.device())?.detach();
+    let expected = weights.mul(&detached)?.sum_all()?;
+    Ok((&expected - expected.detach())?)
+}
 fn graph_loss(
     a: &Args,
     f: &shared::Frame,
@@ -443,6 +615,7 @@ fn graph_loss(
     g: &GenerateLearningWeights,
     prepared: &uor_r4_training::geometric_generate_learning::PreparedGenerateLearning,
     donor: &mut shared::DonorCache,
+    utility: Option<&DonorUtility>,
 ) -> Result<Tensor> {
     let d = g.device();
     let credit = pw.coefficient_credit(
@@ -461,11 +634,22 @@ fn graph_loss(
     )?;
     let delta = (&credit - credit.detach())?;
     let raw = (&base + &delta)?;
-    let alternatives = (0..f.ids.len())
-        .map(|j| donor.get(row, j, f, p).map(|x| x.0))
-        .collect::<Result<Vec<_>>>()?;
-    let state = shared::selector(&pool.post, &alternatives, &raw, d)?;
-    let out = g.forward_prepared_state_choices(prepared, &pool.post, &state)?;
+    let out = match credit_mode(a) {
+        DonorCredit::StateTangent => {
+            replay_require(
+                utility.is_none(),
+                "legacy tangent received full-pool donor credit",
+            )?;
+            let alternatives = (0..f.ids.len())
+                .map(|j| donor.get(row, j, f, p).map(|x| x.0))
+                .collect::<Result<Vec<_>>>()?;
+            let state = shared::selector(&pool.post, &alternatives, &raw, d)?;
+            g.forward_prepared_state_choices(prepared, &pool.post, &state)?
+        }
+        DonorCredit::FullPoolUtility => {
+            g.forward_prepared_coefficients_only(prepared, &pool.post)?
+        }
+    };
     let numerical = out
         .scores_q24
         .iter()
@@ -511,13 +695,18 @@ fn graph_loss(
     )?;
     let softc = (&raw + &uc)?;
     let joinedc = (&hardc + (&softc - softc.detach())?)?;
-    Ok((vocabulary_marginal_loss_with_credit(
+    let mut loss = vocabulary_marginal_loss_with_credit(
         &pool.trace,
         &joinedg,
         Some(&joinedc),
         f.target,
         a.credit.policy(),
-    )? * f.weight)?)
+    )?;
+    if credit_mode(a) == DonorCredit::FullPoolUtility {
+        let utility = utility.ok_or_else(|| bad("full-pool donor utility missing"))?;
+        loss = (&loss + zero_forward_donor_loss(&raw, &utility.losses)?)?;
+    }
+    Ok((loss * f.weight)?)
 }
 
 fn gradients(
@@ -599,6 +788,38 @@ fn gradients(
         .ok_or_else(|| bad("Prefix Var missing"))?;
     let prepared = g.prepare_native()?;
     let mut donor = shared::DonorCache::with_limit(p, 64 * 1024 * 1024)?;
+    let utilities = if credit_mode(a) == DonorCredit::FullPoolUtility {
+        frames
+            .iter()
+            .zip(pools)
+            .enumerate()
+            .map(|(i, (f, pool))| donor_utility(f, pool, i, p, &mut donor).map(Some))
+            .collect::<Result<Vec<_>>>()?
+    } else {
+        (0..frames.len()).map(|_| None).collect::<Vec<_>>()
+    };
+    if credit_mode(a) == DonorCredit::FullPoolUtility {
+        let actual = utilities
+            .iter()
+            .filter_map(|u| u.as_ref())
+            .try_fold(0u64, |sum, u| {
+                Ok::<_, Box<dyn std::error::Error>>(
+                    sum + serde_json::to_vec(&u.receipt)?.len() as u64,
+                )
+            })?;
+        replay_require(
+            actual + 4096 <= donor_utility_bound(frames)?,
+            "complete donor utility serialization exceeds pregradient bound",
+        )?;
+        write(
+            a,
+            "coupled-full-pool-donor-utilities.json",
+            &json!({"donor_credit":credit_mode(a),
+            "physical_frames":frames.len(),"all_before_any_backward":true,"new_context_encoder_calls":0,
+            "forced_donor_fullpool_reductions":frames.iter().map(|f|f.ids.len()).sum::<usize>(),
+            "factual_parity_reductions":frames.len(),"native_bridge_generate_cache_misses":donor.calls,"donor_cache_peak_bytes":donor.peak,"records":utilities.iter().filter_map(|u|u.as_ref().map(|u|&u.receipt)).collect::<Vec<_>>()}),
+        )?;
+    }
     for (i, (f, pool)) in frames.iter().zip(pools).enumerate() {
         replay_require(
             pool.donor == earliest(&pool.base_copy)?
@@ -623,7 +844,16 @@ fn gradients(
             "coupled31 full native pool parity differs",
         )?;
         drop(graph_loss(
-            a, f, pool, i, p, &active, &g, &prepared, &mut donor,
+            a,
+            f,
+            pool,
+            i,
+            p,
+            &active,
+            &g,
+            &prepared,
+            &mut donor,
+            utilities[i].as_ref(),
         )?);
     }
     write(
@@ -638,7 +868,18 @@ fn gradients(
     let mut graph_ce = 0.;
     for (i, (f, pool)) in frames.iter().zip(pools).enumerate() {
         shared::progress(a, start)?;
-        let loss = graph_loss(a, f, pool, i, p, &active, &g, &prepared, &mut donor)?;
+        let loss = graph_loss(
+            a,
+            f,
+            pool,
+            i,
+            p,
+            &active,
+            &g,
+            &prepared,
+            &mut donor,
+            utilities[i].as_ref(),
+        )?;
         graph_ce += f64::from(loss.to_scalar::<f32>()?);
         let gr = loss.backward()?;
         let mut files = Vec::new();
@@ -689,8 +930,18 @@ fn gradients(
         "coupled-gradient-receipt.json",
         &json!({"weighted_roles":32,"physical_backward_calls":31,"prebackward_native_parity_graph_forwards":31,"gradient_graph_forwards":31,"extracted_families":[PREFIX,GENERATE],
         "perterm":terms,"files":aggregate,"aggregate_sum":"ordered f32 sum of already weighted31physical gradients; no synthetic32arrays",
-        "weighted_graph_ce":graph_ce,"surrogate":policy()["gradient_surrogate"],"context_gradient":"NOT_RUN","donor_cache_peak_bytes":donor.peak}),
+        "weighted_graph_ce":graph_ce,"surrogate":policy_for(credit_mode(a))["gradient_surrogate"],"context_gradient":"NOT_RUN","donor_cache_peak_bytes":donor.peak}),
     )?;
+    if credit_mode(a) == DonorCredit::FullPoolUtility {
+        let leaf = a.out.join("coupled-gradient-receipt.json");
+        let mut receipt = read(&leaf)?;
+        receipt["donor_credit"] = json!(credit_mode(a));
+        receipt["full_pool_utility_file"] = json!("coupled-full-pool-donor-utilities.json");
+        receipt["full_pool_utility_sha256"] = json!(sha256_file(
+            &a.out.join("coupled-full-pool-donor-utilities.json")
+        )?);
+        fs::write(&leaf, serde_json::to_vec(&receipt)?)?;
+    }
     Ok((pm, ps, gm, gs))
 }
 
@@ -764,7 +1015,8 @@ fn retained_gradients(
     )?;
     let old: Config = serde_json::from_value(old_config["coupled_episode_learning"].clone())?;
     replay_require(
-        old.retained_gradient.is_none()
+        old.donor_credit == c.donor_credit
+            && old.retained_gradient.is_none()
             && old.retained_export.is_none()
             && serde_json::to_value(&old.original_inputs)?
                 == serde_json::to_value(&c.original_inputs)?
@@ -831,6 +1083,7 @@ fn retained_gradients(
         "retained gradient receipt identity differs",
     )?;
     let receipt = read(&receipt_file)?;
+    validate_inherited_credit(c.donor_credit, old.donor_credit, &receipt)?;
     replay_require(
         receipt["physical_backward_calls"] == 31
             && receipt["weighted_roles"] == 32
@@ -1186,8 +1439,14 @@ fn recover_export_state(
     )?;
     let old_config = read(&e.retained_failed_root.join("config.json"))?;
     let old: Config = serde_json::from_value(old_config["coupled_episode_learning"].clone())?;
+    validate_inherited_credit(
+        c.donor_credit,
+        old.donor_credit,
+        &read(&e.retained_failed_root.join("coupled-gradient-receipt.json"))?,
+    )?;
     replay_require(
-        old.retained_export.is_none()
+        old.donor_credit == c.donor_credit
+            && old.retained_export.is_none()
             && serde_json::to_value(&old.original_inputs)?
                 == serde_json::to_value(&c.original_inputs)?
             && serde_json::to_value(&old.retained_gradient)?
@@ -1561,7 +1820,7 @@ fn construct(
         .open(a.out.join("coupled-construction.json"))?;
     let mut journal = std::io::BufWriter::new(file);
     journal.write_all(b"{\"policy\":")?;
-    serde_json::to_writer(&mut journal, &policy())?;
+    serde_json::to_writer(&mut journal, &policy_for(credit_mode(a)))?;
     journal.write_all(b",\"coordinate_records\":[")?;
     for (ordinal, coordinate) in ranked.iter().enumerate() {
         shared::progress(a, start)?;
@@ -1880,6 +2139,24 @@ fn original_guard_alias_bound(c: &Config) -> Result<usize> {
     }
     Ok(max)
 }
+fn donor_utility_bound(frames: &[shared::Frame]) -> Result<u64> {
+    let mut total = 64 * 1024u64;
+    for f in frames {
+        let candidates = f.native["bank_trace"]["cue_bank"]["bank"]["candidates"]
+            .as_array()
+            .ok_or_else(|| bad("donor utility bound physical candidates missing"))?;
+        replay_require(
+            candidates.len() == f.ids.len() && !candidates.is_empty(),
+            "donor utility bound physical identity differs",
+        )?;
+        for candidate in candidates {
+            total = total
+                .checked_add(serde_json::to_vec(candidate)?.len() as u64 + 2048)
+                .ok_or_else(|| bad("donor utility bound overflow"))?;
+        }
+    }
+    Ok(total)
+}
 fn pregradient_projection(a: &Args, c: &Config, frames: &[shared::Frame]) -> Result<()> {
     let e = c
         .original_inputs
@@ -1931,7 +2208,25 @@ fn pregradient_projection(a: &Args, c: &Config, frames: &[shared::Frame]) -> Res
     } else {
         0
     };
-    let numeric = typed + cache + full * 2 + 32 * 1024 * 1024 + retained_export_copy_peak;
+    let utility_report_bound = if c.donor_credit == DonorCredit::FullPoolUtility {
+        donor_utility_bound(frames)?
+    } else {
+        0
+    };
+    // Full donor scalar receipts/Vec<Value> and one transient native pool;
+    // the existing64MiB donor cache is sequential and never coexists with380.
+    let utility_numeric_bound = utility_report_bound * 8
+        + if utility_report_bound > 0 {
+            2 * 1024 * 1024
+        } else {
+            0
+        };
+    let numeric = typed
+        + cache
+        + full * 2
+        + 32 * 1024 * 1024
+        + retained_export_copy_peak
+        + utility_numeric_bound;
     replay_require(
         oldpre["process_ram_cap"] == 4 * 1024 * 1024 * 1024u64,
         "retained phase process authority differs",
@@ -1943,16 +2238,18 @@ fn pregradient_projection(a: &Args, c: &Config, frames: &[shared::Frame]) -> Res
         + 512 * 1024 * 1024
         + full * 8
         + 128 * 1024 * 1024
-        + retained_export_copy_peak;
+        + retained_export_copy_peak
+        + utility_numeric_bound;
     let reload_max = 535837u64;
     let journal = journal_upper_bound()?;
     let report = (reload_max + 16384) * UNION as u64
         + journal
         + 57780353
         + 48 * 1024 * 1024
-        + 32 * 1024 * 1024;
+        + 32 * 1024 * 1024
+        + utility_report_bound;
     let v = json!({"stage":if c.retained_export.is_some(){"BEFORE_RETAINED_EXPORT_ADMISSION"}else if c.retained_mode(){"BEFORE_RETAINED_GRADIENT_ADMISSION_AND_FINITE_RESTART"}else{"BEFORE_ANY_BACKWARD"},"capacity":cap,"typed_guard_frame_bound":typed,
-        "actual31_full_serialized_native_bytes":full,"numeric_upper_bound":numeric,"retained_export_copy_peak_bytes":retained_export_copy_peak,
+        "actual31_full_serialized_native_bytes":full,"numeric_upper_bound":numeric,"donor_utility_serialized_bound":utility_report_bound,"donor_utility_numeric_bound":utility_numeric_bound,"retained_export_copy_peak_bytes":retained_export_copy_peak,
         "retained_export_copy_projection":"full journal byte-copy buffer plus4MiB typed commitments/summary; alternatives ignored by typed decoder","numeric_cap":512*1024*1024u64,
         "process_ram_projection_bytes":process,"process_ram_cap":4*1024*1024*1024u64,
         "report_upper_bound":report,"report_cap":a.maximum_report_bytes,"streamed_journal_reserve":journal,
@@ -2269,7 +2566,7 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
         .max();
     Ok(
         json!({"schema":"uor-r4.coupled-episode-report/1","status":"COMPLETED","mode":"coupled_episode_learning",
-        "source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"policy":policy(),"selected_model":false,
+        "source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"policy":policy_for(c.donor_credit),"selected_model":false,
         "finite_episode_positive":gate["passed"],"final_gate":gate,"baseline_objective":initial,"candidate_objective":value,
         "construction_summary":construction,"inherited_learning":inherited_learning,"inherited_construction":inherited_construction,
         "new_constructor_calls":if c.retained_export.is_some(){0}else{1},"new_proposals":if c.retained_export.is_some(){0}else{construction["evaluated_alternatives"].as_u64().unwrap_or(0)},
@@ -2469,7 +2766,7 @@ fn export_reload(
             "preserved_generic_prefix":"checkpoint-0001/prefix-before-cue-rebind"}),
         )?;
         receipt["mode"] = json!("coupled_episode_learning");
-        receipt["policy"] = policy();
+        receipt["policy"] = policy_for(credit_mode(a));
         receipt["active_parameter_names"] = json!([PREFIX, GENERATE]);
         receipt["fresh_adam"] = json!(false);
         receipt["optimizer_updates"] = json!(0);
@@ -2506,6 +2803,10 @@ fn export_reload(
 
         receipt["extracted_family_gradients"] = json!(2);
         receipt["credit_scope"]=json!("one31 factual fullaliasloss joint pullback: Prefix direct gather plus detached conditional donor contrast and factual Generate unary coefficient STE; only two960 gradients extracted/proposed; no Context/Cue/U extraction");
+        if credit_mode(a) == DonorCredit::FullPoolUtility {
+            receipt["credit_scope"] = policy_for(credit_mode(a))["gradient_surrogate"].clone();
+        }
+
         receipt["frozen_numerical_scope"]=json!("all Source/Context/Potential/map/Cue angular+joint/Generate pair+bias+prototype/bridge/U masters frozen; Prefix960 and Generate unary960 only");
         receipt["generate_sha256"] = json!(sha256_bytes(&cp.generate));
         receipt["prefix_sha256"] = json!(sha256_file(&root.join("prefix/prefix-q4.bin"))?);
@@ -2572,6 +2873,8 @@ fn export_reload(
 #[derive(Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub(super) struct ArtifactAuthority {
+    #[serde(default, skip_serializing_if = "DonorCredit::legacy")]
+    pub donor_credit: DonorCredit,
     pub expected_report_sha256: String,
     pub expected_manifest_sha256: String,
     pub expected_generate_sha256: String,
@@ -2606,6 +2909,22 @@ pub(super) fn authenticate_positive_artifact(
         .as_ref()
         .ok_or_else(|| bad("coupled artifact authority absent"))?;
     validate_artifact_authority(pin)?;
+    if pin.donor_credit == DonorCredit::FullPoolUtility {
+        let candidate_config: Config = serde_json::from_value(
+            read(&c.retained_candidate_root.join("config.json"))?["coupled_episode_learning"]
+                .clone(),
+        )?;
+        replay_require(
+            candidate_config.donor_credit == pin.donor_credit
+                && v["policy"] == policy_for(pin.donor_credit),
+            "coupled artifact donor-credit authority differs",
+        )?;
+        validate_credit_recovery(
+            candidate_config.donor_credit,
+            candidate_config.retained_mode(),
+        )?;
+    }
+
     replay_require(
         v["status"] == "COMPLETED"
             && v["mode"] == "coupled_episode_learning"
@@ -2625,6 +2944,30 @@ pub(super) fn authenticate_positive_artifact(
     )?;
     let root = &c.retained_candidate_root;
     let gradient = read(&root.join("coupled-gradient-receipt.json"))?;
+    let gradient_mode = if gradient["donor_credit"].is_null() {
+        DonorCredit::StateTangent
+    } else {
+        serde_json::from_value(gradient["donor_credit"].clone())?
+    };
+    replay_require(
+        gradient_mode == pin.donor_credit,
+        "coupled positive gradient mode differs",
+    )?;
+    if pin.donor_credit == DonorCredit::FullPoolUtility {
+        replay_require(
+            gradient["full_pool_utility_file"] == "coupled-full-pool-donor-utilities.json"
+                && gradient["full_pool_utility_sha256"]
+                    == sha256_file(&root.join("coupled-full-pool-donor-utilities.json"))?,
+            "coupled positive donor utility receipt identity differs",
+        )?;
+        let utility = read(&root.join("coupled-full-pool-donor-utilities.json"))?;
+        replay_require(
+            utility["donor_credit"] == json!(pin.donor_credit)
+                && utility["physical_frames"] == 31
+                && utility["all_before_any_backward"] == true,
+            "coupled positive donor utility factual authority differs",
+        )?;
+    }
     replay_require(
         gradient["physical_backward_calls"] == 31 && gradient["weighted_roles"] == 32,
         "coupled gradient receipt count differs",
@@ -2851,6 +3194,224 @@ pub(super) fn authenticate_positive_artifact(
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn donor_pair_fixture() -> Result<(
+        NativeGeometricGenerate,
+        GenerateLearningWeights,
+        Vec<H4Code>,
+        Vec<H4Code>,
+        NativeVocabularyActions,
+    )> {
+        use uor_r4_core::native_geometric::learner::integrated_attention::geometry::{
+            EnergyTables, LanePair,
+        };
+        use uor_r4_integer::geometric_source_actions::SourceActionBinding;
+        const TOK: &str = r#"{"pre_tokenizer":{"type":"ByteLevel","add_prefix_space":false},"model":{"type":"BPE","vocab":{"<|bos|>":0,"<|eos|>":1,"<|unk|>":2,".":3,"a":4,"b":5,"Ġ":6,"Ġa":7},"merges":["Ġ a"]},"added_tokens":[{"id":0,"content":"<|bos|>"},{"id":1,"content":"<|eos|>"},{"id":2,"content":"<|unk|>"}]}"#;
+        let binding = SourceActionBinding::new(TOK.as_bytes())?;
+        let prototypes = (0..binding.vocab_size())
+            .flat_map(|t| (0..8).map(move |l| ((t * 17 + l * 7 + 3) % 120) as u8))
+            .collect::<Vec<_>>();
+        let edges = vec![LanePair { left: 0, right: 1 }];
+        let mut energy = EnergyTables::zeroed(8, edges)?;
+        let zero = NativeGeometricGenerate::compile(
+            &binding,
+            8,
+            &prototypes,
+            &vec![0; binding.vocab_size().div_ceil(2)],
+            energy.clone(),
+        )?;
+        let factual = vec![H4Code::IDENTITY; 8];
+        let mut changed = factual.clone();
+        changed[0] = H4Code::try_from(2)?;
+        changed[1] = H4Code::try_from(3)?;
+        let mut fk = [0u32; 9];
+        let mut ck = fk;
+        zero.factor_incidence_into(&factual, 4, &mut fk, &mut Default::default())?;
+        zero.factor_incidence_into(&changed, 4, &mut ck, &mut Default::default())?;
+        let f = (fk[8] - 960) as usize;
+        let c = (ck[8] - 960) as usize;
+        assert_ne!(f / 120, c / 120);
+        assert_ne!(f % 120, c % 120);
+        // Only the joint pair endpoint has energy; both one-lane changes are0.
+        energy.set_pair(0, (c / 120) as u8, (c % 120) as u8, 7)?;
+        let native = NativeGeometricGenerate::compile(
+            &binding,
+            8,
+            &prototypes,
+            &vec![0; binding.vocab_size().div_ceil(2)],
+            energy,
+        )?;
+        let weights = GenerateLearningWeights::from_native(binding.clone(), &native, &Device::Cpu)?;
+        let exp = (0..uor_r4_integer::geometric_read::EXP_TABLE_LEN)
+            .flat_map(|i| {
+                (((-(i as f64) / 256.).exp() * (1u64 << 31) as f64).round() as u32).to_le_bytes()
+            })
+            .collect::<Vec<_>>();
+        let red = NativeVocabularyActions::new(binding, &exp)?;
+        Ok((native, weights, factual, changed, red))
+    }
+    #[test]
+    fn full_pool_donor_credit_captures_joint_pair_transition_missing_state_tangent() -> Result<()> {
+        let (native, g, factual, changed, mut red) = donor_pair_fixture()?;
+        let mut rawf = vec![0; native.vocab_size()];
+        let mut rawc = rawf.clone();
+        native.score_into(&factual, &mut rawf, &mut Default::default())?;
+        native.score_into(&changed, &mut rawc, &mut Default::default())?;
+        assert_eq!(rawf[4], 0);
+        assert_eq!(rawc[4], 7 << 20);
+        let u = vec![0; native.vocab_size()];
+        let ids = [4, 4, 5];
+        let copy = [0, 0, 0];
+        let old = forced_pool_loss(&mut red, &rawf, &u, &ids, &copy, 4)?;
+        let new = forced_pool_loss(&mut red, &rawc, &u, &ids, &copy, 4)?;
+        assert!(new.0 < old.0);
+        let raw = Var::from_vec(vec![0f32; 3], 3, &Device::Cpu)?;
+        let states = shared::selector(
+            &factual,
+            &[factual.clone(), factual.clone(), changed],
+            raw.as_tensor(),
+            &Device::Cpu,
+        )?;
+        let prepared = g.prepare_native()?;
+        let tangent = g.forward_prepared_state_choices(&prepared, &factual, &states)?;
+        let tg = tangent.raw_scores.narrow(0, 4, 1)?.sum_all()?.backward()?;
+        let tangent_route = tg
+            .get(raw.as_tensor())
+            .ok_or_else(|| bad("tangent route gradient missing"))?
+            .to_vec1::<f32>()?;
+        assert!(tangent_route.iter().all(|x| x.abs() < 1e-7));
+        let full = zero_forward_donor_loss(raw.as_tensor(), &[0., 0., (new.0 - old.0) as f32])?;
+        assert_eq!(full.to_scalar::<f32>()?, 0.);
+        let grads = full.backward()?;
+        let route = grads
+            .get(raw.as_tensor())
+            .ok_or_else(|| bad("complete donor gradient missing"))?
+            .to_vec1::<f32>()?;
+        assert!(route[0] > 0. && route[1] > 0. && route[2] < 0.);
+        assert_eq!(route[0], route[1]);
+        assert!(grads.get(g.unary.as_tensor()).is_none());
+        Ok(())
+    }
+    #[test]
+    fn full_pool_donor_addition_preserves_factual_generate_and_direct_copy_credit_weight_once(
+    ) -> Result<()> {
+        use uor_r4_training::geometric_generate_learning::vocabulary_marginal_loss;
+        let (native, g, state, _, mut red) = donor_pair_fixture()?;
+        let prepared = g.prepare_native()?;
+        let out = g.forward_prepared_coefficients_only(&prepared, &state)?;
+        let ids = [4, 4, 5];
+        let copy = [0, 0, 0];
+        let trace = red.reduce_trace(&out.scores_q24, &ids, &copy)?;
+        let raw = Var::from_vec(vec![0f32; 3], 3, &Device::Cpu)?;
+        let direct = vocabulary_marginal_loss(&trace, &out.raw_scores, Some(raw.as_tensor()), 4)?;
+        let utility = zero_forward_donor_loss(raw.as_tensor(), &[0., 0., -0.4])?;
+        let weight = 1. / 15.;
+        let plain = (&direct * weight)?;
+        let corrected = ((&direct + &utility)? * weight)?;
+        assert_eq!(plain.to_scalar::<f32>()?, corrected.to_scalar::<f32>()?);
+        let a = plain.backward()?;
+        let b = corrected.backward()?;
+        let u = (&utility * weight)?.backward()?;
+        let ag = a
+            .get(g.unary.as_tensor())
+            .ok_or_else(|| bad("factual unary missing"))?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        let bg = b
+            .get(g.unary.as_tensor())
+            .ok_or_else(|| bad("corrected unary missing"))?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        assert_eq!(ag, bg);
+        let ac = a
+            .get(raw.as_tensor())
+            .ok_or_else(|| bad("direct Copy missing"))?
+            .to_vec1::<f32>()?;
+        let bc = b
+            .get(raw.as_tensor())
+            .ok_or_else(|| bad("corrected Copy missing"))?
+            .to_vec1::<f32>()?;
+        let uc = u
+            .get(raw.as_tensor())
+            .ok_or_else(|| bad("indirect Copy missing"))?
+            .to_vec1::<f32>()?;
+        for ((a, b), u) in ac.iter().zip(bc).zip(uc) {
+            assert!((b - a - u).abs() < 1e-7);
+        }
+        assert!(zero_forward_donor_loss(raw.as_tensor(), &[0., f32::NAN, 0.]).is_err());
+        assert!(zero_forward_donor_loss(raw.as_tensor(), &[0.]).is_err());
+        let same = zero_forward_donor_loss(raw.as_tensor(), &[0.; 3])?;
+        assert_eq!(same.to_scalar::<f32>()?, 0.);
+        assert!(same
+            .backward()?
+            .get(raw.as_tensor())
+            .ok_or_else(|| bad("zero donor gradient missing"))?
+            .to_vec1::<f32>()?
+            .iter()
+            .all(|x| *x == 0.));
+        assert_eq!(native.vocab_size(), 8);
+        Ok(())
+    }
+    #[test]
+    fn complete_donor_pool_keeps_clipping_aliases_and_rejects_unadmitted_target() -> Result<()> {
+        let (native, _, state, _, mut red) = donor_pair_fixture()?;
+        let mut raw = vec![0; native.vocab_size()];
+        native.score_into(&state, &mut raw, &mut Default::default())?;
+        let u = vec![0; raw.len()];
+        let ids = [4, 4, 5];
+        let copy = [9 << 24, 9 << 24, -9 << 24];
+        let loss = forced_pool_loss(&mut red, &raw, &u, &ids, &copy, 4)?;
+        let trace = red.reduce_trace(&raw, &ids, &copy)?;
+        assert_eq!(loss.1, trace.token_masses[4].weight_q31);
+        assert_eq!(loss.2, trace.summary.total_weight_q31);
+        assert_eq!(trace.summary.clipped_high_actions, 2);
+        assert_eq!(trace.summary.clipped_low_actions, 1);
+        assert!(forced_pool_loss(&mut red, &raw, &u, &ids, &copy, 100).is_err());
+        assert!(forced_pool_loss(&mut red, &raw, &u, &ids[..1], &copy, 4).is_err());
+        Ok(())
+    }
+    #[test]
+    fn full_pool_credit_rejects_retained_state_tangent_science_and_legacy_defaults_remain(
+    ) -> Result<()> {
+        assert_eq!(
+            serde_json::from_str::<DonorCredit>("\"state_tangent\"")?,
+            DonorCredit::default()
+        );
+        assert!(validate_credit_recovery(DonorCredit::FullPoolUtility, true).is_err());
+        validate_credit_recovery(DonorCredit::StateTangent, true)?;
+        validate_credit_recovery(DonorCredit::FullPoolUtility, false)?;
+        validate_inherited_credit(
+            DonorCredit::StateTangent,
+            DonorCredit::StateTangent,
+            &json!({}),
+        )?;
+        validate_inherited_credit(
+            DonorCredit::StateTangent,
+            DonorCredit::StateTangent,
+            &json!({"donor_credit":"state_tangent"}),
+        )?;
+        assert!(validate_inherited_credit(
+            DonorCredit::StateTangent,
+            DonorCredit::FullPoolUtility,
+            &json!({})
+        )
+        .is_err());
+        assert!(validate_inherited_credit(
+            DonorCredit::StateTangent,
+            DonorCredit::StateTangent,
+            &json!({"donor_credit":"full_pool_utility"})
+        )
+        .is_err());
+        assert!(validate_inherited_credit(
+            DonorCredit::StateTangent,
+            DonorCredit::StateTangent,
+            &json!({"donor_credit":"unknown"})
+        )
+        .is_err());
+        assert_eq!(policy_for(DonorCredit::StateTangent), policy());
+        assert_ne!(policy_for(DonorCredit::FullPoolUtility), policy());
+        assert!(serde_json::from_str::<DonorCredit>("\"unknown\"").is_err());
+        Ok(())
+    }
     #[test]
     fn rebound_prefix_publication_preserves_intermediate_and_failed_save() -> Result<()> {
         let stamp = std::time::SystemTime::now()

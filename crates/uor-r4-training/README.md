@@ -9,6 +9,21 @@ the process supervisor monitors RSS, storage and elapsed time. This crate makes
 no heapless or allocation-free steady-state guarantee. Portable serving crates
 retain their separate stricter contracts.
 
+## Native coupled episode credit
+
+`geometric-frozen-map-fit` exposes `coupled_episode_learning.donor_credit`. Omission
+retains historical `state_tangent`; `full_pool_utility` replaces the indirect donor
+state tangent with detached native losses for each complete physical donor, selected
+through a BASE Copy softmax surrogate. It preserves factual Copy aliases, frozen U,
+factual Generate coefficient credit and the native constructor. The corrected mode
+requires fresh gradients and cannot inherit historical gradients or exports.
+
+The [implementation record](../../docs/labs/occurrence-joint-credit-2026-10-09/README.md)
+binds the native pair fixture, gradient isolation checks and compatibility scope.
+This is an offline credit correction, not a hard-argmax derivative or a measured
+conversation improvement. The original 15-position episode, 17 references and
+380 winner guards remain the prospective model gate.
+
 ## Complete-prefix native dialogue learning
 
 `dialogue-prefix-fit` connects the strict retained R1d parameter import to exact

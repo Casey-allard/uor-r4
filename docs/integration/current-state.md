@@ -1,5 +1,13 @@
 # Current UOR-R4 research state
 
+## Complete donor utility replaces the optional lane-state credit surrogate — October 9
+
+The [coupled credit correction](../labs/occurrence-joint-credit-2026-10-09/README.md) adds explicit `donor_credit: "full_pool_utility"` to the existing Prefix/Generate learner. It uses detached complete native forced-donor pool losses to credit the BASE Copy selector, replacing the indirect state-tangent path while retaining direct Copy and factual Generate gradients. A native two-lane pair fixture demonstrates the finite interaction omitted by the old target-score tangent; zero-forward, gradient isolation, physical alias/clipping and recovery checks pass. Historical configurations retain `state_tangent`. No serving rule or parameter family is added.
+
+This is an implementation result, **NOT YET PROMOTED**. The retained model's donor utilities, fresh backwards and construction are NOT_RUN. Accepted **8/512**, the unselected pair 6/15 and separate coupled 9/15 are unchanged. The source limitation does not establish the cause of the retained 9/15 negative; equal-post donors remain indistinguishable by this indirect credit alone.
+
+**Next:** after protected delivery and cleanup, prospectively bind the corrected mode to the exact original parent and complete-episode authorities. Under a separate complete run projection, inspect native donor utilities and fresh credit against the retained legacy result, then perform the bounded constructor with the same fifteen positions, seventeen references and 380 guards. A positive conditional gate must immediately face actual-artifact whole-answer/EOS qualification. No unchanged sweep, negative-candidate composition or answer-specific serving case.
+
 ## Frozen Copy excludes every legal pair-only correction at the first saved error — October 9
 
 The [native pair/Copy bound](../labs/pair-copy-bound-2026-10-09/README.md) excludes input245/position4/target267 at all **nine** conservatively possible common references: even maximum legal target Generate mass plus every target Copy alias remains below rival307's Copy mass alone. At the actual reference, the optimistic masses are319960263 versus2147483648 Q31; the target already attains its maximum four-pair sum28. All4096 Generate/U scores and the complete saved pool reconstruct natively; three focused example tests and one integer atom test pass, with a retained loader compile failure repaired before the sole diagnostic run. This rules out further pair-only search at this fixed state with Copy/unary/bias/prototypes/U frozen; accepted **8/512**, unselected pair6/15 and separate coupled9/15 are unchanged, and no fit or whole-answer evaluation ran.

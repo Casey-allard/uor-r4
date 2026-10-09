@@ -1,0 +1,25 @@
+{
+  "execution_source": "2f64255db593f375c7a121561c6221e182432051",
+  "child_sha256": "0350c3e1ca574741a283cfc3727ccf36522533c89a710ce3717c559cc39d6923",
+  "math": {
+    "status": "PASS_SOURCE_ONLY",
+    "reviewed_child_sha256": "0350c3e1ca574741a283cfc3727ccf36522533c89a710ce3717c559cc39d6923",
+    "findings": [
+      "Exclusive full-pool indirect replacement; detached native whole-donor pool losses with fixed physical Copy and U.",
+      "f64 factual centering before f32; BASE selector; frame weight once; direct Copy and factual Generate retained.",
+      "Native pair fixture demonstrates omitted target-score finite interaction, not vanishing entire historical pooled-loss gradient.",
+      "No hard argmax derivative, Context recurrence, construction success or language gain established."
+    ],
+    "reviewed_execution_source": "2f64255db593f375c7a121561c6221e182432051",
+    "wording": "No wording blocker; preserve source/fixture/model scope and unmeasured actual episode effect."
+  },
+  "adversarial": {
+    "status": "PASS_SOURCE_ONLY",
+    "original_blocker": "Retained legacy recovery could relabel a full-pool producer or gradient receipt as legacy.",
+    "repair": "Both retained loaders now compare requested and authenticated producer credit mode and inherited gradient receipt mode; absent receipt field remains legacy.",
+    "execution": "Reviewer performed no builds/model runs; parent owns executed tests.",
+    "reviewed_execution_source": "2f64255db593f375c7a121561c6221e182432051",
+    "reviewed_child_sha256": "0350c3e1ca574741a283cfc3727ccf36522533c89a710ce3717c559cc39d6923",
+    "repair_verified": true
+  }
+}

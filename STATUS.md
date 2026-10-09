@@ -13,7 +13,7 @@ Coordination and live status are on the tracker [#2028](https://github.com/UOR-F
 | Line | Best measured result |
 |---|---|
 | A. Geometric stack language model | 19.9M chat stack: 0.933 BPB served, multiplier-free (11.9 MB). 214M Plan A base: dev NLL 2.073. Code and arithmetic answers are still wrong. The ~96M run's result is recorded in the #820 history, not repeated here. |
-| B. Native geometric learner (compiler, exact store, emitter) | 8 of 512 replies complete; best conditional gate 9 of 15. [Pair-only correction excluded at one frozen error](docs/labs/pair-copy-bound-2026-10-09/README.md). |
+| B. Native geometric learner (compiler, exact store, emitter) | 8 of 512 replies complete; best conditional gate 9 of 15. [Pair-only correction excluded at one frozen error](docs/labs/pair-copy-bound-2026-10-09/README.md); [complete donor credit implemented](docs/labs/occurrence-joint-credit-2026-10-09/README.md), model benefit unmeasured. |
 
 Both lines join at M4, one model served under D11.
 

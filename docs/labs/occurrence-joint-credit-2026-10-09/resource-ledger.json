@@ -1,0 +1,43 @@
+{
+  "status": "IMPLEMENTATION_VALIDATED_DELIVERY_PENDING",
+  "started_utc": "2026-10-09T17:30:20.350294+00:00",
+  "source": "9731faac30f582888d240756a49393024ad9aa5c",
+  "claim": "https://github.com/UOR-Foundation/uor-r4/issues/2030#issuecomment-6085926805",
+  "previous_ledger": "docs/labs/pair-copy-bound-2026-10-09/resource-ledger.json",
+  "previous_actual_closeout_seconds": 1399.17,
+  "previous_cumulative_projected_seconds": 624570,
+  "increment_seconds": 3600,
+  "cumulative_projected_seconds": 628170,
+  "build_workers": 2,
+  "diagnostic_workers": 1,
+  "build_ram_cap_bytes": 3221225472,
+  "incremental_storage_cap_bytes": 4294967296,
+  "retained_cap_bytes": 33554432,
+  "stop_margin_bytes": 134217728,
+  "free_floor_bytes": 32212254720,
+  "new_model_fits": 0,
+  "new_pods": 0,
+  "goal_time_used_seconds_at_refresh": 116870,
+  "legacy_shared_model_ledger": "ABSENT at owner checkout; prior per-deliverable chain and PR closeout retained",
+  "delivery_base": "d53d5dff3dcea3e5554facd39f08c043700a0cbb",
+  "execution_source": "2f64255db593f375c7a121561c6221e182432051",
+  "cold_dependency_build_seconds": 360.05,
+  "cold_dependency_build_max_rss_bytes": 3033808896,
+  "initial_example_tests_seconds": 24.28,
+  "initial_example_tests_max_rss_bytes": 866516992,
+  "final_source_example_tests_seconds": 123.15,
+  "final_source_example_tests_max_rss_bytes": 1778941952,
+  "source_review_corrections": [
+    "Recovery producer/config/gradient credit-mode identity mismatch closed before delivery."
+  ],
+  "model_backward_calls": 0,
+  "new_native_construction_calls": 0,
+  "new_autoregressive_evaluations": 0,
+  "fixture_tests_passed": 16,
+  "example_release_build": {
+    "wall_seconds": 117.72,
+    "max_rss_bytes": 887275520,
+    "log_sha256": "43fd5096415eaa0b440b0a1ec7f4418b45ec2638a59f1f382ecaf45f3cd461a4"
+  },
+  "elapsed_through_validation_seconds": 1035.294949
+}

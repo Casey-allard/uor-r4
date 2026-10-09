@@ -1,0 +1,42 @@
+{
+  "status": "PASS_SCOPED_IMPLEMENTATION",
+  "execution_source": "2f64255db593f375c7a121561c6221e182432051",
+  "source_child_sha256": "0350c3e1ca574741a283cfc3727ccf36522533c89a710ce3717c559cc39d6923",
+  "features": "default; CPU fixture validation, CUDA execution NOT_RUN",
+  "build_environment": {
+    "CARGO_TARGET_DIR": "owned local/joint-target",
+    "UOR_BUILD_SOURCE_COMMIT": "2f64255db593f375c7a121561c6221e182432051",
+    "jobs": 2
+  },
+  "checks": {
+    "tests": {
+      "command": "cargo test --offline --locked --release --jobs 2 -p uor-r4-training --example geometric-frozen-map-fit coupled_episode_learning::tests",
+      "passed": 16,
+      "failed": 0,
+      "filtered": 111,
+      "wall_seconds": 123.15,
+      "max_rss_bytes": 1778941952,
+      "log_sha256": "1929755f59ff9df7c83e6b5f6ec5bfdbd2398cca4463ff39266100b0d62ccc89"
+    },
+    "build": {
+      "command": "cargo build --offline --locked --release --jobs 2 -p uor-r4-training --example geometric-frozen-map-fit",
+      "wall_seconds": 117.72,
+      "max_rss_bytes": 887275520,
+      "log_sha256": "43fd5096415eaa0b440b0a1ec7f4418b45ec2638a59f1f382ecaf45f3cd461a4"
+    },
+    "format": "rustfmt --check --edition 2021 crates/uor-r4-training/examples/geometric_frozen_map_fit/coupled_episode_learning.rs PASS",
+    "claims": "python3 scripts/check_claim_wording.py PASS",
+    "diff": "git diff --check PASS"
+  },
+  "runtime": {
+    "sha256": "d8f27809e17032b1b4e904d5c74543976b0c83dc176374cae0c70e1082b45fda",
+    "bytes": 10517504
+  },
+  "test_runtime": {
+    "sha256": "970ee888686816f16fc5f19153ed2c7199502a8bc420be09642415d081e0e286",
+    "bytes": 8200304
+  },
+  "scope": "native authored pair/alias fixtures and recovery validation only; no actual-parent backwards, constructor, export, generated response or held-out result",
+  "accepted_result": "8/512 unchanged",
+  "negative_conditional_results": "separate pair 6/15 and coupled 9/15 unchanged"
+}
