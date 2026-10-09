@@ -666,6 +666,14 @@ enum CheckKind {
     /// such as colours, days or small numbers, the class's other members). A
     /// wrong value, a hedge naming both values, or no value fails.
     Exact(Vec<Vec<String>>),
+    /// [`CheckKind::Exact`] without the recall precondition, so a single-turn
+    /// row can carry the same three components: the reply contains one of the
+    /// expected spellings, none of the row's forbidden distractors, and none of
+    /// the distractor's key words. Where `exact` asks "did the model recall the
+    /// value stated in an earlier turn", this asks "does the reply contain the
+    /// required content and not the wrong one" — presence *and* discrimination
+    /// on a row whose request states neither.
+    ReplyExact(Vec<Vec<String>>),
     /// Abstention without a fabricated specific or agreement (panel v3
     /// unknowable rows): see [`abstention_fault`]; additionally none of the
     /// row's forbidden words (the answer class of the question, e.g. colours
@@ -681,6 +689,7 @@ impl CheckKind {
             CheckKind::Abstain => "abstain",
             CheckKind::Question => "question",
             CheckKind::Exact(_) => "exact",
+            CheckKind::ReplyExact(_) => "reply_exact",
             CheckKind::AbstainExact => "abstain_exact",
         }
     }
@@ -928,7 +937,7 @@ impl RowCheck {
             CheckKind::Any(terms) => terms.iter().any(|t| contains_phrase(&reply_words, t)),
             CheckKind::Abstain => abstains(&reply_words),
             CheckKind::Question => reply.contains('?'),
-            CheckKind::Exact(terms) => {
+            CheckKind::Exact(terms) | CheckKind::ReplyExact(terms) => {
                 !forbidden
                     && !self.keys.iter().any(|t| contains_phrase(&reply_words, t))
                     && terms.iter().any(|t| contains_phrase(&reply_words, t))
@@ -996,6 +1005,7 @@ fn parse_checks(text: &str) -> Result<BTreeMap<String, RowCheck>, Error> {
         let kind = match (kind, terms) {
             ("any", terms) => CheckKind::Any(term_list(terms)?),
             ("exact", terms) if terms != "-" => CheckKind::Exact(term_list(terms)?),
+            ("reply_exact", terms) if terms != "-" => CheckKind::ReplyExact(term_list(terms)?),
             ("abstain", "-") => CheckKind::Abstain,
             ("abstain_exact", "-") => CheckKind::AbstainExact,
             ("question", "-") => CheckKind::Question,
@@ -1007,10 +1017,12 @@ fn parse_checks(text: &str) -> Result<BTreeMap<String, RowCheck>, Error> {
         };
         let forbid = match (&kind, forbid) {
             (_, "-") => Vec::new(),
-            (CheckKind::Exact(_) | CheckKind::AbstainExact, forbid) => term_list(forbid)?,
+            (CheckKind::Exact(_) | CheckKind::ReplyExact(_) | CheckKind::AbstainExact, forbid) => {
+                term_list(forbid)?
+            }
             _ => {
                 return Err(format!(
-                    "checks line {}: only exact and abstain_exact take forbidden terms",
+                    "checks line {}: this kind takes no forbidden terms",
                     number + 1
                 )
                 .into())
@@ -1018,16 +1030,16 @@ fn parse_checks(text: &str) -> Result<BTreeMap<String, RowCheck>, Error> {
         };
         let keys = match (&kind, keys) {
             (_, "-") => Vec::new(),
-            (CheckKind::Exact(_), keys) => term_list(keys)?,
+            (CheckKind::Exact(_) | CheckKind::ReplyExact(_), keys) => term_list(keys)?,
             _ => {
                 return Err(format!(
-                    "checks line {}: only exact takes distractor keys",
+                    "checks line {}: only exact and reply_exact take distractor keys",
                     number + 1
                 )
                 .into())
             }
         };
-        if let CheckKind::Exact(terms) = &kind {
+        if let CheckKind::Exact(terms) | CheckKind::ReplyExact(terms) = &kind {
             if let Some(t) = terms.iter().find(|t| keys.contains(t)) {
                 return Err(format!(
                     "checks line {}: '{}' is both expected and a distractor key",
@@ -1221,6 +1233,35 @@ fn validate_checks(checks: &Checks, requests: &[Request]) -> Result<Vec<String>,
                 if let Some(t) = any_in(&check.forbid, &turns) {
                     return Err(format!(
                         "row {}: forbidden word '{t}' is in a user turn",
+                        request.id
+                    )
+                    .into());
+                }
+            }
+            CheckKind::ReplyExact(terms) => {
+                // The whole point of this kind: no recall precondition, so it
+                // validates on a single-turn row. The terms must still be the
+                // model's own work (not answerable by echoing the request), and
+                // neither the forbidden distractors nor their key words may be
+                // words the user wrote — a distractor the user supplied is not
+                // a distractor.
+                if let Some(t) = any_in(terms, last) {
+                    return Err(format!(
+                        "row {}: check term '{t}' is in the last user turn",
+                        request.id
+                    )
+                    .into());
+                }
+                if let Some(t) = any_in(&check.forbid, &turns) {
+                    return Err(format!(
+                        "row {}: reply_exact forbidden word '{t}' is in a user turn",
+                        request.id
+                    )
+                    .into());
+                }
+                if let Some(t) = any_in(&check.keys, &turns) {
+                    return Err(format!(
+                        "row {}: reply_exact distractor key '{t}' is in a user turn",
                         request.id
                     )
                     .into());
@@ -3990,6 +4031,61 @@ mod tests {
         // An unknown category is an error.
         let odd = row("x-01", "mystery", [true, true], [true, true]);
         assert!(tier_summary(&[odd], &ill, &no_checks(), &[]).is_err());
+    }
+
+    #[test]
+    fn reply_exact_is_exact_without_the_recall_requirement() {
+        // The four cases the kind exists for, on a row whose request states
+        // neither the answer nor the distractor: required content present,
+        // required content missing, a forbidden distractor named, and the
+        // distractor's key named.
+        let checks = Checks {
+            rows: parse_checks("r1\treply_exact\tnone\thoney\tvinegar|jam\twasp|jar\n").unwrap(),
+            source: json!("test"),
+        };
+        assert_eq!(checks.of_reply("r1", "Bees make honey."), Some(true));
+        assert_eq!(
+            checks.of_reply("r1", "Honey is what they make."),
+            Some(true)
+        );
+        assert_eq!(checks.of_reply("r1", "A bee says buzz."), Some(false));
+        assert_eq!(
+            checks.of_reply("r1", "They make honey, not vinegar."),
+            Some(false)
+        );
+        assert_eq!(checks.of_reply("r1", "The wasp makes honey."), Some(false));
+        // The same three components as exact, and the same refusals: a
+        // distractor is required, and a term may be neither forbidden nor a key.
+        assert!(parse_checks("r\treply_exact\tnone\thoney\n").is_err());
+        assert!(parse_checks("r\treply_exact\tnone\thoney\t-\n").is_err());
+        assert!(parse_checks("r\treply_exact\tnone\thoney\thoney|jam\n").is_err());
+        assert!(parse_checks("r\treply_exact\tnone\thoney\tvinegar\thoney\n").is_err());
+        assert!(parse_checks("r\treply_exact\tnone\t-\tvinegar\n").is_err());
+        // Only exact and reply_exact take keys; and a multi-turn row still
+        // cannot use reply_exact with a history that needs a term earlier.
+        assert!(parse_checks("r\tany\tnone\thoney\tvinegar\n").is_err());
+        assert!(parse_checks("r\tabstain_exact\tnone\t-\t-\twasp\n").is_err());
+
+        // THE POINT OF THE KIND: it validates on a single-turn row, which
+        // `exact` cannot, because exact requires a recall row with a distractor
+        // stated in an earlier turn.
+        let single = |id: &str, turn: &str| Request {
+            id: id.into(),
+            category: "simple_question".into(),
+            user_turns: vec![turn.to_owned()],
+        };
+        let row = single("r1", "What do bees make?");
+        assert!(validate_checks(&checks, &[row.clone()]).is_ok());
+        let exact = Checks {
+            rows: parse_checks("r1\texact\tnone\thoney\tvinegar\n").unwrap(),
+            source: json!("test"),
+        };
+        assert!(validate_checks(&exact, &[row]).is_err());
+        // The terms must be the model's own work, and a distractor or key the
+        // user wrote is not a distractor.
+        assert!(validate_checks(&checks, &[single("r1", "Is it honey?")]).is_err());
+        assert!(validate_checks(&checks, &[single("r1", "Vinegar?")]).is_err());
+        assert!(validate_checks(&checks, &[single("r1", "A wasp?")]).is_err());
     }
 
     #[test]

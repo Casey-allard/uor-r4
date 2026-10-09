@@ -71,6 +71,36 @@ CONTENT_ANCHORS = {
 # Measured from the sealed reports (Result 7): these are the observed high-frequency replies,
 # most of them rejected everywhere but the leading one accepted 8 of 9 times at 29M and 11 of 19
 # at 100M. This list is the control arm's input; it must pass ZERO checks.
+# FORBIDDEN DISTRACTORS and their keys, only where a wrong-but-plausible alternative genuinely
+# exists: a value a confused or hedging reply would actually contain, that is not the required
+# content, is not in the request, and is not itself a correct answer. Rows without an entry keep
+# the anchored `any` check, because a distractor no plausible reply would contain is noise.
+# Rows considered and REJECTED for this column: `ask-07` ("Why is the sun hot?", whose
+# misconception is "a ball of fire") because negating the misconception is a normal correct
+# phrasing ("it is not a ball of fire, it is nuclear fusion"), so the check would fail correct
+# replies; `ask-02` because bees really do make wax and royal jelly, so the near alternatives are
+# correct answers; `ask-01`, `ask-03`, `ask-05`, `ask-08`, `heldout-064`, `-081`, `-132`, `-145`,
+# `-153`, `-155`, `-172`, `-186`, `-188`, `-194` because their wrong answers are not a specific
+# wrong word — they are missing or vague content, which the anchored `any` check already catches.
+CONTENT_DISTRACTORS = {
+    # A farm-animal question answered with wild animals.
+    "ask-06": {"forbid": ["lion", "tiger", "elephant", "penguin", "shark", "dolphin"],
+               "keys": [], "why": "a wild animal named as a farm animal is a genuine error"},
+    # A min-heap request answered with the opposite polarity.
+    "heldout-022": {"forbid": ["max heap", "maxheap"], "keys": [],
+                    "why": "the request asks for a Min heap; the max-heap is the wrong polarity"},
+    # A computed count, with the classic half-count error.
+    "heldout-043": {"forbid": ["48"], "keys": [],
+                    "why": "27720 has 96 divisors; 48 is the half-count error a wrong reply makes"},
+    # A sum over the wrong set: 17 forgets 11, 55 sums 1..10 instead of the primes.
+    "heldout-103": {"forbid": ["17", "55"], "keys": [],
+                    "why": "the primes 1-12 total 28; 17 and 55 are the plausible wrong totals"},
+    # A C request answered in another language.
+    "heldout-126": {"forbid": ["cout", "System.out", "console.log", "print"],
+                    "keys": ["java", "javascript", "python", "cpp"],
+                    "why": "cout, System.out and console.log are C++, Java and JavaScript, not C"},
+}
+
 CANNED = [
     "Hello! How can I help you today?",
     "I'm good, thanks for asking.",
@@ -156,14 +186,66 @@ def main():
         if not kept:
             problems.append(f"{row_id}: no anchor survived; row left unchecked")
             continue
-        checks.append((row_id, "any", "none", "|".join(kept), "-", "-"))
-        provenance.append({
-            "id": row_id, "kind": "any", "anchor": "|".join(kept),
-            "source": "authored from the request in scripts/reply_panel_checks_build.py "
-                      "CONTENT_ANCHORS",
-            "why": "content the answer must contain; not present in the request and not present "
-                   "in any canned reply, so no single canned string can pass this row",
-        })
+
+        # Distractors, where a real wrong alternative exists. A forbidden term or key
+        # must not appear in ANY user turn (a distractor the user wrote is not a
+        # distractor), must not appear in a canned reply (or the control would fail),
+        # and must not overlap the expected terms.
+        authored = CONTENT_DISTRACTORS.get(row_id)
+        forbid, keys = [], []
+        if authored:
+            for term in authored["forbid"]:
+                phrase = words(term)
+                turns = [words(turn) for turn in row["user_turns"]]
+                if not phrase:
+                    problems.append(f"{row_id}: distractor {term!r} is empty under words()")
+                    continue
+                if any(contains_phrase(turn, phrase) for turn in turns):
+                    problems.append(f"{row_id}: distractor {term!r} is in a user turn; dropped")
+                    continue
+                if any(contains_phrase(text_words, phrase) for text_words in canned_words):
+                    problems.append(f"{row_id}: distractor {term!r} is in a canned reply; dropped")
+                    continue
+                if any(contains_phrase(phrase, words(a)) or contains_phrase(words(a), phrase)
+                       for a in kept):
+                    problems.append(f"{row_id}: distractor {term!r} overlaps an expected term; "
+                                    "dropped")
+                    continue
+                forbid.append(term)
+            for term in authored["keys"]:
+                phrase = words(term)
+                turns = [words(turn) for turn in row["user_turns"]]
+                if not phrase or any(contains_phrase(turn, phrase) for turn in turns):
+                    problems.append(f"{row_id}: key {term!r} empty or in a user turn; dropped")
+                    continue
+                if any(contains_phrase(text_words, phrase) for text_words in canned_words):
+                    problems.append(f"{row_id}: key {term!r} is in a canned reply; dropped")
+                    continue
+                keys.append(term)
+
+        if forbid:
+            checks.append((row_id, "reply_exact", "none", "|".join(kept), "|".join(forbid),
+                           "|".join(keys) if keys else "-"))
+            provenance.append({
+                "id": row_id, "kind": "reply_exact", "anchor": "|".join(kept),
+                "source": f"terms from CONTENT_ANCHORS; distractors from CONTENT_DISTRACTORS "
+                          f"({authored['why']})",
+                "why": f"required content, and the reply must contain none of the forbidden "
+                       f"distractors ({'|'.join(forbid)})"
+                       + (f" nor any of their keys ({'|'.join(keys)})" if keys else "")
+                       + "; presence AND discrimination on a single-turn row, which "
+                         "`exact` cannot express because it requires a multi-turn recall row",
+            })
+        else:
+            checks.append((row_id, "any", "none", "|".join(kept), "-", "-"))
+            provenance.append({
+                "id": row_id, "kind": "any", "anchor": "|".join(kept),
+                "source": "authored from the request in scripts/reply_panel_checks_build.py "
+                          "CONTENT_ANCHORS",
+                "why": "content the answer must contain; not present in the request and not present "
+                       "in any canned reply, so no single canned string can pass this row. No "
+                       "distractor authored: no wrong-but-plausible alternative exists for this row",
+            })
 
     with open(args.out_checks, "w") as handle:
         handle.write("# id\tkind\thistory\tterms\tforbid\tkeys -- deterministic row checks for "

@@ -3,7 +3,7 @@ ask-01	any	none	chlorophyll|pigment|sunlight|carotenoid	-	-
 ask-02	any	none	honey	-	-
 ask-03	any	none	hydrat|water helps|fluid|energy|temperature	-	-
 ask-05	any	none	caffeine|relax|breathing|routine|schedule|screen	-	-
-ask-06	any	none	cow|chicken|pig|horse|sheep|goat|duck|animal	-	-
+ask-06	reply_exact	none	cow|chicken|pig|horse|sheep|goat|duck|animal	lion|tiger|elephant|penguin|shark|dolphin	-
 ask-07	any	none	fusion|nuclear|hydrogen|energy|pressure|gravity	-	-
 ask-08	any	none	breathe|breathing|relax|exercise|talk|slow	-	-
 heldout-001	abstain_exact	none	-	-	-
@@ -17,13 +17,13 @@ heldout-014	abstain_exact	none	-	-	-
 heldout-015	abstain_exact	none	-	-	-
 heldout-016	abstain_exact	none	-	-	-
 heldout-019	abstain_exact	none	-	-	-
-heldout-022	any	none	heapq|heapify|heappush|heappop|push	-	-
+heldout-022	reply_exact	none	heapq|heapify|heappush|heappop|push	max heap|maxheap	-
 heldout-030	abstain_exact	none	-	-	-
 heldout-035	abstain_exact	none	-	-	-
 heldout-037	abstain_exact	none	-	-	-
 heldout-038	abstain_exact	none	-	-	-
 heldout-039	abstain_exact	none	-	-	-
-heldout-043	any	none	96	-	-
+heldout-043	reply_exact	none	96	48	-
 heldout-046	abstain_exact	none	-	-	-
 heldout-049	abstain_exact	none	-	-	-
 heldout-051	abstain_exact	none	-	-	-
@@ -48,7 +48,7 @@ heldout-086	abstain_exact	none	-	-	-
 heldout-091	abstain_exact	none	-	-	-
 heldout-095	abstain_exact	none	-	-	-
 heldout-102	abstain_exact	none	-	-	-
-heldout-103	any	none	28	-	-
+heldout-103	reply_exact	none	28	17|55	-
 heldout-105	abstain_exact	none	-	-	-
 heldout-107	abstain_exact	none	-	-	-
 heldout-110	abstain_exact	none	-	-	-
@@ -56,7 +56,7 @@ heldout-114	abstain_exact	none	-	-	-
 heldout-117	abstain_exact	none	-	-	-
 heldout-118	abstain_exact	none	-	-	-
 heldout-124	abstain_exact	none	-	-	-
-heldout-126	any	none	printf|stdio|include|main(	-	-
+heldout-126	reply_exact	none	printf|stdio|include|main(	cout|System.out|console.log|print	java|javascript|python|cpp
 heldout-128	abstain_exact	none	-	-	-
 heldout-131	abstain_exact	none	-	-	-
 heldout-132	any	none	curdl|strain|acid|separate	-	-

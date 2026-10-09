@@ -191,7 +191,7 @@ aside. These files add the deterministic component over the rows where a judge-f
 
 | file | contents |
 |---|---|
-| `reply-panel-checks.tsv` | eighty-eight row checks: kind `any` on 21 content rows (row-specific required content), kind `abstain_exact` on 67 rows from the recorded ill-posed id list |
+| `reply-panel-checks.tsv` | eighty-eight row checks: kind `any` on 16 content rows (row-specific required content), kind `reply_exact` on 5 of them (required content **and** forbidden distractors, on a single-turn row), and kind `abstain_exact` on 67 rows from the recorded ill-posed id list |
 | `reply-panel-checks-provenance.tsv` | one provenance row per check: the anchor, its source, and why it is not answerable from the request |
 | `reply-panel-canned.txt` | 13 observed memorised replies, the input to the canned-reply control (`chat-grade check constants=`) |
 
@@ -202,6 +202,11 @@ including the greeting that carries 18.6 % of accepted rows at 29M and 23.9 % at
 the frozen target are in
 [docs/labs/reply-panel-deterministic-checks-2026-10-09](../../docs/labs/reply-panel-deterministic-checks-2026-10-09/README.md).
 The panel's requests are unchanged; these files add checks over them.
+
+
+`reply_exact` is `exact`'s matching rule without the recall precondition, added at #2029 so a
+single-turn row can carry all three components. It changes no existing kind's behaviour, and the
+canned-reply control still reports zero passes over the eighty-eight checks.
 
 ## Tiered eval v2: panel `conversational-v3*` and the missing-material K split
 

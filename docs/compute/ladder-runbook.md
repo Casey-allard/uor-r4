@@ -344,7 +344,9 @@ rows** have a judge-free criterion — 21 content rows (`any`, required content)
 `constants=data/panels/reply-panel-canned.txt`: `chat-grade check` then reports, per category, how many
 rows each memorised reply passes, and the answer must be zero (it is: 0 of 88 for all 13, including the
 greeting that carries 18.6 % of accepted rows). `check_panel` passes with a worst-case context position
-of 168 of 384. Details: [reply-panel-deterministic-checks-2026-10-09](../labs/reply-panel-deterministic-checks-2026-10-09/README.md).
+of 168 of 384. Five of the content rows use the additive `reply_exact` kind (required content **and**
+forbidden distractors and keys, with `history=none`), which `exact` cannot express on a single-turn
+row: run `cargo test -p uor-r4-training --bin chat-grade reply_exact` after touching it. Details: [reply-panel-deterministic-checks-2026-10-09](../labs/reply-panel-deterministic-checks-2026-10-09/README.md).
 
 ### 6.3 Grader questions, controls, and McNemar test
 

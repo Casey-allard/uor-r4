@@ -51,7 +51,20 @@ def main():
     parser.add_argument("--out")
     args = parser.parse_args()
 
-    checks = port.parse_checks(open(args.checks, encoding="utf-8").read())
+    # `check_panel_v5_conformance.py`'s port predates the `reply_exact` kind, so its matcher is
+    # reached through the `exact` arm, whose `passes` rule is identical (a term is required, forbid
+    # and keys are excluded). Only the parser token is aliased: `validate_checks` is not run here,
+    # and the authoritative structural validation is `chat-grade check` against the real
+    # implementation, run separately and reported alongside this reading.
+    aliased = []
+    for line in open(args.checks, encoding="utf-8"):
+        if not line.startswith("#"):
+            parts = line.rstrip("\n").split("\t")
+            if len(parts) > 1 and parts[1] == "reply_exact":
+                parts[1] = "exact"
+                line = "\t".join(parts) + "\n"
+        aliased.append(line)
+    checks = port.parse_checks("".join(aliased))
     report = json.load(open(args.report))
     canned = [line.rstrip("\n") for line in open(args.canned, encoding="utf-8")
               if line.strip() and not line.startswith("#")]

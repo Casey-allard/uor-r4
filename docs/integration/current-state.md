@@ -1,3 +1,57 @@
+## 2026-10-09 — `reply_exact`: discrimination becomes expressible on a single-turn row, and it changes no verdict (deepseek, #2029)
+
+Follow-up to the deterministic sub-reading, and the piece its `Next:` named. Record:
+[reply-panel-deterministic-checks-2026-10-09](../labs/reply-panel-deterministic-checks-2026-10-09/README.md).
+**CPU only, no pod, $0** — one incremental Rust build.
+
+**The gap, closed.** `forbid` and `keys` parsed only for `exact` (which `validate_checks` requires to
+be a multi-turn recall row) and for `abstain_exact`, so the three-component shape — required content,
+forbidden distractors, distractor keys — could not be written for the panel's 224 single-turn rows.
+With anchors alone a reply passes by containing the right content word; nothing checked whether it
+**also** contains the wrong one. **`CheckKind::ReplyExact`** is now `exact`'s matching rule without
+the recall precondition, permitted with `history=none`: eight sites in
+`crates/uor-r4-training/src/bin/chat-grade.rs`, no existing kind's behaviour changed. Focused test
+`reply_exact_is_exact_without_the_recall_requirement` covers all four required cases plus
+single-turn validation (where the same row as `exact` is refused) and the parse refusals; **17 passed,
+0 failed** in the bin, and my file is `cargo fmt --check` clean.
+
+**Distractors: five rows, not eighty-eight.** Authored only where a wrong-but-plausible alternative
+genuinely exists: `ask-06` (wild animal as a farm animal), `heldout-022` (max heap for a Min heap),
+`heldout-043` (`48` as the half-count error for 96), `heldout-103` (`17`, `55` for the total 28),
+`heldout-126` (a C request answered with `cout`/`System.out`/`console.log`, keys `java|javascript|
+python|cpp`). **Two candidate rows were rejected and the rejection is the interesting part**:
+`ask-07` because negating the misconception ("it is not a ball of fire") is normal correct phrasing,
+so the check would fail correct replies; `ask-02` because bees really do make wax and royal jelly, so
+the near alternatives are correct answers. The other 14 content rows have no specific wrong word —
+their wrong answers are missing content, which the anchored check already catches.
+
+**Re-sealed and re-validated:** checks sha256 **`d24ae404be11d25b…`**, kinds `any` 16 /
+`reply_exact` 5 / `abstain_exact` 67, still **88 checked rows (37.9 %)**, `check_panel` **pass**,
+worst-case context position **168** of 384, `checks_without_loaded_request: []`,
+`shasum -a 256 -c MANIFEST.sha256` from `data/panels/` → **29 files, 29 OK**, both novelty checkers
+**pass**. **The canned-reply control still reports ZERO** of 13 memorised strings passing any check,
+run by the grader's own `RowCheck::passes` through `chat-grade check constants=`; the new component
+did not become a path for a canned reply, and the 67 ill-posed rows keep `abstain_exact` so the
+measured safety property is untouched.
+
+**THE HONEST RESULT: no verdict changed.** First reading with discrimination: **2 of 88**, exactly as
+before — 1 of 16 `any` rows, 1 of 5 `reply_exact` rows, 0 of 67 ill-posed. `ask-06` passes (names a
+horse, no wild animal); `heldout-043` still never states 96, `heldout-103` still answers
+"1, 2, 3, 4, 5, 6, 7, 8, 9, 10." for the primes, `heldout-126` still does not write the program. So
+**on this artifact the model's wrong answers are wrong by omission, not by naming a competing
+value** — which is Result 6's "short wrong answers" confirmed from a new direction. The component is
+worth having (a reply saying "honey, not vinegar" now fails a check that passed it) but it explains
+none of the failures, and must not be reported as if it did.
+
+**Criterion 1 remains NOT MET and 43/232 is unchanged.** This makes the instrument express
+discrimination rather than only presence; it does not move the criterion. STATUS/ROADMAP/#2028
+unchanged — checked, not assumed.
+
+**Next:** build the additive **clarify** kind for the 67 ill-posed rows ("asks for the missing
+material AND is not a canned reply"), which `reply_exact` now supplies most of the machinery for;
+then restate criterion 1's reply half as a deterministic sub-reading over the checked rows, reported
+per kind and per category with the failures named, and do not gate the open-ended 62.1 % on a judge.
+
 ## Quarter rounding dominates saved protection-screen error — October 9
 
 The [saved quantized-protection attribution](../labs/quantized-protection-attribution-2026-10-09/README.md) authenticates all1,676 source files and exactly reconstructs7,680 destination bits for #2101's four measured vectors; it runs no model or new candidate. Quarter rounding accounts for90.41–96.33% of the adverse conversion-stage sums on each vector's violated guard set, while the top10 coordinates account for14.37–41.41% of adverse coordinate pressure; both statistics retain opposing contributions and are not fractions of net native failure. Most violated rows retain positive *linearized* original margins (101/104,164/170,94/98,90/93), which establishes neither native retention nor permission to weaken guards. **KEEP** this diagnostic, with protection-aware discrete learning **NOT YET PROMOTED**, zero new native proposals and accepted8/512 unchanged.

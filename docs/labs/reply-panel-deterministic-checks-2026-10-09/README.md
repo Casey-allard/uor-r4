@@ -219,13 +219,113 @@ remainder. The reasons, in order:
 because that closes the two gaps this piece could not: a per-row forbidden-distractor component, and
 a canned-reply-proof clarify criterion for the 67 ill-posed rows.
 
+## The `reply_exact` grammar addition: discrimination is now expressible on a single-turn row
+
+The first piece of this record could require expected content but **could not forbid a distractor**,
+because `forbid` and `keys` parse only for `exact` (which `validate_checks` requires to be a
+multi-turn recall row) and for `abstain_exact`. 224 of the panel's 232 rows are single-turn, so the
+three-component shape — required content, forbidden distractors, distractor keys — could not be
+written for them. With anchors alone a reply passes by containing the right content word; it says
+nothing about whether it **also** contains the wrong one.
+
+**What was added, and nothing broader:** `CheckKind::ReplyExact` — `exact`'s matching rule without
+the recall precondition, permitted with `history=none`. Eight sites in
+`crates/uor-r4-training/src/bin/chat-grade.rs`: the enum arm, `name()`, `passes()` (sharing the exact
+arm), the parser (with the same `terms != "-"` guard), `forbid` and `keys` acceptance, the
+expected/forbidden/key overlap refusals, and a `validate_checks` arm that requires the terms to be
+absent from the last user turn and the distractors and keys to be absent from **every** user turn —
+a distractor the user wrote is not a distractor. No existing kind's behaviour changed.
+
+**Focused tests, exercising the changed path** (`cargo test -p uor-r4-training --bin chat-grade`,
+**17 passed, 0 failed**), new test `reply_exact_is_exact_without_the_recall_requirement`:
+
+| case | result |
+|---|---|
+| accepts a reply containing the required content | pass |
+| rejects a reply missing the required content | pass |
+| rejects a reply containing a forbidden distractor ("They make honey, not vinegar") | pass |
+| rejects a reply naming the distractor's key ("The wasp makes honey") | pass |
+| **validates on a single-turn row, where the same row as `exact` is refused** | pass |
+| refuses a term in the request, a distractor in the request, a key in the request | pass |
+| refuses a missing distractor, a term that is also forbidden, a term that is also a key | pass |
+
+### Distractors: five rows, not eighty-eight
+
+A distractor no plausible reply would contain is noise, so the column was authored only where a
+wrong-but-plausible alternative genuinely exists — a value a confused or hedging reply would
+actually contain, that is not the required content, is not in the request, and is not itself a
+correct answer. **Five of the 21 content rows got one; the other 16 did not.**
+
+| row | required content | forbidden distractor | why it is plausible |
+|---|---|---|---|
+| `ask-06` | a farm animal | `lion|tiger|elephant|penguin|shark|dolphin` | a wild animal named as a farm animal is a real error |
+| `heldout-022` | `heapq|heapify|heappush|heappop|push` | `max heap|maxheap` | the request asks for a **Min** heap; max-heap is the wrong polarity |
+| `heldout-043` | `96` | `48` | 27720 has 96 divisors; 48 is the half-count error |
+| `heldout-103` | `28` | `17|55` | the primes 1-12 total 28; 17 forgets 11 and 55 sums 1..10 |
+| `heldout-126` | `printf|stdio|include|main(` | `cout|System.out|console.log|print` (keys `java|javascript|python|cpp`) | a C request answered in C++, Java or JavaScript |
+
+**Two candidate rows were rejected, and the rejection is the interesting part.** `ask-07` ("Why is
+the sun hot?", whose misconception is "a ball of fire") was dropped because **negating** the
+misconception is a normal correct phrasing — "it is not a ball of fire, it is nuclear fusion" —
+so a distractor check would fail correct replies. `ask-02` ("What do bees make?") was dropped
+because bees really do make wax and royal jelly, so the near alternatives are correct answers. The
+remaining 14 content rows have no specific wrong word: their wrong answers are **missing or vague
+content**, which the anchored `any` check already catches.
+
+### Re-seal and re-validation at the changed head
+
+| | before this piece | after |
+|---|---|---|
+| checks file sha256 | `ad4e9a14…` | **`d24ae404be11d25b…`** |
+| kinds | `any` 21, `abstain_exact` 67 | **`any` 16, `reply_exact` 5, `abstain_exact` 67** |
+| checked rows | 88 | **88** (37.9 % of the panel, unchanged) |
+| `check_panel` | pass | **pass** |
+| worst-case context position | 168 of 384 | **168** (`follow-02`) |
+| `checks_without_loaded_request` | `[]` | **`[]`** |
+| `shasum -a 256 -c MANIFEST.sha256` from `data/panels/` | 29 OK | **29 files, 29 OK** |
+| v4 and v5 novelty checkers | pass, pass | **pass, pass** |
+| **canned-reply control (13 strings)** | 0 passes | **0 passes** |
+| `abstain_exact` on the 67 ill-posed rows | — | **unchanged** |
+
+**The canned control still reports zero, run by the grader's own `RowCheck::passes` through
+`chat-grade check constants=`.** The new component did not become a path by which a canned reply
+passes: `reply_exact` requires required content *and* excludes the distractors, and the memorised
+strings contain neither. The safety property measured in the first piece — that a `question`-kind
+clarify check would be passed by the canned greeting on all 67 ill-posed rows — is untouched, because
+those rows keep `abstain_exact`.
+
+### First reading with discrimination, and the honest result: no verdict changed
+
+| population | checked | `check_pass` |
+|---|---:|---:|
+| content rows, `any` | 16 | 1 |
+| content rows, `reply_exact` | 5 | 1 |
+| ill-posed rows, `abstain_exact` | 67 | 0 |
+| **total** | **88** | **2** |
+
+**The total is 2 of 88, exactly as before the addition, and no row changed verdict.** The one
+`reply_exact` row that passes is `ask-06`, which names a horse and no wild animal; `heldout-043`
+still never states 96, `heldout-103` still answers "1, 2, 3, 4, 5, 6, 7, 8, 9, 10." for the primes,
+and `heldout-126` still does not write the program.
+
+That is a finding, and it is the one to take from this piece: **on this artifact the model's wrong
+answers are wrong by *omission*, not by naming a competing value.** The 64 short wrong answers of
+Result 6 fail because the required content is absent, not because a wrong value is present — so a
+discrimination component adds expressiveness without moving a single verdict here. It is worth
+having for the instrument (a reply that says "honey, not vinegar" now fails a check that would have
+passed it), but it does not by itself explain the failures, and it must not be reported as if it did.
+
+**Criterion 1 remains NOT MET and 43/232 is unchanged.** This makes the instrument express
+discrimination rather than only presence. It does not move the criterion.
+
 ## Next
 
-Build the additive `reply_exact` check kind in `chat-grade` (`exact`'s rule without the
-recall/multi-turn requirement, permitted with `history=none`), so single-turn rows can carry
-expected content, forbidden distractors and distractor keys; use it to give the 67 ill-posed rows a
-canned-reply-proof clarify criterion and to add `forbid`/`keys` to the 21 content rows; then restate
-criterion 1's reply half as a deterministic sub-reading over the 88 (or more) checked rows, reported
-per kind and per category with the failures named. **Do not gate the open-ended 62.1 % on a judge.**
-Criterion 1 remains **NOT MET** and 43/232 is unchanged: this is a new instrument, not a met
-milestone.
+Build the additive **clarify** kind for the 67 ill-posed rows — "the reply asks for the missing
+material AND is not a canned reply", which the first piece measured as unsafe with the existing
+grammar because a `question`-kind check is passed by the canned greeting on all 67 rows. `reply_exact`
+now supplies the machinery it needs (required terms, forbidden distractors, keys, no recall
+precondition); what it still cannot say is "asks a question", so the clarify kind needs a required
+question form plus the same `forbid`/`keys` exclusions. Then restate criterion 1's reply half as a
+deterministic sub-reading over the checked rows, reported per kind and per category with the failures
+named, and **do not gate the open-ended 62.1 % on a judge.** Criterion 1 remains **NOT MET** and
+43/232 is unchanged: this is a new instrument, not a met milestone.
