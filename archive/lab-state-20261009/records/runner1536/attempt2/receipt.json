@@ -1,0 +1,49 @@
+{
+  "schema": "uor-r4.manual-repair-checks/1",
+  "source_sha": "8e90aa33b8ef941d3ac5de57ad448859e20ad76b",
+  "packet_sha256": "c552311cebdcf8d73aef141bb4121e7608d0cc48690683f62eba66de7dcf04f9",
+  "started_under_explicit_council_exception": true,
+  "production_hold_unchanged": true,
+  "elapsed_seconds": 21.798974375000398,
+  "sampled_peak_aggregate_rss_bytes": 823984128,
+  "cache_growth_bytes": 160751616,
+  "free_bytes_after": 45676281856,
+  "commands": [
+    {
+      "argv": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "test",
+        "-p",
+        "lab-runner",
+        "--offline",
+        "--",
+        "--test-threads=2"
+      ],
+      "log": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/runner1536-checks-attempt2/command-0.log",
+      "process_state": "confirmed_stopped",
+      "exit_code": 0,
+      "elapsed_seconds": 20.225304958999914,
+      "log_sha256": "8593735a01e6dd460373be47a4315476796706089b37fa356eab2b48936de43f",
+      "stop_reason": null
+    },
+    {
+      "argv": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "build",
+        "-p",
+        "lab-runner",
+        "--offline"
+      ],
+      "log": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/runner1536-checks-attempt2/command-1.log",
+      "process_state": "confirmed_stopped",
+      "exit_code": 0,
+      "elapsed_seconds": 0.8979340829973808,
+      "log_sha256": "f0788aa36d1c86b6ccdfb7f4042a5574102d82061c046422a2d42e008a1e4710",
+      "stop_reason": null
+    }
+  ],
+  "failure": null,
+  "process_state": "confirmed_stopped",
+  "created_utc": "2026-09-30T06:44:05.303941+00:00",
+  "limitations": "RSS and cache growth are sampled. Scope assumes the inspected tests do not create new sessions. UNKNOWN never releases the production hold or reservation. No production job reconciliation or resource-ledger debit is performed here; the coordinator records this receipt exactly once."
+}

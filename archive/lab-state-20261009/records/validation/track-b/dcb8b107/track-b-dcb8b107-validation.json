@@ -1,0 +1,85 @@
+{
+  "schema": "uor-r4.track-b-focused-validation/1",
+  "source": "dcb8b107f499395c65b86404d67e9e83916054fd",
+  "compiler": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+  "cache": "/Users/casey.allard/.cache/uor-r4-track-b-direct/target",
+  "source_changes_during_tests": false,
+  "results": [
+    {
+      "filter": "track_b::",
+      "backend": "cpu",
+      "passed": 17,
+      "failed": 0,
+      "test_seconds": 0.11,
+      "cargo_total_seconds": 0.49,
+      "max_rss_bytes": 80969728
+    },
+    {
+      "example": "track-b-parity",
+      "passed": 3,
+      "failed": 0,
+      "test_seconds": 0.01,
+      "cargo_total_seconds": 14.36,
+      "max_rss_bytes": 1049427968
+    }
+  ],
+  "preceding_conversion_smoke": "3 passed; cached build completed in Cargo-reported 3m53s after owner removed conservative disk cutoff. Included again in 17-test result.",
+  "limits": "Tiny synthetic model/gradient/causality/harmonic/generation tests and parity-gate logic only. Full checkpoint CPU/Metal all-logit1e-4 parity NOT_RUN. B2 drafts unregistered and NOT_RUN.",
+  "previous_attempts": [
+    {
+      "source": "dcb8b107f499395c65b86404d67e9e83916054fd",
+      "exit_code": null,
+      "elapsed_ms": 601198,
+      "sampled_peak_tree_rss_kib_after_monitor_recovery": 1717264,
+      "stop_reason": "wall_limit",
+      "model_parity": "NOT_RUN",
+      "monitor_recovery": "same process; original parent lost due to du race; actual exit unknown"
+    },
+    {
+      "source": "dcb8b107f499395c65b86404d67e9e83916054fd",
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "test",
+        "--offline",
+        "--locked",
+        "-p",
+        "uor-r4-training",
+        "--lib",
+        "track_b::conversion::tests",
+        "--",
+        "--test-threads=1"
+      ],
+      "exit_code": -15,
+      "elapsed_ms": 56042,
+      "sampled_peak_tree_rss_kib": 2134480,
+      "stop_reason": "rss_limit",
+      "model_parity": "NOT_RUN"
+    },
+    {
+      "source": "dcb8b107f499395c65b86404d67e9e83916054fd",
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "test",
+        "--offline",
+        "--locked",
+        "-p",
+        "uor-r4-training",
+        "--lib",
+        "track_b::conversion::tests",
+        "--",
+        "--test-threads=1"
+      ],
+      "exit_code": -15,
+      "elapsed_ms": 402217,
+      "sampled_peak_tree_rss_kib": 1777504,
+      "stop_reason": "disk_floor",
+      "model_parity": "NOT_RUN"
+    }
+  ],
+  "hashes": {
+    "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/track-b-dcb8b107-focused-tests.log": "18054f402b160adbe86d899fb0a320bfae218e89d18e376e824154c3ca7e99cd",
+    "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/track-b-dcb8b107-parity-gate-tests.log": "1f3c4640d9c48ac6a3c47a06f12e5219bf5ebbf460acceea8aeba2c301700d27",
+    "/Users/casey.allard/.cache/uor-r4-track-b-direct/target/debug/deps/uor_r4_training-ed234615a2663fed": "b0c83b405e6f2c3e6e66970ca57b247b7a669778b465de3582f698da45272071",
+    "/Users/casey.allard/.cache/uor-r4-track-b-direct/target/debug/examples/track_b_parity-2dd90aa0b0f47dfc": "f2afd2a3088932f1f8e11be0f2e3adbf9ae8434dbde61d8880d439438e89f86b"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "schema": "uor-r4.resource-charge/1",
+  "event_id": "recovery-integration-20260930-pilot-observation-0832",
+  "recorded_utc": "2026-09-30T08:34:03.696601+00:00",
+  "lab": "Codex durable lab implementation",
+  "adjustment_ms": 180000,
+  "accounting": {
+    "category": "preparation",
+    "measurement": "estimated",
+    "correction_of": null
+  },
+  "authority": "Owner continuity and runner source-steward authority.",
+  "rationale": "Estimated three minutes active continuity receipt, ledger and process reconciliation and publication; excludes idle heartbeat interval and Kimi pilot execution already charged separately. No Cargo/model/GPU/deletion."
+}

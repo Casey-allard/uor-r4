@@ -1,0 +1,42 @@
+{
+  "schema": "uor-r4.lab-handoff/1",
+  "observed_utc": "2026-09-30T03:43:44.592234+00:00",
+  "lab": "Codex",
+  "session": "codex-durable-20260929-root",
+  "availability": "between turns; no task lease retained",
+  "policy_sha": "ba266ad44f21c9df2dafa9d56a1e2051c1565d91",
+  "branch": "codex/lab-integration-goals-20260930",
+  "checkpoint_sha": "c1063bf921057e498c7429c0a4302afc7aae0368",
+  "verified_merge_sha": "ba266ad44f21c9df2dafa9d56a1e2051c1565d91",
+  "worktree": "/Users/casey.allard/uor-r4/.worktrees/durable-lab-system-20260929",
+  "source_status": "clean and pushed; merged tree equals reviewed head",
+  "live_attempts": [],
+  "finalized_attempts": [
+    "continuity-pilot-20260930-a",
+    "continuity-pilot-20260930-b",
+    "continuity-pilot-20260930-c"
+  ],
+  "closed_completed_issues": [
+    1523,
+    1524
+  ],
+  "open_operational_issues": [
+    1520,
+    1525
+  ],
+  "open_draft_prs": [
+    1518,
+    1519,
+    1526,
+    1527,
+    1528
+  ],
+  "superseded_pr": 1530,
+  "host_admission": "Normal policy enabled, 40/60/120 GiB floors; last pressure2 blocks new heavy admission until fresh checks show normal1. No threshold waiver.",
+  "accounting": "closeout/resource-ledger-final.json supersedes earlier concurrent pilot ledger snapshot; estimated preparation/review/storage/build/delivery, measured unique attempts.",
+  "external_clients": "Full goals posted on1511/1512/1513; manual startup not claimed. Adapter verification and required GitHub administrator gate remain open.",
+  "next_action": "Refresh peer acknowledgments and existing corrective heads; supply exact-head independent reviews. Resume existing Codex1518 parity/shared-selector dependency with current task claim and resource-admitted bounded card when memory is normal. Do not redo completed recovery, cleanup or policy repair. Keep1530 retained and carry its evidence corrections into1505/1519 successors.",
+  "cleanup": "One-batch wait waiver used; approximately69.7 GB internal free;14 verified merged checkouts removed,3 incremental cache roots and validated old browser/client caches. All future cleanup returns to2hnotice+freshcheck; preserve source/models/conversations.",
+  "continuing_goal": "Read docs/labs/prompts/codex.md and integration-queue.md on main. Active Codex goal and15min heartbeat continue useful integration-first work; quiet unchanged.",
+  "verification": "Independent child-acceptance-1523-1524.md; exact-head reviews and checks bound in PR1521/1529 receipts; pilotC receipt. All receipts on codex/lab-state."
+}

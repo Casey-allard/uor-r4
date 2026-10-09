@@ -1,0 +1,60 @@
+{
+  "at": "2026-09-30T06:12:27.603907+00:00",
+  "role": "Codex contributing lab under Kimi leadership",
+  "delivered": {
+    "1531": "ea03435808c67791b76ae0e9868978e3188cba04; reviewed file equality verified"
+  },
+  "open_prs": [
+    {
+      "headRefOid": "8e90aa33b8ef941d3ac5de57ad448859e20ad76b",
+      "isDraft": true,
+      "number": 1537,
+      "title": "fix(runner): preserve uncertain executions and use stable boot identity"
+    },
+    {
+      "headRefOid": "8535388a9a48d221d26d7ec98885dd1ada0cc15e",
+      "isDraft": false,
+      "number": 1534,
+      "title": "fix(training): restore saved codec on export, reject bare shape names, and ensure provenance parity in D4 reload tests"
+    },
+    {
+      "headRefOid": "4a3911be5de1cef94c1e0385b6b611bad6f16db1",
+      "isDraft": false,
+      "number": 1532,
+      "title": "flock: canonical shared selector + model-source score_and_normalize transport (B0, #1512)"
+    },
+    {
+      "headRefOid": "adb7ad7c7ce319996bf34916f5b77aa1f7f40048",
+      "isDraft": false,
+      "number": 1528,
+      "title": "feat(integer): allocation-free D11 integer flock selector and scratch workspace (#1513, #820)"
+    },
+    {
+      "headRefOid": "5d51f2855c4a912c1360cafc11890adf0fdce315",
+      "isDraft": true,
+      "number": 1527,
+      "title": "feat(evidence): publish Results B and C (S1 geometric QAT and S2 dialogue behavior) (#973, #820)"
+    },
+    {
+      "headRefOid": "2a13baddb996ae966ae1e54434befc26f9a3f6da",
+      "isDraft": false,
+      "number": 1526,
+      "title": "feat(training): native Apple Silicon Metal GPU kernels for geometric stack ops (#1510, #1509, #1513)"
+    },
+    {
+      "headRefOid": "b247add7d84be300b870edf10d9cf10c77792a7b",
+      "isDraft": true,
+      "number": 1519,
+      "title": "feat(codecs): B3 E8 lattice weight coding evaluation on SmolLM2-360M (#1513, #1509)"
+    },
+    {
+      "headRefOid": "1b88c563090329f6d21b8c0105a7a6e0146143f9",
+      "isDraft": true,
+      "number": 1518,
+      "title": "Track B: shared Candle pipeline and preserved B2 drafts"
+    }
+  ],
+  "new_review": "PR1527 exact5d51f285 independent retained evidence review; changes required; comment5905253726",
+  "host": "old supervisor remains stopped; no running/queued job at last check; pressure2 blocks v4 repair invocation; refresh before admission",
+  "next_codex": "Execute approved bounded #1537 repair when freshpreflight passes; otherwise respond to exact review deltas and advance existing TrackB source dependencies. No new model programme."
+}

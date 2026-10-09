@@ -1,0 +1,32 @@
+{
+  "base": "1b88c563090329f6d21b8c0105a7a6e0146143f9",
+  "patch_sha256": "7076b2229c5c2691d5ed786f00a298f34dabe7b2e16681f17dc0785bdff7ad47",
+  "checks": [
+    {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/rustfmt",
+        "--edition",
+        "2021",
+        "--check",
+        "crates/uor-r4-training/drafts/track_b_hybrid.rs"
+      ],
+      "exit_code": 0
+    },
+    {
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exit_code": 0
+    },
+    {
+      "command": [
+        "python3",
+        "scripts/check_claim_wording.py"
+      ],
+      "exit_code": 0
+    }
+  ],
+  "cargo": "NOT_RUN"
+}

@@ -1,0 +1,14 @@
+{
+  "schema": "uor-r4.resource-charge/1",
+  "event_id": "recovery-integration-20260930-continuation-cutoff19",
+  "recorded_utc": "2026-09-30T07:41:33.294629+00:00",
+  "lab": "Codex durable lab implementation",
+  "adjustment_ms": 152042,
+  "accounting": {
+    "category": "preparation",
+    "measurement": "estimated",
+    "correction_of": null
+  },
+  "authority": "Owner continuing goal and Codex contributor role; standing cumulative allowance.",
+  "rationale": "Nonoverlapping estimated preparation/review wall since cutoff18: live refresh and PR1539 delta8844a582 persistence review, source checks and GitHub publication. Parallel review counted once. No Cargo/model/GPU/deletion; under1MiB text."
+}

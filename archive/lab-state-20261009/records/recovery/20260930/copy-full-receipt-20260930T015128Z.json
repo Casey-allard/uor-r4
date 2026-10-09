@@ -1,0 +1,18 @@
+{
+  "schema": "uor-r4.workspace-recovery-copy/2",
+  "source": "/Volumes/X10 Pro/UOR-R4/UOR-Workspace.sparsebundle",
+  "destination": "/Volumes/X10 Pro/UOR-R4/Recovery/20260929-lab-system/UOR-Workspace.sparsebundle",
+  "status": "VERIFIED_COPY",
+  "source_bytes": 195761554552,
+  "file_count": 5848,
+  "entry_count": 5850,
+  "mismatch_count": 0,
+  "changed_inventory_during_scan": [],
+  "manifest": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/image-full-manifest-20260930T015128Z.jsonl",
+  "manifest_sha256": "0b3314439febaa6d9efc9c14762d198857d18076a662efbd74c48ee631d11d2a",
+  "metadata_archive": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/image-metadata-20260930T015128Z",
+  "copied_extra_sidecars_preserved_at": "/Volumes/X10 Pro/UOR-R4/Recovery/20260929-lab-system/copied-sidecar-extras-20260930T015128Z",
+  "elapsed_s": 510.7620108127594,
+  "backup_failure_domain": "same_physical_ssd",
+  "scope": "Raw file bytes and complete file set verified; filesystem integrity and artifacts remain unverified"
+}

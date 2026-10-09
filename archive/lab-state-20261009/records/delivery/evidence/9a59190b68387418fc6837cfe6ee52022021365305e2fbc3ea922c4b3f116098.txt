@@ -1,0 +1,25 @@
+Command: ['node', 'tools/lab-runner/tests/delivery_workflow.cjs']
+PASS valid PR
+PASS missing receipt
+PASS stale source head
+PASS self review
+PASS unavailable check
+PASS changed evidence
+PASS stale task epoch
+PASS expired task
+PASS unavailable steward
+PASS unadopted operations policy
+PASS class A rejected: AGENTS.md
+PASS class A rejected: docs/labs/operations.md
+PASS class A rejected: tools/lab-runner/src/coord.rs
+PASS class A rejected: tools/lab-runner/src/admission.rs
+PASS class A rejected: tools/lab-runner/src/delivery.rs
+PASS code-only rejected: src/native_geometric_cli.rs
+PASS code-only rejected: src/service.rs
+PASS code-only rejected: src/native_wasm.rs
+PASS code-only rejected: crates/uor-r4-api/src/serving.rs
+PASS valid group
+PASS group tree differs
+PASS group checks absent
+PASS multiple PR group unsupported
+23/23 data-only workflow fixtures; no network or PR code executed.

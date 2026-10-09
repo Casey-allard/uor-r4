@@ -1,0 +1,50 @@
+warning: method `position` is never used
+   --> crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs:175:8
+    |
+168 | impl ObservedSpan {
+    | ----------------- method in this implementation
+...
+175 |     fn position(&self) -> (u32, u32, usize) {
+    |        ^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `example` is never used
+    --> crates/uor-r4-core/src/native_geometric/learner/transferable_lexical.rs:1590:8
+     |
+1405 | impl TlTrainer {
+     | -------------- method in this implementation
+...
+1590 |     fn example(&self, q: &TlQuant, ex: &TlExample) -> TlGrads {
+     |        ^^^^^^^
+
+warning: `uor-r4-core` (lib) generated 2 warnings
+   Compiling uor-r4-training v0.1.0 (/Users/casey.allard/.codex/worktrees/track-b-conversion/uor-r4/crates/uor-r4-training)
+    Finished `test` profile [unoptimized] target(s) in 14.22s
+     Running unittests examples/track-b-parity.rs (/Users/casey.allard/.cache/uor-r4-track-b-direct/target/debug/examples/track_b_parity-2dd90aa0b0f47dfc)
+
+running 3 tests
+test tests::complete_coverage_requires_every_registered_mode_and_count ... ok
+test tests::gate_checks_every_cell_and_rejects_nonfinite ... ok
+test tests::storage_parser_uses_available_blocks_and_fails_closed ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+       14.36 real        15.79 user         0.78 sys
+          1049427968  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+              134815  page reclaims
+               14715  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   3  signals received
+                 303  voluntary context switches
+               31807  involuntary context switches
+          1506477331  instructions retired
+           580791428  cycles elapsed
+            55673576  peak memory footprint

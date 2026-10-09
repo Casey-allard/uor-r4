@@ -1,0 +1,33 @@
+{
+  "schema": "uor-r4.manual-repair-council-vote/1",
+  "created_utc": "2026-09-30T05:51:59.147760+00:00",
+  "reviewer": "independent_systems_review",
+  "independence": "Non-author of source, observer and packet; same Codex provider/root launcher.",
+  "decision": "APPROVE_CONDITIONAL",
+  "vote": "YES",
+  "packet_sha256": "c552311cebdcf8d73aef141bb4121e7608d0cc48690683f62eba66de7dcf04f9",
+  "quiescence_receipt_sha256": "423be2b4a5a9821239ac041b3000285c4c5af01cc4117b94a47a8db5dd3038d5",
+  "production_hold_sha256": "81bb7c6af7c5f33f3c71b44a42235b32c46f1dd8dc488b8c57ff90c7d1779cb3",
+  "source_sha": "8e90aa33b8ef941d3ac5de57ad448859e20ad76b",
+  "observer_sha256": "795d4ff24363c115433ea341ed16a03de2afaf465f4e5fb7f832439ebb8cfc01",
+  "scope": "One successor repair test/build attempt under unchanged observer/commands/bounds. This state-delta review reuses the prior source/helper review; no broad rereview or execution performed.",
+  "required_findings": [],
+  "changed_packet_keys": [
+    "created_utc",
+    "free_bytes_observed",
+    "memory_pressure",
+    "production_hold_sha256",
+    "quiescence_receipt_sha256",
+    "state_revision"
+  ],
+  "evidence": "Read v4 and quiescence receipt; verified hashes and unchanged command/source/helper/bounds fields against v3. Receipt records successful bootout, missing LaunchAgent, absent listed process identities, empty running set, unchanged hold and preserved queued OpenCode -e attempt. The old zombie wording in the carried-forward exception is a preceding snapshot; v4 state_revision and quiescence receipt explicitly supply the newer absent state.",
+  "conditions": [
+    "No execution at observed pressure 2. Immediately before invocation pressure must be 1 and current full physical headroom must exceed 40GiB floor plus 2GiB cache, 64MiB receipts and 128MiB margin.",
+    "Fresh preflight must establish production service absent, running directory empty, no peer Cargo/rustc or other heavy work, and unchanged source/helper/lock/toolchain/boot/hold identities.",
+    "All required council seats must approve this exact packet. v2/v3 remain unexecuted predecessors; attempt2 is an exclusive fresh receipt root.",
+    "Preserve queued OpenCode -e attempt, its reservation, all original UNKNOWN receipts and peer reconciliation/charge records. No production restart/admission, deployment, reconciliation, cancellation or takeover is authorized.",
+    "Observer may stop only its own invocation; uncertain containment remains UNKNOWN. Keep production held/stopped.",
+    "Record actual cost exactly once and preserve refusal/partial results. Source/helper changes require another exact packet."
+  ],
+  "limitations": "Prospective approval, not an assertion that fresh preflight has passed. Sampled limits/stop allowance retain prior disclosed limitations. No endorsement of old-runner reconciliation predicate, ordinary reservation-aware admission, or test/deployment success."
+}

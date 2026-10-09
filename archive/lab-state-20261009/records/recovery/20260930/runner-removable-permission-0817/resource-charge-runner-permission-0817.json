@@ -1,0 +1,14 @@
+{
+  "schema": "uor-r4.resource-charge/1",
+  "event_id": "recovery-integration-20260930-runner-permission-0817",
+  "recorded_utc": "2026-09-30T08:19:37.553296+00:00",
+  "lab": "Codex durable lab implementation",
+  "adjustment_ms": 240000,
+  "accounting": {
+    "category": "preparation",
+    "measurement": "estimated",
+    "correction_of": null
+  },
+  "authority": "Owner continuity and runner source-steward authority.",
+  "rationale": "Estimated four minutes active process/queue/claim observation and bounded permissions diagnosis, including one-second process sample and narrow tccd logs; coordination publication. Excludes idle heartbeat interval; no charge for Kimi build or pilot; no Cargo/model/GPU/deletion."
+}

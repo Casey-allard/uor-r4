@@ -1,0 +1,2 @@
+Independent reviewer /root/independent_systems_review: APPROVE source-only after correction. F64 aggregation of quantized F32 scores, rounded once, isolates row correction. Original serial F32 input construction could exceed 2e-5 mass tolerance; this finding was corrected without raising tolerance. Oracle independent; README excludes long-prefix accumulation. No further required source correction. No Cargo/model execution. UNCOMPILED / NOT_RUN.
+Patch SHA256: 7076b2229c5c2691d5ed786f00a298f34dabe7b2e16681f17dc0785bdff7ad47

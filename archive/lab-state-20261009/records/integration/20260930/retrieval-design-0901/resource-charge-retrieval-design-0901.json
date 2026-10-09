@@ -1,0 +1,14 @@
+{
+  "schema": "uor-r4.resource-charge/1",
+  "event_id": "recovery-integration-20260930-retrieval-design-0901",
+  "recorded_utc": "2026-09-30T09:01:29.880298+00:00",
+  "lab": "Codex durable lab implementation",
+  "adjustment_ms": 180000,
+  "accounting": {
+    "category": "preparation",
+    "measurement": "estimated",
+    "correction_of": null
+  },
+  "authority": "Owner continuity and runner source-steward authority.",
+  "rationale": "Estimated three minutes active live refresh, retrieval preregistration and D6/D8 review, parallel independent read and review publication; parallel elapsed counted once. Excludes idle interval. No Cargo/model/GPU/deletion."
+}

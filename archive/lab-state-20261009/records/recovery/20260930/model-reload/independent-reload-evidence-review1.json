@@ -1,0 +1,39 @@
+{
+  "schema": "uor-r4.independent-reload-evidence-review/1",
+  "recorded_utc": "2026-09-30T02:48:16.332449+00:00",
+  "reviewer_session": "/root/independent_systems_review",
+  "independence": "Non-author read-only pass; same provider/root launcher",
+  "receipt": "accepted-model-reload-verified.json",
+  "decision": "PASS_AT_LOAD_ONLY_SCOPE",
+  "read": [
+    "accepted-model-reload-verified.json",
+    "all-macros-helper-receipt.json",
+    "reload-all-macros.rs",
+    "all-macros-model-reload.log",
+    "all-macro-inventory.json",
+    "macro-source-rebuild/Cargo.toml",
+    "pinned-macros-build-receipt.json",
+    "remaining-macros-build-receipt.json"
+  ],
+  "hash_checks": {
+    "seven_evidence_files": "all matched independently recomputed SHA-256",
+    "five_retained_inputs": "all matched independently recomputed SHA-256",
+    "twelve_fresh_proc_macros": "all matched independently recomputed SHA-256"
+  },
+  "executed_by_author": {
+    "helper_exit": 0,
+    "elapsed_seconds": 0.1881186249993334,
+    "observed_parameter_tensors": 78,
+    "helper_behavior": "StackModel::load on CPU followed by configuration and tensor-count printing"
+  },
+  "source_read": "crates/uor-r4-training/src/geometric_stack.rs:1116; loader checks config and F32 tensor count/names/shapes, returns served=None and transport=None",
+  "supported_claim": "A separate helper process successfully loaded the retained model/config through hash-pinned retained library artifacts after fresh-source reconstruction of required proc macros. Retained transport file identity also matches but the helper does not apply it.",
+  "excluded_claims": [
+    "Saved transport snap execution",
+    "Integer serving qualification",
+    "Generation or language quality",
+    "Full model source-to-binary rebuild attestation",
+    "Reproducible complete original training build"
+  ],
+  "reviewer_execution": "No Cargo or helper/model execution; read-only evidence/hash verification."
+}

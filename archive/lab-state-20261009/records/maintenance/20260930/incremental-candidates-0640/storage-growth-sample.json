@@ -1,0 +1,142 @@
+{
+  "utc": "2026-09-30T06:37:36.873932+00:00",
+  "observations": [
+    {
+      "root": "/Users/casey.allard/.cache",
+      "exit_code": 0,
+      "rows": [
+        {
+          "kib": 17699496,
+          "path": "/Users/casey.allard/.cache"
+        },
+        {
+          "kib": 9560016,
+          "path": "/Users/casey.allard/.cache/uor-antigravity-target"
+        },
+        {
+          "kib": 9560012,
+          "path": "/Users/casey.allard/.cache/uor-antigravity-target/debug"
+        },
+        {
+          "kib": 4827532,
+          "path": "/Users/casey.allard/.cache/uor-claude-s14-target"
+        },
+        {
+          "kib": 4827524,
+          "path": "/Users/casey.allard/.cache/uor-claude-s14-target/debug"
+        },
+        {
+          "kib": 1638172,
+          "path": "/Users/casey.allard/.cache/codex-runtimes"
+        },
+        {
+          "kib": 1638164,
+          "path": "/Users/casey.allard/.cache/codex-runtimes/codex-primary-runtime"
+        },
+        {
+          "kib": 956588,
+          "path": "/Users/casey.allard/.cache/opencode"
+        },
+        {
+          "kib": 947464,
+          "path": "/Users/casey.allard/.cache/opencode/packages"
+        },
+        {
+          "kib": 327024,
+          "path": "/Users/casey.allard/.cache/uor-r4-lab-system/target"
+        },
+        {
+          "kib": 327024,
+          "path": "/Users/casey.allard/.cache/uor-r4-lab-system"
+        },
+        {
+          "kib": 152056,
+          "path": "/Users/casey.allard/.cache/uor-r4-recovery-macros/target"
+        },
+        {
+          "kib": 152056,
+          "path": "/Users/casey.allard/.cache/uor-r4-recovery-macros"
+        },
+        {
+          "kib": 120908,
+          "path": "/Users/casey.allard/.cache/uor-kimi"
+        }
+      ],
+      "error_tail": ""
+    },
+    {
+      "root": "/private/tmp",
+      "exit_code": 0,
+      "rows": [
+        {
+          "kib": 2423544,
+          "path": "/private/tmp"
+        },
+        {
+          "kib": 2201740,
+          "path": "/private/tmp/uor-target"
+        },
+        {
+          "kib": 2201732,
+          "path": "/private/tmp/uor-target/debug"
+        },
+        {
+          "kib": 221500,
+          "path": "/private/tmp/claude-501"
+        },
+        {
+          "kib": 186056,
+          "path": "/private/tmp/claude-501/bash-edit-diff"
+        },
+        {
+          "kib": 35428,
+          "path": "/private/tmp/claude-501/-Users-casey-allard-uor-r4"
+        },
+        {
+          "kib": 12,
+          "path": "/private/tmp/opencode"
+        },
+        {
+          "kib": 0,
+          "path": "/private/tmp/node-compile-cache/v26.4.0-arm64-8d7ad2ee-501"
+        },
+        {
+          "kib": 0,
+          "path": "/private/tmp/node-compile-cache"
+        },
+        {
+          "kib": 0,
+          "path": "/private/tmp/codex-browser-use"
+        },
+        {
+          "kib": 0,
+          "path": "/private/tmp/powerlog"
+        },
+        {
+          "kib": 0,
+          "path": "/private/tmp/claude-501/-Users-casey-allard"
+        },
+        {
+          "kib": 0,
+          "path": "/private/tmp/com.openai.sky.CUAService"
+        },
+        {
+          "kib": 0,
+          "path": "/private/tmp/cc-socks"
+        }
+      ],
+      "error_tail": ""
+    },
+    {
+      "root": "/private/var/vm",
+      "exit_code": 0,
+      "rows": [
+        {
+          "kib": 2097152,
+          "path": "/private/var/vm"
+        }
+      ],
+      "error_tail": ""
+    }
+  ]
+}

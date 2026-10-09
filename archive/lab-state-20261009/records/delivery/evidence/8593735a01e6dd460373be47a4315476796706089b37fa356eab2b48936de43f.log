@@ -1,0 +1,137 @@
+   Compiling lab-runner v0.1.0 (/Users/casey.allard/uor-r4/.worktrees/durable-lab-system-20260929/tools/lab-runner)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 8.64s
+     Running unittests src/lib.rs (/Users/casey.allard/.cache/uor-r4-lab-system/target/debug/deps/lab_runner-b4dbc76ad42249f7)
+
+running 65 tests
+test admission::tests::empty_runner_admits_anything_valid ... ok
+test admission::tests::at_most_one_gpu_job ... ok
+test admission::tests::exclusive_blocks_and_is_blocked ... ok
+test admission::tests::gpu_memory_counts_toward_rss_budget ... ok
+test admission::tests::rss_limit_is_enforced ... ok
+test admission::tests::thread_limit_is_enforced ... ok
+test agent::tests::plist_mentions_label_paths_and_keepalive ... ok
+test agent::tests::installer_rejects_missing_program_and_dangling_external_aliases ... ok
+test coord::tests::a_second_task_cannot_reserve_the_same_host_until_the_first_is_finalized ... ok
+test coord::tests::actual_runner_root_must_match_reservation ... ok
+test coord::tests::admission_fences_host_generation_spec_and_finalization ... ok
+test agent::tests::write_plist_targets_a_tempdir_and_prints_bootstrap ... ok
+test coord::tests::complete_rejects_an_assertion_or_a_missing_receipt ... ok
+test coord::tests::completion_requires_exact_merged_head_and_main_ancestry ... ok
+test coord::tests::completion_requires_full_scope_independent_acceptance_and_current_generation ... ok
+test coord::tests::event_parser_rejects_unknown_fields_and_malformed_envelopes ... ok
+test coord::tests::cancelled_queue_receipt_can_release_only_without_launch_intent ... ok
+test coord::tests::lost_successful_push_reply_is_recovered_without_a_second_event ... ok
+test coord::tests::native_blockers_fail_closed_even_when_local_dependency_list_is_empty ... ok
+test coord::tests::ownership_expires_and_old_epoch_cannot_revive ... ok
+test coord::tests::policy_and_work_card_versions_fence_new_work ... ok
+test coord::tests::independent_git_contenders_cannot_both_commit_the_same_claim ... ok
+test coord::tests::queued_cancel_requires_positive_never_started_evidence ... ok
+test coord::tests::rejected_transition_has_no_partial_mutation ... ok
+test coord::tests::server_date_is_not_local_time ... ok
+test coord::tests::source_ownership_rejects_path_aliases ... ok
+test coord::tests::state_and_typed_events_round_trip_without_losing_resource_bindings ... ok
+test coord::tests::takeover_does_not_release_running_attempt ... ok
+test coord::tests::unavailable_heartbeat_never_extends_a_lease ... ok
+test coord::tests::unknown_or_mismatched_exit_never_releases_reservation ... ok
+test coord::tests::unresolved_other_queue_reservation_prevents_undercounting ... ok
+test coord::tests::pre_spawn_reconciliation_requires_positive_bound_proof_and_zero_extra_cost ... ok
+test daemon::tests::recovered_wall_clock_is_estimated_in_both_exit_and_charge ... ok
+test daemon::tests::failed_hash_late_policy_and_budget_have_positive_unstarted_proofs ... ok
+test github_sync::tests::identity_is_stable_across_collection_times_and_changes_on_edit ... ok
+test github_sync::tests::server_window_overlaps_and_future_restores_force_full_reconciliation ... ok
+test host::tests::absent_volume_is_never_created ... ok
+test host::tests::production_rejects_unowned_command_criterion ... ok
+test ledger::tests::concurrent_charges_survive_and_duplicate_copies_do_not_double_charge ... ok
+test ledger::tests::execution_metadata_distinguishes_estimate_and_old_bytes_remain_retryable ... ok
+test ledger::tests::extension_never_resets_prior_charge_and_corruption_is_rejected ... ok
+test ledger::tests::external_legacy_drift_blocks_only_admission_until_reviewed_import ... ok
+test ledger::tests::historical_fixture_requires_explicit_coverage_and_preserves_late_event ... ok
+test ledger::tests::idempotent_charge_repairs_missing_view_and_rejects_conflict ... ok
+test ledger::tests::programme_corrections_are_hash_bound_idempotent_and_cannot_overdraw ... ok
+test maintenance::retained_tests::retained_input_cannot_escape_scope_via_parent_traversal_or_alias ... ok
+test outbox::tests::durable_retirement_preserves_original_and_unblocks_later_intent ... ok
+test outbox::tests::pending_event_survives_failed_network_and_conflicting_retry_is_rejected ... ok
+test outbox::tests::retirement_requires_positive_staleness_not_transient_failure ... ok
+uor-owned-supervisor-v1: line 1: 60839 Terminated: 15          "$@"
+test process::tests::legacy_live_identity_cannot_signal_but_same_host_absence_can_be_reconciled ... ok
+uor-owned-supervisor-v1: line 1: 60916 Terminated: 15          "$@"
+test process::tests::nonce_mismatch_never_signals_the_process ... ok
+test process::tests::stable_boot_schemes_validate_uuid_and_never_promote_legacy_time_drift ... ok
+uor-owned-supervisor-v1: line 1: 60975 Killed: 9               "$@"
+Terminated: 15
+test daemon::tests::unknown_monitor_preserves_paths_child_and_charge_until_stopped_reconciliation ... ok
+test process::tests::verified_prior_boot_has_no_surviving_process_members ... ok
+test spec::tests::empty_argv_and_missing_cwd_are_rejected ... ok
+test spec::tests::log_match_requires_a_value ... ok
+test spec::tests::missing_kill_criterion_names_the_field ... ok
+test spec::tests::missing_wall_s_names_the_field ... ok
+test process::tests::term_handlers_get_bounded_grace_without_claiming_checkpoint_success ... ok
+test spec::tests::valid_spec_parses ... ok
+test tests::atomic_write_round_trips ... ok
+test tests::civil_from_days_matches_known_dates ... ok
+test tests::sanitize_component_replaces_unsafe_bytes ... ok
+test tests::utc_iso_format_is_stable ... ok
+test spec::tests::provenance_rejects_changed_executable_input_and_untracked_source ... ok
+
+test result: ok. 65 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.72s
+
+     Running unittests src/bin/lab-runner.rs (/Users/casey.allard/.cache/uor-r4-lab-system/target/debug/deps/lab_runner-05de843d52b5eeee)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/cli.rs (/Users/casey.allard/.cache/uor-r4-lab-system/target/debug/deps/cli-1181788862b11fba)
+
+running 6 tests
+test cancel_removes_a_queued_job ... ok
+test cancel_finalizes_a_running_job ... ok
+test daemon_restart_preserves_legacy_unknown_without_signalling ... ok
+test log_match_criterion_kills_on_literal_substring ... ok
+test cli_round_trip_submit_run_complete_and_charge ... ok
+test wall_time_kill_terminates_a_sleeping_job ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.61s
+
+     Running tests/delivery.rs (/Users/casey.allard/.cache/uor-r4-lab-system/target/debug/deps/delivery-5ca213c0ee98cafe)
+
+running 7 tests
+test exact_receipts_and_real_queue_eligibility_are_required ... ok
+test council_requires_distinct_passes_and_two_nonauthors ... ok
+test serving_callers_and_control_plane_cannot_underclassify ... ok
+test result_needs_independent_artifact_reread ... ok
+test source_cannot_be_self_classified_as_docs ... ok
+test stale_task_generation_cannot_deliver ... ok
+test stale_source_self_review_and_unresolved_fixes_fail ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/host_recovery.rs (/Users/casey.allard/.cache/uor-r4-lab-system/target/debug/deps/host_recovery-f172b24600332dd9)
+
+running 7 tests
+test durable_exit_replays_charge_once_after_crash ... ok
+test background_grandchild_cannot_escape_finished_payload ... ok
+test observed_rss_stops_job_and_nonzero_exit_is_not_success ... ok
+test production_missing_policy_holds_without_launch ... ok
+test singleton_rejects_second_daemon ... ok
+test running_reconciliation_preserves_estimated_measurement_in_charge ... ok
+test stopped_reconciliation_preserves_unknown_and_charges_supplement_once ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.45s
+
+     Running tests/maintenance.rs (/Users/casey.allard/.cache/uor-r4-lab-system/target/debug/deps/maintenance-9128b5a1c8a43509)
+
+running 4 tests
+test changed_or_active_after_notice_is_never_eligible ... ok
+test malformed_request_returns_skip_and_never_enables_deletion ... ok
+test notice_binds_exact_manifest_and_two_hours_since_last_edit ... ok
+test exact_inventory_detects_hidden_content_and_links_without_deletion ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests lab_runner
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

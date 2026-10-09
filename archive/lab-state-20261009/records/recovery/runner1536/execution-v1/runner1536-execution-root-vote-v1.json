@@ -1,0 +1,11 @@
+{
+  "reviewer": "/root (Codex integrator; author/dependent seat)",
+  "packet_sha256": "7c49d4f73a5478d4fbc74310eb9660de0d4e2b2675b5a94522dd0db3cc198332",
+  "observer_sha256": "795d4ff24363c115433ea341ed16a03de2afaf465f4e5fb7f832439ebb8cfc01",
+  "source_sha": "8e90aa33b8ef941d3ac5de57ad448859e20ad76b",
+  "vote": "APPROVE_NARROW_PROSPECTIVE_EXECUTION",
+  "created_utc": "2026-09-30T05:18:28.621861+00:00",
+  "scope": "Only two exact test/build commands, unchanged helper and source, fresh hash/resource/no-peer preflight. Require two independent seats before invoking. Production hold and Claude reservation stay unchanged. No deployment or reconciliation approval.",
+  "reason": "Repair the demonstrated mutable-boot identity and premature UNKNOWN archival defect. Existing runner cannot safely supervise this repair. Observer preserves owned attempt identity, bounded probes and receipts and fails closed on uncertainty. Physical headroom verified; logical reservation explicitly retained.",
+  "limits": "Sampled supervision only;20s stop allowance may overrun on slow failed probes; no arbitrary process containment. Command array and inspected test scope fixed. Root rechecks receipt headroom in addition to helper guard."
+}

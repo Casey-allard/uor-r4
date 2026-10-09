@@ -1,0 +1,86 @@
+{
+  "schema": "uor-r4.server-delivery/1",
+  "receipt": {
+    "schema": "uor-r4.delivery-receipt/1",
+    "repository": "UOR-Foundation/uor-r4",
+    "pull_request": 1535,
+    "task_issue": 1525,
+    "author_session": "codex-durable-20260929-root",
+    "claim_session": "codex-durable-20260929-root",
+    "claim_epoch": 2,
+    "work_card": "sha256:799fafdefd766d831853c06148cfc2c52486afd48aa791e4058e0b1c63ee1500",
+    "head_sha": "3ed9f73d206d016679251697954db29bdadce6d2",
+    "base_sha": "ba266ad44f21c9df2dafa9d56a1e2051c1565d91",
+    "change_kind": "docs",
+    "class": "A",
+    "checks": [
+      {
+        "name": "diff-check",
+        "head_sha": "3ed9f73d206d016679251697954db29bdadce6d2",
+        "base_sha": "ba266ad44f21c9df2dafa9d56a1e2051c1565d91",
+        "argv": [
+          "git",
+          "diff",
+          "--check",
+          "ba266ad44f21c9df2dafa9d56a1e2051c1565d91...3ed9f73d206d016679251697954db29bdadce6d2"
+        ],
+        "exit_code": 0,
+        "outcome": "PASS",
+        "log": {
+          "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/persistent-diff-3ed9f73d.log",
+          "sha256": "1422d9da04acf119b8ef687cc64922a8be6cf42b8498bbaf689e606d95c4e131"
+        }
+      },
+      {
+        "name": "claim-wording",
+        "head_sha": "3ed9f73d206d016679251697954db29bdadce6d2",
+        "base_sha": "ba266ad44f21c9df2dafa9d56a1e2051c1565d91",
+        "argv": [
+          "python3",
+          "scripts/check_claim_wording.py"
+        ],
+        "exit_code": 0,
+        "outcome": "PASS",
+        "log": {
+          "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/persistent-wording-3ed9f73d.log",
+          "sha256": "b2ce952964fa30300f5a7e1c83154878299d2786a21fe1b6d6b5190ef25d2132"
+        }
+      }
+    ],
+    "reviews": [
+      {
+        "review_id": "persistent-3ed9f73d-independent",
+        "reviewer_session": "/root/second_council_review",
+        "launched_by": "codex-durable-20260929-root",
+        "head_sha": "3ed9f73d206d016679251697954db29bdadce6d2",
+        "base_sha": "ba266ad44f21c9df2dafa9d56a1e2051c1565d91",
+        "decision": "APPROVE",
+        "unresolved_required_fixes": 0,
+        "evidence": {
+          "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/review-persistent-3ed9f73d.md",
+          "sha256": "5fea36a2203ec6b124622835a0f87953dc7843fdfbbac311b287522faa3c2ba7"
+        }
+      }
+    ],
+    "result_evidence": null,
+    "result_reader_session": null,
+    "council": null
+  },
+  "evidence": [
+    {
+      "local_path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/persistent-diff-3ed9f73d.log",
+      "path": "delivery/evidence/1422d9da04acf119b8ef687cc64922a8be6cf42b8498bbaf689e606d95c4e131.txt",
+      "sha256": "1422d9da04acf119b8ef687cc64922a8be6cf42b8498bbaf689e606d95c4e131"
+    },
+    {
+      "local_path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/persistent-wording-3ed9f73d.log",
+      "path": "delivery/evidence/b2ce952964fa30300f5a7e1c83154878299d2786a21fe1b6d6b5190ef25d2132.txt",
+      "sha256": "b2ce952964fa30300f5a7e1c83154878299d2786a21fe1b6d6b5190ef25d2132"
+    },
+    {
+      "local_path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/review-persistent-3ed9f73d.md",
+      "path": "delivery/evidence/5fea36a2203ec6b124622835a0f87953dc7843fdfbbac311b287522faa3c2ba7.txt",
+      "sha256": "5fea36a2203ec6b124622835a0f87953dc7843fdfbbac311b287522faa3c2ba7"
+    }
+  ]
+}

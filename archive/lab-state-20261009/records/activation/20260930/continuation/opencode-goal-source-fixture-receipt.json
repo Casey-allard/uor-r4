@@ -1,0 +1,95 @@
+{
+  "schema": "uor-r4.opencode-source-fixture/1",
+  "observed_utc": "2026-09-30T04:23:00.311Z",
+  "source_path": "/Users/casey.allard/.cache/opencode/packages/oh-my-openagent/node_modules/oh-my-openagent/dist/index.js",
+  "source_sha256": "e522d513a08d0a6871129dbf3d9c3a79e4871693997fbf34190c4d3fa3d6b4b5",
+  "extracted_source_sha256": "4dd79cd6fcf1facdfba04c5a08940ecd2f0b5edd8c2470c7e8213b2ba915baba",
+  "extracted_line_ranges": [
+    {
+      "startLine": 107250,
+      "endLine": 107361
+    },
+    {
+      "startLine": 169716,
+      "endLine": 169732
+    },
+    {
+      "startLine": 169883,
+      "endLine": 169960
+    }
+  ],
+  "fixture_sha256": "e04dd2fabbe74feba60f52c5d93fff986caccf0013a7525a37834e294ccc39dc",
+  "classification": "SOURCE_EXTRACTED_STUBBED_CONTROLLER_AND_DISPATCHER_ONLY",
+  "provider_requests": 0,
+  "live_client_calls": 0,
+  "opaque_session_state_mutations": 0,
+  "live_goal_activation_verified": false,
+  "assertions": [
+    {
+      "name": "setting the goal alone performs no prompt dispatch",
+      "status": "PASS"
+    },
+    {
+      "name": "overlapping idle events use one in-flight dispatch per session",
+      "status": "PASS"
+    },
+    {
+      "name": "goal requests shared async deferred dispatcher with 150 ms settle",
+      "status": "PASS"
+    },
+    {
+      "name": "paused goal does not dispatch on idle",
+      "status": "PASS"
+    },
+    {
+      "name": "resumed active goal dispatches on next idle",
+      "status": "PASS"
+    },
+    {
+      "name": "completed goal does not dispatch",
+      "status": "PASS"
+    },
+    {
+      "name": "cleared goal does not dispatch",
+      "status": "PASS"
+    },
+    {
+      "name": "native before-command Fixture objective mutates only local mocked goal state",
+      "status": "PASS"
+    },
+    {
+      "name": "native before-command pause mutates only local mocked goal state",
+      "status": "PASS"
+    },
+    {
+      "name": "native before-command resume mutates only local mocked goal state",
+      "status": "PASS"
+    },
+    {
+      "name": "empty goal argument preserves objective for show",
+      "status": "PASS"
+    },
+    {
+      "name": "clear command clears goal",
+      "status": "PASS"
+    },
+    {
+      "name": "goal hook alone does not pause on quota/error event",
+      "status": "PASS"
+    },
+    {
+      "name": "goal hook alone does not back off after dispatcher failures",
+      "status": "PASS"
+    },
+    {
+      "name": "deleted session clears goal",
+      "status": "PASS"
+    }
+  ],
+  "limitations": [
+    "Controller store is an in-memory stub; production filesystem persistence not exercised.",
+    "Dispatcher is a deterministic stub; production status/tool gate not exercised.",
+    "Native before-command handler is tested; OpenCode subsequent command/provider pipeline is not exercised.",
+    "This is neither live client qualification nor scheduler/quota-stop qualification."
+  ]
+}

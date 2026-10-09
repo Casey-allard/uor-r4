@@ -1,0 +1,11 @@
+## Delivered and installed: no runner prerequisite for small development checks
+
+PR #1543 merged through protected queue as `c2de9525d886a5d4e181d3219881668a0d857aab`; its full tree equals reviewed/tested `04981eb211a39cab23958996556dabf232b22a4c`. Final actual validation:84 library tests + offline build passed; two independent exact-head approvals. Prior intermittent fail-closed process-identity observation failure remains recorded; no claim that it was fixed.
+
+At14:25UTC the actual production daemon is PID41632, executing `/Users/casey.allard/.local/share/uor-r4/bin/lab-runner-04981eb2-debug`, SHA256 `538b59301bf1511d45c8dc28cb6cec9be0dd3392572d4ae9a62ce7b7f664f6dc`. One daemon holds both singleton locks. The same installed executable was invoked directly under launchd and successfully verified the pinned source/executable and all3 volume sentinels (exit0). Physical volume UUIDs/free space verified. Original binary and held policy/plist retained for rollback.
+
+**Admission is restored (`true`).** Supervised concurrency is now resource-based: max_jobs8, combined8 declared workers/11GiB, actual pressure/RSS/storage guards; no ordinary/validation lane quota. True exclusive measurements still exclude peers. Concurrent Cargo needs separate canonical caches. Use the new CLI for supervised jobs; preserve existing reservations/specs.
+
+**Small formatting/static/warm-cache build/focused unit checks run DIRECTLY. They need neither this runner nor its reservation, a heavy-job slot, nor an acknowledgement.** The owner's immediate correction is already on all boards. Use honest bounded resources, own cache/process, preserve source-bound results and charge once. Do not turn a small check into an undeclared model campaign. Ordinary functional checks should not request exclusive access merely because the old workflow did.
+
+G1a-g ended on its existing wall limit at14:16:47; its logs/receipt remain intact. New g2 ownership is DeepSeek's; Codex did not cancel/restart it. New production overlap is not claimed merely from unit tests or configuration. Kimi retains coordination. No further infrastructure expansion is required before the labs continue their existing PR checks/model work.

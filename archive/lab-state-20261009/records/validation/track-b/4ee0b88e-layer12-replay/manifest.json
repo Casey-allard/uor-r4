@@ -1,0 +1,52 @@
+{
+  "files": [
+    {
+      "blake3": "b063e5764bd205e659f976fbb3c4ee45032dc01593e7170124d741ab996e4f22",
+      "bytes": 548,
+      "path": "attempt.json"
+    },
+    {
+      "blake3": "698cdd4c6db7816a90e12fc67fefd661d92e157739ab41dc4fd2ab8797b09a19",
+      "bytes": 30720,
+      "path": "cpu-native_rms-qkv.f32le"
+    },
+    {
+      "blake3": "a60167d54ffed760fd2ee041d5e9019d843d82ea8b7219c2a0a0294dac7f5541",
+      "bytes": 18432,
+      "path": "cpu-reference-normalized.f32le"
+    },
+    {
+      "blake3": "6403ff2cb2bb7861925b9babb3cace04da6229e488e1765226a8875f58e5a121",
+      "bytes": 30720,
+      "path": "cpu-reference_scalar_rms-qkv.f32le"
+    },
+    {
+      "blake3": "d3f4eccbb8ee45ec0134d6a4870ada0a27d74997f989d5aa9d8686d8acd69b1c",
+      "bytes": 5034,
+      "path": "inputs.json"
+    },
+    {
+      "blake3": "65dff3aae57ffa9c76601eb581a4f158685a94087f44962dc628e99c77806fc8",
+      "bytes": 30720,
+      "path": "metal-native_rms-qkv.f32le"
+    },
+    {
+      "blake3": "a60167d54ffed760fd2ee041d5e9019d843d82ea8b7219c2a0a0294dac7f5541",
+      "bytes": 18432,
+      "path": "metal-reference-normalized.f32le"
+    },
+    {
+      "blake3": "581425ee407045506e9cb5bb2088d6df7f487fbbdda1653a8e376a9aae15c31d",
+      "bytes": 30720,
+      "path": "metal-reference_scalar_rms-qkv.f32le"
+    },
+    {
+      "blake3": "1cf4f042ec3bc08fa89b9efd7558de77a5f52f5fd345f4234ddef318473de79d",
+      "bytes": 90511,
+      "path": "result.json"
+    }
+  ],
+  "root": "/Volumes/UOR-Workspace/uor-r4-models/track-b/layer12-replay-4ee0b88e-20260930",
+  "schema": "uor-r4.report-manifest/1",
+  "sealed_at": "1790784944"
+}

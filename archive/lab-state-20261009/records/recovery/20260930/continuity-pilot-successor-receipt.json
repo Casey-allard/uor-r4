@@ -1,0 +1,282 @@
+{
+  "schema": "uor-r4.continuity-pilot-successor-receipt/1",
+  "recorded_utc": "2026-09-30T02:49:07.936527+00:00",
+  "session": "codex-storage-pilot-successor",
+  "issue": 1520,
+  "epoch": 2,
+  "attempt_id": "continuity-pilot-20260930-b",
+  "scope": "Explicit handoff, observed live worker after root release, post-completion successor claim and exact durable receipt reconciliation; no lease-expiry or token-exhaustion simulation.",
+  "execution_outcome": "completed",
+  "elapsed_ms": 35657,
+  "exactly_one_attempt_start": true,
+  "exactly_one_charge": true,
+  "live_successor_lease_transfer_qualified": false,
+  "claim_landed_seconds_after_exit": 5,
+  "source_changed_by_successor": false,
+  "successor_submitted_execution": false,
+  "policy_restored_before_finalization": true,
+  "normal_policy_admission_enabled": false,
+  "normal_internal_reserve_bytes": 42949672960,
+  "normal_policy_sha256": "5050089bf4a77a12bc6e322b3a842af402d1bbc77b0369b08aee6bf69a43318d",
+  "final_shared_state": {
+    "schema": "uor-r4.lab-state/1",
+    "repository": "UOR-Foundation/uor-r4",
+    "policy_sha": "3bc296cafa89971d3aa0b98c0eca187d8a76ef06",
+    "sequence": 16,
+    "observed_server_time": 1790736512,
+    "labs": {
+      "codex-durable-20260929-root": {
+        "lab": "Codex",
+        "adapter": "Codex desktop with local executor; heartbeat automation installed; other clients manual",
+        "capabilities": [
+          "Rust",
+          "GitHub",
+          "local-recovery",
+          "independent-subagents"
+        ],
+        "available": false,
+        "heartbeat": 1790736308
+      },
+      "codex-storage-pilot-successor": {
+        "lab": "Codex internal subagent",
+        "adapter": "manual continuation; source/recovery successor steward",
+        "capabilities": [
+          "GitHub coordination",
+          "process-identity verification",
+          "storage recovery",
+          "ledger reconciliation"
+        ],
+        "available": false,
+        "heartbeat": 1790736512
+      }
+    },
+    "tasks": {
+      "1520": {
+        "session": "codex-storage-pilot-successor",
+        "epoch": 2,
+        "work_card": "sha256:a527af51dfe737971a18333a49c12f05875c95976294f525e6599e085c569083",
+        "policy_sha": "3bc296cafa89971d3aa0b98c0eca187d8a76ef06",
+        "base_sha": "3bc296cafa89971d3aa0b98c0eca187d8a76ef06",
+        "paths": [
+          "tools/lab-runner",
+          "docs/labs",
+          ".github/workflows/lab-delivery.yml",
+          "AGENTS.md"
+        ],
+        "expires": 1790736510,
+        "phase": "released",
+        "checkpoint": {
+          "charge_count": 1,
+          "claim_after_exit_seconds": 5,
+          "evidence": {
+            "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuity-pilot-b-successor-evidence.json",
+            "sha256": "2f9b06ea00ad188ee8b9ac332584e51bc9f6f164b168a58ed05b2ab733616a09"
+          },
+          "internal_reserve_bytes": 42949672960,
+          "next_action": "Root may reacquire issue1520 for protected source delivery; normal admissions remain held. Live successor-lease acquisition remains unqualified because epoch2 claim landed five seconds after B exit; decide if a longer inert drill is warranted. Preserve failed A and completed B; do not resubmit either attempt.",
+          "outcome": "completed",
+          "pilot_attempt": "continuity-pilot-20260930-b",
+          "policy_admission_enabled": false,
+          "source_sha": "a345e766816403cb3eec888fb4cf694665e82e5d"
+        }
+      }
+    },
+    "attempts": {
+      "continuity-pilot-20260930-a": {
+        "issue": 1520,
+        "session": "codex-durable-20260929-root",
+        "task_epoch": 1,
+        "host": "host-284b64fb2f70567aee465dc4941430076137e580d19d9568b15726d14b157cec",
+        "phase": "finalized",
+        "receipt": {
+          "host": "host-284b64fb2f70567aee465dc4941430076137e580d19d9568b15726d14b157cec",
+          "job_id": "continuity-pilot-20260930-a",
+          "attempt_id": "continuity-pilot-20260930-a",
+          "path": "/Users/casey.allard/.local/share/uor-r4/runner/done/continuity-pilot-20260930-a/exit.json",
+          "sha256": "fb8c711977f5ed0910e2dde0e6de6c2d45149063e68bc4d88b1e1afc29d5f035"
+        },
+        "spec": {
+          "schema": "uor-r4.lab-runner-job/1",
+          "id": "continuity-pilot-20260930-a",
+          "lab": "Codex",
+          "cwd": "/Users/casey.allard/uor-r4/.worktrees/durable-lab-system-20260929",
+          "argv": [
+            "/bin/sleep",
+            "30"
+          ],
+          "env": {},
+          "threads": 1,
+          "rss_gib": 0.25,
+          "gpu": false,
+          "wall_s": 60,
+          "stop_grace_ms": 250,
+          "kill_criterion": {
+            "kind": "wall",
+            "value": ""
+          },
+          "exclusive": true,
+          "cargo": false,
+          "storage": [
+            {
+              "volume": "internal",
+              "additional_bytes": 1048576,
+              "checkpoint_bytes": 2097152
+            },
+            {
+              "volume": "workspace",
+              "additional_bytes": 0,
+              "checkpoint_bytes": 0
+            },
+            {
+              "volume": "backing",
+              "additional_bytes": 0,
+              "checkpoint_bytes": 0
+            }
+          ],
+          "coordination": {
+            "issue": 1520,
+            "session": "codex-durable-20260929-root",
+            "epoch": 1,
+            "work_card": "sha256:a527af51dfe737971a18333a49c12f05875c95976294f525e6599e085c569083",
+            "attempt_id": "continuity-pilot-20260930-a"
+          },
+          "provenance": {
+            "source_sha": "a345e766816403cb3eec888fb4cf694665e82e5d",
+            "executable": {
+              "path": "/bin/sleep",
+              "sha256": "8e05389ad2b0c2c59b36cbd1488980b821ae12ce32c2db7c89af1c372355747e"
+            },
+            "inputs": []
+          }
+        },
+        "spec_sha256": "53d05aa3a2dcf1e3b0f096648866cdf9eb29919047a1c2a6efe0feeeec9da2cb",
+        "runner_root": "/Users/casey.allard/.local/share/uor-r4/runner"
+      },
+      "continuity-pilot-20260930-b": {
+        "issue": 1520,
+        "session": "codex-durable-20260929-root",
+        "task_epoch": 1,
+        "host": "host-284b64fb2f70567aee465dc4941430076137e580d19d9568b15726d14b157cec",
+        "phase": "finalized",
+        "receipt": {
+          "host": "host-284b64fb2f70567aee465dc4941430076137e580d19d9568b15726d14b157cec",
+          "job_id": "continuity-pilot-20260930-b",
+          "attempt_id": "continuity-pilot-20260930-b",
+          "path": "/Users/casey.allard/.local/share/uor-r4/runner/done/continuity-pilot-20260930-b/exit.json",
+          "sha256": "626acb52de71d2d97ef482018eebaacfff834aef85930511023db1c9fe840b64"
+        },
+        "spec": {
+          "schema": "uor-r4.lab-runner-job/1",
+          "id": "continuity-pilot-20260930-b",
+          "lab": "Codex",
+          "cwd": "/Users/casey.allard/uor-r4/.worktrees/durable-lab-system-20260929",
+          "argv": [
+            "/bin/sleep",
+            "30"
+          ],
+          "env": {},
+          "threads": 1,
+          "rss_gib": 0.25,
+          "gpu": false,
+          "wall_s": 60,
+          "stop_grace_ms": 250,
+          "kill_criterion": {
+            "kind": "wall",
+            "value": ""
+          },
+          "exclusive": true,
+          "cargo": false,
+          "storage": [
+            {
+              "volume": "internal",
+              "additional_bytes": 1048576,
+              "checkpoint_bytes": 2097152
+            },
+            {
+              "volume": "workspace",
+              "additional_bytes": 0,
+              "checkpoint_bytes": 0
+            },
+            {
+              "volume": "backing",
+              "additional_bytes": 0,
+              "checkpoint_bytes": 0
+            }
+          ],
+          "coordination": {
+            "issue": 1520,
+            "session": "codex-durable-20260929-root",
+            "epoch": 1,
+            "work_card": "sha256:a527af51dfe737971a18333a49c12f05875c95976294f525e6599e085c569083",
+            "attempt_id": "continuity-pilot-20260930-b"
+          },
+          "provenance": {
+            "source_sha": "a345e766816403cb3eec888fb4cf694665e82e5d",
+            "executable": {
+              "path": "/bin/sleep",
+              "sha256": "8e05389ad2b0c2c59b36cbd1488980b821ae12ce32c2db7c89af1c372355747e"
+            },
+            "inputs": []
+          }
+        },
+        "spec_sha256": "9e1a7b7bd0eb29e45ccdc0728370cfea70a108d4b3198df831c3e7d8d767f2b0",
+        "runner_root": "/Users/casey.allard/.local/share/uor-r4/runner"
+      }
+    }
+  },
+  "evidence_files": [
+    {
+      "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuity-pilot-successor-register.json",
+      "sha256": "5ea52b41ecba95fa59421d44a62385b0bb11af3ec1e6e1798214faca3264b875"
+    },
+    {
+      "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuity-pilot-successor-issue-before.json",
+      "sha256": "01a3fa2fac767a38883c0a630570a239a78934ace914738cba8725d7bbd826b7"
+    },
+    {
+      "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuity-pilot-b-successor-live-process.json",
+      "sha256": "1e721f55aa84eba0d952b92e3a14d105eb4fc6bf5a7c3abf0c89b29dcdaed8b5"
+    },
+    {
+      "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuity-pilot-b-successor-coord-before-claim.json",
+      "sha256": "59522b774822ed7f9032867e86bfc0c472608aab4043286b442ed527aec5dfe4"
+    },
+    {
+      "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuity-pilot-b-successor-claim.json",
+      "sha256": "c60bd89b59517f15f94e1a4ac352bbd745df9b12cd76bbd57e174d5dcbba9af9"
+    },
+    {
+      "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuity-pilot-b-successor-after-claim-status.json",
+      "sha256": "8dac9581efe13ee77455be8cd7151103c18a984c23acaea50fb74782396faa5b"
+    },
+    {
+      "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuity-pilot-b-successor-coord-after-claim.json",
+      "sha256": "179fe5dec26917cbad7992b7f9499f9b48f4ecdb613014b09055a3311b469f7a"
+    },
+    {
+      "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuity-pilot-b-successor-policy-restoration.json",
+      "sha256": "85295385def8eb6c55245af127ec1311e45c42afbc4277a68ff56065e9ca1c8e"
+    },
+    {
+      "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuity-pilot-b-successor-finish.json",
+      "sha256": "11b0873dfedf27a786fd096cc4eb29a7b1e71f45549992db50cb17aac2d667ae"
+    },
+    {
+      "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuity-pilot-b-successor-evidence.json",
+      "sha256": "2f9b06ea00ad188ee8b9ac332584e51bc9f6f164b168a58ed05b2ab733616a09"
+    },
+    {
+      "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuity-pilot-b-successor-checkpoint.json",
+      "sha256": "8e67cc8607288bb2f620712dbd6f3fe2d8820ec29dce13fd3ab0c9c3b68c3ff2"
+    },
+    {
+      "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuity-pilot-b-successor-release.json",
+      "sha256": "ee8c2a43bcaa48970c6d6819d88b8c8a4d4e77b942c34f38c094e5aaee6f2313"
+    },
+    {
+      "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuity-pilot-b-successor-unavailable.json",
+      "sha256": "bb4b4e178ef4a42414f78cad9e7706a2c08a7b5d91e253f34ef3224ade715029"
+    }
+  ],
+  "next_action": "Root may reacquire issue1520 for source delivery. Decide whether a longer inert pilot is required to establish successor lease acquisition while worker still runs. Production model admissions remain held; preserve A resource failure and B completion."
+}

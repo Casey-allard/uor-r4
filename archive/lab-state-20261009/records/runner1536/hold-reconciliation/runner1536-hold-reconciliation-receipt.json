@@ -1,0 +1,81 @@
+{
+ "schema": "uor-r4.runner-hold-reconciliation-receipt/1",
+ "created_utc": "2026-09-30T08:39:27.407576+00:00",
+ "executor": "kimi-coordinator-20260930",
+ "packet": {
+  "path": "runner1536-hold-reconciliation-packet-v3.json",
+  "sha256": "c5e27e6bfae8813bcdccb559d7ce606a78f05a07030e0dca8d58bb50d2c2b9cc",
+  "review": "oracle APPROVE_WITH_AMENDMENTS (session ses_f0ed7f405ffeBUQNui7H8qkL53), amendments applied"
+ },
+ "outcome": "COMPLETE \u2014 hold released; continuity job admitted/executed/finalized; reservation finalized; production admission reopened",
+ "steps": [
+  {
+   "n": 1,
+   "name": "release-build",
+   "outcome": "PASS",
+   "evidence": "24.92s, optimized release profile, artifact sha 55a73d444477726a8257dd222ad2c0dbec6fa28e8323afe3ae20a572e845c179"
+  },
+  {
+   "n": 2,
+   "name": "release-validation",
+   "outcome": "PASS",
+   "evidence": "24/24 tests passed, 0 failed (release profile)"
+  },
+  {
+   "n": 3,
+   "name": "binary-swap",
+   "outcome": "PASS",
+   "evidence": "bin/lab-runner-8e90aa33-release installed+verified; plist single literal replacement; verified bootout (old pid 74632 gone); bootstrap; smoke: pid 32200 stable past ThrottleInterval, lsof-confirmed image, err log clean, hold intact, queue/running unchanged, boot UUID 763E5ACF stable"
+  },
+  {
+   "n": 4,
+   "name": "coord-ceremony",
+   "outcome": "PASS",
+   "evidence": "register+heartbeat+claim(issue 1520, actual computed epoch 7)+reserve applied; work_card=sha256:c5e27e6b\u2026(packet hash)"
+  },
+  {
+   "n": 5,
+   "name": "coord-verify",
+   "outcome": "PASS",
+   "evidence": "attempt runner1536-continuity-1 phase=reserved, task_epoch=7, embedded spec, digest-bound"
+  },
+  {
+   "n": 6,
+   "name": "pre-stage-submit",
+   "outcome": "PASS",
+   "evidence": "queue == exactly runner1536-continuity-1 with hold in force"
+  },
+  {
+   "n": 7,
+   "name": "hold-release",
+   "outcome": "DONE",
+   "evidence": "pre-checks passed (GitHub reachable, free 41.28 GiB >= 40.125, pressure 1); hold preserved to runner1536-hold-preserved.json; reconciliation record written; admissions-held.json removed 08:15:37Z"
+  },
+  {
+   "n": 8,
+   "name": "continuity-verify",
+   "outcome": "PASS",
+   "evidence": "done/runner1536-continuity-1/exit.json: outcome=completed, exit_status=0, process_state=confirmed_stopped, elapsed 5895ms; ledger charge-v2-65cf0333\u2026: exactly one charge, charged_ms 5895, outcome completed; no admission-blocked.json; no other queue admission"
+  },
+  {
+   "n": 9,
+   "name": "finish-attempt",
+   "outcome": "DONE",
+   "evidence": "reservation finalized (phase=finalized, receipt bound, sha f9ccac2f\u2026). NOTE: claim TTL(1200s) expired during wedge debugging; recovered per protocol via heartbeat + new claim at computed epoch 8 + finish_attempt(epoch 8); issue 1520 lease renewed"
+  }
+ ],
+ "incident_during_execution": {
+  "summary": "launchd-deployed daemon wedged on first post-hold admission: main-thread blocked in host::verify_volume -> fs::read_to_string(sentinel) -> open() on an external volume (/Volumes/UOR-Workspace quarantine-mounted APFS, or /Volumes/X10 Pro exFAT-fskit), reproducibly across debug and release binaries and across restarts, while identical reads succeed from shell context. Foreground (shell-context) execution of the same release daemon admitted and finalized the reserved job cleanly, proving the repaired code and the admission path. Diagnosis: OS-level consent evaluation (TCC removable-volume / Gatekeeper) for the new unsigned binary's cdhash under the launchd bootstrap context; the prior binary's cdhash held an existing grant.",
+  "evidence": "two `sample` stacks identical at verify_volume->read_to_string->open; sentinels readable from shell (stat sizes 46/47/45); codesign identical ad-hoc on all three binaries; bytemuck-popup diagnosis documents the same syspolicyd prompt-block class on the restored volume",
+  "unblock": "Owner grants the OS consent for the new binary (pending prompt on screen, or System Settings > Privacy & Security > Files and Folders / spctl rule). The launchd supervisor is re-deployed and recovers immediately on consent. Stopgap if consent is unavailable: run the supervisor from a consent-holding foreground context (proven), but that is unsupervised and session-bound.",
+  "follow_up": "runner verify_volume has no timeout: a hung sentinel read wedges the daemon silently with no error or blocked record. Recommend a bounded read or explicit unavailable error so future wedges surface as admission-blocked instead of a silent hang."
+ },
+ "hold_state": "RELEASED (admissions-held.json absent; reconciliation record at runner1536-hold-reconciliation-record.json; preserved copy at runner1536-hold-preserved.json)",
+ "non_goals_honored": {
+  "model_experiments": false,
+  "admissions_beyond_continuity": 0,
+  "ledger_changes_beyond_one_charge": false,
+  "pr_1537_merge": "merged separately as d563b02f",
+  "coord_policy_adoption": false
+ }
+}

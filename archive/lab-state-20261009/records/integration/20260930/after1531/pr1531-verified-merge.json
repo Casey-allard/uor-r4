@@ -1,0 +1,24 @@
+{
+  "pr": 1531,
+  "at": "2026-09-30T06:11:51.158050+00:00",
+  "reviewed_head": "aa7bc44dd3b88e5a90cca7f486b412d7f6eb8a26",
+  "merge_commit": "ea03435808c67791b76ae0e9868978e3188cba04",
+  "observed_main": "ea03435808c67791b76ae0e9868978e3188cba04",
+  "merge_is_ancestor_of_main": true,
+  "all_reviewed_files_equal": true,
+  "files": {
+    "docs/evidence/g2-key-probe-2026-09-29.md": {
+      "reviewed_blob": "4be838400b1b082b2aa81d1e1d97e4ef51cbf57f",
+      "merged_blob": "4be838400b1b082b2aa81d1e1d97e4ef51cbf57f"
+    },
+    "docs/evidence/g2-key-probe-2026-09-29.json": {
+      "reviewed_blob": "6fd41b0cc643e6be2309ceecb507698d9703cb8d",
+      "merged_blob": "6fd41b0cc643e6be2309ceecb507698d9703cb8d"
+    },
+    "docs/integration/council-verdict-2026-09-29.md": {
+      "reviewed_blob": "3001dfc1cba42c38593b7cf913bc982416896b01",
+      "merged_blob": "3001dfc1cba42c38593b7cf913bc982416896b01"
+    }
+  },
+  "scope": "Verified protected PR reported MERGED, merge commit present in main and all three reviewed file blobs identical. No parent issue closure inferred."
+}

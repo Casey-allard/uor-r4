@@ -1,0 +1,19 @@
+"FAIL_NUMERICAL_GATE_WINDOW" anchors_match=null; sealed and verified
+        5.51 real         2.84 user         2.24 sys
+          1297645568  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+              101677  page reclaims
+                 620  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                  93  voluntary context switches
+                7884  involuntary context switches
+         56143321472  instructions retired
+         15673712229  cycles elapsed
+          1294157456  peak memory footprint

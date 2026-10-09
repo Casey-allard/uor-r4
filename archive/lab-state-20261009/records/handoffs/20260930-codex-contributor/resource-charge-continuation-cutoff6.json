@@ -1,0 +1,14 @@
+{
+  "schema": "uor-r4.resource-charge/1",
+  "event_id": "recovery-integration-20260930-continuation-cutoff6",
+  "recorded_utc": "2026-09-30T06:03:13.735795+00:00",
+  "lab": "Codex durable lab implementation",
+  "adjustment_ms": 667673,
+  "accounting": {
+    "category": "preparation",
+    "measurement": "estimated",
+    "correction_of": null
+  },
+  "authority": "Owner continuing integration goal and explicit Skrit-Bit review request; existing cumulative allowance.",
+  "rationale": "Nonoverlapping preparation wall envelope since cutoff5. Includes exact-head PR1531 independent final review and executed lightweight documentation checks, owner-confirmed Kimi leadership handoff, bounded OpenCode continuation instructions, and source/exact-arithmetic harmonic mass audit with independent review. Parallel review wall not double-counted. No root Cargo/model/GPU job or production restart. Finite Wolfram arithmetic is research validation, not model evidence. New retained text under1MiB; peer execution charges remain distinct."
+}

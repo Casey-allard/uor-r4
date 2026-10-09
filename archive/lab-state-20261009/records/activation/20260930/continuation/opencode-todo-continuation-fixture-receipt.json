@@ -1,0 +1,84 @@
+{
+  "schema": "uor-r4.opencode-source-fixture/1",
+  "observed_utc": "2026-09-30T04:26:47.057Z",
+  "source_sha256": "e522d513a08d0a6871129dbf3d9c3a79e4871693997fbf34190c4d3fa3d6b4b5",
+  "extracted_source_sha256": "89934f6f43471e7475fc3a648ca87dc6335055d7795e5b42258b1a7c5d6a7d57",
+  "fixture_sha256": "29919080736d78c83fa1b6fbc8388b1c0ae8d6d37bdc42b13e96e7a7a2243a6d",
+  "classification": "SOURCE_EXTRACTED_TODO_IDLE_AND_PROGRESS_LOGIC_WITH_STUB_SDK_AND_COUNTDOWN",
+  "provider_requests": 0,
+  "live_client_calls": 0,
+  "opaque_session_state_mutations": 0,
+  "live_idle_autocontinuation_verified": false,
+  "assertions": [
+    {
+      "name": "unfinished mission and finite task start countdown without keyword",
+      "status": "PASS"
+    },
+    {
+      "name": "running child task suppresses continuation",
+      "status": "PASS"
+    },
+    {
+      "name": "pending child task suppresses continuation",
+      "status": "PASS"
+    },
+    {
+      "name": "pending parent wake suppresses continuation",
+      "status": "PASS"
+    },
+    {
+      "name": "existing injection in flight suppresses countdown",
+      "status": "PASS"
+    },
+    {
+      "name": "unanswered question suppresses continuation",
+      "status": "PASS"
+    },
+    {
+      "name": "aborted latest assistant suppresses continuation",
+      "status": "PASS"
+    },
+    {
+      "name": "context token overflow guard suppresses continuation",
+      "status": "PASS"
+    },
+    {
+      "name": "all completed todos stop continuation",
+      "status": "PASS"
+    },
+    {
+      "name": "three unchanged successful continuation cycles stop at stagnation threshold",
+      "status": "PASS"
+    },
+    {
+      "name": "actual child completion resets stagnation and permits continued mission",
+      "status": "PASS"
+    },
+    {
+      "name": "two failed injections require 20-second cooldown",
+      "status": "PASS"
+    },
+    {
+      "name": "cooldown expiration permits countdown on a later idle event",
+      "status": "PASS"
+    },
+    {
+      "name": "five consecutive failures suppress retry",
+      "status": "PASS"
+    },
+    {
+      "name": "failure count resets after five-minute window on a later idle event",
+      "status": "PASS"
+    },
+    {
+      "name": "cancelled local session suppresses continuation",
+      "status": "PASS"
+    }
+  ],
+  "limitations": [
+    "Real installed decision and progress-store functions; SDK responses, clock, countdown and environment guards are stubbed.",
+    "Does not start timers, inject provider prompts, exercise live background tasks, or verify service restart/session restoration.",
+    "Todo status snapshots are progress proxies; Github evidence remains acceptance authority.",
+    "Cooldown expiry does not create an independent scheduler event."
+  ]
+}

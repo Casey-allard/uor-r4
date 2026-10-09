@@ -1,0 +1,134 @@
+{
+  "schema": "uor-r4.server-delivery/1",
+  "receipt": {
+    "schema": "uor-r4.delivery-receipt/1",
+    "repository": "UOR-Foundation/uor-r4",
+    "pull_request": 1529,
+    "task_issue": 1520,
+    "author_session": "codex-durable-20260929-root",
+    "claim_session": "codex-durable-20260929-root",
+    "claim_epoch": 4,
+    "work_card": "sha256:20b5c440ba12e496f47146d844476c601447edf5c5015dd05bd10b56cbe34889",
+    "head_sha": "c1063bf921057e498c7429c0a4302afc7aae0368",
+    "base_sha": "b3c32170d0643d4f4427c5fd853560b3edd1c077",
+    "change_kind": "docs",
+    "class": "C",
+    "checks": [
+      {
+        "name": "diff-check",
+        "head_sha": "c1063bf921057e498c7429c0a4302afc7aae0368",
+        "base_sha": "b3c32170d0643d4f4427c5fd853560b3edd1c077",
+        "argv": [
+          "git",
+          "diff",
+          "--check",
+          "b3c32170d0643d4f4427c5fd853560b3edd1c077...c1063bf921057e498c7429c0a4302afc7aae0368"
+        ],
+        "exit_code": 0,
+        "outcome": "PASS",
+        "log": {
+          "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/integration-backlog/goals-diff-check-c1063bf9.log",
+          "sha256": "9d7032d40be5684b6afa1d56b45a34f6c7100ed2e3222a7bd06769c65bbef323"
+        }
+      },
+      {
+        "name": "claim-wording",
+        "head_sha": "c1063bf921057e498c7429c0a4302afc7aae0368",
+        "base_sha": "b3c32170d0643d4f4427c5fd853560b3edd1c077",
+        "argv": [
+          "python3",
+          "scripts/check_claim_wording.py"
+        ],
+        "exit_code": 0,
+        "outcome": "PASS",
+        "log": {
+          "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/integration-backlog/goals-claim-wording-c1063bf9.log",
+          "sha256": "890706826f23d6edac2c70da337a7511ed15b98c37234f211cdea5b9fb83de75"
+        }
+      }
+    ],
+    "reviews": [
+      {
+        "review_id": "c1063bf9-independent-1",
+        "reviewer_session": "/root/independent_systems_review",
+        "launched_by": "codex-durable-20260929-root",
+        "head_sha": "c1063bf921057e498c7429c0a4302afc7aae0368",
+        "base_sha": "b3c32170d0643d4f4427c5fd853560b3edd1c077",
+        "decision": "APPROVE",
+        "unresolved_required_fixes": 0,
+        "evidence": {
+          "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/integration-backlog/review1-c1063bf9.md",
+          "sha256": "d8a1f28a6d87ef1a8a88ac404028e47377707dba464abf4476197fbb564810f0"
+        }
+      },
+      {
+        "review_id": "c1063bf9-independent-2",
+        "reviewer_session": "/root/second_council_review",
+        "launched_by": "codex-durable-20260929-root",
+        "head_sha": "c1063bf921057e498c7429c0a4302afc7aae0368",
+        "base_sha": "b3c32170d0643d4f4427c5fd853560b3edd1c077",
+        "decision": "APPROVE",
+        "unresolved_required_fixes": 0,
+        "evidence": {
+          "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/integration-backlog/review2-c1063bf9.md",
+          "sha256": "d47948d1d612528801e2a7a5d6f4ceef0c64af9b52ccc4a5cb584cf06812b4c1"
+        }
+      }
+    ],
+    "result_evidence": null,
+    "result_reader_session": null,
+    "council": {
+      "decision_id": "d17-integration-repair-c1063bf9",
+      "head_sha": "c1063bf921057e498c7429c0a4302afc7aae0368",
+      "base_sha": "b3c32170d0643d4f4427c5fd853560b3edd1c077",
+      "votes": [
+        {
+          "reviewer_session": "codex-durable-20260929-root",
+          "decision": "APPROVE",
+          "reasons": "Exact-head D17 and one-use docs-only policy migration review; reasons in retained council/reader evidence."
+        },
+        {
+          "reviewer_session": "/root/independent_systems_review",
+          "decision": "APPROVE",
+          "reasons": "Exact-head D17 and one-use docs-only policy migration review; reasons in retained council/reader evidence."
+        },
+        {
+          "reviewer_session": "/root/second_council_review",
+          "decision": "APPROVE",
+          "reasons": "Exact-head D17 and one-use docs-only policy migration review; reasons in retained council/reader evidence."
+        }
+      ],
+      "evidence": {
+        "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/integration-backlog/council-c1063bf9.md",
+        "sha256": "5d63893d4ef31b15001c1cd36d25f690765070fa0263670063f009e96c5702ab"
+      }
+    }
+  },
+  "evidence": [
+    {
+      "local_path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/integration-backlog/goals-diff-check-c1063bf9.log",
+      "path": "delivery/evidence/9d7032d40be5684b6afa1d56b45a34f6c7100ed2e3222a7bd06769c65bbef323.txt",
+      "sha256": "9d7032d40be5684b6afa1d56b45a34f6c7100ed2e3222a7bd06769c65bbef323"
+    },
+    {
+      "local_path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/integration-backlog/goals-claim-wording-c1063bf9.log",
+      "path": "delivery/evidence/890706826f23d6edac2c70da337a7511ed15b98c37234f211cdea5b9fb83de75.txt",
+      "sha256": "890706826f23d6edac2c70da337a7511ed15b98c37234f211cdea5b9fb83de75"
+    },
+    {
+      "local_path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/integration-backlog/review1-c1063bf9.md",
+      "path": "delivery/evidence/d8a1f28a6d87ef1a8a88ac404028e47377707dba464abf4476197fbb564810f0.txt",
+      "sha256": "d8a1f28a6d87ef1a8a88ac404028e47377707dba464abf4476197fbb564810f0"
+    },
+    {
+      "local_path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/integration-backlog/review2-c1063bf9.md",
+      "path": "delivery/evidence/d47948d1d612528801e2a7a5d6f4ceef0c64af9b52ccc4a5cb584cf06812b4c1.txt",
+      "sha256": "d47948d1d612528801e2a7a5d6f4ceef0c64af9b52ccc4a5cb584cf06812b4c1"
+    },
+    {
+      "local_path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/integration-backlog/council-c1063bf9.md",
+      "path": "delivery/evidence/5d63893d4ef31b15001c1cd36d25f690765070fa0263670063f009e96c5702ab.txt",
+      "sha256": "5d63893d4ef31b15001c1cd36d25f690765070fa0263670063f009e96c5702ab"
+    }
+  ]
+}

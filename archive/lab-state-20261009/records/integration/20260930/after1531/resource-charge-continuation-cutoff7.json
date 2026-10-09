@@ -1,0 +1,14 @@
+{
+  "schema": "uor-r4.resource-charge/1",
+  "event_id": "recovery-integration-20260930-continuation-cutoff7",
+  "recorded_utc": "2026-09-30T06:12:27.603907+00:00",
+  "lab": "Codex durable lab implementation",
+  "adjustment_ms": 553868,
+  "accounting": {
+    "category": "preparation",
+    "measurement": "estimated",
+    "correction_of": null
+  },
+  "authority": "Owner continuing integration goal and explicit Skrit-Bit review request; existing cumulative allowance.",
+  "rationale": "Nonoverlapping preparation wall since cutoff6: live integration checks, PR1527 retained evidence/source boundary review,13root complete file-set/hash verification130084153bytes (0.30s subset), stored greedy-stream recomparison and scoped review publication; PR1531 merge/file equality verification. No model rerun/Cargo/GPU. New retained review copies below1MiB; peer charges separate."
+}

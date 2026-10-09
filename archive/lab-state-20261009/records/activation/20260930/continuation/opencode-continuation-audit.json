@@ -1,0 +1,74 @@
+{
+  "schema": "uor-r4.opencode-continuation-audit/1",
+  "observed_utc": "2026-09-30T04:28:22.610083+00:00",
+  "installed_plugin_version": "4.19.4",
+  "installed_sdk_version": "1.18.26",
+  "plugin_source_path": "/Users/casey.allard/.cache/opencode/packages/oh-my-openagent/node_modules/oh-my-openagent/dist/index.js",
+  "plugin_source_sha256": "e522d513a08d0a6871129dbf3d9c3a79e4871693997fbf34190c4d3fa3d6b4b5",
+  "configuration_changed": false,
+  "provider_requests": 0,
+  "live_client_calls": 0,
+  "opaque_state_changed": false,
+  "native_goal_enabled_in_observed_config": false,
+  "native_goal_recommendation": "DO_NOT_ENABLE_THIS_INSTALLED_IMPLEMENTATION",
+  "recommended_existing_mechanism": "Parent-session native todowrite plus default-on todo-continuation-enforcer; keep finite evidence-bound tasks and true unfinished mission; do not manufacture todos to defeat stagnation.",
+  "mechanism_verified": "SOURCE_AND_ISOLATED_STUB_FIXTURES_ONLY",
+  "live_automatic_continuation_verified": false,
+  "latest_continuation_metadata": {
+    "sessionID": "ses_f101e5f56ffe1iiYpoTTJ3kqMw",
+    "updatedAt": "2026-09-30T03:57:02.748Z",
+    "sources": {
+      "background-task": {
+        "state": "active",
+        "reason": "2 background task(s) active",
+        "updatedAt": "2026-09-30T03:57:02.748Z"
+      }
+    }
+  },
+  "read_only_sources": [
+    {
+      "path": "/Users/casey.allard/.cache/opencode/packages/oh-my-openagent/node_modules/oh-my-openagent/dist/index.js",
+      "sha256": "e522d513a08d0a6871129dbf3d9c3a79e4871693997fbf34190c4d3fa3d6b4b5"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.omo/omo.jsonc",
+      "sha256": "ed9b396b75115ca0652060d2988420eef5f3e61e8ab19ba96ba931e9e7d406dc"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.opencode/command/proceed-uor-r4.md",
+      "sha256": "128f3e0b48580cd888b7382f94d28fb4ed75bd17c7c08363b947930a85cebcbc"
+    }
+  ],
+  "fixtures": [
+    {
+      "file": "opencode-goal-source-fixture-receipt.json",
+      "sha256": "2dedfdcd141bb1a0e643e07f81367352749e6abf9d45d33315c7169751bac179",
+      "assertions": 15,
+      "classification": "SOURCE_EXTRACTED_STUBBED_CONTROLLER_AND_DISPATCHER_ONLY"
+    },
+    {
+      "file": "opencode-goal-chat-message-fixture-receipt.json",
+      "sha256": "ccf584b4e582f85a443f4d921edf4421835cc2c7cb448e0c865bb5137b05975d",
+      "assertions": 3,
+      "classification": "SOURCE_EXTRACTED_CHAT_HANDLER_WITH_STUB_CONTROLLER"
+    },
+    {
+      "file": "opencode-todo-continuation-fixture-receipt.json",
+      "sha256": "625f090eee0678e0feb27f2157eeb710820b917b5dcf6dd8347fc0a260065b1f",
+      "assertions": 16,
+      "classification": "SOURCE_EXTRACTED_TODO_IDLE_AND_PROGRESS_LOGIC_WITH_STUB_SDK_AND_COUNTDOWN"
+    }
+  ],
+  "primary_docs": [
+    "https://opencode.ai/docs/tools/#todowrite",
+    "https://opencode.ai/docs/commands/"
+  ],
+  "limits": [
+    "No independent scheduler while OpenCode/host is offline.",
+    "No proven automatic quota-reset wake or durable cross-process single-flight.",
+    "Todo stagnation measures todo snapshots; use GitHub evidence for real progress.",
+    "Goal hook auto_start:false does not prevent ordinary follow-up replacing objective.",
+    "Goal iteration cap and usage accounting are not wired in installed hook.",
+    "Stop-continuation cancels descendant background tasks and clears project boulder state."
+  ]
+}

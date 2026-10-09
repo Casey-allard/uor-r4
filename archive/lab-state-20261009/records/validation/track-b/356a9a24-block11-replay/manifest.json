@@ -1,0 +1,327 @@
+{
+  "files": [
+    {
+      "blake3": "84178e0a74a5f6f116c64877c0d7cd0396dd9ac58336732a1ad16b86093b19a3",
+      "bytes": 548,
+      "path": "attempt.json"
+    },
+    {
+      "blake3": "62d867ab06c928c17f9093f074d142627ed0a9f7847edbde0bb32b279579eaa3",
+      "bytes": 18432,
+      "path": "cpu-native-after_attention.f32le"
+    },
+    {
+      "blake3": "38322c64ad643568af58072264bc447340a9b059ab35ae7c7fccde56c65c6f02",
+      "bytes": 18432,
+      "path": "cpu-native-attended.f32le"
+    },
+    {
+      "blake3": "0be3e0b9b8ceae71d839b6ec0406e274bfce315a25691340933d197dd8ea448a",
+      "bytes": 18432,
+      "path": "cpu-native-attention_output.f32le"
+    },
+    {
+      "blake3": "f48691a4f0fc8407549dab1c1166dc35edaa78baf1ba47d516a96d1b02cd6bcc",
+      "bytes": 18432,
+      "path": "cpu-native-down.f32le"
+    },
+    {
+      "blake3": "ac6f0452ce28e69a8d9722f0dbdd6ffe764b6c6137d4d68f26d1f3f582a1425e",
+      "bytes": 49152,
+      "path": "cpu-native-gate.f32le"
+    },
+    {
+      "blake3": "224066181837fa0f823d3f55180e7cd453db400478b2ea52d90f92405d74246e",
+      "bytes": 49152,
+      "path": "cpu-native-gate_pre.f32le"
+    },
+    {
+      "blake3": "f18a7a55d8232c841da0b61523db234768ff2b580a805f34498dfbd53cb6d5a5",
+      "bytes": 49152,
+      "path": "cpu-native-gated.f32le"
+    },
+    {
+      "blake3": "8c18b74bda7948f2039c478a5e911d8e10707543904e997b7c53d7a8ecb2cf2c",
+      "bytes": 18432,
+      "path": "cpu-native-output.f32le"
+    },
+    {
+      "blake3": "85f5153650fdb9a9a73dad03bf1367cf005ba097034e48f4c76b7cbb7212b37a",
+      "bytes": 18432,
+      "path": "cpu-native-post_norm.f32le"
+    },
+    {
+      "blake3": "c70019dd78c862e4130902675dcacff524e712f30b53633a4c82737a1b5f1102",
+      "bytes": 49152,
+      "path": "cpu-native-up.f32le"
+    },
+    {
+      "blake3": "910a82c50e3d5df080b02dc3380e16c49c4d05b1d46a7966845d052998549029",
+      "bytes": 18432,
+      "path": "cpu-reference_qkv-after_attention.f32le"
+    },
+    {
+      "blake3": "b32d1ecfdf501bcca2effa61d3f6fbf48ad5b4bcc936f028f72792a9ef891512",
+      "bytes": 18432,
+      "path": "cpu-reference_qkv-attended.f32le"
+    },
+    {
+      "blake3": "a6a32114c4ae1538831c4f2e51d5e068804dbf20ec53f1abd23d42b2a616e797",
+      "bytes": 18432,
+      "path": "cpu-reference_qkv-attention_output.f32le"
+    },
+    {
+      "blake3": "d6a9bb04999bdf895bf9238a6dd82007001208605ba0c907a4c257ea5616e7c7",
+      "bytes": 18432,
+      "path": "cpu-reference_qkv-down.f32le"
+    },
+    {
+      "blake3": "03eebcb4f95e71a959bdad05d3615efc268ee2cf131e58962b6a12a9aa424f44",
+      "bytes": 49152,
+      "path": "cpu-reference_qkv-gate.f32le"
+    },
+    {
+      "blake3": "2bc4f57b62efe81c11a4ce417557c5d703f6d9d5802681d54c994ecc47b16eb3",
+      "bytes": 49152,
+      "path": "cpu-reference_qkv-gate_pre.f32le"
+    },
+    {
+      "blake3": "1f6aed0fdbdabe9d5a6a1a46ac1c4aa525799828684560458a6da7bf60f8103f",
+      "bytes": 49152,
+      "path": "cpu-reference_qkv-gated.f32le"
+    },
+    {
+      "blake3": "0be340c115827edbf9675bfd99ae61c26d44bc4508fd1ef8621a88ed72ee70f4",
+      "bytes": 18432,
+      "path": "cpu-reference_qkv-output.f32le"
+    },
+    {
+      "blake3": "8efa794d52178f11aaf9b9d1f0614f4f65acc0326b4f5067e460bb280e8b2e62",
+      "bytes": 18432,
+      "path": "cpu-reference_qkv-post_norm.f32le"
+    },
+    {
+      "blake3": "601f43f47d99f5359d2a96bd66e612d8c128fbc75c9b3591824a6dd07b98eaea",
+      "bytes": 49152,
+      "path": "cpu-reference_qkv-up.f32le"
+    },
+    {
+      "blake3": "d3cc4758490ca0d5c420eb613450778c09d5a86bf2b703102ab989d6295e6683",
+      "bytes": 18432,
+      "path": "cpu-reference_qkv_source_attention-after_attention.f32le"
+    },
+    {
+      "blake3": "2ab35e5ded7d71225c6a61264a5560c823e390c851286b290b8920808154c566",
+      "bytes": 18432,
+      "path": "cpu-reference_qkv_source_attention-attended.f32le"
+    },
+    {
+      "blake3": "0cc61f7b06cca2bad4b2bf1c6c6bfaab5cd1b858fde9d49d40af146fa1bce333",
+      "bytes": 18432,
+      "path": "cpu-reference_qkv_source_attention-attention_output.f32le"
+    },
+    {
+      "blake3": "9dbc4090dc2cfd5b86479c77f92ae111505ab7f430d70eda7e8e4f85664c91bd",
+      "bytes": 18432,
+      "path": "cpu-reference_qkv_source_attention-down.f32le"
+    },
+    {
+      "blake3": "154fc9e735216a306bce7460dc01d8f8d86de6b7b62b5d53d5dfe1a04b14db57",
+      "bytes": 49152,
+      "path": "cpu-reference_qkv_source_attention-gate.f32le"
+    },
+    {
+      "blake3": "5ccb27de5920a1a6c0d30ac84192232b80c5011bf553c806b77a354f4e1c27e4",
+      "bytes": 49152,
+      "path": "cpu-reference_qkv_source_attention-gate_pre.f32le"
+    },
+    {
+      "blake3": "6d74512878df19f61746acfc99cf83b44c852692ceb00ac35b8f29379fea9496",
+      "bytes": 49152,
+      "path": "cpu-reference_qkv_source_attention-gated.f32le"
+    },
+    {
+      "blake3": "757f1072fb87d7c3209c3c321d33d928e0df2e48738d775eee135c784c75cece",
+      "bytes": 18432,
+      "path": "cpu-reference_qkv_source_attention-output.f32le"
+    },
+    {
+      "blake3": "7f7c15db43613087bf86cb95a573f0201ae8d29ab283e8f282031ce9d67a7e5d",
+      "bytes": 18432,
+      "path": "cpu-reference_qkv_source_attention-post_norm.f32le"
+    },
+    {
+      "blake3": "fb1b8acf84ac14b64624fd9e78d88428f8ff916f4f35f7474109c9e7288af556",
+      "bytes": 49152,
+      "path": "cpu-reference_qkv_source_attention-up.f32le"
+    },
+    {
+      "blake3": "368fa5911cfba76f656cd74dc4e28cd30462f32f42178b85b7aefe2e891d6877",
+      "bytes": 5046,
+      "path": "inputs.json"
+    },
+    {
+      "blake3": "99c731e3bad11c5bc52353348bcb9712045eefa161d7515ed602184f43c5de95",
+      "bytes": 18432,
+      "path": "metal-native-after_attention.f32le"
+    },
+    {
+      "blake3": "90f02e0af9bbc0f008cff35eb964ed3e97b586975520eb0530ab4673256479bb",
+      "bytes": 18432,
+      "path": "metal-native-attended.f32le"
+    },
+    {
+      "blake3": "8ee4048f521f0a9a61f54cfc3391c083ada551c37e20edc4dfee17089b93556a",
+      "bytes": 18432,
+      "path": "metal-native-attention_output.f32le"
+    },
+    {
+      "blake3": "01c9ff88c02ccbfd5ab6b3dd901c59a043bcc68c07e645142a4c92003b4c5df3",
+      "bytes": 18432,
+      "path": "metal-native-down.f32le"
+    },
+    {
+      "blake3": "078332f18008a76dfac832d4e58f9ce32361e6cb0910f0e1ad3aaecd36b78dfe",
+      "bytes": 49152,
+      "path": "metal-native-gate.f32le"
+    },
+    {
+      "blake3": "548c253d3dc50271563333ab006e4b35586c68fcd954d0fc8680c9b215b6a2dd",
+      "bytes": 49152,
+      "path": "metal-native-gate_pre.f32le"
+    },
+    {
+      "blake3": "a528d80afc4a14217c925f5fb5cea5564815ff2f5c7b248017d409514d2bd38b",
+      "bytes": 49152,
+      "path": "metal-native-gated.f32le"
+    },
+    {
+      "blake3": "f5d0b183d0afd3f27bef576fcf1553b9d1eaa5c59bfbb2d69ec3e3051e2c67b8",
+      "bytes": 18432,
+      "path": "metal-native-output.f32le"
+    },
+    {
+      "blake3": "4abc9ffad536adc9a5e994dba027fd72671925e6a3cce7df7e4b327d77fc5b18",
+      "bytes": 18432,
+      "path": "metal-native-post_norm.f32le"
+    },
+    {
+      "blake3": "18bf9e19e9c179740d34c9438dbbb09dd9421e002c17f98f7583b5aa77fa37f9",
+      "bytes": 49152,
+      "path": "metal-native-up.f32le"
+    },
+    {
+      "blake3": "1ec88b05f11f2b4713633fcbfdf7d381aeb6dbc67b5be9be2d910ddec89b79b0",
+      "bytes": 18432,
+      "path": "metal-reference_qkv-after_attention.f32le"
+    },
+    {
+      "blake3": "b90a698c951647f014af2637a4db2fa51e461d09bdef505177cab339e0b17327",
+      "bytes": 18432,
+      "path": "metal-reference_qkv-attended.f32le"
+    },
+    {
+      "blake3": "39b58ebb692de14e923e30479bf2b86cb5d28e017808bcb14a4cfb81d0d3198b",
+      "bytes": 18432,
+      "path": "metal-reference_qkv-attention_output.f32le"
+    },
+    {
+      "blake3": "5cfbf2a3b01434804958b4a645900dd4c949fb55321f9ee2fe22390b75f1f137",
+      "bytes": 18432,
+      "path": "metal-reference_qkv-down.f32le"
+    },
+    {
+      "blake3": "9bd596e50e9e3fc3d06d704c9ddb2af2a9750e20795b55fcc48386cd714f4a23",
+      "bytes": 49152,
+      "path": "metal-reference_qkv-gate.f32le"
+    },
+    {
+      "blake3": "088548188f306dbd7120b4d0d58fdf9bcd40a145b73af4ad0f3b9d8f3528a75d",
+      "bytes": 49152,
+      "path": "metal-reference_qkv-gate_pre.f32le"
+    },
+    {
+      "blake3": "1832474b3ff5de01407365011550fcb46d9a2ce80a780f66cab69c0b32dcc425",
+      "bytes": 49152,
+      "path": "metal-reference_qkv-gated.f32le"
+    },
+    {
+      "blake3": "831e4ce78ad31f7f49e53263b68aa9ee7d9b2991f4c92739c8a96333190c27f9",
+      "bytes": 18432,
+      "path": "metal-reference_qkv-output.f32le"
+    },
+    {
+      "blake3": "e7574028243603b7a536ef0d435b264603903881901be00f2eaa1b8b7b12f78d",
+      "bytes": 18432,
+      "path": "metal-reference_qkv-post_norm.f32le"
+    },
+    {
+      "blake3": "2113832cc948298be30279f9089e58c8977137b873ae547d8191830d1739b6aa",
+      "bytes": 49152,
+      "path": "metal-reference_qkv-up.f32le"
+    },
+    {
+      "blake3": "d3cc4758490ca0d5c420eb613450778c09d5a86bf2b703102ab989d6295e6683",
+      "bytes": 18432,
+      "path": "metal-reference_qkv_source_attention-after_attention.f32le"
+    },
+    {
+      "blake3": "2ab35e5ded7d71225c6a61264a5560c823e390c851286b290b8920808154c566",
+      "bytes": 18432,
+      "path": "metal-reference_qkv_source_attention-attended.f32le"
+    },
+    {
+      "blake3": "0cc61f7b06cca2bad4b2bf1c6c6bfaab5cd1b858fde9d49d40af146fa1bce333",
+      "bytes": 18432,
+      "path": "metal-reference_qkv_source_attention-attention_output.f32le"
+    },
+    {
+      "blake3": "fe9727a94a37d8ba81129fe5b686020c0fae56a357afbd95fcb08e1f3dcdf19f",
+      "bytes": 18432,
+      "path": "metal-reference_qkv_source_attention-down.f32le"
+    },
+    {
+      "blake3": "66a2565891e6204a00bf475c57c0d65d957cf0aca12792e2a8439d5de412d649",
+      "bytes": 49152,
+      "path": "metal-reference_qkv_source_attention-gate.f32le"
+    },
+    {
+      "blake3": "74ce164cb46b10569584e66662101dd548905fe34afa7112aa21b6b4a80c091e",
+      "bytes": 49152,
+      "path": "metal-reference_qkv_source_attention-gate_pre.f32le"
+    },
+    {
+      "blake3": "9c69d69835729d71d7f5ec2a6963259141709fe45291cbbbc69a0502745f87f5",
+      "bytes": 49152,
+      "path": "metal-reference_qkv_source_attention-gated.f32le"
+    },
+    {
+      "blake3": "8cb8d5301ad050a111e0cb6d720e46c827a7f06274e005ef68cceb7aef38fcff",
+      "bytes": 18432,
+      "path": "metal-reference_qkv_source_attention-output.f32le"
+    },
+    {
+      "blake3": "7359e1148a009b993ca43be44babde1b673c261fe931a627460c088e185e7cd5",
+      "bytes": 18432,
+      "path": "metal-reference_qkv_source_attention-post_norm.f32le"
+    },
+    {
+      "blake3": "5761839946c4adf2ed4b72894057ffabf6abb6ff40b7596da4365bfba9344bda",
+      "bytes": 49152,
+      "path": "metal-reference_qkv_source_attention-up.f32le"
+    },
+    {
+      "blake3": "d10d1e31135bceac9c3be9fdcd46854efb34f40d1fe9bf7c691b148331c97e29",
+      "bytes": 226535,
+      "path": "result.json"
+    },
+    {
+      "blake3": "2ab35e5ded7d71225c6a61264a5560c823e390c851286b290b8920808154c566",
+      "bytes": 18432,
+      "path": "source-attended.f32le"
+    }
+  ],
+  "root": "/Volumes/UOR-Workspace/uor-r4-models/track-b/block11-replay-356a9a24-20260930",
+  "schema": "uor-r4.report-manifest/1",
+  "sealed_at": "1790786074"
+}

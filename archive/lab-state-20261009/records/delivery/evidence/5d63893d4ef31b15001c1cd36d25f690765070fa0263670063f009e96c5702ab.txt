@@ -1,0 +1,9 @@
+# D17 and integration goals: exact-head council decision
+
+PR1529 head c1063bf921057e498c7429c0a4302afc7aae0368; base b3c32170d0643d4f4427c5fd853560b3edd1c077.
+
+Three seats: author/steward codex-durable-20260929-root APPROVE; independent non-author /root/independent_systems_review APPROVE; independent non-author /root/second_council_review APPROVE. Root has read the full final change and both exact reviews. The separate reader receipts contain reasons, zero unresolved required fixes and same-provider/root-launcher disclosure. This is procedural independence, not separate GitHub-account attestation.
+
+Root reasons: direct owner instruction retains transformer-free architecture; disjoint signed parity decisions correct an actual ambiguity without changing old results; complete goals and preserved branch inventory address orphaned work; exact one-use docs-only migration is necessary after the unreviewed1522 policy merge caused circular adoption/delivery prerequisites. This council approvesD17 and its precisely bounded repair, not retroactive activation of every historical D16 proposal or a fabricated1522premergegate. Two non-author votes and real epoch4/card/successor identities are verified. All mandatory GitHub protections remain; no fabricated statuses, admin/directmain/force/code/modelchange or new resource admission. Any head/base change requires renewed binding.
+
+The existing claim retains original card sha256:20b5c440ba12e496f47146d844476c601447edf5c5015dd05bd10b56cbe34889. Its checkpoint names successor card sha256:07ea1917ed584251a160c51bdc79618b62478e639e7464304c422962b6ab4464. The exception authorizes this exact docs-only delivery through normal protected GitHub queue while preserving the coordinator's actual policy-currency failure. After verified merge, drain/release claims and use normalAdoptPolicywiththisClassCreceipt. The exception thenexpires.

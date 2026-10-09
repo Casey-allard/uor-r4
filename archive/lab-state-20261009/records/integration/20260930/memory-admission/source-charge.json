@@ -1,0 +1,14 @@
+{
+  "schema": "uor-r4.resource-charge/1",
+  "event_id": "memory-admission-source-20260930-a",
+  "recorded_utc": "2026-09-30T13:28:21.879577+00:00",
+  "lab": "Codex durable lab implementation",
+  "adjustment_ms": 720000,
+  "accounting": {
+    "category": "preparation",
+    "measurement": "estimated",
+    "correction_of": null
+  },
+  "authority": "Explicit owner request to fix memory-pressure admission",
+  "rationale": "Estimated12minutes active source implementation, isolated checkout, independent reviews and protected PR/handoff preparation, parallel reviewers counted once. No model/build execution. Prior owner-unblock charge and peer G1a excluded."
+}

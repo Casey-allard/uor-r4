@@ -1,0 +1,32 @@
+{
+  "timestamp": "2026-09-30T14:25:38.782983+00:00",
+  "daemon": {
+    "pid": 41632,
+    "production": true,
+    "started": "2026-09-30T14:24:26Z"
+  },
+  "command": "/Users/casey.allard/.local/share/uor-r4/bin/lab-runner-04981eb2-debug --root /Users/casey.allard/.local/share/uor-r4/runner --ledger-dir /Users/casey.allard/.local/share/uor-r4/ledger daemon",
+  "volumes": [
+    {
+      "id": "internal",
+      "uuid": "B5F170C6-F77F-4B7C-B795-CA9D20CA2FC5",
+      "free_bytes": 49551765504
+    },
+    {
+      "id": "workspace",
+      "uuid": "DAB4FDD9-1A7A-4ECB-A6D7-41D6D853F7CF",
+      "free_bytes": 455686848512
+    },
+    {
+      "id": "backing",
+      "uuid": "FAA849BB-9211-3E8D-A75D-DC3B45E087E6",
+      "free_bytes": 2641658642432
+    }
+  ],
+  "max_jobs": 8,
+  "admission_enabled": true,
+  "pressure_max": 1,
+  "verification": "Actual installed CLI under launchd verified pinned source, executable and all3volume sentinels; exit0. No model job, no coordinator reservation needed for direct check.",
+  "known_limitation": "Attempt6 intermittent failclosed process observation remains recorded; supervised concurrency has unit evidence, not yet measured production overlap.",
+  "policy_sha256": "5d0ef0319161b23150403a819767ef605cdbfb71ef6d1ba9567a6259a8890e9c"
+}

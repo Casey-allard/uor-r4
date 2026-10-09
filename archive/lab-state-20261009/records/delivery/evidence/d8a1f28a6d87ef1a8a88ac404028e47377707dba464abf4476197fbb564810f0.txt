@@ -1,0 +1,50 @@
+# Independent review 1 — PR #1529
+
+Decision: **APPROVE**. Class: **C**. Unresolved required source/documentation fixes: **0**.
+Council vote: **APPROVE** the exact D17 proposal, integration queue and complete lab goals at the head below, including the one-use PR #1529 policy-migration exception. This is one non-author seat, not a statement that the other seats or final delivery have completed.
+
+- Repository: UOR-Foundation/uor-r4
+- PR: https://github.com/UOR-Foundation/uor-r4/pull/1529
+- Exact reviewed head: `c1063bf921057e498c7429c0a4302afc7aae0368`
+- Exact reviewed base: `b3c32170d0643d4f4427c5fd853560b3edd1c077`
+- Reviewer/session: `/root/independent_systems_review`
+- Launcher: `/root`; provider: same Codex provider as the author. This was a distinct non-author read/reasoning pass, not provider diversity. I wrote no implementation or proposed-policy text.
+
+## Scope and conclusion
+
+I read current AGENTS and docs/labs/protocol, the full changed authority/queue/navigation documents, the shared standalone-goal contract, each lab's complete assignment delta, and the final b27fcdd2-to-c1063bf9 delta. I checked the existing coordinator's policy-adoption and council-receipt validation boundaries to determine whether the proposed migration can return to normal operation. This review does not claim that a prospective workflow, prompt, adapter or model-checkpoint capability has been deployed or exercised merely because documentation describes it.
+
+D17 preserves the owner's directly reaffirmed transformer-free requirement. Conversion must remove the transformer architecture; integer weights, sparse reads or a numerical audit alone cannot qualify it. The historical D15 account remains visibly subordinate to this explicit current clarification. No mission relaxation, new paid compute or model promotion is authorized.
+
+The prospective parity function has mutually exclusive two-observation branches and one explicit third-observation tie-break branch. Equality retains at the declared tolerance; advantage has a stronger, separate condition. Missing/nonfinite observations are neither automatic passes nor replacements. It preserves prior measurements and verdicts and cannot retroactively create a pass. The criteria remain scoped experimental decisions, not statistical proof of frontier parity or whole-model qualification.
+
+The integration queue and assignments route concrete observed source/evidence defects to narrow corrective successors, preserve original negatives, bind review to current heads, and require delivery/disposition before accumulating new branches. The OpenCode/A1/integer selector consumers are explicitly coordinated. Provider labels do not establish running labs, exclusive permanent ownership or reviewer validity. All five standalone prompts carry the same shared contract, including daily storage inventory and weekly/post-change representative restore cadence.
+
+## One-use policy recovery vote
+
+I approve the narrow correction because the live state and source demonstrate the actual migration problem, while the proposal retains protected GitHub delivery and independent evidence gates. A read-only GitHub state inspection showed:
+
+- operational policy `7895501d4e08ed50d8f716a494427a03d9020ca2`;
+- task #1520 held by real session `codex-durable-20260929-root`, epoch 4;
+- original work card `sha256:20b5c440ba12e496f47146d844476c601447edf5c5015dd05bd10b56cbe34889`;
+- its checkpoint names the retained successor card with SHA-256 `07ea1917ed584251a160c51bdc79618b62478e639e7464304c422962b6ab4464`, matching the actual local file bytes;
+- both continuity-pilot attempts were finalized, with no new pilot created to manufacture continuity evidence.
+
+The successor explicitly expands the documentation scope to DECISIONS and the historical council record; it does not silently replace the old immutable claim/card. The ordinary coordinator's policy-current rejection must be retained honestly. I authorize the procedural steward exception only for this docs-only PR #1529 and the exact reviewed head/base, subject to executed documentation checks, both non-author approvals, all three identified council votes, a current real epoch-4 claim, no outstanding required findings, and ordinary protected queue admission pinned to this head. This review is not permission for an admin merge, fabricated status, direct main push, source/model changes, resource admission or a reusable coordinator bypass.
+
+After protected merge, the steward must verify the delivered patch, preserve the receipt and incident, release/drain claims, reconcile attempts, and use ordinary AdoptPolicy against that exact merged correction. New claims and execution remain fenced until this succeeds. Source inspection confirms AdoptPolicy validates the genuine Class C receipt and exact reviewed/merged PR rather than requiring a fabricated earlier acceptance. The exception ends on this successful migration.
+
+## Executed check evidence inspected
+
+`goals-checks-final.json` binds both executed checks to the final head/base. I read both log files and independently verified their SHA-256 identities:
+
+- `git diff --check`: exit 0; log SHA-256 `9d7032d40be5684b6afa1d56b45a34f6c7100ed2e3222a7bd06769c65bbef323`.
+- `python3 scripts/check_claim_wording.py`: exit 0; log SHA-256 `890706826f23d6edac2c70da337a7511ed15b98c37234f211cdea5b9fb83de75`.
+
+I additionally checked all 47 relative file destinations in the ten changed Markdown files: no missing local destination. The shared contract following “Continuing objective and authority” is byte-identical across all five standalone goals. Receipt: `review1-doc-consistency-c1063bf9.json`. This checks file destinations and common text, not every web URL or rendered anchor. I independently confirmed GitHub PR #1529 still exposes this exact head and base. No Cargo/model/GPU execution was needed or performed for this documentation change; queue acknowledgment jobs are not tests.
+
+## Delivery and operational limits
+
+The PR body should describe the final D17/owner-boundary/parity/migration scope as well as the goals/queue before admission. Live cleanup, free-space changes and host state should be published as fresh operational receipts, since the queue's recovery paragraph is an inventory-time snapshot. The source approval is not an approval of deletion, the remaining administrator setup, automatic client adapters, useful conversation, live token-exhaustion handoff, or any model promotion. These retain their own acceptance requirements.
+
+Reviewed UTC: 2026-09-30T03:19:14.381186+00:00

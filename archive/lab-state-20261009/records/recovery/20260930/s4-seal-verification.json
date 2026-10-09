@@ -1,0 +1,240 @@
+{
+  "schema": "uor-r4.recovery-seal-audit/1",
+  "status": "VERIFIED",
+  "utility_sha256": "541867c921874efbc4010a157c5c84852176b98ddc506bce430b60c224b0b5d0",
+  "elapsed_s": 0.381598625001061,
+  "file_count": 18,
+  "self_tests": "empty and abc BLAKE3 known-answer vectors passed before file hashing",
+  "records": [
+    {
+      "root": "/Volumes/UOR-Recovery-Audit-20260929/uor-r4-lab/kimi-s4-fit-20260929/arm-a-posthoc-snap-1",
+      "manifest_sha256": "8d26404bd832b30f5e8ad5fe1a726582ca64f680fd632052e2b4672c3c1f3478",
+      "schema": "uor-r4.report-manifest/1",
+      "files": [
+        {
+          "blake3": "7a41b03708eb64af7a15c3e9ca2d8416a1138c661e30571eddeded864edebb85",
+          "bytes": 579,
+          "path": "attempt.json",
+          "actual_bytes": 579,
+          "size_equal": true,
+          "sha256": "da0253b5a2d63209ee8d2f261244a51841047344ed28c144bb2258fca7088e4a",
+          "blake3_status": "MATCH",
+          "actual_blake3": "7a41b03708eb64af7a15c3e9ca2d8416a1138c661e30571eddeded864edebb85"
+        },
+        {
+          "blake3": "fedde72f3cafcd77749f130d53e8c2615a966b6b145378f013102061e37913d9",
+          "bytes": 1404,
+          "path": "snap.json",
+          "actual_bytes": 1404,
+          "size_equal": true,
+          "sha256": "77cd96664a8214d3905e9adfb468bfce92f035be056293d060ceaca599f9b52b",
+          "blake3_status": "MATCH",
+          "actual_blake3": "fedde72f3cafcd77749f130d53e8c2615a966b6b145378f013102061e37913d9"
+        }
+      ],
+      "missing_files": [],
+      "unlisted_files": [],
+      "seal_status": "VERIFIED"
+    },
+    {
+      "root": "/Volumes/UOR-Recovery-Audit-20260929/uor-r4-lab/kimi-s4-fit-20260929/arm-a-snap-1",
+      "manifest_sha256": "2aabdc7371dd9c9968fee3c55edd9eaf8e838e91c5ee794ecc5acd5fd4a53511",
+      "schema": "uor-r4.report-manifest/1",
+      "files": [
+        {
+          "blake3": "8496f16925743329b25f1794b452ff67434bc274caddbc87d275985ff4565d26",
+          "bytes": 1680,
+          "path": "attempt.json",
+          "actual_bytes": 1680,
+          "size_equal": true,
+          "sha256": "f996a262becd5b4417cd512fb3f08a47e609cc9b7e6bb33cf81fc711b1d74889",
+          "blake3_status": "MATCH",
+          "actual_blake3": "8496f16925743329b25f1794b452ff67434bc274caddbc87d275985ff4565d26"
+        },
+        {
+          "blake3": "9e48dea07a6da60efddcab2220c3b56031934eff7704befe46da4cbb79df207e",
+          "bytes": 193,
+          "path": "model/config.json",
+          "actual_bytes": 193,
+          "size_equal": true,
+          "sha256": "2db5da637cc806d992aa56869ad462fdf6902e6d5515de90b457b4ac2f23ac1c",
+          "blake3_status": "MATCH",
+          "actual_blake3": "9e48dea07a6da60efddcab2220c3b56031934eff7704befe46da4cbb79df207e"
+        },
+        {
+          "blake3": "158e15fdeab09781f77685700e65c67b06b9f2447c387359fb58603077da3e37",
+          "bytes": 28622728,
+          "path": "model/model.safetensors",
+          "actual_bytes": 28622728,
+          "size_equal": true,
+          "sha256": "2b3b568141dfe213dd85e4d67e9ce0018e802f0654ee73ea10c7e552fc327b96",
+          "blake3_status": "MATCH",
+          "actual_blake3": "158e15fdeab09781f77685700e65c67b06b9f2447c387359fb58603077da3e37"
+        },
+        {
+          "blake3": "bda224643b040d0aec24d15f6f265624fc9274ed77c092330aca5a9fa10aba16",
+          "bytes": 527,
+          "path": "model/transport.json",
+          "actual_bytes": 527,
+          "size_equal": true,
+          "sha256": "89e19aa43c0c0485fb2e1b9e3bef98ec67652e1b8da5dc143da03a8bab9bd1a2",
+          "blake3_status": "MATCH",
+          "actual_blake3": "bda224643b040d0aec24d15f6f265624fc9274ed77c092330aca5a9fa10aba16"
+        },
+        {
+          "blake3": "675944d470a1df16d5a02a4800c5c10fa1cbdb355d70fb8eee157b3e06b2ea01",
+          "bytes": 183333,
+          "path": "report.json",
+          "actual_bytes": 183333,
+          "size_equal": true,
+          "sha256": "7647f73b46f31c6f2db534f1d44d69a796ff6d684a60f550f884b033f3bf0474",
+          "blake3_status": "MATCH",
+          "actual_blake3": "675944d470a1df16d5a02a4800c5c10fa1cbdb355d70fb8eee157b3e06b2ea01"
+        }
+      ],
+      "missing_files": [],
+      "unlisted_files": [],
+      "seal_status": "VERIFIED"
+    },
+    {
+      "root": "/Volumes/UOR-Recovery-Audit-20260929/uor-r4-lab/kimi-s4-fit-20260929/arm-b-control-1",
+      "manifest_sha256": "e4926422c34a983e20bbd5f3ab93ac6ea52edf9a36ca0013fbc1bcf23c9cff8b",
+      "schema": "uor-r4.report-manifest/1",
+      "files": [
+        {
+          "blake3": "d4d87afe9e550400d8d523c919573ba14be944fc8f7f9976edb59b974187796b",
+          "bytes": 1679,
+          "path": "attempt.json",
+          "actual_bytes": 1679,
+          "size_equal": true,
+          "sha256": "b2d45b1c66a474b0c85fd2b8b3d6ab3e2a99ec9f14cb8c9d5c0eb91bf216aa90",
+          "blake3_status": "MATCH",
+          "actual_blake3": "d4d87afe9e550400d8d523c919573ba14be944fc8f7f9976edb59b974187796b"
+        },
+        {
+          "blake3": "9e48dea07a6da60efddcab2220c3b56031934eff7704befe46da4cbb79df207e",
+          "bytes": 193,
+          "path": "model/config.json",
+          "actual_bytes": 193,
+          "size_equal": true,
+          "sha256": "2db5da637cc806d992aa56869ad462fdf6902e6d5515de90b457b4ac2f23ac1c",
+          "blake3_status": "MATCH",
+          "actual_blake3": "9e48dea07a6da60efddcab2220c3b56031934eff7704befe46da4cbb79df207e"
+        },
+        {
+          "blake3": "b13188063e6b6e7753e573d20d1e5003ee6ad97e47ba8a75584545aaed9b09a0",
+          "bytes": 28622728,
+          "path": "model/model.safetensors",
+          "actual_bytes": 28622728,
+          "size_equal": true,
+          "sha256": "fcc3099b3ac544758fb2f8d3717f412fe46186b3d7da6b38cf690e01c2a07b80",
+          "blake3_status": "MATCH",
+          "actual_blake3": "b13188063e6b6e7753e573d20d1e5003ee6ad97e47ba8a75584545aaed9b09a0"
+        },
+        {
+          "blake3": "2a380ceed256e256d3319c633edb8e774a6809d01538516ed3f0d95f1367a16f",
+          "bytes": 119764,
+          "path": "report.json",
+          "actual_bytes": 119764,
+          "size_equal": true,
+          "sha256": "e5c898553567653cdf68ccb6ad1544c559ad42a843580fca9a31a8d7f97a56a1",
+          "blake3_status": "MATCH",
+          "actual_blake3": "2a380ceed256e256d3319c633edb8e774a6809d01538516ed3f0d95f1367a16f"
+        }
+      ],
+      "missing_files": [],
+      "unlisted_files": [],
+      "seal_status": "VERIFIED"
+    },
+    {
+      "root": "/Volumes/UOR-Recovery-Audit-20260929/uor-r4-lab/kimi-s4-fit-20260929/arm-b-posthoc-response-1",
+      "manifest_sha256": "56d29a49d6e6c1804be1a16ea3764e8dd286897453401d9341147d1370b4c287",
+      "schema": "uor-r4.report-manifest/1",
+      "files": [
+        {
+          "blake3": "caeb5b96c991e678c15597914f3b475f70d40904bcd82c04e2e4621da4b7f8f0",
+          "bytes": 1690,
+          "path": "attempt.json",
+          "actual_bytes": 1690,
+          "size_equal": true,
+          "sha256": "cde2e856de96514776c935f546948f01e70052c581c9376039c6800895d3b3ce",
+          "blake3_status": "MATCH",
+          "actual_blake3": "caeb5b96c991e678c15597914f3b475f70d40904bcd82c04e2e4621da4b7f8f0"
+        },
+        {
+          "blake3": "9e48dea07a6da60efddcab2220c3b56031934eff7704befe46da4cbb79df207e",
+          "bytes": 193,
+          "path": "model/config.json",
+          "actual_bytes": 193,
+          "size_equal": true,
+          "sha256": "2db5da637cc806d992aa56869ad462fdf6902e6d5515de90b457b4ac2f23ac1c",
+          "blake3_status": "MATCH",
+          "actual_blake3": "9e48dea07a6da60efddcab2220c3b56031934eff7704befe46da4cbb79df207e"
+        },
+        {
+          "blake3": "0a5559cc8bfa0e6d61bfdea03db218734a190d86294c4c97029562934b621b79",
+          "bytes": 28622728,
+          "path": "model/model.safetensors",
+          "actual_bytes": 28622728,
+          "size_equal": true,
+          "sha256": "a46debba42436afdfa29217ae9cc442a1149d833efc067280f55345b3240b6a8",
+          "blake3_status": "MATCH",
+          "actual_blake3": "0a5559cc8bfa0e6d61bfdea03db218734a190d86294c4c97029562934b621b79"
+        },
+        {
+          "blake3": "bda224643b040d0aec24d15f6f265624fc9274ed77c092330aca5a9fa10aba16",
+          "bytes": 527,
+          "path": "model/transport.json",
+          "actual_bytes": 527,
+          "size_equal": true,
+          "sha256": "89e19aa43c0c0485fb2e1b9e3bef98ec67652e1b8da5dc143da03a8bab9bd1a2",
+          "blake3_status": "MATCH",
+          "actual_blake3": "bda224643b040d0aec24d15f6f265624fc9274ed77c092330aca5a9fa10aba16"
+        },
+        {
+          "blake3": "020dbcae8a3f7765c8157def809ed08167116149ff1da1060af05e8975265df6",
+          "bytes": 160886,
+          "path": "report.json",
+          "actual_bytes": 160886,
+          "size_equal": true,
+          "sha256": "0d5ca321bbeb3c13b630c11945e947380956c0953a8254851cd5f16eb1c7f033",
+          "blake3_status": "MATCH",
+          "actual_blake3": "020dbcae8a3f7765c8157def809ed08167116149ff1da1060af05e8975265df6"
+        }
+      ],
+      "missing_files": [],
+      "unlisted_files": [],
+      "seal_status": "VERIFIED"
+    },
+    {
+      "root": "/Volumes/UOR-Recovery-Audit-20260929/uor-r4-lab/kimi-s4-fit-20260929/arm-b-posthoc-snap-1",
+      "manifest_sha256": "52e5c572677e7a88f41b74e765133070daeb7aef64e9d0d14620519c2c009f1c",
+      "schema": "uor-r4.report-manifest/1",
+      "files": [
+        {
+          "blake3": "9f08d6137d13c0fa94e34f7949b7d8df455e0ced39f6d3deadf3c1dca38d6076",
+          "bytes": 582,
+          "path": "attempt.json",
+          "actual_bytes": 582,
+          "size_equal": true,
+          "sha256": "e262e9b1a55093831059baeee16f88d3674c1630e4c91298601cbb58d0923943",
+          "blake3_status": "MATCH",
+          "actual_blake3": "9f08d6137d13c0fa94e34f7949b7d8df455e0ced39f6d3deadf3c1dca38d6076"
+        },
+        {
+          "blake3": "47829c5da6a0a56caf3fcaf0dc1dbd75fd57a1a3ea076e7887b88944c44779d8",
+          "bytes": 1402,
+          "path": "snap.json",
+          "actual_bytes": 1402,
+          "size_equal": true,
+          "sha256": "bd75248293c399e479f154f4c7166bbd60cbc2b999418acdb6944cfbf75e2e7f",
+          "blake3_status": "MATCH",
+          "actual_blake3": "47829c5da6a0a56caf3fcaf0dc1dbd75fd57a1a3ea076e7887b88944c44779d8"
+        }
+      ],
+      "missing_files": [],
+      "unlisted_files": [],
+      "seal_status": "VERIFIED"
+    }
+  ]
+}

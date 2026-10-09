@@ -1,0 +1,16 @@
+{
+  "schema": "uor-r4.canonical-workspace-remount/1",
+  "status": "MOUNTED_IDENTITY_VERIFIED",
+  "path": "/Volumes/UOR-Workspace",
+  "outer_image": "/Volumes/X10 Pro/UOR-R4/UOR-Workspace.sparsebundle",
+  "volume_uuid": "DAB4FDD9-1A7A-4ECB-A6D7-41D6D853F7CF",
+  "writable": true,
+  "old_runner_stopped": true,
+  "admission": "HELD",
+  "elapsed_s": 5.353629332999844,
+  "not_claimed": [
+    "model_reload",
+    "ledger_migration",
+    "all_client_refresh"
+  ]
+}

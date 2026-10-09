@@ -1,0 +1,14 @@
+{
+  "argv": [
+    "/Users/casey.allard/.cache/uor-r4-track-b-direct/target/release/examples/track-b-layer-diagnostic",
+    "/Volumes/UOR-Workspace/uor-r4-models/sources/smollm2-135m-instruct",
+    "/Volumes/UOR-Workspace/uor-r4-models/track-b/block11-replay-356a9a24-20260930",
+    "/Volumes/UOR-Workspace/uor-r4-models/track-b/mlp-replay-3c6007ec-20260930",
+    "replay-mlp",
+    "/Volumes/UOR-Workspace/uor-r4-models/track-b/layer-trace-34371f15-20260930"
+  ],
+  "claimed_at": "1790787643",
+  "pid": 48885,
+  "rule": "exclusively created before model work; never reused for a retry",
+  "schema": "uor-r4.report-attempt/1"
+}

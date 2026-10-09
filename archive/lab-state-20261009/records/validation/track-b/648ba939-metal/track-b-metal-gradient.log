@@ -1,0 +1,47 @@
+warning: method `position` is never used
+   --> crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs:175:8
+    |
+168 | impl ObservedSpan {
+    | ----------------- method in this implementation
+...
+175 |     fn position(&self) -> (u32, u32, usize) {
+    |        ^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `example` is never used
+    --> crates/uor-r4-core/src/native_geometric/learner/transferable_lexical.rs:1590:8
+     |
+1405 | impl TlTrainer {
+     | -------------- method in this implementation
+...
+1590 |     fn example(&self, q: &TlQuant, ex: &TlExample) -> TlGrads {
+     |        ^^^^^^^
+
+warning: `uor-r4-core` (lib) generated 2 warnings
+    Finished `test` profile [unoptimized] target(s) in 0.50s
+     Running unittests src/lib.rs (/Users/casey.allard/.cache/uor-r4-track-b-direct/target/debug/deps/uor_r4_training-99a34e4aa4f70993)
+
+running 1 test
+test track_b::harmonics::tests::largest_harmonic_arm_backpropagates_on_metal ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 359 filtered out; finished in 0.26s
+
+        0.87 real         0.16 user         0.22 sys
+            84443136  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+                9847  page reclaims
+                1017  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   1  signals received
+                1962  voluntary context switches
+                2522  involuntary context switches
+          1688775448  instructions retired
+           826836600  cycles elapsed
+            59245288  peak memory footprint

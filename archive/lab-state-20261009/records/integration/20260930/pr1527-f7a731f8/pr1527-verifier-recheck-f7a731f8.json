@@ -1,0 +1,26 @@
+{
+  "head": "f7a731f8f88376ae9be270b230cf98c3dace4f8b",
+  "directory": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/uor-1527-verifier-recheck-etfa4ojx",
+  "scope": "isolated copies only; no model/build; original artifacts unchanged",
+  "missing_roots": {
+    "exit_code": 2,
+    "output_tail": [
+      "Verification summary: 15 passed, 0 failed, 13 roots unavailable.",
+      "ERROR: 13 required evidence roots are unavailable/missing from disk."
+    ]
+  },
+  "same_size_payload_corruption": {
+    "accepted": [
+      true,
+      "ok"
+    ],
+    "original_manifest_entry": {
+      "blake3": "d2adadf226b045ddbf5943fe7ea63ac3f5d0f85d3560c1361cd4ab35f4170f19",
+      "bytes": 1668,
+      "path": "attempt.json"
+    },
+    "bytes": 1668,
+    "original_sha256": "7d222de53dc8b2a184b021e9c3151e17fa90b0f4c2f04d2a83dc0a2ab49695d6",
+    "mutated_sha256": "64ac2d243282d698573831b23d80f7ab0ac9b29fc3e0514bf2d3336512ebb22d"
+  }
+}

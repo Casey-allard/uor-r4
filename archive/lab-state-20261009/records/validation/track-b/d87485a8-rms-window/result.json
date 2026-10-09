@@ -1,0 +1,436 @@
+{
+  "backends": [
+    {
+      "backend": "cpu",
+      "rows": [
+        {
+          "candidate_failing_logits": 0,
+          "candidate_vs_parent": {
+            "different_bits": 48454,
+            "elements": 49152,
+            "max_abs": 0.000020503997802734375,
+            "reference_rms": 9.568885171126173,
+            "rms": 7.384529615690497e-6
+          },
+          "candidate_vs_reference": {
+            "different_bits": 49152,
+            "elements": 49152,
+            "max_abs": 0.00009608268737792969,
+            "reference_rms": 9.568842825919978,
+            "rms": 0.00005212710758850176
+          },
+          "parent_failing_logits": 0,
+          "parent_vs_reference": {
+            "different_bits": 49152,
+            "elements": 49152,
+            "max_abs": 0.00008153915405273438,
+            "reference_rms": 9.568842825919978,
+            "rms": 0.00004559097126098381
+          },
+          "position": 0
+        },
+        {
+          "candidate_failing_logits": 114,
+          "candidate_vs_parent": {
+            "different_bits": 47853,
+            "elements": 49152,
+            "max_abs": 0.00011444091796875,
+            "reference_rms": 18.12889416595406,
+            "rms": 0.00002586814875543706
+          },
+          "candidate_vs_reference": {
+            "different_bits": 47875,
+            "elements": 49152,
+            "max_abs": 0.00014591217041015625,
+            "reference_rms": 18.128882616713536,
+            "rms": 0.000028358802187113938
+          },
+          "parent_failing_logits": 0,
+          "parent_vs_reference": {
+            "different_bits": 47423,
+            "elements": 49152,
+            "max_abs": 0.00006866455078125,
+            "reference_rms": 18.128882616713536,
+            "rms": 0.000017113125268341094
+          },
+          "position": 1
+        },
+        {
+          "candidate_failing_logits": 33,
+          "candidate_vs_parent": {
+            "different_bits": 49137,
+            "elements": 49152,
+            "max_abs": 0.0001952648162841797,
+            "reference_rms": 2.8198656876373285,
+            "rms": 0.000060865564589584944
+          },
+          "candidate_vs_reference": {
+            "different_bits": 49116,
+            "elements": 49152,
+            "max_abs": 0.00014495849609375,
+            "reference_rms": 2.81987235913064,
+            "rms": 0.00003720909025879076
+          },
+          "parent_failing_logits": 0,
+          "parent_vs_reference": {
+            "different_bits": 49106,
+            "elements": 49152,
+            "max_abs": 0.0000820159912109375,
+            "reference_rms": 2.81987235913064,
+            "rms": 0.00002421283541488117
+          },
+          "position": 2
+        },
+        {
+          "candidate_failing_logits": 49049,
+          "candidate_vs_parent": {
+            "different_bits": 49152,
+            "elements": 49152,
+            "max_abs": 0.0004055500030517578,
+            "reference_rms": 5.274177521167369,
+            "rms": 0.0001953401647616845
+          },
+          "candidate_vs_reference": {
+            "different_bits": 49152,
+            "elements": 49152,
+            "max_abs": 0.0010793209075927734,
+            "reference_rms": 5.273970741781289,
+            "rms": 0.0005211279796042206
+          },
+          "parent_failing_logits": 48863,
+          "parent_vs_reference": {
+            "different_bits": 49152,
+            "elements": 49152,
+            "max_abs": 0.0006861686706542969,
+            "reference_rms": 5.273970741781289,
+            "rms": 0.0003258924054702582
+          },
+          "position": 3
+        },
+        {
+          "candidate_failing_logits": 10710,
+          "candidate_vs_parent": {
+            "different_bits": 49104,
+            "elements": 49152,
+            "max_abs": 0.00009059906005859375,
+            "reference_rms": 17.34789409427935,
+            "rms": 0.00003487311827735478
+          },
+          "candidate_vs_reference": {
+            "different_bits": 49147,
+            "elements": 49152,
+            "max_abs": 0.00018596649169921875,
+            "reference_rms": 17.347845411961465,
+            "rms": 0.00008557698783318931
+          },
+          "parent_failing_logits": 33,
+          "parent_vs_reference": {
+            "different_bits": 49142,
+            "elements": 49152,
+            "max_abs": 0.00011157989501953125,
+            "reference_rms": 17.347845411961465,
+            "rms": 0.000051633476487249815
+          },
+          "position": 4
+        },
+        {
+          "candidate_failing_logits": 49152,
+          "candidate_vs_parent": {
+            "different_bits": 49152,
+            "elements": 49152,
+            "max_abs": 0.0012302398681640625,
+            "reference_rms": 4.889112452576605,
+            "rms": 0.0006409936777982206
+          },
+          "candidate_vs_reference": {
+            "different_bits": 49152,
+            "elements": 49152,
+            "max_abs": 0.008243560791015625,
+            "reference_rms": 4.886603702888848,
+            "rms": 0.004176566632720747
+          },
+          "parent_failing_logits": 49152,
+          "parent_vs_reference": {
+            "different_bits": 49152,
+            "elements": 49152,
+            "max_abs": 0.0070133209228515625,
+            "reference_rms": 4.886603702888848,
+            "rms": 0.0035356413051256014
+          },
+          "position": 5
+        },
+        {
+          "candidate_failing_logits": 38357,
+          "candidate_vs_parent": {
+            "different_bits": 48792,
+            "elements": 49152,
+            "max_abs": 0.0001354217529296875,
+            "reference_rms": 17.667004473808376,
+            "rms": 0.00004522465082331733
+          },
+          "candidate_vs_reference": {
+            "different_bits": 49055,
+            "elements": 49152,
+            "max_abs": 0.0010662078857421875,
+            "reference_rms": 17.66718185039367,
+            "rms": 0.000278763622973107
+          },
+          "parent_failing_logits": 35473,
+          "parent_vs_reference": {
+            "different_bits": 49021,
+            "elements": 49152,
+            "max_abs": 0.0009307861328125,
+            "reference_rms": 17.66718185039367,
+            "rms": 0.00023585233074756604
+          },
+          "position": 6
+        },
+        {
+          "candidate_failing_logits": 41986,
+          "candidate_vs_parent": {
+            "different_bits": 48533,
+            "elements": 49152,
+            "max_abs": 0.000213623046875,
+            "reference_rms": 17.214197058253827,
+            "rms": 0.00005208660654629659
+          },
+          "candidate_vs_reference": {
+            "different_bits": 49089,
+            "elements": 49152,
+            "max_abs": 0.001651763916015625,
+            "reference_rms": 17.214501656221266,
+            "rms": 0.00046081994756562786
+          },
+          "parent_failing_logits": 41224,
+          "parent_vs_reference": {
+            "different_bits": 49090,
+            "elements": 49152,
+            "max_abs": 0.0014667510986328125,
+            "reference_rms": 17.214501656221266,
+            "rms": 0.0004102888498747943
+          },
+          "position": 7
+        }
+      ]
+    },
+    {
+      "backend": "metal",
+      "rows": [
+        {
+          "candidate_failing_logits": 0,
+          "candidate_vs_parent": {
+            "different_bits": 0,
+            "elements": 49152,
+            "max_abs": 0.0,
+            "reference_rms": 9.568865903109291,
+            "rms": 0.0
+          },
+          "candidate_vs_reference": {
+            "different_bits": 49143,
+            "elements": 49152,
+            "max_abs": 0.00006341934204101562,
+            "reference_rms": 9.568842825919978,
+            "rms": 0.000025818610686279173
+          },
+          "parent_failing_logits": 0,
+          "parent_vs_reference": {
+            "different_bits": 49143,
+            "elements": 49152,
+            "max_abs": 0.00006341934204101562,
+            "reference_rms": 9.568842825919978,
+            "rms": 0.000025818610686279173
+          },
+          "position": 0
+        },
+        {
+          "candidate_failing_logits": 97,
+          "candidate_vs_parent": {
+            "different_bits": 0,
+            "elements": 49152,
+            "max_abs": 0.0,
+            "reference_rms": 18.128895563378943,
+            "rms": 0.0
+          },
+          "candidate_vs_reference": {
+            "different_bits": 47857,
+            "elements": 49152,
+            "max_abs": 0.000141143798828125,
+            "reference_rms": 18.128882616713536,
+            "rms": 0.000027466190043187202
+          },
+          "parent_failing_logits": 97,
+          "parent_vs_reference": {
+            "different_bits": 47857,
+            "elements": 49152,
+            "max_abs": 0.000141143798828125,
+            "reference_rms": 18.128882616713536,
+            "rms": 0.000027466190043187202
+          },
+          "position": 1
+        },
+        {
+          "candidate_failing_logits": 0,
+          "candidate_vs_parent": {
+            "different_bits": 0,
+            "elements": 49152,
+            "max_abs": 0.0,
+            "reference_rms": 2.819877248289147,
+            "rms": 0.0
+          },
+          "candidate_vs_reference": {
+            "different_bits": 49046,
+            "elements": 49152,
+            "max_abs": 0.00007641315460205078,
+            "reference_rms": 2.81987235913064,
+            "rms": 0.000018149571001484368
+          },
+          "parent_failing_logits": 0,
+          "parent_vs_reference": {
+            "different_bits": 49046,
+            "elements": 49152,
+            "max_abs": 0.00007641315460205078,
+            "reference_rms": 2.81987235913064,
+            "rms": 0.000018149571001484368
+          },
+          "position": 2
+        },
+        {
+          "candidate_failing_logits": 48923,
+          "candidate_vs_parent": {
+            "different_bits": 0,
+            "elements": 49152,
+            "max_abs": 0.0,
+            "reference_rms": 5.274204222264763,
+            "rms": 0.0
+          },
+          "candidate_vs_reference": {
+            "different_bits": 49152,
+            "elements": 49152,
+            "max_abs": 0.0007724761962890625,
+            "reference_rms": 5.273970741781289,
+            "rms": 0.0003688804738155424
+          },
+          "parent_failing_logits": 48923,
+          "parent_vs_reference": {
+            "different_bits": 49152,
+            "elements": 49152,
+            "max_abs": 0.0007724761962890625,
+            "reference_rms": 5.273970741781289,
+            "rms": 0.0003688804738155424
+          },
+          "position": 3
+        },
+        {
+          "candidate_failing_logits": 15977,
+          "candidate_vs_parent": {
+            "different_bits": 0,
+            "elements": 49152,
+            "max_abs": 0.0,
+            "reference_rms": 17.347933384935054,
+            "rms": 0.0
+          },
+          "candidate_vs_reference": {
+            "different_bits": 49150,
+            "elements": 49152,
+            "max_abs": 0.0002079010009765625,
+            "reference_rms": 17.347845411961465,
+            "rms": 0.00009272676794462458
+          },
+          "parent_failing_logits": 15977,
+          "parent_vs_reference": {
+            "different_bits": 49150,
+            "elements": 49152,
+            "max_abs": 0.0002079010009765625,
+            "reference_rms": 17.347845411961465,
+            "rms": 0.00009272676794462458
+          },
+          "position": 4
+        },
+        {
+          "candidate_failing_logits": 49152,
+          "candidate_vs_parent": {
+            "different_bits": 0,
+            "elements": 49152,
+            "max_abs": 0.0,
+            "reference_rms": 4.889015226278026,
+            "rms": 0.0
+          },
+          "candidate_vs_reference": {
+            "different_bits": 49152,
+            "elements": 49152,
+            "max_abs": 0.0067539215087890625,
+            "reference_rms": 4.886603702888848,
+            "rms": 0.0034004874683548074
+          },
+          "parent_failing_logits": 49152,
+          "parent_vs_reference": {
+            "different_bits": 49152,
+            "elements": 49152,
+            "max_abs": 0.0067539215087890625,
+            "reference_rms": 4.886603702888848,
+            "rms": 0.0034004874683548074
+          },
+          "position": 5
+        },
+        {
+          "candidate_failing_logits": 36081,
+          "candidate_vs_parent": {
+            "different_bits": 0,
+            "elements": 49152,
+            "max_abs": 0.0,
+            "reference_rms": 17.66700155793763,
+            "rms": 0.0
+          },
+          "candidate_vs_reference": {
+            "different_bits": 49057,
+            "elements": 49152,
+            "max_abs": 0.000904083251953125,
+            "reference_rms": 17.66718185039367,
+            "rms": 0.00023366956724874989
+          },
+          "parent_failing_logits": 36081,
+          "parent_vs_reference": {
+            "different_bits": 49057,
+            "elements": 49152,
+            "max_abs": 0.000904083251953125,
+            "reference_rms": 17.66718185039367,
+            "rms": 0.00023366956724874989
+          },
+          "position": 6
+        },
+        {
+          "candidate_failing_logits": 40596,
+          "candidate_vs_parent": {
+            "different_bits": 0,
+            "elements": 49152,
+            "max_abs": 0.0,
+            "reference_rms": 17.214218899604433,
+            "rms": 0.0
+          },
+          "candidate_vs_reference": {
+            "different_bits": 49074,
+            "elements": 49152,
+            "max_abs": 0.0013456344604492188,
+            "reference_rms": 17.214501656221266,
+            "rms": 0.00038083164574875074
+          },
+          "parent_failing_logits": 40596,
+          "parent_vs_reference": {
+            "different_bits": 49074,
+            "elements": 49152,
+            "max_abs": 0.0013456344604492188,
+            "reference_rms": 17.214501656221266,
+            "rms": 0.00038083164574875074
+          },
+          "position": 7
+        }
+      ]
+    }
+  ],
+  "parent_anchors_verified": true,
+  "parity_pass": false,
+  "schema": "uor-r4.track-b-rms-window/1",
+  "scope": "only shared eight-token window; full parity and stock comparators not rerun",
+  "status": "FAIL_NUMERICAL_GATE_WINDOW",
+  "window_gate_pass": false
+}

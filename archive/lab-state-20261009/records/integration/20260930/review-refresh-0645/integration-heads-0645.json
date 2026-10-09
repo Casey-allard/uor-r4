@@ -1,0 +1,102 @@
+{
+  "observed_utc": "2026-09-30T06:45:11.799839+00:00",
+  "source": "live GitHub open PR inventory; existing retained branch inventory remains authority for dormant/unpublished refs",
+  "prs": [
+    {
+      "headRefName": "lab/anti-gravity/stack-session-save-restore",
+      "headRefOid": "7d10a57cac09afb443e3e047455088a0f6deb450",
+      "isDraft": false,
+      "number": 1539,
+      "title": "feat(stack): durable session save_state and restore_state for IntegerStackSession (#1513, #820)",
+      "url": "https://github.com/UOR-Foundation/uor-r4/pull/1539"
+    },
+    {
+      "headRefName": "lab/opencode/1533-test-fixes",
+      "headRefOid": "2fd32191de5a8bbc77c94e0699b3ceac3673add7",
+      "isDraft": true,
+      "number": 1538,
+      "title": "S1.4 safety: two diagnosed #1533 test corrections (source-only; checks NOT_RUN under hold)",
+      "url": "https://github.com/UOR-Foundation/uor-r4/pull/1538"
+    },
+    {
+      "headRefName": "codex/runner-stable-boot-recovery-20260930",
+      "headRefOid": "8e90aa33b8ef941d3ac5de57ad448859e20ad76b",
+      "isDraft": true,
+      "number": 1537,
+      "title": "fix(runner): preserve uncertain executions and use stable boot identity",
+      "url": "https://github.com/UOR-Foundation/uor-r4/pull/1537"
+    },
+    {
+      "headRefName": "lab/anti-gravity/d4-codec-export-corrections",
+      "headRefOid": "8535388a9a48d221d26d7ec98885dd1ada0cc15e",
+      "isDraft": false,
+      "number": 1534,
+      "title": "fix(training): restore saved codec on export, reject bare shape names, and ensure provenance parity in D4 reload tests",
+      "url": "https://github.com/UOR-Foundation/uor-r4/pull/1534"
+    },
+    {
+      "headRefName": "lab/opencode/b0-flock",
+      "headRefOid": "f99a08302a38d523862d48c364b09a6714be001d",
+      "isDraft": false,
+      "number": 1532,
+      "title": "flock: canonical shared selector + model-source score_and_normalize transport (B0, #1512)",
+      "url": "https://github.com/UOR-Foundation/uor-r4/pull/1532"
+    },
+    {
+      "headRefName": "lab/anti-gravity/d11-flock-serving",
+      "headRefOid": "adb7ad7c7ce319996bf34916f5b77aa1f7f40048",
+      "isDraft": false,
+      "number": 1528,
+      "title": "feat(integer): allocation-free D11 integer flock selector and scratch workspace (#1513, #820)",
+      "url": "https://github.com/UOR-Foundation/uor-r4/pull/1528"
+    },
+    {
+      "headRefName": "lab/anti-gravity/d4-qat-results",
+      "headRefOid": "e386f15ed59113ef0ad1bcf262dcd452a34debd0",
+      "isDraft": false,
+      "number": 1527,
+      "title": "feat(evidence): publish Results B and C (S1 geometric QAT and S2 dialogue behavior) (#973, #820)",
+      "url": "https://github.com/UOR-Foundation/uor-r4/pull/1527"
+    },
+    {
+      "headRefName": "lab/anti-gravity/fidelity-serving-metal",
+      "headRefOid": "2a13baddb996ae966ae1e54434befc26f9a3f6da",
+      "isDraft": false,
+      "number": 1526,
+      "title": "feat(training): native Apple Silicon Metal GPU kernels for geometric stack ops (#1510, #1509, #1513)",
+      "url": "https://github.com/UOR-Foundation/uor-r4/pull/1526"
+    },
+    {
+      "headRefName": "lab/anti-gravity/b3-e8-smollm2-mlp",
+      "headRefOid": "b247add7d84be300b870edf10d9cf10c77792a7b",
+      "isDraft": false,
+      "number": 1519,
+      "title": "feat(codecs): B3 E8 lattice weight coding evaluation on SmolLM2-360M (#1513, #1509)",
+      "url": "https://github.com/UOR-Foundation/uor-r4/pull/1519"
+    },
+    {
+      "headRefName": "codex/track-b-conversion",
+      "headRefOid": "1074399db87a2dda54602c661142a499bfb618a0",
+      "isDraft": true,
+      "number": 1518,
+      "title": "Track B: shared Candle pipeline and preserved B2 drafts",
+      "url": "https://github.com/UOR-Foundation/uor-r4/pull/1518"
+    }
+  ],
+  "review_delta": {
+    "1538": {
+      "reviewed_head": "2fd32191de5a8bbc77c94e0699b3ceac3673add7",
+      "status": "full source approved; executed checks pending"
+    },
+    "1532": {
+      "reviewed_head": "f99a08302a38d523862d48c364b09a6714be001d",
+      "status": "correction delta source approved; executed checks pending"
+    },
+    "1539": {
+      "reviewed_head": "7d10a57cac09afb443e3e047455088a0f6deb450",
+      "status": "changes required: atomic persistence, trace integrity, pending generation state, bounded load",
+      "owner": "Antigravity",
+      "scope": "execution state persistence; not integrated conversation memory"
+    }
+  }
+}

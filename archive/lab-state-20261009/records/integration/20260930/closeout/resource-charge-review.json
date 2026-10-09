@@ -1,0 +1,14 @@
+{
+  "schema": "uor-r4.resource-charge/1",
+  "event_id": "recovery-integration-20260930-cutoff1-review",
+  "recorded_utc": "2026-09-30T03:34:04.734000+00:00",
+  "lab": "Codex durable lab implementation",
+  "adjustment_ms": 2700000,
+  "accounting": {
+    "category": "review",
+    "measurement": "estimated",
+    "correction_of": null
+  },
+  "authority": "Owner implementation and integration-first request; retained six-hour recovery and two-hour integration work cards; existing cumulative allowance.",
+  "rationale": "Conservative wall envelope since previous Codex charge cutoff. Includes planning, recovery, implementation, specialist reviews, testing, cache/source cleanup and delivery; may include idle/overlap. Category allocation is an estimate, not profiling. Parallel specialists are not summed a second time. Known A/B attempt elapsed is removed from this envelope because immutable runner charges already account it. No training/teacher/accelerator model work; independent recovered-model load was 0.1881 s, included in preparation. Earlier unknown activity within the envelope is conservatively charged instead of assumed free. No monetary/provider usage inference. Allocation record: resource-cost-reconciliation.json."
+}

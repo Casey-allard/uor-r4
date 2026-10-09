@@ -1,0 +1,13 @@
+{
+  "source_main": "61bbd85a0a49e1bb72c71b4e02752d575e3bee4b",
+  "status": "research assessment; no policy adoption or new model result",
+  "created_at": "2026-09-30T04:55:47.828134+00:00",
+  "files": {
+    "kimi-review-assessment.md": "7e53368e365ff2613eeca4d45559a36d9b8def6dd652bf742b6b97c9bbfc6e76",
+    "kimi-review-source-audit.md": "6956153a8371243f750c9700dd1313eac4897c3f17abf3b518ce250d1ff9c44c",
+    "kimi-review-literature-audit.md": "bc0c0cf452eff84059709075bfff9c0c1d35c5d81eaadd50f92638f9cc8a7c97",
+    "kimi-review-first-principles.md": "6f66ff8ebe4c6770f1728167a1a4c02336bba8b3f9fada567ee39a7cecab91d8",
+    "kimi-review-wolfram-checks.json": "30817e55eb92347a12d78777cae618f8831900e8dd019ae6a2a41dae6beaf29a",
+    "kimi-scale-audit.json": "85560e38e10ff72d6a2fdff6fe2a7d8b2a90431f978bd57cdd8f361c9f739294"
+  }
+}

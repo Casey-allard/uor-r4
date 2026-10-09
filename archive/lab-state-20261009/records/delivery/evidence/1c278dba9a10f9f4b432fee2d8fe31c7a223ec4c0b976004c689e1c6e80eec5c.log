@@ -1,0 +1,19 @@
+{
+  "head": "04981eb211a39cab23958996556dabf232b22a4c",
+  "base": "d563b02f3270a2c931a7905d6624ba0beeb71d2a",
+  "argv": [
+    "/Users/casey.allard/.cargo/bin/rustfmt",
+    "--check",
+    "--edition",
+    "2021",
+    "tools/lab-runner/src/admission.rs",
+    "tools/lab-runner/src/bin/lab-runner.rs",
+    "tools/lab-runner/src/coord.rs",
+    "tools/lab-runner/src/daemon.rs",
+    "tools/lab-runner/src/host.rs",
+    "tools/lab-runner/src/spec.rs"
+  ],
+  "exit_code": 0,
+  "stdout": "",
+  "stderr": ""
+}

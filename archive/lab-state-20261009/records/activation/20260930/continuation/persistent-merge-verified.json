@@ -1,0 +1,9 @@
+{
+  "pr": 1535,
+  "merged_sha": "61bbd85a0a49e1bb72c71b4e02752d575e3bee4b",
+  "reviewed_sha": "3ed9f73d206d016679251697954db29bdadce6d2",
+  "tree": "16c905dd3ee633d942ac1192282e6c54804e70ad",
+  "same_tree": true,
+  "independent_review": "review-persistent-3ed9f73d.md",
+  "next_action": "Persistent mission docs delivered; actual client continuation qualification remains open. Repair runner #1536 before releasing holds."
+}

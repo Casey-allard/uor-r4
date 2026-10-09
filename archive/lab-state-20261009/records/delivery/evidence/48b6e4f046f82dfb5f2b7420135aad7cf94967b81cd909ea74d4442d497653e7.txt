@@ -1,0 +1,66 @@
+# Independent systems review — PR #1521
+
+- Reviewer/session: `/root/independent_systems_review` (Codex non-author review seat).
+- Author/launcher: `/root`; review was a distinct source-reading and reasoning pass. The reviewer and author use the same provider family and root launcher. This is procedural independence, not provider independence.
+- Repository: `UOR-Foundation/uor-r4`.
+- Exact reviewed head: `a345e766816403cb3eec888fb4cf694665e82e5d`.
+- Exact reviewed base: `3bc296cafa89971d3aa0b98c0eca187d8a76ef06`.
+- Intermediate source/checkpoint reviewed: `b659331995b887b32d4097c066620739a0f2e83f`, followed by the complete successor diff to `33701a0d0740fdd1147ea785b04a5b895c4ba069`, then the seven-line installer/test delta to the final head.
+- Code-review decision: **PASS** for this protected source delivery.
+- Class C council vote: **YES**, prospectively adopt this implementation and the owner-authorized shared operating policy through the protected delivery process. This vote does not install branch protection, authorize paid compute, change the mission, certify a scientific result, or attest completion of all live acceptance scenarios.
+- Remaining required source fixes identified by this review: **none**.
+- Full autonomous-operation acceptance: **not established by this review**. Live deployment, recovery, and client handshakes need separate receipts.
+
+## Scope and method
+
+Read the repository authority and lab protocol, then traced the coordinator, claims/generations, attempts, host admission, launch/recovery process ownership, outcome and ledger transactions, outbox, delivery/evidence gates, installer, maintenance and corresponding tests. The focused final pass examined all changes after b659, including positive pre-spawn failure evidence, measured versus estimated accounting, coordinator reconciliation verification, late external legacy-ledger drift detection, policy/work-card fencing, and launchd PATH configuration. Reviewed code, tests and retained executed logs; did not run Cargo, model work, or GitHub mutations. No implementation files were edited by this reviewer.
+
+This is a source and evidence review under a cooperative local-user threat model. The same account can edit local files and shares GitHub credentials; the implementation does not provide a security boundary against a malicious process with that account's privileges. Reviewer identity is procedural. The code does not turn a ledger charge, successful build, narrow fixture or council vote into language-model qualification.
+
+## Required findings and their disposition
+
+The original review found unsafe process-lifetime and reconciliation behavior. Final source addresses the concrete triggers:
+
+1. A direct payload could exit while an orphaned grandchild remained alive. The nonce-bearing shell now persists as the process-group ownership anchor using its private FIFO after writing the direct payload status. Finalization detects remaining descendants and does not report their escape as success. The host-recovery test actually launches an orphan-grandchild case and confirms stop/failure behavior.
+2. Termination could remove the ownership anchor before TERM-ignoring descendants were stopped. Descendant TERM/KILL handling now retains the anchor until their absence has been positively established, then terminates the anchor. Nonce/PID/boot/start identity checks precede signaling. Bounded TERM grace is covered by focused tests and is not represented as a verified model checkpoint.
+3. A production command-based kill criterion could create an unowned helper process. Production rejects that unsupported criterion; the acceptance contract retains supported bounded monitoring instead.
+4. A failed provenance/late-policy/budget preflight had no process identity, so its UNKNOWN result could permanently strand the global reservation even though the runner knew it never spawned. The final code writes a positive immutable `uor-r4.pre-spawn-failure/1` control-flow proof before tombstone consumption or any supervisor spawn. It binds host, canonical root, job/spec/attempt/nonce identities, measured preflight elapsed time, reason and phase. Reconciliation rejects contradictory launch files, consumed-attempt state or a live nonce supervisor. Coordinator finalization revalidates the exact proof kind/hash and retained UNKNOWN receipt, requires zero additional execution charge, and proves the job is no longer queued/running. Missing files alone remain insufficient. Tests cover failed input hashing, late policy/budget rejection, contradictory launch evidence, changed proof hashes/kinds, and idempotent reconciliation.
+5. Cross-restart elapsed estimates were previously labeled measured in newly emitted charges. Finalization now carries an explicit measurement classification through exit and ledger creation. Recovered elapsed time, explicit running reconciliation and supplemental recovered execution remain `estimated`; monotonic execution and positive failed-preflight cost are `measured`. Historical immutable receipts are not silently rewritten. Tests inspect both exit and charge metadata.
+
+Also reread the earlier fixes for queued cancellation's positive absence-of-launch proof, final root/generation admission after hashing, immutable outbox retirement of positively stale events, directory synchronization, installation on verified internal filesystems, source/executable/input identity checks, and policy/work-card version binding. No renewed instance of those concrete defects was found in the final scoped read.
+
+## Late accounting and policy changes
+
+The optional legacy-source watch is an admission guard, not the authority used to reconstruct internal totals. New positive-budget admission compares preserved receipt coverage and counter identity with two observations of the external ledger. Changed, missing, new or unavailable external evidence blocks new admission. Internal zero-budget monitoring, receipt finalization and rebuilding remain available when external storage is absent. New receipts require explicit imports; a revised same-name receipt is preserved under a new internal name and connected by a hash-linked observation. Counter-only drift requires a reviewed, immutable snapshot observation without directly replacing totals. Ambiguous chains fail closed.
+
+Double reads are not an inter-client lock. The documentation explicitly requires retirement of old writers during migration. This limitation is appropriate for the scoped guard and must remain in the deployment procedure.
+
+The coordinator and server workflow now consistently include `docs/labs/operations.md` in policy-change fencing. Work-card and policy identities remain prospective; old outcomes are not rewritten by new policy. Council-based adoption requires the reviewed merged change and current ancestry rather than merely an issue comment.
+
+The final installer delta adds a fixed PATH including `/opt/homebrew/bin` for the installed GitHub CLI. I reviewed the exact seven changed lines and associated assertion. It changes the service environment, not job commands or model behavior. The installer still resolves path ancestors/symlinks and verifies the actual internal executable and control-state location.
+
+## Executed evidence read and verified
+
+The reviewer inspected the following actual receipts and logs in `/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system` and recomputed the referenced log hashes. These executions were performed by the author/root, not by this reviewer.
+
+- `runner-test-pass5-receipt.json` binds `33701a0d0740fdd1147ea785b04a5b895c4ba069`, exit 0, elapsed 17.169348959 seconds, command `cargo test -p lab-runner --offline -- --test-threads=2`.
+- `runner-test-pass5.log` SHA-256: `1c5cb2c73df6a32c581aa03ec8ed6324f955c301f9f9c502821e50e2733cc288`. It contains **86 passing Rust tests**: 62 library, 6 CLI, 7 delivery, 7 host-recovery and 4 maintenance tests, zero failures. This is the broad focused suite at the immediately preceding source; it is not claimed to be a full-suite rerun at the final head.
+- `final-checks-a345e766.json` binds every final check to head `a345e766816403cb3eec888fb4cf694665e82e5d` and base `3bc296cafa89971d3aa0b98c0eca187d8a76ef06`. All six associated log hashes were recomputed and matched. Executed checks pass: package formatting, diff whitespace check, claim wording, data-only delivery workflow fixtures, offline runner build and focused installer tests.
+- `final-agent-focused-a345e766.log`: **3 installer tests pass**, including the PATH assertion; all unrelated Rust tests are explicitly filtered out. SHA-256 `559bda21abb7f4515236b2a9592ee901577aec587c0c2b2a2cabd5993f577d58`.
+- `final-compile-a345e766.log`: offline runner build passes. SHA-256 `6b537ed3f1034fd8318ae24c274bbffd03c065c6c9cd31eb24933f322ea87a41`.
+- `final-workflow-a345e766.log`: **23/23 data-only workflow fixtures pass**, including operations-policy drift and multi-PR merge-group rejection. SHA-256 `9a59190b68387418fc6837cfe6ee52022021365305e2fbc3ea922c4b3f116098`. These fixtures neither execute untrusted PR code nor prove that the workflow is required on GitHub.
+
+Reusing pass5 for unchanged runner paths plus exact-head installer/build/workflow validation is appropriate to the seven-line final change. The full source/evidence decisions above bind only the stated final head/base. Further source changes invalidate exact-head approval until their relevant delta and evidence are reviewed.
+
+## Explicit remaining operational boundaries
+
+This PASS permits delivery of the reviewed implementation. It must not be summarized as all requested autonomous-system acceptance scenarios already having passed on the live host.
+
+- A verified bounded production pilot, live stewardship transfer without duplicate execution, outage/outbox replay, token-exhaustion recovery, and any claimed unattended client adapter each require their own actual execution receipts. Tests and source checks supply bounded evidence for their implemented components.
+- Administrator protection of the operational branch and required delivery status is separate from coordinator-first enforcement. The five compatibility acknowledgements remain acknowledgements, not tests.
+- The generic runner has no verified, versioned payload checkpoint-acknowledgement/artifact protocol. It reports this explicitly. TERM grace may let a cooperating application preserve its own state, but it cannot certify checkpoint validity. A job whose safe continuation requires that missing acknowledgement must not be admitted on an unsupported claim.
+- Maintenance supplies inventory/eligibility and notice logic; its deletion capability remains disabled. Daily/weekly steward activity and physical-space reclamation are not established merely by that code.
+- Knowledge synchronization reports explicit coverage/freshness and retained revisions, but is not a complete archive of deleted/unobserved review revisions, all timeline/check data, binary artifacts or the complete Git history.
+- Restored worktree/model/link disposition, accepted-model independent loading and report verification remain artifact-bound recovery findings, separate from this source review. The read-only cache diagnosis in `model-reload-20260930/proc-macro-diagnosis.json` documents macOS Gatekeeper denial of retained external proc-macro libraries; neither signatures alone nor a successful runner build resolves those model dependencies.
+
+I found no unresolved factual objection requiring another source change before protected delivery of this scope. The council YES is prospective and preserves the mission, truthful evidence, original negative results, unique material and external-spend boundaries.

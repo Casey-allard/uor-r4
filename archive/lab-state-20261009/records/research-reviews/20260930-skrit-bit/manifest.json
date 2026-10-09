@@ -1,0 +1,37 @@
+{
+  "schema": "uor-r4.external-research-review/1",
+  "created_utc": "2026-09-30T05:33:27.945051+00:00",
+  "external_repository": "https://github.com/markrnd87-cmd/Skrit-Bit-0.1",
+  "external_commit": "e5d8c871daec411c3b47af56244e1a2fe70f9314",
+  "uor_main": "61bbd85a0a49e1bb72c71b4e02752d575e3bee4b",
+  "reviewers": [
+    "/root/history_science",
+    "/root/independent_systems_review",
+    "/root/repair_execution_council"
+  ],
+  "independence": "Separate same-provider agents; root synthesis independently reviewed with exact required correction retained.",
+  "pdfs": [
+    {
+      "name": "Skrit-bit_ Architectural Specification for a P\u0101\u1e47inian Interactive Theorem Prover..pdf",
+      "pages": 3,
+      "sha256": "2741db768ab1f19dda98e8a71516623287588f8be516dd5d62b13942dceab34e"
+    },
+    {
+      "name": "Skrit-Bit Systems Programming.pdf",
+      "pages": 15,
+      "sha256": "6367ea35d6b1440922b9a43147bf30676cf0c785df908acbca4048dab2a188f7"
+    }
+  ],
+  "validation": "Source inspection and all18PDFpages visually inspected; finite exact Wolfram checks. No external source execution/install, Cargo, model training or serving tests. Existing repo claim-wording checker passes; it does not validate this outside-repo report.",
+  "decision": "Preserve mechanism lead; bounded checked semantic-action experiment proposed, no architecture adoption or compute admission.",
+  "files": {
+    "assessment.md": "0fcb062ccb5844da53905e0673d7bbe184807f8606491fdf98d4082e238ae447",
+    "skrit-source-audit.md": "62d1f539388b40d167304ee31059bd67cef00764d18d57d393af545005aaa065",
+    "skrit-formal-audit.md": "42da02b7966faa93b41230b099faabefaed653f7ba7dbe716093234a86841fdc",
+    "skrit-uor-integration.md": "594efb55e5dda16f344a0865b0739941a5fc9d4fe2b2ba286a07d37d3a2397dc",
+    "skrit-synthesis-review.md": "2c5ad1eaef8c080e00c0a2cfeb8cf30ba20596bca3a6ba1f95475c96f78cc4aa",
+    "review-resolution.json": "a4f4b2fadb449e010270496f8090bf61fa641592c6d27ebf7e6c86780d5a9e0b",
+    "wolfram-checks.wl": "1675dcec90473fd25e5f769bc431fbe7a715caedaddd624951f3c0f18fe88b36",
+    "wolfram-checks.json": "178c2c1d372fc556557cfbb15745bf187ac5a34f304499822f79811611fd2c8e"
+  }
+}

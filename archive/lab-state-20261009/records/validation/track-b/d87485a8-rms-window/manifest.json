@@ -1,0 +1,32 @@
+{
+  "files": [
+    {
+      "blake3": "a4b75e2a8c232ea126a14752f02d5ce93446b6ac5c3bdd95b58d433cbf83b1f6",
+      "bytes": 540,
+      "path": "attempt.json"
+    },
+    {
+      "blake3": "929e7d2c49e8aacde67744659fb79d8179c4eb9a91fe53857ae306df7b8f1b73",
+      "bytes": 1572864,
+      "path": "cpu-logits.f32le"
+    },
+    {
+      "blake3": "579ddea12ecb64b9fcadc6dcc82dc2136a3b7c4d5fed37cf482fd33d44d7098a",
+      "bytes": 5061,
+      "path": "inputs.json"
+    },
+    {
+      "blake3": "cd9cf262424844d7959e132499d0472507c986d4053b8cd06bbd42f8b275175f",
+      "bytes": 1572864,
+      "path": "metal-logits.f32le"
+    },
+    {
+      "blake3": "4bda5dec436bb1b8793a261e13dbad398f18d49ac6765df7ddf1fd872d79523f",
+      "bytes": 14290,
+      "path": "result.json"
+    }
+  ],
+  "root": "/Volumes/UOR-Workspace/uor-r4-models/track-b/rms-window-d87485a8-20260930",
+  "schema": "uor-r4.report-manifest/1",
+  "sealed_at": "1790788649"
+}

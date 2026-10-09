@@ -1,0 +1,82 @@
+diff --git a/crates/uor-r4-training/src/track_b/harmonics.rs b/crates/uor-r4-training/src/track_b/harmonics.rs
+index 61584a55..501b7941 100644
+--- a/crates/uor-r4-training/src/track_b/harmonics.rs
++++ b/crates/uor-r4-training/src/track_b/harmonics.rs
+@@ -655,6 +655,77 @@ mod tests {
+         distributed_antipodes(&Device::new_metal(0)?)
+     }
+ 
++    /// Diagnostic only: keep the acceptance test and its tolerance unchanged.
++    /// Replaying identical normalized rows separates feature construction from
++    /// the final dot-product reduction on the observed failing Metal fixture.
++    #[cfg(feature = "metal")]
++    #[test]
++    #[ignore = "explicit cross-backend cancellation diagnostic; not an acceptance gate"]
++    fn diagnose_metal_antipodal_floor_reduction() -> Result<()> {
++        let dimensions = 32;
++        let mut values = (0..dimensions)
++            .map(|i| ((i * 13 + 7) % 23) as f32 - 11.0)
++            .collect::<Vec<_>>();
++        let norm = values
++            .iter()
++            .map(|v| f64::from(*v).powi(2))
++            .sum::<f64>()
++            .sqrt();
++        for v in &mut values {
++            *v = (f64::from(*v) / norm) as f32;
++        }
++        let mut opposite = values.iter().map(|v| -*v).collect::<Vec<_>>();
++        opposite[3] += 0.01;
++        let norm = opposite
++            .iter()
++            .map(|v| f64::from(*v).powi(2))
++            .sum::<f64>()
++            .sqrt();
++        for v in &mut opposite {
++            *v = (f64::from(*v) / norm) as f32;
++        }
++        let metal = Device::new_metal(0)?;
++        let both = Tensor::from_vec([values, opposite].concat(), (2, dimensions), &metal)?;
++        let unit = normalize_rows(&both, 1e-6)?.unit;
++        let rows = unit.to_vec2::<f32>()?;
++        let dot = |a: &[f32], b: &[f32]| -> f64 {
++            a.iter()
++                .zip(b)
++                .map(|(x, y)| f64::from(*x) * f64::from(*y))
++                .sum()
++        };
++        let cosine = (dot(&rows[0], &rows[1])
++            / (dot(&rows[0], &rows[0]) * dot(&rows[1], &rows[1])).sqrt())
++        .clamp(-1.0, 1.0);
++        for (name, device) in [("cpu", Device::Cpu), ("metal", metal.clone())] {
++            // No second normalization: each backend receives identical F32 bytes.
++            let pinned = unit.to_device(&device)?;
++            let features = HarmonicFeatures::new(dimensions, 3, 1e-6, &device)?.forward(&pinned)?;
++            let host = features.to_vec2::<f32>()?;
++            let metal_features = features.to_device(&metal)?;
++            let cpu_features = features.to_device(&Device::Cpu)?;
++            let products = metal_features
++                .narrow(0, 0, 1)?
++                .mul(&metal_features.narrow(0, 1, 1)?)?;
++            println!(
++                "{}",
++                serde_json::json!({
++                    "schema": "uor-r4.harmonic-floor-diagnostic/1",
++                    "construction_backend": name,
++                    "dimensions": dimensions, "degree": 3, "perturbation": 0.01,
++                    "feature_count": host[0].len(),
++                    "expected_unit_kernel": 1e-6 + ((1.0 + cosine) / 2.0).powi(3),
++                    "host_f64_dot": dot(&host[0], &host[1]),
++                    "cpu_matmul": cpu_features.matmul(&cpu_features.t()?)?.to_vec2::<f32>()?[0][1],
++                    "metal_matmul": metal_features.matmul(&metal_features.t()?)?.to_vec2::<f32>()?[0][1],
++                    "metal_elementwise_sum": products.sum_all()?.to_scalar::<f32>()?,
++                    "acceptance": "DIAGNOSTIC_ONLY"
++                })
++            );
++        }
++        Ok(())
++    }
++
+     #[test]
+     fn normalization_and_feature_boundaries_reject_invalid_values() -> Result<()> {
+         let valid = Tensor::zeros((1, 16), DType::F32, &Device::Cpu)?;

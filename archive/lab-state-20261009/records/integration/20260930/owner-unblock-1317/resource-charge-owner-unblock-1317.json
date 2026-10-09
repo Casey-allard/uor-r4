@@ -1,0 +1,14 @@
+{
+  "schema": "uor-r4.resource-charge/1",
+  "event_id": "recovery-integration-20260930-owner-unblock-1317",
+  "recorded_utc": "2026-09-30T13:16:24.032550+00:00",
+  "lab": "Codex durable lab implementation",
+  "adjustment_ms": 600000,
+  "accounting": {
+    "category": "preparation",
+    "measurement": "estimated",
+    "correction_of": null
+  },
+  "authority": "Owner continuity and runner source-steward authority.",
+  "rationale": "Estimated ten minutes active owner-requested unblock investigation: permission UI/read-only TCC/process diagnosis, host pressure/source review, independent PR1539 and rootPR1540 deltas, executed job-f evidence review and publication. Parallel reader elapsed counted once; job-f execution already charged separately. No Codex Cargo/model/GPU or deletion."
+}

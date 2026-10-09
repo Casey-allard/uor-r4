@@ -1,0 +1,280 @@
+{
+  "schema": "uor-r4.sanitized-cleanup-closeout/1",
+  "repository": "UOR-Foundation/uor-r4",
+  "observed_utc": "2026-09-30T03:26:52.874697+00:00",
+  "publication_status": "PREPARED_NOT_PUBLISHED",
+  "authorization": {
+    "owner_instruction": "Remove verified candidates now; waive the wait for this cleanup only.",
+    "scope": "Only verified disposable candidates with fresh preservation, identity and open-handle checks.",
+    "notice_waiver": "THIS_CLEANUP_BATCH_ONLY",
+    "standing_notice_hours_after_batch": 2
+  },
+  "measurement": {
+    "method": "df -k on the internal APFS data volume; reported KiB multiplied by 1024.",
+    "GB_bytes": 1000000000,
+    "GiB_bytes": 1073741824,
+    "before_available_bytes": 41731727360,
+    "after_available_bytes": 69735235584,
+    "physical_available_increase_bytes": 28003508224,
+    "after_available_GB": 69.735235584,
+    "after_available_GiB": 64.94599914550781,
+    "physical_available_increase_GB": 28.003508224,
+    "physical_available_increase_GiB": 26.080299377441406,
+    "target_70_GB_reached": false,
+    "shortfall_to_70_GB_bytes": 264764416,
+    "attribution": "Total physical increase is shared host observation; client activity can change free space concurrently.",
+    "caution": "Allocated file-byte totals are inventory accounting, not an independent measurement of reclaimed physical APFS space."
+  },
+  "worktrees": [
+    {
+      "checkout": "g2-keys-20260929",
+      "head_sha": "3fc3d5922e0e83dc43608e2b0aeb1bd9b8be5f20",
+      "branch": "lab/opencode/g2-keys",
+      "disposition": "REMOVED_NONFORCE_SOURCE_PRESERVED",
+      "source_preservation_basis": "Patch-equivalent merged PR is in audited main; original branch and history retained.",
+      "merged_pr_numbers": [
+        1505
+      ]
+    },
+    {
+      "checkout": "natural-20260929",
+      "head_sha": "f7f19990035d0f7faaefb761b5cf15facd037db5",
+      "branch": "lab/opencode/d2-natural",
+      "disposition": "REMOVED_NONFORCE_SOURCE_PRESERVED",
+      "source_preservation_basis": "Patch-equivalent merged PR is in audited main; original branch and history retained.",
+      "merged_pr_numbers": [
+        1504
+      ]
+    },
+    {
+      "checkout": "s4-serving",
+      "head_sha": "f7a5c4f07413c9fb0edd2f36fa950165561e66f5",
+      "branch": "codex/s4-serving",
+      "disposition": "REMOVED_NONFORCE_SOURCE_PRESERVED",
+      "source_preservation_basis": "Patch-equivalent merged PR is in audited main; original branch and history retained.",
+      "merged_pr_numbers": [
+        1493
+      ]
+    },
+    {
+      "checkout": "arm-c-result-20260929",
+      "head_sha": "db31305af3aceed1cf636cd51f1719b87c666fc7",
+      "branch": "lab/opencode/arm-c-result",
+      "disposition": "REMOVED_NONFORCE_SOURCE_PRESERVED",
+      "source_preservation_basis": "Patch-equivalent merged PR is in audited main; original branch and history retained.",
+      "merged_pr_numbers": [
+        1499
+      ]
+    },
+    {
+      "checkout": "gate-20260929",
+      "head_sha": "1ea58d93b206bb7b50040366ceab99c5897cf3c4",
+      "branch": "lab/opencode/user-turn-gate",
+      "disposition": "REMOVED_NONFORCE_SOURCE_PRESERVED",
+      "source_preservation_basis": "Patch-equivalent merged PR is in audited main; original branch and history retained.",
+      "merged_pr_numbers": [
+        1502
+      ]
+    },
+    {
+      "checkout": "arm-c-20260929",
+      "head_sha": "9667f49e2084231e92ad20633deecdbef30643a8",
+      "branch": "lab/opencode/arm-c",
+      "disposition": "REMOVED_NONFORCE_SOURCE_PRESERVED",
+      "source_preservation_basis": "Patch-equivalent merged PR is in audited main; original branch and history retained.",
+      "merged_pr_numbers": [
+        1498
+      ]
+    },
+    {
+      "checkout": "from-stack-20260929",
+      "head_sha": "f98561466062284584d001c3ebba36233ac3eb07",
+      "branch": "lab/opencode/snap-restore",
+      "disposition": "REMOVED_NONFORCE_SOURCE_PRESERVED",
+      "source_preservation_basis": "Patch-equivalent merged PR is in audited main; original branch and history retained.",
+      "merged_pr_numbers": [
+        1497
+      ]
+    },
+    {
+      "checkout": "g-binding-result-20260929",
+      "head_sha": "c5a3f854fb2a40224068ab8ceda0c64e69bda095",
+      "branch": "lab/opencode/current-state-binding",
+      "disposition": "REMOVED_NONFORCE_SOURCE_PRESERVED",
+      "source_preservation_basis": "Patch-equivalent merged PR is in audited main; original branch and history retained.",
+      "merged_pr_numbers": [
+        1496
+      ]
+    },
+    {
+      "checkout": "s4-adoption-doc",
+      "head_sha": "7924d07520cdc83d3b66da629680adf2bb6cbbfe",
+      "branch": "codex/s4-adoption-doc",
+      "disposition": "REMOVED_NONFORCE_SOURCE_PRESERVED",
+      "source_preservation_basis": "Patch-equivalent merged PR is in audited main; original branch and history retained.",
+      "merged_pr_numbers": [
+        1494
+      ]
+    },
+    {
+      "checkout": "kimi-1479-base",
+      "head_sha": "a10d71ec5d6f4a92cbf07452f6bf300550a817dd",
+      "branch": null,
+      "disposition": "REMOVED_NONFORCE_SOURCE_PRESERVED",
+      "source_preservation_basis": "Exact HEAD is an ancestor of the audited main; detached checkout.",
+      "merged_pr_numbers": [],
+      "initial_skip_and_resolution": "Initially skipped on detached-HEAD representation mismatch; fresh eligibility checks passed before non-force removal."
+    },
+    {
+      "checkout": "aerm-decompose-20260929",
+      "head_sha": "3623ad7d31d45ec7fb82bd4683e76457eaa89b71",
+      "branch": "lab/opencode/aerm-decompose",
+      "disposition": "REMOVED_NONFORCE_SOURCE_PRESERVED",
+      "source_preservation_basis": "Patch-equivalent merged PR is in audited main; original branch and history retained.",
+      "merged_pr_numbers": [
+        1489
+      ]
+    },
+    {
+      "checkout": "g-v1-20260928",
+      "head_sha": "9af92e899cd87a2a534a534babad79f9721cd13f",
+      "branch": "lab/opencode/aerm-checkpoint",
+      "disposition": "REMOVED_NONFORCE_SOURCE_PRESERVED",
+      "source_preservation_basis": "Patch-equivalent merged PR is in audited main; original branch and history retained.",
+      "merged_pr_numbers": [
+        1482
+      ]
+    },
+    {
+      "checkout": "s1-4-snap",
+      "head_sha": "19ec19a30c686ebb69498e297f9202f9115ecebb",
+      "branch": "codex/s1-4-snap",
+      "disposition": "REMOVED_NONFORCE_SOURCE_PRESERVED",
+      "source_preservation_basis": "Expected merge tree exactly equals actual PR #1506 merge tree; original branch and history retained.",
+      "merged_pr_numbers": [
+        1506
+      ]
+    },
+    {
+      "checkout": "lab-runner",
+      "head_sha": "4d0defa0b619ef775df294b636b776e582d769c3",
+      "branch": "codex/lab-runner",
+      "disposition": "REMOVED_NONFORCE_SOURCE_PRESERVED",
+      "source_preservation_basis": "Original 19-file change imported with identical blobs and patch ID, then delivered through PR #1521; original source retained by remote archive tag and local branch.",
+      "merged_pr_numbers": [
+        1521
+      ]
+    }
+  ],
+  "compiler_incremental_cleanup": {
+    "roots_removed": 3,
+    "removed_entry_counts": [
+      2414,
+      1464,
+      876
+    ],
+    "scope": "Only verified compiler incremental subdirectories; installed binaries, dependency caches and rebuilt proc macros retained."
+  },
+  "client_cache_cleanup": {
+    "removed_files": 75642,
+    "removed_allocated_bytes": 8017567744,
+    "removed_logical_bytes": 7875245755,
+    "whole_cache_or_component_scopes": 4,
+    "inactive_payload_only_scopes": 5,
+    "scope_categories": [
+      "Downloaded browser component model",
+      "Inactive browser and client cache payloads",
+      "Package-manager download cache"
+    ],
+    "all_removed_equal_authorized_candidates": true,
+    "removed_excluded_files": 0,
+    "removed_unlisted_files": 0,
+    "per_file_inventory_published": false,
+    "applications_terminated": false,
+    "external_volumes_touched": false
+  },
+  "original_runner_preservation": {
+    "original_head_sha": "4d0defa0b619ef775df294b636b776e582d769c3",
+    "import_head_sha": "7ed92aa404f303129dc9f42a433c05b8777e58a0",
+    "import_file_count": 19,
+    "imported_file_blobs_identical": true,
+    "patch_ids_equal": true,
+    "delivered_pr": 1521,
+    "remote_archive_tag": "archive/lab-runner-4d0defa0",
+    "remote_annotated_tag_object_sha": "b17d6c46928ef1097b7b57fe54e7f85e13697147",
+    "remote_tag_peeled_commit_sha": "4d0defa0b619ef775df294b636b776e582d769c3",
+    "url": "https://github.com/UOR-Foundation/uor-r4/tree/archive/lab-runner-4d0defa0",
+    "installed_internal_binary_retained": true
+  },
+  "preserved": [
+    "owner dirty checkout",
+    "all dirty/unmerged worktrees",
+    "managed H4 checkout",
+    "models and sealed reports",
+    "external recovery originals and rollback image",
+    "conversations profiles credentials",
+    "Claude VM images",
+    "dirty plugin marketplace sources",
+    "installed runtimes and rebuilt proc macros"
+  ],
+  "branches_and_git_history_preserved": true,
+  "scope_limit": "Checkout removal is a storage disposition, not a new model/capability acceptance or closure of outstanding source corrections.",
+  "privacy": "No absolute home paths, browser cache entry names, profile data, credentials, conversations, process inventories or private per-file manifests are included. Detailed receipts remain local.",
+  "local_evidence_digests": [
+    {
+      "receipt_basename": "cleanup-summary.json",
+      "sha256": "f1ab1f659fe0395a75fff2fe99bf3abd585d0725a52e0b77a8f3f0699e791b7c",
+      "publication": "LOCAL_ONLY_RAW_RECEIPT"
+    },
+    {
+      "receipt_basename": "owner-authorization.json",
+      "sha256": "e2b14133c0b0bfe94d24dc3cfbe766d638b6a0275c321c3428cdc946007a4d74",
+      "publication": "LOCAL_ONLY_RAW_RECEIPT"
+    },
+    {
+      "receipt_basename": "worktree-cleanup-verified.json",
+      "sha256": "8b4f576df688f2210bcb7c99eb93cdea347462f008dba44c7875966feec6c1f8",
+      "publication": "LOCAL_ONLY_RAW_RECEIPT"
+    },
+    {
+      "receipt_basename": "project-removal-receipt.json",
+      "sha256": "b6048f6cc17f706c3c95cf991eac5e6a15eda507e0b02302ff54635208dc969d",
+      "publication": "LOCAL_ONLY_RAW_RECEIPT"
+    },
+    {
+      "receipt_basename": "detached-final-removal.json",
+      "sha256": "6d432ac7b40341695e12ebce8b3e3b239983a3355a097536d0d231e1fdb6ca17",
+      "publication": "LOCAL_ONLY_RAW_RECEIPT"
+    },
+    {
+      "receipt_basename": "extra-removal-receipt.json",
+      "sha256": "58fb0e6633a6c659f7abe7a0ce3238d7abbcd1242252a2bd4d05b8dfb3ce5077",
+      "publication": "LOCAL_ONLY_RAW_RECEIPT"
+    },
+    {
+      "receipt_basename": "extra-worktree-merge-tree-proof.json",
+      "sha256": "b9fb442856d81762691a394c9427c8fca9cca8357e57468f012018291aad987f",
+      "publication": "LOCAL_ONLY_RAW_RECEIPT"
+    },
+    {
+      "receipt_basename": "extra-runner-preservation-proof.json",
+      "sha256": "0240c24073780c07ddabd9ba26b8d1562481414ca14ef884de1b1c68bcabacce",
+      "publication": "LOCAL_ONLY_RAW_RECEIPT"
+    },
+    {
+      "receipt_basename": "original-runner-retained-ref.txt",
+      "sha256": "11004d9265f971a2194ceb324685b61bb7b06a7c3d0da9bc9ded06d860920d41",
+      "publication": "LOCAL_ONLY_RAW_RECEIPT"
+    },
+    {
+      "receipt_basename": "cache-cleanup-20260930T032048Z-receipt.json",
+      "sha256": "8b76b2fcc8d6fb5d16bb46eeff521e6b0a97416b917d840a34497a64552fd392",
+      "publication": "LOCAL_ONLY_RAW_RECEIPT"
+    },
+    {
+      "receipt_basename": "cache-cleanup-20260930T032048Z-selection-audit.json",
+      "sha256": "a4f98b45d0c564fed0a352cd2999ff0f8a8026113bf5e18e304eafd697dbe901",
+      "publication": "LOCAL_ONLY_RAW_RECEIPT"
+    }
+  ]
+}

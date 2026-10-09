@@ -1,0 +1,11 @@
+{
+  "source_sha": "8e90aa33b8ef941d3ac5de57ad448859e20ad76b",
+  "base_sha": "61bbd85a0a49e1bb72c71b4e02752d575e3bee4b",
+  "tests_passed": 89,
+  "tests_failed": 0,
+  "log_hashes_verified": true,
+  "binary_path": "/Users/casey.allard/.cache/uor-r4-lab-system/target/debug/lab-runner",
+  "binary_sha256": "a4b5fa5ff4554b07846b4d4f56c927a18cf1a1a93f42ec36c05fd9e0777a299a",
+  "integration_delta": "main since base changes three docs only; no runner/build input changes",
+  "scope": "build and focused recovery tests; not production deployment or model quality"
+}

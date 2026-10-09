@@ -1,0 +1,52 @@
+{
+  "files": [
+    {
+      "blake3": "e842270be9c2dbb1ec5fd5b67c66a3823683cdb89ead4e3fbf89f3dad21e7b96",
+      "bytes": 545,
+      "path": "attempt.json"
+    },
+    {
+      "blake3": "f48691a4f0fc8407549dab1c1166dc35edaa78baf1ba47d516a96d1b02cd6bcc",
+      "bytes": 18432,
+      "path": "cpu-input-cpu-down.f32le"
+    },
+    {
+      "blake3": "25b72645921a301c4f0ba52be6f7a5693329080e7d93a469991bdd5135ddba48",
+      "bytes": 18432,
+      "path": "cpu-input-exact-down.f32le"
+    },
+    {
+      "blake3": "f48691a4f0fc8407549dab1c1166dc35edaa78baf1ba47d516a96d1b02cd6bcc",
+      "bytes": 18432,
+      "path": "cpu-input-metal-down.f32le"
+    },
+    {
+      "blake3": "f5a05c118d4bf00e6356a7ec1b8a89620b611567a69ba132db29a9d4378ed951",
+      "bytes": 5909,
+      "path": "inputs.json"
+    },
+    {
+      "blake3": "01c9ff88c02ccbfd5ab6b3dd901c59a043bcc68c07e645142a4c92003b4c5df3",
+      "bytes": 18432,
+      "path": "metal-input-cpu-down.f32le"
+    },
+    {
+      "blake3": "c9d208d5be2ff645a19e5558e14c52b03d0a3588861ee2a6734879dbfca80e02",
+      "bytes": 18432,
+      "path": "metal-input-exact-down.f32le"
+    },
+    {
+      "blake3": "01c9ff88c02ccbfd5ab6b3dd901c59a043bcc68c07e645142a4c92003b4c5df3",
+      "bytes": 18432,
+      "path": "metal-input-metal-down.f32le"
+    },
+    {
+      "blake3": "a684bd8ccfba7e09c65009a9430b0e5d97f9d450dd24e1fa8df8b46aee54ae5c",
+      "bytes": 15326,
+      "path": "result.json"
+    }
+  ],
+  "root": "/Volumes/UOR-Workspace/uor-r4-models/track-b/down-replay-93085dd5-20260930",
+  "schema": "uor-r4.report-manifest/1",
+  "sealed_at": "1790786881"
+}

@@ -1,0 +1,514 @@
+{
+  "anchors_match_bitwise": true,
+  "inputs": [
+    {
+      "backends": [
+        {
+          "backend": "cpu",
+          "matching_saved_anchor": {
+            "different_bits": 0,
+            "elements": 4608,
+            "max_abs": 0.0,
+            "reference_rms": 596.1090271059169,
+            "rms": 0.0
+          },
+          "rows": [
+            {
+              "local_vs_exact": {
+                "different_bits": 520,
+                "elements": 576,
+                "max_abs": 0.0078125,
+                "reference_rms": 1086.8243446876634,
+                "rms": 0.0003281542374872835
+              },
+              "position": 0
+            },
+            {
+              "local_vs_exact": {
+                "different_bits": 536,
+                "elements": 576,
+                "max_abs": 0.001953125,
+                "reference_rms": 702.6824423509184,
+                "rms": 0.00008433177554291297
+              },
+              "position": 1
+            },
+            {
+              "local_vs_exact": {
+                "different_bits": 550,
+                "elements": 576,
+                "max_abs": 0.0009765625,
+                "reference_rms": 176.5285741136068,
+                "rms": 0.00004181865514617869
+              },
+              "position": 2
+            },
+            {
+              "local_vs_exact": {
+                "different_bits": 541,
+                "elements": 576,
+                "max_abs": 0.001953125,
+                "reference_rms": 551.3034645650495,
+                "rms": 0.00008349152865591665
+              },
+              "position": 3
+            },
+            {
+              "local_vs_exact": {
+                "different_bits": 535,
+                "elements": 576,
+                "max_abs": 0.005859375,
+                "reference_rms": 911.6083566477588,
+                "rms": 0.0002474991629468282
+              },
+              "position": 4
+            },
+            {
+              "local_vs_exact": {
+                "different_bits": 559,
+                "elements": 576,
+                "max_abs": 0.000087738037109375,
+                "reference_rms": 35.24039595915246,
+                "rms": 9.214917990537376e-6
+              },
+              "position": 5
+            },
+            {
+              "local_vs_exact": {
+                "different_bits": 552,
+                "elements": 576,
+                "max_abs": 0.000152587890625,
+                "reference_rms": 14.852080427090815,
+                "rms": 0.000012145950603903338
+              },
+              "position": 6
+            },
+            {
+              "local_vs_exact": {
+                "different_bits": 548,
+                "elements": 576,
+                "max_abs": 0.0001068115234375,
+                "reference_rms": 15.111002620042656,
+                "rms": 0.000012120571333285272
+              },
+              "position": 7
+            }
+          ]
+        },
+        {
+          "backend": "metal",
+          "matching_saved_anchor": null,
+          "rows": [
+            {
+              "local_vs_exact": {
+                "different_bits": 520,
+                "elements": 576,
+                "max_abs": 0.0078125,
+                "reference_rms": 1086.8243446876634,
+                "rms": 0.0003281542374872835
+              },
+              "position": 0
+            },
+            {
+              "local_vs_exact": {
+                "different_bits": 536,
+                "elements": 576,
+                "max_abs": 0.001953125,
+                "reference_rms": 702.6824423509184,
+                "rms": 0.00008433177554291297
+              },
+              "position": 1
+            },
+            {
+              "local_vs_exact": {
+                "different_bits": 550,
+                "elements": 576,
+                "max_abs": 0.0009765625,
+                "reference_rms": 176.5285741136068,
+                "rms": 0.00004181865514617869
+              },
+              "position": 2
+            },
+            {
+              "local_vs_exact": {
+                "different_bits": 541,
+                "elements": 576,
+                "max_abs": 0.001953125,
+                "reference_rms": 551.3034645650495,
+                "rms": 0.00008349152865591665
+              },
+              "position": 3
+            },
+            {
+              "local_vs_exact": {
+                "different_bits": 535,
+                "elements": 576,
+                "max_abs": 0.005859375,
+                "reference_rms": 911.6083566477588,
+                "rms": 0.0002474991629468282
+              },
+              "position": 4
+            },
+            {
+              "local_vs_exact": {
+                "different_bits": 559,
+                "elements": 576,
+                "max_abs": 0.000087738037109375,
+                "reference_rms": 35.24039595915246,
+                "rms": 9.214917990537376e-6
+              },
+              "position": 5
+            },
+            {
+              "local_vs_exact": {
+                "different_bits": 552,
+                "elements": 576,
+                "max_abs": 0.000152587890625,
+                "reference_rms": 14.852080427090815,
+                "rms": 0.000012145950603903338
+              },
+              "position": 6
+            },
+            {
+              "local_vs_exact": {
+                "different_bits": 548,
+                "elements": 576,
+                "max_abs": 0.0001068115234375,
+                "reference_rms": 15.111002620042656,
+                "rms": 0.000012120571333285272
+              },
+              "position": 7
+            }
+          ]
+        }
+      ],
+      "input_origin": "cpu"
+    },
+    {
+      "backends": [
+        {
+          "backend": "cpu",
+          "matching_saved_anchor": null,
+          "rows": [
+            {
+              "local_vs_exact": {
+                "different_bits": 538,
+                "elements": 576,
+                "max_abs": 0.0078125,
+                "reference_rms": 1086.824671701768,
+                "rms": 0.00032800707203138715
+              },
+              "position": 0
+            },
+            {
+              "local_vs_exact": {
+                "different_bits": 534,
+                "elements": 576,
+                "max_abs": 0.00390625,
+                "reference_rms": 702.6825244561953,
+                "rms": 0.00016481325501283966
+              },
+              "position": 1
+            },
+            {
+              "local_vs_exact": {
+                "different_bits": 546,
+                "elements": 576,
+                "max_abs": 0.00048828125,
+                "reference_rms": 176.52855376579643,
+                "rms": 0.000022323139000469232
+              },
+              "position": 2
+            },
+            {
+              "local_vs_exact": {
+                "different_bits": 541,
+                "elements": 576,
+                "max_abs": 0.001953125,
+                "reference_rms": 551.3035054161664,
+                "rms": 0.00008323359104397134
+              },
+              "position": 3
+            },
+            {
+              "local_vs_exact": {
+                "different_bits": 531,
+                "elements": 576,
+                "max_abs": 0.005859375,
+                "reference_rms": 911.6084385494562,
+                "rms": 0.0002473728473676168
+              },
+              "position": 4
+            },
+            {
+              "local_vs_exact": {
+                "different_bits": 557,
+                "elements": 576,
+                "max_abs": 0.0001220703125,
+                "reference_rms": 35.24036931236324,
+                "rms": 9.886238580967387e-6
+              },
+              "position": 5
+            },
+            {
+              "local_vs_exact": {
+                "different_bits": 552,
+                "elements": 576,
+                "max_abs": 0.0001220703125,
+                "reference_rms": 14.852074387297945,
+                "rms": 0.000012409588305568807
+              },
+              "position": 6
+            },
+            {
+              "local_vs_exact": {
+                "different_bits": 557,
+                "elements": 576,
+                "max_abs": 0.000110626220703125,
+                "reference_rms": 15.110997436149914,
+                "rms": 0.000012515408587119773
+              },
+              "position": 7
+            }
+          ]
+        },
+        {
+          "backend": "metal",
+          "matching_saved_anchor": {
+            "different_bits": 0,
+            "elements": 4608,
+            "max_abs": 0.0,
+            "reference_rms": 596.1091202895826,
+            "rms": 0.0
+          },
+          "rows": [
+            {
+              "local_vs_exact": {
+                "different_bits": 538,
+                "elements": 576,
+                "max_abs": 0.0078125,
+                "reference_rms": 1086.824671701768,
+                "rms": 0.00032800707203138715
+              },
+              "position": 0
+            },
+            {
+              "local_vs_exact": {
+                "different_bits": 534,
+                "elements": 576,
+                "max_abs": 0.00390625,
+                "reference_rms": 702.6825244561953,
+                "rms": 0.00016481325501283966
+              },
+              "position": 1
+            },
+            {
+              "local_vs_exact": {
+                "different_bits": 546,
+                "elements": 576,
+                "max_abs": 0.00048828125,
+                "reference_rms": 176.52855376579643,
+                "rms": 0.000022323139000469232
+              },
+              "position": 2
+            },
+            {
+              "local_vs_exact": {
+                "different_bits": 541,
+                "elements": 576,
+                "max_abs": 0.001953125,
+                "reference_rms": 551.3035054161664,
+                "rms": 0.00008323359104397134
+              },
+              "position": 3
+            },
+            {
+              "local_vs_exact": {
+                "different_bits": 531,
+                "elements": 576,
+                "max_abs": 0.005859375,
+                "reference_rms": 911.6084385494562,
+                "rms": 0.0002473728473676168
+              },
+              "position": 4
+            },
+            {
+              "local_vs_exact": {
+                "different_bits": 557,
+                "elements": 576,
+                "max_abs": 0.0001220703125,
+                "reference_rms": 35.24036931236324,
+                "rms": 9.886238580967387e-6
+              },
+              "position": 5
+            },
+            {
+              "local_vs_exact": {
+                "different_bits": 552,
+                "elements": 576,
+                "max_abs": 0.0001220703125,
+                "reference_rms": 14.852074387297945,
+                "rms": 0.000012409588305568807
+              },
+              "position": 6
+            },
+            {
+              "local_vs_exact": {
+                "different_bits": 557,
+                "elements": 576,
+                "max_abs": 0.000110626220703125,
+                "reference_rms": 15.110997436149914,
+                "rms": 0.000012515408587119773
+              },
+              "position": 7
+            }
+          ]
+        }
+      ],
+      "input_origin": "metal"
+    }
+  ],
+  "parent_anchors_verified": true,
+  "parity_pass": false,
+  "propagated": [
+    {
+      "exact_output_difference": {
+        "different_bits": 557,
+        "elements": 576,
+        "max_abs": 0.0078125,
+        "reference_rms": 1086.8243446876634,
+        "rms": 0.00032710656619770447
+      },
+      "gated_input_difference": {
+        "different_bits": 1433,
+        "elements": 1536,
+        "max_abs": 0.0009765625,
+        "reference_rms": 86.33474697724691,
+        "rms": 0.000025689429365529182
+      },
+      "position": 0
+    },
+    {
+      "exact_output_difference": {
+        "different_bits": 517,
+        "elements": 576,
+        "max_abs": 0.001953125,
+        "reference_rms": 702.6824423509184,
+        "rms": 0.00008238028099712866
+      },
+      "gated_input_difference": {
+        "different_bits": 1451,
+        "elements": 1536,
+        "max_abs": 0.0001220703125,
+        "reference_rms": 55.655332715460695,
+        "rms": 4.435770354362261e-6
+      },
+      "position": 1
+    },
+    {
+      "exact_output_difference": {
+        "different_bits": 545,
+        "elements": 576,
+        "max_abs": 0.00048828125,
+        "reference_rms": 176.5285741136068,
+        "rms": 0.00002109247609426931
+      },
+      "gated_input_difference": {
+        "different_bits": 1474,
+        "elements": 1536,
+        "max_abs": 0.000152587890625,
+        "reference_rms": 13.427283787905033,
+        "rms": 4.220461603375683e-6
+      },
+      "position": 2
+    },
+    {
+      "exact_output_difference": {
+        "different_bits": 504,
+        "elements": 576,
+        "max_abs": 0.0009765625,
+        "reference_rms": 551.3034645650495,
+        "rms": 0.0000417562224835476
+      },
+      "gated_input_difference": {
+        "different_bits": 1454,
+        "elements": 1536,
+        "max_abs": 0.00018310546875,
+        "reference_rms": 43.21346021846704,
+        "rms": 4.678864690488903e-6
+      },
+      "position": 3
+    },
+    {
+      "exact_output_difference": {
+        "different_bits": 484,
+        "elements": 576,
+        "max_abs": 0.001953125,
+        "reference_rms": 911.6083566477588,
+        "rms": 0.0000821281667702234
+      },
+      "gated_input_difference": {
+        "different_bits": 1430,
+        "elements": 1536,
+        "max_abs": 0.000244140625,
+        "reference_rms": 71.73462230342746,
+        "rms": 6.235920995829121e-6
+      },
+      "position": 4
+    },
+    {
+      "exact_output_difference": {
+        "different_bits": 523,
+        "elements": 576,
+        "max_abs": 0.00067138671875,
+        "reference_rms": 35.24039595915246,
+        "rms": 0.000028205335982515293
+      },
+      "gated_input_difference": {
+        "different_bits": 1476,
+        "elements": 1536,
+        "max_abs": 0.00011444091796875,
+        "reference_rms": 2.8855759239433265,
+        "rms": 2.956984156439763e-6
+      },
+      "position": 5
+    },
+    {
+      "exact_output_difference": {
+        "different_bits": 548,
+        "elements": 576,
+        "max_abs": 0.0000762939453125,
+        "reference_rms": 14.852080427090815,
+        "rms": 6.999145195725781e-6
+      },
+      "gated_input_difference": {
+        "different_bits": 1490,
+        "elements": 1536,
+        "max_abs": 0.000026702880859375,
+        "reference_rms": 1.4926200462888664,
+        "rms": 8.08084354813914e-7
+      },
+      "position": 6
+    },
+    {
+      "exact_output_difference": {
+        "different_bits": 550,
+        "elements": 576,
+        "max_abs": 0.00017547607421875,
+        "reference_rms": 15.111002620042656,
+        "rms": 8.317113983907816e-6
+      },
+      "gated_input_difference": {
+        "different_bits": 1469,
+        "elements": 1536,
+        "max_abs": 0.0000209808349609375,
+        "reference_rms": 1.4966399020777177,
+        "rms": 7.097127215037878e-7
+      },
+      "position": 7
+    }
+  ],
+  "schema": "uor-r4.track-b-down-replay/1",
+  "scope": "local down-projection rounding versus exact, and propagation of two saved gated inputs; not full reference block error",
+  "status": "DIAGNOSTIC_COMPLETE"
+}

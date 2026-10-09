@@ -1,0 +1,35 @@
+{
+  "argv": [
+    "/bin/sleep",
+    "2"
+  ],
+  "attempt_id": "runner1536-continuity-1",
+  "checkpoint_requested": false,
+  "checkpoint_status": "unavailable_no_verified_payload_protocol",
+  "coordination": {
+    "attempt_id": "runner1536-continuity-1",
+    "epoch": 7,
+    "issue": 1520,
+    "session": "kimi-coordinator-20260930",
+    "work_card": "sha256:c5e27e6bfae8813bcdccb559d7ce606a78f05a07030e0dca8d58bb50d2c2b9cc"
+  },
+  "elapsed_ms": 5895,
+  "ended_utc": "2026-09-30T08:31:32Z",
+  "exit_status": 0,
+  "host": "host-284b64fb2f70567aee465dc4941430076137e580d19d9568b15726d14b157cec",
+  "id": "runner1536-continuity-1",
+  "lab": "coordination",
+  "measurement": "measured",
+  "observed_exit_status": 0,
+  "observed_outcome": "completed",
+  "outcome": "completed",
+  "peak_rss_kib": 3744,
+  "process_state": "confirmed_stopped",
+  "reason": "payload exited with status 0; supervisor stopped",
+  "schema": "uor-r4.lab-runner-exit/1",
+  "spec_sha256": "78b5a9145e9de6bf092975a1b4c1ca325fef6fa01090782cdeeae21e3e61dbaf",
+  "started_utc": "2026-09-30T08:31:26Z",
+  "stop_grace_ms": 250,
+  "stop_request": null,
+  "wall_s": 30
+}

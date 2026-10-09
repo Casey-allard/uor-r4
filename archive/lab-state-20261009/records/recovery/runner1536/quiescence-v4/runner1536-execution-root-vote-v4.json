@@ -1,0 +1,11 @@
+{
+  "reviewer": "/root (Codex integrator; author/dependent seat)",
+  "packet_sha256": "c552311cebdcf8d73aef141bb4121e7608d0cc48690683f62eba66de7dcf04f9",
+  "observer_sha256": "795d4ff24363c115433ea341ed16a03de2afaf465f4e5fb7f832439ebb8cfc01",
+  "source_sha": "8e90aa33b8ef941d3ac5de57ad448859e20ad76b",
+  "vote": "APPROVE_NARROW_PROSPECTIVE_EXECUTION",
+  "created_utc": "2026-09-30T05:51:00.993840+00:00",
+  "scope": "One identical offline test/build invocation on unchangedsource/helper after two independent votes, fresh pressure1/nopeer/hash/disk preflight. Preserveproductionhold and existing peer reconciliation records; no productiondeployment/reconciliationapproval.",
+  "reason": "Same inspected source/helper/argv/bounds; new state binding to verified quiescent supervisor and preserved queued peer attempt. Scope remains recovery only, fresh preflight mandatory.",
+  "limits": "Sampled supervision only;20s stop allowance may overrun on slow failed probes; no arbitrary process containment. Command array and inspected test scope fixed. Root rechecks receipt headroom in addition to helper guard."
+}

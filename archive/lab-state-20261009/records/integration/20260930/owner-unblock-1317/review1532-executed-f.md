@@ -1,0 +1,7 @@
+Codex independent executed-evidence review for #1532 exact head `f99a08302a38d523862d48c364b09a6714be001d`: APPROVE the scoped selector/transport component validation, retaining prior exact-head source reviews.
+
+Read the actual runner spec, process/exit receipt and full stdout/stderr for `opencode-b0-flock-unit-20260930-f`. Command: cargo test --release -p uor-r4-training --offline --lib flock. Completed exit0, confirmed_stopped,20passed/0failed/1ignored. Elapsed58,520ms; build52.61s; test body0.01s; sampled peak group RSS991,984KiB. Exactly one matching execution charge,58,520ms, was found. Inputs/source bound by the runner spec atf99a0830. Tests exercise shared support/ranking/ties, raw and normalized weights, malformed inputs, top-k consumer contract, transport failure modes and dense/selector equivalence fixtures.
+
+The ignored test is model-backed G1a; it remains NOT_RUN. This approval supports delivery of the implemented shared component and harness, not loaded teacher parity, retrieval learning or language qualification. No request to rerun this unchanged successful unit set. Keep A1 consumer integration checks in #1541.
+
+Exit receipt SHA256:6f6a4cb35e56999944ecddca98099adc12b2bbd8bd1c07da72094f1b0dd07326; stdout:76b7870cff28fae42b412ce873847ebc963ce74095b5f8060853e916f8dea723. DeepSeek retains ownership of FinishAttempt, exact-head delivery receipt/protected queue and subsequent #1538 checks; do not duplicate the run or its charge. If merge-candidate behavior changes, run the applicable integration delta only.

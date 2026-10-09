@@ -1,0 +1,386 @@
+{
+  "schema": "uor-r4.independent-sealed-read/1",
+  "pr": 1527,
+  "head": "5d51f2855c4a912c1360cafc11890adf0fdce315",
+  "scope": "Read-only manifest/file-set/byte-count/BLAKE3 verification; not a model rerun, source-binding proof, or scientific qualification.",
+  "roots": [
+    {
+      "root": "/Volumes/UOR-Workspace/uor-r4-lab/anti-gravity-d4/geometric_s1_float_ctrl_1000",
+      "manifest_sha256": "1821dda2ab2ad006a373f30e2f4bff8c6ca650c1801d9ff5fd3a8a90d5550e07",
+      "file_set_matches": true,
+      "extra": [],
+      "missing": [],
+      "files": [
+        {
+          "path": "attempt.json",
+          "bytes": 1274,
+          "bytes_match": true,
+          "blake3": "f73336af1d63ed8f9d3a31d1f767527fc40082b8b8c71f65811d6f23fd4958ac",
+          "hash_match": true
+        },
+        {
+          "path": "model/config.json",
+          "bytes": 193,
+          "bytes_match": true,
+          "blake3": "9e48dea07a6da60efddcab2220c3b56031934eff7704befe46da4cbb79df207e",
+          "hash_match": true
+        },
+        {
+          "path": "model/model.safetensors",
+          "bytes": 28622728,
+          "bytes_match": true,
+          "blake3": "4a616aac597973e58eb31a971fdac8fe2a0bc3f3f661d543acd4186d64750263",
+          "hash_match": true
+        },
+        {
+          "path": "report.json",
+          "bytes": 21737,
+          "bytes_match": true,
+          "blake3": "d10b364d67489b761a554eb410399e447c787178b351a215d2a45a434898cf93",
+          "hash_match": true
+        }
+      ]
+    },
+    {
+      "root": "/Volumes/UOR-Workspace/uor-r4-lab/anti-gravity-d4/geometric_s1_qat_d11_1000",
+      "manifest_sha256": "2c08ac78f6fbc1ffa361321f8315308cd57db031253dd86697b3f395947e06e3",
+      "file_set_matches": true,
+      "extra": [],
+      "missing": [],
+      "files": [
+        {
+          "path": "attempt.json",
+          "bytes": 1270,
+          "bytes_match": true,
+          "blake3": "7daf268abb71d68cde67dd6d19e55a4117b45c0bb5ff6b63db275ab0e661f4a0",
+          "hash_match": true
+        },
+        {
+          "path": "model/config.json",
+          "bytes": 280,
+          "bytes_match": true,
+          "blake3": "c81cacb3ec92c3a59aedf472164b7082c008603a55ef55734b856737c33fae75",
+          "hash_match": true
+        },
+        {
+          "path": "model/model.safetensors",
+          "bytes": 28622728,
+          "bytes_match": true,
+          "blake3": "80d80ec96e6127efde8d3b2df71adc0ef32e3bc9dcd730be128a09a180a44b69",
+          "hash_match": true
+        },
+        {
+          "path": "report.json",
+          "bytes": 23917,
+          "bytes_match": true,
+          "blake3": "7f0b9c751d96626d34f1153ccb8fe091d443fe5b4f2a4e24d59a9f2c8386a84d",
+          "hash_match": true
+        }
+      ]
+    },
+    {
+      "root": "/Volumes/UOR-Workspace/uor-r4-lab/anti-gravity-d4/geometric_s1_qat_d11_1000_d11_eval",
+      "manifest_sha256": "ab550d4cce7fc514077b671044f4a229dc97eb28b633aa5dfcf2e3fb3c668fba",
+      "file_set_matches": true,
+      "extra": [],
+      "missing": [],
+      "files": [
+        {
+          "path": "attempt.json",
+          "bytes": 736,
+          "bytes_match": true,
+          "blake3": "060003943a42ac27241b5f3374d02488370e8ea3121b591ae9d333c28e9559f0",
+          "hash_match": true
+        },
+        {
+          "path": "evaluation.json",
+          "bytes": 56783,
+          "bytes_match": true,
+          "blake3": "975da5251698ab06cf6a5329ad7840ecfe82e4781a254a5831b49f8e9997ac4b",
+          "hash_match": true
+        }
+      ]
+    },
+    {
+      "root": "/Volumes/UOR-Workspace/uor-r4-lab/anti-gravity-d4/geometric_s1_qat_d11_1000_export",
+      "manifest_sha256": "9b6864fefcc0625c6fb5728110412e6bf7322e0049a96a14f187cdc733478c03",
+      "file_set_matches": true,
+      "extra": [],
+      "missing": [],
+      "files": [
+        {
+          "path": "attempt.json",
+          "bytes": 471,
+          "bytes_match": true,
+          "blake3": "f7233a85ffc2aad2c26f0463304dace1deb81cdf0f652b80bc406124fc0d861f",
+          "hash_match": true
+        },
+        {
+          "path": "export.json",
+          "bytes": 3761,
+          "bytes_match": true,
+          "blake3": "99642e0ce94cdfa38c2ec30e9ed44dcc0047f9bd19db658f0c271ea74ecf581e",
+          "hash_match": true
+        },
+        {
+          "path": "model.lut",
+          "bytes": 4969988,
+          "bytes_match": true,
+          "blake3": "f9e58ea1cecd8e811b0265cdb76861a549f601c9ffd3ea0367c9015418dbab3b",
+          "hash_match": true
+        }
+      ]
+    },
+    {
+      "root": "/Volumes/UOR-Workspace/uor-r4-lab/anti-gravity-d4/geometric_s1_qat_d11_1000_lut_eval",
+      "manifest_sha256": "de6f640c16e9a88d4420e84eab6ad9e733aeba248a9281a5d793246517c602aa",
+      "file_set_matches": true,
+      "extra": [],
+      "missing": [],
+      "files": [
+        {
+          "path": "attempt.json",
+          "bytes": 853,
+          "bytes_match": true,
+          "blake3": "ee56c4741c7d1b6704e14ea08e1d733bbd2b71aaed55c9ee6e805b358d6101ae",
+          "hash_match": true
+        },
+        {
+          "path": "evaluation.json",
+          "bytes": 82185,
+          "bytes_match": true,
+          "blake3": "c3c1f77ae6688fcfb842b363b8b266e84bf74d7d48bc3583bb8d607f8b9240db",
+          "hash_match": true
+        }
+      ]
+    },
+    {
+      "root": "/Volumes/UOR-Workspace/uor-r4-lab/anti-gravity-d4/s2_dialogue_float_ctrl_1/chat",
+      "manifest_sha256": "735f8b6562178991d87b2b143bef4cd77f3fe3a654b1c0aeb8a93b19960b2679",
+      "file_set_matches": true,
+      "extra": [],
+      "missing": [],
+      "files": [
+        {
+          "path": "attempt.json",
+          "bytes": 828,
+          "bytes_match": true,
+          "blake3": "5cdecc7e4a7c60fc930db336ee982140b586f02eba2ad4bab9f644bad5a0665b",
+          "hash_match": true
+        },
+        {
+          "path": "chat.json",
+          "bytes": 99544,
+          "bytes_match": true,
+          "blake3": "6b778b0dc2a1ee57a8cfedab4a6b6ec436171e18dbcf8d4d9046d1b6617e831a",
+          "hash_match": true
+        }
+      ]
+    },
+    {
+      "root": "/Volumes/UOR-Workspace/uor-r4-lab/anti-gravity-d4/s2_dialogue_float_ctrl_1/d11_eval",
+      "manifest_sha256": "333dc1ef5101e0457719027914d99d8184e06955d01091f213806422eb111faa",
+      "file_set_matches": true,
+      "extra": [],
+      "missing": [],
+      "files": [
+        {
+          "path": "attempt.json",
+          "bytes": 617,
+          "bytes_match": true,
+          "blake3": "ab5e7e728670b1eda6f14aa47c535f15c74baa377f630bee6d0ae69d348c3433",
+          "hash_match": true
+        },
+        {
+          "path": "evaluation.json",
+          "bytes": 8527,
+          "bytes_match": true,
+          "blake3": "d8a0e812de1454aec9a4b9e59242cc3904e5b60f4e04d16bd38e85d638bc5c26",
+          "hash_match": true
+        }
+      ]
+    },
+    {
+      "root": "/Volumes/UOR-Workspace/uor-r4-lab/anti-gravity-d4/s2_dialogue_float_ctrl_1/export",
+      "manifest_sha256": "fde396a668a5ff977d72a72226c7527d9ca0bdfdacca7869a4e24f7f0fb0ecc6",
+      "file_set_matches": true,
+      "extra": [],
+      "missing": [],
+      "files": [
+        {
+          "path": "attempt.json",
+          "bytes": 474,
+          "bytes_match": true,
+          "blake3": "3785b7d5b135c54b1284f424a443953e68bd822f42666944c85ff1d5a19f5fa9",
+          "hash_match": true
+        },
+        {
+          "path": "export.json",
+          "bytes": 3498,
+          "bytes_match": true,
+          "blake3": "6f51f26800a9e73f950e5b2229ff19200c7fc9e93c7580806d6669bb53781218",
+          "hash_match": true
+        },
+        {
+          "path": "model.lut",
+          "bytes": 4969732,
+          "bytes_match": true,
+          "blake3": "060179e93977fb4e955ff262f4d36765389273607c816faa430df334e3029706",
+          "hash_match": true
+        }
+      ]
+    },
+    {
+      "root": "/Volumes/UOR-Workspace/uor-r4-lab/anti-gravity-d4/s2_dialogue_float_ctrl_1/train",
+      "manifest_sha256": "b7afbd454d395344d0169794742e3cd71482994e1b456d5fe362aa7b2b214571",
+      "file_set_matches": true,
+      "extra": [],
+      "missing": [],
+      "files": [
+        {
+          "path": "attempt.json",
+          "bytes": 1676,
+          "bytes_match": true,
+          "blake3": "feb9557147f2f80968bc2bd69c3847ed75ec3aee3c06f8bea8d5a61c6efe6957",
+          "hash_match": true
+        },
+        {
+          "path": "model/config.json",
+          "bytes": 193,
+          "bytes_match": true,
+          "blake3": "9e48dea07a6da60efddcab2220c3b56031934eff7704befe46da4cbb79df207e",
+          "hash_match": true
+        },
+        {
+          "path": "model/model.safetensors",
+          "bytes": 28622728,
+          "bytes_match": true,
+          "blake3": "f9f4e83dd52388d094220faf8933f61d8d1d9d570731eec609606a0cb5045566",
+          "hash_match": true
+        },
+        {
+          "path": "report.json",
+          "bytes": 124742,
+          "bytes_match": true,
+          "blake3": "13a2c6da87ff5f3d8fa2e39e6a2762716f88d26a23a7ba40f178c592e8123d0c",
+          "hash_match": true
+        }
+      ]
+    },
+    {
+      "root": "/Volumes/UOR-Workspace/uor-r4-lab/anti-gravity-d4/s2_dialogue_qat_1/chat",
+      "manifest_sha256": "51ee14e604f94087df0f52bc87d07938360c97d57d144e7833a3dba7ae0ad148",
+      "file_set_matches": true,
+      "extra": [],
+      "missing": [],
+      "files": [
+        {
+          "path": "attempt.json",
+          "bytes": 815,
+          "bytes_match": true,
+          "blake3": "9e07af99f139911a31701003abf2d057eef0da32e86ddb911329177c00db7ec9",
+          "hash_match": true
+        },
+        {
+          "path": "chat.json",
+          "bytes": 96258,
+          "bytes_match": true,
+          "blake3": "f5ac79308d16f6bf1b20bbb92710cd996019af7ff727b3f6caac188aac793bba",
+          "hash_match": true
+        }
+      ]
+    },
+    {
+      "root": "/Volumes/UOR-Workspace/uor-r4-lab/anti-gravity-d4/s2_dialogue_qat_1/d11_eval",
+      "manifest_sha256": "3e3c2125cb63cd35aafbd949619dd0b9c60e0d9872e84265317daee6afaa4cdc",
+      "file_set_matches": true,
+      "extra": [],
+      "missing": [],
+      "files": [
+        {
+          "path": "attempt.json",
+          "bytes": 604,
+          "bytes_match": true,
+          "blake3": "2bec3460595dac71a96f387298dd943fb19bc8a46b1783e58b0c0160833ea46a",
+          "hash_match": true
+        },
+        {
+          "path": "evaluation.json",
+          "bytes": 8522,
+          "bytes_match": true,
+          "blake3": "9ae82a5f1e0fba40ae89d44027288105bca0f9ca3d7f46ac97d591b03df1c78b",
+          "hash_match": true
+        }
+      ]
+    },
+    {
+      "root": "/Volumes/UOR-Workspace/uor-r4-lab/anti-gravity-d4/s2_dialogue_qat_1/export",
+      "manifest_sha256": "405afb1b275ef324aaebe7fbbc9856efaea3b9a0ccf60ee7b7382f4f4a0a734f",
+      "file_set_matches": true,
+      "extra": [],
+      "missing": [],
+      "files": [
+        {
+          "path": "attempt.json",
+          "bytes": 461,
+          "bytes_match": true,
+          "blake3": "5fee1523ceabbca2c2d57dd52ac359c8985a2064ab01cd4ef81681ee91afdfa8",
+          "hash_match": true
+        },
+        {
+          "path": "export.json",
+          "bytes": 3745,
+          "bytes_match": true,
+          "blake3": "dd40f89d9e6ee17be0eb91b82202faf5851809187800a28286dad4f35712c3f9",
+          "hash_match": true
+        },
+        {
+          "path": "model.lut",
+          "bytes": 4969988,
+          "bytes_match": true,
+          "blake3": "f52a9fa7964149d67f41fec3827741cf925ea27b596034bd16d61db8628e55d9",
+          "hash_match": true
+        }
+      ]
+    },
+    {
+      "root": "/Volumes/UOR-Workspace/uor-r4-lab/anti-gravity-d4/s2_dialogue_qat_1/train",
+      "manifest_sha256": "ecd46f59272021731c653299a5c18fb3a789bf8c6b7429d8ade8995754b8ff6e",
+      "file_set_matches": true,
+      "extra": [],
+      "missing": [],
+      "files": [
+        {
+          "path": "attempt.json",
+          "bytes": 1668,
+          "bytes_match": true,
+          "blake3": "d2adadf226b045ddbf5943fe7ea63ac3f5d0f85d3560c1361cd4ab35f4170f19",
+          "hash_match": true
+        },
+        {
+          "path": "model/config.json",
+          "bytes": 280,
+          "bytes_match": true,
+          "blake3": "c81cacb3ec92c3a59aedf472164b7082c008603a55ef55734b856737c33fae75",
+          "hash_match": true
+        },
+        {
+          "path": "model/model.safetensors",
+          "bytes": 28622728,
+          "bytes_match": true,
+          "blake3": "78a648cee7f64c77d78627b1ac6409c6c6d7eae761c5ec5a2eaa27dd0380f937",
+          "hash_match": true
+        },
+        {
+          "path": "report.json",
+          "bytes": 137621,
+          "bytes_match": true,
+          "blake3": "0e4298a0432606bd1ea37c9ead45a61956d81e3cbbdc2426f948c9a20ca1d494",
+          "hash_match": true
+        }
+      ]
+    }
+  ],
+  "bytes_hashed": 130084153,
+  "elapsed_seconds": 0.29864866700000003
+}

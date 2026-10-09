@@ -1,0 +1,15 @@
+{
+  "argv": [
+    "/Users/casey.allard/.cargo/bin/cargo",
+    "build",
+    "-p",
+    "lab-runner",
+    "--offline"
+  ],
+  "log": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/runner1536-checks-attempt2/command-1.log",
+  "process_state": "confirmed_stopped",
+  "exit_code": 0,
+  "elapsed_seconds": 0.8979340829973808,
+  "log_sha256": "f0788aa36d1c86b6ccdfb7f4042a5574102d82061c046422a2d42e008a1e4710",
+  "stop_reason": null
+}

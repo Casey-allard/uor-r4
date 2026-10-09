@@ -1,0 +1,158 @@
+{
+  "schema": "uor-r4.macos-proc-macro-denial-diagnosis/1",
+  "observed_utc": "2026-09-30T04:24:41.348395+00:00",
+  "status": "READ_ONLY_DIAGNOSIS_NO_REPAIR_EXECUTED",
+  "requested_file": "libbytemuck_derive-afc908cd70aa5cc1.dylib",
+  "confirmed_denied_path": "/Volumes/UOR-Workspace/BuildCaches/anti-gravity/debug/deps/libbytemuck_derive-afc908cd70aa5cc1.dylib",
+  "denied_sha256": "67886d1f0de36ba701cad9d1d686a6ca36c4668890b62afb70e21dc19643615d",
+  "denial_evidence": [
+    "2026-09-30 00:09:12 local: syspolicyd Prompt shown for external dylib",
+    "2026-09-30 00:09:14 local: AppleSystemPolicy rustc -> external dylib rejected, library load disallowed by system policy"
+  ],
+  "internal_replacement": {
+    "path": "/Users/casey.allard/.cache/uor-antigravity-target/debug/deps/libbytemuck_derive-afc908cd70aa5cc1.dylib",
+    "sha256": "23f0821fabc3140544aa6c89c0fb98b00bb4960828a3cb21eacab13d6c686e00",
+    "birth_utc": "2026-09-30T04:10:39.554374Z",
+    "code_signature": "valid ad-hoc linker signature",
+    "file_quarantine_attribute": false,
+    "observed_internal_denial_in_inspected_window": false,
+    "interpretation": "Different bytes/new internal file; current dependent test executable has launched. Exact source rebuild command receipt was not captured by this read-only audit."
+  },
+  "registry_provenance": {
+    "package": "bytemuck_derive 1.12.0",
+    "crate_checksum_matches_lock": true,
+    "source_files_match_pinned_archive": 13,
+    "mismatches": 0,
+    "limits": "Proves inspected registry source identity, not independently reproducible provenance of every previously cached binary."
+  },
+  "image_boundary": {
+    "current_image": "/Volumes/X10 Pro/UOR-R4/UOR-Workspace.sparsebundle",
+    "current_mount": "/Volumes/UOR-Workspace",
+    "mounted_quarantine_flag": true,
+    "current_device": "/dev/disk6s1",
+    "backing_device": "/dev/disk5",
+    "backup_image": "/Volumes/X10 Pro/UOR-R4/Recovery/20260929-lab-system/UOR-Workspace.sparsebundle",
+    "backup_verified_receipt": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/copy-full-receipt-20260930T015128Z.json",
+    "known_quarantine_value": "0081;00000000;;",
+    "attributes_on": [
+      "UOR-R4 ancestor",
+      "both images Info.plist",
+      "both images Info.bckup",
+      "both images bands directory",
+      "both images mapped directory",
+      "both images token",
+      "both images lock"
+    ],
+    "bundle_root_quarantine_absent": true,
+    "causal_limit": "Image-level trust boundary is consistent with denial. Which wrapper/ancestor metadata causes the mount flag and who originally set it are not yet isolated; timestamp field is zero. No remount or attribute mutation was performed."
+  },
+  "active_job": {
+    "observed_utc": "2026-09-30T04:23:02.558439+00:00",
+    "known_previous_pids": [
+      44140,
+      44831
+    ],
+    "previous_present": [],
+    "active_descendants": [
+      {
+        "process": {
+          "pid": 49075,
+          "ppid": 26835,
+          "pgid": 49075,
+          "comm": "/Users/casey.allard/.rustup/toolchains/1.97.1-aarch64-apple-darwin/bin/cargo"
+        },
+        "args": "49075 26835 49075 Wed Sep 30 00:19:27 2026     Ss+  /Users/casey.allard/.rustup/toolchains/1.97.1-aarch64-apple-darwin/bin/cargo test -p uor-r4-training --test d4_map_codec_adapter",
+        "cwd_observation": "p49075\nfcwd\nn/Users/casey.allard/uor-r4/.worktrees/runtime-reconciled"
+      },
+      {
+        "process": {
+          "pid": 49094,
+          "ppid": 49075,
+          "pgid": 49075,
+          "comm": "/Users/casey.allard/.cache/uor-antigravity-target/debug/deps/d4_map_codec_adapter-987c182bebb0750d"
+        },
+        "args": "49094 49075 49075 Wed Sep 30 00:19:29 2026     S+   /Users/casey.allard/.cache/uor-antigravity-target/debug/deps/d4_map_codec_adapter-987c182bebb0750d",
+        "cwd_observation": "p49094\nfcwd\nn/Users/casey.allard/uor-r4/.worktrees/runtime-reconciled/crates/uor-r4-training"
+      }
+    ],
+    "cwd_canonical": "/Users/casey.allard/uor-r4/.worktrees/runtime-reconciled",
+    "cache_canonical": "/Users/casey.allard/.cache/uor-antigravity-target"
+  },
+  "observed_external_handles_for_known_active_job": [],
+  "exact_file_inventory_count": 16,
+  "repair_plan": [
+    {
+      "order": 1,
+      "action": "Keep affected admissions held. Ask the owning lab to checkpoint/finish/stop its actual verified Cargo/test group; do not infer stopped from absent rustc or old PID. Reconcile the separate unknown Claude job without rerunning it. Confirm no affected worker or volume handle remains before any detach."
+    },
+    {
+      "order": 2,
+      "action": "Preserve exact file identities, logs, wrapper xattrs and attachment records. The 01:51 verified rollback is a historical snapshot; inventory and preserve all newer unique writes before considering replacement. Do not silently substitute the older image at the canonical mount."
+    },
+    {
+      "order": 3,
+      "action": "For image-level causal isolation, use a specifically identified working diagnostic copy while keeping a verified rollback untouched. Any trust correction must target only inventoried image-wrapper metadata with exact original values retained, not per-dylib recursive stripping, global Gatekeeper changes, re-signing or noverify bypasses. The quarantined UOR-R4 ancestor and wrapper entries must be evaluated, not just the sparsebundle directory itself."
+    },
+    {
+      "order": 4,
+      "action": "After genuine quiescence and normal detach, use the supported diskutil image attach interface (readOnly with explicit diagnostic mountPoint first) and inspect resulting mount flags/UUID. Do not invent a noquarantine flag: none is documented in the installed attach help or mount manual. Controlled metadata correction/remount needs a separately recorded authorized action; this audit did not perform it."
+    },
+    {
+      "order": 5,
+      "action": "Verify that unchanged relevant payload hashes and volume UUID remain correct, then exercise one exact compiler proc-macro load with recorded compiler/features/profile/source and actual loader result, under bounded admission. Confirm absence of the specific new denial in the corresponding log interval. Signature verification alone is insufficient."
+    },
+    {
+      "order": 6,
+      "action": "If image trust cannot be repaired safely, retain the image for source/artifact data and use already working fresh internal executable caches subject to floors. Rebuild only a precisely identified affected dependency unit when necessary and quiescent; do not copy/rename denied dylibs, purge caches, or rebuild the whole project merely to dismiss a popup."
+    }
+  ],
+  "acceptance": [
+    "All affected workers and handles positively reconciled before remount",
+    "Original unique data and rollback preserved; no stale backup promotion",
+    "Mount/trust change recorded with exact metadata rollback and volume identity",
+    "Exact required macro is accepted by the compiler without a fresh policy denial",
+    "Relevant focused changed-path checks resume through admitted runner and fresh source-bound receipts"
+  ],
+  "mutations": {
+    "deleted_files": false,
+    "xattrs_changed": false,
+    "jobs_signaled": false,
+    "mounts_changed": false,
+    "client_configs_changed": false,
+    "github_posts": false
+  },
+  "evidence_files": [
+    {
+      "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/bytemuck-popup-file-identity.json",
+      "sha256": "b6a55d28dcc9c7210623cb053c4d3813dc77d7ea9a9fc3a1ebf78677bacf0ee7"
+    },
+    {
+      "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/bytemuck-popup-exact-file-inventory.json",
+      "sha256": "a13fa77374d73199968dafe0e4cf2961482d65d14f14af926762d0f79dffca7a"
+    },
+    {
+      "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/bytemuck-popup-registry-provenance.json",
+      "sha256": "0f8048d3527bf6474e1785990a41ee745a9c8c09dad6a0fcda35143bfaaacf83"
+    },
+    {
+      "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/bytemuck-popup-os-log.txt",
+      "sha256": "d6f8f4235d0bd72886ad7381d14abd0eec28e16f24874114d9d6f7885e344f17"
+    },
+    {
+      "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/bytemuck-popup-image-attachment.json",
+      "sha256": "4b3d9610db3b85b9d39640bf5852074dbcb653197a0ed36058f5ec8a6c57c8ac"
+    },
+    {
+      "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/bytemuck-popup-image-xattrs.json",
+      "sha256": "31311a54a8ce31910e823431019bb8c4fd2cf4f84de8601fb2068c67f4a8e2d2"
+    },
+    {
+      "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/bytemuck-popup-image-top-metadata.json",
+      "sha256": "c2f63a4bc8a5d1c32aeb520beeb69f0dfd3af93d5f7e1f922742201045c12a7d"
+    },
+    {
+      "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/bytemuck-popup-process-snapshot.json",
+      "sha256": "36fbce828f9a4540d0136861e795f509d544860224d7c18a88d05abdb7d1164f"
+    }
+  ]
+}

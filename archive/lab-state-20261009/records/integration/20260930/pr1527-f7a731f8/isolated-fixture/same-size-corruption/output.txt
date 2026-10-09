@@ -1,0 +1,1 @@
+  [PASS] synthetic-same-size-corruption: /Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/uor-1527-verifier-recheck-etfa4ojx/same-size-corruption manifest & payloads verified (ac56b5941a8c3dc7...)

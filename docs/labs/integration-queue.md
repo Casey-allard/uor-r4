@@ -3,7 +3,7 @@
 > **October 1 supersession:** the [active canonical plan](../integration/project-track.md) under D19 owns current priorities and dependencies. This document preserves its dated evidence and former schedule; live issue claims must be refreshed.
 
 This is the concise routing index for existing work. Live issues, exact PR heads
-and `codex/lab-state` own changing status. Refresh an entry before acting; a merge
+own changing status (the former `codex/lab-state` record is archived in `docs/history/lab-state-20261009/`). Refresh an entry before acting; a merge
 does not imply that every review finding or scientific gate passed. The research
 stages remain in [the continuing plan](plan-2026-09-29.md). All labs start with
 their [extended goal](README.md), then claim one concrete next action.
@@ -26,7 +26,7 @@ worktrees. Counts overlap: local and remote refs often name the same work.
 heads; 53 unmapped refs represent 40 distinct heads. Squash history means
 `git cherry` alone cannot establish missing source. Nothing was pruned or deleted.
 
-The [frozen inventory and retention records](https://github.com/UOR-Foundation/uor-r4/tree/codex/lab-state/integration/20260930)
+The [frozen inventory and retention records](../../archive/lab-state-20261009/records/integration/20260930)
 retain each branch/head, PR mapping, worktree state, proposed steward, next
 action and limitations. All unmapped refs have a preservation reason and
 reactivation condition. This is an index for scoped review, not proof that every

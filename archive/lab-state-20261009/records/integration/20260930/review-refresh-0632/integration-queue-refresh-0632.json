@@ -1,0 +1,143 @@
+{
+  "observed_utc": "2026-09-30T06:31:41.927161+00:00",
+  "authority": "Operational refresh of existing docs/labs/integration-queue.md; Kimi is programme lead. Historical full branch inventory remains preserved at integration/20260930. Not a new research roadmap or merge authorization.",
+  "dependency_note": "1534/1538 require shared export integration; the edge records validation order, not permission to overwrite either branch. B0 precedes integrated consumers. Resource gates apply to execution, not source review.",
+  "open_prs": [
+    {
+      "baseRefName": "main",
+      "headRefName": "lab/opencode/1533-test-fixes",
+      "headRefOid": "a00e2fd493067af457701bfc69aac3dc63699385",
+      "isDraft": true,
+      "number": 1538,
+      "title": "S1.4 safety: two diagnosed #1533 test corrections (source-only; checks NOT_RUN under hold)",
+      "url": "https://github.com/UOR-Foundation/uor-r4/pull/1538",
+      "steward": "OpenCode–DeepSeek",
+      "disposition": "Small corrected test delta source-approved; inherited eight-file full review and all current-head checks pending",
+      "validation_dependencies": [
+        1537
+      ],
+      "disposition_requires_revalidation_on_head_change": true
+    },
+    {
+      "baseRefName": "main",
+      "headRefName": "codex/runner-stable-boot-recovery-20260930",
+      "headRefOid": "8e90aa33b8ef941d3ac5de57ad448859e20ad76b",
+      "isDraft": true,
+      "number": 1537,
+      "title": "fix(runner): preserve uncertain executions and use stable boot identity",
+      "url": "https://github.com/UOR-Foundation/uor-r4/pull/1537",
+      "steward": "Codex",
+      "disposition": "Source reviewed; tests/build NOT_RUN; admission blocked by pressure2 and ~39.1GiB internal free",
+      "validation_dependencies": [],
+      "disposition_requires_revalidation_on_head_change": true
+    },
+    {
+      "baseRefName": "main",
+      "headRefName": "lab/anti-gravity/d4-codec-export-corrections",
+      "headRefOid": "8535388a9a48d221d26d7ec98885dd1ada0cc15e",
+      "isDraft": false,
+      "number": 1534,
+      "title": "fix(training): restore saved codec on export, reject bare shape names, and ensure provenance parity in D4 reload tests",
+      "url": "https://github.com/UOR-Foundation/uor-r4/pull/1534",
+      "steward": "Antigravity",
+      "disposition": "Export provenance correction source-reviewed; current-head checks and interacting export integration pending",
+      "validation_dependencies": [
+        1537,
+        1538
+      ],
+      "disposition_requires_revalidation_on_head_change": true
+    },
+    {
+      "baseRefName": "main",
+      "headRefName": "lab/opencode/b0-flock",
+      "headRefOid": "f99a08302a38d523862d48c364b09a6714be001d",
+      "isDraft": false,
+      "number": 1532,
+      "title": "flock: canonical shared selector + model-source score_and_normalize transport (B0, #1512)",
+      "url": "https://github.com/UOR-Foundation/uor-r4/pull/1532",
+      "steward": "OpenCode–DeepSeek",
+      "disposition": "Current-head delta review and execution pending; prior-head raw tests do not qualify new head",
+      "validation_dependencies": [
+        1537
+      ],
+      "disposition_requires_revalidation_on_head_change": true
+    },
+    {
+      "baseRefName": "main",
+      "headRefName": "lab/anti-gravity/d11-flock-serving",
+      "headRefOid": "adb7ad7c7ce319996bf34916f5b77aa1f7f40048",
+      "isDraft": false,
+      "number": 1528,
+      "title": "feat(integer): allocation-free D11 integer flock selector and scratch workspace (#1513, #820)",
+      "url": "https://github.com/UOR-Foundation/uor-r4/pull/1528",
+      "steward": "Antigravity",
+      "disposition": "Capacity/overflow corrections source-reviewed; PR instruction/performance scope still requires correction; execution pending",
+      "validation_dependencies": [
+        1537,
+        1532
+      ],
+      "disposition_requires_revalidation_on_head_change": true
+    },
+    {
+      "baseRefName": "main",
+      "headRefName": "lab/anti-gravity/d4-qat-results",
+      "headRefOid": "e386f15ed59113ef0ad1bcf262dcd452a34debd0",
+      "isDraft": false,
+      "number": 1527,
+      "title": "feat(evidence): publish Results B and C (S1 geometric QAT and S2 dialogue behavior) (#973, #820)",
+      "url": "https://github.com/UOR-Foundation/uor-r4/pull/1527",
+      "steward": "Antigravity",
+      "disposition": "Historical numeric fixes confirmed; verifier fail-open reproduced; provenance and PR scope corrections required; full binary validation pending",
+      "validation_dependencies": [
+        1537
+      ],
+      "disposition_requires_revalidation_on_head_change": true
+    },
+    {
+      "baseRefName": "main",
+      "headRefName": "lab/anti-gravity/fidelity-serving-metal",
+      "headRefOid": "2a13baddb996ae966ae1e54434befc26f9a3f6da",
+      "isDraft": false,
+      "number": 1526,
+      "title": "feat(training): native Apple Silicon Metal GPU kernels for geometric stack ops (#1510, #1509, #1513)",
+      "url": "https://github.com/UOR-Foundation/uor-r4/pull/1526",
+      "steward": "Antigravity",
+      "disposition": "Empty dispatch correction source-reviewed; current-head executed Metal checks pending",
+      "validation_dependencies": [
+        1537
+      ],
+      "disposition_requires_revalidation_on_head_change": true
+    },
+    {
+      "baseRefName": "main",
+      "headRefName": "lab/anti-gravity/b3-e8-smollm2-mlp",
+      "headRefOid": "b247add7d84be300b870edf10d9cf10c77792a7b",
+      "isDraft": false,
+      "number": 1519,
+      "title": "feat(codecs): B3 E8 lattice weight coding evaluation on SmolLM2-360M (#1513, #1509)",
+      "url": "https://github.com/UOR-Foundation/uor-r4/pull/1519",
+      "steward": "Antigravity",
+      "disposition": "Existing E8 negative retained; new source delta independent review underway",
+      "validation_dependencies": [
+        1537
+      ],
+      "disposition_requires_revalidation_on_head_change": true
+    },
+    {
+      "baseRefName": "main",
+      "headRefName": "codex/track-b-conversion",
+      "headRefOid": "1074399db87a2dda54602c661142a499bfb618a0",
+      "isDraft": true,
+      "number": 1518,
+      "title": "Track B: shared Candle pipeline and preserved B2 drafts",
+      "url": "https://github.com/UOR-Foundation/uor-r4/pull/1518",
+      "steward": "Codex",
+      "disposition": "Source checkpoint1074399d retained; hybrid UNCOMPILED/NOT_RUN; shared reference parity missing",
+      "validation_dependencies": [
+        1537,
+        1532
+      ],
+      "disposition_requires_revalidation_on_head_change": true
+    }
+  ]
+}

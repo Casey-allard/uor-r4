@@ -1,0 +1,226 @@
+{
+  "snapshot_main": "3bc296cafa89971d3aa0b98c0eca187d8a76ef06",
+  "open_pr_actions": [
+    {
+      "pr": 1521,
+      "url": "https://github.com/UOR-Foundation/uor-r4/pull/1521",
+      "head_sha": "a345e766816403cb3eec888fb4cf694665e82e5d",
+      "lab": "Codex",
+      "prerequisite_prs": [],
+      "dependency_type": "integration_order_recommendation",
+      "next_action": "Finish protected queue from exact independently reviewed a345e766; verify merge commit/tree on main. Operational pilot/reload acceptance remains separate."
+    },
+    {
+      "pr": 1522,
+      "url": "https://github.com/UOR-Foundation/uor-r4/pull/1522",
+      "head_sha": "f52b059126a983ea24d998cb632c7d19d2369801",
+      "lab": "Claude",
+      "prerequisite_prs": [
+        1521
+      ],
+      "dependency_type": "explicit",
+      "next_action": "After #1521, integrate current main, preserve D15 owner decision and obtain two non-author D16 votes at exact updated head. One visible Antigravity vote currently exists; then deliver protected."
+    },
+    {
+      "pr": 1490,
+      "url": "https://github.com/UOR-Foundation/uor-r4/pull/1490",
+      "head_sha": "027b7847a8d4551e7615e9cb3230b3b4ff0f229c",
+      "lab": "Antigravity",
+      "prerequisite_prs": [],
+      "dependency_type": "integration_order_recommendation",
+      "next_action": "Independent reread exact027b7847 after shape/refusal fixes; execute scoped real-proportion/export/reload tests at that head. Codec acceptance is separate from results B/C reruns. Deliver before1527."
+    },
+    {
+      "pr": 1527,
+      "url": "https://github.com/UOR-Foundation/uor-r4/pull/1527",
+      "head_sha": "190194f21e8990911e62517b54844a23ccf04dc4",
+      "lab": "Antigravity",
+      "prerequisite_prs": [
+        1490
+      ],
+      "dependency_type": "explicit",
+      "next_action": "Keep ResultsB/C separately scoped, restore/verify exact source/artifact/result identities, resolve previous gate/float-drift wording. Reconcile main after1490; independent evidence review; no automatic rescheduling of four old reruns without a current work card."
+    },
+    {
+      "pr": 1519,
+      "url": "https://github.com/UOR-Foundation/uor-r4/pull/1519",
+      "head_sha": "2c7f9a462a5e4d73426945ad35d596562c4ad381",
+      "lab": "Antigravity",
+      "prerequisite_prs": [
+        1490,
+        1527
+      ],
+      "dependency_type": "integration_order_recommendation",
+      "next_action": "Reconcile stale inherited D4 source/tests and B/C files after1490/1527, or isolate B3-only delta. Council disputes instrument/canonical-E8P scope; freeze measurements, correct conclusions prospectively, obtain independent source/instrument review. Do not repeat broad experiment from a PR label."
+    },
+    {
+      "pr": 1526,
+      "url": "https://github.com/UOR-Foundation/uor-r4/pull/1526",
+      "head_sha": "99f6c039ebe10df7febf9e375b1222b98968f90f",
+      "lab": "Antigravity",
+      "prerequisite_prs": [],
+      "dependency_type": "integration_order_recommendation",
+      "next_action": "Independently review exact99f6c039 CPU/Metal forward+backward coverage and reconcile geometric_stack.rs with1506/A1. Author reports10 tests, no submitted/independent review captured here. Run scoped exact-head checks under the single build reservation before protected merge."
+    },
+    {
+      "pr": 1528,
+      "url": "https://github.com/UOR-Foundation/uor-r4/pull/1528",
+      "head_sha": "128df8a7dbab4d41b0a8163205ac6daa697cfb03",
+      "lab": "Antigravity",
+      "prerequisite_prs": [
+        1506
+      ],
+      "dependency_type": "integration_order_recommendation",
+      "next_action": "Draft/source-only: align integer selector contract with canonical OpenCode selector; compile and execute parity/allocation/edge checks, audit changed declared serving roots, resolve overlap with1506 kernels/mod/tests. Do not call this already measured speedup."
+    },
+    {
+      "pr": 1506,
+      "url": "https://github.com/UOR-Foundation/uor-r4/pull/1506",
+      "head_sha": "19ec19a30c686ebb69498e297f9202f9115ecebb",
+      "lab": "Codex",
+      "prerequisite_prs": [],
+      "dependency_type": "integration_order_recommendation",
+      "next_action": "Fix exact-head review blockers: D10 from_artifact refuses parse_for_reference snap, loaded-snap export guard, commit pinned parity evidence, truthful relative cost/first-divergence scope. Either execute predeclared forced-root diagnostic and audit or leave parity item explicitly open. Obtain fresh review then merge before conflicting integer changes."
+    },
+    {
+      "pr": 1505,
+      "url": "https://github.com/UOR-Foundation/uor-r4/pull/1505",
+      "head_sha": "3fc3d5922e0e83dc43608e2b0aeb1bd9b8be5f20",
+      "lab": "OpenCode",
+      "prerequisite_prs": [],
+      "dependency_type": "integration_order_recommendation",
+      "next_action": "Apply exact3fc3d592 review editsA-D to doc/JSON/PR: held-out relation vs joint-key exposure, verbatim preregistration and amendment timing, no claimed2I convergence, overlapping-run cost wording. Reread only changed lines; preserve measured negatives; no model rerun required."
+    },
+    {
+      "pr": 1518,
+      "url": "https://github.com/UOR-Foundation/uor-r4/pull/1518",
+      "head_sha": "1b88c563090329f6d21b8c0105a7a6e0146143f9",
+      "lab": "Codex",
+      "prerequisite_prs": [],
+      "dependency_type": "integration_order_recommendation",
+      "next_action": "Shared TrackB remains draft and unqualified. Use verified fresh proc-macro source-cache recovery, integrate canonical selector/one host, compile exact shared model and focused tests then fixed45-position<=1e-4 parity in fresh root under existing bounded work card. Do not fit before gate; retain B2 drafts and their limits."
+    }
+  ],
+  "unpublished_actions": {
+    "lab/opencode/b0-flock": "OpenCode: publish one integration PR/work card for c87519e3,2a823dac,5b7d1685; complete canonical top_k_select(scores,t,k) needed by A1, retain sink/window/rank semantics, and test the exact shared interface before A1/Track B adoption. No B0 model run before integration/admission.",
+    "lab/claude/a1-pointer-fixes": "Claude: combine b806fb2d with A1 M-world cell changes at shared base cb32e73c, after the canonical OpenCode flock API lands. This head imports crate::flock but lacks its module; top_k_select is absent from current B0 too. Publish/review integrated source before A1 compute.",
+    "lab/claude/a1-mworld-cells": "Claude: preserve 2f11a148,d5d9fb19,76c8dac2 and combine with pointer fixes from b806fb2d; retain sealed English probe, teacher-forced scoring, cross cells and rules baselines. Review and compile the integrated head before claiming instruments ready.",
+    "lab/claude/a1-retrieval": "Claude: retain as shared merge-base cb32e73c for both active A1 branches; its c5b84173 and14f026b2 commits are included in those branches. Do not open a duplicate implementation PR; record supersession after their integrated delivery.",
+    "lab/claude/a1-flock-pointer": "Claude: retain 14f026b2 as ancestor of active A1 branches; use the pointer fixes descendant for delivery, then record supersession with actual PR/merge evidence.",
+    "lab/claude/m-world-v2": "Claude: retain c5b84173 as ancestor of both A1 branches; deliver through their integrated instrument/model work, not an independent duplicate merge.",
+    "lab/claude/integration": "Claude: inspect retained 90ec4475/a6731e39 Stage2 user-turn flags, gated registers, development/greedy store loop and fit; map reusable portions to active A1/A3 work card. Keep unscheduled training parked until its instrument/gradient need is established; integrate reusable source only after review.",
+    "codex/lab-runner": "Codex: source was imported and substantially extended by #1521. Deliver/verify #1521 first; compare any remaining original delta before marking this source superseded. Preserve original branch and worktree until cleanup eligibility is independently established.",
+    "lab/anti-gravity/d4-qat-results-staging": "Antigravity: old3617721f is ancestor of #1490,#1519,#1527. Retain as historical staging; deliver revised #1490/#1527 and reconcile #1519 rather than merging this snapshot.",
+    "lab/anti-gravity/d4-e8-codec-backup": "Antigravity: retain backup dfc4217c and compare energy/codec lineage against merged D4 work and active #1490; no automatic adoption based on the backup name.",
+    "claude/cloud-handoff-20260928": "Knowledge steward: head is in merged #1462 ancestry but132 original paths are absent from current main (290 unchanged). Preserve complete branch; index the original HANDOFF and omitted unique reports. Do not bulk-merge old sandbox implementations or assume ancestry preserved every file.",
+    "codex/geometric-lm-goal": "Codex: preserve f99f42fb research/adversarial snapshot;17 of23 changed paths are absent from main. Index missing reports and evidence, then propose only tests/source with a concrete active-contract use; do not adopt historical PASS claims as current tests.",
+    "codex/canonical-address-routing-20260925": "Codex: preserve source/evidence d22e2b50 and dirty untracked R1d result files;29 of40 historical changed paths absent from main. Map old routing/chat vehicles to current counterparts and retain negative/throughput evidence; no bulk merge or cleanup.",
+    "director/merge-canonical-address-routing": "Codex: preserve45e3871c as historical integration attempt over d22e2b50; same29 missing historical paths require disposition alongside canonical-address-routing. Do not infer delivery from merge in name.",
+    "lab/codex/merge-review-stack-inputs-20260928": "Codex: compare retained input hardening afd2c330 and merge33278454 against current stack CLI/integer callers; cherry-pick only a still-missing causal safety fix after source review. Preserve until exact disposition.",
+    "lab/claude/resolve-1458-codec-cleanup": "Antigravity/Claude reviewer: compare retained codec-removal/scoping fixes against closed #1458 and current D4 source; preserve missing path and historical negatives, integrate only demonstrably missing active-contract fixes.",
+    "director/resolve-1458": "Antigravity/Claude reviewer: same head as lab/claude/resolve-1458-codec-cleanup; one disposition for both aliases, not duplicate PRs.",
+    "director/resolve-1452": "Codex: review capability/API/WASM changes versus closed #1452 and current runtime;6 of15 changed paths absent from main. Preserve and adjudicate each caller/test before any revival.",
+    "director/rerun-1468": "Antigravity: head is ancestor of exact merged #1468 head. Review final surviving tree before archival; no duplicate source PR.",
+    "pr-1487": "Retained review snapshot is ancestor of merged #1487/#1492 heads. Link to those actual merges; preserve any worktree material before archival.",
+    "pr-1486": "Retained review snapshot is ancestor of merged #1486 head. Link to its actual merge; preserve material before archival.",
+    "pr-1479": "Antigravity: review snapshot700872f7 has no mapped PR-head containment; compare its five commits against historical #1479 and current D4 acceptance fixes, preserving any residual test/lineage evidence.",
+    "codex/dialogue-code-choice-isolated-20260927": "Codex: local and remote heads differ but both are in merged #1433 ancestry.17 of25 original changed paths identical to main; inspect the other8 for intentional later changes before supersession. Preserve retained231-update checkpoint evidence.",
+    "codex/h4-integer-classifier-pre-main-20260927": "Codex: historical pre-main snapshot33 of47 changed paths now identical; compare remaining14 against merged classifier/current caller path; retain negative/source history, do not create a duplicate classifier.",
+    "codex/native-576-blocked-kernel-pre-main-20260927": "Codex:22 of35 changed paths identical; compare remaining13 with closed #1436 and new #1528 blocked4 implementation. Shared optimization concept does not establish identical kernel scope or accepted serving evidence."
+  },
+  "interface_blockers": [
+    {
+      "consumer": "b806fb2d",
+      "provider": "5b7d1685",
+      "missing": "crate::flock module and pub mod flock on consumer; top_k_select absent from provider",
+      "integer_separate_api": "#1528 top_k_select_integer"
+    }
+  ],
+  "final_main": "0dcdb6e970fc94d2c47f5ea879b1e7a2db620abd",
+  "final_open_prs": [
+    {
+      "baseRefName": "main",
+      "headRefName": "lab/anti-gravity/d11-flock-serving",
+      "headRefOid": "128df8a7dbab4d41b0a8163205ac6daa697cfb03",
+      "isDraft": true,
+      "mergeStateStatus": "UNKNOWN",
+      "number": 1528,
+      "reviewDecision": "",
+      "title": "feat(integer): allocation-free D11 integer flock selector and scratch workspace (#1513, #820)",
+      "updatedAt": "2026-09-30T02:34:54Z",
+      "url": "https://github.com/UOR-Foundation/uor-r4/pull/1528"
+    },
+    {
+      "baseRefName": "main",
+      "headRefName": "lab/anti-gravity/d4-qat-results",
+      "headRefOid": "190194f21e8990911e62517b54844a23ccf04dc4",
+      "isDraft": false,
+      "mergeStateStatus": "UNKNOWN",
+      "number": 1527,
+      "reviewDecision": "",
+      "title": "feat(evidence): publish Results B and C (S1 geometric QAT and S2 dialogue behavior) (#973, #820)",
+      "updatedAt": "2026-09-30T02:31:57Z",
+      "url": "https://github.com/UOR-Foundation/uor-r4/pull/1527"
+    },
+    {
+      "baseRefName": "main",
+      "headRefName": "lab/anti-gravity/fidelity-serving-metal",
+      "headRefOid": "99f6c039ebe10df7febf9e375b1222b98968f90f",
+      "isDraft": false,
+      "mergeStateStatus": "UNKNOWN",
+      "number": 1526,
+      "reviewDecision": "",
+      "title": "feat(training): native Apple Silicon Metal GPU kernels for geometric stack ops (#1510, #1509, #1513)",
+      "updatedAt": "2026-09-30T02:24:16Z",
+      "url": "https://github.com/UOR-Foundation/uor-r4/pull/1526"
+    },
+    {
+      "baseRefName": "main",
+      "headRefName": "lab/claude/d13",
+      "headRefOid": "6af823871239a4ad6aaf2179a7ab15604865581d",
+      "isDraft": true,
+      "mergeStateStatus": "UNSTABLE",
+      "number": 1522,
+      "reviewDecision": "",
+      "title": "D15 (owner) and D16 (council): converted-student serving, measured cost, and the council's working rules",
+      "updatedAt": "2026-09-30T02:57:50Z",
+      "url": "https://github.com/UOR-Foundation/uor-r4/pull/1522"
+    },
+    {
+      "baseRefName": "main",
+      "headRefName": "lab/anti-gravity/b3-e8-smollm2-mlp",
+      "headRefOid": "2c7f9a462a5e4d73426945ad35d596562c4ad381",
+      "isDraft": false,
+      "mergeStateStatus": "UNKNOWN",
+      "number": 1519,
+      "reviewDecision": "",
+      "title": "feat(codecs): B3 E8 lattice weight coding evaluation on SmolLM2-360M (#1513, #1509)",
+      "updatedAt": "2026-09-29T22:59:27Z",
+      "url": "https://github.com/UOR-Foundation/uor-r4/pull/1519"
+    },
+    {
+      "baseRefName": "main",
+      "headRefName": "codex/track-b-conversion",
+      "headRefOid": "1b88c563090329f6d21b8c0105a7a6e0146143f9",
+      "isDraft": true,
+      "mergeStateStatus": "DIRTY",
+      "number": 1518,
+      "reviewDecision": "",
+      "title": "Track B: shared Candle pipeline and preserved B2 drafts",
+      "updatedAt": "2026-09-29T22:21:31Z",
+      "url": "https://github.com/UOR-Foundation/uor-r4/pull/1518"
+    }
+  ],
+  "merged_during_audit": [
+    1521,
+    1490,
+    1505,
+    1506
+  ],
+  "superseding_required_actions": {
+    "1505": "Merged without four required wording corrections: follow merged-1505-correction-required.json.",
+    "1506": "Merged with reviewed D10/export safety blockers: follow merged-1506-correction-required.json.",
+    "1490": "Merged; independent exact-final-head validation still scoped to actual receipts; reconcile dependent1527/1519.",
+    "1521": "Merged and source complete; operational acceptance separate."
+  }
+}

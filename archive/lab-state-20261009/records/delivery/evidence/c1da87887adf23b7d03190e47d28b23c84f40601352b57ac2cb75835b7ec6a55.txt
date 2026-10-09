@@ -1,0 +1,17 @@
+# Independent review 2 — exact successor a345e766
+
+- Reviewer/session: `/root/second_council_review`
+- Launched by: `/root` (Codex parent)
+- Reviewed source head: `a345e766816403cb3eec888fb4cf694665e82e5d`
+- Reviewed base: `3bc296cafa89971d3aa0b98c0eca187d8a76ef06`
+- Source delivery decision: **APPROVE**
+- Class C council vote: **APPROVE**
+- Unresolved required fixes from this reviewer: **0**
+
+This exact-head approval incorporates my prior review of `33701a0d0740fdd1147ea785b04a5b895c4ba069` in `independent-review2-33701a0d.md` (SHA-256 `888ef796fe84838b994350c2087031f52f468c77bc9861164339f8cf97365ef2`) and a focused review of the complete successor delta. Git shows only seven added lines in `tools/lab-runner/src/agent.rs`: an explicit LaunchAgent PATH containing `/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin`, plus assertions covering that environment entry. It resolves the observed launchd omission of the installed `gh` command without changing job admission, evidence, accounting or numerical/model code. No additional required correction was found.
+
+I independently read and hash-verified all six records/logs in `final-checks-a345e766.json`: format, diff-check, claim-wording, workflow, compile, and agent-focused all passed at the exact source/base above. The workflow log reports 23/23 mocked fixtures, and the focused agent tests report three passed, zero failures. The previously inspected 86-test pass5 at `33701a0d0740fdd1147ea785b04a5b895c4ba069` is reused explicitly for unchanged control-plane behavior; it is not relabelled as a full-suite execution at this successor. Its log SHA-256 remains `1c5cb2c73df6a32c581aa03ec8ed6324f955c301f9f9c502821e50e2733cc288`.
+
+The worktree was clean and at this exact head when this record was written. I made no source changes, ran no Cargo or broad test suite, and changed no GitHub or external-volume state. This is a distinct non-author pass launched by the same parent/provider; procedural independence and shared-account limitations remain disclosed.
+
+I retain the Class C governance approval with no minority objection. Source delivery approval does not certify full autonomous deployment, SSD recovery acceptance, a real completed continuity pilot, unattended adapters, required server enforcement or a verified model checkpoint. Other reviewers' unresolved findings, if any, remain requirements. A separate prospective council vote on the bounded inert pilot is recorded in `council-pilot-profile-review2-a345e766.md` and is not implied by this source review.

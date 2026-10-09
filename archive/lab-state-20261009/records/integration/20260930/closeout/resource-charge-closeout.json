@@ -1,0 +1,14 @@
+{
+  "schema": "uor-r4.resource-charge/1",
+  "event_id": "recovery-integration-20260930-cutoff2-closeout",
+  "recorded_utc": "2026-09-30T03:42:42.201674+00:00",
+  "lab": "Codex durable lab implementation",
+  "adjustment_ms": 422240,
+  "accounting": {
+    "category": "delivery",
+    "measurement": "estimated",
+    "correction_of": null
+  },
+  "authority": "Owner integration-first implementation and published work card; existing cumulative allowance.",
+  "rationale": "Final wall-envelope closeout from 1790739244734 through 1790739762200 ms, less 95226ms independently charged C attempt. Includes concurrent final acceptance, publication, review, issue dispositions and launch routing without adding parallel work twice. Category is coarse estimated delivery allocation; no model training."
+}

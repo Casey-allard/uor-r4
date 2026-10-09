@@ -1,0 +1,191 @@
+{
+  "schema": "uor-r4.server-delivery/1",
+  "receipt": {
+    "schema": "uor-r4.delivery-receipt/1",
+    "repository": "UOR-Foundation/uor-r4",
+    "pull_request": 1543,
+    "task_issue": 1536,
+    "author_session": "codex-durable-20260929-root",
+    "claim_session": "codex-durable-20260929-root",
+    "claim_epoch": 3,
+    "work_card": "sha256:8e06f9f8fb77411f87f1e9ee0bcbac4f4ba767931c291ff617e52d3326de684d",
+    "head_sha": "04981eb211a39cab23958996556dabf232b22a4c",
+    "base_sha": "d563b02f3270a2c931a7905d6624ba0beeb71d2a",
+    "change_kind": "code",
+    "class": "C",
+    "checks": [
+      {
+        "name": "diff-check",
+        "head_sha": "04981eb211a39cab23958996556dabf232b22a4c",
+        "base_sha": "d563b02f3270a2c931a7905d6624ba0beeb71d2a",
+        "argv": [
+          "git",
+          "diff",
+          "--check",
+          "d563b02f3270a2c931a7905d6624ba0beeb71d2a...04981eb211a39cab23958996556dabf232b22a4c"
+        ],
+        "exit_code": 0,
+        "outcome": "PASS",
+        "log": {
+          "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/pr1543-diff-check.log",
+          "sha256": "c5c3394df7b92bff454828ea2fc9e0c2f99f73899db0cef45707c1325d210f8f"
+        }
+      },
+      {
+        "name": "format",
+        "head_sha": "04981eb211a39cab23958996556dabf232b22a4c",
+        "base_sha": "d563b02f3270a2c931a7905d6624ba0beeb71d2a",
+        "argv": [
+          "/Users/casey.allard/.cargo/bin/rustfmt",
+          "--check",
+          "--edition",
+          "2021",
+          "tools/lab-runner/src/admission.rs",
+          "tools/lab-runner/src/bin/lab-runner.rs",
+          "tools/lab-runner/src/coord.rs",
+          "tools/lab-runner/src/daemon.rs",
+          "tools/lab-runner/src/host.rs",
+          "tools/lab-runner/src/spec.rs"
+        ],
+        "exit_code": 0,
+        "outcome": "PASS",
+        "log": {
+          "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/pr1543-format.log",
+          "sha256": "1c278dba9a10f9f4b432fee2d8fe31c7a223ec4c0b976004c689e1c6e80eec5c"
+        }
+      },
+      {
+        "name": "focused-tests",
+        "head_sha": "04981eb211a39cab23958996556dabf232b22a4c",
+        "base_sha": "d563b02f3270a2c931a7905d6624ba0beeb71d2a",
+        "argv": [
+          "/Users/casey.allard/.cargo/bin/cargo",
+          "test",
+          "-p",
+          "lab-runner",
+          "--offline",
+          "--lib",
+          "--",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "outcome": "PASS",
+        "log": {
+          "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/memory-concurrency-checks-attempt7/command-0.log",
+          "sha256": "e3caff8d14fa142659be019c087a6f0940498e0f9c7a393352f56dd4ca3cdc61"
+        }
+      },
+      {
+        "name": "compile",
+        "head_sha": "04981eb211a39cab23958996556dabf232b22a4c",
+        "base_sha": "d563b02f3270a2c931a7905d6624ba0beeb71d2a",
+        "argv": [
+          "/Users/casey.allard/.cargo/bin/cargo",
+          "build",
+          "-p",
+          "lab-runner",
+          "--offline"
+        ],
+        "exit_code": 0,
+        "outcome": "PASS",
+        "log": {
+          "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/memory-concurrency-checks-attempt7/command-1.log",
+          "sha256": "05c22e1b458e048160622c5dc8000733f86ce86bef05d2179fbc9f1bb16f3332"
+        }
+      }
+    ],
+    "reviews": [
+      {
+        "review_id": "pr1543-second_council_review-04981eb2",
+        "reviewer_session": "second_council_review",
+        "launched_by": "codex-durable-20260929-root",
+        "head_sha": "04981eb211a39cab23958996556dabf232b22a4c",
+        "base_sha": "d563b02f3270a2c931a7905d6624ba0beeb71d2a",
+        "decision": "APPROVE",
+        "unresolved_required_fixes": 0,
+        "evidence": {
+          "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/memory-concurrency-source-review-v7.md",
+          "sha256": "92b113cc4eb8ab7483c15c4d55fbd77d3e86a0611a0fd4a1172bd3f3fb8338d9"
+        }
+      },
+      {
+        "review_id": "pr1543-repair_execution_council-04981eb2",
+        "reviewer_session": "repair_execution_council",
+        "launched_by": "codex-durable-20260929-root",
+        "head_sha": "04981eb211a39cab23958996556dabf232b22a4c",
+        "base_sha": "d563b02f3270a2c931a7905d6624ba0beeb71d2a",
+        "decision": "APPROVE",
+        "unresolved_required_fixes": 0,
+        "evidence": {
+          "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/memory-concurrency-council-v7.md",
+          "sha256": "9bf928a568ff3ac260b7ee7e3a92f2b70ce7c0af332c8a3ec15d442e93cb01ea"
+        }
+      }
+    ],
+    "result_evidence": null,
+    "result_reader_session": null,
+    "council": {
+      "decision_id": "pr1543-04981eb2",
+      "head_sha": "04981eb211a39cab23958996556dabf232b22a4c",
+      "base_sha": "d563b02f3270a2c931a7905d6624ba0beeb71d2a",
+      "votes": [
+        {
+          "reviewer_session": "codex-durable-20260929-root",
+          "decision": "APPROVE",
+          "reasons": "Author inspected executed checks and resolved independent required fix; protected delivery approved."
+        },
+        {
+          "reviewer_session": "second_council_review",
+          "decision": "APPROVE",
+          "reasons": "Exact-head source and executed checks approved; see hashed independent receipt."
+        },
+        {
+          "reviewer_session": "repair_execution_council",
+          "decision": "APPROVE",
+          "reasons": "Exact-head source and executed checks approved; see hashed independent receipt."
+        }
+      ],
+      "evidence": {
+        "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/pr1543-delivery-council.md",
+        "sha256": "5432d484a2444ff856216f84565a15ea4755de713febdb3724b30b4619c2f955"
+      }
+    }
+  },
+  "evidence": [
+    {
+      "local_path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/pr1543-diff-check.log",
+      "path": "delivery/evidence/c5c3394df7b92bff454828ea2fc9e0c2f99f73899db0cef45707c1325d210f8f.log",
+      "sha256": "c5c3394df7b92bff454828ea2fc9e0c2f99f73899db0cef45707c1325d210f8f"
+    },
+    {
+      "local_path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/pr1543-format.log",
+      "path": "delivery/evidence/1c278dba9a10f9f4b432fee2d8fe31c7a223ec4c0b976004c689e1c6e80eec5c.log",
+      "sha256": "1c278dba9a10f9f4b432fee2d8fe31c7a223ec4c0b976004c689e1c6e80eec5c"
+    },
+    {
+      "local_path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/memory-concurrency-checks-attempt7/command-0.log",
+      "path": "delivery/evidence/e3caff8d14fa142659be019c087a6f0940498e0f9c7a393352f56dd4ca3cdc61.log",
+      "sha256": "e3caff8d14fa142659be019c087a6f0940498e0f9c7a393352f56dd4ca3cdc61"
+    },
+    {
+      "local_path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/memory-concurrency-checks-attempt7/command-1.log",
+      "path": "delivery/evidence/05c22e1b458e048160622c5dc8000733f86ce86bef05d2179fbc9f1bb16f3332.log",
+      "sha256": "05c22e1b458e048160622c5dc8000733f86ce86bef05d2179fbc9f1bb16f3332"
+    },
+    {
+      "local_path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/memory-concurrency-source-review-v7.md",
+      "path": "delivery/evidence/92b113cc4eb8ab7483c15c4d55fbd77d3e86a0611a0fd4a1172bd3f3fb8338d9.md",
+      "sha256": "92b113cc4eb8ab7483c15c4d55fbd77d3e86a0611a0fd4a1172bd3f3fb8338d9"
+    },
+    {
+      "local_path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/memory-concurrency-council-v7.md",
+      "path": "delivery/evidence/9bf928a568ff3ac260b7ee7e3a92f2b70ce7c0af332c8a3ec15d442e93cb01ea.md",
+      "sha256": "9bf928a568ff3ac260b7ee7e3a92f2b70ce7c0af332c8a3ec15d442e93cb01ea"
+    },
+    {
+      "local_path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/pr1543-delivery-council.md",
+      "path": "delivery/evidence/5432d484a2444ff856216f84565a15ea4755de713febdb3724b30b4619c2f955.md",
+      "sha256": "5432d484a2444ff856216f84565a15ea4755de713febdb3724b30b4619c2f955"
+    }
+  ]
+}

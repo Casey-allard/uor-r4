@@ -1,0 +1,14 @@
+{
+  "event_id": "6dae2fd4-1eb8-407e-9e6b-7553493e0863",
+  "op": "claim",
+  "issue": 1536,
+  "session": "codex-durable-20260929-root",
+  "work_card": "sha256:ee4ea3fb6ea16722a83d67f2bffe5731552465dc44a4a824afc14a187afe3baf",
+  "policy_sha": "ba266ad44f21c9df2dafa9d56a1e2051c1565d91",
+  "base_sha": "d563b02f3270a2c931a7905d6624ba0beeb71d2a",
+  "paths": [
+    "tools/lab-runner"
+  ],
+  "dependencies": [],
+  "recovery_receipt": "Owner explicitly requests memory-admission fix. Prior root source claim released; installed 8e90aa33 frozen and preserved. No source takeover or live job interruption."
+}

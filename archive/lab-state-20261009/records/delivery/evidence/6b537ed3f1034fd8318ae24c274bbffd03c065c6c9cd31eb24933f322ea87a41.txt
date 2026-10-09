@@ -1,0 +1,3 @@
+Command: ['/Users/casey.allard/.cargo/bin/cargo', 'build', '-p', 'lab-runner', '--offline']
+   Compiling lab-runner v0.1.0 (/Users/casey.allard/uor-r4/.worktrees/durable-lab-system-20260929/tools/lab-runner)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.94s

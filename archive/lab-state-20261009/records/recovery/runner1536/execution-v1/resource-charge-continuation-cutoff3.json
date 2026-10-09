@@ -1,0 +1,14 @@
+{
+  "schema": "uor-r4.resource-charge/1",
+  "event_id": "recovery-integration-20260930-continuation-cutoff3",
+  "recorded_utc": "2026-09-30T05:12:52.560482+00:00",
+  "lab": "Codex durable lab implementation",
+  "adjustment_ms": 5128392,
+  "accounting": {
+    "category": "preparation",
+    "measurement": "estimated",
+    "correction_of": null
+  },
+  "authority": "Owner continuing integration goal; existing cumulative allowance; runner1536 source/review card.",
+  "rationale": "Continuation wall envelope 1790739762200 through 1790745172560ms, less281968ms separately charged Claude attempt. Includes persistent-goal delivery, client/source/primary-literature reviews, coordination, observer preparation and runner repair. Parallel specialist elapsed time is not added again. Coarse estimated category, not model/GPU/buildtime. Future UNKNOWN supplemental reserved-bound debit remains separately visible."
+}

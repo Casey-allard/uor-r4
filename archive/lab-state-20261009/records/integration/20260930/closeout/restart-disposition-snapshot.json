@@ -1,0 +1,58 @@
+{
+  "observed_utc": "2026-09-30T03:38:20.808114+00:00",
+  "policy_sha": "ba266ad44f21c9df2dafa9d56a1e2051c1565d91",
+  "open_prs": [
+    {
+      "headRefName": "lab/anti-gravity/d11-flock-serving",
+      "headRefOid": "128df8a7dbab4d41b0a8163205ac6daa697cfb03",
+      "isDraft": true,
+      "mergeStateStatus": "DIRTY",
+      "number": 1528,
+      "title": "feat(integer): allocation-free D11 integer flock selector and scratch workspace (#1513, #820)"
+    },
+    {
+      "headRefName": "lab/anti-gravity/d4-qat-results",
+      "headRefOid": "190194f21e8990911e62517b54844a23ccf04dc4",
+      "isDraft": true,
+      "mergeStateStatus": "DIRTY",
+      "number": 1527,
+      "title": "feat(evidence): publish Results B and C (S1 geometric QAT and S2 dialogue behavior) (#973, #820)"
+    },
+    {
+      "headRefName": "lab/anti-gravity/fidelity-serving-metal",
+      "headRefOid": "99f6c039ebe10df7febf9e375b1222b98968f90f",
+      "isDraft": true,
+      "mergeStateStatus": "CLEAN",
+      "number": 1526,
+      "title": "feat(training): native Apple Silicon Metal GPU kernels for geometric stack ops (#1510, #1509, #1513)"
+    },
+    {
+      "headRefName": "lab/anti-gravity/b3-e8-smollm2-mlp",
+      "headRefOid": "2c7f9a462a5e4d73426945ad35d596562c4ad381",
+      "isDraft": true,
+      "mergeStateStatus": "DIRTY",
+      "number": 1519,
+      "title": "feat(codecs): B3 E8 lattice weight coding evaluation on SmolLM2-360M (#1513, #1509)"
+    },
+    {
+      "headRefName": "codex/track-b-conversion",
+      "headRefOid": "1b88c563090329f6d21b8c0105a7a6e0146143f9",
+      "isDraft": true,
+      "mergeStateStatus": "DIRTY",
+      "number": 1518,
+      "title": "Track B: shared Candle pipeline and preserved B2 drafts"
+    }
+  ],
+  "superseded_pr": {
+    "number": 1530,
+    "head": "ec123a66fd0b75199b0fc9efdb99598d72d0d361",
+    "disposition": "closed superseded; branch retained; unique evidence indexed"
+  },
+  "lab_goal_board_comments": {
+    "claude": "https://github.com/UOR-Foundation/uor-r4/issues/1511#issuecomment-5903532198",
+    "opencode": "https://github.com/UOR-Foundation/uor-r4/issues/1512#issuecomment-5903535782",
+    "antigravity": "https://github.com/UOR-Foundation/uor-r4/issues/1513#issuecomment-5903535955",
+    "codex": "https://github.com/UOR-Foundation/uor-r4/issues/1515#issuecomment-5903536128"
+  },
+  "status": "All current open PRs are tracked drafts pending recorded fixes or prerequisites. Full goals delivered; external client startup manual and not claimed."
+}

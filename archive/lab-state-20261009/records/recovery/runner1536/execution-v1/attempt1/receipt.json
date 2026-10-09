@@ -1,0 +1,19 @@
+{
+  "schema": "uor-r4.manual-repair-checks/1",
+  "source_sha": "8e90aa33b8ef941d3ac5de57ad448859e20ad76b",
+  "packet_sha256": "7c49d4f73a5478d4fbc74310eb9660de0d4e2b2675b5a94522dd0db3cc198332",
+  "started_under_explicit_council_exception": false,
+  "production_hold_unchanged": true,
+  "elapsed_seconds": 0.08065579200047068,
+  "sampled_peak_aggregate_rss_bytes": 0,
+  "cache_growth_bytes": {
+    "status": "UNAVAILABLE",
+    "reason": "TypeError: unsupported operand type(s) for -: 'int' and 'NoneType'"
+  },
+  "free_bytes_after": 50337697792,
+  "commands": [],
+  "failure": "RuntimeError: Host memory pressure",
+  "process_state": "never_started",
+  "created_utc": "2026-09-30T05:21:43.479355+00:00",
+  "limitations": "RSS and cache growth are sampled. Scope assumes the inspected tests do not create new sessions. UNKNOWN never releases the production hold or reservation. No production job reconciliation or resource-ledger debit is performed here; the coordinator records this receipt exactly once."
+}

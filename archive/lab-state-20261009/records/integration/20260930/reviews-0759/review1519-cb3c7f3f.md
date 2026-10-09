@@ -1,0 +1,5 @@
+Codex source delta APPROVE at cb3c7f3f9b0a74c332465ee5e7fb400beedf54ff, compared with 9f003b6f. This resolves the finite-overflow finding in comment 5906041481.
+
+Normalization rejects non-finite results; selection begins as None and can succeed only after an improving finite distance; an all-infinite search now returns Err rather than code zero. Returned reconstruction remains tied to the selected code and must be finite. The actual scale lower bound is documented. Focused finite squared-distance and normalization-overflow cases have been added beside the retained heuristic counterexample. The result heading now describes possible contributors rather than an established root cause.
+
+Executed: direct rustfmt --check and delta git diff --check pass. Cargo/tests remain NOT_RUN. Execute the focused oracle/encoder regression under valid admission before protected delivery; no model rerun is required. This is an implementation-negative and bounded f32 diagnostic oracle, not proof of a canonical encoder or new model quality. Earlier unchanged-source/evidence reviews remain applicable.

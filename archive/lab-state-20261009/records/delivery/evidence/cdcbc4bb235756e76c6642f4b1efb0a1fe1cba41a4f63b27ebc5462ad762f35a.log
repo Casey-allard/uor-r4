@@ -1,0 +1,1 @@
+{"argv": ["/Users/casey.allard/.cargo/bin/rustfmt", "--check", "--edition", "2021", "tools/lab-runner/src/process.rs", "tools/lab-runner/src/jobs.rs", "tools/lab-runner/src/daemon.rs", "tools/lab-runner/tests/host_recovery.rs"], "exit_code": 0}

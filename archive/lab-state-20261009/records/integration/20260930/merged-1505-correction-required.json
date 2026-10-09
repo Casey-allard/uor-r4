@@ -1,0 +1,52 @@
+{
+  "observed_utc": "2026-09-30T02:58:47.001442+00:00",
+  "main_sha": "0dcdb6e970fc94d2c47f5ea879b1e7a2db620abd",
+  "pr": 1505,
+  "merged_head_sha": "3fc3d5922e0e83dc43608e2b0aeb1bd9b8be5f20",
+  "merge_sha": "ae7f70fde4a49029f74e8296fc12cc556f64efea",
+  "merged_at": "2026-09-30T02:56:29Z",
+  "review_comment": "https://github.com/UOR-Foundation/uor-r4/pull/1505#issuecomment-5902521464",
+  "status": "REQUIRED_CORRECTIONS_NOT_APPLIED_AT_MERGE",
+  "files": [
+    {
+      "path": "docs/evidence/g2-key-probe-2026-09-29.md",
+      "blob": "d03bef93e4c14abb6eabb357939782d52b26d904"
+    },
+    {
+      "path": "docs/evidence/g2-key-probe-2026-09-29.json",
+      "blob": "40e879ad37c9394de2eb2ca044968678fa9e4075"
+    }
+  ],
+  "corrections": [
+    {
+      "id": "A",
+      "path": "docs/evidence/g2-key-probe-2026-09-29.md",
+      "line": 53,
+      "change": "Replace joint-key-is-not-exposed sentence with held-out relation-transfer failure and readable in-distribution joint key; label2I versus softmax accuracies."
+    },
+    {
+      "id": "B",
+      "path": "docs/evidence/g2-key-probe-2026-09-29.md",
+      "line": 55,
+      "change": "Quote original preregistration including identical updates and both-splits rule; state it fixed no steps/lr/counts and names no arm. Exposure amendment predates rerun only, not keys-1/decode-1; revise JSON recorded_before_fit semantics."
+    },
+    {
+      "id": "C",
+      "path": "docs/evidence/g2-key-probe-2026-09-29.md",
+      "line": 58,
+      "json_line": 151,
+      "change": "Replace trained-to-convergence with up to30000 updates with plateau early-stop;2I did not plateau."
+    },
+    {
+      "id": "D",
+      "path": "docs/evidence/g2-key-probe-2026-09-29.md",
+      "lines": [
+        64,
+        73
+      ],
+      "json_line": 156,
+      "change": "Replace uncontended with no peer-duplicate contention; keys-11 overlapped keys-9 for142.6s."
+    }
+  ],
+  "next_action": "Open a narrow corrective evidence PR from current main; preserve numerical measurements and perform exact-line independent reread. No model rerun."
+}

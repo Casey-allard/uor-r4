@@ -1,0 +1,14 @@
+{
+ "schema": "uor-r4.hold-reconciliation/1",
+ "created_utc": "2026-09-30T08:15:37.406638+00:00",
+ "hold_reason_resolved": "running process lost identity (2026-09-30T05:45:56Z)",
+ "resolution": [
+  "repaired runner source 8e90aa33 merged to main (d563b02f, PR #1537)",
+  "v4 validation packet executed: 18/18 tests + build PASS (runner1536-checks-attempt2)",
+  "narrow deployment v1: debug artifact live, smoke PASS (runner1536/deployment-v1)",
+  "hold-reconciliation packet v3: release build + 24/24 release tests PASS; release supervisor live as bin/lab-runner-8e90aa33-release (pid 32200); continuity job runner1536-continuity-1 reserved (coord epoch 7) and pre-staged as sole queue entry"
+ ],
+ "hold_preserved_at": "runner1536-hold-preserved.json",
+ "continuity_job": "runner1536-continuity-1",
+ "executor": "kimi-coordinator-20260930"
+}

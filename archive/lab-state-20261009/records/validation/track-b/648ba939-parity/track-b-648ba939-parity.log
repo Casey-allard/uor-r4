@@ -1,0 +1,86 @@
+model geometry: vocab=49152 hidden=576 layers=30 heads=9 kv_heads=3
+progress: loading Safetensors 0/269060552 (0%, 0s)
+progress: loading Safetensors 269060552/269060552 (100%, 0s)
+progress: loading Safetensors 269060552/269060552 (100%, 0s)
+widening source tensors (BF16/F16/F32) to the compiler teacher layout...
+teacher model ready (κ blake3:12d2cd8a877ef2cdcf785b3d4d1f373e0419074cc884aeaff06fc059686a5ba5, matmul=uor-matmul exact GEMM, exact_workers=2)
+reference window=0 position=0 elapsed_s=9.099
+reference window=1 position=0 elapsed_s=16.971
+reference window=1 position=1 elapsed_s=24.694
+reference window=1 position=2 elapsed_s=32.411
+reference window=1 position=3 elapsed_s=40.346
+reference window=2 position=0 elapsed_s=48.377
+reference window=2 position=1 elapsed_s=56.814
+reference window=2 position=2 elapsed_s=65.404
+reference window=2 position=3 elapsed_s=73.757
+reference window=2 position=4 elapsed_s=82.230
+reference window=2 position=5 elapsed_s=90.495
+reference window=2 position=6 elapsed_s=98.608
+reference window=2 position=7 elapsed_s=106.882
+reference window=3 position=0 elapsed_s=115.129
+reference window=3 position=1 elapsed_s=123.409
+reference window=3 position=2 elapsed_s=131.566
+reference window=3 position=3 elapsed_s=140.076
+reference window=3 position=4 elapsed_s=148.339
+reference window=3 position=5 elapsed_s=156.641
+reference window=3 position=6 elapsed_s=165.124
+reference window=3 position=7 elapsed_s=173.185
+reference window=3 position=8 elapsed_s=181.468
+reference window=3 position=9 elapsed_s=189.526
+reference window=3 position=10 elapsed_s=197.703
+reference window=3 position=11 elapsed_s=205.929
+reference window=3 position=12 elapsed_s=214.801
+reference window=3 position=13 elapsed_s=222.948
+reference window=3 position=14 elapsed_s=231.074
+reference window=3 position=15 elapsed_s=239.856
+reference window=3 position=16 elapsed_s=247.924
+reference window=3 position=17 elapsed_s=256.202
+reference window=3 position=18 elapsed_s=264.322
+reference window=3 position=19 elapsed_s=272.479
+reference window=3 position=20 elapsed_s=280.566
+reference window=3 position=21 elapsed_s=288.842
+reference window=3 position=22 elapsed_s=297.003
+reference window=3 position=23 elapsed_s=305.247
+reference window=3 position=24 elapsed_s=313.463
+reference window=3 position=25 elapsed_s=321.549
+reference window=3 position=26 elapsed_s=329.549
+reference window=3 position=27 elapsed_s=337.226
+reference window=3 position=28 elapsed_s=344.909
+reference window=3 position=29 elapsed_s=352.565
+reference window=3 position=30 elapsed_s=360.218
+reference window=3 position=31 elapsed_s=367.895
+cpu window=0 max_abs=0.000047684 elapsed_s=368.404
+cpu window=1 max_abs=0.000056267 elapsed_s=368.711
+cpu window=2 max_abs=0.001432061 elapsed_s=369.288
+cpu window=3 max_abs=0.001432061 elapsed_s=370.761
+metal window=0 max_abs=0.000105739 elapsed_s=381.816
+metal window=1 max_abs=0.000105739 elapsed_s=382.044
+metal window=2 max_abs=0.008588791 elapsed_s=382.289
+metal window=3 max_abs=0.008588791 elapsed_s=383.299
+shared cpu window=0 max_abs=0.000081539 elapsed_s=384.454
+shared cpu window=1 max_abs=0.000081539 elapsed_s=384.635
+shared cpu window=2 max_abs=0.007013321 elapsed_s=384.820
+shared cpu window=3 max_abs=0.007013321 elapsed_s=385.179
+shared metal window=0 max_abs=0.000063419 elapsed_s=386.317
+shared metal window=1 max_abs=0.000063419 elapsed_s=386.383
+shared metal window=2 max_abs=0.006753922 elapsed_s=386.461
+shared metal window=3 max_abs=0.006753922 elapsed_s=386.766
+"FAIL_NUMERICAL_GATE"; sealed and verified /Volumes/UOR-Workspace/uor-r4-models/track-b/parity-648ba939-20260930
+      387.50 real       717.02 user         6.85 sys
+          1484341248  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+              316970  page reclaims
+                1265  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                 563  voluntary context switches
+              677078  involuntary context switches
+       6948783134988  instructions retired
+       2105096793307  cycles elapsed
+          1679918880  peak memory footprint

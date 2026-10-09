@@ -1,0 +1,43 @@
+   Compiling uor-r4-model-source v0.1.0 (/Users/casey.allard/.codex/worktrees/track-b-conversion/uor-r4/crates/uor-r4-model-source)
+   Compiling uor-r4-core v0.1.0 (/Users/casey.allard/.codex/worktrees/track-b-conversion/uor-r4/crates/uor-r4-core)
+warning: method `position` is never used
+   --> crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs:175:8
+    |
+168 | impl ObservedSpan {
+    | ----------------- method in this implementation
+...
+175 |     fn position(&self) -> (u32, u32, usize) {
+    |        ^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `example` is never used
+    --> crates/uor-r4-core/src/native_geometric/learner/transferable_lexical.rs:1590:8
+     |
+1405 | impl TlTrainer {
+     | -------------- method in this implementation
+...
+1590 |     fn example(&self, q: &TlQuant, ex: &TlExample) -> TlGrads {
+     |        ^^^^^^^
+
+   Compiling uor-r4-training v0.1.0 (/Users/casey.allard/.codex/worktrees/track-b-conversion/uor-r4/crates/uor-r4-training)
+warning: `uor-r4-core` (lib) generated 2 warnings
+    Finished `release` profile [optimized] target(s) in 3m 14s
+      194.62 real       343.74 user         5.85 sys
+          3187933184  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             1029907  page reclaims
+               12476  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   9  signals received
+                2389  voluntary context switches
+              193510  involuntary context switches
+          1822861075  instructions retired
+           669721745  cycles elapsed
+            58884840  peak memory footprint

@@ -1,0 +1,46 @@
+# Independent review 2: PR #1529
+
+Decision: APPROVE.
+Council vote: APPROVE the prospective D14/D17 policy correction, integration goals, and strictly scoped migration procedure.
+Unresolved required fixes: 0.
+Reviewer: /root/second_council_review, non-author independent review/council seat.
+Launched by: /root (Codex author/coordinator).
+Repository: UOR-Foundation/uor-r4.
+PR: 1529.
+Exact reviewed head: c1063bf921057e498c7429c0a4302afc7aae0368.
+Exact reviewed base: b3c32170d0643d4f4427c5fd853560b3edd1c077.
+Review date: 2026-09-30 UTC.
+
+## Scope and independence
+
+Read the ten-file documentation change, including D17 and preserved D15/D16, the council-verdict authority corrections, integration queue, README/plan navigation, and all five complete goal packets. Reviewed the successor delta from b27fcdd2 through 58f6e969 to the final c1063bf9 head. Live GitHub reported this exact head/base on open, non-draft PR #1529. The worktree was clean when checked. No source edits, Cargo/model execution, GitHub mutation, or volume mutation were performed by this reviewer. This receipt is the only file written for this review.
+
+Independence is procedural: this is a separate non-author agent pass launched by the author/coordinator, with the same provider and shared GitHub account. It is not provider diversity or cryptographic reviewer attestation.
+
+## Resolved findings and reasons
+
+1. D17 preserves the direct owner clarification supplied to this review: "Keep the transformer-free requirement; conversion must remove the transformer architecture." It does not use integer kernels, sparse reads, or numerical audits alone to permit a transformer backbone. D11/D5 and separate capability/cost/energy evidence remain applicable. The earlier conversation attribution is preserved as history, not independently authenticated or expanded by this vote.
+2. Parity v2 is an exhaustive prospective partition: first two differences both within tolerance retain; both exceed replace; mixed takes one predeclared additional paired draw and the mean of all three decides. Loss and accuracy signs are explicit, equality is retention, unavailable/nonfinite values are not automatic decisions, and retention is not advantage or model promotion. Boundary examples are correct as mathematical decimal values. Old results remain unchanged.
+3. D14 peer authority is coherent: atomic records own claims, boards communicate them, the execution steward is transferable, and old council experiment ordering is nonbinding. Existing work has explicit source-linked corrective actions and dispositions rather than a duplicate research programme. A merged PR does not clear surviving required findings or qualify a model.
+4. The one-use #1529 exception resolves the actual migration ordering cycle without authorizing code/model changes, resource admission, fabricated status, direct main, force push, or admin merge. Exact-head checks, two non-author reviews, three identified council seats, ordinary protected queue, verified resulting patch, old-claim release, attempt reconciliation, and genuine Class C policy adoption remain mandatory. The incident in #1522 is explicitly preserved rather than retroactively passed.
+5. The complete goals now contain five-minute heartbeats, twenty-minute leases, thirty-minute checkpoints, immutable work-card/policy/session bindings, exact-head review, bounded source/test-evidence reuse, active branch accountability, independent next work when blocked, resource admission, at-least-minute job observation, daily designated storage stewardship, weekly and post-storage representative restoration, and the disconnect/reboot hold/checkpoint/flush/detach/eject sequence. Cleanup retains exact eligibility, notice and fresh revalidation. No prompt claims dispatch or unattended adapter verification.
+6. The stale Codex-specific description of #1522 as merely proposed has been corrected. I independently compared the common contract after "Continuing objective and authority": all four lab-specific goal files match join.md exactly.
+
+## Task identity and evidence binding
+
+Inspected origin/codex/lab-state:state.json. Issue #1520 is a real recorded claim by codex-durable-20260929-root at epoch 4, under policy 7895501d4e08ed50d8f716a494427a03d9020ca2. The retained original work-card digest is sha256:20b5c440ba12e496f47146d844476c601447edf5c5015dd05bd10b56cbe34889. Its checkpoint binds the successor card with SHA-256 07ea1917ed584251a160c51bdc79618b62478e639e7464304c422962b6ab4464, records the owner clarification, held policy adoption, #1529, and exact next actions. I independently hashed both local work cards and obtained those values. The successor is not silently substituted for the original claim card. Fresh lease/state reconciliation is still required at actual delivery.
+
+Read goals-checks-final.json and each referenced log. Both bind this exact final head/base, report executed exit 0/PASS, and match their recorded SHA-256:
+
+- diff-check: git diff --check b3c32170d0643d4f4427c5fd853560b3edd1c077...c1063bf921057e498c7429c0a4302afc7aae0368. Log goals-diff-check-c1063bf9.log; SHA-256 9d7032d40be5684b6afa1d56b45a34f6c7100ed2e3222a7bd06769c65bbef323.
+- claim-wording: python3 scripts/check_claim_wording.py. Log goals-claim-wording-c1063bf9.log; SHA-256 890706826f23d6edac2c70da337a7511ed15b98c37234f211cdea5b9fb83de75.
+
+These are the appropriate executed checks for this documentation-only change. They are not model tests. I read and verified the author's executed logs rather than rerunning them. The earlier 38962b26 receipt is not used to qualify this head.
+
+## Council decision and boundaries
+
+APPROVE this exact prospective D17 correction and integration delivery. The rationale is that it preserves owner authority and scientific evidence while removing an operational deadlock through a narrow, reviewable, one-use ordering exception. It replaces conflicting directions with a complete peer-lab contract and a concrete existing-work queue without promoting unqualified results.
+
+No unresolved minority objection blocks this head. Explicit scope reservations remain: this vote does not assert that D15's entire earlier owner account was independently verified, that #1522 met pre-merge requirements, or that missing historical D16 votes existed. D16's other proposed rules retain their stated activation conditions except where explicitly prospectively superseded by D17; do not infer historical adoption from this receipt. Inventory/triage statements route source-bound follow-ups and do not requalify all historical artifacts. This review does not approve deletion candidates, prove all recovery scenarios, qualify live model checkpointing, validate client adapters, or claim server-required enforcement is installed.
+
+The final delivery steward must still obtain the other required review and three-seat council record, obey every actual GitHub protection/required check, pin this exact head, verify the resulting merge, and perform the recorded normal AdoptPolicy transition before new claims/execution. A changed head requires a fresh bound review. Do not treat this receipt as an approval for a future or different revision.

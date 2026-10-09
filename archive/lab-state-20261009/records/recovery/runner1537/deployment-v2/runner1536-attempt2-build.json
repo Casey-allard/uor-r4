@@ -1,0 +1,14 @@
+{
+  "schema": "uor-r4.resource-charge/1",
+  "event_id": "runner1536-attempt2-build",
+  "recorded_utc": "2026-09-30T07:00:28.372532+00:00",
+  "lab": "Codex accounting for Kimi executed repair",
+  "adjustment_ms": 21799,
+  "accounting": {
+    "category": "build",
+    "measurement": "measured",
+    "correction_of": null
+  },
+  "authority": "Owner authorized recovery, approvedv4 one-use repair packet; cumulative allowance unchanged.",
+  "rationale": "Reclassify21.799s already inside cutoff11 wall envelope06:40:39..06:45:11 from preparation to measured runner build/checks. Kimi ran approved attempt2 at06:44:05. No additional cumulative wall debit; original records retained. receiptSHA256 89efe22fae8b6ecf01d4b39be0a182d91ca22b8d9b2f45d1905efed42fbf1e53. No model compute."
+}

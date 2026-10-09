@@ -1,0 +1,15 @@
+{
+	"StandardOutPath" = "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/deploy1543-direct-verification/launchd-stdout.log";
+	"LimitLoadToSessionType" = "Aqua";
+	"StandardErrorPath" = "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/deploy1543-direct-verification/launchd-stderr.log";
+	"Label" = "org.uor.verify1543";
+	"OnDemand" = false;
+	"LastExitStatus" = 0;
+	"Program" = "/Users/casey.allard/.local/share/uor-r4/bin/lab-runner-04981eb2-debug";
+	"ProgramArguments" = (
+		"/Users/casey.allard/.local/share/uor-r4/bin/lab-runner-04981eb2-debug";
+		"verify-inputs";
+		"/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/deploy1543-direct-verification/probe-spec.json";
+		"400ac8e6a7997c9d0514bf9e074aa6a2d546dee7c71ed0f8dd33c44d39de5672";
+	);
+};

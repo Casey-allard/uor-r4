@@ -1,0 +1,14 @@
+{
+  "schema": "uor-r4.resource-charge/1",
+  "event_id": "recovery-integration-20260930-continuation-cutoff11",
+  "recorded_utc": "2026-09-30T06:45:11.799839+00:00",
+  "lab": "Codex durable lab implementation",
+  "adjustment_ms": 271984,
+  "accounting": {
+    "category": "preparation",
+    "measurement": "estimated",
+    "correction_of": null
+  },
+  "authority": "Owner continuing goal and Codex contributor role; standing cumulative allowance.",
+  "rationale": "Nonoverlapping preparation wall since cutoff10: refreshed integration state;1538 documentation/evidence delta confirmation and full source approval;1532 bounded delta source review; independent1539 durable-session source/caller review and publication. No model/Cargo/GPU/deletion. Parallel reviewer included in wall envelope. New retained text below1MiB."
+}

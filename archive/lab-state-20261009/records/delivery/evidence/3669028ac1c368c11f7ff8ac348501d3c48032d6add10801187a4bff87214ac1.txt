@@ -1,0 +1,2 @@
+Command: ['python3', 'scripts/check_claim_wording.py']
+Claim-wording gate passed: no unlinked machine-verified/exact-equivalence wording.

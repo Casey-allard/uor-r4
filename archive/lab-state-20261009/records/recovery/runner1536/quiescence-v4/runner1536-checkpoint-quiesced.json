@@ -1,0 +1,23 @@
+{
+  "event_id": "fc8d2272-a4b3-4292-9d4e-d3ec3c77290c",
+  "op": "checkpoint",
+  "issue": 1536,
+  "session": "codex-durable-20260929-root",
+  "epoch": 1,
+  "packet": {
+    "branch": "codex/runner-stable-boot-recovery-20260930",
+    "checkpoint_sha": "8e90aa33b8ef941d3ac5de57ad448859e20ad76b",
+    "pr": 1537,
+    "source_review": "runner1536-source-review1-preexecution.md",
+    "checks": "standalone rustfmt and git diff --check passed; Cargo NOT RUN",
+    "production": "LaunchAgent booted out05:49:52Z after no live payload. Old daemon and zombies absent; unchanged hold81bb7c6a retained. OpenCode queued -e and reservation preserved. Claude and OpenCode -d peer finalizations preserve UNKNOWN; old predicate not repaired by those receipts.",
+    "blockers": [
+      "macOS memory pressure2; repair requiresfreshpressure1/fullprojection/nopeer/serviceabsent",
+      "Production deployment remains unauthorized until executed repair validation and protected delivery"
+    ],
+    "next_action": "Use approved v4 packetc552311c and unchanged observer795d only after freshpreflight. Run offline lab-runner tests/build; preservelogs/chargeonce, independent result review, protected delivery before anyproductionrestart.",
+    "execution_packet": "runner1536-execution-packet-v4.json",
+    "council": "Root plus seat2 and seat3 conditionalapprovals obtained; no Cargo executed",
+    "handoff": "51e893b846fbff7c840922bb70b239c35d159b9b/handoffs/20260930-coordinator-transition"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "branch": "codex/runner-small-validation",
+  "checkpoint_sha": "604eae9333a4e29efe5a902d241d25bc40d556c1",
+  "pr": 1543,
+  "worktree": "/Users/casey.allard/uor-r4-worktrees/runner-small-validation",
+  "source_review": "Two independent APPROVE, source-only; three-seat prospective policy approval",
+  "checks": "rustfmt and diff-check PASS; compile/focused-tests NOT_RUN",
+  "spec": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/memory-admission-spec.json",
+  "reserve_event": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/memory-admission-reserve.json",
+  "running_peer": "opencode-b0-flock-g1a-20260930-g, preserve; root no running attempt",
+  "next_action": "After peer execution AND reservation finalize, renew/reclaim1536; refresh prepared spec claim epoch/work-card as necessary then reserve/submit once through runner. Run focused host tests and binary build. Publish executed results, independent result review, delivery class C receipt -> protected queue. Coordinate idle deployment with Kimi after merge and all jobs drain. Keep global max1; add only reviewed <=2threads/2GiB/600s CPU spec digests. Verify installed executable/process and actual admission. Existing continuity automation explicitly prioritizes completing this fix; do not treat source delivery as deployment."
+}

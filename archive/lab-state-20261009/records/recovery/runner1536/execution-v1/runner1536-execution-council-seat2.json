@@ -1,0 +1,24 @@
+{
+  "schema": "uor-r4.manual-repair-council-vote/1",
+  "created_utc": "2026-09-30T05:21:04.398301+00:00",
+  "reviewer": "independent_systems_review",
+  "independence": "Non-author of source and observer; same Codex provider and root launcher. Distinct evidence-review seat, not independent provider.",
+  "decision": "APPROVE",
+  "vote": "YES",
+  "packet_sha256": "7c49d4f73a5478d4fbc74310eb9660de0d4e2b2675b5a94522dd0db3cc198332",
+  "source_sha": "8e90aa33b8ef941d3ac5de57ad448859e20ad76b",
+  "observer_sha256": "795d4ff24363c115433ea341ed16a03de2afaf465f4e5fb7f832439ebb8cfc01",
+  "cargo_lock_sha256": "e11b98bf00374dbc6b9e42da56647c51fc8c5e782eddf3ed031c855997146c32",
+  "scope": "One attempt of the two exact offline lab-runner Cargo commands under the reviewed observer, using existing internal target. No model work, deployment, reconciliation, production mutation or ordinary admission authorization.",
+  "required_findings": [],
+  "conditions": [
+    "Three recorded council seats including two non-authors and a fresh successful preflight immediately before invocation.",
+    "Root rechecks exact source, observer, packet, lock, toolchain, production hold and physical headroom including 2GiB cache growth, 64MiB receipt projection and 128MiB stop margin above the 40GiB floor.",
+    "Claude 10GiB logical reservation remains fenced and the production admission hold remains unchanged; this is explicitly a one-use physical-headroom exception, not a claim that ordinary reservation-aware admission passed.",
+    "Only the owned invocation may be stopped. Observed peer Cargo/rustc causes abort without signaling peers.",
+    "Preserve UNKNOWN on uncertain process containment; never release production holds or reservations from an uncertain observer result.",
+    "Record actual elapsed cost exactly once; source or observer changes require a successor packet and review."
+  ],
+  "evidence": "Independently read the frozen observer and full packet, verified all hashes, clean source status, unchanged four previously reviewed source hashes and Cargo.lock; reviewed process-group usage and source review boundaries. No Cargo or jobs executed by this reviewer.",
+  "limitations": "900s is a sampled execution projection including a projected 20s stop allowance, not hard real-time enforcement. Failed sequential probes can exceed stop projection. Sampled RSS/cache limits are not kernel-enforced. Process containment is scoped to the inspected tests that do not create new sessions. This vote does not assert test success or deployment readiness."
+}

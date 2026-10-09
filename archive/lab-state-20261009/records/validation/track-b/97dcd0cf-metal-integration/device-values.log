@@ -1,0 +1,47 @@
+
+running 13 tests
+test test_metal_stack_ops_rejections ... ok
+Metal device 0 initialized successfully: Metal(MetalDevice(DeviceId(5)))
+test test_metal_device_available ... ok
+QuaternionScan max diff CPU vs Metal: 0.000000044703484
+test test_quaternion_scan_parity ... ok
+CrossEntropy CPU (5.686271) vs Metal (5.6862707) diff: 0.00000047683716
+test test_cross_entropy_parity ... ok
+RecurrenceCore max diff CPU vs Metal: 0.00000000069849193
+test test_recurrence_core_parity ... ok
+FusedRead Dot max diff CPU vs Metal: 0.00000023841858
+test test_fused_read_parity ... ok
+RMSNorm max diff CPU vs Metal: 0.00000047683716
+CrossEntropy backward max diff dl: 0.0000000009313226
+test test_straight_through_parity ... ok
+test test_rms_norm_parity ... ok
+test test_cross_entropy_backward_parity ... ok
+SwiGLU max diff CPU vs Metal: 0.00000011920929
+test test_swiglu_parity ... ok
+RMSNorm backward max diff dx: 0.00000047683716, dw: 0.00000035762787
+SwiGLU backward max diff dg: 0.00000011920929, du: 0.000000059604645
+QuaternionScan backward max diff dt: 0.000000014901161, dd: 0.000000059604645
+test test_rms_norm_backward_parity ... ok
+test test_swiglu_backward_parity ... ok
+test test_quaternion_scan_backward_parity ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.05s
+
+        0.06 real         0.02 user         0.03 sys
+            36061184  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+                2949  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+                 598  involuntary context switches
+           215526265  instructions retired
+           126828299  cycles elapsed
+            25526920  peak memory footprint

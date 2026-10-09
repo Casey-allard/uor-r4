@@ -1,0 +1,14 @@
+{
+  "schema": "uor-r4.resource-charge/1",
+  "event_id": "recovery-integration-20260930-continuation-cutoff5",
+  "recorded_utc": "2026-09-30T05:52:06.062757+00:00",
+  "lab": "Codex durable lab implementation",
+  "adjustment_ms": 1118117,
+  "accounting": {
+    "category": "preparation",
+    "measurement": "estimated",
+    "correction_of": null
+  },
+  "authority": "Owner continuing integration goal and explicit Skrit-Bit review request; existing cumulative allowance.",
+  "rationale": "Nonoverlapping preparation wall envelope since cutoff4. Includes final research/coordination handoff and three continuing goals, exact-head review publication, live job incident inspection, verified idle-daemon quiescence and bounded repair packet state refresh. No root Cargo/model/GPU execution. Parallel reviewer wall not added twice. Peer execution charges remain separate immutable records; no unique material deleted."
+}

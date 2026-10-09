@@ -1,0 +1,14 @@
+{
+  "schema": "uor-r4.resource-charge/1",
+  "event_id": "recovery-integration-20260930-review1541-0918",
+  "recorded_utc": "2026-09-30T09:18:09.378536+00:00",
+  "lab": "Codex durable lab implementation",
+  "adjustment_ms": 240000,
+  "accounting": {
+    "category": "preparation",
+    "measurement": "estimated",
+    "correction_of": null
+  },
+  "authority": "Owner continuity and runner source-steward authority.",
+  "rationale": "Estimated four minutes active scoped A1 source and caller review, parallel independent generation/control review, probe JSON/hash verification and publication. Parallel elapsed counted once; excludes idle heartbeat interval. No Cargo/model/GPU/deletion."
+}

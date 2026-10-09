@@ -1,0 +1,37 @@
+# Independent exact-head source review: persistent lab goals
+
+Reviewer/session: /root/second_council_review.
+Launcher: /root (codex-durable-20260929-root).
+Reviewed head: 3ed9f73d206d016679251697954db29bdadce6d2.
+Reviewed base: ba266ad44f21c9df2dafa9d56a1e2051c1565d91.
+Decision: APPROVE.
+Unresolved required fixes: 0.
+Recommended classification: A, documentation-only implementation of the owner's direct continuous-goal instruction. No additional council decision is required by this change.
+
+## Scope and findings
+
+Read the complete eight-file diff: docs/labs/README.md, new client-continuation.md, all five standing lab prompts, and new opencode-continuous-start.md. Verified the worktree was clean at the exact head. The added goal-lifetime block is identical across the five standing prompts; their pre-existing common operating contract remains identical. New relative continuation/startup links resolve to the files supplied in the diff.
+
+The change correctly distinguishes a persistent unresolved research mission from finite child tasks, implementation, tests, reviews, and PR delivery. Mission completion still requires accepted evidence for its full current scope. Owner replacement and pause remain explicit. ACTIVE, WAITING, QUOTA_UNAVAILABLE, PAUSED and COMPLETE are operational labels, not declarations that a client tool implements those exact enum values. Unsupported continuation is explicitly MANUAL_RESUME.
+
+The instructions require useful authorized work, current claims/resources, immutable evidence and protected delivery. They prohibit fake unfinished todos, cosmetic guard resets, spinning on unchanged state, extra unauthorized jobs, hidden provider/account changes, quota fabrication and unsupported offline execution claims. A blocked child calls for a dependency check or a precise wait/handoff; it does not justify a duplicate attempt or weaker acceptance. The OpenCode queued unbound attempt is to be positively reconciled and preserved before a fresh bound replacement, not edited or blindly resubmitted. Existing delegates and the unavailable Claude handoff are preserved.
+
+OpenCode's source/fixture observations are accurately scoped: the 4.19.4 native /goal implementation remains disabled because ordinary follow-ups can replace its objective; the unfinished-todo mechanism is described as installed/default-on unless disabled, with configuration inspection and a live next-child receipt still required. Stop/restart hazards, no-progress guards, quota/offline limitations and the distinction between a runner job and a future model turn remain explicit. Nothing in the document qualifies a live OpenCode continuation or an unattended Claude/Antigravity adapter.
+
+The added material does not amend D11/D5, acceptance thresholds, resource floors, authority, claim protocol or delivery rules. It implements a directly requested mission lifetime and reports client capabilities. Class A is appropriate; adding a council round solely because these are shared prompts would add no policy authorization that the owner has not already supplied. Source/model implementation and shared policy files are unchanged.
+
+## Evidence checked
+
+- Read continuity/opencode-continuation-audit.md, SHA-256 ae2365ba4b6ba2c126745c2000021053b9e30f3b9d8309eb0c179503f69ea6c0, and its JSON, SHA-256 996b9bcea70a1d8a0f3212af067b27deca0790f3c7761cfe637583bcabe24aba.
+- Independently hashed the installed plugin source and matched e522d513a08d0a6871129dbf3d9c3a79e4871693997fbf34190c4d3fa3d6b4b5. Read the actual ordinary-message goal handler and the recorded source-call-site explanation.
+- Independently verified all three fixture receipt hashes and all three fixture-source hashes. The receipts report 15 goal assertions, three chat-handler assertions, and 16 todo/progress assertions with explicitly stubbed controller/SDK/dispatcher/clock components and zero provider/live-client calls. These were read as source-path evidence, not rerun or relabelled as desktop qualification.
+- Read the actual Codex automation configuration at ~/.codex/automations/uor-r4-lab-continuity/automation.toml: heartbeat kind, ACTIVE, fifteen-minute interval. Its prompt requires live authority, meaningful progress and quiet behavior on unchanged state. This supports the documentation's installed-heartbeat claim, not guaranteed future wake or provider availability.
+- Read continuation-20260930/bytemuck-popup-diagnosis.json, SHA-256 8b04a9014769cafdf48730a7641fd85c002ab5aba94cb938225255330ad28818. It records an actual external-library policy denial, quarantined image boundary, a different newly created internal replacement, and a launched dependent test executable. The notes appropriately reject recursive attribute stripping, Gatekeeper disabling and unqualified image repair.
+
+One nonblocking precision suggestion was sent to the author: "new internal replacement" is more directly supported than "freshly built internal copy," because the popup audit did not capture an exact rebuild-command receipt. The paragraph does not claim a reproducible source-to-binary attestation; its explicit signature/provenance limitations and bounded-repair language preserve the material boundary.
+
+## Delivery and acceptance limits
+
+This is exact-head source approval for PR #1535. Live GitHub confirms the exact head/base above on the open draft PR. Read the final executed documentation logs: persistent-diff-3ed9f73d.log records git diff --check of the exact base...head with exit 0 (SHA-256 1422d9da04acf119b8ef687cc64922a8be6cf42b8498bbaf689e606d95c4e131); persistent-wording-3ed9f73d.log records the claim-wording command and pass output with exit 0 (SHA-256 b2ce952964fa30300f5a7e1c83154878299d2786a21fe1b6d6b5190ef25d2132). These are appropriate documentation checks, not model or client execution tests. I read the executed logs rather than rerunning them. The normal delivery coordinator must still validate the current task generation, required evidence, and protected queue eligibility. No Cargo, provider request, client mutation, source edit, security change, volume operation or GitHub post was performed for this review. This receipt is the only file written.
+
+Independence is a separate non-author agent pass under the same parent/provider, with shared-account limitations disclosed. Approval does not certify automatic client startup, next-child dispatch, quota-reset wake, source-independent live handoff, model checkpointing, or repaired image trust. Those remain separate executed acceptance items under the operational issue. A changed source head requires fresh binding and applicable delta review.

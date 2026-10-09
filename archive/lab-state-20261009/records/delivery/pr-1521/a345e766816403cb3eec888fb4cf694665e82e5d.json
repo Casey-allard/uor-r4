@@ -1,0 +1,226 @@
+{
+  "schema": "uor-r4.server-delivery/1",
+  "receipt": {
+    "schema": "uor-r4.delivery-receipt/1",
+    "repository": "UOR-Foundation/uor-r4",
+    "pull_request": 1521,
+    "task_issue": 1520,
+    "author_session": "codex-durable-20260929-root",
+    "claim_session": "codex-durable-20260929-root",
+    "claim_epoch": 3,
+    "work_card": "sha256:a527af51dfe737971a18333a49c12f05875c95976294f525e6599e085c569083",
+    "head_sha": "a345e766816403cb3eec888fb4cf694665e82e5d",
+    "base_sha": "3bc296cafa89971d3aa0b98c0eca187d8a76ef06",
+    "change_kind": "code",
+    "class": "C",
+    "checks": [
+      {
+        "name": "format",
+        "head_sha": "a345e766816403cb3eec888fb4cf694665e82e5d",
+        "base_sha": "3bc296cafa89971d3aa0b98c0eca187d8a76ef06",
+        "argv": [
+          "/Users/casey.allard/.cargo/bin/cargo",
+          "fmt",
+          "-p",
+          "lab-runner",
+          "--check"
+        ],
+        "exit_code": 0,
+        "outcome": "PASS",
+        "log": {
+          "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/final-format-a345e766.log",
+          "sha256": "4e6af45e03cc81f780b5de137731170a1014d9f60cd49ddf89a2a2c82c5fdb1d"
+        }
+      },
+      {
+        "name": "diff-check",
+        "head_sha": "a345e766816403cb3eec888fb4cf694665e82e5d",
+        "base_sha": "3bc296cafa89971d3aa0b98c0eca187d8a76ef06",
+        "argv": [
+          "git",
+          "diff",
+          "--check",
+          "origin/main...HEAD"
+        ],
+        "exit_code": 0,
+        "outcome": "PASS",
+        "log": {
+          "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/final-diff-check-a345e766.log",
+          "sha256": "f1312f9c0adec518dc24f5164714843a212468109f00bd5f69b445445c26d8de"
+        }
+      },
+      {
+        "name": "claim-wording",
+        "head_sha": "a345e766816403cb3eec888fb4cf694665e82e5d",
+        "base_sha": "3bc296cafa89971d3aa0b98c0eca187d8a76ef06",
+        "argv": [
+          "python3",
+          "scripts/check_claim_wording.py"
+        ],
+        "exit_code": 0,
+        "outcome": "PASS",
+        "log": {
+          "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/final-claim-wording-a345e766.log",
+          "sha256": "3669028ac1c368c11f7ff8ac348501d3c48032d6add10801187a4bff87214ac1"
+        }
+      },
+      {
+        "name": "workflow",
+        "head_sha": "a345e766816403cb3eec888fb4cf694665e82e5d",
+        "base_sha": "3bc296cafa89971d3aa0b98c0eca187d8a76ef06",
+        "argv": [
+          "node",
+          "tools/lab-runner/tests/delivery_workflow.cjs"
+        ],
+        "exit_code": 0,
+        "outcome": "PASS",
+        "log": {
+          "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/final-workflow-a345e766.log",
+          "sha256": "9a59190b68387418fc6837cfe6ee52022021365305e2fbc3ea922c4b3f116098"
+        }
+      },
+      {
+        "name": "compile",
+        "head_sha": "a345e766816403cb3eec888fb4cf694665e82e5d",
+        "base_sha": "3bc296cafa89971d3aa0b98c0eca187d8a76ef06",
+        "argv": [
+          "/Users/casey.allard/.cargo/bin/cargo",
+          "build",
+          "-p",
+          "lab-runner",
+          "--offline"
+        ],
+        "exit_code": 0,
+        "outcome": "PASS",
+        "log": {
+          "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/final-compile-a345e766.log",
+          "sha256": "6b537ed3f1034fd8318ae24c274bbffd03c065c6c9cd31eb24933f322ea87a41"
+        }
+      },
+      {
+        "name": "focused-tests",
+        "head_sha": "a345e766816403cb3eec888fb4cf694665e82e5d",
+        "base_sha": "3bc296cafa89971d3aa0b98c0eca187d8a76ef06",
+        "argv": [
+          "/Users/casey.allard/.cargo/bin/cargo",
+          "test",
+          "-p",
+          "lab-runner",
+          "--offline",
+          "agent::tests",
+          "--",
+          "--test-threads=2"
+        ],
+        "exit_code": 0,
+        "outcome": "PASS",
+        "log": {
+          "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/final-agent-focused-a345e766.log",
+          "sha256": "559bda21abb7f4515236b2a9592ee901577aec587c0c2b2a2cabd5993f577d58"
+        }
+      }
+    ],
+    "reviews": [
+      {
+        "review_id": "a345e766-independent-1",
+        "reviewer_session": "/root/independent_systems_review",
+        "launched_by": "codex-durable-20260929-root",
+        "head_sha": "a345e766816403cb3eec888fb4cf694665e82e5d",
+        "base_sha": "3bc296cafa89971d3aa0b98c0eca187d8a76ef06",
+        "decision": "APPROVE",
+        "unresolved_required_fixes": 0,
+        "evidence": {
+          "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/independent-review1-a345e766.md",
+          "sha256": "48b6e4f046f82dfb5f2b7420135aad7cf94967b81cd909ea74d4442d497653e7"
+        }
+      },
+      {
+        "review_id": "a345e766-independent-2",
+        "reviewer_session": "/root/second_council_review",
+        "launched_by": "codex-durable-20260929-root",
+        "head_sha": "a345e766816403cb3eec888fb4cf694665e82e5d",
+        "base_sha": "3bc296cafa89971d3aa0b98c0eca187d8a76ef06",
+        "decision": "APPROVE",
+        "unresolved_required_fixes": 0,
+        "evidence": {
+          "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/independent-review2-a345e766.md",
+          "sha256": "c1da87887adf23b7d03190e47d28b23c84f40601352b57ac2cb75835b7ec6a55"
+        }
+      }
+    ],
+    "result_evidence": null,
+    "result_reader_session": null,
+    "council": {
+      "decision_id": "owner-durable-labs-d13-d14-a345e766",
+      "head_sha": "a345e766816403cb3eec888fb4cf694665e82e5d",
+      "base_sha": "3bc296cafa89971d3aa0b98c0eca187d8a76ef06",
+      "votes": [
+        {
+          "reviewer_session": "codex-durable-20260929-root",
+          "decision": "APPROVE",
+          "reasons": "Owner implementation authorization; focused checks pass; independent required corrections resolved."
+        },
+        {
+          "reviewer_session": "/root/independent_systems_review",
+          "decision": "APPROVE",
+          "reasons": "Exact-head non-author review file records approval with operational limitations."
+        },
+        {
+          "reviewer_session": "/root/second_council_review",
+          "decision": "APPROVE",
+          "reasons": "Exact-head non-author review file records approval with operational limitations."
+        }
+      ],
+      "evidence": {
+        "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/source-council-a345e766.md",
+        "sha256": "68d03a76cb8458f30673c50202b80d10efc05df71c5a96bfd0d1ec46d7c5a19f"
+      }
+    }
+  },
+  "evidence": [
+    {
+      "local_path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/final-format-a345e766.log",
+      "path": "delivery/evidence/4e6af45e03cc81f780b5de137731170a1014d9f60cd49ddf89a2a2c82c5fdb1d.txt",
+      "sha256": "4e6af45e03cc81f780b5de137731170a1014d9f60cd49ddf89a2a2c82c5fdb1d"
+    },
+    {
+      "local_path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/final-diff-check-a345e766.log",
+      "path": "delivery/evidence/f1312f9c0adec518dc24f5164714843a212468109f00bd5f69b445445c26d8de.txt",
+      "sha256": "f1312f9c0adec518dc24f5164714843a212468109f00bd5f69b445445c26d8de"
+    },
+    {
+      "local_path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/final-claim-wording-a345e766.log",
+      "path": "delivery/evidence/3669028ac1c368c11f7ff8ac348501d3c48032d6add10801187a4bff87214ac1.txt",
+      "sha256": "3669028ac1c368c11f7ff8ac348501d3c48032d6add10801187a4bff87214ac1"
+    },
+    {
+      "local_path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/final-workflow-a345e766.log",
+      "path": "delivery/evidence/9a59190b68387418fc6837cfe6ee52022021365305e2fbc3ea922c4b3f116098.txt",
+      "sha256": "9a59190b68387418fc6837cfe6ee52022021365305e2fbc3ea922c4b3f116098"
+    },
+    {
+      "local_path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/final-compile-a345e766.log",
+      "path": "delivery/evidence/6b537ed3f1034fd8318ae24c274bbffd03c065c6c9cd31eb24933f322ea87a41.txt",
+      "sha256": "6b537ed3f1034fd8318ae24c274bbffd03c065c6c9cd31eb24933f322ea87a41"
+    },
+    {
+      "local_path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/final-agent-focused-a345e766.log",
+      "path": "delivery/evidence/559bda21abb7f4515236b2a9592ee901577aec587c0c2b2a2cabd5993f577d58.txt",
+      "sha256": "559bda21abb7f4515236b2a9592ee901577aec587c0c2b2a2cabd5993f577d58"
+    },
+    {
+      "local_path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/independent-review1-a345e766.md",
+      "path": "delivery/evidence/48b6e4f046f82dfb5f2b7420135aad7cf94967b81cd909ea74d4442d497653e7.txt",
+      "sha256": "48b6e4f046f82dfb5f2b7420135aad7cf94967b81cd909ea74d4442d497653e7"
+    },
+    {
+      "local_path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/independent-review2-a345e766.md",
+      "path": "delivery/evidence/c1da87887adf23b7d03190e47d28b23c84f40601352b57ac2cb75835b7ec6a55.txt",
+      "sha256": "c1da87887adf23b7d03190e47d28b23c84f40601352b57ac2cb75835b7ec6a55"
+    },
+    {
+      "local_path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/source-council-a345e766.md",
+      "path": "delivery/evidence/68d03a76cb8458f30673c50202b80d10efc05df71c5a96bfd0d1ec46d7c5a19f.txt",
+      "sha256": "68d03a76cb8458f30673c50202b80d10efc05df71c5a96bfd0d1ec46d7c5a19f"
+    }
+  ]
+}

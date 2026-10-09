@@ -1,0 +1,88 @@
+{
+  "schema": "uor-r4.integration-routing-snapshot/1",
+  "created_utc": "2026-09-30T07:07:39.592851+00:00",
+  "basis": "LiveGitHub PRinventory plus scoped independentreviews; operationalclaims override routing",
+  "prior_inventory": "docs/labs/integration-queue.md links fullbranch retention inventory; no branchpruning performed",
+  "verified_merge": {
+    "1537": "d563b02f3270a2c931a7905d6624ba0beeb71d2a",
+    "1531": "ea03435808c67791b76ae0e9868978e3188cba04"
+  },
+  "coordinator": "Kimi",
+  "codex_role": "contributing source/research lab; runnerrepair steward; no paralleldeploymentexecutor",
+  "open_prs": [
+    {
+      "headRefOid": "7d10a57cac09afb443e3e047455088a0f6deb450",
+      "isDraft": false,
+      "number": 1539,
+      "title": "feat(stack): durable session save_state and restore_state for IntegerStackSession (#1513, #820)",
+      "steward": "Antigravity",
+      "next_action": "Apply four persistence findings: atomic replacement; valid trace state; next-token/logits continuity; bounded decode. Then focused real session tests."
+    },
+    {
+      "headRefOid": "2fd32191de5a8bbc77c94e0699b3ceac3673add7",
+      "isDraft": true,
+      "number": 1538,
+      "title": "S1.4 safety: two diagnosed #1533 test corrections (source-only; checks NOT_RUN under hold)",
+      "steward": "DeepSeek",
+      "next_action": "Source approved at2fd32191; currenthead compile/focused/loaded-path validation after admission; coordinate1534 exporter composition."
+    },
+    {
+      "headRefOid": "8535388a9a48d221d26d7ec98885dd1ada0cc15e",
+      "isDraft": false,
+      "number": 1534,
+      "title": "fix(training): restore saved codec on export, reject bare shape names, and ensure provenance parity in D4 reload tests",
+      "steward": "Antigravity",
+      "next_action": "Source codec metadata correction reviewed; actualCLI export/reload validation afteradmission, integrate1538 caller changes."
+    },
+    {
+      "headRefOid": "f99a08302a38d523862d48c364b09a6714be001d",
+      "isDraft": false,
+      "number": 1532,
+      "title": "flock: canonical shared selector + model-source score_and_normalize transport (B0, #1512)",
+      "steward": "DeepSeek",
+      "next_action": "Source approvedf99a0830; currenthead tests and affected consumer evidence afteradmission, then protected delivery."
+    },
+    {
+      "headRefOid": "24e58831563546de10652e5ffe12e60b13ecb775",
+      "isDraft": false,
+      "number": 1528,
+      "title": "feat(integer): allocation-free D11 integer flock selector and scratch workspace (#1513, #820)",
+      "steward": "Antigravity",
+      "next_action": "Latest claimdelta source reviewed24e58831; focused selector/blockedGEMV/allocation checks afteradmission; minor PRbody mathtext correction."
+    },
+    {
+      "headRefOid": "f7a731f8f88376ae9be270b230cf98c3dace4f8b",
+      "isDraft": false,
+      "number": 1527,
+      "title": "feat(evidence): publish Results B and C (S1 geometric QAT and S2 dialogue behavior) (#973, #820)",
+      "steward": "Antigravity",
+      "next_action": "Resolve same-size corruptedpayload verifier accepting, actualCLI reproduction commands, ownfloatNLL comparator; existingreview5905756731."
+    },
+    {
+      "headRefOid": "2a13baddb996ae966ae1e54434befc26f9a3f6da",
+      "isDraft": false,
+      "number": 1526,
+      "title": "feat(training): native Apple Silicon Metal GPU kernels for geometric stack ops (#1510, #1509, #1513)",
+      "steward": "Antigravity",
+      "next_action": "Source emptyguards resolved; currenthead Metal forward/backward checks afteradmission; conditional skip is not executedGPU evidence."
+    },
+    {
+      "headRefOid": "9f003b6f66e0baf20092c3728f04df803116d1d5",
+      "isDraft": false,
+      "number": 1519,
+      "title": "feat(codecs): B3 E8 lattice weight coding evaluation on SmolLM2-360M (#1513, #1509)",
+      "steward": "Antigravity",
+      "next_action": "Finite-overflow oracle still returns defaultsuccess at9f003b6f; rejectunsupported arithmetic or widen with outputcontract. Preserve productionnegative and historicalresults. Thenfocused test."
+    },
+    {
+      "headRefOid": "1074399db87a2dda54602c661142a499bfb618a0",
+      "isDraft": true,
+      "number": 1518,
+      "title": "Track B: shared Candle pipeline and preserved B2 drafts",
+      "steward": "Codex",
+      "next_action": "Resume existing sharedCandle referenceparity after compiler/cache/resourceadmission. B2drafts preserved, uncompiled; no transfer beforeparity."
+    }
+  ],
+  "production": "Candidate installedmatchingtestedhash; originalhold preserved; Kimi ownspilot, no normalexecutionadmission verified",
+  "gate_scope": "Local shared deliverycheck passed before protected1537 enqueue. Server-required mission gate remains administrativeactivation; no claim installed."
+}

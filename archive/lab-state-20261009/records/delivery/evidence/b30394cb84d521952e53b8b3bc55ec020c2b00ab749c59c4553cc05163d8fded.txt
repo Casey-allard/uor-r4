@@ -1,0 +1,1 @@
+{"argv": ["git", "diff", "--exit-code", "3ed9f73d206d016679251697954db29bdadce6d2", "61bbd85a0a49e1bb72c71b4e02752d575e3bee4b", "--"], "exit_code": 0, "scope": "docs-only candidate has the identical complete tree already independently reviewed and checked"}

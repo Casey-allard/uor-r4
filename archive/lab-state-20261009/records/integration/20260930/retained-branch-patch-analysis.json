@@ -1,0 +1,2301 @@
+[
+  {
+    "sha": "4af04cf56f213df40b78c73a7c51ed5274517857",
+    "sample_ref": "refs/remotes/origin/archive/causal-experiment-source-20260924",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 4af04cf56f213df40b78c73a7c51ed5274517857\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "4af04cf56f213df40b78c73a7c51ed5274517857\t2026-09-23\tAdd exact learner checkpoints, causal feedback fitting, learned relative actions and sparse read plans\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "116\t1\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "fc843a012241474a55e460b53235ad36418a7936",
+    "sample_ref": "refs/remotes/origin/archive/principal-evidence-source-20260923",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ e82681620832220428f079dac1b1f7e9a2cc884e\n+ 111681c9c9562486a2627e0fa22bb71fe62a2089\n+ eb4eabab9bc4bedb4f66aa7b8a76415ee92dd7ea\n+ 586fa5aaea22a6b143f79c2d46baedf1f1a5e998\n+ 99b8a0e19acf97014df15b73b959ec0f5f4abcf6\n+ 58e1b913f93fd9e075947cdd715cecade6d3acfa\n+ fc843a012241474a55e460b53235ad36418a7936\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "fc843a012241474a55e460b53235ad36418a7936\t2026-09-23\tPreserve frozen selection provenance in transferred bundles and scope Hamilton interpretation\n58e1b913f93fd9e075947cdd715cecade6d3acfa\t2026-09-23\tRealize marginal-relative correction in versioned integer bundle and bind frozen evaluations\n99b8a0e19acf97014df15b73b959ec0f5f4abcf6\t2026-09-23\tExpose paired native rescoring and explicit warm-start replication seeds\n586fa5aaea22a6b143f79c2d46baedf1f1a5e998\t2026-09-23\tAdd sealed-source grounded transfer, cost checks and full-tune ratio controls\neb4eabab9bc4bedb4f66aa7b8a76415ee92dd7ea\t2026-09-23\tImplement integer lexical residual, full-tune controls, warm-start and finite Hamilton transport\n111681c9c9562486a2627e0fa22bb71fe62a2089\t2026-09-23\tDisentangle count calibration from recurrent residual strength in diagnostic\ne82681620832220428f079dac1b1f7e9a2cc884e\t2026-09-23\tAdd frozen-state transport observer and matched count-blend diagnostics\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "119\t7\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "09d5c74e1d5d42dfd61821021014f8beaae91f11",
+    "sample_ref": "refs/remotes/origin/codex/addressed-lexical-bridge-20260924",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 8d64e82ee61db1a845f717d2ec5df24906d23cd1\n+ a6c4ace5413b0e79df8f2ad82154e56828ecb035\n+ f424f6037e142c5bd2a6095d7420fdddc982cfac\n+ 76484376ed57e13d9a399d1c8a6ea41681ca31e5\n+ d869bfd11a7b7292f07fe1ad2eadbd7a231aba31\n+ 09d5c74e1d5d42dfd61821021014f8beaae91f11\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "09d5c74e1d5d42dfd61821021014f8beaae91f11\t2026-09-24\tRecord addressed lexical bridge complete resource charge (References #820)\nd869bfd11a7b7292f07fe1ad2eadbd7a231aba31\t2026-09-24\tBridge exact addressed memory into loaded lexical generation (References #820)\n76484376ed57e13d9a399d1c8a6ea41681ca31e5\t2026-09-24\tRecord complete KVAR relative-energy resource charge (References #820)\nf424f6037e142c5bd2a6095d7420fdddc982cfac\t2026-09-24\tTest matched C8 and Q8 KVAR read-energy residuals (References #820)\na6c4ace5413b0e79df8f2ad82154e56828ecb035\t2026-09-24\tRecord KVAR successor complete resource charge (References #820)\n8d64e82ee61db1a845f717d2ec5df24906d23cd1\t2026-09-24\tKVAR: retain hard-served memory after hard-objective diagnostic (References #820)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "109\t6\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "d22e2b50da85e527efcd4f60acc1e82644194b91",
+    "sample_ref": "refs/remotes/origin/codex/canonical-address-routing-20260925",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 5e76f166263cd491c6a96077fc060a05c96600b9\n+ 66622dd9c125c768d573373eb30cc3e0031af5ff\n+ 8a9c3dcf5159d0b32873a04652eedf8fdcf3dc13\n+ a123fa6d77d19ce60e1dec59c398ef3868b27d26\n+ 5c931a94379781547fd2ef8657fbc33ecd5214ac\n+ dfc903d12c87b1f3343416324ba55ddb36ef1fc5\n+ b7162e607272af1b9c950eb531f77d26b2bf06b3\n+ 52947d4b9b80dccc416c2d02ef4871e9d78a0feb\n+ 0b7b4c970e43176f909657247ebde5749a3558d0\n+ 6cc050bccc299494738e014e2c2741a19a99b879\n+ a212c45de43ca47de3aab5f24485f31cd697240a\n+ 5109861c93dee0e39d3aa189c325b3a13c4ededc\n+ 50ac2527f95508de114080d36e76826d7781a3b5\n+ d22e2b50da85e527efcd4f60acc1e82644194b91\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "d22e2b50da85e527efcd4f60acc1e82644194b91\t2026-09-26\tR1d: completed sharded curve and the chunked-scan prototype (parity pass; throughput no-go)\n50ac2527f95508de114080d36e76826d7781a3b5\t2026-09-26\tDesign the chunked parallel-scan dialogue block (R2 vehicle change)\n5109861c93dee0e39d3aa189c325b3a13c4ededc\t2026-09-26\tR1c: throughput diagnosis and bounded curve (count not cleared; vehicle change required)\na212c45de43ca47de3aab5f24485f31cd697240a\t2026-09-26\tR1b: response-masked dialogue objective and 5.43M smoke fit (count still ahead at low exposure)\n6cc050bccc299494738e014e2c2741a19a99b879\t2026-09-26\tAdd chat-v0 dialogue corpus pipeline and share-alike dataset receipts\n0b7b4c970e43176f909657247ebde5749a3558d0\t2026-09-26\tRecord owner decision: share-alike data permitted with obligations tracked\n52947d4b9b80dccc416c2d02ef4871e9d78a0feb\t2026-09-26\tR0: retained arms fail chat-panel v0; gap is objective/data (negative, scoped)\nb7162e607272af1b9c950eb531f77d26b2bf06b3\t2026-09-25\tAdd frozen chat-panel v0 instrument and calibration (uor-r4-chat-eval)\ndfc903d12c87b1f3343416324ba55ddb36ef1fc5\t2026-09-25\tRecord owner decisions: small chat-v0 first; permissive data fetching allowed\n5c931a94379781547fd2ef8657fbc33ecd5214ac\t2026-09-25\tRecord lab direction: capability first, routing deferred (council + G0a)\na123fa6d77d19ce60e1dec59c398ef3868b27d26\t2026-09-25\tExecute G0a: canonical-address cache feasibility (negative)\n8a9c3dcf5159d0b32873a04652eedf8fdcf3dc13\t2026-09-25\tRecord CAR-LM step-1 status and reconcile the measured inspections-per-step figure\n66622dd9c125c768d573373eb30cc3e0031af5ff\t2026-09-25\tAdd exact integer ops counters and a default-off ops report to the standalone session\n5e76f166263cd491c6a96077fc060a05c96600b9\t2026-09-25\tPlan canonical address routing for an energy-first geometric language model\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "97\t14\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "ce8d9340c0f5a22de97319decf8bc18dcba4d46d",
+    "sample_ref": "refs/heads/codex/consistent-emission-step",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ ce8d9340c0f5a22de97319decf8bc18dcba4d46d\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "ce8d9340c0f5a22de97319decf8bc18dcba4d46d\t2026-09-21\tConsistent geometric contextual emitter: corrected contract, decisive comparator (References #973)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "152\t1\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "04ba11cd1978091275e607e771142c68618db7e6",
+    "sample_ref": "refs/heads/codex/consumed-geometric-state",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ a94c9deceb691a9e8d0241714c49872433fa1874\n+ 04ba11cd1978091275e607e771142c68618db7e6\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "04ba11cd1978091275e607e771142c68618db7e6\t2026-09-22\tRecord the consumed-geometric-state result, evidence and resources\na94c9deceb691a9e8d0241714c49872433fa1874\t2026-09-22\tConsume a shared geometric computation inside the scoped memory session\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "142\t2\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "51b275bf828ee7555425648fa7dd8d4464e5fa29",
+    "sample_ref": "refs/heads/codex/contextual-emission-step",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 51b275bf828ee7555425648fa7dd8d4464e5fa29\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "51b275bf828ee7555425648fa7dd8d4464e5fa29\t2026-09-21\tContextual emission: real but weak uncopied transformation, readout-capacity limited (References #973)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "153\t1\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "bc9c81712bf505089bf22e3a3bd53df819e858c4",
+    "sample_ref": "refs/heads/codex/contextual-text-roles",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ bc9c81712bf505089bf22e3a3bd53df819e858c4\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "bc9c81712bf505089bf22e3a3bd53df819e858c4\t2026-09-21\tLearn contextual occurrence roles and exact spans from readable text (References #973)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "146\t1\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "16b7148e0db64e823309675e213e696cbcba79dd",
+    "sample_ref": "refs/heads/codex/derived-state-decoder",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 1016c224e4d1dad282583c0f6c9888f90db48c0a\n+ 16b7148e0db64e823309675e213e696cbcba79dd\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "16b7148e0db64e823309675e213e696cbcba79dd\t2026-09-21\tUpdate the canonical plan with the derived-state decoder outcome (References #973)\n1016c224e4d1dad282583c0f6c9888f90db48c0a\t2026-09-21\tLearn a result decoder on the relative computed state and bound the composition obstacle (References #973)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "150\t2\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "88b4d825a5a4ced0ade603d8ac07f0154e4ba8e1",
+    "sample_ref": "refs/heads/codex/dialogue-child-code-choice-20260927",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ d0844ba0c1e7a22803c18767796336bfb8ab376e\n+ 013f2c1c6142c33a02d8fbac54b4734fcc533d49\n+ 558aedf7c572550c22fff5cd0df1c2241ff59977\n+ e75acd94281a4bfff99ece8e5228ea76a1647265\n+ 84c2c40fb76d1f957e434e5975ea00245314a004\n+ c97a1e3b324868271744cf37f7c2a41a1ba24ead\n+ b9bea957df86c27f8a94bca966c15e27eb1b854d\n+ 1c3a5ed4e3292732bb46b9c6369328377cb32c2d\n+ 0607b43be68c67de001c8793012698ca7be39e6c\n+ 03bfaaf5f3bbd71827433966651bdc117b469114\n+ e5efafb8fadac7ab55258eff3dffd503833e48f0\n+ c626568f072d6d2bc0d78d52ec35ca7d69cd34d9\n+ 34964512fd092a639000f8c4061bc0b8f41b862a\n+ fd22d207de001de3da0ab994ae0256bd903aabfa\n+ 666f49adeac99030bc19b24c6aea47da337118db\n+ 815a874ea57dffe634557264cd1880876d0ec1f6\n+ b49a2810a5238a16880f9cb726d96d1ba1f18624\n+ 88b4d825a5a4ced0ade603d8ac07f0154e4ba8e1\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "88b4d825a5a4ced0ade603d8ac07f0154e4ba8e1\t2026-09-27\tfix: supply missing end_weight field in radial-startup example and clean campaign warnings\nb49a2810a5238a16880f9cb726d96d1ba1f18624\t2026-09-27\tstyle: format dialogue_learning.rs load signature\n815a874ea57dffe634557264cd1880876d0ec1f6\t2026-09-27\tSerialize dialogue alpha shards and release intermediate graphs\n666f49adeac99030bc19b24c6aea47da337118db\t2026-09-27\tPreserve interrupted code-choice fit and select memory correction\nfd22d207de001de3da0ab994ae0256bd903aabfa\t2026-09-27\tRecord validated code-choice path and prospective response fit\n34964512fd092a639000f8c4061bc0b8f41b862a\t2026-09-27\tMake learned-code shape rejection fixture change the actual shape\nc626568f072d6d2bc0d78d52ec35ca7d69cd34d9\t2026-09-27\tAdd response-aware legal code learning for the selected dialogue child\ne5efafb8fadac7ab55258eff3dffd503833e48f0\t2026-09-27\tRecord selected dialogue child native retention result\n03bfaaf5f3bbd71827433966651bdc117b469114\t2026-09-27\tBind and export the selected continuous dialogue child\n0607b43be68c67de001c8793012698ca7be39e6c\t2026-09-27\tRecord packed runtime behavior and storage comparison\n1c3a5ed4e3292732bb46b9c6369328377cb32c2d\t2026-09-27\tRecord paired dialogue result and actual native integer observation\nb9bea957df86c27f8a94bca966c15e27eb1b854d\t2026-09-27\tGroup iterator expression in observation metadata JSON\nc97a1e3b324868271744cf37f7c2a41a1ba24ead\t2026-09-27\tObserve retained dialogue across continuous, packed and native integer forms\n84c2c40fb76d1f957e434e5975ea00245314a004\t2026-09-27\tRecord native dialogue576 preparation and fixed recovery state\ne75acd94281a4bfff99ece8e5228ea76a1647265\t2026-09-27\tSeal failed native dialogue576 packaging attempts\n558aedf7c572550c22fff5cd0df1c2241ff59977\t2026-09-27\tAdd explicit native dialogue576 integer development profile\n013f2c1c6142c33a02d8fbac54b4734fcc533d49\t2026-09-27\tRecord packed runtime preparation and pending loaded comparison\nd0844ba0c1e7a22803c18767796336bfb8ab376e\t2026-09-27\tRead shared packed coefficients directly in integer kernels\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "73\t18\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "e5efafb8fadac7ab55258eff3dffd503833e48f0",
+    "sample_ref": "refs/heads/codex/dialogue-child-export-20260927",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ d0844ba0c1e7a22803c18767796336bfb8ab376e\n+ 013f2c1c6142c33a02d8fbac54b4734fcc533d49\n+ 558aedf7c572550c22fff5cd0df1c2241ff59977\n+ e75acd94281a4bfff99ece8e5228ea76a1647265\n+ 84c2c40fb76d1f957e434e5975ea00245314a004\n+ c97a1e3b324868271744cf37f7c2a41a1ba24ead\n+ b9bea957df86c27f8a94bca966c15e27eb1b854d\n+ 1c3a5ed4e3292732bb46b9c6369328377cb32c2d\n+ 0607b43be68c67de001c8793012698ca7be39e6c\n+ 03bfaaf5f3bbd71827433966651bdc117b469114\n+ e5efafb8fadac7ab55258eff3dffd503833e48f0\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "e5efafb8fadac7ab55258eff3dffd503833e48f0\t2026-09-27\tRecord selected dialogue child native retention result\n03bfaaf5f3bbd71827433966651bdc117b469114\t2026-09-27\tBind and export the selected continuous dialogue child\n0607b43be68c67de001c8793012698ca7be39e6c\t2026-09-27\tRecord packed runtime behavior and storage comparison\n1c3a5ed4e3292732bb46b9c6369328377cb32c2d\t2026-09-27\tRecord paired dialogue result and actual native integer observation\nb9bea957df86c27f8a94bca966c15e27eb1b854d\t2026-09-27\tGroup iterator expression in observation metadata JSON\nc97a1e3b324868271744cf37f7c2a41a1ba24ead\t2026-09-27\tObserve retained dialogue across continuous, packed and native integer forms\n84c2c40fb76d1f957e434e5975ea00245314a004\t2026-09-27\tRecord native dialogue576 preparation and fixed recovery state\ne75acd94281a4bfff99ece8e5228ea76a1647265\t2026-09-27\tSeal failed native dialogue576 packaging attempts\n558aedf7c572550c22fff5cd0df1c2241ff59977\t2026-09-27\tAdd explicit native dialogue576 integer development profile\n013f2c1c6142c33a02d8fbac54b4734fcc533d49\t2026-09-27\tRecord packed runtime preparation and pending loaded comparison\nd0844ba0c1e7a22803c18767796336bfb8ab376e\t2026-09-27\tRead shared packed coefficients directly in integer kernels\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "73\t11\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "b2504b01fb1f3594672150347466b87f0f544fca",
+    "sample_ref": "refs/heads/codex/dialogue-code-choice-isolated-20260927",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ d0844ba0c1e7a22803c18767796336bfb8ab376e\n+ 013f2c1c6142c33a02d8fbac54b4734fcc533d49\n+ 558aedf7c572550c22fff5cd0df1c2241ff59977\n+ e75acd94281a4bfff99ece8e5228ea76a1647265\n+ 84c2c40fb76d1f957e434e5975ea00245314a004\n+ c97a1e3b324868271744cf37f7c2a41a1ba24ead\n+ b9bea957df86c27f8a94bca966c15e27eb1b854d\n+ 1c3a5ed4e3292732bb46b9c6369328377cb32c2d\n+ 0607b43be68c67de001c8793012698ca7be39e6c\n+ 03bfaaf5f3bbd71827433966651bdc117b469114\n+ e5efafb8fadac7ab55258eff3dffd503833e48f0\n+ c626568f072d6d2bc0d78d52ec35ca7d69cd34d9\n+ 34964512fd092a639000f8c4061bc0b8f41b862a\n+ fd22d207de001de3da0ab994ae0256bd903aabfa\n+ 666f49adeac99030bc19b24c6aea47da337118db\n+ 815a874ea57dffe634557264cd1880876d0ec1f6\n+ b49a2810a5238a16880f9cb726d96d1ba1f18624\n+ 88b4d825a5a4ced0ade603d8ac07f0154e4ba8e1\n+ f807f84e00aacce5e56c643a3e2724e41f562fc7\n+ 1f302fe4cebf72ba083e206daf2dc29c82eb1615\n+ a730babcecb8d699775029a496cc7947c2d50f0a\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "a730babcecb8d699775029a496cc7947c2d50f0a\t2026-09-27\tPreserve the 231-update dialogue checkpoint and resource stop\n1f302fe4cebf72ba083e206daf2dc29c82eb1615\t2026-09-27\tClarify native lab authority and reconcile completed results\nf807f84e00aacce5e56c643a3e2724e41f562fc7\t2026-09-27\tRecord sequential dialogue objective and memory evidence\n88b4d825a5a4ced0ade603d8ac07f0154e4ba8e1\t2026-09-27\tfix: supply missing end_weight field in radial-startup example and clean campaign warnings\nb49a2810a5238a16880f9cb726d96d1ba1f18624\t2026-09-27\tstyle: format dialogue_learning.rs load signature\n815a874ea57dffe634557264cd1880876d0ec1f6\t2026-09-27\tSerialize dialogue alpha shards and release intermediate graphs\n666f49adeac99030bc19b24c6aea47da337118db\t2026-09-27\tPreserve interrupted code-choice fit and select memory correction\nfd22d207de001de3da0ab994ae0256bd903aabfa\t2026-09-27\tRecord validated code-choice path and prospective response fit\n34964512fd092a639000f8c4061bc0b8f41b862a\t2026-09-27\tMake learned-code shape rejection fixture change the actual shape\nc626568f072d6d2bc0d78d52ec35ca7d69cd34d9\t2026-09-27\tAdd response-aware legal code learning for the selected dialogue child\ne5efafb8fadac7ab55258eff3dffd503833e48f0\t2026-09-27\tRecord selected dialogue child native retention result\n03bfaaf5f3bbd71827433966651bdc117b469114\t2026-09-27\tBind and export the selected continuous dialogue child\n0607b43be68c67de001c8793012698ca7be39e6c\t2026-09-27\tRecord packed runtime behavior and storage comparison\n1c3a5ed4e3292732bb46b9c6369328377cb32c2d\t2026-09-27\tRecord paired dialogue result and actual native integer observation\nb9bea957df86c27f8a94bca966c15e27eb1b854d\t2026-09-27\tGroup iterator expression in observation metadata JSON\nc97a1e3b324868271744cf37f7c2a41a1ba24ead\t2026-09-27\tObserve retained dialogue across continuous, packed and native integer forms\n84c2c40fb76d1f957e434e5975ea00245314a004\t2026-09-27\tRecord native dialogue576 preparation and fixed recovery state\ne75acd94281a4bfff99ece8e5228ea76a1647265\t2026-09-27\tSeal failed native dialogue576 packaging attempts\n558aedf7c572550c22fff5cd0df1c2241ff59977\t2026-09-27\tAdd explicit native dialogue576 integer development profile\n013f2c1c6142c33a02d8fbac54b4734fcc533d49\t2026-09-27\tRecord packed runtime preparation and pending loaded comparison\nd0844ba0c1e7a22803c18767796336bfb8ab376e\t2026-09-27\tRead shared packed coefficients directly in integer kernels\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "65\t23\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "0254163bc9d37287d64670a6519824a65e1ab1b9",
+    "sample_ref": "refs/remotes/origin/codex/dialogue-conversation-streaming-20260927",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 77d753270e1975d365cde68092b5e8931a533051\n+ 0254163bc9d37287d64670a6519824a65e1ab1b9\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "0254163bc9d37287d64670a6519824a65e1ab1b9\t2026-09-27\tfix(chat): fail-closed stream drop safety and test coverage (References #962, #820)\n77d753270e1975d365cde68092b5e8931a533051\t2026-09-27\tfeat(chat): adopt dialogue continuity in uor-chat with streaming generation (References #962, #820)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "67\t2\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "62606586734e73b906a2d3794c3e3d4a72448830",
+    "sample_ref": "refs/remotes/origin/codex/frontier-glm",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ b97a5c6b00a35f31281a69593fa950341f350836\n+ ea8af9827ddb8d700433480441e99dce3fcad531\n+ c6d3f1ae7726726f3b0643d44fb7c3ce897de2dc\n+ 088f75b29b8c06e5d189d08f4be55911782df6b5\n+ 9722200c0a8aa5b02e5b86dc80afbb3b429cb729\n+ ea8a679ec799611ddeae816662757044651de673\n+ b934d5dde134673f6c316b43efc89f3360da4e2a\n+ 62606586734e73b906a2d3794c3e3d4a72448830\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "62606586734e73b906a2d3794c3e3d4a72448830\t2026-09-27\tfix(integer): bind paging salience to tokenizer metadata, add /persona in uor-chat, and scope multi-step reasoning checks\nb934d5dde134673f6c316b43efc89f3360da4e2a\t2026-09-27\tfix(integer): adopt literal dialogue protocol in uor-chat and fix BPE salience categorization\nea8a679ec799611ddeae816662757044651de673\t2026-09-26\tfix(integer): address forensic review blockers on conversational Lorentz, MinP, telemetry, and scoped benchmarks\n9722200c0a8aa5b02e5b86dc80afbb3b429cb729\t2026-09-26\tstyle: cargo fmt across integer crate and frontier tests\n088f75b29b8c06e5d189d08f4be55911782df6b5\t2026-09-26\tfeat(frontier-glm): Add calibrated MinP selection and multi-step reasoning benchmarks\nc6d3f1ae7726726f3b0643d44fb7c3ce897de2dc\t2026-09-26\ttest(frontier-glm): Add cross-lab Lorentz and Dot model verification with causal NLL delta\nea8af9827ddb8d700433480441e99dce3fcad531\t2026-09-26\tfix(session): Restrict stream control suppression to BOS and UNK tokens\nb97a5c6b00a35f31281a69593fa950341f350836\t2026-09-26\tfeat(frontier-glm): Unify native Lorentz hyperbolic read and zero-matmul 4K serving\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "87\t10\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "882ab5c59399e2766da6f7702018fe2ad3316826",
+    "sample_ref": "refs/heads/codex/geometric-architecture-reconciliation",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ c19e03ea49a18e727137e7be660974af093639c1\n+ 2aa95d8d386683ae495b8adb2fe3764ae57d97d2\n- 882ab5c59399e2766da6f7702018fe2ad3316826\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "2aa95d8d386683ae495b8adb2fe3764ae57d97d2\t2026-09-06\tQualify dormant algebra and distinguish measured compression helpers\nc19e03ea49a18e727137e7be660974af093639c1\t2026-09-06\tReconcile geometric language architecture and source mechanisms\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "324\t3\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "1c787ccfcb1119cb644c4be5032dd455d4174232",
+    "sample_ref": "refs/remotes/origin/codex/geometric-chatbot",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "- 474e98665e77c20283d9b63f5ebb5f20ace29b18\n+ 1c787ccfcb1119cb644c4be5032dd455d4174232\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "1c787ccfcb1119cb644c4be5032dd455d4174232\t2026-09-26\tfeat(geometric-chatbot): Production-grade zero-matmul conversational chatbot on Apple Silicon\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "97\t2\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "b22ecb197f9b3cd54a64ff2be884cc8105cbd7f3",
+    "sample_ref": "refs/heads/codex/geometric-computation-diagnosis",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ b22ecb197f9b3cd54a64ff2be884cc8105cbd7f3\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "b22ecb197f9b3cd54a64ff2be884cc8105cbd7f3\t2026-09-21\tExecute the corrected lifecycle; measure the served feature and the relation obstruction (References #973)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "151\t1\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "f99f42fb472d065acc9a6f16b815755b02c60180",
+    "sample_ref": "refs/remotes/origin/codex/geometric-lm-goal",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ f99f42fb472d065acc9a6f16b815755b02c60180\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "f99f42fb472d065acc9a6f16b815755b02c60180\t2026-09-28\tchore(research): preserve dirty research and adversarial evaluation files\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "97\t1\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "17d5072c651a0574ff441309b05611fd399cbbec",
+    "sample_ref": "refs/heads/codex/grounded-dependent-session",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 17d5072c651a0574ff441309b05611fd399cbbec\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "17d5072c651a0574ff441309b05611fd399cbbec\t2026-09-21\tFactor the observed transition graph constructively and run an owned dependent session (References #973)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "148\t1\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "f6f98e76550c1f2705d98d8e4f413e8b5d0fdaf2",
+    "sample_ref": "refs/heads/codex/h4-integer-classifier-pre-main-20260927",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ d0844ba0c1e7a22803c18767796336bfb8ab376e\n+ 013f2c1c6142c33a02d8fbac54b4734fcc533d49\n+ 558aedf7c572550c22fff5cd0df1c2241ff59977\n+ e75acd94281a4bfff99ece8e5228ea76a1647265\n+ 84c2c40fb76d1f957e434e5975ea00245314a004\n+ c97a1e3b324868271744cf37f7c2a41a1ba24ead\n+ b9bea957df86c27f8a94bca966c15e27eb1b854d\n+ 1c3a5ed4e3292732bb46b9c6369328377cb32c2d\n+ 0607b43be68c67de001c8793012698ca7be39e6c\n+ 03bfaaf5f3bbd71827433966651bdc117b469114\n+ e5efafb8fadac7ab55258eff3dffd503833e48f0\n+ c626568f072d6d2bc0d78d52ec35ca7d69cd34d9\n+ 34964512fd092a639000f8c4061bc0b8f41b862a\n+ fd22d207de001de3da0ab994ae0256bd903aabfa\n+ 666f49adeac99030bc19b24c6aea47da337118db\n+ 815a874ea57dffe634557264cd1880876d0ec1f6\n+ b49a2810a5238a16880f9cb726d96d1ba1f18624\n+ 88b4d825a5a4ced0ade603d8ac07f0154e4ba8e1\n+ f807f84e00aacce5e56c643a3e2724e41f562fc7\n+ f6f98e76550c1f2705d98d8e4f413e8b5d0fdaf2\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "f6f98e76550c1f2705d98d8e4f413e8b5d0fdaf2\t2026-09-27\tPrepare exact signed H4 integer classifier\nf807f84e00aacce5e56c643a3e2724e41f562fc7\t2026-09-27\tRecord sequential dialogue objective and memory evidence\n88b4d825a5a4ced0ade603d8ac07f0154e4ba8e1\t2026-09-27\tfix: supply missing end_weight field in radial-startup example and clean campaign warnings\nb49a2810a5238a16880f9cb726d96d1ba1f18624\t2026-09-27\tstyle: format dialogue_learning.rs load signature\n815a874ea57dffe634557264cd1880876d0ec1f6\t2026-09-27\tSerialize dialogue alpha shards and release intermediate graphs\n666f49adeac99030bc19b24c6aea47da337118db\t2026-09-27\tPreserve interrupted code-choice fit and select memory correction\nfd22d207de001de3da0ab994ae0256bd903aabfa\t2026-09-27\tRecord validated code-choice path and prospective response fit\n34964512fd092a639000f8c4061bc0b8f41b862a\t2026-09-27\tMake learned-code shape rejection fixture change the actual shape\nc626568f072d6d2bc0d78d52ec35ca7d69cd34d9\t2026-09-27\tAdd response-aware legal code learning for the selected dialogue child\ne5efafb8fadac7ab55258eff3dffd503833e48f0\t2026-09-27\tRecord selected dialogue child native retention result\n03bfaaf5f3bbd71827433966651bdc117b469114\t2026-09-27\tBind and export the selected continuous dialogue child\n0607b43be68c67de001c8793012698ca7be39e6c\t2026-09-27\tRecord packed runtime behavior and storage comparison\n1c3a5ed4e3292732bb46b9c6369328377cb32c2d\t2026-09-27\tRecord paired dialogue result and actual native integer observation\nb9bea957df86c27f8a94bca966c15e27eb1b854d\t2026-09-27\tGroup iterator expression in observation metadata JSON\nc97a1e3b324868271744cf37f7c2a41a1ba24ead\t2026-09-27\tObserve retained dialogue across continuous, packed and native integer forms\n84c2c40fb76d1f957e434e5975ea00245314a004\t2026-09-27\tRecord native dialogue576 preparation and fixed recovery state\ne75acd94281a4bfff99ece8e5228ea76a1647265\t2026-09-27\tSeal failed native dialogue576 packaging attempts\n558aedf7c572550c22fff5cd0df1c2241ff59977\t2026-09-27\tAdd explicit native dialogue576 integer development profile\n013f2c1c6142c33a02d8fbac54b4734fcc533d49\t2026-09-27\tRecord packed runtime preparation and pending loaded comparison\nd0844ba0c1e7a22803c18767796336bfb8ab376e\t2026-09-27\tRead shared packed coefficients directly in integer kernels\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "73\t20\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "af66569a66ebdced1f027d57350bd424ed8e977f",
+    "sample_ref": "refs/heads/codex/i704-expanded-snapshot",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ af66569a66ebdced1f027d57350bd424ed8e977f\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "af66569a66ebdced1f027d57350bd424ed8e977f\t2026-08-15\tWIP snapshot expanded #704 integration\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "604\t1\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "a6c4ace5413b0e79df8f2ad82154e56828ecb035",
+    "sample_ref": "refs/remotes/origin/codex/kvar-hard-select-geometry-20260924",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 8d64e82ee61db1a845f717d2ec5df24906d23cd1\n+ a6c4ace5413b0e79df8f2ad82154e56828ecb035\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "a6c4ace5413b0e79df8f2ad82154e56828ecb035\t2026-09-24\tRecord KVAR successor complete resource charge (References #820)\n8d64e82ee61db1a845f717d2ec5df24906d23cd1\t2026-09-24\tKVAR: retain hard-served memory after hard-objective diagnostic (References #820)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "109\t2\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "76484376ed57e13d9a399d1c8a6ea41681ca31e5",
+    "sample_ref": "refs/remotes/origin/codex/kvar-relative-energy-20260924",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 8d64e82ee61db1a845f717d2ec5df24906d23cd1\n+ a6c4ace5413b0e79df8f2ad82154e56828ecb035\n+ f424f6037e142c5bd2a6095d7420fdddc982cfac\n+ 76484376ed57e13d9a399d1c8a6ea41681ca31e5\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "76484376ed57e13d9a399d1c8a6ea41681ca31e5\t2026-09-24\tRecord complete KVAR relative-energy resource charge (References #820)\nf424f6037e142c5bd2a6095d7420fdddc982cfac\t2026-09-24\tTest matched C8 and Q8 KVAR read-energy residuals (References #820)\na6c4ace5413b0e79df8f2ad82154e56828ecb035\t2026-09-24\tRecord KVAR successor complete resource charge (References #820)\n8d64e82ee61db1a845f717d2ec5df24906d23cd1\t2026-09-24\tKVAR: retain hard-served memory after hard-objective diagnostic (References #820)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "109\t4\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "4d0defa0b619ef775df294b636b776e582d769c3",
+    "sample_ref": "refs/heads/codex/lab-runner",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 4d0defa0b619ef775df294b636b776e582d769c3\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "4d0defa0b619ef775df294b636b776e582d769c3\t2026-09-29\tlab-runner: detached job queue, admission control, locked ledger (steward)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "1\t1\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "84ba72cea9f1283c56e36471b59f348a6f8c06ba",
+    "sample_ref": "refs/heads/codex/learned-relational-control",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 84ba72cea9f1283c56e36471b59f348a6f8c06ba\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "84ba72cea9f1283c56e36471b59f348a6f8c06ba\t2026-09-21\tLearn relational access and content-dependent session control over supplied worlds (References #973)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "147\t1\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "e64c571caa3b42e6017300c5a34e7ff625812e57",
+    "sample_ref": "refs/remotes/origin/codex/native-576-blocked-kernel-20260927",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ fdab916344f9a7529f11f1670c4a3870ec8064e2\n+ d94803a3bbb76aeef0f340b834fe0b798f0be1e7\n+ df23a82409b92c601f3a7ba0d8f2caed9de71e1e\n+ b39f03fb08c42524d958563b2483008debef6a4b\n+ e64c571caa3b42e6017300c5a34e7ff625812e57\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "e64c571caa3b42e6017300c5a34e7ff625812e57\t2026-09-27\tfix(integer): add inline(never) to affine_direct_into and affine_wide_into for audit symbol visibility (References #973, #820)\nb39f03fb08c42524d958563b2483008debef6a4b\t2026-09-27\tfeat(integer): zero-allocation wide affine and register-resident blocked product reuse\ndf23a82409b92c601f3a7ba0d8f2caed9de71e1e\t2026-09-27\tDocument 4-row blocked product table reuse and M1 serving benchmarks\nd94803a3bbb76aeef0f340b834fe0b798f0be1e7\t2026-09-27\tInclude wide matrix caller in integer opcode audit\nfdab916344f9a7529f11f1670c4a3870ec8064e2\t2026-09-27\tReuse product tables across four wide integer rows\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "66\t5\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "9f075e366ba7d3ffff15db7bb5224b6e03fb2d3e",
+    "sample_ref": "refs/heads/codex/native-576-blocked-kernel-pre-main-20260927",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ d0844ba0c1e7a22803c18767796336bfb8ab376e\n+ 013f2c1c6142c33a02d8fbac54b4734fcc533d49\n+ 558aedf7c572550c22fff5cd0df1c2241ff59977\n+ e75acd94281a4bfff99ece8e5228ea76a1647265\n+ 84c2c40fb76d1f957e434e5975ea00245314a004\n+ c97a1e3b324868271744cf37f7c2a41a1ba24ead\n+ b9bea957df86c27f8a94bca966c15e27eb1b854d\n+ 1c3a5ed4e3292732bb46b9c6369328377cb32c2d\n+ 0607b43be68c67de001c8793012698ca7be39e6c\n+ 03bfaaf5f3bbd71827433966651bdc117b469114\n+ e5efafb8fadac7ab55258eff3dffd503833e48f0\n+ c626568f072d6d2bc0d78d52ec35ca7d69cd34d9\n+ 34964512fd092a639000f8c4061bc0b8f41b862a\n+ 8e3f3762e89a5b17b32c49cceda67bb12985a6f8\n+ 9f075e366ba7d3ffff15db7bb5224b6e03fb2d3e\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "9f075e366ba7d3ffff15db7bb5224b6e03fb2d3e\t2026-09-27\tInclude wide matrix caller in integer opcode audit\n8e3f3762e89a5b17b32c49cceda67bb12985a6f8\t2026-09-27\tReuse product tables across four wide integer rows\n34964512fd092a639000f8c4061bc0b8f41b862a\t2026-09-27\tMake learned-code shape rejection fixture change the actual shape\nc626568f072d6d2bc0d78d52ec35ca7d69cd34d9\t2026-09-27\tAdd response-aware legal code learning for the selected dialogue child\ne5efafb8fadac7ab55258eff3dffd503833e48f0\t2026-09-27\tRecord selected dialogue child native retention result\n03bfaaf5f3bbd71827433966651bdc117b469114\t2026-09-27\tBind and export the selected continuous dialogue child\n0607b43be68c67de001c8793012698ca7be39e6c\t2026-09-27\tRecord packed runtime behavior and storage comparison\n1c3a5ed4e3292732bb46b9c6369328377cb32c2d\t2026-09-27\tRecord paired dialogue result and actual native integer observation\nb9bea957df86c27f8a94bca966c15e27eb1b854d\t2026-09-27\tGroup iterator expression in observation metadata JSON\nc97a1e3b324868271744cf37f7c2a41a1ba24ead\t2026-09-27\tObserve retained dialogue across continuous, packed and native integer forms\n84c2c40fb76d1f957e434e5975ea00245314a004\t2026-09-27\tRecord native dialogue576 preparation and fixed recovery state\ne75acd94281a4bfff99ece8e5228ea76a1647265\t2026-09-27\tSeal failed native dialogue576 packaging attempts\n558aedf7c572550c22fff5cd0df1c2241ff59977\t2026-09-27\tAdd explicit native dialogue576 integer development profile\n013f2c1c6142c33a02d8fbac54b4734fcc533d49\t2026-09-27\tRecord packed runtime preparation and pending loaded comparison\nd0844ba0c1e7a22803c18767796336bfb8ab376e\t2026-09-27\tRead shared packed coefficients directly in integer kernels\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "73\t15\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "84c2c40fb76d1f957e434e5975ea00245314a004",
+    "sample_ref": "refs/heads/codex/native-dialogue576-20260927",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ d0844ba0c1e7a22803c18767796336bfb8ab376e\n+ 013f2c1c6142c33a02d8fbac54b4734fcc533d49\n+ 558aedf7c572550c22fff5cd0df1c2241ff59977\n+ e75acd94281a4bfff99ece8e5228ea76a1647265\n+ 84c2c40fb76d1f957e434e5975ea00245314a004\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "84c2c40fb76d1f957e434e5975ea00245314a004\t2026-09-27\tRecord native dialogue576 preparation and fixed recovery state\ne75acd94281a4bfff99ece8e5228ea76a1647265\t2026-09-27\tSeal failed native dialogue576 packaging attempts\n558aedf7c572550c22fff5cd0df1c2241ff59977\t2026-09-27\tAdd explicit native dialogue576 integer development profile\n013f2c1c6142c33a02d8fbac54b4734fcc533d49\t2026-09-27\tRecord packed runtime preparation and pending loaded comparison\nd0844ba0c1e7a22803c18767796336bfb8ab376e\t2026-09-27\tRead shared packed coefficients directly in integer kernels\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "73\t5\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "0607b43be68c67de001c8793012698ca7be39e6c",
+    "sample_ref": "refs/heads/codex/native-dialogue576-observation-20260927",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ d0844ba0c1e7a22803c18767796336bfb8ab376e\n+ 013f2c1c6142c33a02d8fbac54b4734fcc533d49\n+ 558aedf7c572550c22fff5cd0df1c2241ff59977\n+ e75acd94281a4bfff99ece8e5228ea76a1647265\n+ 84c2c40fb76d1f957e434e5975ea00245314a004\n+ c97a1e3b324868271744cf37f7c2a41a1ba24ead\n+ b9bea957df86c27f8a94bca966c15e27eb1b854d\n+ 1c3a5ed4e3292732bb46b9c6369328377cb32c2d\n+ 0607b43be68c67de001c8793012698ca7be39e6c\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "0607b43be68c67de001c8793012698ca7be39e6c\t2026-09-27\tRecord packed runtime behavior and storage comparison\n1c3a5ed4e3292732bb46b9c6369328377cb32c2d\t2026-09-27\tRecord paired dialogue result and actual native integer observation\nb9bea957df86c27f8a94bca966c15e27eb1b854d\t2026-09-27\tGroup iterator expression in observation metadata JSON\nc97a1e3b324868271744cf37f7c2a41a1ba24ead\t2026-09-27\tObserve retained dialogue across continuous, packed and native integer forms\n84c2c40fb76d1f957e434e5975ea00245314a004\t2026-09-27\tRecord native dialogue576 preparation and fixed recovery state\ne75acd94281a4bfff99ece8e5228ea76a1647265\t2026-09-27\tSeal failed native dialogue576 packaging attempts\n558aedf7c572550c22fff5cd0df1c2241ff59977\t2026-09-27\tAdd explicit native dialogue576 integer development profile\n013f2c1c6142c33a02d8fbac54b4734fcc533d49\t2026-09-27\tRecord packed runtime preparation and pending loaded comparison\nd0844ba0c1e7a22803c18767796336bfb8ab376e\t2026-09-27\tRead shared packed coefficients directly in integer kernels\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "73\t9\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "3101c06061726d9438a22649a25b98558525e8d0",
+    "sample_ref": "refs/remotes/origin/codex/native-sparse-read-20260924",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 8d64e82ee61db1a845f717d2ec5df24906d23cd1\n+ a6c4ace5413b0e79df8f2ad82154e56828ecb035\n+ f424f6037e142c5bd2a6095d7420fdddc982cfac\n+ 76484376ed57e13d9a399d1c8a6ea41681ca31e5\n+ d869bfd11a7b7292f07fe1ad2eadbd7a231aba31\n+ 09d5c74e1d5d42dfd61821021014f8beaae91f11\n+ 9fcaed4176f909f4b9db55dfdde54e37f5980469\n+ aa43e82b86a3f3fd4c7a020672c1732112417003\n+ 5b4466b35f23a754f09049baec25fcaee3333570\n+ 3101c06061726d9438a22649a25b98558525e8d0\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "3101c06061726d9438a22649a25b98558525e8d0\t2026-09-24\tCharge complete loaded sparse-read milestone (References #820)\n5b4466b35f23a754f09049baec25fcaee3333570\t2026-09-24\tEvaluate loaded native sparse read gate against ordinary cache (References #820)\naa43e82b86a3f3fd4c7a020672c1732112417003\t2026-09-24\tRecord sparse-recall gate complete resource charge (References #820)\n9fcaed4176f909f4b9db55dfdde54e37f5980469\t2026-09-24\tMeasure sparse episodic recall on source-separated text (References #820)\n09d5c74e1d5d42dfd61821021014f8beaae91f11\t2026-09-24\tRecord addressed lexical bridge complete resource charge (References #820)\nd869bfd11a7b7292f07fe1ad2eadbd7a231aba31\t2026-09-24\tBridge exact addressed memory into loaded lexical generation (References #820)\n76484376ed57e13d9a399d1c8a6ea41681ca31e5\t2026-09-24\tRecord complete KVAR relative-energy resource charge (References #820)\nf424f6037e142c5bd2a6095d7420fdddc982cfac\t2026-09-24\tTest matched C8 and Q8 KVAR read-energy residuals (References #820)\na6c4ace5413b0e79df8f2ad82154e56828ecb035\t2026-09-24\tRecord KVAR successor complete resource charge (References #820)\n8d64e82ee61db1a845f717d2ec5df24906d23cd1\t2026-09-24\tKVAR: retain hard-served memory after hard-objective diagnostic (References #820)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "109\t10\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "8430664c8f0814c3d76511a1c2b8aa475cdc9855",
+    "sample_ref": "refs/heads/codex/observed-computation-lifecycle",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 56329be9f5c136e006a1247c74c76eae3fcc1721\n+ 390d9e4d1a4c154d4af48084b89e8deee28eff5d\n+ 6b45bceb52fcddebee544a7deb6e1f12996f8b1e\n+ de5991fd10fa9c50f7d3e95a3d94299fc3af45fe\n+ 2aee5a56e8d6ac668e823140dee862d2b7938bc7\n+ 8430664c8f0814c3d76511a1c2b8aa475cdc9855\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "8430664c8f0814c3d76511a1c2b8aa475cdc9855\t2026-09-22\tRecord the saved-state restore coverage and refresh the evidence receipt\n2aee5a56e8d6ac668e823140dee862d2b7938bc7\t2026-09-22\tRecord the observed computation lifecycle result, evidence and resources\nde5991fd10fa9c50f7d3e95a3d94299fc3af45fe\t2026-09-22\tDrop two needless closure bindings in the mixed-session check\n6b45bceb52fcddebee544a7deb6e1f12996f8b1e\t2026-09-22\tApply rustfmt to the changed harness\n390d9e4d1a4c154d4af48084b89e8deee28eff5d\t2026-09-22\tAdd redirect-to-operand routing, a fresh withheld population and a loaded mixed session\n56329be9f5c136e006a1247c74c76eae3fcc1721\t2026-09-22\tFit one combined observation/intent bundle over both form families\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "141\t6\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "f5919d8e8430f3c676f4c5b0509f729ca68d9e75",
+    "sample_ref": "refs/remotes/origin/codex/observed-text-session",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 84ba72cea9f1283c56e36471b59f348a6f8c06ba\n+ 6fc34c1feb6caa106f3a83d432dacf2603f04b35\n+ b9eca5d2759d86664e519a9fb4c875b8127cb914\n+ f5919d8e8430f3c676f4c5b0509f729ca68d9e75\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "f5919d8e8430f3c676f4c5b0509f729ca68d9e75\t2026-09-21\tCorrect observed-text runtime and direct contextual language learning\nb9eca5d2759d86664e519a9fb4c875b8127cb914\t2026-09-21\tComplete observed-text memory answers through one reusable session boundary (References #973)\n6fc34c1feb6caa106f3a83d432dacf2603f04b35\t2026-09-21\tRepair learned relational control and preserve reusable session evidence\n84ba72cea9f1283c56e36471b59f348a6f8c06ba\t2026-09-21\tLearn relational access and content-dependent session control over supplied worlds (References #973)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "147\t4\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "b9eca5d2759d86664e519a9fb4c875b8127cb914",
+    "sample_ref": "refs/heads/codex/observed-text-session",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 84ba72cea9f1283c56e36471b59f348a6f8c06ba\n+ 6fc34c1feb6caa106f3a83d432dacf2603f04b35\n+ b9eca5d2759d86664e519a9fb4c875b8127cb914\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "b9eca5d2759d86664e519a9fb4c875b8127cb914\t2026-09-21\tComplete observed-text memory answers through one reusable session boundary (References #973)\n6fc34c1feb6caa106f3a83d432dacf2603f04b35\t2026-09-21\tRepair learned relational control and preserve reusable session evidence\n84ba72cea9f1283c56e36471b59f348a6f8c06ba\t2026-09-21\tLearn relational access and content-dependent session control over supplied worlds (References #973)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "147\t3\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "9c8358a340c550ce7c176fc0da8ff60b8ffc31f6",
+    "sample_ref": "refs/heads/codex/observer-transport-20260923",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ be40da9be6d047957212792084a7651d77c2e56e\n+ 0c1b715b9cdd75ce031d8ba8f21019bec2b1ac8d\n+ 9c8358a340c550ce7c176fc0da8ff60b8ffc31f6\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "9c8358a340c550ce7c176fc0da8ff60b8ffc31f6\t2026-09-23\tRecord transported-state recovery and calibrated residual evidence\n0c1b715b9cdd75ce031d8ba8f21019bec2b1ac8d\t2026-09-23\tDisentangle count calibration from recurrent residual strength in diagnostic\nbe40da9be6d047957212792084a7651d77c2e56e\t2026-09-23\tAdd frozen-state transport observer and matched count-blend diagnostics\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "121\t3\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "24c874ac4e600478f0a78b632c9c2c779eaa765c",
+    "sample_ref": "refs/heads/codex/policy-feasibility-settle",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 24c874ac4e600478f0a78b632c9c2c779eaa765c\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "24c874ac4e600478f0a78b632c9c2c779eaa765c\t2026-09-21\tJoint finite-policy feasibility: proven obstruction, and expected-manifest loader (References #973)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "156\t1\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "f397af29097f7c514e52b2c76b52a01f60464cf2",
+    "sample_ref": "refs/remotes/origin/codex/principal-attention-plan-20260924",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 8d64e82ee61db1a845f717d2ec5df24906d23cd1\n+ a6c4ace5413b0e79df8f2ad82154e56828ecb035\n+ f424f6037e142c5bd2a6095d7420fdddc982cfac\n+ 76484376ed57e13d9a399d1c8a6ea41681ca31e5\n+ d869bfd11a7b7292f07fe1ad2eadbd7a231aba31\n+ 09d5c74e1d5d42dfd61821021014f8beaae91f11\n+ 9fcaed4176f909f4b9db55dfdde54e37f5980469\n+ aa43e82b86a3f3fd4c7a020672c1732112417003\n+ 5b4466b35f23a754f09049baec25fcaee3333570\n+ 3101c06061726d9438a22649a25b98558525e8d0\n+ fc479d4f4453faa4e0a625bb7ce7fc0800a07d95\n+ f397af29097f7c514e52b2c76b52a01f60464cf2\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "f397af29097f7c514e52b2c76b52a01f60464cf2\t2026-09-24\tdocs: record principal review delivery and resource closeout\nfc479d4f4453faa4e0a625bb7ce7fc0800a07d95\t2026-09-24\tdocs: synthesize whole-project geometric attention programme\n3101c06061726d9438a22649a25b98558525e8d0\t2026-09-24\tCharge complete loaded sparse-read milestone (References #820)\n5b4466b35f23a754f09049baec25fcaee3333570\t2026-09-24\tEvaluate loaded native sparse read gate against ordinary cache (References #820)\naa43e82b86a3f3fd4c7a020672c1732112417003\t2026-09-24\tRecord sparse-recall gate complete resource charge (References #820)\n9fcaed4176f909f4b9db55dfdde54e37f5980469\t2026-09-24\tMeasure sparse episodic recall on source-separated text (References #820)\n09d5c74e1d5d42dfd61821021014f8beaae91f11\t2026-09-24\tRecord addressed lexical bridge complete resource charge (References #820)\nd869bfd11a7b7292f07fe1ad2eadbd7a231aba31\t2026-09-24\tBridge exact addressed memory into loaded lexical generation (References #820)\n76484376ed57e13d9a399d1c8a6ea41681ca31e5\t2026-09-24\tRecord complete KVAR relative-energy resource charge (References #820)\nf424f6037e142c5bd2a6095d7420fdddc982cfac\t2026-09-24\tTest matched C8 and Q8 KVAR read-energy residuals (References #820)\na6c4ace5413b0e79df8f2ad82154e56828ecb035\t2026-09-24\tRecord KVAR successor complete resource charge (References #820)\n8d64e82ee61db1a845f717d2ec5df24906d23cd1\t2026-09-24\tKVAR: retain hard-served memory after hard-objective diagnostic (References #820)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "109\t12\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "a36944a0889cb31440aa119ee4b34724a060285f",
+    "sample_ref": "refs/remotes/origin/codex/radial-parameter-transfer-20260927",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ a36944a0889cb31440aa119ee4b34724a060285f\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "a36944a0889cb31440aa119ee4b34724a060285f\t2026-09-26\tPreserve learned shared parameters in explicit radial adaptation lineage\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "86\t1\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "bca3d224f1f4ece17d2c1ec9c69083d7e13cb3df",
+    "sample_ref": "refs/heads/codex/read-conditioned-state-step",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ bca3d224f1f4ece17d2c1ec9c69083d7e13cb3df\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "bca3d224f1f4ece17d2c1ec9c69083d7e13cb3df\t2026-09-21\tRead-conditioned geometric emission: rollout closed, update is a readout negative (References #973)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "154\t1\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "51470ea99fb32ba7060e2657c1b661e95fd7844d",
+    "sample_ref": "refs/heads/codex/reader-confidence-step",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 025af1ab6b10d99e5643f3cc41750f2701921895\n+ 51470ea99fb32ba7060e2657c1b661e95fd7844d\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "51470ea99fb32ba7060e2657c1b661e95fd7844d\t2026-09-21\tRecord read-confidence delivery free-space measurement and safe incremental reclaim (References #973)\n025af1ab6b10d99e5643f3cc41750f2701921895\t2026-09-21\tRestore learned read confidence at the influence interface (References #973)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "155\t2\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "aa43e82b86a3f3fd4c7a020672c1732112417003",
+    "sample_ref": "refs/remotes/origin/codex/realtext-sparse-recall-20260924",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 8d64e82ee61db1a845f717d2ec5df24906d23cd1\n+ a6c4ace5413b0e79df8f2ad82154e56828ecb035\n+ f424f6037e142c5bd2a6095d7420fdddc982cfac\n+ 76484376ed57e13d9a399d1c8a6ea41681ca31e5\n+ d869bfd11a7b7292f07fe1ad2eadbd7a231aba31\n+ 09d5c74e1d5d42dfd61821021014f8beaae91f11\n+ 9fcaed4176f909f4b9db55dfdde54e37f5980469\n+ aa43e82b86a3f3fd4c7a020672c1732112417003\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "aa43e82b86a3f3fd4c7a020672c1732112417003\t2026-09-24\tRecord sparse-recall gate complete resource charge (References #820)\n9fcaed4176f909f4b9db55dfdde54e37f5980469\t2026-09-24\tMeasure sparse episodic recall on source-separated text (References #820)\n09d5c74e1d5d42dfd61821021014f8beaae91f11\t2026-09-24\tRecord addressed lexical bridge complete resource charge (References #820)\nd869bfd11a7b7292f07fe1ad2eadbd7a231aba31\t2026-09-24\tBridge exact addressed memory into loaded lexical generation (References #820)\n76484376ed57e13d9a399d1c8a6ea41681ca31e5\t2026-09-24\tRecord complete KVAR relative-energy resource charge (References #820)\nf424f6037e142c5bd2a6095d7420fdddc982cfac\t2026-09-24\tTest matched C8 and Q8 KVAR read-energy residuals (References #820)\na6c4ace5413b0e79df8f2ad82154e56828ecb035\t2026-09-24\tRecord KVAR successor complete resource charge (References #820)\n8d64e82ee61db1a845f717d2ec5df24906d23cd1\t2026-09-24\tKVAR: retain hard-served memory after hard-objective diagnostic (References #820)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "109\t8\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "f5a452087048e699134030cda4ed470a39231c01",
+    "sample_ref": "refs/heads/codex/scoped-correction-memory",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ c4bd440a2f46f0001695694cf3c1a5989a92281f\n+ f5a452087048e699134030cda4ed470a39231c01\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "f5a452087048e699134030cda4ed470a39231c01\t2026-09-22\tRecord the scoped correction-memory result, evidence and resources\nc4bd440a2f46f0001695694cf3c1a5989a92281f\t2026-09-22\tLearn scoped correction-aware conversation memory over exact versioned storage\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "143\t2\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "832c1c33e25a9534d8fb4c73fbba5d2247ecd2c1",
+    "sample_ref": "refs/heads/codex/shared-transition",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 832c1c33e25a9534d8fb4c73fbba5d2247ecd2c1\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "832c1c33e25a9534d8fb4c73fbba5d2247ecd2c1\t2026-09-21\tLearn shared primitive transitions and retain computed result through Emit and Stop (References #973)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "149\t1\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "ec06eb10377ea936c62708aa3d90c9b5aaf5f136",
+    "sample_ref": "refs/remotes/origin/codex/structural-memory-roadmap",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "- ff59665cc146d031cf1a5ff179f443149368dee0\n+ ec06eb10377ea936c62708aa3d90c9b5aaf5f136\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "ec06eb10377ea936c62708aa3d90c9b5aaf5f136\t2026-09-20\tdocs: connect normalized E8 roots to conditional S7 codebook\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "174\t2\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "5d0a770c642855c54afab8fe7319f28ee4755eba",
+    "sample_ref": "refs/heads/codex/structured-argument-binding",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 9cb02f6e77eeae6d026e830f7128625c135f7e26\n+ 1df229178c6b56ae6dbf95273c9e4eae3282a66e\n+ 3537280ca244c82e3bff1c593e648e81488383b8\n+ 5a6df770ce1490620fa5f391859590bae64781ec\n+ 0c108dca68497ca868c5fa26f72da19017858a61\n+ 5d0a770c642855c54afab8fe7319f28ee4755eba\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "5d0a770c642855c54afab8fe7319f28ee4755eba\t2026-09-22\tPreserve the delivered executable and record its verified rebuild\n0c108dca68497ca868c5fa26f72da19017858a61\t2026-09-22\tBind the delivered receipt to the exact final sources\n5a6df770ce1490620fa5f391859590bae64781ec\t2026-09-22\tRecord the ordinary-form argument-binding result, evidence and resources\n3537280ca244c82e3bff1c593e648e81488383b8\t2026-09-22\tLearn ordinary-form structured argument binding in one causal session\n1df229178c6b56ae6dbf95273c9e4eae3282a66e\t2026-09-21\tRepair structured binding semantics, identity and causal controls\n9cb02f6e77eeae6d026e830f7128625c135f7e26\t2026-09-21\tWIP: bounded any-order span assignment and lexical surface identity (partial, References #973)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "144\t7\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "1df229178c6b56ae6dbf95273c9e4eae3282a66e",
+    "sample_ref": "refs/heads/codex/structured-binding-principal-review",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 9cb02f6e77eeae6d026e830f7128625c135f7e26\n+ 1df229178c6b56ae6dbf95273c9e4eae3282a66e\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "1df229178c6b56ae6dbf95273c9e4eae3282a66e\t2026-09-21\tRepair structured binding semantics, identity and causal controls\n9cb02f6e77eeae6d026e830f7128625c135f7e26\t2026-09-21\tWIP: bounded any-order span assignment and lexical surface identity (partial, References #973)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "145\t2\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "3aa2f4784af63fa0c4dad4856a1f488c5b5c5988",
+    "sample_ref": "refs/heads/codex/transferable-lexical-v3",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 6d67d46b0d44315960f58f6e595f62ce3361c2d3\n+ 3aa2f4784af63fa0c4dad4856a1f488c5b5c5988\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "3aa2f4784af63fa0c4dad4856a1f488c5b5c5988\t2026-09-22\tREADME: record the executed transferable lexical learner and its open ordinary-text remainder (References #820)\n6d67d46b0d44315960f58f6e595f62ce3361c2d3\t2026-09-22\tAdd transferable lexical learner: typed causal observation, emitted-token feedback, post-copy continuation (References #820)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "137\t2\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "711334f50853d48b8a201539c07667014ae81c55",
+    "sample_ref": "refs/heads/codex/truthful-state-lexical-executed",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 711334f50853d48b8a201539c07667014ae81c55\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "711334f50853d48b8a201539c07667014ae81c55\t2026-09-22\tLearn truthful state-conditioned lexical realization in the retained session\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "138\t1\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "45e3871c28d06a476eed36d568a38c15c3e8beb9",
+    "sample_ref": "refs/heads/director/merge-canonical-address-routing",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 5e76f166263cd491c6a96077fc060a05c96600b9\n+ 66622dd9c125c768d573373eb30cc3e0031af5ff\n+ 8a9c3dcf5159d0b32873a04652eedf8fdcf3dc13\n+ a123fa6d77d19ce60e1dec59c398ef3868b27d26\n+ 5c931a94379781547fd2ef8657fbc33ecd5214ac\n+ dfc903d12c87b1f3343416324ba55ddb36ef1fc5\n+ b7162e607272af1b9c950eb531f77d26b2bf06b3\n+ 52947d4b9b80dccc416c2d02ef4871e9d78a0feb\n+ 0b7b4c970e43176f909657247ebde5749a3558d0\n+ 6cc050bccc299494738e014e2c2741a19a99b879\n+ a212c45de43ca47de3aab5f24485f31cd697240a\n+ 5109861c93dee0e39d3aa189c325b3a13c4ededc\n+ 50ac2527f95508de114080d36e76826d7781a3b5\n+ d22e2b50da85e527efcd4f60acc1e82644194b91\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "d22e2b50da85e527efcd4f60acc1e82644194b91\t2026-09-26\tR1d: completed sharded curve and the chunked-scan prototype (parity pass; throughput no-go)\n50ac2527f95508de114080d36e76826d7781a3b5\t2026-09-26\tDesign the chunked parallel-scan dialogue block (R2 vehicle change)\n5109861c93dee0e39d3aa189c325b3a13c4ededc\t2026-09-26\tR1c: throughput diagnosis and bounded curve (count not cleared; vehicle change required)\na212c45de43ca47de3aab5f24485f31cd697240a\t2026-09-26\tR1b: response-masked dialogue objective and 5.43M smoke fit (count still ahead at low exposure)\n6cc050bccc299494738e014e2c2741a19a99b879\t2026-09-26\tAdd chat-v0 dialogue corpus pipeline and share-alike dataset receipts\n0b7b4c970e43176f909657247ebde5749a3558d0\t2026-09-26\tRecord owner decision: share-alike data permitted with obligations tracked\n52947d4b9b80dccc416c2d02ef4871e9d78a0feb\t2026-09-26\tR0: retained arms fail chat-panel v0; gap is objective/data (negative, scoped)\nb7162e607272af1b9c950eb531f77d26b2bf06b3\t2026-09-25\tAdd frozen chat-panel v0 instrument and calibration (uor-r4-chat-eval)\ndfc903d12c87b1f3343416324ba55ddb36ef1fc5\t2026-09-25\tRecord owner decisions: small chat-v0 first; permissive data fetching allowed\n5c931a94379781547fd2ef8657fbc33ecd5214ac\t2026-09-25\tRecord lab direction: capability first, routing deferred (council + G0a)\na123fa6d77d19ce60e1dec59c398ef3868b27d26\t2026-09-25\tExecute G0a: canonical-address cache feasibility (negative)\n8a9c3dcf5159d0b32873a04652eedf8fdcf3dc13\t2026-09-25\tRecord CAR-LM step-1 status and reconcile the measured inspections-per-step figure\n66622dd9c125c768d573373eb30cc3e0031af5ff\t2026-09-25\tAdd exact integer ops counters and a default-off ops report to the standalone session\n5e76f166263cd491c6a96077fc060a05c96600b9\t2026-09-25\tPlan canonical address routing for an energy-first geometric language model\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "30\t16\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "e45bd6c43b3a6d728d5271a41c63905c9d35fea1",
+    "sample_ref": "refs/heads/director/rerun-1468",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ ac8ddb3274793b538de3462a2d3f2db1a38bb31f\n+ d736827aee9afecf748e244264f16e0eb59f65ea\n+ c166931c8709cd924cbe84d668df60c09cfae99e\n+ f8f8aeb49a94fb141f2010a4c97442d55c86c37e\n+ 39b1d28204d6669d012d8bbfaa8e48113060e079\n+ e45bd6c43b3a6d728d5271a41c63905c9d35fea1\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "e45bd6c43b3a6d728d5271a41c63905c9d35fea1\t2026-09-28\tdocs(d4): add online orthogonal transform derivation and shared interface proposal (#973, #820)\n39b1d28204d6669d012d8bbfaa8e48113060e079\t2026-09-28\tfix(d4): decouple nibble indexing, harden validation, account for container framing, and preserve training file ownership\nf8f8aeb49a94fb141f2010a4c97442d55c86c37e\t2026-09-28\tfix(d4): add padding conventions, harden argument validation, and refine aligned payload inspection\nc166931c8709cd924cbe84d668df60c09cfae99e\t2026-09-28\tLab 3 (Anti-Gravity): deliver Grouped4BitCodec component, MapCodec bridge, and hardened evaluation report\nd736827aee9afecf748e244264f16e0eb59f65ea\t2026-09-28\tfix(integer): harden mul_small_code overflow and eliminate vector float in step_raw\nac8ddb3274793b538de3462a2d3f2db1a38bb31f\t2026-09-28\tLab 3 (Anti-Gravity): D4 stack representation evaluation and discrete codec primitives\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "34\t6\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "20e4cf0bbb9bbbfe96511a8170e24c529aedcbd6",
+    "sample_ref": "refs/remotes/origin/lab/anti-gravity/capability-api-wasm-m1-cost",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 77d753270e1975d365cde68092b5e8931a533051\n+ fdab916344f9a7529f11f1670c4a3870ec8064e2\n+ d94803a3bbb76aeef0f340b834fe0b798f0be1e7\n+ df23a82409b92c601f3a7ba0d8f2caed9de71e1e\n+ b39f03fb08c42524d958563b2483008debef6a4b\n+ 0254163bc9d37287d64670a6519824a65e1ab1b9\n+ e64c571caa3b42e6017300c5a34e7ff625812e57\n+ 261a52e2ef30750b77775a98803964d17ae6aa5b\n+ bc69b869fa047961d1bcbfafe58b35053ff25dc6\n+ 8d308144ebbf049666511d58a0ad589e5502cbc2\n+ 698bdda481de57c2257b158bb53f7942568a3be7\n+ a8d59d31c9059518aaff093b92caf24a5e6667ee\n+ f78c5c5409b434ff9c67c1e41d4b23741fd9c3a5\n+ c3abeaf37bb819355839ccb030f653c913085ccf\n+ 572c7f811bf25a09d1c52fb6b5a5ad2410a4c0c8\n+ d891b82aa96d7eca9e70f1f164de17ac5f83e1f5\n+ f1d74d9209e636195d183158aec2695ce2a71e2a\n+ 20e4cf0bbb9bbbfe96511a8170e24c529aedcbd6\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "20e4cf0bbb9bbbfe96511a8170e24c529aedcbd6\t2026-09-28\tWASM docs: the module build needs the rlib and cdylib crate types together\nf1d74d9209e636195d183158aec2695ce2a71e2a\t2026-09-28\tRelease packager and cost records: read the recorded run with no defaults; correct every headline number\nd891b82aa96d7eca9e70f1f164de17ac5f83e1f5\t2026-09-28\tWASM: correct the helper-module claims and the instruction auditor; drop the cdylib crate type\n572c7f811bf25a09d1c52fb6b5a5ad2410a4c0c8\t2026-09-28\tFull-path cost harness: ignore by default, fail without the fixture, write only to a sealed report root\nc3abeaf37bb819355839ccb030f653c913085ccf\t2026-09-28\tCapability API: declare D11 instead of certifying it; fix restore, empty-prompt and turn-end handling\nf78c5c5409b434ff9c67c1e41d4b23741fd9c3a5\t2026-09-28\tfeat(release): reproducible release bundle packager and sealed manifest for width-576 dialogue model (#965)\na8d59d31c9059518aaff093b92caf24a5e6667ee\t2026-09-28\tfeat(integer): full-path M1 cost qualification and zero-matmul WASM capability runtime\n698bdda481de57c2257b158bb53f7942568a3be7\t2026-09-28\tfeat(runtime): eliminate all opcode violations and add transitive call-graph reachability audit\n8d308144ebbf049666511d58a0ad589e5502cbc2\t2026-09-28\tfeat(integer): serve width-576 dialogue models in uor-chat with 100% turn parity\nbc69b869fa047961d1bcbfafe58b35053ff25dc6\t2026-09-27\tfix(integer): ensure mul_fraction_radix16 covers all 64 bits of u64 and add scalar equivalence test (References #973, #1446)\n261a52e2ef30750b77775a98803964d17ae6aa5b\t2026-09-27\tfeat(integer): bit-identical native serving speedups via radix-16 mixture and grouped LUT projection (References #973, #820)\ne64c571caa3b42e6017300c5a34e7ff625812e57\t2026-09-27\tfix(integer): add inline(never) to affine_direct_into and affine_wide_into for audit symbol visibility (References #973, #820)\n0254163bc9d37287d64670a6519824a65e1ab1b9\t2026-09-27\tfix(chat): fail-closed stream drop safety and test coverage (References #962, #820)\nb39f03fb08c42524d958563b2483008debef6a4b\t2026-09-27\tfeat(integer): zero-allocation wide affine and register-resident blocked product reuse\ndf23a82409b92c601f3a7ba0d8f2caed9de71e1e\t2026-09-27\tDocument 4-row blocked product table reuse and M1 serving benchmarks\nd94803a3bbb76aeef0f340b834fe0b798f0be1e7\t2026-09-27\tInclude wide matrix caller in integer opcode audit\nfdab916344f9a7529f11f1670c4a3870ec8064e2\t2026-09-27\tReuse product tables across four wide integer rows\n77d753270e1975d365cde68092b5e8931a533051\t2026-09-27\tfeat(chat): adopt dialogue continuity in uor-chat with streaming generation (References #962, #820)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "37\t22\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "fc87c9521b6a9198d53c1c5d5e27cdb163a852b4",
+    "sample_ref": "refs/remotes/origin/lab/claude/resolve-1458-codec-cleanup",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 7346377c5c3efd298cf9819d431e6411557a47f7\n+ 56ad773f05979202a0d5fc759742311118b31275\n+ 71aba3a00e0c1ec6a192b4b726fb0263f811b75d\n+ d098b421392cd2938832fbd8f5103b1143f6367b\n+ 5c320cabb86ea222ed990b715d797789b4ac9771\n+ 4eb9158d03bdd5c65c1f71fbe7b3be904d35f5cf\n+ b65a59589385ac679016105710e25517a7d52e4b\n+ 2bce913e4c126f3d9306707416e6028bb1760a6c\n+ 87c3841fd44ca57a1964853d8f61795c2e9c8562\n+ bb32675dae340396547febda4df55a07d2a03919\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "bb32675dae340396547febda4df55a07d2a03919\t2026-09-28\tRecord #1458's codec primitives as unevaluated D4 building blocks\n87c3841fd44ca57a1964853d8f61795c2e9c8562\t2026-09-28\tmath: pin T8ZetaState::step_raw to its modular definition\n2bce913e4c126f3d9306707416e6028bb1760a6c\t2026-09-28\tcodec: scope the kept primitives honestly, validate inputs, test properties\nb65a59589385ac679016105710e25517a7d52e4b\t2026-09-28\tcodec: remove the defective E8 root codebook and its \"2-bit\" arm\n4eb9158d03bdd5c65c1f71fbe7b3be904d35f5cf\t2026-09-28\tRestore the serving auditor to main's version\n5c320cabb86ea222ed990b715d797789b4ac9771\t2026-09-28\tWithdraw #1458's D4 constants and its PASS claim\nd098b421392cd2938832fbd8f5103b1143f6367b\t2026-09-28\tRemove #1458's second stack serving runtime\n71aba3a00e0c1ec6a192b4b726fb0263f811b75d\t2026-09-28\tdocs(d4): align audited symbol count to 63 in current state and evidence record\n56ad773f05979202a0d5fc759742311118b31275\t2026-09-28\tlab3(d4): reconcile zero-multiplier serving, audit gates, and fidelity study\n7346377c5c3efd298cf9819d431e6411557a47f7\t2026-09-28\tfeat(integer): D4 fidelity study, discrete codecs, and geometric stack serving\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "37\t12\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "796d83638eba614505bd82db7763e421206c1043",
+    "sample_ref": "refs/heads/feat/510-r5-t1b-scoring",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "- 8e5a3f71133af86436876ec7925f9e76312e1175\n+ 796d83638eba614505bd82db7763e421206c1043\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "796d83638eba614505bd82db7763e421206c1043\t2026-08-08\tfeat(#510): R5 1b(iii) \u2014 inference_contract to the sanctioned surface\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "744\t2\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "1100eb16b8662da6c485ac31c22a4fe105cbd5b0",
+    "sample_ref": "refs/heads/feature/quantum-graph-integration",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 57a481470e71099fc6f2a156386bb6d29d2ad42d\n+ 13e5482f4603912f64e33052b1a00cf40b6a60da\n+ 5bda52b32ec029ce773ccad19315da90c6a63c3d\n+ 06d94ff26e229c09492753c9a04e889d42a8924a\n+ c4325cb9136d36455e9967ec0ec566392e20a990\n+ 1100eb16b8662da6c485ac31c22a4fe105cbd5b0\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "1100eb16b8662da6c485ac31c22a4fe105cbd5b0\t2026-07-23\tfix(model-source): add #[allow(dead_code)] to fast_matmul_backend on non-macOS targets\nc4325cb9136d36455e9967ec0ec566392e20a990\t2026-07-23\tfix(ui): add missing closing brace for else block in pollSysinfo\n06d94ff26e229c09492753c9a04e889d42a8924a\t2026-07-23\tfix(ui): resolve JS syntax error in pollSysinfo catch handler\n5bda52b32ec029ce773ccad19315da90c6a63c3d\t2026-07-23\tfeat(cli): register cover and score command dispatchers in transformerless CLI\n13e5482f4603912f64e33052b1a00cf40b6a60da\t2026-07-23\tFix Kani proof runtime state init\n57a481470e71099fc6f2a156386bb6d29d2ad42d\t2026-07-23\tfeat(graph-runtime): modular crate architecture, SmolLM2 BPE tokenizer, and zero-matmul server\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "991\t7\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "d65b5ab87fd042f9bdc7f10ff008ef1fa7f157f8",
+    "sample_ref": "refs/remotes/origin/fix/r4g1-abstain-fallback-and-routing-speed",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ dfd2d322dccd07fcbb906f296af7a6ab2c305157\n+ ae769a4884012d7c6798205c88fd547b48dd4ac3\n+ 3315ea202ceaceae82875d355cdc9afde4b9ede1\n+ ffe248884e0d39a7713bea6af616aa475a9ecf4f\n+ 729625cb3294dd6c9c40edfe91e3c3effe68fba9\n+ 6f574c35286b960d17686e6f4333b0d53f1541e8\n+ 8c5d3b2dca02190c88835d40a429df5bf21d0d44\n+ 425a4b6cbdd1f533d603499db659348787d6fe40\n+ 47e85355cf627aa988aa6c5cd4a9fbdd47220a41\n+ 556f2002d57999db3cd397a4e526370fe518dec1\n+ 3932d7cd4e4995ffac186e36c5f532169edf0e94\n+ 97308fd34ec75d5cdc5a427ce9b9b27b071990c6\n+ 30253f023454662970085d0b5d57cb272fa4817f\n+ bcc2fa7f1bbcbae38f58c0e2f59d289cbb6e712b\n+ c53744823051bfd8e436e859d76ac9226ba38fb8\n+ 939956fe6acdd87904e8b4dbc24f0c6acd93c987\n+ b8cb7cd97d5666c8faa0ed1740e72259bca09c14\n+ d65b5ab87fd042f9bdc7f10ff008ef1fa7f157f8\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "d65b5ab87fd042f9bdc7f10ff008ef1fa7f157f8\t2026-07-26\tfeat(cli): update banner ASCII art to UOR-R4-CLI, intro title, and prompt label\nb8cb7cd97d5666c8faa0ed1740e72259bca09c14\t2026-07-26\tdocs(readme): add uor-r4-cli single-command quickstart, slash command guide, and audit instructions\n939956fe6acdd87904e8b4dbc24f0c6acd93c987\t2026-07-26\tfeat(cli): add standalone r4 audit command and option 4 to uor-r4-cli launcher menu\nc53744823051bfd8e436e859d76ac9226ba38fb8\t2026-07-26\tfeat(audit): add UOR auditability & tracing section (/audit) with token provenance and R4 geometry\nbcc2fa7f1bbcbae38f58c0e2f59d289cbb6e712b\t2026-07-26\tfix(client): connect all interactive slash command menu options directly to real backend handlers\n30253f023454662970085d0b5d57cb272fa4817f\t2026-07-26\tfeat(launcher): add self-resolving directory logic to uor-r4-cli for global PATH execution\n97308fd34ec75d5cdc5a427ce9b9b27b071990c6\t2026-07-26\tfeat(launcher): introduce uor-r4-cli launcher with auto-restored mode/engine, screen clear, and r4-app.sh wrapper\n3932d7cd4e4995ffac186e36c5f532169edf0e94\t2026-07-26\tfeat(client): scale observation corpus target tokens dynamically by teacher model capacity\n556f2002d57999db3cd397a4e526370fe518dec1\t2026-07-26\tfix(client): pass relative_tla quality profile to score so reload succeeds across models\n47e85355cf627aa988aa6c5cd4a9fbdd47220a41\t2026-07-26\tfeat(cli): add percentage progress bars to Stage 3 graph scoring\n425a4b6cbdd1f533d603499db659348787d6fe40\t2026-07-26\tfix(client): resolve clippy io_other_error and needless_borrow lints\n8c5d3b2dca02190c88835d40a429df5bf21d0d44\t2026-07-26\tfix(client): interactive slash command REPL, menu non-freezing, and in-client 4-stage compilation\n6f574c35286b960d17686e6f4333b0d53f1541e8\t2026-07-26\tfix(server): enable seamless fallback execution when R4G1 abstains on novel prompts\n729625cb3294dd6c9c40edfe91e3c3effe68fba9\t2026-07-26\tfeat(cli): add minimalist r4 client wrapper, vendor chat API, and single-command launcher\nffe248884e0d39a7713bea6af616aa475a9ecf4f\t2026-07-26\tstyle: apply cargo fmt to src/chat.rs and src/server.rs\n3315ea202ceaceae82875d355cdc9afde4b9ede1\t2026-07-26\tfix(server): cascade to teacher oracle attention fallback for coherent text response generation\nae769a4884012d7c6798205c88fd547b48dd4ac3\t2026-07-26\tfix(server): validate fallback text and enforce 1-word repeated loop rejection\ndfd2d322dccd07fcbb906f296af7a6ab2c305157\t2026-07-26\tfix(router): implement elliptic basin escape via orthogonal Hopf perturbation and enable WASM SIMD\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "935\t22\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "0e67435d7ef22b87491f2282aac3faadbb876245",
+    "sample_ref": "refs/heads/i380-row-distribution",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 85726c126f5cec7e509165d429217c21acca7f9b\n+ 0e67435d7ef22b87491f2282aac3faadbb876245\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "0e67435d7ef22b87491f2282aac3faadbb876245\t2026-08-03\tfix(lint): remove the dead context_prediction shim (#383 CI)\n85726c126f5cec7e509165d429217c21acca7f9b\t2026-08-03\tfeat(score): #380 \u2014 consume NGRAM row top-k as the emission distribution (argmax unchanged)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "835\t2\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "b294ceb0eccd68cb459a8a33d02a6e31d2f0d84f",
+    "sample_ref": "refs/heads/i446-m2-latent-right",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ b294ceb0eccd68cb459a8a33d02a6e31d2f0d84f\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "b294ceb0eccd68cb459a8a33d02a6e31d2f0d84f\t2026-08-06\tfeat(certify): #446 M2 \u2014 latent right-context mixture (causally legitimate two-sided structure)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "785\t1\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "921be670586e74995e586e392edfa852638f243c",
+    "sample_ref": "refs/heads/i450-repro-hardening",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "- fe84151f3419a984257c56b9c74f1356c2279adc\n+ 921be670586e74995e586e392edfa852638f243c\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "921be670586e74995e586e392edfa852638f243c\t2026-08-06\tfix(compiler): #451 canonical tie-break in emit_r4g1 emission selection\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "785\t2\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "6a86323d37835de910f8c1b2e0442de51587e153",
+    "sample_ref": "refs/remotes/origin/i613-checkpoint-resume",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 6a86323d37835de910f8c1b2e0442de51587e153\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "6a86323d37835de910f8c1b2e0442de51587e153\t2026-08-13\tperf(cover-sweep): checkpoint and resume completed points (#613)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "639\t1\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "014094d9f7b0c39c03d35af1352dcfeb92364399",
+    "sample_ref": "refs/remotes/origin/i639-3a-sentencepiece-unigram-core",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 014094d9f7b0c39c03d35af1352dcfeb92364399\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "014094d9f7b0c39c03d35af1352dcfeb92364399\t2026-08-14\tcore: SentencePiece ModelProto parser + Unigram Viterbi core (#639-3a)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "615\t1\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "5b20051261541f45997f8bc5657c504203fe2d81",
+    "sample_ref": "refs/heads/issue-1107-workbench-candidate",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 5b20051261541f45997f8bc5657c504203fe2d81\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "5b20051261541f45997f8bc5657c504203fe2d81\t2026-09-03\tImplement native Four-fact workbench candidate (#1107)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "372\t1\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "84e072002a131b8095d78fcd1cf0ffb44fc7b9bc",
+    "sample_ref": "refs/heads/issue-124-semantic-state-model",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 84e072002a131b8095d78fcd1cf0ffb44fc7b9bc\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "84e072002a131b8095d78fcd1cf0ffb44fc7b9bc\t2026-07-24\tfeat(compiler): introduce reference semantic state space model and typed graph dynamics (#124)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "987\t1\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "4d637107023cd78612657fae9ada08c4ac37aa7d",
+    "sample_ref": "refs/heads/issue-125-shared-node-edge-algebras",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 4d637107023cd78612657fae9ada08c4ac37aa7d\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "4d637107023cd78612657fae9ada08c4ac37aa7d\t2026-07-24\tfeat(format): introduce 9 unified edge algebras over shared node space (#125)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "987\t1\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "5a73af25488686d478d7a18a4aca7b27f82b8a5a",
+    "sample_ref": "refs/heads/issue-126-holographic-encoding",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 5a73af25488686d478d7a18a4aca7b27f82b8a5a\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "5a73af25488686d478d7a18a4aca7b27f82b8a5a\t2026-07-24\tfeat(compiler): introduce holographic encoding, partial reconstruction, and progressive fidelity (#126)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "987\t1\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "c4901c61b4adc9199c8c146233f2cf4bfbe1a148",
+    "sample_ref": "refs/heads/issue-127-information-bottleneck",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ c4901c61b4adc9199c8c146233f2cf4bfbe1a148\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "c4901c61b4adc9199c8c146233f2cf4bfbe1a148\t2026-07-24\tfeat(compiler): introduce predictive entropy and Information-Bottleneck objectives (#127)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "987\t1\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "a23ee825df1940bf86c741b5e120099693e97ac5",
+    "sample_ref": "refs/heads/issue-128-behavioral-probes",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ a23ee825df1940bf86c741b5e120099693e97ac5\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "a23ee825df1940bf86c741b5e120099693e97ac5\t2026-07-24\tfeat(compiler): introduce unsupervised intervention and counterfactual behavioral probes (#128)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "987\t1\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "71861de00a1902d72da5dffb3973dcc5b377fdab",
+    "sample_ref": "refs/heads/issue-129-reference-compiler-ir",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 71861de00a1902d72da5dffb3973dcc5b377fdab\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "71861de00a1902d72da5dffb3973dcc5b377fdab\t2026-07-24\tfeat(compiler): introduce reference floating-point semantic compiler and intermediate representation (#129)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "987\t1\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "342502892e046af2e1637954784be87a6c761b0b",
+    "sample_ref": "refs/heads/issue-130-lower-semantic-regions",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 342502892e046af2e1637954784be87a6c761b0b\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "342502892e046af2e1637954784be87a6c761b0b\t2026-07-24\tfeat(compiler): lower reference semantic regions into Boolean, mask, popcount, and fixed-point programs (#130)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "987\t1\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "62e8b9b63b2ca806f27b59f8ed18dfc955295aad",
+    "sample_ref": "refs/heads/issue-131-future-state-planner",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 62e8b9b63b2ca806f27b59f8ed18dfc955295aad\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "62e8b9b63b2ca806f27b59f8ed18dfc955295aad\t2026-07-24\tfeat(compiler): implement bounded future-state optimization and planning over graph transitions (#131)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "987\t1\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "b5c8b277fbf51f1428188bb5f9fd51fb18b480e7",
+    "sample_ref": "refs/heads/issue-161-performance-certificates",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 0f22aebcb63aae16b243a4fb91582a48ac0a9e9d\n+ 353e80672870f3429ac4c0ae11fb547e3c26885c\n+ 8a2c08dffaf6653d8b8bb744a7cc58f27acbc5a9\n+ b5c8b277fbf51f1428188bb5f9fd51fb18b480e7\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "b5c8b277fbf51f1428188bb5f9fd51fb18b480e7\t2026-07-24\tfix(compiler): gate disk and oracle compiler functions under cfg(not(target_arch = wasm32)) (#161)\n8a2c08dffaf6653d8b8bb744a7cc58f27acbc5a9\t2026-07-24\tmerge: sync issue-161-performance-certificates with latest main (#161)\n353e80672870f3429ac4c0ae11fb547e3c26885c\t2026-07-24\tfix(certify): address runtime performance certificate review findings\n0f22aebcb63aae16b243a4fb91582a48ac0a9e9d\t2026-07-24\tfeat(certify): add runtime operation, allocation, and CPU portability certificates (#161)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "966\t4\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "0368fbec970d562466aace085af9a9b975b4cfd4",
+    "sample_ref": "refs/heads/issue-165-compiler-executor",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 0368fbec970d562466aace085af9a9b975b4cfd4\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "0368fbec970d562466aace085af9a9b975b4cfd4\t2026-07-24\tfeat(compiler): add deterministic compiler executor abstraction (#165)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "965\t1\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "e55295dc50fded3d51b0fac46953a7e34112ce6d",
+    "sample_ref": "refs/heads/issue-973-learned-lexical-prefix-city-transfer",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ e55295dc50fded3d51b0fac46953a7e34112ce6d\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "e55295dc50fded3d51b0fac46953a7e34112ce6d\t2026-09-07\tLearn lexical-prefix-to-copy transition and resolve city transfer (#973)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "347\t1\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "9c3da950674a4fe9864f7c46486ff24c5fd1e18b",
+    "sample_ref": "refs/heads/issue-973-score-readout-result",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 9c3da950674a4fe9864f7c46486ff24c5fd1e18b\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "9c3da950674a4fe9864f7c46486ff24c5fd1e18b\t2026-08-30\tdocs: publish #973 localization result and reset direction\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "430\t1\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "63a74d56e455725edb4c883751eda9ded3bdeefa",
+    "sample_ref": "refs/heads/lab/anti-gravity/capability-api-wasm-m1-cost",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 77d753270e1975d365cde68092b5e8931a533051\n+ fdab916344f9a7529f11f1670c4a3870ec8064e2\n+ d94803a3bbb76aeef0f340b834fe0b798f0be1e7\n+ df23a82409b92c601f3a7ba0d8f2caed9de71e1e\n+ b39f03fb08c42524d958563b2483008debef6a4b\n+ 0254163bc9d37287d64670a6519824a65e1ab1b9\n+ e64c571caa3b42e6017300c5a34e7ff625812e57\n+ 261a52e2ef30750b77775a98803964d17ae6aa5b\n+ bc69b869fa047961d1bcbfafe58b35053ff25dc6\n+ 8d308144ebbf049666511d58a0ad589e5502cbc2\n+ 698bdda481de57c2257b158bb53f7942568a3be7\n+ a8d59d31c9059518aaff093b92caf24a5e6667ee\n+ f78c5c5409b434ff9c67c1e41d4b23741fd9c3a5\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "f78c5c5409b434ff9c67c1e41d4b23741fd9c3a5\t2026-09-28\tfeat(release): reproducible release bundle packager and sealed manifest for width-576 dialogue model (#965)\na8d59d31c9059518aaff093b92caf24a5e6667ee\t2026-09-28\tfeat(integer): full-path M1 cost qualification and zero-matmul WASM capability runtime\n698bdda481de57c2257b158bb53f7942568a3be7\t2026-09-28\tfeat(runtime): eliminate all opcode violations and add transitive call-graph reachability audit\n8d308144ebbf049666511d58a0ad589e5502cbc2\t2026-09-28\tfeat(integer): serve width-576 dialogue models in uor-chat with 100% turn parity\nbc69b869fa047961d1bcbfafe58b35053ff25dc6\t2026-09-27\tfix(integer): ensure mul_fraction_radix16 covers all 64 bits of u64 and add scalar equivalence test (References #973, #1446)\n261a52e2ef30750b77775a98803964d17ae6aa5b\t2026-09-27\tfeat(integer): bit-identical native serving speedups via radix-16 mixture and grouped LUT projection (References #973, #820)\ne64c571caa3b42e6017300c5a34e7ff625812e57\t2026-09-27\tfix(integer): add inline(never) to affine_direct_into and affine_wide_into for audit symbol visibility (References #973, #820)\n0254163bc9d37287d64670a6519824a65e1ab1b9\t2026-09-27\tfix(chat): fail-closed stream drop safety and test coverage (References #962, #820)\nb39f03fb08c42524d958563b2483008debef6a4b\t2026-09-27\tfeat(integer): zero-allocation wide affine and register-resident blocked product reuse\ndf23a82409b92c601f3a7ba0d8f2caed9de71e1e\t2026-09-27\tDocument 4-row blocked product table reuse and M1 serving benchmarks\nd94803a3bbb76aeef0f340b834fe0b798f0be1e7\t2026-09-27\tInclude wide matrix caller in integer opcode audit\nfdab916344f9a7529f11f1670c4a3870ec8064e2\t2026-09-27\tReuse product tables across four wide integer rows\n77d753270e1975d365cde68092b5e8931a533051\t2026-09-27\tfeat(chat): adopt dialogue continuity in uor-chat with streaming generation (References #962, #820)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "48\t15\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "dfc4217c808868cc738a20b648733a15552ee544",
+    "sample_ref": "refs/heads/lab/anti-gravity/d4-e8-codec-backup",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ dfc7f2acfad0b8ee1383c96c6af9be8d093e0242\n+ 96518458ab68744080120b4b995ff70c24ddd21a\n+ 906412966b702613888fe356ac50ea843e6cdabc\n+ ba68a3de77289c550b4066ac1f72cd83cce15f20\n+ 2676ca0aec08134a8a46df981607bd347c76864b\n+ dfc4217c808868cc738a20b648733a15552ee544\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "dfc4217c808868cc738a20b648733a15552ee544\t2026-09-28\tdocs(qat): author D4 QAT representation plan for learning-to-serving gap reduction\n2676ca0aec08134a8a46df981607bd347c76864b\t2026-09-28\ttest(energy): add execution-interval alignment verification and out-of-interval tests\nba68a3de77289c550b4066ac1f72cd83cce15f20\t2026-09-28\ttest(energy), docs(lineage): synthetic recorder harness and cost profile lineage record\n906412966b702613888fe356ac50ea843e6cdabc\t2026-09-28\td4-e8, cost, stack: reconcile codec guards, energy recorder, and cost metrics\n96518458ab68744080120b4b995ff70c24ddd21a\t2026-09-28\tstack: add cost profile instrumentation and seal M1 cost and energy results\ndfc7f2acfad0b8ee1383c96c6af9be8d093e0242\t2026-09-28\tLab 3 (Anti-Gravity): D4-E8 float-reference measurement and D11 stack GEMV ILP speedup (#973)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "29\t6\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "71aba3a00e0c1ec6a192b4b726fb0263f811b75d",
+    "sample_ref": "refs/remotes/origin/lab/anti-gravity/d4-fidelity-study",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 7346377c5c3efd298cf9819d431e6411557a47f7\n+ 56ad773f05979202a0d5fc759742311118b31275\n+ 71aba3a00e0c1ec6a192b4b726fb0263f811b75d\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "71aba3a00e0c1ec6a192b4b726fb0263f811b75d\t2026-09-28\tdocs(d4): align audited symbol count to 63 in current state and evidence record\n56ad773f05979202a0d5fc759742311118b31275\t2026-09-28\tlab3(d4): reconcile zero-multiplier serving, audit gates, and fidelity study\n7346377c5c3efd298cf9819d431e6411557a47f7\t2026-09-28\tfeat(integer): D4 fidelity study, discrete codecs, and geometric stack serving\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "48\t3\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "3617721f52719e74cd37199a1a46d22bdb800b4b",
+    "sample_ref": "refs/heads/lab/anti-gravity/d4-qat-results-staging",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ c9d976a083cfc22f89435096d800c1eee91c3ed7\n+ 0d17cb62927f8f9d1027253880800a77793781a7\n+ 590a06fd1caf1b61dd889684138d5b54f5b652a2\n+ b69ca074cecdf1805a2c4359e9a4987ddf007414\n+ a4a4adec1c880dc59a3ffa35470a12bf65484f12\n+ e4d767bbc55be301cba6cbc4a2d282ad7a9fcb49\n+ 57d411de18a57fbc4817e3ac3359978a8a83a110\n+ a6ad12f4eaf8dd4fccc3ab6d321fe426d59871e4\n+ eb0767aa7ac7c338431f56baa0225d93885124ff\n+ c986dbf34fe4047cb8f3203a803fbb18cca178ce\n+ 6c4d1d88f0c1b48159a5dda99f5e7ba53a8b8788\n+ 2ba1dffedb96d46be9ff8c00d1a8e080deaa3805\n+ 1a77180d504f77d9c7f0288c8121cd22c7267607\n+ f19fac2c208eec001395280192eed4dc058a9eea\n+ 99766b0c1a45326fbb972d1d84df940d8b2d437c\n+ 2953eaead249b95257326dd9ce00d3c3bf45985e\n+ 6ca77c7a06c48e096e329691f661bd27e99b2d4f\n+ 789e548f429901bd8491b9e2bf395f69fe04a44c\n+ 5bb37ae783a53a303d3a7408ac837da67841733a\n+ 88fb49427dd3bfcf79a192ff4267f09872e5b00a\n+ 42b6ed1ca11207835186faa9f5357a2e6d91e2de\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "42b6ed1ca11207835186faa9f5357a2e6d91e2de\t2026-09-29\tdocs(d4): clarify kernel parity (56/58), add float greedy agreement, and set status to reported; re-run pending\n88fb49427dd3bfcf79a192ff4267f09872e5b00a\t2026-09-29\tdocs(d4): add Arm 2 float control comparison to Result (C) S2 dialogue study (#973, #820)\n5bb37ae783a53a303d3a7408ac837da67841733a\t2026-09-29\tfeat(d4): deliver Result (C) S2 dialogue QAT evidence (+0.0032 nats gap, 56/58 turns) (#973, #820)\n789e548f429901bd8491b9e2bf395f69fe04a44c\t2026-09-29\tdocs(codec): clarify 16/58 turns result is not promoted: inside the arms' spread\n6ca77c7a06c48e096e329691f661bd27e99b2d4f\t2026-09-29\tfeat(d4): deliver geometric_s1 QAT result (+0.0180 nats PASS) and update current state (#973, #820)\n2953eaead249b95257326dd9ce00d3c3bf45985e\t2026-09-29\tfeat(codec): implement RecurrenceOutMinMseMapCodec, export routing, exactness test, and export survival verification (#973, #820)\n99766b0c1a45326fbb972d1d84df940d8b2d437c\t2026-09-29\tfeat(codec): add S2 behavior codec evaluation and turn optimization binary (#973, #820)\nf19fac2c208eec001395280192eed4dc058a9eea\t2026-09-29\tfix(distortion): support UORT token corpus, repair variable naming and unpadding\n1a77180d504f77d9c7f0288c8121cd22c7267607\t2026-09-29\tAdd element-by-element exactness test for served view and export, repair codec alignment\n2ba1dffedb96d46be9ff8c00d1a8e080deaa3805\t2026-09-29\tfeat(distortion): add S2 behavior-sensitive distortion study binary (#973, #820)\n6c4d1d88f0c1b48159a5dda99f5e7ba53a8b8788\t2026-09-29\tfeat(codec, qat): move MapCodec to d4_codecs, refuse E8 export, and add exactness tests\nc986dbf34fe4047cb8f3203a803fbb18cca178ce\t2026-09-28\tfeat(codec, qat): integrate E8MatchedBitMapCodec into QAT training and export bridge (#973, #820)\neb0767aa7ac7c338431f56baa0225d93885124ff\t2026-09-28\tdocs(d4, d11): correct S1.0c layer-5 attribution, non-additive caveats, and provenance disclosures (#973, #820)\na6ad12f4eaf8dd4fccc3ab6d321fe426d59871e4\t2026-09-28\tfeat(codec, export): complete QAT learning-to-serving bridge for head-compensated quantization (#973, #820)\n57d411de18a57fbc4817e3ac3359978a8a83a110\t2026-09-28\tdocs(d4, d11): correct labels per Lab 1 ruling on PR #1479 (#973, #820)\ne4d767bbc55be301cba6cbc4a2d282ad7a9fcb49\t2026-09-28\tfeat(codec, stack): deliver gating review fixes for D4 E8 codec and D11 bpw labels (#973, #820)\na4a4adec1c880dc59a3ffa35470a12bf65484f12\t2026-09-28\ttest(codec): add head_quantization_mse_comparison evaluating geometric_s1 output head (#973, #820)\nb69ca074cecdf1805a2c4359e9a4987ddf007414\t2026-09-28\ttest(qat): verify end-to-end gradient step, export, and integer serving chain (#973, #820)\n590a06fd1caf1b61dd889684138d5b54f5b652a2\t2026-09-28\tfeat(codec): support explicit target head dimensions in HeadCompensatedMapCodec (#973, #820)\n0d17cb62927f8f9d1027253880800a77793781a7\t2026-09-28\tdocs(lineage), fix(stack): disclose evaluation.json overwrite in d11-cost-profile-1 and write only cost.json in cost CLI (#973, #820)\nc9d976a083cfc22f89435096d800c1eee91c3ed7\t2026-09-28\tfeat(d4, d11): reconcile PR #1479 with origin/main, provide callable QAT codec adapters, and correct attributions (#973, #820)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "1\t26\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "a8d59d31c9059518aaff093b92caf24a5e6667ee",
+    "sample_ref": "refs/remotes/origin/lab/anti-gravity/dialogue576-chat-serving",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 77d753270e1975d365cde68092b5e8931a533051\n+ fdab916344f9a7529f11f1670c4a3870ec8064e2\n+ d94803a3bbb76aeef0f340b834fe0b798f0be1e7\n+ df23a82409b92c601f3a7ba0d8f2caed9de71e1e\n+ b39f03fb08c42524d958563b2483008debef6a4b\n+ 0254163bc9d37287d64670a6519824a65e1ab1b9\n+ e64c571caa3b42e6017300c5a34e7ff625812e57\n+ 261a52e2ef30750b77775a98803964d17ae6aa5b\n+ bc69b869fa047961d1bcbfafe58b35053ff25dc6\n+ 8d308144ebbf049666511d58a0ad589e5502cbc2\n+ 698bdda481de57c2257b158bb53f7942568a3be7\n+ a8d59d31c9059518aaff093b92caf24a5e6667ee\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "a8d59d31c9059518aaff093b92caf24a5e6667ee\t2026-09-28\tfeat(integer): full-path M1 cost qualification and zero-matmul WASM capability runtime\n698bdda481de57c2257b158bb53f7942568a3be7\t2026-09-28\tfeat(runtime): eliminate all opcode violations and add transitive call-graph reachability audit\n8d308144ebbf049666511d58a0ad589e5502cbc2\t2026-09-28\tfeat(integer): serve width-576 dialogue models in uor-chat with 100% turn parity\nbc69b869fa047961d1bcbfafe58b35053ff25dc6\t2026-09-27\tfix(integer): ensure mul_fraction_radix16 covers all 64 bits of u64 and add scalar equivalence test (References #973, #1446)\n261a52e2ef30750b77775a98803964d17ae6aa5b\t2026-09-27\tfeat(integer): bit-identical native serving speedups via radix-16 mixture and grouped LUT projection (References #973, #820)\ne64c571caa3b42e6017300c5a34e7ff625812e57\t2026-09-27\tfix(integer): add inline(never) to affine_direct_into and affine_wide_into for audit symbol visibility (References #973, #820)\n0254163bc9d37287d64670a6519824a65e1ab1b9\t2026-09-27\tfix(chat): fail-closed stream drop safety and test coverage (References #962, #820)\nb39f03fb08c42524d958563b2483008debef6a4b\t2026-09-27\tfeat(integer): zero-allocation wide affine and register-resident blocked product reuse\ndf23a82409b92c601f3a7ba0d8f2caed9de71e1e\t2026-09-27\tDocument 4-row blocked product table reuse and M1 serving benchmarks\nd94803a3bbb76aeef0f340b834fe0b798f0be1e7\t2026-09-27\tInclude wide matrix caller in integer opcode audit\nfdab916344f9a7529f11f1670c4a3870ec8064e2\t2026-09-27\tReuse product tables across four wide integer rows\n77d753270e1975d365cde68092b5e8931a533051\t2026-09-27\tfeat(chat): adopt dialogue continuity in uor-chat with streaming generation (References #962, #820)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "66\t13\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "7175230f4b90c7424a6647e354f5d2e12366dd5f",
+    "sample_ref": "refs/remotes/origin/lab/anti-gravity/geometric-intelligence-synthesis",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 77d753270e1975d365cde68092b5e8931a533051\n+ fdab916344f9a7529f11f1670c4a3870ec8064e2\n+ d94803a3bbb76aeef0f340b834fe0b798f0be1e7\n+ df23a82409b92c601f3a7ba0d8f2caed9de71e1e\n+ b39f03fb08c42524d958563b2483008debef6a4b\n+ a3c415812c0a356d0547a343b90fc3204b7236b5\n+ 7175230f4b90c7424a6647e354f5d2e12366dd5f\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "7175230f4b90c7424a6647e354f5d2e12366dd5f\t2026-09-27\tfix(integer): fail-closed stream drop safety, opcode symbol coverage, and roadmap track alignment (References #820, #962, #963, #964, #973)\na3c415812c0a356d0547a343b90fc3204b7236b5\t2026-09-27\tfeat(roadmap): align 3-lab collaborative tracks and synthesize zero-matmul serving (References #820, #973)\nb39f03fb08c42524d958563b2483008debef6a4b\t2026-09-27\tfeat(integer): zero-allocation wide affine and register-resident blocked product reuse\ndf23a82409b92c601f3a7ba0d8f2caed9de71e1e\t2026-09-27\tDocument 4-row blocked product table reuse and M1 serving benchmarks\nd94803a3bbb76aeef0f340b834fe0b798f0be1e7\t2026-09-27\tInclude wide matrix caller in integer opcode audit\nfdab916344f9a7529f11f1670c4a3870ec8064e2\t2026-09-27\tReuse product tables across four wide integer rows\n77d753270e1975d365cde68092b5e8931a533051\t2026-09-27\tfeat(chat): adopt dialogue continuity in uor-chat with streaming generation (References #962, #820)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "66\t8\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "bc69b869fa047961d1bcbfafe58b35053ff25dc6",
+    "sample_ref": "refs/remotes/origin/lab/anti-gravity/phase-b-speedups",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ fdab916344f9a7529f11f1670c4a3870ec8064e2\n+ d94803a3bbb76aeef0f340b834fe0b798f0be1e7\n+ df23a82409b92c601f3a7ba0d8f2caed9de71e1e\n+ b39f03fb08c42524d958563b2483008debef6a4b\n+ e64c571caa3b42e6017300c5a34e7ff625812e57\n+ 261a52e2ef30750b77775a98803964d17ae6aa5b\n+ bc69b869fa047961d1bcbfafe58b35053ff25dc6\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "bc69b869fa047961d1bcbfafe58b35053ff25dc6\t2026-09-27\tfix(integer): ensure mul_fraction_radix16 covers all 64 bits of u64 and add scalar equivalence test (References #973, #1446)\n261a52e2ef30750b77775a98803964d17ae6aa5b\t2026-09-27\tfeat(integer): bit-identical native serving speedups via radix-16 mixture and grouped LUT projection (References #973, #820)\ne64c571caa3b42e6017300c5a34e7ff625812e57\t2026-09-27\tfix(integer): add inline(never) to affine_direct_into and affine_wide_into for audit symbol visibility (References #973, #820)\nb39f03fb08c42524d958563b2483008debef6a4b\t2026-09-27\tfeat(integer): zero-allocation wide affine and register-resident blocked product reuse\ndf23a82409b92c601f3a7ba0d8f2caed9de71e1e\t2026-09-27\tDocument 4-row blocked product table reuse and M1 serving benchmarks\nd94803a3bbb76aeef0f340b834fe0b798f0be1e7\t2026-09-27\tInclude wide matrix caller in integer opcode audit\nfdab916344f9a7529f11f1670c4a3870ec8064e2\t2026-09-27\tReuse product tables across four wide integer rows\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "66\t7\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "b7e20b8b6b6fc2670ae582bcc642b77b33c7eb28",
+    "sample_ref": "refs/remotes/origin/lab/anti-gravity/runtime-efficiency-t3",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ de79c461c3a84e75d34e7ae3080c966a03bb26aa\n+ 6c2bb734f72a569b5469d31ee8d69396e2957d2f\n+ 90dcf4366bc03206ade6f5a0028d713bc1b403a7\n+ 36ab2333a3092a49549c241d2975d9d4370ee479\n+ 928479983165c7c76d4c6c083bf922ac7eb21b59\n+ 00faa572eeff84136885684cc44f094997523f65\n+ 3b463398feb5d02ed17c3e68d76f40a325057cc2\n+ 57021666c5148202a5b16d441294134cf0b81bfc\n+ b7e20b8b6b6fc2670ae582bcc642b77b33c7eb28\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "b7e20b8b6b6fc2670ae582bcc642b77b33c7eb28\t2026-09-28\tfix(energy): commit raw-root SHA-256 manifest, align default horizons to 10,240/32,768, and export single-threaded env vars across BLAS (References #820, #973, #1444)\n57021666c5148202a5b16d441294134cf0b81bfc\t2026-09-27\tfix(energy): freeze benchmark binaries with SHA-256 provenance and measure baseline vs Phase B side-by-side (References #973, #963, #1444)\n3b463398feb5d02ed17c3e68d76f40a325057cc2\t2026-09-27\tfix(energy): narrow sudo to powermetrics via sudo -n, run workload as normal user, and scale low horizon to 10,240 (References #973, #1444)\n00faa572eeff84136885684cc44f094997523f65\t2026-09-27\tfix(energy): scale horizons to 8,192 and 32,768 steps with strict >=4.0s duration rule (References #973, #963, #964)\n928479983165c7c76d4c6c083bf922ac7eb21b59\t2026-09-27\tfix(energy): fix bash comparison syntax, handle eprint logging, and align owner execution command (References #973, #963, #964)\n36ab2333a3092a49549c241d2975d9d4370ee479\t2026-09-27\tfeat(energy): integrate macmon whole-system sampling and dual validation (References #973, #963, #964)\n90dcf4366bc03206ade6f5a0028d713bc1b403a7\t2026-09-27\tfix(efficiency): rebuild same-input stepping energy harness, audit serving kernels, and correct stack mission port design (References #973, #963, #964)\n6c2bb734f72a569b5469d31ee8d69396e2957d2f\t2026-09-27\tfix(efficiency): align uor-chat block generation, add marginal energy analysis, and commit stack mission port design (References #973)\nde79c461c3a84e75d34e7ae3080c966a03bb26aa\t2026-09-27\tTrack T3: audit completeness, integer M1 energy runner, and stack port design (References #973)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "62\t9\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "14f026b2f6c451a067b6bc9a99be630e67af992d",
+    "sample_ref": "refs/remotes/origin/lab/claude/a1-flock-pointer",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 14f026b2f6c451a067b6bc9a99be630e67af992d\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "14f026b2f6c451a067b6bc9a99be630e67af992d\t2026-09-29\tA1: flock selection in the fused read and a pointer-copy head for the geometric stack\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "1\t1\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "76c8dac21eab7ba6035c13f21d9200983d14a3c8",
+    "sample_ref": "refs/remotes/origin/lab/claude/a1-mworld-cells",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ c5b841739922e0096147da86bd78eb425a5b2510\n+ 14f026b2f6c451a067b6bc9a99be630e67af992d\n+ 2f11a148c38b3f09b95a8a5ebd48d646427c91cd\n+ d5d9fb191ba0df0ee45a5a640da6257abe886427\n+ 76c8dac21eab7ba6035c13f21d9200983d14a3c8\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "76c8dac21eab7ba6035c13f21d9200983d14a3c8\t2026-09-29\trun_rules: collect the replies into a vector instead of chaining an iterator over a const\nd5d9fb191ba0df0ee45a5a640da6257abe886427\t2026-09-29\tm-world evaluate-cells: teacher-forced scores beside each cell's accuracy; pure-retrieval cell first\n2f11a148c38b3f09b95a8a5ebd48d646427c91cd\t2026-09-29\tA1 amendments in M-world v2: cross cells, rule baselines, sealed English probe, teacher-forced answer spans\n14f026b2f6c451a067b6bc9a99be630e67af992d\t2026-09-29\tA1: flock selection in the fused read and a pointer-copy head for the geometric stack\nc5b841739922e0096147da86bd78eb425a5b2510\t2026-09-29\tM-world v2: open value pools, MQAR and copy episodes, the #1516 oracle fixes (A1)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "0\t7\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "b806fb2db924aa013e2e7173f4eccb9591cbcc0f",
+    "sample_ref": "refs/remotes/origin/lab/claude/a1-pointer-fixes",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ c5b841739922e0096147da86bd78eb425a5b2510\n+ 14f026b2f6c451a067b6bc9a99be630e67af992d\n+ b806fb2db924aa013e2e7173f4eccb9591cbcc0f\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "b806fb2db924aa013e2e7173f4eccb9591cbcc0f\t2026-09-29\tA1 pointer fixes: one flock selector, the pointer's own score and selection, no copy floor (#1511)\n14f026b2f6c451a067b6bc9a99be630e67af992d\t2026-09-29\tA1: flock selection in the fused read and a pointer-copy head for the geometric stack\nc5b841739922e0096147da86bd78eb425a5b2510\t2026-09-29\tM-world v2: open value pools, MQAR and copy episodes, the #1516 oracle fixes (A1)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "0\t5\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "cb32e73c8b666b104e55461f51126cdaf5feb97e",
+    "sample_ref": "refs/remotes/origin/lab/claude/a1-retrieval",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ c5b841739922e0096147da86bd78eb425a5b2510\n+ 14f026b2f6c451a067b6bc9a99be630e67af992d\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "14f026b2f6c451a067b6bc9a99be630e67af992d\t2026-09-29\tA1: flock selection in the fused read and a pointer-copy head for the geometric stack\nc5b841739922e0096147da86bd78eb425a5b2510\t2026-09-29\tM-world v2: open value pools, MQAR and copy episodes, the #1516 oracle fixes (A1)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "0\t4\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "b68666223e8aaf8ab0e055ddb3b6372cdf43a435",
+    "sample_ref": "refs/heads/lab/claude/i1-stack-store",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 177e48f6424961d8e6e0ed9c20eb503660c3122e\n+ b68666223e8aaf8ab0e055ddb3b6372cdf43a435\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "b68666223e8aaf8ab0e055ddb3b6372cdf43a435\t2026-09-28\tAdd the I1 sealed stack inference checkpoint with its session store\n177e48f6424961d8e6e0ed9c20eb503660c3122e\t2026-09-28\tAdd the I1 token-level stack store over scoped Memory\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "41\t2\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "a6731e3912cae6ec73f58c323b282a0ffd1d907a",
+    "sample_ref": "refs/remotes/origin/lab/claude/integration",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 90ec44755d69691884d534e6b866e190463e72aa\n+ a6731e3912cae6ec73f58c323b282a0ffd1d907a\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "a6731e3912cae6ec73f58c323b282a0ffd1d907a\t2026-09-29\tstack_integration: gated on-policy registers, development scoring and greedy replies with the store in the loop, and the integration fit\n90ec44755d69691884d534e6b866e190463e72aa\t2026-09-29\tstack_integration: user-turn flags for any literal-role token stream\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "9\t2\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "c5b841739922e0096147da86bd78eb425a5b2510",
+    "sample_ref": "refs/remotes/origin/lab/claude/m-world-v2",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ c5b841739922e0096147da86bd78eb425a5b2510\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "c5b841739922e0096147da86bd78eb425a5b2510\t2026-09-29\tM-world v2: open value pools, MQAR and copy episodes, the #1516 oracle fixes (A1)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "1\t1\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "724f8d64e42e4e5fb356818ff0db7580a1306406",
+    "sample_ref": "refs/heads/lab/claude/s1-integer-port",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 24a4915a9060982cb2899a2bb84fdb2fc0172e51\n+ 5cce1859509f2ba67b0f7e3c96cd97ad08cd1519\n+ 4ea9ac42711d1416e2cbc7f0ffcd6aea2f5bffca\n+ 6aa6911450acd5e20e9194bfc7320298c1804c02\n+ 51e6682f4fdbb7052b3a68728610f632a3473e58\n+ 576f4a614ee9ecf4581bc8ecb521b146314d1aaf\n+ a019dfd93636ae0c7442b7cd19fff436741de3af\n+ 724f8d64e42e4e5fb356818ff0db7580a1306406\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "724f8d64e42e4e5fb356818ff0db7580a1306406\t2026-09-28\tExplain the boxed layer vectors to clippy and tidy two test lints\na019dfd93636ae0c7442b7cd19fff436741de3af\t2026-09-28\tRead the normalized-state maps through weight-byte pair tables\n576f4a614ee9ecf4581bc8ecb521b146314d1aaf\t2026-09-28\tAdd d11-evaluate: the D11 and D10 stack engines on the same windows\n51e6682f4fdbb7052b3a68728610f632a3473e58\t2026-09-28\tAudit the D11 stack engine with an opt-in symbol set\n6aa6911450acd5e20e9194bfc7320298c1804c02\t2026-09-28\tRemove the multiply, divide and lane-transfer instructions the audit found\n4ea9ac42711d1416e2cbc7f0ffcd6aea2f5bffca\t2026-09-28\tAdd the uor-r4-stack binary serving the D11 stack step\n5cce1859509f2ba67b0f7e3c96cd97ad08cd1519\t2026-09-28\tTest the D11 stack engine against the D10 engine bit for bit\n24a4915a9060982cb2899a2bb84fdb2fc0172e51\t2026-09-28\tAdd the D11 multiplier-free stack engine to uor-r4-integer\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "42\t8\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "e1038ea64117c8f81bb95e21f87f2a672236672a",
+    "sample_ref": "refs/heads/lab/claude/s1-qat",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 1b7004144c7f5946f291b7d3b9497fc45bfc4d16\n+ 5ac15580591d6c3798aa6ccdf4671be2b5ca8c80\n+ e1038ea64117c8f81bb95e21f87f2a672236672a\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "e1038ea64117c8f81bb95e21f87f2a672236672a\t2026-09-28\tS1 QAT: init= and qat= in geometric-stack train\n5ac15580591d6c3798aa6ccdf4671be2b5ca8c80\t2026-09-28\tS1 QAT: served-representation forward for the geometric stack\n1b7004144c7f5946f291b7d3b9497fc45bfc4d16\t2026-09-28\tS1.0: measure the stack's D11 representation gap (export, 2I snap, attribution)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "42\t3\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "33278454f5e55b323550062685e802a9053f5db0",
+    "sample_ref": "refs/remotes/origin/lab/codex/merge-review-stack-inputs-20260928",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 24a4915a9060982cb2899a2bb84fdb2fc0172e51\n+ 5cce1859509f2ba67b0f7e3c96cd97ad08cd1519\n+ 4ea9ac42711d1416e2cbc7f0ffcd6aea2f5bffca\n+ 6aa6911450acd5e20e9194bfc7320298c1804c02\n+ 51e6682f4fdbb7052b3a68728610f632a3473e58\n+ 576f4a614ee9ecf4581bc8ecb521b146314d1aaf\n+ a019dfd93636ae0c7442b7cd19fff436741de3af\n+ 724f8d64e42e4e5fb356818ff0db7580a1306406\n+ afd2c330284a956ed548dcdefe1a73b18f829bb3\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "afd2c330284a956ed548dcdefe1a73b18f829bb3\t2026-09-28\tfix(stack): reject truncated token IDs and bound CLI workloads\n724f8d64e42e4e5fb356818ff0db7580a1306406\t2026-09-28\tExplain the boxed layer vectors to clippy and tidy two test lints\na019dfd93636ae0c7442b7cd19fff436741de3af\t2026-09-28\tRead the normalized-state maps through weight-byte pair tables\n576f4a614ee9ecf4581bc8ecb521b146314d1aaf\t2026-09-28\tAdd d11-evaluate: the D11 and D10 stack engines on the same windows\n51e6682f4fdbb7052b3a68728610f632a3473e58\t2026-09-28\tAudit the D11 stack engine with an opt-in symbol set\n6aa6911450acd5e20e9194bfc7320298c1804c02\t2026-09-28\tRemove the multiply, divide and lane-transfer instructions the audit found\n4ea9ac42711d1416e2cbc7f0ffcd6aea2f5bffca\t2026-09-28\tAdd the uor-r4-stack binary serving the D11 stack step\n5cce1859509f2ba67b0f7e3c96cd97ad08cd1519\t2026-09-28\tTest the D11 stack engine against the D10 engine bit for bit\n24a4915a9060982cb2899a2bb84fdb2fc0172e51\t2026-09-28\tAdd the D11 multiplier-free stack engine to uor-r4-integer\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "37\t12\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "5b7d168526dba617408b9cac38e7c23937ef95be",
+    "sample_ref": "refs/remotes/origin/lab/opencode/b0-flock",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ c87519e31850d4500d39d00a91b2c43ca46f8926\n+ 2a823dac455922486ac8977f14497b550705b0b8\n+ 5b7d168526dba617408b9cac38e7c23937ef95be\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "5b7d168526dba617408b9cac38e7c23937ef95be\t2026-09-29\tflock: model-source score_and_normalize transport and G1a plumbing (#1512)\n2a823dac455922486ac8977f14497b550705b0b8\t2026-09-29\tflock: one shared causal selector for reads and conversion (#1512, #1509)\nc87519e31850d4500d39d00a91b2c43ca46f8926\t2026-09-29\ttraining: training-free flock attention (B0, #1512)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "0\t4\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "67942bfb885d6bab543ac719f67ae6d6343ab719",
+    "sample_ref": "refs/heads/lab/opencode/d6-information-audit",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 67942bfb885d6bab543ac719f67ae6d6343ab719\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "67942bfb885d6bab543ac719f67ae6d6343ab719\t2026-09-28\tAdd the D6 evaluation-only read information audit\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "42\t1\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "8b72954106947e682fe48e314277155c44275cda",
+    "sample_ref": "refs/heads/lab/opencode/g-v1",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ d8a110804438fc73b05c972f6fcb0cdc300963fa\n+ 9d29e5dccc2aeabf5a74ef88f52598b6310793ae\n+ 7edc90c490b80829402cb5c276b071474fc302b8\n+ 8b72954106947e682fe48e314277155c44275cda\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "8b72954106947e682fe48e314277155c44275cda\t2026-09-28\tG v1 result: precision fixes from the independent headline re-read\n7edc90c490b80829402cb5c276b071474fc302b8\t2026-09-28\tG v1 result: align disposition with D12 (gates promote, never kill)\n9d29e5dccc2aeabf5a74ef88f52598b6310793ae\t2026-09-28\tG v1: always-on address-driven read result \u2014 gate FAIL at scope (3 seeds)\nd8a110804438fc73b05c972f6fcb0cdc300963fa\t2026-09-28\tG v1: always-on address-driven dual-register read (pre-registered on #973)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "40\t4\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "6b3e0b997317a48148635b41554777c38832a6ea",
+    "sample_ref": "refs/heads/lab/opencode/read-localization",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 621635926573dfcca6d6a6e3fd462fae6722d8f7\n+ aac226904b6798d1c9531582283a40810dac8f3e\n+ 604b0e166b33381757cc614100e2497dc5c1ee24\n+ 936fa501612146cc8b96b9bbe5a4e3d043c2b296\n+ b8b542656e7454a087954a5a9d843f4979eacb30\n+ 6b3e0b997317a48148635b41554777c38832a6ea\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "6b3e0b997317a48148635b41554777c38832a6ea\t2026-09-27\tRecord the oracle read re-rank: ranking is sufficient for the distractor class\nb8b542656e7454a087954a5a9d843f4979eacb30\t2026-09-27\tAdd the oracle read re-rank intervention and its first run\n936fa501612146cc8b96b9bbe5a4e3d043c2b296\t2026-09-27\tApply audit corrections and record the Lab 2 roadmap track\n604b0e166b33381757cc614100e2497dc5c1ee24\t2026-09-27\tRecord the read-side localization result and decision\naac226904b6798d1c9531582283a40810dac8f3e\t2026-09-27\tAdd the read-side localization instrument and its first run\n621635926573dfcca6d6a6e3fd462fae6722d8f7\t2026-09-27\tDefine the read-side localization and its decision rule\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "64\t6\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "700872f763f8f094a9d29197617195e00f41940d",
+    "sample_ref": "refs/heads/pr-1479",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 502bf2dd641a5de1ae209b170b7d19d3a74da562\n+ 9958153254ca9d2ad475792d3fefe843775e9b48\n+ de1917a828952052cb468eb57087e905b4e5c5bd\n+ aad06515e56850463a56df862479b5ee8951f35c\n+ 700872f763f8f094a9d29197617195e00f41940d\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "700872f763f8f094a9d29197617195e00f41940d\t2026-09-28\ttest(codec): add head_quantization_mse_comparison evaluating geometric_s1 output head (#973, #820)\naad06515e56850463a56df862479b5ee8951f35c\t2026-09-28\ttest(qat): verify end-to-end gradient step, export, and integer serving chain (#973, #820)\nde1917a828952052cb468eb57087e905b4e5c5bd\t2026-09-28\tfeat(codec): support explicit target head dimensions in HeadCompensatedMapCodec (#973, #820)\n9958153254ca9d2ad475792d3fefe843775e9b48\t2026-09-28\tdocs(lineage), fix(stack): disclose evaluation.json overwrite in d11-cost-profile-1 and write only cost.json in cost CLI (#973, #820)\n502bf2dd641a5de1ae209b170b7d19d3a74da562\t2026-09-28\tfeat(d4, d11): reconcile PR #1479 with origin/main, provide callable QAT codec adapters, and correct attributions (#973, #820)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "20\t5\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "b6c6cccd00e79fca026f749a3cfb4d06bda04ff1",
+    "sample_ref": "refs/heads/pr-1486",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 7f56e6e4ec7295df205313075591d8dd1609c3c1\n+ b6c6cccd00e79fca026f749a3cfb4d06bda04ff1\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "b6c6cccd00e79fca026f749a3cfb4d06bda04ff1\t2026-09-28\tMemory port: the prime router is the address form (owner direction)\n7f56e6e4ec7295df205313075591d8dd1609c3c1\t2026-09-28\tDecide the memory port: the stack's read interface to I1 and G\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "23\t2\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "020f974d4ee06432a8564307a8a425ffb8de8d43",
+    "sample_ref": "refs/heads/pr-1487",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 3bcf7b13e465791591dd7b0e399d981a2321800e\n+ b9c58eec8feb448fb2a074293e0979cfcd9d9a73\n+ f82f7274808559a4851234ef8f64b9e2445230bb\n+ 8cad6ff5994ad318a8443946d990fcab1e02b053\n+ 020f974d4ee06432a8564307a8a425ffb8de8d43\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "020f974d4ee06432a8564307a8a425ffb8de8d43\t2026-09-28\tTest that semiprime experts are exactly unordered pairs\n8cad6ff5994ad318a8443946d990fcab1e02b053\t2026-09-28\tSplit the sieve's NoRead failures by held-out name and write-time tags\nf82f7274808559a4851234ef8f64b9e2445230bb\t2026-09-28\tTrace the sieve arm's failures by cause\nb9c58eec8feb448fb2a074293e0979cfcd9d9a73\t2026-09-28\tAdd the factor-sieve read policy and the ExpertSieve arm\n3bcf7b13e465791591dd7b0e399d981a2321800e\t2026-09-28\tPrime-route addressing arms for the relation store (evaluation only)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "22\t5\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "48fc78f501efdadb9eebf8521bfd384bbbfd4a41",
+    "sample_ref": "refs/heads/queue-sim",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ f7380c8d87588ffca8616da7414e2700e0b240ae\n+ 5eab4f8b8ca1f0c28e0ac3b3d82ad3ea58979b9f\n+ 685104f479c0303bcc28a08e41807e11043cb783\n+ 80a3bda5de64371869e7ebb0111db925518d1882\n+ a1bbf531e5e883b08607f3b07c1686bc13778d5f\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "a1bbf531e5e883b08607f3b07c1686bc13778d5f\t2026-07-30\tchore(pins): #243 Phase C \u03ba re-pin \u2014 1-term TLA6 container, era note (3rd re-pin)\n80a3bda5de64371869e7ebb0111db925518d1882\t2026-07-30\tchore(ci): re-pin the Gate C trend record to the honest full-code-only row (#234 era note)\n685104f479c0303bcc28a08e41807e11043cb783\t2026-07-29\tfix(tests): #294 follow-through \u2014 signature fixture's EXCT evidence moves to the full graded code\n5eab4f8b8ca1f0c28e0ac3b3d82ad3ea58979b9f\t2026-07-29\tfeat(score): #234 \u2014 Rule 2 EXCT precedence fires at full code only\nf7380c8d87588ffca8616da7414e2700e0b240ae\t2026-07-29\tfeat(compiler): #243 Phase C part 1 \u2014 1-term dot tables, TLA6 default emission\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "901\t7\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "634fa4bb3d86e3d5be9a193d169492ee4a75cbbe",
+    "sample_ref": "refs/remotes/origin/r5/gate-core-runtime-dormant",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 634fa4bb3d86e3d5be9a193d169492ee4a75cbbe\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "634fa4bb3d86e3d5be9a193d169492ee4a75cbbe\t2026-08-10\tfeat(#515): PR-2 \u2014 compile-gate core & graph-runtime dormant modules (default OFF)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "675\t1\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "f969fd8eb24f806eb172324577610b27fddf81ab",
+    "sample_ref": "refs/heads/r5/ledger-register-dormant",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "- 0f58219317f4a6a6d15d79fcee8be899b27cbae2\n- f969fd8eb24f806eb172324577610b27fddf81ab\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "676\t2\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "169dd7c52583088398216d3782441cc2a3855acc",
+    "sample_ref": "refs/remotes/origin/archive/ai-research-history",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 0a08eb059203488704e6205a9db283d4f36b5306\n+ 48eac862efcee12c52ffc8fcca3244d191f57df4\n+ 7e92f8a117a0af7319286d83412cbb85455bde33\n+ f17c3d59def62d3e51a2651a772a19772853b0b7\n+ 6fd3e2855531f280c60a9607d10b7a251f74ae46\n+ e5f67d30e020fc1eb89ab38ea69b592bda40d0f5\n+ fe254562fcded9de1a52cb73bb58636ed063185b\n+ f2dec43744a77e7ea92dac3f8124ff4e8438c0ae\n+ 380c12eb636abdbab603c63408adee202c64860d\n+ 641a76dc1fbfb5f50578cb192489eeba0fcc0248\n+ 12ebe875db05007bcd103a0fe45af16057da605b\n+ 9644311240ca2970978d5442c659a4d8ec961c3d\n+ 8ee8cce8a34638697c50d9a8b182b34ec8965a54\n+ 811a5d524201812f07d4bf28ddd900ee2e4de8f2\n+ c788f8a8ed46a86d2c287fcbbf5951ef73eaef28\n+ 672424860c20dba67598fd5acb7b44d556c1685a\n+ 217dec3a6d5866cba3b34b01df129f75067f7fda\n+ f9faae7b7c74fed5f4372b61939b744e5e07e68b\n+ 77dcfc335300acff362ccc63f528b53503db5361\n+ 54631066c17d0fa0d45da5a10ddfe8cbcefcf181\n+ 4cc4ff422c528783aa562fc32ae1a16ed6066412\n+ 58422d96c188f117ee0fe4abca2f9d45f5b46ecc\n+ 6f5509dfa4965d10d6a28294be68fa198de628ca\n+ e6a4eb62ad46e58c29bcb0dc9c4d45a09c35254c\n+ 25ed3f80de2e0234d0cd1b1a75ea0febe47270bc\n+ 228479047f65e0c6e6c017070aea22130f68d231\n+ b73dec5e74584a23ac93cf349d7c53f712374bb7\n+ 40dfd06dd6258a02b1e0358947c21efca4239c70\n+ 40f413b5a2b18142dc0b76effcce8bf23a05e1e6\n+ ff075207c56fda962e512b14dc63a323d1a9b592\n+ afc5403862c6494f5a84a6245b230fa377abec91\n+ d94a3993a5fc122d7e566d79a50d95c40de45232\n+ d46ec150a8e82dc90a06795b321c526e04139cf3\n+ d1c51d7bd9cc4a2c475132c54e68f828637fae6d\n+ 8e0e00585998856326448b4df5ffddbc42e54e77\n+ baea2195711059b5b89aa33f7a53a14e16a2b826\n+ d0396dde6822b03c0532b0fc87ce363309efb9cd\n+ 0021f9e27d57b7a5412a75016d9f90cba38fe55d\n+ 92fe6688e4ff8a9cd3017b767a169e37a8ae2aa2\n+ 4a402b02e39593d4cfeea37f8c244851eb260b26\n+ 3c01e3396b948913b85c6835331fc00650b75602\n+ 714183af4437fa280cc9375afb9c2c45208f0187\n+ 8d7f6abc2b5a2ed802e8fa960bc0074a3885eb74\n+ dcab6cbed658af763a610302eab99da360f97b43\n+ ea6802f86a32e0260506ccea8d7ac51b9d822869\n+ 34fcb17782967f218f34525997e0b5793ab1ad75\n+ f813e70e2c346bceb7a8ad6a00e9cfeb45276891\n+ f69ff2d17721363d9ca03f3a85817fc3ef111bff\n+ cf5e918fb753f3e65d3162b830a9243b5be2e83b\n+ 3bdcdf9e4b9fb83a551c8206b01ad7965b1438b7\n+ e0983aa039538d28d18c97ba235091a874308d4f\n+ 07bb893a67f3359a5bfa20ba6d9d03dc6716a0a6\n+ 8c64ce4ec23bc1d05807bade10df25582a488508\n+ 854e4a431685a485680353dd582f8c75e31c80db\n+ 13225c113a220233522389929605fcdc80e8e441\n+ 9c0db279ba6ee34bd5498b46d9c5dd1cd3890bb4\n+ b6f7815c4fda98d36c2eb18fe18a01f45b9c12a9\n+ 24017a5a09f85c0ea397e0ae0a936de7cda7e835\n+ bef72d8e81c41619fc157abd0af22f737cef183f\n+ cb4c63b8acac629548a911d3c175046467ae81bf\n+ e5c542053394789cb8fdc00fb98a7ce3a58b617c\n+ 8f557a87e0b3e71ce1c401670ec80e44e6c7eac1\n+ 22e7d1609723092e0ac300d67da3ccf21612dc2a\n+ d2031732940700a760718e5491ebbfed6a631be0\n+ 4405a73acb30024642bfded66dc483af20380253\n+ 9d50f8a94f0e1258b253056d7eab0241043a9d8a\n+ 5727d0ec68dda4a99c8fdfa37c7be83ae73e251a\n+ ab249c1cbca7a9c0c99be8da63a57a67d6a10667\n+ 94061e68194bbbe02b0507ba59288a13ca834314\n+ 27d6c40b16ac4c7fb6d1a19710b85f4e99b18a8f\n+ 307b0b76a61d06bc6050e7c14b19b645238596ee\n+ 3d2c273fea5915d51bd9fea5e37059ae8cc250ee\n+ 5e93e01dccd9c46adc8d1b3155ee8d21ab546739\n+ 0626e3a36e767879fb20b9d138cf576ec7b9c594\n+ 97ce17e39edfda11831d9efb67dca5f1fbc2deab\n+ 1cf378b3e1b7086078c22c52514427d601dd37fe\n+ d1e41a9b03184be6cfef6af7c86ff8ddf3e68ad4\n+ 6b7be711c3646641ba27d6d6fda9df54ddce8575\n+ 9a9260fc741b5fc361c4be4e8f67c39d28c04cc7\n+ 9c3e6aefe1c93c93fb20f13d5e82abeac0a17b54\n+ 9f2915d0bf619775e292e867d5b0b6bf8294f622\n+ 811fcac49d3bfddd724b26fe0cd59551c0033e2e\n+ d34eaa8cb6aa57d0b09edfe73f5e59b258ad55af\n+ de41adf262850e6cca3f25a8dfef02cdb0f94582\n+ dfadd7c73252f937e6c976f1c4cfb204de508ffa\n+ 9961df24a198c64db14d782e1c85e891a188d7c5\n+ 1e58dd7e2b85493d18757a0840b7cda19d57a217\n+ cf48de8f73ba429fe2fc59ea9b828349f5709baf\n+ 483619ade083aa0ce352355b0e62ba1348957c7f\n+ d3382b83a98f07095f670843a8d7b0b60267c4ea\n+ 464a68ca2bba991cb58e574492aa52876d370ac4\n+ 862f46004362f7e9e5c663840bcf0005b62a4693\n+ ef344905278e205951272142697b5789a39bf742\n+ da589c4d6de5bb808661f6f440e0ee5fc0207940\n+ cf841d902e94445dab87ae24fa8e25fd1b84b35d\n+ 2c0f7a8cffdbb58018067ab4e54f0eed1ea345fb\n+ 0c599dc9efc74ab585160f0e218e2c0480d0daa1\n+ 0329e44cc1f93bc43f66a3664be2a268db99773b\n+ f975acfdee9c714dd840d73465cc8528f9015782\n+ f175e807a3909599a68f9f8b9c367695fc1070fb\n+ e70ef5ce2f77d9bae515e47d1672891910f3a9bb\n+ 84b21e945d62e97e78bd7971f71dbb738ccccbf6\n+ 325405e0a974b4f98e9dcba98c0e2e36dc225f6c\n+ c097bf8694eede5ec78fb55c7c99b10174fc170c\n+ 169dd7c52583088398216d3782441cc2a3855acc\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "169dd7c52583088398216d3782441cc2a3855acc\t2026-05-08\tUpdate repository guidance for workflow and validation\nc097bf8694eede5ec78fb55c7c99b10174fc170c\t2026-04-27\tpush\n325405e0a974b4f98e9dcba98c0e2e36dc225f6c\t2026-04-13\tuploading proposal draft\n84b21e945d62e97e78bd7971f71dbb738ccccbf6\t2026-04-11\tdump\ne70ef5ce2f77d9bae515e47d1672891910f3a9bb\t2026-04-09\tAdd h3_coupled_geometry_training_dependency_probe_v1\nf175e807a3909599a68f9f8b9c367695fc1070fb\t2026-04-09\td_aware_h3_synthesis_ratio_lock_probe_v1: NO_SUPPORT\nf975acfdee9c714dd840d73465cc8528f9015782\t2026-04-09\th3_2i_radial_increment_probe_v1: NO_INCREMENTAL_RADIAL_SIGNAL\n0329e44cc1f93bc43f66a3664be2a268db99773b\t2026-04-09\th3_tangent_full_mechanism_migration_probe_v1: STRONG_SUPPORT\n0c599dc9efc74ab585160f0e218e2c0480d0daa1\t2026-04-09\th3_basis_separation_probe_v1: test \u221a2 vs 2i projection basis in H\u00b3\n2c0f7a8cffdbb58018067ab4e54f0eed1ea345fb\t2026-04-09\tminimal_trained_comparison_basis_probe_v1: WEAK_SUPPORT\ncf841d902e94445dab87ae24fa8e25fd1b84b35d\t2026-04-09\tAdd dynamic_decoding_language_probe_v1\nda589c4d6de5bb808661f6f440e0ee5fc0207940\t2026-04-09\tradial_ratio_revalidation_probe_v1: REDUNDANT_DERIVED_SIGNAL \u2014 ratio is structural constant\nef344905278e205951272142697b5789a39bf742\t2026-04-09\tcarrier_vs_computation_probe_v1: TRIVIAL CARRIER \u2014 all cases confirmed\n862f46004362f7e9e5c663840bcf0005b62a4693\t2026-04-09\td_invariance_probe_v1: D is pure runtime knob \u2014 D_min=0 for all classes\n464a68ca2bba991cb58e574492aa52876d370ac4\t2026-04-09\ttrain_free_geometric_probe_v1: FULLY TRAIN-FREE EXECUTION WORKS\nd3382b83a98f07095f670843a8d7b0b60267c4ea\t2026-04-08\tAdd locked stack generalization probe v1\n483619ade083aa0ce352355b0e62ba1348957c7f\t2026-04-07\tdump\ncf48de8f73ba429fe2fc59ea9b828349f5709baf\t2026-04-06\tAdd prime transport geometry and operator artifacts\n1e58dd7e2b85493d18757a0840b7cda19d57a217\t2026-04-06\tup\n9961df24a198c64db14d782e1c85e891a188d7c5\t2026-04-06\trollup\ndfadd7c73252f937e6c976f1c4cfb204de508ffa\t2026-04-06\tdump\nde41adf262850e6cca3f25a8dfef02cdb0f94582\t2026-04-05\tCheckpoint outstanding router research and MUDBench changes\nd34eaa8cb6aa57d0b09edfe73f5e59b258ad55af\t2026-04-05\tAdd router-native memory architecture checkpoint\n811fcac49d3bfddd724b26fe0cd59551c0033e2e\t2026-04-05\tRecord prime transport C2 backbone result\n9f2915d0bf619775e292e867d5b0b6bf8294f622\t2026-04-05\tAdd root project map\n9c3e6aefe1c93c93fb20f13d5e82abeac0a17b54\t2026-04-05\tClean up monorepo structure\n9a9260fc741b5fc361c4be4e8f67c39d28c04cc7\t2026-04-05\tMerge ai-router and MUDBench into monorepo\n6b7be711c3646641ba27d6d6fda9df54ddce8575\t2026-04-05\tInitialize AI-Research root workspace\nd1e41a9b03184be6cfef6af7c86ff8ddf3e68ad4\t2026-03-30\tdump latest\n1cf378b3e1b7086078c22c52514427d601dd37fe\t2026-03-26\t[RR-067] Patch Zenodo DOI and rebuild PDF for public release\n97ce17e39edfda11831d9efb67dca5f1fbc2deab\t2026-03-26\t[RR-067] Lock licenses and fix release sequence (Zenodo before arXiv)\n0626e3a36e767879fb20b9d138cf576ec7b9c594\t2026-03-26\t[RR-067] Zenodo release bundle and packaging artifacts\n5e93e01dccd9c46adc8d1b3155ee8d21ab546739\t2026-03-26\t[RR-067] Reference cleanup and public-facing polish pass\n3d2c273fea5915d51bd9fea5e37059ae8cc250ee\t2026-03-26\t[RR-067] Pre-release content fixes: author, scope, subtitle, replication wording\n307b0b76a61d06bc6050e7c14b19b645238596ee\t2026-03-26\t[Publication] Compile main.pdf with tectonic (8 pages, clean)\n27d6c40b16ac4c7fb6d1a19710b85f4e99b18a8f\t2026-03-26\t[Publication] LaTeX submission bundle complete\n94061e68194bbbe02b0507ba59288a13ca834314\t2026-03-26\t[INC-0173] Upgrade WT2 replication to confirm (2 seeds) \u2014 ratio 1.081 matches PTB exactly\nab249c1cbca7a9c0c99be8da63a57a67d6a10667\t2026-03-26\t[Publication] Staged publication strategy \u2014 paper 1 ready, broader program withheld\n5727d0ec68dda4a99c8fdfa37c7be83ae73e251a\t2026-03-26\tINC-0173 KEEP: WT2 replication confirms native-concentration result cross-dataset\n9d50f8a94f0e1258b253056d7eab0241043a9d8a\t2026-03-26\tPost-INC-0172 claim reframe: native concentration regime explicitly stated\n4405a73acb30024642bfded66dc483af20380253\t2026-03-26\tAdd INC-0172 analysis script and screen results\nd2031732940700a760718e5491ebbfed6a631be0\t2026-03-26\tINC-0172 closed: wrong baseline; geometry provides concentration natively\n22e7d1609723092e0ac300d67da3ccf21612dc2a\t2026-03-23\tadding codex global agents and initial task pack\n8f557a87e0b3e71ce1c401670ec80e44e6c7eac1\t2026-03-20\tfriday final\ne5c542053394789cb8fdc00fb98a7ce3a58b617c\t2026-03-20\tinc\ncb4c63b8acac629548a911d3c175046467ae81bf\t2026-03-20\tadd the angular-hopf-trans router for efficient prompt synthesis\nbef72d8e81c41619fc157abd0af22f737cef183f\t2026-03-19\tlatest commit\n24017a5a09f85c0ea397e0ae0a936de7cda7e835\t2026-03-19\tbenchmark core mostly built\nb6f7815c4fda98d36c2eb18fe18a01f45b9c12a9\t2026-03-18\tinterating\n9c0db279ba6ee34bd5498b46d9c5dd1cd3890bb4\t2026-03-18\tcomitting more progress\n13225c113a220233522389929605fcdc80e8e441\t2026-03-18\tpushing project to github repo\n854e4a431685a485680353dd582f8c75e31c80db\t2026-03-18\tinitial commit\n8c64ce4ec23bc1d05807bade10df25582a488508\t2026-03-17\tmore preprints\n07bb893a67f3359a5bfa20ba6d9d03dc6716a0a6\t2026-03-14\tadding preprints\ne0983aa039538d28d18c97ba235091a874308d4f\t2026-03-14\t[RR-067] INC-0169: Canonical routing law freeze + design implications. eff_buckets=2.957xK^0.572 TRANS ORIG (static, norm-invariant Dalpha<0.015 L1/L2/L3/L4). Shell hierarchy excluded. Hardware: 3.0-4.9x eff_cost, 2.5-2.9x LRU misses (TRANS). INC-0170 proposal: K=1000-5000. Synthesis increment; no new runs. Stage 7: PARTIAL-PASS. make state: PASS\n3bdcdf9e4b9fb83a551c8206b01ad7965b1438b7\t2026-03-14\t[RR-067] INC-0168: Norm-geometry diagnostic. TRANS ORIG alpha=0.572 norm-invariant across L1/L2/L3/L4 (delta<0.015). Shell activation reduces Gini ratio 1.836->1.486. Routing advantage is purely angular (Hopf-base sector discretization). 160 static runs. Stage 7: PARTIAL-PASS. make state: PASS\ncf5e918fb753f3e65d3162b830a9243b5be2e83b\t2026-03-14\t[RR-067] INC-0166, INC-0167: Law freeze + scaling mechanism diagnostic\nf69ff2d17721363d9ca03f3a85817fc3ef111bff\t2026-03-14\t[RR-067] INC-0165 KEEP: hardware proxy closure confirmed\nf813e70e2c346bceb7a8ad6a00e9cfeb45276891\t2026-03-14\t[RR-067] INC-0164 KEEP: scaling-law consistency confirmed\n34fcb17782967f218f34525997e0b5793ab1ad75\t2026-03-14\t[RR-067] INC-0163 KEEP: matched-progress compute efficiency confirmed\nea6802f86a32e0260506ccea8d7ac51b9d822869\t2026-03-14\t[RR-067] INC-0162 KEEP: routing compute scaling law K^0.50 vs K^0.79\ndcab6cbed658af763a610302eab99da360f97b43\t2026-03-14\t[RR-067] INC-0161 KEEP: routing compute compression replicated 5 seeds 4 K values\n8d7f6abc2b5a2ed802e8fa960bc0074a3885eb74\t2026-03-14\t[RR-067] INC-0160: Closed KEEP - training routing cost confirmed\n714183af4437fa280cc9375afb9c2c45208f0187\t2026-03-14\t[RR-067] INC-0159: Closed KEEP \u2014 routing sparsity confirmed at 1 seed\n3c01e3396b948913b85c6835331fc00650b75602\t2026-03-14\t[RR-067] INC-0158 KEEP: bucket coherence finalized at 4 seeds \u2014 structural routing compression proven\n4a402b02e39593d4cfeea37f8c244851eb260b26\t2026-03-14\tuploading some preprint artifacts\n92fe6688e4ff8a9cd3017b767a169e37a8ae2aa2\t2026-03-14\t[RR-067] INC-0157 KEEP: bucket coherence confirms structural routing compression at 2 seeds\n0021f9e27d57b7a5412a75016d9f90cba38fe55d\t2026-03-13\t[RR-067] INC-0156 REFINE: spectral compression \u2014 two forms found, 1-seed\nd0396dde6822b03c0532b0fc87ce363309efb9cd\t2026-03-13\t[RR-067] INC-0155 REFINE: routing compression sweep \u2014 MSE insensitive to K and routing quality\nbaea2195711059b5b89aa33f7a53a14e16a2b826\t2026-03-13\t[RR-067] INC-0154 Closed: REFINE \u2014 event-gate efficiency routing-agnostic (delta <0.1pp)\n8e0e00585998856326448b4df5ffddbc42e54e77\t2026-03-13\t[RR-067] INC-0153 Closed: REFINE \u2014 re-parameterized gate correlation (geometry-agnostic)\nd1c51d7bd9cc4a2c475132c54e68f828637fae6d\t2026-03-13\t[RR-067] INC-0152 Closed: REFINE \u2014 spectral-event correlation probe (gate saturated)\nd46ec150a8e82dc90a06795b321c526e04139cf3\t2026-03-13\tUpdate agent instruction files: Stages 2-5 resolved, Stage 6 active gate\nd94a3993a5fc122d7e566d79a50d95c40de45232\t2026-03-13\t[RR-067] INC-0151 KEEP \u2014 Stage 5 spectral/operator 4-seed finalize\nafc5403862c6494f5a84a6245b230fa377abec91\t2026-03-13\t[RR-067] INC-0150 Closed: KEEP \u2014 2-seed confirm of task-signal poincar\u00e9 operator\nff075207c56fda962e512b14dc63a323d1a9b592\t2026-03-13\t[RR-067] INC-0149 Closed: KEEP \u2014 task-signal smoothness on poincar\u00e9-4d operator confirmed\n40f413b5a2b18142dc0b76effcce8bf23a05e1e6\t2026-03-13\t[RR-067] INC-0148 Closed: KEEP \u2014 geometry-native spectral operator confirmed\n40dfd06dd6258a02b1e0358947c21efca4239c70\t2026-03-13\t[RR-067] INC-0147 Closed: REFINE \u2014 fiber alpha confirmed, transport not differentially useful\nb73dec5e74584a23ac93cf349d7c53f712374bb7\t2026-03-13\t[RR-067] INC-0146 KEEP: Stage 4 PARTIAL-PASS confirmed \u2014 Levi-Civita fiber transport 65.1% rel_diff (K=75, kalpha=3)\n228479047f65e0c6e6c017070aea22130f68d231\t2026-03-13\t[RR-066] INC-0145 KEEP: Stage 4 PARTIAL-PASS \u2014 geometry-induced phase-angle routing, 40.7% rel_diff\n25ed3f80de2e0234d0cd1b1a75ea0febe47270bc\t2026-03-13\t[RR-065] INC-0144 KEEP: Stage 3 PARTIAL-PASS \u2014 H^4 Hopf fixed geometry beats K-means adaptive\ne6a4eb62ad46e58c29bcb0dc9c4d45a09c35254c\t2026-03-13\t[RR-061] INC-0143 KEEP: Stage 2 CLOSED PARTIAL-PASS \u2014 PPMI-SVD 4-seed finalize passes\n6f5509dfa4965d10d6a28294be68fa198de628ca\t2026-03-13\t[RR-061] INC-0142 KEEP: H4 Hopf routing discriminates with PPMI-SVD semantic embeddings\n58422d96c188f117ee0fe4abca2f9d45f5b46ecc\t2026-03-13\t[RR-061] INC-0141 KILL: optimal-dim Hopf routing proxy-task-blocked\n4cc4ff422c528783aa562fc32ae1a16ed6066412\t2026-03-13\t[RR-061] INC-0140 Closed: KILL - angular sector routing degenerate on L2-normalized embeddings\n54631066c17d0fa0d45da5a10ddfe8cbcefcf181\t2026-03-13\t[RR-061] INC-0139 Closed: REFINE -- SO(8) fiber balance exhausted; Stage 2 to angular routing\n77dcfc335300acff362ccc63f528b53503db5361\t2026-03-13\t[RR-061] INC-0138 Closed: REFINE - geometry-only shell confirmed, norm-driven shell finding\nf9faae7b7c74fed5f4372b61939b744e5e07e68b\t2026-03-13\t[RR-061] INC-0138 Closed: REFINE - geometry-only shell confirmed, norm-driven shell finding\n217dec3a6d5866cba3b34b01df129f75067f7fda\t2026-03-13\t[RR-061] INC-0137 Closed: KILL - bounded geodesic-radius blend falsified\n672424860c20dba67598fd5acb7b44d556c1685a\t2026-03-13\t[RR-064] Add comprehensive repo-wide research project instructions\nc788f8a8ed46a86d2c287fcbbf5951ef73eaef28\t2026-03-13\t[RR-064] Add git-native research automation infrastructure\n811a5d524201812f07d4bf28ddd900ee2e4de8f2\t2026-03-11\tComplete RR-063 phase transport necessity\n8ee8cce8a34638697c50d9a8b182b34ec8965a54\t2026-03-10\tComplete RR-062 Hopf-base angular law\n9644311240ca2970978d5442c659a4d8ec961c3d\t2026-03-10\tUpdate RR-061 bounded H4 shell findings\n12ebe875db05007bcd103a0fe45af16057da605b\t2026-03-10\tAdvance RR-061 H4 mass shell pilot\n641a76dc1fbfb5f50578cb192489eeba0fcc0248\t2026-03-10\tStart RR-061 measure-consistent route law contract\n380c12eb636abdbab603c63408adee202c64860d\t2026-03-10\tComplete RR-060 H4/Hopf measure diagnostics\nf2dec43744a77e7ea92dac3f8124ff4e8438c0ae\t2026-03-06\tClose RR-058 rerank branch and queue polar flow\nfe254562fcded9de1a52cb73bb58636ed063185b\t2026-03-06\tClose RR-057 complex backfill and queue rerank branch\ne5f67d30e020fc1eb89ab38ea69b592bda40d0f5\t2026-03-06\tStart RR-057 complex backfill pilot\n6fd3e2855531f280c60a9607d10b7a251f74ae46\t2026-03-06\tComplete RR-056 product complex translation\nf17c3d59def62d3e51a2651a772a19772853b0b7\t2026-03-06\tComplete RR-055 product complex retrieval field\n7e92f8a117a0af7319286d83412cbb85455bde33\t2026-03-06\tClose RR-054 and queue RR-055\n48eac862efcee12c52ffc8fcca3244d191f57df4\t2026-03-06\tComplete RR-050 dynamic state slice A\n0a08eb059203488704e6205a9db283d4f36b5306\t2026-03-06\tInitialize router research program\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "1280\t107\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "d6b261e8268b9122531408f04aa2b1de78059d40",
+    "sample_ref": "refs/remotes/origin/archive/prime-analysis-history",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ db0a332b8ed2fea01dbe13e76b6d7d3a9babb1f1\n+ 2a4a63d9bfd434f0178b048332ead5ff5fde8aa3\n+ e434e09e3a9046fa707361be296c3f0f4e1dcc2e\n+ 95e7eec77a4b50b7341504b1a410cb637664c7c0\n+ c14a2ecc4033da16ad029df789f48d3514883089\n- f2e456fef80b4f830150e0f4f7c3e3fd6a86a4e6\n+ 7239d9f5ff2dcd28c23ff9e85d8722a24310b14e\n+ 4383495b92b2e01cccf22b062184eb4cf0f36410\n+ 54c30f8dabc330386c8f659c37a6fb0a4c723811\n+ d8df8ecbc7381004dacadbbf0b8bfa350df79822\n- 27cc84384d5e2d6aa7cc303a7330ef3050949743\n+ be9423832af5e992f08e9590f2f291f9bdd64dfd\n+ cb56ab8c023365dee094e2c515f4e292a650a19c\n+ 7647475adcd768e6a6b1737c3ad7ae2713c833a9\n+ 6f687a2e5ef7a4bb904d3171fd73ef83b54814b9\n+ 4f865e5a2b33d2ad0c2c66f6ea7cfa4abc4e5298\n+ f22433d31852eadcc96c96649047b9510e2d3445\n+ 21b3640a3ba8774920b71d12d2cbf1f4975f318c\n+ 29a6c7c2f3d57446f01a621ed9bb81bdc8e5041f\n+ 31075cfba86a6ac6788796aab2901fc832df6e69\n+ 7629f159129aee180e95b854ddf5d2e2dc8a57ed\n+ 1b3eeaae31f55bebc8c674006186c03bc1ae84a0\n+ b65ea00c8294671c74b4d4a97604e3380b6c0282\n+ 08a39a39f0e55e71a6f61fe7fa6d96095ab118d8\n+ bd2a0ec1a5c73318b94ca1ef55054c90df2560b4\n+ cc39d2ddd2431c4788181e3e7051a1360aa8c864\n+ b0385aa19bfe2156287ce5956f37bc72f63560ab\n+ 1aa54085be5e8adf6fbe59cb4245777fe6933f1e\n+ a2d4491e414b01a2dc08bf65c49da7a91ddc96b8\n+ d6b261e8268b9122531408f04aa2b1de78059d40\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "d6b261e8268b9122531408f04aa2b1de78059d40\t2026-07-13\tUpdate author name in topological rh.md\na2d4491e414b01a2dc08bf65c49da7a91ddc96b8\t2026-07-11\tCreate dedicated markdown pages for all 37 slide presentations and update README links\n1aa54085be5e8adf6fbe59cb4245777fe6933f1e\t2026-07-11\tFix GitHub Pages build with .nojekyll and add categorized research/video materials to README\nb0385aa19bfe2156287ce5956f37bc72f63560ab\t2026-07-11\tAdd research documents and visualizations to images/ and research/ folders\ncc39d2ddd2431c4788181e3e7051a1360aa8c864\t2026-07-02\tDelete research/theoretical-mathematics/golden-harmonics/Quotes.pdf\nbd2a0ec1a5c73318b94ca1ef55054c90df2560b4\t2026-07-02\tDelete research/theoretical-mathematics/geometric-routing-hopf/Tagging_SOP.docx\n08a39a39f0e55e71a6f61fe7fa6d96095ab118d8\t2026-07-02\tDelete research/theoretical-mathematics/geometric-routing-hopf/Tagging_SOP (1).docx\nb65ea00c8294671c74b4d4a97604e3380b6c0282\t2026-07-02\tDelete research/theoretical-mathematics/geometric-routing-hopf/Cigna Enhanced PPO Benefit Summary.pdf\n1b3eeaae31f55bebc8c674006186c03bc1ae84a0\t2026-07-02\tDelete research/theoretical-mathematics/geometric-routing-hopf/Cigna DMO Benefit Summary.pdf\n7629f159129aee180e95b854ddf5d2e2dc8a57ed\t2026-07-02\tDelete research/theoretical-mathematics/geometric-routing-hopf/BCBS Corporate PPO Plan SBC.pdf\n31075cfba86a6ac6788796aab2901fc832df6e69\t2026-07-02\tDelete research/theoretical-mathematics/geometric-routing-hopf/BCBS Corporate Consumer Choice Plus Plan SBC.pdf\n29a6c7c2f3d57446f01a621ed9bb81bdc8e5041f\t2026-07-02\tDelete research/theoretical-mathematics/geometric-routing-hopf/BCBS Corporate Consumer Choice Plan SBC.pdf\n21b3640a3ba8774920b71d12d2cbf1f4975f318c\t2026-07-02\tDelete research/theoretical-mathematics/geometric-routing-hopf/Azure PROD Big Board.pdf\nf22433d31852eadcc96c96649047b9510e2d3445\t2026-07-02\tDelete research/theoretical-mathematics/geometric-routing-hopf/Azure PROD Big Board (1).pdf\n4f865e5a2b33d2ad0c2c66f6ea7cfa4abc4e5298\t2026-07-02\tDelete research/theoretical-mathematics/geometric-routing-hopf/Cigna PPO Benefit Summary.pdf\n6f687a2e5ef7a4bb904d3171fd73ef83b54814b9\t2026-07-02\tDelete research/published-manuscripts/research-history-exports/Formatted-Conversations directory\n7647475adcd768e6a6b1737c3ad7ae2713c833a9\t2026-07-02\tDelete research/published-manuscripts/reference-materials directory\ncb56ab8c023365dee094e2c515f4e292a650a19c\t2026-07-02\tUpdate README to remove obsolete entries\nbe9423832af5e992f08e9590f2f291f9bdd64dfd\t2026-07-02\tDelete research/theoretical-mathematics/metatron-engine directory\nd8df8ecbc7381004dacadbbf0b8bfa350df79822\t2026-07-02\tUpload filtered mathematical and AI research documents\n54c30f8dabc330386c8f659c37a6fb0a4c723811\t2026-07-02\tAdd broader research context and timeline to README\n4383495b92b2e01cccf22b062184eb4cf0f36410\t2026-07-02\tRemove trailing newline from .gitignore\n7239d9f5ff2dcd28c23ff9e85d8722a24310b14e\t2026-07-02\tFix GitHub Pages deploy: rename files with parentheses, add .gitignore\nc14a2ecc4033da16ad029df789f48d3514883089\t2026-07-02\tAdd standalone webapp simulations and update README\n95e7eec77a4b50b7341504b1a410cb637664c7c0\t2026-07-02\tAdd embedded YouTube video links to README\ne434e09e3a9046fa707361be296c3f0f4e1dcc2e\t2026-07-02\tSync new files from local folders into repo\n2a4a63d9bfd434f0178b048332ead5ff5fde8aa3\t2026-07-02\tRestructure repository: separate images and research files, add AI-friendly README\ndb0a332b8ed2fea01dbe13e76b6d7d3a9babb1f1\t2026-07-02\tInitial commit of Prime Analysis files and photos\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "1280\t31\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "16c77c973b9d0caff4a379542b2c5ebf6c71f53c",
+    "sample_ref": "refs/remotes/origin/claude/cloud-handoff-20260928",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 16c77c973b9d0caff4a379542b2c5ebf6c71f53c\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "16c77c973b9d0caff4a379542b2c5ebf6c71f53c\t2026-09-28\tCloud lab track handoff: HANDOFF.md and the sandbox's unique text work\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "43\t1\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "8eb9cdaac00cd382c09a3c3e41d89a5f6c1e6591",
+    "sample_ref": "refs/remotes/origin/codex/compiled-relative-query-20260924",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ a4cafaecea0890bfef0df3699962740a1125c0ad\n+ 9a58d18eeb0bf0d7ac240e8e5bbe0eb449db4fc4\n+ 0dc187f2b116c5dc8c16a5acfa91b9623fd457b7\n+ 1f47c64db06f69a32d2c5d6ba775b262c4558579\n+ 59b5543cad9f822e8d5e4ccf9584298f97285842\n+ a90887121295e30850116cccedbda32ca10c18cb\n+ 282c867dabff165b3cb0c3848c8dbe4742ef64d2\n+ f82f02f3b18edbea50cc9dac20c87e6da4bd65cc\n+ 41cfc8e4dd6fdc2668b90f3739455d5aaf29c881\n+ 8eb9cdaac00cd382c09a3c3e41d89a5f6c1e6591\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "8eb9cdaac00cd382c09a3c3e41d89a5f6c1e6591\t2026-09-23\tMeasure small and long paths as well as the favorable large-candidate case\n41cfc8e4dd6fdc2668b90f3739455d5aaf29c881\t2026-09-23\tBound scoped CI checkout and retain genuine execution evidence\nf82f02f3b18edbea50cc9dac20c87e6da4bd65cc\t2026-09-23\tAdd allocation and learned-label controls; apply verified Rust formatting\n282c867dabff165b3cb0c3848c8dbe4742ef64d2\t2026-09-23\tUse one compiled inverse frame per relative-selection query\na90887121295e30850116cccedbda32ca10c18cb\t2026-09-23\tCompile learned Q8 paths with exact prefix-overflow domain and inverse-query selection\n59b5543cad9f822e8d5e4ccf9584298f97285842\t2026-09-23\tTest compiled relative selection against sequential actions and integer edge cases\n1f47c64db06f69a32d2c5d6ba775b262c4558579\t2026-09-23\tExpose compiled-path interface without changing the existing selector\n0dc187f2b116c5dc8c16a5acfa91b9623fd457b7\t2026-09-23\tDefine compiled-query interface for failing behavioral tests\n9a58d18eeb0bf0d7ac240e8e5bbe0eb449db4fc4\t2026-09-23\tRecord bounded relative-query optimization and offline-device boundary\na4cafaecea0890bfef0df3699962740a1125c0ad\t2026-09-23\tAdd focused standalone Rust verification for relative-query compilation\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "115\t10\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "a730babcecb8d699775029a496cc7947c2d50f0a",
+    "sample_ref": "refs/remotes/origin/codex/dialogue-code-choice-isolated-20260927",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ d0844ba0c1e7a22803c18767796336bfb8ab376e\n+ 013f2c1c6142c33a02d8fbac54b4734fcc533d49\n+ 558aedf7c572550c22fff5cd0df1c2241ff59977\n+ e75acd94281a4bfff99ece8e5228ea76a1647265\n+ 84c2c40fb76d1f957e434e5975ea00245314a004\n+ c97a1e3b324868271744cf37f7c2a41a1ba24ead\n+ b9bea957df86c27f8a94bca966c15e27eb1b854d\n+ 1c3a5ed4e3292732bb46b9c6369328377cb32c2d\n+ 0607b43be68c67de001c8793012698ca7be39e6c\n+ 03bfaaf5f3bbd71827433966651bdc117b469114\n+ e5efafb8fadac7ab55258eff3dffd503833e48f0\n+ c626568f072d6d2bc0d78d52ec35ca7d69cd34d9\n+ 34964512fd092a639000f8c4061bc0b8f41b862a\n+ fd22d207de001de3da0ab994ae0256bd903aabfa\n+ 666f49adeac99030bc19b24c6aea47da337118db\n+ 815a874ea57dffe634557264cd1880876d0ec1f6\n+ b49a2810a5238a16880f9cb726d96d1ba1f18624\n+ 88b4d825a5a4ced0ade603d8ac07f0154e4ba8e1\n+ f807f84e00aacce5e56c643a3e2724e41f562fc7\n+ 1f302fe4cebf72ba083e206daf2dc29c82eb1615\n+ a730babcecb8d699775029a496cc7947c2d50f0a\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "a730babcecb8d699775029a496cc7947c2d50f0a\t2026-09-27\tPreserve the 231-update dialogue checkpoint and resource stop\n1f302fe4cebf72ba083e206daf2dc29c82eb1615\t2026-09-27\tClarify native lab authority and reconcile completed results\nf807f84e00aacce5e56c643a3e2724e41f562fc7\t2026-09-27\tRecord sequential dialogue objective and memory evidence\n88b4d825a5a4ced0ade603d8ac07f0154e4ba8e1\t2026-09-27\tfix: supply missing end_weight field in radial-startup example and clean campaign warnings\nb49a2810a5238a16880f9cb726d96d1ba1f18624\t2026-09-27\tstyle: format dialogue_learning.rs load signature\n815a874ea57dffe634557264cd1880876d0ec1f6\t2026-09-27\tSerialize dialogue alpha shards and release intermediate graphs\n666f49adeac99030bc19b24c6aea47da337118db\t2026-09-27\tPreserve interrupted code-choice fit and select memory correction\nfd22d207de001de3da0ab994ae0256bd903aabfa\t2026-09-27\tRecord validated code-choice path and prospective response fit\n34964512fd092a639000f8c4061bc0b8f41b862a\t2026-09-27\tMake learned-code shape rejection fixture change the actual shape\nc626568f072d6d2bc0d78d52ec35ca7d69cd34d9\t2026-09-27\tAdd response-aware legal code learning for the selected dialogue child\ne5efafb8fadac7ab55258eff3dffd503833e48f0\t2026-09-27\tRecord selected dialogue child native retention result\n03bfaaf5f3bbd71827433966651bdc117b469114\t2026-09-27\tBind and export the selected continuous dialogue child\n0607b43be68c67de001c8793012698ca7be39e6c\t2026-09-27\tRecord packed runtime behavior and storage comparison\n1c3a5ed4e3292732bb46b9c6369328377cb32c2d\t2026-09-27\tRecord paired dialogue result and actual native integer observation\nb9bea957df86c27f8a94bca966c15e27eb1b854d\t2026-09-27\tGroup iterator expression in observation metadata JSON\nc97a1e3b324868271744cf37f7c2a41a1ba24ead\t2026-09-27\tObserve retained dialogue across continuous, packed and native integer forms\n84c2c40fb76d1f957e434e5975ea00245314a004\t2026-09-27\tRecord native dialogue576 preparation and fixed recovery state\ne75acd94281a4bfff99ece8e5228ea76a1647265\t2026-09-27\tSeal failed native dialogue576 packaging attempts\n558aedf7c572550c22fff5cd0df1c2241ff59977\t2026-09-27\tAdd explicit native dialogue576 integer development profile\n013f2c1c6142c33a02d8fbac54b4734fcc533d49\t2026-09-27\tRecord packed runtime preparation and pending loaded comparison\nd0844ba0c1e7a22803c18767796336bfb8ab376e\t2026-09-27\tRead shared packed coefficients directly in integer kernels\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "66\t22\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "36575fdcfc60554fa874aebe8a91b696d290a704",
+    "sample_ref": "refs/remotes/origin/codex/ordinary-lexical-decisive-audit",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ aca2fb39ef222fd1e7ceb0295ca51caaf727f926\n+ 1450901ba5b38f06093b7cf9c08c4a62094b4e5d\n+ 36575fdcfc60554fa874aebe8a91b696d290a704\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "36575fdcfc60554fa874aebe8a91b696d290a704\t2026-09-23\tFix evidence JSON delimiter\n1450901ba5b38f06093b7cf9c08c4a62094b4e5d\t2026-09-23\tDisclose the event-channel difference in the local-channel comparator\naca2fb39ef222fd1e7ceb0295ca51caaf727f926\t2026-09-23\tAudit the ordinary/grounded lexical artifact in a fresh process (References #820)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "132\t3\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "f9da5f38c05739058fd0cc8dbc9724686410ca21",
+    "sample_ref": "refs/remotes/origin/copilot/fix-width-newtypes-serialization",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "- ff54edaa367ad1621aa27aac6fbcba2f5980d7c8\n+ f9da5f38c05739058fd0cc8dbc9724686410ca21\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "f9da5f38c05739058fd0cc8dbc9724686410ca21\t2026-07-22\tfix: eliminate usize at router wasm/JSON serialization boundaries\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "1052\t2\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "e4de206ab0f0a6dc6371074fe18bcf1cfbaee29e",
+    "sample_ref": "refs/remotes/origin/copilot/scoring-redesign-correlated-residual-stacking",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "- cf105f01e92ef9e463d2e3876a8be0999873ac77\n+ e4de206ab0f0a6dc6371074fe18bcf1cfbaee29e\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "e4de206ab0f0a6dc6371074fe18bcf1cfbaee29e\t2026-07-23\tscoring redesign: add score_candidates_legacy and sibling-stacking test (issue #64)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "1029\t2\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "4933f0d19bd7111a1bbbcbeb99e3c4d201014a91",
+    "sample_ref": "refs/remotes/origin/copilot/uor-64-f-emissions-ablation",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "- d0271f87be19df2c1b4dd10a1e88f79bcfcfc57b\n+ 4933f0d19bd7111a1bbbcbeb99e3c4d201014a91\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "4933f0d19bd7111a1bbbcbeb99e3c4d201014a91\t2026-07-23\tDrop \u0394T offset after F-emissions ablation\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "1029\t2\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "143c2dff708f717d638d1cddff50cf59965c200c",
+    "sample_ref": "refs/remotes/origin/copilot/uor-foundation-add-one-vs-smoothing-comparison",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "- 5b55f869fb77fa1892540e762a89c286ac24110e\n+ 143c2dff708f717d638d1cddff50cf59965c200c\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "143c2dff708f717d638d1cddff50cf59965c200c\t2026-07-23\tApply remaining changes\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "1021\t2\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "e7d963142914bc95503a633ed4bd19a43f507a1b",
+    "sample_ref": "refs/remotes/origin/copilot/uor-foundationuor-r4-64-chain-telescoped",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "- ee9d9ef20caff4b0068cb86798bd5870536e69f4\n+ e7d963142914bc95503a633ed4bd19a43f507a1b\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "e7d963142914bc95503a633ed4bd19a43f507a1b\t2026-07-23\tFix scoring redesign: add score_candidates_legacy, sibling double-counting test, Gate C comparison, and canonical bits/token documentation\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "1029\t2\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "260440b6ca9bc2aa343dfddfc376184cd75f2973",
+    "sample_ref": "refs/remotes/origin/explore-matmul-fixed-a",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 260440b6ca9bc2aa343dfddfc376184cd75f2973\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "260440b6ca9bc2aa343dfddfc376184cd75f2973\t2026-08-20\texplore: track WIP fork matmul (fixed-A #37) instead of the pinned rev\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "533\t1\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "8ca83a2df07ca4f7766462d95fb8f413a055d89b",
+    "sample_ref": "refs/remotes/origin/graph-emission-shrinkage",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 68b6ba8fcf890420d0069f1f4ae8eb7dcae43521\n+ 7fb133c9dbcd804d9003f1ac04ed0e80dac5bb78\n- bd928fe0e00061f30bec0cc50613e2fc19ab415e\n+ 8ca83a2df07ca4f7766462d95fb8f413a055d89b\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "8ca83a2df07ca4f7766462d95fb8f413a055d89b\t2026-08-02\tcertify: test Witten-Bell shrinkage; refutes the sparsity explanation\n7fb133c9dbcd804d9003f1ac04ed0e80dac5bb78\t2026-08-02\tcertify: add probability-ranked emission selection (#364)\n68b6ba8fcf890420d0069f1f4ae8eb7dcae43521\t2026-08-02\tcertify: measure emission selection against likelihood\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "844\t5\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "a501d012a5b0957f1dd5bcede8602ed0a72b8ea2",
+    "sample_ref": "refs/remotes/origin/graph-emissions-followup",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ b69486feb30ed8659862e934fb9315d8ab95111e\n+ 0e92a4b251cc1764e521f162227bada39c72eda7\n- a501d012a5b0957f1dd5bcede8602ed0a72b8ea2\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "0e92a4b251cc1764e521f162227bada39c72eda7\t2026-08-02\tcertify: attribute which source supplies the teacher token\nb69486feb30ed8659862e934fb9315d8ab95111e\t2026-08-02\tcertify: test whether chain selection discards usable evidence\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "849\t3\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "ce088264bc36efa6c9989701de7e4c7e4b5bf785",
+    "sample_ref": "refs/remotes/origin/i446-m2-latent-right",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ b294ceb0eccd68cb459a8a33d02a6e31d2f0d84f\n+ c23430ceeab83cd799dc3b9ba843e3aac6f35eb4\n+ 06218663a84365f41893d47b21b3c44849147a1e\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "06218663a84365f41893d47b21b3c44849147a1e\t2026-08-06\tfeat(certify): #446 M3 \u2014 hard-select and top-k right-class arms plus class predictability\nc23430ceeab83cd799dc3b9ba843e3aac6f35eb4\t2026-08-06\tfix(certify): make latent mixture equation non-executable\nb294ceb0eccd68cb459a8a33d02a6e31d2f0d84f\t2026-08-06\tfeat(certify): #446 M2 \u2014 latent right-context mixture (causally legitimate two-sided structure)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "785\t4\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "275a4e1d70d5e0bd3efafc7fbce26c9412c1fb78",
+    "sample_ref": "refs/remotes/origin/i450-repro-hardening",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "- fe84151f3419a984257c56b9c74f1356c2279adc\n+ 921be670586e74995e586e392edfa852638f243c\n- e492d3d2ad03df50c4863758fc714dd3431709af\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "921be670586e74995e586e392edfa852638f243c\t2026-08-06\tfix(compiler): #451 canonical tie-break in emit_r4g1 emission selection\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "785\t4\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "80b794893f01317365697354713280dbbc62f4b4",
+    "sample_ref": "refs/remotes/origin/issue-264-r4g1-realization",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "- 63cfa8826e663fd2bf4f7f8bc0e626bedb131d8a\n+ 10d1f1b459be9800767746a068a4ee509f3ea7df\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "10d1f1b459be9800767746a068a4ee509f3ea7df\t2026-07-31\tAdd kappa-addressed region objects (#263)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "887\t3\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "042d5fcee6dc811b227b21013437716de31cd0db",
+    "sample_ref": "refs/remotes/origin/issue-74-top-k-teacher-evidence",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ eae4cf66a62211cad09dd496d35b140d7a02b711\n+ a2f6a335f92cfafec5703129554f5727dfe76962\n+ b3289505ad0770397ae5dfb6f28a2989685020a6\n+ 0abbe3ed1aacd599f858a8f4b33f9acefd13db09\n+ f06a8583f007b0785c46d85a2dc2777e0070552f\n+ 042d5fcee6dc811b227b21013437716de31cd0db\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "042d5fcee6dc811b227b21013437716de31cd0db\t2026-07-23\tPotential fix for pull request finding\nf06a8583f007b0785c46d85a2dc2777e0070552f\t2026-07-23\tchore: clarify merged scorer accounting\n0abbe3ed1aacd599f858a8f4b33f9acefd13db09\t2026-07-23\tfeat(compiler): evaluate v4 top-8 observation record format (#74)\nb3289505ad0770397ae5dfb6f28a2989685020a6\t2026-07-23\tfeat(r4g1): implement bounded integer-only repetition control (#79)\na2f6a335f92cfafec5703129554f5727dfe76962\t2026-07-23\tImplement ResolutionStatus behavior in the deployed path\neae4cf66a62211cad09dd496d35b140d7a02b711\t2026-07-23\tAdd Gate C trend tracking workflow (fixes #77)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "1010\t7\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "414951faa1c697032d66b2d4dd534a6775c1c3fa",
+    "sample_ref": "refs/remotes/origin/issue-75-d3-gate-c",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 46d0bf1dc1c6a59771f4158c0cfeaacc5d2f7a28\n+ b2292e5fdda04c3bc9d85dcac2491f2c2de6c102\n- 1751f59e94c01e3f3150a105aa2f8bf5b503cc35\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "b2292e5fdda04c3bc9d85dcac2491f2c2de6c102\t2026-07-22\tResolutionStatus-driven behavior in the deployed path (issue #78)\n46d0bf1dc1c6a59771f4158c0cfeaacc5d2f7a28\t2026-07-22\tAdd from-text observation driver (issue #72)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "1006\t6\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "ee8a3eb9279cd25aff59730fef5c6d2c5d4ddcd2",
+    "sample_ref": "refs/remotes/origin/issue-77-ci-gate-c-trend",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 410834be95a2cc18137bc20a131175620291ba13\n+ 6913d3f00bd4ae8c01a96d1150a6a62c83d1e286\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "6913d3f00bd4ae8c01a96d1150a6a62c83d1e286\t2026-07-23\tfix: exclude cucumber BDD binary from nextest; run it via cargo test\n410834be95a2cc18137bc20a131175620291ba13\t2026-07-22\tAdd Gate C trend tracking workflow (fixes #77)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "1013\t3\n",
+      "stderr": ""
+    }
+  },
+  {
+    "sha": "d270b6f6f98f7fa60315718349f479d348bba503",
+    "sample_ref": "refs/remotes/origin/issue-78-resolution-status",
+    "cherry": {
+      "exit_code": 0,
+      "stdout": "+ 410834be95a2cc18137bc20a131175620291ba13\n+ d270b6f6f98f7fa60315718349f479d348bba503\n",
+      "stderr": ""
+    },
+    "unique_log": {
+      "exit_code": 0,
+      "stdout": "d270b6f6f98f7fa60315718349f479d348bba503\t2026-07-22\tImplement ResolutionStatus behavior in the deployed path\n410834be95a2cc18137bc20a131175620291ba13\t2026-07-22\tAdd Gate C trend tracking workflow (fixes #77)\n",
+      "stderr": ""
+    },
+    "ancestry_counts": {
+      "exit_code": 0,
+      "stdout": "1016\t2\n",
+      "stderr": ""
+    }
+  }
+]

@@ -1,0 +1,82 @@
+   Compiling bitflags v2.13.1
+   Compiling objc2 v0.6.4
+   Compiling sysctl v0.6.0
+   Compiling raw-cpuid v11.6.0
+   Compiling objc2-encode v4.1.0
+   Compiling gemm-common v0.19.0
+   Compiling block2 v0.6.2
+   Compiling objc2-core-foundation v0.3.2
+   Compiling gemm-f32 v0.19.0
+   Compiling objc2-foundation v0.3.2
+   Compiling dispatch2 v0.3.1
+   Compiling gemm-f16 v0.19.0
+   Compiling gemm-c64 v0.19.0
+   Compiling gemm-f64 v0.19.0
+   Compiling gemm-c32 v0.19.0
+   Compiling gemm v0.19.0
+warning: method `position` is never used
+   --> crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs:175:8
+    |
+168 | impl ObservedSpan {
+    | ----------------- method in this implementation
+...
+175 |     fn position(&self) -> (u32, u32, usize) {
+    |        ^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `example` is never used
+    --> crates/uor-r4-core/src/native_geometric/learner/transferable_lexical.rs:1590:8
+     |
+1405 | impl TlTrainer {
+     | -------------- method in this implementation
+...
+1590 |     fn example(&self, q: &TlQuant, ex: &TlExample) -> TlGrads {
+     |        ^^^^^^^
+
+warning: `uor-r4-core` (lib) generated 2 warnings
+   Compiling objc2-metal v0.3.2
+   Compiling candle-metal-kernels v0.9.2
+   Compiling candle-core v0.9.2 (/Users/casey.allard/.codex/worktrees/track-b-conversion/uor-r4/third_party/candle-core-0.9.2)
+   Compiling candle-nn v0.9.2
+   Compiling candle-transformers v0.9.2
+   Compiling uor-r4-training v0.1.0 (/Users/casey.allard/.codex/worktrees/track-b-conversion/uor-r4/crates/uor-r4-training)
+    Finished `test` profile [unoptimized] target(s) in 1m 15s
+     Running unittests src/lib.rs (/Users/casey.allard/.cache/uor-r4-track-b-direct/target/debug/deps/uor_r4_training-99a34e4aa4f70993)
+
+running 1 test
+test track_b::harmonics::tests::distributed_antipodal_scores_preserve_measured_floor_metal ... FAILED
+
+failures:
+
+---- track_b::harmonics::tests::distributed_antipodal_scores_preserve_measured_floor_metal stdout ----
+
+thread 'track_b::harmonics::tests::distributed_antipodal_scores_preserve_measured_floor_metal' (2813699) panicked at crates/uor-r4-training/src/track_b/harmonics.rs:639:21:
+floor error d=32,L=3,perturb=0.01: actual=0.0000015497062122449279,expected=0.0000010000000117348499
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    track_b::harmonics::tests::distributed_antipodal_scores_preserve_measured_floor_metal
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 358 filtered out; finished in 0.64s
+
+error: test failed, to rerun pass `-p uor-r4-training --lib`
+       77.09 real        94.68 user         4.41 sys
+          1294893056  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+              764242  page reclaims
+               16012  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                  24  signals received
+                2967  voluntary context switches
+              118459  involuntary context switches
+          2182350268  instructions retired
+          1113275803  cycles elapsed
+            59523816  peak memory footprint

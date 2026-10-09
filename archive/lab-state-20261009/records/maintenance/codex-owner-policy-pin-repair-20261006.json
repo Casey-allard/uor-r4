@@ -1,0 +1,21 @@
+{
+  "schema": "uor-r4.owner-authorized-policy-pointer-repair/1",
+  "session": "codex-durable-20260929-root",
+  "authority": "Owner directly requested: repair the policy pin you have, deepseek and claude managed to fix theirs",
+  "previous_head": "7bc2af583928c501967511fa5bf1ff70e4a8ee99",
+  "previous_policy_sha": "ba266ad44f21c9df2dafa9d56a1e2051c1565d91",
+  "policy_sha": "e445ee94657311ae158edfab292f2c58cd4f5b24",
+  "observed_utc_epoch": 1791262054,
+  "basis": "Merged #1758 current-policy content and merged #1788 migration record. No policy content is changed. Owner newer exact-head/manual fallback direction supersedes older council delivery prerequisites. Normal AdoptPolicy is deadlocked by an orphan reserved attempt; no exit or council evidence fabricated.",
+  "changed_fields": [
+    "policy_sha",
+    "sequence",
+    "observed_server_time"
+  ],
+  "preserved": "All labs, tasks, attempts including opencode-b0-flock-g1a2-20260930-g2 are exactly retained; orphan remains reserved for owner lab reconciliation.",
+  "guard_check": {
+    "files": 52,
+    "guarded_files": [],
+    "status": "ahead"
+  }
+}

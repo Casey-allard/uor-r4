@@ -1,0 +1,85 @@
+{
+  "event_id": "99890d9c-44dd-4ae6-b36b-16e761b1b464",
+  "op": "reserve",
+  "issue": 1536,
+  "session": "codex-durable-20260929-root",
+  "epoch": 2,
+  "attempt": "codex-memory-admission-checks-20260930-a",
+  "host": "host-284b64fb2f70567aee465dc4941430076137e580d19d9568b15726d14b157cec",
+  "runner_root": "/Users/casey.allard/.local/share/uor-r4/runner",
+  "spec": {
+    "schema": "uor-r4.lab-runner-job/1",
+    "id": "codex-memory-admission-checks-20260930-a",
+    "lab": "Codex",
+    "cwd": "/Users/casey.allard/uor-r4-worktrees/runner-small-validation",
+    "argv": [
+      "/bin/bash",
+      "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/memory-admission-checks.sh"
+    ],
+    "env": {
+      "CARGO_BUILD_JOBS": "2",
+      "CARGO_INCREMENTAL": "0",
+      "CARGO_TARGET_DIR": "/Users/casey.allard/.cache/uor-r4-lab-system/target"
+    },
+    "threads": 2,
+    "rss_gib": 2.0,
+    "gpu": false,
+    "wall_s": 600,
+    "stop_grace_ms": 250,
+    "kill_criterion": {
+      "kind": "wall",
+      "value": ""
+    },
+    "exclusive": true,
+    "cargo": true,
+    "storage": [
+      {
+        "volume": "internal",
+        "additional_bytes": 1073741824,
+        "checkpoint_bytes": 0
+      },
+      {
+        "volume": "workspace",
+        "additional_bytes": 0,
+        "checkpoint_bytes": 0
+      },
+      {
+        "volume": "backing",
+        "additional_bytes": 0,
+        "checkpoint_bytes": 0
+      }
+    ],
+    "coordination": {
+      "issue": 1536,
+      "session": "codex-durable-20260929-root",
+      "epoch": 2,
+      "work_card": "sha256:ee4ea3fb6ea16722a83d67f2bffe5731552465dc44a4a824afc14a187afe3baf",
+      "attempt_id": "codex-memory-admission-checks-20260930-a"
+    },
+    "provenance": {
+      "source_sha": "604eae9333a4e29efe5a902d241d25bc40d556c1",
+      "executable": {
+        "path": "/bin/bash",
+        "sha256": "21f1b686feca123f2c575296d6f8b8277a2695f7a06e3b1c1b154a0f21f68141"
+      },
+      "inputs": [
+        {
+          "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/memory-admission-checks.sh",
+          "sha256": "45b427a5268270520fae94a9c610097fe63888e5a1451cf2d7ff8770a59300c7"
+        },
+        {
+          "path": "/Users/casey.allard/uor-r4-worktrees/runner-small-validation/Cargo.lock",
+          "sha256": "e11b98bf00374dbc6b9e42da56647c51fc8c5e782eddf3ed031c855997146c32"
+        },
+        {
+          "path": "/Users/casey.allard/uor-r4-worktrees/runner-small-validation/rust-toolchain.toml",
+          "sha256": "0a4b55522951f5475fcdd9ebcbfbbe650bfac272e8baff599585f0e8a120d5ee"
+        },
+        {
+          "path": "/Users/casey.allard/uor-r4-worktrees/runner-small-validation/tools/lab-runner/src/host.rs",
+          "sha256": "3afab2332eea69b794a0bc0e946779186471e5721a079483f0391da33b64de4f"
+        }
+      ]
+    }
+  }
+}

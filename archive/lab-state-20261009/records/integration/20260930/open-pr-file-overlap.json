@@ -1,0 +1,195 @@
+[
+  {
+    "pr1": 1526,
+    "pr2": 1527,
+    "paths": [
+      "crates/uor-r4-training/src/lib.rs"
+    ]
+  },
+  {
+    "pr1": 1521,
+    "pr2": 1527,
+    "paths": [
+      "docs/integration/current-state.md"
+    ]
+  },
+  {
+    "pr1": 1521,
+    "pr2": 1526,
+    "paths": [
+      "Cargo.lock"
+    ]
+  },
+  {
+    "pr1": 1521,
+    "pr2": 1522,
+    "paths": [
+      "docs/integration/DECISIONS.md"
+    ]
+  },
+  {
+    "pr1": 1519,
+    "pr2": 1527,
+    "paths": [
+      "crates/uor-r4-training/src/bin/s2-behavior-codec.rs",
+      "crates/uor-r4-training/src/bin/s2-behavior-distortion.rs",
+      "crates/uor-r4-training/src/d4_codecs.rs",
+      "crates/uor-r4-training/src/lib.rs",
+      "crates/uor-r4-training/src/stack_export.rs",
+      "crates/uor-r4-training/tests/d4_map_codec_adapter.rs",
+      "docs/evidence/d4-geometric-s1-qat-2026-09-29.json",
+      "docs/evidence/d4-s2-dialogue-qat-2026-09-29.json",
+      "docs/integration/current-state.md",
+      "docs/integration/d4-geometric-s1-qat-result-2026-09-29.md",
+      "docs/integration/d4-qat-representation-plan-2026-09-29.md",
+      "docs/integration/d4-s2-dialogue-qat-result-2026-09-29.md"
+    ]
+  },
+  {
+    "pr1": 1519,
+    "pr2": 1526,
+    "paths": [
+      "Cargo.lock",
+      "crates/uor-r4-training/Cargo.toml",
+      "crates/uor-r4-training/src/lib.rs"
+    ]
+  },
+  {
+    "pr1": 1519,
+    "pr2": 1521,
+    "paths": [
+      "Cargo.lock",
+      "docs/integration/current-state.md"
+    ]
+  },
+  {
+    "pr1": 1518,
+    "pr2": 1527,
+    "paths": [
+      "crates/uor-r4-training/src/lib.rs",
+      "docs/integration/current-state.md"
+    ]
+  },
+  {
+    "pr1": 1518,
+    "pr2": 1526,
+    "paths": [
+      "Cargo.lock",
+      "crates/uor-r4-training/Cargo.toml",
+      "crates/uor-r4-training/src/lib.rs"
+    ]
+  },
+  {
+    "pr1": 1518,
+    "pr2": 1521,
+    "paths": [
+      "Cargo.lock",
+      "STATUS.md",
+      "docs/integration/current-state.md"
+    ]
+  },
+  {
+    "pr1": 1518,
+    "pr2": 1519,
+    "paths": [
+      "Cargo.lock",
+      "crates/uor-r4-training/Cargo.toml",
+      "crates/uor-r4-training/src/lib.rs",
+      "docs/integration/current-state.md"
+    ]
+  },
+  {
+    "pr1": 1506,
+    "pr2": 1528,
+    "paths": [
+      "crates/uor-r4-integer/src/stack/kernels.rs",
+      "crates/uor-r4-integer/src/stack/mod.rs",
+      "crates/uor-r4-integer/src/stack/tests.rs"
+    ]
+  },
+  {
+    "pr1": 1506,
+    "pr2": 1527,
+    "paths": [
+      "crates/uor-r4-training/src/lib.rs",
+      "crates/uor-r4-training/src/stack_export.rs"
+    ]
+  },
+  {
+    "pr1": 1506,
+    "pr2": 1526,
+    "paths": [
+      "crates/uor-r4-training/src/geometric_stack.rs",
+      "crates/uor-r4-training/src/lib.rs"
+    ]
+  },
+  {
+    "pr1": 1506,
+    "pr2": 1519,
+    "paths": [
+      "crates/uor-r4-training/src/lib.rs",
+      "crates/uor-r4-training/src/stack_export.rs"
+    ]
+  },
+  {
+    "pr1": 1506,
+    "pr2": 1518,
+    "paths": [
+      "crates/uor-r4-training/src/lib.rs"
+    ]
+  },
+  {
+    "pr1": 1490,
+    "pr2": 1527,
+    "paths": [
+      "crates/uor-r4-training/src/d4_codecs.rs",
+      "crates/uor-r4-training/src/lib.rs",
+      "crates/uor-r4-training/src/stack_export.rs",
+      "crates/uor-r4-training/tests/d4_map_codec_adapter.rs",
+      "docs/integration/current-state.md",
+      "docs/integration/d4-qat-representation-plan-2026-09-29.md"
+    ]
+  },
+  {
+    "pr1": 1490,
+    "pr2": 1526,
+    "paths": [
+      "crates/uor-r4-training/src/lib.rs"
+    ]
+  },
+  {
+    "pr1": 1490,
+    "pr2": 1521,
+    "paths": [
+      "docs/integration/current-state.md"
+    ]
+  },
+  {
+    "pr1": 1490,
+    "pr2": 1519,
+    "paths": [
+      "crates/uor-r4-training/src/d4_codecs.rs",
+      "crates/uor-r4-training/src/lib.rs",
+      "crates/uor-r4-training/src/stack_export.rs",
+      "crates/uor-r4-training/tests/d4_map_codec_adapter.rs",
+      "docs/integration/current-state.md",
+      "docs/integration/d4-qat-representation-plan-2026-09-29.md"
+    ]
+  },
+  {
+    "pr1": 1490,
+    "pr2": 1518,
+    "paths": [
+      "crates/uor-r4-training/src/lib.rs",
+      "docs/integration/current-state.md"
+    ]
+  },
+  {
+    "pr1": 1490,
+    "pr2": 1506,
+    "paths": [
+      "crates/uor-r4-training/src/lib.rs",
+      "crates/uor-r4-training/src/stack_export.rs"
+    ]
+  }
+]

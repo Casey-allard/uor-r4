@@ -1,0 +1,14 @@
+{
+  "schema": "uor-r4.resource-charge/1",
+  "event_id": "recovery-integration-20260930-continuation-cutoff10",
+  "recorded_utc": "2026-09-30T06:40:39.815700+00:00",
+  "lab": "Codex durable lab implementation",
+  "adjustment_ms": 404929,
+  "accounting": {
+    "category": "preparation",
+    "measurement": "estimated",
+    "correction_of": null
+  },
+  "authority": "Owner continuing goal and Codex contributor role; standing cumulative allowance.",
+  "rationale": "Nonoverlapping preparation wall since cutoff9: full1538 source/caller review and two small retained evidence-file hash/object checks; bounded storage metadata/lsof audit; two-hour exact incremental-cache candidate notice. No Cargo/model/GPU or deletions. About5MiB new text/metadata manifests; existing cumulative allowance."
+}

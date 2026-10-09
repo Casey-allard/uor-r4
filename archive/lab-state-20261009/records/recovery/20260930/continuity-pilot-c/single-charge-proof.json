@@ -1,0 +1,23 @@
+[
+  {
+    "path": "/Users/casey.allard/.local/share/uor-r4/ledger/charge-v2-76a5e0157024f199ab5c669e3c5172913a4439a2a478945772e5d722b70f8dd2.json",
+    "sha256": "6f380a67b8b77cffb81e62f10edcbf1be1409a81532d620536028bc19d0ca445",
+    "record": {
+      "schema": "uor-r4.model-time-charge/2",
+      "event_id": "76a5e0157024f199ab5c669e3c5172913a4439a2a478945772e5d722b70f8dd2",
+      "recorded_utc": "2026-09-30T03:39:23Z",
+      "lab": "Codex",
+      "job_id": "continuity-pilot-20260930-c",
+      "attempt_id": "continuity-pilot-20260930-c",
+      "charged_ms": 95226,
+      "wall_s": 120,
+      "outcome": "completed",
+      "runner": "lab-runner",
+      "accounting": {
+        "category": "job_execution",
+        "measurement": "measured",
+        "correction_of": null
+      }
+    }
+  }
+]

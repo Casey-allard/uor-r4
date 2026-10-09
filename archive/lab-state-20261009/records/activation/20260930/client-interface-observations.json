@@ -1,0 +1,45 @@
+{
+  "observed_utc": "2026-09-30T03:53:57.644873+00:00",
+  "interfaces": {
+    "codex": {
+      "path": "/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex",
+      "exists": true,
+      "provider_request": false,
+      "new_session_started": false,
+      "help_exit": 0,
+      "help_sha256": "4a7f0188d4d6e6d812c5cfbcf82468336b899acd5e437de7450421a403c0071e",
+      "resume_documented": true,
+      "help_scope": "local CLI usage; no authentication/project/continuation handshake"
+    },
+    "claude": {
+      "path": "/Users/casey.allard/Library/Application Support/Claude/claude-code/2.1.284/claude.app/Contents/MacOS/claude",
+      "exists": true,
+      "provider_request": false,
+      "new_session_started": false,
+      "help_exit": 0,
+      "help_sha256": "f12192d0e60545166396125ff47163f89bcfe4ed0a976771e7fb9bbf7e1ca486",
+      "resume_documented": true,
+      "help_scope": "local CLI usage; no authentication/project/continuation handshake"
+    },
+    "antigravity": {
+      "path": "/Users/casey.allard/.antigravity-ide/antigravity-ide/bin/antigravity-ide",
+      "exists": false,
+      "wrapper_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "help_executed": false,
+      "reason": "IDE wrapper read-only inspection; project/auth/result/continuation handshake not established",
+      "provider_request": false,
+      "new_session_started": false
+    },
+    "opencode": {
+      "desktop_binary": "/Applications/OpenCode.app/Contents/MacOS/OpenCode",
+      "on_path_cli": false,
+      "candidate_paths": [
+        "/Applications/OpenCode.app/Contents/MacOS/OpenCode"
+      ],
+      "status": "MANUAL_RESUME; unattended adapter UNVERIFIED",
+      "provider_request": false,
+      "new_session_started": false,
+      "candidate_scope": "Installed executable names only; GUI binary does not prove a CLI adapter."
+    }
+  }
+}

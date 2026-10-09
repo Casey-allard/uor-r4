@@ -1,0 +1,14 @@
+{
+  "schema": "uor-r4.resource-charge/1",
+  "event_id": "recovery-integration-20260930-continuation-cutoff18",
+  "recorded_utc": "2026-09-30T07:39:01.251677+00:00",
+  "lab": "Codex durable lab implementation",
+  "adjustment_ms": 723089,
+  "accounting": {
+    "category": "preparation",
+    "measurement": "estimated",
+    "correction_of": null
+  },
+  "authority": "Owner continuing goal and Codex contributor role; standing cumulative allowance.",
+  "rationale": "Estimated nonoverlapping preparation wall since cutoff17 includes blocker/heartbeat checks and resumed PR1527 source review at 067a5fac, independent review in parallel counted once, two small retained report reads, syntax/diff checks and publication. No Cargo/model/GPU/deletion; under 1 MiB text."
+}

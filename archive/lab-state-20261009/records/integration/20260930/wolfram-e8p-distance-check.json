@@ -1,0 +1,10 @@
+{
+  "scope": "Exact rational distance arithmetic only; source transcription is separate and Rust execution remains NOT_RUN",
+  "source_head": "2c7f9a462a5e4d73426945ad35d596562c4ad381",
+  "query": "With[{y={3/4,3/4,3/4,3/4,3/4,3/4,3/4,-5/4},z={-3/4,1/4,1/4,1/4,1/4,1/4,1/4,-3/4}}, {Total[(y-z)^2],Total[(y-y)^2]}]",
+  "output": [
+    4,
+    0
+  ],
+  "tool": "Wolfram Language evaluator"
+}

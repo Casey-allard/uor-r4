@@ -1,0 +1,33 @@
+model geometry: vocab=49152 hidden=576 layers=30 heads=9 kv_heads=3
+progress: loading Safetensors 0/269060552 (0%, 0s)
+progress: loading Safetensors 269060552/269060552 (100%, 0s)
+progress: loading Safetensors 269060552/269060552 (100%, 0s)
+widening source tensors (BF16/F16/F32) to the compiler teacher layout...
+teacher model ready (κ blake3:12d2cd8a877ef2cdcf785b3d4d1f373e0419074cc884aeaff06fc059686a5ba5, matmul=uor-matmul exact GEMM, exact_workers=2)
+reference position=0 elapsed_s=9.131
+reference position=1 elapsed_s=18.496
+reference position=2 elapsed_s=27.515
+reference position=3 elapsed_s=36.744
+reference position=4 elapsed_s=45.193
+reference position=5 elapsed_s=56.960
+reference position=6 elapsed_s=66.253
+reference position=7 elapsed_s=75.464
+"DIAGNOSTIC_COMPLETE" anchors_match=true; sealed and verified
+       86.03 real       139.10 user         8.61 sys
+          1278197760  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+              354385  page reclaims
+                 712  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                 181  voluntary context switches
+              237782  involuntary context switches
+       1337127143617  instructions retired
+        415936573910  cycles elapsed
+          1409189352  peak memory footprint

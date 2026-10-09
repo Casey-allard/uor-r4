@@ -1,0 +1,71 @@
+{
+  "schema": "uor-r4.startup-freshness/1",
+  "collected_start_utc": "2026-09-30T03:56:42.092749+00:00",
+  "collected_finish_utc": "2026-09-30T03:56:57.379535+00:00",
+  "main_sha": "ba266ad44f21c9df2dafa9d56a1e2051c1565d91",
+  "policy_sha": "ba266ad44f21c9df2dafa9d56a1e2051c1565d91",
+  "operational_sequence": 50,
+  "records": 376,
+  "documents": [
+    "AGENTS.md",
+    "README.md",
+    "STATUS.md",
+    "docs/labs/README.md",
+    "docs/labs/plan-2026-09-29.md",
+    "docs/labs/protocol.md",
+    "docs/labs/operations.md",
+    "docs/labs/adapters.md",
+    "docs/labs/integration-queue.md",
+    "docs/integration/project-track.md",
+    "docs/integration/current-state.md",
+    "docs/integration/DECISIONS.md",
+    "docs/integration/agent-execution-policy.md",
+    "docs/integration/agent-execution-policy.json",
+    "docs/PROJECT_MAP.md",
+    "docs/labs/prompts/join.md",
+    "docs/labs/prompts/codex.md",
+    "docs/labs/prompts/claude.md",
+    "docs/labs/prompts/antigravity.md",
+    "docs/labs/prompts/opencode-deepseek.md"
+  ],
+  "issue_numbers": [
+    820,
+    1508,
+    1509,
+    1510,
+    1511,
+    1512,
+    1513,
+    1515,
+    1520,
+    1525
+  ],
+  "open_pr_numbers": [
+    1532,
+    1531,
+    1528,
+    1527,
+    1526,
+    1519,
+    1518
+  ],
+  "sha256": "a906f7e18c59d2b2702e613e8544bbe62e6932955f1b51000851a3ca3f7d0177",
+  "bytes": 2149106,
+  "coverage_complete": false,
+  "coverage": [
+    "Protected authority documents and five complete goals pinned to exact main source.",
+    "Selected programme/epic/board/recovery issue bodies and all paginated ordinary comments.",
+    "Every open PR returned by paginated REST: body, conversation, submitted reviews and inline review comments.",
+    "Operational state at collected sequence."
+  ],
+  "gaps": [
+    "Not a complete repository/history/all-closed-issue index.",
+    "No binary/model/artifact payloads or private session material.",
+    "No GraphQL resolved-thread state, pending reviews, deleted revisions, check logs or client startup acknowledgments.",
+    "REST collection is a time-bounded nontransactional snapshot; refresh live identities before claims, experiments and delivery."
+  ],
+  "authority": "Rebuildable navigation/index only; GitHub originals, live claims, protected source and artifact-bound receipts remain authoritative.",
+  "compressed_sha256": "44c7c98f1ae23f4668b0c236aaba3cd6f994981386483c2ceb4d6e146775ca93",
+  "compressed_bytes": 495017,
+  "compressed_file": "startup-sources.jsonl.gz"
+}

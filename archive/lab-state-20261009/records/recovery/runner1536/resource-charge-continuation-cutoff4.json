@@ -1,0 +1,14 @@
+{
+  "schema": "uor-r4.resource-charge/1",
+  "event_id": "recovery-integration-20260930-continuation-cutoff4",
+  "recorded_utc": "2026-09-30T05:33:27.945051+00:00",
+  "lab": "Codex durable lab implementation",
+  "adjustment_ms": 1235384,
+  "accounting": {
+    "category": "preparation",
+    "measurement": "estimated",
+    "correction_of": null
+  },
+  "authority": "Owner continuing integration goal and explicit Skrit-Bit review request; existing cumulative allowance.",
+  "rationale": "Nonoverlapping preparation wall envelope since cutoff3 2026-09-30T05:12:52.560482+00:00. Includes runner review/preflight refusal (never_started; no Cargo/model), user-directed external research, PDF/source inspection and expert reviews, finite Wolfram checks, synthesis and GitHub publication preparation. Parallel specialist wall is not added again. Source/renderer working material32MiB. Not model/GPU/compile time or external monetary cost estimate."
+}

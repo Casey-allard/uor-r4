@@ -1,0 +1,29 @@
+{
+  "schema": "uor-r4.opencode-source-fixture/1",
+  "observed_utc": "2026-09-30T04:24:32.595Z",
+  "source_sha256": "e522d513a08d0a6871129dbf3d9c3a79e4871693997fbf34190c4d3fa3d6b4b5",
+  "extracted_source_sha256": "3cd51dd4cef12a358c9ec921241b7902d9489e02a087bf1c2f806769ca97a148",
+  "fixture_sha256": "d4e60325ad506a2c9e202777940db523942fb85d3434f28a081890aa15beec11",
+  "classification": "SOURCE_EXTRACTED_CHAT_HANDLER_WITH_STUB_CONTROLLER",
+  "provider_requests": 0,
+  "live_client_calls": 0,
+  "live_goal_activation_verified": false,
+  "assertions": [
+    {
+      "name": "Ordinary follow-up text replaces objective despite auto_start:false and default_mode.goal:false",
+      "status": "PASS_OBSERVED_LIMITATION"
+    },
+    {
+      "name": "Ordinary text longer than objective limit reaches controller validation",
+      "status": "PASS_OBSERVED_LIMITATION"
+    },
+    {
+      "name": "Native command marker suppresses secondary chat setter",
+      "status": "PASS"
+    }
+  ],
+  "limitations": [
+    "Stub text-part selector and controller; source call-site was separately inspected.",
+    "This demonstrates installed function behavior and does not execute live OpenCode."
+  ]
+}

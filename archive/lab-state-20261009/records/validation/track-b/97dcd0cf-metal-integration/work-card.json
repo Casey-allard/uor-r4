@@ -1,0 +1,18 @@
+{
+  "source": "97dcd0cfab1e08e0e8bf4a32ba2f70ff4ab7b457",
+  "deliverable": "Existing PR1518 integrates merged Metal/checkpoint/core repairs",
+  "causal_change": "Union Cargo features/dependencies from Track B and main; numerical Track B source unchanged",
+  "checks": [
+    "locked offline Metal fixture target with visible device/output evidence",
+    "four existing Track B model interface/gradient tests",
+    "independent exact-merge source review"
+  ],
+  "projection": {
+    "build_threads": 2,
+    "estimated_peak_rss_bytes": 4294967296,
+    "expected_wall_seconds": 600,
+    "new_storage_bytes": 2147483648
+  },
+  "scope": "No model checkpoint forward, training, parity reevaluation or source operator tuning. Estimates guide observation, not forced compiler restarts.",
+  "recorded_utc": "2026-09-30T17:58:59.034280+00:00"
+}

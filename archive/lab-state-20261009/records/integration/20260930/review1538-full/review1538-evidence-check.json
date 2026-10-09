@@ -1,0 +1,18 @@
+{
+  "head": "a00e2fd493067af457701bfc69aac3dc63699385",
+  "root": "/Volumes/UOR-Workspace/uor-r4-lab/s1-4-parity-arm-a-5",
+  "files": {
+    "snap-parity.json": {
+      "expected": "313645996327328adedfee37fd8f3bc78d619ba5e6cd35792ca0966a1342fe6f",
+      "actual": "313645996327328adedfee37fd8f3bc78d619ba5e6cd35792ca0966a1342fe6f",
+      "matched": true
+    },
+    "attempt.json": {
+      "expected": "ddce53b7dc358d8b81142ff074d29235ceb3b39a9e763ba11db5a86793829f04",
+      "actual": "ddce53b7dc358d8b81142ff074d29235ceb3b39a9e763ba11db5a86793829f04",
+      "matched": true
+    }
+  },
+  "kernel_matches": true,
+  "kernel_first_divergence_matches": true
+}

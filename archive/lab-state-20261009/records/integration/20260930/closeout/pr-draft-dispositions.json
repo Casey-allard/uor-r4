@@ -1,0 +1,50 @@
+{
+  "observed_utc": "2026-09-30T03:37:50.468696+00:00",
+  "prs": [
+    {
+      "before": {
+        "headRefOid": "2c7f9a462a5e4d73426945ad35d596562c4ad381",
+        "isDraft": false,
+        "number": 1519,
+        "state": "OPEN"
+      },
+      "after": {
+        "headRefOid": "2c7f9a462a5e4d73426945ad35d596562c4ad381",
+        "isDraft": true,
+        "number": 1519,
+        "state": "OPEN"
+      },
+      "reason": "Required exact-head source/evidence fixes already posted; return ready only after applicable executed checks and independent review."
+    },
+    {
+      "before": {
+        "headRefOid": "99f6c039ebe10df7febf9e375b1222b98968f90f",
+        "isDraft": false,
+        "number": 1526,
+        "state": "OPEN"
+      },
+      "after": {
+        "headRefOid": "99f6c039ebe10df7febf9e375b1222b98968f90f",
+        "isDraft": true,
+        "number": 1526,
+        "state": "OPEN"
+      },
+      "reason": "Required exact-head source/evidence fixes already posted; return ready only after applicable executed checks and independent review."
+    },
+    {
+      "before": {
+        "headRefOid": "190194f21e8990911e62517b54844a23ccf04dc4",
+        "isDraft": false,
+        "number": 1527,
+        "state": "OPEN"
+      },
+      "after": {
+        "headRefOid": "190194f21e8990911e62517b54844a23ccf04dc4",
+        "isDraft": true,
+        "number": 1527,
+        "state": "OPEN"
+      },
+      "reason": "Required exact-head source/evidence fixes already posted; return ready only after applicable executed checks and independent review."
+    }
+  ]
+}

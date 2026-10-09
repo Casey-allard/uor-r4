@@ -1,0 +1,206 @@
+{
+  "links": [
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/.uor-r4-recorded-corpus-producers",
+      "target": "/Volumes/UOR-Workspace/uor-r4-models/.uor-r4-recorded-corpus-producers",
+      "resolves": true
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/backups",
+      "target": "/Volumes/UOR-Workspace/uor-r4-models/backups",
+      "resolves": true
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/causal-continuation-2026-09-24",
+      "target": "/Volumes/UOR-Workspace/uor-r4-models/causal-continuation-2026-09-24",
+      "resolves": true
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/cold-prior-2026-09-19",
+      "target": "/Volumes/UOR-Workspace/uor-r4-models/cold-prior-2026-09-19",
+      "resolves": true
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/compiled",
+      "target": "/Volumes/UOR-Workspace/uor-r4-models/compiled",
+      "resolves": true
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/corpora",
+      "target": "/Volumes/UOR-Workspace/uor-r4-models/corpora",
+      "resolves": true
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/extra_reading",
+      "target": "/Volumes/UOR-Workspace/uor-r4-models/extra_reading",
+      "resolves": true
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations",
+      "target": "/Volumes/UOR-Workspace/uor-r4-models/investigations",
+      "resolves": true
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/issue-933-runs",
+      "target": "/Volumes/UOR-Workspace/uor-r4-models/issue-933-runs",
+      "resolves": true
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/issue-946-candidate",
+      "target": "/Volumes/UOR-Workspace/uor-r4-models/issue-946-candidate",
+      "resolves": true
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/knowledge-import",
+      "target": "/Volumes/UOR-Workspace/uor-r4-models/knowledge-import",
+      "resolves": true
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/manifests",
+      "target": "/Volumes/UOR-Workspace/uor-r4-models/manifests",
+      "resolves": true
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05",
+      "target": "/Volumes/UOR-Workspace/uor-r4-models/native-geometric-composition-2026-09-05",
+      "resolves": true
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-geometric-prose-2026-09-19",
+      "target": "/Volumes/UOR-Workspace/uor-r4-models/native-geometric-prose-2026-09-19",
+      "resolves": true
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-joint-learning-2026-09-04",
+      "target": "/Volumes/UOR-Workspace/uor-r4-models/native-joint-learning-2026-09-04",
+      "resolves": true
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-lowbit-chat-2026-09-19",
+      "target": "/Volumes/UOR-Workspace/uor-r4-models/native-lowbit-chat-2026-09-19",
+      "resolves": true
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-memory-stream-2026-09-05",
+      "target": "/Volumes/UOR-Workspace/uor-r4-models/native-memory-stream-2026-09-05",
+      "resolves": true
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-recovery-2026-09-04",
+      "target": "/Volumes/UOR-Workspace/uor-r4-models/native-recovery-2026-09-04",
+      "resolves": true
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-response-state-2026-09-05",
+      "target": "/Volumes/UOR-Workspace/uor-r4-models/native-response-state-2026-09-05",
+      "resolves": true
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05",
+      "target": "/Volumes/UOR-Workspace/uor-r4-models/native-typed-value-2026-09-05",
+      "resolves": true
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/objects",
+      "target": "/Volumes/UOR-Workspace/uor-r4-models/objects",
+      "resolves": true
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/obs-wiki-360m",
+      "target": "/Volumes/UOR-Workspace/uor-r4-models/obs-wiki-360m",
+      "resolves": true
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/principal-continuation-2026-09-23",
+      "target": "/Volumes/UOR-Workspace/uor-r4-models/principal-continuation-2026-09-23",
+      "resolves": true
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/prior-learning-gate-2026-09-20",
+      "target": "/Volumes/UOR-Workspace/uor-r4-models/prior-learning-gate-2026-09-20",
+      "resolves": true
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20",
+      "target": "/Volumes/UOR-Workspace/uor-r4-models/realtext-prior-2026-09-20",
+      "resolves": true
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/research-evidence",
+      "target": "/Volumes/UOR-Workspace/uor-r4-models/research-evidence",
+      "resolves": true
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/sources",
+      "target": "/Volumes/UOR-Workspace/uor-r4-models/sources",
+      "resolves": true
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/staging",
+      "target": "/Volumes/UOR-Workspace/uor-r4-models/staging",
+      "resolves": true
+    }
+  ],
+  "worktrees": [
+    {
+      "path": "/Volumes/UOR-Workspace/Worktrees/archive-20260929/codex-canonical-address-routing-20260925",
+      "head": "d22e2b50da85e527efcd4f60acc1e82644194b91",
+      "matches": true,
+      "registered_backlink": true
+    },
+    {
+      "path": "/Volumes/UOR-Workspace/Worktrees/archive-20260929/lab1-agent-a3f7497-s1-followups",
+      "head": "3337cd7b8d31a2209cccf2755e5ab9fb9de56e47",
+      "matches": true,
+      "registered_backlink": true
+    },
+    {
+      "path": "/Volumes/UOR-Workspace/Worktrees/archive-20260929/lab1-agent-a831457-merge-canonical-address-routing",
+      "head": "45e3871c28d06a476eed36d568a38c15c3e8beb9",
+      "matches": true,
+      "registered_backlink": true
+    },
+    {
+      "path": "/Volumes/UOR-Workspace/Worktrees/archive-20260929/lab1-agent-aa4049b-s4-icosian-transport",
+      "head": "e4a15d1920fd3be44f8f6a012c65643807fab42f",
+      "matches": true,
+      "registered_backlink": true
+    },
+    {
+      "path": "/Volumes/UOR-Workspace/Worktrees/archive-20260929/preserved/kvar-20260924",
+      "head": "c57ce081dc8414f78a6c5dbd2665f8236987fc0e",
+      "matches": true,
+      "registered_backlink": true
+    },
+    {
+      "path": "/Volumes/UOR-Workspace/Worktrees/astra-integration-handover-20260928",
+      "head": "b720db2a6c9378e02848b852f596eb44fb5d189e",
+      "matches": true,
+      "registered_backlink": true
+    },
+    {
+      "path": "/Volumes/UOR-Workspace/Worktrees/d4-e8-codec",
+      "head": "c2165031b7ea602015e714da68a99428be1d9222",
+      "matches": true,
+      "registered_backlink": true
+    },
+    {
+      "path": "/Volumes/UOR-Workspace/Worktrees/d4-qat-adapters",
+      "head": "3bc296cafa89971d3aa0b98c0eca187d8a76ef06",
+      "matches": true,
+      "registered_backlink": true
+    },
+    {
+      "path": "/Volumes/UOR-Workspace/Worktrees/merge-review-stack-20260928-1925",
+      "head": "33278454f5e55b323550062685e802a9053f5db0",
+      "matches": true,
+      "registered_backlink": true
+    },
+    {
+      "path": "/Volumes/UOR-Workspace/Worktrees/oversight-audit-20260928-0343",
+      "head": "7af20a2d6f664ccc76c10a6a2cf42c77563d839e",
+      "matches": true,
+      "registered_backlink": true
+    }
+  ]
+}

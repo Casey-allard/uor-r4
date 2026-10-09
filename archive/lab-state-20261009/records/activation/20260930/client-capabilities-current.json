@@ -1,0 +1,97 @@
+{
+  "schema": "uor-r4.client-capabilities/1",
+  "observed_utc": "2026-09-30T04:06:19.183554+00:00",
+  "source_main_sha": "ba266ad44f21c9df2dafa9d56a1e2051c1565d91",
+  "sessions": {
+    "codex-durable-20260929-root": {
+      "startup_acknowledged": true,
+      "client": "Codex desktop current thread",
+      "repository_read_write": "AVAILABLE: isolated checkout and protected PR delivery1521/1529",
+      "github": "AVAILABLE: current authenticated read/write board updates",
+      "claim_and_heartbeat": "AVAILABLE: observed adopted policy and current1525epoch1",
+      "runner_submit_status": "AVAILABLE: source-reviewed runner with completed production bounded C handoff",
+      "subagents": "AVAILABLE: independent review and council evidence retained",
+      "current_thread_continuation": "AVAILABLE: actual active-goal continuation received; heartbeat installed",
+      "new_external_cli_scheduler": "UNVERIFIED: help is not auth/project/resume/result handshake"
+    }
+  },
+  "external_labs": {
+    "claude": {
+      "startup_acknowledged": true,
+      "joining_session_id": "claude-lab-20260930",
+      "startup": "ACKNOWLEDGED_MANUAL",
+      "unattended_adapter": "UNVERIFIED",
+      "cli_help_observed": {
+        "path": "/Users/casey.allard/Library/Application Support/Claude/claude-code/2.1.284/claude.app/Contents/MacOS/claude",
+        "exists": true,
+        "provider_request": false,
+        "new_session_started": false,
+        "help_exit": 0,
+        "help_sha256": "f12192d0e60545166396125ff47163f89bcfe4ed0a976771e7fb9bbf7e1ca486",
+        "resume_documented": true,
+        "help_scope": "local CLI usage; no authentication/project/continuation handshake"
+      },
+      "acknowledgment_evidence": "https://github.com/UOR-Foundation/uor-r4/issues/1513#issuecomment-5903753216",
+      "acknowledgment_scope": "Lab-authored GitHub source/work packet; automatic start is not inferred.",
+      "atomic_registration": "VERIFIED in current state",
+      "active_task": 1533,
+      "task_epoch": 2
+    },
+    "antigravity": {
+      "startup_acknowledged": true,
+      "joining_session_id": null,
+      "startup": "ACKNOWLEDGED_MANUAL",
+      "unattended_adapter": "UNVERIFIED",
+      "wrapper_observed": {
+        "path": "/Users/casey.allard/.antigravity-ide/antigravity-ide/bin/antigravity-ide",
+        "exists": false,
+        "wrapper_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "help_executed": false,
+        "reason": "IDE wrapper read-only inspection; project/auth/result/continuation handshake not established",
+        "provider_request": false,
+        "new_session_started": false
+      },
+      "acknowledgment_evidence": "https://github.com/UOR-Foundation/uor-r4/issues/1513#issuecomment-5903733545",
+      "acknowledgment_scope": "Lab-authored GitHub source/work packet; automatic start is not inferred.",
+      "atomic_registration": "PENDING at observed sequence; joining lab must register its own identity, claim and reservation"
+    },
+    "opencode-deepseek": {
+      "startup_acknowledged": true,
+      "joining_session_id": null,
+      "startup": "ACKNOWLEDGED_MANUAL",
+      "unattended_adapter": "UNVERIFIED",
+      "installed_binary_observed": {
+        "desktop_binary": "/Applications/OpenCode.app/Contents/MacOS/OpenCode",
+        "on_path_cli": false,
+        "candidate_paths": [
+          "/Applications/OpenCode.app/Contents/MacOS/OpenCode"
+        ],
+        "status": "MANUAL_RESUME; unattended adapter UNVERIFIED",
+        "provider_request": false,
+        "new_session_started": false,
+        "candidate_scope": "Installed executable names only; GUI binary does not prove a CLI adapter."
+      },
+      "acknowledgment_evidence": "https://github.com/UOR-Foundation/uor-r4/issues/1512#issuecomment-5903691361",
+      "acknowledgment_scope": "Lab-authored GitHub source/work packet; automatic start is not inferred.",
+      "atomic_registration": "PENDING at observed sequence; joining lab must register its own identity, claim and reservation",
+      "runner_queue_note": "Actual queued job opencode-b0-flock-unit-20260930-a has coordination:null; cannot qualify for production admission. Correction posted on1512."
+    }
+  },
+  "github_admin": {
+    "permissions": {
+      "admin": false,
+      "maintain": false,
+      "push": true,
+      "triage": true,
+      "pull": true
+    },
+    "required_server_gate": "NOT_INSTALLED: administrator configuration required; current account admin=false maintain=false",
+    "procedural_coordinator": "AVAILABLE at documented scope; protected existing queue and independent receipts remain"
+  },
+  "limits": [
+    "No new provider/model request, no other lab interruption and no client session created by these help reads.",
+    "Observed installed apps or help options do not establish availability, correct workspace selection, authentication, continuation, timeout/result reporting or token capacity.",
+    "Each joining lab must register its own session and actual capabilities; these catalog entries are not active claims."
+  ],
+  "operational_sequence": 54
+}

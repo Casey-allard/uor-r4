@@ -1,0 +1,25 @@
+[
+  {
+    "argv": [
+      "/Users/casey.allard/.cargo/bin/rustfmt",
+      "--edition",
+      "2021",
+      "--check",
+      "tools/lab-runner/src/host.rs"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "diff",
+      "origin/main",
+      "--check"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  }
+]

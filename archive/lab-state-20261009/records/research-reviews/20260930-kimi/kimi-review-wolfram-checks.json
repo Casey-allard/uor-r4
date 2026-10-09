@@ -1,0 +1,12 @@
+{
+  "scope": "Exact arithmetic and symbolic checks, not measured laptop performance",
+  "parameter_ratios_2B_3B_over_1_68M": [1190.4761904761904,1785.7142857142858],
+  "token_visit_ratio_100B_over_30M": 3333.3333333333335,
+  "raw_four_bit_weights_GiB_1B_3B": [0.46566128730773926,1.3969838619232178],
+  "four_FP32_arrays_GiB_1B_3B": [14.901161193847656,44.70348358154297],
+  "days_100B_tokens_at_1k_10k_tokens_per_second": [1157.4074074074074,115.74074074074075],
+  "rotation_identity": "Transpose[R(m*w)].R(n*w) == R((n-m)*w)",
+  "assumptions": "m,n,w real; R is the ordinary 2D rotation matrix",
+  "wolfram_fullsimplify": true,
+  "interpretation": "Relative rotation identity does not distinguish a zeta-zero frequency schedule from other fixed schedules. Four FP32 arrays model weights, gradients, and two Adam moments only; implementations can differ. Weight-only storage excludes activations, scale tables, metadata, memory logs and indexes. Throughputs are illustrative assumptions."
+}

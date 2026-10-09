@@ -1,0 +1,14 @@
+{
+  "source": "648ba939020054679f20e58d048dd6ae10a87758",
+  "parent": "dcb8b107f499395c65b86404d67e9e83916054fd",
+  "status": "Metal floor FAIL; diagnostic completed; Metal gradient PASS; dense checkpoint parity NOT_RUN",
+  "files": {
+    "track-b-dcb8b107-metal-floor.log": "8dd02deb41bd2f4e1959d0123e94f66e376ef2b5d643aad50032254251701106",
+    "track-b-metal-diagnostic.log": "c2f2ebfd5360e454bf21e15eb9fd981af619481ada82d6e02695a7831a068c5c",
+    "track-b-metal-gradient.log": "b15716f44ebcd8c18459252777ba3dfb878114308be313c414234a1e1e56c9a6",
+    "track-b-metal-floor-diagnosis.md": "7f9dd81b15369c561547e8428254bfcfde58290c32444c3365dc06db74bb9505",
+    "track-b-metal-diagnostic.patch": "4e1b1f497966b4ceabf41a598fe8021ae2b678ceb0f09a3644b94c016ee111a6",
+    "track-b-parity-input-recheck.json": "eb4875d0cff2cec138f1a2c067056254daec9f41366625e0e7c1496773caad52"
+  },
+  "scope": "Diagnostic test addition only; numerical gate and model source unchanged. Diagnostic executed against the retained patch on parent before commit."
+}

@@ -1,0 +1,23 @@
+{
+  "main_sha": "0dcdb6e970fc94d2c47f5ea879b1e7a2db620abd",
+  "pr": 1506,
+  "head_sha": "19ec19a30c686ebb69498e297f9202f9115ecebb",
+  "merge_sha": "0dcdb6e970fc94d2c47f5ea879b1e7a2db620abd",
+  "merged_at": "2026-09-30T02:57:20Z",
+  "status": "REVIEW_BLOCKERS_SURVIVE_MERGE",
+  "review_comment": "https://github.com/UOR-Foundation/uor-r4/pull/1506#issuecomment-5898103225",
+  "source_confirmed": [
+    {
+      "path": "crates/uor-r4-lut/src/stack.rs",
+      "line": 163,
+      "finding": "from_artifact begins directly with shape extraction, no transport_snap refusal, so offline reference parse bypass remains."
+    },
+    {
+      "path": "crates/uor-r4-training/src/bin/d4-float-reference.rs",
+      "line": 396,
+      "finding": "loaded float_model is exported with None,None; check_export_transport absent, matching the reviewed regression."
+    }
+  ],
+  "remaining_review_items": "Pinned evidence and forced-root/cascade classification/cost wording need correction or explicit unresolved scope. No runtime test executed by this audit.",
+  "next_action": "Prioritize narrow safety follow-up PR from current main, independent review and focused refusal tests before further snap serving qualification."
+}

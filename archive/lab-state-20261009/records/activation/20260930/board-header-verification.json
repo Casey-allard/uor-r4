@@ -1,0 +1,33 @@
+{
+  "observed_utc": "2026-09-30T03:52:18.509935+00:00",
+  "rows": [
+    {
+      "issue": 1511,
+      "body_sha256": "124232de0b608b92d17ff4f4acdc733b885b441efff13f04a6115398e4ab3f55",
+      "retained_specification_sha256": "dcbdf33166d7d1297a0e22b87948edb8f5aa92d74bc056c8f2cf556fddb0ff6e",
+      "historical_preserved_exactly": true,
+      "verified_remote": true
+    },
+    {
+      "issue": 1512,
+      "body_sha256": "fbe95017b55b00ebeec1187ecdc2dd46d99804bf1c28b1226ce87018eea04dc1",
+      "retained_specification_sha256": "d5941c21a43239be0c891991d4d35aafd8a140bf2e309bf61ee150d79a44c017",
+      "historical_preserved_exactly": true,
+      "verified_remote": true
+    },
+    {
+      "issue": 1513,
+      "body_sha256": "e65edca0a4c3eb277372700d26a22b70178c82c2fb5f09d64e3e6413c0df68c7",
+      "retained_specification_sha256": "baf74a9c66ad609bec38a72d80a5343c7110d933dd780cebdfaef25c939c7784",
+      "historical_preserved_exactly": true,
+      "verified_remote": true
+    },
+    {
+      "issue": 1515,
+      "body_sha256": "26aaa1ab0c80c2503a50e1ee2b22a733725ec89433f5be17ae696fad9d96f99a",
+      "retained_specification_sha256": "83b869fd0e5393b1f09b262c37c05fc8c9e771dfcc0ed224e55db4eb7af1a36e",
+      "historical_preserved_exactly": true,
+      "verified_remote": true
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "schema": "uor-r4.resource-charge/1",
+  "event_id": "recovery-integration-20260930-queue-reconciliation-0744",
+  "recorded_utc": "2026-09-30T07:45:58.786893+00:00",
+  "lab": "Codex durable lab implementation",
+  "adjustment_ms": 120000,
+  "accounting": {
+    "category": "preparation",
+    "measurement": "estimated",
+    "correction_of": null
+  },
+  "authority": "Owner continuing goal and contributor review/coordination authority.",
+  "rationale": "Estimated two minutes active heartbeat reconciliation of new coordinator eligibility claims against current PR reviews and two board corrections. Excludes idle time since prior checkpoint. No Cargo/model/GPU/deletion; under1MiB new text."
+}

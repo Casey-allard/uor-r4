@@ -1,0 +1,154 @@
+{
+  "batch": 1,
+  "executable_sha256": "cd8a707e977b4ff37ba22c81f0a63853dc165ba9c441be157ae394fdb9c3a1ea",
+  "input_residual_after_layer": 10,
+  "layer": 11,
+  "parent_inputs": {
+    "batch": 1,
+    "executable_sha256": "aa042ae74e6e7ab5554d18e7d141db0a9d5717b69ad6cf070f667ea03eb9e42b",
+    "parent_inputs": {
+      "backends": [
+        "cpu",
+        "metal"
+      ],
+      "candle_version": "0.9.2",
+      "canonical_math_env": "0",
+      "dtype": "F32",
+      "exact_scalar_env": null,
+      "executable_sha256": "f1892eb7281cd15007f894d0867b1daadc1ebc22e8b53b8f4057ed23e6983be4",
+      "expected_compared_rows_per_backend": 147,
+      "expected_compared_rows_total": 294,
+      "implementations": [
+        {
+          "expected_mode_counts": {
+            "fresh_full_prefill_final": 4,
+            "fresh_half_prefix_then_singletons_final": 4,
+            "singleton_every_position": 45
+          },
+          "expected_rows_per_backend": 53,
+          "identity": "candle-transformers/0.9.2::models::llama::Llama"
+        },
+        {
+          "batch2": {
+            "batch": 2,
+            "padding_semantics": "right padding; future pad tokens are causally excluded from valid positions",
+            "padding_token": 0,
+            "raw_order": "per window, batch row, position; padding outputs are retained but not scored",
+            "row0": "fixed window, every position compared",
+            "row1": "[1, 0, ..., 0], only position zero compared to reference window zero position zero",
+            "valid_lengths": "[window length, 1]"
+          },
+          "batch2_raw_rows_per_backend": 90,
+          "expected_mode_counts": {
+            "fresh_batch2_right_padding_row0_every_position": 45,
+            "fresh_batch2_right_padding_row1_position0": 4,
+            "fresh_full_prefix_every_position": 45
+          },
+          "expected_rows_per_backend": 94,
+          "full_prefix_raw_rows_per_backend": 45,
+          "identity": "uor-r4-training::track_b::model::TrackBModel+DenseAttention"
+        }
+      ],
+      "model": "/Volumes/UOR-Workspace/uor-r4-models/sources/smollm2-135m-instruct",
+      "raw_storage": {
+        "all_raw_bytes": 82771968,
+        "all_raw_rows_including_reference_and_unscored_padding": 421,
+        "dtype": "F32",
+        "endianness": "little",
+        "row_metadata": "raw_file, raw_row, raw_byte_offset",
+        "vocab": 49152
+      },
+      "reference_rows": 45,
+      "reference_workers": 2,
+      "schema": "uor-r4.track-b-parity-inputs/2",
+      "scope": "fixed synthetic-token numerical fidelity; no language-quality or timing claim",
+      "sha256": {
+        "config.json": "17f71c5442c79d4137c45bc79043f085c485bd69a26748080bcf2c11e0cc33a3",
+        "model.safetensors": "5af571cbf074e6d21a03528d2330792e532ca608f24ac70a143f6b369968ab8c",
+        "tokenizer.json": "9ca9acddb6525a194ec8ac7a87f24fbba7232a9a15ffa1af0c1224fcd888e47c",
+        "tokenizer_config.json": "a27f638bd2831f5c3dea654a75838930f2b11fbe550c4d4e1d5d7bd07157b2ee"
+      },
+      "source_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_revision": "648ba939020054679f20e58d048dd6ae10a87758",
+      "stored_weights": "BF16",
+      "tolerance": 0.0001,
+      "wall_seconds": 600,
+      "windows": [
+        [
+          1
+        ],
+        [
+          1,
+          42,
+          17,
+          314
+        ],
+        [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        [
+          18,
+          9991,
+          19964,
+          29937,
+          39910,
+          732,
+          10705,
+          20678,
+          30651,
+          40624,
+          1446,
+          11419,
+          21392,
+          31365,
+          41338,
+          2160,
+          12133,
+          22106,
+          32079,
+          42052,
+          2874,
+          12847,
+          22820,
+          32793,
+          42766,
+          3588,
+          13561,
+          23534,
+          33507,
+          43480,
+          4302,
+          14275
+        ]
+      ]
+    },
+    "parent_manifest_sha256": "a575fe03a1fa42869bb73c7a70ff95ba13382582ea019b29a571ef55a01970b3",
+    "scope": "diagnostic only; original full shape; no gate or production arithmetic change",
+    "source_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "source_revision": "34371f15de2176a237a913a6944a95be07baec08",
+    "time": 8,
+    "tokens": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "trace_layout": "QKV: layer, position, concatenated Q/K/V in native head order; residual: layer, position, width"
+  },
+  "parent_manifest_sha256": "3ea6feb8ebc63d30e9f5b3031a8276c74869ac89b47df1968c19072bd20b3862",
+  "scope": "common reference input; native, reference QKV, reference QKV and source attention; no full forward",
+  "source_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "source_revision": "356a9a24151ec54e368bbbd8f794ed37e64e1b6d",
+  "time": 8
+}

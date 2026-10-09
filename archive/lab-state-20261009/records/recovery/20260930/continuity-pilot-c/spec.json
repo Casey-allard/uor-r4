@@ -1,0 +1,53 @@
+{
+  "schema": "uor-r4.lab-runner-job/1",
+  "id": "continuity-pilot-20260930-c",
+  "lab": "Codex",
+  "cwd": "/Users/casey.allard/uor-r4/.worktrees/durable-lab-system-20260929",
+  "argv": [
+    "/bin/sleep",
+    "90"
+  ],
+  "env": {},
+  "threads": 1,
+  "rss_gib": 0.25,
+  "gpu": false,
+  "wall_s": 120,
+  "stop_grace_ms": 250,
+  "kill_criterion": {
+    "kind": "wall"
+  },
+  "exclusive": true,
+  "cargo": false,
+  "storage": [
+    {
+      "volume": "internal",
+      "additional_bytes": 1048576,
+      "checkpoint_bytes": 2097152
+    },
+    {
+      "volume": "workspace",
+      "additional_bytes": 0,
+      "checkpoint_bytes": 0
+    },
+    {
+      "volume": "backing",
+      "additional_bytes": 0,
+      "checkpoint_bytes": 0
+    }
+  ],
+  "coordination": {
+    "issue": 1520,
+    "session": "codex-review1-pilot-c-origin-20260930",
+    "epoch": 5,
+    "work_card": "sha256:1c522eb02cc7c3f8488c996aeece9410cb871a77c0b767b98cfa9e231c0675fd",
+    "attempt_id": "continuity-pilot-20260930-c"
+  },
+  "provenance": {
+    "source_sha": "c1063bf921057e498c7429c0a4302afc7aae0368",
+    "executable": {
+      "path": "/bin/sleep",
+      "sha256": "8e05389ad2b0c2c59b36cbd1488980b821ae12ce32c2db7c89af1c372355747e"
+    },
+    "inputs": []
+  }
+}

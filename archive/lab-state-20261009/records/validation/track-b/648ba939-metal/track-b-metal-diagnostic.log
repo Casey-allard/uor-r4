@@ -1,0 +1,50 @@
+warning: method `position` is never used
+   --> crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs:175:8
+    |
+168 | impl ObservedSpan {
+    | ----------------- method in this implementation
+...
+175 |     fn position(&self) -> (u32, u32, usize) {
+    |        ^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `example` is never used
+    --> crates/uor-r4-core/src/native_geometric/learner/transferable_lexical.rs:1590:8
+     |
+1405 | impl TlTrainer {
+     | -------------- method in this implementation
+...
+1590 |     fn example(&self, q: &TlQuant, ex: &TlExample) -> TlGrads {
+     |        ^^^^^^^
+
+warning: `uor-r4-core` (lib) generated 2 warnings
+   Compiling uor-r4-training v0.1.0 (/Users/casey.allard/.codex/worktrees/track-b-conversion/uor-r4/crates/uor-r4-training)
+    Finished `test` profile [unoptimized] target(s) in 35.02s
+     Running unittests src/lib.rs (/Users/casey.allard/.cache/uor-r4-track-b-direct/target/debug/deps/uor_r4_training-99a34e4aa4f70993)
+
+running 1 test
+test track_b::harmonics::tests::diagnose_metal_antipodal_floor_reduction ... {"acceptance":"DIAGNOSTIC_ONLY","construction_backend":"cpu","cpu_matmul":1.009088009595871e-6,"degree":3,"dimensions":32,"expected_unit_kernel":1.0000000117348499e-6,"feature_count":6512,"host_f64_dot":9.537330709852786e-7,"metal_elementwise_sum":9.611248970031738e-7,"metal_matmul":1.550938691252668e-6,"perturbation":0.01,"schema":"uor-r4.harmonic-floor-diagnostic/1"}
+{"acceptance":"DIAGNOSTIC_ONLY","construction_backend":"metal","cpu_matmul":1.0086223483085632e-6,"degree":3,"dimensions":32,"expected_unit_kernel":1.0000000117348499e-6,"feature_count":6512,"host_f64_dot":9.538933082305312e-7,"metal_elementwise_sum":9.611248970031738e-7,"metal_matmul":1.5497062122449279e-6,"perturbation":0.01,"schema":"uor-r4.harmonic-floor-diagnostic/1"}
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 359 filtered out; finished in 0.33s
+
+       36.03 real        28.47 user         1.92 sys
+          1153859584  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+              204478  page reclaims
+               16340  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   2  signals received
+                1260  voluntary context switches
+               74610  involuntary context switches
+          1673530196  instructions retired
+           693251753  cycles elapsed
+            59196160  peak memory footprint

@@ -1,0 +1,1 @@
+{"argv": ["git", "diff", "--check", "ba266ad44f21c9df2dafa9d56a1e2051c1565d91...3ed9f73d206d016679251697954db29bdadce6d2"], "exit_code": 0}

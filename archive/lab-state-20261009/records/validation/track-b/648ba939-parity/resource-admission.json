@@ -1,0 +1,10 @@
+{
+  "available_bytes": 455686946816,
+  "report_allowance_bytes": 100663296,
+  "reserve_bytes": 25769803776,
+  "schema": "uor-r4.track-b-parity-admission/1",
+  "stop_margin_bytes": 134217728,
+  "storage_path": "/Volumes/UOR-Workspace",
+  "wall_seconds": 600,
+  "watchdog_interval_ms": 1000
+}

@@ -1,0 +1,14 @@
+{
+  "schema": "uor-r4.resource-charge/1",
+  "event_id": "recovery-integration-20260930-continuation-cutoff13",
+  "recorded_utc": "2026-09-30T07:02:56.961465+00:00",
+  "lab": "Codex durable lab implementation",
+  "adjustment_ms": 808465,
+  "accounting": {
+    "category": "preparation",
+    "measurement": "estimated",
+    "correction_of": null
+  },
+  "authority": "Owner continuing goal and Codex contributor role; standing cumulative allowance.",
+  "rationale": "Nonoverlapping preparation/delivery wall sincecutoff12: runnerreceipt verification,two independentreviews,protectedmerge,live deploymentreconciliation and exactpilot packet. No additional Cargo/model/deletion. Existing Kimi21.799s repairreclassified separately with zero netcumulativechange. Parallelreviewwall countedonce; retainedtext under2MiB."
+}

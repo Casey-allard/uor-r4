@@ -1,0 +1,296 @@
+{
+  "schema": "uor-r4.lab-state/1",
+  "repository": "UOR-Foundation/uor-r4",
+  "policy_sha": "ba266ad44f21c9df2dafa9d56a1e2051c1565d91",
+  "sequence": 41,
+  "observed_server_time": 1790739636,
+  "labs": {
+    "codex-durable-20260929-root": {
+      "lab": "Codex",
+      "adapter": "Codex desktop with local executor; heartbeat automation installed; other clients manual",
+      "capabilities": [
+        "Rust",
+        "GitHub",
+        "local-recovery",
+        "independent-subagents"
+      ],
+      "available": true,
+      "heartbeat": 1790738470
+    },
+    "codex-review1-pilot-c-origin-20260930": {
+      "lab": "Codex independent reviewer continuity drill",
+      "adapter": "MANUAL CLI session; single operator",
+      "capabilities": [
+        "bounded inert live stewardship transfer",
+        "no model checkpoint qualification"
+      ],
+      "available": false,
+      "heartbeat": 1790739482
+    },
+    "codex-review1-pilot-c-successor-20260930": {
+      "lab": "Codex independent reviewer continuity drill",
+      "adapter": "MANUAL CLI session; single operator",
+      "capabilities": [
+        "bounded inert live stewardship transfer",
+        "no model checkpoint qualification"
+      ],
+      "available": false,
+      "heartbeat": 1790739636
+    },
+    "codex-storage-pilot-successor": {
+      "lab": "Codex internal subagent",
+      "adapter": "manual continuation; source/recovery successor steward",
+      "capabilities": [
+        "GitHub coordination",
+        "process-identity verification",
+        "storage recovery",
+        "ledger reconciliation"
+      ],
+      "available": false,
+      "heartbeat": 1790736512
+    }
+  },
+  "tasks": {
+    "1520": {
+      "session": "codex-review1-pilot-c-successor-20260930",
+      "epoch": 6,
+      "work_card": "sha256:1c522eb02cc7c3f8488c996aeece9410cb871a77c0b767b98cfa9e231c0675fd",
+      "policy_sha": "ba266ad44f21c9df2dafa9d56a1e2051c1565d91",
+      "base_sha": "ba266ad44f21c9df2dafa9d56a1e2051c1565d91",
+      "paths": [],
+      "expires": 1790739634,
+      "phase": "released",
+      "checkpoint": {
+        "attempt": "continuity-pilot-20260930-c",
+        "execution_elapsed_ms": 95226,
+        "live_transfer_evidence": [
+          "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuity-pilot-c-20260930/before-release.json",
+          "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuity-pilot-c-20260930/after-successor-claim.json"
+        ],
+        "model_checkpoint_qualified": false,
+        "next_action": "No resubmission. Root independently publishes C evidence and chooses next eligible work; normal host admission gates remain enforced. Memory pressure observed2 after completion requires normal1 for new admission.",
+        "result": {
+          "attempt_id": "continuity-pilot-20260930-c",
+          "host": "host-284b64fb2f70567aee465dc4941430076137e580d19d9568b15726d14b157cec",
+          "job_id": "continuity-pilot-20260930-c",
+          "path": "/Users/casey.allard/.local/share/uor-r4/runner/done/continuity-pilot-20260930-c/exit.json",
+          "sha256": "451a78ad5ed5148bd09be385f51028bec0825de95859c25b009d7061fbe31461"
+        },
+        "same_operator_two_cli_sessions": true,
+        "single_charge_proof": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuity-pilot-c-20260930/single-charge-proof.json"
+      }
+    }
+  },
+  "attempts": {
+    "continuity-pilot-20260930-a": {
+      "issue": 1520,
+      "session": "codex-durable-20260929-root",
+      "task_epoch": 1,
+      "host": "host-284b64fb2f70567aee465dc4941430076137e580d19d9568b15726d14b157cec",
+      "phase": "finalized",
+      "receipt": {
+        "host": "host-284b64fb2f70567aee465dc4941430076137e580d19d9568b15726d14b157cec",
+        "job_id": "continuity-pilot-20260930-a",
+        "attempt_id": "continuity-pilot-20260930-a",
+        "path": "/Users/casey.allard/.local/share/uor-r4/runner/done/continuity-pilot-20260930-a/exit.json",
+        "sha256": "fb8c711977f5ed0910e2dde0e6de6c2d45149063e68bc4d88b1e1afc29d5f035"
+      },
+      "spec": {
+        "schema": "uor-r4.lab-runner-job/1",
+        "id": "continuity-pilot-20260930-a",
+        "lab": "Codex",
+        "cwd": "/Users/casey.allard/uor-r4/.worktrees/durable-lab-system-20260929",
+        "argv": [
+          "/bin/sleep",
+          "30"
+        ],
+        "env": {},
+        "threads": 1,
+        "rss_gib": 0.25,
+        "gpu": false,
+        "wall_s": 60,
+        "stop_grace_ms": 250,
+        "kill_criterion": {
+          "kind": "wall",
+          "value": ""
+        },
+        "exclusive": true,
+        "cargo": false,
+        "storage": [
+          {
+            "volume": "internal",
+            "additional_bytes": 1048576,
+            "checkpoint_bytes": 2097152
+          },
+          {
+            "volume": "workspace",
+            "additional_bytes": 0,
+            "checkpoint_bytes": 0
+          },
+          {
+            "volume": "backing",
+            "additional_bytes": 0,
+            "checkpoint_bytes": 0
+          }
+        ],
+        "coordination": {
+          "issue": 1520,
+          "session": "codex-durable-20260929-root",
+          "epoch": 1,
+          "work_card": "sha256:a527af51dfe737971a18333a49c12f05875c95976294f525e6599e085c569083",
+          "attempt_id": "continuity-pilot-20260930-a"
+        },
+        "provenance": {
+          "source_sha": "a345e766816403cb3eec888fb4cf694665e82e5d",
+          "executable": {
+            "path": "/bin/sleep",
+            "sha256": "8e05389ad2b0c2c59b36cbd1488980b821ae12ce32c2db7c89af1c372355747e"
+          },
+          "inputs": []
+        }
+      },
+      "spec_sha256": "53d05aa3a2dcf1e3b0f096648866cdf9eb29919047a1c2a6efe0feeeec9da2cb",
+      "runner_root": "/Users/casey.allard/.local/share/uor-r4/runner"
+    },
+    "continuity-pilot-20260930-b": {
+      "issue": 1520,
+      "session": "codex-durable-20260929-root",
+      "task_epoch": 1,
+      "host": "host-284b64fb2f70567aee465dc4941430076137e580d19d9568b15726d14b157cec",
+      "phase": "finalized",
+      "receipt": {
+        "host": "host-284b64fb2f70567aee465dc4941430076137e580d19d9568b15726d14b157cec",
+        "job_id": "continuity-pilot-20260930-b",
+        "attempt_id": "continuity-pilot-20260930-b",
+        "path": "/Users/casey.allard/.local/share/uor-r4/runner/done/continuity-pilot-20260930-b/exit.json",
+        "sha256": "626acb52de71d2d97ef482018eebaacfff834aef85930511023db1c9fe840b64"
+      },
+      "spec": {
+        "schema": "uor-r4.lab-runner-job/1",
+        "id": "continuity-pilot-20260930-b",
+        "lab": "Codex",
+        "cwd": "/Users/casey.allard/uor-r4/.worktrees/durable-lab-system-20260929",
+        "argv": [
+          "/bin/sleep",
+          "30"
+        ],
+        "env": {},
+        "threads": 1,
+        "rss_gib": 0.25,
+        "gpu": false,
+        "wall_s": 60,
+        "stop_grace_ms": 250,
+        "kill_criterion": {
+          "kind": "wall",
+          "value": ""
+        },
+        "exclusive": true,
+        "cargo": false,
+        "storage": [
+          {
+            "volume": "internal",
+            "additional_bytes": 1048576,
+            "checkpoint_bytes": 2097152
+          },
+          {
+            "volume": "workspace",
+            "additional_bytes": 0,
+            "checkpoint_bytes": 0
+          },
+          {
+            "volume": "backing",
+            "additional_bytes": 0,
+            "checkpoint_bytes": 0
+          }
+        ],
+        "coordination": {
+          "issue": 1520,
+          "session": "codex-durable-20260929-root",
+          "epoch": 1,
+          "work_card": "sha256:a527af51dfe737971a18333a49c12f05875c95976294f525e6599e085c569083",
+          "attempt_id": "continuity-pilot-20260930-b"
+        },
+        "provenance": {
+          "source_sha": "a345e766816403cb3eec888fb4cf694665e82e5d",
+          "executable": {
+            "path": "/bin/sleep",
+            "sha256": "8e05389ad2b0c2c59b36cbd1488980b821ae12ce32c2db7c89af1c372355747e"
+          },
+          "inputs": []
+        }
+      },
+      "spec_sha256": "9e1a7b7bd0eb29e45ccdc0728370cfea70a108d4b3198df831c3e7d8d767f2b0",
+      "runner_root": "/Users/casey.allard/.local/share/uor-r4/runner"
+    },
+    "continuity-pilot-20260930-c": {
+      "issue": 1520,
+      "session": "codex-review1-pilot-c-origin-20260930",
+      "task_epoch": 5,
+      "host": "host-284b64fb2f70567aee465dc4941430076137e580d19d9568b15726d14b157cec",
+      "phase": "finalized",
+      "receipt": {
+        "host": "host-284b64fb2f70567aee465dc4941430076137e580d19d9568b15726d14b157cec",
+        "job_id": "continuity-pilot-20260930-c",
+        "attempt_id": "continuity-pilot-20260930-c",
+        "path": "/Users/casey.allard/.local/share/uor-r4/runner/done/continuity-pilot-20260930-c/exit.json",
+        "sha256": "451a78ad5ed5148bd09be385f51028bec0825de95859c25b009d7061fbe31461"
+      },
+      "spec": {
+        "schema": "uor-r4.lab-runner-job/1",
+        "id": "continuity-pilot-20260930-c",
+        "lab": "Codex",
+        "cwd": "/Users/casey.allard/uor-r4/.worktrees/durable-lab-system-20260929",
+        "argv": [
+          "/bin/sleep",
+          "90"
+        ],
+        "env": {},
+        "threads": 1,
+        "rss_gib": 0.25,
+        "gpu": false,
+        "wall_s": 120,
+        "stop_grace_ms": 250,
+        "kill_criterion": {
+          "kind": "wall",
+          "value": ""
+        },
+        "exclusive": true,
+        "cargo": false,
+        "storage": [
+          {
+            "volume": "internal",
+            "additional_bytes": 1048576,
+            "checkpoint_bytes": 2097152
+          },
+          {
+            "volume": "workspace",
+            "additional_bytes": 0,
+            "checkpoint_bytes": 0
+          },
+          {
+            "volume": "backing",
+            "additional_bytes": 0,
+            "checkpoint_bytes": 0
+          }
+        ],
+        "coordination": {
+          "issue": 1520,
+          "session": "codex-review1-pilot-c-origin-20260930",
+          "epoch": 5,
+          "work_card": "sha256:1c522eb02cc7c3f8488c996aeece9410cb871a77c0b767b98cfa9e231c0675fd",
+          "attempt_id": "continuity-pilot-20260930-c"
+        },
+        "provenance": {
+          "source_sha": "c1063bf921057e498c7429c0a4302afc7aae0368",
+          "executable": {
+            "path": "/bin/sleep",
+            "sha256": "8e05389ad2b0c2c59b36cbd1488980b821ae12ce32c2db7c89af1c372355747e"
+          },
+          "inputs": []
+        }
+      },
+      "spec_sha256": "2d358afe0facee41f1aabad831acffe13e113aaf09cc60e2271b07e6bbe2267d",
+      "runner_root": "/Users/casey.allard/.local/share/uor-r4/runner"
+    }
+  }
+}

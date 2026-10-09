@@ -1,0 +1,100 @@
+{
+  "schema": "read-only-arithmetic-audit-v1",
+  "created_utc": "2026-09-30T04:52:34.052361+00:00",
+  "attachment_sha256": "1a412a3385766794dd89d3dcc98c4ece116fb7a79727b810ec8da175d54289d6",
+  "baseline": {
+    "parameters": 1680000,
+    "target_visits_rounded": 30000000,
+    "actual_target_visits_reported_elsewhere": 29999104,
+    "visits_per_parameter": 17.857142857142858
+  },
+  "proposal_target_visits": 100000000000,
+  "exposure_ratio": 3333.3333333333335,
+  "exposure_log10_ratio": 3.5228787452803374,
+  "memory_assumptions": "Packed 4-bit payload alone. Adam FP32 weights+gradients+two moments at 16 bytes per real scalar parameter. Excludes activations, scales, caches and OS.",
+  "compute_assumptions": "6ND is conditional dense training FLOP proxy, not a theorem or forecast for geometric sparse kernels. One year =365.25 days.",
+  "models": [
+    {
+      "parameters": 1000000000,
+      "parameter_ratio": 595.2380952380952,
+      "parameter_ratio_orders_log10": 2.774690718274137,
+      "visits_per_parameter": 100.0,
+      "packed_4bit_GB": 0.5,
+      "packed_4bit_GiB": 0.46566128730773926,
+      "fp32_adam_bytes_per_param": 16,
+      "fp32_adam_GB": 16.0,
+      "fp32_adam_GiB": 14.901161193847656,
+      "dense_6ND_FLOP_proxy": 600000000000000000000,
+      "proxy_ratio_to_baseline": 1984126.9841269841,
+      "proxy_ratio_orders_log10": 6.297569463554475,
+      "proxy_years_at_1e12FLOPs_per_sec": 19.01285268841737,
+      "proxy_years_at_1e13FLOPs_per_sec": 1.901285268841737,
+      "proxy_days_at_1e14FLOPs_per_sec": 69.44444444444444,
+      "all_weight_stream_GBps_at_20tokens_sec": 10.0
+    },
+    {
+      "parameters": 2000000000,
+      "parameter_ratio": 1190.4761904761904,
+      "parameter_ratio_orders_log10": 3.0757207139381184,
+      "visits_per_parameter": 50.0,
+      "packed_4bit_GB": 1.0,
+      "packed_4bit_GiB": 0.9313225746154785,
+      "fp32_adam_bytes_per_param": 16,
+      "fp32_adam_GB": 32.0,
+      "fp32_adam_GiB": 29.802322387695312,
+      "dense_6ND_FLOP_proxy": 1200000000000000000000,
+      "proxy_ratio_to_baseline": 3968253.9682539683,
+      "proxy_ratio_orders_log10": 6.598599459218456,
+      "proxy_years_at_1e12FLOPs_per_sec": 38.02570537683474,
+      "proxy_years_at_1e13FLOPs_per_sec": 3.802570537683474,
+      "proxy_days_at_1e14FLOPs_per_sec": 138.88888888888889,
+      "all_weight_stream_GBps_at_20tokens_sec": 20.0
+    },
+    {
+      "parameters": 3000000000,
+      "parameter_ratio": 1785.7142857142858,
+      "parameter_ratio_orders_log10": 3.2518119729937998,
+      "visits_per_parameter": 33.333333333333336,
+      "packed_4bit_GB": 1.5,
+      "packed_4bit_GiB": 1.3969838619232178,
+      "fp32_adam_bytes_per_param": 16,
+      "fp32_adam_GB": 48.0,
+      "fp32_adam_GiB": 44.70348358154297,
+      "dense_6ND_FLOP_proxy": 1800000000000000000000,
+      "proxy_ratio_to_baseline": 5952380.952380952,
+      "proxy_ratio_orders_log10": 6.774690718274137,
+      "proxy_years_at_1e12FLOPs_per_sec": 57.03855806525211,
+      "proxy_years_at_1e13FLOPs_per_sec": 5.703855806525211,
+      "proxy_days_at_1e14FLOPs_per_sec": 208.33333333333334,
+      "all_weight_stream_GBps_at_20tokens_sec": 30.0
+    }
+  ],
+  "rate_only_elapsed": {
+    "100": {
+      "days": 11574.074074074075,
+      "years": 31.68808781402895
+    },
+    "1000": {
+      "days": 1157.4074074074074,
+      "years": 3.168808781402895
+    },
+    "10000": {
+      "days": 115.74074074074075,
+      "years": 0.3168808781402895
+    },
+    "100000": {
+      "days": 11.574074074074074,
+      "years": 0.03168808781402895
+    }
+  },
+  "uncompressed_token_ID_storage_GB": {
+    "uint16_vocab_at_most65536": 200.0,
+    "uint32": 400.0
+  },
+  "slots": {
+    "K256_width256_FP32_one_session_bytes": 262144,
+    "K1024_width256_FP32_one_session_bytes": 1048576,
+    "naive_BPTT_B16_T256_K256_width256_FP32_bytes_per_layer": 1073741824,
+    "naive_BPTT_B16_T256_K1024_width256_FP32_bytes_per_layer": 4294967296
+  }
+}

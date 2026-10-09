@@ -1,0 +1,38 @@
+{
+  "schema": "uor-r4.host-policy/1",
+  "admission_enabled": true,
+  "max_threads": 8,
+  "max_rss_gib": 11.0,
+  "max_jobs": 1,
+  "admission_pressure_max": 1,
+  "coordination_repo": "/Users/casey.allard/.local/share/uor-r4/coord.git",
+  "volumes": [
+    {
+      "id": "internal",
+      "path": "/System/Volumes/Data",
+      "volume_uuid": "B5F170C6-F77F-4B7C-B795-CA9D20CA2FC5",
+      "sentinel": "/System/Volumes/Data/Users/casey.allard/.local/share/uor-r4/host-volume-id",
+      "sentinel_value": "internal:B5F170C6-F77F-4B7C-B795-CA9D20CA2FC5",
+      "reserve_bytes": 42949672960,
+      "stop_margin_bytes": 134217728
+    },
+    {
+      "id": "workspace",
+      "path": "/Volumes/UOR-Workspace",
+      "volume_uuid": "DAB4FDD9-1A7A-4ECB-A6D7-41D6D853F7CF",
+      "sentinel": "/Volumes/UOR-Workspace/.uor-r4-runner-volume-id",
+      "sentinel_value": "workspace:DAB4FDD9-1A7A-4ECB-A6D7-41D6D853F7CF",
+      "reserve_bytes": 64424509440,
+      "stop_margin_bytes": 134217728
+    },
+    {
+      "id": "backing",
+      "path": "/Volumes/X10 Pro",
+      "volume_uuid": "FAA849BB-9211-3E8D-A75D-DC3B45E087E6",
+      "sentinel": "/Volumes/X10 Pro/UOR-R4/.uor-r4-runner-volume-id",
+      "sentinel_value": "backing:FAA849BB-9211-3E8D-A75D-DC3B45E087E6",
+      "reserve_bytes": 128849018880,
+      "stop_margin_bytes": 134217728
+    }
+  ]
+}

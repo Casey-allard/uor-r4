@@ -1,0 +1,9 @@
+{
+  "review_file": "skrit-synthesis-review.md",
+  "reviewed_assessment_sha256": "102b1571cf67db6782f547fcd7a7010b20cb64f426448a7e0404847aaab9dae6",
+  "required_fix": "Name default universal rule in four-rule/24-permutation finite Wolfram example.",
+  "resolution": "Applied reviewer exact replacement. Retained wolfram-checks.wl family={domain,a,b,both} and result supports it; no computation rerun.",
+  "resolved_assessment_sha256": "0fcb062ccb5844da53905e0673d7bbe184807f8606491fdf98d4082e238ae447",
+  "resolver": "/root",
+  "status": "required correction applied; original independent review retained"
+}

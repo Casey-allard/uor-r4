@@ -1,0 +1,768 @@
+{
+  "schema": "uor-r4.integration-backlog-summary/1",
+  "recorded_utc": "2026-09-30T03:01:44.893425+00:00",
+  "initial_main_sha": "3bc296cafa89971d3aa0b98c0eca187d8a76ef06",
+  "final_main_sha": "0dcdb6e970fc94d2c47f5ea879b1e7a2db620abd",
+  "counts": {
+    "total_refs": 1784,
+    "local_branches": 795,
+    "remote_tracking_refs": 977,
+    "live_remote_branches": 975,
+    "open_prs_initial": 10,
+    "open_prs_final": 6,
+    "unmapped_refs": 53,
+    "unmapped_distinct_heads": 40,
+    "inspected_worktrees": 40,
+    "retained_heads_patch_analyzed": 121
+  },
+  "merged_during_audit": [
+    1521,
+    1490,
+    1505,
+    1506
+  ],
+  "urgent_corrections": [
+    "merged-1506-correction-required.json",
+    "merged-1505-correction-required.json"
+  ],
+  "unmapped_retained_refs": [
+    {
+      "ref": "refs/heads/archive/causal-experiment-source-20260924",
+      "sha": "4af04cf56f213df40b78c73a7c51ed5274517857",
+      "commit_date": "2026-09-23T20:30:52-04:00",
+      "subject": "Add exact learner checkpoints, causal feedback fitting, learned relative actions and sparse read plans",
+      "provisional_retention_reason": "Preserved divergent historical research, reports and source. No current acceptance or redundancy is inferred.",
+      "review_steward": "Codex",
+      "reactivation_condition": "A live work card identifies a specific archived mechanism, negative result or provenance record needed for current mission; review only that bounded adoption/indexing delta.",
+      "evidence": [
+        "Exact head is ancestor of recorded PR heads #1373 MERGED; this does not prove all original files survive."
+      ],
+      "next_action": "Retain historical research archive and index its exact sources/negative evidence. This is intentionally divergent research history; no bulk source merge or deletion. Open a bounded adoption task only for an active mission mechanism.",
+      "disposition": "RETAIN_PENDING_REVIEW"
+    },
+    {
+      "ref": "refs/heads/archive/principal-evidence-source-20260923",
+      "sha": "fc843a012241474a55e460b53235ad36418a7936",
+      "commit_date": "2026-09-23T18:54:45-04:00",
+      "subject": "Preserve frozen selection provenance in transferred bundles and scope Hamilton interpretation",
+      "provisional_retention_reason": "Preserved divergent historical research, reports and source. No current acceptance or redundancy is inferred.",
+      "review_steward": "Codex",
+      "reactivation_condition": "A live work card identifies a specific archived mechanism, negative result or provenance record needed for current mission; review only that bounded adoption/indexing delta.",
+      "evidence": [],
+      "next_action": "Retain historical research archive and index its exact sources/negative evidence. This is intentionally divergent research history; no bulk source merge or deletion. Open a bounded adoption task only for an active mission mechanism.",
+      "disposition": "RETAIN_PENDING_REVIEW"
+    },
+    {
+      "ref": "refs/heads/codex/canonical-address-routing-20260925",
+      "sha": "d22e2b50da85e527efcd4f60acc1e82644194b91",
+      "commit_date": "2026-09-26T20:52:09-04:00",
+      "subject": "R1d: completed sharded curve and the chunked-scan prototype (parity pass; throughput no-go)",
+      "provisional_retention_reason": "Unique or unresolved source/evidence retained without a matching PR; individual patch mismatch alone does not establish missing source after squash merges.",
+      "review_steward": "Codex",
+      "reactivation_condition": "Current-main and historical-PR review identifies exact source/evidence still useful to the mission; create/adopt a bounded integration work card, independent review and relevant checks before activation.",
+      "evidence": [
+        "Observed path/blob comparison: {\"ABSENT_FROM_MAIN\": 29, \"DIFFERENT\": 11}.",
+        "Attached worktree status: [{\"exists\": true, \"path\": \"/Volumes/UOR-Workspace/Worktrees/archive-20260929/codex-canonical-address-routing-20260925\", \"status_checked\": true, \"status_count\": 2}]."
+      ],
+      "next_action": "Codex: preserve source/evidence d22e2b50 and dirty untracked R1d result files;29 of40 historical changed paths absent from main. Map old routing/chat vehicles to current counterparts and retain negative/throughput evidence; no bulk merge or cleanup.",
+      "disposition": "RETAIN_PENDING_REVIEW"
+    },
+    {
+      "ref": "refs/heads/codex/dialogue-code-choice-isolated-20260927",
+      "sha": "b2504b01fb1f3594672150347466b87f0f544fca",
+      "commit_date": "2026-09-27T13:54:08-04:00",
+      "subject": "Merge current main while retaining dialogue rounding and stack modules",
+      "provisional_retention_reason": "Unique or unresolved source/evidence retained without a matching PR; individual patch mismatch alone does not establish missing source after squash merges.",
+      "review_steward": "Codex",
+      "reactivation_condition": "Current-main and historical-PR review identifies exact source/evidence still useful to the mission; create/adopt a bounded integration work card, independent review and relevant checks before activation.",
+      "evidence": [
+        "Exact head is ancestor of recorded PR heads #1433 MERGED; this does not prove all original files survive.",
+        "Observed path/blob comparison: {\"DIFFERENT\": 8, \"IDENTICAL\": 17}.",
+        "Attached worktree status: [{\"exists\": true, \"path\": \"/Users/casey.allard/.codex/worktrees/dialogue-continuity/uor-r4\", \"status_checked\": true, \"status_count\": 0}]."
+      ],
+      "next_action": "Codex: local and remote heads differ but both are in merged #1433 ancestry.17 of25 original changed paths identical to main; inspect the other8 for intentional later changes before supersession. Preserve retained231-update checkpoint evidence.",
+      "disposition": "RETAIN_PENDING_REVIEW"
+    },
+    {
+      "ref": "refs/heads/codex/geometric-lm-goal",
+      "sha": "f99f42fb472d065acc9a6f16b815755b02c60180",
+      "commit_date": "2026-09-28T00:42:40-04:00",
+      "subject": "chore(research): preserve dirty research and adversarial evaluation files",
+      "provisional_retention_reason": "Unique or unresolved source/evidence retained without a matching PR; individual patch mismatch alone does not establish missing source after squash merges.",
+      "review_steward": "Codex",
+      "reactivation_condition": "Current-main and historical-PR review identifies exact source/evidence still useful to the mission; create/adopt a bounded integration work card, independent review and relevant checks before activation.",
+      "evidence": [
+        "Observed path/blob comparison: {\"ABSENT_FROM_MAIN\": 17, \"DIFFERENT\": 6}."
+      ],
+      "next_action": "Codex: preserve f99f42fb research/adversarial snapshot;17 of23 changed paths are absent from main. Index missing reports and evidence, then propose only tests/source with a concrete active-contract use; do not adopt historical PASS claims as current tests.",
+      "disposition": "RETAIN_PENDING_REVIEW"
+    },
+    {
+      "ref": "refs/heads/codex/h4-integer-classifier-pre-main-20260927",
+      "sha": "f6f98e76550c1f2705d98d8e4f413e8b5d0fdaf2",
+      "commit_date": "2026-09-27T12:45:34-04:00",
+      "subject": "Prepare exact signed H4 integer classifier",
+      "provisional_retention_reason": "Retained review/integration snapshot. Head/patch/path evidence needs explicit disposition; branch name does not prove merge or obsolescence.",
+      "review_steward": "Codex",
+      "reactivation_condition": "A review against the actual associated merged/closed PR and current main demonstrates a missing active-contract fix or unique evidence; link that delta to a live issue before source adoption.",
+      "evidence": [
+        "Observed path/blob comparison: {\"DIFFERENT\": 14, \"IDENTICAL\": 33}."
+      ],
+      "next_action": "Codex: historical pre-main snapshot33 of47 changed paths now identical; compare remaining14 against merged classifier/current caller path; retain negative/source history, do not create a duplicate classifier.",
+      "disposition": "RETAIN_PENDING_REVIEW"
+    },
+    {
+      "ref": "refs/heads/codex/i704-expanded-snapshot",
+      "sha": "af66569a66ebdced1f027d57350bd424ed8e977f",
+      "commit_date": "2026-08-15T19:12:53-04:00",
+      "subject": "WIP snapshot expanded #704 integration",
+      "provisional_retention_reason": "Unique or unresolved source/evidence retained without a matching PR; individual patch mismatch alone does not establish missing source after squash merges.",
+      "review_steward": "Codex",
+      "reactivation_condition": "Current-main and historical-PR review identifies exact source/evidence still useful to the mission; create/adopt a bounded integration work card, independent review and relevant checks before activation.",
+      "evidence": [],
+      "next_action": "Inspect commits and patch equivalence; open or attach to an integration task if unique and relevant.",
+      "disposition": "RETAIN_PENDING_REVIEW"
+    },
+    {
+      "ref": "refs/heads/codex/lab-runner",
+      "sha": "4d0defa0b619ef775df294b636b776e582d769c3",
+      "commit_date": "2026-09-29T18:37:37-04:00",
+      "subject": "lab-runner: detached job queue, admission control, locked ledger (steward)",
+      "provisional_retention_reason": "Original runner source imported and extended by merged #1521; retain until residual source/evidence differences have explicit reviewed disposition.",
+      "review_steward": "Codex",
+      "reactivation_condition": "Comparison to #1521/current runner identifies a genuinely missing fix or provenance record; otherwise record supersession without deletion authorization.",
+      "evidence": [
+        "Observed path/blob comparison: {\"ABSENT_FROM_MAIN\": 17, \"DIFFERENT\": 2}.",
+        "Attached worktree status: [{\"exists\": true, \"path\": \"/Users/casey.allard/uor-r4/.worktrees/lab-runner\", \"status_checked\": true, \"status_count\": 0}]."
+      ],
+      "next_action": "Codex: source was imported and substantially extended by #1521. Deliver/verify #1521 first; compare any remaining original delta before marking this source superseded. Preserve original branch and worktree until cleanup eligibility is independently established.",
+      "disposition": "RETAIN_PENDING_REVIEW"
+    },
+    {
+      "ref": "refs/heads/codex/native-576-blocked-kernel-pre-main-20260927",
+      "sha": "9f075e366ba7d3ffff15db7bb5224b6e03fb2d3e",
+      "commit_date": "2026-09-27T12:31:19-04:00",
+      "subject": "Include wide matrix caller in integer opcode audit",
+      "provisional_retention_reason": "Retained review/integration snapshot. Head/patch/path evidence needs explicit disposition; branch name does not prove merge or obsolescence.",
+      "review_steward": "Codex",
+      "reactivation_condition": "A review against the actual associated merged/closed PR and current main demonstrates a missing active-contract fix or unique evidence; link that delta to a live issue before source adoption.",
+      "evidence": [
+        "Observed path/blob comparison: {\"DIFFERENT\": 13, \"IDENTICAL\": 22}."
+      ],
+      "next_action": "Codex:22 of35 changed paths identical; compare remaining13 with closed #1436 and new #1528 blocked4 implementation. Shared optimization concept does not establish identical kernel scope or accepted serving evidence.",
+      "disposition": "RETAIN_PENDING_REVIEW"
+    },
+    {
+      "ref": "refs/heads/codex/observer-transport-20260923",
+      "sha": "9c8358a340c550ce7c176fc0da8ff60b8ffc31f6",
+      "commit_date": "2026-09-23T15:53:01-04:00",
+      "subject": "Record transported-state recovery and calibrated residual evidence",
+      "provisional_retention_reason": "Unique or unresolved source/evidence retained without a matching PR; individual patch mismatch alone does not establish missing source after squash merges.",
+      "review_steward": "Codex",
+      "reactivation_condition": "Current-main and historical-PR review identifies exact source/evidence still useful to the mission; create/adopt a bounded integration work card, independent review and relevant checks before activation.",
+      "evidence": [],
+      "next_action": "Inspect commits and patch equivalence; open or attach to an integration task if unique and relevant.",
+      "disposition": "RETAIN_PENDING_REVIEW"
+    },
+    {
+      "ref": "refs/heads/codex/structured-binding-principal-review",
+      "sha": "1df229178c6b56ae6dbf95273c9e4eae3282a66e",
+      "commit_date": "2026-09-21T23:17:39-04:00",
+      "subject": "Repair structured binding semantics, identity and causal controls",
+      "provisional_retention_reason": "Unique or unresolved source/evidence retained without a matching PR; individual patch mismatch alone does not establish missing source after squash merges.",
+      "review_steward": "Codex",
+      "reactivation_condition": "Current-main and historical-PR review identifies exact source/evidence still useful to the mission; create/adopt a bounded integration work card, independent review and relevant checks before activation.",
+      "evidence": [
+        "Exact head is ancestor of recorded PR heads #1344 MERGED; this does not prove all original files survive."
+      ],
+      "next_action": "Historical head is contained in these reviewed/pending PR histories; inspect final PR diff and later removals before duplicate integration: #1344 MERGED",
+      "disposition": "RETAIN_PENDING_REVIEW"
+    },
+    {
+      "ref": "refs/heads/director/merge-canonical-address-routing",
+      "sha": "45e3871c28d06a476eed36d568a38c15c3e8beb9",
+      "commit_date": "2026-09-28T18:26:05-04:00",
+      "subject": "Merge origin/main (f85969e0) into director/merge-canonical-address-routing",
+      "provisional_retention_reason": "Retained review/integration snapshot. Head/patch/path evidence needs explicit disposition; branch name does not prove merge or obsolescence.",
+      "review_steward": "Codex",
+      "reactivation_condition": "A review against the actual associated merged/closed PR and current main demonstrates a missing active-contract fix or unique evidence; link that delta to a live issue before source adoption.",
+      "evidence": [
+        "Observed path/blob comparison: {\"ABSENT_FROM_MAIN\": 29, \"DIFFERENT\": 11}.",
+        "Attached worktree status: [{\"exists\": true, \"path\": \"/Volumes/UOR-Workspace/Worktrees/archive-20260929/lab1-agent-a831457-merge-canonical-address-routing\", \"status_checked\": true, \"status_count\": 0}]."
+      ],
+      "next_action": "Codex: preserve45e3871c as historical integration attempt over d22e2b50; same29 missing historical paths require disposition alongside canonical-address-routing. Do not infer delivery from merge in name.",
+      "disposition": "RETAIN_PENDING_REVIEW"
+    },
+    {
+      "ref": "refs/heads/director/rerun-1468",
+      "sha": "e45bd6c43b3a6d728d5271a41c63905c9d35fea1",
+      "commit_date": "2026-09-28T17:14:23-04:00",
+      "subject": "docs(d4): add online orthogonal transform derivation and shared interface proposal (#973, #820)",
+      "provisional_retention_reason": "Retained review/integration snapshot. Head/patch/path evidence needs explicit disposition; branch name does not prove merge or obsolescence.",
+      "review_steward": "Codex",
+      "reactivation_condition": "A review against the actual associated merged/closed PR and current main demonstrates a missing active-contract fix or unique evidence; link that delta to a live issue before source adoption.",
+      "evidence": [
+        "Exact head is ancestor of recorded PR heads #1468 MERGED; this does not prove all original files survive.",
+        "Observed path/blob comparison: {\"DIFFERENT\": 6, \"IDENTICAL\": 3}."
+      ],
+      "next_action": "Antigravity: head is ancestor of exact merged #1468 head. Review final surviving tree before archival; no duplicate source PR.",
+      "disposition": "RETAIN_PENDING_REVIEW"
+    },
+    {
+      "ref": "refs/heads/director/resolve-1452",
+      "sha": "20e4cf0bbb9bbbfe96511a8170e24c529aedcbd6",
+      "commit_date": "2026-09-28T17:01:07-04:00",
+      "subject": "WASM docs: the module build needs the rlib and cdylib crate types together",
+      "provisional_retention_reason": "Retained review/integration snapshot. Head/patch/path evidence needs explicit disposition; branch name does not prove merge or obsolescence.",
+      "review_steward": "Codex",
+      "reactivation_condition": "A review against the actual associated merged/closed PR and current main demonstrates a missing active-contract fix or unique evidence; link that delta to a live issue before source adoption.",
+      "evidence": [
+        "Observed path/blob comparison: {\"ABSENT_FROM_MAIN\": 6, \"DIFFERENT\": 4, \"IDENTICAL\": 5}."
+      ],
+      "next_action": "Codex: review capability/API/WASM changes versus closed #1452 and current runtime;6 of15 changed paths absent from main. Preserve and adjudicate each caller/test before any revival.",
+      "disposition": "RETAIN_PENDING_REVIEW"
+    },
+    {
+      "ref": "refs/heads/director/resolve-1458",
+      "sha": "fc87c9521b6a9198d53c1c5d5e27cdb163a852b4",
+      "commit_date": "2026-09-28T16:25:33-04:00",
+      "subject": "Merge origin/main (S1.1) into #1458 for the Lab 1 resolution",
+      "provisional_retention_reason": "Retained review/integration snapshot. Head/patch/path evidence needs explicit disposition; branch name does not prove merge or obsolescence.",
+      "review_steward": "Codex",
+      "reactivation_condition": "A review against the actual associated merged/closed PR and current main demonstrates a missing active-contract fix or unique evidence; link that delta to a live issue before source adoption.",
+      "evidence": [
+        "Observed path/blob comparison: {\"ABSENT_FROM_MAIN\": 1, \"DIFFERENT\": 3}."
+      ],
+      "next_action": "Antigravity/Claude reviewer: same head as lab/claude/resolve-1458-codec-cleanup; one disposition for both aliases, not duplicate PRs.",
+      "disposition": "RETAIN_PENDING_REVIEW"
+    },
+    {
+      "ref": "refs/heads/issue-1107-workbench-candidate",
+      "sha": "5b20051261541f45997f8bc5657c504203fe2d81",
+      "commit_date": "2026-09-03T14:30:19-04:00",
+      "subject": "Implement native Four-fact workbench candidate (#1107)",
+      "provisional_retention_reason": "Unique or unresolved source/evidence retained without a matching PR; individual patch mismatch alone does not establish missing source after squash merges.",
+      "review_steward": "Codex",
+      "reactivation_condition": "Current-main and historical-PR review identifies exact source/evidence still useful to the mission; create/adopt a bounded integration work card, independent review and relevant checks before activation.",
+      "evidence": [],
+      "next_action": "Inspect commits and patch equivalence; open or attach to an integration task if unique and relevant.",
+      "disposition": "RETAIN_PENDING_REVIEW"
+    },
+    {
+      "ref": "refs/heads/issue-973-score-readout-result",
+      "sha": "9c3da950674a4fe9864f7c46486ff24c5fd1e18b",
+      "commit_date": "2026-08-30T03:31:09-04:00",
+      "subject": "docs: publish #973 localization result and reset direction",
+      "provisional_retention_reason": "Unique or unresolved source/evidence retained without a matching PR; individual patch mismatch alone does not establish missing source after squash merges.",
+      "review_steward": "Codex",
+      "reactivation_condition": "Current-main and historical-PR review identifies exact source/evidence still useful to the mission; create/adopt a bounded integration work card, independent review and relevant checks before activation.",
+      "evidence": [],
+      "next_action": "Inspect commits and patch equivalence; open or attach to an integration task if unique and relevant.",
+      "disposition": "RETAIN_PENDING_REVIEW"
+    },
+    {
+      "ref": "refs/heads/lab/anti-gravity/d4-e8-codec-backup",
+      "sha": "dfc4217c808868cc738a20b648733a15552ee544",
+      "commit_date": "2026-09-28T21:47:14-04:00",
+      "subject": "docs(qat): author D4 QAT representation plan for learning-to-serving gap reduction",
+      "provisional_retention_reason": "Retained review/integration snapshot. Head/patch/path evidence needs explicit disposition; branch name does not prove merge or obsolescence.",
+      "review_steward": "Antigravity",
+      "reactivation_condition": "A review against the actual associated merged/closed PR and current main demonstrates a missing active-contract fix or unique evidence; link that delta to a live issue before source adoption.",
+      "evidence": [
+        "Observed path/blob comparison: {\"DIFFERENT\": 6, \"IDENTICAL\": 6}."
+      ],
+      "next_action": "Antigravity: retain backup dfc4217c and compare energy/codec lineage against merged D4 work and active #1490; no automatic adoption based on the backup name.",
+      "disposition": "RETAIN_PENDING_REVIEW"
+    },
+    {
+      "ref": "refs/heads/lab/anti-gravity/d4-qat-results-staging",
+      "sha": "3617721f52719e74cd37199a1a46d22bdb800b4b",
+      "commit_date": "2026-09-29T16:16:52-04:00",
+      "subject": "Merge origin/main into lab/anti-gravity/d4-qat-adapters",
+      "provisional_retention_reason": "Retained review/integration snapshot. Head/patch/path evidence needs explicit disposition; branch name does not prove merge or obsolescence.",
+      "review_steward": "Antigravity",
+      "reactivation_condition": "A review against the actual associated merged/closed PR and current main demonstrates a missing active-contract fix or unique evidence; link that delta to a live issue before source adoption.",
+      "evidence": [
+        "Exact head is ancestor of recorded PR heads #1519 OPEN,#1490 OPEN,#1527 OPEN; this does not prove all original files survive.",
+        "Observed path/blob comparison: {\"ABSENT_FROM_MAIN\": 7, \"DIFFERENT\": 5}."
+      ],
+      "next_action": "Antigravity: old3617721f is ancestor of #1490,#1519,#1527. Retain as historical staging; deliver revised #1490/#1527 and reconcile #1519 rather than merging this snapshot.",
+      "disposition": "RETAIN_PENDING_REVIEW"
+    },
+    {
+      "ref": "refs/heads/lab/claude/a1-flock-pointer",
+      "sha": "14f026b2f6c451a067b6bc9a99be630e67af992d",
+      "commit_date": "2026-09-29T17:09:40-04:00",
+      "subject": "A1: flock selection in the fused read and a pointer-copy head for the geometric stack",
+      "provisional_retention_reason": "Active A1 source lineage with no PR mapped to this head. Complementary descendants and missing shared-selector interface must be integrated.",
+      "review_steward": "Claude",
+      "reactivation_condition": "Canonical flock/top-k API and combined A1 pointer/instrument head are registered in a live integration work card, independently reviewed and focused checks pass before model work.",
+      "evidence": [
+        "Observed path/blob comparison: {\"DIFFERENT\": 9}."
+      ],
+      "next_action": "Claude: retain 14f026b2 as ancestor of active A1 branches; use the pointer fixes descendant for delivery, then record supersession with actual PR/merge evidence.",
+      "disposition": "RETAIN_PENDING_REVIEW"
+    },
+    {
+      "ref": "refs/heads/lab/claude/a1-mworld-cells",
+      "sha": "76c8dac21eab7ba6035c13f21d9200983d14a3c8",
+      "commit_date": "2026-09-29T22:29:26-04:00",
+      "subject": "run_rules: collect the replies into a vector instead of chaining an iterator over a const",
+      "provisional_retention_reason": "Active A1 source lineage with no PR mapped to this head. Complementary descendants and missing shared-selector interface must be integrated.",
+      "review_steward": "Claude",
+      "reactivation_condition": "Canonical flock/top-k API and combined A1 pointer/instrument head are registered in a live integration work card, independently reviewed and focused checks pass before model work.",
+      "evidence": [
+        "Observed path/blob comparison: {\"ABSENT_FROM_MAIN\": 3, \"DIFFERENT\": 12}.",
+        "Attached worktree status: [{\"exists\": true, \"path\": \"/Users/casey.allard/uor-r4/.claude/worktrees/wf_e9e1bebc-40e-2\", \"status_checked\": true, \"status_count\": 0}]."
+      ],
+      "next_action": "Claude: preserve 2f11a148,d5d9fb19,76c8dac2 and combine with pointer fixes from b806fb2d; retain sealed English probe, teacher-forced scoring, cross cells and rules baselines. Review and compile the integrated head before claiming instruments ready.",
+      "disposition": "RETAIN_PENDING_REVIEW"
+    },
+    {
+      "ref": "refs/heads/lab/claude/a1-pointer-fixes",
+      "sha": "b806fb2db924aa013e2e7173f4eccb9591cbcc0f",
+      "commit_date": "2026-09-29T22:14:39-04:00",
+      "subject": "A1 pointer fixes: one flock selector, the pointer's own score and selection, no copy floor (#1511)",
+      "provisional_retention_reason": "Active A1 source lineage with no PR mapped to this head. Complementary descendants and missing shared-selector interface must be integrated.",
+      "review_steward": "Claude",
+      "reactivation_condition": "Canonical flock/top-k API and combined A1 pointer/instrument head are registered in a live integration work card, independently reviewed and focused checks pass before model work.",
+      "evidence": [
+        "Observed path/blob comparison: {\"ABSENT_FROM_MAIN\": 1, \"DIFFERENT\": 12}.",
+        "Attached worktree status: [{\"exists\": true, \"path\": \"/Users/casey.allard/uor-r4/.claude/worktrees/wf_e9e1bebc-40e-1\", \"status_checked\": true, \"status_count\": 0}]."
+      ],
+      "next_action": "Claude: combine b806fb2d with A1 M-world cell changes at shared base cb32e73c, after the canonical OpenCode flock API lands. This head imports crate::flock but lacks its module; top_k_select is absent from current B0 too. Publish/review integrated source before A1 compute.",
+      "disposition": "RETAIN_PENDING_REVIEW"
+    },
+    {
+      "ref": "refs/heads/lab/claude/a1-retrieval",
+      "sha": "cb32e73c8b666b104e55461f51126cdaf5feb97e",
+      "commit_date": "2026-09-29T21:22:48-04:00",
+      "subject": "Merge remote-tracking branch 'origin/lab/claude/m-world-v2' into lab/claude/a1-retrieval",
+      "provisional_retention_reason": "Active A1 source lineage with no PR mapped to this head. Complementary descendants and missing shared-selector interface must be integrated.",
+      "review_steward": "Claude",
+      "reactivation_condition": "Canonical flock/top-k API and combined A1 pointer/instrument head are registered in a live integration work card, independently reviewed and focused checks pass before model work.",
+      "evidence": [
+        "Observed path/blob comparison: {\"ABSENT_FROM_MAIN\": 1, \"DIFFERENT\": 12}."
+      ],
+      "next_action": "Claude: retain as shared merge-base cb32e73c for both active A1 branches; its c5b84173 and14f026b2 commits are included in those branches. Do not open a duplicate implementation PR; record supersession after their integrated delivery.",
+      "disposition": "RETAIN_PENDING_REVIEW"
+    },
+    {
+      "ref": "refs/heads/lab/claude/integration",
+      "sha": "a6731e3912cae6ec73f58c323b282a0ffd1d907a",
+      "commit_date": "2026-09-29T07:50:19-04:00",
+      "subject": "stack_integration: gated on-policy registers, development scoring and greedy replies with the store in the loop, and the integration fit",
+      "provisional_retention_reason": "Retained Stage2 gated-register/store-aware training and generation source; no PR mapped and not the current default experimental rung.",
+      "review_steward": "Claude",
+      "reactivation_condition": "An A1/A3 integration work card identifies a concrete missing gate/store/gradient interface; review and validate that source delta before resuming any fitting.",
+      "evidence": [
+        "Observed path/blob comparison: {\"ABSENT_FROM_MAIN\": 1, \"DIFFERENT\": 1}."
+      ],
+      "next_action": "Claude: inspect retained 90ec4475/a6731e39 Stage2 user-turn flags, gated registers, development/greedy store loop and fit; map reusable portions to active A1/A3 work card. Keep unscheduled training parked until its instrument/gradient need is established; integrate reusable source only after review.",
+      "disposition": "RETAIN_PENDING_REVIEW"
+    },
+    {
+      "ref": "refs/heads/lab/claude/m-world-v2",
+      "sha": "c5b841739922e0096147da86bd78eb425a5b2510",
+      "commit_date": "2026-09-29T17:06:12-04:00",
+      "subject": "M-world v2: open value pools, MQAR and copy episodes, the #1516 oracle fixes (A1)",
+      "provisional_retention_reason": "Active A1 source lineage with no PR mapped to this head. Complementary descendants and missing shared-selector interface must be integrated.",
+      "review_steward": "Claude",
+      "reactivation_condition": "Canonical flock/top-k API and combined A1 pointer/instrument head are registered in a live integration work card, independently reviewed and focused checks pass before model work.",
+      "evidence": [
+        "Observed path/blob comparison: {\"ABSENT_FROM_MAIN\": 1, \"DIFFERENT\": 3}."
+      ],
+      "next_action": "Claude: retain c5b84173 as ancestor of both A1 branches; deliver through their integrated instrument/model work, not an independent duplicate merge.",
+      "disposition": "RETAIN_PENDING_REVIEW"
+    },
+    {
+      "ref": "refs/heads/lab/codex/merge-review-stack-inputs-20260928",
+      "sha": "33278454f5e55b323550062685e802a9053f5db0",
+      "commit_date": "2026-09-28T15:49:03-04:00",
+      "subject": "Merge remote-tracking branch 'origin/main' into review/pr1467-input-safety-20260928",
+      "provisional_retention_reason": "Retained review/integration snapshot. Head/patch/path evidence needs explicit disposition; branch name does not prove merge or obsolescence.",
+      "review_steward": "Codex",
+      "reactivation_condition": "A review against the actual associated merged/closed PR and current main demonstrates a missing active-contract fix or unique evidence; link that delta to a live issue before source adoption.",
+      "evidence": [
+        "Observed path/blob comparison: {\"DIFFERENT\": 2}.",
+        "Attached worktree status: [{\"exists\": true, \"path\": \"/Volumes/UOR-Workspace/Worktrees/merge-review-stack-20260928-1925\", \"status_checked\": true, \"status_count\": 0}]."
+      ],
+      "next_action": "Codex: compare retained input hardening afd2c330 and merge33278454 against current stack CLI/integer callers; cherry-pick only a still-missing causal safety fix after source review. Preserve until exact disposition.",
+      "disposition": "RETAIN_PENDING_REVIEW"
+    },
+    {
+      "ref": "refs/heads/lab/opencode/b0-flock",
+      "sha": "5b7d168526dba617408b9cac38e7c23937ef95be",
+      "commit_date": "2026-09-29T21:44:48-04:00",
+      "subject": "flock: model-source score_and_normalize transport and G1a plumbing (#1512)",
+      "provisional_retention_reason": "Active shared-selector/transport source missing its own PR; required float top_k_select interface is absent at captured head.",
+      "review_steward": "OpenCode DeepSeek",
+      "reactivation_condition": "Publish the bounded shared-selector integration PR, complete consumer contract, run exact-head focused tests under admission; only then activate model arms.",
+      "evidence": [
+        "Observed path/blob comparison: {\"ABSENT_FROM_MAIN\": 2, \"DIFFERENT\": 3}.",
+        "Attached worktree status: [{\"exists\": true, \"path\": \"/Users/casey.allard/uor-r4/.worktrees/b0-flock-20260929\", \"status_checked\": true, \"status_count\": 0}]."
+      ],
+      "next_action": "OpenCode: publish one integration PR/work card for c87519e3,2a823dac,5b7d1685; complete canonical top_k_select(scores,t,k) needed by A1, retain sink/window/rank semantics, and test the exact shared interface before A1/Track B adoption. No B0 model run before integration/admission.",
+      "disposition": "RETAIN_PENDING_REVIEW"
+    },
+    {
+      "ref": "refs/heads/pr-1479",
+      "sha": "700872f763f8f094a9d29197617195e00f41940d",
+      "commit_date": "2026-09-28T22:49:34-04:00",
+      "subject": "test(codec): add head_quantization_mse_comparison evaluating geometric_s1 output head (#973, #820)",
+      "provisional_retention_reason": "Retained review/integration snapshot. Head/patch/path evidence needs explicit disposition; branch name does not prove merge or obsolescence.",
+      "review_steward": "Codex",
+      "reactivation_condition": "A review against the actual associated merged/closed PR and current main demonstrates a missing active-contract fix or unique evidence; link that delta to a live issue before source adoption.",
+      "evidence": [
+        "Observed path/blob comparison: {\"DIFFERENT\": 8, \"IDENTICAL\": 4}."
+      ],
+      "next_action": "Antigravity: review snapshot700872f7 has no mapped PR-head containment; compare its five commits against historical #1479 and current D4 acceptance fixes, preserving any residual test/lineage evidence.",
+      "disposition": "RETAIN_PENDING_REVIEW"
+    },
+    {
+      "ref": "refs/heads/pr-1486",
+      "sha": "b6c6cccd00e79fca026f749a3cfb4d06bda04ff1",
+      "commit_date": "2026-09-28T22:07:30-04:00",
+      "subject": "Memory port: the prime router is the address form (owner direction)",
+      "provisional_retention_reason": "Retained review/integration snapshot. Head/patch/path evidence needs explicit disposition; branch name does not prove merge or obsolescence.",
+      "review_steward": "Codex",
+      "reactivation_condition": "A review against the actual associated merged/closed PR and current main demonstrates a missing active-contract fix or unique evidence; link that delta to a live issue before source adoption.",
+      "evidence": [
+        "Exact head is ancestor of recorded PR heads #1486 MERGED; this does not prove all original files survive.",
+        "Observed path/blob comparison: {\"DIFFERENT\": 1}."
+      ],
+      "next_action": "Retained review snapshot is ancestor of merged #1486 head. Link to its actual merge; preserve material before archival.",
+      "disposition": "RETAIN_PENDING_REVIEW"
+    },
+    {
+      "ref": "refs/heads/pr-1487",
+      "sha": "020f974d4ee06432a8564307a8a425ffb8de8d43",
+      "commit_date": "2026-09-28T23:39:03-04:00",
+      "subject": "Test that semiprime experts are exactly unordered pairs",
+      "provisional_retention_reason": "Retained review/integration snapshot. Head/patch/path evidence needs explicit disposition; branch name does not prove merge or obsolescence.",
+      "review_steward": "Codex",
+      "reactivation_condition": "A review against the actual associated merged/closed PR and current main demonstrates a missing active-contract fix or unique evidence; link that delta to a live issue before source adoption.",
+      "evidence": [
+        "Exact head is ancestor of recorded PR heads #1492 MERGED,#1487 MERGED; this does not prove all original files survive.",
+        "Observed path/blob comparison: {\"DIFFERENT\": 3}."
+      ],
+      "next_action": "Retained review snapshot is ancestor of merged #1487/#1492 heads. Link to those actual merges; preserve any worktree material before archival.",
+      "disposition": "RETAIN_PENDING_REVIEW"
+    },
+    {
+      "ref": "refs/heads/queue-sim",
+      "sha": "48fc78f501efdadb9eebf8521bfd384bbbfd4a41",
+      "commit_date": "2026-07-30T00:18:47-04:00",
+      "subject": "Merge remote-tracking branch 'origin/issue-243-phase-c' into queue-sim",
+      "provisional_retention_reason": "Retained review/integration snapshot. Head/patch/path evidence needs explicit disposition; branch name does not prove merge or obsolescence.",
+      "review_steward": "Codex",
+      "reactivation_condition": "A review against the actual associated merged/closed PR and current main demonstrates a missing active-contract fix or unique evidence; link that delta to a live issue before source adoption.",
+      "evidence": [],
+      "next_action": "Inspect commits and patch equivalence; open or attach to an integration task if unique and relevant.",
+      "disposition": "RETAIN_PENDING_REVIEW"
+    },
+    {
+      "ref": "refs/remotes/origin/archive/ai-research-history",
+      "sha": "169dd7c52583088398216d3782441cc2a3855acc",
+      "commit_date": "2026-05-08T21:18:01-04:00",
+      "subject": "Update repository guidance for workflow and validation",
+      "provisional_retention_reason": "Preserved divergent historical research, reports and source. No current acceptance or redundancy is inferred.",
+      "review_steward": "Codex",
+      "reactivation_condition": "A live work card identifies a specific archived mechanism, negative result or provenance record needed for current mission; review only that bounded adoption/indexing delta.",
+      "evidence": [],
+      "next_action": "Retain historical research archive and index its exact sources/negative evidence. This is intentionally divergent research history; no bulk source merge or deletion. Open a bounded adoption task only for an active mission mechanism.",
+      "disposition": "RETAIN_PENDING_REVIEW"
+    },
+    {
+      "ref": "refs/remotes/origin/archive/causal-experiment-source-20260924",
+      "sha": "4af04cf56f213df40b78c73a7c51ed5274517857",
+      "commit_date": "2026-09-23T20:30:52-04:00",
+      "subject": "Add exact learner checkpoints, causal feedback fitting, learned relative actions and sparse read plans",
+      "provisional_retention_reason": "Preserved divergent historical research, reports and source. No current acceptance or redundancy is inferred.",
+      "review_steward": "Codex",
+      "reactivation_condition": "A live work card identifies a specific archived mechanism, negative result or provenance record needed for current mission; review only that bounded adoption/indexing delta.",
+      "evidence": [
+        "Exact head is ancestor of recorded PR heads #1373 MERGED; this does not prove all original files survive."
+      ],
+      "next_action": "Retain historical research archive and index its exact sources/negative evidence. This is intentionally divergent research history; no bulk source merge or deletion. Open a bounded adoption task only for an active mission mechanism.",
+      "disposition": "RETAIN_PENDING_REVIEW"
+    },
+    {
+      "ref": "refs/remotes/origin/archive/prime-analysis-history",
+      "sha": "d6b261e8268b9122531408f04aa2b1de78059d40",
+      "commit_date": "2026-07-13T21:13:49-04:00",
+      "subject": "Update author name in topological rh.md",
+      "provisional_retention_reason": "Preserved divergent historical research, reports and source. No current acceptance or redundancy is inferred.",
+      "review_steward": "Codex",
+      "reactivation_condition": "A live work card identifies a specific archived mechanism, negative result or provenance record needed for current mission; review only that bounded adoption/indexing delta.",
+      "evidence": [],
+      "next_action": "Retain historical research archive and index its exact sources/negative evidence. This is intentionally divergent research history; no bulk source merge or deletion. Open a bounded adoption task only for an active mission mechanism.",
+      "disposition": "RETAIN_PENDING_REVIEW"
+    },
+    {
+      "ref": "refs/remotes/origin/archive/principal-evidence-source-20260923",
+      "sha": "fc843a012241474a55e460b53235ad36418a7936",
+      "commit_date": "2026-09-23T18:54:45-04:00",
+      "subject": "Preserve frozen selection provenance in transferred bundles and scope Hamilton interpretation",
+      "provisional_retention_reason": "Preserved divergent historical research, reports and source. No current acceptance or redundancy is inferred.",
+      "review_steward": "Codex",
+      "reactivation_condition": "A live work card identifies a specific archived mechanism, negative result or provenance record needed for current mission; review only that bounded adoption/indexing delta.",
+      "evidence": [],
+      "next_action": "Retain historical research archive and index its exact sources/negative evidence. This is intentionally divergent research history; no bulk source merge or deletion. Open a bounded adoption task only for an active mission mechanism.",
+      "disposition": "RETAIN_PENDING_REVIEW"
+    },
+    {
+      "ref": "refs/remotes/origin/claude/cloud-handoff-20260928",
+      "sha": "16c77c973b9d0caff4a379542b2c5ebf6c71f53c",
+      "commit_date": "2026-09-28T16:24:51Z",
+      "subject": "Cloud lab track handoff: HANDOFF.md and the sandbox's unique text work",
+      "provisional_retention_reason": "Preserved divergent historical research, reports and source. No current acceptance or redundancy is inferred.",
+      "review_steward": "Claude",
+      "reactivation_condition": "A live work card identifies a specific archived mechanism, negative result or provenance record needed for current mission; review only that bounded adoption/indexing delta.",
+      "evidence": [
+        "Exact head is ancestor of recorded PR heads #1462 MERGED; this does not prove all original files survive.",
+        "Observed path/blob comparison: {\"ABSENT_FROM_MAIN\": 132, \"IDENTICAL\": 290}."
+      ],
+      "next_action": "Knowledge steward: head is in merged #1462 ancestry but132 original paths are absent from current main (290 unchanged). Preserve complete branch; index the original HANDOFF and omitted unique reports. Do not bulk-merge old sandbox implementations or assume ancestry preserved every file.",
+      "disposition": "RETAIN_PENDING_REVIEW"
+    },
+    {
+      "ref": "refs/remotes/origin/codex/canonical-address-routing-20260925",
+      "sha": "d22e2b50da85e527efcd4f60acc1e82644194b91",
+      "commit_date": "2026-09-26T20:52:09-04:00",
+      "subject": "R1d: completed sharded curve and the chunked-scan prototype (parity pass; throughput no-go)",
+      "provisional_retention_reason": "Unique or unresolved source/evidence retained without a matching PR; individual patch mismatch alone does not establish missing source after squash merges.",
+      "review_steward": "Codex",
+      "reactivation_condition": "Current-main and historical-PR review identifies exact source/evidence still useful to the mission; create/adopt a bounded integration work card, independent review and relevant checks before activation.",
+      "evidence": [
+        "Observed path/blob comparison: {\"ABSENT_FROM_MAIN\": 29, \"DIFFERENT\": 11}."
+      ],
+      "next_action": "Codex: preserve source/evidence d22e2b50 and dirty untracked R1d result files;29 of40 historical changed paths absent from main. Map old routing/chat vehicles to current counterparts and retain negative/throughput evidence; no bulk merge or cleanup.",
+      "disposition": "RETAIN_PENDING_REVIEW"
+    },
+    {
+      "ref": "refs/remotes/origin/codex/compiled-relative-query-20260924",
+      "sha": "8eb9cdaac00cd382c09a3c3e41d89a5f6c1e6591",
+      "commit_date": "2026-09-23T22:44:46-04:00",
+      "subject": "Measure small and long paths as well as the favorable large-candidate case",
+      "provisional_retention_reason": "Unique or unresolved source/evidence retained without a matching PR; individual patch mismatch alone does not establish missing source after squash merges.",
+      "review_steward": "Codex",
+      "reactivation_condition": "Current-main and historical-PR review identifies exact source/evidence still useful to the mission; create/adopt a bounded integration work card, independent review and relevant checks before activation.",
+      "evidence": [],
+      "next_action": "Inspect commits and patch equivalence; open or attach to an integration task if unique and relevant.",
+      "disposition": "RETAIN_PENDING_REVIEW"
+    },
+    {
+      "ref": "refs/remotes/origin/codex/dialogue-code-choice-isolated-20260927",
+      "sha": "a730babcecb8d699775029a496cc7947c2d50f0a",
+      "commit_date": "2026-09-27T13:49:56-04:00",
+      "subject": "Preserve the 231-update dialogue checkpoint and resource stop",
+      "provisional_retention_reason": "Unique or unresolved source/evidence retained without a matching PR; individual patch mismatch alone does not establish missing source after squash merges.",
+      "review_steward": "Codex",
+      "reactivation_condition": "Current-main and historical-PR review identifies exact source/evidence still useful to the mission; create/adopt a bounded integration work card, independent review and relevant checks before activation.",
+      "evidence": [
+        "Exact head is ancestor of recorded PR heads #1433 MERGED; this does not prove all original files survive.",
+        "Observed path/blob comparison: {\"DIFFERENT\": 8, \"IDENTICAL\": 17}."
+      ],
+      "next_action": "Codex: local and remote heads differ but both are in merged #1433 ancestry.17 of25 original changed paths identical to main; inspect the other8 for intentional later changes before supersession. Preserve retained231-update checkpoint evidence.",
+      "disposition": "RETAIN_PENDING_REVIEW"
+    },
+    {
+      "ref": "refs/remotes/origin/codex/geometric-lm-goal",
+      "sha": "f99f42fb472d065acc9a6f16b815755b02c60180",
+      "commit_date": "2026-09-28T00:42:40-04:00",
+      "subject": "chore(research): preserve dirty research and adversarial evaluation files",
+      "provisional_retention_reason": "Unique or unresolved source/evidence retained without a matching PR; individual patch mismatch alone does not establish missing source after squash merges.",
+      "review_steward": "Codex",
+      "reactivation_condition": "Current-main and historical-PR review identifies exact source/evidence still useful to the mission; create/adopt a bounded integration work card, independent review and relevant checks before activation.",
+      "evidence": [
+        "Observed path/blob comparison: {\"ABSENT_FROM_MAIN\": 17, \"DIFFERENT\": 6}."
+      ],
+      "next_action": "Codex: preserve f99f42fb research/adversarial snapshot;17 of23 changed paths are absent from main. Index missing reports and evidence, then propose only tests/source with a concrete active-contract use; do not adopt historical PASS claims as current tests.",
+      "disposition": "RETAIN_PENDING_REVIEW"
+    },
+    {
+      "ref": "refs/remotes/origin/codex/ordinary-lexical-decisive-audit",
+      "sha": "36575fdcfc60554fa874aebe8a91b696d290a704",
+      "commit_date": "2026-09-23T01:38:21-04:00",
+      "subject": "Fix evidence JSON delimiter",
+      "provisional_retention_reason": "Unique or unresolved source/evidence retained without a matching PR; individual patch mismatch alone does not establish missing source after squash merges.",
+      "review_steward": "Codex",
+      "reactivation_condition": "Current-main and historical-PR review identifies exact source/evidence still useful to the mission; create/adopt a bounded integration work card, independent review and relevant checks before activation.",
+      "evidence": [],
+      "next_action": "Inspect commits and patch equivalence; open or attach to an integration task if unique and relevant.",
+      "disposition": "RETAIN_PENDING_REVIEW"
+    },
+    {
+      "ref": "refs/remotes/origin/explore-matmul-fixed-a",
+      "sha": "260440b6ca9bc2aa343dfddfc376184cd75f2973",
+      "commit_date": "2026-08-20T01:29:36-04:00",
+      "subject": "explore: track WIP fork matmul (fixed-A #37) instead of the pinned rev",
+      "provisional_retention_reason": "Unique or unresolved source/evidence retained without a matching PR; individual patch mismatch alone does not establish missing source after squash merges.",
+      "review_steward": "Codex",
+      "reactivation_condition": "Current-main and historical-PR review identifies exact source/evidence still useful to the mission; create/adopt a bounded integration work card, independent review and relevant checks before activation.",
+      "evidence": [],
+      "next_action": "Inspect commits and patch equivalence; open or attach to an integration task if unique and relevant.",
+      "disposition": "RETAIN_PENDING_REVIEW"
+    },
+    {
+      "ref": "refs/remotes/origin/graph-emission-shrinkage",
+      "sha": "8ca83a2df07ca4f7766462d95fb8f413a055d89b",
+      "commit_date": "2026-08-02T21:26:20-07:00",
+      "subject": "certify: test Witten-Bell shrinkage; refutes the sparsity explanation",
+      "provisional_retention_reason": "Unique or unresolved source/evidence retained without a matching PR; individual patch mismatch alone does not establish missing source after squash merges.",
+      "review_steward": "Codex",
+      "reactivation_condition": "Current-main and historical-PR review identifies exact source/evidence still useful to the mission; create/adopt a bounded integration work card, independent review and relevant checks before activation.",
+      "evidence": [
+        "Exact head is ancestor of recorded PR heads #370 MERGED,#369 MERGED; this does not prove all original files survive."
+      ],
+      "next_action": "Historical head is contained in these reviewed/pending PR histories; inspect final PR diff and later removals before duplicate integration: #370 MERGED, #369 MERGED",
+      "disposition": "RETAIN_PENDING_REVIEW"
+    },
+    {
+      "ref": "refs/remotes/origin/graph-emissions-followup",
+      "sha": "a501d012a5b0957f1dd5bcede8602ed0a72b8ea2",
+      "commit_date": "2026-08-02T19:41:38-07:00",
+      "subject": "certify: measure emission selection against likelihood",
+      "provisional_retention_reason": "Unique or unresolved source/evidence retained without a matching PR; individual patch mismatch alone does not establish missing source after squash merges.",
+      "review_steward": "Codex",
+      "reactivation_condition": "Current-main and historical-PR review identifies exact source/evidence still useful to the mission; create/adopt a bounded integration work card, independent review and relevant checks before activation.",
+      "evidence": [],
+      "next_action": "Inspect commits and patch equivalence; open or attach to an integration task if unique and relevant.",
+      "disposition": "RETAIN_PENDING_REVIEW"
+    },
+    {
+      "ref": "refs/remotes/origin/lab/claude/a1-flock-pointer",
+      "sha": "14f026b2f6c451a067b6bc9a99be630e67af992d",
+      "commit_date": "2026-09-29T17:09:40-04:00",
+      "subject": "A1: flock selection in the fused read and a pointer-copy head for the geometric stack",
+      "provisional_retention_reason": "Active A1 source lineage with no PR mapped to this head. Complementary descendants and missing shared-selector interface must be integrated.",
+      "review_steward": "Claude",
+      "reactivation_condition": "Canonical flock/top-k API and combined A1 pointer/instrument head are registered in a live integration work card, independently reviewed and focused checks pass before model work.",
+      "evidence": [
+        "Observed path/blob comparison: {\"DIFFERENT\": 9}."
+      ],
+      "next_action": "Claude: retain 14f026b2 as ancestor of active A1 branches; use the pointer fixes descendant for delivery, then record supersession with actual PR/merge evidence.",
+      "disposition": "RETAIN_PENDING_REVIEW"
+    },
+    {
+      "ref": "refs/remotes/origin/lab/claude/a1-mworld-cells",
+      "sha": "76c8dac21eab7ba6035c13f21d9200983d14a3c8",
+      "commit_date": "2026-09-29T22:29:26-04:00",
+      "subject": "run_rules: collect the replies into a vector instead of chaining an iterator over a const",
+      "provisional_retention_reason": "Active A1 source lineage with no PR mapped to this head. Complementary descendants and missing shared-selector interface must be integrated.",
+      "review_steward": "Claude",
+      "reactivation_condition": "Canonical flock/top-k API and combined A1 pointer/instrument head are registered in a live integration work card, independently reviewed and focused checks pass before model work.",
+      "evidence": [
+        "Observed path/blob comparison: {\"ABSENT_FROM_MAIN\": 3, \"DIFFERENT\": 12}."
+      ],
+      "next_action": "Claude: preserve 2f11a148,d5d9fb19,76c8dac2 and combine with pointer fixes from b806fb2d; retain sealed English probe, teacher-forced scoring, cross cells and rules baselines. Review and compile the integrated head before claiming instruments ready.",
+      "disposition": "RETAIN_PENDING_REVIEW"
+    },
+    {
+      "ref": "refs/remotes/origin/lab/claude/a1-pointer-fixes",
+      "sha": "b806fb2db924aa013e2e7173f4eccb9591cbcc0f",
+      "commit_date": "2026-09-29T22:14:39-04:00",
+      "subject": "A1 pointer fixes: one flock selector, the pointer's own score and selection, no copy floor (#1511)",
+      "provisional_retention_reason": "Active A1 source lineage with no PR mapped to this head. Complementary descendants and missing shared-selector interface must be integrated.",
+      "review_steward": "Claude",
+      "reactivation_condition": "Canonical flock/top-k API and combined A1 pointer/instrument head are registered in a live integration work card, independently reviewed and focused checks pass before model work.",
+      "evidence": [
+        "Observed path/blob comparison: {\"ABSENT_FROM_MAIN\": 1, \"DIFFERENT\": 12}."
+      ],
+      "next_action": "Claude: combine b806fb2d with A1 M-world cell changes at shared base cb32e73c, after the canonical OpenCode flock API lands. This head imports crate::flock but lacks its module; top_k_select is absent from current B0 too. Publish/review integrated source before A1 compute.",
+      "disposition": "RETAIN_PENDING_REVIEW"
+    },
+    {
+      "ref": "refs/remotes/origin/lab/claude/a1-retrieval",
+      "sha": "cb32e73c8b666b104e55461f51126cdaf5feb97e",
+      "commit_date": "2026-09-29T21:22:48-04:00",
+      "subject": "Merge remote-tracking branch 'origin/lab/claude/m-world-v2' into lab/claude/a1-retrieval",
+      "provisional_retention_reason": "Active A1 source lineage with no PR mapped to this head. Complementary descendants and missing shared-selector interface must be integrated.",
+      "review_steward": "Claude",
+      "reactivation_condition": "Canonical flock/top-k API and combined A1 pointer/instrument head are registered in a live integration work card, independently reviewed and focused checks pass before model work.",
+      "evidence": [
+        "Observed path/blob comparison: {\"ABSENT_FROM_MAIN\": 1, \"DIFFERENT\": 12}."
+      ],
+      "next_action": "Claude: retain as shared merge-base cb32e73c for both active A1 branches; its c5b84173 and14f026b2 commits are included in those branches. Do not open a duplicate implementation PR; record supersession after their integrated delivery.",
+      "disposition": "RETAIN_PENDING_REVIEW"
+    },
+    {
+      "ref": "refs/remotes/origin/lab/claude/integration",
+      "sha": "a6731e3912cae6ec73f58c323b282a0ffd1d907a",
+      "commit_date": "2026-09-29T07:50:19-04:00",
+      "subject": "stack_integration: gated on-policy registers, development scoring and greedy replies with the store in the loop, and the integration fit",
+      "provisional_retention_reason": "Retained Stage2 gated-register/store-aware training and generation source; no PR mapped and not the current default experimental rung.",
+      "review_steward": "Claude",
+      "reactivation_condition": "An A1/A3 integration work card identifies a concrete missing gate/store/gradient interface; review and validate that source delta before resuming any fitting.",
+      "evidence": [
+        "Observed path/blob comparison: {\"ABSENT_FROM_MAIN\": 1, \"DIFFERENT\": 1}."
+      ],
+      "next_action": "Claude: inspect retained 90ec4475/a6731e39 Stage2 user-turn flags, gated registers, development/greedy store loop and fit; map reusable portions to active A1/A3 work card. Keep unscheduled training parked until its instrument/gradient need is established; integrate reusable source only after review.",
+      "disposition": "RETAIN_PENDING_REVIEW"
+    },
+    {
+      "ref": "refs/remotes/origin/lab/claude/m-world-v2",
+      "sha": "c5b841739922e0096147da86bd78eb425a5b2510",
+      "commit_date": "2026-09-29T17:06:12-04:00",
+      "subject": "M-world v2: open value pools, MQAR and copy episodes, the #1516 oracle fixes (A1)",
+      "provisional_retention_reason": "Active A1 source lineage with no PR mapped to this head. Complementary descendants and missing shared-selector interface must be integrated.",
+      "review_steward": "Claude",
+      "reactivation_condition": "Canonical flock/top-k API and combined A1 pointer/instrument head are registered in a live integration work card, independently reviewed and focused checks pass before model work.",
+      "evidence": [
+        "Observed path/blob comparison: {\"ABSENT_FROM_MAIN\": 1, \"DIFFERENT\": 3}."
+      ],
+      "next_action": "Claude: retain c5b84173 as ancestor of both A1 branches; deliver through their integrated instrument/model work, not an independent duplicate merge.",
+      "disposition": "RETAIN_PENDING_REVIEW"
+    },
+    {
+      "ref": "refs/remotes/origin/lab/claude/resolve-1458-codec-cleanup",
+      "sha": "fc87c9521b6a9198d53c1c5d5e27cdb163a852b4",
+      "commit_date": "2026-09-28T16:25:33-04:00",
+      "subject": "Merge origin/main (S1.1) into #1458 for the Lab 1 resolution",
+      "provisional_retention_reason": "Unique or unresolved source/evidence retained without a matching PR; individual patch mismatch alone does not establish missing source after squash merges.",
+      "review_steward": "Claude",
+      "reactivation_condition": "Current-main and historical-PR review identifies exact source/evidence still useful to the mission; create/adopt a bounded integration work card, independent review and relevant checks before activation.",
+      "evidence": [
+        "Observed path/blob comparison: {\"ABSENT_FROM_MAIN\": 1, \"DIFFERENT\": 3}."
+      ],
+      "next_action": "Antigravity/Claude reviewer: compare retained codec-removal/scoping fixes against closed #1458 and current D4 source; preserve missing path and historical negatives, integrate only demonstrably missing active-contract fixes.",
+      "disposition": "RETAIN_PENDING_REVIEW"
+    },
+    {
+      "ref": "refs/remotes/origin/lab/codex/merge-review-stack-inputs-20260928",
+      "sha": "33278454f5e55b323550062685e802a9053f5db0",
+      "commit_date": "2026-09-28T15:49:03-04:00",
+      "subject": "Merge remote-tracking branch 'origin/main' into review/pr1467-input-safety-20260928",
+      "provisional_retention_reason": "Retained review/integration snapshot. Head/patch/path evidence needs explicit disposition; branch name does not prove merge or obsolescence.",
+      "review_steward": "Codex",
+      "reactivation_condition": "A review against the actual associated merged/closed PR and current main demonstrates a missing active-contract fix or unique evidence; link that delta to a live issue before source adoption.",
+      "evidence": [
+        "Observed path/blob comparison: {\"DIFFERENT\": 2}."
+      ],
+      "next_action": "Codex: compare retained input hardening afd2c330 and merge33278454 against current stack CLI/integer callers; cherry-pick only a still-missing causal safety fix after source review. Preserve until exact disposition.",
+      "disposition": "RETAIN_PENDING_REVIEW"
+    },
+    {
+      "ref": "refs/remotes/origin/lab/opencode/b0-flock",
+      "sha": "5b7d168526dba617408b9cac38e7c23937ef95be",
+      "commit_date": "2026-09-29T21:44:48-04:00",
+      "subject": "flock: model-source score_and_normalize transport and G1a plumbing (#1512)",
+      "provisional_retention_reason": "Active shared-selector/transport source missing its own PR; required float top_k_select interface is absent at captured head.",
+      "review_steward": "OpenCode DeepSeek",
+      "reactivation_condition": "Publish the bounded shared-selector integration PR, complete consumer contract, run exact-head focused tests under admission; only then activate model arms.",
+      "evidence": [
+        "Observed path/blob comparison: {\"ABSENT_FROM_MAIN\": 2, \"DIFFERENT\": 3}."
+      ],
+      "next_action": "OpenCode: publish one integration PR/work card for c87519e3,2a823dac,5b7d1685; complete canonical top_k_select(scores,t,k) needed by A1, retain sink/window/rank semantics, and test the exact shared interface before A1/Track B adoption. No B0 model run before integration/admission.",
+      "disposition": "RETAIN_PENDING_REVIEW"
+    }
+  ],
+  "cautions": [
+    "git cherry compares individual non-merge patches; plus does not mean new source when multi-commit work was squash-merged.",
+    "PR-head ancestry proves lineage, not that every original file survived its final reviewed tree.",
+    "All worktree tracked/untracked statuses inspected where path accessible; ignored model/build files, active processes and cleanup eligibility not audited here.",
+    "This is a frozen read-only snapshot; other labs may update branches/PRs while inventory runs. Refresh exact head/base before acting.",
+    "No Cargo, tests, model compute, source edits, branch changes, deletions or GitHub mutations performed. fetch --no-prune updated remote-tracking refs only."
+  ]
+}

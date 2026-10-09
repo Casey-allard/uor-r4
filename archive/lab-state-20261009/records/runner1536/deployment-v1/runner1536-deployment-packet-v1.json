@@ -1,0 +1,42 @@
+{
+  "schema": "uor-r4.runner-deployment-packet/1",
+  "created_utc": "2026-09-30T07:00:00Z",
+  "author": "kimi-coordinator-20260930",
+  "purpose": "Narrow deployment of the validated repaired lab-runner binary (source 8e90aa33) as the production supervisor, with admissions held throughout. Follows the executed v4 validation packet (runner1536-checks-attempt2: test 18/18 PASS + build PASS).",
+  "authorization_condition": "Execute only after one independent non-author review of this packet and fresh preflight passing. This packet authorizes no hold release, no queue admission, no model work, and no ledger changes.",
+  "source": {
+    "pr": 1537,
+    "head_sha": "8e90aa33b8ef941d3ac5de57ad448859e20ad76b",
+    "validated_binary": "/Users/casey.allard/.cache/uor-r4-lab-system/target/debug/lab-runner",
+    "validated_binary_sha256": "a4b5fa5ff4554b07846b4d4f56c927a18cf1a1a93f42ec36c05fd9e0777a299a",
+    "validation_receipt": "codex/lab-state:runner1536/attempt2/receipt.json"
+  },
+  "production": {
+    "plist": "/Users/casey.allard/Library/LaunchAgents/org.uor.lab-runner.plist",
+    "current_binary": "/Users/casey.allard/.local/share/uor-r4/bin/lab-runner-a345e766",
+    "current_binary_sha256": "0da70570578fe3e3ec00c444be4f7fb35cd9e3a37753074c7216513ab7da1cbc",
+    "hold": "/Users/casey.allard/.local/share/uor-r4/runner/admissions-held.json",
+    "hold_sha256": "81bb7c6af7c5f33f3c71b44a42235b32c46f1dd8dc488b8c57ff90c7d1779cb3",
+    "agent_loaded": false,
+    "supervisor_process": "none running (stale daemon.json pid 24197)"
+  },
+  "preflight": [
+    "hold file sha256 unchanged",
+    "no lab-runner supervisor process running",
+    "validated binary sha256 matches a4b5fa5f...",
+    "current production binary sha256 matches 0da70570...",
+    "memory pressure level == 1",
+    "free space >= 42 GiB",
+    "agent org.uor.lab-runner not loaded"
+  ],
+  "steps": [
+    {"n": 1, "name": "rollback-preservation", "detail": "mkdir -p <recovery>/runner1536-deployment-v1/rollback; cp current_binary and live plist into it"},
+    {"n": 2, "name": "install", "detail": "cp validated_binary -> /Users/casey.allard/.local/share/uor-r4/bin/lab-runner-8e90aa33; chmod 755; verify sha256"},
+    {"n": 3, "name": "plist-update", "detail": "python3 plistlib: replace ProgramArguments[0] only; all other keys byte-identical; plutil -lint"},
+    {"n": 4, "name": "bootstrap", "detail": "launchctl bootstrap gui/501 ~/Library/LaunchAgents/org.uor.lab-runner.plist"},
+    {"n": 5, "name": "smoke", "detail": "bounded observation ~120s: (a) process alive with new binary path; (b) daemon.json refreshed (new pid/started); (c) survives past ThrottleInterval=30s without respawn loop (pid stable); (d) hold respected: queue/ and running/ unchanged, hold file byte-unchanged; (e) boot UUID stable"},
+    {"n": 6, "name": "receipt", "detail": "write deployment receipt JSON with all identities, observations, and rollback path; publish to codex/lab-state and #820"}
+  ],
+  "rollback": "launchctl bootout gui/501/org.uor.lab-runner; cp rollback plist back; bootstrap (old binary untouched at its original path)",
+  "non_goals": ["hold release", "queue admission", "model experiment", "ledger debit", "PR #1537 merge"]
+}

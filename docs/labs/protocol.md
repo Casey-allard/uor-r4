@@ -31,9 +31,10 @@ fallback. Historical provider-specific charters are superseded operationally.
 
 Accepted source, decisions and research knowledge live on protected `main`.
 Issues/PRs carry proposals and live activity; sealed evidence manifests bind
-actual artifacts. The `codex/lab-state` branch managed by `lab-runner coord`
-contains live lab/work claims and heartbeat state, separate from scientific
-source. Updates use atomic Git ref comparison: a conflicting writer rereads and
+actual artifacts. Claims live on the milestone issues (tracker #2028) and GPU leases on the compute
+board #2037. The former `codex/lab-state` branch (`lab-runner coord` claims and
+heartbeats) was retired on 9 October 2026 and archived in
+`docs/history/lab-state-20261009/`; do not recreate it or run `lab-runner coord`. Updates use atomic Git ref comparison: a conflicting writer rereads and
 reapplies its event; it never force-overwrites the newer state. Local indexes,
 chat summaries and `STATUS.md` are navigation/views, not independent authorities.
 
@@ -59,8 +60,7 @@ worktree is optional. Use a temporary branch when protected delivery requires
 it; name it `<lab>/<topic>` (Codex defaults to `codex/`). All work, including
 negative, superseded and unfinished retained source, lands in main with explicit
 status. Verify the actual merge, preserve unique material, then delete redundant
-branches and workspaces before starting the next task. The live `codex/lab-state`
-coordination record is the standing operational exception.
+branches and workspaces before starting the next task. There is no standing branch.
 
 ## Work loop, leases and recovery
 

@@ -1,0 +1,1 @@
+Command: ['/Users/casey.allard/.cargo/bin/cargo', 'fmt', '-p', 'lab-runner', '--check']

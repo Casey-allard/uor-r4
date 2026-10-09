@@ -1,0 +1,12 @@
+{
+  "head": "5d51f2855c4a912c1360cafc11890adf0fdce315",
+  "review_sha256": "1d2a44af27eb8733c2e761853cc98647ee36db1f458f931c2071beddd26c806d",
+  "files": {
+    "sealed-verification.json": "4e37cce72a38a6dac705699b9bf001acf26a85a3d7f894f3090e1971aaeb6eac",
+    "greedy-recomparison.json": "7fee11b04b006debf575ba9d0d9ae313512e5495bba05b49bd268590f2e12117",
+    "s1-anti-gravity-d4-geometric_s1_qat_d11_1000_lut_eval-evaluation.json": "de245c19dc67a71ad6c83b3912b04a3e83cb852c2f517446cb34386b4f6d1f86",
+    "s2-s2_dialogue_float_ctrl_1-d11_eval-evaluation.json": "ad164de6129442cc68334291bbe07bda7dab272aae62904cb8d2268494f2b618",
+    "s2-s2_dialogue_qat_1-d11_eval-evaluation.json": "20462b294533a14db4cafe08c7684ee422d0d0acb4c7179fa57bcc848de8a42b"
+  },
+  "limits": "No source compilation, model rerun, runtime instruction audit or complete new-binary code review"
+}

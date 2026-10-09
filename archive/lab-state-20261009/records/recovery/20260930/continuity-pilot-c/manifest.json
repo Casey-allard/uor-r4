@@ -1,0 +1,330 @@
+{
+  "files": [
+    {
+      "file": "after-successor-claim.json",
+      "bytes": 1223,
+      "sha256": "e797c97cd14e5619307167be6960f61612f84bf26f2fa5b2dfeb2a87242e2e86"
+    },
+    {
+      "file": "before-admissions-held.json",
+      "bytes": 180,
+      "sha256": "32edb51f6fcbb8e3d2f53e8a1dacc3e6aed2f80e12b0b18d138059a8c537c5d4"
+    },
+    {
+      "file": "before-host-policy.json",
+      "bytes": 1335,
+      "sha256": "5050089bf4a77a12bc6e322b3a842af402d1bbc77b0369b08aee6bf69a43318d"
+    },
+    {
+      "file": "before-release.json",
+      "bytes": 1223,
+      "sha256": "27f374ca63e03423b408de65ba30a8b206ac9d87510d1981b31e7d82ca8467e8"
+    },
+    {
+      "file": "checkpoint-completed-successor-event.json",
+      "bytes": 1472,
+      "sha256": "feb8acc973991e2dccb690b8e1583f2da2be72af561d7f2b73f04d24ccfc7bdb"
+    },
+    {
+      "file": "checkpoint-completed-successor-result.txt",
+      "bytes": 41,
+      "sha256": "c485e6d36a1b352899d68b1f40a029cef6a6773bfede4a10d174c3b9121f7019"
+    },
+    {
+      "file": "checkpoint-completed-successor-stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "checkpoint-live-origin-event.json",
+      "bytes": 2545,
+      "sha256": "1f6032c1b5e29e2c1616ee774711c0d0396bc4dcd522df7840f4c0de239d57e3"
+    },
+    {
+      "file": "checkpoint-live-origin-result.txt",
+      "bytes": 41,
+      "sha256": "192d6747dfdbe1ad7995c25e6d81af77dde18f6b21e7ab25ec4a3120fd466bea"
+    },
+    {
+      "file": "checkpoint-live-origin-stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "checkpoint-live-successor-event.json",
+      "bytes": 944,
+      "sha256": "1ad98234ba3a89285e89b1c37e301208aa1194f21f8f23c4e25edea7662947bf"
+    },
+    {
+      "file": "checkpoint-live-successor-result.txt",
+      "bytes": 41,
+      "sha256": "258ffd482ef9ce32c81152dddc96f83b1788efd6584bb869c93a0c3d5da4d8f5"
+    },
+    {
+      "file": "checkpoint-live-successor-stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "checkpoint-origin-event.json",
+      "bytes": 1080,
+      "sha256": "f565d58c369a8df65d22ada7ad13b5845e4d6bec4244438ea1928dcc80ad8534"
+    },
+    {
+      "file": "checkpoint-origin-result.txt",
+      "bytes": 41,
+      "sha256": "66c0d74eba448c94bb54c7ba025ad25a436daa30f6ca2ba58c8a9090ed6057d9"
+    },
+    {
+      "file": "checkpoint-origin-stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "claim-origin-event.json",
+      "bytes": 632,
+      "sha256": "fb28152df4d83c566a3293a4f2e3daa92f31ff5e8d8f047a2ccbbb4e261830f4"
+    },
+    {
+      "file": "claim-origin-result.txt",
+      "bytes": 41,
+      "sha256": "70b53e2edbb383611c663ac1a7102e51a6930c375f1a1aa24167674b36d6d419"
+    },
+    {
+      "file": "claim-origin-stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "claim-successor-event.json",
+      "bytes": 624,
+      "sha256": "727e8602a56e279dc2c755918a95a8dc011e8fe9e3aa4aac29d01b1868af2176"
+    },
+    {
+      "file": "claim-successor-result.txt",
+      "bytes": 41,
+      "sha256": "845ca53fa588697c1e4488d4d5e116acae6d75fc90122a797ff7577b144f48ff"
+    },
+    {
+      "file": "claim-successor-stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "enabled-host-policy.json",
+      "bytes": 1334,
+      "sha256": "f1cc4f8b912d8258d122e3f302b435e8cbdc56c234c8d1ed3ea7d1f0781c9871"
+    },
+    {
+      "file": "exit.json",
+      "bytes": 1085,
+      "sha256": "451a78ad5ed5148bd09be385f51028bec0825de95859c25b009d7061fbe31461"
+    },
+    {
+      "file": "final-coord-state.json",
+      "bytes": 10637,
+      "sha256": "0ba1372c4aa88dd018c80816fa9354141b0e62203a82a4ffc513135ccaebed9d"
+    },
+    {
+      "file": "final-host-state.json",
+      "bytes": 2537,
+      "sha256": "6a81efff20f53f6dd41b47e953da72219e5d572399cc82a3d54e8f0d8cdf979f"
+    },
+    {
+      "file": "finish-attempt-successor-event.json",
+      "bytes": 633,
+      "sha256": "250ebbf085bf321d8dab7221012869df2f283558c36447b00df4a93b56604d40"
+    },
+    {
+      "file": "finish-attempt-successor-result.txt",
+      "bytes": 41,
+      "sha256": "171db113c318a7286c4c91a2d0badc33d5dcd949c55a43ef9fd23f71cdb954ee"
+    },
+    {
+      "file": "finish-attempt-successor-stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "handoff.json",
+      "bytes": 2271,
+      "sha256": "28141b5f4b8e3984c9141382622ab3f7cbb65889100f5b7eeb1e0e14b89bd7b0"
+    },
+    {
+      "file": "meta-with-successor.json",
+      "bytes": 497,
+      "sha256": "992ac0faae4d876ea09a0bf419ad3680e1d3e45bff7bfaadfa4b289321624d0f"
+    },
+    {
+      "file": "meta.json",
+      "bytes": 473,
+      "sha256": "96f13b17e62e6a6af10964f6faee9c19176cdf0b756b83b8e4d1f101d4aa1d82"
+    },
+    {
+      "file": "monitor-samples.json",
+      "bytes": 2160,
+      "sha256": "07b46e2b632322ce130f68dfb3c7767a0d34eecf5cff192c9d0d28e505d70934"
+    },
+    {
+      "file": "origin-unavailable-event.json",
+      "bytes": 181,
+      "sha256": "e1b72f97bb9daf92fdbfbc04243264d37e09df91df50b48784dedc815ffe7729"
+    },
+    {
+      "file": "origin-unavailable-result.txt",
+      "bytes": 41,
+      "sha256": "441540686d4efa512439e6a172fd71d5e680e0a7f19c1828d9ae92ca49d5d003"
+    },
+    {
+      "file": "origin-unavailable-stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "preflight.json",
+      "bytes": 9792,
+      "sha256": "236272918a9c63bb105102f872a52970424af14e85d50e80c4809c9dfb8e9652"
+    },
+    {
+      "file": "receipt.md",
+      "bytes": 2381,
+      "sha256": "efa69f1b6a50381af60e5f203759b98e04146cfec392290fd2f5bba20b06d8f3"
+    },
+    {
+      "file": "register-origin-event.json",
+      "bytes": 375,
+      "sha256": "02863cdaea0a95085bbe1eadfde9bc80ec24e98901eb8a526ef0718b7a53f2af"
+    },
+    {
+      "file": "register-origin-result.json",
+      "bytes": 41,
+      "sha256": "369f6d9cc8f9c1ef0680f1947d615e4c0bd2ad77dd309986f61ac4f94987d33a"
+    },
+    {
+      "file": "register-origin-stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "register-successor-event.json",
+      "bytes": 381,
+      "sha256": "7296e160eb6a4eaf0ddac68ed06363ed0975cb0dffd80dc978b3a47742c180cb"
+    },
+    {
+      "file": "register-successor-result.txt",
+      "bytes": 41,
+      "sha256": "3ba77e543c777e64be35caaf840422325d6936b536a387c27905ea4da3e86f25"
+    },
+    {
+      "file": "register-successor-stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "release-origin-event.json",
+      "bytes": 184,
+      "sha256": "c76629db95e632b175ccf30126857d4dd469f1e0939e12359295216b1d55dcc2"
+    },
+    {
+      "file": "release-origin-result.txt",
+      "bytes": 41,
+      "sha256": "39a017568849e59bd73277092a81f5e60d3711400de7d271457a81756263f06a"
+    },
+    {
+      "file": "release-origin-stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "release-successor-event.json",
+      "bytes": 190,
+      "sha256": "d3d9383a6e92d9ccb55f15077f83806f093183f96c6e6c9b77a5415854374ae6"
+    },
+    {
+      "file": "release-successor-result.txt",
+      "bytes": 41,
+      "sha256": "6a4cc522d4f71c98de69a7a9dc4e11978aa763abff581f0e2d5ad1fa9f64ce38"
+    },
+    {
+      "file": "release-successor-stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "reserve-event.json",
+      "bytes": 1718,
+      "sha256": "de7f585148d53c869ea33dcc2aa49f389ec13c5bdafde4c05c57c9e375555289"
+    },
+    {
+      "file": "reserve-result.txt",
+      "bytes": 41,
+      "sha256": "2a79dacb0df69a56a17d57db4b8dfafba36303e514e33fc1c51c969840f14330"
+    },
+    {
+      "file": "reserve-stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "retired-admissions-held.json",
+      "bytes": 180,
+      "sha256": "32edb51f6fcbb8e3d2f53e8a1dacc3e6aed2f80e12b0b18d138059a8c537c5d4"
+    },
+    {
+      "file": "single-charge-proof.json",
+      "bytes": 796,
+      "sha256": "6de5f1659a6a80cf6a8a520cbf469f36199ea19cb28da44fcd59cd91939e3b09"
+    },
+    {
+      "file": "spec.json",
+      "bytes": 1232,
+      "sha256": "5c8fac3d350f3d8e9b1ba4f989c58945c996275b0e702cfb4b4d5f44116a0a44"
+    },
+    {
+      "file": "start-records.json",
+      "bytes": 748,
+      "sha256": "8755a0265a21ae23fd91a98e851627dbd13545bebb2c559ab33bb47e446de999"
+    },
+    {
+      "file": "state-after-successor-claim.json",
+      "bytes": 11387,
+      "sha256": "8c596da351b456da1f75797e74c0b6b39ad8739b90dec4492ea657a262c125f3"
+    },
+    {
+      "file": "submit-result.txt",
+      "bytes": 28,
+      "sha256": "93541550f3290f23714051aa7552e00c2312ccf8020926a32f8f06751e070508"
+    },
+    {
+      "file": "submit-stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "successor-unavailable-event.json",
+      "bytes": 187,
+      "sha256": "176996319b7e1f10701c13f22065b417abc88da9dfa00a44c1f146776f0e33a3"
+    },
+    {
+      "file": "successor-unavailable-result.txt",
+      "bytes": 41,
+      "sha256": "4987e3e51e5a025b6e73e564bb4e3857608209c08ffd03c0e0499d0af773f569"
+    },
+    {
+      "file": "successor-unavailable-stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "summary.json",
+      "bytes": 1490,
+      "sha256": "97ad79f9611b89bb0ce86f34f2818b8e8ef9a28cba68c7051b89e94e36bbc4e4"
+    },
+    {
+      "file": "work-card.md",
+      "bytes": 2149,
+      "sha256": "1c522eb02cc7c3f8488c996aeece9410cb871a77c0b767b98cfa9e231c0675fd"
+    }
+  ],
+  "total_bytes": 66858
+}

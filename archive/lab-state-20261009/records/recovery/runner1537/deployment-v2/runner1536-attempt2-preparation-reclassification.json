@@ -1,0 +1,17 @@
+{
+  "schema": "uor-r4.resource-charge/1",
+  "event_id": "runner1536-attempt2-preparation-reclassification",
+  "recorded_utc": "2026-09-30T07:00:28.372532+00:00",
+  "lab": "Codex accounting for Kimi executed repair",
+  "adjustment_ms": -21799,
+  "accounting": {
+    "category": "preparation",
+    "measurement": "measured",
+    "correction_of": {
+      "file": "charge-resource-v1-0f78e07ad5c082149d9b88da62ce49a05d2143d3a416ad3d4c78441a88159ea7.json",
+      "sha256": "ad8e0a61570436a5510bc0a0034e25b97d8317937ff99c2bd85ffb8cebb7ad93"
+    }
+  },
+  "authority": "Owner authorized recovery, approvedv4 one-use repair packet; cumulative allowance unchanged.",
+  "rationale": "Reclassify21.799s already inside cutoff11 wall envelope06:40:39..06:45:11 from preparation to measured runner build/checks. Kimi ran approved attempt2 at06:44:05. No additional cumulative wall debit; original records retained. receiptSHA256 89efe22fae8b6ecf01d4b39be0a182d91ca22b8d9b2f45d1905efed42fbf1e53. No model compute."
+}

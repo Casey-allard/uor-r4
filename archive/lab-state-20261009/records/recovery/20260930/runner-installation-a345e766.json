@@ -1,0 +1,9 @@
+{
+  "source_sha": "a345e766816403cb3eec888fb4cf694665e82e5d",
+  "binary": "/Users/casey.allard/.local/share/uor-r4/bin/lab-runner-a345e766",
+  "binary_sha256": "0da70570578fe3e3ec00c444be4f7fb35cd9e3a37753074c7216513ab7da1cbc",
+  "root": "/Users/casey.allard/.local/share/uor-r4/runner",
+  "ledger": "/Users/casey.allard/.local/share/uor-r4/ledger",
+  "status": "SUPERVISOR_STARTED_ADMISSION_DISABLED",
+  "previous_binary_preserved": "/Users/casey.allard/.local/share/uor-r4/bin/lab-runner-33701a0d"
+}

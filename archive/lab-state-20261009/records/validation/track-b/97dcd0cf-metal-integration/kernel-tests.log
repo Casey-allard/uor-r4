@@ -1,0 +1,81 @@
+   Compiling uor-r4-model-source v0.1.0 (/Users/casey.allard/.codex/worktrees/track-b-conversion/uor-r4/crates/uor-r4-model-source)
+   Compiling uor-r4-core v0.1.0 (/Users/casey.allard/.codex/worktrees/track-b-conversion/uor-r4/crates/uor-r4-core)
+warning: method `position` is never used
+   --> crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs:175:8
+    |
+168 | impl ObservedSpan {
+    | ----------------- method in this implementation
+...
+175 |     fn position(&self) -> (u32, u32, usize) {
+    |        ^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `example` is never used
+    --> crates/uor-r4-core/src/native_geometric/learner/transferable_lexical.rs:1590:8
+     |
+1405 | impl TlTrainer {
+     | -------------- method in this implementation
+...
+1590 |     fn example(&self, q: &TlQuant, ex: &TlExample) -> TlGrads {
+     |        ^^^^^^^
+
+   Compiling uor-r4-training v0.1.0 (/Users/casey.allard/.codex/worktrees/track-b-conversion/uor-r4/crates/uor-r4-training)
+warning: `uor-r4-core` (lib) generated 2 warnings
+warning: unused variable: `q_f32`
+   --> crates/uor-r4-training/tests/metal_stack_ops_parity.rs:944:9
+    |
+944 |     let q_f32 = candle_core::Tensor::zeros((2, 4, 8, 16), candle_core::DType::F32, &cpu_dev)?;
+    |         ^^^^^ help: if this is intentional, prefix it with an underscore: `_q_f32`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: `uor-r4-training` (test "metal_stack_ops_parity") generated 1 warning (run `cargo fix --test "metal_stack_ops_parity" -p uor-r4-training` to apply 1 suggestion)
+warning: unused import: `Write`
+ --> crates/uor-r4-training/src/bin/prepare-simplewiki-tokens.rs:4:35
+  |
+4 | use std::io::{BufRead, BufReader, Write};
+  |                                   ^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `uor-r4-training` (bin "prepare-simplewiki-tokens") generated 1 warning (run `cargo fix --bin "prepare-simplewiki-tokens" -p uor-r4-training` to apply 1 suggestion)
+    Finished `release` profile [optimized] target(s) in 3m 33s
+     Running tests/metal_stack_ops_parity.rs (/Users/casey.allard/.cache/uor-r4-track-b-direct/target/release/deps/metal_stack_ops_parity-ab177264e6db5859)
+
+running 14 tests
+test test_metal_stack_ops_rejections ... ok
+test test_metal_device_available ... ok
+test test_recurrence_core_parity ... ok
+test test_quaternion_scan_parity ... ok
+test test_cross_entropy_parity ... ok
+test test_straight_through_parity ... ok
+test test_rms_norm_parity ... ok
+test test_swiglu_parity ... ok
+test test_fused_read_parity ... ok
+test test_cross_entropy_backward_parity ... ok
+test test_metal_stack_ops_throughput_and_speedup ... ok
+test test_rms_norm_backward_parity ... ok
+test test_quaternion_scan_backward_parity ... ok
+test test_swiglu_backward_parity ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.08s
+
+      219.74 real       380.40 user         8.24 sys
+          2846801920  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             1381044  page reclaims
+               22868  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                  23  signals received
+                3891  voluntary context switches
+              358374  involuntary context switches
+          2074263113  instructions retired
+           881397486  cycles elapsed
+            59785960  peak memory footprint

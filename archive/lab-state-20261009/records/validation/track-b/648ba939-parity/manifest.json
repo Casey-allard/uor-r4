@@ -1,0 +1,92 @@
+{
+  "files": [
+    {
+      "blake3": "d08e9de0e3318cc33f15209349ac3de93a2130ad6219be07b24b90b42934006e",
+      "bytes": 425,
+      "path": "attempt.json"
+    },
+    {
+      "blake3": "b2920e901ca86dd624c04848c307115f65cb810ee75491d97b13ad53a56d8c7b",
+      "bytes": 8847360,
+      "path": "cpu-logits.f32le"
+    },
+    {
+      "blake3": "acca62002fa5114c205d727b7784043ed81192c5258928e1b1940f0cbad4cd67",
+      "bytes": 1572864,
+      "path": "cpu-prefill-logits.f32le"
+    },
+    {
+      "blake3": "01e63e3b9fc01ba471097d05611a71276f3cf11f72d51427a4caa73d7e30032a",
+      "bytes": 32384,
+      "path": "cpu-rows.jsonl"
+    },
+    {
+      "blake3": "43e1d786bae613d75f4cb9d250e8dc4f6aebd0135149c550250538cd2956b0fe",
+      "bytes": 17694720,
+      "path": "cpu-shared-batch2-logits.f32le"
+    },
+    {
+      "blake3": "952d9baf7d4306f619b7f453f5e28cccc373e43ba7edb2220e7c89fcf1973e6a",
+      "bytes": 8847360,
+      "path": "cpu-shared-full-logits.f32le"
+    },
+    {
+      "blake3": "d27867ae2b0c27c8371a1cc3ba77f4a989c432413c35670d08f9e48c3e421d7a",
+      "bytes": 66898,
+      "path": "cpu-shared-rows.jsonl"
+    },
+    {
+      "blake3": "26de0a8986722d26d945f533db8ab3a0a1f427d2516dac50e53d23568592d70b",
+      "bytes": 3283,
+      "path": "inputs.json"
+    },
+    {
+      "blake3": "4af9ac5d84b85672625bc960a5193371dc3fd76411cc92d2fb9e717429723ac8",
+      "bytes": 8847360,
+      "path": "metal-logits.f32le"
+    },
+    {
+      "blake3": "877f38945912a787040a32cbf71be3db1aa55cf82defa553fc3ff954213a7494",
+      "bytes": 1572864,
+      "path": "metal-prefill-logits.f32le"
+    },
+    {
+      "blake3": "46560a3222449877c700de93006f0fb88d6f42add9007ced6d8094abfd68eb34",
+      "bytes": 32725,
+      "path": "metal-rows.jsonl"
+    },
+    {
+      "blake3": "3042a5583c0ac9cf1b956a320e1d1352e72b0b4ef8e08d675db51d652a76aec3",
+      "bytes": 17694720,
+      "path": "metal-shared-batch2-logits.f32le"
+    },
+    {
+      "blake3": "c5ef6dc3c95f2626c1cb53121722116de1a2cef63b356782a41261e6da513f66",
+      "bytes": 8847360,
+      "path": "metal-shared-full-logits.f32le"
+    },
+    {
+      "blake3": "85fd4129cef1dfaa8bfd9abe5fb1805b5827ef1e108bb80ef3b6c6ac0af441aa",
+      "bytes": 67377,
+      "path": "metal-shared-rows.jsonl"
+    },
+    {
+      "blake3": "866c7337be1c0abd928bbd559c203345c278b4ee2bdf62b22c3ed6c30bf1fa95",
+      "bytes": 8847360,
+      "path": "reference-logits.f32le"
+    },
+    {
+      "blake3": "a136ee0d76790cf1a3a315e34ff7c4bc4532952b2c52884b30998eb78f93b820",
+      "bytes": 290,
+      "path": "resource-admission.json"
+    },
+    {
+      "blake3": "e0b8482f6f639b20cb9cd333b76ab2883f63de67039643f5dc290974a234c2a1",
+      "bytes": 325391,
+      "path": "result.json"
+    }
+  ],
+  "root": "/Volumes/UOR-Workspace/uor-r4-models/track-b/parity-648ba939-20260930",
+  "schema": "uor-r4.report-manifest/1",
+  "sealed_at": "1790783307"
+}

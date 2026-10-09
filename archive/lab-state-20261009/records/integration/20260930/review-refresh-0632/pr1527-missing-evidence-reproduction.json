@@ -1,0 +1,11 @@
+{
+  "source": "e386f15ed59113ef0ad1bcf262dcd452a34debd0",
+  "script_sha256": "fcd9e45a216139ba1a895a71d885b9cb9e01d651e5489f9f5b2bc875625ca4d5",
+  "scope": "Synthetic copy: all evidence root paths changed to absent paths; repository and real evidence untouched. No model/build.",
+  "exit_code": 0,
+  "directory": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/uor-1527-missing-evidence-xb3tj00p",
+  "output_tail": [
+    "",
+    "Verification summary: 12 passed, 0 failed."
+  ]
+}

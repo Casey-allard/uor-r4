@@ -1,0 +1,66 @@
+{
+  "schema": "uor-r4.runner-deployment/1",
+  "executor": "Kimi coordinator only; Codex supplies source and does not concurrently execute",
+  "source_sha": "8e90aa33b8ef941d3ac5de57ad448859e20ad76b",
+  "pr": 1537,
+  "preconditions": [
+    "PR1537 protected merge verified; main runner/build inputs equal tested source",
+    "Three council seats including two nonauthors approve exact packet; reserve exact inert pilot under current1536 claim before hold release",
+    "Existing candidate service running at verified installed path with stable PID/start/boot; queue/running empty; no Cargo/model payload; prior UNKNOWN attempts finalized and original records preserved. Adopt held deployment, never reinstall/restart.",
+    "Fresh verified volume UUID/sentinels; memory pressure<=1; internal floor40GiB +64MiBdeployment +3MiBpilot +128MiBmargin; normal inner/backing floors; current cumulative ledger permits120s pilot+15min deployment preparation",
+    "Recheck every bound digest immediately before mutation; mismatches hold for reconciliation"
+  ],
+  "candidate": {
+    "path": "/Users/casey.allard/.cache/uor-r4-lab-system/target/debug/lab-runner",
+    "sha256": "a4b5fa5ff4554b07846b4d4f56c927a18cf1a1a93f42ec36c05fd9e0777a299a",
+    "install_path": "/Users/casey.allard/.local/share/uor-r4/bin/lab-runner-8e90aa33"
+  },
+  "preserve": {
+    "plist": {
+      "path": "/Users/casey.allard/Library/LaunchAgents/org.uor.lab-runner.plist",
+      "sha256": "b43be3064a468823ec9773529ae0e25bf420218fda3290f0b390cffbd6f1a148"
+    },
+    "hold": {
+      "path": "/Users/casey.allard/.local/share/uor-r4/runner/admissions-held.json",
+      "sha256": "81bb7c6af7c5f33f3c71b44a42235b32c46f1dd8dc488b8c57ff90c7d1779cb3"
+    },
+    "host_policy": {
+      "path": "/Users/casey.allard/.local/share/uor-r4/runner/host-policy.json",
+      "sha256": "f1cc4f8b912d8258d122e3f302b435e8cbdc56c234c8d1ed3ea7d1f0781c9871"
+    },
+    "old_binary": {
+      "path": "/Users/casey.allard/.local/share/uor-r4/bin/lab-runner-a345e766",
+      "sha256": "0da70570578fe3e3ec00c444be4f7fb35cd9e3a37753074c7216513ab7da1cbc"
+    }
+  },
+  "steps": [
+    "Create exclusive continuation receipt directory and intent. Verify Kimi held-start receipt and rollback originals; source merge d563b02f runner/build inputs equal tested8e90aa33. Independently rehash installedcandidate/plist/hold/policy; inspect stable service identity and candidate path across at least30s, require originalhold unchanged, emptyqueue/running. Record existingdeployment as prior action, not as a new install. No daemonrestart.",
+    "Reserve exact supplied pilot on issue1536 using live root claim epoch1 and immutable attempt ID. Recheck emptyqueue/running/one reservation; submit exactly once through new binary while held. Publish notice to all labs that only pilot is admitted; global one-reservation rule fences other jobs.",
+    "Before releasing hold, verify original identity-loss cause is fixed by installed binary, old attempts all finalized/process absent, and no new reason appeared. Preserve original hold by atomic rename into deployment directory; never discard it. Observe exact one30s sleep pilot via production runner for at most120s. It must retain macOS boot UUID identity, exit0 confirmed_stopped and finish into done with exactlyone immutable charge. No daemonkill/restart during this pilot.",
+    "After pilot, restore a new admissions-held.json briefly while publishing completed pilot receipt and finish-attempt transition; verify emptyqueue/running and no unresolved reservations. Reconcile any new hold instead of clearing it.",
+    "Only after all success checks and GitHub receipt publication may Kimi archive the deployment-only hold and reopen normal admission. Notify DeepSeek #1512/#1533, AG #1513 and incident#1520. Each next job must separately pass normal source/claim/storage/pressure/budget admission. No priority override or blanket model authorization.",
+    "Every hold creation must use exclusive create; never overwrite a daemon-created incident. Before and after archiving expected holds verify exact bytes/hash; changed holds must be retained and reconciled. Recheck no new queue entries before release; preserve unexpected submissions without running them."
+  ],
+  "failure": [
+    "Leave or restore admission hold on any mismatch/UNKNOWN/timeout. Preserve receipt and reservation if worker fate is uncertain; never infer success from absence alone.",
+    "Stop only positively identified owned pilot through runner cancel if necessary; preserve unknown reservation. Bootout service only after payload confirmedstopped. Never bootstrap known-defective old runner. Preserve original and current plists; rollback files stay available.",
+    "No retries under same attempt ID. A revised packet is needed only if source, executable or method changes."
+  ],
+  "cost": {
+    "preparation_wall_s": 900,
+    "pilot_wall_s": 60,
+    "pilot_observation_deadline_s": 120,
+    "pilot_rss_gib": 0.25,
+    "threads": 1,
+    "new_storage_bytes": 67108864,
+    "cargo": false,
+    "model": false
+  },
+  "scope": "Deployment plus inert job continuity across CLI submitter exit, not a model test, daemon-crash adoption or all autonomous-system acceptance.",
+  "pilot": {
+    "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/runner1537-deployment-pilot.json",
+    "sha256": "138a3c9a199f34e47d340d32f8acbedde98cca1ea01c4fdc3f5f265bd46dfb37"
+  },
+  "supersedes": "b76802d9e58402b1355c017054a6dfb391702eeffd0ce517fa2a022ac20cc5ca; installation stages already performed by Kimi under separate held-start packet; never repeat them",
+  "merge_sha": "d563b02f3270a2c931a7905d6624ba0beeb71d2a"
+}

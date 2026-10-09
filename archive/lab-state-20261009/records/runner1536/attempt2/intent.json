@@ -1,0 +1,70 @@
+{
+  "schema": "uor-r4.manual-repair-intent/1",
+  "created_utc": "2026-09-30T06:44:05.303941+00:00",
+  "packet_sha256": "c552311cebdcf8d73aef141bb4121e7608d0cc48690683f62eba66de7dcf04f9",
+  "packet": {
+    "schema": "uor-r4.manual-repair-execution-packet/1",
+    "created_utc": "2026-09-30T05:51:00.993840+00:00",
+    "execute_authorized": true,
+    "authorization_condition": "May execute only after this exact packet has three council seats including two non-authors, and fresh preflight passes. This flag alone is not council approval.",
+    "cwd": "/Users/casey.allard/uor-r4/.worktrees/durable-lab-system-20260929",
+    "target_dir": "/Users/casey.allard/.cache/uor-r4-lab-system/target",
+    "source_sha": "8e90aa33b8ef941d3ac5de57ad448859e20ad76b",
+    "observer_sha256": "795d4ff24363c115433ea341ed16a03de2afaf465f4e5fb7f832439ebb8cfc01",
+    "cargo_lock_sha256": "e11b98bf00374dbc6b9e42da56647c51fc8c5e782eddf3ed031c855997146c32",
+    "toolchain": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: aarch64-apple-darwin\nrelease: 1.97.1\nLLVM version: 22.1.6",
+    "cargo_version": "cargo 1.97.1 (c980f4866 2026-06-30)",
+    "receipt_directory": "runner1536-checks-attempt2",
+    "commands": [
+      [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "test",
+        "-p",
+        "lab-runner",
+        "--offline",
+        "--",
+        "--test-threads=2"
+      ],
+      [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "build",
+        "-p",
+        "lab-runner",
+        "--offline"
+      ]
+    ],
+    "wall_seconds": 900,
+    "rss_bytes": 2147483648,
+    "new_cache_bytes": 2147483648,
+    "receipt_projection_bytes": 67108864,
+    "floor_bytes": 42949672960,
+    "stop_margin_bytes": 134217728,
+    "environment_overrides": {
+      "CARGO_BUILD_JOBS": "2",
+      "CARGO_TARGET_DIR": "/Users/casey.allard/.cache/uor-r4-lab-system/target"
+    },
+    "boot_uuid": "763E5ACF-75D5-44F0-9384-F80B31312894",
+    "memory_pressure": "2",
+    "free_bytes_observed": 49461747712,
+    "production_hold_sha256": "81bb7c6af7c5f33f3c71b44a42235b32c46f1dd8dc488b8c57ff90c7d1779cb3",
+    "exception": "One-use recovery execution only because deployed runner retains proven identity/path defects. Production admissions stay held. OpenCode finalized Claude attempt claude-1533-checks-e2-a1 via old runner reconciliation at05:35:08Z; do not assert its10GiB reservation remains fenced. Keep original UNKNOWN receipt and all reconciliation/charge records unchanged. Root independent process snapshot finds original38331 zombie, no live payload or peerCargo; patched observer checks current no-peer state again. This packet does not approve old mutable-boot predicate or ordinary job admission, nor clear hold, deploy, reconcile, run models/GPU or change security. Physical projection requires40GiB floor plus2GiBcache+64MiBreceipts+128MiBmargin. If any peerCargo appears, stop only owned repair attempt.",
+    "limitations": "Sampled RSS/disk/time checks are not kernel enforcement.20s stop allowance is projected and sequential failed probes can exceed it; uncertainty records UNKNOWN and never releases production holds. Inspected tests create process groups but no new sessions. No claim of general arbitrary-payload containment.",
+    "cost_record": "Charge actual elapsed once after attempt; initial work-card full projection <=90min, test/build <=15min. Any source/helper changes require successor packet/review.",
+    "work_card_digest": "sha256:684efbae135d0a950937af42470199796c3ae1ffd94a028d4542bdfcb42f8eff",
+    "predecessor": {
+      "packet_sha256": "7c49d4f73a5478d4fbc74310eb9660de0d4e2b2675b5a94522dd0db3cc198332",
+      "result": "never_started: host memory pressure before command intent/spawn; original receipt preserved; no Cargo or model execution",
+      "receipt_sha256": "84e53da115c476b769e3f021007b4f4939dbb671f7cb78b72542bb0e09700e56"
+    },
+    "observed_claude_reconciliation": {
+      "path": "/Users/casey.allard/.local/share/uor-r4/runner/done/claude-1533-checks-e2-a1/reconciliation.json",
+      "sha256": "f5b8eeabc260d6f6de325d92c8683582afbe31cbd9e5e1afb105921903c09b78",
+      "original_exit_sha256": "cc677aeb9e2ca2820fa69ee3ca779c62ad20a3665c38b9678a436d35eda38716",
+      "disposition": "Peer-generated old-runner reconciliation retained; independent freshprocess corroboration; originalscientificUNKNOWN. No productionholdrelease."
+    },
+    "quiescence_receipt_sha256": "423be2b4a5a9821239ac041b3000285c4c5af01cc4117b94a47a8db5dd3038d5",
+    "state_revision": "v4 supersedes unexecuted v2/v3. Old production LaunchAgent booted out at05:49:52 after no live payload was observed; pid24197 and zombies38331/55548 absent afterward. New OpenCode -e queued attempt and its reservation preserved; no release/takeover/production launch authorized. -c pre-spawn aborted and -d UNKNOWN reconciliations retained. Narrow repair execution is a separately reviewed recovery exception while production remains stopped/held, with no other heavy work allowed. Before invocation recheck absent service, empty running dir, no peerCargo/rustc, stable hold/source/helper/boot and pressure1 plus complete physical projection. Current pressure observation does not authorize execution until it becomes1."
+  },
+  "observer_sha256": "795d4ff24363c115433ea341ed16a03de2afaf465f4e5fb7f832439ebb8cfc01",
+  "state": "preflight; execution and stop outcomes not established"
+}

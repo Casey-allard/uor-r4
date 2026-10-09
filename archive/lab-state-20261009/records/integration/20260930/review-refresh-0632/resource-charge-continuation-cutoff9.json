@@ -1,0 +1,14 @@
+{
+  "schema": "uor-r4.resource-charge/1",
+  "event_id": "recovery-integration-20260930-continuation-cutoff9",
+  "recorded_utc": "2026-09-30T06:33:54.886147+00:00",
+  "lab": "Codex durable lab implementation",
+  "adjustment_ms": 465121,
+  "accounting": {
+    "category": "preparation",
+    "measurement": "estimated",
+    "correction_of": null
+  },
+  "authority": "Owner continuing goal and Codex contributor role; standing cumulative allowance.",
+  "rationale": "Nonoverlapping preparation wall since cutoff8: independent1528/1534/1538/1527 delta reviews; isolated missing-artifact verifier counterexample (0.046s); current integration queue/leader delivery-gate correction; independent1519 codec delta review. No Cargo/model/GPU. Parallel reviewer included in wall envelope. New text/synthetic copied input under1MiB; no source artifacts changed."
+}

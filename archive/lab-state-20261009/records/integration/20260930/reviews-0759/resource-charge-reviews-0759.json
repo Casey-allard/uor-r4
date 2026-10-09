@@ -1,0 +1,14 @@
+{
+  "schema": "uor-r4.resource-charge/1",
+  "event_id": "recovery-integration-20260930-reviews-0759",
+  "recorded_utc": "2026-09-30T08:03:50.362197+00:00",
+  "lab": "Codex durable lab implementation",
+  "adjustment_ms": 300000,
+  "accounting": {
+    "category": "preparation",
+    "measurement": "estimated",
+    "correction_of": null
+  },
+  "authority": "Owner continuous goal and independent review authority.",
+  "rationale": "Estimated five minutes active 07:59 heartbeat review: three source deltas, one small new stacked pointer-copy delta, parallel independent persistence reader counted once, formatting/diff checks and publications. Excludes idle time since prior heartbeat. No Cargo/model/GPU/deletion; under1MiB text."
+}

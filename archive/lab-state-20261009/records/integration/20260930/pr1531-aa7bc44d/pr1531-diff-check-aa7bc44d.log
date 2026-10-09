@@ -1,0 +1,1 @@
+{"head": "aa7bc44dd3b88e5a90cca7f486b412d7f6eb8a26", "base": "ba266ad44f21c9df2dafa9d56a1e2051c1565d91", "argv": ["git", "diff", "--check", "ba266ad44f21c9df2dafa9d56a1e2051c1565d91...aa7bc44dd3b88e5a90cca7f486b412d7f6eb8a26"], "exit_code": 0}

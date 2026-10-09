@@ -1,0 +1,26 @@
+
+running 21 tests
+test flock::tests::raw_weights_are_exact_reciprocals_and_normalized_table_sums_to_one ... ok
+test flock::tests::rejects_malformed_rows ... ok
+test flock::tests::first_position_selects_only_the_sink ... ok
+test flock::tests::general_sink_is_deduplicated_against_the_window ... ok
+test flock::tests::equal_scores_order_by_position_everywhere ... ok
+test flock::tests::selection_and_weights_are_deterministic ... ok
+test flock::tests::selects_sink_window_and_topk_deduplicated_in_rank_order ... ok
+test flock::tests::rank_arm_support_is_zero_outside_and_strictly_ranked_inside ... ok
+test flock::tests::softmax_over_support_matches_the_dense_softmax_restricted_to_it ... ok
+test flock::tests::ties_break_to_the_lowest_position_and_the_cutoff_tie_is_counted ... ok
+test flock::tests::top_k_select_matches_the_pointer_use_case ... ok
+test flock::tests::top_k_select_ties_short_rows_and_malformed_inputs ... ok
+test flock::tests::window_at_least_the_prefix_keeps_each_position_once ... ok
+test flock_transport::tests::g1a_subset_dense_and_flock_through_the_model_source_seam ... ignored, needs the pinned SmolLM2 checkpoint and u16 token file: UOR_B0_MODEL=/path UOR_B0_TOKENS=/path/x.u16 UOR_B0_HELD_OUT=N [UOR_B0_TIME=512] [UOR_B0_WINDOWS=4] [UOR_B0_SEED=9001] [UOR_B0_K=7,64] [UOR_B0_WEIGHTS=softmax,rank] [UOR_B0_G1A_ROOT=/fresh/root] cargo test -p uor-r4-training --release --offline --lib g1a_subset -- --ignored --nocapture
+test flock_transport::tests::flock_rows_match_the_selector_inputs_and_weights ... ok
+test flock_transport::tests::rank_arm_matches_the_normalized_table_convention ... ok
+test flock_transport::tests::transport_fails_closed_on_shape_mismatch ... ok
+test kappa_llama::tests::flock_top1_is_the_exact_copy_pointer ... ok
+test kappa_llama::tests::flock_requires_dot_scores_and_a_detached_forward ... ok
+test kappa_llama::tests::flock_softmax_over_full_support_matches_dense ... ok
+test kappa_llama::tests::flock_attention_is_deterministic_and_leaves_weights_unchanged ... ok
+
+test result: ok. 20 passed; 0 failed; 1 ignored; 0 measured; 309 filtered out; finished in 0.01s
+

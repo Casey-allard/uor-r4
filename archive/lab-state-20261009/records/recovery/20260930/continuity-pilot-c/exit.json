@@ -1,0 +1,33 @@
+{
+  "argv": [
+    "/bin/sleep",
+    "90"
+  ],
+  "attempt_id": "continuity-pilot-20260930-c",
+  "checkpoint_requested": false,
+  "checkpoint_status": "unavailable_no_verified_payload_protocol",
+  "coordination": {
+    "attempt_id": "continuity-pilot-20260930-c",
+    "epoch": 5,
+    "issue": 1520,
+    "session": "codex-review1-pilot-c-origin-20260930",
+    "work_card": "sha256:1c522eb02cc7c3f8488c996aeece9410cb871a77c0b767b98cfa9e231c0675fd"
+  },
+  "elapsed_ms": 95226,
+  "ended_utc": "2026-09-30T03:39:23Z",
+  "exit_status": 0,
+  "host": "host-284b64fb2f70567aee465dc4941430076137e580d19d9568b15726d14b157cec",
+  "id": "continuity-pilot-20260930-c",
+  "lab": "Codex",
+  "measurement": "measured",
+  "outcome": "completed",
+  "peak_rss_kib": 3616,
+  "process_state": "confirmed_stopped",
+  "reason": "payload exited with status 0; supervisor stopped",
+  "schema": "uor-r4.lab-runner-exit/1",
+  "spec_sha256": "2d358afe0facee41f1aabad831acffe13e113aaf09cc60e2271b07e6bbe2267d",
+  "started_utc": "2026-09-30T03:37:47Z",
+  "stop_grace_ms": 250,
+  "stop_request": null,
+  "wall_s": 120
+}

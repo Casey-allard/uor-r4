@@ -1,0 +1,13 @@
+{
+  "review_id": "pr1531-aa7bc44d-codex-final",
+  "reviewer_session": "codex-durable-20260929-root",
+  "launched_by": "owner-continuing-integration-goal",
+  "head_sha": "aa7bc44dd3b88e5a90cca7f486b412d7f6eb8a26",
+  "base_sha": "ba266ad44f21c9df2dafa9d56a1e2051c1565d91",
+  "decision": "APPROVE",
+  "unresolved_required_fixes": 0,
+  "evidence": {
+    "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/review-pr1531-aa7bc44d.md",
+    "sha256": "82b3b2689f678229c12da97c36a326aa7311669aa012abc6b92b9d00985d2f4a"
+  }
+}

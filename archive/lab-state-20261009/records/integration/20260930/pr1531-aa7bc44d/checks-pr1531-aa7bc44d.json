@@ -1,0 +1,50 @@
+[
+  {
+    "name": "diff-check",
+    "head_sha": "aa7bc44dd3b88e5a90cca7f486b412d7f6eb8a26",
+    "base_sha": "ba266ad44f21c9df2dafa9d56a1e2051c1565d91",
+    "argv": [
+      "git",
+      "diff",
+      "--check",
+      "ba266ad44f21c9df2dafa9d56a1e2051c1565d91...aa7bc44dd3b88e5a90cca7f486b412d7f6eb8a26"
+    ],
+    "exit_code": 0,
+    "outcome": "PASS",
+    "log": {
+      "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/pr1531-diff-check-aa7bc44d.log",
+      "sha256": "5c36852d14521cd45516bc16278d06cd205039ad96997c1aae59c5b3ad9d5b7b"
+    }
+  },
+  {
+    "name": "claim-wording",
+    "head_sha": "aa7bc44dd3b88e5a90cca7f486b412d7f6eb8a26",
+    "base_sha": "ba266ad44f21c9df2dafa9d56a1e2051c1565d91",
+    "argv": [
+      "python3",
+      "scripts/check_claim_wording.py"
+    ],
+    "exit_code": 0,
+    "outcome": "PASS",
+    "log": {
+      "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/pr1531-claim-wording-aa7bc44d.log",
+      "sha256": "896404c383d98bc182719d4ae66790a95c9d9cd8220045bb52ecff82ed11ff99"
+    }
+  },
+  {
+    "name": "evidence-json",
+    "head_sha": "aa7bc44dd3b88e5a90cca7f486b412d7f6eb8a26",
+    "base_sha": "ba266ad44f21c9df2dafa9d56a1e2051c1565d91",
+    "argv": [
+      "python3",
+      "-c",
+      "import json; json.load(open(\"docs/evidence/g2-key-probe-2026-09-29.json\")); print(\"JSON parse PASS\")"
+    ],
+    "exit_code": 0,
+    "outcome": "PASS",
+    "log": {
+      "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/pr1531-evidence-json-aa7bc44d.log",
+      "sha256": "3aeab201d130d17c0e559cd855c69396b3a848a125491cdbbe93f66cefa109f8"
+    }
+  }
+]

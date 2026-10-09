@@ -1,0 +1,188 @@
+{
+  "schema": "uor-r4.server-delivery/1",
+  "receipt": {
+    "schema": "uor-r4.delivery-receipt/1",
+    "repository": "UOR-Foundation/uor-r4",
+    "pull_request": 1537,
+    "task_issue": 1536,
+    "author_session": "codex-durable-20260929-root",
+    "claim_session": "codex-durable-20260929-root",
+    "claim_epoch": 1,
+    "work_card": "sha256:684efbae135d0a950937af42470199796c3ae1ffd94a028d4542bdfcb42f8eff",
+    "head_sha": "8e90aa33b8ef941d3ac5de57ad448859e20ad76b",
+    "base_sha": "61bbd85a0a49e1bb72c71b4e02752d575e3bee4b",
+    "change_kind": "code",
+    "class": "C",
+    "checks": [
+      {
+        "name": "diff-check",
+        "head_sha": "8e90aa33b8ef941d3ac5de57ad448859e20ad76b",
+        "base_sha": "61bbd85a0a49e1bb72c71b4e02752d575e3bee4b",
+        "argv": [
+          "git",
+          "diff",
+          "--check",
+          "61bbd85a...8e90aa33"
+        ],
+        "exit_code": 0,
+        "outcome": "PASS",
+        "log": {
+          "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/pr1537-diff-check.log",
+          "sha256": "fbe8f80ddf870e96a4deb792460ddef82a07a76fd19078e52c69ccc798ea3fb2"
+        }
+      },
+      {
+        "name": "format",
+        "head_sha": "8e90aa33b8ef941d3ac5de57ad448859e20ad76b",
+        "base_sha": "61bbd85a0a49e1bb72c71b4e02752d575e3bee4b",
+        "argv": [
+          "/Users/casey.allard/.cargo/bin/rustfmt",
+          "--check",
+          "--edition",
+          "2021",
+          "tools/lab-runner/src/process.rs",
+          "tools/lab-runner/src/jobs.rs",
+          "tools/lab-runner/src/daemon.rs",
+          "tools/lab-runner/tests/host_recovery.rs"
+        ],
+        "exit_code": 0,
+        "outcome": "PASS",
+        "log": {
+          "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/pr1537-format.log",
+          "sha256": "cdcbc4bb235756e76c6642f4b1efb0a1fe1cba41a4f63b27ebc5462ad762f35a"
+        }
+      },
+      {
+        "name": "focused-tests",
+        "head_sha": "8e90aa33b8ef941d3ac5de57ad448859e20ad76b",
+        "base_sha": "61bbd85a0a49e1bb72c71b4e02752d575e3bee4b",
+        "argv": [
+          "/Users/casey.allard/.cargo/bin/cargo",
+          "test",
+          "-p",
+          "lab-runner",
+          "--offline",
+          "--",
+          "--test-threads=2"
+        ],
+        "exit_code": 0,
+        "outcome": "PASS",
+        "log": {
+          "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/runner1536-checks-attempt2/command-0.log",
+          "sha256": "8593735a01e6dd460373be47a4315476796706089b37fa356eab2b48936de43f"
+        }
+      },
+      {
+        "name": "compile",
+        "head_sha": "8e90aa33b8ef941d3ac5de57ad448859e20ad76b",
+        "base_sha": "61bbd85a0a49e1bb72c71b4e02752d575e3bee4b",
+        "argv": [
+          "/Users/casey.allard/.cargo/bin/cargo",
+          "build",
+          "-p",
+          "lab-runner",
+          "--offline"
+        ],
+        "exit_code": 0,
+        "outcome": "PASS",
+        "log": {
+          "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/runner1536-checks-attempt2/command-1.log",
+          "sha256": "f0788aa36d1c86b6ccdfb7f4042a5574102d82061c046422a2d42e008a1e4710"
+        }
+      }
+    ],
+    "reviews": [
+      {
+        "review_id": "pr1537-independent_systems_review",
+        "reviewer_session": "independent_systems_review",
+        "launched_by": "codex-durable-20260929-root",
+        "head_sha": "8e90aa33b8ef941d3ac5de57ad448859e20ad76b",
+        "base_sha": "61bbd85a0a49e1bb72c71b4e02752d575e3bee4b",
+        "decision": "APPROVE",
+        "unresolved_required_fixes": 0,
+        "evidence": {
+          "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/runner1537-postexecution-independent.md",
+          "sha256": "af1fdc3671992f8a77476b216036b64801748d588ac1dd32b7f6bf73a68d7cc2"
+        }
+      },
+      {
+        "review_id": "pr1537-repair_execution_council",
+        "reviewer_session": "repair_execution_council",
+        "launched_by": "codex-durable-20260929-root",
+        "head_sha": "8e90aa33b8ef941d3ac5de57ad448859e20ad76b",
+        "base_sha": "61bbd85a0a49e1bb72c71b4e02752d575e3bee4b",
+        "decision": "APPROVE",
+        "unresolved_required_fixes": 0,
+        "evidence": {
+          "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/runner1537-postexecution-seat3.md",
+          "sha256": "1946b30c84d03794cf10ddce39f8a89ac336fff2fea1a6fb007f4866bd62138f"
+        }
+      }
+    ],
+    "result_evidence": null,
+    "result_reader_session": null,
+    "council": {
+      "decision_id": "pr1537-code-merge-8e90aa33",
+      "head_sha": "8e90aa33b8ef941d3ac5de57ad448859e20ad76b",
+      "base_sha": "61bbd85a0a49e1bb72c71b4e02752d575e3bee4b",
+      "votes": [
+        {
+          "reviewer_session": "codex-durable-20260929-root",
+          "decision": "APPROVE",
+          "reasons": "Authored repair, independently verified89test logs/build; exact source clean; current main delta docs only. Merge only."
+        },
+        {
+          "reviewer_session": "independent_systems_review",
+          "decision": "APPROVE",
+          "reasons": "Independent post-execution approval at exact head/base; see hashed review. Merge only."
+        },
+        {
+          "reviewer_session": "repair_execution_council",
+          "decision": "APPROVE",
+          "reasons": "Independent post-execution approval at exact head/base; see hashed review. Merge only."
+        }
+      ],
+      "evidence": {
+        "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/pr1537-delivery-council.md",
+        "sha256": "5d21732d67d36bf203027d89c3a66ea707a8c1f0c6ce56f6d71a03cdf4af5a7a"
+      }
+    }
+  },
+  "evidence": [
+    {
+      "local_path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/pr1537-diff-check.log",
+      "path": "delivery/evidence/fbe8f80ddf870e96a4deb792460ddef82a07a76fd19078e52c69ccc798ea3fb2.log",
+      "sha256": "fbe8f80ddf870e96a4deb792460ddef82a07a76fd19078e52c69ccc798ea3fb2"
+    },
+    {
+      "local_path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/pr1537-format.log",
+      "path": "delivery/evidence/cdcbc4bb235756e76c6642f4b1efb0a1fe1cba41a4f63b27ebc5462ad762f35a.log",
+      "sha256": "cdcbc4bb235756e76c6642f4b1efb0a1fe1cba41a4f63b27ebc5462ad762f35a"
+    },
+    {
+      "local_path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/runner1536-checks-attempt2/command-0.log",
+      "path": "delivery/evidence/8593735a01e6dd460373be47a4315476796706089b37fa356eab2b48936de43f.log",
+      "sha256": "8593735a01e6dd460373be47a4315476796706089b37fa356eab2b48936de43f"
+    },
+    {
+      "local_path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/runner1536-checks-attempt2/command-1.log",
+      "path": "delivery/evidence/f0788aa36d1c86b6ccdfb7f4042a5574102d82061c046422a2d42e008a1e4710.log",
+      "sha256": "f0788aa36d1c86b6ccdfb7f4042a5574102d82061c046422a2d42e008a1e4710"
+    },
+    {
+      "local_path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/runner1537-postexecution-independent.md",
+      "path": "delivery/evidence/af1fdc3671992f8a77476b216036b64801748d588ac1dd32b7f6bf73a68d7cc2.md",
+      "sha256": "af1fdc3671992f8a77476b216036b64801748d588ac1dd32b7f6bf73a68d7cc2"
+    },
+    {
+      "local_path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/runner1537-postexecution-seat3.md",
+      "path": "delivery/evidence/1946b30c84d03794cf10ddce39f8a89ac336fff2fea1a6fb007f4866bd62138f.md",
+      "sha256": "1946b30c84d03794cf10ddce39f8a89ac336fff2fea1a6fb007f4866bd62138f"
+    },
+    {
+      "local_path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/pr1537-delivery-council.md",
+      "path": "delivery/evidence/5d21732d67d36bf203027d89c3a66ea707a8c1f0c6ce56f6d71a03cdf4af5a7a.md",
+      "sha256": "5d21732d67d36bf203027d89c3a66ea707a8c1f0c6ce56f6d71a03cdf4af5a7a"
+    }
+  ]
+}

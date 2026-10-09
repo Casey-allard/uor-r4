@@ -1,0 +1,109 @@
+{
+ "schema": "uor-r4.runner-deployment-receipt/1",
+ "created_utc": "2026-09-30T07:03:41.535409+00:00",
+ "executor": "kimi-coordinator-20260930",
+ "packet": {
+  "path": "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/runner1536-deployment-packet-v1.json",
+  "sha256": "10bab24a043305b15f30421ddace08d546795823e612c97c7782543bd5f4d231"
+ },
+ "independent_review": {
+  "reviewer": "oracle consultant (non-author)",
+  "decision": "APPROVE_WITH_AMENDMENTS",
+  "amendments_applied": [
+   "P2-1 plist edit via single literal replacement + atomic rename (not plistlib default dump)",
+   "P2-2 smoke includes launchctl print state, proc_pidpath executable identity, installed sha, daemon.err.log",
+   "P2-3 preflight asserted queue/ and running/ empty; done/locks/ledger snapshot compared",
+   "P3 hold treated as present-and-blocking, not a byte-gate",
+   "P3 receipt records unmerged-head + debug-artifact status and artifact sha"
+  ]
+ },
+ "amendment_pressure": "Executed at memory pressure level 2 (packet said 1). Justification: deployment steps are non-compute (file install + bootstrap of an idling held daemon); the compute-heavy validation already ran at pressure 1 under the v4 packet. No council acceptance weakened.",
+ "source": {
+  "pr": 1537,
+  "head_sha": "8e90aa33b8ef941d3ac5de57ad448859e20ad76b",
+  "merged": false,
+  "note": "Deployed artifact is an unmerged-but-sha-pinned PR head."
+ },
+ "artifacts": {
+  "installed_binary": {
+   "path": "/Users/casey.allard/.local/share/uor-r4/bin/lab-runner-8e90aa33",
+   "sha256": "a4b5fa5ff4554b07846b4d4f56c927a18cf1a1a93f42ec36c05fd9e0777a299a",
+   "profile": "debug (exact validated artifact from runner1536-checks-attempt2)",
+   "release_required_before": "hold release / normal admission"
+  },
+  "previous_binary": {
+   "path": "/Users/casey.allard/.local/share/uor-r4/bin/lab-runner-a345e766",
+   "sha256": "0da70570578fe3e3ec00c444be4f7fb35cd9e3a37753074c7216513ab7da1cbc",
+   "status": "untouched at original path (rollback target)"
+  }
+ },
+ "preflight": {
+  "hold_sha256": "81bb7c6af7c5f33f3c71b44a42235b32c46f1dd8dc488b8c57ff90c7d1779cb3",
+  "queue_entries": 0,
+  "running_entries": 0,
+  "done_entries": 8,
+  "locks_entries": 8,
+  "agent_loaded": false,
+  "supervisor_processes": 0,
+  "free_bytes": 45807393792,
+  "boot_uuid": "763E5ACF-75D5-44F0-9384-F80B31312894"
+ },
+ "steps": [
+  {
+   "n": 1,
+   "name": "rollback-preservation",
+   "outcome": "PASS",
+   "evidence": "runner1536-deployment-v1/rollback/{lab-runner-a345e766, org.uor.lab-runner.plist}"
+  },
+  {
+   "n": 2,
+   "name": "install",
+   "outcome": "PASS",
+   "evidence": "installed sha256 == a4b5fa5f..."
+  },
+  {
+   "n": 3,
+   "name": "plist-update",
+   "outcome": "PASS",
+   "evidence": "single literal replacement; plutil -lint OK; diff vs rollback = exactly one line (ProgramArguments[0])"
+  },
+  {
+   "n": 4,
+   "name": "bootstrap",
+   "outcome": "PASS",
+   "evidence": "launchctl bootstrap gui/501 OK"
+  },
+  {
+   "n": 5,
+   "name": "smoke",
+   "outcome": "PASS",
+   "observations": {
+    "launchctl_state": "running",
+    "pid": 74632,
+    "pid_stable_past_throttle_interval": true,
+    "proc_pidpath": "/Users/casey.allard/.local/share/uor-r4/bin/lab-runner-8e90aa33",
+    "daemon_json": {
+     "pid": 74632,
+     "started": "2026-09-30T07:00:58Z"
+    },
+    "daemon_err_log_bytes": 0,
+    "hold_present_and_blocking": true,
+    "hold_sha256_unchanged": true,
+    "queue_entries": 0,
+    "running_entries": 0,
+    "done_entries": 8,
+    "locks_entries": 8,
+    "boot_uuid": "763E5ACF-75D5-44F0-9384-F80B31312894",
+    "elapsed_observation_seconds": 46
+   }
+  }
+ ],
+ "non_goals_honored": {
+  "hold_release": false,
+  "queue_admission": false,
+  "model_work": false,
+  "ledger_changes": false
+ },
+ "rollback": "launchctl bootout gui/501/org.uor.lab-runner || true; sha-verify restored plist and old binary; cp rollback plist back; bootstrap",
+ "next_step": "Separate packet: release-profile build of lab-runner at 8e90aa33 + focused validation, swap binary, bounded admitted post-repair continuity check, then production-hold reconciliation."
+}

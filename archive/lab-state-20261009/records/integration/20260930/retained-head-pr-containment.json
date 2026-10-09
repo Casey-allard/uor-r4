@@ -1,0 +1,519 @@
+{
+  "4af04cf56f213df40b78c73a7c51ed5274517857": [
+    {
+      "pr": 1373,
+      "state": "MERGED",
+      "head_sha": "37b19f1904491d3fe4ff3ffd05c3823f0a08d103",
+      "head_ref": "codex/causal-geometric-continuation-20260924"
+    }
+  ],
+  "fc843a012241474a55e460b53235ad36418a7936": [],
+  "d22e2b50da85e527efcd4f60acc1e82644194b91": [],
+  "ce8d9340c0f5a22de97319decf8bc18dcba4d46d": [
+    {
+      "pr": 1336,
+      "state": "MERGED",
+      "head_sha": "e554f83d8738d87ce227f6fce1687191fee33d64",
+      "head_ref": "codex/consistent-emission-step"
+    }
+  ],
+  "04ba11cd1978091275e607e771142c68618db7e6": [
+    {
+      "pr": 1347,
+      "state": "MERGED",
+      "head_sha": "da7dba4fbe320ba4d0a4813a17f14794602f080b",
+      "head_ref": "codex/consumed-geometric-state"
+    }
+  ],
+  "51b275bf828ee7555425648fa7dd8d4464e5fa29": [
+    {
+      "pr": 1335,
+      "state": "MERGED",
+      "head_sha": "968470ad3a998d8ffb6f8783c6e7f01f12edf2ad",
+      "head_ref": "codex/contextual-emission-step"
+    }
+  ],
+  "bc9c81712bf505089bf22e3a3bd53df819e858c4": [
+    {
+      "pr": 1343,
+      "state": "MERGED",
+      "head_sha": "6606d989cc5412671ec3b65e5f6fa3656f170e70",
+      "head_ref": "codex/contextual-text-roles"
+    }
+  ],
+  "16b7148e0db64e823309675e213e696cbcba79dd": [
+    {
+      "pr": 1338,
+      "state": "MERGED",
+      "head_sha": "02a0f8572eb8055209f9cf2c28511383b778491d",
+      "head_ref": "codex/derived-state-decoder"
+    }
+  ],
+  "88b4d825a5a4ced0ade603d8ac07f0154e4ba8e1": [
+    {
+      "pr": 1433,
+      "state": "MERGED",
+      "head_sha": "0ffe291fe39ceb92629ec6ab9e4bde16f908c360",
+      "head_ref": "codex/dialogue-child-code-choice-20260927"
+    }
+  ],
+  "e5efafb8fadac7ab55258eff3dffd503833e48f0": [
+    {
+      "pr": 1433,
+      "state": "MERGED",
+      "head_sha": "0ffe291fe39ceb92629ec6ab9e4bde16f908c360",
+      "head_ref": "codex/dialogue-child-code-choice-20260927"
+    },
+    {
+      "pr": 1432,
+      "state": "MERGED",
+      "head_sha": "5d05e73b195ced16af5016865210d702eb01ce39",
+      "head_ref": "codex/dialogue-child-export-20260927"
+    }
+  ],
+  "b2504b01fb1f3594672150347466b87f0f544fca": [
+    {
+      "pr": 1433,
+      "state": "MERGED",
+      "head_sha": "0ffe291fe39ceb92629ec6ab9e4bde16f908c360",
+      "head_ref": "codex/dialogue-child-code-choice-20260927"
+    }
+  ],
+  "62606586734e73b906a2d3794c3e3d4a72448830": [],
+  "882ab5c59399e2766da6f7702018fe2ad3316826": [
+    {
+      "pr": 1162,
+      "state": "MERGED",
+      "head_sha": "8ecc4e2a07e4c283ac5b83d286fe4c4bbe54ecf0",
+      "head_ref": "codex/architecture-direction-docs"
+    }
+  ],
+  "b22ecb197f9b3cd54a64ff2be884cc8105cbd7f3": [
+    {
+      "pr": 1337,
+      "state": "MERGED",
+      "head_sha": "463b146a7d1eff39cf2407e2642ff62983c51064",
+      "head_ref": "codex/geometric-computation-diagnosis"
+    }
+  ],
+  "f99f42fb472d065acc9a6f16b815755b02c60180": [],
+  "17d5072c651a0574ff441309b05611fd399cbbec": [
+    {
+      "pr": 1340,
+      "state": "MERGED",
+      "head_sha": "5821c48d11144ebd8b93c19fa5f283ec27b895e3",
+      "head_ref": "codex/grounded-dependent-session"
+    }
+  ],
+  "f6f98e76550c1f2705d98d8e4f413e8b5d0fdaf2": [],
+  "af66569a66ebdced1f027d57350bd424ed8e977f": [],
+  "4d0defa0b619ef775df294b636b776e582d769c3": [],
+  "84ba72cea9f1283c56e36471b59f348a6f8c06ba": [
+    {
+      "pr": 1343,
+      "state": "MERGED",
+      "head_sha": "6606d989cc5412671ec3b65e5f6fa3656f170e70",
+      "head_ref": "codex/contextual-text-roles"
+    },
+    {
+      "pr": 1341,
+      "state": "MERGED",
+      "head_sha": "6fc34c1feb6caa106f3a83d432dacf2603f04b35",
+      "head_ref": "codex/learned-relational-control"
+    }
+  ],
+  "9f075e366ba7d3ffff15db7bb5224b6e03fb2d3e": [],
+  "84c2c40fb76d1f957e434e5975ea00245314a004": [
+    {
+      "pr": 1433,
+      "state": "MERGED",
+      "head_sha": "0ffe291fe39ceb92629ec6ab9e4bde16f908c360",
+      "head_ref": "codex/dialogue-child-code-choice-20260927"
+    },
+    {
+      "pr": 1432,
+      "state": "MERGED",
+      "head_sha": "5d05e73b195ced16af5016865210d702eb01ce39",
+      "head_ref": "codex/dialogue-child-export-20260927"
+    },
+    {
+      "pr": 1430,
+      "state": "MERGED",
+      "head_sha": "a62c3d5e09cbf39cd6b226120421c5645a39b75b",
+      "head_ref": "codex/native-dialogue576-20260927"
+    },
+    {
+      "pr": 1431,
+      "state": "MERGED",
+      "head_sha": "fd63badefd33a6b8e3f63507d1d202777e84b7cf",
+      "head_ref": "codex/native-dialogue576-observation-20260927"
+    }
+  ],
+  "0607b43be68c67de001c8793012698ca7be39e6c": [
+    {
+      "pr": 1433,
+      "state": "MERGED",
+      "head_sha": "0ffe291fe39ceb92629ec6ab9e4bde16f908c360",
+      "head_ref": "codex/dialogue-child-code-choice-20260927"
+    },
+    {
+      "pr": 1432,
+      "state": "MERGED",
+      "head_sha": "5d05e73b195ced16af5016865210d702eb01ce39",
+      "head_ref": "codex/dialogue-child-export-20260927"
+    },
+    {
+      "pr": 1431,
+      "state": "MERGED",
+      "head_sha": "fd63badefd33a6b8e3f63507d1d202777e84b7cf",
+      "head_ref": "codex/native-dialogue576-observation-20260927"
+    }
+  ],
+  "8430664c8f0814c3d76511a1c2b8aa475cdc9855": [
+    {
+      "pr": 1348,
+      "state": "MERGED",
+      "head_sha": "130d684ba6203e672540fc2c810997683b064190",
+      "head_ref": "codex/observed-computation-lifecycle"
+    }
+  ],
+  "b9eca5d2759d86664e519a9fb4c875b8127cb914": [
+    {
+      "pr": 1343,
+      "state": "MERGED",
+      "head_sha": "6606d989cc5412671ec3b65e5f6fa3656f170e70",
+      "head_ref": "codex/contextual-text-roles"
+    }
+  ],
+  "9c8358a340c550ce7c176fc0da8ff60b8ffc31f6": [],
+  "24c874ac4e600478f0a78b632c9c2c779eaa765c": [
+    {
+      "pr": 1332,
+      "state": "MERGED",
+      "head_sha": "11e0214ba3c5207c2c6aeec9a6e735f24d7b99e4",
+      "head_ref": "codex/policy-feasibility-settle"
+    }
+  ],
+  "bca3d224f1f4ece17d2c1ec9c69083d7e13cb3df": [
+    {
+      "pr": 1334,
+      "state": "MERGED",
+      "head_sha": "5b98dcb5ab5816b3302a10a4ffc2796226f274c1",
+      "head_ref": "codex/read-conditioned-state-step"
+    }
+  ],
+  "51470ea99fb32ba7060e2657c1b661e95fd7844d": [
+    {
+      "pr": 1333,
+      "state": "MERGED",
+      "head_sha": "1d68ffc8b463c629fe48e670bc0f0dc50dec920f",
+      "head_ref": "codex/reader-confidence-step"
+    }
+  ],
+  "f5a452087048e699134030cda4ed470a39231c01": [
+    {
+      "pr": 1346,
+      "state": "MERGED",
+      "head_sha": "45b453e615d74d59dbaf1370d2eca87edc1c1761",
+      "head_ref": "codex/scoped-correction-memory"
+    }
+  ],
+  "832c1c33e25a9534d8fb4c73fbba5d2247ecd2c1": [
+    {
+      "pr": 1339,
+      "state": "MERGED",
+      "head_sha": "eda3204f4c663fd9e21b427fd3c7f408f954b480",
+      "head_ref": "codex/shared-transition"
+    }
+  ],
+  "ec06eb10377ea936c62708aa3d90c9b5aaf5f136": [],
+  "5d0a770c642855c54afab8fe7319f28ee4755eba": [
+    {
+      "pr": 1344,
+      "state": "MERGED",
+      "head_sha": "a2e099fcb8ff92e980af40d44378bb44ed825551",
+      "head_ref": "codex/structured-argument-binding"
+    }
+  ],
+  "1df229178c6b56ae6dbf95273c9e4eae3282a66e": [
+    {
+      "pr": 1344,
+      "state": "MERGED",
+      "head_sha": "a2e099fcb8ff92e980af40d44378bb44ed825551",
+      "head_ref": "codex/structured-argument-binding"
+    }
+  ],
+  "3aa2f4784af63fa0c4dad4856a1f488c5b5c5988": [
+    {
+      "pr": 1352,
+      "state": "MERGED",
+      "head_sha": "fe79249b443158534fe0a2f75b26920e76f3d419",
+      "head_ref": "codex/transferable-lexical-v3"
+    }
+  ],
+  "711334f50853d48b8a201539c07667014ae81c55": [
+    {
+      "pr": 1351,
+      "state": "MERGED",
+      "head_sha": "b6944e6af545a4cb70b26e1a874b0af7ac48a870",
+      "head_ref": "codex/truthful-state-lexical-executed"
+    }
+  ],
+  "45e3871c28d06a476eed36d568a38c15c3e8beb9": [],
+  "e45bd6c43b3a6d728d5271a41c63905c9d35fea1": [
+    {
+      "pr": 1468,
+      "state": "MERGED",
+      "head_sha": "8331c233824d115ed163f988e9754c8c6972dba2",
+      "head_ref": "lab/anti-gravity/stack-representation-d4"
+    }
+  ],
+  "20e4cf0bbb9bbbfe96511a8170e24c529aedcbd6": [],
+  "fc87c9521b6a9198d53c1c5d5e27cdb163a852b4": [],
+  "796d83638eba614505bd82db7763e421206c1043": [],
+  "1100eb16b8662da6c485ac31c22a4fe105cbd5b0": [
+    {
+      "pr": 120,
+      "state": "MERGED",
+      "head_sha": "4d541acb26a6eb5e0b3f9741173530fe36308062",
+      "head_ref": "feature/quantum-graph-integration"
+    }
+  ],
+  "d65b5ab87fd042f9bdc7f10ff008ef1fa7f157f8": [],
+  "0e67435d7ef22b87491f2282aac3faadbb876245": [
+    {
+      "pr": 383,
+      "state": "MERGED",
+      "head_sha": "e92664e4aec547c69573109e8080148358a79e1b",
+      "head_ref": "i380-row-distribution"
+    }
+  ],
+  "b294ceb0eccd68cb459a8a33d02a6e31d2f0d84f": [
+    {
+      "pr": 455,
+      "state": "MERGED",
+      "head_sha": "06218663a84365f41893d47b21b3c44849147a1e",
+      "head_ref": "i446-m3-hard-select"
+    }
+  ],
+  "921be670586e74995e586e392edfa852638f243c": [
+    {
+      "pr": 453,
+      "state": "MERGED",
+      "head_sha": "e492d3d2ad03df50c4863758fc714dd3431709af",
+      "head_ref": "i451-canonical-tiebreak"
+    }
+  ],
+  "6a86323d37835de910f8c1b2e0442de51587e153": [],
+  "014094d9f7b0c39c03d35af1352dcfeb92364399": [],
+  "5b20051261541f45997f8bc5657c504203fe2d81": [],
+  "84e072002a131b8095d78fcd1cf0ffb44fc7b9bc": [
+    {
+      "pr": 143,
+      "state": "MERGED",
+      "head_sha": "5247e1d7fd8766f7a063d82aea5ba8e12eedef8c",
+      "head_ref": "issue-124-semantic-state-model"
+    }
+  ],
+  "a23ee825df1940bf86c741b5e120099693e97ac5": [
+    {
+      "pr": 147,
+      "state": "MERGED",
+      "head_sha": "865c409ae1849636959042ec11746ebb50d86f88",
+      "head_ref": "issue-128-behavioral-probes"
+    }
+  ],
+  "71861de00a1902d72da5dffb3973dcc5b377fdab": [
+    {
+      "pr": 148,
+      "state": "MERGED",
+      "head_sha": "df5338a760f14c7dd4a597bc2e35cf7990bcd5a7",
+      "head_ref": "issue-129-reference-compiler-ir"
+    }
+  ],
+  "342502892e046af2e1637954784be87a6c761b0b": [
+    {
+      "pr": 149,
+      "state": "MERGED",
+      "head_sha": "6b5293ec3cd893f674ec0a81dc81a8cd84019bab",
+      "head_ref": "issue-130-lower-semantic-regions"
+    }
+  ],
+  "62e8b9b63b2ca806f27b59f8ed18dfc955295aad": [
+    {
+      "pr": 150,
+      "state": "MERGED",
+      "head_sha": "a46c5d5f33a414cbac751383498cca98e3b87f27",
+      "head_ref": "issue-131-future-state-planner"
+    }
+  ],
+  "b5c8b277fbf51f1428188bb5f9fd51fb18b480e7": [
+    {
+      "pr": 180,
+      "state": "MERGED",
+      "head_sha": "345cf27d26d99bcd331c758b008026f939b7d81b",
+      "head_ref": "issue-161-performance-certificates"
+    }
+  ],
+  "0368fbec970d562466aace085af9a9b975b4cfd4": [
+    {
+      "pr": 181,
+      "state": "MERGED",
+      "head_sha": "da8589f05cda7da3045444d132e6f8f6f8b6489d",
+      "head_ref": "issue-165-compiler-executor"
+    }
+  ],
+  "e55295dc50fded3d51b0fac46953a7e34112ce6d": [
+    {
+      "pr": 1177,
+      "state": "MERGED",
+      "head_sha": "f75ba33624fb3538e5ff4d43bce80c708fa08d32",
+      "head_ref": "issue-973-learned-lexical-prefix-city-transfer"
+    }
+  ],
+  "9c3da950674a4fe9864f7c46486ff24c5fd1e18b": [],
+  "dfc4217c808868cc738a20b648733a15552ee544": [],
+  "3617721f52719e74cd37199a1a46d22bdb800b4b": [
+    {
+      "pr": 1519,
+      "state": "OPEN",
+      "head_sha": "2c7f9a462a5e4d73426945ad35d596562c4ad381",
+      "head_ref": "lab/anti-gravity/b3-e8-smollm2-mlp"
+    },
+    {
+      "pr": 1490,
+      "state": "OPEN",
+      "head_sha": "027b7847a8d4551e7615e9cb3230b3b4ff0f229c",
+      "head_ref": "lab/anti-gravity/d4-qat-adapters"
+    },
+    {
+      "pr": 1527,
+      "state": "OPEN",
+      "head_sha": "190194f21e8990911e62517b54844a23ccf04dc4",
+      "head_ref": "lab/anti-gravity/d4-qat-results"
+    }
+  ],
+  "a8d59d31c9059518aaff093b92caf24a5e6667ee": [],
+  "14f026b2f6c451a067b6bc9a99be630e67af992d": [],
+  "76c8dac21eab7ba6035c13f21d9200983d14a3c8": [],
+  "b806fb2db924aa013e2e7173f4eccb9591cbcc0f": [],
+  "cb32e73c8b666b104e55461f51126cdaf5feb97e": [],
+  "b68666223e8aaf8ab0e055ddb3b6372cdf43a435": [
+    {
+      "pr": 1472,
+      "state": "MERGED",
+      "head_sha": "7d60fad16b0069d3356494d307968b3bcd14c153",
+      "head_ref": "lab/claude/i1-stack-store"
+    }
+  ],
+  "a6731e3912cae6ec73f58c323b282a0ffd1d907a": [],
+  "c5b841739922e0096147da86bd78eb425a5b2510": [],
+  "724f8d64e42e4e5fb356818ff0db7580a1306406": [
+    {
+      "pr": 1467,
+      "state": "MERGED",
+      "head_sha": "c85f9e58b2057779d8ea391d626f2fefb413f46b",
+      "head_ref": "lab/claude/s1-integer-port"
+    }
+  ],
+  "e1038ea64117c8f81bb95e21f87f2a672236672a": [
+    {
+      "pr": 1466,
+      "state": "MERGED",
+      "head_sha": "f4cd5c51c1ada62a14787ea345205f9a0cb2b378",
+      "head_ref": "lab/claude/s1-qat"
+    }
+  ],
+  "33278454f5e55b323550062685e802a9053f5db0": [],
+  "5b7d168526dba617408b9cac38e7c23937ef95be": [],
+  "67942bfb885d6bab543ac719f67ae6d6343ab719": [
+    {
+      "pr": 1464,
+      "state": "MERGED",
+      "head_sha": "d33adc8dfbe75f0e65244d177f54849c171a8ce2",
+      "head_ref": "lab/opencode/d6-information-audit"
+    }
+  ],
+  "8b72954106947e682fe48e314277155c44275cda": [
+    {
+      "pr": 1469,
+      "state": "MERGED",
+      "head_sha": "d467977de48183f141d0cc7ae397fb5ab126f78c",
+      "head_ref": "lab/opencode/g-v1"
+    }
+  ],
+  "6b3e0b997317a48148635b41554777c38832a6ea": [
+    {
+      "pr": 1440,
+      "state": "MERGED",
+      "head_sha": "b52d08f98ed0da25e983c95968d9983325a62109",
+      "head_ref": "lab/opencode/read-localization"
+    }
+  ],
+  "700872f763f8f094a9d29197617195e00f41940d": [],
+  "b6c6cccd00e79fca026f749a3cfb4d06bda04ff1": [
+    {
+      "pr": 1486,
+      "state": "MERGED",
+      "head_sha": "47ba617118c21c6d40a095b8c279def258208835",
+      "head_ref": "lab/claude/memory-port-contract"
+    }
+  ],
+  "020f974d4ee06432a8564307a8a425ffb8de8d43": [
+    {
+      "pr": 1492,
+      "state": "MERGED",
+      "head_sha": "5e457245adbd9392158299f0002f82474048f23a",
+      "head_ref": "lab/claude/memory-replies"
+    },
+    {
+      "pr": 1487,
+      "state": "MERGED",
+      "head_sha": "a8f890b2fcd68009cfde89bd67823c31a7a65785",
+      "head_ref": "lab/claude/prime-route-arm"
+    }
+  ],
+  "48fc78f501efdadb9eebf8521bfd384bbbfd4a41": [],
+  "f969fd8eb24f806eb172324577610b27fddf81ab": [],
+  "169dd7c52583088398216d3782441cc2a3855acc": [],
+  "d6b261e8268b9122531408f04aa2b1de78059d40": [],
+  "16c77c973b9d0caff4a379542b2c5ebf6c71f53c": [
+    {
+      "pr": 1462,
+      "state": "MERGED",
+      "head_sha": "3267be505c45685db4770c69a5e8359d2d571c73",
+      "head_ref": "lab/claude/cloud-handoff-integration"
+    }
+  ],
+  "8eb9cdaac00cd382c09a3c3e41d89a5f6c1e6591": [],
+  "a730babcecb8d699775029a496cc7947c2d50f0a": [
+    {
+      "pr": 1433,
+      "state": "MERGED",
+      "head_sha": "0ffe291fe39ceb92629ec6ab9e4bde16f908c360",
+      "head_ref": "codex/dialogue-child-code-choice-20260927"
+    }
+  ],
+  "36575fdcfc60554fa874aebe8a91b696d290a704": [],
+  "260440b6ca9bc2aa343dfddfc376184cd75f2973": [],
+  "8ca83a2df07ca4f7766462d95fb8f413a055d89b": [
+    {
+      "pr": 370,
+      "state": "MERGED",
+      "head_sha": "f91983801be25ec3d8cd1b86a6200ccc38af111a",
+      "head_ref": "graph-contrast-weighting"
+    },
+    {
+      "pr": 369,
+      "state": "MERGED",
+      "head_sha": "cddfb9b1e79717edeff0d8becad88a5c65584d6c",
+      "head_ref": "graph-cover-predictive"
+    }
+  ],
+  "a501d012a5b0957f1dd5bcede8602ed0a72b8ea2": [],
+  "ce088264bc36efa6c9989701de7e4c7e4b5bf785": [],
+  "275a4e1d70d5e0bd3efafc7fbce26c9412c1fb78": [],
+  "80b794893f01317365697354713280dbbc62f4b4": [],
+  "042d5fcee6dc811b227b21013437716de31cd0db": [],
+  "414951faa1c697032d66b2d4dd534a6775c1c3fa": []
+}

@@ -1,0 +1,53 @@
+   Compiling uor-r4-integer v0.1.0 (/Users/casey.allard/.codex/worktrees/track-b-conversion/uor-r4/crates/uor-r4-integer)
+   Compiling uor-r4-core v0.1.0 (/Users/casey.allard/.codex/worktrees/track-b-conversion/uor-r4/crates/uor-r4-core)
+warning: method `position` is never used
+   --> crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs:175:8
+    |
+168 | impl ObservedSpan {
+    | ----------------- method in this implementation
+...
+175 |     fn position(&self) -> (u32, u32, usize) {
+    |        ^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `example` is never used
+    --> crates/uor-r4-core/src/native_geometric/learner/transferable_lexical.rs:1590:8
+     |
+1405 | impl TlTrainer {
+     | -------------- method in this implementation
+...
+1590 |     fn example(&self, q: &TlQuant, ex: &TlExample) -> TlGrads {
+     |        ^^^^^^^
+
+warning: `uor-r4-core` (lib) generated 2 warnings
+   Compiling uor-r4-training v0.1.0 (/Users/casey.allard/.codex/worktrees/track-b-conversion/uor-r4/crates/uor-r4-training)
+    Finished `release` profile [optimized] target(s) in 3m 36s
+     Running unittests src/lib.rs (/Users/casey.allard/.cache/uor-r4-track-b-direct/target/release/deps/uor_r4_training-583bed23ad349928)
+
+running 4 tests
+test track_b::model::tests::teacher_capture_matches_full_forward_hook_and_stops_before_later_mlp ... ok
+test track_b::model::tests::dense_full_prefix_is_causal_and_batch_rows_are_independent ... ok
+test track_b::model::tests::hook_gradients_cross_later_frozen_layers_and_weights_stay_ordinary ... ok
+test track_b::model::tests::batched_2048_position_metadata_and_causal_mask_have_no_small_context_limit ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 358 filtered out; finished in 0.01s
+
+      217.56 real       369.30 user         7.39 sys
+          3175809024  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             1117411  page reclaims
+               24302  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   7  signals received
+                3356  voluntary context switches
+              298608  involuntary context switches
+          1892790567  instructions retired
+           775409685  cycles elapsed
+            59163416  peak memory footprint

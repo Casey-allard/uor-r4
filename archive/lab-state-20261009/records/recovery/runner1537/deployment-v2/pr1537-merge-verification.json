@@ -1,0 +1,11 @@
+{
+  "checked_utc": "2026-09-30T07:02:04.235567+00:00",
+  "pr": 1537,
+  "merged_sha": "d563b02f3270a2c931a7905d6624ba0beeb71d2a",
+  "tested_head": "8e90aa33b8ef941d3ac5de57ad448859e20ad76b",
+  "runner_build_inputs_equal": true,
+  "installed_binary_sha256": "a4b5fa5ff4554b07846b4d4f56c927a18cf1a1a93f42ec36c05fd9e0777a299a",
+  "live_service_pid": 74632,
+  "hold_sha256": "81bb7c6af7c5f33f3c71b44a42235b32c46f1dd8dc488b8c57ff90c7d1779cb3",
+  "scope": "Main runner/build tree equality verified by git diff; installed hash matches tested executable. Hold remains; pilot NOT_RUN."
+}

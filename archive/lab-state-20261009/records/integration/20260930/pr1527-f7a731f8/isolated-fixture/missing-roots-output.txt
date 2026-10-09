@@ -1,0 +1,39 @@
+=== D4 S1 & S2 Evidence Concordance & Manifest Check ===
+Notice: Claim-presence and evidence check; does not re-execute model training.
+
+--- 1. S1 Geometric QAT Manifest & Evidence Check ---
+  [UNAVAILABLE/INCOMPLETE] s1.arm1_qat.train: root directory missing: /Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/uor-1527-verifier-recheck-etfa4ojx/absent/arm1_qat/root
+  [UNAVAILABLE/INCOMPLETE] s1.arm1_qat.export: root directory missing: /Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/uor-1527-verifier-recheck-etfa4ojx/absent/arm1_qat/export_root
+  [UNAVAILABLE/INCOMPLETE] s1.arm1_qat.lut_eval: root directory missing: /Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/uor-1527-verifier-recheck-etfa4ojx/absent/arm1_qat/lut_eval_root
+  [UNAVAILABLE/INCOMPLETE] s1.arm1_qat.d11_eval: root directory missing: /Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/uor-1527-verifier-recheck-etfa4ojx/absent/arm1_qat/d11_eval_root
+  [UNAVAILABLE/INCOMPLETE] s1.arm2_float_continuation.train: root directory missing: /Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/uor-1527-verifier-recheck-etfa4ojx/absent/arm2_float_continuation/root
+
+--- 2. S2 Dialogue QAT Manifest & Evidence Check ---
+  [UNAVAILABLE/INCOMPLETE] s2.sealed_roots_arm1_qat.train: root directory missing: /Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/uor-1527-verifier-recheck-etfa4ojx/absent/sealed_roots_arm1_qat/train
+  [UNAVAILABLE/INCOMPLETE] s2.sealed_roots_arm1_qat.export: root directory missing: /Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/uor-1527-verifier-recheck-etfa4ojx/absent/sealed_roots_arm1_qat/export
+  [UNAVAILABLE/INCOMPLETE] s2.sealed_roots_arm1_qat.chat: root directory missing: /Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/uor-1527-verifier-recheck-etfa4ojx/absent/sealed_roots_arm1_qat/chat
+  [UNAVAILABLE/INCOMPLETE] s2.sealed_roots_arm1_qat.d11_eval: root directory missing: /Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/uor-1527-verifier-recheck-etfa4ojx/absent/sealed_roots_arm1_qat/d11_eval
+  [UNAVAILABLE/INCOMPLETE] s2.sealed_roots_arm2_float_control.train: root directory missing: /Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/uor-1527-verifier-recheck-etfa4ojx/absent/sealed_roots_arm2_float_control/train
+  [UNAVAILABLE/INCOMPLETE] s2.sealed_roots_arm2_float_control.export: root directory missing: /Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/uor-1527-verifier-recheck-etfa4ojx/absent/sealed_roots_arm2_float_control/export
+  [UNAVAILABLE/INCOMPLETE] s2.sealed_roots_arm2_float_control.chat: root directory missing: /Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/uor-1527-verifier-recheck-etfa4ojx/absent/sealed_roots_arm2_float_control/chat
+  [UNAVAILABLE/INCOMPLETE] s2.sealed_roots_arm2_float_control.d11_eval: root directory missing: /Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/uor-1527-verifier-recheck-etfa4ojx/absent/sealed_roots_arm2_float_control/d11_eval
+
+--- 3. Markdown Document & Scope Concordance ---
+  [PASS] S2 Markdown contains required scope marker: '56 / 58 turns (96.55%)'
+  [PASS] S2 Markdown contains required scope marker: '5 / 58 turns'
+  [PASS] S2 Markdown contains required scope marker: '6 / 58 turns'
+  [PASS] S2 Markdown contains required scope marker: 'MISSED'
+  [PASS] S2 Markdown contains required scope marker: 'Literal target'
+  [PASS] S2 Markdown contains required scope marker: 'Corrected parent target'
+  [PASS] S2 Markdown contains required scope marker: 'MISSING / UNAVAILABLE'
+  [PASS] S2 Markdown contains required scope marker: '2.9842 nats'
+  [PASS] S2 Markdown contains required scope marker: '7,238,304 weights read per token'
+  [PASS] S2 Markdown contains required scope marker: 'dense parameter access'
+  [PASS] S2 Markdown contains required scope marker: 'matched only 5/58 (53/58 diverged)'
+  [PASS] S1 Markdown contains required scope marker: 'Top-1 Agreement (vs QAT Own Float Model)'
+  [PASS] S1 Markdown contains required scope marker: 'f4caf562'
+  [PASS] S1 Markdown contains required scope marker: '1.962490'
+  [PASS] S1 Markdown contains required scope marker: '+0.010637'
+
+Verification summary: 15 passed, 0 failed, 13 roots unavailable.
+ERROR: 13 required evidence roots are unavailable/missing from disk.

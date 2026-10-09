@@ -1,0 +1,31 @@
+{
+  "schema": "uor-r4.council-execution-review/1",
+  "created_utc": "2026-09-30T05:18:53.553107+00:00",
+  "reviewer": "/root/repair_execution_council",
+  "identity_attestation": "Non-author council reviewer; same Codex provider and root launcher. This recorded agent identity is not an independent GitHub account or cryptographic signature.",
+  "decision": "APPROVE_ONE_USE_EXECUTION",
+  "packet_sha256": "7c49d4f73a5478d4fbc74310eb9660de0d4e2b2675b5a94522dd0db3cc198332",
+  "source_sha": "8e90aa33b8ef941d3ac5de57ad448859e20ad76b",
+  "observer_sha256": "795d4ff24363c115433ea341ed16a03de2afaf465f4e5fb7f832439ebb8cfc01",
+  "cargo_lock_sha256": "e11b98bf00374dbc6b9e42da56647c51fc8c5e782eddf3ed031c855997146c32",
+  "scope": "Prospective one-use offline cargo test -p lab-runner -- --test-threads=2 then cargo build -p lab-runner, using the frozen packet and reviewed observer in the verified internal target cache. No production deployment or state reconciliation is approved.",
+  "basis": [
+    "Read work-card-v1, Claude UNKNOWN reconciliation, independent source review, process/jobs changes and relevant isolated fixtures; read the complete final observer and exact execution packet.",
+    "Verified source HEAD and clean tracked tree, Cargo.lock, observer and production-hold hashes. Fresh process observation found only production runner PID24197 plus this read-only observation, no active peer Cargo/rustc. Boot UUID matches; memory pressure is 1; internal free space is 50,384,748 KiB.",
+    "Observer records durable intent and launched PID/session/boot identity, observes same-session descendants across process-group changes/reparenting, refreshes ownership before signals, retains UNKNOWN on uncertainty, and preserves command/final receipts.",
+    "The exception explicitly does not claim ordinary reservation-aware admission. Existing Claude 10GiB reservation remains fenced, and positive prior inspection found its original supervisor zombie with no live payload. The repair uses measured physical headroom solely to fix the defective runner.",
+    "Affected tests use isolated temporary roots; production missing-policy fixture avoids acquiring or changing the actual host singleton. No model, external provider, GPU or security modification is admitted."
+  ],
+  "conditions": [
+    "Obtain the full three-seat council record including at least two non-authors before execution; this vote alone is insufficient.",
+    "Immediately before invocation revalidate exact packet/source/observer/lock/production-hold hashes, clean source, same boot, pressure1, no peer Cargo/rustc and physical free >=40GiB+2GiB+64MiB+128MiB.",
+    "One invocation only with exclusive new receipt directory. Keep production hold and Claude reservation unchanged. Observer may stop only its own positively identified invocation, never a peer.",
+    "Preserve receipts and charge actual elapsed once. Any candidate, helper, command or bound change requires a successor packet/review; a failed attempt is not permission for an unreviewed rerun.",
+    "Merge, deployment, original UNKNOWN reconciliation and later production admission remain separate acceptance decisions."
+  ],
+  "limitations": [
+    "RSS, storage and timing are sampled; 20-second stop allowance is a projection and sequential failed probes can exceed it. This is a bounded inspected recovery procedure, not kernel enforcement or arbitrary-payload containment.",
+    "Session-based containment relies on inspected tests creating process groups without creating new sessions. An uncertain stop remains UNKNOWN and cannot release reservations.",
+    "No build or test was executed by this reviewer. This approval establishes permission for the bounded check, not successful validation or scientific capability."
+  ]
+}

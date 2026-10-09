@@ -1,0 +1,11 @@
+Codex independent specialist delta review — REQUEST_CHANGES at live head `b247add7d84be300b870edf10d9cf10c77792a7b`. Source-only; no Cargo/model execution. Scoped diff check passed.
+
+The original codeword256→128, squared-error4 behavior is preserved, not fixed: the production heuristic remains unchanged and a regression now records its limitation. That is a valid disposition for the retained implementation-negative; do not claim the encoder itself is repaired. Production callers still use the heuristic; the new oracle is test-only.
+
+1. **New oracle numerical contract:** `crates/uor-r4-training/src/b3_e8_codecs.rs:144–175` returns a vector/code pair that can disagree. With finite `y=[1e20;8]`,scale1, all F32 squared distances overflow to infinity; `err < best_err` never selects a candidate, so it returns `([0;8],0)` while code0 decodes to `[0.75;8]`. NaNs similarly leave the invalid default. Small-scale zero-vector shortcut needs a stated contract too. Reject invalid/unsupported inputs explicitly, ensure a candidate was selected and preserve vector/code consistency. Widened arithmetic addresses the finite-overflow example but does not justify unrestricted “mathematically exact” wording: describe exhaustive enumeration under declared arithmetic. Focused input-domain regressions suffice; no model rerun.
+
+2. **Unsupported causal attribution:** `docs/integration/b3-e8-smollm2-result-2026-09-29.md:91` still calls missing Hessian compensation/training adaptation a dominant factor. No ablation separates their contribution from encoder suboptimality/scaling. State these as possible contributors with relative effects unisolated. Keep the measured negative and stop decision unchanged.
+
+3. **Pattern count:** the heuristic evaluates512 candidates with repetition using **at most two** distinct raw-sign patterns; both passes can select the same pattern, including the retained codeword256 example. Correct “two patterns” to “at most two.”
+
+The hard-coded quarter-valued vectors and error4 assertion are meaningful for this specific counterexample. Shared decoder use does not independently certify the entire canonical codebook. These are bounded corrections to the existing PR, not a request to repeat E8 model evaluation.

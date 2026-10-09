@@ -1,0 +1,22 @@
+{
+  "schema": "uor-r4.cleanup-receipt/1",
+  "observed_utc": "2026-09-30T08:46:52.086124+00:00",
+  "notice": "https://github.com/UOR-Foundation/uor-r4/issues/820#issuecomment-5905628977",
+  "removed": [
+    "/Users/casey.allard/.cache/uor-antigravity-target/debug/incremental",
+    "/Users/casey.allard/.cache/uor-claude-s14-target/debug/incremental"
+  ],
+  "checks": [
+    "Full metadata and root inode/device unchanged",
+    "All file headers are compiler incremental formats; non-RSIC bin files are thin-lto-past-keys.bin",
+    "Existing Cargo target locks held exclusively throughout",
+    "No Cargo/rustc process",
+    "No queued/running/unfinalized attempts",
+    "No lsof handles or errors",
+    "Source and other target directories retained"
+  ],
+  "before_available_bytes": 44235116544,
+  "after_available_bytes": 51327840256,
+  "physical_delta_bytes": 7092723712,
+  "limits": "df delta is a host observation and can include concurrent unrelated filesystem activity; no unique artifacts or source removed"
+}

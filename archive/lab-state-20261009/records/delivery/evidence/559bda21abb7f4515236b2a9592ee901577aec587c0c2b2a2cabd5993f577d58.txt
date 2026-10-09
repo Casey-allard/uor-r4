@@ -1,0 +1,42 @@
+Command: ['/Users/casey.allard/.cargo/bin/cargo', 'test', '-p', 'lab-runner', '--offline', 'agent::tests', '--', '--test-threads=2']
+   Compiling lab-runner v0.1.0 (/Users/casey.allard/uor-r4/.worktrees/durable-lab-system-20260929/tools/lab-runner)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.30s
+     Running unittests src/lib.rs (/Users/casey.allard/.cache/uor-r4-lab-system/target/debug/deps/lab_runner-b4dbc76ad42249f7)
+
+running 3 tests
+test agent::tests::plist_mentions_label_paths_and_keepalive ... ok
+test agent::tests::installer_rejects_missing_program_and_dangling_external_aliases ... ok
+test agent::tests::write_plist_targets_a_tempdir_and_prints_bootstrap ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 59 filtered out; finished in 0.03s
+
+     Running unittests src/bin/lab-runner.rs (/Users/casey.allard/.cache/uor-r4-lab-system/target/debug/deps/lab_runner-05de843d52b5eeee)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/cli.rs (/Users/casey.allard/.cache/uor-r4-lab-system/target/debug/deps/cli-1181788862b11fba)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 0.00s
+
+     Running tests/delivery.rs (/Users/casey.allard/.cache/uor-r4-lab-system/target/debug/deps/delivery-5ca213c0ee98cafe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.00s
+
+     Running tests/host_recovery.rs (/Users/casey.allard/.cache/uor-r4-lab-system/target/debug/deps/host_recovery-f172b24600332dd9)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.00s
+
+     Running tests/maintenance.rs (/Users/casey.allard/.cache/uor-r4-lab-system/target/debug/deps/maintenance-9128b5a1c8a43509)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s
+

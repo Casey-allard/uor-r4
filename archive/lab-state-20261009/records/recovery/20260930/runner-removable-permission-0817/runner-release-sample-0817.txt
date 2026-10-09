@@ -1,0 +1,127 @@
+Analysis of sampling lab-runner-8e90aa33-release (pid 32200) every 10 milliseconds
+Process:         lab-runner-8e90aa33-release [32200]
+Path:            /Users/USER/*/lab-runner-8e90aa33-release
+Load Address:    0x100144000
+Identifier:      lab-runner-8e90aa33-release
+Version:         0
+Code Type:       ARM64
+Platform:        macOS
+Parent Process:  launchd [1]
+Target Type:     live task
+
+Date/Time:       2026-09-30 04:17:14.493 -0400
+Launch Time:     2026-09-30 04:10:07.360 -0400
+OS Version:      macOS 27.0 (26A5378n)
+Report Version:  7
+Analysis Tool:   /usr/bin/sample
+
+Physical footprint:         1328K
+Physical footprint (peak):  1344K
+Idle exit:                  untracked
+----
+
+Call graph:
+    85 Thread_1898794   DispatchQueue_1: com.apple.main-thread  (serial)
+      85 start  (in dyld) + 6688  [0x1981bbbec]
+        85 main  (in lab-runner-8e90aa33-release) + 52  [0x1001744a8]
+          85 _RNvNtCsa9BKTri5B3M_3std2rt19lang_start_internal  (in lab-runner-8e90aa33-release) + 952  [0x1002dfe14]
+            85 _RNCINvNtCsa9BKTri5B3M_3std2rt10lang_startuE0Cs60eFq2OADy6_10lab_runner  (in lab-runner-8e90aa33-release) + 16  [0x100180a94]
+              85 _RINvNtNtCsa9BKTri5B3M_3std3sys9backtrace28___rust_begin_short_backtraceFEuuECs60eFq2OADy6_10lab_runner  (in lab-runner-8e90aa33-release) + 12  [0x10017ebb0]
+                85 _RNvCs60eFq2OADy6_10lab_runner4main  (in lab-runner-8e90aa33-release) + 24  [0x1001743f4]
+                  85 _RNvCs60eFq2OADy6_10lab_runner3run  (in lab-runner-8e90aa33-release) + 7844  [0x10017367c]
+                    85 _RNvNtCsaPLVwz1SoDh_10lab_runner6daemon3run  (in lab-runner-8e90aa33-release) + 2528  [0x10028a8cc]
+                      85 _RNvNtCsaPLVwz1SoDh_10lab_runner4host13check_storage  (in lab-runner-8e90aa33-release) + 452  [0x1002b21f0]
+                        85 _RNvNtCsaPLVwz1SoDh_10lab_runner4host13verify_volume  (in lab-runner-8e90aa33-release) + 756  [0x1002b2708]
+                          85 _RNvNvNtCsa9BKTri5B3M_3std2fs14read_to_string5inner  (in lab-runner-8e90aa33-release) + 192  [0x1002e6eb4]
+                            85 _RNvMsi_NtNtNtCsa9BKTri5B3M_3std3sys2fs4unixNtB5_4File6open_c  (in lab-runner-8e90aa33-release) + 268  [0x1002dd248]
+                              85 open  (in libsystem_kernel.dylib) + 64  [0x198558960]
+                                85 __open  (in libsystem_kernel.dylib) + 8  [0x19854d680]
+
+Total number in stack (recursive counted multiple, when >=5):
+
+Sort by top of stack, same collapsed (when >= 5):
+        __open  (in libsystem_kernel.dylib)        85
+
+Binary Images:
+       0x100144000 -        0x100373fcb +lab-runner-8e90aa33-release (0) <52F4CFE4-3AB5-3D43-82F5-DE19171E8B6C> /Users/*/lab-runner-8e90aa33-release
+       0x198108000 -        0x1981574e7  libobjc.A.dylib (971) <839C2D2A-67FB-303C-B173-61BB35BED0F0> /usr/lib/libobjc.A.dylib
+       0x198158000 -        0x19816223f  libsharedcache.dylib (0) <A0BA3AF0-2CD4-39A0-9EB1-AC7FBFD9D6E1> /usr/lib/libsharedcache.dylib
+       0x198163000 -        0x198189ceb  libdyld.dylib (27059.3) <8F997505-5660-3D22-80B2-9FDEA7431FAD> /usr/lib/system/libdyld.dylib
+       0x19818a000 -        0x198248e9f  dyld (1.0.0 - 27059.3) <89B5B1C2-C361-31EB-B7FB-65DC92293210> /usr/lib/dyld
+       0x198249000 -        0x19824c01f  libsystem_blocks.dylib (98.1) <786B0507-E04D-392A-91EF-E3CA27F7F132> /usr/lib/system/libsystem_blocks.dylib
+       0x19824d000 -        0x1982a203f  libxpc.dylib (3298.0.10) <9657C121-6344-367D-8356-70C8058CA4CC> /usr/lib/system/libxpc.dylib
+       0x1982a3000 -        0x1982c2b33  libsystem_trace.dylib (1965) <E6992755-0467-353D-9F56-7B6888A224D5> /usr/lib/system/libsystem_trace.dylib
+       0x1982c3000 -        0x19837829f  libcorecrypto.dylib (2109.0.11) <C7E805A1-E727-301D-959B-E8682A12CF3F> /usr/lib/system/libcorecrypto.dylib
+       0x198379000 -        0x1983ce9b7  libsystem_malloc.dylib (886.0.4) <888B2D76-E664-374A-BC9D-8246ED21AE0B> /usr/lib/system/libsystem_malloc.dylib
+       0x1983cf000 -        0x19841519f  libdispatch.dylib (1605) <25087587-6DDC-3D24-9A3E-53B860CE6140> /usr/lib/system/libdispatch.dylib
+       0x198416000 -        0x198418d2b  libsystem_featureflags.dylib (107) <9C340434-BBCB-3AC0-B8C4-938160989A75> /usr/lib/system/libsystem_featureflags.dylib
+       0x198419000 -        0x19849bbdb  libsystem_c.dylib (1786.0.1) <9551A968-1E9B-33C2-9D58-2151018E2542> /usr/lib/system/libsystem_c.dylib
+       0x19849c000 -        0x198531033  libc++.1.dylib (2200.25) <2798D51E-0EDC-32CB-B10B-BF2113D7DD83> /usr/lib/libc++.1.dylib
+       0x198532000 -        0x19854beff  libc++abi.dylib (2200.25) <F40BD75E-C3B0-39EB-90C7-40A113AE4985> /usr/lib/libc++abi.dylib
+       0x19854c000 -        0x19858a953  libsystem_kernel.dylib (13432.0.50.501.3) <494C57E5-D214-30F8-83B0-7A57C7AB5FDF> /usr/lib/system/libsystem_kernel.dylib
+       0x19858b000 -        0x19859791b  libsystem_pthread.dylib (553) <8201CE5B-7871-3349-AF2A-83E7D6FFAA31> /usr/lib/system/libsystem_pthread.dylib
+       0x198598000 -        0x1985a1603  libsystem_platform.dylib (402) <CEB692E7-CC60-37E3-ACDA-7CEAAF09E857> /usr/lib/system/libsystem_platform.dylib
+       0x1985a2000 -        0x1985d08f3  libsystem_info.dylib (603) <402DB648-B508-35AD-8C8F-EAE443F1E449> /usr/lib/system/libsystem_info.dylib
+       0x19c59e000 -        0x19c5a7abb  libsystem_darwin.dylib (1786.0.1) <D0AFA6D4-FA10-3BAB-B6A6-C2D5D453E6B8> /usr/lib/system/libsystem_darwin.dylib
+       0x19c9fb000 -        0x19ca0cb8b  libsystem_notify.dylib (367) <7147983F-48F9-34E0-9FF3-B7E8575EE51F> /usr/lib/system/libsystem_notify.dylib
+       0x19eafe000 -        0x19eb18da3  libsystem_networkextension.dylib (2322.0.0.501.1) <95D61260-3F15-3EAA-B66D-1981DE40121E> /usr/lib/system/libsystem_networkextension.dylib
+       0x19eba5000 -        0x19ebbc247  libsystem_asl.dylib (409) <5617D1B4-6082-342B-A671-FF31885B4E27> /usr/lib/system/libsystem_asl.dylib
+       0x19fd04000 -        0x19fd04f2f  libobjcMsgSend.dylib (971) <92DE5673-A064-3F60-9304-BBFC08C241D6> /usr/lib/objc/libobjcMsgSend.dylib
+       0x1a0c7c000 -        0x1a0c83edf  libsystem_symptoms.dylib (2385) <CEFD58CF-5974-3E74-BF2D-7CEDE7745B5F> /usr/lib/system/libsystem_symptoms.dylib
+       0x1a5005000 -        0x1a503f967  libsystem_containermanager.dylib (833.0.0.501.1) <A885D0FB-A212-31ED-BB51-99544AE6589C> /usr/lib/system/libsystem_containermanager.dylib
+       0x1a6756000 -        0x1a675a317  libsystem_configuration.dylib (1441) <3343DBC7-07D2-3D70-86E0-F2A7F6E4B080> /usr/lib/system/libsystem_configuration.dylib
+       0x1a675b000 -        0x1a676194f  libsystem_sandbox.dylib (3051.0.30) <80C603E2-ABC4-3053-B2DB-365742944A5C> /usr/lib/system/libsystem_sandbox.dylib
+       0x1a7d04000 -        0x1a7d04f2f  libobjcMsgSend1.dylib (971) <60ABE57D-C838-31BF-BD26-5EA9C3A8C1AC> /usr/lib/objc/libobjcMsgSend1.dylib
+       0x1a832d000 -        0x1a832ff93  libquarantine.dylib (217.0.2) <A191F173-7FE3-3DA8-8031-BD4C0E927C7D> /usr/lib/system/libquarantine.dylib
+       0x1a8a43000 -        0x1a8a491cf  libsystem_coreservices.dylib (201) <B75BADAB-A020-3309-B8C6-057FBC16395B> /usr/lib/system/libsystem_coreservices.dylib
+       0x1a9007000 -        0x1a9044b27  libsystem_m.dylib (3326.0.1) <14B1D523-6D34-30EC-A3AB-EC49F9B60D18> /usr/lib/system/libsystem_m.dylib
+       0x1a9046000 -        0x1a90494d7  libmacho.dylib (27059.3) <EC76C9B9-1DFE-3FD8-BD33-823EED27CD8E> /usr/lib/system/libmacho.dylib
+       0x1a9063000 -        0x1a906f6ff  libcommonCrypto.dylib (600041) <DC0A6B27-0C45-3E99-B0B2-DB3FC4285A4A> /usr/lib/system/libcommonCrypto.dylib
+       0x1a9070000 -        0x1a9079c87  libunwind.dylib (2200.5) <289FF204-B4A1-338A-8607-4C915BF4E939> /usr/lib/system/libunwind.dylib
+       0x1a9081000 -        0x1a908b7bb  libcopyfile.dylib (260) <AD14DF25-FC2A-3B07-B74E-635CADC29BBA> /usr/lib/system/libcopyfile.dylib
+       0x1a908c000 -        0x1a908f8af  libcompiler_rt.dylib (103.4) <A9D26C06-952E-3EED-9F79-E9DDA53C949A> /usr/lib/system/libcompiler_rt.dylib
+       0x1a9090000 -        0x1a9095087  libsystem_collections.dylib (1786.0.1) <3E655071-DC46-3A08-B2FC-0867B7F78A82> /usr/lib/system/libsystem_collections.dylib
+       0x1a9096000 -        0x1a9098f1f  libsystem_secinit.dylib (182) <A9B9F146-DA4D-39BD-81C5-811FE7057A2E> /usr/lib/system/libsystem_secinit.dylib
+       0x1a9099000 -        0x1a909b97f  libremovefile.dylib (95) <34461ADC-0A5B-3067-9FF2-EA912634A217> /usr/lib/system/libremovefile.dylib
+       0x1a909c000 -        0x1a909ce27  libkeymgr.dylib (31) <84C2DCD9-BD43-3877-AE4A-FFB62AC67E3F> /usr/lib/system/libkeymgr.dylib
+       0x1a909d000 -        0x1a90a5af7  libsystem_dnssd.dylib (3089.0.0.0.1) <9BCF2C29-1D50-3898-B25E-8FBB4B5DD9B5> /usr/lib/system/libsystem_dnssd.dylib
+       0x1a90a6000 -        0x1a90aaf1b  libcache.dylib (95) <E8A45388-D9D4-35A0-8AFE-E76147E049F3> /usr/lib/system/libcache.dylib
+       0x1a90ab000 -        0x1a90ac8f3  libSystem.B.dylib (1359) <0119077C-8446-3EA2-B8A7-5C00C9FBC365> /usr/lib/libSystem.B.dylib
+       0x1afd04000 -        0x1afd04f2f  libobjcMsgSend2.dylib (971) <A0D6FD38-8DE6-3A3A-8D19-9CB1ACE6BA71> /usr/lib/objc/libobjcMsgSend2.dylib
+       0x1b7d04000 -        0x1b7d04f2f  libobjcMsgSend3.dylib (971) <A6565966-C050-347B-BA91-7F045C64A843> /usr/lib/objc/libobjcMsgSend3.dylib
+       0x1bfd04000 -        0x1bfd04f2f  libobjcMsgSend4.dylib (971) <71F07C7E-C68A-3349-B9C9-62788F57E41E> /usr/lib/objc/libobjcMsgSend4.dylib
+       0x1c7d04000 -        0x1c7d04f2f  libobjcMsgSend5.dylib (971) <5A5AC25C-9D33-3CDB-AFFC-C80E09F6E69B> /usr/lib/objc/libobjcMsgSend5.dylib
+       0x1cfd04000 -        0x1cfd04f2f  libobjcMsgSend6.dylib (971) <0A49B029-FE6E-3830-B7EB-CEED60D1E231> /usr/lib/objc/libobjcMsgSend6.dylib
+       0x1d7d04000 -        0x1d7d04f2f  libobjcMsgSend7.dylib (971) <3BF43D8F-73B2-3080-A366-BB37FB19014C> /usr/lib/objc/libobjcMsgSend7.dylib
+       0x1dfd04000 -        0x1dfd04f2f  libobjcMsgSend8.dylib (971) <4E20EB92-8CCD-3A2D-AA26-094F520DD86B> /usr/lib/objc/libobjcMsgSend8.dylib
+       0x1e7d04000 -        0x1e7d04f2f  libobjcMsgSend9.dylib (971) <50426798-1E39-3EC6-929B-01D8381746F3> /usr/lib/objc/libobjcMsgSend9.dylib
+       0x1efd04000 -        0x1efd04f2f  libobjcMsgSend10.dylib (971) <CC22413A-E1A1-35AE-A706-08478B8F3DE6> /usr/lib/objc/libobjcMsgSend10.dylib
+       0x1f7d04000 -        0x1f7d04f2f  libobjcMsgSend11.dylib (971) <B62EB277-BA33-315B-BCF4-48FB32F24299> /usr/lib/objc/libobjcMsgSend11.dylib
+       0x21fd04000 -        0x21fd04f2f  libobjcMsgSend12.dylib (971) <A2E9E642-549D-3C0C-8F25-28499DB75F81> /usr/lib/objc/libobjcMsgSend12.dylib
+       0x227d04000 -        0x227d04f2f  libobjcMsgSend13.dylib (971) <4E349B79-1B50-353A-BFE7-7FA38FCE83C0> /usr/lib/objc/libobjcMsgSend13.dylib
+       0x22fd04000 -        0x22fd04f2f  libobjcMsgSend14.dylib (971) <B90E2FFE-CABB-32E1-A739-49D98C2EF9D0> /usr/lib/objc/libobjcMsgSend14.dylib
+       0x237d04000 -        0x237d04f2f  libobjcMsgSend15.dylib (971) <A4E355C3-5CB6-303E-A688-D2780503525E> /usr/lib/objc/libobjcMsgSend15.dylib
+       0x23fd04000 -        0x23fd04f2f  libobjcMsgSend16.dylib (971) <A3053956-CDCD-33CB-9494-051B6C01090D> /usr/lib/objc/libobjcMsgSend16.dylib
+       0x247d04000 -        0x247d04f2f  libobjcMsgSend17.dylib (971) <21D23B94-F6E3-303E-B01C-21A39B690ADA> /usr/lib/objc/libobjcMsgSend17.dylib
+       0x24fd04000 -        0x24fd04f2f  libobjcMsgSend18.dylib (971) <43643C25-4B42-3567-9D00-E6AC8FC5C3D3> /usr/lib/objc/libobjcMsgSend18.dylib
+       0x257d04000 -        0x257d04f2f  libobjcMsgSend19.dylib (971) <56584406-2F98-3E9D-B863-E73946FDCF4A> /usr/lib/objc/libobjcMsgSend19.dylib
+       0x25fd04000 -        0x25fd04f2f  libobjcMsgSend20.dylib (971) <79CE976B-5547-32A1-9AC3-7D221D36951C> /usr/lib/objc/libobjcMsgSend20.dylib
+       0x267d04000 -        0x267d04f2f  libobjcMsgSend21.dylib (971) <667ECA5B-61FD-318A-9913-0D9752734B60> /usr/lib/objc/libobjcMsgSend21.dylib
+       0x26fd04000 -        0x26fd04f2f  libobjcMsgSend22.dylib (971) <7B62709D-AFA9-35E4-8EEC-F082AD923564> /usr/lib/objc/libobjcMsgSend22.dylib
+       0x277d04000 -        0x277d04f2f  libobjcMsgSend23.dylib (971) <6FA90215-1556-30AC-B6FF-F344AB8FA20A> /usr/lib/objc/libobjcMsgSend23.dylib
+       0x27fd04000 -        0x27fd04f2f  libobjcMsgSend24.dylib (971) <AD6982C3-AEE3-3BCA-8E34-DD05B376E319> /usr/lib/objc/libobjcMsgSend24.dylib
+       0x287d04000 -        0x287d04f2f  libobjcMsgSend25.dylib (971) <ED5BB8BE-AAD9-3AE8-A3CC-D35F25FFB057> /usr/lib/objc/libobjcMsgSend25.dylib
+       0x2a7d04000 -        0x2a7d04f2f  libobjcMsgSend26.dylib (971) <8F07338A-A8B3-3EBA-8DB6-897EAAB5E62F> /usr/lib/objc/libobjcMsgSend26.dylib
+       0x2afd04000 -        0x2afd04f2f  libobjcMsgSend27.dylib (971) <E208B95F-719C-3989-B756-EC1AB84A8622> /usr/lib/objc/libobjcMsgSend27.dylib
+       0x2b7d04000 -        0x2b7d04f2f  libobjcMsgSend28.dylib (971) <0C41C6B5-EBE4-3A07-8AC4-1C38972900BB> /usr/lib/objc/libobjcMsgSend28.dylib
+       0x2bfd04000 -        0x2bfd04f2f  libobjcMsgSend29.dylib (971) <5F1B8415-5110-34D2-9D05-C9A7C58B2916> /usr/lib/objc/libobjcMsgSend29.dylib
+       0x2c7d04000 -        0x2c7d04f2f  libobjcMsgSend30.dylib (971) <FC57ADDC-971A-3099-A070-0AB6E93AC8E7> /usr/lib/objc/libobjcMsgSend30.dylib
+       0x2c8de2000 -        0x2c8de8fe5  libRosetta.dylib (383) <D74D593E-4FF7-3783-AD49-851A797BD297> /usr/lib/libRosetta.dylib
+       0x2c97fc000 -        0x2c97ff75b  libsystem_darwindirectory.dylib (129) <FDB971E7-E0D0-3BC6-9DF4-681930B337BC> /usr/lib/system/libsystem_darwindirectory.dylib
+       0x2c9800000 -        0x2c980ada3  libsystem_eligibility.dylib (443.0.0.501.2) <911140A3-1D01-39AB-A88D-2AE1D75E729D> /usr/lib/system/libsystem_eligibility.dylib
+       0x2c980b000 -        0x2c981450b  libsystem_sanitizers.dylib (32) <BBCA4AC7-C3F6-3183-AD22-0DBF940A0F28> /usr/lib/system/libsystem_sanitizers.dylib
+       0x2c9815000 -        0x2c9815a13  libsystem_trial.dylib (507) <04C70378-B47E-3A56-9F58-3F08B4AEFF83> /usr/lib/system/libsystem_trial.dylib
+       0x2cfd04000 -        0x2cfd04f2f  libobjcMsgSend31.dylib (971) <260504EB-7CE8-3850-B139-5C0AD561F0E7> /usr/lib/objc/libobjcMsgSend31.dylib
+       0x2d7d04000 -        0x2d7d04f2f  libobjcMsgSend32.dylib (971) <F653286B-B141-3004-8A22-E042B291F23F> /usr/lib/objc/libobjcMsgSend32.dylib
+       0x2dfd04000 -        0x2dfd04f2f  libobjcMsgSend33.dylib (971) <CF904E3A-5409-3986-B61F-DBB6070E97BF> /usr/lib/objc/libobjcMsgSend33.dylib
+       0x2e7d04000 -        0x2e7d04f2f  libobjcMsgSend34.dylib (971) <CBB6A048-050B-31DB-9788-9DFCAB84E92D> /usr/lib/objc/libobjcMsgSend34.dylib

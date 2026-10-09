@@ -1,0 +1,18 @@
+{
+  "schema": "uor-r4.recovery-cost-reconciliation/1",
+  "start_ms": 1790720562009,
+  "end_ms": 1790739244734,
+  "wall_envelope_ms": 18682725,
+  "already_charged_runner_attempts_ms": 40935,
+  "new_charge_ms": 18641790,
+  "category_allocation_ms": {
+    "build": 120000,
+    "storage": 1800000,
+    "review": 2700000,
+    "delivery": 900000,
+    "preparation": 13121790
+  },
+  "measurement": "estimated",
+  "method": "Conservative wall envelope since previous Codex charge cutoff. Includes planning, recovery, implementation, specialist reviews, testing, cache/source cleanup and delivery; may include idle/overlap. Category allocation is an estimate, not profiling. Parallel specialists are not summed a second time. Known A/B attempt elapsed is removed from this envelope because immutable runner charges already account it. No training/teacher/accelerator model work; independent recovered-model load was 0.1881 s, included in preparation. Earlier unknown activity within the envelope is conservatively charged instead of assumed free. No monetary/provider usage inference.",
+  "limit_ms": 1130000000
+}

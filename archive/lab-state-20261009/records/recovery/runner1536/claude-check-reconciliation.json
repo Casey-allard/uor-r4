@@ -1,0 +1,262 @@
+{
+  "observed_at": "2026-09-30T04:39:07.206233+00:00",
+  "saved_process_identity": {
+    "pid": 38331,
+    "pgid": 38331,
+    "started": "Wed Sep 30 00:01:09 2026",
+    "boot": "{ sec = 1790723628, usec = 114456 } Tue Sep 29 19:13:48 2026",
+    "token": "job-24197-1790740865616154000",
+    "supervisor_started": "Wed Sep 30 00:01:09 2026"
+  },
+  "current_boot_time": "{ sec = 1790723628, usec = 41370 } Tue Sep 29 19:13:48 2026",
+  "current_boot_session_uuid": "763E5ACF-75D5-44F0-9384-F80B31312894",
+  "current_group_members": [
+    "38331 24197 38331 Z    Wed Sep 30 00:01:09 2026     <defunct>"
+  ],
+  "descendants_by_current_parent_links": [],
+  "compiler_or_bound_target_processes": [],
+  "bound_path_handles": [],
+  "lsof_exit": 0,
+  "evidence_files": [
+    {
+      "path": "/Users/casey.allard/.local/share/uor-r4/runner/done/claude-1533-checks-e2-a1/exit.json",
+      "bytes": 1092,
+      "sha256": "cc677aeb9e2ca2820fa69ee3ca779c62ad20a3665c38b9678a436d35eda38716",
+      "mtime_utc": "2026-09-30T04:05:47.534118+00:00"
+    },
+    {
+      "path": "/Users/casey.allard/.local/share/uor-r4/runner/done/claude-1533-checks-e2-a1/process.json",
+      "bytes": 246,
+      "sha256": "33007783f40505b80f3f7271a83a6291a3d58a6a5c69375be7d7e7be524eb96c",
+      "mtime_utc": "2026-09-30T04:01:09.122492+00:00"
+    },
+    {
+      "path": "/Users/casey.allard/.local/share/uor-r4/runner/done/claude-1533-checks-e2-a1/attempt.json",
+      "bytes": 170,
+      "sha256": "6d909d2ae49d71f327c47662cd468f82b6543906e9aae41b5e9717cfd6938e51",
+      "mtime_utc": "2026-09-30T04:01:05.616790+00:00"
+    },
+    {
+      "path": "/Users/casey.allard/.local/share/uor-r4/runner/done/claude-1533-checks-e2-a1/spec.json",
+      "bytes": 1454,
+      "sha256": "7cbabb3ec0fe98a875b96fec4d619a7d42078c19d950df4c001b62577b2d5913",
+      "mtime_utc": "2026-09-30T04:01:01.638502+00:00"
+    },
+    {
+      "path": "/Users/casey.allard/.local/share/uor-r4/runner/done/claude-1533-checks-e2-a1/stdout.log",
+      "bytes": 790,
+      "sha256": "e00d32408ac9bb8b87f5d1cd23e3f93ce639f73910b8aeba031f89f4ca3e2a5e",
+      "mtime_utc": "2026-09-30T04:08:38.308912+00:00"
+    },
+    {
+      "path": "/Users/casey.allard/.local/share/uor-r4/runner/done/claude-1533-checks-e2-a1/stderr.log",
+      "bytes": 298,
+      "sha256": "1b0dbeb02705c1e1cf5fc1bf15753f8930b6e29aebf7acc00ba651da6c031cde",
+      "mtime_utc": "2026-09-30T04:08:38.312092+00:00"
+    },
+    {
+      "path": "/Users/casey.allard/.local/share/uor-r4/runner/done/claude-1533-checks-e2-a1/launch.go",
+      "bytes": 24,
+      "sha256": "90b568dc2f9daf9188f6c65db97128211582e398cffd6fd9bd65da81fb638762",
+      "mtime_utc": "2026-09-30T04:01:09.141259+00:00"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-checks/1533/run-checks-e2-a1.zsh",
+      "bytes": 1557,
+      "sha256": "ee8c3a211779e177d1d6aca5ff9e8d7622d7fc429be508ae9b34f7554ee70127",
+      "mtime_utc": "2026-09-30T04:00:33.485554+00:00"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-checks/1533/claude-1533-checks-e2-a1/claim-wording.log",
+      "bytes": 83,
+      "sha256": "78d71cb97c00d606a9a909d89a2f4f4e3b4be6b84af390f20c9fc50ec449922f",
+      "mtime_utc": "2026-09-30T04:08:38.301279+00:00"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-checks/1533/claude-1533-checks-e2-a1/fmt.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "mtime_utc": "2026-09-30T04:01:09.382823+00:00"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-checks/1533/claude-1533-checks-e2-a1/training-stack-export.log",
+      "bytes": 1824,
+      "sha256": "230893e01b1f8b8532cbab9dd713ceec28ff8060acb03a311ff8ab67ae4fc9ad",
+      "mtime_utc": "2026-09-30T04:07:27.824367+00:00"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-checks/1533/claude-1533-checks-e2-a1/lut-lib.log",
+      "bytes": 3241,
+      "sha256": "7cb29a9c35230919a2217c09bc5d30020353fef5946c0cf34fdc03aea01486e7",
+      "mtime_utc": "2026-09-30T04:01:21.102569+00:00"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-checks/1533/claude-1533-checks-e2-a1/diff-check.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "mtime_utc": "2026-09-30T04:08:37.796731+00:00"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-checks/1533/claude-1533-checks-e2-a1/training-geometric-stack.log",
+      "bytes": 9704,
+      "sha256": "f61bbed4c65a1448a7417e7e1dd88334f96203fe538917b923ede16e62cd2e18",
+      "mtime_utc": "2026-09-30T04:07:25.095434+00:00"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-checks/1533/claude-1533-checks-e2-a1/summary.txt",
+      "bytes": 790,
+      "sha256": "e00d32408ac9bb8b87f5d1cd23e3f93ce639f73910b8aeba031f89f4ca3e2a5e",
+      "mtime_utc": "2026-09-30T04:08:38.307048+00:00"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-checks/1533/claude-1533-checks-e2-a1/training-stack-d11-snap.log",
+      "bytes": 1301,
+      "sha256": "46f8ef38e72923075afbecfb153c5982adcc506c7067a616fb011875beab4fbc",
+      "mtime_utc": "2026-09-30T04:07:46.651060+00:00"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-checks/1533/claude-1533-checks-e2-a1/training-bins-examples.log",
+      "bytes": 5743,
+      "sha256": "106880205ce64116d3f48449270191b169e918527b6d61a6ecde60f34c9d2614",
+      "mtime_utc": "2026-09-30T04:08:37.740809+00:00"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-checks/1533/claude-1533-checks-e2-a1/training-d4-adapter-compile.log",
+      "bytes": 1066,
+      "sha256": "586db965bad4612f95d7af2cfac768851b318703e50fb5a770a87b53d7756ff1",
+      "mtime_utc": "2026-09-30T04:07:47.704217+00:00"
+    }
+  ],
+  "script_hash_matches_bound_input": true,
+  "executable_hash_matches": true,
+  "shared_state": {
+    "policy_sha": "ba266ad44f21c9df2dafa9d56a1e2051c1565d91",
+    "task": {
+      "session": "claude-lab-20260930",
+      "epoch": 2,
+      "work_card": "sha256:5a8f6a807387cb6f92cbc98b15b6cdd67141afd7165493e096a82a73684fbe63",
+      "policy_sha": "ba266ad44f21c9df2dafa9d56a1e2051c1565d91",
+      "base_sha": "ba266ad44f21c9df2dafa9d56a1e2051c1565d91",
+      "paths": [
+        "crates/uor-r4-lut/src/stack.rs",
+        "crates/uor-r4-training/src/geometric_stack.rs",
+        "crates/uor-r4-training/src/bin/d4-float-reference.rs",
+        "crates/uor-r4-training/tests/d4_map_codec_adapter.rs",
+        "crates/uor-r4-training/src/stack_snap_parity.rs",
+        "crates/uor-r4-training/examples/geometric-stack.rs",
+        "docs/evidence/s1-4-snap-parity-2026-09-29.json",
+        "docs/integration/current-state.md"
+      ],
+      "expires": 1790742049,
+      "phase": "claimed",
+      "checkpoint": null
+    },
+    "lab": {
+      "lab": "Claude",
+      "adapter": "Claude Code desktop (Code tab); MANUAL client; Agent/Workflow subagents; no heartbeat automation; quota-bounded",
+      "capabilities": [
+        "Rust",
+        "GitHub",
+        "independent-subagents",
+        "source-and-evidence-review",
+        "A1 retrieval source",
+        "S1.4 D11 snap safety"
+      ],
+      "available": false,
+      "heartbeat": 1790740925
+    },
+    "attempt": {
+      "issue": 1533,
+      "session": "claude-lab-20260930",
+      "task_epoch": 2,
+      "host": "host-284b64fb2f70567aee465dc4941430076137e580d19d9568b15726d14b157cec",
+      "phase": "reserved",
+      "receipt": null,
+      "spec": {
+        "schema": "uor-r4.lab-runner-job/1",
+        "id": "claude-1533-checks-e2-a1",
+        "lab": "Claude",
+        "cwd": "/Users/casey.allard/uor-r4/.worktrees/lab-claude-director",
+        "argv": [
+          "/bin/zsh",
+          "/Users/casey.allard/uor-r4-checks/1533/run-checks-e2-a1.zsh"
+        ],
+        "env": {},
+        "threads": 2,
+        "rss_gib": 4.0,
+        "gpu": false,
+        "wall_s": 3600,
+        "stop_grace_ms": 5000,
+        "kill_criterion": {
+          "kind": "wall",
+          "value": ""
+        },
+        "exclusive": false,
+        "cargo": true,
+        "storage": [
+          {
+            "volume": "internal",
+            "additional_bytes": 10737418240,
+            "checkpoint_bytes": 0
+          },
+          {
+            "volume": "workspace",
+            "additional_bytes": 0,
+            "checkpoint_bytes": 0
+          },
+          {
+            "volume": "backing",
+            "additional_bytes": 0,
+            "checkpoint_bytes": 0
+          }
+        ],
+        "coordination": {
+          "issue": 1533,
+          "session": "claude-lab-20260930",
+          "epoch": 2,
+          "work_card": "sha256:5a8f6a807387cb6f92cbc98b15b6cdd67141afd7165493e096a82a73684fbe63",
+          "attempt_id": "claude-1533-checks-e2-a1"
+        },
+        "provenance": {
+          "source_sha": "9efa5f6ddda1d8f58c3aee1e7237a607a2ce731d",
+          "executable": {
+            "path": "/bin/zsh",
+            "sha256": "ca835f58545521f3e845c2ffcd3822a865df8ac2cde4ab5e686fb621369b9c99"
+          },
+          "inputs": [
+            {
+              "path": "/Users/casey.allard/uor-r4-checks/1533/run-checks-e2-a1.zsh",
+              "sha256": "ee8c3a211779e177d1d6aca5ff9e8d7622d7fc429be508ae9b34f7554ee70127"
+            }
+          ]
+        }
+      },
+      "spec_sha256": "59356d981b5248a11a822086d15ed57f49f5bd239d1881dc7cb5afbcfc867657",
+      "runner_root": "/Users/casey.allard/.local/share/uor-r4/runner"
+    }
+  },
+  "charges": [
+    {
+      "path": "/Users/casey.allard/.local/share/uor-r4/ledger/charge-v2-5aed28bc274ca7548e0f25be8ed7701a9a39d0fcabf5a1e99a15e38179abd825.json",
+      "record": {
+        "schema": "uor-r4.model-time-charge/2",
+        "event_id": "5aed28bc274ca7548e0f25be8ed7701a9a39d0fcabf5a1e99a15e38179abd825",
+        "recorded_utc": "2026-09-30T04:05:47Z",
+        "lab": "Claude",
+        "job_id": "claude-1533-checks-e2-a1",
+        "attempt_id": "claude-1533-checks-e2-a1",
+        "charged_ms": 281968,
+        "wall_s": 3600,
+        "outcome": "unknown",
+        "runner": "lab-runner",
+        "accounting": {
+          "category": "job_execution",
+          "measurement": "measured",
+          "correction_of": null
+        }
+      },
+      "sha256": "32bc1471684eb2fb3763b48e18d7217cec7cf6860b76c80883cbde941ca86bc1"
+    }
+  ],
+  "scope": "No signals, source edits, reruns, holds changes, coordination mutation or sealed s8 panel read. Existing UNKNOWN is unchanged."
+}

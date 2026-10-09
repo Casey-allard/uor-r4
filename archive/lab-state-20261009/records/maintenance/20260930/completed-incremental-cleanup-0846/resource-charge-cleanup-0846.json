@@ -1,0 +1,14 @@
+{
+  "schema": "uor-r4.resource-charge/1",
+  "event_id": "recovery-integration-20260930-cache-cleanup-0846",
+  "recorded_utc": "2026-09-30T08:47:33.224317+00:00",
+  "lab": "Codex durable lab implementation",
+  "adjustment_ms": 180000,
+  "accounting": {
+    "category": "preparation",
+    "measurement": "estimated",
+    "correction_of": null
+  },
+  "authority": "Owner continuity and runner source-steward authority.",
+  "rationale": "Estimated three minutes active live authority refresh, full notified cache metadata/file-header/handle/lock/reservation revalidation, bounded deletion, df measurement and publication. Excludes idle heartbeat interval. No Cargo/model/GPU work."
+}

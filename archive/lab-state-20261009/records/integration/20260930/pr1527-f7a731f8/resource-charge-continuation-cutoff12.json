@@ -1,0 +1,14 @@
+{
+  "schema": "uor-r4.resource-charge/1",
+  "event_id": "recovery-integration-20260930-continuation-cutoff12",
+  "recorded_utc": "2026-09-30T06:49:28.496290+00:00",
+  "lab": "Codex durable lab implementation",
+  "adjustment_ms": 256696,
+  "accounting": {
+    "category": "preparation",
+    "measurement": "estimated",
+    "correction_of": null
+  },
+  "authority": "Owner continuing goal and Codex contributor role; standing cumulative allowance.",
+  "rationale": "Nonoverlapping preparation wall since cutoff11:1527 changed-head review; missing-root failure recheck and same-size payload-corruption witness on small isolated copies; reproduction script/actual CLI cross-check; publication. No Cargo/model/GPU/deletion. New text/copies under1MiB."
+}

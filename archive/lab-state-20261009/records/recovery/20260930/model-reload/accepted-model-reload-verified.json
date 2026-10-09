@@ -1,0 +1,61 @@
+{
+  "schema": "uor-r4.accepted-model-reload-recovery/1",
+  "recorded_utc": "2026-09-30T02:43:35.085595+00:00",
+  "status": "RELOADED",
+  "scope": "independent StackModel::load only; no training, no generation, no quality qualification",
+  "original_inputs": [
+    {
+      "path": "/Volumes/UOR-Workspace/BuildCaches/kimi-s4-fit/target/release/deps/libuor_r4_training-271b7df70fdd7346.rlib",
+      "sha256": "ab767602d5de4324146507694d6196935caf2e8c2a12b2005d21cc145a70238a",
+      "verified_sha256": "ab767602d5de4324146507694d6196935caf2e8c2a12b2005d21cc145a70238a",
+      "matches_work_card": true
+    },
+    {
+      "path": "/Volumes/UOR-Workspace/BuildCaches/kimi-s4-fit/target/release/deps/libcandle_core-548fe949ba724ecb.rlib",
+      "sha256": "cc3bdb5bc7b49d675283fb2c2ad8fec11c9e3c1394d80176fa86a7dae8257752",
+      "verified_sha256": "cc3bdb5bc7b49d675283fb2c2ad8fec11c9e3c1394d80176fa86a7dae8257752",
+      "matches_work_card": true
+    },
+    {
+      "path": "/Volumes/UOR-Workspace/uor-r4-lab/kimi-s4-fit-20260929/arm-a-snap-1/model/model.safetensors",
+      "sha256": "2b3b568141dfe213dd85e4d67e9ce0018e802f0654ee73ea10c7e552fc327b96",
+      "verified_sha256": "2b3b568141dfe213dd85e4d67e9ce0018e802f0654ee73ea10c7e552fc327b96",
+      "matches_work_card": true
+    },
+    {
+      "path": "/Volumes/UOR-Workspace/uor-r4-lab/kimi-s4-fit-20260929/arm-a-snap-1/model/config.json",
+      "sha256": "2db5da637cc806d992aa56869ad462fdf6902e6d5515de90b457b4ac2f23ac1c",
+      "verified_sha256": "2db5da637cc806d992aa56869ad462fdf6902e6d5515de90b457b4ac2f23ac1c",
+      "matches_work_card": true
+    },
+    {
+      "path": "/Volumes/UOR-Workspace/uor-r4-lab/kimi-s4-fit-20260929/arm-a-snap-1/model/transport.json",
+      "sha256": "89e19aa43c0c0485fb2e1b9e3bef98ec67652e1b8da5dc143da03a8bab9bd1a2",
+      "verified_sha256": "89e19aa43c0c0485fb2e1b9e3bef98ec67652e1b8da5dc143da03a8bab9bd1a2",
+      "matches_work_card": true
+    }
+  ],
+  "evidence_sha256": {
+    "reload-all-macros.rs": "1fe19828dc7b16c903a647fd21621b37bc431897dbef39e418755a6e44f66f44",
+    "reload-all-macros": "71c966904318f71f476eb590cc25fd2d16a019e57ed1d37acdf03cb4e3ff68e3",
+    "macro-source-rebuild/Cargo.toml": "e84725c6cbb7305485c09397e88c20bc76a337ac3cabb81b72195f543f020b87",
+    "macro-source-rebuild/Cargo.lock": "5888d75884294668c8a3efd9a90523fcad8cdbaab230f25b0569bd461906a317",
+    "all-macro-inventory.json": "fff5f12b04d0c92b6cf53741716f908430977abc820770ae5237fca4d90476bb",
+    "all-macros-helper-receipt.json": "aa9835b970c0563d28da9ef8cd0c2b5ca146cdb79f46f40313a2ba167a917120",
+    "all-macros-model-reload.log": "18fa6dc21be459cf8f129786e7b037492952f23416284e7a34eabe3529b11df5"
+  },
+  "storage_allocated_bytes": {
+    "/Users/casey.allard/.cache/uor-r4-recovery-macros": 155705344,
+    "/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/model-reload-20260930": 1171456
+  },
+  "total_recovery_allowance_bytes": 536870912,
+  "macro_unit_identities_matched": 12,
+  "fresh_source_only": true,
+  "old_binary_security_attributes_unchanged": true,
+  "build_resource_limit": "2 jobs; watchdog sampled combined process RSS at <=2GiB, largest observed408174592 bytes",
+  "runtime_environment": {
+    "RAYON_NUM_THREADS": "1",
+    "OMP_NUM_THREADS": "1"
+  },
+  "limitation": "Final rustc/helper were wall-time bounded but their RSS was not sampled. Last completion poll at02:43:01UTC was7s beyond02:42:54UTC planning deadline; both helper build and reload were already complete. No work continued except evidence sealing."
+}

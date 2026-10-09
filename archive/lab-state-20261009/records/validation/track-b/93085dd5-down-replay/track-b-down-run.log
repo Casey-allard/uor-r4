@@ -1,0 +1,19 @@
+"DIAGNOSTIC_COMPLETE" anchors_match=true; sealed and verified
+        3.18 real         2.67 user         0.21 sys
+           821411840  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+               51563  page reclaims
+                 235  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                 155  voluntary context switches
+                1218  involuntary context switches
+         27829236090  instructions retired
+          9000223945  cycles elapsed
+           816727048  peak memory footprint

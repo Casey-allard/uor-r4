@@ -1,0 +1,21 @@
+{
+  "path": "/Volumes/UOR-Workspace/uor-r4-models/sources/smollm2-135m-instruct",
+  "identities": {
+    "config.json": {
+      "sha256": "17f71c5442c79d4137c45bc79043f085c485bd69a26748080bcf2c11e0cc33a3",
+      "matches_retained_identity": true
+    },
+    "model.safetensors": {
+      "sha256": "5af571cbf074e6d21a03528d2330792e532ca608f24ac70a143f6b369968ab8c",
+      "matches_retained_identity": true
+    },
+    "tokenizer.json": {
+      "sha256": "9ca9acddb6525a194ec8ac7a87f24fbba7232a9a15ffa1af0c1224fcd888e47c",
+      "matches_retained_identity": true
+    },
+    "tokenizer_config.json": {
+      "sha256": "a27f638bd2831f5c3dea654a75838930f2b11fbe550c4d4e1d5d7bd07157b2ee",
+      "matches_retained_identity": true
+    }
+  }
+}

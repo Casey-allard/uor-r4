@@ -1,0 +1,89 @@
+{
+  "schema": "uor-r4.integration-refresh/1",
+  "observed_utc": "2026-09-30T05:03:56.848047+00:00",
+  "main_sha": "61bbd85a0a49e1bb72c71b4e02752d575e3bee4b",
+  "open_prs": [
+    {
+      "headRefName": "lab/anti-gravity/d4-codec-export-corrections",
+      "headRefOid": "85b7d6b945363cd463b6cd9103127600c4fc60f8",
+      "isDraft": false,
+      "number": 1534,
+      "title": "fix(training): restore saved codec on export, reject bare shape names, and ensure provenance parity in D4 reload tests",
+      "next_action": "Required codec provenance correction and production-path regression; independent review posted5904426321. Integrates with1533."
+    },
+    {
+      "headRefName": "lab/opencode/b0-flock",
+      "headRefOid": "bd14a2791f78c5f775eb4bb3db34bebbf79a31bd",
+      "isDraft": false,
+      "number": 1532,
+      "title": "flock: canonical shared selector + model-source score_and_normalize transport (B0, #1512)",
+      "next_action": "Canonical selector source; executed checks held by1536/Claude UNKNOWN reservation; independent selector reviews pending. Precedes A1/TrackB/integer consumers."
+    },
+    {
+      "headRefName": "lab/opencode/g2-keys-corrections",
+      "headRefOid": "9d54366dff82632d7b3eb2d0af2b4e0df52be80d",
+      "isDraft": false,
+      "number": 1531,
+      "title": "evidence: #1505 corrective successor \u2014 re-read findings A\u2013D, narrowed council verdict",
+      "next_action": "Two remaining wording/provenance scope corrections requested5904128926; no model rerun needed."
+    },
+    {
+      "headRefName": "lab/anti-gravity/d11-flock-serving",
+      "headRefOid": "128df8a7dbab4d41b0a8163205ac6daa697cfb03",
+      "isDraft": true,
+      "number": 1528,
+      "title": "feat(integer): allocation-free D11 integer flock selector and scratch workspace (#1513, #820)",
+      "next_action": "Integer selector required source/edge/semantics findings remain; follows canonical1532 interface."
+    },
+    {
+      "headRefName": "lab/anti-gravity/d4-qat-results",
+      "headRefOid": "5d51f2855c4a912c1360cafc11890adf0fdce315",
+      "isDraft": true,
+      "number": 1527,
+      "title": "feat(evidence): publish Results B and C (S1 geometric QAT and S2 dialogue behavior) (#973, #820)",
+      "next_action": "Updated evidence head needs exact re-review and source/artifact/scope binding; preserve prior B/C outcomes."
+    },
+    {
+      "headRefName": "lab/anti-gravity/fidelity-serving-metal",
+      "headRefOid": "af8dd17519f97f4c9a2eb0684da0919ebe907e73",
+      "isDraft": false,
+      "number": 1526,
+      "title": "feat(training): native Apple Silicon Metal GPU kernels for geometric stack ops (#1510, #1509, #1513)",
+      "next_action": "Required dtype/shape and finite-parity corrections posted5904413104. Raw execution/admission/resource receipts requested5904388712. No new compute while1536hold."
+    },
+    {
+      "headRefName": "lab/anti-gravity/b3-e8-smollm2-mlp",
+      "headRefOid": "cd41a87c1e3cff03e229a0325a7c01c484381282",
+      "isDraft": true,
+      "number": 1519,
+      "title": "feat(codecs): B3 E8 lattice weight coding evaluation on SmolLM2-360M (#1513, #1509)",
+      "next_action": "Updated current-state numbers; retain scoped negative, reconcile inherited D4 files and E8P instrument/canonical-codebook findings beforedelivery; coordinate sharedkappa with1532."
+    },
+    {
+      "headRefName": "codex/track-b-conversion",
+      "headRefOid": "1b88c563090329f6d21b8c0105a7a6e0146143f9",
+      "isDraft": true,
+      "number": 1518,
+      "title": "Track B: shared Candle pipeline and preserved B2 drafts",
+      "next_action": "Codex B2 reference parity remains draft/notqualified; integrate canonicalselector and verified inputs, then admitted fixedparitygate."
+    }
+  ],
+  "critical_path": [
+    {
+      "issue": 1536,
+      "owner": "Codex",
+      "branch": "codex/runner-stable-boot-recovery-20260930",
+      "status": "source implementation and independent review active; no build authorized yet",
+      "next": "Freeze candidate and narrow recovery execution packet, obtain3seatcouncil, execute focused runnerregressions, protecteddelivery, helddeployment, actualUNKNOWNreconciliation, boundedcontinuitypilot"
+    },
+    {
+      "issue": 1533,
+      "owner": "Claude unavailable; recoverypending",
+      "source_sha": "9efa5f6ddda1d8f58c3aee1e7237a607a2ce731d",
+      "status": "source preserved; actual oldcheck outcomes include2testfailures, runneroutcomeUNKNOWN",
+      "next": "After1536positiveexecutionreconciliation, take over sourceclaim explicitly; fix savedmode assertion and invalidwidthfixture; review integrated1534boundary; admit checks"
+    }
+  ],
+  "preservation": "Complete original branch/path inventory remains retained; this is a delta refresh, not a new inventory or deletionauthorization.",
+  "delivery": "No openPR is declaredeligible solelyfromthisroutingrecord."
+}

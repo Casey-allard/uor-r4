@@ -1,0 +1,10 @@
+{
+  "source_sha": "1b88c563090329f6d21b8c0105a7a6e0146143f9",
+  "status": "source and exact arithmetic; Rust path NOT_RUN; prospective diagnostic proposal",
+  "files": {
+    "track-b-information-mass-audit.md": "a18d3dfd42a5b2185304b4f07476817366bb1643ac1e9fda9b8dae96d4821521",
+    "track-b-information-mass-independent-review.md": "0d0351ced9a8925180e9f198fd6ff76839a7f01743677ab6c14fa06082ea01c7",
+    "track-b-mass-audit.wl": "d8ba55b31e094ba6a19c89d30e9c4dec91bc97e078748609b3ba753644e6fd3f",
+    "track-b-mass-wolfram-result.json": "7c950352e52a542a4e0e310dd8a2b55dade74b0f6d579c2d1c47427384e3d2a9"
+  }
+}

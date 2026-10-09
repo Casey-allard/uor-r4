@@ -1,0 +1,14 @@
+{
+  "schema": "uor-r4.verified-delivery/1",
+  "pr": 1529,
+  "head": "c1063bf921057e498c7429c0a4302afc7aae0368",
+  "merge": "ba266ad44f21c9df2dafa9d56a1e2051c1565d91",
+  "head_tree": "12d664fc4de81072ab08e92a9868521b31e5dc75",
+  "merge_tree": "12d664fc4de81072ab08e92a9868521b31e5dc75",
+  "tree_equality": true,
+  "policy_adopted": true,
+  "operational_transition_commit": "d8a249040867734f078fa3d73077f866e2e55672",
+  "migration_exception": "D17 one-use exception fulfilled and ended; future delivery uses normal coordinator gates",
+  "authority": "Protected PR, three council seats including two nonauthor exact-head readers; direct owner transformer-free clarification",
+  "time_utc": "2026-09-30T03:35:17.363265+00:00"
+}

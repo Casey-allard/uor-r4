@@ -1,0 +1,137 @@
+{
+  "files": [
+    {
+      "blake3": "c43fb0df15c20b32a2f43bac5fac9064e5dd75039dce6fda6c21c1203ac1c58a",
+      "bytes": 625,
+      "path": "attempt.json"
+    },
+    {
+      "blake3": "36c7d5ef0a30c50de8196c327f6edf966550d7368dd8e38b7fc02d010ccf34c7",
+      "bytes": 18432,
+      "path": "cpu-gate-projection-only-down.f32le"
+    },
+    {
+      "blake3": "3e405fc5069b84aa58057ff6837659d17c93d9438fd3855da8266f6337990bf9",
+      "bytes": 49152,
+      "path": "cpu-gate_projection.f32le"
+    },
+    {
+      "blake3": "f81648710ef354699e0c4bde47cd233b9cdbae314e543031f4e1d7c0bf01714f",
+      "bytes": 18432,
+      "path": "cpu-silu-only-down.f32le"
+    },
+    {
+      "blake3": "623e55d52763e9db3a3d51364156ef9e3707f1b5438a43ec0075ccbe212c4cab",
+      "bytes": 49152,
+      "path": "cpu-silu.f32le"
+    },
+    {
+      "blake3": "4fa9181084bee3f8df11dcbf2205091fce157bf4d80d24d6a331b9cf72de37df",
+      "bytes": 18432,
+      "path": "cpu-up-projection-only-down.f32le"
+    },
+    {
+      "blake3": "9728fd18a988329ca760ddcdefe28c2790bd0e46b64acc2a8f07920c9a41e56f",
+      "bytes": 49152,
+      "path": "cpu-up_projection.f32le"
+    },
+    {
+      "blake3": "f81648710ef354699e0c4bde47cd233b9cdbae314e543031f4e1d7c0bf01714f",
+      "bytes": 18432,
+      "path": "host-division-silu-only-down.f32le"
+    },
+    {
+      "blake3": "753f62f34f02bdd5656cb359d57f77446edb1184a695dacb8439ac5548ffbb84",
+      "bytes": 6041,
+      "path": "inputs.json"
+    },
+    {
+      "blake3": "36c7d5ef0a30c50de8196c327f6edf966550d7368dd8e38b7fc02d010ccf34c7",
+      "bytes": 18432,
+      "path": "metal-gate-projection-only-down.f32le"
+    },
+    {
+      "blake3": "3e405fc5069b84aa58057ff6837659d17c93d9438fd3855da8266f6337990bf9",
+      "bytes": 49152,
+      "path": "metal-gate_projection.f32le"
+    },
+    {
+      "blake3": "9201573a3ac93e0388211da306b090ddf208fe6521f1bbc6ccbb239dcbe59d10",
+      "bytes": 18432,
+      "path": "metal-silu-only-down.f32le"
+    },
+    {
+      "blake3": "2ecb7113d73af0508b6fd64ed642ef7c00bbe4aeb995260a44710e898ce42b32",
+      "bytes": 49152,
+      "path": "metal-silu.f32le"
+    },
+    {
+      "blake3": "4fa9181084bee3f8df11dcbf2205091fce157bf4d80d24d6a331b9cf72de37df",
+      "bytes": 18432,
+      "path": "metal-up-projection-only-down.f32le"
+    },
+    {
+      "blake3": "9728fd18a988329ca760ddcdefe28c2790bd0e46b64acc2a8f07920c9a41e56f",
+      "bytes": 49152,
+      "path": "metal-up_projection.f32le"
+    },
+    {
+      "blake3": "01321656b79431e3769e5ca2bde48e23be08f6c398d31681f1e4472115093fa7",
+      "bytes": 18432,
+      "path": "reference-after_attention.f32le"
+    },
+    {
+      "blake3": "2ab35e5ded7d71225c6a61264a5560c823e390c851286b290b8920808154c566",
+      "bytes": 18432,
+      "path": "reference-attended.f32le"
+    },
+    {
+      "blake3": "6419819eb7042be03dd169d8e0094cb85aef20241f4b1ffc6af789bc5baff637",
+      "bytes": 18432,
+      "path": "reference-attention_output.f32le"
+    },
+    {
+      "blake3": "f60d88316bc474f5a3549a615c5c2ebf06470bf64258558cee38db07eb7282bd",
+      "bytes": 18432,
+      "path": "reference-down.f32le"
+    },
+    {
+      "blake3": "3145930d5805a606f7c0764d93f4b0992d152a3fe281ebf93bfff8053f5da411",
+      "bytes": 49152,
+      "path": "reference-gate.f32le"
+    },
+    {
+      "blake3": "ba372158ccc741d168aadb3507c423cd1403bc716cffe988b5a12c2d12b93e20",
+      "bytes": 49152,
+      "path": "reference-gate_pre.f32le"
+    },
+    {
+      "blake3": "8f7339cd01577362ecb43936088e8e4b9f80b4990a274a3925420e3007c47851",
+      "bytes": 49152,
+      "path": "reference-gated.f32le"
+    },
+    {
+      "blake3": "52f16772cb64229dcff083dd6c335d91634b7735768b4da5c5cfa6b537b1eef4",
+      "bytes": 18432,
+      "path": "reference-output.f32le"
+    },
+    {
+      "blake3": "bd43802d2998bfbcb951243e60b9b3e940300e6b5920e46afa54cfc70b8598c7",
+      "bytes": 18432,
+      "path": "reference-post_norm.f32le"
+    },
+    {
+      "blake3": "a6ca9cf05d7be4997ef0012899f9c80585c68fecff72da74a121412195b4346b",
+      "bytes": 49152,
+      "path": "reference-up.f32le"
+    },
+    {
+      "blake3": "2a35a3c9f8dbc06659dbd68b39bd0853694802f8ea1c6b83e85b2eb728e3b4b7",
+      "bytes": 77871,
+      "path": "result.json"
+    }
+  ],
+  "root": "/Volumes/UOR-Workspace/uor-r4-models/track-b/mlp-replay-3c6007ec-20260930",
+  "schema": "uor-r4.report-manifest/1",
+  "sealed_at": "1790787650"
+}

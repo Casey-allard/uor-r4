@@ -11,12 +11,11 @@
 > before cleanup. Reconcile older unmerged work into main with explicit retained,
 > superseded, unfinished or validated status; do not promote it by merging it.
 > Work retained rather than activated lands as indexed source patches or a
-> restorable source bundle on main. The sole standing branch exception is
-> `codex/lab-state`, the operational coordination record with no research work.
+> restorable source bundle on main. There are no standing branches: `codex/lab-state`
+> was retired on 9 October and archived in `docs/history/lab-state-20261009/`.
 > **Later October 9 clarification for Codex:** use an owned isolated worktree,
 > not Casey's `~/uor-r4` checkout; leave that checkout on clean main while
-> preserving owner material. Keep at most one live branch per active PR, plus
-> `codex/lab-state`. Auto-delete is off: after every protected merge, verify
+> preserving owner material. Keep at most one live branch per active PR. Auto-delete is off: after every protected merge, verify
 > fresh `origin/main`, then manually remove the GitHub branch, local branch
 > and owned worktree. New negative, superseded or paused source that is not
 > activated must still land as a patch and INDEX row in

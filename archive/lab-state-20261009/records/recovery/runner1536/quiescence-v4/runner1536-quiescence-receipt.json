@@ -1,0 +1,19 @@
+{
+  "at": "2026-09-30T05:49:52.736262+00:00",
+  "action": "launchctl bootout idle known-defective production supervisor",
+  "bootout_returncode": 0,
+  "bootout_output": "",
+  "service_check_returncode": 113,
+  "service_check": "Bad request.\nCould not find service \"org.uor.lab-runner\" in domain for user gui: 501\n",
+  "process_check": "  PID  PPID  PGID STAT STARTED                      COMM\n",
+  "hold_sha256_before": "81bb7c6af7c5f33f3c71b44a42235b32c46f1dd8dc488b8c57ff90c7d1779cb3",
+  "hold_sha256_after": "81bb7c6af7c5f33f3c71b44a42235b32c46f1dd8dc488b8c57ff90c7d1779cb3",
+  "queue_before": [
+    "opencode-b0-flock-unit-20260930-e"
+  ],
+  "queue_after": [
+    "opencode-b0-flock-unit-20260930-e"
+  ],
+  "running_after": [],
+  "scope": "No live payload at precheck. New queued OpenCode attempt preserved, not launched/cancelled. Preserve plist, binaries, journals, receipts, ledger, UNKNOWN outcomes. Restart only through verified repair rollout; no production admission authorized."
+}

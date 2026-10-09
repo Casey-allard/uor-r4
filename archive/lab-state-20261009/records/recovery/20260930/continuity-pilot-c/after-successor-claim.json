@@ -1,0 +1,19 @@
+{
+  "at": "2026-09-30T03:37:59.319578+00:00",
+  "host": "host-284b64fb2f70567aee465dc4941430076137e580d19d9568b15726d14b157cec",
+  "identity": {
+    "pid": 5539,
+    "pgid": 5539,
+    "started": "Tue Sep 29 23:37:51 2026",
+    "boot": "{ sec = 1790723628, usec = 114456 } Tue Sep 29 19:13:48 2026",
+    "token": "job-24197-1790739467893177000",
+    "supervisor_started": "Tue Sep 29 23:37:51 2026"
+  },
+  "supervisor_command": "/bin/sh -c shift; gate=$1; result=$2; hold=$3; shift 3; n=0; while [ ! -f \"$gate\" ]; do n=$((n+1)); [ \"$n\" -lt 200 ] || exit 125; /bin/sleep 0.05; done; \"$@\" & child=$!; wait \"$child\"; status=$?; printf '%s\\n' \"$status\" > \"$result\"; exec 3<> \"$hold\"; IFS= read -r ack <&3; exit \"$status\" uor-owned-supervisor-v1 job-24197-1790739467893177000 /Users/casey.allard/.local/share/uor-r4/runner/running/continuity-pilot-20260930-c/launch.go /Users/casey.allard/.local/share/uor-r4/runner/running/continuity-pilot-20260930-c/payload.exit /Users/casey.allard/.local/share/uor-r4/runner/running/continuity-pilot-20260930-c/supervisor-hold.fifo /bin/sleep 90",
+  "members": [
+    "5539  5539 /bin/sh",
+    "5552  5539 /bin/sleep"
+  ],
+  "sleep_payload_count": 1,
+  "done_exists": false
+}

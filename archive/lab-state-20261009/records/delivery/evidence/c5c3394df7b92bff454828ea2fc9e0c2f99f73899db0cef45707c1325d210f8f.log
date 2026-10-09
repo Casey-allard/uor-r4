@@ -1,0 +1,13 @@
+{
+  "head": "04981eb211a39cab23958996556dabf232b22a4c",
+  "base": "d563b02f3270a2c931a7905d6624ba0beeb71d2a",
+  "argv": [
+    "git",
+    "diff",
+    "--check",
+    "d563b02f3270a2c931a7905d6624ba0beeb71d2a...04981eb211a39cab23958996556dabf232b22a4c"
+  ],
+  "exit_code": 0,
+  "stdout": "",
+  "stderr": ""
+}

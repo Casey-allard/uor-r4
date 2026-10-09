@@ -1,0 +1,38 @@
+# Independent bounded RMS candidate review
+
+Reviewer: Codex `/root/second_council_review`, delegated by `/root`, non-author. Date: 2026-09-30. Exact head `d87485a884e19d49ae18e4c63a92a2ba891d5c03`, parent `9e3b4eaefcaf23fc5b7a8263cd82d36def1074b1`. Reviewed actual `track_b/model.rs::rms_norm` change and the new `rms_window` mode/CLI, plus existing focused test source and retained executed log. No edits, builds/tests, model jobs or GitHub writes by reviewer.
+
+**Source decision: APPROVE for the bounded arithmetic candidate and fixed-window comparison; zero required fixes found.** Measured numerical outcome is pending. Source approval does not establish that this candidate improves parity or is ready for scientific promotion.
+
+- RMS now performs backend-native square/sum, divides by a scalar F32 width, adds unchanged epsilon, square-roots, reciprocates, then multiplies input by reciprocal and gain. Model widths are validated small positive F32-exact integers and model tensors are F32; scalar broadcasting preserves rows/shape. This aligns the scalar sequence with the reference while explicitly preserving backend reduction order, which may still differ. It applies consistently through the shared model's input/post-attention/final RMS callers; attention architecture, weights and epsilon are unchanged.
+- The path remains differentiable: no detach, host extraction or inference-only fused RMS was introduced. Cached Candle0.9.2 `backprop.rs` handles `UnaryOp::Recip` as negative upstream-gradient divided by the argument squared. All other operations are existing tracked primitives. This is gradient-path continuity, not a finite-difference proof of every backend's derivative or a new quantization claim.
+- Inspected `track-b-rms-tests.log`: release compilation completed; four named model tests passed,0failed,356filtered. They cover causal prefix and independent batch rows, hook/capture boundaries, a finite nonzero trained-hook gradient through later frozen layers while weights remain ordinary, and2048-position metadata/mask bounds. The latter is a metadata test, not a full2048-token model run. Logged complete process58.69s and maximum RSS1,443,250,176bytes. The parent binds this retained log to d87485a8; the log itself does not embed a Git SHA. These tests do not establish loaded checkpoint parity.
+- Window mode verifies the sealed anchored fixed eight-token trace and current model/tokenizer hashes, records source/diff/executable and parent manifest, and checks full raw logit sizes. Each backend uses `forward([1..8], B1,T8)` and compares all49,152 logits at each of eight positions with the same saved reference and same backend's saved parent. Every row retains maximum/RMS/bit differences, count exceeding absolute1e-4 for candidate and parent, and candidate-parent differences; nonfinite values are rejected by compare. No top1 shortcut or averaging replaces the gate.
+- Successful completion status distinguishes `PASS_WINDOW_ONLY` from `FAIL_NUMERICAL_GATE_WINDOW`. `window_gate_pass` requires zero failures across both complete backend windows; `parity_pass` remains false in either case. CLI excludes window mode from the parent-anchor bypass, so a numerical miss exits2 after retaining/sealing/verifying evidence. Errors retain UNAVAILABLE/exit1; the existing60-second watchdog and exclusive output ownership remain.
+
+Scope limits: only shared CPU/Metal on the existing eight-token window are tested by this mode; stock comparators, other windows/cache modes and full parity remain unqualified. Prior diagnostic modes that intentionally reproduce the older RMS composition remain historical comparator mechanisms; they are not evidence that the newly changed shared forward still uses that older formula. Retain all-position regressions rather than promoting from a single improved maximum. A successful narrow candidate would justify, not replace, the full unchanged gate.
+
+Procedural independence is within the same Codex lab. Only this requested receipt was written.
+
+Retained four-test log SHA256: `fd7e6b3518122d24c1a5962b630a564d03447981fabaa15b51f4e60048e635f1`.
+
+Source `crates/uor-r4-training/src/track_b/model.rs` SHA256: `ff68e5731ffee1f2e726414d8816dccc6f3ff6c0f2288f3e8e5c8ccde188c43d`.
+
+Source `crates/uor-r4-training/examples/track-b-layer-diagnostic.rs` SHA256: `5337b3374dbb39367af8c0b5a7e330b49b66d94241dcf8bd1a334a59e6a378b0`.
+
+
+## Executed negative and exact restoration — 2026-09-30
+
+**Decision: reject the RMS scalar-order candidate for promotion; retain its negative evidence and restore the prior production formula. No broader run is justified by this result.** Source correctness/gradient continuity above did not imply numerical improvement, and the actual loaded outcome is now available.
+
+Reviewed compact inputs/result/manifest and both full raw output files at `/Volumes/UOR-Workspace/uor-r4-models/track-b/rms-window-d87485a8-20260930`. Report status is `FAIL_NUMERICAL_GATE_WINDOW`, `window_gate_pass=false`, `parity_pass=false`, at unchanged tolerance0.0001. Each backend contains all eight positions with49,152 logits each. All five manifest-listed files exist with matching sizes and no extras. No inference was rerun and no new broad validation was performed.
+
+Measured source `d87485a884e19d49ae18e4c63a92a2ba891d5c03`, executable SHA256 `0b1846592a56d50a097a90e153c3349e1d37640172315477d38e090c7cc46372`, parent trace manifest `3ea6feb8ebc63d30e9f5b3031a8276c74869ac89b47df1968c19072bd20b3862`. Independently hashed result SHA256 `4ef48d0960369a38a0efa64869230f7fa7807a472226d356d0a16dd10583ac76`; manifest SHA256 `ebb78bac596bbd6f455c0bbec4b2e34432dc274cee9a8022e2630b3143a02c95`.
+
+CPU failing logits increase from174,745 to189,401. Formerly passing position1 now has114 failures, and position2 has33. Maximum absolute error increases at every one of the eight positions; the global maximum rises from `0.0070133209228515625` to `0.008243560791015625`. Position0 remains under the gate despite its worse maximum. CPU candidate output SHA256 is `95152297b7fef10acd773c725763c614cd960d8449a42de7d09f6de2d4be8821`.
+
+Metal's entire1,572,864-byte output (393,216 F32 values) is byte-identical to the saved `layer-trace-34371f15-20260930/metal-logits.f32le`, independently checked by direct byte comparison. SHA256 remains `a3628170c94c9b7290b9894a6be9686aa2c70d12dfeda0ea7d54b490c6d3e1e0`; all row metrics and190,826 failing logits are unchanged. This identity does not establish which compiler/backend transformation produced it; no such cause is inferred.
+
+Restoration verified at exact successor `f1cb000fd22fd69a9b674c8290b559463e9eb1a1`: `crates/uor-r4-training/src/track_b/model.rs` is byte-for-byte identical to pre-candidate `9e3b4eaefcaf23fc5b7a8263cd82d36def1074b1`, with equal Git blob `5badefd5fb18bc4473a20560f243fa4cfe328397` and an empty diff for the entire file. The restoration commit changes only that model file; the candidate commit, diagnostic harness and sealed report remain preserved. This is verification of source restoration, not a new loaded-model execution claim.
+
+The existing four-test log remains a58.69-second passing causal/interface/gradient check. Parent-reported additional costs are50.29-second example build and5.51-second replay with1,297,645,568-byte RSS, exiting2 with sealed evidence; I did not independently inspect those additional timing logs. The retained negative demonstrates that this particular scalar-order alignment did not improve the declared shared fixed window. It does not demote the geometric architecture, prove native arithmetic defective, or justify weakening the original all-logit criterion.

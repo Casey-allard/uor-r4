@@ -1,0 +1,81 @@
+{
+  "source_head": "2c7f9a462a5e4d73426945ad35d596562c4ad381",
+  "scope": "source-transcribed finite codec check, not Rust execution or model evaluation",
+  "cases": [
+    {
+      "input_code": 256,
+      "input": [
+        0.75,
+        0.75,
+        0.75,
+        0.75,
+        0.75,
+        0.75,
+        0.75,
+        -1.25
+      ],
+      "returned_code": 128,
+      "squared_distance": 4.0,
+      "returned": [
+        -0.75,
+        0.25,
+        0.25,
+        0.25,
+        0.25,
+        0.25,
+        0.25,
+        -0.75
+      ]
+    },
+    {
+      "input_code": 257,
+      "input": [
+        0.25,
+        0.25,
+        0.25,
+        0.25,
+        0.25,
+        0.25,
+        0.25,
+        -1.75
+      ],
+      "returned_code": 128,
+      "squared_distance": 2.0,
+      "returned": [
+        -0.75,
+        0.25,
+        0.25,
+        0.25,
+        0.25,
+        0.25,
+        0.25,
+        -0.75
+      ]
+    },
+    {
+      "input_code": 511,
+      "input": [
+        -0.25,
+        -0.25,
+        -0.25,
+        -0.25,
+        -0.25,
+        -0.25,
+        -0.25,
+        1.75
+      ],
+      "returned_code": 639,
+      "squared_distance": 2.0,
+      "returned": [
+        0.25,
+        -0.75,
+        -0.75,
+        -0.75,
+        -0.75,
+        -0.75,
+        -0.75,
+        2.25
+      ]
+    }
+  ]
+}

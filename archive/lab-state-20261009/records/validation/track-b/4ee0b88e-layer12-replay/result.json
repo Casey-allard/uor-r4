@@ -1,0 +1,2453 @@
+{
+  "backends": [
+    {
+      "arms": [
+        {
+          "arm": "native_rms",
+          "rows": [
+            {
+              "kind": "q",
+              "original_candidate_vs_reference": {
+                "different_bits": 554,
+                "elements": 576,
+                "max_abs": 2.086162567138672e-6,
+                "reference_rms": 0.16521457283791477,
+                "rms": 1.9031074218820588e-7
+              },
+              "position": 0,
+              "replay_vs_original_candidate": {
+                "different_bits": 546,
+                "elements": 576,
+                "max_abs": 1.4520774129778147e-6,
+                "reference_rms": 0.1652145718089903,
+                "rms": 1.74841233599859e-7
+              },
+              "replay_vs_reference": {
+                "different_bits": 536,
+                "elements": 576,
+                "max_abs": 1.2069940567016602e-6,
+                "reference_rms": 0.16521457283791477,
+                "rms": 1.0746005029572904e-7
+              }
+            },
+            {
+              "kind": "k",
+              "original_candidate_vs_reference": {
+                "different_bits": 189,
+                "elements": 192,
+                "max_abs": 1.6689300537109375e-6,
+                "reference_rms": 0.5158911076103802,
+                "rms": 2.543192045928175e-7
+              },
+              "position": 0,
+              "replay_vs_original_candidate": {
+                "different_bits": 188,
+                "elements": 192,
+                "max_abs": 1.430511474609375e-6,
+                "reference_rms": 0.5158912280938542,
+                "rms": 2.1465518109859488e-7
+              },
+              "replay_vs_reference": {
+                "different_bits": 183,
+                "elements": 192,
+                "max_abs": 1.1920928955078125e-6,
+                "reference_rms": 0.5158911076103802,
+                "rms": 1.3568283227781403e-7
+              }
+            },
+            {
+              "kind": "v",
+              "original_candidate_vs_reference": {
+                "different_bits": 185,
+                "elements": 192,
+                "max_abs": 3.5762786865234375e-7,
+                "reference_rms": 0.18736488327393416,
+                "rms": 5.133977562582896e-8
+              },
+              "position": 0,
+              "replay_vs_original_candidate": {
+                "different_bits": 187,
+                "elements": 192,
+                "max_abs": 3.5762786865234375e-7,
+                "reference_rms": 0.1873649057136189,
+                "rms": 5.316206931920207e-8
+              },
+              "replay_vs_reference": {
+                "different_bits": 185,
+                "elements": 192,
+                "max_abs": 2.384185791015625e-7,
+                "reference_rms": 0.18736488327393416,
+                "rms": 3.592797241222446e-8
+              }
+            },
+            {
+              "kind": "q",
+              "original_candidate_vs_reference": {
+                "different_bits": 563,
+                "elements": 576,
+                "max_abs": 1.7583370208740234e-6,
+                "reference_rms": 0.1691913108183069,
+                "rms": 1.8537449429434437e-7
+              },
+              "position": 1,
+              "replay_vs_original_candidate": {
+                "different_bits": 560,
+                "elements": 576,
+                "max_abs": 6.854534149169922e-7,
+                "reference_rms": 0.169191366766033,
+                "rms": 1.5392796450215975e-7
+              },
+              "replay_vs_reference": {
+                "different_bits": 528,
+                "elements": 576,
+                "max_abs": 1.6689300537109375e-6,
+                "reference_rms": 0.1691913108183069,
+                "rms": 1.414625049497378e-7
+              }
+            },
+            {
+              "kind": "k",
+              "original_candidate_vs_reference": {
+                "different_bits": 189,
+                "elements": 192,
+                "max_abs": 9.5367431640625e-7,
+                "reference_rms": 0.5057906698743195,
+                "rms": 2.1390146478802365e-7
+              },
+              "position": 1,
+              "replay_vs_original_candidate": {
+                "different_bits": 189,
+                "elements": 192,
+                "max_abs": 1.1920928955078125e-6,
+                "reference_rms": 0.5057907031253464,
+                "rms": 1.9496660763735315e-7
+              },
+              "replay_vs_reference": {
+                "different_bits": 188,
+                "elements": 192,
+                "max_abs": 7.972121238708496e-7,
+                "reference_rms": 0.5057906698743195,
+                "rms": 1.4616792009911147e-7
+              }
+            },
+            {
+              "kind": "v",
+              "original_candidate_vs_reference": {
+                "different_bits": 191,
+                "elements": 192,
+                "max_abs": 4.76837158203125e-7,
+                "reference_rms": 0.18379308061943794,
+                "rms": 8.517179182934428e-8
+              },
+              "position": 1,
+              "replay_vs_original_candidate": {
+                "different_bits": 190,
+                "elements": 192,
+                "max_abs": 2.384185791015625e-7,
+                "reference_rms": 0.18379310477698022,
+                "rms": 8.423552577553672e-8
+              },
+              "replay_vs_reference": {
+                "different_bits": 183,
+                "elements": 192,
+                "max_abs": 7.152557373046875e-7,
+                "reference_rms": 0.18379308061943794,
+                "rms": 5.794910687302289e-8
+              }
+            },
+            {
+              "kind": "q",
+              "original_candidate_vs_reference": {
+                "different_bits": 572,
+                "elements": 576,
+                "max_abs": 9.775161743164062e-6,
+                "reference_rms": 0.2868167740292105,
+                "rms": 1.517004999732625e-6
+              },
+              "position": 2,
+              "replay_vs_original_candidate": {
+                "different_bits": 574,
+                "elements": 576,
+                "max_abs": 9.417533874511719e-6,
+                "reference_rms": 0.28681553696365214,
+                "rms": 1.5172787874890883e-6
+              },
+              "replay_vs_reference": {
+                "different_bits": 514,
+                "elements": 576,
+                "max_abs": 4.76837158203125e-7,
+                "reference_rms": 0.2868167740292105,
+                "rms": 8.00967561177457e-8
+              }
+            },
+            {
+              "kind": "k",
+              "original_candidate_vs_reference": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 0.000012487173080444336,
+                "reference_rms": 0.5225593378312854,
+                "rms": 1.9428823432850216e-6
+              },
+              "position": 2,
+              "replay_vs_original_candidate": {
+                "different_bits": 190,
+                "elements": 192,
+                "max_abs": 0.000012367963790893555,
+                "reference_rms": 0.5225586417369912,
+                "rms": 1.9480331328203456e-6
+              },
+              "replay_vs_reference": {
+                "different_bits": 174,
+                "elements": 192,
+                "max_abs": 9.5367431640625e-7,
+                "reference_rms": 0.5225593378312854,
+                "rms": 1.3354240620631145e-7
+              }
+            },
+            {
+              "kind": "v",
+              "original_candidate_vs_reference": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 1.6093254089355469e-6,
+                "reference_rms": 0.17031410721848003,
+                "rms": 4.67447917332834e-7
+              },
+              "position": 2,
+              "replay_vs_original_candidate": {
+                "different_bits": 191,
+                "elements": 192,
+                "max_abs": 1.8477439880371094e-6,
+                "reference_rms": 0.17031406990094328,
+                "rms": 4.6983946605930967e-7
+              },
+              "replay_vs_reference": {
+                "different_bits": 177,
+                "elements": 192,
+                "max_abs": 2.384185791015625e-7,
+                "reference_rms": 0.17031410721848003,
+                "rms": 4.0244242887585395e-8
+              }
+            },
+            {
+              "kind": "q",
+              "original_candidate_vs_reference": {
+                "different_bits": 567,
+                "elements": 576,
+                "max_abs": 3.0994415283203125e-6,
+                "reference_rms": 0.17730179526007803,
+                "rms": 4.2451743402437216e-7
+              },
+              "position": 3,
+              "replay_vs_original_candidate": {
+                "different_bits": 568,
+                "elements": 576,
+                "max_abs": 3.159046173095703e-6,
+                "reference_rms": 0.17730191292633593,
+                "rms": 4.1326989397971497e-7
+              },
+              "replay_vs_reference": {
+                "different_bits": 524,
+                "elements": 576,
+                "max_abs": 7.748603820800781e-7,
+                "reference_rms": 0.17730179526007803,
+                "rms": 9.933262295240523e-8
+              }
+            },
+            {
+              "kind": "k",
+              "original_candidate_vs_reference": {
+                "different_bits": 190,
+                "elements": 192,
+                "max_abs": 3.4570693969726562e-6,
+                "reference_rms": 0.50114548616208,
+                "rms": 5.648278748338262e-7
+              },
+              "position": 3,
+              "replay_vs_original_candidate": {
+                "different_bits": 190,
+                "elements": 192,
+                "max_abs": 3.4570693969726562e-6,
+                "reference_rms": 0.5011453706386815,
+                "rms": 5.988084943804503e-7
+              },
+              "replay_vs_reference": {
+                "different_bits": 184,
+                "elements": 192,
+                "max_abs": 1.430511474609375e-6,
+                "reference_rms": 0.50114548616208,
+                "rms": 1.4570101325460138e-7
+              }
+            },
+            {
+              "kind": "v",
+              "original_candidate_vs_reference": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 1.0728836059570312e-6,
+                "reference_rms": 0.18105927741281924,
+                "rms": 2.0307585778489582e-7
+              },
+              "position": 3,
+              "replay_vs_original_candidate": {
+                "different_bits": 191,
+                "elements": 192,
+                "max_abs": 1.0728836059570312e-6,
+                "reference_rms": 0.18105919836739215,
+                "rms": 2.0726833933363287e-7
+              },
+              "replay_vs_reference": {
+                "different_bits": 181,
+                "elements": 192,
+                "max_abs": 5.960464477539062e-7,
+                "reference_rms": 0.18105927741281924,
+                "rms": 6.215584684928248e-8
+              }
+            },
+            {
+              "kind": "q",
+              "original_candidate_vs_reference": {
+                "different_bits": 551,
+                "elements": 576,
+                "max_abs": 1.996755599975586e-6,
+                "reference_rms": 0.16705912048076182,
+                "rms": 2.5552920152153187e-7
+              },
+              "position": 4,
+              "replay_vs_original_candidate": {
+                "different_bits": 552,
+                "elements": 576,
+                "max_abs": 1.817941665649414e-6,
+                "reference_rms": 0.1670591538609822,
+                "rms": 2.48413173669866e-7
+              },
+              "replay_vs_reference": {
+                "different_bits": 540,
+                "elements": 576,
+                "max_abs": 1.5385448932647705e-6,
+                "reference_rms": 0.16705912048076182,
+                "rms": 1.341722113722187e-7
+              }
+            },
+            {
+              "kind": "k",
+              "original_candidate_vs_reference": {
+                "different_bits": 188,
+                "elements": 192,
+                "max_abs": 3.2186508178710938e-6,
+                "reference_rms": 0.5125383000310715,
+                "rms": 4.2548017631390504e-7
+              },
+              "position": 4,
+              "replay_vs_original_candidate": {
+                "different_bits": 185,
+                "elements": 192,
+                "max_abs": 2.2649765014648438e-6,
+                "reference_rms": 0.5125381457780389,
+                "rms": 3.6311556571230525e-7
+              },
+              "replay_vs_reference": {
+                "different_bits": 183,
+                "elements": 192,
+                "max_abs": 9.5367431640625e-7,
+                "reference_rms": 0.5125383000310715,
+                "rms": 1.538623355446408e-7
+              }
+            },
+            {
+              "kind": "v",
+              "original_candidate_vs_reference": {
+                "different_bits": 187,
+                "elements": 192,
+                "max_abs": 4.76837158203125e-7,
+                "reference_rms": 0.18616431041728418,
+                "rms": 8.888771575100677e-8
+              },
+              "position": 4,
+              "replay_vs_original_candidate": {
+                "different_bits": 188,
+                "elements": 192,
+                "max_abs": 4.172325134277344e-7,
+                "reference_rms": 0.18616428951158148,
+                "rms": 9.05171943603597e-8
+              },
+              "replay_vs_reference": {
+                "different_bits": 177,
+                "elements": 192,
+                "max_abs": 5.960464477539062e-7,
+                "reference_rms": 0.18616431041728418,
+                "rms": 5.09439463982488e-8
+              }
+            },
+            {
+              "kind": "q",
+              "original_candidate_vs_reference": {
+                "different_bits": 576,
+                "elements": 576,
+                "max_abs": 0.0022444725036621094,
+                "reference_rms": 1.0232268840148089,
+                "rms": 0.00035583532989626166
+              },
+              "position": 5,
+              "replay_vs_original_candidate": {
+                "different_bits": 576,
+                "elements": 576,
+                "max_abs": 0.002243518829345703,
+                "reference_rms": 1.0228770707182202,
+                "rms": 0.00035584024643088883
+              },
+              "replay_vs_reference": {
+                "different_bits": 534,
+                "elements": 576,
+                "max_abs": 1.6689300537109375e-6,
+                "reference_rms": 1.0232268840148089,
+                "rms": 3.184613860723101e-7
+              }
+            },
+            {
+              "kind": "k",
+              "original_candidate_vs_reference": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 0.0033278465270996094,
+                "reference_rms": 1.3350316333424823,
+                "rms": 0.0005045516353813783
+              },
+              "position": 5,
+              "replay_vs_original_candidate": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 0.0033249855041503906,
+                "reference_rms": 1.3345661487799356,
+                "rms": 0.0005043357238793283
+              },
+              "replay_vs_reference": {
+                "different_bits": 175,
+                "elements": 192,
+                "max_abs": 2.86102294921875e-6,
+                "reference_rms": 1.3350316333424823,
+                "rms": 3.795717134825421e-7
+              }
+            },
+            {
+              "kind": "v",
+              "original_candidate_vs_reference": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 0.0005416274070739746,
+                "reference_rms": 0.3480822017524029,
+                "rms": 0.00013840837078563298
+              },
+              "position": 5,
+              "replay_vs_original_candidate": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 0.0005417466163635254,
+                "reference_rms": 0.34796329945768095,
+                "rms": 0.000138395039185603
+              },
+              "replay_vs_reference": {
+                "different_bits": 179,
+                "elements": 192,
+                "max_abs": 7.152557373046875e-7,
+                "reference_rms": 0.3480822017524029,
+                "rms": 1.7225183564647223e-7
+              }
+            },
+            {
+              "kind": "q",
+              "original_candidate_vs_reference": {
+                "different_bits": 576,
+                "elements": 576,
+                "max_abs": 0.00022983551025390625,
+                "reference_rms": 2.3315602398472492,
+                "rms": 0.00004520835616247033
+              },
+              "position": 6,
+              "replay_vs_original_candidate": {
+                "different_bits": 576,
+                "elements": 576,
+                "max_abs": 0.0002346038818359375,
+                "reference_rms": 2.331599063531711,
+                "rms": 0.00004520405344284494
+              },
+              "replay_vs_reference": {
+                "different_bits": 536,
+                "elements": 576,
+                "max_abs": 9.5367431640625e-6,
+                "reference_rms": 2.3315602398472492,
+                "rms": 1.0153413579310275e-6
+              }
+            },
+            {
+              "kind": "k",
+              "original_candidate_vs_reference": {
+                "different_bits": 191,
+                "elements": 192,
+                "max_abs": 0.00052642822265625,
+                "reference_rms": 3.232437172775472,
+                "rms": 0.00007238405364883107
+              },
+              "position": 6,
+              "replay_vs_original_candidate": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 0.0005207061767578125,
+                "reference_rms": 3.232499748185758,
+                "rms": 0.0000725303258139201
+              },
+              "replay_vs_reference": {
+                "different_bits": 175,
+                "elements": 192,
+                "max_abs": 0.000011444091796875,
+                "reference_rms": 3.232437172775472,
+                "rms": 1.3385422701338674e-6
+              }
+            },
+            {
+              "kind": "v",
+              "original_candidate_vs_reference": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 0.00013697147369384766,
+                "reference_rms": 0.8011883317175468,
+                "rms": 0.000023738759793727932
+              },
+              "position": 6,
+              "replay_vs_original_candidate": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 0.00013756752014160156,
+                "reference_rms": 0.8012031449842736,
+                "rms": 0.00002382870775201064
+              },
+              "replay_vs_reference": {
+                "different_bits": 175,
+                "elements": 192,
+                "max_abs": 1.0728836059570312e-6,
+                "reference_rms": 0.8011883317175468,
+                "rms": 3.240511014266987e-7
+              }
+            },
+            {
+              "kind": "q",
+              "original_candidate_vs_reference": {
+                "different_bits": 576,
+                "elements": 576,
+                "max_abs": 0.00063323974609375,
+                "reference_rms": 2.322519775335741,
+                "rms": 0.00010914580231991457
+              },
+              "position": 7,
+              "replay_vs_original_candidate": {
+                "different_bits": 575,
+                "elements": 576,
+                "max_abs": 0.0006284713745117188,
+                "reference_rms": 2.322415816728609,
+                "rms": 0.00010815539864073496
+              },
+              "replay_vs_reference": {
+                "different_bits": 539,
+                "elements": 576,
+                "max_abs": 0.0000152587890625,
+                "reference_rms": 2.322519775335741,
+                "rms": 1.447336340047244e-6
+              }
+            },
+            {
+              "kind": "k",
+              "original_candidate_vs_reference": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 0.0013370513916015625,
+                "reference_rms": 3.221921220735703,
+                "rms": 0.00019417737959763433
+              },
+              "position": 7,
+              "replay_vs_original_candidate": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 0.0013294219970703125,
+                "reference_rms": 3.2217497088157607,
+                "rms": 0.0001932457008674874
+              },
+              "replay_vs_reference": {
+                "different_bits": 179,
+                "elements": 192,
+                "max_abs": 0.000011444091796875,
+                "reference_rms": 3.221921220735703,
+                "rms": 1.5551049013509277e-6
+              }
+            },
+            {
+              "kind": "v",
+              "original_candidate_vs_reference": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 0.0003638267517089844,
+                "reference_rms": 0.789173175338312,
+                "rms": 0.00006158160191076257
+              },
+              "position": 7,
+              "replay_vs_original_candidate": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 0.0003643035888671875,
+                "reference_rms": 0.7891206054328637,
+                "rms": 0.00006140210734191439
+              },
+              "replay_vs_reference": {
+                "different_bits": 183,
+                "elements": 192,
+                "max_abs": 1.6689300537109375e-6,
+                "reference_rms": 0.789173175338312,
+                "rms": 4.057344402364367e-7
+              }
+            }
+          ]
+        },
+        {
+          "arm": "reference_scalar_rms",
+          "rows": [
+            {
+              "kind": "q",
+              "original_candidate_vs_reference": {
+                "different_bits": 554,
+                "elements": 576,
+                "max_abs": 2.086162567138672e-6,
+                "reference_rms": 0.16521457283791477,
+                "rms": 1.9031074218820588e-7
+              },
+              "position": 0,
+              "replay_vs_original_candidate": {
+                "different_bits": 551,
+                "elements": 576,
+                "max_abs": 1.430511474609375e-6,
+                "reference_rms": 0.1652145718089903,
+                "rms": 1.6185275602783266e-7
+              },
+              "replay_vs_reference": {
+                "different_bits": 538,
+                "elements": 576,
+                "max_abs": 1.087784767150879e-6,
+                "reference_rms": 0.16521457283791477,
+                "rms": 1.068263419502771e-7
+              }
+            },
+            {
+              "kind": "k",
+              "original_candidate_vs_reference": {
+                "different_bits": 189,
+                "elements": 192,
+                "max_abs": 1.6689300537109375e-6,
+                "reference_rms": 0.5158911076103802,
+                "rms": 2.543192045928175e-7
+              },
+              "position": 0,
+              "replay_vs_original_candidate": {
+                "different_bits": 189,
+                "elements": 192,
+                "max_abs": 1.1920928955078125e-6,
+                "reference_rms": 0.5158912280938542,
+                "rms": 1.9827080756957373e-7
+              },
+              "replay_vs_reference": {
+                "different_bits": 183,
+                "elements": 192,
+                "max_abs": 1.1920928955078125e-6,
+                "reference_rms": 0.5158911076103802,
+                "rms": 1.3535617459230095e-7
+              }
+            },
+            {
+              "kind": "v",
+              "original_candidate_vs_reference": {
+                "different_bits": 185,
+                "elements": 192,
+                "max_abs": 3.5762786865234375e-7,
+                "reference_rms": 0.18736488327393416,
+                "rms": 5.133977562582896e-8
+              },
+              "position": 0,
+              "replay_vs_original_candidate": {
+                "different_bits": 189,
+                "elements": 192,
+                "max_abs": 3.5762786865234375e-7,
+                "reference_rms": 0.1873649057136189,
+                "rms": 5.219544060172406e-8
+              },
+              "replay_vs_reference": {
+                "different_bits": 183,
+                "elements": 192,
+                "max_abs": 2.384185791015625e-7,
+                "reference_rms": 0.18736488327393416,
+                "rms": 3.69936627874607e-8
+              }
+            },
+            {
+              "kind": "q",
+              "original_candidate_vs_reference": {
+                "different_bits": 563,
+                "elements": 576,
+                "max_abs": 1.7583370208740234e-6,
+                "reference_rms": 0.1691913108183069,
+                "rms": 1.8537449429434437e-7
+              },
+              "position": 1,
+              "replay_vs_original_candidate": {
+                "different_bits": 560,
+                "elements": 576,
+                "max_abs": 6.556510925292969e-7,
+                "reference_rms": 0.169191366766033,
+                "rms": 1.584608432527733e-7
+              },
+              "replay_vs_reference": {
+                "different_bits": 538,
+                "elements": 576,
+                "max_abs": 1.519918441772461e-6,
+                "reference_rms": 0.1691913108183069,
+                "rms": 1.365563274043258e-7
+              }
+            },
+            {
+              "kind": "k",
+              "original_candidate_vs_reference": {
+                "different_bits": 189,
+                "elements": 192,
+                "max_abs": 9.5367431640625e-7,
+                "reference_rms": 0.5057906698743195,
+                "rms": 2.1390146478802365e-7
+              },
+              "position": 1,
+              "replay_vs_original_candidate": {
+                "different_bits": 185,
+                "elements": 192,
+                "max_abs": 7.450580596923828e-7,
+                "reference_rms": 0.5057907031253464,
+                "rms": 1.857600901240287e-7
+              },
+              "replay_vs_reference": {
+                "different_bits": 185,
+                "elements": 192,
+                "max_abs": 7.301568984985352e-7,
+                "reference_rms": 0.5057906698743195,
+                "rms": 1.3571044771987808e-7
+              }
+            },
+            {
+              "kind": "v",
+              "original_candidate_vs_reference": {
+                "different_bits": 191,
+                "elements": 192,
+                "max_abs": 4.76837158203125e-7,
+                "reference_rms": 0.18379308061943794,
+                "rms": 8.517179182934428e-8
+              },
+              "position": 1,
+              "replay_vs_original_candidate": {
+                "different_bits": 190,
+                "elements": 192,
+                "max_abs": 2.384185791015625e-7,
+                "reference_rms": 0.18379310477698022,
+                "rms": 8.371315418912621e-8
+              },
+              "replay_vs_reference": {
+                "different_bits": 179,
+                "elements": 192,
+                "max_abs": 3.5762786865234375e-7,
+                "reference_rms": 0.18379308061943794,
+                "rms": 3.9454721076634994e-8
+              }
+            },
+            {
+              "kind": "q",
+              "original_candidate_vs_reference": {
+                "different_bits": 572,
+                "elements": 576,
+                "max_abs": 9.775161743164062e-6,
+                "reference_rms": 0.2868167740292105,
+                "rms": 1.517004999732625e-6
+              },
+              "position": 2,
+              "replay_vs_original_candidate": {
+                "different_bits": 575,
+                "elements": 576,
+                "max_abs": 9.417533874511719e-6,
+                "reference_rms": 0.28681553696365214,
+                "rms": 1.5163896334164054e-6
+              },
+              "replay_vs_reference": {
+                "different_bits": 519,
+                "elements": 576,
+                "max_abs": 4.76837158203125e-7,
+                "reference_rms": 0.2868167740292105,
+                "rms": 7.991607024030077e-8
+              }
+            },
+            {
+              "kind": "k",
+              "original_candidate_vs_reference": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 0.000012487173080444336,
+                "reference_rms": 0.5225593378312854,
+                "rms": 1.9428823432850216e-6
+              },
+              "position": 2,
+              "replay_vs_original_candidate": {
+                "different_bits": 191,
+                "elements": 192,
+                "max_abs": 0.000012367963790893555,
+                "reference_rms": 0.5225586417369912,
+                "rms": 1.947583211401713e-6
+              },
+              "replay_vs_reference": {
+                "different_bits": 172,
+                "elements": 192,
+                "max_abs": 8.344650268554688e-7,
+                "reference_rms": 0.5225593378312854,
+                "rms": 1.2490129951480028e-7
+              }
+            },
+            {
+              "kind": "v",
+              "original_candidate_vs_reference": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 1.6093254089355469e-6,
+                "reference_rms": 0.17031410721848003,
+                "rms": 4.67447917332834e-7
+              },
+              "position": 2,
+              "replay_vs_original_candidate": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 1.8477439880371094e-6,
+                "reference_rms": 0.17031406990094328,
+                "rms": 4.701486357969391e-7
+              },
+              "replay_vs_reference": {
+                "different_bits": 179,
+                "elements": 192,
+                "max_abs": 2.384185791015625e-7,
+                "reference_rms": 0.17031410721848003,
+                "rms": 4.041792932032211e-8
+              }
+            },
+            {
+              "kind": "q",
+              "original_candidate_vs_reference": {
+                "different_bits": 567,
+                "elements": 576,
+                "max_abs": 3.0994415283203125e-6,
+                "reference_rms": 0.17730179526007803,
+                "rms": 4.2451743402437216e-7
+              },
+              "position": 3,
+              "replay_vs_original_candidate": {
+                "different_bits": 566,
+                "elements": 576,
+                "max_abs": 3.159046173095703e-6,
+                "reference_rms": 0.17730191292633593,
+                "rms": 4.135264572391629e-7
+              },
+              "replay_vs_reference": {
+                "different_bits": 526,
+                "elements": 576,
+                "max_abs": 7.748603820800781e-7,
+                "reference_rms": 0.17730179526007803,
+                "rms": 1.0121205077078204e-7
+              }
+            },
+            {
+              "kind": "k",
+              "original_candidate_vs_reference": {
+                "different_bits": 190,
+                "elements": 192,
+                "max_abs": 3.4570693969726562e-6,
+                "reference_rms": 0.50114548616208,
+                "rms": 5.648278748338262e-7
+              },
+              "position": 3,
+              "replay_vs_original_candidate": {
+                "different_bits": 190,
+                "elements": 192,
+                "max_abs": 3.4570693969726562e-6,
+                "reference_rms": 0.5011453706386815,
+                "rms": 5.986241599775281e-7
+              },
+              "replay_vs_reference": {
+                "different_bits": 183,
+                "elements": 192,
+                "max_abs": 1.430511474609375e-6,
+                "reference_rms": 0.50114548616208,
+                "rms": 1.4559123141134293e-7
+              }
+            },
+            {
+              "kind": "v",
+              "original_candidate_vs_reference": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 1.0728836059570312e-6,
+                "reference_rms": 0.18105927741281924,
+                "rms": 2.0307585778489582e-7
+              },
+              "position": 3,
+              "replay_vs_original_candidate": {
+                "different_bits": 190,
+                "elements": 192,
+                "max_abs": 1.0728836059570312e-6,
+                "reference_rms": 0.18105919836739215,
+                "rms": 2.0755391379107545e-7
+              },
+              "replay_vs_reference": {
+                "different_bits": 186,
+                "elements": 192,
+                "max_abs": 5.960464477539062e-7,
+                "reference_rms": 0.18105927741281924,
+                "rms": 6.209570201070401e-8
+              }
+            },
+            {
+              "kind": "q",
+              "original_candidate_vs_reference": {
+                "different_bits": 551,
+                "elements": 576,
+                "max_abs": 1.996755599975586e-6,
+                "reference_rms": 0.16705912048076182,
+                "rms": 2.5552920152153187e-7
+              },
+              "position": 4,
+              "replay_vs_original_candidate": {
+                "different_bits": 546,
+                "elements": 576,
+                "max_abs": 1.817941665649414e-6,
+                "reference_rms": 0.1670591538609822,
+                "rms": 2.436263796314917e-7
+              },
+              "replay_vs_reference": {
+                "different_bits": 539,
+                "elements": 576,
+                "max_abs": 1.4174729585647583e-6,
+                "reference_rms": 0.16705912048076182,
+                "rms": 1.2762135305100418e-7
+              }
+            },
+            {
+              "kind": "k",
+              "original_candidate_vs_reference": {
+                "different_bits": 188,
+                "elements": 192,
+                "max_abs": 3.2186508178710938e-6,
+                "reference_rms": 0.5125383000310715,
+                "rms": 4.2548017631390504e-7
+              },
+              "position": 4,
+              "replay_vs_original_candidate": {
+                "different_bits": 185,
+                "elements": 192,
+                "max_abs": 2.384185791015625e-6,
+                "reference_rms": 0.5125381457780389,
+                "rms": 3.6198293287794675e-7
+              },
+              "replay_vs_reference": {
+                "different_bits": 183,
+                "elements": 192,
+                "max_abs": 8.344650268554688e-7,
+                "reference_rms": 0.5125383000310715,
+                "rms": 1.516098564364013e-7
+              }
+            },
+            {
+              "kind": "v",
+              "original_candidate_vs_reference": {
+                "different_bits": 187,
+                "elements": 192,
+                "max_abs": 4.76837158203125e-7,
+                "reference_rms": 0.18616431041728418,
+                "rms": 8.888771575100677e-8
+              },
+              "position": 4,
+              "replay_vs_original_candidate": {
+                "different_bits": 188,
+                "elements": 192,
+                "max_abs": 3.5762786865234375e-7,
+                "reference_rms": 0.18616428951158148,
+                "rms": 8.910264445370234e-8
+              },
+              "replay_vs_reference": {
+                "different_bits": 176,
+                "elements": 192,
+                "max_abs": 5.960464477539062e-7,
+                "reference_rms": 0.18616431041728418,
+                "rms": 5.059974925541797e-8
+              }
+            },
+            {
+              "kind": "q",
+              "original_candidate_vs_reference": {
+                "different_bits": 576,
+                "elements": 576,
+                "max_abs": 0.0022444725036621094,
+                "reference_rms": 1.0232268840148089,
+                "rms": 0.00035583532989626166
+              },
+              "position": 5,
+              "replay_vs_original_candidate": {
+                "different_bits": 576,
+                "elements": 576,
+                "max_abs": 0.0022430419921875,
+                "reference_rms": 1.0228770707182202,
+                "rms": 0.00035581965123806917
+              },
+              "replay_vs_reference": {
+                "different_bits": 525,
+                "elements": 576,
+                "max_abs": 1.6689300537109375e-6,
+                "reference_rms": 1.0232268840148089,
+                "rms": 3.2335899029204933e-7
+              }
+            },
+            {
+              "kind": "k",
+              "original_candidate_vs_reference": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 0.0033278465270996094,
+                "reference_rms": 1.3350316333424823,
+                "rms": 0.0005045516353813783
+              },
+              "position": 5,
+              "replay_vs_original_candidate": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 0.0033249855041503906,
+                "reference_rms": 1.3345661487799356,
+                "rms": 0.0005043216207731834
+              },
+              "replay_vs_reference": {
+                "different_bits": 175,
+                "elements": 192,
+                "max_abs": 2.86102294921875e-6,
+                "reference_rms": 1.3350316333424823,
+                "rms": 3.9960545159897303e-7
+              }
+            },
+            {
+              "kind": "v",
+              "original_candidate_vs_reference": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 0.0005416274070739746,
+                "reference_rms": 0.3480822017524029,
+                "rms": 0.00013840837078563298
+              },
+              "position": 5,
+              "replay_vs_original_candidate": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 0.0005416274070739746,
+                "reference_rms": 0.34796329945768095,
+                "rms": 0.0001383937732533103
+              },
+              "replay_vs_reference": {
+                "different_bits": 174,
+                "elements": 192,
+                "max_abs": 6.556510925292969e-7,
+                "reference_rms": 0.3480822017524029,
+                "rms": 1.7010337614885237e-7
+              }
+            },
+            {
+              "kind": "q",
+              "original_candidate_vs_reference": {
+                "different_bits": 576,
+                "elements": 576,
+                "max_abs": 0.00022983551025390625,
+                "reference_rms": 2.3315602398472492,
+                "rms": 0.00004520835616247033
+              },
+              "position": 6,
+              "replay_vs_original_candidate": {
+                "different_bits": 576,
+                "elements": 576,
+                "max_abs": 0.00023555755615234375,
+                "reference_rms": 2.331599063531711,
+                "rms": 0.00004526911166188079
+              },
+              "replay_vs_reference": {
+                "different_bits": 539,
+                "elements": 576,
+                "max_abs": 9.5367431640625e-6,
+                "reference_rms": 2.3315602398472492,
+                "rms": 1.01577942571609e-6
+              }
+            },
+            {
+              "kind": "k",
+              "original_candidate_vs_reference": {
+                "different_bits": 191,
+                "elements": 192,
+                "max_abs": 0.00052642822265625,
+                "reference_rms": 3.232437172775472,
+                "rms": 0.00007238405364883107
+              },
+              "position": 6,
+              "replay_vs_original_candidate": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 0.0005207061767578125,
+                "reference_rms": 3.232499748185758,
+                "rms": 0.00007268972256259246
+              },
+              "replay_vs_reference": {
+                "different_bits": 182,
+                "elements": 192,
+                "max_abs": 0.0000152587890625,
+                "reference_rms": 3.232437172775472,
+                "rms": 1.5233146358614659e-6
+              }
+            },
+            {
+              "kind": "v",
+              "original_candidate_vs_reference": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 0.00013697147369384766,
+                "reference_rms": 0.8011883317175468,
+                "rms": 0.000023738759793727932
+              },
+              "position": 6,
+              "replay_vs_original_candidate": {
+                "different_bits": 191,
+                "elements": 192,
+                "max_abs": 0.00013756752014160156,
+                "reference_rms": 0.8012031449842736,
+                "rms": 0.000023840679165371788
+              },
+              "replay_vs_reference": {
+                "different_bits": 179,
+                "elements": 192,
+                "max_abs": 1.1920928955078125e-6,
+                "reference_rms": 0.8011883317175468,
+                "rms": 3.395314449973609e-7
+              }
+            },
+            {
+              "kind": "q",
+              "original_candidate_vs_reference": {
+                "different_bits": 576,
+                "elements": 576,
+                "max_abs": 0.00063323974609375,
+                "reference_rms": 2.322519775335741,
+                "rms": 0.00010914580231991457
+              },
+              "position": 7,
+              "replay_vs_original_candidate": {
+                "different_bits": 576,
+                "elements": 576,
+                "max_abs": 0.0006313323974609375,
+                "reference_rms": 2.322415816728609,
+                "rms": 0.00010883785396825158
+              },
+              "replay_vs_reference": {
+                "different_bits": 526,
+                "elements": 576,
+                "max_abs": 0.000011444091796875,
+                "reference_rms": 2.322519775335741,
+                "rms": 9.372118882654538e-7
+              }
+            },
+            {
+              "kind": "k",
+              "original_candidate_vs_reference": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 0.0013370513916015625,
+                "reference_rms": 3.221921220735703,
+                "rms": 0.00019417737959763433
+              },
+              "position": 7,
+              "replay_vs_original_candidate": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 0.0013332366943359375,
+                "reference_rms": 3.2217497088157607,
+                "rms": 0.00019408176905024997
+              },
+              "replay_vs_reference": {
+                "different_bits": 178,
+                "elements": 192,
+                "max_abs": 7.62939453125e-6,
+                "reference_rms": 3.221921220735703,
+                "rms": 1.18153487754351e-6
+              }
+            },
+            {
+              "kind": "v",
+              "original_candidate_vs_reference": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 0.0003638267517089844,
+                "reference_rms": 0.789173175338312,
+                "rms": 0.00006158160191076257
+              },
+              "position": 7,
+              "replay_vs_original_candidate": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 0.0003650188446044922,
+                "reference_rms": 0.7891206054328637,
+                "rms": 0.00006161693415983689
+              },
+              "replay_vs_reference": {
+                "different_bits": 182,
+                "elements": 192,
+                "max_abs": 1.6689300537109375e-6,
+                "reference_rms": 0.789173175338312,
+                "rms": 3.551038274759307e-7
+              }
+            }
+          ]
+        }
+      ],
+      "backend": "cpu",
+      "normalization_difference": {
+        "different_bits": 1552,
+        "elements": 4608,
+        "max_abs": 1.9073486328125e-6,
+        "reference_rms": 0.21285836133852606,
+        "rms": 4.445318107900501e-8
+      }
+    },
+    {
+      "arms": [
+        {
+          "arm": "native_rms",
+          "rows": [
+            {
+              "kind": "q",
+              "original_candidate_vs_reference": {
+                "different_bits": 559,
+                "elements": 576,
+                "max_abs": 3.2186508178710938e-6,
+                "reference_rms": 0.16521457283791477,
+                "rms": 2.8472134343408477e-7
+              },
+              "position": 0,
+              "replay_vs_original_candidate": {
+                "different_bits": 555,
+                "elements": 576,
+                "max_abs": 2.3245811462402344e-6,
+                "reference_rms": 0.16521452564068514,
+                "rms": 2.6427124526751745e-7
+              },
+              "replay_vs_reference": {
+                "different_bits": 538,
+                "elements": 576,
+                "max_abs": 1.2814998626708984e-6,
+                "reference_rms": 0.16521457283791477,
+                "rms": 1.162536501675107e-7
+              }
+            },
+            {
+              "kind": "k",
+              "original_candidate_vs_reference": {
+                "different_bits": 188,
+                "elements": 192,
+                "max_abs": 2.000480890274048e-6,
+                "reference_rms": 0.5158911076103802,
+                "rms": 3.2046500083444575e-7
+              },
+              "position": 0,
+              "replay_vs_original_candidate": {
+                "different_bits": 191,
+                "elements": 192,
+                "max_abs": 1.9073486328125e-6,
+                "reference_rms": 0.5158911384361599,
+                "rms": 2.9939056390190016e-7
+              },
+              "replay_vs_reference": {
+                "different_bits": 183,
+                "elements": 192,
+                "max_abs": 9.5367431640625e-7,
+                "reference_rms": 0.5158911076103802,
+                "rms": 1.2049469701743539e-7
+              }
+            },
+            {
+              "kind": "v",
+              "original_candidate_vs_reference": {
+                "different_bits": 185,
+                "elements": 192,
+                "max_abs": 4.76837158203125e-7,
+                "reference_rms": 0.18736488327393416,
+                "rms": 6.677408425848432e-8
+              },
+              "position": 0,
+              "replay_vs_original_candidate": {
+                "different_bits": 189,
+                "elements": 192,
+                "max_abs": 2.980232238769531e-7,
+                "reference_rms": 0.1873648516031668,
+                "rms": 5.390192046429696e-8
+              },
+              "replay_vs_reference": {
+                "different_bits": 186,
+                "elements": 192,
+                "max_abs": 4.76837158203125e-7,
+                "reference_rms": 0.18736488327393416,
+                "rms": 4.883159634358622e-8
+              }
+            },
+            {
+              "kind": "q",
+              "original_candidate_vs_reference": {
+                "different_bits": 569,
+                "elements": 576,
+                "max_abs": 3.5762786865234375e-6,
+                "reference_rms": 0.1691913108183069,
+                "rms": 5.135382305512053e-7
+              },
+              "position": 1,
+              "replay_vs_original_candidate": {
+                "different_bits": 572,
+                "elements": 576,
+                "max_abs": 3.129243850708008e-6,
+                "reference_rms": 0.16919123398847635,
+                "rms": 5.05168632002028e-7
+              },
+              "replay_vs_reference": {
+                "different_bits": 533,
+                "elements": 576,
+                "max_abs": 1.4677643775939941e-6,
+                "reference_rms": 0.1691913108183069,
+                "rms": 1.3475224103219735e-7
+              }
+            },
+            {
+              "kind": "k",
+              "original_candidate_vs_reference": {
+                "different_bits": 190,
+                "elements": 192,
+                "max_abs": 3.919005393981934e-6,
+                "reference_rms": 0.5057906698743195,
+                "rms": 5.818460291205944e-7
+              },
+              "position": 1,
+              "replay_vs_original_candidate": {
+                "different_bits": 191,
+                "elements": 192,
+                "max_abs": 3.5762786865234375e-6,
+                "reference_rms": 0.5057907711648678,
+                "rms": 5.79886625751316e-7
+              },
+              "replay_vs_reference": {
+                "different_bits": 182,
+                "elements": 192,
+                "max_abs": 7.972121238708496e-7,
+                "reference_rms": 0.5057906698743195,
+                "rms": 1.3676373544956574e-7
+              }
+            },
+            {
+              "kind": "v",
+              "original_candidate_vs_reference": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 8.344650268554688e-7,
+                "reference_rms": 0.18379308061943794,
+                "rms": 1.353070279104045e-7
+              },
+              "position": 1,
+              "replay_vs_original_candidate": {
+                "different_bits": 189,
+                "elements": 192,
+                "max_abs": 7.152557373046875e-7,
+                "reference_rms": 0.18379314155131468,
+                "rms": 1.3200579821355043e-7
+              },
+              "replay_vs_reference": {
+                "different_bits": 178,
+                "elements": 192,
+                "max_abs": 4.76837158203125e-7,
+                "reference_rms": 0.18379308061943794,
+                "rms": 4.5471616263730804e-8
+              }
+            },
+            {
+              "kind": "q",
+              "original_candidate_vs_reference": {
+                "different_bits": 572,
+                "elements": 576,
+                "max_abs": 0.000012516975402832031,
+                "reference_rms": 0.2868167740292105,
+                "rms": 1.929670374902181e-6
+              },
+              "position": 2,
+              "replay_vs_original_candidate": {
+                "different_bits": 575,
+                "elements": 576,
+                "max_abs": 0.00001239776611328125,
+                "reference_rms": 0.28681832563438414,
+                "rms": 1.9243281801317476e-6
+              },
+              "replay_vs_reference": {
+                "different_bits": 504,
+                "elements": 576,
+                "max_abs": 5.960464477539062e-7,
+                "reference_rms": 0.2868167740292105,
+                "rms": 8.427460201133458e-8
+              }
+            },
+            {
+              "kind": "k",
+              "original_candidate_vs_reference": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 0.000017970800399780273,
+                "reference_rms": 0.5225593378312854,
+                "rms": 2.802041021417739e-6
+              },
+              "position": 2,
+              "replay_vs_original_candidate": {
+                "different_bits": 190,
+                "elements": 192,
+                "max_abs": 0.000018090009689331055,
+                "reference_rms": 0.5225601308734332,
+                "rms": 2.7969780031354596e-6
+              },
+              "replay_vs_reference": {
+                "different_bits": 178,
+                "elements": 192,
+                "max_abs": 8.344650268554688e-7,
+                "reference_rms": 0.5225593378312854,
+                "rms": 1.3453671475932354e-7
+              }
+            },
+            {
+              "kind": "v",
+              "original_candidate_vs_reference": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 2.5033950805664062e-6,
+                "reference_rms": 0.17031410721848003,
+                "rms": 7.181450131392048e-7
+              },
+              "position": 2,
+              "replay_vs_original_candidate": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 2.7418136596679688e-6,
+                "reference_rms": 0.17031409761108254,
+                "rms": 7.220383723319244e-7
+              },
+              "replay_vs_reference": {
+                "different_bits": 187,
+                "elements": 192,
+                "max_abs": 3.5762786865234375e-7,
+                "reference_rms": 0.17031410721848003,
+                "rms": 4.7000899921105915e-8
+              }
+            },
+            {
+              "kind": "q",
+              "original_candidate_vs_reference": {
+                "different_bits": 570,
+                "elements": 576,
+                "max_abs": 4.351139068603516e-6,
+                "reference_rms": 0.17730179526007803,
+                "rms": 5.78328987576303e-7
+              },
+              "position": 3,
+              "replay_vs_original_candidate": {
+                "different_bits": 566,
+                "elements": 576,
+                "max_abs": 4.5299530029296875e-6,
+                "reference_rms": 0.177301965860075,
+                "rms": 5.792023528543196e-7
+              },
+              "replay_vs_reference": {
+                "different_bits": 530,
+                "elements": 576,
+                "max_abs": 7.152557373046875e-7,
+                "reference_rms": 0.17730179526007803,
+                "rms": 1.029891064213684e-7
+              }
+            },
+            {
+              "kind": "k",
+              "original_candidate_vs_reference": {
+                "different_bits": 189,
+                "elements": 192,
+                "max_abs": 5.125999450683594e-6,
+                "reference_rms": 0.50114548616208,
+                "rms": 7.940773351076391e-7
+              },
+              "position": 3,
+              "replay_vs_original_candidate": {
+                "different_bits": 190,
+                "elements": 192,
+                "max_abs": 5.4836273193359375e-6,
+                "reference_rms": 0.5011452545361276,
+                "rms": 8.312618797073608e-7
+              },
+              "replay_vs_reference": {
+                "different_bits": 179,
+                "elements": 192,
+                "max_abs": 1.1920928955078125e-6,
+                "reference_rms": 0.50114548616208,
+                "rms": 1.4176830123744222e-7
+              }
+            },
+            {
+              "kind": "v",
+              "original_candidate_vs_reference": {
+                "different_bits": 191,
+                "elements": 192,
+                "max_abs": 1.5497207641601562e-6,
+                "reference_rms": 0.18105927741281924,
+                "rms": 2.4311201188413214e-7
+              },
+              "position": 3,
+              "replay_vs_original_candidate": {
+                "different_bits": 190,
+                "elements": 192,
+                "max_abs": 1.5497207641601562e-6,
+                "reference_rms": 0.18105917274718564,
+                "rms": 2.4770534304611897e-7
+              },
+              "replay_vs_reference": {
+                "different_bits": 186,
+                "elements": 192,
+                "max_abs": 5.960464477539062e-7,
+                "reference_rms": 0.18105927741281924,
+                "rms": 6.209570201070401e-8
+              }
+            },
+            {
+              "kind": "q",
+              "original_candidate_vs_reference": {
+                "different_bits": 565,
+                "elements": 576,
+                "max_abs": 2.771615982055664e-6,
+                "reference_rms": 0.16705912048076182,
+                "rms": 3.072435674896061e-7
+              },
+              "position": 4,
+              "replay_vs_original_candidate": {
+                "different_bits": 567,
+                "elements": 576,
+                "max_abs": 2.384185791015625e-6,
+                "reference_rms": 0.16705914609995853,
+                "rms": 3.0841570361427505e-7
+              },
+              "replay_vs_reference": {
+                "different_bits": 521,
+                "elements": 576,
+                "max_abs": 1.4230608940124512e-6,
+                "reference_rms": 0.16705912048076182,
+                "rms": 1.2906712642339543e-7
+              }
+            },
+            {
+              "kind": "k",
+              "original_candidate_vs_reference": {
+                "different_bits": 191,
+                "elements": 192,
+                "max_abs": 4.5299530029296875e-6,
+                "reference_rms": 0.5125383000310715,
+                "rms": 5.785852415777781e-7
+              },
+              "position": 4,
+              "replay_vs_original_candidate": {
+                "different_bits": 190,
+                "elements": 192,
+                "max_abs": 3.5762786865234375e-6,
+                "reference_rms": 0.5125380301200295,
+                "rms": 4.829898078352887e-7
+              },
+              "replay_vs_reference": {
+                "different_bits": 188,
+                "elements": 192,
+                "max_abs": 9.5367431640625e-7,
+                "reference_rms": 0.5125383000310715,
+                "rms": 1.7284998278631752e-7
+              }
+            },
+            {
+              "kind": "v",
+              "original_candidate_vs_reference": {
+                "different_bits": 189,
+                "elements": 192,
+                "max_abs": 7.152557373046875e-7,
+                "reference_rms": 0.18616431041728418,
+                "rms": 1.280559503855583e-7
+              },
+              "position": 4,
+              "replay_vs_original_candidate": {
+                "different_bits": 190,
+                "elements": 192,
+                "max_abs": 5.960464477539062e-7,
+                "reference_rms": 0.18616425016583132,
+                "rms": 1.3529159899603318e-7
+              },
+              "replay_vs_reference": {
+                "different_bits": 176,
+                "elements": 192,
+                "max_abs": 5.960464477539062e-7,
+                "reference_rms": 0.18616431041728418,
+                "rms": 5.059974925541797e-8
+              }
+            },
+            {
+              "kind": "q",
+              "original_candidate_vs_reference": {
+                "different_bits": 576,
+                "elements": 576,
+                "max_abs": 0.0021758079528808594,
+                "reference_rms": 1.0232268840148089,
+                "rms": 0.0003454191503930023
+              },
+              "position": 5,
+              "replay_vs_original_candidate": {
+                "different_bits": 576,
+                "elements": 576,
+                "max_abs": 0.00217437744140625,
+                "reference_rms": 1.0228873071266276,
+                "rms": 0.000345323033550595
+              },
+              "replay_vs_reference": {
+                "different_bits": 526,
+                "elements": 576,
+                "max_abs": 1.9073486328125e-6,
+                "reference_rms": 1.0232268840148089,
+                "rms": 3.3638551711837524e-7
+              }
+            },
+            {
+              "kind": "k",
+              "original_candidate_vs_reference": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 0.003231525421142578,
+                "reference_rms": 1.3350316333424823,
+                "rms": 0.0004897575485054736
+              },
+              "position": 5,
+              "replay_vs_original_candidate": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 0.003227710723876953,
+                "reference_rms": 1.3345797780825668,
+                "rms": 0.000489430240020461
+              },
+              "replay_vs_reference": {
+                "different_bits": 170,
+                "elements": 192,
+                "max_abs": 3.814697265625e-6,
+                "reference_rms": 1.3350316333424823,
+                "rms": 4.720089539118052e-7
+              }
+            },
+            {
+              "kind": "v",
+              "original_candidate_vs_reference": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 0.0005251765251159668,
+                "reference_rms": 0.3480822017524029,
+                "rms": 0.00013424261075730968
+              },
+              "position": 5,
+              "replay_vs_original_candidate": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 0.0005251765251159668,
+                "reference_rms": 0.34796685869525434,
+                "rms": 0.00013422795107964364
+              },
+              "replay_vs_reference": {
+                "different_bits": 174,
+                "elements": 192,
+                "max_abs": 6.556510925292969e-7,
+                "reference_rms": 0.3480822017524029,
+                "rms": 1.7010337614885237e-7
+              }
+            },
+            {
+              "kind": "q",
+              "original_candidate_vs_reference": {
+                "different_bits": 575,
+                "elements": 576,
+                "max_abs": 0.00021457672119140625,
+                "reference_rms": 2.3315602398472492,
+                "rms": 0.000041751222303593936
+              },
+              "position": 6,
+              "replay_vs_original_candidate": {
+                "different_bits": 576,
+                "elements": 576,
+                "max_abs": 0.00022125244140625,
+                "reference_rms": 2.3315961014609474,
+                "rms": 0.00004205158828626223
+              },
+              "replay_vs_reference": {
+                "different_bits": 533,
+                "elements": 576,
+                "max_abs": 7.62939453125e-6,
+                "reference_rms": 2.3315602398472492,
+                "rms": 1.1061834906786603e-6
+              }
+            },
+            {
+              "kind": "k",
+              "original_candidate_vs_reference": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 0.00049591064453125,
+                "reference_rms": 3.232437172775472,
+                "rms": 0.00006794495309506533
+              },
+              "position": 6,
+              "replay_vs_original_candidate": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 0.000492095947265625,
+                "reference_rms": 3.232495914652246,
+                "rms": 0.00006865242434976306
+              },
+              "replay_vs_reference": {
+                "different_bits": 181,
+                "elements": 192,
+                "max_abs": 0.000019073486328125,
+                "reference_rms": 3.232437172775472,
+                "rms": 1.791268069917218e-6
+              }
+            },
+            {
+              "kind": "v",
+              "original_candidate_vs_reference": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 0.0001277923583984375,
+                "reference_rms": 0.8011883317175468,
+                "rms": 0.00002206043352449632
+              },
+              "position": 6,
+              "replay_vs_original_candidate": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 0.0001283884048461914,
+                "reference_rms": 0.8012022016382454,
+                "rms": 0.00002221352875042643
+              },
+              "replay_vs_reference": {
+                "different_bits": 182,
+                "elements": 192,
+                "max_abs": 1.430511474609375e-6,
+                "reference_rms": 0.8011883317175468,
+                "rms": 3.683305796436524e-7
+              }
+            },
+            {
+              "kind": "q",
+              "original_candidate_vs_reference": {
+                "different_bits": 576,
+                "elements": 576,
+                "max_abs": 0.0005903244018554688,
+                "reference_rms": 2.322519775335741,
+                "rms": 0.00010169683448710928
+              },
+              "position": 7,
+              "replay_vs_original_candidate": {
+                "different_bits": 576,
+                "elements": 576,
+                "max_abs": 0.000583648681640625,
+                "reference_rms": 2.3224228092170796,
+                "rms": 0.00010050715282677956
+              },
+              "replay_vs_reference": {
+                "different_bits": 554,
+                "elements": 576,
+                "max_abs": 0.00001621246337890625,
+                "reference_rms": 2.322519775335741,
+                "rms": 1.6062767271482724e-6
+              }
+            },
+            {
+              "kind": "k",
+              "original_candidate_vs_reference": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 0.001255035400390625,
+                "reference_rms": 3.221921220735703,
+                "rms": 0.0001809816672652296
+              },
+              "position": 7,
+              "replay_vs_original_candidate": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 0.0012454986572265625,
+                "reference_rms": 3.2217612352387888,
+                "rms": 0.00017977823654865475
+              },
+              "replay_vs_reference": {
+                "different_bits": 185,
+                "elements": 192,
+                "max_abs": 0.0000133514404296875,
+                "reference_rms": 3.221921220735703,
+                "rms": 1.7718219752957387e-6
+              }
+            },
+            {
+              "kind": "v",
+              "original_candidate_vs_reference": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 0.0003376007080078125,
+                "reference_rms": 0.789173175338312,
+                "rms": 0.00005716752609758185
+              },
+              "position": 7,
+              "replay_vs_original_candidate": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 0.0003381967544555664,
+                "reference_rms": 0.7891243339619736,
+                "rms": 0.00005699529611586196
+              },
+              "replay_vs_reference": {
+                "different_bits": 184,
+                "elements": 192,
+                "max_abs": 1.6689300537109375e-6,
+                "reference_rms": 0.789173175338312,
+                "rms": 4.022102287467597e-7
+              }
+            }
+          ]
+        },
+        {
+          "arm": "reference_scalar_rms",
+          "rows": [
+            {
+              "kind": "q",
+              "original_candidate_vs_reference": {
+                "different_bits": 559,
+                "elements": 576,
+                "max_abs": 3.2186508178710938e-6,
+                "reference_rms": 0.16521457283791477,
+                "rms": 2.8472134343408477e-7
+              },
+              "position": 0,
+              "replay_vs_original_candidate": {
+                "different_bits": 562,
+                "elements": 576,
+                "max_abs": 2.2649765014648438e-6,
+                "reference_rms": 0.16521452564068514,
+                "rms": 2.6882111999907544e-7
+              },
+              "replay_vs_reference": {
+                "different_bits": 538,
+                "elements": 576,
+                "max_abs": 1.087784767150879e-6,
+                "reference_rms": 0.16521457283791477,
+                "rms": 1.068263419502771e-7
+              }
+            },
+            {
+              "kind": "k",
+              "original_candidate_vs_reference": {
+                "different_bits": 188,
+                "elements": 192,
+                "max_abs": 2.000480890274048e-6,
+                "reference_rms": 0.5158911076103802,
+                "rms": 3.2046500083444575e-7
+              },
+              "position": 0,
+              "replay_vs_original_candidate": {
+                "different_bits": 186,
+                "elements": 192,
+                "max_abs": 1.73225998878479e-6,
+                "reference_rms": 0.5158911384361599,
+                "rms": 2.958905596861818e-7
+              },
+              "replay_vs_reference": {
+                "different_bits": 183,
+                "elements": 192,
+                "max_abs": 1.1920928955078125e-6,
+                "reference_rms": 0.5158911076103802,
+                "rms": 1.3535617459230095e-7
+              }
+            },
+            {
+              "kind": "v",
+              "original_candidate_vs_reference": {
+                "different_bits": 185,
+                "elements": 192,
+                "max_abs": 4.76837158203125e-7,
+                "reference_rms": 0.18736488327393416,
+                "rms": 6.677408425848432e-8
+              },
+              "position": 0,
+              "replay_vs_original_candidate": {
+                "different_bits": 182,
+                "elements": 192,
+                "max_abs": 2.905726432800293e-7,
+                "reference_rms": 0.1873648516031668,
+                "rms": 5.8855870717722746e-8
+              },
+              "replay_vs_reference": {
+                "different_bits": 183,
+                "elements": 192,
+                "max_abs": 2.384185791015625e-7,
+                "reference_rms": 0.18736488327393416,
+                "rms": 3.69936627874607e-8
+              }
+            },
+            {
+              "kind": "q",
+              "original_candidate_vs_reference": {
+                "different_bits": 569,
+                "elements": 576,
+                "max_abs": 3.5762786865234375e-6,
+                "reference_rms": 0.1691913108183069,
+                "rms": 5.135382305512053e-7
+              },
+              "position": 1,
+              "replay_vs_original_candidate": {
+                "different_bits": 568,
+                "elements": 576,
+                "max_abs": 3.0994415283203125e-6,
+                "reference_rms": 0.16919123398847635,
+                "rms": 5.105632918405974e-7
+              },
+              "replay_vs_reference": {
+                "different_bits": 539,
+                "elements": 576,
+                "max_abs": 1.4901161193847656e-6,
+                "reference_rms": 0.1691913108183069,
+                "rms": 1.370209801406973e-7
+              }
+            },
+            {
+              "kind": "k",
+              "original_candidate_vs_reference": {
+                "different_bits": 190,
+                "elements": 192,
+                "max_abs": 3.919005393981934e-6,
+                "reference_rms": 0.5057906698743195,
+                "rms": 5.818460291205944e-7
+              },
+              "position": 1,
+              "replay_vs_original_candidate": {
+                "different_bits": 191,
+                "elements": 192,
+                "max_abs": 3.933906555175781e-6,
+                "reference_rms": 0.5057907711648678,
+                "rms": 6.060097982982889e-7
+              },
+              "replay_vs_reference": {
+                "different_bits": 185,
+                "elements": 192,
+                "max_abs": 9.5367431640625e-7,
+                "reference_rms": 0.5057906698743195,
+                "rms": 1.5238200451298802e-7
+              }
+            },
+            {
+              "kind": "v",
+              "original_candidate_vs_reference": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 8.344650268554688e-7,
+                "reference_rms": 0.18379308061943794,
+                "rms": 1.353070279104045e-7
+              },
+              "position": 1,
+              "replay_vs_original_candidate": {
+                "different_bits": 191,
+                "elements": 192,
+                "max_abs": 7.152557373046875e-7,
+                "reference_rms": 0.18379314155131468,
+                "rms": 1.3378022723842744e-7
+              },
+              "replay_vs_reference": {
+                "different_bits": 179,
+                "elements": 192,
+                "max_abs": 3.5762786865234375e-7,
+                "reference_rms": 0.18379308061943794,
+                "rms": 3.9454721076634994e-8
+              }
+            },
+            {
+              "kind": "q",
+              "original_candidate_vs_reference": {
+                "different_bits": 572,
+                "elements": 576,
+                "max_abs": 0.000012516975402832031,
+                "reference_rms": 0.2868167740292105,
+                "rms": 1.929670374902181e-6
+              },
+              "position": 2,
+              "replay_vs_original_candidate": {
+                "different_bits": 575,
+                "elements": 576,
+                "max_abs": 0.000012636184692382812,
+                "reference_rms": 0.28681832563438414,
+                "rms": 1.952518429563202e-6
+              },
+              "replay_vs_reference": {
+                "different_bits": 516,
+                "elements": 576,
+                "max_abs": 5.960464477539062e-7,
+                "reference_rms": 0.2868167740292105,
+                "rms": 8.652026000759476e-8
+              }
+            },
+            {
+              "kind": "k",
+              "original_candidate_vs_reference": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 0.000017970800399780273,
+                "reference_rms": 0.5225593378312854,
+                "rms": 2.802041021417739e-6
+              },
+              "position": 2,
+              "replay_vs_original_candidate": {
+                "different_bits": 191,
+                "elements": 192,
+                "max_abs": 0.00001811981201171875,
+                "reference_rms": 0.5225601308734332,
+                "rms": 2.817245200554581e-6
+              },
+              "replay_vs_reference": {
+                "different_bits": 176,
+                "elements": 192,
+                "max_abs": 9.5367431640625e-7,
+                "reference_rms": 0.5225593378312854,
+                "rms": 1.353653774606017e-7
+              }
+            },
+            {
+              "kind": "v",
+              "original_candidate_vs_reference": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 2.5033950805664062e-6,
+                "reference_rms": 0.17031410721848003,
+                "rms": 7.181450131392048e-7
+              },
+              "position": 2,
+              "replay_vs_original_candidate": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 2.6226043701171875e-6,
+                "reference_rms": 0.17031409761108254,
+                "rms": 7.209596958762333e-7
+              },
+              "replay_vs_reference": {
+                "different_bits": 179,
+                "elements": 192,
+                "max_abs": 2.384185791015625e-7,
+                "reference_rms": 0.17031410721848003,
+                "rms": 4.041792932032211e-8
+              }
+            },
+            {
+              "kind": "q",
+              "original_candidate_vs_reference": {
+                "different_bits": 570,
+                "elements": 576,
+                "max_abs": 4.351139068603516e-6,
+                "reference_rms": 0.17730179526007803,
+                "rms": 5.78328987576303e-7
+              },
+              "position": 3,
+              "replay_vs_original_candidate": {
+                "different_bits": 566,
+                "elements": 576,
+                "max_abs": 4.5299530029296875e-6,
+                "reference_rms": 0.177301965860075,
+                "rms": 5.792023528543196e-7
+              },
+              "replay_vs_reference": {
+                "different_bits": 530,
+                "elements": 576,
+                "max_abs": 7.152557373046875e-7,
+                "reference_rms": 0.17730179526007803,
+                "rms": 1.029891064213684e-7
+              }
+            },
+            {
+              "kind": "k",
+              "original_candidate_vs_reference": {
+                "different_bits": 189,
+                "elements": 192,
+                "max_abs": 5.125999450683594e-6,
+                "reference_rms": 0.50114548616208,
+                "rms": 7.940773351076391e-7
+              },
+              "position": 3,
+              "replay_vs_original_candidate": {
+                "different_bits": 190,
+                "elements": 192,
+                "max_abs": 5.4836273193359375e-6,
+                "reference_rms": 0.5011452545361276,
+                "rms": 8.312618797073608e-7
+              },
+              "replay_vs_reference": {
+                "different_bits": 179,
+                "elements": 192,
+                "max_abs": 1.1920928955078125e-6,
+                "reference_rms": 0.50114548616208,
+                "rms": 1.4176830123744222e-7
+              }
+            },
+            {
+              "kind": "v",
+              "original_candidate_vs_reference": {
+                "different_bits": 191,
+                "elements": 192,
+                "max_abs": 1.5497207641601562e-6,
+                "reference_rms": 0.18105927741281924,
+                "rms": 2.4311201188413214e-7
+              },
+              "position": 3,
+              "replay_vs_original_candidate": {
+                "different_bits": 190,
+                "elements": 192,
+                "max_abs": 1.5497207641601562e-6,
+                "reference_rms": 0.18105917274718564,
+                "rms": 2.4770534304611897e-7
+              },
+              "replay_vs_reference": {
+                "different_bits": 186,
+                "elements": 192,
+                "max_abs": 5.960464477539062e-7,
+                "reference_rms": 0.18105927741281924,
+                "rms": 6.209570201070401e-8
+              }
+            },
+            {
+              "kind": "q",
+              "original_candidate_vs_reference": {
+                "different_bits": 565,
+                "elements": 576,
+                "max_abs": 2.771615982055664e-6,
+                "reference_rms": 0.16705912048076182,
+                "rms": 3.072435674896061e-7
+              },
+              "position": 4,
+              "replay_vs_original_candidate": {
+                "different_bits": 567,
+                "elements": 576,
+                "max_abs": 2.384185791015625e-6,
+                "reference_rms": 0.16705914609995853,
+                "rms": 3.0841570361427505e-7
+              },
+              "replay_vs_reference": {
+                "different_bits": 521,
+                "elements": 576,
+                "max_abs": 1.4230608940124512e-6,
+                "reference_rms": 0.16705912048076182,
+                "rms": 1.2906712642339543e-7
+              }
+            },
+            {
+              "kind": "k",
+              "original_candidate_vs_reference": {
+                "different_bits": 191,
+                "elements": 192,
+                "max_abs": 4.5299530029296875e-6,
+                "reference_rms": 0.5125383000310715,
+                "rms": 5.785852415777781e-7
+              },
+              "position": 4,
+              "replay_vs_original_candidate": {
+                "different_bits": 190,
+                "elements": 192,
+                "max_abs": 3.5762786865234375e-6,
+                "reference_rms": 0.5125380301200295,
+                "rms": 4.829898078352887e-7
+              },
+              "replay_vs_reference": {
+                "different_bits": 188,
+                "elements": 192,
+                "max_abs": 9.5367431640625e-7,
+                "reference_rms": 0.5125383000310715,
+                "rms": 1.7284998278631752e-7
+              }
+            },
+            {
+              "kind": "v",
+              "original_candidate_vs_reference": {
+                "different_bits": 189,
+                "elements": 192,
+                "max_abs": 7.152557373046875e-7,
+                "reference_rms": 0.18616431041728418,
+                "rms": 1.280559503855583e-7
+              },
+              "position": 4,
+              "replay_vs_original_candidate": {
+                "different_bits": 190,
+                "elements": 192,
+                "max_abs": 5.960464477539062e-7,
+                "reference_rms": 0.18616425016583132,
+                "rms": 1.3529159899603318e-7
+              },
+              "replay_vs_reference": {
+                "different_bits": 176,
+                "elements": 192,
+                "max_abs": 5.960464477539062e-7,
+                "reference_rms": 0.18616431041728418,
+                "rms": 5.059974925541797e-8
+              }
+            },
+            {
+              "kind": "q",
+              "original_candidate_vs_reference": {
+                "different_bits": 576,
+                "elements": 576,
+                "max_abs": 0.0021758079528808594,
+                "reference_rms": 1.0232268840148089,
+                "rms": 0.0003454191503930023
+              },
+              "position": 5,
+              "replay_vs_original_candidate": {
+                "different_bits": 576,
+                "elements": 576,
+                "max_abs": 0.00217437744140625,
+                "reference_rms": 1.0228873071266276,
+                "rms": 0.000345323033550595
+              },
+              "replay_vs_reference": {
+                "different_bits": 526,
+                "elements": 576,
+                "max_abs": 1.9073486328125e-6,
+                "reference_rms": 1.0232268840148089,
+                "rms": 3.3638551711837524e-7
+              }
+            },
+            {
+              "kind": "k",
+              "original_candidate_vs_reference": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 0.003231525421142578,
+                "reference_rms": 1.3350316333424823,
+                "rms": 0.0004897575485054736
+              },
+              "position": 5,
+              "replay_vs_original_candidate": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 0.003227710723876953,
+                "reference_rms": 1.3345797780825668,
+                "rms": 0.000489430240020461
+              },
+              "replay_vs_reference": {
+                "different_bits": 170,
+                "elements": 192,
+                "max_abs": 3.814697265625e-6,
+                "reference_rms": 1.3350316333424823,
+                "rms": 4.720089539118052e-7
+              }
+            },
+            {
+              "kind": "v",
+              "original_candidate_vs_reference": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 0.0005251765251159668,
+                "reference_rms": 0.3480822017524029,
+                "rms": 0.00013424261075730968
+              },
+              "position": 5,
+              "replay_vs_original_candidate": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 0.0005251765251159668,
+                "reference_rms": 0.34796685869525434,
+                "rms": 0.00013422795107964364
+              },
+              "replay_vs_reference": {
+                "different_bits": 174,
+                "elements": 192,
+                "max_abs": 6.556510925292969e-7,
+                "reference_rms": 0.3480822017524029,
+                "rms": 1.7010337614885237e-7
+              }
+            },
+            {
+              "kind": "q",
+              "original_candidate_vs_reference": {
+                "different_bits": 575,
+                "elements": 576,
+                "max_abs": 0.00021457672119140625,
+                "reference_rms": 2.3315602398472492,
+                "rms": 0.000041751222303593936
+              },
+              "position": 6,
+              "replay_vs_original_candidate": {
+                "different_bits": 576,
+                "elements": 576,
+                "max_abs": 0.00022220611572265625,
+                "reference_rms": 2.3315961014609474,
+                "rms": 0.000041990802998566616
+              },
+              "replay_vs_reference": {
+                "different_bits": 536,
+                "elements": 576,
+                "max_abs": 8.58306884765625e-6,
+                "reference_rms": 2.3315602398472492,
+                "rms": 1.0900908081147317e-6
+              }
+            },
+            {
+              "kind": "k",
+              "original_candidate_vs_reference": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 0.00049591064453125,
+                "reference_rms": 3.232437172775472,
+                "rms": 0.00006794495309506533
+              },
+              "position": 6,
+              "replay_vs_original_candidate": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 0.0004901885986328125,
+                "reference_rms": 3.232495914652246,
+                "rms": 0.00006845300226771097
+              },
+              "replay_vs_reference": {
+                "different_bits": 177,
+                "elements": 192,
+                "max_abs": 0.0000171661376953125,
+                "reference_rms": 3.232437172775472,
+                "rms": 1.68062716403036e-6
+              }
+            },
+            {
+              "kind": "v",
+              "original_candidate_vs_reference": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 0.0001277923583984375,
+                "reference_rms": 0.8011883317175468,
+                "rms": 0.00002206043352449632
+              },
+              "position": 6,
+              "replay_vs_original_candidate": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 0.0001283884048461914,
+                "reference_rms": 0.8012022016382454,
+                "rms": 0.00002216240380839787
+              },
+              "replay_vs_reference": {
+                "different_bits": 179,
+                "elements": 192,
+                "max_abs": 1.1920928955078125e-6,
+                "reference_rms": 0.8011883317175468,
+                "rms": 3.395314449973609e-7
+              }
+            },
+            {
+              "kind": "q",
+              "original_candidate_vs_reference": {
+                "different_bits": 576,
+                "elements": 576,
+                "max_abs": 0.0005903244018554688,
+                "reference_rms": 2.322519775335741,
+                "rms": 0.00010169683448710928
+              },
+              "position": 7,
+              "replay_vs_original_candidate": {
+                "different_bits": 576,
+                "elements": 576,
+                "max_abs": 0.00058746337890625,
+                "reference_rms": 2.3224228092170796,
+                "rms": 0.00010118650212797821
+              },
+              "replay_vs_reference": {
+                "different_bits": 533,
+                "elements": 576,
+                "max_abs": 0.00001239776611328125,
+                "reference_rms": 2.322519775335741,
+                "rms": 1.0416868240908553e-6
+              }
+            },
+            {
+              "kind": "k",
+              "original_candidate_vs_reference": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 0.001255035400390625,
+                "reference_rms": 3.221921220735703,
+                "rms": 0.0001809816672652296
+              },
+              "position": 7,
+              "replay_vs_original_candidate": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 0.0012493133544921875,
+                "reference_rms": 3.2217612352387888,
+                "rms": 0.00018061246386557315
+              },
+              "replay_vs_reference": {
+                "different_bits": 180,
+                "elements": 192,
+                "max_abs": 9.5367431640625e-6,
+                "reference_rms": 3.221921220735703,
+                "rms": 1.268759857255338e-6
+              }
+            },
+            {
+              "kind": "v",
+              "original_candidate_vs_reference": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 0.0003376007080078125,
+                "reference_rms": 0.789173175338312,
+                "rms": 0.00005716752609758185
+              },
+              "position": 7,
+              "replay_vs_original_candidate": {
+                "different_bits": 192,
+                "elements": 192,
+                "max_abs": 0.0003387928009033203,
+                "reference_rms": 0.7891243339619736,
+                "rms": 0.000057203509643852315
+              },
+              "replay_vs_reference": {
+                "different_bits": 182,
+                "elements": 192,
+                "max_abs": 1.6689300537109375e-6,
+                "reference_rms": 0.789173175338312,
+                "rms": 3.551038274759307e-7
+              }
+            }
+          ]
+        }
+      ],
+      "backend": "metal",
+      "normalization_difference": {
+        "different_bits": 2500,
+        "elements": 4608,
+        "max_abs": 1.9073486328125e-6,
+        "reference_rms": 0.21285836133852606,
+        "rms": 4.472042316685982e-8
+      }
+    }
+  ],
+  "parent_anchors_verified": true,
+  "parity_pass": false,
+  "schema": "uor-r4.track-b-layer12-replay/1",
+  "scope": "common-input local replay; no correction or full parity qualification",
+  "status": "DIAGNOSTIC_COMPLETE"
+}

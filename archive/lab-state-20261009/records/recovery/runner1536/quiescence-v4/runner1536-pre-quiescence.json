@@ -1,0 +1,19 @@
+{
+  "at": "2026-09-30T05:48:57.365427+00:00",
+  "hold": {
+    "at": "2026-09-30T05:45:56Z",
+    "reason": "running process lost identity",
+    "schema": "uor-r4.admission-hold/1"
+  },
+  "hold_sha256": "81bb7c6af7c5f33f3c71b44a42235b32c46f1dd8dc488b8c57ff90c7d1779cb3",
+  "queue": [
+    "opencode-b0-flock-unit-20260930-e"
+  ],
+  "running": [],
+  "relevant_processes": [
+    "24197     1 24197 S    Tue Sep 29 22:34:01 2026     /Users/casey.allard/.local/share/uor-r4/bin/lab-runner-a345e766",
+    "38331 24197 38331 Z    Wed Sep 30 00:01:09 2026     <defunct>",
+    "55548 24197 55548 Z    Wed Sep 30 01:42:18 2026     <defunct>"
+  ],
+  "observation": "Read-only pre-quiescence; no execution/quality result inferred."
+}

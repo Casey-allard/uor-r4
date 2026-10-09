@@ -1,0 +1,29 @@
+=== D4 S1 & S2 Historical Evidence Verification ===
+
+--- 1. S2 Manifest Identity Verification ---
+  [SKIP] sealed_roots_arm1_qat.train: path not mounted on this host (/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/uor-1527-missing-evidence-xb3tj00p/absent/sealed_roots_arm1_qat/train)
+  [SKIP] sealed_roots_arm1_qat.export: path not mounted on this host (/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/uor-1527-missing-evidence-xb3tj00p/absent/sealed_roots_arm1_qat/export)
+  [SKIP] sealed_roots_arm1_qat.chat: path not mounted on this host (/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/uor-1527-missing-evidence-xb3tj00p/absent/sealed_roots_arm1_qat/chat)
+  [SKIP] sealed_roots_arm1_qat.d11_eval: path not mounted on this host (/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/uor-1527-missing-evidence-xb3tj00p/absent/sealed_roots_arm1_qat/d11_eval)
+  [SKIP] sealed_roots_arm2_float_control.train: path not mounted on this host (/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/uor-1527-missing-evidence-xb3tj00p/absent/sealed_roots_arm2_float_control/train)
+  [SKIP] sealed_roots_arm2_float_control.export: path not mounted on this host (/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/uor-1527-missing-evidence-xb3tj00p/absent/sealed_roots_arm2_float_control/export)
+  [SKIP] sealed_roots_arm2_float_control.chat: path not mounted on this host (/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/uor-1527-missing-evidence-xb3tj00p/absent/sealed_roots_arm2_float_control/chat)
+  [SKIP] sealed_roots_arm2_float_control.d11_eval: path not mounted on this host (/Users/casey.allard/.local/state/uor-r4/recovery/20260929-lab-system/continuation-20260930/uor-1527-missing-evidence-xb3tj00p/absent/sealed_roots_arm2_float_control/d11_eval)
+
+--- 2. S2 Raw Payload Arithmetic & Metrics ---
+
+--- 3. Markdown Document & Scope Verifications ---
+  [PASS] S2 Markdown contains required scope marker: '56 / 58 turns (96.55%)'
+  [PASS] S2 Markdown contains required scope marker: '5 / 58 turns'
+  [PASS] S2 Markdown contains required scope marker: '6 / 58 turns'
+  [PASS] S2 Markdown contains required scope marker: 'MISSED'
+  [PASS] S2 Markdown contains required scope marker: 'Literal target'
+  [PASS] S2 Markdown contains required scope marker: 'Corrected parent target'
+  [PASS] S2 Markdown contains required scope marker: 'MISSING / UNAVAILABLE'
+  [PASS] S2 Markdown contains required scope marker: '2.9842 nats'
+  [PASS] S2 Markdown contains required scope marker: '7,238,304 weights read per token'
+  [PASS] S2 Markdown contains required scope marker: 'dense parameter access'
+  [PASS] S1 Markdown contains required scope marker: 'Top-1 Agreement (vs QAT Own Float Model)'
+  [PASS] S1 Markdown contains required scope marker: 'f4caf562'
+
+Verification summary: 12 passed, 0 failed.

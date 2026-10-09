@@ -1,0 +1,19 @@
+{
+  "schema": "uor-r4.council-execution-review/1",
+  "created_utc": "2026-09-30T05:52:06.851869+00:00",
+  "reviewer": "/root/repair_execution_council",
+  "independence": "Non-author council seat; same Codex provider/root launcher; agent identity attestation, not cryptographic signature.",
+  "decision": "APPROVE_ONE_USE_EXECUTION_CONDITIONAL_ON_FRESH_PREFLIGHT",
+  "packet_sha256": "c552311cebdcf8d73aef141bb4121e7608d0cc48690683f62eba66de7dcf04f9",
+  "source_sha": "8e90aa33b8ef941d3ac5de57ad448859e20ad76b",
+  "observer_sha256": "795d4ff24363c115433ea341ed16a03de2afaf465f4e5fb7f832439ebb8cfc01",
+  "review_scope": "One bounded state-delta review. Read exact v4 and quiescence receipt; independently compared source/helper/argv/toolchain/cache/bounds against previously reviewed v1 and verified packet, quiescence and current hold hashes. No repeated source/helper review or execution.",
+  "basis": "Old defective supervisor is recorded stopped after no live payload, production running directory empty and new peer -e queue/reservation preserved. Original UNKNOWN and peer reconciliation records remain unchanged. State_revision supersedes the older exception paragraph process snapshot:38331 is now absent, not currently zombie. v2/v3 were not executed; attempt1 was never_started. This is still a narrow repair exception, not ordinary production admission.",
+  "conditions": [
+    "No execution at the recorded memory pressure2. Immediately before invocation require pressure1, absent org.uor.lab-runner service, empty production running directory, no peer Cargo/rustc or other heavy job, same boot, clean exact source, exact helper/packet/hold hashes and physical free >=40GiB+2GiB+64MiB+128MiB.",
+    "Require complete three-seat council record including two non-authors; use one exclusive new attempt2 receipt directory. Keep production stopped/held and preserve queued peer -e plus its reservation and all UNKNOWN/reconciliation/charge evidence.",
+    "Retain original reviewed observer constraints: sampled RSS/storage/time thresholds, projected20s stop allowance, inspected test-session scope, stop only positively owned invocation, UNKNOWN on uncertainty, exactly-once cost record.",
+    "No deployment, hold release, production restart, new research/model/GPU job or old-receipt quality promotion is authorized. Changed source/helper/argv/bounds or another attempted invocation requires successor packet/review."
+  ],
+  "tests_executed": false
+}
