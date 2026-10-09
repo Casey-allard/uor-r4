@@ -1,0 +1,1694 @@
+diff --git a/crates/uor-r4-training/src/bin/chat-grade.rs b/crates/uor-r4-training/src/bin/chat-grade.rs
+index 705dea59c..7f71ccd1a 100644
+--- a/crates/uor-r4-training/src/bin/chat-grade.rs
++++ b/crates/uor-r4-training/src/bin/chat-grade.rs
+@@ -11,9 +11,33 @@
+ //! chat-grade reply out=NEW_REPORT_ROOT model=ROOT/model tokenizer=T.json \
+ //!   requests=PANEL.json[,MORE.json] [protocol=2] [max_new_tokens=64]
+ //! chat-grade grade-replies out=NEW_REPORT_ROOT replies=REPLIES.json \
+-//!   [grader=qwen2.5:1.5b] [ollama_url=http://127.0.0.1:11434]
++//!   [grader=qwen2.5:1.5b] [ollama_url=http://127.0.0.1:11434] [ill_posed=IDS.txt]
++//! chat-grade check requests=PANEL.json[,MORE.json] tokenizer=T.json \
++//!   [protocol=2] [context=384] [max_new_tokens=64] [exclude=IDS.txt]
++//! chat-grade filter out=NEW_PANEL.json requests=PANEL.json[,MORE.json] \
++//!   (exclude=IDS.txt | only=IDS.txt)
++//! chat-grade tiers report=REPORT.json [ill_posed=IDS.txt] [out=NEW_REPORT_ROOT]
++//! chat-grade compare a=REPORT.json b=REPORT.json [tier=all|C|K-clean|...] \
++//!   [ill_posed=IDS.txt] [out=NEW_REPORT_ROOT]
+ //! ```
+ //!
++//! `grade` and `reply` also take `exclude=IDS.txt` (drop those request ids
++//! before answering) and `grade`/`grade-replies` take `ill_posed=IDS.txt`.
++//!
++//! **Tiers.** Every graded row belongs to one evaluation tier, from its id and
++//! category alone: `C` (the conversational panel, ids `conv-*`), `K-clean` and
++//! `K-ill-posed` (category `heldout_first_turn`, split by the ill-posed id list:
++//! requests that reference material they do not contain), `stretch` (category
++//! `stretch_heldout`) and `everyday` (every other row, i.e. everyday-32). The
++//! ill-posed list defaults to `data/panels/heldout-ill-posed-ids.txt`, embedded
++//! in the executable; `ill_posed=` overrides it. Graded reports append
++//! `per_tier` (actual, control and paired-against-control per tier, and per
++//! category within it). `tiers` recomputes that from an existing report's rows
++//! without regrading; `compare` pairs two graded reports' rows by id within each
++//! tier and gives the two-sided exact McNemar for acceptable, fluent and relevant.
++//! `check` runs the panel's context/turn check against a tokenizer with no model;
++//! `filter` writes a new panel file and never edits its inputs.
++//!
+ //! `extract` decodes a prepared protocol-2 held-out chat split (documents from
+ //! BOS; the first `User:` turn up to the next newline) and keeps, by a seeded
+ //! shuffle, `count` single-turn requests of at most `max_words` words. The
+@@ -34,7 +58,7 @@
+ 
+ #![forbid(unsafe_code)]
+ 
+-use std::collections::BTreeMap;
++use std::collections::{BTreeMap, BTreeSet};
+ use std::fs;
+ use std::path::{Path, PathBuf};
+ use std::process::ExitCode;
+@@ -48,7 +72,7 @@ use uor_r4_tokenizer::ByteBpeTokenizer;
+ use uor_r4_training::geometric_stack::StackModel;
+ use uor_r4_training::sha256_file;
+ use uor_r4_training::stack_dialogue::{
+-    annotate_turn_costs, greedy_reply, load_requests, reply_panel, Request, TurnCost,
++    annotate_turn_costs, check_panel, greedy_reply, load_requests, reply_panel, Request, TurnCost,
+ };
+ use uor_r4_training::stack_tracking::Rng;
+ 
+@@ -102,7 +126,15 @@ fn run() -> Result<(), Error> {
+         Some("grade") => grade(&arguments[1..]),
+         Some("reply") => reply(&arguments[1..]),
+         Some("grade-replies") => grade_replies(&arguments[1..]),
+-        _ => Err("usage: chat-grade extract|grade|reply|grade-replies key=value...".into()),
++        Some("check") => check(&arguments[1..]),
++        Some("filter") => filter(&arguments[1..]),
++        Some("tiers") => tiers(&arguments[1..]),
++        Some("compare") => compare(&arguments[1..]),
++        _ => Err(
++            "usage: chat-grade extract|grade|reply|grade-replies|check|filter|tiers|compare \
++             key=value..."
++                .into(),
++        ),
+     }
+ }
+ 
+@@ -411,9 +443,13 @@ fn grade(arguments: &[String]) -> Result<(), Error> {
+             "max_new_tokens",
+             "grader",
+             "ollama_url",
++            "exclude",
++            "ill_posed",
+         ],
+     )?;
+     let out = PathBuf::from(args.required("out")?);
++    let exclude = optional_id_list(&args, "exclude")?;
++    let ill = ill_posed(&args)?;
+     let model_dir = PathBuf::from(args.required("model")?);
+     let tokenizer_path = PathBuf::from(args.required("tokenizer")?);
+     let request_paths: Vec<PathBuf> = args
+@@ -444,6 +480,8 @@ fn grade(arguments: &[String]) -> Result<(), Error> {
+         version,
+         max_new_tokens,
+         &grader,
++        exclude.as_ref(),
++        &ill,
+         started,
+     );
+     if let Err(error) = &result {
+@@ -475,14 +513,12 @@ fn answer(
+     request_paths: &[PathBuf],
+     version: u8,
+     max_new_tokens: usize,
++    exclude: Option<&IdList>,
+ ) -> Result<Answered, Error> {
+     let tokenizer = load_tokenizer(tokenizer_path)?;
+     let protocol = DialogueProtocol::literal_roles_version(&tokenizer, version)?;
+     let encoder = protocol.bind(&tokenizer)?;
+-    let mut requests: Vec<Request> = Vec::new();
+-    for path in request_paths {
+-        requests.extend(load_requests(path)?);
+-    }
++    let requests = load_panels(request_paths, exclude)?.0;
+     let model = StackModel::load(model_dir, &candle_core::Device::Cpu)?;
+     let mut costs = Vec::new();
+     let clock = Instant::now();
+@@ -526,9 +562,11 @@ fn reply(arguments: &[String]) -> Result<(), Error> {
+             "requests",
+             "protocol",
+             "max_new_tokens",
++            "exclude",
+         ],
+     )?;
+     let out = PathBuf::from(args.required("out")?);
++    let exclude = optional_id_list(&args, "exclude")?;
+     let model_dir = PathBuf::from(args.required("model")?);
+     let tokenizer_path = PathBuf::from(args.required("tokenizer")?);
+     let request_paths: Vec<PathBuf> = args
+@@ -546,6 +584,7 @@ fn reply(arguments: &[String]) -> Result<(), Error> {
+             &request_paths,
+             version,
+             max_new_tokens,
++            exclude.as_ref(),
+         )?;
+         let report = json!({
+             "schema": "uor-r4.chat-grade-reply/1",
+@@ -559,6 +598,7 @@ fn reply(arguments: &[String]) -> Result<(), Error> {
+             "decoding": "greedy over the float model's next-token scores (a pointer model's mixture), ties to the lower id; each step recomputes the whole window",
+             "panel": answered.panel,
+             "generation_seconds": answered.generation_seconds,
++            "excluded": exclude.as_ref().map(|e| e.source.clone()),
+             "executable_sha256": sha256_file(&std::env::current_exe()?)?,
+             "wall_seconds": started.elapsed().as_secs_f64(),
+         });
+@@ -593,6 +633,8 @@ fn grade_into(
+     version: u8,
+     max_new_tokens: usize,
+     grader: &Grader,
++    exclude: Option<&IdList>,
++    ill: &IdList,
+     started: Instant,
+ ) -> Result<(), Error> {
+     let Answered {
+@@ -607,8 +649,10 @@ fn grade_into(
+         request_paths,
+         version,
+         max_new_tokens,
++        exclude,
+     )?;
+     let judged = judge_panel(&panel, grader)?;
++    let per_tier = tier_summary(judged_rows(&judged)?, &ill.ids)?;
+     let report = json!({
+         "schema": "uor-r4.chat-grade/1",
+         "model": model_dir.display().to_string(),
+@@ -631,6 +675,9 @@ fn grade_into(
+         "per_category": judged["per_category"],
+         "rows": judged["rows"],
+         "generation_seconds": generation_seconds,
++        "excluded": exclude.map(|e| e.source.clone()),
++        "per_tier": per_tier,
++        "tiers": tiers_record(ill),
+         "executable_sha256": sha256_file(&std::env::current_exe()?)?,
+         "wall_seconds": started.elapsed().as_secs_f64(),
+     });
+@@ -741,8 +788,12 @@ fn judge_panel(panel: &Value, grader: &Grader) -> Result<Value, Error> {
+ /// integer artifact and its float model are judged identically.
+ fn grade_replies(arguments: &[String]) -> Result<(), Error> {
+     let started = Instant::now();
+-    let args = Args::parse(arguments, &["out", "replies", "grader", "ollama_url"])?;
++    let args = Args::parse(
++        arguments,
++        &["out", "replies", "grader", "ollama_url", "ill_posed"],
++    )?;
+     let out = PathBuf::from(args.required("out")?);
++    let ill = ill_posed(&args)?;
+     let replies_path = PathBuf::from(args.required("replies")?);
+     let grader = Grader {
+         url: args
+@@ -768,6 +819,7 @@ fn grade_replies(arguments: &[String]) -> Result<(), Error> {
+     report_output::claim(&out)?;
+     let result = (|| -> Result<(), Error> {
+         let judged = judge_panel(panel, &grader)?;
++        let per_tier = tier_summary(judged_rows(&judged)?, &ill.ids)?;
+         let report = json!({
+             "schema": "uor-r4.chat-grade/1",
+             "replies": {
+@@ -789,6 +841,8 @@ fn grade_replies(arguments: &[String]) -> Result<(), Error> {
+             "control_rule": judged["control_rule"],
+             "per_category": judged["per_category"],
+             "rows": judged["rows"],
++            "per_tier": per_tier,
++            "tiers": tiers_record(&ill),
+             "executable_sha256": sha256_file(&std::env::current_exe()?)?,
+             "wall_seconds": started.elapsed().as_secs_f64(),
+         });
+@@ -810,6 +864,534 @@ fn grade_replies(arguments: &[String]) -> Result<(), Error> {
+     result
+ }
+ 
++/// The ill-posed heldout-200 ids (tier `K-ill-posed`), embedded so a graded
++/// report's tiers are bound to the executable unless `ill_posed=` overrides.
++const EMBEDDED_ILL_POSED: &str = include_str!("../../../../data/panels/heldout-ill-posed-ids.txt");
++const EMBEDDED_ILL_POSED_PATH: &str = "data/panels/heldout-ill-posed-ids.txt";
++
++const TIER_RULE: &str = "tier from id and category only: C = ids conv-*; K-clean / K-ill-posed = \
++     category heldout_first_turn, split by the ill-posed id list; stretch = category \
++     stretch_heldout; everyday = every other row. A row's control is the derangement grade of \
++     its own reply, so per-tier control and paired counts use the same rows as the tier's actual";
++
++/// The tier names `tier_of` can return.
++const TIERS: [&str; 5] = ["C", "K-clean", "K-ill-posed", "stretch", "everyday"];
++
++/// An id list and where it came from (path or embedded, with its sha256).
++struct IdList {
++    ids: BTreeSet<String>,
++    source: Value,
++}
++
++/// An id list file: one id per line; blank lines and `#` comments ignored; a
++/// repeated id is an error.
++fn parse_id_list(text: &str) -> Result<BTreeSet<String>, Error> {
++    let mut ids = BTreeSet::new();
++    for line in text.lines() {
++        let id = line.trim();
++        if id.is_empty() || id.starts_with('#') {
++            continue;
++        }
++        if !ids.insert(id.to_owned()) {
++            return Err(format!("id list repeats {id}").into());
++        }
++    }
++    Ok(ids)
++}
++
++fn load_id_list(path: &Path) -> Result<IdList, Error> {
++    let bytes = fs::read(path)?;
++    let ids = parse_id_list(std::str::from_utf8(&bytes)?)?;
++    Ok(IdList {
++        source: json!({
++            "path": path.display().to_string(),
++            "sha256": uor_r4_training::sha256_bytes(&bytes),
++            "ids": ids.len(),
++        }),
++        ids,
++    })
++}
++
++fn optional_id_list(args: &Args, key: &str) -> Result<Option<IdList>, Error> {
++    args.0
++        .get(key)
++        .map(|path| load_id_list(Path::new(path)))
++        .transpose()
++}
++
++/// `ill_posed=` if given, else the embedded list.
++fn ill_posed(args: &Args) -> Result<IdList, Error> {
++    if let Some(list) = optional_id_list(args, "ill_posed")? {
++        return Ok(list);
++    }
++    let ids = parse_id_list(EMBEDDED_ILL_POSED)?;
++    Ok(IdList {
++        source: json!({
++            "embedded": EMBEDDED_ILL_POSED_PATH,
++            "sha256": uor_r4_training::sha256_bytes(EMBEDDED_ILL_POSED.as_bytes()),
++            "ids": ids.len(),
++        }),
++        ids,
++    })
++}
++
++fn tiers_record(ill: &IdList) -> Value {
++    json!({"rule": TIER_RULE, "ill_posed": ill.source})
++}
++
++/// The evaluation tier of a panel row (see [`TIER_RULE`]).
++fn tier_of(id: &str, category: &str, ill: &BTreeSet<String>) -> &'static str {
++    if id.starts_with("conv-") {
++        "C"
++    } else if category == "heldout_first_turn" {
++        if ill.contains(id) {
++            "K-ill-posed"
++        } else {
++            "K-clean"
++        }
++    } else if category == "stretch_heldout" {
++        "stretch"
++    } else {
++        "everyday"
++    }
++}
++
++/// Keep only (`keep = true`) or drop (`keep = false`) the listed request ids.
++/// Returns the remaining requests and how many listed ids were present.
++fn filter_requests(
++    requests: Vec<Request>,
++    ids: &BTreeSet<String>,
++    keep: bool,
++) -> (Vec<Request>, usize) {
++    let matched = requests.iter().filter(|r| ids.contains(&r.id)).count();
++    let kept = requests
++        .into_iter()
++        .filter(|r| ids.contains(&r.id) == keep)
++        .collect();
++    (kept, matched)
++}
++
++/// Load panel files (each within `load_requests`' limits), reject an id that
++/// repeats across files, and drop `exclude`'s ids. Returns the requests and
++/// the number of excluded ids that were present.
++fn load_panels(
++    paths: &[PathBuf],
++    exclude: Option<&IdList>,
++) -> Result<(Vec<Request>, usize), Error> {
++    let mut requests: Vec<Request> = Vec::new();
++    for path in paths {
++        requests.extend(load_requests(path)?);
++    }
++    let distinct: BTreeSet<&str> = requests.iter().map(|r| r.id.as_str()).collect();
++    if distinct.len() != requests.len() {
++        return Err("a request id repeats across the panel files".into());
++    }
++    let (requests, excluded) = match exclude {
++        Some(list) => filter_requests(requests, &list.ids, false),
++        None => (requests, 0),
++    };
++    if requests.is_empty() {
++        return Err("no requests remain after the exclusion".into());
++    }
++    Ok((requests, excluded))
++}
++
++fn split_paths(value: &str) -> Vec<PathBuf> {
++    value.split(',').map(PathBuf::from).collect()
++}
++
++/// `check`: the panel's turn and context check (`check_panel`) against a
++/// tokenizer, with no model; prints the worst-case history.
++fn check(arguments: &[String]) -> Result<(), Error> {
++    let args = Args::parse(
++        arguments,
++        &[
++            "requests",
++            "tokenizer",
++            "protocol",
++            "context",
++            "max_new_tokens",
++            "exclude",
++        ],
++    )?;
++    let paths = split_paths(&args.required("requests")?);
++    let exclude = optional_id_list(&args, "exclude")?;
++    let tokenizer = load_tokenizer(Path::new(&args.required("tokenizer")?))?;
++    let protocol =
++        DialogueProtocol::literal_roles_version(&tokenizer, args.number("protocol", 2)?)?;
++    let encoder = protocol.bind(&tokenizer)?;
++    let (context, max_new_tokens): (usize, usize) = (
++        args.number("context", 384)?,
++        args.number("max_new_tokens", 64)?,
++    );
++    let (requests, excluded) = load_panels(&paths, exclude.as_ref())?;
++    check_panel(&encoder, &requests, context, max_new_tokens)?;
++    let mut worst = (0usize, String::new());
++    let mut categories: BTreeMap<&str, usize> = BTreeMap::new();
++    for request in &requests {
++        *categories.entry(request.category.as_str()).or_default() += 1;
++        let mut longest = 1usize;
++        for (turn, user) in request.user_turns.iter().enumerate() {
++            longest += encoder.encode_user_prefix(user, turn != 0).tokens.len() + max_new_tokens;
++            if turn + 1 < request.user_turns.len() {
++                longest += 1;
++            }
++        }
++        if longest > worst.0 {
++            worst = (longest, request.id.clone());
++        }
++    }
++    println!(
++        "{}",
++        json!({
++            "requests": requests.len(), "excluded": excluded,
++            "multi_turn": requests.iter().filter(|r| r.user_turns.len() > 1).count(),
++            "categories": categories, "context": context, "max_new_tokens": max_new_tokens,
++            "worst_case_history": {"positions": worst.0, "id": worst.1},
++            "check_panel": "pass",
++        })
++    );
++    Ok(())
++}
++
++/// `filter`: write a new panel file holding the requests of `requests` minus
++/// `exclude` (or only `only`). The inputs are never modified.
++fn filter(arguments: &[String]) -> Result<(), Error> {
++    let args = Args::parse(arguments, &["out", "requests", "exclude", "only"])?;
++    let out = PathBuf::from(args.required("out")?);
++    if out.exists() {
++        return Err(format!("{} exists", out.display()).into());
++    }
++    let paths = split_paths(&args.required("requests")?);
++    let (list, keep) = match (
++        optional_id_list(&args, "exclude")?,
++        optional_id_list(&args, "only")?,
++    ) {
++        (Some(list), None) => (list, false),
++        (None, Some(list)) => (list, true),
++        _ => return Err("give exactly one of exclude= or only=".into()),
++    };
++    let (requests, matched) = filter_requests(load_panels(&paths, None)?.0, &list.ids, keep);
++    if requests.is_empty() {
++        return Err("the filter leaves no requests".into());
++    }
++    fs::write(&out, serde_json::to_vec_pretty(&requests)?)?;
++    println!(
++        "{} requests written ({} of {} listed ids present); {} sha256 {}",
++        requests.len(),
++        matched,
++        list.ids.len(),
++        out.display(),
++        sha256_file(&out)?
++    );
++    Ok(())
++}
++
++/// The graded rows of a `judge_panel` record or a report.
++fn judged_rows(record: &Value) -> Result<&[Value], Error> {
++    Ok(record["rows"]
++        .as_array()
++        .ok_or("a graded record without rows")?)
++}
++
++/// The fluent/relevant verdicts of a graded row's `grades` or `control_grades`.
++fn row_grades(record: &Value) -> Result<Grades, Error> {
++    let verdict = |key: &str| -> Result<Option<bool>, Error> {
++        match record.get(key) {
++            Some(Value::Bool(b)) => Ok(Some(*b)),
++            Some(Value::Null) => Ok(None),
++            _ => Err(format!("a graded row without a {key} verdict").into()),
++        }
++    };
++    Ok(Grades {
++        fluent: verdict("fluent")?,
++        relevant: verdict("relevant")?,
++        raw: [String::new(), String::new()],
++    })
++}
++
++fn row_field<'a>(row: &'a Value, key: &str) -> Result<&'a str, Error> {
++    row[key]
++        .as_str()
++        .ok_or_else(|| format!("a graded row without {key}").into())
++}
++
++#[derive(Default)]
++struct TierAccumulator {
++    actual: Tally,
++    control: Tally,
++    acceptable: Paired,
++    relevant: Paired,
++    per_category: BTreeMap<String, Tally>,
++}
++
++/// Per tier: the actual and control tallies, the paired-against-control
++/// counts (acceptable and relevant, exact McNemar) and the per-category
++/// tallies, from graded rows.
++fn tier_summary(rows: &[Value], ill: &BTreeSet<String>) -> Result<Value, Error> {
++    let mut tiers: BTreeMap<&'static str, TierAccumulator> = BTreeMap::new();
++    for row in rows {
++        let (id, category) = (row_field(row, "id")?, row_field(row, "category")?);
++        let grades = row_grades(&row["grades"])?;
++        let control = row_grades(&row["control_grades"])?;
++        let tier = tiers.entry(tier_of(id, category, ill)).or_default();
++        tier.actual.add(&grades);
++        tier.control.add(&control);
++        tier.acceptable
++            .add(grades.acceptable(), control.acceptable());
++        tier.relevant.add(
++            grades.relevant == Some(true),
++            control.relevant == Some(true),
++        );
++        tier.per_category
++            .entry(category.to_owned())
++            .or_default()
++            .add(&grades);
++    }
++    let mut record = serde_json::Map::new();
++    for (name, t) in tiers {
++        let per_category: BTreeMap<String, Value> = t
++            .per_category
++            .iter()
++            .map(|(k, v)| (k.clone(), v.record()))
++            .collect();
++        record.insert(
++            name.to_owned(),
++            json!({
++                "actual": t.actual.record(),
++                "control_derangement": t.control.record(),
++                "paired_against_control": {
++                    "acceptable": t.acceptable.record(),
++                    "relevant": t.relevant.record(),
++                },
++                "per_category": per_category,
++            }),
++        );
++    }
++    Ok(Value::Object(record))
++}
++
++fn read_report(path: &Path) -> Result<(Value, String), Error> {
++    let bytes = fs::read(path)?;
++    let report: Value = serde_json::from_slice(&bytes)?;
++    if report["schema"] != "uor-r4.chat-grade/1" {
++        return Err(format!("{} is not a chat-grade report", path.display()).into());
++    }
++    Ok((report, uor_r4_training::sha256_bytes(&bytes)))
++}
++
++/// Write `name` into a newly claimed, then sealed and verified, report root.
++fn write_sealed(out: &Path, name: &str, record: &Value) -> Result<(), Error> {
++    report_output::claim(out)?;
++    let written = fs::write(out.join(name), serde_json::to_vec_pretty(record)?);
++    report_output::seal(out)?;
++    report_output::verify(out)?;
++    Ok(written?)
++}
++
++/// `tiers`: the per-tier summary of an existing graded report, without
++/// regrading.
++fn tiers(arguments: &[String]) -> Result<(), Error> {
++    let args = Args::parse(arguments, &["report", "ill_posed", "out"])?;
++    let path = PathBuf::from(args.required("report")?);
++    let ill = ill_posed(&args)?;
++    let (report, sha256) = read_report(&path)?;
++    let record = json!({
++        "schema": "uor-r4.chat-grade-tiers/1",
++        "report": {"path": path.display().to_string(), "sha256": sha256, "grader": report["grader"]},
++        "tiers": tiers_record(&ill),
++        "per_tier": tier_summary(judged_rows(&report)?, &ill.ids)?,
++    });
++    if let Some(out) = args.0.get("out") {
++        write_sealed(Path::new(out), "tiers.json", &record)?;
++    }
++    println!("{}", serde_json::to_string_pretty(&record)?);
++    Ok(())
++}
++
++/// Paired verdicts of report `a` against report `b` on the same requests
++/// (`Paired::actual_only` is `a` only, `control_only` is `b` only).
++#[derive(Default)]
++struct Compared {
++    acceptable: Paired,
++    fluent: Paired,
++    relevant: Paired,
++    /// Per category: acceptable in `a`, acceptable in `b`, rows.
++    per_category: BTreeMap<String, [u64; 3]>,
++}
++
++impl Compared {
++    fn add(&mut self, category: &str, a: &Grades, b: &Grades) {
++        self.acceptable.add(a.acceptable(), b.acceptable());
++        self.fluent
++            .add(a.fluent == Some(true), b.fluent == Some(true));
++        self.relevant
++            .add(a.relevant == Some(true), b.relevant == Some(true));
++        let entry = self.per_category.entry(category.to_owned()).or_default();
++        entry[0] += u64::from(a.acceptable());
++        entry[1] += u64::from(b.acceptable());
++        entry[2] += 1;
++    }
++
++    fn rows(&self) -> u64 {
++        let p = &self.acceptable;
++        p.actual_only + p.control_only + p.both + p.neither
++    }
++
++    fn record(&self) -> Value {
++        let pair = |p: &Paired| {
++            json!({
++                "rows": p.actual_only + p.control_only + p.both + p.neither,
++                "a": p.actual_only + p.both, "b": p.control_only + p.both,
++                "a_only": p.actual_only, "b_only": p.control_only,
++                "both": p.both, "neither": p.neither,
++                "mcnemar_exact_p": mcnemar_exact(p.actual_only, p.control_only),
++            })
++        };
++        let per_category: BTreeMap<String, Value> = self
++            .per_category
++            .iter()
++            .map(|(k, [a, b, n])| (k.clone(), json!({"a": a, "b": b, "rows": n})))
++            .collect();
++        json!({
++            "acceptable": pair(&self.acceptable),
++            "fluent": pair(&self.fluent),
++            "relevant": pair(&self.relevant),
++            "per_category_acceptable": per_category,
++        })
++    }
++}
++
++/// The user turns of a graded row (its conversation's `user` fields).
++fn row_users(row: &Value) -> Result<Vec<&str>, Error> {
++    row["conversation"]
++        .as_array()
++        .ok_or("a graded row without conversation")?
++        .iter()
++        .map(|t| {
++            t["user"]
++                .as_str()
++                .ok_or_else(|| "a turn without user".into())
++        })
++        .collect()
++}
++
++fn index_rows(rows: &[Value]) -> Result<BTreeMap<&str, &Value>, Error> {
++    let mut index = BTreeMap::new();
++    for row in rows {
++        let id = row_field(row, "id")?;
++        if index.insert(id, row).is_some() {
++            return Err(format!("a report repeats row {id}").into());
++        }
++    }
++    Ok(index)
++}
++
++/// Pair the rows of two graded reports by id within each tier (or only
++/// `tier`): an id in both must carry the same category and user turns. Rows in
++/// only one report are counted as unpaired and left out of the test.
++fn compare_rows(
++    a: &[Value],
++    b: &[Value],
++    ill: &BTreeSet<String>,
++    tier: Option<&str>,
++) -> Result<Value, Error> {
++    let (a, b) = (index_rows(a)?, index_rows(b)?);
++    let mut tiers: BTreeMap<&'static str, Compared> = BTreeMap::new();
++    let mut all = Compared::default();
++    let mut unpaired: BTreeMap<&'static str, [u64; 2]> = BTreeMap::new();
++    for (side, rows, other) in [(0usize, &a, &b), (1, &b, &a)] {
++        for (id, row) in rows {
++            let category = row_field(row, "category")?;
++            let name = tier_of(id, category, ill);
++            if tier.is_some_and(|t| t != name) {
++                continue;
++            }
++            let Some(other_row) = other.get(id) else {
++                unpaired.entry(name).or_default()[side] += 1;
++                continue;
++            };
++            if side == 1 {
++                continue;
++            }
++            if row_field(other_row, "category")? != category
++                || row_users(row)? != row_users(other_row)?
++            {
++                return Err(format!(
++                    "row {id} has a different category or user turns in the two reports"
++                )
++                .into());
++            }
++            let (ga, gb) = (
++                row_grades(&row["grades"])?,
++                row_grades(&other_row["grades"])?,
++            );
++            tiers.entry(name).or_default().add(category, &ga, &gb);
++            all.add(category, &ga, &gb);
++        }
++    }
++    if all.rows() == 0 {
++        return Err("the two reports share no rows in the selected tier".into());
++    }
++    let per_tier: BTreeMap<String, Value> = tiers
++        .iter()
++        .map(|(k, c)| (k.to_string(), c.record()))
++        .collect();
++    let unpaired: BTreeMap<String, Value> = unpaired
++        .iter()
++        .map(|(k, [x, y])| (k.to_string(), json!({"a_rows": x, "b_rows": y})))
++        .collect();
++    Ok(json!({
++        "per_tier": per_tier,
++        "all_selected": all.record(),
++        "unpaired": unpaired,
++        "rule": "rows paired by id within a tier; a_only = acceptable (or fluent, relevant) in a \
++                 but not in b; two-sided exact McNemar on the discordant counts; rows present in \
++                 only one report are excluded and counted under unpaired",
++    }))
++}
++
++/// `compare`: paired McNemar of two graded reports, per tier.
++fn compare(arguments: &[String]) -> Result<(), Error> {
++    let args = Args::parse(arguments, &["a", "b", "tier", "ill_posed", "out"])?;
++    let path_a = PathBuf::from(args.required("a")?);
++    let path_b = PathBuf::from(args.required("b")?);
++    let ill = ill_posed(&args)?;
++    let tier = args
++        .0
++        .get("tier")
++        .map(String::as_str)
++        .filter(|t| *t != "all");
++    if let Some(t) = tier {
++        if !TIERS.contains(&t) {
++            return Err(format!("unknown tier {t}; one of all, {}", TIERS.join(", ")).into());
++        }
++    }
++    let (a, sha_a) = read_report(&path_a)?;
++    let (b, sha_b) = read_report(&path_b)?;
++    let compared = compare_rows(judged_rows(&a)?, judged_rows(&b)?, &ill.ids, tier)?;
++    let same_grader = a["grader"]["model"] == b["grader"]["model"]
++        && a["grader"]["digest"] == b["grader"]["digest"];
++    let source = |r: &Value| r.get("model").or_else(|| r.get("replies")).cloned();
++    let record = json!({
++        "schema": "uor-r4.chat-grade-compare/1",
++        "a": {"path": path_a.display().to_string(), "sha256": sha_a, "grader": a["grader"], "source": source(&a)},
++        "b": {"path": path_b.display().to_string(), "sha256": sha_b, "grader": b["grader"], "source": source(&b)},
++        "same_grader": same_grader,
++        "tier": tier.unwrap_or("all"),
++        "tiers": tiers_record(&ill),
++        "compared": compared,
++    });
++    if !same_grader {
++        eprintln!("chat-grade: warning: the two reports were graded by different graders");
++    }
++    if let Some(out) = args.0.get("out") {
++        write_sealed(Path::new(out), "compare.json", &record)?;
++    }
++    println!("{}", serde_json::to_string_pretty(&record)?);
++    Ok(())
++}
++
+ #[cfg(test)]
+ mod tests {
+     use super::*;
+@@ -830,4 +1412,174 @@ mod tests {
+         );
+         assert_eq!(first_user_turn("Assistant: Hi"), None);
+     }
++
++    fn request(id: &str, category: &str) -> Request {
++        Request {
++            id: id.into(),
++            category: category.into(),
++            user_turns: vec![format!("turn of {id}")],
++        }
++    }
++
++    /// A graded row: `[fluent, relevant]` for the reply and its control.
++    fn row(id: &str, category: &str, actual: [bool; 2], control: [bool; 2]) -> Value {
++        json!({
++            "id": id, "category": category,
++            "conversation": [{"user": format!("turn of {id}"), "assistant": "a reply"}],
++            "grades": {"fluent": actual[0], "relevant": actual[1], "raw": ["", ""]},
++            "control_grades": {"fluent": control[0], "relevant": control[1], "raw": ["", ""]},
++        })
++    }
++
++    #[test]
++    fn id_lists_filter_and_tiers() {
++        let ids = parse_id_list("# comment\nheldout-002\n\n  heldout-005  \n").unwrap();
++        assert_eq!(ids.len(), 2);
++        assert!(ids.contains("heldout-005"));
++        assert!(parse_id_list("a\na\n").is_err());
++        let embedded = parse_id_list(EMBEDDED_ILL_POSED).unwrap();
++        assert_eq!(embedded.len(), 71);
++        assert!(embedded.contains("heldout-008") && !embedded.contains("heldout-000"));
++
++        let panel = vec![
++            request("talk-01", "smalltalk"),
++            request("heldout-002", "heldout_first_turn"),
++            request("heldout-003", "heldout_first_turn"),
++            request("heldout-005", "heldout_first_turn"),
++        ];
++        let (kept, matched) = filter_requests(panel.clone(), &ids, false);
++        assert_eq!(matched, 2);
++        let kept: Vec<&str> = kept.iter().map(|r| r.id.as_str()).collect();
++        assert_eq!(kept, ["talk-01", "heldout-003"]);
++        let (only, _) = filter_requests(panel, &ids, true);
++        assert_eq!(only.len(), 2);
++
++        assert_eq!(tier_of("conv-mem-01", "multi_turn_memory", &ids), "C");
++        assert_eq!(
++            tier_of("heldout-002", "heldout_first_turn", &ids),
++            "K-ill-posed"
++        );
++        assert_eq!(
++            tier_of("heldout-003", "heldout_first_turn", &ids),
++            "K-clean"
++        );
++        assert_eq!(tier_of("stretch-001", "stretch_heldout", &ids), "stretch");
++        assert_eq!(tier_of("follow-01", "follow_up", &ids), "everyday");
++    }
++
++    #[test]
++    fn tier_summary_counts_per_tier_and_control() {
++        let ill: BTreeSet<String> = ["heldout-009".to_owned()].into();
++        let rows = vec![
++            row(
++                "conv-talk-01",
++                "smalltalk_feelings",
++                [true, true],
++                [true, false],
++            ),
++            row(
++                "conv-mem-01",
++                "multi_turn_memory",
++                [true, true],
++                [true, false],
++            ),
++            row(
++                "conv-do-01",
++                "self_contained_instruction",
++                [true, false],
++                [true, true],
++            ),
++            row(
++                "heldout-001",
++                "heldout_first_turn",
++                [true, true],
++                [true, true],
++            ),
++            row(
++                "heldout-009",
++                "heldout_first_turn",
++                [false, false],
++                [true, false],
++            ),
++            row("talk-01", "smalltalk", [true, true], [true, false]),
++        ];
++        let summary = tier_summary(&rows, &ill).unwrap();
++        let c = &summary["C"];
++        assert_eq!(c["actual"]["replies"], 3);
++        assert_eq!(c["actual"]["acceptable"], 2);
++        assert_eq!(c["actual"]["relevant"], 2);
++        assert_eq!(c["control_derangement"]["acceptable"], 1);
++        let paired = &c["paired_against_control"]["acceptable"];
++        assert_eq!(paired["actual_only"], 2);
++        assert_eq!(paired["control_only"], 1);
++        assert_eq!(c["per_category"]["multi_turn_memory"]["acceptable"], 1);
++        assert_eq!(summary["K-clean"]["actual"]["acceptable"], 1);
++        assert_eq!(summary["K-ill-posed"]["actual"]["replies"], 1);
++        assert_eq!(summary["K-ill-posed"]["actual"]["fluent"], 0);
++        assert_eq!(summary["everyday"]["actual"]["replies"], 1);
++        assert!(summary.get("stretch").is_none());
++        // An unparsed verdict (null) counts as no; a missing one is an error.
++        let mut unparsed = row("conv-x", "c", [true, true], [true, true]);
++        unparsed["grades"]["relevant"] = Value::Null;
++        let s = tier_summary(std::slice::from_ref(&unparsed), &ill).unwrap();
++        assert_eq!(s["C"]["actual"]["acceptable"], 0);
++        assert_eq!(s["C"]["actual"]["unparsed_answers"], 1);
++        unparsed["grades"].as_object_mut().unwrap().remove("fluent");
++        assert!(tier_summary(&[unparsed], &ill).is_err());
++    }
++
++    #[test]
++    fn compare_pairs_by_id_within_tier() {
++        let ill: BTreeSet<String> = ["heldout-009".to_owned()].into();
++        let (ok, bad) = ([true, true], [true, false]);
++        let (mut a, mut b) = (Vec::new(), Vec::new());
++        // C: a acceptable on 9 rows that b fails, b on 1 that a fails, 2 both.
++        for i in 0..12 {
++            let id = format!("conv-do-{i:02}");
++            let (x, y) = match i {
++                0..=8 => (ok, bad),
++                9 => (bad, ok),
++                _ => (ok, ok),
++            };
++            a.push(row(&id, "self_contained_instruction", x, ok));
++            b.push(row(&id, "self_contained_instruction", y, ok));
++        }
++        a.push(row("heldout-001", "heldout_first_turn", ok, ok));
++        b.push(row("heldout-001", "heldout_first_turn", bad, ok));
++        a.push(row("heldout-009", "heldout_first_turn", bad, ok));
++        // Only in b: unpaired.
++        b.push(row("heldout-002", "heldout_first_turn", ok, ok));
++
++        let all = compare_rows(&a, &b, &ill, None).unwrap();
++        let c = &all["per_tier"]["C"]["acceptable"];
++        assert_eq!(c["rows"], 12);
++        assert_eq!(c["a_only"], 9);
++        assert_eq!(c["b_only"], 1);
++        assert_eq!(c["both"], 2);
++        let p = c["mcnemar_exact_p"].as_f64().unwrap();
++        assert!((p - mcnemar_exact(9, 1)).abs() < 1e-15 && p < 0.05);
++        assert_eq!(all["per_tier"]["C"]["fluent"]["a_only"], 0);
++        assert_eq!(all["per_tier"]["K-clean"]["acceptable"]["a_only"], 1);
++        assert_eq!(all["unpaired"]["K-ill-posed"]["a_rows"], 1);
++        assert_eq!(all["unpaired"]["K-clean"]["b_rows"], 1);
++        assert_eq!(all["all_selected"]["acceptable"]["rows"], 13);
++        assert_eq!(
++            all["per_tier"]["C"]["per_category_acceptable"]["self_contained_instruction"]["a"],
++            11
++        );
++
++        let only_c = compare_rows(&a, &b, &ill, Some("C")).unwrap();
++        assert_eq!(only_c["all_selected"]["acceptable"]["rows"], 12);
++        assert!(only_c["per_tier"].get("K-clean").is_none());
++        assert!(compare_rows(&a, &b, &ill, Some("stretch")).is_err());
++
++        // The same id with different user turns cannot be paired.
++        let mut changed = b.clone();
++        changed[0]["conversation"][0]["user"] = json!("another turn");
++        assert!(compare_rows(&a, &changed, &ill, None).is_err());
++        // A repeated id in one report is an error.
++        let mut repeated = a.clone();
++        repeated.push(a[0].clone());
++        assert!(compare_rows(&repeated, &b, &ill, None).is_err());
++    }
+ }
+diff --git a/data/panels/MANIFEST.sha256 b/data/panels/MANIFEST.sha256
+new file mode 100644
+index 000000000..e9b14cdfa
+--- /dev/null
++++ b/data/panels/MANIFEST.sha256
+@@ -0,0 +1,7 @@
++0fab9ce19546636166b18c00a6d9e60a4e78074ae913593f410556a4c065a9cf  conversational-160.json
++9b13f6913b7de70c7e662c99348312e8d62e369cc1044eebf4b92b32d713b963  conversational-160-a.json
++dac6fe421cd61229f6a8fda828dee697d7024eac0f911d100e438c0a6c5e7b28  conversational-160-b.json
++845d73ed05c9dba836dd4ef2321019a764acd360478734943d733323a0ca9a8c  conversational-160-keys.tsv
++2164c9acb8cfaf39b9f3c54101c7af7cffb8fe9bbd19a3cc65df216ab6ba95fb  heldout-ill-posed.tsv
++d723e6de9e484d375ebd33ef078ac211a0adfa5abf37f0171c753ddd3a1f2232  heldout-ill-posed-ids.txt
++b221cab2d2954639f32933118cc15b566f023d971e8ebabf25bb0022c41880d8  heldout-clean-ids.txt
+diff --git a/data/panels/README.md b/data/panels/README.md
+new file mode 100644
+index 000000000..4fe8647cd
+--- /dev/null
++++ b/data/panels/README.md
+@@ -0,0 +1,89 @@
++# Chat evaluation panels: scale-matched tiers (#820)
++
++References #820. These files add two evaluation tiers to the ladder chat panel
++(`~/uor-r4-local/ladder/panel/`, graded by `chat-grade`). The original panel files are
++unchanged. Step 0a ([taxonomy](../../docs/research/step0/0a-panel-taxonomy.md)) found that
++the 232-request panel is dominated by open-domain knowledge requests and that about a quarter
++of the failing heldout rows are ill-posed. A 30M–100M model trained mostly on TinyStories and
++chat data cannot be expected to answer open-domain knowledge requests, so on that panel a
++change in conversation or mechanism barely moves the score.
++
++## Tier C: conversational panel (`conversational-160*.json`)
++
++- **What it is:** 160 new requests that need no world knowledge. Each one is answerable from
++  the conversation itself or from general conversational sense.
++- **Format:** the `chat-grade` request format (`id`, `category`, `user_turns`). Ids are
++  `conv-*`, which is how `chat-grade` assigns tier C.
++- **Files:** `conversational-160.json` holds all 160 rows. A `chat-grade` panel file is capped
++  at 128 requests, so `conversational-160-a.json` (rows 1–80) and `conversational-160-b.json`
++  (rows 81–160) split it for loading; pass both together.
++- **Row order:** rows interleave round-robin by category, so the derangement control's
++  neighbouring row is always from a different category. Otherwise two greetings could stand
++  as each other's "relevant" control.
++- **Multi-turn rows:** 36 rows have 2–4 user turns. `reply_panel` answers each turn with the
++  model's own greedy reply, so the last reply is graded on the model's real history.
++
++| Category | Rows | Multi-turn | Tests |
++|---|---|---|---|
++| `smalltalk_feelings` | 26 | 0 | greetings, feelings, small news |
++| `multi_turn_memory` | 30 | 30 | the last turn needs a fact or plan stated in an earlier user turn |
++| `self_contained_instruction` | 30 | 0 | rewrite politer, list three, count words in a given sentence, rhyme, yes/no about a fact stated in the turn |
++| `clarify_or_on_topic` | 24 | 3 | an ambiguous request should get a sensible clarifying question; on-topic follow-ups |
++| `story_continuation` | 26 | 2 | short TinyStories-register stories and continuations |
++| `unknowable_or_impossible` | 24 | 1 | personal facts with no context ("what did I eat yesterday?") or physically impossible asks; the reply should say it does not know or cannot |
++
++`conversational-160-keys.tsv` is the author's note of the expected content of each
++`multi_turn_memory` last reply. `chat-grade` does not read it. The grader judges fluency and
++relevance only, not whether a recalled fact is correct, so this file is there for a later
++exact-recall check.
++
++**Freeze statement.** The panel was authored on 2026-10-05 from the category specification
++alone, before any model had replied to any of these requests. The author had read the Step 0a
++labels and notes on the old panel, but did not see any model output for these requests.
++`chat-grade check` (tokenizer and context only, no model) is the only tool that has read them.
++The sha256 values are in `MANIFEST.sha256`. Any edit makes a new panel with a new name.
++
++## Tier K: clean open panel (`heldout-*-ids.txt`)
++
++- **What it is:** the 200 heldout-200 rows, split into K-clean and K-ill-posed. A row is
++  ill-posed when its request refers to material it does not contain: a letter salutation
++  only, "the following X:" with X missing, a `[placeholder]` template, an
++  "edit this essay" with no essay, or a fragment of a document.
++- **`heldout-ill-posed.tsv`:** each ill-posed id with its source.
++  - `0a-29m` / `0a-96m` / both: the Step 0a label `ill=1` (55 ids). 0a labelled failing rows
++    only, and the two models' flags never conflict on a row both labelled.
++  - `screen`: 16 further ids. These rows were accepted by both 0a models, so 0a never
++    labelled them. I applied the same criterion to the request text alone, without reading
++    the replies; the note column gives the reason for each.
++- **`heldout-ill-posed-ids.txt`:** the 71 ids of tier K-ill-posed. `chat-grade` embeds this
++  file as its default list; `ill_posed=` overrides it.
++- **`heldout-clean-ids.txt`:** the 129 ids of tier K-clean.
++
++To grade only the clean rows, pass `exclude=data/panels/heldout-ill-posed-ids.txt` to
++`chat-grade grade` or `reply`. Alternatively, write a new panel file with
++`chat-grade filter out=NEW.json requests=heldout-200-a.json,heldout-200-b.json exclude=...`.
++Neither changes the original panel files.
++
++## Scoring per tier
++
++The `grade` and `grade-replies` reports keep every field they had and add two more:
++`per_tier` (the actual, control and paired-against-control results per tier, with per-category
++results inside each tier) and `tiers` (the tier rule, plus the source and sha256 of the
++ill-posed list). The other subcommands:
++
++```text
++chat-grade tiers report=REPORT.json [out=NEW_ROOT]           # re-tier an existing report, no regrading
++chat-grade compare a=A/report.json b=B/report.json [tier=C] [out=NEW_ROOT]
++chat-grade check requests=conversational-160-a.json,conversational-160-b.json tokenizer=T.json context=384
++```
++
++`compare` pairs the rows of the two reports by id within each tier. It gives two-sided exact
++McNemar results for acceptable, fluent and relevant, and per-category acceptable counts. A
++row present in only one report is counted under `unpaired` and left out of the test. If the
++two reports were graded by different graders, `compare` warns and records
++`same_grader: false`.
++
++## Copies
++
++The copies in `~/uor-r4-local/ladder/panel/` are byte-identical to these files; see
++`MANIFEST.sha256`.
+diff --git a/data/panels/conversational-160-a.json b/data/panels/conversational-160-a.json
+new file mode 100644
+index 000000000..6a7b3a26a
+--- /dev/null
++++ b/data/panels/conversational-160-a.json
+@@ -0,0 +1,82 @@
++[
++ {"id": "conv-talk-01", "category": "smalltalk_feelings", "user_turns": ["Hello! How is your day going?"]},
++ {"id": "conv-mem-01", "category": "multi_turn_memory", "user_turns": ["My name is Lily.", "What is my name?"]},
++ {"id": "conv-do-01", "category": "self_contained_instruction", "user_turns": ["Please say this in a kinder way: Give me that toy now."]},
++ {"id": "conv-clar-01", "category": "clarify_or_on_topic", "user_turns": ["Can you help me with it?"]},
++ {"id": "conv-story-01", "category": "story_continuation", "user_turns": ["Once upon a time, there was a little bunny who lost his carrot. What happened next?"]},
++ {"id": "conv-unk-01", "category": "unknowable_or_impossible", "user_turns": ["What did I eat for breakfast yesterday?"]},
++ {"id": "conv-talk-02", "category": "smalltalk_feelings", "user_turns": ["Hi there. I am feeling happy today."]},
++ {"id": "conv-mem-02", "category": "multi_turn_memory", "user_turns": ["I have a dog called Max.", "He likes to play fetch.", "What is my dog's name?"]},
++ {"id": "conv-do-02", "category": "self_contained_instruction", "user_turns": ["List three colors."]},
++ {"id": "conv-clar-02", "category": "clarify_or_on_topic", "user_turns": ["I want to make something. What do I need?"]},
++ {"id": "conv-story-02", "category": "story_continuation", "user_turns": ["Tell me a short story about a girl and her red kite."]},
++ {"id": "conv-unk-02", "category": "unknowable_or_impossible", "user_turns": ["What is my mom's name?"]},
++ {"id": "conv-talk-03", "category": "smalltalk_feelings", "user_turns": ["Good evening! I just got home from school."]},
++ {"id": "conv-mem-03", "category": "multi_turn_memory", "user_turns": ["My favorite color is green.", "Can you name something that has my favorite color?"]},
++ {"id": "conv-do-03", "category": "self_contained_instruction", "user_turns": ["How many words are in this sentence: The cat sat on the mat."]},
++ {"id": "conv-clar-03", "category": "clarify_or_on_topic", "user_turns": ["Which one is better?"]},
++ {"id": "conv-story-03", "category": "story_continuation", "user_turns": ["Finish this story: Tom found a small box under his bed. He opened it and"]},
++ {"id": "conv-unk-03", "category": "unknowable_or_impossible", "user_turns": ["Where did I put my keys?"]},
++ {"id": "conv-talk-04", "category": "smalltalk_feelings", "user_turns": ["I feel a little sad because my friend did not call me."]},
++ {"id": "conv-mem-04", "category": "multi_turn_memory", "user_turns": ["I am going to visit my aunt on Saturday.", "When am I visiting my aunt?"]},
++ {"id": "conv-do-04", "category": "self_contained_instruction", "user_turns": ["Make a short rhyme with the word cat."]},
++ {"id": "conv-clar-04", "category": "clarify_or_on_topic", "user_turns": ["Tell me about the thing we talked about."]},
++ {"id": "conv-story-04", "category": "story_continuation", "user_turns": ["Tell me a story about a kind dog who helps a lost kitten."]},
++ {"id": "conv-unk-04", "category": "unknowable_or_impossible", "user_turns": ["What color is my shirt right now?"]},
++ {"id": "conv-talk-05", "category": "smalltalk_feelings", "user_turns": ["Thank you for talking with me."]},
++ {"id": "conv-mem-05", "category": "multi_turn_memory", "user_turns": ["I like apples but I do not like bananas.", "Which fruit do I not like?"]},
++ {"id": "conv-do-05", "category": "self_contained_instruction", "user_turns": ["Tom has a red hat. Is Tom's hat red? Answer yes or no."]},
++ {"id": "conv-clar-05", "category": "clarify_or_on_topic", "user_turns": ["Can you fix this?"]},
++ {"id": "conv-story-05", "category": "story_continuation", "user_turns": ["Continue the story: The little bird wanted to fly, but it was scared."]},
++ {"id": "conv-unk-05", "category": "unknowable_or_impossible", "user_turns": ["How many people are in my room?"]},
++ {"id": "conv-talk-06", "category": "smalltalk_feelings", "user_turns": ["I am so tired after playing outside all day."]},
++ {"id": "conv-mem-06", "category": "multi_turn_memory", "user_turns": ["My sister is named Rosa and she is six.", "How old is Rosa?"]},
++ {"id": "conv-do-06", "category": "self_contained_instruction", "user_turns": ["Say hello in a happy way."]},
++ {"id": "conv-clar-06", "category": "clarify_or_on_topic", "user_turns": ["I need a name."]},
++ {"id": "conv-story-06", "category": "story_continuation", "user_turns": ["Write a short story about a boy who shares his toys."]},
++ {"id": "conv-unk-06", "category": "unknowable_or_impossible", "user_turns": ["What am I thinking about right now?"]},
++ {"id": "conv-talk-07", "category": "smalltalk_feelings", "user_turns": ["Guess what? I learned to ride my bike today!"]},
++ {"id": "conv-mem-07", "category": "multi_turn_memory", "user_turns": ["I want to plant flowers in my garden.", "I have red and yellow seeds.", "What colors will my flowers be?"]},
++ {"id": "conv-do-07", "category": "self_contained_instruction", "user_turns": ["Write one sentence about a sunny day."]},
++ {"id": "conv-clar-07", "category": "clarify_or_on_topic", "user_turns": ["Is it too big?"]},
++ {"id": "conv-story-07", "category": "story_continuation", "user_turns": ["Once there was a tiny frog in a big pond. Tell me what the frog did one day."]},
++ {"id": "conv-unk-07", "category": "unknowable_or_impossible", "user_turns": ["Can you come to my house and play?"]},
++ {"id": "conv-talk-08", "category": "smalltalk_feelings", "user_turns": ["I am nervous about my test tomorrow."]},
++ {"id": "conv-mem-08", "category": "multi_turn_memory", "user_turns": ["Let's pretend you are a friendly dragon.", "Hello, dragon! What do you like to eat?"]},
++ {"id": "conv-do-08", "category": "self_contained_instruction", "user_turns": ["Name three animals that could be a pet."]},
++ {"id": "conv-clar-08", "category": "clarify_or_on_topic", "user_turns": ["What should I bring?"]},
++ {"id": "conv-story-08", "category": "story_continuation", "user_turns": ["Tell me a bedtime story about the moon."]},
++ {"id": "conv-unk-08", "category": "unknowable_or_impossible", "user_turns": ["Can you give me a real hug?"]},
++ {"id": "conv-talk-09", "category": "smalltalk_feelings", "user_turns": ["Good night! I am going to bed now."]},
++ {"id": "conv-mem-09", "category": "multi_turn_memory", "user_turns": ["I have three pencils.", "I gave one pencil to my friend.", "How many pencils do I have now?"]},
++ {"id": "conv-do-09", "category": "self_contained_instruction", "user_turns": ["Put these words in order to make a sentence: dog the ran fast."]},
++ {"id": "conv-clar-09", "category": "clarify_or_on_topic", "user_turns": ["Should I do it now or later?"]},
++ {"id": "conv-story-09", "category": "story_continuation", "user_turns": ["Finish the story: Lily and her mom went to the park. Suddenly, it started to rain."]},
++ {"id": "conv-unk-09", "category": "unknowable_or_impossible", "user_turns": ["What was the name of my first pet?"]},
++ {"id": "conv-talk-10", "category": "smalltalk_feelings", "user_turns": ["I made a cake with my mom and it was yummy."]},
++ {"id": "conv-mem-10", "category": "multi_turn_memory", "user_turns": ["My best friend is called Ben.", "Ben and I built a fort today.", "Who did I build the fort with?"]},
++ {"id": "conv-do-10", "category": "self_contained_instruction", "user_turns": ["Make this sentence shorter: The big brown dog ran very very fast down the long road."]},
++ {"id": "conv-clar-10", "category": "clarify_or_on_topic", "user_turns": ["Can you make it longer?"]},
++ {"id": "conv-story-10", "category": "story_continuation", "user_turns": ["Make up a short story about a teddy bear who wants a friend."]},
++ {"id": "conv-unk-10", "category": "unknowable_or_impossible", "user_turns": ["Can you open my window for me?"]},
++ {"id": "conv-talk-11", "category": "smalltalk_feelings", "user_turns": ["Hey! Can we talk for a little while?"]},
++ {"id": "conv-mem-11", "category": "multi_turn_memory", "user_turns": ["I am planning a picnic.", "I will bring sandwiches and juice.", "What am I bringing to the picnic?"]},
++ {"id": "conv-do-11", "category": "self_contained_instruction", "user_turns": ["Give me a nice name for a teddy bear."]},
++ {"id": "conv-clar-11", "category": "clarify_or_on_topic", "user_turns": ["Where should I put them?"]},
++ {"id": "conv-story-11", "category": "story_continuation", "user_turns": ["Tell me a story with a happy ending about a lost ball."]},
++ {"id": "conv-unk-11", "category": "unknowable_or_impossible", "user_turns": ["What will I dream about tonight?"]},
++ {"id": "conv-talk-12", "category": "smalltalk_feelings", "user_turns": ["My cat is sleeping on my lap right now."]},
++ {"id": "conv-mem-12", "category": "multi_turn_memory", "user_turns": ["Please call me Captain Sam from now on.", "What should you call me?"]},
++ {"id": "conv-do-12", "category": "self_contained_instruction", "user_turns": ["Say thank you to my friend Anna for her gift."]},
++ {"id": "conv-clar-12", "category": "clarify_or_on_topic", "user_turns": ["I want to play a game with you."]},
++ {"id": "conv-story-12", "category": "story_continuation", "user_turns": ["Continue: The old tree in the garden could talk. One morning it said"]},
++ {"id": "conv-unk-12", "category": "unknowable_or_impossible", "user_turns": ["Can you taste this cookie and tell me if it is good?"]},
++ {"id": "conv-talk-13", "category": "smalltalk_feelings", "user_turns": ["I feel lonely today. Will you talk with me?"]},
++ {"id": "conv-mem-13", "category": "multi_turn_memory", "user_turns": ["My cat is orange and very fluffy.", "Tell me one thing about my cat."]},
++ {"id": "conv-do-13", "category": "self_contained_instruction", "user_turns": ["Write a short sentence that uses the word happy."]},
++ {"id": "conv-clar-13", "category": "clarify_or_on_topic", "user_turns": ["Help me pick one."]},
++ {"id": "conv-story-13", "category": "story_continuation", "user_turns": ["Tell me a short story about a fish named Bubbles."]},
++ {"id": "conv-unk-13", "category": "unknowable_or_impossible", "user_turns": ["What did my friend say to me this morning?"]},
++ {"id": "conv-talk-14", "category": "smalltalk_feelings", "user_turns": ["I am excited because it is my birthday next week."]},
++ {"id": "conv-mem-14", "category": "multi_turn_memory", "user_turns": ["I live in a small blue house.", "What color is my house?"]}
++]
+diff --git a/data/panels/conversational-160-b.json b/data/panels/conversational-160-b.json
+new file mode 100644
+index 000000000..9efbe292f
+--- /dev/null
++++ b/data/panels/conversational-160-b.json
+@@ -0,0 +1,82 @@
++[
++ {"id": "conv-do-14", "category": "self_contained_instruction", "user_turns": ["Count from one to five."]},
++ {"id": "conv-clar-14", "category": "clarify_or_on_topic", "user_turns": ["How long will it take?"]},
++ {"id": "conv-story-14", "category": "story_continuation", "user_turns": ["Write a story about two friends who build a sandcastle."]},
++ {"id": "conv-unk-14", "category": "unknowable_or_impossible", "user_turns": ["How old am I?"]},
++ {"id": "conv-talk-15", "category": "smalltalk_feelings", "user_turns": ["Sorry I was gone so long. I am back now."]},
++ {"id": "conv-mem-15", "category": "multi_turn_memory", "user_turns": ["I am learning to play the piano.", "I practice every morning.", "When do I practice?"]},
++ {"id": "conv-do-15", "category": "self_contained_instruction", "user_turns": ["Sara has two cats and one dog. How many pets does Sara have?"]},
++ {"id": "conv-clar-15", "category": "clarify_or_on_topic", "user_turns": ["I don't like it. Can you change it?"]},
++ {"id": "conv-story-15", "category": "story_continuation", "user_turns": ["Once upon a time, a little car did not want to go fast. What happened?"]},
++ {"id": "conv-unk-15", "category": "unknowable_or_impossible", "user_turns": ["Can you see my drawing?"]},
++ {"id": "conv-talk-16", "category": "smalltalk_feelings", "user_turns": ["I lost my favorite toy and I feel upset."]},
++ {"id": "conv-mem-16", "category": "multi_turn_memory", "user_turns": ["I did not sleep well last night.", "I feel sleepy now.", "Why do you think I feel sleepy?"]},
++ {"id": "conv-do-16", "category": "self_contained_instruction", "user_turns": ["The ball is under the bed. Where is the ball?"]},
++ {"id": "conv-clar-16", "category": "clarify_or_on_topic", "user_turns": ["Write something for my friend."]},
++ {"id": "conv-story-16", "category": "story_continuation", "user_turns": ["Tell me a story about a girl who is scared of the dark."]},
++ {"id": "conv-unk-16", "category": "unknowable_or_impossible", "user_turns": ["What is in my backpack?"]},
++ {"id": "conv-talk-17", "category": "smalltalk_feelings", "user_turns": ["It is a sunny day and I want to go to the park."]},
++ {"id": "conv-mem-17", "category": "multi_turn_memory", "user_turns": ["I want a pet.", "I think a rabbit would be nice.", "Which pet did I say would be nice?"]},
++ {"id": "conv-do-17", "category": "self_contained_instruction", "user_turns": ["Make a rhyme with the word sun."]},
++ {"id": "conv-clar-17", "category": "clarify_or_on_topic", "user_turns": ["Let's talk about the sea.", "What would you like to see there?"]},
++ {"id": "conv-story-17", "category": "story_continuation", "user_turns": ["Finish this story: The cat climbed up the tree and could not get down."]},
++ {"id": "conv-unk-17", "category": "unknowable_or_impossible", "user_turns": ["Can you make my homework disappear?"]},
++ {"id": "conv-talk-18", "category": "smalltalk_feelings", "user_turns": ["I am bored. What should we talk about?"]},
++ {"id": "conv-mem-18", "category": "multi_turn_memory", "user_turns": ["My teacher's name is Mrs. Green.", "She read us a story today.", "Who read us a story?"]},
++ {"id": "conv-do-18", "category": "self_contained_instruction", "user_turns": ["Write a polite way to ask someone to close the door."]},
++ {"id": "conv-clar-18", "category": "clarify_or_on_topic", "user_turns": ["I want to talk about my garden.", "What should I grow first?"]},
++ {"id": "conv-story-18", "category": "story_continuation", "user_turns": ["Tell me a funny story about a duck who wears a hat."]},
++ {"id": "conv-unk-18", "category": "unknowable_or_impossible", "user_turns": ["Which shoes am I wearing today?"]},
++ {"id": "conv-talk-19", "category": "smalltalk_feelings", "user_turns": ["How are you feeling right now?"]},
++ {"id": "conv-mem-19", "category": "multi_turn_memory", "user_turns": ["I like to draw cars.", "Can you give me an idea for my next drawing?"]},
++ {"id": "conv-do-19", "category": "self_contained_instruction", "user_turns": ["Tell me two things you can do on a rainy day."]},
++ {"id": "conv-clar-19", "category": "clarify_or_on_topic", "user_turns": ["Is that a good idea?"]},
++ {"id": "conv-story-19", "category": "story_continuation", "user_turns": ["Make up a story about a boy who plants a seed."]},
++ {"id": "conv-unk-19", "category": "unknowable_or_impossible", "user_turns": ["What did we talk about last week?"]},
++ {"id": "conv-talk-20", "category": "smalltalk_feelings", "user_turns": ["I helped my little brother tie his shoes today."]},
++ {"id": "conv-mem-20", "category": "multi_turn_memory", "user_turns": ["Let's make a list. The first thing is milk.", "Add eggs to the list.", "What is on the list now?"]},
++ {"id": "conv-do-20", "category": "self_contained_instruction", "user_turns": ["Change this sentence to be about a girl: The boy ate his lunch."]},
++ {"id": "conv-clar-20", "category": "clarify_or_on_topic", "user_turns": ["Make it more fun."]},
++ {"id": "conv-story-20", "category": "story_continuation", "user_turns": ["Continue the story: Max the puppy saw a big red ball in the yard."]},
++ {"id": "conv-unk-20", "category": "unknowable_or_impossible", "user_turns": ["Can you turn off the lights in my room?"]},
++ {"id": "conv-talk-21", "category": "smalltalk_feelings", "user_turns": ["I am scared of the thunder outside."]},
++ {"id": "conv-mem-21", "category": "multi_turn_memory", "user_turns": ["I am going to the zoo tomorrow.", "I want to see the lions.", "Which animal do I want to see?"]},
++ {"id": "conv-do-21", "category": "self_contained_instruction", "user_turns": ["Ben is taller than Sam. Who is shorter?"]},
++ {"id": "conv-clar-21", "category": "clarify_or_on_topic", "user_turns": ["Can you tell me more?"]},
++ {"id": "conv-story-21", "category": "story_continuation", "user_turns": ["Tell me a story about a snowman who wants to see summer."]},
++ {"id": "conv-unk-21", "category": "unknowable_or_impossible", "user_turns": ["I have a secret.", "Can you guess what my secret is?"]},
++ {"id": "conv-talk-22", "category": "smalltalk_feelings", "user_turns": ["Bye! I have to go eat dinner now."]},
++ {"id": "conv-mem-22", "category": "multi_turn_memory", "user_turns": ["My favorite number is seven.", "What is my favorite number plus one?"]},
++ {"id": "conv-do-22", "category": "self_contained_instruction", "user_turns": ["Write a short goodbye message for a friend who is moving away."]},
++ {"id": "conv-clar-22", "category": "clarify_or_on_topic", "user_turns": ["Which way should I go?"]},
++ {"id": "conv-story-22", "category": "story_continuation", "user_turns": ["Write a short story where a girl learns to say sorry."]},
++ {"id": "conv-unk-22", "category": "unknowable_or_impossible", "user_turns": ["What is my favorite song?"]},
++ {"id": "conv-talk-23", "category": "smalltalk_feelings", "user_turns": ["I am proud of myself because I cleaned my room."]},
++ {"id": "conv-mem-23", "category": "multi_turn_memory", "user_turns": ["I have a red ball and a blue ball.", "I gave the red ball to Tom.", "Which ball do I still have?"]},
++ {"id": "conv-do-23", "category": "self_contained_instruction", "user_turns": ["Is this a question or a statement: I like ice cream."]},
++ {"id": "conv-clar-23", "category": "clarify_or_on_topic", "user_turns": ["We were talking about birthday cakes.", "Should it have one layer or two?"]},
++ {"id": "conv-story-23", "category": "story_continuation", "user_turns": ["Tell me a story about a dragon.", "What happened to the dragon at the end?"]},
++ {"id": "conv-unk-23", "category": "unknowable_or_impossible", "user_turns": ["Can you fly to the moon with me tonight?"]},
++ {"id": "conv-talk-24", "category": "smalltalk_feelings", "user_turns": ["Nice to meet you! What should I call you?"]},
++ {"id": "conv-mem-24", "category": "multi_turn_memory", "user_turns": ["Tell me a short story about a bear.", "What was the bear's name in your story?"]},
++ {"id": "conv-do-24", "category": "self_contained_instruction", "user_turns": ["List three things you might find in a kitchen."]},
++ {"id": "conv-clar-24", "category": "clarify_or_on_topic", "user_turns": ["I have a problem."]},
++ {"id": "conv-story-24", "category": "story_continuation", "user_turns": ["Once upon a time there was a princess named Sue.", "Sue found a magic key. Continue the story."]},
++ {"id": "conv-unk-24", "category": "unknowable_or_impossible", "user_turns": ["Who is standing behind me?"]},
++ {"id": "conv-talk-25", "category": "smalltalk_feelings", "user_turns": ["I had a bad dream last night and I still feel funny."]},
++ {"id": "conv-mem-25", "category": "multi_turn_memory", "user_turns": ["I am sad because it is raining.", "Can you say something to cheer me up?"]},
++ {"id": "conv-do-25", "category": "self_contained_instruction", "user_turns": ["Say this again but make it sound excited: We are going to the park."]},
++ {"id": "conv-story-25", "category": "story_continuation", "user_turns": ["Tell me a short story about a bee who is too small to carry honey."]},
++ {"id": "conv-talk-26", "category": "smalltalk_feelings", "user_turns": ["My grandma is coming to visit and I am very happy."]},
++ {"id": "conv-mem-26", "category": "multi_turn_memory", "user_turns": ["My brother is called Leo.", "My sister is called Mia.", "What is my sister's name?"]},
++ {"id": "conv-do-26", "category": "self_contained_instruction", "user_turns": ["Give me one word that means the same as big."]},
++ {"id": "conv-story-26", "category": "story_continuation", "user_turns": ["Finish the story: Ben wanted a cookie, but the jar was too high."]},
++ {"id": "conv-mem-27", "category": "multi_turn_memory", "user_turns": ["I like to swim in the summer.", "In the winter I like to make snowmen.", "What do I like to do in the winter?"]},
++ {"id": "conv-do-27", "category": "self_contained_instruction", "user_turns": ["Mia's kite is yellow. Mia's ball is green. What color is Mia's kite?"]},
++ {"id": "conv-mem-28", "category": "multi_turn_memory", "user_turns": ["I baked cookies today.", "They were chocolate.", "My friends ate them all.", "What kind of cookies did I bake?"]},
++ {"id": "conv-do-28", "category": "self_contained_instruction", "user_turns": ["Write a two-line poem about a little fish."]},
++ {"id": "conv-mem-29", "category": "multi_turn_memory", "user_turns": ["Let's play a game. I am thinking of an animal that says moo.", "Can you guess my animal?"]},
++ {"id": "conv-do-29", "category": "self_contained_instruction", "user_turns": ["Tell me the first word of this sentence: Birds sing in the morning."]},
++ {"id": "conv-mem-30", "category": "multi_turn_memory", "user_turns": ["I am going on a trip by train.", "I will leave on Monday and come back on Friday.", "What day will I come back?"]},
++ {"id": "conv-do-30", "category": "self_contained_instruction", "user_turns": ["Fix this sentence: me and him goes to school."]}
++]
+diff --git a/data/panels/conversational-160-keys.tsv b/data/panels/conversational-160-keys.tsv
+new file mode 100644
+index 000000000..ece0e463a
+--- /dev/null
++++ b/data/panels/conversational-160-keys.tsv
+@@ -0,0 +1,31 @@
++# id	expected content of the last reply (author's note, written with the panel; chat-grade does not read it)
++conv-mem-01	Lily
++conv-mem-02	Max
++conv-mem-03	green
++conv-mem-04	Saturday
++conv-mem-05	bananas
++conv-mem-06	six
++conv-mem-07	red and yellow
++conv-mem-08	answers in a dragon persona
++conv-mem-09	two
++conv-mem-10	Ben
++conv-mem-11	sandwiches and juice
++conv-mem-12	Captain Sam
++conv-mem-13	orange or fluffy
++conv-mem-14	blue
++conv-mem-15	every morning
++conv-mem-16	did not sleep well
++conv-mem-17	rabbit
++conv-mem-18	Mrs. Green
++conv-mem-19	a car idea
++conv-mem-20	milk and eggs
++conv-mem-21	lions
++conv-mem-22	eight
++conv-mem-23	blue
++conv-mem-24	the name used in its own first reply
++conv-mem-25	addresses the rain or the sadness
++conv-mem-26	Mia
++conv-mem-27	make snowmen
++conv-mem-28	chocolate
++conv-mem-29	cow
++conv-mem-30	Friday
+diff --git a/data/panels/conversational-160.json b/data/panels/conversational-160.json
+new file mode 100644
+index 000000000..3b14c8f08
+--- /dev/null
++++ b/data/panels/conversational-160.json
+@@ -0,0 +1,162 @@
++[
++ {"id": "conv-talk-01", "category": "smalltalk_feelings", "user_turns": ["Hello! How is your day going?"]},
++ {"id": "conv-mem-01", "category": "multi_turn_memory", "user_turns": ["My name is Lily.", "What is my name?"]},
++ {"id": "conv-do-01", "category": "self_contained_instruction", "user_turns": ["Please say this in a kinder way: Give me that toy now."]},
++ {"id": "conv-clar-01", "category": "clarify_or_on_topic", "user_turns": ["Can you help me with it?"]},
++ {"id": "conv-story-01", "category": "story_continuation", "user_turns": ["Once upon a time, there was a little bunny who lost his carrot. What happened next?"]},
++ {"id": "conv-unk-01", "category": "unknowable_or_impossible", "user_turns": ["What did I eat for breakfast yesterday?"]},
++ {"id": "conv-talk-02", "category": "smalltalk_feelings", "user_turns": ["Hi there. I am feeling happy today."]},
++ {"id": "conv-mem-02", "category": "multi_turn_memory", "user_turns": ["I have a dog called Max.", "He likes to play fetch.", "What is my dog's name?"]},
++ {"id": "conv-do-02", "category": "self_contained_instruction", "user_turns": ["List three colors."]},
++ {"id": "conv-clar-02", "category": "clarify_or_on_topic", "user_turns": ["I want to make something. What do I need?"]},
++ {"id": "conv-story-02", "category": "story_continuation", "user_turns": ["Tell me a short story about a girl and her red kite."]},
++ {"id": "conv-unk-02", "category": "unknowable_or_impossible", "user_turns": ["What is my mom's name?"]},
++ {"id": "conv-talk-03", "category": "smalltalk_feelings", "user_turns": ["Good evening! I just got home from school."]},
++ {"id": "conv-mem-03", "category": "multi_turn_memory", "user_turns": ["My favorite color is green.", "Can you name something that has my favorite color?"]},
++ {"id": "conv-do-03", "category": "self_contained_instruction", "user_turns": ["How many words are in this sentence: The cat sat on the mat."]},
++ {"id": "conv-clar-03", "category": "clarify_or_on_topic", "user_turns": ["Which one is better?"]},
++ {"id": "conv-story-03", "category": "story_continuation", "user_turns": ["Finish this story: Tom found a small box under his bed. He opened it and"]},
++ {"id": "conv-unk-03", "category": "unknowable_or_impossible", "user_turns": ["Where did I put my keys?"]},
++ {"id": "conv-talk-04", "category": "smalltalk_feelings", "user_turns": ["I feel a little sad because my friend did not call me."]},
++ {"id": "conv-mem-04", "category": "multi_turn_memory", "user_turns": ["I am going to visit my aunt on Saturday.", "When am I visiting my aunt?"]},
++ {"id": "conv-do-04", "category": "self_contained_instruction", "user_turns": ["Make a short rhyme with the word cat."]},
++ {"id": "conv-clar-04", "category": "clarify_or_on_topic", "user_turns": ["Tell me about the thing we talked about."]},
++ {"id": "conv-story-04", "category": "story_continuation", "user_turns": ["Tell me a story about a kind dog who helps a lost kitten."]},
++ {"id": "conv-unk-04", "category": "unknowable_or_impossible", "user_turns": ["What color is my shirt right now?"]},
++ {"id": "conv-talk-05", "category": "smalltalk_feelings", "user_turns": ["Thank you for talking with me."]},
++ {"id": "conv-mem-05", "category": "multi_turn_memory", "user_turns": ["I like apples but I do not like bananas.", "Which fruit do I not like?"]},
++ {"id": "conv-do-05", "category": "self_contained_instruction", "user_turns": ["Tom has a red hat. Is Tom's hat red? Answer yes or no."]},
++ {"id": "conv-clar-05", "category": "clarify_or_on_topic", "user_turns": ["Can you fix this?"]},
++ {"id": "conv-story-05", "category": "story_continuation", "user_turns": ["Continue the story: The little bird wanted to fly, but it was scared."]},
++ {"id": "conv-unk-05", "category": "unknowable_or_impossible", "user_turns": ["How many people are in my room?"]},
++ {"id": "conv-talk-06", "category": "smalltalk_feelings", "user_turns": ["I am so tired after playing outside all day."]},
++ {"id": "conv-mem-06", "category": "multi_turn_memory", "user_turns": ["My sister is named Rosa and she is six.", "How old is Rosa?"]},
++ {"id": "conv-do-06", "category": "self_contained_instruction", "user_turns": ["Say hello in a happy way."]},
++ {"id": "conv-clar-06", "category": "clarify_or_on_topic", "user_turns": ["I need a name."]},
++ {"id": "conv-story-06", "category": "story_continuation", "user_turns": ["Write a short story about a boy who shares his toys."]},
++ {"id": "conv-unk-06", "category": "unknowable_or_impossible", "user_turns": ["What am I thinking about right now?"]},
++ {"id": "conv-talk-07", "category": "smalltalk_feelings", "user_turns": ["Guess what? I learned to ride my bike today!"]},
++ {"id": "conv-mem-07", "category": "multi_turn_memory", "user_turns": ["I want to plant flowers in my garden.", "I have red and yellow seeds.", "What colors will my flowers be?"]},
++ {"id": "conv-do-07", "category": "self_contained_instruction", "user_turns": ["Write one sentence about a sunny day."]},
++ {"id": "conv-clar-07", "category": "clarify_or_on_topic", "user_turns": ["Is it too big?"]},
++ {"id": "conv-story-07", "category": "story_continuation", "user_turns": ["Once there was a tiny frog in a big pond. Tell me what the frog did one day."]},
++ {"id": "conv-unk-07", "category": "unknowable_or_impossible", "user_turns": ["Can you come to my house and play?"]},
++ {"id": "conv-talk-08", "category": "smalltalk_feelings", "user_turns": ["I am nervous about my test tomorrow."]},
++ {"id": "conv-mem-08", "category": "multi_turn_memory", "user_turns": ["Let's pretend you are a friendly dragon.", "Hello, dragon! What do you like to eat?"]},
++ {"id": "conv-do-08", "category": "self_contained_instruction", "user_turns": ["Name three animals that could be a pet."]},
++ {"id": "conv-clar-08", "category": "clarify_or_on_topic", "user_turns": ["What should I bring?"]},
++ {"id": "conv-story-08", "category": "story_continuation", "user_turns": ["Tell me a bedtime story about the moon."]},
++ {"id": "conv-unk-08", "category": "unknowable_or_impossible", "user_turns": ["Can you give me a real hug?"]},
++ {"id": "conv-talk-09", "category": "smalltalk_feelings", "user_turns": ["Good night! I am going to bed now."]},
++ {"id": "conv-mem-09", "category": "multi_turn_memory", "user_turns": ["I have three pencils.", "I gave one pencil to my friend.", "How many pencils do I have now?"]},
++ {"id": "conv-do-09", "category": "self_contained_instruction", "user_turns": ["Put these words in order to make a sentence: dog the ran fast."]},
++ {"id": "conv-clar-09", "category": "clarify_or_on_topic", "user_turns": ["Should I do it now or later?"]},
++ {"id": "conv-story-09", "category": "story_continuation", "user_turns": ["Finish the story: Lily and her mom went to the park. Suddenly, it started to rain."]},
++ {"id": "conv-unk-09", "category": "unknowable_or_impossible", "user_turns": ["What was the name of my first pet?"]},
++ {"id": "conv-talk-10", "category": "smalltalk_feelings", "user_turns": ["I made a cake with my mom and it was yummy."]},
++ {"id": "conv-mem-10", "category": "multi_turn_memory", "user_turns": ["My best friend is called Ben.", "Ben and I built a fort today.", "Who did I build the fort with?"]},
++ {"id": "conv-do-10", "category": "self_contained_instruction", "user_turns": ["Make this sentence shorter: The big brown dog ran very very fast down the long road."]},
++ {"id": "conv-clar-10", "category": "clarify_or_on_topic", "user_turns": ["Can you make it longer?"]},
++ {"id": "conv-story-10", "category": "story_continuation", "user_turns": ["Make up a short story about a teddy bear who wants a friend."]},
++ {"id": "conv-unk-10", "category": "unknowable_or_impossible", "user_turns": ["Can you open my window for me?"]},
++ {"id": "conv-talk-11", "category": "smalltalk_feelings", "user_turns": ["Hey! Can we talk for a little while?"]},
++ {"id": "conv-mem-11", "category": "multi_turn_memory", "user_turns": ["I am planning a picnic.", "I will bring sandwiches and juice.", "What am I bringing to the picnic?"]},
++ {"id": "conv-do-11", "category": "self_contained_instruction", "user_turns": ["Give me a nice name for a teddy bear."]},
++ {"id": "conv-clar-11", "category": "clarify_or_on_topic", "user_turns": ["Where should I put them?"]},
++ {"id": "conv-story-11", "category": "story_continuation", "user_turns": ["Tell me a story with a happy ending about a lost ball."]},
++ {"id": "conv-unk-11", "category": "unknowable_or_impossible", "user_turns": ["What will I dream about tonight?"]},
++ {"id": "conv-talk-12", "category": "smalltalk_feelings", "user_turns": ["My cat is sleeping on my lap right now."]},
++ {"id": "conv-mem-12", "category": "multi_turn_memory", "user_turns": ["Please call me Captain Sam from now on.", "What should you call me?"]},
++ {"id": "conv-do-12", "category": "self_contained_instruction", "user_turns": ["Say thank you to my friend Anna for her gift."]},
++ {"id": "conv-clar-12", "category": "clarify_or_on_topic", "user_turns": ["I want to play a game with you."]},
++ {"id": "conv-story-12", "category": "story_continuation", "user_turns": ["Continue: The old tree in the garden could talk. One morning it said"]},
++ {"id": "conv-unk-12", "category": "unknowable_or_impossible", "user_turns": ["Can you taste this cookie and tell me if it is good?"]},
++ {"id": "conv-talk-13", "category": "smalltalk_feelings", "user_turns": ["I feel lonely today. Will you talk with me?"]},
++ {"id": "conv-mem-13", "category": "multi_turn_memory", "user_turns": ["My cat is orange and very fluffy.", "Tell me one thing about my cat."]},
++ {"id": "conv-do-13", "category": "self_contained_instruction", "user_turns": ["Write a short sentence that uses the word happy."]},
++ {"id": "conv-clar-13", "category": "clarify_or_on_topic", "user_turns": ["Help me pick one."]},
++ {"id": "conv-story-13", "category": "story_continuation", "user_turns": ["Tell me a short story about a fish named Bubbles."]},
++ {"id": "conv-unk-13", "category": "unknowable_or_impossible", "user_turns": ["What did my friend say to me this morning?"]},
++ {"id": "conv-talk-14", "category": "smalltalk_feelings", "user_turns": ["I am excited because it is my birthday next week."]},
++ {"id": "conv-mem-14", "category": "multi_turn_memory", "user_turns": ["I live in a small blue house.", "What color is my house?"]},
++ {"id": "conv-do-14", "category": "self_contained_instruction", "user_turns": ["Count from one to five."]},
++ {"id": "conv-clar-14", "category": "clarify_or_on_topic", "user_turns": ["How long will it take?"]},
++ {"id": "conv-story-14", "category": "story_continuation", "user_turns": ["Write a story about two friends who build a sandcastle."]},
++ {"id": "conv-unk-14", "category": "unknowable_or_impossible", "user_turns": ["How old am I?"]},
++ {"id": "conv-talk-15", "category": "smalltalk_feelings", "user_turns": ["Sorry I was gone so long. I am back now."]},
++ {"id": "conv-mem-15", "category": "multi_turn_memory", "user_turns": ["I am learning to play the piano.", "I practice every morning.", "When do I practice?"]},
++ {"id": "conv-do-15", "category": "self_contained_instruction", "user_turns": ["Sara has two cats and one dog. How many pets does Sara have?"]},
++ {"id": "conv-clar-15", "category": "clarify_or_on_topic", "user_turns": ["I don't like it. Can you change it?"]},
++ {"id": "conv-story-15", "category": "story_continuation", "user_turns": ["Once upon a time, a little car did not want to go fast. What happened?"]},
++ {"id": "conv-unk-15", "category": "unknowable_or_impossible", "user_turns": ["Can you see my drawing?"]},
++ {"id": "conv-talk-16", "category": "smalltalk_feelings", "user_turns": ["I lost my favorite toy and I feel upset."]},
++ {"id": "conv-mem-16", "category": "multi_turn_memory", "user_turns": ["I did not sleep well last night.", "I feel sleepy now.", "Why do you think I feel sleepy?"]},
++ {"id": "conv-do-16", "category": "self_contained_instruction", "user_turns": ["The ball is under the bed. Where is the ball?"]},
++ {"id": "conv-clar-16", "category": "clarify_or_on_topic", "user_turns": ["Write something for my friend."]},
++ {"id": "conv-story-16", "category": "story_continuation", "user_turns": ["Tell me a story about a girl who is scared of the dark."]},
++ {"id": "conv-unk-16", "category": "unknowable_or_impossible", "user_turns": ["What is in my backpack?"]},
++ {"id": "conv-talk-17", "category": "smalltalk_feelings", "user_turns": ["It is a sunny day and I want to go to the park."]},
++ {"id": "conv-mem-17", "category": "multi_turn_memory", "user_turns": ["I want a pet.", "I think a rabbit would be nice.", "Which pet did I say would be nice?"]},
++ {"id": "conv-do-17", "category": "self_contained_instruction", "user_turns": ["Make a rhyme with the word sun."]},
++ {"id": "conv-clar-17", "category": "clarify_or_on_topic", "user_turns": ["Let's talk about the sea.", "What would you like to see there?"]},
++ {"id": "conv-story-17", "category": "story_continuation", "user_turns": ["Finish this story: The cat climbed up the tree and could not get down."]},
++ {"id": "conv-unk-17", "category": "unknowable_or_impossible", "user_turns": ["Can you make my homework disappear?"]},
++ {"id": "conv-talk-18", "category": "smalltalk_feelings", "user_turns": ["I am bored. What should we talk about?"]},
++ {"id": "conv-mem-18", "category": "multi_turn_memory", "user_turns": ["My teacher's name is Mrs. Green.", "She read us a story today.", "Who read us a story?"]},
++ {"id": "conv-do-18", "category": "self_contained_instruction", "user_turns": ["Write a polite way to ask someone to close the door."]},
++ {"id": "conv-clar-18", "category": "clarify_or_on_topic", "user_turns": ["I want to talk about my garden.", "What should I grow first?"]},
++ {"id": "conv-story-18", "category": "story_continuation", "user_turns": ["Tell me a funny story about a duck who wears a hat."]},
++ {"id": "conv-unk-18", "category": "unknowable_or_impossible", "user_turns": ["Which shoes am I wearing today?"]},
++ {"id": "conv-talk-19", "category": "smalltalk_feelings", "user_turns": ["How are you feeling right now?"]},
++ {"id": "conv-mem-19", "category": "multi_turn_memory", "user_turns": ["I like to draw cars.", "Can you give me an idea for my next drawing?"]},
++ {"id": "conv-do-19", "category": "self_contained_instruction", "user_turns": ["Tell me two things you can do on a rainy day."]},
++ {"id": "conv-clar-19", "category": "clarify_or_on_topic", "user_turns": ["Is that a good idea?"]},
++ {"id": "conv-story-19", "category": "story_continuation", "user_turns": ["Make up a story about a boy who plants a seed."]},
++ {"id": "conv-unk-19", "category": "unknowable_or_impossible", "user_turns": ["What did we talk about last week?"]},
++ {"id": "conv-talk-20", "category": "smalltalk_feelings", "user_turns": ["I helped my little brother tie his shoes today."]},
++ {"id": "conv-mem-20", "category": "multi_turn_memory", "user_turns": ["Let's make a list. The first thing is milk.", "Add eggs to the list.", "What is on the list now?"]},
++ {"id": "conv-do-20", "category": "self_contained_instruction", "user_turns": ["Change this sentence to be about a girl: The boy ate his lunch."]},
++ {"id": "conv-clar-20", "category": "clarify_or_on_topic", "user_turns": ["Make it more fun."]},
++ {"id": "conv-story-20", "category": "story_continuation", "user_turns": ["Continue the story: Max the puppy saw a big red ball in the yard."]},
++ {"id": "conv-unk-20", "category": "unknowable_or_impossible", "user_turns": ["Can you turn off the lights in my room?"]},
++ {"id": "conv-talk-21", "category": "smalltalk_feelings", "user_turns": ["I am scared of the thunder outside."]},
++ {"id": "conv-mem-21", "category": "multi_turn_memory", "user_turns": ["I am going to the zoo tomorrow.", "I want to see the lions.", "Which animal do I want to see?"]},
++ {"id": "conv-do-21", "category": "self_contained_instruction", "user_turns": ["Ben is taller than Sam. Who is shorter?"]},
++ {"id": "conv-clar-21", "category": "clarify_or_on_topic", "user_turns": ["Can you tell me more?"]},
++ {"id": "conv-story-21", "category": "story_continuation", "user_turns": ["Tell me a story about a snowman who wants to see summer."]},
++ {"id": "conv-unk-21", "category": "unknowable_or_impossible", "user_turns": ["I have a secret.", "Can you guess what my secret is?"]},
++ {"id": "conv-talk-22", "category": "smalltalk_feelings", "user_turns": ["Bye! I have to go eat dinner now."]},
++ {"id": "conv-mem-22", "category": "multi_turn_memory", "user_turns": ["My favorite number is seven.", "What is my favorite number plus one?"]},
++ {"id": "conv-do-22", "category": "self_contained_instruction", "user_turns": ["Write a short goodbye message for a friend who is moving away."]},
++ {"id": "conv-clar-22", "category": "clarify_or_on_topic", "user_turns": ["Which way should I go?"]},
++ {"id": "conv-story-22", "category": "story_continuation", "user_turns": ["Write a short story where a girl learns to say sorry."]},
++ {"id": "conv-unk-22", "category": "unknowable_or_impossible", "user_turns": ["What is my favorite song?"]},
++ {"id": "conv-talk-23", "category": "smalltalk_feelings", "user_turns": ["I am proud of myself because I cleaned my room."]},
++ {"id": "conv-mem-23", "category": "multi_turn_memory", "user_turns": ["I have a red ball and a blue ball.", "I gave the red ball to Tom.", "Which ball do I still have?"]},
++ {"id": "conv-do-23", "category": "self_contained_instruction", "user_turns": ["Is this a question or a statement: I like ice cream."]},
++ {"id": "conv-clar-23", "category": "clarify_or_on_topic", "user_turns": ["We were talking about birthday cakes.", "Should it have one layer or two?"]},
++ {"id": "conv-story-23", "category": "story_continuation", "user_turns": ["Tell me a story about a dragon.", "What happened to the dragon at the end?"]},
++ {"id": "conv-unk-23", "category": "unknowable_or_impossible", "user_turns": ["Can you fly to the moon with me tonight?"]},
++ {"id": "conv-talk-24", "category": "smalltalk_feelings", "user_turns": ["Nice to meet you! What should I call you?"]},
++ {"id": "conv-mem-24", "category": "multi_turn_memory", "user_turns": ["Tell me a short story about a bear.", "What was the bear's name in your story?"]},
++ {"id": "conv-do-24", "category": "self_contained_instruction", "user_turns": ["List three things you might find in a kitchen."]},
++ {"id": "conv-clar-24", "category": "clarify_or_on_topic", "user_turns": ["I have a problem."]},
++ {"id": "conv-story-24", "category": "story_continuation", "user_turns": ["Once upon a time there was a princess named Sue.", "Sue found a magic key. Continue the story."]},
++ {"id": "conv-unk-24", "category": "unknowable_or_impossible", "user_turns": ["Who is standing behind me?"]},
++ {"id": "conv-talk-25", "category": "smalltalk_feelings", "user_turns": ["I had a bad dream last night and I still feel funny."]},
++ {"id": "conv-mem-25", "category": "multi_turn_memory", "user_turns": ["I am sad because it is raining.", "Can you say something to cheer me up?"]},
++ {"id": "conv-do-25", "category": "self_contained_instruction", "user_turns": ["Say this again but make it sound excited: We are going to the park."]},
++ {"id": "conv-story-25", "category": "story_continuation", "user_turns": ["Tell me a short story about a bee who is too small to carry honey."]},
++ {"id": "conv-talk-26", "category": "smalltalk_feelings", "user_turns": ["My grandma is coming to visit and I am very happy."]},
++ {"id": "conv-mem-26", "category": "multi_turn_memory", "user_turns": ["My brother is called Leo.", "My sister is called Mia.", "What is my sister's name?"]},
++ {"id": "conv-do-26", "category": "self_contained_instruction", "user_turns": ["Give me one word that means the same as big."]},
++ {"id": "conv-story-26", "category": "story_continuation", "user_turns": ["Finish the story: Ben wanted a cookie, but the jar was too high."]},
++ {"id": "conv-mem-27", "category": "multi_turn_memory", "user_turns": ["I like to swim in the summer.", "In the winter I like to make snowmen.", "What do I like to do in the winter?"]},
++ {"id": "conv-do-27", "category": "self_contained_instruction", "user_turns": ["Mia's kite is yellow. Mia's ball is green. What color is Mia's kite?"]},
++ {"id": "conv-mem-28", "category": "multi_turn_memory", "user_turns": ["I baked cookies today.", "They were chocolate.", "My friends ate them all.", "What kind of cookies did I bake?"]},
++ {"id": "conv-do-28", "category": "self_contained_instruction", "user_turns": ["Write a two-line poem about a little fish."]},
++ {"id": "conv-mem-29", "category": "multi_turn_memory", "user_turns": ["Let's play a game. I am thinking of an animal that says moo.", "Can you guess my animal?"]},
++ {"id": "conv-do-29", "category": "self_contained_instruction", "user_turns": ["Tell me the first word of this sentence: Birds sing in the morning."]},
++ {"id": "conv-mem-30", "category": "multi_turn_memory", "user_turns": ["I am going on a trip by train.", "I will leave on Monday and come back on Friday.", "What day will I come back?"]},
++ {"id": "conv-do-30", "category": "self_contained_instruction", "user_turns": ["Fix this sentence: me and him goes to school."]}
++]
+diff --git a/data/panels/heldout-clean-ids.txt b/data/panels/heldout-clean-ids.txt
+new file mode 100644
+index 000000000..cc209e8f0
+--- /dev/null
++++ b/data/panels/heldout-clean-ids.txt
+@@ -0,0 +1,130 @@
++# heldout-200 ids not in heldout-ill-posed-ids.txt (tier K-clean)
++heldout-000
++heldout-001
++heldout-003
++heldout-004
++heldout-005
++heldout-007
++heldout-010
++heldout-011
++heldout-016
++heldout-017
++heldout-018
++heldout-020
++heldout-022
++heldout-025
++heldout-026
++heldout-027
++heldout-028
++heldout-029
++heldout-032
++heldout-033
++heldout-036
++heldout-040
++heldout-041
++heldout-042
++heldout-043
++heldout-044
++heldout-045
++heldout-048
++heldout-052
++heldout-053
++heldout-055
++heldout-057
++heldout-058
++heldout-060
++heldout-061
++heldout-062
++heldout-064
++heldout-065
++heldout-070
++heldout-071
++heldout-072
++heldout-075
++heldout-076
++heldout-077
++heldout-081
++heldout-084
++heldout-086
++heldout-087
++heldout-088
++heldout-089
++heldout-090
++heldout-092
++heldout-093
++heldout-094
++heldout-096
++heldout-097
++heldout-098
++heldout-099
++heldout-101
++heldout-103
++heldout-104
++heldout-106
++heldout-108
++heldout-109
++heldout-111
++heldout-113
++heldout-115
++heldout-117
++heldout-119
++heldout-120
++heldout-121
++heldout-122
++heldout-123
++heldout-124
++heldout-125
++heldout-126
++heldout-128
++heldout-130
++heldout-132
++heldout-133
++heldout-134
++heldout-135
++heldout-136
++heldout-138
++heldout-139
++heldout-141
++heldout-142
++heldout-143
++heldout-145
++heldout-146
++heldout-148
++heldout-149
++heldout-150
++heldout-151
++heldout-152
++heldout-153
++heldout-155
++heldout-157
++heldout-158
++heldout-159
++heldout-160
++heldout-161
++heldout-164
++heldout-165
++heldout-167
++heldout-168
++heldout-169
++heldout-170
++heldout-171
++heldout-172
++heldout-173
++heldout-174
++heldout-175
++heldout-176
++heldout-177
++heldout-178
++heldout-180
++heldout-183
++heldout-184
++heldout-185
++heldout-186
++heldout-187
++heldout-188
++heldout-192
++heldout-193
++heldout-194
++heldout-195
++heldout-197
++heldout-198
+diff --git a/data/panels/heldout-ill-posed-ids.txt b/data/panels/heldout-ill-posed-ids.txt
+new file mode 100644
+index 000000000..d837b0f13
+--- /dev/null
++++ b/data/panels/heldout-ill-posed-ids.txt
+@@ -0,0 +1,72 @@
++# heldout-200 ids whose request references material that is not in it (tier K-ill-posed)
++heldout-002
++heldout-006
++heldout-008
++heldout-009
++heldout-012
++heldout-013
++heldout-014
++heldout-015
++heldout-019
++heldout-021
++heldout-023
++heldout-024
++heldout-030
++heldout-031
++heldout-034
++heldout-035
++heldout-037
++heldout-038
++heldout-039
++heldout-046
++heldout-047
++heldout-049
++heldout-050
++heldout-051
++heldout-054
++heldout-056
++heldout-059
++heldout-063
++heldout-066
++heldout-067
++heldout-068
++heldout-069
++heldout-073
++heldout-074
++heldout-078
++heldout-079
++heldout-080
++heldout-082
++heldout-083
++heldout-085
++heldout-091
++heldout-095
++heldout-100
++heldout-102
++heldout-105
++heldout-107
++heldout-110
++heldout-112
++heldout-114
++heldout-116
++heldout-118
++heldout-127
++heldout-129
++heldout-131
++heldout-137
++heldout-140
++heldout-144
++heldout-147
++heldout-154
++heldout-156
++heldout-162
++heldout-163
++heldout-166
++heldout-179
++heldout-181
++heldout-182
++heldout-189
++heldout-190
++heldout-191
++heldout-196
++heldout-199
+diff --git a/data/panels/heldout-ill-posed.tsv b/data/panels/heldout-ill-posed.tsv
+new file mode 100644
+index 000000000..f670ed65a
+--- /dev/null
++++ b/data/panels/heldout-ill-posed.tsv
+@@ -0,0 +1,72 @@
++# id	source	note
++heldout-002	screen	constraint template with no task; [forbidden_words] placeholder
++heldout-006	screen	letter salutation only
++heldout-008	0a-29m+0a-96m	0a label ill=1
++heldout-009	screen	letter salutation only
++heldout-012	0a-29m+0a-96m	0a label ill=1
++heldout-013	0a-29m+0a-96m	0a label ill=1
++heldout-014	0a-29m+0a-96m	0a label ill=1
++heldout-015	screen	[city] placeholder
++heldout-019	screen	letter salutation only
++heldout-021	0a-29m+0a-96m	0a label ill=1
++heldout-023	0a-29m+0a-96m	0a label ill=1
++heldout-024	screen	first line of an announcement post; no request
++heldout-030	screen	'Given the text:' with the question missing
++heldout-031	0a-96m	0a label ill=1
++heldout-034	0a-29m+0a-96m	0a label ill=1
++heldout-035	0a-29m+0a-96m	0a label ill=1
++heldout-037	0a-29m+0a-96m	0a label ill=1
++heldout-038	0a-29m+0a-96m	0a label ill=1
++heldout-039	0a-29m	0a label ill=1
++heldout-046	0a-29m+0a-96m	0a label ill=1
++heldout-047	screen	salutation only
++heldout-049	0a-29m+0a-96m	0a label ill=1
++heldout-050	screen	salutation only
++heldout-051	0a-29m+0a-96m	0a label ill=1
++heldout-054	0a-29m+0a-96m	0a label ill=1
++heldout-056	0a-29m+0a-96m	0a label ill=1
++heldout-059	0a-96m	0a label ill=1
++heldout-063	0a-29m+0a-96m	0a label ill=1
++heldout-066	0a-29m+0a-96m	0a label ill=1
++heldout-067	0a-29m+0a-96m	0a label ill=1
++heldout-068	0a-29m+0a-96m	0a label ill=1
++heldout-069	0a-29m	0a label ill=1
++heldout-073	screen	asks to review a description that is not included
++heldout-074	0a-29m	0a label ill=1
++heldout-078	0a-29m+0a-96m	0a label ill=1
++heldout-079	0a-29m+0a-96m	0a label ill=1
++heldout-080	0a-29m+0a-96m	0a label ill=1
++heldout-082	0a-96m	0a label ill=1
++heldout-083	0a-96m	0a label ill=1
++heldout-085	0a-29m+0a-96m	0a label ill=1
++heldout-091	0a-29m+0a-96m	0a label ill=1
++heldout-095	0a-29m+0a-96m	0a label ill=1
++heldout-100	screen	salutation only
++heldout-102	screen	letter salutation only
++heldout-105	0a-29m+0a-96m	0a label ill=1
++heldout-107	0a-29m+0a-96m	0a label ill=1
++heldout-110	0a-29m	0a label ill=1
++heldout-112	0a-29m+0a-96m	0a label ill=1
++heldout-114	0a-29m+0a-96m	0a label ill=1
++heldout-116	screen	a statement fragment from a document; no request
++heldout-118	screen	asks to refine text that is not included
++heldout-127	0a-96m	0a label ill=1
++heldout-129	0a-29m+0a-96m	0a label ill=1
++heldout-131	screen	letter salutation only
++heldout-137	0a-29m+0a-96m	0a label ill=1
++heldout-140	0a-29m+0a-96m	0a label ill=1
++heldout-144	screen	constraint template with no task; [forbidden_words] placeholder
++heldout-147	0a-29m+0a-96m	0a label ill=1
++heldout-154	0a-29m+0a-96m	0a label ill=1
++heldout-156	0a-29m+0a-96m	0a label ill=1
++heldout-162	0a-29m+0a-96m	0a label ill=1
++heldout-163	0a-29m+0a-96m	0a label ill=1
++heldout-166	0a-96m	0a label ill=1
++heldout-179	0a-29m+0a-96m	0a label ill=1
++heldout-181	0a-29m+0a-96m	0a label ill=1
++heldout-182	0a-29m	0a label ill=1
++heldout-189	0a-29m+0a-96m	0a label ill=1
++heldout-190	0a-29m	0a label ill=1
++heldout-191	0a-29m	0a label ill=1
++heldout-196	0a-29m	0a label ill=1
++heldout-199	0a-29m+0a-96m	0a label ill=1

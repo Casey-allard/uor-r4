@@ -1,0 +1,4270 @@
+diff --git a/ROADMAP.md b/ROADMAP.md
+index ebf197560..421d82d1d 100644
+--- a/ROADMAP.md
++++ b/ROADMAP.md
+@@ -140,17 +140,17 @@ Geometry sits in five places: the core's transport (D1), exact identity, exact a
+ 
+ This is the single integration target. Unknown fields are marked, never filled from an older artifact.
+ 
+-| Field | State, 2026-09-28 15:33 UTC; the D4 rows corrected at 15:45 |
++| Field | State, 2026-09-28 15:33 UTC; the D4 rows corrected at 15:45; the S1 rows at 17:00 |
+ |---|---|
+ | Model family and configuration | Geometric stack `rrarra`, quaternion transport (D0, D1). Milestone width and depth (10–30M): **UNRESOLVED** |
+ | Tokenizer and dialogue protocol | Protocol `uor-r4.literal-role-dialogue/1` (`blake3:0099a613…`). Tokenizer: **UNRESOLVED** (I5; recommended #1017, `d36d3e87…`) |
+ | Retained checkpoint | **None for the milestone.** References only: cycle-4 `geometric_s1` (code BPE, `3eb1ebbb…`) and the continuous dialogue child (`98aca5ab…`, D4's fidelity reference) |
+ | Memory semantics and persistence | The D2 probe keeps the current and previous distinct value, fresh per sequence. For the product: **UNRESOLVED**, a choice among current, previous record, previous distinct and initial (the scoped-memory contract), plus session persistence with save and reload |
+ | Reader and addressing | Fallback: the stack's dense `a` read. G: **design UNRESOLVED** (after D6) |
+-| Codec and serving profile | D11. Codec: **UNRESOLVED** (D4 open, Lab 3). **Stack integer serving: S1, Lab 1 locally** (owner, 16:08 UTC; it moved from the cloud track, which never started it): a `stack` profile of I2 with writer, loader and integer forward, a reload-equality test, and fidelity ≤ 0.02 nats against float, with an evaluation-only 2I-snap diagnostic. Lab 1 runs the ARM64 audit on the M1. #1458's runtime is not accepted |
+-| Exporter, loader, session | I2 bundle and I3 `uor-chat`. Stack export and loader: **S1, Lab 1 locally, starting**. Store serialization in the session: **NOT IMPLEMENTED** |
++| Codec and serving profile | D11. Codec: **UNRESOLVED** (D4 open, Lab 3). **Stack integer serving: S1, Lab 1 locally** (owner, 16:08 UTC): a `stack` profile of I2 with writer, loader and integer forward, a reload-equality test, fidelity ≤ 0.02 nats against float, and the ARM64 audit on the M1. **Measured (S1.0, [record](docs/integration/s1-stack-serving-measurements-2026-09-28.md)):** the 4-bit export costs **+0.0362** nats (round to nearest) and **+0.0257** (GPTQ), with the integer arithmetic ≤ 10⁻⁶. Both miss 0.02. The head is +0.012 of it. The evaluation-only 2I snap costs +0.026 on three models: not adopted. **Owner, 17:00 UTC:** Lab 1 adds quantization-aware training (QAT), and D4 targets the same measured gap at 4.25 bits per weight. #1458's runtime is not accepted |
++| Exporter, loader, session | I2 bundle and I3 `uor-chat`. Stack export: the D10 container, measured (S1.0). D11 integer forward (S1.1, bit-identical to D10): **in progress**. I2 `stack` bundle and loader (S1.2): **next**. Store serialization in the session: **NOT IMPLEMENTED** |
+ | Complete-response acceptance | The §8 milestone panel (40/30/30), sealed before the candidate's final fit: **NOT AUTHORED** |
+-| Producer → consumer → next missing artifact | Lab 1 → Lab 3 and the milestone: the stack I2 bundle and integer runtime (S1), **starting**. Lab 1 → Lab 3: a saved, reloadable stack-plus-store checkpoint (I1), **missing**. Lab 3 → all: a measured D4 codec, **missing**. Lab 2 → Lab 1: D6 evidence for G |
++| Producer → consumer → next missing artifact | Lab 1 → Lab 3 and the milestone: the stack I2 bundle and integer runtime (S1), **in progress**; QAT for the milestone fit, **next**. Lab 1 → Lab 3: a saved, reloadable stack-plus-store checkpoint (I1), **missing**. Lab 3 → all: a measured D4 codec, **missing**. Lab 2 → Lab 1: D6 evidence for G |
+ 
+ ## 3. Deconfliction rulings, 2026-09-27
+ 
+@@ -599,6 +599,25 @@ This reporting adds no threshold. Thresholds change only with the owner, before
+ 
+ ## 9. Director log
+ 
++**2026-09-28 17:00 UTC, S1.0 measured; the owner chooses QAT plus a D4 target for S1's fidelity.**
++- **S1.0 (Lab 1, evaluation only; [record](docs/integration/s1-stack-serving-measurements-2026-09-28.md)).** The cycle-4 `geometric_s1` exported to the D11 interim format (4-bit maps in groups of 32) misses S1.2's 0.02-nat fidelity gate:
++  - **+0.0362** nats with round to nearest;
++  - **+0.0257** with GPTQ (top-1 agreement 0.918);
++  - the integer arithmetic costs ≤ 10⁻⁶ nats, so the gap is all weight representation.
++- **S1.0c attribution.** With one group of tensors from the export at a time:
++  - the head alone costs +0.012;
++  - the MLPs about +0.006, the embedding +0.003 and the mixer maps about +0.003;
++  - the per-channel scalars (conv taps, decay rates, β) cost +0.001.
++- **S1.0b.** Snapping every transport quaternion to the nearest unit icosian at evaluation costs +0.026 on each of three models. That is above the 0.02 option threshold, so it is not adopted.
++- **Owner, 17:00 UTC: QAT (Lab 1) plus a D4 target.**
++  - Lab 1 adds quantization-aware training, with the served 4-bit maps and grid scalars in the loop, and validates it with a pre-registered short fine-tune.
++  - D4 (Lab 3) gets the same measured gap as its codec target at 4.25 bits per weight.
++  - The milestone fit uses whichever reaches ≤ 0.02 first.
++  - S1.1–S1.3 (the D11 port, the bundle and the audit) continue meanwhile.
++- **Cloud data transfer:** copied and verified (14/14), with the branch deleted.
++  - Its README corrects an earlier one: `lens.u16` holds per-token byte lengths, not document lengths.
++  - The erratum is recorded in the cycle-4 and D1 receipts on the SSD.
++
+ **2026-09-28 16:28 UTC, cloud handoff received; S1 moves to Lab 1 locally (owner).**
+ - **The cloud track stood down and started nothing new.** S1 had never started, so the owner moved it to Lab 1, locally.
+ - **D1 models.** `transfer/d1-models-20260928` (`93cd1f13`) was copied to the SSD (`uor-r4-models/investigations/d1-transport-attribution-20260928/`): 24/24 SHA-256 verified, model hashes equal to their reports, receipt written, branch deleted.
+diff --git a/crates/uor-r4-training/examples/geometric-stack.rs b/crates/uor-r4-training/examples/geometric-stack.rs
+index 359c27d9e..88db34d42 100644
+--- a/crates/uor-r4-training/examples/geometric-stack.rs
++++ b/crates/uor-r4-training/examples/geometric-stack.rs
+@@ -6,7 +6,8 @@
+ //!
+ //! ```text
+ //! geometric-stack train train=TRAIN.u16[,MORE.u16] [train_weights=W1,W2] valid=VALID.u16 \
+-//!   out=NEW_REPORT_ROOT arch=transformer|geometric [pattern=rrarra] [read=lorentz|dot] [rotation=true|false] \
++//!   out=NEW_REPORT_ROOT (init=ROOT/model | arch=transformer|geometric) [pattern=rrarra] \
++//!   [read=lorentz|dot] [rotation=true|false] [qat=false|true] \
+ //!   [seed=1] [steps=7324] [batch=16] [lr=0.002] [warmup=200] [min_lr=0.1] [weight_decay=0.1] \
+ //!   [clip=1.0] [eval_every=250] [eval_windows=64] [final_windows=512] [lens=LENS.u16] \
+ //!   [merges=MERGES.txt] [checkpoint_every=250] [resume=OLD_ROOT/checkpoint] [max_seconds=inf] \
+@@ -25,6 +26,12 @@
+ //! geometric-stack lut-evaluate artifact=ROOT/model.lut valid=VALID.u16 out=NEW_REPORT_ROOT \
+ //!   [model=ROOT/model] [windows=64] [blocks=false] [tune_blocks=64] [threads=1] [lens=LENS.u16] \
+ //!   [reference=false]
++//! geometric-stack snap-evaluate model=ROOT/model valid=VALID.u16 out=NEW_REPORT_ROOT [windows=512]
++//!   (roadmap S1.0b: development NLL with every transport quaternion snapped to the nearest of the
++//!   120 unit icosians, against the unsnapped model on the same windows; evaluation only)
++//! geometric-stack rounding-attribution artifact=ROOT/model.lut model=ROOT/model valid=VALID.u16 \
++//!   out=NEW_REPORT_ROOT [windows=512]
++//!   (roadmap S1.0c: the float model with one tensor group at a time from the artifact; evaluation only)
+ //! geometric-stack lut-sample artifact=ROOT/model.lut out=NEW_REPORT_ROOT (valid=VALID.u16 | prompt=TEXT) \
+ //!   [merges=MERGES.txt | tokenizer=TOKENIZER.json] [prompts=3] [prompt_tokens=64] [sample_tokens=128] \
+ //!   [temperature=0.8] [top_k=40] [top_p=1] [seed=1] [threads=1]
+@@ -55,6 +62,19 @@
+ //! report root is claimed before loading and sealed at the end. Set
+ //! RAYON_NUM_THREADS to bound the threads.
+ //!
++//! With `init=ROOT/model`, `train` starts from that model's weights with a
++//! fresh optimizer and schedule and takes its configuration from
++//! `ROOT/model/config.json`; architecture options given beside it must agree
++//! with the saved model, and `seed=` (default: the saved one) seeds the window
++//! sampler. It scores the model at step 0 before any update. `qat=true` trains
++//! with the served representation in the forward pass (quantization-aware
++//! training, `StackModel::set_served_representation` with the D11 interim
++//! codec): the values `export` writes when rounding to nearest, with
++//! straight-through gradients. A QAT run's evaluations score the served
++//! representation (`dev`, `final`) and the float weights (`dev_float`,
++//! `final_float`) on the same windows; its saved model is the float weights,
++//! whose round-to-nearest export is the representation it trained.
++//!
+ //! `evaluate` scores consecutive 256-input blocks with a fresh state per
+ //! block (257 stored ids, 256 targets), the retained evaluator's protocol
+ //! (`docs/integration/reference-evaluator-v2.json`): it reports the first
+@@ -99,14 +119,19 @@
+ use std::collections::{BTreeMap, HashMap};
+ use std::fs;
+ use std::path::{Path, PathBuf};
++use std::sync::Arc;
+ use std::time::Instant;
+ 
+ use candle_core::Device;
+ use serde_json::{json, Value};
++use uor_r4_core::native_geometric::learner::embedding::canonical_h4_roots;
+ use uor_r4_core::report_output;
+ use uor_r4_training::dialogue_development;
+ use uor_r4_training::dialogue_episodes::{PrefixPolicy, EPISODE_CONTEXT};
+-use uor_r4_training::geometric_stack::{ReadScore, StackAdamW, StackArch, StackConfig, StackModel};
++use uor_r4_training::geometric_stack::{
++    logits_cross_entropy, D11Interim, MapCodec, ReadScore, ServedStatistics, StackAdamW, StackArch,
++    StackConfig, StackModel,
++};
+ use uor_r4_training::lut_export::export_llama;
+ use uor_r4_training::stack_dialogue::{
+     check_panel, development, episode_contract, greedy_reply, load_requests, reply_panel, trim,
+@@ -517,6 +542,11 @@ struct Settings {
+     merges: Option<PathBuf>,
+     tokenizer: Option<PathBuf>,
+     config: StackConfig,
++    /// A trained model directory the run starts from (`init=`), with a fresh
++    /// optimizer and schedule.
++    init: Option<PathBuf>,
++    /// Train with the served representation (`qat=true`).
++    qat: bool,
+     steps: usize,
+     batch: usize,
+     lr: f64,
+@@ -533,27 +563,47 @@ struct Settings {
+     sample_tokens: usize,
+ }
+ 
++/// The served representation of `qat=true`.
++fn qat_codec() -> Arc<dyn MapCodec> {
++    Arc::new(D11Interim)
++}
++
+ impl Settings {
+-    fn record(&self) -> Value {
+-        json!({
++    fn record(&self) -> Result<Value> {
++        let init = match &self.init {
++            Some(directory) => json!({
++                "model": identity(&directory.join("model.safetensors"))?,
++                "config": identity(&directory.join("config.json"))?,
++            }),
++            None => Value::Null,
++        };
++        Ok(json!({
+             "train": self.train, "train_weights": self.train_weights, "valid": self.valid,
+             "lens": self.lens, "merges": self.merges, "tokenizer": self.tokenizer,
+-            "config": self.config, "steps": self.steps, "batch": self.batch, "lr": self.lr,
++            "config": self.config, "init": init,
++            "qat": self.qat, "qat_codec": self.qat.then(|| qat_codec().name().to_owned()),
++            "steps": self.steps, "batch": self.batch, "lr": self.lr,
+             "warmup": self.warmup, "min_lr": self.min_lr, "weight_decay": self.weight_decay,
+             "clip": self.clip, "eval_every": self.eval_every, "eval_windows": self.eval_windows,
+             "final_windows": self.final_windows, "checkpoint_every": self.checkpoint_every,
+             "sample_tokens": self.sample_tokens,
+-        })
++        }))
+     }
+ 
+     /// Settings and input contents a resumed run must share with its parent.
++    /// A run from `init=` or with `qat=true` also shares those; other runs'
++    /// lineage is unchanged, so their earlier checkpoints still resume.
+     fn lineage(&self, inputs: &Value) -> Value {
+-        json!({
++        let mut lineage = json!({
+             "config": self.config, "steps": self.steps, "batch": self.batch, "lr": self.lr,
+             "warmup": self.warmup, "min_lr": self.min_lr, "weight_decay": self.weight_decay,
+             "clip": self.clip, "eval_every": self.eval_every, "eval_windows": self.eval_windows,
+             "train_weights": self.train_weights, "inputs": inputs,
+-        })
++        });
++        if self.qat {
++            lineage["qat"] = json!({"codec": qat_codec().name()});
++        }
++        lineage
+     }
+ 
+     /// Content identities (size and SHA-256, not paths) of every file the run
+@@ -562,16 +612,157 @@ impl Settings {
+         let content = |path: &Path| -> Result<Value> {
+             Ok(json!({"bytes": fs::metadata(path)?.len(), "sha256": sha256_file(path)?}))
+         };
+-        Ok(json!({
++        let mut inputs = json!({
+             "train": self.train.iter().map(|p| content(p)).collect::<Result<Vec<_>>>()?,
+             "valid": content(&self.valid)?,
+             "lens": self.lens.as_deref().map(content).transpose()?,
+             "merges": self.merges.as_deref().map(content).transpose()?,
+             "tokenizer": self.tokenizer.as_deref().map(content).transpose()?,
+-        }))
++        });
++        if let Some(directory) = &self.init {
++            inputs["init"] = json!({
++                "model": content(&directory.join("model.safetensors"))?,
++                "config": content(&directory.join("config.json"))?,
++            });
++        }
++        Ok(inputs)
+     }
+ }
+ 
++/// The configuration of `init=`'s model: its `config.json`, with `seed=`
++/// (which seeds the window sampler) in place of the saved seed when given.
++/// Architecture options given beside `init=` must agree with the saved model.
++fn init_config(args: &Args, directory: &Path) -> Result<StackConfig> {
++    let mut config: StackConfig =
++        serde_json::from_slice(&fs::read(directory.join("config.json"))?)?;
++    config.validate()?;
++    let name = |arch: StackArch| match arch {
++        StackArch::Geometric => "geometric",
++        StackArch::Transformer => "transformer",
++    };
++    let mut saved: Vec<(&str, String)> = vec![
++        ("arch", name(config.arch).to_owned()),
++        ("pattern", config.pattern.clone()),
++        (
++            "read",
++            match config.read {
++                ReadScore::Lorentz => "lorentz",
++                ReadScore::Dot => "dot",
++            }
++            .to_owned(),
++        ),
++        ("rotation", config.rotation.to_string()),
++        ("width", config.width.to_string()),
++        ("heads", config.heads.to_string()),
++        ("layers", config.layers().to_string()),
++        ("context", config.context.to_string()),
++        (
++            match config.arch {
++                StackArch::Transformer => "mlp",
++                StackArch::Geometric => "stack_mlp",
++            },
++            config.mlp_hidden.to_string(),
++        ),
++    ];
++    if let Some(memory) = &config.memory {
++        let layers: Vec<String> = memory.layers.iter().map(ToString::to_string).collect();
++        saved.extend([
++            ("memory_layers", layers.join(",")),
++            ("memory_sub_keys", memory.sub_keys.to_string()),
++            ("memory_top_k", memory.top_k.to_string()),
++            ("memory_heads", memory.heads.to_string()),
++            ("memory_key_dim", memory.key_dim.to_string()),
++            (
++                "memory_score",
++                match memory.score {
++                    MemoryScore::Dot => "dot",
++                    MemoryScore::Lorentz => "lorentz",
++                }
++                .to_owned(),
++            ),
++            (
++                "memory_codebook",
++                match memory.codebook {
++                    Some(Codebook::H4) => "h4",
++                    Some(Codebook::E8) => "e8",
++                    None => "none",
++                }
++                .to_owned(),
++            ),
++        ]);
++    }
++    // Numbers compare as numbers, everything else as text.
++    let agree = |given: &str, saved: &str| match (given.parse::<usize>(), saved.parse::<usize>()) {
++        (Ok(a), Ok(b)) => a == b,
++        _ => given == saved,
++    };
++    let mut conflicts: Vec<String> = saved
++        .iter()
++        .filter_map(|(key, value)| {
++            let given = args.optional(key)?;
++            (!agree(&given, value)).then(|| format!("{key}={given} (the model has {value})"))
++        })
++        .collect();
++    let options = [
++        "memory_layers",
++        "memory_sub_keys",
++        "memory_top_k",
++        "memory_heads",
++        "memory_key_dim",
++        "memory_score",
++        "memory_codebook",
++    ];
++    if config.memory.is_none() {
++        conflicts.extend(
++            options
++                .iter()
++                .filter(|key| args.optional(key).is_some())
++                .map(|key| format!("{key}= (the model has no memory layers)")),
++        );
++    }
++    // A geometric stack's `mlp=` is its control's; it must match the saved width.
++    if let (StackArch::Geometric, Some(text)) = (config.arch, args.optional("mlp")) {
++        let mlp: usize = text
++            .parse()
++            .map_err(|_| invalid(format!("invalid mlp={text}")))?;
++        let mut control = StackConfig::transformer(
++            config.width,
++            config.heads,
++            config.layers(),
++            mlp,
++            config.context,
++            config.seed,
++        )?;
++        control.vocab_size = config.vocab_size;
++        let matched = StackConfig::geometric_matched_to(
++            &control,
++            &config.pattern,
++            config.read,
++            config.rotation,
++        )?
++        .mlp_hidden;
++        if matched != config.mlp_hidden {
++            conflicts.push(format!(
++                "mlp={mlp} matches a stack MLP of {matched} (the model has {})",
++                config.mlp_hidden
++            ));
++        }
++    }
++    if !conflicts.is_empty() {
++        return Err(invalid(format!(
++            "init= takes the architecture of {}; these options conflict: {}",
++            directory.display(),
++            conflicts.join("; ")
++        )));
++    }
++    if let Some(seed) = args.optional("seed") {
++        config.seed = seed
++            .parse()
++            .map_err(|_| invalid(format!("invalid seed={seed}")))?;
++    }
++    Ok(config)
++}
++
+ /// The model shape of `arch=` and the shape options: the control's shape,
+ /// #1017's by default, or a geometric stack with its width, heads, depth and
+ /// context whose MLP matches its parameter count. `stack_mlp` instead pins
+@@ -669,7 +860,27 @@ fn stack_config(args: &Args, vocab: Option<usize>) -> Result<StackConfig> {
+ }
+ 
+ fn train_settings(args: &Args) -> Result<Settings> {
+-    let config = stack_config(args, None)?;
++    let init = args.optional("init").map(PathBuf::from);
++    let config = match &init {
++        Some(directory) => init_config(args, directory)?,
++        None => stack_config(args, None)?,
++    };
++    let qat = match args.optional("qat").as_deref() {
++        None | Some("false") => false,
++        Some("true") => true,
++        Some(other) => return Err(invalid(format!("invalid qat={other}"))),
++    };
++    if qat
++        && (config.arch != StackArch::Geometric
++            || config.memory.is_some()
++            || !config.width.is_multiple_of(uor_r4_lut::GROUP))
++    {
++        return Err(invalid(format!(
++            "qat=true trains the geometric stack export's representation: a geometric stack \
++             without memory layers whose width is a multiple of {}",
++            uor_r4_lut::GROUP
++        )));
++    }
+     let train: Vec<PathBuf> = args
+         .required("train")?
+         .split(',')
+@@ -700,6 +911,8 @@ fn train_settings(args: &Args) -> Result<Settings> {
+         merges: args.optional("merges").map(PathBuf::from),
+         tokenizer: args.optional("tokenizer").map(PathBuf::from),
+         config,
++        init,
++        qat,
+         steps: args.number("steps", 7324)?,
+         batch: args.number("batch", 16)?,
+         lr: args.number("lr", 0.002)?,
+@@ -800,6 +1013,52 @@ fn evaluate(
+     })
+ }
+ 
++/// [`evaluate`] in the model's mode and, in served mode (a QAT run), of its
++/// float weights too, on the same windows.
++fn evaluate_modes(
++    model: &mut StackModel,
++    valid: &[u32],
++    lens: Option<&[u32]>,
++    windows: usize,
++) -> Result<(Evaluation, Option<Evaluation>)> {
++    let evaluation = evaluate(model, valid, lens, windows)?;
++    let float = match model.served_codec() {
++        Some(_) => Some(model.with_float_forward(|model| evaluate(model, valid, lens, windows))?),
++        None => None,
++    };
++    Ok((evaluation, float))
++}
++
++/// Seconds of this process's updates: the first (which includes one-time
++/// allocation) apart from the rest.
++fn step_timing(seconds: &[f64]) -> Value {
++    let rest = seconds.get(1..).unwrap_or(&[]);
++    let mean = |values: &[f64]| {
++        (!values.is_empty()).then(|| values.iter().sum::<f64>() / values.len() as f64)
++    };
++    json!({
++        "steps": seconds.len(),
++        "first": seconds.first(),
++        "mean_after_first": mean(rest),
++        "min_after_first": rest.iter().copied().reduce(f64::min),
++        "max_after_first": rest.iter().copied().reduce(f64::max),
++    })
++}
++
++/// Add the served representation's work between `before` and `after` to `total`.
++fn add_served_work(
++    total: &mut ServedStatistics,
++    before: Option<ServedStatistics>,
++    after: Option<ServedStatistics>,
++) {
++    if let (Some(before), Some(after)) = (before, after) {
++        total.checks += after.checks - before.checks;
++        total.refreshes += after.refreshes - before.refreshes;
++        total.tensors += after.tensors - before.tensors;
++        total.seconds += after.seconds - before.seconds;
++    }
++}
++
+ /// Greedy (`temperature = 0`) or top-k sampled continuation of `prompt`.
+ fn generate(
+     model: &StackModel,
+@@ -986,9 +1245,22 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
+             "token files are too short for the context and windows",
+         ));
+     }
+-    let (model, mut optimizer, mut progress, resumed_from) = match &settings.resume {
++    let (mut model, mut optimizer, mut progress, resumed_from) = match &settings.resume {
+         None => {
+-            let model = StackModel::new(settings.config.clone(), &device)?;
++            let model = match &settings.init {
++                Some(directory) => {
++                    let mut model = StackModel::load(directory, &device)?;
++                    // `seed=` alone may differ from the saved configuration.
++                    let mut saved = model.config.clone();
++                    saved.seed = settings.config.seed;
++                    if saved != settings.config {
++                        return Err(invalid("init='s model differs from its config.json"));
++                    }
++                    model.config = saved;
++                    model
++                }
++                None => StackModel::new(settings.config.clone(), &device)?,
++            };
+             let optimizer = StackAdamW::new(&model, settings.weight_decay, settings.clip)?;
+             let progress = Progress {
+                 step: 0,
+@@ -1014,8 +1286,26 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
+         model.config.rotation,
+         model.config.mlp_hidden
+     );
++    if settings.qat {
++        model.set_served_representation(Some(qat_codec()))?;
++    }
++    // A run from a trained model scores it before any update.
++    if settings.init.is_some() && progress.step == 0 {
++        let (evaluation, float) =
++            evaluate_modes(&mut model, &valid, lens.as_deref(), settings.eval_windows)?;
++        let mut point = json!({"step": 0, "tokens": 0, "dev": evaluation.record()});
++        if let Some(float) = &float {
++            point["dev_float"] = float.record();
++        }
++        eprintln!("{point}");
++        progress.curve.push(point);
++    }
+     let mut window_loss = (0f64, 0usize);
+     let mut stopped_early = false;
++    // This process's updates: their seconds, and the served representation's
++    // work inside them.
++    let mut step_seconds = Vec::new();
++    let mut served_in_steps = ServedStatistics::default();
+     let started = Instant::now();
+     while progress.step < settings.steps {
+         let lr = learning_rate(settings, progress.step);
+@@ -1036,6 +1326,7 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
+             ids.extend_from_slice(&stream[start..start + time]);
+             targets.extend_from_slice(&stream[start + 1..start + time + 1]);
+         }
++        let served_before = model.served_statistics()?;
+         let loss = model.loss(&ids, &targets, settings.batch, time)?;
+         let value = f64::from(loss.to_scalar::<f32>()?);
+         if !value.is_finite() {
+@@ -1046,20 +1337,31 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
+         }
+         let grads = loss.backward()?;
+         let grad_norm = optimizer.update(&model, &grads, lr)?;
+-        progress.train_seconds += clock.elapsed().as_secs_f64();
++        let seconds = clock.elapsed().as_secs_f64();
++        add_served_work(
++            &mut served_in_steps,
++            served_before,
++            model.served_statistics()?,
++        );
++        step_seconds.push(seconds);
++        progress.train_seconds += seconds;
+         progress.step += 1;
+         window_loss.0 += value;
+         window_loss.1 += 1;
+         if progress.step % settings.eval_every == 0 || progress.step == settings.steps {
+-            let evaluation = evaluate(&model, &valid, lens.as_deref(), settings.eval_windows)?;
++            let (evaluation, float) =
++                evaluate_modes(&mut model, &valid, lens.as_deref(), settings.eval_windows)?;
+             let tokens = progress.step * settings.batch * time;
+-            let point = json!({
++            let mut point = json!({
+                 "step": progress.step, "tokens": tokens, "lr": lr,
+                 "train_loss": window_loss.0 / window_loss.1.max(1) as f64,
+                 "dev": evaluation.record(), "grad_norm": grad_norm,
+                 "train_seconds": progress.train_seconds,
+                 "tokens_per_second": tokens as f64 / progress.train_seconds,
+             });
++            if let Some(float) = &float {
++                point["dev_float"] = float.record();
++            }
+             eprintln!("{point}");
+             progress.curve.push(point);
+             window_loss = (0.0, 0);
+@@ -1076,8 +1378,12 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
+             break;
+         }
+     }
+-    let final_evaluation = evaluate(&model, &valid, lens.as_deref(), settings.final_windows)?;
++    let (final_evaluation, final_float) =
++        evaluate_modes(&mut model, &valid, lens.as_deref(), settings.final_windows)?;
+     eprintln!("final: {}", final_evaluation.record());
++    if let Some(float) = &final_float {
++        eprintln!("final float: {}", float.record());
++    }
+     model.save(&out.join("model"))?;
+     if !stopped_early {
+         // A completed run keeps only its final model; a stopped one keeps the
+@@ -1100,9 +1406,9 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
+         Value::Null
+     };
+     let executable = std::env::current_exe()?;
+-    let report = json!({
++    let mut report = json!({
+         "schema": "uor-r4.geometric-stack-run/1",
+-        "settings": settings.record(),
++        "settings": settings.record()?,
+         "parameters": parameters,
+         "active_parameters": active_parameters,
+         "completed_steps": progress.step,
+@@ -1111,6 +1417,7 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
+         "target_visits": progress.step * settings.batch * time,
+         "train_seconds": progress.train_seconds,
+         "tokens_per_second": (progress.step * settings.batch * time) as f64 / progress.train_seconds.max(1e-9),
++        "step_seconds": step_timing(&step_seconds),
+         "threads": std::env::var("RAYON_NUM_THREADS").ok(),
+         "curve": progress.curve,
+         "final": final_evaluation.record(),
+@@ -1121,10 +1428,20 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
+             "lens": settings.lens.as_ref().map(|p| identity(p)).transpose()?,
+             "merges": settings.merges.as_ref().map(|p| identity(p)).transpose()?,
+             "tokenizer": settings.tokenizer.as_ref().map(|p| identity(p)).transpose()?,
++            "init": settings.init.as_ref().map(|p| identity(&p.join("model.safetensors"))).transpose()?,
+         },
+         "executable": identity(&executable)?,
+         "model_sha256": sha256_file(&out.join("model").join("model.safetensors"))?,
+     });
++    if let Some(codec) = model.served_codec() {
++        report["qat"] = json!({
++            "codec": codec.name(),
++            "representation": "the forward pass read the round-to-nearest export's values (4-bit maps with the norm gains folded in, grid-code scalars, fixed-point biases, age tables and offsets) with straight-through gradients; `dev` and `final` score that representation, `dev_float` and `final_float` the float weights on the same windows; samples come from the served representation",
++            "final_float": final_float.as_ref().map(Evaluation::record),
++            "served_work_in_updates": served_in_steps,
++            "served_work_total": model.served_statistics()?,
++        });
++    }
+     fs::write(out.join("report.json"), serde_json::to_vec_pretty(&report)?)?;
+     Ok(())
+ }
+@@ -1516,6 +1833,261 @@ fn score_row(logits: impl Iterator<Item = f64> + Clone, target: usize) -> (f64,
+     (max + total.ln() - at, best)
+ }
+ 
++/// S1.0b: the development NLL cost of serving every transport quaternion as
++/// the nearest of the 120 unit icosians (2I), on the windows `evaluate` uses.
++/// Evaluation only: no training, no serving path.
++fn snap_evaluate_mode(arguments: &[String]) -> Result<()> {
++    let args = Args::parse(arguments, &["model", "valid", "windows", "out"])?;
++    let model_dir = PathBuf::from(args.required("model")?);
++    let valid_path = PathBuf::from(args.required("valid")?);
++    let windows: usize = args.number("windows", 512)?;
++    let out = PathBuf::from(args.required("out")?);
++    if windows == 0 {
++        return Err(invalid("windows must be positive"));
++    }
++    report_output::claim(&out)?;
++    let result = (|| -> Result<()> {
++        let started = Instant::now();
++        let model = StackModel::load(&model_dir, &Device::Cpu)?;
++        let valid = read_tokens(&valid_path, model.config.vocab_size)?;
++        let time = model.config.context;
++        if valid.len() <= time + windows {
++            return Err(invalid("too few development tokens for the windows"));
++        }
++        let roots: Vec<[f32; 4]> = canonical_h4_roots()
++            .iter()
++            .map(|root| {
++                let a = root.to_array();
++                [a[0] as f32, a[1] as f32, a[2] as f32, a[3] as f32]
++            })
++            .collect();
++        let stride = (valid.len() - time - 1) / windows;
++        let starts: Vec<usize> = (0..windows).map(|window| window * stride).collect();
++        let (mut fused_nll, mut snapped_nll, mut agree, mut seen) = (0f64, 0f64, 0usize, 0usize);
++        let mut composed_max_abs = 0f64;
++        for (index, group) in starts.chunks(16).enumerate() {
++            let mut ids = Vec::with_capacity(group.len() * time);
++            let mut targets = Vec::with_capacity(group.len() * time);
++            for &start in group {
++                ids.extend_from_slice(&valid[start..start + time]);
++                targets.extend_from_slice(&valid[start + 1..start + time + 1]);
++            }
++            let rows = targets.len();
++            let fused = model.forward(&ids, group.len(), time)?;
++            let snapped = model.logits_with_transport(&ids, group.len(), time, Some(&roots))?;
++            if index == 0 {
++                // The composed reference must equal the fused forward, so the
++                // snapped delta is due to snapping alone.
++                let composed = model.logits_with_transport(&ids, group.len(), time, None)?;
++                composed_max_abs = f64::from(
++                    composed
++                        .sub(&fused)?
++                        .abs()?
++                        .max_keepdim(1)?
++                        .max(0)?
++                        .to_vec1::<f32>()?[0],
++                );
++            }
++            fused_nll +=
++                f64::from(logits_cross_entropy(&fused, &targets, None)?.to_scalar::<f32>()?)
++                    * rows as f64;
++            snapped_nll +=
++                f64::from(logits_cross_entropy(&snapped, &targets, None)?.to_scalar::<f32>()?)
++                    * rows as f64;
++            let fused_top = fused.argmax(1)?.to_vec1::<u32>()?;
++            let snapped_top = snapped.argmax(1)?.to_vec1::<u32>()?;
++            agree += fused_top
++                .iter()
++                .zip(&snapped_top)
++                .filter(|(a, b)| a == b)
++                .count();
++            seen += rows;
++        }
++        let fused_mean = fused_nll / seen as f64;
++        let snapped_mean = snapped_nll / seen as f64;
++        let report = json!({
++            "schema": "uor-r4.stack-transport-snap/1",
++            "roadmap": "S1.0b (evaluation-only diagnostic)",
++            "model": identity(&model_dir.join("model.safetensors"))?,
++            "config": model.config,
++            "valid": identity(&valid_path)?,
++            "windows": windows,
++            "targets": seen,
++            "roots": "canonical_h4_roots: the 120 unit icosians of 2I",
++            "fused_nll": fused_mean,
++            "snapped_nll": snapped_mean,
++            "snapped_minus_fused_nats": snapped_mean - fused_mean,
++            "top1_agreement": agree as f64 / seen as f64,
++            "composed_minus_fused_max_abs_logit_first_group": composed_max_abs,
++            "executable": identity(&std::env::current_exe()?)?,
++            "seconds": started.elapsed().as_secs_f64(),
++        });
++        println!("{}", serde_json::to_string_pretty(&report)?);
++        fs::write(out.join("snap.json"), serde_json::to_vec_pretty(&report)?)?;
++        Ok(())
++    })();
++    finish(&out, result)
++}
++
++/// S1.0c: where a stack artifact's representation gap comes from. The float
++/// model with one group of tensors at a time replaced by the artifact's own
++/// values (in f32, the float kernels), on the windows `evaluate` uses. Groups
++/// keep a normalization with the matrices its gain is folded into. Evaluation
++/// only.
++fn rounding_attribution_mode(arguments: &[String]) -> Result<()> {
++    let args = Args::parse(arguments, &["artifact", "model", "valid", "windows", "out"])?;
++    let artifact_path = PathBuf::from(args.required("artifact")?);
++    let model_dir = PathBuf::from(args.required("model")?);
++    let valid_path = PathBuf::from(args.required("valid")?);
++    let windows: usize = args.number("windows", 512)?;
++    let out = PathBuf::from(args.required("out")?);
++    if windows == 0 {
++        return Err(invalid("windows must be positive"));
++    }
++    report_output::claim(&out)?;
++    let result = (|| -> Result<()> {
++        let started = Instant::now();
++        let float = StackModel::load(&model_dir, &Device::Cpu)?;
++        let artifact =
++            uor_r4_lut::format::StackArtifact::parse(fs::read(&artifact_path)?).map_err(lut)?;
++        let reference = stack_grid_reference(&float, &artifact)?;
++        let valid = read_tokens(&valid_path, float.config.vocab_size)?;
++        let time = float.config.context;
++        if valid.len() <= time + windows {
++            return Err(invalid("too few development tokens for the windows"));
++        }
++        // Every float tensor belongs to exactly one group.
++        let group_of = |name: &str| -> Result<String> {
++            if name == "embedding.weight" {
++                return Ok("embed".into());
++            }
++            if name == "final_norm.weight" {
++                return Ok("head".into());
++            }
++            let rest = name
++                .strip_prefix("layers.")
++                .ok_or_else(|| invalid(format!("no attribution group for {name}")))?;
++            let (layer, part) = rest
++                .split_once('.')
++                .ok_or_else(|| invalid(format!("no attribution group for {name}")))?;
++            let layer: usize = layer
++                .parse()
++                .map_err(|_| invalid(format!("no attribution group for {name}")))?;
++            let kind = match part {
++                "rec_norm.weight" | "rec.in.weight" | "rec.gate.weight" | "rec.out.weight"
++                | "read_norm.weight" | "read.query.weight" | "read.key.weight"
++                | "read.value.weight" | "read.null.weight" | "read.out.weight" => "mixer_maps",
++                "rec.conv.weight" | "rec.conv.bias" | "rec.gate.bias" | "rec.decay"
++                | "read.null.bias" | "read.age" | "read.log_beta" | "read.offset" => {
++                    "mixer_scalars"
++                }
++                "mlp_norm.weight" | "mlp.gate.weight" | "mlp.up.weight" | "mlp.down.weight" => {
++                    "mlp"
++                }
++                _ => return Err(invalid(format!("no attribution group for {name}"))),
++            };
++            Ok(format!("l{layer}.{kind}"))
++        };
++        let mut groups: BTreeMap<String, Vec<String>> = BTreeMap::new();
++        for name in float.variables().keys() {
++            groups
++                .entry(group_of(name)?)
++                .or_default()
++                .push(name.clone());
++        }
++        let float_head = float.variables()["embedding.weight"].as_tensor().clone();
++        let stride = (valid.len() - time - 1) / windows;
++        let starts: Vec<usize> = (0..windows).map(|window| window * stride).collect();
++        // The float model with the tensors of `selected` groups from the artifact.
++        let score = |selected: &[&str]| -> Result<(f64, Vec<u32>)> {
++            let hybrid = StackModel::load(&model_dir, &Device::Cpu)?;
++            for group in selected {
++                let names = groups
++                    .get(*group)
++                    .ok_or_else(|| invalid(format!("unknown group {group}")))?;
++                for name in names {
++                    hybrid.variables()[name].set(reference.model.variables()[name].as_tensor())?;
++                }
++            }
++            let head = if selected.contains(&"head") {
++                &reference.head
++            } else {
++                &float_head
++            };
++            let (mut nll, mut top) = (0f64, Vec::new());
++            for group in starts.chunks(16) {
++                let mut ids = Vec::with_capacity(group.len() * time);
++                let mut targets = Vec::with_capacity(group.len() * time);
++                for &start in group {
++                    ids.extend_from_slice(&valid[start..start + time]);
++                    targets.extend_from_slice(&valid[start + 1..start + time + 1]);
++                }
++                let logits = hybrid.hidden(&ids, group.len(), time)?.matmul(&head.t()?)?;
++                nll +=
++                    f64::from(logits_cross_entropy(&logits, &targets, None)?.to_scalar::<f32>()?)
++                        * targets.len() as f64;
++                top.extend(logits.argmax(1)?.to_vec1::<u32>()?);
++            }
++            Ok((nll / top.len() as f64, top))
++        };
++        let (float_nll, float_top) = score(&[])?;
++        let names: Vec<String> = groups.keys().cloned().collect();
++        let mut rows = Vec::new();
++        let mut evaluate = |label: String, selected: Vec<&str>| -> Result<()> {
++            let (nll, top) = score(&selected)?;
++            let agree = top.iter().zip(&float_top).filter(|(a, b)| a == b).count();
++            let row = json!({
++                "group": label,
++                "members": selected,
++                "nll": nll,
++                "minus_float_nats": nll - float_nll,
++                "top1_agreement": agree as f64 / top.len() as f64,
++            });
++            eprintln!("{row}");
++            rows.push(row);
++            Ok(())
++        };
++        for name in &names {
++            evaluate(name.clone(), vec![name.as_str()])?;
++        }
++        let of_kind = |suffix: &str| -> Vec<&str> {
++            names
++                .iter()
++                .filter(|n| n.ends_with(suffix))
++                .map(String::as_str)
++                .collect()
++        };
++        let mut maps = of_kind(".mixer_maps");
++        maps.extend(of_kind(".mlp"));
++        maps.extend(["embed", "head"]);
++        evaluate("all_maps".into(), maps)?;
++        evaluate("all_scalars".into(), of_kind(".mixer_scalars"))?;
++        evaluate("all".into(), names.iter().map(String::as_str).collect())?;
++        let report = json!({
++            "schema": "uor-r4.stack-rounding-attribution/1",
++            "roadmap": "S1.0c (evaluation-only diagnostic)",
++            "artifact": identity(&artifact_path)?,
++            "model": identity(&model_dir.join("model.safetensors"))?,
++            "config": float.config,
++            "valid": identity(&valid_path)?,
++            "windows": windows,
++            "targets": float_top.len(),
++            "float_nll": float_nll,
++            "groups": groups,
++            "rows": rows,
++            "reading": "each row: the float model with only the listed groups from the artifact; maps are the 4-bit matrices (with the normalization whose gain they carry), scalars the grid-code and fixed-point per-channel values",
++            "executable": identity(&std::env::current_exe()?)?,
++            "seconds": started.elapsed().as_secs_f64(),
++        });
++        fs::write(
++            out.join("attribution.json"),
++            serde_json::to_vec_pretty(&report)?,
++        )?;
++        Ok(())
++    })();
++    finish(&out, result)
++}
++
+ /// Integer serving on development windows, beside the float model on the same
+ /// windows when `model=` is given: evenly spaced windows (`train`'s rule), or
+ /// with `blocks=true` the retained evaluator's consecutive blocks with its
+@@ -2514,6 +3086,8 @@ fn main() -> Result<()> {
+                     "memory_key_dim",
+                     "memory_score",
+                     "memory_codebook",
++                    "init",
++                    "qat",
+                 ],
+             )?;
+             let settings = train_settings(&args)?;
+@@ -2528,6 +3102,8 @@ fn main() -> Result<()> {
+         "corpus" => corpus_mode(rest),
+         "export" => export_mode(rest),
+         "lut-evaluate" => lut_evaluate_mode(rest),
++        "snap-evaluate" => snap_evaluate_mode(rest),
++        "rounding-attribution" => rounding_attribution_mode(rest),
+         "lut-sample" => lut_sample_mode(rest),
+         "dialogue-train" => dialogue_train_mode(rest),
+         "lut-chat" => lut_chat_mode(rest),
+diff --git a/crates/uor-r4-training/src/geometric_stack.rs b/crates/uor-r4-training/src/geometric_stack.rs
+index a8ed0a4b1..2df5d34fb 100644
+--- a/crates/uor-r4-training/src/geometric_stack.rs
++++ b/crates/uor-r4-training/src/geometric_stack.rs
+@@ -27,15 +27,31 @@
+ //! The control layer is RoPE softmax attention plus a SwiGLU MLP, #1017's
+ //! layout. Its attention uses the same fused op with the Dot score and no NoRead
+ //! or age, so both models run on the same kernels.
+-
+-use std::collections::BTreeMap;
++//!
++//! Quantization-aware training: with a served representation set
++//! ([`StackModel::set_served_representation`]), a geometric stack's forward
++//! pass reads exactly the values its integer export writes
++//! ([`crate::stack_export::export_stack`]): weight maps through a
++//! [`MapCodec`] (by default [`D11Interim`], the export's own 4-bit groups)
++//! with the norm gains folded in, per-channel scalars through their grid codes
++//! and biases, age tables and Lorentz offsets in fixed point. Gradients reach
++//! the float variables by a straight-through estimator.
++
++use std::collections::{BTreeMap, BTreeSet};
+ use std::fs;
+ use std::path::Path;
++use std::sync::{Arc, Mutex};
++use std::time::Instant;
+ 
+ use candle_core::{CpuStorage, CustomOp2, CustomOp3, DType, Device, Layout, Shape, Tensor, Var};
+ use rayon::prelude::*;
+ use serde::{Deserialize, Serialize};
++use uor_r4_lut::GROUP;
+ 
++use crate::lut_export::{dequantize_matrix, quantize_matrix};
++use crate::stack_export::{
++    block, decay_of_rate, decay_rate, fixed, fixed_value, fold_columns, grid_code, grid_value, pad,
++};
+ use crate::stack_memory::{keys_aux_len, product_key_memory, MemoryConfig, MemoryScore};
+ use crate::{invalid, Result};
+ 
+@@ -400,6 +416,9 @@ pub struct StackModel {
+     pub config: StackConfig,
+     variables: BTreeMap<String, Var>,
+     device: Device,
++    /// The served representation the forward pass reads, if set
++    /// ([`Self::set_served_representation`]).
++    served: Option<ServedState>,
+ }
+ 
+ impl StackModel {
+@@ -490,6 +509,7 @@ impl StackModel {
+             config,
+             variables,
+             device: device.clone(),
++            served: None,
+         })
+     }
+ 
+@@ -519,15 +539,23 @@ impl StackModel {
+         &self.variables
+     }
+ 
+-    fn weight(&self, name: &str) -> Result<&Tensor> {
+-        self.variables
+-            .get(name)
+-            .map(Var::as_tensor)
+-            .ok_or_else(|| invalid(format!("missing stack variable {name}")))
++    /// The tensors a forward pass reads: the variables, or in served mode the
++    /// served view of their current values.
++    fn params(&self) -> Result<Params<'_>> {
++        match &self.served {
++            None => Ok(Params::Float(&self.variables)),
++            Some(state) => Ok(Params::Served(self.served_view(state)?)),
++        }
+     }
+ 
+-    fn layer_weight(&self, layer: usize, suffix: &str) -> Result<&Tensor> {
+-        self.weight(&format!("layers.{layer:02}.{suffix}"))
++    /// RMSNorm with the gain `gain`; in served mode the gain is folded into
++    /// the maps that read the norm, so the norm itself is unit.
++    fn norm(&self, p: &Params<'_>, input: &Tensor, gain: &str) -> Result<Tensor> {
++        if p.folded_gains() {
++            self.unit_norm(input)
++        } else {
++            self.rms_norm(input, p.get(gain)?)
++        }
+     }
+ 
+     fn rms_norm(&self, input: &Tensor, weight: &Tensor) -> Result<Tensor> {
+@@ -557,31 +585,43 @@ impl StackModel {
+         Ok(output.reshape(shape)?)
+     }
+ 
+-    fn mlp(&self, layer: usize, x: &Tensor, capture: &mut Capture<'_>) -> Result<Tensor> {
++    fn mlp(
++        &self,
++        p: &Params<'_>,
++        layer: usize,
++        x: &Tensor,
++        capture: &mut Capture<'_>,
++    ) -> Result<Tensor> {
+         tap(capture, StackSite::Mlp(layer), || self.unit_norm(x))?;
+-        let u = self.rms_norm(x, self.layer_weight(layer, "mlp_norm.weight")?)?;
++        let u = self.norm(p, x, &layer_name(layer, "mlp_norm.weight"))?;
+         if let Some(memory) = self
+             .config
+             .memory
+             .as_ref()
+             .filter(|m| m.layers.contains(&layer))
+         {
+-            return self.memory(layer, &u, memory);
++            return self.memory(p, layer, &u, memory);
+         }
+-        let gate = Self::linear(&u, self.layer_weight(layer, "mlp.gate.weight")?)?;
+-        let up = Self::linear(&u, self.layer_weight(layer, "mlp.up.weight")?)?;
++        let gate = Self::linear(&u, p.layer(layer, "mlp.gate.weight")?)?;
++        let up = Self::linear(&u, p.layer(layer, "mlp.up.weight")?)?;
+         let mixed = gate.contiguous()?.apply_op2(&up.contiguous()?, SwiGlu)?;
+         tap(capture, StackSite::Down(layer), || Ok(mixed.clone()))?;
+-        Self::linear(&mixed, self.layer_weight(layer, "mlp.down.weight")?)
++        Self::linear(&mixed, p.layer(layer, "mlp.down.weight")?)
+     }
+ 
+     /// The product-key memory in place of `layer`'s MLP, on the normalized
+     /// input `u` [batch, time, width].
+-    fn memory(&self, layer: usize, u: &Tensor, memory: &MemoryConfig) -> Result<Tensor> {
++    fn memory(
++        &self,
++        p: &Params<'_>,
++        layer: usize,
++        u: &Tensor,
++        memory: &MemoryConfig,
++    ) -> Result<Tensor> {
+         let (batch, time, width) = u.dims3()?;
+-        let query = Self::linear(u, self.layer_weight(layer, "memory.query.weight")?)?
++        let query = Self::linear(u, p.layer(layer, "memory.query.weight")?)?
+             .reshape((batch * time, memory.heads * memory.key_dim))?;
+-        let keys = self.layer_weight(layer, "memory.keys")?.flatten_all()?;
++        let keys = p.layer(layer, "memory.keys")?.flatten_all()?;
+         // Fixed codebook keys carry no gradient, so they never move.
+         let mut aux = vec![if memory.codebook.is_some() {
+             keys.detach()
+@@ -589,19 +629,16 @@ impl StackModel {
+             keys
+         }];
+         if memory.score == MemoryScore::Lorentz {
+-            aux.push(self.layer_weight(layer, "memory.log_beta")?.exp()?);
++            aux.push(p.layer(layer, "memory.log_beta")?.exp()?);
+         }
+         let aux = Tensor::cat(&aux, 0)?;
+         if aux.elem_count() != keys_aux_len(memory) {
+             return Err(invalid("memory key layout differs from its configuration"));
+         }
+-        Ok(product_key_memory(
+-            &query,
+-            &aux,
+-            self.layer_weight(layer, "memory.values")?,
+-            memory,
+-        )?
+-        .reshape((batch, time, width))?)
++        Ok(
++            product_key_memory(&query, &aux, p.layer(layer, "memory.values")?, memory)?
++                .reshape((batch, time, width))?,
++        )
+     }
+ 
+     /// Splits [batch, time, width] into [batch, heads, time, head_width].
+@@ -618,16 +655,19 @@ impl StackModel {
+             .reshape((batch, time, self.config.width))?)
+     }
+ 
+-    fn attention(&self, layer: usize, x: &Tensor, capture: &mut Capture<'_>) -> Result<Tensor> {
++    fn attention(
++        &self,
++        p: &Params<'_>,
++        layer: usize,
++        x: &Tensor,
++        capture: &mut Capture<'_>,
++    ) -> Result<Tensor> {
+         let (batch, time, _) = x.dims3()?;
+         tap(capture, StackSite::Read(layer), || self.unit_norm(x))?;
+-        let u = self.rms_norm(x, self.layer_weight(layer, "attn_norm.weight")?)?;
++        let u = self.norm(p, x, &layer_name(layer, "attn_norm.weight"))?;
+         let project = |part: &str| -> Result<Tensor> {
+             self.heads(
+-                &Self::linear(
+-                    &u,
+-                    self.layer_weight(layer, &format!("attn.{part}.weight"))?,
+-                )?,
++                &Self::linear(&u, p.layer(layer, &format!("attn.{part}.weight"))?)?,
+                 batch,
+                 time,
+             )
+@@ -646,11 +686,12 @@ impl StackModel {
+         )?;
+         let merged = self.merge_heads(&read, batch, time)?;
+         tap(capture, StackSite::ReadOut(layer), || Ok(merged.clone()))?;
+-        Self::linear(&merged, self.layer_weight(layer, "attn.o.weight")?)
++        Self::linear(&merged, p.layer(layer, "attn.o.weight")?)
+     }
+ 
+     fn geometric_read(
+         &self,
++        p: &Params<'_>,
+         layer: usize,
+         x: &Tensor,
+         capture: &mut Capture<'_>,
+@@ -658,30 +699,27 @@ impl StackModel {
+         let (batch, time, _) = x.dims3()?;
+         let heads = self.config.heads;
+         tap(capture, StackSite::Read(layer), || self.unit_norm(x))?;
+-        let u = self.rms_norm(x, self.layer_weight(layer, "read_norm.weight")?)?;
++        let u = self.norm(p, x, &layer_name(layer, "read_norm.weight"))?;
+         let project = |part: &str| -> Result<Tensor> {
+             self.heads(
+-                &Self::linear(
+-                    &u,
+-                    self.layer_weight(layer, &format!("read.{part}.weight"))?,
+-                )?,
++                &Self::linear(&u, p.layer(layer, &format!("read.{part}.weight"))?)?,
+                 batch,
+                 time,
+             )
+         };
+         let (query, key, value) = (project("query")?, project("key")?, project("value")?);
+-        let null = Self::linear(&u, self.layer_weight(layer, "read.null.weight")?)?
+-            .broadcast_add(self.layer_weight(layer, "read.null.bias")?)?
++        let null = Self::linear(&u, p.layer(layer, "read.null.weight")?)?
++            .broadcast_add(p.layer(layer, "read.null.bias")?)?
+             .transpose(1, 2)?
+             .flatten_all()?;
+-        let age = self
+-            .layer_weight(layer, "read.age")?
++        let age = p
++            .layer(layer, "read.age")?
+             .narrow(1, 0, time)?
+             .flatten_all()?;
+         let mut aux = vec![null, age];
+         if self.config.read == ReadScore::Lorentz {
+-            aux.push(self.layer_weight(layer, "read.log_beta")?.exp()?);
+-            aux.push(self.layer_weight(layer, "read.offset")?.clone());
++            aux.push(p.layer(layer, "read.log_beta")?.exp()?);
++            aux.push(p.layer(layer, "read.offset")?.clone());
+         }
+         let aux = Tensor::cat(&aux, 0)?;
+         if aux.dim(0)? != fused_aux_len(batch, heads, time, self.config.read, true, true) {
+@@ -699,21 +737,27 @@ impl StackModel {
+         )?;
+         let merged = self.merge_heads(&read, batch, time)?;
+         tap(capture, StackSite::ReadOut(layer), || Ok(merged.clone()))?;
+-        Self::linear(&merged, self.layer_weight(layer, "read.out.weight")?)
++        Self::linear(&merged, p.layer(layer, "read.out.weight")?)
+     }
+ 
+-    fn recurrence(&self, layer: usize, x: &Tensor, capture: &mut Capture<'_>) -> Result<Tensor> {
++    fn recurrence(
++        &self,
++        p: &Params<'_>,
++        layer: usize,
++        x: &Tensor,
++        capture: &mut Capture<'_>,
++    ) -> Result<Tensor> {
+         let (batch, time, width) = x.dims3()?;
+         tap(capture, StackSite::Recurrence(layer), || self.unit_norm(x))?;
+-        let u = self.rms_norm(x, self.layer_weight(layer, "rec_norm.weight")?)?;
+-        let branches = Self::linear(&u, self.layer_weight(layer, "rec.in.weight")?)?;
+-        let gates = Self::linear(&u, self.layer_weight(layer, "rec.gate.weight")?)?
+-            .broadcast_add(self.layer_weight(layer, "rec.gate.bias")?)?;
++        let u = self.norm(p, x, &layer_name(layer, "rec_norm.weight"))?;
++        let branches = Self::linear(&u, p.layer(layer, "rec.in.weight")?)?;
++        let gates = Self::linear(&u, p.layer(layer, "rec.gate.weight")?)?
++            .broadcast_add(p.layer(layer, "rec.gate.bias")?)?;
+         let parameters = Tensor::cat(
+             &[
+-                &self.layer_weight(layer, "rec.conv.weight")?.flatten_all()?,
+-                self.layer_weight(layer, "rec.conv.bias")?,
+-                self.layer_weight(layer, "rec.decay")?,
++                &p.layer(layer, "rec.conv.weight")?.flatten_all()?,
++                p.layer(layer, "rec.conv.bias")?,
++                p.layer(layer, "rec.decay")?,
+             ],
+             0,
+         )?;
+@@ -732,20 +776,22 @@ impl StackModel {
+             StackSite::RecurrenceOut(layer),
+             || Ok(core.clone()),
+         )?;
+-        Self::linear(&core, self.layer_weight(layer, "rec.out.weight")?)
++        Self::linear(&core, p.layer(layer, "rec.out.weight")?)
+     }
+ 
+     /// Logits [batch * time, vocabulary] for a batch of windows. Positions see
+     /// only themselves and earlier positions of the same window.
+     pub fn forward(&self, ids: &[u32], batch: usize, time: usize) -> Result<Tensor> {
+-        let embedding = self.weight("embedding.weight")?;
+-        Ok(self.hidden(ids, batch, time)?.matmul(&embedding.t()?)?)
++        let p = self.params()?;
++        let hidden = self.hidden_hooked(&p, ids, batch, time, &mut None)?;
++        Ok(hidden.matmul(&p.head()?.t()?)?)
+     }
+ 
+     /// The final normalized states [batch * time, width], which the tied
+-    /// embedding maps to logits.
++    /// embedding (in served mode, the served head) maps to logits.
+     pub fn hidden(&self, ids: &[u32], batch: usize, time: usize) -> Result<Tensor> {
+-        self.hidden_hooked(ids, batch, time, &mut None)
++        let p = self.params()?;
++        self.hidden_hooked(&p, ids, batch, time, &mut None)
+     }
+ 
+     /// [`hidden`](Self::hidden), presenting the input of every weight map to
+@@ -760,22 +806,29 @@ impl StackModel {
+         time: usize,
+         capture: &mut dyn FnMut(StackSite, &Tensor) -> Result<()>,
+     ) -> Result<Tensor> {
+-        self.hidden_hooked(ids, batch, time, &mut Some(capture))
++        let p = self.params()?;
++        self.hidden_hooked(&p, ids, batch, time, &mut Some(capture))
+     }
+ 
+     fn hidden_hooked(
+         &self,
++        p: &Params<'_>,
+         ids: &[u32],
+         batch: usize,
+         time: usize,
+         capture: &mut Capture<'_>,
+     ) -> Result<Tensor> {
+-        let x = self.embed(ids, batch, time)?;
+-        self.layers_hooked(x, capture)
++        let x = self.embed_with(p, ids, batch, time)?;
++        self.layers_hooked(p, x, capture)
+     }
+ 
+     /// The token embeddings [batch, time, width] that the first layer reads.
+     pub fn embed(&self, ids: &[u32], batch: usize, time: usize) -> Result<Tensor> {
++        let p = self.params()?;
++        self.embed_with(&p, ids, batch, time)
++    }
++
++    fn embed_with(&self, p: &Params<'_>, ids: &[u32], batch: usize, time: usize) -> Result<Tensor> {
+         if ids.len() != batch * time || time == 0 || time > self.config.context {
+             return Err(invalid(
+                 "stack forward needs batch * time ids within the context",
+@@ -784,7 +837,7 @@ impl StackModel {
+         if ids.iter().any(|&id| id as usize >= self.config.vocab_size) {
+             return Err(invalid("token id outside the vocabulary"));
+         }
+-        let embedding = self.weight("embedding.weight")?;
++        let embedding = p.get("embedding.weight")?;
+         let index = Tensor::from_vec(ids.to_vec(), batch * time, &self.device)?;
+         Ok(embedding
+             .index_select(&index, 0)?
+@@ -801,12 +854,15 @@ impl StackModel {
+                 "stack input needs [batch, time, width] within the context",
+             ));
+         }
+-        self.layers_hooked(x, &mut None)
++        let p = self.params()?;
++        self.layers_hooked(&p, x, &mut None)
+     }
+ 
+-    /// Logits [rows, vocabulary] from final states, through the tied embedding.
++    /// Logits [rows, vocabulary] from final states, through the tied embedding
++    /// (in served mode, the served head).
+     pub fn head(&self, hidden: &Tensor) -> Result<Tensor> {
+-        Ok(hidden.matmul(&self.weight("embedding.weight")?.t()?)?)
++        let p = self.params()?;
++        Ok(hidden.matmul(&p.head()?.t()?)?)
+     }
+ 
+     /// The residual stream [batch, time, width] after running `layers` on
+@@ -824,42 +880,55 @@ impl StackModel {
+                 "stack layers need [batch, time, width] within the context and a valid layer range",
+             ));
+         }
+-        self.layer_range_hooked(x, layers, &mut None)
++        let p = self.params()?;
++        self.layer_range_hooked(&p, x, layers, &mut None)
+     }
+ 
+     /// The final normalized states [batch * time, width] from the residual
+     /// stream after the last layer.
+     pub fn finish(&self, x: Tensor) -> Result<Tensor> {
+-        self.finish_hooked(x, &mut None)
++        let p = self.params()?;
++        self.finish_hooked(&p, x, &mut None)
+     }
+ 
+-    fn layers_hooked(&self, x: Tensor, capture: &mut Capture<'_>) -> Result<Tensor> {
+-        let x = self.layer_range_hooked(x, 0..self.config.layers(), capture)?;
+-        self.finish_hooked(x, capture)
++    fn layers_hooked(
++        &self,
++        p: &Params<'_>,
++        x: Tensor,
++        capture: &mut Capture<'_>,
++    ) -> Result<Tensor> {
++        let x = self.layer_range_hooked(p, x, 0..self.config.layers(), capture)?;
++        self.finish_hooked(p, x, capture)
+     }
+ 
+     fn layer_range_hooked(
+         &self,
++        p: &Params<'_>,
+         mut x: Tensor,
+         layers: std::ops::Range<usize>,
+         capture: &mut Capture<'_>,
+     ) -> Result<Tensor> {
+         for layer in layers {
+             let mixed = match (self.config.arch, self.config.layer_kind(layer)) {
+-                (StackArch::Transformer, _) => self.attention(layer, &x, capture)?,
+-                (StackArch::Geometric, 'r') => self.recurrence(layer, &x, capture)?,
+-                (StackArch::Geometric, _) => self.geometric_read(layer, &x, capture)?,
++                (StackArch::Transformer, _) => self.attention(p, layer, &x, capture)?,
++                (StackArch::Geometric, 'r') => self.recurrence(p, layer, &x, capture)?,
++                (StackArch::Geometric, _) => self.geometric_read(p, layer, &x, capture)?,
+             };
+             x = x.add(&mixed)?;
+-            x = x.add(&self.mlp(layer, &x, capture)?)?;
++            x = x.add(&self.mlp(p, layer, &x, capture)?)?;
+         }
+         Ok(x)
+     }
+ 
+-    fn finish_hooked(&self, x: Tensor, capture: &mut Capture<'_>) -> Result<Tensor> {
++    fn finish_hooked(
++        &self,
++        p: &Params<'_>,
++        x: Tensor,
++        capture: &mut Capture<'_>,
++    ) -> Result<Tensor> {
+         let (batch, time, _) = x.dims3()?;
+         tap(capture, StackSite::Head, || self.unit_norm(&x))?;
+-        let x = self.rms_norm(&x, self.weight("final_norm.weight")?)?;
++        let x = self.norm(p, &x, "final_norm.weight")?;
+         Ok(x.reshape((batch * time, self.config.width))?)
+     }
+ 
+@@ -971,25 +1040,65 @@ impl StackModel {
+             config,
+             variables,
+             device: device.clone(),
++            served: None,
+         })
+     }
+ }
+ 
+-#[cfg(test)]
+ impl StackModel {
++    /// Evaluation-only diagnostic (roadmap S1.0b): next-token logits
++    /// `[batch * time, vocabulary]` with every transport quaternion replaced,
++    /// before its scaling by lambda, by the nearest of `snap` (for example the
++    /// 120 unit icosians of 2I). The recurrences run through their composed
++    /// Candle reference; with `snap = None` this equals the fused forward
++    /// within float tolerance. Not a training or serving path.
++    pub fn logits_with_transport(
++        &self,
++        ids: &[u32],
++        batch: usize,
++        time: usize,
++        snap: Option<&[[f32; 4]]>,
++    ) -> Result<Tensor> {
++        if self.config.arch != StackArch::Geometric {
++            return Err(invalid("transport snapping needs a geometric stack"));
++        }
++        if snap.is_some() && !self.config.rotation {
++            return Err(invalid("transport snapping needs a rotating stack"));
++        }
++        let p = self.params()?;
++        let mut x = self.embed_with(&p, ids, batch, time)?;
++        for layer in 0..self.config.layers() {
++            let mixed = match self.config.layer_kind(layer) {
++                'r' => self.composed_recurrence(&p, layer, &x, snap)?,
++                _ => self.geometric_read(&p, layer, &x, &mut None)?,
++            };
++            x = x.add(&mixed)?;
++            x = x.add(&self.mlp(&p, layer, &x, &mut None)?)?;
++        }
++        let hidden = self.finish_hooked(&p, x, &mut None)?;
++        Ok(hidden.matmul(&p.head()?.t()?)?)
++    }
++
+     /// The recurrence mixer composed from Candle operations: the reference
+-    /// for the fused core.
+-    pub(super) fn composed_recurrence(&self, layer: usize, x: &Tensor) -> Result<Tensor> {
++    /// for the fused core. `snap` replaces each unit transport quaternion by
++    /// its nearest root (see [`Self::logits_with_transport`]).
++    fn composed_recurrence(
++        &self,
++        p: &Params<'_>,
++        layer: usize,
++        x: &Tensor,
++        snap: Option<&[[f32; 4]]>,
++    ) -> Result<Tensor> {
+         let (batch, time, width) = x.dims3()?;
+         let lanes = width / 4;
+-        let u = self.rms_norm(x, self.layer_weight(layer, "rec_norm.weight")?)?;
+-        let branches = Self::linear(&u, self.layer_weight(layer, "rec.in.weight")?)?;
++        let u = self.norm(p, x, &layer_name(layer, "rec_norm.weight"))?;
++        let branches = Self::linear(&u, p.layer(layer, "rec.in.weight")?)?;
+         let input = branches.narrow(2, 0, width)?;
+         let gate = branches.narrow(2, width, width)?;
+         // Width-4 causal depthwise convolution over time.
+-        let weights = self.layer_weight(layer, "rec.conv.weight")?;
+-        let mut convolved = self
+-            .layer_weight(layer, "rec.conv.bias")?
++        let weights = p.layer(layer, "rec.conv.weight")?;
++        let mut convolved = p
++            .layer(layer, "rec.conv.bias")?
+             .broadcast_as((batch, time, width))?
+             .contiguous()?;
+         for shift in 0..CONVOLUTION_WIDTH.min(time) {
+@@ -1006,12 +1115,12 @@ impl StackModel {
+             };
+             convolved = convolved.add(&shifted.broadcast_mul(&weights.get(shift)?)?)?;
+         }
+-        let gates = Self::linear(&u, self.layer_weight(layer, "rec.gate.weight")?)?
+-            .broadcast_add(self.layer_weight(layer, "rec.gate.bias")?)?;
++        let gates = Self::linear(&u, p.layer(layer, "rec.gate.weight")?)?
++            .broadcast_add(p.layer(layer, "rec.gate.bias")?)?;
+         let opening = candle_nn::ops::sigmoid(&gates.narrow(2, 0, lanes)?)?;
+         // log a = -softplus(-decay) keeps a in (0, 1); log lambda = c r log a.
+-        let log_a = self
+-            .layer_weight(layer, "rec.decay")?
++        let log_a = p
++            .layer(layer, "rec.decay")?
+             .neg()?
+             .exp()?
+             .affine(1.0, 1.0)?
+@@ -1029,7 +1138,12 @@ impl StackModel {
+                 .narrow(2, lanes, width)?
+                 .reshape((batch, time, lanes, 4))?;
+             let norm = raw.sqr()?.sum_keepdim(3)?.affine(1.0, 1e-6)?.sqrt()?;
+-            raw.broadcast_div(&norm)?.broadcast_mul(&lambda)?
++            let unit = raw.broadcast_div(&norm)?;
++            let unit = match snap {
++                None => unit,
++                Some(roots) => snap_to_roots(&unit, roots)?,
++            };
++            unit.broadcast_mul(&lambda)?
+         } else {
+             let zeros = Tensor::zeros((batch, time, lanes, 3), DType::F32, &self.device)?;
+             Tensor::cat(&[&lambda, &zeros], 3)?
+@@ -1041,11 +1155,596 @@ impl StackModel {
+             .reshape((batch, time, width))?;
+         Self::linear(
+             &state.mul(&gate.gelu()?)?,
+-            self.layer_weight(layer, "rec.out.weight")?,
++            p.layer(layer, "rec.out.weight")?,
+         )
+     }
+ }
+ 
++/// Each quaternion of a `[.., 4]` tensor replaced by the root with the
++/// largest dot product: the nearest root, as every root is a unit.
++fn snap_to_roots(unit: &Tensor, roots: &[[f32; 4]]) -> Result<Tensor> {
++    if roots.is_empty() {
++        return Err(invalid("snapping needs at least one root"));
++    }
++    let shape = unit.shape().clone();
++    let values = unit.flatten_all()?.to_vec1::<f32>()?;
++    let snapped: Vec<[f32; 4]> = values
++        .par_chunks(4)
++        .map(|q| {
++            let mut best = roots[0];
++            let mut best_dot = f32::NEG_INFINITY;
++            for root in roots {
++                let dot = q[0] * root[0] + q[1] * root[1] + q[2] * root[2] + q[3] * root[3];
++                if dot > best_dot {
++                    best_dot = dot;
++                    best = *root;
++                }
++            }
++            best
++        })
++        .collect();
++    Ok(Tensor::from_vec(
++        snapped.into_iter().flatten().collect::<Vec<f32>>(),
++        shape,
++        unit.device(),
++    )?)
++}
++
++// ---------------------------------------------------------------------------
++// The served representation: training with the export's values in the loop.
++
++/// A representation of the weight maps whose values a forward pass can read
++/// ([`StackModel::set_served_representation`]): its round trip returns the
++/// dequantized values a serving artifact would hold. [`D11Interim`] is the
++/// stack export's own; a geometry-coded 4-bit codec (roadmap D4) plugs in here.
++pub trait MapCodec: Send + Sync {
++    /// A stable name for reports.
++    fn name(&self) -> &str;
++
++    /// Round-trip a row-major `rows x cols` matrix through the codec
++    /// (dequantized values). `cols` is a multiple of `uor_r4_lut::GROUP`.
++    fn round_trip(&self, values: &[f32], rows: usize, cols: usize) -> Result<Vec<f32>>;
++}
++
++/// The D11 interim weight format exactly as
++/// [`crate::stack_export::export_stack`] writes it without calibration: 4-bit
++/// values in groups of `GROUP` columns with a one-byte grid scale per group,
++/// rounded to nearest ([`quantize_matrix`], then [`dequantize_matrix`]).
++#[derive(Clone, Copy, Debug, Default)]
++pub struct D11Interim;
++
++impl MapCodec for D11Interim {
++    fn name(&self) -> &str {
++        "d11-interim-4bit-g32-round-to-nearest"
++    }
++
++    fn round_trip(&self, values: &[f32], rows: usize, cols: usize) -> Result<Vec<f32>> {
++        let packed = quantize_matrix(values, rows, cols)?;
++        dequantize_matrix(rows, cols, packed.exp_base, &packed.nibbles, &packed.scales)
++    }
++}
++
++/// The served view's name for the output map: the embedding with the final
++/// norm's gain folded in, which the export writes as its own matrix.
++const SERVED_HEAD: &str = "head";
++
++fn layer_name(layer: usize, suffix: &str) -> String {
++    format!("layers.{layer:02}.{suffix}")
++}
++
++/// How the export writes one tensor.
++#[derive(Clone, Debug)]
++enum ServedKind {
++    /// A `rows x cols` weight map through the codec: its columns times the
++    /// norm gain `gain` first, if any, and padded with zeros to `padded` (the
++    /// MLP's units) as the export pads.
++    Map {
++        gain: Option<String>,
++        rows: usize,
++        cols: usize,
++        padded: (usize, usize),
++    },
++    /// Grid codes of the values (convolution taps).
++    Taps,
++    /// Grid codes of the rate `8 softplus(-decay)`, read back as a decay.
++    DecayRate,
++    /// Grid codes of `beta = exp(log_beta)`, read back as `ln beta`.
++    LorentzScale,
++    /// Integers at `2^exp`.
++    Fixed(i32),
++}
++
++/// One tensor of the served view.
++#[derive(Clone, Debug)]
++struct ServedTensor {
++    /// Its name in the view: its variable's, or [`SERVED_HEAD`].
++    name: String,
++    /// The variable it stands for, which its gradient reaches.
++    source: String,
++    kind: ServedKind,
++}
++
++impl ServedTensor {
++    /// The variables its value is computed from.
++    fn sources(&self) -> impl Iterator<Item = &str> {
++        let gain = match &self.kind {
++            ServedKind::Map { gain, .. } => gain.as_deref(),
++            _ => None,
++        };
++        std::iter::once(self.source.as_str()).chain(gain)
++    }
++
++    /// The values the export writes for this tensor, read back as floats
++    /// (what [`crate::stack_export::stack_grid_reference`] holds), from the
++    /// variables' current `values`.
++    fn served_values(
++        &self,
++        values: &BTreeMap<String, Vec<f32>>,
++        codec: &dyn MapCodec,
++    ) -> Result<Vec<f32>> {
++        let get = |name: &str| {
++            values
++                .get(name)
++                .ok_or_else(|| invalid(format!("missing stack variable {name}")))
++        };
++        let source = get(&self.source)?;
++        let scalars = |f: &dyn Fn(f64) -> Result<f64>| -> Result<Vec<f32>> {
++            source
++                .iter()
++                .map(|&v| Ok(f(f64::from(v))? as f32))
++                .collect()
++        };
++        match &self.kind {
++            ServedKind::Map {
++                gain,
++                rows,
++                cols,
++                padded,
++            } => {
++                let mut map = source.clone();
++                if let Some(gain) = gain {
++                    fold_columns(&mut map, *cols, get(gain)?);
++                }
++                let (to_rows, to_cols) = *padded;
++                let same = (to_rows, to_cols) == (*rows, *cols);
++                if !same {
++                    map = pad(&map, *rows, *cols, to_rows, to_cols);
++                }
++                let served = codec.round_trip(&map, to_rows, to_cols)?;
++                if served.len() != to_rows * to_cols || served.iter().any(|v| !v.is_finite()) {
++                    return Err(invalid(format!(
++                        "codec {} returned {} values or a nonfinite one for {} ({to_rows} x {to_cols})",
++                        codec.name(),
++                        served.len(),
++                        self.name
++                    )));
++                }
++                Ok(if same {
++                    served
++                } else {
++                    block(&served, to_cols, *rows, *cols)
++                })
++            }
++            ServedKind::Taps => scalars(&|v| Ok(grid_value(grid_code(v)?))),
++            ServedKind::DecayRate => {
++                scalars(&|v| Ok(decay_of_rate(grid_value(grid_code(decay_rate(v))?))))
++            }
++            ServedKind::LorentzScale => scalars(&|v| Ok(grid_value(grid_code(v.exp())?).ln())),
++            ServedKind::Fixed(exp) => scalars(&|v| Ok(fixed_value(fixed(v, *exp)?, *exp))),
++        }
++    }
++}
++
++/// Every tensor the stack export writes, in the forward pass's terms: for a
++/// geometric stack without memories whose width is a multiple of `GROUP`.
++fn served_plan(config: &StackConfig) -> Result<Vec<ServedTensor>> {
++    if config.arch != StackArch::Geometric || config.memory.is_some() {
++        return Err(invalid(
++            "the served representation is the geometric stack export's; it has no transformer or memory layers",
++        ));
++    }
++    if !config.width.is_multiple_of(GROUP) {
++        return Err(invalid(format!(
++            "the served representation needs a width that is a multiple of {GROUP}"
++        )));
++    }
++    let (d, vocab) = (config.width, config.vocab_size);
++    let m = config.mlp_hidden;
++    let padded_mlp = m.div_ceil(GROUP) * GROUP;
++    let map = |name: String, gain: Option<String>, rows: usize, cols: usize, padded| ServedTensor {
++        source: name.clone(),
++        name,
++        kind: ServedKind::Map {
++            gain,
++            rows,
++            cols,
++            padded,
++        },
++    };
++    let scalar = |name: String, kind: ServedKind| ServedTensor {
++        source: name.clone(),
++        name,
++        kind,
++    };
++    let mut plan = vec![
++        map("embedding.weight".into(), None, vocab, d, (vocab, d)),
++        ServedTensor {
++            name: SERVED_HEAD.into(),
++            source: "embedding.weight".into(),
++            kind: ServedKind::Map {
++                gain: Some("final_norm.weight".into()),
++                rows: vocab,
++                cols: d,
++                padded: (vocab, d),
++            },
++        },
++    ];
++    for layer in 0..config.layers() {
++        let n = |suffix: &str| layer_name(layer, suffix);
++        if config.layer_kind(layer) == 'r' {
++            let gain = Some(n("rec_norm.weight"));
++            let gate_rows = d / 4 + config.rotation_rows();
++            plan.push(map(n("rec.in.weight"), gain.clone(), 2 * d, d, (2 * d, d)));
++            plan.push(map(
++                n("rec.gate.weight"),
++                gain,
++                gate_rows,
++                d,
++                (gate_rows, d),
++            ));
++            plan.push(map(n("rec.out.weight"), None, d, d, (d, d)));
++            plan.push(scalar(n("rec.conv.weight"), ServedKind::Taps));
++            plan.push(scalar(n("rec.conv.bias"), ServedKind::Fixed(-16)));
++            plan.push(scalar(n("rec.gate.bias"), ServedKind::Fixed(-16)));
++            plan.push(scalar(n("rec.decay"), ServedKind::DecayRate));
++        } else {
++            let gain = Some(n("read_norm.weight"));
++            for part in ["query", "key", "value"] {
++                let name = n(&format!("read.{part}.weight"));
++                plan.push(map(name, gain.clone(), d, d, (d, d)));
++            }
++            let heads = config.heads;
++            plan.push(map(n("read.null.weight"), gain, heads, d, (heads, d)));
++            plan.push(map(n("read.out.weight"), None, d, d, (d, d)));
++            plan.push(scalar(n("read.null.bias"), ServedKind::Fixed(-16)));
++            plan.push(scalar(n("read.age"), ServedKind::Fixed(-16)));
++            if config.read == ReadScore::Lorentz {
++                plan.push(scalar(n("read.log_beta"), ServedKind::LorentzScale));
++                plan.push(scalar(n("read.offset"), ServedKind::Fixed(-24)));
++            }
++        }
++        let gain = Some(n("mlp_norm.weight"));
++        plan.push(map(
++            n("mlp.gate.weight"),
++            gain.clone(),
++            m,
++            d,
++            (padded_mlp, d),
++        ));
++        plan.push(map(n("mlp.up.weight"), gain, m, d, (padded_mlp, d)));
++        plan.push(map(n("mlp.down.weight"), None, d, m, (d, padded_mlp)));
++    }
++    Ok(plan)
++}
++
++/// Straight-through estimator: the output is the second input's values
++/// exactly (the served values) and the gradient passes to the first input (the
++/// float expression they were computed from) unchanged. This is
++/// `w + (q(w) - w).detach()` without the rounding of that sum.
++struct StraightThrough;
++
++impl CustomOp2 for StraightThrough {
++    fn name(&self) -> &'static str {
++        "geometric-stack-straight-through"
++    }
++
++    fn cpu_fwd(
++        &self,
++        _s1: &CpuStorage,
++        l1: &Layout,
++        s2: &CpuStorage,
++        l2: &Layout,
++    ) -> candle_core::Result<(CpuStorage, Shape)> {
++        if l1.shape() != l2.shape() {
++            candle_core::bail!("straight-through inputs must have one shape");
++        }
++        Ok((
++            CpuStorage::F32(contiguous(s2, l2)?.to_vec()),
++            l2.shape().clone(),
++        ))
++    }
++
++    fn bwd(
++        &self,
++        _source: &Tensor,
++        _served: &Tensor,
++        _out: &Tensor,
++        grad: &Tensor,
++    ) -> candle_core::Result<(Option<Tensor>, Option<Tensor>)> {
++        Ok((Some(grad.clone()), None))
++    }
++}
++
++/// Work of the served representation so far ([`StackModel::served_statistics`]).
++#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize)]
++pub struct ServedStatistics {
++    /// Forward passes that compared the variables with the served view's.
++    pub checks: usize,
++    /// Checks that found changed variables and recomputed served tensors.
++    pub refreshes: usize,
++    /// Served tensors recomputed.
++    pub tensors: usize,
++    /// Seconds spent comparing and recomputing.
++    pub seconds: f64,
++}
++
++/// A served view and the variable values it was computed from.
++#[derive(Clone)]
++struct ServedCache {
++    sources: Arc<BTreeMap<String, Vec<f32>>>,
++    tensors: Arc<BTreeMap<String, Tensor>>,
++}
++
++/// Served mode ([`StackModel::set_served_representation`]).
++struct ServedState {
++    codec: Arc<dyn MapCodec>,
++    plan: Vec<ServedTensor>,
++    cache: Mutex<Option<ServedCache>>,
++    statistics: Mutex<ServedStatistics>,
++}
++
++/// The tensors one forward pass reads: the variables, or in served mode the
++/// served view of their current values.
++enum Params<'a> {
++    Float(&'a BTreeMap<String, Var>),
++    Served(Arc<BTreeMap<String, Tensor>>),
++}
++
++impl Params<'_> {
++    fn get(&self, name: &str) -> Result<&Tensor> {
++        let found = match self {
++            Self::Float(variables) => variables.get(name).map(Var::as_tensor),
++            Self::Served(tensors) => tensors.get(name),
++        };
++        found.ok_or_else(|| invalid(format!("missing stack variable {name}")))
++    }
++
++    fn layer(&self, layer: usize, suffix: &str) -> Result<&Tensor> {
++        self.get(&layer_name(layer, suffix))
++    }
++
++    /// The output map: the tied embedding, or the served head.
++    fn head(&self) -> Result<&Tensor> {
++        match self {
++            Self::Float(_) => self.get("embedding.weight"),
++            Self::Served(_) => self.get(SERVED_HEAD),
++        }
++    }
++
++    /// Whether the norm gains are folded into the maps that read the norms.
++    fn folded_gains(&self) -> bool {
++        matches!(self, Self::Served(_))
++    }
++}
++
++/// Bitwise equality of two float slices.
++fn same_bits(a: &[f32], b: &[f32]) -> bool {
++    a.len() == b.len() && a.iter().zip(b).all(|(x, y)| x.to_bits() == y.to_bits())
++}
++
++impl StackModel {
++    /// Train and evaluate with the served representation (`Some`), or in
++    /// float (`None`, the default). In served mode every forward pass
++    /// ([`forward`](Self::forward), [`loss`](Self::loss) and the rest) reads
++    /// exactly the values [`crate::stack_export::export_stack`] writes:
++    /// weight maps through `codec` with the norm gains folded in (the norms
++    /// themselves unit, the head a separate map of the embedding times the
++    /// final gain, the MLP padded to whole groups), per-channel scalars
++    /// through their grid codes (convolution taps; decays through their rates;
++    /// Lorentz scales through `beta`), and biases, age tables and Lorentz
++    /// offsets in fixed point, each rounded as the export rounds it. Gradients
++    /// reach the float variables by a straight-through estimator, the gains'
++    /// through the folded products. Served values are recomputed, in
++    /// parallel, whenever a variable they come from changed. Geometric stacks
++    /// without memories whose width is a multiple of `GROUP` only.
++    pub fn set_served_representation(&mut self, codec: Option<Arc<dyn MapCodec>>) -> Result<()> {
++        self.served = match codec {
++            None => None,
++            Some(codec) => {
++                let plan = served_plan(&self.config)?;
++                self.check_served_plan(&plan)?;
++                Some(ServedState {
++                    codec,
++                    plan,
++                    cache: Mutex::new(None),
++                    statistics: Mutex::new(ServedStatistics::default()),
++                })
++            }
++        };
++        Ok(())
++    }
++
++    /// The served representation's codec, in served mode.
++    pub fn served_codec(&self) -> Option<&dyn MapCodec> {
++        self.served.as_ref().map(|state| state.codec.as_ref())
++    }
++
++    /// The served representation's work so far, in served mode.
++    pub fn served_statistics(&self) -> Result<Option<ServedStatistics>> {
++        self.served
++            .as_ref()
++            .map(|state| {
++                state
++                    .statistics
++                    .lock()
++                    .map(|statistics| *statistics)
++                    .map_err(|_| invalid("the served statistics are poisoned"))
++            })
++            .transpose()
++    }
++
++    /// `f` on this model in float, with served mode (and its computed values)
++    /// restored afterwards.
++    pub fn with_float_forward<T>(&mut self, f: impl FnOnce(&Self) -> Result<T>) -> Result<T> {
++        let served = self.served.take();
++        let result = f(self);
++        self.served = served;
++        result
++    }
++
++    /// Every served tensor's variables exist with the export's shapes, and
++    /// every variable is served or folded into a served map.
++    fn check_served_plan(&self, plan: &[ServedTensor]) -> Result<()> {
++        let dims = |name: &str| -> Result<&[usize]> {
++            self.variables
++                .get(name)
++                .map(|var| var.dims())
++                .ok_or_else(|| invalid(format!("the served representation needs {name}")))
++        };
++        let mut covered = BTreeSet::new();
++        for tensor in plan {
++            for source in tensor.sources() {
++                dims(source)?;
++                covered.insert(source);
++            }
++            if let ServedKind::Map {
++                gain, rows, cols, ..
++            } = &tensor.kind
++            {
++                if dims(&tensor.source)? != [*rows, *cols]
++                    || gain
++                        .as_deref()
++                        .map(|gain| dims(gain).map(|g| g != [*cols]))
++                        .transpose()?
++                        .unwrap_or(false)
++                {
++                    return Err(invalid(format!(
++                        "{} differs from its served shape",
++                        tensor.name
++                    )));
++                }
++            }
++        }
++        if let Some(name) = self
++            .variables
++            .keys()
++            .find(|name| !covered.contains(name.as_str()))
++        {
++            return Err(invalid(format!(
++                "the served representation leaves {name} in float"
++            )));
++        }
++        Ok(())
++    }
++
++    /// The served view of the current variables. Served tensors whose
++    /// variables changed since the last view are recomputed, in parallel; the
++    /// rest are reused.
++    fn served_view(&self, state: &ServedState) -> Result<Arc<BTreeMap<String, Tensor>>> {
++        let started = Instant::now();
++        // No lock is held while the parallel work runs.
++        let previous = state
++            .cache
++            .lock()
++            .map_err(|_| invalid("the served cache is poisoned"))?
++            .clone();
++        let names: Vec<&String> = self.variables.keys().collect();
++        let current: Vec<(Vec<f32>, bool)> = names
++            .par_iter()
++            .map(|name| -> Result<(Vec<f32>, bool)> {
++                let values = self.variables[*name]
++                    .as_tensor()
++                    .flatten_all()?
++                    .to_vec1::<f32>()?;
++                let changed = previous
++                    .as_ref()
++                    .and_then(|cache| cache.sources.get(*name))
++                    .is_none_or(|old| !same_bits(old, &values));
++                Ok((values, changed))
++            })
++            .collect::<Result<_>>()?;
++        let changed: BTreeSet<&str> = names
++            .iter()
++            .zip(&current)
++            .filter(|(_, (_, changed))| *changed)
++            .map(|(name, _)| name.as_str())
++            .collect();
++        let mut statistics = ServedStatistics {
++            checks: 1,
++            ..ServedStatistics::default()
++        };
++        let view = match &previous {
++            Some(cache) if changed.is_empty() => cache.tensors.clone(),
++            _ => {
++                let sources: BTreeMap<String, Vec<f32>> = names
++                    .iter()
++                    .map(|name| (*name).clone())
++                    .zip(current.into_iter().map(|(values, _)| values))
++                    .collect();
++                let stale: Vec<&ServedTensor> = state
++                    .plan
++                    .iter()
++                    .filter(|tensor| {
++                        previous.is_none() || tensor.sources().any(|s| changed.contains(s))
++                    })
++                    .collect();
++                let rebuilt: Vec<(String, Tensor)> = stale
++                    .par_iter()
++                    .map(|tensor| -> Result<(String, Tensor)> {
++                        let values = tensor.served_values(&sources, state.codec.as_ref())?;
++                        Ok((tensor.name.clone(), self.straight_through(tensor, values)?))
++                    })
++                    .collect::<Result<_>>()?;
++                let mut tensors = previous
++                    .as_ref()
++                    .map(|cache| (*cache.tensors).clone())
++                    .unwrap_or_default();
++                tensors.extend(rebuilt);
++                let tensors = Arc::new(tensors);
++                *state
++                    .cache
++                    .lock()
++                    .map_err(|_| invalid("the served cache is poisoned"))? = Some(ServedCache {
++                    sources: Arc::new(sources),
++                    tensors: tensors.clone(),
++                });
++                statistics.refreshes = 1;
++                statistics.tensors = stale.len();
++                tensors
++            }
++        };
++        let mut total = state
++            .statistics
++            .lock()
++            .map_err(|_| invalid("the served statistics are poisoned"))?;
++        total.checks += statistics.checks;
++        total.refreshes += statistics.refreshes;
++        total.tensors += statistics.tensors;
++        total.seconds += started.elapsed().as_secs_f64();
++        Ok(view)
++    }
++
++    /// `values` in the forward pass, with the gradient of `tensor`'s float
++    /// expression: its variable, times its norm gain for a folded map.
++    fn straight_through(&self, tensor: &ServedTensor, values: Vec<f32>) -> Result<Tensor> {
++        let variable = |name: &str| {
++            self.variables
++                .get(name)
++                .map(Var::as_tensor)
++                .ok_or_else(|| invalid(format!("missing stack variable {name}")))
++        };
++        let source = variable(&tensor.source)?;
++        let input = match &tensor.kind {
++            ServedKind::Map {
++                gain: Some(gain), ..
++            } => source.broadcast_mul(variable(gain)?)?,
++            _ => source.clone(),
++        };
++        let served = Tensor::from_vec(values, source.shape(), source.device())?;
++        Ok(input.apply_op2(&served, StraightThrough)?)
++    }
++}
++
+ /// Matrices take weight decay; norms, biases, decays, age tables, the
+ /// convolution taps and the Lorentz scalars do not.
+ fn decayed(name: &str, rank: usize) -> bool {
+@@ -3261,6 +3960,42 @@ mod tests {
+         read_case(ReadScore::Lorentz)
+     }
+ 
++    #[test]
++    fn transport_logits_equal_the_forward_until_snapped() -> Result<()> {
++        let mut config = tiny(StackArch::Geometric, "rar", ReadScore::Lorentz, true);
++        config.seed = 59;
++        let model = StackModel::new(config, &cpu())?;
++        for name in ["layers.00.rec.gate.weight", "layers.02.rec.gate.weight"] {
++            let var = &model.variables()[name];
++            var.set(&random(&mut Initializer(61), var.dims(), 0.5))?;
++        }
++        let vocab = model.config.vocab_size as u32;
++        let ids: Vec<u32> = (0..18).map(|i| (i * 7 + 3) % vocab).collect();
++        let fused = model.forward(&ids, 2, 9)?;
++        let composed = model.logits_with_transport(&ids, 2, 9, None)?;
++        let gap = fused.sub(&composed)?.abs()?.max_all()?.to_scalar::<f32>()?;
++        assert!(gap < 1e-4, "the composed transport differs by {gap}");
++        // Snapping to the identity alone removes every rotation, and snapping
++        // to the 2I roots changes the logits but keeps them finite.
++        let identity = [[1f32, 0.0, 0.0, 0.0]];
++        let still = model.logits_with_transport(&ids, 2, 9, Some(&identity))?;
++        assert!(still.sub(&fused)?.abs()?.max_all()?.to_scalar::<f32>()? > 1e-6);
++        let roots: Vec<[f32; 4]> =
++            uor_r4_core::native_geometric::learner::embedding::canonical_h4_roots()
++                .iter()
++                .map(|r| {
++                    let a = r.to_array();
++                    [a[0] as f32, a[1] as f32, a[2] as f32, a[3] as f32]
++                })
++                .collect();
++        let snapped = model
++            .logits_with_transport(&ids, 2, 9, Some(&roots))?
++            .flatten_all()?
++            .to_vec1::<f32>()?;
++        assert!(snapped.iter().all(|v| v.is_finite()));
++        Ok(())
++    }
++
+     #[test]
+     fn fused_recurrence_matches_the_composed_mixer() -> Result<()> {
+         for rotation in [true, false] {
+@@ -3274,8 +4009,9 @@ mod tests {
+                 var.set(&random(&mut Initializer(43), var.dims(), 0.5))?;
+             }
+             let x = random(&mut Initializer(47), &[2, 9, 16], 1.0);
+-            let fused = model.recurrence(0, &x, &mut None)?;
+-            let composed = model.composed_recurrence(0, &x)?;
++            let p = model.params()?;
++            let fused = model.recurrence(&p, 0, &x, &mut None)?;
++            let composed = model.composed_recurrence(&p, 0, &x, None)?;
+             let gap = fused.sub(&composed)?.abs()?.max_all()?.to_scalar::<f32>()?;
+             assert!(
+                 gap < 1e-5,
+@@ -3295,10 +4031,13 @@ mod tests {
+                 .map(|name| model.variables()[*name].clone())
+                 .collect();
+             let fused_loss = model
+-                .recurrence(0, &x, &mut None)?
++                .recurrence(&p, 0, &x, &mut None)?
++                .mul(&weights)?
++                .sum_all()?;
++            let composed_loss = model
++                .composed_recurrence(&p, 0, &x, None)?
+                 .mul(&weights)?
+                 .sum_all()?;
+-            let composed_loss = model.composed_recurrence(0, &x)?.mul(&weights)?.sum_all()?;
+             let (a, b) = (fused_loss.backward()?, composed_loss.backward()?);
+             for (name, var) in names.iter().zip(&vars) {
+                 let ga = a
+@@ -3738,4 +4477,593 @@ mod tests {
+         assert_eq!(a.sub(&b)?.abs()?.max_all()?.to_scalar::<f32>()?, 0.0);
+         Ok(())
+     }
++
++    // -----------------------------------------------------------------------
++    // The served representation.
++
++    /// A small geometric stack the export takes: its width a multiple of
++    /// `GROUP` and an MLP the export pads (40 units to 64).
++    fn exportable(pattern: &str, read: ReadScore, rotation: bool) -> StackConfig {
++        StackConfig {
++            arch: StackArch::Geometric,
++            vocab_size: 96,
++            width: 64,
++            heads: 2,
++            mlp_hidden: 40,
++            context: 16,
++            pattern: pattern.into(),
++            read,
++            rotation,
++            seed: 29,
++            memory: None,
++        }
++    }
++
++    /// Weights spread over many magnitudes, so the export uses many grid
++    /// exponents: every row of a map has its own power-of-two scale (2^-4 to
++    /// 2^3 of the base), some groups are zero, and some rows lie 2^-24 below
++    /// the rest, under the export's exponent floor. Norm gains stay near one;
++    /// decays, ages, gate biases and Lorentz offsets near their initial
++    /// values; the convolution taps get scales of 2^-3 to 2^2.
++    fn spread(model: &StackModel, seed: u64) -> Result<()> {
++        let mut rng = Initializer(seed);
++        for (name, var) in model.variables() {
++            let cols = var.dims().last().copied().unwrap_or(1).max(1);
++            let old = var.as_tensor().flatten_all()?.to_vec1::<f32>()?;
++            let mut values = Vec::with_capacity(old.len());
++            for (i, &v) in old.iter().enumerate() {
++                let (row, col) = (i / cols, i % cols);
++                let n = rng.normal();
++                let near = |noise: f64| f64::from(v) + noise * n;
++                let value = if name.ends_with("norm.weight") {
++                    1.0 + 0.3 * n
++                } else if ["rec.decay", "read.age", "rec.gate.bias", "read.offset"]
++                    .iter()
++                    .any(|suffix| name.ends_with(suffix))
++                {
++                    near(0.3)
++                } else if name.ends_with("log_beta") || name.ends_with("bias") {
++                    0.5 * n
++                } else if name.ends_with("conv.weight") {
++                    near(0.3 * 2f64.powi((i % 6) as i32 - 3))
++                } else if var.rank() == 2 {
++                    if row % 11 == 5 && col < GROUP {
++                        0.0
++                    } else if row % 13 == 7 {
++                        0.05 * n * 2f64.powi(-24)
++                    } else {
++                        0.05 * n * 2f64.powi((row % 8) as i32 - 4)
++                    }
++                } else {
++                    0.05 * n
++                };
++                values.push(value as f32);
++            }
++            var.set(&Tensor::from_vec(values, var.shape(), &cpu())?)?;
++        }
++        Ok(())
++    }
++
++    fn token_ids(count: usize, vocab: u32, seed: u64) -> Vec<u32> {
++        let mut rng = Initializer(seed);
++        (0..count)
++            .map(|_| (rng.next() % u64::from(vocab)) as u32)
++            .collect()
++    }
++
++    fn max_abs_gap(a: &Tensor, b: &Tensor) -> Result<f32> {
++        Ok(a.sub(b)?.abs()?.max_all()?.to_scalar::<f32>()?)
++    }
++
++    fn bits(tensor: &Tensor) -> Result<Vec<u32>> {
++        Ok(tensor
++            .flatten_all()?
++            .to_vec1::<f32>()?
++            .iter()
++            .map(|v| v.to_bits())
++            .collect())
++    }
++
++    /// The export of `model` (round to nearest, no calibration) and its grid
++    /// reference.
++    fn exported_reference(model: &StackModel) -> Result<crate::stack_export::GridReference> {
++        let (bytes, _) =
++            crate::stack_export::export_stack(model, serde_json::json!({"test": "qat"}), None)?;
++        let artifact = uor_r4_lut::format::StackArtifact::parse(bytes)
++            .map_err(|error| invalid(error.to_string()))?;
++        crate::stack_export::stack_grid_reference(model, &artifact)
++    }
++
++    #[test]
++    fn served_forward_equals_the_exported_reference() -> Result<()> {
++        let mut worst = 0f32;
++        for pattern in ["rar", "rrarra"] {
++            for read in [ReadScore::Lorentz, ReadScore::Dot] {
++                for rotation in [true, false] {
++                    let mut model = StackModel::new(exportable(pattern, read, rotation), &cpu())?;
++                    spread(&model, 71)?;
++                    let reference = exported_reference(&model)?;
++                    let time = model.config.context;
++                    let ids = token_ids(2 * time, 96, 5);
++                    let float = model.forward(&ids, 2, time)?;
++                    model.set_served_representation(Some(Arc::new(D11Interim)))?;
++                    let served = model.forward(&ids, 2, time)?;
++                    let want = reference.logits(&ids, 2, time)?;
++                    let gap = max_abs_gap(&served, &want)?;
++                    let label = format!("{pattern} {read:?} rotation {rotation}");
++                    assert!(
++                        gap <= 1e-5,
++                        "{label}: served logits differ from the exported reference by {gap}"
++                    );
++                    assert!(
++                        max_abs_gap(&served, &float)? > 1e-3,
++                        "{label}: the served representation left the logits unchanged"
++                    );
++                    worst = worst.max(gap);
++                    // The piecewise entry points read the same served view.
++                    let x =
++                        model.run_layers(model.embed(&ids, 2, time)?, 0..model.config.layers())?;
++                    let piecewise = model.head(&model.finish(x)?)?;
++                    assert_eq!(bits(&piecewise)?, bits(&served)?, "{label}: piecewise");
++                    let targets = token_ids(2 * time, 96, 6);
++                    let loss = model.loss(&ids, &targets, 2, time)?.to_scalar::<f32>()?;
++                    let reference_loss =
++                        logits_cross_entropy(&want, &targets, None)?.to_scalar::<f32>()?;
++                    assert!((loss - reference_loss).abs() <= 1e-6, "{label}: loss");
++                }
++            }
++        }
++        // The weights exercise many of the export's scale exponents.
++        let model = StackModel::new(exportable("rar", ReadScore::Lorentz, true), &cpu())?;
++        spread(&model, 71)?;
++        let embedding = model.variables()["embedding.weight"]
++            .as_tensor()
++            .flatten_all()?
++            .to_vec1::<f32>()?;
++        let packed = quantize_matrix(&embedding, 96, 64)?;
++        let exponents: BTreeSet<u8> = packed.scales.iter().map(|scale| scale >> 4).collect();
++        assert!(
++            exponents.len() >= 8,
++            "only {} scale exponents",
++            exponents.len()
++        );
++        eprintln!(
++            "served forward against the exported reference: worst absolute logit gap {worst}"
++        );
++        Ok(())
++    }
++
++    /// The float forward composed directly from the variables with the
++    /// stack's kernels, in the order the forward pass took before the served
++    /// representation existed.
++    fn float_reference_logits(
++        model: &StackModel,
++        ids: &[u32],
++        batch: usize,
++        time: usize,
++    ) -> Result<Tensor> {
++        let c = &model.config;
++        let w = |name: &str| -> Result<Tensor> {
++            Ok(model
++                .variables()
++                .get(name)
++                .ok_or_else(|| invalid(name.to_owned()))?
++                .as_tensor()
++                .clone())
++        };
++        let l = |layer: usize, suffix: &str| w(&layer_name(layer, suffix));
++        let norm = |x: &Tensor, gain: &Tensor| -> Result<Tensor> {
++            Ok(x.contiguous()?.apply_op2(&gain.contiguous()?, RmsNorm)?)
++        };
++        let linear = StackModel::linear;
++        let split = |x: &Tensor| -> Result<Tensor> {
++            Ok(x.reshape((batch, time, c.heads, c.head_width()))?
++                .transpose(1, 2)?
++                .contiguous()?)
++        };
++        let index = Tensor::from_vec(ids.to_vec(), batch * time, model.device())?;
++        let mut x = w("embedding.weight")?
++            .index_select(&index, 0)?
++            .reshape((batch, time, c.width))?;
++        for layer in 0..c.layers() {
++            let mixed = if c.layer_kind(layer) == 'r' {
++                let u = norm(&x, &l(layer, "rec_norm.weight")?)?;
++                let branches = linear(&u, &l(layer, "rec.in.weight")?)?;
++                let gates = linear(&u, &l(layer, "rec.gate.weight")?)?
++                    .broadcast_add(&l(layer, "rec.gate.bias")?)?;
++                let parameters = Tensor::cat(
++                    &[
++                        &l(layer, "rec.conv.weight")?.flatten_all()?,
++                        &l(layer, "rec.conv.bias")?,
++                        &l(layer, "rec.decay")?,
++                    ],
++                    0,
++                )?;
++                let core = branches.contiguous()?.apply_op3(
++                    &gates.contiguous()?,
++                    &parameters,
++                    RecurrenceCore {
++                        batch,
++                        time,
++                        width: c.width,
++                        rotation: c.rotation,
++                    },
++                )?;
++                linear(&core, &l(layer, "rec.out.weight")?)?
++            } else {
++                let u = norm(&x, &l(layer, "read_norm.weight")?)?;
++                let project = |part: &str| -> Result<Tensor> {
++                    split(&linear(&u, &l(layer, &format!("read.{part}.weight"))?)?)
++                };
++                let null = linear(&u, &l(layer, "read.null.weight")?)?
++                    .broadcast_add(&l(layer, "read.null.bias")?)?
++                    .transpose(1, 2)?
++                    .flatten_all()?;
++                let age = l(layer, "read.age")?.narrow(1, 0, time)?.flatten_all()?;
++                let mut aux = vec![null, age];
++                if c.read == ReadScore::Lorentz {
++                    aux.push(l(layer, "read.log_beta")?.exp()?);
++                    aux.push(l(layer, "read.offset")?);
++                }
++                let read = fused_read(
++                    &project("query")?,
++                    &project("key")?,
++                    &project("value")?,
++                    &Tensor::cat(&aux, 0)?,
++                    c.read,
++                    true,
++                    true,
++                    false,
++                )?;
++                let merged = read.transpose(1, 2)?.reshape((batch, time, c.width))?;
++                linear(&merged, &l(layer, "read.out.weight")?)?
++            };
++            x = x.add(&mixed)?;
++            let u = norm(&x, &l(layer, "mlp_norm.weight")?)?;
++            let gate = linear(&u, &l(layer, "mlp.gate.weight")?)?;
++            let up = linear(&u, &l(layer, "mlp.up.weight")?)?;
++            let mixed = gate.contiguous()?.apply_op2(&up.contiguous()?, SwiGlu)?;
++            x = x.add(&linear(&mixed, &l(layer, "mlp.down.weight")?)?)?;
++        }
++        let hidden = norm(&x, &w("final_norm.weight")?)?.reshape((batch * time, c.width))?;
++        Ok(hidden.matmul(&w("embedding.weight")?.t()?)?)
++    }
++
++    #[test]
++    fn served_mode_off_is_bit_identical_to_the_float_forward() -> Result<()> {
++        for (pattern, read, rotation) in [
++            ("rar", ReadScore::Lorentz, true),
++            ("rrarra", ReadScore::Dot, false),
++            ("rrarra", ReadScore::Lorentz, true),
++        ] {
++            let mut model = StackModel::new(exportable(pattern, read, rotation), &cpu())?;
++            spread(&model, 73)?;
++            let time = model.config.context;
++            let (ids, targets) = (token_ids(2 * time, 96, 9), token_ids(2 * time, 96, 10));
++            let plain = bits(&model.forward(&ids, 2, time)?)?;
++            let reference = float_reference_logits(&model, &ids, 2, time)?;
++            assert_eq!(
++                plain,
++                bits(&reference)?,
++                "{pattern}: the float forward changed"
++            );
++            // The backward too: every variable's gradient, bit for bit.
++            let grads = model.loss(&ids, &targets, 2, time)?.backward()?;
++            let reference_grads = logits_cross_entropy(&reference, &targets, None)?.backward()?;
++            for (name, var) in model.variables() {
++                let (a, b) = (
++                    grads
++                        .get(var.as_tensor())
++                        .ok_or_else(|| invalid(name.clone()))?,
++                    reference_grads
++                        .get(var.as_tensor())
++                        .ok_or_else(|| invalid(name.clone()))?,
++                );
++                assert_eq!(
++                    bits(a)?,
++                    bits(b)?,
++                    "{pattern}: the gradient of {name} changed"
++                );
++            }
++            // Served mode changes the logits; off again, or bypassed, it is gone.
++            model.set_served_representation(Some(Arc::new(D11Interim)))?;
++            assert_ne!(plain, bits(&model.forward(&ids, 2, time)?)?);
++            let bypassed = model.with_float_forward(|m| m.forward(&ids, 2, time))?;
++            assert_eq!(plain, bits(&bypassed)?, "{pattern}: with_float_forward");
++            assert!(model.served_codec().is_some());
++            model.set_served_representation(None)?;
++            assert_eq!(
++                plain,
++                bits(&model.forward(&ids, 2, time)?)?,
++                "{pattern}: off again"
++            );
++        }
++        Ok(())
++    }
++
++    #[test]
++    fn a_served_training_step_reaches_every_parameter() -> Result<()> {
++        for (pattern, read, rotation) in [
++            ("rar", ReadScore::Lorentz, true),
++            ("rrarra", ReadScore::Dot, false),
++        ] {
++            let mut model = StackModel::new(exportable(pattern, read, rotation), &cpu())?;
++            spread(&model, 79)?;
++            // The whole context, so every age-table entry is read.
++            let time = model.config.context;
++            let (ids, targets) = (token_ids(2 * time, 96, 13), token_ids(2 * time, 96, 17));
++            let reference = exported_reference(&model)?;
++            model.set_served_representation(Some(Arc::new(D11Interim)))?;
++            let loss = model.loss(&ids, &targets, 2, time)?;
++            let grads = loss.backward()?;
++            // The reference's gradients at the served values, its head a variable.
++            let head = Var::from_tensor(&reference.head)?;
++            let reference_logits = reference
++                .model
++                .hidden(&ids, 2, time)?
++                .matmul(&head.as_tensor().t()?)?;
++            let reference_loss = logits_cross_entropy(&reference_logits, &targets, None)?;
++            assert!((loss.to_scalar::<f32>()? - reference_loss.to_scalar::<f32>()?).abs() <= 1e-6);
++            let reference_grads = reference_loss.backward()?;
++            // The straight-through gradient of every variable: the reference's
++            // gradient of its served value, through the folded gain for a map.
++            let variables = model.variables();
++            let mut expected: BTreeMap<String, Tensor> = BTreeMap::new();
++            for tensor in served_plan(&model.config)? {
++                let served_grad = if tensor.name == SERVED_HEAD {
++                    reference_grads.get(head.as_tensor())
++                } else {
++                    reference_grads.get(reference.model.variables()[&tensor.name].as_tensor())
++                }
++                .ok_or_else(|| invalid(format!("no reference gradient for {}", tensor.name)))?;
++                let mut parts = Vec::new();
++                match &tensor.kind {
++                    ServedKind::Map {
++                        gain: Some(gain), ..
++                    } => {
++                        let (w, g) = (
++                            variables[&tensor.source].as_tensor(),
++                            variables[gain].as_tensor(),
++                        );
++                        parts.push((tensor.source.clone(), served_grad.broadcast_mul(g)?));
++                        parts.push((gain.clone(), served_grad.mul(w)?.sum(0)?));
++                    }
++                    _ => parts.push((tensor.source.clone(), served_grad.clone())),
++                }
++                for (name, part) in parts {
++                    let total = match expected.remove(&name) {
++                        Some(sum) => sum.add(&part)?,
++                        None => part,
++                    };
++                    expected.insert(name, total);
++                }
++            }
++            for (name, var) in variables {
++                let got = grads
++                    .get(var.as_tensor())
++                    .ok_or_else(|| invalid(format!("{name} has no gradient in served mode")))?;
++                let values = got.flatten_all()?.to_vec1::<f32>()?;
++                assert!(values.iter().all(|v| v.is_finite()), "{name}: nonfinite");
++                let size = got.abs()?.max_all()?.to_scalar::<f32>()?;
++                assert!(size > 0.0, "{pattern}: {name} has a zero gradient");
++                let gap = max_abs_gap(got, &expected[name])?;
++                assert!(
++                    gap <= 1e-4 * size,
++                    "{pattern}: {name}'s straight-through gradient differs by {gap} of {size}"
++                );
++            }
++            // One update moves every variable, and the next served forward
++            // reads the new values: it equals the new export's reference.
++            let before: Vec<Vec<f32>> = variables
++                .values()
++                .map(|var| Ok(var.as_tensor().flatten_all()?.to_vec1::<f32>()?))
++                .collect::<Result<_>>()?;
++            let mut optimizer = StackAdamW::new(&model, 0.1, 1.0)?;
++            optimizer.update(&model, &grads, 1e-3)?;
++            for ((name, var), old) in variables.iter().zip(&before) {
++                let new = var.as_tensor().flatten_all()?.to_vec1::<f32>()?;
++                assert!(!same_bits(old, &new), "{pattern}: {name} did not move");
++            }
++            let updated = exported_reference(&model)?;
++            let gap = max_abs_gap(
++                &model.forward(&ids, 2, time)?,
++                &updated.logits(&ids, 2, time)?,
++            )?;
++            assert!(
++                gap <= 1e-5,
++                "{pattern}: after an update the served forward is {gap} off"
++            );
++        }
++        Ok(())
++    }
++
++    /// A lossless codec.
++    struct Identity;
++
++    impl MapCodec for Identity {
++        fn name(&self) -> &str {
++            "identity"
++        }
++
++        fn round_trip(&self, values: &[f32], _rows: usize, _cols: usize) -> Result<Vec<f32>> {
++            Ok(values.to_vec())
++        }
++    }
++
++    #[test]
++    fn an_identity_codec_gives_the_plain_forward() -> Result<()> {
++        for (pattern, read, rotation) in [
++            ("rar", ReadScore::Lorentz, true),
++            ("rrarra", ReadScore::Dot, false),
++            ("rrarra", ReadScore::Lorentz, false),
++        ] {
++            let mut model = StackModel::new(exportable(pattern, read, rotation), &cpu())?;
++            spread(&model, 83)?;
++            // Norm gains of +-2^k: a gain folded into a map is then exact, as
++            // it is applied to the normalized state, so the served forward
++            // differs from the plain one in no rounding at all. (With other
++            // gains the two round differently, and the Lorentz score amplifies
++            // that; `served_forward_equals_the_exported_reference` covers them.)
++            let mut rng = Initializer(85);
++            for (name, var) in model.variables() {
++                if name.ends_with("norm.weight") {
++                    let gains: Vec<f32> = (0..var.elem_count())
++                        .map(|_| {
++                            let k = (rng.next() % 3) as i32 - 1;
++                            let sign = if rng.next().is_multiple_of(5) {
++                                -1.0
++                            } else {
++                                1.0
++                            };
++                            sign * 2f32.powi(k)
++                        })
++                        .collect();
++                    var.set(&Tensor::from_vec(gains, var.shape(), &cpu())?)?;
++                }
++            }
++            // The codec covers the maps; the scalars keep the export's grid
++            // codes and fixed point. On their grid (where the scalar round
++            // trip is the identity) the whole representation is lossless.
++            let values = |model: &StackModel| -> Result<BTreeMap<String, Vec<f32>>> {
++                model
++                    .variables()
++                    .iter()
++                    .map(|(name, var)| {
++                        Ok((
++                            name.clone(),
++                            var.as_tensor().flatten_all()?.to_vec1::<f32>()?,
++                        ))
++                    })
++                    .collect()
++            };
++            let plan = served_plan(&model.config)?;
++            let scalars: Vec<&ServedTensor> = plan
++                .iter()
++                .filter(|tensor| !matches!(tensor.kind, ServedKind::Map { .. }))
++                .collect();
++            let current = values(&model)?;
++            for tensor in &scalars {
++                let var = &model.variables()[&tensor.source];
++                let on_grid = tensor.served_values(&current, &Identity)?;
++                var.set(&Tensor::from_vec(on_grid, var.shape(), &cpu())?)?;
++            }
++            let current = values(&model)?;
++            for tensor in &scalars {
++                let again = tensor.served_values(&current, &Identity)?;
++                assert!(
++                    same_bits(&again, &current[&tensor.source]),
++                    "{}",
++                    tensor.name
++                );
++            }
++            let time = model.config.context;
++            let (ids, targets) = (token_ids(2 * time, 96, 19), token_ids(2 * time, 96, 23));
++            let plain = model.forward(&ids, 2, time)?;
++            let plain_grads = model.loss(&ids, &targets, 2, time)?.backward()?;
++            model.set_served_representation(Some(Arc::new(Identity)))?;
++            let label = format!("{pattern} {read:?} rotation {rotation}");
++            assert_eq!(
++                bits(&model.forward(&ids, 2, time)?)?,
++                bits(&plain)?,
++                "{label}: the identity codec's logits"
++            );
++            // Gradients agree too, up to summation order: a norm gain's
++            // gradient gathers its terms through each map it is folded into.
++            let served_grads = model.loss(&ids, &targets, 2, time)?.backward()?;
++            for (name, var) in model.variables() {
++                let (a, b) = (
++                    served_grads
++                        .get(var.as_tensor())
++                        .ok_or_else(|| invalid(name.clone()))?,
++                    plain_grads
++                        .get(var.as_tensor())
++                        .ok_or_else(|| invalid(name.clone()))?,
++                );
++                let size = b.abs()?.max_all()?.to_scalar::<f32>()?;
++                let gap = max_abs_gap(a, b)?;
++                assert!(
++                    gap <= 1e-5 * size,
++                    "{label}: {name}'s gradient differs by {gap} of {size}"
++                );
++            }
++        }
++        Ok(())
++    }
++
++    #[test]
++    fn served_values_are_recomputed_exactly_when_their_variables_change() -> Result<()> {
++        let mut model = StackModel::new(exportable("rar", ReadScore::Lorentz, true), &cpu())?;
++        spread(&model, 89)?;
++        let tensors = served_plan(&model.config)?.len();
++        model.set_served_representation(Some(Arc::new(D11Interim)))?;
++        let time = model.config.context;
++        let ids = token_ids(time, 96, 29);
++        let first = bits(&model.forward(&ids, 1, time)?)?;
++        assert_eq!(first, bits(&model.forward(&ids, 1, time)?)?);
++        let statistics = |model: &StackModel| -> Result<ServedStatistics> {
++            model
++                .served_statistics()?
++                .ok_or_else(|| invalid("no served statistics"))
++        };
++        let seen = statistics(&model)?;
++        assert_eq!((seen.checks, seen.refreshes, seen.tensors), (2, 1, tensors));
++        // A decay feeds one served tensor; a norm gain the two maps it is
++        // folded into; the embedding its lookup and the head.
++        for (name, recomputed) in [
++            ("layers.00.rec.decay", 1),
++            ("layers.00.rec_norm.weight", 2),
++            ("embedding.weight", 2),
++        ] {
++            let var = &model.variables()[name];
++            var.set(&var.as_tensor().affine(1.25, 0.01)?)?;
++            let before = statistics(&model)?;
++            let logits = model.forward(&ids, 1, time)?;
++            let after = statistics(&model)?;
++            assert_eq!(after.refreshes, before.refreshes + 1, "{name}");
++            assert_eq!(after.tensors, before.tensors + recomputed, "{name}");
++            let gap = max_abs_gap(&logits, &exported_reference(&model)?.logits(&ids, 1, time)?)?;
++            assert!(
++                gap <= 1e-5,
++                "after changing {name} the served forward is {gap} off"
++            );
++        }
++        Ok(())
++    }
++
++    /// A codec that loses a value.
++    struct Short;
++
++    impl MapCodec for Short {
++        fn name(&self) -> &str {
++            "short"
++        }
++
++        fn round_trip(&self, values: &[f32], _rows: usize, _cols: usize) -> Result<Vec<f32>> {
++            Ok(values[..values.len().saturating_sub(1)].to_vec())
++        }
++    }
++
++    #[test]
++    fn the_served_representation_takes_exportable_stacks_only() -> Result<()> {
++        let codec: Arc<dyn MapCodec> = Arc::new(D11Interim);
++        for config in [
++            tiny(StackArch::Transformer, "aa", ReadScore::Dot, false),
++            with_memory(exportable("ra", ReadScore::Dot, true), MemoryScore::Dot),
++            // Width 16 is not a whole group.
++            tiny(StackArch::Geometric, "ra", ReadScore::Dot, true),
++        ] {
++            let mut model = StackModel::new(config.clone(), &cpu())?;
++            assert!(
++                model
++                    .set_served_representation(Some(codec.clone()))
++                    .is_err(),
++                "{config:?}"
++            );
++            assert!(model.served_codec().is_none());
++        }
++        let mut model = StackModel::new(exportable("ra", ReadScore::Dot, true), &cpu())?;
++        model.set_served_representation(Some(Arc::new(Short)))?;
++        assert!(model.forward(&token_ids(8, 96, 3), 1, 8).is_err());
++        Ok(())
++    }
+ }
+diff --git a/crates/uor-r4-training/src/stack_export.rs b/crates/uor-r4-training/src/stack_export.rs
+index cdd70ee95..07223f3e9 100644
+--- a/crates/uor-r4-training/src/stack_export.rs
++++ b/crates/uor-r4-training/src/stack_export.rs
+@@ -76,6 +76,12 @@ pub fn decay_rate(decay: f64) -> f64 {
+     DECAY_EXPONENT * (-decay).exp().ln_1p()
+ }
+ 
++/// The decay whose rate ([`decay_rate`]) is `rate`: how the grid reference
++/// and the served representation read a rate's grid code back.
++pub(crate) fn decay_of_rate(rate: f64) -> f64 {
++    -((rate / DECAY_EXPONENT).exp_m1().ln())
++}
++
+ fn values(model: &StackModel, name: &str) -> Result<Vec<f32>> {
+     let var = model
+         .variables()
+@@ -85,7 +91,7 @@ fn values(model: &StackModel, name: &str) -> Result<Vec<f32>> {
+ }
+ 
+ /// Multiply column `c` of a row-major matrix by `gain[c]` (RMSNorm folding).
+-fn fold_columns(values: &mut [f32], cols: usize, gain: &[f32]) {
++pub(crate) fn fold_columns(values: &mut [f32], cols: usize, gain: &[f32]) {
+     for row in values.chunks_exact_mut(cols) {
+         for (v, g) in row.iter_mut().zip(gain) {
+             *v *= g;
+@@ -94,7 +100,13 @@ fn fold_columns(values: &mut [f32], cols: usize, gain: &[f32]) {
+ }
+ 
+ /// Pad a row-major `rows x cols` matrix with zero rows and columns.
+-fn pad(values: &[f32], rows: usize, cols: usize, to_rows: usize, to_cols: usize) -> Vec<f32> {
++pub(crate) fn pad(
++    values: &[f32],
++    rows: usize,
++    cols: usize,
++    to_rows: usize,
++    to_cols: usize,
++) -> Vec<f32> {
+     let mut out = vec![0f32; to_rows * to_cols];
+     for r in 0..rows {
+         out[r * to_cols..r * to_cols + cols].copy_from_slice(&values[r * cols..(r + 1) * cols]);
+@@ -102,7 +114,8 @@ fn pad(values: &[f32], rows: usize, cols: usize, to_rows: usize, to_cols: usize)
+     out
+ }
+ 
+-fn fixed(value: f64, exp: i32) -> Result<i32> {
++/// `value` as an integer at `2^exp`, rounded to nearest.
++pub(crate) fn fixed(value: f64, exp: i32) -> Result<i32> {
+     let scaled = (value * 2f64.powi(-exp)).round();
+     if !scaled.is_finite() || scaled.abs() > f64::from(i32::MAX) {
+         return Err(invalid("a bias or offset overflows its integer"));
+@@ -110,6 +123,11 @@ fn fixed(value: f64, exp: i32) -> Result<i32> {
+     Ok(scaled as i32)
+ }
+ 
++/// The value of an integer at `2^exp` ([`fixed`]).
++pub(crate) fn fixed_value(value: i32, exp: i32) -> f64 {
++    f64::from(value) * 2f64.powi(exp)
++}
++
+ /// Second moments `sum_t x_t x_t^T` of every weight map's input over
+ /// calibration windows, as the folded export sees them
+ /// ([`StackModel::hidden_with_capture`]).
+@@ -595,7 +613,7 @@ fn packed_values<H: uor_r4_lut::format::Sections>(
+ }
+ 
+ /// The first `rows x cols` block of a row-major `stride`-column matrix.
+-fn block(values: &[f32], stride: usize, rows: usize, cols: usize) -> Vec<f32> {
++pub(crate) fn block(values: &[f32], stride: usize, rows: usize, cols: usize) -> Vec<f32> {
+     (0..rows)
+         .flat_map(|r| values[r * stride..r * stride + cols].iter().copied())
+         .collect()
+@@ -633,7 +651,7 @@ pub fn stack_grid_reference(
+             .table_i32(name)
+             .map_err(lut_error)?
+             .iter()
+-            .map(|&v| (f64::from(v) * 2f64.powi(exp)) as f32)
++            .map(|&v| fixed_value(v, exp) as f32)
+             .collect())
+     };
+     let codes = |name: &str| -> Result<Vec<f64>> {
+@@ -662,7 +680,7 @@ pub fn stack_grid_reference(
+             // The decay whose rate 8 softplus(-decay) is the grid code's value.
+             let decay = codes(&a("decay_rate"))?
+                 .iter()
+-                .map(|&rate| -((rate / DECAY_EXPONENT).exp_m1().ln()) as f32)
++                .map(|&rate| decay_of_rate(rate) as f32)
+                 .collect();
+             set(&reference, &t("rec.decay"), decay)?;
+         } else {
+diff --git a/docs/evidence/s1-stack-serving-measurements-2026-09-28.json b/docs/evidence/s1-stack-serving-measurements-2026-09-28.json
+new file mode 100644
+index 000000000..66c0ebdcd
+--- /dev/null
++++ b/docs/evidence/s1-stack-serving-measurements-2026-09-28.json
+@@ -0,0 +1,1323 @@
++{
++ "schema": "uor-r4.lab1.s1-measurements/1",
++ "work_card": "https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5874321776",
++ "model": "cycle-4 geometric_s1 (rrarra, Lorentz, rotation; 7,153,860 parameters), sha256 3eb1ebbb3c1f65fccf9dfb325283f8f9892cd434e0d689356821acee2c5b1e0a",
++ "s1_0_round_to_nearest": {
++  "export": {
++   "artifact": {
++    "bytes": 4969732,
++    "path": "/Volumes/UOR-Workspace/uor-r4-lab/claude-s1/export-rtn-1/model.lut",
++    "sha256": "9ad3313303df3d521344c4a021d17020aa92334290ad314b683401afdcacc920"
++   },
++   "calibration_seconds": 0.060028625,
++   "schema": "uor-r4.geometric-stack-export/1",
++   "seconds": 0.302489292,
++   "source": {
++    "config": {
++     "arch": "geometric",
++     "context": 256,
++     "heads": 6,
++     "mlp_hidden": 749,
++     "pattern": "rrarra",
++     "read": "lorentz",
++     "rotation": true,
++     "seed": 1,
++     "vocab_size": 4096,
++     "width": 288
++    },
++    "executable": {
++     "bytes": 6682000,
++     "path": "/Volumes/UOR-Workspace/BuildCaches/claude/release/examples/geometric-stack",
++     "sha256": "2038237c95be2c3fd71575508abc81925981d64429bf5b8fdf9a0881112f3e20"
++    },
++    "exporter": "geometric-stack export",
++    "model": {
++     "bytes": 28622728,
++     "path": "/Volumes/UOR-Workspace/uor-r4-models/investigations/cycle4-main-20260928/geometric_s1/model/model.safetensors",
++     "sha256": "3eb1ebbb3c1f65fccf9dfb325283f8f9892cd434e0d689356821acee2c5b1e0a"
++    },
++    "quantizer": {
++     "method": "round_to_nearest"
++    }
++   },
++   "quantization": {
++    "method": {
++     "mlp_padded_from": 749,
++     "mlp_padded_to": 768,
++     "quantizer": "round_to_nearest"
++    },
++    "grid_code_worst_relative_error": {
++     "l0.conv_taps": 0.030037863260733672,
++     "l0.decay_rate": 0.028141884426633863,
++     "l1.conv_taps": 0.030040244036750898,
++     "l1.decay_rate": 0.026315097986081667,
++     "l2.beta": 0.024861340760495794,
++     "l3.conv_taps": 0.030228818428478778,
++     "l3.decay_rate": 0.02629676394510113,
++     "l4.conv_taps": 0.0301717990155636,
++     "l4.decay_rate": 0.029114625200172946,
++     "l5.beta": 0.02164736472683407
++    },
++    "relative_output_error": {}
++   },
++   "root": {
++    "root": "/Volumes/UOR-Workspace/uor-r4-lab/claude-s1/export-rtn-1",
++    "manifest_sha256": "68c2091375603ce5f8d02e99e1ccf87cb313069ae43f190ab4fb0e064d89c49a",
++    "error": false
++   }
++  },
++  "evaluation": {
++   "root": {
++    "root": "/Volumes/UOR-Workspace/uor-r4-lab/claude-s1/lut-eval-rtn-1",
++    "manifest_sha256": "7f93ff0191217c21b306d3c35c31ec3fc2f8aeb0d3bcb5504b047027d3b4038f",
++    "error": false
++   },
++   "artifact": {
++    "bytes": 4969732,
++    "path": "/Volumes/UOR-Workspace/uor-r4-lab/claude-s1/export-rtn-1/model.lut",
++    "sha256": "9ad3313303df3d521344c4a021d17020aa92334290ad314b683401afdcacc920"
++   },
++   "float_model": {
++    "bytes": 28622728,
++    "path": "/Volumes/UOR-Workspace/uor-r4-models/investigations/cycle4-main-20260928/geometric_s1/model/model.safetensors",
++    "sha256": "3eb1ebbb3c1f65fccf9dfb325283f8f9892cd434e0d689356821acee2c5b1e0a"
++   },
++   "valid": {
++    "bytes": 413688,
++    "path": "/Volumes/UOR-Workspace/uor-r4-models/investigations/cycle4-main-20260928/eval/valid.u16",
++    "sha256": "3f7c50ef98fa707f4523aa3f7c6a97f496ee184fcfa125a84979fed9e7b91cb8"
++   },
++   "windows": 512,
++   "targets": 131072,
++   "all": {
++    "float": {
++     "bits_per_byte": 0.8034315046894616,
++     "nll": 1.9981126916470238
++    },
++    "integer": {
++     "bits_per_byte": 0.8179990614882006,
++     "nll": 2.034341816290449
++    },
++    "integer_arithmetic_nll": -4.0431721348710425e-07,
++    "integer_minus_float_nll": 0.0362291246434252,
++    "reference": {
++     "bits_per_byte": 0.8179992240622078,
++     "nll": 2.0343422206076625
++    },
++    "targets": 131072,
++    "weight_rounding_nll": 0.03622952896063869,
++    "windows": 512
++   },
++   "top1_agreement": 0.906524658203125,
++   "decision_flip_rate": 0.093475341796875,
++   "engine": {
++    "backend": "neon",
++    "loop_seconds": 139.73039727500017,
++    "loop_tokens_per_second": 938.0349770425415,
++    "scope": "step: the engine's steps only; loop: the steps plus scoring each position's logits in f64",
++    "step_seconds": 137.22174395999994,
++    "threads": 2,
++    "tokens_per_second": 955.183895915267
++   },
++   "reference": "the artifact's dequantized matrices, grid-code scalars and integer biases with unit norm gains and its own head, in f32 (the float model's kernels)"
++  }
++ },
++ "s1_0_gptq": {
++  "export": {
++   "artifact": {
++    "bytes": 4970052,
++    "path": "/Volumes/UOR-Workspace/uor-r4-lab/claude-s1/export-gptq-1/model.lut",
++    "sha256": "43e97b054a370f75b7068375d1fd78a43b4920a505d5a656ea611a0f93f575a9"
++   },
++   "calibration_seconds": 4.982123042,
++   "schema": "uor-r4.geometric-stack-export/1",
++   "seconds": 10.732471,
++   "source": {
++    "config": {
++     "arch": "geometric",
++     "context": 256,
++     "heads": 6,
++     "mlp_hidden": 749,
++     "pattern": "rrarra",
++     "read": "lorentz",
++     "rotation": true,
++     "seed": 1,
++     "vocab_size": 4096,
++     "width": 288
++    },
++    "executable": {
++     "bytes": 7098256,
++     "path": "/Volumes/UOR-Workspace/BuildCaches/claude/release/examples/geometric-stack",
++     "sha256": "4125f51b35dd41fbc82cdfc374ea6fbc12d9cbb8d42c340399c1f56624bc2959"
++    },
++    "exporter": "geometric-stack export",
++    "model": {
++     "bytes": 28622728,
++     "path": "/Volumes/UOR-Workspace/uor-r4-models/investigations/cycle4-main-20260928/geometric_s1/model/model.safetensors",
++     "sha256": "3eb1ebbb3c1f65fccf9dfb325283f8f9892cd434e0d689356821acee2c5b1e0a"
++    },
++    "quantizer": {
++     "calibration": {
++      "bytes": 14001984,
++      "path": "/Volumes/UOR-Workspace/uor-r4-models/investigations/cloud-data-20260928/c3/data/code/train.u16",
++      "sha256": "b12707b012e5447f0c613236ea7f8819f2cc123861dafe49f7f8226ccc457137"
++     },
++     "calibration_time": 256,
++     "calibration_windows": 64,
++     "damp": 0.01,
++     "method": "gptq"
++    }
++   },
++   "quantization": {
++    "method": {
++     "calibration_positions": 16384,
++     "damp": 0.01,
++     "mlp_padded_from": 749,
++     "mlp_padded_to": 768,
++     "quantizer": "gptq"
++    },
++    "grid_code_worst_relative_error": {
++     "l0.conv_taps": 0.030037863260733672,
++     "l0.decay_rate": 0.028141884426633863,
++     "l1.conv_taps": 0.030040244036750898,
++     "l1.decay_rate": 0.026315097986081667,
++     "l2.beta": 0.024861340760495794,
++     "l3.conv_taps": 0.030228818428478778,
++     "l3.decay_rate": 0.02629676394510113,
++     "l4.conv_taps": 0.0301717990155636,
++     "l4.decay_rate": 0.029114625200172946,
++     "l5.beta": 0.02164736472683407
++    },
++    "relative_output_error": {
++     "head": {
++      "gptq": 0.06618356466928875,
++      "round_to_nearest": 0.07658402628951723
++     },
++     "l0.down": {
++      "gptq": 0.04546606255803082,
++      "round_to_nearest": 0.058874702776743906
++     },
++     "l0.gate": {
++      "gptq": 0.05363767188832986,
++      "round_to_nearest": 0.06482181688797682
++     },
++     "l0.rec_gate": {
++      "gptq": 0.035931962921525486,
++      "round_to_nearest": 0.046725967069565895
++     },
++     "l0.rec_in": {
++      "gptq": 0.05635346255905097,
++      "round_to_nearest": 0.07330808174758427
++     },
++     "l0.rec_out": {
++      "gptq": 0.06813895889225383,
++      "round_to_nearest": 0.07854980444868934
++     },
++     "l0.up": {
++      "gptq": 0.07188749940347995,
++      "round_to_nearest": 0.08669920957081619
++     },
++     "l1.down": {
++      "gptq": 0.04889863406809318,
++      "round_to_nearest": 0.0648532395246546
++     },
++     "l1.gate": {
++      "gptq": 0.037334508450041055,
++      "round_to_nearest": 0.05956668239380246
++     },
++     "l1.rec_gate": {
++      "gptq": 0.03101162406752097,
++      "round_to_nearest": 0.04823389124105785
++     },
++     "l1.rec_in": {
++      "gptq": 0.03296526112438329,
++      "round_to_nearest": 0.0532714236705367
++     },
++     "l1.rec_out": {
++      "gptq": 0.07675948819079328,
++      "round_to_nearest": 0.08261918980256595
++     },
++     "l1.up": {
++      "gptq": 0.05149077750050841,
++      "round_to_nearest": 0.08137093409985346
++     },
++     "l2.down": {
++      "gptq": 0.06759296115751423,
++      "round_to_nearest": 0.07624849509831408
++     },
++     "l2.gate": {
++      "gptq": 0.03892359527148587,
++      "round_to_nearest": 0.05702108800470707
++     },
++     "l2.key": {
++      "gptq": 0.028238210185361285,
++      "round_to_nearest": 0.043924619971758436
++     },
++     "l2.null": {
++      "gptq": 0.022648448316485534,
++      "round_to_nearest": 0.03518312919966504
++     },
++     "l2.out": {
++      "gptq": 0.01881111836744887,
++      "round_to_nearest": 0.043065464585188465
++     },
++     "l2.query": {
++      "gptq": 0.030128969591872553,
++      "round_to_nearest": 0.04646179197474585
++     },
++     "l2.up": {
++      "gptq": 0.04949802655202202,
++      "round_to_nearest": 0.07208241503194862
++     },
++     "l2.value": {
++      "gptq": 0.0367068830534391,
++      "round_to_nearest": 0.05757918844603847
++     },
++     "l3.down": {
++      "gptq": 0.07173658363312868,
++      "round_to_nearest": 0.07970357956767743
++     },
++     "l3.gate": {
++      "gptq": 0.042546746880279436,
++      "round_to_nearest": 0.057742346465905016
++     },
++     "l3.rec_gate": {
++      "gptq": 0.03475718746746511,
++      "round_to_nearest": 0.04938105337819112
++     },
++     "l3.rec_in": {
++      "gptq": 0.03952339021539143,
++      "round_to_nearest": 0.05604612260662507
++     },
++     "l3.rec_out": {
++      "gptq": 0.08328658462980658,
++      "round_to_nearest": 0.08648532104462953
++     },
++     "l3.up": {
++      "gptq": 0.056688222631807034,
++      "round_to_nearest": 0.07726797645504836
++     },
++     "l4.down": {
++      "gptq": 0.06865365345298222,
++      "round_to_nearest": 0.07900685381482764
++     },
++     "l4.gate": {
++      "gptq": 0.04041078573759625,
++      "round_to_nearest": 0.052884380978755155
++     },
++     "l4.rec_gate": {
++      "gptq": 0.037996228736180214,
++      "round_to_nearest": 0.04977599078456129
++     },
++     "l4.rec_in": {
++      "gptq": 0.044047834555570174,
++      "round_to_nearest": 0.05803727714666307
++     },
++     "l4.rec_out": {
++      "gptq": 0.08293931918983696,
++      "round_to_nearest": 0.08734357416142342
++     },
++     "l4.up": {
++      "gptq": 0.0578237033134248,
++      "round_to_nearest": 0.07563027442032498
++     },
++     "l5.down": {
++      "gptq": 0.05700627774964906,
++      "round_to_nearest": 0.07105498777963638
++     },
++     "l5.gate": {
++      "gptq": 0.05215192455103755,
++      "round_to_nearest": 0.06494920499237822
++     },
++     "l5.key": {
++      "gptq": 0.04231583848373263,
++      "round_to_nearest": 0.05514132066930722
++     },
++     "l5.null": {
++      "gptq": 0.02277420931191908,
++      "round_to_nearest": 0.028246826176701413
++     },
++     "l5.out": {
++      "gptq": 0.04310857856734221,
++      "round_to_nearest": 0.058955493051874176
++     },
++     "l5.query": {
++      "gptq": 0.043291482848013416,
++      "round_to_nearest": 0.0559413534753597
++     },
++     "l5.up": {
++      "gptq": 0.05503850838967204,
++      "round_to_nearest": 0.06856467762936966
++     },
++     "l5.value": {
++      "gptq": 0.06469192373274141,
++      "round_to_nearest": 0.08375741528932533
++     }
++    }
++   },
++   "root": {
++    "root": "/Volumes/UOR-Workspace/uor-r4-lab/claude-s1/export-gptq-1",
++    "manifest_sha256": "2a0996a21a89a9a6317c0f427e0c26d4a5e8ccdf6ff91839c73a2a12592a6e47",
++    "error": false
++   }
++  },
++  "evaluation": {
++   "root": {
++    "root": "/Volumes/UOR-Workspace/uor-r4-lab/claude-s1/lut-eval-gptq-1",
++    "manifest_sha256": "e72b3c4e9404ef3f7f1add94d80a157cbcad4b94c387508bf3183edf4a22f63f",
++    "error": false
++   },
++   "artifact": {
++    "bytes": 4970052,
++    "path": "/Volumes/UOR-Workspace/uor-r4-lab/claude-s1/export-gptq-1/model.lut",
++    "sha256": "43e97b054a370f75b7068375d1fd78a43b4920a505d5a656ea611a0f93f575a9"
++   },
++   "float_model": {
++    "bytes": 28622728,
++    "path": "/Volumes/UOR-Workspace/uor-r4-models/investigations/cycle4-main-20260928/geometric_s1/model/model.safetensors",
++    "sha256": "3eb1ebbb3c1f65fccf9dfb325283f8f9892cd434e0d689356821acee2c5b1e0a"
++   },
++   "valid": {
++    "bytes": 413688,
++    "path": "/Volumes/UOR-Workspace/uor-r4-models/investigations/cycle4-main-20260928/eval/valid.u16",
++    "sha256": "3f7c50ef98fa707f4523aa3f7c6a97f496ee184fcfa125a84979fed9e7b91cb8"
++   },
++   "windows": 512,
++   "targets": 131072,
++   "all": {
++    "float": {
++     "bits_per_byte": 0.8034315046894616,
++     "nll": 1.9981126916470238
++    },
++    "integer": {
++     "bits_per_byte": 0.813784243423427,
++     "nll": 2.02385967634566
++    },
++    "integer_arithmetic_nll": 6.816914588370082e-07,
++    "integer_minus_float_nll": 0.025746984698636455,
++    "reference": {
++     "bits_per_byte": 0.8137839693185696,
++     "nll": 2.0238589946542014
++    },
++    "targets": 131072,
++    "weight_rounding_nll": 0.025746303007177618,
++    "windows": 512
++   },
++   "top1_agreement": 0.9183349609375,
++   "decision_flip_rate": 0.0816650390625,
++   "engine": {
++    "backend": "neon",
++    "loop_seconds": 143.46897833600005,
++    "loop_tokens_per_second": 913.5912273176805,
++    "scope": "step: the engine's steps only; loop: the steps plus scoring each position's logits in f64",
++    "step_seconds": 140.70474997299996,
++    "threads": 2,
++    "tokens_per_second": 931.5392694642618
++   },
++   "reference": "the artifact's dequantized matrices, grid-code scalars and integer biases with unit norm gains and its own head, in f32 (the float model's kernels)"
++  }
++ },
++ "s1_0b_snap": {
++  "final": {
++   "composed_minus_fused_max_abs_logit_first_group": 0.0003088712692260742,
++   "executable": {
++    "bytes": 7098256,
++    "path": "/Volumes/UOR-Workspace/BuildCaches/claude/release/examples/geometric-stack",
++    "sha256": "4125f51b35dd41fbc82cdfc374ea6fbc12d9cbb8d42c340399c1f56624bc2959"
++   },
++   "fused_nll": 1.9981126822531223,
++   "model": {
++    "bytes": 28622728,
++    "path": "/Volumes/UOR-Workspace/uor-r4-models/investigations/cycle4-main-20260928/geometric_s1/model/model.safetensors",
++    "sha256": "3eb1ebbb3c1f65fccf9dfb325283f8f9892cd434e0d689356821acee2c5b1e0a"
++   },
++   "roadmap": "S1.0b (evaluation-only diagnostic)",
++   "roots": "canonical_h4_roots: the 120 unit icosians of 2I",
++   "schema": "uor-r4.stack-transport-snap/1",
++   "seconds": 44.570129334,
++   "snapped_minus_fused_nats": 0.026150591671466827,
++   "snapped_nll": 2.024263273924589,
++   "targets": 131072,
++   "top1_agreement": 0.9170379638671875,
++   "valid": {
++    "bytes": 413688,
++    "path": "/Volumes/UOR-Workspace/uor-r4-models/investigations/cycle4-main-20260928/eval/valid.u16",
++    "sha256": "3f7c50ef98fa707f4523aa3f7c6a97f496ee184fcfa125a84979fed9e7b91cb8"
++   },
++   "windows": 512,
++   "root": {
++    "root": "/Volumes/UOR-Workspace/uor-r4-lab/claude-s1/snap-final-1",
++    "manifest_sha256": "6f4ca0b6c281d4a4bcf1c9a3e4fbc2e760278562e3efdf101132ba6a2b5cfba9",
++    "error": false
++   }
++  },
++  "rot_s1": {
++   "composed_minus_fused_max_abs_logit_first_group": 0.00010919570922851562,
++   "executable": {
++    "bytes": 7098256,
++    "path": "/Volumes/UOR-Workspace/BuildCaches/claude/release/examples/geometric-stack",
++    "sha256": "4125f51b35dd41fbc82cdfc374ea6fbc12d9cbb8d42c340399c1f56624bc2959"
++   },
++   "fused_nll": 2.599844664335251,
++   "model": {
++    "bytes": 28622728,
++    "path": "/Volumes/UOR-Workspace/uor-r4-models/investigations/d1-transport-attribution-20260928/rot_s1/model/model.safetensors",
++    "sha256": "898893924c4f9b6a49b31f7d18eed8ef38d246971505227544a0b712292aa4a6"
++   },
++   "roadmap": "S1.0b (evaluation-only diagnostic)",
++   "roots": "canonical_h4_roots: the 120 unit icosians of 2I",
++   "schema": "uor-r4.stack-transport-snap/1",
++   "seconds": 45.579982292,
++   "snapped_minus_fused_nats": 0.025598950684070587,
++   "snapped_nll": 2.6254436150193214,
++   "targets": 131072,
++   "top1_agreement": 0.893585205078125,
++   "valid": {
++    "bytes": 413688,
++    "path": "/Volumes/UOR-Workspace/uor-r4-models/investigations/d1-transport-attribution-20260928/eval/valid.u16",
++    "sha256": "3f7c50ef98fa707f4523aa3f7c6a97f496ee184fcfa125a84979fed9e7b91cb8"
++   },
++   "windows": 512,
++   "root": {
++    "root": "/Volumes/UOR-Workspace/uor-r4-lab/claude-s1/snap-rot_s1-1",
++    "manifest_sha256": "583e0d2412a2158ea611e1ea1b44074af56c6f4cd50e6c0dfe0f2dc4f4281e2d",
++    "error": false
++   }
++  },
++  "rot_s2": {
++   "composed_minus_fused_max_abs_logit_first_group": 0.00013625621795654297,
++   "executable": {
++    "bytes": 7098256,
++    "path": "/Volumes/UOR-Workspace/BuildCaches/claude/release/examples/geometric-stack",
++    "sha256": "4125f51b35dd41fbc82cdfc374ea6fbc12d9cbb8d42c340399c1f56624bc2959"
++   },
++   "fused_nll": 2.580264873802662,
++   "model": {
++    "bytes": 28622728,
++    "path": "/Volumes/UOR-Workspace/uor-r4-models/investigations/d1-transport-attribution-20260928/rot_s2/model/model.safetensors",
++    "sha256": "deb422e442cd6274ca71605f4e22639be73c3196f699ef5471f788531e607c25"
++   },
++   "roadmap": "S1.0b (evaluation-only diagnostic)",
++   "roots": "canonical_h4_roots: the 120 unit icosians of 2I",
++   "schema": "uor-r4.stack-transport-snap/1",
++   "seconds": 49.128726083,
++   "snapped_minus_fused_nats": 0.025965213775634766,
++   "snapped_nll": 2.6062300875782967,
++   "targets": 131072,
++   "top1_agreement": 0.8966140747070312,
++   "valid": {
++    "bytes": 413688,
++    "path": "/Volumes/UOR-Workspace/uor-r4-models/investigations/d1-transport-attribution-20260928/eval/valid.u16",
++    "sha256": "3f7c50ef98fa707f4523aa3f7c6a97f496ee184fcfa125a84979fed9e7b91cb8"
++   },
++   "windows": 512,
++   "root": {
++    "root": "/Volumes/UOR-Workspace/uor-r4-lab/claude-s1/snap-rot_s2-1",
++    "manifest_sha256": "da670b00039ab542deb619599afcfd57b53684b49ec9062a96ab3f4927a8ae34",
++    "error": false
++   }
++  }
++ },
++ "s1_0c_attribution": {
++  "gptq": {
++   "artifact": {
++    "bytes": 4970052,
++    "path": "/Volumes/UOR-Workspace/uor-r4-lab/claude-s1/export-gptq-1/model.lut",
++    "sha256": "43e97b054a370f75b7068375d1fd78a43b4920a505d5a656ea611a0f93f575a9"
++   },
++   "executable": {
++    "bytes": 7135968,
++    "path": "/Volumes/UOR-Workspace/uor-r4-lab/claude-s1/bin/geometric-stack-52a20eeb5a25",
++    "sha256": "52a20eeb5a2561a1a2b765f67d0b2c9421e25bb1f66cb4e832f4c8f44d27b370"
++   },
++   "float_nll": 1.9981126822531223,
++   "groups": {
++    "embed": [
++     "embedding.weight"
++    ],
++    "head": [
++     "final_norm.weight"
++    ],
++    "l0.mixer_maps": [
++     "layers.00.rec.gate.weight",
++     "layers.00.rec.in.weight",
++     "layers.00.rec.out.weight",
++     "layers.00.rec_norm.weight"
++    ],
++    "l0.mixer_scalars": [
++     "layers.00.rec.conv.bias",
++     "layers.00.rec.conv.weight",
++     "layers.00.rec.decay",
++     "layers.00.rec.gate.bias"
++    ],
++    "l0.mlp": [
++     "layers.00.mlp.down.weight",
++     "layers.00.mlp.gate.weight",
++     "layers.00.mlp.up.weight",
++     "layers.00.mlp_norm.weight"
++    ],
++    "l1.mixer_maps": [
++     "layers.01.rec.gate.weight",
++     "layers.01.rec.in.weight",
++     "layers.01.rec.out.weight",
++     "layers.01.rec_norm.weight"
++    ],
++    "l1.mixer_scalars": [
++     "layers.01.rec.conv.bias",
++     "layers.01.rec.conv.weight",
++     "layers.01.rec.decay",
++     "layers.01.rec.gate.bias"
++    ],
++    "l1.mlp": [
++     "layers.01.mlp.down.weight",
++     "layers.01.mlp.gate.weight",
++     "layers.01.mlp.up.weight",
++     "layers.01.mlp_norm.weight"
++    ],
++    "l2.mixer_maps": [
++     "layers.02.read.key.weight",
++     "layers.02.read.null.weight",
++     "layers.02.read.out.weight",
++     "layers.02.read.query.weight",
++     "layers.02.read.value.weight",
++     "layers.02.read_norm.weight"
++    ],
++    "l2.mixer_scalars": [
++     "layers.02.read.age",
++     "layers.02.read.log_beta",
++     "layers.02.read.null.bias",
++     "layers.02.read.offset"
++    ],
++    "l2.mlp": [
++     "layers.02.mlp.down.weight",
++     "layers.02.mlp.gate.weight",
++     "layers.02.mlp.up.weight",
++     "layers.02.mlp_norm.weight"
++    ],
++    "l3.mixer_maps": [
++     "layers.03.rec.gate.weight",
++     "layers.03.rec.in.weight",
++     "layers.03.rec.out.weight",
++     "layers.03.rec_norm.weight"
++    ],
++    "l3.mixer_scalars": [
++     "layers.03.rec.conv.bias",
++     "layers.03.rec.conv.weight",
++     "layers.03.rec.decay",
++     "layers.03.rec.gate.bias"
++    ],
++    "l3.mlp": [
++     "layers.03.mlp.down.weight",
++     "layers.03.mlp.gate.weight",
++     "layers.03.mlp.up.weight",
++     "layers.03.mlp_norm.weight"
++    ],
++    "l4.mixer_maps": [
++     "layers.04.rec.gate.weight",
++     "layers.04.rec.in.weight",
++     "layers.04.rec.out.weight",
++     "layers.04.rec_norm.weight"
++    ],
++    "l4.mixer_scalars": [
++     "layers.04.rec.conv.bias",
++     "layers.04.rec.conv.weight",
++     "layers.04.rec.decay",
++     "layers.04.rec.gate.bias"
++    ],
++    "l4.mlp": [
++     "layers.04.mlp.down.weight",
++     "layers.04.mlp.gate.weight",
++     "layers.04.mlp.up.weight",
++     "layers.04.mlp_norm.weight"
++    ],
++    "l5.mixer_maps": [
++     "layers.05.read.key.weight",
++     "layers.05.read.null.weight",
++     "layers.05.read.out.weight",
++     "layers.05.read.query.weight",
++     "layers.05.read.value.weight",
++     "layers.05.read_norm.weight"
++    ],
++    "l5.mixer_scalars": [
++     "layers.05.read.age",
++     "layers.05.read.log_beta",
++     "layers.05.read.null.bias",
++     "layers.05.read.offset"
++    ],
++    "l5.mlp": [
++     "layers.05.mlp.down.weight",
++     "layers.05.mlp.gate.weight",
++     "layers.05.mlp.up.weight",
++     "layers.05.mlp_norm.weight"
++    ]
++   },
++   "model": {
++    "bytes": 28622728,
++    "path": "/Volumes/UOR-Workspace/uor-r4-models/investigations/cycle4-main-20260928/geometric_s1/model/model.safetensors",
++    "sha256": "3eb1ebbb3c1f65fccf9dfb325283f8f9892cd434e0d689356821acee2c5b1e0a"
++   },
++   "reading": "each row: the float model with only the listed groups from the artifact; maps are the 4-bit matrices (with the normalization whose gain they carry), scalars the grid-code and fixed-point per-channel values",
++   "roadmap": "S1.0c (evaluation-only diagnostic)",
++   "rows": [
++    {
++     "group": "embed",
++     "members": [
++      "embed"
++     ],
++     "minus_float_nats": 0.0026054494082927704,
++     "nll": 2.000718131661415,
++     "top1_agreement": 0.9742279052734375
++    },
++    {
++     "group": "head",
++     "members": [
++      "head"
++     ],
++     "minus_float_nats": 0.011897433549165726,
++     "nll": 2.010010115802288,
++     "top1_agreement": 0.946685791015625
++    },
++    {
++     "group": "l0.mixer_maps",
++     "members": [
++      "l0.mixer_maps"
++     ],
++     "minus_float_nats": 0.00038475170731544495,
++     "nll": 1.9984974339604378,
++     "top1_agreement": 0.9910354614257812
++    },
++    {
++     "group": "l0.mixer_scalars",
++     "members": [
++      "l0.mixer_scalars"
++     ],
++     "minus_float_nats": 0.00011837109923362732,
++     "nll": 1.998231053352356,
++     "top1_agreement": 0.9988250732421875
++    },
++    {
++     "group": "l0.mlp",
++     "members": [
++      "l0.mlp"
++     ],
++     "minus_float_nats": 0.002704136073589325,
++     "nll": 2.0008168183267117,
++     "top1_agreement": 0.9772109985351562
++    },
++    {
++     "group": "l1.mixer_maps",
++     "members": [
++      "l1.mixer_maps"
++     ],
++     "minus_float_nats": 0.00040687620639801025,
++     "nll": 1.9985195584595203,
++     "top1_agreement": 0.9887237548828125
++    },
++    {
++     "group": "l1.mixer_scalars",
++     "members": [
++      "l1.mixer_scalars"
++     ],
++     "minus_float_nats": 2.7194619178771973e-06,
++     "nll": 1.9981154017150402,
++     "top1_agreement": 0.9978408813476562
++    },
++    {
++     "group": "l1.mlp",
++     "members": [
++      "l1.mlp"
++     ],
++     "minus_float_nats": 0.0003049485385417938,
++     "nll": 1.9984176307916641,
++     "top1_agreement": 0.994354248046875
++    },
++    {
++     "group": "l2.mixer_maps",
++     "members": [
++      "l2.mixer_maps"
++     ],
++     "minus_float_nats": 9.498372673988342e-05,
++     "nll": 1.9982076659798622,
++     "top1_agreement": 0.9916458129882812
++    },
++    {
++     "group": "l2.mixer_scalars",
++     "members": [
++      "l2.mixer_scalars"
++     ],
++     "minus_float_nats": 0.00023507699370384216,
++     "nll": 1.9983477592468262,
++     "top1_agreement": 0.995452880859375
++    },
++    {
++     "group": "l2.mlp",
++     "members": [
++      "l2.mlp"
++     ],
++     "minus_float_nats": 0.00043813884258270264,
++     "nll": 1.998550821095705,
++     "top1_agreement": 0.9870986938476562
++    },
++    {
++     "group": "l3.mixer_maps",
++     "members": [
++      "l3.mixer_maps"
++     ],
++     "minus_float_nats": 0.000419076532125473,
++     "nll": 1.9985317587852478,
++     "top1_agreement": 0.9898834228515625
++    },
++    {
++     "group": "l3.mixer_scalars",
++     "members": [
++      "l3.mixer_scalars"
++     ],
++     "minus_float_nats": 8.46274197101593e-05,
++     "nll": 1.9981973096728325,
++     "top1_agreement": 0.9984664916992188
++    },
++    {
++     "group": "l3.mlp",
++     "members": [
++      "l3.mlp"
++     ],
++     "minus_float_nats": 0.00036440417170524597,
++     "nll": 1.9984770864248276,
++     "top1_agreement": 0.9857177734375
++    },
++    {
++     "group": "l4.mixer_maps",
++     "members": [
++      "l4.mixer_maps"
++     ],
++     "minus_float_nats": 0.0003330335021018982,
++     "nll": 1.9984457157552242,
++     "top1_agreement": 0.987396240234375
++    },
++    {
++     "group": "l4.mixer_scalars",
++     "members": [
++      "l4.mixer_scalars"
++     ],
++     "minus_float_nats": 4.4889748096466064e-05,
++     "nll": 1.9981575720012188,
++     "top1_agreement": 0.9983901977539062
++    },
++    {
++     "group": "l4.mlp",
++     "members": [
++      "l4.mlp"
++     ],
++     "minus_float_nats": 0.00025318562984466553,
++     "nll": 1.998365867882967,
++     "top1_agreement": 0.9860687255859375
++    },
++    {
++     "group": "l5.mixer_maps",
++     "members": [
++      "l5.mixer_maps"
++     ],
++     "minus_float_nats": 0.0018067508935928345,
++     "nll": 1.9999194331467152,
++     "top1_agreement": 0.9817123413085938
++    },
++    {
++     "group": "l5.mixer_scalars",
++     "members": [
++      "l5.mixer_scalars"
++     ],
++     "minus_float_nats": 0.0007682628929615021,
++     "nll": 1.9988809451460838,
++     "top1_agreement": 0.9949417114257812
++    },
++    {
++     "group": "l5.mlp",
++     "members": [
++      "l5.mlp"
++     ],
++     "minus_float_nats": 0.0020849481225013733,
++     "nll": 2.0001976303756237,
++     "top1_agreement": 0.9744873046875
++    },
++    {
++     "group": "all_maps",
++     "members": [
++      "l0.mixer_maps",
++      "l1.mixer_maps",
++      "l2.mixer_maps",
++      "l3.mixer_maps",
++      "l4.mixer_maps",
++      "l5.mixer_maps",
++      "l0.mlp",
++      "l1.mlp",
++      "l2.mlp",
++      "l3.mlp",
++      "l4.mlp",
++      "l5.mlp",
++      "embed",
++      "head"
++     ],
++     "minus_float_nats": 0.0242951437830925,
++     "nll": 2.022407826036215,
++     "top1_agreement": 0.9193115234375
++    },
++    {
++     "group": "all_scalars",
++     "members": [
++      "l0.mixer_scalars",
++      "l1.mixer_scalars",
++      "l2.mixer_scalars",
++      "l3.mixer_scalars",
++      "l4.mixer_scalars",
++      "l5.mixer_scalars"
++     ],
++     "minus_float_nats": 0.0012818649411201477,
++     "nll": 1.9993945471942425,
++     "top1_agreement": 0.9918746948242188
++    },
++    {
++     "group": "all",
++     "members": [
++      "embed",
++      "head",
++      "l0.mixer_maps",
++      "l0.mixer_scalars",
++      "l0.mlp",
++      "l1.mixer_maps",
++      "l1.mixer_scalars",
++      "l1.mlp",
++      "l2.mixer_maps",
++      "l2.mixer_scalars",
++      "l2.mlp",
++      "l3.mixer_maps",
++      "l3.mixer_scalars",
++      "l3.mlp",
++      "l4.mixer_maps",
++      "l4.mixer_scalars",
++      "l4.mlp",
++      "l5.mixer_maps",
++      "l5.mixer_scalars",
++      "l5.mlp"
++     ],
++     "minus_float_nats": 0.025746315717697144,
++     "nll": 2.0238589979708195,
++     "top1_agreement": 0.9183731079101562
++    }
++   ],
++   "schema": "uor-r4.stack-rounding-attribution/1",
++   "seconds": 433.646821334,
++   "targets": 131072,
++   "valid": {
++    "bytes": 413688,
++    "path": "/Volumes/UOR-Workspace/uor-r4-models/investigations/cycle4-main-20260928/eval/valid.u16",
++    "sha256": "3f7c50ef98fa707f4523aa3f7c6a97f496ee184fcfa125a84979fed9e7b91cb8"
++   },
++   "windows": 512,
++   "root": {
++    "root": "/Volumes/UOR-Workspace/uor-r4-lab/claude-s1/attribution-gptq-1",
++    "manifest_sha256": "1a321dcea8bb4343f076926087be30070c51fc2f2fd8f1d5271183e98eb0cb2d",
++    "error": false
++   }
++  },
++  "rtn": {
++   "artifact": {
++    "bytes": 4969732,
++    "path": "/Volumes/UOR-Workspace/uor-r4-lab/claude-s1/export-rtn-1/model.lut",
++    "sha256": "9ad3313303df3d521344c4a021d17020aa92334290ad314b683401afdcacc920"
++   },
++   "executable": {
++    "bytes": 7135968,
++    "path": "/Volumes/UOR-Workspace/uor-r4-lab/claude-s1/bin/geometric-stack-52a20eeb5a25",
++    "sha256": "52a20eeb5a2561a1a2b765f67d0b2c9421e25bb1f66cb4e832f4c8f44d27b370"
++   },
++   "float_nll": 1.9981126822531223,
++   "groups": {
++    "embed": [
++     "embedding.weight"
++    ],
++    "head": [
++     "final_norm.weight"
++    ],
++    "l0.mixer_maps": [
++     "layers.00.rec.gate.weight",
++     "layers.00.rec.in.weight",
++     "layers.00.rec.out.weight",
++     "layers.00.rec_norm.weight"
++    ],
++    "l0.mixer_scalars": [
++     "layers.00.rec.conv.bias",
++     "layers.00.rec.conv.weight",
++     "layers.00.rec.decay",
++     "layers.00.rec.gate.bias"
++    ],
++    "l0.mlp": [
++     "layers.00.mlp.down.weight",
++     "layers.00.mlp.gate.weight",
++     "layers.00.mlp.up.weight",
++     "layers.00.mlp_norm.weight"
++    ],
++    "l1.mixer_maps": [
++     "layers.01.rec.gate.weight",
++     "layers.01.rec.in.weight",
++     "layers.01.rec.out.weight",
++     "layers.01.rec_norm.weight"
++    ],
++    "l1.mixer_scalars": [
++     "layers.01.rec.conv.bias",
++     "layers.01.rec.conv.weight",
++     "layers.01.rec.decay",
++     "layers.01.rec.gate.bias"
++    ],
++    "l1.mlp": [
++     "layers.01.mlp.down.weight",
++     "layers.01.mlp.gate.weight",
++     "layers.01.mlp.up.weight",
++     "layers.01.mlp_norm.weight"
++    ],
++    "l2.mixer_maps": [
++     "layers.02.read.key.weight",
++     "layers.02.read.null.weight",
++     "layers.02.read.out.weight",
++     "layers.02.read.query.weight",
++     "layers.02.read.value.weight",
++     "layers.02.read_norm.weight"
++    ],
++    "l2.mixer_scalars": [
++     "layers.02.read.age",
++     "layers.02.read.log_beta",
++     "layers.02.read.null.bias",
++     "layers.02.read.offset"
++    ],
++    "l2.mlp": [
++     "layers.02.mlp.down.weight",
++     "layers.02.mlp.gate.weight",
++     "layers.02.mlp.up.weight",
++     "layers.02.mlp_norm.weight"
++    ],
++    "l3.mixer_maps": [
++     "layers.03.rec.gate.weight",
++     "layers.03.rec.in.weight",
++     "layers.03.rec.out.weight",
++     "layers.03.rec_norm.weight"
++    ],
++    "l3.mixer_scalars": [
++     "layers.03.rec.conv.bias",
++     "layers.03.rec.conv.weight",
++     "layers.03.rec.decay",
++     "layers.03.rec.gate.bias"
++    ],
++    "l3.mlp": [
++     "layers.03.mlp.down.weight",
++     "layers.03.mlp.gate.weight",
++     "layers.03.mlp.up.weight",
++     "layers.03.mlp_norm.weight"
++    ],
++    "l4.mixer_maps": [
++     "layers.04.rec.gate.weight",
++     "layers.04.rec.in.weight",
++     "layers.04.rec.out.weight",
++     "layers.04.rec_norm.weight"
++    ],
++    "l4.mixer_scalars": [
++     "layers.04.rec.conv.bias",
++     "layers.04.rec.conv.weight",
++     "layers.04.rec.decay",
++     "layers.04.rec.gate.bias"
++    ],
++    "l4.mlp": [
++     "layers.04.mlp.down.weight",
++     "layers.04.mlp.gate.weight",
++     "layers.04.mlp.up.weight",
++     "layers.04.mlp_norm.weight"
++    ],
++    "l5.mixer_maps": [
++     "layers.05.read.key.weight",
++     "layers.05.read.null.weight",
++     "layers.05.read.out.weight",
++     "layers.05.read.query.weight",
++     "layers.05.read.value.weight",
++     "layers.05.read_norm.weight"
++    ],
++    "l5.mixer_scalars": [
++     "layers.05.read.age",
++     "layers.05.read.log_beta",
++     "layers.05.read.null.bias",
++     "layers.05.read.offset"
++    ],
++    "l5.mlp": [
++     "layers.05.mlp.down.weight",
++     "layers.05.mlp.gate.weight",
++     "layers.05.mlp.up.weight",
++     "layers.05.mlp_norm.weight"
++    ]
++   },
++   "model": {
++    "bytes": 28622728,
++    "path": "/Volumes/UOR-Workspace/uor-r4-models/investigations/cycle4-main-20260928/geometric_s1/model/model.safetensors",
++    "sha256": "3eb1ebbb3c1f65fccf9dfb325283f8f9892cd434e0d689356821acee2c5b1e0a"
++   },
++   "reading": "each row: the float model with only the listed groups from the artifact; maps are the 4-bit matrices (with the normalization whose gain they carry), scalars the grid-code and fixed-point per-channel values",
++   "roadmap": "S1.0c (evaluation-only diagnostic)",
++   "rows": [
++    {
++     "group": "embed",
++     "members": [
++      "embed"
++     ],
++     "minus_float_nats": 0.0026054494082927704,
++     "nll": 2.000718131661415,
++     "top1_agreement": 0.9742279052734375
++    },
++    {
++     "group": "head",
++     "members": [
++      "head"
++     ],
++     "minus_float_nats": 0.014914330095052719,
++     "nll": 2.013027012348175,
++     "top1_agreement": 0.9394912719726562
++    },
++    {
++     "group": "l0.mixer_maps",
++     "members": [
++      "l0.mixer_maps"
++     ],
++     "minus_float_nats": 0.0007337592542171478,
++     "nll": 1.9988464415073395,
++     "top1_agreement": 0.9880905151367188
++    },
++    {
++     "group": "l0.mixer_scalars",
++     "members": [
++      "l0.mixer_scalars"
++     ],
++     "minus_float_nats": 0.00011837109923362732,
++     "nll": 1.998231053352356,
++     "top1_agreement": 0.9988250732421875
++    },
++    {
++     "group": "l0.mlp",
++     "members": [
++      "l0.mlp"
++     ],
++     "minus_float_nats": 0.004291541874408722,
++     "nll": 2.002404224127531,
++     "top1_agreement": 0.971771240234375
++    },
++    {
++     "group": "l1.mixer_maps",
++     "members": [
++      "l1.mixer_maps"
++     ],
++     "minus_float_nats": 0.0005873292684555054,
++     "nll": 1.9987000115215778,
++     "top1_agreement": 0.98553466796875
++    },
++    {
++     "group": "l1.mixer_scalars",
++     "members": [
++      "l1.mixer_scalars"
++     ],
++     "minus_float_nats": 2.7194619178771973e-06,
++     "nll": 1.9981154017150402,
++     "top1_agreement": 0.9978408813476562
++    },
++    {
++     "group": "l1.mlp",
++     "members": [
++      "l1.mlp"
++     ],
++     "minus_float_nats": 0.000867847353219986,
++     "nll": 1.9989805296063423,
++     "top1_agreement": 0.9923019409179688
++    },
++    {
++     "group": "l2.mixer_maps",
++     "members": [
++      "l2.mixer_maps"
++     ],
++     "minus_float_nats": 0.0003450661897659302,
++     "nll": 1.9984577484428883,
++     "top1_agreement": 0.9842453002929688
++    },
++    {
++     "group": "l2.mixer_scalars",
++     "members": [
++      "l2.mixer_scalars"
++     ],
++     "minus_float_nats": 0.00023507699370384216,
++     "nll": 1.9983477592468262,
++     "top1_agreement": 0.995452880859375
++    },
++    {
++     "group": "l2.mlp",
++     "members": [
++      "l2.mlp"
++     ],
++     "minus_float_nats": 0.000941697508096695,
++     "nll": 1.999054379761219,
++     "top1_agreement": 0.9838638305664062
++    },
++    {
++     "group": "l3.mixer_maps",
++     "members": [
++      "l3.mixer_maps"
++     ],
++     "minus_float_nats": 0.00037318095564842224,
++     "nll": 1.9984858632087708,
++     "top1_agreement": 0.9875946044921875
++    },
++    {
++     "group": "l3.mixer_scalars",
++     "members": [
++      "l3.mixer_scalars"
++     ],
++     "minus_float_nats": 8.46274197101593e-05,
++     "nll": 1.9981973096728325,
++     "top1_agreement": 0.9984664916992188
++    },
++    {
++     "group": "l3.mlp",
++     "members": [
++      "l3.mlp"
++     ],
++     "minus_float_nats": 0.0009110681712627411,
++     "nll": 1.999023750424385,
++     "top1_agreement": 0.9833450317382812
++    },
++    {
++     "group": "l4.mixer_maps",
++     "members": [
++      "l4.mixer_maps"
++     ],
++     "minus_float_nats": 0.0006630755960941315,
++     "nll": 1.9987757578492165,
++     "top1_agreement": 0.985321044921875
++    },
++    {
++     "group": "l4.mixer_scalars",
++     "members": [
++      "l4.mixer_scalars"
++     ],
++     "minus_float_nats": 4.4889748096466064e-05,
++     "nll": 1.9981575720012188,
++     "top1_agreement": 0.9983901977539062
++    },
++    {
++     "group": "l4.mlp",
++     "members": [
++      "l4.mlp"
++     ],
++     "minus_float_nats": 0.0005390197038650513,
++     "nll": 1.9986517019569874,
++     "top1_agreement": 0.9833755493164062
++    },
++    {
++     "group": "l5.mixer_maps",
++     "members": [
++      "l5.mixer_maps"
++     ],
++     "minus_float_nats": 0.0032243654131889343,
++     "nll": 2.0013370476663113,
++     "top1_agreement": 0.9743881225585938
++    },
++    {
++     "group": "l5.mixer_scalars",
++     "members": [
++      "l5.mixer_scalars"
++     ],
++     "minus_float_nats": 0.0007682628929615021,
++     "nll": 1.9988809451460838,
++     "top1_agreement": 0.9949417114257812
++    },
++    {
++     "group": "l5.mlp",
++     "members": [
++      "l5.mlp"
++     ],
++     "minus_float_nats": 0.0037305913865566254,
++     "nll": 2.001843273639679,
++     "top1_agreement": 0.9695205688476562
++    },
++    {
++     "group": "all_maps",
++     "members": [
++      "l0.mixer_maps",
++      "l1.mixer_maps",
++      "l2.mixer_maps",
++      "l3.mixer_maps",
++      "l4.mixer_maps",
++      "l5.mixer_maps",
++      "l0.mlp",
++      "l1.mlp",
++      "l2.mlp",
++      "l3.mlp",
++      "l4.mlp",
++      "l5.mlp",
++      "embed",
++      "head"
++     ],
++     "minus_float_nats": 0.0347767099738121,
++     "nll": 2.0328893922269344,
++     "top1_agreement": 0.9070892333984375
++    },
++    {
++     "group": "all_scalars",
++     "members": [
++      "l0.mixer_scalars",
++      "l1.mixer_scalars",
++      "l2.mixer_scalars",
++      "l3.mixer_scalars",
++      "l4.mixer_scalars",
++      "l5.mixer_scalars"
++     ],
++     "minus_float_nats": 0.0012818649411201477,
++     "nll": 1.9993945471942425,
++     "top1_agreement": 0.9918746948242188
++    },
++    {
++     "group": "all",
++     "members": [
++      "embed",
++      "head",
++      "l0.mixer_maps",
++      "l0.mixer_scalars",
++      "l0.mlp",
++      "l1.mixer_maps",
++      "l1.mixer_scalars",
++      "l1.mlp",
++      "l2.mixer_maps",
++      "l2.mixer_scalars",
++      "l2.mlp",
++      "l3.mixer_maps",
++      "l3.mixer_scalars",
++      "l3.mlp",
++      "l4.mixer_maps",
++      "l4.mixer_scalars",
++      "l4.mlp",
++      "l5.mixer_maps",
++      "l5.mixer_scalars",
++      "l5.mlp"
++     ],
++     "minus_float_nats": 0.03622955083847046,
++     "nll": 2.034342233091593,
++     "top1_agreement": 0.9065093994140625
++    }
++   ],
++   "schema": "uor-r4.stack-rounding-attribution/1",
++   "seconds": 447.788871375,
++   "targets": 131072,
++   "valid": {
++    "bytes": 413688,
++    "path": "/Volumes/UOR-Workspace/uor-r4-models/investigations/cycle4-main-20260928/eval/valid.u16",
++    "sha256": "3f7c50ef98fa707f4523aa3f7c6a97f496ee184fcfa125a84979fed9e7b91cb8"
++   },
++   "windows": 512,
++   "root": {
++    "root": "/Volumes/UOR-Workspace/uor-r4-lab/claude-s1/attribution-rtn-1",
++    "manifest_sha256": "69bae23ea020e98586f41d234014e3e9281deafaf567f450088197def8670ece",
++    "error": false
++   }
++  }
++ }
++}
+diff --git a/docs/integration/current-state.md b/docs/integration/current-state.md
+index 2ed89bc6f..ce8a4a6dd 100644
+--- a/docs/integration/current-state.md
++++ b/docs/integration/current-state.md
+@@ -11,10 +11,15 @@ frontier, geometric-advantage or full-path energy qualification.**
+   - Both final models are on the owner SSD, SHA-256 verified.
+   - D0 selects an architecture; it does not qualify dialogue.
+ - **Track.** Approved by the owner: [synthesis](whole-project-synthesis-2026-09-28.md) §2–§4 and ROADMAP §2a.
+-  - The core is the stack.
+-  - Architectural exact relational memory (AERM, D2) is next for Lab 1.
+-  - D6 is an evaluation-only audit of what the 2I read representation discards (Lab 2).
++  - The core is the stack, keeping its quaternion transport (D1, #1460).
++  - D2 (architectural exact relational memory) ran: **frozen FAIL on the margin**. The store is perfect in distribution; the learned read does not generalise ([result](d2-aerm-probe-result-2026-09-28.md)).
++  - D6 is an evaluation-only audit of what the 2I read representation discards (Lab 2). It is evidence, not a veto; the geometric read/address operator G is on the main path (owner, 15:27 UTC).
+   - D4 is geometry-coded QAT with a fidelity objective (Lab 3).
++- **S1, the stack's D11 serving port (Lab 1): measured, not yet qualified** ([record](s1-stack-serving-measurements-2026-09-28.md)).
++  - The 4-bit export misses the 0.02-nat fidelity gate: +0.0362 nats (round to nearest), +0.0257 (GPTQ). The integer arithmetic costs ≤ 10⁻⁶ nats.
++  - The head is about half of the gap.
++  - Snapping the transport to the 120 icosians costs +0.026 at evaluation; not adopted.
++  - **Owner, 17:00 UTC:** Lab 1 adds QAT, and D4 targets the same gap. The D11 port, bundle and audit continue.
+ - **External audit.** Codex's geometric-attention review was verified line by line and imported with a claim ledger ([evidence](../evidence/external-codex-audit-2026-09-28/README.md); synthesis §7; ROADMAP ruling 11).
+   - T2 as coded is a compression-fidelity screen, and its geometric arms are confounded by magnitude.
+   - #1438's cause is unresolved.
+diff --git a/docs/integration/s1-stack-serving-measurements-2026-09-28.md b/docs/integration/s1-stack-serving-measurements-2026-09-28.md
+new file mode 100644
+index 000000000..6eac2c51b
+--- /dev/null
++++ b/docs/integration/s1-stack-serving-measurements-2026-09-28.md
+@@ -0,0 +1,150 @@
++# S1: the stack's representation gap at the D11 interim format — measurements
++
++September 28, 2026. References #973 under #820.
++- **Lab:** Lab 1 (Claude), locally (owner, 16:15 UTC).
++- **Work card:** [S1 on #973](https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5874321776), posted before any run.
++- **Evidence:** [`s1-stack-serving-measurements-2026-09-28.json`](../evidence/s1-stack-serving-measurements-2026-09-28.json), assembled by script from the sealed roots.
++
++**Status.** Every step here is evaluation only; there was no fit. S1.1 (the D11 integer port) is being built separately.
++- **S1.0.** The export gap misses S1.2's fidelity gate (≤ 0.02 nats against float), with either quantizer:
++  - round to nearest: +0.0362;
++  - GPTQ: +0.0257.
++- **Integer arithmetic costs nothing measurable.** The whole gap is weight representation.
++- **S1.0b.** Snapping every transport quaternion to the nearest unit icosian costs +0.026 nats on each of three models. That is above the 0.02 option threshold, so exact group-table serving of the transport is **not** adopted as an option. The result is reported, not gated.
++- **S1.0c.** One tensor group at a time from the export shows where the gap comes from. The largest single share is **the output head**.
++
++## What was measured
++
++**Model.** The cycle-4 `geometric_s1`:
++- `rrarra`, Lorentz reads, rotation;
++- 7,153,860 parameters, SHA-256 `3eb1ebbb…`;
++- trained on the cycle-3 code split and the registry stream.
++
++It is a reference model, not the milestone checkpoint.
++
++**Data.**
++- **Development set:** the cycle-3 code split (`valid.u16`, `3f7c50ef…`), 512 evenly spaced windows of 256 tokens (131,072 targets), with the windows `evaluate` uses.
++- **GPTQ calibration:** 64 windows (16,384 positions) of the model's own training split (`train.u16`, `b12707b0…`), never the development set.
++
++**Export.** The existing D10 container (`UORLUT01`), which is also the D11 interim weight format:
++- 4-bit maps in groups of 32, each group's scale one byte with a 4-bit mantissa;
++- a 4-bit-mantissa grid code for per-channel scalars (conv taps, decay rates, Lorentz β);
++- 2⁻¹⁶ fixed point for biases.
++
++**Engine.** The frozen D10 engine (`uor-r4-lut`) scores the artifact. Its integer arithmetic is exact, and S1.1's D11 port must reproduce its logits bit for bit. So these numbers are the D11 port's numbers too, once S1.1 passes its gate.
++
++**Arms.**
++- **Float:** the model's own float forward.
++- **Float reference:** the artifact's own values in f32, through the float kernels.
++- **Integer:** the D10 engine.
++
++Integer − float therefore splits into weight rounding (reference − float) and integer arithmetic (integer − reference).
++
++## Results
++
++The tables below are generated from the evidence packet.
++
++### S1.0: the export gap (512 windows, 131,072 targets)
++
++| Export | Float NLL | Float reference NLL | D10 integer NLL | Integer − float | Weight rounding | Integer arithmetic | Top-1 agreement | Decision-flip rate |
++|---|---:|---:|---:|---:|---:|---:|---:|---:|
++| Round to nearest | 1.998113 | 2.034342 | 2.034342 | **+0.0362** | +0.0362 | -4.0e-07 | 0.9065 | 0.0935 |
++| GPTQ, 64 calibration windows | 1.998113 | 2.023859 | 2.023860 | **+0.0257** | +0.0257 | +6.8e-07 | 0.9183 | 0.0817 |
++
++- Round to nearest: artifact `9ad3313303df…` (4,969,732 bytes); D10 engine 955 tokens/s (neon, 2 threads, step time only).
++- GPTQ: artifact `43e97b054a37…` (4,970,052 bytes); D10 engine 932 tokens/s (neon, 2 threads, step time only).
++
++### S1.0b: every transport quaternion snapped to the nearest of the 120 unit icosians
++
++| Model | Unsnapped NLL | Snapped NLL | Snapped − unsnapped | Top-1 agreement | Composed − fused max abs logit |
++|---|---:|---:|---:|---:|---:|
++| cycle-4 `geometric_s1` (7,324 updates) | 1.998113 | 2.024263 | **+0.0262** | 0.9170 | 3.1e-04 |
++| D1 `rot_s1` (1,000 updates) | 2.599845 | 2.625444 | **+0.0256** | 0.8936 | 1.1e-04 |
++| D1 `rot_s2` (1,000 updates) | 2.580265 | 2.606230 | **+0.0260** | 0.8966 | 1.4e-04 |
++
++### S1.0c: one tensor group at a time from the artifact, everything else float
++
++| Group | GPTQ export: NLL − float | Top-1 agreement | Round-to-nearest export: NLL − float | Top-1 agreement |
++|---|---:|---:|---:|---:|
++| embed | +0.0026 | 0.9742 | +0.0026 | 0.9742 |
++| **head** | +0.0119 | 0.9467 | +0.0149 | 0.9395 |
++| l0.mixer_maps | +0.0004 | 0.9910 | +0.0007 | 0.9881 |
++| l0.mixer_scalars | +0.0001 | 0.9988 | +0.0001 | 0.9988 |
++| l0.mlp | +0.0027 | 0.9772 | +0.0043 | 0.9718 |
++| l1.mixer_maps | +0.0004 | 0.9887 | +0.0006 | 0.9855 |
++| l1.mixer_scalars | +0.0000 | 0.9978 | +0.0000 | 0.9978 |
++| l1.mlp | +0.0003 | 0.9944 | +0.0009 | 0.9923 |
++| l2.mixer_maps | +0.0001 | 0.9916 | +0.0003 | 0.9842 |
++| l2.mixer_scalars | +0.0002 | 0.9955 | +0.0002 | 0.9955 |
++| l2.mlp | +0.0004 | 0.9871 | +0.0009 | 0.9839 |
++| l3.mixer_maps | +0.0004 | 0.9899 | +0.0004 | 0.9876 |
++| l3.mixer_scalars | +0.0001 | 0.9985 | +0.0001 | 0.9985 |
++| l3.mlp | +0.0004 | 0.9857 | +0.0009 | 0.9833 |
++| l4.mixer_maps | +0.0003 | 0.9874 | +0.0007 | 0.9853 |
++| l4.mixer_scalars | +0.0000 | 0.9984 | +0.0000 | 0.9984 |
++| l4.mlp | +0.0003 | 0.9861 | +0.0005 | 0.9834 |
++| l5.mixer_maps | +0.0018 | 0.9817 | +0.0032 | 0.9744 |
++| l5.mixer_scalars | +0.0008 | 0.9949 | +0.0008 | 0.9949 |
++| l5.mlp | +0.0021 | 0.9745 | +0.0037 | 0.9695 |
++| **all_maps** | +0.0243 | 0.9193 | +0.0348 | 0.9071 |
++| **all_scalars** | +0.0013 | 0.9919 | +0.0013 | 0.9919 |
++| **all** | +0.0257 | 0.9184 | +0.0362 | 0.9065 |
++
++- gptq: sum of single groups +0.0254 against all groups together +0.0257; head +0.0119, embed +0.0026, MLPs +0.0061, mixer maps +0.0034, mixer scalars +0.0013.
++
++- rtn: sum of single groups +0.0360 against all groups together +0.0362; head +0.0149, embed +0.0026, MLPs +0.0113, mixer maps +0.0059, mixer scalars +0.0013.
++
++**Consistency check.** With every group from the artifact, the attribution's `all` row equals `lut-evaluate`'s float reference, which comes from a separate code path: +0.0257 and +0.0362. The single groups add up to within 0.0003 of it, so the split is close to additive.
++
++## Reading
++
++This interprets the results; no gate changes.
++
++1. **Serving arithmetic is solved; representation is not.** Integer arithmetic costs ≤ 10⁻⁶ nats. All of the +0.026–0.036 comes from the 4-bit export.
++2. **GPTQ closes about 30% of the gap** (0.0362 → 0.0257). That is not enough for 0.02.
++3. **The head is the largest single share:** +0.0119 of the GPTQ gap (+0.0149 with round to nearest).
++   - Next come the last read layer (`l5`) and the first MLP (`l0`), then the embedding.
++   - The per-channel scalars (grid codes and fixed point) cost only +0.0013 in total, so a finer scalar grid would not close the gap.
++   - Removing the head's error alone would bring the GPTQ export to about +0.014, if the shares stay additive.
++   - The artifact's head matrix carries the final norm's gain folded into its columns.
++   - The float model ties it to the embedding; the artifact quantizes it separately.
++4. **The 2I snap costs about the same on every model** (+0.0256 to +0.0262), whether the model had 1,000 or 7,324 updates.
++   - The earlier parked figure, +0.16–0.18 bits/byte from a different model, does not describe this stack.
++   - Snapping at evaluation, with no training, is above the 0.02 option threshold. Whether snap-aware training recovers it was not measured.
++
++## What it changes
++
++- **S1.1–S1.3 continue now:** the bit-identical D11 port, the I2 `stack` bundle with reload equality, and the M1 audit. Engineering proceeds and promotion waits (ruling 12).
++- **S1.2's fidelity gate cannot pass with the current weight format.** Closing it needs one of:
++  - training with the served representation in the loop;
++  - a better 4-bit codec (D4);
++  - a contract change for the head.
++
++- **Owner decision, 17:00 UTC: QAT (Lab 1) plus a D4 target.**
++  - **Lab 1** adds quantization-aware training: the export's own 4-bit maps and grid scalars in the forward pass, with a straight-through gradient and a pluggable codec. It is validated by a pre-registered short fine-tune of this model, with saved weights.
++  - **D4 (Lab 3)** gets this model's +0.0257 nats at 4.25 bits per weight (4-bit codes plus one scale byte per 32) as its codec target, attributed by group. Its codec can plug into the same training hook.
++  - **The milestone fit** uses whichever reaches ≤ 0.02 first.
++- **Not pursued:** an 8-bit head (it would need a contract change to R3) and a finer scalar grid (the scalars cost +0.0013).
++
++## Scope and limits
++
++- **One model and one development set:** the cycle-4 reference on the code split. The milestone checkpoint does not exist yet.
++- **Evaluation only.** No weights were trained or changed. The snap is a test-time substitution.
++- **Top-1 agreement is the greedy decision-flip complement** on the 131,072 development positions, not a generation test.
++- **Source identity.**
++  - The snap and attribution roots record their executables (`4125f51b…` and `52a20eeb…`).
++  - The S1.0 roots record their command lines, not their executable. The GPTQ pair ran while the snap runs were recording `4125f51b…` at the same path; the round-to-nearest pair's build is not recorded.
++  - The integer NLL is a deterministic function of the artifact, whose hash is recorded.
++  - After the snap runs, one doc comment moved in the source, with no code change.
++
++## Cost
++
++Measured on the M1, all at 2 threads (light jobs, no model slot):
++- **S1.0:** each 512-window evaluation took about 3 minutes (3:03 and 3:09 wall); the exports took 1 s (round to nearest) and 11 s (GPTQ, including 5 s of calibration), by their roots' claim and seal times.
++- **S1.0b:** 45–49 s per model.
++- **S1.0c:** about 20 s per group for 24 groups per export.
++- **Storage:** 17 MB of new SSD files under `/Volumes/UOR-Workspace/uor-r4-lab/claude-s1/`:
++  - about 10 MB of sealed roots, including two 4.97 MB artifacts;
++  - a 6.8 MB copy of the attribution build;
++  - logs.
++- **Peak RSS:** about 0.87 GB in the attribution runs, 434 s and 448 s wall.

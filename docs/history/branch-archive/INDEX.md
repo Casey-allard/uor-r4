@@ -76,3 +76,31 @@ fresh worktree from `main`, fix the conflicts, and land it through a PR.
 | [`i446-m2-latent-right`](i446-m2-latent-right.patch) | 2026-08-06 | 4 | 0.56 of 305 | `ce088264bc` | `4957bbd2a7` | Merge pull request #455 from UOR-Foundation/i446-m3-hard-select |
 | [`graph-emission-shrinkage`](graph-emission-shrinkage.patch) | 2026-08-02 | 5 | 0.92 of 9 | `8ca83a2df0` | `42f6926fd4` | certify: test Witten-Bell shrinkage; refutes the sparsity explanation |
 | [`graph-emissions-followup`](graph-emissions-followup.patch) | 2026-08-02 | 3 | 0.99 of 1 | `a501d012a5` | `35f83a36c5` | certify: measure emission selection against likelihood |
+
+## Local-only tips
+
+These local branch copies had commits that differed from their GitHub branch
+(work never pushed, or a rebased copy). Each patch is the local tip's
+`git diff <merge-base> <tip>`.
+
+| Branch (local copy) | Last commit | Commits | Tip | Merge-base | Last subject |
+|---|---|---|---|---|---|
+| [`codex/step4-script-markers`](codex_step4-script-markers.local.patch) | 2026-10-05 | 2 | `fb6c449cec` | `86e85291f1` | Step 4 scripts: failure markers and loud control mismatch (References #820) |
+| [`codex/step5-knowledge-corpus`](codex_step5-knowledge-corpus.local.patch) | 2026-10-05 | 1 | `076d0559af` | `0df3525935` | Step 5: decontaminated knowledge corpus tool, panel-clean subset and the 29M knowledge A/B pod script (Referen |
+| [`codex/tiered-eval`](codex_tiered-eval.local.patch) | 2026-10-05 | 1 | `3564f9c191` | `86e85291f1` | Tiered chat evaluation: conversational panel, clean open panel, per-tier scoring (References #820) |
+| [`codex/tiered-eval-v2`](codex_tiered-eval-v2.local.patch) | 2026-10-05 | 3 | `1b0390fcf3` | `86e85291f1` | Tiered eval v2: exact memory check, per-category constant controls (References #820) |
+| [`codex/cuda-source-delivery-20261003`](codex_cuda-source-delivery-20261003.local.patch) | 2026-10-03 | 4 | `c17411b88d` | `a621514c21` | Bind retained CUDA log files and mark device-source identity pending |
+| [`codex/compiler-combined`](codex_compiler-combined.local.patch) | 2026-10-01 | 9 | `b1219bd06a` | `a74f368606` | Merge remote-tracking branch 'origin/main' into codex/compiler-combined |
+| [`codex/track-b-conversion`](codex_track-b-conversion.local.patch) | 2026-09-30 | 34 | `2cec249489` | `3b7c2d5414` | Refresh lab routing and supersede stale blanket build holds |
+| [`lab/anti-gravity/capability-api-wasm-m1-cost`](lab_anti-gravity_capability-api-wasm-m1-cost.local.patch) | 2026-09-28 | 15 | `63a74d56e4` | `8c4e45de88` | Merge origin/main into lab/anti-gravity/capability-api-wasm-m1-cost |
+| [`lab/claude/i1-stack-store`](lab_claude_i1-stack-store.local.patch) | 2026-09-28 | 2 | `b68666223e` | `ccd19cb63e` | Add the I1 sealed stack inference checkpoint with its session store |
+| [`lab/claude/s1-integer-port`](lab_claude_s1-integer-port.local.patch) | 2026-09-28 | 8 | `724f8d64e4` | `df8411b17b` | Explain the boxed layer vectors to clippy and tidy two test lints |
+| [`lab/claude/s1-qat`](lab_claude_s1-qat.local.patch) | 2026-09-28 | 3 | `e1038ea641` | `df8411b17b` | S1 QAT: init= and qat= in geometric-stack train |
+| [`codex/dialogue-child-code-choice-20260927`](codex_dialogue-child-code-choice-20260927.local.patch) | 2026-09-27 | 18 | `88b4d825a5` | `0ac3df4679` | fix: supply missing end_weight field in radial-startup example and clean campaign warnings |
+| [`codex/dialogue-child-export-20260927`](codex_dialogue-child-export-20260927.local.patch) | 2026-09-27 | 11 | `e5efafb8fa` | `0ac3df4679` | Record selected dialogue child native retention result |
+| [`codex/native-dialogue576-observation-20260927`](codex_native-dialogue576-observation-20260927.local.patch) | 2026-09-27 | 9 | `0607b43be6` | `0ac3df4679` | Record packed runtime behavior and storage comparison |
+| [`lab/opencode/read-localization`](lab_opencode_read-localization.local.patch) | 2026-09-27 | 6 | `6b3e0b9973` | `dccef74b4b` | Record the oracle read re-rank: ranking is sufficient for the distractor class |
+| [`r5/ledger-register-dormant`](r5_ledger-register-dormant.local.patch) | 2026-08-10 | 2 | `f969fd8eb2` | `4c983fd268` | chore(#515): drop region-store-dormant — region_store is wired, not dormant |
+| [`feat/510-r5-t1b-scoring`](feat_510-r5-t1b-scoring.local.patch) | 2026-08-08 | 2 | `796d83638e` | `27303528df` | feat(#510): R5 1b(iii) — inference_contract to the sanctioned surface |
+| [`i446-m2-latent-right`](i446-m2-latent-right.local.patch) | 2026-08-06 | 1 | `b294ceb0ec` | `4957bbd2a7` | feat(certify): #446 M2 — latent right-context mixture (causally legitimate two-sided structure) |
+| [`i380-row-distribution`](i380-row-distribution.local.patch) | 2026-08-03 | 2 | `0e67435d7e` | `73ab76b369` | fix(lint): remove the dead context_prediction shim (#383 CI) |

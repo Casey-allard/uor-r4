@@ -1,0 +1,3778 @@
+diff --git a/crates/uor-r4-integer/Cargo.toml b/crates/uor-r4-integer/Cargo.toml
+index 4f4e66847..26a8acb5f 100644
+--- a/crates/uor-r4-integer/Cargo.toml
++++ b/crates/uor-r4-integer/Cargo.toml
+@@ -25,3 +25,7 @@ path = "src/bin/uor-r4-integer.rs"
+ [[bin]]
+ name = "verify-integer"
+ path = "src/bin/verify-integer.rs"
++
++[[bin]]
++name = "uor-r4-stack"
++path = "src/bin/uor-r4-stack.rs"
+diff --git a/crates/uor-r4-integer/src/bin/uor-r4-stack.rs b/crates/uor-r4-integer/src/bin/uor-r4-stack.rs
+new file mode 100644
+index 000000000..8146d90df
+--- /dev/null
++++ b/crates/uor-r4-integer/src/bin/uor-r4-stack.rs
+@@ -0,0 +1,193 @@
++//! Multiplier-free (D11) serving of a geometric-stack artifact (`UORLUT01`,
++//! schema `uor-r4.lut-stack/1`) through `uor_r4_integer::stack`.
++//!
++//! ```text
++//! uor-r4-stack generate ARTIFACT PROMPT_IDS NEW_TOKENS
++//! uor-r4-stack digest ARTIFACT TOKENS.u16 WINDOWS
++//! ```
++//!
++//! `generate` feeds the comma-separated prompt ids and continues greedily
++//! (integer argmax, first on ties) for at most `NEW_TOKENS` ids or until the
++//! context is full, and prints a JSON record. `digest` runs `WINDOWS` evenly
++//! spaced full-context windows of a little-endian u16 token file, each in a
++//! fresh session, and prints the SHA-256 of every step's logits (little-endian
++//! `i32`, in order), a platform-independent fingerprint of the served
++//! integers. The served path is `IntegerStackSession::step` and
++//! `stack_argmax`; argument parsing, file reading, timing, hashing and JSON
++//! are outside it. The instruction audit targets this binary:
++//! `python3 scripts/audit_zero_matmul_serving.py target/release/uor-r4-stack --stack`.
++
++use std::path::Path;
++use std::time::Instant;
++
++use serde_json::json;
++use sha2::{Digest, Sha256};
++use uor_r4_integer::stack::{stack_argmax, IntegerStackModel, StackError};
++
++#[derive(Debug)]
++enum CliError {
++    Usage(String),
++    Io(std::io::Error),
++    Stack(StackError),
++}
++
++impl std::fmt::Display for CliError {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        match self {
++            Self::Usage(message) => write!(f, "{message}"),
++            Self::Io(error) => write!(f, "I/O: {error}"),
++            Self::Stack(error) => write!(f, "{error}"),
++        }
++    }
++}
++
++impl From<StackError> for CliError {
++    fn from(error: StackError) -> Self {
++        Self::Stack(error)
++    }
++}
++
++impl From<std::io::Error> for CliError {
++    fn from(error: std::io::Error) -> Self {
++        Self::Io(error)
++    }
++}
++
++const USAGE: &str = "usage: uor-r4-stack generate ARTIFACT PROMPT_IDS NEW_TOKENS | digest ARTIFACT TOKENS.u16 WINDOWS";
++
++fn usage(message: &str) -> CliError {
++    CliError::Usage(format!("{message}\n{USAGE}"))
++}
++
++fn number(text: &str, what: &str) -> Result<usize, CliError> {
++    text.parse().map_err(|_| {
++        usage(&format!(
++            "{what} must be a non-negative integer, got {text}"
++        ))
++    })
++}
++
++/// The serving loop: the prompt, then greedy ids until `new_tokens` or a full
++/// context. Every logit vector comes from one `step`.
++fn serve_greedy(
++    model: &IntegerStackModel,
++    prompt: &[u32],
++    new_tokens: usize,
++) -> Result<(Vec<u32>, usize), StackError> {
++    let mut session = model.session();
++    let context = model.shape().context;
++    let mut next = 0u32;
++    for &id in prompt {
++        next = stack_argmax(session.step(id)?) as u32;
++    }
++    let mut generated = Vec::with_capacity(new_tokens);
++    while generated.len() < new_tokens {
++        generated.push(next);
++        if generated.len() == new_tokens || session.position() >= context {
++            break;
++        }
++        next = stack_argmax(session.step(next)?) as u32;
++    }
++    Ok((generated, session.position()))
++}
++
++fn generate(args: &[String]) -> Result<(), CliError> {
++    let [artifact, prompt, new_tokens] = args else {
++        return Err(usage("generate takes ARTIFACT PROMPT_IDS NEW_TOKENS"));
++    };
++    let prompt: Vec<u32> = prompt
++        .split(',')
++        .filter(|s| !s.is_empty())
++        .map(|s| number(s, "a prompt id").map(|v| v as u32))
++        .collect::<Result<_, _>>()?;
++    let new_tokens = number(new_tokens, "NEW_TOKENS")?;
++    if prompt.is_empty() {
++        return Err(usage("the prompt needs at least one id"));
++    }
++    let load = Instant::now();
++    let model = IntegerStackModel::load(Path::new(artifact))?;
++    let load_seconds = load.elapsed().as_secs_f64();
++    let serve = Instant::now();
++    let (generated, steps) = serve_greedy(&model, &prompt, new_tokens)?;
++    let serve_seconds = serve.elapsed().as_secs_f64();
++    let record = json!({
++        "schema": "uor-r4.stack-d11-generation/1",
++        "artifact_sha256": model.artifact_sha256(),
++        "prompt": prompt,
++        "generated": generated,
++        "steps": steps,
++        "weights_read_per_token": model.weights_per_token(),
++        "load_seconds": load_seconds,
++        "serve_seconds": serve_seconds,
++        "decoding": "greedy integer argmax (first on ties)",
++    });
++    println!("{record}");
++    Ok(())
++}
++
++fn digest(args: &[String]) -> Result<(), CliError> {
++    let [artifact, tokens, windows] = args else {
++        return Err(usage("digest takes ARTIFACT TOKENS.u16 WINDOWS"));
++    };
++    let windows = number(windows, "WINDOWS")?;
++    let model = IntegerStackModel::load(Path::new(artifact))?;
++    let (vocab, context) = (model.shape().vocab, model.shape().context);
++    let bytes = std::fs::read(tokens)?;
++    if bytes.len() % 2 != 0 {
++        return Err(usage("the token file is not little-endian u16"));
++    }
++    let ids: Vec<u32> = bytes
++        .chunks_exact(2)
++        .map(|pair| u32::from(u16::from_le_bytes([pair[0], pair[1]])))
++        .collect();
++    if windows == 0 || ids.len() <= context + windows {
++        return Err(usage("too few tokens for the windows"));
++    }
++    if let Some(&id) = ids.iter().find(|&&id| id as usize >= vocab) {
++        return Err(CliError::Stack(StackError::Token { token: id, vocab }));
++    }
++    let stride = (ids.len() - context - 1) / windows;
++    let mut hash = Sha256::new();
++    let mut session = model.session();
++    let clock = Instant::now();
++    for window in 0..windows {
++        let start = window * stride;
++        session.reset();
++        for &id in &ids[start..start + context] {
++            for value in session.step(id)? {
++                hash.update(value.to_le_bytes());
++            }
++        }
++    }
++    let seconds = clock.elapsed().as_secs_f64();
++    let steps = windows * context;
++    let record = json!({
++        "schema": "uor-r4.stack-d11-digest/1",
++        "artifact_sha256": model.artifact_sha256(),
++        "tokens": tokens,
++        "windows": windows,
++        "steps": steps,
++        "logits_sha256": hex::encode(hash.finalize()),
++        "seconds": seconds,
++        "tokens_per_second": steps as f64 / seconds,
++        "weights_read_per_token": model.weights_per_token(),
++    });
++    println!("{record}");
++    Ok(())
++}
++
++fn run() -> Result<(), CliError> {
++    let args: Vec<String> = std::env::args().skip(1).collect();
++    match args.split_first() {
++        Some((mode, rest)) if mode == "generate" => generate(rest),
++        Some((mode, rest)) if mode == "digest" => digest(rest),
++        _ => Err(CliError::Usage(USAGE.to_owned())),
++    }
++}
++
++fn main() {
++    if let Err(error) = run() {
++        eprintln!("{error}");
++        std::process::exit(1);
++    }
++}
+diff --git a/crates/uor-r4-integer/src/lib.rs b/crates/uor-r4-integer/src/lib.rs
+index ec894e7db..9d99fb57b 100644
+--- a/crates/uor-r4-integer/src/lib.rs
++++ b/crates/uor-r4-integer/src/lib.rs
+@@ -20,6 +20,7 @@ mod packed_rows;
+ pub mod report_output;
+ pub mod sampling;
+ pub mod session;
++pub mod stack;
+ pub mod tables;
+ 
+ pub use bundle::{create_test_bundle_with_byte_vocab, Bundle};
+diff --git a/crates/uor-r4-integer/src/stack/format.rs b/crates/uor-r4-integer/src/stack/format.rs
+new file mode 100644
+index 000000000..0d85dc63d
+--- /dev/null
++++ b/crates/uor-r4-integer/src/stack/format.rs
+@@ -0,0 +1,379 @@
++//! Clean-room reader of the `UORLUT01` stack container written by
++//! `uor-r4-training`'s `stack_export` (schema `uor-r4.lut-stack/1`).
++//!
++//! Layout: the 8-byte magic `UORLUT01`, a little-endian `u64` header length,
++//! the JSON header, zero padding to a multiple of 64 bytes, then the data
++//! sections at 64-byte-aligned offsets relative to the start of the data.
++//! A 4-bit matrix is stored row-major as offset-binary nibbles `q + 8`, two
++//! per byte with the even column in the low nibble, and one scale byte per
++//! row and group of [`GROUP`] columns: low nibble `m`, high nibble `de`,
++//! meaning the group scale `(16 + m) 2^(exp_base + de - 4)`. Tables are
++//! little-endian `i16`, `i32` or `u32` arrays.
++//!
++//! Loading is outside the served numerical path: it may allocate, format
++//! messages and use ordinary index arithmetic. Every offset, length and
++//! product of declared sizes is checked, so malformed input returns a
++//! [`StackError`] instead of panicking.
++
++use serde::Deserialize;
++use sha2::{Digest, Sha256};
++
++use super::StackError;
++
++/// Container magic.
++pub const MAGIC: &[u8; 8] = b"UORLUT01";
++/// Header schema of a geometric-stack artifact.
++pub const STACK_SCHEMA: &str = "uor-r4.lut-stack/1";
++/// Weights per scale group along a matrix row.
++pub const GROUP: usize = 32;
++/// Alignment of the data start and of every section.
++const ALIGN: usize = 64;
++/// The largest header accepted (64 MiB).
++const MAX_HEADER: u64 = 64 << 20;
++
++/// Dimensions of a geometric stack.
++#[derive(Clone, Debug, PartialEq, Eq, Deserialize)]
++pub struct StackShape {
++    pub vocab: usize,
++    pub width: usize,
++    pub heads: usize,
++    /// MLP width, padded by the exporter to a multiple of the group size.
++    pub mlp: usize,
++    /// One letter per layer: `r` quaternion transport recurrence, `a` read.
++    pub pattern: String,
++    /// Read score: `dot` or `lorentz`.
++    pub read: String,
++    /// Learned rotations in the recurrence; `false` is identity transport.
++    pub rotation: bool,
++    /// Positions a session serves: the length of each read's age table.
++    pub context: usize,
++}
++
++impl StackShape {
++    /// The shape rules of the container: the exporter's invariants and the
++    /// serving limits.
++    pub fn validate(&self) -> Result<(), StackError> {
++        let dims = [self.vocab, self.width, self.heads, self.mlp, self.context];
++        let reason = if dims.contains(&0) {
++            Some("a dimension is zero")
++        } else if self.pattern.is_empty() || self.pattern.len() > 256 {
++            Some("the layer pattern is empty or longer than 256 layers")
++        } else if self.pattern.bytes().any(|c| c != b'r' && c != b'a') {
++            Some("the layer pattern holds a letter other than r and a")
++        } else if self.read != "dot" && self.read != "lorentz" {
++            Some("the read score is neither dot nor lorentz")
++        } else if !self.width.is_multiple_of(4)
++            || !self.width.is_multiple_of(GROUP)
++            || !self.width.is_multiple_of(self.heads)
++        {
++            Some("the width is not a multiple of 4, of the group and of the heads")
++        } else if !self.mlp.is_multiple_of(GROUP) {
++            Some("the MLP width is not a multiple of the group")
++        } else if self.width / self.heads > 256 {
++            Some("the head width exceeds 256")
++        } else if self.vocab > 1 << 20
++            || self.width > 1 << 14
++            || self.mlp > 1 << 16
++            || self.context > 1 << 16
++        {
++            Some("a dimension exceeds its serving limit")
++        } else {
++            None
++        };
++        match reason {
++            Some(reason) => Err(StackError::Shape(reason)),
++            None => Ok(()),
++        }
++    }
++
++    pub fn layers(&self) -> usize {
++        self.pattern.len()
++    }
++
++    /// Quaternion lanes of a recurrence (`width / 4`).
++    pub fn lanes(&self) -> usize {
++        self.width >> 2
++    }
++
++    pub fn head_dim(&self) -> usize {
++        self.width / self.heads
++    }
++
++    /// Rows of a recurrence's gate map: decay gates, then rotations if learned.
++    pub fn gate_rows(&self) -> usize {
++        self.lanes() + if self.rotation { self.width } else { 0 }
++    }
++
++    pub fn lorentz(&self) -> bool {
++        self.read == "lorentz"
++    }
++}
++
++/// `mantissa * 2^exp`.
++#[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize)]
++pub struct Fixed {
++    pub mantissa: i64,
++    pub exp: i32,
++}
++
++/// Integer conventions of a stack artifact.
++#[derive(Clone, Debug, PartialEq, Eq, Deserialize)]
++pub struct StackNumerics {
++    /// RMSNorm epsilon.
++    pub rms_eps: Fixed,
++    /// `1 / sqrt(head_dim)` in Q30 (the Dot score).
++    pub score_scale_q30: i64,
++    /// Table `exp`: entry `i` is `round(2^31 exp(-i 2^exp_step_log2))`.
++    pub exp_step_log2: i32,
++    /// Tables `silu` and `gelu`: entry `i` is `round(2^16 f(x))` at
++    /// `x = (i - half) 2^step_log2`, `half = 2^(range_log2 - step_log2)`.
++    pub silu_step_log2: i32,
++    pub silu_range_log2: i32,
++    pub gelu_step_log2: i32,
++    pub gelu_range_log2: i32,
++}
++
++#[derive(Clone, Copy, Debug, Deserialize)]
++struct Span {
++    offset: u64,
++    bytes: u64,
++}
++
++#[derive(Clone, Debug, Deserialize)]
++struct MatrixEntry {
++    name: String,
++    rows: usize,
++    cols: usize,
++    exp_base: i32,
++    nibbles: Span,
++    scales: Span,
++}
++
++#[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize)]
++#[serde(rename_all = "snake_case")]
++enum TableKind {
++    I16,
++    I32,
++    U32,
++}
++
++impl TableKind {
++    fn width(self) -> usize {
++        match self {
++            Self::I16 => 2,
++            Self::I32 | Self::U32 => 4,
++        }
++    }
++
++    fn name(self) -> &'static str {
++        match self {
++            Self::I16 => "i16",
++            Self::I32 => "i32",
++            Self::U32 => "u32",
++        }
++    }
++}
++
++#[derive(Clone, Debug, Deserialize)]
++struct TableEntry {
++    name: String,
++    kind: TableKind,
++    len: usize,
++    span: Span,
++}
++
++#[derive(Clone, Debug, Deserialize)]
++struct Header {
++    schema: String,
++    shape: StackShape,
++    group: usize,
++    numerics: StackNumerics,
++    matrices: Vec<MatrixEntry>,
++    tables: Vec<TableEntry>,
++    /// Provenance recorded by the exporter; never read by serving arithmetic.
++    #[allow(dead_code)]
++    source: serde_json::Value,
++}
++
++/// One 4-bit matrix of a parsed container, borrowed from its bytes.
++pub(crate) struct MatrixView<'a> {
++    pub rows: usize,
++    pub cols: usize,
++    pub exp_base: i32,
++    pub nibbles: &'a [u8],
++    pub scales: &'a [u8],
++}
++
++/// A parsed and structurally validated stack container.
++pub(crate) struct Container<'a> {
++    pub shape: StackShape,
++    pub numerics: StackNumerics,
++    pub sha256: String,
++    data: &'a [u8],
++    matrices: Vec<MatrixEntry>,
++    tables: Vec<TableEntry>,
++}
++
++/// The data range `offset..offset + bytes`, if it lies inside `len` bytes.
++fn range(span: Span, len: usize) -> Option<std::ops::Range<usize>> {
++    let start = usize::try_from(span.offset).ok()?;
++    let bytes = usize::try_from(span.bytes).ok()?;
++    let end = start.checked_add(bytes)?;
++    (end <= len).then_some(start..end)
++}
++
++impl<'a> Container<'a> {
++    /// Parse the container: magic, header length, JSON header, schema, group,
++    /// shape and the bounds and sizes of every section. Names must be unique.
++    pub fn parse(bytes: &'a [u8]) -> Result<Self, StackError> {
++        if bytes.len() < 16 || &bytes[..8] != MAGIC {
++            return Err(StackError::Magic);
++        }
++        let mut length = [0u8; 8];
++        length.copy_from_slice(&bytes[8..16]);
++        let declared = u64::from_le_bytes(length);
++        let header_end = usize::try_from(declared)
++            .ok()
++            .filter(|_| declared <= MAX_HEADER)
++            .and_then(|len| len.checked_add(16))
++            .filter(|end| *end <= bytes.len())
++            .ok_or(StackError::HeaderLength {
++                declared,
++                available: bytes.len(),
++            })?;
++        let header: Header =
++            serde_json::from_slice(&bytes[16..header_end]).map_err(StackError::Header)?;
++        if header.schema != STACK_SCHEMA {
++            return Err(StackError::Schema(header.schema));
++        }
++        if header.group != GROUP {
++            return Err(StackError::Group(header.group));
++        }
++        header.shape.validate()?;
++        let data_start = header_end
++            .checked_add((ALIGN - header_end % ALIGN) % ALIGN)
++            .filter(|start| *start <= bytes.len())
++            .ok_or(StackError::MissingData)?;
++        let data = &bytes[data_start..];
++        for (i, m) in header.matrices.iter().enumerate() {
++            if header.matrices[..i]
++                .iter()
++                .any(|other| other.name == m.name)
++            {
++                return Err(StackError::DuplicateSection(m.name.clone()));
++            }
++            let weights = m.rows.checked_mul(m.cols);
++            let sized = weights.is_some_and(|w| {
++                m.rows > 0
++                    && m.cols > 0
++                    && m.cols.is_multiple_of(GROUP)
++                    && m.nibbles.bytes == (w / 2) as u64
++                    && m.scales.bytes == (w / GROUP) as u64
++            });
++            if !sized
++                || range(m.nibbles, data.len()).is_none()
++                || range(m.scales, data.len()).is_none()
++            {
++                return Err(StackError::MatrixSection(m.name.clone()));
++            }
++        }
++        for (i, t) in header.tables.iter().enumerate() {
++            if header.tables[..i].iter().any(|other| other.name == t.name) {
++                return Err(StackError::DuplicateSection(t.name.clone()));
++            }
++            let sized = t
++                .len
++                .checked_mul(t.kind.width())
++                .is_some_and(|b| b as u64 == t.span.bytes);
++            if !sized || range(t.span, data.len()).is_none() {
++                return Err(StackError::TableSection(t.name.clone()));
++            }
++        }
++        Ok(Self {
++            shape: header.shape,
++            numerics: header.numerics,
++            sha256: hex::encode(Sha256::digest(bytes)),
++            data,
++            matrices: header.matrices,
++            tables: header.tables,
++        })
++    }
++
++    fn section(&self, span: Span) -> Result<&'a [u8], StackError> {
++        // Every span was checked in `parse`; the check is repeated so that no
++        // path can index out of bounds.
++        range(span, self.data.len())
++            .map(|r| &self.data[r])
++            .ok_or(StackError::MissingData)
++    }
++
++    /// Matrix `name`, required to be `rows x cols`.
++    pub fn matrix(
++        &self,
++        name: &str,
++        rows: usize,
++        cols: usize,
++    ) -> Result<MatrixView<'a>, StackError> {
++        let m = self
++            .matrices
++            .iter()
++            .find(|m| m.name == name)
++            .ok_or_else(|| StackError::MissingSection(name.to_owned()))?;
++        if m.rows != rows || m.cols != cols {
++            return Err(StackError::MatrixShape {
++                name: name.to_owned(),
++                rows: m.rows,
++                cols: m.cols,
++                expected_rows: rows,
++                expected_cols: cols,
++            });
++        }
++        Ok(MatrixView {
++            rows,
++            cols,
++            exp_base: m.exp_base,
++            nibbles: self.section(m.nibbles)?,
++            scales: self.section(m.scales)?,
++        })
++    }
++
++    fn table(&self, name: &str, kind: TableKind) -> Result<&'a [u8], StackError> {
++        let t = self
++            .tables
++            .iter()
++            .find(|t| t.name == name)
++            .ok_or_else(|| StackError::MissingSection(name.to_owned()))?;
++        if t.kind != kind {
++            return Err(StackError::TableKind {
++                name: name.to_owned(),
++                found: t.kind.name(),
++                expected: kind.name(),
++            });
++        }
++        self.section(t.span)
++    }
++
++    pub fn table_i16(&self, name: &str) -> Result<Vec<i16>, StackError> {
++        Ok(self
++            .table(name, TableKind::I16)?
++            .chunks_exact(2)
++            .map(|b| i16::from_le_bytes([b[0], b[1]]))
++            .collect())
++    }
++
++    pub fn table_i32(&self, name: &str) -> Result<Vec<i32>, StackError> {
++        Ok(self
++            .table(name, TableKind::I32)?
++            .chunks_exact(4)
++            .map(|b| i32::from_le_bytes([b[0], b[1], b[2], b[3]]))
++            .collect())
++    }
++
++    pub fn table_u32(&self, name: &str) -> Result<Vec<u32>, StackError> {
++        Ok(self
++            .table(name, TableKind::U32)?
++            .chunks_exact(4)
++            .map(|b| u32::from_le_bytes([b[0], b[1], b[2], b[3]]))
++            .collect())
++    }
++}
+diff --git a/crates/uor-r4-integer/src/stack/kernels.rs b/crates/uor-r4-integer/src/stack/kernels.rs
+new file mode 100644
+index 000000000..883b08ce8
+--- /dev/null
++++ b/crates/uor-r4-integer/src/stack/kernels.rs
+@@ -0,0 +1,942 @@
++//! Multiplier-free kernels of the stack engine (owner decision D11).
++//!
++//! Each kernel reproduces one operation of the D10 engine (`uor-r4-lut`'s
++//! `stack` and `kernels`) on the same integers, including its floor,
++//! truncation, round-half-up and saturation conventions, with a different
++//! instruction mix:
++//!
++//! - a product of two runtime values is read from a table of the sixteen
++//!   multiples of one operand (built by repeated addition) at the radix-16
++//!   digits of the other, and summed with shifts: `stack_mul_u128`,
++//!   `stack_mul_u64`, the per-coordinate tables of the read, and the
++//!   activation tables of the weight maps;
++//! - a quotient is exact restoring long division (`stack_div_u64`,
++//!   `stack_div_u128`), and a square root is digit-by-digit (`stack_isqrt`);
++//! - index arithmetic uses shifts or running offsets, never a product of
++//!   runtime sizes.
++//!
++//! A product is formed modulo `2^64` or `2^128` exactly as the D10 engine's
++//! wrapping release-mode operator, so the two agree even where a bound is
++//! not proved here. The only values that enter a table chain pass through an
++//! opaque zero ([`core::hint::black_box`]) so that the optimizer cannot fold a
++//! chain of additions back into a multiplication. Kernels are
++//! `#[inline(never)]` with distinctive `stack_` names so that the ARM64
++//! instruction audit (`scripts/audit_zero_matmul_serving.py --stack`) can
++//! locate each one in a release binary.
++
++use core::hint::black_box;
++
++use super::format::Fixed;
++
++/// Exponent of the residual stream and of projection outputs: `v * 2^-16`.
++pub(crate) const RESIDUAL_EXP: i32 = -16;
++/// Bias of a grid code's exponent field.
++const GRID_EXP_BIAS: i32 = 64;
++/// Table points per octave of the arcosh argument code, as a power of two.
++pub(crate) const ARCOSH_MANTISSA_BITS: u32 = 10;
++/// Argument codes below `2^ARCOSH_CODE_BITS` are covered; larger codes saturate.
++pub(crate) const ARCOSH_CODE_BITS: u32 = 96;
++/// Entries of the sealed arcosh table.
++pub(crate) const ARCOSH_TABLE_LEN: usize =
++    (((ARCOSH_CODE_BITS - ARCOSH_MANTISSA_BITS + 1) as usize) << ARCOSH_MANTISSA_BITS) | 1;
++/// Training's floor on the Lorentz excess `z - 1`, `1e-7`, as an arcosh code.
++const MIN_EXCESS_CODE: u128 = 429;
++
++/// Round-half-up arithmetic shift right by `shift` (left if negative),
++/// saturating at the `i64` range (the D10 engine's `shift`).
++#[inline(always)]
++pub(crate) fn shift(value: i64, shift: i32) -> i64 {
++    if shift > 0 {
++        if shift >= 63 {
++            return if value < 0 { -1 } else { 0 };
++        }
++        let half = 1i64 << (shift - 1);
++        value.saturating_add(half) >> shift
++    } else if shift < 0 {
++        let k = shift.unsigned_abs().min(63);
++        let limit = i64::MAX >> k;
++        if value > limit {
++            i64::MAX
++        } else if value < -limit {
++            i64::MIN
++        } else {
++            value << k
++        }
++    } else {
++        value
++    }
++}
++
++/// Round-half-up shift of an `i128` right by `shift`, saturated to `i64`.
++#[inline(always)]
++pub(crate) fn shift_wide(value: i128, shift: u32) -> i64 {
++    let rounded = if shift == 0 {
++        value
++    } else {
++        value.wrapping_add(1i128 << (shift - 1)) >> shift
++    };
++    rounded.clamp(i128::from(i64::MIN), i128::from(i64::MAX)) as i64
++}
++
++/// Convert `value * 2^from` to the nearest `v * 2^to`, saturated to `i32`.
++#[inline(always)]
++pub(crate) fn to_exp_i32(value: i64, from: i32, to: i32) -> i32 {
++    shift(value, to - from).clamp(i64::from(i32::MIN), i64::from(i32::MAX)) as i32
++}
++
++#[inline(always)]
++fn bit_length(value: u64) -> i32 {
++    64 - value.leading_zeros() as i32
++}
++
++/// `(16 + m) a` by shifts and additions (`m < 16`), wrapping as the D10
++/// engine's release build.
++#[inline(always)]
++pub(crate) fn scale_16_plus(a: i64, m: u8) -> i64 {
++    let mut t = a << 4;
++    for bit in 0..4 {
++        if m & (1 << bit) != 0 {
++            t = t.wrapping_add(a << bit);
++        }
++    }
++    t
++}
++
++/// Whether `code` is a grid code: zero, or `|code| = (e + 64) << 4 | m` with
++/// `1 <= e + 64 <= 127`, meaning `±(16 + m) 2^(e - 4)`.
++pub(crate) fn grid_valid(code: i16) -> bool {
++    let field = code.unsigned_abs() >> 4;
++    code == 0 || (1..=127).contains(&field)
++}
++
++/// `scalar(code) value` by shifts and additions, rounded half up.
++#[inline(always)]
++pub(crate) fn grid_apply(value: i64, code: i16) -> i64 {
++    if code == 0 {
++        return 0;
++    }
++    let c = code.unsigned_abs();
++    let e = i32::from(c >> 4) - GRID_EXP_BIAS;
++    let scaled = shift(scale_16_plus(value, (c & 15) as u8), 4 - e);
++    if code < 0 {
++        scaled.saturating_neg()
++    } else {
++        scaled
++    }
++}
++
++// ---------------------------------------------------------------------------
++// Products of runtime values: sixteen-multiple tables and radix-16 digits.
++
++/// The multiples `k a`, `k = 0..16`, modulo `2^128`, by repeated addition.
++#[inline(always)]
++fn multiples_u128(a: u128) -> [u128; 16] {
++    let zero = black_box(0u128);
++    let mut table = [0u128; 16];
++    let mut acc = 0u128;
++    for slot in table.iter_mut().skip(1) {
++        acc = acc.wrapping_add(a) ^ zero;
++        *slot = acc;
++    }
++    table
++}
++
++/// The multiples `k a`, `k = 0..16`, modulo `2^64`, by repeated addition.
++#[inline(always)]
++fn multiples_u64(a: u64) -> [u64; 16] {
++    let zero = black_box(0u64);
++    let mut table = [0u64; 16];
++    let mut acc = 0u64;
++    for slot in table.iter_mut().skip(1) {
++        acc = acc.wrapping_add(a) ^ zero;
++        *slot = acc;
++    }
++    table
++}
++
++/// The multiples `k x`, `k = 0..16`, of a signed value, modulo `2^64`.
++#[inline(always)]
++fn multiples_i64(x: i64, zero: i64) -> [i64; 16] {
++    let mut table = [0i64; 16];
++    let mut acc = 0i64;
++    for slot in table.iter_mut().skip(1) {
++        acc = acc.wrapping_add(x) ^ zero;
++        *slot = acc;
++    }
++    table
++}
++
++/// `a b` modulo `2^128`: the multiples of the larger operand read at the
++/// radix-16 digits of the smaller, most significant first.
++#[inline(never)]
++pub(crate) fn stack_mul_u128(a: u128, b: u128) -> u128 {
++    let (big, small) = if a >= b { (a, b) } else { (b, a) };
++    if small == 0 {
++        return 0;
++    }
++    let table = multiples_u128(big);
++    let mut digits = (131 - small.leading_zeros()) >> 2;
++    let mut acc = 0u128;
++    while digits > 0 {
++        digits -= 1;
++        acc = (acc << 4).wrapping_add(table[((small >> (digits << 2)) & 15) as usize]);
++    }
++    acc
++}
++
++/// `a b` modulo `2^64`, as [`stack_mul_u128`].
++#[inline(never)]
++pub(crate) fn stack_mul_u64(a: u64, b: u64) -> u64 {
++    let (big, small) = if a >= b { (a, b) } else { (b, a) };
++    if small == 0 {
++        return 0;
++    }
++    let table = multiples_u64(big);
++    let mut digits = (67 - small.leading_zeros()) >> 2;
++    let mut acc = 0u64;
++    while digits > 0 {
++        digits -= 1;
++        acc = (acc << 4).wrapping_add(table[((small >> (digits << 2)) & 15) as usize]);
++    }
++    acc
++}
++
++/// `a b` modulo `2^128` for signed operands: the product of the magnitudes,
++/// negated when the signs differ (equal to `a.wrapping_mul(b)`).
++#[inline(always)]
++pub(crate) fn mul_i128(a: i128, b: i128) -> i128 {
++    let magnitude = stack_mul_u128(a.unsigned_abs(), b.unsigned_abs());
++    if (a < 0) != (b < 0) {
++        magnitude.wrapping_neg() as i128
++    } else {
++        magnitude as i128
++    }
++}
++
++/// `a b` modulo `2^64` for signed operands (equal to `a.wrapping_mul(b)`).
++#[inline(always)]
++pub(crate) fn mul_i64(a: i64, b: i64) -> i64 {
++    let magnitude = stack_mul_u64(a.unsigned_abs(), b.unsigned_abs());
++    if (a < 0) != (b < 0) {
++        magnitude.wrapping_neg() as i64
++    } else {
++        magnitude as i64
++    }
++}
++
++/// `x y` from `table = multiples_i64(x)`: the eight radix-16 digits of the
++/// two's-complement `y`, then `- x 2^32` for a negative `y`. Exact whenever
++/// `|x y| < 2^63` (every caller: `|x| < 2^32`, `|y| <= 2^31`).
++#[inline(always)]
++fn mul_by_i32(table: &[i64; 16], y: i32) -> i64 {
++    let u = y as u32;
++    let digit = |s: u32| table[((u >> s) & 15) as usize];
++    let low = digit(0)
++        .wrapping_add(digit(4) << 4)
++        .wrapping_add(digit(8) << 8)
++        .wrapping_add(digit(12) << 12);
++    let high = digit(16)
++        .wrapping_add(digit(20) << 4)
++        .wrapping_add(digit(24) << 8)
++        .wrapping_add(digit(28) << 12);
++    let sign = (table[1] << 32) & i64::from(y >> 31);
++    low.wrapping_add(high << 16).wrapping_sub(sign)
++}
++
++/// `v^2` for `|v| < 2^32`, exactly: multiples of `|v|` at its eight digits.
++#[inline(never)]
++pub(crate) fn stack_square(v: i64) -> u64 {
++    let u = v.unsigned_abs();
++    let table = multiples_u64(u);
++    let digit = |s: u32| table[((u >> s) & 15) as usize];
++    let low = digit(0)
++        .wrapping_add(digit(4) << 4)
++        .wrapping_add(digit(8) << 8)
++        .wrapping_add(digit(12) << 12);
++    let high = digit(16)
++        .wrapping_add(digit(20) << 4)
++        .wrapping_add(digit(24) << 8)
++        .wrapping_add(digit(28) << 12);
++    low.wrapping_add(high << 16)
++}
++
++// ---------------------------------------------------------------------------
++// Quotients and roots.
++
++/// `numerator / denominator` (floor) by restoring long division; zero for a
++/// zero denominator, which no caller passes.
++#[inline(never)]
++pub(crate) fn stack_div_u64(numerator: u64, denominator: u64) -> u64 {
++    if denominator == 0 || numerator < denominator {
++        return 0;
++    }
++    let shift = denominator.leading_zeros() - numerator.leading_zeros();
++    let mut divisor = denominator << shift;
++    let mut place = 1u64 << shift;
++    let mut remainder = numerator;
++    let mut quotient = 0u64;
++    loop {
++        if remainder >= divisor {
++            remainder -= divisor;
++            quotient |= place;
++        }
++        if place == 1 {
++            return quotient;
++        }
++        place >>= 1;
++        divisor >>= 1;
++    }
++}
++
++/// `numerator / denominator` (floor) for `u128`, as [`stack_div_u64`].
++#[inline(never)]
++pub(crate) fn stack_div_u128(numerator: u128, denominator: u128) -> u128 {
++    if denominator == 0 || numerator < denominator {
++        return 0;
++    }
++    let shift = denominator.leading_zeros() - numerator.leading_zeros();
++    let mut divisor = denominator << shift;
++    let mut place = 1u128 << shift;
++    let mut remainder = numerator;
++    let mut quotient = 0u128;
++    loop {
++        if remainder >= divisor {
++            remainder -= divisor;
++            quotient |= place;
++        }
++        if place == 1 {
++            return quotient;
++        }
++        place >>= 1;
++        divisor >>= 1;
++    }
++}
++
++/// Floor integer square root, digit by digit (the D10 engine's `isqrt`).
++#[inline(never)]
++pub(crate) fn stack_isqrt(value: u128) -> u128 {
++    let mut remainder = value;
++    let mut root = 0u128;
++    let mut bit = 1u128 << 126;
++    while bit > value {
++        bit >>= 2;
++    }
++    while bit != 0 {
++        if remainder >= root + bit {
++            remainder -= root + bit;
++            root = (root >> 1) + bit;
++        } else {
++            root >>= 1;
++        }
++        bit >>= 2;
++    }
++    root
++}
++
++// ---------------------------------------------------------------------------
++// Tables of the nonlinearities.
++
++/// `round(2^31 exp(-d))` for `d = value * 2^exp_d`, from the sealed table with
++/// step `2^step_log2` and linear interpolation. The table is non-increasing
++/// (checked at load), so every difference and product is exact.
++#[inline(never)]
++pub(crate) fn stack_exp_neg(d: i64, exp_d: i32, table: &[u32], step_log2: i32) -> u64 {
++    let frac_bits = step_log2 - exp_d;
++    if d <= 0 {
++        return table.first().map_or(0, |v| u64::from(*v));
++    }
++    if frac_bits <= 0 {
++        let index = (d << (-frac_bits)) as usize;
++        return table.get(index).map_or(0, |v| u64::from(*v));
++    }
++    let index = (d >> frac_bits) as usize;
++    let (Some(&a), Some(&b)) = (table.get(index), table.get(index.wrapping_add(1))) else {
++        return 0;
++    };
++    let frac = (d & ((1 << frac_bits) - 1)) as u64;
++    let (a, b) = (u64::from(a), u64::from(b));
++    a.wrapping_sub(stack_mul_u64(a.wrapping_sub(b), frac) >> frac_bits)
++}
++
++/// `sigmoid(x)` for `x` at exponent -16, times `2^31`, from the exp table.
++#[inline(never)]
++pub(crate) fn stack_sigmoid_q31(x: i64, table: &[u32], step_log2: i32) -> u64 {
++    let e = stack_exp_neg(x.abs(), RESIDUAL_EXP, table, step_log2);
++    let one = 1u64 << 31;
++    if x >= 0 {
++        stack_div_u64(one << 31, one + e)
++    } else {
++        stack_div_u64(e << 31, one + e)
++    }
++}
++
++/// An activation (SiLU, GELU) of `x * 2^-16` at exponent -16 from its sealed
++/// table: zero below the range, `x` above it, linear interpolation inside.
++#[inline(never)]
++pub(crate) fn stack_activation(x: i32, table: &[i32], step_log2: i32, range_log2: i32) -> i32 {
++    let frac_bits = step_log2 + 16;
++    let half = 1i64 << (range_log2 - step_log2);
++    let index = (i64::from(x) >> frac_bits) + half;
++    if index < 0 {
++        return 0;
++    }
++    let (Some(&a), Some(&b)) = (
++        table.get(index as usize),
++        table.get((index as usize).wrapping_add(1)),
++    ) else {
++        return x;
++    };
++    let frac = i64::from(x) & ((1i64 << frac_bits) - 1);
++    let (a, b) = (i64::from(a), i64::from(b));
++    (a + (mul_i64(b - a, frac) >> frac_bits)) as i32
++}
++
++/// `round(2^24 arcosh(1 + code 2^-32))` from the sealed table, interpolated
++/// between grid points `2^-10` of an octave apart (the D10 engine's
++/// `arcosh1p_q24`; the table is non-decreasing, checked at load).
++#[inline(never)]
++pub(crate) fn stack_arcosh1p_q24(code: u128, table: &[u32]) -> u32 {
++    let direct = 1u128 << ARCOSH_MANTISSA_BITS;
++    let last = table.len().wrapping_sub(1);
++    if code < direct {
++        return table.get(code as usize).copied().unwrap_or(0);
++    }
++    if code >= 1u128 << ARCOSH_CODE_BITS {
++        return table.get(last).copied().unwrap_or(0);
++    }
++    let bits = 128 - code.leading_zeros();
++    let shift = bits - ARCOSH_MANTISSA_BITS - 1;
++    let mantissa = ((code >> shift) - direct) as usize;
++    let index = ((1 + shift as usize) << ARCOSH_MANTISSA_BITS) + mantissa;
++    let (Some(&low), Some(&high)) = (table.get(index), table.get(index + 1)) else {
++        return 0;
++    };
++    let (low, high) = (u128::from(low), u128::from(high));
++    if shift == 0 {
++        return low as u32;
++    }
++    let fraction = code & ((1u128 << shift) - 1);
++    let step = stack_mul_u128(high.wrapping_sub(low), fraction).wrapping_add(1u128 << (shift - 1))
++        >> shift;
++    low.wrapping_add(step) as u32
++}
++
++// ---------------------------------------------------------------------------
++// Vector kernels.
++
++/// The largest magnitude in `values`. Every element passes through an opaque
++/// barrier, which keeps the reduction scalar: a vectorized maximum would end
++/// in a SIMD-to-general-register transfer (`fmov`), which the R1 audit refuses.
++#[inline(never)]
++pub(crate) fn stack_max_abs_i32(values: &[i32]) -> u32 {
++    let mut max = 0u32;
++    for &v in values {
++        max = max.max(black_box(v).unsigned_abs());
++    }
++    max
++}
++
++/// The largest magnitude in `values`, as [`stack_max_abs_i32`].
++#[inline(never)]
++pub(crate) fn stack_max_abs_i64(values: &[i64]) -> u64 {
++    let mut max = 0u64;
++    for &v in values {
++        max = max.max(black_box(v).unsigned_abs());
++    }
++    max
++}
++
++/// Requantize `values * 2^exp` to 16 bits with the smallest exponent that
++/// fits; returns the new exponent.
++#[inline(never)]
++pub(crate) fn stack_quantize16(values: &[i64], exp: i32, out: &mut [i16]) -> i32 {
++    let max = stack_max_abs_i64(values);
++    let s = (bit_length(max) - 15).max(0);
++    for (o, &v) in out.iter_mut().zip(values) {
++        *o = shift(v, s).clamp(-32767, 32767) as i16;
++    }
++    exp + s
++}
++
++/// RMSNorm without its gain (folded into the following weights): `x / rms(x)`
++/// for `x` at the residual exponent, into `out` (16-bit); returns the output
++/// exponent. `scratch` has the length of `x`.
++#[inline(never)]
++pub(crate) fn stack_rms_norm(x: &[i32], eps: Fixed, scratch: &mut [i64], out: &mut [i16]) -> i32 {
++    let max = stack_max_abs_i32(x);
++    let sh = (bit_length(u64::from(max)) - 24).max(0);
++    // After the shift every value is within 2^24, so each square is at most
++    // 2^48 and the sum of at most 2^14 squares is exact.
++    let mut sum = 0u64;
++    for (s, &v) in scratch.iter_mut().zip(x) {
++        let y = shift(i64::from(v), sh);
++        *s = y;
++        sum = sum.wrapping_add(stack_square(y));
++    }
++    let mean = stack_div_u64(sum, x.len().max(1) as u64) as i64;
++    let eps_int = shift(eps.mantissa, 2 * (RESIDUAL_EXP + sh) - eps.exp).max(0);
++    let ms = mean.wrapping_add(eps_int).max(1) as u128;
++    // s = sqrt(ms) 2^34 and r = 2^96 / s = 2^62 / sqrt(ms).
++    let s = stack_isqrt(ms << 68).max(1);
++    let r = stack_div_u128(1u128 << 96, s);
++    let table = multiples_u128(r);
++    for v in scratch.iter_mut() {
++        // |v| <= 2^24: seven radix-16 digits.
++        let u = v.unsigned_abs();
++        let digit = |s: u32| table[((u >> s) & 15) as usize];
++        let magnitude = digit(0)
++            .wrapping_add(digit(4) << 4)
++            .wrapping_add(digit(8) << 8)
++            .wrapping_add(digit(12) << 12)
++            .wrapping_add(digit(16) << 16)
++            .wrapping_add(digit(20) << 20)
++            .wrapping_add(digit(24) << 24);
++        let product = if *v < 0 {
++            magnitude.wrapping_neg() as i128
++        } else {
++            magnitude as i128
++        };
++        let y = product >> 48;
++        *v = y.clamp(i128::from(i64::MIN), i128::from(i64::MAX)) as i64;
++    }
++    stack_quantize16(scratch, -14, out)
++}
++
++/// The activation tables of a 16-bit vector: for column `c`, entry `u` is
++/// `(u - 8) x[c]`, the product with the offset-binary weight nibble `u`
++/// (shifts, additions and negations only).
++#[inline(never)]
++pub(crate) fn stack_activation_tables(x: &[i16], tables: &mut [[i32; 16]]) {
++    let zero = black_box(0i32);
++    for (table, &value) in tables.iter_mut().zip(x) {
++        let v1 = i32::from(value);
++        let v2 = (v1 << 1) ^ zero;
++        let v4 = (v1 << 2) ^ zero;
++        let v8 = (v1 << 3) ^ zero;
++        let v3 = v2 + v1;
++        let v5 = v4 + v1;
++        let v6 = v4 + v2;
++        let v7 = v4 + v3;
++        *table = [
++            -v8, -v7, -v6, -v5, -v4, -v3, -v2, -v1, 0, v1, v2, v3, v4, v5, v6, v7,
++        ];
++    }
++}
++
++/// A 4-bit weight matrix in the container's row-major layout, with the
++/// smallest scale exponent of each row.
++pub(crate) struct PackedMatrix {
++    pub rows: usize,
++    pub cols: usize,
++    pub exp_base: i32,
++    pub nibbles: Vec<u8>,
++    pub scales: Vec<u8>,
++    pub min_de: Vec<u8>,
++}
++
++/// `out[r] = sum_c W[r][c] x[c]` at the residual exponent, for `x` given by
++/// its activation tables (built from the 16-bit vector at exponent `x_exp`).
++/// Per weight: one table read and one addition; per group of 32: the scale
++/// `(16 + m) 2^(de - de_min)` by shifts and additions. The group sums and the
++/// row accumulator are the D10 kernel's exact integers.
++#[inline(never)]
++pub(crate) fn stack_gemv(m: &PackedMatrix, tables: &[[i32; 16]], x_exp: i32, out: &mut [i32]) {
++    let row_bytes = m.cols >> 1;
++    let groups = m.cols >> 5;
++    let Some(tables) = tables.get(..m.cols) else {
++        return;
++    };
++    let (mut nibble_at, mut scale_at) = (0usize, 0usize);
++    for (slot, &min_de) in out.iter_mut().zip(&m.min_de).take(m.rows) {
++        let (Some(row), Some(scales)) = (
++            m.nibbles.get(nibble_at..nibble_at + row_bytes),
++            m.scales.get(scale_at..scale_at + groups),
++        ) else {
++            return;
++        };
++        let mut acc = 0i64;
++        for ((bytes, columns), &s) in row
++            .chunks_exact(16)
++            .zip(tables.chunks_exact(32))
++            .zip(scales)
++        {
++            let mut a = 0i32;
++            for (&byte, pair) in bytes.iter().zip(columns.chunks_exact(2)) {
++                a += pair[0][usize::from(byte & 15)] + pair[1][usize::from(byte >> 4)];
++            }
++            acc = acc.wrapping_add(scale_16_plus(i64::from(a), s & 15) << ((s >> 4) - min_de));
++        }
++        *slot = to_exp_i32(
++            acc,
++            m.exp_base + i32::from(min_de) - 4 + x_exp,
++            RESIDUAL_EXP,
++        );
++        nibble_at += row_bytes;
++        scale_at += groups;
++    }
++}
++
++/// The pair tables of a 16-bit vector, from its activation tables: for
++/// column pair `p`, entry `b` is `T[2p][b & 15] + T[2p + 1][b >> 4]`, the
++/// product of both columns with the weight byte `b` (low nibble: the even
++/// column). Additions only.
++#[inline(never)]
++pub(crate) fn stack_pair_tables(tables: &[[i32; 16]], pairs: &mut [[i32; 256]]) {
++    for (pair, columns) in pairs.iter_mut().zip(tables.chunks_exact(2)) {
++        let (even, odd) = (&columns[0], &columns[1]);
++        for (row, &high) in pair.chunks_exact_mut(16).zip(odd) {
++            for (slot, &low) in row.iter_mut().zip(even) {
++                *slot = low + high;
++            }
++        }
++    }
++}
++
++/// [`stack_gemv`] reading pair tables ([`stack_pair_tables`]): one table
++/// read and one addition per weight byte, that is per two weights. The group
++/// sums, and so the outputs, are the same integers.
++#[inline(never)]
++pub(crate) fn stack_gemv_pairs(
++    m: &PackedMatrix,
++    pairs: &[[i32; 256]],
++    x_exp: i32,
++    out: &mut [i32],
++) {
++    let row_bytes = m.cols >> 1;
++    let groups = m.cols >> 5;
++    let Some(pairs) = pairs.get(..row_bytes) else {
++        return;
++    };
++    let (mut nibble_at, mut scale_at) = (0usize, 0usize);
++    for (slot, &min_de) in out.iter_mut().zip(&m.min_de).take(m.rows) {
++        let (Some(row), Some(scales)) = (
++            m.nibbles.get(nibble_at..nibble_at + row_bytes),
++            m.scales.get(scale_at..scale_at + groups),
++        ) else {
++            return;
++        };
++        let mut acc = 0i64;
++        for ((bytes, tables), &s) in row.chunks_exact(16).zip(pairs.chunks_exact(16)).zip(scales) {
++            let mut a = 0i32;
++            for (&byte, table) in bytes.iter().zip(tables) {
++                a += table[usize::from(byte)];
++            }
++            acc = acc.wrapping_add(scale_16_plus(i64::from(a), s & 15) << ((s >> 4) - min_de));
++        }
++        *slot = to_exp_i32(
++            acc,
++            m.exp_base + i32::from(min_de) - 4 + x_exp,
++            RESIDUAL_EXP,
++        );
++        nibble_at += row_bytes;
++        scale_at += groups;
++    }
++}
++
++/// Row `row` of a packed matrix at the residual exponent (the embedding).
++#[inline(never)]
++pub(crate) fn stack_dequant_row(m: &PackedMatrix, row: usize, out: &mut [i32]) {
++    let row_bytes = m.cols >> 1;
++    let groups = m.cols >> 5;
++    let nibble_at = stack_mul_u64(row as u64, row_bytes as u64) as usize;
++    let scale_at = stack_mul_u64(row as u64, groups as u64) as usize;
++    let (Some(bytes), Some(scales)) = (
++        m.nibbles.get(nibble_at..nibble_at + row_bytes),
++        m.scales.get(scale_at..scale_at + groups),
++    ) else {
++        return;
++    };
++    for (c, slot) in out.iter_mut().enumerate().take(m.cols) {
++        let byte = bytes[c >> 1];
++        let q = i64::from(if c & 1 == 0 { byte & 15 } else { byte >> 4 }) - 8;
++        let scale = scales[c >> 5];
++        let value = scale_16_plus(q, scale & 15);
++        *slot = to_exp_i32(value, m.exp_base + i32::from(scale >> 4) - 4, RESIDUAL_EXP);
++    }
++}
++
++/// The multiples of every coordinate of `query` (signed, `|q| <= 2^31`),
++/// shared by all positions of one read head.
++#[inline(never)]
++pub(crate) fn stack_query_tables(query: &[i32], tables: &mut [[i64; 16]]) {
++    let zero = black_box(0i64);
++    for (table, &q) in tables.iter_mut().zip(query) {
++        *table = multiples_i64(i64::from(q), zero);
++    }
++}
++
++/// `<q, k>` exactly, for `q` given by [`stack_query_tables`].
++#[inline(never)]
++pub(crate) fn stack_dot(query: &[[i64; 16]], key: &[i32]) -> i128 {
++    let mut acc = 0i128;
++    for (table, &k) in query.iter().zip(key) {
++        acc = acc.wrapping_add(i128::from(mul_by_i32(table, k)));
++    }
++    acc
++}
++
++/// `mix += weight value` for one position's head values (`weight < 2^32`).
++#[inline(never)]
++pub(crate) fn stack_mix_row(weight: u64, values: &[i32], mix: &mut [i128]) {
++    let table = multiples_i64(weight as i64, black_box(0i64));
++    for (m, &v) in mix.iter_mut().zip(values) {
++        *m = m.wrapping_add(i128::from(mul_by_i32(&table, v)));
++    }
++}
++
++/// Time coordinate `sqrt(1 + |v|^2)` at exponent -32 of the hyperboloid lift
++/// of `v` at exponent -16.
++#[inline(never)]
++pub(crate) fn stack_lift(v: &[i32]) -> u64 {
++    let mut square = 0u128;
++    for &x in v {
++        square = square.wrapping_add(u128::from(stack_square(i64::from(x))));
++    }
++    stack_isqrt((1u128 << 64).wrapping_add(square << 32)).min(u128::from(u64::MAX)) as u64
++}
++
++/// Lorentz distance at exponent -24 between points at exponent -16, from
++/// their lifts and inner product (exponent -32): `z - 1 = q0 k0 - <q, k> - 1`
++/// at exponent -64, floored as in training, then the arcosh table.
++#[inline(never)]
++pub(crate) fn stack_lorentz_distance(
++    query_lift: u64,
++    key_lift: u64,
++    dot: i128,
++    arcosh: &[u32],
++) -> u32 {
++    let product = stack_mul_u128(u128::from(query_lift), u128::from(key_lift)) as i128;
++    let excess = product.wrapping_sub(dot << 32).wrapping_sub(1i128 << 64);
++    let code = ((excess.max(0) >> 32) as u128).max(MIN_EXCESS_CODE);
++    stack_arcosh1p_q24(code, arcosh)
++}
++
++/// Hamilton product `a (x) b` of quaternions `(w, x, y, z)`, exactly.
++#[inline(never)]
++pub(crate) fn stack_hamilton(a: [i64; 4], b: [i64; 4]) -> [i128; 4] {
++    let p = |x: i64, y: i64| mul_i128(i128::from(x), i128::from(y));
++    let [a0, a1, a2, a3] = a;
++    let [b0, b1, b2, b3] = b;
++    [
++        p(a0, b0)
++            .wrapping_sub(p(a1, b1))
++            .wrapping_sub(p(a2, b2))
++            .wrapping_sub(p(a3, b3)),
++        p(a0, b1)
++            .wrapping_add(p(a1, b0))
++            .wrapping_add(p(a2, b3))
++            .wrapping_sub(p(a3, b2)),
++        p(a0, b2)
++            .wrapping_sub(p(a1, b3))
++            .wrapping_add(p(a2, b0))
++            .wrapping_add(p(a3, b1)),
++        p(a0, b3)
++            .wrapping_add(p(a1, b2))
++            .wrapping_sub(p(a2, b1))
++            .wrapping_add(p(a3, b0)),
++    ]
++}
++
++/// Index of the largest value (first on ties).
++#[inline(never)]
++pub fn stack_argmax(values: &[i32]) -> usize {
++    let mut best = 0;
++    let mut top = i32::MIN;
++    for (i, &v) in values.iter().enumerate() {
++        if i == 0 || v > top {
++            best = i;
++            top = v;
++        }
++    }
++    best
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++
++    struct Lcg(u64);
++
++    impl Lcg {
++        fn next(&mut self) -> u64 {
++            self.0 = self
++                .0
++                .wrapping_mul(6_364_136_223_846_793_005)
++                .wrapping_add(1_442_695_040_888_963_407);
++            self.0 ^ (self.0 >> 29)
++        }
++
++        fn wide(&mut self) -> u128 {
++            (u128::from(self.next()) << 64) | u128::from(self.next())
++        }
++    }
++
++    #[test]
++    fn products_match_wrapping_multiplication() {
++        let mut rng = Lcg(3);
++        let edges = [
++            0u128,
++            1,
++            2,
++            15,
++            16,
++            17,
++            u128::from(u64::MAX),
++            u128::MAX,
++            1 << 127,
++        ];
++        for &a in &edges {
++            for &b in &edges {
++                assert_eq!(stack_mul_u128(a, b), a.wrapping_mul(b), "{a} {b}");
++            }
++        }
++        for _ in 0..20_000 {
++            let (a, b) = (
++                rng.wide() >> (rng.next() % 128),
++                rng.wide() >> (rng.next() % 128),
++            );
++            assert_eq!(stack_mul_u128(a, b), a.wrapping_mul(b));
++            let (x, y) = (a as u64, b as u64);
++            assert_eq!(stack_mul_u64(x, y), x.wrapping_mul(y));
++            let (s, t) = (a as i128, b as i128);
++            assert_eq!(mul_i128(s, t), s.wrapping_mul(t));
++            let (s, t) = (a as i64, b as i64);
++            assert_eq!(mul_i64(s, t), s.wrapping_mul(t));
++        }
++        for (s, t) in [
++            (i128::MIN, -1),
++            (i128::MIN, i128::MIN),
++            (-5, 7),
++            (i128::MAX, 3),
++        ] {
++            assert_eq!(mul_i128(s, t), s.wrapping_mul(t));
++        }
++    }
++
++    #[test]
++    fn table_products_are_exact_over_the_i32_range() {
++        let mut rng = Lcg(7);
++        let zero = black_box(0i64);
++        let values = [
++            0i64,
++            1,
++            -1,
++            7,
++            -8,
++            i64::from(i32::MAX),
++            i64::from(i32::MIN),
++            (1 << 32) - 1,
++        ];
++        let ys = [0i32, 1, -1, 15, -16, i32::MAX, i32::MIN, 65_536, -65_537];
++        for &x in &values {
++            let table = multiples_i64(x, zero);
++            for &y in &ys {
++                assert_eq!(mul_by_i32(&table, y), x * i64::from(y), "{x} {y}");
++            }
++        }
++        for _ in 0..20_000 {
++            let x = (rng.next() as i64) >> 32;
++            let y = rng.next() as i32;
++            let table = multiples_i64(x, zero);
++            assert_eq!(mul_by_i32(&table, y), x * i64::from(y));
++            let v = i64::from(rng.next() as i32);
++            assert_eq!(u128::from(stack_square(v)), (v as i128 * v as i128) as u128);
++        }
++        assert_eq!(stack_square(1 << 31), 1 << 62);
++        assert_eq!(
++            stack_square((1 << 32) - 1),
++            ((1u64 << 32) - 1).wrapping_mul((1 << 32) - 1)
++        );
++    }
++
++    #[test]
++    fn long_division_and_roots_match_the_native_operators() {
++        let mut rng = Lcg(11);
++        for _ in 0..20_000 {
++            let n = rng.wide() >> (rng.next() % 128);
++            let d = (rng.wide() >> (rng.next() % 128)).max(1);
++            assert_eq!(stack_div_u128(n, d), n / d);
++            let (n64, d64) = (n as u64, (d as u64).max(1));
++            assert_eq!(stack_div_u64(n64, d64), n64 / d64);
++            let root = stack_isqrt(n);
++            assert!(root * root <= n && (root + 1).checked_mul(root + 1).is_none_or(|sq| sq > n));
++        }
++        assert_eq!(stack_div_u128(u128::MAX, 1), u128::MAX);
++        assert_eq!(stack_div_u64(u64::MAX, u64::MAX), 1);
++        assert_eq!(stack_div_u64(7, 0), 0);
++        assert_eq!(stack_isqrt(u128::MAX), u128::from(u64::MAX));
++    }
++
++    #[test]
++    fn activation_tables_hold_every_nibble_product() {
++        let x: Vec<i16> = vec![-32768, -32767, -1, 0, 1, 255, 32767, 12345];
++        let mut tables = vec![[0i32; 16]; x.len()];
++        stack_activation_tables(&x, &mut tables);
++        for (table, &v) in tables.iter().zip(&x) {
++            for (u, &entry) in table.iter().enumerate() {
++                assert_eq!(entry, (u as i32 - 8) * i32::from(v));
++            }
++        }
++    }
++
++    #[test]
++    #[allow(clippy::needless_range_loop)]
++    fn both_weight_map_kernels_give_the_exact_group_scaled_sum() {
++        let mut rng = Lcg(21);
++        for (rows, cols, x_exp) in [(1, 32, -14), (17, 64, -9), (40, 96, -20), (9, 288, -14)] {
++            let nibbles: Vec<u8> = (0..rows * cols / 2).map(|_| rng.next() as u8).collect();
++            let scales: Vec<u8> = (0..rows * cols / 32).map(|_| rng.next() as u8).collect();
++            let groups = cols / 32;
++            let min_de: Vec<u8> = scales
++                .chunks_exact(groups)
++                .map(|row| row.iter().map(|s| s >> 4).min().unwrap_or(0))
++                .collect();
++            let m = PackedMatrix {
++                rows,
++                cols,
++                exp_base: -11,
++                nibbles,
++                scales,
++                min_de,
++            };
++            let x: Vec<i16> = (0..cols)
++                .map(|c| match c % 7 {
++                    0 => i16::MIN + 1,
++                    1 => i16::MAX,
++                    _ => rng.next() as i16,
++                })
++                .collect();
++            let mut tables = vec![[0i32; 16]; cols];
++            stack_activation_tables(&x, &mut tables);
++            let mut pairs = vec![[0i32; 256]; cols / 2];
++            stack_pair_tables(&tables, &mut pairs);
++            let (mut nibble_out, mut pair_out) = (vec![0i32; rows], vec![0i32; rows]);
++            stack_gemv(&m, &tables, x_exp, &mut nibble_out);
++            stack_gemv_pairs(&m, &pairs, x_exp, &mut pair_out);
++            assert_eq!(nibble_out, pair_out, "{rows}x{cols}");
++            for r in 0..rows {
++                let mut exact = 0i128;
++                for c in 0..cols {
++                    let byte = m.nibbles[(r * cols + c) / 2];
++                    let q = i128::from(if c % 2 == 0 { byte & 15 } else { byte >> 4 }) - 8;
++                    let s = m.scales[r * groups + c / 32];
++                    exact += (q * (16 + i128::from(s & 15)) * i128::from(x[c]))
++                        << ((s >> 4) - m.min_de[r]);
++                }
++                let want = to_exp_i32(
++                    exact as i64,
++                    m.exp_base + i32::from(m.min_de[r]) - 4 + x_exp,
++                    RESIDUAL_EXP,
++                );
++                assert_eq!(nibble_out[r], want, "{rows}x{cols} row {r}");
++            }
++        }
++    }
++
++    #[test]
++    fn argmax_takes_the_first_maximum() {
++        assert_eq!(stack_argmax(&[3, 9, 9, -1]), 1);
++        assert_eq!(stack_argmax(&[i32::MIN, i32::MIN]), 0);
++        assert_eq!(stack_argmax(&[]), 0);
++    }
++}
+diff --git a/crates/uor-r4-integer/src/stack/mod.rs b/crates/uor-r4-integer/src/stack/mod.rs
+new file mode 100644
+index 000000000..cc0daab98
+--- /dev/null
++++ b/crates/uor-r4-integer/src/stack/mod.rs
+@@ -0,0 +1,193 @@
++//! Multiplier-free integer serving of the lab's geometric stack under owner
++//! decision D11 (`docs/integration/DECISIONS.md`, ROADMAP §0 R1–R2).
++//!
++//! The engine executes the `UORLUT01` stack artifact that
++//! `uor-r4-training`'s `stack_export` writes (schema `uor-r4.lut-stack/1`).
++//! It reproduces every operation of the frozen D10 comparator
++//! (`uor-r4-lut`'s `stack`), including its rounding, truncation and
++//! saturation, so that the logits are the same integers. That equality is an
++//! empirical criterion: `uor-r4-training`'s `stack_d11_oracle` tests check it
++//! position by position on exported random stacks, and
++//! `geometric-stack d11-evaluate` measures it on a trained artifact. Each
++//! layer is a temporal mixer and then a SwiGLU MLP, both pre-norm residual
++//! blocks:
++//!
++//! - **quaternion transport recurrence** (`r`): per lane of four channels,
++//!   `h_t = lambda_t (u_t (x) h_{t-1}) + sqrt(1 - lambda_t^2) c_t` with the
++//!   Hamilton product `(x)`, a unit quaternion `u_t` (the identity without
++//!   learned rotations), a decay `lambda_t` read from the exp table and a
++//!   width-4 causal convolution `c_t` of the drive; the output is
++//!   `h_t gelu(g_t)`;
++//! - **read** (`a`): heads scored by `<q, k> / sqrt(d)` (Dot) or
++//!   `-beta (d(q, k) - offset)` (Lorentz, the hyperboloid distance), plus a
++//!   learned age bias, with a NoRead slot whose value is zero.
++//!
++//! Arithmetic (R1–R2):
++//!
++//! - there is no floating point anywhere in a step;
++//! - learned 4-bit weights contribute through table reads and additions:
++//!   per-activation tables of the sixteen nibble products, and for the maps
++//!   that read the normalized state, pair tables indexed by a whole weight
++//!   byte (one read per two weights); a group scale `(16 + m) 2^(e - 4)` is
++//!   applied by shifts and additions;
++//! - a product of two runtime values (transport, gating, scores, value
++//!   mixing, normalization) is read from a table of the sixteen multiples of
++//!   one operand at the radix-16 digits of the other; a quotient is exact
++//!   long division and a square root is digit by digit;
++//! - learned scalars (convolution taps, decay rates, Lorentz scales) are grid
++//!   codes applied by shifts and adds; exp, sigmoid, SiLU, GELU and arcosh are
++//!   the artifact's sealed tables.
++//!
++//! The engine is dense: every weight map is read in full per token
++//! ([`IntegerStackModel::weights_per_token`]), the labelled interim stepping
++//! stone of R3, and it is single-threaded. The instruction audit of the
++//! `uor-r4-stack` binary (`scripts/audit_zero_matmul_serving.py --stack`)
++//! checks the step and every kernel for multiply, divide and floating-point
++//! instructions.
++
++mod format;
++mod kernels;
++mod session;
++#[cfg(test)]
++mod tests;
++
++use std::fmt;
++
++pub use format::{Fixed, StackNumerics, StackShape, GROUP, MAGIC, STACK_SCHEMA};
++pub use kernels::stack_argmax;
++pub use session::{IntegerStackModel, IntegerStackSession, CONVOLUTION_WIDTH};
++
++/// Why an artifact was rejected or a step refused.
++#[derive(Debug)]
++pub enum StackError {
++    /// The artifact file could not be read.
++    Io(std::io::Error),
++    /// The first eight bytes are not `UORLUT01`.
++    Magic,
++    /// The declared header length is too large or reaches past the file.
++    HeaderLength { declared: u64, available: usize },
++    /// The JSON header does not parse as a stack header.
++    Header(serde_json::Error),
++    /// The header's schema is not [`STACK_SCHEMA`].
++    Schema(String),
++    /// The header's group size is not [`GROUP`].
++    Group(usize),
++    /// The shape breaks a container rule.
++    Shape(&'static str),
++    /// The data sections start past the end of the file.
++    MissingData,
++    /// Two sections share a name.
++    DuplicateSection(String),
++    /// A matrix's sections are out of bounds or of the wrong size.
++    MatrixSection(String),
++    /// A table's section is out of bounds or of the wrong size.
++    TableSection(String),
++    /// A matrix or table the shape requires is absent.
++    MissingSection(String),
++    /// A matrix has the wrong dimensions.
++    MatrixShape {
++        name: String,
++        rows: usize,
++        cols: usize,
++        expected_rows: usize,
++        expected_cols: usize,
++    },
++    /// A table has the wrong element type.
++    TableKind {
++        name: String,
++        found: &'static str,
++        expected: &'static str,
++    },
++    /// A table has the wrong number of entries.
++    TableLength {
++        name: String,
++        len: usize,
++        expected: usize,
++    },
++    /// A table of grid codes holds an invalid (or, for a positive scalar, a
++    /// non-positive) code.
++    GridCodes(String),
++    /// The numerics or a sealed table are out of range.
++    Numerics(String),
++    /// A token outside the vocabulary.
++    Token { token: u32, vocab: usize },
++    /// The session has served its whole context.
++    ContextFull { context: usize },
++    /// A session's layer state does not match its model's layer.
++    SessionState,
++}
++
++impl fmt::Display for StackError {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        match self {
++            Self::Io(error) => write!(f, "stack artifact I/O: {error}"),
++            Self::Magic => write!(f, "stack artifact: missing UORLUT01 magic"),
++            Self::HeaderLength {
++                declared,
++                available,
++            } => write!(
++                f,
++                "stack artifact: header length {declared} does not fit {available} bytes"
++            ),
++            Self::Header(error) => write!(f, "stack artifact header: {error}"),
++            Self::Schema(schema) => write!(
++                f,
++                "stack artifact: schema {schema:?} is not {STACK_SCHEMA:?}"
++            ),
++            Self::Group(group) => write!(f, "stack artifact: group size {group} is not {GROUP}"),
++            Self::Shape(reason) => write!(f, "stack artifact shape: {reason}"),
++            Self::MissingData => write!(f, "stack artifact: data sections missing"),
++            Self::DuplicateSection(name) => write!(f, "stack artifact: duplicate section {name}"),
++            Self::MatrixSection(name) => write!(f, "stack artifact: matrix {name} is malformed"),
++            Self::TableSection(name) => write!(f, "stack artifact: table {name} is malformed"),
++            Self::MissingSection(name) => write!(f, "stack artifact: missing section {name}"),
++            Self::MatrixShape {
++                name,
++                rows,
++                cols,
++                expected_rows,
++                expected_cols,
++            } => write!(
++                f,
++                "stack artifact: matrix {name} is {rows}x{cols}, expected {expected_rows}x{expected_cols}"
++            ),
++            Self::TableKind {
++                name,
++                found,
++                expected,
++            } => write!(
++                f,
++                "stack artifact: table {name} holds {found}, expected {expected}"
++            ),
++            Self::TableLength {
++                name,
++                len,
++                expected,
++            } => write!(
++                f,
++                "stack artifact: table {name} has {len} entries, expected {expected}"
++            ),
++            Self::GridCodes(name) => {
++                write!(f, "stack artifact: table {name} holds invalid grid codes")
++            }
++            Self::Numerics(reason) => write!(f, "stack artifact numerics: {reason}"),
++            Self::Token { token, vocab } => {
++                write!(f, "token {token} is outside the vocabulary of {vocab}")
++            }
++            Self::ContextFull { context } => {
++                write!(f, "the session is full ({context} positions)")
++            }
++            Self::SessionState => write!(f, "session state does not match the model"),
++        }
++    }
++}
++
++impl std::error::Error for StackError {
++    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
++        match self {
++            Self::Io(error) => Some(error),
++            Self::Header(error) => Some(error),
++            _ => None,
++        }
++    }
++}
+diff --git a/crates/uor-r4-integer/src/stack/session.rs b/crates/uor-r4-integer/src/stack/session.rs
+new file mode 100644
+index 000000000..dc7a7c387
+--- /dev/null
++++ b/crates/uor-r4-integer/src/stack/session.rs
+@@ -0,0 +1,761 @@
++//! The stack model (validated, repacked at load) and its incremental decoding
++//! session. `IntegerStackSession::step` and the mixers it calls are the served
++//! numerical path: they use the kernels of [`super::kernels`], running offsets
++//! for every index, and buffers allocated when the session is created.
++
++use std::path::Path;
++
++use super::format::{Container, Fixed, MatrixView, StackNumerics, StackShape};
++use super::kernels::{
++    grid_apply, grid_valid, mul_i128, shift, shift_wide, stack_activation, stack_activation_tables,
++    stack_dequant_row, stack_div_u128, stack_dot, stack_exp_neg, stack_gemv, stack_gemv_pairs,
++    stack_hamilton, stack_isqrt, stack_lift, stack_lorentz_distance, stack_mix_row, stack_mul_u64,
++    stack_pair_tables, stack_quantize16, stack_query_tables, stack_rms_norm, stack_sigmoid_q31,
++    stack_square, PackedMatrix, ARCOSH_TABLE_LEN, RESIDUAL_EXP,
++};
++use super::StackError;
++
++/// Exponent of the recurrence state.
++const STATE_EXP: i32 = -32;
++/// Exponent of read scores, in nats.
++const SCORE_EXP: i32 = -16;
++/// Exponent of Lorentz distances and offsets (the arcosh table's output).
++const DISTANCE_EXP: i32 = -24;
++/// Exponent of decay gates, decays and transition quaternions (Q31).
++const GATE_EXP: i32 = -31;
++/// Taps of the causal convolution.
++pub const CONVOLUTION_WIDTH: usize = 4;
++/// Training floors `1 - lambda^2 >= 1e-6` (Q62) and `keep = 1e-3` below it (Q31).
++const COMPLEMENT_FLOOR_Q62: u64 = 4_611_686_018_428;
++const KEEP_FLOOR_Q31: u64 = 2_147_484;
++/// The rotation norm's epsilon, `1e-6`, at exponent -32.
++const ROTATION_EPSILON: u128 = 4_295;
++/// Exponents (matrix bases, the RMSNorm epsilon) are limited to this magnitude
++/// so that no exponent arithmetic can overflow.
++const EXPONENT_LIMIT: i32 = 1 << 10;
++
++struct Recurrence {
++    /// `2 width x width`: the drive, then the output gate.
++    input: PackedMatrix,
++    /// `gate_rows x width`: decay gates, then rotations.
++    gates: PackedMatrix,
++    out: PackedMatrix,
++    /// Grid codes `[tap][channel]`; tap `s` weights the drive `s` positions back.
++    taps: Vec<i16>,
++    conv_bias: Vec<i32>,
++    gate_bias: Vec<i32>,
++    /// Grid codes of `8 softplus(-decay)` per lane.
++    rates: Vec<i16>,
++}
++
++struct Read {
++    query: PackedMatrix,
++    key: PackedMatrix,
++    value: PackedMatrix,
++    null: PackedMatrix,
++    out: PackedMatrix,
++    null_bias: Vec<i32>,
++    /// `[head][distance]` at the score exponent.
++    age: Vec<i32>,
++    /// Lorentz scale per head (grid codes) and offset (exponent -24).
++    beta: Vec<i16>,
++    offset: Vec<i32>,
++}
++
++enum Mixer {
++    Recurrence(Box<Recurrence>),
++    Read(Box<Read>),
++}
++
++struct Layer {
++    mixer: Mixer,
++    gate: PackedMatrix,
++    up: PackedMatrix,
++    down: PackedMatrix,
++}
++
++/// A validated stack artifact repacked for multiplier-free integer serving.
++pub struct IntegerStackModel {
++    shape: StackShape,
++    numerics: StackNumerics,
++    /// Derived at load so that a step never divides: `width / heads`.
++    head_dim: usize,
++    lorentz: bool,
++    sha256: String,
++    embed: PackedMatrix,
++    head: PackedMatrix,
++    /// Boxed so that the per-layer walk steps by a power-of-two stride: an
++    /// unboxed walk indexes 304-byte elements with a multiply (`madd`).
++    #[allow(clippy::vec_box)]
++    layers: Vec<Box<Layer>>,
++    exp_table: Vec<u32>,
++    silu_table: Vec<i32>,
++    gelu_table: Vec<i32>,
++    arcosh: Vec<u32>,
++    weights_per_token: u64,
++}
++
++fn packed(view: MatrixView<'_>, name: &str) -> Result<PackedMatrix, StackError> {
++    if !(-EXPONENT_LIMIT..=EXPONENT_LIMIT).contains(&view.exp_base) {
++        return Err(StackError::Numerics(format!(
++            "matrix {name} has an exponent base outside ±{EXPONENT_LIMIT}"
++        )));
++    }
++    let groups = view.cols / super::format::GROUP;
++    let min_de = view
++        .scales
++        .chunks_exact(groups)
++        .map(|row| row.iter().map(|s| s >> 4).min().unwrap_or(0))
++        .collect();
++    Ok(PackedMatrix {
++        rows: view.rows,
++        cols: view.cols,
++        exp_base: view.exp_base,
++        nibbles: view.nibbles.to_vec(),
++        scales: view.scales.to_vec(),
++        min_de,
++    })
++}
++
++impl IntegerStackModel {
++    pub fn load(path: &Path) -> Result<Self, StackError> {
++        Self::parse(&std::fs::read(path).map_err(StackError::Io)?)
++    }
++
++    /// Parse and validate a `UORLUT01` stack artifact. The checks are those of
++    /// the D10 engine's loader (section bounds, matrix shapes, table lengths,
++    /// grid codes, the numerics ranges and the arcosh table's order), plus
++    /// three that keep every served operation exact: unique section names,
++    /// bounded exponents and a non-increasing exp table.
++    pub fn parse(bytes: &[u8]) -> Result<Self, StackError> {
++        let artifact = Container::parse(bytes)?;
++        let shape = artifact.shape.clone();
++        let numerics = artifact.numerics.clone();
++        let (d, heads, mlp) = (shape.width, shape.heads, shape.mlp);
++        let mut weights = 0u64;
++        let mut matrix =
++            |name: &str, rows: usize, cols: usize| -> Result<PackedMatrix, StackError> {
++                let packed = packed(artifact.matrix(name, rows, cols)?, name)?;
++                weights += (rows as u64) * (cols as u64);
++                Ok(packed)
++            };
++        let integers = |name: &str, len: usize| -> Result<Vec<i32>, StackError> {
++            let values = artifact.table_i32(name)?;
++            if values.len() != len {
++                return Err(StackError::TableLength {
++                    name: name.to_owned(),
++                    len: values.len(),
++                    expected: len,
++                });
++            }
++            Ok(values)
++        };
++        // Grid codes of positive scalars (rates and scales) or of any sign (taps).
++        let codes = |name: &str, len: usize, positive: bool| -> Result<Vec<i16>, StackError> {
++            let values = artifact.table_i16(name)?;
++            if values.len() != len {
++                return Err(StackError::TableLength {
++                    name: name.to_owned(),
++                    len: values.len(),
++                    expected: len,
++                });
++            }
++            if values
++                .iter()
++                .any(|&c| !grid_valid(c) || (positive && c <= 0))
++            {
++                return Err(StackError::GridCodes(name.to_owned()));
++            }
++            Ok(values)
++        };
++        let context_ages = heads
++            .checked_mul(shape.context)
++            .ok_or(StackError::Shape("the age table size overflows"))?;
++        let mut layers = Vec::with_capacity(shape.layers());
++        for (l, kind) in shape.pattern.bytes().enumerate() {
++            let name = |part: &str| format!("l{l}.{part}");
++            let mixer = if kind == b'r' {
++                Mixer::Recurrence(Box::new(Recurrence {
++                    input: matrix(&name("rec_in"), 2 * d, d)?,
++                    gates: matrix(&name("rec_gate"), shape.gate_rows(), d)?,
++                    out: matrix(&name("rec_out"), d, d)?,
++                    taps: codes(&name("conv_taps"), CONVOLUTION_WIDTH * d, false)?,
++                    conv_bias: integers(&name("conv_bias"), d)?,
++                    gate_bias: integers(&name("gate_bias"), shape.gate_rows())?,
++                    rates: codes(&name("decay_rate"), shape.lanes(), true)?,
++                }))
++            } else {
++                let lorentz = shape.lorentz();
++                Mixer::Read(Box::new(Read {
++                    query: matrix(&name("query"), d, d)?,
++                    key: matrix(&name("key"), d, d)?,
++                    value: matrix(&name("value"), d, d)?,
++                    null: matrix(&name("null"), heads, d)?,
++                    out: matrix(&name("out"), d, d)?,
++                    null_bias: integers(&name("null_bias"), heads)?,
++                    age: integers(&name("age"), context_ages)?,
++                    beta: if lorentz {
++                        codes(&name("beta"), heads, true)?
++                    } else {
++                        Vec::new()
++                    },
++                    offset: if lorentz {
++                        integers(&name("offset"), heads)?
++                    } else {
++                        Vec::new()
++                    },
++                }))
++            };
++            layers.push(Box::new(Layer {
++                mixer,
++                gate: matrix(&name("gate"), mlp, d)?,
++                up: matrix(&name("up"), mlp, d)?,
++                down: matrix(&name("down"), d, mlp)?,
++            }));
++        }
++        let embed = packed(artifact.matrix("embed", shape.vocab, d)?, "embed")?;
++        let head = matrix("head", shape.vocab, d)?;
++        // The embedding reads one row per token.
++        weights += d as u64;
++        let exp_table = artifact.table_u32("exp")?;
++        let silu_table = artifact.table_i32("silu")?;
++        let gelu_table = artifact.table_i32("gelu")?;
++        let arcosh = if shape.lorentz() {
++            let table = artifact.table_u32("arcosh")?;
++            if table.len() != ARCOSH_TABLE_LEN || table.windows(2).any(|w| w[0] > w[1]) {
++                return Err(StackError::Numerics(
++                    "the arcosh table has the wrong size or order".to_owned(),
++                ));
++            }
++            table
++        } else {
++            Vec::new()
++        };
++        let n = &numerics;
++        let steps_valid = (-16..0).contains(&n.exp_step_log2)
++            && (-16..0).contains(&n.silu_step_log2)
++            && (-16..0).contains(&n.gelu_step_log2)
++            && (0..=8).contains(&n.silu_range_log2)
++            && (0..=8).contains(&n.gelu_range_log2);
++        let activation_len = |step: i32, range: i32| (2usize << (range - step)) + 1;
++        if exp_table.len() < 2
++            || !steps_valid
++            || silu_table.len() != activation_len(n.silu_step_log2, n.silu_range_log2)
++            || gelu_table.len() != activation_len(n.gelu_step_log2, n.gelu_range_log2)
++            || !(1..=1i64 << 31).contains(&n.score_scale_q30)
++        {
++            return Err(StackError::Numerics(
++                "sealed tables do not match the declared numerics".to_owned(),
++            ));
++        }
++        if exp_table.windows(2).any(|w| w[0] < w[1]) {
++            return Err(StackError::Numerics("the exp table increases".to_owned()));
++        }
++        if !(-EXPONENT_LIMIT..=EXPONENT_LIMIT).contains(&n.rms_eps.exp) {
++            return Err(StackError::Numerics(format!(
++                "the RMSNorm epsilon exponent is outside ±{EXPONENT_LIMIT}"
++            )));
++        }
++        Ok(Self {
++            head_dim: shape.head_dim(),
++            lorentz: shape.lorentz(),
++            shape,
++            numerics,
++            sha256: artifact.sha256,
++            embed,
++            head,
++            layers,
++            exp_table,
++            silu_table,
++            gelu_table,
++            arcosh,
++            weights_per_token: weights,
++        })
++    }
++
++    pub fn shape(&self) -> &StackShape {
++        &self.shape
++    }
++
++    /// The integer conventions declared by the artifact.
++    pub fn numerics(&self) -> &StackNumerics {
++        &self.numerics
++    }
++
++    /// The RMSNorm epsilon.
++    pub fn rms_epsilon(&self) -> Fixed {
++        self.numerics.rms_eps
++    }
++
++    /// SHA-256 of the artifact bytes.
++    pub fn artifact_sha256(&self) -> &str {
++        &self.sha256
++    }
++
++    /// Learned 4-bit weights read per token: every weight map in full plus one
++    /// embedding row. The engine's access is dense (an interim stepping stone
++    /// under ROADMAP R3), and this is its per-token parameter read count.
++    pub fn weights_per_token(&self) -> u64 {
++        self.weights_per_token
++    }
++
++    /// A fresh session: zero recurrence states and empty read caches. Every
++    /// buffer a step uses is allocated here, for the full context.
++    pub fn session(&self) -> IntegerStackSession<'_> {
++        let s = &self.shape;
++        let (d, context) = (s.width, s.context);
++        let states = s
++            .pattern
++            .bytes()
++            .map(|kind| {
++                Box::new(if kind == b'r' {
++                    LayerState::Recurrence {
++                        state: vec![0; d],
++                        history: vec![0; (CONVOLUTION_WIDTH - 1) * d],
++                    }
++                } else {
++                    LayerState::Read {
++                        keys: vec![0; context * d],
++                        values: vec![0; context * d],
++                        lifts: if self.lorentz {
++                            vec![0; context * s.heads]
++                        } else {
++                            Vec::new()
++                        },
++                    }
++                })
++            })
++            .collect();
++        let widest = d.max(s.mlp);
++        IntegerStackSession {
++            model: self,
++            position: 0,
++            cache_at: 0,
++            lift_at: 0,
++            states,
++            b: Buffers {
++                x: vec![0; d],
++                norm: vec![0; d],
++                act: vec![0; widest],
++                tables: vec![[0; 16]; widest],
++                pairs: vec![[0; 256]; d >> 1],
++                scratch: vec![0; widest],
++                wide: vec![0; d],
++                branches: vec![0; 2 * d],
++                gate_out: vec![0; s.gate_rows()],
++                q: vec![0; d],
++                k: vec![0; d],
++                v: vec![0; d],
++                null: vec![0; s.heads],
++                query_tables: vec![[0; 16]; self.head_dim],
++                scores: vec![0; context],
++                weights: vec![0; context],
++                mix: vec![0; self.head_dim],
++                proj: vec![0; d],
++                gate: vec![0; s.mlp],
++                up: vec![0; s.mlp],
++                logits: vec![0; s.vocab],
++            },
++        }
++    }
++}
++
++enum LayerState {
++    Recurrence {
++        /// `[width]` at exponent -32.
++        state: Vec<i64>,
++        /// The drive 1, 2 and 3 positions back, `[3][width]`, exponent -16.
++        history: Vec<i32>,
++    },
++    Read {
++        /// `[position][width]` at exponent -16, for the whole context.
++        keys: Vec<i32>,
++        values: Vec<i32>,
++        /// Lorentz key lifts `[position][head]` at exponent -32.
++        lifts: Vec<u64>,
++    },
++}
++
++struct Buffers {
++    x: Vec<i32>,
++    norm: Vec<i16>,
++    act: Vec<i16>,
++    tables: Vec<[i32; 16]>,
++    /// Pair tables of the normalized state, read by every map with it as input.
++    pairs: Vec<[i32; 256]>,
++    scratch: Vec<i64>,
++    wide: Vec<i64>,
++    branches: Vec<i32>,
++    gate_out: Vec<i32>,
++    q: Vec<i32>,
++    k: Vec<i32>,
++    v: Vec<i32>,
++    null: Vec<i32>,
++    query_tables: Vec<[i64; 16]>,
++    scores: Vec<i64>,
++    weights: Vec<u64>,
++    mix: Vec<i128>,
++    proj: Vec<i32>,
++    gate: Vec<i32>,
++    up: Vec<i32>,
++    logits: Vec<i32>,
++}
++
++/// Incremental decoding of one stream of at most `context` positions.
++pub struct IntegerStackSession<'m> {
++    model: &'m IntegerStackModel,
++    position: usize,
++    /// `position * width`: where this position's key and value rows go.
++    cache_at: usize,
++    /// `position * heads`: where this position's Lorentz key lifts go.
++    lift_at: usize,
++    /// Boxed, like the model's layers, for a power-of-two stride.
++    #[allow(clippy::vec_box)]
++    states: Vec<Box<LayerState>>,
++    b: Buffers,
++}
++
++impl IntegerStackSession<'_> {
++    pub fn position(&self) -> usize {
++        self.position
++    }
++
++    /// Start a new stream.
++    pub fn reset(&mut self) {
++        self.position = 0;
++        self.cache_at = 0;
++        self.lift_at = 0;
++        for state in &mut self.states {
++            match state.as_mut() {
++                LayerState::Recurrence { state, history } => {
++                    state.fill(0);
++                    history.fill(0);
++                }
++                LayerState::Read {
++                    keys,
++                    values,
++                    lifts,
++                } => {
++                    keys.fill(0);
++                    values.fill(0);
++                    lifts.fill(0);
++                }
++            }
++        }
++    }
++
++    /// The logits of the last step (value `v` means `v * 2^-16`).
++    pub fn logits(&self) -> &[i32] {
++        &self.b.logits
++    }
++
++    /// Feed one token at the next position; returns the next-token logits
++    /// (value `v` means `v * 2^-16`): the D10 engine's integers (see the
++    /// module documentation for how that is tested).
++    #[inline(never)]
++    pub fn step(&mut self, token: u32) -> Result<&[i32], StackError> {
++        let model = self.model;
++        let (s, n) = (&model.shape, &model.numerics);
++        let (d, heads, mlp) = (s.width, s.heads, s.mlp);
++        if token as usize >= s.vocab {
++            return Err(StackError::Token {
++                token,
++                vocab: s.vocab,
++            });
++        }
++        if self.position >= s.context {
++            return Err(StackError::ContextFull { context: s.context });
++        }
++        let b = &mut self.b;
++        stack_dequant_row(&model.embed, token as usize, &mut b.x);
++        for (layer, state) in model.layers.iter().zip(self.states.iter_mut()) {
++            let norm_exp = stack_rms_norm(&b.x, n.rms_eps, &mut b.scratch[..d], &mut b.norm);
++            stack_activation_tables(&b.norm, &mut b.tables[..d]);
++            stack_pair_tables(&b.tables[..d], &mut b.pairs);
++            match (&layer.mixer, state.as_mut()) {
++                (Mixer::Recurrence(r), LayerState::Recurrence { state, history }) => {
++                    stack_recurrence(model, r, state, history, b, norm_exp)
++                }
++                (
++                    Mixer::Read(r),
++                    LayerState::Read {
++                        keys,
++                        values,
++                        lifts,
++                    },
++                ) => stack_read(
++                    model,
++                    r,
++                    Cache {
++                        keys,
++                        values,
++                        lifts,
++                        position: self.position,
++                        at: self.cache_at,
++                        lift_at: self.lift_at,
++                    },
++                    b,
++                    norm_exp,
++                ),
++                _ => return Err(StackError::SessionState),
++            }
++            for (x, p) in b.x.iter_mut().zip(&b.proj) {
++                *x = x.saturating_add(*p);
++            }
++            // MLP block.
++            let norm_exp = stack_rms_norm(&b.x, n.rms_eps, &mut b.scratch[..d], &mut b.norm);
++            stack_activation_tables(&b.norm, &mut b.tables[..d]);
++            stack_pair_tables(&b.tables[..d], &mut b.pairs);
++            stack_gemv_pairs(&layer.gate, &b.pairs, norm_exp, &mut b.gate);
++            stack_gemv_pairs(&layer.up, &b.pairs, norm_exp, &mut b.up);
++            stack_swiglu(model, &b.gate, &b.up, &mut b.scratch[..mlp]);
++            let act_exp = stack_quantize16(&b.scratch[..mlp], 2 * RESIDUAL_EXP, &mut b.act[..mlp]);
++            stack_activation_tables(&b.act[..mlp], &mut b.tables[..mlp]);
++            stack_gemv(&layer.down, &b.tables, act_exp, &mut b.proj);
++            for (x, p) in b.x.iter_mut().zip(&b.proj) {
++                *x = x.saturating_add(*p);
++            }
++        }
++        let norm_exp = stack_rms_norm(&b.x, n.rms_eps, &mut b.scratch[..d], &mut b.norm);
++        stack_activation_tables(&b.norm, &mut b.tables[..d]);
++        stack_pair_tables(&b.tables[..d], &mut b.pairs);
++        stack_gemv_pairs(&model.head, &b.pairs, norm_exp, &mut b.logits);
++        self.position += 1;
++        self.cache_at += d;
++        self.lift_at += heads;
++        Ok(&self.b.logits)
++    }
++}
++
++/// `silu(gate) up` per MLP unit at exponent -32.
++#[inline(never)]
++fn stack_swiglu(model: &IntegerStackModel, gate: &[i32], up: &[i32], out: &mut [i64]) {
++    let n = &model.numerics;
++    for ((o, &g), &u) in out.iter_mut().zip(gate).zip(up) {
++        let a = stack_activation(g, &model.silu_table, n.silu_step_log2, n.silu_range_log2);
++        *o = super::kernels::mul_i64(i64::from(a), i64::from(u));
++    }
++}
++
++/// One recurrence step from the normalized state (pair tables built), into
++/// `b.proj`.
++#[inline(never)]
++fn stack_recurrence(
++    model: &IntegerStackModel,
++    r: &Recurrence,
++    state: &mut [i64],
++    history: &mut [i32],
++    b: &mut Buffers,
++    norm_exp: i32,
++) {
++    let (s, n) = (&model.shape, &model.numerics);
++    let d = s.width;
++    let lanes = s.lanes();
++    stack_gemv_pairs(&r.input, &b.pairs, norm_exp, &mut b.branches);
++    stack_gemv_pairs(&r.gates, &b.pairs, norm_exp, &mut b.gate_out);
++    for (g, bias) in b.gate_out.iter_mut().zip(&r.gate_bias) {
++        *g = g.saturating_add(*bias);
++    }
++    let (drive, gate) = b.branches.split_at(d);
++    // Causal convolution of the drive: this position and the three before it
++    // (zero before the stream starts), at exponent -16.
++    let (tap0, rest) = r.taps.split_at(d);
++    let (tap1, rest) = rest.split_at(d);
++    let (tap2, tap3) = rest.split_at(d);
++    let (back1, rest) = history.split_at(d);
++    let (back2, back3) = rest.split_at(d);
++    for (i, slot) in b.wide.iter_mut().enumerate().take(d) {
++        let c = i64::from(r.conv_bias[i])
++            .wrapping_add(grid_apply(i64::from(drive[i]), tap0[i]))
++            .wrapping_add(grid_apply(i64::from(back1[i]), tap1[i]))
++            .wrapping_add(grid_apply(i64::from(back2[i]), tap2[i]))
++            .wrapping_add(grid_apply(i64::from(back3[i]), tap3[i]));
++        *slot = c;
++    }
++    history.copy_within(..(CONVOLUTION_WIDTH - 2) * d, d);
++    history[..d].copy_from_slice(drive);
++    let (decays, rotations) = b.gate_out.split_at(lanes);
++    for (lane, ((held, pushed), (&decay, &rate))) in state
++        .chunks_exact_mut(4)
++        .zip(b.wide.chunks_exact(4))
++        .zip(decays.iter().zip(&r.rates))
++        .enumerate()
++    {
++        // Decay gate, decay and the drive's weight, all Q31.
++        let opening = stack_sigmoid_q31(i64::from(decay), &model.exp_table, n.exp_step_log2);
++        let exponent = grid_apply(opening as i64, rate).max(0);
++        let lambda = stack_exp_neg(exponent, GATE_EXP, &model.exp_table, n.exp_step_log2);
++        let complement = (1u64 << 62).saturating_sub(stack_mul_u64(lambda, lambda));
++        let keep = if complement < COMPLEMENT_FLOOR_Q62 {
++            KEEP_FLOOR_Q31
++        } else {
++            stack_isqrt(u128::from(complement)) as u64
++        };
++        let transition: [i64; 4] = if s.rotation {
++            let at = lane << 2;
++            let raw = [
++                rotations[at],
++                rotations[at + 1],
++                rotations[at + 2],
++                rotations[at + 3],
++            ];
++            stack_rotation(raw, lambda)
++        } else {
++            [lambda as i64, 0, 0, 0]
++        };
++        let moved = stack_hamilton(transition, [held[0], held[1], held[2], held[3]]);
++        for ((h, &c), m) in held.iter_mut().zip(pushed).zip(moved) {
++            // Transport (Q31 times exponent -32) plus drive (Q31 times exponent
++            // -16, raised to -63), back to exponent -32.
++            let drive = mul_i128(i128::from(keep), i128::from(c));
++            *h = shift_wide(m.wrapping_add(drive << 16), 31);
++        }
++    }
++    // Output h gelu(g) at exponent -32, then the output map.
++    for ((o, &h), &g) in b.scratch.iter_mut().zip(state.iter()).zip(gate) {
++        let h = shift(h, RESIDUAL_EXP - STATE_EXP);
++        let g = stack_activation(g, &model.gelu_table, n.gelu_step_log2, n.gelu_range_log2);
++        *o = saturating_product(h, i64::from(g));
++    }
++    let act_exp = stack_quantize16(&b.scratch[..d], 2 * RESIDUAL_EXP, &mut b.act[..d]);
++    stack_activation_tables(&b.act[..d], &mut b.tables[..d]);
++    stack_gemv(&r.out, &b.tables, act_exp, &mut b.proj);
++}
++
++/// `lambda raw / |raw|` per coordinate: the unit rotation (Q30, rounded toward
++/// zero as the D10 engine's signed division) times the decay (Q31), at Q31.
++#[inline(never)]
++fn stack_rotation(raw: [i32; 4], lambda: u64) -> [i64; 4] {
++    let mut square = 0u128;
++    for &v in &raw {
++        square = square.wrapping_add(u128::from(stack_square(i64::from(v))));
++    }
++    // |raw| at exponent -32.
++    let norm = stack_isqrt((square + ROTATION_EPSILON) << 32);
++    raw.map(|v| {
++        let magnitude = stack_div_u128(u128::from(v.unsigned_abs()) << 46, norm) as i128;
++        let unit = if v < 0 { -magnitude } else { magnitude };
++        (mul_i128(i128::from(lambda), unit) >> 30) as i64
++    })
++}
++
++/// `a b` saturated to the `i64` range (the D10 engine's `saturating_mul`).
++#[inline(always)]
++fn saturating_product(a: i64, b: i64) -> i64 {
++    mul_i128(i128::from(a), i128::from(b)).clamp(i128::from(i64::MIN), i128::from(i64::MAX)) as i64
++}
++
++/// The key/value cache of one read layer and where this position writes.
++struct Cache<'a> {
++    keys: &'a mut [i32],
++    values: &'a mut [i32],
++    lifts: &'a mut [u64],
++    position: usize,
++    /// `position * width`.
++    at: usize,
++    /// `position * heads`.
++    lift_at: usize,
++}
++
++/// One read step from the normalized state (pair tables built), into `b.proj`.
++#[inline(never)]
++fn stack_read(
++    model: &IntegerStackModel,
++    r: &Read,
++    cache: Cache<'_>,
++    b: &mut Buffers,
++    norm_exp: i32,
++) {
++    let (s, n) = (&model.shape, &model.numerics);
++    let (d, heads, hd, context) = (s.width, s.heads, model.head_dim, s.context);
++    let lorentz = model.lorentz;
++    let Cache {
++        keys,
++        values,
++        lifts,
++        position,
++        at,
++        lift_at,
++    } = cache;
++    stack_gemv_pairs(&r.query, &b.pairs, norm_exp, &mut b.q);
++    stack_gemv_pairs(&r.key, &b.pairs, norm_exp, &mut b.k);
++    stack_gemv_pairs(&r.value, &b.pairs, norm_exp, &mut b.v);
++    stack_gemv_pairs(&r.null, &b.pairs, norm_exp, &mut b.null);
++    keys[at..at + d].copy_from_slice(&b.k);
++    values[at..at + d].copy_from_slice(&b.v);
++    if lorentz {
++        let mut from = 0usize;
++        for lift in &mut lifts[lift_at..lift_at + heads] {
++            *lift = stack_lift(&b.k[from..from + hd]);
++            from += hd;
++        }
++    }
++    let positions = position + 1;
++    let (mut head_at, mut age_at) = (0usize, 0usize);
++    for h in 0..heads {
++        let query = &b.q[head_at..head_at + hd];
++        stack_query_tables(query, &mut b.query_tables);
++        let query_lift = if lorentz { stack_lift(query) } else { 0 };
++        let null_score = i64::from(b.null[h]) + i64::from(r.null_bias[h]);
++        let ages = &r.age[age_at..age_at + context];
++        let mut max = null_score;
++        let (mut key_at, mut lift_index) = (head_at, h);
++        for (j, score_slot) in b.scores[..positions].iter_mut().enumerate() {
++            let dot = stack_dot(&b.query_tables, &keys[key_at..key_at + hd]);
++            let score = if lorentz {
++                let distance =
++                    stack_lorentz_distance(query_lift, lifts[lift_index], dot, &model.arcosh);
++                let scaled = grid_apply(i64::from(distance) - i64::from(r.offset[h]), r.beta[h]);
++                shift(scaled.wrapping_neg(), SCORE_EXP - DISTANCE_EXP)
++            } else {
++                // Exponent -32 times Q30 is exponent -62.
++                shift_wide(
++                    mul_i128(dot, i128::from(n.score_scale_q30)),
++                    (SCORE_EXP - (2 * RESIDUAL_EXP - 30)) as u32,
++                )
++            };
++            let score = score.saturating_add(i64::from(ages[position - j]));
++            max = max.max(score);
++            *score_slot = score;
++            key_at += d;
++            lift_index += heads;
++        }
++        // Softmax over NoRead (value zero) and the positions, weights in Q31.
++        let mut total = stack_exp_neg(
++            max.wrapping_sub(null_score),
++            SCORE_EXP,
++            &model.exp_table,
++            n.exp_step_log2,
++        );
++        for (w, &score) in b.weights[..positions]
++            .iter_mut()
++            .zip(&b.scores[..positions])
++        {
++            *w = stack_exp_neg(
++                max.wrapping_sub(score),
++                SCORE_EXP,
++                &model.exp_table,
++                n.exp_step_log2,
++            );
++            total = total.wrapping_add(*w);
++        }
++        b.mix.fill(0);
++        let mut value_at = head_at;
++        for &w in &b.weights[..positions] {
++            if w != 0 {
++                stack_mix_row(w, &values[value_at..value_at + hd], &mut b.mix);
++            }
++            value_at += d;
++        }
++        // Q31-weighted sum over the Q31 total, back to exponent -16.
++        let reciprocal = i128::from(stack_div_u128(1u128 << 62, u128::from(total.max(1))) as u64);
++        for (slot, &m) in b.wide[head_at..head_at + hd].iter_mut().zip(&b.mix) {
++            *slot = shift_wide(mul_i128(m, reciprocal), 62);
++        }
++        head_at += hd;
++        age_at += context;
++    }
++    let act_exp = stack_quantize16(&b.wide[..d], RESIDUAL_EXP, &mut b.act[..d]);
++    stack_activation_tables(&b.act[..d], &mut b.tables[..d]);
++    stack_gemv(&r.out, &b.tables, act_exp, &mut b.proj);
++}
+diff --git a/crates/uor-r4-integer/src/stack/tests.rs b/crates/uor-r4-integer/src/stack/tests.rs
+new file mode 100644
+index 000000000..fccc3e0cb
+--- /dev/null
++++ b/crates/uor-r4-integer/src/stack/tests.rs
+@@ -0,0 +1,248 @@
++//! Engine-level tests on synthetic artifacts. Bit-identity with the D10
++//! engine is tested in `uor-r4-training` (`tests/stack_d11_oracle.rs`), which
++//! depends on both engines.
++
++use serde_json::{json, Value};
++
++use super::{IntegerStackModel, StackError, MAGIC};
++
++struct Lcg(u64);
++
++impl Lcg {
++    fn next(&mut self) -> u64 {
++        self.0 = self
++            .0
++            .wrapping_mul(6_364_136_223_846_793_005)
++            .wrapping_add(1_442_695_040_888_963_407);
++        self.0 >> 33
++    }
++}
++
++/// A container under construction: the header's section lists and the data.
++struct Builder {
++    matrices: Vec<Value>,
++    tables: Vec<Value>,
++    data: Vec<u8>,
++}
++
++impl Builder {
++    fn push(&mut self, bytes: &[u8]) -> Value {
++        self.data.resize(self.data.len().div_ceil(64) * 64, 0);
++        let span = json!({"offset": self.data.len(), "bytes": bytes.len()});
++        self.data.extend_from_slice(bytes);
++        span
++    }
++
++    fn matrix(&mut self, rng: &mut Lcg, name: &str, rows: usize, cols: usize) {
++        let nibbles: Vec<u8> = (0..rows * cols / 2).map(|_| rng.next() as u8).collect();
++        // Scale exponents 0..=3 above the base, any mantissa.
++        let scales: Vec<u8> = (0..rows * cols / 32)
++            .map(|_| (rng.next() as u8) & 0x3F)
++            .collect();
++        let (nibbles, scales) = (self.push(&nibbles), self.push(&scales));
++        self.matrices.push(json!({
++            "name": name, "rows": rows, "cols": cols, "exp_base": -9,
++            "nibbles": nibbles, "scales": scales,
++        }));
++    }
++
++    fn table(&mut self, name: &str, kind: &str, len: usize, bytes: Vec<u8>) {
++        let span = self.push(&bytes);
++        self.tables
++            .push(json!({"name": name, "kind": kind, "len": len, "span": span}));
++    }
++
++    fn i16s(&mut self, name: &str, values: &[i16]) {
++        let bytes = values.iter().flat_map(|v| v.to_le_bytes()).collect();
++        self.table(name, "i16", values.len(), bytes);
++    }
++
++    fn i32s(&mut self, name: &str, values: &[i32]) {
++        let bytes = values.iter().flat_map(|v| v.to_le_bytes()).collect();
++        self.table(name, "i32", values.len(), bytes);
++    }
++
++    fn u32s(&mut self, name: &str, values: &[u32]) {
++        let bytes = values.iter().flat_map(|v| v.to_le_bytes()).collect();
++        self.table(name, "u32", values.len(), bytes);
++    }
++}
++
++const VOCAB: usize = 40;
++const WIDTH: usize = 32;
++const HEADS: usize = 2;
++const MLP: usize = 32;
++const CONTEXT: usize = 6;
++
++/// A synthetic `ra` stack (one recurrence with rotations, one Lorentz read)
++/// with random weights and monotone sealed tables.
++fn artifact(seed: u64) -> Vec<u8> {
++    let mut rng = Lcg(seed);
++    let mut b = Builder {
++        matrices: Vec::new(),
++        tables: Vec::new(),
++        data: Vec::new(),
++    };
++    let lanes = WIDTH / 4;
++    let gate_rows = lanes + WIDTH;
++    // Grid code of (16 + m) 2^(e - 4): |code| = (e + 64) << 4 | m.
++    let code = |m: u64, e: i16| ((e + 64) << 4) | (m & 15) as i16;
++    b.matrix(&mut rng, "embed", VOCAB, WIDTH);
++    b.matrix(&mut rng, "l0.rec_in", 2 * WIDTH, WIDTH);
++    b.matrix(&mut rng, "l0.rec_gate", gate_rows, WIDTH);
++    b.matrix(&mut rng, "l0.rec_out", WIDTH, WIDTH);
++    let taps: Vec<i16> = (0..4 * WIDTH)
++        .map(|i| {
++            let c = code(rng.next(), -2 - (i % 3) as i16);
++            if rng.next().is_multiple_of(2) {
++                c
++            } else {
++                -c
++            }
++        })
++        .collect();
++    b.i16s("l0.conv_taps", &taps);
++    let biases: Vec<i32> = (0..gate_rows)
++        .map(|_| (rng.next() % 60_000) as i32 - 30_000)
++        .collect();
++    b.i32s("l0.conv_bias", &biases[..WIDTH]);
++    b.i32s("l0.gate_bias", &biases);
++    let rates: Vec<i16> = (0..lanes).map(|_| code(rng.next(), 1)).collect();
++    b.i16s("l0.decay_rate", &rates);
++    for part in ["query", "key", "value", "out"] {
++        b.matrix(&mut rng, &format!("l1.{part}"), WIDTH, WIDTH);
++    }
++    b.matrix(&mut rng, "l1.null", HEADS, WIDTH);
++    b.i32s("l1.null_bias", &[4_000, -9_000]);
++    let ages: Vec<i32> = (0..HEADS * CONTEXT).map(|i| -((i as i32) << 12)).collect();
++    b.i32s("l1.age", &ages);
++    b.i16s("l1.beta", &[code(3, 0), code(9, -1)]);
++    b.i32s("l1.offset", &[1 << 24, 3 << 23]);
++    for l in 0..2 {
++        b.matrix(&mut rng, &format!("l{l}.gate"), MLP, WIDTH);
++        b.matrix(&mut rng, &format!("l{l}.up"), MLP, WIDTH);
++        b.matrix(&mut rng, &format!("l{l}.down"), WIDTH, MLP);
++    }
++    b.matrix(&mut rng, "head", VOCAB, WIDTH);
++    // exp(-i/256) at Q31 approximated by a non-increasing integer sequence.
++    let exp: Vec<u32> = (0..32 * 256 + 2)
++        .map(|i: u32| (1u32 << 31) >> (i / 177).min(31))
++        .collect();
++    b.u32s("exp", &exp);
++    let activation: Vec<i32> = (0..(2 << 12) + 1)
++        .map(|i: i32| (i - 4096).max(0) << 8)
++        .collect();
++    b.i32s("silu", &activation);
++    b.i32s("gelu", &activation);
++    let arcosh: Vec<u32> = (0..super::kernels::ARCOSH_TABLE_LEN as u32)
++        .map(|i| i << 10)
++        .collect();
++    b.u32s("arcosh", &arcosh);
++    let header = json!({
++        "schema": super::STACK_SCHEMA,
++        "shape": {
++            "vocab": VOCAB, "width": WIDTH, "heads": HEADS, "mlp": MLP, "pattern": "ra",
++            "read": "lorentz", "rotation": true, "context": CONTEXT,
++        },
++        "group": 32,
++        "numerics": {
++            "rms_eps": {"mantissa": 2_814_749_767i64, "exp": -48},
++            "score_scale_q30": 268_435_456, "exp_step_log2": -8,
++            "silu_step_log2": -8, "silu_range_log2": 4,
++            "gelu_step_log2": -8, "gelu_range_log2": 4,
++        },
++        "matrices": b.matrices,
++        "tables": b.tables,
++        "source": {"synthetic": true},
++    });
++    let json = serde_json::to_vec(&header).expect("header");
++    let mut out = MAGIC.to_vec();
++    out.extend_from_slice(&(json.len() as u64).to_le_bytes());
++    out.extend_from_slice(&json);
++    out.resize(out.len().div_ceil(64) * 64, 0);
++    out.extend_from_slice(&b.data);
++    out
++}
++
++fn run(model: &IntegerStackModel, ids: &[u32]) -> Vec<Vec<i32>> {
++    let mut session = model.session();
++    ids.iter()
++        .map(|&id| session.step(id).expect("step").to_vec())
++        .collect()
++}
++
++#[test]
++fn a_synthetic_stack_serves_a_full_context_deterministically() {
++    let bytes = artifact(5);
++    let model = IntegerStackModel::parse(&bytes).expect("parse");
++    assert_eq!(model.shape().layers(), 2);
++    // Every map in full plus one embedding row.
++    let maps = 2 * WIDTH * WIDTH
++        + (WIDTH / 4 + WIDTH) * WIDTH
++        + WIDTH * WIDTH
++        + 4 * WIDTH * WIDTH
++        + HEADS * WIDTH
++        + 2 * 3 * MLP * WIDTH
++        + VOCAB * WIDTH
++        + WIDTH;
++    assert_eq!(model.weights_per_token(), maps as u64);
++    let ids = [3u32, 39, 0, 17, 17, 8];
++    let first = run(&model, &ids);
++    assert_eq!(first.len(), CONTEXT);
++    assert!(first.iter().all(|logits| logits.len() == VOCAB));
++    assert!(
++        first.windows(2).any(|w| w[0] != w[1]),
++        "the logits do not depend on the position"
++    );
++    assert_eq!(run(&model, &ids), first, "a second session differs");
++    let reparsed = IntegerStackModel::parse(&bytes).expect("parse again");
++    assert_eq!(run(&reparsed, &ids), first, "a reloaded model differs");
++
++    let mut session = model.session();
++    for &id in &ids[..3] {
++        session.step(id).expect("step");
++    }
++    session.reset();
++    for (&id, want) in ids.iter().zip(&first) {
++        assert_eq!(session.step(id).expect("step after reset"), want.as_slice());
++    }
++    assert!(matches!(
++        session.step(0),
++        Err(StackError::ContextFull { context: CONTEXT })
++    ));
++    let mut fresh = model.session();
++    assert!(matches!(
++        fresh.step(VOCAB as u32),
++        Err(StackError::Token { .. })
++    ));
++    assert_eq!(fresh.position(), 0);
++}
++
++#[test]
++fn truncated_or_mislabelled_artifacts_are_rejected() {
++    let bytes = artifact(9);
++    for cut in [0, 8, 15, 16, 100, bytes.len() / 2, bytes.len() - 1] {
++        assert!(
++            IntegerStackModel::parse(&bytes[..cut]).is_err(),
++            "accepted a prefix of {cut} bytes"
++        );
++    }
++    let mut magic = bytes.clone();
++    magic[3] ^= 1;
++    assert!(matches!(
++        IntegerStackModel::parse(&magic),
++        Err(StackError::Magic)
++    ));
++    let mut length = bytes.clone();
++    length[8..16].copy_from_slice(&u64::MAX.to_le_bytes());
++    assert!(matches!(
++        IntegerStackModel::parse(&length),
++        Err(StackError::HeaderLength { .. })
++    ));
++    let mut json = bytes.clone();
++    json[17] = b'!';
++    assert!(matches!(
++        IntegerStackModel::parse(&json),
++        Err(StackError::Header(_))
++    ));
++}
+diff --git a/crates/uor-r4-training/examples/geometric-stack.rs b/crates/uor-r4-training/examples/geometric-stack.rs
+index 359c27d9e..c05754913 100644
+--- a/crates/uor-r4-training/examples/geometric-stack.rs
++++ b/crates/uor-r4-training/examples/geometric-stack.rs
+@@ -25,6 +25,8 @@
+ //! geometric-stack lut-evaluate artifact=ROOT/model.lut valid=VALID.u16 out=NEW_REPORT_ROOT \
+ //!   [model=ROOT/model] [windows=64] [blocks=false] [tune_blocks=64] [threads=1] [lens=LENS.u16] \
+ //!   [reference=false]
++//! geometric-stack d11-evaluate artifact=ROOT/model.lut valid=VALID.u16 out=NEW_REPORT_ROOT \
++//!   [windows=8] [threads=1] [lens=LENS.u16]
+ //! geometric-stack lut-sample artifact=ROOT/model.lut out=NEW_REPORT_ROOT (valid=VALID.u16 | prompt=TEXT) \
+ //!   [merges=MERGES.txt | tokenizer=TOKENIZER.json] [prompts=3] [prompt_tokens=64] [sample_tokens=128] \
+ //!   [temperature=0.8] [top_k=40] [top_p=1] [seed=1] [threads=1]
+@@ -77,6 +79,12 @@
+ //! float model's on the same windows when `model=` is given, their top-1
+ //! agreement and the engine's tokens per second; `blocks=true` uses
+ //! `evaluate`'s consecutive blocks and tune/comparison split instead.
++//! `d11-evaluate` runs a stack artifact through the multiplier-free D11
++//! engine (`uor_r4_integer::stack`) and the frozen D10 engine side by side
++//! on the same evenly spaced windows, and reports both NLLs, the largest
++//! absolute difference between their integer logits (zero for a bit-identical
++//! port), each engine's tokens per second and the dense per-token weight
++//! reads.
+ //! `lut-sample` writes greedy and sampled continuations from the integer
+ //! engine (the integer sampler of `uor_r4_lut::sampling`). Token files may
+ //! also be UORT stores, the prepared dialogue corpus's format.
+@@ -1702,6 +1710,145 @@ fn lut_evaluate_mode(arguments: &[String]) -> Result<()> {
+     finish(&out, result)
+ }
+ 
++/// The multiplier-free (D11) stack engine, `uor_r4_integer::stack`, beside the
++/// frozen D10 engine, `uor_r4_lut::stack`, on the same evenly spaced
++/// development windows (`train`'s rule), each in a fresh session of both,
++/// position by position: both engines' NLL, the largest absolute difference
++/// between their logits (zero when the port is bit-identical), the positions
++/// where any logit differs, their top-1 agreement and each engine's step time.
++fn d11_evaluate_mode(arguments: &[String]) -> Result<()> {
++    use uor_r4_integer::stack::IntegerStackModel;
++    let args = Args::parse(
++        arguments,
++        &["artifact", "valid", "out", "windows", "threads", "lens"],
++    )?;
++    let artifact_path = PathBuf::from(args.required("artifact")?);
++    let valid_path = PathBuf::from(args.required("valid")?);
++    let lens_path = args.optional("lens").map(PathBuf::from);
++    let windows: usize = args.number("windows", 8)?;
++    let threads: usize = args.number("threads", 1)?;
++    let out = PathBuf::from(args.required("out")?);
++    report_output::claim(&out)?;
++    let result = (|| -> Result<()> {
++        let bytes = fs::read(&artifact_path)?;
++        let clock = Instant::now();
++        let d11 = IntegerStackModel::parse(&bytes).map_err(|e| invalid(e.to_string()))?;
++        let d11_load_seconds = clock.elapsed().as_secs_f64();
++        let mut d10 = uor_r4_lut::stack::StackModel::from_artifact(
++            uor_r4_lut::format::StackArtifact::parse(bytes).map_err(lut)?,
++        )
++        .map_err(lut)?;
++        d10.set_threads(threads).map_err(lut)?;
++        if d10.artifact_sha256() != d11.artifact_sha256() {
++            return Err(invalid("the engines loaded different artifact bytes"));
++        }
++        let (vocab, time) = (d11.shape().vocab, d11.shape().context);
++        let valid = read_tokens(&valid_path, vocab)?;
++        let lens = lens_path
++            .as_ref()
++            .map(|path| read_tokens(path, u16::MAX as usize + 1))
++            .transpose()?;
++        if windows == 0 || valid.len() <= time + windows {
++            return Err(invalid("too few development tokens for the windows"));
++        }
++        let stride = (valid.len() - time - 1) / windows;
++        let starts: Vec<usize> = (0..windows).map(|window| window * stride).collect();
++        let (mut s10, mut s11) = (d10.session(), d11.session());
++        let (mut d10_seconds, mut d11_seconds) = (0f64, 0f64);
++        let (mut max_difference, mut differing, mut agree) = (0i64, 0usize, 0usize);
++        let mut first_difference: Option<Value> = None;
++        // Per window: D11 NLL, D10 NLL and target bytes (sums over targets).
++        let mut sums: Vec<(f64, f64, f64)> = Vec::with_capacity(starts.len());
++        for &start in &starts {
++            let ids = &valid[start..start + time];
++            let next = &valid[start + 1..start + time + 1];
++            s10.reset();
++            s11.reset();
++            let (mut nll11, mut nll10) = (0f64, 0f64);
++            for (t, &id) in ids.iter().enumerate() {
++                let clock = Instant::now();
++                let logits11 = s11.step(id).map_err(|e| invalid(e.to_string()))?;
++                d11_seconds += clock.elapsed().as_secs_f64();
++                let clock = Instant::now();
++                let logits10 = s10.step(id).map_err(lut)?;
++                d10_seconds += clock.elapsed().as_secs_f64();
++                let mut position_max = 0i64;
++                for (a, b) in logits11.iter().zip(logits10) {
++                    position_max = position_max.max((i64::from(*a) - i64::from(*b)).abs());
++                }
++                if position_max > 0 {
++                    differing += 1;
++                    if first_difference.is_none() {
++                        first_difference = Some(json!({
++                            "window_start": start, "position": t, "max_abs_difference": position_max,
++                        }));
++                    }
++                }
++                max_difference = max_difference.max(position_max);
++                let target = next[t] as usize;
++                let (n11, top11) =
++                    score_row(logits11.iter().map(|&v| f64::from(v) / 65536.0), target);
++                let (n10, top10) =
++                    score_row(logits10.iter().map(|&v| f64::from(v) / 65536.0), target);
++                nll11 += n11;
++                nll10 += n10;
++                agree += usize::from(top11 == top10);
++            }
++            let bytes = lens.as_ref().map_or(0.0, |lens| {
++                next.iter()
++                    .map(|&id| f64::from(lens[id as usize]))
++                    .sum::<f64>()
++            });
++            sums.push((nll11, nll10, bytes));
++        }
++        let targets = starts.len() * time;
++        let (nll11, nll10, target_bytes) = sums
++            .iter()
++            .fold((0.0, 0.0, 0.0), |a, s| (a.0 + s.0, a.1 + s.1, a.2 + s.2));
++        let bits = |nll: f64| {
++            lens.as_ref()
++                .map(|_| nll / std::f64::consts::LN_2 / target_bytes)
++        };
++        let record = json!({
++            "schema": "uor-r4.geometric-stack-d11-evaluation/1",
++            "protocol": "evenly spaced windows of the development tokens (train's evaluation rule), one fresh session of each engine per window, position by position; logits compared as integers",
++            "artifact": identity(&artifact_path)?,
++            "artifact_sha256": d11.artifact_sha256(),
++            "valid": identity(&valid_path)?,
++            "windows": starts.len(),
++            "targets": targets,
++            "d11": {"nll": nll11 / targets as f64, "bits_per_byte": bits(nll11)},
++            "d10": {"nll": nll10 / targets as f64, "bits_per_byte": bits(nll10)},
++            "d11_minus_d10_nll": (nll11 - nll10) / targets as f64,
++            "max_abs_logit_difference": max_difference,
++            "positions_with_a_difference": differing,
++            "first_difference": first_difference,
++            "top1_agreement": agree as f64 / targets as f64,
++            "weights_read_per_token": d11.weights_per_token(),
++            "engine": {
++                "d11_step_seconds": d11_seconds,
++                "d11_tokens_per_second": targets as f64 / d11_seconds,
++                "d11_threads": 1,
++                "d11_load_seconds": d11_load_seconds,
++                "d10_step_seconds": d10_seconds,
++                "d10_tokens_per_second": targets as f64 / d10_seconds,
++                "d10_threads": threads,
++                "d10_backend": d10.backend().name(),
++                "scope": "each engine's step calls only, timed separately and interleaved per position",
++            },
++            "per_window": starts.iter().zip(&sums).map(|(start, s)| json!({
++                "start": start, "d11_nll": s.0 / time as f64, "d10_nll": s.1 / time as f64,
++            })).collect::<Vec<_>>(),
++        });
++        fs::write(
++            out.join("evaluation.json"),
++            serde_json::to_vec_pretty(&record)?,
++        )?;
++        Ok(())
++    })();
++    finish(&out, result)
++}
++
+ /// Continuations generated by an integer engine, greedy and sampled, from
+ /// evenly spaced development prompts or from `prompt=` text.
+ fn lut_sample_mode(arguments: &[String]) -> Result<()> {
+@@ -2467,7 +2614,7 @@ fn main() -> Result<()> {
+     let arguments: Vec<String> = std::env::args().skip(1).collect();
+     let Some((mode, rest)) = arguments.split_first() else {
+         return Err(invalid(
+-            "usage: geometric-stack train|sample|evaluate|encode|corpus|export|lut-evaluate|lut-sample|dialogue-train|lut-chat key=value ...",
++            "usage: geometric-stack train|sample|evaluate|encode|corpus|export|lut-evaluate|d11-evaluate|lut-sample|dialogue-train|lut-chat key=value ...",
+         ));
+     };
+     match mode.as_str() {
+@@ -2528,6 +2675,7 @@ fn main() -> Result<()> {
+         "corpus" => corpus_mode(rest),
+         "export" => export_mode(rest),
+         "lut-evaluate" => lut_evaluate_mode(rest),
++        "d11-evaluate" => d11_evaluate_mode(rest),
+         "lut-sample" => lut_sample_mode(rest),
+         "dialogue-train" => dialogue_train_mode(rest),
+         "lut-chat" => lut_chat_mode(rest),
+diff --git a/crates/uor-r4-training/tests/stack_d11_oracle.rs b/crates/uor-r4-training/tests/stack_d11_oracle.rs
+new file mode 100644
+index 000000000..c4b98b820
+--- /dev/null
++++ b/crates/uor-r4-training/tests/stack_d11_oracle.rs
+@@ -0,0 +1,579 @@
++//! Oracle tests of the multiplier-free (D11) stack engine,
++//! `uor_r4_integer::stack`, against the frozen D10 comparator,
++//! `uor_r4_lut::stack`, on artifacts written by `stack_export::export_stack`:
++//! the two engines must return identical logits at every position, and the
++//! D11 loader must reject malformed containers without panicking.
++//!
++//! Run in release (`cargo test -p uor-r4-training --release --test
++//! stack_d11_oracle`): the D10 engine's plain integer operators wrap there, as
++//! they do in every served build, and the D11 engine reproduces that
++//! arithmetic.
++
++use candle_core::{Device, Tensor};
++use serde_json::{json, Value};
++use uor_r4_integer::stack::{IntegerStackModel, StackError};
++use uor_r4_lut::format::StackArtifact;
++use uor_r4_lut::stack::StackModel as D10Model;
++use uor_r4_training::geometric_stack::{ReadScore, StackArch, StackConfig, StackModel};
++use uor_r4_training::stack_export::{export_stack, StackCalibration};
++
++/// A small geometric stack of the given pattern, read and transport.
++#[allow(clippy::too_many_arguments)]
++fn small(
++    pattern: &str,
++    read: ReadScore,
++    rotation: bool,
++    width: usize,
++    heads: usize,
++    mlp: usize,
++    context: usize,
++    seed: u64,
++) -> StackModel {
++    let mut config = StackConfig::transformer_control(seed);
++    config.arch = StackArch::Geometric;
++    config.vocab_size = 96;
++    config.width = width;
++    config.heads = heads;
++    config.mlp_hidden = mlp;
++    config.context = context;
++    config.pattern = pattern.to_owned();
++    config.read = read;
++    config.rotation = rotation;
++    StackModel::new(config, &Device::Cpu).expect("small stack")
++}
++
++/// SplitMix64 draws.
++struct Rng(u64);
++
++impl Rng {
++    fn next(&mut self) -> u64 {
++        self.0 = self.0.wrapping_add(0x9E37_79B9_7F4A_7C15);
++        let mut z = self.0;
++        z = (z ^ (z >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
++        z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
++        z ^ (z >> 31)
++    }
++
++    /// Uniform in `[-0.5, 0.5)`.
++    fn centered(&mut self) -> f64 {
++        (self.next() >> 11) as f64 / (1u64 << 53) as f64 - 0.5
++    }
++
++    fn below(&mut self, bound: u64) -> u64 {
++        self.next() % bound
++    }
++}
++
++/// Perturb every tensor away from the initialization's identities (unit
++/// rotations, zero ages, unit gains), then multiply the tensors whose name
++/// ends with a listed suffix by its factor.
++fn perturb(model: &StackModel, seed: u64, amplify: &[(&str, f32)]) {
++    let mut rng = Rng(seed);
++    for (name, var) in model.variables() {
++        let values = var
++            .as_tensor()
++            .flatten_all()
++            .expect("flatten")
++            .to_vec1::<f32>()
++            .expect("values");
++        let scale = if name == "embedding.weight" {
++            0.3
++        } else if name.ends_with("norm.weight") {
++            0.4
++        } else if name.contains(".age") || name.contains("bias") || name.contains("offset") {
++            0.5
++        } else if name.contains("conv.weight")
++            || name.contains("decay")
++            || name.contains("log_beta")
++        {
++            0.3
++        } else {
++            0.05
++        };
++        let factor = amplify
++            .iter()
++            .find(|(suffix, _)| name.ends_with(suffix))
++            .map_or(1.0, |(_, f)| *f);
++        let changed: Vec<f32> = values
++            .iter()
++            .map(|v| (v + (rng.centered() * 2.0 * scale) as f32) * factor)
++            .collect();
++        var.set(&Tensor::from_vec(changed, var.as_tensor().shape(), &Device::Cpu).expect("tensor"))
++            .expect("set");
++    }
++}
++
++fn tokens(count: usize, vocab: u64, seed: u64) -> Vec<u32> {
++    let mut rng = Rng(seed);
++    (0..count).map(|_| rng.below(vocab) as u32).collect()
++}
++
++fn engines(bytes: &[u8]) -> (D10Model, IntegerStackModel) {
++    let d10 = D10Model::from_artifact(StackArtifact::parse(bytes.to_vec()).expect("D10 parse"))
++        .expect("D10 model");
++    let d11 = IntegerStackModel::parse(bytes).expect("D11 model");
++    (d10, d11)
++}
++
++/// Step both engines over every sequence (a fresh stream each, through
++/// `reset`) and require identical logits at every position. Returns the
++/// number of positions compared.
++fn compare(label: &str, d10: &D10Model, d11: &IntegerStackModel, sequences: &[Vec<u32>]) -> usize {
++    let mut s10 = d10.session();
++    let mut s11 = d11.session();
++    let mut positions = 0;
++    for (n, sequence) in sequences.iter().enumerate() {
++        s10.reset();
++        s11.reset();
++        for (t, &id) in sequence.iter().enumerate() {
++            let want = s10.step(id).expect("D10 step").to_vec();
++            let got = s11.step(id).expect("D11 step");
++            if got != want.as_slice() {
++                let first = got.iter().zip(&want).position(|(a, b)| a != b);
++                panic!(
++                    "{label}: sequence {n} position {t}: logits differ first at {first:?} ({:?} vs {:?})",
++                    first.map(|i| got[i]),
++                    first.map(|i| want[i])
++                );
++            }
++            positions += 1;
++        }
++        assert_eq!(s11.position(), sequence.len());
++    }
++    positions
++}
++
++/// The sequences of one model: the full context twice (random ids, and a
++/// short cycle repeated), a short stream and a single token.
++fn sequences(context: usize, seed: u64) -> Vec<Vec<u32>> {
++    let cycle: Vec<u32> = (0..context).map(|i| [5u32, 17, 5, 90][i % 4]).collect();
++    vec![
++        tokens(context, 96, seed),
++        cycle,
++        tokens(context / 3 + 1, 96, seed + 1),
++        vec![95],
++    ]
++}
++
++#[allow(clippy::too_many_arguments)]
++fn check(
++    pattern: &str,
++    read: ReadScore,
++    rotation: bool,
++    width: usize,
++    heads: usize,
++    mlp: usize,
++    context: usize,
++    amplify: &[(&str, f32)],
++    seed: u64,
++) -> usize {
++    let model = small(pattern, read, rotation, width, heads, mlp, context, seed);
++    perturb(&model, seed + 100, amplify);
++    let (bytes, _) = export_stack(&model, json!({"test": "d11-oracle"}), None).expect("export");
++    let (d10, d11) = engines(&bytes);
++    assert_eq!(d11.artifact_sha256(), d10.artifact_sha256());
++    let label = format!("{pattern} {read:?} rotation={rotation} width={width} heads={heads}");
++    compare(&label, &d10, &d11, &sequences(context, seed + 7))
++}
++
++#[test]
++fn d11_logits_equal_d10_logits_on_random_stacks() {
++    let mut positions = 0;
++    for (pattern, read, rotation) in [
++        ("rrar", ReadScore::Lorentz, true),
++        ("rarr", ReadScore::Lorentz, true),
++        ("rrar", ReadScore::Dot, true),
++        ("rarr", ReadScore::Dot, false),
++        ("rarr", ReadScore::Lorentz, false),
++        ("ra", ReadScore::Dot, true),
++        ("aa", ReadScore::Lorentz, false),
++        ("r", ReadScore::Dot, true),
++    ] {
++        positions += check(pattern, read, rotation, 64, 2, 40, 24, &[], 3);
++    }
++    // A width that is not a power of two (three scale groups), six heads of 16
++    // and the real model's pattern, over a longer context.
++    positions += check("rrarra", ReadScore::Lorentz, true, 96, 6, 70, 40, &[], 11);
++    positions += check("rrarra", ReadScore::Dot, true, 96, 3, 70, 40, &[], 12);
++    eprintln!("compared {positions} positions");
++}
++
++/// Amplified weights (read maps by 2^14 to 2^15, recurrence maps by 2^9 and
++/// 2^12, the MLP up map by 2^6) move queries, keys, values and gates toward
++/// the `i32` limit, where scores, rotations and Lorentz distances take
++/// extreme values and the saturating conversions can engage. The D11 engine
++/// must still agree exactly. (Which of the D10 engine's internal 64- or
++/// 128-bit summation branches each position takes is not observed here; both
++/// are exact.)
++#[test]
++fn d11_logits_equal_d10_logits_on_amplified_stacks() {
++    let loud = [
++        ("read.query.weight", 32768.0f32),
++        ("read.key.weight", 32768.0),
++        ("read.value.weight", 16384.0),
++        ("rec.in.weight", 512.0),
++        ("rec.gate.weight", 4096.0),
++        ("mlp.up.weight", 64.0),
++    ];
++    let mut positions = 0;
++    for (pattern, read, rotation) in [
++        ("rarr", ReadScore::Lorentz, true),
++        ("rarr", ReadScore::Dot, true),
++        ("arra", ReadScore::Dot, false),
++    ] {
++        positions += check(pattern, read, rotation, 64, 2, 40, 24, &loud, 21);
++    }
++    eprintln!("compared {positions} amplified positions");
++}
++
++/// A GPTQ-calibrated export (different nibbles and scales) and the retained
++/// `StackCalibration` path.
++#[test]
++fn d11_logits_equal_d10_logits_on_a_calibrated_export() {
++    let model = small("rarr", ReadScore::Lorentz, true, 64, 2, 40, 24, 5);
++    perturb(&model, 55, &[]);
++    let calibration =
++        StackCalibration::collect(&model, &tokens(16 * 24, 96, 9), 8, 24).expect("calibration");
++    let (bytes, report) =
++        export_stack(&model, json!({}), Some((&calibration, 0.01))).expect("export");
++    assert_eq!(report["method"]["quantizer"], "gptq");
++    let (d10, d11) = engines(&bytes);
++    compare("gptq", &d10, &d11, &sequences(24, 77));
++}
++
++/// Both engines refuse a token outside the vocabulary and a step past the
++/// context, and a reset session starts over bit-identically.
++#[test]
++fn sessions_refuse_bad_tokens_and_full_contexts() {
++    let model = small("rarr", ReadScore::Dot, true, 64, 2, 40, 8, 4);
++    perturb(&model, 44, &[]);
++    let (bytes, _) = export_stack(&model, json!({}), None).expect("export");
++    let (d10, d11) = engines(&bytes);
++    let mut s10 = d10.session();
++    let mut s11 = d11.session();
++    assert!(s10.step(96).is_err());
++    assert!(matches!(
++        s11.step(96),
++        Err(StackError::Token {
++            token: 96,
++            vocab: 96
++        })
++    ));
++    let ids = tokens(8, 96, 1);
++    let mut first = Vec::new();
++    for &id in &ids {
++        s10.step(id).expect("D10 step");
++        first.push(s11.step(id).expect("D11 step").to_vec());
++    }
++    assert!(s10.step(0).is_err());
++    assert!(matches!(
++        s11.step(0),
++        Err(StackError::ContextFull { context: 8 })
++    ));
++    s11.reset();
++    for (&id, want) in ids.iter().zip(&first) {
++        assert_eq!(s11.step(id).expect("D11 step after reset"), want.as_slice());
++    }
++}
++
++// ---------------------------------------------------------------------------
++// Malformed containers.
++
++/// The header and data of a container.
++fn split(bytes: &[u8]) -> (Value, Vec<u8>) {
++    let len = u64::from_le_bytes(bytes[8..16].try_into().expect("length")) as usize;
++    let header: Value = serde_json::from_slice(&bytes[16..16 + len]).expect("header");
++    let start = (16 + len).div_ceil(64) * 64;
++    (header, bytes[start..].to_vec())
++}
++
++/// A container from a header and data (sections keep their data offsets).
++fn join(header: &Value, data: &[u8]) -> Vec<u8> {
++    let json = serde_json::to_vec(header).expect("json");
++    let mut out = b"UORLUT01".to_vec();
++    out.extend_from_slice(&(json.len() as u64).to_le_bytes());
++    out.extend_from_slice(&json);
++    out.resize(out.len().div_ceil(64) * 64, 0);
++    out.extend_from_slice(data);
++    out
++}
++
++fn with_header(bytes: &[u8], edit: impl FnOnce(&mut Value)) -> Vec<u8> {
++    let (mut header, data) = split(bytes);
++    edit(&mut header);
++    join(&header, &data)
++}
++
++fn entry<'a>(header: &'a mut Value, list: &str, name: &str) -> &'a mut Value {
++    header[list]
++        .as_array_mut()
++        .expect("list")
++        .iter_mut()
++        .find(|e| e["name"] == name)
++        .expect("entry")
++}
++
++/// Overwrite the data of table `name` at element `index` (2-byte or 4-byte).
++fn with_table_value(bytes: &[u8], name: &str, index: usize, value: &[u8]) -> Vec<u8> {
++    let (mut header, mut data) = split(bytes);
++    let t = entry(&mut header, "tables", name).clone();
++    let at = t["span"]["offset"].as_u64().expect("offset") as usize + index * value.len();
++    data[at..at + value.len()].copy_from_slice(value);
++    join(&header, &data)
++}
++
++#[test]
++fn malformed_containers_are_rejected() {
++    let model = small("rarr", ReadScore::Lorentz, true, 64, 2, 40, 16, 8);
++    perturb(&model, 88, &[]);
++    let (valid, _) = export_stack(&model, json!({}), None).expect("export");
++    assert!(IntegerStackModel::parse(&valid).is_ok());
++    // A rebuilt container with an unchanged header is still valid.
++    assert!(IntegerStackModel::parse(&with_header(&valid, |_| {})).is_ok());
++    let d10_accepts = |bytes: &[u8]| {
++        StackArtifact::parse(bytes.to_vec())
++            .and_then(D10Model::from_artifact)
++            .is_ok()
++    };
++
++    let mut bad_magic = valid.clone();
++    bad_magic[0] = b'X';
++    let mut too_long = valid.clone();
++    too_long[8..16].copy_from_slice(&(valid.len() as u64).to_le_bytes());
++    let mut huge = valid.clone();
++    huge[8..16].copy_from_slice(&(1u64 << 40).to_le_bytes());
++    let mut broken_json = valid.clone();
++    broken_json[16] = b'[';
++    let truncated = valid[..valid.len() - 1].to_vec();
++    let mut cases: Vec<(&str, Vec<u8>, bool)> = vec![
++        ("empty", Vec::new(), true),
++        ("short", valid[..15].to_vec(), true),
++        ("magic", bad_magic, true),
++        ("header past the end", too_long, true),
++        ("header over 64 MiB", huge, true),
++        ("invalid JSON", broken_json, true),
++        ("truncated data", truncated, true),
++    ];
++    let header_edits: Vec<(&str, Box<dyn Fn(&mut Value)>, bool)> = vec![
++        (
++            "schema",
++            Box::new(|h: &mut Value| h["schema"] = json!("uor-r4.lut-llama/1")),
++            true,
++        ),
++        (
++            "group",
++            Box::new(|h: &mut Value| h["group"] = json!(16)),
++            true,
++        ),
++        (
++            "pattern letter",
++            Box::new(|h: &mut Value| h["shape"]["pattern"] = json!("rxrr")),
++            true,
++        ),
++        (
++            "read score",
++            Box::new(|h: &mut Value| h["shape"]["read"] = json!("cosine")),
++            true,
++        ),
++        (
++            "zero vocabulary",
++            Box::new(|h: &mut Value| h["shape"]["vocab"] = json!(0)),
++            true,
++        ),
++        (
++            "heads",
++            Box::new(|h: &mut Value| h["shape"]["heads"] = json!(3)),
++            true,
++        ),
++        (
++            "context",
++            Box::new(|h: &mut Value| h["shape"]["context"] = json!(17)),
++            true,
++        ),
++        (
++            "rotation",
++            Box::new(|h: &mut Value| h["shape"]["rotation"] = json!(false)),
++            true,
++        ),
++        (
++            "missing field",
++            Box::new(|h: &mut Value| {
++                h["numerics"]
++                    .as_object_mut()
++                    .expect("numerics")
++                    .remove("exp_step_log2");
++            }),
++            true,
++        ),
++        (
++            "negative size",
++            Box::new(|h: &mut Value| h["shape"]["mlp"] = json!(-64)),
++            true,
++        ),
++        (
++            "exp step",
++            Box::new(|h: &mut Value| h["numerics"]["exp_step_log2"] = json!(0)),
++            true,
++        ),
++        (
++            "score scale",
++            Box::new(|h: &mut Value| h["numerics"]["score_scale_q30"] = json!(0)),
++            true,
++        ),
++        (
++            "silu range",
++            Box::new(|h: &mut Value| h["numerics"]["silu_range_log2"] = json!(5)),
++            true,
++        ),
++        (
++            "matrix offset",
++            Box::new(|h: &mut Value| {
++                entry(h, "matrices", "head")["nibbles"]["offset"] = json!(1u64 << 40);
++            }),
++            true,
++        ),
++        (
++            "matrix size",
++            Box::new(|h: &mut Value| {
++                entry(h, "matrices", "l0.rec_out")["rows"] = json!(63);
++            }),
++            true,
++        ),
++        (
++            "missing matrix",
++            Box::new(|h: &mut Value| {
++                entry(h, "matrices", "head")["name"] = json!("tail");
++            }),
++            true,
++        ),
++        (
++            "duplicate matrix",
++            Box::new(|h: &mut Value| {
++                let copy = entry(h, "matrices", "head").clone();
++                h["matrices"].as_array_mut().expect("matrices").push(copy);
++            }),
++            false,
++        ),
++        (
++            "table kind",
++            Box::new(|h: &mut Value| entry(h, "tables", "exp")["kind"] = json!("i32")),
++            true,
++        ),
++        (
++            "table length",
++            Box::new(|h: &mut Value| {
++                entry(h, "tables", "l0.conv_bias")["len"] = json!(63);
++            }),
++            true,
++        ),
++        (
++            "missing table",
++            Box::new(|h: &mut Value| {
++                entry(h, "tables", "arcosh")["name"] = json!("cosh");
++            }),
++            true,
++        ),
++        (
++            "matrix exponent",
++            Box::new(|h: &mut Value| {
++                entry(h, "matrices", "l1.query")["exp_base"] = json!(1 << 20);
++            }),
++            false,
++        ),
++        (
++            "epsilon exponent",
++            Box::new(|h: &mut Value| {
++                h["numerics"]["rms_eps"]["exp"] = json!(i32::MIN);
++            }),
++            false,
++        ),
++    ];
++    for (label, edit, d10_rejects) in &header_edits {
++        cases.push((label, with_header(&valid, edit), *d10_rejects));
++    }
++    // Data edits: an invalid tap code, a non-positive rate, a decreasing
++    // arcosh table and an increasing exp table (refused by D11 only).
++    cases.push((
++        "invalid grid code",
++        with_table_value(&valid, "l0.conv_taps", 3, &5i16.to_le_bytes()),
++        true,
++    ));
++    cases.push((
++        "non-positive rate",
++        with_table_value(&valid, "l2.decay_rate", 0, &(-1100i16).to_le_bytes()),
++        true,
++    ));
++    cases.push((
++        "arcosh order",
++        with_table_value(&valid, "arcosh", 2000, &0u32.to_le_bytes()),
++        true,
++    ));
++    cases.push((
++        "exp order",
++        with_table_value(&valid, "exp", 100, &u32::MAX.to_le_bytes()),
++        false,
++    ));
++    for (label, bytes, d10_rejects) in &cases {
++        let result = IntegerStackModel::parse(bytes);
++        assert!(
++            result.is_err(),
++            "D11 accepted a malformed container: {label}"
++        );
++        if *d10_rejects {
++            assert!(!d10_accepts(bytes), "D10 accepted {label}");
++        }
++        eprintln!(
++            "{label}: {}",
++            result.err().map(|e| e.to_string()).unwrap_or_default()
++        );
++    }
++}
++
++/// Random corruption never panics the loader; wherever both engines accept a
++/// corrupted artifact (a corrupted weight or table entry), their logits agree.
++#[test]
++fn corrupted_artifacts_never_panic_and_accepted_ones_agree() {
++    let model = small("rarr", ReadScore::Lorentz, true, 64, 2, 40, 12, 6);
++    perturb(&model, 66, &[]);
++    let (valid, _) = export_stack(&model, json!({}), None).expect("export");
++    let header_len = u64::from_le_bytes(valid[8..16].try_into().expect("length")) as usize;
++    let mut rng = Rng(1234);
++    let (mut accepted, mut compared) = (0, 0);
++    for trial in 0..300 {
++        let mut bytes = valid.clone();
++        let flips = 1 + rng.below(4) as usize;
++        for _ in 0..flips {
++            // Half the trials corrupt the header, half the data.
++            let at = if trial % 2 == 0 {
++                rng.below((16 + header_len) as u64) as usize
++            } else {
++                16 + header_len + rng.below((bytes.len() - 16 - header_len) as u64) as usize
++            };
++            bytes[at] ^= 1 << rng.below(8);
++        }
++        let Ok(d11) = IntegerStackModel::parse(&bytes) else {
++            continue;
++        };
++        accepted += 1;
++        let d10 = StackArtifact::parse(bytes.clone()).and_then(D10Model::from_artifact);
++        let ids = tokens(12, 96, trial);
++        match d10 {
++            Ok(d10) => {
++                compare(&format!("corruption {trial}"), &d10, &d11, &[ids]);
++                compared += 1;
++            }
++            Err(_) => {
++                // Accepted by D11 only: still no panic over a whole context.
++                let mut session = d11.session();
++                for &id in &ids {
++                    session.step(id).expect("D11 step on a corrupted artifact");
++                }
++            }
++        }
++    }
++    eprintln!("{accepted} corrupted artifacts accepted, {compared} compared with D10");
++    assert!(
++        compared > 0,
++        "no corrupted artifact was accepted by both engines"
++    );
++}
+diff --git a/scripts/audit_zero_matmul_serving.py b/scripts/audit_zero_matmul_serving.py
+index 0c70cefbb..ab752b846 100755
+--- a/scripts/audit_zero_matmul_serving.py
++++ b/scripts/audit_zero_matmul_serving.py
+@@ -8,7 +8,12 @@ Verifies the D0-b and Milestone M1/M2 architectural invariants:
+ in compiled numerical serving symbols of `libuor_r4_integer.rlib` and release binaries.
+ 
+ Usage:
+-    python3 scripts/audit_zero_matmul_serving.py [path_to_binary_or_rlib] [--strict-arm64] [--tap]
++    python3 scripts/audit_zero_matmul_serving.py [path_to_binary_or_rlib] [--strict-arm64] [--tap] [--stack]
++
++`--stack` (implied for a binary named `uor-r4-stack*`) audits the D11 geometric
++stack engine (`uor_r4_integer::stack`): its step and kernels become the mandatory
++symbols and the call-graph roots, in place of the retained IntegerModel set.
++Other targets audit exactly as before.
+ """
+ 
+ import argparse
+@@ -611,6 +616,111 @@ CHAT_MANDATORY_SYMBOLS = [
+ ]
+ 
+ 
++def _stack_kernel(name, module, description):
++    """A `uor_r4_integer::stack` function: demangled `stack::<module>::<name>`,
++    v0-mangled `...<len><name>` (identifiers are length-prefixed)."""
++    return {
++        "name": f"stack::{module}::{name}",
++        "pattern": re.compile(r"stack::" + module + r"::" + re.escape(name) + r"\b"),
++        "mangled": re.compile(r"__RNv.*5stack.*" + str(len(name)) + re.escape(name) + r"\b"),
++        "description": description,
++    }
++
++
++# Mandatory symbols of the D11 geometric-stack engine (`uor_r4_integer::stack`),
++# selected only by `--stack` or a `uor-r4-stack*` binary. Every kernel is
++# `#[inline(never)]` so that each has its own emitted range.
++STACK_MANDATORY_SYMBOLS = [
++    {
++        "name": "IntegerStackSession::step",
++        # The session type may carry an erased lifetime (`<'_>`, v0 `L_E`).
++        "pattern": re.compile(r"IntegerStackSession(?:<[^>]*>)?>::step\b"),
++        "mangled": re.compile(r"__RNv.*19IntegerStackSession(?:L[0-9A-Za-z_]*E)?4step\b"),
++        "description": "D11 stack step: embedding, mixers, MLPs, final norm and head",
++    },
++    _stack_kernel("stack_recurrence", "session", "Quaternion transport recurrence mixer"),
++    _stack_kernel("stack_rotation", "session", "Unit rotation quaternion by long division"),
++    _stack_kernel("stack_read", "session", "Dot/Lorentz read mixer with NoRead softmax"),
++    _stack_kernel("stack_swiglu", "session", "SwiGLU gating products by digit tables"),
++    _stack_kernel("stack_gemv", "kernels", "4-bit weight map by activation-table reads and adds"),
++    _stack_kernel("stack_gemv_pairs", "kernels", "4-bit weight map by pair-table reads and adds"),
++    _stack_kernel("stack_pair_tables", "kernels", "Weight-byte pair tables by additions"),
++    _stack_kernel("stack_activation_tables", "kernels", "Per-column nibble product tables by shifts and adds"),
++    _stack_kernel("stack_dequant_row", "kernels", "Embedding row by shift-add group scales"),
++    _stack_kernel("stack_rms_norm", "kernels", "RMSNorm by digit-table squares, long division and isqrt"),
++    _stack_kernel("stack_quantize16", "kernels", "16-bit requantization by shifts"),
++    _stack_kernel("stack_max_abs_i32", "kernels", "Scalar largest magnitude (i32)"),
++    _stack_kernel("stack_max_abs_i64", "kernels", "Scalar largest magnitude (i64)"),
++    _stack_kernel("stack_exp_neg", "kernels", "Sealed exp table with digit-table interpolation"),
++    _stack_kernel("stack_sigmoid_q31", "kernels", "Sigmoid from the exp table and long division"),
++    _stack_kernel("stack_activation", "kernels", "SiLU/GELU sealed-table interpolation"),
++    _stack_kernel("stack_arcosh1p_q24", "kernels", "Sealed arcosh table with octave interpolation"),
++    _stack_kernel("stack_lift", "kernels", "Hyperboloid lift by digit-table squares and isqrt"),
++    _stack_kernel("stack_lorentz_distance", "kernels", "Lorentz distance from lifts and inner product"),
++    _stack_kernel("stack_query_tables", "kernels", "Per-coordinate query multiple tables"),
++    _stack_kernel("stack_dot", "kernels", "Exact query-key inner product by digit tables"),
++    _stack_kernel("stack_mix_row", "kernels", "Exact weighted value accumulation by digit tables"),
++    _stack_kernel("stack_hamilton", "kernels", "Exact Hamilton product of quaternions"),
++    _stack_kernel("stack_mul_u128", "kernels", "Radix-16 multiple-table product modulo 2^128"),
++    _stack_kernel("stack_mul_u64", "kernels", "Radix-16 multiple-table product modulo 2^64"),
++    _stack_kernel("stack_square", "kernels", "Radix-16 multiple-table square"),
++    _stack_kernel("stack_div_u64", "kernels", "Restoring long division (u64)"),
++    _stack_kernel("stack_div_u128", "kernels", "Restoring long division (u128)"),
++    _stack_kernel("stack_isqrt", "kernels", "Digit-by-digit integer square root"),
++    _stack_kernel("stack_argmax", "kernels", "Greedy integer argmax over logits"),
++]
++
++# Call-graph roots of the stack engine (v0-mangled names, as `otool -tvV`
++# prints them): its step and the greedy selection.
++STACK_CALL_GRAPH_ROOTS = [
++    re.compile(r"19IntegerStackSession(?:L[0-9A-Za-z_]*E)?4step$"),
++    re.compile(r"12stack_argmax$"),
++]
++
++
++def run_stack_pattern_tests():
++    """The stack patterns must match their demangled and v0-mangled names and
++    must not confuse kernels that share a prefix."""
++    for entry in STACK_MANDATORY_SYMBOLS:
++        name = entry["name"].split("::")[-1]
++        if entry["name"].startswith("stack::"):
++            module = entry["name"].split("::")[1]
++            demangled = f"uor_r4_integer::stack::{module}::{name}"
++            mangled = (
++                f"__RNvNtNtCs1a2b3c_14uor_r4_integer5stack{len(module)}{module}{len(name)}{name}"
++            )
++        else:
++            demangled = "<uor_r4_integer::stack::session::IntegerStackSession<'_>>::step"
++            mangled = "__RNvMs_NtNtCs1a2b3c_14uor_r4_integer5stack7sessionINtB5_19IntegerStackSessionL_E4step"
++        if not entry["pattern"].search(demangled):
++            raise AssertionError(f"Stack pattern test failed: {entry['name']} misses {demangled}")
++        if not entry["mangled"].search(mangled):
++            raise AssertionError(f"Stack pattern test failed: {entry['name']} misses {mangled}")
++    step_names = [
++        "__RNvMs_NtNtCs1a2b3c_14uor_r4_integer5stack7sessionNtB5_19IntegerStackSession4step",
++        "__RNvMs_NtNtCs1a2b3c_14uor_r4_integer5stack7sessionINtB5_19IntegerStackSessionL_E4step",
++        "__RNvNtNtCs1a2b3c_14uor_r4_integer5stack7kernels12stack_argmax",
++    ]
++    for root_name in step_names:
++        if not any(p.search(root_name) for p in STACK_CALL_GRAPH_ROOTS):
++            raise AssertionError(f"Stack pattern test failed: no call-graph root matches {root_name}")
++    for other in [
++        "__RNvMs_NtNtCs1a2b3c_14uor_r4_integer5stack7sessionNtB5_19IntegerStackSession5reset",
++        "__RNvMs_NtNtCs1a2b3c_14uor_r4_integer5stack7sessionNtB5_17IntegerStackModel7session",
++    ]:
++        if any(p.search(other) for p in STACK_CALL_GRAPH_ROOTS):
++            raise AssertionError(f"Stack pattern test failed: {other} is not a serving root")
++    for longer, shorter in [
++        ("stack_activation_tables", "stack_activation"),
++        ("stack_gemv_pairs", "stack_gemv"),
++        ("stack_div_u128", "stack_div_u64"),
++        ("stack_mul_u128", "stack_mul_u64"),
++    ]:
++        entry = next(e for e in STACK_MANDATORY_SYMBOLS if e["name"].endswith("::" + shorter))
++        if entry["pattern"].search(f"uor_r4_integer::stack::kernels::{longer}"):
++            raise AssertionError(f"Stack pattern test failed: {shorter} matches {longer}")
++
++
+ def find_target_artifact(user_arg=None):
+     repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+     target_dirs = []
+@@ -729,14 +839,17 @@ def parse_symbols(disasm_text, is_demangled):
+     return per_symbol
+ 
+ 
+-def run_audit(per_symbol, is_demangled, target_path, strict_arm64=True, git_commit=None, compiler=None, flags=None):
++def run_audit(per_symbol, is_demangled, target_path, strict_arm64=True, git_commit=None, compiler=None, flags=None, stack=False):
+     """Execute audit across Class I, Class II, and Class III instructions.
+ 
++    With `stack`, the D11 geometric-stack symbols are the mandatory set.
+     Returns dict containing detailed results and failure reports.
+     """
+     is_rlib = target_path.endswith(".rlib")
+     is_chat = "uor-chat" in os.path.basename(target_path)
+-    if is_rlib:
++    if stack:
++        mandatory_list = list(STACK_MANDATORY_SYMBOLS)
++    elif is_rlib:
+         mandatory_list = list(RLIB_MANDATORY_SYMBOLS)
+     else:
+         mandatory_list = list(BIN_MANDATORY_SYMBOLS)
+@@ -756,6 +869,7 @@ def run_audit(per_symbol, is_demangled, target_path, strict_arm64=True, git_comm
+         "flags": flags,
+         "is_rlib": is_rlib,
+         "is_chat": is_chat,
++        "is_stack": stack,
+         "strict": strict_arm64,
+         "total_symbols_indexed": len(per_symbol),
+         "mandatory_checked": 0,
+@@ -1165,9 +1279,10 @@ def run_sentinel_tests():
+             raise AssertionError(f"Sentinel test failed: '{instr}' not detected by STRICT_FORBIDDEN_PATTERN")
+ 
+ 
+-def run_call_graph_audit(path, disasm_choice="auto"):
++def run_call_graph_audit(path, disasm_choice="auto", extra_roots=()):
+     """Transitive call-graph reachability traversal from serving roots.
+-    Checks 100% of reachable numerical serving functions in compiled binaries."""
++    Checks 100% of reachable numerical serving functions in compiled binaries.
++    `extra_roots` are compiled patterns naming further roots (the stack set)."""
+     try:
+         output = subprocess.check_output(["otool", "-tvV", path]).decode("utf-8", errors="ignore")
+     except Exception as e:
+@@ -1220,7 +1335,10 @@ def run_call_graph_audit(path, disasm_choice="auto"):
+     serving_roots = [
+         fn
+         for fn in functions
+-        if any(kw in fn for kw in serving_entry_keywords)
++        if (
++            any(kw in fn for kw in serving_entry_keywords)
++            or any(p.search(fn) for p in extra_roots)
++        )
+         and "drop_glue" not in fn
+         and "closure" not in fn
+     ]
+@@ -1331,6 +1449,12 @@ def main():
+         default=None,
+         help="Compiler flags to record in metadata (default: auto-detected)",
+     )
++    parser.add_argument(
++        "--stack",
++        action="store_true",
++        help="Audit the D11 geometric-stack engine: its step and kernels are the mandatory "
++        "symbols and call-graph roots (implied for a binary named uor-r4-stack*)",
++    )
+ 
+     args = parser.parse_args()
+ 
+@@ -1348,8 +1472,13 @@ def main():
+         return 1
+ 
+     target_path = find_target_artifact(chosen_target)
++    stack = args.stack or os.path.basename(target_path).startswith("uor-r4-stack")
++    if stack:
++        run_stack_pattern_tests()
+     if not args.tap:
+         print(f"Disassembling target artifact: {target_path} (using {args.disassembler})")
++        if stack:
++            print("Symbol set: D11 geometric stack (STACK_MANDATORY_SYMBOLS and stack call-graph roots)")
+ 
+     disasm, is_demangled = disassemble_artifact(target_path, args.disassembler)
+     per_symbol = parse_symbols(disasm, is_demangled)
+@@ -1364,11 +1493,16 @@ def main():
+         git_commit=args.git_commit,
+         compiler=args.compiler,
+         flags=args.flags,
++        stack=stack,
+     )
+ 
+     do_call_graph = args.call_graph if args.call_graph is not None else (not target_path.endswith(".rlib"))
+     if do_call_graph:
+-        cg_visited, cg_violations = run_call_graph_audit(target_path, args.disassembler)
++        cg_visited, cg_violations = run_call_graph_audit(
++            target_path,
++            args.disassembler,
++            extra_roots=STACK_CALL_GRAPH_ROOTS if stack else (),
++        )
+         results["call_graph_checked"] = cg_visited
+         results["call_graph_violations"] = cg_violations
+         if cg_violations:

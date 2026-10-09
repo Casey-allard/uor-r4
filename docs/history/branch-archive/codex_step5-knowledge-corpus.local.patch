@@ -1,0 +1,2404 @@
+diff --git a/crates/uor-r4-training/src/bin/prepare-knowledge-corpus.rs b/crates/uor-r4-training/src/bin/prepare-knowledge-corpus.rs
+new file mode 100644
+index 000000000..2b0e4a049
+--- /dev/null
++++ b/crates/uor-r4-training/src/bin/prepare-knowledge-corpus.rs
+@@ -0,0 +1,679 @@
++//! Encode an open-domain knowledge corpus (Step 5 of the 5 October plan,
++//! #820) into UORT token stores for `geometric-stack train`, decontaminated
++//! against the open chat panel.
++//!
++//! ```text
++//! prepare-knowledge-corpus out=NEW_ROOT tokenizer=TOKENIZER.json \
++//!   input=FILE[|FILE...] format=jsonl|parquet source=LABEL licence=SPDX \
++//!   panel=PANEL.json[,PANEL.json...] [min_words=20] [heldout_every=100] \
++//!   [title=prepend|omit] [max_docs=N]
++//! ```
++//!
++//! Input rows carry `text` and optionally `title` and `id` (the
++//! `wikimedia/wikipedia` schema: `id`, `url`, `title`, `text`). `jsonl` reads
++//! one JSON object per line; `parquet` (built only with `--features
++//! parquet-input`) reads the parquet export directly. Files are read in the
++//! order given as one row sequence.
++//!
++//! Each article becomes `title\n\nbody` (`title=prepend`, the default) with
++//! line endings normalised and blank-line runs collapsed
++//! (`knowledge_corpus::clean_article`). An article is dropped and counted when
++//! it has fewer than `min_words` words, when any of its 8-word windows equals
++//! an 8-word window of a panel user turn, or when it contains the whole word
++//! sequence of a 4-7 word panel turn (`knowledge_corpus::PanelExclusion`), or
++//! when its encoding does not decode back to its exact text. Every dropped
++//! panel match is listed in `excluded.jsonl` (row index, id, title, rule,
++//! matched words, panel request id).
++//!
++//! Kept articles are numbered in input order; article `k` goes to
++//! `heldout/tokens.u16` when `k % heldout_every == heldout_every - 1`, else to
++//! `train/tokens.u16` (`heldout_every=0` disables the split). Each article is
++//! followed by `<|eos|>`. The held-out store measures knowledge NLL; it is
++//! never trained on. `corpus.json` binds the inputs (sizes and SHA-256),
++//! tokenizer, panel files, licence, rules and counts; the root is claimed
++//! exclusively before any work and sealed (`manifest.json`) at the end.
++//! Encoding runs on all cores in fixed-size batches; output order and bytes do
++//! not depend on the thread count.
++
++#![forbid(unsafe_code)]
++
++use std::collections::BTreeMap;
++use std::fs::{self, File};
++use std::io::{BufRead, BufReader, BufWriter, Write};
++use std::path::{Path, PathBuf};
++use std::process::ExitCode;
++use std::time::Instant;
++
++use rayon::prelude::*;
++use serde_json::{json, Value};
++use uor_r4_core::native_geometric::mmap_corpus::CorpusWriter;
++use uor_r4_core::report_output;
++use uor_r4_tokenizer::ByteBpeTokenizer;
++use uor_r4_training::knowledge_corpus::{
++    clean_article, parse_panel, word_count, PanelExclusion, MIN_SHORT_REQUEST_WORDS, PANEL_NGRAM,
++};
++use uor_r4_training::sha256_file;
++
++type Error = Box<dyn std::error::Error>;
++
++const BATCH_ROWS: usize = 4096;
++const KEYS: &[&str] = &[
++    "out",
++    "tokenizer",
++    "input",
++    "format",
++    "source",
++    "licence",
++    "panel",
++    "min_words",
++    "heldout_every",
++    "title",
++    "max_docs",
++];
++
++/// One input row.
++#[derive(Clone, Debug, Default)]
++struct Article {
++    id: Option<String>,
++    title: Option<String>,
++    text: String,
++}
++
++/// What became of one row.
++enum Outcome {
++    Kept(Vec<u16>),
++    Short,
++    Panel {
++        rule: &'static str,
++        words: String,
++        request: String,
++    },
++    RoundTrip,
++}
++
++struct Config {
++    out: PathBuf,
++    tokenizer: PathBuf,
++    inputs: Vec<PathBuf>,
++    format: String,
++    source: String,
++    licence: String,
++    panels: Vec<PathBuf>,
++    min_words: usize,
++    heldout_every: usize,
++    prepend_title: bool,
++    max_docs: usize,
++}
++
++fn parse_args(raw: &[String]) -> Result<Config, Error> {
++    let mut args: BTreeMap<String, String> = BTreeMap::new();
++    for argument in raw {
++        let (key, value) = argument
++            .split_once('=')
++            .ok_or_else(|| format!("expected key=value, got {argument}"))?;
++        if !KEYS.contains(&key) || args.insert(key.to_owned(), value.to_owned()).is_some() {
++            return Err(format!("unknown or repeated argument {key}").into());
++        }
++    }
++    let get = |key: &str| -> Result<String, Error> {
++        args.get(key)
++            .cloned()
++            .filter(|v| !v.is_empty())
++            .ok_or_else(|| format!("missing {key}=").into())
++    };
++    let number = |key: &str, default: usize| -> Result<usize, Error> {
++        args.get(key).map_or(Ok(default), |v| {
++            v.parse()
++                .map_err(|_| format!("{key}= must be a number, got {v}").into())
++        })
++    };
++    let format = get("format")?;
++    if format != "jsonl" && format != "parquet" {
++        return Err(format!("format must be jsonl or parquet, got {format}").into());
++    }
++    if format == "parquet" && !cfg!(feature = "parquet-input") {
++        return Err("format=parquet needs a build with --features parquet-input".into());
++    }
++    let prepend_title = match args.get("title").map(String::as_str) {
++        None | Some("prepend") => true,
++        Some("omit") => false,
++        Some(other) => return Err(format!("title must be prepend or omit, got {other}").into()),
++    };
++    let inputs: Vec<PathBuf> = get("input")?.split('|').map(PathBuf::from).collect();
++    let panels: Vec<PathBuf> = get("panel")?.split(',').map(PathBuf::from).collect();
++    if inputs
++        .iter()
++        .chain(&panels)
++        .any(|p| p.as_os_str().is_empty())
++    {
++        return Err("empty input or panel path".into());
++    }
++    Ok(Config {
++        out: PathBuf::from(get("out")?),
++        tokenizer: PathBuf::from(get("tokenizer")?),
++        inputs,
++        format,
++        source: get("source")?,
++        licence: get("licence")?,
++        panels,
++        min_words: number("min_words", 20)?,
++        heldout_every: number("heldout_every", 100)?,
++        prepend_title,
++        max_docs: number("max_docs", usize::MAX)?,
++    })
++}
++
++fn article_from_json(line: &str) -> Result<Article, Error> {
++    let value: Value = serde_json::from_str(line)?;
++    let text = value["text"]
++        .as_str()
++        .ok_or("a jsonl row has no string text")?
++        .to_owned();
++    let string = |key: &str| match &value[key] {
++        Value::String(s) => Some(s.clone()),
++        Value::Number(n) => Some(n.to_string()),
++        _ => None,
++    };
++    Ok(Article {
++        id: string("id"),
++        title: string("title"),
++        text,
++    })
++}
++
++#[cfg(feature = "parquet-input")]
++fn article_from_parquet(row: &parquet::record::Row) -> Result<Article, Error> {
++    use parquet::record::Field;
++    let mut article = Article::default();
++    let mut has_text = false;
++    for (name, field) in row.get_column_iter() {
++        let value = match field {
++            Field::Str(s) => Some(s.clone()),
++            Field::Null => None,
++            Field::Long(v) => Some(v.to_string()),
++            Field::Int(v) => Some(v.to_string()),
++            _ => continue,
++        };
++        match name.as_str() {
++            "text" => {
++                article.text = value.unwrap_or_default();
++                has_text = true;
++            }
++            "title" => article.title = value,
++            "id" => article.id = value,
++            _ => {}
++        }
++    }
++    if !has_text {
++        return Err("a parquet row has no text column".into());
++    }
++    Ok(article)
++}
++
++/// Stream every input row, in order, to `sink` in batches of [`BATCH_ROWS`];
++/// stops after `max_docs` rows.
++fn for_each_batch(
++    config: &Config,
++    mut sink: impl FnMut(&[Article]) -> Result<(), Error>,
++) -> Result<usize, Error> {
++    let mut batch: Vec<Article> = Vec::with_capacity(BATCH_ROWS);
++    let mut rows = 0usize;
++    for input in &config.inputs {
++        if rows >= config.max_docs {
++            break;
++        }
++        match config.format.as_str() {
++            "jsonl" => {
++                let reader = BufReader::new(File::open(input)?);
++                for line in reader.lines() {
++                    let line = line?;
++                    if line.trim().is_empty() {
++                        continue;
++                    }
++                    batch.push(
++                        article_from_json(&line)
++                            .map_err(|e| format!("{} row {rows}: {e}", input.display()))?,
++                    );
++                    rows += 1;
++                    if batch.len() == BATCH_ROWS {
++                        sink(&batch)?;
++                        batch.clear();
++                    }
++                    if rows >= config.max_docs {
++                        break;
++                    }
++                }
++            }
++            #[cfg(feature = "parquet-input")]
++            "parquet" => {
++                use parquet::file::reader::{FileReader, SerializedFileReader};
++                let reader = SerializedFileReader::new(File::open(input)?)
++                    .map_err(|e| format!("{}: {e}", input.display()))?;
++                for row in reader
++                    .get_row_iter(None)
++                    .map_err(|e| format!("{}: {e}", input.display()))?
++                {
++                    let row = row.map_err(|e| format!("{}: {e}", input.display()))?;
++                    batch.push(
++                        article_from_parquet(&row)
++                            .map_err(|e| format!("{} row {rows}: {e}", input.display()))?,
++                    );
++                    rows += 1;
++                    if batch.len() == BATCH_ROWS {
++                        sink(&batch)?;
++                        batch.clear();
++                    }
++                    if rows >= config.max_docs {
++                        break;
++                    }
++                }
++            }
++            other => return Err(format!("unsupported format {other}").into()),
++        }
++    }
++    if !batch.is_empty() {
++        sink(&batch)?;
++    }
++    Ok(rows)
++}
++
++fn process(
++    tokenizer: &ByteBpeTokenizer,
++    exclusion: &PanelExclusion,
++    config: &Config,
++    article: &Article,
++) -> Outcome {
++    let title = config
++        .prepend_title
++        .then_some(article.title.as_deref())
++        .flatten();
++    let text = clean_article(title, &article.text);
++    if word_count(&text) < config.min_words {
++        return Outcome::Short;
++    }
++    if let Some(hit) = exclusion.first_hit(&text) {
++        return Outcome::Panel {
++            rule: hit.kind.label(),
++            words: hit.words,
++            request: hit.request_id,
++        };
++    }
++    let ids = tokenizer.encode(&text);
++    if String::from_utf8_lossy(&tokenizer.decode_bytes(&ids)) != text.as_str() {
++        return Outcome::RoundTrip;
++    }
++    match ids
++        .iter()
++        .map(|&id| u16::try_from(id))
++        .collect::<Result<Vec<u16>, _>>()
++    {
++        Ok(ids) => Outcome::Kept(ids),
++        Err(_) => Outcome::RoundTrip,
++    }
++}
++
++#[derive(Default)]
++struct Counts {
++    rows: usize,
++    kept_train: usize,
++    kept_heldout: usize,
++    dropped_short: usize,
++    dropped_panel_8gram: usize,
++    dropped_panel_short_request: usize,
++    dropped_round_trip: usize,
++    train_doc_tokens: usize,
++    heldout_doc_tokens: usize,
++}
++
++fn input_identity(path: &Path) -> Result<Value, Error> {
++    Ok(json!({
++        "path": path.display().to_string(),
++        "bytes": fs::metadata(path)?.len(),
++        "sha256": sha256_file(path)?,
++    }))
++}
++
++fn run(raw: &[String]) -> Result<(), Error> {
++    let started = Instant::now();
++    let config = parse_args(raw)?;
++    for path in config.inputs.iter().chain(&config.panels) {
++        if !path.is_file() {
++            return Err(format!("{}: not a file", path.display()).into());
++        }
++    }
++    let tokenizer_json = fs::read(&config.tokenizer)?;
++    let tokenizer = ByteBpeTokenizer::from_tokenizer_json_bytes(&tokenizer_json)
++        .ok_or("unreadable tokenizer.json")?;
++    let eos = tokenizer
++        .token_id("<|eos|>")
++        .ok_or("the tokenizer has no <|eos|>")?;
++    let eos = u16::try_from(eos).map_err(|_| "<|eos|> id above u16")?;
++    let vocab = u32::try_from(tokenizer.vocab_size()).map_err(|_| "vocabulary too large")?;
++
++    let mut requests = Vec::new();
++    let mut panel_files = Vec::new();
++    for panel in &config.panels {
++        let rows =
++            parse_panel(&fs::read(panel)?).map_err(|e| format!("{}: {e}", panel.display()))?;
++        let mut identity = input_identity(panel)?;
++        identity["requests"] = json!(rows.len());
++        panel_files.push(identity);
++        requests.extend(rows);
++    }
++    let exclusion = PanelExclusion::new(&requests);
++
++    // Claim the root exclusively after argument and input validation and
++    // before any output.
++    report_output::claim(&config.out)?;
++    fs::create_dir(config.out.join("train"))?;
++    let train_path = config.out.join("train").join("tokens.u16");
++    let mut train = CorpusWriter::create(&train_path, vocab)?;
++    let heldout_path = config.out.join("heldout").join("tokens.u16");
++    let mut heldout = if config.heldout_every > 0 {
++        fs::create_dir(config.out.join("heldout"))?;
++        Some(CorpusWriter::create(&heldout_path, vocab)?)
++    } else {
++        None
++    };
++    let mut excluded = BufWriter::new(File::create_new(config.out.join("excluded.jsonl"))?);
++
++    let mut counts = Counts::default();
++    let mut kept_index = 0usize;
++    let rows = for_each_batch(&config, |batch| {
++        let outcomes: Vec<Outcome> = batch
++            .par_iter()
++            .map_init(
++                || ByteBpeTokenizer::from_tokenizer_json_bytes(&tokenizer_json),
++                |local, article| match local.as_ref() {
++                    Some(local) => process(local, &exclusion, &config, article),
++                    None => Outcome::RoundTrip,
++                },
++            )
++            .collect();
++        for (article, outcome) in batch.iter().zip(outcomes) {
++            let row = counts.rows;
++            counts.rows += 1;
++            match outcome {
++                Outcome::Kept(mut ids) => {
++                    let doc_tokens = ids.len();
++                    ids.push(eos);
++                    let to_heldout = config.heldout_every > 0
++                        && kept_index % config.heldout_every == config.heldout_every - 1;
++                    kept_index += 1;
++                    match (&mut heldout, to_heldout) {
++                        (Some(writer), true) => {
++                            writer.write_tokens(&ids)?;
++                            counts.kept_heldout += 1;
++                            counts.heldout_doc_tokens += doc_tokens;
++                        }
++                        _ => {
++                            train.write_tokens(&ids)?;
++                            counts.kept_train += 1;
++                            counts.train_doc_tokens += doc_tokens;
++                        }
++                    }
++                }
++                Outcome::Short => counts.dropped_short += 1,
++                Outcome::RoundTrip => counts.dropped_round_trip += 1,
++                Outcome::Panel {
++                    rule,
++                    words,
++                    request,
++                } => {
++                    if rule == "panel_8gram" {
++                        counts.dropped_panel_8gram += 1;
++                    } else {
++                        counts.dropped_panel_short_request += 1;
++                    }
++                    let record = json!({
++                        "row": row,
++                        "id": article.id,
++                        "title": article.title,
++                        "rule": rule,
++                        "words": words,
++                        "panel_request": request,
++                    });
++                    serde_json::to_writer(&mut excluded, &record)?;
++                    excluded.write_all(b"\n")?;
++                }
++            }
++        }
++        Ok(())
++    })?;
++    excluded.flush()?;
++    drop(excluded);
++    let train_tokens = train.finish()?;
++    let heldout_tokens = match heldout {
++        Some(writer) => Some(writer.finish()?),
++        None => None,
++    };
++    if counts.kept_train == 0 {
++        return Err("no article was kept for training".into());
++    }
++    if rows != counts.rows {
++        return Err(format!("read {rows} rows but processed {}", counts.rows).into());
++    }
++
++    let inputs = config
++        .inputs
++        .iter()
++        .map(|p| input_identity(p))
++        .collect::<Result<Vec<_>, _>>()?;
++    let corpus = json!({
++        "schema": "uor-r4.knowledge-corpus/1",
++        "source": config.source,
++        "licence": config.licence,
++        "format": config.format,
++        "inputs": inputs,
++        "tokenizer": {
++            "path": config.tokenizer.display().to_string(),
++            "sha256": sha256_file(&config.tokenizer)?,
++            "vocab_size": vocab,
++            "eos_id": eos,
++        },
++        "decontamination": {
++            "rule": format!(
++                "drop the whole article when any {PANEL_NGRAM}-word window of its normalized words (lowercased, split on characters other than letters, digits and apostrophes) equals a {PANEL_NGRAM}-word window of a panel user turn, or when it contains the whole word sequence of a panel user turn of {MIN_SHORT_REQUEST_WORDS}-{} words; hits are confirmed exactly",
++                PANEL_NGRAM - 1
++            ),
++            "shared_with": "uor_r4_training::milestone_world_v2_probe::EXCLUSION_NGRAM (the M-world probe exclusion)",
++            "panel_files": panel_files,
++            "panel_requests": exclusion.requests,
++            "panel_turns": exclusion.turns,
++            "panel_turns_covered_by_8grams": exclusion.ngram_turns,
++            "panel_turns_covered_whole": exclusion.short_turns,
++            "panel_turns_uncovered_under_4_words": exclusion.uncovered_turns,
++            "distinct_panel_8grams": exclusion.ngrams,
++            "excluded_list": "excluded.jsonl",
++        },
++        "document_rule": if config.prepend_title {
++            "title, a blank line, then the body with \\r\\n/\\r normalised, line ends trimmed and blank-line runs collapsed; kept only with at least min_words words and an exact decode round trip; each followed by <|eos|>"
++        } else {
++            "the body with \\r\\n/\\r normalised, line ends trimmed and blank-line runs collapsed; kept only with at least min_words words and an exact decode round trip; each followed by <|eos|>"
++        },
++        "min_words": config.min_words,
++        "max_docs": (config.max_docs != usize::MAX).then_some(config.max_docs),
++        "split_rule": format!(
++            "kept articles numbered in input order; article k goes to heldout when heldout_every > 0 and k % heldout_every == heldout_every - 1 (heldout_every = {})",
++            config.heldout_every
++        ),
++        "counts": {
++            "rows": counts.rows,
++            "kept_train": counts.kept_train,
++            "kept_heldout": counts.kept_heldout,
++            "dropped_short": counts.dropped_short,
++            "dropped_panel_8gram": counts.dropped_panel_8gram,
++            "dropped_panel_short_request": counts.dropped_panel_short_request,
++            "dropped_round_trip": counts.dropped_round_trip,
++        },
++        "train": {
++            "path": "train/tokens.u16",
++            "document_tokens": counts.train_doc_tokens,
++            "tokens": train_tokens,
++            "sha256": sha256_file(&train_path)?,
++        },
++        "heldout": heldout_tokens.map(|tokens| -> Result<Value, Error> {
++            Ok(json!({
++                "path": "heldout/tokens.u16",
++                "document_tokens": counts.heldout_doc_tokens,
++                "tokens": tokens,
++                "sha256": sha256_file(&heldout_path)?,
++            }))
++        }).transpose()?,
++        "executable_sha256": sha256_file(&std::env::current_exe()?)?,
++        "wall_seconds": started.elapsed().as_secs_f64(),
++    });
++    fs::write(
++        config.out.join("corpus.json"),
++        serde_json::to_vec_pretty(&corpus)?,
++    )?;
++    report_output::seal(&config.out)?;
++    report_output::verify(&config.out)?;
++    println!(
++        "{}: {} rows; kept {} train ({} tokens) + {} heldout ({} tokens); dropped short {}, panel 8-gram {}, panel short request {}, round trip {}",
++        config.source,
++        counts.rows,
++        counts.kept_train,
++        train_tokens,
++        counts.kept_heldout,
++        heldout_tokens.unwrap_or(0),
++        counts.dropped_short,
++        counts.dropped_panel_8gram,
++        counts.dropped_panel_short_request,
++        counts.dropped_round_trip
++    );
++    Ok(())
++}
++
++fn main() -> ExitCode {
++    let args: Vec<String> = std::env::args().skip(1).collect();
++    match run(&args) {
++        Ok(()) => ExitCode::SUCCESS,
++        Err(error) => {
++            eprintln!("prepare-knowledge-corpus: {error}");
++            ExitCode::FAILURE
++        }
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++
++    fn args(list: &[&str]) -> Vec<String> {
++        list.iter().map(|s| (*s).to_owned()).collect()
++    }
++
++    #[test]
++    fn arguments_parse_and_reject_malformed() {
++        let base = [
++            "out=o",
++            "tokenizer=t.json",
++            "input=a.jsonl|b.jsonl",
++            "format=jsonl",
++            "source=simplewiki",
++            "licence=CC-BY-SA-4.0",
++            "panel=p.json,q.json",
++        ];
++        let config = parse_args(&args(&base)).unwrap();
++        assert_eq!(config.inputs.len(), 2);
++        assert_eq!(config.panels.len(), 2);
++        assert_eq!(config.min_words, 20);
++        assert_eq!(config.heldout_every, 100);
++        assert!(config.prepend_title);
++        let mut bad = base.to_vec();
++        bad.push("colour=red");
++        assert!(parse_args(&args(&bad)).is_err());
++        let mut repeated = base.to_vec();
++        repeated.push("format=jsonl");
++        assert!(parse_args(&args(&repeated)).is_err());
++        assert!(parse_args(&args(&base[..6])).is_err(), "panel= is required");
++        let mut format = base.to_vec();
++        format[3] = "format=csv";
++        assert!(parse_args(&args(&format)).is_err());
++        let mut title = base.to_vec();
++        title.push("title=upper");
++        assert!(parse_args(&args(&title)).is_err());
++    }
++
++    #[test]
++    fn jsonl_rows_accept_numeric_ids_and_require_text() {
++        let article = article_from_json(r#"{"id":12,"title":"Bee","text":"Bees."}"#).unwrap();
++        assert_eq!(article.id.as_deref(), Some("12"));
++        assert_eq!(article.title.as_deref(), Some("Bee"));
++        assert!(article_from_json(r#"{"title":"Bee"}"#).is_err());
++    }
++
++    #[cfg(feature = "parquet-input")]
++    #[test]
++    fn wikimedia_parquet_rows_are_read_in_order() {
++        use parquet::data_type::{ByteArray, ByteArrayType};
++        use parquet::file::properties::WriterProperties;
++        use parquet::file::writer::SerializedFileWriter;
++        use parquet::schema::parser::parse_message_type;
++        use std::sync::Arc;
++
++        let dir = std::env::temp_dir().join(format!(
++            "uor-r4-knowledge-parquet-test-{}",
++            std::process::id()
++        ));
++        let _ = fs::remove_dir_all(&dir);
++        fs::create_dir_all(&dir).unwrap();
++        let path = dir.join("train.parquet");
++        let schema = Arc::new(
++            parse_message_type(
++                "message schema { REQUIRED BYTE_ARRAY id (UTF8); REQUIRED BYTE_ARRAY url (UTF8); \
++                 REQUIRED BYTE_ARRAY title (UTF8); REQUIRED BYTE_ARRAY text (UTF8); }",
++            )
++            .unwrap(),
++        );
++        let columns: [[&str; 2]; 4] = [
++            ["1", "2"],
++            ["u1", "u2"],
++            ["April", "August"],
++            ["April is a month.", "August is a month."],
++        ];
++        {
++            let file = File::create(&path).unwrap();
++            let mut writer = SerializedFileWriter::new(
++                file,
++                schema,
++                Arc::new(WriterProperties::builder().build()),
++            )
++            .unwrap();
++            let mut group = writer.next_row_group().unwrap();
++            for values in columns {
++                let mut column = group.next_column().unwrap().unwrap();
++                let data: Vec<ByteArray> = values.iter().map(|v| ByteArray::from(*v)).collect();
++                column
++                    .typed::<ByteArrayType>()
++                    .write_batch(&data, None, None)
++                    .unwrap();
++                column.close().unwrap();
++            }
++            group.close().unwrap();
++            writer.close().unwrap();
++        }
++        let config = parse_args(&args(&[
++            "out=unused",
++            "tokenizer=t.json",
++            &format!("input={}", path.display()),
++            "format=parquet",
++            "source=s",
++            "licence=CC-BY-SA-4.0",
++            "panel=p.json",
++        ]))
++        .unwrap();
++        let mut seen = Vec::new();
++        let rows = for_each_batch(&config, |batch| {
++            seen.extend(batch.iter().cloned());
++            Ok(())
++        })
++        .unwrap();
++        assert_eq!(rows, 2);
++        assert_eq!(seen[0].id.as_deref(), Some("1"));
++        assert_eq!(seen[1].title.as_deref(), Some("August"));
++        assert_eq!(seen[1].text, "August is a month.");
++        fs::remove_dir_all(&dir).unwrap();
++    }
++}
+diff --git a/crates/uor-r4-training/src/knowledge_corpus.rs b/crates/uor-r4-training/src/knowledge_corpus.rs
+new file mode 100644
+index 000000000..837ac4eed
+--- /dev/null
++++ b/crates/uor-r4-training/src/knowledge_corpus.rs
+@@ -0,0 +1,381 @@
++//! Open-domain knowledge corpus preparation for Step 5 of the 5 October plan
++//! (#820): article cleaning and decontamination against the open chat panel.
++//!
++//! The decontamination rule is the one the M-world probe already uses
++//! ([`crate::milestone_world_v2_probe::EXCLUSION_NGRAM`] words after
++//! [`crate::milestone_world::normalized`]-style word splitting: lowercased,
++//! punctuation removed, apostrophes kept inside words). A document is dropped
++//! whole when any of its 8-word windows equals an 8-word window of any panel
++//! user turn. Panel turns shorter than eight words cannot produce an 8-gram;
++//! for those with at least [`MIN_SHORT_REQUEST_WORDS`] words the whole turn's
++//! word sequence is excluded instead, so short requests such as "Why do
++//! leaves change color in the fall" are not silently uncovered. Turns with
++//! fewer words are counted as uncovered rather than matched, because a
++//! two- or three-word sequence ("hi dr smith") is not evidence of contamination.
++//!
++//! Matching is exact: window keys are hashed to `u64` for speed and every
++//! candidate hit is confirmed against the stored word sequence, so a hash
++//! collision can never drop a document.
++
++use std::collections::{BTreeMap, HashMap};
++use std::fmt;
++use std::hash::{Hash, Hasher};
++
++use serde_json::Value;
++
++use crate::milestone_world::words;
++use crate::milestone_world_v2_probe::EXCLUSION_NGRAM;
++
++/// Word count of the panel exclusion window (shared with the M-world probe).
++pub const PANEL_NGRAM: usize = EXCLUSION_NGRAM;
++
++/// Panel turns with at least this many (but fewer than [`PANEL_NGRAM`]) words
++/// are excluded by whole-sequence containment.
++pub const MIN_SHORT_REQUEST_WORDS: usize = 4;
++
++/// Errors at the knowledge-corpus library boundary.
++#[derive(Debug)]
++pub enum KnowledgeError {
++    /// A panel file is not a JSON list of `{id, user_turns: [string]}` rows.
++    Panel(String),
++    /// A panel file is not JSON.
++    Json(serde_json::Error),
++}
++
++impl fmt::Display for KnowledgeError {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        match self {
++            Self::Panel(message) => write!(f, "panel: {message}"),
++            Self::Json(error) => write!(f, "panel JSON: {error}"),
++        }
++    }
++}
++
++impl std::error::Error for KnowledgeError {}
++
++impl From<serde_json::Error> for KnowledgeError {
++    fn from(error: serde_json::Error) -> Self {
++        Self::Json(error)
++    }
++}
++
++/// One panel request: its id and user turns.
++#[derive(Clone, Debug, PartialEq, Eq)]
++pub struct PanelRequest {
++    pub id: String,
++    pub user_turns: Vec<String>,
++}
++
++/// The requests of one chat-grade panel file (`[{id, category, user_turns}]`).
++pub fn parse_panel(bytes: &[u8]) -> Result<Vec<PanelRequest>, KnowledgeError> {
++    let value: Value = serde_json::from_slice(bytes)?;
++    let rows = value
++        .as_array()
++        .ok_or_else(|| KnowledgeError::Panel("not a JSON list".into()))?;
++    rows.iter()
++        .enumerate()
++        .map(|(index, row)| {
++            let id = row["id"]
++                .as_str()
++                .ok_or_else(|| KnowledgeError::Panel(format!("row {index} has no string id")))?;
++            let turns = row["user_turns"]
++                .as_array()
++                .ok_or_else(|| KnowledgeError::Panel(format!("row {id} has no user_turns list")))?;
++            let user_turns = turns
++                .iter()
++                .map(|t| {
++                    t.as_str().map(str::to_owned).ok_or_else(|| {
++                        KnowledgeError::Panel(format!("row {id} has a non-string user turn"))
++                    })
++                })
++                .collect::<Result<Vec<_>, _>>()?;
++            if user_turns.is_empty() {
++                return Err(KnowledgeError::Panel(format!("row {id} has no user turn")));
++            }
++            Ok(PanelRequest {
++                id: id.to_owned(),
++                user_turns,
++            })
++        })
++        .collect()
++}
++
++fn window_key(window: &[String]) -> u64 {
++    // `DefaultHasher::new()` uses fixed keys, so keys are stable within a run;
++    // they are never persisted, and every hit is confirmed exactly.
++    let mut hasher = std::collections::hash_map::DefaultHasher::new();
++    window.hash(&mut hasher);
++    hasher.finish()
++}
++
++/// Which exclusion rule matched a document.
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub enum HitKind {
++    /// An 8-word window shared with a panel turn.
++    Ngram,
++    /// The whole word sequence of a short (4-7 word) panel turn.
++    ShortRequest,
++}
++
++impl HitKind {
++    pub fn label(self) -> &'static str {
++        match self {
++            Self::Ngram => "panel_8gram",
++            Self::ShortRequest => "panel_short_request",
++        }
++    }
++}
++
++/// The first exclusion match in a document.
++#[derive(Clone, Debug, PartialEq, Eq)]
++pub struct Hit {
++    pub kind: HitKind,
++    /// The matched normalized words, joined by single spaces.
++    pub words: String,
++    /// The panel request id whose turn supplied the matched sequence.
++    pub request_id: String,
++}
++
++/// Exact word-sequence exclusion built from panel user turns.
++#[derive(Clone, Debug, Default)]
++pub struct PanelExclusion {
++    /// Sequence length -> key -> (sequence, request id); one entry per length
++    /// in use: [`PANEL_NGRAM`] and every short-turn length.
++    by_len: BTreeMap<usize, HashMap<u64, Vec<(Vec<String>, String)>>>,
++    /// Panel requests read.
++    pub requests: usize,
++    /// User turns read.
++    pub turns: usize,
++    /// Turns with at least [`PANEL_NGRAM`] words (covered by 8-grams).
++    pub ngram_turns: usize,
++    /// Turns covered by whole-sequence containment.
++    pub short_turns: usize,
++    /// Turns with fewer than [`MIN_SHORT_REQUEST_WORDS`] words: not covered.
++    pub uncovered_turns: usize,
++    /// Distinct 8-word windows.
++    pub ngrams: usize,
++}
++
++impl PanelExclusion {
++    /// The exclusion of every user turn of `requests`.
++    pub fn new(requests: &[PanelRequest]) -> Self {
++        let mut exclusion = Self::default();
++        for request in requests {
++            exclusion.requests += 1;
++            for turn in &request.user_turns {
++                exclusion.turns += 1;
++                let all = words(turn);
++                if all.len() >= PANEL_NGRAM {
++                    exclusion.ngram_turns += 1;
++                    for window in all.windows(PANEL_NGRAM) {
++                        if exclusion.insert(window, &request.id) {
++                            exclusion.ngrams += 1;
++                        }
++                    }
++                } else if all.len() >= MIN_SHORT_REQUEST_WORDS {
++                    exclusion.short_turns += 1;
++                    exclusion.insert(&all, &request.id);
++                } else {
++                    exclusion.uncovered_turns += 1;
++                }
++            }
++        }
++        exclusion
++    }
++
++    /// Insert one sequence; false when it was already present.
++    fn insert(&mut self, sequence: &[String], request_id: &str) -> bool {
++        let bucket = self
++            .by_len
++            .entry(sequence.len())
++            .or_default()
++            .entry(window_key(sequence))
++            .or_default();
++        if bucket.iter().any(|(seq, _)| seq.as_slice() == sequence) {
++            return false;
++        }
++        bucket.push((sequence.to_vec(), request_id.to_owned()));
++        true
++    }
++
++    /// The first excluded sequence `text` contains, scanning lengths in
++    /// increasing order and positions left to right.
++    pub fn first_hit(&self, text: &str) -> Option<Hit> {
++        if self.by_len.is_empty() {
++            return None;
++        }
++        let all = words(text);
++        for (&len, table) in &self.by_len {
++            if all.len() < len {
++                continue;
++            }
++            for window in all.windows(len) {
++                if let Some(bucket) = table.get(&window_key(window)) {
++                    if let Some((seq, id)) = bucket.iter().find(|(seq, _)| seq.as_slice() == window)
++                    {
++                        return Some(Hit {
++                            kind: if len == PANEL_NGRAM {
++                                HitKind::Ngram
++                            } else {
++                                HitKind::ShortRequest
++                            },
++                            words: seq.join(" "),
++                            request_id: id.clone(),
++                        });
++                    }
++                }
++            }
++        }
++        None
++    }
++}
++
++/// An article's training text: optional title line, then the body with
++/// `\r\n`/`\r` normalised, trailing spaces trimmed per line, runs of blank
++/// lines collapsed to one, and the whole trimmed.
++pub fn clean_article(title: Option<&str>, body: &str) -> String {
++    let body = body.replace("\r\n", "\n").replace('\r', "\n");
++    let mut out = String::with_capacity(body.len() + 64);
++    if let Some(title) = title.map(str::trim).filter(|t| !t.is_empty()) {
++        out.push_str(title);
++        out.push_str("\n\n");
++    }
++    let mut blank = false;
++    let mut any = false;
++    for line in body.lines() {
++        let line = line.trim_end();
++        if line.trim().is_empty() {
++            blank = any;
++            continue;
++        }
++        if blank {
++            out.push('\n');
++        }
++        if any {
++            out.push('\n');
++        }
++        out.push_str(line);
++        any = true;
++        blank = false;
++    }
++    out.trim().to_owned()
++}
++
++/// The number of normalized words in `text` (the `min_words` filter's count).
++pub fn word_count(text: &str) -> usize {
++    words(text).len()
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++
++    fn request(id: &str, turns: &[&str]) -> PanelRequest {
++        PanelRequest {
++            id: id.into(),
++            user_turns: turns.iter().map(|t| (*t).to_owned()).collect(),
++        }
++    }
++
++    #[test]
++    fn a_shared_8_gram_is_found_regardless_of_case_and_punctuation() {
++        let exclusion = PanelExclusion::new(&[request(
++            "heldout-020",
++            &["Can you explain the process of pollination and seed dispersal in flowering plants?"],
++        )]);
++        assert_eq!(exclusion.ngram_turns, 1);
++        assert_eq!(exclusion.ngrams, 13 - PANEL_NGRAM + 1);
++        let hit = exclusion
++            .first_hit(
++                "Biology. THE PROCESS of Pollination -- and seed dispersal, in flowering plants!",
++            )
++            .expect("an 8-gram hit");
++        assert_eq!(hit.kind, HitKind::Ngram);
++        assert_eq!(hit.request_id, "heldout-020");
++        assert_eq!(
++            hit.words,
++            "the process of pollination and seed dispersal in"
++        );
++    }
++
++    #[test]
++    fn a_seven_word_overlap_with_a_long_turn_is_kept() {
++        let exclusion = PanelExclusion::new(&[request(
++            "x",
++            &["one two three four five six seven eight nine"],
++        )]);
++        assert!(exclusion
++            .first_hit("zero one two three four five six seven zero")
++            .is_none());
++        assert!(exclusion
++            .first_hit("zero one two three four five six seven eight")
++            .is_some());
++    }
++
++    #[test]
++    fn short_turns_are_matched_whole_and_tiny_turns_are_counted_uncovered() {
++        let exclusion = PanelExclusion::new(&[
++            request("ask-02", &["What do bees make?"]),
++            request("heldout-006", &["Hi Dr. Smith,"]),
++            request(
++                "follow-04",
++                &[
++                    "I am planning a party for my sister.",
++                    "She loves flowers. Any ideas?",
++                ],
++            ),
++        ]);
++        assert_eq!(exclusion.turns, 4);
++        assert_eq!(exclusion.ngram_turns, 1);
++        assert_eq!(exclusion.short_turns, 2);
++        assert_eq!(exclusion.uncovered_turns, 1);
++        let hit = exclusion
++            .first_hit("Children often ask: what do bees make? Honey.")
++            .expect("short request hit");
++        assert_eq!(hit.kind, HitKind::ShortRequest);
++        assert_eq!(hit.request_id, "ask-02");
++        // The three-word salutation is not used as an exclusion sequence.
++        assert!(exclusion.first_hit("hi dr smith wrote a paper").is_none());
++        // A partial short request is not a hit.
++        assert!(exclusion.first_hit("what do bees eat").is_none());
++    }
++
++    #[test]
++    fn duplicate_windows_are_counted_once() {
++        let turn = "a b c d e f g h";
++        let exclusion = PanelExclusion::new(&[request("p", &[turn]), request("q", &[turn])]);
++        assert_eq!(exclusion.ngrams, 1);
++        assert_eq!(
++            exclusion.first_hit(turn).map(|h| h.request_id),
++            Some("p".into())
++        );
++    }
++
++    #[test]
++    fn panel_files_parse_and_malformed_ones_fail() {
++        let rows = parse_panel(
++            br#"[{"id":"talk-01","category":"smalltalk","user_turns":["Hi! How are you today?"]}]"#,
++        )
++        .unwrap();
++        assert_eq!(rows, vec![request("talk-01", &["Hi! How are you today?"])]);
++        assert!(parse_panel(br#"{"id":"x"}"#).is_err());
++        assert!(parse_panel(br#"[{"id":"x","user_turns":[]}]"#).is_err());
++        assert!(parse_panel(br#"[{"id":"x","user_turns":[3]}]"#).is_err());
++        assert!(parse_panel(br#"[{"user_turns":["a"]}]"#).is_err());
++        assert!(parse_panel(b"not json").is_err());
++    }
++
++    #[test]
++    fn articles_are_cleaned_with_a_title_line() {
++        assert_eq!(
++            clean_article(
++                Some(" Bee "),
++                "Bees make honey.  \r\n\r\n\r\n\nBees live in hives.\rThey fly.\n\n"
++            ),
++            "Bee\n\nBees make honey.\n\nBees live in hives.\nThey fly."
++        );
++        assert_eq!(clean_article(None, "\n\n  Body \n"), "Body");
++        assert_eq!(clean_article(Some(""), "x"), "x");
++        assert_eq!(word_count("It's a bee's knees."), 4);
++    }
++}
+diff --git a/crates/uor-r4-training/src/lib.rs b/crates/uor-r4-training/src/lib.rs
+index 983901940..fed8a1564 100644
+--- a/crates/uor-r4-training/src/lib.rs
++++ b/crates/uor-r4-training/src/lib.rs
+@@ -71,6 +71,7 @@ pub mod joint_rounding;
+ pub mod joint_rounding_campaign;
+ pub mod joint_transfer;
+ pub mod kappa_llama;
++pub mod knowledge_corpus;
+ pub mod lut_export;
+ pub mod metal_stack_kernels;
+ pub mod milestone_world;
+diff --git a/docs/research/step5/knowledge-ab.md b/docs/research/step5/knowledge-ab.md
+new file mode 100644
+index 000000000..f91bf6f57
+--- /dev/null
++++ b/docs/research/step5/knowledge-ab.md
+@@ -0,0 +1,154 @@
++# Step 5: open-domain knowledge corpus and a matched-token 29M A/B
++
++References #820. This implements Step 5 of [final-assessment.md](../barrier-assessment-2026-10-05/final-assessment.md). The gate is Step 0a ([0a-panel-taxonomy.md](../step0/0a-panel-taxonomy.md)). In 0a, knowledge-absent (K) is the largest failure class: 65 of 186 failing rows at 96M and 50 of 189 at 29M. Recall accounts for 2.2%.
++
++This document fixes the corpus, the decontamination, the arms and the decision rule before any run. Nothing here is a model result. The only things executed so far are the laptop smokes listed in the PR.
++
++## 1. Knowledge corpora the repository can already produce
++
++| Tool | Corpus | Licence | Fit for Step 5 |
++|---|---|---|---|
++| `prepare-text-corpus` (`format=tinystories\|tinydialogues`) | TinyStories V2, TinyDialogues | as recorded for the ladder | Already in the mix. Narrative and dialogue, not world knowledge. |
++| `prepare-chat-parquet` | SmolTalk magpie-ultra (Apache-2.0), UltraChat 200k (MIT) | permissive | Already chat-v0/chat-v1. Instruction data with incidental knowledge. |
++| `prepare-simplewiki-tokens` | Simple English Wikipedia 20231101, first 32 × 1,024 tokens | CC BY-SA 4.0 | A teacher fixture only. It uses the SmolLM2 tokenizer, not the project's 4,096-id tokenizer, and holds 32k tokens. |
++| `scripts/fetch_simple_wiki_20k.py`, `fetch_d3_corpus.py` | Simple English Wikipedia rows through the datasets-server API | CC BY-SA 4.0 | Python fetchers of samples of at most about 20k articles. Not a model-data path. |
++| `geometric-stack corpus` | Rust sources from a Cargo registry | per crate | Code, not open-domain knowledge. |
++
++No repository path produced a full, decontaminated, project-tokenizer knowledge store. This PR adds one: `prepare-knowledge-corpus` (Rust) with its library module `uor_r4_training::knowledge_corpus`.
++
++## 2. Chosen corpus and licence
++
++**Simple English Wikipedia, 1 November 2023 dump**, as exported by Wikimedia on the Hugging Face Hub:
++
++- Dataset `wikimedia/wikipedia`, config `20231101.simple`.
++- One file, `20231101.simple/train-00000-of-00001.parquet`, about 157 MB.
++- Pinned to commit `cf26be8eef6bc935da5d2281be5aad4813e49e90`, the commit that added the file.
++- Expected SHA-256 `31bded16768a47c286becd292079122f5d7d4397a17b87d4250a00ccd581e6f0`. This value is taken from the Hub's LFS pointer. It was not computed locally, because nothing was downloaded on the laptop. The pod script checks it and records size and SHA-256 after the fetch in `FETCH.txt`.
++
++**Why this corpus:**
++- It is human-written encyclopaedic text in a simple register, close to the register of the open panel ("Why do leaves change color in the fall?").
++- Its about 0.24M articles fit one A/B at about one epoch (see §4).
++- The project already records this source and licence as its natural partition ([transformerless/BASELINE.md](../../transformerless/BASELINE.md), SPDX `CC-BY-SA-4.0`).
++
++**Licence: CC BY-SA 4.0** (Wikipedia text is also available under GFDL).
++- Attribution and share-alike apply to the corpus and to any redistributed derived text, such as the prepared token stores.
++- `corpus.json` records the source, commit and licence.
++- The prepared stores stay on the pod and laptop. They are not published.
++- Whether trained weights count as an adaptation under CC BY-SA is not settled. This is recorded for the owner and does not block an internal experiment.
++
++**Rejected:**
++- Full English Wikipedia: about 20 times larger and in a harder register.
++- Cosmopedia: model-generated text.
++- FineWeb-Edu: web text with mixed underlying rights.
++- Wikibooks: smaller.
++
++## 3. Article preparation and decontamination
++
++`prepare-knowledge-corpus` (see its header for every argument) does the following.
++
++**Article text.**
++- Each article becomes `title`, a blank line, then the body.
++- `\r\n` is normalised, line ends are trimmed and blank-line runs are collapsed (`clean_article`).
++- Articles with fewer than `min_words=20` words are dropped as stubs.
++
++**Panel exclusion.** This uses the same rule as the existing M-world probe exclusion: `milestone_world_v2_probe::EXCLUSION_NGRAM = 8`, over the same word normalisation (lowercase; split on characters other than letters, digits and apostrophes).
++- An article is dropped whole when any of its 8-word windows equals an 8-word window of any panel user turn.
++- Panel turns of 4–7 words cannot produce an 8-gram. For those, the whole turn's word sequence is excluded instead. Otherwise short open-panel questions such as "What do bees make?" would be silently uncovered.
++- Turns under 4 words are counted as uncovered and are not matched. In the 232-request panel these are 23 turns, every one a `salutation_only` row (e.g. "Hi Dr. Smith,"), and all of them are outside the clean subset (§5).
++- Matching hashes windows for speed and confirms every candidate exactly. A hash collision therefore never drops an article.
++
++**Panel files** used for the exclusion: `everyday-32`, `heldout-200-a`, `heldout-200-b`, `heldout-200` and `stretch-32` (464 requests, 472 turns, 1,563 distinct 8-grams). Every dropped article is listed in `excluded.jsonl` with the matched words and the panel request id.
++
++**Round trip.** Every kept article must decode back to its exact text, and is followed by `<|eos|>`.
++
++**Split.** Kept article `k` goes to `heldout/tokens.u16` when `k % 200 == 199`, about 0.5% of articles. Every other kept article goes to `train/tokens.u16`. The held-out store is never trained on. It measures knowledge NLL, which is the manipulation check below.
++
++**Root.** The root is claimed exclusively, then sealed and verified.
++
++## 4. A/B design (matched tokens)
++
++The base recipe is the 29M lr 5e-4 rung ([ladder-runbook §3.3](../../compute/ladder-runbook.md)):
++- Shape: width 576, 8 heads, 10 layers, pattern `rrarrarrar`, context 384, L2 read, rotation on, `key_shift=false`.
++- Optimiser: 70,609 steps × batch 16 = **433,821,696 tokens** per run; lr 5e-4, warmup 200.
++- Single GPU: `tf32=true`, `data_parallel=1`. Both arms use the same setting, so TF32 affects both arms equally. The arms are compared with each other, not with the 4090-trained rung.
++
++| Arm | Streams and weights | Tokens drawn (TS / TD / chat-v0 / wiki) |
++|---|---|---|
++| **A** (current mix) | TinyStories 0.6, TinyDialogues 0.15, chat-v0-p2 0.25 | 260.3M / 65.1M / 108.5M / 0 |
++| **K** (+knowledge) | the same three × 0.75 (0.45, 0.1125, 0.1875), Simple Wikipedia 0.25 | 195.2M / 48.8M / 81.3M / 108.5M |
++
++- **Seeds:** 1 and 2. The base `seed=` seeds the initialisation and the window sampler. The fine-tune uses `data_seed=` equal to the same seed.
++- **Wiki exposure:** about 108.5M tokens. The pod script prints the actual epoch count and stops above 4 epochs. Expected: about one epoch.
++- **Chat fine-tune:** Arm C, the recipe of the 96M `chat-100m-C`, on all four bases.
++  - Data: the `mixed-c` store, which is M-world parar ×3 followed by chat-v0-p2: 84,142,760 tokens, tokens SHA-256 `7282b7a6…`. This store was rebuilt on the laptop with `mix-chat-corpus` and matched the Arm C input bytes exactly.
++  - Settings: pointer 32, protocol 2, `full_prefix`, 4,000 steps × 16, lr 3e-4, development seed 20260930.
++- **Evaluation:**
++  - **Knowledge held-out NLL:** `geometric-stack evaluate`, bases and fine-tunes.
++  - **D19 grounded sessions** (`m-world session`, world v2, 300 conversations, 1,075 scored turns), sieve on and off, with the 29M session arguments.
++  - **Open 232-request panel:** `chat-grade reply`, greedy, 64 new tokens, graded by qwen2.5:7b with `grade-replies`. These are the same grader and questions as every ladder panel. The report records the grader digest.
++
++The run script is [`scripts/pod/step5-knowledge.sh`](../../../scripts/pod/step5-knowledge.sh). The tabulator is [`scripts/pod/step5-tabulate.py`](../../../scripts/pod/step5-tabulate.py).
++
++**Projected cost on one A100 80 GB:** about 12 h wall (range 9–14 h), with 4 base runs of about 1.5–2.5 h each. This is a projection, not a measurement; the 29M rung was trained on an RTX 4090. New storage is about 2 GB.
++
++## 5. Panel-clean subset (repairing 0a's ill-posed rows)
++
++0a found 47 (96M) and 49 (29M) failing rows whose referenced material is missing. The heldout-200 extract keeps only the first line of each source message. 0a flagged only failing rows. [`panel-clean/panel-clean-232.tsv`](panel-clean/panel-clean-232.tsv) labels **all 232 rows** with a status and a reason.
++
++| Status | Rows | Reasons |
++|---|---|---|
++| clean | 143 | |
++| ill | 69 | `salutation_only` 24, `missing_material` 19, `fragment` 11, `unresolved_reference` 7, `placeholder` 5, `missing_instruction` 3 |
++| underspecified | 20 | `constraints_only` 13 (format/length constraints with no topic), `statement_no_request` 7 |
++
++- **Lists.** `clean-ids.txt` holds the 143 clean rows. `wellposed-ids.txt` holds the 163 rows that are clean or underspecified.
++- **Check.** [`check_clean.py`](panel-clean/check_clean.py) verifies that the 232 ids match the panel files in order. It also verifies that every row 0a flagged ill (55 distinct ids across both label files) is `ill` here.
++- **Repair.** These rows cannot be repaired from the panel itself. The missing text was never extracted. The repair is to read M4 on the clean subset alongside the full panel.
++
++Existing reports re-read on the subsets (tabulation only, no new grading):
++
++| Model (grade report) | all 232 | well-posed 163 | clean 143 |
++|---|---|---|---|
++| 96M chat-100m-C | 46 | 25 | 20 |
++| 96M chat-100m-B | 45 | 26 | 21 |
++| 29M chat-29m-B lr 5e-4 | 43 | 25 | 19 |
++| 29M chat-29m-B lr 1e-3 | 37 | 23 | 16 |
++
++**Observation (M, these four reports).**
++- The grader accepted 21 of 96M-C's 46 acceptable replies on ill-posed rows, mostly replies to bare salutations.
++- On the clean subset, the 29M-to-96M gain is 19 → 20 of 143.
++- The full-panel score therefore overstates capability on well-posed requests. A model can also gain panel rows on ill rows without any knowledge gain.
++- For that reason the decision rule below requires the clean-subset delta to be positive on both seeds.
++
++## 6. Decision rule (frozen before any run)
++
++Definitions:
++- `acc(arm, s)` is the number of acceptable rows (fluent and relevant) on the 232-row panel for seed `s`.
++- `d_s = acc(K, s) − acc(A, s)`.
++- `mean_d = (d_1 + d_2) / 2`.
++- `p` is the exact two-sided McNemar over the 464 pooled (request, seed) pairs.
++
++The checks, applied in this order:
++1. **Manipulation check.** K's base knowledge held-out NLL is at least 0.10 nats below A's on both seeds. If this fails, the corpus did not reach the model. Check the data path first. The panel is not read.
++2. **Clean guard.** `d_s` on the 143 clean rows is greater than 0 on both seeds.
++3. **Instruction guard.** The final assessment requires "instruction following not worse". Here that means the pooled D19 Instruction passes (sieve on, 2 × 98 turns) satisfy `K ≥ A − max(3, |A_s1 − A_s2|)`.
++
++| Outcome | Condition | Next action |
++|---|---|---|
++| **PROMOTE** | `mean_d ≥ 10`, `p < 0.05`, clean guard and instruction guard hold | Adopt the knowledge mix for the next base runs. A 96M knowledge base becomes eligible under M4. |
++| **BLOCKED** | panel criterion holds, instruction guard fails | One rebalanced A/B with knowledge weight 0.15, then stop. |
++| **NULL** | `mean_d < 5`, or `d_1` and `d_2` of opposite sign | Kill, per the plan. The plateau is coherence/capacity, and the next lever is capacity per J/token, not data. |
++| **WEAK** | anything else | Record it. No promotion and no repeat at 29M. The knowledge mix becomes an optional arm only if the owner opens a capacity rung. |
++
++- **Reported but not decisive:** ts-valid NLL (the cost of displacing TinyStories), D19 totals with the sieve on and off, sieve-off MQAR, and knowledge NLL after the fine-tune.
++- **No excuse clause:** a null is evidence.
++
++## 7. Limits
++
++- **Single grader and single judge path.** The panel's grader is qwen2.5:7b (final assessment §6). The clean subset was labelled by one annotator, Claude, with reasons. It was not independently reviewed.
++- **Weak power.** Two seeds per arm. A 10-row effect on 232 rows is near the limit of what the paired test can resolve.
++- **Corpus reach.** Simple Wikipedia covers encyclopaedic facts. It does not cover how-to, coding or advice requests. Some panel K rows (recipes, code, workplace advice) are not addressable by this corpus.
++- **Decontamination scope.** The exclusion is against panel requests, not against reference answers. The panel has no reference answers. An article that answers a panel question without sharing its wording is kept, and is meant to be kept: that is the knowledge the arm supplies.
++- **Untested here.**
++  - The parquet reader path is untested on the laptop. The parquet feature's dependencies are not vendored offline. The pod script runs its unit test, which writes and reads a wikimedia-schema parquet file, before preparing the store.
++  - `m-world session` was not smoke-run with the new models. Its arguments are copied from the validated 29M/96M session scripts.
+diff --git a/docs/research/step5/panel-clean/check_clean.py b/docs/research/step5/panel-clean/check_clean.py
+new file mode 100755
+index 000000000..a96abd8fc
+--- /dev/null
++++ b/docs/research/step5/panel-clean/check_clean.py
+@@ -0,0 +1,106 @@
++#!/usr/bin/env python3
++"""Check the panel-clean labels and tabulate chat-grade reports on the clean subsets.
++
++Tabulation only: no model runs. Usage:
++
++  check_clean.py [--panel-dir DIR] [--write-ids] [REPORT.json ...]
++
++* Verifies panel-clean-232.tsv covers exactly the 232 open-panel ids (everyday-32 +
++  heldout-200-a + heldout-200-b, in panel order) when the panel files are present.
++* Verifies every row Step 0a flagged ill-posed (ill=1 in either 0a label file) is
++  status `ill` here (this file is a superset of the 0a flags).
++* --write-ids rewrites clean-ids.txt (status clean) and wellposed-ids.txt
++  (status clean or underspecified).
++* For each chat-grade report.json, prints acceptable counts (fluent and relevant)
++  on all 232 rows, on the well-posed subset and on the clean subset.
++"""
++import argparse
++import json
++import os
++import sys
++
++HERE = os.path.dirname(os.path.abspath(__file__))
++STEP0A = os.path.join(HERE, '..', '..', 'step0', '0a-panel-taxonomy')
++
++
++def load_labels():
++    rows = []
++    with open(os.path.join(HERE, 'panel-clean-232.tsv'), encoding='utf-8') as handle:
++        header = handle.readline().rstrip('\n').split('\t')
++        assert header == ['id', 'status', 'reason', 'note'], header
++        for line in handle:
++            rid, status, reason, note = line.rstrip('\n').split('\t')
++            assert status in ('clean', 'ill', 'underspecified'), (rid, status)
++            assert (status == 'clean') == (reason == '-'), (rid, status, reason)
++            rows.append((rid, status, reason))
++    return rows
++
++
++def step0a_ill():
++    flagged = set()
++    for name in ('labels-96m-pass1.tsv', 'labels-29m.tsv'):
++        with open(os.path.join(STEP0A, name), encoding='utf-8') as handle:
++            for line in handle:
++                parts = line.rstrip('\n').split('\t')
++                if len(parts) >= 5 and parts[4] == '1':
++                    flagged.add(parts[0])
++    return flagged
++
++
++def main():
++    parser = argparse.ArgumentParser()
++    parser.add_argument('--panel-dir', default=os.path.expanduser('~/uor-r4-local/ladder/panel'))
++    parser.add_argument('--write-ids', action='store_true')
++    parser.add_argument('reports', nargs='*')
++    args = parser.parse_args()
++
++    rows = load_labels()
++    ids = [r[0] for r in rows]
++    assert len(ids) == 232 and len(set(ids)) == 232, len(ids)
++    files = ['everyday-32.json', 'heldout-200-a.json', 'heldout-200-b.json']
++    if all(os.path.exists(os.path.join(args.panel_dir, f)) for f in files):
++        panel = []
++        for f in files:
++            with open(os.path.join(args.panel_dir, f), encoding='utf-8') as handle:
++                panel += [row['id'] for row in json.load(handle)]
++        assert panel == ids, 'label rows differ from the panel ids or their order'
++        print('panel ids: match (232, in order)')
++    else:
++        print('panel files not found; id order not checked')
++
++    status = {rid: st for rid, st, _ in rows}
++    missing = sorted(i for i in step0a_ill() if status.get(i) != 'ill')
++    assert not missing, f'0a ill rows not marked ill here: {missing}'
++    print(f'0a ill-flagged rows: {len(step0a_ill())}, all marked ill here')
++
++    counts = {}
++    for _, st, reason in rows:
++        counts.setdefault(st, {}).setdefault(reason, 0)
++        counts[st][reason] += 1
++    for st in ('clean', 'ill', 'underspecified'):
++        total = sum(counts.get(st, {}).values())
++        detail = ', '.join(f'{k} {v}' for k, v in sorted(counts.get(st, {}).items()) if k != '-')
++        print(f'{st}: {total}' + (f' ({detail})' if detail else ''))
++
++    clean = [rid for rid, st, _ in rows if st == 'clean']
++    wellposed = [rid for rid, st, _ in rows if st != 'ill']
++    if args.write_ids:
++        for name, subset in (('clean-ids.txt', clean), ('wellposed-ids.txt', wellposed)):
++            with open(os.path.join(HERE, name), 'w', encoding='utf-8') as handle:
++                handle.write('\n'.join(subset) + '\n')
++
++    for path in args.reports:
++        with open(path, encoding='utf-8') as handle:
++            report = json.load(handle)
++        ok = {row['id']: bool(row['grades']['fluent'] and row['grades']['relevant'])
++              for row in report['rows']}
++        assert set(ok) == set(ids), f'{path}: rows differ from the 232 panel ids'
++        line = [f'{sum(ok.values())}/232 all']
++        for name, subset in (('well-posed', wellposed), ('clean', clean)):
++            line.append(f'{sum(ok[i] for i in subset)}/{len(subset)} {name}')
++        print(f'{path}: ' + ', '.join(line))
++    return 0
++
++
++if __name__ == '__main__':
++    sys.exit(main())
+diff --git a/docs/research/step5/panel-clean/clean-ids.txt b/docs/research/step5/panel-clean/clean-ids.txt
+new file mode 100644
+index 000000000..389a3d77d
+--- /dev/null
++++ b/docs/research/step5/panel-clean/clean-ids.txt
+@@ -0,0 +1,143 @@
++talk-01
++talk-02
++talk-03
++talk-04
++talk-05
++talk-06
++talk-07
++talk-08
++ask-01
++ask-02
++ask-03
++ask-04
++ask-05
++ask-06
++ask-07
++ask-08
++do-01
++do-02
++do-03
++do-04
++do-05
++do-06
++do-07
++do-08
++follow-01
++follow-02
++follow-03
++follow-04
++follow-05
++follow-06
++follow-07
++follow-08
++heldout-000
++heldout-001
++heldout-003
++heldout-004
++heldout-005
++heldout-007
++heldout-010
++heldout-011
++heldout-017
++heldout-018
++heldout-020
++heldout-022
++heldout-025
++heldout-026
++heldout-027
++heldout-028
++heldout-029
++heldout-032
++heldout-033
++heldout-036
++heldout-040
++heldout-041
++heldout-042
++heldout-043
++heldout-044
++heldout-045
++heldout-048
++heldout-052
++heldout-053
++heldout-055
++heldout-057
++heldout-058
++heldout-060
++heldout-061
++heldout-062
++heldout-064
++heldout-065
++heldout-071
++heldout-072
++heldout-075
++heldout-076
++heldout-077
++heldout-081
++heldout-084
++heldout-088
++heldout-089
++heldout-090
++heldout-092
++heldout-093
++heldout-094
++heldout-096
++heldout-098
++heldout-099
++heldout-101
++heldout-103
++heldout-104
++heldout-106
++heldout-108
++heldout-109
++heldout-111
++heldout-113
++heldout-115
++heldout-119
++heldout-120
++heldout-121
++heldout-122
++heldout-125
++heldout-126
++heldout-130
++heldout-132
++heldout-133
++heldout-134
++heldout-136
++heldout-138
++heldout-142
++heldout-143
++heldout-145
++heldout-146
++heldout-148
++heldout-149
++heldout-151
++heldout-152
++heldout-153
++heldout-155
++heldout-157
++heldout-158
++heldout-159
++heldout-160
++heldout-161
++heldout-164
++heldout-165
++heldout-167
++heldout-168
++heldout-169
++heldout-170
++heldout-171
++heldout-172
++heldout-173
++heldout-177
++heldout-178
++heldout-183
++heldout-184
++heldout-185
++heldout-186
++heldout-187
++heldout-188
++heldout-192
++heldout-193
++heldout-194
++heldout-197
++heldout-198
+diff --git a/docs/research/step5/panel-clean/panel-clean-232.tsv b/docs/research/step5/panel-clean/panel-clean-232.tsv
+new file mode 100644
+index 000000000..9b3750b00
+--- /dev/null
++++ b/docs/research/step5/panel-clean/panel-clean-232.tsv
+@@ -0,0 +1,233 @@
++id	status	reason	note
++talk-01	clean	-	-
++talk-02	clean	-	-
++talk-03	clean	-	-
++talk-04	clean	-	-
++talk-05	clean	-	-
++talk-06	clean	-	-
++talk-07	clean	-	-
++talk-08	clean	-	-
++ask-01	clean	-	-
++ask-02	clean	-	-
++ask-03	clean	-	-
++ask-04	clean	-	-
++ask-05	clean	-	-
++ask-06	clean	-	-
++ask-07	clean	-	-
++ask-08	clean	-	-
++do-01	clean	-	-
++do-02	clean	-	-
++do-03	clean	-	-
++do-04	clean	-	-
++do-05	clean	-	-
++do-06	clean	-	-
++do-07	clean	-	-
++do-08	clean	-	-
++follow-01	clean	-	-
++follow-02	clean	-	-
++follow-03	clean	-	-
++follow-04	clean	-	-
++follow-05	clean	-	-
++follow-06	clean	-	-
++follow-07	clean	-	-
++follow-08	clean	-	-
++heldout-000	clean	-	-
++heldout-001	clean	-	-
++heldout-002	underspecified	constraints_only	format/length constraints with no topic or question
++heldout-003	clean	-	-
++heldout-004	clean	-	-
++heldout-005	clean	-	-
++heldout-006	ill	salutation_only	letter or message opener only; the body was cut by the first-line extract
++heldout-007	clean	-	-
++heldout-008	ill	salutation_only	letter or message opener only; the body was cut by the first-line extract
++heldout-009	ill	salutation_only	letter or message opener only; the body was cut by the first-line extract
++heldout-010	clean	-	-
++heldout-011	clean	-	-
++heldout-012	ill	missing_material	refers to material (text, code, data, passage, equation) the request does not contain
++heldout-013	ill	placeholder	unfilled [template] placeholder
++heldout-014	ill	unresolved_reference	refers to a specific entity or earlier context the panel does not supply
++heldout-015	ill	placeholder	unfilled [template] placeholder
++heldout-016	underspecified	constraints_only	format/length constraints with no topic or question
++heldout-017	clean	-	-
++heldout-018	clean	-	-
++heldout-019	ill	salutation_only	letter or message opener only; the body was cut by the first-line extract
++heldout-020	clean	-	-
++heldout-021	ill	missing_material	refers to material (text, code, data, passage, equation) the request does not contain
++heldout-022	clean	-	-
++heldout-023	ill	fragment	one line of a larger document; no request
++heldout-024	underspecified	statement_no_request	a standalone statement, announcement or title with no request
++heldout-025	clean	-	-
++heldout-026	clean	-	-
++heldout-027	clean	-	-
++heldout-028	clean	-	-
++heldout-029	clean	-	-
++heldout-030	ill	missing_instruction	supplies text but the instruction that followed it was cut
++heldout-031	ill	fragment	one line of a larger document; no request
++heldout-032	clean	-	-
++heldout-033	clean	-	-
++heldout-034	ill	fragment	one line of a larger document; no request
++heldout-035	ill	salutation_only	letter or message opener only; the body was cut by the first-line extract
++heldout-036	clean	-	-
++heldout-037	ill	fragment	one line of a larger document; no request
++heldout-038	ill	missing_material	refers to material (text, code, data, passage, equation) the request does not contain
++heldout-039	ill	missing_material	refers to material (text, code, data, passage, equation) the request does not contain
++heldout-040	clean	-	-
++heldout-041	clean	-	-
++heldout-042	clean	-	-
++heldout-043	clean	-	-
++heldout-044	clean	-	-
++heldout-045	clean	-	-
++heldout-046	ill	salutation_only	letter or message opener only; the body was cut by the first-line extract
++heldout-047	ill	salutation_only	letter or message opener only; the body was cut by the first-line extract
++heldout-048	clean	-	-
++heldout-049	ill	placeholder	unfilled [template] placeholder
++heldout-050	ill	salutation_only	letter or message opener only; the body was cut by the first-line extract
++heldout-051	ill	missing_material	refers to material (text, code, data, passage, equation) the request does not contain
++heldout-052	clean	-	-
++heldout-053	clean	-	-
++heldout-054	ill	fragment	one line of a larger document; no request
++heldout-055	clean	-	-
++heldout-056	ill	salutation_only	letter or message opener only; the body was cut by the first-line extract
++heldout-057	clean	-	-
++heldout-058	clean	-	-
++heldout-059	ill	unresolved_reference	refers to a specific entity or earlier context the panel does not supply
++heldout-060	clean	-	-
++heldout-061	clean	-	-
++heldout-062	clean	-	-
++heldout-063	ill	missing_material	refers to material (text, code, data, passage, equation) the request does not contain
++heldout-064	clean	-	-
++heldout-065	clean	-	-
++heldout-066	ill	salutation_only	letter or message opener only; the body was cut by the first-line extract
++heldout-067	ill	missing_material	refers to material (text, code, data, passage, equation) the request does not contain
++heldout-068	ill	missing_material	refers to material (text, code, data, passage, equation) the request does not contain
++heldout-069	ill	missing_material	refers to material (text, code, data, passage, equation) the request does not contain
++heldout-070	underspecified	constraints_only	format/length constraints with no topic or question
++heldout-071	clean	-	-
++heldout-072	clean	-	-
++heldout-073	ill	missing_material	refers to material (text, code, data, passage, equation) the request does not contain
++heldout-074	ill	salutation_only	letter or message opener only; the body was cut by the first-line extract
++heldout-075	clean	-	-
++heldout-076	clean	-	-
++heldout-077	clean	-	-
++heldout-078	ill	salutation_only	letter or message opener only; the body was cut by the first-line extract
++heldout-079	ill	missing_material	refers to material (text, code, data, passage, equation) the request does not contain
++heldout-080	ill	placeholder	unfilled [template] placeholder
++heldout-081	clean	-	-
++heldout-082	ill	fragment	one line of a larger document; no request
++heldout-083	ill	missing_instruction	supplies text but the instruction that followed it was cut
++heldout-084	clean	-	-
++heldout-085	ill	unresolved_reference	refers to a specific entity or earlier context the panel does not supply
++heldout-086	ill	unresolved_reference	refers to a specific entity or earlier context the panel does not supply
++heldout-087	underspecified	statement_no_request	a standalone statement, announcement or title with no request
++heldout-088	clean	-	-
++heldout-089	clean	-	-
++heldout-090	clean	-	-
++heldout-091	ill	salutation_only	letter or message opener only; the body was cut by the first-line extract
++heldout-092	clean	-	-
++heldout-093	clean	-	-
++heldout-094	clean	-	-
++heldout-095	ill	missing_material	refers to material (text, code, data, passage, equation) the request does not contain
++heldout-096	clean	-	-
++heldout-097	underspecified	statement_no_request	a standalone statement, announcement or title with no request
++heldout-098	clean	-	-
++heldout-099	clean	-	-
++heldout-100	ill	salutation_only	letter or message opener only; the body was cut by the first-line extract
++heldout-101	clean	-	-
++heldout-102	ill	salutation_only	letter or message opener only; the body was cut by the first-line extract
++heldout-103	clean	-	-
++heldout-104	clean	-	-
++heldout-105	ill	unresolved_reference	refers to a specific entity or earlier context the panel does not supply
++heldout-106	clean	-	-
++heldout-107	ill	missing_material	refers to material (text, code, data, passage, equation) the request does not contain
++heldout-108	clean	-	-
++heldout-109	clean	-	-
++heldout-110	ill	salutation_only	letter or message opener only; the body was cut by the first-line extract
++heldout-111	clean	-	-
++heldout-112	ill	missing_material	refers to material (text, code, data, passage, equation) the request does not contain
++heldout-113	clean	-	-
++heldout-114	ill	salutation_only	letter or message opener only; the body was cut by the first-line extract
++heldout-115	clean	-	-
++heldout-116	underspecified	statement_no_request	a standalone statement, announcement or title with no request
++heldout-117	underspecified	constraints_only	format/length constraints with no topic or question
++heldout-118	ill	missing_material	refers to material (text, code, data, passage, equation) the request does not contain
++heldout-119	clean	-	-
++heldout-120	clean	-	-
++heldout-121	clean	-	-
++heldout-122	clean	-	-
++heldout-123	underspecified	statement_no_request	a standalone statement, announcement or title with no request
++heldout-124	underspecified	constraints_only	format/length constraints with no topic or question
++heldout-125	clean	-	-
++heldout-126	clean	-	-
++heldout-127	ill	fragment	one line of a larger document; no request
++heldout-128	ill	missing_instruction	supplies text but the instruction that followed it was cut
++heldout-129	ill	fragment	one line of a larger document; no request
++heldout-130	clean	-	-
++heldout-131	ill	salutation_only	letter or message opener only; the body was cut by the first-line extract
++heldout-132	clean	-	-
++heldout-133	clean	-	-
++heldout-134	clean	-	-
++heldout-135	underspecified	constraints_only	format/length constraints with no topic or question
++heldout-136	clean	-	-
++heldout-137	ill	unresolved_reference	refers to a specific entity or earlier context the panel does not supply
++heldout-138	clean	-	-
++heldout-139	underspecified	constraints_only	format/length constraints with no topic or question
++heldout-140	ill	fragment	one line of a larger document; no request
++heldout-141	underspecified	statement_no_request	a standalone statement, announcement or title with no request
++heldout-142	clean	-	-
++heldout-143	clean	-	-
++heldout-144	underspecified	constraints_only	format/length constraints with no topic or question
++heldout-145	clean	-	-
++heldout-146	clean	-	-
++heldout-147	ill	missing_material	refers to material (text, code, data, passage, equation) the request does not contain
++heldout-148	clean	-	-
++heldout-149	clean	-	-
++heldout-150	underspecified	constraints_only	format/length constraints with no topic or question
++heldout-151	clean	-	-
++heldout-152	clean	-	-
++heldout-153	clean	-	-
++heldout-154	ill	missing_material	refers to material (text, code, data, passage, equation) the request does not contain
++heldout-155	clean	-	-
++heldout-156	ill	salutation_only	letter or message opener only; the body was cut by the first-line extract
++heldout-157	clean	-	-
++heldout-158	clean	-	-
++heldout-159	clean	-	-
++heldout-160	clean	-	-
++heldout-161	clean	-	-
++heldout-162	ill	unresolved_reference	refers to a specific entity or earlier context the panel does not supply
++heldout-163	ill	salutation_only	letter or message opener only; the body was cut by the first-line extract
++heldout-164	clean	-	-
++heldout-165	clean	-	-
++heldout-166	ill	salutation_only	letter or message opener only; the body was cut by the first-line extract
++heldout-167	clean	-	-
++heldout-168	clean	-	-
++heldout-169	clean	-	-
++heldout-170	clean	-	-
++heldout-171	clean	-	-
++heldout-172	clean	-	-
++heldout-173	clean	-	-
++heldout-174	underspecified	constraints_only	format/length constraints with no topic or question
++heldout-175	underspecified	statement_no_request	a standalone statement, announcement or title with no request
++heldout-176	underspecified	constraints_only	format/length constraints with no topic or question
++heldout-177	clean	-	-
++heldout-178	clean	-	-
++heldout-179	ill	salutation_only	letter or message opener only; the body was cut by the first-line extract
++heldout-180	underspecified	constraints_only	format/length constraints with no topic or question
++heldout-181	ill	fragment	one line of a larger document; no request
++heldout-182	ill	placeholder	unfilled [template] placeholder
++heldout-183	clean	-	-
++heldout-184	clean	-	-
++heldout-185	clean	-	-
++heldout-186	clean	-	-
++heldout-187	clean	-	-
++heldout-188	clean	-	-
++heldout-189	ill	salutation_only	letter or message opener only; the body was cut by the first-line extract
++heldout-190	ill	missing_material	refers to material (text, code, data, passage, equation) the request does not contain
++heldout-191	ill	missing_material	refers to material (text, code, data, passage, equation) the request does not contain
++heldout-192	clean	-	-
++heldout-193	clean	-	-
++heldout-194	clean	-	-
++heldout-195	underspecified	constraints_only	format/length constraints with no topic or question
++heldout-196	ill	salutation_only	letter or message opener only; the body was cut by the first-line extract
++heldout-197	clean	-	-
++heldout-198	clean	-	-
++heldout-199	ill	fragment	one line of a larger document; no request
+diff --git a/docs/research/step5/panel-clean/wellposed-ids.txt b/docs/research/step5/panel-clean/wellposed-ids.txt
+new file mode 100644
+index 000000000..ee38ccf2e
+--- /dev/null
++++ b/docs/research/step5/panel-clean/wellposed-ids.txt
+@@ -0,0 +1,163 @@
++talk-01
++talk-02
++talk-03
++talk-04
++talk-05
++talk-06
++talk-07
++talk-08
++ask-01
++ask-02
++ask-03
++ask-04
++ask-05
++ask-06
++ask-07
++ask-08
++do-01
++do-02
++do-03
++do-04
++do-05
++do-06
++do-07
++do-08
++follow-01
++follow-02
++follow-03
++follow-04
++follow-05
++follow-06
++follow-07
++follow-08
++heldout-000
++heldout-001
++heldout-002
++heldout-003
++heldout-004
++heldout-005
++heldout-007
++heldout-010
++heldout-011
++heldout-016
++heldout-017
++heldout-018
++heldout-020
++heldout-022
++heldout-024
++heldout-025
++heldout-026
++heldout-027
++heldout-028
++heldout-029
++heldout-032
++heldout-033
++heldout-036
++heldout-040
++heldout-041
++heldout-042
++heldout-043
++heldout-044
++heldout-045
++heldout-048
++heldout-052
++heldout-053
++heldout-055
++heldout-057
++heldout-058
++heldout-060
++heldout-061
++heldout-062
++heldout-064
++heldout-065
++heldout-070
++heldout-071
++heldout-072
++heldout-075
++heldout-076
++heldout-077
++heldout-081
++heldout-084
++heldout-087
++heldout-088
++heldout-089
++heldout-090
++heldout-092
++heldout-093
++heldout-094
++heldout-096
++heldout-097
++heldout-098
++heldout-099
++heldout-101
++heldout-103
++heldout-104
++heldout-106
++heldout-108
++heldout-109
++heldout-111
++heldout-113
++heldout-115
++heldout-116
++heldout-117
++heldout-119
++heldout-120
++heldout-121
++heldout-122
++heldout-123
++heldout-124
++heldout-125
++heldout-126
++heldout-130
++heldout-132
++heldout-133
++heldout-134
++heldout-135
++heldout-136
++heldout-138
++heldout-139
++heldout-141
++heldout-142
++heldout-143
++heldout-144
++heldout-145
++heldout-146
++heldout-148
++heldout-149
++heldout-150
++heldout-151
++heldout-152
++heldout-153
++heldout-155
++heldout-157
++heldout-158
++heldout-159
++heldout-160
++heldout-161
++heldout-164
++heldout-165
++heldout-167
++heldout-168
++heldout-169
++heldout-170
++heldout-171
++heldout-172
++heldout-173
++heldout-174
++heldout-175
++heldout-176
++heldout-177
++heldout-178
++heldout-180
++heldout-183
++heldout-184
++heldout-185
++heldout-186
++heldout-187
++heldout-188
++heldout-192
++heldout-193
++heldout-194
++heldout-195
++heldout-197
++heldout-198
+diff --git a/scripts/pod/step5-knowledge.sh b/scripts/pod/step5-knowledge.sh
+new file mode 100755
+index 000000000..105c9c36e
+--- /dev/null
++++ b/scripts/pod/step5-knowledge.sh
+@@ -0,0 +1,308 @@
++#!/usr/bin/env bash
++# Step 5 of the 5 October plan (#820): open-domain knowledge corpus and a
++# matched-token 29M A/B, then the Arm C chat fine-tune, D19 grounded sessions
++# and the open 232-request panel.
++#
++# Design and frozen decision rule: docs/research/step5/knowledge-ab.md.
++# Single GPU (A100 80 GB friendly): tf32=true, data_parallel=1.
++#
++#   scripts/pod/step5-knowledge.sh STAGE
++#
++# STAGE (run in this order; `all` runs fetch..replies; each stage skips work whose
++# sealed report root already exists and refuses to reuse an unsealed one):
++#   fetch      download Simple English Wikipedia (one parquet file) and check SHA-256
++#   build      build the four tools from this checkout and run their focused tests
++#   data       verify every uploaded input by SHA-256; rebuild the Arm C corpus
++#   knowledge  prepare the decontaminated knowledge stores
++#   base       4 base runs: arms A, K x seeds 1, 2 (29M, 433.8M tokens each)
++#   ft         4 Arm C fine-tunes from the four bases
++#   eval       knowledge held-out NLL (bases and fine-tunes) + D19 sessions (sieve, off)
++#   replies    greedy replies of each fine-tune to the 232 open-panel requests
++#   grade      qwen2.5:7b grades of those replies (needs Ollama; laptop by default)
++#   tabulate   tables and the frozen decision (scripts/pod/step5-tabulate.py)
++#
++# Inputs to upload from the laptop first (paths are the laptop's; SHA-256 checked
++# by `data`):
++#   scp tokenizer:     ~/uor-r4-local/inputs/claude-t4-1433-resume/bundle-learned-1/tokenizer.json  -> $D/tokenizer.json
++#   ts-train:          ~/uor-r4-local/ladder/corpora/tinystories-v2-train/   -> $D/corpora/ts-train/
++#   ts-valid:          ~/uor-r4-local/ladder/corpora/tinystories-v2-valid/   -> $D/corpora/ts-valid/
++#   td-train:          ~/uor-r4-local/ladder/corpora/tinydialogues-train/    -> $D/corpora/td-train/
++#   chat-v0-p2 train:  ~/uor-r4-local/chat-v0-p2/train/                      -> $D/chat-v0-p2/train/
++#   M-world parar:     ~/uor-r4-local/claude-instr-para/parar-p2-train/train/ -> $D/ft/parar/
++#   fine-tune dev:     ~/uor-r4-local/claude-protocol/instr2-p2-dev/train/  -> $D/ft/dev/
++#   sieve compiler:    ~/uor-r4-local/claude-log-sieve/compiler-save-op-v25-rawtable/ -> $D/sieve/compiler-save-op-v25-rawtable/
++#   sieve trunk:       ~/uor-r4-local/claude-log-sieve/op-model-v25/model/  -> $D/sieve/op-model-v25/model/
++#   open panel:        ~/uor-r4-local/ladder/panel/*.json                    -> $D/panel/
++# (about 1.6 GB in total; the earlier ladder pod already holds most of it under /root/data.)
++#
++# Expected wall time on one A100 80 GB (projection, not measured; the 29M rung
++# was trained on an RTX 4090): fetch+build+data+knowledge ~0.5 h; base 4 x
++# ~1.5-2.5 h; ft 4 x ~0.4 h; eval ~1.5 h (CPU); replies ~0.5 h. About 9-14 h
++# end to end, 12 h central. Each base run stops at max_seconds=21600 (6 h) and
++# each fine-tune at 10800 s. New storage: ~0.5 GB knowledge stores, ~0.2 GB
++# raw parquet, ~1.2 GB runs (4 x 116 MB bases + checkpoints, 4 fine-tunes).
++set -euo pipefail
++
++STAGE=${1:?usage: step5-knowledge.sh fetch|build|data|knowledge|base|ft|eval|replies|grade|tabulate|all}
++REPO=${REPO:-/root/uor-r4}                 # checkout of this PR's head commit
++D=${D:-/root/data}                         # uploaded inputs
++KN=${KN:-$D/knowledge}                     # knowledge corpus root
++R=${R:-/root/runs/step5}                   # every run and report of this A/B
++GPU=${GPU:-0}
++THREADS=${THREADS:-16}                     # CPU threads for preparation, sessions and replies
++GRADE_THREADS=${GRADE_THREADS:-2}
++OLLAMA_URL=${OLLAMA_URL:-http://127.0.0.1:11434}
++CUDA_COMPUTE_CAP=${CUDA_COMPUTE_CAP:-80}   # 80 = A100; 89 = RTX 4090; 90 = H100
++SEEDS=(1 2)
++ARMS=(A K)
++
++CPU_TARGET=$REPO/target-step5
++GPU_TARGET=$REPO/target-step5-cuda
++GS=$GPU_TARGET/release/examples/geometric-stack
++MWORLD=$CPU_TARGET/release/examples/m-world
++CHATGRADE=$CPU_TARGET/release/chat-grade
++MIX=$CPU_TARGET/release/mix-chat-corpus
++PREP=$CPU_TARGET/release/prepare-knowledge-corpus
++T=$D/tokenizer.json
++
++# Simple English Wikipedia, 1 November 2023 dump, as exported by Wikimedia on the
++# Hugging Face Hub (wikimedia/wikipedia, config 20231101.simple), pinned to the
++# commit that added the file. Licence: CC BY-SA 4.0 (text also GFDL); attribution
++# and share-alike apply to the corpus and to redistributed derived text; whether
++# they reach trained weights is unsettled (docs/research/step5/knowledge-ab.md §2).
++# Keep the prepared stores on the pod/laptop; do not publish them.
++WIKI_URL=https://huggingface.co/datasets/wikimedia/wikipedia/resolve/cf26be8eef6bc935da5d2281be5aad4813e49e90/20231101.simple/train-00000-of-00001.parquet
++WIKI_FILE=$KN/raw/simplewiki-20231101-train-00000-of-00001.parquet
++WIKI_SHA256=31bded16768a47c286becd292079122f5d7d4397a17b87d4250a00ccd581e6f0   # Hub LFS pointer; ~157 MB
++KSTORE=$KN/simplewiki-20231101-panel8
++
++PANELS=$D/panel/everyday-32.json,$D/panel/heldout-200-a.json,$D/panel/heldout-200-b.json,$D/panel/heldout-200.json,$D/panel/stretch-32.json
++REQUESTS=$D/panel/everyday-32.json,$D/panel/heldout-200-a.json,$D/panel/heldout-200-b.json
++
++log() { echo "$(date -u +%FT%TZ) $*" | tee -a "$R/step5.log"; }
++fail() { log "FAILED $1 (see $1.log)"; exit 1; }
++
++check() {  # check FILE SHA256
++  local got
++  got=$(sha256sum "$1" | cut -d' ' -f1)
++  if [ "$got" != "$2" ]; then echo "SHA-256 mismatch: $1 has $got, expected $2" >&2; exit 1; fi
++}
++
++# A report root is never reused: skip a sealed one, refuse an unsealed one.
++fresh() {  # fresh ROOT -> 0 when the work must run
++  if [ -f "$1/manifest.json" ]; then log "skip $1 (sealed)"; return 1; fi
++  if [ -e "$1" ]; then
++    echo "$1 exists but is not sealed: inspect it, then continue in a NEW root (train/dialogue-train accept resume=OLD/checkpoint)" >&2
++    exit 1
++  fi
++  return 0
++}
++
++stage_fetch() {
++  mkdir -p "$KN/raw"
++  if [ ! -f "$WIKI_FILE" ]; then
++    log "fetch $WIKI_URL"
++    curl -fL --retry 5 --retry-delay 10 -o "$WIKI_FILE.part" "$WIKI_URL"
++    mv "$WIKI_FILE.part" "$WIKI_FILE"
++  fi
++  check "$WIKI_FILE" "$WIKI_SHA256"
++  { echo "url $WIKI_URL"; echo "bytes $(stat -c %s "$WIKI_FILE")"; sha256sum "$WIKI_FILE"; } > "$KN/raw/FETCH.txt"
++  log "fetched $(cat "$KN/raw/FETCH.txt" | tr '\n' ' ')"
++}
++
++stage_build() {
++  cd "$REPO"
++  git rev-parse HEAD > "$R/build-commit.txt"
++  CARGO_TARGET_DIR=$CPU_TARGET cargo test --release -p uor-r4-training --features parquet-input \
++    --lib knowledge_corpus
++  CARGO_TARGET_DIR=$CPU_TARGET cargo test --release -p uor-r4-training --features parquet-input \
++    --bin prepare-knowledge-corpus
++  CARGO_TARGET_DIR=$CPU_TARGET cargo build --release -p uor-r4-training --features parquet-input \
++    --bin prepare-knowledge-corpus --bin mix-chat-corpus --bin chat-grade --example m-world
++  CARGO_INCREMENTAL=0 CUDA_COMPUTE_CAP=$CUDA_COMPUTE_CAP CARGO_TARGET_DIR=$GPU_TARGET \
++    cargo build --release -p uor-r4-training --features cuda --example geometric-stack
++  sha256sum "$GS" "$MWORLD" "$CHATGRADE" "$MIX" "$PREP" > "$R/binaries.sha256"
++  log "built $(cat "$R/build-commit.txt")"
++}
++
++stage_data() {
++  check "$T" d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89
++  check "$D/corpora/ts-train/tokens.u16" 2ba5e64fe076bbb5ffd037df4ff90f697e793f96fda01ada921f1db2e533f0fc
++  check "$D/corpora/ts-valid/tokens.u16" 8ebf9db3033963aa5a3a34fe91f4715fe275c73f7c4e4ca7b98cf9a2d87af422
++  check "$D/corpora/td-train/tokens.u16" b4e24f1f202f2375dc830422c50be5b48d6c1be6a39aeaa7173a2fb84e9f50d3
++  check "$D/chat-v0-p2/train/tokens.u16" b5d3bf977a524d9e47c0c75592d0170a183271ddf0cf4d7b560e3ece7a54f184
++  check "$D/chat-v0-p2/train/response_mask.u8" 28b7e98bb8a85368596dd7d1b8aa8aa16a277879a8368925dadbd37f20c3b3c1
++  check "$D/ft/parar/tokens.u16" 76a409ecd72ca9badfce7e4e032ead236fc9da83e0ab69d830ca99d4e4e3c8fd
++  check "$D/ft/parar/response_mask.u8" 199f61565f1f314e74babfb79bb5fb6f797eb8a6b621003d792f7bbfdc95749f
++  check "$D/ft/dev/tokens.u16" 0919e90f953e988edf05cbb8a69e24bafda0cb8b8ddbbb5d1e9d808c81a6555b
++  check "$D/ft/dev/response_mask.u8" a838bb1a67e96572cb10a86b5a3587dda25f0190eaf85133026e04c281afb078
++  check "$D/ft/dev/manifest.json" 74a9158604336ef8079e13e615508ea4cd56b2253ce020b3335979cb152f847c
++  check "$D/sieve/compiler-save-op-v25-rawtable/compiler.json" 34cdf896abf5d823e185edc269454c6ad92d97b083ad7ef8f093944931783f06
++  check "$D/sieve/op-model-v25/model/config.json" e1009111a801518160db3b58a1c9981302ad2649fda296f3cf35e6d0af567627
++  check "$D/sieve/op-model-v25/model/model.safetensors" 04ce0d7a253cca6aeedbcf8d38837fed9fcf3a6b430e13f10eb098ac055db4ce
++  check "$D/panel/everyday-32.json" 945c0c97196d39db430b5821c8c30a888a3c719c6e701c218fc7a914b350b480
++  check "$D/panel/heldout-200-a.json" 019cc6f65e8ec815d29328f7dd48f49126beaa29b29d1b4bcc7d4d156dffd2c1
++  check "$D/panel/heldout-200-b.json" 5434cfd9767c78a179e0899c9568971466dd36e8dcf4f106e1de1566fb29436c
++  check "$D/panel/heldout-200.json" 67d45fde7b84fd25900c81f8183ddd884bc5c5ef55c840a684d9b2ce4efa694f
++  check "$D/panel/stretch-32.json" 1d8fcbc4b3399dd51cfa8409612f46fddd0ce59f2b1f69211ed3dce05ad995ff
++  # Arm C fine-tune corpus (the 96M chat-100m-C store): M-world parar three times,
++  # then chat-v0-p2. Rebuilt here; verified against the bytes Arm C trained on.
++  if [ ! -f "$D/ft/mixed-c/tokens.u16" ]; then
++    "$MIX" out="$D/ft/mixed-c" tokenizer="$T" \
++      inputs="$D/ft/parar,$D/ft/parar,$D/ft/parar,$D/chat-v0-p2/train" \
++      labels=mworld-parar-1,mworld-parar-2,mworld-parar-3,chat-v0-p2
++  fi
++  check "$D/ft/mixed-c/tokens.u16" 7282b7a6ea53dfb79891c2738f8891c146873d7a442d880c435d553be52d6ec7
++  check "$D/ft/mixed-c/response_mask.u8" 0a26ee3178181980927c267786fde2ea01c7823bc3aeca40c3e5b8efff9b3188
++  log "inputs verified"
++}
++
++stage_knowledge() {
++  check "$WIKI_FILE" "$WIKI_SHA256"
++  if fresh "$KSTORE"; then
++    RAYON_NUM_THREADS=$THREADS "$PREP" out="$KSTORE" tokenizer="$T" \
++      input="$WIKI_FILE" format=parquet \
++      source=wikimedia/wikipedia:20231101.simple@cf26be8eef6bc935da5d2281be5aad4813e49e90 \
++      licence=CC-BY-SA-4.0 panel="$PANELS" \
++      min_words=20 heldout_every=200 title=prepend \
++      2>&1 | tee "$KN/prepare.log"
++  fi
++  python3 - "$KSTORE/corpus.json" <<'PY'
++import json, sys
++c = json.load(open(sys.argv[1]))
++drawn = 0.25 * 70609 * 16 * 384
++t = c['train']['tokens']
++print(f"knowledge train tokens {t:,}; drawn per K run {drawn:,.0f}; epochs {drawn / t:.2f}")
++print("counts", json.dumps(c['counts']))
++if drawn / t > 4:
++    sys.exit("more than 4 epochs of the knowledge corpus: stop and revisit the weight")
++PY
++}
++
++# Arm A: the 29M lr 5e-4 recipe's mix (TinyStories / TinyDialogues / chat-v0-p2 =
++# 0.6 / 0.15 / 0.25). Arm K: the same three scaled by 0.75 plus the knowledge
++# corpus at 0.25. Same steps x batch x context (433,821,696 tokens) in both.
++train_streams() {  # train_streams ARM
++  local base="$D/corpora/ts-train/tokens.u16,$D/corpora/td-train/tokens.u16,$D/chat-v0-p2/train/tokens.u16"
++  case $1 in
++    A) echo "train=$base train_weights=0.6,0.15,0.25" ;;
++    K) echo "train=$base,$KSTORE/train/tokens.u16 train_weights=0.45,0.1125,0.1875,0.25" ;;
++  esac
++}
++
++stage_base() {
++  for seed in "${SEEDS[@]}"; do
++    for arm in "${ARMS[@]}"; do
++      local out=$R/base-$arm-s$seed
++      fresh "$out" || continue
++      log "base $arm seed $seed"
++      # shellcheck disable=SC2046
++      CUDA_VISIBLE_DEVICES=$GPU RAYON_NUM_THREADS=8 "$GS" train \
++        out="$out" seed="$seed" lr=0.0005 \
++        $(train_streams "$arm") \
++        valid="$D/corpora/ts-valid/tokens.u16" tokenizer="$T" \
++        arch=geometric width=576 heads=8 layers=10 pattern=rrarrarrar context=384 \
++        read=l2 rotation=true key_shift=false \
++        steps=70609 batch=16 warmup=200 min_lr=0.1 weight_decay=0.1 clip=1.0 \
++        eval_every=5000 eval_windows=64 final_windows=512 \
++        checkpoint_every=10000 max_seconds=21600 \
++        device=cuda tf32=true data_parallel=1 \
++        > "$out.log" 2>&1 || fail "$out"
++      log "base $arm seed $seed done"
++    done
++  done
++}
++
++stage_ft() {
++  for seed in "${SEEDS[@]}"; do
++    for arm in "${ARMS[@]}"; do
++      local out=$R/ft-C-$arm-s$seed
++      fresh "$out" || continue
++      log "ft Arm C $arm seed $seed"
++      CUDA_VISIBLE_DEVICES=$GPU RAYON_NUM_THREADS=8 "$GS" dialogue-train \
++        out="$out" tokenizer="$T" \
++        train_tokens="$D/ft/mixed-c/tokens.u16" train_mask="$D/ft/mixed-c/response_mask.u8" \
++        train_manifest="$D/ft/mixed-c/manifest.json" \
++        dev_tokens="$D/ft/dev/tokens.u16" dev_mask="$D/ft/dev/response_mask.u8" \
++        dev_manifest="$D/ft/dev/manifest.json" \
++        init="$R/base-$arm-s$seed/model" \
++        pointer=32 protocol=2 context=384 policy=full_prefix data_seed="$seed" \
++        steps=4000 batch=16 lr=0.0003 warmup=100 min_lr=0.1 weight_decay=0.1 clip=1.0 \
++        eval_every=500 checkpoint_every=4000 dev_seed=20260930 dev_per_source=32 \
++        max_seconds=10800 device=cuda tf32=true \
++        > "$out.log" 2>&1 || fail "$out"
++      log "ft $arm seed $seed done"
++    done
++  done
++}
++
++stage_eval() {
++  for seed in "${SEEDS[@]}"; do
++    for arm in "${ARMS[@]}"; do
++      local key=$arm-s$seed
++      # Knowledge held-out NLL: the manipulation check (bases) and retention after the fine-tune.
++      for pair in "base:$R/base-$key/model" "ft:$R/ft-C-$key/model"; do
++        local stage=${pair%%:*} model=${pair#*:}
++        local out=$R/eval-knowledge-$stage-$key
++        fresh "$out" || continue
++        RAYON_NUM_THREADS=$THREADS "$GS" evaluate model="$model" \
++          tokens="$KSTORE/heldout/tokens.u16" out="$out" tune_blocks=64 > "$out.log" 2>&1 || fail "$out"
++        log "eval knowledge $stage $key done"
++      done
++      # D19 grounded sessions: 300 conversations, 1,075 scored turns; sieve on and off.
++      for recall in sieve off; do
++        local out=$R/session-$recall-$key
++        fresh "$out" || continue
++        RAYON_NUM_THREADS=$THREADS VECLIB_MAXIMUM_THREADS=$THREADS "$MWORLD" session \
++          out="$out" world=v2 model_root="$R/ft-C-$key" tokenizer="$T" \
++          compiler="$D/sieve/compiler-save-op-v25-rawtable/compiler.json" \
++          trunk="$D/sieve/op-model-v25/model" op_policy=unless_query \
++          log_recall=$recall max_new_tokens=64 arms=default reload=0 \
++          > "$out.log" 2>&1 || fail "$out"
++        log "session $recall $key done"
++      done
++    done
++  done
++}
++
++stage_replies() {
++  for seed in "${SEEDS[@]}"; do
++    for arm in "${ARMS[@]}"; do
++      local out=$R/replies-$arm-s$seed
++      fresh "$out" || continue
++      RAYON_NUM_THREADS=$THREADS "$CHATGRADE" reply out="$out" \
++        model="$R/ft-C-$arm-s$seed/model" tokenizer="$T" requests="$REQUESTS" \
++        protocol=2 max_new_tokens=64 > "$out.log" 2>&1 || fail "$out"
++      log "replies $arm seed $seed done"
++    done
++  done
++}
++
++# Grading needs a local Ollama with qwen2.5:7b (the grader of every ladder panel).
++# On the laptop: copy $R/replies-* to the same layout under R=~/uor-r4-local/step5/runs,
++# register the job (2 threads), then run this stage with REPO pointing at a
++# checkout whose target-step5 holds chat-grade.
++stage_grade() {
++  for seed in "${SEEDS[@]}"; do
++    for arm in "${ARMS[@]}"; do
++      local out=$R/grade-$arm-s$seed
++      fresh "$out" || continue
++      RAYON_NUM_THREADS=$GRADE_THREADS "$CHATGRADE" grade-replies out="$out" \
++        replies="$R/replies-$arm-s$seed/replies.json" grader=qwen2.5:7b \
++        ollama_url="$OLLAMA_URL" > "$out.log" 2>&1 || fail "$out"
++      log "grade $arm seed $seed done"
++    done
++  done
++}
++
++stage_tabulate() {
++  python3 "$REPO/scripts/pod/step5-tabulate.py" "$R" \
++    --clean "$REPO/docs/research/step5/panel-clean" --json "$R/step5-result-$(date -u +%Y%m%dT%H%M%SZ).json"
++}
++
++mkdir -p "$R"
++case $STAGE in
++  fetch|build|data|knowledge|base|ft|eval|replies|grade|tabulate) "stage_$STAGE" ;;
++  all) for s in fetch build data knowledge base ft eval replies; do "stage_$s"; done ;;
++  *) echo "unknown stage $STAGE" >&2; exit 2 ;;
++esac
+diff --git a/scripts/pod/step5-tabulate.py b/scripts/pod/step5-tabulate.py
+new file mode 100755
+index 000000000..226cee6c0
+--- /dev/null
++++ b/scripts/pod/step5-tabulate.py
+@@ -0,0 +1,171 @@
++#!/usr/bin/env python3
++"""Tabulate the Step 5 knowledge A/B (#820) and apply its frozen decision rule.
++
++Tabulation only (reads sealed JSON reports; no model runs):
++
++  step5-tabulate.py RUN_ROOT [--clean DIR] [--json OUT.json]
++
++RUN_ROOT is the `R` of scripts/pod/step5-knowledge.sh. Arms: A (current mix) and
++K (current mix with 25% knowledge corpus), seeds 1 and 2. It reads
++  base-{A,K}-s{1,2}/report.json                 base train report (final ts-valid NLL)
++  eval-knowledge-{base,ft}-{A,K}-s{1,2}/evaluation.json   knowledge held-out NLL
++  session-{sieve,off}-{A,K}-s{1,2}/report.json  D19 grounded sessions
++  grade-{A,K}-s{1,2}/report.json                open 232-request panel grades
++and the clean subsets in docs/research/step5/panel-clean (clean-ids.txt and
++wellposed-ids.txt).
++
++Decision rule (frozen in docs/research/step5/knowledge-ab.md before any run):
++  Manipulation check: K's knowledge held-out NLL (base) is at least 0.10 nats
++    below A's on both seeds; otherwise the corpus did not land and the panel is
++    not read (instrument/data-path failure).
++  Panel delta: d_s = acceptable(K, s) - acceptable(A, s) on all 232 rows;
++    mean_d = (d_1 + d_2) / 2; pooled exact McNemar over the 464 (request, seed)
++    pairs.
++  Clean guard: d_s on the 143-row clean subset is > 0 on both seeds.
++  Instruction guard: pooled D19 Instruction passes (sieve on, 2 x 98 turns) of K
++    >= pooled A - max(3, |A_s1 - A_s2|).
++  PROMOTE  mean_d >= 10, p < 0.05, clean guard and instruction guard hold.
++  BLOCKED  panel criterion (mean_d >= 10, p < 0.05, clean guard) holds but the
++           instruction guard fails.
++  NULL     mean_d < 5, or d_1 and d_2 have opposite signs.
++  WEAK     anything else.
++"""
++import argparse
++import json
++import math
++import os
++import sys
++
++ARMS = ('A', 'K')
++SEEDS = (1, 2)
++HERE = os.path.dirname(os.path.abspath(__file__))
++DEFAULT_CLEAN = os.path.join(HERE, '..', '..', 'docs', 'research', 'step5', 'panel-clean')
++
++
++def load(path):
++    if not os.path.exists(path):
++        return None
++    with open(path, encoding='utf-8') as handle:
++        return json.load(handle)
++
++
++def ids(path):
++    with open(path, encoding='utf-8') as handle:
++        return [line.strip() for line in handle if line.strip()]
++
++
++def mcnemar_exact(b, c):
++    """Two-sided exact McNemar p (the chat-grade definition)."""
++    n = b + c
++    if n == 0:
++        return 1.0
++    k = min(b, c)
++    tail = sum(math.comb(n, i) for i in range(k + 1)) / 2 ** n
++    return min(1.0, 2 * tail)
++
++
++def main():
++    parser = argparse.ArgumentParser()
++    parser.add_argument('root')
++    parser.add_argument('--clean', default=DEFAULT_CLEAN)
++    parser.add_argument('--json')
++    args = parser.parse_args()
++    R = args.root
++    clean = ids(os.path.join(args.clean, 'clean-ids.txt'))
++    wellposed = ids(os.path.join(args.clean, 'wellposed-ids.txt'))
++    out = {'root': os.path.abspath(R), 'arms': {}}
++
++    ok = {}
++    for arm in ARMS:
++        for seed in SEEDS:
++            key = f'{arm}-s{seed}'
++            row = {}
++            base = load(os.path.join(R, f'base-{key}', 'report.json'))
++            row['base_ts_valid_nll'] = (base or {}).get('final', {}).get('nll')
++            for stage in ('base', 'ft'):
++                ev = load(os.path.join(R, f'eval-knowledge-{stage}-{key}', 'evaluation.json'))
++                row[f'knowledge_nll_{stage}'] = ev['full']['nll'] if ev else None
++            for recall in ('sieve', 'off'):
++                session = load(os.path.join(R, f'session-{recall}-{key}', 'report.json'))
++                if session:
++                    cats = session['arms']['default']['by_category']
++                    row[f'session_{recall}'] = {c: v['pass'] for c, v in cats.items()}
++                    row[f'session_{recall}_total'] = sum(v['pass'] for v in cats.values())
++                    row[f'session_{recall}_of'] = sum(v['of'] for v in cats.values())
++            grade = load(os.path.join(R, f'grade-{key}', 'report.json'))
++            if grade:
++                ok[key] = {r['id']: bool(r['grades']['fluent'] and r['grades']['relevant'])
++                           for r in grade['rows']}
++                row['panel_all'] = sum(ok[key].values())
++                row['panel_wellposed'] = sum(ok[key][i] for i in wellposed)
++                row['panel_clean'] = sum(ok[key][i] for i in clean)
++            out['arms'][key] = row
++
++    print(f"{'arm':6} {'tsNLL':>7} {'kNLLb':>7} {'kNLLft':>7} {'panel':>6} {'well':>5} {'clean':>5} "
++          f"{'D19 sieve':>10} {'D19 off':>8} {'Instr':>5}")
++    for key, row in out['arms'].items():
++        def f(v, fmt='{:.4f}'):
++            return '-' if v is None else fmt.format(v)
++        print(f"{key:6} {f(row.get('base_ts_valid_nll')):>7} {f(row.get('knowledge_nll_base')):>7} "
++              f"{f(row.get('knowledge_nll_ft')):>7} {f(row.get('panel_all'), '{}'):>6} "
++              f"{f(row.get('panel_wellposed'), '{}'):>5} {f(row.get('panel_clean'), '{}'):>5} "
++              f"{f(row.get('session_sieve_total'), '{}'):>10} {f(row.get('session_off_total'), '{}'):>8} "
++              f"{f((row.get('session_sieve') or {}).get('Instruction'), '{}'):>5}")
++
++    need = [f'{a}-s{s}' for a in ARMS for s in SEEDS]
++    if not all(k in ok for k in need):
++        print('incomplete: grades missing for', [k for k in need if k not in ok])
++        decision = 'INCOMPLETE'
++    else:
++        a = out['arms']
++        manip = all(
++            a[f'K-s{s}'].get('knowledge_nll_base') is not None
++            and a[f'A-s{s}'].get('knowledge_nll_base') is not None
++            and a[f'A-s{s}']['knowledge_nll_base'] - a[f'K-s{s}']['knowledge_nll_base'] >= 0.10
++            for s in SEEDS)
++        d = {s: a[f'K-s{s}']['panel_all'] - a[f'A-s{s}']['panel_all'] for s in SEEDS}
++        dc = {s: a[f'K-s{s}']['panel_clean'] - a[f'A-s{s}']['panel_clean'] for s in SEEDS}
++        b = sum(ok[f'K-s{s}'][i] and not ok[f'A-s{s}'][i] for s in SEEDS for i in ok['A-s1'])
++        c = sum(ok[f'A-s{s}'][i] and not ok[f'K-s{s}'][i] for s in SEEDS for i in ok['A-s1'])
++        p = mcnemar_exact(b, c)
++        mean_d = (d[1] + d[2]) / 2
++        instr = {arm: [(a[f'{arm}-s{s}'].get('session_sieve') or {}).get('Instruction') for s in SEEDS]
++                 for arm in ARMS}
++        if None in instr['A'] or None in instr['K']:
++            instr_ok = None
++        else:
++            tol = max(3, abs(instr['A'][0] - instr['A'][1]))
++            instr_ok = sum(instr['K']) >= sum(instr['A']) - tol
++        clean_ok = dc[1] > 0 and dc[2] > 0
++        panel_ok = mean_d >= 10 and p < 0.05 and clean_ok
++        if not manip:
++            decision = 'INSTRUMENT: knowledge corpus did not land (manipulation check failed); panel not read'
++        elif panel_ok and instr_ok:
++            decision = 'PROMOTE'
++        elif panel_ok and instr_ok is False:
++            decision = 'BLOCKED (instruction guard failed)'
++        elif instr_ok is None and panel_ok:
++            decision = 'INCOMPLETE (session reports missing)'
++        elif mean_d < 5 or d[1] * d[2] < 0:
++            decision = 'NULL'
++        else:
++            decision = 'WEAK'
++        out['comparison'] = {
++            'manipulation_check': manip, 'delta_all': d, 'delta_clean': dc, 'mean_delta_all': mean_d,
++            'mcnemar_pooled': {'K_only': b, 'A_only': c, 'p': p},
++            'instruction_sieve': instr, 'instruction_guard': instr_ok, 'clean_guard': clean_ok,
++        }
++        print(f"manipulation check (knowledge NLL A-K >= 0.10 on both seeds): {manip}")
++        print(f"panel delta K-A: s1 {d[1]:+d}, s2 {d[2]:+d}, mean {mean_d:+.1f}; clean s1 {dc[1]:+d}, s2 {dc[2]:+d}")
++        print(f"pooled McNemar over 464 pairs: K-only {b}, A-only {c}, p = {p:.4g}")
++        print(f"D19 Instruction (sieve) A {instr['A']} K {instr['K']}: guard {instr_ok}")
++    out['decision'] = decision
++    print(f'DECISION: {decision}')
++    if args.json:
++        with open(args.json, 'x', encoding='utf-8') as handle:
++            json.dump(out, handle, indent=1)
++    return 0
++
++
++if __name__ == '__main__':
++    sys.exit(main())

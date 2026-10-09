@@ -1,0 +1,1548 @@
+diff --git a/crates/uor-r4-training/examples/m-world.rs b/crates/uor-r4-training/examples/m-world.rs
+index dbd613856..524ad0419 100644
+--- a/crates/uor-r4-training/examples/m-world.rs
++++ b/crates/uor-r4-training/examples/m-world.rs
+@@ -2,7 +2,10 @@
+ //! and A1). `world=v1` (the default) is `uor_r4_training::milestone_world`, R1's
+ //! sealed instrument; `world=v2` is `uor_r4_training::milestone_world_v2`, the
+ //! retrieval instrument (open value pools, MQAR and copy episodes, the #1516
+-//! oracle fixes).
++//! oracle fixes). `world=v2c` (Step 4, #820) is v2 whose rehearsing MQAR
++//! replies read "So {k} is {v}." so the key keeps its asserted casing
++//! (`milestone_world_v2::Variant::V2c`); every mode that takes `world=v2`
++//! takes `world=v2c`, and reports record `m-world-v2c` and its own digest.
+ //!
+ //! ```text
+ //! m-world corpus [world=v1] out=NEW_REPORT_ROOT tokenizer=TOKENIZER.json chat=CHAT_V0_TRAIN_DIR \
+@@ -165,7 +168,7 @@ use uor_r4_training::geometric_stack::{
+ };
+ use uor_r4_training::milestone_world::{judge, normalized, Category, MWorld, Split};
+ use uor_r4_training::milestone_world_v2::{
+-    judge_v2, render, Conversation2, Kind, MWorld2, Mix, Pool, Scorecard, Turn2, CONTEXT,
++    judge_v2, render, Conversation2, Kind, MWorld2, Mix, Pool, Scorecard, Turn2, Variant, CONTEXT,
+ };
+ use uor_r4_training::stack_dialogue::{
+     check_panel, episode_contract, episode_contract_for, greedy_reply, load_requests, reply_panel,
+@@ -340,6 +343,14 @@ impl Args {
+ enum World {
+     V1,
+     V2,
++    /// v2 with the rehearsed MQAR key in its asserted casing (Step 4, #820).
++    V2c,
++}
++
++impl World {
++    fn is_v2(self) -> bool {
++        matches!(self, Self::V2 | Self::V2c)
++    }
+ }
+ 
+ /// `recall=` of `evaluate world=v2`: the emission of the log-sieve design
+@@ -427,7 +438,8 @@ fn world_of(args: &Args) -> Result<World> {
+             Ok(World::V1)
+         }
+         Some("v2") => Ok(World::V2),
+-        Some(other) => Err(invalid(format!("unknown world={other}; use v1 or v2"))),
++        Some("v2c") => Ok(World::V2c),
++        Some(other) => Err(invalid(format!("unknown world={other}; use v1, v2 or v2c"))),
+     }
+ }
+ 
+@@ -1092,7 +1104,7 @@ fn corpus_v2(args: &Args, out: &Path) -> Result<()> {
+     };
+     let count = |text: &str| tokenizer.encode(text).len();
+     let spaced_meter = uor_r4_training::milestone_world_v2::Meter::spaced(&count);
+-    let mut world = MWorld2::new(&count, mix)?;
++    let mut world = MWorld2::new(&count, mix)?.with_variant(v2_variant(args)?);
+     let mut rng = Rng::new(seed);
+     // Training excludes the sealed English probe by an overlap rule: a
+     // conversation that shares an 8-word user-turn n-gram with it is drawn
+@@ -1357,8 +1369,8 @@ fn corpus_v2(args: &Args, out: &Path) -> Result<()> {
+             "probe_screen": screened.record,
+         })),
+         "m_world": {
+-            "version": "m-world-v2",
+-            "world_digest": MWorld2::digest(),
++            "version": v2_variant(args)?.world_name(),
++            "world_digest": MWorld2::digest_for(v2_variant(args)?),
+             "split": "train",
+             "seed": seed,
+             "mix": world.mix(),
+@@ -1443,8 +1455,8 @@ fn corpus_v2(args: &Args, out: &Path) -> Result<()> {
+         serde_json::to_vec_pretty(&json!({
+             "schema": "uor-r4.m-world-corpus/2",
+             "executable_sha256": sha256_file(&executable)?,
+-            "world": "m-world-v2",
+-            "world_digest": MWorld2::digest(),
++            "world": v2_variant(args)?.world_name(),
++            "world_digest": MWorld2::digest_for(v2_variant(args)?),
+             "v1_world_digest": MWorld::digest(),
+             "mix": world.mix(),
+             "tokenizer_sha256": sha256_file(&tokenizer_path)?,
+@@ -1787,7 +1799,12 @@ fn evaluate_v2(args: &Args, out: &Path) -> Result<()> {
+                 identity.clone(),
+             )
+         });
+-        let (route, record) = fit_route(&count, args.optional("route_paraphrases"), trunk)?;
++        let (route, record) = fit_route(
++            &count,
++            v2_variant(args)?,
++            args.optional("route_paraphrases"),
++            trunk,
++        )?;
+         (Some(route), Some(record))
+     } else {
+         (None, None)
+@@ -1795,7 +1812,7 @@ fn evaluate_v2(args: &Args, out: &Path) -> Result<()> {
+     let reserved = reserved_words();
+     // Relation queries the route's table named correctly, of those evaluated.
+     let mut route_named = (0usize, 0usize);
+-    let mut world = MWorld2::new(&count, mix)?;
++    let mut world = MWorld2::new(&count, mix)?.with_variant(v2_variant(args)?);
+     let mut rng = Rng::new(seed);
+     let mut card = Scorecard::default();
+     let (mut whole, mut judged) = (0usize, Vec::with_capacity(conversations));
+@@ -1930,8 +1947,8 @@ fn evaluate_v2(args: &Args, out: &Path) -> Result<()> {
+     let mut report = json!({
+         "schema": "uor-r4.m-world-evaluation/2",
+         "executable_sha256": executable_sha256,
+-        "world": "m-world-v2",
+-        "world_digest": MWorld2::digest(),
++        "world": v2_variant(args)?.world_name(),
++        "world_digest": MWorld2::digest_for(v2_variant(args)?),
+         "model": model_dir.display().to_string(),
+         "model_identity": identity,
+         "selection_override": selection_override,
+@@ -2123,9 +2140,10 @@ fn rejudge_v2(args: &Args, out: &Path, report_path: &Path, old: &Value) -> Resul
+         .and_then(|n| usize::try_from(n).ok())
+         .ok_or_else(|| invalid("the report has no conversation count"))?;
+     let mix: Mix = serde_json::from_value(old["mix"].clone())?;
++    let variant = Variant::from_world_name(old["world"].as_str())?;
+     let tokenizer = load_tokenizer(&tokenizer_path)?;
+     let count = |text: &str| tokenizer.encode(text).len();
+-    let mut world = MWorld2::new(&count, mix)?;
++    let mut world = MWorld2::new(&count, mix)?.with_variant(variant);
+     let mut rng = Rng::new(seed);
+     let conversations: Vec<Conversation2> = (0..drawn)
+         .map(|_| world.conversation(&mut rng, split))
+@@ -2181,7 +2199,7 @@ fn rejudge_v2(args: &Args, out: &Path, report_path: &Path, old: &Value) -> Resul
+     let executable = std::env::current_exe()?;
+     let mut report = json!({
+         "schema": "uor-r4.m-world-rejudge/2",
+-        "world_digest": MWorld2::digest(),
++        "world_digest": MWorld2::digest_for(variant),
+         "source_world_digest": old["world_digest"],
+         "executable_sha256": sha256_file(&executable)?,
+         "source_report": report_path.display().to_string(),
+@@ -2220,16 +2238,26 @@ fn open_model(
+     load_model(directory, device, selection)
+ }
+ 
+-/// These modes are world=v2 only; `world=v2` may be spelled out.
++/// These modes are world=v2 only; `world=v2` may be spelled out, and
++/// `world=v2c` is v2 with the rehearsed MQAR key in its asserted casing.
+ fn require_v2(args: &Args) -> Result<()> {
+     match args.optional("world").as_deref() {
+-        None | Some("v2") => Ok(()),
++        None | Some("v2" | "v2c") => Ok(()),
+         Some(other) => Err(invalid(format!(
+-            "this mode is world=v2 only, not world={other}"
++            "this mode is world=v2 (or v2c) only, not world={other}"
+         ))),
+     }
+ }
+ 
++/// The v2 table set a v2 mode draws from: `world=v2c` is
++/// [`Variant::V2c`]; `world=v2` or no `world=` is v2.
++fn v2_variant(args: &Args) -> Result<Variant> {
++    match args.optional("world").as_deref() {
++        None => Ok(Variant::V2),
++        Some(text) => Variant::parse(text),
++    }
++}
++
+ /// A greedy reply to one turn, after the episode's reference history.
+ struct Answer {
+     text: String,
+@@ -2301,7 +2329,7 @@ fn evaluate_cells(args: &Args, out: &Path) -> Result<()> {
+     for cell in Cell::ALL {
+         // A fresh world and stream per cell: each cell cycles the same MQAR
+         // (distance, N) sequence from the same seed.
+-        let mut world = MWorld2::new(&count, mix)?;
++        let mut world = MWorld2::new(&count, mix)?.with_variant(v2_variant(args)?);
+         let mut rng = Rng::new(seed);
+         for index in 0..conversations {
+             let conversation = world.conversation_in(&mut rng, cell)?;
+@@ -2400,8 +2428,8 @@ fn evaluate_cells(args: &Args, out: &Path) -> Result<()> {
+     let mut report = json!({
+         "schema": "uor-r4.m-world-cells/1",
+         "executable_sha256": sha256_file(&executable)?,
+-        "world": "m-world-v2",
+-        "world_digest": MWorld2::digest(),
++        "world": v2_variant(args)?.world_name(),
++        "world_digest": MWorld2::digest_for(v2_variant(args)?),
+         "revision": REVISION,
+         "model": model_dir.display().to_string(),
+         "model_identity": identity,
+@@ -2481,7 +2509,7 @@ fn baselines(args: &Args, out: &Path) -> Result<()> {
+     };
+     let mut by_cell: BTreeMap<Cell, BTreeMap<&'static str, RuleRun>> = BTreeMap::new();
+     for cell in &to_run {
+-        let mut world = MWorld2::new(&count, mix)?;
++        let mut world = MWorld2::new(&count, mix)?.with_variant(v2_variant(args)?);
+         let mut rng = Rng::new(seed);
+         by_cell.insert(
+             *cell,
+@@ -2527,8 +2555,8 @@ fn baselines(args: &Args, out: &Path) -> Result<()> {
+     let report = json!({
+         "schema": "uor-r4.m-world-baselines/1",
+         "executable_sha256": sha256_file(&executable)?,
+-        "world": "m-world-v2",
+-        "world_digest": MWorld2::digest(),
++        "world": v2_variant(args)?.world_name(),
++        "world_digest": MWorld2::digest_for(v2_variant(args)?),
+         "revision": REVISION,
+         "tokenizer_sha256": sha256_file(&tokenizer_path)?,
+         "split": split,
+@@ -2582,7 +2610,7 @@ fn route(args: &Args, out: &Path) -> Result<()> {
+     };
+     let mut cells_json: BTreeMap<&str, Value> = BTreeMap::new();
+     for cell in &to_run {
+-        let mut world = MWorld2::new(&count, mix)?;
++        let mut world = MWorld2::new(&count, mix)?.with_variant(v2_variant(args)?);
+         let mut rng = Rng::new(seed);
+         let runs = run_route(&mut world, &mut rng, *cell, conversations)?;
+         let rows: BTreeMap<&str, Value> = runs
+@@ -2605,8 +2633,8 @@ fn route(args: &Args, out: &Path) -> Result<()> {
+     let report = json!({
+         "schema": "uor-r4.m-world-route/1",
+         "executable_sha256": sha256_file(&std::env::current_exe()?)?,
+-        "world": "m-world-v2",
+-        "world_digest": MWorld2::digest(),
++        "world": v2_variant(args)?.world_name(),
++        "world_digest": MWorld2::digest_for(v2_variant(args)?),
+         "revision": REVISION,
+         "tokenizer_sha256": sha256_file(&tokenizer_path)?,
+         "split": split,
+@@ -2657,8 +2685,11 @@ fn load_paraphrases(list: &str, train: &[Example]) -> Result<(Vec<Example>, Valu
+ /// every user turn of relation-heavy draws with training phrasings (both value
+ /// splits, 2,000 conversations each, seed 9,101: `compiler`'s draw), plus any
+ /// teacher paraphrases, by 400 sparse gradient steps (rate 0.5, l2 1e-4).
++/// The draws use the evaluated `variant` (`world=v2c` fits on v2c draws), and
++/// the record names it, so a route's provenance matches the report's world.
+ fn fit_route(
+     count: &dyn Fn(&str) -> usize,
++    variant: Variant,
+     paraphrases: Option<String>,
+     trunk: Option<(&dyn Fn(&str) -> Result<Vec<f64>>, Value)>,
+ ) -> Result<(RelationRoute, Value)> {
+@@ -2671,7 +2702,7 @@ fn fit_route(
+     };
+     let mut train = Vec::new();
+     for value in [Split::Train, Split::Development] {
+-        let mut world = MWorld2::new(count, mix)?;
++        let mut world = MWorld2::new(count, mix)?.with_variant(variant);
+         let mut rng = Rng::new(9_101);
+         train.extend(collect(
+             &mut world,
+@@ -2708,6 +2739,8 @@ fn fit_route(
+         "table": "sparse softmax over the words of a turn, 400 full-batch steps, rate 0.5, l2 1e-4",
+         "training_turns": turns,
+         "draw": "relation-heavy mix (MQAR .15, copy .05, relation .60, other .20), training phrasings, both value splits, 2,000 conversations each, seed 9101",
++        "world": variant.world_name(),
++        "world_digest": MWorld2::digest_for(variant),
+         "paraphrases": paraphrase_record,
+     });
+     Ok((route, record))
+@@ -2751,7 +2784,7 @@ fn compiler(args: &Args, out: &Path) -> Result<()> {
+         ..Mix::default()
+     };
+     let draw = |cell: Cell, conversations: usize, seed: u64| -> Result<Vec<Example>> {
+-        let mut world = MWorld2::new(&count, mix)?;
++        let mut world = MWorld2::new(&count, mix)?.with_variant(v2_variant(args)?);
+         let mut rng = Rng::new(seed);
+         collect(&mut world, &mut rng, cell, conversations)
+     };
+@@ -2912,8 +2945,8 @@ fn compiler(args: &Args, out: &Path) -> Result<()> {
+     let report = json!({
+         "schema": "uor-r4.m-world-compiler/1",
+         "executable_sha256": sha256_file(&std::env::current_exe()?)?,
+-        "world": "m-world-v2",
+-        "world_digest": MWorld2::digest(),
++        "world": v2_variant(args)?.world_name(),
++        "world_digest": MWorld2::digest_for(v2_variant(args)?),
+         "revision": REVISION,
+         "model": model_dir.display().to_string(),
+         "model_identity": identity,
+@@ -3197,7 +3230,7 @@ fn compiler_save(args: &Args, out: &Path) -> Result<()> {
+         ..Mix::default()
+     };
+     let draw = |cell: Cell, conversations: usize, seed: u64| -> Result<Vec<Example>> {
+-        let mut world = MWorld2::new(&count, mix)?;
++        let mut world = MWorld2::new(&count, mix)?.with_variant(v2_variant(args)?);
+         let mut rng = Rng::new(seed);
+         collect(&mut world, &mut rng, cell, conversations)
+     };
+@@ -3223,8 +3256,8 @@ fn compiler_save(args: &Args, out: &Path) -> Result<()> {
+         None => Value::Null,
+     };
+     let training = json!({
+-        "world": "m-world-v2",
+-        "world_digest": MWorld2::digest(),
++        "world": v2_variant(args)?.world_name(),
++        "world_digest": MWorld2::digest_for(v2_variant(args)?),
+         "mix": "relation-heavy: mqar .15, copy .05, relation .60, other .20",
+         "phrasing": "train",
+         "values": values,
+@@ -3774,8 +3807,8 @@ pub(crate) fn judge_row(
+ /// with a save and load at their middle turn, and must match.
+ fn session(args: &Args, out: &Path) -> Result<()> {
+     let started = Instant::now();
+-    if args.optional("world").as_deref() != Some("v2") {
+-        return Err(invalid("session needs world=v2"));
++    if !matches!(args.optional("world").as_deref(), Some("v2" | "v2c")) {
++        return Err(invalid("session needs world=v2 or world=v2c"));
+     }
+     let model_root = PathBuf::from(args.required("model_root")?);
+     let tokenizer_path = PathBuf::from(args.required("tokenizer")?);
+@@ -3928,7 +3961,7 @@ fn session(args: &Args, out: &Path) -> Result<()> {
+         })
+     };
+     let count = |text: &str| tokenizer.encode(text).len();
+-    let mut world = MWorld2::new(&count, Mix::default())?;
++    let mut world = MWorld2::new(&count, Mix::default())?.with_variant(v2_variant(args)?);
+     let mut rng = Rng::new(seed);
+     let drawn: Vec<Conversation2> = (0..conversations)
+         .map(|_| world.conversation(&mut rng, Split::Development))
+@@ -4103,8 +4136,8 @@ fn session(args: &Args, out: &Path) -> Result<()> {
+     let report = json!({
+         "schema": "uor-r4.m-world-session/1",
+         "executable_sha256": sha256_file(&executable)?,
+-        "world": "m-world-v2",
+-        "world_digest": MWorld2::digest(),
++        "world": v2_variant(args)?.world_name(),
++        "world_digest": MWorld2::digest_for(v2_variant(args)?),
+         "split": "development phrasings and values (evaluate's default cell)",
+         "seed": seed,
+         "conversations": conversations,
+@@ -4440,7 +4473,7 @@ fn compile_corpus(args: &Args, out: &Path) -> Result<()> {
+         ..Mix::default()
+     };
+     let draw = |value: Split, conversations: usize, seed: u64| -> Result<Vec<Example>> {
+-        let mut world = MWorld2::new(&count, mix)?;
++        let mut world = MWorld2::new(&count, mix)?.with_variant(v2_variant(args)?);
+         let mut rng = Rng::new(seed);
+         collect(
+             &mut world,
+@@ -4536,7 +4569,7 @@ fn compile_corpus(args: &Args, out: &Path) -> Result<()> {
+     let report = json!({
+         "schema": "uor-r4.m-world-compile-corpus-report/1",
+         "executable_sha256": sha256_file(&std::env::current_exe()?)?,
+-        "world_digest": MWorld2::digest(),
++        "world_digest": MWorld2::digest_for(v2_variant(args)?),
+         "tokenizer_sha256": sha256_file(&tokenizer_path)?,
+         "prompt": COMPILE_PROMPT,
+         "op_format": "Op: none | Op: query <relation> | Op: assert <relation> <value> | Op: update <relation> <value>",
+@@ -4742,7 +4775,7 @@ fn main() -> Result<()> {
+     // `protocol=`, which only world=v2 encodes, and never with chat=.
+     if mode == "corpus" || mode == "evaluate" {
+         let version = protocol_version_of(&args)?;
+-        if version != 1 && world_of(&args)? != World::V2 {
++        if version != 1 && !world_of(&args)?.is_v2() {
+             return Err(invalid("protocol=2 needs world=v2"));
+         }
+     }
+@@ -4775,7 +4808,7 @@ fn main() -> Result<()> {
+     if mode == "evaluate" {
+         let recall = recall_of(&args)?;
+         recall_at_of(&args)?;
+-        if recall != Recall::Off && world_of(&args)? != World::V2 {
++        if recall != Recall::Off && !world_of(&args)?.is_v2() {
+             return Err(invalid("recall= needs world=v2"));
+         }
+         if recall == Recall::Off && args.optional("recall_at").is_some() {
+@@ -4800,10 +4833,10 @@ fn main() -> Result<()> {
+     report_output::claim(&out)?;
+     let result = match (mode.as_str(), world) {
+         ("corpus", World::V1) => corpus(&args, &out),
+-        ("corpus", World::V2) => corpus_v2(&args, &out),
++        ("corpus", World::V2 | World::V2c) => corpus_v2(&args, &out),
+         ("rejudge", _) => rejudge(&args, &out),
+         (_, World::V1) => evaluate(&args, &out),
+-        (_, World::V2) => evaluate_v2(&args, &out),
++        (_, World::V2 | World::V2c) => evaluate_v2(&args, &out),
+     };
+     if let Err(error) = &result {
+         fs::write(
+diff --git a/crates/uor-r4-training/examples/rehearsal-probe.rs b/crates/uor-r4-training/examples/rehearsal-probe.rs
+index 1773219d8..33fc5ad29 100644
+--- a/crates/uor-r4-training/examples/rehearsal-probe.rs
++++ b/crates/uor-r4-training/examples/rehearsal-probe.rs
+@@ -4,7 +4,8 @@
+ //! ```text
+ //! rehearsal-probe out=NEW_REPORT_ROOT model_root=RUN_ROOT tokenizer=TOKENIZER.json \
+ //!   compiler=COMPILER.json [trunk=OP_MODEL_DIR] [op_policy=unless_query] \
+-//!   [conversations=300] [seed=9101] [max_new_tokens=32]
++//!   [conversations=300] [seed=9101] [max_new_tokens=32] \
++//!   [pointer_route=none|ngram-ranked:W|...] [key_fold=off|on]
+ //! ```
+ //!
+ //! The prompt of every MQAR query is the one the grounded session serves
+@@ -41,19 +42,31 @@
+ //! scores the session's own judge (`judge_v2`) and whether the value appears,
+ //! and splits by reply form (rehearse, bare, other).
+ //!
++//! Step 4 (#820) adds two opt-in controls; with neither, every output is the
++//! Step 0c probe's. `pointer_route=` routes the pointer's sources by exact
++//! token identity (`geometric_stack::PrimeRoute`; saved into the probe's
++//! checkpoint, so the session's free run uses it too). `key_fold=on` builds the
++//! copy-identity table from the tokenizer (`copy_identity::CopyIdentity`,
++//! written as `copy_identity.json`) and makes a routed pointer match keys on
++//! canonical ids in the forced arms; the session's free run loads the
++//! checkpoint, which does not carry the table. Without a route the fold has no
++//! effect (a learned pointer does not match by token identity).
++//!
+ //! Every root is claimed before anything is loaded and sealed at the end. Set
+ //! RAYON_NUM_THREADS to bound the threads.
+ 
+ use std::collections::BTreeMap;
+ use std::fs;
+ use std::path::{Path, PathBuf};
++use std::sync::Arc;
+ use std::time::Instant;
+ 
+ use candle_core::Device;
+ use serde_json::{json, Value};
+ use uor_r4_core::report_output;
+ use uor_r4_tokenizer::ByteBpeTokenizer;
+-use uor_r4_training::geometric_stack::StackModel;
++use uor_r4_training::copy_identity::{CopyIdentity, FOLD_RULE};
++use uor_r4_training::geometric_stack::{parse_pointer_route, PrimeRoute, StackModel};
+ use uor_r4_training::milestone_world::Split;
+ use uor_r4_training::milestone_world_v2::{judge_v2, Category2, Kind, MWorld2, Mix};
+ use uor_r4_training::relation_compiler::{OpPolicy, SavedCompiler, Trunk};
+@@ -83,6 +96,8 @@ const ALLOWED: &[&str] = &[
+     "conversations",
+     "seed",
+     "max_new_tokens",
++    "pointer_route",
++    "key_fold",
+ ];
+ 
+ /// The forced arms: name, and the gold reply text whose pieces before the
+@@ -221,6 +236,18 @@ fn rank(scores: &[f32], id: u32) -> usize {
+         .count()
+ }
+ 
++/// `pointer_route=` (default `none`) and `key_fold=off|on` (default `off`,
++/// Step 4): checked before the root is claimed.
++fn pointer_controls(args: &Args) -> Result<(Option<PrimeRoute>, bool)> {
++    let route = parse_pointer_route(&args.optional("pointer_route").unwrap_or("none".into()))?;
++    let fold = match args.optional("key_fold").as_deref() {
++        None | Some("off") => false,
++        Some("on") => true,
++        Some(other) => return Err(invalid(format!("key_fold={other}: off or on"))),
++    };
++    Ok((route, fold))
++}
++
+ struct Args(BTreeMap<String, String>);
+ 
+ impl Args {
+@@ -364,6 +391,12 @@ fn run(args: &Args, out: &Path) -> Result<()> {
+     let mut model = StackModel::load(&model_dir, &device)?;
+     let snap = StackModel::saved_transport_snap(&model_dir)?;
+     model.set_transport_snap(snap)?;
++    // The route is part of the model's configuration, so the checkpoint the
++    // session serves carries it too.
++    let (pointer_route, key_fold) = pointer_controls(args)?;
++    if pointer_route.is_some() {
++        model.set_pointer_route(pointer_route)?;
++    }
+     let mut model_files = serde_json::Map::new();
+     for name in ["config.json", "model.safetensors", "transport.json"] {
+         let path = model_dir.join(name);
+@@ -375,6 +408,25 @@ fn run(args: &Args, out: &Path) -> Result<()> {
+     let store = StackStore::new(1, 8).map_err(|e| invalid(e.to_string()))?;
+     save_checkpoint(&checkpoint, &model, &identity, Some(&store))
+         .map_err(|e| invalid(e.to_string()))?;
++    // The copy-identity table is a runtime setting the checkpoint does not
++    // carry: it applies to the forced arms, which score on `model`, and not
++    // to the session's free run.
++    let copy_identity = if key_fold {
++        let table = Arc::new(CopyIdentity::from_tokenizer(&tokenizer)?);
++        table.save(&out.join("copy_identity.json"))?;
++        model.set_pointer_key_fold(Some(table.clone()))?;
++        Some(json!({
++            "digest": table.digest(),
++            "fold": FOLD_RULE,
++            "ids": table.len(),
++            "merged_ids": table.merged(),
++            "tokenizer": table.tokenizer(),
++            "scope": "forced arms only; the session's free run serves the saved checkpoint, which does not carry the table",
++            "effective": pointer_route.is_some(),
++        }))
++    } else {
++        None
++    };
+     let scope = SessionScope {
+         scope: b"m-world-v2".to_vec(),
+         entity: tokenizer.encode("user"),
+@@ -627,6 +679,9 @@ fn run(args: &Args, out: &Path) -> Result<()> {
+         "compiler_sha256": sha256_file(&compiler_path)?,
+         "trunk": trunk_directory.as_ref().map(|d| d.display().to_string()),
+         "op_policy": op_policy_text,
++        "pointer_route": pointer_route,
++        "key_fold": key_fold,
++        "copy_identity": copy_identity,
+         "limits": limits,
+         "arms": ARMS.iter().map(|(name, pattern)| json!({"name": name, "gold_reply": pattern})).collect::<Vec<_>>(),
+         "mqar_rows": rows.len(),
+@@ -651,6 +706,7 @@ fn main() -> Result<()> {
+     let arguments: Vec<String> = std::env::args().skip(1).collect();
+     let args = Args::parse(&arguments)?;
+     let out = PathBuf::from(args.required("out")?);
++    pointer_controls(&args)?;
+     report_output::claim(&out)?;
+     let result = run(&args, &out);
+     if let Err(error) = &result {
+@@ -668,6 +724,19 @@ fn main() -> Result<()> {
+ mod tests {
+     use super::*;
+ 
++    #[test]
++    fn the_step4_controls_default_off_and_refuse_bad_values() -> Result<()> {
++        let parse = |a: &[&str]| Args::parse(&a.iter().map(|s| s.to_string()).collect::<Vec<_>>());
++        assert_eq!(pointer_controls(&parse(&[])?)?, (None, false));
++        let (route, fold) =
++            pointer_controls(&parse(&["pointer_route=ngram-ranked:3", "key_fold=on"])?)?;
++        assert!(route.is_some_and(|r| r.ranked && r.window == 3));
++        assert!(fold);
++        assert!(pointer_controls(&parse(&["key_fold=yes"])?).is_err());
++        assert!(pointer_controls(&parse(&["pointer_route=ngram:9"])?).is_err());
++        Ok(())
++    }
++
+     #[test]
+     fn key_is_recovered_from_every_template_shape() {
+         assert_eq!(
+diff --git a/crates/uor-r4-training/src/copy_identity.rs b/crates/uor-r4-training/src/copy_identity.rs
+new file mode 100644
+index 000000000..13f52ebda
+--- /dev/null
++++ b/crates/uor-r4-training/src/copy_identity.rs
+@@ -0,0 +1,336 @@
++//! Copy-identity table (Step 4 of the 2026-10-05 barrier assessment, #820).
++//!
++//! Step 0b (#1709) found that a rehearsed MQAR key at the start of a reply is
++//! written in a casing that never occurs in the context: the assertion holds
++//! `' l','u','k'` and the reply `' L','u','k'`. A pointer whose sources are
++//! admitted by exact token identity (a routed pointer, [`PrimeRoute`]) then
++//! cannot match the key. This module is the D11-legal answer on the match
++//! side: a fixed table that maps every token id to a **canonical id** that
++//! folds case and one leading space, used **only to decide which sources a
++//! pointer key matches**. Emission is untouched: the pointer still copies the
++//! token that stands at the matched source, in its own casing, and the
++//! generated branch never sees the table.
++//!
++//! **Fold rule** ([`FOLD_RULE`]). A token whose decoded bytes are ASCII
++//! letters, optionally after one leading space, belongs to the class of its
++//! ASCII-lowercased letters; every other token (digits, punctuation, spaces,
++//! non-ASCII, special tokens) is its own class. The canonical id of a class is
++//! its least id. So `" Luk"`, `"luk"` and `" luk"` share a canonical id when
++//! the vocabulary has them; `"<|im_start|>"` and `" 4"` stay themselves.
++//! The table is idempotent (`c(c(i)) = c(i)`) and `c(i) <= i`. It does not
++//! repair a key that BPE segments differently after capitalization (Step 0b:
++//! 15 of the 41 D19 rehearsed keys); those need the generator fix (world=v2c).
++//!
++//! **D11 legality.** Serving the fold is one table read per token
++//! (`vocab_size` u32 entries, fixed at export from the tokenizer) and integer
++//! equality on the read values: no multiplier, no floating point, no learned
++//! parameter. The ordered n-let admission ([`RouteAdmission::Ngram`]) compares
++//! canonical ids instead of raw ids. Neither integer stack engine serves a
++//! routed pointer yet (`stack_export` refuses one), so the table is not part
++//! of an exported artifact today; [`CopyIdentity::to_json`] is the format a
++//! port would carry, bound to the tokenizer by its address and digest.
++//!
++//! [`PrimeRoute`]: crate::geometric_stack::PrimeRoute
++//! [`RouteAdmission::Ngram`]: crate::geometric_stack::RouteAdmission::Ngram
++
++use std::collections::BTreeMap;
++use std::fs;
++use std::path::Path;
++
++use serde::{Deserialize, Serialize};
++use sha2::{Digest, Sha256};
++use uor_r4_tokenizer::ByteBpeTokenizer;
++
++use crate::{invalid, Result};
++
++/// The JSON schema of a saved table.
++pub const COPY_IDENTITY_SCHEMA: &str = "uor-r4.copy-identity/1";
++/// The fold the table implements (see the module documentation).
++pub const FOLD_RULE: &str = "ascii-letters-case-and-one-leading-space/least-id";
++
++/// A fixed map from each token id to its canonical id for pointer key
++/// matching (see the module documentation).
++#[derive(Clone, Debug, PartialEq, Eq)]
++pub struct CopyIdentity {
++    canonical: Vec<u32>,
++    /// The tokenizer's address (`ByteBpeTokenizer::address`), or empty for a
++    /// table built from bare pieces.
++    tokenizer: String,
++}
++
++/// The saved form.
++#[derive(Serialize, Deserialize)]
++#[serde(deny_unknown_fields)]
++struct Saved {
++    schema: String,
++    fold: String,
++    tokenizer: String,
++    digest: String,
++    canonical: Vec<u32>,
++}
++
++/// The folded class key of one token's bytes, or `None` for a token that is
++/// its own class.
++fn fold_key(bytes: &[u8]) -> Option<Vec<u8>> {
++    let letters = bytes.strip_prefix(b" ").unwrap_or(bytes);
++    (!letters.is_empty() && letters.iter().all(u8::is_ascii_alphabetic))
++        .then(|| letters.to_ascii_lowercase())
++}
++
++impl CopyIdentity {
++    /// The table of a vocabulary whose token `i` decodes to `pieces[i]`.
++    pub fn from_pieces(pieces: &[Vec<u8>]) -> Result<Self> {
++        let size = u32::try_from(pieces.len())
++            .map_err(|_| invalid("a copy-identity vocabulary must fit u32 ids"))?;
++        let mut least: BTreeMap<Vec<u8>, u32> = BTreeMap::new();
++        let mut canonical = Vec::with_capacity(pieces.len());
++        for (id, piece) in (0..size).zip(pieces) {
++            canonical.push(match fold_key(piece) {
++                Some(key) => *least.entry(key).or_insert(id),
++                None => id,
++            });
++        }
++        Ok(Self {
++            canonical,
++            tokenizer: String::new(),
++        })
++    }
++
++    /// The table of `tokenizer`'s whole id range, bound to its address.
++    pub fn from_tokenizer(tokenizer: &ByteBpeTokenizer) -> Result<Self> {
++        let size = u32::try_from(tokenizer.vocab_size())
++            .map_err(|_| invalid("a copy-identity vocabulary must fit u32 ids"))?;
++        let pieces: Vec<Vec<u8>> = (0..size).map(|id| tokenizer.decode_bytes(&[id])).collect();
++        Ok(Self {
++            tokenizer: tokenizer.address(),
++            ..Self::from_pieces(&pieces)?
++        })
++    }
++
++    /// Ids the table covers (the vocabulary size it was built from).
++    pub fn len(&self) -> usize {
++        self.canonical.len()
++    }
++
++    pub fn is_empty(&self) -> bool {
++        self.canonical.is_empty()
++    }
++
++    /// The tokenizer address the table was built from (empty for bare pieces).
++    pub fn tokenizer(&self) -> &str {
++        &self.tokenizer
++    }
++
++    /// The canonical id of `id`; an id outside the table is its own.
++    pub fn canonical(&self, id: u32) -> u32 {
++        self.canonical.get(id as usize).copied().unwrap_or(id)
++    }
++
++    /// `ids` mapped through the table, for key matching only.
++    pub fn fold(&self, ids: &[u32]) -> Vec<u32> {
++        ids.iter().map(|&id| self.canonical(id)).collect()
++    }
++
++    /// How many ids map to another id.
++    pub fn merged(&self) -> usize {
++        (0u32..)
++            .zip(&self.canonical)
++            .filter(|(id, c)| *id != **c)
++            .count()
++    }
++
++    /// SHA-256 over the schema, the fold rule and the table as little-endian
++    /// u32s (the tokenizer address is recorded beside it, not hashed, so two
++    /// tokenizers with one vocabulary have one table digest).
++    pub fn digest(&self) -> String {
++        let mut hasher = Sha256::new();
++        hasher.update(COPY_IDENTITY_SCHEMA.as_bytes());
++        hasher.update([0u8]);
++        hasher.update(FOLD_RULE.as_bytes());
++        hasher.update([0u8]);
++        for c in &self.canonical {
++            hasher.update(c.to_le_bytes());
++        }
++        hex::encode(hasher.finalize())
++    }
++
++    fn validate(canonical: &[u32]) -> Result<()> {
++        for (id, &c) in (0u32..).zip(canonical) {
++            if c > id || canonical.get(c as usize) != Some(&c) {
++                return Err(invalid(format!(
++                    "copy-identity entry {id} -> {c} is not a least, idempotent class id"
++                )));
++            }
++        }
++        Ok(())
++    }
++
++    pub fn to_json(&self) -> Result<Vec<u8>> {
++        Ok(serde_json::to_vec(&Saved {
++            schema: COPY_IDENTITY_SCHEMA.into(),
++            fold: FOLD_RULE.into(),
++            tokenizer: self.tokenizer.clone(),
++            digest: self.digest(),
++            canonical: self.canonical.clone(),
++        })?)
++    }
++
++    /// A saved table, refused unless its schema, rule, digest and class
++    /// structure all check.
++    pub fn from_json(bytes: &[u8]) -> Result<Self> {
++        let saved: Saved = serde_json::from_slice(bytes)?;
++        if saved.schema != COPY_IDENTITY_SCHEMA || saved.fold != FOLD_RULE {
++            return Err(invalid("not a copy-identity table of this schema and fold"));
++        }
++        Self::validate(&saved.canonical)?;
++        let table = Self {
++            canonical: saved.canonical,
++            tokenizer: saved.tokenizer,
++        };
++        if table.digest() != saved.digest {
++            return Err(invalid("copy-identity table digest mismatch"));
++        }
++        Ok(table)
++    }
++
++    pub fn save(&self, path: &Path) -> Result<()> {
++        Ok(fs::write(path, self.to_json()?)?)
++    }
++
++    pub fn load(path: &Path) -> Result<Self> {
++        Self::from_json(&fs::read(path)?)
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++
++    fn pieces(texts: &[&str]) -> Vec<Vec<u8>> {
++        texts.iter().map(|t| t.as_bytes().to_vec()).collect()
++    }
++
++    #[test]
++    fn case_and_one_leading_space_fold_to_the_least_id() -> Result<()> {
++        let vocab = pieces(&[
++            "<|endoftext|>", // 0: special, its own
++            " luk",          // 1
++            " Luk",          // 2 -> 1
++            "luk",           // 3 -> 1
++            "LUK",           // 4 -> 1
++            " 4",            // 5: digit, its own
++            "4",             // 6: its own
++            " ",             // 7: space only, its own
++            "  luk",         // 8: two spaces, its own
++            "é",             // 9: non-ASCII, its own
++            ".",             // 10
++            " is",           // 11
++            "Is",            // 12 -> 11
++            "<|im_start|>",  // 13
++        ]);
++        let table = CopyIdentity::from_pieces(&vocab)?;
++        let expect = [0, 1, 1, 1, 1, 5, 6, 7, 8, 9, 10, 11, 11, 13];
++        assert_eq!(table.fold(&(0..14).collect::<Vec<_>>()), expect);
++        assert_eq!(table.merged(), 4);
++        // An id outside the table is its own; folding is idempotent.
++        assert_eq!(table.canonical(99), 99);
++        assert_eq!(table.fold(&table.fold(&[2, 4, 12])), vec![1, 1, 11]);
++        Ok(())
++    }
++
++    #[test]
++    fn the_saved_table_round_trips_and_refuses_tampering() -> Result<()> {
++        let table = CopyIdentity::from_pieces(&pieces(&["a", " A", "b", " B", "1"]))?;
++        let bytes = table.to_json()?;
++        let back = CopyIdentity::from_json(&bytes)?;
++        assert_eq!(back, table);
++        assert_eq!(back.digest(), table.digest());
++        let mut saved: serde_json::Value = serde_json::from_slice(&bytes)?;
++        saved["canonical"][1] = serde_json::json!(1);
++        assert!(CopyIdentity::from_json(&serde_json::to_vec(&saved)?).is_err());
++        saved["canonical"][1] = serde_json::json!(2);
++        assert!(CopyIdentity::from_json(&serde_json::to_vec(&saved)?).is_err());
++        Ok(())
++    }
++
++    #[test]
++    fn a_byte_level_tokenizer_folds_a_capitalized_key_onto_the_asserted_one() -> Result<()> {
++        // A tiny byte-level BPE whose vocabulary has " luk" and " Luk" whole.
++        let json = byte_tokenizer_json(&["Ġluk", "ĠLuk"]);
++        let tokenizer = ByteBpeTokenizer::from_tokenizer_json_bytes(json.as_bytes())
++            .ok_or_else(|| invalid("test tokenizer"))?;
++        let table = CopyIdentity::from_tokenizer(&tokenizer)?;
++        assert_eq!(table.len(), tokenizer.vocab_size());
++        assert_eq!(table.tokenizer(), tokenizer.address());
++        let asserted = tokenizer.encode(" luk");
++        let rehearsed = tokenizer.encode(" Luk");
++        assert_eq!((asserted.len(), rehearsed.len()), (1, 1));
++        assert_ne!(asserted, rehearsed);
++        assert_eq!(table.fold(&asserted), table.fold(&rehearsed));
++        // A digit and a punctuation byte keep their identity.
++        let other = tokenizer.encode("4.");
++        assert_eq!(table.fold(&other), other);
++        // Special tokens are their own class.
++        assert_eq!(table.fold(&[0, 1, 2]), vec![0, 1, 2]);
++        // Single letters fold too, onto the class's least id: "L" (byte 76)
++        // sits below "l" (byte 108).
++        let (upper, lower) = (tokenizer.encode("L"), tokenizer.encode("l"));
++        assert_eq!(table.fold(&lower), upper);
++        Ok(())
++    }
++
++    /// A byte-level BPE tokenizer JSON: three special tokens, GPT-2's 256 byte
++    /// symbols, then `words` (byte-level symbol strings) merged left to right
++    /// from their bytes.
++    fn byte_tokenizer_json(words: &[&str]) -> String {
++        let mut vocab = serde_json::Map::new();
++        for (id, surface) in ["<|bos|>", "<|eos|>", "<|unk|>"].iter().enumerate() {
++            vocab.insert((*surface).to_owned(), serde_json::json!(id));
++        }
++        for (byte, ch) in (0u32..).zip(byte_symbols()) {
++            vocab.insert(ch.to_string(), serde_json::json!(byte + 3));
++        }
++        let mut merges = Vec::new();
++        for word in words {
++            let chars: Vec<char> = word.chars().collect();
++            let mut prefix = chars[0].to_string();
++            for ch in &chars[1..] {
++                merges.push(format!("{prefix} {ch}"));
++                prefix.push(*ch);
++                if !vocab.contains_key(&prefix) {
++                    let id = vocab.len();
++                    vocab.insert(prefix.clone(), serde_json::json!(id));
++                }
++            }
++        }
++        serde_json::json!({
++            "pre_tokenizer": {"type": "ByteLevel", "add_prefix_space": false},
++            "added_tokens": [
++                {"id": 0, "content": "<|bos|>"},
++                {"id": 1, "content": "<|eos|>"},
++                {"id": 2, "content": "<|unk|>"}
++            ],
++            "model": {"type": "BPE", "vocab": vocab, "merges": merges},
++        })
++        .to_string()
++    }
++
++    /// GPT-2's byte-to-symbol map, in byte order.
++    fn byte_symbols() -> Vec<char> {
++        let mut extra = 0u32;
++        (0u32..256)
++            .map(|byte| {
++                let printable = (u32::from(b'!')..=u32::from(b'~')).contains(&byte)
++                    || (0xA1..=0xAC).contains(&byte)
++                    || (0xAE..=0xFF).contains(&byte);
++                let code = if printable {
++                    byte
++                } else {
++                    extra += 1;
++                    255 + extra
++                };
++                char::from_u32(code).unwrap_or('?')
++            })
++            .collect()
++    }
++}
+diff --git a/crates/uor-r4-training/src/geometric_stack.rs b/crates/uor-r4-training/src/geometric_stack.rs
+index 218024a04..793929b82 100644
+--- a/crates/uor-r4-training/src/geometric_stack.rs
++++ b/crates/uor-r4-training/src/geometric_stack.rs
+@@ -113,6 +113,7 @@ use sha2::{Digest, Sha256};
+ use uor_r4_core::native_geometric::learner::embedding::canonical_h4_roots;
+ use uor_r4_lut::GROUP;
+ 
++use crate::copy_identity::CopyIdentity;
+ use crate::flock::{self, FlockSelect};
+ use crate::geometric_address::{self, AddressWeights, GeometricAddressConfig};
+ use crate::geometric_context::{self, CompiledContext, ContextWeights};
+@@ -1350,6 +1351,9 @@ pub struct StackModel {
+     read_lineage: Option<ReadLineage>,
+     /// The fixed block-diagonal SO(4) map of [`ReadLineage::RandomSo4`].
+     read_lineage_so4: Option<Tensor>,
++    /// A routed pointer matches keys on these canonical ids
++    /// ([`Self::set_pointer_key_fold`]); not saved.
++    pointer_key_fold: Option<Arc<CopyIdentity>>,
+ }
+ 
+ impl StackModel {
+@@ -1455,6 +1459,7 @@ impl StackModel {
+             read_key_shift: false,
+             read_lineage: None,
+             read_lineage_so4: None,
++            pointer_key_fold: None,
+         })
+     }
+ 
+@@ -2334,6 +2339,49 @@ impl StackModel {
+         }
+     }
+ 
++    /// Match a routed pointer's keys on canonical ids
++    /// ([`crate::copy_identity::CopyIdentity`], Step 4, #820): the route
++    /// admits sources by comparing the table's ids, so a rehearsed key in
++    /// another casing (" Luk") matches its asserted form (" luk"), while the
++    /// pointer still copies the input token at the admitted source and the
++    /// generated branch never reads the table. It changes only a pointer with
++    /// a [`PrimeRoute`]; a learned (unrouted) pointer scores sources by its
++    /// query and key, not by token identity, and is unaffected. `None`, the
++    /// default, matches on the raw ids, bit for bit as before.
++    ///
++    /// It is a runtime setting like a selection: [`Self::save`] does not
++    /// record it and [`Self::load`] does not restore it. `Some` is refused on
++    /// a model without a pointer head or with a table shorter than the
++    /// vocabulary.
++    pub fn set_pointer_key_fold(&mut self, table: Option<Arc<CopyIdentity>>) -> Result<()> {
++        if let Some(table) = &table {
++            if self.config.pointer.is_none() {
++                return Err(invalid("the model has no pointer head to fold keys for"));
++            }
++            if table.len() < self.config.vocab_size {
++                return Err(invalid(format!(
++                    "the copy-identity table covers {} ids, the vocabulary {}",
++                    table.len(),
++                    self.config.vocab_size
++                )));
++            }
++        }
++        self.pointer_key_fold = table;
++        Ok(())
++    }
++
++    /// The copy-identity table a routed pointer matches keys on, if set.
++    pub fn pointer_key_fold(&self) -> Option<&CopyIdentity> {
++        self.pointer_key_fold.as_deref()
++    }
++
++    /// The ids a routed pointer matches its keys on, when a fold is set and
++    /// the pointer is routed; `None` means the raw ids.
++    fn pointer_route_keys(&self, ids: &[u32]) -> Option<Vec<u32>> {
++        self.config.pointer.and_then(|pointer| pointer.route)?;
++        self.pointer_key_fold.as_ref().map(|table| table.fold(ids))
++    }
++
+     /// Replace the geometric reader's scalar Held latch with an ordered token
+     /// action producer. Enable after geometric addressing and before creating
+     /// the optimizer. Static actions use original selected embedding rows;
+@@ -6067,6 +6115,7 @@ impl StackModel {
+                 select: pointer.select,
+                 route: pointer.route,
+                 ids: ids.to_vec(),
++                keys: self.pointer_route_keys(ids),
+                 targets: targets.to_vec(),
+                 weights: weights.map(<[f32]>::to_vec),
+             },
+@@ -6446,6 +6495,7 @@ impl StackModel {
+             select: pointer.select,
+             route: pointer.route,
+             ids: ids.to_vec(),
++            keys: self.pointer_route_keys(ids),
+             targets: targets.to_vec(),
+             weights: weights.map(<[f32]>::to_vec),
+         };
+@@ -6519,7 +6569,9 @@ impl StackModel {
+             beta: one_value(&self.pointer_beta(&p)?)?,
+             route: pointer.route,
+         };
+-        let attention = pointer_attention(&side, 0, time - 1, &rule, ids)?;
++        let keys = self.pointer_route_keys(ids);
++        let attention =
++            pointer_attention(&side, 0, time - 1, &rule, keys.as_deref().unwrap_or(ids))?;
+         let gate = sigmoid_f64(f64::from(
+             side[(time - 1) * (2 * pointer.dim + 1) + 2 * pointer.dim],
+         ));
+@@ -7103,6 +7155,7 @@ impl StackModel {
+             read_key_shift: false,
+             read_lineage: None,
+             read_lineage_so4: None,
++            pointer_key_fold: None,
+         };
+         model.set_transport_snap(Self::saved_transport_snap(directory)?)?;
+         model.set_read_identity_carry(Self::saved_read_identity_carry(directory)?)?;
+@@ -12036,6 +12089,7 @@ pub fn pointer_mixture_loss(
+             select: None,
+             route: None,
+             ids: ids.to_vec(),
++            keys: None,
+             targets: targets.to_vec(),
+             weights: weights.map(<[f32]>::to_vec),
+         },
+@@ -12269,6 +12323,9 @@ struct PointerMixture {
+     route: Option<PrimeRoute>,
+     /// The input token of every position: what the head copies.
+     ids: Vec<u32>,
++    /// The ids a routed pointer matches its keys on, when they differ from
++    /// `ids` ([`StackModel::set_pointer_key_fold`]); `None` matches on `ids`.
++    keys: Option<Vec<u32>>,
+     targets: Vec<u32>,
+     weights: Option<Vec<f32>>,
+ }
+@@ -12305,7 +12362,10 @@ impl PointerMixture {
+     ) -> candle_core::Result<MixtureRow> {
+         let (first, t) = (n - n % self.time, n % self.time);
+         let target = self.targets[n];
+-        let attention = pointer_attention(side, first, t, &self.rule(beta), &self.ids)?;
++        // A routed pointer matches keys on `keys` (canonical ids) when set;
++        // what it copies is always the input token.
++        let keys = self.keys.as_deref().unwrap_or(&self.ids);
++        let attention = pointer_attention(side, first, t, &self.rule(beta), keys)?;
+         let copy: f64 = attention
+             .iter()
+             .zip(&self.ids[first..=first + t])
+@@ -21528,6 +21588,80 @@ mod tests {
+         Ok(())
+     }
+ 
++    #[test]
++    fn a_key_fold_admits_a_recased_key_and_is_inert_unless_routed() -> Result<()> {
++        // A 37-id vocabulary whose ids 5 (" luk") and 6 (" Luk") fold together;
++        // every other piece is its own class.
++        let mut pieces: Vec<Vec<u8>> = (0..37).map(|i| format!("#{i}").into_bytes()).collect();
++        pieces[5] = b" luk".to_vec();
++        pieces[6] = b" Luk".to_vec();
++        let table = Arc::new(CopyIdentity::from_pieces(&pieces)?);
++        assert_eq!(table.fold(&[5, 6, 9]), vec![5, 5, 9]);
++        // "... luk 9 ... Luk": the asserted key, its value, then the key
++        // recased. An exact 1-token route admits nothing on raw ids at the
++        // last position; under the fold it admits the value after " luk".
++        let ids = [1u32, 5, 9, 2, 6];
++        let route = PrimeRoute::exact(1).admitting(RouteAdmission::Ngram);
++        let mut model = pointer_model(ReadScore::Dot, None, 0)?;
++        let learned = model.next_scores(&ids)?;
++        // An unrouted pointer scores by query and key: the fold changes nothing.
++        model.set_pointer_key_fold(Some(table.clone()))?;
++        assert_eq!(score_bits(&model.next_scores(&ids)?), score_bits(&learned));
++        model.set_pointer_key_fold(None)?;
++        model.set_pointer_route(Some(route))?;
++        let raw = model.next_scores(&ids)?;
++        model.set_pointer_key_fold(Some(table.clone()))?;
++        assert!(model.pointer_key_fold().is_some());
++        let folded = model.next_scores(&ids)?;
++        // The fold puts copy mass on the value (id 9), and none on the key
++        // ids themselves: what is copied is the input token, not its class.
++        assert!(folded[9] > raw[9] + 0.1, "{} against {}", folded[9], raw[9]);
++        assert_eq!(score_bits(&folded[5..=6]), score_bits(&raw[5..=6]));
++        // The loss and the scored rows read the same fold; clearing it
++        // restores the raw route bit for bit.
++        let targets = [5u32, 9, 2, 6, 9];
++        let with_fold = model.score_targets(&ids, &targets, None, 1, 5)?;
++        let loss_fold = model.loss(&ids, &targets, 1, 5)?.to_scalar::<f32>()?;
++        assert!(with_fold.nll[4] < -f64::from(raw[9]) - 0.1);
++        assert!((f64::from(folded[9]) + with_fold.nll[4]).abs() < 1e-4);
++        model.set_pointer_key_fold(None)?;
++        assert_eq!(score_bits(&model.next_scores(&ids)?), score_bits(&raw));
++        let without = model.score_targets(&ids, &targets, None, 1, 5)?;
++        let loss_raw = model.loss(&ids, &targets, 1, 5)?.to_scalar::<f32>()?;
++        assert_ne!(loss_fold.to_bits(), loss_raw.to_bits());
++        let mut never = pointer_model(ReadScore::Dot, None, 0)?;
++        never.set_pointer_route(Some(route))?;
++        let never_scored = never.score_targets(&ids, &targets, None, 1, 5)?;
++        assert_eq!(
++            without.nll.iter().map(|x| x.to_bits()).collect::<Vec<_>>(),
++            never_scored
++                .nll
++                .iter()
++                .map(|x| x.to_bits())
++                .collect::<Vec<_>>()
++        );
++        assert_eq!(
++            never
++                .loss(&ids, &targets, 1, 5)?
++                .to_scalar::<f32>()?
++                .to_bits(),
++            loss_raw.to_bits()
++        );
++        // A short table, or a model with no pointer, is refused.
++        let short = Arc::new(CopyIdentity::from_pieces(&pieces[..36])?);
++        assert!(model.set_pointer_key_fold(Some(short)).is_err());
++        let mut plain = StackModel::new(
++            tiny(StackArch::Geometric, "ar", ReadScore::Lorentz, true),
++            &cpu(),
++        )?;
++        assert!(plain.set_pointer_key_fold(Some(table)).is_err());
++        Ok(())
++    }
++
++    fn score_bits(scores: &[f32]) -> Vec<u32> {
++        scores.iter().map(|s| s.to_bits()).collect()
++    }
++
+     #[test]
+     fn a_routed_pointer_trains_its_gate_and_leaves_its_scores_alone() -> Result<()> {
+         exact_route_trains_only_its_gate(PrimeRoute::exact(1))?;
+@@ -21647,6 +21781,7 @@ mod tests {
+             select: None,
+             route: None,
+             ids: ids.clone(),
++            keys: None,
+             targets: targets.clone(),
+             weights: None,
+         };
+@@ -21723,6 +21858,7 @@ mod tests {
+                 select: None,
+                 route: None,
+                 ids: ids.clone(),
++                keys: None,
+                 targets: targets.clone(),
+                 weights: None,
+             };
+@@ -21778,6 +21914,7 @@ mod tests {
+             select: None,
+             route: None,
+             ids: ids.clone(),
++            keys: None,
+             targets: targets.clone(),
+             weights: None,
+         };
+diff --git a/crates/uor-r4-training/src/lib.rs b/crates/uor-r4-training/src/lib.rs
+index 983901940..00fbe0718 100644
+--- a/crates/uor-r4-training/src/lib.rs
++++ b/crates/uor-r4-training/src/lib.rs
+@@ -15,6 +15,7 @@ pub mod b3_e8_codecs;
+ pub mod baseline_counts;
+ pub mod baseline_protocol;
+ pub mod cache_memory;
++pub mod copy_identity;
+ pub mod cuda_stack_kernels;
+ pub mod d4_codecs;
+ pub use d4_codecs::{codec_by_name, HeadCompensatedMapCodec, RecurrenceOutMinMseMapCodec};
+diff --git a/crates/uor-r4-training/src/milestone_world_v2.rs b/crates/uor-r4-training/src/milestone_world_v2.rs
+index 78ee4382d..f6cc1de9f 100644
+--- a/crates/uor-r4-training/src/milestone_world_v2.rs
++++ b/crates/uor-r4-training/src/milestone_world_v2.rs
+@@ -1020,6 +1020,78 @@ const MQAR_ACKS: &[&str] = &[
+     "Thanks for telling me, I'll remember.",
+ ];
+ const MQAR_REPLIES: &[&str] = &["{k} is {v}.", "{k} is {v}.", "It's {v}.", "That's {v}."];
++/// World v2c's MQAR replies (Step 4, #820): index for index v2's, with each
++/// rehearsal framed as "So {k} is {v}." so the key is never the reply's first
++/// word. v2 capitalizes the reply's first character, which turns a rehearsed
++/// key "luk" into "Luk", a token tuple that never occurs in the assertion or
++/// the question (Step 0b, #1709: 41 of 41 rehearsals in the D19 draw). Under
++/// the frame the key keeps its asserted casing and, as in the assertion and
++/// the question, follows a space mid-sentence, under protocol 1 and 2 alike.
++/// The bare forms do not state the key and are unchanged.
++const MQAR_REPLIES_V2C: &[&str] = &[
++    "So {k} is {v}.",
++    "So {k} is {v}.",
++    "It's {v}.",
++    "That's {v}.",
++];
++
++/// Which M-world v2 table set a generator draws from.
++#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
++#[serde(rename_all = "snake_case")]
++pub enum Variant {
++    /// The revision-2.1 world (#1511), byte-identical to every earlier draw.
++    #[default]
++    V2,
++    /// v2 with [`MQAR_REPLIES_V2C`]: a rehearsed MQAR key keeps its asserted
++    /// casing. Every RNG draw is v2's; the reply text differs only in the
++    /// frame, so a draw differs from v2's where the one-token-longer reply
++    /// changes a context fit (see [`MWorld2::with_variant`]).
++    V2c,
++}
++
++impl Variant {
++    /// The `world=` spelling: `v2` or `v2c`.
++    pub fn key(self) -> &'static str {
++        match self {
++            Self::V2 => "v2",
++            Self::V2c => "v2c",
++        }
++    }
++
++    /// The `world` field reports record: `m-world-v2` or `m-world-v2c`.
++    pub fn world_name(self) -> &'static str {
++        match self {
++            Self::V2 => "m-world-v2",
++            Self::V2c => "m-world-v2c",
++        }
++    }
++
++    /// Parse a `world=` value (`v2` or `v2c`).
++    pub fn parse(text: &str) -> Result<Self> {
++        match text {
++            "v2" => Ok(Self::V2),
++            "v2c" => Ok(Self::V2c),
++            other => Err(invalid(format!("unknown v2 world {other:?} (v2 or v2c)"))),
++        }
++    }
++
++    /// The variant a report's `world` field names; `m-world-v2` and an absent
++    /// field are v2.
++    pub fn from_world_name(name: Option<&str>) -> Result<Self> {
++        match name {
++            None | Some("m-world-v2") => Ok(Self::V2),
++            Some("m-world-v2c") => Ok(Self::V2c),
++            Some(other) => Err(invalid(format!("not an M-world v2 report: {other:?}"))),
++        }
++    }
++
++    fn mqar_replies(self) -> &'static [&'static str] {
++        match self {
++            Self::V2 => MQAR_REPLIES,
++            Self::V2c => MQAR_REPLIES_V2C,
++        }
++    }
++}
+ static COPY: Phrasings = Phrasings {
+     train: &[
+         "Repeat exactly: {w}",
+@@ -1280,6 +1352,7 @@ pub struct MWorld2<'a> {
+     meter: Meter<'a>,
+     mix: Mix,
+     mqar_seen: usize,
++    variant: Variant,
+ }
+ 
+ impl<'a> MWorld2<'a> {
+@@ -1289,9 +1362,24 @@ impl<'a> MWorld2<'a> {
+             meter: Meter::new(count),
+             mix,
+             mqar_seen: 0,
++            variant: Variant::V2,
+         })
+     }
+ 
++    /// The same generator drawing from `variant`'s tables. The MQAR reply is
++    /// chosen by v2's template lengths and then written from the variant's
++    /// table at the same index, so a seed makes the same choices in v2 and
++    /// v2c; the draws differ only where the longer v2c reply changes whether
++    /// an episode fits the context.
++    pub fn with_variant(mut self, variant: Variant) -> Self {
++        self.variant = variant;
++        self
++    }
++
++    pub fn variant(&self) -> Variant {
++        self.variant
++    }
++
+     pub fn meter(&self) -> &Meter<'a> {
+         &self.meter
+     }
+@@ -1438,10 +1526,13 @@ impl<'a> MWorld2<'a> {
+         let query_template = template(rng, &MQAR_QUERY);
+         let mut query = fill(query_template, &[("k", key)]);
+         capitalize(&mut query);
+-        let reply = (0..if compact { 4 } else { 1 })
+-            .map(|_| *pick(rng, MQAR_REPLIES))
+-            .min_by_key(|t| self.meter.text(t))
++        // The choice is made on v2's table (as v2 always made it), then
++        // written from the variant's table at the same index.
++        let reply_index = (0..if compact { 4 } else { 1 })
++            .map(|_| rng.below(MQAR_REPLIES.len()))
++            .min_by_key(|&i| self.meter.text(MQAR_REPLIES[i]))
+             .unwrap_or_default();
++        let reply = self.variant.mqar_replies()[reply_index];
+         let mut answer = fill(reply, &[("k", key), ("v", value)]);
+         capitalize(&mut answer);
+         let others: Vec<String> = values
+@@ -1788,6 +1879,25 @@ impl<'a> MWorld2<'a> {
+         });
+         hex::encode(Sha256::digest(tables.to_string().as_bytes()))
+     }
++
++    /// The digest of `variant`'s tables: [`Self::digest`] for v2, unchanged;
++    /// for v2c the SHA-256 of v2's digest, the variant's name and its MQAR
++    /// reply table. ("So" is one syllable, so it cannot collide with a
++    /// generated word, and the reserved words stay v2's.)
++    pub fn digest_for(variant: Variant) -> String {
++        match variant {
++            Variant::V2 => Self::digest(),
++            Variant::V2c => {
++                let tables = json!({
++                    "base": Self::digest(),
++                    "variant": variant.world_name(),
++                    "mqar_replies": MQAR_REPLIES_V2C,
++                    "reply_choice": "v2 template lengths, same index",
++                });
++                hex::encode(Sha256::digest(tables.to_string().as_bytes()))
++            }
++        }
++    }
+ }
+ 
+ /// Which part of a relation conversation a turn is.
+@@ -3246,6 +3356,124 @@ mod tests {
+         );
+     }
+ 
++    /// SHA-256 over the JSON of the D19 session draw's shape under the toy
++    /// meter: development split, default mix, seed 9101, 300 conversations
++    /// (`m-world session world=v2`'s defaults). Taken on `origin/main`
++    /// `e4922ec5`, before world=v2c existed (Step 4, #820): adding v2c must
++    /// leave every v2 draw byte-identical.
++    const V2_SEED_9101_DIGEST: &str =
++        "e3cb5d2a65b856b6db4432f5e1d031487ee742904b195a166c6b1ccf0bf8410f";
++
++    fn session_draw_digest(world: &mut MWorld2<'_>) -> String {
++        let mut hasher = Sha256::new();
++        let mut rng = Rng::new(9_101);
++        for _ in 0..300 {
++            let conversation = world
++                .conversation(&mut rng, Split::Development)
++                .expect("an episode");
++            hasher.update(serde_json::to_vec(&conversation).expect("serializable"));
++            hasher.update([0u8]);
++        }
++        hex::encode(hasher.finalize())
++    }
++
++    #[test]
++    fn the_v2_seed_9101_draw_is_unchanged() {
++        let digest = session_draw_digest(&mut world());
++        assert_eq!(
++            digest, V2_SEED_9101_DIGEST,
++            "the world=v2 seed-9101 draw moved"
++        );
++        // Naming the variant explicitly draws the same stream.
++        let mut explicit = world().with_variant(Variant::V2);
++        assert_eq!(session_draw_digest(&mut explicit), V2_SEED_9101_DIGEST);
++        assert_eq!(MWorld2::digest_for(Variant::V2), MWorld2::digest());
++        assert_eq!(MWorld2::digest(), V2_DIGEST);
++    }
++
++    #[test]
++    fn v2c_rehearses_the_key_in_its_asserted_casing() {
++        let mut v2c = world().with_variant(Variant::V2c);
++        assert_eq!(v2c.variant(), Variant::V2c);
++        assert_ne!(session_draw_digest(&mut v2c), V2_SEED_9101_DIGEST);
++        assert_ne!(MWorld2::digest_for(Variant::V2c), MWorld2::digest());
++        let mut v2c = world().with_variant(Variant::V2c);
++        let mut v2 = world();
++        let (mut rng_c, mut rng_2) = (Rng::new(9_101), Rng::new(9_101));
++        let (mut queries, mut rehearsals, mut same_choice, mut paired) = (0, 0, 0, 0);
++        for _ in 0..300 {
++            let c = v2c
++                .conversation(&mut rng_c, Split::Development)
++                .expect("a v2c episode");
++            let b = v2
++                .conversation(&mut rng_2, Split::Development)
++                .expect("a v2 episode");
++            let users =
++                |x: &Conversation2| x.turns.iter().map(|t| t.user.clone()).collect::<Vec<_>>();
++            let same_episode = users(&c) == users(&b);
++            paired += usize::from(same_episode);
++            let Some(assertion) = c.turns.iter().find(|t| t.intent == "mqar_assert") else {
++                continue;
++            };
++            let query = c.turns.last().expect("a query");
++            assert_eq!(query.intent, "mqar_query");
++            assert!(judge_v2(&query.checks, &query.user, &query.reply));
++            queries += 1;
++            let value = query.tag.answer.as_deref().expect("an answer");
++            if let Some(rest) = query.reply.strip_prefix("So ") {
++                rehearsals += 1;
++                let key = rest
++                    .strip_suffix(&format!(" is {value}."))
++                    .expect("So {k} is {v}.");
++                // The key is written exactly as asserted and as asked.
++                assert!(assertion.user.contains(&format!(" {key} is {value}")));
++                assert!(query.user.contains(&format!(" {key}")));
++                assert_eq!(key, key.to_lowercase());
++                if same_episode {
++                    let old = &b.turns.last().expect("a query").reply;
++                    assert_eq!(
++                        *old,
++                        format!("{}{} is {value}.", key[..1].to_uppercase(), &key[1..])
++                    );
++                    same_choice += 1;
++                }
++            } else {
++                assert!(
++                    query.reply.starts_with("It's ") || query.reply.starts_with("That's "),
++                    "{:?}",
++                    query.reply
++                );
++                if same_episode {
++                    assert_eq!(b.turns.last().expect("a query").reply, query.reply);
++                }
++            }
++        }
++        // About a third of the queries rehearse, as in v2 (#1709: 41 of 109);
++        // the streams stay paired, episode for episode, until the first fit
++        // the one-token frame changes (near the context at D200); after that
++        // they are independent draws of the same distribution.
++        assert!(queries > 80, "{queries}");
++        assert!(
++            rehearsals * 5 > queries && rehearsals * 2 < queries,
++            "{rehearsals}/{queries}"
++        );
++        assert!(same_choice > 0 && paired > 0, "{same_choice} {paired}");
++    }
++
++    #[test]
++    fn variants_parse_and_name_their_worlds() {
++        for variant in [Variant::V2, Variant::V2c] {
++            assert_eq!(Variant::parse(variant.key()).expect("parses"), variant);
++            assert_eq!(
++                Variant::from_world_name(Some(variant.world_name())).expect("named"),
++                variant
++            );
++        }
++        assert_eq!(Variant::from_world_name(None).expect("v2"), Variant::V2);
++        assert!(Variant::parse("v3").is_err());
++        assert!(Variant::from_world_name(Some("m-world-v1")).is_err());
++    }
++
+     /// A hand-built turn; `values` are the open values its user text states.
+     fn hand_turn(user: &str, reply: &str, values: &[&str]) -> Turn2 {
+         Turn2 {
+diff --git a/scripts/pod/step4-corpus.sh b/scripts/pod/step4-corpus.sh
+new file mode 100755
+index 000000000..40d23bbe7
+--- /dev/null
++++ b/scripts/pod/step4-corpus.sh
+@@ -0,0 +1,126 @@
++#!/usr/bin/env bash
++# Step 4 (barrier assessment 2026-10-05, #820): the world=v2c high-MQAR corpus
++# and its world=v2 control, built exactly as Step 1's (/root/run-step1.sh) so a
++# v2 vs v2c fine-tune A/B can run later.
++#
++#   bash scripts/pod/step4-corpus.sh
++#
++# world=v2c is M-world v2 whose rehearsing MQAR replies read "So {k} is {v}."
++# instead of "{K} is {v}.", so a rehearsed key keeps its asserted casing and
++# its token tuple occurs in context (Step 0b, #1709: every rehearsal in the D19
++# draw was recased). Everything else is Step 1's:
++#
++#   m-world corpus world=W protocol=2 conversations=40000 seed=12 recall=off
++#     mqar_share=0.6 copy_share=0.1 relation_share=0.2 other_share=0.1
++#   mix-chat-corpus: that M-world train split x4 + chat-v0-p2/train
++#
++# The world=v2 corpus is rebuilt by this binary as the control; a world=v2 draw
++# is byte-identical to every earlier one (test the_v2_seed_9101_draw_is_unchanged),
++# so its tokens.u16 must equal Step 1's $D/ft/mw-hi/train/tokens.u16 when that
++# exists. The script compares them: MATCH continues; DIFFER fails the run (exit
++# 3), because any comparison with Step 1's arms would then be invalid. Set
++# ALLOW_V2_DIFFER=1 to record DIFFER and continue (the A/B itself uses the
++# rebuilt hi-v2, so it stays valid; Step 1 comparisons do not). Note Step 1's
++# binary was built at dec3c096 and the pinned v2 digest test at e4922ec5. The v2c stream is paired
++# with v2's draw for draw until the first episode whose one-piece-longer reply
++# changes a context fit; after that the two are independent draws of the same
++# mix (corpus.json records episodes and tokens per kind for each).
++#
++# CPU only. Every report root is claimed exclusively and sealed: pick a new
++# OUT_ROOT for a retry, never reuse one. Expected wall time on the pod:
++# ~8 min to build the two binaries (if not cached), ~2 min per 40,000-
++# conversation M-world corpus (400 took ~1 s on an M1 at 2 threads), ~1 min
++# per mix: about 15 min in all.
++#
++# Terminal markers, for a completion watcher: success writes
++# $OUT_ROOT/STEP4_DONE and prints "STEP4 CORPUS DONE"; any failing step writes
++# $OUT_ROOT/STEP4_FAILED (exit status, line and command) and prints
++# "STEP4 CORPUS FAILED", and the script exits non-zero. A run leaves exactly
++# one of the two markers.
++set -Eeuo pipefail
++
++REPO="${REPO:-/root/uor-r4}"           # a checkout of this PR's head
++D="${D:-/root/data}"                    # Step 1's data root
++TOKENIZER="${TOKENIZER:-$D/tokenizer.json}"
++CHAT="${CHAT:-$D/chat-v0-p2/train}"     # Step 1's chat-v0 protocol-2 train split
++OUT_ROOT="${OUT_ROOT:-$D/ft/step4}"
++TARGET="${CARGO_TARGET_DIR:-/root/target-step4}"
++CARGO="${CARGO:-$HOME/.cargo/bin/cargo}"
++WORLDS="${WORLDS:-v2c v2}"
++export RAYON_NUM_THREADS="${RAYON_NUM_THREADS:-8}"
++ALLOW_V2_DIFFER="${ALLOW_V2_DIFFER:-0}"
++
++# Claim the marker names before any work: a retry needs a fresh OUT_ROOT.
++for marker in STEP4_DONE STEP4_FAILED; do
++  if [ -e "$OUT_ROOT/$marker" ]; then
++    echo "STEP4 CORPUS FAILED: $OUT_ROOT/$marker exists; pick a new OUT_ROOT" >&2
++    exit 2
++  fi
++done
++mkdir -p "$OUT_ROOT"
++fail() {
++  local status=$1 line=$2 command=$3
++  trap - ERR
++  printf 'status=%s\nline=%s\ncommand=%s\ntime=%s\n' \
++    "$status" "$line" "$command" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
++    > "$OUT_ROOT/STEP4_FAILED" || true
++  echo "STEP4 CORPUS FAILED status=$status line=$line: $command" >&2
++  exit "$status"
++}
++trap 'fail $? $LINENO "$BASH_COMMAND"' ERR
++
++sha256sum "$TOKENIZER"
++cd "$REPO"
++echo "head $(git rev-parse HEAD)"
++CARGO_TARGET_DIR="$TARGET" "$CARGO" build --release -j 8 -p uor-r4-training \
++  --example m-world --bin mix-chat-corpus
++MW="$TARGET/release/examples/m-world"
++MIX="$TARGET/release/mix-chat-corpus"
++sha256sum "$MW" "$MIX"
++
++for world in $WORLDS; do
++  mw="$OUT_ROOT/mw-hi-$world"
++  hi="$OUT_ROOT/hi-$world"
++  start=$(date +%s)
++  "$MW" corpus "world=$world" "out=$mw" "tokenizer=$TOKENIZER" protocol=2 \
++    conversations=40000 seed=12 recall=off \
++    mqar_share=0.6 copy_share=0.1 relation_share=0.2 other_share=0.1 \
++    > "$mw.log" 2>&1
++  echo "corpus world=$world out=$mw seconds=$(( $(date +%s) - start ))"
++  python3 - "$mw/corpus.json" <<'PY'
++import json, sys
++c = json.load(open(sys.argv[1]))
++m = c["composition"]["m_world"]
++print(json.dumps({
++    "world": c["world"],
++    "world_digest": c["world_digest"],
++    "tokens": m["tokens"],
++    "response_tokens": m["response_tokens"],
++    "episodes_per_kind": {k: v["episodes"] for k, v in m["episodes_per_kind"].items()},
++}))
++PY
++  sha256sum "$mw/train/tokens.u16" "$mw/train/response_mask.u8"
++  if [ "$world" = v2 ] && [ -f "$D/ft/mw-hi/train/tokens.u16" ]; then
++    if cmp -s "$mw/train/tokens.u16" "$D/ft/mw-hi/train/tokens.u16"; then
++      echo "v2 control MATCHES Step 1's mw-hi"
++    else
++      echo "v2 control DIFFERS from Step 1's mw-hi" >&2
++      echo "differ" > "$OUT_ROOT/V2_CONTROL_DIFFERS"
++      if [ "$ALLOW_V2_DIFFER" != 1 ]; then
++        fail 3 "$LINENO" "v2 control differs from Step 1's mw-hi (ALLOW_V2_DIFFER=1 to continue)"
++      fi
++      echo "ALLOW_V2_DIFFER=1: continuing; Step 1 comparisons are invalid" >&2
++    fi
++  fi
++  start=$(date +%s)
++  t="$mw/train"
++  "$MIX" "out=$hi" "tokenizer=$TOKENIZER" \
++    "inputs=$t,$t,$t,$t,$CHAT" \
++    "labels=mw-hi-$world-1,mw-hi-$world-2,mw-hi-$world-3,mw-hi-$world-4,chat-v0-p2" \
++    > "$hi.log" 2>&1
++  echo "mix world=$world out=$hi seconds=$(( $(date +%s) - start ))"
++  sha256sum "$hi/tokens.u16" "$hi/response_mask.u8" "$hi/manifest.json"
++done
++trap - ERR
++date -u +%Y-%m-%dT%H:%M:%SZ > "$OUT_ROOT/STEP4_DONE"
++echo "STEP4 CORPUS DONE"

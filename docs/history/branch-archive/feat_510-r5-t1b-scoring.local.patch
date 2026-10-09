@@ -1,0 +1,375 @@
+diff --git a/crates/uor-r4-graph-format/src/inference_contract.rs b/crates/uor-r4-graph-format/src/inference_contract.rs
+index 25ba8c55f..6af180a3c 100644
+--- a/crates/uor-r4-graph-format/src/inference_contract.rs
++++ b/crates/uor-r4-graph-format/src/inference_contract.rs
+@@ -37,14 +37,14 @@ impl ContractVersion {
+         ((self.major as u32) << 20) | ((self.minor as u32) << 10) | self.patch as u32
+     }
+ 
+-    pub fn decode_packed(raw: u32) -> Result<Self, InferenceContractError> {
++    pub fn decode_packed(raw: u32) -> Option<Self> {
+         let major = ((raw >> 20) & 0x0fff) as u16;
+         let minor = ((raw >> 10) & 0x03ff) as u16;
+         let patch = (raw & 0x03ff) as u16;
+         if major == 0 && minor == 0 && patch == 0 {
+-            return Err(InferenceContractError::InvalidPackedVersion(raw));
++            return None;
+         }
+-        Ok(Self {
++        Some(Self {
+             major,
+             minor,
+             patch,
+@@ -215,30 +215,29 @@ impl InferenceContractVerifier {
+     pub fn audit_operation(
+         activity: BoundaryActivity,
+         op: OperationClass,
+-    ) -> Result<(), ContractValidationError> {
++    ) -> Option<ContractValidationError> {
+         match (activity, op) {
+             (BoundaryActivity::HotPathInference, OperationClass::ForbiddenFloat) => {
+-                Err(ContractValidationError::ForbiddenFloatOperationDetected)
++                Some(ContractValidationError::ForbiddenFloatOperationDetected)
+             }
+             (BoundaryActivity::HotPathInference, OperationClass::ForbiddenMultiplyDivide) => {
+-                Err(ContractValidationError::ForbiddenMultiplicationDetected)
++                Some(ContractValidationError::ForbiddenMultiplicationDetected)
+             }
+             (BoundaryActivity::HotPathInference, OperationClass::ForbiddenHeapAlloc) => {
+-                Err(ContractValidationError::SteadyStateAllocationDetected)
++                Some(ContractValidationError::SteadyStateAllocationDetected)
+             }
+-            _ => Ok(()),
++            _ => None,
+         }
+     }
+ 
+-    pub fn audit_contract_compliance(
+-    ) -> Result<InferenceContractAuditReport, ContractValidationError> {
+-        Ok(InferenceContractAuditReport {
++    pub fn audit_contract_compliance() -> InferenceContractAuditReport {
++        InferenceContractAuditReport {
+             contract_version: Self::version(),
+             permitted_op_classes_count: 6,
+             is_zero_allocation_guaranteed: true,
+             is_cpu_only_target: true,
+             is_certified: true,
+-        })
++        }
+     }
+ }
+ 
+@@ -362,14 +361,11 @@ pub const ACTIVITY_OWNERS: [ActivityOwner; 9] = [
+     },
+ ];
+ 
+-pub fn owner_for_activity(
+-    activity: BoundaryActivity,
+-) -> Result<&'static str, InferenceContractError> {
++pub fn owner_for_activity(activity: BoundaryActivity) -> Option<&'static str> {
+     ACTIVITY_OWNERS
+         .iter()
+         .find(|entry| entry.activity == activity)
+         .map(|entry| entry.module_path)
+-        .ok_or(InferenceContractError::UnknownBoundaryActivity(activity))
+ }
+ 
+ #[cfg(test)]
+@@ -429,21 +425,21 @@ mod tests {
+                 BoundaryActivity::HotPathInference,
+                 OperationClass::ForbiddenFloat
+             ),
+-            Err(ContractValidationError::ForbiddenFloatOperationDetected)
++            Some(ContractValidationError::ForbiddenFloatOperationDetected)
+         );
+         assert_eq!(
+             InferenceContractVerifier::audit_operation(
+                 BoundaryActivity::HotPathInference,
+                 OperationClass::ForbiddenMultiplyDivide
+             ),
+-            Err(ContractValidationError::ForbiddenMultiplicationDetected)
++            Some(ContractValidationError::ForbiddenMultiplicationDetected)
+         );
+         assert_eq!(
+             InferenceContractVerifier::audit_operation(
+                 BoundaryActivity::HotPathInference,
+                 OperationClass::ForbiddenHeapAlloc
+             ),
+-            Err(ContractValidationError::SteadyStateAllocationDetected)
++            Some(ContractValidationError::SteadyStateAllocationDetected)
+         );
+     }
+ }
+diff --git a/crates/uor-r4-graph-format/src/scoring_semantics.rs b/crates/uor-r4-graph-format/src/scoring_semantics.rs
+index 5554f6630..8e7534ffe 100644
+--- a/crates/uor-r4-graph-format/src/scoring_semantics.rs
++++ b/crates/uor-r4-graph-format/src/scoring_semantics.rs
+@@ -61,36 +61,6 @@ pub struct ResidualContribution {
+     pub raw_value: i32,
+ }
+ 
+-/// Non-panicking error enum for scoring semantics.
+-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+-pub enum ScoringError {
+-    /// Tracked evidence set capacity exceeded.
+-    EvidenceCapacityExceeded,
+-    /// Invalid storage descriptor shift or zero point.
+-    InvalidStorageDescriptor,
+-    /// Audit-only invariant failure within the machine-readable verifier.
+-    AuditInvariantFailed(&'static str),
+-}
+-
+-impl fmt::Display for ScoringError {
+-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+-        match self {
+-            Self::EvidenceCapacityExceeded => {
+-                write!(f, "Fixed-capacity evidence tracking set limit exceeded")
+-            }
+-            Self::InvalidStorageDescriptor => {
+-                write!(
+-                    f,
+-                    "Invalid storage descriptor shift or zero point parameters"
+-                )
+-            }
+-            Self::AuditInvariantFailed(detail) => {
+-                write!(f, "Scoring semantics audit invariant failed: {detail}")
+-            }
+-        }
+-    }
+-}
+-
+ /// Stack-allocated fixed-capacity score accumulator.
+ #[derive(Debug, Clone, PartialEq, Eq)]
+ pub struct ScoreAccumulator<const MAX_EVIDENCE: usize = 32> {
+@@ -141,14 +111,17 @@ impl<const MAX_EVIDENCE: usize> ScoreAccumulator<MAX_EVIDENCE> {
+     pub fn accumulate(
+         &mut self,
+         contribution: &ResidualContribution,
+-    ) -> Result<bool, ScoringError> {
++    ) -> Result<bool, crate::ObservedBound> {
+         // Enforce no-double-counting rule
+         if self.contains_evidence(contribution.contribution_id) {
+             return Ok(false); // Ignored duplicate contribution
+         }
+ 
+         if self.evidence_count >= MAX_EVIDENCE {
+-            return Err(ScoringError::EvidenceCapacityExceeded);
++            return Err(crate::ObservedBound {
++                observed: self.evidence_count as i64,
++                bound: MAX_EVIDENCE as i64,
++            });
+         }
+ 
+         // Apply every pre-quantized residual as an already-signed ScoreQ contribution.
+@@ -180,84 +153,117 @@ impl ScoringSemanticsVerifier {
+     }
+ 
+     /// Audit accumulator compliance and deterministic tie-breaking logic.
+-    pub fn audit_scoring_compliance() -> Result<(), ScoringError> {
++    ///
++    /// A total audit (R5): it *observes* whether every scoring invariant holds
++    /// and never returns an error. `None` means all held; `Some(reason)` names
++    /// the first that did not.
++    pub fn audit_scoring_compliance() -> Option<&'static str> {
++        const CAP: &str = "evidence-capacity bound hit inside the audit fixture";
+         let mut acc = ScoreAccumulator::<16>::new();
+-        acc.accumulate(&ResidualContribution {
+-            kind: ResidualContributionKind::RootPrior,
+-            contribution_id: 1,
+-            raw_value: 100,
+-        })?;
+-        acc.accumulate(&ResidualContribution {
+-            kind: ResidualContributionKind::ConstraintPenalty,
+-            contribution_id: 2,
+-            raw_value: -25,
+-        })?;
+-        acc.accumulate(&ResidualContribution {
+-            kind: ResidualContributionKind::UncertaintyPenalty,
+-            contribution_id: 3,
+-            raw_value: -10,
+-        })?;
++        if acc
++            .accumulate(&ResidualContribution {
++                kind: ResidualContributionKind::RootPrior,
++                contribution_id: 1,
++                raw_value: 100,
++            })
++            .is_err()
++        {
++            return Some(CAP);
++        }
++        if acc
++            .accumulate(&ResidualContribution {
++                kind: ResidualContributionKind::ConstraintPenalty,
++                contribution_id: 2,
++                raw_value: -25,
++            })
++            .is_err()
++        {
++            return Some(CAP);
++        }
++        if acc
++            .accumulate(&ResidualContribution {
++                kind: ResidualContributionKind::UncertaintyPenalty,
++                contribution_id: 3,
++                raw_value: -10,
++            })
++            .is_err()
++        {
++            return Some(CAP);
++        }
+         if acc.score() != 65 {
+-            return Err(ScoringError::AuditInvariantFailed(
+-                "signed penalty residuals must lower the accumulated score",
+-            ));
++            return Some("signed penalty residuals must lower the accumulated score");
+         }
+ 
+         // Test overlap residualization (duplicate ignored)
+-        let added = acc.accumulate(&ResidualContribution {
++        let added = match acc.accumulate(&ResidualContribution {
+             kind: ResidualContributionKind::RootPrior,
+             contribution_id: 1,
+             raw_value: 100,
+-        })?;
++        }) {
++            Ok(added) => added,
++            Err(_) => return Some(CAP),
++        };
+         if added {
+-            return Err(ScoringError::AuditInvariantFailed(
+-                "duplicate contribution ID was not ignored as required",
+-            ));
++            return Some("duplicate contribution ID was not ignored as required");
+         }
+ 
+         let mut saturating_high = ScoreAccumulator::<4>::new();
+-        saturating_high.accumulate(&ResidualContribution {
+-            kind: ResidualContributionKind::GoalReward,
+-            contribution_id: 11,
+-            raw_value: i32::MAX - 5,
+-        })?;
+-        saturating_high.accumulate(&ResidualContribution {
+-            kind: ResidualContributionKind::TokenEmission,
+-            contribution_id: 12,
+-            raw_value: 10,
+-        })?;
++        if saturating_high
++            .accumulate(&ResidualContribution {
++                kind: ResidualContributionKind::GoalReward,
++                contribution_id: 11,
++                raw_value: i32::MAX - 5,
++            })
++            .is_err()
++        {
++            return Some(CAP);
++        }
++        if saturating_high
++            .accumulate(&ResidualContribution {
++                kind: ResidualContributionKind::TokenEmission,
++                contribution_id: 12,
++                raw_value: 10,
++            })
++            .is_err()
++        {
++            return Some(CAP);
++        }
+         if saturating_high.score() != i32::MAX {
+-            return Err(ScoringError::AuditInvariantFailed(
+-                "positive overflow must clamp to i32::MAX",
+-            ));
++            return Some("positive overflow must clamp to i32::MAX");
+         }
+ 
+         let mut saturating_low = ScoreAccumulator::<4>::new();
+-        saturating_low.accumulate(&ResidualContribution {
+-            kind: ResidualContributionKind::InteractionResidual,
+-            contribution_id: 21,
+-            raw_value: i32::MIN + 5,
+-        })?;
+-        saturating_low.accumulate(&ResidualContribution {
+-            kind: ResidualContributionKind::ConstraintPenalty,
+-            contribution_id: 22,
+-            raw_value: -10,
+-        })?;
++        if saturating_low
++            .accumulate(&ResidualContribution {
++                kind: ResidualContributionKind::InteractionResidual,
++                contribution_id: 21,
++                raw_value: i32::MIN + 5,
++            })
++            .is_err()
++        {
++            return Some(CAP);
++        }
++        if saturating_low
++            .accumulate(&ResidualContribution {
++                kind: ResidualContributionKind::ConstraintPenalty,
++                contribution_id: 22,
++                raw_value: -10,
++            })
++            .is_err()
++        {
++            return Some(CAP);
++        }
+         if saturating_low.score() != i32::MIN {
+-            return Err(ScoringError::AuditInvariantFailed(
+-                "negative overflow must clamp to i32::MIN",
+-            ));
++            return Some("negative overflow must clamp to i32::MIN");
+         }
+ 
+         // Test deterministic tie-breaking (equal scores => lower ID wins)
+         let ord = ScoreAccumulator::<16>::compare_candidates(500, 10, 500, 20);
+         if ord != Ordering::Less {
+-            return Err(ScoringError::AuditInvariantFailed(
+-                "equal scores did not prefer the lower candidate ID",
+-            ));
++            return Some("equal scores did not prefer the lower candidate ID");
+         }
+ 
+-        Ok(())
++        None
+     }
+ }
+ 
+diff --git a/crates/uor-r4-proof-model/src/structural_guarantees.rs b/crates/uor-r4-proof-model/src/structural_guarantees.rs
+index 6e3d12fa2..2160d32ac 100644
+--- a/crates/uor-r4-proof-model/src/structural_guarantees.rs
++++ b/crates/uor-r4-proof-model/src/structural_guarantees.rs
+@@ -403,15 +403,8 @@ impl StructuralGuaranteeVerifier {
+         obligation_id: &str,
+     ) -> Result<ProofVerificationReport, ProofValidationError> {
+         use uor_r4_graph_format::inference_contract::InferenceContractVerifier;
+-        let contract_report =
+-            InferenceContractVerifier::audit_contract_compliance().map_err(|_| {
+-                ProofValidationError::ResourceBoundExceeded {
+-                    obligation_id: obligation_id.to_string(),
+-                    metric: "contract_audit".to_string(),
+-                    actual: 1,
+-                    limit: 0,
+-                }
+-            })?;
++        // Total audit: the compliance report is always produced.
++        let contract_report = InferenceContractVerifier::audit_contract_compliance();
+ 
+         Ok(ProofVerificationReport {
+             obligation_id: obligation_id.to_string(),
+@@ -432,12 +425,12 @@ impl StructuralGuaranteeVerifier {
+         obligation_id: &str,
+     ) -> Result<ProofVerificationReport, ProofValidationError> {
+         use uor_r4_graph_format::scoring_semantics::ScoringSemanticsVerifier;
+-        ScoringSemanticsVerifier::audit_scoring_compliance().map_err(|err| {
+-            ProofValidationError::ScoringSemanticsViolation {
++        if let Some(detail) = ScoringSemanticsVerifier::audit_scoring_compliance() {
++            return Err(ProofValidationError::ScoringSemanticsViolation {
+                 obligation_id: obligation_id.to_string(),
+-                detail: err.to_string(),
+-            }
+-        })?;
++                detail: detail.to_string(),
++            });
++        }
+ 
+         Ok(ProofVerificationReport {
+             obligation_id: obligation_id.to_string(),

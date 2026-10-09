@@ -1,0 +1,4155 @@
+diff --git a/ROADMAP.md b/ROADMAP.md
+index f53250e6e..4316bb3d9 100644
+--- a/ROADMAP.md
++++ b/ROADMAP.md
+@@ -2,6 +2,24 @@
+ 
+ **Current research direction, after the September 23 joint-fit milestone:** the joint fit is executed and it is a scoped negative. Doubling the prose-only window-objective recipe's steps from 2,000 to 4,000 changed the served development loss from 6.6841 to 6.7090 — **+0.0249 [−0.0422, +0.0967], interval includes zero** — with the trajectory oscillating instead of descending, so the model has converged operationally and training budget is not the constraint. The two cheapest output-side levers (an in-class readout refit at −0.1313 and a longer schedule) are exhausted at about a quarter of the 0.4634 bits of matched-normalisation headroom, so the remaining deficit against the tuned `(prev, cur)` count reference is an interface fact about the state/readout interface, not optimisation. Next: the **count-prior blend** measurement on the served path (complementarity versus domination), before any table or bypass is built. [Current state](docs/integration/current-state.md) and [canonical plan](docs/integration/project-track.md) own live results and sequencing; [result](docs/integration/ordinary-lexical-joint-fit-result-2026-09-23.md) owns the numbers. Older “next” paragraphs below are historical.
+ 
++## Research labs (owner brief, September 27)
++
++Three labs share this repository: **Claude (Lab 1, director)**, **OpenCode (Lab 2)**,
++**Anti-Gravity (Lab 3)**. Branch convention `lab/<lab>/<topic>`; changes land through
++draft PRs for cross-lab review and are merged only with director approval. The runtime
++constraints stay hard: **no transformer, no matrix multiplication and no floating-point
++arithmetic in the serving path**; training, data preparation and offline analysis may use
++floats and matmul.
++
++| Track | Goal | Current hypothesis | Owning lab | Status | Next decision point |
++|---|---|---|---|---|---|
++| Mainline joint learner — source-answer failures (read side) | Close the retained joint learner's measured source-answer failures toward useful prose | The distractor-class failures are a **read-ranking** effect: the correct entity is present at rank 2–3 but is outranked by a later noun | OpenCode (Lab 2) | **Decisive oracle re-rank executed: S 5/5, C 0/5, O 5/5, baseline 0/5 → RANKING SUFFICIENT** for this class (reported to T1). Read-only; PR #1440 | Ranking/age-prior change on the read (owned by T1's stack if it becomes main line), not another read-score family |
++
++Parked on this track (do not restart without new causal evidence): termination-weighted
++objective (**INERT**), radial Lorentz/affine readers (**worse than Dot**), signed-2I
++finite geometric read score (**HARM**). Labs 1 and 3 add their own entries as their
++tracks land.
++
+ ## Historical roadmap notes
+ 
+ **PR #1349, principal review:** retain the learned Copy/Insert/Stop interface as an exposed four-word construction. It changes uncopied words from a history/provenance flag, but the authored targets misuse tense (`was` for the current value; `now` for computation). Correct temporal language and the lexical milestone remain **incomplete**. The 392 retained rows bypass the realizer; five explicit legacy cases do load it. [Review](docs/integration/grounded-lexical-realization-review-2026-09-22.md) and [independent audit](docs/evidence/grounded-lexical-realization-principal-audit-2026-09-22.json) distinguish implementation, semantic validity, exposure and same-artifact scope.
+diff --git a/crates/uor-r4-training/examples/joint-oracle-rerank.rs b/crates/uor-r4-training/examples/joint-oracle-rerank.rs
+new file mode 100644
+index 000000000..06fca0ad2
+--- /dev/null
++++ b/crates/uor-r4-training/examples/joint-oracle-rerank.rs
+@@ -0,0 +1,770 @@
++//! Oracle read re-rank evaluation for the read-localization unit.
++//!
++//! It trains nothing, fits nothing and changes no weight. For the five frozen
++//! condition-A distractor rows of the retained panel it rewrites the decision-0
++//! read mass in memory (swap the entity with the top distractor; swap the top
++//! distractor with a rank/age-matched control; focus the full non-NoRead mass on
++//! the entity) and records the greedy continuation and verdict per arm, with the
++//! read masses before and after to prove the intervention applied. See
++//! `docs/integration/read-localization-result-2026-09-27.md` and the director
++//! ROADMAP §4.2. Output is written only beneath a freshly claimed report root.
++#![forbid(unsafe_code)]
++
++use std::collections::BTreeMap;
++use std::fs;
++use std::path::{Path, PathBuf};
++use std::time::Instant;
++
++use serde_json::{json, Value};
++use sha2::{Digest, Sha256};
++use uor_r4_core::answer_oracle;
++use uor_r4_core::report_output;
++use uor_r4_core::transformerless::hf_bpe::HfBpeTokenizer;
++use uor_r4_training::baseline_protocol::{
++    device, load_evaluator, save_json, verify_identity, Evaluator,
++};
++use uor_r4_training::joint_campaign::Campaign;
++use uor_r4_training::joint_evaluation::{
++    story_probes, JointGenerationStop, StoryProbe, STORY_PROBE_SCOPE, STORY_STOP_POLICY,
++};
++use uor_r4_training::joint_model::{JointModel, ReadMassIntervention, CHECKPOINT_SCHEMA};
++use uor_r4_training::read_localize::{
++    canonical_greedy, canonical_greedy_intervened, entity_spans, span_occurrence, CanonicalRun,
++    DecisionZeroCapture, ReadEventMass, CANONICAL_MAX_NEW_TOKENS,
++};
++use uor_r4_training::{sha256_file, Result, TrainingError};
++
++const RETAINED_EVALUATE_DIR: &str = "evaluate-quaternion-continuous-read-6";
++const FLOAT_TOLERANCE: f64 = 1e-6;
++/// The five condition-A distractor rows, in the retained panel's order:
++/// (probe index, edited). Items are doll, bear, brush, box, bag.
++const DISTRACTOR_ROWS: [(usize, bool); 5] =
++    [(4, false), (4, true), (8, false), (12, false), (12, true)];
++const DECLARED_ITEMS: [&str; 5] = ["doll", "bear", "brush", "box", "bag"];
++const FROZEN_READING: &str = "S completes >=4/5 AND C <=1/5 -> ranking sufficient for this class; S <=1/5 -> the read is not the bottleneck; anything else -> inconclusive. The lead adjudicates; this instrument returns raw counts.";
++
++fn invalid(message: impl Into<String>) -> TrainingError {
++    TrainingError::Invalid(message.into())
++}
++
++fn read_json(path: &Path) -> Result<Value> {
++    Ok(serde_json::from_slice(&fs::read(path)?)?)
++}
++
++fn identity(path: &Path) -> Result<Value> {
++    Ok(json!({"path":path,"bytes":fs::metadata(path)?.len(),"sha256":sha256_file(path)?}))
++}
++
++fn decode_text(tokenizer: &HfBpeTokenizer, ids: &[u32]) -> String {
++    String::from_utf8_lossy(&tokenizer.decode_bytes(ids)).into_owned()
++}
++
++fn first_word(text: &str) -> &str {
++    text.split(|c: char| !c.is_alphabetic())
++        .next()
++        .unwrap_or("")
++}
++
++fn retained_story_probes_path(checkpoint: &Path) -> Result<PathBuf> {
++    if let Ok(explicit) = std::env::var("UOR_RETAINED_STORY_PROBES") {
++        return Ok(PathBuf::from(explicit));
++    }
++    let fit_root = checkpoint
++        .parent()
++        .ok_or_else(|| invalid("checkpoint parent (fit root) missing"))?;
++    let investigation_root = fit_root
++        .parent()
++        .ok_or_else(|| invalid("checkpoint grandparent (investigation root) missing"))?;
++    Ok(investigation_root
++        .join(RETAINED_EVALUATE_DIR)
++        .join("story-probes.json"))
++}
++
++fn load_tokenizer(evaluator: &Value) -> Result<(HfBpeTokenizer, Value)> {
++    let identities = evaluator["reference_inputs"]
++        .as_array()
++        .ok_or_else(|| invalid("evaluator reference identity inventory"))?;
++    let identity_value = identities
++        .iter()
++        .find(|entry| {
++            entry["path"]
++                .as_str()
++                .is_some_and(|path| path.ends_with("/tokenizer.json"))
++        })
++        .ok_or_else(|| invalid("tokenizer identity missing from evaluator"))?;
++    let path = verify_identity(identity_value)?;
++    let tokenizer = HfBpeTokenizer::from_dir(
++        path.parent()
++            .ok_or_else(|| invalid("tokenizer parent directory"))?,
++    )
++    .map_err(|error| invalid(format!("joint tokenizer: {error}")))?;
++    Ok((tokenizer, identity(&path)?))
++}
++
++#[derive(Clone, Copy)]
++struct RowRef {
++    probe: usize,
++    edited: bool,
++}
++
++impl RowRef {
++    fn key(self, id: &str) -> String {
++        format!("{id}|{}", if self.edited { "edited" } else { "original" })
++    }
++
++    fn variant<'a>(
++        self,
++        probe: &'a StoryProbe,
++    ) -> &'a uor_r4_training::joint_evaluation::StoryVariant {
++        if self.edited {
++            &probe.edited
++        } else {
++            &probe.original
++        }
++    }
++}
++
++struct OccurrenceStat {
++    occurrence: usize,
++    token: u32,
++    text: String,
++    mass: f64,
++    rank: usize,
++    age: usize,
++}
++
++impl OccurrenceStat {
++    fn json(&self) -> Value {
++        json!({
++            "occurrence":self.occurrence,"token":self.token,"text":self.text,
++            "mass":self.mass,"rank":self.rank,"age":self.age
++        })
++    }
++}
++
++/// Rank = 1-based position in the descending-mass order, ties broken by the
++/// lower occurrence index. Age = readable tokens back from the decision step,
++/// `written_occurrence - occurrence`.
++fn occurrence_stats(decision: &DecisionZeroCapture) -> Vec<OccurrenceStat> {
++    let mut order: Vec<&ReadEventMass> = decision.read_row.iter().collect();
++    order.sort_by(|left, right| {
++        right
++            .mass
++            .total_cmp(&left.mass)
++            .then_with(|| left.occurrence.cmp(&right.occurrence))
++    });
++    let rank_by_occurrence: BTreeMap<usize, usize> = order
++        .iter()
++        .enumerate()
++        .map(|(rank, event)| (event.occurrence, rank + 1))
++        .collect();
++    decision
++        .read_row
++        .iter()
++        .map(|event| OccurrenceStat {
++            occurrence: event.occurrence,
++            token: event.token,
++            text: event.text.clone(),
++            mass: event.mass,
++            rank: rank_by_occurrence[&event.occurrence],
++            age: decision.written_occurrence - event.occurrence,
++        })
++        .collect()
++}
++
++/// Entity occurrence with the largest read mass (exactly one span is required).
++fn entity_stat<'a>(stats: &'a [OccurrenceStat], occurrence: usize) -> Result<&'a OccurrenceStat> {
++    stats
++        .iter()
++        .filter(|stat| stat.occurrence == occurrence)
++        .max_by(|left, right| left.mass.total_cmp(&right.mass))
++        .ok_or_else(|| invalid("entity occurrence is not a readable event at decision 0"))
++}
++
++/// Top-1 distractor: largest read mass excluding the entity; ties to the lower
++/// occurrence index.
++fn top_distractor<'a>(stats: &'a [OccurrenceStat], entity: usize) -> Result<&'a OccurrenceStat> {
++    stats
++        .iter()
++        .filter(|stat| stat.occurrence != entity)
++        .max_by(|left, right| {
++            left.mass
++                .total_cmp(&right.mass)
++                .then_with(|| right.occurrence.cmp(&left.occurrence))
++        })
++        .ok_or_else(|| invalid("no non-entity read event for the top-1 distractor"))
++}
++
++/// Control occurrence: among non-entity occurrences excluding the distractor,
++/// minimise `|rank(n) - rank(e)| + |age(n) - age(e)|`; ties to the lower
++/// occurrence index.
++fn matched_control<'a>(
++    stats: &'a [OccurrenceStat],
++    entity: &OccurrenceStat,
++    distractor: usize,
++) -> Result<&'a OccurrenceStat> {
++    stats
++        .iter()
++        .filter(|stat| stat.occurrence != entity.occurrence && stat.occurrence != distractor)
++        .min_by(|left, right| {
++            let cost = |stat: &OccurrenceStat| {
++                (stat.rank as i64 - entity.rank as i64).unsigned_abs()
++                    + (stat.age as i64 - entity.age as i64).unsigned_abs()
++            };
++            cost(left)
++                .cmp(&cost(right))
++                .then_with(|| left.occurrence.cmp(&right.occurrence))
++        })
++        .ok_or_else(|| invalid("no control occurrence for the matched swap"))
++}
++
++fn complete_verdict(run: &CanonicalRun, noun: &str, accepted: &[String]) -> (bool, bool) {
++    let first_noun_correct = first_word(&run.response_text) == noun;
++    let complete_correct = run.utf8_decodable
++        && matches!(
++            run.stop,
++            JointGenerationStop::Eos | JointGenerationStop::FirstSentenceBoundary
++        )
++        && answer_oracle::accepts(accepted, &run.response_text);
++    (first_noun_correct, complete_correct)
++}
++
++fn masses_json(before: &[OccurrenceStat], after: &[OccurrenceStat]) -> Value {
++    let before_by: BTreeMap<usize, f64> = before
++        .iter()
++        .map(|stat| (stat.occurrence, stat.mass))
++        .collect();
++    let after_by: BTreeMap<usize, f64> = after
++        .iter()
++        .map(|stat| (stat.occurrence, stat.mass))
++        .collect();
++    let mut occurrences: Vec<usize> = before_by.keys().copied().collect();
++    occurrences.sort_unstable();
++    Value::Array(
++        occurrences
++            .into_iter()
++            .map(|occurrence| {
++                json!({
++                    "occurrence":occurrence,
++                    "mass_before":before_by.get(&occurrence),
++                    "mass_after":after_by.get(&occurrence)
++                })
++            })
++            .collect(),
++    )
++}
++
++/// The arm read row must equal the declared transform of the baseline row.
++fn intervention_applied(
++    before: &[OccurrenceStat],
++    after: &[OccurrenceStat],
++    intervention: ReadMassIntervention,
++) -> bool {
++    let before_by: BTreeMap<usize, f64> = before
++        .iter()
++        .map(|stat| (stat.occurrence, stat.mass))
++        .collect();
++    let after_by: BTreeMap<usize, f64> = after
++        .iter()
++        .map(|stat| (stat.occurrence, stat.mass))
++        .collect();
++    if before_by.keys().ne(after_by.keys()) {
++        return false;
++    }
++    let close = |left: f64, right: f64| (left - right).abs() <= FLOAT_TOLERANCE;
++    match intervention {
++        ReadMassIntervention::Swap { a, b } => before_by.iter().all(|(&occurrence, &mass)| {
++            let expected = if occurrence == a {
++                before_by.get(&b).copied().unwrap_or(f64::NAN)
++            } else if occurrence == b {
++                before_by.get(&a).copied().unwrap_or(f64::NAN)
++            } else {
++                mass
++            };
++            close(after_by[&occurrence], expected)
++        }),
++        ReadMassIntervention::Focus { target } => {
++            let total: f64 = before_by.values().sum();
++            before_by.iter().all(|(&occurrence, _)| {
++                let expected = if occurrence == target { total } else { 0.0 };
++                close(after_by[&occurrence], expected)
++            })
++        }
++    }
++}
++
++fn arm_json(
++    name: &str,
++    run: &CanonicalRun,
++    noun: &str,
++    accepted: &[String],
++    before: &[OccurrenceStat],
++    intervention: Option<ReadMassIntervention>,
++) -> Result<Value> {
++    let after = occurrence_stats(&run.decision_zero);
++    let (first_noun_correct, complete_correct) = complete_verdict(run, noun, accepted);
++    let applied = intervention.map(|value| intervention_applied(before, &after, value));
++    Ok(json!({
++        "arm":name,
++        "intervention":intervention.map(|value| value.name()),
++        "intervention_json":intervention,
++        "intervention_applied_exactly":applied,
++        "generated_token_ids":run.generated_token_ids,
++        "response_text":run.response_text,
++        "raw_decoded":run.raw_decoded,
++        "stop":run.stop,
++        "utf8_decodable":run.utf8_decodable,
++        "first_noun_correct":first_noun_correct,
++        "complete_correct":complete_correct,
++        "written_occurrence":run.decision_zero.written_occurrence,
++        "no_read_mass":run.decision_zero.no_read_mass,
++        "read_mass_sum":run.decision_zero.read_mass_sum,
++        "normalization_ok":run.decision_zero.normalization_ok,
++        "top_read_occurrence":run.decision_zero.top_read_occurrence,
++        "top_read_token":run.decision_zero.top_read_token,
++        "top_read_token_text":run.decision_zero.top_read_token_text,
++        "read_row":after.iter().map(OccurrenceStat::json).collect::<Vec<_>>(),
++        "masses_before_after":masses_json(before, &after)
++    }))
++}
++
++struct RowResult {
++    key: String,
++    probe: usize,
++    edited: bool,
++    json: Value,
++}
++
++fn process_row(
++    model: &mut JointModel,
++    tokenizer: &HfBpeTokenizer,
++    probe: &StoryProbe,
++    row: RowRef,
++) -> Result<RowResult> {
++    let key = row.key(&probe.id);
++    let variant = row.variant(probe);
++    let noun = variant.item.noun();
++    let accepted = &variant.accepted_continuations;
++    let content = tokenizer.encode(&variant.prompt);
++    let decode = |ids: &[u32]| tokenizer.decode_bytes(ids);
++    let spans = entity_spans(&content, noun, decode);
++    if spans.len() != 1 {
++        return Err(invalid(format!(
++            "{key}: expected exactly one entity span, found {}",
++            spans.len()
++        )));
++    }
++    let entity_occurrence = span_occurrence(spans[0]);
++    let mut full = Vec::with_capacity(content.len() + 1);
++    full.push(0);
++    full.extend_from_slice(&content);
++
++    let baseline = canonical_greedy(&*model, tokenizer, &full, CANONICAL_MAX_NEW_TOKENS, None)?;
++    let baseline_stats = occurrence_stats(&baseline.decision_zero);
++    let entity = entity_stat(&baseline_stats, entity_occurrence)?;
++    let distractor = top_distractor(&baseline_stats, entity_occurrence)?;
++    let control = matched_control(&baseline_stats, entity, distractor.occurrence)?;
++    let (baseline_first_noun, baseline_complete) = complete_verdict(&baseline, noun, accepted);
++    if baseline_complete {
++        return Err(invalid(format!(
++            "{key}: baseline already completes; the distractor class is not reproduced"
++        )));
++    }
++
++    let arms: [(&str, ReadMassIntervention); 3] = [
++        (
++            "S",
++            ReadMassIntervention::Swap {
++                a: entity.occurrence,
++                b: distractor.occurrence,
++            },
++        ),
++        (
++            "C",
++            ReadMassIntervention::Swap {
++                a: distractor.occurrence,
++                b: control.occurrence,
++            },
++        ),
++        (
++            "O",
++            ReadMassIntervention::Focus {
++                target: entity.occurrence,
++            },
++        ),
++    ];
++    let mut baseline_arm = arm_json("baseline", &baseline, noun, accepted, &baseline_stats, None)?;
++    baseline_arm["intervention_applied_exactly"] = Value::Bool(true);
++    let mut arm_values = vec![baseline_arm];
++    for (name, intervention) in arms {
++        let run = canonical_greedy_intervened(
++            model,
++            tokenizer,
++            &full,
++            CANONICAL_MAX_NEW_TOKENS,
++            None,
++            Some(intervention),
++        )?;
++        let value = arm_json(
++            name,
++            &run,
++            noun,
++            accepted,
++            &baseline_stats,
++            Some(intervention),
++        )?;
++        if value["intervention_applied_exactly"] != Value::Bool(true) {
++            return Err(invalid(format!(
++                "{key} arm {name}: read masses do not match the declared transform"
++            )));
++        }
++        arm_values.push(value);
++    }
++
++    let json = json!({
++        "row":key,
++        "probe_id":probe.id,
++        "template":probe.template,
++        "variant":if row.edited {"edited"} else {"original"},
++        "item":noun,
++        "entity_span":spans[0],
++        "entity_occurrence":entity_occurrence,
++        "entity_tokens":content[spans[0].start..spans[0].start + spans[0].len].to_vec(),
++        "prompt_token_ids":full,
++        "prompt_decoded":decode_text(tokenizer, &content),
++        "written_occurrence":baseline.decision_zero.written_occurrence,
++        "baseline_first_noun_correct":baseline_first_noun,
++        "baseline_complete_correct":baseline_complete,
++        "selection":{
++            "rule":"d = largest read mass excluding the entity (ties to the lower occurrence); n = among non-entity occurrences excluding d, minimise |rank(n)-rank(e)| + |age(n)-age(e)| (ties to the lower occurrence); rank = 1-based descending-mass position with occurrence tie-break; age = written_occurrence - occurrence",
++            "e":entity.json(),
++            "d":distractor.json(),
++            "n":control.json()
++        },
++        "arms":arm_values
++    });
++    Ok(RowResult {
++        key,
++        probe: row.probe,
++        edited: row.edited,
++        json,
++    })
++}
++
++fn baseline_parity(results: &[RowResult], retained: &Value) -> Value {
++    let Some(retained_rows) = retained.as_array() else {
++        return json!({"status":"PARITY_FAILED","reason":"retained story probes are not an array"});
++    };
++    let mut mismatches = Vec::new();
++    for row in results {
++        let Some(probe) = retained_rows.get(row.probe) else {
++            mismatches.push(json!({"row":row.key,"field":"probe_index"}));
++            continue;
++        };
++        let retained_row = &probe[if row.edited { "edited" } else { "original" }];
++        let generation = &retained_row["generation"];
++        let Some(baseline) = row.json["arms"].as_array().and_then(|arms| arms.first()) else {
++            mismatches.push(json!({"row":row.key,"field":"baseline_arm"}));
++            continue;
++        };
++        if baseline["generated_token_ids"] != generation["generated_token_ids"] {
++            mismatches.push(json!({"row":row.key,"field":"generated_token_ids"}));
++        }
++        if baseline["stop"] != generation["stop"] {
++            mismatches.push(json!({"row":row.key,"field":"stop"}));
++        }
++        if baseline["response_text"] != generation["response_text"] {
++            mismatches.push(json!({"row":row.key,"field":"response_text"}));
++        }
++        if baseline["first_noun_correct"] != retained_row["first_noun_correct"] {
++            mismatches.push(json!({"row":row.key,"field":"first_noun_correct"}));
++        }
++        if baseline["complete_correct"] != retained_row["complete_correct"] {
++            mismatches.push(json!({"row":row.key,"field":"complete_correct"}));
++        }
++    }
++    json!({
++        "status":if mismatches.is_empty() {"PARITY_EXACT"} else {"PARITY_FAILED"},
++        "rows_compared":results.len(),
++        "mismatch_count":mismatches.len(),
++        "mismatches":mismatches
++    })
++}
++
++fn summarize(results: &[RowResult]) -> Value {
++    let mut per_arm = serde_json::Map::new();
++    for arm in ["baseline", "S", "C", "O"] {
++        let mut complete = 0usize;
++        let mut first_noun = 0usize;
++        for row in results {
++            let Some(value) = row.json["arms"]
++                .as_array()
++                .and_then(|arms| arms.iter().find(|value| value["arm"] == arm))
++            else {
++                continue;
++            };
++            complete += usize::from(value["complete_correct"] == Value::Bool(true));
++            first_noun += usize::from(value["first_noun_correct"] == Value::Bool(true));
++        }
++        per_arm.insert(
++            arm.to_string(),
++            json!({"rows":results.len(),"complete":complete,"first_noun":first_noun}),
++        );
++    }
++    let count = |arm: &str| {
++        per_arm
++            .get(arm)
++            .and_then(|value| value["complete"].as_u64())
++            .unwrap_or(0)
++    };
++    let rows: Vec<Value> = results
++        .iter()
++        .map(|row| {
++            let arm = |name: &str| {
++                row.json["arms"]
++                    .as_array()
++                    .and_then(|arms| arms.iter().find(|value| value["arm"] == name))
++                    .cloned()
++                    .unwrap_or(Value::Null)
++            };
++            json!({
++                "row":row.key,"item":row.json["item"],
++                "baseline":arm("baseline")["complete_correct"],
++                "S":arm("S")["complete_correct"],
++                "C":arm("C")["complete_correct"],
++                "O":arm("O")["complete_correct"],
++                "baseline_text":arm("baseline")["response_text"],
++                "S_text":arm("S")["response_text"],
++                "C_text":arm("C")["response_text"],
++                "O_text":arm("O")["response_text"]
++            })
++        })
++        .collect();
++    json!({
++        "per_arm":per_arm,
++        "rows":rows,
++        "reading_inputs":{
++            "S_complete":count("S"),
++            "C_complete":count("C"),
++            "O_complete":count("O"),
++            "baseline_complete":count("baseline"),
++            "rows_total":results.len()
++        },
++        "frozen_reading":FROZEN_READING,
++        "decision":"NOT_ADJUDICATED_BY_INSTRUMENT"
++    })
++}
++
++fn run(
++    checkpoint: &Path,
++    campaign_path: &Path,
++    out: &Path,
++    device_name: &str,
++    smoke: bool,
++    started: Instant,
++) -> Result<()> {
++    report_output::verify(checkpoint)?;
++    let campaign = Campaign::load(campaign_path)?;
++    let evaluator: Evaluator = load_evaluator(&campaign.evaluator_path)?;
++    let selected = device(device_name)?;
++    let checkpoint_binding = read_json(&checkpoint.join("checkpoint.json"))?;
++    let model_sha = sha256_file(&checkpoint.join("model.safetensors"))?;
++    let config_sha = sha256_file(&checkpoint.join("config.json"))?;
++    let checkpoint_sha = sha256_file(&checkpoint.join("checkpoint.json"))?;
++    let campaign_sha = sha256_file(campaign_path)?;
++    let step = checkpoint_binding["optimizer_step"]
++        .as_u64()
++        .and_then(|value| usize::try_from(value).ok())
++        .ok_or_else(|| invalid("checkpoint optimizer step"))?;
++    if checkpoint_binding["schema"] != CHECKPOINT_SCHEMA
++        || checkpoint_binding["evaluator_sha256"] != evaluator.sha256
++        || checkpoint_binding["model_sha256"] != model_sha
++        || checkpoint_binding["model_config_sha256"] != config_sha
++    {
++        return Err(invalid(
++            "checkpoint binding, evaluator, model or config identity mismatch",
++        ));
++    }
++    let mut model = JointModel::load(checkpoint, &selected)?;
++    if model.config != campaign.model || model.config.context != 256 {
++        return Err(invalid("loaded model config differs from the campaign"));
++    }
++    let (tokenizer, tokenizer_identity) = load_tokenizer(&evaluator.document)?;
++    if tokenizer.vocab_size() != model.config.vocab_size {
++        return Err(invalid("tokenizer vocabulary differs from the model"));
++    }
++    let retained_path = retained_story_probes_path(checkpoint)?;
++    let retained_root = retained_path
++        .parent()
++        .ok_or_else(|| invalid("retained evaluate root"))?
++        .to_path_buf();
++    report_output::verify(&retained_root)?;
++    let retained_sha = sha256_file(&retained_path)?;
++    let retained = read_json(&retained_path)?;
++    let probes = story_probes();
++    if retained.as_array().map(Vec::len) != Some(probes.len()) {
++        return Err(invalid(
++            "retained story probe count differs from the frozen panel",
++        ));
++    }
++    let source = option_env!("UOR_BUILD_SOURCE_COMMIT")
++        .filter(|value| *value != "UNBOUND")
++        .ok_or_else(|| invalid("build evidence with UOR_BUILD_SOURCE_COMMIT"))?;
++    let provenance = json!({
++        "schema":"uor-r4.oracle-rerank-provenance/1",
++        "source_commit":source,
++        "compiled_source_sha256":{
++            "example":hex::encode(Sha256::digest(include_bytes!("joint-oracle-rerank.rs"))),
++            "read_localize":hex::encode(Sha256::digest(include_bytes!("../src/read_localize.rs"))),
++            "joint_model":hex::encode(Sha256::digest(include_bytes!("../src/joint_model.rs")))
++        },
++        "executable_sha256":sha256_file(&std::env::current_exe()?)?,
++        "device":device_name,
++        "parent_checkpoint":checkpoint,
++        "parent_checkpoint_files":{
++            "checkpoint_json_sha256":checkpoint_sha,
++            "campaign_json_sha256":campaign_sha,
++            "model_safetensors_sha256":model_sha,
++            "config_json_sha256":config_sha
++        },
++        "parent_optimizer_step":step,
++        "evaluator_path":evaluator.path,
++        "evaluator_sha256":evaluator.sha256,
++        "tokenizer":tokenizer_identity,
++        "tokenizer_cid":tokenizer.address(),
++        "retained_story_probes_path":retained_path,
++        "retained_story_probes_sha256":retained_sha,
++        "model_config":model.config,
++        "read_mode":"enabled",
++        "rows_selector":if smoke {"smoke"} else {"full"},
++        "rows":DISTRACTOR_ROWS.iter().map(|(probe, edited)| json!({
++            "probe":probe,"variant":if *edited {"edited"} else {"original"}
++        })).collect::<Vec<_>>(),
++        "declared_items":DECLARED_ITEMS,
++        "intervention":{
++            "scope":"in-memory only; never a checkpoint field; None preserves byte-identical behavior",
++            "applied":"decision-0 step only, cleared before the next step",
++            "arms":{"S":"Swap{e,d}","C":"Swap{d,n}","O":"Focus{e}"},
++            "reading":FROZEN_READING
++        },
++        "scope":"Exposed development panel, one parent, deterministic greedy, read-only oracle read-mass intervention on five condition-A distractor rows. No training, fit, weight change, promotion or general-language claim.",
++        "gradients_tracked":false,
++        "optimizer_steps":0,
++        "thread_environment":{
++            "RAYON_NUM_THREADS":std::env::var("RAYON_NUM_THREADS").ok(),
++            "VECLIB_MAXIMUM_THREADS":std::env::var("VECLIB_MAXIMUM_THREADS").ok()
++        }
++    });
++    save_json(&out.join("run-provenance.json"), &provenance)?;
++
++    let row_refs: Vec<RowRef> = if smoke {
++        DISTRACTOR_ROWS
++            .iter()
++            .take(1)
++            .map(|&(probe, edited)| RowRef { probe, edited })
++            .collect()
++    } else {
++        DISTRACTOR_ROWS
++            .iter()
++            .map(|&(probe, edited)| RowRef { probe, edited })
++            .collect()
++    };
++    let mut results = Vec::with_capacity(row_refs.len());
++    for (index, row) in row_refs.iter().enumerate() {
++        let probe = probes
++            .get(row.probe)
++            .ok_or_else(|| invalid("row probe index outside the frozen panel"))?;
++        if row.variant(probe).item.noun() != DECLARED_ITEMS[index] {
++            return Err(invalid(format!(
++                "declared item {} does not match the frozen panel for {}",
++                DECLARED_ITEMS[index],
++                row.key(&probe.id)
++            )));
++        }
++        results.push(process_row(&mut model, &tokenizer, probe, *row)?);
++    }
++    if model.read_intervention().is_some() {
++        return Err(invalid("read intervention was not cleared after the rows"));
++    }
++    let parity = baseline_parity(&results, &retained);
++    save_json(&out.join("baseline-parity.json"), &parity)?;
++    let summary = summarize(&results);
++    let report = json!({
++        "schema":"uor-r4.oracle-rerank/1",
++        "source_commit":source,
++        "device":device_name,
++        "parent_checkpoint":checkpoint,
++        "parent_optimizer_step":step,
++        "evaluator_sha256":evaluator.sha256,
++        "tokenizer_cid":tokenizer.address(),
++        "read_mode":"enabled",
++        "story_probe_scope":STORY_PROBE_SCOPE,
++        "story_probe_stop_policy":STORY_STOP_POLICY,
++        "rows_total":if smoke {1} else {DISTRACTOR_ROWS.len()},
++        "rows_selector":if smoke {"smoke"} else {"full"},
++        "rows":results.iter().map(|row| row.json.clone()).collect::<Vec<_>>(),
++        "baseline_parity":parity,
++        "summary":summary["per_arm"],
++        "summary_rows":summary["rows"],
++        "reading_inputs":summary["reading_inputs"],
++        "frozen_reading":summary["frozen_reading"],
++        "decision":summary["decision"],
++        "elapsed_seconds":started.elapsed().as_secs_f64()
++    });
++    save_json(&out.join("oracle-rerank.json"), &report)?;
++    println!(
++        "oracle-rerank: rows={} parity={} S_complete={} C_complete={} O_complete={} baseline_complete={} elapsed={:.1}s",
++        results.len(),
++        parity["status"],
++        summary["reading_inputs"]["S_complete"],
++        summary["reading_inputs"]["C_complete"],
++        summary["reading_inputs"]["O_complete"],
++        summary["reading_inputs"]["baseline_complete"],
++        started.elapsed().as_secs_f64()
++    );
++    Ok(())
++}
++
++fn main() -> Result<()> {
++    let args: Vec<String> = std::env::args().skip(1).collect();
++    if args.len() != 5 {
++        return Err(invalid(
++            "usage: joint-oracle-rerank PARENT_CHECKPOINT CAMPAIGN_JSON|- NEW_REPORT_ROOT {cpu|metal} {full|smoke}",
++        ));
++    }
++    let checkpoint = PathBuf::from(&args[0]).canonicalize()?;
++    let out = PathBuf::from(&args[2]);
++    let parent = out
++        .parent()
++        .filter(|path| !path.as_os_str().is_empty())
++        .unwrap_or(Path::new("."))
++        .canonicalize()?;
++    if parent.starts_with(&checkpoint) || out.file_name().is_none() {
++        return Err(invalid("new report must be outside the sealed checkpoint"));
++    }
++    let smoke = match args[4].to_ascii_lowercase().as_str() {
++        "smoke" => true,
++        "full" | "all" => false,
++        _ => return Err(invalid("rows selector must be full or smoke")),
++    };
++    device(&args[3])?;
++    let campaign_path = if args[1] == "-" {
++        checkpoint.join("campaign.json")
++    } else {
++        PathBuf::from(&args[1]).canonicalize()?
++    };
++    report_output::claim(&out)?;
++    let started = Instant::now();
++    let result = run(&checkpoint, &campaign_path, &out, &args[3], smoke, started);
++    if let Err(error) = &result {
++        save_json(
++            &out.join("failed-attempt.json"),
++            &json!({"status":"FAILED_ATTEMPT","error":error.to_string()}),
++        )?;
++    }
++    report_output::seal(&out)?;
++    report_output::verify(&out)?;
++    result?;
++    println!("COMPLETE: {}; sealed and verified", out.display());
++    Ok(())
++}
+diff --git a/crates/uor-r4-training/examples/joint-read-localize.rs b/crates/uor-r4-training/examples/joint-read-localize.rs
+new file mode 100644
+index 000000000..2260734d7
+--- /dev/null
++++ b/crates/uor-r4-training/examples/joint-read-localize.rs
+@@ -0,0 +1,1022 @@
++//! Read-only read-side localization instrument for the mainline joint learner.
++//! It trains nothing, changes no weight and writes only beneath its own freshly
++//! claimed report root. See `docs/integration/read-localization-plan-2026-09-27.md`.
++#![forbid(unsafe_code)]
++
++use std::fs;
++use std::path::{Path, PathBuf};
++use std::time::Instant;
++
++use serde_json::{json, Value};
++use sha2::{Digest, Sha256};
++use uor_r4_core::answer_oracle;
++use uor_r4_core::report_output;
++use uor_r4_core::transformerless::hf_bpe::HfBpeTokenizer;
++use uor_r4_training::baseline_protocol::{
++    device, load_evaluator, save_json, verify_identity, Evaluator,
++};
++use uor_r4_training::joint_campaign::Campaign;
++use uor_r4_training::joint_evaluation::{
++    story_probes, JointGenerationStop, StoryProbe, STORY_PROBE_SCOPE, STORY_STOP_POLICY,
++};
++use uor_r4_training::joint_model::{JointModel, CHECKPOINT_SCHEMA};
++use uor_r4_training::read_localize::{
++    canonical_greedy, entity_share, entity_spans, insert_index_before_final_query, length_delta,
++    span_occurrence, splice_insert, splice_replace_final, CanonicalRun, CANONICAL_MAX_NEW_TOKENS,
++    CONTROL_NOUN,
++};
++use uor_r4_training::{sha256_file, Result, TrainingError};
++
++const RETAINED_EVALUATE_DIR: &str = "evaluate-quaternion-continuous-read-6";
++const SMOKE_PROBE: usize = 4;
++const FLOAT_TOLERANCE: f64 = 1e-9;
++
++fn invalid(message: impl Into<String>) -> TrainingError {
++    TrainingError::Invalid(message.into())
++}
++
++fn read_json(path: &Path) -> Result<Value> {
++    Ok(serde_json::from_slice(&fs::read(path)?)?)
++}
++
++fn identity(path: &Path) -> Result<Value> {
++    Ok(json!({"path":path,"bytes":fs::metadata(path)?.len(),"sha256":sha256_file(path)?}))
++}
++
++fn decode_text(tokenizer: &HfBpeTokenizer, ids: &[u32]) -> String {
++    String::from_utf8_lossy(&tokenizer.decode_bytes(ids)).into_owned()
++}
++
++fn close(left: f64, right: f64) -> bool {
++    (left - right).abs() <= FLOAT_TOLERANCE
++}
++
++fn first_word(text: &str) -> &str {
++    text.split(|c: char| !c.is_alphabetic())
++        .next()
++        .unwrap_or("")
++}
++
++fn replace_last_word(prompt: &str, noun: &str) -> String {
++    match prompt.rsplit_once(' ') {
++        Some((head, _)) => format!("{head} {noun}"),
++        None => noun.to_owned(),
++    }
++}
++
++fn insert_clause_after_last_period(prompt: &str, clause: &str) -> String {
++    let position = prompt.rfind('.').map_or(prompt.len(), |index| index + 1);
++    format!("{}{}{}", &prompt[..position], clause, &prompt[position..])
++}
++
++#[derive(Clone, Copy, Debug, Eq, PartialEq)]
++enum Condition {
++    Baseline,
++    EntityFinal,
++    NonEntityFinal,
++    NearQueryEntity,
++    NearQueryControl,
++}
++
++impl Condition {
++    const ALL: [Condition; 5] = [
++        Condition::Baseline,
++        Condition::EntityFinal,
++        Condition::NonEntityFinal,
++        Condition::NearQueryEntity,
++        Condition::NearQueryControl,
++    ];
++
++    fn parse(raw: &str) -> Result<Self> {
++        match raw.trim().to_ascii_lowercase().as_str() {
++            "a" | "baseline" => Ok(Self::Baseline),
++            "b" | "entity-final" => Ok(Self::EntityFinal),
++            "c" | "non-entity-final" => Ok(Self::NonEntityFinal),
++            "d" | "near-query-entity" => Ok(Self::NearQueryEntity),
++            "d'" | "dp" | "dprime" | "near-query-non-entity" => Ok(Self::NearQueryControl),
++            _ => Err(invalid(format!("unknown condition selector: {raw}"))),
++        }
++    }
++
++    const fn key(self) -> &'static str {
++        match self {
++            Self::Baseline => "A",
++            Self::EntityFinal => "B",
++            Self::NonEntityFinal => "C",
++            Self::NearQueryEntity => "D",
++            Self::NearQueryControl => "DP",
++        }
++    }
++
++    const fn name(self) -> &'static str {
++        match self {
++            Self::Baseline => "baseline",
++            Self::EntityFinal => "entity_final",
++            Self::NonEntityFinal => "matched_non_entity_final",
++            Self::NearQueryEntity => "near_query_entity_mention",
++            Self::NearQueryControl => "near_query_non_entity_mention",
++        }
++    }
++}
++
++fn parse_conditions(raw: &str) -> Result<Vec<Condition>> {
++    if raw.eq_ignore_ascii_case("all") {
++        return Ok(Condition::ALL.to_vec());
++    }
++    let mut selected = Vec::new();
++    for part in raw.split(',') {
++        let condition = Condition::parse(part)?;
++        if !selected.contains(&condition) {
++            selected.push(condition);
++        }
++    }
++    if selected.is_empty() {
++        return Err(invalid("at least one condition is required"));
++    }
++    Ok(selected)
++}
++
++#[derive(Clone, Copy)]
++struct RowRef {
++    probe: usize,
++    edited: bool,
++}
++
++impl RowRef {
++    fn key(self, id: &str) -> String {
++        format!("{id}|{}", if self.edited { "edited" } else { "original" })
++    }
++
++    fn variant<'a>(
++        self,
++        probe: &'a StoryProbe,
++    ) -> &'a uor_r4_training::joint_evaluation::StoryVariant {
++        if self.edited {
++            &probe.edited
++        } else {
++            &probe.original
++        }
++    }
++}
++
++fn parse_rows(raw: &str) -> Result<Option<RowRef>> {
++    match raw.to_ascii_lowercase().as_str() {
++        "all" => Ok(None),
++        "smoke" => Ok(Some(RowRef {
++            probe: SMOKE_PROBE,
++            edited: false,
++        })),
++        _ => Err(invalid("rows selector must be all or smoke")),
++    }
++}
++
++fn load_tokenizer(evaluator: &Value) -> Result<(HfBpeTokenizer, Value)> {
++    let identities = evaluator["reference_inputs"]
++        .as_array()
++        .ok_or_else(|| invalid("evaluator reference identity inventory"))?;
++    let identity_value = identities
++        .iter()
++        .find(|entry| {
++            entry["path"]
++                .as_str()
++                .is_some_and(|path| path.ends_with("/tokenizer.json"))
++        })
++        .ok_or_else(|| invalid("tokenizer identity missing from evaluator"))?;
++    let path = verify_identity(identity_value)?;
++    let tokenizer = HfBpeTokenizer::from_dir(
++        path.parent()
++            .ok_or_else(|| invalid("tokenizer parent directory"))?,
++    )
++    .map_err(|error| invalid(format!("joint tokenizer: {error}")))?;
++    Ok((tokenizer, identity(&path)?))
++}
++
++fn retained_story_probes_path(checkpoint: &Path) -> Result<PathBuf> {
++    if let Ok(explicit) = std::env::var("UOR_RETAINED_STORY_PROBES") {
++        return Ok(PathBuf::from(explicit));
++    }
++    let fit_root = checkpoint
++        .parent()
++        .ok_or_else(|| invalid("checkpoint parent (fit root) missing"))?;
++    let investigation_root = fit_root
++        .parent()
++        .ok_or_else(|| invalid("checkpoint grandparent (investigation root) missing"))?;
++    Ok(investigation_root
++        .join(RETAINED_EVALUATE_DIR)
++        .join("story-probes.json"))
++}
++
++struct ConditionResult {
++    condition: Condition,
++    decoded_matches_intended: bool,
++    first_noun_correct: bool,
++    complete_correct: bool,
++    entity_share: Option<f64>,
++    entity_rank: Option<usize>,
++    normalization_ok: bool,
++    emitted_matches_top_read_token: bool,
++    json: Value,
++}
++
++struct RowResult {
++    key: String,
++    probe: usize,
++    edited: bool,
++    item: String,
++    excluded: Option<&'static str>,
++    conditions: Vec<ConditionResult>,
++    json: Value,
++}
++
++#[allow(clippy::too_many_arguments)]
++fn condition_result(
++    condition: Condition,
++    content_len: usize,
++    mutated: &[u32],
++    decoded: &str,
++    intended: &str,
++    noun: &str,
++    accepted: &[String],
++    run: CanonicalRun,
++    entity_occurrences: &[usize],
++) -> Result<ConditionResult> {
++    let decision = &run.decision_zero;
++    let mut mass_by_occurrence = std::collections::BTreeMap::new();
++    for event in &decision.read_row {
++        mass_by_occurrence.insert(event.occurrence, event.mass);
++    }
++    let entity_mass: f64 = entity_occurrences
++        .iter()
++        .filter_map(|occurrence| mass_by_occurrence.get(occurrence))
++        .copied()
++        .sum();
++    let entity_max_mass = entity_occurrences
++        .iter()
++        .filter_map(|occurrence| mass_by_occurrence.get(occurrence))
++        .copied()
++        .fold(0.0f64, f64::max);
++    let entity_present = !entity_occurrences.is_empty();
++    let entity_rank = entity_present.then(|| {
++        1 + decision
++            .read_row
++            .iter()
++            .filter(|event| event.mass > entity_max_mass)
++            .count()
++    });
++    let emitted_token = *run
++        .generated_token_ids
++        .first()
++        .ok_or_else(|| invalid("canonical generation produced no token"))?;
++    let emitted_matches_top_read_token = decision
++        .top_read_token
++        .is_some_and(|token| token == emitted_token);
++    let first_noun_correct = first_word(&run.response_text) == noun;
++    let complete_correct = run.utf8_decodable
++        && matches!(
++            run.stop,
++            JointGenerationStop::Eos | JointGenerationStop::FirstSentenceBoundary
++        )
++        && answer_oracle::accepts(accepted, &run.response_text);
++    let mut top_events: Vec<_> = decision.read_row.iter().collect();
++    top_events.sort_by(|left, right| {
++        right
++            .mass
++            .total_cmp(&left.mass)
++            .then_with(|| left.occurrence.cmp(&right.occurrence))
++    });
++    let top_events = top_events
++        .into_iter()
++        .take(5)
++        .map(|event| {
++            json!({
++                "occurrence":event.occurrence,"token":event.token,"text":event.text,"mass":event.mass
++            })
++        })
++        .collect::<Vec<_>>();
++    let achieved_share = entity_share(entity_mass, decision.no_read_mass);
++    let json = json!({
++        "condition":condition.key(),
++        "condition_name":condition.name(),
++        "prompt_token_ids":run.prompt_token_ids,
++        "prompt_decoded":decoded,
++        "intended_text":intended,
++        "decoded_matches_intended":decoded == intended,
++        "length_change":length_delta(content_len, mutated.len()),
++        "generated_token_ids":run.generated_token_ids,
++        "response_text":run.response_text,
++        "raw_decoded":run.raw_decoded,
++        "stop":run.stop,
++        "utf8_decodable":run.utf8_decodable,
++        "first_noun_correct":first_noun_correct,
++        "complete_correct":complete_correct,
++        "written_occurrence":decision.written_occurrence,
++        "final_prompt_token_occurrence":decision.final_prompt_token_occurrence,
++        "final_prompt_token_is_readable":decision.final_prompt_token_is_readable,
++        "readable_max_occurrence":decision.readable_max_occurrence,
++        "read_mass_sum":decision.read_mass_sum,
++        "no_read_mass":decision.no_read_mass,
++        "copy_gate":decision.copy_gate,
++        "effective_copy_mass":decision.effective_copy_mass,
++        "normalization_ok":decision.normalization_ok,
++        "entity_readable_occurrences":entity_occurrences,
++        "entity_present":entity_present,
++        "entity_mass":entity_mass,
++        "entity_max_mass":entity_max_mass,
++        "entity_share":achieved_share,
++        "entity_rank":entity_rank,
++        "top_read_occurrence":decision.top_read_occurrence,
++        "top_read_token":decision.top_read_token,
++        "top_read_token_text":decision.top_read_token_text,
++        "top_read_mass":decision.top_read_mass,
++        "top_events":top_events,
++        "emitted_token":emitted_token,
++        "emitted_token_text":decision.emitted_token_text,
++        "emitted_matches_top_read_token":emitted_matches_top_read_token,
++        "emitted_components":decision.emitted_components,
++        "entity_probe_token":decision.probe_token,
++        "entity_probe_components":decision.probe_components,
++    });
++    Ok(ConditionResult {
++        condition,
++        decoded_matches_intended: decoded == intended,
++        first_noun_correct,
++        complete_correct,
++        entity_share: achieved_share,
++        entity_rank,
++        normalization_ok: decision.normalization_ok,
++        emitted_matches_top_read_token,
++        json,
++    })
++}
++
++fn process_row(
++    model: &JointModel,
++    tokenizer: &HfBpeTokenizer,
++    probe: &StoryProbe,
++    row: RowRef,
++    conditions: &[Condition],
++    replay: bool,
++) -> Result<RowResult> {
++    let key = row.key(&probe.id);
++    let variant = row.variant(probe);
++    let noun = variant.item.noun();
++    let accepted = &variant.accepted_continuations;
++    let prompt = variant.prompt.clone();
++    let content = tokenizer.encode(&prompt);
++    let decode = |ids: &[u32]| tokenizer.decode_bytes(ids);
++    let spans = entity_spans(&content, noun, decode);
++    let (span, exclusion) = match spans.len() {
++        1 => (Some(spans[0]), None),
++        0 => (None, Some("unresolved_entity_span")),
++        _ => (None, Some("ambiguous_entity_span")),
++    };
++    let Some(span) = span else {
++        let json = json!({
++            "row":key,"probe_id":probe.id,"template":probe.template,
++            "variant":if row.edited {"edited"} else {"original"},
++            "item":noun,"excluded":exclusion,"conditions":Vec::<Value>::new(),"replay":Value::Null
++        });
++        return Ok(RowResult {
++            key,
++            probe: row.probe,
++            edited: row.edited,
++            item: noun.to_owned(),
++            excluded: exclusion,
++            conditions: Vec::new(),
++            json,
++        });
++    };
++    let entity_tokens = content[span.start..span.start + span.len].to_vec();
++    let entity_probe_token = content[span.start];
++    let control_tokens = tokenizer.encode(&format!(" {CONTROL_NOUN}"));
++    let clause_entity = tokenizer.encode(&format!(" Lily saw her {noun}."));
++    let clause_control = tokenizer.encode(&format!(" Lily saw her {CONTROL_NOUN}."));
++    let insert_index = insert_index_before_final_query(&content, decode).ok();
++    let mut results = Vec::new();
++    let mut values = Vec::new();
++    for &condition in conditions {
++        let (mutated, intended) = match condition {
++            Condition::Baseline => (content.clone(), prompt.clone()),
++            Condition::EntityFinal => (
++                splice_replace_final(&content, &entity_tokens)?,
++                replace_last_word(&prompt, noun),
++            ),
++            Condition::NonEntityFinal => (
++                splice_replace_final(&content, &control_tokens)?,
++                replace_last_word(&prompt, CONTROL_NOUN),
++            ),
++            Condition::NearQueryEntity => {
++                let at = insert_index
++                    .ok_or_else(|| invalid("condition D insertion boundary unresolved"))?;
++                (
++                    splice_insert(&content, at, &clause_entity)?,
++                    insert_clause_after_last_period(&prompt, &format!(" Lily saw her {noun}.")),
++                )
++            }
++            Condition::NearQueryControl => {
++                let at = insert_index
++                    .ok_or_else(|| invalid("condition D' insertion boundary unresolved"))?;
++                (
++                    splice_insert(&content, at, &clause_control)?,
++                    insert_clause_after_last_period(
++                        &prompt,
++                        &format!(" Lily saw her {CONTROL_NOUN}."),
++                    ),
++                )
++            }
++        };
++        let decoded = decode_text(tokenizer, &mutated);
++        let mut full = Vec::with_capacity(mutated.len() + 1);
++        full.push(0);
++        full.extend_from_slice(&mutated);
++        let run = canonical_greedy(
++            model,
++            tokenizer,
++            &full,
++            CANONICAL_MAX_NEW_TOKENS,
++            Some(entity_probe_token),
++        )?;
++        let written = run.decision_zero.written_occurrence;
++        let occurrences: Vec<usize> = entity_spans(&mutated, noun, decode)
++            .into_iter()
++            .map(span_occurrence)
++            .filter(|&occurrence| occurrence < written)
++            .collect();
++        let result = condition_result(
++            condition,
++            content.len(),
++            &mutated,
++            &decoded,
++            &intended,
++            noun,
++            accepted,
++            run,
++            &occurrences,
++        )?;
++        values.push(result.json.clone());
++        results.push(result);
++    }
++    let replay_value = if replay {
++        let mut full = Vec::with_capacity(content.len() + 1);
++        full.push(0);
++        full.extend_from_slice(&content);
++        let again = canonical_greedy(
++            model,
++            tokenizer,
++            &full,
++            CANONICAL_MAX_NEW_TOKENS,
++            Some(entity_probe_token),
++        )?;
++        let first = results
++            .iter()
++            .find(|result| result.condition == Condition::Baseline)
++            .ok_or_else(|| invalid("smoke replay requires the baseline condition"))?;
++        let identical = first.json["generated_token_ids"] == json!(again.generated_token_ids)
++            && first.json["response_text"] == json!(again.response_text);
++        json!({
++            "generated_token_ids":first.json["generated_token_ids"],
++            "replay_generated_token_ids":again.generated_token_ids,
++            "identical":identical
++        })
++    } else {
++        Value::Null
++    };
++    let length_change = |condition: Condition| {
++        results
++            .iter()
++            .find(|result| result.condition == condition)
++            .and_then(|result| result.json["length_change"].as_i64())
++    };
++    let d_dprime_length_matched = length_change(Condition::NearQueryEntity)
++        == length_change(Condition::NearQueryControl)
++        && length_change(Condition::NearQueryEntity).is_some();
++    let json = json!({
++        "row":key,"probe_id":probe.id,"template":probe.template,
++        "variant":if row.edited {"edited"} else {"original"},
++        "item":noun,
++        "entity_span":span,
++        "entity_baseline_occurrence":span_occurrence(span),
++        "entity_tokens":entity_tokens,
++        "excluded":Value::Null,
++        "d_dprime_length_matched":d_dprime_length_matched,
++        "conditions":values,
++        "replay":replay_value
++    });
++    Ok(RowResult {
++        key,
++        probe: row.probe,
++        edited: row.edited,
++        item: noun.to_owned(),
++        excluded: None,
++        conditions: results,
++        json,
++    })
++}
++
++fn condition_of(row: &RowResult, condition: Condition) -> Option<&ConditionResult> {
++    row.conditions
++        .iter()
++        .find(|result| result.condition == condition)
++}
++
++fn baseline_parity(results: &[RowResult], retained: &Value) -> Value {
++    let retained_rows = match retained.as_array() {
++        Some(rows) => rows,
++        None => {
++            return json!({"status":"PARITY_FAILED","reason":"retained story probes are not an array"})
++        }
++    };
++    let mut mismatches = Vec::new();
++    for row in results {
++        let Some(probe) = retained_rows.get(row.probe) else {
++            mismatches.push(json!({"row":row.key,"field":"probe_index"}));
++            continue;
++        };
++        let retained_row = &probe[if row.edited { "edited" } else { "original" }];
++        let generation = &retained_row["generation"];
++        let Some(baseline) = condition_of(row, Condition::Baseline) else {
++            mismatches.push(json!({"row":row.key,"field":"baseline_condition"}));
++            continue;
++        };
++        if baseline.json["prompt_token_ids"] != generation["prompt_token_ids"] {
++            mismatches.push(json!({"row":row.key,"field":"prompt_token_ids"}));
++        }
++        if baseline.json["generated_token_ids"] != generation["generated_token_ids"] {
++            mismatches.push(json!({"row":row.key,"field":"generated_token_ids",
++                "local":baseline.json["generated_token_ids"],"retained":generation["generated_token_ids"]}));
++        }
++        if baseline.json["stop"] != generation["stop"] {
++            mismatches.push(json!({"row":row.key,"field":"stop",
++                "local":baseline.json["stop"],"retained":generation["stop"]}));
++        }
++        if baseline.json["response_text"] != generation["response_text"] {
++            mismatches.push(json!({"row":row.key,"field":"response_text",
++                "local":baseline.json["response_text"],"retained":generation["response_text"]}));
++        }
++        if baseline.first_noun_correct != retained_row["first_noun_correct"] {
++            mismatches.push(json!({"row":row.key,"field":"first_noun_correct"}));
++        }
++        if baseline.complete_correct != retained_row["complete_correct"] {
++            mismatches.push(json!({"row":row.key,"field":"complete_correct"}));
++        }
++        let retained_decision = &generation["decisions"][0];
++        for (field, local, retained_value) in [
++            (
++                "no_read_mass",
++                &baseline.json["no_read_mass"],
++                &retained_decision["no_read_mass"],
++            ),
++            (
++                "copy_gate",
++                &baseline.json["copy_gate"],
++                &retained_decision["copy_gate"],
++            ),
++            (
++                "effective_copy_mass",
++                &baseline.json["effective_copy_mass"],
++                &retained_decision["effective_copy_mass"],
++            ),
++            (
++                "top_read_mass",
++                &baseline.json["top_read_mass"],
++                &retained_decision["top_read_mass"],
++            ),
++        ] {
++            match (local.as_f64(), retained_value.as_f64()) {
++                (Some(local), Some(retained_value)) if close(local, retained_value) => {}
++                (Some(local), Some(retained_value)) => mismatches.push(
++                    json!({"row":row.key,"field":field,"local":local,"retained":retained_value}),
++                ),
++                _ => mismatches.push(json!({"row":row.key,"field":field,"detail":"missing float"})),
++            }
++        }
++        for field in ["top_read_occurrence", "top_read_token"] {
++            if baseline.json[field] != retained_decision[field] {
++                mismatches.push(json!({"row":row.key,"field":field,
++                    "local":baseline.json[field],"retained":retained_decision[field]}));
++            }
++        }
++        if baseline.json["emitted_token"] != retained_decision["selected_token"] {
++            mismatches.push(json!({"row":row.key,"field":"selected_token",
++                "local":baseline.json["emitted_token"],"retained":retained_decision["selected_token"]}));
++        }
++    }
++    json!({
++        "status":if mismatches.is_empty() {"PARITY_EXACT"} else {"PARITY_FAILED"},
++        "rows_compared":results.len(),
++        "mismatch_count":mismatches.len(),
++        "mismatches":mismatches
++    })
++}
++
++fn class_keys(results: &[RowResult]) -> (Vec<String>, Vec<String>, Vec<String>) {
++    let mut distractor = Vec::new();
++    let mut morphology = Vec::new();
++    let mut extra_phrase = Vec::new();
++    for row in results {
++        let Some(baseline) = condition_of(row, Condition::Baseline) else {
++            continue;
++        };
++        if baseline.complete_correct {
++            continue;
++        }
++        let response = baseline.json["response_text"].as_str().unwrap_or("");
++        let word = first_word(response);
++        if !baseline.first_noun_correct && word.starts_with(&row.item) && word != row.item {
++            morphology.push(row.key.clone());
++        } else if !baseline.first_noun_correct {
++            distractor.push(row.key.clone());
++        } else {
++            extra_phrase.push(row.key.clone());
++        }
++    }
++    (distractor, morphology, extra_phrase)
++}
++
++fn matches_declared(derived: &[String], declared: &[&str]) -> bool {
++    let mut left = derived.to_vec();
++    let mut right = declared
++        .iter()
++        .map(|value| value.to_string())
++        .collect::<Vec<_>>();
++    left.sort();
++    right.sort();
++    left == right
++}
++
++fn summarize(results: &[RowResult], conditions: &[Condition], parity: &Value) -> Value {
++    let (distractor, morphology, extra_phrase) = class_keys(results);
++    let mut class_summary = serde_json::Map::new();
++    for (label, keys) in [
++        ("distractor", &distractor),
++        ("morphology", &morphology),
++        ("extra_phrase", &extra_phrase),
++    ] {
++        let mut per_condition = serde_json::Map::new();
++        for &condition in conditions {
++            let mut complete = 0usize;
++            let mut first_noun = 0usize;
++            let mut present = 0usize;
++            for key in keys {
++                let row = results.iter().find(|row| &row.key == key);
++                if let Some(result) = row.and_then(|row| condition_of(row, condition)) {
++                    complete += usize::from(result.complete_correct);
++                    first_noun += usize::from(result.first_noun_correct);
++                    present += 1;
++                }
++            }
++            per_condition.insert(
++                condition.key().to_string(),
++                json!({"rows":present,"complete":complete,"first_noun":first_noun}),
++            );
++        }
++        class_summary.insert(
++            label.to_string(),
++            json!({"rows":keys,"per_condition":per_condition}),
++        );
++    }
++    let distractor_rows: Vec<&RowResult> = results
++        .iter()
++        .filter(|row| distractor.contains(&row.key))
++        .collect();
++    let share_lt_5_and_rank_gt_5 = distractor_rows
++        .iter()
++        .filter(|row| {
++            condition_of(row, Condition::Baseline).is_some_and(|result| {
++                result.entity_share.is_some_and(|share| share < 0.05)
++                    && result.entity_rank.is_some_and(|rank| rank > 5)
++            })
++        })
++        .count();
++    let emitted_wrong_matches_top_read = distractor_rows
++        .iter()
++        .filter(|row| {
++            condition_of(row, Condition::Baseline).is_some_and(|result| {
++                !result.first_noun_correct && result.emitted_matches_top_read_token
++            })
++        })
++        .count();
++    let raises = |condition: Condition| {
++        distractor_rows
++            .iter()
++            .filter(|row| {
++                condition_of(row, condition).is_some_and(|result| {
++                    result.entity_share.is_some_and(|share| share >= 0.15)
++                        || result.entity_rank.is_some_and(|rank| rank <= 3)
++                })
++            })
++            .count()
++    };
++    let state_emission_rows = distractor_rows
++        .iter()
++        .filter(|row| {
++            condition_of(row, Condition::Baseline).is_some_and(|result| {
++                !result.complete_correct
++                    && (result.entity_share.is_some_and(|share| share >= 0.10)
++                        || result.entity_rank.is_some_and(|rank| rank <= 3))
++            })
++        })
++        .count();
++    let changes_verdict = distractor_rows
++        .iter()
++        .filter(|row| {
++            let baseline = condition_of(row, Condition::Baseline);
++            let changed = |condition: Condition| {
++                matches!(
++                    (baseline, condition_of(row, condition)),
++                    (Some(a), Some(b)) if a.complete_correct != b.complete_correct
++                )
++            };
++            changed(Condition::NearQueryEntity) || changed(Condition::NearQueryControl)
++        })
++        .count();
++    let unresolved: Vec<String> = results
++        .iter()
++        .filter(|row| row.excluded == Some("unresolved_entity_span"))
++        .map(|row| row.key.clone())
++        .collect();
++    let ambiguous: Vec<String> = results
++        .iter()
++        .filter(|row| row.excluded == Some("ambiguous_entity_span"))
++        .map(|row| row.key.clone())
++        .collect();
++    let d_dprime_length_mismatched: Vec<String> = results
++        .iter()
++        .filter(|row| row.json["d_dprime_length_matched"].as_bool() == Some(false))
++        .map(|row| row.key.clone())
++        .collect();
++    let mutation_text_mismatches: Vec<Value> = results
++        .iter()
++        .flat_map(|row| {
++            row.conditions
++                .iter()
++                .filter(|result| !result.decoded_matches_intended)
++                .map(move |result| {
++                    json!({"row":row.key,"condition":result.condition.key(),
++                        "decoded":result.json["prompt_decoded"],"intended":result.json["intended_text"]})
++                })
++        })
++        .collect();
++    json!({
++        "class_summary":class_summary,
++        "predeclared_rule_inputs":{
++            "entity_share_definition":"entity occurrence mass sum / (1 - NoRead mass), condition A",
++            "distractor_rows":distractor,
++            "declared_sets_match_derived":{
++                "distractor":matches_declared(&distractor, &[
++                    "story-source-edit-04|original","story-source-edit-04|edited",
++                    "story-source-edit-08|original","story-source-edit-12|original",
++                    "story-source-edit-12|edited"]),
++                "morphology":matches_declared(&morphology, &["story-source-edit-00|edited"]),
++                "extra_phrase":matches_declared(&extra_phrase, &[
++                    "story-source-edit-03|original","story-source-edit-07|original",
++                    "story-source-edit-07|edited","story-source-edit-11|edited",
++                    "story-source-edit-15|edited"])
++            },
++            "a_entity_share_lt_5pct_and_rank_gt_5_count":share_lt_5_and_rank_gt_5,
++            "a_emitted_wrong_noun_equals_top_read_token_count":emitted_wrong_matches_top_read,
++            "d_entity_share_ge_15pct_or_rank_le_3_count":raises(Condition::NearQueryEntity),
++            "dprime_entity_share_ge_15pct_or_rank_le_3_count":raises(Condition::NearQueryControl),
++            "a_entity_share_ge_10pct_or_rank_le_3_and_output_wrong_count":state_emission_rows,
++            "d_or_dprime_changes_verdict_count":changes_verdict,
++            "decision":"NOT_ADJUDICATED_BY_INSTRUMENT"
++        },
++        "guardrails":{
++            "masses_normalize_all":results.iter().all(|row| row.conditions.iter().all(|result| result.normalization_ok)),
++            "no_future_reads_enforced":true,
++            "baseline_parity_status":parity["status"],
++            "rows_unresolved_span":unresolved,
++            "rows_ambiguous_span":ambiguous,
++            "d_dprime_length_mismatched_rows":d_dprime_length_mismatched,
++            "mutation_decoded_text_mismatches":mutation_text_mismatches
++        }
++    })
++}
++
++#[allow(clippy::too_many_arguments)]
++fn run(
++    checkpoint: &Path,
++    campaign_path: &Path,
++    out: &Path,
++    device_name: &str,
++    conditions: &[Condition],
++    rows: Option<RowRef>,
++    started: Instant,
++) -> Result<()> {
++    report_output::verify(checkpoint)?;
++    let campaign = Campaign::load(campaign_path)?;
++    let evaluator: Evaluator = load_evaluator(&campaign.evaluator_path)?;
++    let selected = device(device_name)?;
++    let checkpoint_binding = read_json(&checkpoint.join("checkpoint.json"))?;
++    let model_sha = sha256_file(&checkpoint.join("model.safetensors"))?;
++    let config_sha = sha256_file(&checkpoint.join("config.json"))?;
++    let checkpoint_sha = sha256_file(&checkpoint.join("checkpoint.json"))?;
++    let campaign_sha = sha256_file(campaign_path)?;
++    let step = checkpoint_binding["optimizer_step"]
++        .as_u64()
++        .and_then(|value| usize::try_from(value).ok())
++        .ok_or_else(|| invalid("checkpoint optimizer step"))?;
++    if checkpoint_binding["schema"] != CHECKPOINT_SCHEMA
++        || checkpoint_binding["evaluator_sha256"] != evaluator.sha256
++        || checkpoint_binding["model_sha256"] != model_sha
++        || checkpoint_binding["model_config_sha256"] != config_sha
++    {
++        return Err(invalid(
++            "checkpoint binding, evaluator, model or config identity mismatch",
++        ));
++    }
++    let model = JointModel::load(checkpoint, &selected)?;
++    if model.config != campaign.model || model.config.context != 256 {
++        return Err(invalid("loaded model config differs from the campaign"));
++    }
++    let (tokenizer, tokenizer_identity) = load_tokenizer(&evaluator.document)?;
++    if tokenizer.vocab_size() != model.config.vocab_size {
++        return Err(invalid("tokenizer vocabulary differs from the model"));
++    }
++    let retained_path = retained_story_probes_path(checkpoint)?;
++    let retained_root = retained_path
++        .parent()
++        .ok_or_else(|| invalid("retained evaluate root"))?
++        .to_path_buf();
++    report_output::verify(&retained_root)?;
++    let retained_sha = sha256_file(&retained_path)?;
++    let retained = read_json(&retained_path)?;
++    let probes = story_probes();
++    if retained.as_array().map(Vec::len) != Some(probes.len()) {
++        return Err(invalid(
++            "retained story probe count differs from the frozen panel",
++        ));
++    }
++    let source = option_env!("UOR_BUILD_SOURCE_COMMIT")
++        .filter(|value| *value != "UNBOUND")
++        .ok_or_else(|| invalid("build evidence with UOR_BUILD_SOURCE_COMMIT"))?;
++    let provenance = json!({
++        "schema":"uor-r4.read-localization-provenance/1",
++        "source_commit":source,
++        "compiled_source_sha256":{
++            "example":hex::encode(Sha256::digest(include_bytes!("joint-read-localize.rs"))),
++            "read_localize":hex::encode(Sha256::digest(include_bytes!("../src/read_localize.rs")))
++        },
++        "executable_sha256":sha256_file(&std::env::current_exe()?)?,
++        "device":device_name,
++        "parent_checkpoint":checkpoint,
++        "parent_checkpoint_files":{
++            "checkpoint_json_sha256":checkpoint_sha,
++            "campaign_json_sha256":campaign_sha,
++            "model_safetensors_sha256":model_sha,
++            "config_json_sha256":config_sha
++        },
++        "parent_optimizer_step":step,
++        "evaluator_path":evaluator.path,
++        "evaluator_sha256":evaluator.sha256,
++        "tokenizer":tokenizer_identity,
++        "tokenizer_cid":tokenizer.address(),
++        "retained_story_probes_path":retained_path,
++        "retained_story_probes_sha256":retained_sha,
++        "model_config":model.config,
++        "read_mode":"enabled",
++        "conditions":conditions.iter().map(|condition| condition.key()).collect::<Vec<_>>(),
++        "rows_selector":if rows.is_some() {"smoke"} else {"all"},
++        "scope":"Exposed development panel, one parent, deterministic greedy; read-only localization of the read/state/emission seams. No training, weight change, promotion or general-language claim.",
++        "gradients_tracked":false,
++        "optimizer_steps":0,
++        "thread_environment":{
++            "RAYON_NUM_THREADS":std::env::var("RAYON_NUM_THREADS").ok(),
++            "VECLIB_MAXIMUM_THREADS":std::env::var("VECLIB_MAXIMUM_THREADS").ok()
++        }
++    });
++    save_json(&out.join("run-provenance.json"), &provenance)?;
++    let row_refs: Vec<RowRef> = match rows {
++        Some(row) => vec![row],
++        None => probes
++            .iter()
++            .enumerate()
++            .flat_map(|(index, _)| {
++                [
++                    RowRef {
++                        probe: index,
++                        edited: false,
++                    },
++                    RowRef {
++                        probe: index,
++                        edited: true,
++                    },
++                ]
++            })
++            .collect(),
++    };
++    let mut results = Vec::with_capacity(row_refs.len());
++    for row in &row_refs {
++        let probe = probes
++            .get(row.probe)
++            .ok_or_else(|| invalid("row probe index outside the frozen panel"))?;
++        results.push(process_row(
++            &model,
++            &tokenizer,
++            probe,
++            *row,
++            conditions,
++            rows.is_some(),
++        )?);
++    }
++    let parity = if rows.is_none() {
++        baseline_parity(&results, &retained)
++    } else {
++        json!({"status":"NOT_RUN_SMOKE","rows_compared":results.len(),"mismatch_count":Value::Null,"mismatches":[]})
++    };
++    save_json(&out.join("baseline-parity.json"), &parity)?;
++    let summary = summarize(&results, conditions, &parity);
++    let replay_identical = results
++        .first()
++        .and_then(|row| row.json["replay"]["identical"].as_bool());
++    let over_context: Vec<String> = results
++        .iter()
++        .filter(|row| row.conditions.is_empty() && row.excluded.is_none())
++        .map(|row| row.key.clone())
++        .collect();
++    let report = json!({
++        "schema":"uor-r4.read-localization/1",
++        "source_commit":source,
++        "device":device_name,
++        "parent_checkpoint":checkpoint,
++        "evaluator_sha256":evaluator.sha256,
++        "tokenizer_cid":tokenizer.address(),
++        "read_mode":"enabled",
++        "story_probe_scope":STORY_PROBE_SCOPE,
++        "story_probe_stop_policy":STORY_STOP_POLICY,
++        "conditions":conditions.iter().map(|condition| json!({"key":condition.key(),"name":condition.name()})).collect::<Vec<_>>(),
++        "rows_total":probes.len()*2,
++        "rows_selected":results.len(),
++        "rows":results.iter().map(|row| row.json.clone()).collect::<Vec<_>>(),
++        "baseline_parity":parity,
++        "class_summary":summary["class_summary"],
++        "predeclared_rule_inputs":summary["predeclared_rule_inputs"],
++        "guardrails":summary["guardrails"],
++        "replay_identical":replay_identical,
++        "rows_without_conditions":over_context,
++        "elapsed_seconds":started.elapsed().as_secs_f64()
++    });
++    save_json(&out.join("read-localization.json"), &report)?;
++    let parity_status = if rows.is_none() {
++        parity["status"].as_str().unwrap_or("PARITY_FAILED")
++    } else {
++        "NOT_RUN_SMOKE"
++    };
++    println!(
++        "read-localize: rows={} parity={} normalize_all={} elapsed={:.1}s",
++        results.len(),
++        parity_status,
++        summary["guardrails"]["masses_normalize_all"],
++        started.elapsed().as_secs_f64()
++    );
++    Ok(())
++}
++
++fn main() -> Result<()> {
++    let args: Vec<String> = std::env::args().skip(1).collect();
++    if args.len() != 6 {
++        return Err(invalid(
++            "usage: joint-read-localize PARENT_CHECKPOINT CAMPAIGN_JSON|- NEW_REPORT_ROOT {cpu|metal} CONDITIONS ROWS; CONDITIONS=all|A,B,C,D,DP; ROWS=all|smoke",
++        ));
++    }
++    let checkpoint = PathBuf::from(&args[0]).canonicalize()?;
++    let out = PathBuf::from(&args[2]);
++    let parent = out
++        .parent()
++        .filter(|path| !path.as_os_str().is_empty())
++        .unwrap_or(Path::new("."))
++        .canonicalize()?;
++    if parent.starts_with(&checkpoint) || out.file_name().is_none() {
++        return Err(invalid("new report must be outside the sealed checkpoint"));
++    }
++    let conditions = parse_conditions(&args[4])?;
++    let rows = parse_rows(&args[5])?;
++    device(&args[3])?;
++    let campaign_path = if args[1] == "-" {
++        checkpoint.join("campaign.json")
++    } else {
++        PathBuf::from(&args[1]).canonicalize()?
++    };
++    report_output::claim(&out)?;
++    let started = Instant::now();
++    let result = run(
++        &checkpoint,
++        &campaign_path,
++        &out,
++        &args[3],
++        &conditions,
++        rows,
++        started,
++    );
++    if let Err(error) = &result {
++        save_json(
++            &out.join("failed-attempt.json"),
++            &json!({"status":"FAILED_ATTEMPT","error":error.to_string()}),
++        )?;
++    }
++    report_output::seal(&out)?;
++    report_output::verify(&out)?;
++    result?;
++    println!("COMPLETE: {}; sealed and verified", out.display());
++    Ok(())
++}
+diff --git a/crates/uor-r4-training/src/joint_model.rs b/crates/uor-r4-training/src/joint_model.rs
+index 6504c7626..079ed188c 100644
+--- a/crates/uor-r4-training/src/joint_model.rs
++++ b/crates/uor-r4-training/src/joint_model.rs
+@@ -85,6 +85,73 @@ impl PrecisionMode {
+     }
+ }
+ 
++/// Opt-in, in-memory evaluation intervention on the dense Full-admission read
++/// masses. It is applied after the read masses are computed and before the
++/// value mixing and state update, only when reads are enabled, the prior
++/// history is nonempty, admission is `Full` and `batch == 1`; any other step
++/// with an intervention set returns an error. The NoRead mass is never changed
++/// and the non-NoRead total is preserved. Following the [`PrecisionMode`]
++/// precedent this is a diagnostic field, never serialized into a checkpoint,
++/// and its default `None` preserves byte-identical behavior.
++#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
++pub enum ReadMassIntervention {
++    /// Exchange the read masses of occurrence columns `a` and `b`.
++    Swap { a: usize, b: usize },
++    /// Move the entire non-NoRead read mass onto occurrence column `target`.
++    Focus { target: usize },
++}
++
++impl ReadMassIntervention {
++    /// Stable report label for this intervention.
++    pub fn name(self) -> String {
++        match self {
++            Self::Swap { a, b } => format!("Swap{{a:{a},b:{b}}}"),
++            Self::Focus { target } => format!("Focus{{target:{target}}}"),
++        }
++    }
++
++    /// Pure application to one lane's non-NoRead read-mass row. Indices are
++    /// occurrence columns; the row sum is preserved and NoRead is not part of
++    /// this row, so neither intervention changes it.
++    fn apply_values(self, masses: &mut [f32]) -> Result<()> {
++        let len = masses.len();
++        match self {
++            Self::Swap { a, b } => {
++                if a >= len || b >= len {
++                    return Err(invalid("read-mass swap index outside the read row"));
++                }
++                masses.swap(a, b);
++            }
++            Self::Focus { target } => {
++                if target >= len {
++                    return Err(invalid("read-mass focus index outside the read row"));
++                }
++                let total: f32 = masses.iter().sum();
++                masses.fill(0.0);
++                masses[target] = total;
++            }
++        }
++        Ok(())
++    }
++
++    /// Apply to a `[batch, previous]` read-mass tensor. Only the dense
++    /// Full-admission batch-1 path is supported.
++    fn apply_tensor(self, masses: &Tensor, batch: usize) -> Result<Tensor> {
++        if batch != 1 {
++            return Err(invalid(
++                "read-mass intervention requires the dense Full-admission read path at batch 1",
++            ));
++        }
++        let mut values = masses.flatten_all()?.to_vec1::<f32>()?;
++        self.apply_values(&mut values)?;
++        Ok(Tensor::from_vec(
++            values,
++            (batch, masses.dim(1)?),
++            masses.device(),
++        )?)
++    }
++}
++
+ pub struct JointModel {
+     pub config: JointConfig,
+     variables: BTreeMap<String, Var>,
+@@ -94,6 +161,9 @@ pub struct JointModel {
+     // An in-memory evaluation intervention, never a checkpoint field. None
+     // preserves the original continuous/QAT/packed behavior without changes.
+     precision_mode: Option<PrecisionMode>,
++    // An in-memory read-mass intervention, never a checkpoint field. None
++    // preserves the original read behavior without changes.
++    read_intervention: Option<ReadMassIntervention>,
+     // Prepared once per full-window forward (or incremental session). The STE
+     // tensors retain the original Var IDs, and never survive an optimizer step.
+     prepared_parameters: Option<BTreeMap<String, Tensor>>,
+@@ -466,6 +536,7 @@ impl JointModel {
+             age_order,
+             quantization: None,
+             precision_mode: None,
++            read_intervention: None,
+             prepared_parameters: None,
+             hard_only: false,
+             rounding_learning: false,
+@@ -491,6 +562,20 @@ impl JointModel {
+         Ok(())
+     }
+ 
++    /// Select an in-memory read-mass intervention for this model instance. No
++    /// parameter, clock or checkpoint field is touched, and `None` restores the
++    /// untouched behavior. See [`ReadMassIntervention`] for the exact scope: it
++    /// applies only to a dense Full-admission read with enabled reads over a
++    /// nonempty prior history at `batch == 1`; any other step with an
++    /// intervention set returns an error.
++    pub fn set_read_intervention(&mut self, value: Option<ReadMassIntervention>) {
++        self.read_intervention = value;
++    }
++
++    pub fn read_intervention(&self) -> Option<ReadMassIntervention> {
++        self.read_intervention
++    }
++
+     /// New offline optimizer starts from the actual packed code values. Parent
+     /// clock/scales remain immutable; campaign lineage records all new updates.
+     pub(crate) fn packed_training_start(&self) -> Result<Self> {
+@@ -838,6 +923,7 @@ impl JointModel {
+             Self::from_variables(self.config.clone(), self.variables.clone(), &self.device)?;
+         model.quantization = self.quantization.clone();
+         model.precision_mode = self.precision_mode;
++        model.read_intervention = self.read_intervention;
+         model.hard_only = self.hard_only;
+         model.rounding_learning = self.rounding_learning;
+         model.interface_audit = self.interface_audit.clone();
+@@ -1094,7 +1180,14 @@ impl JointModel {
+                 .narrow(1, position, 1)?
+                 .squeeze(1)?
+                 .contiguous()?;
+-            let step = self.core_step(&mut memory, &input, &affine, mode, training)?;
++            let step = self.core_step(
++                &mut memory,
++                &input,
++                &affine,
++                mode,
++                training,
++                self.read_intervention,
++            )?;
+             states.push(step.state);
+             no_reads.push(step.no_read_mass.squeeze(1)?);
+             gates.push(step.copy_gate.squeeze(1)?);
+@@ -1183,7 +1276,14 @@ impl JointModel {
+             .weight("embedding.weight", false)?
+             .index_select(&index, 0)?
+             .matmul(&model.weight("recurrent.input.weight", false)?.t()?)?;
+-        let core = model.core_step(&mut session.memory, input_tokens, &affine, mode, false)?;
++        let core = model.core_step(
++            &mut session.memory,
++            input_tokens,
++            &affine,
++            mode,
++            false,
++            self.read_intervention,
++        )?;
+         let copy = if self.admission == AdmissionPolicy::Full {
+             self.incremental_copy(
+                 &core.read_masses,
+@@ -1224,6 +1324,7 @@ impl JointModel {
+         token_affine: &Tensor,
+         mode: ReadMode,
+         training: bool,
++        read_intervention: Option<ReadMassIntervention>,
+     ) -> Result<CoreStep> {
+         let batch = input.len();
+         let d = self.config.width;
+@@ -1257,6 +1358,11 @@ impl JointModel {
+         let mut occurrences = vec![Vec::new(); batch];
+         let mut admission_work = Vec::new();
+         let (no_read_mass, read_masses, read) = if previous == 0 || mode == ReadMode::NoRead {
++            if read_intervention.is_some() {
++                return Err(invalid(
++                    "read-mass intervention requires enabled reads over a nonempty prior history",
++                ));
++            }
+             (
+                 Tensor::ones((batch, 1), DType::F32, &self.device)?,
+                 Tensor::zeros(
+@@ -1274,6 +1380,11 @@ impl JointModel {
+                 Tensor::zeros((batch, d), DType::F32, &self.device)?,
+             )
+         } else if self.admission != AdmissionPolicy::Full {
++            if read_intervention.is_some() {
++                return Err(invalid(
++                    "read-mass intervention requires dense Full admission",
++                ));
++            }
+             let query = self.linear(&normalized, "read.query", training)?;
+             let observed_queries = query.detach().to_vec2::<f32>()?;
+             for lane in 0..batch {
+@@ -1318,6 +1429,10 @@ impl JointModel {
+             let mass = candle_nn::ops::softmax(&Tensor::cat(&[&null, &scores], 1)?, 1)?;
+             let no_read_mass = mass.narrow(1, 0, 1)?;
+             let read_masses = mass.narrow(1, 1, previous)?.contiguous()?;
++            let read_masses = match read_intervention {
++                Some(intervention) => intervention.apply_tensor(&read_masses, batch)?,
++                None => read_masses,
++            };
+             let read = read_masses.unsqueeze(1)?.matmul(values)?.squeeze(1)?;
+             let read = self.interface(&read, Interface::State, training)?;
+             (no_read_mass, read_masses, read)
+@@ -3040,6 +3155,155 @@ mod tests {
+         }
+     }
+ 
++    fn run_session(
++        model: &JointModel,
++        ids: &[u32],
++        intervention: Option<ReadMassIntervention>,
++    ) -> Result<JointStep> {
++        let mut view = model.detached_view()?;
++        let mut session = view.new_session(1)?;
++        let last = ids.len() - 1;
++        let mut current = None;
++        for (index, &token) in ids.iter().enumerate() {
++            if index == last {
++                view.set_read_intervention(intervention);
++            }
++            current = Some(view.step(&mut session, &[token], ReadMode::Enabled)?);
++            if index == last {
++                view.set_read_intervention(None);
++            }
++        }
++        current.ok_or_else(|| invalid("read intervention test produced no step"))
++    }
++
++    #[test]
++    fn read_intervention_default_off_is_unchanged() -> Result<()> {
++        let config = small(Transport::Quaternion);
++        let ids: Vec<u32> = vec![3, 17, 4, 9, 2, 10];
++        let untouched = JointModel::new(config.clone(), &Device::Cpu)?;
++        let mut toggled = JointModel::new(config, &Device::Cpu)?;
++        toggled.set_read_intervention(None);
++        toggled.set_read_intervention(Some(ReadMassIntervention::Focus { target: 2 }));
++        toggled.set_read_intervention(None);
++        let mut left = untouched.new_session(1)?;
++        let mut right = toggled.new_session(1)?;
++        for &token in &ids {
++            let a = untouched.step(&mut left, &[token], ReadMode::Enabled)?;
++            let b = toggled.step(&mut right, &[token], ReadMode::Enabled)?;
++            assert!(same_bits(&a.probabilities, &b.probabilities)?);
++            assert!(same_bits(&a.read_masses, &b.read_masses)?);
++            assert!(same_bits(&a.no_read_mass, &b.no_read_mass)?);
++        }
++        assert_eq!(untouched.read_intervention(), None);
++        assert_eq!(toggled.read_intervention(), None);
++        Ok(())
++    }
++
++    #[test]
++    fn read_intervention_swap_and_focus_apply() -> Result<()> {
++        let before = [0.1f32, 0.5, 0.2, 0.05, 0.15];
++        let total: f32 = before.iter().sum();
++        let mut swapped = before;
++        ReadMassIntervention::Swap { a: 1, b: 4 }.apply_values(&mut swapped)?;
++        let mut expected = before;
++        expected.swap(1, 4);
++        assert_eq!(swapped, expected);
++        assert!((swapped.iter().sum::<f32>() - total).abs() < 1e-6);
++        let mut focused = before;
++        ReadMassIntervention::Focus { target: 2 }.apply_values(&mut focused)?;
++        assert_eq!(focused[2], total);
++        assert!(focused
++            .iter()
++            .enumerate()
++            .all(|(index, &value)| index == 2 || value == 0.0));
++        assert!((focused.iter().sum::<f32>() - total).abs() < 1e-6);
++        assert!(ReadMassIntervention::Swap { a: 0, b: 5 }
++            .apply_values(&mut swapped)
++            .is_err());
++        assert!(ReadMassIntervention::Focus { target: 5 }
++            .apply_values(&mut focused)
++            .is_err());
++        let two_lane = Tensor::from_vec(vec![0.2f32, 0.8], (2, 1), &Device::Cpu)?;
++        assert!(ReadMassIntervention::Focus { target: 0 }
++            .apply_tensor(&two_lane, 2)
++            .is_err());
++
++        let config = small(Transport::Quaternion);
++        let ids: Vec<u32> = vec![3, 17, 4, 9, 2, 10];
++        let baseline = run_session(&JointModel::new(config.clone(), &Device::Cpu)?, &ids, None)?;
++        let baseline_masses = baseline.read_masses.flatten_all()?.to_vec1::<f32>()?;
++        let baseline_no_read = baseline.no_read_mass.flatten_all()?.to_vec1::<f32>()?;
++
++        let swap_model = JointModel::new(config.clone(), &Device::Cpu)?;
++        let mut swap_view = swap_model.detached_view()?;
++        let mut session = swap_view.new_session(1)?;
++        let mut swapped_step = None;
++        for (index, &token) in ids.iter().enumerate() {
++            if index == ids.len() - 1 {
++                swap_view.set_read_intervention(Some(ReadMassIntervention::Swap { a: 1, b: 4 }));
++            }
++            swapped_step = Some(swap_view.step(&mut session, &[token], ReadMode::Enabled)?);
++            if index == ids.len() - 1 {
++                swap_view.set_read_intervention(None);
++            }
++        }
++        let swapped_step = swapped_step.ok_or_else(|| invalid("swap step"))?;
++        let mut expected_swap = baseline_masses.clone();
++        expected_swap.swap(1, 4);
++        assert_eq!(
++            swapped_step.read_masses.flatten_all()?.to_vec1::<f32>()?,
++            expected_swap
++        );
++        assert_eq!(
++            swapped_step.no_read_mass.flatten_all()?.to_vec1::<f32>()?,
++            baseline_no_read
++        );
++
++        let focus_model = JointModel::new(config, &Device::Cpu)?;
++        let mut focus_view = focus_model.detached_view()?;
++        let mut session = focus_view.new_session(1)?;
++        let mut focus_step = None;
++        for (index, &token) in ids.iter().enumerate() {
++            if index == ids.len() - 1 {
++                focus_view.set_read_intervention(Some(ReadMassIntervention::Focus { target: 1 }));
++            }
++            focus_step = Some(focus_view.step(&mut session, &[token], ReadMode::Enabled)?);
++            if index == ids.len() - 1 {
++                focus_view.set_read_intervention(None);
++            }
++        }
++        let focus_step = focus_step.ok_or_else(|| invalid("focus step"))?;
++        let focused = focus_step.read_masses.flatten_all()?.to_vec1::<f32>()?;
++        assert_eq!(focused[1], total_mass(&baseline_masses));
++        assert!(focused
++            .iter()
++            .enumerate()
++            .all(|(index, &value)| index == 1 || value == 0.0));
++        assert_eq!(
++            focus_step.no_read_mass.flatten_all()?.to_vec1::<f32>()?,
++            baseline_no_read
++        );
++
++        let mut bounded = JointModel::new(small(Transport::Quaternion), &Device::Cpu)?;
++        bounded.set_admission_policy(AdmissionPolicy::Recent64)?;
++        let mut session = bounded.new_session(1)?;
++        bounded.step(&mut session, &[3], ReadMode::Enabled)?;
++        bounded.set_read_intervention(Some(ReadMassIntervention::Focus { target: 0 }));
++        assert!(bounded
++            .step(&mut session, &[17], ReadMode::Enabled)
++            .is_err());
++        let mut no_read = JointModel::new(small(Transport::Quaternion), &Device::Cpu)?;
++        let mut session = no_read.new_session(1)?;
++        no_read.step(&mut session, &[3], ReadMode::Enabled)?;
++        no_read.set_read_intervention(Some(ReadMassIntervention::Focus { target: 0 }));
++        assert!(no_read.step(&mut session, &[17], ReadMode::NoRead).is_err());
++        Ok(())
++    }
++
++    fn total_mass(values: &[f32]) -> f32 {
++        values.iter().sum()
++    }
++
+     #[test]
+     fn bounded_shared_graph_session_causality_and_gradients() -> Result<()> {
+         for transport in [Transport::Quaternion, Transport::HouseholderPair] {
+diff --git a/crates/uor-r4-training/src/lib.rs b/crates/uor-r4-training/src/lib.rs
+index 6e3b9b2c1..11cff5785 100644
+--- a/crates/uor-r4-training/src/lib.rs
++++ b/crates/uor-r4-training/src/lib.rs
+@@ -37,6 +37,7 @@ pub mod joint_transfer;
+ pub mod kappa_llama;
+ pub mod lut_export;
+ pub mod ngram;
++pub mod read_localize;
+ pub mod reference_campaign;
+ pub mod reference_eval;
+ pub mod stack_dialogue;
+diff --git a/crates/uor-r4-training/src/read_localize.rs b/crates/uor-r4-training/src/read_localize.rs
+new file mode 100644
+index 000000000..baacb5731
+--- /dev/null
++++ b/crates/uor-r4-training/src/read_localize.rs
+@@ -0,0 +1,674 @@
++//! Read-only localization instrument for the mainline joint learner.
++//!
++//! This module supplies the token-id-only mutation helpers, the canonical
++//! greedy generation loop that reproduces the frozen story-probe stop rule,
++//! and the decision-0 read-mass / mixture capture. It changes no read, score,
++//! weight or default behavior: every function is additive and is only called
++//! by the `joint-read-localize` example and its focused tests.
++//!
++//! The canonical loop exists because the public `generate` path uses
++//! `first_sentence = false` while `judge_story` (which produced the retained
++//! verdicts) uses `first_sentence = true`; `generate` therefore does not
++//! reproduce the retained story probes. `run_story_probes` is public and does,
++//! but it cannot take caller-built token ids or expose read masses, so the
++//! exact private loop is reimplemented here and validated by a parity check
++//! against the retained `story-probes.json` and by the retained decision-0
++//! audit values.
++
++use serde::Serialize;
++use uor_r4_core::transformerless::hf_bpe::HfBpeTokenizer;
++
++use crate::joint_evaluation::{
++    token_components, validate_generation_tokens, JointGenerationStop, TokenComponents,
++};
++use crate::joint_model::{JointModel, JointSession, JointStep, ReadMassIntervention, ReadMode};
++use crate::reference_eval::short_cycle_period;
++use crate::{invalid, Result};
++
++/// Non-entity concrete noun used by condition C (matched final control) and
++/// condition D' (matched near-query clause). A single token (`Ġcarrot`, id
++/// 1956), concrete, and absent from the 32 story entities and from the
++/// canonical prompt vocabulary.
++pub const CONTROL_NOUN: &str = "carrot";
++
++/// Frozen story-probe generation horizon (`STORY_PROBE_MAX_NEW_TOKENS`).
++pub const CANONICAL_MAX_NEW_TOKENS: usize = 32;
++
++/// Tolerance for `sum(read masses) + NoRead == 1`.
++pub const MASS_SUM_TOLERANCE: f64 = 1e-5;
++
++/// Longest token window the exact entity-span scan will consider.
++pub const MAX_ENTITY_SPAN_TOKENS: usize = 6;
++
++/// A minimal token window whose decoded bytes carry an entity mention.
++#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
++pub struct EntitySpan {
++    pub start: usize,
++    pub len: usize,
++}
++
++/// One causally available read occurrence observed at decision 0.
++#[derive(Clone, Debug, Serialize)]
++pub struct ReadEventMass {
++    pub occurrence: usize,
++    pub token: u32,
++    pub text: String,
++    pub mass: f64,
++}
++
++/// Decision-0 read/state capture taken from the step that consumed the final
++/// prompt token. The final prompt token is written by that same step, so it is
++/// never a read candidate (`occurrence == written_occurrence`).
++#[derive(Clone, Debug, Serialize)]
++pub struct DecisionZeroCapture {
++    pub written_occurrence: usize,
++    pub final_prompt_token_occurrence: usize,
++    pub final_prompt_token_is_readable: bool,
++    pub readable_max_occurrence: Option<usize>,
++    pub read_mass_sum: f64,
++    pub no_read_mass: f64,
++    pub copy_gate: f64,
++    pub effective_copy_mass: f64,
++    pub normalization_ok: bool,
++    pub read_row: Vec<ReadEventMass>,
++    pub top_read_occurrence: Option<usize>,
++    pub top_read_token: Option<u32>,
++    pub top_read_token_text: Option<String>,
++    pub top_read_mass: f64,
++    pub emitted_token: u32,
++    pub emitted_token_text: String,
++    pub emitted_components: TokenComponents,
++    pub probe_token: Option<u32>,
++    pub probe_components: Option<TokenComponents>,
++}
++
++/// Complete canonical greedy continuation of exact caller-supplied ids.
++#[derive(Clone, Debug, Serialize)]
++pub struct CanonicalRun {
++    pub prompt_token_ids: Vec<u32>,
++    pub generated_token_ids: Vec<u32>,
++    pub raw_decoded: String,
++    pub response_text: String,
++    pub utf8_decodable: bool,
++    pub stop: JointGenerationStop,
++    pub decision_zero: DecisionZeroCapture,
++}
++
++fn strip_leading_ascii_whitespace(bytes: &[u8]) -> &[u8] {
++    match bytes.iter().position(|byte| !byte.is_ascii_whitespace()) {
++        Some(index) => &bytes[index..],
++        None => &[],
++    }
++}
++
++fn starts_with_ascii_whitespace(bytes: &[u8]) -> bool {
++    bytes.first().is_some_and(u8::is_ascii_whitespace)
++}
++
++/// Every minimal token window of `content` whose decoded bytes, after
++/// stripping leading ASCII whitespace, equal `noun`, with a word boundary
++/// before the window. Windows are scanned shortest-first at each start so the
++/// result is minimal on token length; the entity noun bytes are never
++/// reconstructed by re-tokenizing a string.
++pub fn entity_spans(
++    content: &[u32],
++    noun: &str,
++    decode: impl Fn(&[u32]) -> Vec<u8>,
++) -> Vec<EntitySpan> {
++    let target = noun.as_bytes();
++    let mut spans = Vec::new();
++    for start in 0..content.len() {
++        let limit = MAX_ENTITY_SPAN_TOKENS.min(content.len() - start);
++        for len in 1..=limit {
++            let raw = decode(&content[start..start + len]);
++            if strip_leading_ascii_whitespace(&raw) != target {
++                continue;
++            }
++            let prefix = decode(&content[..start]);
++            let boundary = starts_with_ascii_whitespace(&raw)
++                || prefix
++                    .last()
++                    .is_none_or(|byte| !byte.is_ascii_alphanumeric());
++            if boundary {
++                spans.push(EntitySpan { start, len });
++                break;
++            }
++        }
++    }
++    spans
++}
++
++/// Exact occurrence index of a content span: BOS occupies occurrence 0, so a
++/// content offset `start` is read/written at occurrence `1 + start`.
++pub fn span_occurrence(span: EntitySpan) -> usize {
++    1 + span.start
++}
++
++/// Largest token index `k` in `1..=content.len()` such that the decoded prefix
++/// `content[..k]` ends with an ASCII period and either `k == content.len()` or
++/// the next token's decoded bytes begin with ASCII whitespace. This is the
++/// token boundary immediately after the final sentence break, used to insert
++/// the D/D' clause without re-tokenizing the mutated prompt.
++pub fn insert_index_before_final_query(
++    content: &[u32],
++    decode: impl Fn(&[u32]) -> Vec<u8>,
++) -> Result<usize> {
++    let mut candidate = None;
++    for k in 1..=content.len() {
++        if !decode(&content[..k]).ends_with(b".") {
++            continue;
++        }
++        if k == content.len() || starts_with_ascii_whitespace(&decode(&content[k..k + 1])) {
++            candidate = Some(k);
++        }
++    }
++    candidate.ok_or_else(|| invalid("no final-query insertion boundary found"))
++}
++
++/// Replace the final content token with `replacement`.
++pub fn splice_replace_final(content: &[u32], replacement: &[u32]) -> Result<Vec<u32>> {
++    let keep = content
++        .len()
++        .checked_sub(1)
++        .ok_or_else(|| invalid("cannot replace the final token of an empty prompt"))?;
++    let mut out = Vec::with_capacity(keep + replacement.len());
++    out.extend_from_slice(&content[..keep]);
++    out.extend_from_slice(replacement);
++    Ok(out)
++}
++
++/// Insert `clause` before content index `at`.
++pub fn splice_insert(content: &[u32], at: usize, clause: &[u32]) -> Result<Vec<u32>> {
++    if at > content.len() {
++        return Err(invalid("insertion index is outside the prompt"));
++    }
++    let mut out = Vec::with_capacity(content.len() + clause.len());
++    out.extend_from_slice(&content[..at]);
++    out.extend_from_slice(clause);
++    out.extend_from_slice(&content[at..]);
++    Ok(out)
++}
++
++/// Signed change in prompt length produced by a mutation.
++pub fn length_delta(original: usize, mutated: usize) -> i64 {
++    mutated as i64 - original as i64
++}
++
++/// `sum(masses) + NoRead == 1` within `tolerance`. The instrument never
++/// renormalizes; a mismatch is a measured failure of the loaded artifact.
++pub fn masses_normalize(masses: &[f32], no_read: f64, tolerance: f64) -> bool {
++    if !no_read.is_finite() || !(0.0..=1.0 + tolerance).contains(&no_read) {
++        return false;
++    }
++    let mut sum = 0.0f64;
++    for &mass in masses {
++        let mass = f64::from(mass);
++        if !mass.is_finite() || mass < 0.0 {
++            return false;
++        }
++        sum += mass;
++    }
++    (sum + no_read - 1.0).abs() <= tolerance
++}
++
++/// Entity share of the non-NoRead read mass. `None` when NoRead is the whole
++/// distribution (no read mass exists to divide).
++pub fn entity_share(entity_mass: f64, no_read: f64) -> Option<f64> {
++    let denominator = 1.0 - no_read;
++    (denominator > 0.0).then(|| entity_mass / denominator)
++}
++
++/// Every recorded read occurrence must predate the current write.
++pub fn positions_are_causal(read_occurrences: &[usize], written_occurrence: usize) -> bool {
++    read_occurrences
++        .iter()
++        .all(|&position| position < written_occurrence)
++}
++
++fn argmax_strict(probabilities: &[f32]) -> Result<u32> {
++    if probabilities.is_empty() {
++        return Err(invalid("joint probability row is empty"));
++    }
++    let mut best = 0usize;
++    for (token, &probability) in probabilities.iter().enumerate() {
++        if !probability.is_finite() || probability < 0.0 {
++            return Err(invalid("joint probability row contains an invalid value"));
++        }
++        if probability > probabilities[best] {
++            best = token;
++        }
++    }
++    u32::try_from(best).map_err(|_| invalid("joint vocabulary exceeds u32"))
++}
++
++fn decode_text(tokenizer: &HfBpeTokenizer, token: u32) -> String {
++    String::from_utf8_lossy(&tokenizer.decode_bytes(&[token])).into_owned()
++}
++
++#[allow(clippy::too_many_arguments)]
++fn decision_zero_capture(
++    model: &JointModel,
++    tokenizer: &HfBpeTokenizer,
++    step: &JointStep,
++    session: &JointSession,
++    prompt_len: usize,
++    row: &[f32],
++    emitted_token: u32,
++    probe_token: Option<u32>,
++) -> Result<DecisionZeroCapture> {
++    if step.written_occurrence != prompt_len - 1 {
++        return Err(invalid(
++            "decision-0 read step does not correspond to the final prompt token",
++        ));
++    }
++    if !positions_are_causal(&step.read_occurrences, step.written_occurrence) {
++        return Err(invalid(
++            "decision-0 read row contains a non-causal occurrence",
++        ));
++    }
++    let masses = step.read_masses.flatten_all()?.to_vec1::<f32>()?;
++    if masses.len() != step.read_occurrences.len() {
++        return Err(invalid("decision-0 read mass and occurrence counts differ"));
++    }
++    let no_read_values = step.no_read_mass.to_vec1::<f32>()?;
++    let gate_values = step.copy_gate.to_vec1::<f32>()?;
++    let no_read = f64::from(
++        *no_read_values
++            .first()
++            .ok_or_else(|| invalid("decision-0 NoRead mass is missing"))?,
++    );
++    let copy_gate = f64::from(
++        *gate_values
++            .first()
++            .ok_or_else(|| invalid("decision-0 copy gate is missing"))?,
++    );
++    let events = session.events();
++    let mut read_row = Vec::with_capacity(masses.len());
++    let mut top: Option<usize> = None;
++    let mut top_mass = 0.0f64;
++    let mut read_sum = 0.0f64;
++    for (index, &mass) in masses.iter().enumerate() {
++        let mass = f64::from(mass);
++        if !mass.is_finite() || !(0.0..=1.0 + MASS_SUM_TOLERANCE).contains(&mass) {
++            return Err(invalid("decision-0 read mass is invalid"));
++        }
++        let occurrence = step.read_occurrences[index];
++        let token = events
++            .get(occurrence)
++            .and_then(|event| event.tokens.first())
++            .copied()
++            .ok_or_else(|| invalid("decision-0 read occurrence has no exact token identity"))?;
++        read_sum += mass;
++        if mass > top_mass {
++            top = Some(index);
++            top_mass = mass;
++        }
++        read_row.push(ReadEventMass {
++            occurrence,
++            token,
++            text: decode_text(tokenizer, token),
++            mass,
++        });
++    }
++    let vocabulary_row = model
++        .output_vocabulary(&step.state)?
++        .flatten_all()?
++        .to_vec1::<f32>()?;
++    let copy_row = model
++        .incremental_copy(&step.read_masses, &events[..step.written_occurrence], 1)?
++        .flatten_all()?
++        .to_vec1::<f32>()?;
++    let emitted_components = token_components(
++        &vocabulary_row,
++        &copy_row,
++        row,
++        emitted_token,
++        no_read,
++        copy_gate,
++        model.config.vocab_size,
++    )?;
++    let probe_components = match probe_token {
++        Some(token) => Some(token_components(
++            &vocabulary_row,
++            &copy_row,
++            row,
++            token,
++            no_read,
++            copy_gate,
++            model.config.vocab_size,
++        )?),
++        None => None,
++    };
++    let top_read_occurrence = top.map(|index| step.read_occurrences[index]);
++    let top_read_token = top.map(|index| read_row[index].token);
++    let top_read_token_text = top.map(|index| read_row[index].text.clone());
++    Ok(DecisionZeroCapture {
++        written_occurrence: step.written_occurrence,
++        final_prompt_token_occurrence: prompt_len - 1,
++        final_prompt_token_is_readable: false,
++        readable_max_occurrence: step.written_occurrence.checked_sub(1),
++        read_mass_sum: read_sum,
++        no_read_mass: no_read,
++        copy_gate,
++        effective_copy_mass: copy_gate * (1.0 - no_read),
++        normalization_ok: masses_normalize(&masses, no_read, MASS_SUM_TOLERANCE),
++        read_row,
++        top_read_occurrence,
++        top_read_token,
++        top_read_token_text,
++        top_read_mass: top_mass,
++        emitted_token,
++        emitted_token_text: decode_text(tokenizer, emitted_token),
++        emitted_components,
++        probe_token,
++        probe_components,
++    })
++}
++
++/// Deterministic greedy continuation under the frozen story-probe stop rule:
++/// stop at EOS, at the first generated ASCII period after retaining the
++/// complete final token, at a terminal short cycle, or at `max_new_tokens`.
++/// Prompt ids must already start with BOS 0. The read path is enabled and the
++/// returned `decision_zero` records the step that consumed the final prompt
++/// token.
++pub fn canonical_greedy(
++    model: &JointModel,
++    tokenizer: &HfBpeTokenizer,
++    prompt_token_ids: &[u32],
++    max_new_tokens: usize,
++    probe_token: Option<u32>,
++) -> Result<CanonicalRun> {
++    validate_generation_tokens(
++        &model.config,
++        tokenizer.vocab_size(),
++        prompt_token_ids,
++        max_new_tokens,
++    )?;
++    let mut session = model.new_session(1)?;
++    let mut current: Option<JointStep> = None;
++    for &token in prompt_token_ids {
++        current = Some(model.step(&mut session, &[token], ReadMode::Enabled)?);
++    }
++    let mut current = Some(current.ok_or_else(|| invalid("canonical prompt is empty"))?);
++    let mut generated: Vec<u32> = Vec::with_capacity(max_new_tokens);
++    let mut decision_zero = None;
++    let mut stop = JointGenerationStop::MaximumNewTokens;
++    for decision in 0..max_new_tokens {
++        let step = current
++            .take()
++            .ok_or_else(|| invalid("canonical generation has no current prediction"))?;
++        let row = step.probabilities.flatten_all()?.to_vec1::<f32>()?;
++        let selected = argmax_strict(&row)?;
++        if decision == 0 {
++            decision_zero = Some(decision_zero_capture(
++                model,
++                tokenizer,
++                &step,
++                &session,
++                prompt_token_ids.len(),
++                &row,
++                selected,
++                probe_token,
++            )?);
++        }
++        generated.push(selected);
++        if selected == 1 {
++            stop = JointGenerationStop::Eos;
++            break;
++        }
++        if tokenizer.decode_bytes(&generated).contains(&b'.') {
++            stop = JointGenerationStop::FirstSentenceBoundary;
++            break;
++        }
++        if let Some(period) = short_cycle_period(&generated) {
++            stop = JointGenerationStop::ShortCycle { period };
++            break;
++        }
++        if decision + 1 < max_new_tokens {
++            current = Some(model.step(&mut session, &[selected], ReadMode::Enabled)?);
++        }
++    }
++    let end = generated
++        .iter()
++        .position(|&token| token == 1)
++        .unwrap_or(generated.len());
++    let response_bytes = tokenizer.decode_bytes(&generated[..end]);
++    let raw_bytes = tokenizer.decode_bytes(&generated);
++    assemble_run(
++        prompt_token_ids,
++        generated,
++        &raw_bytes,
++        &response_bytes,
++        stop,
++        decision_zero,
++    )
++}
++
++/// Assemble the canonical report from a completed greedy pass. Shared by the
++/// baseline and intervened loops so their decoding, UTF-8 and verdict fields
++/// are identical.
++fn assemble_run(
++    prompt_token_ids: &[u32],
++    generated: Vec<u32>,
++    raw_bytes: &[u8],
++    response_bytes: &[u8],
++    stop: JointGenerationStop,
++    decision_zero: Option<DecisionZeroCapture>,
++) -> Result<CanonicalRun> {
++    Ok(CanonicalRun {
++        prompt_token_ids: prompt_token_ids.to_vec(),
++        generated_token_ids: generated,
++        raw_decoded: String::from_utf8_lossy(raw_bytes).into_owned(),
++        response_text: String::from_utf8_lossy(response_bytes).trim().to_owned(),
++        utf8_decodable: std::str::from_utf8(raw_bytes).is_ok()
++            && std::str::from_utf8(response_bytes).is_ok(),
++        stop,
++        decision_zero: decision_zero
++            .ok_or_else(|| invalid("canonical generation produced no decision-0 capture"))?,
++    })
++}
++
++/// Deterministic greedy continuation with an optional read-mass intervention
++/// applied to exactly the decision-0 step (the step consuming the final prompt
++/// token) and cleared immediately after it. `None` reproduces
++/// [`canonical_greedy`]; `Some` requires the dense Full-admission batch-1 model
++/// that [`ReadMassIntervention`] declares, and any other step errors.
++pub fn canonical_greedy_intervened(
++    model: &mut JointModel,
++    tokenizer: &HfBpeTokenizer,
++    prompt_token_ids: &[u32],
++    max_new_tokens: usize,
++    probe_token: Option<u32>,
++    intervention: Option<ReadMassIntervention>,
++) -> Result<CanonicalRun> {
++    validate_generation_tokens(
++        &model.config,
++        tokenizer.vocab_size(),
++        prompt_token_ids,
++        max_new_tokens,
++    )?;
++    if prompt_token_ids.is_empty() {
++        return Err(invalid("canonical prompt is empty"));
++    }
++    let mut session = model.new_session(1)?;
++    let last = prompt_token_ids.len() - 1;
++    let mut current: Option<JointStep> = None;
++    for (index, &token) in prompt_token_ids.iter().enumerate() {
++        if index == last {
++            model.set_read_intervention(intervention);
++        }
++        current = Some(model.step(&mut session, &[token], ReadMode::Enabled)?);
++        if index == last {
++            model.set_read_intervention(None);
++        }
++    }
++    let mut current = Some(current.ok_or_else(|| invalid("canonical prompt is empty"))?);
++    let mut generated: Vec<u32> = Vec::with_capacity(max_new_tokens);
++    let mut decision_zero = None;
++    let mut stop = JointGenerationStop::MaximumNewTokens;
++    for decision in 0..max_new_tokens {
++        let step = current
++            .take()
++            .ok_or_else(|| invalid("canonical generation has no current prediction"))?;
++        let row = step.probabilities.flatten_all()?.to_vec1::<f32>()?;
++        let selected = argmax_strict(&row)?;
++        if decision == 0 {
++            decision_zero = Some(decision_zero_capture(
++                model,
++                tokenizer,
++                &step,
++                &session,
++                prompt_token_ids.len(),
++                &row,
++                selected,
++                probe_token,
++            )?);
++        }
++        generated.push(selected);
++        if selected == 1 {
++            stop = JointGenerationStop::Eos;
++            break;
++        }
++        if tokenizer.decode_bytes(&generated).contains(&b'.') {
++            stop = JointGenerationStop::FirstSentenceBoundary;
++            break;
++        }
++        if let Some(period) = short_cycle_period(&generated) {
++            stop = JointGenerationStop::ShortCycle { period };
++            break;
++        }
++        if decision + 1 < max_new_tokens {
++            current = Some(model.step(&mut session, &[selected], ReadMode::Enabled)?);
++        }
++    }
++    let end = generated
++        .iter()
++        .position(|&token| token == 1)
++        .unwrap_or(generated.len());
++    let raw_bytes = tokenizer.decode_bytes(&generated);
++    let response_bytes = tokenizer.decode_bytes(&generated[..end]);
++    assemble_run(
++        prompt_token_ids,
++        generated,
++        &raw_bytes,
++        &response_bytes,
++        stop,
++        decision_zero,
++    )
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++
++    fn table_decode(table: &'static [&'static [u8]]) -> impl Fn(&[u32]) -> Vec<u8> + 'static {
++        move |ids: &[u32]| {
++            let mut out = Vec::new();
++            for &id in ids {
++                out.extend_from_slice(table[id as usize]);
++            }
++            out
++        }
++    }
++
++    #[test]
++    fn read_localize_mutation_preserves_length_or_declares() {
++        let content = [10u32, 11, 12, 13];
++        // Single-token replacement: declared delta is replacement_len - 1.
++        let replaced = splice_replace_final(&content, &[20]).expect("replace");
++        assert_eq!(replaced, vec![10, 11, 12, 20]);
++        assert_eq!(length_delta(content.len(), replaced.len()), (1i64) - 1);
++        // Two-token replacement: declared delta is replacement_len - 1.
++        let replaced_pair = splice_replace_final(&content, &[20, 21]).expect("replace");
++        assert_eq!(replaced_pair, vec![10, 11, 12, 20, 21]);
++        assert_eq!(length_delta(content.len(), replaced_pair.len()), 2i64 - 1);
++        // Insertion: declared delta is exactly the clause length.
++        let inserted = splice_insert(&content, 2, &[30, 31, 32]).expect("insert");
++        assert_eq!(inserted, vec![10, 11, 30, 31, 32, 12, 13]);
++        assert_eq!(length_delta(content.len(), inserted.len()), 3i64);
++        // Out-of-range and empty cases are declared errors, not silent repairs.
++        assert!(splice_replace_final(&[], &[1]).is_err());
++        assert!(splice_insert(&content, 5, &[1]).is_err());
++    }
++
++    /// 0 "", 1 " her", 2 " apple", 3 "pineapple", 4 " app",
++    /// 5 "le", 6 " rib", 7 "bon", 8 "green", 9 "apple" (no leading space)
++    const TABLE: &[&[u8]] = &[
++        b"",
++        b" her",
++        b" apple",
++        b"pineapple",
++        b" app",
++        b"le",
++        b" rib",
++        b"bon",
++        b"green",
++        b"apple",
++    ];
++
++    #[test]
++    fn read_localize_entity_span_is_exact() {
++        let decode = table_decode(TABLE);
++        // Exact single-token span and its BOS-corrected occurrence.
++        let single = entity_spans(&[1, 2], "apple", decode);
++        assert_eq!(single, vec![EntitySpan { start: 1, len: 1 }]);
++        assert_eq!(span_occurrence(single[0]), 2);
++        // Minimal window: a two-token split resolves to the two-token span.
++        assert_eq!(
++            entity_spans(&[1, 4, 5], "apple", table_decode(TABLE)),
++            vec![EntitySpan { start: 1, len: 2 }]
++        );
++        // A longer word containing the noun is rejected by the equality test.
++        assert!(entity_spans(&[3], "apple", table_decode(TABLE)).is_empty());
++        // No word boundary before a bare-token suffix inside a larger word.
++        assert!(entity_spans(&[8, 9], "apple", table_decode(TABLE)).is_empty());
++        // A leading-space token supplies its own boundary.
++        assert_eq!(
++            entity_spans(&[8, 2], "apple", table_decode(TABLE)),
++            vec![EntitySpan { start: 1, len: 1 }]
++        );
++        // Multi-token entity resolves minimally.
++        assert_eq!(
++            entity_spans(&[1, 6, 7], "ribbon", table_decode(TABLE)),
++            vec![EntitySpan { start: 1, len: 2 }]
++        );
++    }
++
++    #[test]
++    fn read_localize_masses_normalize_with_no_read() {
++        assert!(masses_normalize(&[0.2, 0.3], 0.5, MASS_SUM_TOLERANCE));
++        assert!(!masses_normalize(&[0.2, 0.3], 0.6, MASS_SUM_TOLERANCE));
++        assert!(!masses_normalize(&[f32::NAN], 0.5, MASS_SUM_TOLERANCE));
++        assert!(!masses_normalize(&[-0.1, 0.6], 0.5, MASS_SUM_TOLERANCE));
++        // Entity share divides only by the available read mass.
++        assert_eq!(entity_share(0.1, 0.5), Some(0.2));
++        assert_eq!(entity_share(0.1, 1.0), None);
++    }
++
++    #[test]
++    fn read_localize_positions_are_causal() {
++        assert!(positions_are_causal(&[0, 1, 2], 3));
++        assert!(!positions_are_causal(&[0, 3], 3));
++        assert!(positions_are_causal(&[], 0));
++    }
++
++    #[test]
++    fn read_localize_deterministic_replay() {
++        let content = [1u32, 6, 7, 9];
++        let first = entity_spans(&content, "ribbon", table_decode(TABLE));
++        let second = entity_spans(&content, "ribbon", table_decode(TABLE));
++        assert_eq!(first, second);
++        let boundary_table: &[&[u8]] = &[b"", b" her", b" apple", b".", b" next"];
++        let boundary_a =
++            insert_index_before_final_query(&[1, 2, 3, 4], table_decode(boundary_table))
++                .expect("boundary");
++        let boundary_b =
++            insert_index_before_final_query(&[1, 2, 3, 4], table_decode(boundary_table))
++                .expect("boundary");
++        assert_eq!(boundary_a, boundary_b);
++        assert_eq!(boundary_a, 3);
++        let mutated = splice_insert(&content, 1, &[20]).expect("insert");
++        let mutated_again = splice_insert(&content, 1, &[20]).expect("insert");
++        assert_eq!(mutated, mutated_again);
++    }
++}
+diff --git a/docs/evidence/read-localization-2026-09-27.json b/docs/evidence/read-localization-2026-09-27.json
+new file mode 100644
+index 000000000..8d817bc05
+--- /dev/null
++++ b/docs/evidence/read-localization-2026-09-27.json
+@@ -0,0 +1,950 @@
++{
++ "schema": "uor-r4.read-localization-evidence/1",
++ "design": "docs/integration/read-localization-plan-2026-09-27.md",
++ "source": {
++  "commit": "621635926573dfcca6d6a6e3fd462fae6722d8f7",
++  "binary_sha256": "1c1c589d5f61d560add1f2f86c429aa593fd1688370fc34f7a3c01b6ae86c8a9",
++  "parent_checkpoint": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-quaternion-6/checkpoint-final",
++  "evaluator_sha256": "d2432fbba0e24ba51d7568700d6718c4e85d01ccc08e4fc3cc3fa2a77e928a62",
++  "tokenizer_cid": "blake3:3f42bcfce7728512076549c63b88387e13c8156fe35c0f91d9b112439f3739cc",
++  "read_mode": "enabled"
++ },
++ "report_root": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/read-localization-opencode-2",
++ "report_files": [
++  "attempt.json",
++  "baseline-parity.json",
++  "manifest.json",
++  "read-localization.json",
++  "run-provenance.json"
++ ],
++ "guardrails": {
++  "baseline_parity_status": "PARITY_EXACT",
++  "d_dprime_length_mismatched_rows": [
++   "story-source-edit-15|edited"
++  ],
++  "masses_normalize_all": true,
++  "mutation_decoded_text_mismatches": [],
++  "no_future_reads_enforced": true,
++  "rows_ambiguous_span": [],
++  "rows_unresolved_span": []
++ },
++ "baseline_parity": {
++  "mismatch_count": 0,
++  "mismatches": [],
++  "rows_compared": 32,
++  "status": "PARITY_EXACT"
++ },
++ "class_summary": {
++  "distractor": {
++   "per_condition": {
++    "A": {
++     "complete": 0,
++     "first_noun": 0,
++     "rows": 5
++    },
++    "B": {
++     "complete": 0,
++     "first_noun": 0,
++     "rows": 5
++    },
++    "C": {
++     "complete": 0,
++     "first_noun": 0,
++     "rows": 5
++    },
++    "D": {
++     "complete": 5,
++     "first_noun": 5,
++     "rows": 5
++    },
++    "DP": {
++     "complete": 0,
++     "first_noun": 0,
++     "rows": 5
++    }
++   },
++   "rows": [
++    "story-source-edit-04|original",
++    "story-source-edit-04|edited",
++    "story-source-edit-08|original",
++    "story-source-edit-12|original",
++    "story-source-edit-12|edited"
++   ]
++  },
++  "extra_phrase": {
++   "per_condition": {
++    "A": {
++     "complete": 0,
++     "first_noun": 5,
++     "rows": 5
++    },
++    "B": {
++     "complete": 0,
++     "first_noun": 0,
++     "rows": 5
++    },
++    "C": {
++     "complete": 0,
++     "first_noun": 0,
++     "rows": 5
++    },
++    "D": {
++     "complete": 3,
++     "first_noun": 5,
++     "rows": 5
++    },
++    "DP": {
++     "complete": 4,
++     "first_noun": 5,
++     "rows": 5
++    }
++   },
++   "rows": [
++    "story-source-edit-03|original",
++    "story-source-edit-07|original",
++    "story-source-edit-07|edited",
++    "story-source-edit-11|edited",
++    "story-source-edit-15|edited"
++   ]
++  },
++  "morphology": {
++   "per_condition": {
++    "A": {
++     "complete": 0,
++     "first_noun": 0,
++     "rows": 1
++    },
++    "B": {
++     "complete": 0,
++     "first_noun": 0,
++     "rows": 1
++    },
++    "C": {
++     "complete": 0,
++     "first_noun": 0,
++     "rows": 1
++    },
++    "D": {
++     "complete": 0,
++     "first_noun": 0,
++     "rows": 1
++    },
++    "DP": {
++     "complete": 0,
++     "first_noun": 0,
++     "rows": 1
++    }
++   },
++   "rows": [
++    "story-source-edit-00|edited"
++   ]
++  }
++ },
++ "predeclared_rule_inputs": {
++  "a_emitted_wrong_noun_equals_top_read_token_count": 5,
++  "a_entity_share_ge_10pct_or_rank_le_3_and_output_wrong_count": 5,
++  "a_entity_share_lt_5pct_and_rank_gt_5_count": 0,
++  "d_entity_share_ge_15pct_or_rank_le_3_count": 5,
++  "d_or_dprime_changes_verdict_count": 5,
++  "decision": "NOT_ADJUDICATED_BY_INSTRUMENT",
++  "declared_sets_match_derived": {
++   "distractor": true,
++   "extra_phrase": true,
++   "morphology": true
++  },
++  "distractor_rows": [
++   "story-source-edit-04|original",
++   "story-source-edit-04|edited",
++   "story-source-edit-08|original",
++   "story-source-edit-12|original",
++   "story-source-edit-12|edited"
++  ],
++  "dprime_entity_share_ge_15pct_or_rank_le_3_count": 5,
++  "entity_share_definition": "entity occurrence mass sum / (1 - NoRead mass), condition A"
++ },
++ "per_row": {
++  "distractor": {
++   "story-source-edit-04|original": {
++    "A": {
++     "complete_correct": false,
++     "first_noun_correct": false,
++     "emitted_token_text": " clouds",
++     "emitted_matches_top_read_token": true,
++     "top_read_token_text": " clouds",
++     "entity_rank": 2,
++     "entity_share": 0.3013493351391641,
++     "no_read_mass": 0.1863170713186264,
++     "length_change": 0,
++     "decoded_matches_intended": true
++    },
++    "B": {
++     "complete_correct": false,
++     "first_noun_correct": false,
++     "emitted_token_text": ".",
++     "emitted_matches_top_read_token": false,
++     "top_read_token_text": " into",
++     "entity_rank": 18,
++     "entity_share": 0.011663736163580489,
++     "no_read_mass": 0.9927679300308228,
++     "length_change": 0,
++     "decoded_matches_intended": true
++    },
++    "C": {
++     "complete_correct": false,
++     "first_noun_correct": false,
++     "emitted_token_text": ".",
++     "emitted_matches_top_read_token": false,
++     "top_read_token_text": " on",
++     "entity_rank": 5,
++     "entity_share": 0.041473601319554416,
++     "no_read_mass": 0.9917197227478027,
++     "length_change": 0,
++     "decoded_matches_intended": true
++    },
++    "D": {
++     "complete_correct": true,
++     "first_noun_correct": true,
++     "emitted_token_text": " doll",
++     "emitted_matches_top_read_token": true,
++     "top_read_token_text": " doll",
++     "entity_rank": 1,
++     "entity_share": 0.641754241687929,
++     "no_read_mass": 0.12016739696264267,
++     "length_change": 5,
++     "decoded_matches_intended": true
++    },
++    "DP": {
++     "complete_correct": false,
++     "first_noun_correct": false,
++     "emitted_token_text": " carrot",
++     "emitted_matches_top_read_token": true,
++     "top_read_token_text": " carrot",
++     "entity_rank": 3,
++     "entity_share": 0.04180501500851922,
++     "no_read_mass": 0.03510301932692528,
++     "length_change": 5,
++     "decoded_matches_intended": true
++    }
++   },
++   "story-source-edit-04|edited": {
++    "A": {
++     "complete_correct": false,
++     "first_noun_correct": false,
++     "emitted_token_text": " clouds",
++     "emitted_matches_top_read_token": true,
++     "top_read_token_text": " clouds",
++     "entity_rank": 3,
++     "entity_share": 0.16379705921401794,
++     "no_read_mass": 0.20783695578575134,
++     "length_change": 0,
++     "decoded_matches_intended": true
++    },
++    "B": {
++     "complete_correct": false,
++     "first_noun_correct": false,
++     "emitted_token_text": "s",
++     "emitted_matches_top_read_token": false,
++     "top_read_token_text": " into",
++     "entity_rank": 11,
++     "entity_share": 0.022530158735952825,
++     "no_read_mass": 0.9969064593315125,
++     "length_change": 0,
++     "decoded_matches_intended": true
++    },
++    "C": {
++     "complete_correct": false,
++     "first_noun_correct": false,
++     "emitted_token_text": ".",
++     "emitted_matches_top_read_token": false,
++     "top_read_token_text": " on",
++     "entity_rank": 24,
++     "entity_share": 0.007773632719410883,
++     "no_read_mass": 0.9929342269897461,
++     "length_change": 0,
++     "decoded_matches_intended": true
++    },
++    "D": {
++     "complete_correct": true,
++     "first_noun_correct": true,
++     "emitted_token_text": " bear",
++     "emitted_matches_top_read_token": false,
++     "top_read_token_text": " clouds",
++     "entity_rank": 2,
++     "entity_share": 0.3910636875898989,
++     "no_read_mass": 0.1753082573413849,
++     "length_change": 5,
++     "decoded_matches_intended": true
++    },
++    "DP": {
++     "complete_correct": false,
++     "first_noun_correct": false,
++     "emitted_token_text": " carrot",
++     "emitted_matches_top_read_token": true,
++     "top_read_token_text": " carrot",
++     "entity_rank": 3,
++     "entity_share": 0.026595518990636297,
++     "no_read_mass": 0.04132277891039848,
++     "length_change": 5,
++     "decoded_matches_intended": true
++    }
++   },
++   "story-source-edit-08|original": {
++    "A": {
++     "complete_correct": false,
++     "first_noun_correct": false,
++     "emitted_token_text": " clouds",
++     "emitted_matches_top_read_token": true,
++     "top_read_token_text": " clouds",
++     "entity_rank": 2,
++     "entity_share": 0.3170612855896892,
++     "no_read_mass": 0.14352640509605408,
++     "length_change": 0,
++     "decoded_matches_intended": true
++    },
++    "B": {
++     "complete_correct": false,
++     "first_noun_correct": false,
++     "emitted_token_text": ".",
++     "emitted_matches_top_read_token": false,
++     "top_read_token_text": " into",
++     "entity_rank": 40,
++     "entity_share": 0.0021072171680448872,
++     "no_read_mass": 0.9814071655273438,
++     "length_change": 0,
++     "decoded_matches_intended": true
++    },
++    "C": {
++     "complete_correct": false,
++     "first_noun_correct": false,
++     "emitted_token_text": ".",
++     "emitted_matches_top_read_token": false,
++     "top_read_token_text": " on",
++     "entity_rank": 3,
++     "entity_share": 0.10833055569170093,
++     "no_read_mass": 0.9915632009506226,
++     "length_change": 0,
++     "decoded_matches_intended": true
++    },
++    "D": {
++     "complete_correct": true,
++     "first_noun_correct": true,
++     "emitted_token_text": " brush",
++     "emitted_matches_top_read_token": true,
++     "top_read_token_text": " brush",
++     "entity_rank": 1,
++     "entity_share": 0.5836933701852436,
++     "no_read_mass": 0.10274185240268707,
++     "length_change": 5,
++     "decoded_matches_intended": true
++    },
++    "DP": {
++     "complete_correct": false,
++     "first_noun_correct": false,
++     "emitted_token_text": " carrot",
++     "emitted_matches_top_read_token": true,
++     "top_read_token_text": " carrot",
++     "entity_rank": 3,
++     "entity_share": 0.037709105194431915,
++     "no_read_mass": 0.032061655074357986,
++     "length_change": 5,
++     "decoded_matches_intended": true
++    }
++   },
++   "story-source-edit-12|original": {
++    "A": {
++     "complete_correct": false,
++     "first_noun_correct": false,
++     "emitted_token_text": " clouds",
++     "emitted_matches_top_read_token": true,
++     "top_read_token_text": " clouds",
++     "entity_rank": 2,
++     "entity_share": 0.17106399983542747,
++     "no_read_mass": 0.18799568712711334,
++     "length_change": 0,
++     "decoded_matches_intended": true
++    },
++    "B": {
++     "complete_correct": false,
++     "first_noun_correct": false,
++     "emitted_token_text": ".",
++     "emitted_matches_top_read_token": false,
++     "top_read_token_text": " into",
++     "entity_rank": 34,
++     "entity_share": 0.002777237673375539,
++     "no_read_mass": 0.9909619688987732,
++     "length_change": 0,
++     "decoded_matches_intended": true
++    },
++    "C": {
++     "complete_correct": false,
++     "first_noun_correct": false,
++     "emitted_token_text": ".",
++     "emitted_matches_top_read_token": false,
++     "top_read_token_text": " on",
++     "entity_rank": 25,
++     "entity_share": 0.006766334831104906,
++     "no_read_mass": 0.9931011199951172,
++     "length_change": 0,
++     "decoded_matches_intended": true
++    },
++    "D": {
++     "complete_correct": true,
++     "first_noun_correct": true,
++     "emitted_token_text": " box",
++     "emitted_matches_top_read_token": true,
++     "top_read_token_text": " box",
++     "entity_rank": 1,
++     "entity_share": 0.5733453664999879,
++     "no_read_mass": 0.1164851188659668,
++     "length_change": 5,
++     "decoded_matches_intended": true
++    },
++    "DP": {
++     "complete_correct": false,
++     "first_noun_correct": false,
++     "emitted_token_text": " carrot",
++     "emitted_matches_top_read_token": true,
++     "top_read_token_text": " carrot",
++     "entity_rank": 3,
++     "entity_share": 0.01382811782337727,
++     "no_read_mass": 0.027685493230819702,
++     "length_change": 5,
++     "decoded_matches_intended": true
++    }
++   },
++   "story-source-edit-12|edited": {
++    "A": {
++     "complete_correct": false,
++     "first_noun_correct": false,
++     "emitted_token_text": " clouds",
++     "emitted_matches_top_read_token": true,
++     "top_read_token_text": " clouds",
++     "entity_rank": 2,
++     "entity_share": 0.18260831660090965,
++     "no_read_mass": 0.18060679733753204,
++     "length_change": 0,
++     "decoded_matches_intended": true
++    },
++    "B": {
++     "complete_correct": false,
++     "first_noun_correct": false,
++     "emitted_token_text": ".",
++     "emitted_matches_top_read_token": false,
++     "top_read_token_text": " was",
++     "entity_rank": 46,
++     "entity_share": 0.0006235365414935744,
++     "no_read_mass": 0.9918140172958374,
++     "length_change": 0,
++     "decoded_matches_intended": true
++    },
++    "C": {
++     "complete_correct": false,
++     "first_noun_correct": false,
++     "emitted_token_text": ".",
++     "emitted_matches_top_read_token": false,
++     "top_read_token_text": " on",
++     "entity_rank": 13,
++     "entity_share": 0.015213805384241165,
++     "no_read_mass": 0.9927865862846375,
++     "length_change": 0,
++     "decoded_matches_intended": true
++    },
++    "D": {
++     "complete_correct": true,
++     "first_noun_correct": true,
++     "emitted_token_text": " bag",
++     "emitted_matches_top_read_token": true,
++     "top_read_token_text": " bag",
++     "entity_rank": 1,
++     "entity_share": 0.6191388452506319,
++     "no_read_mass": 0.10644381493330002,
++     "length_change": 5,
++     "decoded_matches_intended": true
++    },
++    "DP": {
++     "complete_correct": false,
++     "first_noun_correct": false,
++     "emitted_token_text": " carrot",
++     "emitted_matches_top_read_token": true,
++     "top_read_token_text": " carrot",
++     "entity_rank": 3,
++     "entity_share": 0.015886000544487567,
++     "no_read_mass": 0.03075927495956421,
++     "length_change": 5,
++     "decoded_matches_intended": true
++    }
++   }
++  },
++  "extra_phrase": {
++   "story-source-edit-03|original": {
++    "A": {
++     "complete_correct": false,
++     "first_noun_correct": true,
++     "emitted_token_text": " bell",
++     "emitted_matches_top_read_token": true,
++     "top_read_token_text": " bell",
++     "entity_rank": 1,
++     "entity_share": 0.8933295659663003,
++     "no_read_mass": 0.08428951352834702,
++     "length_change": 0,
++     "decoded_matches_intended": true
++    },
++    "B": {
++     "complete_correct": false,
++     "first_noun_correct": false,
++     "emitted_token_text": "s",
++     "emitted_matches_top_read_token": false,
++     "top_read_token_text": " and",
++     "entity_rank": 38,
++     "entity_share": 0.0017077046151563302,
++     "no_read_mass": 0.9398597478866577,
++     "length_change": 0,
++     "decoded_matches_intended": true
++    },
++    "C": {
++     "complete_correct": false,
++     "first_noun_correct": false,
++     "emitted_token_text": " inside",
++     "emitted_matches_top_read_token": false,
++     "top_read_token_text": " on",
++     "entity_rank": 14,
++     "entity_share": 0.014701260819075601,
++     "no_read_mass": 0.9592748284339905,
++     "length_change": 0,
++     "decoded_matches_intended": true
++    },
++    "D": {
++     "complete_correct": true,
++     "first_noun_correct": true,
++     "emitted_token_text": " bell",
++     "emitted_matches_top_read_token": true,
++     "top_read_token_text": " bell",
++     "entity_rank": 1,
++     "entity_share": 0.8784860186051812,
++     "no_read_mass": 0.110012486577034,
++     "length_change": 5,
++     "decoded_matches_intended": true
++    },
++    "DP": {
++     "complete_correct": true,
++     "first_noun_correct": true,
++     "emitted_token_text": " bell",
++     "emitted_matches_top_read_token": true,
++     "top_read_token_text": " bell",
++     "entity_rank": 1,
++     "entity_share": 0.7017050881038319,
++     "no_read_mass": 0.09003572911024094,
++     "length_change": 5,
++     "decoded_matches_intended": true
++    }
++   },
++   "story-source-edit-07|original": {
++    "A": {
++     "complete_correct": false,
++     "first_noun_correct": true,
++     "emitted_token_text": " shoe",
++     "emitted_matches_top_read_token": true,
++     "top_read_token_text": " shoe",
++     "entity_rank": 1,
++     "entity_share": 0.9028622333116619,
++     "no_read_mass": 0.07752358913421631,
++     "length_change": 0,
++     "decoded_matches_intended": true
++    },
++    "B": {
++     "complete_correct": false,
++     "first_noun_correct": false,
++     "emitted_token_text": " to",
++     "emitted_matches_top_read_token": false,
++     "top_read_token_text": " on",
++     "entity_rank": 27,
++     "entity_share": 0.006852307642928599,
++     "no_read_mass": 0.9790719151496887,
++     "length_change": 0,
++     "decoded_matches_intended": true
++    },
++    "C": {
++     "complete_correct": false,
++     "first_noun_correct": false,
++     "emitted_token_text": " inside",
++     "emitted_matches_top_read_token": false,
++     "top_read_token_text": " on",
++     "entity_rank": 10,
++     "entity_share": 0.021154981699280276,
++     "no_read_mass": 0.9591302871704102,
++     "length_change": 0,
++     "decoded_matches_intended": true
++    },
++    "D": {
++     "complete_correct": true,
++     "first_noun_correct": true,
++     "emitted_token_text": " shoe",
++     "emitted_matches_top_read_token": true,
++     "top_read_token_text": " shoe",
++     "entity_rank": 1,
++     "entity_share": 0.8962633640109384,
++     "no_read_mass": 0.08183126151561737,
++     "length_change": 5,
++     "decoded_matches_intended": true
++    },
++    "DP": {
++     "complete_correct": true,
++     "first_noun_correct": true,
++     "emitted_token_text": " shoe",
++     "emitted_matches_top_read_token": true,
++     "top_read_token_text": " shoe",
++     "entity_rank": 1,
++     "entity_share": 0.7733648279438856,
++     "no_read_mass": 0.07600776106119156,
++     "length_change": 5,
++     "decoded_matches_intended": true
++    }
++   },
++   "story-source-edit-07|edited": {
++    "A": {
++     "complete_correct": false,
++     "first_noun_correct": true,
++     "emitted_token_text": " boot",
++     "emitted_matches_top_read_token": true,
++     "top_read_token_text": " boot",
++     "entity_rank": 1,
++     "entity_share": 0.9512380699925209,
++     "no_read_mass": 0.03620859608054161,
++     "length_change": 0,
++     "decoded_matches_intended": true
++    },
++    "B": {
++     "complete_correct": false,
++     "first_noun_correct": false,
++     "emitted_token_text": " to",
++     "emitted_matches_top_read_token": false,
++     "top_read_token_text": " on",
++     "entity_rank": 30,
++     "entity_share": 0.005474388817005125,
++     "no_read_mass": 0.9713313579559326,
++     "length_change": 0,
++     "decoded_matches_intended": true
++    },
++    "C": {
++     "complete_correct": false,
++     "first_noun_correct": false,
++     "emitted_token_text": " inside",
++     "emitted_matches_top_read_token": false,
++     "top_read_token_text": " on",
++     "entity_rank": 6,
++     "entity_share": 0.030105266445994074,
++     "no_read_mass": 0.9591984748840332,
++     "length_change": 0,
++     "decoded_matches_intended": true
++    },
++    "D": {
++     "complete_correct": true,
++     "first_noun_correct": true,
++     "emitted_token_text": " boot",
++     "emitted_matches_top_read_token": true,
++     "top_read_token_text": " boot",
++     "entity_rank": 1,
++     "entity_share": 0.9461803880163022,
++     "no_read_mass": 0.040792644023895264,
++     "length_change": 5,
++     "decoded_matches_intended": true
++    },
++    "DP": {
++     "complete_correct": true,
++     "first_noun_correct": true,
++     "emitted_token_text": " boot",
++     "emitted_matches_top_read_token": true,
++     "top_read_token_text": " boot",
++     "entity_rank": 1,
++     "entity_share": 0.8700215347963876,
++     "no_read_mass": 0.040357183665037155,
++     "length_change": 5,
++     "decoded_matches_intended": true
++    }
++   },
++   "story-source-edit-11|edited": {
++    "A": {
++     "complete_correct": false,
++     "first_noun_correct": true,
++     "emitted_token_text": " coin",
++     "emitted_matches_top_read_token": true,
++     "top_read_token_text": " coin",
++     "entity_rank": 1,
++     "entity_share": 0.9587846483086266,
++     "no_read_mass": 0.033652305603027344,
++     "length_change": 0,
++     "decoded_matches_intended": true
++    },
++    "B": {
++     "complete_correct": false,
++     "first_noun_correct": false,
++     "emitted_token_text": " to",
++     "emitted_matches_top_read_token": false,
++     "top_read_token_text": " on",
++     "entity_rank": 15,
++     "entity_share": 0.017016581610841304,
++     "no_read_mass": 0.9668871164321899,
++     "length_change": 0,
++     "decoded_matches_intended": true
++    },
++    "C": {
++     "complete_correct": false,
++     "first_noun_correct": false,
++     "emitted_token_text": " inside",
++     "emitted_matches_top_read_token": false,
++     "top_read_token_text": " on",
++     "entity_rank": 5,
++     "entity_share": 0.03663967665336239,
++     "no_read_mass": 0.958454430103302,
++     "length_change": 0,
++     "decoded_matches_intended": true
++    },
++    "D": {
++     "complete_correct": false,
++     "first_noun_correct": true,
++     "emitted_token_text": " coin",
++     "emitted_matches_top_read_token": true,
++     "top_read_token_text": " coin",
++     "entity_rank": 1,
++     "entity_share": 0.9582461275016437,
++     "no_read_mass": 0.033765826374292374,
++     "length_change": 5,
++     "decoded_matches_intended": true
++    },
++    "DP": {
++     "complete_correct": false,
++     "first_noun_correct": true,
++     "emitted_token_text": " coin",
++     "emitted_matches_top_read_token": true,
++     "top_read_token_text": " coin",
++     "entity_rank": 1,
++     "entity_share": 0.9021482357702344,
++     "no_read_mass": 0.03427627682685852,
++     "length_change": 5,
++     "decoded_matches_intended": true
++    }
++   },
++   "story-source-edit-15|edited": {
++    "A": {
++     "complete_correct": false,
++     "first_noun_correct": true,
++     "emitted_token_text": " ribb",
++     "emitted_matches_top_read_token": true,
++     "top_read_token_text": " ribb",
++     "entity_rank": 1,
++     "entity_share": 0.783827203661447,
++     "no_read_mass": 0.1800600290298462,
++     "length_change": 0,
++     "decoded_matches_intended": true
++    },
++    "B": {
++     "complete_correct": false,
++     "first_noun_correct": false,
++     "emitted_token_text": " to",
++     "emitted_matches_top_read_token": false,
++     "top_read_token_text": " and",
++     "entity_rank": 2,
++     "entity_share": 0.04225714023120594,
++     "no_read_mass": 0.9580265879631042,
++     "length_change": 1,
++     "decoded_matches_intended": true
++    },
++    "C": {
++     "complete_correct": false,
++     "first_noun_correct": false,
++     "emitted_token_text": " inside",
++     "emitted_matches_top_read_token": false,
++     "top_read_token_text": " on",
++     "entity_rank": 5,
++     "entity_share": 0.04508897571797868,
++     "no_read_mass": 0.9560298919677734,
++     "length_change": 0,
++     "decoded_matches_intended": true
++    },
++    "D": {
++     "complete_correct": false,
++     "first_noun_correct": true,
++     "emitted_token_text": " ribb",
++     "emitted_matches_top_read_token": true,
++     "top_read_token_text": " ribb",
++     "entity_rank": 1,
++     "entity_share": 0.8110704197455689,
++     "no_read_mass": 0.1840137392282486,
++     "length_change": 6,
++     "decoded_matches_intended": true
++    },
++    "DP": {
++     "complete_correct": true,
++     "first_noun_correct": true,
++     "emitted_token_text": " ribb",
++     "emitted_matches_top_read_token": true,
++     "top_read_token_text": " ribb",
++     "entity_rank": 1,
++     "entity_share": 0.5388010160857769,
++     "no_read_mass": 0.13822831213474274,
++     "length_change": 5,
++     "decoded_matches_intended": true
++    }
++   }
++  },
++  "morphology": {
++   "story-source-edit-00|edited": {
++    "A": {
++     "complete_correct": false,
++     "first_noun_correct": false,
++     "emitted_token_text": " pear",
++     "emitted_matches_top_read_token": true,
++     "top_read_token_text": " pear",
++     "entity_rank": 1,
++     "entity_share": 0.793558229508063,
++     "no_read_mass": 0.08326881378889084,
++     "length_change": 0,
++     "decoded_matches_intended": true
++    },
++    "B": {
++     "complete_correct": false,
++     "first_noun_correct": false,
++     "emitted_token_text": "s",
++     "emitted_matches_top_read_token": false,
++     "top_read_token_text": " into",
++     "entity_rank": 2,
++     "entity_share": 0.11011993863048403,
++     "no_read_mass": 0.9930534958839417,
++     "length_change": 0,
++     "decoded_matches_intended": true
++    },
++    "C": {
++     "complete_correct": false,
++     "first_noun_correct": false,
++     "emitted_token_text": ".",
++     "emitted_matches_top_read_token": false,
++     "top_read_token_text": " into",
++     "entity_rank": 2,
++     "entity_share": 0.16747902202495882,
++     "no_read_mass": 0.9861393570899963,
++     "length_change": 0,
++     "decoded_matches_intended": true
++    },
++    "D": {
++     "complete_correct": false,
++     "first_noun_correct": false,
++     "emitted_token_text": " pear",
++     "emitted_matches_top_read_token": true,
++     "top_read_token_text": " pear",
++     "entity_rank": 1,
++     "entity_share": 0.9120219810897959,
++     "no_read_mass": 0.04784538224339485,
++     "length_change": 5,
++     "decoded_matches_intended": true
++    },
++    "DP": {
++     "complete_correct": false,
++     "first_noun_correct": false,
++     "emitted_token_text": " carrot",
++     "emitted_matches_top_read_token": true,
++     "top_read_token_text": " carrot",
++     "entity_rank": 2,
++     "entity_share": 0.29311758381846614,
++     "no_read_mass": 0.03677250072360039,
++     "length_change": 5,
++     "decoded_matches_intended": true
++    }
++   }
++  }
++ },
++ "predeclared_outcome": {
++  "value": "MIXED",
++  "reason": "Clause 1 of READ_ACCESS_LIMITED failed (entity share <5% with rank>5 in 0 of 5 rows; the entity was present at rank 2-3 with 16-32% share). Clause 3 failed (condition D raised the entity share/rank in 5 of 5, but the matched control D-prime also did so in 5 of 5; the entity-share metric is non-discriminative). STATE_EMISSION failed (D changed the verdict in 5 of 5). The rule therefore returns MIXED per the frozen thresholds; it is not relaxed."
++ },
++ "post_hoc_refinement": {
++  "label": "POST-HOC_NOT_THE_PREDECLARED_VERDICT",
++  "signature": "READ_RANKING: in the five condition-A distractor rows the emitted token equals the read top-1 token (5/5) (emitted \" clouds\"); the correct entity is present in the read at rank 2-3 with 16-32% share; the entity-specific near-query mention (D) yields 5/5 complete with the entity at rank 1-2 (share 0.39-0.64), while the matched non-entity control (D-prime) yields 0/5 and the model emits the inserted control noun (\" carrot\") in 5/5. The emission is a faithful readout of the read ranking; the distractor failures are read-ranking (recency/age prior), not entity absence and not emission.",
++  "extra_phrase_class": "A 0/5, D 3/5, D-prime 4/5: no entity specificity; the clause insertion itself fixes most of this class, which is a termination/structure phenomenon consistent with the earlier termination-weighting INERT result.",
++  "morphology_class": "The single row emits the correct singular noun at rank 1 (share 0.79) but fails the completion; unaffected by every condition. Separate emission/morphology issue.",
++  "aggregation_caveat": "The copy path aggregates per-token read mass into the vocabulary row, so emissions are not per-occurrence top-1 readouts in general; the top-read-equals-emitted identity is asserted only for the five condition-A distractor rows. Counterexample: under D, row 04|edited emitted ` bear` while the top single occurrence was ` clouds`.",
++  "rule_wording_correction": "The frozen READ_ACCESS_LIMITED disjunction was \"entity share >= 15% (or rank <= 3)\"; D share was 39-64% and D-prime share 1.4-4.2%, so the SHARE alone separated, but the disjunction did not because the sparse D-prime read row attained rank 3. The result therefore says the share-or-rank clause is non-discriminative, not the share metric."
++ },
++ "conditions": {
++  "A": "baseline frozen prompt",
++  "B": "entity-final (state/candidate path; entity not readable by construction)",
++  "C": "matched non-entity final control",
++  "D": "near-query entity mention (primary read-access probe)",
++  "DP": "near-query matched non-entity mention (D control)"
++ },
++ "cost": {
++  "in_process_elapsed_seconds": 1.291491958,
++  "note": "Smoke 1 row 0.2 s; full 32 rows x 5 conditions 1.29 s in-process. Charged once with the milestone at delivery."
++ },
++ "limits": {
++  "scope": "Exposed 32-row development panel, one parent, one deterministic greedy policy; no training and no weight change. D makes the entity the most recent noun, so the flip demonstrates recency/ranking sensitivity but does not show that a long-range ranking repair is learnable.",
++  "no_promotion": true,
++  "audit_caveat": "The D intervention changes recency, duplication and local context together; the flip demonstrates ranking sensitivity but not that a long-range ranking repair is learnable, and it is consistent with local clause continuation."
++ },
++ "executed_artifact": {
++  "binary_kind": "cargo example `joint-read-localize` (release)",
++  "binary_sha256": "1c1c589d5f61d560add1f2f86c429aa593fd1688370fc34f7a3c01b6ae86c8a9",
++  "cache_path": "/Volumes/UOR-Workspace/BuildCaches/uor-r4-emission-20260926-1/release/examples/joint-read-localize",
++  "preserved_copy": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/binaries/joint-read-localize-1c1c589d",
++  "embedded_source_commit": "621635926573dfcca6d6a6e3fd462fae6722d8f7",
++  "verified_source_hashes": {
++   "module_sha256": "c0536b14a1a83ebe60b37bd128e26b60fe672dad036230d583eb07b5fcacdab1",
++   "example_sha256": "82c0cf82ecddd5c3e01cf9dfe8c8d92090d94f9ae7f8966fe4ac53c9cbb8fdea",
++   "retained_story_probes_sha256": "0b58b65b647bc217f3b7fea54f26c677f6e3781b72f297f878709a28655c02ca"
++  },
++  "note": "The executed binary is the example, not the crate's lib binary; it was built from the working tree whose two new source files have the verified hashes above (the delivered commits are 62163592 plan, aac22690 instrument, 604b0e16 docs). The example binary is preserved at the recorded path; hashing it reproduces the recorded sha exactly. The lib binary at the shared cache path was separately preserved (1dfea84e) before a rebuild check; it is not the executed artifact."
++ },
++ "attempts": [
++  {
++   "root": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/read-localization-opencode-1",
++   "note": "Superseded first full attempt (earlier binary, before the D/D-prime length flag). Preserved, not deleted; its numbers are identical apart from the flagged length row."
++  },
++  {
++   "root": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/read-localization-smoke-opencode-1",
++   "note": "Superseded first smoke attempt; preserved."
++  }
++ ],
++ "guardrail_notes": {
++  "causality": "The report carries a static `no_future_reads_enforced: true` declaration; causality is enforced by construction (read occurrences are validated against `written_occurrence`) and the `positions_are_causal` helper is unit-tested, but the report does not carry a measured per-row causality flag. Recorded as a declaration, not a measurement.",
++  "mutations": "Condition clause/control strings are tokenized and spliced by token id; each row records `decoded_matches_intended` and `length_change`, and one row (15|edited) is declared length-mismatched between D and D-prime. This differs from a literal \"never re-tokenize a string\" reading of the plan; the per-row decoded-text check is the mitigation."
++ },
++ "audit": {
++  "performed": true,
++  "verdicts": {
++   "baseline_parity": "CONFIRMED (comparator covers all 32 rows and all required fields; spot-checked rows incl. morphology and two distractor rows; retained decision-0 fields present)",
++   "class_counts": "CONFIRMED",
++   "predeclared_MIXED": "CONFIRMED clause-by-clause; rule not relaxed",
++   "post_hoc_READ_RANKING": "CONFIRMED (a-f) with two corrections applied here: restrict \"emitted = read top-1\" to the five condition-A distractor rows, and note the copy path aggregates per-token mass so D-row emissions are not per-occurrence top-1 (counterexample D p4|edited emitted ` bear` while the top single occurrence was ` clouds`)",
++   "identities": "module/example/retained shas verified by the lead; executed example binary preserved"
++  },
++  "most_likely_wrong": "The D/D-prime flip may reflect local recency/bigram copy (the entity becomes the most recent and repeated noun) rather than proving the long-range read ranking is the bottleneck; the instrument cannot separate \"recency prior over the whole read\" from \"continue the local clause\". The predeclared MIXED outcome and the labeled post-hoc signature stand at this scope."
++ },
++ "oracle_rerank": {
++  "spec_source": "Director work unit (Step 1), ROADMAP.md \u00a74.2",
++  "instrument": "opt-in in-memory read-mass intervention (Swap/Focus) in joint_model.rs + examples/joint-oracle-rerank.rs; default None byte-identical; dense Full admission, reads enabled, batch 1 only",
++  "report_root": "/Volumes/UOR-Workspace/uor-r4-lab/opencode-read-localization/oracle-rerank-1",
++  "rows": [
++   "story-source-edit-04|original",
++   "story-source-edit-04|edited",
++   "story-source-edit-08|original",
++   "story-source-edit-12|original",
++   "story-source-edit-12|edited"
++  ],
++  "counts": {
++   "baseline_complete": 0,
++   "S_complete": 5,
++   "C_complete": 0,
++   "O_complete": 5
++  },
++  "frozen_reading": "S >= 4/5 AND C <= 1/5 -> ranking sufficient for this class; S <= 1/5 -> read not the bottleneck; else inconclusive",
++  "outcome": "RANKING_SUFFICIENT",
++  "reported_to": "T1 (Lab 1 Claude) - learned age prior vs content",
++  "guardrails": {
++   "baseline_parity": "PARITY_EXACT on the 5 rows",
++   "intervention_applied_exactly_all": true,
++   "no_read_mass_unchanged": true,
++   "normalization_ok_all": true
++  },
++  "elapsed_seconds": 0.498244709,
++  "limits": "Five authored distractor rows, one parent, greedy, decision 0 only; no follow-up panel per the director."
++ }
++}
+diff --git a/docs/integration/current-state.md b/docs/integration/current-state.md
+index 37f694dea..fe22f25da 100644
+--- a/docs/integration/current-state.md
++++ b/docs/integration/current-state.md
+@@ -917,6 +917,31 @@ separate obligations. One paired seed remains exploratory for geometry claims.
+   re-parameterisation of this score.
+ - **Stop:** this packet is closed. #973 and #820 remain open at their wider scope.
+ 
++### Executed: read-side localization (September 27)
++
++- **Executed** read-only on the frozen step-15,672 quaternion parent from the
++  [predeclared plan](read-localization-plan-2026-09-27.md) and
++  [result](read-localization-result-2026-09-27.md): decision-0 read-mass attribution on
++  the 32-row source panel under five declared conditions (baseline; entity-final;
++  matched final control; near-query entity mention; near-query matched control).
++  Baseline parity with the retained parent is `PARITY_EXACT` on all 32 rows, including
++  decision-0 read fields; the full run is 1.29 s and no weight or serving path changed.
++- **Witnessed result:** the predeclared rule returns **MIXED** (the frozen
++  READ_ACCESS_LIMITED thresholds were not met: the entity was present at read rank 2–3
++  with 16–32% share, and the entity-share metric did not separate the entity mention
++  from its matched control). Post-hoc at the same scope, a clean **READ_RANKING**
++  signature: in 5/5 distractor rows the emitted token equals the read top-1 (` clouds`),
++  the near-query entity mention completes 5/5 while the matched non-entity control
++  completes 0/5 and emits the inserted noun (` carrot`) 5/5. The extra-phrase class is
++  not entity-specific (D 3/5 vs control 4/5), consistent with the termination INERT
++  result; the single morphology row emits the correct noun at rank 1 and fails only the
++  completion.
++- **Decision:** the distractor failures are localized to the read's ranking (learned
++  age/recency prior) rather than entity absence or emission. Recommended bounded
++  successor: an oracle read re-rank intervention (clamp decision-0 mass onto the entity
++  occurrence) to confirm the ranking as the sole bottleneck before any mechanism change.
++  No promotion; the instrument is retained.
++
+ ## Retained result: paired learned-code retention accepted
+ 
+ The [completed fixed-recipe learning](learned-rounding-result-2026-09-25.md)
+diff --git a/docs/integration/read-localization-plan-2026-09-27.md b/docs/integration/read-localization-plan-2026-09-27.md
+new file mode 100644
+index 000000000..52115cdd2
+--- /dev/null
++++ b/docs/integration/read-localization-plan-2026-09-27.md
+@@ -0,0 +1,117 @@
++# Read-side localization: predeclared plan
++
++September 27, 2026 (run 2). References #973 under #820. OpenCode/DeepSeek lab.
++**Status: predeclared design; no compute executed by this document.** Thresholds and
++conditions are frozen before the instrument run.
++
++## Objective
++
++Localize the mainline learner's measured source-answer failures to the read/state/
++emission seams. The decision it must change: which mechanism the next milestone
++implements — read selection, state/update, or emission/morphology. No training, no
++weight change; evaluation-scale only.
++
++## Measured failure context (frozen parent)
++
++Parent `fit-quaternion-6/checkpoint-final` (step 15,672), frozen 32-row source panel,
++deterministic greedy, frozen stop rule. Parent completes 21/32. The 11 failing rows:
++
++| Failure class | Rows | Generated |
++|---|---|---|
++| Distractor noun (wrong entity) | `04\|original`, `04\|edited`, `08\|original`, `12\|original`, `12\|edited` | `clouds.` (5) |
++| Morphology (right entity, wrong inflection) | `00\|edited` | `pears.` (1) |
++| Correct noun then extra phrase | `03\|original`, `07\|original`, `07\|edited`, `11\|edited`, `15\|edited` | e.g. `shoe home.`, `ribbon to his father.` (5) |
++
++**Every distractor failure is a template-0 prompt**, whose distractor noun `clouds`
++occurs *later* than the entity mention (`watched the clouds move across the sky` vs
++`carried her apple into the garden`). The entity always occurs 38–48 words before the
++end. This predicts a recency-weighted read selecting `clouds` over the entity. The
++`pears.` rows are an inflection failure, not a read failure, and are reported separately.
++
++## Read semantics that constrain the design (verified in source)
++
++`JointStep` returns `read_masses` over events written strictly **before** the current
++token (`core_step` reads `0..previous`, then writes the event). At the step that emits
++the first continuation token (the step consuming the final prompt token), the read
++candidates are prompt tokens `0..L-2`; **the final prompt token is not readable**. The
++packet's literal "prompt ends with the entity" therefore makes the entity a
++*state/candidate*-path probe, not a read probe. The design below keeps both, with the
++read probe as the primary endpoint.
++
++## Conditions (all 32 rows, deterministic greedy, frozen stop rule; no weight change)
++
++| # | Condition | Purpose |
++|---|---|---|
++| A | **Baseline** frozen prompt (entity early) | primary read-side evidence |
++| B | **Entity-final** (literal packet mutation: final token replaced by the entity span) | state/candidate path only (entity excluded from read by construction) |
++| C | **Matched non-entity final** (same slot replaced by a concrete non-entity noun) | B control |
++| D | **Near-query entity mention** (insert a short clause containing the entity shortly before the final query, e.g. `…across the sky. Lily saw her pear. When it was time…`), generation target unchanged | primary read-access probe: entity readable near emission |
++| D' | **Near-query non-entity mention** (identical clause with a matched non-entity noun) | D control |
++
++Mutations are built on **token ids**, never by re-tokenizing a string. The entity span is
++found exactly by scanning minimal token windows whose decoded bytes (leading ASCII
++whitespace stripped, preceding byte a word boundary) equal the entity noun; unresolved
++spans exclude the row and are reported. Length changes from mutations are declared
++per row and matched between D and D' where tokenization allows.
++
++## Endpoints (per row and condition)
++
++1. Generation: prompt token ids, generated token ids, decoded response text, stop
++   reason, and the frozen completion/first-noun verdict. Baseline A must reproduce the
++   retained parent verdicts (parity gate).
++2. Read side at decision 0: full read mass row over causally available occurrences
++   (occurrence index, token id, decoded token text, mass), NoRead mass, copy gate,
++   effective copy mass; entity span, entity mass and mass share among non-NoRead mass,
++   entity rank, top-5 events; and (decisively) whether the emitted wrong noun equals the
++   top-read token.
++3. Vocabulary/copy mixture for the entity token and the emitted token (available from
++   the existing read-only trace helpers).
++4. Per-class transition counts across conditions (distractor rows and morphology rows
++   reported separately).
++
++## Predeclared decision rule
++
++Read-side entity share = entity occurrence mass / (1 − NoRead mass).
++
++- **READ_ACCESS_LIMITED** if, among the five distractor rows: the entity share is
++  < 5% with rank > 5 in at least four, AND in at least four the emitted wrong noun equals
++  the top-read token (`clouds`), AND condition D raises the entity share to ≥ 15% (or
++  rank ≤ 3) in at least three while D' does not. → next milestone targets read
++  selection/recency (with a declared position/age feature change, not a score re-fit).
++- **STATE_EMISSION** if the entity share is ≥ 10% or rank ≤ 3 in at least four
++  distractor rows while the output stays wrong, and D/D' do not change the verdict.
++  → next milestone targets the state update / emission mixture.
++- **MIXED** if neither threshold is cleanly met; report exact counts and the rows that
++  break each pattern.
++- **INSTRUMENT_INVALID** if baseline A does not reproduce the retained parent verdicts,
++  spans are unresolved for > 2 rows, or any prompt exceeds the 256 context.
++
++The `pears.` morphology rows and the extra-phrase rows are reported separately and do
++not enter the read-access count.
++
++## Guardrails
++
++- Baseline parity with the retained parent `story-probes.json` verdicts (all 32 rows).
++- The condition-D insertion must not move the final query tokens; the generation target
++  (accepted noun + period) is identical for D and A.
++- Determinism: identical replay of one row; masses + NoRead sum to 1 ± 1e-5; no future
++  reads (occurrences < written).
++- No model-math change. The instrument is a read-only example; any needed additive
++  public helper is default-inert and must not change existing behavior.
++- One model process at a time; check for other labs' running fits before each run.
++
++## Budget
++
++Prospective: instrument implementation and focused checks ≤ 1.0 h; the run (32 rows ×
++5 conditions, ≤32 generated tokens each, prompts ≤ 70 tokens) ≤ 0.2 h of model time;
++analysis, evidence, independent audit, documentation and protected delivery ≤ 1.0 h.
++Total ≤ 2.2 h elapsed; model compute minutes. A prospective ledger extension
++(+12,000,000 ms; limit 756,000,000 ms) was recorded before compute per the standing
++owner authorization. Stop/checkpoint rather than crossing the updated limit; retain the
++128 MiB physical storage stop margin.
++
++## Scope
++
++Exposed development data, one parent, one seed-free deterministic policy.
++This localizes one failure class on this artifact; it does not qualify prose, general
++language, or a mechanism family. No promotion, no weight or serving change.
+diff --git a/docs/integration/read-localization-result-2026-09-27.md b/docs/integration/read-localization-result-2026-09-27.md
+new file mode 100644
+index 000000000..d4efc29bf
+--- /dev/null
++++ b/docs/integration/read-localization-result-2026-09-27.md
+@@ -0,0 +1,153 @@
++# Read-side localization: result
++
++September 27, 2026 (run 2). References #973 under #820. OpenCode/DeepSeek lab.
++**Status: executed; predeclared outcome MIXED, with a post-hoc refined signature
++(READ_RANKING) at the stated scope.** Read-only; no training, no weight change.
++
++Plan and frozen thresholds: [`read-localization-plan-2026-09-27.md`](read-localization-plan-2026-09-27.md).
++Instrument: `crates/uor-r4-training/examples/joint-read-localize.rs` +
++`crates/uor-r4-training/src/read_localize.rs` (registration in `lib.rs`; no other shared
++change). Evidence: [`docs/evidence/read-localization-2026-09-27.json`](../evidence/read-localization-2026-09-27.json).
++
++## What was executed
++
++Frozen parent `fit-quaternion-6/checkpoint-final` (step 15,672), read mode Enabled,
++deterministic greedy with the frozen stop rule, the 32-row source panel under five
++declared conditions: A baseline; B entity-final; C matched non-entity final; D
++near-query entity mention (generation target unchanged); D′ near-query matched
++non-entity mention. Decision-0 read evidence: the full read mass row over causally
++available occurrences with token identity, NoRead mass, copy gate, effective copy mass,
++entity span/mass/share/rank, and the vocabulary/copy mixture.
++
++**Guardrails:** baseline parity `PARITY_EXACT` on all 32 rows (prompt ids, generated
++ids, stop, text, both verdict flags, and decision-0 read fields against the retained
++parent `story-probes.json`); masses normalize in every evaluated row; all reads causal;
++all spans resolved and unambiguous; mutations checked against their intended decoded
++text; one D/D′ row declared length-mismatched (`15|edited`). Full run 1.29 s in-process
++(smoke 0.2 s) — evaluation-scale.
++
++## Result by class (complete answers per condition)
++
++| Class | Rows | A | B | C | D | D′ |
++|---|---|---|---|---|---|---|
++| Distractor copy (`clouds.`) | 5 | 0/5 | 0/5 | 0/5 | **5/5** | 0/5 |
++| Correct noun + extra phrase | 5 | 0/5 | 0/5 | 0/5 | 3/5 | 4/5 |
++| Morphology (`pears.`) | 1 | 0/1 | 0/1 | 0/1 | 0/1 | 0/1 |
++
++## Predeclared outcome: MIXED
++
++The frozen READ_ACCESS_LIMITED clause requiring the entity share < 5% with rank > 5 in
++at least four distractor rows **failed** (0 of 5: the entity was present at rank 2–3
++with 16–32% share). Its third clause also failed: condition D raised the entity
++share/rank in 5 of 5, but the matched control D′ did so in 5 of 5, so the frozen
++**share-or-rank** disjunction is non-discriminative — the entity *share* alone did
++separate (D 39–64% vs D′ 1.4–4.2%), but the disjunction also accepted rank ≤ 3 and the
++sparse D′ read row attained rank 3. STATE_EMISSION failed because D changed the verdict
++in 5 of 5. Per the frozen rule the outcome is **MIXED**; the rule is not relaxed.
++
++## Post-hoc refined signature (not the predeclared verdict)
++
++In the five condition-A distractor rows the emitted token equals the **read top-1 token**
++(` clouds`), while the correct entity is a readable event at rank 2–3 (share
++0.16–0.32). Adding a near-query **entity** mention (D) moves the entity to rank 1–2
++(share 0.39–0.64) and completes 5/5; adding a matched **non-entity** mention (D′) makes
++the model emit the inserted noun (` carrot`) in 5/5. At this scope the distractor
++failures are consistent with a **read-ranking** effect (the learned age/recency prior
++prefers the later `clouds` occurrence over the correct entity 50–70 tokens back), not
++entity absence. Two qualifications from the independent audit are carried here: the
++top-read-equals-emitted identity is asserted only for the five condition-A distractor
++rows, because the copy path aggregates per-token read mass into the vocabulary row so
++emissions are not per-occurrence top-1 readouts in general (counterexample: under D, row
++`04|edited` emits ` bear` while the top single occurrence is ` clouds`); and D changes
++recency, duplication and local context together, so the flip shows ranking sensitivity
++but is also consistent with continuing the locally inserted clause.
++
++Two further observations bound this: the extra-phrase class is **not** entity-specific
++(D 3/5 vs D′ 4/5), consistent with the earlier termination-weighting INERT result; and
++the single morphology row emits the correct singular noun at rank 1 yet fails the
++completion, so it is a separate emission/morphology issue.
++
++## Decision and next step
++
++Instrument retained; nothing promoted. The decision-relevant finding is the read-ranking
++signature for the distractor class, with the caveat that D makes the entity the most
++recent noun, so the flip demonstrates recency/ranking sensitivity but not that a
++long-range ranking repair is learnable. Recommended successor (bounded,
++evaluation-scale): an **oracle read re-rank intervention** — clamp the decision-0 read
++mass onto the entity occurrence and check whether the distractor rows flip — which would
++causally confirm the read ranking as the sole bottleneck before any mechanism change.
++
++## Instrument and artifact notes (independent audit)
++
++- **Executed artifact:** the `joint-read-localize` release example, sha256
++  `1c1c589d5f61d560add1f2f86c429aa593fd1688370fc34f7a3c01b6ae86c8a9`, preserved in the
++  model store `binaries/`; the module and example source hashes recorded in the report
++  match the delivered files, and the retained `story-probes.json` sha
++  (`0b58b65b…`) was verified. The executed binary's embedded source commit is the plan
++  commit; the delivered commits are plan `62163592`, instrument `aac22690`, docs
++  `604b0e16`.
++- **Mutation construction:** the condition clauses are tokenized and spliced by token
++  id; each row records `decoded_matches_intended` and `length_change`, and one row
++  (`15|edited`) is declared length-mismatched between D and D′. This is a declared
++  divergence from the plan's literal "never re-tokenize" wording, mitigated by the
++  per-row decoded-text check.
++- **Causality guardrail:** the report carries a static `no_future_reads_enforced`
++  declaration; causality is enforced by construction (read occurrences are validated
++  against `written_occurrence`) and the `positions_are_causal` helper is unit-tested, but
++  the report does not carry a measured per-row flag. Recorded as a declaration.
++- **Superseded attempts preserved:** `read-localization-opencode-1` and
++  `read-localization-smoke-opencode-1` (earlier binary, before the D/D′ length flag).
++- **Audit verdicts:** baseline parity, class counts and the MIXED adjudication
++  CONFIRMED; the post-hoc signature CONFIRMED with the two corrections above. Most
++  likely way this evidence could be wrong: the D/D′ flip may reflect local recency/
++  bigram copy rather than proving the long-range read ranking is the bottleneck.
++
++## Limits
++
++Exposed 32-row development panel, one parent, one deterministic policy; no fresh
++holdout, no training, no weight or serving change. The predeclared rule returned MIXED;
++the READ_RANKING signature is a post-hoc refinement at this exact scope. D makes the
++entity the most recent and repeated noun, so the flip demonstrates ranking sensitivity
++but not that a long-range ranking repair is learnable, and it is also consistent with
++local clause continuation. It does not qualify general language or a mechanism family.
++
++## Cost
++
++Instrument implementation, focused checks, smoke and full run are charged once with the
++milestone at delivery; the run itself is 1.29 s of model time. A prospective ledger
++extension (+12,000,000 ms; limit 756,000,000 ms) was recorded before compute under the
++standing owner authorization.
++
++## Addendum: oracle read re-rank (director's Step 1, executed)
++
++Read-only, decision-0-only intervention on the same parent, greedy, the five condition-A
++distractor rows. Implemented as an opt-in, in-memory, never-serialized read-mass
++intervention (`Swap` / `Focus`) in `joint_model.rs` — default `None` is byte-identical;
++dense Full admission, reads enabled, batch 1 only, else the step errors — plus
++`examples/joint-oracle-rerank.rs`. Baseline parity with the retained panel is exact on the
++five rows; the run is 0.50 s.
++
++Arms: **S** = swap the entity occurrence's read mass with the top-1 distractor's;
++**C** = swap the top-1 distractor's mass with a matched non-entity occurrence
++(`n` minimises `|rank(n)-rank(e)| + |age(n)-age(e)|`, ties to the lower occurrence);
++**O** = put all non-NoRead read mass on the entity.
++
++| Arm | Complete |
++|---|---|
++| baseline | 0/5 |
++| **S** (entity <-> top-1 distractor) | **5/5** |
++| C (matched non-entity control) | 0/5 (`garden.`) |
++| O (entity only, upper bound) | 5/5 |
++
++The per-row before/after masses prove each intervention applied to exactly the intended
++columns (`intervention_applied_exactly` true). Example, row `12|edited`: under S the
++entity `bag` goes 0.1496 -> 0.3924 and `clouds` 0.3924 -> 0.1496, and the model emits
++`bag.`; under C the top mass moves to `garden` (0.0187) and the model emits `garden.`.
++
++**Frozen reading (director), applied: S >= 4/5 and C <= 1/5 -> the read ranking is
++sufficient for this class.** The bottleneck is *which* event the read ranks first — not
++entity absence and not emission. **Reported to T1** (learned age prior vs content): the
++learned age/recency prior outranks a correct, content-relevant occurrence 38-54 tokens
++back, so a ranking/age-prior change is the mechanism to test; another read-score family
++is not indicated (Lorentz/affine and the signed-2I score are dead/parked). Scope: five
++authored distractor rows, one parent, greedy, decision 0 only. No follow-up panel.
