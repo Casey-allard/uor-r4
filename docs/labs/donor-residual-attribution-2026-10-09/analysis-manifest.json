@@ -1,0 +1,22 @@
+{
+  "files": [
+    {
+      "blake3": "c4233b603bd06a1d1775e3e7d96184af76fda5f77138d73df35ea30221afadb6",
+      "bytes": 438,
+      "path": "attempt.json"
+    },
+    {
+      "blake3": "b89e33f707d06f08e4eabd7665ea65a41f1534ed1e326a6dac777c3501ab590a",
+      "bytes": 1133,
+      "path": "execution.json"
+    },
+    {
+      "blake3": "23a8d8c3dbcb78590046291f2d57af5139eff92ed890d1c4d0fe8a03908324f4",
+      "bytes": 467576,
+      "path": "report.json"
+    }
+  ],
+  "root": "/Users/casey.allard/.codex/worktrees/donor-residual-attribution/uor-r4/local/attribution-attempt1",
+  "schema": "uor-r4.report-manifest/1",
+  "sealed_at": "1791571297"
+}

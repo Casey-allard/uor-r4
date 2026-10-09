@@ -1,0 +1,33 @@
+   Compiling find-msvc-tools v0.1.14
+   Compiling shlex v2.0.1
+   Compiling cc v1.6.0
+   Compiling serde_core v1.0.229
+   Compiling zmij v1.0.23
+   Compiling serde_json v1.0.151
+   Compiling blake3 v1.5.0
+   Compiling itoa v1.0.18
+   Compiling memchr v2.8.3
+   Compiling cfg-if v1.0.5
+   Compiling arrayvec v0.7.8
+   Compiling constant_time_eq v0.3.1
+   Compiling arrayref v0.3.9
+   Compiling pair-attribution-report-tool v0.1.0 (/Users/casey.allard/.codex/worktrees/donor-residual-attribution/uor-r4/docs/labs/pair-proposal-attribution-2026-10-09/report-tool)
+    Finished `release` profile [optimized] target(s) in 12.40s
+       12.51 real        13.48 user         1.99 sys
+           279724032  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+              256204  page reclaims
+                5101  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                  30  signals received
+                1312  voluntary context switches
+               38916  involuntary context switches
+           613756109  instructions retired
+           420024923  cycles elapsed
+            11731592  peak memory footprint

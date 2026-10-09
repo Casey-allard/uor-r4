@@ -1,0 +1,14 @@
+{
+  "status": "PASS_BUILD_AND_INPUT_VERIFICATION",
+  "report_tool": "docs/labs/pair-proposal-attribution-2026-10-09/report-tool",
+  "source_module": "crates/uor-r4-integer/src/report_output.rs",
+  "module_sha256": "cda30f9ba4ef8ff3e245ae352cd28932f9a24ab78598f683607e6996598fa810",
+  "binary_sha256": "79e8370646462717a5fd94f6e868383baca90ed491fc583646bb93d187cea0de",
+  "binary_matches_previous_validated_build": true,
+  "prior_boundary_tests": "docs/labs/pair-proposal-attribution-2026-10-09/report-tool-tests.log:2passed;unchangedmoduleandidenticalbinary",
+  "fresh_build_seconds": 12.51,
+  "input_model_observation_audit_verified": true,
+  "wrapper_sha256": "50e5823303d5885e59a7d18b499b1c711d5c8a330d4679b24d519383efe3b8fb",
+  "wrapper_review": "Status interface corrected before first execution; exact scoped PASS_SAVED_ATTRIBUTION required",
+  "new_model_work": "NOT_RUN"
+}

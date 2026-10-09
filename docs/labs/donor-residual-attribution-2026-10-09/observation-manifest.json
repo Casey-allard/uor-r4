@@ -1,0 +1,37 @@
+{
+  "files": [
+    {
+      "blake3": "2ee4a8728944e96f8a840f0cc285205c2262c07cda61a515a6bcb6262602dc5c",
+      "bytes": 438,
+      "path": "attempt.json"
+    },
+    {
+      "blake3": "3ee9b22136ce776769a125089bd12fa7684bef5dcda33234b7386a6ba815ad0a",
+      "bytes": 268,
+      "path": "execution.json"
+    },
+    {
+      "blake3": "fdbf2d20d1e53415f347b231c7704b1ad0f64c034a32e183f69ba1a868ad8573",
+      "bytes": 505,
+      "path": "input-verification.json"
+    },
+    {
+      "blake3": "144187f841171f45d42db378093ce1645ecad23fc0634f868ea19fa51b7fd97b",
+      "bytes": 1020,
+      "path": "launch.json"
+    },
+    {
+      "blake3": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+      "bytes": 0,
+      "path": "stderr.log"
+    },
+    {
+      "blake3": "92d170157f40b9e05b54a8efcc1112b56487c830ca318c13769379d0d4d739f6",
+      "bytes": 1071,
+      "path": "stdout.log"
+    }
+  ],
+  "root": "/Users/casey.allard/.codex/worktrees/donor-residual-attribution/uor-r4/local/observation-attempt1",
+  "schema": "uor-r4.report-manifest/1",
+  "sealed_at": "1791571297"
+}

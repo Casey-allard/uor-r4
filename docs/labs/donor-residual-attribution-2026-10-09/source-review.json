@@ -1,0 +1,12 @@
+{
+  "status": "PASS_SOURCE_ONLY",
+  "reader_sha256": "e4b52faf10e6ef316f3be9c799650907a0fdebd6da9e23653280396af17c2533",
+  "wrapper_sha256": "50e5823303d5885e59a7d18b499b1c711d5c8a330d4679b24d519383efe3b8fb",
+  "reviewers": [
+    "emission_math",
+    "emission_adversarial"
+  ],
+  "scope": "Role/physical mapping, incumbent epochs, exact CE/reference predicate, checked first-veto guards, feasible min-CE signed-code tie, committed gains/losses, final native snapshot join",
+  "correction": "Before first execution, wrapper PASS expectation corrected to scoped PASS_SAVED_ATTRIBUTION",
+  "limits": "Source and saved-schema review; not score reconstruction or new model evidence"
+}

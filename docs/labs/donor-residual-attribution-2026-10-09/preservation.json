@@ -1,0 +1,13 @@
+{
+  "status": "PASS_FRESH_DOWNLOAD_AND_ALL_MEMBERS",
+  "package": "codex-donor-residual-attribution-20261009",
+  "remote": "icloud:UOR-R4/results/codex/codex-donor-residual-attribution-20261009.tar",
+  "archive_bytes": 1180672,
+  "archive_md5": "96b7e669856a6b0506b70087ce97d529",
+  "indexed": true,
+  "files": 20,
+  "logical_bytes": 1107004,
+  "normative_roundtrip_roots_verified": true,
+  "inventory_sha256": "9af8ca8cc58e87691b874bc62c0cad1f69b5d097a0d9c3d34071cb81619b4bcd",
+  "parent_package": "codex-full-donor-outcome-20261009"
+}

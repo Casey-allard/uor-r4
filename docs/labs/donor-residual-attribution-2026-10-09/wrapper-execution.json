@@ -1,0 +1,9 @@
+{
+  "status": "PASS",
+  "exit_code": 0,
+  "error": null,
+  "started_utc": "2026-10-09T18:41:32.543276+00:00",
+  "seconds": 4.74759825,
+  "children_max_rss_bytes_macos": 368197632,
+  "reader_sha256": "e4b52faf10e6ef316f3be9c799650907a0fdebd6da9e23653280396af17c2533"
+}

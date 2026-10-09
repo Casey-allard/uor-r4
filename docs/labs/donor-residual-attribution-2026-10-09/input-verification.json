@@ -1,0 +1,17 @@
+[
+  {
+    "root": "runs/full-donor-0001-attempt1",
+    "manifest_sha256": "9c19b82392b9e8f2263257992bf321ef5ed939e3b6e7788b783aa21328e45726",
+    "exit_code": 0
+  },
+  {
+    "root": "observations/full-donor-0001-attempt1",
+    "manifest_sha256": "5f1517923947fc3bd7b4feeaa27a49300cf1730bbfeecb4c4cc618617df61e7d",
+    "exit_code": 0
+  },
+  {
+    "root": "audits/full-donor-0001-attempt1",
+    "manifest_sha256": "1962d637e96a19dd945639bb7ae46079d7188d46ec2c7f041bdca10ac6bbb91f",
+    "exit_code": 0
+  }
+]

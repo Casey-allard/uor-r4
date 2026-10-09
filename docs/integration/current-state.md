@@ -40,6 +40,14 @@ mechanism buys nothing here. The active M1 piece (v4 memory panel at the 214M ba
 
 # Current UOR-R4 research state
 
+## Corrected constructor attribution: five residuals have no offered winner; EOS has measured rejections — October 9
+
+The [saved journal attribution](../labs/donor-residual-attribution-2026-10-09/README.md) authenticates the complete #2069 outcome and checks all 14,292 actual-epoch alternatives / 1,920 coordinates / 956 commits. Positions 7, 8, 9, 10 and 13 have zero target-winning alternatives. EOS position 14 has 33: 26 fail combined-CE descent while preserving references; seven codes of Generate coordinate 937 pass that objective but first veto on the same guard 299 (2997→336), with 80 later guards unexamined. None is feasible unselected, selected, or subsequently lost. One fully feasible offered alternative reaches at most 9/15; this is not a coordinated-update feasibility bound. All six target probabilities improve without final winner crossings.
+
+This is saved-observation attribution, not new model/gradient/score execution. The candidate remains unselected, accepted **8/512** and conditional **9/15** remain unchanged. No guard relaxation or unchanged fit follows from this result. The one sealed analysis passes; no pod or paid compute was used.
+
+**Next:** After protected delivery and cleanup, decompose the already-saved final native pool at the earliest residual (position 7, target 324 versus winner 307): all target/rival Copy aliases, Generate and frozen U contributions, clipping/reference and integer atom weights, joined to Prefix/Generate feature incidence and physical donor/post-state. Distinguish weak target mass, rival alias dominance and shared lookup dependencies before choosing a generic credit, transaction or representation change. Positive target mass is not missing token support. Retain EOS’s separate guard conflict; no unchanged fit, guard weakening or answer-specific exception.
+
 ## DeepSeek's VSA "inert" result re-scoped: valid only for a frozen artifact; retraining test pre-registered — October 9
 
 An [independent review](../labs/vsa-review-2026-10-09/README.md) of the four 8 October VSA measurements finds:
@@ -59,7 +67,9 @@ The [original-parent run](../labs/full-donor-run-2026-10-09/README.md) executes 
 
 The saved comparison passes: every factual Generate gradient is bitwise identical to legacy, while Prefix credit and the frozen ranking change (104 aggregate sign reversals; first960 overlap909). At all six residual original frames, none of the enumerated forced donors yields a correct pooled winner with factual Copy and original Generate/U fixed. This does not prove final feasibility or the cause of the negative. Source/build checks, setup failures, complete runtime/negative evidence and scoped reviews are retained in the record; saved arithmetic is not independent backward replication.
 
-**Next:** after protected delivery and cleanup, inspect the new saved constructor journal for residual target-winning alternatives at their actual incumbent epochs. Distinguish objective/reference rejection, protected-pool veto and later loss before selecting another mechanism or transaction change. No unchanged fit, larger sweep, candidate composition or weakened guard.
+**Follow-up completed:** [saved residual attribution](../labs/donor-residual-attribution-2026-10-09/README.md) answers this question; the original prospective next step is retained below.
+
+**Next (historical):** after protected delivery and cleanup, inspect the new saved constructor journal for residual target-winning alternatives at their actual incumbent epochs. Distinguish objective/reference rejection, protected-pool veto and later loss before selecting another mechanism or transaction change. No unchanged fit, larger sweep, candidate composition or weakened guard.
 
 ## 2026-10-09 — Answer-span supervision: the training lever's target population is empty on the recorded corpus (deepseek, #2029)
 

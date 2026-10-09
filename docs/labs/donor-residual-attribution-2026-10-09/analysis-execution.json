@@ -1,0 +1,22 @@
+{
+  "status": "PASS",
+  "argv": [
+    "/Users/casey.allard/.codex/worktrees/donor-residual-attribution/uor-r4/docs/labs/donor-residual-attribution-2026-10-09/analyze.py",
+    "--run",
+    "/Users/casey.allard/.codex/worktrees/donor-residual-attribution/uor-r4/local/recovered/evidence/runs/full-donor-0001-attempt1",
+    "--identity",
+    "/Users/casey.allard/.codex/worktrees/donor-residual-attribution/uor-r4/local/recovered/codex-full-donor-outcome-20261009/publication-full-donor-0001-attempt1/identity.json",
+    "--evidence",
+    "/Users/casey.allard/.codex/worktrees/donor-residual-attribution/uor-r4/local/recovered/evidence",
+    "--output",
+    "/Users/casey.allard/.codex/worktrees/donor-residual-attribution/uor-r4/local/attribution-attempt1"
+  ],
+  "script_sha256": "e4b52faf10e6ef316f3be9c799650907a0fdebd6da9e23653280396af17c2533",
+  "report_sha256": "ce0a6b90d80671a68350f77385586f40867995032097cc256afa1c733dd31551",
+  "elapsed_seconds": 3.516325958,
+  "peak_rss_bytes": 368197632,
+  "new_model_calls": 0,
+  "new_gradients": 0,
+  "new_scores_or_proposals": 0,
+  "seal_and_normative_verification": "PENDING_PARENT"
+}

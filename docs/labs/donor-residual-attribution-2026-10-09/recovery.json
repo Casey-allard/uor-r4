@@ -1,0 +1,29 @@
+{
+  "status": "PASS",
+  "archive_sha256": "38bd9de53ea64a96e41a268b9aa0f96968c6dfae7c19fe615d950e6f6871c09d",
+  "identity_sha256": "a687437f618815bac8a6e482dfcc62630e6b6878ced8eb2ceda0f4b75ed46afa",
+  "icloud_md5": "c2b23178e023832f765192212caf2a2a",
+  "files": 608,
+  "logical_bytes": 372002006,
+  "all_members_hash_verified": true,
+  "verifier_binary_sha256": "79e8370646462717a5fd94f6e868383baca90ed491fc583646bb93d187cea0de",
+  "module_sha256": "cda30f9ba4ef8ff3e245ae352cd28932f9a24ab78598f683607e6996598fa810",
+  "roots": [
+    {
+      "root": "runs/full-donor-0001-attempt1",
+      "manifest_sha256": "9c19b82392b9e8f2263257992bf321ef5ed939e3b6e7788b783aa21328e45726",
+      "normative_verify_exit": 0
+    },
+    {
+      "root": "observations/full-donor-0001-attempt1",
+      "manifest_sha256": "5f1517923947fc3bd7b4feeaa27a49300cf1730bbfeecb4c4cc618617df61e7d",
+      "normative_verify_exit": 0
+    },
+    {
+      "root": "audits/full-donor-0001-attempt1",
+      "manifest_sha256": "1962d637e96a19dd945639bb7ae46079d7188d46ec2c7f041bdca10ac6bbb91f",
+      "normative_verify_exit": 0
+    }
+  ],
+  "seconds": 2.662169291
+}

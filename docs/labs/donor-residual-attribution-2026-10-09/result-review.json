@@ -1,0 +1,10 @@
+{
+  "status": "PASS_SAVED_RESULT_REVIEW",
+  "report_sha256": "ce0a6b90d80671a68350f77385586f40867995032097cc256afa1c733dd31551",
+  "reviewers": [
+    "emission_math",
+    "emission_adversarial"
+  ],
+  "scope": "Saved 14292 alternatives, six residuals, EOS same-coordinate guard conflict, no selected crossings, no composed feasibility claim",
+  "next": "Saved earliest-residual pooled competition and feature-incidence decomposition; EOS conflict separate; no model rerun"
+}
