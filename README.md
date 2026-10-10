@@ -35,7 +35,7 @@ model.
 | Milestone | Issue | Status | Latest result |
 | --- | --- | --- | --- |
 | M1 Language base | [#2029](https://github.com/UOR-Foundation/uor-r4/issues/2029) | in progress | 214M base dev NLL 2.073; 19.9M chat stack 0.933 BPB served at 64 windows (0.877550 float / 0.886838 served matched at 512 windows — [protocol-dependent](docs/labs/criterion2-protocol-pin-2026-10-09/README.md)) |
-| M2 Grounded reply from exact memory | [#2030](https://github.com/UOR-Foundation/uor-r4/issues/2030) | in progress | 177/512 complete replies; target 256; nine gains and seven losses versus saved 175 |
+| M2 Grounded reply from exact memory | [#2030](https://github.com/UOR-Foundation/uor-r4/issues/2030) | in progress | 437/512 complete replies; development target 256 passed; fresh ≥40% qualification NOT_RUN |
 | M3 Durable conversation memory | [#2031](https://github.com/UOR-Foundation/uor-r4/issues/2031) | in progress | Evaluator and session delivered (#1568, #1578); not qualified |
 | M4 One served model (D11 and CLI) | [#2032](https://github.com/UOR-Foundation/uor-r4/issues/2032) | in progress | D11 engine bit-exact; `uor-chat --stack` serves the stack (#2050, 9 Oct) |
 | M5 Laptop cost (D5) | [#2033](https://github.com/UOR-Foundation/uor-r4/issues/2033) | not started | No M1 energy measurement yet |
@@ -150,17 +150,23 @@ lower teacher-prefix loss. Both candidates remain rejected. This does not establ
 that the native model family cannot fit the task. Context, Generate prototypes,
 bridge, Cue and Prefix were fixed in these two interventions.
 
-The learned [cross-state continuation field](docs/labs/m2-bottleneck-resume-2026-10-10/README.md)
-now completes **177/512 replies**, up from its saved175 parent: nine gains,
-seven losses and168 retained successes. Six of the original eight remain. It jointly
-reads the factual post-bridge state and independently replayed query/reply-prefix
-state. Only its115,200 Q4 coefficients learn; the upstream parent stays frozen.
-The episode log-mean-exp objective emphasizes difficult answer tokens, including EOS.
-Four additional full-panel passes with fresh Adam moments produced this saved native
-endpoint, graded under its own prefixes. Entry correctness falls340→298/512,
-teacher-prefix correct tokens3523→3304/6664 and complete swap pairs35→32;
-mean evaluation CE improves3.48474→3.20687. These are exposed-development results
-below the256/512 target; length8 reaches11/128 and fresh-panel transfer is untested.
+The learned [cross-state continuation field](docs/labs/m2-pooled-rank-2026-10-10/README.md)
+now completes **437/512 replies**, up from saved177: 260 gains, no losses and all
+177 parent successes retained. It jointly reads the factual post-bridge state
+and independently replayed query/reply-prefix state. Only its 115,200 Q4
+coefficients learn; the upstream parent and native scorer stay frozen. Training
+now compares the canonical target with the strongest wrong native pooled token,
+including all Generate/Copy aliases, and retains the episode log-mean-exp
+aggregation over answer tokens and EOS. Four full-panel passes with fresh Adam
+moments produced the saved native endpoint, graded under its own prefixes.
+Entry correctness reaches 507/512, teacher-prefix correct tokens 6,491/6,664 and
+complete swap pairs 186; every prior success in all 11 saved comparators is
+retained. This passes the **256/512 development threshold**, on the same exposed
+panel used for training, with 75 failures and length8 at 90/128. M2 remains
+in progress: its subsequent **fresh-draw ≥40% qualification is NOT_RUN**.
+After delivery and cleanup, freeze fresh criteria and draw/score saved437
+without further training; this result establishes no general-chat, geometric
+advantage or full-path energy claim.
 
 **Models trained**
 
@@ -226,7 +232,7 @@ Every row holds at its exact artifact, data, operator and budget.
 | Sealed 8M stack | 1.1199 BPB | Sealed report; Kneser-Ney 5-gram 1.2803 BPB |
 | 214M Plan A base | FineWeb dev NLL 2.90 to 2.073 | Open development split; rewrite and summarize usable, code and math wrong |
 | v4 memory panel (frozen `exact` check pass) | 31/40 at 214M, 26/40 at 96M | 40 memory rows of `conversational-v4*`; Step 7d fine-tunes, one seed; chat-grade `acceptable` is 27/40 at 214M |
-| Native grounded learner | **177/512 complete replies**, up from175; nine gained, seven lost,168 retained | [Saved bottleneck continuation](docs/labs/m2-bottleneck-resume-2026-10-10/README.md), frozen exposed 512-episode panel; fresh-draw qualification not run |
+| Native grounded learner | **437/512 complete replies**, up from177; 260 gained, none lost, 177 retained | [Native pooled-token ranking](docs/labs/m2-pooled-rank-2026-10-10/README.md), frozen exposed 512-episode panel; development threshold 256 passed, fresh ≥40% qualification NOT_RUN |
 | D11 serving engine | Bit-exact with the float path | NLL equal on 3,072 targets |
 | MQAR toy (1.37M) | 0.99919 in-class vs 0.2534 control | Synthetic task; advantage confined to a learning-rate band |
 

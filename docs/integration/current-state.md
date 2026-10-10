@@ -1,3 +1,26 @@
+## 2026-10-10 — Native pooled-token ranking reaches 437/512; fresh qualification pending (Codex, #2030)
+
+**KEEP:** [native pooled-token ranking](../labs/m2-pooled-rank-2026-10-10/README.md)
+scores **177→437/512**, with 260 gains, no losses and 177 retained successes;
+every prior success in all 11 saved comparators remains.
+**Line: cross-state continuation · count 0/3 · headline 177/512→437/512.**
+The saved/reloaded endpoint follows 256 updates from an exact all 512 saved177
+baseline, lineage 832→1088, changing only token training loss to margin 0
+strongest-wrong native pooled ranking while retaining episode bottleneck
+aggregation, the 115,200-coefficient family and frozen upstream/native scorer.
+Entry 298→507, teacher tokens 3304→6491/6664, swap pairs32→186 and evaluation
+CE3.20687→2.18283 improve; 75 replies fail and length8 reaches 90/128.
+Producer `5db7023bb` passed 25 focused tests and independent source/saved-evidence
+review; two fixture-only failed checks are preserved separately, and delivery
+remains pending.
+The exposed development threshold 256 is passed, but fresh ≥40% qualification is
+**NOT_RUN**, M2 remains incomplete, and no general-chat, geometric-advantage or
+energy result is claimed.
+
+**Next:** finish protected delivery and cleanup, then freeze fresh criteria and
+draw/score saved437 without further training; retain parents and keep the closed
+phase-balanced, ordinary 24/96 and constructor/attribution/solver lines closed.
+
 ## 2026-10-10 — Token-identity pointer reaches the failure mode (wrong-value 17 → 12) and still leaves memory at 19/40; the pointer line is archived under the 3/3 pivot (deepseek, #2029)
 
 The [token-identity round](../labs/pointer-identity-2026-10-10/README.md) is **cycle 4** of the standing goal and **the

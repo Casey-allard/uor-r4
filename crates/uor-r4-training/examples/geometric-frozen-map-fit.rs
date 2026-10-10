@@ -523,6 +523,8 @@ struct Args {
     #[serde(default)]
     cross_state_bottleneck: bool,
     #[serde(default)]
+    cross_state_pooled_rank: bool,
+    #[serde(default)]
     joint_continuation: Option<JointContinuationConfig>,
     #[serde(default)]
     reference_replay: Option<ReferenceReplayConfig>,
@@ -4907,7 +4909,7 @@ fn continuation_checkpoint(
         "native_independently_reloaded":true,"masters_independently_reloaded":true,
         "upstream_training":"all Context/Source/Potential/Generate/prototype/bridge/cue/prefix frozen; no old Vars loaded",
         "fresh_adam":"zero moments; not optimizer-state continuation",
-        "cross_state_bottleneck":a.cross_state_bottleneck,"training_objective":cross_state_completion::objective_policy(a)});
+        "pooled_rank_policy":cross_state_completion::rank_policy(a),"cross_state_pooled_rank":a.cross_state_pooled_rank,"cross_state_bottleneck":a.cross_state_bottleneck,"training_objective":cross_state_completion::objective_policy(a)});
     fs::write(
         root.join("continuation-source/metadata.json"),
         serde_json::to_vec_pretty(&receipt)?,
@@ -6180,7 +6182,7 @@ fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
         "active_parameter_names":params.keys().collect::<Vec<_>>(),"shared_coefficients":expected_coefficients,"learning_rate":c.learning_rate,
         "continuation_policy":zero.metadata().policy,"continuation_score_shift":zero.metadata().score_shift,
         "continuation_action_support":"same token energy on Generate and every physical Copy before the sole common clip",
-        "phase_policy":if a.cross_state_bottleneck {"none;all-target-token-logmeanexp"} else {loss_weight_policy(true,LossScope::All)},"training_objective":cross_state_completion::objective_policy(a),"loss_scope":"all","credit":a.credit.name(),"fresh_adam":true,"cross_state_bottleneck":a.cross_state_bottleneck,
+        "phase_policy":cross_state_completion::phase_policy(a),"training_objective":cross_state_completion::objective_policy(a),"loss_scope":"all","credit":a.credit.name(),"fresh_adam":true,"pooled_rank_policy":cross_state_completion::rank_policy(a),"cross_state_pooled_rank":a.cross_state_pooled_rank,"cross_state_bottleneck":a.cross_state_bottleneck,
         "cross_state_resume":resume.as_ref().map(|r|&r.provenance),
         "local_updates":a.updates,"prior_updates":resume.as_ref().map_or(0, |r| r.profile.lineage_step),
         "final_lineage_step":resume.as_ref().map_or(a.updates, |r| r.profile.lineage_after(a.updates)),
@@ -6311,7 +6313,11 @@ fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
                 deadline(a, start)?;
                 let out = position.forward_coefficients_only(&weights, &prepared)?;
                 // The whole target-free pool is constructed before this label.
-                let token_loss = out.loss_with_credit(target, a.credit.policy())?;
+                let token_loss = if a.cross_state_pooled_rank {
+                    cross_state_completion::pooled_rank_loss(&out, target)?
+                } else {
+                    out.loss_with_credit(target, a.credit.policy())?
+                };
                 let loss = if a.cross_state_bottleneck {
                     token_loss
                 } else {
@@ -6344,10 +6350,18 @@ fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
                 downloads += out.common_pool_score_download_bytes;
                 uploads += out.common_pool_anchor_upload_bytes;
                 copy_index_uploads += out.common_pool_copy_index_upload_bytes;
-                // Host alias loss uploads one F32 hard-score vector, one F32
-                // target mask and one scalar probability per position.
+                // Rank includes admission indices/raw anchors, shared hard scores,
+                // both alias masks and all explicit scalar anchors. The old
+                // CE counter retains its historical narrower payload scope.
                 loss_staging += if d.is_cuda() {
-                    8 * out.actions.actions.len() + 4
+                    if a.cross_state_pooled_rank {
+                        cross_state_completion::rank_loss_staging_bytes(
+                            out.actions.actions.len(),
+                            out.actions.token_masses.len(),
+                        )
+                    } else {
+                        8 * out.actions.actions.len() + 4
+                    }
                 } else {
                     0
                 };
@@ -6400,14 +6414,17 @@ fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
         target_position_draws += count;
         updates.push(json!({"step":update+1,"lineage_step":resume.as_ref().map_or(update+1, |r| r.profile.lineage_after(update+1)),"indices":indices,"answer_positions_including_eos":count,"objective_loss":loss_sum,"training_objective":cross_state_completion::objective_policy(a),
             "phase_balanced_loss":if a.cross_state_bottleneck {Value::Null} else {json!(loss_sum)},
-            "bottleneck_logmeanexp_loss":if a.cross_state_bottleneck {json!(loss_sum)} else {Value::Null},
+            "bottleneck_logmeanexp_loss":if a.cross_state_bottleneck && !a.cross_state_pooled_rank {json!(loss_sum)} else {Value::Null},
+            "pooled_rank_logmeanexp_loss":if a.cross_state_pooled_rank {json!(loss_sum)} else {Value::Null},
+            "pooled_rank_target_positions":if a.cross_state_pooled_rank {json!(count)} else {Value::Null},
+            "pooled_rank_policy":cross_state_completion::rank_policy(a),
             "global_active_gradient_norm":norm,"active_gradient_names":sums.keys().collect::<Vec<_>>(),
             "native_field_master_download_bytes":prepared.downloaded_master_bytes,
             "field_snapshot_and_per_position_costs":field_costs,
             "common_pool_score_download_bytes":downloads,"common_pool_anchor_upload_bytes":uploads,
             "common_pool_copy_index_upload_bytes":copy_index_uploads,
             "host_alias_loss_explicit_upload_bytes":loss_staging,
-            "scalar_transfers":"per-position finite-score validation and reported loss; clip norm status scalars; CUDA synchronization",
+            "scalar_transfers":if a.cross_state_pooled_rank {"per-position raw-score match, finite-score validation, native-margin and reported-rank-loss scalars; clip norm status scalars; CUDA synchronization"} else {"per-position finite-score validation and reported loss; clip norm status scalars; CUDA synchronization"},
             "common_pool_backend":"cpu-authenticated-native-alias-reducer","credit_scope":if cross_state {"115200 shared cross-state Q4 coefficient STE only; frozen factual/local states and prototypes"} else {"960 shared U coefficient STE only; frozen native states/prototypes"}}));
         write(a, "updates.json", &json!(updates))?;
         if (update + 1) % 32 == 0 {
@@ -6479,10 +6496,10 @@ fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
         json!({"schema":"uor-r4.geometric-frozen-map-fit/1","status":"COMPLETED","mode":mode_name,
         "source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"device":"cuda:0","updates":a.updates,"batch":BATCH,
         "prior_updates":resume.as_ref().map_or(0, |r| r.profile.lineage_step),"lineage_step":resume.as_ref().map_or(a.updates, |r| r.profile.lineage_after(a.updates)),
-        "cross_state_resume":resume.as_ref().map(|r|&r.provenance),"fresh_adam":true,"cross_state_bottleneck":a.cross_state_bottleneck,
+        "cross_state_resume":resume.as_ref().map(|r|&r.provenance),"fresh_adam":true,"pooled_rank_policy":cross_state_completion::rank_policy(a),"cross_state_pooled_rank":a.cross_state_pooled_rank,"cross_state_bottleneck":a.cross_state_bottleneck,
         "training_row_draws":a.updates*BATCH,
         "target_position_draws":target_position_draws,
-        "loss_scope":"all","phase_policy":if a.cross_state_bottleneck {"none;all-target-token-logmeanexp"} else {loss_weight_policy(true,LossScope::All)},"training_objective":cross_state_completion::objective_policy(a),"credit":a.credit.name(),"order_seed":a.seed,
+        "loss_scope":"all","phase_policy":cross_state_completion::phase_policy(a),"training_objective":cross_state_completion::objective_policy(a),"credit":a.credit.name(),"order_seed":a.seed,
         "initial_receipt":initial_receipt,"final_receipt":final_receipt,"initial_metrics":initial_metrics,"final_metrics":final_metrics,
         "initial":initial,"final":final_eval,"cross_state_outcome":cross_outcome,
         "final_active_masters":identities(&params)?,"shared_coefficients":expected_coefficients,"cache_positions":positions,

@@ -1,0 +1,3 @@
+Initial uor-pod up argument --gpus rejected before any API creation; corrected to documented --count1. No model or compute attempt from the rejected command.
+Producer7349edb43 scoped compile attempt1 exited101: three E0308 borrow conversions in new test fixture (lines1482,1489,1491). No tests or model executed. Preserve checks/; corrected source and exclusive checks-attempt2 follow. Objective/serving unchanged.
+Producer d2547ffba scoped check attempt2 compiled and ran25 tests:24PASS,1FAIL exact-zero extreme fixture. Candle prunes Affine mul0; test-only fix5db7023bb preserves strict nonzero/native gradients. No model run; preserve checks-attempt2; fresh checks-attempt3.

@@ -1,0 +1,25 @@
+{
+  "name": "codex-m2-pooled-rank-20261010",
+  "result": "KEEP candidate177\u2192437/512; accepted437; count0/3",
+  "producer_source": "5db7023bbc069ab947ae90fdcbec1d10dc3faefb",
+  "components": {
+    "accepted177-and-prior-comparators.tar": {
+      "bytes": 135495680,
+      "sha256": "100a0486df53fd889bc855b6be661e52474843b382f3294608165a247f5c47d9"
+    },
+    "source.bundle": {
+      "bytes": 8784,
+      "sha256": "b9fe116d98b455c3f410f15585ea60515258ba42b90bea6574369a551c64ec66"
+    },
+    "rank177-producer.patch": {
+      "bytes": 37361,
+      "sha256": "d4e76a8e4ad0336f57df869f11d45085d0b12a45b6dedc3b2be98442d1f746f7"
+    },
+    "run-and-runtime.tar.gz": {
+      "bytes": 21264776,
+      "sha256": "ba04399cb84c1ce3cad14254f731b8d3723b148b696d66d778d66e2203b4d991"
+    }
+  },
+  "restore": "cloud-store fetch codex-m2-pooled-rank-20261010 <absolute-owned-destination>; unpack run-and-runtime.tar.gz and accepted177-and-prior-comparators.tar separately. Nested prior package includes accepted177/175, rejected139 and accepted145/22/original upstream/panel/comparators. Source bundle requires main 0d4ade129; verify before restore. Exact source patch reconstructs producer5db7023bb from 0d4ade129; final record governs activation. Absolute paths in config are provenance; resolve restored paths explicitly for replay.",
+  "limits": "Exposed development result only; saved parent177, sole256update endpoint, objective margin0 native pooled-rank plus episode logmeanexp. No held-out transfer, model ceiling, geometry advantage or energy claim. Final delivery checks/merge/cleanup/fullaccounting follow in closeout."
+}

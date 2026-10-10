@@ -22,6 +22,15 @@ const RESUME175_FIELD_SHA: &str =
     "c82c376df10f14d5c1c9af970fd3b1fe239fb3560e2ccd0020dd2805d8fb773e";
 const RESUME175_MASTER_SHA: &str =
     "c59f6eb8898a7b7f3ebef0a877a7a26fef3ab3eb681a55e8c6e02cf701d11f10";
+const RESUME177_REPORT_SHA: &str =
+    "13fa577beacbbe3fd0544095c8f4a6e8555458721325f000b8a419d0a90a8e48";
+const RESUME177_MANIFEST_SHA: &str =
+    "10db47cb5e29d562df485e8364fe60bf503b5b4bd40f7b4797f40a4c65e30156";
+const RESUME177_FIELD_SHA: &str =
+    "dfb945d567ce25f5c200967ce1f9e5e31740f9cfaa8f6a1a6d6dd11d156a2e13";
+const RESUME177_MASTER_SHA: &str =
+    "0c7dec5f627b8c9c44557922a4d17d30846796381d26a055edc84551f8149acc";
+const POOLED_RANK_OBJECTIVE: &str = "equal-episode-logmeanexp-native-pooled-strongest-wrong-softplus-negative-log-mass-margin/1;margin0;temperature1;smallest-token-ID-ties;all-targets-including-EOS;existing-raw-identity-STE;no-phase-weighting";
 const BOTTLENECK_OBJECTIVE: &str = "equal-episode-logmeanexp-unweighted-native-token-CE/1;temperature1;all-targets-including-EOS;existing-raw-identity-STE;no-phase-weighting";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -56,6 +65,14 @@ const SAVED175: ResumeProfile = ResumeProfile {
     checkpoint_step: 256,
     lineage_step: 576,
     complete: 175,
+};
+const SAVED177: ResumeProfile = ResumeProfile {
+    report_sha: RESUME177_REPORT_SHA,
+    manifest_sha: RESUME177_MANIFEST_SHA,
+    field_sha: RESUME177_FIELD_SHA,
+    checkpoint_step: 256,
+    lineage_step: 832,
+    complete: 177,
 };
 impl ResumeProfile {
     pub fn lineage_after(self, local_step: usize) -> usize {
@@ -92,44 +109,51 @@ impl ResumeProfile {
             {
                 return Err(bad("cross-state saved145 lineage/provenance differs"));
             }
-        } else if self == SAVED175 {
+        } else if self == SAVED175 || self == SAVED177 {
+            let ancestor = if self == SAVED177 { SAVED175 } else { SAVED145 };
+            let master_sha = if self == SAVED177 {
+                RESUME177_MASTER_SHA
+            } else {
+                RESUME175_MASTER_SHA
+            };
             let prior = &report["cross_state_resume"];
             let initial = &report["initial_receipt"];
-            if report["prior_updates"] != SAVED145.lineage_step
+            if report["prior_updates"] != ancestor.lineage_step
                 || report["lineage_step"] != self.lineage_step
                 || receipt["lineage_step"] != self.lineage_step
                 || report["fresh_adam"] != true
                 || receipt["cross_state_resume"] != *prior
                 || initial["cross_state_resume"] != *prior
-                || prior["report_sha256"] != SAVED145.report_sha
-                || prior["manifest_sha256"] != SAVED145.manifest_sha
-                || prior["field_sha256"] != SAVED145.field_sha
-                || prior["prior_step"] != SAVED145.checkpoint_step
-                || prior["prior_lineage_step"] != SAVED145.lineage_step
-                || prior["prior_complete"] != SAVED145.complete
+                || prior["report_sha256"] != ancestor.report_sha
+                || prior["manifest_sha256"] != ancestor.manifest_sha
+                || prior["field_sha256"] != ancestor.field_sha
+                || prior["prior_step"] != ancestor.checkpoint_step
+                || prior["prior_lineage_step"] != ancestor.lineage_step
+                || prior["prior_complete"] != ancestor.complete
                 || initial["step"] != 0
-                || initial["lineage_step"] != SAVED145.lineage_step
-                || initial["continuation_sha256"] != SAVED145.field_sha
+                || initial["lineage_step"] != ancestor.lineage_step
+                || initial["continuation_sha256"] != ancestor.field_sha
                 || initial["parameters"] != prior["source_master_inventory"]
-                || report["initial"]["continuation_sha256"] != SAVED145.field_sha
-                || report["initial"]["complete"] != SAVED145.complete
+                || report["initial"]["continuation_sha256"] != ancestor.field_sha
+                || report["initial"]["complete"] != ancestor.complete
                 || report["phase_policy"] != "none;all-target-token-logmeanexp"
-                || receipt["parameters"]["continuation.cross_state"]["sha256"]
-                    != RESUME175_MASTER_SHA
-                || report["final_active_masters"]["continuation.cross_state"]
-                    != RESUME175_MASTER_SHA
+                || receipt["parameters"]["continuation.cross_state"]["sha256"] != master_sha
+                || report["final_active_masters"]["continuation.cross_state"] != master_sha
             {
                 return Err(bad(
-                    "cross-state saved175 lineage/ancestry/master identity differs",
+                    "cross-state bottleneck parent lineage/ancestry/master identity differs",
                 ));
             }
             for policy in [report, initial, receipt] {
-                if policy["cross_state_bottleneck"] != true
+                if policy
+                    .get("cross_state_pooled_rank")
+                    .is_some_and(|v| v != false)
+                    || policy["cross_state_bottleneck"] != true
                     || policy["training_objective"] != BOTTLENECK_OBJECTIVE
                     || policy["loss_scope"] != "all"
                     || policy["credit"] != "raw_identity"
                 {
-                    return Err(bad("cross-state saved175 bottleneck policy differs"));
+                    return Err(bad("cross-state parent bottleneck policy differs"));
                 }
             }
         } else {
@@ -149,7 +173,7 @@ pub(super) struct ResumeConfig {
 
 impl ResumeConfig {
     fn profile(&self) -> Result<ResumeProfile> {
-        [SAVED22, SAVED145, SAVED175]
+        [SAVED22, SAVED145, SAVED175, SAVED177]
             .into_iter()
             .find(|p| {
                 self.expected_report_sha256 == p.report_sha
@@ -304,7 +328,10 @@ fn validate_rows(endpoint: &Value, expected: usize) -> Result<()> {
 
 pub(super) fn settings(a: &Args) -> Result<()> {
     if a.mode != Mode::CrossStateContinuation {
-        return if a.cross_state_resume.is_some() || a.cross_state_bottleneck {
+        return if a.cross_state_resume.is_some()
+            || a.cross_state_bottleneck
+            || a.cross_state_pooled_rank
+        {
             Err(bad(
                 "cross-state resume/objective requires cross-state mode",
             ))
@@ -317,10 +344,12 @@ pub(super) fn settings(a: &Args) -> Result<()> {
         .as_ref()
         .map(ResumeConfig::profile)
         .transpose()?;
-    // The stopped phase-balanced continuation stays unavailable. These two
-    // strict profiles are admitted only under the retained bottleneck objective.
-    if a.cross_state_bottleneck != matches!(profile, Some(SAVED145 | SAVED175)) {
-        return Err(bad("bottleneck objective requires pinned saved145 or saved175; phase-CE continuation from either is unavailable"));
+    // Saved177 is admitted only for the registered ranking intervention; no
+    // unchanged CE continuation or rank objective on a different parent.
+    if a.cross_state_bottleneck != matches!(profile, Some(SAVED145 | SAVED175 | SAVED177))
+        || a.cross_state_pooled_rank != (profile == Some(SAVED177))
+    {
+        return Err(bad("saved177 requires pooled-rank+bottleneck; saved145/175 require bottleneck CE; phase-CE continuation and other rank parents unavailable"));
     }
     if a.updates
         != if a.cross_state_resume.is_some() {
@@ -486,11 +515,126 @@ pub(super) fn outcomes(
 
 /// Training-only objective; native scoring and evaluation CE remain unchanged.
 pub(super) fn objective_policy(a: &Args) -> &'static str {
-    if a.cross_state_bottleneck {
+    if a.cross_state_pooled_rank {
+        POOLED_RANK_OBJECTIVE
+    } else if a.cross_state_bottleneck {
         BOTTLENECK_OBJECTIVE
     } else {
         loss_weight_policy(true, LossScope::All)
     }
+}
+
+pub(super) fn rank_policy(a: &Args) -> Value {
+    if !a.cross_state_pooled_rank {
+        return Value::Null;
+    }
+    json!({"margin":0,"temperature":1,"rival_selection":"greatest-native-pooled-u64-mass-excluding-target;smallest-token-ID-ties;refreshed-every-forward;detached",
+        "token_loss":"softplus(-native-log-target-over-rival-mass);stable-F64-scalar-cast-F32;anchored-first-order-sigmoid",
+        "alias_scope":"all-Generate-and-physical-Copy;common-native-clip-and-pool",
+        "phase_weights":false,"all_targets_including_eos":true,
+        "loss_staging_scope":"explicit-admission-indices+native-raw+hard-score+two-masks+two-probabilities+margin+softplus-anchor;16N+4G+16-bytes;excludes-scalar-downloads-and-kernel-immediates"})
+}
+
+pub(super) fn phase_policy(a: &Args) -> &'static str {
+    if a.cross_state_pooled_rank {
+        "none;all-target-pooled-rank-logmeanexp"
+    } else if a.cross_state_bottleneck {
+        "none;all-target-token-logmeanexp"
+    } else {
+        loss_weight_policy(true, LossScope::All)
+    }
+}
+
+/// Discrete label comparison after the full target-free native pool. The caller
+/// then authenticates this entire table against physical actions in margin().
+fn strongest_wrong(
+    trace: &uor_r4_integer::geometric_vocabulary_actions::VocabularyActionTrace,
+    target: u32,
+) -> Result<u32> {
+    let mut target_present = false;
+    let mut previous = None;
+    let mut rival: Option<(u32, u64)> = None;
+    for row in &trace.token_masses {
+        if row.weight_q31 == 0
+            || row.weight_q31 > trace.summary.total_weight_q31
+            || previous.is_some_and(|id| id >= row.token_id)
+        {
+            return Err(bad("rank pooled mass/order invalid"));
+        }
+        previous = Some(row.token_id);
+        if row.token_id == target {
+            target_present = true;
+            continue;
+        }
+        if rival.is_none_or(|(id, mass)| {
+            row.weight_q31 > mass || (row.weight_q31 == mass && row.token_id < id)
+        }) {
+            rival = Some((row.token_id, row.weight_q31));
+        }
+    }
+    if !target_present {
+        return Err(bad("rank target absent from native pool"));
+    }
+    rival
+        .map(|r| r.0)
+        .ok_or_else(|| bad("rank wrong competitor absent"))
+}
+
+/// Stable scalar softplus with its exact first-order chain rule on the admitted
+/// native-margin STE. Scalar F32 forward is anchored subtraction-first; the
+/// detached sigmoid does not claim second derivatives of the objective.
+fn rank_softplus(margin: &Tensor) -> Result<Tensor> {
+    let z = -(margin.to_scalar::<f32>()? as f64);
+    if !z.is_finite() {
+        return Err(bad("rank margin nonfinite"));
+    }
+    let value = z.max(0.) + (-z.abs()).exp().ln_1p();
+    let sigmoid = if z >= 0. {
+        1. / (1. + (-z).exp())
+    } else {
+        let e = z.exp();
+        e / (1. + e)
+    };
+    let surrogate = margin.affine(-sigmoid, 0.)?;
+    Ok((Tensor::new(value as f32, margin.device())? + (&surrogate - surrogate.detach())?)?)
+}
+
+pub(super) fn pooled_rank_loss(
+    out: &uor_r4_training::geometric_bank_generate::FixedContinuationOutput,
+    target: u32,
+) -> Result<Tensor> {
+    rank_loss_from_pool(
+        &out.actions,
+        &out.generate_raw_scores,
+        out.copy_raw_scores.as_ref(),
+        target,
+    )
+}
+fn rank_loss_from_pool(
+    trace: &uor_r4_integer::geometric_vocabulary_actions::VocabularyActionTrace,
+    generate: &Tensor,
+    copy: Option<&Tensor>,
+    target: u32,
+) -> Result<Tensor> {
+    let rival = strongest_wrong(trace, target)?;
+    let margin =
+        uor_r4_training::geometric_generate_learning::vocabulary_log_mass_margin_with_credit(
+            trace,
+            generate,
+            copy,
+            target,
+            rival,
+            VocabularyScoreAdjoint::RawIdentity,
+        )?;
+    rank_softplus(&margin)
+}
+
+/// Explicit tensor payloads staged by the existing margin API plus our scalar:
+/// Generate indices (4G), native raw+hard scores (8N), two masks (8N),
+/// two probability anchors (8), native margin (4), softplus forward anchor (4).
+/// Does not count scalar synchronization or kernel-argument immediates.
+pub(super) fn rank_loss_staging_bytes(actions: usize, legal_tokens: usize) -> usize {
+    16 * actions + 4 * legal_tokens + 16
 }
 
 /// Stable streaming chain rule for log(mean(exp(token CE))). The loss values
@@ -884,16 +1028,18 @@ mod tests {
 
     #[test]
     fn cross_state_saved145_admission_requires_complete_profile_triple() -> Result<()> {
-        for profile in [SAVED22, SAVED145, SAVED175] {
+        for profile in [SAVED22, SAVED145, SAVED175, SAVED177] {
             assert_eq!(profile_config(profile).profile()?, profile);
             let mut admitted = config();
             admitted["updates"] = json!(256);
-            admitted["cross_state_bottleneck"] = json!(matches!(profile, SAVED145 | SAVED175));
+            admitted["cross_state_bottleneck"] =
+                json!(matches!(profile, SAVED145 | SAVED175 | SAVED177));
+            admitted["cross_state_pooled_rank"] = json!(profile == SAVED177);
             admitted["cross_state_resume"] = serde_json::to_value(profile_config(profile))?;
             let args: Args = serde_json::from_value(admitted.clone())?;
             settings(&args)?;
             continuation_settings(&args)?;
-            for other in [SAVED22, SAVED145, SAVED175]
+            for other in [SAVED22, SAVED145, SAVED175, SAVED177]
                 .into_iter()
                 .filter(|p| *p != profile)
             {
@@ -1324,6 +1470,301 @@ mod tests {
         let mut wrong_count = endpoint(&(0..145).collect::<Vec<_>>());
         wrong_count["continuation_sha256"] = json!(SAVED175.field_sha);
         assert!(baseline(&wrong_count, Some((&wrong_count, SAVED175))).is_err());
+        Ok(())
+    }
+    fn rank_fixture(
+        copy_ids: &[u32],
+        copy_scores: &[i64],
+    ) -> Result<uor_r4_integer::geometric_vocabulary_actions::VocabularyActionTrace> {
+        const TOK: &str = r#"{"pre_tokenizer":{"type":"ByteLevel","add_prefix_space":false},"model":{"type":"BPE","vocab":{"<|bos|>":0,"<|eos|>":1,"<|unk|>":2,".":3,"a":4,"b":5,"Ġ":6,"Ġa":7},"merges":["Ġ a"]},"added_tokens":[{"id":0,"content":"<|bos|>"},{"id":1,"content":"<|eos|>"},{"id":2,"content":"<|unk|>"}]}"#;
+        let binding =
+            uor_r4_integer::geometric_source_actions::SourceActionBinding::new(TOK.as_bytes())
+                .map_err(|e| bad(&e.to_string()))?;
+        let exp = (0..uor_r4_integer::geometric_read::EXP_TABLE_LEN)
+            .flat_map(|i| {
+                (((-(i as f64) / 256.).exp() * (1u64 << 31) as f64).round() as u32).to_le_bytes()
+            })
+            .collect::<Vec<_>>();
+        NativeVocabularyActions::new(binding, &exp)
+            .map_err(|e| bad(&e.to_string()))?
+            .reduce_trace(&[0; 8], copy_ids, copy_scores)
+            .map_err(|e| bad(&e.to_string()))
+    }
+    fn rank_grad(loss: &Tensor, var: &Var) -> Result<Tensor> {
+        loss.backward()?
+            .get(var.as_tensor())
+            .map(Tensor::detach)
+            .ok_or_else(|| bad("rank test missing gradient"))
+    }
+    #[test]
+    fn pooled_rank_native_alias_rival_ties_eos_and_refresh() -> Result<()> {
+        let trace = rank_fixture(&[4, 4, 5], &[0, 0, 1 << 23])?;
+        // Largest physical action is token5, but three token4 aliases win.
+        assert_eq!(
+            trace
+                .actions
+                .iter()
+                .max_by_key(|a| a.weight_q31)
+                .map(|a| a.token_id),
+            Some(5)
+        );
+        assert_eq!(strongest_wrong(&trace, 1)?, 4); // EOS target uses the same rule.
+        let refreshed = rank_fixture(&[4, 4, 5], &[0, 0, 1 << 24])?;
+        assert_eq!(strongest_wrong(&refreshed, 1)?, 5);
+        let tied = rank_fixture(&[], &[])?;
+        assert_eq!(strongest_wrong(&tied, 4)?, 0); // Generate-only, smallest legal ID.
+        assert_eq!(strongest_wrong(&tied, 1)?, 0); // EOS competes under the same rule.
+        assert_eq!(rank_loss_staging_bytes(9, 6), 184);
+        Ok(())
+    }
+    #[test]
+    fn pooled_rank_rejects_missing_or_corrupt_pool_without_floor() -> Result<()> {
+        let trace = rank_fixture(&[], &[])?;
+        let generate = Tensor::zeros(8, candle_core::DType::F32, &Device::Cpu)?;
+        assert!(rank_loss_from_pool(&trace, &generate, None, 99).is_err());
+        let mut missing_rival = trace.clone();
+        missing_rival.token_masses.retain(|m| m.token_id == 4);
+        assert!(strongest_wrong(&missing_rival, 4).is_err());
+        let mut zero = trace.clone();
+        zero.token_masses[0].weight_q31 = 0;
+        assert!(rank_loss_from_pool(&zero, &generate, None, 4).is_err());
+        let mut false_alias = trace.clone();
+        false_alias.token_masses[0].copy_weight_q31 = 1;
+        assert!(rank_loss_from_pool(&false_alias, &generate, None, 4).is_err());
+        let nan = Tensor::new(f32::NAN, &Device::Cpu)?;
+        assert!(rank_softplus(&nan).is_err());
+        Ok(())
+    }
+    #[test]
+    fn pooled_rank_softplus_stable_native_anchor_and_ce_jacobian() -> Result<()> {
+        for d in [-1000f32, -2., 0., 2., 1000.] {
+            let var = Var::new(d, &Device::Cpu)?;
+            let loss = rank_softplus(var.as_tensor())?;
+            let value = loss.to_scalar::<f32>()?;
+            assert!(value.is_finite() && value >= 0.);
+            let z = -(d as f64);
+            let expected = z.max(0.) + (-z.abs()).exp().ln_1p();
+            assert!((value as f64 - expected).abs() < 1e-5);
+            let sigmoid = if z >= 0. {
+                1. / (1. + (-z).exp())
+            } else {
+                let e = z.exp();
+                e / (1. + e)
+            };
+            if sigmoid == 0. {
+                // Only this artificial extreme underflows exp(-1000) to exact
+                // zero. Candle 0.9.2 prunes Affine(mul=0) during backward graph
+                // traversal; absent credit is correct for this zero derivative.
+                assert_eq!(d, 1000.);
+                assert_eq!(value, 0.);
+                assert_eq!(expected, 0.);
+                if let Some(gradient) = loss.backward()?.get(var.as_tensor()) {
+                    assert_eq!(gradient.to_scalar::<f32>()?, 0.);
+                }
+            } else {
+                // Missing credit remains an error for every nonzero case and
+                // for the admitted native pooled-margin tests below.
+                assert!(
+                    (rank_grad(&loss, &var)?.to_scalar::<f32>()? as f64 + sigmoid).abs() < 1e-6
+                );
+            }
+        }
+        let raw = [5_592_405i64, 9 << 24, -(9 << 24)];
+        let trace = rank_fixture(&[4, 4, 5], &raw)?;
+        let generate = Var::zeros(8, candle_core::DType::F32, &Device::Cpu)?;
+        let copy = Var::from_vec(
+            raw.iter()
+                .map(|q| (*q as f64 / (1u64 << 24) as f64) as f32)
+                .collect::<Vec<_>>(),
+            3,
+            &Device::Cpu,
+        )?;
+        let target = 5;
+        let rival = strongest_wrong(&trace, target)?;
+        let loss =
+            rank_loss_from_pool(&trace, generate.as_tensor(), Some(copy.as_tensor()), target)?;
+        let mass = |id| {
+            trace
+                .token_masses
+                .iter()
+                .find(|m| m.token_id == id)
+                .map(|m| m.weight_q31)
+                .ok_or_else(|| bad("test mass missing"))
+        };
+        let expected = (mass(rival)? as f64 / mass(target)? as f64).ln_1p();
+        assert!((loss.to_scalar::<f32>()? as f64 - expected).abs() < 2e-6);
+        use uor_r4_training::geometric_generate_learning::vocabulary_marginal_loss_with_credit as ce;
+        let target_ce = ce(
+            &trace,
+            generate.as_tensor(),
+            Some(copy.as_tensor()),
+            target,
+            VocabularyScoreAdjoint::RawIdentity,
+        )?;
+        let rival_ce = ce(
+            &trace,
+            generate.as_tensor(),
+            Some(copy.as_tensor()),
+            rival,
+            VocabularyScoreAdjoint::RawIdentity,
+        )?;
+        // The CE difference is a gradient reference; the direct ratio remains
+        // the production native scalar anchor (no repeated normalizer).
+        let z = (&target_ce - &rival_ce)?;
+        let reference = z.exp()?.affine(1., 1.)?.log()?;
+        for var in [&generate, &copy] {
+            let delta = (rank_grad(&loss, var)? - rank_grad(&reference, var)?)?
+                .abs()?
+                .max_all()?
+                .to_scalar::<f32>()?;
+            assert!(delta < 2e-6, "rank gradient delta {delta}");
+        }
+        Ok(())
+    }
+    #[test]
+    fn pooled_rank_streaming_matches_unequal_episode_eos_reference() -> Result<()> {
+        let trace = rank_fixture(&[4, 4, 5], &[0, 0, 1 << 23])?;
+        let generate = Var::zeros(8, candle_core::DType::F32, &Device::Cpu)?;
+        let copy = Tensor::from_vec(vec![0f32, 0., 0.5], 3, &Device::Cpu)?;
+        let mut actual_value = 0.;
+        let mut actual_gradient = Tensor::zeros(8, candle_core::DType::F32, &Device::Cpu)?;
+        let mut reference: Option<Tensor> = None;
+        for targets in [vec![4, 1], vec![1]] {
+            // Unequal episodes, both include EOS.
+            let mut episode = EpisodeBottleneck::default();
+            let mut exponentials: Option<Tensor> = None;
+            for target in &targets {
+                let loss = rank_loss_from_pool(&trace, generate.as_tensor(), Some(&copy), *target)?;
+                episode.push(
+                    loss.to_scalar::<f32>()? as f64,
+                    BTreeMap::from([("field".into(), rank_grad(&loss, &generate)?)]),
+                )?;
+                let exp = loss.exp()?;
+                exponentials = Some(if let Some(old) = exponentials {
+                    (&old + &exp)?
+                } else {
+                    exp
+                });
+            }
+            let (value, gradients) = episode.finish(targets.len(), 2)?;
+            actual_value += value;
+            actual_gradient = (&actual_gradient + &gradients["field"])?;
+            let j = exponentials
+                .ok_or_else(|| bad("test episode empty"))?
+                .affine(1. / targets.len() as f64, 0.)?
+                .log()?
+                .affine(0.5, 0.)?;
+            reference = Some(if let Some(old) = reference {
+                (&old + &j)?
+            } else {
+                j
+            });
+        }
+        let reference = reference.ok_or_else(|| bad("test batch empty"))?;
+        assert!((actual_value - reference.to_scalar::<f32>()? as f64).abs() < 1e-6);
+        assert!(
+            (actual_gradient - rank_grad(&reference, &generate)?)?
+                .abs()?
+                .max_all()?
+                .to_scalar::<f32>()?
+                < 1e-6
+        );
+        Ok(())
+    }
+    #[test]
+    fn pooled_rank_saved177_requires_both_flags_and_exact_baseline() -> Result<()> {
+        let mut cfg = config();
+        cfg["updates"] = json!(256);
+        cfg["cross_state_resume"] = serde_json::to_value(profile_config(SAVED177))?;
+        for (b, r, accept) in [
+            (false, false, false),
+            (true, false, false),
+            (false, true, false),
+            (true, true, true),
+        ] {
+            cfg["cross_state_bottleneck"] = json!(b);
+            cfg["cross_state_pooled_rank"] = json!(r);
+            let args: Args = serde_json::from_value(cfg.clone())?;
+            assert_eq!(settings(&args).is_ok(), accept);
+            if accept {
+                assert_eq!(objective_policy(&args), POOLED_RANK_OBJECTIVE);
+                assert_eq!(rank_policy(&args)["margin"], 0);
+            }
+        }
+        for profile in [SAVED22, SAVED145, SAVED175] {
+            cfg["cross_state_resume"] = serde_json::to_value(profile_config(profile))?;
+            assert!(settings(&serde_json::from_value(cfg.clone())?).is_err());
+        }
+        assert_eq!(SAVED177.lineage_after(256), 1088);
+        let mut prior = endpoint(&(0..177).collect::<Vec<_>>());
+        prior["continuation_sha256"] = json!(SAVED177.field_sha);
+        baseline(&prior, Some((&prior, SAVED177)))?;
+        let mut changed = prior.clone();
+        changed["rows"][400]["generated_ids"] = json!([999]);
+        assert!(baseline(&changed, Some((&prior, SAVED177))).is_err());
+        assert_eq!(
+            outcomes(&prior, &prior, Some((&prior, SAVED177)))?["keep"],
+            false
+        );
+        let next = endpoint(&(1..179).collect::<Vec<_>>());
+        let result = outcomes(&prior, &next, Some((&prior, SAVED177)))?;
+        assert_eq!(result["keep"], true);
+        assert_eq!(result["final_complete"], 178);
+        Ok(())
+    }
+    #[test]
+    fn pooled_rank_saved177_authenticates_saved175_ancestry_and_fractional_master() -> Result<()> {
+        let artifacts: Value = serde_json::from_str(include_str!(
+            "../../../../docs/labs/m2-bottleneck-resume-2026-10-10/artifact-receipts.json"
+        ))?;
+        let receipt = artifacts["final"].clone();
+        let report = json!({"updates":256,"prior_updates":576,"lineage_step":832,"fresh_adam":true,
+            "cross_state_bottleneck":true,"training_objective":BOTTLENECK_OBJECTIVE,"loss_scope":"all","credit":"raw_identity",
+            "phase_policy":"none;all-target-token-logmeanexp","cross_state_resume":receipt["cross_state_resume"],
+            "initial_receipt":artifacts["initial"],"initial":{"continuation_sha256":SAVED175.field_sha,"complete":175},
+            "final_active_masters":{"continuation.cross_state":RESUME177_MASTER_SHA}});
+        SAVED177.validate_lineage(&report, &receipt)?;
+        assert!(SAVED175.validate_lineage(&report, &receipt).is_err());
+        for path in [
+            "/prior_updates",
+            "/lineage_step",
+            "/initial_receipt/parameters",
+            "/initial_receipt/training_objective",
+            "/initial/complete",
+            "/final_active_masters/continuation.cross_state",
+        ] {
+            let mut changed = report.clone();
+            *changed
+                .pointer_mut(path)
+                .ok_or_else(|| bad("fixture field absent"))? = Value::Null;
+            assert!(
+                SAVED177.validate_lineage(&changed, &receipt).is_err(),
+                "{path}"
+            );
+        }
+        for key in [
+            "report_sha256",
+            "manifest_sha256",
+            "field_sha256",
+            "prior_step",
+            "prior_lineage_step",
+            "prior_complete",
+        ] {
+            let mut changed = report.clone();
+            let mut cp = receipt.clone();
+            let mut prior = report["cross_state_resume"].clone();
+            prior[key] = Value::Null;
+            changed["cross_state_resume"] = prior.clone();
+            changed["initial_receipt"]["cross_state_resume"] = prior.clone();
+            cp["cross_state_resume"] = prior;
+            assert!(SAVED177.validate_lineage(&changed, &cp).is_err(), "{key}");
+        }
+        let mut cp = receipt.clone();
+        cp["parameters"]["continuation.cross_state"]["sha256"] = json!(RESUME175_MASTER_SHA);
+        assert!(SAVED177.validate_lineage(&report, &cp).is_err());
+        let mut changed = report;
+        changed["cross_state_pooled_rank"] = json!(true);
+        assert!(SAVED177.validate_lineage(&changed, &receipt).is_err());
         Ok(())
     }
 }

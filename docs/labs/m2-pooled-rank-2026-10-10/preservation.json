@@ -1,0 +1,12 @@
+{
+  "name": "codex-m2-pooled-rank-20261010",
+  "remote": "icloud:UOR-R4/results/codex/codex-m2-pooled-rank-20261010.tar",
+  "canonical_volume_archive": "/workspace/uor-r4/codex/m2-pooled-rank-20261010-preservation/codex-m2-pooled-rank-20261010.tar",
+  "bytes": 156825600,
+  "md5": "49985949980d98d05f9c0274e5529f63",
+  "full_readback": "PASS",
+  "index_readback": "PASS",
+  "index": "codex-m2-pooled-rank-20261010\t156825600\t49985949980d98d05f9c0274e5529f63\tresults/codex/codex-m2-pooled-rank-20261010.tar\t2026-10-10T14:22:28.212446+00:00\tcodex\n",
+  "local_archive_staged": false,
+  "scope": "Full run/runtime/source/prior packages verified; final delivery and closeout follow."
+}

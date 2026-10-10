@@ -1,0 +1,33 @@
+{
+  "mode": "cross_state_continuation",
+  "credit": "raw_identity",
+  "read_state_pullback": "legacy",
+  "seed": 1001,
+  "updates": 256,
+  "checkpoint": "/workspace/uor-r4/codex/sol-prototype/restore/parent-unpacked/native-prediction-control/recomposition-503d64b39-attempt1/checkpoint-0000",
+  "saved_fit": "/workspace/uor-r4/codex/sol-prototype/restore/parent-unpacked/native-prediction-control/recomposition-503d64b39-attempt1",
+  "categorical": "/workspace/uor-r4/codex/sol-prototype/restore/parent-unpacked/native-prediction-control/recomposition-503d64b39-attempt1/checkpoint-0000",
+  "parent_config": "/workspace/uor-r4/codex/sol-prototype/restore/parent-unpacked/native-prediction-control/recomposition-503d64b39-attempt1/report.json",
+  "training_inputs": "/workspace/uor-r4/codex/sol-prototype/restore/parent-unpacked/native-geometric-generate/prose-panel-dev-2/inputs.json",
+  "training_labels": "/workspace/uor-r4/codex/sol-prototype/restore/parent-unpacked/native-geometric-generate/prose-panel-dev-2/labels.json",
+  "development_inputs": "/workspace/uor-r4/codex/sol-prototype/restore/parent-unpacked/native-geometric-generate/prose-panel-dev-2/inputs.json",
+  "development_labels": "/workspace/uor-r4/codex/sol-prototype/restore/parent-unpacked/native-geometric-generate/prose-panel-dev-2/labels.json",
+  "maximum_seconds": 7200,
+  "maximum_report_bytes": 2147483648,
+  "out": "/workspace/uor-r4/codex/m2-pooled-rank-20261010/runs/rank177-0256-attempt1",
+  "loss_scope": "all",
+  "continuation": {
+    "expected_model_report_sha256": "a1277d2be4ff962100f857d0da553257ad5596ac8bc72d9257299e74d2f2e278",
+    "expected_model_manifest_sha256": "b37e2ca588bf1cc4dc5971fa5da97b9e83c90a94f4ea0bfdb0655b8f92bf94ca",
+    "learning_rate": 0.03,
+    "maximum_cache_tensor_bytes": 2147483648
+  },
+  "cross_state_resume": {
+    "root": "/workspace/uor-r4/codex/m2-bottleneck-resume-20261010/runs/resume175-0256-attempt1",
+    "expected_report_sha256": "13fa577beacbbe3fd0544095c8f4a6e8555458721325f000b8a419d0a90a8e48",
+    "expected_manifest_sha256": "10db47cb5e29d562df485e8364fe60bf503b5b4bd40f7b4797f40a4c65e30156",
+    "expected_field_sha256": "dfb945d567ce25f5c200967ce1f9e5e31740f9cfaa8f6a1a6d6dd11d156a2e13"
+  },
+  "cross_state_bottleneck": true,
+  "cross_state_pooled_rank": true
+}
