@@ -1,0 +1,43 @@
+{
+  "status": "PASS_SAVED_EVIDENCE",
+  "mode": "development",
+  "source_commit": "fbf6fb6c468d3c0180cd85357c4b5bcf249c0e9c",
+  "report_sha256": "01c44427e72c52487e442c98f3f837df3a1a7d0d46732e40dee10fadd8501325",
+  "manifest_sha256": "1ca3459712a6fce96abe4010e86c395d7b183ae467bb8bca9adb88ccd0d6d614",
+  "reader_sha256": "69ee468481889ab02bea9000bdddeb5f63bd4330fd4c63e4e7bbda5798936127",
+  "checked_rows": 512,
+  "checked_steps": 7908,
+  "counts": {
+    "complete": 437,
+    "eos": 437,
+    "entry_correct": 507
+  },
+  "strata": {
+    "length2": {
+      "cases": 128,
+      "complete": 116
+    },
+    "length4": {
+      "cases": 128,
+      "complete": 114
+    },
+    "length8": {
+      "cases": 128,
+      "complete": 90
+    },
+    "update": {
+      "cases": 64,
+      "complete": 57
+    },
+    "reassert": {
+      "cases": 64,
+      "complete": 60
+    }
+  },
+  "entry_count_scope": "sum of recorded evaluator flags; tokenizer not replayed",
+  "pairs_both_complete_distinct": 0,
+  "fresh_threshold": null,
+  "fresh_pass": "NOT_RUN",
+  "field_sha256": "de4a3234d6e92f4b12a657cc195425687bc67c243d9eded9a1df0797b9942a61",
+  "scope": "Saved JSON hashes, own-prefix chains, EOS/valid-UTF8 frozen membership, decisions and state/delta witnesses. No model/tokenizer/gradient execution. Raw full score arrays absent from historical baseline; equality is for every retained summary/state/delta witness, not a direct comparison of unrecorded vectors. Manifest inventory/sizes checked; full BLAKE3 seal and historical exposure census are separate Rust preparation evidence. Fresh packet/development disjointness checked here; no unseen-wording/literal claim."
+}

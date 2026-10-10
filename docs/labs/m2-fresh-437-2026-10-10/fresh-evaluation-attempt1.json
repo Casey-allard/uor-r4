@@ -1,0 +1,22 @@
+{
+  "schema": "uor-r4.local-cpu-run/1",
+  "name": "fresh-evaluation-attempt1",
+  "command": [
+    "local/target/release/examples/native-bank-generalization",
+    "local/configs/fresh-evaluation-attempt1.json"
+  ],
+  "start_unix": 1791644978.713183,
+  "elapsed_seconds": 153.75488209724426,
+  "exit_code": 0,
+  "sampled_rss_peak_bytes": 205488128,
+  "threads_env": {
+    "OMP_NUM_THREADS": "2",
+    "RAYON_NUM_THREADS": "2",
+    "OPENBLAS_NUM_THREADS": "2",
+    "MKL_NUM_THREADS": "2",
+    "VECLIB_MAXIMUM_THREADS": "2"
+  },
+  "source_commit": "fbf6fb6c468d3c0180cd85357c4b5bcf249c0e9c",
+  "executable_sha256": "742beaff375ff433c81f09820eed02a9fd69495f5b911bccc6b0123225a72ce2",
+  "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

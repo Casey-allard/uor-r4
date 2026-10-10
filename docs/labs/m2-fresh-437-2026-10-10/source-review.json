@@ -1,0 +1,40 @@
+{
+  "schema": "uor-r4.m2-fresh437-source-review/1",
+  "producer": "fbf6fb6c468d3c0180cd85357c4b5bcf249c0e9c",
+  "status": "PASS_SOURCE_AND_CONFIG",
+  "reviewer": "Codex root plus independently delegated preparation/compact-evidence reviewers",
+  "preparation": {
+    "historical_source": "013a5d6dca7dc288d6c82d4a3df58bf49cd3ee61",
+    "four_source_files_byte_identical": true,
+    "tests_passed": 47,
+    "fresh_mode": "author-fresh-only",
+    "fixed_rows": 128,
+    "full_literal_coverage": "mandatory bound development plan subset",
+    "exposure_roots": 30,
+    "later_transfer32_support_overlap": 0,
+    "model_predictions": "NOT_RUN"
+  },
+  "evaluation": {
+    "source_mutation": "opt-in compact serialization after unchanged generation; default full representation returned unchanged",
+    "tests_passed": 22,
+    "new_tests": 3,
+    "limits": "32 emitted tokens,128 context; unchanged existing native scorer/admission/grader",
+    "historical_replay_scope": "Every saved generated token, EOS, complete result, native summary, both continuation states, counts and delta vector digest; historical full score arrays absent, not directly comparable"
+  },
+  "reader": "local/receipts/read-fresh437.py",
+  "reader_sha256": "69ee468481889ab02bea9000bdddeb5f63bd4330fd4c63e4e7bbda5798936127",
+  "readers_executed": "NOT_RUN",
+  "decision": "Proceed to exact-source optimized build, development replay, sealed fresh preparation, single fresh evaluation as registered; no source/model/data changes selected by fresh outcomes.",
+  "optimized_build": {
+    "exit_code": 0,
+    "elapsed_seconds": 283.91,
+    "peak_rss_bytes": 3743449088,
+    "source_commit": "fbf6fb6c468d3c0180cd85357c4b5bcf249c0e9c",
+    "binaries_sha256": {
+      "geometric-native-bank-observation-plan": "9294f50643e8f028e0cbe5a6c7eee9f3881ea645572603e09e4bfca063b1d653",
+      "geometric-native-bank-observation-panel": "7079d84034854020bfbd59c3f58bec06c07dae00126cb274e400fc446472c084",
+      "geometric-bank-generate-panel": "4547d0c1b3086bb0ec4726ad73e290665aacf1ebf42f6606cb9f5657492575ad",
+      "native-bank-generalization": "742beaff375ff433c81f09820eed02a9fd69495f5b911bccc6b0123225a72ce2"
+    }
+  }
+}

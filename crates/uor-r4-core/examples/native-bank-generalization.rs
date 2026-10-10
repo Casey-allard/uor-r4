@@ -104,6 +104,9 @@ struct Config {
     /// Diagnostic evidence only; retain the already computed first-step bank replay.
     #[serde(default)]
     retain_entry_bank_trace: bool,
+    /// Serialization only: hash large score/action arrays after generation.
+    #[serde(default)]
+    compact_trace: bool,
     #[serde(default)]
     continuation_field: Option<PathBuf>,
     #[serde(default)]
@@ -432,6 +435,57 @@ fn step_row(
     Ok(row)
 }
 
+/// Compact traces are a projection of the unchanged full step, after native
+/// generation. Digests use SHA256 of serde_json::to_vec(array), without spaces.
+fn compact_array(row: &mut Value, key: &str) -> Result<()> {
+    let object = row
+        .as_object_mut()
+        .ok_or_else(|| bad("trace object absent"))?;
+    let array = object
+        .remove(key)
+        .ok_or_else(|| bad("trace array absent"))?;
+    let len = array
+        .as_array()
+        .ok_or_else(|| bad("trace field is not an array"))?
+        .len();
+    object.insert(
+        format!("{key}_digest"),
+        json!({"sha256":hash(&serde_json::to_vec(&array)?),
+        "elements":len,"encoding":"serde_json::to_vec(array);UTF8;compact;SHA256"}),
+    );
+    Ok(())
+}
+fn trace_row(
+    step: &NativeBankGenerateStep,
+    query_ids: Option<&[u32]>,
+    field_sha256: Option<&str>,
+    compact: bool,
+) -> Result<Value> {
+    let mut row = step_row(step, query_ids, field_sha256)?;
+    if !compact {
+        return Ok(row);
+    }
+    // Preserve the complete reducer summary and binding; omit only large arrays.
+    compact_array(&mut row, "generate_raw_scores_q24")?;
+    compact_array(&mut row["actions"], "actions")?;
+    compact_array(&mut row["actions"], "token_masses")?;
+    row["generate_counts"] = serde_json::to_value(step.generate_counts)?;
+    if let Some(bridge) = &step.bridge {
+        row["bridge"]["action_scores_q24"] = json!(bridge.action_scores_q24);
+        row["bridge"]["counts"] = serde_json::to_value(bridge.counts)?;
+    }
+    if step.continuation.is_some() {
+        compact_array(&mut row["continuation"], "delta_scores_q24")?;
+        // Schema3 cross-state scoring consumes BOTH factual post-bridge codes
+        // and independently replayed local query/actual-prefix codes. Retain
+        // both operands, even for a schema2 field where factual codes are unused.
+        row["continuation"]["factual_post_state_codes"] = row["post_state_codes"].clone();
+    }
+    row["trace_encoding"] =
+        json!("native-bank-compact/1;omitted-arrays-digested;decisions-unchanged");
+    Ok(row)
+}
+
 fn load_frozen_model(
     model_root: &Path,
     expected_report_sha256: &str,
@@ -538,6 +592,13 @@ fn hex_identity(value: &str, digits: usize) -> bool {
     value.len() == digits && value.bytes().all(|v| v.is_ascii_hexdigit())
 }
 fn admit_model_options(c: &Config) -> Result<()> {
+    if c.compact_trace
+        && (c.evaluation_kind != EvaluationKind::OwnPrefix || c.retain_entry_bank_trace)
+    {
+        return Err(bad(
+            "compact trace requires own_prefix without full entry bank trace",
+        ));
+    }
     if c.retain_entry_bank_trace && c.evaluation_kind != EvaluationKind::OwnPrefix {
         return Err(bad(
             "entry bank trace is only supported by own_prefix evaluation",
@@ -849,7 +910,14 @@ fn run(c: &Config) -> Result<Value> {
         let mut traces = generated
             .steps
             .iter()
-            .map(|step| step_row(step, local_query_ids.as_deref(), g.continuation_sha256()))
+            .map(|step| {
+                trace_row(
+                    step,
+                    local_query_ids.as_deref(),
+                    g.continuation_sha256(),
+                    c.compact_trace,
+                )
+            })
             .collect::<Result<Vec<Value>>>()?;
         if c.retain_entry_bank_trace {
             let first = generated
@@ -885,6 +953,18 @@ fn run(c: &Config) -> Result<Value> {
         "config_sha256":file_hash(&c.output.join("config.json"))?,"cases":rows.len(),"complete":complete,"entry_correct":entry,"pairs":pairs,"pairs_both_complete_distinct":pair_complete,"rows":rows,
         "baseline_parity":c.baseline_parity,"runtime":"CPU bounded integer/table native generator; no training/CUDA/optimizer","pin_scope":"Source-metadata-derived authored panel pin, lineage0; no store enumeration/lineage authenticity claim",
         "scope":"frozen source-value substitution evaluation in declared grammar; labels after actual-feedback generation; no general chat/held-out whole-program claim","model_admission":admission["resume"]});
+    if c.compact_trace {
+        report["trace_encoding"] =
+            json!("native-bank-compact/1;omitted-arrays-digested;decisions-unchanged");
+        if let Some(path) = &c.continuation_field {
+            let field_bytes = bytes(path)?;
+            if Some(hash(&field_bytes)).as_ref() != c.expected_continuation_field_sha256.as_ref() {
+                return Err(bad("continuation metadata bytes changed after generation"));
+            }
+            let field: Value = serde_json::from_slice(&field_bytes)?;
+            report["continuation_field_metadata"] = field["metadata"].clone();
+        }
+    }
     if c.model_kind == ModelKind::JointContinuation {
         report["model_kind"] = json!("joint_continuation");
         report["checkpoint_step"] = json!(c.checkpoint_step);
@@ -2269,6 +2349,190 @@ fn main() -> Result<()> {
 
 #[cfg(test)]
 mod tests {
+    fn compact_fixture() -> NativeBankGenerateStep {
+        use uor_r4_integer::geometric_vocabulary_actions::{
+            VocabularyActionMass, VocabularyActionTrace, VocabularyReduction,
+        };
+        NativeBankGenerateStep {
+            actual_prefix_ids: vec![4, 4],
+            post_state: vec![uor_r4_integer::h4_tables::H4Code::IDENTITY; 8],
+            copy_token_ids: vec![4, 4], copy_raw_scores_q24: vec![3, -7],
+            generate_raw_scores_q24: (0..4096).map(i64::from).collect(),
+            actions: VocabularyActionTrace {
+                policy: "fixture", tokenizer_sha256: "a".repeat(64), period_token_id: 2, eos_token_id: 1,
+                summary: VocabularyReduction {
+                    legal_generate_actions:4096,copy_actions:2,max_score_q24:4095,total_weight_q31:8192,
+                    chosen_token_id:4,chosen_weight_q31:12,generate_weight_q31:8000,copy_weight_q31:192,
+                    chosen_generate_weight_q31:4,chosen_copy_weight_q31:8,clipped_low_actions:0,clipped_high_actions:0,
+                    raw_max_score_q24:4095,raw_total_weight_q31:8192,raw_chosen_token_id:4,raw_chosen_weight_q31:12,
+                    chosen_raw_mass_rank:1,raw_chosen_clipped_mass_rank:1,token_winner_changed_by_clip:false,
+                },
+                actions:(0..4096).map(|token_id|VocabularyActionMass{action:VocabularyAction::Generate{token_id},action_offset:token_id as usize,token_id,raw_score_q24:i64::from(token_id),score_q24:i64::from(token_id),weight_q31:2}).collect(),
+                token_masses:(0..4096).map(|token_id|VocabularyTokenMass{token_id,weight_q31:2,generate_weight_q31:2,copy_weight_q31:0}).collect(),
+            },
+            bank_trace:None,bridge:None,generate_counts:Default::default(),
+            continuation:Some(uor_r4_core::native_geometric::learner::native_bank_generate::NativeContinuationWitness {
+                query_tokens:2,actual_prefix_tokens:2,
+                state_codes:vec![uor_r4_integer::h4_tables::H4Code::IDENTITY;8],
+                delta_scores_q24:vec![-123;4096],encoding_coefficient_reads:42,counts:Default::default(),
+            }),
+        }
+    }
+    #[test]
+    fn compact_trace_preserves_full_step_decisions_and_both_state_operands() -> Result<()> {
+        let mut step = compact_fixture();
+        use uor_r4_core::native_geometric::learner::native_bank_generate::NativeBridgeWitness;
+        use uor_r4_integer::{
+            geometric_source_realizer::{BankCandidateTrace, OccurrenceIdentity},
+            h4_tables::H4Code,
+        };
+        step.continuation
+            .as_mut()
+            .ok_or_else(|| bad("fixture continuation"))?
+            .state_codes = vec![H4Code::try_from(7u8)?; 8];
+        step.bridge = Some(NativeBridgeWitness {
+            selected_ordinal: 1,
+            selected_candidate: BankCandidateTrace {
+                bank_index: 1,
+                context_position: 9,
+                event: 3,
+                segment_index: 2,
+                occurrence: OccurrenceIdentity {
+                    record: 9,
+                    commit: 3,
+                    token_offset: 1,
+                    token_id: 4,
+                },
+            },
+            query_state: vec![H4Code::try_from(2u8)?; 8],
+            source_state: vec![H4Code::try_from(3u8)?; 8],
+            action_codes: vec![H4Code::try_from(4u8)?; 8],
+            action_scores_q24: vec![17; 8],
+            counts: Default::default(),
+        });
+        let query = [7, 8];
+        let digest = "f".repeat(64);
+        let full = step_row(&step, Some(&query), Some(&digest))?;
+        assert_eq!(trace_row(&step, Some(&query), Some(&digest), false)?, full);
+        let compact = trace_row(&step, Some(&query), Some(&digest), true)?;
+        for key in [
+            "actual_prefix_ids",
+            "post_state_codes",
+            "copy_token_ids",
+            "copy_raw_scores_q24",
+        ] {
+            assert_eq!(compact[key], full[key], "{key}");
+        }
+        for (key, value) in full["bridge"]
+            .as_object()
+            .ok_or_else(|| bad("fixture bridge"))?
+        {
+            assert_eq!(&compact["bridge"][key], value);
+        }
+        assert_eq!(compact["bridge"]["action_scores_q24"], json!(vec![17; 8]));
+        assert_ne!(
+            compact["continuation"]["state_codes"],
+            compact["continuation"]["factual_post_state_codes"]
+        );
+        for key in [
+            "summary",
+            "policy",
+            "tokenizer_sha256",
+            "period_token_id",
+            "eos_token_id",
+        ] {
+            assert_eq!(compact["actions"][key], full["actions"][key], "{key}");
+        }
+        for key in [
+            "local_input_ids",
+            "query_ids",
+            "actual_prefix_ids",
+            "state_codes",
+            "query_tokens",
+            "actual_prefix_tokens",
+            "continuation_sha256",
+            "encoding_coefficient_reads",
+            "field_counts",
+            "carrier_policy",
+        ] {
+            assert_eq!(
+                compact["continuation"][key], full["continuation"][key],
+                "{key}"
+            );
+        }
+        assert_eq!(
+            compact["continuation"]["factual_post_state_codes"],
+            full["post_state_codes"]
+        );
+        for (a, b, key) in [
+            (&compact, &full, "generate_raw_scores_q24"),
+            (&compact["actions"], &full["actions"], "actions"),
+            (&compact["actions"], &full["actions"], "token_masses"),
+            (
+                &compact["continuation"],
+                &full["continuation"],
+                "delta_scores_q24",
+            ),
+        ] {
+            assert!(a.get(key).is_none());
+            assert_eq!(
+                a[format!("{key}_digest")]["sha256"],
+                hash(&serde_json::to_vec(&b[key])?)
+            );
+            assert_eq!(
+                a[format!("{key}_digest")]["elements"],
+                b[key].as_array().ok_or_else(|| bad("fixture array"))?.len()
+            );
+        }
+        // Conservative fixture projection over maximum512*32 saved steps;
+        // this is a serialization-size check, not a measured panel result.
+        assert!(serde_json::to_vec_pretty(&compact)?.len() * 512 * 32 < 256 * 1024 * 1024);
+        assert!(serde_json::to_vec(&compact)?.len() * 10 < serde_json::to_vec(&full)?.len());
+        Ok(())
+    }
+    #[test]
+    fn compact_trace_digests_detect_omitted_mutation_and_keep_noncontinuation() -> Result<()> {
+        let mut step = compact_fixture();
+        let query = [7, 8];
+        let digest = "f".repeat(64);
+        let before = trace_row(&step, Some(&query), Some(&digest), true)?;
+        step.generate_raw_scores_q24[3] += 1;
+        step.continuation
+            .as_mut()
+            .ok_or_else(|| bad("fixture continuation"))?
+            .delta_scores_q24[5] += 1;
+        let after = trace_row(&step, Some(&query), Some(&digest), true)?;
+        assert_ne!(
+            before["generate_raw_scores_q24_digest"],
+            after["generate_raw_scores_q24_digest"]
+        );
+        assert_ne!(
+            before["continuation"]["delta_scores_q24_digest"],
+            after["continuation"]["delta_scores_q24_digest"]
+        );
+        assert_eq!(before["actions"], after["actions"]);
+        step.continuation = None;
+        assert!(trace_row(&step, None, None, true)?
+            .get("continuation")
+            .is_none());
+        assert!(trace_row(&step, Some(&query), Some(&digest), true).is_err());
+        Ok(())
+    }
+    #[test]
+    fn compact_trace_is_explicit_and_rejects_incompatible_diagnostic_modes() -> Result<()> {
+        let mut v = legacy_config();
+        let default: Config = serde_json::from_value(v.clone())?;
+        assert!(!default.compact_trace);
+        v["compact_trace"] = json!(true);
+        admit_model_options(&serde_json::from_value(v.clone())?)?;
+        v["retain_entry_bank_trace"] = json!(true);
+        assert!(admit_model_options(&serde_json::from_value(v)?).is_err());
+        let mut entry = entry_config();
+        entry["compact_trace"] = json!(true);
+        assert!(admit_model_options(&serde_json::from_value(entry)?).is_err());
+        Ok(())
+    }
+
     use super::*;
     fn legacy_config() -> Value {
         json!({"model_root":"/fixture/model","expected_model_report_sha256":"a".repeat(64),

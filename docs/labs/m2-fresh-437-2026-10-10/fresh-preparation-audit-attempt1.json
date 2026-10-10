@@ -1,0 +1,270 @@
+{
+  "schema": "uor-r4.fresh437-independent-preparation-audit/1",
+  "status": "PASS",
+  "config_sha256": "52332f7e622ed2e37e95e26ffcabc6b02147843ed940d62d8c98ee9ec4183bd1",
+  "reader_sha256": "2c4b35b0941f8b5a5631adfb698fca766cec5987c4adafe3c82d9bd76b4ea0b8",
+  "manifests": {
+    "plan": "36aaf57d02454ee12e3da76388110570f0e83355ee2371a4de90a230c5ea843f",
+    "observation": "645e35a8eb7b38b2566a8f2e1b34897e6ef04bc4d7a2b7ecab1cbb9a04caf8ed",
+    "prose": "f8cbb66a683df75fad6c13bdc734fd6dad70b04dfa7932e9119992f61f0a3e1d"
+  },
+  "cases": 128,
+  "histories": 64,
+  "bank_blocks": 8,
+  "opposite_query_pairs": 64,
+  "strata_rows": {
+    "length2": 32,
+    "length4": 32,
+    "length8": 32,
+    "reassert": 16,
+    "update": 16
+  },
+  "known_full_literals": 24,
+  "fresh_full_literals": 15,
+  "frozen_episode_banks": 12,
+  "frozen_episode_ordered_histories": 18,
+  "frozen_episode_banks_in_literal_support": [
+    [
+      [
+        "home",
+        "the quiet cedar stands beside a blue harbor"
+      ],
+      [
+        "job",
+        "bright willow beyond meadow"
+      ]
+    ],
+    [
+      [
+        "home",
+        "the quiet cedar stands beside a blue harbor"
+      ],
+      [
+        "job",
+        "quiet cedar beside harbor"
+      ]
+    ]
+  ],
+  "frozen_episode_banks_already_covered_by_plans": 0,
+  "excluded_semantic_banks": 143,
+  "excluded_ordered_histories": 280,
+  "excluded_numerical_packets": 1120,
+  "exposure_roots": [
+    {
+      "root": "/Users/casey.allard/.codex/worktrees/m2-fresh-437-20261010/local/restore/historical/cue-composition/exposures/input-bundle-1",
+      "manifest_sha256": "14e96299b2d256d0e1729eefb95507d8f1f1052b7e3144ce67d3b0facd709140",
+      "semantic_histories": 0,
+      "packets": 0,
+      "frozen_episode_sequences": 6
+    },
+    {
+      "root": "/Users/casey.allard/.codex/worktrees/m2-fresh-437-20261010/local/restore/historical/cue-composition/exposures/input-bundle-2",
+      "manifest_sha256": "8a8b7618f67117086e24cc482c82ce407eb46ef56427420bf2b54d376631679c",
+      "semantic_histories": 0,
+      "packets": 0,
+      "frozen_episode_sequences": 6
+    },
+    {
+      "root": "/Users/casey.allard/.codex/worktrees/m2-fresh-437-20261010/local/restore/historical/cue-composition/exposures/input-bundle-3",
+      "manifest_sha256": "1bbacf4c8e327b48a002f98a8efcca6f9eaea84fb34058a6b180d20f63b02500",
+      "semantic_histories": 0,
+      "packets": 0,
+      "frozen_episode_sequences": 6
+    },
+    {
+      "root": "/Users/casey.allard/.codex/worktrees/m2-fresh-437-20261010/local/restore/historical/cue-composition/exposures/input-bundle-4",
+      "manifest_sha256": "ccaace26245ff07c148200ce6c37fa1193e56bc477a44ee173bfc97c932cc446",
+      "semantic_histories": 0,
+      "packets": 0,
+      "frozen_episode_sequences": 6
+    },
+    {
+      "root": "/Users/casey.allard/.codex/worktrees/m2-fresh-437-20261010/local/restore/historical/cue-composition/exposures/input-bundle-5",
+      "manifest_sha256": "92e38610348cdbc79522e98c0a6f019219365c48ce302fb52525f24939d4c16d",
+      "semantic_histories": 0,
+      "packets": 0,
+      "frozen_episode_sequences": 6
+    },
+    {
+      "root": "/Users/casey.allard/.codex/worktrees/m2-fresh-437-20261010/local/restore/historical/cue-composition/exposures/input-bundle-6",
+      "manifest_sha256": "709927f0600f9e200f4088ba9d7733198765a1abadc261be560728a01dd6d1e3",
+      "semantic_histories": 0,
+      "packets": 0,
+      "frozen_episode_sequences": 6
+    },
+    {
+      "root": "/Users/casey.allard/.codex/worktrees/m2-fresh-437-20261010/local/restore/historical/cue-composition/exposures/input-bundle-7",
+      "manifest_sha256": "76c5596a337870a2d09667572a8dcde705f916d7b7e1a7bd04d44c4cb7baf45f",
+      "semantic_histories": 0,
+      "packets": 0,
+      "frozen_episode_sequences": 6
+    },
+    {
+      "root": "/Users/casey.allard/.codex/worktrees/m2-fresh-437-20261010/local/restore/historical/cue-composition/exposures/input-bundle-8",
+      "manifest_sha256": "e4d4e824c16e671089868dd6572b1ccef6f501f9f7beb6f3d29b5fc8bb6bed1e",
+      "semantic_histories": 0,
+      "packets": 0,
+      "frozen_episode_sequences": 6
+    },
+    {
+      "root": "/Users/casey.allard/.codex/worktrees/m2-fresh-437-20261010/local/restore/historical/cue-composition/exposures/input-bundle-9",
+      "manifest_sha256": "88334d971cb35f525605a4b76c90455780abde5bb99592f2b9db60eb856ae73a",
+      "semantic_histories": 0,
+      "packets": 0,
+      "frozen_episode_sequences": 6
+    },
+    {
+      "root": "/Users/casey.allard/.codex/worktrees/m2-fresh-437-20261010/local/restore/historical/cue-composition/exposures/input-bundle-10",
+      "manifest_sha256": "df659bef365bdd135e75e36fb0f5669f25892c085a7789404ac4bd39c7d0b603",
+      "semantic_histories": 0,
+      "packets": 0,
+      "frozen_episode_sequences": 6
+    },
+    {
+      "root": "/Users/casey.allard/.codex/worktrees/m2-fresh-437-20261010/local/restore/historical/cue-composition/exposures/input-bundle-11",
+      "manifest_sha256": "39380230b40965ff7b89fc544a8b0847b318a0432c7497091cd021253ab6acb0",
+      "semantic_histories": 0,
+      "packets": 0,
+      "frozen_episode_sequences": 6
+    },
+    {
+      "root": "/Users/casey.allard/.codex/worktrees/m2-fresh-437-20261010/local/restore/historical/cue-composition/exposures/input-bundle-12",
+      "manifest_sha256": "2b46d23ad7e0103d9701520577a33712e9f6d88c6d2263b18f9a18d508505a64",
+      "semantic_histories": 0,
+      "packets": 0,
+      "frozen_episode_sequences": 6
+    },
+    {
+      "root": "/Users/casey.allard/.codex/worktrees/m2-fresh-437-20261010/local/restore/historical/cue-composition/exposures/panel-development-1",
+      "manifest_sha256": "0fa9330622a6ffab9f511879053f343831a21e4786843fe8b8c1a6b9315af3ca",
+      "semantic_histories": 0,
+      "packets": 128,
+      "frozen_episode_sequences": 0
+    },
+    {
+      "root": "/Users/casey.allard/.codex/worktrees/m2-fresh-437-20261010/local/restore/historical/cue-composition/exposures/panel-fresh-1",
+      "manifest_sha256": "751365f95cad1f81d6e7a7634ef08eb42f4a3a9eb48e2e4db37b2db28db7989c",
+      "semantic_histories": 0,
+      "packets": 32,
+      "frozen_episode_sequences": 0
+    },
+    {
+      "root": "/Users/casey.allard/.codex/worktrees/m2-fresh-437-20261010/local/restore/historical/cue-composition/exposures/plan-development-1",
+      "manifest_sha256": "2046ca7197f0ce8cd9a7848aa86459df276829f83f016b0f826b6ea131f664c1",
+      "semantic_histories": 64,
+      "packets": 0,
+      "frozen_episode_sequences": 0
+    },
+    {
+      "root": "/Users/casey.allard/.codex/worktrees/m2-fresh-437-20261010/local/restore/historical/cue-composition/exposures/plan-fresh-1",
+      "manifest_sha256": "e83b0e1f8b15891071b9fca3c52f1a108edf302c45538538a34a3727c1a7850e",
+      "semantic_histories": 16,
+      "packets": 0,
+      "frozen_episode_sequences": 0
+    },
+    {
+      "root": "/Users/casey.allard/.codex/worktrees/m2-fresh-437-20261010/local/restore/historical/cue-composition/exposures/supported-plan-development-4",
+      "manifest_sha256": "997356a7cc53a9dacb0380f57bc80ec3a9df3c373a849c94519157caf285689b",
+      "semantic_histories": 128,
+      "packets": 0,
+      "frozen_episode_sequences": 0
+    },
+    {
+      "root": "/Users/casey.allard/.codex/worktrees/m2-fresh-437-20261010/local/restore/historical/cue-composition/exposures/supported-plan-fresh-4",
+      "manifest_sha256": "25df842de749494de3b926f9b668352af99e09d055bc7a75f577495409749e65",
+      "semantic_histories": 32,
+      "packets": 0,
+      "frozen_episode_sequences": 0
+    },
+    {
+      "root": "/Users/casey.allard/.codex/worktrees/m2-fresh-437-20261010/local/restore/historical/cue-composition/exposures/supported-panel-development-4",
+      "manifest_sha256": "701020a33bfdddc7dfa023b3a47b9c8f061f62f4049b490adcf5852f037a49a1",
+      "semantic_histories": 64,
+      "packets": 128,
+      "frozen_episode_sequences": 0
+    },
+    {
+      "root": "/Users/casey.allard/.codex/worktrees/m2-fresh-437-20261010/local/restore/historical/cue-composition/exposures/supported-panel-fresh-4",
+      "manifest_sha256": "3e2cde22e81c6e2bbaa249cc8d240ffa087916a67eb4fd1bc68b92903a5bc3da",
+      "semantic_histories": 16,
+      "packets": 32,
+      "frozen_episode_sequences": 0
+    },
+    {
+      "root": "/Users/casey.allard/.codex/worktrees/m2-fresh-437-20261010/local/restore/historical/cue-composition/exposures/plan-development-5",
+      "manifest_sha256": "7d49bcaf05198a84e5cb3ef35a6487477983e062e5039a601c5db2c4d07117ab",
+      "semantic_histories": 128,
+      "packets": 0,
+      "frozen_episode_sequences": 0
+    },
+    {
+      "root": "/Users/casey.allard/.codex/worktrees/m2-fresh-437-20261010/local/restore/historical/cue-composition/exposures/plan-fresh-5",
+      "manifest_sha256": "f13fd23ab6c3e6126161d0d9c9cc62255544eceb7b8e637da2380aef216a9fd6",
+      "semantic_histories": 32,
+      "packets": 0,
+      "frozen_episode_sequences": 0
+    },
+    {
+      "root": "/Users/casey.allard/.codex/worktrees/m2-fresh-437-20261010/local/restore/historical/cue-composition/exposures/panel-development-5",
+      "manifest_sha256": "8806679bd900cf5c4477bb3e5aa711b162926a9f6cbfa9fbe365d794912db75d",
+      "semantic_histories": 64,
+      "packets": 128,
+      "frozen_episode_sequences": 0
+    },
+    {
+      "root": "/Users/casey.allard/.codex/worktrees/m2-fresh-437-20261010/local/restore/historical/cue-composition/exposures/panel-fresh-5",
+      "manifest_sha256": "0f0bad58edb50c37416f7d4ab24a3a3092d8357175eef527a548ed35b8d68c81",
+      "semantic_histories": 16,
+      "packets": 32,
+      "frozen_episode_sequences": 0
+    },
+    {
+      "root": "/Users/casey.allard/.codex/worktrees/m2-fresh-437-20261010/local/restore/historical/cue-composition/plan-development-3",
+      "manifest_sha256": "1f8370c0ddd73071b1b3a59e03f39591d25bddcb48e8c968c3b1fdedd3e52b77",
+      "semantic_histories": 512,
+      "packets": 0,
+      "frozen_episode_sequences": 0
+    },
+    {
+      "root": "/Users/casey.allard/.codex/worktrees/m2-fresh-437-20261010/local/restore/historical/cue-composition/plan-fresh-3",
+      "manifest_sha256": "1a915e2e6aa1b034dc97711fd8a2b274ecbae79ae7bde548f69f033712b80be3",
+      "semantic_histories": 128,
+      "packets": 0,
+      "frozen_episode_sequences": 0
+    },
+    {
+      "root": "/Users/casey.allard/.codex/worktrees/m2-fresh-437-20261010/local/restore/historical/cue-composition/panel-development-3",
+      "manifest_sha256": "2d7d45c366b702a6fb0f607e53f0022b976f7d1d6816bc65b8542406a21c1aeb",
+      "semantic_histories": 256,
+      "packets": 512,
+      "frozen_episode_sequences": 0
+    },
+    {
+      "root": "/Users/casey.allard/.codex/worktrees/m2-fresh-437-20261010/local/restore/historical/cue-composition/panel-fresh-3",
+      "manifest_sha256": "33e1da8521993cdb9b53d1b913e9a951fb982457fd8af37acf43bf3207577c17",
+      "semantic_histories": 64,
+      "packets": 128,
+      "frozen_episode_sequences": 0
+    },
+    {
+      "root": "/Users/casey.allard/.codex/worktrees/m2-fresh-437-20261010/local/restore/historical/cue-joint-transfer/plan-fresh-1",
+      "manifest_sha256": "9bdf642efac0571b912152ea9271179d141022a93c1c59023fc3a538ac35606c",
+      "semantic_histories": 128,
+      "packets": 0,
+      "frozen_episode_sequences": 0
+    },
+    {
+      "root": "/Users/casey.allard/.codex/worktrees/m2-fresh-437-20261010/local/restore/historical/cue-joint-transfer/panel-fresh-1",
+      "manifest_sha256": "ce9d0f039c896e67c72c0e3125576903bc05892193058902d012a59281e60f87",
+      "semantic_histories": 64,
+      "packets": 128,
+      "frozen_episode_sequences": 0
+    }
+  ],
+  "input_bytes_sha256": "c5a643ff9ef86f5f16f15b420f42fe8b1921c5c8c7df5a7bbb88f7759cda5bda",
+  "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89",
+  "actual_inputs_preserved": true,
+  "independent_decoded_typed_labels": 128,
+  "model_predictions": "NOT_RUN",
+  "scope": "familiar full literals; unexposed complete bank combinations within bound census; not global pretraining exclusion"
+}

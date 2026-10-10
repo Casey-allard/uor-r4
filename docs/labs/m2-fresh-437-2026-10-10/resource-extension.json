@@ -1,0 +1,11 @@
+{
+  "before": {
+    "cumulative_ms": 1498417627,
+    "limit_ms": 1503000028
+  },
+  "after": {
+    "cumulative_ms": 1498417627,
+    "limit_ms": 1505617627
+  },
+  "reason": "fresh437 qualification full cycle120min"
+}

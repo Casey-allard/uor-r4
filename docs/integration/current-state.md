@@ -1,3 +1,23 @@
+## 2026-10-10 — Saved437 fails fresh qualification: 0/128, while development replays 437/512 exactly (Codex, #2030)
+
+**REJECT fresh qualification:** the [saved437 qualification](../labs/m2-fresh-437-2026-10-10/README.md)
+returns **0/128 complete replies** against the pre-registered **52/128** bar;
+the unchanged saved model exactly replays **437/512** development replies and
+all 7,908 retained native prefix/state witnesses, so M2 remains incomplete.
+**Line: cross-state continuation · count 1/3 · headline 437/512→437/512.**
+Freshness covers eight unexposed literal-bank blocks (16 role assignments) using familiar values,
+64 histories and 128 correlated queries after a bound 30-root exposure census;
+all five strata score zero, with 3 correct openings and 4 incorrect EOS replies.
+No training, model selection or serving/scoring change intervened; independent
+preparation and result readers pass, with two restoration/setup failures retained
+separately and no redraw or prediction in either failure.
+Keep saved437 as the development baseline and preserve the now-exposed negative panel.
+
+**Next:** after protected delivery/cleanup, pre-register a distinct model-changing
+learning intervention for bank-combination transfer, scored on the unchanged
+512 panel; no unchanged dose/rate/seed repeat, and later fresh qualification must
+exclude this opened panel. Closed constructor/attribution/solver lines stay closed.
+
 ## 2026-10-10 — Criterion 2 read for the first time on the 29M line: the D11 engine is bit-exact and the model serves at 1.20–1.24 BPB against the ≤ 0.90 target (deepseek, #2029)
 
 The [D11 serving round](../labs/d11-serving-2026-10-10/README.md) is **cycle 5** of the standing goal and the first reading

@@ -35,7 +35,7 @@ model.
 | Milestone | Issue | Status | Latest result |
 | --- | --- | --- | --- |
 | M1 Language base | [#2029](https://github.com/UOR-Foundation/uor-r4/issues/2029) | in progress | 214M base dev NLL 2.073; 19.9M chat stack 0.933 BPB served at 64 windows (0.877550 float / 0.886838 served matched at 512 windows — [protocol-dependent](docs/labs/criterion2-protocol-pin-2026-10-09/README.md)) |
-| M2 Grounded reply from exact memory | [#2030](https://github.com/UOR-Foundation/uor-r4/issues/2030) | in progress | 437/512 complete replies; development target 256 passed; fresh ≥40% qualification NOT_RUN |
+| M2 Grounded reply from exact memory | [#2030](https://github.com/UOR-Foundation/uor-r4/issues/2030) | in progress | 437/512 complete replies; development target 256 passed; fresh qualification 0/128 (52 required), failed |
 | M3 Durable conversation memory | [#2031](https://github.com/UOR-Foundation/uor-r4/issues/2031) | in progress | Evaluator and session delivered (#1568, #1578); not qualified |
 | M4 One served model (D11 and CLI) | [#2032](https://github.com/UOR-Foundation/uor-r4/issues/2032) | in progress | D11 engine bit-exact; `uor-chat --stack` serves the stack (#2050, 9 Oct) |
 | M5 Laptop cost (D5) | [#2033](https://github.com/UOR-Foundation/uor-r4/issues/2033) | not started | No M1 energy measurement yet |
@@ -51,7 +51,7 @@ Tracker: [#2028](https://github.com/UOR-Foundation/uor-r4/issues/2028). Measured
 | --- | --- | --- |
 | Train, evaluate and export a geometric stack language model | Works, 8M to 214M parameters, offline Rust autodiff | `geometric-stack` example in `uor-r4-training` |
 | Serve an exported stack artifact with no float and no multiplier instruction | Works; bit-exact against the float path on a 3,072-target check | `uor-r4-stack generate`, and `uor-chat --stack <ARTIFACT.lut>` (greedy decoding only) |
-| Native grounded-reply learner (compiler, exact store, emitter) | Runs; completes 145 of 512 frozen-panel replies | `crates/uor-r4-core/src/native_geometric/` |
+| Native grounded-reply learner (compiler, exact store, emitter) | Runs; completes 437/512 exposed development replies, 0/128 fresh replies | `crates/uor-r4-core/src/native_geometric/` |
 | Native chat CLI | Exists | `crates/uor-r4-api/src/bin/r4-native-chat.rs` |
 
 **What does not work yet**
@@ -59,7 +59,7 @@ Tracker: [#2028](https://github.com/UOR-Foundation/uor-r4/issues/2028). Measured
 - **Useful conversation.** The best chat stack is a 19.9M model with a measured
   bits-per-byte score, not a model that holds a conversation.
 - **Arithmetic and code.** The 214M base still gets code and math arithmetic wrong.
-- **Grounded replies at scale.** The native learner completes 145 of 512 replies on the frozen panel; the 256-reply target and fresh-draw qualification remain unmet.
+- **Grounded replies at scale.** The native learner completes 437/512 replies on the exposed frozen panel, passing its 256-reply development target, but fails fresh qualification at 0/128 against 52 required.
 - **One model.** The stack (line A) and the native learner (line B) are not yet joined (M4).
 - **Browser Studio.** The Pages Studio runs the older R4G1 router, not the native or stack model (M7).
 - **Laptop cost.** Full-path energy, RAM and parameter-access cost on an M1 are not measured (M5).
@@ -163,10 +163,13 @@ Entry correctness reaches 507/512, teacher-prefix correct tokens 6,491/6,664 and
 complete swap pairs 186; every prior success in all 11 saved comparators is
 retained. This passes the **256/512 development threshold**, on the same exposed
 panel used for training, with 75 failures and length8 at 90/128. M2 remains
-in progress: its subsequent **fresh-draw ≥40% qualification is NOT_RUN**.
-After delivery and cleanup, freeze fresh criteria and draw/score saved437
-without further training; this result establishes no general-chat, geometric
-advantage or full-path energy claim.
+in progress: [fresh qualification](docs/labs/m2-fresh-437-2026-10-10/README.md)
+fails at **0/128 complete replies against 52 required**, on eight new literal-bank blocks (16 role assignments)
+using familiar values. The unchanged saved model exactly replays 437/512.
+The fresh panel has only 3 correct opening tokens and 4 EOS stops; all four
+EOS-ending replies are wrong. The next learning intervention must address bank-combination
+transfer. This establishes no general-chat, geometric advantage or full-path
+energy claim.
 
 **Models trained**
 
@@ -232,7 +235,7 @@ Every row holds at its exact artifact, data, operator and budget.
 | Sealed 8M stack | 1.1199 BPB | Sealed report; Kneser-Ney 5-gram 1.2803 BPB |
 | 214M Plan A base | FineWeb dev NLL 2.90 to 2.073 | Open development split; rewrite and summarize usable, code and math wrong |
 | v4 memory panel (frozen `exact` check pass) | 31/40 at 214M, 26/40 at 96M | 40 memory rows of `conversational-v4*`; Step 7d fine-tunes, one seed; chat-grade `acceptable` is 27/40 at 214M |
-| Native grounded learner | **437/512 complete replies**, up from177; 260 gained, none lost, 177 retained | [Native pooled-token ranking](docs/labs/m2-pooled-rank-2026-10-10/README.md), frozen exposed 512-episode panel; development threshold 256 passed, fresh ≥40% qualification NOT_RUN |
+| Native grounded learner | **437/512 complete replies**, up from177; 260 gained, none lost, 177 retained | [Native pooled-token ranking](docs/labs/m2-pooled-rank-2026-10-10/README.md), frozen exposed 512-episode panel; development threshold 256 passed, fresh qualification 0/128 (52 required), failed |
 | D11 serving engine | Bit-exact with the float path | NLL equal on 3,072 targets |
 | MQAR toy (1.37M) | 0.99919 in-class vs 0.2534 control | Synthetic task; advantage confined to a learning-rate band |
 

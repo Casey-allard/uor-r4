@@ -1,0 +1,10 @@
+{
+  "files": 226,
+  "bytes": 346057130,
+  "existing_native_files_identical": 8,
+  "archive_sha256": "a51fde56f74b75600dee96c569784b2e30f63a884716c8dde0114b454952ead7",
+  "parent_manifest_sha256": "c00ccddd55eba9f624d54fce73668e13b246e7aa69d9eec1f10ea319a4dc3aaf",
+  "expected_old_panel_parent_manifest": "0ce0ee4c12dc41248302c828740d75eff722cc504307a75e45a390c54465c204",
+  "nearest_native_parent_manifest_sha256": "0ce0ee4c12dc41248302c828740d75eff722cc504307a75e45a390c54465c204",
+  "verification": "Correct checkpoint ancestor matches original panel; first metadata assertion mistakenly compared enclosing run manifest and stopped config write, so attempt2 CLI had missing config/no output/model. Native bytes unchanged."
+}
