@@ -1815,6 +1815,92 @@ const POINTER_SEED_MIX: u64 = 0x504F_494E_5445_5221;
 /// `pointer.log_beta` zero, as `read.log_beta` starts. The scale draws nothing
 /// from the stream, so a Dot and a Lorentz head of one seed share their query
 /// and key. Empty without a pointer.
+/// The values a fresh construction gives the variable `suffix` of the shape
+/// `shape`, drawn from `rng` in the order [`StackConfig::shapes`] yields them.
+///
+/// Shared by [`StackModel::new`] and [`StackModel::add_memory_layers`], so a
+/// memory operator added to a saved model lands on the values a model built
+/// with that configuration and seed would have started from.
+fn initial_variable_values(
+    config: &StackConfig,
+    rng: &mut Initializer,
+    shape: &[usize],
+    suffix: &str,
+    residual_std: f64,
+    lanes: usize,
+) -> Vec<f32> {
+    let count: usize = shape.iter().product();
+    match suffix {
+        "final_norm.weight" | "mlp_norm.weight" | "attn_norm.weight" | "rec_norm.weight"
+        | "read_norm.weight" => vec![1.0; count],
+        "rec.conv.weight" => (0..count)
+            .map(|index| if index < config.width { 1.0 } else { 0.0 })
+            .collect(),
+        "rec.conv.bias" | "read.null.bias" | "read.log_beta" | "memory.log_beta" => {
+            vec![0.0; count]
+        }
+        // Sub-keys near unit norm, so first scores are of order one.
+        "memory.keys" => match config.memory.as_ref().and_then(|m| m.codebook) {
+            // Every head and side holds the whole codebook, in its order.
+            Some(codebook) => {
+                let vectors = codebook.vectors();
+                (0..count / (codebook.size() * codebook.dim()))
+                    .flat_map(|_| vectors.iter().flatten().map(|&v| v as f32))
+                    .collect()
+            }
+            None => {
+                let half = shape[1].max(1) as f64;
+                (0..count)
+                    .map(|_| (rng.normal() / half.sqrt()) as f32)
+                    .collect()
+            }
+        },
+        "read.offset" => vec![INITIAL_LORENTZ_OFFSET as f32; count],
+        "rec.gate.bias" => (0..count)
+            .map(|index| {
+                // Rotation rows start at the identity quaternion (1, 0, 0, 0).
+                if index >= lanes && (index - lanes).is_multiple_of(4) {
+                    1.0
+                } else {
+                    0.0
+                }
+            })
+            .collect(),
+        "rec.decay" => (0..count)
+            .map(|lane| {
+                let fraction = lane as f64 / (count.max(2) - 1) as f64;
+                let (fast, slow) = DECAY_TIMESCALES;
+                let tau = fast * (slow / fast).powf(fraction);
+                let a = (-1.0 / (DECAY_EXPONENT * tau)).exp();
+                (a / (1.0 - a)).ln() as f32
+            })
+            .collect(),
+        "read.age" => (0..count)
+            .map(|index| {
+                let (head, distance) = (index / config.context, index % config.context);
+                let slope = 2f64.powf(-8.0 * (head + 1) as f64 / config.heads as f64);
+                (-slope * distance as f64) as f32
+            })
+            .collect(),
+        "rec.gate.weight" => (0..count)
+            .map(|index| {
+                let std = if index / config.width >= lanes {
+                    ROTATION_STD
+                } else {
+                    INITIAL_STD
+                };
+                (rng.normal() * std) as f32
+            })
+            .collect(),
+        "attn.o.weight" | "read.out.weight" | "rec.out.weight" | "mlp.down.weight" => (0..count)
+            .map(|_| (rng.normal() * residual_std) as f32)
+            .collect(),
+        _ => (0..count)
+            .map(|_| (rng.normal() * INITIAL_STD) as f32)
+            .collect(),
+    }
+}
+
 fn pointer_variables(
     config: &StackConfig,
     seed: u64,
@@ -1954,80 +2040,11 @@ impl StackModel {
             if name.starts_with(POINTER_PREFIX) {
                 continue;
             }
-            let count: usize = shape.iter().product();
             let suffix = name
                 .rsplit_once("layers.")
                 .map_or(name.as_str(), |(_, rest)| &rest[3..]);
-            let values: Vec<f32> = match suffix {
-                "final_norm.weight" | "mlp_norm.weight" | "attn_norm.weight"
-                | "rec_norm.weight" | "read_norm.weight" => vec![1.0; count],
-                "rec.conv.weight" => (0..count)
-                    .map(|index| if index < config.width { 1.0 } else { 0.0 })
-                    .collect(),
-                "rec.conv.bias" | "read.null.bias" | "read.log_beta" | "memory.log_beta" => {
-                    vec![0.0; count]
-                }
-                // Sub-keys near unit norm, so first scores are of order one.
-                "memory.keys" => match config.memory.as_ref().and_then(|m| m.codebook) {
-                    // Every head and side holds the whole codebook, in its order.
-                    Some(codebook) => {
-                        let vectors = codebook.vectors();
-                        (0..count / (codebook.size() * codebook.dim()))
-                            .flat_map(|_| vectors.iter().flatten().map(|&v| v as f32))
-                            .collect()
-                    }
-                    None => {
-                        let half = shape[1].max(1) as f64;
-                        (0..count)
-                            .map(|_| (rng.normal() / half.sqrt()) as f32)
-                            .collect()
-                    }
-                },
-                "read.offset" => vec![INITIAL_LORENTZ_OFFSET as f32; count],
-                "rec.gate.bias" => (0..count)
-                    .map(|index| {
-                        // Rotation rows start at the identity quaternion (1, 0, 0, 0).
-                        if index >= lanes && (index - lanes).is_multiple_of(4) {
-                            1.0
-                        } else {
-                            0.0
-                        }
-                    })
-                    .collect(),
-                "rec.decay" => (0..count)
-                    .map(|lane| {
-                        let fraction = lane as f64 / (count.max(2) - 1) as f64;
-                        let (fast, slow) = DECAY_TIMESCALES;
-                        let tau = fast * (slow / fast).powf(fraction);
-                        let a = (-1.0 / (DECAY_EXPONENT * tau)).exp();
-                        (a / (1.0 - a)).ln() as f32
-                    })
-                    .collect(),
-                "read.age" => (0..count)
-                    .map(|index| {
-                        let (head, distance) = (index / config.context, index % config.context);
-                        let slope = 2f64.powf(-8.0 * (head + 1) as f64 / config.heads as f64);
-                        (-slope * distance as f64) as f32
-                    })
-                    .collect(),
-                "rec.gate.weight" => (0..count)
-                    .map(|index| {
-                        let std = if index / config.width >= lanes {
-                            ROTATION_STD
-                        } else {
-                            INITIAL_STD
-                        };
-                        (rng.normal() * std) as f32
-                    })
-                    .collect(),
-                "attn.o.weight" | "read.out.weight" | "rec.out.weight" | "mlp.down.weight" => (0
-                    ..count)
-                    .map(|_| (rng.normal() * residual_std) as f32)
-                    .collect(),
-                _ => (0..count)
-                    .map(|_| (rng.normal() * INITIAL_STD) as f32)
-                    .collect(),
-            };
+            let values =
+                initial_variable_values(&config, &mut rng, &shape, suffix, residual_std, lanes);
             variables.insert(name, Var::from_vec(values, shape.as_slice(), device)?);
         }
         variables.extend(pointer_variables(&config, config.seed, device)?);
@@ -2088,6 +2105,74 @@ impl StackModel {
         config.validate()?;
         self.variables
             .extend(pointer_variables(&config, seed, &self.device)?);
+        self.config = config;
+        Ok(true)
+    }
+
+    /// Give the listed layers a product-key memory in place of their MLP
+    /// ([`MemoryConfig`]) whose weights are initialised fresh from the model's
+    /// seed — the weights a model built with that configuration and seed would
+    /// start with — so a memory can be trained **into** a model saved without
+    /// one (`Ok(true)`, the layers' `mlp.gate/up/down` variables are dropped
+    /// and replaced by the memory's own). `Ok(false)` if the model already
+    /// carries exactly this memory (its weights are untouched); a different
+    /// memory configuration is refused, as is a model with a served
+    /// representation. The optimizer of a model must be built after this.
+    pub fn add_memory_layers(&mut self, memory: MemoryConfig) -> Result<bool> {
+        if self.served.is_some() {
+            return Err(invalid(
+                "add the memory layers before setting a served representation",
+            ));
+        }
+        if let Some(existing) = &self.config.memory {
+            if existing == &memory {
+                return Ok(false);
+            }
+            return Err(invalid(
+                "the model already has memory layers; a different memory configuration \
+                 cannot be added",
+            ));
+        }
+        let mut config = self.config.clone();
+        config.memory = Some(memory.clone());
+        config.validate()?;
+        // The initialiser advances through every shape in order, exactly as
+        // `new` does (the pointer head has its own stream and draws nothing
+        // here), so the added memory lands on a fresh construction's values.
+        let mut rng = Initializer(config.seed ^ 0x6765_6F6D_5354_4143);
+        let residual_std = INITIAL_STD / (2.0 * config.layers() as f64).sqrt();
+        let lanes = config.width / 4;
+        let mut added: Vec<(String, Var)> = Vec::new();
+        for (name, shape) in config.shapes() {
+            if name.starts_with(POINTER_PREFIX) {
+                continue;
+            }
+            let suffix = name
+                .rsplit_once("layers.")
+                .map_or(name.as_str(), |(_, rest)| &rest[3..]);
+            let values =
+                initial_variable_values(&config, &mut rng, &shape, suffix, residual_std, lanes);
+            let Some(layer) = name
+                .rsplit_once("layers.")
+                .and_then(|(_, rest)| rest.split('.').next())
+                .and_then(|index| index.parse::<usize>().ok())
+            else {
+                continue;
+            };
+            if !memory.layers.contains(&layer) {
+                continue;
+            }
+            added.push((name, Var::from_vec(values, shape.as_slice(), &self.device)?));
+        }
+        if added.is_empty() {
+            return Err(invalid("the memory layers name no layer of this model"));
+        }
+        for layer in &memory.layers {
+            for part in ["mlp.gate.weight", "mlp.up.weight", "mlp.down.weight"] {
+                self.variables.remove(&format!("layers.{layer:02}.{part}"));
+            }
+        }
+        self.variables.extend(added);
         self.config = config;
         Ok(true)
     }
@@ -23355,6 +23440,61 @@ mod tests {
             codebook: None,
         });
         config
+    }
+
+    #[test]
+    fn a_memory_added_to_a_saved_model_matches_a_fresh_construction() -> Result<()> {
+        let device = Device::Cpu;
+        let plain = tiny(StackArch::Geometric, "ra", ReadScore::Dot, true);
+        let _saved = StackModel::new(plain.clone(), &device)?;
+        let memory = MemoryConfig {
+            layers: vec![1],
+            sub_keys: 8,
+            top_k: 3,
+            heads: 2,
+            key_dim: 8,
+            score: MemoryScore::Dot,
+            codebook: None,
+        };
+        let mut extended = StackModel::new(plain.clone(), &device)?;
+        assert!(extended.add_memory_layers(memory.clone())?);
+        assert_eq!(extended.config.memory, Some(memory.clone()));
+        // The named layer's MLP is gone and the memory's own variables are in
+        // its place: (heads * 2 * sub_keys) sub-keys, slots() values and the
+        // query map, and no `mlp.gate/up/down` for layer 1.
+        let weights = extended.variables();
+        assert!(weights.contains_key("layers.01.memory.keys"));
+        assert!(weights.contains_key("layers.01.memory.values"));
+        assert!(weights.contains_key("layers.01.memory.query.weight"));
+        assert!(!weights.contains_key("layers.01.mlp.gate.weight"));
+        assert!(weights.contains_key("layers.00.mlp.gate.weight"));
+        // The added weights are exactly a fresh construction's, because the
+        // initialiser advances through the shapes in the same order.
+        let fresh = StackModel::new(extended.config.clone(), &device)?;
+        for name in [
+            "layers.01.memory.keys",
+            "layers.01.memory.values",
+            "layers.01.memory.query.weight",
+        ] {
+            let added = weights[name].as_tensor().flatten_all()?.to_vec1::<f32>()?;
+            let built = fresh.variables()[name]
+                .as_tensor()
+                .flatten_all()?
+                .to_vec1::<f32>()?;
+            assert_eq!(added, built, "{name} differs from a fresh construction");
+        }
+        // Idempotent for the same memory, refused for a different one.
+        let mut again = StackModel::new(plain.clone(), &device)?;
+        again.add_memory_layers(memory.clone())?;
+        assert!(!again.add_memory_layers(memory)?);
+        let mut other = StackModel::new(plain.clone(), &device)?;
+        other.add_memory_layers(extended.config.memory.clone().expect("a memory"))?;
+        let different = MemoryConfig {
+            top_k: 4,
+            ..extended.config.memory.clone().expect("a memory")
+        };
+        assert!(other.add_memory_layers(different).is_err());
+        Ok(())
     }
 
     #[test]

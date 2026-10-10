@@ -1285,6 +1285,62 @@ impl Settings {
 
 /// The configuration of `init=`'s model: its `config.json`, with `seed=`
 /// (which seeds the window sampler) in place of the saved seed when given.
+/// `memory_layers=` and its companions as a [`MemoryConfig`], or `None` when
+/// no memory is asked for. A fixed codebook sets the sub-key count and the key
+/// width. Shared by a new model's construction and by the run options that add
+/// a memory to a model saved without one (`memory_layers` names the layers
+/// whose MLP the memory replaces, so the other layers keep their width).
+fn memory_config_from_args(args: &Args) -> Result<Option<MemoryConfig>> {
+    let Some(layers) = args.optional("memory_layers") else {
+        // The companions describe the memory `memory_layers=` names; on their
+        // own they describe nothing, and on a model saved with a memory they
+        // would silently leave it as it is.
+        if let Some(key) = [
+            "memory_sub_keys",
+            "memory_top_k",
+            "memory_heads",
+            "memory_key_dim",
+            "memory_score",
+            "memory_codebook",
+        ]
+        .into_iter()
+        .find(|key| args.optional(key).is_some())
+        {
+            return Err(invalid(format!(
+                "{key}= needs memory_layers= to name the layers the memory replaces"
+            )));
+        }
+        return Ok(None);
+    };
+    let codebook = match args.optional("memory_codebook").as_deref() {
+        None => None,
+        Some("h4") => Some(Codebook::H4),
+        Some("e8") => Some(Codebook::E8),
+        Some(other) => return Err(invalid(format!("unknown memory_codebook {other}"))),
+    };
+    let (default_sub_keys, default_key_dim) =
+        codebook.map_or((256, 128), |c| (c.size(), 2 * c.dim()));
+    Ok(Some(MemoryConfig {
+        layers: layers
+            .split(',')
+            .map(|l| {
+                l.parse()
+                    .map_err(|_| invalid(format!("invalid memory layer {l}")))
+            })
+            .collect::<Result<_>>()?,
+        sub_keys: args.number("memory_sub_keys", default_sub_keys)?,
+        top_k: args.number("memory_top_k", 32)?,
+        heads: args.number("memory_heads", 4)?,
+        key_dim: args.number("memory_key_dim", default_key_dim)?,
+        score: match args.optional("memory_score").as_deref() {
+            None | Some("dot") => MemoryScore::Dot,
+            Some("lorentz") => MemoryScore::Lorentz,
+            Some(other) => return Err(invalid(format!("unknown memory_score {other}"))),
+        },
+        codebook,
+    }))
+}
+
 /// Architecture options given beside `init=` must agree with the saved model.
 fn init_config(args: &Args, directory: &Path) -> Result<StackConfig> {
     let mut config: StackConfig =
@@ -1496,35 +1552,8 @@ fn stack_config(args: &Args, vocab: Option<usize>) -> Result<StackConfig> {
     };
     // Product-key memories replace the listed layers' MLPs after the MLP width
     // is matched, so the other layers keep the matched width.
-    if let Some(layers) = args.optional("memory_layers") {
-        // A fixed codebook sets the sub-key count and the key width.
-        let codebook = match args.optional("memory_codebook").as_deref() {
-            None => None,
-            Some("h4") => Some(Codebook::H4),
-            Some("e8") => Some(Codebook::E8),
-            Some(other) => return Err(invalid(format!("unknown memory_codebook {other}"))),
-        };
-        let (default_sub_keys, default_key_dim) =
-            codebook.map_or((256, 128), |c| (c.size(), 2 * c.dim()));
-        config.memory = Some(MemoryConfig {
-            layers: layers
-                .split(',')
-                .map(|l| {
-                    l.parse()
-                        .map_err(|_| invalid(format!("invalid memory layer {l}")))
-                })
-                .collect::<Result<_>>()?,
-            sub_keys: args.number("memory_sub_keys", default_sub_keys)?,
-            top_k: args.number("memory_top_k", 32)?,
-            heads: args.number("memory_heads", 4)?,
-            key_dim: args.number("memory_key_dim", default_key_dim)?,
-            score: match args.optional("memory_score").as_deref() {
-                None | Some("dot") => MemoryScore::Dot,
-                Some("lorentz") => MemoryScore::Lorentz,
-                Some(other) => return Err(invalid(format!("unknown memory_score {other}"))),
-            },
-            codebook,
-        });
+    if let Some(memory) = memory_config_from_args(args)? {
+        config.memory = Some(memory);
         config.validate()?;
     }
     // The A1 read mechanisms, on any fresh shape (`dialogue-train` accepts
@@ -4307,6 +4336,12 @@ struct DialogueSettings {
     pointer_identity: Option<String>,
     pointer_select: Option<String>,
     pointer_route: Option<String>,
+    /// `memory_layers=` and its companions as a [`MemoryConfig`]. On `init=`
+    /// with a model saved **without** memory layers this adds fresh product-key
+    /// memories to the named layers and trains them with the model, so the
+    /// mechanism is trained in rather than bolted on; on a model saved with one
+    /// it must describe exactly that memory.
+    memory: Option<MemoryConfig>,
     policy: PrefixPolicy,
     data_seed: u64,
     steps: usize,
@@ -4679,6 +4714,13 @@ fn dialogue_train_mode(arguments: &[String]) -> Result<()> {
             "read_binding_labels",
             "read_binding_source",
             "read_binding_layer",
+            "memory_layers",
+            "memory_sub_keys",
+            "memory_top_k",
+            "memory_heads",
+            "memory_key_dim",
+            "memory_score",
+            "memory_codebook",
         ],
     )?;
     // Validate the A1 options before anything is claimed or loaded.
@@ -4709,6 +4751,7 @@ fn dialogue_train_mode(arguments: &[String]) -> Result<()> {
         pointer_identity: args.optional("pointer_identity"),
         pointer_select: args.optional("pointer_select"),
         pointer_route: args.optional("pointer_route"),
+        memory: memory_config_from_args(&args)?,
         policy: PrefixPolicy::parse(args.optional("policy").as_deref())?,
         precision: Precision::F32,
         data_seed: args.number("data_seed", 1)?,
@@ -4823,7 +4866,7 @@ fn dialogue_train_mode(arguments: &[String]) -> Result<()> {
 /// dot), whose weights are drawn from `seed=` (default: the saved model's
 /// seed); that seed is recorded in the head's `init_seed`, so it belongs to
 /// the configuration a resume must share.
-fn init_extended_config(args: &Args, saved: &StackConfig) -> Result<(StackConfig, bool)> {
+fn init_extended_config(args: &Args, saved: &StackConfig) -> Result<(StackConfig, bool, bool)> {
     let mut config = saved.clone();
     if let Some(select) = select_arg(args)? {
         config.select = select;
@@ -4893,8 +4936,31 @@ fn init_extended_config(args: &Args, saved: &StackConfig) -> Result<(StackConfig
             None => asked.refuse_without_head()?,
         },
     }
+    // `memory_layers=` and its companions: on a model saved with a memory they
+    // must describe exactly that memory, and on one saved without they add
+    // fresh product-key memories to the named layers
+    // ([`StackModel::add_memory_layers`]), which is how a mechanism is trained
+    // *into* an artifact rather than bolted onto a finished one.
+    let mut memory_added = false;
+    match (&saved.memory, memory_config_from_args(args)?) {
+        (Some(existing), Some(asked)) => {
+            if &asked != existing {
+                return Err(invalid(
+                    "memory_layers= and its companions describe a different memory than the \
+                     saved model's",
+                ));
+            }
+        }
+        (Some(_), None) => {}
+        (None, Some(asked)) => {
+            config.memory = Some(asked);
+            config.validate()?;
+            memory_added = true;
+        }
+        (None, None) => {}
+    }
     config.validate()?;
-    Ok((config, added))
+    Ok((config, added, memory_added))
 }
 
 /// A resume must carry the pointer head's init seed of the run it continues:
@@ -4977,13 +5043,13 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
     // saved model; a pointer added to a model saved without one draws its
     // weights from `seed=` (the saved seed by default), which its `init_seed`
     // records.
-    let (config, pointer_added) = match &s.init {
+    let (config, pointer_added, memory_added) = match &s.init {
         Some(directory) => {
             check_init_tokenizer(directory, &s.tokenizer)?;
             let saved = StackModel::load(directory, &device)?.config;
             init_extended_config(args, &saved)?
         }
-        None => (stack_config(args, Some(vocab))?, false),
+        None => (stack_config(args, Some(vocab))?, false, false),
     };
     let pointer_seed: u64 = if pointer_added {
         config
@@ -5057,6 +5123,16 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
                     let mut model = StackModel::load(directory, &device)?;
                     model.extend_context(config.context)?;
                     model.set_select(config.select)?;
+                    if memory_added {
+                        // The memory replaces the named layers' MLPs, so its
+                        // weights are initialised fresh from the model's seed
+                        // and the optimizer is built after this.
+                        let memory = config
+                            .memory
+                            .clone()
+                            .ok_or_else(|| invalid("an added memory records its configuration"))?;
+                        model.add_memory_layers(memory)?;
+                    }
                     if let Some(pointer) = config.pointer {
                         // A saved head keeps its weights, its recorded seed and
                         // (unless the run replaces them) its selection, route
@@ -6287,7 +6363,7 @@ fn main() -> Result<()> {
 mod tests {
     use super::*;
 
-    const KEYS: [&str; 7] = [
+    const KEYS: [&str; 14] = [
         "select",
         "pointer",
         "pointer_score",
@@ -6295,6 +6371,13 @@ mod tests {
         "pointer_select",
         "pointer_route",
         "seed",
+        "memory_layers",
+        "memory_sub_keys",
+        "memory_top_k",
+        "memory_heads",
+        "memory_key_dim",
+        "memory_score",
+        "memory_codebook",
     ];
 
     fn args(pairs: &[&str]) -> Args {
@@ -6402,13 +6485,79 @@ mod tests {
         );
     }
 
+    /// A geometric control of the shape the dialogue runs train, saved without
+    /// a memory: the layers a memory names still carry their MLPs.
+    fn saved_geometric() -> StackConfig {
+        let control = StackConfig::transformer(16, 2, 2, 24, 12, 5).expect("a small control");
+        StackConfig::geometric_matched_to(&control, "ra", ReadScore::Dot, false)
+            .expect("a small stack")
+    }
+
+    #[test]
+    fn memory_options_add_a_memory_to_a_saved_model_and_must_agree_with_one() {
+        let saved = saved_geometric();
+        assert!(saved.memory.is_none());
+        // On a model saved without memory, the options add one and the run
+        // trains it with the model: `memory_added` is what `dialogue_train`
+        // passes to `StackModel::add_memory_layers`.
+        let (config, added, memory_added) = init_extended_config(
+            &args(&[
+                "memory_layers=1",
+                "memory_sub_keys=8",
+                "memory_top_k=3",
+                "memory_heads=2",
+                "memory_key_dim=8",
+            ]),
+            &saved,
+        )
+        .expect("an added memory");
+        assert!(!added);
+        assert!(memory_added);
+        let memory = config.memory.clone().expect("a memory");
+        assert_eq!(memory.layers, vec![1]);
+        assert_eq!((memory.sub_keys, memory.top_k, memory.heads), (8, 3, 2));
+        assert_eq!(memory.key_dim, 8);
+        assert_eq!(memory.score, MemoryScore::Dot);
+        assert_eq!(memory.codebook, None);
+        // A model that already has one takes the same options as agreement and
+        // refuses a different memory.
+        let (again, _, added_again) = init_extended_config(
+            &args(&[
+                "memory_layers=1",
+                "memory_sub_keys=8",
+                "memory_top_k=3",
+                "memory_heads=2",
+                "memory_key_dim=8",
+            ]),
+            &config,
+        )
+        .expect("the same memory");
+        assert!(!added_again);
+        assert_eq!(again.memory, Some(memory.clone()));
+        assert!(init_extended_config(&args(&["memory_layers=0"]), &config).is_err());
+        assert!(init_extended_config(&args(&["memory_top_k=4"]), &config).is_err());
+        // And with no memory options nothing changes.
+        let (unchanged, _, none_added) =
+            init_extended_config(&args(&[]), &saved).expect("no memory");
+        assert_eq!(unchanged.memory, None);
+        assert!(!none_added);
+        // A codebook fixes the sub-key count and the key width, as in
+        // `stack_config`.
+        let (coded, _, _) =
+            init_extended_config(&args(&["memory_layers=1", "memory_codebook=e8"]), &saved)
+                .expect("a codebook memory");
+        let coded = coded.memory.expect("a memory");
+        assert_eq!(coded.codebook, Some(Codebook::E8));
+        assert_eq!((coded.sub_keys, coded.key_dim), (240, 16));
+    }
+
     #[test]
     fn a_saved_head_takes_an_identity_term_without_new_weights() {
         let with_head = saved_with_head();
         let identity = PointerIdentity::from_weight(0.5).expect("a weight");
         // The term has no parameters, so init= can switch it on for a head
         // trained without one: nothing but the configuration changes.
-        let (config, added) =
+        let (config, added, _) =
             init_extended_config(&args(&["pointer_identity=0.5"]), &with_head).expect("a term");
         assert!(!added);
         assert_eq!(
@@ -6421,12 +6570,12 @@ mod tests {
         );
         let mut weighted = with_head.clone();
         weighted.pointer = config.pointer;
-        let (cleared, _) =
+        let (cleared, _, _) =
             init_extended_config(&args(&["pointer_identity=none"]), &weighted).expect("cleared");
         assert_eq!(cleared.pointer, with_head.pointer);
         // A new head may carry it from the start, and a route refuses it (the
         // route replaces the learned score it mixes with).
-        let (config, added) =
+        let (config, added, _) =
             init_extended_config(&args(&["pointer=8", "pointer_identity=1"]), &saved())
                 .expect("a new identity head");
         assert!(added);
@@ -6454,8 +6603,9 @@ mod tests {
     fn a_saved_head_takes_a_prime_route_without_a_selection() {
         let with_head = saved_with_head();
         let route = PrimeRoute::exact(2);
-        let (config, added) = init_extended_config(&args(&["pointer_route=prime:2"]), &with_head)
-            .expect("a routed head");
+        let (config, added, _) =
+            init_extended_config(&args(&["pointer_route=prime:2"]), &with_head)
+                .expect("a routed head");
         assert!(!added);
         assert_eq!(
             config.pointer,
@@ -6467,7 +6617,7 @@ mod tests {
         );
         let mut routed = with_head.clone();
         routed.pointer = config.pointer;
-        let (config, _) =
+        let (config, _, _) =
             init_extended_config(&args(&["pointer_route=none"]), &routed).expect("a cleared route");
         assert_eq!(config.pointer, with_head.pointer);
         // A route admits its own sources: no selection with it.
@@ -6477,7 +6627,7 @@ mod tests {
         )
         .is_err());
         // A new head may be routed from the start; a route needs a head.
-        let (config, added) =
+        let (config, added, _) =
             init_extended_config(&args(&["pointer=8", "pointer_route=prime:1"]), &saved())
                 .expect("a new routed head");
         assert!(added);
@@ -6588,7 +6738,7 @@ mod tests {
 
     #[test]
     fn a_head_added_to_init_records_the_seed_its_weights_come_from() {
-        let (config, added) = init_extended_config(
+        let (config, added, _) = init_extended_config(
             &args(&[
                 "pointer=8",
                 "pointer_score=lorentz",
@@ -6611,7 +6761,7 @@ mod tests {
             })
         );
         // Without seed= it is the saved model's seed, as the weights are.
-        let (config, added) =
+        let (config, added, _) =
             init_extended_config(&args(&["pointer=8"]), &saved()).expect("a new head");
         assert!(added);
         assert_eq!(
@@ -6631,11 +6781,11 @@ mod tests {
     #[test]
     fn a_saved_head_keeps_its_shape_and_its_seed() {
         let saved = saved_with_head();
-        let (config, added) = init_extended_config(&args(&[]), &saved).expect("unchanged");
+        let (config, added, _) = init_extended_config(&args(&[]), &saved).expect("unchanged");
         assert!(!added && config == saved);
         // The head's selection is not a weight: it may be replaced or cleared,
         // and its recorded seed stays.
-        let (config, added) =
+        let (config, added, _) =
             init_extended_config(&args(&["pointer=8", "pointer_select=top:1"]), &saved)
                 .expect("a new selection");
         assert!(!added);
@@ -6649,7 +6799,7 @@ mod tests {
         );
         let mut selected = saved.clone();
         selected.pointer = config.pointer;
-        let (config, _) = init_extended_config(&args(&["pointer_select=none"]), &selected)
+        let (config, _, _) = init_extended_config(&args(&["pointer_select=none"]), &selected)
             .expect("a cleared selection");
         assert_eq!(config.pointer, saved.pointer);
         // Its width and score are its weights' shape; it cannot be removed.
@@ -6660,7 +6810,7 @@ mod tests {
             );
         }
         // A new seed= does not change a head that already has weights.
-        let (config, added) =
+        let (config, added, _) =
             init_extended_config(&args(&["seed=77"]), &saved).expect("seed of the window");
         assert!(!added);
         assert_eq!(config.pointer, saved.pointer);
