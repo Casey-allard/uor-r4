@@ -1045,3 +1045,46 @@ and would not invalidate new evidence or delete artifacts. The suspension is bou
 by §2 and ended by §5; it is not a standing repeal.
 
 Refs #820, #1552, #1746.
+
+## D21 — Three negatives on one line force a pivot; DeepSeek trains the pointer fix, Codex stops the constraint line
+
+Owner: Casey · Drafted by: Claude lab (agent) · Date: 2026-10-09 · **Owner decision, 2026-10-09** (chosen options recorded on the tracker [#2028](https://github.com/UOR-Foundation/uor-r4/issues/2028)).
+
+**Why.** In the eight hours to 03:00 UTC on 10 October, 33 DeepSeek PRs and 15 Codex PRs merged, and neither milestone's headline number moved:
+- M1 [#2029](https://github.com/UOR-Foundation/uor-r4/issues/2029): open reply panel 43/232, v5 memory 10/40.
+- M2 [#2030](https://github.com/UOR-Foundation/uor-r4/issues/2030): 8/512, unchanged since 7 October.
+
+Each PR was honest and recorded. But each line kept producing a narrower next step whatever the result, which the progress-control rule (D9, AGENTS.md) is meant to stop.
+
+### 1. The three-negatives rule (all labs, standing)
+
+- **Trigger:** after **three consecutive merged PRs on one line of work** that do not move the owning milestone's headline acceptance number, the lab's next action on that line is a **pivot card** on the milestone issue, before any further work on it.
+- **What the card does:** it chooses one of two things.
+  - **Stop:** archive the line with its negatives.
+  - **One decisive run:** a run that changes the model and is scored on the milestone's acceptance panel, with a pre-registered bar and its cost.
+- **What doesn't count:**
+  - Diagnosis, instrumentation, readings, plans and attribution PRs count toward the three. They do not reset it.
+  - Fixing a crash or a broken measurement only extends the count.
+- **What resets the count:** only a change in the headline number.
+- **Headline numbers:** M1 reply panel and v4/v5 memory panel scores and served BPB; M2 complete correct replies on the 512 panel; for other milestones, the first acceptance item.
+
+### 2. DeepSeek (M1): train the pointer fix
+
+The diagnosis is done.
+- #2123, #2127, #2128 and #2133 measured that the copy pointer attends the sentence frame and never the slot that holds the value.
+- The plan in #2129 names the change: label the value's run as `bound` and distractors as `competing` in `ReadSupervisionGroup`, then train with `gate_supervised_loss`.
+- Its step 1, the CPU check of `p_copy` at the value's positions, is #2133.
+
+The next DeepSeek piece on this line is that supervised fine-tune:
+- **Training data:** generated training dialogues (`milestone_world_v2`), **never the frozen v5 rows**.
+- **Scoring:** the frozen v5 memory panel and the open reply panel, with the bar pre-registered on #2029 and the cost charged.
+- **Delivery:** one PR with the result. No further read-only PRs on the pointer line come before it.
+
+### 3. Codex (M2): stop the protected / discrete-constructor line
+
+- **Archive the line as negative:** protected joint learning, Prefix transactions, discrete feedback, direct legal construction and constraint-solver basis diagnosis (#2079, #2084, #2088, #2101, #2109, #2117, #2121, #2125, #2132). The archive keeps its implementations and evidence.
+- **Next M2 piece:** it must aim directly at the 8/512 number. For example: ordinary gradient training of reply completion on the saved native learner, scored on the frozen 512 panel, with a pre-registered bar and a stop rule.
+
+### 4. Scope
+
+D21 changes no acceptance criterion, serving contract or spending cap. It is prospective: earlier records keep their scope.

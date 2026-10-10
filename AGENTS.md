@@ -110,6 +110,13 @@ A task template, stale skill or agent judgment cannot silently change them.
 
 ## Progress control — mandatory before more model compute
 
+**Owner direction, October 9 — three negatives force a pivot ([D21](docs/integration/DECISIONS.md#d21--three-negatives-on-one-line-force-a-pivot-deepseek-trains-the-pointer-fix-codex-stops-the-constraint-line)).**
+After three consecutive merged PRs on one line that do not move the owning milestone's
+headline acceptance number, the next action on that line is a pivot card on the milestone
+issue: stop and archive, or one decisive model-changing run scored on the acceptance panel
+with a pre-registered bar. Diagnosis, readings, plans and attribution PRs count toward the
+three and never reset it; only a change in the headline number does.
+
 Apply the [progress-control rules](docs/integration/agent-execution-policy.md#progress-control--owner-correction-september-25)
 and the active contract in [current state](docs/history/current-state-2026-09-25-to-2026-10-02.md#active-execution-contract--durable-labs-september-29).
 Keep one short work card in the existing issue: integrated deliverable, observed
