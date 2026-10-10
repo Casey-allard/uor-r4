@@ -2,6 +2,8 @@
 
 The owner pastes one of the prompts below into a lab at the start of every session (DeepSeek, Codex or Claude), and the wind-down prompt into a session that is being replaced. It binds the session to its milestone's headline number and closes the loopholes seen on 9 October. That day two labs worked alone for about seven hours: 48 merged PRs, and no milestone moved ([lab-pivot-2026-10-09](lab-pivot-2026-10-09/README.md), [D21](../integration/DECISIONS.md#d21--three-negatives-on-one-line-force-a-pivot-deepseek-trains-the-pointer-fix-codex-stops-the-constraint-line)).
 
+Every lab's track, including the Claude lab's, is audited against this contract every three hours: [audit.md](audit.md).
+
 ## The contract
 
 1. **Your number.**
