@@ -1,0 +1,2207 @@
+diff --git a/crates/uor-r4-training/examples/geometric-frozen-map-fit.rs b/crates/uor-r4-training/examples/geometric-frozen-map-fit.rs
+index d766fb9d0..e7985d09b 100644
+--- a/crates/uor-r4-training/examples/geometric-frozen-map-fit.rs
++++ b/crates/uor-r4-training/examples/geometric-frozen-map-fit.rs
+@@ -54,6 +54,8 @@ use uor_r4_training::{
+     },
+     sha256_bytes, sha256_file,
+ };
++#[path = "geometric_frozen_map_fit/bank_mixture.rs"]
++mod bank_mixture;
+ #[path = "geometric_frozen_map_fit/categorical_proposals.rs"]
+ mod categorical_proposals;
+ #[path = "geometric_frozen_map_fit/constrained_context.rs"]
+@@ -525,6 +527,8 @@ struct Args {
+     #[serde(default)]
+     cross_state_pooled_rank: bool,
+     #[serde(default)]
++    cross_state_bank_mixture: Option<bank_mixture::Config>,
++    #[serde(default)]
+     joint_continuation: Option<JointContinuationConfig>,
+     #[serde(default)]
+     reference_replay: Option<ReferenceReplayConfig>,
+@@ -801,6 +805,7 @@ fn args() -> Result<(Args, Vec<u8>)> {
+     let a: Args = serde_json::from_slice(&raw)?;
+     reply_completion::settings(&a)?;
+     cross_state_completion::settings(&a)?;
++    bank_mixture::settings(&a)?;
+     control_settings(&a)?;
+     continuation_settings(&a)?;
+     joint_continuation_settings(&a)?;
+@@ -841,6 +846,14 @@ fn validate_input_output_paths(a: &Args) -> Result<()> {
+     .chain(a.baseline.iter())
+     .chain(a.prediction_control_resume.iter())
+     .chain(a.cross_state_resume.iter().map(|c| &c.root))
++    .chain(a.cross_state_bank_mixture.iter().flat_map(|c| {
++        [
++            &c.recomposition_root,
++            &c.diagnostic_root,
++            &c.diagnostic_baseline_root,
++            &c.preparation_audit,
++        ]
++    }))
+     .chain(a.retained_context_root.iter())
+     .chain(
+         a.prefix_context_credit
+@@ -4899,7 +4912,7 @@ fn continuation_checkpoint(
+             "continuation independent masters/native reload differs",
+         ));
+     }
+-    let receipt = json!({"step":step,"lineage_step":resume.map_or(step, |r| r.profile.lineage_after(step)),
++    let mut receipt = json!({"step":step,"lineage_step":resume.map_or(step, |r| r.profile.lineage_after(step)),
+         "cross_state_resume":resume.map(|r|&r.provenance),
+         "parent":reloaded.source_binding(),"generate_sha256":p.generate_sha256,
+         "frozen_model_root":fs::canonicalize(&a.saved_fit)?,"frozen_model_report_sha256":CONTINUATION_PARENT_REPORT_SHA,
+@@ -4910,6 +4923,9 @@ fn continuation_checkpoint(
+         "upstream_training":"all Context/Source/Potential/Generate/prototype/bridge/cue/prefix frozen; no old Vars loaded",
+         "fresh_adam":"zero moments; not optimizer-state continuation",
+         "pooled_rank_policy":cross_state_completion::rank_policy(a),"cross_state_pooled_rank":a.cross_state_pooled_rank,"cross_state_bottleneck":a.cross_state_bottleneck,"training_objective":cross_state_completion::objective_policy(a)});
++    if let Some(config) = &a.cross_state_bank_mixture {
++        receipt["bank_mixture"] = json!({"policy":bank_mixture::POLICY,"config":config,"original_inputs_sha256":INPUT_SHA,"original_labels_sha256":LABEL_SHA});
++    }
+     fs::write(
+         root.join("continuation-source/metadata.json"),
+         serde_json::to_vec_pretty(&receipt)?,
+@@ -6080,7 +6096,7 @@ fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
+         .iter()
+         .copied()
+         .collect::<BTreeSet<_>>();
+-    let train = load_panel(
++    let mut train = load_panel(
+         &a.training_inputs,
+         &a.training_labels,
+         &p.integer,
+@@ -6101,6 +6117,10 @@ fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
+     }
+     pairs(&train)?;
+     pairs(&dev)?;
++    let mut mixture = bank_mixture::load(a, &p, &legal, &train)?;
++    if let Some(data) = &mut mixture {
++        train.append(&mut data.additional);
++    }
+     let native = p.generator()?;
+     if native.generate_model().lanes() != 8 || native.generate_model().vocab_size() != 4096 {
+         return Err(bad("continuation parent8-lane/full4096 mismatch"));
+@@ -6149,12 +6169,17 @@ fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
+     {
+         return Err(bad("continuation field parameter admission"));
+     }
+-    let schedule = order(a.seed, train.len());
++    let schedule = if mixture.is_some() {
++        bank_mixture::schedule(a.seed)
++    } else {
++        order(a.seed, train.len())
++    };
+     write(
+         a,
+         "order.json",
+         &json!({"seed":a.seed,"order":schedule,"batch":BATCH,"updates":a.updates,
+-        "policy":"existing full512 SplitMix64/Fisher-Yates cyclic batches; previous supervised tokens only; all answer positions including EOS"}),
++        "policy":if mixture.is_some() {bank_mixture::POLICY} else {"existing full512 SplitMix64/Fisher-Yates cyclic batches; previous supervised tokens only; all answer positions including EOS"},
++        "partition_offsets":if mixture.is_some() {json!([0,512])} else {json!([0])},"mixture":mixture.as_ref().map(|m|&m.receipt)}),
+     )?;
+     let projected_tensor_bytes = train.iter().try_fold(0u64, |sum, e| -> Result<u64> {
+         let copy = e
+@@ -6178,7 +6203,7 @@ fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
+         "admission.json",
+         &json!({"source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"mode":mode_name,
+         "parent":p.receipt,"parent_report_sha256":CONTINUATION_PARENT_REPORT_SHA,"parent_manifest_sha256":CONTINUATION_PARENT_MANIFEST_SHA,
+-        "training_input_sha256":INPUT_SHA,"training_labels_sha256":LABEL_SHA,"construction_panel_overlap":"train=open-development512; no new held-out claim",
++        "training_input_sha256":INPUT_SHA,"training_labels_sha256":LABEL_SHA,"construction_panel_overlap":if mixture.is_some() {"original512 + separately sealed new512 training; opened128 diagnostic bank-disjoint from new512; no fresh qualification"} else {"train=open-development512; no new held-out claim"},"bank_mixture":mixture.as_ref().map(|m|&m.receipt),
+         "active_parameter_names":params.keys().collect::<Vec<_>>(),"shared_coefficients":expected_coefficients,"learning_rate":c.learning_rate,
+         "continuation_policy":zero.metadata().policy,"continuation_score_shift":zero.metadata().score_shift,
+         "continuation_action_support":"same token energy on Generate and every physical Copy before the sole common clip",
+@@ -6240,9 +6265,13 @@ fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
+         cache_rows.push(json!({"id":e.packet.id,"packet_sha256":sha256_bytes(&serde_json::to_vec(&e.packet)?),"positions":provenance}));
+         cache.push(row);
+     }
+-    if cross_state && positions != 6664 {
++    let expected_positions = 6664
++        + a.cross_state_bank_mixture
++            .as_ref()
++            .map_or(0, |c| c.expected_recomposition_target_positions);
++    if cross_state && positions != expected_positions {
+         return Err(bad(
+-            "cross-state frozen512 target-position coverage differs",
++            "cross-state pinned partition target-position coverage differs",
+         ));
+     }
+     d.synchronize()?;
+@@ -6271,6 +6300,14 @@ fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
+             resume.as_ref().map(|r| (&r.prior_final, r.profile)),
+         )?;
+     }
++    let initial_diagnostic = if let Some(data) = &mixture {
++        let result =
++            bank_mixture::evaluate(a, "opened-diagnostic-0000", &p, &initial_field, data, start)?;
++        bank_mixture::baseline(data, &result)?;
++        Some(result)
++    } else {
++        None
++    };
+     write(a, "metrics-0000.json", &initial_metrics)?;
+     evaluation_seconds += clock.elapsed().as_secs_f64();
+     let mut opt = optimizer(&params, c.learning_rate)?;
+@@ -6283,7 +6320,11 @@ fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
+         deadline(a, start)?;
+         disk_floor(a)?;
+         let prepared = owner.prepare_field(&weights)?;
+-        let indices = cross_state_completion::schedule_indices(&schedule, update);
++        let indices = if mixture.is_some() {
++            bank_mixture::indices(&schedule, update)?
++        } else {
++            cross_state_completion::schedule_indices(&schedule, update)
++        };
+         let mut sums = BTreeMap::<String, Tensor>::new();
+         let mut loss_sum = 0.;
+         let mut count = 0usize;
+@@ -6478,6 +6519,25 @@ fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
+         &dev,
+         start,
+     )?;
++    let final_diagnostic = if let Some(data) = &mixture {
++        Some(bank_mixture::evaluate(
++            a,
++            "opened-diagnostic-0256",
++            &p,
++            &final_field,
++            data,
++            start,
++        )?)
++    } else {
++        None
++    };
++    let mixture_outcome = final_diagnostic
++        .as_ref()
++        .map(|d| bank_mixture::outcome(&final_eval, d))
++        .transpose()?;
++    if let Some(outcome) = &mixture_outcome {
++        write(a, "bank-mixture-outcomes.json", outcome)?;
++    }
+     let final_metrics = metrics(a, &final_eval, &dev)?;
+     write(a, &format!("metrics-{:04}", a.updates), &final_metrics)?;
+     evaluation_seconds += clock.elapsed().as_secs_f64();
+@@ -6497,7 +6557,8 @@ fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
+         "source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"device":"cuda:0","updates":a.updates,"batch":BATCH,
+         "prior_updates":resume.as_ref().map_or(0, |r| r.profile.lineage_step),"lineage_step":resume.as_ref().map_or(a.updates, |r| r.profile.lineage_after(a.updates)),
+         "cross_state_resume":resume.as_ref().map(|r|&r.provenance),"fresh_adam":true,"pooled_rank_policy":cross_state_completion::rank_policy(a),"cross_state_pooled_rank":a.cross_state_pooled_rank,"cross_state_bottleneck":a.cross_state_bottleneck,
+-        "training_row_draws":a.updates*BATCH,
++        "training_row_draws":a.updates*BATCH,"training_cases":train.len(),
++        "bank_mixture":mixture.as_ref().map(|m|&m.receipt),"bank_mixture_outcome":mixture_outcome,"initial_opened_diagnostic":initial_diagnostic,"final_opened_diagnostic":final_diagnostic,
+         "target_position_draws":target_position_draws,
+         "loss_scope":"all","phase_policy":cross_state_completion::phase_policy(a),"training_objective":cross_state_completion::objective_policy(a),"credit":a.credit.name(),"order_seed":a.seed,
+         "initial_receipt":initial_receipt,"final_receipt":final_receipt,"initial_metrics":initial_metrics,"final_metrics":final_metrics,
+@@ -6507,7 +6568,7 @@ fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
+         "checkpoint_seconds":checkpoint_seconds,"evaluation_seconds":evaluation_seconds,"elapsed_seconds":start.elapsed().as_secs_f64(),
+         "control":if let Some(r) = &resume {format!("checkpoint0000 is exact saved{} native field plus restored fractional masters; independently matched all512 outputs; cache separately uses zero field; no carrier ablation performed",r.profile.complete)} else if cross_state {"checkpoint0000 is exact accepted parent with zero joint factual/local field; no carrier ablation performed".to_string()} else {"checkpoint0000 is the same native parent with a null U field; constant-carrier control remains a prospective matched full-output evaluation".to_string()},
+         "common_pool_backend":"cpu-authenticated-native-alias-reducer; full score/anchor/loss transfers retained; not fully resident CUDA alias reduction",
+-        "scope":if let Some(r) = &resume {format!("saved{} cross-state parameter continuation with fresh Adam moments; frozen48/64 upstream;115200 Q4 coefficients, four exposed512 passes; fixed endpoint local256/lineage{}; developmental KEEP netcomplete>{}; no held-out transfer/chat/geometry/energy qualification",r.profile.complete,r.profile.lineage_after(a.updates),r.profile.complete)} else if cross_state {"frozen48/64 parent; only115200 joint factual/local signed-H4 Q4 coefficients learned on exposed512 all-answer positions; independently loaded own-prefix outputs; developmental KEEP netcomplete>8; no held-out transfer/chat/geometry/energy qualification".to_string()} else {"frozen48/64 parent; only960 continuation coefficients learned on exposed512 all-answer positions; independently loaded own-feedback outputs; no held-out transfer/chat/geometry/energy qualification".to_string()}}),
++        "scope":if mixture.is_some() {"saved437 parameter continuation on original512 plus expanded-bank512; two passes each at fixed2048episode draws; same pooled-rank/bottleneck objective; opened128 diagnostic is not fresh; prospective qualification-candidate bar development>=256 and diagnostic>=52; saved437 retained; fresh NOT_RUN".to_string()} else if let Some(r) = &resume {format!("saved{} cross-state parameter continuation with fresh Adam moments; frozen48/64 upstream;115200 Q4 coefficients, four exposed512 passes; fixed endpoint local256/lineage{}; developmental KEEP netcomplete>{}; no held-out transfer/chat/geometry/energy qualification",r.profile.complete,r.profile.lineage_after(a.updates),r.profile.complete)} else if cross_state {"frozen48/64 parent; only115200 joint factual/local signed-H4 Q4 coefficients learned on exposed512 all-answer positions; independently loaded own-prefix outputs; developmental KEEP netcomplete>8; no held-out transfer/chat/geometry/energy qualification".to_string()} else {"frozen48/64 parent; only960 continuation coefficients learned on exposed512 all-answer positions; independently loaded own-feedback outputs; no held-out transfer/chat/geometry/energy qualification".to_string()}}),
+     )
+ }
+ 
+@@ -6868,6 +6929,84 @@ fn main() -> Result<()> {
+ #[cfg(test)]
+ mod tests {
+     use super::*;
++    #[test]
++    fn bank_mixture_inputs_and_audit_cannot_be_reused_as_output_before_claim() -> Result<()> {
++        struct OwnedRoot(PathBuf);
++        impl Drop for OwnedRoot {
++            fn drop(&mut self) {
++                let _ = fs::remove_dir_all(&self.0);
++            }
++        }
++        let nonce = std::time::SystemTime::now()
++            .duration_since(std::time::UNIX_EPOCH)?
++            .as_nanos();
++        fs::create_dir_all("local")?;
++        let root = PathBuf::from("local").join(format!(
++            "bank-mixture-path-test-{}-{nonce}",
++            std::process::id()
++        ));
++        fs::create_dir(&root)?;
++        let owned = OwnedRoot(root);
++        let safe = owned.0.join("other-inputs");
++        fs::create_dir(&safe)?;
++        let mut config = json!({"mode":"cross_state_continuation","credit":"raw_identity","seed":1001,
++            "checkpoint":safe,"saved_fit":safe,"categorical":safe,"parent_config":safe,
++            "training_inputs":safe,"training_labels":safe,"development_inputs":safe,
++            "development_labels":safe,"maximum_seconds":3600,"maximum_report_bytes":1073741824,
++            "out":owned.0.join("new-output"),"cross_state_bank_mixture":{
++                "recomposition_root":"pending","diagnostic_root":"pending","diagnostic_baseline_root":"pending",
++                "preparation_audit":"pending","expected_preparation_audit_sha256":"d".repeat(64),
++                "expected_recomposition_manifest_sha256":"a".repeat(64),
++                "expected_recomposition_inputs_sha256":"b".repeat(64),
++                "expected_recomposition_labels_sha256":"c".repeat(64),
++                "expected_recomposition_target_positions":6664}});
++        let mut roots = Vec::new();
++        for key in [
++            "recomposition_root",
++            "diagnostic_root",
++            "diagnostic_baseline_root",
++            "preparation_audit",
++        ] {
++            let parent = owned.0.join(format!("retained-{key}"));
++            fs::create_dir(&parent)?;
++            let input = parent.join(if key == "preparation_audit" {
++                "audit.json"
++            } else {
++                "input"
++            });
++            if key == "preparation_audit" {
++                fs::write(&input, b"{\"retained\":true}")?;
++            } else {
++                fs::create_dir(&input)?;
++            }
++            config["cross_state_bank_mixture"][key] = json!(input);
++            roots.push((key, parent, input));
++        }
++        validate_input_output_paths(&serde_json::from_value(config.clone())?)?;
++        assert!(!owned.0.join("new-output").exists());
++        for (key, parent, input) in roots {
++            let outputs = if key == "preparation_audit" {
++                vec![input.clone(), parent]
++            } else {
++                vec![input.clone(), input.join("new-run"), parent]
++            };
++            for output in outputs {
++                let mut changed = config.clone();
++                changed["out"] = json!(output);
++                assert!(
++                    validate_input_output_paths(&serde_json::from_value(changed)?).is_err(),
++                    "{key}"
++                );
++            }
++            if key != "preparation_audit" {
++                assert!(!input.join("new-run").exists());
++            } else {
++                assert_eq!(fs::read(input)?, b"{\"retained\":true}");
++            }
++        }
++        Ok(())
++    }
++
+     fn reference_row_fixture(phases: Vec<usize>, eligible: Vec<bool>) -> ReferenceRow {
+         ReferenceRow {
+             index: 0,
+diff --git a/crates/uor-r4-training/examples/geometric-native-bank-observation-panel.rs b/crates/uor-r4-training/examples/geometric-native-bank-observation-panel.rs
+index c301f274e..d42b1a68e 100644
+--- a/crates/uor-r4-training/examples/geometric-native-bank-observation-panel.rs
++++ b/crates/uor-r4-training/examples/geometric-native-bank-observation-panel.rs
+@@ -47,6 +47,8 @@ struct Args {
+     curriculum_root: PathBuf,
+     curriculum_manifest_sha256: String,
+     exposed_roots: Vec<BoundRoot>,
++    #[serde(default)]
++    expanded_concrete_donors: Option<role_diversity::ExpandedDonorConfig>,
+     native_artifact: PathBuf,
+     trusted_binding: PathBuf,
+     trusted_binding_sha256: String,
+@@ -635,9 +637,39 @@ fn validate_matched_runtime(plan: &Plan, runtime: &[Value], context: &[Value]) -
+         json!({"pairs":matched,"scope":"identical numerical Context/Source token arrays and answer targets; occurrence/address metadata differs across independently constructed stores"}),
+     )
+ }
++fn validate_expanded_binding(
++    expected: &Value,
++    configured: &Value,
++    report: &Value,
++    donor_bytes: &[u8],
++) -> Result<()> {
++    let recorded: Value = serde_json::from_slice(donor_bytes)?;
++    if recorded != *expected
++        || report["expanded_concrete_donors_sha256"] != sha256_bytes(donor_bytes)
++        || report["expanded_concrete_donors"] != *configured
++        || report["id_namespace"] != "bank-transfer-"
++    {
++        return Err(invalid("expanded author/panel donor provenance binding differs").into());
++    }
++    Ok(())
++}
++
+ fn run(a: &Args, t: Instant) -> Result<Value> {
+     verify_root(&a.construction_plan, &a.construction_manifest_sha256)?;
+     verify_root(&a.curriculum_root, &a.curriculum_manifest_sha256)?;
++    let expanded = a
++        .expanded_concrete_donors
++        .as_ref()
++        .map(|config| {
++            role_diversity::load_expanded_donors(
++                config,
++                &a.exposed_roots
++                    .iter()
++                    .map(|r| (r.root.clone(), r.manifest_sha256.clone()))
++                    .collect::<Vec<_>>(),
++            )
++        })
++        .transpose()?;
+     let rawplan = fs::read(a.construction_plan.join("plan.json"))?;
+     let plan: Plan = serde_json::from_slice(&rawplan)?;
+     if matches!(
+@@ -708,6 +740,30 @@ fn run(a: &Args, t: Instant) -> Result<Value> {
+     );
+     let derived_origin = if a.assertion_query_policy == AssertionQueryPolicy::SupportedCurrentRole {
+         let report = read_json(&a.construction_plan.join("report.json"))?;
++        if let Some(donors) = &expanded {
++            let donor_bytes = fs::read(a.construction_plan.join("expanded-concrete-donors.json"))?;
++            validate_expanded_binding(
++                &donors.receipt,
++                &serde_json::to_value(&a.expanded_concrete_donors)?,
++                &report,
++                &donor_bytes,
++            )?;
++            if plan
++                .histories
++                .iter()
++                .any(|h| !h.id.starts_with("bank-transfer-"))
++            {
++                return Err(
++                    invalid("expanded author/panel donor provenance or namespace differs").into(),
++                );
++            }
++        } else if report.get("expanded_concrete_donors").is_some()
++            || report.get("expanded_concrete_donors_sha256").is_some()
++        {
++            return Err(
++                invalid("expanded construction requires identical panel donor opt-in").into(),
++            );
++        }
+         let bytes = fs::read(a.construction_plan.join("derived-source-origin.json"))?;
+         let digest = sha256_bytes(&bytes);
+         if report["derived_source_origin_sha256"] != digest
+@@ -742,10 +798,20 @@ fn run(a: &Args, t: Instant) -> Result<Value> {
+                 invalid("authorer transfer profile/novelty/matched-group receipt absent").into(),
+             );
+         }
+-        let pool=opened["training"].as_array().ok_or_else(||invalid("training absent"))?.iter()
++        let mut pool=opened["training"].as_array().ok_or_else(||invalid("training absent"))?.iter()
+             .chain(opened["development"].as_array().ok_or_else(||invalid("development absent"))?)
+             .chain(repeats).map(|v|serde_json::from_value::<WireExample>(json!({"text":v["text"],"relation":v["relation"],"act":v["act"],"template":v["template"]})))
+             .collect::<std::result::Result<Vec<_>,_>>()?;
++        if let Some(donors) = &expanded {
++            pool.extend(
++                donors
++                    .wires
++                    .iter()
++                    .cloned()
++                    .map(serde_json::from_value::<WireExample>)
++                    .collect::<std::result::Result<Vec<_>, _>>()?,
++            );
++        }
+         validate_supported_origins_profile(
+             &plan,
+             &origin,
+@@ -760,7 +826,10 @@ fn run(a: &Args, t: Instant) -> Result<Value> {
+     let mut excluded_fingerprints = BTreeSet::new();
+     let mut exposure_receipts = Vec::new();
+     let mut exposed_bank_values = BTreeSet::new();
+-    let mut exposed_literal_banks = BTreeSet::new();
++    let mut exposed_literal_banks = expanded
++        .as_ref()
++        .map(|d| d.bank_keys.clone())
++        .unwrap_or_default();
+     for exposed in &a.exposed_roots {
+         verify_root(&exposed.root, &exposed.manifest_sha256)?;
+         // Explicit known schemas; never silently ignore an unparsed exposure root.
+@@ -892,7 +961,7 @@ fn run(a: &Args, t: Instant) -> Result<Value> {
+         }
+     }
+     if diverse
+-        && a.split == "fresh"
++        && (a.split == "fresh" || expanded.is_some())
+         && role_diversity::bank_keys(&serde_json::from_slice::<Value>(&rawplan)?)?
+             .iter()
+             .any(|k| exposed_literal_banks.contains(k))
+@@ -1024,7 +1093,7 @@ fn run(a: &Args, t: Instant) -> Result<Value> {
+             if diverse {
+                 role_diversity::validate_all_sources(&packet)?;
+             }
+-            if (transfer_shape.is_some() || (diverse && a.split == "fresh"))
++            if (transfer_shape.is_some() || (diverse && (a.split == "fresh" || expanded.is_some())))
+                 && numerical_bank_values(&packet)?
+                     .is_some_and(|bank| exposed_bank_values.contains(&bank))
+             {
+@@ -1038,7 +1107,8 @@ fn run(a: &Args, t: Instant) -> Result<Value> {
+                 .next()
+                 .ok_or_else(|| invalid("semantic fingerprint absent"))?;
+             if !semantic.insert(fp.clone())
+-                || (a.split == "fresh" && excluded_fingerprints.contains(&fp))
++                || ((a.split == "fresh" || expanded.is_some())
++                    && excluded_fingerprints.contains(&fp))
+             {
+                 return Err(invalid("duplicate/exposed actual bank+query packet").into());
+             }
+@@ -1113,9 +1183,14 @@ fn run(a: &Args, t: Instant) -> Result<Value> {
+     {
+         return Err(invalid("native input changed during preparation").into());
+     }
+-    Ok(
+-        json!({"schema":"uor-r4.native-bank-observation-panel/1","status":"COMPLETED","split":a.split,"cases":histories*2,"samebank_query_pairs":histories,"single_record_episode_count":0,"multi_record_episode_count":histories*2,"query_counts":{"job":histories,"where":histories},"source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"tokenizer_sha256":tokenizer_sha,"native_parent_manifest_sha256":parent_manifest_sha,"construction_plan_manifest_sha256":a.construction_manifest_sha256,"construction_plan_sha256":sha256_bytes(&rawplan),"curriculum_manifest_sha256":a.curriculum_manifest_sha256,"exposed_roots":exposure_receipts,"semantic_packet_fingerprints":semantic,"assertion_query_policy":a.assertion_query_policy,"transfer_profile":a.transfer_profile,"transfer_shape_control":transfer_shape,"prospective_diversity_control":diversity_control,"matched_runtime_control":matched_runtime,"source_policy":plan.source_policy,"derived_source_origin_sha256":derived_origin.as_ref().map(|(_,sha)|sha),"source_origin":if diverse {"retained exact donor literal bytes in prospectively authored current-role frames; disjoint bank compositions with familiar questions; no unseen-literal/word/paraphrase claim"}else if transfer_shape.is_some(){"prospectively authored new literal compositions/questions;bound original opened frame donors;not original donor utterance bytes"}else if derived_origin.is_some(){"prospectively authored explicit-current-role utterances;retained donor literal bytes/chronology;not original donor utterance bytes"}else{"retained original assertion/question bytes"},"fresh_payload_novelty_claimed":a.transfer_profile==TransferProfile::SupportedUntouchedComposition && a.split=="fresh","cue_origin_policy":if derived_origin.is_some(){"prospectively-authored-current-role-bytes/bound-byteBPE/2"}else{"original-assertion-bytes/bound-byteBPE/1"},"raw_cue_provenance_sha256":sha256_file(&a.out.join("raw-cue-provenance.json"))?,"inputs_sha256":sha256_file(&a.out.join("inputs.json"))?,"labels_sha256":sha256_file(&a.out.join("labels.json"))?,"context_data_sha256":sha256_file(&a.out.join("context-data.json"))?,"trusted_binding_sha256":a.trusted_binding_sha256,"native_predictions":"NOT_RUN","learning_seed":"NOT_APPLICABLE;source-preparation-only","fresh_scope":if diverse {"prospectively partitioned whole role/value banks across all query/order variants; known full literals and familiar question forms; complete declared exposure exclusions; not unseen words/literals or universal pretraining exclusion"}else if transfer_shape.is_some(){"four predeclared new role/value banks; eight chronological write histories matched across familiar/unseen-order questions; exact declared exposure exclusion; no global pretraining exclusion claim"}else{"separate preauthored prospective histories;exact source/semantic-packet exclusion;no global pretraining exclusion claim"},"elapsed_seconds":t.elapsed().as_secs_f64()}),
+-    )
++    let mut report = json!({"schema":"uor-r4.native-bank-observation-panel/1","status":"COMPLETED","split":a.split,"cases":histories*2,"samebank_query_pairs":histories,"single_record_episode_count":0,"multi_record_episode_count":histories*2,"query_counts":{"job":histories,"where":histories},"source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"tokenizer_sha256":tokenizer_sha,"native_parent_manifest_sha256":parent_manifest_sha,"construction_plan_manifest_sha256":a.construction_manifest_sha256,"construction_plan_sha256":sha256_bytes(&rawplan),"curriculum_manifest_sha256":a.curriculum_manifest_sha256,"exposed_roots":exposure_receipts,"semantic_packet_fingerprints":semantic,"assertion_query_policy":a.assertion_query_policy,"transfer_profile":a.transfer_profile,"transfer_shape_control":transfer_shape,"prospective_diversity_control":diversity_control,"matched_runtime_control":matched_runtime,"source_policy":plan.source_policy,"derived_source_origin_sha256":derived_origin.as_ref().map(|(_,sha)|sha),"source_origin":if diverse {"retained exact donor literal bytes in prospectively authored current-role frames; disjoint bank compositions with familiar questions; no unseen-literal/word/paraphrase claim"}else if transfer_shape.is_some(){"prospectively authored new literal compositions/questions;bound original opened frame donors;not original donor utterance bytes"}else if derived_origin.is_some(){"prospectively authored explicit-current-role utterances;retained donor literal bytes/chronology;not original donor utterance bytes"}else{"retained original assertion/question bytes"},"fresh_payload_novelty_claimed":a.transfer_profile==TransferProfile::SupportedUntouchedComposition && a.split=="fresh","cue_origin_policy":if derived_origin.is_some(){"prospectively-authored-current-role-bytes/bound-byteBPE/2"}else{"original-assertion-bytes/bound-byteBPE/1"},"raw_cue_provenance_sha256":sha256_file(&a.out.join("raw-cue-provenance.json"))?,"inputs_sha256":sha256_file(&a.out.join("inputs.json"))?,"labels_sha256":sha256_file(&a.out.join("labels.json"))?,"context_data_sha256":sha256_file(&a.out.join("context-data.json"))?,"trusted_binding_sha256":a.trusted_binding_sha256,"native_predictions":"NOT_RUN","learning_seed":"NOT_APPLICABLE;source-preparation-only","fresh_scope":if diverse {"prospectively partitioned whole role/value banks across all query/order variants; known full literals and familiar question forms; complete declared exposure exclusions; not unseen words/literals or universal pretraining exclusion"}else if transfer_shape.is_some(){"four predeclared new role/value banks; eight chronological write histories matched across familiar/unseen-order questions; exact declared exposure exclusion; no global pretraining exclusion claim"}else{"separate preauthored prospective histories;exact source/semantic-packet exclusion;no global pretraining exclusion claim"},"elapsed_seconds":t.elapsed().as_secs_f64()});
++    if let Some(donors) = &expanded {
++        report["expanded_concrete_donors_sha256"] =
++            json!(sha256_bytes(&serde_json::to_vec_pretty(&donors.receipt)?));
++        report["expanded_concrete_donors"] = serde_json::to_value(&a.expanded_concrete_donors)?;
++        report["id_namespace"] = json!("bank-transfer-");
++    }
++    Ok(report)
+ }
+ fn main() -> Result<()> {
+     let path = std::env::args()
+@@ -1133,6 +1208,19 @@ fn main() -> Result<()> {
+     {
+         return Err(invalid("panel arguments/bounds invalid").into());
+     }
++    if let Some(config) = &a.expanded_concrete_donors {
++        if a.transfer_profile != TransferProfile::SupportedProspectiveRoleDiversity
++            || a.assertion_query_policy != AssertionQueryPolicy::SupportedCurrentRole
++        {
++            return Err(invalid("expanded panel requires diversity/current-role policy").into());
++        }
++        config.validate(
++            &a.exposed_roots
++                .iter()
++                .map(|r| (r.root.clone(), r.manifest_sha256.clone()))
++                .collect::<Vec<_>>(),
++        )?;
++    }
+     let out = output_support::prospective_output(&a.out)?;
+     for p in [
+         &a.construction_plan,
+@@ -1183,6 +1271,28 @@ mod supported_current_role_panel_tests {
+             "origin":"prospectively authored explicit-current-role frame/question;not retained original assertion bytes"})
+     }
+     #[test]
++    fn expanded_panel_reconstructs_provenance_not_only_a_supplied_hash() -> Result<()> {
++        let expected =
++            json!({"witnesses":[{"json_pointer":"/training/0","wire":{"text":"original"}}]});
++        let config = json!({"roots":[{"root":"pinned-bundle","manifest_sha256":"pinned"}]});
++        let bytes = serde_json::to_vec_pretty(&expected)?;
++        let report = json!({"expanded_concrete_donors_sha256":sha256_bytes(&bytes),"expanded_concrete_donors":config,"id_namespace":"bank-transfer-"});
++        validate_expanded_binding(&expected, &config, &report, &bytes)?;
++        let mut forged = expected.clone();
++        forged["witnesses"][0]["json_pointer"] = json!("/reference_templates_control_only/0");
++        let forged_bytes = serde_json::to_vec_pretty(&forged)?;
++        let mut forged_report = report.clone();
++        forged_report["expanded_concrete_donors_sha256"] = json!(sha256_bytes(&forged_bytes));
++        assert!(
++            validate_expanded_binding(&expected, &config, &forged_report, &forged_bytes).is_err()
++        );
++        assert!(validate_expanded_binding(&expected, &Value::Null, &report, &bytes).is_err());
++        forged_report = report.clone();
++        forged_report["id_namespace"] = json!("development-diverse-");
++        assert!(validate_expanded_binding(&expected, &config, &forged_report, &bytes).is_err());
++        Ok(())
++    }
++    #[test]
+     fn opt_in_preserves_legacy_default_and_rejects_unknown_policy() -> Result<()> {
+         assert!(AssertionQueryPolicy::default() == AssertionQueryPolicy::RetainedOriginal);
+         let supported: AssertionQueryPolicy = serde_json::from_str("\"supported-current-role/1\"")?;
+diff --git a/crates/uor-r4-training/examples/geometric-native-bank-observation-plan.rs b/crates/uor-r4-training/examples/geometric-native-bank-observation-plan.rs
+index 744e563f7..617cb1be2 100644
+--- a/crates/uor-r4-training/examples/geometric-native-bank-observation-plan.rs
++++ b/crates/uor-r4-training/examples/geometric-native-bank-observation-plan.rs
+@@ -46,7 +46,10 @@ struct Args {
+     development_out: Option<PathBuf>,
+     #[serde(default)]
+     fresh_only_training_plan: Option<BoundRoot>,
+-    fresh_out: PathBuf,
++    #[serde(default)]
++    fresh_out: Option<PathBuf>,
++    #[serde(default)]
++    expanded_concrete_donors: Option<role_diversity::ExpandedDonorConfig>,
+     maximum_seconds: u64,
+     maximum_report_bytes: usize,
+ }
+@@ -667,6 +670,15 @@ fn diversity_histories_for_mode(
+     _repeats: &[Wire],
+     exposed_banks: &BTreeSet<String>,
+     training_plan: Option<&Value>,
++) -> Result<(Vec<History>, Vec<History>)> {
++    diversity_histories_schedule(all, _repeats, exposed_banks, training_plan, false)
++}
++fn diversity_histories_schedule(
++    all: &[Wire],
++    _repeats: &[Wire],
++    exposed_banks: &BTreeSet<String>,
++    training_plan: Option<&Value>,
++    development_only: bool,
+ ) -> Result<(Vec<History>, Vec<History>)> {
+     let fresh_only = training_plan.is_some();
+     if let Some(plan) = training_plan {
+@@ -689,6 +701,7 @@ fn diversity_histories_for_mode(
+         ("reassert", Some(2), 4, 1),
+     ] {
+         let dev_blocks = if fresh_only { 0 } else { dev_blocks };
++        let fresh_blocks = if development_only { 0 } else { fresh_blocks };
+         // Reassertions are prospectively authored by repeating a retained assert wire.
+         // Ordinary both-role witnesses suffice; original repeated histories are not claimed.
+         let source = all;
+@@ -808,18 +821,29 @@ fn diversity_histories_for_mode(
+             return Err(invalid(format!("diversity insufficient disjoint donor blocks for {stratum}: {selected}; no adaptive replacement")).into());
+         }
+     }
+-    if development.len() != if fresh_only { 0 } else { 256 } || fresh.len() != 64 {
++    if development.len() != if fresh_only { 0 } else { 256 }
++        || fresh.len() != if development_only { 0 } else { 64 }
++    {
+         return Err(invalid("diversity fixed512/128 row design differs").into());
+     }
+-    role_diversity::validate_literal_coverage(
+-        training_plan.unwrap_or(&json!({"histories":development})),
+-        &json!({"histories":fresh}),
+-    )?;
++    if !development_only {
++        role_diversity::validate_literal_coverage(
++            training_plan.unwrap_or(&json!({"histories":development})),
++            &json!({"histories":fresh}),
++        )?;
++    }
+     Ok((development, fresh))
+ }
+ 
++fn namespace_expanded(histories: &mut [History]) {
++    for h in histories {
++        h.id = format!("bank-transfer-{}", h.id);
++    }
++}
++
+ fn run(a: &Args, t: Instant) -> Result<Value> {
+     let fresh_only = validate_author(a)?;
++    let development_only = a.mode.as_deref() == Some("author-development-only");
+     let training_plan = if let Some(reference) = &a.fresh_only_training_plan {
+         verify(&reference.root, &reference.manifest_sha256)?;
+         let plan = read_json(&reference.root.join("plan.json"))?;
+@@ -841,6 +865,29 @@ fn run(a: &Args, t: Instant) -> Result<Value> {
+     }
+     let mut all = train.clone();
+     all.extend(dev.clone());
++    let expanded = a
++        .expanded_concrete_donors
++        .as_ref()
++        .map(|config| {
++            role_diversity::load_expanded_donors(
++                config,
++                &a.exposed_roots
++                    .iter()
++                    .map(|r| (r.root.clone(), r.manifest_sha256.clone()))
++                    .collect::<Vec<_>>(),
++            )
++        })
++        .transpose()?;
++    if let Some(donors) = &expanded {
++        all.extend(
++            donors
++                .wires
++                .iter()
++                .cloned()
++                .map(serde_json::from_value::<Wire>)
++                .collect::<std::result::Result<Vec<_>, _>>()?,
++        );
++    }
+     let mut opened = BTreeSet::new();
+     opened_strings(&frozen, &mut opened);
+     let mut opened_values = BTreeSet::new();
+@@ -848,6 +895,14 @@ fn run(a: &Args, t: Instant) -> Result<Value> {
+     collect_opened_wires(&frozen, &mut opened_values, &mut opened_queries)?;
+     let mut exposed_banks = BTreeSet::new();
+     let mut exposed_turn_histories = BTreeSet::new();
++    if let Some(donors) = &expanded {
++        for (job, home) in &donors.bank_keys {
++            exposed_banks.insert(sha256_bytes(&serde_json::to_vec(
++                &json!({"job":job,"home":home}),
++            )?));
++        }
++        exposed_turn_histories.extend(donors.history_fingerprints.iter().cloned());
++    }
+     let mut history_exposure_roots = Vec::new();
+     let mut wire_exposure_coverage = Vec::new();
+     let mut exposed_history = BTreeSet::new();
+@@ -1016,7 +1071,9 @@ fn run(a: &Args, t: Instant) -> Result<Value> {
+         }
+     }
+     if diverse {
+-        (development, fresh) = if let Some(training_plan) = training_plan.as_ref() {
++        (development, fresh) = if development_only {
++            diversity_histories_schedule(&all, &repeat, &exposed_banks, None, true)?
++        } else if let Some(training_plan) = training_plan.as_ref() {
+             diversity_histories_for_mode(&all, &repeat, &exposed_banks, Some(training_plan))?
+         } else {
+             diversity_histories(&all, &repeat, &exposed_banks)?
+@@ -1037,6 +1094,17 @@ fn run(a: &Args, t: Instant) -> Result<Value> {
+     } else {
+         BTreeMap::new()
+     };
++    if expanded.is_some() {
++        namespace_expanded(&mut development);
++        namespace_expanded(&mut fresh);
++        // A development-only panel is also new construction, never an opened-bank replay.
++        for h in &development {
++            let (bank, history) = semantic_identity(h)?;
++            if exposed_banks.contains(&bank) || exposed_turn_histories.contains(&history) {
++                return Err(invalid("expanded development bank/history already exposed").into());
++            }
++        }
++    }
+     let (development_origins, fresh_origins) = match a.assertion_query_policy {
+         AssertionQueryPolicy::RetainedOriginal => (Vec::new(), Vec::new()),
+         AssertionQueryPolicy::SupportedCurrentRole => (
+@@ -1116,7 +1184,7 @@ fn run(a: &Args, t: Instant) -> Result<Value> {
+     let mut dev_fp = BTreeSet::new();
+     for h in &development {
+         for fp in semantic_history(h)? {
+-            if !dev_fp.insert(fp) {
++            if (expanded.is_some() && exposed_history.contains(&fp)) || !dev_fp.insert(fp) {
+                 return Err(invalid("development effective-bank/query duplicate").into());
+             }
+         }
+@@ -1149,7 +1217,8 @@ fn run(a: &Args, t: Instant) -> Result<Value> {
+     let mut dev_numerical = BTreeSet::new();
+     for h in &development {
+         for fp in numerical_history(h, &tok)? {
+-            if !dev_numerical.insert(fp) {
++            if (expanded.is_some() && exposed_numerical.contains(&fp)) || !dev_numerical.insert(fp)
++            {
+                 return Err(invalid("development numerical packet duplicate").into());
+             }
+         }
+@@ -1176,7 +1245,11 @@ fn run(a: &Args, t: Instant) -> Result<Value> {
+         .development_out
+         .iter()
+         .map(|out| (out, "development", &development, &dev_fp))
+-        .chain(std::iter::once((&a.fresh_out, "fresh", &fresh, &fresh_fp)));
++        .chain(
++            a.fresh_out
++                .iter()
++                .map(|out| (out, "fresh", &fresh, &fresh_fp)),
++        );
+     for (out, split, histories, fp) in outputs {
+         let plan = json!({"schema":"uor-r4.raw-natural-reader-construction-plan/1","split":split,"source_policy":a.assertion_query_policy.source_policy(),"histories":histories});
+         let planbytes = serde_json::to_vec_pretty(&plan)?;
+@@ -1199,6 +1272,24 @@ fn run(a: &Args, t: Instant) -> Result<Value> {
+             None
+         };
+         let mut receipt = json!({"schema":"uor-r4.raw-natural-reader-construction-authoring/1","split":split,"source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"source_bundle_manifest_sha256":a.input_manifest_sha256,"histories":histories.len(),"resulting_allbank_queries":histories.len()*2,"query_role_balance":"both natural job/home questions on every identical bank","chronology_pairs":histories.len()/2,"assertion_query_policy":a.assertion_query_policy,"source_origin":if a.assertion_query_policy==AssertionQueryPolicy::RetainedOriginal{"retained exact utterances512/128 +opened repetition16;fresh fixed known-frame compositions"}else if diverse {"exact retained donor literal bytes; new role/value bank combinations; balanced literal roles/positions and crossed familiar wording; not retained-original utterance bytes or unseen literals"}else if untouched && split=="fresh" {"fixed generated fresh literal bytes in retained donor frames;original frame witnesses bound;prospectively authored explicit-current-role assertion/query frames;not retained-original utterance bytes"}else{"retained donor literal bytes and chronology;prospectively authored explicit-current-role assertion/query frames;not retained-original utterance bytes"},"derived_source_origin_sha256":origin_bytes.as_ref().map(|bytes|sha256_bytes(bytes)),"transfer_profile":a.transfer_profile,"prospective_reassert_donor_policy":if diverse {Some("ordinary-retained-both-role-two-word-assertion-witnesses/authored-same-value-repeat/1")}else{None},"prospective_diversity_control":diversity_control,"fresh_payload_novelty_claimed":untouched && split=="fresh","transfer_novelty":if untouched && split=="fresh" {json!({"distinct_current_role_value_banks":transfer_banks,"distinct_role_act_literal_histories":transfer_histories,"matched_question_groups":["familiar","novel"],"history_exclusion_covered_roots":history_exposure_roots,"wire_extraction_coverage":wire_exposure_coverage,"familiar_queries_intentionally_overlap":true,"novel_queries":[TRANSFER_JOB_QUERY,TRANSFER_HOME_QUERY],"scope":"exact full-literal, question-string, role/value-bank and role/act/literal-history exclusion;not unseen words or universal pretraining exclusion"})}else{Value::Null},"source_label_scope":"offline construction only;not learned compiler result","semantic_fingerprints":fp,"numerical_packet_fingerprints":if split=="development"{&dev_numerical}else{&fresh_numerical},"exposed_roots":a.exposed_roots.iter().map(|e|json!({"root":e.root,"manifest_sha256":e.manifest_sha256})).collect::<Vec<_>>(),"plan_sha256":sha256_bytes(&planbytes),"public_formatter_eligibility":"all rows before prediction;support probabilities NOT_RUN","native_predictions":"NOT_RUN","learning_seed":"NOT_APPLICABLE","elapsed_seconds":t.elapsed().as_secs_f64()});
++        if let Some(donors) = &expanded {
++            let bytes = serde_json::to_vec_pretty(&donors.receipt)?;
++            receipt["expanded_concrete_donors_sha256"] = json!(sha256_bytes(&bytes));
++            receipt["expanded_concrete_donors"] =
++                serde_json::to_value(&a.expanded_concrete_donors)?;
++            receipt["id_namespace"] = json!("bank-transfer-");
++            if bytes.len() > a.maximum_report_bytes / 2 {
++                return Err(
++                    invalid("expanded donor receipt exceeds bounded plan allocation").into(),
++                );
++            }
++            fs::write(out.join("expanded-concrete-donors.json"), bytes)?;
++        }
++        if development_only {
++            receipt["development_only_authoring"] = json!({"mode":"author-development-only",
++                "fresh_output_created":false,"fresh_histories_selected":0,
++                "fixed_bank_blocks":{"length2":8,"length4":8,"length8":8,"update":4,"reassert":4}});
++        }
+         if fresh_only {
+             let reference = a
+                 .fresh_only_training_plan
+@@ -1210,7 +1301,15 @@ fn run(a: &Args, t: Instant) -> Result<Value> {
+         let eb = serde_json::to_vec_pretty(
+             &json!({"rows":eligibility.iter().filter(|x|histories.iter().any(|h|x["history"]==h.id)).collect::<Vec<_>>()}),
+         )?;
+-        if planbytes.len() + rb.len() + eb.len() + origin_bytes.as_ref().map_or(0, Vec::len)
++        if planbytes.len()
++            + rb.len()
++            + eb.len()
++            + origin_bytes.as_ref().map_or(0, Vec::len)
++            + expanded
++                .as_ref()
++                .map(|d| serde_json::to_vec_pretty(&d.receipt).map(|b| b.len()))
++                .transpose()?
++                .unwrap_or(0)
+             > a.maximum_report_bytes
+         {
+             return Err(invalid("source plan report cap").into());
+@@ -1249,13 +1348,30 @@ fn validate_fresh_training_plan(plan: &Value) -> Result<()> {
+     Ok(())
+ }
+ fn validate_author(a: &Args) -> Result<bool> {
+-    if a.mode
+-        .as_deref()
+-        .is_some_and(|m| m != "author" && m != "author-fresh-only")
+-    {
++    if a.mode.as_deref().is_some_and(|m| {
++        m != "author" && m != "author-fresh-only" && m != "author-development-only"
++    }) {
+         return Err(invalid("unknown plan authoring mode").into());
+     }
+     let fresh_only = a.mode.as_deref() == Some("author-fresh-only");
++    let development_only = a.mode.as_deref() == Some("author-development-only");
++    if development_only != a.fresh_out.is_none()
++        || (development_only && a.expanded_concrete_donors.is_none())
++        || (a.expanded_concrete_donors.is_some() && !(development_only || fresh_only))
++        || (a.expanded_concrete_donors.is_some()
++            && (a.transfer_profile != TransferProfile::SupportedProspectiveRoleDiversity
++                || a.assertion_query_policy != AssertionQueryPolicy::SupportedCurrentRole))
++    {
++        return Err(invalid("expanded development-only donor/output mode differs").into());
++    }
++    if let Some(config) = &a.expanded_concrete_donors {
++        config.validate(
++            &a.exposed_roots
++                .iter()
++                .map(|r| (r.root.clone(), r.manifest_sha256.clone()))
++                .collect::<Vec<_>>(),
++        )?;
++    }
+     if fresh_only != a.fresh_only_training_plan.is_some()
+         || fresh_only == a.development_out.is_some()
+         || (fresh_only && a.transfer_profile != TransferProfile::SupportedProspectiveRoleDiversity)
+@@ -1298,17 +1414,19 @@ fn author(a: Args) -> Result<()> {
+         .as_ref()
+         .map(|p| output_support::prospective_output(p))
+         .transpose()?;
+-    let fresh = output_support::prospective_output(&a.fresh_out)?;
++    let fresh = a
++        .fresh_out
++        .as_ref()
++        .map(|p| output_support::prospective_output(p))
++        .transpose()?;
+     if dev
+         .as_ref()
+-        .is_some_and(|dev| dev.starts_with(&fresh) || fresh.starts_with(dev))
++        .zip(fresh.as_ref())
++        .is_some_and(|(dev, fresh)| dev.starts_with(fresh) || fresh.starts_with(dev))
+     {
+         return Err(invalid("plan outputs overlap").into());
+     }
+-    let outputs = dev
+-        .iter()
+-        .chain(std::iter::once(&fresh))
+-        .collect::<Vec<_>>();
++    let outputs = dev.iter().chain(fresh.iter()).collect::<Vec<_>>();
+     for p in [&a.input_bundle, &a.native_artifact, &a.trusted_binding] {
+         let p = fs::canonicalize(p)?;
+         if outputs
+@@ -1757,6 +1875,96 @@ mod prospective_diversity_tests {
+             "maximum_seconds":300, "maximum_report_bytes":16777216
+         }))?)
+     }
++    fn expanded_author_args() -> Result<Args> {
++        let mut a = author_args()?;
++        a.mode = Some("author-development-only".into());
++        a.fresh_out = None;
++        // Pinned roots are validated against the fixed shared helper contract.
++        let hashes = [
++            "14e96299b2d256d0e1729eefb95507d8f1f1052b7e3144ce67d3b0facd709140",
++            "8a8b7618f67117086e24cc482c82ce407eb46ef56427420bf2b54d376631679c",
++            "1bbacf4c8e327b48a002f98a8efcca6f9eaea84fb34058a6b180d20f63b02500",
++            "ccaace26245ff07c148200ce6c37fa1193e56bc477a44ee173bfc97c932cc446",
++            "92e38610348cdbc79522e98c0a6f019219365c48ce302fb52525f24939d4c16d",
++            "709927f0600f9e200f4088ba9d7733198765a1abadc261be560728a01dd6d1e3",
++            "76c5596a337870a2d09667572a8dcde705f916d7b7e1a7bd04d44c4cb7baf45f",
++            "e4d4e824c16e671089868dd6572b1ccef6f501f9f7beb6f3d29b5fc8bb6bed1e",
++            "88334d971cb35f525605a4b76c90455780abde5bb99592f2b9db60eb856ae73a",
++            "df659bef365bdd135e75e36fb0f5669f25892c085a7789404ac4bd39c7d0b603",
++            "39380230b40965ff7b89fc544a8b0847b318a0432c7497091cd021253ab6acb0",
++            "2b46d23ad7e0103d9701520577a33712e9f6d88c6d2263b18f9a18d508505a64",
++        ];
++        a.exposed_roots = hashes
++            .iter()
++            .enumerate()
++            .map(|(i, h)| BoundRoot {
++                root: format!("bundle-{i}").into(),
++                manifest_sha256: (*h).into(),
++            })
++            .collect();
++        a.expanded_concrete_donors = Some(role_diversity::ExpandedDonorConfig {
++            roots: a
++                .exposed_roots
++                .iter()
++                .map(|r| role_diversity::ExpandedDonorRoot {
++                    root: r.root.clone(),
++                    manifest_sha256: r.manifest_sha256.clone(),
++                })
++                .collect(),
++        });
++        Ok(a)
++    }
++    #[test]
++    fn development_only_requires_expanded_pins_and_forbids_any_fresh_output() -> Result<()> {
++        let mut a = expanded_author_args()?;
++        assert!(!validate_author(&a)?);
++        a.fresh_out = Some("must-not-create".into());
++        assert!(validate_author(&a).is_err());
++        a.fresh_out = None;
++        a.development_out = None;
++        assert!(validate_author(&a).is_err());
++        a.development_out = Some("development".into());
++        a.expanded_concrete_donors = None;
++        assert!(validate_author(&a).is_err());
++        Ok(())
++    }
++    #[test]
++    fn development_only_selects512_no_fresh_and_leaves_disjoint_fresh128() -> Result<()> {
++        let all = donors_with_count(20);
++        let (mut dev, fresh) =
++            diversity_histories_schedule(&all, &[], &BTreeSet::new(), None, true)?;
++        assert_eq!(dev.len(), 256);
++        assert!(fresh.is_empty());
++        let before = dev
++            .iter()
++            .map(semantic_identity)
++            .collect::<Result<Vec<_>>>()?;
++        namespace_expanded(&mut dev);
++        assert!(dev
++            .iter()
++            .all(|h| h.id.starts_with("bank-transfer-diverse-") && h.id.contains("-swap")));
++        assert_eq!(
++            before,
++            dev.iter()
++                .map(semantic_identity)
++                .collect::<Result<Vec<_>>>()?
++        );
++        let excluded = before.into_iter().map(|(b, _)| b).collect::<BTreeSet<_>>();
++        apply_supported_policy_mode(&mut dev, true)?;
++        let plan = json!({"schema":"uor-r4.raw-natural-reader-construction-plan/1","split":"development","source_policy":AssertionQueryPolicy::SupportedCurrentRole.source_policy(),"histories":dev});
++        role_diversity::validate(&plan)?;
++        let (empty, mut future) = diversity_histories_for_mode(&all, &[], &excluded, Some(&plan))?;
++        assert!(empty.is_empty());
++        assert_eq!(future.len(), 64);
++        assert!(future
++            .iter()
++            .all(|h| semantic_identity(h).is_ok_and(|(b, _)| !excluded.contains(&b))));
++        apply_supported_policy_mode(&mut future, true)?;
++        let fp = json!({"split":"fresh","histories":future});
++        role_diversity::validate(&fp)?;
++        role_diversity::validate_literal_coverage(&plan, &fp)?;
++        Ok(())
++    }
+     #[test]
+     fn fresh_only_mode_requires_bound_reference_and_no_development_output() -> Result<()> {
+         let mut a = author_args()?;
+diff --git a/crates/uor-r4-training/examples/geometric_frozen_map_fit/bank_mixture.rs b/crates/uor-r4-training/examples/geometric_frozen_map_fit/bank_mixture.rs
+new file mode 100644
+index 000000000..407db58cc
+--- /dev/null
++++ b/crates/uor-r4-training/examples/geometric_frozen_map_fit/bank_mixture.rs
+@@ -0,0 +1,594 @@
++//! Registered original512 + independently sealed expanded-bank512 learning.
++//! No serving change and no fresh qualification in this training run.
++use super::*;
++
++const DIAGNOSTIC_INPUT_SHA: &str =
++    "c5a643ff9ef86f5f16f15b420f42fe8b1921c5c8c7df5a7bbb88f7759cda5bda";
++const DIAGNOSTIC_LABEL_SHA: &str =
++    "b70f57761238ad4044ebdc158e465e978cfd098c9dfbe5b2b4d4a79e582aec77";
++const DIAGNOSTIC_MANIFEST_SHA: &str =
++    "f8cbb66a683df75fad6c13bdc734fd6dad70b04dfa7932e9119992f61f0a3e1d";
++const BASELINE_REPORT_SHA: &str =
++    "0bbd3f09b6e05dbd25697eb0b38ff727ac84c98d629a05016d682f965bc4108f";
++const BASELINE_MANIFEST_SHA: &str =
++    "4c20a585073c85dadf2d5152bf6d8ffaa8c74c9b089ee9a689333c0253635bcd";
++const FIELD437_SHA: &str = "de4a3234d6e92f4b12a657cc195425687bc67c243d9eded9a1df0797b9942a61";
++pub(super) const POLICY: &str = "original512+expanded-concrete-donor512;4+4-per-batch;independent-seed1001-permutations;two-passes-each;256updates;opened128-diagnostic-not-fresh/1";
++
++#[derive(Clone, Deserialize, serde::Serialize)]
++#[serde(deny_unknown_fields)]
++pub(super) struct Config {
++    pub recomposition_root: PathBuf,
++    pub expected_recomposition_manifest_sha256: String,
++    pub expected_recomposition_inputs_sha256: String,
++    pub expected_recomposition_labels_sha256: String,
++    pub expected_recomposition_target_positions: usize,
++    pub diagnostic_root: PathBuf,
++    pub diagnostic_baseline_root: PathBuf,
++    pub preparation_audit: PathBuf,
++    pub expected_preparation_audit_sha256: String,
++}
++pub(super) struct Data {
++    pub additional: Vec<Episode>,
++    pub diagnostic: Vec<Episode>,
++    pub receipt: Value,
++    baseline: Vec<Value>,
++}
++
++pub(super) fn settings(a: &Args) -> Result<()> {
++    let Some(c) = &a.cross_state_bank_mixture else {
++        return Ok(());
++    };
++    if a.mode != Mode::CrossStateContinuation
++        || !a.cross_state_pooled_rank
++        || !a.cross_state_bottleneck
++        || a.cross_state_resume.is_none()
++        || !(512..=512 * 32).contains(&c.expected_recomposition_target_positions)
++        || [
++            &c.expected_recomposition_manifest_sha256,
++            &c.expected_recomposition_inputs_sha256,
++            &c.expected_recomposition_labels_sha256,
++            &c.expected_preparation_audit_sha256,
++        ]
++        .iter()
++        .any(|s| s.len() != 64 || !s.bytes().all(|b| b.is_ascii_hexdigit()))
++        || c.recomposition_root == c.diagnostic_root
++        || c.recomposition_root == c.diagnostic_baseline_root
++        || c.diagnostic_root == c.diagnostic_baseline_root
++    {
++        return Err(bad(
++            "bank mixture requires strict ranked saved437 mode and separate pinned datasets",
++        ));
++    }
++    Ok(())
++}
++fn bound(root: &Path, manifest: &str) -> Result<()> {
++    report_output::verify(root)?;
++    if sha256_file(&root.join("manifest.json"))? != manifest {
++        return Err(bad("bank mixture sealed dataset identity differs"));
++    }
++    Ok(())
++}
++fn input_identity(root: &Path, input: &str, labels: &str) -> Result<()> {
++    if sha256_file(&root.join("inputs.json"))? != input
++        || sha256_file(&root.join("labels.json"))? != labels
++    {
++        return Err(bad("bank mixture input/label identity differs"));
++    }
++    Ok(())
++}
++// This is an independently reconstructed prelaunch audit, not an assertion
++// inferred from packet hashes. Its exact bytes are published and config-bound
++// before fitting; the audit authenticates the sealed preparation chain and
++// semantic whole-bank exclusions, including alternate query/chronology forms.
++fn preparation_audit(c: &Config) -> Result<Value> {
++    if sha256_file(&c.preparation_audit)? != c.expected_preparation_audit_sha256 {
++        return Err(bad("bank mixture preparation audit identity differs"));
++    }
++    let audit = read(&c.preparation_audit)?;
++    if audit["schema"] != "uor-r4.bank-transfer-preparation-audit/1"
++        || audit["status"] != "PASS"
++        || audit["recomposition"]["manifest_sha256"] != c.expected_recomposition_manifest_sha256
++        || audit["recomposition"]["inputs_sha256"] != c.expected_recomposition_inputs_sha256
++        || audit["recomposition"]["labels_sha256"] != c.expected_recomposition_labels_sha256
++        || audit["recomposition"]["target_positions"] != c.expected_recomposition_target_positions
++        || audit["recomposition"]["rows"] != 512
++        || audit["original_inputs_sha256"] != INPUT_SHA
++        || audit["original_labels_sha256"] != LABEL_SHA
++        || audit["diagnostic_inputs_sha256"] != DIAGNOSTIC_INPUT_SHA
++        || audit["diagnostic_labels_sha256"] != DIAGNOSTIC_LABEL_SHA
++        || audit["concrete_donor_roots"] != 12
++        || audit["exposed_whole_bank_overlap"] != 0
++        || audit["fresh_rows_authored"] != 0
++        || [
++            "sealed_preparation_chain",
++            "exact_concrete_wire_origins",
++            "whole_bank_exclusion",
++            "balanced512_quotas",
++            "typed_answer_membership",
++            "development_only_no_fresh",
++        ]
++        .iter()
++        .any(|key| audit["checks"][*key] != true)
++    {
++        return Err(bad(
++            "bank mixture independently audited preparation differs",
++        ));
++    }
++    Ok(audit)
++}
++fn packet_set(episodes: &[Episode]) -> Result<BTreeSet<String>> {
++    episodes
++        .iter()
++        .map(|e| {
++            let mut value = serde_json::to_value(&e.packet)?;
++            value
++                .as_object_mut()
++                .ok_or_else(|| bad("packet object absent"))?
++                .remove("id");
++            Ok(sha256_bytes(&serde_json::to_vec(&value)?))
++        })
++        .collect()
++}
++pub(super) fn load(
++    a: &Args,
++    p: &ContinuationParent,
++    legal: &BTreeSet<u32>,
++    original: &[Episode],
++) -> Result<Option<Data>> {
++    settings(a)?;
++    let Some(c) = &a.cross_state_bank_mixture else {
++        return Ok(None);
++    };
++    bound(
++        &c.recomposition_root,
++        &c.expected_recomposition_manifest_sha256,
++    )?;
++    input_identity(
++        &c.recomposition_root,
++        &c.expected_recomposition_inputs_sha256,
++        &c.expected_recomposition_labels_sha256,
++    )?;
++    let preparation_audit = preparation_audit(c)?;
++    let report = read(&c.recomposition_root.join("report.json"))?;
++    if report["schema"] != "uor-r4.bank-generate-panel/1"
++        || report["status"] != "COMPLETED"
++        || report["cases"] != 512
++        || report["learned_prose_labels_only"] != true
++        || report["input_bytes_sha256"] != c.expected_recomposition_inputs_sha256
++        || report["output_inputs_sha256"] != c.expected_recomposition_inputs_sha256
++    {
++        return Err(bad(
++            "bank mixture requires complete sealed Rust prose preparation",
++        ));
++    }
++    let additional = load_panel(
++        &c.recomposition_root.join("inputs.json"),
++        &c.recomposition_root.join("labels.json"),
++        &p.integer,
++        &p.tokenizer,
++        legal,
++        512,
++    )?;
++    if original.len() != 512
++        || additional.len() != 512
++        || original.iter().map(|e| e.target.len()).sum::<usize>() != 6664
++        || additional.iter().map(|e| e.target.len()).sum::<usize>()
++            != c.expected_recomposition_target_positions
++    {
++        return Err(bad("bank mixture exact partition/target coverage differs"));
++    }
++    pairs(&additional)?;
++    bound(&c.diagnostic_root, DIAGNOSTIC_MANIFEST_SHA)?;
++    input_identity(
++        &c.diagnostic_root,
++        DIAGNOSTIC_INPUT_SHA,
++        DIAGNOSTIC_LABEL_SHA,
++    )?;
++    let diagnostic = load_panel(
++        &c.diagnostic_root.join("inputs.json"),
++        &c.diagnostic_root.join("labels.json"),
++        &p.integer,
++        &p.tokenizer,
++        legal,
++        128,
++    )?;
++    if diagnostic.len() != 128 || scoped_pairs(&diagnostic)?.len() != 64 {
++        return Err(bad("bank mixture opened diagnostic coverage differs"));
++    }
++    let mut ids = BTreeSet::new();
++    if original
++        .iter()
++        .chain(&additional)
++        .chain(&diagnostic)
++        .any(|e| !ids.insert(e.packet.id.as_str()))
++    {
++        return Err(bad(
++            "bank mixture IDs must be unique across all three partitions",
++        ));
++    }
++    let new_packets = packet_set(&additional)?;
++    if new_packets.len() != 512
++        || !new_packets.is_disjoint(&packet_set(original)?)
++        || !new_packets.is_disjoint(&packet_set(&diagnostic)?)
++    {
++        return Err(bad(
++            "bank mixture new packets overlap exposed original or diagnostic",
++        ));
++    }
++    bound(&c.diagnostic_baseline_root, BASELINE_MANIFEST_SHA)?;
++    if sha256_file(&c.diagnostic_baseline_root.join("report.json"))? != BASELINE_REPORT_SHA {
++        return Err(bad("bank mixture saved diagnostic report differs"));
++    }
++    let old = read(&c.diagnostic_baseline_root.join("report.json"))?;
++    let refs = old["rows"]
++        .as_array()
++        .filter(|r| r.len() == 128)
++        .ok_or_else(|| bad("saved diagnostic128 absent"))?;
++    if old["complete"] != 0 || old["continuation_sha256"] != FIELD437_SHA {
++        return Err(bad("saved diagnostic must bind zero-of128 and saved437"));
++    }
++    let mut baseline = Vec::new();
++    for (index, r) in refs.iter().enumerate() {
++        let filename = format!("row-{index:04}.json");
++        if r["row_file"] != filename {
++            return Err(bad("saved diagnostic row path differs"));
++        }
++        let path = c.diagnostic_baseline_root.join(filename);
++        if r["row_sha256"] != sha256_file(&path)? {
++            return Err(bad("saved diagnostic row hash differs"));
++        }
++        baseline.push(read(&path)?);
++    }
++    let receipt = json!({"policy":POLICY,"config":c,"preparation_audit":preparation_audit,"original_inputs_sha256":INPUT_SHA,"original_labels_sha256":LABEL_SHA,
++        "original_rows":512,"recomposition_rows":512,"training_rows":1024,"original_target_positions":6664,
++        "recomposition_target_positions":c.expected_recomposition_target_positions,
++        "diagnostic_inputs_sha256":DIAGNOSTIC_INPUT_SHA,"diagnostic_labels_sha256":DIAGNOSTIC_LABEL_SHA,
++        "diagnostic_report_sha256":BASELINE_REPORT_SHA,"diagnostic_manifest_sha256":BASELINE_MANIFEST_SHA,
++        "diagnostic_scope":"opened #2164 panel; no training bank overlap; not fresh qualification"});
++    Ok(Some(Data {
++        additional,
++        diagnostic,
++        receipt,
++        baseline,
++    }))
++}
++
++pub(super) fn schedule(seed: u64) -> Vec<usize> {
++    order(seed, 512)
++}
++pub(super) fn indices(schedule: &[usize], update: usize) -> Result<Vec<usize>> {
++    if schedule.len() != 512
++        || update >= 256
++        || schedule.iter().copied().collect::<BTreeSet<_>>() != (0..512).collect()
++    {
++        return Err(bad(
++            "bank mixture schedule must be a512 permutation and local update<256",
++        ));
++    }
++    let mut result = Vec::with_capacity(8);
++    for offset in [0, 512] {
++        result.extend((0..4).map(|j| offset + schedule[(update * 4 + j) % 512]));
++    }
++    Ok(result)
++}
++pub(super) fn baseline(data: &Data, current: &Value) -> Result<()> {
++    let rows = current["rows"]
++        .as_array()
++        .filter(|r| r.len() == 128)
++        .ok_or_else(|| bad("diagnostic baseline coverage"))?;
++    if current["complete"] != 0 || current["continuation_sha256"] != FIELD437_SHA {
++        return Err(bad("diagnostic baseline count/field differs"));
++    }
++    for (old, row) in data.baseline.iter().zip(rows) {
++        for key in ["id", "generated_ids", "eos", "complete"] {
++            if old[key] != row[key] {
++                return Err(bad("diagnostic baseline exact saved128 output differs"));
++            }
++        }
++    }
++    Ok(())
++}
++pub(super) fn evaluate(
++    a: &Args,
++    name: &str,
++    p: &ContinuationParent,
++    field: &NativeContinuationField,
++    data: &Data,
++    start: Instant,
++) -> Result<Value> {
++    let mut result = continuation_evaluate_rows_impl(
++        a,
++        name,
++        p,
++        field,
++        &data.diagnostic.iter().collect::<Vec<_>>(),
++        start,
++        false,
++    )?;
++    result["scope"] = json!("all128 opened #2164 diagnostic rows; own-prefix only; canonical metrics NOT_RUN; not fresh qualification");
++    result["membership_grader"] = json!("unchanged native EOS and frozen UTF8 answer membership");
++    write(a, &format!("{name}.json"), &result)?;
++    Ok(result)
++}
++fn count(value: &Value, cases: usize) -> Result<usize> {
++    let rows = value["rows"]
++        .as_array()
++        .filter(|r| r.len() == cases)
++        .ok_or_else(|| bad("mixture outcome row coverage"))?;
++    let mut seen = BTreeSet::new();
++    let mut complete = 0;
++    for row in rows {
++        let id = row["id"]
++            .as_str()
++            .ok_or_else(|| bad("mixture outcome ID absent"))?;
++        if !seen.insert(id) {
++            return Err(bad("mixture outcome duplicate ID"));
++        }
++        complete += usize::from(
++            row["complete"]
++                .as_bool()
++                .ok_or_else(|| bad("mixture outcome complete flag absent"))?,
++        );
++    }
++    if value["complete"] != complete {
++        return Err(bad("mixture outcome count mismatch"));
++    }
++    Ok(complete)
++}
++pub(super) fn outcome(dev: &Value, diagnostic: &Value) -> Result<Value> {
++    let d = count(dev, 512)?;
++    let t = count(diagnostic, 128)?;
++    let candidate = d >= 256 && t >= 52;
++    Ok(
++        json!({"policy":POLICY,"development_complete":d,"opened_diagnostic_complete":t,
++        "qualification_candidate":candidate,"decision":if candidate {"KEEP_QUALIFICATION_CANDIDATE_NOT_M2_ACCEPTANCE"} else {"REJECT_MIXTURE_RECIPE"},
++        "best_development_complete":437usize.max(d),"development_headline_improved":d>437,
++        "count_after":if d>437 {0} else {2},"bar":"development>=256/512 AND opened diagnostic>=52/128; actual fresh NOT_RUN",
++        "fresh_qualification":"NOT_RUN; freeze candidate then separate prospective unchanged128 draw",
++        "parent":"saved437 retained even if this candidate has lower development score",
++        "next":if candidate {"after protected delivery/cleanup freeze candidate and preregister truly fresh128"} else {"stop this mixture recipe; choose distinct model-changing successor; no unchanged dose/rate/seed repeat"}}),
++    )
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    struct OwnedRoot(PathBuf);
++    impl Drop for OwnedRoot {
++        fn drop(&mut self) {
++            let _ = fs::remove_dir_all(&self.0);
++        }
++    }
++    fn owned_root() -> Result<OwnedRoot> {
++        let nonce = std::time::SystemTime::now()
++            .duration_since(std::time::UNIX_EPOCH)?
++            .as_nanos();
++        fs::create_dir_all("local")?;
++        let path = PathBuf::from("local").join(format!(
++            "bank-mixture-boundary-test-{}-{nonce}",
++            std::process::id()
++        ));
++        fs::create_dir(&path)?;
++        Ok(OwnedRoot(path))
++    }
++
++    #[test]
++    fn preparation_audit_binds_actual_bytes_and_semantic_exclusion_receipt() -> Result<()> {
++        let owned = owned_root()?;
++        let path = owned.0.join("preparation-audit.json");
++        let mut config = Config {
++            recomposition_root: owned.0.join("new512"),
++            expected_recomposition_manifest_sha256: "a".repeat(64),
++            expected_recomposition_inputs_sha256: "b".repeat(64),
++            expected_recomposition_labels_sha256: "c".repeat(64),
++            expected_recomposition_target_positions: 7000,
++            diagnostic_root: owned.0.join("opened128"),
++            diagnostic_baseline_root: owned.0.join("saved-diagnostic"),
++            preparation_audit: path.clone(),
++            expected_preparation_audit_sha256: String::new(),
++        };
++        let audit = json!({"schema":"uor-r4.bank-transfer-preparation-audit/1","status":"PASS",
++            "recomposition":{"manifest_sha256":config.expected_recomposition_manifest_sha256,
++                "inputs_sha256":config.expected_recomposition_inputs_sha256,
++                "labels_sha256":config.expected_recomposition_labels_sha256,"rows":512,"target_positions":7000},
++            "original_inputs_sha256":INPUT_SHA,"original_labels_sha256":LABEL_SHA,
++            "diagnostic_inputs_sha256":DIAGNOSTIC_INPUT_SHA,"diagnostic_labels_sha256":DIAGNOSTIC_LABEL_SHA,
++            "concrete_donor_roots":12,"exposed_whole_bank_overlap":0,"fresh_rows_authored":0,
++            "checks":{"sealed_preparation_chain":true,"exact_concrete_wire_origins":true,
++                "whole_bank_exclusion":true,"balanced512_quotas":true,
++                "typed_answer_membership":true,"development_only_no_fresh":true}});
++        let bytes = serde_json::to_vec(&audit)?;
++        fs::write(&path, &bytes)?;
++        config.expected_preparation_audit_sha256 = sha256_bytes(&bytes);
++        assert_eq!(preparation_audit(&config)?, audit);
++        let mut wrong_sha = config.clone();
++        wrong_sha.expected_preparation_audit_sha256 = "0".repeat(64);
++        assert!(preparation_audit(&wrong_sha).is_err());
++        let mut changed_data = config.clone();
++        changed_data.expected_recomposition_inputs_sha256 = "e".repeat(64);
++        assert!(preparation_audit(&changed_data).is_err());
++        // Matching a rewritten JSON file's digest is insufficient when its
++        // contents no longer certify the pinned training/diagnostic boundary.
++        for pointer in [
++            "/recomposition/manifest_sha256",
++            "/recomposition/inputs_sha256",
++            "/recomposition/labels_sha256",
++            "/recomposition/rows",
++            "/recomposition/target_positions",
++            "/original_inputs_sha256",
++            "/original_labels_sha256",
++            "/diagnostic_inputs_sha256",
++            "/diagnostic_labels_sha256",
++            "/concrete_donor_roots",
++            "/exposed_whole_bank_overlap",
++            "/fresh_rows_authored",
++            "/checks/sealed_preparation_chain",
++            "/checks/exact_concrete_wire_origins",
++            "/checks/whole_bank_exclusion",
++            "/checks/balanced512_quotas",
++            "/checks/typed_answer_membership",
++            "/checks/development_only_no_fresh",
++        ] {
++            let mut changed = audit.clone();
++            *changed
++                .pointer_mut(pointer)
++                .ok_or_else(|| bad("audit fixture field absent"))? = json!(false);
++            let changed_bytes = serde_json::to_vec(&changed)?;
++            fs::write(&path, &changed_bytes)?;
++            assert!(preparation_audit(&config).is_err());
++            let mut repinned = config.clone();
++            repinned.expected_preparation_audit_sha256 = sha256_bytes(&changed_bytes);
++            assert!(preparation_audit(&repinned).is_err(), "{pointer}");
++        }
++        fs::write(&path, bytes)?;
++        assert_eq!(preparation_audit(&config)?, audit);
++        Ok(())
++    }
++
++    #[test]
++    fn sealed_dataset_boundary_rejects_hash_and_complete_file_set_tampering() -> Result<()> {
++        let owned = owned_root()?;
++        let root = owned.0.join("sealed-input");
++        report_output::claim(&root)?;
++        let input = b"{\"cases\":[{\"id\":\"fixed\"}]}";
++        let labels = b"{\"cases\":[{\"id\":\"fixed\",\"answer\":\"original\"}]}";
++        fs::write(root.join("inputs.json"), input)?;
++        fs::write(root.join("labels.json"), labels)?;
++        fs::write(root.join("report.json"), b"{\"status\":\"COMPLETED\"}")?;
++        report_output::seal(&root)?;
++        let manifest_sha = sha256_file(&root.join("manifest.json"))?;
++        let input_sha = sha256_bytes(input);
++        let label_sha = sha256_bytes(labels);
++        bound(&root, &manifest_sha)?;
++        input_identity(&root, &input_sha, &label_sha)?;
++        assert!(bound(&root, &"0".repeat(64)).is_err());
++        assert!(input_identity(&root, &label_sha, &label_sha).is_err());
++        assert!(input_identity(&root, &input_sha, &input_sha).is_err());
++        // These mutate only this exclusively created test fixture, never an
++        // actual experiment root. Exercise the production complete-file seal.
++        fs::write(root.join("inputs.json"), b"{\"cases\":[]}")?;
++        assert!(bound(&root, &manifest_sha).is_err());
++        assert!(input_identity(&root, &input_sha, &label_sha).is_err());
++        fs::write(root.join("inputs.json"), input)?;
++        fs::write(root.join("unreceipted.json"), b"{}")?;
++        assert!(bound(&root, &manifest_sha).is_err());
++        fs::remove_file(root.join("unreceipted.json"))?;
++        fs::remove_file(root.join("labels.json"))?;
++        assert!(bound(&root, &manifest_sha).is_err());
++        assert!(input_identity(&root, &input_sha, &label_sha).is_err());
++        fs::write(root.join("labels.json"), labels)?;
++        bound(&root, &manifest_sha)?;
++        let manifest = fs::read(root.join("manifest.json"))?;
++        fs::write(root.join("manifest.json"), b"{}")?;
++        assert!(bound(&root, &manifest_sha).is_err());
++        fs::write(root.join("manifest.json"), manifest)?;
++        bound(&root, &manifest_sha)?;
++        Ok(())
++    }
++
++    #[test]
++    fn diagnostic_baseline_rejects_same_count_output_eos_identity_and_order_changes() -> Result<()>
++    {
++        // Raw saved evaluator rows and fitter summary rows have these same
++        // comparison fields, even though their step traces differ in layout.
++        let saved = (0..128)
++            .map(|i| {
++                json!({"id":format!("fresh-case-{i}"),
++                "generated_ids":[100+i,200+i],"eos":i<4,"complete":false})
++            })
++            .collect::<Vec<_>>();
++        let data = Data {
++            additional: Vec::new(),
++            diagnostic: Vec::new(),
++            receipt: Value::Null,
++            baseline: saved.clone(),
++        };
++        let current = json!({"complete":0,"continuation_sha256":FIELD437_SHA,"rows":saved});
++        baseline(&data, &current)?;
++        for (key, wrong) in [
++            ("generated_ids", json!([999, 200])),
++            ("eos", json!(false)),
++            ("id", json!("changed-fresh-case")),
++            ("complete", json!(true)),
++        ] {
++            let mut changed = current.clone();
++            changed["rows"][0][key] = wrong;
++            assert_eq!(changed["complete"], 0);
++            assert!(baseline(&data, &changed).is_err(), "{key}");
++        }
++        let mut reordered = current.clone();
++        reordered["rows"]
++            .as_array_mut()
++            .ok_or_else(|| bad("diagnostic fixture rows absent"))?
++            .swap(50, 51);
++        assert!(baseline(&data, &reordered).is_err());
++        let mut missing = current.clone();
++        missing["rows"]
++            .as_array_mut()
++            .ok_or_else(|| bad("diagnostic fixture rows absent"))?
++            .pop();
++        assert!(baseline(&data, &missing).is_err());
++        for (key, wrong) in [
++            ("complete", json!(1)),
++            ("continuation_sha256", json!("0".repeat(64))),
++        ] {
++            let mut changed = current.clone();
++            changed[key] = wrong;
++            assert!(baseline(&data, &changed).is_err(), "{key}");
++        }
++        Ok(())
++    }
++
++    #[test]
++    fn two_stream_schedule_is_exact_two_passes_each_without_global_shuffle() -> Result<()> {
++        let schedule = schedule(1001);
++        let mut counts = vec![0usize; 1024];
++        for update in 0..256 {
++            let batch = indices(&schedule, update)?;
++            assert!(batch[..4].iter().all(|&i| i < 512));
++            assert!(batch[4..].iter().all(|&i| i >= 512 && i < 1024));
++            for i in batch {
++                counts[i] += 1;
++            }
++        }
++        assert!(counts.iter().all(|&n| n == 2));
++        assert!(indices(&schedule, 256).is_err());
++        let mut broken = schedule.clone();
++        broken[0] = broken[1];
++        assert!(indices(&broken, 0).is_err());
++        Ok(())
++    }
++    fn endpoint(cases: usize, complete: usize) -> Value {
++        json!({"complete":complete,"rows":(0..cases).map(|i|json!({"id":format!("case-{i}"),"complete":i<complete})).collect::<Vec<_>>()})
++    }
++    #[test]
++    fn transfer_bar_is_not_development_net_gain_or_fresh_acceptance() -> Result<()> {
++        assert_eq!(
++            outcome(&endpoint(512, 256), &endpoint(128, 52))?["qualification_candidate"],
++            true
++        );
++        assert_eq!(
++            outcome(&endpoint(512, 255), &endpoint(128, 128))?["qualification_candidate"],
++            false
++        );
++        assert_eq!(
++            outcome(&endpoint(512, 500), &endpoint(128, 51))?["qualification_candidate"],
++            false
++        );
++        let retained = outcome(&endpoint(512, 300), &endpoint(128, 80))?;
++        assert_eq!(retained["best_development_complete"], 437);
++        assert_eq!(retained["count_after"], 2);
++        assert_eq!(
++            outcome(&endpoint(512, 438), &endpoint(128, 52))?["count_after"],
++            0
++        );
++        let mut bad = endpoint(128, 52);
++        bad["rows"][1]["id"] = bad["rows"][0]["id"].clone();
++        assert!(outcome(&endpoint(512, 437), &bad).is_err());
++        let mut wrong_count = endpoint(128, 52);
++        wrong_count["complete"] = json!(53);
++        assert!(outcome(&endpoint(512, 437), &wrong_count).is_err());
++        Ok(())
++    }
++}
+diff --git a/crates/uor-r4-training/examples/geometric_frozen_map_fit/cross_state_completion.rs b/crates/uor-r4-training/examples/geometric_frozen_map_fit/cross_state_completion.rs
+index 223c45923..1e7e9c334 100644
+--- a/crates/uor-r4-training/examples/geometric_frozen_map_fit/cross_state_completion.rs
++++ b/crates/uor-r4-training/examples/geometric_frozen_map_fit/cross_state_completion.rs
+@@ -30,6 +30,14 @@ const RESUME177_FIELD_SHA: &str =
+     "dfb945d567ce25f5c200967ce1f9e5e31740f9cfaa8f6a1a6d6dd11d156a2e13";
+ const RESUME177_MASTER_SHA: &str =
+     "0c7dec5f627b8c9c44557922a4d17d30846796381d26a055edc84551f8149acc";
++const RESUME437_REPORT_SHA: &str =
++    "787f1a694dd894f8dcf636e158b2470fd88a824f3dd73535749bc4f36f05a165";
++const RESUME437_MANIFEST_SHA: &str =
++    "2f630ad56a6abd09271681fcb514d22caefac8af918321224bc173446c20a84c";
++const RESUME437_FIELD_SHA: &str =
++    "de4a3234d6e92f4b12a657cc195425687bc67c243d9eded9a1df0797b9942a61";
++const RESUME437_MASTER_SHA: &str =
++    "af5e263c2e3dca56232ba7d43f52514c0a4fbfd5c79956df0cfa0ebe1567fc88";
+ const POOLED_RANK_OBJECTIVE: &str = "equal-episode-logmeanexp-native-pooled-strongest-wrong-softplus-negative-log-mass-margin/1;margin0;temperature1;smallest-token-ID-ties;all-targets-including-EOS;existing-raw-identity-STE;no-phase-weighting";
+ const BOTTLENECK_OBJECTIVE: &str = "equal-episode-logmeanexp-unweighted-native-token-CE/1;temperature1;all-targets-including-EOS;existing-raw-identity-STE;no-phase-weighting";
+ 
+@@ -74,6 +82,14 @@ const SAVED177: ResumeProfile = ResumeProfile {
+     lineage_step: 832,
+     complete: 177,
+ };
++const SAVED437: ResumeProfile = ResumeProfile {
++    report_sha: RESUME437_REPORT_SHA,
++    manifest_sha: RESUME437_MANIFEST_SHA,
++    field_sha: RESUME437_FIELD_SHA,
++    checkpoint_step: 256,
++    lineage_step: 1088,
++    complete: 437,
++};
+ impl ResumeProfile {
+     pub fn lineage_after(self, local_step: usize) -> usize {
+         self.lineage_step + local_step
+@@ -109,13 +125,27 @@ impl ResumeProfile {
+             {
+                 return Err(bad("cross-state saved145 lineage/provenance differs"));
+             }
+-        } else if self == SAVED175 || self == SAVED177 {
+-            let ancestor = if self == SAVED177 { SAVED175 } else { SAVED145 };
+-            let master_sha = if self == SAVED177 {
++        } else if matches!(self, SAVED175 | SAVED177 | SAVED437) {
++            let ancestor = if self == SAVED437 {
++                SAVED177
++            } else if self == SAVED177 {
++                SAVED175
++            } else {
++                SAVED145
++            };
++            let master_sha = if self == SAVED437 {
++                RESUME437_MASTER_SHA
++            } else if self == SAVED177 {
+                 RESUME177_MASTER_SHA
+             } else {
+                 RESUME175_MASTER_SHA
+             };
++            let ranked_parent = self == SAVED437;
++            let expected_phase = if ranked_parent {
++                "none;all-target-pooled-rank-logmeanexp"
++            } else {
++                "none;all-target-token-logmeanexp"
++            };
+             let prior = &report["cross_state_resume"];
+             let initial = &report["initial_receipt"];
+             if report["prior_updates"] != ancestor.lineage_step
+@@ -136,7 +166,7 @@ impl ResumeProfile {
+                 || initial["parameters"] != prior["source_master_inventory"]
+                 || report["initial"]["continuation_sha256"] != ancestor.field_sha
+                 || report["initial"]["complete"] != ancestor.complete
+-                || report["phase_policy"] != "none;all-target-token-logmeanexp"
++                || report["phase_policy"] != expected_phase
+                 || receipt["parameters"]["continuation.cross_state"]["sha256"] != master_sha
+                 || report["final_active_masters"]["continuation.cross_state"] != master_sha
+             {
+@@ -144,16 +174,34 @@ impl ResumeProfile {
+                     "cross-state bottleneck parent lineage/ancestry/master identity differs",
+                 ));
+             }
++            if ranked_parent
++                && (initial["parameters"]["continuation.cross_state"]["sha256"]
++                    != RESUME177_MASTER_SHA
++                    || receipt["parameters"]["continuation.cross_state"]["shape"]
++                        != json!([8, 14400])
++                    || receipt["parameters"]["continuation.cross_state"]["bytes"] != 460800)
++            {
++                return Err(bad(
++                    "cross-state ranked parent fractional-master identity differs",
++                ));
++            }
+             for policy in [report, initial, receipt] {
+-                if policy
+-                    .get("cross_state_pooled_rank")
+-                    .is_some_and(|v| v != false)
++                let objective_matches = if ranked_parent {
++                    policy["cross_state_pooled_rank"] == true
++                        && policy["training_objective"] == POOLED_RANK_OBJECTIVE
++                        && policy["pooled_rank_policy"] == pooled_rank_policy()
++                } else {
++                    !policy
++                        .get("cross_state_pooled_rank")
++                        .is_some_and(|v| v != false)
++                        && policy["training_objective"] == BOTTLENECK_OBJECTIVE
++                };
++                if !objective_matches
+                     || policy["cross_state_bottleneck"] != true
+-                    || policy["training_objective"] != BOTTLENECK_OBJECTIVE
+                     || policy["loss_scope"] != "all"
+                     || policy["credit"] != "raw_identity"
+                 {
+-                    return Err(bad("cross-state parent bottleneck policy differs"));
++                    return Err(bad("cross-state parent objective policy differs"));
+                 }
+             }
+         } else {
+@@ -173,7 +221,7 @@ pub(super) struct ResumeConfig {
+ 
+ impl ResumeConfig {
+     fn profile(&self) -> Result<ResumeProfile> {
+-        [SAVED22, SAVED145, SAVED175, SAVED177]
++        [SAVED22, SAVED145, SAVED175, SAVED177, SAVED437]
+             .into_iter()
+             .find(|p| {
+                 self.expected_report_sha256 == p.report_sha
+@@ -329,6 +377,7 @@ fn validate_rows(endpoint: &Value, expected: usize) -> Result<()> {
+ pub(super) fn settings(a: &Args) -> Result<()> {
+     if a.mode != Mode::CrossStateContinuation {
+         return if a.cross_state_resume.is_some()
++            || a.cross_state_bank_mixture.is_some()
+             || a.cross_state_bottleneck
+             || a.cross_state_pooled_rank
+         {
+@@ -344,12 +393,14 @@ pub(super) fn settings(a: &Args) -> Result<()> {
+         .as_ref()
+         .map(ResumeConfig::profile)
+         .transpose()?;
+-    // Saved177 is admitted only for the registered ranking intervention; no
+-    // unchanged CE continuation or rank objective on a different parent.
+-    if a.cross_state_bottleneck != matches!(profile, Some(SAVED145 | SAVED175 | SAVED177))
+-        || a.cross_state_pooled_rank != (profile == Some(SAVED177))
++    // Saved437 is admitted only for the registered bank-mixture intervention;
++    // neither an unchanged ranking continuation nor a mixture on older parents.
++    if a.cross_state_bottleneck
++        != matches!(profile, Some(SAVED145 | SAVED175 | SAVED177 | SAVED437))
++        || a.cross_state_pooled_rank != matches!(profile, Some(SAVED177 | SAVED437))
++        || a.cross_state_bank_mixture.is_some() != (profile == Some(SAVED437))
+     {
+-        return Err(bad("saved177 requires pooled-rank+bottleneck; saved145/175 require bottleneck CE; phase-CE continuation and other rank parents unavailable"));
++        return Err(bad("saved437 requires bank-mixture+pooled-rank+bottleneck; saved177 requires pooled-rank+bottleneck without mixture; saved145/175 require bottleneck CE; other combinations unavailable"));
+     }
+     if a.updates
+         != if a.cross_state_resume.is_some() {
+@@ -528,6 +579,10 @@ pub(super) fn rank_policy(a: &Args) -> Value {
+     if !a.cross_state_pooled_rank {
+         return Value::Null;
+     }
++    pooled_rank_policy()
++}
++
++fn pooled_rank_policy() -> Value {
+     json!({"margin":0,"temperature":1,"rival_selection":"greatest-native-pooled-u64-mass-excluding-target;smallest-token-ID-ties;refreshed-every-forward;detached",
+         "token_loss":"softplus(-native-log-target-over-rival-mass);stable-F64-scalar-cast-F32;anchored-first-order-sigmoid",
+         "alias_scope":"all-Generate-and-physical-Copy;common-native-clip-and-pool",
+@@ -1061,6 +1116,247 @@ mod tests {
+         Ok(())
+     }
+ 
++    fn mixture_config() -> Value {
++        json!({"recomposition_root":"new512",
++            "expected_recomposition_manifest_sha256":"a".repeat(64),
++            "expected_recomposition_inputs_sha256":"b".repeat(64),
++            "expected_recomposition_labels_sha256":"c".repeat(64),
++            "expected_recomposition_target_positions":6664,
++            "preparation_audit":"preparation-audit.json",
++            "expected_preparation_audit_sha256":"d".repeat(64),
++            "diagnostic_root":"opened128",
++            "diagnostic_baseline_root":"saved-fresh437-eval"})
++    }
++
++    #[test]
++    fn cross_state_saved437_requires_ranked_mixture_and_complete_hash_triple() -> Result<()> {
++        let mut admitted = config();
++        admitted["updates"] = json!(256);
++        admitted["cross_state_resume"] = serde_json::to_value(profile_config(SAVED437))?;
++        admitted["cross_state_bottleneck"] = json!(true);
++        admitted["cross_state_pooled_rank"] = json!(true);
++        admitted["cross_state_bank_mixture"] = mixture_config();
++        let args: Args = serde_json::from_value(admitted.clone())?;
++        settings(&args)?;
++        continuation_settings(&args)?;
++        assert_eq!(profile_config(SAVED437).profile()?, SAVED437);
++        assert_eq!(objective_policy(&args), POOLED_RANK_OBJECTIVE);
++        assert_eq!(rank_policy(&args), pooled_rank_policy());
++        for (key, wrong) in [
++            ("cross_state_bank_mixture", Value::Null),
++            ("cross_state_bottleneck", json!(false)),
++            ("cross_state_pooled_rank", json!(false)),
++            ("mode", json!("continuation_only")),
++            ("updates", json!(1088)),
++            ("seed", json!(1002)),
++        ] {
++            let mut changed = admitted.clone();
++            changed[key] = wrong;
++            assert!(
++                settings(&serde_json::from_value(changed)?).is_err(),
++                "{key}"
++            );
++        }
++        let mut wrong_rate = admitted.clone();
++        wrong_rate["continuation"]["learning_rate"] = json!(0.01);
++        assert!(settings(&serde_json::from_value(wrong_rate)?).is_err());
++        for old in [SAVED22, SAVED145, SAVED175, SAVED177] {
++            let mut wrong_parent = admitted.clone();
++            wrong_parent["cross_state_resume"] = serde_json::to_value(profile_config(old))?;
++            assert!(settings(&serde_json::from_value(wrong_parent)?).is_err());
++            for key in [
++                "expected_report_sha256",
++                "expected_manifest_sha256",
++                "expected_field_sha256",
++            ] {
++                let mut mixed = admitted.clone();
++                mixed["cross_state_resume"][key] =
++                    serde_json::to_value(profile_config(old))?[key].clone();
++                assert!(settings(&serde_json::from_value(mixed)?).is_err(), "{key}");
++            }
++        }
++        let mut fresh = config();
++        fresh["cross_state_bank_mixture"] = mixture_config();
++        assert!(settings(&serde_json::from_value(fresh)?).is_err());
++        Ok(())
++    }
++
++    fn saved437_lineage_fixture() -> Result<(Value, Value)> {
++        // Actual published initial/final receipts: ranking was already active
++        // throughout this saved run, even though its saved177 ancestor used CE.
++        let artifacts: Value = serde_json::from_str(include_str!(
++            "../../../../docs/labs/m2-pooled-rank-2026-10-10/artifact-receipts.json"
++        ))?;
++        let receipt = artifacts["final"].clone();
++        let report = json!({"updates":256,"prior_updates":832,"lineage_step":1088,
++            "fresh_adam":true,"cross_state_bottleneck":receipt["cross_state_bottleneck"],
++            "cross_state_pooled_rank":receipt["cross_state_pooled_rank"],
++            "pooled_rank_policy":receipt["pooled_rank_policy"],
++            "training_objective":receipt["training_objective"],"loss_scope":"all","credit":"raw_identity",
++            "phase_policy":"none;all-target-pooled-rank-logmeanexp",
++            "cross_state_resume":receipt["cross_state_resume"],"initial_receipt":artifacts["initial"],
++            "initial":{"continuation_sha256":artifacts["initial"]["continuation_sha256"],"complete":177},
++            "final_active_masters":{"continuation.cross_state":receipt["parameters"]["continuation.cross_state"]["sha256"]}});
++        Ok((report, receipt))
++    }
++
++    #[test]
++    fn cross_state_saved437_authenticates_ranked_parent_lineage_policy_and_masters() -> Result<()> {
++        let (report, receipt) = saved437_lineage_fixture()?;
++        SAVED437.validate_lineage(&report, &receipt)?;
++        assert!(SAVED177.validate_lineage(&report, &receipt).is_err());
++        assert_eq!(SAVED437.checkpoint_step, 256);
++        assert_eq!(SAVED437.lineage_after(0), 1088);
++        assert_eq!(SAVED437.lineage_after(256), 1344);
++        for path in [
++            "/updates",
++            "/prior_updates",
++            "/lineage_step",
++            "/fresh_adam",
++            "/phase_policy",
++            "/initial_receipt/step",
++            "/initial_receipt/lineage_step",
++            "/initial_receipt/continuation_sha256",
++            "/initial_receipt/parameters",
++            "/initial/continuation_sha256",
++            "/initial/complete",
++            "/final_active_masters/continuation.cross_state",
++        ] {
++            let mut altered = report.clone();
++            *altered
++                .pointer_mut(path)
++                .ok_or_else(|| bad("saved437 fixture report field absent"))? = Value::Null;
++            assert!(
++                SAVED437.validate_lineage(&altered, &receipt).is_err(),
++                "{path}"
++            );
++        }
++        for path in [
++            "/step",
++            "/lineage_step",
++            "/parameters/continuation.cross_state/sha256",
++            "/parameters/continuation.cross_state/shape",
++            "/parameters/continuation.cross_state/bytes",
++        ] {
++            let mut altered = receipt.clone();
++            *altered
++                .pointer_mut(path)
++                .ok_or_else(|| bad("saved437 fixture receipt field absent"))? = Value::Null;
++            assert!(
++                SAVED437.validate_lineage(&report, &altered).is_err(),
++                "{path}"
++            );
++        }
++        // Mutate all ancestry copies consistently: agreeing metadata is not a
++        // substitute for the pinned saved177 identity and fractional masters.
++        for key in [
++            "report_sha256",
++            "manifest_sha256",
++            "field_sha256",
++            "prior_step",
++            "prior_lineage_step",
++            "prior_complete",
++            "source_master_inventory",
++        ] {
++            let mut changed_report = report.clone();
++            let mut changed_receipt = receipt.clone();
++            let mut prior = report["cross_state_resume"].clone();
++            prior[key] = Value::Null;
++            changed_report["cross_state_resume"] = prior.clone();
++            changed_report["initial_receipt"]["cross_state_resume"] = prior.clone();
++            changed_receipt["cross_state_resume"] = prior;
++            if key == "source_master_inventory" {
++                changed_report["initial_receipt"]["parameters"] = Value::Null;
++            }
++            assert!(
++                SAVED437
++                    .validate_lineage(&changed_report, &changed_receipt)
++                    .is_err(),
++                "{key}"
++            );
++        }
++        for key in [
++            "cross_state_pooled_rank",
++            "cross_state_bottleneck",
++            "training_objective",
++            "pooled_rank_policy",
++            "loss_scope",
++            "credit",
++        ] {
++            for location in 0..3 {
++                let mut changed_report = report.clone();
++                let mut changed_receipt = receipt.clone();
++                match location {
++                    0 => changed_report[key] = Value::Null,
++                    1 => changed_report["initial_receipt"][key] = Value::Null,
++                    _ => changed_receipt[key] = Value::Null,
++                }
++                assert!(
++                    SAVED437
++                        .validate_lineage(&changed_report, &changed_receipt)
++                        .is_err(),
++                    "{location}/{key}"
++                );
++            }
++        }
++        // Even consistently changed ranked policies must match the native
++        // pooled ranking contract, not just each other or an objective label.
++        for key in pooled_rank_policy()
++            .as_object()
++            .ok_or_else(|| bad("rank policy object"))?
++            .keys()
++        {
++            let mut changed_report = report.clone();
++            let mut changed_receipt = receipt.clone();
++            changed_report["pooled_rank_policy"][key] = Value::Null;
++            changed_report["initial_receipt"]["pooled_rank_policy"][key] = Value::Null;
++            changed_receipt["pooled_rank_policy"][key] = Value::Null;
++            assert!(
++                SAVED437
++                    .validate_lineage(&changed_report, &changed_receipt)
++                    .is_err(),
++                "{key}"
++            );
++        }
++        Ok(())
++    }
++
++    #[test]
++    fn cross_state_saved437_baseline_requires_every_output_not_only_count() -> Result<()> {
++        let mut prior = endpoint(&(0..437).collect::<Vec<_>>());
++        prior["continuation_sha256"] = json!(SAVED437.field_sha);
++        baseline(&prior, Some((&prior, SAVED437)))?;
++        assert!(baseline(&prior, Some((&prior, SAVED177))).is_err());
++        for (index, key, wrong) in [
++            (500, "generated_ids", json!([999])),
++            (500, "id", json!("different-row")),
++            (100, "complete", json!(false)),
++        ] {
++            let mut changed = prior.clone();
++            changed["rows"][index][key] = wrong;
++            assert!(
++                baseline(&changed, Some((&prior, SAVED437))).is_err(),
++                "{key}"
++            );
++        }
++        let mut reordered = prior.clone();
++        reordered["rows"]
++            .as_array_mut()
++            .ok_or_else(|| bad("baseline rows"))?
++            .swap(499, 500);
++        assert!(baseline(&reordered, Some((&prior, SAVED437))).is_err());
++        let mut wrong_field = prior.clone();
++        wrong_field["continuation_sha256"] = json!(SAVED177.field_sha);
++        assert!(baseline(&wrong_field, Some((&prior, SAVED437))).is_err());
++        // The historical net-development diagnostic remains available; mixture
++        // candidate qualification is a separate caller-owned prospective bar.
++        assert_eq!(
++            outcomes(&prior, &prior, Some((&prior, SAVED437)))?["keep"],
++            false
++        );
++        Ok(())
++    }
++
+     #[test]
+     fn cross_state_saved145_validates_local_and_cumulative_lineage() -> Result<()> {
+         let original_report = json!({"updates":64});
+diff --git a/crates/uor-r4-training/examples/support/geometric_role_diversity.rs b/crates/uor-r4-training/examples/support/geometric_role_diversity.rs
+index 114fdacef..5ff8d8b02 100644
+--- a/crates/uor-r4-training/examples/support/geometric_role_diversity.rs
++++ b/crates/uor-r4-training/examples/support/geometric_role_diversity.rs
+@@ -352,3 +352,311 @@ mod schedule_tests {
+         Ok(())
+     }
+ }
++
++/// Only the twelve retained, already-exposed frozen-input bundles are admitted.
++#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, PartialEq, Eq)]
++#[serde(deny_unknown_fields)]
++pub(super) struct ExpandedDonorRoot {
++    pub root: std::path::PathBuf,
++    pub manifest_sha256: String,
++}
++#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
++#[serde(deny_unknown_fields)]
++pub(super) struct ExpandedDonorConfig {
++    pub roots: Vec<ExpandedDonorRoot>,
++}
++const EXPANDED_MANIFESTS: [&str; 12] = [
++    "14e96299b2d256d0e1729eefb95507d8f1f1052b7e3144ce67d3b0facd709140",
++    "8a8b7618f67117086e24cc482c82ce407eb46ef56427420bf2b54d376631679c",
++    "1bbacf4c8e327b48a002f98a8efcca6f9eaea84fb34058a6b180d20f63b02500",
++    "ccaace26245ff07c148200ce6c37fa1193e56bc477a44ee173bfc97c932cc446",
++    "92e38610348cdbc79522e98c0a6f019219365c48ce302fb52525f24939d4c16d",
++    "709927f0600f9e200f4088ba9d7733198765a1abadc261be560728a01dd6d1e3",
++    "76c5596a337870a2d09667572a8dcde705f916d7b7e1a7bd04d44c4cb7baf45f",
++    "e4d4e824c16e671089868dd6572b1ccef6f501f9f7beb6f3d29b5fc8bb6bed1e",
++    "88334d971cb35f525605a4b76c90455780abde5bb99592f2b9db60eb856ae73a",
++    "df659bef365bdd135e75e36fb0f5669f25892c085a7789404ac4bd39c7d0b603",
++    "39380230b40965ff7b89fc544a8b0847b318a0432c7497091cd021253ab6acb0",
++    "2b46d23ad7e0103d9701520577a33712e9f6d88c6d2263b18f9a18d508505a64",
++];
++
++pub(super) struct ExpandedDonors {
++    pub wires: Vec<Value>,
++    pub receipt: Value,
++    pub bank_keys: BTreeSet<(String, String)>,
++    pub history_fingerprints: BTreeSet<String>,
++}
++impl ExpandedDonorConfig {
++    pub fn validate(&self, exposed: &[(std::path::PathBuf, String)]) -> Result<()> {
++        let hashes = self
++            .roots
++            .iter()
++            .map(|r| r.manifest_sha256.as_str())
++            .collect::<BTreeSet<_>>();
++        if self.roots.len() != 12
++            || hashes != EXPANDED_MANIFESTS.into_iter().collect()
++            || self
++                .roots
++                .iter()
++                .map(|r| &r.root)
++                .collect::<BTreeSet<_>>()
++                .len()
++                != 12
++            || self.roots.iter().any(|r| {
++                !exposed
++                    .iter()
++                    .any(|(p, h)| p == &r.root && h == &r.manifest_sha256)
++            })
++        {
++            return Err(invalid("expanded donors require exactly twelve pinned frozen bundles also bound in the exposure census").into());
++        }
++        Ok(())
++    }
++}
++fn concrete_wire(value: &Value) -> Option<Value> {
++    if !matches!(value["act"].as_str(), Some("assert" | "update"))
++        || !matches!(value["relation"].as_str(), Some("job" | "home"))
++        || literal(value).ok().is_none_or(|s| s.trim().is_empty())
++    {
++        return None;
++    }
++    Some(
++        json!({"text":value["text"],"relation":value["relation"],"act":value["act"],"template":value["template"]}),
++    )
++}
++fn collect_concrete(
++    value: &Value,
++    pointer: &str,
++    source: &ExpandedDonorRoot,
++    donors: &mut BTreeMap<String, Value>,
++) -> Result<()> {
++    if let Some(wire) = concrete_wire(value) {
++        let key = serde_json::to_string(&wire)?;
++        let source_sha = uor_r4_training::sha256_bytes(&serde_json::to_vec(value)?);
++        donors.entry(key.clone()).or_insert_with(|| {
++            json!({
++            "root":source.root,"manifest_sha256":source.manifest_sha256,
++            "source_file":"frozen-inputs.json","json_pointer":pointer,
++            "source_wire_sha256":source_sha,
++            "wire_sha256":uor_r4_training::sha256_bytes(key.as_bytes()),"wire":wire})
++        });
++    }
++    match value {
++        Value::Object(map) => {
++            for (key, child) in map {
++                if key != "reference_templates_control_only" {
++                    let escaped = key.replace('~', "~0").replace('/', "~1");
++                    collect_concrete(child, &format!("{pointer}/{escaped}"), source, donors)?;
++                }
++            }
++        }
++        Value::Array(items) => {
++            for (i, child) in items.iter().enumerate() {
++                collect_concrete(child, &format!("{pointer}/{i}"), source, donors)?;
++            }
++        }
++        _ => {}
++    }
++    Ok(())
++}
++/// Record each observed query boundary and final state, not only the last write.
++fn collect_episode_exposures(
++    value: &Value,
++    banks: &mut BTreeSet<(String, String)>,
++    histories: &mut BTreeSet<String>,
++) -> Result<()> {
++    if let Some(turns) = value.get("turns") {
++        let turns = turns
++            .as_array()
++            .ok_or_else(|| invalid("frozen episode turns invalid"))?;
++        let mut current = BTreeMap::<String, String>::new();
++        let mut writes = Vec::<Value>::new();
++        let record = |current: &BTreeMap<String, String>,
++                      writes: &[Value],
++                      banks: &mut BTreeSet<(String, String)>,
++                      histories: &mut BTreeSet<String>|
++         -> Result<()> {
++            if let (Some(job), Some(home)) = (current.get("job"), current.get("home")) {
++                banks.insert((job.clone(), home.clone()));
++            }
++            if !writes.is_empty() {
++                histories.insert(uor_r4_training::sha256_bytes(&serde_json::to_vec(writes)?));
++            }
++            Ok(())
++        };
++        for w in turns {
++            if w["act"] == "query" {
++                record(&current, &writes, banks, histories)?;
++            } else {
++                let wire = concrete_wire(w)
++                    .ok_or_else(|| invalid("invalid concrete frozen episode write"))?;
++                let role = wire["relation"]
++                    .as_str()
++                    .ok_or_else(|| invalid("episode role absent"))?;
++                let v = literal(&wire)?;
++                current.insert(role.to_owned(), v.clone());
++                writes.push(json!({"role":role,"act":wire["act"],"literal":v}));
++            }
++        }
++        record(&current, &writes, banks, histories)?;
++    }
++    match value {
++        Value::Object(map) => {
++            for (key, child) in map {
++                if key != "reference_templates_control_only" && key != "turns" {
++                    collect_episode_exposures(child, banks, histories)?;
++                }
++            }
++        }
++        Value::Array(items) => {
++            for child in items {
++                collect_episode_exposures(child, banks, histories)?;
++            }
++        }
++        _ => {}
++    }
++    Ok(())
++}
++pub(super) fn load_expanded_donors(
++    config: &ExpandedDonorConfig,
++    exposed: &[(std::path::PathBuf, String)],
++) -> Result<ExpandedDonors> {
++    config.validate(exposed)?;
++    let mut roots = config.roots.clone();
++    roots.sort_by(|a, b| a.manifest_sha256.cmp(&b.manifest_sha256));
++    let mut donors = BTreeMap::new();
++    let mut banks = BTreeSet::new();
++    let mut histories = BTreeSet::new();
++    for source in &roots {
++        uor_r4_core::report_output::verify(&source.root)?;
++        if uor_r4_training::sha256_file(&source.root.join("manifest.json"))?
++            != source.manifest_sha256
++        {
++            return Err(invalid("expanded donor manifest pin differs").into());
++        }
++        let frozen: Value =
++            serde_json::from_slice(&std::fs::read(source.root.join("frozen-inputs.json"))?)?;
++        if frozen["training"].as_array().map(Vec::len) != Some(512)
++            || frozen["development"].as_array().map(Vec::len) != Some(128)
++        {
++            return Err(invalid("expanded frozen-input bundle cardinality differs").into());
++        }
++        collect_concrete(&frozen, "", source, &mut donors)?;
++        collect_episode_exposures(&frozen, &mut banks, &mut histories)?;
++    }
++    let witnesses = donors.into_values().collect::<Vec<_>>();
++    let wires = witnesses
++        .iter()
++        .map(|r| r["wire"].clone())
++        .collect::<Vec<_>>();
++    let receipt = json!({"schema":"uor-r4.expanded-concrete-exposed-donors/1",
++        "policy":"exact12-pinned-frozen-bundles/concrete-assert-update-only/no-registry-or-query/first-witness-by-manifest-and-structural-traversal/1",
++        "roots":roots,"unique_wires":wires.len(),"witnesses":witnesses,
++        "frozen_episode_banks":banks,"frozen_episode_history_fingerprints":histories});
++    Ok(ExpandedDonors {
++        wires,
++        receipt,
++        bank_keys: banks,
++        history_fingerprints: histories,
++    })
++}
++
++#[cfg(test)]
++mod expanded_tests {
++    use super::*;
++    fn wire(role: &str, act: &str, value: &str) -> Value {
++        json!({"relation":role,"act":act,"template":"Remember {v}.","text":format!("Remember {value}."),"gold_span":[9,9+value.len()]})
++    }
++    #[test]
++    fn expanded_concrete_witnesses_bind_paths_and_skip_registry_query_invalid() -> Result<()> {
++        let real = wire("job", "assert", "azure orchard");
++        let query = json!({"relation":"job","act":"query","template":"What is my job?","text":"What is my job?"});
++        let fixture = json!({"a/b":[real.clone(),real.clone(),query,
++            {"relation":"job","act":"assert","template":"Remember {v}.","text":"mismatch"}],
++            "reference_templates_control_only":{"fake":wire("home","assert","unwitnessed value")}});
++        let source = ExpandedDonorRoot {
++            root: "fixture".into(),
++            manifest_sha256: EXPANDED_MANIFESTS[0].into(),
++        };
++        let mut donors = BTreeMap::new();
++        collect_concrete(&fixture, "", &source, &mut donors)?;
++        assert_eq!(donors.len(), 1);
++        let receipt = donors
++            .values()
++            .next()
++            .ok_or_else(|| invalid("test witness absent"))?;
++        assert_eq!(receipt["json_pointer"], "/a~1b/0");
++        assert_eq!(receipt["manifest_sha256"], source.manifest_sha256);
++        let pointer = receipt["json_pointer"]
++            .as_str()
++            .ok_or_else(|| invalid("test pointer"))?;
++        assert_eq!(fixture.pointer(pointer), Some(&real));
++        assert_eq!(
++            receipt["source_wire_sha256"],
++            uor_r4_training::sha256_bytes(&serde_json::to_vec(&real)?)
++        );
++        assert_eq!(
++            receipt["wire_sha256"],
++            uor_r4_training::sha256_bytes(&serde_json::to_vec(&receipt["wire"])?)
++        );
++        assert!(concrete_wire(
++            &json!({"act":"assert","relation":"other","template":"{v}","text":"x"})
++        )
++        .is_none());
++        Ok(())
++    }
++    #[test]
++    fn expanded_donor_pin_set_and_exposure_membership_fail_closed() -> Result<()> {
++        let mut config = ExpandedDonorConfig {
++            roots: EXPANDED_MANIFESTS
++                .iter()
++                .enumerate()
++                .map(|(i, h)| ExpandedDonorRoot {
++                    root: format!("bundle-{i}").into(),
++                    manifest_sha256: (*h).into(),
++                })
++                .collect(),
++        };
++        let exposed = config
++            .roots
++            .iter()
++            .map(|r| (r.root.clone(), r.manifest_sha256.clone()))
++            .collect::<Vec<_>>();
++        config.validate(&exposed)?;
++        assert!(config.validate(&exposed[1..]).is_err());
++        config.roots[0].manifest_sha256 = "0".repeat(64);
++        assert!(config.validate(&exposed).is_err());
++        config.roots[0] = config.roots[1].clone();
++        assert!(config.validate(&exposed).is_err());
++        config.roots.pop();
++        assert!(config.validate(&exposed).is_err());
++        Ok(())
++    }
++    #[test]
++    fn expanded_episode_exclusions_cover_intermediate_queries_and_final_bank() -> Result<()> {
++        let fixture = json!({"episodes":[{"turns":[wire("job","assert","old job"),wire("home","assert","old home"),
++            {"act":"query","relation":"job"},wire("job","update","new job"),
++            {"act":"query","relation":"home"},wire("home","update","new home")]}],
++            "training":[wire("job","assert","donor only")],
++            "reference_templates_control_only":{"turns":[wire("job","assert","fake job"),wire("home","assert","fake home")]}});
++        let mut banks = BTreeSet::new();
++        let mut histories = BTreeSet::new();
++        collect_episode_exposures(&fixture, &mut banks, &mut histories)?;
++        assert_eq!(
++            banks,
++            BTreeSet::from([
++                ("old job".into(), "old home".into()),
++                ("new job".into(), "old home".into()),
++                ("new job".into(), "new home".into())
++            ])
++        );
++        assert_eq!(histories.len(), 3);
++        assert!(collect_episode_exposures(
++            &json!({"turns":[{"act":"assert"}]}),
++            &mut banks,
++            &mut histories
++        )
++        .is_err());
++        Ok(())
++    }
++}

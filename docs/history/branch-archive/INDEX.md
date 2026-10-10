@@ -11,17 +11,20 @@ attempts whose ideas later landed in another form. "Lines not in main" counts
 added lines (12+ characters) that appear nowhere in `main` at archive time; a
 high count means unique material, not necessarily live code.
 
-**D21 disposition:** the protected/discrete-constructor/solver line is closed as
-negative. Its already-activated historical source and dated records remain on
-main; the absolute legal representation, initial diagnostic labels and unpromoted
-residual-backend patch below retain otherwise superseded source. Archive recovery
-instructions do not authorize resuming that closed line.
+**Current D22 disposition:** the owner reopened the protected/discrete constructor
+and joint Context–prototype learning on 10 October. The constructor's LU-pivot
+failure is a numerical blocker, not negative mechanism evidence; the old joint
+24/96 configuration does not judge the reopened full-panel pooled-ranking run.
+Earlier D21 closures remain historical records. Negative results scope only their
+configurations, and stopping a novel mechanism requires an owner decision.
+Source retained below is not activated merely by its archival preservation.
 
 To revive one: `git apply --3way docs/history/branch-archive/<file>.patch` in a
 fresh worktree from `main`, fix the conflicts, and land it through a PR.
 
 | Branch | Last commit | Commits | Lines not in main | Tip | Merge-base | Last subject |
 |---|---|---|---|---|---|---|
+| [Bank-mixture preparation, owner-interrupted](bank-mixture-unfinished-d22-20261010.patch) | 2026-10-10 | 3 | Not counted | `0be83e13d` | `4ae040cb2` | UNFINISHED, not a negative: D22 redirected work before any optimizer update. Development-only expanded-donor preparation, saved437 resume and 4+4 fitter source retained as patch rather than activated. Apply to4ae040cb2 in an isolated worktree for reproduction; current priority is the owner-ordered constructor repair. [Record](../../labs/m2-bank-transfer-interrupted-2026-10-10/README.md). |
 | [Saved145 cross-state continuation negative](cross-state-saved145-negative-20261010.patch) | 2026-10-10 | 1 | Not counted | `fdc3dfa8a` | `eb6f1c32d` | Fixed256 additional updates from saved145 score139/512,7 gains/13 losses; REJECTED,accepted145 retained. New saved145 profile retained here rather than activated. Apply to eb6f1c32d in a fresh isolated worktree for reproduction only; further dose/rate/seed continuation stopped. [Record](../../labs/m2-cross-145-2026-10-10/README.md). |
 | [Joint Context-prototype reply negative](joint-reply-negative-20261010.patch) | 2026-10-10 | 2 | Not counted | `1833cb4dd` | `52022ae10` | Executed fixed24/96 joint Context-prototype run scores0/512 and0/24; REJECTED. D21 decisive ordinary-learning continuation exhausted; new joint mode is retained here rather than activated in main. Apply to52022ae10 in a fresh isolated worktree for reproduction only. [Record](../../labs/m2-joint-reply-2026-10-10/README.md). |
 | [Joint reply precompile source](joint-reply-precompile-20261010.patch) | 2026-10-10 | 1 | Not counted | `2b0651a41` | `1833cb4dd` | Compile-failed Context receipt error conversions; apply to repaired producer1833cb4dd to restore the failed source. No model ran at that revision. [Record](../../labs/m2-joint-reply-2026-10-10/README.md). |

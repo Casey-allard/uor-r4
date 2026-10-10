@@ -137,11 +137,15 @@ does not imply measured predictive advantage.
 Training is offline Rust autodiff (floating point, matrix multiplication allowed);
 bf16 activations with f32 master weights on CUDA. Final inference does not depend on it.
 
-The native grounded learner retains the protected Prefix/Generate and discrete-constructor
-experiments as [closed negative research](docs/labs/lab-pivot-2026-10-09/README.md)
-under D21. Their source and reports remain available; none improved the then-accepted
-8/512 complete replies. Unactivated or superseded source is indexed in the
-[branch archive](docs/history/branch-archive/INDEX.md).
+The native grounded learner's protected/discrete constructor and joint
+Context–prototype learning are **reopened by the owner under D22**. The constructor
+stopped on an absolute LU-pivot tolerance before native panel scoring; that is a
+numerical blocker to fix, not evidence against the mechanism. The earlier joint
+24-row/96-update configuration used the loss subsequently replaced by pooled
+ranking. The ordered work is to repair the constructor and score a legal
+displacement on development512 and fresh128, then train Context and prototypes
+with pooled ranking on all512 rows and at least two seeds. Historical source and
+reports remain in the [branch archive](docs/history/branch-archive/INDEX.md).
 
 Ordinary complete-answer training of Potential and Generate coefficients has
 not improved this learner. A [single full-panel pass](docs/labs/m2-reply-gradient-2026-10-10/README.md)
@@ -169,9 +173,13 @@ in progress: [fresh qualification](docs/labs/m2-fresh-437-2026-10-10/README.md)
 fails at **0/128 complete replies against 52 required**, on eight new literal-bank blocks (16 role assignments)
 using familiar values. The unchanged saved model exactly replays 437/512.
 The fresh panel has only 3 correct opening tokens and 4 EOS stops; all four
-EOS-ending replies are wrong. The next learning intervention must address bank-combination
-transfer. This establishes no general-chat, geometric advantage or full-path
-energy claim.
+EOS-ending replies are wrong. D22 records the 437/512 development gain with zero transfer as panel fitting,
+not an M2 milestone move. An expanded-bank replay preparation was interrupted
+by the owner-directed priority change before any optimizer update; its
+[unfinished source and evidence](docs/labs/m2-bank-transfer-interrupted-2026-10-10/README.md)
+are preserved without a KEEP or negative verdict. The next work follows the
+reopened constructor and joint-learning orders. This establishes no general-chat,
+geometric advantage or full-path energy claim.
 
 **Models trained**
 
@@ -237,7 +245,7 @@ Every row holds at its exact artifact, data, operator and budget.
 | Sealed 8M stack | 1.1199 BPB | Sealed report; Kneser-Ney 5-gram 1.2803 BPB |
 | 214M Plan A base | FineWeb dev NLL 2.90 to 2.073 | Open development split; rewrite and summarize usable, code and math wrong |
 | v4 memory panel (frozen `exact` check pass) | 31/40 at 214M, 26/40 at 96M | 40 memory rows of `conversational-v4*`; Step 7d fine-tunes, one seed; chat-grade `acceptable` is 27/40 at 214M |
-| Native grounded learner | **437/512 complete replies**, up from177; 260 gained, none lost, 177 retained | [Native pooled-token ranking](docs/labs/m2-pooled-rank-2026-10-10/README.md), frozen exposed 512-episode panel; development threshold 256 passed, fresh qualification 0/128 (52 required), failed |
+| Native grounded learner | **437/512 complete replies**, up from177; 260 gained, none lost, 177 retained | [Native pooled-token ranking](docs/labs/m2-pooled-rank-2026-10-10/README.md), frozen exposed 512-episode panel; development threshold 256 passed, fresh qualification 0/128 (52 required), failed; panel fitting under D22, not an M2 move |
 | D11 serving engine | Bit-exact with the float path | NLL equal on 3,072 targets |
 | MQAR toy (1.37M) | 0.99919 in-class vs 0.2534 control | Synthetic task; advantage confined to a learning-rate band |
 

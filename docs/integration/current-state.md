@@ -1,3 +1,23 @@
+## 2026-10-10 — D22 redirects Codex to constructor repair; bank-mixture preparation preserved unfinished (#2030)
+
+**UNFINISHED, not a negative:** the [bank-mixture cycle](../labs/m2-bank-transfer-interrupted-2026-10-10/README.md)
+was interrupted by the owner's corrective goal before any optimizer update.
+It produced a sealed new512 training panel, independently audited donor/whole-bank
+provenance, checkpoint0000 and512+128 baseline rows, but no trained endpoint or
+qualification result. The tested source is retained as a patch and INDEX row,
+not activated. **Line: bank-mixture preparation · count1/3 unchanged · headline
+dev437/512 + fresh0/128 → dev437/512 + fresh0/128.** No count increment or KEEP is
+claimed; zero fresh transfer makes the existing development gain panel fitting.
+
+The owner reopened both the protected/discrete constructor and joint
+Context–prototype learning. Historical LU-pivot failures are numerical blockers
+to repair; the old24/96 joint configuration does not close its mechanism.
+**Next:** deliver/verify this unfinished archive and clear its workspace, then
+repair the two failing constructor bases and score legal displacement natively on
+frozen512 and fresh128 against the current parent. Register noise, bar, base,
+data, seeds, steps and cost before compute. Joint full512 pooled-ranking learning
+with at least two seeds follows. D22 supersedes older dated closure instructions.
+
 ## 2026-10-10 — Mechanism briefs, and a test-fitness gate before mechanism compute (claude, owner request)
 
 [docs/mechanisms/](../mechanisms/README.md) holds one brief per novel mechanism: flock/rank-table reads, exact addressed memory, the identity-keyed pointer, read binding and protected legal construction. Each has the first-principles idea, what was tried (and whether each test could judge it), what success and failure look like, and what a fair test needs. The Claude lab drafted them from the source and the records so the owner does not have to.

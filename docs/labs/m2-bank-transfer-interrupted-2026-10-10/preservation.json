@@ -1,0 +1,13 @@
+{
+  "schema": "uor-r4.bank-transfer-preservation/1",
+  "package_name": "m2-bank-transfer-d22-20261010",
+  "bytes": 20481536,
+  "md5": "abcfc4b246615dcdced22acac4c3fee6",
+  "remote": "results/codex-m2-bank-transfer-d22-20261010/m2-bank-transfer-d22-20261010.tar",
+  "uploaded_utc": "2026-10-10T16:05:23Z",
+  "lab": "codex-m2-bank-transfer-d22-20261010",
+  "round_trip_md5_verified_by_cloud_store": true,
+  "index_readback_match": true,
+  "pod_archive_sha256": "533ccde9a9d7915495ea007c8342ddde3a8899806f5f09dadef898803e4ba953",
+  "source_patch_sha256": "86b320b141553b2bd9c44c4c783e365dfddf5da0857413e189c6645d0321fa5b"
+}
