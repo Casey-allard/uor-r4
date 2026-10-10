@@ -1,3 +1,59 @@
+## 2026-10-09 — Reader vs emitter: the memory-read instrument cannot run on this artifact, and the pointer trace can (deepseek, #2029)
+
+The fifth piece in the numeric line, and the only reading still standing. Record:
+[numeric-reader-vs-emitter-2026-10-09](../labs/numeric-reader-vs-emitter-2026-10-09/README.md). **CPU
+only, no pod, no training, no model run, $0.** No v5 re-run.
+
+**THE QUESTION:** for the 13 numeric v5 rows, does the learned read path **SELECT** the right token
+before emission? Selected-but-not-emitted is the **EMITTER**; never selected is the **READER**.
+
+**FINDING 1 — the instrument exists and is public.**
+`Session::memory_read_diagnostic(model, target)` (`memory_training.rs:53`) returns `predicted_token` —
+exactly "what is selected before emission" — plus `target_routes`, the count of admitted routes
+carrying the expected token.
+
+**FINDING 2 — IT CANNOT RUN ON THE ARTIFACT THAT ANSWERED v5, and the reason is structural.** The
+diagnostic returns `None` unless the session carries a memory operator of schema `/3`, `/4` or `/5`.
+**The v5-answering artifact carries no memory operator at all** — its whole config is `arch`,
+`vocab_size`, `width`, `heads`, `mlp_hidden`, `context`, `pattern`, `read`, `rotation`, `seed` and a
+**`pointer`** (copy operator), with no memory reader. So the diagnostic is `None` by construction on
+every row — not because the model failed to select, but because there is no memory read to diagnose.
+**The split is therefore NOT MEASURABLE on the sealed v5 artifact with this instrument, and this record
+reports that rather than a suggestive reading.**
+
+**FINDING 3 — the instrument that CAN separate them, and it is cheap and untrained.** The artifact
+does carry a copy pointer, and the pointer's per-step selection is observable:
+`StackModel::next_scores_with_pointer` returns the emitted logits **and the selection** per step
+(`geometric_stack.rs:3544`), with `pointer_copy_trace()` (`:3494`) turning the record on, and
+`greedy_reply_with_copy_stop` already recording those steps. So: generate the 13 replies **with the
+pointer trace on**, record **what the pointer selected** and **what was emitted**, and classify each row
+— stored digit selected but not emitted → **EMITTER**; never selected → **READER**. **Specified here and
+NOT run**: this piece did not build the trace binary and reports no partial reading in its place.
+
+**DESIGNED TO FAIL LOUDLY**, following the addressability probe's standard (inequalities as well as
+equalities): both classes must be non-empty **or the result is INCONCLUSIVE, not confirmatory**;
+`mem-040` — the one numeric row that emits the stored value exactly — is the **positive control** and
+its trace must show the stored digit selected; EMITTER is assigned only when the selected token **is**
+the stored digit and the reply lacks it, compared as **token ids, not strings**; and the twelve failures
+must not all land in one class without the per-step record shown for at least two of them, so a class
+assignment can be audited.
+
+**THE LEDGER — four readings, three dead, one SURVIVOR that this piece NARROWS:** token count REFUTED
+(2 tokens vs 3.74 for words); minimal pairs / digit order REFUTED (`mem-040`'s distractor `74` is a
+**transposition** of its `84` and it passes; 0 of 12 name the distractor); value addressability REFUTED
+(the codec recovers a two-token run as **one ordered value with an interval**); and the learned
+read/emit path — **OPEN and now split**, with the read half not measurable on this artifact and the
+pointer-selection-versus-emission half **measurable and unmeasured**. A fifth dead reading would have
+been welcome; instead the question is now runnable rather than hypothetical.
+
+**Criterion 1 remains NOT MET on both halves and 43/232 is unchanged. Nothing in this piece changes
+that.** v5 was not re-run; its 10 of 40 stands. STATUS/ROADMAP/#2028 unchanged — checked, not assumed.
+
+**Next:** build the **pointer-trace probe** and run it on the 13 numeric v5 rows with `mem-040` as the
+positive control and the four fail-loudly conditions above. CPU only, untrained, one run, and it
+separates the reader half from the emitter half. Report **INCONCLUSIVE** rather than a reading if the
+two classes do not both appear.
+
 ## 2026-10-09 — The addressability probe REFUTES the storage premise: a two-digit value already has an ordered home (deepseek, #2029)
 
 The untrained probe the plan named. Record:
