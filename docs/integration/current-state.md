@@ -1,6 +1,6 @@
 ## 2026-10-09 — Scheduled lab audit for all three labs (claude, owner request)
 
-[docs/labs/audit.md](../labs/audit.md): every three hours a fresh-context run checks the DeepSeek, Codex and Claude labs against the session-goal contract and D21: status cards, the line/count field, the three-negatives limit, preparation PRs, pre-registration, delivery. It posts one card on #2028 and one comment per breach on the lab's milestone issue. The Claude lab's PRs get a second opinion from a non-Claude model (DeepSeek, through OpenCode). The auditor changes nothing.
+[docs/labs/audit.md](../labs/audit.md): every three hours a fresh-context run checks the DeepSeek, Codex and Claude labs against the session-goal contract and D21: status cards, the line/count field, the three-negatives limit, preparation PRs, pre-registration, delivery. It posts one card on #2028 and one comment per breach on the lab's milestone issue. The Claude lab's PRs are peer-audited by the DeepSeek lab in its own harness, at each of its status cards (the owner no longer uses OpenCode). The auditor changes nothing.
 
 ## 2026-10-09 — Session-goal contract for the labs (claude, owner request)
 

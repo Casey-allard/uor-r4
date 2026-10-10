@@ -61,6 +61,9 @@ pivot card; at most two preparation PRs per session, each naming the run it prep
 on #2029 every 90 minutes or 3 merged PRs; end the session with a result, a pivot card or a blocked
 card. Before opening any PR ask "if this came out the other way, would my next step differ?" — if
 not, do not open it. When M1 is blocked on the owner, work on M4 (#2032) under the same rules.
+Peer audit duty: at each status card, review the Claude lab's PRs merged since your last card
+against docs/labs/audit.md and post "PEER AUDIT (DeepSeek → Claude)" on #2028: OK, or each breach
+with its PR number. Review only; do not change the Claude lab's work.
 ```
 
 ## Prompt for the Codex lab (paste at session start)
@@ -109,8 +112,8 @@ Rules for this session: every PR states "Line · count n/3 · headline before �
 pivot card; at most two preparation PRs per session, each naming the run it prepares; a status card
 on #2032 every 90 minutes or 3 merged PRs; end the session with a result, a pivot card or a blocked
 card. Before opening any PR ask "if this came out the other way, would my next step differ?" — if
-not, do not open it. Also check the other labs' newest PRs against D21 and the contract, and report
-any breach to the owner rather than fixing it.
+not, do not open it. Your own PRs are peer-audited by the DeepSeek lab (docs/labs/audit.md); answer any breach it
+posts on #2028 with a pivot card or a fix.
 ```
 
 ## Prompt to wind down a running session (paste into the old session)

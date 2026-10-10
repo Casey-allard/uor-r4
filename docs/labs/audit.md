@@ -2,10 +2,10 @@
 
 Every three hours, an audit run checks **all labs, the Claude lab included**, against the [session-goal contract](session-goal.md) and [D21](../integration/DECISIONS.md#d21--three-negatives-on-one-line-force-a-pivot-deepseek-trains-the-pointer-fix-codex-stops-the-constraint-line). The run happens in a fresh context, as a scheduled task on the owner's machine. The auditor reads GitHub only, and it does no lab's work.
 
-- **Independence:**
-  - Claude audits the DeepSeek and Codex PRs.
-  - The Claude lab's PRs get a second opinion from a non-Claude model, through the OpenCode tool (DeepSeek).
-  - When that tool is unavailable, the card marks those PRs `self-audited`.
+- **Independence (each lab is reviewed by a different provider):**
+  - The scheduled Claude audit checks the DeepSeek and Codex labs.
+  - The **DeepSeek lab checks the Claude lab**, in its own harness, at each of its status cards. It reviews the Claude lab's PRs since its last card against the list below, and posts `PEER AUDIT (DeepSeek → Claude)` on [#2028](https://github.com/UOR-Foundation/uor-r4/issues/2028).
+  - The scheduled run lists the Claude-lab PRs that have no DeepSeek peer card yet as `awaiting peer audit`. It never passes them itself.
 
 ## What each run checks, per lab, since the previous audit card
 
