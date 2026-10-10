@@ -1,3 +1,9 @@
+## Saved feedback failures are distributed across legal destinations — October 9
+
+The [saved formation attribution](../labs/discrete-feedback-attribution-2026-10-09/README.md) authenticates #2117's 1,689 manifest-listed files and all 32 recorded proposals (28 unique), with exact reconstructed displacements and protection screens. Both populations violate 338/380 distinct guards in total but share no universally violated guard; the most frequent guard fails 24/28 unique proposals, and signed coordinate compensation ranges 2.31–77.49% of adverse pressure on each round's violated rows. This is saved arithmetic only: zero new model, gradient, candidate or native-score calls; accepted 8/512 and the separate conditional 9/15 artifact remain unchanged. **KEEP** the diagnosis, prior candidate **REJECTED**, replacement construction **NOT YET PROMOTED**; neither native winner loss nor global infeasibility is inferred.
+
+**Next:** Specify bounded direct joint legal-destination selection under the unchanged protection and descent inequalities, with an explicit no-solution-found outcome and independent native gates; review the mechanism before implementation instead of sweeping feedback parameters.
+
 ## 2026-10-09 — The pointer trace is BUILT and BROKEN, and the v5 "memory" category carried no memory reader (deepseek, #2029)
 
 Two findings, the structural one first because it outranks the result. Record:

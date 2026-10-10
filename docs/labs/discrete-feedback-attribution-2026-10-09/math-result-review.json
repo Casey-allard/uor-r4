@@ -1,0 +1,22 @@
+{
+  "status": "PASS_SCOPED_SAVED_RESULT_REVIEW",
+  "report_sha256": "638d6b5e9e6c167fb251c765db8d14ae34dbc460cc127c0273fc51cf5ee1a382",
+  "input_report_sha256": "3bbcc79268cd5f13ccfb63fe244bf99ff97d43820ef7dbe5ed4c5544d3440cc6",
+  "input_manifest_sha256": "f616174ce7c4b244b331ea48b9d61340201662e75faef086c2d6835a3ee9ef74",
+  "scope": "Read-only interpretation of authenticated saved attribution; no solver replay, native scoring, model or search execution.",
+  "findings": [
+    "32 rounds produced28 distinct destination vectors; all remained objective-descending and protection-ineligible.",
+    "Violated-set union338 and empty intersection show changing distributed conflicts; no single guard explains every proposal. Guard17 frequency24/28 is descriptive, not an exception candidate.",
+    "Round31 changes43 coordinates (Prefix32, Generate11), fails52 screens, has28 opposite-family-sign rows,8 both-adverse rows and16 rows with a zero family. Compensation is real but incomplete.",
+    "Round31 objective dot=-0.37310724845851395, minimum unit residual=-0.07247452348342585. This is finite-path protection failure, not task non-descent.",
+    "50/52 round31 failed screens retain positive original fixed-pair linearized margins. No proposal was natively evaluated, so these are not observed winner losses."
+  ],
+  "recommended_next": "Prospectively bounded direct legal-set constrained proposal formation, replacing continuous/discrete residual feedback as the formation mechanism. Optimize the saved linear objective g\u00b7delta over original-bit noops and legal canonical Q4 destinations subject to all380 unchanged actual-displacement screens; evaluate any offered candidate with unchanged native CE/reference/guard gates. Fix deterministic node/work bounds and ties before execution; report no incumbent at budget exhaustion separately from proven exhaustive infeasibility. Do not select named guards/coordinates from this attribution or merely enlarge feedback rounds.",
+  "reason": "Recorded feedback optimizes separable target proximity and projected-state agreement; it does not directly enforce all protection constraints at the discrete selection step. Changing violation sets and incomplete cross-family compensation justify testing joint constrained legal formation, not another penalty/radius/round dose.",
+  "limits": [
+    "No global legal-set feasibility or infeasibility established.",
+    "No claim of native winner loss or model improvement.",
+    "No convergence or periodic-cycle claim from destination repeats/norms.",
+    "Any bounded direct solver may also return no offered candidate; this is a solver/path result unless an exact exhaustive certificate exists."
+  ]
+}

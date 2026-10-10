@@ -152,3 +152,12 @@ repeated destinations, objective versus protection residuals, primal and feedbac
 norms, and family/coordinate contributions. Distinguish persistent shared conflicts
 from discrete cycling; do not infer native winner loss, weaken guards, increase
 rounds/radii/rho, or repeat the 411 backwards without a new causal question.
+
+## Follow-through — October 9
+
+The [saved formation attribution](../discrete-feedback-attribution-2026-10-09/README.md)
+is complete: all32 rounds and28 unique destinations were authenticated. Their
+violated-row union is338/380 and intersection is empty; recurring conflicts and
+signed compensation remain, with no single universal veto or demonstrated cycle.
+This selects direct joint legal-set formation as a mechanism to specify, not a
+feedback-parameter repeat. No model result or accepted artifact changes.

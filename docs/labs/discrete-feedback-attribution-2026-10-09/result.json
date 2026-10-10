@@ -1,0 +1,1711 @@
+{
+  "schema": "uor-r4.saved-discrete-feedback-attribution/1",
+  "status": "PASS_SAVED_ATTRIBUTION",
+  "input_report_sha256": "3bbcc79268cd5f13ccfb63fe244bf99ff97d43820ef7dbe5ed4c5544d3440cc6",
+  "input_manifest_sha256": "f616174ce7c4b244b331ea48b9d61340201662e75faef086c2d6835a3ee9ef74",
+  "source_commit": "7381d670735acddb0fac1f7abc0d83498aed04fc",
+  "config_sha256": "63b954032e10c7d5b6c3c2a1db26150b2b53d50ab098e9bf3c9e73840652617b",
+  "script_sha256": "86c219bcb9b61cbe5faa00475ae6fb61c78ab53767e1288c6ac7fd97267e87da",
+  "complete_input_files_verified": 1689,
+  "scope": "saved32round displacements and inherited31objective/380protected derivative arrays; no solver/inner-loop/search/model/native score replay",
+  "pressure_scope": "sum adverse/helpful signed unitJ_coordinate*actual_delta on each round violated set; descriptive concentration, not fraction of native failure",
+  "linearized_margin_scope": "original fixed winner/rival ln integer mass ratio plus rawJdelta; no candidate score or feasibility inference",
+  "distinct_round_indices": [
+    0,
+    2,
+    5,
+    6,
+    7,
+    8,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31
+  ],
+  "native_proposals": 0,
+  "report_sha256": "638d6b5e9e6c167fb251c765db8d14ae34dbc460cc127c0273fc51cf5ee1a382",
+  "manifest_sha256": "f6b0603ee26e5544f616de86a57b8517d05dbdc681bd05fc3b03d908ee6ac41f",
+  "execution": {
+    "status": "PASS_SAVED_ATTRIBUTION",
+    "error": null,
+    "elapsed_seconds": 30.366127959,
+    "max_rss_platform_units": 88047616,
+    "rss_units": "bytes on macOS; KiB on Linux",
+    "workers": 1,
+    "model_calls": 0,
+    "native_score_calls": 0,
+    "gradient_calls": 0,
+    "solver_replay_calls": 0,
+    "script_sha256": "86c219bcb9b61cbe5faa00475ae6fb61c78ab53767e1288c6ac7fd97267e87da"
+  },
+  "output_bytes": 30913987,
+  "guard_family_closure_max_abs": {
+    "raw": 4.440892098500626e-16,
+    "unit": 1.6653345369377348e-16
+  },
+  "opposing_family_signs_on_violated_row_rounds": {
+    "count": 1192,
+    "denominator": 3507,
+    "scope": "all32 row-round events, repeats retained"
+  },
+  "all32_guard_sequence": {
+    "count": 32,
+    "union_count": 338,
+    "intersection_count": 0,
+    "most_frequent": [
+      {
+        "guard_index": 66,
+        "input_index": 9,
+        "position": 9,
+        "id": "development-diverse-length2-00-swap1-q0-forward-home",
+        "actual_prefix_ids": [
+          617,
+          2097,
+          315,
+          261,
+          92,
+          607,
+          770,
+          397,
+          471
+        ],
+        "winner": 16,
+        "rival": 397,
+        "winner_mass": 2147483648,
+        "rival_mass": 1483218188,
+        "violated_rounds": 26
+      },
+      {
+        "guard_index": 87,
+        "input_index": 13,
+        "position": 9,
+        "id": "development-diverse-length2-00-swap1-q3-forward-home",
+        "actual_prefix_ids": [
+          617,
+          2097,
+          315,
+          261,
+          92,
+          607,
+          770,
+          397,
+          471
+        ],
+        "winner": 16,
+        "rival": 397,
+        "winner_mass": 2147483648,
+        "rival_mass": 16873851,
+        "violated_rounds": 26
+      },
+      {
+        "guard_index": 343,
+        "input_index": 433,
+        "position": 1,
+        "id": "development-diverse-update-03-swap0-q3-forward-home",
+        "actual_prefix_ids": [
+          617
+        ],
+        "winner": 2097,
+        "rival": 2537,
+        "winner_mass": 2147483648,
+        "rival_mass": 329327284,
+        "violated_rounds": 26
+      },
+      {
+        "guard_index": 17,
+        "input_index": 1,
+        "position": 6,
+        "id": "development-diverse-length2-00-swap0-q0-forward-home",
+        "actual_prefix_ids": [
+          617,
+          2097,
+          315,
+          683,
+          3123,
+          2211
+        ],
+        "winner": 1202,
+        "rival": 520,
+        "winner_mass": 2147548708,
+        "rival_mass": 144396489,
+        "violated_rounds": 25
+      },
+      {
+        "guard_index": 231,
+        "input_index": 245,
+        "position": 1,
+        "id": "development-diverse-length4-07-swap0-q0-forward-home",
+        "actual_prefix_ids": [
+          617
+        ],
+        "winner": 2097,
+        "rival": 91,
+        "winner_mass": 2147483648,
+        "rival_mass": 674459870,
+        "violated_rounds": 25
+      }
+    ]
+  },
+  "unique28_guard_sequence": {
+    "count": 28,
+    "union_count": 338,
+    "intersection_count": 0,
+    "most_frequent": [
+      {
+        "guard_index": 17,
+        "input_index": 1,
+        "position": 6,
+        "id": "development-diverse-length2-00-swap0-q0-forward-home",
+        "actual_prefix_ids": [
+          617,
+          2097,
+          315,
+          683,
+          3123,
+          2211
+        ],
+        "winner": 1202,
+        "rival": 520,
+        "winner_mass": 2147548708,
+        "rival_mass": 144396489,
+        "violated_rounds": 24
+      },
+      {
+        "guard_index": 66,
+        "input_index": 9,
+        "position": 9,
+        "id": "development-diverse-length2-00-swap1-q0-forward-home",
+        "actual_prefix_ids": [
+          617,
+          2097,
+          315,
+          261,
+          92,
+          607,
+          770,
+          397,
+          471
+        ],
+        "winner": 16,
+        "rival": 397,
+        "winner_mass": 2147483648,
+        "rival_mass": 1483218188,
+        "violated_rounds": 22
+      },
+      {
+        "guard_index": 87,
+        "input_index": 13,
+        "position": 9,
+        "id": "development-diverse-length2-00-swap1-q3-forward-home",
+        "actual_prefix_ids": [
+          617,
+          2097,
+          315,
+          261,
+          92,
+          607,
+          770,
+          397,
+          471
+        ],
+        "winner": 16,
+        "rival": 397,
+        "winner_mass": 2147483648,
+        "rival_mass": 16873851,
+        "violated_rounds": 22
+      },
+      {
+        "guard_index": 343,
+        "input_index": 433,
+        "position": 1,
+        "id": "development-diverse-update-03-swap0-q3-forward-home",
+        "actual_prefix_ids": [
+          617
+        ],
+        "winner": 2097,
+        "rival": 2537,
+        "winner_mass": 2147483648,
+        "rival_mass": 329327284,
+        "violated_rounds": 22
+      },
+      {
+        "guard_index": 29,
+        "input_index": 4,
+        "position": 5,
+        "id": "development-diverse-length2-00-swap0-q3-forward-job",
+        "actual_prefix_ids": [
+          2997,
+          1541,
+          435,
+          261,
+          92
+        ],
+        "winner": 607,
+        "rival": 2395,
+        "winner_mass": 2147558989,
+        "rival_mass": 9867671,
+        "violated_rounds": 21
+      }
+    ]
+  },
+  "rounds": [
+    {
+      "round": 0,
+      "duplicate_of": null,
+      "changed_coordinates": 11,
+      "changed_by_family": {
+        "Prefix": 11,
+        "Generate": 0
+      },
+      "objective_dot": -0.38996080681681633,
+      "objective_dot_family": {
+        "Prefix": -0.38996080681681633,
+        "Generate": 0.0
+      },
+      "minimum_unit_residual": -0.08593075653067038,
+      "tolerance": 8.2915619758885e-11,
+      "constraints_passed": false,
+      "eligible": false,
+      "coordinate_adverse_total": 1.2636886051474714,
+      "coordinate_helpful_total": 0.058495912025390624,
+      "pressure_sum_closure_residual": -2.220446049250313e-16,
+      "violated_family_sign_counts": {
+        "both_adverse": 0,
+        "Prefix_adverse_Generate_helpful": 0,
+        "Prefix_helpful_Generate_adverse": 0,
+        "both_helpful": 0
+      },
+      "family_pressure": {
+        "Prefix": {
+          "adverse": 1.2636886051474714,
+          "helpful": 0.058495912025390624
+        },
+        "Generate": {
+          "adverse": 0.0,
+          "helpful": 0.0
+        }
+      },
+      "top_adverse_fraction": {
+        "10": 0.9867668936814367,
+        "100": 0.9999999999999998
+      },
+      "violated_linearized_fixed_margin_positive": 99,
+      "violated_linearized_fixed_margin_nonpositive": 3,
+      "violated_count": 102,
+      "consecutive_jaccard": null
+    },
+    {
+      "round": 1,
+      "duplicate_of": 0,
+      "changed_coordinates": 11,
+      "changed_by_family": {
+        "Prefix": 11,
+        "Generate": 0
+      },
+      "objective_dot": -0.38996080681681633,
+      "objective_dot_family": {
+        "Prefix": -0.38996080681681633,
+        "Generate": 0.0
+      },
+      "minimum_unit_residual": -0.08593075653067038,
+      "tolerance": 8.2915619758885e-11,
+      "constraints_passed": false,
+      "eligible": false,
+      "coordinate_adverse_total": 1.2636886051474714,
+      "coordinate_helpful_total": 0.058495912025390624,
+      "pressure_sum_closure_residual": -2.220446049250313e-16,
+      "violated_family_sign_counts": {
+        "both_adverse": 0,
+        "Prefix_adverse_Generate_helpful": 0,
+        "Prefix_helpful_Generate_adverse": 0,
+        "both_helpful": 0
+      },
+      "family_pressure": {
+        "Prefix": {
+          "adverse": 1.2636886051474714,
+          "helpful": 0.058495912025390624
+        },
+        "Generate": {
+          "adverse": 0.0,
+          "helpful": 0.0
+        }
+      },
+      "top_adverse_fraction": {
+        "10": 0.9867668936814367,
+        "100": 0.9999999999999998
+      },
+      "violated_linearized_fixed_margin_positive": 99,
+      "violated_linearized_fixed_margin_nonpositive": 3,
+      "violated_count": 102,
+      "consecutive_jaccard": 1.0
+    },
+    {
+      "round": 2,
+      "duplicate_of": null,
+      "changed_coordinates": 10,
+      "changed_by_family": {
+        "Prefix": 10,
+        "Generate": 0
+      },
+      "objective_dot": -0.3648488484323025,
+      "objective_dot_family": {
+        "Prefix": -0.3648488484323025,
+        "Generate": 0.0
+      },
+      "minimum_unit_residual": -0.08593075653067038,
+      "tolerance": 7.905694150420949e-11,
+      "constraints_passed": false,
+      "eligible": false,
+      "coordinate_adverse_total": 1.0064695559313184,
+      "coordinate_helpful_total": 0.025282802680386348,
+      "pressure_sum_closure_residual": 0.0,
+      "violated_family_sign_counts": {
+        "both_adverse": 0,
+        "Prefix_adverse_Generate_helpful": 0,
+        "Prefix_helpful_Generate_adverse": 0,
+        "both_helpful": 0
+      },
+      "family_pressure": {
+        "Prefix": {
+          "adverse": 1.0064695559313184,
+          "helpful": 0.025282802680386348
+        },
+        "Generate": {
+          "adverse": 0.0,
+          "helpful": 0.0
+        }
+      },
+      "top_adverse_fraction": {
+        "10": 1.0,
+        "100": 1.0
+      },
+      "violated_linearized_fixed_margin_positive": 97,
+      "violated_linearized_fixed_margin_nonpositive": 3,
+      "violated_count": 100,
+      "consecutive_jaccard": 0.9056603773584906
+    },
+    {
+      "round": 3,
+      "duplicate_of": 2,
+      "changed_coordinates": 10,
+      "changed_by_family": {
+        "Prefix": 10,
+        "Generate": 0
+      },
+      "objective_dot": -0.3648488484323025,
+      "objective_dot_family": {
+        "Prefix": -0.3648488484323025,
+        "Generate": 0.0
+      },
+      "minimum_unit_residual": -0.08593075653067038,
+      "tolerance": 7.905694150420949e-11,
+      "constraints_passed": false,
+      "eligible": false,
+      "coordinate_adverse_total": 1.0064695559313184,
+      "coordinate_helpful_total": 0.025282802680386348,
+      "pressure_sum_closure_residual": 0.0,
+      "violated_family_sign_counts": {
+        "both_adverse": 0,
+        "Prefix_adverse_Generate_helpful": 0,
+        "Prefix_helpful_Generate_adverse": 0,
+        "both_helpful": 0
+      },
+      "family_pressure": {
+        "Prefix": {
+          "adverse": 1.0064695559313184,
+          "helpful": 0.025282802680386348
+        },
+        "Generate": {
+          "adverse": 0.0,
+          "helpful": 0.0
+        }
+      },
+      "top_adverse_fraction": {
+        "10": 1.0,
+        "100": 1.0
+      },
+      "violated_linearized_fixed_margin_positive": 97,
+      "violated_linearized_fixed_margin_nonpositive": 3,
+      "violated_count": 100,
+      "consecutive_jaccard": 1.0
+    },
+    {
+      "round": 4,
+      "duplicate_of": 2,
+      "changed_coordinates": 10,
+      "changed_by_family": {
+        "Prefix": 10,
+        "Generate": 0
+      },
+      "objective_dot": -0.3648488484323025,
+      "objective_dot_family": {
+        "Prefix": -0.3648488484323025,
+        "Generate": 0.0
+      },
+      "minimum_unit_residual": -0.08593075653067038,
+      "tolerance": 7.905694150420949e-11,
+      "constraints_passed": false,
+      "eligible": false,
+      "coordinate_adverse_total": 1.0064695559313184,
+      "coordinate_helpful_total": 0.025282802680386348,
+      "pressure_sum_closure_residual": 0.0,
+      "violated_family_sign_counts": {
+        "both_adverse": 0,
+        "Prefix_adverse_Generate_helpful": 0,
+        "Prefix_helpful_Generate_adverse": 0,
+        "both_helpful": 0
+      },
+      "family_pressure": {
+        "Prefix": {
+          "adverse": 1.0064695559313184,
+          "helpful": 0.025282802680386348
+        },
+        "Generate": {
+          "adverse": 0.0,
+          "helpful": 0.0
+        }
+      },
+      "top_adverse_fraction": {
+        "10": 1.0,
+        "100": 1.0
+      },
+      "violated_linearized_fixed_margin_positive": 97,
+      "violated_linearized_fixed_margin_nonpositive": 3,
+      "violated_count": 100,
+      "consecutive_jaccard": 1.0
+    },
+    {
+      "round": 5,
+      "duplicate_of": null,
+      "changed_coordinates": 7,
+      "changed_by_family": {
+        "Prefix": 7,
+        "Generate": 0
+      },
+      "objective_dot": -0.2492169812321663,
+      "objective_dot_family": {
+        "Prefix": -0.2492169812321663,
+        "Generate": 0.0
+      },
+      "minimum_unit_residual": -0.06248395230420715,
+      "tolerance": 6.614378277661477e-11,
+      "constraints_passed": false,
+      "eligible": false,
+      "coordinate_adverse_total": 0.4874465034806529,
+      "coordinate_helpful_total": 0.011264976949894165,
+      "pressure_sum_closure_residual": 1.6653345369377348e-16,
+      "violated_family_sign_counts": {
+        "both_adverse": 0,
+        "Prefix_adverse_Generate_helpful": 0,
+        "Prefix_helpful_Generate_adverse": 0,
+        "both_helpful": 0
+      },
+      "family_pressure": {
+        "Prefix": {
+          "adverse": 0.4874465034806529,
+          "helpful": 0.011264976949894165
+        },
+        "Generate": {
+          "adverse": 0.0,
+          "helpful": 0.0
+        }
+      },
+      "top_adverse_fraction": {
+        "10": 0.9999999999999999,
+        "100": 0.9999999999999999
+      },
+      "violated_linearized_fixed_margin_positive": 75,
+      "violated_linearized_fixed_margin_nonpositive": 2,
+      "violated_count": 77,
+      "consecutive_jaccard": 0.6698113207547169
+    },
+    {
+      "round": 6,
+      "duplicate_of": null,
+      "changed_coordinates": 9,
+      "changed_by_family": {
+        "Prefix": 9,
+        "Generate": 0
+      },
+      "objective_dot": -0.2665652687428519,
+      "objective_dot_family": {
+        "Prefix": -0.2665652687428519,
+        "Generate": 0.0
+      },
+      "minimum_unit_residual": -0.06247410618126418,
+      "tolerance": 7.5e-11,
+      "constraints_passed": false,
+      "eligible": false,
+      "coordinate_adverse_total": 0.641715882414597,
+      "coordinate_helpful_total": 0.06012594612472542,
+      "pressure_sum_closure_residual": 2.220446049250313e-16,
+      "violated_family_sign_counts": {
+        "both_adverse": 0,
+        "Prefix_adverse_Generate_helpful": 0,
+        "Prefix_helpful_Generate_adverse": 0,
+        "both_helpful": 0
+      },
+      "family_pressure": {
+        "Prefix": {
+          "adverse": 0.641715882414597,
+          "helpful": 0.06012594612472542
+        },
+        "Generate": {
+          "adverse": 0.0,
+          "helpful": 0.0
+        }
+      },
+      "top_adverse_fraction": {
+        "10": 1.0,
+        "100": 1.0
+      },
+      "violated_linearized_fixed_margin_positive": 101,
+      "violated_linearized_fixed_margin_nonpositive": 2,
+      "violated_count": 103,
+      "consecutive_jaccard": 0.6071428571428571
+    },
+    {
+      "round": 7,
+      "duplicate_of": null,
+      "changed_coordinates": 11,
+      "changed_by_family": {
+        "Prefix": 11,
+        "Generate": 0
+      },
+      "objective_dot": -0.28179189283400774,
+      "objective_dot_family": {
+        "Prefix": -0.28179189283400774,
+        "Generate": 0.0
+      },
+      "minimum_unit_residual": -0.05217659332750427,
+      "tolerance": 8.2915619758885e-11,
+      "constraints_passed": false,
+      "eligible": false,
+      "coordinate_adverse_total": 0.5915089453285305,
+      "coordinate_helpful_total": 0.06934560417142271,
+      "pressure_sum_closure_residual": 3.3306690738754696e-16,
+      "violated_family_sign_counts": {
+        "both_adverse": 0,
+        "Prefix_adverse_Generate_helpful": 0,
+        "Prefix_helpful_Generate_adverse": 0,
+        "both_helpful": 0
+      },
+      "family_pressure": {
+        "Prefix": {
+          "adverse": 0.5915089453285305,
+          "helpful": 0.06934560417142271
+        },
+        "Generate": {
+          "adverse": 0.0,
+          "helpful": 0.0
+        }
+      },
+      "top_adverse_fraction": {
+        "10": 0.9999897912963658,
+        "100": 1.0000000000000002
+      },
+      "violated_linearized_fixed_margin_positive": 123,
+      "violated_linearized_fixed_margin_nonpositive": 2,
+      "violated_count": 125,
+      "consecutive_jaccard": 0.7674418604651163
+    },
+    {
+      "round": 8,
+      "duplicate_of": null,
+      "changed_coordinates": 12,
+      "changed_by_family": {
+        "Prefix": 11,
+        "Generate": 1
+      },
+      "objective_dot": -0.2826132621266879,
+      "objective_dot_family": {
+        "Prefix": -0.28179189283400774,
+        "Generate": -0.0008213692926801741
+      },
+      "minimum_unit_residual": -0.06764202051447199,
+      "tolerance": 8.660254037844386e-11,
+      "constraints_passed": false,
+      "eligible": false,
+      "coordinate_adverse_total": 0.6311575702862903,
+      "coordinate_helpful_total": 0.07296496092960157,
+      "pressure_sum_closure_residual": 1.1102230246251565e-16,
+      "violated_family_sign_counts": {
+        "both_adverse": 19,
+        "Prefix_adverse_Generate_helpful": 62,
+        "Prefix_helpful_Generate_adverse": 2,
+        "both_helpful": 0
+      },
+      "family_pressure": {
+        "Prefix": {
+          "adverse": 0.524754817334097,
+          "helpful": 0.07296494300041893
+        },
+        "Generate": {
+          "adverse": 0.10640275295219327,
+          "helpful": 1.792918264107436e-08
+        }
+      },
+      "top_adverse_fraction": {
+        "10": 0.9924666275697651,
+        "100": 1.0
+      },
+      "violated_linearized_fixed_margin_positive": 122,
+      "violated_linearized_fixed_margin_nonpositive": 2,
+      "violated_count": 124,
+      "consecutive_jaccard": 0.9453125
+    },
+    {
+      "round": 9,
+      "duplicate_of": 8,
+      "changed_coordinates": 12,
+      "changed_by_family": {
+        "Prefix": 11,
+        "Generate": 1
+      },
+      "objective_dot": -0.2826132621266879,
+      "objective_dot_family": {
+        "Prefix": -0.28179189283400774,
+        "Generate": -0.0008213692926801741
+      },
+      "minimum_unit_residual": -0.06764202051447199,
+      "tolerance": 8.660254037844386e-11,
+      "constraints_passed": false,
+      "eligible": false,
+      "coordinate_adverse_total": 0.6311575702862903,
+      "coordinate_helpful_total": 0.07296496092960157,
+      "pressure_sum_closure_residual": 1.1102230246251565e-16,
+      "violated_family_sign_counts": {
+        "both_adverse": 19,
+        "Prefix_adverse_Generate_helpful": 62,
+        "Prefix_helpful_Generate_adverse": 2,
+        "both_helpful": 0
+      },
+      "family_pressure": {
+        "Prefix": {
+          "adverse": 0.524754817334097,
+          "helpful": 0.07296494300041893
+        },
+        "Generate": {
+          "adverse": 0.10640275295219327,
+          "helpful": 1.792918264107436e-08
+        }
+      },
+      "top_adverse_fraction": {
+        "10": 0.9924666275697651,
+        "100": 1.0
+      },
+      "violated_linearized_fixed_margin_positive": 122,
+      "violated_linearized_fixed_margin_nonpositive": 2,
+      "violated_count": 124,
+      "consecutive_jaccard": 1.0
+    },
+    {
+      "round": 10,
+      "duplicate_of": null,
+      "changed_coordinates": 14,
+      "changed_by_family": {
+        "Prefix": 12,
+        "Generate": 2
+      },
+      "objective_dot": -0.2849011319794541,
+      "objective_dot_family": {
+        "Prefix": -0.28363854624331,
+        "Generate": -0.0012625857361441284
+      },
+      "minimum_unit_residual": -0.06764202053366682,
+      "tolerance": 9.105040910815615e-11,
+      "constraints_passed": false,
+      "eligible": false,
+      "coordinate_adverse_total": 0.8685190094902773,
+      "coordinate_helpful_total": 0.11909159602931159,
+      "pressure_sum_closure_residual": -2.220446049250313e-16,
+      "violated_family_sign_counts": {
+        "both_adverse": 23,
+        "Prefix_adverse_Generate_helpful": 58,
+        "Prefix_helpful_Generate_adverse": 3,
+        "both_helpful": 0
+      },
+      "family_pressure": {
+        "Prefix": {
+          "adverse": 0.6910737203228726,
+          "helpful": 0.11909157188623945
+        },
+        "Generate": {
+          "adverse": 0.17744528916740476,
+          "helpful": 2.4143072138677653e-08
+        }
+      },
+      "top_adverse_fraction": {
+        "10": 0.9621062751850449,
+        "100": 1.0
+      },
+      "violated_linearized_fixed_margin_positive": 125,
+      "violated_linearized_fixed_margin_nonpositive": 2,
+      "violated_count": 127,
+      "consecutive_jaccard": 0.8455882352941176
+    },
+    {
+      "round": 11,
+      "duplicate_of": null,
+      "changed_coordinates": 15,
+      "changed_by_family": {
+        "Prefix": 12,
+        "Generate": 3
+      },
+      "objective_dot": -0.2856305581971852,
+      "objective_dot_family": {
+        "Prefix": -0.28363854624331,
+        "Generate": -0.001992011953875217
+      },
+      "minimum_unit_residual": -0.05254280654236923,
+      "tolerance": 9.442021499002534e-11,
+      "constraints_passed": false,
+      "eligible": false,
+      "coordinate_adverse_total": 1.0102432642004888,
+      "coordinate_helpful_total": 0.17166664252099414,
+      "pressure_sum_closure_residual": -1.1102230246251565e-16,
+      "violated_family_sign_counts": {
+        "both_adverse": 24,
+        "Prefix_adverse_Generate_helpful": 57,
+        "Prefix_helpful_Generate_adverse": 5,
+        "both_helpful": 0
+      },
+      "family_pressure": {
+        "Prefix": {
+          "adverse": 0.683105812458254,
+          "helpful": 0.12272355288394429
+        },
+        "Generate": {
+          "adverse": 0.32713745174223485,
+          "helpful": 0.04894308963704984
+        }
+      },
+      "top_adverse_fraction": {
+        "10": 0.9409369332291239,
+        "100": 0.9999999999999998
+      },
+      "violated_linearized_fixed_margin_positive": 126,
+      "violated_linearized_fixed_margin_nonpositive": 2,
+      "violated_count": 128,
+      "consecutive_jaccard": 0.9767441860465116
+    },
+    {
+      "round": 12,
+      "duplicate_of": null,
+      "changed_coordinates": 15,
+      "changed_by_family": {
+        "Prefix": 13,
+        "Generate": 2
+      },
+      "objective_dot": -0.2815857031254878,
+      "objective_dot_family": {
+        "Prefix": -0.28041506046429276,
+        "Generate": -0.0011706426611950427
+      },
+      "minimum_unit_residual": -0.08697086402834721,
+      "tolerance": 9.442021499002534e-11,
+      "constraints_passed": false,
+      "eligible": false,
+      "coordinate_adverse_total": 2.2247925513298137,
+      "coordinate_helpful_total": 0.3234961573920001,
+      "pressure_sum_closure_residual": -6.661338147750939e-16,
+      "violated_family_sign_counts": {
+        "both_adverse": 11,
+        "Prefix_adverse_Generate_helpful": 38,
+        "Prefix_helpful_Generate_adverse": 3,
+        "both_helpful": 0
+      },
+      "family_pressure": {
+        "Prefix": {
+          "adverse": 2.0482661346322613,
+          "helpful": 0.3067903447635893
+        },
+        "Generate": {
+          "adverse": 0.17652641669755204,
+          "helpful": 0.01670581262841082
+        }
+      },
+      "top_adverse_fraction": {
+        "10": 0.9764132626985434,
+        "100": 0.9999999999999992
+      },
+      "violated_linearized_fixed_margin_positive": 88,
+      "violated_linearized_fixed_margin_nonpositive": 2,
+      "violated_count": 90,
+      "consecutive_jaccard": 0.3212121212121212
+    },
+    {
+      "round": 13,
+      "duplicate_of": null,
+      "changed_coordinates": 16,
+      "changed_by_family": {
+        "Prefix": 14,
+        "Generate": 2
+      },
+      "objective_dot": -0.285842142986398,
+      "objective_dot_family": {
+        "Prefix": -0.28467150032520294,
+        "Generate": -0.0011706426611950427
+      },
+      "minimum_unit_residual": -0.08697086402834721,
+      "tolerance": 9.767382965135853e-11,
+      "constraints_passed": false,
+      "eligible": false,
+      "coordinate_adverse_total": 2.294243861302563,
+      "coordinate_helpful_total": 0.3754198644290465,
+      "pressure_sum_closure_residual": -2.220446049250313e-16,
+      "violated_family_sign_counts": {
+        "both_adverse": 12,
+        "Prefix_adverse_Generate_helpful": 37,
+        "Prefix_helpful_Generate_adverse": 3,
+        "both_helpful": 0
+      },
+      "family_pressure": {
+        "Prefix": {
+          "adverse": 2.1177174445635583,
+          "helpful": 0.3587140518483246
+        },
+        "Generate": {
+          "adverse": 0.17652641673900443,
+          "helpful": 0.016705812580721884
+        }
+      },
+      "top_adverse_fraction": {
+        "10": 0.9657993380352169,
+        "100": 0.9999999999999998
+      },
+      "violated_linearized_fixed_margin_positive": 88,
+      "violated_linearized_fixed_margin_nonpositive": 2,
+      "violated_count": 90,
+      "consecutive_jaccard": 0.978021978021978
+    },
+    {
+      "round": 14,
+      "duplicate_of": null,
+      "changed_coordinates": 17,
+      "changed_by_family": {
+        "Prefix": 16,
+        "Generate": 1
+      },
+      "objective_dot": -0.2854843605109223,
+      "objective_dot_family": {
+        "Prefix": -0.28504314406745834,
+        "Generate": -0.0004412164434639543
+      },
+      "minimum_unit_residual": -0.09162230483997386,
+      "tolerance": 1.0082250244247365e-10,
+      "constraints_passed": false,
+      "eligible": false,
+      "coordinate_adverse_total": 2.2334413581256003,
+      "coordinate_helpful_total": 0.40332754740782645,
+      "pressure_sum_closure_residual": -4.440892098500626e-16,
+      "violated_family_sign_counts": {
+        "both_adverse": 12,
+        "Prefix_adverse_Generate_helpful": 37,
+        "Prefix_helpful_Generate_adverse": 0,
+        "both_helpful": 0
+      },
+      "family_pressure": {
+        "Prefix": {
+          "adverse": 2.2066071034982984,
+          "helpful": 0.3866217385327955
+        },
+        "Generate": {
+          "adverse": 0.026834254627302063,
+          "helpful": 0.01670580887503093
+        }
+      },
+      "top_adverse_fraction": {
+        "10": 0.9618039768267441,
+        "100": 0.9999999999999998
+      },
+      "violated_linearized_fixed_margin_positive": 88,
+      "violated_linearized_fixed_margin_nonpositive": 1,
+      "violated_count": 89,
+      "consecutive_jaccard": 0.8645833333333334
+    },
+    {
+      "round": 15,
+      "duplicate_of": null,
+      "changed_coordinates": 20,
+      "changed_by_family": {
+        "Prefix": 19,
+        "Generate": 1
+      },
+      "objective_dot": -0.3002365024676279,
+      "objective_dot_family": {
+        "Prefix": -0.29979528602416394,
+        "Generate": -0.0004412164434639543
+      },
+      "minimum_unit_residual": -0.06723616246442131,
+      "tolerance": 1.0972774033380348e-10,
+      "constraints_passed": false,
+      "eligible": false,
+      "coordinate_adverse_total": 1.3402527866999028,
+      "coordinate_helpful_total": 0.18133437085624932,
+      "pressure_sum_closure_residual": 4.440892098500626e-16,
+      "violated_family_sign_counts": {
+        "both_adverse": 24,
+        "Prefix_adverse_Generate_helpful": 57,
+        "Prefix_helpful_Generate_adverse": 2,
+        "both_helpful": 0
+      },
+      "family_pressure": {
+        "Prefix": {
+          "adverse": 1.2692102510515604,
+          "helpful": 0.18133436363376298
+        },
+        "Generate": {
+          "adverse": 0.07104253564834241,
+          "helpful": 7.222486328281516e-09
+        }
+      },
+      "top_adverse_fraction": {
+        "10": 0.8594913528860568,
+        "100": 0.9999999999999999
+      },
+      "violated_linearized_fixed_margin_positive": 131,
+      "violated_linearized_fixed_margin_nonpositive": 3,
+      "violated_count": 134,
+      "consecutive_jaccard": 0.26704545454545453
+    },
+    {
+      "round": 16,
+      "duplicate_of": null,
+      "changed_coordinates": 22,
+      "changed_by_family": {
+        "Prefix": 22,
+        "Generate": 0
+      },
+      "objective_dot": -0.30450801102415426,
+      "objective_dot_family": {
+        "Prefix": -0.30450801102415426,
+        "Generate": 0.0
+      },
+      "minimum_unit_residual": -0.0724107385739824,
+      "tolerance": 1.1726039399558575e-10,
+      "constraints_passed": false,
+      "eligible": false,
+      "coordinate_adverse_total": 2.338379363728309,
+      "coordinate_helpful_total": 0.3796298248445383,
+      "pressure_sum_closure_residual": 2.220446049250313e-16,
+      "violated_family_sign_counts": {
+        "both_adverse": 0,
+        "Prefix_adverse_Generate_helpful": 0,
+        "Prefix_helpful_Generate_adverse": 0,
+        "both_helpful": 0
+      },
+      "family_pressure": {
+        "Prefix": {
+          "adverse": 2.338379363728309,
+          "helpful": 0.3796298248445383
+        },
+        "Generate": {
+          "adverse": 0.0,
+          "helpful": 0.0
+        }
+      },
+      "top_adverse_fraction": {
+        "10": 0.8783500568551263,
+        "100": 1.0
+      },
+      "violated_linearized_fixed_margin_positive": 147,
+      "violated_linearized_fixed_margin_nonpositive": 3,
+      "violated_count": 150,
+      "consecutive_jaccard": 0.632183908045977
+    },
+    {
+      "round": 17,
+      "duplicate_of": null,
+      "changed_coordinates": 28,
+      "changed_by_family": {
+        "Prefix": 26,
+        "Generate": 2
+      },
+      "objective_dot": -0.3089026293980083,
+      "objective_dot_family": {
+        "Prefix": -0.3071831510969787,
+        "Generate": -0.0017194783010295867
+      },
+      "minimum_unit_residual": -0.07797172237896766,
+      "tolerance": 1.3151660676431992e-10,
+      "constraints_passed": false,
+      "eligible": false,
+      "coordinate_adverse_total": 2.5523184347186363,
+      "coordinate_helpful_total": 0.9866913454934567,
+      "pressure_sum_closure_residual": -8.881784197001252e-16,
+      "violated_family_sign_counts": {
+        "both_adverse": 11,
+        "Prefix_adverse_Generate_helpful": 24,
+        "Prefix_helpful_Generate_adverse": 4,
+        "both_helpful": 0
+      },
+      "family_pressure": {
+        "Prefix": {
+          "adverse": 2.325845627171101,
+          "helpful": 0.9280986342932493
+        },
+        "Generate": {
+          "adverse": 0.22647280754753543,
+          "helpful": 0.05859271120020746
+        }
+      },
+      "top_adverse_fraction": {
+        "10": 0.8505217423612106,
+        "100": 1.0000000000000002
+      },
+      "violated_linearized_fixed_margin_positive": 69,
+      "violated_linearized_fixed_margin_nonpositive": 2,
+      "violated_count": 71,
+      "consecutive_jaccard": 0.20765027322404372
+    },
+    {
+      "round": 18,
+      "duplicate_of": null,
+      "changed_coordinates": 30,
+      "changed_by_family": {
+        "Prefix": 26,
+        "Generate": 4
+      },
+      "objective_dot": -0.3052021561977113,
+      "objective_dot_family": {
+        "Prefix": -0.3019874911333318,
+        "Generate": -0.003214665064379507
+      },
+      "minimum_unit_residual": -0.0695249483848831,
+      "tolerance": 1.3618596790712604e-10,
+      "constraints_passed": false,
+      "eligible": false,
+      "coordinate_adverse_total": 2.5310066612707813,
+      "coordinate_helpful_total": 0.8607896296608732,
+      "pressure_sum_closure_residual": 4.440892098500626e-16,
+      "violated_family_sign_counts": {
+        "both_adverse": 9,
+        "Prefix_adverse_Generate_helpful": 24,
+        "Prefix_helpful_Generate_adverse": 7,
+        "both_helpful": 0
+      },
+      "family_pressure": {
+        "Prefix": {
+          "adverse": 2.153955658568563,
+          "helpful": 0.8258698280710413
+        },
+        "Generate": {
+          "adverse": 0.37705100270221825,
+          "helpful": 0.03491980158983202
+        }
+      },
+      "top_adverse_fraction": {
+        "10": 0.8252435575469509,
+        "100": 1.0
+      },
+      "violated_linearized_fixed_margin_positive": 71,
+      "violated_linearized_fixed_margin_nonpositive": 0,
+      "violated_count": 71,
+      "consecutive_jaccard": 0.5604395604395604
+    },
+    {
+      "round": 19,
+      "duplicate_of": null,
+      "changed_coordinates": 37,
+      "changed_by_family": {
+        "Prefix": 28,
+        "Generate": 9
+      },
+      "objective_dot": -0.3335153961048901,
+      "objective_dot_family": {
+        "Prefix": -0.3267024690794642,
+        "Generate": -0.006812927025425908
+      },
+      "minimum_unit_residual": -0.06274525117289015,
+      "tolerance": 1.4987259540544216e-10,
+      "constraints_passed": false,
+      "eligible": false,
+      "coordinate_adverse_total": 2.4537750027501697,
+      "coordinate_helpful_total": 1.0035589988357625,
+      "pressure_sum_closure_residual": -2.220446049250313e-16,
+      "violated_family_sign_counts": {
+        "both_adverse": 10,
+        "Prefix_adverse_Generate_helpful": 26,
+        "Prefix_helpful_Generate_adverse": 12,
+        "both_helpful": 0
+      },
+      "family_pressure": {
+        "Prefix": {
+          "adverse": 1.850628313637316,
+          "helpful": 0.8548334761891504
+        },
+        "Generate": {
+          "adverse": 0.6031466891128536,
+          "helpful": 0.1487255226466118
+        }
+      },
+      "top_adverse_fraction": {
+        "10": 0.7634487807048076,
+        "100": 1.0
+      },
+      "violated_linearized_fixed_margin_positive": 71,
+      "violated_linearized_fixed_margin_nonpositive": 0,
+      "violated_count": 71,
+      "consecutive_jaccard": 0.7530864197530864
+    },
+    {
+      "round": 20,
+      "duplicate_of": null,
+      "changed_coordinates": 36,
+      "changed_by_family": {
+        "Prefix": 26,
+        "Generate": 10
+      },
+      "objective_dot": -0.33399832313621536,
+      "objective_dot_family": {
+        "Prefix": -0.3263716714209295,
+        "Generate": -0.00762665171528587
+      },
+      "minimum_unit_residual": -0.07935646555136922,
+      "tolerance": 1.4845934459899318e-10,
+      "constraints_passed": false,
+      "eligible": false,
+      "coordinate_adverse_total": 2.441723634858095,
+      "coordinate_helpful_total": 0.8580224936559739,
+      "pressure_sum_closure_residual": -1.7763568394002505e-15,
+      "violated_family_sign_counts": {
+        "both_adverse": 8,
+        "Prefix_adverse_Generate_helpful": 29,
+        "Prefix_helpful_Generate_adverse": 13,
+        "both_helpful": 0
+      },
+      "family_pressure": {
+        "Prefix": {
+          "adverse": 1.789553219589734,
+          "helpful": 0.7538633996293288
+        },
+        "Generate": {
+          "adverse": 0.6521704152683608,
+          "helpful": 0.10415909402664518
+        }
+      },
+      "top_adverse_fraction": {
+        "10": 0.79196390253474,
+        "100": 0.9999999999999997
+      },
+      "violated_linearized_fixed_margin_positive": 75,
+      "violated_linearized_fixed_margin_nonpositive": 2,
+      "violated_count": 77,
+      "consecutive_jaccard": 0.7209302325581395
+    },
+    {
+      "round": 21,
+      "duplicate_of": null,
+      "changed_coordinates": 36,
+      "changed_by_family": {
+        "Prefix": 26,
+        "Generate": 10
+      },
+      "objective_dot": -0.3220869108426583,
+      "objective_dot_family": {
+        "Prefix": -0.3144602591273724,
+        "Generate": -0.00762665171528587
+      },
+      "minimum_unit_residual": -0.06602870981078637,
+      "tolerance": 1.4845934459899318e-10,
+      "constraints_passed": false,
+      "eligible": false,
+      "coordinate_adverse_total": 2.3425352345843455,
+      "coordinate_helpful_total": 0.5675562812625814,
+      "pressure_sum_closure_residual": -4.440892098500626e-16,
+      "violated_family_sign_counts": {
+        "both_adverse": 29,
+        "Prefix_adverse_Generate_helpful": 43,
+        "Prefix_helpful_Generate_adverse": 13,
+        "both_helpful": 0
+      },
+      "family_pressure": {
+        "Prefix": {
+          "adverse": 1.4271835658491132,
+          "helpful": 0.41347491337482156
+        },
+        "Generate": {
+          "adverse": 0.915351668735232,
+          "helpful": 0.1540813678877597
+        }
+      },
+      "top_adverse_fraction": {
+        "10": 0.553891352111035,
+        "100": 1.0
+      },
+      "violated_linearized_fixed_margin_positive": 128,
+      "violated_linearized_fixed_margin_nonpositive": 1,
+      "violated_count": 129,
+      "consecutive_jaccard": 0.31210191082802546
+    },
+    {
+      "round": 22,
+      "duplicate_of": null,
+      "changed_coordinates": 34,
+      "changed_by_family": {
+        "Prefix": 26,
+        "Generate": 8
+      },
+      "objective_dot": -0.30633581395700693,
+      "objective_dot_family": {
+        "Prefix": -0.3003201526225894,
+        "Generate": -0.006015661334417555
+      },
+      "minimum_unit_residual": -0.09125196978042745,
+      "tolerance": 1.441879918674319e-10,
+      "constraints_passed": false,
+      "eligible": false,
+      "coordinate_adverse_total": 3.221917482287335,
+      "coordinate_helpful_total": 0.7858722292817105,
+      "pressure_sum_closure_residual": 0.0,
+      "violated_family_sign_counts": {
+        "both_adverse": 37,
+        "Prefix_adverse_Generate_helpful": 48,
+        "Prefix_helpful_Generate_adverse": 11,
+        "both_helpful": 0
+      },
+      "family_pressure": {
+        "Prefix": {
+          "adverse": 2.444700982419645,
+          "helpful": 0.6107705940830366
+        },
+        "Generate": {
+          "adverse": 0.7772164998676896,
+          "helpful": 0.17510163519867397
+        }
+      },
+      "top_adverse_fraction": {
+        "10": 0.6624045030395082,
+        "100": 1.0000000000000002
+      },
+      "violated_linearized_fixed_margin_positive": 141,
+      "violated_linearized_fixed_margin_nonpositive": 2,
+      "violated_count": 143,
+      "consecutive_jaccard": 0.6484848484848484
+    },
+    {
+      "round": 23,
+      "duplicate_of": null,
+      "changed_coordinates": 36,
+      "changed_by_family": {
+        "Prefix": 30,
+        "Generate": 6
+      },
+      "objective_dot": -0.33905086486352465,
+      "objective_dot_family": {
+        "Prefix": -0.33479154629731056,
+        "Generate": -0.0042593185662140876
+      },
+      "minimum_unit_residual": -0.09135032298408469,
+      "tolerance": 1.4845934459899318e-10,
+      "constraints_passed": false,
+      "eligible": false,
+      "coordinate_adverse_total": 3.130260421429481,
+      "coordinate_helpful_total": 0.8974561726477444,
+      "pressure_sum_closure_residual": 0.0,
+      "violated_family_sign_counts": {
+        "both_adverse": 29,
+        "Prefix_adverse_Generate_helpful": 45,
+        "Prefix_helpful_Generate_adverse": 11,
+        "both_helpful": 0
+      },
+      "family_pressure": {
+        "Prefix": {
+          "adverse": 2.590400180720292,
+          "helpful": 0.8268208672611476
+        },
+        "Generate": {
+          "adverse": 0.5398602407091895,
+          "helpful": 0.0706353053865969
+        }
+      },
+      "top_adverse_fraction": {
+        "10": 0.6616067774218063,
+        "100": 0.9999999999999996
+      },
+      "violated_linearized_fixed_margin_positive": 135,
+      "violated_linearized_fixed_margin_nonpositive": 2,
+      "violated_count": 137,
+      "consecutive_jaccard": 0.6568047337278107
+    },
+    {
+      "round": 24,
+      "duplicate_of": null,
+      "changed_coordinates": 35,
+      "changed_by_family": {
+        "Prefix": 31,
+        "Generate": 4
+      },
+      "objective_dot": -0.34575519315417713,
+      "objective_dot_family": {
+        "Prefix": -0.34298385733836767,
+        "Generate": -0.0027713358158094614
+      },
+      "minimum_unit_residual": -0.1358282823431551,
+      "tolerance": 1.4633925310306392e-10,
+      "constraints_passed": false,
+      "eligible": false,
+      "coordinate_adverse_total": 13.895566643320375,
+      "coordinate_helpful_total": 2.366893119160601,
+      "pressure_sum_closure_residual": -3.552713678800501e-15,
+      "violated_family_sign_counts": {
+        "both_adverse": 52,
+        "Prefix_adverse_Generate_helpful": 94,
+        "Prefix_helpful_Generate_adverse": 2,
+        "both_helpful": 0
+      },
+      "family_pressure": {
+        "Prefix": {
+          "adverse": 13.561655865540828,
+          "helpful": 2.03157009712499
+        },
+        "Generate": {
+          "adverse": 0.3339107777795469,
+          "helpful": 0.3353230220356109
+        }
+      },
+      "top_adverse_fraction": {
+        "10": 0.9190068387364461,
+        "100": 0.9999999999999999
+      },
+      "violated_linearized_fixed_margin_positive": 203,
+      "violated_linearized_fixed_margin_nonpositive": 15,
+      "violated_count": 218,
+      "consecutive_jaccard": 0.5502183406113537
+    },
+    {
+      "round": 25,
+      "duplicate_of": null,
+      "changed_coordinates": 36,
+      "changed_by_family": {
+        "Prefix": 31,
+        "Generate": 5
+      },
+      "objective_dot": -0.3443319843996916,
+      "objective_dot_family": {
+        "Prefix": -0.34077614375837584,
+        "Generate": -0.003555840641315755
+      },
+      "minimum_unit_residual": -0.12181046490759748,
+      "tolerance": 1.4777278116609758e-10,
+      "constraints_passed": false,
+      "eligible": false,
+      "coordinate_adverse_total": 13.126740927338188,
+      "coordinate_helpful_total": 2.26617862535473,
+      "pressure_sum_closure_residual": 5.329070518200751e-15,
+      "violated_family_sign_counts": {
+        "both_adverse": 53,
+        "Prefix_adverse_Generate_helpful": 93,
+        "Prefix_helpful_Generate_adverse": 2,
+        "both_helpful": 0
+      },
+      "family_pressure": {
+        "Prefix": {
+          "adverse": 12.708251051946103,
+          "helpful": 1.882970159279614
+        },
+        "Generate": {
+          "adverse": 0.41848987539208604,
+          "helpful": 0.38320846607511583
+        }
+      },
+      "top_adverse_fraction": {
+        "10": 0.9134452137435913,
+        "100": 0.9999999999999999
+      },
+      "violated_linearized_fixed_margin_positive": 198,
+      "violated_linearized_fixed_margin_nonpositive": 15,
+      "violated_count": 213,
+      "consecutive_jaccard": 0.9414414414414415
+    },
+    {
+      "round": 26,
+      "duplicate_of": null,
+      "changed_coordinates": 44,
+      "changed_by_family": {
+        "Prefix": 35,
+        "Generate": 9
+      },
+      "objective_dot": -0.3549756482494969,
+      "objective_dot_family": {
+        "Prefix": -0.3494381261334638,
+        "Generate": -0.005537522116033089
+      },
+      "minimum_unit_residual": -0.18122758391483706,
+      "tolerance": 1.6381939706140833e-10,
+      "constraints_passed": false,
+      "eligible": false,
+      "coordinate_adverse_total": 6.503577226468436,
+      "coordinate_helpful_total": 2.5239093422930714,
+      "pressure_sum_closure_residual": 4.440892098500626e-16,
+      "violated_family_sign_counts": {
+        "both_adverse": 9,
+        "Prefix_adverse_Generate_helpful": 36,
+        "Prefix_helpful_Generate_adverse": 6,
+        "both_helpful": 0
+      },
+      "family_pressure": {
+        "Prefix": {
+          "adverse": 6.110987111191621,
+          "helpful": 2.088950562121715
+        },
+        "Generate": {
+          "adverse": 0.39259011527681437,
+          "helpful": 0.4349587801713559
+        }
+      },
+      "top_adverse_fraction": {
+        "10": 0.8914837408607642,
+        "100": 0.9999999999999998
+      },
+      "violated_linearized_fixed_margin_positive": 77,
+      "violated_linearized_fixed_margin_nonpositive": 3,
+      "violated_count": 80,
+      "consecutive_jaccard": 0.06934306569343066
+    },
+    {
+      "round": 27,
+      "duplicate_of": null,
+      "changed_coordinates": 43,
+      "changed_by_family": {
+        "Prefix": 33,
+        "Generate": 10
+      },
+      "objective_dot": -0.35526395789533594,
+      "objective_dot_family": {
+        "Prefix": -0.34890323911531596,
+        "Generate": -0.0063607187800199805
+      },
+      "minimum_unit_residual": -0.11893137348527227,
+      "tolerance": 1.6190057088708292e-10,
+      "constraints_passed": false,
+      "eligible": false,
+      "coordinate_adverse_total": 4.928808146314687,
+      "coordinate_helpful_total": 2.254849884451413,
+      "pressure_sum_closure_residual": -1.7763568394002505e-15,
+      "violated_family_sign_counts": {
+        "both_adverse": 11,
+        "Prefix_adverse_Generate_helpful": 32,
+        "Prefix_helpful_Generate_adverse": 10,
+        "both_helpful": 0
+      },
+      "family_pressure": {
+        "Prefix": {
+          "adverse": 4.284630497616184,
+          "helpful": 1.7854735319587587
+        },
+        "Generate": {
+          "adverse": 0.6441776486985024,
+          "helpful": 0.4693763524926545
+        }
+      },
+      "top_adverse_fraction": {
+        "10": 0.8354682068589098,
+        "100": 0.9999999999999998
+      },
+      "violated_linearized_fixed_margin_positive": 77,
+      "violated_linearized_fixed_margin_nonpositive": 1,
+      "violated_count": 78,
+      "consecutive_jaccard": 0.8588235294117647
+    },
+    {
+      "round": 28,
+      "duplicate_of": null,
+      "changed_coordinates": 47,
+      "changed_by_family": {
+        "Prefix": 35,
+        "Generate": 12
+      },
+      "objective_dot": -0.36416615267048214,
+      "objective_dot_family": {
+        "Prefix": -0.3559592927667836,
+        "Generate": -0.008206859903698516
+      },
+      "minimum_unit_residual": -0.07899782773558639,
+      "tolerance": 1.6944555129469575e-10,
+      "constraints_passed": false,
+      "eligible": false,
+      "coordinate_adverse_total": 4.372384549647507,
+      "coordinate_helpful_total": 2.9610555106410263,
+      "pressure_sum_closure_residual": 0.0,
+      "violated_family_sign_counts": {
+        "both_adverse": 13,
+        "Prefix_adverse_Generate_helpful": 24,
+        "Prefix_helpful_Generate_adverse": 10,
+        "both_helpful": 0
+      },
+      "family_pressure": {
+        "Prefix": {
+          "adverse": 3.4846145987648875,
+          "helpful": 2.451908201135911
+        },
+        "Generate": {
+          "adverse": 0.8877699508826198,
+          "helpful": 0.5091473095051156
+        }
+      },
+      "top_adverse_fraction": {
+        "10": 0.7762241534148939,
+        "100": 0.9999999999999998
+      },
+      "violated_linearized_fixed_margin_positive": 64,
+      "violated_linearized_fixed_margin_nonpositive": 0,
+      "violated_count": 64,
+      "consecutive_jaccard": 0.6705882352941176
+    },
+    {
+      "round": 29,
+      "duplicate_of": null,
+      "changed_coordinates": 47,
+      "changed_by_family": {
+        "Prefix": 34,
+        "Generate": 13
+      },
+      "objective_dot": -0.36811906466723043,
+      "objective_dot_family": {
+        "Prefix": -0.35918277854580083,
+        "Generate": -0.008936286121429604
+      },
+      "minimum_unit_residual": -0.08492613539958756,
+      "tolerance": 1.6944555129469575e-10,
+      "constraints_passed": false,
+      "eligible": false,
+      "coordinate_adverse_total": 8.547554539506955,
+      "coordinate_helpful_total": 6.248682239399922,
+      "pressure_sum_closure_residual": 2.220446049250313e-15,
+      "violated_family_sign_counts": {
+        "both_adverse": 29,
+        "Prefix_adverse_Generate_helpful": 39,
+        "Prefix_helpful_Generate_adverse": 19,
+        "both_helpful": 0
+      },
+      "family_pressure": {
+        "Prefix": {
+          "adverse": 7.19118258134743,
+          "helpful": 5.977898211326096
+        },
+        "Generate": {
+          "adverse": 1.3563719581595246,
+          "helpful": 0.27078402807382657
+        }
+      },
+      "top_adverse_fraction": {
+        "10": 0.8233817347291098,
+        "100": 0.9999999999999993
+      },
+      "violated_linearized_fixed_margin_positive": 117,
+      "violated_linearized_fixed_margin_nonpositive": 1,
+      "violated_count": 118,
+      "consecutive_jaccard": 0.2727272727272727
+    },
+    {
+      "round": 30,
+      "duplicate_of": null,
+      "changed_coordinates": 43,
+      "changed_by_family": {
+        "Prefix": 33,
+        "Generate": 10
+      },
+      "objective_dot": -0.37669486361086923,
+      "objective_dot_family": {
+        "Prefix": -0.3703706402775424,
+        "Generate": -0.006324223333326828
+      },
+      "minimum_unit_residual": -0.08492613539958756,
+      "tolerance": 1.6190057088708292e-10,
+      "constraints_passed": false,
+      "eligible": false,
+      "coordinate_adverse_total": 8.117359698743453,
+      "coordinate_helpful_total": 6.290385752877431,
+      "pressure_sum_closure_residual": -2.220446049250313e-16,
+      "violated_family_sign_counts": {
+        "both_adverse": 21,
+        "Prefix_adverse_Generate_helpful": 44,
+        "Prefix_helpful_Generate_adverse": 15,
+        "both_helpful": 0
+      },
+      "family_pressure": {
+        "Prefix": {
+          "adverse": 7.339318467220118,
+          "helpful": 6.166335953445059
+        },
+        "Generate": {
+          "adverse": 0.7780412315233368,
+          "helpful": 0.12404979943237268
+        }
+      },
+      "top_adverse_fraction": {
+        "10": 0.8562229717949247,
+        "100": 1.0
+      },
+      "violated_linearized_fixed_margin_positive": 119,
+      "violated_linearized_fixed_margin_nonpositive": 1,
+      "violated_count": 120,
+      "consecutive_jaccard": 0.6643356643356644
+    },
+    {
+      "round": 31,
+      "duplicate_of": null,
+      "changed_coordinates": 43,
+      "changed_by_family": {
+        "Prefix": 32,
+        "Generate": 11
+      },
+      "objective_dot": -0.37310724845851395,
+      "objective_dot_family": {
+        "Prefix": -0.36622585854274803,
+        "Generate": -0.006881389915765923
+      },
+      "minimum_unit_residual": -0.07247452348342585,
+      "tolerance": 1.6190057088708292e-10,
+      "constraints_passed": false,
+      "eligible": false,
+      "coordinate_adverse_total": 2.234034674539536,
+      "coordinate_helpful_total": 1.3077327529290812,
+      "pressure_sum_closure_residual": 2.220446049250313e-16,
+      "violated_family_sign_counts": {
+        "both_adverse": 8,
+        "Prefix_adverse_Generate_helpful": 20,
+        "Prefix_helpful_Generate_adverse": 8,
+        "both_helpful": 0
+      },
+      "family_pressure": {
+        "Prefix": {
+          "adverse": 1.6534017533696252,
+          "helpful": 0.9440829396528029
+        },
+        "Generate": {
+          "adverse": 0.5806329211699115,
+          "helpful": 0.3636498132762783
+        }
+      },
+      "top_adverse_fraction": {
+        "10": 0.7628536298322669,
+        "100": 0.9999999999999998
+      },
+      "violated_linearized_fixed_margin_positive": 50,
+      "violated_linearized_fixed_margin_nonpositive": 2,
+      "violated_count": 52,
+      "consecutive_jaccard": 0.17006802721088435
+    }
+  ]
+}

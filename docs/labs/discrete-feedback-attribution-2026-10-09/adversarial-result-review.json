@@ -1,0 +1,36 @@
+{
+  "status": "PASS_SAVED_ATTRIBUTION_REVIEW",
+  "analyzer_sha256": "86c219bcb9b61cbe5faa00475ae6fb61c78ab53767e1288c6ac7fd97267e87da",
+  "analysis_report": {
+    "sha256": "638d6b5e9e6c167fb251c765db8d14ae34dbc460cc127c0273fc51cf5ee1a382",
+    "bytes": 652681
+  },
+  "analysis_manifest": {
+    "sha256": "f6b0603ee26e5544f616de86a57b8517d05dbdc681bd05fc3b03d908ee6ac41f",
+    "bytes": 1024
+  },
+  "input_report": {
+    "sha256": "3bbcc79268cd5f13ccfb63fe244bf99ff97d43820ef7dbe5ed4c5544d3440cc6",
+    "bytes": 564053
+  },
+  "independent_checks": "Recomputed all32 unitJ*delta violation sets; both338 unions/empty intersections; first/final actual family changes, gradient dots and signed pressure. Output exact file inventory/sizes checked; parent normative BLAKE3 verification separately reported, not rerun here.",
+  "all32_union": 338,
+  "all32_intersection": 0,
+  "unique28_union": 338,
+  "unique28_intersection": 0,
+  "first_round_changes": {
+    "Prefix": 11,
+    "Generate": 0
+  },
+  "final_round_changes": {
+    "Prefix": 32,
+    "Generate": 11
+  },
+  "limitations": [
+    "No guard vetoes all sampled destinations; this does not show an absent universal obstruction over other legal destinations",
+    "Distinct28 destinations plus4duplicates do not establish a cycle or convergence failure proof",
+    "Family-pressure sums are descriptive and fixed-pair linear margins are not native retention or guard-relaxation permission",
+    "Final family sign counts omit zero-family contributions; do not present four counts as exhaustive partition"
+  ],
+  "next_question": "A generic saved-credit discrete feasibility question must distinguish distributed coupled guard conflicts from a single obstruction; no unchanged parameter sweep or weakening of native guard gates is justified."
+}
