@@ -26,7 +26,7 @@ use candle_core::Device;
 use serde_json::{json, Value};
 use uor_r4_tokenizer::dialogue::DialogueProtocol;
 use uor_r4_tokenizer::ByteBpeTokenizer;
-use uor_r4_training::geometric_stack::StackModel;
+use uor_r4_training::geometric_stack::{PointerSelect, StackModel};
 use uor_r4_training::stack_dialogue::{
     greedy_reply_with_copy_stop, load_requests, reply_panel, Request,
 };
@@ -81,6 +81,19 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut model = StackModel::load(&model_dir, &Device::Cpu)?;
     // The trace is the instrument: without it the decoder records no steps.
     model.set_pointer_copy_trace(true);
+    // Serving-time knobs on UNCHANGED WEIGHTS (the plan's §2a/§2b):
+    //   select=K      -> PointerSelect::TopK(K), the sources one step's mixture may
+    //                    cover. TopK(1) is the single-source pointer by construction,
+    //                    so K >= 2 is what makes a two-token run reachable at all.
+    //   gate_floor=g  -> the copy gate's floor; p_copy is exactly 0 when no kept
+    //                    source holds the target and there is no floor, so a selected
+    //                    digit can be outvoted by the ordinary distribution.
+    if let Some(k) = arg(&args, "select") {
+        model.set_pointer_select(Some(PointerSelect::TopK(k.parse()?)))?;
+    }
+    if let Some(g) = arg(&args, "gate_floor") {
+        model.set_pointer_gate_floor(g.parse()?)?;
+    }
 
     // id -> (stored digit token ids, trace steps, emitted ids)
     let mut captured: Vec<(String, Vec<u32>, Vec<Value>, Vec<u32>)> = Vec::new();
@@ -204,6 +217,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         "schema": "uor-r4.numeric-pointer-trace/1",
         "model": model_dir.display().to_string(),
         "cap": cap,
+        "select": arg(&args, "select"),
+        "gate_floor": arg(&args, "gate_floor"),
         "protocol": version,
         "class_rule": "READER = no stored digit token ever selected; EMITTER = a stored digit \
                        token selected while not emitted at that step; PARTIAL = only some of the \

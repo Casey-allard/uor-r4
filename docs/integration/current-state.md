@@ -1,3 +1,57 @@
+## 2026-10-09 — The inference-path change moves the pointer 0 → 3 of 13 and FAILS its pre-declared condition (deepseek, #2029)
+
+Record: [inference-path-fix-result-2026-10-09](../labs/inference-path-fix-result-2026-10-09/README.md).
+**CPU only, no pod, no training, $0. Weights unchanged.** No v5 re-run. **Structural qualifier: this
+artifact has NO MEMORY READER — a pointer fix is a pointer fix.**
+
+**APPLIED, exactly as planned: `PointerSelect::TopK(2)`** (the plan's §2a — `TopK(1)` is the
+single-source pointer) **and `set_pointer_gate_floor(0.9)`** (§2b — `p_copy` is exactly 0 with no floor),
+both **serving-time knobs on unchanged weights**. The trace bin gained `select=` and `gate_floor=`.
+
+**TWO ARMS.** **ARM A — control, default knobs: 0 of 13 rows with both stored digits selected; classes
+EMITTER 2 / PARTIAL 1 / READER 10; byte-for-byte vs the sealed replies 13 of 13** — the instrument's
+validity control holds with the same binary. **ARM B — TopK(2), gate floor 0.9: 3 of 13 rows with both
+digits selected; classes DELIVERED 3 / PARTIAL 6 / READER 4; byte-for-byte 0 of 13**, which is expected
+and not a defect — the knobs change decoding by construction, so the treatment arm cannot reproduce
+replies produced without them. The two-token assertion held in both.
+
+**THE PRE-DECLARED CONDITION FAILED ON ITS PRIMARY.** All 13 rows showing both digits selected was the
+bar; the measurement is **3 of 13**. The other three conditions passed: **`mem-040` still emits the
+stored `84`** (emitted ids contain `26, 22` in order), **`mem-008` and `mem-024` no longer emit `19`**,
+and the instrument's conditions hold in the arm where they are meaningful. **Reported as a miss, not
+averaged into a story: this setting is insufficient on its own.**
+
+**THE FALSIFICATION DID NOT FIRE IN ITS STATED FORM.** It was: *if both digits are selected and the
+reply still lacks the value, the fix is in the wrong place and the emitter is the real problem.* Where
+both digits were selected — the **3 DELIVERED rows** — the value **was** emitted. **So on these 13 rows
+the failure is coverage, not emission: selection and emission agree wherever selection happens.** That
+is the one thing this run adds to the diagnosis. It does **not** license widening the same change.
+
+**THE EMITTER ROWS ARE A SEPARATE EFFECT WITH ITS OWN EVIDENCE.** `mem-008`/`mem-024` both emitted `19`
+in arm A and **neither does in arm B** — the gate knob acting on the mechanism that implicated it, a
+**selected-then-dropped** failure. Reported separately from the reader fix and not counted as its
+success: `mem-008` arm B emits the distractor's `9` and the stored `8` but not the value's run, while
+`mem-024` emits `23, 22` in order — the stored `54`. They keep their own piece and pass condition.
+
+**WHAT THIS DOES NOT SETTLE:** arm B's replies are a different distribution and **their quality was not
+measured** — no judge was run, the gate floor of 0.9 forces copying at 90 % weight, and the id sequences
+show heavy repetition (`2605` repeated). **This is not a capability improvement and must not be read as
+one.** It classifies 13 rows on this artifact only and says nothing about the reply half.
+
+**THE LEDGER:** token count REFUTED; minimal pairs / digit order REFUTED; value addressability REFUTED;
+**the pointer's single-source shape is NOT REFUTED AND NOT CONFIRMED** — the knobs move both-digits
+coverage 0 → 3 of 13, so the shape is *a* constraint and at this setting not the whole one; the learned
+read/emit path stays **SPLIT**, with selection and emission agreeing wherever selection happens.
+
+**Criterion 1 remains NOT MET on both halves and 43/232 is unchanged.** v5 was not re-run.
+STATUS/ROADMAP/#2028 unchanged — checked, not assumed.
+
+**Next: do not widen this change and do not try a third knob.** The question is **why coverage stops at
+3** — whether the pointer's kept sources reach the value's second digit at all on the other 10 rows —
+which the trace answers directly by reporting **which window positions the kept sources occupy** at the
+step where the value should be emitted. **That is a read, not a knob.** A training-path change stays
+with the owner and still needs a timed calibration run first.
+
 ## 2026-10-09 — Plan: a reader-side fix for the two-token run, CPU-only first (deepseek, #2029)
 
 **PLANNING ONLY: $0, no pod, no training, CPU only.** Record:
