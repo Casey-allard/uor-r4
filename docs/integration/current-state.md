@@ -1,3 +1,14 @@
+## 2026-10-10 — Learned rank tables: REJECT (+0.0185 BPB); the softmax-free read line stops (claude, #2032)
+
+The decisive run named by the 3/3 pivot ([record](../labs/softmax-free-read-2026-10-10/README.md#result-decisive-run-reject-for-learned-rank-tables-and-the-line-stops)): each head learns its own rank profile over the `flock:8:8` support, served as a constant Q31 table.
+- **BPB:** float **0.895331 / 0.896049**, served 0.904403 / 0.905052, at 512 windows on the stream basis. That is +0.0185 BPB against softmax arm A, about twice the 0.01 bar.
+- **v4:** 3/40 and 3/40, inside the 2-point tolerance.
+- **Gap closed:** learning the profile closes 54 % of the fixed table's +0.0398, but not enough.
+
+REJECT. The line stops (count 5/3, closed). The served model keeps its softmax read, and M4 acceptance item 0 stays open. Headline: softmax at runtime yes → yes.
+
+**Next:** M4 items 1–3 on the softmax-read model (multiplier-free serving through the CLI with parity, kernel audit, fresh-process session restore). Item 0 is posted to the owner on #2032: it needs a new read mechanism or an owner decision.
+
 ## 2026-10-10 — Saved175 bottleneck continuation gains two complete replies (Codex, #2030)
 
 **KEEP:** [saved175 continuation](../labs/m2-bottleneck-resume-2026-10-10/README.md)

@@ -106,3 +106,30 @@ Pivot card: [#2032 comment 6096272058](https://github.com/UOR-Foundation/uor-r4/
   - Integer lib 284: table rows by rank; malformed tables refused. Oracle 13/13; frozen D10 25.
   - D11 stack audit FULL PASS (91 functions). Negative gates on the forward table, the engine table and the exported mode.
 - **The run (arm L):** started from this branch's trainer head `383e49410` on pod `583vvwhk05yy1p`. Seeds 1 and 2, `select=flock:8:8`, the M4 recipe. It has 19,929,424 parameters, which is A's plus 288 rank logits. The result is added by the result PR.
+
+## Result (decisive run): REJECT for learned rank tables, and the line stops
+
+Same protocol as arm group 1: held-out e5f400b0, 512 windows × 384 = 196,608 targets, the stream basis 2.837427 B/token. Served = D11 (`d11-evaluate reference=none model=…`) on the same windows. v4 = frozen-check memory /40.
+
+| arm (seed) | float NLL | float BPB | served BPB | top-1 D11/float | v4 memory |
+|---|---:|---:|---:|---:|---:|
+| L learned rank (s1) | 1.7608964 | 0.895331 | 0.904403 | 0.9177 | 3/40 |
+| L learned rank (s2) | 1.7623083 | 0.896049 | 0.905052 | 0.9164 | 3/40 |
+
+**Against the bar** (seed means against A, float 0.877198 / served 0.886760 / v4 4.5):
+- **Float:** Δ **+0.0185 BPB**. **Served:** Δ +0.0180 BPB.
+- **v4:** Δ −1.5, inside the 2-point tolerance.
+- **Served speed:** 143.4 tok/s against A's 151.8 (D11, 8 threads, 32 windows). This was measured hours apart from A's timing, so it is not a matched comparison; it is within the range seen for B and D.
+
+**REJECT.** Learning the rank profile closes **54 %** of the fixed table's gap (+0.0398 → +0.0185 BPB, both seed pairs agreeing to < 0.001), so the flatness of the fixed table was a real share of the cost. The rest remains and is about twice the bar.
+
+**Decision (per the pivot card):** the line "softmax-free served read" **stops** here.
+- **Kept:** the D11 machinery (schema /3, BitCode, the rank and learned-table reads), the trainer options, and these results. A future read design can use them directly.
+- **Arm C:** the pre-registered C (the prime-route copy head on top of B's fixed-table read) is **not run**. Its base read is rejected. The copy head's memory question belongs to M1 memory work, not to the served-read line.
+- **Item 0:** acceptance item 0 (no softmax at runtime) **stays open**. The served model keeps its exp-table read. Closing item 0 needs a different read mechanism on a new line, or an owner decision on item 0, posted as a question on #2032.
+- **Next:** M4 items 1–3 on the softmax-read model.
+
+**Provenance and cost:**
+- **Code:** L trained at `383e49410` (the trainer head of #2153, code-equal to its merge `bc0a6937` for training). Export and D11 ran at `bc0a6937`.
+- **Pod:** `583vvwhk05yy1p` (2×5090, about 1.9 h, about \$4.50), deleted.
+- **Results:** cloud-store `claude/learned-rank-20261010` (184,948,736 bytes, MD5 `516294b0cad9c4f33540e6226151a32d`), plus the EU-RO-1 volume `uor-r4/claude/softmax-free-20261010/L-s*`.
