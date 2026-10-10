@@ -1,0 +1,309 @@
+{
+  "status": "PASS_SAVED_EVIDENCE",
+  "source_commit": "920e4201770e282975eb0340c83f3fa296ca08e7",
+  "reader_sha256": "ac097461aef6affd929dad97b73eec4651938510bec66908b015733ec363c1c3",
+  "report_sha256": "738649541df34641ffe0eb6e45a151d612d485ff8902b2d9d8d1e812844a2cde",
+  "manifest_sha256": "e5623d996b60308d8ca1080f748c062388ff74c6b14b16f9956b4b792a9ca8c2",
+  "config_sha256": "4717bfeb689f36837cd9e7e4221c0dbc101f65d4ec5faf4137674851a2036adb",
+  "config_scope": "external attempt-argv config; protocol/data/parent cross-checked against sealed receipts",
+  "checked_rows": 1024,
+  "endpoints": {
+    "initial": {
+      "complete": 8,
+      "eos": 11,
+      "entry_correct": 8,
+      "teacher_all_tokens_correct": 8,
+      "teacher_correct_tokens": 398,
+      "target_positions": 6664,
+      "complete_swap_pairs": 4,
+      "complete_ids": [
+        "development-diverse-length2-00-swap0-q0-forward-home",
+        "development-diverse-length2-00-swap0-q0-forward-job",
+        "development-diverse-length2-00-swap0-q3-forward-home",
+        "development-diverse-length2-00-swap0-q3-forward-job",
+        "development-diverse-length2-00-swap1-q0-forward-home",
+        "development-diverse-length2-00-swap1-q0-forward-job",
+        "development-diverse-length2-00-swap1-q3-forward-home",
+        "development-diverse-length2-00-swap1-q3-forward-job"
+      ],
+      "strata": {
+        "length2": {
+          "cases": 128,
+          "complete": 8
+        },
+        "length4": {
+          "cases": 128,
+          "complete": 0
+        },
+        "length8": {
+          "cases": 128,
+          "complete": 0
+        },
+        "update": {
+          "cases": 64,
+          "complete": 0
+        },
+        "reassert": {
+          "cases": 64,
+          "complete": 0
+        }
+      }
+    },
+    "final": {
+      "complete": 22,
+      "eos": 26,
+      "entry_correct": 222,
+      "teacher_all_tokens_correct": 22,
+      "teacher_correct_tokens": 3317,
+      "target_positions": 6664,
+      "complete_swap_pairs": 5,
+      "complete_ids": [
+        "development-diverse-length2-00-swap0-q0-forward-home",
+        "development-diverse-length2-00-swap0-q0-forward-job",
+        "development-diverse-length2-00-swap0-q3-forward-home",
+        "development-diverse-length2-00-swap0-q3-forward-job",
+        "development-diverse-length2-00-swap1-q0-forward-home",
+        "development-diverse-length2-00-swap1-q0-forward-job",
+        "development-diverse-length2-00-swap1-q3-forward-home",
+        "development-diverse-length2-00-swap1-q3-forward-job",
+        "development-diverse-length2-01-swap0-q4-reverse-home",
+        "development-diverse-length2-03-swap1-q0-forward-job",
+        "development-diverse-length2-03-swap1-q0-reverse-job",
+        "development-diverse-length2-06-swap0-q3-forward-job",
+        "development-diverse-length2-06-swap0-q3-reverse-job",
+        "development-diverse-length2-06-swap1-q3-forward-job",
+        "development-diverse-length4-03-swap1-q2-forward-job",
+        "development-diverse-length4-04-swap0-q3-reverse-home",
+        "development-diverse-length4-05-swap1-q1-forward-home",
+        "development-diverse-length4-06-swap0-q2-forward-home",
+        "development-diverse-length4-07-swap1-q3-forward-home",
+        "development-diverse-length8-04-swap1-q5-forward-home",
+        "development-diverse-reassert-03-swap0-q1-forward-home",
+        "development-diverse-update-02-swap0-q2-reverse-home"
+      ],
+      "strata": {
+        "length2": {
+          "cases": 128,
+          "complete": 14
+        },
+        "length4": {
+          "cases": 128,
+          "complete": 5
+        },
+        "length8": {
+          "cases": 128,
+          "complete": 1
+        },
+        "update": {
+          "cases": 64,
+          "complete": 1
+        },
+        "reassert": {
+          "cases": 64,
+          "complete": 1
+        }
+      }
+    }
+  },
+  "gained": [
+    "development-diverse-length2-01-swap0-q4-reverse-home",
+    "development-diverse-length2-03-swap1-q0-forward-job",
+    "development-diverse-length2-03-swap1-q0-reverse-job",
+    "development-diverse-length2-06-swap0-q3-forward-job",
+    "development-diverse-length2-06-swap0-q3-reverse-job",
+    "development-diverse-length2-06-swap1-q3-forward-job",
+    "development-diverse-length4-03-swap1-q2-forward-job",
+    "development-diverse-length4-04-swap0-q3-reverse-home",
+    "development-diverse-length4-05-swap1-q1-forward-home",
+    "development-diverse-length4-06-swap0-q2-forward-home",
+    "development-diverse-length4-07-swap1-q3-forward-home",
+    "development-diverse-length8-04-swap1-q5-forward-home",
+    "development-diverse-reassert-03-swap0-q1-forward-home",
+    "development-diverse-update-02-swap0-q2-reverse-home"
+  ],
+  "lost": [],
+  "retained": [
+    "development-diverse-length2-00-swap0-q0-forward-home",
+    "development-diverse-length2-00-swap0-q0-forward-job",
+    "development-diverse-length2-00-swap0-q3-forward-home",
+    "development-diverse-length2-00-swap0-q3-forward-job",
+    "development-diverse-length2-00-swap1-q0-forward-home",
+    "development-diverse-length2-00-swap1-q0-forward-job",
+    "development-diverse-length2-00-swap1-q3-forward-home",
+    "development-diverse-length2-00-swap1-q3-forward-job"
+  ],
+  "keep": true,
+  "changed_outputs_vs_parent": 504,
+  "comparisons": {
+    "2141": {
+      "complete_before": 2,
+      "complete_after": 22,
+      "gained": [
+        "development-diverse-length2-00-swap0-q0-forward-home",
+        "development-diverse-length2-00-swap0-q0-forward-job",
+        "development-diverse-length2-00-swap0-q3-forward-home",
+        "development-diverse-length2-00-swap0-q3-forward-job",
+        "development-diverse-length2-00-swap1-q0-forward-job",
+        "development-diverse-length2-00-swap1-q3-forward-job",
+        "development-diverse-length2-01-swap0-q4-reverse-home",
+        "development-diverse-length2-03-swap1-q0-forward-job",
+        "development-diverse-length2-03-swap1-q0-reverse-job",
+        "development-diverse-length2-06-swap0-q3-forward-job",
+        "development-diverse-length2-06-swap0-q3-reverse-job",
+        "development-diverse-length2-06-swap1-q3-forward-job",
+        "development-diverse-length4-03-swap1-q2-forward-job",
+        "development-diverse-length4-04-swap0-q3-reverse-home",
+        "development-diverse-length4-05-swap1-q1-forward-home",
+        "development-diverse-length4-06-swap0-q2-forward-home",
+        "development-diverse-length4-07-swap1-q3-forward-home",
+        "development-diverse-length8-04-swap1-q5-forward-home",
+        "development-diverse-reassert-03-swap0-q1-forward-home",
+        "development-diverse-update-02-swap0-q2-reverse-home"
+      ],
+      "lost": [],
+      "retained": [
+        "development-diverse-length2-00-swap1-q0-forward-home",
+        "development-diverse-length2-00-swap1-q3-forward-home"
+      ],
+      "changed_outputs": 510
+    },
+    "2143": {
+      "complete_before": 2,
+      "complete_after": 22,
+      "gained": [
+        "development-diverse-length2-00-swap0-q0-forward-home",
+        "development-diverse-length2-00-swap0-q0-forward-job",
+        "development-diverse-length2-00-swap0-q3-forward-home",
+        "development-diverse-length2-00-swap0-q3-forward-job",
+        "development-diverse-length2-00-swap1-q0-forward-job",
+        "development-diverse-length2-00-swap1-q3-forward-job",
+        "development-diverse-length2-01-swap0-q4-reverse-home",
+        "development-diverse-length2-03-swap1-q0-forward-job",
+        "development-diverse-length2-03-swap1-q0-reverse-job",
+        "development-diverse-length2-06-swap0-q3-forward-job",
+        "development-diverse-length2-06-swap0-q3-reverse-job",
+        "development-diverse-length2-06-swap1-q3-forward-job",
+        "development-diverse-length4-03-swap1-q2-forward-job",
+        "development-diverse-length4-04-swap0-q3-reverse-home",
+        "development-diverse-length4-05-swap1-q1-forward-home",
+        "development-diverse-length4-06-swap0-q2-forward-home",
+        "development-diverse-length4-07-swap1-q3-forward-home",
+        "development-diverse-length8-04-swap1-q5-forward-home",
+        "development-diverse-reassert-03-swap0-q1-forward-home",
+        "development-diverse-update-02-swap0-q2-reverse-home"
+      ],
+      "lost": [],
+      "retained": [
+        "development-diverse-length2-00-swap1-q0-forward-home",
+        "development-diverse-length2-00-swap1-q3-forward-home"
+      ],
+      "changed_outputs": 510
+    },
+    "2148": {
+      "complete_before": 4,
+      "complete_after": 22,
+      "gained": [
+        "development-diverse-length2-00-swap0-q0-forward-home",
+        "development-diverse-length2-00-swap0-q3-forward-job",
+        "development-diverse-length2-00-swap1-q0-forward-job",
+        "development-diverse-length2-00-swap1-q3-forward-job",
+        "development-diverse-length2-01-swap0-q4-reverse-home",
+        "development-diverse-length2-03-swap1-q0-forward-job",
+        "development-diverse-length2-03-swap1-q0-reverse-job",
+        "development-diverse-length2-06-swap0-q3-forward-job",
+        "development-diverse-length2-06-swap0-q3-reverse-job",
+        "development-diverse-length2-06-swap1-q3-forward-job",
+        "development-diverse-length4-03-swap1-q2-forward-job",
+        "development-diverse-length4-04-swap0-q3-reverse-home",
+        "development-diverse-length4-05-swap1-q1-forward-home",
+        "development-diverse-length4-06-swap0-q2-forward-home",
+        "development-diverse-length4-07-swap1-q3-forward-home",
+        "development-diverse-length8-04-swap1-q5-forward-home",
+        "development-diverse-reassert-03-swap0-q1-forward-home",
+        "development-diverse-update-02-swap0-q2-reverse-home"
+      ],
+      "lost": [],
+      "retained": [
+        "development-diverse-length2-00-swap0-q0-forward-job",
+        "development-diverse-length2-00-swap0-q3-forward-home",
+        "development-diverse-length2-00-swap1-q0-forward-home",
+        "development-diverse-length2-00-swap1-q3-forward-home"
+      ],
+      "changed_outputs": 508
+    },
+    "2149": {
+      "complete_before": 0,
+      "complete_after": 22,
+      "gained": [
+        "development-diverse-length2-00-swap0-q0-forward-home",
+        "development-diverse-length2-00-swap0-q0-forward-job",
+        "development-diverse-length2-00-swap0-q3-forward-home",
+        "development-diverse-length2-00-swap0-q3-forward-job",
+        "development-diverse-length2-00-swap1-q0-forward-home",
+        "development-diverse-length2-00-swap1-q0-forward-job",
+        "development-diverse-length2-00-swap1-q3-forward-home",
+        "development-diverse-length2-00-swap1-q3-forward-job",
+        "development-diverse-length2-01-swap0-q4-reverse-home",
+        "development-diverse-length2-03-swap1-q0-forward-job",
+        "development-diverse-length2-03-swap1-q0-reverse-job",
+        "development-diverse-length2-06-swap0-q3-forward-job",
+        "development-diverse-length2-06-swap0-q3-reverse-job",
+        "development-diverse-length2-06-swap1-q3-forward-job",
+        "development-diverse-length4-03-swap1-q2-forward-job",
+        "development-diverse-length4-04-swap0-q3-reverse-home",
+        "development-diverse-length4-05-swap1-q1-forward-home",
+        "development-diverse-length4-06-swap0-q2-forward-home",
+        "development-diverse-length4-07-swap1-q3-forward-home",
+        "development-diverse-length8-04-swap1-q5-forward-home",
+        "development-diverse-reassert-03-swap0-q1-forward-home",
+        "development-diverse-update-02-swap0-q2-reverse-home"
+      ],
+      "lost": [],
+      "retained": [],
+      "changed_outputs": 512
+    },
+    "old_u64": {
+      "complete_before": 1,
+      "complete_after": 22,
+      "gained": [
+        "development-diverse-length2-00-swap0-q0-forward-home",
+        "development-diverse-length2-00-swap0-q0-forward-job",
+        "development-diverse-length2-00-swap0-q3-forward-home",
+        "development-diverse-length2-00-swap0-q3-forward-job",
+        "development-diverse-length2-00-swap1-q0-forward-job",
+        "development-diverse-length2-00-swap1-q3-forward-home",
+        "development-diverse-length2-00-swap1-q3-forward-job",
+        "development-diverse-length2-01-swap0-q4-reverse-home",
+        "development-diverse-length2-03-swap1-q0-forward-job",
+        "development-diverse-length2-03-swap1-q0-reverse-job",
+        "development-diverse-length2-06-swap0-q3-forward-job",
+        "development-diverse-length2-06-swap0-q3-reverse-job",
+        "development-diverse-length2-06-swap1-q3-forward-job",
+        "development-diverse-length4-03-swap1-q2-forward-job",
+        "development-diverse-length4-04-swap0-q3-reverse-home",
+        "development-diverse-length4-05-swap1-q1-forward-home",
+        "development-diverse-length4-06-swap0-q2-forward-home",
+        "development-diverse-length4-07-swap1-q3-forward-home",
+        "development-diverse-length8-04-swap1-q5-forward-home",
+        "development-diverse-reassert-03-swap0-q1-forward-home",
+        "development-diverse-update-02-swap0-q2-reverse-home"
+      ],
+      "lost": [],
+      "retained": [
+        "development-diverse-length2-00-swap1-q0-forward-home"
+      ],
+      "changed_outputs": 511
+    }
+  },
+  "native_cross_state": {
+    "compact_coefficients": 115200,
+    "packed_bytes": 65536,
+    "changed_codes": 107611,
+    "final_nonzero_codes": 107611,
+    "minimum_code": -7,
+    "maximum_code": 2
+  },
+  "schedule": "PASS seed1001 full512 once,64x8,6664positions",
+  "frozen_parent_receipts": "PASS",
+  "scope": "Saved hashes/IDs/prefix chains/EOS/frozen membership and native Q4 payloads checked. No model, backward, tokenizer decoding or native score regeneration. Full BLAKE3 seal verification is producer evidence; reader checks file inventory/sizes. Prior comparisons use pinned saved reports, not fresh model evaluation."
+}

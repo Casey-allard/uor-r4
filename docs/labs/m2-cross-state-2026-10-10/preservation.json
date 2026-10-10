@@ -1,0 +1,11 @@
+{
+  "name": "codex-m2-cross-state-20261010",
+  "bytes": 49111040,
+  "md5": "55c629e241eabb89cf10bfb8cf13bd4a",
+  "destination": "icloud:UOR-R4/results/codex/codex-m2-cross-state-20261010.tar",
+  "full_readback": "PASS",
+  "uploaded_utc": "2026-10-10T10:14:30Z",
+  "index_line": "codex-m2-cross-state-20261010\t49111040\t55c629e241eabb89cf10bfb8cf13bd4a\tresults/codex/codex-m2-cross-state-20261010.tar\t2026-10-10T10:14:30Z\tcodex\n",
+  "index_readback": "PASS",
+  "local_archive_staging": false
+}

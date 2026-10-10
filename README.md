@@ -35,7 +35,7 @@ model.
 | Milestone | Issue | Status | Latest result |
 | --- | --- | --- | --- |
 | M1 Language base | [#2029](https://github.com/UOR-Foundation/uor-r4/issues/2029) | in progress | 214M base dev NLL 2.073; 19.9M chat stack 0.933 BPB served at 64 windows (0.877550 float / 0.886838 served matched at 512 windows — [protocol-dependent](docs/labs/criterion2-protocol-pin-2026-10-09/README.md)) |
-| M2 Grounded reply from exact memory | [#2030](https://github.com/UOR-Foundation/uor-r4/issues/2030) | in progress | 8/512 complete replies; gate 9/15 |
+| M2 Grounded reply from exact memory | [#2030](https://github.com/UOR-Foundation/uor-r4/issues/2030) | in progress | 22/512 complete replies; target 256 |
 | M3 Durable conversation memory | [#2031](https://github.com/UOR-Foundation/uor-r4/issues/2031) | in progress | Evaluator and session delivered (#1568, #1578); not qualified |
 | M4 One served model (D11 and CLI) | [#2032](https://github.com/UOR-Foundation/uor-r4/issues/2032) | in progress | D11 engine bit-exact; `uor-chat --stack` serves the stack (#2050, 9 Oct) |
 | M5 Laptop cost (D5) | [#2033](https://github.com/UOR-Foundation/uor-r4/issues/2033) | not started | No M1 energy measurement yet |
@@ -51,7 +51,7 @@ Tracker: [#2028](https://github.com/UOR-Foundation/uor-r4/issues/2028). Measured
 | --- | --- | --- |
 | Train, evaluate and export a geometric stack language model | Works, 8M to 214M parameters, offline Rust autodiff | `geometric-stack` example in `uor-r4-training` |
 | Serve an exported stack artifact with no float and no multiplier instruction | Works; bit-exact against the float path on a 3,072-target check | `uor-r4-stack generate`, and `uor-chat --stack <ARTIFACT.lut>` (greedy decoding only) |
-| Native grounded-reply learner (compiler, exact store, emitter) | Runs; completes 8 of 512 frozen-panel replies | `crates/uor-r4-core/src/native_geometric/` |
+| Native grounded-reply learner (compiler, exact store, emitter) | Runs; completes 22 of 512 frozen-panel replies | `crates/uor-r4-core/src/native_geometric/` |
 | Native chat CLI | Exists | `crates/uor-r4-api/src/bin/r4-native-chat.rs` |
 
 **What does not work yet**
@@ -137,7 +137,7 @@ bf16 activations with f32 master weights on CUDA. Final inference does not depen
 
 The native grounded learner retains the protected Prefix/Generate and discrete-constructor
 experiments as [closed negative research](docs/labs/lab-pivot-2026-10-09/README.md)
-under D21. Their source and reports remain available; none improved the accepted
+under D21. Their source and reports remain available; none improved the then-accepted
 8/512 complete replies. Unactivated or superseded source is indexed in the
 [branch archive](docs/history/branch-archive/INDEX.md).
 
@@ -146,10 +146,17 @@ not improved this learner. A [single full-panel pass](docs/labs/m2-reply-gradien
 and a [stratified 24-example fit](docs/labs/m2-stratified-reply-2026-10-10/README.md)
 both regress from 8 to 2 complete replies on the unchanged 512 panel. The latter
 also reaches only 2/24 on its training examples after 32 exposures each, despite
-lower teacher-prefix loss. Both candidates are rejected; the accepted parent
-remains 8/512. This does not establish that the native model family cannot fit
-the task. Context, Generate prototypes, bridge, Cue and Prefix were fixed in
-these two interventions.
+lower teacher-prefix loss. Both candidates remain rejected. This does not establish
+that the native model family cannot fit the task. Context, Generate prototypes,
+bridge, Cue and Prefix were fixed in these two interventions.
+
+A learned [cross-state continuation field](docs/labs/m2-cross-state-2026-10-10/README.md)
+now improves complete replies from **8 to 22/512**, retaining all eight and adding
+fourteen across all five memory strata. It jointly reads the factual post-bridge
+state and the independently replayed query/reply-prefix state. Only its 115,200 Q4
+coefficients learn; the upstream parent stays frozen. The saved native endpoint
+is graded under its own prefixes. These are exposed-development results, below
+the 256/512 target; fresh-panel transfer is untested.
 
 **Models trained**
 
@@ -215,7 +222,7 @@ Every row holds at its exact artifact, data, operator and budget.
 | Sealed 8M stack | 1.1199 BPB | Sealed report; Kneser-Ney 5-gram 1.2803 BPB |
 | 214M Plan A base | FineWeb dev NLL 2.90 to 2.073 | Open development split; rewrite and summarize usable, code and math wrong |
 | v4 memory panel (frozen `exact` check pass) | 31/40 at 214M, 26/40 at 96M | 40 memory rows of `conversational-v4*`; Step 7d fine-tunes, one seed; chat-grade `acceptable` is 27/40 at 214M |
-| Native grounded learner | 8/512 complete replies; best conditional gate 9/15 | Frozen 512-episode panel; about 40 later candidates kept 8 |
+| Native grounded learner | **22/512 complete replies**, up from 8; all eight retained | [Saved cross-state field](docs/labs/m2-cross-state-2026-10-10/README.md), frozen exposed 512-episode panel; fresh-draw qualification not run |
 | D11 serving engine | Bit-exact with the float path | NLL equal on 3,072 targets |
 | MQAR toy (1.37M) | 0.99919 in-class vs 0.2534 control | Synthetic task; advantage confined to a learning-rate band |
 
@@ -227,7 +234,7 @@ Every row holds at its exact artifact, data, operator and budget.
   for the 7.16M chat-only stack on that panel.
 - Fine-tune levers in Steps 5 to 12 (knowledge corpus, dialogue recall, gate supervision,
   phase binding, constant learning rate, abstention) were null or rejected.
-- Native learner: child fits lowered cross-entropy but complete replies stayed at 8/512.
+- Earlier native child fits lowered cross-entropy without moving the then-accepted 8/512; those negatives remain preserved despite the later cross-state gain.
 - Track A1 stopped (D18); the transformer-conversion track is parked after the parity failure
   in #1518. DeepSeek's VSA codebook nulls were re-scoped as a frozen-artifact effect: retrained into the native learner, the VSA term improves held-out BPB by 0.014–0.023, while icosian-root codes do not, because they collapse token identity (#2077, [record](docs/labs/vsa-native-test-2026-10-09/README.md)); the LUT-4 shortlist was retracted; the broad-prose and
   complete-roadmap claims of 8 September were retracted by audit.

@@ -1,8 +1,9 @@
-//! Offline Q4 learning of a shared signed-H4 continuation unary field.
+//! Offline Q4 learning of shared signed-H4 unary or cross-state continuation fields.
 //!
 //! The caller owns a separate causal ContextQ4(query || actual emitted prefix)
 //! replay from identity. It must supply that replay's retained states; this
 //! scorer cannot infer query/prefix provenance from IDs or tensor shapes.
+//! Cross-state fields also require the actual frozen post-bridge factual state.
 //! No labels, source records, answer lengths or first-token gates enter here.
 //!
 //! Authenticated packed coefficients and frozen Generate prototypes supply
@@ -37,7 +38,7 @@ use crate::{
 pub const COEFFICIENT_CREDIT_SCOPE: &str = "authenticated-native-Q24-continuation-delta;shared-full120-unary-selected-quarter-grid-STE;frozen-causal-local-state-and-existing-token-prototypes;all-Generate-IDs-every-step;one-final-common-clip-and-token-alias-loss/1";
 pub const STATE_CREDIT_SCOPE: &str = "authenticated-native-Q24-continuation-delta;selected-quarter-grid-STE-once;hard-retained-onehot120-local-state-utility;detached-unary-full120-conditional-utilities;frozen-existing-token-prototypes;no-input-renormalization;local-conditional-surrogate-not-global-posterior/1";
 const Q24: f64 = 16_777_216.;
-// V1 quarter shadow times1/4 is nibble<<20; v2 times1 is nibble<<22.
+// V1 quarter shadow times1/4 is nibble<<20; v2/v3 times1 is nibble<<22.
 const QUARTER_TO_NATS: f64 = 0.25;
 
 pub struct ContinuationLearningWeights {
@@ -45,8 +46,10 @@ pub struct ContinuationLearningWeights {
     native_binding: NativeArtifactBinding,
     lanes: usize,
     shared_action: bool,
-    /// Shared [lane, inv(local_state) * existing_token_prototype] masters.
-    /// There are exactly 960 coefficients at eight lanes, with no token bias.
+    cross_state: bool,
+    /// Legacy unary masters, or compact [lane, factual_relative * 120 + local_relative]
+    /// cross-state masters. The public field name remains for v1/v2 compatibility.
+    /// At eight lanes: 960 unary or 115200 cross-state coefficients, no token bias.
     pub unary: Var,
 }
 
@@ -63,7 +66,7 @@ struct ContinuationDeviceCache {
     // Rows are state IDs, columns prototype IDs; entries are inv(state)*proto.
     relative: Tensor,
     prototypes: Vec<Tensor>,
-    // Frozen authenticated native nibble coefficients, already shifted by20.
+    // Frozen authenticated native nibble coefficients, shifted by policy20/22.
     hard_unary_q24: Tensor,
     staged_index_bytes: usize,
     staged_factor_bytes: usize,
@@ -178,8 +181,35 @@ impl ContinuationLearningWeights {
             native_binding: native_binding.clone(),
             lanes,
             shared_action,
+            cross_state: false,
             unary: Var::zeros((lanes, ROOT_COUNT), DType::F32, device)?,
         })
+    }
+
+    /// Only a new joint factual/local token field trains; upstream states stay frozen.
+    pub fn zeroed_cross_state(
+        binding: &SourceActionBinding,
+        native_binding: &NativeArtifactBinding,
+        lanes: usize,
+        device: &Device,
+    ) -> Result<Self> {
+        let mut result = Self::zeroed_policy(binding, native_binding, lanes, device, true)?;
+        result.cross_state = true;
+        result.unary = Var::zeros((lanes, ROOT_COUNT * ROOT_COUNT), DType::F32, device)?;
+        Ok(result)
+    }
+    pub fn is_cross_state(&self) -> bool {
+        self.cross_state
+    }
+    fn coefficients_per_lane(&self) -> usize {
+        if self.cross_state {
+            ROOT_COUNT * ROOT_COUNT
+        } else {
+            ROOT_COUNT
+        }
+    }
+    pub fn shared_coefficients(&self) -> usize {
+        self.lanes * self.coefficients_per_lane()
     }
 
     pub fn from_native(
@@ -204,16 +234,26 @@ impl ContinuationLearningWeights {
             ));
         }
         let lanes = native.lanes();
-        let mut values = Vec::with_capacity(lanes * ROOT_COUNT);
+        let cross_state = native.is_cross_state();
+        let columns = if cross_state {
+            ROOT_COUNT * ROOT_COUNT
+        } else {
+            ROOT_COUNT
+        };
+        let mut values = Vec::with_capacity(lanes * columns);
         for lane in 0..lanes {
-            for r in 0..ROOT_COUNT {
-                values.push(
-                    f32::from(
-                        native
-                            .coefficient_unary(lane, r as u8)
-                            .map_err(|e| invalid(e.to_string()))?,
-                    ) * 0.25,
-                );
+            for index in 0..columns {
+                let value = if cross_state {
+                    native.coefficient_cross_state(
+                        lane,
+                        (index / ROOT_COUNT) as u8,
+                        (index % ROOT_COUNT) as u8,
+                    )
+                } else {
+                    native.coefficient_unary(lane, index as u8)
+                }
+                .map_err(|e| invalid(e.to_string()))?;
+                values.push(f32::from(value) * 0.25);
             }
         }
         Ok(Self {
@@ -221,7 +261,8 @@ impl ContinuationLearningWeights {
             native_binding: native.metadata().source_binding.clone(),
             lanes,
             shared_action: native.applies_to_copy(),
-            unary: Var::from_vec(values, (lanes, ROOT_COUNT), device)?,
+            cross_state,
+            unary: Var::from_vec(values, (lanes, columns), device)?,
         })
     }
 
@@ -258,7 +299,15 @@ impl ContinuationLearningWeights {
         self.unary.device()
     }
     pub fn parameters(&self) -> BTreeMap<String, Var> {
-        BTreeMap::from([("continuation.unary".into(), self.unary.clone())])
+        BTreeMap::from([(
+            if self.cross_state {
+                "continuation.cross_state"
+            } else {
+                "continuation.unary"
+            }
+            .into(),
+            self.unary.clone(),
+        )])
     }
     pub fn project_shadow_range(&self) -> Result<()> {
         self.unary
@@ -267,7 +316,24 @@ impl ContinuationLearningWeights {
     }
     pub fn packed_coefficients(&self) -> Result<Vec<u8>> {
         self.validate_shapes()?;
-        packed_unary(&self.unary)
+        let compact = packed_unary(&self.unary)?;
+        if !self.cross_state {
+            return Ok(compact);
+        }
+        // Offline export pads each directed120x120 surface to a128 stride.
+        // The serving address uses shifts; unused rows/columns stay canonical zero.
+        let mut padded = vec![0u8; self.lanes << 13];
+        for lane in 0..self.lanes {
+            for x in 0..ROOT_COUNT {
+                for y in 0..ROOT_COUNT {
+                    let i = (lane * ROOT_COUNT + x) * ROOT_COUNT + y;
+                    let nibble = (compact[i / 2] >> ((i & 1) * 4)) & 15;
+                    let target = (lane << 14) | (x << 7) | y;
+                    padded[target >> 1] |= nibble << ((target & 1) << 2);
+                }
+            }
+        }
+        Ok(padded)
     }
 
     pub fn export_native(
@@ -285,7 +351,9 @@ impl ContinuationLearningWeights {
             ));
         }
         let packed = self.packed_coefficients()?;
-        if self.shared_action {
+        if self.cross_state {
+            NativeContinuationField::compile_cross_state(current_binding, generate, &packed)
+        } else if self.shared_action {
             NativeContinuationField::compile_shared_action(current_binding, generate, &packed)
         } else {
             NativeContinuationField::compile(current_binding, generate, &packed)
@@ -317,25 +385,30 @@ impl ContinuationLearningWeights {
                 .collect::<Vec<_>>();
             prototypes.push(Tensor::from_vec(ids, self.vocab_size(), self.device())?);
         }
-        let mut factors = Vec::with_capacity(self.lanes * ROOT_COUNT);
+        let columns = self.coefficients_per_lane();
+        let mut factors = Vec::with_capacity(self.lanes * columns);
         for lane in 0..self.lanes {
-            for r in 0..ROOT_COUNT {
-                factors.push(
-                    i64::from(
-                        native
-                            .coefficient_unary(lane, r as u8)
-                            .map_err(|e| invalid(e.to_string()))?,
-                    ) << native.score_shift(),
-                );
+            for index in 0..columns {
+                let value = if self.cross_state {
+                    native.coefficient_cross_state(
+                        lane,
+                        (index / ROOT_COUNT) as u8,
+                        (index % ROOT_COUNT) as u8,
+                    )
+                } else {
+                    native.coefficient_unary(lane, index as u8)
+                }
+                .map_err(|e| invalid(e.to_string()))?;
+                factors.push(i64::from(value) << native.score_shift());
             }
         }
         let cache = ContinuationDeviceCache {
             payload_sha256: native.metadata().payload_sha256.clone(),
             relative: Tensor::from_vec(relations, (ROOT_COUNT, ROOT_COUNT), self.device())?,
             prototypes,
-            hard_unary_q24: Tensor::from_vec(factors, (self.lanes, ROOT_COUNT), self.device())?,
+            hard_unary_q24: Tensor::from_vec(factors, (self.lanes, columns), self.device())?,
             staged_index_bytes: 4 * (ROOT_COUNT * ROOT_COUNT + self.vocab_size() * self.lanes),
-            staged_factor_bytes: 8 * self.lanes * ROOT_COUNT,
+            staged_factor_bytes: 8 * self.lanes * columns,
         };
         Ok(PreparedContinuationLearning {
             native,
@@ -347,7 +420,7 @@ impl ContinuationLearningWeights {
 
     fn validate_shapes(&self) -> Result<()> {
         device_admit(self.device())?;
-        if self.unary.dims() != [self.lanes, ROOT_COUNT]
+        if self.unary.dims() != [self.lanes, self.coefficients_per_lane()]
             || self.unary.dtype() != DType::F32
             || !(1..=MAX_LANES).contains(&self.lanes)
         {
@@ -377,6 +450,7 @@ impl ContinuationLearningWeights {
         self.validate_generate(&prepared.generate)?;
         if state.len() != self.lanes
             || prepared.native.applies_to_copy() != self.shared_action
+            || prepared.native.is_cross_state() != self.cross_state
             || prepared.native.score_shift() != self.score_shift()
             || prepared.native.lanes() != self.lanes
             || prepared.native.vocab_size() != self.vocab_size()
@@ -397,7 +471,15 @@ impl ContinuationLearningWeights {
         // compile/from_bytes authenticated exact immutable Generate bytes at
         // preparation/install. Metadata comparison is sufficient here because
         // NativeGeometricGenerate exposes no mutable payload or metadata.
-        if self.device().is_cpu() && self.packed_coefficients()? != prepared.native.packed_unary() {
+        let native_packed = if self.cross_state {
+            prepared
+                .native
+                .packed_cross_state()
+                .ok_or_else(|| invalid("cross-state payload absent"))?
+        } else {
+            prepared.native.packed_unary()
+        };
+        if self.device().is_cpu() && self.packed_coefficients()? != native_packed {
             return Err(invalid(
                 "continuation prepared native coefficients are stale",
             ));
@@ -423,6 +505,19 @@ impl ContinuationLearningWeights {
         state: &[H4Code],
     ) -> Result<ContinuationDeviceLearningOutput> {
         self.forward_cached_on_device(prepared, state, None)
+    }
+
+    /// Coefficient-only cross-state credit; neither retained carrier is learned.
+    pub fn forward_prepared_coefficients_with_factual_on_device(
+        &self,
+        prepared: &PreparedContinuationLearning,
+        factual: &[H4Code],
+        local: &[H4Code],
+    ) -> Result<ContinuationDeviceLearningOutput> {
+        if !self.cross_state {
+            return self.forward_cached_on_device(prepared, local, None);
+        }
+        self.forward_cached_states_on_device(prepared, local, None, Some(factual))
     }
 
     /// Same hard forward plus full120 utility on the actual retained-state
@@ -464,7 +559,25 @@ impl ContinuationLearningWeights {
         state: &[H4Code],
         choices: Option<&Tensor>,
     ) -> Result<ContinuationDeviceLearningOutput> {
+        self.forward_cached_states_on_device(prepared, state, choices, None)
+    }
+
+    fn forward_cached_states_on_device(
+        &self,
+        prepared: &PreparedContinuationLearning,
+        state: &[H4Code],
+        choices: Option<&Tensor>,
+        factual_state: Option<&[H4Code]>,
+    ) -> Result<ContinuationDeviceLearningOutput> {
         self.validate_snapshot(prepared, state)?;
+        if self.cross_state != factual_state.is_some()
+            || factual_state.is_some_and(|f| f.len() != self.lanes)
+            || (self.cross_state && choices.is_some())
+        {
+            return Err(invalid(
+                "cross-state coefficient credit requires both frozen carriers; no state adjoint",
+            ));
+        }
         if let Some(choices) = choices {
             carrier_admit(choices, state, self.device())?;
         }
@@ -475,18 +588,35 @@ impl ContinuationLearningWeights {
         let mut coefficients = Tensor::zeros(vocab, DType::F32, self.device())?;
         let mut utility = Tensor::zeros(vocab, DType::F32, self.device())?;
         for (lane, code) in state.iter().enumerate() {
-            let factual = cache
+            let local_relative = cache
                 .relative
                 .narrow(0, usize::from(code.index()), 1)?
                 .reshape(ROOT_COUNT)?
                 .index_select(&cache.prototypes[lane], 0)?;
+            let factual = if let Some(states) = factual_state {
+                let source_relative = cache
+                    .relative
+                    .narrow(0, usize::from(states[lane].index()), 1)?
+                    .reshape(ROOT_COUNT)?
+                    .index_select(&cache.prototypes[lane], 0)?;
+                // Offline F32 exactly represents these integer indices (<14400).
+                (source_relative
+                    .to_dtype(DType::F32)?
+                    .affine(ROOT_COUNT as f64, 0.)?
+                    + local_relative.to_dtype(DType::F32)?)?
+                .to_dtype(DType::U32)?
+            } else {
+                local_relative
+            };
             hard = (&hard
                 + cache
                     .hard_unary_q24
                     .narrow(0, lane, 1)?
-                    .reshape(ROOT_COUNT)?
+                    .reshape(self.coefficients_per_lane())?
                     .index_select(&factual, 0)?)?;
-            let lane_unary = unary.narrow(0, lane, 1)?.reshape(ROOT_COUNT)?;
+            let lane_unary = unary
+                .narrow(0, lane, 1)?
+                .reshape(self.coefficients_per_lane())?;
             coefficients = (&coefficients + lane_unary.index_select(&factual, 0)?)?;
             if let Some(choices) = choices {
                 // [token, alternative local state], exact full signed-H4 table.
@@ -530,6 +660,11 @@ impl ContinuationLearningWeights {
         state: &[H4Code],
         choices: Option<&Tensor>,
     ) -> Result<ContinuationLearningOutput> {
+        if self.cross_state {
+            return Err(invalid(
+                "local-only reference cannot score cross-state field",
+            ));
+        }
         self.validate_snapshot(prepared, state)?;
         if let Some(choices) = choices {
             carrier_admit(choices, state, self.device())?;
@@ -615,17 +750,23 @@ impl ContinuationLearningWeights {
         ContinuationLearningCosts {
             vocabulary_rows: vocab,
             lanes: self.lanes,
-            shared_coefficients: self.lanes * ROOT_COUNT,
+            shared_coefficients: self.shared_coefficients(),
             export_master_download_bytes: prepared.downloaded_master_bytes,
             snapshot_staged_index_bytes: prepared.cache.staged_index_bytes,
             snapshot_staged_factor_bytes: prepared.cache.staged_factor_bytes,
             per_position_device_index_elements: vocab
                 * self.lanes
-                * (1 + usize::from(choices) * ROOT_COUNT),
+                * (if self.cross_state {
+                    3
+                } else {
+                    1 + usize::from(choices) * ROOT_COUNT
+                }),
             conditional_choice_rows: if choices { vocab * self.lanes } else { 0 },
             max_conditional_utility_elements: if choices { vocab * ROOT_COUNT } else { 0 },
             hard_score_backend: if reference {
                 "cpu-native-reference"
+            } else if self.cross_state {
+                "candle-i64-authenticated-cross-state-pair-gathers"
             } else {
                 "candle-i64-authenticated-unary-gathers"
             },
@@ -641,7 +782,9 @@ impl ContinuationLearningWeights {
             } else {
                 0
             },
-            credit_scope: if self.shared_action {
+            credit_scope: if self.cross_state {
+                "authenticated-v3-cross-state-H4;selected-quarter-grid-coefficient-STE;frozen-factual-and-local-carriers-and-prototypes;every-Copy-and-Generate-alias;one-common-clip/3"
+            } else if self.shared_action {
                 "authenticated-v2-shared-action-U;quarter-shadow-times1-score-units;every-physical-Copy-and-Generate-alias;one-common-clip;coefficient-only-unless-state-choices-explicit/2"
             } else if choices {
                 STATE_CREDIT_SCOPE
@@ -777,6 +920,98 @@ mod tests {
                 (((-(i as f64) / 256.).exp() * (1u64 << 31) as f64).round() as u32).to_le_bytes()
             })
             .collect()
+    }
+
+    fn cross_state_parity(device: &Device) -> Result<(Vec<i64>, Vec<f32>, Vec<f32>)> {
+        let (legacy, generate) = fixture(device)?;
+        let weights = ContinuationLearningWeights::zeroed_cross_state(
+            legacy.binding(),
+            legacy.native_binding(),
+            2,
+            device,
+        )?;
+        let factual = state(17, 91)?;
+        let local = state(31, 57)?;
+        let zero = weights.prepare_native(weights.native_binding(), &generate)?;
+        assert_eq!(
+            weights
+                .forward_prepared_coefficients_with_factual_on_device(&zero, &factual, &local,)?
+                .delta_scores_q24
+                .to_vec1::<i64>()?,
+            vec![0; weights.vocab_size()]
+        );
+        weights.unary.set(&Tensor::from_vec(
+            (0..2 * ROOT_COUNT * ROOT_COUNT)
+                .map(|i| ((i * 7 + i / ROOT_COUNT * 3) % 15) as f32 * 0.25 - 1.75)
+                .collect::<Vec<_>>(),
+            (2, ROOT_COUNT * ROOT_COUNT),
+            device,
+        )?)?;
+        let prepared = weights.prepare_native(weights.native_binding(), &generate)?;
+        let restored = ContinuationLearningWeights::from_native(
+            &prepared.native,
+            &generate,
+            weights.binding(),
+            device,
+        )?;
+        assert!(restored.is_cross_state());
+        assert_eq!(
+            restored
+                .export_native(restored.native_binding(), &generate)?
+                .to_bytes()
+                .map_err(|e| invalid(e.to_string()))?,
+            prepared
+                .native
+                .to_bytes()
+                .map_err(|e| invalid(e.to_string()))?
+        );
+        assert!(weights
+            .forward_prepared_coefficients_only_on_device(&prepared, &local)
+            .is_err());
+        assert!(weights
+            .forward_prepared_coefficients_with_factual_on_device(&prepared, &factual[..1], &local,)
+            .is_err());
+        let output = weights
+            .forward_prepared_coefficients_with_factual_on_device(&prepared, &factual, &local)?;
+        let mut native = vec![0i64; weights.vocab_size()];
+        prepared
+            .native
+            .score_delta_with_factual_into(
+                &factual,
+                &local,
+                &generate,
+                &mut native,
+                &mut Default::default(),
+            )
+            .map_err(|e| invalid(e.to_string()))?;
+        assert_eq!(output.delta_scores_q24.to_vec1::<i64>()?, native);
+        // Two physical Copy aliases of one token both route credit to the
+        // exact factual/local pair; compare the sparse support, not just sum.
+        let copies = output
+            .delta_raw_scores
+            .index_select(&Tensor::from_vec(vec![4u32, 4], 2, device)?, 0)?;
+        let gradient = gradient(&copies.sum_all()?.backward()?, weights.unary.as_tensor())?;
+        assert_eq!(gradient.iter().sum::<f32>(), 4.);
+        assert_eq!(gradient.iter().filter(|&&x| x != 0.).count(), 2);
+        assert!(gradient.iter().all(|&x| x == 0. || x == 2.));
+        Ok((native, output.delta_raw_scores.to_vec1::<f32>()?, gradient))
+    }
+
+    #[test]
+    fn continuation_cross_state_native_reload_and_copy_gradient() -> Result<()> {
+        cross_state_parity(&Device::Cpu)?;
+        Ok(())
+    }
+
+    #[cfg(feature = "cuda")]
+    #[test]
+    #[ignore = "requires an explicitly leased CUDA device; unavailability is an error"]
+    fn continuation_cuda_cross_state_matches_native_cpu_and_copy_gradient() -> Result<()> {
+        assert_eq!(
+            cross_state_parity(&Device::Cpu)?,
+            cross_state_parity(&Device::new_cuda(0)?)?
+        );
+        Ok(())
     }
 
     fn shared_action_copy_parity(device: &Device) -> Result<(Vec<i64>, Vec<f32>, Vec<f32>)> {

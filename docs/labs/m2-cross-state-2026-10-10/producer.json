@@ -1,0 +1,30 @@
+{
+  "source_commit": "920e4201770e282975eb0340c83f3fa296ca08e7",
+  "source_base": "ce08d10d8aa8063fb08576b3432a17e934bee294",
+  "binary_sha256": "c41e9f9597c0bb46c041d5f79744b32638aee298db508b3a0d260ce393ae7de4",
+  "config_sha256": "4717bfeb689f36837cd9e7e4221c0dbc101f65d4ec5faf4137674851a2036adb",
+  "report_sha256": "738649541df34641ffe0eb6e45a151d612d485ff8902b2d9d8d1e812844a2cde",
+  "manifest_sha256": "e5623d996b60308d8ca1080f748c062388ff74c6b14b16f9956b4b792a9ca8c2",
+  "native_tests_passed": 9,
+  "training_tests_passed": 17,
+  "explicit_cuda_tests_passed": 4,
+  "fitter_tests_passed": 3,
+  "format_scope": "changed Rust files; global existing formatting differences not edited",
+  "setup_failures": [
+    "initial offline core test missing locked dependency; locked fetch and all9 tests passed",
+    "multiline pin-build command flattened by launcher; exited before model execution; script retry passed"
+  ],
+  "bootstrap": {
+    "seconds": 196,
+    "build_seconds": 132,
+    "parity_seconds": 47,
+    "tests_passed": 37,
+    "tests_ignored": 3,
+    "stock_build_jobs": 15
+  },
+  "changed_build_jobs": 4,
+  "model_threads": 2,
+  "pod": "g4uzjsotlsfonw",
+  "gpu": "one RTX5090",
+  "hourly_usd": 1.19
+}

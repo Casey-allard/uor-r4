@@ -64,6 +64,7 @@ pub struct PreparedFixedContinuationBank {
     binding: SourceActionBinding,
     device: Device,
     shared_action: bool,
+    cross_state: bool,
 }
 
 /// A privately admitted packet tied to the exact shared upstream owner.
@@ -133,7 +134,13 @@ impl PreparedFixedContinuationBank {
                 "fixed continuation upstream parent/token binding differs",
             ));
         }
-        let zero = if weights.applies_to_copy() {
+        let zero = if weights.is_cross_state() {
+            NativeContinuationField::compile_cross_state(
+                generator.source_binding(),
+                generate,
+                &vec![0; generate.lanes() << 13],
+            )
+        } else if weights.applies_to_copy() {
             NativeContinuationField::compile_shared_action(
                 generator.source_binding(),
                 generate,
@@ -158,6 +165,7 @@ impl PreparedFixedContinuationBank {
             binding: weights.binding().clone(),
             device: weights.device().clone(),
             shared_action: weights.applies_to_copy(),
+            cross_state: weights.is_cross_state(),
         }))
     }
 
@@ -179,7 +187,7 @@ impl PreparedFixedContinuationBank {
         }))
     }
 
-    /// Refresh the960 field snapshot after each optimizer update, using the
+    /// Refresh the field snapshot after each optimizer update, using the
     /// actual frozen Generate and parent rather than a caller replacement.
     pub fn prepare_field(
         &self,
@@ -191,6 +199,7 @@ impl PreparedFixedContinuationBank {
             .map_err(|_| invalid("fixed continuation upstream already borrowed"))?;
         if !same_binding(weights.binding(), &self.binding)
             || weights.applies_to_copy() != self.shared_action
+            || weights.is_cross_state() != self.cross_state
             || !weights.device().same_device(&self.device)
         {
             return Err(invalid("fixed continuation field binding/device differs"));
@@ -359,7 +368,9 @@ impl FixedContinuationPosition {
             .native
             .try_borrow()
             .map_err(|_| invalid("fixed continuation upstream already borrowed"))?;
-        if weights.applies_to_copy() != self.owner.shared_action {
+        if weights.applies_to_copy() != self.owner.shared_action
+            || weights.is_cross_state() != self.owner.cross_state
+        {
             return Err(invalid("fixed continuation action policy changed"));
         }
         admit_fixed_continuation_refresh(
@@ -371,8 +382,11 @@ impl FixedContinuationPosition {
             generator.generate_model().metadata(),
             &self.owner.device,
         )?;
-        let delta =
-            weights.forward_prepared_coefficients_only_on_device(prepared, &self.local_state)?;
+        let delta = weights.forward_prepared_coefficients_with_factual_on_device(
+            prepared,
+            &self.post_state,
+            &self.local_state,
+        )?;
         let (scores, raw) = join_fixed_continuation_scores(&self.base_generate_q24, &delta)?;
         let (copy_scores, copy_raw) = if prepared.native.applies_to_copy() {
             join_shared_continuation_copy(

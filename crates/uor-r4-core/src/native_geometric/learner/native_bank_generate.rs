@@ -688,7 +688,8 @@ impl NativeBankGenerator {
             let mut delta_scores_q24 = vec![0i64; self.generate.vocab_size()];
             let mut field_counts = ContinuationReadCounts::default();
             field
-                .score_delta_into(
+                .score_delta_with_factual_into(
+                    &codes,
                     &state_codes,
                     &self.generate,
                     &mut delta_scores_q24,

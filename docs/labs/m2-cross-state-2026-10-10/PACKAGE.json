@@ -1,0 +1,39 @@
+{
+  "name": "codex-m2-cross-state-20261010",
+  "components": {
+    "exact-parent-and-panel.tar.gz": {
+      "bytes": 22148342,
+      "sha256": "8ffc75578890f99e76d2d6c90af72a8937f1b679516aad54a9832d7757edfd1a"
+    },
+    "prior-reports/2141-report.json": {
+      "bytes": 1427012,
+      "sha256": "678f4ff4d8b97559260076607f6168b7d5f4317cc1472bd9fe5e253ca76bdbb7"
+    },
+    "prior-reports/2143-report.json": {
+      "bytes": 1456265,
+      "sha256": "16d03a31fc1eb27ee270cec96a7d388c108522c79b2a87856a0ca94b232aab68"
+    },
+    "prior-reports/2148-report.json": {
+      "bytes": 1455808,
+      "sha256": "22fb69a89cfa6191ce9e05f840cf4afb790ec10b4bd2e0a07f6962f5a94d4ece"
+    },
+    "prior-reports/2149-report.json": {
+      "bytes": 1461137,
+      "sha256": "bed3e8eec305f38cfbff7fcb54a1fc7fbb159b3657e4efd17709ddf74e8c8616"
+    },
+    "run-and-runtime.tar.gz": {
+      "bytes": 21115892,
+      "sha256": "a19964fef50526320dea6814c6aa61a9446cdfcf14f70f9acfbc7b8dcec67fae"
+    },
+    "source.bundle": {
+      "bytes": 28319,
+      "sha256": "d519932a3669b73aa771ad2f527bba9ffc41a3aa3f7b92fd34f21d0eaae757a2"
+    }
+  },
+  "restore": "cloud-store fetch codex-m2-cross-state-20261010 <absolute-owned-destination>; extract parent and run archives; remap recorded config and reader paths; producer source bundle requires published base ce08d10d8aa8063fb08576b3432a17e934bee294; native payloads are saved with checkpoint64; source and runtime permit reproduction, not a cross-backend bitwise-training claim",
+  "source_commit": "920e4201770e282975eb0340c83f3fa296ca08e7",
+  "destination": "icloud:UOR-R4/results/codex/codex-m2-cross-state-20261010.tar",
+  "prior_u64_archive_sha256": "08dca6fea4e8c5185b3159579a1b7e46d0ecf7484e70f0d5a45a63b667dbc52d",
+  "delivery_closeout": "Final exact-head checks, merge, cleanup and full cumulative accounting are a separate closeout package/comment.",
+  "metadata_note": "This canonical record clarifies the restore command in the original embedded package prose. Verified archive bytes and component identities are unchanged."
+}

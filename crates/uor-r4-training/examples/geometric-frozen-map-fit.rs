@@ -68,6 +68,8 @@ mod context_cue_coadapt;
 mod context_path_credit;
 #[path = "geometric_frozen_map_fit/coupled_episode_learning.rs"]
 mod coupled_episode_learning;
+#[path = "geometric_frozen_map_fit/cross_state_completion.rs"]
+mod cross_state_completion;
 #[path = "geometric_frozen_map_fit/emission_constraints.rs"]
 mod emission_constraints;
 #[path = "geometric_frozen_map_fit/frontier.rs"]
@@ -105,6 +107,7 @@ enum Mode {
     EntryCeiling,
     EntryScorerFit,
     ContinuationOnly,
+    CrossStateContinuation,
     JointContinuation,
     ReplyCompletion,
     ReplyQualification,
@@ -318,7 +321,7 @@ const CONTINUATION_PARENT_MANIFEST_SHA: &str =
     "b37e2ca588bf1cc4dc5971fa5da97b9e83c90a94f4ea0bfdb0655b8f92bf94ca";
 fn continuation_settings(a: &Args) -> Result<Option<&ContinuationConfig>> {
     match (a.mode, a.continuation.as_ref()) {
-        (Mode::ContinuationOnly, Some(c))
+        (Mode::ContinuationOnly | Mode::CrossStateContinuation, Some(c))
             if a.loss_scope == LossScope::All
                 && !a.ceiling_scorer
                 && a.baseline.is_none()
@@ -328,7 +331,7 @@ fn continuation_settings(a: &Args) -> Result<Option<&ContinuationConfig>> {
                 && c.learning_rate.is_finite()
                 && c.learning_rate > 0.
                 && c.maximum_cache_tensor_bytes > 0 => Ok(Some(c)),
-        (Mode::ContinuationOnly, _) => Err(bad(
+        (Mode::ContinuationOnly | Mode::CrossStateContinuation, _) => Err(bad(
             "continuation-only requires exact48/64 parent, all-answer loss, positive U rate/cache cap and no old diagnostic/pullback options",
         )),
         (_, None) => Ok(None),
@@ -791,6 +794,7 @@ fn args() -> Result<(Args, Vec<u8>)> {
     let raw = fs::read(path)?;
     let a: Args = serde_json::from_slice(&raw)?;
     reply_completion::settings(&a)?;
+    cross_state_completion::settings(&a)?;
     control_settings(&a)?;
     continuation_settings(&a)?;
     joint_continuation_settings(&a)?;
@@ -4885,8 +4889,8 @@ fn continuation_checkpoint(
     let receipt = json!({"step":step,"parent":reloaded.source_binding(),"generate_sha256":p.generate_sha256,
         "frozen_model_root":fs::canonicalize(&a.saved_fit)?,"frozen_model_report_sha256":CONTINUATION_PARENT_REPORT_SHA,
         "frozen_model_manifest_sha256":CONTINUATION_PARENT_MANIFEST_SHA,"frozen_parent_receipt":p.receipt,
-        "continuation_sha256":sha256_bytes(&bytes),"parameters":masters,"active_parameter_names":["continuation.unary"],
-        "shared_coefficients":960,"loss_scope":"all","credit":a.credit.name(),"order_seed":a.seed,
+        "continuation_sha256":sha256_bytes(&bytes),"parameters":masters,"active_parameter_names":weights.parameters().keys().collect::<Vec<_>>(),
+        "shared_coefficients":weights.shared_coefficients(),"loss_scope":"all","credit":a.credit.name(),"order_seed":a.seed,
         "native_independently_reloaded":true,"masters_independently_reloaded":true,
         "upstream_training":"all Context/Source/Potential/Generate/prototype/bridge/cue/prefix frozen; no old Vars loaded",
         "fresh_adam":"zero moments; not optimizer-state continuation"});
@@ -4911,6 +4915,7 @@ fn continuation_witness(step: &NativeBankGenerateStep) -> Result<Value> {
     Ok(
         json!({"query_tokens":witness.query_tokens,"actual_prefix_tokens":witness.actual_prefix_tokens,
         "state_codes":witness.state_codes.iter().map(|v|v.index()).collect::<Vec<_>>(),
+        "factual_post_state_codes":step.post_state.iter().map(|v|v.index()).collect::<Vec<_>>(),
         "delta_scores_q24_sha256":sha256_bytes(&serde_json::to_vec(&witness.delta_scores_q24)?),
         "delta_scores":witness.delta_scores_q24.len(),"minimum_delta_q24":witness.delta_scores_q24.iter().min(),
         "maximum_delta_q24":witness.delta_scores_q24.iter().max(),"encoding_coefficient_reads":witness.encoding_coefficient_reads,
@@ -6044,6 +6049,13 @@ fn run_joint_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value>
 }
 
 fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
+    cross_state_completion::settings(a)?;
+    let cross_state = a.mode == Mode::CrossStateContinuation;
+    let mode_name = if cross_state {
+        "cross_state_continuation"
+    } else {
+        "continuation_only"
+    };
     let c = continuation_settings(a)?.ok_or_else(|| bad("continuation settings absent"))?;
     let p = ContinuationParent::load(a)?;
     let public = NativeVocabularyActions::new(p.integer.binding().clone(), &p.exp)?;
@@ -6077,12 +6089,21 @@ fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
     if native.generate_model().lanes() != 8 || native.generate_model().vocab_size() != 4096 {
         return Err(bad("continuation parent8-lane/full4096 mismatch"));
     }
-    let weights = ContinuationLearningWeights::zeroed_shared_action(
-        p.integer.binding(),
-        native.source_binding(),
-        8,
-        d,
-    )?;
+    let weights = if cross_state {
+        ContinuationLearningWeights::zeroed_cross_state(
+            p.integer.binding(),
+            native.source_binding(),
+            8,
+            d,
+        )?
+    } else {
+        ContinuationLearningWeights::zeroed_shared_action(
+            p.integer.binding(),
+            native.source_binding(),
+            8,
+            d,
+        )?
+    };
     let zero = weights.export_native(native.source_binding(), native.generate_model())?;
     let zero_bytes = zero.to_bytes()?;
     let zero_sha = sha256_bytes(&zero_bytes);
@@ -6092,8 +6113,12 @@ fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
     })?;
     let owner = PreparedFixedContinuationBank::new(native, &weights, &p.exp)?;
     let params = weights.parameters();
-    if params.len() != 1 || params.values().map(|v| v.elem_count()).sum::<usize>() != 960 {
-        return Err(bad("continuation-only960 parameter admission"));
+    let expected_coefficients = if cross_state { 115200 } else { 960 };
+    if params.len() != 1
+        || params.values().map(|v| v.elem_count()).sum::<usize>() != expected_coefficients
+        || weights.shared_coefficients() != expected_coefficients
+    {
+        return Err(bad("continuation field parameter admission"));
     }
     let schedule = order(a.seed, train.len());
     write(
@@ -6122,10 +6147,10 @@ fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
     write(
         a,
         "admission.json",
-        &json!({"source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"mode":"continuation_only",
+        &json!({"source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"mode":mode_name,
         "parent":p.receipt,"parent_report_sha256":CONTINUATION_PARENT_REPORT_SHA,"parent_manifest_sha256":CONTINUATION_PARENT_MANIFEST_SHA,
         "training_input_sha256":INPUT_SHA,"training_labels_sha256":LABEL_SHA,"construction_panel_overlap":"train=open-development512; no new held-out claim",
-        "active_parameter_names":params.keys().collect::<Vec<_>>(),"shared_coefficients":960,"learning_rate":c.learning_rate,
+        "active_parameter_names":params.keys().collect::<Vec<_>>(),"shared_coefficients":expected_coefficients,"learning_rate":c.learning_rate,
         "continuation_policy":zero.metadata().policy,"continuation_score_shift":zero.metadata().score_shift,
         "continuation_action_support":"same token energy on Generate and every physical Copy before the sole common clip",
         "phase_policy":loss_weight_policy(true,LossScope::All),"loss_scope":"all","credit":a.credit.name(),"fresh_adam":true,
@@ -6180,6 +6205,11 @@ fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
         cache_rows.push(json!({"id":e.packet.id,"packet_sha256":sha256_bytes(&serde_json::to_vec(&e.packet)?),"positions":provenance}));
         cache.push(row);
     }
+    if cross_state && positions != 6664 {
+        return Err(bad(
+            "cross-state frozen512 target-position coverage differs",
+        ));
+    }
     d.synchronize()?;
     let cache_seconds = cache_start.elapsed().as_secs_f64();
     write(
@@ -6199,6 +6229,9 @@ fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
     let clock = Instant::now();
     let initial = continuation_evaluate(a, "development-0000", &p, &initial_field, &dev, start)?;
     let initial_metrics = metrics(a, &initial, &dev)?;
+    if cross_state {
+        cross_state_completion::baseline(&initial)?;
+    }
     write(a, "metrics-0000.json", &initial_metrics)?;
     evaluation_seconds += clock.elapsed().as_secs_f64();
     let mut opt = optimizer(&params, c.learning_rate)?;
@@ -6283,6 +6316,9 @@ fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
             }
         }
         let (denominator, norm) = clip_denominator(&sums, d)?;
+        if cross_state && (sums.len() != params.len() || (update == 0 && norm <= 0.)) {
+            return Err(bad("cross-state active gradient admission failed"));
+        }
         apply(&mut opt, &params, &sums, &denominator)?;
         weights.project_shadow_range()?;
         d.synchronize()?;
@@ -6294,7 +6330,7 @@ fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
             "common_pool_copy_index_upload_bytes":copy_index_uploads,
             "host_alias_loss_explicit_upload_bytes":loss_staging,
             "scalar_transfers":"per-position finite-score validation and reported loss; clip norm status scalars; CUDA synchronization",
-            "common_pool_backend":"cpu-authenticated-native-alias-reducer","credit_scope":"960 shared U coefficient STE only; frozen native states/prototypes"}));
+            "common_pool_backend":"cpu-authenticated-native-alias-reducer","credit_scope":if cross_state {"115200 shared cross-state Q4 coefficient STE only; frozen factual/local states and prototypes"} else {"960 shared U coefficient STE only; frozen native states/prototypes"}}));
         write(a, "updates.json", &json!(updates))?;
         if (update + 1) % 32 == 0 {
             let clock = Instant::now();
@@ -6318,6 +6354,21 @@ fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
         p.generator()?.generate_model(),
     )?;
     let clock = Instant::now();
+    if cross_state {
+        let early = cross_state_completion::ORIGINAL8
+            .iter()
+            .map(|&i| &dev[i])
+            .collect::<Vec<_>>();
+        continuation_evaluate_rows_impl(
+            a,
+            "endpoint-original8",
+            &p,
+            &final_field,
+            &early,
+            start,
+            false,
+        )?;
+    }
     let final_eval = continuation_evaluate(
         a,
         &format!("development-{:04}", a.updates),
@@ -6329,17 +6380,25 @@ fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
     let final_metrics = metrics(a, &final_eval, &dev)?;
     write(a, &format!("metrics-{:04}", a.updates), &final_metrics)?;
     evaluation_seconds += clock.elapsed().as_secs_f64();
+    let cross_outcome = if cross_state {
+        let outcome = cross_state_completion::outcomes(&initial, &final_eval)?;
+        write(a, "cross-state-outcomes.json", &outcome)?;
+        Some(outcome)
+    } else {
+        None
+    };
     Ok(
-        json!({"schema":"uor-r4.geometric-frozen-map-fit/1","status":"COMPLETED","mode":"continuation_only",
+        json!({"schema":"uor-r4.geometric-frozen-map-fit/1","status":"COMPLETED","mode":mode_name,
         "source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"device":"cuda:0","updates":a.updates,"batch":BATCH,
         "loss_scope":"all","phase_policy":loss_weight_policy(true,LossScope::All),"credit":a.credit.name(),"order_seed":a.seed,
         "initial_receipt":initial_receipt,"final_receipt":final_receipt,"initial_metrics":initial_metrics,"final_metrics":final_metrics,
-        "final_active_masters":identities(&params)?,"shared_coefficients":960,"cache_positions":positions,
+        "initial":initial,"final":final_eval,"cross_state_outcome":cross_outcome,
+        "final_active_masters":identities(&params)?,"shared_coefficients":expected_coefficients,"cache_positions":positions,
         "cache_preparation_seconds":cache_seconds,"fit_loop_seconds_excluding_checkpoints":fit_seconds,
         "checkpoint_seconds":checkpoint_seconds,"evaluation_seconds":evaluation_seconds,"elapsed_seconds":start.elapsed().as_secs_f64(),
-        "control":"checkpoint0000 is the same native parent with a null U field; constant-carrier control remains a prospective matched full-output evaluation",
+        "control":if cross_state {"checkpoint0000 is exact accepted parent with zero joint factual/local field; no carrier ablation performed"} else {"checkpoint0000 is the same native parent with a null U field; constant-carrier control remains a prospective matched full-output evaluation"},
         "common_pool_backend":"cpu-authenticated-native-alias-reducer; full score/anchor/loss transfers retained; not fully resident CUDA alias reduction",
-        "scope":"frozen48/64 parent; only960 continuation coefficients learned on exposed512 all-answer positions; independently loaded own-feedback outputs; no held-out transfer/chat/geometry/energy qualification"}),
+        "scope":if cross_state {"frozen48/64 parent; only115200 joint factual/local signed-H4 Q4 coefficients learned on exposed512 all-answer positions; independently loaded own-prefix outputs; developmental KEEP netcomplete>8; no held-out transfer/chat/geometry/energy qualification"} else {"frozen48/64 parent; only960 continuation coefficients learned on exposed512 all-answer positions; independently loaded own-feedback outputs; no held-out transfer/chat/geometry/energy qualification"}}),
     )
 }
 
@@ -6369,7 +6428,10 @@ fn run(a: &Args, start: Instant) -> Result<Value> {
     if reply_completion::is_mode(a.mode) {
         return reply_completion::run(a, start, &d);
     }
-    if a.mode == Mode::ContinuationOnly {
+    if matches!(
+        a.mode,
+        Mode::ContinuationOnly | Mode::CrossStateContinuation
+    ) {
         return run_continuation(a, start, &d);
     }
     if a.mode == Mode::JointContinuation {

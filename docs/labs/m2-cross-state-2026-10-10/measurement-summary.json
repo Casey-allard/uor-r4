@@ -1,0 +1,57 @@
+{
+  "source_commit": "920e4201770e282975eb0340c83f3fa296ca08e7",
+  "status": "COMPLETED",
+  "updates": 64,
+  "batch": 8,
+  "shared_coefficients": 115200,
+  "cache_positions": 6664,
+  "cache_preparation_seconds": 47.615412459,
+  "fit_loop_seconds_excluding_checkpoints": 46.813096302,
+  "checkpoint_seconds": 0.9850485900000001,
+  "evaluation_seconds": 333.282966895,
+  "elapsed_seconds": 430.103932557,
+  "report_sha256": "738649541df34641ffe0eb6e45a151d612d485ff8902b2d9d8d1e812844a2cde",
+  "manifest_sha256": "e5623d996b60308d8ca1080f748c062388ff74c6b14b16f9956b4b792a9ca8c2",
+  "initial": {
+    "entry_own_correct": 8,
+    "entry_teacher_correct": 8,
+    "first_divergent_own_position_correct": 30,
+    "first_divergent_own_prefix_reached": 8,
+    "first_divergent_teacher_correct": 50,
+    "later_copy_covered_positions": 4128,
+    "later_copy_covered_teacher_correct": 355,
+    "missing_rows": 0,
+    "paired_own_position_both_correct": 4,
+    "paired_teacher_both_correct": 6,
+    "rows": 512,
+    "complete": 8,
+    "native_equal_episode_ce": 6.1992635176344875
+  },
+  "final": {
+    "entry_own_correct": 222,
+    "entry_teacher_correct": 222,
+    "first_divergent_own_position_correct": 106,
+    "first_divergent_own_prefix_reached": 102,
+    "first_divergent_teacher_correct": 289,
+    "later_copy_covered_positions": 4128,
+    "later_copy_covered_teacher_correct": 2374,
+    "missing_rows": 0,
+    "paired_own_position_both_correct": 12,
+    "paired_teacher_both_correct": 81,
+    "rows": 512,
+    "complete": 22,
+    "native_equal_episode_ce": 4.031771212264852
+  },
+  "process_accounting": {
+    "argv": [
+      "/workspace/uor-r4/codex/m2-cross-state-20261010/runtime/geometric-frozen-map-fit",
+      "/workspace/uor-r4/codex/m2-cross-state-20261010/model-config.json"
+    ],
+    "started_utc": "2026-10-10T09:57:50.216671+00:00",
+    "seconds": 433.25941270194016,
+    "exit_code": 0,
+    "peak_child_rss_kib": 776408
+  },
+  "sampled_gpu_peak_mib": 838,
+  "telemetry_samples": 45
+}

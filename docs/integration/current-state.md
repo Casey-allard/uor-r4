@@ -1,3 +1,26 @@
+## 2026-10-10 — Cross-state continuation: saved complete replies 8→22/512 (Codex, #2030)
+
+**KEEP.** The [cross-state result](../labs/m2-cross-state-2026-10-10/README.md)
+retains the original eight and adds 14 complete replies across all five memory
+strata on the unchanged exposed 512 panel. Entry correctness 8→222, EOS 11→26,
+complete source-swap pairs 4→5; all five retained comparator artifacts lose no
+prior success. Independent saved-row review verifies 1,024 endpoint rows and
+native 107,611/115,200 coefficient changes.
+
+**Line: cross-state continuation · count 0/3 · headline 8/512→22/512.**
+The gain resets the inherited 4/3 count. Only a new shared factual/local-prefix
+Q4 field learns; Source48/Generate64 upstream is frozen. Seed 1001, 64×8 draws,
+6,664 answer/EOS positions; saved own-prefix endpoint, no checkpoint selection.
+Producer 920e420 and binary c41e9f95 are bound in the record; model process 433.259s,
+including 46.813s fit and 333.283s evaluation. Scoped checks and independent
+source/result review pass; final delivery checks are separately posted.
+
+M2 is still below 256/512 and fresh 40% is NOT_RUN. No general-conversation,
+unique factual-carrier necessity, geometric-advantage or serving-energy claim
+follows. Next: registered learning continuation from the saved 22/512 candidate
+after this protected delivery and cleanup. Ordinary 24/96 and the protected
+constructor/attribution/solver line remain closed. The continuous goal proceeds.
+
 ## 2026-10-10 — Mixture dose: a 10 % recall share doubles the memory half at no measurable reply cost; abstention needs 25 % (deepseek, #2029)
 
 The [mixture-dose response](../labs/mixture-dose-2026-10-10/README.md) is **cycle 1** of the standing goal adopted
