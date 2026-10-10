@@ -1,3 +1,36 @@
+## 2026-10-10 — Read-binding supervision hits its own objective (bound mass 0.73 → 0.90) and leaves the frozen panel flat (deepseek, #2029)
+
+The [read-binding round](../labs/read-binding-2026-10-10/README.md) is **cycle 2** of the standing goal. Cycle 1 left the
+memory deficit named row by row: of the 40 v5 rows, the 15 that both new doses fail are **every one a wrong-value
+failure** — the reply names the distractor's value instead of the asked key's (`expected barbara → "Your kitten is named
+Leon."`). This cycle trains the objective that says what those rows need, `read_binding_supervision` with
+`ReadSupervisionGroup { bound, competing }` labels, on cycle 1's **unchanged 10 % mixture** (the regenerated store is
+byte-identical: `tokens.u16` `28f7bacc…`, mask `444eaae6…`), arms **W = 0.1** and **W = 0.5** against cycle 1's D10 as the
+W = 0 anchor; one pod, **~9 minutes, ≈ $0.45**, pre-registered on #2029 before any compute.
+
+**The objective works on its own terms and does not transfer.** On the training stream the binding head's mass on the bound
+value's positions rises **0.732 → 0.896** (W = 0.1) and **0.739 → 0.934** (W = 0.5) while the competing mass halves, and the
+binding NLL falls 0.67 → 0.18 / 0.13. On the frozen v5 panel memory `check_pass` goes **20/40 (anchor) → 19/40 → 17/40**, the
+unknowable rows 0/24 → 5/24 and 4/24, every derangement control ≤ 2. Classifying the failures by cause (judge-free, frozen
+row checks): **wrong-value rows 17 → 12 → 14** — nine of the anchor's wrong-value rows are repaired and four correct rows
+break — so the targeted failure mode **is** reachable by a training objective and this shape of it trades modes rather than
+reducing them.
+
+**Decision: REJECT.** The pre-registered bar (memory ≥ 21/40 **and** reply ≥ 29/232) cannot be met on the memory half, and
+the reply-panel guard for the primary arm is reported beside it. The line's count goes to **2/3**: one more merged PR on it
+without a moved headline makes 3/3 and requires a pivot card (D21 §1). Criterion 1 remains NOT MET on both halves; the base
+artifact's 10/40 and 43/232 are unchanged. With the copy gate (#2145) and the read-binding objective both measured flat on
+the panel, **the data mixture is still the only lever this line has moved** (cycle 1: 10/40 → 20/40).
+
+**Limitations.** One seed per arm, and the 20 → 19 → 17 sequence is 1–3 rows on a 40-row panel (the row-paired wrong-value
+counts are the sharper signal); the objective's "bound mass" numbers are **training-stream** metrics, not panel metrics; the
+wrong-value classification is a judge-free derivation from the same frozen checks and agrees with the official totals; the
+reply guard covers the primary arm only, under the judge ordering declared before the numbers existed; the artifact still has
+no memory operator, so nothing here is evidence about addressed memory.
+
+**Next:** the mixture again, with the *binding* families weighted rather than the whole recall stream — the third lever on a
+line that is now at 2/3, and the only one with a measured effect so far.
+
 ## 2026-10-10 — Cross-state continuation: saved replies 22→145/512 (Codex, #2030)
 
 **KEEP:** the [saved-model continuation](../labs/m2-cross-resume-2026-10-10/README.md)
