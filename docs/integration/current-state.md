@@ -1,3 +1,50 @@
+## 2026-10-09 — Step 1 cannot be read from outside the crate: the mixture row is PRIVATE (deepseek, #2029)
+
+Record: [pcopy-read-attempt-2026-10-09](../labs/pcopy-read-attempt-2026-10-09/README.md). **CPU only, no
+pod, no training, no knob, no model saved, $0.** No v5 re-run.
+
+**STEP 1 ASKED FOR** `p_copy` at the value's two digit positions on the **existing weights**, per row,
+with word rows as the control — the read that decides whether the training piece is necessary at all.
+
+**THE NUMBERS EXIST AND ARE NOT REACHABLE.** The mixture evaluation holds exactly what is needed —
+`struct MixtureRow { attention: Vec<f64>, copy: f64, gate: f64, log_mixture: f64, generate_share: f64,
+copy_share: f64, present: bool, ... }`, where **`attention` is the full attention vector over sources
+`0..=t`** and `copy` is `p_copy(target|t)` — and **`MixtureRow` is a private struct with no public
+accessor.** So step 1 is **not "minutes of CPU" as the plan estimated; it needs a small addition first,
+and the plan's estimate was wrong.** Recorded as the plan's error rather than worked around with a proxy.
+
+**THE SMALLEST ADDITION, NAMED EXACTLY:** a public accessor (or crate-internal test) returning the
+mixture row for a given `(ids, target)` — at minimum `attention`, `copy`, `gate`, `present`,
+`generate_share`, `copy_share`. Then step 1 is unchanged: per row of the 13 numeric rows, take the
+label's `query` position and report `copy` for each of the value's two digit ids, plus the distractor's
+positions and the frame positions the decode identified (`223` the bare space, `1498`, `2369`, `1156`,
+`2728`, `1044`, `754`, `772`, `1790`), with word rows as the control. **A bounded addition: no new
+algorithm, no training, no weights touched — it exposes a value the code already computes.**
+
+**WHAT CAN BE SAID NOW IS A BOUND, NOT THE READING.** The trace gives the pointer's argmax source and its
+attention per step, and the decode established that **on 10 of 13 rows the argmax never lands on either
+stored digit and on no row does it land on the second**; since `p_copy` sums attention over positions
+holding the target, **`p_copy(digit) ≤ attention at the argmax`** on those steps — an upper bound that is
+itself going elsewhere. **That is not enough to decide the training piece:** the three pre-registered
+outcomes need `copy` itself — high at the digits (nothing to train), low at the digits against a higher
+baseline elsewhere (the frame reading survives), or low everywhere (the gate is broadly weak and the
+labels should say something different).
+
+**THE LEDGER IS UNCHANGED AND THE READ ADDS NOTHING TO IT:** token count REFUTED; digit order REFUTED;
+value addressability REFUTED; single-source shape REFUTED IN ITS SIMPLE FORM AND REPLACED;
+"history-insensitive" CORRECTED to the frame's invariance; **the pointer attends the frame and never the
+varying slot, MEASURED on 13 rows.** This piece adds one operational fact: **the p_copy read needs an
+accessor before it can be run.**
+
+**Criterion 1 remains NOT MET on both halves and 43/232 is unchanged.** v5 was not re-run;
+STATUS/ROADMAP/#2028 unchanged — checked, not assumed.
+
+**Next: add the public mixture-row accessor** (fields listed above), then run step 1 unchanged — per-row
+`copy` at the value's two digits, at the distractor's positions and at the frame positions, with word
+rows as the control. **The training plan stays on the shelf, not deleted:** it is shelved because the
+read **cannot be taken yet**, not because the read said "nothing to train", and the next person needs
+both facts.
+
 ## 2026-10-09 — Plan: the pointer target change, the first step in this line that costs money (deepseek, #2029)
 
 **PLANNING ONLY: $0, no pod, no training, CPU only, no knob.** Record:
