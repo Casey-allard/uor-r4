@@ -1,5 +1,7 @@
 //! Offline protected pooled-margin Jacobians and four same-epoch joint trials.
 use super::*;
+#[path = "protected_discrete_feedback.rs"]
+mod protected_discrete_feedback;
 const DIM: usize = 2 * COUNT;
 const SWEEPS: usize = 256;
 const TOL: f64 = 1e-10;
@@ -10,6 +12,34 @@ pub(super) fn policy() -> Value {
         "passes":SWEEPS,"projection":"f64 unit-L2 normalized nonzero rows, cyclic halfspace correction; not a nearest-QP or convergence guarantee",
         "residual_tolerance":"1e-10 * direction L2, no absolute floor; checked after all passes and after quantization",
         "radii":RADII,"joint_normalization":true,"no_follow_on_coordinate_pass":true})
+}
+pub(super) fn discrete_policy() -> Value {
+    json!({"outer_rounds":32,"inner_passes":32,"rho":1,"target_max":0.25,"coordinates":1920,
+ "initial_direction":"legacy256 normalized cyclic protection projection; fixed original epoch",
+ "legal":"original fractional bits for unchanged code; all other signed codes-7..7 canonical quarter",
+ "cost_ties":"noop then smallest signed code","duplicate":"exact destination bits; retain receipt, score first eligible occurrence only",
+ "screen":"original380 unit margins at1e-10*actualdeltaL2 and strict original objective gdotdelta<0",
+ "projection":"fixed residual-feedback heuristic, not exact ADMM/convergence guarantee","maximum_alternatives":32,"no_follow_on_coordinate_pass":true})
+}
+fn discrete_mode(mode: PrefixTransaction) -> bool {
+    mode == PrefixTransaction::ProtectedDiscreteFeedback
+}
+fn schema(mode: PrefixTransaction) -> &'static str {
+    if discrete_mode(mode) {
+        "uor-r4.protected-discrete-feedback/1"
+    } else {
+        "uor-r4.protected-joint-vector/1"
+    }
+}
+fn identity(p: &Proposal) -> &'static str {
+    if p.receipt.get("round").is_some() {
+        "round"
+    } else {
+        "radius"
+    }
+}
+fn duplicate(p: &Proposal) -> bool {
+    p.receipt.get("duplicate_of").is_some_and(|v| !v.is_null())
 }
 fn dot(a: &[f64], b: &[f64]) -> f64 {
     a.iter().zip(b).map(|(a, b)| a * b).sum()
@@ -465,6 +495,52 @@ fn proposals(
     }
     Ok((proposals, projection))
 }
+fn mode_proposals(
+    mode: PrefixTransaction,
+    pm: &[f32],
+    pg: &[f32],
+    gm: &[f32],
+    gg: &[f32],
+    j: &[Vec<f32>],
+) -> Result<(Vec<Proposal>, Value)> {
+    if !discrete_mode(mode) {
+        return proposals(pm, pg, gm, gg, j);
+    }
+    let master = pm.iter().chain(gm).copied().collect::<Vec<_>>();
+    let gradient = pg.iter().chain(gg).copied().collect::<Vec<_>>();
+    replay_require(
+        [pm.len(), pg.len(), gm.len(), gg.len()]
+            .iter()
+            .all(|n| *n == COUNT)
+            && master.len() == DIM
+            && gradient.len() == DIM,
+        "feedback1920 domain",
+    )?;
+    let (d, mut projection) = project(&gradient, j)?;
+    let run = protected_discrete_feedback::run(&master, &gradient, &unit_rows(j)?, &d)?;
+    projection["feedback_status"] = json!(format!("{:?}", run.status));
+    projection["feedback_target"] = json!(run.target);
+    let mut output = Vec::new();
+    for r in run.rounds {
+        let dest = r
+            .destination_bits
+            .iter()
+            .map(|&b| f32::from_bits(b))
+            .collect::<Vec<_>>();
+        let receipt = json!({"round":r.index,"destination_master_bits":r.destination_bits,"actual_delta":r.actual_delta,
+   "quantized_margin_residuals":r.residuals,"quantized_tolerance":r.tolerance,"actual_CE_linear_delta":r.gradient_dot,
+   "quantized_constraints_passed":r.residuals.iter().all(|x|*x>=-r.tolerance),"eligible":r.eligible,
+   "feedback_norm":r.feedback_norm,"primal_norm":r.primal_norm,"duplicate_of":r.duplicate_of,"incumbent_epoch":0});
+        output.push(Proposal {
+            radius: r.index as u8,
+            prefix: dest[..COUNT].to_vec(),
+            unary: dest[COUNT..].to_vec(),
+            receipt,
+            eligible: r.eligible,
+        });
+    }
+    Ok((output, projection))
+}
 struct Stage {
     rows: BTreeMap<usize, Replacement>,
     objective: Value,
@@ -485,7 +561,9 @@ fn evaluate(
     let mut reductions = 0;
     for proposal in proposals {
         let mut receipt = proposal.receipt.clone();
-        if proposal.eligible {
+        if duplicate(&proposal) {
+            receipt["native"] = json!({"guard_status":"NOT_CHECKED_DUPLICATE","feasible":false});
+        } else if proposal.eligible {
             let s = stage(&proposal)?;
             reductions += s.rows.len();
             receipt["native"] = s.receipt.clone();
@@ -576,6 +654,14 @@ fn stage(
         "affected_guard_indices":(0..GUARDS).collect::<Vec<_>>(),"checked_guard_indices":checked,"first_failure":failure,
         "guard_status":if !objective_gate{"NOT_CHECKED_OBJECTIVE_GATE_FALSE"}else if !failure.is_null(){"FIRST_VETO"}else{"FULL_PASS"},
         "feasible":objective_gate && failure.is_null(),"changed_rows":changes,"staged_summary_digest":digest,"staged_rows_count":UNION});
+    let mut receipt = receipt;
+    if identity(proposal) == "round" {
+        receipt
+            .as_object_mut()
+            .ok_or_else(|| bad("stage identity"))?
+            .remove("radius");
+        receipt["round"] = json!(proposal.radius);
+    }
     Ok(Stage {
         rows,
         objective,
@@ -646,7 +732,8 @@ pub(super) fn run(
         }
     }
     let j = jacobians(&a.out)?;
-    let (proposals, projection) = proposals(pm, pg, gm, gg, &j)?;
+    let mode = transaction_mode(a);
+    let (proposals, projection) = mode_proposals(mode, pm, pg, gm, gg, &j)?;
     let baseline = generate::objective(frames, map, spec, caches, &generate::Patches::new())?;
     let mut pc = PostCache::new(p);
     let (alternatives, best, reductions) = evaluate(proposals, |proposal| {
@@ -672,17 +759,19 @@ pub(super) fn run(
             "joint selected restage mismatch; no mutation",
         )?;
         current = apply(s, caches, posts, donors, incidences)?;
+        let key = identity(&proposal);
         cp = proposal.prefix;
         cg = proposal.unary;
-        selected = json!({"status":"committed","radius":proposal.radius,"incumbent_epoch":0,"epoch_after":1,"selected_receipt":expected,"selected_restage_exact":true});
+        selected = json!({"status":"committed","incumbent_epoch":0,"epoch_after":1,"selected_receipt":expected,"selected_restage_exact":true});
+        selected[key] = json!(proposal.radius);
     }
-    let summary = json!({"coordinates":0,"maximum_alternatives":4,"evaluated_alternatives":reductions/UNION,"accepted_prefix":usize::from(selected["status"]=="committed"),
+    let summary = json!({"coordinates":0,"maximum_alternatives":if discrete_mode(mode){32}else{4},"evaluated_alternatives":reductions/UNION,"accepted_prefix":usize::from(selected["status"]=="committed"),
         "accepted_generate":usize::from(selected["status"]=="committed"),"accepted_joint":usize::from(selected["status"]=="committed"),"accepted_epoch":usize::from(selected["status"]=="committed"),
         "initial":baseline,"final":current,"revisited":0,"proposal_stage_pool_reductions":reductions,"selected_restage_pool_reductions":restage});
     write(
         a,
         "coupled-construction.json",
-        &json!({"schema":"uor-r4.protected-joint-vector/1","policy":policy_for_args(a),
+        &json!({"schema":schema(mode),"policy":policy_for_args(a),
         "protected_margin_receipt_sha256":sha256_file(&a.out.join("protected-margin-receipt.json"))?,"projection":projection,"joint_vectors":alternatives,"selected":selected,"coordinate_records":[],"summary":summary}),
     )?;
     Ok((cp, cg, current, summary))
@@ -694,13 +783,28 @@ pub(super) fn authenticate(
     gradient: &Value,
     checkpoint: &Path,
 ) -> Result<()> {
+    authenticate_mode(
+        root,
+        journal,
+        gradient,
+        checkpoint,
+        PrefixTransaction::ProtectedJointVector,
+    )
+}
+pub(super) fn authenticate_mode(
+    root: &Path,
+    journal: &Value,
+    gradient: &Value,
+    checkpoint: &Path,
+    mode: PrefixTransaction,
+) -> Result<()> {
     replay_require(
-        journal["schema"] == "uor-r4.protected-joint-vector/1"
-            && journal["policy"]
-                == policy_for_modes(
-                    DonorCredit::FullPoolUtility,
-                    PrefixTransaction::ProtectedJointVector,
-                )
+        mode == PrefixTransaction::ProtectedJointVector || discrete_mode(mode),
+        "protected authentication mode",
+    )?;
+    replay_require(
+        journal["schema"] == schema(mode)
+            && journal["policy"] == policy_for_modes(DonorCredit::FullPoolUtility, mode)
             && gradient["prefix_transaction"] == json!(PrefixTransaction::ProtectedJointVector)
             && gradient["protected_margin_backward_calls"] == 380
             && gradient["total_fresh_backward_calls"] == 411
@@ -802,7 +906,7 @@ pub(super) fn authenticate(
             "protected donor margin quantity differs",
         )?;
     }
-    let (projected, projection) = proposals(&pm, &pg, &gm, &gg, &j)?;
+    let (projected, projection) = mode_proposals(mode, &pm, &pg, &gm, &gg, &j)?;
     replay_require(
         journal["projection"] == projection,
         "protected direction projection differs",
@@ -810,7 +914,11 @@ pub(super) fn authenticate(
     let alternatives = journal["joint_vectors"]
         .as_array()
         .ok_or_else(|| bad("protected vectors absent"))?;
-    replay_require(alternatives.len() == 4, "protected four radii missing")?;
+    replay_require(
+        alternatives.len() == projected.len()
+            && (!discrete_mode(mode) || projected.len() == 32 || projected.is_empty()),
+        "protected round population",
+    )?;
     let mut best: Option<(f64, u8, &Value)> = None;
     for (proposal, actual) in projected.iter().zip(alternatives) {
         let mut mathematical = actual.clone();
@@ -823,6 +931,13 @@ pub(super) fn authenticate(
             "protected actual projection/master/delta differs",
         )?;
         let native = &actual["native"];
+        if duplicate(proposal) {
+            replay_require(
+                native == &json!({"guard_status":"NOT_CHECKED_DUPLICATE","feasible":false}),
+                "feedback duplicate was rescored",
+            )?;
+            continue;
+        }
         if !proposal.eligible {
             replay_require(
                 native == &json!({"guard_status":"NOT_CHECKED_LINEAR_INELIGIBLE","feasible":false}),
@@ -832,7 +947,7 @@ pub(super) fn authenticate(
         }
         replay_require(
             native["incumbent_epoch"] == 0
-                && native["radius"] == proposal.radius
+                && native[identity(proposal)] == proposal.radius
                 && native["affected_guard_indices"] == json!((0..GUARDS).collect::<Vec<_>>())
                 && native["staged_rows_count"] == UNION,
             "protected same epoch all391 scope differs",
@@ -907,7 +1022,11 @@ pub(super) fn authenticate(
     if let Some((_, radius, native)) = best {
         replay_require(
             selected["status"] == "committed"
-                && selected["radius"] == radius
+                && selected[if discrete_mode(mode) {
+                    "round"
+                } else {
+                    "radius"
+                }] == radius
                 && selected["incumbent_epoch"] == 0
                 && selected["epoch_after"] == 1
                 && selected["selected_restage_exact"] == true
@@ -942,7 +1061,8 @@ pub(super) fn authenticate(
     replay_require(
         journal["coordinate_records"] == json!([])
             && journal["summary"]["coordinates"] == 0
-            && journal["summary"]["maximum_alternatives"] == 4,
+            && journal["summary"]["maximum_alternatives"]
+                == if discrete_mode(mode) { 32 } else { 4 },
         "protected unexpected follow-on coordinate pass",
     )
 }
@@ -950,6 +1070,44 @@ pub(super) fn authenticate(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn feedback1920_recovery_and_duplicate_receipts() -> Result<()> {
+        let mut pm = vec![0.; COUNT];
+        pm[1] = 0.124;
+        let mut pg = vec![0.; COUNT];
+        pg[0] = -1.;
+        pg[1] = -0.6;
+        let mut j = vec![0.; DIM];
+        j[0] = -0.59;
+        j[1] = 1.;
+        let (rounds, projection) = mode_proposals(
+            PrefixTransaction::ProtectedDiscreteFeedback,
+            &pm,
+            &pg,
+            &vec![0.; COUNT],
+            &vec![0.; COUNT],
+            &[j],
+        )?;
+        replay_require(
+            rounds.len() == 32 && projection["feedback_status"] == "Completed",
+            "feedback fixture rounds",
+        )?;
+        replay_require(
+            !rounds[0].eligible && rounds.iter().any(|p| p.eligible),
+            "feedback compensation fixture",
+        )?;
+        replay_require(rounds.iter().any(duplicate), "feedback duplicate fixture")?;
+        for (i, r) in rounds.iter().enumerate() {
+            replay_require(
+                r.receipt["round"] == i
+                    && r.receipt["destination_master_bits"]
+                        .as_array()
+                        .is_some_and(|x| x.len() == DIM),
+                "feedback exact1920 receipt",
+            )?;
+        }
+        Ok(())
+    }
     #[test]
     fn joint_jacobian_reader_checks_1920_finite_gradients_without_weight_domain() -> Result<()> {
         let mut expected = vec![0.0f32; DIM];

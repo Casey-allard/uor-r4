@@ -22,7 +22,7 @@
 <text x="204" y="303" font-size="17" fill="#009E73" fill-opacity="1" text-anchor="start" font-weight="bold">One joint direction in 1920 master coordinates</text>
 <text x="204" y="330" font-size="14" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">960 Prefix + 960 Generate unary; 256 fixed projection passes</text>
 <text x="204" y="352" font-size="14" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">Check continuous and actual quantized displacement residuals</text>
-<text x="204" y="374" font-size="14" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">Four common-scale radii: 1, 2, 4, 7; same original epoch</text>
+<text x="204" y="374" font-size="14" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">Legacy four radii or saved-credit fixed32-round discrete feedback</text>
 <line x1="500" y1="393" x2="500" y2="419.4" stroke="#009E73" stroke-width="2.5" stroke-opacity="1" stroke-linecap="round"/>
 <polygon points="500,426 495.82,415 504.18,415" fill="#009E73" fill-opacity="1"/>
 <rect x="40" y="437" width="920" height="116" rx="10" fill="#f6f9fc" fill-opacity="1" stroke="#E69F00" stroke-width="1.5" stroke-opacity="1"/>
@@ -32,5 +32,5 @@
 <text x="54" y="535" font-size="14" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">All 15 conditional positions including EOS required before actual own-feedback qualification</text>
 <text x="40" y="594" font-size="15" fill="#5f6b7a" fill-opacity="1" text-anchor="start" font-weight="normal">Source, Context, Cue, bridge, U and other Generate families remain frozen.</text>
 <text x="40" y="648" font-size="14" fill="#5f6b7a">Measured: continuous screen passes; all four quantized displacements fail. No native proposal scored.</text>
-<text x="40" y="669" font-size="14" fill="#5f6b7a">Saved attribution: quarter rounding dominates adverse stage sums; joint discrete formation is untested.</text>
+<text x="40" y="669" font-size="14" fill="#5f6b7a">Saved credit: 32 feedback rounds / 28 distinct updates; none passes protection. No native proposal scored.</text>
 </svg>

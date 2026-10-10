@@ -1,6 +1,13 @@
+## Saved-credit discrete feedback offers no protected native update — October 9
+
+The [fixed protected-discrete constructor](../labs/protected-discrete-feedback-2026-10-09/README.md) imports #2101's authenticated derivatives with zero new backwards or training graph forwards: 32 rounds yield 28 distinct legal updates, all descending under the original objective derivative but failing 52–218 protected screens per round. No native proposal is scored or update committed; independent 391-state reload retains original 5/15 conditional winners, 17/17 references, 380/380 guards and combined CE 5.111520730202647. **KEEP** the implementation/evidence, **REJECT** the candidate; actual-nine/full512/fresh/multi-turn remain NOT_RUN_CONSTRUCTION_NEGATIVE, accepted8/512 unchanged and the separate9/15 candidate is not combined with this epoch. Both setup failures and their narrow resource/provenance repairs are retained; 42 focused tests and optimized build pass, with no GPU or paid compute.
+
+**Next:** Attribute discrete/projection disagreement from these saved rounds, separating repeated destinations, objective/protection residuals and family/coordinate contributions; no parameter sweep, native-winner-loss claim, guard weakening or repeated 411 backwards without new causal evidence.
+
 ## 2026-10-09 — Pod dry-run suite: two timing-dependent checks made deterministic (claude, #2037)
 
 The reap check expected `idle 30 min` against an idle clock set when the suite started. The build-lock check raced its no-progress exit against the stale-heartbeat exit. Both are now independent of how fast the machine runs. Under full CPU load the fixed suite passed 10/10 runs, while main failed the reap check in 6/6. Test file only. Record: [pod-test-deflake-2026-10-09](../labs/pod-test-deflake-2026-10-09/README.md).
+
 ## 2026-10-09 — Plan: making a numeric value addressable — Options A and B costed, with the test and its falsifier (deepseek, #2029)
 
 **PLANNING ONLY: $0, no pod, no training, no model run, CPU only.** Record:

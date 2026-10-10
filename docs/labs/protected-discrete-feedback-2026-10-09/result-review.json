@@ -1,0 +1,73 @@
+{
+  "status": "PASS_SAVED_RESULT_REVIEW",
+  "source_commit": "7381d670735acddb0fac1f7abc0d83498aed04fc",
+  "scope": "Independent saved delta/dot/normalized-Jacobian residual/dedup arithmetic and391 snapshot identities/poststates/rawG lengths; producer native391 reload receipt inspected. No encoder/native model execution or fullpool replay by reviewer. Parent normative verification remains separate.",
+  "rounds": 32,
+  "unique_destinations": 28,
+  "duplicates": 4,
+  "descending_rounds": 32,
+  "protected_eligible_rounds": 0,
+  "violated_guard_counts": [
+    102,
+    102,
+    100,
+    100,
+    100,
+    77,
+    103,
+    125,
+    124,
+    124,
+    127,
+    128,
+    90,
+    90,
+    89,
+    134,
+    150,
+    71,
+    71,
+    71,
+    77,
+    129,
+    143,
+    137,
+    218,
+    213,
+    80,
+    78,
+    64,
+    118,
+    120,
+    52
+  ],
+  "max_saved_residual_absolute_difference": 0,
+  "native_proposal_stages": 0,
+  "selected_epoch": 0,
+  "native_snapshot_count": 391,
+  "original_native_outcomes": {
+    "conditional_correct": 5,
+    "references_correct": 17,
+    "guards_preserved": true
+  },
+  "qualification": "NEGATIVE_UNSELECTED_ACTUAL9_NOT_RUN",
+  "next_question": "No radius/iteration/seed repeat justified by this result. A successor needs a distinct generic discrete-feasibility mechanism or saved-credit diagnostic;32 heuristic failures do not prove guard-compatible quantized descent impossible.",
+  "files": {
+    "local/discrete-feedback/runs/attempt3/report.json": {
+      "sha256": "3bbcc79268cd5f13ccfb63fe244bf99ff97d43820ef7dbe5ed4c5544d3440cc6",
+      "bytes": 564053
+    },
+    "local/discrete-feedback/runs/attempt3/manifest.json": {
+      "sha256": "f616174ce7c4b244b331ea48b9d61340201662e75faef086c2d6835a3ee9ef74",
+      "bytes": 284821
+    },
+    "local/discrete-feedback/runs/attempt3/coupled-construction.json": {
+      "sha256": "98a568e8c8a5c781d2132934b002e76b0642101f7c1188a721bf0b0f78db9c17",
+      "bytes": 1180730
+    },
+    "local/discrete-feedback/qualification-decision-attempt3.json": {
+      "sha256": "493349b8cd1344b3fca26a0ab7b5afc657285117843821116c1168675090cedf",
+      "bytes": 492
+    }
+  }
+}

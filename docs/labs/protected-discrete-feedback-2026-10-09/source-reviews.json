@@ -1,0 +1,44 @@
+{
+  "status": "PASS_SOURCE_ONLY",
+  "source_commit": "d7ea628e4c2066940699844b81c9fc3f418279f7",
+  "solver_review": {
+    "reviewer": "emission_adversarial",
+    "scope": [
+      "protected_discrete_feedback.rs",
+      "protected_joint_vector.rs"
+    ],
+    "finding": "No concrete arithmetic, dedup, selection or atomicity blocker; resource scope referred to caller review."
+  },
+  "integration_review": {
+    "reviewer": "emission_math",
+    "scope": [
+      "protected_credit_import.rs",
+      "coupled_episode_learning.rs",
+      "context_cue_coadapt.rs",
+      "geometric-frozen-map-fit.rs"
+    ],
+    "finding": "Initial trace/resource mismatch repaired before execution; saved CPU path imports 411 derivatives, zero new training graphs; strict original native gates remain."
+  },
+  "sha256": {
+    "crates/uor-r4-training/examples/geometric_frozen_map_fit/protected_discrete_feedback.rs": "4bf6b4da789efc26cc3eead79af9bf07de0e4bdceaf4d543d467a7dbb2dad86a",
+    "crates/uor-r4-training/examples/geometric_frozen_map_fit/protected_joint_vector.rs": "7adb2c7184f81de8413000cf674ab1bfa486f9e48ddd6529af100b6daed659c0",
+    "crates/uor-r4-training/examples/geometric_frozen_map_fit/protected_credit_import.rs": "2b07bb718aeec1b5b18cdf572f110befff400cf823425972961d7df4169e7156",
+    "crates/uor-r4-training/examples/geometric_frozen_map_fit/coupled_episode_learning.rs": "172c52ae83447f026ac5b57b6f863c4ac614fb55ac827aa2f11d1dfbcd3ce622",
+    "crates/uor-r4-training/examples/geometric_frozen_map_fit/context_cue_coadapt.rs": "653a7015a175c879556ec2c65f7bd81f3e7fb4cafc4e618daa796d8ee8e84b5e"
+  },
+  "excludes": "No independent backward replication, model execution or measured resource evidence from these source reviews.",
+  "resource_repair_review": {
+    "status": "PASS_SOURCE_ONLY",
+    "reviewer": "emission_adversarial",
+    "source_commit": "6bd8017cdf4f849a17fa3b83c58f7bf9b707e721",
+    "coupled_sha256": "ec07db50849cdbeb18e3e69ae759643dabfdefd502ba21284e1cf626d0c7477d",
+    "scope": "Exclusive16MiB bound for32joint records; historicalmode formulas unchanged; worst-width serialization fixture plus2MiB reserve; no model-policy change."
+  },
+  "relocation_repair_review": {
+    "status": "PASS_SOURCE_ONLY",
+    "reviewer": "emission_adversarial",
+    "source_commit": "7381d670735acddb0fac1f7abc0d83498aed04fc",
+    "importer_sha256": "9f62e87a6e618b1094e211f5d6578953e85589f1d2372ca4401f48c88f65f8c0",
+    "scope": "Exact declared inverse-phase capture-root relocation only; all remaining parsed values equal; original/current witness bytes and hashes retained and postverified."
+  }
+}

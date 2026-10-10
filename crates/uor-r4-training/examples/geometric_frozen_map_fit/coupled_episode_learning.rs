@@ -15,8 +15,11 @@ use uor_r4_training::geometric_occurrence_consumer::source_realizer::{
 };
 #[path = "gradient_vector_prefix.rs"]
 mod gradient_vector_prefix;
+#[path = "protected_credit_import.rs"]
+mod protected_credit_import;
 #[path = "protected_joint_vector.rs"]
 mod protected_joint_vector;
+use protected_credit_import::SavedProtectedCredit;
 
 const PREFIX: &str = "prefix.coefficients";
 const GENERATE: &str = "generate.unary";
@@ -74,8 +77,15 @@ pub(super) enum PrefixTransaction {
     CoordinateAdjacent,
     GradientVectorPrefix,
     ProtectedJointVector,
+    ProtectedDiscreteFeedback,
 }
 impl PrefixTransaction {
+    fn is_protected(self) -> bool {
+        matches!(
+            self,
+            Self::ProtectedJointVector | Self::ProtectedDiscreteFeedback
+        )
+    }
     fn legacy(&self) -> bool {
         *self == Self::CoordinateAdjacent
     }
@@ -121,6 +131,8 @@ pub(super) struct Config {
     pub retained_gradient: Option<RetainedGradient>,
     #[serde(default)]
     pub retained_export: Option<RetainedExport>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub saved_protected_credit: Option<SavedProtectedCredit>,
 }
 #[derive(Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -163,6 +175,9 @@ pub(super) struct RetainedExport {
     pub inherited_gradients: RetainedGradient,
 }
 impl Config {
+    pub(super) fn no_new_gradients(&self) -> bool {
+        self.retained_mode() || self.saved_protected_credit.is_some()
+    }
     fn retained_mode(&self) -> bool {
         self.retained_gradient.is_some() || self.retained_export.is_some()
     }
@@ -200,11 +215,26 @@ impl Config {
                 &e.retained_observation_root,
             ]);
         }
+        if let Some(g) = &self.saved_protected_credit {
+            r.extend([&g.root, &g.runtime_root, &g.observation_root]);
+        }
         r
     }
 }
 pub(super) fn validate_settings(a: &Args) -> Result<()> {
     if let Some(c) = &a.coupled_episode_learning {
+        replay_require(
+            (c.prefix_transaction == PrefixTransaction::ProtectedDiscreteFeedback)
+                == c.saved_protected_credit.is_some(),
+            "discrete protected mode requires explicit saved #2101 credit",
+        )?;
+        if let Some(g) = &c.saved_protected_credit {
+            g.validate()?;
+            replay_require(
+                !c.retained_mode() && c.donor_credit == DonorCredit::FullPoolUtility,
+                "saved protected credit cannot mix historical recovery or tangent credit",
+            )?;
+        }
         validate_credit_recovery(c.donor_credit, c.retained_mode())?;
         validate_transaction(c.prefix_transaction, c.donor_credit, c.retained_mode())?;
         replay_require(
@@ -339,6 +369,20 @@ fn policy_for_modes(credit: DonorCredit, transaction: PrefixTransaction) -> Valu
         p["protected_margin_backward_calls"] = json!(380);
         p["total_fresh_backward_calls"] = json!(411);
         p["total_training_graph_forwards"] = json!(822);
+        p["affected_scope"] = json!("complete391 current candidate Prefix+Generate unary replacement; all physical aliases and original380 guards");
+    }
+    if transaction == PrefixTransaction::ProtectedDiscreteFeedback {
+        p["prefix_transaction"] = json!(transaction);
+        p["protected_direction"] = protected_joint_vector::discrete_policy();
+        p["prefix"] = json!("saved native-anchored joint derivatives; fixed residual-feedback discrete formation; unchanged native protection and CE gates");
+        p["generate"] =
+            json!("same joint discrete transaction as Prefix; no follow-on coordinate pass");
+        p["rank"] = json!("no new gradient or coordinate-order selection; explicitly imported #2101 original derivatives");
+        p["maximum_alternatives"] = json!(32);
+        p["vector_selection"] = json!("minimum feasible original-epoch native combinedCE; exact tie earlier feedback round; at most32 distinct eligible proposals and one exact selected restage");
+        p["protected_margin_backward_calls"] = json!(380);
+        p["total_fresh_backward_calls"] = json!(0);
+        p["total_training_graph_forwards"] = json!(0);
         p["affected_scope"] = json!("complete391 current candidate Prefix+Generate unary replacement; all physical aliases and original380 guards");
     }
     p
@@ -1959,7 +2003,7 @@ fn construct(
     red: &mut NativeVocabularyActions,
     ranked: &[Coordinate],
 ) -> Result<(Vec<f32>, Vec<f32>, Value, Value)> {
-    if transaction_mode(a) == PrefixTransaction::ProtectedJointVector {
+    if transaction_mode(a).is_protected() {
         return protected_joint_vector::run(
             a, start, p, frames, map, spec, pm, pg, gm, gg, caches, posts, donors, incidences,
             legal, red,
@@ -2263,8 +2307,16 @@ fn capacity_projection(max_copy: usize, legal: usize) -> Result<Value> {
 fn capacity_for_mode(max_copy: usize, legal: usize, mode: PrefixTransaction) -> Result<Value> {
     let mut cap = capacity_projection(max_copy, legal)?;
     if !mode.legacy() {
-        let compact = 2 * 1024 * 1024u64;
+        let compact = if mode == PrefixTransaction::ProtectedDiscreteFeedback {
+            8
+        } else {
+            2
+        } * 1024
+            * 1024u64;
         cap["vector_compact_best_and_four_receipts_bound"] = json!(compact);
+        if mode == PrefixTransaction::ProtectedDiscreteFeedback {
+            cap["discrete_compact_best_and32_receipts_bound"] = json!(compact);
+        }
         cap["cache_upper_bound"] = json!(
             cap["cache_upper_bound"]
                 .as_u64()
@@ -2276,6 +2328,14 @@ fn capacity_for_mode(max_copy: usize, legal: usize, mode: PrefixTransaction) -> 
     Ok(cap)
 }
 fn journal_bound_for_mode(mode: PrefixTransaction) -> Result<u64> {
+    // This mode emits32 compact joint rounds, not the historical14400
+    // coordinate alternatives. Each round contains1920 destination bits/deltas,
+    // 380 residuals, at most391 compact donor/post/incidence tuples,31 objective
+    // masses and two380-index guard lists. One selected receipt/projection and
+    // JSON indentation are included in the16MiB bound exercised below.
+    if mode == PrefixTransaction::ProtectedDiscreteFeedback {
+        return Ok(16 * 1024 * 1024);
+    }
     let legacy = journal_upper_bound()?;
     // Legacy reserves960 full Prefix records. Four vector records each add960
     // projectedu32 bits and all391 change tuples, plus one selected receipt;
@@ -2454,8 +2514,47 @@ fn pregradient_projection(a: &Args, c: &Config, frames: &[shared::Frame]) -> Res
     } else {
         16 * 1024 * 1024u64
     };
-    let numeric = numeric + vector_population_transient;
-    let process = process + vector_population_transient;
+    let import_numeric_reserve = if c.saved_protected_credit.is_some() {
+        32 * 1024 * 1024u64
+    } else {
+        0
+    };
+    let import_report_reserve = if let Some(saved) = &c.saved_protected_credit {
+        let mut bytes = 4 * 1024 * 1024u64;
+        for entry in fs::read_dir(&saved.root)? {
+            let e = entry?;
+            let name = e.file_name().to_string_lossy().into_owned();
+            if name.starts_with("protected-")
+                || name.starts_with("original-")
+                || name.starts_with("coupled-gradient")
+                || name.starts_with("coupled-full-pool")
+                || [
+                    "coupled-population.json",
+                    "coupled-construction.json",
+                    "coupled-forward-parity.json",
+                    "report.json",
+                    "manifest.json",
+                    "config.json",
+                    "attempt.json",
+                    "external-config-binding.json",
+                ]
+                .contains(&name.as_str())
+            {
+                replay_require(
+                    e.file_type()?.is_file(),
+                    "saved scientific copy projection requires regular files",
+                )?;
+                bytes = bytes
+                    .checked_add(e.metadata()?.len())
+                    .ok_or_else(|| bad("saved copy projection overflow"))?;
+            }
+        }
+        bytes
+    } else {
+        0
+    };
+    let numeric = numeric + vector_population_transient + import_numeric_reserve;
+    let process = process + vector_population_transient + import_numeric_reserve;
     let reload_max = 535837u64;
     let journal = journal_bound_for_mode(c.prefix_transaction)?;
     let report = (reload_max + 16384) * UNION as u64
@@ -2463,21 +2562,22 @@ fn pregradient_projection(a: &Args, c: &Config, frames: &[shared::Frame]) -> Res
         + 57780353
         + 48 * 1024 * 1024
         + 32 * 1024 * 1024
-        + utility_report_bound;
-    let process_cap = if c.prefix_transaction == PrefixTransaction::ProtectedJointVector {
+        + utility_report_bound
+        + import_report_reserve;
+    let process_cap = if c.prefix_transaction.is_protected() {
         8
     } else {
         4
     } * 1024
         * 1024
         * 1024u64;
-    let v = json!({"stage":if c.retained_export.is_some(){"BEFORE_RETAINED_EXPORT_ADMISSION"}else if c.retained_mode(){"BEFORE_RETAINED_GRADIENT_ADMISSION_AND_FINITE_RESTART"}else{"BEFORE_ANY_BACKWARD"},"capacity":cap,"typed_guard_frame_bound":typed,
+    let v = json!({"stage":if c.saved_protected_credit.is_some(){"BEFORE_SAVED_PROTECTED_CREDIT_IMPORT_AND_FINITE_CONSTRUCTOR"}else if c.retained_export.is_some(){"BEFORE_RETAINED_EXPORT_ADMISSION"}else if c.no_new_gradients(){"BEFORE_RETAINED_GRADIENT_ADMISSION_AND_FINITE_RESTART"}else{"BEFORE_ANY_BACKWARD"},"capacity":cap,"typed_guard_frame_bound":typed,
         "actual31_full_serialized_native_bytes":full,"numeric_upper_bound":numeric,"donor_utility_serialized_bound":utility_report_bound,"donor_utility_numeric_bound":utility_numeric_bound,"retained_export_copy_peak_bytes":retained_export_copy_peak,
-        "retained_export_copy_projection":"full journal byte-copy buffer plus4MiB typed commitments/summary; alternatives ignored by typed decoder","numeric_cap":512*1024*1024u64,"vector_population_keyset_transient_bound":vector_population_transient,
+        "retained_export_copy_projection":"full journal byte-copy buffer plus4MiB typed commitments/summary; alternatives ignored by typed decoder","import_numeric_reserve":import_numeric_reserve,"import_report_reserve":import_report_reserve,"numeric_cap":512*1024*1024u64,"vector_population_keyset_transient_bound":vector_population_transient,
         "process_ram_projection_bytes":process,"process_ram_cap":process_cap,
         "report_upper_bound":report,"report_cap":a.maximum_report_bytes,"streamed_journal_reserve":journal,
-        "native391_snapshot_max_measured_bytes":reload_max,"fresh_family_gradient_bytes":if c.retained_mode(){0}else{2*32*3840},"retained_family_gradient_bytes":if c.retained_mode(){2*32*3840}else{0},
-        "graph_lifetime":if c.prefix_transaction==PrefixTransaction::ProtectedJointVector{"31 objective and380 protected sequential graphs; guardtypedtraces+compactpools coexist with parameters; device graph/prepared Generate dropped before constructor"}else{"31 sequential joint graphs; original377 authority dropped before graph; all device graph/prepared Generate dropped before380 guards"},
+        "native391_snapshot_max_measured_bytes":reload_max,"fresh_family_gradient_bytes":if c.no_new_gradients(){0}else{2*32*3840},"retained_family_gradient_bytes":if c.no_new_gradients(){2*32*3840}else{0},
+        "graph_lifetime":if c.saved_protected_credit.is_some(){"no new training graphs; imported objective derivatives and380 protected Jacobians; all391 original native pools coexist only with CPU constructor"}else if c.prefix_transaction.is_protected(){"31 objective and380 protected sequential graphs; guardtypedtraces+compactpools coexist with parameters; device graph/prepared Generate dropped before constructor"}else{"31 sequential joint graphs; original377 authority dropped before graph; all device graph/prepared Generate dropped before380 guards"},
         "constructor_lifetime":"full Pool buffers consumed/dropped before incidence/staging; replacement row incidence only, no global CSR clone",
         "role_count":32,"physical_graph_count":31,"episode_length":15,"fresh_backward_calls_completed":0,
         "original_resource_receipt":old,"original_pregradient_receipt":oldpre});
@@ -2488,6 +2588,43 @@ fn pregradient_projection(a: &Args, c: &Config, frames: &[shared::Frame]) -> Res
             && process <= process_cap
             && report + 1024 * 1024 < a.maximum_report_bytes,
         "coupled complete pregradient resource projection exceeded",
+    )
+}
+fn saved_credit_resource_projection(
+    a: &Args,
+    guards: &[shared::Frame],
+    pools: &[shared::Pool],
+) -> Result<()> {
+    replay_require(
+        guards.len() == 380 && pools.len() == 380,
+        "saved protected complete380 resource population",
+    )?;
+    let prior = read(&a.out.join("coupled-pregradient-resource-projection.json"))?;
+    let raw_j = 380 * 1920 * 4u64;
+    let normalized_j = 380 * 1920 * 8u64;
+    let feedback_vectors = 32 * 1920 * 4u64 + 8 * 1920 * 8u64 + 32 * 380 * 8u64;
+    let numeric = prior["numeric_upper_bound"]
+        .as_u64()
+        .ok_or_else(|| bad("saved numeric bound missing"))?
+        + raw_j
+        + normalized_j
+        + feedback_vectors;
+    let process = prior["process_ram_projection_bytes"]
+        .as_u64()
+        .ok_or_else(|| bad("saved process bound missing"))?
+        + raw_j
+        + normalized_j
+        + feedback_vectors;
+    let report = prior["report_upper_bound"]
+        .as_u64()
+        .ok_or_else(|| bad("saved report bound missing"))?;
+    let v = json!({"stage":"BEFORE_SAVED_PROTECTED_CREDIT_IMPORT_AND_FINITE_CONSTRUCTOR","raw_jacobian_bytes":raw_j,"normalized_jacobian_bytes":normalized_j,"feedback_vectors_and_residuals_bytes":feedback_vectors,"numeric_upper_bound":numeric,"process_upper_bound":process,"report_upper_bound":report,"numeric_cap":512*1024*1024u64,"process_cap":8*1024*1024*1024u64,"report_cap":a.maximum_report_bytes,"new_training_graph_forwards":0,"new_backward_calls":0,"inherited_objective_backwards":31,"inherited_protected_backwards":380,"maximum_proposal_stage_pool_reductions":32*391,"maximum_selected_restage_pool_reductions":391,"expected_final_pool_reductions":391,"native_reload_steps":391,"guard_training_prefix_traces":"not required; validated compact occurrence keys and native pools retained","constructor_lifetime":"one all391 native replacement batch plus compact best and32 receipts; no candidate stage batches retained simultaneously"});
+    write(a, "protected-resource-projection.json", &v)?;
+    replay_require(
+        numeric <= 512 * 1024 * 1024
+            && process <= 8 * 1024 * 1024 * 1024
+            && report + 1024 * 1024 < a.maximum_report_bytes,
+        "saved protected CPU constructor resource projection exceeded",
     )
 }
 fn cache_mass_parity(cache: &GeneratePatchCache, pool: &shared::Pool) -> Result<()> {
@@ -2510,7 +2647,7 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
         .as_ref()
         .ok_or_else(|| bad("coupled config absent"))?;
     replay_require(
-        c.retained_mode() || !d.is_cpu(),
+        c.no_new_gradients() || !d.is_cpu(),
         "coupled fresh gradient requires CUDA",
     )?;
     let original = ContinuationParent::from_checkpoint(&a.checkpoint)?;
@@ -2548,7 +2685,7 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
     let baseline_full = shared::objective_for_spec(&objectives, &objective_pools, &spec)?;
     write(a, "initial-original-objective.json", &baseline_full)?;
     pregradient_projection(a, c, &objectives)?;
-    let mut protected = if c.prefix_transaction == PrefixTransaction::ProtectedJointVector {
+    let mut protected = if c.prefix_transaction.is_protected() {
         let guards =
             prefix::prepare_generate_guards(a, &c.original_inputs, &original, &objectives, &spec)?;
         for role in spec
@@ -2573,12 +2710,18 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
                 )?;
             }
         }
-        protected_joint_vector::resource_projection(a, &guards.0, &guards.1)?;
+        if c.saved_protected_credit.is_some() {
+            saved_credit_resource_projection(a, &guards.0, &guards.1)?;
+        } else {
+            protected_joint_vector::resource_projection(a, &guards.0, &guards.1)?;
+        }
         Some(guards)
     } else {
         None
     };
-    let (pm, pg, gm, gg, inherited_learning) = if let Some(g) = c.gradient_authority() {
+    let (pm, pg, gm, gg, inherited_learning) = if let Some(g) = &c.saved_protected_credit {
+        protected_credit_import::load(a, g, &objectives)?
+    } else if let Some(g) = c.gradient_authority() {
         retained_gradients(a, c, g, &objectives)?
     } else {
         let (pm, pg, gm, gg) = gradients(
@@ -2592,7 +2735,7 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
         )?;
         (pm, pg, gm, gg, Value::Null)
     };
-    let ranked = if c.retained_export.is_some() {
+    let ranked = if c.retained_export.is_some() || c.saved_protected_credit.is_some() {
         Vec::new()
     } else {
         order(&pm, &pg, &gm, &gg)?
@@ -2653,8 +2796,11 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
                 == UNION,
         "coupled391 unique union differs",
     )?;
+    if let Some(g) = &c.saved_protected_credit {
+        protected_credit_import::verify_population(g, &frames, &pools)?;
+    }
     for f in &mut frames {
-        if c.prefix_transaction == PrefixTransaction::ProtectedJointVector {
+        if c.prefix_transaction.is_protected() {
             f.prefix_trace = None;
         }
         validated_prefix_keys(f.ids.len(), &f.cue_keys)?;
@@ -2685,7 +2831,7 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
         a,
         "coupled-constructor-resource-projection.json",
         &json!({"capacity":cap,
-        "stage":if c.retained_export.is_some(){"BEFORE_FINAL391_EXPECTED_POOL_RECONSTRUCTION_AND_NATIVE_RELOAD"}else if c.retained_mode(){"AFTER_INHERITED31_BACKWARDS_BEFORE_FINITE_RESTART"}else{"AFTER31_BACKWARDS_BEFORE_CONSTRUCTOR"},"actual_max_copy_aliases":max_copy,
+        "stage":if c.saved_protected_credit.is_some(){"AFTER_IMPORTED411_BACKWARDS_BEFORE_DISCRETE_CONSTRUCTOR"}else if c.retained_export.is_some(){"BEFORE_FINAL391_EXPECTED_POOL_RECONSTRUCTION_AND_NATIVE_RELOAD"}else if c.no_new_gradients(){"AFTER_INHERITED31_BACKWARDS_BEFORE_FINITE_RESTART"}else{"AFTER31_BACKWARDS_BEFORE_CONSTRUCTOR"},"actual_max_copy_aliases":max_copy,
         "model_graph_and_prepared_device_tensors_dropped":true,"all380_authority_complete":true,
         "pool_actions":"OMITTED_RECONSTRUCTIBLE_FROM_COMPLETE_SCORES"}),
     )?;
@@ -2788,7 +2934,11 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
             (cp, cg, value, summary, Value::Null)
         };
     if !inherited_learning.is_null() {
-        verify_inherited_copies(a, &inherited_learning)?;
+        if c.saved_protected_credit.is_some() {
+            protected_credit_import::verify_copies(a, &inherited_learning)?;
+        } else {
+            verify_inherited_copies(a, &inherited_learning)?;
+        }
     }
     if !inherited_construction.is_null() {
         verify_inherited_copies(a, &inherited_construction)?;
@@ -2823,7 +2973,11 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
     // Close the immutable-science guarantee after all normalization/report
     // rewrites and export helpers, before admitting a completed report.
     if !inherited_learning.is_null() {
-        verify_inherited_copies(a, &inherited_learning)?;
+        if c.saved_protected_credit.is_some() {
+            protected_credit_import::verify_copies(a, &inherited_learning)?;
+        } else {
+            verify_inherited_copies(a, &inherited_learning)?;
+        }
     }
     if !inherited_construction.is_null() {
         verify_inherited_copies(a, &inherited_construction)?;
@@ -2842,11 +2996,11 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
         "finite_episode_positive":gate["passed"],"final_gate":gate,"baseline_objective":initial,"candidate_objective":value,
         "construction_summary":construction,"inherited_learning":inherited_learning,"inherited_construction":inherited_construction,
         "new_constructor_calls":if c.retained_export.is_some(){0}else{1},"new_proposals":if c.retained_export.is_some(){0}else{construction["evaluated_alternatives"].as_u64().unwrap_or(0)},
-        "constructor_restart_from_original":c.retained_gradient.is_some(),"export_completion_only":c.retained_export.is_some(),
-        "new_training_graph_forwards":if c.retained_mode(){0}else if c.prefix_transaction==PrefixTransaction::ProtectedJointVector{822}else{62},
-        "new_backward_calls":if c.retained_mode(){0}else if c.prefix_transaction==PrefixTransaction::ProtectedJointVector{411}else{31},
-        "protected_margin_backward_calls":if c.prefix_transaction==PrefixTransaction::ProtectedJointVector{380}else{0},
-        "total_fresh_training_backward_calls":if c.retained_mode(){0}else if c.prefix_transaction==PrefixTransaction::ProtectedJointVector{411}else{31},
+        "constructor_restart_from_original":c.retained_gradient.is_some() || c.saved_protected_credit.is_some(),"export_completion_only":c.retained_export.is_some(),
+        "new_training_graph_forwards":if c.no_new_gradients(){0}else if c.prefix_transaction.is_protected(){822}else{62},
+        "new_backward_calls":if c.no_new_gradients(){0}else if c.prefix_transaction.is_protected(){411}else{31},
+        "protected_margin_backward_calls":if c.prefix_transaction.is_protected(){380}else{0},
+        "total_fresh_training_backward_calls":if c.no_new_gradients(){0}else if c.prefix_transaction.is_protected(){411}else{31},
         "new_gradient_context_encoder_calls":0,
         "prior_partial_alternatives_charged":c.gradient_authority().map(|g|g.inherited_partial_alternatives),
         "candidate_receipt":receipt,"all_original380_preserved":all_guards,
@@ -2855,10 +3009,11 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
         "optimizer_updates":0,"candidate_native_steps":391,"expected_final_pool_reductions":391,
         "final_cache_preparations":if c.retained_export.is_some(){391}else{0},
         "new_constructor_proposals":if c.retained_export.is_some(){0}else{construction["evaluated_alternatives"].as_u64().unwrap_or(0)},
-        "new_order_selection_calls":if c.retained_export.is_some(){0}else{1},
+        "new_order_selection_calls":if c.retained_export.is_some() || c.saved_protected_credit.is_some(){0}else{1},
         "gradient_context_encoder_calls":0,"new_captured_objective_encoder_calls":0,
-        "logical_gradient_producer":c.gradient_authority().map(|g|&g.expected_learning_source_commit),
-        "fresh_gradient_files":if c.retained_mode(){0}else{62},
+        "logical_gradient_producer":if c.saved_protected_credit.is_some(){json!("2c31a22e6fbef3bd37dade8cbb7daae79f13876a")}else{json!(c.gradient_authority().map(|g|&g.expected_learning_source_commit))},
+        "saved_protected_credit":c.saved_protected_credit, "inherited_protected_backward_calls":if c.saved_protected_credit.is_some(){380}else{0},
+        "fresh_gradient_files":if c.no_new_gradients(){0}else{62},
         "native_reload_context_encoding":"normal native generator during391 independent steps",
         "saved_query_token_count_range":[min_query,max_query],
         "source_physical_candidate_count_range":[frames.iter().map(|f|f.ids.len()).min(),max_copy],
@@ -3045,9 +3200,13 @@ fn export_reload(
         receipt["fresh_adam"] = json!(false);
         receipt["optimizer_updates"] = json!(0);
         receipt["new_gradients"] = json!(1);
-        receipt["coefficient_backward_calls"] = json!(if transaction_mode(a)
-            == PrefixTransaction::ProtectedJointVector
+        receipt["coefficient_backward_calls"] = json!(if a
+            .coupled_episode_learning
+            .as_ref()
+            .is_some_and(Config::no_new_gradients)
         {
+            0
+        } else if transaction_mode(a).is_protected() {
             411
         } else {
             31
@@ -3056,30 +3215,37 @@ fn export_reload(
             .coupled_episode_learning
             .as_ref()
             .and_then(|c| c.gradient_authority());
-        receipt["new_gradients"] = json!(if inherited.is_some() { 0 } else { 1 });
-        receipt["new_backward_calls"] = json!(if inherited.is_some() {
+        let saved = a
+            .coupled_episode_learning
+            .as_ref()
+            .is_some_and(|c| c.saved_protected_credit.is_some());
+        receipt["new_gradients"] = json!(if inherited.is_some() || saved { 0 } else { 1 });
+        receipt["new_backward_calls"] = json!(if inherited.is_some() || saved {
             0
-        } else if transaction_mode(a) == PrefixTransaction::ProtectedJointVector {
+        } else if transaction_mode(a).is_protected() {
             411
         } else {
             31
         });
-        receipt["new_training_graph_forwards"] = json!(if inherited.is_some() {
+        receipt["new_training_graph_forwards"] = json!(if inherited.is_some() || saved {
             0
-        } else if transaction_mode(a) == PrefixTransaction::ProtectedJointVector {
+        } else if transaction_mode(a).is_protected() {
             822
         } else {
             62
         });
-        receipt["inherited_learning_source_commit"] =
-            json!(inherited.map(|g| &g.expected_learning_source_commit));
+        receipt["inherited_learning_source_commit"] = if saved {
+            json!("2c31a22e6fbef3bd37dade8cbb7daae79f13876a")
+        } else {
+            json!(inherited.map(|g| &g.expected_learning_source_commit))
+        };
         let export_only = a
             .coupled_episode_learning
             .as_ref()
             .is_some_and(|c| c.retained_export.is_some());
         receipt["new_constructor_calls"] = json!(if export_only { 0 } else { 1 });
         receipt["new_proposals"] = if export_only { json!(0) } else { Value::Null };
-        receipt["new_order_selection_calls"] = json!(if export_only { 0 } else { 1 });
+        receipt["new_order_selection_calls"] = json!(if export_only || saved { 0 } else { 1 });
         receipt["inherited_constructor_source_commit"] = json!(a
             .coupled_episode_learning
             .as_ref()
@@ -3087,9 +3253,11 @@ fn export_reload(
             .map(|e| &e.expected_source_commit));
         receipt["gradient_scope"] = json!(if export_only {
             "31 inherited completed joint backwards; all final codes inherited from completed constructor; zero new graphs/backwards/order/proposals/constructor"
+        } else if saved {
+            "31 objective plus380 protected inherited #2101 backwards; zero new training graphs/backwards; new original-seed discrete constructor"
         } else if inherited.is_some() {
             "31 inherited completed joint backwards, zero fresh graphs/backwards; original-seed finite constructor restart"
-        } else if transaction_mode(a) == PrefixTransaction::ProtectedJointVector {
+        } else if transaction_mode(a).is_protected() {
             "31 fresh task/reference CE backwards plus380 protected-margin backwards;411 total,822 graph forwards"
         } else {
             "31 fresh joint backwards"
@@ -3217,6 +3385,77 @@ pub(super) fn authenticate_positive_artifact(
                 && v["policy"] == policy_for_modes(pin.donor_credit, pin.prefix_transaction),
             "coupled artifact donor-credit authority differs",
         )?;
+        replay_require(
+            (candidate_config.prefix_transaction == PrefixTransaction::ProtectedDiscreteFeedback)
+                == candidate_config.saved_protected_credit.is_some(),
+            "positive discrete candidate import authority missing or mislabeled",
+        )?;
+        if let Some(saved) = &candidate_config.saved_protected_credit {
+            saved.validate()?;
+            report_output::verify(&saved.root)?;
+            replay_require(
+                sha256_file(&saved.root.join("report.json"))?
+                    == "b1d27f7b15e65d0aa8ea7e0a995b8bc76979610f97dbcb3055c8bbb434d0ac9b"
+                    && sha256_file(&saved.root.join("manifest.json"))?
+                        == "cdadd7c5cbbbdca2225a71006ab58f70129e8df9e015b92f35b19359028a7167",
+                "positive import original producer seal differs",
+            )?;
+            for leaf in [
+                "coupled-gradient-receipt.json",
+                "protected-margin-receipt.json",
+                "coupled-forward-parity.json",
+                "protected-forward-parity.json",
+                "coupled-full-pool-donor-utilities.json",
+            ] {
+                replay_require(
+                    fs::read(c.retained_candidate_root.join(leaf))?
+                        == fs::read(saved.root.join(leaf))?,
+                    "positive imported derivative authority differs from fixed producer",
+                )?;
+            }
+            replay_require(
+                !candidate_config.retained_mode()
+                    && v["new_backward_calls"] == 0
+                    && v["new_training_graph_forwards"] == 0
+                    && v["fresh_gradient_files"] == 0
+                    && v["inherited_protected_backward_calls"] == 380,
+                "positive saved-credit scope differs",
+            )?;
+            let import = read(
+                &c.retained_candidate_root
+                    .join("saved-protected-credit-import.json"),
+            )?;
+            replay_require(
+                import["authority"] == serde_json::to_value(saved)?
+                    && import["source_commit"] == "2c31a22e6fbef3bd37dade8cbb7daae79f13876a"
+                    && import["inherited_objective_backward_calls"] == 31
+                    && import["inherited_protected_backward_calls"] == 380
+                    && import["new_backward_calls"] == 0,
+                "positive saved-credit inherited producer differs",
+            )?;
+            // Candidate root, not the evaluator output, owns imported scientific files.
+            let copies = import["copied_files"]
+                .as_array()
+                .ok_or_else(|| bad("positive import inventory absent"))?;
+            for e in copies {
+                let leaf = e["file"]
+                    .as_str()
+                    .ok_or_else(|| bad("positive import leaf absent"))?;
+                validate_inherited_leaf(leaf)?;
+                let file = c.retained_candidate_root.join(leaf);
+                replay_require(
+                    sha256_file(&file)?
+                        == e["sha256"]
+                            .as_str()
+                            .ok_or_else(|| bad("positive import SHA absent"))?
+                        && fs::metadata(file)?.len()
+                            == e["bytes"]
+                                .as_u64()
+                                .ok_or_else(|| bad("positive import length absent"))?,
+                    "positive imported science bytes differ",
+                )?;
+            }
+        }
         validate_credit_recovery(
             candidate_config.donor_credit,
             candidate_config.retained_mode(),
@@ -3363,8 +3602,14 @@ pub(super) fn authenticate_positive_artifact(
         }
     }
     let journal = read(&root.join("coupled-construction.json"))?;
-    if pin.prefix_transaction == PrefixTransaction::ProtectedJointVector {
-        protected_joint_vector::authenticate(root, &journal, &gradient, &a.checkpoint)?;
+    if pin.prefix_transaction.is_protected() {
+        protected_joint_vector::authenticate_mode(
+            root,
+            &journal,
+            &gradient,
+            &a.checkpoint,
+            pin.prefix_transaction,
+        )?;
     } else {
         let records = journal["coordinate_records"]
             .as_array()
@@ -3590,6 +3835,57 @@ mod tests {
             .collect::<Vec<_>>();
         let red = NativeVocabularyActions::new(binding, &exp)?;
         Ok((native, weights, factual, changed, red))
+    }
+    #[test]
+    fn discrete_journal_bound_covers32_full_rounds_without_legacy_coordinate_records() -> Result<()>
+    {
+        let bound = journal_bound_for_mode(PrefixTransaction::ProtectedDiscreteFeedback)?;
+        assert_eq!(bound, 16 * 1024 * 1024);
+        assert_eq!(
+            journal_bound_for_mode(PrefixTransaction::CoordinateAdjacent)?,
+            journal_upper_bound()?
+        );
+        assert_eq!(
+            journal_bound_for_mode(PrefixTransaction::ProtectedJointVector)?,
+            journal_upper_bound()? + 4 * 1024 * 1024
+        );
+        let objective = json!({"combined":-f64::MAX,"task":-f64::MAX,"reference":-f64::MAX,"correct_reference_frames":17,"all_phase_winners":true,"objective_masses":vec![json!([u64::MAX,u64::MAX,u32::MAX]);31]});
+        let native = json!({"round":31,"incumbent_epoch":0,"objective":objective,"strict_current_CE_and17":true,"affected_guard_indices":vec![u64::MAX;380],"checked_guard_indices":vec![u64::MAX;380],"first_failure":{"guard_index":379,"required":u32::MAX,"chosen":u32::MAX},"guard_status":"NOT_CHECKED_OBJECTIVE_GATE_FALSE","feasible":true,"changed_rows":vec![json!([u64::MAX,u64::MAX,vec![119;8],"f".repeat(64)]);391],"staged_summary_digest":"f".repeat(64),"staged_rows_count":391});
+        let round = json!({"round":31,"destination_master_bits":vec![u32::MAX;1920],"actual_delta":vec![-f64::MAX;1920],"quantized_margin_residuals":vec![-f64::MAX;380],"quantized_tolerance":f64::MAX,"actual_CE_linear_delta":-f64::MAX,"quantized_constraints_passed":true,"eligible":true,"feedback_norm":f64::MAX,"primal_norm":f64::MAX,"duplicate_of":31,"incumbent_epoch":0,"native":native});
+        let journal = json!({"schema":"uor-r4.protected-discrete-feedback/1","policy":policy_for_modes(DonorCredit::FullPoolUtility,PrefixTransaction::ProtectedDiscreteFeedback),"protected_margin_receipt_sha256":"f".repeat(64),"joint_vectors":vec![round;32],"coordinate_records":[],"selected":{"status":"committed","round":31,"incumbent_epoch":0,"epoch_after":1,"selected_receipt":native,"selected_restage_exact":true},"projection":{"feedback_target":vec![-f64::MAX;1920],"unit_row_zero":vec![false;380],"residuals":vec![-f64::MAX;380]},"summary":{"initial":objective,"final":objective}});
+        // Pretty encoding is larger than the compact scientific writer. Reserve
+        // a further2MiB for scalar projection/summary fields and policy wording.
+        assert!(serde_json::to_vec_pretty(&journal)?.len() as u64 + 2 * 1024 * 1024 < bound);
+        Ok(())
+    }
+    #[test]
+    fn discrete_saved_mode_is_protected_but_not_legacy_recovery() {
+        assert!(PrefixTransaction::ProtectedDiscreteFeedback.is_protected());
+        assert!(!PrefixTransaction::ProtectedDiscreteFeedback.legacy());
+        assert!(validate_transaction(
+            PrefixTransaction::ProtectedDiscreteFeedback,
+            DonorCredit::FullPoolUtility,
+            false
+        )
+        .is_ok());
+        assert!(validate_transaction(
+            PrefixTransaction::ProtectedDiscreteFeedback,
+            DonorCredit::FullPoolUtility,
+            true
+        )
+        .is_err());
+        assert!(validate_transaction(
+            PrefixTransaction::ProtectedDiscreteFeedback,
+            DonorCredit::StateTangent,
+            false
+        )
+        .is_err());
+        assert!(validate_inherited_transaction(
+            PrefixTransaction::ProtectedDiscreteFeedback,
+            PrefixTransaction::ProtectedJointVector,
+            &json!({"prefix_transaction":"protected_joint_vector"})
+        )
+        .is_err());
     }
     #[test]
     fn full_pool_donor_credit_captures_joint_pair_transition_missing_state_tangent() -> Result<()> {

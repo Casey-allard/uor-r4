@@ -6338,7 +6338,7 @@ fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
 fn run(a: &Args, start: Instant) -> Result<Value> {
     if a.coupled_episode_learning
         .as_ref()
-        .is_some_and(|c| c.retained_gradient.is_some() || c.retained_export.is_some())
+        .is_some_and(|c| c.no_new_gradients())
     {
         return coupled_episode_learning::run(a, start, &Device::Cpu);
     }

@@ -60,6 +60,16 @@ original-parent run passes the continuous screen but rejects all four quantized
 displacements before native proposal scoring; it commits no update. The record
 retains the execution failures and the negative, without a response-gain claim.
 
+The separate `coupled_episode_learning.prefix_transaction: "protected_discrete_feedback"`
+requires a version1 `saved_protected_credit` authority for the completed #2101
+producer, with `full_pool_utility` and no legacy recovery fields. It imports
+original31 objective/380 protected derivatives and performs no new training graphs.
+A fixed32-round feedback quantizer forms joint legal Prefix/Generate updates;
+only distinct destinations satisfying actual-displacement protection and descent
+reach the unchanged native391-row gates. See the [saved-credit record](../../docs/labs/protected-discrete-feedback-2026-10-09/README.md)
+for exact policy, resource admission and execution status. Historical modes and
+the full conditional/own-feedback qualification boundary remain unchanged.
+
 ## Complete-prefix native dialogue learning
 
 `dialogue-prefix-fit` connects the strict retained R1d parameter import to exact
