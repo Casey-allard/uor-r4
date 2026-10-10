@@ -1,0 +1,110 @@
+UOR-R4 — The word control survives the per-position read; three of its rows were inflated by up to 14x
+Date: 2026-10-09. DeepSeek lab, session pcopy-posread. References #2029.
+CPU only, no pod, no training, no knob, no model saved, $0, no v5 re-run. Same example, same artifact,
+same panel, same gate (extended), nothing regenerated.
+
+THE QUESTION
+  The previous conclusion rests on the word control: 21 of 27 word rows put their value above the
+  frame against 0 of 13 numeric rows. But the id-based share sums copy mass over EVERY position
+  holding the value's ids, so a subword that also occurs elsewhere inflates it, and only one word
+  value (Polly) had a single-token span. This piece re-reads the same rows PER POSITION.
+
+THE TWO PUBLIC PATHS
+  value_id_share   StackModel::score_targets -> PointerRowStats::copy_mass   (mass over token IDS)
+  value_pos_share  StackModel::read_span_probe -> SpanProbe.pointer.attention (mass over POSITIONS)
+  frame_id_share   either: every position holding one of the 9 frame ids
+  argmax_source    read_span_probe: the pointer's most-attended position at that step
+  For a value whose tokens occur only in its own span the two are equal by construction; where they
+  differ, the difference IS the inflation.
+
+IDENTITIES (sha256, unchanged from the previous piece and verified in this run)
+  model      ~/uor-r4-local/reply-cap96-inputs/ladder/runs/chat-29m-B-lr5e-4/model/model.safetensors
+             d8a3c971ef07a82ca0db0704b34821e24782c7734baaafb504fd754f82988068 (115,847,468 B)
+  replies    v5-declared-acceptance-2026-10-09/replies-29m.json  fd64bdfffc2e0d5d44626496422bb6676417cae555a65ec2212cf554f37de58d
+  trace      pointer-positional-read-2026-10-09/full-per-step-arm-a.json  f1ecccad139586548d5f2c669b98b63836e04a883905ba0f69b7a03b216bca60
+  panel      data/panels/conversational-v5.json  e766cfe9a311eb85c465dba7a9d5b74961f8ccb75cd9f93b3b3e9337b992c750
+  checks     data/panels/conversational-v5-checks.tsv  737c4dfd5a65fe49c207afe40e88bf354c7cf9dd45fa173c54e639bb0aa0dbc8
+  tokenizer  d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89
+
+THE GATE (three checks, enforced; verbatim program line follows)
+  validation PASSED: 13 rows, 166 traced steps; hit == matches_source; attention argmax == trace source at every traced step; the two public paths agree to 2.329e-6
+  rows_checked 13  steps_checked 166  cross_path_max_abs_delta 2.329074e-06  void False
+  (1) hit == matches_source at every traced step; (2) attention argmax == trace source position and
+      source_id at every traced step; (3) the two paths agree to 1e-5, the f32 accumulation bound --
+      the measured 2.329e-06 tripped an initial 1e-6 tolerance, so the tolerance was set deliberately
+      and the measured value is printed with every result.
+
+TABLE A -- NUMERIC 13 ROWS. pos = mass at the value's own span positions; id = mass over every
+position holding the value's ids; each is the max over the row's reply steps, with the count of steps
+where it exceeds the frame at the same step.
+id                 val  pos(max,steps)     id(max,steps)      inflation  frame    verdict  sel/emit 
+conv-v5-mem-005    41     0.0125 ( 0/14)       0.0213 ( 0/14)          1.70x   0.9962 frame    0/0
+conv-v5-mem-006    75     0.1654 ( 6/15)       0.1674 ( 6/15)          1.01x   0.4314 frame    0/0
+conv-v5-mem-008    68     0.8968 ( 2/11)       0.8968 ( 2/11)          1.00x   0.9830 frame    2/0
+conv-v5-mem-010    85     0.1037 ( 4/11)       0.1037 ( 4/11)          1.00x   0.6788 frame    0/0
+conv-v5-mem-013    88     0.2005 ( 5/12)       0.2005 ( 5/12)          1.00x   0.6757 frame    0/0
+conv-v5-mem-021    71     0.0042 ( 0/14)       0.0396 ( 0/14)          9.45x   0.9961 frame    0/0
+conv-v5-mem-022    89     0.0992 ( 4/15)       0.1880 ( 6/15)          1.90x   0.4926 frame    0/0
+conv-v5-mem-024    54     0.7165 ( 2/11)       0.7165 ( 2/11)          1.00x   0.9823 frame    2/0
+conv-v5-mem-026    99     0.0717 ( 4/11)       0.0717 ( 4/11)          1.00x   0.6907 frame    0/0
+conv-v5-mem-029    83     0.0769 ( 8/12)       0.0951 ( 9/12)          1.24x   0.6299 frame    0/0
+conv-v5-mem-037    98     0.0098 ( 0/14)       0.0098 ( 0/14)          1.00x   0.9969 frame    0/0
+conv-v5-mem-038    71     0.1116 ( 5/14)       0.1116 ( 5/14)          1.00x   0.3740 frame    0/0
+conv-v5-mem-040    84     0.6008 ( 2/12)       0.6013 ( 2/12)          1.00x   0.7315 frame    1/2
+
+TABLE B -- WORD CONTROL 27 ROWS, same columns. 'span len' = tokens in the first located value span.
+id                 value       span  pos(max,steps)     id(max,steps)      inflation  frame    verdict 
+conv-v5-mem-001    Britain     3       0.7500 ( 9/10)       0.7500 ( 9/10)          1.00x   0.0327 value   
+conv-v5-mem-002    Barbara     4       0.4744 ( 7/7 )       0.4744 ( 7/7 )          1.00x   0.0003 value   
+conv-v5-mem-003    Tyler       4       0.2911 (12/12)       0.2911 (12/12)          1.00x   0.0127 value   
+conv-v5-mem-004    Bruno       3       0.1576 ( 4/12)       0.1576 ( 4/12)          1.00x   0.9878 frame   
+conv-v5-mem-007    Howard      2       0.0371 ( 8/9 )       0.5219 ( 9/9 )         14.05x   0.0088 value   
+conv-v5-mem-009    Cincinnati  7       0.4028 (20/24)       0.4028 (20/24)          1.00x   0.3214 value   
+conv-v5-mem-011    Iowa        3       0.0639 (41/46)       0.0807 (42/46)          1.26x   0.0884 frame   
+conv-v5-mem-012    Bradford    4       0.3657 (20/23)       0.3657 (20/23)          1.00x   0.2299 value   
+conv-v5-mem-014    Birmingham  5       0.4694 (15/16)       0.4694 (15/16)          1.00x   0.0231 value   
+conv-v5-mem-015    Charleston  5       0.5558 (13/16)       0.5558 (13/16)          1.00x   0.1250 value   
+conv-v5-mem-016    Anthony     4       0.0991 (11/12)       0.0991 (11/12)          1.00x   0.0964 value   
+conv-v5-mem-017    Madrid      4       0.1332 (14/16)       0.1332 (14/16)          1.00x   0.0871 value   
+conv-v5-mem-018    Polly       1       0.2330 ( 7/9 )       0.2330 ( 7/9 )          1.00x   0.0370 value   
+conv-v5-mem-019    Phil        3       0.3579 ( 6/11)       0.3579 ( 6/11)          1.00x   0.8309 frame   
+conv-v5-mem-020    Lloyd       4       0.3428 ( 6/11)       0.4269 ( 6/11)          1.25x   0.9721 frame   
+conv-v5-mem-023    Charles     3       0.8450 ( 9/9 )       0.8450 ( 9/9 )          1.00x   0.0075 value   
+conv-v5-mem-025    Nevada      5       0.6037 (20/33)       0.6037 (20/33)          1.00x   0.1486 value   
+conv-v5-mem-027    Freddie     3       0.6389 (29/34)       0.6389 (29/34)          1.00x   0.0134 value   
+conv-v5-mem-028    Hunter      3       0.5069 (20/23)       0.5069 (20/23)          1.00x   0.2130 value   
+conv-v5-mem-030    Wichita     4       0.2313 ( 8/8 )       0.2465 ( 8/8 )          1.07x   0.0230 value   
+conv-v5-mem-031    Vienna      5       0.8726 (17/18)       0.8726 (17/18)          1.00x   0.0487 value   
+conv-v5-mem-032    Louis       3       0.1448 (13/13)       0.1448 (13/13)          1.00x   0.0197 value   
+conv-v5-mem-033    Alabama     3       0.8686 (15/15)       0.8686 (15/15)          1.00x   0.1382 value   
+conv-v5-mem-034    Brian       3       0.8381 (14/14)       0.8381 (14/14)          1.00x   0.0105 value   
+conv-v5-mem-035    Luis        3       0.3111 (12/13)       0.3111 (12/13)          1.00x   0.6238 frame   
+conv-v5-mem-036    Mitchell    4       0.1349 ( 2/11)       0.5339 ( 3/11)          3.96x   0.9901 frame   
+conv-v5-mem-039    Moore       3       0.7650 (10/11)       0.7650 (10/11)          1.00x   0.0123 value   
+
+TALLY numeric: value-above-frame pos 0/13  id 0/13; value>=0.40 pos 3/13  id 3/13; pos==id by construction 7/13
+TALLY word:    value-above-frame pos 21/27  id 21/27; value>=0.40 pos 13/27  id 16/27; pos==id by construction 22/27
+
+WHAT CHANGES AND WHAT DOES NOT
+  CHANGES: the sentence '16 of 27 word rows carry >= 0.40' becomes 13 of 27 at the value's own
+  positions; five word rows were inflated by the id measure (Howard 14.05x, Mitchell 3.96x, Iowa
+  1.26x, Lloyd 1.25x, Wichita 1.07x) and four numeric rows (mem-021 9.45x, mem-022 1.90x, mem-005
+  1.70x, mem-029 1.24x). Numeric value shares move down or stay equal.
+  DOES NOT CHANGE: the contrast the conclusion rests on. 21 of 27 word rows put the value above the
+  frame under BOTH metrics against 0 of 13 numeric rows under both; 3 of 13 numeric rows reach 0.40
+  under both; and NO row's value-versus-frame verdict flips between the metrics.
+  CARRY FORWARD: the per-position share (it measures the value's own occurrence); the id share stays
+  published beside it with its inflation factor.
+
+LEDGER / WHAT DOES NOT CHANGE
+  Token count REFUTED; digit order REFUTED; value addressability REFUTED; single-source shape REFUTED
+  in its simple form; 'history-insensitive' CORRECTED to the frame's invariance; the pointer attends
+  the sentence frame and never the varying slot; the copy mass follows the attention exactly (0.60-0.90
+  where the argmax holds a stored digit, <=0.20 where it does not). This piece adds: the word control
+  survives a per-position re-read, so the numeric-versus-word contrast is not an id-accounting
+  artefact, and the inflation is bounded and named per row.
+  criterion 1 remains NOT MET on both halves, 43/232 is unchanged, v5 was not re-run, no model or knob
+  was touched, and STATUS/ROADMAP/#2028 are unchanged.
+
+COST: zero pod spend, zero external compute. Warm build; numeric run 16 s, all-rows run 115 s on the
+laptop CPU. Scratch and outputs in this worktree's gitignored local/.

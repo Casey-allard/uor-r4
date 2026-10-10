@@ -105,6 +105,15 @@ content when the head looks at it. Caveat, stated because it matters: word spans
 subword that also occurs elsewhere inflates the share (only one word value, `Polly`, is a single token),
 so the control is directional, not exact.
 
+**Correction (2026-10-09), from the [per-position re-read](../pcopy-posread-2026-10-09/README.md), which
+lifted that caveat.** The id-based share was inflated on 5 of these 27 rows — `Howard` 14.05× (0.0371 at
+its own positions against 0.5219 by id), `Mitchell` 3.96×, `Iowa` 1.26×, `Lloyd` 1.25×, `Wichita`
+1.07× — and on 4 of the numeric rows (`mem-021` 9.45×, `mem-022` 1.90×, `mem-005` 1.70×, `mem-029`
+1.24×). **Corrected numbers: 21 of 27 word rows still put the value above the frame (unchanged, and 0 of
+13 numeric), but "16 of 27 reach ≥ 0.40" becomes 13 of 27**, and no row's value-versus-frame verdict
+flips between the two measures. Quote the **per-position** share from here on; the id share stays
+published beside it as a labelled secondary with its inflation factor.
+
 ## The bound, beside the measurement
 
 `p_copy(digit) ≤ attention at the argmax` on steps where the argmax is elsewhere:
