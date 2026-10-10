@@ -1,5 +1,5 @@
 //! One ordinary all-answer fit from the accepted Source48/Generate64 parent.
-//! Only Potential and Generate coefficients train; no U or proposal machinery.
+//! Potential/Generate learning, optionally including prototypes; no U or proposals.
 use super::*;
 
 const QUALIFICATION_INDICES: [usize; 24] = [
@@ -35,13 +35,16 @@ const QUALIFICATION_IDS: [&str; 24] = [
 ];
 
 pub(super) fn is_mode(mode: Mode) -> bool {
-    matches!(mode, Mode::ReplyCompletion | Mode::ReplyQualification)
+    matches!(
+        mode,
+        Mode::ReplyCompletion | Mode::ReplyQualification | Mode::ReplyPrototypeQualification
+    )
 }
 
 fn expected_updates(mode: Mode) -> Result<usize> {
     match mode {
         Mode::ReplyCompletion => Ok(64),
-        Mode::ReplyQualification => Ok(96),
+        Mode::ReplyQualification | Mode::ReplyPrototypeQualification => Ok(96),
         _ => Err(bad("not a reply training mode")),
     }
 }
@@ -51,7 +54,7 @@ fn expected_updates(mode: Mode) -> Result<usize> {
 fn draw_schedule(mode: Mode, seed: u64) -> Result<Vec<usize>> {
     match mode {
         Mode::ReplyCompletion => Ok(order(seed, 512)),
-        Mode::ReplyQualification => {
+        Mode::ReplyQualification | Mode::ReplyPrototypeQualification => {
             let one_epoch = order(seed, QUALIFICATION_INDICES.len())
                 .into_iter()
                 .map(|i| QUALIFICATION_INDICES[i])
@@ -377,7 +380,17 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
         return Err(bad("reply completion Generate parameter groups absent"));
     }
     let potential = l.source.potential_parameters();
-    let mut frozen = prototype;
+    let train_prototypes = a.mode == Mode::ReplyPrototypeQualification;
+    let initial_prototype_masters = identities(&prototype)?;
+    let mut trainable_generate = coefficients.clone();
+    if train_prototypes {
+        trainable_generate.extend(prototype.clone());
+    }
+    let mut frozen = if train_prototypes {
+        BTreeMap::new()
+    } else {
+        prototype.clone()
+    };
     frozen.extend(
         l.source
             .parameters()
@@ -392,10 +405,15 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
             .map(|(n, v)| (format!("marker.{n}"), v)),
     );
     let frozen_identity = identities(&frozen)?;
-    let mut active = coefficients.clone();
+    let mut active = trainable_generate.clone();
     active.extend(potential.clone());
-    let qualification = a.mode == Mode::ReplyQualification;
-    let mode_name = if qualification {
+    let qualification = matches!(
+        a.mode,
+        Mode::ReplyQualification | Mode::ReplyPrototypeQualification
+    );
+    let mode_name = if train_prototypes {
+        "reply_prototype_qualification"
+    } else if qualification {
         "reply_qualification"
     } else {
         "reply_completion"
@@ -436,7 +454,7 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
         "active_parameter_names":active.keys().collect::<Vec<_>>(),
         "initial_active_masters":identities(&active)?,"frozen_masters":frozen_identity,
         "optimizer":"fresh AdamW, beta1=.9 beta2=.999 eps=1e-8 weight_decay=0",
-        "rates":{"generate_coefficients":0.003,"potential":0.003},"updates":a.updates,"batch":8,
+        "rates":{"generate_coefficients":0.003,"potential":0.003,"prototype":if train_prototypes {Some(0.01)} else {None}},"updates":a.updates,"batch":8,
         "loss_scope":"all complete-answer tokens including EOS",
         "phase_policy":loss_weight_policy(true,LossScope::All),
         "credit":a.credit.name(),"read_state_pullback":a.read_state_pullback.name(),
@@ -454,7 +472,7 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
     {
         return Err(bad("reply completion zero-update parent export differs"));
     }
-    let (_, admission) = batch(
+    let (admission_gradients, admission) = batch(
         a,
         &l,
         &train,
@@ -464,6 +482,32 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
         Some(&initial_model),
     )?;
     write(a, "zero-update-admission.json", &admission)?;
+    let prototype_gradient_admission = if train_prototypes {
+        let selected = admission_gradients
+            .into_iter()
+            .filter(|(name, _)| prototype.contains_key(name))
+            .collect::<BTreeMap<_, _>>();
+        if selected.len() != prototype.len() {
+            return Err(bad("prototype gradient family absent at accepted parent"));
+        }
+        let (_, norm) = clip_denominator(&selected, d)?;
+        if !norm.is_finite() || norm <= 0. {
+            return Err(bad(
+                "prototype gradient at accepted parent is not finite and nonzero",
+            ));
+        }
+        Some(
+            json!({"gradient_norm":norm,"initial_masters":initial_prototype_masters,
+            "scope":"discarded admission batch; no optimizer update"}),
+        )
+    } else {
+        None
+    };
+    write(
+        a,
+        "prototype-gradient-admission.json",
+        &json!(prototype_gradient_admission),
+    )?;
     let eval_start = Instant::now();
     let initial = evaluate(
         a,
@@ -496,6 +540,11 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
     let initial_evaluation_seconds = eval_start.elapsed().as_secs_f64();
     let mut go = optimizer(&coefficients, 0.003)?;
     let mut po = optimizer(&potential, 0.003)?;
+    let mut proto = if train_prototypes {
+        Some(optimizer(&prototype, 0.01)?)
+    } else {
+        None
+    };
     let fit_start = Instant::now();
     let mut updates = Vec::new();
     let checkpoint_every = if qualification { 24 } else { 32 };
@@ -504,10 +553,13 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
         deadline(a, start)?;
         let indices = &schedule[step * BATCH..(step + 1) * BATCH];
         let (grads, receipt) = batch(a, &l, &train, indices, d, start, None)?;
-        let grads = selected_gradients(grads, &coefficients, &potential)?;
+        let grads = selected_gradients(grads, &trainable_generate, &potential)?;
         let (denominator, norm) = clip_denominator(&grads, d)?;
         apply(&mut go, &coefficients, &grads, &denominator)?;
         apply(&mut po, &potential, &grads, &denominator)?;
+        if let Some(optimizer) = proto.as_mut() {
+            apply(optimizer, &prototype, &grads, &denominator)?;
+        }
         l.generate.project_shadow_range()?;
         l.source.project_potential_range()?;
         if identities(&frozen)? != frozen_identity {
@@ -559,6 +611,8 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
     )?;
     let final_metrics = metrics(a, &final_eval, &dev)?;
     write(a, &format!("metrics-{:04}.json", a.updates), &final_metrics)?;
+    let native_crossings = control_crossings(a, &initial_generate, &final_generate, a.updates)?;
+    write(a, "native-code-crossings.json", &native_crossings)?;
     let comparison = outcomes(&initial, &final_eval)?;
     write(a, "row-comparison.json", &comparison)?;
     let final_evaluation_seconds = eval_start.elapsed().as_secs_f64();
@@ -582,11 +636,17 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
         "final_evaluation_seconds":final_evaluation_seconds,
         "elapsed_seconds":start.elapsed().as_secs_f64(),
         "final_active_masters":identities(&active)?,"frozen_masters":frozen_identity,
+        "prototype_gradient_admission":prototype_gradient_admission,
+        "train_prototypes":train_prototypes,"native_code_crossings":native_crossings,
         "scope":"ordinary Potential/Generate coefficient learning from accepted48/64 over exposed512 complete-answer/EOS positions; Context/prototypes/bridge/Cue/Prefix fixed; no U, protected constructor or solver; native reloaded own-feedback endpoint; no held-out transfer/chat/energy qualification"});
     if let Some(result) = qualification_report {
         report["qualification"] = result;
         report["training_indices"] = json!(QUALIFICATION_INDICES);
         report["scope"] = json!("ordinary Potential/Generate coefficient learning on fixed24 strata repeated32 epochs; full512 native reloaded own-feedback evaluation; qualified_fit requires24/24; modelKEEP separately requires original8 retention and full512 gain; Context/prototypes/bridge/Cue/Prefix frozen, no U or constructor; no held-out transfer/chat/energy qualification");
+    }
+    if train_prototypes {
+        report["schema"] = json!("uor-r4.geometric-reply-prototype-qualification/1");
+        report["scope"] = json!("ordinary Potential/Generate coefficient/prototype learning on fixed24 repeated32 epochs; full512 native reloaded own-feedback endpoint; Context/bridge/Cue/Prefix frozen, no U or constructor; no held-out transfer/chat/energy qualification");
     }
     Ok(report)
 }
@@ -678,6 +738,40 @@ mod tests {
         let mut legacy = config();
         legacy["updates"] = json!(96);
         assert!(settings(&serde_json::from_value(legacy)?).is_err());
+        Ok(())
+    }
+    #[test]
+    fn reply_prototype_qualification_preserves_schedule_and_admission() -> Result<()> {
+        let mut c = config();
+        c["mode"] = json!("reply_prototype_qualification");
+        c["updates"] = json!(96);
+        settings(&serde_json::from_value(c.clone())?)?;
+        assert_eq!(
+            draw_schedule(Mode::ReplyPrototypeQualification, 1001)?,
+            draw_schedule(Mode::ReplyQualification, 1001)?
+        );
+        c["updates"] = json!(64);
+        assert!(settings(&serde_json::from_value(c)?).is_err());
+        Ok(())
+    }
+    #[test]
+    fn reply_prototype_gradient_participates_in_active_clip() -> Result<()> {
+        let d = Device::Cpu;
+        let generate = BTreeMap::from([
+            ("generate.field".into(), Var::new(0f32, &d)?),
+            ("generate.prototype_choices".into(), Var::new(0f32, &d)?),
+        ]);
+        let potential = BTreeMap::from([("potential.field".into(), Var::new(0f32, &d)?)]);
+        let grads = BTreeMap::from([
+            ("generate.field".into(), Tensor::new(3f32, &d)?),
+            ("generate.prototype_choices".into(), Tensor::new(12f32, &d)?),
+            ("potential.field".into(), Tensor::new(4f32, &d)?),
+            ("consumer.context".into(), Tensor::new(1000f32, &d)?),
+        ]);
+        let selected = selected_gradients(grads, &generate, &potential)?;
+        assert_eq!(selected.len(), 3);
+        let (_, norm) = clip_denominator(&selected, &d)?;
+        assert!((norm - 13.).abs() < 1e-6);
         Ok(())
     }
     #[test]

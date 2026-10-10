@@ -108,6 +108,7 @@ enum Mode {
     JointContinuation,
     ReplyCompletion,
     ReplyQualification,
+    ReplyPrototypeQualification,
 }
 
 const REPLAY_REPORT_SHA: &str = "9582f56c8d285920cd67977fd23d36e8a96beabe7c5f27ea45ad4b1113d3503c";

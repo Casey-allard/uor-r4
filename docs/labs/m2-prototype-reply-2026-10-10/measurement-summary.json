@@ -1,0 +1,77 @@
+{
+  "source_commit": "0462003622bc8ba5dd8ccb9d489612215f528ab8",
+  "status": "COMPLETED",
+  "updates": 96,
+  "training_row_draws": 768,
+  "target_position_draws": 9280,
+  "initial_evaluation_seconds": 214.131643802,
+  "fit_seconds_including_checkpoints": 1444.892958225,
+  "final_evaluation_seconds": 389.213461751,
+  "elapsed_seconds": 2070.021648685,
+  "native_code_crossings": {
+    "consumer_identity_scope": "tree identity changes include native Context/Potential metadata; not a count of categorical state crossings",
+    "current_native_consumer_tree_sha256": "6fbf65854557d9afd1e7493e3da93053f085ec80a9809eb5a6387ac596e88ef8",
+    "generate_bias_code_crossings": 1,
+    "generate_pair_code_crossings": 455,
+    "generate_prototype_lane_code_crossings": 31828,
+    "generate_unary_code_crossings": 200,
+    "initial_native_consumer_tree_sha256": "d53b7c57c78da1e2f5c16f9a07e3954bab58ad15840fac4adbef00b7a89ea6b9",
+    "native_consumer_tree_changed": true,
+    "step": 96
+  },
+  "prototype_gradient_admission": {
+    "gradient_norm": 0.01705411995955738,
+    "initial_masters": {
+      "generate.prototype_choices": "3ad2349a1e500a3badb9cd9801fe8eb7856f8f4ae4149a4524458e02ee523876"
+    },
+    "scope": "discarded admission batch; no optimizer update"
+  },
+  "metrics": {
+    "initial": {
+      "entry_own_correct": 8,
+      "entry_teacher_correct": 8,
+      "first_divergent_own_position_correct": 30,
+      "first_divergent_own_prefix_reached": 8,
+      "first_divergent_teacher_correct": 50,
+      "later_copy_covered_positions": 4128,
+      "later_copy_covered_teacher_correct": 355,
+      "missing_rows": 0,
+      "paired_own_position_both_correct": 4,
+      "paired_teacher_both_correct": 6,
+      "rows": 512
+    },
+    "final": {
+      "entry_own_correct": 11,
+      "entry_teacher_correct": 11,
+      "first_divergent_own_position_correct": 33,
+      "first_divergent_own_prefix_reached": 7,
+      "first_divergent_teacher_correct": 65,
+      "later_copy_covered_positions": 4128,
+      "later_copy_covered_teacher_correct": 437,
+      "missing_rows": 0,
+      "paired_own_position_both_correct": 3,
+      "paired_teacher_both_correct": 8,
+      "rows": 512
+    }
+  },
+  "complete_swap_pairs": {
+    "initial": 4,
+    "final": 1
+  },
+  "sha256": {
+    "report.json": "22fb69a89cfa6191ce9e05f840cf4afb790ec10b4bd2e0a07f6962f5a94d4ece",
+    "manifest.json": "d619eb59cafe261b7c991063acb6d87560c70874aee3414ea0220155ddb95b29"
+  },
+  "process_accounting": {
+    "argv": [
+      "/workspace/uor-r4/codex/m2-prototype-reply-20261010/runtime/geometric-frozen-map-fit",
+      "/workspace/uor-r4/codex/m2-prototype-reply-20261010/model-config.json"
+    ],
+    "started_utc": "2026-10-10T07:30:39.611294+00:00",
+    "seconds": 2077.447156706825,
+    "exit_code": 0,
+    "peak_child_rss_kib": 1463744
+  },
+  "sampled_gpu_max_mib": 4216,
+  "telemetry_samples": 208
+}

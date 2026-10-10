@@ -1,0 +1,50 @@
+{
+  "source_commit": "0462003622bc8ba5dd8ccb9d489612215f528ab8",
+  "binary_sha256": "3b1aa57c8497cca5f8d9268bbfcdf85b04780d782d1e9ada640fe438286bde3e",
+  "producer_source_review": "PASS_SOURCE_ONLY at exact0462003622bc8ba5dd8ccb9d489612215f528ab8; existing prototype adjoint/optimizer before clip, fixed24/96 and frozen families; no reviewer tests executed",
+  "checks": {
+    "build": {
+      "argv": [
+        "cargo",
+        "build",
+        "--release",
+        "--locked",
+        "--offline",
+        "-p",
+        "uor-r4-training",
+        "--features",
+        "cuda",
+        "--example",
+        "geometric-frozen-map-fit"
+      ],
+      "started_utc": "2026-10-10T07:25:49.051021+00:00",
+      "seconds": 225.23285980708897,
+      "exit_code": 0,
+      "peak_child_rss_kib": 3615352
+    },
+    "tests": {
+      "argv": [
+        "cargo",
+        "test",
+        "--release",
+        "--locked",
+        "--offline",
+        "-p",
+        "uor-r4-training",
+        "--features",
+        "cuda",
+        "--example",
+        "geometric-frozen-map-fit",
+        "reply_",
+        "--",
+        "--test-threads=2"
+      ],
+      "started_utc": "2026-10-10T07:29:34.341334+00:00",
+      "seconds": 21.674125122837722,
+      "exit_code": 0,
+      "peak_child_rss_kib": 1070644
+    },
+    "focused_result": "8 passed;0 failed;0 ignored;164 filtered out",
+    "fmt": "rustfmt --edition2021 --config skip_children=true --check on both changed Rust files;exit0"
+  }
+}

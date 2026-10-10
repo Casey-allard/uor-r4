@@ -1,0 +1,27 @@
+{
+  "name": "codex-m2-prototype-reply-20261010",
+  "components": {
+    "exact-parent-and-panel.tar.gz": {
+      "bytes": 22148342,
+      "sha256": "8ffc75578890f99e76d2d6c90af72a8937f1b679516aad54a9832d7757edfd1a"
+    },
+    "prior-reports/2141-report.json": {
+      "bytes": 1427012,
+      "sha256": "678f4ff4d8b97559260076607f6168b7d5f4317cc1472bd9fe5e253ca76bdbb7"
+    },
+    "prior-reports/2143-report.json": {
+      "bytes": 1456265,
+      "sha256": "16d03a31fc1eb27ee270cec96a7d388c108522c79b2a87856a0ca94b232aab68"
+    },
+    "run-and-runtime.tar.gz": {
+      "bytes": 141825672,
+      "sha256": "0268a885b6a9064eea1ebd872f7d564a58f62aea92c4eb652e2768604d415c1d"
+    },
+    "source.bundle": {
+      "bytes": 2104,
+      "sha256": "49173930511006f9827ab7ca402eb4a10f0d4096b8655c800bc9811b632b4825"
+    }
+  },
+  "restore": "cloud-store fetch package destination; extract parent and run archives; remap config and prior reader paths; source bundle requires published base8421e605f677175957ee3a268439bf8d62bfa311",
+  "source_commit": "0462003622bc8ba5dd8ccb9d489612215f528ab8"
+}

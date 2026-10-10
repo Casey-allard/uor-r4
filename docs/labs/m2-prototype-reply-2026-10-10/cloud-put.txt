@@ -1,0 +1,8 @@
+Archive: icloud:UOR-R4/results/codex/codex-m2-prototype-reply-20261010.tar
+Bytes: 166871040
+MD5 local pod archive: dd3af2e779b0ea55ad2eb9a80ba9b2f3
+MD5 whole archive streamed back from iCloud: dd3af2e779b0ea55ad2eb9a80ba9b2f3
+Index: icloud:UOR-R4/index/codex-m2-prototype-reply-20261010.tsv
+Index read back matches all six columns.
+Method: uor-pod ssh cat | rclone rcat; rclone cat | md5 -q.
+Reason: local disk below 30 GiB floor, no local archive staging.
