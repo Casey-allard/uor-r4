@@ -61,8 +61,25 @@ All four clear the 0.01 threshold. **Arm 3 − arm 1:** +0.0003 and +0.0001 on s
   more seeds would tighten the estimate.
 - **Scale.** These are small runs (6.8M training tokens per run) of one learner on TinyStories.
 
+## Result 2: mode 2 (root codes + per-token readout residual), laptop CPU
+
+Pre-registered on [#2029](https://github.com/UOR-Foundation/uor-r4/issues/2029) before the runs. KEEP required mode 2 to beat fixed codes on both slices for both seeds, with its own VSA ablation Δ above 0.
+
+- **What ran:** `train-native-prose` / `ablate-prose` at main `c7fce45b1` on the owner's laptop (8 threads, `--samples 0`). Same corpus, window (offset 200,000,000, 6,795,016 tokens), batch, sequence length, lanes, seeds, slices and ablations as Result 1. Arm 2 (fixed codes) was rerun on the laptop for a same-machine control. Arm 5 trained with `--vsa-codes readout` and was scored with `--vsa-code-mode learned` (4,096 distinct codes).
+- **Reproducibility:** the laptop rerun of arm 2 matches the pod run of Result 1 to every printed digit (1.8366 / 1.8214 and 1.8582 / 1.8427), so laptop and pod results here are directly comparable.
+- **Cost:** about 50 minutes of laptop CPU: training 54–91 s per run, scoring 6–8 minutes per slice. No pod.
+
+| Arm | Seed | Slice A | Slice B | VSA ablation Δ (95% CI), A / B | Engram ablation Δ, A / B |
+| --- | --- | --- | --- | --- | --- |
+| 2: fixed codes | 20260917 | **1.8366** | **1.8214** | +0.0133 [0.0128, 0.0139] / +0.0151 [0.0145, 0.0157] | +0.1943 / +0.1851 |
+| 5: root + readout residual | 20260917 | 1.8629 | 1.8491 | −0.0050 [−0.0062, −0.0038] / −0.0043 [−0.0056, −0.0031] | +0.1884 / +0.1796 |
+| 2: fixed codes | 20261009 | **1.8582** | **1.8427** | +0.0139 [0.0134, 0.0145] / +0.0157 [0.0151, 0.0163] | +0.1948 / +0.1857 |
+| 5: root + readout residual | 20261009 | 1.8707 | 1.8566 | −0.0029 [−0.0040, −0.0017] / −0.0021 [−0.0033, −0.0009] | +0.1941 / +0.1852 |
+
+**Decision: not KEEP.** Mode 2 is worse than fixed codes in all four cells, by +0.026 / +0.028 (seed 20260917) and +0.013 / +0.014 (seed 20261009). Its own VSA term is slightly harmful: removing it lowers BPB by 0.002–0.005, with every CI below 0. Fixed codes stay the default, and the mode-2 code stays in place.
+
+**Reading (hypothesis, not tested):** in this mode the codebook is rebuilt from the readout every 1,000 steps while training runs (`--vsa-code-refresh`, default 1000, which these runs used), so the heads may chase moving codes. The fixed codebook gives each token a code that never changes. A test would freeze the mode-2 codebook after a warm-up and train on.
+
 ## Next
-- **Mode 2:** root codes bound with a per-token readout residual, already built in #2077. It keeps the
-  icosian structure and gives every token its own code.
-- **Run order:** after the native learner is made truly multi-core, run mode 2 on the owner's laptop
-  (CPU-only), with the same arms, slices and seeds plus per-position losses for the cross-arm interval.
+- **Mode 2: done, not KEEP** (Result 2 above). The freeze-after-warm-up test is the one follow-up the result justifies; it is not scheduled.
+- Fixed-code VSA stays the default for the native learner. The M4 softmax-free reads come next.

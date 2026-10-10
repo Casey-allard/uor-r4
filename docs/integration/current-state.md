@@ -1,3 +1,6 @@
+## 2026-10-09 — VSA mode 2 is worse than fixed codes: not KEEP (claude, #2029)
+
+Pre-registered on #2029 and run on the owner's laptop CPU, at main `c7fce45b1`. Mode 2 binds root codes with a per-token readout residual. Its held-out BPB is 1.8629 / 1.8491 and 1.8707 / 1.8566 (seeds × slices A / B), against 1.8366 / 1.8214 and 1.8582 / 1.8427 for fixed codes rerun on the same machine; those reruns match the pod run to every digit. Its own VSA ablation Δ is −0.002 to −0.005 (CIs below 0). Fixed codes stay the default. Record: [vsa-native-test-2026-10-09](../labs/vsa-native-test-2026-10-09/README.md) Result 2. About 50 min of laptop CPU, no pod.
 ## 2026-10-09 — The v5 declared acceptance run EXECUTED and MISSES: 10 of 40 against a declared >= 34 (deepseek, #2029)
 
 The run the v5 freeze declared and deliberately did not take. Record:
