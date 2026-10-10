@@ -14,6 +14,16 @@ const RESUME145_MANIFEST_SHA: &str =
 const RESUME145_FIELD_SHA: &str =
     "03781884edd6c2524c66e724c1fc65d9b9c62968d33b264d976282b49ce8094a";
 
+const RESUME175_REPORT_SHA: &str =
+    "9632d32651d0bcce82b2cda2ba70dee7d7a7878ff99577f88002442e23acb572";
+const RESUME175_MANIFEST_SHA: &str =
+    "1a6216a307a739a804f81bf94e93fd89638a896fda1904986dd3aee0a280fccc";
+const RESUME175_FIELD_SHA: &str =
+    "c82c376df10f14d5c1c9af970fd3b1fe239fb3560e2ccd0020dd2805d8fb773e";
+const RESUME175_MASTER_SHA: &str =
+    "c59f6eb8898a7b7f3ebef0a877a7a26fef3ab3eb681a55e8c6e02cf701d11f10";
+const BOTTLENECK_OBJECTIVE: &str = "equal-episode-logmeanexp-unweighted-native-token-CE/1;temperature1;all-targets-including-EOS;existing-raw-identity-STE;no-phase-weighting";
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) struct ResumeProfile {
     report_sha: &'static str,
@@ -38,6 +48,14 @@ const SAVED145: ResumeProfile = ResumeProfile {
     checkpoint_step: 256,
     lineage_step: 320,
     complete: 145,
+};
+const SAVED175: ResumeProfile = ResumeProfile {
+    report_sha: RESUME175_REPORT_SHA,
+    manifest_sha: RESUME175_MANIFEST_SHA,
+    field_sha: RESUME175_FIELD_SHA,
+    checkpoint_step: 256,
+    lineage_step: 576,
+    complete: 175,
 };
 impl ResumeProfile {
     pub fn lineage_after(self, local_step: usize) -> usize {
@@ -74,6 +92,46 @@ impl ResumeProfile {
             {
                 return Err(bad("cross-state saved145 lineage/provenance differs"));
             }
+        } else if self == SAVED175 {
+            let prior = &report["cross_state_resume"];
+            let initial = &report["initial_receipt"];
+            if report["prior_updates"] != SAVED145.lineage_step
+                || report["lineage_step"] != self.lineage_step
+                || receipt["lineage_step"] != self.lineage_step
+                || report["fresh_adam"] != true
+                || receipt["cross_state_resume"] != *prior
+                || initial["cross_state_resume"] != *prior
+                || prior["report_sha256"] != SAVED145.report_sha
+                || prior["manifest_sha256"] != SAVED145.manifest_sha
+                || prior["field_sha256"] != SAVED145.field_sha
+                || prior["prior_step"] != SAVED145.checkpoint_step
+                || prior["prior_lineage_step"] != SAVED145.lineage_step
+                || prior["prior_complete"] != SAVED145.complete
+                || initial["step"] != 0
+                || initial["lineage_step"] != SAVED145.lineage_step
+                || initial["continuation_sha256"] != SAVED145.field_sha
+                || initial["parameters"] != prior["source_master_inventory"]
+                || report["initial"]["continuation_sha256"] != SAVED145.field_sha
+                || report["initial"]["complete"] != SAVED145.complete
+                || report["phase_policy"] != "none;all-target-token-logmeanexp"
+                || receipt["parameters"]["continuation.cross_state"]["sha256"]
+                    != RESUME175_MASTER_SHA
+                || report["final_active_masters"]["continuation.cross_state"]
+                    != RESUME175_MASTER_SHA
+            {
+                return Err(bad(
+                    "cross-state saved175 lineage/ancestry/master identity differs",
+                ));
+            }
+            for policy in [report, initial, receipt] {
+                if policy["cross_state_bottleneck"] != true
+                    || policy["training_objective"] != BOTTLENECK_OBJECTIVE
+                    || policy["loss_scope"] != "all"
+                    || policy["credit"] != "raw_identity"
+                {
+                    return Err(bad("cross-state saved175 bottleneck policy differs"));
+                }
+            }
         } else {
             return Err(bad("cross-state unsupported resume profile"));
         }
@@ -91,7 +149,7 @@ pub(super) struct ResumeConfig {
 
 impl ResumeConfig {
     fn profile(&self) -> Result<ResumeProfile> {
-        [SAVED22, SAVED145]
+        [SAVED22, SAVED145, SAVED175]
             .into_iter()
             .find(|p| {
                 self.expected_report_sha256 == p.report_sha
@@ -259,10 +317,10 @@ pub(super) fn settings(a: &Args) -> Result<()> {
         .as_ref()
         .map(ResumeConfig::profile)
         .transpose()?;
-    // Saved145's previous phase-balanced continuation is closed. Its strict
-    // loader is reused only for this pre-registered objective intervention.
-    if a.cross_state_bottleneck != (profile == Some(SAVED145)) {
-        return Err(bad("bottleneck objective requires pinned saved145; stopped phase-CE saved145 continuation is unavailable"));
+    // The stopped phase-balanced continuation stays unavailable. These two
+    // strict profiles are admitted only under the retained bottleneck objective.
+    if a.cross_state_bottleneck != matches!(profile, Some(SAVED145 | SAVED175)) {
+        return Err(bad("bottleneck objective requires pinned saved145 or saved175; phase-CE continuation from either is unavailable"));
     }
     if a.updates
         != if a.cross_state_resume.is_some() {
@@ -429,7 +487,7 @@ pub(super) fn outcomes(
 /// Training-only objective; native scoring and evaluation CE remain unchanged.
 pub(super) fn objective_policy(a: &Args) -> &'static str {
     if a.cross_state_bottleneck {
-        "equal-episode-logmeanexp-unweighted-native-token-CE/1;temperature1;all-targets-including-EOS;existing-raw-identity-STE;no-phase-weighting"
+        BOTTLENECK_OBJECTIVE
     } else {
         loss_weight_policy(true, LossScope::All)
     }
@@ -826,16 +884,19 @@ mod tests {
 
     #[test]
     fn cross_state_saved145_admission_requires_complete_profile_triple() -> Result<()> {
-        for profile in [SAVED22, SAVED145] {
+        for profile in [SAVED22, SAVED145, SAVED175] {
             assert_eq!(profile_config(profile).profile()?, profile);
             let mut admitted = config();
             admitted["updates"] = json!(256);
-            admitted["cross_state_bottleneck"] = json!(profile == SAVED145);
+            admitted["cross_state_bottleneck"] = json!(matches!(profile, SAVED145 | SAVED175));
             admitted["cross_state_resume"] = serde_json::to_value(profile_config(profile))?;
             let args: Args = serde_json::from_value(admitted.clone())?;
             settings(&args)?;
             continuation_settings(&args)?;
-            for other in [SAVED22, SAVED145].into_iter().filter(|p| *p != profile) {
+            for other in [SAVED22, SAVED145, SAVED175]
+                .into_iter()
+                .filter(|p| *p != profile)
+            {
                 for key in [
                     "expected_report_sha256",
                     "expected_manifest_sha256",
@@ -954,10 +1015,13 @@ mod tests {
     fn bottleneck_admission_rejects_stopped_objective_and_other_parents() -> Result<()> {
         let mut admitted = config();
         admitted["updates"] = json!(256);
-        admitted["cross_state_resume"] = serde_json::to_value(profile_config(SAVED145))?;
-        assert!(settings(&serde_json::from_value(admitted.clone())?).is_err());
-        admitted["cross_state_bottleneck"] = json!(true);
-        settings(&serde_json::from_value(admitted.clone())?)?;
+        for profile in [SAVED145, SAVED175] {
+            admitted["cross_state_resume"] = serde_json::to_value(profile_config(profile))?;
+            admitted["cross_state_bottleneck"] = json!(false);
+            assert!(settings(&serde_json::from_value(admitted.clone())?).is_err());
+            admitted["cross_state_bottleneck"] = json!(true);
+            settings(&serde_json::from_value(admitted.clone())?)?;
+        }
         let mut changed = admitted.clone();
         changed["cross_state_resume"] = serde_json::to_value(profile_config(SAVED22))?;
         assert!(settings(&serde_json::from_value(changed)?).is_err());
@@ -1118,6 +1182,148 @@ mod tests {
         let (_, bad_gradient) = nonfinite_gradient.finish(1, 1)?;
         // The existing batch clip admission is the production finite-gradient gate.
         assert!(clip_denominator(&bad_gradient, &Device::Cpu).is_err());
+        Ok(())
+    }
+    fn saved175_lineage_fixture() -> Result<(Value, Value)> {
+        // Exercise the actual published checkpoint receipts, including their
+        // original fractional-master inventory and objective metadata.
+        let artifacts: Value = serde_json::from_str(include_str!(
+            "../../../../docs/labs/m2-bottleneck-2026-10-10/artifact-receipts.json"
+        ))?;
+        let receipt = artifacts["final"].clone();
+        let report = json!({
+            "updates":receipt["step"],"prior_updates":320,"lineage_step":receipt["lineage_step"],
+            "fresh_adam":true,"cross_state_bottleneck":receipt["cross_state_bottleneck"],
+            "training_objective":receipt["training_objective"],"loss_scope":"all","credit":"raw_identity",
+            "phase_policy":"none;all-target-token-logmeanexp",
+            "cross_state_resume":receipt["cross_state_resume"],"initial_receipt":artifacts["initial"],
+            "initial":{"continuation_sha256":artifacts["initial"]["continuation_sha256"],"complete":145},
+            "final_active_masters":{"continuation.cross_state":receipt["parameters"]["continuation.cross_state"]["sha256"]}
+        });
+        Ok((report, receipt))
+    }
+
+    #[test]
+    fn cross_state_saved175_authenticates_bottleneck_ancestry_and_master() -> Result<()> {
+        let (report, receipt) = saved175_lineage_fixture()?;
+        SAVED175.validate_lineage(&report, &receipt)?;
+        for path in [
+            "/updates",
+            "/prior_updates",
+            "/lineage_step",
+            "/fresh_adam",
+            "/initial_receipt/step",
+            "/initial_receipt/lineage_step",
+            "/initial_receipt/continuation_sha256",
+            "/initial_receipt/parameters",
+            "/initial/continuation_sha256",
+            "/initial/complete",
+            "/phase_policy",
+            "/final_active_masters/continuation.cross_state",
+            "/cross_state_bottleneck",
+            "/training_objective",
+            "/loss_scope",
+            "/credit",
+            "/initial_receipt/cross_state_bottleneck",
+            "/initial_receipt/training_objective",
+            "/initial_receipt/loss_scope",
+            "/initial_receipt/credit",
+        ] {
+            let mut altered = report.clone();
+            *altered
+                .pointer_mut(path)
+                .ok_or_else(|| bad("fixture report field absent"))? = Value::Null;
+            assert!(
+                SAVED175.validate_lineage(&altered, &receipt).is_err(),
+                "{path}"
+            );
+        }
+        for path in [
+            "/step",
+            "/lineage_step",
+            "/parameters/continuation.cross_state/sha256",
+            "/cross_state_bottleneck",
+            "/training_objective",
+            "/loss_scope",
+            "/credit",
+        ] {
+            let mut altered = receipt.clone();
+            *altered
+                .pointer_mut(path)
+                .ok_or_else(|| bad("fixture receipt field absent"))? = Value::Null;
+            assert!(
+                SAVED175.validate_lineage(&report, &altered).is_err(),
+                "{path}"
+            );
+        }
+        // Keep all three provenance copies consistent: the fixed ancestor pins,
+        // not just agreement between report and receipt, must reject changes.
+        for key in [
+            "report_sha256",
+            "manifest_sha256",
+            "field_sha256",
+            "prior_step",
+            "prior_lineage_step",
+            "prior_complete",
+        ] {
+            let mut altered_report = report.clone();
+            let mut altered_receipt = receipt.clone();
+            let mut prior = report["cross_state_resume"].clone();
+            prior[key] = Value::Null;
+            altered_report["cross_state_resume"] = prior.clone();
+            altered_report["initial_receipt"]["cross_state_resume"] = prior.clone();
+            altered_receipt["cross_state_resume"] = prior;
+            assert!(
+                SAVED175
+                    .validate_lineage(&altered_report, &altered_receipt)
+                    .is_err(),
+                "{key}"
+            );
+        }
+        assert!(SAVED145.validate_lineage(&report, &receipt).is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn cross_state_saved175_baseline_lineage_and_net_bar() -> Result<()> {
+        assert_eq!(SAVED175.checkpoint_step, 256);
+        assert_eq!(SAVED175.lineage_after(0), 576);
+        assert_eq!(SAVED175.lineage_after(256), 832);
+        let mut prior = endpoint(&(0..175).collect::<Vec<_>>());
+        prior["continuation_sha256"] = json!(SAVED175.field_sha);
+        baseline(&prior, Some((&prior, SAVED175)))?;
+        assert!(baseline(&prior, Some((&prior, SAVED145))).is_err());
+        let mut altered = prior.clone();
+        altered["rows"][400]["generated_ids"] = json!([999]);
+        assert!(baseline(&altered, Some((&prior, SAVED175))).is_err());
+        let next = endpoint(&(1..177).collect::<Vec<_>>());
+        let result = outcomes(&prior, &next, Some((&prior, SAVED175)))?;
+        assert_eq!(result["initial_complete"], 175);
+        assert_eq!(result["final_complete"], 176);
+        assert_eq!(result["keep"], true);
+        assert_eq!(
+            result["lost_complete_ids"].as_array().map(Vec::len),
+            Some(1)
+        );
+        assert_eq!(
+            result["gained_complete_ids"].as_array().map(Vec::len),
+            Some(2)
+        );
+        assert_eq!(
+            outcomes(&prior, &prior, Some((&prior, SAVED175)))?["keep"],
+            false
+        );
+        assert_eq!(
+            outcomes(
+                &prior,
+                &endpoint(&(0..174).collect::<Vec<_>>()),
+                Some((&prior, SAVED175))
+            )?["keep"],
+            false
+        );
+        let mut wrong_count = endpoint(&(0..145).collect::<Vec<_>>());
+        wrong_count["continuation_sha256"] = json!(SAVED175.field_sha);
+        assert!(baseline(&wrong_count, Some((&wrong_count, SAVED175))).is_err());
         Ok(())
     }
 }

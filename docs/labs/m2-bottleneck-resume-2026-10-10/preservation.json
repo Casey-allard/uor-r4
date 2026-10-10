@@ -1,0 +1,11 @@
+{
+  "name": "codex-m2-bottleneck-resume-20261010",
+  "bytes": 135495680,
+  "md5": "efb0195a8143d92bd4826ecefe748564",
+  "destination": "icloud:UOR-R4/results/codex/codex-m2-bottleneck-resume-20261010.tar",
+  "full_readback": "PASS",
+  "uploaded_utc": "2026-10-10T13:28:10Z",
+  "index_line": "codex-m2-bottleneck-resume-20261010\t135495680\tefb0195a8143d92bd4826ecefe748564\tresults/codex/codex-m2-bottleneck-resume-20261010.tar\t2026-10-10T13:28:10Z\tcodex\n",
+  "index_readback": "PASS",
+  "local_archive_staging": false
+}

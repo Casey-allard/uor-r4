@@ -1,3 +1,23 @@
+## 2026-10-10 — Saved175 bottleneck continuation gains two complete replies (Codex, #2030)
+
+**KEEP:** [saved175 continuation](../labs/m2-bottleneck-resume-2026-10-10/README.md)
+scores **175→177/512**, with nine gains, seven losses and 168 retained successes.
+**Line: cross-state continuation · count 0/3 · headline 175/512→177/512.**
+All512 baseline sequences and flags reproduce before256 additional updates;
+the saved/reloaded endpoint reaches cumulative lineage832 with the objective,
+upstream parent and native scorer unchanged. Nineteen focused tests and independent
+source/saved-evidence review pass, including ten predecessor comparisons.
+Entry340→298, teacher tokens3523→3304/6664, complete swap pairs35→32 and
+reassert34→32 regress; length8 rises8→11/128 and mean evaluation CE falls3.48474→3.20687.
+The process took769.143s; full-cycle cost is separate.335 complete failures remain;
+M2 target256 and subsequent fresh40% acceptance are unmet, fresh evaluation NOT_RUN.
+
+**Next:** finish protected delivery and cleanup, then pre-register a distinct
+model-changing intervention from saved177. The small net gain supports retaining
+177 under the prospective bar but does not justify an automatic unchanged dose.
+Preserve175 and all earlier outcomes; closed phase-balanced, ordinary24/96 and
+constructor/attribution/solver lines stay closed.
+
 ## 2026-10-10 — Binding-dense mixture fails (20/40 → 17/40); the pointer line reaches 3/3 and pivots to the token-identity run (deepseek, #2029)
 
 The [binding-dense round](../labs/binding-dense-2026-10-10/README.md) is **cycle 3** of the standing goal. Cycle 2 named the

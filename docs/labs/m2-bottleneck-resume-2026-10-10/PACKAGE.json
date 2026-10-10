@@ -1,0 +1,25 @@
+{
+  "name": "codex-m2-bottleneck-resume-20261010",
+  "result": "KEEP candidate175\u2192177/512; accepted177; count0/3",
+  "producer_source": "25b36a074c682935d7319f04049ff3831afd8d26",
+  "components": {
+    "accepted175-and-prior-comparators.tar": {
+      "bytes": 114309120,
+      "sha256": "ea9b568db5aef2077939368a38799915ac930938f93471d1b368c545d7144b2c"
+    },
+    "source.bundle": {
+      "bytes": 3231,
+      "sha256": "e59d6fb9ccd097b77bea37a70042b93565b739c43a489f5a5d963a32923cefa7"
+    },
+    "resume175-producer.patch": {
+      "bytes": 14627,
+      "sha256": "0c2e22ea8408342d0bb08389d12ce7a94ea4f7f82767beb8e2c9c07dc839debe"
+    },
+    "run-and-runtime.tar.gz": {
+      "bytes": 21154624,
+      "sha256": "3b7fe36a98053bf2b8b1f2dd74a79671d17fe2db53c4699f345b118978ace9ed"
+    }
+  },
+  "restore": "cloud-store fetch codex-m2-bottleneck-resume-20261010 <absolute-owned-destination>; unpack run-and-runtime.tar.gz and accepted175-and-prior-comparators.tar separately. Nested prior package includes accepted175, rejected139 and accepted145/22/original upstream/panel/comparators. Source bundle requires main 4f12574a4; verify before restore. Exact source patch reconstructs producer25b36a074 from 4f12574a4; final record governs activation. Absolute paths in config are provenance; resolve restored paths explicitly for replay.",
+  "limits": "Exposed development result only; saved parent175, sole256update endpoint, objective logmeanexp. No held-out transfer, model ceiling, geometry advantage or energy claim. Final delivery checks/merge/cleanup/fullaccounting follow in closeout."
+}
