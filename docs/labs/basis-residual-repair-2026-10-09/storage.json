@@ -1,0 +1,10 @@
+{
+  "name": "codex-basis-residual-repair-20261009",
+  "bytes": 14374912,
+  "md5": "343066b58131c02cb1de27d1ad82dcfb",
+  "remote": "icloud:UOR-R4/results/codex/codex-basis-residual-repair-20261009.tar",
+  "verification": "cloud-store full remote MD5 round-trip and index",
+  "payload_files": 293,
+  "payload_bytes": 13311857,
+  "scope": "All three sealed qualifications; original and later bases; saved input; final executable; observed/initial/final local backend copies; source freeze, receipts and all failed/successful setup/test logs."
+}

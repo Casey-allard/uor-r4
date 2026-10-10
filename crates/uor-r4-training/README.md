@@ -84,7 +84,12 @@ error with no native proposal; this constructor remains operationally unqualifie
 The [saved basis diagnostic](../../docs/labs/legal-basis-diagnosis-2026-10-09/README.md)
 localizes the centered failure to small-pivot rejection during branch feasibility
 refactorization, including its existing slack recovery. It adds no production
-solver policy or model change.
+solver policy or model change. The subsequent
+[residual-qualified repair](../../docs/labs/basis-residual-repair-2026-10-09/README.md)
+passes all unit solves on both original bases but the unchanged saved constructor
+rejects two later bases and still returns no assignment. That local offline
+backend patch is archived, not activated in this package; native and language
+qualification remain unchanged.
 
 ## Complete-prefix native dialogue learning
 

@@ -1,0 +1,28 @@
+{
+  "source_freeze": "1fe9602d22fa19d9c8765952c6fb20a4a6f45ac7",
+  "reviewed_files": {
+    "repair.rs": "5d7e0da370bc11131bbf54d220446f6354159cdc61e60e512fdef9f3b3733fd4",
+    "apply-repair.py": "0e40fd0210ffd4937c70f0153fdbb900ffbe17f90f792d13933bccf20601a297",
+    "harness/src/main.rs": "1fd36a50b2ba7fe75e88c232b8955f7d3fde79622338ece760ecfb243ef88387",
+    "run.py": "99c32fabd90811e9303a14973431f2ed03b9ce3fa513b2648e7ae541563cf595"
+  },
+  "math": {
+    "status": "PASS_SOURCE_ONLY then saved-result interpretation",
+    "scope": "Scale-aware selected-pivot rejection and original-basis dense/sparse normal/transpose residual checks; no solver/model execution by reviewer."
+  },
+  "adversarial": {
+    "status": "PASS_SOURCE_AND_SAVED_RESULT",
+    "scope": "Exact two-basis gate identity/seals; independently counted148 distinct completed verifications/150 factors; zeroassignment; final installer diagnostic-only delta."
+  },
+  "engineering": {
+    "status": "FIVE_FOCUSED_FIXTURES_PASS; NEXT_CAUSAL_BOUNDARY_REVIEWED",
+    "scope": "No saved runs by engineer. Identified33/38 eta chains and old-versus-new basis transition; eta cause unproven."
+  },
+  "corrections_before_saved_execution": [
+    "Clear sparse solution vector before collecting entries",
+    "Distinct dense/sparse worst RHS indices",
+    "Validate both threshold scales before max",
+    "Bind both distinct basis reports and normative seals before constructor"
+  ],
+  "claim": "https://github.com/UOR-Foundation/uor-r4/issues/2030#issuecomment-6093025651"
+}

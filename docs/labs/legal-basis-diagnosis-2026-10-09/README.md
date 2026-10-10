@@ -152,3 +152,12 @@ all coefficients, constraints, branch bounds and native acceptance. Do not merel
 lower global EPS, prune tiny coefficients, add guard exceptions or repeat the
 existing slack retry. A backend repair must first validate the captured basis
 solves and then demonstrate a screened legal offer before any language claim.
+
+
+## Follow-through
+
+The [residual-qualified numerical repair](../basis-residual-repair-2026-10-09/README.md)
+now passes all 1,760 dense/sparse normal/transpose unit solves on each captured basis.
+One unchanged saved-constructor replay nevertheless rejects two later bases after
+148 completed fresh-factor checks and returns no assignment. The original diagnosis
+remains valid; the backend is still unqualified and no language result follows.

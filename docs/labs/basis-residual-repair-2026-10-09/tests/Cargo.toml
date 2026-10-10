@@ -1,0 +1,7 @@
+[package]
+name="basis-repair-fixtures"
+version="0.1.0"
+edition="2021"
+[workspace]
+[dependencies]
+microlp={path="../../../../local/microlp-0.6.0"}

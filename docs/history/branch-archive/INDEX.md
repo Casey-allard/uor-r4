@@ -260,3 +260,16 @@ applies cleanly to `fa786e4ef` (`git apply --check` PASS) and its SHA-256 is
 patch (`cargo test -p uor-r4-training --lib answer_span`) and need the `dialogue_episodes.rs:613`
 debug-underflow guard that lands as live source in the round's PR — without it they panic in a debug
 build before reaching any assertion.
+
+## Codex residual-qualified LU experiment — unpromoted, October 9
+
+| Source | Base | Disposition | Evidence |
+| --- | --- | --- | --- |
+| [Offline backend numerical patch](basis-residual-repair-20261009.patch) | microlp 0.6.0 plus the corrected observation installer from main d4628eff9 | NOT YET PROMOTED; both old captured bases qualify, but the unchanged constructor still returns no assignment after two later basis rejections | [Record](../../labs/basis-residual-repair-2026-10-09/README.md), source freeze 1fe9602d22fa19d9c8765952c6fb20a4a6f45ac7 |
+
+This dependency patch includes the new repair module and isolated workspace declaration.
+Its prerequisite is the pinned upstream copy installed by
+docs/labs/legal-basis-diagnosis-2026-10-09/apply-observer.py. It is not a production
+Cargo dependency override. The standalone reproduction harness, installer and tests
+remain in the dated record; all execution evidence is retained privately.
+SHA256: 39ef8a574a492a9857bf8fda7bb1993aaebfafae3c569877e5204d5f4984cb0a.
