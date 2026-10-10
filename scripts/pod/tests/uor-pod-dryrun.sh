@@ -359,6 +359,9 @@ expect "release deepseek/d1" 0 "Released deepseek/d1" -- release poda "${D1[@]}"
 expect "down by the last lease holder (dry)" 0 "DRY-RUN: runpodctl pod delete poda" -- down poda "${C1[@]}"
 expect "release" 0 "Released claude/c1's lease on poda" -- release poda "${C1[@]}"
 expect "release codex on C" 0 "Released codex/x1" -- release podc "${X1[@]}"
+# B's idle clock is relative to the suite's start (NOW); restart it at 30 min here so the
+# exact "idle 30 min" text does not depend on how long the suite took to get this far.
+sed -i.bak "s/^idle_since=.*/idle_since=$(( $(date -u +%s) - 1800 ))/" "$FAKE/probe-1002" && rm -f "$FAKE/probe-1002.bak"
 expect "reap: deletes idle unleased B, keeps busy C" 0 "podb: no live lease, idle 30 min — deleting" -- reap
 has "reap keeps busy C" "podc: no live lease, GPUs busy — kept"
 has "reap starts A's idle clock" "poda: no live lease, idle 0 min"
@@ -611,6 +614,10 @@ boot "free lock: build, publish atomically" "cached $CB" STUB_BUILD_S=0
 if grep -q '"built_on_pod": "podx"' "$CB/BUILD.json" && ! ls -d "$BR"/.*.tmp.* >/dev/null 2>&1; then ok "published build is complete, no staging left"; else bad "published build is complete, no staging left"; fi
 boot "second pod: cache hit, no build" "cache hit: $CB"
 fresh_binroot; echo "otherpod 2026-10-05T00:00:00Z phase=build files=10" > "$BR/.$SHA40-sm120.lock.holder"
+# Date the heartbeat an hour ahead so its age never passes the 2 s stale limit: only the
+# no-progress exit can fire. Otherwise a slow start (busy machine) lets the stale exit win.
+FUTURE=$(( $(date -u +%s) + 3600 ))
+touch -d "$(date -u -r "$FUTURE" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u -d "@$FUTURE" +%Y-%m-%dT%H:%M:%SZ)" "$BR/.$SHA40-sm120.lock.holder"
 boot "lock held, fresh heartbeat without progress: build here after the stall limit" "no visible build progress .*building here" \
   FAKE_FLOCK_HELD=8 UOR_BUILD_WAIT_S=60 UOR_BUILD_HEARTBEAT_STALE_S=2
 if [ "$(waited)" -le 10 ] && grep -q '"built_on_pod": "podx"' "$CB/BUILD.json"; then ok "stalled holder costs seconds, not 45 min"; else bad "stalled holder costs seconds, not 45 min"; fi
