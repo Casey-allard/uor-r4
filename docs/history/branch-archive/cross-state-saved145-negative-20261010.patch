@@ -1,0 +1,520 @@
+diff --git a/crates/uor-r4-training/examples/geometric-frozen-map-fit.rs b/crates/uor-r4-training/examples/geometric-frozen-map-fit.rs
+index a62e80d09..9f9727be0 100644
+--- a/crates/uor-r4-training/examples/geometric-frozen-map-fit.rs
++++ b/crates/uor-r4-training/examples/geometric-frozen-map-fit.rs
+@@ -4895,7 +4895,7 @@ fn continuation_checkpoint(
+             "continuation independent masters/native reload differs",
+         ));
+     }
+-    let receipt = json!({"step":step,"lineage_step":step+if resume.is_some(){64}else{0},
++    let receipt = json!({"step":step,"lineage_step":resume.map_or(step, |r| r.profile.lineage_after(step)),
+         "cross_state_resume":resume.map(|r|&r.provenance),
+         "parent":reloaded.source_binding(),"generate_sha256":p.generate_sha256,
+         "frozen_model_root":fs::canonicalize(&a.saved_fit)?,"frozen_model_report_sha256":CONTINUATION_PARENT_REPORT_SHA,
+@@ -6179,8 +6179,8 @@ fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
+         "continuation_action_support":"same token energy on Generate and every physical Copy before the sole common clip",
+         "phase_policy":loss_weight_policy(true,LossScope::All),"loss_scope":"all","credit":a.credit.name(),"fresh_adam":true,
+         "cross_state_resume":resume.as_ref().map(|r|&r.provenance),
+-        "local_updates":a.updates,"prior_updates":if resume.is_some(){64}else{0},
+-        "final_lineage_step":a.updates+if resume.is_some(){64}else{0},
++        "local_updates":a.updates,"prior_updates":resume.as_ref().map_or(0, |r| r.profile.lineage_step),
++        "final_lineage_step":resume.as_ref().map_or(a.updates, |r| r.profile.lineage_after(a.updates)),
+         "initial_active_masters":identities(&params)?,
+         "teacher_forcing":"native cache receives complete input packet and target[..t] only; current/future target used after common pool",
+         "local_carrier":"ContextQ4 from identity over query || prior supervised prefix; independent of facts",
+@@ -6259,7 +6259,10 @@ fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
+     let initial = continuation_evaluate(a, "development-0000", &p, &initial_field, &dev, start)?;
+     let initial_metrics = metrics(a, &initial, &dev)?;
+     if cross_state {
+-        cross_state_completion::baseline(&initial, resume.as_ref().map(|r| &r.prior_final))?;
++        cross_state_completion::baseline(
++            &initial,
++            resume.as_ref().map(|r| (&r.prior_final, r.profile)),
++        )?;
+     }
+     write(a, "metrics-0000.json", &initial_metrics)?;
+     evaluation_seconds += clock.elapsed().as_secs_f64();
+@@ -6351,7 +6354,7 @@ fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
+         weights.project_shadow_range()?;
+         d.synchronize()?;
+         target_position_draws += count;
+-        updates.push(json!({"step":update+1,"lineage_step":update+1+if resume.is_some(){64}else{0},"indices":indices,"answer_positions_including_eos":count,"phase_balanced_loss":loss_sum,
++        updates.push(json!({"step":update+1,"lineage_step":resume.as_ref().map_or(update+1, |r| r.profile.lineage_after(update+1)),"indices":indices,"answer_positions_including_eos":count,"phase_balanced_loss":loss_sum,
+             "global_active_gradient_norm":norm,"active_gradient_names":sums.keys().collect::<Vec<_>>(),
+             "native_field_master_download_bytes":prepared.downloaded_master_bytes,
+             "field_snapshot_and_per_position_costs":field_costs,
+@@ -6398,19 +6401,11 @@ fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
+             cross_state_completion::ORIGINAL8.to_vec()
+         };
+         let early = early_indices.iter().map(|&i| &dev[i]).collect::<Vec<_>>();
+-        continuation_evaluate_rows_impl(
+-            a,
+-            if resume.is_some() {
+-                "endpoint-prior22"
+-            } else {
+-                "endpoint-original8"
+-            },
+-            &p,
+-            &final_field,
+-            &early,
+-            start,
+-            false,
+-        )?;
++        let early_name = resume.as_ref().map_or_else(
++            || "endpoint-original8".to_string(),
++            |r| format!("endpoint-prior{}", r.profile.complete),
++        );
++        continuation_evaluate_rows_impl(a, &early_name, &p, &final_field, &early, start, false)?;
+     }
+     let final_eval = continuation_evaluate(
+         a,
+@@ -6427,7 +6422,7 @@ fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
+         let outcome = cross_state_completion::outcomes(
+             &initial,
+             &final_eval,
+-            resume.as_ref().map(|r| &r.prior_final),
++            resume.as_ref().map(|r| (&r.prior_final, r.profile)),
+         )?;
+         write(a, "cross-state-outcomes.json", &outcome)?;
+         Some(outcome)
+@@ -6437,7 +6432,7 @@ fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
+     Ok(
+         json!({"schema":"uor-r4.geometric-frozen-map-fit/1","status":"COMPLETED","mode":mode_name,
+         "source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"device":"cuda:0","updates":a.updates,"batch":BATCH,
+-        "prior_updates":if resume.is_some(){64}else{0},"lineage_step":a.updates+if resume.is_some(){64}else{0},
++        "prior_updates":resume.as_ref().map_or(0, |r| r.profile.lineage_step),"lineage_step":resume.as_ref().map_or(a.updates, |r| r.profile.lineage_after(a.updates)),
+         "cross_state_resume":resume.as_ref().map(|r|&r.provenance),"fresh_adam":true,
+         "training_row_draws":a.updates*BATCH,
+         "target_position_draws":target_position_draws,
+@@ -6447,9 +6442,9 @@ fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
+         "final_active_masters":identities(&params)?,"shared_coefficients":expected_coefficients,"cache_positions":positions,
+         "cache_preparation_seconds":cache_seconds,"fit_loop_seconds_excluding_checkpoints":fit_seconds,
+         "checkpoint_seconds":checkpoint_seconds,"evaluation_seconds":evaluation_seconds,"elapsed_seconds":start.elapsed().as_secs_f64(),
+-        "control":if resume.is_some() {"checkpoint0000 is exact saved22 native field plus restored fractional masters; independently matched all512 outputs; cache separately uses zero field; no carrier ablation performed"} else if cross_state {"checkpoint0000 is exact accepted parent with zero joint factual/local field; no carrier ablation performed"} else {"checkpoint0000 is the same native parent with a null U field; constant-carrier control remains a prospective matched full-output evaluation"},
++        "control":if let Some(r) = &resume {format!("checkpoint0000 is exact saved{} native field plus restored fractional masters; independently matched all512 outputs; cache separately uses zero field; no carrier ablation performed",r.profile.complete)} else if cross_state {"checkpoint0000 is exact accepted parent with zero joint factual/local field; no carrier ablation performed".to_string()} else {"checkpoint0000 is the same native parent with a null U field; constant-carrier control remains a prospective matched full-output evaluation".to_string()},
+         "common_pool_backend":"cpu-authenticated-native-alias-reducer; full score/anchor/loss transfers retained; not fully resident CUDA alias reduction",
+-        "scope":if resume.is_some() {"saved22 cross-state parameter continuation with fresh Adam moments; frozen48/64 upstream;115200 Q4 coefficients, four exposed512 passes; fixed endpoint local256/lineage320; developmental KEEP netcomplete>22; no held-out transfer/chat/geometry/energy qualification"} else if cross_state {"frozen48/64 parent; only115200 joint factual/local signed-H4 Q4 coefficients learned on exposed512 all-answer positions; independently loaded own-prefix outputs; developmental KEEP netcomplete>8; no held-out transfer/chat/geometry/energy qualification"} else {"frozen48/64 parent; only960 continuation coefficients learned on exposed512 all-answer positions; independently loaded own-feedback outputs; no held-out transfer/chat/geometry/energy qualification"}}),
++        "scope":if let Some(r) = &resume {format!("saved{} cross-state parameter continuation with fresh Adam moments; frozen48/64 upstream;115200 Q4 coefficients, four exposed512 passes; fixed endpoint local256/lineage{}; developmental KEEP netcomplete>{}; no held-out transfer/chat/geometry/energy qualification",r.profile.complete,r.profile.lineage_after(a.updates),r.profile.complete)} else if cross_state {"frozen48/64 parent; only115200 joint factual/local signed-H4 Q4 coefficients learned on exposed512 all-answer positions; independently loaded own-prefix outputs; developmental KEEP netcomplete>8; no held-out transfer/chat/geometry/energy qualification".to_string()} else {"frozen48/64 parent; only960 continuation coefficients learned on exposed512 all-answer positions; independently loaded own-feedback outputs; no held-out transfer/chat/geometry/energy qualification".to_string()}}),
+     )
+ }
+ 
+diff --git a/crates/uor-r4-training/examples/geometric_frozen_map_fit/cross_state_completion.rs b/crates/uor-r4-training/examples/geometric_frozen_map_fit/cross_state_completion.rs
+index 07e26cd34..11a6895e7 100644
+--- a/crates/uor-r4-training/examples/geometric_frozen_map_fit/cross_state_completion.rs
++++ b/crates/uor-r4-training/examples/geometric_frozen_map_fit/cross_state_completion.rs
+@@ -7,6 +7,79 @@ pub(super) const RESUME_MANIFEST_SHA: &str =
+     "e5623d996b60308d8ca1080f748c062388ff74c6b14b16f9956b4b792a9ca8c2";
+ pub(super) const RESUME_FIELD_SHA: &str =
+     "f61249ae4032a92d452689a52add6c9b5a67099f55b1a9291ba6f6f66a0d9acf";
++const RESUME145_REPORT_SHA: &str =
++    "e3a7e3ebd93c38253afb67f77ad3bb6b64a5e0ac50561f0204e1b83d22b8f4a5";
++const RESUME145_MANIFEST_SHA: &str =
++    "172a2aacdce188bd5a37b131a294b877b2af60c87fc5520a9ea371c4b79460dd";
++const RESUME145_FIELD_SHA: &str =
++    "03781884edd6c2524c66e724c1fc65d9b9c62968d33b264d976282b49ce8094a";
++
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub(super) struct ResumeProfile {
++    report_sha: &'static str,
++    manifest_sha: &'static str,
++    field_sha: &'static str,
++    pub checkpoint_step: usize,
++    pub lineage_step: usize,
++    pub complete: usize,
++}
++const SAVED22: ResumeProfile = ResumeProfile {
++    report_sha: RESUME_REPORT_SHA,
++    manifest_sha: RESUME_MANIFEST_SHA,
++    field_sha: RESUME_FIELD_SHA,
++    checkpoint_step: 64,
++    lineage_step: 64,
++    complete: 22,
++};
++const SAVED145: ResumeProfile = ResumeProfile {
++    report_sha: RESUME145_REPORT_SHA,
++    manifest_sha: RESUME145_MANIFEST_SHA,
++    field_sha: RESUME145_FIELD_SHA,
++    checkpoint_step: 256,
++    lineage_step: 320,
++    complete: 145,
++};
++impl ResumeProfile {
++    pub fn lineage_after(self, local_step: usize) -> usize {
++        self.lineage_step + local_step
++    }
++    fn validate_lineage(self, report: &Value, receipt: &Value) -> Result<()> {
++        if report["updates"] != self.checkpoint_step || receipt["step"] != self.checkpoint_step {
++            return Err(bad("cross-state resume local checkpoint step differs"));
++        }
++        if self == SAVED22 {
++            // This exact sealed original run predates explicit lineage fields.
++            if report.get("prior_updates").is_some()
++                || report.get("lineage_step").is_some()
++                || report.get("cross_state_resume").is_some()
++                || receipt.get("lineage_step").is_some()
++                || receipt.get("cross_state_resume").is_some()
++            {
++                return Err(bad("cross-state original64 lineage metadata differs"));
++            }
++        } else if self == SAVED145 {
++            let prior = &report["cross_state_resume"];
++            if report["prior_updates"] != SAVED22.lineage_step
++                || report["lineage_step"] != self.lineage_step
++                || receipt["lineage_step"] != self.lineage_step
++                || report["fresh_adam"] != true
++                || receipt["cross_state_resume"] != *prior
++                || prior["report_sha256"] != SAVED22.report_sha
++                || prior["manifest_sha256"] != SAVED22.manifest_sha
++                || prior["field_sha256"] != SAVED22.field_sha
++                || prior["prior_step"] != SAVED22.checkpoint_step
++                || prior["prior_complete"] != SAVED22.complete
++                || report["initial_receipt"]["step"] != 0
++                || report["initial_receipt"]["lineage_step"] != SAVED22.lineage_step
++            {
++                return Err(bad("cross-state saved145 lineage/provenance differs"));
++            }
++        } else {
++            return Err(bad("cross-state unsupported resume profile"));
++        }
++        Ok(())
++    }
++}
+ #[derive(Clone, Deserialize, serde::Serialize)]
+ #[serde(deny_unknown_fields)]
+ pub(super) struct ResumeConfig {
+@@ -16,7 +89,23 @@ pub(super) struct ResumeConfig {
+     pub expected_field_sha256: String,
+ }
+ 
++impl ResumeConfig {
++    fn profile(&self) -> Result<ResumeProfile> {
++        [SAVED22, SAVED145]
++            .into_iter()
++            .find(|p| {
++                self.expected_report_sha256 == p.report_sha
++                    && self.expected_manifest_sha256 == p.manifest_sha
++                    && self.expected_field_sha256 == p.field_sha
++            })
++            .ok_or_else(|| {
++                bad("cross-state resume requires one complete pinned profile hash triple")
++            })
++    }
++}
++
+ pub(super) struct ResumeState {
++    pub profile: ResumeProfile,
+     root: PathBuf,
+     field_bytes: Vec<u8>,
+     receipt: Value,
+@@ -29,29 +118,31 @@ pub(super) fn load_resume(a: &Args, parent: &ContinuationParent) -> Result<Optio
+         return Ok(None);
+     };
+     settings(a)?;
++    let profile = config.profile()?;
+     report_output::verify(&config.root)?;
+-    if sha256_file(&config.root.join("report.json"))? != RESUME_REPORT_SHA
+-        || sha256_file(&config.root.join("manifest.json"))? != RESUME_MANIFEST_SHA
++    if sha256_file(&config.root.join("report.json"))? != profile.report_sha
++        || sha256_file(&config.root.join("manifest.json"))? != profile.manifest_sha
+     {
+         return Err(bad("cross-state resume sealed report identity differs"));
+     }
+     let report = read(&config.root.join("report.json"))?;
+-    let checkpoint = config.root.join("checkpoint-0064");
++    let checkpoint = config
++        .root
++        .join(format!("checkpoint-{:04}", profile.checkpoint_step));
+     let receipt = read(&checkpoint.join("receipt.json"))?;
+     let field_bytes = fs::read(checkpoint.join("continuation-field.bin"))?;
++    profile.validate_lineage(&report, &receipt)?;
+     if report["status"] != "COMPLETED"
+         || report["mode"] != "cross_state_continuation"
+-        || report["updates"] != 64
+         || report["final_receipt"] != receipt
+-        || receipt["step"] != 64
+         || receipt["parent"] != serde_json::to_value(&parent.binding)?
+         || receipt["generate_sha256"] != parent.generate_sha256
+         || receipt["frozen_model_report_sha256"] != CONTINUATION_PARENT_REPORT_SHA
+         || receipt["frozen_model_manifest_sha256"] != CONTINUATION_PARENT_MANIFEST_SHA
+         || receipt["frozen_parent_receipt"] != parent.receipt
+-        || receipt["continuation_sha256"] != RESUME_FIELD_SHA
+-        || report["final"]["continuation_sha256"] != RESUME_FIELD_SHA
+-        || sha256_bytes(&field_bytes) != RESUME_FIELD_SHA
++        || receipt["continuation_sha256"] != profile.field_sha
++        || report["final"]["continuation_sha256"] != profile.field_sha
++        || sha256_bytes(&field_bytes) != profile.field_sha
+         || receipt["shared_coefficients"] != 115200
+         || receipt["active_parameter_names"] != json!(["continuation.cross_state"])
+         || read(&checkpoint.join("continuation-source/metadata.json"))? != receipt
+@@ -60,13 +151,15 @@ pub(super) fn load_resume(a: &Args, parent: &ContinuationParent) -> Result<Optio
+             "cross-state resume checkpoint/upstream/field identity differs",
+         ));
+     }
+-    validate_rows(&report["final"], 22)?;
++    validate_rows(&report["final"], profile.complete)?;
+     let provenance = json!({"root":fs::canonicalize(&config.root)?,
+-        "report_sha256":RESUME_REPORT_SHA,"manifest_sha256":RESUME_MANIFEST_SHA,
++        "report_sha256":profile.report_sha,"manifest_sha256":profile.manifest_sha,
+         "checkpoint_receipt_sha256":sha256_file(&checkpoint.join("receipt.json"))?,
+-        "field_sha256":RESUME_FIELD_SHA,"source_master_inventory":receipt["parameters"],
+-        "prior_step":64,"prior_complete":22,"optimizer":"reset fresh AdamW moments; parameter continuation only"});
++        "field_sha256":profile.field_sha,"source_master_inventory":receipt["parameters"],
++        "prior_step":profile.checkpoint_step,"prior_lineage_step":profile.lineage_step,
++        "prior_complete":profile.complete,"optimizer":"reset fresh AdamW moments; parameter continuation only"});
+     Ok(Some(ResumeState {
++        profile,
+         root: checkpoint,
+         field_bytes,
+         receipt,
+@@ -160,12 +253,7 @@ pub(super) fn settings(a: &Args) -> Result<()> {
+         };
+     }
+     if let Some(c) = &a.cross_state_resume {
+-        if c.expected_report_sha256 != RESUME_REPORT_SHA
+-            || c.expected_manifest_sha256 != RESUME_MANIFEST_SHA
+-            || c.expected_field_sha256 != RESUME_FIELD_SHA
+-        {
+-            return Err(bad("cross-state resume configuration pins differ"));
+-        }
++        c.profile()?;
+     }
+     if a.updates
+         != if a.cross_state_resume.is_some() {
+@@ -218,15 +306,15 @@ pub(super) fn settings(a: &Args) -> Result<()> {
+     Ok(())
+ }
+ 
+-pub(super) fn baseline(initial: &Value, prior: Option<&Value>) -> Result<()> {
+-    if let Some(prior) = prior {
+-        if prior["continuation_sha256"] != RESUME_FIELD_SHA
+-            || initial["continuation_sha256"] != RESUME_FIELD_SHA
++pub(super) fn baseline(initial: &Value, prior: Option<(&Value, ResumeProfile)>) -> Result<()> {
++    if let Some((prior, profile)) = prior {
++        if prior["continuation_sha256"] != profile.field_sha
++            || initial["continuation_sha256"] != profile.field_sha
+         {
+             return Err(bad("cross-state resume baseline field identity differs"));
+         }
+-        validate_rows(prior, 22)?;
+-        validate_rows(initial, 22)?;
++        validate_rows(prior, profile.complete)?;
++        validate_rows(initial, profile.complete)?;
+         let old = prior["rows"]
+             .as_array()
+             .ok_or_else(|| bad("resume prior rows absent"))?;
+@@ -266,10 +354,10 @@ pub(super) fn baseline(initial: &Value, prior: Option<&Value>) -> Result<()> {
+ pub(super) fn outcomes(
+     initial: &Value,
+     final_eval: &Value,
+-    prior: Option<&Value>,
++    prior: Option<(&Value, ResumeProfile)>,
+ ) -> Result<Value> {
+     baseline(initial, prior)?;
+-    let initial_count = if prior.is_some() { 22 } else { 8 };
++    let initial_count = prior.map_or(8, |(_, profile)| profile.complete);
+     let before = initial["rows"]
+         .as_array()
+         .ok_or_else(|| bad("initial rows absent"))?;
+@@ -395,7 +483,7 @@ mod tests {
+     #[test]
+     fn cross_state_resume_requires_exact_all512_outputs_not_only_complete22() -> Result<()> {
+         let prior = endpoint(&(0..22).collect::<Vec<_>>());
+-        baseline(&prior, Some(&prior))?;
++        baseline(&prior, Some((&prior, SAVED22)))?;
+         for (row, key, value) in [
+             (300, "generated_ids", json!([999])),
+             (300, "id", json!("development-diverse-length2-changed")),
+@@ -403,20 +491,23 @@ mod tests {
+         ] {
+             let mut changed = prior.clone();
+             changed["rows"][row][key] = value;
+-            assert!(baseline(&changed, Some(&prior)).is_err(), "{key}");
++            assert!(
++                baseline(&changed, Some((&prior, SAVED22))).is_err(),
++                "{key}"
++            );
+         }
+         let mut swapped = prior.clone();
+         swapped["rows"]
+             .as_array_mut()
+             .ok_or_else(|| bad("fixture rows"))?
+             .swap(300, 301);
+-        assert!(baseline(&swapped, Some(&prior)).is_err());
++        assert!(baseline(&swapped, Some((&prior, SAVED22))).is_err());
+         let mut duplicate = prior.clone();
+         duplicate["rows"][300]["id"] = duplicate["rows"][301]["id"].clone();
+-        assert!(baseline(&duplicate, Some(&duplicate)).is_err());
++        assert!(baseline(&duplicate, Some((&duplicate, SAVED22))).is_err());
+         let mut wrong_field = prior.clone();
+         wrong_field["continuation_sha256"] = json!("wrong");
+-        assert!(baseline(&wrong_field, Some(&prior)).is_err());
++        assert!(baseline(&wrong_field, Some((&prior, SAVED22))).is_err());
+         Ok(())
+     }
+ 
+@@ -424,7 +515,7 @@ mod tests {
+     fn cross_state_resume_net_gain_uses_saved22_and_reports_losses() -> Result<()> {
+         let prior = endpoint(&(0..22).collect::<Vec<_>>());
+         let next = endpoint(&(1..24).collect::<Vec<_>>());
+-        let result = outcomes(&prior, &next, Some(&prior))?;
++        let result = outcomes(&prior, &next, Some((&prior, SAVED22)))?;
+         assert_eq!(result["initial_complete"], 22);
+         assert_eq!(result["final_complete"], 23);
+         assert_eq!(result["keep"], true);
+@@ -436,12 +527,15 @@ mod tests {
+             result["gained_complete_ids"].as_array().map(Vec::len),
+             Some(2)
+         );
+-        assert_eq!(outcomes(&prior, &prior, Some(&prior))?["keep"], false);
++        assert_eq!(
++            outcomes(&prior, &prior, Some((&prior, SAVED22)))?["keep"],
++            false
++        );
+         assert_eq!(
+             outcomes(
+                 &prior,
+                 &endpoint(&(0..20).collect::<Vec<_>>()),
+-                Some(&prior)
++                Some((&prior, SAVED22))
+             )?["keep"],
+             false
+         );
+@@ -621,4 +715,138 @@ mod tests {
+         assert!(!owned.0.join("new-run").exists());
+         Ok(())
+     }
++    fn profile_config(profile: ResumeProfile) -> ResumeConfig {
++        ResumeConfig {
++            root: PathBuf::from("sealed-parent"),
++            expected_report_sha256: profile.report_sha.to_string(),
++            expected_manifest_sha256: profile.manifest_sha.to_string(),
++            expected_field_sha256: profile.field_sha.to_string(),
++        }
++    }
++
++    #[test]
++    fn cross_state_saved145_admission_requires_complete_profile_triple() -> Result<()> {
++        for profile in [SAVED22, SAVED145] {
++            assert_eq!(profile_config(profile).profile()?, profile);
++            let mut admitted = config();
++            admitted["updates"] = json!(256);
++            admitted["cross_state_resume"] = serde_json::to_value(profile_config(profile))?;
++            let args: Args = serde_json::from_value(admitted.clone())?;
++            settings(&args)?;
++            continuation_settings(&args)?;
++            for other in [SAVED22, SAVED145].into_iter().filter(|p| *p != profile) {
++                for key in [
++                    "expected_report_sha256",
++                    "expected_manifest_sha256",
++                    "expected_field_sha256",
++                ] {
++                    let mut mixed = admitted.clone();
++                    mixed["cross_state_resume"][key] =
++                        serde_json::to_value(profile_config(other))?[key].clone();
++                    assert!(settings(&serde_json::from_value(mixed)?).is_err(), "{key}");
++                }
++            }
++        }
++        let mut unsupported = profile_config(SAVED145);
++        unsupported.expected_field_sha256 = "0".repeat(64);
++        assert!(unsupported.profile().is_err());
++        Ok(())
++    }
++
++    #[test]
++    fn cross_state_saved145_validates_local_and_cumulative_lineage() -> Result<()> {
++        let original_report = json!({"updates":64});
++        let original_receipt = json!({"step":64});
++        SAVED22.validate_lineage(&original_report, &original_receipt)?;
++        assert_eq!(SAVED22.lineage_after(0), 64);
++        assert_eq!(SAVED22.lineage_after(256), 320);
++        assert_eq!(SAVED145.lineage_after(0), 320);
++        assert_eq!(SAVED145.lineage_after(256), 576);
++        let provenance = json!({"report_sha256":SAVED22.report_sha,
++            "manifest_sha256":SAVED22.manifest_sha,"field_sha256":SAVED22.field_sha,
++            "prior_step":64,"prior_complete":22});
++        let report = json!({"updates":256,"prior_updates":64,"lineage_step":320,
++            "fresh_adam":true,"cross_state_resume":provenance,
++            "initial_receipt":{"step":0,"lineage_step":64}});
++        let receipt = json!({"step":256,"lineage_step":320,"cross_state_resume":provenance});
++        SAVED145.validate_lineage(&report, &receipt)?;
++        for (key, wrong) in [
++            ("updates", json!(320)),
++            ("prior_updates", json!(256)),
++            ("lineage_step", json!(256)),
++            ("fresh_adam", json!(false)),
++        ] {
++            let mut altered = report.clone();
++            altered[key] = wrong;
++            assert!(
++                SAVED145.validate_lineage(&altered, &receipt).is_err(),
++                "{key}"
++            );
++        }
++        for key in ["step", "lineage_step"] {
++            let mut altered = receipt.clone();
++            altered[key] = json!(64);
++            assert!(
++                SAVED145.validate_lineage(&report, &altered).is_err(),
++                "{key}"
++            );
++        }
++        let mut altered = report.clone();
++        altered["cross_state_resume"]["field_sha256"] = json!(SAVED145.field_sha);
++        let mut matched_receipt = receipt.clone();
++        matched_receipt["cross_state_resume"] = altered["cross_state_resume"].clone();
++        assert!(SAVED145
++            .validate_lineage(&altered, &matched_receipt)
++            .is_err());
++        assert!(SAVED145
++            .validate_lineage(&original_report, &original_receipt)
++            .is_err());
++        assert!(SAVED22.validate_lineage(&report, &receipt).is_err());
++        let mut fabricated_legacy = original_report;
++        fabricated_legacy["lineage_step"] = json!(64);
++        assert!(SAVED22
++            .validate_lineage(&fabricated_legacy, &original_receipt)
++            .is_err());
++        Ok(())
++    }
++
++    #[test]
++    fn cross_state_saved145_baseline_and_net_bar_are_profile_specific() -> Result<()> {
++        let mut prior = endpoint(&(0..145).collect::<Vec<_>>());
++        prior["continuation_sha256"] = json!(SAVED145.field_sha);
++        baseline(&prior, Some((&prior, SAVED145)))?;
++        assert!(baseline(&prior, Some((&prior, SAVED22))).is_err());
++        let mut changed_failed_row = prior.clone();
++        changed_failed_row["rows"][400]["generated_ids"] = json!([999]);
++        assert!(baseline(&changed_failed_row, Some((&prior, SAVED145))).is_err());
++        let next = endpoint(&(1..147).collect::<Vec<_>>());
++        let result = outcomes(&prior, &next, Some((&prior, SAVED145)))?;
++        assert_eq!(result["initial_complete"], 145);
++        assert_eq!(result["final_complete"], 146);
++        assert_eq!(result["keep"], true);
++        assert_eq!(
++            result["lost_complete_ids"].as_array().map(Vec::len),
++            Some(1)
++        );
++        assert_eq!(
++            result["gained_complete_ids"].as_array().map(Vec::len),
++            Some(2)
++        );
++        assert_eq!(
++            outcomes(&prior, &prior, Some((&prior, SAVED145)))?["keep"],
++            false
++        );
++        assert_eq!(
++            outcomes(
++                &prior,
++                &endpoint(&(0..144).collect::<Vec<_>>()),
++                Some((&prior, SAVED145))
++            )?["keep"],
++            false
++        );
++        let mut wrong_count = endpoint(&(0..22).collect::<Vec<_>>());
++        wrong_count["continuation_sha256"] = json!(SAVED145.field_sha);
++        assert!(baseline(&wrong_count, Some((&wrong_count, SAVED145))).is_err());
++        Ok(())
++    }
+ }

@@ -1,3 +1,22 @@
+## 2026-10-10 — Cross-state dose continuation rejected: 145→139/512 (Codex, #2030)
+
+**REJECT:** the [saved145 continuation](../labs/m2-cross-145-2026-10-10/README.md)
+gains 7, loses 13 and retains 132 complete replies, so candidate 145→139/512 while
+**accepted headline 145/512→145/512; line: cross-state continuation · count 1/3**.
+Four more full-panel passes restore exact fractional masters with fresh Adam,
+match all 512 baseline outputs, and reach the sole local 256/lineage 576 endpoint;
+mean CE falls 3.39448→3.08894 while complete replies and teacher-token correctness fall.
+Twelve focused tests and independent source/result checks pass, but the profile
+extension is archived as a patch and INDEX row, not activated; the accepted145
+model remains, including six of the original eight successes.
+The model process takes 750.582 s; complete-cycle cost is recorded separately,
+and M2's 256/fresh40% thresholds remain unmet with no chat/geometry/energy claim.
+
+**Next:** after protected delivery and cleanup, choose and pre-register a distinct
+complete-reply objective or mechanism; episode-bottleneck learning is a hypothesis,
+not implemented or registered, and dose/rate/seed continuation stops with inherited
+count 1/3 even if the successor is renamed.
+
 ## 2026-10-10 — Read-binding supervision hits its own objective (bound mass 0.73 → 0.90) and leaves the frozen panel flat (deepseek, #2029)
 
 The [read-binding round](../labs/read-binding-2026-10-10/README.md) is **cycle 2** of the standing goal. Cycle 1 left the

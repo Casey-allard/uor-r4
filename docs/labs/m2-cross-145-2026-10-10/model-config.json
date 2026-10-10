@@ -1,0 +1,31 @@
+{
+  "mode": "cross_state_continuation",
+  "credit": "raw_identity",
+  "read_state_pullback": "legacy",
+  "seed": 1001,
+  "updates": 256,
+  "checkpoint": "/workspace/uor-r4/codex/sol-prototype/restore/parent-unpacked/native-prediction-control/recomposition-503d64b39-attempt1/checkpoint-0000",
+  "saved_fit": "/workspace/uor-r4/codex/sol-prototype/restore/parent-unpacked/native-prediction-control/recomposition-503d64b39-attempt1",
+  "categorical": "/workspace/uor-r4/codex/sol-prototype/restore/parent-unpacked/native-prediction-control/recomposition-503d64b39-attempt1/checkpoint-0000",
+  "parent_config": "/workspace/uor-r4/codex/sol-prototype/restore/parent-unpacked/native-prediction-control/recomposition-503d64b39-attempt1/report.json",
+  "training_inputs": "/workspace/uor-r4/codex/sol-prototype/restore/parent-unpacked/native-geometric-generate/prose-panel-dev-2/inputs.json",
+  "training_labels": "/workspace/uor-r4/codex/sol-prototype/restore/parent-unpacked/native-geometric-generate/prose-panel-dev-2/labels.json",
+  "development_inputs": "/workspace/uor-r4/codex/sol-prototype/restore/parent-unpacked/native-geometric-generate/prose-panel-dev-2/inputs.json",
+  "development_labels": "/workspace/uor-r4/codex/sol-prototype/restore/parent-unpacked/native-geometric-generate/prose-panel-dev-2/labels.json",
+  "maximum_seconds": 7200,
+  "maximum_report_bytes": 2147483648,
+  "out": "/workspace/uor-r4/codex/m2-cross-145-20261010/runs/resume145-0256-attempt1",
+  "loss_scope": "all",
+  "continuation": {
+    "expected_model_report_sha256": "a1277d2be4ff962100f857d0da553257ad5596ac8bc72d9257299e74d2f2e278",
+    "expected_model_manifest_sha256": "b37e2ca588bf1cc4dc5971fa5da97b9e83c90a94f4ea0bfdb0655b8f92bf94ca",
+    "learning_rate": 0.03,
+    "maximum_cache_tensor_bytes": 2147483648
+  },
+  "cross_state_resume": {
+    "root": "/workspace/uor-r4/codex/m2-cross-resume-20261010/runs/resume-0256-attempt1",
+    "expected_report_sha256": "e3a7e3ebd93c38253afb67f77ad3bb6b64a5e0ac50561f0204e1b83d22b8f4a5",
+    "expected_manifest_sha256": "172a2aacdce188bd5a37b131a294b877b2af60c87fc5520a9ea371c4b79460dd",
+    "expected_field_sha256": "03781884edd6c2524c66e724c1fc65d9b9c62968d33b264d976282b49ce8094a"
+  }
+}

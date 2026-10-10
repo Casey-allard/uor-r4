@@ -1,0 +1,25 @@
+{
+  "name": "codex-m2-cross-145-20261010",
+  "result": "REJECT145\u2192139/512,7gains13losses132retained; accepted145unchanged,count1/3",
+  "producer_source": "fdc3dfa8a02bbafaa9e6745ab63124c6398217a9",
+  "components": {
+    "accepted145-and-upstream.tar": {
+      "bytes": 71598080,
+      "sha256": "bd25bc52c4d043cde999044cf95ce21a3342ec8b09c533377bcb5477586c5f34"
+    },
+    "source.bundle": {
+      "bytes": 4153,
+      "sha256": "4adba152c8a82719ff09a2ec21cb0744aa24092a26b3bdfdbebeee867c7af722"
+    },
+    "cross-state-saved145-negative-20261010.patch": {
+      "bytes": 28136,
+      "sha256": "b823689aaf75dafdf7ef331f994076b85218600daf100c5fda257f9dfd0f9cdb"
+    },
+    "run-and-runtime.tar.gz": {
+      "bytes": 21340683,
+      "sha256": "8142c1ed8ca241ce6f07559a1fc4617fbb0f2e87bcfa7719d85a005ee7ac506a"
+    }
+  },
+  "restore": "cloud-store fetch codex-m2-cross-145-20261010 <absolute-owned-destination>; unpack run-and-runtime.tar.gz and accepted145-and-upstream.tar separately. Nested prior package includes accepted145/22/original upstream/panel/comparators. Source bundle requires main eb6f1c32d; verify before restore. Indexed source patch reproduces producer fdc3dfa8a from eb6f1c32d; new profile is NOT activated in main. Absolute paths in config are provenance; resolve restored paths explicitly for replay.",
+  "limits": "Exposed development negative. Further dose/rate/seed continuation stopped. No model ceiling claim. Target256/fresh40 remain unmet. Final delivery checks/merge/cleanup/fullaccounting follow in closeout."
+}

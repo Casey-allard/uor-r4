@@ -1,0 +1,11 @@
+{
+  "name": "codex-m2-cross-145-20261010",
+  "bytes": 92989440,
+  "md5": "9da98b40298f3c20e6a4de5c506e4334",
+  "destination": "icloud:UOR-R4/results/codex/codex-m2-cross-145-20261010.tar",
+  "full_readback": "PASS",
+  "uploaded_utc": "2026-10-10T11:54:30Z",
+  "index_line": "codex-m2-cross-145-20261010\t92989440\t9da98b40298f3c20e6a4de5c506e4334\tresults/codex/codex-m2-cross-145-20261010.tar\t2026-10-10T11:54:30Z\tcodex\n",
+  "index_readback": "PASS",
+  "local_archive_staging": false
+}

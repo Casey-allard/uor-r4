@@ -1,0 +1,129 @@
+{
+  "status": "REJECT",
+  "accepted_headline_before": 145,
+  "accepted_headline_after": 145,
+  "candidate_complete": 139,
+  "producer": {
+    "commit": "fdc3dfa8a02bbafaa9e6745ab63124c6398217a9",
+    "base": "eb6f1c32d414451057462f657ef3ef9f1c9e7657",
+    "binary_sha256": "b9813a37ce0bcb7786c803ee4d41aa24afabff581a30c80f491f8841131b5f39",
+    "config_sha256": "9461422c3155a9638723527a99cea4c93e88ae8a269f770830c757256f462390",
+    "checks": "12 focused tests PASS; rustfmt/diff PASS; optimized build PASS; exacthead independent source review PASS",
+    "bootstrap_seconds": 192,
+    "bootstrap_tests_passed": 37,
+    "bootstrap_tests_ignored": 3,
+    "started_utc": "2026-10-10T11:37:53Z"
+  },
+  "initial": {
+    "complete": 145,
+    "entry_correct": 454,
+    "eos": 148,
+    "complete_swap_pairs": 25,
+    "teacher_all_tokens_correct": 145,
+    "teacher_correct_tokens": 4110,
+    "target_positions": 6664,
+    "strata": {
+      "length2": {
+        "cases": 128,
+        "complete": 53
+      },
+      "length4": {
+        "cases": 128,
+        "complete": 45
+      },
+      "length8": {
+        "cases": 128,
+        "complete": 2
+      },
+      "update": {
+        "cases": 64,
+        "complete": 17
+      },
+      "reassert": {
+        "cases": 64,
+        "complete": 28
+      }
+    }
+  },
+  "final": {
+    "complete": 139,
+    "entry_correct": 464,
+    "eos": 148,
+    "complete_swap_pairs": 24,
+    "teacher_all_tokens_correct": 139,
+    "teacher_correct_tokens": 3820,
+    "target_positions": 6664,
+    "strata": {
+      "length2": {
+        "cases": 128,
+        "complete": 53
+      },
+      "length4": {
+        "cases": 128,
+        "complete": 42
+      },
+      "length8": {
+        "cases": 128,
+        "complete": 1
+      },
+      "update": {
+        "cases": 64,
+        "complete": 15
+      },
+      "reassert": {
+        "cases": 64,
+        "complete": 28
+      }
+    }
+  },
+  "gained": 7,
+  "lost": [
+    "development-diverse-length2-01-swap1-q4-forward-home",
+    "development-diverse-length2-02-swap1-q2-reverse-home",
+    "development-diverse-length2-04-swap0-q4-reverse-home",
+    "development-diverse-length4-00-swap0-q5-reverse-home",
+    "development-diverse-length4-01-swap0-q3-forward-home",
+    "development-diverse-length4-07-swap1-q0-forward-job",
+    "development-diverse-length4-07-swap1-q3-forward-home",
+    "development-diverse-length8-04-swap1-q5-forward-home",
+    "development-diverse-reassert-03-swap1-q1-forward-home",
+    "development-diverse-reassert-03-swap1-q1-reverse-job",
+    "development-diverse-update-00-swap1-q0-forward-job",
+    "development-diverse-update-01-swap0-q4-reverse-home",
+    "development-diverse-update-02-swap1-q2-reverse-job"
+  ],
+  "retained": 132,
+  "initial_ce": 3.394481661707875,
+  "final_ce": 3.08894438936965,
+  "training": {
+    "updates": 256,
+    "prior_updates": 320,
+    "lineage_step": 576,
+    "training_row_draws": 2048,
+    "target_position_draws": 26656,
+    "cache_positions": 6664,
+    "cache_preparation_seconds": 48.364070556,
+    "fit_loop_seconds_excluding_checkpoints": 218.89713849700001,
+    "checkpoint_seconds": 4.23999732,
+    "evaluation_seconds": 470.10910443,
+    "elapsed_seconds": 746.098440556
+  },
+  "process": {
+    "argv": [
+      "/workspace/uor-r4/codex/m2-cross-145-20261010/runtime/geometric-frozen-map-fit",
+      "/workspace/uor-r4/codex/m2-cross-145-20261010/model-config.json"
+    ],
+    "started_utc": "2026-10-10T11:37:53.832559+00:00",
+    "seconds": 750.582433352014,
+    "exit_code": 0,
+    "peak_child_rss_kib": 785356
+  },
+  "sampled_gpu_peak_mib": 824,
+  "gpu_samples": 75,
+  "report_sha256": "be3399c6321144453b7ba055f56aefa42973447fe739ecd8e9d54da248034078",
+  "manifest_sha256": "e0631ef92be4e28f5f9f0a25bbcb54794bb44c80e0e1123b9928393bc6b36c06",
+  "final_field_sha256": "5adb9df8e61f198ea3d10696f091562780f68e6db0f41947df7e015a61dae60c",
+  "reader_sha256": "b03ff9b662d4dd22e220758dac7f2ec4e773f147c8d4be2beca5a91d584d1cad",
+  "review_sha256": "1bbe6ba27232c05a7872dd1bd93d7fe805ac0ddb7e3a75667673aa8c27e96afa",
+  "source_patch_sha256": "b823689aaf75dafdf7ef331f994076b85218600daf100c5fda257f9dfd0f9cdb"
+}

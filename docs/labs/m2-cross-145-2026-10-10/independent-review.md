@@ -1,0 +1,7 @@
+Independent source review PASS at producer fdc3dfa8a02bbafaa9e6745ab63124c6398217a9. Source profiles, complete hash triples, checkpoint/lineage binding, fractional restore/native re-export, exact baseline, zero cache, fixed schedule and net-gain bar reviewed. Twelve focused tests and actual model run are separate author-executed evidence.
+
+Independent saved-evidence review PASS_SAVED_EVIDENCE, reader b03ff9b662d4dd22e220758dac7f2ec4e773f147c8d4be2beca5a91d584d1cad, output1bbe6ba27232c05a7872dd1bd93d7fe805ac0ddb7e3a75667673aa8c27e96afa. Verified145→139,7gains13losses132retained; initialall512 replayexact; early145132 agreesfull; local256/prior320/lineage576; fourpasses26656draws; native26159changes; eightcomparators. No reader execution-time repair. Before execution, reader's schema assumption was corrected to prior_step256/prior_lineage_step320 after source review; no producer evidence changed.
+
+Limits: reader authenticates saved row hashes/IDs/prefix chains/EOS/frozen membership, schedule, master/native fields and historical comparators. It does not rerun the model/backward/tokenizer/native scores. Full BLAKE3 report seal verification is producer evidence; independent inventory/size/rowhash checks are scoped as stated.
+
+Model decision REJECT, accepted145 retained. New saved145 resume profile is archived as source patch+INDEX, not activated. Final delivery-head archive/source/evidence review follows separately.
