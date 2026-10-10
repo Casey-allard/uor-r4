@@ -1,3 +1,13 @@
+## 2026-10-10 — Softmax-free reads in the trainer: rank-table and Hamming-rank flock reads (claude, #2032)
+
+[Record](../labs/softmax-free-read-2026-10-10/README.md). The trainer can now train a geometric read with no softmax in its forward weights:
+- **`read_weighting=rank`:** the flock-kept sources plus NoRead, weighted by a fixed `1/(r+1)` rank table.
+- **`read_weighting=hamming_rank`:** the same, after a straight-through sign of the query and key, so the score is a Hamming rank.
+
+The gradients are straight-through to the flock-softmax read. It is preparation 1 of 2 for M4 acceptance item 0. Arm A of the pre-registered run reproduces the M4 recipe: float 0.877118 / 0.877277 BPB at 512 windows for seeds 1 and 2. Line: softmax-free served read · count 1/3 · headline: softmax at runtime yes → yes.
+
+**Next:** arms B and D (2 seeds each) are training on the EU-RO-1 pod. The integer serving port of both reads (preparation 2) follows, then one result PR with KEEP or REJECT against the pre-registered bar.
+
 ## 2026-10-09 — Scheduled lab audit for all three labs (claude, owner request)
 
 [docs/labs/audit.md](../labs/audit.md): every three hours a fresh-context run checks the DeepSeek, Codex and Claude labs against the session-goal contract and D21: status cards, the line/count field, the three-negatives limit, preparation PRs, pre-registration, delivery. It posts one card on #2028 and one comment per breach on the lab's milestone issue. The Claude lab's PRs are peer-audited by the DeepSeek lab in its own harness, at each of its status cards (the owner no longer uses OpenCode). The auditor changes nothing.

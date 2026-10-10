@@ -8,7 +8,8 @@
 //! geometric-stack train train=TRAIN.u16[,MORE.u16] [train_weights=W1,W2] valid=VALID.u16 \
 //!   out=NEW_REPORT_ROOT (init=ROOT/model | arch=transformer|geometric) [pattern=rrarra] \
 //!   [read=lorentz|dot|l2] [rotation=true|false] [rotation_group=quaternion|u1] [qat=false|true] \
-//!   [transport_snap=none|icosian] [key_shift=false|true|add] \
+//!   [transport_snap=none|icosian] [key_shift=false|true|add] [select=none|flock:WINDOW:K] \
+//!   [read_weighting=softmax|rank|hamming_rank] \
 //!   [seed=1] [steps=7324] [batch=16] [lr=0.002] [warmup=200] [min_lr=0.1] [weight_decay=0.1] \
 //!   [clip=1.0] [eval_every=250] [eval_windows=64] [final_windows=512] [lens=LENS.u16] \
 //!   [merges=MERGES.txt] [checkpoint_every=250] [resume=OLD_ROOT/checkpoint] [max_seconds=inf] \
@@ -43,7 +44,7 @@
 //!   dev_tokens=DEV.uort dev_mask=DEV.mask dev_manifest=DEV/manifest.json \
 //!   (init=ROOT/model | arch=geometric|transformer [shape options as train]) [qat=false|true] \
 //!   [transport_snap=none|icosian] [key_shift=false|true|add] [select=none|flock:WINDOW:K] \
-//!   [pointer=none|DIM] \
+//!   [read_weighting=softmax|rank|hamming_rank] [pointer=none|DIM] \
 //!   [pointer_score=dot|lorentz] [pointer_select=none|flock:WINDOW:K|top:K] \
 //!   [pointer_route=none|prime:WINDOW|prime-ranked:WINDOW|ngram:WINDOW|ngram-ranked:WINDOW] \
 //!   [pointer_gate_supervision=0] \
@@ -257,6 +258,19 @@
 //! `pointer_identity=` replaces the saved head's identity term (the weights do
 //! not change: the term has none), which is how a checkpoint trained without it
 //! is continued with it.
+//! `select=` is also accepted by `train` (on a fresh shape, or replacing an
+//! `init=` model's flock); the `pointer*` options stay `dialogue-train`'s.
+//! `read_weighting=softmax|rank|hamming_rank` (`train` and `dialogue-train`)
+//! sets how every geometric read weights its flock-kept sources
+//! (`StackModel::set_read_weighting`): `rank` mixes values by the normalized
+//! `1/(r+1)` rank table over the kept sources and NoRead, with straight-through
+//! softmax gradients for queries, keys and the auxiliary table; `hamming_rank`
+//! also binarizes queries and keys to +-1 with a straight-through sign. Both
+//! need `select=flock:..`, a geometric read and f32 precision; `qat=true` is
+//! allowed. Absent keeps the `init=` or new model's own weighting (`softmax`
+//! clears it); the saved `config.json` records it, every load restores it, and
+//! a resume keeps the checkpoint's (a different explicit value is refused).
+//! The report records the requested value (`read_weighting`, null when absent).
 //! `pointer_route=prime:WINDOW` (`dialogue-train`) replaces the pointer's
 //! learned scores by the exact prime route of ADR-0003
 //! (`uor_r4_training::geometric_stack::PrimeRoute`): a source is admitted when
@@ -317,8 +331,8 @@ use uor_r4_training::flock::FlockSelect;
 use uor_r4_training::geometric_stack::{
     average_replica_gradients, logits_cross_entropy, parse_flock_select, parse_pointer_route,
     parse_pointer_select, D11Interim, MapCodec, PointerConfig, PointerIdentity, PointerSelect,
-    Precision, PrimeRoute, ReadLineage, ReadScore, RotationGroup, ServedStatistics, StackAdamW,
-    StackArch, StackConfig, StackModel, TransportSnap, TransportUsage,
+    Precision, PrimeRoute, ReadLineage, ReadScore, ReadWeighting, RotationGroup, ServedStatistics,
+    StackAdamW, StackArch, StackConfig, StackModel, TransportSnap, TransportUsage,
 };
 use uor_r4_training::lut_export::export_llama;
 use uor_r4_training::stack_dialogue::{
@@ -740,6 +754,8 @@ struct Settings {
     transport_snap: Option<TransportSnap>,
     /// `key_shift=`: the reads' previous-token key channel.
     key_shift: KeyShift,
+    /// `read_weighting=`; `None` keeps the model's own.
+    read_weighting: Option<ReadWeighting>,
     steps: usize,
     batch: usize,
     lr: f64,
@@ -1200,6 +1216,8 @@ impl Settings {
             "qat": self.qat, "qat_codec": self.qat.then(|| qat_codec().name().to_owned()),
             "transport_snap": self.transport_snap,
             "key_shift": self.key_shift.name(),
+            "select": self.config.select,
+            "read_weighting": self.read_weighting,
             "steps": self.steps, "batch": self.batch, "lr": self.lr,
             "warmup": self.warmup, "min_lr": self.min_lr, "weight_decay": self.weight_decay,
             "clip": self.clip, "eval_every": self.eval_every, "eval_windows": self.eval_windows,
@@ -1229,6 +1247,9 @@ impl Settings {
         // Only when set, so earlier runs' checkpoints still resume.
         if self.key_shift.enabled() {
             lineage["key_shift"] = json!(self.key_shift.name());
+        }
+        if let Some(weighting) = self.read_weighting {
+            lineage["read_weighting"] = json!(weighting);
         }
         lineage
     }
@@ -1501,8 +1522,8 @@ fn stack_config(args: &Args, vocab: Option<usize>) -> Result<StackConfig> {
         });
         config.validate()?;
     }
-    // The A1 read mechanisms, on any fresh shape (`dialogue-train` alone
-    // accepts the options; the other modes never see them).
+    // The A1 read mechanisms, on any fresh shape (`dialogue-train` accepts
+    // all of them, `train` only `select=`; the other modes never see them).
     if let Some(select) = select_arg(args)? {
         config.select = select;
     }
@@ -1516,12 +1537,52 @@ fn stack_config(args: &Args, vocab: Option<usize>) -> Result<StackConfig> {
     Ok(config)
 }
 
+/// `read_weighting=softmax|rank|hamming_rank`
+/// (`StackModel::set_read_weighting`); absent (`None`) keeps the model's own.
+fn read_weighting_arg(args: &Args) -> Result<Option<ReadWeighting>> {
+    match args.optional("read_weighting").as_deref() {
+        None => Ok(None),
+        Some("softmax") => Ok(Some(ReadWeighting::Softmax)),
+        Some("rank") => Ok(Some(ReadWeighting::Rank)),
+        Some("hamming_rank") => Ok(Some(ReadWeighting::HammingRank)),
+        Some(other) => Err(invalid(format!(
+            "invalid read_weighting={other} (softmax, rank or hamming_rank)"
+        ))),
+    }
+}
+
+/// Sets `read_weighting=` on an `init=` or new model; absent keeps its own.
+fn apply_read_weighting(asked: Option<ReadWeighting>, model: &mut StackModel) -> Result<()> {
+    match asked {
+        Some(weighting) => model.set_read_weighting(weighting),
+        None => Ok(()),
+    }
+}
+
+/// A resume keeps the checkpoint's weighting; a different explicit one is refused.
+fn check_resumed_read_weighting(asked: Option<ReadWeighting>, model: &StackModel) -> Result<()> {
+    match asked {
+        Some(weighting) if weighting != model.read_weighting() => Err(invalid(
+            "the checkpoint's model and read_weighting= disagree on the read weighting",
+        )),
+        _ => Ok(()),
+    }
+}
+
 fn train_settings(args: &Args) -> Result<Settings> {
     let init = args.optional("init").map(PathBuf::from);
-    let config = match &init {
+    let mut config = match &init {
         Some(directory) => init_config(args, directory)?,
         None => stack_config(args, None)?,
     };
+    // After `init=`, `select=` replaces the saved flock (a fresh shape took
+    // it in `stack_config`).
+    if init.is_some() {
+        if let Some(select) = select_arg(args)? {
+            config.select = select;
+            config.validate()?;
+        }
+    }
     // An `init=` model saved with a single-source pointer would train nothing
     // but its gate; refused here as `dialogue-train` refuses it.
     refuse_trained_single_source(config.pointer.and_then(|pointer| pointer.select))?;
@@ -1574,6 +1635,7 @@ fn train_settings(args: &Args) -> Result<Settings> {
         qat,
         transport_snap,
         key_shift,
+        read_weighting: read_weighting_arg(args)?,
         steps: args.number("steps", 7324)?,
         batch: args.number("batch", 16)?,
         lr: args.number("lr", 0.002)?,
@@ -2076,6 +2138,8 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
             let model = match &settings.init {
                 Some(directory) => {
                     let mut model = StackModel::load(directory, &device)?;
+                    // `select=` may replace the saved flock.
+                    model.set_select(settings.config.select)?;
                     // `seed=` alone may differ from the saved configuration.
                     let mut saved = model.config.clone();
                     saved.seed = settings.config.seed;
@@ -2105,10 +2169,18 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
             let (model, optimizer, progress, state) =
                 load_checkpoint(checkpoint, &lineage, &device)?;
             settings.key_shift.check_resumed(&model)?;
+            check_resumed_read_weighting(settings.read_weighting, &model)?;
             (model, optimizer, progress, Some(state))
         }
     };
     model.set_precision(settings.precision);
+    // After the precision, so a bf16 run with a rank weighting (asked, from
+    // `init=` or resumed) is refused; the weighting has no parameters, so the
+    // optimizer built above is unchanged.
+    if settings.resume.is_none() {
+        apply_read_weighting(settings.read_weighting, &mut model)?;
+    }
+    model.set_read_weighting(model.read_weighting())?;
     let parameters = model.parameter_count();
     let active_parameters = model.config.active_parameter_count()?;
     eprintln!(
@@ -2131,6 +2203,7 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
         let mut replica = StackModel::new(model.config.clone(), &Device::new_cuda(1)?)?;
         replica.set_precision(settings.precision);
         replica.set_read_key_shift(model.read_key_shift())?;
+        replica.set_read_weighting(model.read_weighting())?;
         replica.copy_variables_from(&model)?;
         eprintln!(
             "data parallel: replica on GPU 1, batch halves of {}",
@@ -4143,6 +4216,8 @@ struct DialogueSettings {
     transport_snap: Option<TransportSnap>,
     /// `key_shift=`, as `train` takes it.
     key_shift: KeyShift,
+    /// `read_weighting=`, as `train` takes it; `None` keeps the model's own.
+    read_weighting: Option<ReadWeighting>,
     /// `read_lineage=conv8|carrier` (Step 7a); `None` without it.
     read_lineage: Option<ReadLineage>,
     /// `select=`, `pointer=`, `pointer_score=`, `pointer_identity=`,
@@ -4203,6 +4278,7 @@ impl DialogueSettings {
             "transport_snap": self.transport_snap,
             "key_shift": self.key_shift.name(),
             "read_lineage": self.read_lineage.map(ReadLineage::name),
+            "read_weighting": self.read_weighting,
             "policy": self.policy, "data_seed": self.data_seed,
             "steps": self.steps, "batch": self.batch, "lr": self.lr, "warmup": self.warmup,
             "min_lr": self.min_lr, "weight_decay": self.weight_decay, "clip": self.clip,
@@ -4282,6 +4358,9 @@ impl DialogueSettings {
         // Only when set, so earlier runs' checkpoints still resume.
         if self.key_shift.enabled() {
             lineage["key_shift"] = json!(self.key_shift.name());
+        }
+        if let Some(weighting) = self.read_weighting {
+            lineage["read_weighting"] = json!(weighting);
         }
         if let Some(read_lineage) = self.read_lineage {
             lineage["read_lineage"] = json!(read_lineage.name());
@@ -4506,6 +4585,7 @@ fn dialogue_train_mode(arguments: &[String]) -> Result<()> {
             "qat",
             "transport_snap",
             "key_shift",
+            "read_weighting",
             "read_lineage",
             "select",
             "pointer",
@@ -4543,6 +4623,7 @@ fn dialogue_train_mode(arguments: &[String]) -> Result<()> {
         qat: qat_flag(&args)?,
         transport_snap: transport_snap_arg(&args)?,
         key_shift: key_shift_arg(&args)?,
+        read_weighting: read_weighting_arg(&args)?,
         read_lineage: read_lineage_arg(&args)?,
         select: args.optional("select"),
         pointer: args.optional("pointer"),
@@ -4915,12 +4996,14 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
                     }
                     s.key_shift.apply(&mut model, true)?;
                     apply_read_lineage(s.read_lineage, &mut model, true)?;
+                    apply_read_weighting(s.read_weighting, &mut model)?;
                     model
                 }
                 None => {
                     let mut model = StackModel::new(config.clone(), &device)?;
                     s.key_shift.apply(&mut model, false)?;
                     apply_read_lineage(s.read_lineage, &mut model, false)?;
+                    apply_read_weighting(s.read_weighting, &mut model)?;
                     model
                 }
             };
@@ -4950,6 +5033,7 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
                 ));
             }
             s.key_shift.check_resumed(&model)?;
+            check_resumed_read_weighting(s.read_weighting, &model)?;
             if model.read_lineage() != s.read_lineage {
                 return Err(invalid(
                     "the checkpoint's model and read_lineage= disagree on the read lineage",
@@ -4959,6 +5043,8 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
         }
     };
     model.set_precision(s.precision);
+    // A bf16 run with a rank weighting (asked, from `init=` or resumed) is refused.
+    model.set_read_weighting(model.read_weighting())?;
     // After `init=` or a resume alike: the requested settings replace any mode the load restored.
     if s.qat {
         model.set_served_representation(Some(qat_codec()))?;
@@ -6087,6 +6173,8 @@ fn main() -> Result<()> {
                     "qat",
                     "transport_snap",
                     "key_shift",
+                    "select",
+                    "read_weighting",
                     "data_parallel",
                     "tf32",
                     "precision",

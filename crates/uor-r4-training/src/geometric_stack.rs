@@ -224,6 +224,25 @@ impl Precision {
     }
 }
 
+/// How a geometric read weights the sources it keeps
+/// ([`StackModel::set_read_weighting`]). [`Self::Softmax`] is the ordinary
+/// read. [`Self::Rank`] and [`Self::HammingRank`] are softmax-free training
+/// arms over a flock selection: the forward mixes values by the normalized
+/// `1/(r+1)` rank table ([`fused_read_weighted`]) and the backward is
+/// straight-through to the flock softmax's query/key/auxiliary gradients.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ReadWeighting {
+    /// Softmax over the kept sources and NoRead (the default).
+    #[default]
+    Softmax,
+    /// Arm B: the rank table over the flock-kept sources and NoRead.
+    Rank,
+    /// Arm D: queries and keys binarized to +-1 by a straight-through sign
+    /// before a [`Self::Rank`] read with the model's own score.
+    HammingRank,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ReadScore {
@@ -1862,6 +1881,9 @@ pub struct StackModel {
     /// Each read key also carries the previous position's key, turned by the
     /// fixed unit quaternion `j` ([`Self::set_read_key_shift`]).
     read_key_shift: bool,
+    /// How the geometric reads weight their kept sources
+    /// ([`Self::set_read_weighting`]).
+    read_weighting: ReadWeighting,
     /// A research-only read-lineage control ([`Self::set_read_lineage`]).
     read_lineage: Option<ReadLineage>,
     /// The fixed block-diagonal SO(4) map of [`ReadLineage::RandomSo4`].
@@ -1994,6 +2016,7 @@ impl StackModel {
             geometric_address: None,
             geometric_span: None,
             read_key_shift: false,
+            read_weighting: ReadWeighting::Softmax,
             read_lineage: None,
             read_lineage_so4: None,
             pointer_key_fold: None,
@@ -2104,6 +2127,11 @@ impl StackModel {
         }
         if let Some(select) = &select {
             validate_flock(select)?;
+        }
+        if select.is_none() && self.read_weighting != ReadWeighting::Softmax {
+            return Err(invalid(
+                "a softmax-free read weighting needs a flock selection",
+            ));
         }
         self.config.select = select;
         Ok(())
@@ -2516,7 +2544,13 @@ impl StackModel {
             }
             self.heads(&projected, batch, time)
         };
-        let (query, key, value) = (project("query")?, project("key")?, project("value")?);
+        let (mut query, mut key, value) = (project("query")?, project("key")?, project("value")?);
+        if self.read_weighting == ReadWeighting::HammingRank {
+            // Arm D: +-1 queries and keys (straight-through sign, sign(0) =
+            // +1), before the dump so it records what the read scores.
+            query = sign_straight_through(&query)?;
+            key = sign_straight_through(&key)?;
+        }
         // The NoRead bias is a parameter and the read's auxiliary table is
         // f32 in both precisions (see [`Precision`]).
         let null = self
@@ -2564,7 +2598,7 @@ impl StackModel {
             _ => None,
         };
         let (value, value_width) = self.read_binding_values(value, layer, binding)?;
-        let read = fused_read_selected(
+        let read = fused_read_weighted(
             &query,
             &key,
             &value,
@@ -2574,6 +2608,7 @@ impl StackModel {
             true,
             false,
             self.config.select,
+            self.read_weighting != ReadWeighting::Softmax,
         )?;
         self.finish_geometric_read(p, layer, &read, value_width, capture, binding, bound)
     }
@@ -2950,6 +2985,12 @@ impl StackModel {
     /// Repeating the same mode is a no-op; changing modes is explicit research
     /// in another model, not a silent reinterpretation of saved parameters.
     pub fn set_read_identity_latch(&mut self, mode: ReadIdentityLatch) -> Result<()> {
+        if self.read_weighting != ReadWeighting::Softmax {
+            return Err(invalid(
+                "a read identity latch replaces the ordinary read, which a softmax-free read weighting needs; \
+                 clear the weighting first",
+            ));
+        }
         if self.geometric_span.is_some() {
             return Err(invalid(
                 "geometric span production replaces the scalar identity latch",
@@ -3005,6 +3046,12 @@ impl StackModel {
     /// The value/output maps, full causal support, age and NoRead stay in use.
     /// This first implementation is an offline CPU float-training prototype.
     pub fn set_geometric_address(&mut self, config: GeometricAddressConfig) -> Result<()> {
+        if self.read_weighting != ReadWeighting::Softmax {
+            return Err(invalid(
+                "geometric addressing replaces the ordinary read, which a softmax-free read weighting needs; \
+                 clear the weighting first",
+            ));
+        }
         self.validate_geometric_address(&config)?;
         if matches!(self.read_lineage, Some(ReadLineage::PhaseBinding { .. })) {
             return Err(invalid(
@@ -3089,6 +3136,56 @@ impl StackModel {
         self.read_key_shift
     }
 
+    /// How every geometric read weights its kept sources. [`ReadWeighting::Softmax`]
+    /// is always allowed and is the ordinary read. [`ReadWeighting::Rank`]
+    /// (arm B) replaces the forward softmax by the normalized `1/(r+1)` rank
+    /// table over the flock-kept sources and NoRead ([`fused_read_weighted`]);
+    /// its backward is straight-through: query, key, NoRead, age, `log_beta`
+    /// and `offset` receive exactly the flock softmax's gradients and the
+    /// values the rank mix's. [`ReadWeighting::HammingRank`] (arm D) also
+    /// binarizes the projected queries and keys to +-1 with a straight-through
+    /// sign before that read; for a Lorentz read the distance is then a
+    /// monotone function of the Hamming distance.
+    ///
+    /// Both need a geometric stack with a read layer, a flock selection
+    /// ([`Self::set_select`], which then refuses `None`), f32 precision, and no
+    /// geometric address, read lineage or read identity latch. Served (QAT)
+    /// mode is allowed. [`Self::save`] records them as [`READ_WEIGHTING_FIELD`]
+    /// and [`Self::load`] restores them; a softmax model keeps its config
+    /// bytes. The integer export refuses them through the flock selection.
+    pub fn set_read_weighting(&mut self, weighting: ReadWeighting) -> Result<()> {
+        if weighting != ReadWeighting::Softmax {
+            if self.config.arch != StackArch::Geometric || !self.config.pattern.contains('a') {
+                return Err(invalid(
+                    "a softmax-free read weighting needs a geometric stack with a read layer",
+                ));
+            }
+            if self.config.select.is_none() {
+                return Err(invalid(
+                    "a softmax-free read weighting needs a flock selection",
+                ));
+            }
+            if self.geometric_address.is_some()
+                || self.read_lineage.is_some()
+                || self.read_identity_latch.is_some()
+            {
+                return Err(invalid(
+                    "a softmax-free read weighting has no geometric-address, lineage or latch form",
+                ));
+            }
+            if self.precision.is_bf16() {
+                return Err(invalid("a softmax-free read weighting needs f32 precision"));
+            }
+        }
+        self.read_weighting = weighting;
+        Ok(())
+    }
+
+    /// How every geometric read weights its kept sources.
+    pub fn read_weighting(&self) -> ReadWeighting {
+        self.read_weighting
+    }
+
     /// Opt into a research-only read-lineage control (Step 2 parity bench,
     /// #820), or `None` to remove it. Each variant changes the read keys (and
     /// for the two query-key variants also the queries) of every geometric
@@ -3113,6 +3210,14 @@ impl StackModel {
     /// mode and the integer export refuse a model with one. F2
     /// ([`Self::set_read_key_shift`]) is the saveable form and excludes these.
     pub fn set_read_lineage(&mut self, lineage: Option<ReadLineage>) -> Result<()> {
+        if lineage.is_some() {
+            if self.read_weighting != ReadWeighting::Softmax {
+                return Err(invalid(
+                    "a read lineage replaces the ordinary read, which a softmax-free read weighting needs; \
+                     clear the weighting first",
+                ));
+            }
+        }
         if lineage.is_some() {
             if self.config.arch != StackArch::Geometric || !self.config.pattern.contains('a') {
                 return Err(invalid(
@@ -3576,6 +3681,12 @@ impl StackModel {
     /// training labels never enter this API. Existing scalar-latch artifacts
     /// retain their original behavior and tensor inventory.
     pub fn set_geometric_span(&mut self, config: GeometricSpanConfig) -> Result<()> {
+        if self.read_weighting != ReadWeighting::Softmax {
+            return Err(invalid(
+                "a geometric span replaces the ordinary read, which a softmax-free read weighting needs; \
+                 clear the weighting first",
+            ));
+        }
         config.validate(self.config.width)?;
         if let Some(existing) = &self.geometric_span {
             return if existing == &config {
@@ -8693,6 +8804,12 @@ impl StackModel {
             with_field[READ_KEY_SHIFT_FIELD] = serde_json::Value::Bool(true);
             config = serde_json::to_vec_pretty(&with_field)?;
         }
+        if self.read_weighting != ReadWeighting::Softmax {
+            // Only when set, so every softmax model keeps its exact bytes.
+            let mut with_field: serde_json::Value = serde_json::from_slice(&config)?;
+            with_field[READ_WEIGHTING_FIELD] = serde_json::to_value(self.read_weighting)?;
+            config = serde_json::to_vec_pretty(&with_field)?;
+        }
         if let Some(lineage) = self.read_lineage {
             // Only the saveable Step 7a arms reach here; only when set, so
             // every other model keeps its exact bytes.
@@ -8752,6 +8869,23 @@ impl StackModel {
             )));
         }
         Ok(Some(snap))
+    }
+
+    /// The read weighting `directory`'s `config.json` records
+    /// ([`Self::set_read_weighting`]). Absent means [`ReadWeighting::Softmax`],
+    /// as for every model saved before the field existed; only `"rank"` and
+    /// `"hamming_rank"` are ever written, so any other value is refused.
+    pub fn saved_read_weighting(directory: &Path) -> Result<ReadWeighting> {
+        let config: serde_json::Value =
+            serde_json::from_slice(&fs::read(directory.join("config.json"))?)?;
+        match config.get(READ_WEIGHTING_FIELD).and_then(|v| v.as_str()) {
+            None if config.get(READ_WEIGHTING_FIELD).is_none() => Ok(ReadWeighting::Softmax),
+            Some("rank") => Ok(ReadWeighting::Rank),
+            Some("hamming_rank") => Ok(ReadWeighting::HammingRank),
+            _ => Err(invalid(format!(
+                "config.json's {READ_WEIGHTING_FIELD} must be absent, \"rank\" or \"hamming_rank\""
+            ))),
+        }
     }
 
     /// Whether `directory`'s `config.json` records the read key shift
@@ -9057,6 +9191,7 @@ impl StackModel {
             geometric_address,
             geometric_span,
             read_key_shift: false,
+            read_weighting: ReadWeighting::Softmax,
             read_lineage: None,
             read_lineage_so4: None,
             pointer_key_fold: None,
@@ -9082,6 +9217,7 @@ impl StackModel {
             }
             model.read_lineage = Some(lineage);
         }
+        model.set_read_weighting(Self::saved_read_weighting(directory)?)?;
         Ok(model)
     }
 
@@ -10181,6 +10317,13 @@ impl CustomOp2 for StraightThrough {
     }
 }
 
+/// Straight-through sign ([`ReadWeighting::HammingRank`]): forward `sign(x)`
+/// with `sign(0) = +1`, exactly +1 or -1; backward the identity.
+fn sign_straight_through(x: &Tensor) -> Result<Tensor> {
+    let sign = x.ge(0.0)?.to_dtype(x.dtype())?.affine(2.0, -1.0)?;
+    straight_through(x, &sign)
+}
+
 /// Straight-through estimator: forward is `quantized`, backward gradient flows to `continuous`.
 pub fn straight_through(continuous: &Tensor, quantized: &Tensor) -> Result<Tensor> {
     // Under `precision=bf16` both sides are bf16 activations; the op copies
@@ -11124,6 +11267,11 @@ impl CustomOp2 for QuaternionScan {
 /// The `config.json` field that records the read key shift
 /// ([`StackModel::set_read_key_shift`]); written only when it is set.
 pub const READ_KEY_SHIFT_FIELD: &str = "read_key_shift";
+
+/// The `config.json` field that records a softmax-free read weighting
+/// ([`StackModel::set_read_weighting`]): `"rank"` or `"hamming_rank"`,
+/// written only when it is not [`ReadWeighting::Softmax`].
+pub const READ_WEIGHTING_FIELD: &str = "read_weighting";
 
 /// Left multiplication by the unit quaternion `j` of every four-channel lane
 /// of the last dimension: `j (a + b i + c j + d k) = -c + d i + a j - b k`,
@@ -12286,6 +12434,10 @@ struct FusedRead {
     rope: bool,
     /// Flock selection of the sources each row softmaxes over.
     select: Option<FlockSelect>,
+    /// [`ReadWeighting::Rank`]: the forward mixes values by [`rank_weights`]
+    /// instead of the softmax; the backward is straight-through (see
+    /// [`fused_read_weighted`]). Needs `select`.
+    rank: bool,
 }
 
 /// One (window, head) block: queries and keys (rotated with RoPE) in row
@@ -12359,6 +12511,37 @@ fn drop_unkept(
         }
     }
     true
+}
+
+/// The rank weights of one row ([`ReadWeighting::Rank`]) in `weights` (the
+/// row's positions `0..=t`): the kept entries of `selection` (ordered by
+/// descending score) and the NoRead slot take the normalized `1/(r+1)` table
+/// ([`flock::rank_table`]) by rank, and every unkept position exactly 0. The
+/// NoRead slot's rank is the number of kept entries whose score (`scores`, the
+/// totals the selection ranked) is at least `null`: it loses ties. Its own
+/// weight multiplies a zero value and is not written. No exponential.
+fn rank_weights(
+    selection: &flock::FlockSelection,
+    scores: &[f32],
+    null: Option<f32>,
+    weights: &mut [f32],
+) {
+    weights.fill(0.0);
+    let null_rank = null.map(|null| {
+        selection
+            .entries
+            .iter()
+            .filter(|entry| scores[entry.position] >= null)
+            .count()
+    });
+    let table = flock::rank_table(selection.len() + usize::from(null_rank.is_some()));
+    for (index, entry) in selection.entries.iter().enumerate() {
+        let rank = match null_rank {
+            Some(null_rank) if index >= null_rank => index + 1,
+            _ => index,
+        };
+        weights[entry.position] = table[rank];
+    }
 }
 
 /// Rows of a register tile of the read's products.
@@ -12641,7 +12824,10 @@ impl FusedRead {
     /// selection the probabilities are those of the kept sources and exactly
     /// zero elsewhere; `keep` is the selection's scratch. The selection is the
     /// shared selector's on the row's total scores, so a row it cannot rank (a
-    /// non-finite score) is an error here, not a silent NaN.
+    /// non-finite score) is an error here, not a silent NaN. With `rank` set
+    /// (a rank read), the row's [`rank_weights`] are also written to
+    /// `rank[..=t]`; the probabilities stay the flock softmax's.
+    #[allow(clippy::too_many_arguments)]
     fn transform(
         &self,
         block: &Block,
@@ -12650,6 +12836,7 @@ impl FusedRead {
         excess: &mut [f64],
         distance: &mut [f64],
         keep: &mut Vec<bool>,
+        rank: Option<&mut [f32]>,
     ) -> candle_core::Result<f32> {
         let row = &mut row[..=t];
         let scale = 1.0 / (self.key as f32).sqrt();
@@ -12682,12 +12869,18 @@ impl FusedRead {
             // (`exp(-inf - maximum)`), and the maximum is over the kept ones
             // and the NoRead slot, which is not a position and is not selected.
             let selection = flock::flock_select(&*row, t, select).map_err(selection_error)?;
+            if let Some(weights) = rank {
+                let null = block.null.map(|null| null[t]);
+                rank_weights(&selection, row, null, &mut weights[..=t]);
+            }
             if drop_unkept(&selection, row, keep) {
                 maximum = block.null.map_or(f32::NEG_INFINITY, |null| null[t]);
                 for &score in row.iter() {
                     maximum = maximum.max(score);
                 }
             }
+        } else if rank.is_some() {
+            candle_core::bail!("a rank read needs a flock selection");
         }
         let null_weight = block.null.map_or(0.0, |null| (null[t] - maximum).exp());
         let mut total = null_weight;
@@ -12704,7 +12897,9 @@ impl FusedRead {
 
     /// Probabilities of the tile of rows `t0..t0 + rows` in `probabilities`
     /// (rows `time` wide), with the Lorentz excesses and distances in
-    /// `scratch`; returns the NoRead probabilities.
+    /// `scratch`; returns the NoRead probabilities. With `rank` set (rows
+    /// `time` wide, like `probabilities`) it also receives the rows' rank
+    /// weights ([`Self::transform`]).
     fn tile(
         &self,
         block: &Block,
@@ -12712,6 +12907,7 @@ impl FusedRead {
         rows: usize,
         probabilities: &mut [f32],
         scratch: &mut Scratch,
+        mut rank: Option<&mut [f32]>,
     ) -> candle_core::Result<[f32; TILE]> {
         let (key, time) = (self.key, self.time);
         tile_product(
@@ -12728,6 +12924,9 @@ impl FusedRead {
         let mut null = [0f32; TILE];
         for (r, null) in null.iter_mut().enumerate().take(rows) {
             let span = r * time..(r + 1) * time;
+            let weights = rank
+                .as_deref_mut()
+                .map(|weights| &mut weights[span.clone()]);
             *null = self.transform(
                 block,
                 t0 + r,
@@ -12735,6 +12934,7 @@ impl FusedRead {
                 &mut scratch.excess[span.clone()],
                 &mut scratch.distance[span],
                 &mut scratch.keep,
+                weights,
             )?;
         }
         Ok(null)
@@ -13109,11 +13309,14 @@ impl CustomOp3 for FusedRead {
                 let block = self.block(query, kv, aux, tables.as_ref(), index);
                 let mut scratch = Scratch::new(time);
                 let mut probabilities = vec![0f32; TILE * time];
+                // A rank read mixes by its rank weights, not the softmax.
+                let mut ranked = vec![0f32; if self.rank { TILE * time } else { 0 }];
                 for t0 in (0..time).step_by(TILE) {
                     let rows = TILE.min(time - t0);
-                    self.tile(&block, t0, rows, &mut probabilities, &mut scratch)?;
+                    let rank = self.rank.then_some(ranked.as_mut_slice());
+                    self.tile(&block, t0, rows, &mut probabilities, &mut scratch, rank)?;
                     causal_rows(
-                        &probabilities,
+                        if self.rank { &ranked } else { &probabilities },
                         time,
                         rows,
                         t0,
@@ -13266,6 +13469,9 @@ impl CustomOp3 for FusedRead {
                 // The whole block's probabilities and inner-product gradients,
                 // for the key and value gradients after the rows.
                 let mut probabilities = vec![0f32; time * time];
+                // A rank read's forward weights, for its value gradient only;
+                // every other gradient is the softmax's (straight-through).
+                let mut ranked = vec![0f32; if self.rank { time * time } else { 0 }];
                 let mut inner_grads = vec![0f32; time * time];
                 // Keys and values in row layout; keys are mapped back through
                 // RoPE at the end.
@@ -13281,6 +13487,7 @@ impl CustomOp3 for FusedRead {
                         rows,
                         &mut probabilities[t0 * time..],
                         &mut scratch,
+                        self.rank.then(|| &mut ranked[t0 * time..]),
                     )?;
                     tile_product(
                         &d_block[t0 * value..],
@@ -13376,7 +13583,8 @@ impl CustomOp3 for FusedRead {
                     }
                 }
                 causal_transpose(&inner_grads, &block.query, time, key, &mut dk_rows);
-                causal_transpose(&probabilities, d_block, time, value, &mut dv_rows);
+                let mix = if self.rank { &ranked } else { &probabilities };
+                causal_transpose(mix, d_block, time, value, &mut dv_rows);
                 for (j, &coefficient) in key_self.iter().enumerate() {
                     if coefficient != 0.0 {
                         let (rows, grads) = (
@@ -13472,6 +13680,40 @@ pub fn fused_read_selected(
     rope: bool,
     select: Option<FlockSelect>,
 ) -> Result<Tensor> {
+    fused_read_weighted(
+        query, key, value, aux, score, null, age, rope, select, false,
+    )
+}
+
+/// [`fused_read_selected`] with the softmax-free [`ReadWeighting::Rank`] mix
+/// when `rank` is set. Row `t`'s output is `sum_j w_j v_j`: the flock-kept
+/// sources and the NoRead slot (zero value) take the normalized `1/(r+1)`
+/// table ([`crate::flock::rank_table`]) by descending total score (NoRead
+/// loses ties) and every unkept source exactly 0; no exponential enters the
+/// forward weights. The backward is straight-through: the query, key and
+/// auxiliary-table (NoRead, age, `log_beta`, `offset`) gradients are exactly
+/// those [`fused_read_selected`] gives on the same inputs (the flock softmax
+/// `p` over the kept sources and NoRead, `ds_j = p_j (dp_j - sum p dp)` with
+/// `dp_j = dOut_t . v_j`), and the value gradient is the rank mix's,
+/// `dV_j = sum_t w_tj dOut_t`. A rank read needs `select`. Without `rank` this
+/// is [`fused_read_selected`]. CUDA and Metal run it on the host (their
+/// kernels do not cover a selection); bf16 refuses a selection.
+#[allow(clippy::too_many_arguments)]
+pub fn fused_read_weighted(
+    query: &Tensor,
+    key: &Tensor,
+    value: &Tensor,
+    aux: &Tensor,
+    score: ReadScore,
+    null: bool,
+    age: bool,
+    rope: bool,
+    select: Option<FlockSelect>,
+    rank: bool,
+) -> Result<Tensor> {
+    if rank && select.is_none() {
+        return Err(invalid("a rank read needs a flock selection"));
+    }
     // Under `precision=bf16` the query, key and value are bf16 (the fused-read
     // CUDA kernels of the bf16 module read that storage and score in f32); the
     // auxiliary table (NoRead bias, age table, `log_beta`, `offset`) is a
@@ -13514,6 +13756,7 @@ pub fn fused_read_selected(
         age,
         rope,
         select,
+        rank,
     };
     if rope && key_width % 2 != 0 {
         return Err(invalid("RoPE needs an even head width"));
@@ -20855,6 +21098,346 @@ mod tests {
             .set_served_representation(Some(Arc::new(D11Interim)))
             .is_err());
         assert!(shifted.read_key_shift() && shifted.served_codec().is_none());
+        Ok(())
+    }
+
+    /// A Dot read with NoRead and age over ten positions whose values are the
+    /// identity, so each output row is that row's weights over positions.
+    fn read_weighting_case() -> Result<(Var, Var, Var, Var, FlockSelect)> {
+        let (time, key) = (10, 4);
+        let wave = |n: usize, phase: f32| -> Vec<f32> {
+            (0..n)
+                .map(|i| (i as f32 * 0.731 + phase).sin() * 1.7)
+                .collect()
+        };
+        let mut identity = vec![0f32; time * time];
+        for j in 0..time {
+            identity[j * time + j] = 1.0;
+        }
+        let aux_len = fused_aux_len(1, 1, time, ReadScore::Dot, true, true);
+        Ok((
+            Var::from_tensor(&Tensor::from_vec(
+                wave(time * key, 0.3),
+                (1, 1, time, key),
+                &cpu(),
+            )?)?,
+            Var::from_tensor(&Tensor::from_vec(
+                wave(time * key, 1.9),
+                (1, 1, time, key),
+                &cpu(),
+            )?)?,
+            Var::from_tensor(&Tensor::from_vec(identity, (1, 1, time, time), &cpu())?)?,
+            Var::from_tensor(&Tensor::from_vec(wave(aux_len, 4.1), aux_len, &cpu())?)?,
+            FlockSelect {
+                sink: 0,
+                window: 2,
+                k: 2,
+            },
+        ))
+    }
+
+    #[test]
+    fn read_weighting_rank_forward_is_the_rank_table_over_the_flock() -> Result<()> {
+        let (query, key, value, aux, select) = read_weighting_case()?;
+        let time = 10;
+        let out = fused_read_weighted(
+            &query,
+            &key,
+            &value,
+            &aux,
+            ReadScore::Dot,
+            true,
+            true,
+            false,
+            Some(select),
+            true,
+        )?
+        .flatten_all()?
+        .to_vec1::<f32>()?;
+        let (q, k, a) = (
+            query.flatten_all()?.to_vec1::<f32>()?,
+            key.flatten_all()?.to_vec1::<f32>()?,
+            aux.as_tensor().to_vec1::<f32>()?,
+        );
+        for t in 0..time {
+            let scores: Vec<f32> = (0..=t)
+                .map(|j| {
+                    let dot: f32 = (0..4).map(|i| q[t * 4 + i] * k[j * 4 + i]).sum();
+                    dot * 0.5 + a[time + t - j]
+                })
+                .collect();
+            let null = a[t];
+            let mut kept: Vec<usize> = crate::flock::flock_select(&scores, t, select)?
+                .entries
+                .iter()
+                .map(|entry| entry.position)
+                .collect();
+            kept.sort_by(|&x, &y| scores[y].total_cmp(&scores[x]).then(x.cmp(&y)));
+            let null_rank = kept.iter().filter(|&&j| scores[j] >= null).count();
+            let m = kept.len() + 1;
+            let norm: f64 = (0..m).map(|i| 1.0 / (i as f64 + 1.0)).sum();
+            let weight = |r: usize| (1.0 / (r as f64 + 1.0) / norm) as f32;
+            let row = &out[t * time..(t + 1) * time];
+            for (j, &w) in row.iter().enumerate() {
+                match kept.iter().position(|&p| p == j) {
+                    None => assert_eq!(w.to_bits(), 0f32.to_bits(), "row {t} position {j}"),
+                    Some(r) => {
+                        let rank = if r >= null_rank { r + 1 } else { r };
+                        assert!((w - weight(rank)).abs() <= 1e-6, "row {t} position {j}");
+                    }
+                }
+            }
+            let total: f32 = row.iter().sum::<f32>() + weight(null_rank);
+            assert!((total - 1.0).abs() <= 1e-6, "row {t} sums to {total}");
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn read_weighting_rank_backward_is_straight_through_to_the_flock_softmax() -> Result<()> {
+        let (query, key, value, aux, select) = read_weighting_case()?;
+        let time = 10;
+        let upstream = Tensor::from_vec(
+            (0..time * time)
+                .map(|i| (i as f32 * 1.37 + 0.2).cos())
+                .collect::<Vec<f32>>(),
+            (1, 1, time, time),
+            &cpu(),
+        )?;
+        let grads = |rank: bool| -> Result<(Tensor, candle_core::backprop::GradStore)> {
+            let out = fused_read_weighted(
+                &query,
+                &key,
+                &value,
+                &aux,
+                ReadScore::Dot,
+                true,
+                true,
+                false,
+                Some(select),
+                rank,
+            )?;
+            let grads = out.mul(&upstream)?.sum_all()?.backward()?;
+            Ok((out, grads))
+        };
+        let (weights, rank) = grads(true)?;
+        let (_, softmax) = grads(false)?;
+        let softmax_selected = fused_read_selected(
+            &query,
+            &key,
+            &value,
+            &aux,
+            ReadScore::Dot,
+            true,
+            true,
+            false,
+            Some(select),
+        )?;
+        assert_eq!(
+            bits(&softmax_selected)?,
+            bits(&fused_read_weighted(
+                &query,
+                &key,
+                &value,
+                &aux,
+                ReadScore::Dot,
+                true,
+                true,
+                false,
+                Some(select),
+                false
+            )?)?
+        );
+        for var in [&query, &key, &aux] {
+            let (r, s) = (
+                rank.get(var.as_tensor())
+                    .ok_or_else(|| invalid("missing grad"))?,
+                softmax
+                    .get(var.as_tensor())
+                    .ok_or_else(|| invalid("missing grad"))?,
+            );
+            assert_eq!(bits(r)?, bits(s)?);
+        }
+        // dV = W^T dOut, W the forward rank weights (the identity-value output).
+        let w = weights.flatten_all()?.to_vec1::<f32>()?;
+        let d_out = upstream.flatten_all()?.to_vec1::<f32>()?;
+        let dv = rank
+            .get(value.as_tensor())
+            .ok_or_else(|| invalid("missing grad"))?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        for j in 0..time {
+            for c in 0..time {
+                let expected: f32 = (0..time)
+                    .map(|t| w[t * time + j] * d_out[t * time + c])
+                    .sum();
+                assert!((dv[j * time + c] - expected).abs() <= 1e-6, "dV[{j}, {c}]");
+            }
+        }
+        // Without a selection a rank read is refused.
+        assert!(fused_read_weighted(
+            &query,
+            &key,
+            &value,
+            &aux,
+            ReadScore::Dot,
+            true,
+            true,
+            false,
+            None,
+            true
+        )
+        .is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn read_weighting_hamming_rank_binarizes_and_trains() -> Result<()> {
+        // The straight-through sign: exactly +-1 (sign(0) = +1), identity backward.
+        let x = Var::from_tensor(&Tensor::new(&[-0.5f32, 0.0, 2.0, -3.0, 1e-9], &cpu())?)?;
+        let sign = sign_straight_through(x.as_tensor())?;
+        assert_eq!(sign.to_vec1::<f32>()?, vec![-1.0, 1.0, 1.0, -1.0, 1.0]);
+        let grads = sign
+            .mul(&Tensor::new(&[1f32, 2.0, 3.0, 4.0, 5.0], &cpu())?)?
+            .sum_all()?
+            .backward()?;
+        assert_eq!(
+            grads
+                .get(x.as_tensor())
+                .ok_or_else(|| invalid("missing grad"))?
+                .to_vec1::<f32>()?,
+            vec![1.0, 2.0, 3.0, 4.0, 5.0]
+        );
+        let mut config = tiny(StackArch::Geometric, "ra", ReadScore::Lorentz, true);
+        config.select = Some(FlockSelect {
+            sink: 0,
+            window: 2,
+            k: 2,
+        });
+        let mut model = StackModel::new(config, &cpu())?;
+        let ids = [1u32, 2, 3, 4, 5, 6, 7, 8];
+        let targets = [2u32, 3, 4, 5, 6, 7, 8, 9];
+        let softmax = bits(&model.forward(&ids, 1, ids.len())?)?;
+        model.set_read_weighting(ReadWeighting::Rank)?;
+        let rank = bits(&model.forward(&ids, 1, ids.len())?)?;
+        // The whole model reads through the rank weights, not the softmax.
+        assert_ne!(rank, softmax);
+        // A setter that would replace the ordinary read is refused afterwards.
+        assert!(model
+            .set_read_lineage(Some(ReadLineage::IdentityShift))
+            .is_err());
+        model.set_read_weighting(ReadWeighting::HammingRank)?;
+        assert_ne!(bits(&model.forward(&ids, 1, ids.len())?)?, rank);
+        let loss = model.loss(&ids, &targets, 1, ids.len())?;
+        assert!(loss.to_scalar::<f32>()?.is_finite());
+        let grads = loss.backward()?;
+        let query = model.variables()["layers.01.read.query.weight"].as_tensor();
+        let grad = grads
+            .get(query)
+            .ok_or_else(|| invalid("missing query grad"))?
+            .abs()?
+            .sum_all()?
+            .to_scalar::<f32>()?;
+        assert!(grad.is_finite() && grad > 0.0);
+        Ok(())
+    }
+
+    #[test]
+    fn read_weighting_save_load_round_trips_and_softmax_bytes_stay_legacy() -> Result<()> {
+        let root =
+            std::env::temp_dir().join(format!("stack-read-weighting-{}", std::process::id()));
+        let (plain_dir, touched_dir, rank_dir) =
+            (root.join("plain"), root.join("touched"), root.join("rank"));
+        let mut config = tiny(StackArch::Geometric, "rra", ReadScore::L2, true);
+        let select = FlockSelect {
+            sink: 0,
+            window: 2,
+            k: 2,
+        };
+        config.select = Some(select);
+        let plain = StackModel::new(config.clone(), &cpu())?;
+        plain.save(&plain_dir)?;
+        let mut model = StackModel::new(config.clone(), &cpu())?;
+        model.set_read_weighting(ReadWeighting::Rank)?;
+        model.set_read_weighting(ReadWeighting::Softmax)?;
+        model.save(&touched_dir)?;
+        assert_eq!(
+            fs::read(touched_dir.join("config.json"))?,
+            fs::read(plain_dir.join("config.json"))?
+        );
+        assert_eq!(
+            StackModel::saved_read_weighting(&plain_dir)?,
+            ReadWeighting::Softmax
+        );
+        assert_eq!(
+            StackModel::load(&plain_dir, &cpu())?.read_weighting(),
+            ReadWeighting::Softmax
+        );
+        let ids = [1, 2, 3, 4, 5, 6, 7, 8];
+        for (weighting, name) in [
+            (ReadWeighting::Rank, "rank"),
+            (ReadWeighting::HammingRank, "hamming_rank"),
+        ] {
+            model.set_read_weighting(weighting)?;
+            let expected = bits(&model.forward(&ids, 1, ids.len())?)?;
+            model.save(&rank_dir)?;
+            let saved: serde_json::Value =
+                serde_json::from_slice(&fs::read(rank_dir.join("config.json"))?)?;
+            assert_eq!(saved[READ_WEIGHTING_FIELD], serde_json::json!(name));
+            assert_eq!(
+                serde_json::from_value::<StackConfig>(saved.clone())?,
+                model.config
+            );
+            let loaded = StackModel::load(&rank_dir, &cpu())?;
+            assert_eq!(loaded.read_weighting(), weighting);
+            assert_eq!(bits(&loaded.forward(&ids, 1, ids.len())?)?, expected);
+            fs::remove_dir_all(&rank_dir)?;
+        }
+        // Only "rank" and "hamming_rank" are ever written; anything else is refused.
+        model.save(&rank_dir)?;
+        let saved: serde_json::Value =
+            serde_json::from_slice(&fs::read(rank_dir.join("config.json"))?)?;
+        for bad in [
+            serde_json::json!("softmax"),
+            serde_json::json!(true),
+            serde_json::json!("Rank"),
+        ] {
+            let mut altered = saved.clone();
+            altered[READ_WEIGHTING_FIELD] = bad;
+            fs::write(
+                rank_dir.join("config.json"),
+                serde_json::to_vec_pretty(&altered)?,
+            )?;
+            assert!(StackModel::load(&rank_dir, &cpu()).is_err());
+        }
+        fs::remove_dir_all(root)?;
+        // A rank weighting keeps its flock.
+        assert!(model.set_select(None).is_err());
+        // The setter refuses a model without a flock and a bf16 model.
+        let mut no_flock = StackModel::new(
+            tiny(StackArch::Geometric, "rra", ReadScore::L2, true),
+            &cpu(),
+        )?;
+        assert!(no_flock.set_read_weighting(ReadWeighting::Rank).is_err());
+        assert!(no_flock.set_read_weighting(ReadWeighting::Softmax).is_ok());
+        let mut bf16 = StackModel::new(config, &cpu())?;
+        bf16.set_precision(Precision::Bf16);
+        assert!(bf16.set_read_weighting(ReadWeighting::HammingRank).is_err());
+        // Served (QAT) mode is allowed in both orders.
+        let mut served_config = tiny(StackArch::Geometric, "ra", ReadScore::Dot, true);
+        served_config.width = 32;
+        served_config.mlp_hidden = 64;
+        served_config.select = Some(select);
+        let mut served = StackModel::new(served_config.clone(), &cpu())?;
+        served.set_served_representation(Some(Arc::new(D11Interim)))?;
+        served.set_read_weighting(ReadWeighting::Rank)?;
+        let mut ranked = StackModel::new(served_config, &cpu())?;
+        ranked.set_read_weighting(ReadWeighting::HammingRank)?;
+        ranked.set_served_representation(Some(Arc::new(D11Interim)))?;
+        let ids = [1, 2, 3, 4];
+        assert!(bits(&ranked.forward(&ids, 1, ids.len())?)?
+            .iter()
+            .all(|&b| f32::from_bits(b).is_finite()));
         Ok(())
     }
 
