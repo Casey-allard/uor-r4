@@ -1,3 +1,57 @@
+## 2026-10-09 — Why the numeric memory rows fail: the value is not DELIVERED, and it is not confusion (deepseek, #2029)
+
+Diagnosis of the v5 run's clustered failure. Record:
+[v5-numeric-diagnosis-2026-10-09](../labs/v5-numeric-diagnosis-2026-10-09/README.md). **No model run, no
+v5 re-run, CPU only, no pod, $0** — every number recomputed from the sealed v5 replies, the frozen
+checks file and the frozen tokenizer.
+
+**THE LEDGER, AT THE STRENGTH EACH CLAIM EARNED.** *MEASURED:* the frozen tokenizer has **4096 tokens,
+10 pure single-digit tokens, 0 multi-digit tokens, and 3 superscript digit slots** — three of thirteen
+digit slots idle while no multi-digit token exists. *MEASURED:* numeric-value rows fail **12 of 13
+(92.3 %)** against word rows **18 of 27 (66.7 %)**; `expected_value` passes 40/40, so the check is not
+the obstacle. *MEASURED CONTROL, REPLICATED:* within-key comparisons hold context, kind and history
+fixed — `brother|brother's` **1/6 numeric**, `grandpa|grandpa's` **2/3 word**, `piano|piano's` **0/3
+numeric**, `treehouse|treehouse's` **0/2 numeric**; the same key carries opposite outcomes by value
+type, and numeric totals 1 of 11 by two independent computations. *REFUTED:* "token count explains the
+cluster" — numbers tokenize in **2 tokens against 3.74 for words**, so length runs the wrong way.
+*REFUTED:* "minimal pairs / digit order" — `mem-040`'s distractor `74` is a **transposition** of its
+expected `84` and it PASSES, while `mem-037` (`98` vs `76`, no shared digit position) fails.
+
+**THE DECISIVE CUT, and it is free:** of the **12 failing numeric rows, 10 emit NO digit at all**,
+**2 emit a digit that was never stored** (`mem-008` and `mem-024` both answer "Your sister's locker
+number is 1."), and **0 name the planted distractor**. **All 8 planted-distractor confusions are WORD
+rows.** Meanwhile the **one passing numeric row emits the stored value exactly** — `mem-040`: "Your
+sister's locker number is 84." And the expected value was in the context for **40 of 40 rows (13 of 13
+numeric)**, so this is not context loss. The failing replies are fluent, correctly framed sentences
+**with the value slot empty or filled by something never stored**: the value does not arrive.
+
+**The six keyless rows are NOT a panel defect and not an independent cause.** They are `mem-011/012/
+013/027/028/029`, **all 3-turn**, four word and **two numeric**; `expected_value` passes all six, so
+none is unpassable, and they fail for their value type's reason (2 emit no number, 4 name no value).
+**The no-key set OVERLAPS the numeric set (2 of 6)** — do not add 1-of-11 and 0-of-6 as disjoint
+causes. The clean statement is: numeric 92.3 % against word 66.7 %, keyless splitting 4 word / 2
+numeric.
+
+**It is a REPRESENTATION finding, not training volume and not token count:** a two-digit value has no
+single token and therefore no single address, and the behaviour shows the value not arriving rather
+than arriving wrong — the project's own principle that more scalar features cannot recover distinctions
+erased by representation. The deficit is **not magnitude** (every numeric value on the panel is
+two-digit, so there is no multi-digit contrast to measure) and **not position** (the value is in an
+earlier turn for all 40 rows, and the 3-turn keyless rows split by type, not length).
+
+**TWO NAMED OPTIONS, NEITHER STARTED:** a **number-aware tokenizer** giving a value one token and
+therefore **one address** — now the *direct* fix rather than the cheap one, with the three idle
+superscript slots and the absent multi-digit tokens as its budget — or an **explicit numeric slot in
+the memory path**, the more native version that addresses a value *as a value*. The `mem-040` specimen
+decides which to try first, and either gets its own pre-registered piece on a **FRESH sealed panel**.
+Criterion 1 remains NOT MET on both halves and 43/232 is unchanged. STATUS/ROADMAP/#2028 unchanged —
+checked, not assumed.
+
+**Next:** build a fresh sealed numeric panel with value, distractor, magnitude, digit overlap and
+position all controlled, using `mem-040` as the template, to test addressability directly; then try
+ONE of the two options on it. **Do not re-run v5** — it is development evidence now, and its 10 of 40
+stands as its declared reading.
+
 ## 2026-10-09 — VSA mode 2 is worse than fixed codes: not KEEP (claude, #2029)
 
 Pre-registered on #2029 and run on the owner's laptop CPU, at main `c7fce45b1`. Mode 2 binds root codes with a per-token readout residual. Its held-out BPB is 1.8629 / 1.8491 and 1.8707 / 1.8566 (seeds × slices A / B), against 1.8366 / 1.8214 and 1.8582 / 1.8427 for fixed codes rerun on the same machine; those reruns match the pod run to every digit. Its own VSA ablation Δ is −0.002 to −0.005 (CIs below 0). Fixed codes stay the default. Record: [vsa-native-test-2026-10-09](../labs/vsa-native-test-2026-10-09/README.md) Result 2. About 50 min of laptop CPU, no pod.
