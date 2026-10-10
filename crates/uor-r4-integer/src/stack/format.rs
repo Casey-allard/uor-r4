@@ -30,6 +30,10 @@ pub const STACK_SCHEMA: &str = "uor-r4.lut-stack/1";
 /// `STACK_POINTER_SCHEMA`): an engine built before the pointer port refuses it
 /// instead of ignoring the head and serving the plain distribution.
 pub const STACK_POINTER_SCHEMA: &str = "uor-r4.lut-stack/2";
+/// Header schema of a stack whose reads are softmax-free flock rank reads
+/// (`read_select` in the shape), with or without a pointer head: an engine
+/// that serves only softmax reads refuses it instead of serving softmax.
+pub const STACK_READ_SCHEMA: &str = "uor-r4.lut-stack/3";
 /// Weights per scale group along a matrix row.
 pub const GROUP: usize = 32;
 /// Alignment of the data start and of every section.
@@ -69,6 +73,42 @@ pub struct StackShape {
     /// one.
     #[serde(default)]
     pub pointer: Option<StackPointer>,
+    /// The flock selection of a softmax-free read; absent on a softmax read.
+    #[serde(default)]
+    pub read_select: Option<StackReadSelect>,
+    /// The read weights over the selected positions: only `rank`; absent on a
+    /// softmax read.
+    #[serde(default)]
+    pub read_weights: Option<String>,
+    /// Hamming-rank selection over sign-bit codes instead of the score.
+    #[serde(default)]
+    pub read_binary: bool,
+}
+
+/// The largest selection of a softmax-free read: the recent window, the `k`
+/// selected positions, the sink (always position 0) and the NoRead slot.
+pub const MAX_READ_SELECT: usize = 256;
+
+/// The flock selection of a softmax-free read (`read_select` in the shape):
+/// the `window` most recent positions, the sink at position 0 and the `k`
+/// best-scoring other positions.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize)]
+pub struct StackReadSelect {
+    pub window: usize,
+    pub k: usize,
+}
+
+/// The header schema a shape requires: [`STACK_READ_SCHEMA`] with a
+/// softmax-free read, else [`STACK_POINTER_SCHEMA`] with a pointer head, else
+/// [`STACK_SCHEMA`].
+pub fn stack_schema_for(shape: &StackShape) -> &'static str {
+    if shape.read_select.is_some() {
+        STACK_READ_SCHEMA
+    } else if shape.pointer.is_some() {
+        STACK_POINTER_SCHEMA
+    } else {
+        STACK_SCHEMA
+    }
 }
 
 /// The largest pointer query and key width (the read's head-width limit).
@@ -106,8 +146,24 @@ impl StackShape {
                 && matches!(p.score.as_str(), "dot" | "lorentz")
                 && (1..=1i64 << 31).contains(&p.score_scale_q30)
         });
+        let rank = self.read_weights.as_deref() == Some("rank");
         let reason = if dims.contains(&0) {
             Some("a dimension is zero")
+        } else if self.read_weights.is_some() && !rank {
+            Some("the read weights are not rank")
+        } else if rank != self.read_select.is_some() {
+            Some("rank read weights and a read selection require each other")
+        } else if self.read_binary && self.read_select.is_none() {
+            Some("a binary read requires a read selection")
+        } else if self.read_select.is_some_and(|s| {
+            s.window == 0
+                || s.k == 0
+                || s.window
+                    .checked_add(s.k)
+                    .and_then(|n| n.checked_add(2))
+                    .is_none_or(|n| n > MAX_READ_SELECT)
+        }) {
+            Some("the read selection's window or k is zero or exceeds 256 slots")
         } else if !pointer_valid {
             Some("the pointer head's width, score or scale is unsupported")
         } else if self.pattern.is_empty() || self.pattern.len() > MAX_LAYERS {
@@ -143,6 +199,18 @@ impl StackShape {
             Some(reason) => Err(StackError::Shape(reason)),
             None => Ok(()),
         }
+    }
+
+    /// The flock selection of a softmax-free rank read; `None` on a softmax
+    /// read.
+    pub fn read_rank(&self) -> Option<StackReadSelect> {
+        self.read_select
+            .filter(|_| self.read_weights.as_deref() == Some("rank"))
+    }
+
+    /// Whether a softmax-free read selects by Hamming rank over sign bits.
+    pub fn read_binary(&self) -> bool {
+        self.read_binary
     }
 
     pub fn layers(&self) -> usize {
@@ -361,12 +429,7 @@ impl<'a> Container<'a> {
             })?;
         let header: Header =
             serde_json::from_slice(&bytes[16..header_end]).map_err(StackError::Header)?;
-        let expected = if header.shape.pointer.is_some() {
-            STACK_POINTER_SCHEMA
-        } else {
-            STACK_SCHEMA
-        };
-        if header.schema != expected {
+        if header.schema != stack_schema_for(&header.shape) {
             return Err(StackError::Schema(header.schema));
         }
         if header.group != GROUP {

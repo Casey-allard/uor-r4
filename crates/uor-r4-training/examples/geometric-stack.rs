@@ -29,7 +29,9 @@
 //!   [model=ROOT/model] [windows=64] [blocks=false] [tune_blocks=64] [threads=1] [lens=LENS.u16] \
 //!   [reference=false]
 //! geometric-stack d11-evaluate artifact=ROOT/model.lut valid=VALID.u16 out=NEW_REPORT_ROOT \
-//!   [windows=8] [threads=1] [lens=LENS.u16]
+//!   [windows=8] [threads=1] [lens=LENS.u16] [reference=d10|none] [model=ROOT/model]
+//!   (reference=none: the D11 engine alone, or with model= against the float model; required for a
+//!   softmax-free schema uor-r4.lut-stack/3 artifact, which the D10 comparator refuses)
 //! geometric-stack snap-evaluate model=ROOT/model valid=VALID.u16 out=NEW_REPORT_ROOT [windows=512]
 //!   (roadmap S1.0b: development NLL with every transport quaternion snapped to the nearest of the
 //!   120 unit icosians, against the unsnapped model on the same windows; evaluation only)
@@ -340,7 +342,7 @@ use uor_r4_training::stack_dialogue::{
     load_requests, reply_panel, trim, DialogueSplit, Reply, TurnCost, MAX_NEW_TOKENS,
 };
 use uor_r4_training::stack_export::{
-    check_export_config, check_export_representation, check_raw_logit_evaluation,
+    check_export_config_weighted, check_export_representation, check_raw_logit_evaluation,
     control_checkpoint, control_grid_reference, export_quantizer_method, export_stack,
     stack_grid_reference, StackCalibration,
 };
@@ -3040,9 +3042,9 @@ fn export_mode(arguments: &[String]) -> Result<()> {
         let served = StackModel::saved_served_representation(&model_dir)?;
         check_export_representation(served.as_ref(), calibration_tokens.is_some())?;
         let mut model = StackModel::load(&model_dir, &Device::Cpu)?;
-        // A selected or routed pointer head or a flock has no integer engine
-        // yet: refuse before any calibration work.
-        check_export_config(&model.config)?;
+        // A selected or routed pointer head or a softmax read over a flock
+        // has no integer engine yet: refuse before any calibration work.
+        check_export_config_weighted(&model.config, model.read_weighting())?;
         if let Some(saved_served) = &served {
             if model.config.arch == StackArch::Geometric {
                 let codec = codec_by_name(&saved_served.codec)?;
@@ -3804,10 +3806,27 @@ fn d11_evaluate_mode(arguments: &[String]) -> Result<()> {
     let args = Args::parse(
         arguments,
         &[
-            "artifact", "valid", "out", "windows", "threads", "lens", "model",
+            "artifact",
+            "valid",
+            "out",
+            "windows",
+            "threads",
+            "lens",
+            "model",
+            "reference",
         ],
     )?;
     let artifact_path = PathBuf::from(args.required("artifact")?);
+    // The comparator: the D10 engine (the default) or none, which scores the
+    // D11 engine alone and, with model=, against the float model.
+    let reference = args
+        .optional("reference")
+        .unwrap_or_else(|| "d10".to_owned());
+    if !matches!(reference.as_str(), "d10" | "none") {
+        return Err(invalid(format!(
+            "reference must be d10 or none, not {reference}"
+        )));
+    }
     let valid_path = PathBuf::from(args.required("valid")?);
     let lens_path = args.optional("lens").map(PathBuf::from);
     let model_dir = args.optional("model").map(PathBuf::from);
@@ -3826,12 +3845,12 @@ fn d11_evaluate_mode(arguments: &[String]) -> Result<()> {
             // The D10 comparator serves the free transport and refuses this
             // artifact; compare against the snapped float forward instead.
             let snap = snap.clone();
-            return d11_evaluate_snapped(
+            return d11_evaluate_against_float(
                 &d11,
-                &snap,
-                model_dir
-                    .as_ref()
-                    .ok_or_else(|| invalid("a snapped artifact needs model= for its float side"))?,
+                Some(&snap),
+                Some(model_dir.as_deref().ok_or_else(|| {
+                    invalid("a snapped artifact needs model= for its float side")
+                })?),
                 &valid_path,
                 lens_path.as_ref(),
                 windows,
@@ -3839,6 +3858,28 @@ fn d11_evaluate_mode(arguments: &[String]) -> Result<()> {
                 &artifact_path,
                 &out,
             );
+        }
+        if reference == "none" {
+            return d11_evaluate_against_float(
+                &d11,
+                None,
+                model_dir.as_deref(),
+                &valid_path,
+                lens_path.as_ref(),
+                windows,
+                d11_load_seconds,
+                &artifact_path,
+                &out,
+            );
+        }
+        if let Some(select) = d11.shape().read_rank() {
+            return Err(invalid(format!(
+                "the artifact's reads are softmax-free flock rank reads (window {}, k {}, schema \
+                 uor-r4.lut-stack/3), which the D10 comparator refuses by design: pass \
+                 reference=none to score the D11 engine alone, with model=ROOT/model to compare \
+                 it with the float model",
+                select.window, select.k
+            )));
         }
         let mut d10 = uor_r4_lut::stack::StackModel::from_artifact(
             uor_r4_lut::format::StackArtifact::parse(bytes).map_err(lut)?,
@@ -3974,16 +4015,17 @@ fn d11_evaluate_mode(arguments: &[String]) -> Result<()> {
     finish(&out, result)
 }
 
-/// The snapped-artifact arm of [`d11_evaluate_mode`]: the D11 engine against
-/// the float model's snapped forward (the artifact records the snap, so the
-/// D10 comparator's free transport is not the model that was trained), on the
-/// same evenly spaced windows, position by position: both sides' NLL, the
+/// The float-comparator arms of [`d11_evaluate_mode`]: the D11 engine against
+/// the float model's forward (snapped when the artifact records a snap, whose
+/// free-transport D10 comparator is not the model that was trained; plain for
+/// `reference=none model=`), or alone (`reference=none` without `model=`), on
+/// the same evenly spaced windows, position by position: each side's NLL, the
 /// largest absolute logit gap (integer quanta and nats) and top-1 agreement.
 #[allow(clippy::too_many_arguments)]
-fn d11_evaluate_snapped(
+fn d11_evaluate_against_float(
     d11: &uor_r4_integer::stack::IntegerStackModel,
-    snap: &uor_r4_integer::stack::StackTransportSnap,
-    model_dir: &std::path::Path,
+    snap: Option<&uor_r4_integer::stack::StackTransportSnap>,
+    model_dir: Option<&std::path::Path>,
     valid_path: &std::path::Path,
     lens_path: Option<&PathBuf>,
     windows: usize,
@@ -3992,14 +4034,20 @@ fn d11_evaluate_snapped(
     out: &std::path::Path,
 ) -> Result<()> {
     // The comparator's raw logits are scored: a pointer model is refused.
-    let mut float = load_raw_logit_comparator(model_dir, "d11-evaluate")?;
-    float.set_transport_snap(Some(match snap.name.as_str() {
-        "icosian" => TransportSnap::Icosian,
-        other => return Err(invalid(format!("unknown transport snap {other}"))),
-    }))?;
+    let mut float = model_dir
+        .map(|dir| load_raw_logit_comparator(dir, "d11-evaluate"))
+        .transpose()?;
     let (vocab, time) = (d11.shape().vocab, d11.shape().context);
-    if float.config.vocab_size != vocab || float.config.context != time {
-        return Err(invalid("the float model and the artifact differ in shape"));
+    if let Some(float) = float.as_mut() {
+        if let Some(snap) = snap {
+            float.set_transport_snap(Some(match snap.name.as_str() {
+                "icosian" => TransportSnap::Icosian,
+                other => return Err(invalid(format!("unknown transport snap {other}"))),
+            }))?;
+        }
+        if float.config.vocab_size != vocab || float.config.context != time {
+            return Err(invalid("the float model and the artifact differ in shape"));
+        }
     }
     let valid = read_tokens(valid_path, vocab)?;
     let lens = lens_path
@@ -4019,17 +4067,32 @@ fn d11_evaluate_snapped(
         let next = &valid[start + 1..start + time + 1];
         session.reset();
         let clock = Instant::now();
-        let float_logits = float.forward(ids, 1, time)?.to_vec2::<f32>()?;
+        let float_logits = float
+            .as_ref()
+            .map(|float| -> Result<Vec<Vec<f32>>> {
+                Ok(float.forward(ids, 1, time)?.to_vec2::<f32>()?)
+            })
+            .transpose()?;
         float_seconds += clock.elapsed().as_secs_f64();
         let (mut nll11, mut nllf) = (0f64, 0f64);
         for (t, &id) in ids.iter().enumerate() {
             let clock = Instant::now();
-            let logits11 = session.step(id).map_err(|e| invalid(e.to_string()))?;
+            session.step(id).map_err(|e| invalid(e.to_string()))?;
             d11_seconds += clock.elapsed().as_secs_f64();
-            let (n11, top11) = score_row(
-                logits11.iter().map(|&v| f64::from(v) / 65536.0),
-                next[t] as usize,
-            );
+            let logits11 = session.logits();
+            // Alone, a pointer artifact is scored through its Q30 mixture;
+            // a float comparator has refused a pointer model above.
+            let (n11, top11) = match session.mixture() {
+                Some(mixture) => score_mixture(mixture, next[t] as usize),
+                None => score_row(
+                    logits11.iter().map(|&v| f64::from(v) / 65536.0),
+                    next[t] as usize,
+                ),
+            };
+            nll11 += n11;
+            let Some(float_logits) = float_logits.as_ref() else {
+                continue;
+            };
             let (nf, topf) = score_row(
                 float_logits[t].iter().map(|&v| f64::from(v)),
                 next[t] as usize,
@@ -4039,7 +4102,6 @@ fn d11_evaluate_snapped(
                     max_gap.max((i64::from(a) - (f64::from(b) * 65536.0).round() as i64).abs());
             }
             agree += usize::from(top11 == topf);
-            nll11 += n11;
             nllf += nf;
         }
         let bytes = lens.as_ref().map_or(0.0, |lens| {
@@ -4055,23 +4117,35 @@ fn d11_evaluate_snapped(
         lens.as_ref()
             .map(|_| nll / std::f64::consts::LN_2 / target_bytes)
     };
+    let compared = float.is_some();
+    let float_value = |value: Value| if compared { value } else { Value::Null };
     let record = json!({
         "schema": "uor-r4.geometric-stack-d11-evaluation/1",
-        "protocol": "evenly spaced windows of the development tokens (train's evaluation rule), one fresh D11 session per window, position by position; the comparator is the float model's snapped forward, not the free-transport D10 engine",
-        "comparator": "float-snapped",
-        "transport_snap": {"name": snap.name, "roots": snap.roots, "roots_sha256": snap.roots_sha256},
+        "protocol": match (snap, compared) {
+            (Some(_), _) => "evenly spaced windows of the development tokens (train's evaluation rule), one fresh D11 session per window, position by position; the comparator is the float model's snapped forward, not the free-transport D10 engine",
+            (None, true) => "evenly spaced windows of the development tokens (train's evaluation rule), one fresh D11 session per window, position by position; reference=none: the comparator is the float model's own forward (with its read weighting), not the D10 engine",
+            (None, false) => "evenly spaced windows of the development tokens (train's evaluation rule), one fresh D11 session per window, position by position; reference=none without model=: the D11 engine alone",
+        },
+        "comparator": match (snap, compared) {
+            (Some(_), _) => "float-snapped",
+            (None, true) => "float",
+            (None, false) => "none",
+        },
+        "transport_snap": snap.map(|snap| json!({"name": snap.name, "roots": snap.roots, "roots_sha256": snap.roots_sha256})),
+        "read_select": d11.shape().read_rank().map(|select| json!({"window": select.window, "k": select.k})),
+        "read_binary": d11.shape().read_binary(),
         "artifact": identity(artifact_path)?,
         "artifact_sha256": d11.artifact_sha256(),
-        "float_model": identity(&model_dir.join("model.safetensors"))?,
+        "float_model": model_dir.map(|dir| identity(&dir.join("model.safetensors"))).transpose()?,
         "valid": identity(valid_path)?,
         "windows": starts.len(),
         "targets": targets,
         "d11": {"nll": nll11 / targets as f64, "bits_per_byte": bits(nll11)},
-        "float": {"nll": nllf / targets as f64, "bits_per_byte": bits(nllf)},
-        "d11_minus_float_nll": (nll11 - nllf) / targets as f64,
-        "max_abs_logit_gap_quanta": max_gap,
-        "max_abs_logit_gap_nats": max_gap as f64 / 65536.0,
-        "top1_agreement": agree as f64 / targets as f64,
+        "float": float_value(json!({"nll": nllf / targets as f64, "bits_per_byte": bits(nllf)})),
+        "d11_minus_float_nll": float_value(json!((nll11 - nllf) / targets as f64)),
+        "max_abs_logit_gap_quanta": float_value(json!(max_gap)),
+        "max_abs_logit_gap_nats": float_value(json!(max_gap as f64 / 65536.0)),
+        "top1_agreement": float_value(json!(agree as f64 / targets as f64)),
         "weights_read_per_token": d11.weights_per_token(),
         "engine": {
             "d11_step_seconds": d11_seconds,
@@ -4082,7 +4156,8 @@ fn d11_evaluate_snapped(
             "scope": "the D11 step calls only, timed separately from the float forward",
         },
         "per_window": starts.iter().zip(&sums).map(|(start, s)| json!({
-            "start": start, "d11_nll": s.0 / time as f64, "float_nll": s.1 / time as f64,
+            "start": start, "d11_nll": s.0 / time as f64,
+            "float_nll": float_value(json!(s.1 / time as f64)),
         })).collect::<Vec<_>>(),
     });
     fs::write(

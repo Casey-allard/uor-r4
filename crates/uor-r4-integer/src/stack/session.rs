@@ -27,6 +27,11 @@
 
 use std::path::{Path, PathBuf};
 
+use crate::bitcode::{BitCode, BITCODE_LANES};
+
+use super::flock::{
+    flock_select_integer, rank_table_q31, FlockScratch, FlockSelect, MAX_FLOCK_CONTEXT,
+};
 use super::format::{
     Container, Fixed, MatrixView, StackNumerics, StackPointer, StackShape, StackTransportSnap,
 };
@@ -47,6 +52,10 @@ const SCORE_EXP: i32 = -16;
 /// Exponent of Lorentz and L2 distances and offsets (the arcosh table's output
 /// for Lorentz).
 const DISTANCE_EXP: i32 = -24;
+/// The fixed-point 1.0 of read queries and keys: they are projection outputs
+/// at the residual exponent (`RESIDUAL_EXP`, -16), so `1 << 16`. The binary
+/// read's score table is built over vectors of `±BINARY_ONE`.
+const BINARY_ONE: i32 = 1 << -RESIDUAL_EXP;
 /// Exponent of decay gates, decays and transition quaternions (Q31).
 const GATE_EXP: i32 = -31;
 /// Taps of the causal convolution.
@@ -86,6 +95,101 @@ struct Read {
     /// Lorentz or L2 scale per head (grid codes) and offset (exponent -24).
     beta: Vec<i16>,
     offset: Vec<i32>,
+    /// The Hamming-rank (binary) read's score table `[head][h]`, `h` in
+    /// `0..=head_dim` (empty on a dense read): the score, without the age
+    /// term, that the dense path computes for a query and key of `±BINARY_ONE`
+    /// lanes differing in exactly `h` lanes. Built at load, so a binary score
+    /// is one XOR + SWAR popcount per 64 lanes and one table read.
+    binary: Vec<i64>,
+}
+
+/// What a read score depends on beyond the query, the key and the head's
+/// scale and offset.
+#[derive(Clone, Copy)]
+struct ScoreKind<'a> {
+    l2: bool,
+    lorentz: bool,
+    arcosh: &'a [u32],
+    score_scale_q30: i64,
+}
+
+/// One read score without the age term, at the score exponent: the L2,
+/// Lorentz or Dot arithmetic of the dense read. `query_tables` is read by
+/// Lorentz and Dot, the lifts by Lorentz only.
+#[inline(always)]
+#[allow(clippy::too_many_arguments)]
+fn stack_pair_score(
+    kind: ScoreKind<'_>,
+    query: &[i32],
+    query_tables: &[[i64; 16]],
+    query_lift: u64,
+    key: &[i32],
+    key_lift: u64,
+    offset: i32,
+    beta: i16,
+) -> i64 {
+    if kind.l2 {
+        // At most 2^44, so the difference and the grid product fit.
+        let distance = stack_l2_distance(query, key) as i64;
+        let scaled = grid_apply(distance - i64::from(offset), beta);
+        shift(scaled.wrapping_neg(), SCORE_EXP - DISTANCE_EXP)
+    } else if kind.lorentz {
+        let dot = stack_dot(query_tables, key);
+        let distance = stack_lorentz_distance(query_lift, key_lift, dot, kind.arcosh);
+        let scaled = grid_apply(i64::from(distance) - i64::from(offset), beta);
+        shift(scaled.wrapping_neg(), SCORE_EXP - DISTANCE_EXP)
+    } else {
+        let dot = stack_dot(query_tables, key);
+        // Exponent -32 times Q30 is exponent -62.
+        shift_wide(
+            mul_i128(dot, i128::from(kind.score_scale_q30)),
+            (SCORE_EXP - (PRODUCT_EXP - 30)) as u32,
+        )
+    }
+}
+
+/// The binary score table of one read layer (`[head][h]`, see `Read::binary`):
+/// for each head and `h`, the dense score of a query of `+BINARY_ONE` lanes and
+/// a key equal to it but negated in its first `h` lanes. A ±1 score depends on
+/// the lanes only through `h` (dot `K - 2h`, squared L2 `4h`, Lorentz excess
+/// `2h`), so the entry holds for every query and key differing in `h` signs.
+fn binary_score_table(
+    kind: ScoreKind<'_>,
+    beta: &[i16],
+    offset: &[i32],
+    heads: usize,
+    head_dim: usize,
+) -> Vec<i64> {
+    let query = vec![BINARY_ONE; head_dim];
+    let mut query_tables = vec![[0i64; 16]; head_dim];
+    stack_query_tables(&query, &mut query_tables);
+    let query_lift = stack_lift(&query);
+    let mut key = query.clone();
+    let mut table = Vec::with_capacity(heads * (head_dim + 1));
+    for h in 0..heads {
+        let (offset, beta) = (
+            offset.get(h).copied().unwrap_or(0),
+            beta.get(h).copied().unwrap_or(0),
+        );
+        key.copy_from_slice(&query);
+        for differing in 0..=head_dim {
+            if differing > 0 {
+                key[differing - 1] = -BINARY_ONE;
+            }
+            let key_lift = stack_lift(&key);
+            table.push(stack_pair_score(
+                kind,
+                &query,
+                &query_tables,
+                query_lift,
+                &key,
+                key_lift,
+                offset,
+                beta,
+            ));
+        }
+    }
+    table
 }
 
 /// The pointer-copy head (see the module documentation).
@@ -115,6 +219,47 @@ struct Layer {
     down: PackedMatrix,
 }
 
+/// A softmax-free flock rank read: the selection (sink 0, the `window` most
+/// recent positions and the `k` best others) and, for every support size `m`
+/// in `1..=window + k + 2` (the kept positions and NoRead), the normalized Q31
+/// rank table `rank_table_q31(m)` at `tables[table_at[m]..table_at[m] + m]`,
+/// so that a step neither divides nor builds a table, and its sum `totals[m]`:
+/// every slot takes one rank, so the sum is a step's softmax-free total.
+struct RankRead {
+    select: FlockSelect,
+    tables: Vec<u32>,
+    table_at: Vec<usize>,
+    totals: Vec<u64>,
+}
+
+impl RankRead {
+    fn new(window: usize, k: usize) -> Result<Self, StackError> {
+        let largest = window + k + 2;
+        let mut tables = Vec::new();
+        let mut table_at = vec![0usize; largest + 1];
+        let mut totals = vec![0u64; largest + 1];
+        for (m, (at, total)) in table_at.iter_mut().zip(&mut totals).enumerate().skip(1) {
+            *at = tables.len();
+            tables.resize(*at + m, 0);
+            rank_table_q31(m, &mut tables[*at..])
+                .map_err(|e| StackError::Numerics(format!("rank table {m}: {e}")))?;
+            *total = tables[*at..].iter().map(|&w| u64::from(w)).sum();
+        }
+        Ok(Self {
+            select: FlockSelect::new(0, window, k),
+            tables,
+            table_at,
+            totals,
+        })
+    }
+
+    /// The normalized Q31 rank table of `m` slots.
+    fn table(&self, m: usize) -> Option<&[u32]> {
+        let at = *self.table_at.get(m)?;
+        self.tables.get(at..at + m)
+    }
+}
+
 /// A validated stack artifact repacked for multiplier-free integer serving.
 pub struct IntegerStackModel {
     shape: StackShape,
@@ -141,6 +286,8 @@ pub struct IntegerStackModel {
     silu_table: Vec<i32>,
     gelu_table: Vec<i32>,
     arcosh: Vec<u32>,
+    /// The softmax-free flock rank read; `None` reads by softmax.
+    rank: Option<RankRead>,
     weights_per_token: u64,
     /// Threads that a step's weight maps run on (1: the calling thread only).
     threads: usize,
@@ -200,6 +347,21 @@ impl IntegerStackModel {
     /// creating a session cannot abort on allocation.
     pub fn parse(bytes: &[u8]) -> Result<Self, StackError> {
         let artifact = Container::parse(bytes)?;
+        if artifact.shape.read_binary() && artifact.shape.head_dim() > BITCODE_LANES {
+            return Err(StackError::Shape(
+                "a binary read's head width exceeds the 256-lane sign code",
+            ));
+        }
+        let rank = match artifact.shape.read_rank() {
+            None => None,
+            // The selector's scratch and position bound.
+            Some(_) if artifact.shape.context > MAX_FLOCK_CONTEXT => {
+                return Err(StackError::Shape(
+                    "a rank read's context exceeds the flock selector's 4096 positions",
+                ));
+            }
+            Some(select) => Some(RankRead::new(select.window, select.k)?),
+        };
         let shape = artifact.shape.clone();
         let numerics = artifact.numerics.clone();
         let (d, heads, mlp) = (shape.width, shape.heads, shape.mlp);
@@ -275,6 +437,8 @@ impl IntegerStackModel {
                     } else {
                         Vec::new()
                     },
+                    // Built below, once the arcosh table is validated.
+                    binary: Vec::new(),
                 }))
             };
             layers.push(Box::new(Layer {
@@ -344,6 +508,20 @@ impl IntegerStackModel {
                 "the RMSNorm epsilon exponent is outside ±{EXPONENT_LIMIT}"
             )));
         }
+        if shape.read_binary() {
+            let kind = ScoreKind {
+                l2: shape.l2(),
+                lorentz: shape.lorentz(),
+                arcosh: &arcosh,
+                score_scale_q30: n.score_scale_q30,
+            };
+            for layer in &mut layers {
+                if let Mixer::Read(r) = &mut layer.mixer {
+                    r.binary =
+                        binary_score_table(kind, &r.beta, &r.offset, heads, shape.head_dim());
+                }
+            }
+        }
         Ok(Self {
             head_dim: shape.head_dim(),
             lorentz: shape.lorentz(),
@@ -361,6 +539,7 @@ impl IntegerStackModel {
             silu_table,
             gelu_table,
             arcosh,
+            rank,
             weights_per_token: weights,
             threads: 1,
             pool: None,
@@ -445,6 +624,13 @@ impl IntegerStackModel {
                         } else {
                             Vec::new()
                         },
+                        codes: if s.read_binary() {
+                            (0..context * s.heads)
+                                .map(|_| Box::new(BitCode::default()))
+                                .collect()
+                        } else {
+                            Vec::new()
+                        },
                     }
                 })
             })
@@ -489,6 +675,13 @@ impl IntegerStackModel {
                 scores: vec![0; s.heads * context],
                 weights: vec![0; s.heads * context],
                 pointer_weights: vec![0; context],
+                flock: if self.rank.is_some() {
+                    (0..s.heads)
+                        .map(|_| Box::new(FlockScratch::new(context)))
+                        .collect()
+                } else {
+                    Vec::new()
+                },
                 mix: vec![0; d],
                 proj: vec![0; d],
                 gate: vec![0; s.mlp],
@@ -520,6 +713,11 @@ enum LayerState {
         values: Vec<i32>,
         /// Lorentz key lifts `[position][head]` at exponent -32.
         lifts: Vec<u64>,
+        /// A binary read's key sign codes `[position][head]`, for the whole
+        /// context (empty on a dense read); derived from the keys. Boxed for
+        /// a power-of-two stride, like the layers.
+        #[allow(clippy::vec_box)]
+        codes: Vec<Box<BitCode>>,
     },
 }
 
@@ -639,6 +837,12 @@ struct Buffers {
     /// Per read head (`[head][context]`; the pointer head uses the first row).
     scores: Vec<i64>,
     weights: Vec<u64>,
+    /// Per read head, the flock selector's scratch of a rank read (empty on a
+    /// softmax read): one per head, so that heads split over worker threads
+    /// never share one and a step never allocates. Boxed for a power-of-two
+    /// stride, like the layers.
+    #[allow(clippy::vec_box)]
+    flock: Vec<Box<FlockScratch>>,
     /// Per read head (`[head][head_dim]`).
     mix: Vec<i128>,
     proj: Vec<i32>,
@@ -888,10 +1092,14 @@ impl IntegerStackSession<'_> {
                     keys,
                     values,
                     lifts,
+                    codes,
                 } => {
                     keys.fill(0);
                     values.fill(0);
                     lifts.fill(0);
+                    for code in codes.iter_mut() {
+                        **code = BitCode::default();
+                    }
                 }
             }
         }
@@ -927,6 +1135,7 @@ impl IntegerStackSession<'_> {
                     keys,
                     values,
                     lifts,
+                    ..
                 } => SerializedStackLayerState::Read {
                     keys: keys[..self.cache_at].to_vec(),
                     values: values[..self.cache_at].to_vec(),
@@ -1198,12 +1407,21 @@ impl IntegerStackSession<'_> {
                         keys: cur_k,
                         values: cur_v,
                         lifts: cur_l,
+                        codes: cur_c,
                     },
                 ) => {
                     cur_k[..cache_at].copy_from_slice(k);
                     cur_v[..cache_at].copy_from_slice(v);
                     if self.model.lorentz {
                         cur_l[..lift_at].copy_from_slice(l);
+                    }
+                    // A binary read's sign codes follow from the keys.
+                    for code in cur_c.iter_mut() {
+                        **code = BitCode::default();
+                    }
+                    let head_dim = self.model.head_dim;
+                    for (code, key) in cur_c.iter_mut().zip(k.chunks_exact(head_dim)) {
+                        **code = BitCode::from_signs(key).unwrap_or_default();
                     }
                 }
                 _ => unreachable!(),
@@ -1458,6 +1676,7 @@ fn stack_step(
                     keys,
                     values,
                     lifts,
+                    codes,
                 },
             ) => stack_read(
                 model,
@@ -1466,6 +1685,7 @@ fn stack_step(
                     keys,
                     values,
                     lifts,
+                    codes,
                     position: session.position,
                     at: session.cache_at,
                     lift_at: session.lift_at,
@@ -1886,6 +2106,8 @@ struct Cache<'a> {
     keys: &'a mut [i32],
     values: &'a mut [i32],
     lifts: &'a mut [u64],
+    /// A binary read's key sign codes `[position][head]` (else empty).
+    codes: &'a mut [Box<BitCode>],
     position: usize,
     /// `position * width`.
     at: usize,
@@ -1911,6 +2133,7 @@ fn stack_read(
         keys,
         values,
         lifts,
+        codes,
         position,
         at,
         lift_at,
@@ -1938,12 +2161,21 @@ fn stack_read(
             from += hd;
         }
     }
+    if !r.binary.is_empty() {
+        // Each head's key signs; the head width was bounded at load.
+        let mut from = 0usize;
+        for code in &mut codes[lift_at..lift_at + heads] {
+            **code = BitCode::from_signs(&b.k[from..from + hd]).unwrap_or_default();
+            from += hd;
+        }
+    }
     let read = HeadRead {
         model,
         r,
         keys,
         values,
         lifts,
+        codes,
         q: &b.q,
         null: &b.null,
         position,
@@ -1955,6 +2187,7 @@ fn stack_read(
         query_tables: &mut b.query_tables[..d],
         scores: &mut b.scores,
         weights: &mut b.weights,
+        flock: &mut b.flock,
         mix: &mut b.mix[..d],
         pointer_weights: if capture_pointer {
             Some(&mut b.pointer_weights)
@@ -1980,6 +2213,8 @@ struct HeadRead<'a> {
     keys: &'a [i32],
     values: &'a [i32],
     lifts: &'a [u64],
+    /// A binary read's key sign codes `[position][head]` (else empty).
+    codes: &'a [Box<BitCode>],
     q: &'a [i32],
     null: &'a [i32],
     position: usize,
@@ -1996,6 +2231,8 @@ struct HeadParts<'a> {
     query_tables: &'a mut [[i64; 16]],
     scores: &'a mut [i64],
     weights: &'a mut [u64],
+    /// The heads' flock scratch on a rank read (one per head), else empty.
+    flock: &'a mut [Box<FlockScratch>],
     mix: &'a mut [i128],
     pointer_weights: Option<&'a mut [u64]>,
 }
@@ -2022,6 +2259,7 @@ fn split_heads(read: &HeadRead<'_>, parts: HeadParts<'_>) {
         query_tables,
         scores,
         weights,
+        flock,
         mix,
         pointer_weights,
     } = parts;
@@ -2039,6 +2277,7 @@ fn split_heads(read: &HeadRead<'_>, parts: HeadParts<'_>) {
     let (mix_low, mix_high) = mix.split_at_mut(head_at);
     let (scores_low, scores_high) = scores.split_at_mut(row_at);
     let (weights_low, weights_high) = weights.split_at_mut(row_at);
+    let (flock_low, flock_high) = flock.split_at_mut(low.min(flock.len()));
     let (high_first, high_count) = (first + low, count - low);
     let mut low = HeadTask {
         read,
@@ -2049,6 +2288,7 @@ fn split_heads(read: &HeadRead<'_>, parts: HeadParts<'_>) {
             query_tables: tables_low,
             scores: scores_low,
             weights: weights_low,
+            flock: flock_low,
             mix: mix_low,
             pointer_weights,
         }),
@@ -2062,6 +2302,7 @@ fn split_heads(read: &HeadRead<'_>, parts: HeadParts<'_>) {
             query_tables: tables_high,
             scores: scores_high,
             weights: weights_high,
+            flock: flock_high,
             mix: mix_high,
             pointer_weights: None,
         }),
@@ -2084,8 +2325,17 @@ fn stack_head_task(task: &mut HeadTask<'_, '_>) {
 }
 
 /// The heads of `parts`, one after another: each head's scores over the
-/// cached positions and NoRead, its softmax weights, and its weighted value
-/// mixture into its output columns of `wide` (exponent -16).
+/// cached positions and NoRead, its softmax or flock rank weights, and its
+/// weighted value mixture into its output columns of `wide` (exponent -16).
+///
+/// A binary (Hamming-rank) read scores position `j` as
+/// `table[popcount(q_bits XOR k_j_bits)] + age`, with the query's sign code
+/// formed here and the keys' codes cached when they were written; the rank
+/// read then weights at most `window + k + 1` positions (sink, window and
+/// the `k` best), so a served binary read per head and token costs one XOR +
+/// SWAR popcount per 64 lanes and one table read per cached position for the
+/// scores, the flock selection over them, and value reads at no more than
+/// `window + k + 1` positions.
 #[inline(never)]
 fn stack_heads(read: &HeadRead<'_>, parts: HeadParts<'_>) {
     let HeadRead {
@@ -2094,6 +2344,7 @@ fn stack_heads(read: &HeadRead<'_>, parts: HeadParts<'_>) {
         keys,
         values,
         lifts,
+        codes,
         q,
         null,
         position,
@@ -2101,6 +2352,13 @@ fn stack_heads(read: &HeadRead<'_>, parts: HeadParts<'_>) {
     let (s, n) = (&model.shape, &model.numerics);
     let (d, heads, hd, context) = (s.width, s.heads, model.head_dim, s.context);
     let (lorentz, l2) = (model.lorentz, model.l2);
+    let kind = ScoreKind {
+        l2,
+        lorentz,
+        arcosh: &model.arcosh,
+        score_scale_q30: n.score_scale_q30,
+    };
+    let binary = !r.binary.is_empty();
     let HeadParts {
         first,
         count,
@@ -2108,14 +2366,17 @@ fn stack_heads(read: &HeadRead<'_>, parts: HeadParts<'_>) {
         query_tables,
         scores,
         weights,
+        flock,
         mix,
         mut pointer_weights,
     } = parts;
     let positions = position + 1;
     let head_at = stack_mul_u64(first as u64, hd as u64) as usize;
+    // `first * (head_dim + 1)` by a digit-table product.
+    let mut binary_at = stack_mul_u64(first as u64, (hd + 1) as u64) as usize;
     let age_at = stack_mul_u64(first as u64, context as u64) as usize;
     let (mut head_at, mut age_at, mut local_at, mut row_at) = (head_at, age_at, 0usize, 0usize);
-    for h in first..first + count {
+    for (local_head, h) in (first..first + count).enumerate() {
         let (
             Some(query),
             Some(query_tables),
@@ -2146,33 +2407,46 @@ fn stack_heads(read: &HeadRead<'_>, parts: HeadParts<'_>) {
             r.offset.get(h).copied().unwrap_or(0),
             r.beta.get(h).copied().unwrap_or(0),
         );
+        // The binary read scores by its table: no query tables or lift.
+        let (binary_table, query_code) = if binary {
+            let (Some(table), Ok(code)) = (
+                r.binary.get(binary_at..binary_at + hd + 1),
+                BitCode::from_signs(query),
+            ) else {
+                debug_assert!(false, "stack_heads: a binary head lies outside its table");
+                return;
+            };
+            (table, code)
+        } else {
+            (&[][..], BitCode::default())
+        };
         // The L2 read needs no inner product, so no query tables.
-        if !l2 {
+        if !l2 && !binary {
             stack_query_tables(query, query_tables);
         }
-        let query_lift = if lorentz { stack_lift(query) } else { 0 };
+        let query_lift = if lorentz && !binary {
+            stack_lift(query)
+        } else {
+            0
+        };
         let null_score = i64::from(null_logit) + i64::from(null_bias);
         let mut max = null_score;
         let (mut key_at, mut lift_index) = (head_at, h);
         for (j, score_slot) in scores.iter_mut().enumerate() {
-            let key = &keys[key_at..key_at + hd];
-            let score = if l2 {
-                // At most 2^44, so the difference and the grid product fit.
-                let distance = stack_l2_distance(query, key) as i64;
-                let scaled = grid_apply(distance - i64::from(offset), beta);
-                shift(scaled.wrapping_neg(), SCORE_EXP - DISTANCE_EXP)
-            } else if lorentz {
-                let dot = stack_dot(query_tables, key);
-                let distance =
-                    stack_lorentz_distance(query_lift, lifts[lift_index], dot, &model.arcosh);
-                let scaled = grid_apply(i64::from(distance) - i64::from(offset), beta);
-                shift(scaled.wrapping_neg(), SCORE_EXP - DISTANCE_EXP)
+            let score = if binary {
+                let differing = codes[lift_index].distance(&query_code) as usize;
+                binary_table[differing]
             } else {
-                let dot = stack_dot(query_tables, key);
-                // Exponent -32 times Q30 is exponent -62.
-                shift_wide(
-                    mul_i128(dot, i128::from(n.score_scale_q30)),
-                    (SCORE_EXP - (PRODUCT_EXP - 30)) as u32,
+                let key_lift = if lorentz { lifts[lift_index] } else { 0 };
+                stack_pair_score(
+                    kind,
+                    query,
+                    query_tables,
+                    query_lift,
+                    &keys[key_at..key_at + hd],
+                    key_lift,
+                    offset,
+                    beta,
                 )
             };
             let score = score.saturating_add(i64::from(ages[position - j]));
@@ -2181,22 +2455,34 @@ fn stack_heads(read: &HeadRead<'_>, parts: HeadParts<'_>) {
             key_at += d;
             lift_index += heads;
         }
-        // Softmax over NoRead (value zero) and the positions, weights in Q31.
-        let mut total = stack_exp_neg(
-            max.wrapping_sub(null_score),
-            SCORE_EXP,
-            &model.exp_table,
-            n.exp_step_log2,
-        );
-        for (w, &score) in weights.iter_mut().zip(scores.iter()) {
-            *w = stack_exp_neg(
-                max.wrapping_sub(score),
+        let total = if let Some(rank) = &model.rank {
+            // Flock rank weights over NoRead and the kept positions, Q31.
+            let Some(total) = flock.get_mut(local_head).and_then(|scratch| {
+                stack_rank_weights(rank, scores, null_score, position, scratch, weights)
+            }) else {
+                debug_assert!(false, "stack_heads: the rank read failed to select");
+                return;
+            };
+            total
+        } else {
+            // Softmax over NoRead (value zero) and the positions, weights in Q31.
+            let mut total = stack_exp_neg(
+                max.wrapping_sub(null_score),
                 SCORE_EXP,
                 &model.exp_table,
                 n.exp_step_log2,
             );
-            total = total.wrapping_add(*w);
-        }
+            for (w, &score) in weights.iter_mut().zip(scores.iter()) {
+                *w = stack_exp_neg(
+                    max.wrapping_sub(score),
+                    SCORE_EXP,
+                    &model.exp_table,
+                    n.exp_step_log2,
+                );
+                total = total.wrapping_add(*w);
+            }
+            total
+        };
         mix.fill(0);
         let mut value_at = head_at;
         for &w in weights.iter() {
@@ -2221,7 +2507,128 @@ fn stack_heads(read: &HeadRead<'_>, parts: HeadParts<'_>) {
         local_at += hd;
         age_at += context;
         row_at += context;
+        binary_at += hd + 1;
     }
+}
+
+/// One head's flock rank weights (Q31) over `scores[0..=position]` with
+/// NoRead at `null_score`, written into `weights` (zero off the support);
+/// returns the total over NoRead and the support (the table's sum). The trainer's `rank_weights` rule: the kept
+/// entries in descending score (ties to the lowest position), NoRead ranked
+/// after every kept entry whose score is at least its own (NoRead loses ties),
+/// and rank `i` of the `m = kept + 1` slots weighted `rank_table_q31(m)[i]`.
+fn stack_rank_weights(
+    rank: &RankRead,
+    scores: &[i64],
+    null_score: i64,
+    position: usize,
+    scratch: &mut FlockScratch,
+    weights: &mut [u64],
+) -> Option<u64> {
+    flock_select_integer(scores, position, rank.select, scratch).ok()?;
+    let entries = &scratch.entries;
+    let null_rank = entries
+        .iter()
+        .filter(|entry| scores.get(entry.position).is_some_and(|&s| s >= null_score))
+        .count();
+    let table = rank.table(entries.len() + 1)?;
+    weights.fill(0);
+    for (index, entry) in entries.iter().enumerate() {
+        let slot = if index >= null_rank { index + 1 } else { index };
+        *weights.get_mut(entry.position)? = u64::from(*table.get(slot)?);
+    }
+    rank.totals.get(table.len()).copied()
+}
+
+/// Test hooks over the rank read.
+#[cfg(test)]
+impl IntegerStackSession<'_> {
+    /// The last read layer's scores and weights of `head` over the positions
+    /// stepped so far.
+    pub(super) fn last_read(&self, head: usize) -> (&[i64], &[u64]) {
+        let at = head * self.model.shape.context;
+        (
+            &self.b.scores[at..at + self.position],
+            &self.b.weights[at..at + self.position],
+        )
+    }
+}
+
+/// Test hooks over the binary read, on the last read layer.
+#[cfg(test)]
+impl IntegerStackModel {
+    fn last_read_layer(&self) -> Option<&Read> {
+        self.layers
+            .iter()
+            .rev()
+            .find_map(|layer| match &layer.mixer {
+                Mixer::Read(r) => Some(r.as_ref()),
+                Mixer::Recurrence(_) => None,
+            })
+    }
+
+    /// The binary score table of `head` (`h` in `0..=head_dim`).
+    pub(super) fn binary_table(&self, head: usize) -> Option<&[i64]> {
+        let width = self.head_dim + 1;
+        self.last_read_layer()?
+            .binary
+            .get(head * width..(head + 1) * width)
+    }
+
+    /// The age terms of `head` by distance.
+    pub(super) fn read_ages(&self, head: usize) -> Option<&[i32]> {
+        let context = self.shape.context;
+        self.last_read_layer()?
+            .age
+            .get(head * context..(head + 1) * context)
+    }
+
+    /// The dense score (no age term) of `query` and `key` for `head`.
+    pub(super) fn dense_score(&self, head: usize, query: &[i32], key: &[i32]) -> Option<i64> {
+        let r = self.last_read_layer()?;
+        let mut tables = vec![[0i64; 16]; query.len()];
+        stack_query_tables(query, &mut tables);
+        let kind = ScoreKind {
+            l2: self.l2,
+            lorentz: self.lorentz,
+            arcosh: &self.arcosh,
+            score_scale_q30: self.numerics.score_scale_q30,
+        };
+        Some(stack_pair_score(
+            kind,
+            query,
+            &tables,
+            stack_lift(query),
+            key,
+            stack_lift(key),
+            r.offset.get(head).copied().unwrap_or(0),
+            r.beta.get(head).copied().unwrap_or(0),
+        ))
+    }
+}
+
+/// [`stack_rank_weights`] for crafted scores: the weights and NoRead's
+/// weight (the total less the weights).
+#[cfg(test)]
+pub(super) fn rank_weights_for_test(
+    window: usize,
+    k: usize,
+    scores: &[i64],
+    null_score: i64,
+) -> Option<(Vec<u64>, u64)> {
+    let rank = RankRead::new(window, k).ok()?;
+    let mut scratch = FlockScratch::new(scores.len());
+    let mut weights = vec![u64::MAX; scores.len()];
+    let null = stack_rank_weights(
+        &rank,
+        scores,
+        null_score,
+        scores.len() - 1,
+        &mut scratch,
+        &mut weights,
+    )?;
+    let kept: u64 = weights.iter().sum();
+    Some((weights, null - kept))
 }
 
 /// The pointer head's cache and where this position writes.

@@ -38,8 +38,8 @@ use uor_r4_lut::kernels::grid_encode;
 use uor_r4_lut::GROUP;
 
 use crate::geometric_stack::{
-    D11Interim, MapCodec, ReadScore, RotationGroup, SavedServedRepresentation, StackArch,
-    StackConfig, StackModel, StackSite,
+    D11Interim, MapCodec, ReadScore, ReadWeighting, RotationGroup, SavedServedRepresentation,
+    StackArch, StackConfig, StackModel, StackSite,
 };
 use crate::kappa_llama::{Checkpoint, LlamaShape, Site};
 use crate::lut_export::{
@@ -265,6 +265,16 @@ fn quantize_matrix_compensated_packed(values: &[f32], rows: usize, cols: usize) 
 /// exports ([`export_stack`]) and both integer engines serve its mixture. Every
 /// export path calls this before it writes.
 pub fn check_export_config(config: &StackConfig) -> Result<()> {
+    check_export_config_weighted(config, ReadWeighting::Softmax)
+}
+
+/// [`check_export_config`] for a model whose reads weight their sources by
+/// `weighting` ([`StackModel::read_weighting`]): a flock selection exports
+/// exactly when the reads are softmax-free (rank or Hamming rank) with the
+/// sink at position 0, which the D11 engine serves under schema
+/// `uor-r4.lut-stack/3` ([`export_stack`]); a softmax read over a flock is
+/// still refused.
+pub fn check_export_config_weighted(config: &StackConfig, weighting: ReadWeighting) -> Result<()> {
     if let Some(pointer) = &config.pointer {
         if let Some(select) = pointer.select {
             return Err(invalid(format!(
@@ -298,11 +308,21 @@ pub fn check_export_config(config: &StackConfig) -> Result<()> {
         }
     }
     if let Some(select) = config.select {
-        return Err(invalid(format!(
-            "the model was trained with flock selection (window {}, k {}), which no integer \
+        // A softmax-free read is exported; every later check still applies.
+        if weighting == ReadWeighting::Softmax {
+            return Err(invalid(format!(
+                "the model was trained with flock selection (window {}, k {}), which no integer \
              export or engine implements yet, so no export writes this model",
-            select.window, select.k
-        )));
+                select.window, select.k
+            )));
+        }
+        if select.sink != 0 {
+            return Err(invalid(format!(
+                "the softmax-free read's flock sink is position {}, but the D11 engine's \
+                 sink is always position 0, so no export writes this model",
+                select.sink
+            )));
+        }
     }
     if config.rotation_group != RotationGroup::Quaternion {
         return Err(invalid(
@@ -364,7 +384,7 @@ pub fn export_stack(
         return Err(invalid("read identity latch has no integer export"));
     }
     let c = &model.config;
-    check_export_config(c)?;
+    check_export_config_weighted(c, model.read_weighting())?;
     if c.arch != StackArch::Geometric {
         return Err(invalid(
             "export_stack takes a geometric stack; the control exports as a Llama checkpoint",
@@ -779,7 +799,18 @@ pub fn export_stack(
     {
         table(&mut builder, "arcosh", TableValues::U32(&arcosh_table()))?;
     }
-    let bytes = builder.finish().map_err(|e| invalid(e.to_string()))?;
+    let mut bytes = builder.finish().map_err(|e| invalid(e.to_string()))?;
+    if let Some(select) = c.select {
+        // A softmax-free read (the only select `check_export_config_weighted`
+        // lets through): the D10 builder writes no read selection, so the
+        // header gains it here under the integer crate's own schema rule.
+        bytes = with_read_select(
+            &bytes,
+            select.window,
+            select.k,
+            model.read_weighting() == ReadWeighting::HammingRank,
+        )?;
+    }
     let method = match calibration {
         Some((calibration, damp)) => json!({
             "quantizer": "gptq", "damp": damp,
@@ -803,6 +834,43 @@ pub fn export_stack(
             "grid_code_worst_relative_error": code_errors,
         }),
     ))
+}
+
+/// Rewrite a finished stack artifact's header for a softmax-free read: the
+/// shape gains `read_select`, `read_weights: "rank"` and `read_binary`, and
+/// the schema becomes the one `uor_r4_integer::stack::stack_schema_for`
+/// requires of that shape (`uor-r4.lut-stack/3`), after the integer crate's
+/// shape rules accept it. The sections keep their offsets from the aligned
+/// data start, so only the header and its padding change.
+fn with_read_select(bytes: &[u8], window: usize, k: usize, binary: bool) -> Result<Vec<u8>> {
+    const ALIGN: usize = 64;
+    let mut length = [0u8; 8];
+    length.copy_from_slice(
+        bytes
+            .get(8..16)
+            .ok_or_else(|| invalid("artifact shorter than its header length"))?,
+    );
+    let len = usize::try_from(u64::from_le_bytes(length))
+        .map_err(|_| invalid("artifact header length out of range"))?;
+    let data_start = (16 + len).div_ceil(ALIGN) * ALIGN;
+    let (header, data) = match (bytes.get(16..16 + len), bytes.get(data_start..)) {
+        (Some(header), Some(data)) => (header, data),
+        _ => return Err(invalid("artifact header length out of bounds")),
+    };
+    let mut header: Value = serde_json::from_slice(header)?;
+    header["shape"]["read_select"] = json!({ "window": window, "k": k });
+    header["shape"]["read_weights"] = json!("rank");
+    header["shape"]["read_binary"] = json!(binary);
+    let shape: uor_r4_integer::stack::StackShape = serde_json::from_value(header["shape"].clone())?;
+    shape.validate().map_err(|e| invalid(e.to_string()))?;
+    header["schema"] = json!(uor_r4_integer::stack::stack_schema_for(&shape));
+    let json = serde_json::to_vec(&header)?;
+    let mut out = bytes[..8].to_vec();
+    out.extend_from_slice(&(json.len() as u64).to_le_bytes());
+    out.extend_from_slice(&json);
+    out.resize(out.len().div_ceil(ALIGN) * ALIGN, 0);
+    out.extend_from_slice(data);
+    Ok(out)
 }
 
 /// Determine the quantizer method name for uncalibrated export from the model's served codec.

@@ -7,6 +7,7 @@
 
 #![forbid(unsafe_code)]
 
+pub mod bitcode;
 pub mod bundle;
 pub mod capability_api;
 pub mod codec;

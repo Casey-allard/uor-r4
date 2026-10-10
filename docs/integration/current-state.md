@@ -1,3 +1,14 @@
+## 2026-10-10 — The D11 engine serves the softmax-free reads: schema /3, BitCode, audit FULL PASS (claude, #2032)
+
+The multiplier-free integer engine now serves the flock rank read and the Hamming-rank read ([record](../labs/softmax-free-read-2026-10-10/README.md#serving-preparation-2-the-d11-engine-serves-both-reads)):
+- **Artifact:** schema `uor-r4.lut-stack/3`, which the frozen D10 engine refuses.
+- **Rank weights:** Q31 tables over the flock-kept sources plus NoRead, selected by a bounded-insertion integer selector with no library sort.
+- **Hamming score:** XOR plus a SWAR popcount through `BitCode`, then a load-time table.
+
+The D11 stack audit is a FULL PASS, and ordinary /1 and /2 stacks serve bit-identically (oracle 13/13). This is preparation 2 of 2 for M4 item 0. Line: softmax-free served read · count 2/3 · headline: softmax at runtime yes → yes (no served model has switched yet).
+
+**Next:** export arms B and D, measure served BPB at 512 windows, v4 and cost against arm A, and post the result PR with KEEP or REJECT. At 3/3 without a moved headline, the next action is a pivot card.
+
 ## 2026-10-10 — Stratified complete-reply fitting fails 24-row qualification; accepted8 retained (Codex, M2)
 
 The [pre-registered stratified run](../labs/m2-stratified-reply-2026-10-10/README.md) fits 24 fixed exposed examples for 96 ordinary Potential/Generate updates (32 exposures each), then scores the saved/reloaded native model on the unchanged 512 panel. Complete replies regress **8→2/512**, with six original successes lost and no gains; the trained subset also regresses **8→2/24**. All 16 newly trained rows still miss the opening token, and only 2/24 have every canonical teacher-prefix token correct. Full-panel teacher-prefix CE improves 6.199264→5.591269. **REJECT**; accepted M2 headline stays 8/512. Line: ordinary reply-completion gradient learning · **count 2/3**, inherited from #2141; zero preparation PRs. The reader authenticates all 1,024 endpoint rows. Producer CUDA build and six focused tests pass; model process takes 33.11 min. This measures failure of the fixed fitting recipe, not a proof of architectural incapacity or held-out behavior.

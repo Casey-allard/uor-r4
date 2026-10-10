@@ -11,8 +11,8 @@
 //! This module provides:
 //! - [`FlockScratch`]: Reusable workspace preallocated at session initialization,
 //!   ensuring strictly zero heap allocations per token step when prepared with sufficient capacity.
-//! - In-place partial selection using `select_nth_unstable_by` over the non-window past,
-//!   with total complexity O(n + k log k + s log s) including final support ordering (where s is support size).
+//! - In-place bounded-insertion top-k over the non-window past and an insertion ordering of the
+//!   support: comparisons and moves only, O(n k + s^2) (no library sort, so no multiply instruction).
 //! - Strict deduplicated support `{sink} ∪ window ∪ top_k` with deterministic lowest-position
 //!   tie breaking.
 //! - Rank-weight conversion helpers using precomputed tables and restoring division. Score formation
@@ -167,13 +167,12 @@ impl FlockScratch {
 /// Returns the selection accounting [`FlockScan`]. Selected entries are written into
 /// `scratch.entries` in descending rank order with ties broken to the lowest position.
 ///
-/// Complexity: O(n + k log k + s log s) where n is candidate count, k is top-k, and s is final support size.
+/// Complexity: O(n k + s^2) where n is candidate count, k is top-k, and s is final support size (bounded insertion, no library sort).
 ///
 /// Algorithm:
 /// - Deduplicated support `{sink} ∪ window ∪ top_k`.
 /// - Sink wins if inside window (deduplication).
-/// - Non-sink, non-window rest positions are partitioned using
-///   `select_nth_unstable_by`.
+/// - Non-sink, non-window rest positions keep their top-k by bounded insertion.
 /// - Final support entries are sorted in descending rank order.
 /// - Strictly zero heap allocations when `scratch` has sufficient capacity.
 #[inline(never)]
@@ -224,28 +223,8 @@ pub fn flock_select_integer(
     let short_prefix = (query + 1) <= select.window;
     let top_k_short = candidates_scanned < select.k;
 
-    // Partition top-k in O(n + k log k)
-    let (top_k_count, cutoff_ties) = if candidates_scanned <= select.k {
-        // All rest candidates are selected; sort all of them
-        scratch
-            .rest
-            .sort_unstable_by(|&a, &b| scores[b].cmp(&scores[a]).then_with(|| a.cmp(&b)));
-        (candidates_scanned, false)
-    } else {
-        // More than k candidates: select_nth_unstable_by puts the k best at 0..k
-        scratch.rest.select_nth_unstable_by(select.k, |&a, &b| {
-            scores[b].cmp(&scores[a]).then_with(|| a.cmp(&b))
-        });
-
-        // Sort the k selected elements so rest[select.k - 1] is the true k-th element
-        scratch.rest[..select.k]
-            .sort_unstable_by(|&a, &b| scores[b].cmp(&scores[a]).then_with(|| a.cmp(&b)));
-
-        // Check if cutoff is a tie with (k+1)-th element (which is at index select.k)
-        let cutoff_ties = scores[scratch.rest[select.k - 1]] == scores[scratch.rest[select.k]];
-
-        (select.k, cutoff_ties)
-    };
+    // The k best rest candidates, in rank order, by bounded insertion.
+    let (top_k_count, cutoff_ties) = top_k_insertion(scores, &mut scratch.rest, select.k);
 
     for &pos in &scratch.rest[..top_k_count] {
         scratch.slots[pos] = Some(FlockSlot::TopK);
@@ -270,12 +249,8 @@ pub fn flock_select_integer(
         }
     }
 
-    // Sort final kept support in descending rank order with lowest position on ties
-    scratch.entries.sort_unstable_by(|a, b| {
-        scores[b.position]
-            .cmp(&scores[a.position])
-            .then_with(|| a.position.cmp(&b.position))
-    });
+    // Final kept support in descending rank order with lowest position on ties.
+    insertion_order_entries(scores, &mut scratch.entries);
 
     Ok(FlockScan {
         visible: query + 1,
@@ -287,6 +262,65 @@ pub fn flock_select_integer(
         top_k_short,
         cutoff_ties,
     })
+}
+
+/// Whether position `a` ranks before position `b`: the higher score, then the
+/// lower position.
+#[inline(always)]
+fn ranks_before(scores: &[i64], a: usize, b: usize) -> bool {
+    scores[a] > scores[b] || (scores[a] == scores[b] && a < b)
+}
+
+/// Leaves the `k` best of `rest` (positions, any order) at `rest[..count]` in
+/// rank order and returns `count = min(k, len)` and whether the cutoff is a
+/// tie (more than `k` candidates and the `k`-th kept score equals the best
+/// score left out). Bounded insertion: comparisons and moves only, so the
+/// served kernel has no library sort (whose index arithmetic compiles to
+/// multiply instructions) and no allocation. `O(n k)` for `n` candidates.
+fn top_k_insertion(scores: &[i64], rest: &mut [usize], k: usize) -> (usize, bool) {
+    let n = rest.len();
+    let mut kept = 0usize;
+    let mut best_out: Option<i64> = None;
+    for i in 0..n {
+        let x = rest[i];
+        if kept < k {
+            // `i == kept` here: every earlier candidate was kept.
+            let mut j = kept;
+            while j > 0 && ranks_before(scores, x, rest[j - 1]) {
+                rest[j] = rest[j - 1];
+                j -= 1;
+            }
+            rest[j] = x;
+            kept += 1;
+        } else if ranks_before(scores, x, rest[k - 1]) {
+            let evicted = rest[k - 1];
+            let mut j = k - 1;
+            while j > 0 && ranks_before(scores, x, rest[j - 1]) {
+                rest[j] = rest[j - 1];
+                j -= 1;
+            }
+            rest[j] = x;
+            best_out = Some(best_out.map_or(scores[evicted], |b| b.max(scores[evicted])));
+        } else {
+            best_out = Some(best_out.map_or(scores[x], |b| b.max(scores[x])));
+        }
+    }
+    let cutoff_ties = kept == k && n > k && best_out == Some(scores[rest[k - 1]]);
+    (kept, cutoff_ties)
+}
+
+/// Orders `entries` by rank (higher score, then lower position) by insertion:
+/// comparisons and moves only.
+fn insertion_order_entries(scores: &[i64], entries: &mut [FlockEntry]) {
+    for i in 1..entries.len() {
+        let x = entries[i];
+        let mut j = i;
+        while j > 0 && ranks_before(scores, x.position, entries[j - 1].position) {
+            entries[j] = entries[j - 1];
+            j -= 1;
+        }
+        entries[j] = x;
+    }
 }
 
 /// Exact top-k only selection over `scores[0..=query]`.
@@ -319,20 +353,7 @@ pub fn top_k_select_integer(
     let candidates_scanned = scratch.rest.len();
     let top_k_short = candidates_scanned < k;
 
-    let (top_k_count, cutoff_ties) = if candidates_scanned <= k {
-        scratch
-            .rest
-            .sort_unstable_by(|&a, &b| scores[b].cmp(&scores[a]).then_with(|| a.cmp(&b)));
-        (candidates_scanned, false)
-    } else {
-        scratch.rest.select_nth_unstable_by(k, |&a, &b| {
-            scores[b].cmp(&scores[a]).then_with(|| a.cmp(&b))
-        });
-        scratch.rest[..k]
-            .sort_unstable_by(|&a, &b| scores[b].cmp(&scores[a]).then_with(|| a.cmp(&b)));
-        let cutoff_ties = scores[scratch.rest[k - 1]] == scores[scratch.rest[k]];
-        (k, cutoff_ties)
-    };
+    let (top_k_count, cutoff_ties) = top_k_insertion(scores, &mut scratch.rest, k);
 
     for &pos in &scratch.rest[..top_k_count] {
         scratch.entries.push(FlockEntry {

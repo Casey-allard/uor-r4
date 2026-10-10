@@ -2,7 +2,7 @@
 
 Lab: claude. Milestone: [M4 #2032](https://github.com/UOR-Foundation/uor-r4/issues/2032), acceptance item 0 (no softmax at runtime). Pre-registration: [#2032 comment 6093484433](https://github.com/UOR-Foundation/uor-r4/issues/2032#issuecomment-6093484433) (arms A–D: 18:29Z and 20:35Z cards of 9 October).
 
-**Status: preparation 1 of 2.** This record covers the trainer mechanism, which arm group 1 (A, B, D) trains with. The result, KEEP or REJECT against the pre-registered bar, is added by the result PR. The integer serving port of the two reads is preparation 2.
+**Status: preparations 1 and 2 of 2.** The trainer mechanism (#2140) and the multiplier-free integer serving of both reads (this record's second section) are in. The result, KEEP or REJECT against the pre-registered bar, is added by the result PR.
 
 ## The question
 
@@ -32,3 +32,21 @@ The served stack reads still weight their sources with an exp-table softmax. Can
 - **Arm A** ran at `main` 5b241d89c (softmax path unchanged).
   - Float held-out NLL at 512 windows, 196,608 targets: **s1 1.7250754 (0.877118 BPB), s2 1.7253881 (0.877277 BPB)**, on the stream basis 2.837427 B/token.
   - s1 reproduces the recorded original run's 1.7250755 to 1e-7.
+
+## Serving (preparation 2): the D11 engine serves both reads
+
+- **Artifact:** schema `uor-r4.lut-stack/3`. `/2` already means a pointer stack, and the frozen D10 engine's exact-schema check refuses `/3`, so no older engine can serve a rank artifact as softmax. Its `shape` adds `read_select {window, k}` (the sink is always position 0), `read_weights "rank"` and `read_binary`.
+  - The exporter writes `/3` only for a flock model with a rank or hamming-rank weighting. Every other refusal still applies: flock with softmax, a non-zero sink, U(1) transport (a review finding, pinned by a test).
+- **Rank read:** per head, the engine's own scores plus age go through the allocation-free integer flock selector, now a bounded insertion top-k. The library `select_nth_unstable_by` and `sort_unstable_by` compiled to `madd`/`mul`, which the audit flagged as reachable callees.
+  - NoRead is ranked among the kept sources and loses ties. The weights are the Q31 `1/(r+1)` tables precomputed at load for each support size.
+  - Each read touches at most `window + k + 1` value rows (17 for `flock:8:8`), against `t + 1` for the softmax read.
+- **Hamming-rank read:** `BitCode` is a sign-bit code of up to 256 lanes with XOR binding. Its Hamming distance is a shift-and-add SWAR popcount: `count_ones` lowers to NEON `cnt` plus `fmov` on arm64, and to a multiply on x86 without POPCNT.
+  - A per-head table indexed by `h` holds the engine's own dense score of ±ONE vectors (ONE = 2^16) that differ in `h` coordinates. A score is one XOR, a popcount per 64 lanes and a table read, plus age.
+  - BitCode is a similarity code. It is not an exact identity: BLAKE3 and prime addresses are.
+- **Checks at the PR head:**
+  - `uor-r4-integer` lib: 282 passed.
+  - Cross-engine oracle `stack_d11_oracle`: 13/13 (schema /1 and /2 serve bit-identically).
+  - `stack_softmax_free_export`: 3 passed. Random 4-bit weights, D11 against float: rank −0.039 nats, hamming −0.012 nats, top-1 agreement 1.0.
+  - `stack_export`: 17 passed. Frozen `uor-r4-lut`: 25 passed.
+  - `audit_zero_matmul_serving.py --stack`: **FULL PASS**, 91 reachable functions. A negative gate with the library sorts restored fails on exactly those callees.
+- **Evaluation:** `geometric-stack d11-evaluate ... reference=none model=ROOT/model` scores D11 against the float model on the same windows, for artifacts D10 cannot read.
