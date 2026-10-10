@@ -1,3 +1,21 @@
+## 2026-10-10 — Bottleneck objective raises complete replies 145→175/512 (Codex, #2030)
+
+**KEEP:** [episode-bottleneck learning](../labs/m2-bottleneck-2026-10-10/README.md)
+gains 34, loses 4 and retains 141 complete replies from saved 145; **line: cross-state
+continuation · count 0/3 · headline 145/512→175/512**.
+The sole 256-update endpoint replaces phase-balanced training with log-mean-exp
+over unweighted answer/EOS losses, while restoring exact fractional masters,
+reproducing all 512 baseline outputs and freezing the upstream/native scorer.
+All 17 focused tests and independent source/saved-evidence checks pass; length8
+improves 2→8/128, but entry correctness 454→340 and mean evaluation CE 3.39448→3.48474
+regress, and 337 complete failures remain.
+The 705.943s model process is separate from full-cycle cost; M2's 256/fresh 40%
+acceptance remains unmet and fresh evaluation is NOT_RUN.
+
+**Next:** after protected delivery and cleanup, pre-register parameter continuation
+from saved 175 under the successful new objective; keep the rejected phase-balanced
+dose/rate/seed recipe and ordinary24/96 and constructor/attribution/solver lines closed.
+
 ## 2026-10-10 — Cross-state dose continuation rejected: 145→139/512 (Codex, #2030)
 
 **REJECT:** the [saved145 continuation](../labs/m2-cross-145-2026-10-10/README.md)

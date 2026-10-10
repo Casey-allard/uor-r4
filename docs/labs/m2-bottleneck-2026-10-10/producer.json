@@ -1,0 +1,11 @@
+{
+  "commit": "351e93dcc7763551281c22c3b78f64e1c60ab479",
+  "base": "e74298125b89953957e102ca5a6bc9676f4f3fd2",
+  "binary_sha256": "302e36db6826a411acb021e0dc862af564309b8921629d18db7461cadb2573d1",
+  "config_sha256": "24f7e26e20819bf1f8358448ea2645e9ebcfb013402884b947d4bc6a1d074dcc",
+  "checks": "17 focused tests PASS; rustfmt/diff PASS; optimized build PASS; exact-head independent source review PASS",
+  "bootstrap_seconds": 181,
+  "bootstrap_tests_passed": 37,
+  "bootstrap_tests_ignored": 3,
+  "started_utc": "2026-10-10T12:22:49Z"
+}

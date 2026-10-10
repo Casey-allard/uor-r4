@@ -7,6 +7,79 @@ pub(super) const RESUME_MANIFEST_SHA: &str =
     "e5623d996b60308d8ca1080f748c062388ff74c6b14b16f9956b4b792a9ca8c2";
 pub(super) const RESUME_FIELD_SHA: &str =
     "f61249ae4032a92d452689a52add6c9b5a67099f55b1a9291ba6f6f66a0d9acf";
+const RESUME145_REPORT_SHA: &str =
+    "e3a7e3ebd93c38253afb67f77ad3bb6b64a5e0ac50561f0204e1b83d22b8f4a5";
+const RESUME145_MANIFEST_SHA: &str =
+    "172a2aacdce188bd5a37b131a294b877b2af60c87fc5520a9ea371c4b79460dd";
+const RESUME145_FIELD_SHA: &str =
+    "03781884edd6c2524c66e724c1fc65d9b9c62968d33b264d976282b49ce8094a";
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(super) struct ResumeProfile {
+    report_sha: &'static str,
+    manifest_sha: &'static str,
+    field_sha: &'static str,
+    pub checkpoint_step: usize,
+    pub lineage_step: usize,
+    pub complete: usize,
+}
+const SAVED22: ResumeProfile = ResumeProfile {
+    report_sha: RESUME_REPORT_SHA,
+    manifest_sha: RESUME_MANIFEST_SHA,
+    field_sha: RESUME_FIELD_SHA,
+    checkpoint_step: 64,
+    lineage_step: 64,
+    complete: 22,
+};
+const SAVED145: ResumeProfile = ResumeProfile {
+    report_sha: RESUME145_REPORT_SHA,
+    manifest_sha: RESUME145_MANIFEST_SHA,
+    field_sha: RESUME145_FIELD_SHA,
+    checkpoint_step: 256,
+    lineage_step: 320,
+    complete: 145,
+};
+impl ResumeProfile {
+    pub fn lineage_after(self, local_step: usize) -> usize {
+        self.lineage_step + local_step
+    }
+    fn validate_lineage(self, report: &Value, receipt: &Value) -> Result<()> {
+        if report["updates"] != self.checkpoint_step || receipt["step"] != self.checkpoint_step {
+            return Err(bad("cross-state resume local checkpoint step differs"));
+        }
+        if self == SAVED22 {
+            // This exact sealed original run predates explicit lineage fields.
+            if report.get("prior_updates").is_some()
+                || report.get("lineage_step").is_some()
+                || report.get("cross_state_resume").is_some()
+                || receipt.get("lineage_step").is_some()
+                || receipt.get("cross_state_resume").is_some()
+            {
+                return Err(bad("cross-state original64 lineage metadata differs"));
+            }
+        } else if self == SAVED145 {
+            let prior = &report["cross_state_resume"];
+            if report["prior_updates"] != SAVED22.lineage_step
+                || report["lineage_step"] != self.lineage_step
+                || receipt["lineage_step"] != self.lineage_step
+                || report["fresh_adam"] != true
+                || receipt["cross_state_resume"] != *prior
+                || prior["report_sha256"] != SAVED22.report_sha
+                || prior["manifest_sha256"] != SAVED22.manifest_sha
+                || prior["field_sha256"] != SAVED22.field_sha
+                || prior["prior_step"] != SAVED22.checkpoint_step
+                || prior["prior_complete"] != SAVED22.complete
+                || report["initial_receipt"]["step"] != 0
+                || report["initial_receipt"]["lineage_step"] != SAVED22.lineage_step
+            {
+                return Err(bad("cross-state saved145 lineage/provenance differs"));
+            }
+        } else {
+            return Err(bad("cross-state unsupported resume profile"));
+        }
+        Ok(())
+    }
+}
 #[derive(Clone, Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 pub(super) struct ResumeConfig {
@@ -16,7 +89,23 @@ pub(super) struct ResumeConfig {
     pub expected_field_sha256: String,
 }
 
+impl ResumeConfig {
+    fn profile(&self) -> Result<ResumeProfile> {
+        [SAVED22, SAVED145]
+            .into_iter()
+            .find(|p| {
+                self.expected_report_sha256 == p.report_sha
+                    && self.expected_manifest_sha256 == p.manifest_sha
+                    && self.expected_field_sha256 == p.field_sha
+            })
+            .ok_or_else(|| {
+                bad("cross-state resume requires one complete pinned profile hash triple")
+            })
+    }
+}
+
 pub(super) struct ResumeState {
+    pub profile: ResumeProfile,
     root: PathBuf,
     field_bytes: Vec<u8>,
     receipt: Value,
@@ -29,29 +118,31 @@ pub(super) fn load_resume(a: &Args, parent: &ContinuationParent) -> Result<Optio
         return Ok(None);
     };
     settings(a)?;
+    let profile = config.profile()?;
     report_output::verify(&config.root)?;
-    if sha256_file(&config.root.join("report.json"))? != RESUME_REPORT_SHA
-        || sha256_file(&config.root.join("manifest.json"))? != RESUME_MANIFEST_SHA
+    if sha256_file(&config.root.join("report.json"))? != profile.report_sha
+        || sha256_file(&config.root.join("manifest.json"))? != profile.manifest_sha
     {
         return Err(bad("cross-state resume sealed report identity differs"));
     }
     let report = read(&config.root.join("report.json"))?;
-    let checkpoint = config.root.join("checkpoint-0064");
+    let checkpoint = config
+        .root
+        .join(format!("checkpoint-{:04}", profile.checkpoint_step));
     let receipt = read(&checkpoint.join("receipt.json"))?;
     let field_bytes = fs::read(checkpoint.join("continuation-field.bin"))?;
+    profile.validate_lineage(&report, &receipt)?;
     if report["status"] != "COMPLETED"
         || report["mode"] != "cross_state_continuation"
-        || report["updates"] != 64
         || report["final_receipt"] != receipt
-        || receipt["step"] != 64
         || receipt["parent"] != serde_json::to_value(&parent.binding)?
         || receipt["generate_sha256"] != parent.generate_sha256
         || receipt["frozen_model_report_sha256"] != CONTINUATION_PARENT_REPORT_SHA
         || receipt["frozen_model_manifest_sha256"] != CONTINUATION_PARENT_MANIFEST_SHA
         || receipt["frozen_parent_receipt"] != parent.receipt
-        || receipt["continuation_sha256"] != RESUME_FIELD_SHA
-        || report["final"]["continuation_sha256"] != RESUME_FIELD_SHA
-        || sha256_bytes(&field_bytes) != RESUME_FIELD_SHA
+        || receipt["continuation_sha256"] != profile.field_sha
+        || report["final"]["continuation_sha256"] != profile.field_sha
+        || sha256_bytes(&field_bytes) != profile.field_sha
         || receipt["shared_coefficients"] != 115200
         || receipt["active_parameter_names"] != json!(["continuation.cross_state"])
         || read(&checkpoint.join("continuation-source/metadata.json"))? != receipt
@@ -60,13 +151,15 @@ pub(super) fn load_resume(a: &Args, parent: &ContinuationParent) -> Result<Optio
             "cross-state resume checkpoint/upstream/field identity differs",
         ));
     }
-    validate_rows(&report["final"], 22)?;
+    validate_rows(&report["final"], profile.complete)?;
     let provenance = json!({"root":fs::canonicalize(&config.root)?,
-        "report_sha256":RESUME_REPORT_SHA,"manifest_sha256":RESUME_MANIFEST_SHA,
+        "report_sha256":profile.report_sha,"manifest_sha256":profile.manifest_sha,
         "checkpoint_receipt_sha256":sha256_file(&checkpoint.join("receipt.json"))?,
-        "field_sha256":RESUME_FIELD_SHA,"source_master_inventory":receipt["parameters"],
-        "prior_step":64,"prior_complete":22,"optimizer":"reset fresh AdamW moments; parameter continuation only"});
+        "field_sha256":profile.field_sha,"source_master_inventory":receipt["parameters"],
+        "prior_step":profile.checkpoint_step,"prior_lineage_step":profile.lineage_step,
+        "prior_complete":profile.complete,"optimizer":"reset fresh AdamW moments; parameter continuation only"});
     Ok(Some(ResumeState {
+        profile,
         root: checkpoint,
         field_bytes,
         receipt,
@@ -153,19 +246,23 @@ fn validate_rows(endpoint: &Value, expected: usize) -> Result<()> {
 
 pub(super) fn settings(a: &Args) -> Result<()> {
     if a.mode != Mode::CrossStateContinuation {
-        return if a.cross_state_resume.is_some() {
-            Err(bad("cross-state resume requires cross-state mode"))
+        return if a.cross_state_resume.is_some() || a.cross_state_bottleneck {
+            Err(bad(
+                "cross-state resume/objective requires cross-state mode",
+            ))
         } else {
             Ok(())
         };
     }
-    if let Some(c) = &a.cross_state_resume {
-        if c.expected_report_sha256 != RESUME_REPORT_SHA
-            || c.expected_manifest_sha256 != RESUME_MANIFEST_SHA
-            || c.expected_field_sha256 != RESUME_FIELD_SHA
-        {
-            return Err(bad("cross-state resume configuration pins differ"));
-        }
+    let profile = a
+        .cross_state_resume
+        .as_ref()
+        .map(ResumeConfig::profile)
+        .transpose()?;
+    // Saved145's previous phase-balanced continuation is closed. Its strict
+    // loader is reused only for this pre-registered objective intervention.
+    if a.cross_state_bottleneck != (profile == Some(SAVED145)) {
+        return Err(bad("bottleneck objective requires pinned saved145; stopped phase-CE saved145 continuation is unavailable"));
     }
     if a.updates
         != if a.cross_state_resume.is_some() {
@@ -218,15 +315,15 @@ pub(super) fn settings(a: &Args) -> Result<()> {
     Ok(())
 }
 
-pub(super) fn baseline(initial: &Value, prior: Option<&Value>) -> Result<()> {
-    if let Some(prior) = prior {
-        if prior["continuation_sha256"] != RESUME_FIELD_SHA
-            || initial["continuation_sha256"] != RESUME_FIELD_SHA
+pub(super) fn baseline(initial: &Value, prior: Option<(&Value, ResumeProfile)>) -> Result<()> {
+    if let Some((prior, profile)) = prior {
+        if prior["continuation_sha256"] != profile.field_sha
+            || initial["continuation_sha256"] != profile.field_sha
         {
             return Err(bad("cross-state resume baseline field identity differs"));
         }
-        validate_rows(prior, 22)?;
-        validate_rows(initial, 22)?;
+        validate_rows(prior, profile.complete)?;
+        validate_rows(initial, profile.complete)?;
         let old = prior["rows"]
             .as_array()
             .ok_or_else(|| bad("resume prior rows absent"))?;
@@ -266,10 +363,10 @@ pub(super) fn baseline(initial: &Value, prior: Option<&Value>) -> Result<()> {
 pub(super) fn outcomes(
     initial: &Value,
     final_eval: &Value,
-    prior: Option<&Value>,
+    prior: Option<(&Value, ResumeProfile)>,
 ) -> Result<Value> {
     baseline(initial, prior)?;
-    let initial_count = if prior.is_some() { 22 } else { 8 };
+    let initial_count = prior.map_or(8, |(_, profile)| profile.complete);
     let before = initial["rows"]
         .as_array()
         .ok_or_else(|| bad("initial rows absent"))?;
@@ -327,6 +424,97 @@ pub(super) fn outcomes(
         "bar":format!("prospective developmental netcomplete>{initial_count} on unchanged512 own-prefix; exact loss/gain IDs reported, not endpoint retention veto; M2 remains256 thenfresh40%"),
         "prior_runs":"prior all-original8 local KEEP decisions unchanged; no retrospective reclassification"}),
     )
+}
+
+/// Training-only objective; native scoring and evaluation CE remain unchanged.
+pub(super) fn objective_policy(a: &Args) -> &'static str {
+    if a.cross_state_bottleneck {
+        "equal-episode-logmeanexp-unweighted-native-token-CE/1;temperature1;all-targets-including-EOS;existing-raw-identity-STE;no-phase-weighting"
+    } else {
+        loss_weight_policy(true, LossScope::All)
+    }
+}
+
+/// Stable streaming chain rule for log(mean(exp(token CE))). The loss values
+/// are hard-forward anchors and each supplied gradient is the existing token
+/// STE. The coefficients here are detached chain-rule multipliers, not a new
+/// differentiable weighted-mean objective. Only one token graph stays live.
+#[derive(Default)]
+pub(super) struct EpisodeBottleneck {
+    maximum: f64,
+    normalization: f64,
+    positions: usize,
+    numerator: BTreeMap<String, Tensor>,
+}
+impl EpisodeBottleneck {
+    pub fn push(&mut self, loss: f64, gradients: BTreeMap<String, Tensor>) -> Result<()> {
+        if !loss.is_finite() || gradients.is_empty() || self.positions >= 32 {
+            return Err(bad(
+                "bottleneck requires finite loss, active gradients and at most32 targets",
+            ));
+        }
+        if self.positions != 0 && self.numerator.keys().ne(gradients.keys()) {
+            return Err(bad(
+                "bottleneck active gradient inventory changed within episode",
+            ));
+        }
+        let maximum = if self.positions == 0 {
+            loss
+        } else {
+            self.maximum.max(loss)
+        };
+        let old_scale = if self.positions == 0 {
+            0.
+        } else {
+            (self.maximum - maximum).exp()
+        };
+        let token_scale = (loss - maximum).exp();
+        let normalization = self.normalization * old_scale + token_scale;
+        for (name, gradient) in gradients {
+            let weighted = (&gradient * token_scale)?;
+            let next = if let Some(old) = self.numerator.remove(&name) {
+                ((old * old_scale)? + weighted)?
+            } else {
+                weighted
+            };
+            self.numerator.insert(name, next.detach());
+        }
+        self.maximum = maximum;
+        self.normalization = normalization;
+        self.positions += 1;
+        Ok(())
+    }
+
+    pub fn finish(
+        self,
+        expected_positions: usize,
+        batch_episodes: usize,
+    ) -> Result<(f64, BTreeMap<String, Tensor>)> {
+        if self.positions == 0
+            || self.positions != expected_positions
+            || batch_episodes == 0
+            || !self.normalization.is_finite()
+            || self.normalization <= 0.
+        {
+            return Err(bad(
+                "bottleneck requires every target including EOS and nonempty batch",
+            ));
+        }
+        let objective = (self.maximum + self.normalization.ln() - (self.positions as f64).ln())
+            / batch_episodes as f64;
+        if !objective.is_finite() {
+            return Err(bad("nonfinite bottleneck objective"));
+        }
+        // No additional 1/T or phase factor: log-mean-exp already supplies its
+        // softmax token derivative; only equal episode/batch averaging remains.
+        let scale = 1. / self.normalization / batch_episodes as f64;
+        let gradients = self
+            .numerator
+            .into_iter()
+            .map(|(name, g)| Ok((name, (g * scale)?.detach())))
+            .collect::<Result<BTreeMap<_, _>>>()?;
+        Ok((objective, gradients))
+    }
 }
 
 #[cfg(test)]
@@ -395,7 +583,7 @@ mod tests {
     #[test]
     fn cross_state_resume_requires_exact_all512_outputs_not_only_complete22() -> Result<()> {
         let prior = endpoint(&(0..22).collect::<Vec<_>>());
-        baseline(&prior, Some(&prior))?;
+        baseline(&prior, Some((&prior, SAVED22)))?;
         for (row, key, value) in [
             (300, "generated_ids", json!([999])),
             (300, "id", json!("development-diverse-length2-changed")),
@@ -403,20 +591,23 @@ mod tests {
         ] {
             let mut changed = prior.clone();
             changed["rows"][row][key] = value;
-            assert!(baseline(&changed, Some(&prior)).is_err(), "{key}");
+            assert!(
+                baseline(&changed, Some((&prior, SAVED22))).is_err(),
+                "{key}"
+            );
         }
         let mut swapped = prior.clone();
         swapped["rows"]
             .as_array_mut()
             .ok_or_else(|| bad("fixture rows"))?
             .swap(300, 301);
-        assert!(baseline(&swapped, Some(&prior)).is_err());
+        assert!(baseline(&swapped, Some((&prior, SAVED22))).is_err());
         let mut duplicate = prior.clone();
         duplicate["rows"][300]["id"] = duplicate["rows"][301]["id"].clone();
-        assert!(baseline(&duplicate, Some(&duplicate)).is_err());
+        assert!(baseline(&duplicate, Some((&duplicate, SAVED22))).is_err());
         let mut wrong_field = prior.clone();
         wrong_field["continuation_sha256"] = json!("wrong");
-        assert!(baseline(&wrong_field, Some(&prior)).is_err());
+        assert!(baseline(&wrong_field, Some((&prior, SAVED22))).is_err());
         Ok(())
     }
 
@@ -424,7 +615,7 @@ mod tests {
     fn cross_state_resume_net_gain_uses_saved22_and_reports_losses() -> Result<()> {
         let prior = endpoint(&(0..22).collect::<Vec<_>>());
         let next = endpoint(&(1..24).collect::<Vec<_>>());
-        let result = outcomes(&prior, &next, Some(&prior))?;
+        let result = outcomes(&prior, &next, Some((&prior, SAVED22)))?;
         assert_eq!(result["initial_complete"], 22);
         assert_eq!(result["final_complete"], 23);
         assert_eq!(result["keep"], true);
@@ -436,12 +627,15 @@ mod tests {
             result["gained_complete_ids"].as_array().map(Vec::len),
             Some(2)
         );
-        assert_eq!(outcomes(&prior, &prior, Some(&prior))?["keep"], false);
+        assert_eq!(
+            outcomes(&prior, &prior, Some((&prior, SAVED22)))?["keep"],
+            false
+        );
         assert_eq!(
             outcomes(
                 &prior,
                 &endpoint(&(0..20).collect::<Vec<_>>()),
-                Some(&prior)
+                Some((&prior, SAVED22))
             )?["keep"],
             false
         );
@@ -619,6 +813,311 @@ mod tests {
         config["out"] = json!(owned.0.join("new-run"));
         validate_input_output_paths(&serde_json::from_value(config)?)?;
         assert!(!owned.0.join("new-run").exists());
+        Ok(())
+    }
+    fn profile_config(profile: ResumeProfile) -> ResumeConfig {
+        ResumeConfig {
+            root: PathBuf::from("sealed-parent"),
+            expected_report_sha256: profile.report_sha.to_string(),
+            expected_manifest_sha256: profile.manifest_sha.to_string(),
+            expected_field_sha256: profile.field_sha.to_string(),
+        }
+    }
+
+    #[test]
+    fn cross_state_saved145_admission_requires_complete_profile_triple() -> Result<()> {
+        for profile in [SAVED22, SAVED145] {
+            assert_eq!(profile_config(profile).profile()?, profile);
+            let mut admitted = config();
+            admitted["updates"] = json!(256);
+            admitted["cross_state_bottleneck"] = json!(profile == SAVED145);
+            admitted["cross_state_resume"] = serde_json::to_value(profile_config(profile))?;
+            let args: Args = serde_json::from_value(admitted.clone())?;
+            settings(&args)?;
+            continuation_settings(&args)?;
+            for other in [SAVED22, SAVED145].into_iter().filter(|p| *p != profile) {
+                for key in [
+                    "expected_report_sha256",
+                    "expected_manifest_sha256",
+                    "expected_field_sha256",
+                ] {
+                    let mut mixed = admitted.clone();
+                    mixed["cross_state_resume"][key] =
+                        serde_json::to_value(profile_config(other))?[key].clone();
+                    assert!(settings(&serde_json::from_value(mixed)?).is_err(), "{key}");
+                }
+            }
+        }
+        let mut unsupported = profile_config(SAVED145);
+        unsupported.expected_field_sha256 = "0".repeat(64);
+        assert!(unsupported.profile().is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn cross_state_saved145_validates_local_and_cumulative_lineage() -> Result<()> {
+        let original_report = json!({"updates":64});
+        let original_receipt = json!({"step":64});
+        SAVED22.validate_lineage(&original_report, &original_receipt)?;
+        assert_eq!(SAVED22.lineage_after(0), 64);
+        assert_eq!(SAVED22.lineage_after(256), 320);
+        assert_eq!(SAVED145.lineage_after(0), 320);
+        assert_eq!(SAVED145.lineage_after(256), 576);
+        let provenance = json!({"report_sha256":SAVED22.report_sha,
+            "manifest_sha256":SAVED22.manifest_sha,"field_sha256":SAVED22.field_sha,
+            "prior_step":64,"prior_complete":22});
+        let report = json!({"updates":256,"prior_updates":64,"lineage_step":320,
+            "fresh_adam":true,"cross_state_resume":provenance,
+            "initial_receipt":{"step":0,"lineage_step":64}});
+        let receipt = json!({"step":256,"lineage_step":320,"cross_state_resume":provenance});
+        SAVED145.validate_lineage(&report, &receipt)?;
+        for (key, wrong) in [
+            ("updates", json!(320)),
+            ("prior_updates", json!(256)),
+            ("lineage_step", json!(256)),
+            ("fresh_adam", json!(false)),
+        ] {
+            let mut altered = report.clone();
+            altered[key] = wrong;
+            assert!(
+                SAVED145.validate_lineage(&altered, &receipt).is_err(),
+                "{key}"
+            );
+        }
+        for key in ["step", "lineage_step"] {
+            let mut altered = receipt.clone();
+            altered[key] = json!(64);
+            assert!(
+                SAVED145.validate_lineage(&report, &altered).is_err(),
+                "{key}"
+            );
+        }
+        let mut altered = report.clone();
+        altered["cross_state_resume"]["field_sha256"] = json!(SAVED145.field_sha);
+        let mut matched_receipt = receipt.clone();
+        matched_receipt["cross_state_resume"] = altered["cross_state_resume"].clone();
+        assert!(SAVED145
+            .validate_lineage(&altered, &matched_receipt)
+            .is_err());
+        assert!(SAVED145
+            .validate_lineage(&original_report, &original_receipt)
+            .is_err());
+        assert!(SAVED22.validate_lineage(&report, &receipt).is_err());
+        let mut fabricated_legacy = original_report;
+        fabricated_legacy["lineage_step"] = json!(64);
+        assert!(SAVED22
+            .validate_lineage(&fabricated_legacy, &original_receipt)
+            .is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn cross_state_saved145_baseline_and_net_bar_are_profile_specific() -> Result<()> {
+        let mut prior = endpoint(&(0..145).collect::<Vec<_>>());
+        prior["continuation_sha256"] = json!(SAVED145.field_sha);
+        baseline(&prior, Some((&prior, SAVED145)))?;
+        assert!(baseline(&prior, Some((&prior, SAVED22))).is_err());
+        let mut changed_failed_row = prior.clone();
+        changed_failed_row["rows"][400]["generated_ids"] = json!([999]);
+        assert!(baseline(&changed_failed_row, Some((&prior, SAVED145))).is_err());
+        let next = endpoint(&(1..147).collect::<Vec<_>>());
+        let result = outcomes(&prior, &next, Some((&prior, SAVED145)))?;
+        assert_eq!(result["initial_complete"], 145);
+        assert_eq!(result["final_complete"], 146);
+        assert_eq!(result["keep"], true);
+        assert_eq!(
+            result["lost_complete_ids"].as_array().map(Vec::len),
+            Some(1)
+        );
+        assert_eq!(
+            result["gained_complete_ids"].as_array().map(Vec::len),
+            Some(2)
+        );
+        assert_eq!(
+            outcomes(&prior, &prior, Some((&prior, SAVED145)))?["keep"],
+            false
+        );
+        assert_eq!(
+            outcomes(
+                &prior,
+                &endpoint(&(0..144).collect::<Vec<_>>()),
+                Some((&prior, SAVED145))
+            )?["keep"],
+            false
+        );
+        let mut wrong_count = endpoint(&(0..22).collect::<Vec<_>>());
+        wrong_count["continuation_sha256"] = json!(SAVED145.field_sha);
+        assert!(baseline(&wrong_count, Some((&wrong_count, SAVED145))).is_err());
+        Ok(())
+    }
+    #[test]
+    fn bottleneck_admission_rejects_stopped_objective_and_other_parents() -> Result<()> {
+        let mut admitted = config();
+        admitted["updates"] = json!(256);
+        admitted["cross_state_resume"] = serde_json::to_value(profile_config(SAVED145))?;
+        assert!(settings(&serde_json::from_value(admitted.clone())?).is_err());
+        admitted["cross_state_bottleneck"] = json!(true);
+        settings(&serde_json::from_value(admitted.clone())?)?;
+        let mut changed = admitted.clone();
+        changed["cross_state_resume"] = serde_json::to_value(profile_config(SAVED22))?;
+        assert!(settings(&serde_json::from_value(changed)?).is_err());
+        let mut fresh = config();
+        fresh["cross_state_bottleneck"] = json!(true);
+        assert!(settings(&serde_json::from_value(fresh)?).is_err());
+        admitted["mode"] = json!("continuation_only");
+        assert!(settings(&serde_json::from_value(admitted)?).is_err());
+        Ok(())
+    }
+
+    /// Hard-forward anchors deliberately differ from the differentiable slopes.
+    /// This mirrors the existing native-probability/STE composition rather than
+    /// pretending finite differences of quantized serving equal its adjoint.
+    fn check_bottleneck_reference(episodes: &[Vec<(f32, [f32; 2])>]) -> Result<(f64, Vec<f32>)> {
+        let device = &Device::Cpu;
+        let variable = Var::zeros(2, candle_core::DType::F32, device)?;
+        let mut reference = Tensor::zeros((), candle_core::DType::F32, device)?;
+        let mut streamed_value = 0.;
+        let mut streamed_gradient = Tensor::zeros(2, candle_core::DType::F32, device)?;
+        for episode in episodes {
+            let mut accumulator = EpisodeBottleneck::default();
+            let mut losses = Vec::new();
+            for &(hard, slope) in episode {
+                let coefficient = Tensor::from_vec(slope.to_vec(), 2, device)?;
+                let soft = (variable.as_tensor() * coefficient)?.sum_all()?;
+                let loss = ((&soft - soft.detach())? + hard as f64)?;
+                let gradients = loss.backward()?;
+                let gradient = gradients
+                    .get(variable.as_tensor())
+                    .ok_or_else(|| bad("fixture gradient absent"))?;
+                accumulator.push(
+                    loss.to_scalar::<f32>()? as f64,
+                    BTreeMap::from([("field".to_string(), gradient.detach())]),
+                )?;
+                losses.push(loss);
+            }
+            let (value, gradients) = accumulator.finish(episode.len(), episodes.len())?;
+            streamed_value += value;
+            streamed_gradient = (&streamed_gradient + &gradients["field"])?;
+            let maximum = episode
+                .iter()
+                .map(|(hard, _)| *hard as f64)
+                .fold(f64::NEG_INFINITY, f64::max);
+            let direct = (Tensor::stack(&losses, 0)? - maximum)?
+                .exp()?
+                .sum_all()?
+                .log()?
+                .affine(1., maximum - (episode.len() as f64).ln())?;
+            reference = (reference + (direct / episodes.len() as f64)?)?;
+        }
+        let reference_value = reference.to_scalar::<f32>()? as f64;
+        assert!(
+            (streamed_value - reference_value).abs() < 2e-4,
+            "streamed={streamed_value}, reference={reference_value}"
+        );
+        let gradients = reference.backward()?;
+        let expected = gradients
+            .get(variable.as_tensor())
+            .ok_or_else(|| bad("reference gradient absent"))?
+            .to_vec1::<f32>()?;
+        let observed = streamed_gradient.to_vec1::<f32>()?;
+        for (actual, expected) in observed.iter().zip(expected) {
+            assert!((actual - expected).abs() < 2e-5, "{actual} != {expected}");
+        }
+        Ok((streamed_value, observed))
+    }
+
+    #[test]
+    fn bottleneck_streaming_matches_analytic_and_differentiated_ste_reference() -> Result<()> {
+        let (value, gradient) =
+            check_bottleneck_reference(&[vec![(1., [1., 0.]), (4., [0., 2.]), (2., [-1., 3.])]])?;
+        let z = 1f64.exp() + 4f64.exp() + 2f64.exp();
+        assert!((value - (z / 3.).ln()).abs() < 1e-12);
+        assert!((gradient[0] as f64 - (1f64.exp() - 2f64.exp()) / z).abs() < 1e-6);
+        assert!((gradient[1] as f64 - (2. * 4f64.exp() + 3. * 2f64.exp()) / z).abs() < 1e-6);
+        Ok(())
+    }
+
+    #[test]
+    fn bottleneck_equal_episodes_include_eos_without_second_length_factor() -> Result<()> {
+        // Last token represents EOS and is deliberately the hardest. Two
+        // episodes of different length must each contribute half the objective.
+        let (value, gradient) = check_bottleneck_reference(&[
+            vec![(0., [1., 0.]), (4., [0., 1.])],
+            vec![
+                (2., [1., 0.]),
+                (2., [1., 0.]),
+                (2., [1., 0.]),
+                (2., [1., 0.]),
+            ],
+        ])?;
+        let eos_weight = 4f64.exp() / (1. + 4f64.exp());
+        assert!((gradient[1] as f64 - 0.5 * eos_weight).abs() < 1e-6);
+        assert!((gradient[0] as f64 - (0.5 + 0.5 * (1. - eos_weight))).abs() < 1e-6);
+        assert!((value - 0.5 * (((1. + 4f64.exp()) / 2.).ln() + 2.)).abs() < 1e-12);
+        Ok(())
+    }
+
+    #[test]
+    fn bottleneck_max_shift_is_stable_and_uniform_losses_are_uniform() -> Result<()> {
+        let base = vec![(0., [1., 0.]), (-1000., [0., 1.])];
+        let shifted = base
+            .iter()
+            .map(|(l, g)| (l + 1000., *g))
+            .collect::<Vec<_>>();
+        let (a, ga) = check_bottleneck_reference(&[base])?;
+        let (b, gb) = check_bottleneck_reference(&[shifted])?;
+        assert!((b - a - 1000.).abs() < 1e-10);
+        assert_eq!(ga, gb);
+        assert_eq!(ga, vec![1., 0.]);
+        let (_, uniform) = check_bottleneck_reference(&[vec![(3., [1., 0.]), (3., [0., 1.])]])?;
+        assert_eq!(uniform, vec![0.5, 0.5]);
+        Ok(())
+    }
+
+    #[test]
+    fn bottleneck_rejects_nonfinite_empty_missing_eos_and_changed_inventory() -> Result<()> {
+        fn gradients() -> Result<BTreeMap<String, Tensor>> {
+            Ok(BTreeMap::from([(
+                "field".to_string(),
+                Tensor::new(1f32, &Device::Cpu)?,
+            )]))
+        }
+        for value in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+            assert!(EpisodeBottleneck::default()
+                .push(value, gradients()?)
+                .is_err());
+        }
+        assert!(EpisodeBottleneck::default()
+            .push(1., BTreeMap::new())
+            .is_err());
+        assert!(EpisodeBottleneck::default().finish(0, 8).is_err());
+        let mut omitted_eos = EpisodeBottleneck::default();
+        omitted_eos.push(1., gradients()?)?;
+        assert!(omitted_eos.finish(2, 8).is_err());
+        let mut empty_batch = EpisodeBottleneck::default();
+        empty_batch.push(1., gradients()?)?;
+        assert!(empty_batch.finish(1, 0).is_err());
+        let mut changed = EpisodeBottleneck::default();
+        changed.push(1., gradients()?)?;
+        assert!(changed
+            .push(
+                1.,
+                BTreeMap::from([("other".to_string(), Tensor::new(1f32, &Device::Cpu)?)])
+            )
+            .is_err());
+        let mut oversized = EpisodeBottleneck::default();
+        for _ in 0..32 {
+            oversized.push(1., gradients()?)?;
+        }
+        assert!(oversized.push(1., gradients()?).is_err());
+        let mut nonfinite_gradient = EpisodeBottleneck::default();
+        nonfinite_gradient.push(
+            1.,
+            BTreeMap::from([("field".to_string(), Tensor::new(f32::NAN, &Device::Cpu)?)]),
+        )?;
+        let (_, bad_gradient) = nonfinite_gradient.finish(1, 1)?;
+        // The existing batch clip admission is the production finite-gradient gate.
+        assert!(clip_denominator(&bad_gradient, &Device::Cpu).is_err());
         Ok(())
     }
 }

@@ -521,6 +521,8 @@ struct Args {
     #[serde(default)]
     cross_state_resume: Option<cross_state_completion::ResumeConfig>,
     #[serde(default)]
+    cross_state_bottleneck: bool,
+    #[serde(default)]
     joint_continuation: Option<JointContinuationConfig>,
     #[serde(default)]
     reference_replay: Option<ReferenceReplayConfig>,
@@ -4895,7 +4897,7 @@ fn continuation_checkpoint(
             "continuation independent masters/native reload differs",
         ));
     }
-    let receipt = json!({"step":step,"lineage_step":step+if resume.is_some(){64}else{0},
+    let receipt = json!({"step":step,"lineage_step":resume.map_or(step, |r| r.profile.lineage_after(step)),
         "cross_state_resume":resume.map(|r|&r.provenance),
         "parent":reloaded.source_binding(),"generate_sha256":p.generate_sha256,
         "frozen_model_root":fs::canonicalize(&a.saved_fit)?,"frozen_model_report_sha256":CONTINUATION_PARENT_REPORT_SHA,
@@ -4904,7 +4906,8 @@ fn continuation_checkpoint(
         "shared_coefficients":weights.shared_coefficients(),"loss_scope":"all","credit":a.credit.name(),"order_seed":a.seed,
         "native_independently_reloaded":true,"masters_independently_reloaded":true,
         "upstream_training":"all Context/Source/Potential/Generate/prototype/bridge/cue/prefix frozen; no old Vars loaded",
-        "fresh_adam":"zero moments; not optimizer-state continuation"});
+        "fresh_adam":"zero moments; not optimizer-state continuation",
+        "cross_state_bottleneck":a.cross_state_bottleneck,"training_objective":cross_state_completion::objective_policy(a)});
     fs::write(
         root.join("continuation-source/metadata.json"),
         serde_json::to_vec_pretty(&receipt)?,
@@ -6177,15 +6180,17 @@ fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
         "active_parameter_names":params.keys().collect::<Vec<_>>(),"shared_coefficients":expected_coefficients,"learning_rate":c.learning_rate,
         "continuation_policy":zero.metadata().policy,"continuation_score_shift":zero.metadata().score_shift,
         "continuation_action_support":"same token energy on Generate and every physical Copy before the sole common clip",
-        "phase_policy":loss_weight_policy(true,LossScope::All),"loss_scope":"all","credit":a.credit.name(),"fresh_adam":true,
+        "phase_policy":if a.cross_state_bottleneck {"none;all-target-token-logmeanexp"} else {loss_weight_policy(true,LossScope::All)},"training_objective":cross_state_completion::objective_policy(a),"loss_scope":"all","credit":a.credit.name(),"fresh_adam":true,"cross_state_bottleneck":a.cross_state_bottleneck,
         "cross_state_resume":resume.as_ref().map(|r|&r.provenance),
-        "local_updates":a.updates,"prior_updates":if resume.is_some(){64}else{0},
-        "final_lineage_step":a.updates+if resume.is_some(){64}else{0},
+        "local_updates":a.updates,"prior_updates":resume.as_ref().map_or(0, |r| r.profile.lineage_step),
+        "final_lineage_step":resume.as_ref().map_or(a.updates, |r| r.profile.lineage_after(a.updates)),
         "initial_active_masters":identities(&params)?,
         "teacher_forcing":"native cache receives complete input packet and target[..t] only; current/future target used after common pool",
         "local_carrier":"ContextQ4 from identity over query || prior supervised prefix; independent of facts",
         "projected_device_cache_tensor_bytes":projected_tensor_bytes,"maximum_cache_tensor_bytes":c.maximum_cache_tensor_bytes,
         "cache_cap_scope":"I64 base Generate and F32 Copy tensors; host packet/provenance, model and scratch additionally charged",
+        "maximum_episode_target_positions":train.iter().map(|e|e.target.len()).max(),
+        "objective_accumulation":if a.cross_state_bottleneck {"max-shifted detached streaming STE gradient numerator; one token graph plus episode/batch gradients; no retained episode graphs"} else {"per-token phase-weighted backwards"},
         "common_pool_backend":"cpu-authenticated-native-alias-reducer; U gathers/credit/backward on CUDA; full score download and anchor/loss staging retained",
         "legacy_loader_fields":"categorical and parent_config are unused in this mode; native sidecars come only from exact sealed selected parent",
         "CUDA_VISIBLE_DEVICES":std::env::var("CUDA_VISIBLE_DEVICES").ok()}),
@@ -6259,7 +6264,10 @@ fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
     let initial = continuation_evaluate(a, "development-0000", &p, &initial_field, &dev, start)?;
     let initial_metrics = metrics(a, &initial, &dev)?;
     if cross_state {
-        cross_state_completion::baseline(&initial, resume.as_ref().map(|r| &r.prior_final))?;
+        cross_state_completion::baseline(
+            &initial,
+            resume.as_ref().map(|r| (&r.prior_final, r.profile)),
+        )?;
     }
     write(a, "metrics-0000.json", &initial_metrics)?;
     evaluation_seconds += clock.elapsed().as_secs_f64();
@@ -6293,24 +6301,35 @@ fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
                 .copied()
                 .collect::<BTreeSet<_>>();
             let mut plan = None;
+            let mut bottleneck = cross_state_completion::EpisodeBottleneck::default();
+            if fixed.len() != e.target.len() {
+                return Err(bad(
+                    "continuation cache must cover every target including EOS",
+                ));
+            }
             for (t, (&target, position)) in e.target.iter().zip(fixed).enumerate() {
                 deadline(a, start)?;
                 let out = position.forward_coefficients_only(&weights, &prepared)?;
                 // The whole target-free pool is constructed before this label.
-                if plan.is_none() {
-                    plan = Some(episode_loss_weights(
-                        &e.target,
-                        &union,
-                        indices.len(),
-                        true,
-                        LossScope::All,
-                    )?);
-                }
-                let weight = plan
-                    .as_ref()
-                    .ok_or_else(|| bad("continuation loss phases absent"))?
-                    .weights[t];
-                let loss = (out.loss_with_credit(target, a.credit.policy())? * weight)?;
+                let token_loss = out.loss_with_credit(target, a.credit.policy())?;
+                let loss = if a.cross_state_bottleneck {
+                    token_loss
+                } else {
+                    if plan.is_none() {
+                        plan = Some(episode_loss_weights(
+                            &e.target,
+                            &union,
+                            indices.len(),
+                            true,
+                            LossScope::All,
+                        )?);
+                    }
+                    let weight = plan
+                        .as_ref()
+                        .ok_or_else(|| bad("continuation loss phases absent"))?
+                        .weights[t];
+                    (token_loss * weight)?
+                };
                 if field_costs.is_none() {
                     field_costs = Some(serde_json::to_value(&out.continuation.costs)?);
                 }
@@ -6318,7 +6337,9 @@ fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
                 if !value.is_finite() {
                     return Err(bad("nonfinite continuation loss"));
                 }
-                loss_sum += value;
+                if !a.cross_state_bottleneck {
+                    loss_sum += value;
+                }
                 count += 1;
                 downloads += out.common_pool_score_download_bytes;
                 uploads += out.common_pool_anchor_upload_bytes;
@@ -6331,15 +6352,41 @@ fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
                     0
                 };
                 let grads = loss.backward()?;
-                for (name, var) in &params {
-                    if let Some(g) = grads.get(var.as_tensor()) {
-                        let next = if let Some(old) = sums.remove(name) {
-                            (&old + g)?
-                        } else {
-                            g.clone()
-                        };
-                        sums.insert(name.clone(), next.detach());
+                if a.cross_state_bottleneck {
+                    let active = params
+                        .iter()
+                        .map(|(name, var)| {
+                            let g = grads
+                                .get(var.as_tensor())
+                                .ok_or_else(|| bad("bottleneck active gradient absent"))?;
+                            Ok((name.clone(), g.detach()))
+                        })
+                        .collect::<Result<BTreeMap<_, _>>>()?;
+                    bottleneck.push(value, active)?;
+                } else {
+                    for (name, var) in &params {
+                        if let Some(g) = grads.get(var.as_tensor()) {
+                            let next = if let Some(old) = sums.remove(name) {
+                                (&old + g)?
+                            } else {
+                                g.clone()
+                            };
+                            sums.insert(name.clone(), next.detach());
+                        }
                     }
+                }
+            }
+            if a.cross_state_bottleneck {
+                let (episode_objective, gradients) =
+                    bottleneck.finish(e.target.len(), indices.len())?;
+                loss_sum += episode_objective;
+                for (name, gradient) in gradients {
+                    let next = if let Some(old) = sums.remove(&name) {
+                        (old + gradient)?
+                    } else {
+                        gradient
+                    };
+                    sums.insert(name, next.detach());
                 }
             }
         }
@@ -6351,7 +6398,9 @@ fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
         weights.project_shadow_range()?;
         d.synchronize()?;
         target_position_draws += count;
-        updates.push(json!({"step":update+1,"lineage_step":update+1+if resume.is_some(){64}else{0},"indices":indices,"answer_positions_including_eos":count,"phase_balanced_loss":loss_sum,
+        updates.push(json!({"step":update+1,"lineage_step":resume.as_ref().map_or(update+1, |r| r.profile.lineage_after(update+1)),"indices":indices,"answer_positions_including_eos":count,"objective_loss":loss_sum,"training_objective":cross_state_completion::objective_policy(a),
+            "phase_balanced_loss":if a.cross_state_bottleneck {Value::Null} else {json!(loss_sum)},
+            "bottleneck_logmeanexp_loss":if a.cross_state_bottleneck {json!(loss_sum)} else {Value::Null},
             "global_active_gradient_norm":norm,"active_gradient_names":sums.keys().collect::<Vec<_>>(),
             "native_field_master_download_bytes":prepared.downloaded_master_bytes,
             "field_snapshot_and_per_position_costs":field_costs,
@@ -6398,19 +6447,11 @@ fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
             cross_state_completion::ORIGINAL8.to_vec()
         };
         let early = early_indices.iter().map(|&i| &dev[i]).collect::<Vec<_>>();
-        continuation_evaluate_rows_impl(
-            a,
-            if resume.is_some() {
-                "endpoint-prior22"
-            } else {
-                "endpoint-original8"
-            },
-            &p,
-            &final_field,
-            &early,
-            start,
-            false,
-        )?;
+        let early_name = resume.as_ref().map_or_else(
+            || "endpoint-original8".to_string(),
+            |r| format!("endpoint-prior{}", r.profile.complete),
+        );
+        continuation_evaluate_rows_impl(a, &early_name, &p, &final_field, &early, start, false)?;
     }
     let final_eval = continuation_evaluate(
         a,
@@ -6427,7 +6468,7 @@ fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
         let outcome = cross_state_completion::outcomes(
             &initial,
             &final_eval,
-            resume.as_ref().map(|r| &r.prior_final),
+            resume.as_ref().map(|r| (&r.prior_final, r.profile)),
         )?;
         write(a, "cross-state-outcomes.json", &outcome)?;
         Some(outcome)
@@ -6437,19 +6478,19 @@ fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
     Ok(
         json!({"schema":"uor-r4.geometric-frozen-map-fit/1","status":"COMPLETED","mode":mode_name,
         "source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"device":"cuda:0","updates":a.updates,"batch":BATCH,
-        "prior_updates":if resume.is_some(){64}else{0},"lineage_step":a.updates+if resume.is_some(){64}else{0},
-        "cross_state_resume":resume.as_ref().map(|r|&r.provenance),"fresh_adam":true,
+        "prior_updates":resume.as_ref().map_or(0, |r| r.profile.lineage_step),"lineage_step":resume.as_ref().map_or(a.updates, |r| r.profile.lineage_after(a.updates)),
+        "cross_state_resume":resume.as_ref().map(|r|&r.provenance),"fresh_adam":true,"cross_state_bottleneck":a.cross_state_bottleneck,
         "training_row_draws":a.updates*BATCH,
         "target_position_draws":target_position_draws,
-        "loss_scope":"all","phase_policy":loss_weight_policy(true,LossScope::All),"credit":a.credit.name(),"order_seed":a.seed,
+        "loss_scope":"all","phase_policy":if a.cross_state_bottleneck {"none;all-target-token-logmeanexp"} else {loss_weight_policy(true,LossScope::All)},"training_objective":cross_state_completion::objective_policy(a),"credit":a.credit.name(),"order_seed":a.seed,
         "initial_receipt":initial_receipt,"final_receipt":final_receipt,"initial_metrics":initial_metrics,"final_metrics":final_metrics,
         "initial":initial,"final":final_eval,"cross_state_outcome":cross_outcome,
         "final_active_masters":identities(&params)?,"shared_coefficients":expected_coefficients,"cache_positions":positions,
         "cache_preparation_seconds":cache_seconds,"fit_loop_seconds_excluding_checkpoints":fit_seconds,
         "checkpoint_seconds":checkpoint_seconds,"evaluation_seconds":evaluation_seconds,"elapsed_seconds":start.elapsed().as_secs_f64(),
-        "control":if resume.is_some() {"checkpoint0000 is exact saved22 native field plus restored fractional masters; independently matched all512 outputs; cache separately uses zero field; no carrier ablation performed"} else if cross_state {"checkpoint0000 is exact accepted parent with zero joint factual/local field; no carrier ablation performed"} else {"checkpoint0000 is the same native parent with a null U field; constant-carrier control remains a prospective matched full-output evaluation"},
+        "control":if let Some(r) = &resume {format!("checkpoint0000 is exact saved{} native field plus restored fractional masters; independently matched all512 outputs; cache separately uses zero field; no carrier ablation performed",r.profile.complete)} else if cross_state {"checkpoint0000 is exact accepted parent with zero joint factual/local field; no carrier ablation performed".to_string()} else {"checkpoint0000 is the same native parent with a null U field; constant-carrier control remains a prospective matched full-output evaluation".to_string()},
         "common_pool_backend":"cpu-authenticated-native-alias-reducer; full score/anchor/loss transfers retained; not fully resident CUDA alias reduction",
-        "scope":if resume.is_some() {"saved22 cross-state parameter continuation with fresh Adam moments; frozen48/64 upstream;115200 Q4 coefficients, four exposed512 passes; fixed endpoint local256/lineage320; developmental KEEP netcomplete>22; no held-out transfer/chat/geometry/energy qualification"} else if cross_state {"frozen48/64 parent; only115200 joint factual/local signed-H4 Q4 coefficients learned on exposed512 all-answer positions; independently loaded own-prefix outputs; developmental KEEP netcomplete>8; no held-out transfer/chat/geometry/energy qualification"} else {"frozen48/64 parent; only960 continuation coefficients learned on exposed512 all-answer positions; independently loaded own-feedback outputs; no held-out transfer/chat/geometry/energy qualification"}}),
+        "scope":if let Some(r) = &resume {format!("saved{} cross-state parameter continuation with fresh Adam moments; frozen48/64 upstream;115200 Q4 coefficients, four exposed512 passes; fixed endpoint local256/lineage{}; developmental KEEP netcomplete>{}; no held-out transfer/chat/geometry/energy qualification",r.profile.complete,r.profile.lineage_after(a.updates),r.profile.complete)} else if cross_state {"frozen48/64 parent; only115200 joint factual/local signed-H4 Q4 coefficients learned on exposed512 all-answer positions; independently loaded own-prefix outputs; developmental KEEP netcomplete>8; no held-out transfer/chat/geometry/energy qualification".to_string()} else {"frozen48/64 parent; only960 continuation coefficients learned on exposed512 all-answer positions; independently loaded own-feedback outputs; no held-out transfer/chat/geometry/energy qualification".to_string()}}),
     )
 }
 

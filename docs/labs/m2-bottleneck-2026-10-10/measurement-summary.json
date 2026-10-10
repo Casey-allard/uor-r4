@@ -1,0 +1,120 @@
+{
+  "status": "KEEP",
+  "accepted_headline_before": 145,
+  "accepted_headline_after": 175,
+  "candidate_complete": 175,
+  "producer": {
+    "commit": "351e93dcc7763551281c22c3b78f64e1c60ab479",
+    "base": "e74298125b89953957e102ca5a6bc9676f4f3fd2",
+    "binary_sha256": "302e36db6826a411acb021e0dc862af564309b8921629d18db7461cadb2573d1",
+    "config_sha256": "24f7e26e20819bf1f8358448ea2645e9ebcfb013402884b947d4bc6a1d074dcc",
+    "checks": "17 focused tests PASS; rustfmt/diff PASS; optimized build PASS; exact-head independent source review PASS",
+    "bootstrap_seconds": 181,
+    "bootstrap_tests_passed": 37,
+    "bootstrap_tests_ignored": 3,
+    "started_utc": "2026-10-10T12:22:49Z"
+  },
+  "initial": {
+    "complete": 145,
+    "entry_correct": 454,
+    "eos": 148,
+    "complete_swap_pairs": 25,
+    "teacher_all_tokens_correct": 145,
+    "teacher_correct_tokens": 4110,
+    "target_positions": 6664,
+    "strata": {
+      "length2": {
+        "cases": 128,
+        "complete": 53
+      },
+      "length4": {
+        "cases": 128,
+        "complete": 45
+      },
+      "length8": {
+        "cases": 128,
+        "complete": 2
+      },
+      "update": {
+        "cases": 64,
+        "complete": 17
+      },
+      "reassert": {
+        "cases": 64,
+        "complete": 28
+      }
+    }
+  },
+  "final": {
+    "complete": 175,
+    "entry_correct": 340,
+    "eos": 182,
+    "complete_swap_pairs": 35,
+    "teacher_all_tokens_correct": 175,
+    "teacher_correct_tokens": 3523,
+    "target_positions": 6664,
+    "strata": {
+      "length2": {
+        "cases": 128,
+        "complete": 55
+      },
+      "length4": {
+        "cases": 128,
+        "complete": 57
+      },
+      "length8": {
+        "cases": 128,
+        "complete": 8
+      },
+      "update": {
+        "cases": 64,
+        "complete": 21
+      },
+      "reassert": {
+        "cases": 64,
+        "complete": 34
+      }
+    }
+  },
+  "gained": 34,
+  "lost": [
+    "development-diverse-length2-03-swap1-q3-forward-job",
+    "development-diverse-length2-04-swap0-q4-reverse-home",
+    "development-diverse-length2-05-swap1-q5-forward-home",
+    "development-diverse-reassert-03-swap1-q1-forward-home"
+  ],
+  "retained": 141,
+  "initial_ce": 3.394481661707875,
+  "final_ce": 3.48473505826869,
+  "training": {
+    "updates": 256,
+    "prior_updates": 320,
+    "lineage_step": 576,
+    "training_row_draws": 2048,
+    "target_position_draws": 26656,
+    "cache_positions": 6664,
+    "cache_preparation_seconds": 46.834000317,
+    "fit_loop_seconds_excluding_checkpoints": 206.754529985,
+    "checkpoint_seconds": 3.917428561,
+    "evaluation_seconds": 439.67831104699997,
+    "elapsed_seconds": 702.13943619
+  },
+  "process": {
+    "argv": [
+      "/workspace/uor-r4/codex/m2-bottleneck-20261010/runtime/geometric-frozen-map-fit",
+      "/workspace/uor-r4/codex/m2-bottleneck-20261010/model-config.json"
+    ],
+    "started_utc": "2026-10-10T12:22:49.080215+00:00",
+    "seconds": 705.9431589390151,
+    "exit_code": 0,
+    "peak_child_rss_kib": 802204
+  },
+  "sampled_gpu_peak_mib": 837,
+  "gpu_samples": 72,
+  "report_sha256": "9632d32651d0bcce82b2cda2ba70dee7d7a7878ff99577f88002442e23acb572",
+  "manifest_sha256": "1a6216a307a739a804f81bf94e93fd89638a896fda1904986dd3aee0a280fccc",
+  "final_field_sha256": "c82c376df10f14d5c1c9af970fd3b1fe239fb3560e2ccd0020dd2805d8fb773e",
+  "reader_sha256": "be738e6a770905c61da403c21f294cf1318057e3e0c91a042e06773c01b64719",
+  "review_sha256": "1e0477dc4498635a559fcbfc908a6bd7b46791a84a267019142c091870f5c975",
+  "source_patch_sha256": "cea34db319d6cfa6d28415e3e6150b3a73ea5cd39fe062aec593342867996d6a"
+}

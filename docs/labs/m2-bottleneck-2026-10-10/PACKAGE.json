@@ -1,0 +1,25 @@
+{
+  "name": "codex-m2-bottleneck-20261010",
+  "result": "KEEP candidate145\u2192175/512; accepted175; count0/3",
+  "producer_source": "351e93dcc7763551281c22c3b78f64e1c60ab479",
+  "components": {
+    "accepted145-and-prior-comparators.tar": {
+      "bytes": 92989440,
+      "sha256": "c530e2de4426e27f2d63bdcd872a63c3d88472452f8ecd9952daa8b863f576ff"
+    },
+    "source.bundle": {
+      "bytes": 8794,
+      "sha256": "29d44be2399dbc97634927214b14b4ec1596ec1cdee50c4c23408500fe0181f7"
+    },
+    "bottleneck-producer.patch": {
+      "bytes": 49776,
+      "sha256": "cea34db319d6cfa6d28415e3e6150b3a73ea5cd39fe062aec593342867996d6a"
+    },
+    "run-and-runtime.tar.gz": {
+      "bytes": 21246073,
+      "sha256": "cdfeef0e73b38168a51c93a33a67765e0e2ea8cf36ee8109fb33c6dceda96e3d"
+    }
+  },
+  "restore": "cloud-store fetch codex-m2-bottleneck-20261010 <absolute-owned-destination>; unpack run-and-runtime.tar.gz and accepted145-and-prior-comparators.tar separately. Nested prior package includes rejected139 and accepted145/22/original upstream/panel/comparators. Source bundle requires main e74298125; verify before restore. Exact source patch reconstructs producer351e93dcc from e74298125; final record governs activation. Absolute paths in config are provenance; resolve restored paths explicitly for replay.",
+  "limits": "Exposed development result only; saved parent145, sole256update endpoint, objective logmeanexp. No held-out transfer, model ceiling, geometry advantage or energy claim. Final delivery checks/merge/cleanup/fullaccounting follow in closeout."
+}
