@@ -116,6 +116,8 @@ headline acceptance number, the next action on that line is a pivot card on the 
 issue: stop and archive, or one decisive model-changing run scored on the acceptance panel
 with a pre-registered bar. Diagnosis, readings, plans and attribution PRs count toward the
 three and never reset it; only a change in the headline number does.
+Every lab session follows the [session-goal contract](docs/labs/session-goal.md): the
+owner pastes its prompt at session start, and each PR declares its line, count and headline.
 
 Apply the [progress-control rules](docs/integration/agent-execution-policy.md#progress-control--owner-correction-september-25)
 and the active contract in [current state](docs/history/current-state-2026-09-25-to-2026-10-02.md#active-execution-contract--durable-labs-september-29).

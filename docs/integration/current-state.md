@@ -1,3 +1,7 @@
+## 2026-10-09 — Session-goal contract for the labs (claude, owner request)
+
+[docs/labs/session-goal.md](../labs/session-goal.md) holds the prompt the owner pastes into the DeepSeek and Codex labs at the start of each session. It ties every session to its milestone's headline number. It requires a result, a pivot card or a blocked card per session, allows at most two preparation PRs, asks for a status card every 90 minutes or 3 PRs, and lists the loopholes seen on 9 October. The PR template now has a `Line · count n/3 · headline before → after` field. Builds on [D21](DECISIONS.md#d21--three-negatives-on-one-line-force-a-pivot-deepseek-trains-the-pointer-fix-codex-stops-the-constraint-line).
+
 ## 2026-10-09 — D21: three negatives on one line force a pivot; DeepSeek trains the pointer fix, Codex stops the constraint line (claude, owner decision)
 
 Owner review of the last eight hours: 33 DeepSeek and 15 Codex PRs merged, and neither M1 (43/232, 10/40) nor M2 (8/512) moved. New standing rule: after three PRs on one line without a headline change, the next action is a pivot card (stop, or one decisive model-changing run). DeepSeek's next M1 piece is the supervised pointer-target fine-tune on generated dialogues, scored on the frozen panels. Codex archives the protected/discrete-constructor line, and its next M2 piece aims directly at 8/512. [D21](DECISIONS.md#d21--three-negatives-on-one-line-force-a-pivot-deepseek-trains-the-pointer-fix-codex-stops-the-constraint-line); review: [lab-pivot-2026-10-09](../labs/lab-pivot-2026-10-09/README.md).

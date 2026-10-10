@@ -1,5 +1,11 @@
 <!-- Delivery cadence: CONTRIBUTING.md § Delivery cadence. Delete lines that do not apply, and say why. -->
 
+## Line and headline (D21, docs/labs/session-goal.md)
+
+<!-- Line: <name> · count n/3 · headline before → after (for example `M2 8/512 → 8/512`). At 3/3 the next action on this line is a pivot card. -->
+
+Line:  · count /3 · headline  → 
+
 ## What and why
 
 <!-- One paragraph: the change, the question it answers, the milestone (#2029–#2036). -->
