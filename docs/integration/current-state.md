@@ -1,3 +1,83 @@
+## 2026-10-09 — Plan: making a numeric value addressable — Options A and B costed, with the test and its falsifier (deepseek, #2029)
+
+**PLANNING ONLY: $0, no pod, no training, no model run, CPU only.** Record:
+[numeric-addressability-plan-2026-10-09](../labs/numeric-addressability-plan-2026-10-09/README.md).
+The plan is the deliverable; nothing in it is started.
+
+**THE THREE READINGS ARE PRESERVED AT THEIR OWN STRENGTH, because two of them died.** *REFUTED:* token
+count explains the cluster — numbers tokenize in **2 tokens against 3.74 for words**. *REFUTED:*
+minimal pairs / digit order — `mem-040`'s distractor `74` is a **transposition** of its expected `84`
+and it PASSES, and **0 of 12 numeric failures name the distractor**. *OPEN, with a replicated control:*
+value addressability — `mem-037`/`mem-040` share a key, kind and history and differ only in the value,
+with opposite outcomes, replicated within-key. Both refuted readings survive in the record because the
+third is only worth acting on because they were killed.
+
+**A CORRECTION TO THE FRAMING, from the mapping:** `¹ ² ³` are **byte tokens** for bytes `0xB9`,
+`0xB2`, `0xB3` — all 256 byte tokens are present, so they are **not reclaimable digit slots** and
+cannot fund Option A without breaking byte-level coverage. Option A must instead be funded by
+**measured merge retirement** (3837 merges, retire the unused tail) or by growing the vocabulary
+(100 two-digit slots ≈ 115k parameters at this config, 0.4 % of 29M).
+
+**OPTION A — number-aware tokenizer.** Scope: vocabulary and merges. Needs **100 slots** for two-digit
+coverage, plus one/three/four-digit coverage **measured from the corpus, not assumed**. **Invalidates
+every artifact trained on `d36d3e87…`** — `chat-29m-B-lr5e-4`, the whole `chat-100m-*` family, and the
+comparability (not the validity) of every sealed result citing it, including the reply panel's 43/232
+and v5's 10 of 40. It is a **full retrain of every rung you want to compare**, not a fine-tune. Purely
+additive to non-numeric encoding **only** if funded by appending tokens; funding by retiring merges
+**does** change the encoding of non-numeric text and that must be measured per corpus.
+
+**OPTION B — explicit numeric slot in the memory path.** Scope: how a numeric value is written and read,
+not the tokenizer or embedding. **Existing artifacts stay valid.** The decoder still emits digits; the
+memory read returns the value as an ordered unit. **Testable in part without training**: whether the
+memory path carries a two-digit value as an ordered unit is a CPU-only write/read probe, while whether a
+*model* uses the slot needs training, because the operators are learned.
+
+**RECOMMENDATION AND THE SMALLEST DECISIVE VERSION:** build the **untrained memory write/read probe**
+first — one two-digit value, write `84`, read it back, report whether the run is `8`,`4`, whether order
+is preserved, and whether `74` is distinguishable from `84`. **CPU only, no GPU, no training**, and it
+decides between A and B. If the probe shows the value is lost, take Option B's smallest form: **one
+value type at the existing 29M rung** against a fresh sealed panel. **Option A is held** until the probe
+reports.
+
+**THE TEST — A FRESH SEALED PANEL, never a v5 re-run** (v5 is development evidence and its 10 of 40
+stands). It must contain: numeric and word rows in **matched pairs with the same key, kind and history**
+(the `mem-037`/`mem-040` control built in by construction); **value held fixed with the distractor
+varied, and the reverse**; **magnitude spread** one- to four-digit, since the diagnosis could not test
+magnitude on an all-two-digit panel; **position spread** first/middle/last turn; **leading zeros and
+repeated digits**; both value types in one conversation; deterministic checks with per-row provenance and
+the v5 control set verified **before sealing**; and **the binding swaps actually embedded and asserted
+non-vacuous** — the v5 control was vacuous for its whole life because the file was never added to
+`EMBEDDED_SWAPS`.
+
+**PRE-DECLARED TARGET, frozen before the panel is drawn:** primary **≥ 34 of 40** numeric rows at
+`check_pass`; and the one that actually tests the mechanism — **≥ 30 of 40 numeric rows emit a digit run
+equal to the stored value** (string equality on the reply's digit run), because the diagnosis says the
+failure is **emission, not selection**, and `check_pass` alone could rise if the model learns to guess.
+Control, non-negotiable: `binding_swap` **40 checked rows and 0 passes**, `expected_value` **40 of 40**,
+or the panel is void.
+
+**FALSIFICATION, STATED IN ADVANCE — the fix is the wrong lever if:** the untrained probe shows order is
+preserved and `84` is distinguishable from `74`; or `check_pass` rises while the digit-run-emission
+number does not (the model is guessing); or numeric and word rows improve together (not
+value-type-specific); or the numeric deficit fails to track magnitude or leading zeros on the fresh
+panel. Each is a result, and none needs a v5 re-run.
+
+**COST.** CPU calibrated from measured runs tonight: panel draw and seal **minutes**, `chat-grade check`
+**seconds**, 64-row generation at 29M **2m04s**, 64-row grading **9m46s**; the untrained probe is CPU-only
+and small. GPU via `uor-pod` (caps ≤ 4 pods, ≤ $8/h): **the ladder's training throughput is not recorded
+at a level this plan can cite, so a short timed calibration run is required first and the projection is
+stated as a formula rather than a number** — inventing it would be the error this line has been avoiding.
+**The economic point: Option B leaves every artifact valid and needs one retrain at one rung; Option A
+invalidates the whole ladder and needs each rung rebuilt before any comparison.**
+
+**Criterion 1 remains NOT MET on both halves and 43/232 is unchanged. Nothing in this plan changes that,
+and no step of it would.** STATUS/ROADMAP/#2028 unchanged — checked, not assumed.
+
+**Next:** build the untrained memory write/read probe (one two-digit value, CPU only, no GPU, no
+training) — it is the smallest decisive step and it decides between Options A and B. If it shows the
+value is lost, take Option B's smallest form: one value type, the existing 29M rung, the fresh sealed
+panel above, target declared before the draw. **Never re-run v5.**
+
 ## 2026-10-09 — Why the numeric memory rows fail: the value is not DELIVERED, and it is not confusion (deepseek, #2029)
 
 Diagnosis of the v5 run's clustered failure. Record:
