@@ -1,3 +1,53 @@
+## 2026-10-09 — The addressability probe REFUTES the storage premise: a two-digit value already has an ordered home (deepseek, #2029)
+
+The untrained probe the plan named. Record:
+[numeric-addressability-probe-2026-10-09](../labs/numeric-addressability-probe-2026-10-09/README.md).
+**CPU only, no pod, no GPU, no training, no model run, $0.** One focused test over the numeral codec
+the memory path already reads through; **all 5 numeral tests pass, including the probe**.
+
+**THE ANSWER, four questions:** **(a)** `84` arrives as two tokens and the codec recovers it as **ONE
+value `84`** with the run recorded as its inclusive interval `start 0, end 1`. **(b) ORDER IS
+PRESERVED** — `8`,`4` → 84 and `4`,`8` → 48: the identity is carried by order, not by a bag of digits.
+**(c) `74` IS DISTINGUISHABLE from `84`** on read. **(d)** leading zeros distil (`0`,`7` → 7), repeated
+digits work (`7`,`7` → 77), and the same value twice is **separated by interval**.
+
+**VERDICT: REFUTED — the premise the plan acted on, "a two-token value has no single address to live
+in", is not true of this representation.** The codec accumulates digits left-to-right across token
+boundaries and retains the inclusive token interval, so order is not merely representable, it is what
+carries the value's identity; repeated values at different positions are already distinguished by
+interval, which is the project's own rule that equal tokens at different positions must not share
+identity.
+
+**WHAT IT DOES NOT SETTLE, and this is the honest limit:** it is **untrained** and tests the
+**representation, not the learned path**. It cannot say whether the model's read/emit path uses this
+codec to deliver a stored value. The diagnosis's measured **emission failure stands unchanged** — 10 of
+12 failing numeric rows emit no digit, 2 emit a digit never stored, the one passing row emits the stored
+value exactly — and is now **localized to the learned path rather than the representation**. Those are
+different failures and the probe separates them.
+
+**CONSEQUENCE FOR THE PLAN: Option A (number-aware tokenizer, one token → one address) LOSES ITS STATED
+RATIONALE and goes back on the shelf** — it was the option that invalidates every artifact trained on
+`d36d3e87…` and needs the whole ladder rebuilt, and it would have been spent on a refuted premise.
+**Option B is not refuted but its premise is weakened**: "the value has no slot" is wrong at the
+storage layer; what survives is the emission question. **The plan's own falsification condition 1 has
+fired**, and by the plan's terms the addressability fix is the wrong lever.
+
+**THE LEDGER, NOW FOUR READINGS WITH THREE DEAD:** token count REFUTED (numbers are 2 tokens against
+3.74 for words); minimal pairs / digit order REFUTED (`mem-040`'s distractor `74` is a **transposition**
+of its expected `84` and it passes; 0 of 12 numeric failures name the distractor); **value
+addressability REFUTED by this probe**; and **the learned read/emit path does not deliver a correctly
+stored, correctly ordered value — OPEN, and now the only survivor**, with 10 of 12 numeric failures
+emitting no digit and `expected_value` passing 40 of 40.
+
+**Criterion 1 remains NOT MET on both halves and 43/232 is unchanged. Nothing in this probe changes
+that, and no step of it could.** v5 was not re-run and its 10 of 40 stands. STATUS/ROADMAP/#2028
+unchanged — checked, not assumed.
+
+**Next:** ask the **emission** question, not the storage question. For the 13 numeric v5 rows, probe
+whether the learned read path *selects* the right token before emission — is the failure in selection
+or in emission? That distinction is measurable on the existing sealed replies plus a read-path probe,
+and it decides whether the next fix belongs to the reader or the emitter. **Do not rebuild the ladder
+on a refuted premise.**
 ## Saved-credit discrete feedback offers no protected native update — October 9
 
 The [fixed protected-discrete constructor](../labs/protected-discrete-feedback-2026-10-09/README.md) imports #2101's authenticated derivatives with zero new backwards or training graph forwards: 32 rounds yield 28 distinct legal updates, all descending under the original objective derivative but failing 52–218 protected screens per round. No native proposal is scored or update committed; independent 391-state reload retains original 5/15 conditional winners, 17/17 references, 380/380 guards and combined CE 5.111520730202647. **KEEP** the implementation/evidence, **REJECT** the candidate; actual-nine/full512/fresh/multi-turn remain NOT_RUN_CONSTRUCTION_NEGATIVE, accepted8/512 unchanged and the separate9/15 candidate is not combined with this epoch. Both setup failures and their narrow resource/provenance repairs are retained; 42 focused tests and optimized build pass, with no GPU or paid compute.

@@ -359,6 +359,44 @@ mod tests {
         assert_eq!(scan(&[b"13."])[0].value, 13);
     }
 
+    /// The numeric-addressability probe (References #2029, plan 2026-10-09).
+    ///
+    /// The plan asked whether a two-digit value has anywhere to live once the
+    /// tokenizer splits it one digit per token. This is the untrained answer
+    /// from the codec the memory path already uses: a digit run spanning two
+    /// tokens is recovered as ONE value with its inclusive token interval, in
+    /// left-to-right order, with leading zeros distilled and repeated values
+    /// separated by interval. It refutes "no single address" at this layer; it
+    /// does NOT test the learned read/emit path, which is where the measured
+    /// emission failure lives.
+    #[test]
+    fn native_numeral_probe_two_digit_values_are_ordered_units() {
+        // The frozen tokenizer emits 84 and 74 as two one-digit tokens each, so
+        // the codec sees two chunks. Order is the only thing that separates them.
+        assert_eq!(scan(&[b"8", b"4"])[0].value, 84);
+        assert_eq!(scan(&[b"7", b"4"])[0].value, 74);
+        // (b) ORDER IS PRESERVED, and it is what carries the identity: the same
+        // two digits in the other order are a different value, not the same bag.
+        assert_ne!(scan(&[b"8", b"4"])[0].value, scan(&[b"4", b"8"])[0].value);
+        assert_eq!(scan(&[b"4", b"8"])[0].value, 48);
+        // (c) 74 is distinguishable from 84 on read, and the interval records
+        // that the value came from a two-token run rather than one.
+        let a = scan(&[b"8", b"4"])[0];
+        let b = scan(&[b"7", b"4"])[0];
+        assert_ne!(a.value, b.value);
+        assert_eq!((a.start, a.end), (0, 1));
+        // (d) leading zeros distil to the value; repeated digits stay two
+        // distinct values when they occur twice.
+        assert_eq!(scan(&[b"0", b"7"])[0].value, 7);
+        assert_eq!(scan(&[b"7", b"7"])[0].value, 77);
+        let twice = scan(&[b"8", b"4", b" ", b"8", b"4"]);
+        assert_eq!((twice[0].value, twice[1].value), (84, 84));
+        assert_ne!(
+            (twice[0].start, twice[0].end),
+            (twice[1].start, twice[1].end)
+        );
+    }
+
     #[test]
     fn native_numeral_scanner_rejects_overflow_and_noninteger_fragments() {
         let source = b"i64 x13 13x 13_i64 1.25 2e3 4e-2 .5 --6 9223372036854775808 -9223372036854775809 00000000000000000000 7";
