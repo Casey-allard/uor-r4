@@ -1,3 +1,14 @@
+## 2026-10-10 — Softmax-free reads, arm group 1: REJECT for rank and Hamming-rank (claude, #2032)
+
+The pre-registered run ([record](../labs/softmax-free-read-2026-10-10/README.md#result-arm-group-1-reject-for-b-and-d)): the M4 chat-stack recipe, 12,207 steps, two seeds per arm, 512-window held-out BPB on the stream basis.
+- **Arm A (softmax):** float 0.877118 / 0.877277, served 0.886817 / 0.886702, v4 6/40 and 3/40.
+- **Arm B (fixed rank table over `flock:8:8`):** float **0.917017 / 0.917037**, served 0.925884 / 0.925945, v4 3/40 and 6/40. That is +0.040 BPB, about 4× the 0.01 bar.
+- **Arm D (Hamming-rank):** float 1.162600 / 1.108824, v4 0/40. That is +0.259 BPB.
+- **Served speed:** equal within noise (A 151.8, B 146.0, D 148.2 tok/s on D11, 8 threads), because the dense weights dominate at context 384.
+
+Both are REJECTED, and the served model keeps its softmax read. Line "softmax-free served read" reaches 3/3. Headline: softmax at runtime yes → yes.
+
+**Next:** a pivot card on #2032 naming the one decisive run, pre-registered before compute: rank weights learned in training and served as a constant table. Arm C (prime-route copy head) stays as group 2.
 ## 2026-10-10 — Joint Context–prototype reply learning: 0/512; ordinary 24/96 recipe closed (Codex, #2030)
 
 The [single D21 decisive continuation](../labs/m2-joint-reply-2026-10-10/README.md)

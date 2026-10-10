@@ -2,7 +2,7 @@
 
 Lab: claude. Milestone: [M4 #2032](https://github.com/UOR-Foundation/uor-r4/issues/2032), acceptance item 0 (no softmax at runtime). Pre-registration: [#2032 comment 6093484433](https://github.com/UOR-Foundation/uor-r4/issues/2032#issuecomment-6093484433) (arms A–D: 18:29Z and 20:35Z cards of 9 October).
 
-**Status: preparations 1 and 2 of 2.** The trainer mechanism (#2140) and the multiplier-free integer serving of both reads (this record's second section) are in. The result, KEEP or REJECT against the pre-registered bar, is added by the result PR.
+**Result: REJECT for arm group 1 (B and D).** Both softmax-free reads, trained with the fixed `1/(r+1)` rank table, miss the pre-registered 0.01 BPB bar by a wide margin: rank by +0.040 BPB, Hamming-rank by +0.259 BPB. The served model keeps its softmax read, so acceptance item 0 is not met. Per the pre-registration the target is not dropped: the next step is to redesign the read, with rank tables learned in training (pivot card on #2032).
 
 ## The question
 
@@ -50,3 +50,42 @@ The served stack reads still weight their sources with an exp-table softmax. Can
   - `stack_export`: 17 passed. Frozen `uor-r4-lut`: 25 passed.
   - `audit_zero_matmul_serving.py --stack`: **FULL PASS**, 91 reachable functions. A negative gate with the library sorts restored fails on exactly those callees.
 - **Evaluation:** `geometric-stack d11-evaluate ... reference=none model=ROOT/model` scores D11 against the float model on the same windows, for artifacts D10 cannot read.
+
+## Result (arm group 1): REJECT for B and D
+
+All numbers are on held-out `heldout.u16` e5f400b0, 512 windows × 384 = 196,608 targets, the stream basis 2.837427 B/token.
+- **Served column:** the D11 engine (`d11-evaluate reference=none model=…`, the same windows as the float column). A's served cell equals D10 `lut-evaluate` to 1e-7 (s2's is the D10 value).
+- **v4:** the frozen-check `multi_turn_memory` `check_pass` of 40 (`chat-grade reply` then `grade-replies`, qwen2.5:7b).
+
+| arm (seed) | float NLL | float BPB | served BPB | top-1 D11/float | v4 memory |
+|---|---:|---:|---:|---:|---:|
+| A softmax (s1) | 1.7250755 | 0.877118 | 0.886817 | 0.9297 | 6/40 |
+| A softmax (s2) | 1.7253881 | 0.877277 | 0.886702 | — | 3/40 |
+| B rank `flock:8:8` (s1) | 1.8035471 | 0.917017 | 0.925884 | 0.9242 | 3/40 |
+| B rank (s2) | 1.8035873 | 0.917037 | 0.925945 | 0.9238 | 6/40 |
+| D hamming_rank (s1) | 2.2865490 | 1.162600 | 1.173532 | 0.8954 | 0/40 |
+| D hamming_rank (s2) | 2.1807848 | 1.108824 | 1.120014 | 0.9003 | 0/40 |
+
+**Against the pre-registered bar** (seed means; B or D within 0.01 BPB and 2 v4 points of A, at equal or lower served cost):
+
+| arm | Δ float BPB vs A | Δ served BPB vs A | Δ v4 | served speed (D11, 8 threads, 32 windows, run one after another) | verdict |
+|---|---:|---:|---:|---|---|
+| B rank | **+0.0398** | +0.0392 | 0.0 | 146.0 vs A 151.8 tok/s | **REJECT**: BPB misses by about 4× |
+| D hamming_rank | **+0.2585** | +0.2600 | −4.5 | 148.2 vs A 151.8 tok/s | **REJECT**: BPB and v4 both miss |
+
+**What the numbers say:**
+- **The quantization cost is unchanged by the read:** float → served is +0.0097 BPB for A and +0.0089 for B. The gap is the trained model's, not the serving path's.
+- **The two B seeds agree to 2e-5 BPB.** The gap from A is the read's, not the seed.
+- **The served cost is equal at this context.** Each read touches at most 17 value rows per head, against 192.5 on average for the softmax read over a 384 window. But each token reads all 19.93M dense weights, which dominates, and the selection costs about what it saves. So the bar's cost clause neither rescues nor sinks B.
+- **The Hamming-rank read loses most:** binarizing q and k to sign bits erases the magnitude information the L2 score ranks on. Its seeds also diverge (1.163 against 1.109).
+- **Training cost:** B and D compute the flock on the host. That's 26k tok/s for B on 2×5090 and about 16k for D on 2×4090, against A's 163k, so the next run needs a GPU flock path or a smaller selection overhead.
+
+**What this does not establish.** It is one window/k setting (`flock:8:8`), a fixed table, and a 19.9M chat stack at context 384. It does not show that softmax-free reads cannot work. It shows that a fixed `1/(r+1)` table costs about 0.04 BPB here.
+
+**Decision.** REJECT B and D. The served M4 model keeps the softmax read, and acceptance item 0 stays open. Line "softmax-free served read" reaches **3/3**, so a pivot card follows on #2032. Per the pre-registration the read is redesigned, not dropped: the one decisive run is rank weights learned in training, served as a constant table, so still no softmax at runtime.
+
+**Provenance and cost:**
+- **Code:** A was trained at `main` 5b241d89c. B was trained at f46ec1964 (code-equal to #2140's merge 5a389aed). D was trained at 5a389aed. Exports and D11 evaluation ran at #2144's head.
+- **Pods:** `gl992wcbgkrfhd` (2×5090, about 2.2 h) and `s4cx32npvlhhfd` (2×4090, about 2.7 h; two 5090 hosts in EU-RO-1 stalled at start-up), both deleted, about **$10** in total.
+- **Laptop:** CPU for the replies, grading, exports and D11 evaluation.
+- **Results:** run directories on the EU-RO-1 volume `rfsx702p68` under `uor-r4/claude/softmax-free-20261010`; checkpoints, artifacts, replies, grades and evaluations in cloud-store `claude/softmax-free-20261010` (566,367,232 bytes, MD5 `d43d071d1596657c68f625829c1a3677`).
