@@ -1,3 +1,71 @@
+## 2026-10-09 — Plan: a reader-side fix for the two-token run, CPU-only first (deepseek, #2029)
+
+**PLANNING ONLY: $0, no pod, no training, CPU only.** Record:
+[reader-side-fix-plan-2026-10-09](../labs/reader-side-fix-plan-2026-10-09/README.md). The plan is the
+deliverable; nothing is started.
+
+**WHAT IT PLANS AGAINST:** from #2123 — **READER 10, EMITTER 2, PARTIAL 1** on an instrument that
+reproduces the sealed replies 13 of 13 byte for byte, with **0 of 13 rows having BOTH stored digits
+selected**, including `mem-040`, which nevertheless emits the value correctly.
+
+**1. WHY THE POINTER NEVER SELECTS BOTH — the code path.** It is a **single-source pointer by
+construction**, documented in `geometric_stack.rs`: the attention is a softmax over the sources
+`PointerConfig::select` keeps, "**`TopK(1)` being the single-source pointer**"; `PointerSelection.source`
+is "**the lowest source index whose attention is the largest**" — **one index per step**, and
+`CopyTraceStep` records exactly that one per step; and `p_copy(v|t) = sum_j a_tj [x_j = v]` mixes over
+**single attended positions**. A two-token value therefore needs **two consecutive steps landing on
+consecutive positions**, and **nothing rejects the second — the head is shaped to put its mass on one
+source per step**. The same expression explains the EMITTER rows: `p(v|t) = (1-g_t) softmax(z_t)[v] +
+g_t p_copy(v|t)`, **`p_copy` exactly 0 when no kept source holds the target and no probability floor**
+— so a selected digit does not have to win if the gate is low, which is how `19` (`1`) is emitted while
+the pointer sits on `24` (`6`).
+
+**2. THE SMALLEST CHANGE, and it is NOT a training change.** The selection and gate are **serving-time
+knobs on unchanged weights**: "Training may stay soft (`select: None`); `StackModel::set_pointer_select`
+applies a selection to the same weights afterwards." So (a) **widen the kept source set**
+(`PointerSelect::TopK(k)`, `k >= 2`) so a run is reachable within one step's mixture, and (b) **raise the
+copy gate** so `p_copy` can win at the second digit instead of being outvoted by `softmax(z_t)` — the
+mechanism that produced `19`. **CPU-only, testable tonight.** Only if that fails: (c) a **training-path**
+change making the head's target a run — **GPU**, and it needs the owner.
+
+**3. THE SUCCESS TEST is the same trace on the same 13 rows.** Pre-declared pass condition: **all 13
+rows show BOTH stored digits selected** (currently 0 of 13); **`mem-040` still emits `84`**; **`mem-008`
+and `mem-024` no longer emit `19`**; and the instrument's own conditions hold again (byte-for-byte
+reproduction re-established, `digit_ids` exactly two tokens or VOID). **FALSIFICATION, in advance: if
+both digits are selected and the reply STILL lacks the value, the fix is in the wrong place and the
+emitter is the real problem after all** — go to §4, do not widen the same change.
+
+**4. THE 2 EMITTER ROWS ARE A SEPARATE PIECE.** `mem-008`/`mem-024` **selected one stored digit and
+emitted `19`** — a **selected-then-dropped** failure, mechanically distinct from the 10 READER rows
+where nothing was selected at all. The reader fix would touch them only incidentally, so **they get
+their own pass condition and are reported separately even if they move**: their question is
+gate/mixture, not selection coverage.
+
+**5. COST.** The inference-path change and its test are **CPU only, tonight** (rebuild ~2 min warm, one
+12-second trace run). A training-path change is **GPU via `uor-pod`** under the caps, and **no
+throughput number is given because none is citable** — a timed calibration run comes first, the same
+refusal the last plan made. A retrain produces a new artifact, so **the v5 comparison does not survive
+as a comparison**: v5's 10 of 40 is a reading of `chat-29m-B-lr5e-4`, and a retrained artifact needs a
+fresh sealed panel. **The tokenizer is untouched either way**, so every result citing `d36d3e87…` stays
+valid.
+
+**6. THE LIMIT THAT BOUNDS EVERYTHING: THIS ARTIFACT HAS NO MEMORY READER.** A **pointer fix is a
+pointer fix**; it says nothing about the addressed-memory path, whose `/3`–`/5` readers belong to
+different artifacts. What would have to be measured separately — **and never has been** — is whether a
+memory-reader artifact selects a two-token value as one unit, using `memory_read_diagnostic`'s
+`predicted_token` and `target_routes` instead of the pointer trace.
+
+**THE LEDGER:** token count REFUTED; minimal pairs / digit order REFUTED; value addressability REFUTED;
+**the learned read/emit path SPLIT (READER 10, EMITTER 2, PARTIAL 1)**, with this plan targeting the
+reader side first. **Criterion 1 remains NOT MET on both halves and 43/232 is unchanged.** v5 was not
+re-run. STATUS/ROADMAP/#2028 unchanged — checked, not assumed.
+
+**Next:** take the **inference-path** change — widen the kept source set and raise the copy gate on
+unchanged weights — rebuild and re-run the same trace on the same 13 rows against the pre-declared pass
+condition. **CPU only, $0, tonight.** If both digits are selected and the reply still lacks the value,
+**stop and go to the emitter** rather than widening the same change. **No training, no pod and no v5
+re-run is authorised by this plan.**
+
 ## 2026-10-09 — The missing control is FIXED: the probe reproduces the sealed v5 replies 13 of 13 byte for byte, and the split is still VOID (deepseek, #2029)
 
 Record: [numeric-trace-reproduction-2026-10-09](../labs/numeric-trace-reproduction-2026-10-09/README.md).
