@@ -1,3 +1,54 @@
+## 2026-10-09 — The pointer trace is BUILT and BROKEN, and the v5 "memory" category carried no memory reader (deepseek, #2029)
+
+Two findings, the structural one first because it outranks the result. Record:
+[numeric-pointer-trace-2026-10-09](../labs/numeric-pointer-trace-2026-10-09/README.md). **CPU only, no
+pod, no training, $0** (one release build, 10.6 s run). No v5 re-run.
+
+**STRUCTURAL FINDING: THE ARTIFACT THAT ANSWERED THE v5 "MEMORY" PANEL CARRIES NO MEMORY OPERATOR AT
+ALL.** `chat-29m-B-lr5e-4`'s entire config is `arch`, `vocab_size`, `width`, `heads`, `mlp_hidden`,
+`context`, `pattern`, `read`, `rotation`, `seed` and a **`pointer`** — a copy operator and no memory
+reader. So `memory_read_diagnostic` returns `None` by construction on every row, the v5 memory rows
+**never exercised a memory reader**, and what the panel actually measured was **the plain dialogue
+stack with a copy pointer**. **The qualifier is now on the v5 acceptance record and here: "10 of 40 on
+the memory category" is 10 of 40 for a copy-pointer dialogue stack on requests *named* memory rows, not
+for an addressed-memory path.** It also reframes the standing reading — "the learned read/emit path does
+not deliver the value" is, on this artifact, "**the pointer** does not deliver the value".
+
+**THE TRACE: BUILT, RUN, AND BROKEN BY ITS OWN PRE-REGISTERED POSITIVE CONTROL.**
+`crates/uor-r4-training/src/bin/numeric-pointer-trace.rs` turns on `set_pointer_copy_trace`, generates
+each row through the same `reply_panel` → `greedy_reply_with_copy_stop` path `chat-grade reply` uses,
+and records per step the emitted id against the pointer's selected `source_id`, compared **as token
+ids, never strings**. It ran on all 13 numeric rows in **10.6 s** and produced `READER: 12, PARTIAL: 1`.
+**BY PRE-REGISTERED CONDITION 2 THAT IS NOT A RESULT:** `mem-040`, the positive control and the one
+numeric row that emits the stored value exactly (*"Your sister's locker number is 84."*), traces as
+**`READER` with 0 digit tokens selected**. **The control failed, so the trace is not observing the path
+that produced the v5 replies and every classification is void.**
+
+**The evidence it is broken rather than surprising: `mem-040` and `mem-006` emit BYTE-IDENTICAL id
+sequences in the probe** (`[2997, 1700, 386, 1412, 435, 772, 291, 69, 1790, 292, 80, 71, 16, 1]`) while
+their sealed v5 replies are completely different (*"Your sister's locker number is 84."* against *"I'm a
+helpful assistant that runs on your computer."*). Two rows share a 12-id reply, two a 14-id reply, two
+a 9-id reply — **the probe is producing history-insensitive replies**, so its per-step selection cannot
+be compared to anything. **The reader-versus-emitter split is therefore still NOT MEASURED, and this
+piece does not report one.**
+
+**WHAT THE NEXT ATTEMPT MUST DO:** make the probe **reproduce the sealed replies byte for byte** on the
+same rows and artifact — the missing control — before any classification is trusted; the likely fault
+is the history construction on the probe's path (13-row subset versus the whole panel), and it is a
+diagnosis to make, not a guess to build on. **Do not re-run this probe as-is.**
+
+**THE LEDGER, five pieces in:** token count REFUTED; minimal pairs / digit order REFUTED; value
+addressability REFUTED; and the learned read/emit path **OPEN with a new structural qualifier rather
+than an answer** — there is no memory reader on this artifact, so the question is the pointer's, and the
+pointer trace is built but not yet trustworthy.
+
+**Criterion 1 remains NOT MET on both halves and 43/232 is unchanged.** v5 was not re-run; its 10 of 40
+stands, now with the no-memory-reader qualifier. STATUS/ROADMAP/#2028 unchanged — checked, not assumed.
+
+**Next:** make the probe reproduce the sealed replies byte for byte (the missing control), diagnose the
+history construction if it does not, then re-run the trace and report the class split under the four
+loud-failure conditions. Keep the qualifier on every v5 memory number.
+
 ## 2026-10-09 — Reader vs emitter: the memory-read instrument cannot run on this artifact, and the pointer trace can (deepseek, #2029)
 
 The fifth piece in the numeric line, and the only reading still standing. Record:

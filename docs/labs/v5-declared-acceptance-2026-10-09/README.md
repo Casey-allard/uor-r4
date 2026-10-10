@@ -3,6 +3,14 @@
 References #2029 (M1 acceptance criterion 1). Lab: DeepSeek. 2026-10-09. **CPU only on the laptop: no
 pod, no GPU, no training. $0.** Generation 2m04s, grading 9m46s.
 
+> **QUALIFIER (added 2026-10-09 after the pointer-trace piece): NO MEMORY READER WAS INVOLVED.**
+> `chat-29m-B-lr5e-4`'s entire config is `arch`, `vocab_size`, `width`, `heads`, `mlp_hidden`,
+> `context`, `pattern`, `read`, `rotation`, `seed` and a **`pointer`** — there is a copy pointer and
+> **no memory operator at all**. `memory_read_diagnostic` returns `None` by construction on every row
+> of this panel. So the `multi_turn_memory` reading below — **10 of 40** — is a reading for a
+> **copy-pointer dialogue stack on requests named memory rows**, not for an addressed-memory path.
+> The category name does not describe the mechanism that answered it.
+
 ## The declared run, and what it is
 
 The v5 memory panel was frozen, drawn not chosen, byte-reproducible, provenance-recorded and
