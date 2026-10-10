@@ -61,10 +61,15 @@ fn main() -> Result<(), Box<dyn Error>> {
         if line.trim().is_empty() || line.starts_with('#') {
             continue;
         }
-        let (id, value) = line
-            .split_once('\t')
-            .ok_or("values line needs id<TAB>value")?;
-        stored.push((id.to_owned(), value.trim().to_owned()));
+        // The file is tab-separated: id, value, forbid, keys. Taking everything after
+        // the FIRST tab as the value silently tokenized the rest of the line, which is
+        // what made every `digit_ids` a 12-token sequence instead of the value's own
+        // digits and every class assignment meaningless. Column 1 is the value.
+        let columns: Vec<&str> = line.split('\t').collect();
+        if columns.len() < 2 {
+            return Err(format!("values line needs id<TAB>value: {line}").into());
+        }
+        stored.push((columns[0].to_owned(), columns[1].trim().to_owned()));
     }
 
     let tokenizer_bytes = fs::read(&tokenizer_path)?;
@@ -141,6 +146,20 @@ fn main() -> Result<(), Box<dyn Error>> {
             .ok_or_else(|| format!("no trace captured for {id}"))?;
         // The stored value's own token ids, exactly as the tokenizer makes them.
         let digit_ids: Vec<u32> = tokenizer.encode(value);
+        // HARD ASSERTION, not a check by eye: every value on these 13 rows is a
+        // two-digit number, so its digit run must be exactly two tokens. If it is not,
+        // the value was mis-parsed and the run is VOID — the same loud failure that
+        // caught the turn-grouping defect.
+        if !(value.len() == 2 && value.chars().all(|c| c.is_ascii_digit())) {
+            return Err(format!("{id}: value {value:?} is not a two-digit number").into());
+        }
+        if digit_ids.len() != 2 {
+            return Err(format!(
+                "{id}: value {value:?} tokenized to {} ids ({digit_ids:?}), not 2 — the run is VOID",
+                digit_ids.len()
+            )
+            .into());
+        }
         let selected: Vec<u32> = steps
             .iter()
             .filter_map(|s| s["source_id"].as_u64().map(|v| v as u32))
