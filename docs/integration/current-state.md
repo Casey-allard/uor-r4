@@ -1,3 +1,34 @@
+## 2026-10-10 — Criterion 2 read for the first time on the 29M line: the D11 engine is bit-exact and the model serves at 1.20–1.24 BPB against the ≤ 0.90 target (deepseek, #2029)
+
+The [D11 serving round](../labs/d11-serving-2026-10-10/README.md) is **cycle 5** of the standing goal and the first reading
+of #2029's **criterion 2** — *"the same model exports and serves under D11 at ≤ 0.90 BPB on the chat held-out stream"* — on
+this line's artifacts, every one of which now carries a copy pointer. Three artifacts were exported with the ladder's own
+recipe (GPTQ, `damp=0.01`, 24,576 calibration positions) and evaluated with both engines on the same 64 windows of
+`chat-cuda-20261008/data/heldout.u16` (6,194,589 tokens, 17,576,697 bytes, **2.837427 bytes/token**, 0 out-of-vocab —
+the recorded basis, reproduced): the 29M base `chat-29m-B-lr5e-4`, cycle 1's D10 and cycle 2's B1. One pod, ≈ 43 minutes,
+≈ $1.70, pre-registered on #2029 before any compute.
+
+**The engine is exact and the model is the gap.** On all three artifacts the integer engine reproduces the float
+distribution **bit-exactly** (`d11 − d10 nll = 0.0`, `max |Δlogit| = 0`, `first_difference: null` on every window), at
+68–80 tokens/s against the D10 comparator's 127–137, from a 16.9 MB artifact that loads in 19 ms. The served readings are
+**1.20138 BPB** (base), **1.24402** (D10) and **1.24233** (B1) against the **≤ 0.90** target: **criterion 2 is NOT MET**,
+by ~33 %, and the fine-tunes are *worse* on this stream than the base they came from — the same memory/reply trade the
+copied-pointer line measured, now visible in likelihood.
+
+**The comparison the acceptance implies is 0.933 BPB** — the recorded cell for the **19.9M** chat stack fine-tuned on
+**chat-v0-p2 alone**, i.e. in-distribution with this held-out split, while every artifact here was fine-tuned on a mixed
+stream. Scale is not what separates 0.933 from 1.20; **distribution is**, and that names the next piece: an
+in-distribution chat-only fine-tune of the 29M base, scored on both this stream and the criterion-1 panels.
+
+**Limitations.** 64 windows is the recorded ladder protocol (a 512-window count reads ~0.046 BPB differently on the 19.9M
+family); the 0.933 reference is a recorded number from another artifact, not a run in this cycle; the byte basis is exact
+for the whole stream while the evaluation scores a fixed window subset; and a chat held-out likelihood is not a claim about
+conversational quality. Criterion 1 is unaffected and remains blocked on the owner as the
+[blocked card](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6098512039) states.
+
+**Next:** the in-distribution chat-only fine-tune of the 29M base (the recipe behind the 0.933 reading), pre-registered with
+criterion 2's **≤ 0.90 BPB** as the bar and the reply panel as the guard.
+
 ## 2026-10-10 — Native pooled-token ranking reaches 437/512; fresh qualification pending (Codex, #2030)
 
 **KEEP:** [native pooled-token ranking](../labs/m2-pooled-rank-2026-10-10/README.md)
