@@ -79,6 +79,8 @@ Tracker: [#2028](https://github.com/UOR-Foundation/uor-r4/issues/2028). Measured
 
 ## How it works
 
+> **Mechanism briefs:** [docs/mechanisms/](docs/mechanisms/README.md) has one page per novel mechanism under test: flock/rank-table reads, exact addressed memory, the identity-keyed pointer, read binding and protected legal construction. Each states the idea, what has been tried, and what a fair test needs.
+
 <img src="docs/figures/geometry-stack.svg" alt="The geometry stack: prime addressing, zeta phases, R4/S3 state, H4 and icosian structure with exact Z[phi]" width="100%">
 
 *Figure 2. The geometric mechanisms and where each is used.*

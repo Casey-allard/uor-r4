@@ -108,6 +108,10 @@ Changes to these stable goals require owner direction and protected delivery.
 A task template, stale skill or agent judgment cannot silently change them.
 <!-- agent-execution-policy:end -->
 
+**Mechanism briefs (owner request, October 10):**
+- Work from [docs/mechanisms/](docs/mechanisms/README.md), which has one page per novel mechanism: the idea, what was tried, and what a fair test needs.
+- Every mechanism pre-registration gets a `TEST FITNESS: FIT` review on its milestone before compute.
+
 ## Progress control — mandatory before more model compute
 
 **Owner direction, October 9 — three negatives force a pivot ([D21](docs/integration/DECISIONS.md#d21--three-negatives-on-one-line-force-a-pivot-deepseek-trains-the-pointer-fix-codex-stops-the-constraint-line)).**

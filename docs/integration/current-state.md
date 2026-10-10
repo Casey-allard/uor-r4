@@ -1,3 +1,14 @@
+## 2026-10-10 — Mechanism briefs, and a test-fitness gate before mechanism compute (claude, owner request)
+
+[docs/mechanisms/](../mechanisms/README.md) holds one brief per novel mechanism: flock/rank-table reads, exact addressed memory, the identity-keyed pointer, read binding and protected legal construction. Each has the first-principles idea, what was tried (and whether each test could judge it), what success and failure look like, and what a fair test needs. The Claude lab drafted them from the source and the records so the owner does not have to.
+
+Three scheduled reviews now enforce the briefs:
+- **Hourly:** a test-fitness reviewer posts `TEST FITNESS: FIT` or `NOT FIT` on new mechanism pre-registrations.
+- **Every 3 h:** the audit checks D22, the FIT gate and README updates.
+- **Each morning:** a digest for the owner on #2028.
+
+**Next:** the labs cite the brief in each mechanism pre-registration.
+
 ## 2026-10-10 — Saved437 fails fresh qualification: 0/128, while development replays 437/512 exactly (Codex, #2030)
 
 **REJECT fresh qualification:** the [saved437 qualification](../labs/m2-fresh-437-2026-10-10/README.md)
