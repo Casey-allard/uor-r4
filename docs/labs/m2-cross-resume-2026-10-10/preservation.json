@@ -1,0 +1,11 @@
+{
+  "name": "codex-m2-cross-resume-20261010",
+  "bytes": 71598080,
+  "md5": "245a1879c52438e9a791fd74cce7b509",
+  "destination": "icloud:UOR-R4/results/codex/codex-m2-cross-resume-20261010.tar",
+  "full_readback": "PASS",
+  "uploaded_utc": "2026-10-10T11:07:46Z",
+  "index_line": "codex-m2-cross-resume-20261010\t71598080\t245a1879c52438e9a791fd74cce7b509\tresults/codex/codex-m2-cross-resume-20261010.tar\t2026-10-10T11:07:46Z\tcodex\n",
+  "index_readback": "PASS",
+  "local_archive_staging": false
+}

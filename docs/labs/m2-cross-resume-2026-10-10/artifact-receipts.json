@@ -1,0 +1,204 @@
+{
+  "initial": {
+    "active_parameter_names": [
+      "continuation.cross_state"
+    ],
+    "continuation_sha256": "f61249ae4032a92d452689a52add6c9b5a67099f55b1a9291ba6f6f66a0d9acf",
+    "credit": "raw_identity",
+    "cross_state_resume": {
+      "checkpoint_receipt_sha256": "fcefcbae4d6849bda5cde1a2f88f5683727e56fb4a48141a28f4b434306491aa",
+      "field_sha256": "f61249ae4032a92d452689a52add6c9b5a67099f55b1a9291ba6f6f66a0d9acf",
+      "manifest_sha256": "e5623d996b60308d8ca1080f748c062388ff74c6b14b16f9956b4b792a9ca8c2",
+      "optimizer": "reset fresh AdamW moments; parameter continuation only",
+      "prior_complete": 22,
+      "prior_step": 64,
+      "report_sha256": "738649541df34641ffe0eb6e45a151d612d485ff8902b2d9d8d1e812844a2cde",
+      "root": "/workspace/uor-r4/codex/m2-cross-state-20261010/runs/cross-0064-attempt1",
+      "source_master_inventory": {
+        "continuation.cross_state": {
+          "bytes": 460800,
+          "sha256": "b50e5195d115a4ee0e3854d202790e8d95cfaf5f7bbc15c2af57ec81b700e9c6",
+          "shape": [
+            8,
+            14400
+          ]
+        }
+      }
+    },
+    "fresh_adam": "zero moments; not optimizer-state continuation",
+    "frozen_model_manifest_sha256": "b37e2ca588bf1cc4dc5971fa5da97b9e83c90a94f4ea0bfdb0655b8f92bf94ca",
+    "frozen_model_report_sha256": "a1277d2be4ff962100f857d0da553257ad5596ac8bc72d9257299e74d2f2e278",
+    "frozen_model_root": "/workspace/uor-r4/codex/sol-prototype/restore/parent-unpacked/native-prediction-control/recomposition-503d64b39-attempt1",
+    "frozen_parent_receipt": {
+      "binding_scope": "source context/potential metadata honestly rebound; typed action bindings checked against current artifact; unchanged bridge coefficients, original masters and map bytes independently verified",
+      "categorical_receipt": {
+        "categorical_keys": 960,
+        "downloaded_master_bytes": 464640,
+        "native_sha256": "af5039e74c6cd92e2fa0bf4c72c315ef34f912d77b09fc607215a18f86cd1d0e",
+        "original_bias_f32_sha256": "cc9166b643a00d3224ce3b65291f70daab04c38b1c4cb9fac8113cedc323fb06",
+        "original_relative_f32_sha256": "fcb1df7e776dec5fc00b1b790123945e033fd7f8c2275b1ab852c77cc031ecf7",
+        "policy": "retained-F32-individually-F64-B+T-argmax;identity-first-strict-ties;zero-bias-single-.25-marker-per-key;0/1-nibbles;original-energies-discarded;no-labels-or-fit/1",
+        "tied_keys": 0
+      },
+      "categorical_sha256": "af5039e74c6cd92e2fa0bf4c72c315ef34f912d77b09fc607215a18f86cd1d0e",
+      "credit": "raw_identity",
+      "fresh_adam": "moments zero-initialized; not historical optimizer continuation",
+      "frozen_bridge_training": "marker parameters excluded from Adam and clip; original masters unchanged",
+      "generate_sha256": "5fe2b5e287f5e27dc700ce8b94c4d6f38b41e73950a1a145cd1c0c2c56563544",
+      "masters_independently_reloaded": true,
+      "native_independently_reloaded": true,
+      "order_seed": 1001,
+      "original_parent": {
+        "identity": {
+          "parent_checkpoint_manifest_sha256": "07f26ea0aa8de692a7792c914c5c43c882be6cbbdb25764b3594b05d9004c60a",
+          "parent_config_sha256": "0b4041fdedeabc40eb5a5aecabacf49d74561de2145b1e5515c8b5014a549fae",
+          "parent_model_sha256": "47f41ed4cc18b1263735a004512fb488d25b65c949cece5a58e548ea831e0aef",
+          "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89"
+        },
+        "metadata_sha256": "7d1e062d290e3c4f31f30c330a55fb0165c32cba85026610679383b82414fe4e"
+      },
+      "original_quarter_sha256": "d7e56ed124ad80619dad5b6bfb90dec5f78fe855f43ef4bfd9011e2e31f5fccf",
+      "parent": {
+        "identity": {
+          "parent_checkpoint_manifest_sha256": "07f26ea0aa8de692a7792c914c5c43c882be6cbbdb25764b3594b05d9004c60a",
+          "parent_config_sha256": "0b4041fdedeabc40eb5a5aecabacf49d74561de2145b1e5515c8b5014a549fae",
+          "parent_model_sha256": "47f41ed4cc18b1263735a004512fb488d25b65c949cece5a58e548ea831e0aef",
+          "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89"
+        },
+        "metadata_sha256": "c1da604275d139a74bddb9fc4e4039daa227b6723ac6d0609b8714371e29b41f"
+      },
+      "read_state_pullback": "categorical",
+      "source_metadata_rebound": true,
+      "step": 0
+    },
+    "generate_sha256": "5fe2b5e287f5e27dc700ce8b94c4d6f38b41e73950a1a145cd1c0c2c56563544",
+    "lineage_step": 64,
+    "loss_scope": "all",
+    "masters_independently_reloaded": true,
+    "native_independently_reloaded": true,
+    "order_seed": 1001,
+    "parameters": {
+      "continuation.cross_state": {
+        "bytes": 460800,
+        "sha256": "b50e5195d115a4ee0e3854d202790e8d95cfaf5f7bbc15c2af57ec81b700e9c6",
+        "shape": [
+          8,
+          14400
+        ]
+      }
+    },
+    "parent": {
+      "identity": {
+        "parent_checkpoint_manifest_sha256": "07f26ea0aa8de692a7792c914c5c43c882be6cbbdb25764b3594b05d9004c60a",
+        "parent_config_sha256": "0b4041fdedeabc40eb5a5aecabacf49d74561de2145b1e5515c8b5014a549fae",
+        "parent_model_sha256": "47f41ed4cc18b1263735a004512fb488d25b65c949cece5a58e548ea831e0aef",
+        "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89"
+      },
+      "metadata_sha256": "c1da604275d139a74bddb9fc4e4039daa227b6723ac6d0609b8714371e29b41f"
+    },
+    "shared_coefficients": 115200,
+    "step": 0,
+    "upstream_training": "all Context/Source/Potential/Generate/prototype/bridge/cue/prefix frozen; no old Vars loaded"
+  },
+  "final": {
+    "active_parameter_names": [
+      "continuation.cross_state"
+    ],
+    "continuation_sha256": "03781884edd6c2524c66e724c1fc65d9b9c62968d33b264d976282b49ce8094a",
+    "credit": "raw_identity",
+    "cross_state_resume": {
+      "checkpoint_receipt_sha256": "fcefcbae4d6849bda5cde1a2f88f5683727e56fb4a48141a28f4b434306491aa",
+      "field_sha256": "f61249ae4032a92d452689a52add6c9b5a67099f55b1a9291ba6f6f66a0d9acf",
+      "manifest_sha256": "e5623d996b60308d8ca1080f748c062388ff74c6b14b16f9956b4b792a9ca8c2",
+      "optimizer": "reset fresh AdamW moments; parameter continuation only",
+      "prior_complete": 22,
+      "prior_step": 64,
+      "report_sha256": "738649541df34641ffe0eb6e45a151d612d485ff8902b2d9d8d1e812844a2cde",
+      "root": "/workspace/uor-r4/codex/m2-cross-state-20261010/runs/cross-0064-attempt1",
+      "source_master_inventory": {
+        "continuation.cross_state": {
+          "bytes": 460800,
+          "sha256": "b50e5195d115a4ee0e3854d202790e8d95cfaf5f7bbc15c2af57ec81b700e9c6",
+          "shape": [
+            8,
+            14400
+          ]
+        }
+      }
+    },
+    "fresh_adam": "zero moments; not optimizer-state continuation",
+    "frozen_model_manifest_sha256": "b37e2ca588bf1cc4dc5971fa5da97b9e83c90a94f4ea0bfdb0655b8f92bf94ca",
+    "frozen_model_report_sha256": "a1277d2be4ff962100f857d0da553257ad5596ac8bc72d9257299e74d2f2e278",
+    "frozen_model_root": "/workspace/uor-r4/codex/sol-prototype/restore/parent-unpacked/native-prediction-control/recomposition-503d64b39-attempt1",
+    "frozen_parent_receipt": {
+      "binding_scope": "source context/potential metadata honestly rebound; typed action bindings checked against current artifact; unchanged bridge coefficients, original masters and map bytes independently verified",
+      "categorical_receipt": {
+        "categorical_keys": 960,
+        "downloaded_master_bytes": 464640,
+        "native_sha256": "af5039e74c6cd92e2fa0bf4c72c315ef34f912d77b09fc607215a18f86cd1d0e",
+        "original_bias_f32_sha256": "cc9166b643a00d3224ce3b65291f70daab04c38b1c4cb9fac8113cedc323fb06",
+        "original_relative_f32_sha256": "fcb1df7e776dec5fc00b1b790123945e033fd7f8c2275b1ab852c77cc031ecf7",
+        "policy": "retained-F32-individually-F64-B+T-argmax;identity-first-strict-ties;zero-bias-single-.25-marker-per-key;0/1-nibbles;original-energies-discarded;no-labels-or-fit/1",
+        "tied_keys": 0
+      },
+      "categorical_sha256": "af5039e74c6cd92e2fa0bf4c72c315ef34f912d77b09fc607215a18f86cd1d0e",
+      "credit": "raw_identity",
+      "fresh_adam": "moments zero-initialized; not historical optimizer continuation",
+      "frozen_bridge_training": "marker parameters excluded from Adam and clip; original masters unchanged",
+      "generate_sha256": "5fe2b5e287f5e27dc700ce8b94c4d6f38b41e73950a1a145cd1c0c2c56563544",
+      "masters_independently_reloaded": true,
+      "native_independently_reloaded": true,
+      "order_seed": 1001,
+      "original_parent": {
+        "identity": {
+          "parent_checkpoint_manifest_sha256": "07f26ea0aa8de692a7792c914c5c43c882be6cbbdb25764b3594b05d9004c60a",
+          "parent_config_sha256": "0b4041fdedeabc40eb5a5aecabacf49d74561de2145b1e5515c8b5014a549fae",
+          "parent_model_sha256": "47f41ed4cc18b1263735a004512fb488d25b65c949cece5a58e548ea831e0aef",
+          "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89"
+        },
+        "metadata_sha256": "7d1e062d290e3c4f31f30c330a55fb0165c32cba85026610679383b82414fe4e"
+      },
+      "original_quarter_sha256": "d7e56ed124ad80619dad5b6bfb90dec5f78fe855f43ef4bfd9011e2e31f5fccf",
+      "parent": {
+        "identity": {
+          "parent_checkpoint_manifest_sha256": "07f26ea0aa8de692a7792c914c5c43c882be6cbbdb25764b3594b05d9004c60a",
+          "parent_config_sha256": "0b4041fdedeabc40eb5a5aecabacf49d74561de2145b1e5515c8b5014a549fae",
+          "parent_model_sha256": "47f41ed4cc18b1263735a004512fb488d25b65c949cece5a58e548ea831e0aef",
+          "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89"
+        },
+        "metadata_sha256": "c1da604275d139a74bddb9fc4e4039daa227b6723ac6d0609b8714371e29b41f"
+      },
+      "read_state_pullback": "categorical",
+      "source_metadata_rebound": true,
+      "step": 0
+    },
+    "generate_sha256": "5fe2b5e287f5e27dc700ce8b94c4d6f38b41e73950a1a145cd1c0c2c56563544",
+    "lineage_step": 320,
+    "loss_scope": "all",
+    "masters_independently_reloaded": true,
+    "native_independently_reloaded": true,
+    "order_seed": 1001,
+    "parameters": {
+      "continuation.cross_state": {
+        "bytes": 460800,
+        "sha256": "0dd554268ec0b9883d8dd3c80329d3ae8500c817e59524dfe9718acb348fa5fb",
+        "shape": [
+          8,
+          14400
+        ]
+      }
+    },
+    "parent": {
+      "identity": {
+        "parent_checkpoint_manifest_sha256": "07f26ea0aa8de692a7792c914c5c43c882be6cbbdb25764b3594b05d9004c60a",
+        "parent_config_sha256": "0b4041fdedeabc40eb5a5aecabacf49d74561de2145b1e5515c8b5014a549fae",
+        "parent_model_sha256": "47f41ed4cc18b1263735a004512fb488d25b65c949cece5a58e548ea831e0aef",
+        "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89"
+      },
+      "metadata_sha256": "c1da604275d139a74bddb9fc4e4039daa227b6723ac6d0609b8714371e29b41f"
+    },
+    "shared_coefficients": 115200,
+    "step": 256,
+    "upstream_training": "all Context/Source/Potential/Generate/prototype/bridge/cue/prefix frozen; no old Vars loaded"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "name": "codex-m2-cross-resume-20261010",
+  "result": "KEEP22\u2192145/512,126gains3losses; original8 retains6",
+  "producer_source": "e085fde9f8da2fb385d114438cca0dd815383a0c",
+  "components": {
+    "accepted22-and-upstream.tar": {
+      "bytes": 49111040,
+      "sha256": "bb803a8b21293f8a9314df375194f3e3c0a6e6964b0d73d9d11be1fa456faf01"
+    },
+    "source.bundle": {
+      "bytes": 8572,
+      "sha256": "900aa81ea87b27b37ee0955e2ce4bf0c210fb1bf593779f911d50258babbdfb4"
+    },
+    "run-and-runtime.tar.gz": {
+      "bytes": 22465269,
+      "sha256": "ccc01c575e19024e1d3c718ff16bac9a7272554e0e0fed58601d0a099342e434"
+    }
+  },
+  "restore": "cloud-store fetch codex-m2-cross-resume-20261010 <absolute-owned-destination>; unpack run-and-runtime.tar.gz and accepted22-and-upstream.tar in separate owned roots. The nested prior package contains exact upstream parent/panel and previous comparison artifacts. source.bundle requires main46cf0c4c5; git bundle verify before restore. Absolute original paths in config remain provenance; resolve restored paths explicitly for replay.",
+  "limits": "Exposed development only;367fail;target256/fresh40 unmet. Final exact-head checks,protectedmerge,cleanup andcomplete accounting follow in delivery closeout."
+}

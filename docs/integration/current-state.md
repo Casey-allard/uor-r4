@@ -1,3 +1,21 @@
+## 2026-10-10 — Cross-state continuation: saved replies 22→145/512 (Codex, #2030)
+
+**KEEP:** the [saved-model continuation](../labs/m2-cross-resume-2026-10-10/README.md)
+reaches **145/512 complete replies**, with 126 gains, 3 losses and 19 retained;
+six of the original eight remain.
+**Line: cross-state continuation · count 0/3 · headline 22/512→145/512.**
+Four additional full-panel passes (256 updates, 26,656 target draws) restore exact
+fractional masters with fresh Adam moments while all upstream fields stay frozen;
+all 512 baseline outputs match saved 22, and local 256/lineage 320 is the sole endpoint.
+Nine focused tests and independent source/result review pass; process time is 744.528s,
+with full-cycle cost and protected delivery recorded separately.
+M2 remains below 256/512, 367 replies fail, length8 reaches only 2/128 and fresh 40% is
+NOT_RUN; there is no chat, geometric-advantage or serving-energy qualification.
+
+**Next:** register learning from saved 145 only after protected delivery and cleanup;
+a flat/regressed count would instead retain 22 and stop this dose recipe, and the
+ordinary 24/96 and constructor/attribution/solver lines remain closed.
+
 ## 2026-10-10 — Learned rank tables for the softmax-free read: trainer, export and D11 (claude, #2032)
 
 The one preparation PR the 3/3 pivot card allows ([record](../labs/softmax-free-read-2026-10-10/README.md#the-decisive-run-pivot-at-33-rank-tables-learned-in-training--mechanism)):

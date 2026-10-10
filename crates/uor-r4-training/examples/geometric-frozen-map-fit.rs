@@ -519,6 +519,8 @@ struct Args {
     #[serde(default)]
     continuation: Option<ContinuationConfig>,
     #[serde(default)]
+    cross_state_resume: Option<cross_state_completion::ResumeConfig>,
+    #[serde(default)]
     joint_continuation: Option<JointContinuationConfig>,
     #[serde(default)]
     reference_replay: Option<ReferenceReplayConfig>,
@@ -810,11 +812,16 @@ fn args() -> Result<(Args, Vec<u8>)> {
         // Declared doses stay schedule-comparable with the retained campaign
         // and land on a written checkpoint, because recovery checkpoints are
         // written every 32 updates and the final reload reads the last one.
-        || a.updates > UPDATES
+        || a.updates > if a.mode == Mode::CrossStateContinuation && a.cross_state_resume.is_some() {256} else {UPDATES}
         || (a.mode != Mode::JointContinuation && (a.updates == 0 || a.updates % 32 != 0))
     {
         return Err(bad("fixed order seeds/resource admission"));
     }
+    validate_input_output_paths(&a)?;
+    Ok((a, raw))
+}
+
+fn validate_input_output_paths(a: &Args) -> Result<()> {
     let output = output_support::prospective_output(&a.out)?;
     for path in [
         &a.checkpoint,
@@ -829,6 +836,7 @@ fn args() -> Result<(Args, Vec<u8>)> {
     .into_iter()
     .chain(a.baseline.iter())
     .chain(a.prediction_control_resume.iter())
+    .chain(a.cross_state_resume.iter().map(|c| &c.root))
     .chain(a.retained_context_root.iter())
     .chain(
         a.prefix_context_credit
@@ -950,7 +958,7 @@ fn args() -> Result<(Args, Vec<u8>)> {
             }
         }
     }
-    Ok((a, raw))
+    Ok(())
 }
 #[cfg(feature = "cuda")]
 fn cuda() -> Result<Device> {
@@ -4840,6 +4848,7 @@ fn continuation_checkpoint(
     step: usize,
     p: &ContinuationParent,
     weights: &ContinuationLearningWeights,
+    resume: Option<&cross_state_completion::ResumeState>,
 ) -> Result<(NativeContinuationField, Value)> {
     disk_floor(a)?;
     if size(&a.out)?.saturating_add(1 << 20) > a.maximum_report_bytes - (1 << 20) {
@@ -4886,7 +4895,9 @@ fn continuation_checkpoint(
             "continuation independent masters/native reload differs",
         ));
     }
-    let receipt = json!({"step":step,"parent":reloaded.source_binding(),"generate_sha256":p.generate_sha256,
+    let receipt = json!({"step":step,"lineage_step":step+if resume.is_some(){64}else{0},
+        "cross_state_resume":resume.map(|r|&r.provenance),
+        "parent":reloaded.source_binding(),"generate_sha256":p.generate_sha256,
         "frozen_model_root":fs::canonicalize(&a.saved_fit)?,"frozen_model_report_sha256":CONTINUATION_PARENT_REPORT_SHA,
         "frozen_model_manifest_sha256":CONTINUATION_PARENT_MANIFEST_SHA,"frozen_parent_receipt":p.receipt,
         "continuation_sha256":sha256_bytes(&bytes),"parameters":masters,"active_parameter_names":weights.parameters().keys().collect::<Vec<_>>(),
@@ -6089,7 +6100,10 @@ fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
     if native.generate_model().lanes() != 8 || native.generate_model().vocab_size() != 4096 {
         return Err(bad("continuation parent8-lane/full4096 mismatch"));
     }
-    let weights = if cross_state {
+    let resume = cross_state_completion::load_resume(a, &p)?;
+    let weights = if let Some(resume) = &resume {
+        resume.restore_weights(&p, d)?
+    } else if cross_state {
         ContinuationLearningWeights::zeroed_cross_state(
             p.integer.binding(),
             native.source_binding(),
@@ -6104,7 +6118,17 @@ fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
             d,
         )?
     };
-    let zero = weights.export_native(native.source_binding(), native.generate_model())?;
+    // Cache only immutable upstream scores. Resumed trainable coefficients are
+    // added exactly once by forward_coefficients_only, never baked into its base.
+    let zero = if cross_state {
+        NativeContinuationField::compile_cross_state(
+            native.source_binding(),
+            native.generate_model(),
+            &vec![0; 8 << 13],
+        )?
+    } else {
+        weights.export_native(native.source_binding(), native.generate_model())?
+    };
     let zero_bytes = zero.to_bytes()?;
     let zero_sha = sha256_bytes(&zero_bytes);
     let native = native.with_continuation_field(BoundNativeBytes {
@@ -6154,6 +6178,10 @@ fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
         "continuation_policy":zero.metadata().policy,"continuation_score_shift":zero.metadata().score_shift,
         "continuation_action_support":"same token energy on Generate and every physical Copy before the sole common clip",
         "phase_policy":loss_weight_policy(true,LossScope::All),"loss_scope":"all","credit":a.credit.name(),"fresh_adam":true,
+        "cross_state_resume":resume.as_ref().map(|r|&r.provenance),
+        "local_updates":a.updates,"prior_updates":if resume.is_some(){64}else{0},
+        "final_lineage_step":a.updates+if resume.is_some(){64}else{0},
+        "initial_active_masters":identities(&params)?,
         "teacher_forcing":"native cache receives complete input packet and target[..t] only; current/future target used after common pool",
         "local_carrier":"ContextQ4 from identity over query || prior supervised prefix; independent of facts",
         "projected_device_cache_tensor_bytes":projected_tensor_bytes,"maximum_cache_tensor_bytes":c.maximum_cache_tensor_bytes,
@@ -6224,13 +6252,14 @@ fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
     let mut checkpoint_seconds = 0.;
     let mut evaluation_seconds = 0.;
     let clock = Instant::now();
-    let (initial_field, initial_receipt) = continuation_checkpoint(a, 0, &p, &weights)?;
+    let (initial_field, initial_receipt) =
+        continuation_checkpoint(a, 0, &p, &weights, resume.as_ref())?;
     checkpoint_seconds += clock.elapsed().as_secs_f64();
     let clock = Instant::now();
     let initial = continuation_evaluate(a, "development-0000", &p, &initial_field, &dev, start)?;
     let initial_metrics = metrics(a, &initial, &dev)?;
     if cross_state {
-        cross_state_completion::baseline(&initial)?;
+        cross_state_completion::baseline(&initial, resume.as_ref().map(|r| &r.prior_final))?;
     }
     write(a, "metrics-0000.json", &initial_metrics)?;
     evaluation_seconds += clock.elapsed().as_secs_f64();
@@ -6239,13 +6268,12 @@ fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
     let fit_start = Instant::now();
     let initial_checkpoint_seconds = checkpoint_seconds;
     let mut final_receipt = initial_receipt.clone();
+    let mut target_position_draws = 0usize;
     for update in 0..a.updates {
         deadline(a, start)?;
         disk_floor(a)?;
         let prepared = owner.prepare_field(&weights)?;
-        let indices = (0..BATCH)
-            .map(|i| schedule[(update * BATCH + i) % schedule.len()])
-            .collect::<Vec<_>>();
+        let indices = cross_state_completion::schedule_indices(&schedule, update);
         let mut sums = BTreeMap::<String, Tensor>::new();
         let mut loss_sum = 0.;
         let mut count = 0usize;
@@ -6322,7 +6350,8 @@ fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
         apply(&mut opt, &params, &sums, &denominator)?;
         weights.project_shadow_range()?;
         d.synchronize()?;
-        updates.push(json!({"step":update+1,"indices":indices,"answer_positions_including_eos":count,"phase_balanced_loss":loss_sum,
+        target_position_draws += count;
+        updates.push(json!({"step":update+1,"lineage_step":update+1+if resume.is_some(){64}else{0},"indices":indices,"answer_positions_including_eos":count,"phase_balanced_loss":loss_sum,
             "global_active_gradient_norm":norm,"active_gradient_names":sums.keys().collect::<Vec<_>>(),
             "native_field_master_download_bytes":prepared.downloaded_master_bytes,
             "field_snapshot_and_per_position_costs":field_costs,
@@ -6334,7 +6363,8 @@ fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
         write(a, "updates.json", &json!(updates))?;
         if (update + 1) % 32 == 0 {
             let clock = Instant::now();
-            final_receipt = continuation_checkpoint(a, update + 1, &p, &weights)?.1;
+            final_receipt =
+                continuation_checkpoint(a, update + 1, &p, &weights, resume.as_ref())?.1;
             checkpoint_seconds += clock.elapsed().as_secs_f64();
         }
     }
@@ -6355,13 +6385,26 @@ fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
     )?;
     let clock = Instant::now();
     if cross_state {
-        let early = cross_state_completion::ORIGINAL8
-            .iter()
-            .map(|&i| &dev[i])
-            .collect::<Vec<_>>();
+        let early_indices = if resume.is_some() {
+            initial["rows"]
+                .as_array()
+                .ok_or_else(|| bad("baseline rows absent"))?
+                .iter()
+                .enumerate()
+                .filter(|(_, r)| r["complete"] == true)
+                .map(|(i, _)| i)
+                .collect::<Vec<_>>()
+        } else {
+            cross_state_completion::ORIGINAL8.to_vec()
+        };
+        let early = early_indices.iter().map(|&i| &dev[i]).collect::<Vec<_>>();
         continuation_evaluate_rows_impl(
             a,
-            "endpoint-original8",
+            if resume.is_some() {
+                "endpoint-prior22"
+            } else {
+                "endpoint-original8"
+            },
             &p,
             &final_field,
             &early,
@@ -6381,7 +6424,11 @@ fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
     write(a, &format!("metrics-{:04}", a.updates), &final_metrics)?;
     evaluation_seconds += clock.elapsed().as_secs_f64();
     let cross_outcome = if cross_state {
-        let outcome = cross_state_completion::outcomes(&initial, &final_eval)?;
+        let outcome = cross_state_completion::outcomes(
+            &initial,
+            &final_eval,
+            resume.as_ref().map(|r| &r.prior_final),
+        )?;
         write(a, "cross-state-outcomes.json", &outcome)?;
         Some(outcome)
     } else {
@@ -6390,15 +6437,19 @@ fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
     Ok(
         json!({"schema":"uor-r4.geometric-frozen-map-fit/1","status":"COMPLETED","mode":mode_name,
         "source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"device":"cuda:0","updates":a.updates,"batch":BATCH,
+        "prior_updates":if resume.is_some(){64}else{0},"lineage_step":a.updates+if resume.is_some(){64}else{0},
+        "cross_state_resume":resume.as_ref().map(|r|&r.provenance),"fresh_adam":true,
+        "training_row_draws":a.updates*BATCH,
+        "target_position_draws":target_position_draws,
         "loss_scope":"all","phase_policy":loss_weight_policy(true,LossScope::All),"credit":a.credit.name(),"order_seed":a.seed,
         "initial_receipt":initial_receipt,"final_receipt":final_receipt,"initial_metrics":initial_metrics,"final_metrics":final_metrics,
         "initial":initial,"final":final_eval,"cross_state_outcome":cross_outcome,
         "final_active_masters":identities(&params)?,"shared_coefficients":expected_coefficients,"cache_positions":positions,
         "cache_preparation_seconds":cache_seconds,"fit_loop_seconds_excluding_checkpoints":fit_seconds,
         "checkpoint_seconds":checkpoint_seconds,"evaluation_seconds":evaluation_seconds,"elapsed_seconds":start.elapsed().as_secs_f64(),
-        "control":if cross_state {"checkpoint0000 is exact accepted parent with zero joint factual/local field; no carrier ablation performed"} else {"checkpoint0000 is the same native parent with a null U field; constant-carrier control remains a prospective matched full-output evaluation"},
+        "control":if resume.is_some() {"checkpoint0000 is exact saved22 native field plus restored fractional masters; independently matched all512 outputs; cache separately uses zero field; no carrier ablation performed"} else if cross_state {"checkpoint0000 is exact accepted parent with zero joint factual/local field; no carrier ablation performed"} else {"checkpoint0000 is the same native parent with a null U field; constant-carrier control remains a prospective matched full-output evaluation"},
         "common_pool_backend":"cpu-authenticated-native-alias-reducer; full score/anchor/loss transfers retained; not fully resident CUDA alias reduction",
-        "scope":if cross_state {"frozen48/64 parent; only115200 joint factual/local signed-H4 Q4 coefficients learned on exposed512 all-answer positions; independently loaded own-prefix outputs; developmental KEEP netcomplete>8; no held-out transfer/chat/geometry/energy qualification"} else {"frozen48/64 parent; only960 continuation coefficients learned on exposed512 all-answer positions; independently loaded own-feedback outputs; no held-out transfer/chat/geometry/energy qualification"}}),
+        "scope":if resume.is_some() {"saved22 cross-state parameter continuation with fresh Adam moments; frozen48/64 upstream;115200 Q4 coefficients, four exposed512 passes; fixed endpoint local256/lineage320; developmental KEEP netcomplete>22; no held-out transfer/chat/geometry/energy qualification"} else if cross_state {"frozen48/64 parent; only115200 joint factual/local signed-H4 Q4 coefficients learned on exposed512 all-answer positions; independently loaded own-prefix outputs; developmental KEEP netcomplete>8; no held-out transfer/chat/geometry/energy qualification"} else {"frozen48/64 parent; only960 continuation coefficients learned on exposed512 all-answer positions; independently loaded own-feedback outputs; no held-out transfer/chat/geometry/energy qualification"}}),
     )
 }
 
