@@ -189,17 +189,11 @@ fn main() -> Result<(), Box<dyn Error>> {
             "DELIVERED"
         };
         *class_counts.entry(class.to_owned()).or_insert(0) += 1;
-        let audit: Vec<Value> = steps
-            .iter()
-            .filter(|s| {
-                s["source_id"]
-                    .as_u64()
-                    .map(|v| digit_ids.contains(&(v as u32)))
-                    .unwrap_or(false)
-            })
-            .take(6)
-            .cloned()
-            .collect();
+        // The POSITIONAL READ: every step's source position, the window id there and
+        // the attention, so a reader can see where the pointer's mass went at the
+        // step where the value should be emitted — not just the steps that happened to
+        // land on a stored digit.
+        let audit: Vec<Value> = steps.clone();
         results.push(json!({
             "id": id, "value": value, "digit_ids": digit_ids,
             "class": class,

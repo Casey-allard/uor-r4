@@ -1,3 +1,52 @@
+## 2026-10-09 — The positional read: the value's position is KEPT and the attention never lands on it (deepseek, #2029)
+
+Read on the **CONTROL arm** (default knobs, byte-for-byte 13 of 13, split 10/2/1), so this is a
+statement about the artifact and not about a modified decoder. Record:
+[pointer-positional-read-2026-10-09](../labs/pointer-positional-read-2026-10-09/README.md). **CPU only,
+no pod, no training, no new knob, $0.** No v5 re-run.
+
+**ANSWER: (b), in a stronger form.** At default knobs the pointer's `select` is `None`, which the code
+documents as keeping **every source** — so **the keep set is the whole window and the second digit's
+position is not excluded from it; the attention simply never places its mass there.** Measured over all
+13 rows: **the value's FIRST digit is the pointer's argmax on only 3 of 13 rows** (attention 0.8533,
+0.5141, 0.4743) and **the value's SECOND digit on 0 of 13 — never**. On the 10 READER rows **neither
+digit is attended at any step**: it is not that the first is attended while the second is dropped;
+**neither is attended.**
+
+**THE FINDING THE PER-STEP TABLES GIVE FOR FREE: THE PATTERN IS NEARLY IDENTICAL ACROSS ROWS.** Two rows
+with different values, keys and histories (`mem-005` value `41` vs `mem-037` value `98`) choose **the
+same source positions in the same order** — `8, 5, 6, 5, 47, 8, 43, 5, 45, 67, 51, 5, …` — with
+attention values tracking closely (0.3779 vs 0.3505; 0.7675 vs 0.8009; 0.9202 vs 0.9064). **The
+pointer's positional behaviour is essentially history-insensitive on this artifact: it is not failing to
+find the value, it is looking at a fixed pattern of positions and the value is not one of them.** The
+selected window ids (`223`, `1498`, `2369`, `1156`, `2728`, …) are none of them the value's, and the
+full per-step tables are in the record.
+
+**IT ALSO EXPLAINS THE KNOB RESULT.** `TopK(2)` + a 0.9 gate floor moved coverage to **exactly 3 of 13**
+— precisely the three rows where the argmax already landed on the first digit — because **raising the
+gate does not change where the pointer looks, only how much the copy distribution counts once it is
+there.**
+
+**WHAT IT DOES NOT ANSWER:** why the attention pattern is positional and row-invariant — whether the
+head was trained on targets that never required a two-token run, or whether the mask/window geometry
+penalises it. **That is the next read, not another knob.** It claims no capability change: no judge was
+run, v5's `check_pass` was not re-measured, and the treatment arm's unmeasured distribution is not used
+here.
+
+**THE LEDGER:** token count REFUTED; minimal pairs / digit order REFUTED; value addressability REFUTED;
+**the pointer's single-source shape REFUTED IN ITS SIMPLE FORM AND REPLACED** — single-source selection
+is not the binding constraint, the **attention's positional target** is; the learned read/emit path
+stays **SPLIT**, now localized to **attention placement rather than keep-set coverage**.
+
+**Criterion 1 remains NOT MET on both halves and 43/232 is unchanged.** v5 was not re-run.
+STATUS/ROADMAP/#2028 unchanged — checked, not assumed.
+
+**Next:** read **why the attention pattern is positional and row-invariant** — decode the selected window
+ids (`223`, `1498`, `2369`, …) and establish whether they are **structural tokens (role markers,
+separators) rather than content**. If they are, the head is attending the scaffold rather than the
+conversation, and the fix is a training-target question for the owner with a timed calibration run
+first — **not another knob, and not a wider keep set.**
+
 ## 2026-10-09 — The inference-path change moves the pointer 0 → 3 of 13 and FAILS its pre-declared condition (deepseek, #2029)
 
 Record: [inference-path-fix-result-2026-10-09](../labs/inference-path-fix-result-2026-10-09/README.md).
