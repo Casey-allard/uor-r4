@@ -1,0 +1,155 @@
+UOR-R4 — The copy mass on the public scored path: the gate is validated 166/166, the frame carries
+         the mass, and the digits get it only where the pointer already looks
+Date: 2026-10-09. DeepSeek lab, session pcopy-mass-read. References #2029.
+CPU only, no pod, no training, no knob, no model saved, $0, no v5 re-run.
+
+THE QUESTION
+  The pointer's per-step SELECTION is recorded (the trace). What was missing is the other half of
+  the mixture: the copy mass p_copy(target|t) the head assigns to a CHOSEN target. If it is high at
+  the value's digits, the read is not the problem and the emitter is; if it is low against a higher
+  baseline elsewhere, the frame reading survives and a read-targeted training run is justified.
+
+WHAT WAS BUILT (no model code, no knob: a CALLER for a public function already on the reply path)
+  crates/uor-r4-training/examples/pcopy-mass-read.rs
+    model=DIR tokenizer=T.json panel=PANEL.json checks=CHECKS.tsv replies=REPLIES.json
+    out=OUT.json [trace=TRACE.json] [frame=ID,ID,...] [rows=all|numeric|word]
+  Path read: StackModel::score_targets(ids, targets, weights, batch, time) -> TargetScores.pointer
+  -> PointerRowStats { gate, copy_mass, hit, reachable }; copy_mass is documented as
+  "p_copy(target | t) before the gate".
+
+IDENTITIES (sha256, all verified in this run)
+  model       ~/uor-r4-local/reply-cap96-inputs/ladder/runs/chat-29m-B-lr5e-4/model/model.safetensors
+              115,847,468 B  d8a3c971ef07a82ca0db0704b34821e24782c7734baaafb504fd754f82988068
+              config: width 576, heads 8, context 384, pattern rrarrarrar, read l2, rotation true,
+              pointer {dim 32, init_seed 1} -- the artifact that answered v5 (same sha as the sealed
+              v5 acceptance record's model_sha256)
+  replies     v5-declared-acceptance-2026-10-09/replies-29m.json  fd64bdfffc2e0d5d44626496422bb6676417cae555a65ec2212cf554f37de58d
+              icloud:UOR-R4/results/deepseek/v5-declared-acceptance-2026-10-09.tar (md5 27518f606964dc316631e6afb0d52239)
+  trace       pointer-positional-read-2026-10-09/full-per-step-arm-a.json  f1ecccad139586548d5f2c669b98b63836e04a883905ba0f69b7a03b216bca60
+              icloud:UOR-R4/results/deepseek/pointer-positional-read-2026-10-09.tar (md5 59bc0a05c6f9085c8e3a9da3c924a6cb) -- the CONTROL ARM
+  panel       data/panels/conversational-v5.json               e766cfe9a311eb85c465dba7a9d5b74961f8ccb75cd9f93b3b3e9337b992c750
+  checks      data/panels/conversational-v5-checks.tsv         737c4dfd5a65fe49c207afe40e88bf354c7cf9dd45fa173c54e639bb0aa0dbc8
+  tokenizer   tokenizer-d36d3e87.json                          d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89
+
+METHOD, in one paragraph
+  Per row the sequence is rebuilt exactly as the graded reply ran it: history_ids ++ the sealed last
+  turn's reply ids (both from the sealed acceptance record; NOTHING is generated here). Reply step s
+  is scored at position n = history_len - 1 + s, where the model sees ids[0..=n] and predicts the
+  sealed next token. The value's own tokens are located in the sequence BY TEXT on the tokenizer's
+  decode (an exact id-run search is kept beside it): a word value can be split differently in context
+  than on its own, so the ids present in the sequence -- 'span' -- are reported beside the value's own
+  encoding -- 'value'. One score_targets call per panel target overrides the target at the probe
+  positions (the value's span, the distractor's span, every reply step); the forward pass is identical
+  in every call, so the whole (target x position) grid costs one forward per target.
+
+THE GATE: hit == matches_source at every traced step (verbatim program output follows)
+  validation PASSED: 13 rows, 166 traced steps, hit == matches_source everywhere
+  (13 rows, 166 traced steps, 0 mismatches -> the public path reproduces the decoder's own selection;
+   had any step disagreed the run would have written VOID and reported no panel number)
+
+TABLE A -- NUMERIC 13 ROWS. 'self' = p_copy of the id SITTING AT that position; hit/reach are for that
+id as target. 'reply steps' aggregates the row's own reply steps: the max copy-mass SHARE over the
+value's span ids, the max share over the 9 frame ids, and the count of steps where value share wins.
+id                 val  span positions: self mass (hit)                          reply steps: max val  max frame  val>frame  sel  emit 
+conv-v5-mem-005    41   p20:22=0.142(F) p21:19=0.057(F)                                         0.0213     0.9962 0/14       0    0    
+conv-v5-mem-006    75   p11:25=0.428(F) p12:23=0.166(F) p40:25=0.349(F) p41:23=0.007(F)                0.1674     0.4314 6/15       0    0    
+conv-v5-mem-008    68   p12:24=0.988(T) p13:26=0.825(T) p41:24=0.107(F) p42:26=0.003(F)                0.8968     0.9830 2/11       2    0    
+conv-v5-mem-010    85   p10:26=0.994(T) p11:23=0.780(T)                                         0.1037     0.6788 4/11       0    0    
+conv-v5-mem-013    88   p41:26=0.322(F) p42:26=0.559(T)                                         0.2005     0.6757 5/12       0    0    
+conv-v5-mem-021    71   p20:25=0.014(F) p21:19=0.035(F)                                         0.0396     0.9961 0/14       0    0    
+conv-v5-mem-022    89   p11:26=0.630(T) p12:27=0.576(T) p40:26=0.775(T) p41:27=0.001(F)                0.1880     0.4926 6/15       0    0    
+conv-v5-mem-024    54   p12:23=0.981(T) p13:22=0.899(T) p41:23=0.190(F) p42:22=0.059(F)                0.7165     0.9823 2/11       2    0    
+conv-v5-mem-026    99   p10:27=0.999(T) p11:27=1.000(T)                                         0.0717     0.6907 4/11       0    0    
+conv-v5-mem-029    83   p41:26=0.530(T) p42:21=0.471(T)                                         0.0951     0.6299 9/12       0    0    
+conv-v5-mem-037    98   p20:27=0.316(F) p21:26=0.414(T)                                         0.0098     0.9969 0/14       0    0    
+conv-v5-mem-038    71   p11:25=0.428(F) p12:19=0.362(F) p40:25=0.296(F) p41:19=0.001(F)                0.1116     0.3740 5/14       0    0    
+conv-v5-mem-040    84   p12:26=0.886(T) p13:22=0.709(T) p41:26=0.070(F) p42:22=0.005(F) p72:26=0.024(F) p73:22=0.003(F)                0.6013     0.7315 2/12       1    2    
+
+TABLE B -- WORD CONTROL: the 27 word-valued memory rows of the same panel, same path, same positions
+(value span located by text; spans are multi-token, so a subword that also occurs elsewhere inflates
+the share -- the caveat is stated in the record; only one word value, 'Polly', is a single token).
+id                 value       span ids  emitted(text) max val share max frame  val>frame 
+conv-v5-mem-001    Britain     3         True                 0.7500     0.0327 9/10      
+conv-v5-mem-002    Barbara     4         False                0.4744     0.0003 7/7       
+conv-v5-mem-003    Tyler       4         True                 0.2911     0.0127 12/12     
+conv-v5-mem-004    Bruno       3         False                0.1576     0.9878 4/12      
+conv-v5-mem-007    Howard      2         False                0.5219     0.0088 9/9       
+conv-v5-mem-009    Cincinnati  6         True                 0.4028     0.3214 20/24     
+conv-v5-mem-011    Iowa        3         False                0.0807     0.0884 42/46     
+conv-v5-mem-012    Bradford    4         False                0.3657     0.2299 20/23     
+conv-v5-mem-014    Birmingham  5         False                0.4694     0.0231 15/16     
+conv-v5-mem-015    Charleston  5         True                 0.5558     0.1250 13/16     
+conv-v5-mem-016    Anthony     4         False                0.0991     0.0964 11/12     
+conv-v5-mem-017    Madrid      4         False                0.1332     0.0871 14/16     
+conv-v5-mem-018    Polly       1         False                0.2330     0.0370 7/9       
+conv-v5-mem-019    Phil        3         True                 0.3579     0.8309 6/11      
+conv-v5-mem-020    Lloyd       4         False                0.4269     0.9721 6/11      
+conv-v5-mem-023    Charles     3         True                 0.8450     0.0075 9/9       
+conv-v5-mem-025    Nevada      5         False                0.6037     0.1486 20/33     
+conv-v5-mem-027    Freddie     3         False                0.6389     0.0134 29/34     
+conv-v5-mem-028    Hunter      3         False                0.5069     0.2130 20/23     
+conv-v5-mem-030    Wichita     4         False                0.2465     0.0230 8/8       
+conv-v5-mem-031    Vienna      5         True                 0.8726     0.0487 17/18     
+conv-v5-mem-032    Louis       3         False                0.1448     0.0197 13/13     
+conv-v5-mem-033    Alabama     3         True                 0.8686     0.1382 15/15     
+conv-v5-mem-034    Brian       3         False                0.8381     0.0105 14/14     
+conv-v5-mem-035    Luis        3         False                0.3111     0.6238 12/13     
+conv-v5-mem-036    Mitchell    4         False                0.5339     0.9901 3/11      
+conv-v5-mem-039    Moore       3         True                 0.7650     0.0123 10/11     
+
+TABLE C -- THE BOUND. On reply steps whose traced argmax holds NO value token:
+  published bound  p_copy(value) <= attention at the argmax:   5 violations in 166 steps (5 rows,
+  one step each: mem-013, mem-022, mem-024, mem-038, mem-040)
+  the correct ceiling p_copy(target) <= 1 - attention(argmax): 0 violations, and the largest
+  fraction of that ceiling any step uses is 0.52 -> the ceiling is LOOSE
+id                 steps elsewhere max a_max  max p_copy(val)  p<=a violations  p<=1-a violations  max p/a 
+conv-v5-mem-005    14                  0.9202           0.0213 0                0                    0.0457
+conv-v5-mem-006    15                  0.9459           0.1674 0                0                    0.9243
+conv-v5-mem-008    9                   0.9700           0.1725 0                0                    0.6034
+conv-v5-mem-010    11                  0.9972           0.1037 0                0                    0.4169
+conv-v5-mem-013    12                  0.8381           0.2005 1                0                    1.2151
+conv-v5-mem-021    14                  0.8994           0.0396 0                0                    0.0887
+conv-v5-mem-022    15                  0.9283           0.1880 1                0                    1.2687
+conv-v5-mem-024    9                   0.9704           0.3680 1                0                    1.3617
+conv-v5-mem-026    11                  0.9972           0.0717 0                0                    0.2492
+conv-v5-mem-029    12                  0.8588           0.0951 0                0                    0.4785
+conv-v5-mem-037    14                  0.9064           0.0098 0                0                    0.0364
+conv-v5-mem-038    14                  0.9506           0.1116 1                0                    1.0775
+conv-v5-mem-040    11                  0.8196           0.3827 1                0                    1.4561
+  totals: p<=a violations 5, p<=1-a violations 0
+
+THE THREE PRE-REGISTERED OUTCOMES, against these numbers
+  1. copy_mass HIGH at the value's digits -> nothing to train, the emitter is the target.
+     TRUE for 3 of 13 rows -- mem-008 (0.897), mem-024 (0.717), mem-040 (0.601) -- and those are
+     EXACTLY the 3 rows whose trace selects a stored digit (2, 2 and 1 steps). Two of the three
+     still emit nothing, which is the emitter-side reading in its smallest measured form.
+  2. copy_mass LOW at the digits against a HIGHER BASELINE ELSEWHERE -> the frame reading survives.
+     TRUE for the other 10 of 13 rows: value share <= 0.20 at every reply step while the frame's
+     share reaches 0.34-1.00 at the same steps. 0 of 13 rows have their value exceed the frame.
+  3. copy_mass LOW EVERYWHERE -> REFUTED. The frame class carries 0.34-1.00.
+  It lands BETWEEN 1 and 2, and the split is exactly the already-measured selection line: the copy
+  mass follows the attention (0.60-0.90 where the argmax is on a digit; <= 0.20 where it is not).
+  The mixture is faithful; the attention's target is the constraint.
+
+ALSO MEASURED, because the plan's decision rule names positions and the value has several: the
+per-position table A shows the mass on the value's digit is high at its FIRST occurrence (hit true on
+11 of 13 rows) and collapses at its LAST occurrence and at the reply steps on the same rows. The
+'high at the digits' reading is therefore position-specific and is not evidence that the read can
+deliver the value where the answer is produced.
+
+EVIDENCE OUTPUTS (in this bundle)
+  summary-numeric.txt, summary-all.txt  the program's own stdout, verbatim
+  numeric.json, all.json               the full (target x position) grid per row
+  analysis.txt, analyze4.py            the per-row tables above, regenerated from all.json
+  make_evidence.py, decode.py          how this file was generated
+
+LEDGER / WHAT DOES NOT CHANGE
+  Token count REFUTED; digit order REFUTED; value addressability REFUTED; single-source shape REFUTED
+  in its simple form; 'history-insensitive' CORRECTED to the frame's invariance; the pointer attends
+  the sentence frame and never the varying slot -- MEASURED on 13 rows. This piece adds the other
+  half of the mixture: the copy mass, on the public scored path, validated 166/166.
+  criterion 1 remains NOT MET on both halves, 43/232 is unchanged, v5 was not re-run, no model or
+  wording knob was touched, and STATUS/ROADMAP/#2028 are unchanged.
+
+COST: zero pod spend, zero external compute. One release build; the numeric run is 7 s and the
+all-rows run 65 s on the laptop CPU (this run was 71 s wall, peak RSS under 2 GB).

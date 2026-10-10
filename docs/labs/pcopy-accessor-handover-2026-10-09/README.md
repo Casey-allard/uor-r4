@@ -111,3 +111,14 @@ unchanged.** It remains CPU-only, no pod, no training, no weights touched — an
 outcomes stay distinguishable: `copy` high at the digits (nothing to train → the emitter), low at the
 digits against a higher baseline elsewhere (the frame reading survives → single-rung labelled run), or
 low everywhere (the gate is broadly weak → the labels should say something different).
+
+**Later note (2026-10-09), from the [copy-mass read](../pcopy-mass-read-2026-10-09/README.md): the read
+was taken WITHOUT the Site-2 accessor.** `StackModel::score_targets` already returns
+`TargetScores.pointer` → `PointerRowStats { gate, copy_mass, hit, reachable }` and is already called on
+the reply path (`stack_dialogue.rs` `development`), so step 1 needed only a caller — one example, no
+model code. Its pre-registered gate passed: `hit` equals the recorded trace's `matches_source` at
+**166 of 166 steps across 13 rows**, so the scored path is the decoder's own mixture. The split is in
+that record: the copy mass follows the attention exactly (0.60–0.90 where the argmax holds a stored
+digit; ≤ 0.20 where it does not, against a frame baseline of 0.34–1.00). The Site-2 accessor is
+therefore **not required for step 1**; it is still the way to read the attention *per position* and the
+mixture's share split, which this read-out does not give.

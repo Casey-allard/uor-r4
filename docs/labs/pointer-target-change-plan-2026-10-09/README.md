@@ -156,3 +156,14 @@ value's two digit positions before any update. **If `p_copy` is already high the
 unnecessary and the emitter is the target.** Only if it is low does the single-rung labelled training run
 become the next step — with a fresh sealed panel drawn first and a timed calibration run before any cost
 estimate.
+
+**Executed (2026-10-09) by the [copy-mass read](../pcopy-mass-read-2026-10-09/README.md), and the rule
+needs its position named.** `p_copy` is read on the public scored path (`score_targets` →
+`PointerRowStats::copy_mass`), with the pre-registered trace gate passing 166 of 166 steps on the 13
+rows. Measured: at the value's **first** occurrence the rule's condition is met (the digit's id carries
+0.32–1.00 with `hit` true on 11 of 13 rows), but at the reply step that produces the answer it is **not**
+met on 10 of 13 rows (value share ≤ 0.20 against a frame share of 0.34–1.00), and at the value's *last*
+occurrence the same rows collapse. So **for the 10 READER rows the read is still the constraint; for the
+3 rows whose argmax already lands on a stored digit (`mem-008`, `mem-024`, `mem-040`) the emitter is.**
+Neither branch is a "nothing to train" verdict on its own, and the plan is not shelved under that third
+reason.

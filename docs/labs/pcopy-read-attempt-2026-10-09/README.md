@@ -86,3 +86,11 @@ per-row `copy` at the value's two digits, at the distractor's positions and at t
 word rows as the control. **The training plan stays on the shelf, not deleted:** it is not shelved
 because the read said "nothing to train", but because the read **cannot be taken yet**, and the next
 person needs both facts.
+
+**Later note (2026-10-09), from the [copy-mass read](../pcopy-mass-read-2026-10-09/README.md): the read
+was taken, and it did not need the mixture-row accessor.** `StackModel::score_targets` already exposes
+`PointerRowStats { gate, copy_mass, hit, reachable }` and is already called on the reply path, so step 1
+ran through a caller only. Gate passed: `hit` equals the recorded trace's `matches_source` at 166 of 166
+steps across 13 rows. So the shelf's first reason ("the read cannot be taken yet") is now closed — and
+the third reason is partially earned: the copy mass is 0.60–0.90 at the digits on the 3 rows whose
+argmax already lands on a stored digit, and ≤ 0.20 against a 0.34–1.00 frame baseline on the other 10.
