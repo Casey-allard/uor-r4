@@ -1,0 +1,77 @@
+{
+  "source_commit": "1833cb4dd1ee1dad65ca6c850b209ab16628e062",
+  "binary_sha256": "261920246ba254c4fd6dae035b78fedfdc1750ae2b1886477fed7322be80523a",
+  "source_review": "PASS_SOURCE_ONLY at1833cb4 after correction of three borrowed-string errors in first2b065 build; no reviewer compilation",
+  "checks": {
+    "failed_first_build": {
+      "argv": [
+        "cargo",
+        "build",
+        "--release",
+        "--locked",
+        "--offline",
+        "-p",
+        "uor-r4-training",
+        "--features",
+        "cuda",
+        "--example",
+        "geometric-frozen-map-fit"
+      ],
+      "started_utc": "2026-10-10T08:29:37.476117+00:00",
+      "seconds": 187.3538498210255,
+      "exit_code": 101,
+      "peak_child_rss_kib": 3600912
+    },
+    "build": {
+      "argv": [
+        "cargo",
+        "build",
+        "--release",
+        "--locked",
+        "--offline",
+        "-p",
+        "uor-r4-training",
+        "--features",
+        "cuda",
+        "--example",
+        "geometric-frozen-map-fit"
+      ],
+      "started_utc": "2026-10-10T08:33:38.336283+00:00",
+      "seconds": 119.81378662306815,
+      "exit_code": 0,
+      "peak_child_rss_kib": 2297624
+    },
+    "focused_tests": {
+      "argv": [
+        "cargo",
+        "test",
+        "--release",
+        "--locked",
+        "--offline",
+        "-p",
+        "uor-r4-training",
+        "--features",
+        "cuda",
+        "--example",
+        "geometric-frozen-map-fit",
+        "reply_",
+        "--",
+        "--test-threads=2"
+      ],
+      "started_utc": "2026-10-10T08:35:38.213196+00:00",
+      "seconds": 22.565741014899686,
+      "exit_code": 0,
+      "peak_child_rss_kib": 1088996
+    },
+    "focused_result": "10 passed;0failed;0ignored;164filtered",
+    "fmt": "rustfmt --edition2021 --config skip_children=true --check both changed Rust files PASS"
+  },
+  "stock_bootstrap": {
+    "total_seconds": 205,
+    "build_seconds": 144,
+    "parity_seconds": 47,
+    "tests_passed": 37,
+    "tests_ignored": 3,
+    "scope": "stock bootstrap, separate from changed reply tests"
+  }
+}

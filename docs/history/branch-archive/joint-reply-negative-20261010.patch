@@ -1,0 +1,298 @@
+diff --git a/crates/uor-r4-training/examples/geometric-frozen-map-fit.rs b/crates/uor-r4-training/examples/geometric-frozen-map-fit.rs
+index 2c91abe..74e3158 100644
+--- a/crates/uor-r4-training/examples/geometric-frozen-map-fit.rs
++++ b/crates/uor-r4-training/examples/geometric-frozen-map-fit.rs
+@@ -109,6 +109,7 @@ enum Mode {
+     ReplyCompletion,
+     ReplyQualification,
+     ReplyPrototypeQualification,
++    ReplyJointQualification,
+ }
+ 
+ const REPLAY_REPORT_SHA: &str = "9582f56c8d285920cd67977fd23d36e8a96beabe7c5f27ea45ad4b1113d3503c";
+diff --git a/crates/uor-r4-training/examples/geometric_frozen_map_fit/reply_completion.rs b/crates/uor-r4-training/examples/geometric_frozen_map_fit/reply_completion.rs
+index 52ab3ff..b5b5fde 100644
+--- a/crates/uor-r4-training/examples/geometric_frozen_map_fit/reply_completion.rs
++++ b/crates/uor-r4-training/examples/geometric_frozen_map_fit/reply_completion.rs
+@@ -1,5 +1,5 @@
+ //! One ordinary all-answer fit from the accepted Source48/Generate64 parent.
+-//! Potential/Generate learning, optionally including prototypes; no U or proposals.
++//! Potential/Generate learning, optionally with prototypes and Context; no U or proposals.
+ use super::*;
+ 
+ const QUALIFICATION_INDICES: [usize; 24] = [
+@@ -37,14 +37,19 @@ const QUALIFICATION_IDS: [&str; 24] = [
+ pub(super) fn is_mode(mode: Mode) -> bool {
+     matches!(
+         mode,
+-        Mode::ReplyCompletion | Mode::ReplyQualification | Mode::ReplyPrototypeQualification
++        Mode::ReplyCompletion
++            | Mode::ReplyQualification
++            | Mode::ReplyPrototypeQualification
++            | Mode::ReplyJointQualification
+     )
+ }
+ 
+ fn expected_updates(mode: Mode) -> Result<usize> {
+     match mode {
+         Mode::ReplyCompletion => Ok(64),
+-        Mode::ReplyQualification | Mode::ReplyPrototypeQualification => Ok(96),
++        Mode::ReplyQualification
++        | Mode::ReplyPrototypeQualification
++        | Mode::ReplyJointQualification => Ok(96),
+         _ => Err(bad("not a reply training mode")),
+     }
+ }
+@@ -54,7 +59,9 @@ fn expected_updates(mode: Mode) -> Result<usize> {
+ fn draw_schedule(mode: Mode, seed: u64) -> Result<Vec<usize>> {
+     match mode {
+         Mode::ReplyCompletion => Ok(order(seed, 512)),
+-        Mode::ReplyQualification | Mode::ReplyPrototypeQualification => {
++        Mode::ReplyQualification
++        | Mode::ReplyPrototypeQualification
++        | Mode::ReplyJointQualification => {
+             let one_epoch = order(seed, QUALIFICATION_INDICES.len())
+                 .into_iter()
+                 .map(|i| QUALIFICATION_INDICES[i])
+@@ -380,7 +387,19 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
+         return Err(bad("reply completion Generate parameter groups absent"));
+     }
+     let potential = l.source.potential_parameters();
+-    let train_prototypes = a.mode == Mode::ReplyPrototypeQualification;
++    let train_context = a.mode == Mode::ReplyJointQualification;
++    let train_prototypes = matches!(
++        a.mode,
++        Mode::ReplyPrototypeQualification | Mode::ReplyJointQualification
++    );
++    let context = l.source.context_state_parameters();
++    if train_context && context.len() != 9 {
++        return Err(bad("joint reply requires all nine Context families"));
++    }
++    let mut trainable_source = potential.clone();
++    if train_context {
++        trainable_source.extend(context.clone());
++    }
+     let initial_prototype_masters = identities(&prototype)?;
+     let mut trainable_generate = coefficients.clone();
+     if train_prototypes {
+@@ -395,7 +414,7 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
+         l.source
+             .parameters()
+             .into_iter()
+-            .filter(|(name, _)| !potential.contains_key(name)),
++            .filter(|(name, _)| !trainable_source.contains_key(name)),
+     );
+     frozen.extend(l.original_bridge.parameters());
+     frozen.extend(
+@@ -406,12 +425,16 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
+     );
+     let frozen_identity = identities(&frozen)?;
+     let mut active = trainable_generate.clone();
+-    active.extend(potential.clone());
++    active.extend(trainable_source.clone());
+     let qualification = matches!(
+         a.mode,
+-        Mode::ReplyQualification | Mode::ReplyPrototypeQualification
++        Mode::ReplyQualification
++            | Mode::ReplyPrototypeQualification
++            | Mode::ReplyJointQualification
+     );
+-    let mode_name = if train_prototypes {
++    let mode_name = if train_context {
++        "reply_joint_qualification"
++    } else if train_prototypes {
+         "reply_prototype_qualification"
+     } else if qualification {
+         "reply_qualification"
+@@ -454,7 +477,7 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
+         "active_parameter_names":active.keys().collect::<Vec<_>>(),
+         "initial_active_masters":identities(&active)?,"frozen_masters":frozen_identity,
+         "optimizer":"fresh AdamW, beta1=.9 beta2=.999 eps=1e-8 weight_decay=0",
+-        "rates":{"generate_coefficients":0.003,"potential":0.003,"prototype":if train_prototypes {Some(0.01)} else {None}},"updates":a.updates,"batch":8,
++        "rates":{"generate_coefficients":0.003,"potential":0.003,"prototype":if train_prototypes {Some(0.01)} else {None},"context":if train_context {Some(0.002)} else {None}},"updates":a.updates,"batch":8,
+         "loss_scope":"all complete-answer tokens including EOS",
+         "phase_policy":loss_weight_policy(true,LossScope::All),
+         "credit":a.credit.name(),"read_state_pullback":a.read_state_pullback.name(),
+@@ -482,6 +505,34 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
+         Some(&initial_model),
+     )?;
+     write(a, "zero-update-admission.json", &admission)?;
++    let context_gradient_admission = if train_context {
++        let selected = admission_gradients
++            .iter()
++            .filter(|(name, _)| context.contains_key(*name))
++            .map(|(name, value)| (name.clone(), value.clone()))
++            .collect::<BTreeMap<_, _>>();
++        if selected.len() != context.len() {
++            return Err(bad("joint reply Context gradient family absent"));
++        }
++        let (_, norm) = clip_denominator(&selected, d)?;
++        if !norm.is_finite() || norm <= 0. {
++            return Err(bad(
++                "joint reply Context gradient is not finite and nonzero",
++            ));
++        }
++        Some(
++            json!({"gradient_norm":norm,"parameter_names":context.keys().collect::<Vec<_>>(),
++            "initial_masters":identities(&context)?,
++            "scope":"discarded admission batch; all nine families present, aggregate positive; no optimizer update"}),
++        )
++    } else {
++        None
++    };
++    write(
++        a,
++        "context-gradient-admission.json",
++        &json!(context_gradient_admission),
++    )?;
+     let prototype_gradient_admission = if train_prototypes {
+         let selected = admission_gradients
+             .into_iter()
+@@ -545,6 +596,11 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
+     } else {
+         None
+     };
++    let mut co = if train_context {
++        Some(optimizer(&context, 0.002)?)
++    } else {
++        None
++    };
+     let fit_start = Instant::now();
+     let mut updates = Vec::new();
+     let checkpoint_every = if qualification { 24 } else { 32 };
+@@ -553,18 +609,24 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
+         deadline(a, start)?;
+         let indices = &schedule[step * BATCH..(step + 1) * BATCH];
+         let (grads, receipt) = batch(a, &l, &train, indices, d, start, None)?;
+-        let grads = selected_gradients(grads, &trainable_generate, &potential)?;
++        let grads = selected_gradients(grads, &trainable_generate, &trainable_source)?;
+         let (denominator, norm) = clip_denominator(&grads, d)?;
+         apply(&mut go, &coefficients, &grads, &denominator)?;
+         apply(&mut po, &potential, &grads, &denominator)?;
+         if let Some(optimizer) = proto.as_mut() {
+             apply(optimizer, &prototype, &grads, &denominator)?;
+         }
++        if let Some(optimizer) = co.as_mut() {
++            apply(optimizer, &context, &grads, &denominator)?;
++            for var in context.values() {
++                var.set(&var.as_tensor().clamp(-1.75, 1.75)?)?;
++            }
++        }
+         l.generate.project_shadow_range()?;
+         l.source.project_potential_range()?;
+         if identities(&frozen)? != frozen_identity {
+             return Err(bad(
+-                "reply completion changed frozen Context/prototype/bridge masters",
++                "reply completion changed an inactive Source/Generate/bridge master",
+             ));
+         }
+         d.synchronize()?;
+@@ -613,6 +675,35 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
+     write(a, &format!("metrics-{:04}.json", a.updates), &final_metrics)?;
+     let native_crossings = control_crossings(a, &initial_generate, &final_generate, a.updates)?;
+     write(a, "native-code-crossings.json", &native_crossings)?;
++    let context_native_crossings = if train_context {
++        let config = initial_model.context_config();
++        if final_parent.integer.context_config() != config {
++            return Err(bad("joint reply exported Context config changed"));
++        }
++        let count = config
++            .coefficient_count()
++            .map_err(|e| bad(&e.to_string()))?;
++        let before = fs::read(a.out.join("checkpoint-0000/native/consumer/context-q4.bin"))?;
++        let after = fs::read(a.out.join(format!(
++            "checkpoint-{:04}/native/consumer/context-q4.bin",
++            a.updates
++        )))?;
++        let old_codes = uor_r4_integer::geometric_context_q4::unpack_coefficients(count, &before)
++            .map_err(|e| bad(&e.to_string()))?;
++        let new_codes = uor_r4_integer::geometric_context_q4::unpack_coefficients(count, &after)
++            .map_err(|e| bad(&e.to_string()))?;
++        Some(json!({"coefficient_count":count,
++            "changed_codes":old_codes.iter().zip(&new_codes).filter(|(x,y)|x!=y).count(),
++            "initial_packed_sha256":sha256_bytes(&before),"final_packed_sha256":sha256_bytes(&after),
++            "scope":"decoded saved native Context q4 payloads, not fractional master identities"}))
++    } else {
++        None
++    };
++    write(
++        a,
++        "context-native-crossings.json",
++        &json!(context_native_crossings),
++    )?;
+     let comparison = outcomes(&initial, &final_eval)?;
+     write(a, "row-comparison.json", &comparison)?;
+     let final_evaluation_seconds = eval_start.elapsed().as_secs_f64();
+@@ -637,7 +728,9 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
+         "elapsed_seconds":start.elapsed().as_secs_f64(),
+         "final_active_masters":identities(&active)?,"frozen_masters":frozen_identity,
+         "prototype_gradient_admission":prototype_gradient_admission,
+-        "train_prototypes":train_prototypes,"native_code_crossings":native_crossings,
++        "train_prototypes":train_prototypes,"train_context":train_context,
++        "context_gradient_admission":context_gradient_admission,"context_native_crossings":context_native_crossings,
++        "native_code_crossings":native_crossings,
+         "scope":"ordinary Potential/Generate coefficient learning from accepted48/64 over exposed512 complete-answer/EOS positions; Context/prototypes/bridge/Cue/Prefix fixed; no U, protected constructor or solver; native reloaded own-feedback endpoint; no held-out transfer/chat/energy qualification"});
+     if let Some(result) = qualification_report {
+         report["qualification"] = result;
+@@ -648,6 +741,10 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
+         report["schema"] = json!("uor-r4.geometric-reply-prototype-qualification/1");
+         report["scope"] = json!("ordinary Potential/Generate coefficient/prototype learning on fixed24 repeated32 epochs; full512 native reloaded own-feedback endpoint; Context/bridge/Cue/Prefix frozen, no U or constructor; no held-out transfer/chat/energy qualification");
+     }
++    if train_context {
++        report["schema"] = json!("uor-r4.geometric-reply-joint-qualification/1");
++        report["scope"] = json!("ordinary Context/Potential/Generate coefficient/prototype learning on fixed24 repeated32 epochs; full512 saved native own-feedback endpoint; other Source/bridge/Cue/Prefix frozen, no U or constructor; no held-out transfer/chat/energy qualification");
++    }
+     Ok(report)
+ }
+ 
+@@ -755,6 +852,50 @@ mod tests {
+         Ok(())
+     }
+     #[test]
++    fn reply_joint_qualification_preserves_schedule_and_admission() -> Result<()> {
++        let mut c = config();
++        c["mode"] = json!("reply_joint_qualification");
++        c["updates"] = json!(96);
++        settings(&serde_json::from_value(c.clone())?)?;
++        assert_eq!(
++            draw_schedule(Mode::ReplyJointQualification, 1001)?,
++            draw_schedule(Mode::ReplyPrototypeQualification, 1001)?
++        );
++        c["updates"] = json!(64);
++        assert!(settings(&serde_json::from_value(c)?).is_err());
++        Ok(())
++    }
++    #[test]
++    fn reply_joint_context_enters_clip_but_inactive_source_does_not() -> Result<()> {
++        let d = Device::Cpu;
++        let generate = BTreeMap::from([
++            ("generate.field".into(), Var::new(0f32, &d)?),
++            ("generate.prototype_choices".into(), Var::new(0f32, &d)?),
++        ]);
++        let source = BTreeMap::from([
++            ("consumer.potential.field".into(), Var::new(0f32, &d)?),
++            (
++                "consumer.context.token_transition".into(),
++                Var::new(0f32, &d)?,
++            ),
++        ]);
++        let grads = BTreeMap::from([
++            ("generate.field".into(), Tensor::new(3f32, &d)?),
++            ("generate.prototype_choices".into(), Tensor::new(4f32, &d)?),
++            ("consumer.potential.field".into(), Tensor::new(0f32, &d)?),
++            (
++                "consumer.context.token_transition".into(),
++                Tensor::new(12f32, &d)?,
++            ),
++            ("consumer.no_read.field".into(), Tensor::new(1000f32, &d)?),
++        ]);
++        let selected = selected_gradients(grads, &generate, &source)?;
++        assert_eq!(selected.len(), 4);
++        let (_, norm) = clip_denominator(&selected, &d)?;
++        assert!((norm - 13.).abs() < 1e-6);
++        Ok(())
++    }
++    #[test]
+     fn reply_prototype_gradient_participates_in_active_clip() -> Result<()> {
+         let d = Device::Cpu;
+         let generate = BTreeMap::from([

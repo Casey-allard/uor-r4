@@ -1,3 +1,27 @@
+## 2026-10-10 — Joint Context–prototype reply learning: 0/512; ordinary 24/96 recipe closed (Codex, #2030)
+
+The [single D21 decisive continuation](../labs/m2-joint-reply-2026-10-10/README.md)
+after the 3/3 pivot jointly trains all nine Context families and Generate
+prototypes under existing categorical credit. The saved/reloaded native endpoint
+regresses **8→0/512** complete replies and **8→0/24** trained replies. All eight
+accepted successes are lost; none are gained. Independent review confirms all
+1,024 saved rows, all three prior-candidate comparisons, **12,307/8,963,136
+changed native Context Q4 coefficients** and **25,718/32,768 changed prototype
+codes**. Lower teacher-prefix CE does not qualify complete replies.
+
+**REJECT. Line: ordinary reply-completion gradient learning · count 4/3 (single
+decisive continuation after the mandatory pivot) · headline 8/512 → 8/512.**
+The accepted parent remains 8/512 (target 256). The negative candidate, exact
+parent/panel, executable, producer and failed-build source, checkpoints and
+receipts are durably preserved. The new joint mode is archived as a patch and
+INDEX row, not activated on main; no preparation PR was used.
+
+**Next:** close the ordinary joint/frozen-Context 24-row/96-update recipe on
+#2030 after protected delivery, with no further family/rate/dose/seed variation.
+Choose a genuinely different model mechanism under the continuous standing goal.
+The protected constructor/attribution/solver line stays closed. This result
+does not establish architectural impossibility or that 512/512 is unattainable.
+
 ## 2026-10-10 — Prototype-enabled reply learning: 4/512, rejected; ordinary-learning line reaches 3/3 (Codex, #2030)
 
 The [pre-registered prototype intervention](../labs/m2-prototype-reply-2026-10-10/README.md)

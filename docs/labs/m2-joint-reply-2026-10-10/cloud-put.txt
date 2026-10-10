@@ -1,0 +1,11 @@
+Archive: icloud:UOR-R4/results/codex/codex-m2-joint-reply-20261010.tar
+Bytes: 168509440
+Source MD5: 7d5a401263c9b267b4a8ef79f724776b
+Whole remote archive streamed back through rclone cat | md5 -q:
+7d5a401263c9b267b4a8ef79f724776b
+FULL_ROUND_TRIP_MD5_PASS
+Archive absent before upload. No local archive copy.
+Standard six-column index published and read back byte-for-byte:
+codex-m2-joint-reply-20261010	168509440	7d5a401263c9b267b4a8ef79f724776b	results/codex/codex-m2-joint-reply-20261010.tar	2026-10-10T09:13:11Z	codex
+INDEX_READBACK_PASS
+Completed 2026-10-10T09:14Z.

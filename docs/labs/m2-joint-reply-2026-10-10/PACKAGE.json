@@ -1,0 +1,31 @@
+{
+  "name": "codex-m2-joint-reply-20261010",
+  "components": {
+    "exact-parent-and-panel.tar.gz": {
+      "bytes": 22148342,
+      "sha256": "8ffc75578890f99e76d2d6c90af72a8937f1b679516aad54a9832d7757edfd1a"
+    },
+    "prior-reports/2141-report.json": {
+      "bytes": 1427012,
+      "sha256": "678f4ff4d8b97559260076607f6168b7d5f4317cc1472bd9fe5e253ca76bdbb7"
+    },
+    "prior-reports/2143-report.json": {
+      "bytes": 1456265,
+      "sha256": "16d03a31fc1eb27ee270cec96a7d388c108522c79b2a87856a0ca94b232aab68"
+    },
+    "prior-reports/2148-report.json": {
+      "bytes": 1455808,
+      "sha256": "22fb69a89cfa6191ce9e05f840cf4afb790ec10b4bd2e0a07f6962f5a94d4ece"
+    },
+    "run-and-runtime.tar.gz": {
+      "bytes": 142009747,
+      "sha256": "182bc42a497bfe5422eeb74b8d36c20f250b59db85c8b8e068ea70f6654a5874"
+    },
+    "source.bundle": {
+      "bytes": 2965,
+      "sha256": "e69dec15c0669b077ff6beec92e94ffb0127329cb12934662a8f42f642157512"
+    }
+  },
+  "restore": "cloud-store fetch package destination; extract parent and run archives; remap config and prior reader paths; source bundle requires published base52022ae10c35ed68011124bb3a8994154425041c",
+  "source_commit": "1833cb4dd1ee1dad65ca6c850b209ab16628e062"
+}

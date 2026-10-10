@@ -1,0 +1,110 @@
+{
+  "source_commit": "1833cb4dd1ee1dad65ca6c850b209ab16628e062",
+  "status": "COMPLETED",
+  "updates": 96,
+  "training_row_draws": 768,
+  "target_position_draws": 9280,
+  "initial_evaluation_seconds": 211.024198051,
+  "fit_seconds_including_checkpoints": 1289.211062466,
+  "final_evaluation_seconds": 303.482651125,
+  "elapsed_seconds": 1824.345091432,
+  "native_code_crossings": {
+    "consumer_identity_scope": "tree identity changes include native Context/Potential metadata; not a count of categorical state crossings",
+    "current_native_consumer_tree_sha256": "851dc80a017c86654ff3c77fe5e23641de6e4f470c5d3abac7c33fe974ca8962",
+    "generate_bias_code_crossings": 1,
+    "generate_pair_code_crossings": 269,
+    "generate_prototype_lane_code_crossings": 25718,
+    "generate_unary_code_crossings": 118,
+    "initial_native_consumer_tree_sha256": "d53b7c57c78da1e2f5c16f9a07e3954bab58ad15840fac4adbef00b7a89ea6b9",
+    "native_consumer_tree_changed": true,
+    "step": 96
+  },
+  "prototype_gradient_admission": {
+    "gradient_norm": 0.01705411995955738,
+    "initial_masters": {
+      "generate.prototype_choices": "3ad2349a1e500a3badb9cd9801fe8eb7856f8f4ae4149a4524458e02ee523876"
+    },
+    "scope": "discarded admission batch; no optimizer update"
+  },
+  "context_native_crossings": {
+    "changed_codes": 12307,
+    "coefficient_count": 8963136,
+    "final_packed_sha256": "1ef61dacdb0c37388f034ea5823c30ca583184ec80d44a15c806fd91dd4e6c62",
+    "initial_packed_sha256": "46abe128a4dd776479a7b5528bce12d69a5f2858031d296eeb3c1e7f34953da2",
+    "scope": "decoded saved native Context q4 payloads, not fractional master identities"
+  },
+  "context_gradient_admission": {
+    "gradient_norm": 0.23880831091868573,
+    "initial_masters": {
+      "consumer.context.neighbor_category": "3128f99df4ac41560ed7ca94f6f98c942adebc9dd4e1be0927cdf8fef78fb19d",
+      "consumer.context.neighbor_root": "2c6e96e02561d244f01e89adc49b771f8bf033c19c0743963bfa84506f30cfb4",
+      "consumer.context.neighbor_transition": "22dca0da7ff1ea36b09db72aa2dc961d3ea0badda4c308372003fc02bb9253cf",
+      "consumer.context.self_category": "3f6481b719e25e061a39cee8960d1a3f3d9e662aec74c960bf1fb22451dbf3af",
+      "consumer.context.self_root": "6ec27fa1fdeaee2140a2110d38984d0b0561d4ed88a60f08bc4d7148075aa481",
+      "consumer.context.self_transition": "5f4c04c7b1abd3ba4de4acf32837721af6d3a9fced564669919c33d90bb3c982",
+      "consumer.context.token_category": "cbe765a7a6e37cb5b1d6c421835e27f641dd7380dc28d44bfa41cb12490078aa",
+      "consumer.context.token_root": "6ff0f1f4677c724651ca0e3bd5ec92cc05d538ba17cf517063d8eba95086ec56",
+      "consumer.context.token_transition": "5770c1e41e8e423e74d7bc0e8a76caf818c73ff543e5d2a2b4805e51e20884fd"
+    },
+    "parameter_names": [
+      "consumer.context.neighbor_category",
+      "consumer.context.neighbor_root",
+      "consumer.context.neighbor_transition",
+      "consumer.context.self_category",
+      "consumer.context.self_root",
+      "consumer.context.self_transition",
+      "consumer.context.token_category",
+      "consumer.context.token_root",
+      "consumer.context.token_transition"
+    ],
+    "scope": "discarded admission batch; all nine families present, aggregate positive; no optimizer update"
+  },
+  "metrics": {
+    "initial": {
+      "entry_own_correct": 8,
+      "entry_teacher_correct": 8,
+      "first_divergent_own_position_correct": 30,
+      "first_divergent_own_prefix_reached": 8,
+      "first_divergent_teacher_correct": 50,
+      "later_copy_covered_positions": 4128,
+      "later_copy_covered_teacher_correct": 355,
+      "missing_rows": 0,
+      "paired_own_position_both_correct": 4,
+      "paired_teacher_both_correct": 6,
+      "rows": 512
+    },
+    "final": {
+      "entry_own_correct": 1,
+      "entry_teacher_correct": 1,
+      "first_divergent_own_position_correct": 12,
+      "first_divergent_own_prefix_reached": 0,
+      "first_divergent_teacher_correct": 83,
+      "later_copy_covered_positions": 4128,
+      "later_copy_covered_teacher_correct": 504,
+      "missing_rows": 0,
+      "paired_own_position_both_correct": 0,
+      "paired_teacher_both_correct": 9,
+      "rows": 512
+    }
+  },
+  "complete_swap_pairs": {
+    "initial": 4,
+    "final": 0
+  },
+  "sha256": {
+    "report.json": "bed3e8eec305f38cfbff7fcb54a1fc7fbb159b3657e4efd17709ddf74e8c8616",
+    "manifest.json": "f8172b7b06ebc94230bdb2336a31a2b39840cbb180d2ec22fc71c12408b0cfc5"
+  },
+  "process_accounting": {
+    "argv": [
+      "/workspace/uor-r4/codex/m2-joint-reply-20261010/runtime/geometric-frozen-map-fit",
+      "/workspace/uor-r4/codex/m2-joint-reply-20261010/model-config.json"
+    ],
+    "started_utc": "2026-10-10T08:36:23.992425+00:00",
+    "seconds": 1828.8602921168786,
+    "exit_code": 0,
+    "peak_child_rss_kib": 1463804
+  },
+  "sampled_gpu_max_mib": 1702,
+  "telemetry_samples": 184
+}

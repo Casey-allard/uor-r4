@@ -1,0 +1,19 @@
+{
+  "mode": "reply_joint_qualification",
+  "credit": "raw_identity",
+  "read_state_pullback": "categorical",
+  "seed": 1001,
+  "updates": 96,
+  "checkpoint": "/workspace/uor-r4/codex/sol-prototype/restore/parent-unpacked/native-prediction-control/recomposition-503d64b39-attempt1/checkpoint-0000",
+  "saved_fit": "/workspace/uor-r4/codex/sol-prototype/restore/parent-unpacked/native-prediction-control/recomposition-503d64b39-attempt1",
+  "categorical": "/workspace/uor-r4/codex/sol-prototype/restore/parent-unpacked/native-prediction-control/recomposition-503d64b39-attempt1/checkpoint-0000",
+  "parent_config": "/workspace/uor-r4/codex/sol-prototype/restore/parent-unpacked/native-prediction-control/recomposition-503d64b39-attempt1/report.json",
+  "training_inputs": "/workspace/uor-r4/codex/sol-prototype/restore/parent-unpacked/native-geometric-generate/prose-panel-dev-2/inputs.json",
+  "training_labels": "/workspace/uor-r4/codex/sol-prototype/restore/parent-unpacked/native-geometric-generate/prose-panel-dev-2/labels.json",
+  "development_inputs": "/workspace/uor-r4/codex/sol-prototype/restore/parent-unpacked/native-geometric-generate/prose-panel-dev-2/inputs.json",
+  "development_labels": "/workspace/uor-r4/codex/sol-prototype/restore/parent-unpacked/native-geometric-generate/prose-panel-dev-2/labels.json",
+  "maximum_seconds": 7200,
+  "maximum_report_bytes": 2147483648,
+  "out": "/workspace/uor-r4/codex/m2-joint-reply-20261010/runs/joint-0096-attempt1",
+  "loss_scope": "all"
+}

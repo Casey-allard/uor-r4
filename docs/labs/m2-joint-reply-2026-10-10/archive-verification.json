@@ -1,0 +1,15 @@
+{
+  "joint-reply-negative-20261010.patch": {
+    "sha256": "c90afb957afc61695ffa872195886cd0d3a7da6a4c2be2f3398ad3934ae1312e",
+    "base": "52022ae10c35ed68011124bb3a8994154425041c",
+    "tip": "1833cb4dd1ee1dad65ca6c850b209ab16628e062",
+    "exact_diff_and_restored_blobs": "PASS"
+  },
+  "joint-reply-precompile-20261010.patch": {
+    "sha256": "f1f7b5c78dddc5aea2111a0bb71915aeb14ec5b3714f0bac3b71064dfbdf73f5",
+    "base": "1833cb4dd1ee1dad65ca6c850b209ab16628e062",
+    "tip": "2b0651a413961857bcbd8eeaf9036a877c0f201b",
+    "exact_diff_and_restored_blobs": "PASS"
+  },
+  "active_rust_matches_main": "PASS"
+}
