@@ -78,6 +78,11 @@ const CONTEXT: usize = 6;
 /// A synthetic `ra` stack (one recurrence with rotations, one Lorentz read)
 /// with random weights and monotone sealed tables.
 fn artifact(seed: u64) -> Vec<u8> {
+    artifact_with(seed, &[])
+}
+
+/// [`artifact`] with extra `u32` table sections appended after the others.
+fn artifact_with(seed: u64, extra: &[(&str, &[u32])]) -> Vec<u8> {
     let mut rng = Lcg(seed);
     let mut b = Builder {
         matrices: Vec::new(),
@@ -139,6 +144,9 @@ fn artifact(seed: u64) -> Vec<u8> {
         .map(|i| i << 10)
         .collect();
     b.u32s("arcosh", &arcosh);
+    for (name, values) in extra {
+        b.u32s(name, values);
+    }
     let header = json!({
         "schema": super::STACK_SCHEMA,
         "shape": {
@@ -2041,4 +2049,127 @@ fn read_binary_head_weights_are_zero_off_the_flock_support() {
         }
     }
     assert!(unkept > 0, "window 2 and k 1 keep every position");
+}
+
+/// A learned rank table of `HEADS × M × M` for `M = side`: row `m - 1` of
+/// head `h` is `[2^31 - rest, 1000 r + 7 h + 1 for r in 1..m]`, zeros beyond,
+/// unlike the fixed rank table in every row with `m > 1`.
+fn learned_table(side: usize) -> Vec<u32> {
+    let mut table = Vec::new();
+    for h in 0..HEADS {
+        for m in 1..=side {
+            let rest: Vec<u32> = (1..m).map(|r| 1000 * r as u32 + 7 * h as u32 + 1).collect();
+            table.push((1u32 << 31) - rest.iter().sum::<u32>());
+            table.extend(&rest);
+            table.extend(std::iter::repeat_n(0, side - m));
+        }
+    }
+    table
+}
+
+fn learned_artifact(window: usize, k: usize, table: &[u32]) -> Vec<u8> {
+    // The pattern is "ra": the read is layer 1.
+    with_header(&artifact_with(5, &[("read_rank.1", table)]), |header| {
+        header["schema"] = json!(super::STACK_READ_SCHEMA);
+        header["shape"]["read_select"] = json!({"window": window, "k": k});
+        header["shape"]["read_weights"] = json!("learned");
+    })
+}
+
+#[test]
+fn read_learned_rank_serving_weights_are_the_head_table_row_by_rank() {
+    let (window, k) = (2, 1);
+    let side = window + k + 2;
+    let table = learned_table(side);
+    let model = IntegerStackModel::parse(&learned_artifact(window, k, &table))
+        .expect("a learned rank read is served");
+    let mut session = model.session();
+    let mut checked = 0usize;
+    for (position, id) in (0..CONTEXT as u32).map(|i| (i as usize, (i * 7 + 3) % VOCAB as u32)) {
+        session.step(id).expect("step");
+        for head in 0..HEADS {
+            let (scores, weights) = session.last_read(head);
+            let mut scratch = super::FlockScratch::new(scores.len());
+            super::flock_select_integer(
+                scores,
+                position,
+                super::FlockSelect::new(0, window, k),
+                &mut scratch,
+            )
+            .expect("select");
+            let kept: Vec<usize> = scratch.entries.iter().map(|e| e.position).collect();
+            for (j, &w) in weights.iter().enumerate() {
+                assert_eq!(
+                    w != 0,
+                    kept.contains(&j),
+                    "position {j} support, weight {w}"
+                );
+            }
+            // The kept weights in descending score (ties to the lowest
+            // position) are the head's row `m - 1` with NoRead's slot removed,
+            // and NoRead takes the rest of 2^31.
+            let m = kept.len() + 1;
+            let at = (head * side + m - 1) * side;
+            let row = &table[at..at + m];
+            let by_rank: Vec<u64> = scratch
+                .entries
+                .iter()
+                .map(|e| weights[e.position])
+                .collect();
+            let null = (1u64 << 31) - by_rank.iter().sum::<u64>();
+            let matches = (0..m).any(|slot| {
+                u64::from(row[slot]) == null
+                    && row
+                        .iter()
+                        .enumerate()
+                        .filter(|&(i, _)| i != slot)
+                        .map(|(_, &w)| u64::from(w))
+                        .eq(by_rank.iter().copied())
+            });
+            assert!(
+                matches,
+                "head {head} position {position}: {by_rank:?} + {null} vs {row:?}"
+            );
+            checked += 1;
+        }
+    }
+    assert_eq!(checked, CONTEXT * HEADS);
+}
+
+#[test]
+fn read_learned_rank_invalid_tables_are_refused() {
+    let (window, k) = (2, 1);
+    let side = window + k + 2;
+    let good = learned_table(side);
+    assert!(IntegerStackModel::parse(&learned_artifact(window, k, &good)).is_ok());
+    let mut short = good.clone();
+    short.pop();
+    let mut over = good.clone();
+    over[side + 1] += 1; // head 0, row m = 2 sums to 2^31 + 1
+    let mut beyond = good.clone();
+    beyond[side] -= 1; // head 0, row m = 2: move one unit off the support
+    beyond[side + 3] = 1;
+    for (why, table) in [("short", short), ("over", over), ("beyond", beyond)] {
+        assert!(
+            IntegerStackModel::parse(&learned_artifact(window, k, &table)).is_err(),
+            "{why} table accepted"
+        );
+    }
+    // A learned read without its table, and a learned binary read.
+    let missing = with_header(&artifact(5), |header| {
+        header["schema"] = json!(super::STACK_READ_SCHEMA);
+        header["shape"]["read_select"] = json!({"window": window, "k": k});
+        header["shape"]["read_weights"] = json!("learned");
+    });
+    assert!(
+        IntegerStackModel::parse(&missing).is_err(),
+        "missing table accepted"
+    );
+    let binary = with_header(&learned_artifact(window, k, &good), |header| {
+        header["shape"]["read_binary"] = json!(true);
+    });
+    assert!(
+        IntegerStackModel::parse(&binary).is_err(),
+        "learned binary accepted"
+    );
 }

@@ -241,6 +241,33 @@ pub enum ReadWeighting {
     /// Arm D: queries and keys binarized to +-1 by a straight-through sign
     /// before a [`Self::Rank`] read with the model's own score.
     HammingRank,
+    /// A [`Self::Rank`] read whose rank weights are learned: per read layer
+    /// and head, `read.rank_logits` `[heads, M]` (`M = window + k + 2`)
+    /// give a row of support `m` the weights softmax(logits[..m])
+    /// ([`learned_rank_table`], [`fused_read_learned_rank`]). They start at
+    /// `ln(1/(r+1))`, i.e. exactly the [`Self::Rank`] table.
+    LearnedRank,
+}
+
+/// The per-head logits of [`ReadWeighting::LearnedRank`] in each read layer.
+pub const READ_RANK_LOGITS: &str = "read.rank_logits";
+
+/// The [`READ_RANK_LOGITS`] variables of a configuration: `[heads, M]` per
+/// read layer, `M = window + k + 2` of its flock selection.
+fn learned_rank_shapes(config: &StackConfig) -> Result<Vec<(String, Vec<usize>)>> {
+    let select = config
+        .select
+        .ok_or_else(|| invalid("a learned rank read needs a flock selection"))?;
+    let side = select.window + select.k + 2;
+    Ok((0..config.layers())
+        .filter(|&layer| config.pattern.as_bytes()[layer] == b'a')
+        .map(|layer| {
+            (
+                layer_name(layer, READ_RANK_LOGITS),
+                vec![config.heads, side],
+            )
+        })
+        .collect())
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -2133,6 +2160,15 @@ impl StackModel {
                 "a softmax-free read weighting needs a flock selection",
             ));
         }
+        let side = |select: Option<FlockSelect>| select.map(|s| s.window + s.k);
+        if self.read_weighting == ReadWeighting::LearnedRank
+            && side(select) != side(self.config.select)
+        {
+            return Err(invalid(
+                "a learned rank read's logits are sized by the flock's window and k; \
+                 clear the weighting before changing them",
+            ));
+        }
         self.config.select = select;
         Ok(())
     }
@@ -2598,18 +2634,37 @@ impl StackModel {
             _ => None,
         };
         let (value, value_width) = self.read_binding_values(value, layer, binding)?;
-        let read = fused_read_weighted(
-            &query,
-            &key,
-            &value,
-            &aux,
-            self.config.read,
-            true,
-            true,
-            false,
-            self.config.select,
-            self.read_weighting != ReadWeighting::Softmax,
-        )?;
+        let read = if self.read_weighting == ReadWeighting::LearnedRank {
+            let select = self
+                .config
+                .select
+                .ok_or_else(|| invalid("a learned rank read needs a flock selection"))?;
+            let table = learned_rank_table(p.layer(layer, READ_RANK_LOGITS)?)?;
+            fused_read_learned_rank(
+                &query,
+                &key,
+                &value,
+                &aux,
+                self.config.read,
+                true,
+                true,
+                select,
+                &table,
+            )?
+        } else {
+            fused_read_weighted(
+                &query,
+                &key,
+                &value,
+                &aux,
+                self.config.read,
+                true,
+                true,
+                false,
+                self.config.select,
+                self.read_weighting != ReadWeighting::Softmax,
+            )?
+        };
         self.finish_geometric_read(p, layer, &read, value_width, capture, binding, bound)
     }
 
@@ -3153,6 +3208,12 @@ impl StackModel {
     /// mode is allowed. [`Self::save`] records them as [`READ_WEIGHTING_FIELD`]
     /// and [`Self::load`] restores them; a softmax model keeps its config
     /// bytes. The integer export refuses them through the flock selection.
+    ///
+    /// [`ReadWeighting::LearnedRank`] has the same requirements and adds one
+    /// variable per read layer, [`READ_RANK_LOGITS`] `[heads, window + k + 2]`
+    /// at `ln(1/(r+1))` (not weight-decayed), so set it before creating the
+    /// optimizer. Setting it again keeps the logits; any other weighting
+    /// removes them; [`Self::set_select`] then refuses a new window or k.
     pub fn set_read_weighting(&mut self, weighting: ReadWeighting) -> Result<()> {
         if weighting != ReadWeighting::Softmax {
             if self.config.arch != StackArch::Geometric || !self.config.pattern.contains('a') {
@@ -3176,6 +3237,23 @@ impl StackModel {
             if self.precision.is_bf16() {
                 return Err(invalid("a softmax-free read weighting needs f32 precision"));
             }
+        }
+        let shapes = learned_rank_shapes(&self.config).unwrap_or_default();
+        if weighting == ReadWeighting::LearnedRank {
+            for (name, shape) in shapes {
+                if self.variables.contains_key(&name) {
+                    continue;
+                }
+                let side = shape[1];
+                let row: Vec<f32> = (0..side).map(|r| -((r + 1) as f32).ln()).collect();
+                let logits = Tensor::from_vec(row, (1, side), &self.device)?
+                    .repeat((shape[0], 1))?
+                    .contiguous()?;
+                self.variables.insert(name, Var::from_tensor(&logits)?);
+            }
+        } else {
+            self.variables
+                .retain(|name, _| !name.ends_with(&format!(".{READ_RANK_LOGITS}")));
         }
         self.read_weighting = weighting;
         Ok(())
@@ -8882,8 +8960,9 @@ impl StackModel {
             None if config.get(READ_WEIGHTING_FIELD).is_none() => Ok(ReadWeighting::Softmax),
             Some("rank") => Ok(ReadWeighting::Rank),
             Some("hamming_rank") => Ok(ReadWeighting::HammingRank),
+            Some("learned_rank") => Ok(ReadWeighting::LearnedRank),
             _ => Err(invalid(format!(
-                "config.json's {READ_WEIGHTING_FIELD} must be absent, \"rank\" or \"hamming_rank\""
+                "config.json's {READ_WEIGHTING_FIELD} must be absent, \"rank\", \"hamming_rank\" or \"learned_rank\""
             ))),
         }
     }
@@ -9166,6 +9245,11 @@ impl StackModel {
         if let Some(lineage) = read_lineage {
             shapes.extend(read_lineage_shapes(&config, lineage));
         }
+        let read_weighting = Self::saved_read_weighting(directory)?;
+        if read_weighting == ReadWeighting::LearnedRank {
+            // Restored, not re-initialised, by set_read_weighting below.
+            shapes.extend(learned_rank_shapes(&config)?);
+        }
         if tensors.len() != shapes.len() {
             return Err(invalid("saved stack tensors differ from the configuration"));
         }
@@ -9217,7 +9301,7 @@ impl StackModel {
             }
             model.read_lineage = Some(lineage);
         }
-        model.set_read_weighting(Self::saved_read_weighting(directory)?)?;
+        model.set_read_weighting(read_weighting)?;
         Ok(model)
     }
 
@@ -11269,8 +11353,8 @@ impl CustomOp2 for QuaternionScan {
 pub const READ_KEY_SHIFT_FIELD: &str = "read_key_shift";
 
 /// The `config.json` field that records a softmax-free read weighting
-/// ([`StackModel::set_read_weighting`]): `"rank"` or `"hamming_rank"`,
-/// written only when it is not [`ReadWeighting::Softmax`].
+/// ([`StackModel::set_read_weighting`]): `"rank"`, `"hamming_rank"` or
+/// `"learned_rank"`, written only when it is not [`ReadWeighting::Softmax`].
 pub const READ_WEIGHTING_FIELD: &str = "read_weighting";
 
 /// Left multiplication by the unit quaternion `j` of every four-channel lane
@@ -12438,6 +12522,10 @@ struct FusedRead {
     /// instead of the softmax; the backward is straight-through (see
     /// [`fused_read_weighted`]). Needs `select`.
     rank: bool,
+    /// [`ReadWeighting::LearnedRank`]: the side `M` of each head's learned
+    /// rank-weight table, appended to `aux` after [`fused_aux_len`] as
+    /// `heads * M * M` values (`W[h][m-1][r]`); 0 for the fixed rank table.
+    learned: usize,
 }
 
 /// One (window, head) block: queries and keys (rotated with RoPE) in row
@@ -12450,6 +12538,7 @@ struct Block<'a> {
     value_columns: Vec<f32>,
     null: Option<&'a [f32]>,
     age: Option<&'a [f32]>,
+    learned: Option<&'a [f32]>,
     /// Lifts sqrt(1 + |x|^2) of queries and keys, for Lorentz; for L2 the
     /// squared norms |x|^2.
     query_lift: Vec<f64>,
@@ -12467,6 +12556,9 @@ struct Scratch {
     dp: Vec<f32>,
     /// Which sources of the current row its flock selection keeps.
     keep: Vec<bool>,
+    /// [`ReadWeighting::LearnedRank`]: per tile row and position, `0` when
+    /// unkept, else `1 + (m - 1) * M + r` (support size `m`, rank `r`).
+    slots: Vec<u32>,
 }
 
 impl Scratch {
@@ -12476,6 +12568,7 @@ impl Scratch {
             distance: vec![0f64; TILE * time],
             dp: vec![0f32; TILE * time],
             keep: Vec::new(),
+            slots: Vec::new(),
         }
     }
 }
@@ -12525,7 +12618,9 @@ fn rank_weights(
     scores: &[f32],
     null: Option<f32>,
     weights: &mut [f32],
-) {
+    learned: Option<(&[f32], usize)>,
+    slots: Option<&mut [u32]>,
+) -> candle_core::Result<()> {
     weights.fill(0.0);
     let null_rank = null.map(|null| {
         selection
@@ -12534,14 +12629,35 @@ fn rank_weights(
             .filter(|entry| scores[entry.position] >= null)
             .count()
     });
-    let table = flock::rank_table(selection.len() + usize::from(null_rank.is_some()));
+    let support = selection.len() + usize::from(null_rank.is_some());
+    let fixed;
+    let table = match learned {
+        Some((table, side)) => {
+            if support == 0 || support > side {
+                candle_core::bail!("a learned rank read's support exceeds its table");
+            }
+            &table[(support - 1) * side..support * side]
+        }
+        None => {
+            fixed = flock::rank_table(support);
+            &fixed[..]
+        }
+    };
+    let mut slots = slots;
+    if let Some(slots) = slots.as_deref_mut() {
+        slots.fill(0);
+    }
     for (index, entry) in selection.entries.iter().enumerate() {
         let rank = match null_rank {
             Some(null_rank) if index >= null_rank => index + 1,
             _ => index,
         };
         weights[entry.position] = table[rank];
+        if let (Some(slots), Some((_, side))) = (slots.as_deref_mut(), learned) {
+            slots[entry.position] = (1 + (support - 1) * side + rank) as u32;
+        }
     }
+    Ok(())
 }
 
 /// Rows of a register tile of the read's products.
@@ -12811,6 +12927,13 @@ impl FusedRead {
             value_columns,
             null,
             age,
+            learned: (self.learned > 0).then(|| {
+                let size = self.learned * self.learned;
+                let base = fused_aux_len(
+                    self.batch, self.heads, time, self.score, self.null, self.age,
+                ) + head * size;
+                &aux[base..base + size]
+            }),
             query_lift,
             key_lift,
             beta,
@@ -12837,6 +12960,7 @@ impl FusedRead {
         distance: &mut [f64],
         keep: &mut Vec<bool>,
         rank: Option<&mut [f32]>,
+        slots: Option<&mut [u32]>,
     ) -> candle_core::Result<f32> {
         let row = &mut row[..=t];
         let scale = 1.0 / (self.key as f32).sqrt();
@@ -12871,7 +12995,9 @@ impl FusedRead {
             let selection = flock::flock_select(&*row, t, select).map_err(selection_error)?;
             if let Some(weights) = rank {
                 let null = block.null.map(|null| null[t]);
-                rank_weights(&selection, row, null, &mut weights[..=t]);
+                let learned = block.learned.map(|table| (table, self.learned));
+                let slots = slots.map(|slots| &mut slots[..=t]);
+                rank_weights(&selection, row, null, &mut weights[..=t], learned, slots)?;
             }
             if drop_unkept(&selection, row, keep) {
                 maximum = block.null.map_or(f32::NEG_INFINITY, |null| null[t]);
@@ -12922,8 +13048,12 @@ impl FusedRead {
             time,
         );
         let mut null = [0f32; TILE];
+        if self.learned > 0 {
+            scratch.slots.resize(TILE * time, 0);
+        }
         for (r, null) in null.iter_mut().enumerate().take(rows) {
             let span = r * time..(r + 1) * time;
+            let span_slots = span.clone();
             let weights = rank
                 .as_deref_mut()
                 .map(|weights| &mut weights[span.clone()]);
@@ -12935,6 +13065,7 @@ impl FusedRead {
                 &mut scratch.distance[span],
                 &mut scratch.keep,
                 weights,
+                (self.learned > 0).then(|| &mut scratch.slots[span_slots]),
             )?;
         }
         Ok(null)
@@ -13451,6 +13582,7 @@ impl CustomOp3 for FusedRead {
             dage: Vec<f64>,
             dbeta: f64,
             doffset: f64,
+            dtable: Vec<f64>,
         }
         let partials: Vec<Partial> = dq
             .par_chunks_mut(time * key)
@@ -13464,6 +13596,7 @@ impl CustomOp3 for FusedRead {
                     dage: vec![0.0; if self.age { time } else { 0 }],
                     dbeta: 0.0,
                     doffset: 0.0,
+                    dtable: vec![0.0; self.learned * self.learned],
                 };
                 let mut scratch = Scratch::new(time);
                 // The whole block's probabilities and inner-product gradients,
@@ -13513,6 +13646,14 @@ impl CustomOp3 for FusedRead {
                             .sum();
                         if self.null {
                             partial.dnull[t] = -f64::from(null_probability[r]) * row_dot;
+                        }
+                        if self.learned > 0 {
+                            // dL/dW[m-1][r] = sum over kept j of rank r: dOut_t . v_j.
+                            for (&slot, &d) in scratch.slots[span.clone()].iter().zip(dp) {
+                                if slot > 0 {
+                                    partial.dtable[slot as usize - 1] += f64::from(d);
+                                }
+                            }
                         }
                         let (excess, distance) = (
                             &scratch.excess[span.clone()],
@@ -13629,6 +13770,15 @@ impl CustomOp3 for FusedRead {
                 d_aux[null_len + age_len + head] += partial.dbeta;
                 d_aux[null_len + age_len + self.heads + head] += partial.doffset;
             }
+            if self.learned > 0 {
+                let size = self.learned * self.learned;
+                let base = fused_aux_len(
+                    self.batch, self.heads, time, self.score, self.null, self.age,
+                ) + head * size;
+                for (i, &v) in partial.dtable.iter().enumerate() {
+                    d_aux[base + i] += v;
+                }
+            }
         }
         let device = query.device();
         let d_aux: Vec<f32> = d_aux.into_iter().map(|v| v as f32).collect();
@@ -13711,6 +13861,76 @@ pub fn fused_read_weighted(
     select: Option<FlockSelect>,
     rank: bool,
 ) -> Result<Tensor> {
+    fused_read_ranked(
+        query, key, value, aux, score, null, age, rope, select, rank, None,
+    )
+}
+
+/// [`fused_read_weighted`]'s rank read with [`ReadWeighting::LearnedRank`]
+/// weights: the same flock support, rank order, NoRead placement and
+/// straight-through query/key/auxiliary gradients, but a row of support `m`
+/// (kept sources plus NoRead) weights rank `r` by `table[h][m-1][r]`
+/// (`table` is f32 `[heads, M, M]`, `M >= window + k + 2`). The gradient to
+/// `table` is exact: `dOut_t . v_j` added to the slot of every kept `j`
+/// (NoRead's value is zero, so its slot receives none).
+#[allow(clippy::too_many_arguments)]
+pub fn fused_read_learned_rank(
+    query: &Tensor,
+    key: &Tensor,
+    value: &Tensor,
+    aux: &Tensor,
+    score: ReadScore,
+    null: bool,
+    age: bool,
+    select: FlockSelect,
+    table: &Tensor,
+) -> Result<Tensor> {
+    fused_read_ranked(
+        query,
+        key,
+        value,
+        aux,
+        score,
+        null,
+        age,
+        false,
+        Some(select),
+        true,
+        Some(table),
+    )
+}
+
+/// The `[heads, M, M]` learned rank-weight table of `[heads, M]` logits:
+/// `W[h][m-1][r] = exp(l_r) / sum_{i<m} exp(l_i)` for `r < m`, else 0.
+pub fn learned_rank_table(logits: &Tensor) -> Result<Tensor> {
+    let (_, side) = logits.dims2()?;
+    let mut mask = vec![0f32; side * side];
+    for m in 0..side {
+        for r in 0..=m {
+            mask[m * side + r] = 1.0;
+        }
+    }
+    let mask = Tensor::from_vec(mask, (1, side, side), logits.device())?;
+    let shifted = logits.broadcast_sub(&logits.max_keepdim(1)?.detach())?;
+    let numerator = shifted.exp()?.unsqueeze(1)?.broadcast_mul(&mask)?;
+    let denominator = numerator.sum_keepdim(2)?;
+    Ok(numerator.broadcast_div(&denominator)?)
+}
+
+#[allow(clippy::too_many_arguments)]
+fn fused_read_ranked(
+    query: &Tensor,
+    key: &Tensor,
+    value: &Tensor,
+    aux: &Tensor,
+    score: ReadScore,
+    null: bool,
+    age: bool,
+    rope: bool,
+    select: Option<FlockSelect>,
+    rank: bool,
+    table: Option<&Tensor>,
+) -> Result<Tensor> {
     if rank && select.is_none() {
         return Err(invalid("a rank read needs a flock selection"));
     }
@@ -13745,6 +13965,24 @@ pub fn fused_read_weighted(
     if aux.rank() != 1 || aux.dim(0)? != expected.max(1) {
         return Err(invalid("fused read auxiliary input has the wrong length"));
     }
+    let learned = match table {
+        Some(table) => {
+            let (h, side, side2) = table.dims3()?;
+            let floor = select.map_or(usize::MAX, |s| s.window + s.k + 2);
+            if h != heads || side != side2 || side < floor || table.dtype() != DType::F32 {
+                return Err(invalid(
+                    "a learned rank table must be f32 [heads, M, M] with M >= window + k + 2",
+                ));
+            }
+            side
+        }
+        None => 0,
+    };
+    let aux = match table {
+        Some(table) if expected > 0 => Tensor::cat(&[aux, &table.flatten_all()?], 0)?,
+        Some(table) => table.flatten_all()?,
+        None => aux.clone(),
+    };
     let op = FusedRead {
         batch,
         heads,
@@ -13757,6 +13995,7 @@ pub fn fused_read_weighted(
         rope,
         select,
         rank,
+        learned,
     };
     if rope && key_width % 2 != 0 {
         return Err(invalid("RoPE needs an even head width"));
@@ -21136,6 +21375,219 @@ mod tests {
         ))
     }
 
+    fn read_weighting_learned_logits(values: &[f32]) -> Result<Var> {
+        Ok(Var::from_tensor(&Tensor::from_vec(
+            values.to_vec(),
+            (1, values.len()),
+            &cpu(),
+        )?)?)
+    }
+
+    fn read_weighting_learned_read(
+        (query, key, value, aux, select): &(Var, Var, Var, Var, FlockSelect),
+        logits: &Tensor,
+    ) -> Result<Tensor> {
+        fused_read_learned_rank(
+            query.as_tensor(),
+            key.as_tensor(),
+            value.as_tensor(),
+            aux.as_tensor(),
+            ReadScore::Dot,
+            true,
+            true,
+            *select,
+            &learned_rank_table(logits)?,
+        )
+    }
+
+    #[test]
+    fn read_weighting_learned_fresh_equals_rank() -> Result<()> {
+        let case = read_weighting_case()?;
+        let (query, key, value, aux, select) = &case;
+        let fresh: Vec<f32> = (0..6).map(|r| (1.0 / (r as f32 + 1.0)).ln()).collect();
+        let learned =
+            read_weighting_learned_read(&case, read_weighting_learned_logits(&fresh)?.as_tensor())?;
+        let rank = fused_read_weighted(
+            query.as_tensor(),
+            key.as_tensor(),
+            value.as_tensor(),
+            aux.as_tensor(),
+            ReadScore::Dot,
+            true,
+            true,
+            false,
+            Some(*select),
+            true,
+        )?;
+        let gap = learned.sub(&rank)?.abs()?.max_all()?.to_scalar::<f32>()?;
+        assert!(gap < 1e-6, "fresh learned rank differs from rank by {gap}");
+        Ok(())
+    }
+
+    #[test]
+    fn read_weighting_learned_multi_head_gradient_is_exact() -> Result<()> {
+        // Two heads: the second head's logits sit at a nonzero offset in the
+        // read's auxiliary gradient, which a one-head case never exercises.
+        let mut config = tiny(StackArch::Geometric, "ra", ReadScore::L2, true);
+        config.select = Some(FlockSelect {
+            sink: 0,
+            window: 2,
+            k: 2,
+        });
+        let mut model = StackModel::new(config, &cpu())?;
+        model.set_read_weighting(ReadWeighting::LearnedRank)?;
+        let name = "layers.01.read.rank_logits";
+        let var = model.variables()[name].clone();
+        let (heads, side) = var.as_tensor().dims2()?;
+        assert_eq!(heads, 2);
+        let start: Vec<f32> = (0..heads * side)
+            .map(|i| ((i as f32) * 0.71).sin() * 0.8)
+            .collect();
+        var.set(&Tensor::from_vec(start.clone(), (heads, side), &cpu())?)?;
+        let ids = [3u32, 9, 4, 12, 7, 1, 30, 5, 22, 8];
+        let targets = [9u32, 4, 12, 7, 1, 30, 5, 22, 8, 3];
+        let loss =
+            |model: &StackModel| -> Result<Tensor> { model.loss(&ids, &targets, 1, ids.len()) };
+        let grads = loss(&model)?.backward()?;
+        let analytic = grads
+            .get(var.as_tensor())
+            .ok_or_else(|| invalid("no rank-logit gradient"))?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        let eps = 1e-2f32;
+        let mut checked = 0;
+        for i in side..2 * side {
+            let mut value = |delta: f32| -> Result<f32> {
+                let mut v = start.clone();
+                v[i] += delta;
+                var.set(&Tensor::from_vec(v, (heads, side), &cpu())?)?;
+                Ok(loss(&model)?.to_scalar::<f32>()?)
+            };
+            let numeric = (value(eps)? - value(-eps)?) / (2.0 * eps);
+            let scale = analytic[i].abs().max(numeric.abs()).max(1e-4);
+            if scale > 1e-4 {
+                assert!(
+                    (analytic[i] - numeric).abs() / scale < 5e-2,
+                    "head 1 logit {}: analytic {} numeric {numeric}",
+                    i - side,
+                    analytic[i]
+                );
+                checked += 1;
+            }
+        }
+        var.set(&Tensor::from_vec(start, (heads, side), &cpu())?)?;
+        assert!(checked > 0, "no head-1 logit carried a gradient");
+        Ok(())
+    }
+
+    #[test]
+    fn read_weighting_learned_logit_gradient_is_exact() -> Result<()> {
+        let case = read_weighting_case()?;
+        let (query, key, value, aux, select) = &case;
+        let start = [0.4f32, -0.3, 0.2, 0.9, -0.6, 0.1];
+        let logits = read_weighting_learned_logits(&start)?;
+        let cotangent = Tensor::from_vec(
+            (0..100)
+                .map(|i| ((i as f32) * 0.377).cos())
+                .collect::<Vec<f32>>(),
+            (1, 1, 10, 10),
+            &cpu(),
+        )?;
+        let loss = |logits: &Tensor| -> Result<Tensor> {
+            Ok(read_weighting_learned_read(&case, logits)?
+                .mul(&cotangent)?
+                .sum_all()?)
+        };
+        let grads = loss(logits.as_tensor())?.backward()?;
+        let analytic = grads
+            .get(logits.as_tensor())
+            .ok_or_else(|| invalid("no rank-logit gradient"))?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        let eps = 1e-2f32;
+        for i in 0..start.len() {
+            let mut plus = start;
+            plus[i] += eps;
+            let mut minus = start;
+            minus[i] -= eps;
+            let f = |v: [f32; 6]| -> Result<f32> {
+                Ok(loss(&Tensor::from_vec(v.to_vec(), (1, 6), &cpu())?)?.to_scalar::<f32>()?)
+            };
+            let numeric = (f(plus)? - f(minus)?) / (2.0 * eps);
+            let scale = analytic[i].abs().max(numeric.abs()).max(1e-3);
+            assert!(
+                (analytic[i] - numeric).abs() / scale < 1e-2,
+                "logit {i}: analytic {} numeric {numeric}",
+                analytic[i]
+            );
+        }
+        assert!(analytic.iter().any(|g| g.abs() > 1e-3));
+        let rank = fused_read_weighted(
+            query.as_tensor(),
+            key.as_tensor(),
+            value.as_tensor(),
+            aux.as_tensor(),
+            ReadScore::Dot,
+            true,
+            true,
+            false,
+            Some(*select),
+            true,
+        )?;
+        let rank_grads = rank.mul(&cotangent)?.sum_all()?.backward()?;
+        for var in [query, key, aux] {
+            let (a, b) = (
+                grads
+                    .get(var.as_tensor())
+                    .ok_or_else(|| invalid("no grad"))?,
+                rank_grads
+                    .get(var.as_tensor())
+                    .ok_or_else(|| invalid("no grad"))?,
+            );
+            let gap = a.sub(b)?.abs()?.max_all()?.to_scalar::<f32>()?;
+            assert!(gap < 1e-6, "straight-through gradient differs by {gap}");
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn read_weighting_learned_sharp_profile_matches_closed_form() -> Result<()> {
+        let case = read_weighting_case()?;
+        let logits = read_weighting_learned_logits(&[5.0, 0.0, 0.0, 0.0, 0.0, 0.0])?;
+        let out = read_weighting_learned_read(&case, logits.as_tensor())?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        let time = 10;
+        let (mut sizes, mut null_first, mut null_later) = (BTreeSet::new(), 0, 0);
+        for t in 0..time {
+            let row = &out[t * time..(t + 1) * time];
+            let mut weights: Vec<f32> = row.iter().copied().filter(|&w| w != 0.0).collect();
+            let null = 1.0 - weights.iter().sum::<f32>();
+            let support = weights.len() + 1;
+            let top = 5f32.exp() / (5f32.exp() + (support - 1) as f32);
+            let rest = 1.0 / (5f32.exp() + (support - 1) as f32);
+            if (null - top).abs() < 1e-5 {
+                null_first += 1;
+            } else {
+                null_later += 1;
+            }
+            weights.push(null);
+            weights.sort_by(|a, b| b.total_cmp(a));
+            assert!(
+                (weights[0] - top).abs() < 1e-5,
+                "row {t}: top {} vs {top}",
+                weights[0]
+            );
+            for &w in &weights[1..] {
+                assert!((w - rest).abs() < 1e-5, "row {t}: weight {w} vs {rest}");
+            }
+            sizes.insert(support);
+        }
+        assert!(sizes.len() >= 2, "support sizes {sizes:?}");
+        assert!(null_first + null_later == time);
+        Ok(())
+    }
+
     #[test]
     fn read_weighting_rank_forward_is_the_rank_table_over_the_flock() -> Result<()> {
         let (query, key, value, aux, select) = read_weighting_case()?;
@@ -21339,6 +21791,150 @@ mod tests {
             .sum_all()?
             .to_scalar::<f32>()?;
         assert!(grad.is_finite() && grad > 0.0);
+        Ok(())
+    }
+
+    fn read_weighting_learned_model() -> Result<(StackModel, StackConfig)> {
+        let mut config = tiny(StackArch::Geometric, "rra", ReadScore::L2, true);
+        config.select = Some(FlockSelect {
+            sink: 0,
+            window: 2,
+            k: 2,
+        });
+        Ok((StackModel::new(config.clone(), &cpu())?, config))
+    }
+
+    fn read_weighting_learned_logit_values(model: &StackModel) -> Vec<(String, Vec<f32>)> {
+        model
+            .variables()
+            .iter()
+            .filter(|(name, _)| name.ends_with(READ_RANK_LOGITS))
+            .map(|(name, var)| {
+                let values = var
+                    .as_tensor()
+                    .flatten_all()
+                    .and_then(|t| t.to_vec1::<f32>());
+                (name.clone(), values.unwrap_or_default())
+            })
+            .collect()
+    }
+
+    #[test]
+    fn read_weighting_learned_save_load_round_trips() -> Result<()> {
+        let root = std::env::temp_dir().join(format!(
+            "stack-read-weighting-learned-{}",
+            std::process::id()
+        ));
+        let (plain_dir, touched_dir, learned_dir) = (
+            root.join("plain"),
+            root.join("touched"),
+            root.join("learned"),
+        );
+        let (plain, _) = read_weighting_learned_model()?;
+        plain.save(&plain_dir)?;
+        let (mut model, config) = read_weighting_learned_model()?;
+        let base = model.variables().len();
+        model.set_read_weighting(ReadWeighting::LearnedRank)?;
+        // One [heads, window + k + 2] logit row per read layer, at ln(1/(r+1)).
+        let logits = read_weighting_learned_logit_values(&model);
+        assert_eq!(logits.len(), 1);
+        assert_eq!(model.variables().len(), base + 1);
+        assert_eq!(
+            model.variables()[&logits[0].0].dims(),
+            &[config.heads, 2 + 2 + 2]
+        );
+        let start: Vec<f32> = (0..6).map(|r| -((r + 1) as f32).ln()).collect();
+        assert_eq!(logits[0].1, start.repeat(config.heads));
+        assert!(!decayed(&logits[0].0, 2));
+        // The window/k that size the logits are fixed while the mode is set.
+        assert!(model
+            .set_select(Some(FlockSelect {
+                sink: 0,
+                window: 3,
+                k: 2,
+            }))
+            .is_err());
+        assert!(model.set_select(config.select).is_ok());
+        // Distinct logits, so the round trip is not the initial value.
+        let name = logits[0].0.clone();
+        let trained: Vec<f32> = (0..config.heads * 6)
+            .map(|i| 0.25 * i as f32 - 1.0)
+            .collect();
+        model.variables()[&name].set(&Tensor::from_vec(
+            trained.clone(),
+            (config.heads, 6),
+            &cpu(),
+        )?)?;
+        let ids = [1u32, 2, 3, 4, 5, 6, 7, 8];
+        let expected = bits(&model.forward(&ids, 1, ids.len())?)?;
+        model.save(&learned_dir)?;
+        let saved: serde_json::Value =
+            serde_json::from_slice(&fs::read(learned_dir.join("config.json"))?)?;
+        assert_eq!(
+            saved[READ_WEIGHTING_FIELD],
+            serde_json::json!("learned_rank")
+        );
+        let loaded = StackModel::load(&learned_dir, &cpu())?;
+        assert_eq!(loaded.read_weighting(), ReadWeighting::LearnedRank);
+        let reloaded = read_weighting_learned_logit_values(&loaded);
+        assert_eq!(
+            reloaded[0]
+                .1
+                .iter()
+                .map(|v| v.to_bits())
+                .collect::<Vec<_>>(),
+            trained.iter().map(|v| v.to_bits()).collect::<Vec<_>>()
+        );
+        assert_eq!(bits(&loaded.forward(&ids, 1, ids.len())?)?, expected);
+        // A config claiming learned_rank without the logits, or logits
+        // without the field, is refused.
+        let mut altered = saved.clone();
+        altered[READ_WEIGHTING_FIELD] = serde_json::json!("rank");
+        fs::write(
+            learned_dir.join("config.json"),
+            serde_json::to_vec_pretty(&altered)?,
+        )?;
+        assert!(StackModel::load(&learned_dir, &cpu()).is_err());
+        let mut rank = StackModel::load(&plain_dir, &cpu())?;
+        rank.set_read_weighting(ReadWeighting::Rank)?;
+        rank.save(&learned_dir)?;
+        altered = serde_json::from_slice(&fs::read(learned_dir.join("config.json"))?)?;
+        altered[READ_WEIGHTING_FIELD] = serde_json::json!("learned_rank");
+        fs::write(
+            learned_dir.join("config.json"),
+            serde_json::to_vec_pretty(&altered)?,
+        )?;
+        assert!(StackModel::load(&learned_dir, &cpu()).is_err());
+        // Switching away removes the logits: the softmax bytes stay legacy.
+        model.set_read_weighting(ReadWeighting::Softmax)?;
+        assert_eq!(model.variables().len(), base);
+        model.save(&touched_dir)?;
+        assert_eq!(
+            fs::read(touched_dir.join("config.json"))?,
+            fs::read(plain_dir.join("config.json"))?
+        );
+        fs::remove_dir_all(&root)?;
+        Ok(())
+    }
+
+    #[test]
+    fn read_weighting_learned_logits_are_trained() -> Result<()> {
+        let (mut model, _) = read_weighting_learned_model()?;
+        model.set_read_weighting(ReadWeighting::LearnedRank)?;
+        let before = read_weighting_learned_logit_values(&model);
+        let mut optimizer = StackAdamW::new(&model, 0.1, 1.0)?;
+        let ids = [1u32, 2, 3, 4, 5, 6, 7, 8];
+        let targets = [2u32, 3, 4, 5, 6, 7, 8, 9];
+        let loss = model.loss(&ids, &targets, 1, ids.len())?;
+        let grads = loss.backward()?;
+        optimizer.update(&model, &grads, 1e-2)?;
+        let after = read_weighting_learned_logit_values(&model);
+        assert_eq!(before.len(), after.len());
+        assert!(!after.is_empty());
+        for ((name, b), (_, a)) in before.iter().zip(&after) {
+            assert_ne!(a, b, "{name} was not updated");
+            assert!(a.iter().all(|v| v.is_finite()));
+        }
         Ok(())
     }
 

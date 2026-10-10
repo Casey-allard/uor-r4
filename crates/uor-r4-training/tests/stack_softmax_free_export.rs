@@ -211,3 +211,64 @@ fn a_softmax_free_read_on_the_u1_transport_control_is_still_refused() {
     let refusal = export_stack(&model, json!({}), None, None).expect_err("u1 + rank");
     assert!(refusal.to_string().contains("U(1)"), "{refusal}");
 }
+
+#[test]
+fn a_learned_rank_read_exports_its_tables_and_the_d11_engine_serves_them() {
+    let select = FlockSelect {
+        sink: 0,
+        window: 2,
+        k: 2,
+    };
+    let mut model = small(Some(select), 13);
+    model
+        .set_read_weighting(ReadWeighting::LearnedRank)
+        .expect("learned rank");
+    // A sharp learned profile, far from the fixed 1/(r+1) table.
+    let side = select.window + select.k + 2;
+    for (name, var) in model.variables() {
+        if name.ends_with("read.rank_logits") {
+            let heads = var.as_tensor().dims()[0];
+            let values: Vec<f32> = (0..heads * side)
+                .map(|i| {
+                    if i % side == 0 {
+                        4.0
+                    } else {
+                        -((i % side) as f32) * 0.5
+                    }
+                })
+                .collect();
+            var.set(&Tensor::from_vec(values, (heads, side), &Device::Cpu).expect("logits"))
+                .expect("set logits");
+        }
+    }
+    let (bytes, _) = export_stack(&model, json!({"test": "learned"}), None, None)
+        .expect("a learned rank read exports");
+    let header = header(&bytes);
+    assert_eq!(header["schema"], json!("uor-r4.lut-stack/3"));
+    assert_eq!(header["shape"]["read_weights"], json!("learned"));
+    assert_eq!(header["shape"]["read_binary"], json!(false));
+    assert!(StackArtifact::parse(bytes.clone()).is_err());
+    let d11 = IntegerStackModel::parse(&bytes).expect("the D11 engine loads the learned tables");
+    let (nll11, nllf, agreement, targets) = d11_and_float(&model, &d11);
+    eprintln!(
+        "LearnedRank: d11 nll {nll11:.4}, float nll {nllf:.4}, gap {:.4} nats, top-1 agreement \
+         {agreement:.3} over {targets} targets",
+        nll11 - nllf
+    );
+    assert!(
+        (nll11 - nllf).abs() < 0.25,
+        "LearnedRank: D11 NLL {nll11} vs float {nllf}"
+    );
+    // The same weights read as the fixed table differ: the learned table is served.
+    model
+        .set_read_weighting(ReadWeighting::Rank)
+        .expect("fixed rank");
+    let (fixed_bytes, _) =
+        export_stack(&model, json!({"test": "learned"}), None, None).expect("fixed rank export");
+    let fixed_d11 = IntegerStackModel::parse(&fixed_bytes).expect("fixed parse");
+    let (fixed_nll, _, _, _) = d11_and_float(&model, &fixed_d11);
+    assert!(
+        (fixed_nll - nll11).abs() > 1e-6,
+        "the learned and fixed tables served identically"
+    );
+}

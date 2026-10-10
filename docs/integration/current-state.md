@@ -1,3 +1,12 @@
+## 2026-10-10 — Learned rank tables for the softmax-free read: trainer, export and D11 (claude, #2032)
+
+The one preparation PR the 3/3 pivot card allows ([record](../labs/softmax-free-read-2026-10-10/README.md#the-decisive-run-pivot-at-33-rank-tables-learned-in-training--mechanism)):
+- **Training:** `read_weighting=learned_rank` gives each read head a learnable rank profile over its flock support, starting equal to the fixed `1/(r+1)` table.
+- **Serving:** export freezes each profile into a constant Q31 table per support size (rows summing exactly to 2^31), which D11 serves with no softmax at runtime. The audit is a FULL PASS, and the /1 and /2 oracle passes 13/13.
+
+Line: softmax-free served read · count 4/3, the single decisive continuation after the pivot · headline: softmax at runtime yes → yes.
+
+**Next:** arm L (2 seeds) is training. Its result PR is KEEP or REJECT against the pre-registered bar, and the line stops either way.
 ## 2026-10-10 — Cross-state continuation: saved complete replies 8→22/512 (Codex, #2030)
 
 **KEEP.** The [cross-state result](../labs/m2-cross-state-2026-10-10/README.md)

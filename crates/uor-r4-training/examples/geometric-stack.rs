@@ -9,7 +9,7 @@
 //!   out=NEW_REPORT_ROOT (init=ROOT/model | arch=transformer|geometric) [pattern=rrarra] \
 //!   [read=lorentz|dot|l2] [rotation=true|false] [rotation_group=quaternion|u1] [qat=false|true] \
 //!   [transport_snap=none|icosian] [key_shift=false|true|add] [select=none|flock:WINDOW:K] \
-//!   [read_weighting=softmax|rank|hamming_rank] \
+//!   [read_weighting=softmax|rank|hamming_rank|learned_rank] \
 //!   [seed=1] [steps=7324] [batch=16] [lr=0.002] [warmup=200] [min_lr=0.1] [weight_decay=0.1] \
 //!   [clip=1.0] [eval_every=250] [eval_windows=64] [final_windows=512] [lens=LENS.u16] \
 //!   [merges=MERGES.txt] [checkpoint_every=250] [resume=OLD_ROOT/checkpoint] [max_seconds=inf] \
@@ -46,7 +46,7 @@
 //!   dev_tokens=DEV.uort dev_mask=DEV.mask dev_manifest=DEV/manifest.json \
 //!   (init=ROOT/model | arch=geometric|transformer [shape options as train]) [qat=false|true] \
 //!   [transport_snap=none|icosian] [key_shift=false|true|add] [select=none|flock:WINDOW:K] \
-//!   [read_weighting=softmax|rank|hamming_rank] [pointer=none|DIM] \
+//!   [read_weighting=softmax|rank|hamming_rank|learned_rank] [pointer=none|DIM] \
 //!   [pointer_score=dot|lorentz] [pointer_select=none|flock:WINDOW:K|top:K] \
 //!   [pointer_route=none|prime:WINDOW|prime-ranked:WINDOW|ngram:WINDOW|ngram-ranked:WINDOW] \
 //!   [pointer_gate_supervision=0] \
@@ -262,12 +262,15 @@
 //! is continued with it.
 //! `select=` is also accepted by `train` (on a fresh shape, or replacing an
 //! `init=` model's flock); the `pointer*` options stay `dialogue-train`'s.
-//! `read_weighting=softmax|rank|hamming_rank` (`train` and `dialogue-train`)
+//! `read_weighting=softmax|rank|hamming_rank|learned_rank` (`train` and `dialogue-train`)
 //! sets how every geometric read weights its flock-kept sources
 //! (`StackModel::set_read_weighting`): `rank` mixes values by the normalized
 //! `1/(r+1)` rank table over the kept sources and NoRead, with straight-through
 //! softmax gradients for queries, keys and the auxiliary table; `hamming_rank`
-//! also binarizes queries and keys to +-1 with a straight-through sign. Both
+//! also binarizes queries and keys to +-1 with a straight-through sign;
+//! `learned_rank` replaces the fixed table by per-head learned logits
+//! (`read.rank_logits`, `[heads, window + k + 2]` per read layer, starting at
+//! the `rank` table and trained with the model; set before the optimizer). All
 //! need `select=flock:..`, a geometric read and f32 precision; `qat=true` is
 //! allowed. Absent keeps the `init=` or new model's own weighting (`softmax`
 //! clears it); the saved `config.json` records it, every load restores it, and
@@ -1539,7 +1542,7 @@ fn stack_config(args: &Args, vocab: Option<usize>) -> Result<StackConfig> {
     Ok(config)
 }
 
-/// `read_weighting=softmax|rank|hamming_rank`
+/// `read_weighting=softmax|rank|hamming_rank|learned_rank`
 /// (`StackModel::set_read_weighting`); absent (`None`) keeps the model's own.
 fn read_weighting_arg(args: &Args) -> Result<Option<ReadWeighting>> {
     match args.optional("read_weighting").as_deref() {
@@ -1547,8 +1550,9 @@ fn read_weighting_arg(args: &Args) -> Result<Option<ReadWeighting>> {
         Some("softmax") => Ok(Some(ReadWeighting::Softmax)),
         Some("rank") => Ok(Some(ReadWeighting::Rank)),
         Some("hamming_rank") => Ok(Some(ReadWeighting::HammingRank)),
+        Some("learned_rank") => Ok(Some(ReadWeighting::LearnedRank)),
         Some(other) => Err(invalid(format!(
-            "invalid read_weighting={other} (softmax, rank or hamming_rank)"
+            "invalid read_weighting={other} (softmax, rank, hamming_rank or learned_rank)"
         ))),
     }
 }
@@ -2137,7 +2141,7 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
     }
     let (mut model, mut optimizer, mut progress, resumed_from) = match &settings.resume {
         None => {
-            let model = match &settings.init {
+            let mut model = match &settings.init {
                 Some(directory) => {
                     let mut model = StackModel::load(directory, &device)?;
                     // `select=` may replace the saved flock.
@@ -2158,6 +2162,8 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
                     model
                 }
             };
+            // Before the optimizer: learned_rank adds trained logits.
+            apply_read_weighting(settings.read_weighting, &mut model)?;
             let optimizer = StackAdamW::new(&model, settings.weight_decay, settings.clip)?;
             let progress = Progress {
                 step: 0,
@@ -2177,11 +2183,8 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
     };
     model.set_precision(settings.precision);
     // After the precision, so a bf16 run with a rank weighting (asked, from
-    // `init=` or resumed) is refused; the weighting has no parameters, so the
-    // optimizer built above is unchanged.
-    if settings.resume.is_none() {
-        apply_read_weighting(settings.read_weighting, &mut model)?;
-    }
+    // `init=` or resumed) is refused; setting the same weighting again keeps
+    // any learned rank logits the optimizer already holds.
     model.set_read_weighting(model.read_weighting())?;
     let parameters = model.parameter_count();
     let active_parameters = model.config.active_parameter_count()?;

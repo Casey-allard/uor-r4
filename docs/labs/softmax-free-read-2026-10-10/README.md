@@ -89,3 +89,20 @@ All numbers are on held-out `heldout.u16` e5f400b0, 512 windows × 384 = 196,608
 - **Pods:** `gl992wcbgkrfhd` (2×5090, about 2.2 h) and `s4cx32npvlhhfd` (2×4090, about 2.7 h; two 5090 hosts in EU-RO-1 stalled at start-up), both deleted, about **$10** in total.
 - **Laptop:** CPU for the replies, grading, exports and D11 evaluation.
 - **Results:** run directories on the EU-RO-1 volume `rfsx702p68` under `uor-r4/claude/softmax-free-20261010`; checkpoints, artifacts, replies, grades and evaluations in cloud-store `claude/softmax-free-20261010` (566,367,232 bytes, MD5 `d43d071d1596657c68f625829c1a3677`).
+
+## The decisive run (pivot at 3/3): rank tables learned in training — mechanism
+
+Pivot card: [#2032 comment 6096272058](https://github.com/UOR-Foundation/uor-r4/issues/2032#issuecomment-6096272058). This is the one preparation PR the card allows.
+
+- **Trainer, `read_weighting=learned_rank`:** each read layer gets a variable `read.rank_logits` `[heads, window + k + 2]`, initialized to `ln(1/(r+1))`, so a fresh model equals the fixed `rank` read.
+  - For a row whose support (flock-kept sources plus NoRead) has size `m`, the weights are `softmax(ℓ[..m])` by rank, built as a table with tensor ops so the logits get an exact gradient.
+  - q, k and aux keep the straight-through flock-softmax gradient. The logits are not weight-decayed.
+  - Saved with the model, refused under bf16, carried by `train` and `dialogue-train`.
+- **Serving:** schema `/3` with `read_weights: "learned"` and one u32 table `read_rank.<layer>` of `heads × M × M` Q31 weights. Each row is rounded down and the remainder given to the largest fractional parts, so every row sums to exactly 2^31.
+  - The D11 engine reads the row for (head, m) by rank. The table is a sealed constant, so there is no exponential or softmax at runtime.
+- **Checks:**
+  - Trainer `read_weighting` 9: a fresh learned read equals the fixed one; finite-difference gradient to the logits; trained logits change; save/load.
+  - Export 4: learned D11 against float −0.061 nats, top-1 1.0 on random weights, and served differently from the fixed table.
+  - Integer lib 284: table rows by rank; malformed tables refused. Oracle 13/13; frozen D10 25.
+  - D11 stack audit FULL PASS (91 functions). Negative gates on the forward table, the engine table and the exported mode.
+- **The run (arm L):** started from this branch's trainer head `383e49410` on pod `583vvwhk05yy1p`. Seeds 1 and 2, `select=flock:8:8`, the M4 recipe. It has 19,929,424 parameters, which is A's plus 288 rank logits. The result is added by the result PR.

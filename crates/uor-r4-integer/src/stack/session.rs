@@ -101,6 +101,11 @@ struct Read {
     /// lanes differing in exactly `h` lanes. Built at load, so a binary score
     /// is one XOR + SWAR popcount per 64 lanes and one table read.
     binary: Vec<i64>,
+    /// A learned rank read's Q31 weights `[head][m - 1][r]` (`M × M` per
+    /// head, `M = window + k + 2`): row `m - 1` sums to exactly `2^31` over
+    /// `r < m` and is zero beyond (validated at load). Empty on a fixed rank
+    /// or softmax read.
+    learned_rank: Vec<u32>,
 }
 
 /// What a read score depends on beyond the query, the key and the head's
@@ -230,6 +235,12 @@ struct RankRead {
     tables: Vec<u32>,
     table_at: Vec<usize>,
     totals: Vec<u64>,
+    /// `M = window + k + 2`, the side of a learned head's `M × M` table.
+    side: usize,
+    /// `(m - 1) M` by `m`: where row `m - 1` starts in a learned head table.
+    row_at: Vec<usize>,
+    /// `M × M`, one learned head table.
+    block: usize,
 }
 
 impl RankRead {
@@ -245,11 +256,19 @@ impl RankRead {
                 .map_err(|e| StackError::Numerics(format!("rank table {m}: {e}")))?;
             *total = tables[*at..].iter().map(|&w| u64::from(w)).sum();
         }
+        // Sums, not products: `row_at[m] = (m - 1) M`, `block = M M`.
+        let mut row_at = vec![0usize; largest + 1];
+        for m in 2..=largest {
+            row_at[m] = row_at[m - 1] + largest;
+        }
         Ok(Self {
             select: FlockSelect::new(0, window, k),
             tables,
             table_at,
             totals,
+            side: largest,
+            block: row_at[largest] + largest,
+            row_at,
         })
     }
 
@@ -439,6 +458,15 @@ impl IntegerStackModel {
                     },
                     // Built below, once the arcosh table is validated.
                     binary: Vec::new(),
+                    learned_rank: match &rank {
+                        Some(rank) if shape.read_learned() => learned_rank_table(
+                            &artifact,
+                            &format!("read_rank.{l}"),
+                            heads,
+                            rank.side,
+                        )?,
+                        _ => Vec::new(),
+                    },
                 }))
             };
             layers.push(Box::new(Layer {
@@ -2376,6 +2404,12 @@ fn stack_heads(read: &HeadRead<'_>, parts: HeadParts<'_>) {
     let mut binary_at = stack_mul_u64(first as u64, (hd + 1) as u64) as usize;
     let age_at = stack_mul_u64(first as u64, context as u64) as usize;
     let (mut head_at, mut age_at, mut local_at, mut row_at) = (head_at, age_at, 0usize, 0usize);
+    // A learned rank read's head table, `M × M` per head (empty otherwise).
+    let learned_block = match &model.rank {
+        Some(rank) if !r.learned_rank.is_empty() => rank.block,
+        _ => 0,
+    };
+    let mut learned_at = stack_mul_u64(first as u64, learned_block as u64) as usize;
     for (local_head, h) in (first..first + count).enumerate() {
         let (
             Some(query),
@@ -2457,9 +2491,17 @@ fn stack_heads(read: &HeadRead<'_>, parts: HeadParts<'_>) {
         }
         let total = if let Some(rank) = &model.rank {
             // Flock rank weights over NoRead and the kept positions, Q31.
-            let Some(total) = flock.get_mut(local_head).and_then(|scratch| {
-                stack_rank_weights(rank, scores, null_score, position, scratch, weights)
-            }) else {
+            let learned = r.learned_rank.get(learned_at..learned_at + learned_block);
+            let Some(total) =
+                flock
+                    .get_mut(local_head)
+                    .zip(learned)
+                    .and_then(|(scratch, learned)| {
+                        stack_rank_weights(
+                            rank, learned, scores, null_score, position, scratch, weights,
+                        )
+                    })
+            else {
                 debug_assert!(false, "stack_heads: the rank read failed to select");
                 return;
             };
@@ -2508,7 +2550,36 @@ fn stack_heads(read: &HeadRead<'_>, parts: HeadParts<'_>) {
         age_at += context;
         row_at += context;
         binary_at += hd + 1;
+        learned_at += learned_block;
     }
+}
+
+/// A learned rank read layer's table section `name`: `heads × M × M` Q31
+/// weights whose row `m - 1` sums to exactly `2^31` over its first `m`
+/// entries and is zero beyond.
+fn learned_rank_table(
+    artifact: &Container<'_>,
+    name: &str,
+    heads: usize,
+    side: usize,
+) -> Result<Vec<u32>, StackError> {
+    let table = artifact.table_u32(name)?;
+    let bad = |why: &str| StackError::Numerics(format!("{name}: {why}"));
+    if Some(table.len()) != heads.checked_mul(side).and_then(|n| n.checked_mul(side)) {
+        return Err(bad("the learned rank table is not heads × M × M"));
+    }
+    let mut m = 0usize;
+    for row in table.chunks_exact(side) {
+        m = if m == side { 1 } else { m + 1 };
+        let (support, beyond) = row.split_at(m);
+        if support.iter().map(|&w| u64::from(w)).sum::<u64>() != 1 << 31 {
+            return Err(bad("a learned rank row does not sum to 2^31"));
+        }
+        if beyond.iter().any(|&w| w != 0) {
+            return Err(bad("a learned rank row is nonzero beyond its support"));
+        }
+    }
+    Ok(table)
 }
 
 /// One head's flock rank weights (Q31) over `scores[0..=position]` with
@@ -2519,6 +2590,7 @@ fn stack_heads(read: &HeadRead<'_>, parts: HeadParts<'_>) {
 /// and rank `i` of the `m = kept + 1` slots weighted `rank_table_q31(m)[i]`.
 fn stack_rank_weights(
     rank: &RankRead,
+    learned: &[u32],
     scores: &[i64],
     null_score: i64,
     position: usize,
@@ -2531,13 +2603,20 @@ fn stack_rank_weights(
         .iter()
         .filter(|entry| scores.get(entry.position).is_some_and(|&s| s >= null_score))
         .count();
-    let table = rank.table(entries.len() + 1)?;
+    let m = entries.len() + 1;
+    // A learned head reads its own row `m - 1`, which sums to exactly 2^31.
+    let (table, total) = if learned.is_empty() {
+        (rank.table(m)?, *rank.totals.get(m)?)
+    } else {
+        let at = *rank.row_at.get(m)?;
+        (learned.get(at..at + m)?, 1u64 << 31)
+    };
     weights.fill(0);
     for (index, entry) in entries.iter().enumerate() {
         let slot = if index >= null_rank { index + 1 } else { index };
         *weights.get_mut(entry.position)? = u64::from(*table.get(slot)?);
     }
-    rank.totals.get(table.len()).copied()
+    Some(total)
 }
 
 /// Test hooks over the rank read.
@@ -2621,6 +2700,7 @@ pub(super) fn rank_weights_for_test(
     let mut weights = vec![u64::MAX; scores.len()];
     let null = stack_rank_weights(
         &rank,
+        &[],
         scores,
         null_score,
         scores.len() - 1,

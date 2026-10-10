@@ -76,8 +76,9 @@ pub struct StackShape {
     /// The flock selection of a softmax-free read; absent on a softmax read.
     #[serde(default)]
     pub read_select: Option<StackReadSelect>,
-    /// The read weights over the selected positions: only `rank`; absent on a
-    /// softmax read.
+    /// The read weights over the selected positions: `rank` (the fixed rank
+    /// table) or `learned` (a per-layer, per-head Q31 table section
+    /// `read_rank.<layer>`); absent on a softmax read.
     #[serde(default)]
     pub read_weights: Option<String>,
     /// Hamming-rank selection over sign-bit codes instead of the score.
@@ -146,13 +147,15 @@ impl StackShape {
                 && matches!(p.score.as_str(), "dot" | "lorentz")
                 && (1..=1i64 << 31).contains(&p.score_scale_q30)
         });
-        let rank = self.read_weights.as_deref() == Some("rank");
+        let rank = matches!(self.read_weights.as_deref(), Some("rank" | "learned"));
         let reason = if dims.contains(&0) {
             Some("a dimension is zero")
         } else if self.read_weights.is_some() && !rank {
-            Some("the read weights are not rank")
+            Some("the read weights are not rank or learned")
         } else if rank != self.read_select.is_some() {
             Some("rank read weights and a read selection require each other")
+        } else if self.read_binary && self.read_learned() {
+            Some("a learned rank read does not select by Hamming rank")
         } else if self.read_binary && self.read_select.is_none() {
             Some("a binary read requires a read selection")
         } else if self.read_select.is_some_and(|s| {
@@ -201,11 +204,16 @@ impl StackShape {
         }
     }
 
-    /// The flock selection of a softmax-free rank read; `None` on a softmax
-    /// read.
+    /// The flock selection of a softmax-free rank read (fixed or learned
+    /// table); `None` on a softmax read.
     pub fn read_rank(&self) -> Option<StackReadSelect> {
         self.read_select
-            .filter(|_| self.read_weights.as_deref() == Some("rank"))
+            .filter(|_| matches!(self.read_weights.as_deref(), Some("rank" | "learned")))
+    }
+
+    /// Whether a rank read weights its slots by learned per-head tables.
+    pub fn read_learned(&self) -> bool {
+        self.read_weights.as_deref() == Some("learned")
     }
 
     /// Whether a softmax-free read selects by Hamming rank over sign bits.

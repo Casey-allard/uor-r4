@@ -39,7 +39,7 @@ use uor_r4_lut::GROUP;
 
 use crate::geometric_stack::{
     D11Interim, MapCodec, ReadScore, ReadWeighting, RotationGroup, SavedServedRepresentation,
-    StackArch, StackConfig, StackModel, StackSite,
+    StackArch, StackConfig, StackModel, StackSite, READ_RANK_LOGITS,
 };
 use crate::kappa_llama::{Checkpoint, LlamaShape, Site};
 use crate::lut_export::{
@@ -799,6 +799,38 @@ pub fn export_stack(
     {
         table(&mut builder, "arcosh", TableValues::U32(&arcosh_table()))?;
     }
+    if model.read_weighting() == ReadWeighting::LearnedRank {
+        // One Q31 table per read layer, W[h][m-1][r] for every support size m.
+        let select = c
+            .select
+            .ok_or_else(|| invalid("a learned rank read needs a flock selection"))?;
+        let side = select.window + select.k + 2;
+        for (l, kind) in c.pattern.chars().enumerate() {
+            if kind != 'a' {
+                continue;
+            }
+            let name = format!("layers.{l:02}.{READ_RANK_LOGITS}");
+            let logits = model
+                .variables()
+                .get(&name)
+                .ok_or_else(|| invalid(format!("the learned rank read lacks {name}")))?
+                .as_tensor()
+                .flatten_all()?
+                .to_vec1::<f32>()?;
+            if logits.len() != c.heads * side {
+                return Err(invalid(format!("{name} is not [heads, window + k + 2]")));
+            }
+            if logits.iter().any(|v| !v.is_finite()) {
+                return Err(invalid(format!("{name} holds a non-finite logit")));
+            }
+            let values = learned_rank_q31(&logits, c.heads, side);
+            table(
+                &mut builder,
+                &format!("read_rank.{l}"),
+                TableValues::U32(&values),
+            )?;
+        }
+    }
     let mut bytes = builder.finish().map_err(|e| invalid(e.to_string()))?;
     if let Some(select) = c.select {
         // A softmax-free read (the only select `check_export_config_weighted`
@@ -809,6 +841,11 @@ pub fn export_stack(
             select.window,
             select.k,
             model.read_weighting() == ReadWeighting::HammingRank,
+            if model.read_weighting() == ReadWeighting::LearnedRank {
+                "learned"
+            } else {
+                "rank"
+            },
         )?;
     }
     let method = match calibration {
@@ -836,13 +873,62 @@ pub fn export_stack(
     ))
 }
 
+/// The learned rank tables of one read layer in Q31: for head `h` and support
+/// size `m` (`1..=side`), row `W[h][m-1][..]` holds `softmax(logits[h][..m])`
+/// at ranks `r < m` and 0 beyond. Each row is rounded down and its remainder to
+/// `2^31` is given one unit at a time to the ranks with the largest fractional
+/// parts (ties to the lower rank), so every row sums to exactly `2^31`, the
+/// total the D11 engine divides by.
+fn learned_rank_q31(logits: &[f32], heads: usize, side: usize) -> Vec<u32> {
+    const ONE: f64 = 2147483648.0;
+    let mut out = vec![0u32; heads * side * side];
+    for h in 0..heads {
+        let row_logits = &logits[h * side..(h + 1) * side];
+        for m in 1..=side {
+            let used = &row_logits[..m];
+            let max = used
+                .iter()
+                .fold(f64::NEG_INFINITY, |a, &b| a.max(f64::from(b)));
+            let exps: Vec<f64> = used.iter().map(|&x| (f64::from(x) - max).exp()).collect();
+            let total: f64 = exps.iter().sum();
+            let scaled: Vec<f64> = exps.iter().map(|e| e / total * ONE).collect();
+            let mut floors: Vec<u64> = scaled.iter().map(|v| v.floor() as u64).collect();
+            let assigned: u64 = floors.iter().sum();
+            let mut order: Vec<usize> = (0..m).collect();
+            order.sort_by(|&a, &b| {
+                let fa = scaled[a] - scaled[a].floor();
+                let fb = scaled[b] - scaled[b].floor();
+                fb.total_cmp(&fa).then(a.cmp(&b))
+            });
+            for &r in order
+                .iter()
+                .cycle()
+                .take((1u64 << 31).saturating_sub(assigned) as usize)
+            {
+                floors[r] += 1;
+            }
+            let row = (h * side + (m - 1)) * side;
+            for (r, &v) in floors.iter().enumerate() {
+                out[row + r] = v as u32;
+            }
+        }
+    }
+    out
+}
+
 /// Rewrite a finished stack artifact's header for a softmax-free read: the
-/// shape gains `read_select`, `read_weights: "rank"` and `read_binary`, and
+/// shape gains `read_select`, `read_weights` (`"rank"` or `"learned"`) and `read_binary`, and
 /// the schema becomes the one `uor_r4_integer::stack::stack_schema_for`
 /// requires of that shape (`uor-r4.lut-stack/3`), after the integer crate's
 /// shape rules accept it. The sections keep their offsets from the aligned
 /// data start, so only the header and its padding change.
-fn with_read_select(bytes: &[u8], window: usize, k: usize, binary: bool) -> Result<Vec<u8>> {
+fn with_read_select(
+    bytes: &[u8],
+    window: usize,
+    k: usize,
+    binary: bool,
+    weights: &str,
+) -> Result<Vec<u8>> {
     const ALIGN: usize = 64;
     let mut length = [0u8; 8];
     length.copy_from_slice(
@@ -859,7 +945,7 @@ fn with_read_select(bytes: &[u8], window: usize, k: usize, binary: bool) -> Resu
     };
     let mut header: Value = serde_json::from_slice(header)?;
     header["shape"]["read_select"] = json!({ "window": window, "k": k });
-    header["shape"]["read_weights"] = json!("rank");
+    header["shape"]["read_weights"] = json!(weights);
     header["shape"]["read_binary"] = json!(binary);
     let shape: uor_r4_integer::stack::StackShape = serde_json::from_value(header["shape"].clone())?;
     shape.validate().map_err(|e| invalid(e.to_string()))?;
