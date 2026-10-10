@@ -105,14 +105,39 @@ fn main() -> Result<(), Box<dyn Error>> {
         },
     )?;
 
+    // THE CALL IS PER TURN, NOT PER ROW. `reply_panel` runs
+    // `for request { for turn { reply(&history, ..) } }`, so the closure fires once per
+    // user turn and each row's GRADED reply is its LAST turn. Treating one call as one
+    // row misaligns every row after the first multi-turn request — that was the defect
+    // that made two rows share a byte-identical sequence.
+    let mut groups: Vec<(usize, usize)> = Vec::new();
+    let mut at = 0usize;
+    for request in &requests {
+        let n = request.user_turns.len();
+        groups.push((at, n));
+        at += n;
+    }
+    if captured.len() != at {
+        return Err(format!(
+            "the panel called the reply closure {} times but the requests hold {} turns",
+            captured.len(),
+            at
+        )
+        .into());
+    }
+
     // The panel rows are in request order.
     let rows = panel["rows"].as_array().cloned().unwrap_or_default();
     let mut results = Vec::new();
     let mut class_counts: std::collections::BTreeMap<String, usize> =
         std::collections::BTreeMap::new();
     for (index, (id, value)) in stored.iter().enumerate() {
-        let (_, emitted, steps, history) = captured
+        let (start, turns) = *groups
             .get(index)
+            .ok_or_else(|| format!("no turn group for {id}"))?;
+        // The graded reply is the row's last turn.
+        let (_, emitted, steps, history) = captured
+            .get(start + turns - 1)
             .ok_or_else(|| format!("no trace captured for {id}"))?;
         // The stored value's own token ids, exactly as the tokenizer makes them.
         let digit_ids: Vec<u32> = tokenizer.encode(value);

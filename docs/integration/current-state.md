@@ -1,3 +1,44 @@
+## 2026-10-09 — The missing control is FIXED: the probe reproduces the sealed v5 replies 13 of 13 byte for byte, and the split is still VOID (deepseek, #2029)
+
+Record: [numeric-trace-reproduction-2026-10-09](../labs/numeric-trace-reproduction-2026-10-09/README.md).
+**CPU only, no pod, no training, $0.** No v5 re-run.
+
+**THE STRUCTURAL QUALIFIER STAYS VISIBLE: the artifact that answered the v5 "memory" panel carries NO
+MEMORY OPERATOR — only a copy pointer — so "10 of 40 on the memory category" is 10 of 40 for a
+copy-pointer dialogue stack on requests *named* memory rows.**
+
+**THE FIX, found by reading `reply_panel` rather than guessing: the panel calls the reply closure ONCE
+PER TURN, NOT ONCE PER ROW** (`for request { for turn { reply(&history, ..) } }`). With 13 three-turn
+rows, the previous probe took the first 13 calls — the first few rows' *turns* — as if they were the 13
+rows' replies, which is exactly why `mem-040` and `mem-006` appeared to share a byte-identical
+sequence: **they were not those rows' replies at all.** The fix groups calls by request and takes each
+row's **last turn** — the reply the check grades — and asserts the call count equals the total turn
+count so mis-grouping fails loudly.
+
+**ACCEPTANCE CONDITION MET EXACTLY: ALL THIRTEEN rows reproduce their sealed replies byte for byte —
+13 of 13 — and `mem-040`'s is the reply containing the stored `84`.** So the sealed replies **ARE**
+reproducible from the artifact by this path, and the previous piece's "history-insensitive replies" are
+explained and gone.
+
+**THE SPLIT IS STILL VOID AND NOT REPORTED.** The fixed run produced `READER: 10, PARTIAL: 3` — **not a
+result either**: a second defect was found in the same probe, which took **everything after the first
+tab** of the tab-separated values file as the value, so `digit_ids` came out as **12-token sequences for
+two-digit values**. Every class assignment is keyed on the wrong token set and **means nothing**. The
+extraction fix is written but the reported numbers come from the pre-fix binary, so **no
+reader-versus-emitter classification is claimed by this piece**, and nothing about pointer selection may
+be read out of the void run. Condition 4 (token ids, never strings) held throughout; condition 2 is
+satisfied at the generation level and unreadable at the selection level.
+
+**THE LEDGER:** token count REFUTED; minimal pairs / digit order REFUTED; value addressability REFUTED;
+the learned read/emit path **OPEN**, with the instrument now **reproducing the sealed replies byte for
+byte (13 of 13)** and one defect in its value extraction remaining before it can classify.
+
+**Criterion 1 remains NOT MET on both halves and 43/232 is unchanged.** v5 was not re-run; its 10 of 40
+stands with the qualifier. STATUS/ROADMAP/#2028 unchanged — checked, not assumed.
+
+**Next:** one rebuild and one 12-second run with the value extraction fixed, then report the split under
+the four conditions. The probe's generation path is now trustworthy; only its key extraction is not.
+
 ## Saved feedback failures are distributed across legal destinations — October 9
 
 The [saved formation attribution](../labs/discrete-feedback-attribution-2026-10-09/README.md) authenticates #2117's 1,689 manifest-listed files and all 32 recorded proposals (28 unique), with exact reconstructed displacements and protection screens. Both populations violate 338/380 distinct guards in total but share no universally violated guard; the most frequent guard fails 24/28 unique proposals, and signed coordinate compensation ranges 2.31–77.49% of adverse pressure on each round's violated rows. This is saved arithmetic only: zero new model, gradient, candidate or native-score calls; accepted 8/512 and the separate conditional 9/15 artifact remain unchanged. **KEEP** the diagnosis, prior candidate **REJECTED**, replacement construction **NOT YET PROMOTED**; neither native winner loss nor global infeasibility is inferred.
