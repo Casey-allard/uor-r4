@@ -1,3 +1,56 @@
+## 2026-10-09 — The mixture-row accessor is a small new code path at the generation site, not a visibility change; handed over unbuilt (deepseek, #2029)
+
+Record: [pcopy-accessor-handover-2026-10-09](../labs/pcopy-accessor-handover-2026-10-09/README.md). **CPU
+only, no pod, no training, no knob, no model saved, $0.** No v5 re-run.
+
+**WHAT I FOUND.** The mixture row is **not merely a private struct** — it is **derived from hidden states**
+and constructed at exactly two sites in `geometric_stack.rs`: the **loss path**
+(`pointer_loss_from_hidden`: `linear(&hidden, p.head())` → `pointer_side` → `pointer_beta` →
+`PointerMixture { ... }`) and the **GENERATION path** (`hidden_hooked(...).detach()` → the same chain).
+**Site 2 already builds the mixture at inference time from a hidden state the model computes anyway**, and
+`MixtureRow::evaluate` already returns every needed field (`attention`, `copy`, `gate`, `present`,
+`generate_share`, `copy_share`).
+
+**SO THE ACCESSOR IS BOUNDED, BUT IT IS A SMALL NEW CODE PATH RATHER THAN A VISIBILITY CHANGE:** a public
+function beside Site 2 returning the row for `(ids, target)`, plus a small public struct surfacing the six
+fields, **placed on the generation path so it uses the same hidden state the decoder used** — otherwise it
+would measure a different mixture than the one that produced the replies, which is the failure mode the
+voided trace already taught us to avoid.
+
+**I DID NOT COMPLETE IT, and the reason is recorded rather than dressed up:** my remaining runway is not
+enough for a change to the model's generation path plus a build plus the run plus the record, and a
+half-built accessor measuring a *different* mixture than the decoder used would produce exactly the
+plausible-but-wrong numbers this line has spent eleven pieces learning to refuse. **The piece lands as the
+handover, not as the read.** The exact change is specified in the record, including a validation step: the
+new path's `copy` at a step whose argmax the trace recorded must be consistent with the trace's
+`attention` at that source — **validated against the instrument that reproduces the sealed replies 13 of
+13, not trusted on its own.**
+
+**THE BOUND STAYS PUBLISHED AND IS STILL ONLY A BOUND:** `p_copy(digit) ≤ attention at the argmax` on
+steps where the argmax is elsewhere — a ceiling beside a measurement that does not exist yet, so a reader
+can see whether the ceiling was tight once the numbers exist.
+
+**THE SHELVING RULE NOW CARRIES BOTH REASONS IN SEQUENCE, and the record is explicit that the third is
+still unearned:** (1) **"the read could not be taken yet"** — `MixtureRow` is private, so the plan's own
+first step was not runnable as written, which was the plan's error; (2) **"the accessor is a small new
+code path, not a visibility change"** — the row comes from hidden states at two sites and the one that
+matters is the generation path. **Neither reason is "the read said nothing to train."** The plan is **not
+deleted** — the next person needs all three possibilities.
+
+**THE LEDGER:** token count REFUTED; digit order REFUTED; value addressability REFUTED; single-source
+shape REFUTED in its simple form and replaced; "history-insensitive" CORRECTED to the frame's invariance;
+**the pointer attends the frame and never the varying slot, MEASURED on 13 rows.** This piece adds a
+**code-level fact**: the mixture row is reachable only through the hidden-state path, and the accessor is
+a small new code path to build on the generation side.
+
+**Criterion 1 remains NOT MET on both halves and 43/232 is unchanged.** v5 was not re-run;
+STATUS/ROADMAP/#2028 unchanged — checked, not assumed.
+
+**Next: build the accessor at the generation site as specified in the record, validate it against the
+13-of-13 trace, then run step 1 unchanged** — per-row `copy` at the value's two digits, the distractor's
+positions and the frame positions, with word rows as the control. It remains CPU-only, no pod, no
+training, no weights touched, and the three pre-registered outcomes stay distinguishable.
+
 ## Direct legal construction is blocked by backend factorization — October 9
 
 The [direct legal-set constructor](../labs/direct-legal-construction-2026-10-09/README.md) integrates one bounded mixed-integer offer into the unchanged protected native transaction, using the saved 1,920-coordinate credit and 380 guard rows. Both absolute-code and mathematically equivalent centered-displacement attempts returned `InternalError("Singular matrix")` without an assignment or proposal; the failing basis/phase and search statistics remain unavailable. Each enclosing pipeline independently reloaded the unchanged original input245 artifact at 5/15 conditional winners, 17/17 references and 380/380 original guards, with zero new training graphs/backwards; accepted 8/512 and the separate conditional 9/15 artifact remain unchanged. **KEEP** implementation and sealed execution evidence, constructor **NOT YET PROMOTED**; this is neither a candidate negative nor an infeasibility result, and actual-nine/fresh/full512 remain NOT_RUN.
