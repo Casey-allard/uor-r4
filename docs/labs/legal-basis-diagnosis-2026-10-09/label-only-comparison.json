@@ -1,0 +1,7 @@
+{
+  "status": "PASS",
+  "basis_files_byte_identical": 2,
+  "pivot_bits_iterations_and_variable_mappings_identical": true,
+  "first_phase": "branch_lp_nodes_solved=322",
+  "corrected_phase": "branch_slack_retry_nodes_solved=322"
+}

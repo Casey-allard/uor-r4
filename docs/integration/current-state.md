@@ -1,3 +1,9 @@
+## Saved legal-constructor failure is a branch-basis small-pivot rejection — October 9
+
+The [exact basis diagnostic](../labs/legal-basis-diagnosis-2026-10-09/README.md) reuses the unchanged centered constructor and authenticated original 1,920-coordinate/380-guard saved credit. It captures two nonzero LU pivots below the backend's absolute 1e-10 threshold during branch feasibility refactorization, after 322 completed branch-node LP visits: 9.133998119987652e-11, then 6.8006852399509905e-12 during the backend's existing all-slack recovery. A corrected observer label directly confirms the recovery path; both basis files and pivot/iteration records are identical across the two short diagnostic traces. **KEEP** diagnosis, constructor **NOT YET PROMOTED**: no assignment, native proposal, new derivative or model scoring; accepted 8/512 and separate conditional 9/15 unchanged. This is not exact rank, global infeasibility or a model-quality result.
+
+**Next:** Repair the generic basis-factorization numerical boundary using the saved failing bases and solve-residual checks; preserve the full mathematical problem and native gates, without lowering global EPS blindly, pruning coefficients, guard exceptions or another identical slack restart.
+
 ## 2026-10-09 — The mixture-row accessor is a small new code path at the generation site, not a visibility change; handed over unbuilt (deepseek, #2029)
 
 Record: [pcopy-accessor-handover-2026-10-09](../labs/pcopy-accessor-handover-2026-10-09/README.md). **CPU

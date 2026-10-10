@@ -1,0 +1,27 @@
+{
+  "schema": "uor-r4.legal-basis-reviews/1",
+  "source_freeze": "7363273b4aa199778479b8c9e103da92f91eb5bb",
+  "engineering": {
+    "status": "PASS_SOURCE_AND_14_FIXTURES",
+    "scope": "Exact included constructor, observation-only patch, source/runtime binding; parent executed saved traces separately"
+  },
+  "mathematical": {
+    "status": "PASS_SOURCE_AND_SAVED_RESULT",
+    "scope": "Nonzero small-pivot rejection in selected branch bases; basis/guard mapping is context, no rank/condition/global-infeasibility/model claim",
+    "next": "Generic numerical factorization repair validated using residuals against original captured basis; no blind EPS lowering or named exceptions",
+    "execution": "None by reviewer"
+  },
+  "adversarial": {
+    "status": "PASS_SOURCE_DOCS_AND_SAVED_RESULT",
+    "scope": "Verified observer-only fallback label correction, byte-identical basis/pivot/iteration records across two traces, source/report/manifest identities, no model quality inference",
+    "execution": "None by reviewer"
+  },
+  "docs_disposition": {
+    "current_state": "New entry with Next",
+    "prior_record": "Follow-through preserves original unavailable receipt scope",
+    "training_readme": "Diagnostic link, no production change",
+    "README_STATUS_ROADMAP_tracker": "Unchanged: no capability, headline, milestone, accepted artifact, production command or mechanism changed",
+    "geometry": "Role/status/facts unchanged; offline observer only, no section/figure regeneration needed"
+  },
+  "diff_whitespace": "Code/docs check excludes literal .patch data; unified-diff blank context lines intentionally contain a space"
+}

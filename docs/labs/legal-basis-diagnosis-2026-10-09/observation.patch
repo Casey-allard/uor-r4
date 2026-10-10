@@ -1,0 +1,187 @@
+--- upstream/src/lib.rs
++++ observed/src/lib.rs
+@@ -1214,3 +1214,7 @@
+         self.iter()
+     }
+ }
++
++/// Offline observation adapter; no solver arithmetic changes.
++#[allow(missing_docs)]
++pub mod diagnostics;
+--- upstream/src/lu.rs
++++ observed/src/lu.rs
+@@ -123,6 +123,7 @@
+     stability_coeff: f64,
+     scratch: &mut ScratchSpace,
+ ) -> Result<LUFactors, Error> {
++    crate::diagnostics::factor_begin();
+     // Implementation of the Gilbert-Peierls algorithm:
+     //
+     // Gilbert, John R., and Tim Peierls. "Sparse partial pivoting in time
+@@ -139,7 +140,15 @@
+         mat_nnz - size,
+     );
+ 
+-    let col_perm = super::ordering::order_simple(size, |c| get_col(c).0)?;
++    let col_perm = match super::ordering::order_simple(size, |c| get_col(c).0) {
++        Ok(p) => p,
++        Err(e) => {
++            crate::diagnostics::singular("symbolic_order_simple", size, &get_col,
++                format!("empty_stored_columns={:?}; EPS_bits={:016x}; stability_bits={:016x}",
++                    (0..size).filter(|&c|get_col(c).0.is_empty()).collect::<Vec<_>>(), EPS.to_bits(),stability_coeff.to_bits()));
++            return Err(e);
++        }
++    };
+ 
+     let mut orig_row2elt_count = vec![0; size];
+     for col_rows in (0..size).map(|c| get_col(c).0) {
+@@ -207,6 +216,11 @@
+             }
+ 
+             if max_abs < EPS {
++                crate::diagnostics::singular("numeric_lu_pivot", size, &get_col,
++                    format!("pivot_column={} original_column={} max_abs_bits={:016x} EPS_bits={:016x} stability_bits={:016x}\ncol_new2orig={:?}\nrow_new2orig={:?}\nrow_orig2new={:?}\nresidual_all_original_row_bits={:?}\nresidual_stored_nonzero_original_rows={:?}\neligible_original_rows={:?}\nprior_upper_diagonal_bits={:?}",
++                    i_col,col_perm.new2orig[i_col],max_abs.to_bits(),EPS.to_bits(),stability_coeff.to_bits(),
++                    col_perm.new2orig,new2orig_row,orig2new_row,crate::diagnostics::bits(&scratch.rhs.values),scratch.rhs.nonzero,
++                    (0..size).filter(|&r|orig2new_row[r]>=i_col).collect::<Vec<_>>(),crate::diagnostics::bits(&upper_diag)));
+                 return Err(Error::SingularMatrix);
+             }
+ 
+--- upstream/src/solver.rs
++++ observed/src/solver.rs
+@@ -481,6 +481,8 @@
+         let cur_obj_val = if need_artificial_obj { 0.0 } else { obj_val };
+ 
+         let mut scratch = ScratchSpace::with_capacity(num_constraints);
++        crate::diagnostics::context(format!("factor_callsite=initial_constructor\nstructural_vars={}\noriginal_rhs_bits={:?}\nrow_scale_bits={:?}\noriginal_lower_bits={:?}\noriginal_upper_bits={:?}\nnonbasic_vars={:?}",num_vars,crate::diagnostics::bits(&orig_rhs),crate::diagnostics::bits(&row_scales),crate::diagnostics::bits(&orig_var_mins),crate::diagnostics::bits(&orig_var_maxs),nb_vars));
++        crate::diagnostics::mapping(&basic_vars);
+         let lu_factors = lu_factorize(
+             basic_vars.len(),
+             |c| {
+@@ -814,7 +816,8 @@
+             }
+         }
+ 
+-        self.basis_solver
++        self.diagnostic_context();
++                        self.basis_solver
+             .reset(&self.orig_constraints_csc, &self.basic_vars)?;
+ 
+         // Steepest-edge reference reset (standard practice after a warm-start load;
+@@ -900,6 +903,11 @@
+         self.num_vars + self.num_constraints()
+     }
+ 
++    fn diagnostic_context(&self) {
++        crate::diagnostics::context(format!("factor_callsite=basis_reset\nstructural_vars={}\noriginal_rhs_bits={:?}\nrow_scale_bits={:?}\ncurrent_lower_bits={:?}\ncurrent_upper_bits={:?}\nnonbasic_vars={:?}\nbasic_value_bits={:?}\neta_updates_before_reset={}",self.num_vars,crate::diagnostics::bits(&self.orig_rhs),crate::diagnostics::bits(&self.row_scales),crate::diagnostics::bits(&self.orig_var_mins),crate::diagnostics::bits(&self.orig_var_maxs),self.nb_vars,crate::diagnostics::bits(&self.basic_var_vals),self.basis_solver.eta_matrices.len()));
++        crate::diagnostics::mapping(&self.basic_vars);
++        crate::diagnostics::iteration(self.lp_iterations);
++    }
+     pub(crate) fn initial_solve(&mut self) -> Result<StopReason, Error> {
+         if check_deadline(&self.deadline) == StopReason::Limit {
+             return Ok(StopReason::Limit);
+@@ -924,8 +932,10 @@
+     }
+ 
+     fn optimize(&mut self) -> Result<StopReason, Error> {
++        crate::diagnostics::lp_phase("optimization");
+         for iter in 0.. {
+             self.lp_iterations += 1;
++            crate::diagnostics::iteration(self.lp_iterations);
+             if iter % DEADLINE_CHECK_INTERVAL == 0 {
+                 if check_deadline(&self.deadline) == StopReason::Limit {
+                     return Ok(StopReason::Limit);
+@@ -955,6 +965,7 @@
+     }
+ 
+     fn restore_feasibility(&mut self) -> Result<StopReason, Error> {
++        crate::diagnostics::lp_phase("feasibility");
+         let obj_str = if self.is_dual_feasible {
+             "obj."
+         } else {
+@@ -968,6 +979,7 @@
+ 
+         for iter in 0.. {
+             self.lp_iterations += 1;
++            crate::diagnostics::iteration(self.lp_iterations);
+             if iter % DEADLINE_CHECK_INTERVAL == 0 {
+                 if check_deadline(&self.deadline) == StopReason::Limit {
+                     return Ok(StopReason::Limit);
+@@ -1002,6 +1014,7 @@
+                              refreshing basis before declaring infeasibility",
+                             iter, row,
+                         );
++                        self.diagnostic_context();
+                         self.basis_solver
+                             .reset(&self.orig_constraints_csc, &self.basic_vars)?;
+                         self.recalc_basic_var_vals()?;
+@@ -1085,7 +1098,8 @@
+         self.orig_constraints = new_orig_constraints;
+         self.orig_constraints_csc = self.orig_constraints.to_csc();
+ 
+-        self.basis_solver
++        self.diagnostic_context();
++                        self.basis_solver
+             .reset(&self.orig_constraints_csc, &self.basic_vars)?;
+ 
+         if self.enable_primal_steepest_edge || self.enable_dual_steepest_edge {
+@@ -1584,7 +1598,8 @@
+             self.basis_solver
+                 .push_eta_matrix(&self.col_coeffs, pivot_elem.row, pivot_coeff);
+         } else {
+-            self.basis_solver
++            self.diagnostic_context();
++                        self.basis_solver
+                 .reset(&self.orig_constraints_csc, &self.basic_vars)?;
+         }
+         Ok(())
+--- upstream/src/mip/mod.rs
++++ observed/src/mip/mod.rs
+@@ -607,6 +607,7 @@
+     }
+ 
+     debug!("exactly integral candidate failed guard; retrying from slack basis");
++    crate::diagnostics::phase(&format!("integral_candidate_slack_retry_nodes_solved={}",state.stats.nodes_solved));
+     let slack = state.solver.slack_basis();
+     state
+         .solver
+@@ -771,6 +772,7 @@
+ /// cannot loop: it is attempted at most once and its own internal error is
+ /// propagated rather than retried again.
+ fn solve_node_lp(state: &mut MipState) -> Result<NodeLp, Error> {
++    crate::diagnostics::phase(&format!("branch_lp_nodes_solved={}",state.stats.nodes_solved));
+     state.solver.deadline = state.deadline;
+     let err = match state.solver.reoptimize() {
+         Ok(StopReason::Finished) => return Ok(NodeLp::Solved),
+@@ -789,6 +791,7 @@
+         "node LP reoptimize failed ({}); retrying from slack basis",
+         err
+     );
++    crate::diagnostics::phase(&format!("branch_slack_retry_nodes_solved={}",state.stats.nodes_solved));
+     let slack = state.solver.slack_basis();
+     state
+         .solver
+@@ -842,6 +845,7 @@
+     state: &mut MipState,
+     hints: &[(crate::Variable, f64)],
+ ) -> Result<Option<TerminationReason>, Error> {
++    crate::diagnostics::phase("advisory_warm_start");
+     let domains = state.solver.orig_var_domains.clone();
+     let root_basis = state.solver.snapshot_basis();
+     let mut applied: Vec<usize> = Vec::new();
+@@ -948,6 +952,7 @@
+         return Ok(None);
+     }
+ 
++    crate::diagnostics::phase("root_initial_solve");
+     if state.solver.initial_solve()? == StopReason::Limit {
+         return Ok(Some(TerminationReason::TimeLimit));
+     }
+@@ -1005,6 +1010,7 @@
+ 
+ /// Reconstruct and process one node selected by the outer search policy.
+ fn visit_node(state: &mut MipState, node: Node, domains: &[VarDomain]) -> Result<NodeVisit, Error> {
++    crate::diagnostics::phase(&format!("branch_basis_load_nodes_solved={} depth={} bound_changes={:?}",state.stats.nodes_solved,node.depth,node.bound_changes));
+     if !apply_node_bounds(state, &node) {
+         state.diving = false;
+         return Ok(NodeVisit::Pruned);

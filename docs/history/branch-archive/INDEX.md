@@ -16,6 +16,7 @@ fresh worktree from `main`, fix the conflicts, and land it through a PR.
 
 | Branch | Last commit | Commits | Lines not in main | Tip | Merge-base | Last subject |
 |---|---|---|---|---|---|---|
+| [`codex/legal-basis-diagnosis-20261009` initial labels](legal-basis-initial-label-20261009.patch) | 2026-10-09 | 1 | Not counted | `bfd6adb0e` | `fa9f7cba0` | First diagnostic source, superseded only for missing direct fallback label. Numeric captures remain valid; [record](../../labs/legal-basis-diagnosis-2026-10-09/README.md). |
 | [`codex/direct-legal-construction-20261009` absolute encoding](direct-legal-absolute-20261009.patch) | 2026-10-09 | 1 | Not counted | `dd69a64965` | `4d10555f5` | Superseded numerical representation; backend singular-matrix execution failure, no model verdict. Full first commit retained; [record](../../labs/direct-legal-construction-2026-10-09/README.md). |
 | [`codex/eff-fused-read-kernels`](codex_eff-fused-read-kernels.patch) | 2026-10-05 | 2 | 0.33 of 332 | `16f3e0b137` | `578c3073c8` | Coalesce the read's age, key-self and lift reductions; skip the causal test off the diagonal tiles (References |
 | [`codex/step2-parity-bench`](codex_step2-parity-bench.patch) | 2026-10-05 | 3 | 0.83 of 331 | `0bcbf67d68` | `578c3073c8` | mqar-bench decide: count only full-budget seeds and refuse mixed training configs |

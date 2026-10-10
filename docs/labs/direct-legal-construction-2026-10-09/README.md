@@ -176,3 +176,14 @@ at a self-estimated wall time; the solver's fixed node bound defines this mechan
 **Next:** Instrument the exact failing LP basis and factorization context from the
 saved problem before choosing a narrowly justified numerical/backend repair; no
 third blind retry and no new gradients or model scoring for that diagnosis.
+
+
+## Executed diagnostic follow-through
+
+The [saved basis diagnosis](../legal-basis-diagnosis-2026-10-09/README.md) now
+localizes the centered problem's failure to nonzero sub-threshold LU pivots in
+branch feasibility refactorization, including its existing all-slack recovery.
+The original two attempt receipts above still contain no basis data; their
+UNAVAILABLE scope is unchanged. The new diagnostic captures the matrices and
+phase separately, with no new model scoring or gradient. Its record owns the
+next numerical repair; no global infeasibility or model-quality claim follows.

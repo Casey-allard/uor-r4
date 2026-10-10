@@ -1,0 +1,191 @@
+{
+  "schema": "uor-r4.legal-basis-result/1",
+  "decision": "KEEP diagnosis; constructor NOT YET PROMOTED; no numerical repair in this unit",
+  "source_commit": "bfd6adb0e8ba7675df0564c8bc292404aab03341",
+  "binary_sha256": "2f467e1e5354803f27b10cd0e16ba6ae532eaefdde3fcf054901c75c7d4f5f4d",
+  "input_sha256": "0fe91060f10c0d6107be3565f9ae0746c30e742a00d02935398f6764b84b974d",
+  "report_sha256": "68ce7058f177c222ce23944c12231f34918792acc9eb5e531989e0162d38397a",
+  "manifest_sha256": "0cf6d653e1049fcb5327c066357f1b043a630566297f753abd556c0cf44d1158",
+  "sealed_files_verified": 8,
+  "factorizations_observed": 100,
+  "singular_events": 2,
+  "backend_termination": "InternalError(\"Singular matrix\")",
+  "events": [
+    {
+      "event": "singular-0001",
+      "kind": "numeric_lu_pivot",
+      "factor_sequence": 90,
+      "phase": "branch_lp_nodes_solved=322",
+      "lp_phase": "feasibility",
+      "lp_iterations": 2950,
+      "factor_callsite": "basis_reset",
+      "eta_updates_before_reset": 33,
+      "basis_dimension": 440,
+      "basis_stored_entries": 33514,
+      "basis_empty_stored_columns": 0,
+      "pivot_column": 439,
+      "original_basis_column": 153,
+      "backend_variable": {
+        "backend_variable": 1551,
+        "component": "lower_branch_l",
+        "coordinate": 1522,
+        "family": "generate.unary",
+        "family_index": 562,
+        "lower": 0,
+        "upper": 1
+      },
+      "max_abs_pivot": 9.133998119987652e-11,
+      "max_abs_pivot_bits": "3dd91b7ad2390f63",
+      "EPS": 1e-10,
+      "EPS_bits": "3ddb7cdfd9d7bdbb",
+      "eligible_rows": [
+        73
+      ],
+      "stored_eligible_residuals": [
+        {
+          "internal_row": 73,
+          "stored": true,
+          "value": 9.133998119987652e-11,
+          "bits": "3dd91b7ad2390f63",
+          "constraint": {
+            "guard_index": 13,
+            "kind": "unit_guard_ge0",
+            "model_constraint": 73
+          }
+        }
+      ],
+      "computed_nonzero_candidates": 1,
+      "context_sha256": "3cbe0d4c91c0e7516d9399a5a012746fa06e8fbdebcec30d68649511549fa903",
+      "basis_sha256": "c5c73e1b9f7baf598cdda33e4a458f9208f0c943b4d471ba646eb129c495a794"
+    },
+    {
+      "event": "singular-0002",
+      "kind": "numeric_lu_pivot",
+      "factor_sequence": 100,
+      "phase": "branch_lp_nodes_solved=322",
+      "lp_phase": "feasibility",
+      "lp_iterations": 3024,
+      "factor_callsite": "basis_reset",
+      "eta_updates_before_reset": 13,
+      "basis_dimension": 440,
+      "basis_stored_entries": 16737,
+      "basis_empty_stored_columns": 0,
+      "pivot_column": 433,
+      "original_basis_column": 374,
+      "backend_variable": {
+        "backend_variable": 874,
+        "component": "k=q-q0",
+        "coordinate": 874,
+        "family": "prefix",
+        "family_index": 874,
+        "lower": -7,
+        "upper": 7
+      },
+      "max_abs_pivot": 6.8006852399509905e-12,
+      "max_abs_pivot_bits": "3d9de8e41096c373",
+      "EPS": 1e-10,
+      "EPS_bits": "3ddb7cdfd9d7bdbb",
+      "eligible_rows": [
+        203,
+        376,
+        387,
+        393,
+        403,
+        406,
+        419
+      ],
+      "stored_eligible_residuals": [
+        {
+          "internal_row": 203,
+          "stored": true,
+          "value": -1.7658690315757765e-13,
+          "bits": "bd48da36b4647dea",
+          "constraint": {
+            "guard_index": 143,
+            "kind": "unit_guard_ge0",
+            "model_constraint": 203
+          }
+        },
+        {
+          "internal_row": 376,
+          "stored": true,
+          "value": -2.3420320745421093e-12,
+          "bits": "bd8499c99254fc8f",
+          "constraint": {
+            "guard_index": 316,
+            "kind": "unit_guard_ge0",
+            "model_constraint": 376
+          }
+        },
+        {
+          "internal_row": 387,
+          "stored": true,
+          "value": 5.968243854396952e-14,
+          "bits": "3d30cc92ab655e3b",
+          "constraint": {
+            "guard_index": 327,
+            "kind": "unit_guard_ge0",
+            "model_constraint": 387
+          }
+        },
+        {
+          "internal_row": 393,
+          "stored": true,
+          "value": -2.1572546493520022e-13,
+          "bits": "bd4e5c54388e4456",
+          "constraint": {
+            "guard_index": 333,
+            "kind": "unit_guard_ge0",
+            "model_constraint": 393
+          }
+        },
+        {
+          "internal_row": 403,
+          "stored": true,
+          "value": -4.279553824999317e-12,
+          "bits": "bd92d25968a340e2",
+          "constraint": {
+            "guard_index": 343,
+            "kind": "unit_guard_ge0",
+            "model_constraint": 403
+          }
+        },
+        {
+          "internal_row": 406,
+          "stored": true,
+          "value": 6.8006852399509905e-12,
+          "bits": "3d9de8e41096c373",
+          "constraint": {
+            "guard_index": 346,
+            "kind": "unit_guard_ge0",
+            "model_constraint": 406
+          }
+        },
+        {
+          "internal_row": 419,
+          "stored": true,
+          "value": -2.0042323876013933e-13,
+          "bits": "bd4c3502188df5c1",
+          "constraint": {
+            "guard_index": 359,
+            "kind": "unit_guard_ge0",
+            "model_constraint": 419
+          }
+        }
+      ],
+      "computed_nonzero_candidates": 7,
+      "context_sha256": "bc82fcdc33fc4db1b029b6ab69f4714417a856e13e3bd2b8d3b70f8ec38398fc",
+      "basis_sha256": "55d8c2eadbcfc072d86a6310602184603030a318986ebeb2a2d885958f10ae05"
+    }
+  ],
+  "elapsed_seconds": 3.885926917,
+  "peak_child_rss_bytes": 92438528,
+  "new_backward_calls": 0,
+  "native_score_calls": 0,
+  "returned_assignments": 0,
+  "model_quality": "UNAVAILABLE",
+  "exact_rank": "NOT_MEASURED",
+  "global_feasibility": "NOT_ESTABLISHED",
+  "accepted_development_complete_replies": "8/512 unchanged",
+  "separate_conditional_artifact": "9/15 unchanged"
+}

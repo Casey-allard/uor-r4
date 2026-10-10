@@ -1,0 +1,43 @@
+{
+  "status": "PASS_SOURCE_AND_FIXTURES",
+  "scope": "Only observer phase labels repaired; no numerical or solver control change; first replay retained",
+  "files": {
+    "apply-observer.py": {
+      "sha256": "f337ad29cce0d3ed431bc76d23ac6c3e43bfe44807227ae38b84cf3f13e8c938",
+      "bytes": 7837
+    },
+    "observation.patch": {
+      "sha256": "8350dafd3162fabc75b99260fb813103db1198112330c2340ff3ac68c9020933",
+      "bytes": 8600
+    },
+    "diagnostics.rs": {
+      "sha256": "be21169a5cec01cfd6b064cbd7ef0bc401161f66a9e4103059c2be3cfca9ab8d",
+      "bytes": 5446
+    },
+    "harness/src/main.rs": {
+      "sha256": "8165a05406240aab66537196867616259462f5a56cfd8fd7b2ba1887dd9d96fb",
+      "bytes": 9369
+    }
+  },
+  "binary": {
+    "path": "local/target/release/legal-basis-diagnosis",
+    "sha256": "1bba40a7fb5fad023ad71c81aaa24f361307002b827a9add2e399647fb6a1664",
+    "bytes": 988784
+  },
+  "logs": {
+    "local/build-label-tests-0005.log": {
+      "sha256": "369f98b572159a60241af29c712f1c8dddd9981dfc070f6e86136ba23a28d4b6",
+      "bytes": 2453
+    },
+    "local/build-label-runtime-0006.log": {
+      "sha256": "5c1777d32cedd985ec9d7c7ce90c091615941482fdbc3c66c7cf854fa471ccd0",
+      "bytes": 1000
+    }
+  },
+  "tests": {
+    "passed": 14,
+    "failed": 0,
+    "threads": 1
+  },
+  "install_sha256": "b31031bae520dd770d878a0b0447217336a8f14ea54e17f692b5ac00ac0a1c6a"
+}

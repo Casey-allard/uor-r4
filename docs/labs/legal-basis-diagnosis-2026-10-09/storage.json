@@ -1,0 +1,8 @@
+{
+  "name": "codex-legal-basis-diagnosis-20261009",
+  "bytes": 13264384,
+  "md5": "32dcdd9a0f2aa1092430490d754f49e2",
+  "remote": "icloud:UOR-R4/results/codex/codex-legal-basis-diagnosis-20261009.tar",
+  "verification": "cloud-store full remote MD5 round-trip and index",
+  "scope": "Both sealed diagnostic traces/input bit container/final executable/both instrumented dependency versions/source freezes/build logs; original model archive retained separately"
+}

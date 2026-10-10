@@ -1,0 +1,1408 @@
+diff --git a/docs/labs/legal-basis-diagnosis-2026-10-09/README.md b/docs/labs/legal-basis-diagnosis-2026-10-09/README.md
+new file mode 100644
+index 000000000..6ac912824
+--- /dev/null
++++ b/docs/labs/legal-basis-diagnosis-2026-10-09/README.md
+@@ -0,0 +1,61 @@
++# Exact legal-constructor basis diagnosis — 9 October 2026
++
++## Question and fixed scope
++
++The [direct legal-set constructor](../direct-legal-construction-2026-10-09/README.md)
++returned `InternalError("Singular matrix")` for both absolute and equivalent
++centered encodings. Which solver phase and specific selected basis fail, and is
++the rejection an empty stored column or a nonzero pivot below the backend's
++threshold? This is a saved-problem execution diagnosis before any numerical
++repair. It is not a new training attempt or a model-quality comparison.
++
++[Prospective M2 claim](https://github.com/UOR-Foundation/uor-r4/issues/2030#issuecomment-6092679883).
++Use the unchanged centered constructor, all 1,920 original master coordinates,
++20 fractional side encodings, 380 unit-normalized guard derivatives and original
++objective. All 1,960 variables, 440 constraints, 15 legal destinations per
++coordinate, zero-margin construction target, zero warm start and 4,096 branch-node
++bound remain. No coefficient pruning, tolerance change, new gradient, native
++scoring, candidate commitment, or held-out use.
++
++The standalone Rust harness includes the production constructor by path. The
++backend is pinned `microlp=0.6.0`; observation-only instrumentation applies to a
++hash-verified local copy, never the shared Cargo registry. It records exact f64
++bits for the selected basis and failed pivot context. The diagnostic patch is
++retained research tooling, not a new production or serving dependency.
++
++## Artifact recovery
++
++`prepare.py` verifies every file in the saved #2101 attempt3 manifest and the
++SHA256 of each required raw file, then packages their f32 bit patterns without
++model arithmetic. Rust performs the same ordered normalization as the production
++`protected_joint_vector::unit_rows` function. The original artifact is development
++input245, 17 references and 380 original guards; it is not the separate 9/15
++conditional artifact or a fresh evaluation.
++
++- Archive: `icloud:UOR-R4/results/codex/codex-protected-joint-20261009.tar`,
++  MD5 `467c102adc510a6352951596b969f1be`.
++- Saved report SHA256: `b1d27f7b15e65d0aa8ea7e0a995b8bc76979610f97dbcb3055c8bbb434d0ac9b`.
++- Saved manifest SHA256: `cdadd7c5cbbbdca2225a71006ab58f70129e8df9e015b92f35b19359028a7167`.
++- 1,676 complete manifest files and 384 required raw files verified.
++- Bit-container SHA256: `0fe91060f10c0d6107be3565f9ae0746c30e742a00d02935398f6764b84b974d`,
++  3,925,770 bytes. The full receipt and original guard map remain with the evidence.
++
++## Interpretation boundary
++
++A small computed pivot localizes a numerical rejection; it is not an exact-rank
++proof, condition-number estimate or global infeasibility result. A computed zero
++can arise from floating-point elimination. Backend diagnostics do not qualify a
++model or weaken the original actual-bit screen and native acceptance gates.
++Accepted Source48/Generate64 remains 8/512 complete development replies; the
++separate conditional 9/15 artifact remains unchanged. Actual-nine, full512, fresh
++and multi-turn qualification are not part of this diagnostic.
++
++## Resources
++
++Admission projected 45 minutes for preparation, compile, replay, review and
++protected delivery; two CPU threads, 4 GiB process RAM, at most 3 GiB new temporary
++storage and 512 MiB retained evidence. Free space at admission was 40,019,226,624
++bytes against the 30 GiB plus 128 MiB floor. The existing shared ledger was
++1,459,465,346 ms used / 1,463,400,028 ms allowed; charges continue from
++2026-10-10T02:18:26.318584Z. No GPU, pod or paid compute; no new model derivatives
++or native grading.
+diff --git a/docs/labs/legal-basis-diagnosis-2026-10-09/apply-observer.py b/docs/labs/legal-basis-diagnosis-2026-10-09/apply-observer.py
+new file mode 100644
+index 000000000..eada30e86
+--- /dev/null
++++ b/docs/labs/legal-basis-diagnosis-2026-10-09/apply-observer.py
+@@ -0,0 +1,76 @@
++#!/usr/bin/env python3
++"""Install a pinned local dependency copy; never modifies the Cargo registry."""
++import argparse,difflib,hashlib,json,pathlib,shutil
++P=pathlib.Path(__file__).resolve().parent
++R=P.parents[2]
++def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
++def replace(text,a,b,n=1):
++    if text.count(a)!=n:raise ValueError(f'patch anchor count {text.count(a)} != {n}: {a[:80]}')
++    return text.replace(a,b)
++def main():
++    ap=argparse.ArgumentParser();ap.add_argument('--upstream',type=pathlib.Path,required=True);args=ap.parse_args()
++    src=args.upstream.resolve(); inv=json.loads((P/'upstream-identity.json').read_text())
++    for f,v in inv.items():
++        if sha(src/f)!=v:raise ValueError('upstream identity differs: '+f)
++    dst=R/'local/microlp-0.6.0'
++    if dst.exists():raise ValueError('exclusive dependency destination exists')
++    shutil.copytree(src,dst)
++    before={f:(src/f).read_text() for f in ['src/lib.rs','src/lu.rs','src/solver.rs','src/mip/mod.rs']}
++    s=before['src/lib.rs'];s+='\n/// Offline observation adapter; no solver arithmetic changes.\n#[allow(missing_docs)]\npub mod diagnostics;\n';(dst/'src/lib.rs').write_text(s)
++    s=before['src/lu.rs'];s=replace(s,'    // Implementation of the Gilbert-Peierls algorithm:', '    crate::diagnostics::factor_begin();\n    // Implementation of the Gilbert-Peierls algorithm:')
++    s=replace(s,'    let col_perm = super::ordering::order_simple(size, |c| get_col(c).0)?;', '''    let col_perm = match super::ordering::order_simple(size, |c| get_col(c).0) {
++        Ok(p) => p,
++        Err(e) => {
++            crate::diagnostics::singular("symbolic_order_simple", size, &get_col,
++                format!("empty_stored_columns={:?}; EPS_bits={:016x}; stability_bits={:016x}",
++                    (0..size).filter(|&c|get_col(c).0.is_empty()).collect::<Vec<_>>(), EPS.to_bits(),stability_coeff.to_bits()));
++            return Err(e);
++        }
++    };''')
++    s=replace(s,'''            if max_abs < EPS {
++                return Err(Error::SingularMatrix);
++            }''','''            if max_abs < EPS {
++                crate::diagnostics::singular("numeric_lu_pivot", size, &get_col,
++                    format!("pivot_column={} original_column={} max_abs_bits={:016x} EPS_bits={:016x} stability_bits={:016x}\\ncol_new2orig={:?}\\nrow_new2orig={:?}\\nrow_orig2new={:?}\\nresidual_all_original_row_bits={:?}\\nresidual_stored_nonzero_original_rows={:?}\\neligible_original_rows={:?}\\nprior_upper_diagonal_bits={:?}",
++                    i_col,col_perm.new2orig[i_col],max_abs.to_bits(),EPS.to_bits(),stability_coeff.to_bits(),
++                    col_perm.new2orig,new2orig_row,orig2new_row,crate::diagnostics::bits(&scratch.rhs.values),scratch.rhs.nonzero,
++                    (0..size).filter(|&r|orig2new_row[r]>=i_col).collect::<Vec<_>>(),crate::diagnostics::bits(&upper_diag)));
++                return Err(Error::SingularMatrix);
++            }''');(dst/'src/lu.rs').write_text(s)
++    s=before['src/solver.rs']
++    s=replace(s,'        let lu_factors = lu_factorize(','''        crate::diagnostics::context(format!("factor_callsite=initial_constructor\\nstructural_vars={}\\noriginal_rhs_bits={:?}\\nrow_scale_bits={:?}\\noriginal_lower_bits={:?}\\noriginal_upper_bits={:?}\\nnonbasic_vars={:?}",num_vars,crate::diagnostics::bits(&orig_rhs),crate::diagnostics::bits(&row_scales),crate::diagnostics::bits(&orig_var_mins),crate::diagnostics::bits(&orig_var_maxs),nb_vars));
++        crate::diagnostics::mapping(&basic_vars);
++        let lu_factors = lu_factorize(''')
++    # Every reset records current complete variable and row mapping before the existing operation.
++    import re
++    pat=r'(self\.basis_solver\s*\.reset\(&self\.orig_constraints_csc, &self\.basic_vars\)\?;)'
++    if len(re.findall(pat,s))!=4:raise ValueError('expected four existing reset callsites')
++    s=re.sub(pat,r'self.diagnostic_context();\n                        \1',s)
++    anchor='    pub(crate) fn initial_solve(&mut self) -> Result<StopReason, Error> {'
++    helper='''    fn diagnostic_context(&self) {
++        crate::diagnostics::context(format!("factor_callsite=basis_reset\\nstructural_vars={}\\noriginal_rhs_bits={:?}\\nrow_scale_bits={:?}\\ncurrent_lower_bits={:?}\\ncurrent_upper_bits={:?}\\nnonbasic_vars={:?}\\nbasic_value_bits={:?}\\neta_updates_before_reset={}",self.num_vars,crate::diagnostics::bits(&self.orig_rhs),crate::diagnostics::bits(&self.row_scales),crate::diagnostics::bits(&self.orig_var_mins),crate::diagnostics::bits(&self.orig_var_maxs),self.nb_vars,crate::diagnostics::bits(&self.basic_var_vals),self.basis_solver.eta_matrices.len()));
++        crate::diagnostics::mapping(&self.basic_vars);
++        crate::diagnostics::iteration(self.lp_iterations);
++    }
++'''
++    s=replace(s,anchor,helper+anchor)
++    s=replace(s,'    fn optimize(&mut self) -> Result<StopReason, Error> {','    fn optimize(&mut self) -> Result<StopReason, Error> {\n        crate::diagnostics::lp_phase("optimization");')
++    s=replace(s,'    fn restore_feasibility(&mut self) -> Result<StopReason, Error> {','    fn restore_feasibility(&mut self) -> Result<StopReason, Error> {\n        crate::diagnostics::lp_phase("feasibility");')
++    s=replace(s,'            self.lp_iterations += 1;','            self.lp_iterations += 1;\n            crate::diagnostics::iteration(self.lp_iterations);',2)
++    (dst/'src/solver.rs').write_text(s)
++    s=before['src/mip/mod.rs']
++    s=replace(s,'    if state.solver.initial_solve()? == StopReason::Limit {','    crate::diagnostics::phase("root_initial_solve");\n    if state.solver.initial_solve()? == StopReason::Limit {')
++    s=replace(s,'fn solve_node_lp(state: &mut MipState) -> Result<NodeLp, Error> {','fn solve_node_lp(state: &mut MipState) -> Result<NodeLp, Error> {\n    crate::diagnostics::phase(&format!("branch_lp_nodes_solved={}",state.stats.nodes_solved));')
++    s=s.replace('    let slack = state.solver.slack_basis();','    crate::diagnostics::phase(&format!("branch_slack_retry_nodes_solved={}",state.stats.nodes_solved));\n    let slack = state.solver.slack_basis();',1)
++    s=replace(s,'fn visit_node(state: &mut MipState, node: Node, domains: &[VarDomain]) -> Result<NodeVisit, Error> {','fn visit_node(state: &mut MipState, node: Node, domains: &[VarDomain]) -> Result<NodeVisit, Error> {\n    crate::diagnostics::phase(&format!("branch_basis_load_nodes_solved={} depth={} bound_changes={:?}",state.stats.nodes_solved,node.depth,node.bound_changes));')
++    # Scope warm-start subsolver explicitly at its entry; no bound handling is altered.
++    start=s.index('fn try_warm_start(');pos=s.index(' {',start)+2
++    s=s[:pos]+'\n    crate::diagnostics::phase("advisory_warm_start");'+s[pos:]
++    (dst/'src/mip/mod.rs').write_text(s)
++    shutil.copyfile(P/'diagnostics.rs',dst/'src/diagnostics.rs')
++    patches=[]
++    for f,old in before.items():patches.extend(difflib.unified_diff(old.splitlines(keepends=True),(dst/f).read_text().splitlines(keepends=True),fromfile='upstream/'+f,tofile='observed/'+f))
++    (P/'observation.patch').write_text(''.join(patches))
++    changed={f:sha(dst/f) for f in [*before,'src/diagnostics.rs']}
++    (R/'local/observer-install.json').write_text(json.dumps({'upstream':inv,'changed':changed,'observer_sha256':sha(P/'diagnostics.rs'),'patch_sha256':sha(P/'observation.patch')},indent=2)+'\n')
++if __name__=='__main__':main()
+diff --git a/docs/labs/legal-basis-diagnosis-2026-10-09/diagnostics.rs b/docs/labs/legal-basis-diagnosis-2026-10-09/diagnostics.rs
+new file mode 100644
+index 000000000..3633345b5
+--- /dev/null
++++ b/docs/labs/legal-basis-diagnosis-2026-10-09/diagnostics.rs
+@@ -0,0 +1,163 @@
++//! Observation only: arithmetic and solver control flow remain in the upstream code.
++use std::{
++    fs::{self, OpenOptions},
++    io::{self, Write},
++    path::{Path, PathBuf},
++    sync::{Mutex, OnceLock},
++};
++#[derive(Default)]
++struct State {
++    root: Option<PathBuf>,
++    phase: String,
++    lp_phase: String,
++    iteration: u64,
++    sequence: u64,
++    failures: u64,
++    captured_bound_bytes: u64,
++    context: String,
++    mapping: Vec<usize>,
++    errors: Vec<String>,
++}
++fn state() -> &'static Mutex<State> {
++    static S: OnceLock<Mutex<State>> = OnceLock::new();
++    S.get_or_init(|| Mutex::new(State::default()))
++}
++fn change(f: impl FnOnce(&mut State)) {
++    if let Ok(mut s) = state().lock() {
++        f(&mut s);
++    }
++}
++pub fn configure(root: &Path) -> io::Result<()> {
++    fs::create_dir(root)?;
++    let mut s = state()
++        .lock()
++        .map_err(|_| io::Error::other("observer lock poisoned"))?;
++    *s = State {
++        root: Some(root.to_owned()),
++        ..State::default()
++    };
++    Ok(())
++}
++pub fn finish() -> io::Result<(u64, u64)> {
++    let s = state()
++        .lock()
++        .map_err(|_| io::Error::other("observer lock poisoned"))?;
++    if !s.errors.is_empty() {
++        return Err(io::Error::other(s.errors.join("; ")));
++    }
++    Ok((s.sequence, s.failures))
++}
++pub(crate) fn phase(x: &str) {
++    change(|s| s.phase = x.to_owned());
++}
++pub(crate) fn lp_phase(x: &str) {
++    change(|s| s.lp_phase = x.to_owned());
++}
++pub(crate) fn iteration(x: u64) {
++    change(|s| s.iteration = x);
++}
++pub(crate) fn context(x: String) {
++    change(|s| s.context = x);
++}
++pub(crate) fn mapping(x: &[usize]) {
++    change(|s| s.mapping = x.to_vec());
++}
++pub(crate) fn factor_begin() {
++    change(|s| s.sequence += 1);
++}
++pub(crate) fn bits(x: &[f64]) -> Vec<u64> {
++    x.iter().map(|x| x.to_bits()).collect()
++}
++fn write_new(p: &Path, body: &str) -> io::Result<()> {
++    let mut f = OpenOptions::new().create_new(true).write(true).open(p)?;
++    f.write_all(body.as_bytes())
++}
++pub(crate) fn singular<'a>(
++    kind: &str,
++    size: usize,
++    get_col: impl Fn(usize) -> (&'a [usize], &'a [f64]),
++    detail: String,
++) {
++    change(|s| {
++        let Some(root) = &s.root else {
++            return;
++        };
++        s.failures += 1;
++        let estimated = (0..size)
++            .map(|c| get_col(c).0.len() as u64 * 80 + 64)
++            .sum::<u64>()
++            + s.context.len() as u64
++            + detail.len() as u64
++            + s.mapping.len() as u64 * 24
++            + 4096;
++        if s.captured_bound_bytes.saturating_add(estimated) > 480 * 1024 * 1024 {
++            s.errors
++                .push("observer capture exceeds 480MiB bound; arithmetic was not changed".into());
++            return;
++        }
++        s.captured_bound_bytes += estimated;
++        let d = root.join(format!("singular-{:04}", s.failures));
++        let result = (|| -> io::Result<()> {
++            fs::create_dir(&d)?;
++            write_new(&d.join("context.txt"),&format!("kind={kind}\nfactor_sequence={}\nphase={}\nlp_phase={}\nlp_iterations={}\nbasic_vars={:?}\n{}\n{}\n",s.sequence,s.phase,s.lp_phase,s.iteration,s.mapping,s.context,detail))?;
++            let mut f = OpenOptions::new()
++                .create_new(true)
++                .write(true)
++                .open(d.join("basis-csc.tsv"))?;
++            writeln!(f,"# full pre-elimination basis; dimension={size}; columns map through basic_vars; f64 values exact hexadecimal bits")?;
++            for c in 0..size {
++                let (rows, vals) = get_col(c);
++                writeln!(f, "COLUMN\t{c}\t{}", rows.len())?;
++                for (&r, &v) in rows.iter().zip(vals) {
++                    writeln!(f, "ENTRY\t{c}\t{r}\t{:016x}", v.to_bits())?;
++                }
++            }
++            Ok(())
++        })();
++        if let Err(e) = result {
++            s.errors.push(e.to_string());
++        }
++    });
++}
++#[cfg(test)]
++mod tests {
++    use super::*;
++    #[test]
++    fn observer_capture_preserves_bits_and_empty_column() -> io::Result<()> {
++        let d = PathBuf::from(std::env::var("UOR_DIAGNOSTIC_TEST_ROOT").map_err(io::Error::other)?)
++            .join(format!("uor-basis-observer-{}", std::process::id()));
++        configure(&d)?;
++        mapping(&[3, 4]);
++        phase("fixture");
++        factor_begin();
++        let rows = [0usize];
++        let vals = [-0f64];
++        singular(
++            "symbolic",
++            2,
++            |c| if c == 0 { (&rows, &vals) } else { (&[], &[]) },
++            "empty=1".into(),
++        );
++        assert_eq!(finish()?, (1, 1));
++        let text = fs::read_to_string(d.join("singular-0001/basis-csc.tsv"))?;
++        assert!(text.contains("8000000000000000"));
++        assert!(text.contains("COLUMN\t1\t0"));
++        fs::remove_dir_all(d)?;
++        Ok(())
++    }
++}
++
++/// Exercise existing LU failure paths on tiny synthetic matrices, for observation tests only.
++#[doc(hidden)]
++pub fn factorization_fixture(symbolic: bool) -> String {
++    let rows = vec![vec![0usize, 1], if symbolic { vec![] } else { vec![0, 1] }];
++    let vals = vec![vec![1f64, 2.], if symbolic { vec![] } else { vec![2., 4.] }];
++    mapping(&[0, 1]);
++    phase("synthetic_factor_fixture");
++    context("factor_callsite=synthetic_fixture".into());
++    let mut scratch = crate::lu::ScratchSpace::with_capacity(2);
++    match crate::lu::lu_factorize(2, |c| (&rows[c], &vals[c]), 0.1, &mut scratch) {
++        Ok(_) => "unexpected_success".into(),
++        Err(e) => e.to_string(),
++    }
++}
+diff --git a/docs/labs/legal-basis-diagnosis-2026-10-09/harness/Cargo.lock b/docs/labs/legal-basis-diagnosis-2026-10-09/harness/Cargo.lock
+new file mode 100644
+index 000000000..b3461eb71
+--- /dev/null
++++ b/docs/labs/legal-basis-diagnosis-2026-10-09/harness/Cargo.lock
+@@ -0,0 +1,489 @@
++# This file is automatically @generated by Cargo.
++# It is not intended for manual editing.
++version = 4
++
++[[package]]
++name = "arrayref"
++version = "0.3.9"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "76a2e8124351fda1ef8aaaa3bbd7ebbcb486bbcd4225aca0aa0d84bb2db8fecb"
++
++[[package]]
++name = "arrayvec"
++version = "0.7.8"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "d3fb67a6e08acf24fdeccbac2cb6ac4305825bd1f117462e0e6f2f193345ad56"
++
++[[package]]
++name = "autocfg"
++version = "1.5.1"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "f2032f911046de80f0a198e0901378627c33f59ea0ac00e363d481118bd70a53"
++
++[[package]]
++name = "blake3"
++version = "1.5.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "0231f06152bf547e9c2b5194f247cd97aacf6dcd8b15d8e5ec0663f64580da87"
++dependencies = [
++ "arrayref",
++ "arrayvec",
++ "cc",
++ "cfg-if",
++ "constant_time_eq",
++]
++
++[[package]]
++name = "block-buffer"
++version = "0.10.4"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "3078c7629b62d3f0439517fa394996acacc5cbc91c5a20d8c658e77abd503a71"
++dependencies = [
++ "generic-array",
++]
++
++[[package]]
++name = "bumpalo"
++version = "3.20.3"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "72f5acc6cb2ba439de613abc23857ec3d78374d8ed5ac84e9d11336e87da8649"
++
++[[package]]
++name = "cc"
++version = "1.6.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "f74872d07caf508b30a21f6836e7d7016a2eaf7d9ff4f48deaa58cd8a0407630"
++dependencies = [
++ "find-msvc-tools",
++ "shlex",
++]
++
++[[package]]
++name = "cfg-if"
++version = "1.0.5"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "4e7648175b45a9a48536d676f68d918270699102aa8dab5496df06904c914600"
++
++[[package]]
++name = "constant_time_eq"
++version = "0.3.1"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "7c74b8349d32d297c9134b8c88677813a227df8f779daa29bfc29c183fe3dca6"
++
++[[package]]
++name = "cpufeatures"
++version = "0.2.17"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "59ed5838eebb26a2bb2e58f6d5b5316989ae9d08bab10e0e6d103e656d1b0280"
++dependencies = [
++ "libc",
++]
++
++[[package]]
++name = "crypto-common"
++version = "0.1.7"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "78c8292055d1c1df0cce5d180393dc8cce0abec0a7102adb6c7b1eef6016d60a"
++dependencies = [
++ "generic-array",
++ "typenum",
++]
++
++[[package]]
++name = "digest"
++version = "0.10.7"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "9ed9a281f7bc9b7576e61468ba615a66a5c8cfdff42420a70aa82701a3b1e292"
++dependencies = [
++ "block-buffer",
++ "crypto-common",
++]
++
++[[package]]
++name = "find-msvc-tools"
++version = "0.1.14"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "aedcfb3409746eddb02b9e19ebda1c3394f759a152e48ee875a0844d1b955484"
++
++[[package]]
++name = "futures-core"
++version = "0.3.34"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "92d699e522242e69e3003b94ecc1f960f3a5e015aa7c5d7486e65ad01dd94f5e"
++
++[[package]]
++name = "futures-task"
++version = "0.3.34"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "cd417de3d1d015fc3bfd2b1ea46dfc7bab72ef86f1cc7cc9c78e728b34a6d1fd"
++
++[[package]]
++name = "futures-util"
++version = "0.3.34"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "0d50a92467f8ba5dd6e3ee5d4bd04d73ab2e4e1c44474a0674821dfce14b79bc"
++dependencies = [
++ "futures-core",
++ "futures-task",
++ "pin-project-lite",
++ "slab",
++]
++
++[[package]]
++name = "generic-array"
++version = "0.14.7"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "85649ca51fd72272d7821adaf274ad91c288277713d9c18820d8499a7ff69e9a"
++dependencies = [
++ "typenum",
++ "version_check",
++]
++
++[[package]]
++name = "itoa"
++version = "1.0.18"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"
++
++[[package]]
++name = "js-sys"
++version = "0.3.104"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "0e0c1080212aad755ea003d18543e8768dd432c48819efd73a7bf1e39b7a5a3a"
++dependencies = [
++ "cfg-if",
++ "futures-util",
++ "wasm-bindgen",
++]
++
++[[package]]
++name = "legal-basis-diagnosis"
++version = "0.1.0"
++dependencies = [
++ "blake3",
++ "microlp",
++ "serde",
++ "serde_json",
++ "sha2",
++]
++
++[[package]]
++name = "libc"
++version = "0.2.190"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "ce5d3ddc6d3fa000eb1536d85e147bfe31aacaba692ed6a876f95cb7c855be78"
++
++[[package]]
++name = "log"
++version = "0.4.34"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "f9f8bd3e56ce4dfc153cf470fffbfa98c7620958b312ca5c3a4b8d5181fd13c6"
++
++[[package]]
++name = "matrixmultiply"
++version = "0.3.11"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "3f607c237553f086e7043417a51df26b2eb899d3caff94e6a67592ff992fedc7"
++dependencies = [
++ "autocfg",
++ "rawpointer",
++]
++
++[[package]]
++name = "memchr"
++version = "2.8.3"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98"
++
++[[package]]
++name = "microlp"
++version = "0.6.0"
++dependencies = [
++ "log",
++ "sprs",
++ "web-time",
++]
++
++[[package]]
++name = "ndarray"
++version = "0.17.2"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "520080814a7a6b4a6e9070823bb24b4531daac8c4627e08ba5de8c5ef2f2752d"
++dependencies = [
++ "matrixmultiply",
++ "num-complex",
++ "num-integer",
++ "num-traits",
++ "portable-atomic",
++ "portable-atomic-util",
++ "rawpointer",
++]
++
++[[package]]
++name = "num-complex"
++version = "0.4.6"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "73f88a1307638156682bada9d7604135552957b7818057dcef22705b4d509495"
++dependencies = [
++ "num-traits",
++]
++
++[[package]]
++name = "num-integer"
++version = "0.1.47"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "7ce2d95d4b3734dc35aa2f45e1aa22cd416814592a4f9d9205e11affd5b8e10b"
++dependencies = [
++ "num-traits",
++]
++
++[[package]]
++name = "num-traits"
++version = "0.2.19"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "071dfc062690e90b734c0b2273ce72ad0ffa95f0c74596bc250dcfd960262841"
++dependencies = [
++ "autocfg",
++]
++
++[[package]]
++name = "once_cell"
++version = "1.21.4"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "9f7c3e4beb33f85d45ae3e3a1792185706c8e16d043238c593331cc7cd313b50"
++
++[[package]]
++name = "pin-project-lite"
++version = "0.2.17"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "a89322df9ebe1c1578d689c92318e070967d1042b512afbe49518723f4e6d5cd"
++
++[[package]]
++name = "portable-atomic"
++version = "1.15.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "05c8b63e8d9609db387f0324918f81d68fe27748f084ef092fb35954d0539a85"
++
++[[package]]
++name = "portable-atomic-util"
++version = "0.2.7"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "c2a106d1259c23fac8e543272398ae0e3c0b8d33c88ed73d0cc71b0f1d902618"
++dependencies = [
++ "portable-atomic",
++]
++
++[[package]]
++name = "proc-macro2"
++version = "1.0.107"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "985e7ec9bb745e6ce6535b544d84d6cd6f7ad8bd711c398938ae983b91a766d9"
++dependencies = [
++ "unicode-ident",
++]
++
++[[package]]
++name = "quote"
++version = "1.0.47"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "1fbf4db142a473a8d80c26bbf18454ed458bf8d26c8219c331daecfdbd079001"
++dependencies = [
++ "proc-macro2",
++]
++
++[[package]]
++name = "rawpointer"
++version = "0.2.1"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "60a357793950651c4ed0f3f52338f53b2f809f32d83a07f72909fa13e4c6c1e3"
++
++[[package]]
++name = "rustversion"
++version = "1.0.23"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "cf54715a573b99ac80df0bc206da022bcd442c974952c7b9720069370852e21f"
++
++[[package]]
++name = "serde"
++version = "1.0.229"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "4148590afebada386688f18773da617792bf2ef03ffc1e4cbd2b1d45b023e0ba"
++dependencies = [
++ "serde_core",
++ "serde_derive",
++]
++
++[[package]]
++name = "serde_core"
++version = "1.0.229"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "67dca2c9c51e58a4791a4b1ed58308b39c64224d349a935ab5039aa360942a48"
++dependencies = [
++ "serde_derive",
++]
++
++[[package]]
++name = "serde_derive"
++version = "1.0.229"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "e7a5d71263a5a7d47b41f6b3f06ba276f10cc18b0931f1799f710578e2309348"
++dependencies = [
++ "proc-macro2",
++ "quote",
++ "syn 3.0.6",
++]
++
++[[package]]
++name = "serde_json"
++version = "1.0.151"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "c841b55ecdae098c80dcae9cf767f6f8a0c2cdb3416bbef72181df4d0fe73f14"
++dependencies = [
++ "itoa",
++ "memchr",
++ "serde",
++ "serde_core",
++ "zmij",
++]
++
++[[package]]
++name = "sha2"
++version = "0.10.9"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "a7507d819769d01a365ab707794a4084392c824f54a7a6a7862f8c3d0892b283"
++dependencies = [
++ "cfg-if",
++ "cpufeatures",
++ "digest",
++]
++
++[[package]]
++name = "shlex"
++version = "2.0.1"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "f8fadd59c855ef2080decdef8ff161eb6661b86933c9d82e5ba29dc602a55aba"
++
++[[package]]
++name = "slab"
++version = "0.4.12"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "0c790de23124f9ab44544d7ac05d60440adc586479ce501c1d6d7da3cd8c9cf5"
++
++[[package]]
++name = "smallvec"
++version = "1.16.2"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "f9395f0f0eee849a9b707b2f06bb92a6a422090e2123bb2ef8e87a0e61892a8e"
++
++[[package]]
++name = "sprs"
++version = "0.11.5"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "70d5a5663aa9f18d287877b8a889ee6cc2314e3a3778193ccc580d048d7d4abc"
++dependencies = [
++ "ndarray",
++ "num-complex",
++ "num-traits",
++ "smallvec",
++]
++
++[[package]]
++name = "syn"
++version = "2.0.119"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "872831b642d1a07999a962a351ed35b955ea2cfc8f3862091e2a240a84f17297"
++dependencies = [
++ "proc-macro2",
++ "quote",
++ "unicode-ident",
++]
++
++[[package]]
++name = "syn"
++version = "3.0.6"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "8593e8e72159ed2257d083c7a454a85cbf854f37a0966d8d483aff8c8a3ebcee"
++dependencies = [
++ "proc-macro2",
++ "quote",
++ "unicode-ident",
++]
++
++[[package]]
++name = "typenum"
++version = "1.20.1"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "b6f5e870be6c3b371b77fe0ee0bafb859fa4964b4404c27de1d380043c4dda20"
++
++[[package]]
++name = "unicode-ident"
++version = "1.0.26"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "d245f478577f809a851594d02313b640fb437e0bb33866753cff937863096954"
++
++[[package]]
++name = "version_check"
++version = "0.9.5"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
++
++[[package]]
++name = "wasm-bindgen"
++version = "0.2.127"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "1b70935747edd64d89de3efa29d73789b806c15798f8e7dca4d8ac356b50ce70"
++dependencies = [
++ "cfg-if",
++ "once_cell",
++ "rustversion",
++ "wasm-bindgen-macro",
++ "wasm-bindgen-shared",
++]
++
++[[package]]
++name = "wasm-bindgen-macro"
++version = "0.2.127"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "77775f8f3f7217702089053b94958f8f54061a3f663417df76e19cbdcca29bc1"
++dependencies = [
++ "quote",
++ "wasm-bindgen-macro-support",
++]
++
++[[package]]
++name = "wasm-bindgen-macro-support"
++version = "0.2.127"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "e11d33f857dc2fb11b8bc75aee111aa9cbeb12cd9f25efd3d4c2a3dd4e235284"
++dependencies = [
++ "bumpalo",
++ "proc-macro2",
++ "quote",
++ "syn 2.0.119",
++ "wasm-bindgen-shared",
++]
++
++[[package]]
++name = "wasm-bindgen-shared"
++version = "0.2.127"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "7ef64dbcc55df09c7e5a46182d181c2cfa3e925f3da937ea764728b4bbb9dcbf"
++dependencies = [
++ "unicode-ident",
++]
++
++[[package]]
++name = "web-time"
++version = "1.1.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "5a6580f308b1fad9207618087a65c04e7a10bc77e02c8e84e9b00dd4b12fa0bb"
++dependencies = [
++ "js-sys",
++ "wasm-bindgen",
++]
++
++[[package]]
++name = "zmij"
++version = "1.0.23"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "29666d0abbfad1e3dc4dcf6144730dd3a3ab225bbbdac83319345b1b44ccfc1b"
+diff --git a/docs/labs/legal-basis-diagnosis-2026-10-09/harness/Cargo.toml b/docs/labs/legal-basis-diagnosis-2026-10-09/harness/Cargo.toml
+new file mode 100644
+index 000000000..0a40ac257
+--- /dev/null
++++ b/docs/labs/legal-basis-diagnosis-2026-10-09/harness/Cargo.toml
+@@ -0,0 +1,13 @@
++[package]
++name = "legal-basis-diagnosis"
++version = "0.1.0"
++edition = "2021"
++[workspace]
++[dependencies]
++microlp = { path = "../../../../local/microlp-0.6.0" }
++serde = { version = "1", features = ["derive"] }
++serde_json = "1"
++sha2 = "0.10"
++blake3 = "1"
++[profile.release]
++debug = 0
+diff --git a/docs/labs/legal-basis-diagnosis-2026-10-09/harness/src/main.rs b/docs/labs/legal-basis-diagnosis-2026-10-09/harness/src/main.rs
+new file mode 100644
+index 000000000..fe4a54c80
+--- /dev/null
++++ b/docs/labs/legal-basis-diagnosis-2026-10-09/harness/src/main.rs
+@@ -0,0 +1,243 @@
++//! Saved LP diagnosis only. The exact production constructor is compiled unchanged.
++use serde::{Deserialize, Serialize};
++use sha2::{Digest, Sha256};
++use std::{
++    error::Error,
++    fs,
++    io::BufReader,
++    path::{Path, PathBuf},
++    time::Instant,
++};
++#[path = "../../../../../crates/uor-r4-training/examples/geometric_frozen_map_fit/protected_legal_set.rs"]
++mod constructor;
++#[path = "../../../../../crates/uor-r4-integer/src/report_output.rs"]
++mod report_output;
++const SOURCE: &[u8] = include_bytes!("../../../../../crates/uor-r4-training/examples/geometric_frozen_map_fit/protected_legal_set.rs");
++const SOURCE_SHA: &str = "f0242836d08dbadbb5659cd8f158d79c8de9420c9de2fb213de9ef149510c24b";
++const PATCH: &[u8] = include_bytes!("../../observation.patch");
++#[derive(Deserialize)]
++#[serde(deny_unknown_fields)]
++struct Input {
++    schema: String,
++    master_bits: Vec<u32>,
++    gradient_bits: Vec<u32>,
++    jacobian_bits: Vec<Vec<u32>>,
++    provenance: serde_json::Value,
++}
++#[derive(Serialize)]
++struct VariableMapping {
++    backend_variable: usize,
++    coordinate: usize,
++    family: &'static str,
++    family_index: usize,
++    component: &'static str,
++    lower: i32,
++    upper: i32,
++}
++fn hash(b: &[u8]) -> String {
++    format!("{:x}", Sha256::digest(b))
++}
++fn write(p: &Path, v: &impl Serialize) -> Result<(), Box<dyn Error>> {
++    use std::io::Write;
++    let mut f = fs::OpenOptions::new()
++        .write(true)
++        .create_new(true)
++        .open(p)?;
++    serde_json::to_writer_pretty(&mut f, v)?;
++    f.write_all(b"\n")?;
++    Ok(())
++}
++fn unit_rows(j: &[Vec<f32>]) -> Result<Vec<Vec<f64>>, Box<dyn Error>> {
++    j.iter()
++        .map(|v| {
++            if v.len() != 1920 || v.iter().any(|x| !x.is_finite()) {
++                return Err("malformed J row".into());
++            }
++            let mut r = v.iter().map(|x| f64::from(*x)).collect::<Vec<_>>();
++            let n = r.iter().map(|x| x * x).sum::<f64>().sqrt();
++            if !n.is_finite() {
++                return Err("J norm overflow".into());
++            }
++            if n > 0. {
++                for x in &mut r {
++                    *x /= n;
++                }
++            }
++            Ok(r)
++        })
++        .collect()
++}
++fn mapping(m: &[f32]) -> (Vec<VariableMapping>, Vec<serde_json::Value>) {
++    let mut vars = Vec::new();
++    let mut rows = Vec::new();
++    for (i, &m) in m.iter().enumerate() {
++        let q0 = (m * 4.).round() as i32;
++        let family = if i < 960 { "prefix" } else { "generate.unary" };
++        let fi = i % 960;
++        vars.push(VariableMapping {
++            backend_variable: vars.len(),
++            coordinate: i,
++            family,
++            family_index: fi,
++            component: "k=q-q0",
++            lower: -7 - q0,
++            upper: 7 - q0,
++        });
++        if m != (q0 as f32) * 0.25 {
++            for component in ["lower_branch_l", "upper_branch_r"] {
++                vars.push(VariableMapping {
++                    backend_variable: vars.len(),
++                    coordinate: i,
++                    family,
++                    family_index: fi,
++                    component,
++                    lower: 0,
++                    upper: 1,
++                });
++            }
++            for kind in ["side_sum_le1", "centered_lower_ge0", "centered_upper_le0"] {
++                rows.push(
++                    serde_json::json!({"model_constraint":rows.len(),"kind":kind,"coordinate":i}),
++                );
++            }
++        }
++    }
++    for i in 0..380 {
++        rows.push(serde_json::json!({"model_constraint":rows.len(),"kind":"unit_guard_ge0","guard_index":i}));
++    }
++    (vars, rows)
++}
++fn execute(input: &Path, expected: &str, out: &Path) -> Result<serde_json::Value, Box<dyn Error>> {
++    let started = Instant::now();
++    if hash(SOURCE) != SOURCE_SHA {
++        return Err("constructor source identity differs".into());
++    }
++    let meta = fs::metadata(input)?;
++    if !meta.is_file() || meta.len() > 16 * 1024 * 1024 {
++        return Err("input must be regular file <=16MiB".into());
++    }
++    let bytes = fs::read(input)?;
++    if hash(&bytes) != expected {
++        return Err("saved input SHA mismatch".into());
++    }
++    let x: Input = serde_json::from_reader(BufReader::new(bytes.as_slice()))?;
++    if x.schema != "uor-r4.legal-basis-input/1"
++        || x.master_bits.len() != 1920
++        || x.gradient_bits.len() != 1920
++        || x.jacobian_bits.len() != 380
++    {
++        return Err("input shape/schema differs".into());
++    }
++    let m = x
++        .master_bits
++        .iter()
++        .map(|x| f32::from_bits(*x))
++        .collect::<Vec<_>>();
++    let g = x
++        .gradient_bits
++        .iter()
++        .map(|x| f32::from_bits(*x))
++        .collect::<Vec<_>>();
++    let j = x
++        .jacobian_bits
++        .iter()
++        .map(|r| r.iter().map(|x| f32::from_bits(*x)).collect::<Vec<_>>())
++        .collect::<Vec<_>>();
++    let rows = unit_rows(&j)?;
++    let (variables, constraints) = mapping(&m);
++    write(
++        &out.join("model-mapping.json"),
++        &serde_json::json!({"variables":variables,"constraints":constraints,"source_sha256":SOURCE_SHA,"internal_row_mapping":"model order is authoritative; backend context contains row scales and full internal basic/nonbasic/slack mapping; no assumption of identity without inspection"}),
++    )?;
++    microlp::diagnostics::configure(&out.join("backend-observations"))?;
++    let receipt = constructor::run(&m, &g, &rows)?;
++    constructor::authenticate(&m, &g, &rows, &receipt)?;
++    let (factorizations, singular_events) = microlp::diagnostics::finish()?;
++    write(&out.join("constructor-receipt.json"), &receipt)?;
++    Ok(
++        serde_json::json!({"status":"COMPLETED_SAVED_BACKEND_DIAGNOSIS","schema":"uor-r4.legal-basis-diagnosis/1","input_sha256":expected,"input_bytes":meta.len(),"constructor_source_sha256":SOURCE_SHA,"observation_patch_sha256":hash(PATCH),"producer_provenance":x.provenance,"factorizations_observed":factorizations,"singular_events":singular_events,"backend_status":receipt.status,"backend_termination":receipt.termination,"elapsed_seconds":started.elapsed().as_secs_f64(),"scope":"Exact saved LP constructor replay only; zero training/backward/native scoring/native candidate acceptance; singular capture is numerical execution evidence, not rank/condition-number/infeasibility proof"}),
++    )
++}
++fn main() -> Result<(), Box<dyn Error>> {
++    let args = std::env::args().skip(1).collect::<Vec<_>>();
++    if args.len() != 6
++        || args[0] != "--input"
++        || args[2] != "--expected-sha256"
++        || args[4] != "--output"
++        || args[3].len() != 64
++        || !args[3].bytes().all(|x| x.is_ascii_hexdigit())
++    {
++        return Err("usage: --input FILE --expected-sha256 HEX --output EXCLUSIVE_DIR".into());
++    }
++    let input = PathBuf::from(&args[1]);
++    let out = PathBuf::from(&args[5]);
++    if out.exists() {
++        return Err("output already exists".into());
++    }
++    report_output::claim(&out)?;
++    let result = execute(&input, &args[3], &out);
++    let report = match &result {
++        Ok(v) => v.clone(),
++        Err(e) => serde_json::json!({"status":"FAILED","error":e.to_string()}),
++    };
++    write(&out.join("report.json"), &report)?;
++    report_output::seal(&out)?;
++    report_output::verify(&out)?;
++    result.map(|_| ())
++}
++#[cfg(test)]
++mod tests {
++    use super::*;
++    #[test]
++    fn exact_zero_rows_and_mapping() {
++        let m = vec![-0f32; 1920];
++        let (v, c) = mapping(&m);
++        assert_eq!(v.len(), 1920);
++        assert_eq!(c.len(), 380);
++        assert_eq!(v[0].lower, -7);
++        assert_eq!(v[1919].family, "generate.unary");
++        assert_eq!(unit_rows(&vec![vec![0.; 1920]; 380]).unwrap().len(), 380);
++        assert_eq!(hash(SOURCE), SOURCE_SHA);
++    }
++    #[test]
++    fn fractional_mapping_preserves_insertion_order() {
++        let mut m = vec![0.; 1920];
++        m[2] = 0.13;
++        let (v, c) = mapping(&m);
++        assert_eq!(v.len(), 1922);
++        assert_eq!(v[2].component, "k=q-q0");
++        assert_eq!(v[3].component, "lower_branch_l");
++        assert_eq!(v[4].component, "upper_branch_r");
++        assert_eq!(c.len(), 383);
++        assert_eq!(c[3]["guard_index"], 0);
++    }
++}
++
++#[cfg(test)]
++mod observation_tests {
++    use super::*;
++    #[test]
++    fn real_symbolic_and_numeric_lu_capture() -> Result<(), Box<dyn Error>> {
++        let root = PathBuf::from(std::env::var("UOR_DIAGNOSTIC_TEST_ROOT")?)
++            .join(format!("real-lu-{}", std::process::id()));
++        microlp::diagnostics::configure(&root)?;
++        assert_eq!(
++            microlp::diagnostics::factorization_fixture(true),
++            "Singular matrix"
++        );
++        assert_eq!(
++            microlp::diagnostics::factorization_fixture(false),
++            "Singular matrix"
++        );
++        assert_eq!(microlp::diagnostics::finish()?, (2, 2));
++        let symbolic = fs::read_to_string(root.join("singular-0001/context.txt"))?;
++        let numeric = fs::read_to_string(root.join("singular-0002/context.txt"))?;
++        assert!(symbolic.contains("kind=symbolic_order_simple"));
++        assert!(numeric.contains("kind=numeric_lu_pivot"));
++        assert!(numeric.contains("max_abs_bits=0000000000000000"));
++        assert!(numeric.contains("residual_stored_nonzero_original_rows="));
++        assert!(numeric.contains("prior_upper_diagonal_bits="));
++        fs::remove_dir_all(root)?;
++        Ok(())
++    }
++}
+diff --git a/docs/labs/legal-basis-diagnosis-2026-10-09/observation.patch b/docs/labs/legal-basis-diagnosis-2026-10-09/observation.patch
+new file mode 100644
+index 000000000..be26c01c3
+--- /dev/null
++++ b/docs/labs/legal-basis-diagnosis-2026-10-09/observation.patch
+@@ -0,0 +1,179 @@
++--- upstream/src/lib.rs
+++++ observed/src/lib.rs
++@@ -1214,3 +1214,7 @@
++         self.iter()
++     }
++ }
+++
+++/// Offline observation adapter; no solver arithmetic changes.
+++#[allow(missing_docs)]
+++pub mod diagnostics;
++--- upstream/src/lu.rs
+++++ observed/src/lu.rs
++@@ -123,6 +123,7 @@
++     stability_coeff: f64,
++     scratch: &mut ScratchSpace,
++ ) -> Result<LUFactors, Error> {
+++    crate::diagnostics::factor_begin();
++     // Implementation of the Gilbert-Peierls algorithm:
++     //
++     // Gilbert, John R., and Tim Peierls. "Sparse partial pivoting in time
++@@ -139,7 +140,15 @@
++         mat_nnz - size,
++     );
++ 
++-    let col_perm = super::ordering::order_simple(size, |c| get_col(c).0)?;
+++    let col_perm = match super::ordering::order_simple(size, |c| get_col(c).0) {
+++        Ok(p) => p,
+++        Err(e) => {
+++            crate::diagnostics::singular("symbolic_order_simple", size, &get_col,
+++                format!("empty_stored_columns={:?}; EPS_bits={:016x}; stability_bits={:016x}",
+++                    (0..size).filter(|&c|get_col(c).0.is_empty()).collect::<Vec<_>>(), EPS.to_bits(),stability_coeff.to_bits()));
+++            return Err(e);
+++        }
+++    };
++ 
++     let mut orig_row2elt_count = vec![0; size];
++     for col_rows in (0..size).map(|c| get_col(c).0) {
++@@ -207,6 +216,11 @@
++             }
++ 
++             if max_abs < EPS {
+++                crate::diagnostics::singular("numeric_lu_pivot", size, &get_col,
+++                    format!("pivot_column={} original_column={} max_abs_bits={:016x} EPS_bits={:016x} stability_bits={:016x}\ncol_new2orig={:?}\nrow_new2orig={:?}\nrow_orig2new={:?}\nresidual_all_original_row_bits={:?}\nresidual_stored_nonzero_original_rows={:?}\neligible_original_rows={:?}\nprior_upper_diagonal_bits={:?}",
+++                    i_col,col_perm.new2orig[i_col],max_abs.to_bits(),EPS.to_bits(),stability_coeff.to_bits(),
+++                    col_perm.new2orig,new2orig_row,orig2new_row,crate::diagnostics::bits(&scratch.rhs.values),scratch.rhs.nonzero,
+++                    (0..size).filter(|&r|orig2new_row[r]>=i_col).collect::<Vec<_>>(),crate::diagnostics::bits(&upper_diag)));
++                 return Err(Error::SingularMatrix);
++             }
++ 
++--- upstream/src/solver.rs
+++++ observed/src/solver.rs
++@@ -481,6 +481,8 @@
++         let cur_obj_val = if need_artificial_obj { 0.0 } else { obj_val };
++ 
++         let mut scratch = ScratchSpace::with_capacity(num_constraints);
+++        crate::diagnostics::context(format!("factor_callsite=initial_constructor\nstructural_vars={}\noriginal_rhs_bits={:?}\nrow_scale_bits={:?}\noriginal_lower_bits={:?}\noriginal_upper_bits={:?}\nnonbasic_vars={:?}",num_vars,crate::diagnostics::bits(&orig_rhs),crate::diagnostics::bits(&row_scales),crate::diagnostics::bits(&orig_var_mins),crate::diagnostics::bits(&orig_var_maxs),nb_vars));
+++        crate::diagnostics::mapping(&basic_vars);
++         let lu_factors = lu_factorize(
++             basic_vars.len(),
++             |c| {
++@@ -814,7 +816,8 @@
++             }
++         }
++ 
++-        self.basis_solver
+++        self.diagnostic_context();
+++                        self.basis_solver
++             .reset(&self.orig_constraints_csc, &self.basic_vars)?;
++ 
++         // Steepest-edge reference reset (standard practice after a warm-start load;
++@@ -900,6 +903,11 @@
++         self.num_vars + self.num_constraints()
++     }
++ 
+++    fn diagnostic_context(&self) {
+++        crate::diagnostics::context(format!("factor_callsite=basis_reset\nstructural_vars={}\noriginal_rhs_bits={:?}\nrow_scale_bits={:?}\ncurrent_lower_bits={:?}\ncurrent_upper_bits={:?}\nnonbasic_vars={:?}\nbasic_value_bits={:?}\neta_updates_before_reset={}",self.num_vars,crate::diagnostics::bits(&self.orig_rhs),crate::diagnostics::bits(&self.row_scales),crate::diagnostics::bits(&self.orig_var_mins),crate::diagnostics::bits(&self.orig_var_maxs),self.nb_vars,crate::diagnostics::bits(&self.basic_var_vals),self.basis_solver.eta_matrices.len()));
+++        crate::diagnostics::mapping(&self.basic_vars);
+++        crate::diagnostics::iteration(self.lp_iterations);
+++    }
++     pub(crate) fn initial_solve(&mut self) -> Result<StopReason, Error> {
++         if check_deadline(&self.deadline) == StopReason::Limit {
++             return Ok(StopReason::Limit);
++@@ -924,8 +932,10 @@
++     }
++ 
++     fn optimize(&mut self) -> Result<StopReason, Error> {
+++        crate::diagnostics::lp_phase("optimization");
++         for iter in 0.. {
++             self.lp_iterations += 1;
+++            crate::diagnostics::iteration(self.lp_iterations);
++             if iter % DEADLINE_CHECK_INTERVAL == 0 {
++                 if check_deadline(&self.deadline) == StopReason::Limit {
++                     return Ok(StopReason::Limit);
++@@ -955,6 +965,7 @@
++     }
++ 
++     fn restore_feasibility(&mut self) -> Result<StopReason, Error> {
+++        crate::diagnostics::lp_phase("feasibility");
++         let obj_str = if self.is_dual_feasible {
++             "obj."
++         } else {
++@@ -968,6 +979,7 @@
++ 
++         for iter in 0.. {
++             self.lp_iterations += 1;
+++            crate::diagnostics::iteration(self.lp_iterations);
++             if iter % DEADLINE_CHECK_INTERVAL == 0 {
++                 if check_deadline(&self.deadline) == StopReason::Limit {
++                     return Ok(StopReason::Limit);
++@@ -1002,6 +1014,7 @@
++                              refreshing basis before declaring infeasibility",
++                             iter, row,
++                         );
+++                        self.diagnostic_context();
++                         self.basis_solver
++                             .reset(&self.orig_constraints_csc, &self.basic_vars)?;
++                         self.recalc_basic_var_vals()?;
++@@ -1085,7 +1098,8 @@
++         self.orig_constraints = new_orig_constraints;
++         self.orig_constraints_csc = self.orig_constraints.to_csc();
++ 
++-        self.basis_solver
+++        self.diagnostic_context();
+++                        self.basis_solver
++             .reset(&self.orig_constraints_csc, &self.basic_vars)?;
++ 
++         if self.enable_primal_steepest_edge || self.enable_dual_steepest_edge {
++@@ -1584,7 +1598,8 @@
++             self.basis_solver
++                 .push_eta_matrix(&self.col_coeffs, pivot_elem.row, pivot_coeff);
++         } else {
++-            self.basis_solver
+++            self.diagnostic_context();
+++                        self.basis_solver
++                 .reset(&self.orig_constraints_csc, &self.basic_vars)?;
++         }
++         Ok(())
++--- upstream/src/mip/mod.rs
+++++ observed/src/mip/mod.rs
++@@ -607,6 +607,7 @@
++     }
++ 
++     debug!("exactly integral candidate failed guard; retrying from slack basis");
+++    crate::diagnostics::phase(&format!("branch_slack_retry_nodes_solved={}",state.stats.nodes_solved));
++     let slack = state.solver.slack_basis();
++     state
++         .solver
++@@ -771,6 +772,7 @@
++ /// cannot loop: it is attempted at most once and its own internal error is
++ /// propagated rather than retried again.
++ fn solve_node_lp(state: &mut MipState) -> Result<NodeLp, Error> {
+++    crate::diagnostics::phase(&format!("branch_lp_nodes_solved={}",state.stats.nodes_solved));
++     state.solver.deadline = state.deadline;
++     let err = match state.solver.reoptimize() {
++         Ok(StopReason::Finished) => return Ok(NodeLp::Solved),
++@@ -842,6 +844,7 @@
++     state: &mut MipState,
++     hints: &[(crate::Variable, f64)],
++ ) -> Result<Option<TerminationReason>, Error> {
+++    crate::diagnostics::phase("advisory_warm_start");
++     let domains = state.solver.orig_var_domains.clone();
++     let root_basis = state.solver.snapshot_basis();
++     let mut applied: Vec<usize> = Vec::new();
++@@ -948,6 +951,7 @@
++         return Ok(None);
++     }
++ 
+++    crate::diagnostics::phase("root_initial_solve");
++     if state.solver.initial_solve()? == StopReason::Limit {
++         return Ok(Some(TerminationReason::TimeLimit));
++     }
++@@ -1005,6 +1009,7 @@
++ 
++ /// Reconstruct and process one node selected by the outer search policy.
++ fn visit_node(state: &mut MipState, node: Node, domains: &[VarDomain]) -> Result<NodeVisit, Error> {
+++    crate::diagnostics::phase(&format!("branch_basis_load_nodes_solved={} depth={} bound_changes={:?}",state.stats.nodes_solved,node.depth,node.bound_changes));
++     if !apply_node_bounds(state, &node) {
++         state.diving = false;
++         return Ok(NodeVisit::Pruned);
+diff --git a/docs/labs/legal-basis-diagnosis-2026-10-09/prepare.py b/docs/labs/legal-basis-diagnosis-2026-10-09/prepare.py
+new file mode 100644
+index 000000000..180d3991a
+--- /dev/null
++++ b/docs/labs/legal-basis-diagnosis-2026-10-09/prepare.py
+@@ -0,0 +1,44 @@
++#!/usr/bin/env python3
++"""Authenticate retained bytes and package f32 bit patterns; no model arithmetic."""
++from pathlib import Path
++import hashlib, json, struct, sys
++import blake3
++w=Path(__file__).resolve().parents[3]
++root=w/'local/restore/codex-protected-joint-20261009/sol-protected-joint-20261009/runs/protected-joint-0001-attempt3'
++out=w/'local/input';out.mkdir(exist_ok=False)
++def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
++def read(p):return json.loads(p.read_text())
++pins=read(w/'docs/labs/protected-joint-construction-2026-10-09/result.json')
++for name in ['report','manifest']:
++ assert sha(root/f'{name}.json')==pins[f'{name}_sha256']
++manifest=read(root/'manifest.json');paths=set()
++for f in manifest['files']:
++ rel=Path(f['path']);assert not rel.is_absolute() and '..' not in rel.parts and str(rel) not in paths
++ paths.add(str(rel));p=root/rel
++ assert not p.is_symlink() and p.stat().st_size==f['bytes']
++ assert blake3.blake3(p.read_bytes()).hexdigest()==f['blake3']
++assert {str(p.relative_to(root)) for p in root.rglob('*') if p.is_file()}==paths|{'manifest.json'}
++grad=read(root/'coupled-gradient-receipt.json');margin=read(root/'protected-margin-receipt.json')
++assert sha(root/'protected-margin-receipt.json')==grad['protected_margin_receipt_sha256']
++assert len(margin['terms'])==380
++checks=[]
++def bits(f,n):
++ p=root/f['file'];assert sha(p)==f['sha256'];b=p.read_bytes();assert len(b)==4*n
++ checks.append({'file':f['file'],'sha256':f['sha256'],'bytes':len(b)})
++ return list(struct.unpack('<'+'I'*n,b))
++lookup={(x['family'],x['kind']):x for x in grad['files']}
++master=[];gradient=[]
++for family in ['prefix.coefficients','generate.unary']:
++ master+=bits(lookup[family,'initial-master'],960)
++ gradient+=bits(lookup[family,'gradient'],960)
++j=[]
++for i,t in enumerate(margin['terms']):
++ assert t['guard_index']==i and t['shape']==[1920] and t['status']=='PRESENT'
++ j.append(bits(t,1920))
++provenance={'archive':'icloud:UOR-R4/results/codex/codex-protected-joint-20261009.tar','archive_md5':'467c102adc510a6352951596b969f1be','root':str(root.relative_to(w/'local/restore')),'report_sha256':pins['report_sha256'],'manifest_sha256':pins['manifest_sha256'],'manifest_files_verified':len(paths),'raw_files':checks,'scope':'Original development input245 objective and380 guards from #2101, no new derivatives','normalization':'Rust harness uses current protected_joint_vector::unit_rows arithmetic'}
++v={'schema':'uor-r4.legal-basis-input/1','master_bits':master,'gradient_bits':gradient,'jacobian_bits':j,'provenance':provenance}
++p=out/'input.json';p.write_text(json.dumps(v,separators=(',',':'))+'\n')
++receipt={'status':'PASS','input_sha256':sha(p),'input_bytes':p.stat().st_size,'manifest_files_verified':len(paths),'raw_files_verified':len(checks),'provenance':provenance}
++(out/'verification.json').write_text(json.dumps(receipt,indent=2)+'\n')
++(out/'guard-map.json').write_text(json.dumps(margin['terms'],indent=2)+'\n')
++print(json.dumps({k:v for k,v in receipt.items() if k!='provenance'}))
+diff --git a/docs/labs/legal-basis-diagnosis-2026-10-09/run.py b/docs/labs/legal-basis-diagnosis-2026-10-09/run.py
+new file mode 100644
+index 000000000..2a4bde909
+--- /dev/null
++++ b/docs/labs/legal-basis-diagnosis-2026-10-09/run.py
+@@ -0,0 +1,22 @@
++#!/usr/bin/env python3
++"""Execute one exact saved-input diagnosis and retain outside-attempt process receipt."""
++from pathlib import Path
++import datetime,hashlib,json,os,resource,shutil,subprocess,time
++w=Path(__file__).resolve().parents[3]
++binary=w/'local/target/release/legal-basis-diagnosis'
++input=w/'local/input/input.json';out=w/'local/replay-0001'
++receipt=w/'local/replay-process.json'
++assert not out.exists() and not receipt.exists()
++assert shutil.disk_usage(w).free>(30<<30)+(128<<20)+(512<<20)
++def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
++expected='0fe91060f10c0d6107be3565f9ae0746c30e742a00d02935398f6764b84b974d'
++assert sha(input)==expected
++started=datetime.datetime.now(datetime.timezone.utc).isoformat();t=time.monotonic()
++cmd=[str(binary),'--input',str(input),'--expected-sha256',expected,'--output',str(out)]
++identity={'started_utc':started,'source_commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=w,text=True).strip(),'binary_sha256':sha(binary),'input_sha256':expected,'command':cmd,'threads':2,'no_wall_cutoff':True}
++(w/'local/replay-admission.json').write_text(json.dumps(identity,indent=2)+'\n')
++with (w/'local/replay-stdout.log').open('x') as stdout,(w/'local/replay-stderr.log').open('x') as stderr:
++ p=subprocess.run(cmd,cwd=w,stdout=stdout,stderr=stderr,env={**os.environ,'RAYON_NUM_THREADS':'2'})
++r={**identity,'elapsed_seconds':time.monotonic()-t,'peak_child_rss_bytes':resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss,'exit_code':p.returncode,'free_bytes_after':shutil.disk_usage(w).free,'new_backward_calls':0,'native_score_calls':0}
++receipt.write_text(json.dumps(r,indent=2)+'\n');print(json.dumps(r))
++raise SystemExit(p.returncode)
+diff --git a/docs/labs/legal-basis-diagnosis-2026-10-09/upstream-identity.json b/docs/labs/legal-basis-diagnosis-2026-10-09/upstream-identity.json
+new file mode 100644
+index 000000000..7487f8e81
+--- /dev/null
++++ b/docs/labs/legal-basis-diagnosis-2026-10-09/upstream-identity.json
+@@ -0,0 +1,58 @@
++{
++  ".cargo-ok": "afbf9d0f3560b0fd7795e81c42a0a79ee6b6fc67e064f77826aee642cad28d91",
++  ".cargo_vcs_info.json": "9acbfcda1ff08b814e6d668472c58d8d24930ed5ffd218533fa8a1af5d8c5a4f",
++  ".gitattributes": "cb479ff7428431cf7232dddc826d57e93febb3689a6c45ec49962c21a23b2b11",
++  ".github/workflows/benchmark.yaml": "3231d0e13308891f2c3a625cb785aa3e781cae3dde285f80a344b6dc914e5f21",
++  ".github/workflows/ci.yaml": "4564b5b69d00859040142b34fdf910bea30f778d8cc35c131e94b12958c2c262",
++  ".gitignore": "684303236f00296300d167c47bfb220bf282519209c5e0ef4fa6329b10cdaa5b",
++  "Cargo.lock": "e64adab62f496024536e6260deff3811b0661f4ac402ffd70f03fa05bd220bae",
++  "Cargo.toml": "268bffc88ba782bd7040c56a0397cfec2383c57cdf01a4dbf9916af6bc090576",
++  "Cargo.toml.orig": "4d186af780a1d78a3d8ab0ab965e65d710c7c0b6a9c3ede4eab0cb62bd4c644d",
++  "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
++  "README.md": "1bc1dc553f00cd2bdbcccfd5957001fd88ec95bbee0e8fdc9d1d3293e6e0003e",
++  "src/ARCHITECTURE.md": "20dd1d882dd8284ac0f87b2764f11aca1709d540633f1d3a4637ecac9cdc16b2",
++  "src/helpers.rs": "60a45a4cfce03bdad14f88e061f32b3f4a541aeeae1afa64b978e2c08dae12b8",
++  "src/lib.rs": "b939401e62247115270739758909f4e67777f8b105aa70f713a62334dc7a1dc0",
++  "src/lu.rs": "ce2ce455b7be1d7b90384c090f0a62da23f4fbde7677b9b262391d5d51b4821f",
++  "src/mip/branching.rs": "1b0ab0373959e8bceed3936e377efc22eab372f7c9d112ea770ed1fe4ceb01d2",
++  "src/mip/mod.rs": "d1d908a1422604f5f8db67613d26debb102199c25b6cb7bfaf9c530fc84bd468",
++  "src/mip/node.rs": "00dfcf80f8996b520187cd1262020766f445bccb0e3206d874196f37ad1041b6",
++  "src/mip/params.rs": "3cd1bd96959759562151e81c436d1672af37f0082a7ef9db9ae591d804ed93f7",
++  "src/ordering.rs": "3dd84f7e50a42248c5eff23ecf2d0cdd7283c147b762214aea25d47cf67614e2",
++  "src/problems_solvers/mod.rs": "77f340a71a60b597c1fddfd5e69b9a65f96d03754d56a939286930b464b1aa0f",
++  "src/problems_solvers/tsp.rs": "86143d686c0472d39d099c2d967703b279f6dc45fe4f76275d976fe07886ac24",
++  "src/solver.rs": "1863f76f5b1f59a53812e54d0a35b6d4bffdf30f694997ca0d25cb90cc49cb88",
++  "src/sparse.rs": "f7dd3686eadb2d1a924222f391ca7974c2e0d81ff6b44e756fb2875858241246",
++  "src/tests/aoc.rs": "b1474ce51454b61eccc8820664c5c195029fb1abe5586b4a5d6030fd03dc49d7",
++  "src/tests/aoc2.rs": "117148c5f2e73f968679a880073c809da89354103d1b11f32d89aaad27686ca4",
++  "src/tests/general.rs": "1cbcddddf808acaa835031aa869fa729ac5eee009d5bf573b83590af5e72d47b",
++  "src/tests/mip_api.rs": "29b233d6abd3b1a27eaaf0a5a492841cfab25ba1df3923f81e4496d1d79a11eb",
++  "src/tests/mod.rs": "0873629fb1f3ac5a6a036fbc8c7b14dc6dc4d5824cad0bdb50984ce9ed084225",
++  "src/tests/regressions.rs": "9ff8d84af299b424bbce9fc898e23c7438ad369cb0dfbe18359bb8fd15d64311",
++  "src/tests/resume.rs": "4f26d50894f47b9885012f9fa3d68821b8969a23f10a849d30263a5487ebe9f8",
++  "src/tests/tsp/inputs/tsp1-out.txt": "ff7d3f5192125a12b38d6eb89d0e73fd03b3101360cd35178080fad5048464c8",
++  "src/tests/tsp/inputs/tsp1.tsp": "282dd50ed54c6264df44c76735597295f55c5c6f1218ec57ffec9f2eaf7409d1",
++  "src/tests/tsp/mod.rs": "0549359a40fc2e2f88e2e8d62743fc511d474ce4b246824f405c44aceb3548e3",
++  "src/tests/tsp/tsp_test.rs": "af8840af2716b2292948d4adcf9b2d3251eebf999f93aaa3deaa0b67577d7d6c",
++  "tests/exhaustive_mip.rs": "c40ea7cdf189f266973af307f5ae9ef47e19cce8d67e958673a6c77785eea391",
++  "tests/suite/README.md": "b7123b098d42cd9e83565d0d9ec9b0c996cc1b8bd80f4e62f83eaef06affff2b",
++  "tests/suite/cases/incremental.rs": "4562b83f80357c1f5f1322b915647b16786937b1a14ae42db9f9e7480ccad0e1",
++  "tests/suite/cases/lp_random.rs": "351723f83554da5f2608547da02912963a01aaaa7439bcc15c2197b384d6dbdd",
++  "tests/suite/cases/lp_unit.rs": "fdf4811b80081c36588331894eafbc9639390a8ccc8d66af194b793690aa4a95",
++  "tests/suite/cases/milp_families.rs": "427ee2145ace56571634f8e33e7bc07eb1b50ad9c9a4e92cc7c1c22998fc1871",
++  "tests/suite/cases/milp_random.rs": "5aaad40998ac24b50adc5e9b8ab76b80fbd07d5606edb2df006c6dd75eb68745",
++  "tests/suite/cases/milp_unit.rs": "d161f53b1f6bfca48078b102c66e7986daad73fc9ee9dbc5a9b9cb908e23e582",
++  "tests/suite/cases/milpbench.rs": "4c61886eecb8d054f54abb3a7460a11b4d733f5a9387556e6ff1468b88a5e3b6",
++  "tests/suite/cases/milpbench_xhard.rs": "080497d50375362daf5fc1a2e30a197841283a73844a2750d92dff5f77b75c7e",
++  "tests/suite/cases/miplib.rs": "1812ce2894183dd3d6af0ce796b11400c0239efffd55f08f1687b314c3fe1469",
++  "tests/suite/cases/mod.rs": "f2857f655f5863a9335d17333a2eff0a1928e7e954782b90c45158a4544a2be4",
++  "tests/suite/cases/netlib.rs": "10977d3e94a9d193042b5b22de66269e82e041d9033c0aaf959b76677c157933",
++  "tests/suite/cases/warm_restart.rs": "db0212fe933107a1afa1e429f0d66d322fe44b469dc97f76a7e747e232bca68c",
++  "tests/suite/lp_format.rs": "29e8c6161b7072b9a3ddff90b52a4d324e3356a29fc98da7955c097779b97a18",
++  "tests/suite/main.rs": "3f21eb964beee614977799668c95679642d822d45304a047559fda28e386d6a6",
++  "tests/suite/model.rs": "0552a350dec18df451ec0e1179c9f6ca4c6ab00e41443f1d3a89c7ef4e9a3f47",
++  "tests/suite/mps_milp.rs": "21055b8e6fc15926b4fe4089da224d2b3a01259b6d7ce273ff29f6faac7d7692",
++  "tests/suite/oracles.rs": "24ac8e235c4a103c49665316737691b5baa87d921aa8c2eaed0c283e2e67027f",
++  "tests/suite/rng.rs": "cea7f8ff99ad678d2a8070f113bc00979f2c1c3bb28e4785aeca7cabfd71ce46",
++  "tests/suite/verify.rs": "dae0bf08c5d2b10a324eae3fdcef84bd7dc9046cf618d9ac9668380d42302fad"
++}

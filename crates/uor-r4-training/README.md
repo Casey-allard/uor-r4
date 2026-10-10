@@ -81,6 +81,10 @@ for the fixed mechanism, exact evidence and execution status. It adds no serving
 dependency or new gradient pass. The centered integer-displacement encoding preserves
 the original legal domain. Both tested encodings returned a backend singular-matrix
 error with no native proposal; this constructor remains operationally unqualified.
+The [saved basis diagnostic](../../docs/labs/legal-basis-diagnosis-2026-10-09/README.md)
+localizes the centered failure to small-pivot rejection during branch feasibility
+refactorization, including its existing slack recovery. It adds no production
+solver policy or model change.
 
 ## Complete-prefix native dialogue learning
 
