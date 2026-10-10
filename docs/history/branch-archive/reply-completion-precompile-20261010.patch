@@ -1,0 +1,23 @@
+diff --git a/crates/uor-r4-training/examples/geometric_frozen_map_fit/reply_completion.rs b/crates/uor-r4-training/examples/geometric_frozen_map_fit/reply_completion.rs
+index ceec11eb4..38d533e67 100644
+--- a/crates/uor-r4-training/examples/geometric_frozen_map_fit/reply_completion.rs
++++ b/crates/uor-r4-training/examples/geometric_frozen_map_fit/reply_completion.rs
+@@ -284,14 +284,10 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
+             "reply completion changed frozen Cue/Prefix/exp payloads",
+         ));
+     }
+-    let final_generate = NativeGeometricGenerate::from_bytes(
+-        &final_parent.generate,
+-        final_parent.integer.binding(),
+-    )?;
+-    let final_bridge = NativeGeometricReadStateBridge::from_bytes(
+-        &final_parent.bridge,
+-        final_parent.integer.binding(),
+-    )?;
++    let final_generate =
++        NativeGeometricGenerate::from_bytes(&final_parent.generate, &final_parent.binding)?;
++    let final_bridge =
++        NativeGeometricReadStateBridge::from_bytes(&final_parent.bridge, &final_parent.binding)?;
+     let eval_start = Instant::now();
+     let final_eval = evaluate(
+         a,

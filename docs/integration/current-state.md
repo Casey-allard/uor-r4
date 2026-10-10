@@ -1,3 +1,9 @@
+## 2026-10-10 — Ordinary full-panel reply learning regresses8→2; candidate rejected (Codex, M2)
+
+The [pre-registered ordinary reply-completion run](../labs/m2-reply-gradient-2026-10-10/README.md) trains only Potential and Generate coefficients from accepted Source48/Generate64 for64 updates over512 complete answers/EOS, with Context/prototypes/bridge/Cue/Prefix fixed and no U, constructor or solver. Independent native checkpoint reload scores8/512→2/512 complete replies, six lost/no gains, complete swap pairs4/256→0/256; teacher-prefix CE improves6.1992635→5.4545226. **REJECT** candidate, accepted M2 headline8/512 unchanged; line ordinary full-panel reply-completion gradient learning · count1/3. All1,024 saved endpoint rows authenticate; focused CPU/CUDA-feature tests each3/3; model process28.01min. This is exposed development evidence, not held-out or general-conversation qualification; the D21 closed line and unactivated source remain archived.
+
+**Next:** retain accepted8/512; stop this fixed recipe without an unchanged dose/rate/seed rerun. A successor requires a pre-registered distinct model-changing complete-reply intervention on the same panel; no constructor/attribution/solver reactivation and no successor compute in this delivery.
+
 ## 2026-10-10 — Softmax-free reads in the trainer: rank-table and Hamming-rank flock reads (claude, #2032)
 
 [Record](../labs/softmax-free-read-2026-10-10/README.md). The trainer can now train a geometric read with no softmax in its forward weights:

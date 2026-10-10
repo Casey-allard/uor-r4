@@ -11,11 +11,18 @@ attempts whose ideas later landed in another form. "Lines not in main" counts
 added lines (12+ characters) that appear nowhere in `main` at archive time; a
 high count means unique material, not necessarily live code.
 
+**D21 disposition:** the protected/discrete-constructor/solver line is closed as
+negative. Its already-activated historical source and dated records remain on
+main; the absolute legal representation, initial diagnostic labels and unpromoted
+residual-backend patch below retain otherwise superseded source. Archive recovery
+instructions do not authorize resuming that closed line.
+
 To revive one: `git apply --3way docs/history/branch-archive/<file>.patch` in a
 fresh worktree from `main`, fix the conflicts, and land it through a PR.
 
 | Branch | Last commit | Commits | Lines not in main | Tip | Merge-base | Last subject |
 |---|---|---|---|---|---|---|
+| [Reply-completion precompile source](reply-completion-precompile-20261010.patch) | 2026-10-10 | 1 | Not counted | `698b41333` | `9a1394f4e` | Superseded compile-failed endpoint binding calls; apply to corrected producer9a1394f4e to restore the failed source. No model ran at this revision. [Record](../../labs/m2-reply-gradient-2026-10-10/README.md). |
 | [`codex/legal-basis-diagnosis-20261009` initial labels](legal-basis-initial-label-20261009.patch) | 2026-10-09 | 1 | Not counted | `bfd6adb0e` | `fa9f7cba0` | First diagnostic source, superseded only for missing direct fallback label. Numeric captures remain valid; [record](../../labs/legal-basis-diagnosis-2026-10-09/README.md). |
 | [`codex/direct-legal-construction-20261009` absolute encoding](direct-legal-absolute-20261009.patch) | 2026-10-09 | 1 | Not counted | `dd69a64965` | `4d10555f5` | Superseded numerical representation; backend singular-matrix execution failure, no model verdict. Full first commit retained; [record](../../labs/direct-legal-construction-2026-10-09/README.md). |
 | [`codex/eff-fused-read-kernels`](codex_eff-fused-read-kernels.patch) | 2026-10-05 | 2 | 0.33 of 332 | `16f3e0b137` | `578c3073c8` | Coalesce the read's age, key-self and lift reductions; skip the causal test off the diagonal tiles (References |
@@ -265,7 +272,7 @@ build before reaching any assertion.
 
 | Source | Base | Disposition | Evidence |
 | --- | --- | --- | --- |
-| [Offline backend numerical patch](basis-residual-repair-20261009.patch) | microlp 0.6.0 plus the corrected observation installer from main d4628eff9 | NOT YET PROMOTED; both old captured bases qualify, but the unchanged constructor still returns no assignment after two later basis rejections | [Record](../../labs/basis-residual-repair-2026-10-09/README.md), source freeze 1fe9602d22fa19d9c8765952c6fb20a4a6f45ac7 |
+| [Offline backend numerical patch](basis-residual-repair-20261009.patch) | microlp 0.6.0 plus the corrected observation installer from main d4628eff9 | CLOSED negative line under D21; backend NOT PROMOTED. Both old captured bases qualify, but the unchanged constructor still returns no assignment after two later basis rejections | [Record](../../labs/basis-residual-repair-2026-10-09/README.md), source freeze 1fe9602d22fa19d9c8765952c6fb20a4a6f45ac7 |
 
 This dependency patch includes the new repair module and isolated workspace declaration.
 Its prerequisite is the pinned upstream copy installed by

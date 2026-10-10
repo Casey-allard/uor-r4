@@ -1,0 +1,98 @@
+{
+  "status": "PASS_SAVED_ROWS",
+  "source_commit": "9a1394f4efb480fbabe95c2c8c80b3c4ad24dce0",
+  "report_sha256": "678f4ff4d8b97559260076607f6168b7d5f4317cc1472bd9fe5e253ca76bdbb7",
+  "endpoints": {
+    "initial": {
+      "complete": 8,
+      "eos": 11,
+      "entry_correct": 8,
+      "native_equal_episode_ce": 6.1992635176344875,
+      "complete_ids": [
+        "development-diverse-length2-00-swap0-q0-forward-job",
+        "development-diverse-length2-00-swap0-q0-forward-home",
+        "development-diverse-length2-00-swap0-q3-forward-job",
+        "development-diverse-length2-00-swap0-q3-forward-home",
+        "development-diverse-length2-00-swap1-q0-forward-job",
+        "development-diverse-length2-00-swap1-q0-forward-home",
+        "development-diverse-length2-00-swap1-q3-forward-job",
+        "development-diverse-length2-00-swap1-q3-forward-home"
+      ],
+      "complete_source_swap_pairs": 4,
+      "metrics": {
+        "entry_own_correct": 8,
+        "entry_teacher_correct": 8,
+        "first_divergent_own_position_correct": 30,
+        "first_divergent_own_prefix_reached": 8,
+        "first_divergent_teacher_correct": 50,
+        "later_copy_covered_positions": 4128,
+        "later_copy_covered_teacher_correct": 355,
+        "missing_rows": 0,
+        "paired_own_position_both_correct": 4,
+        "paired_teacher_both_correct": 6,
+        "rows": 512,
+        "scope": "complete native own-prefix outputs and separately canonical teacher-prefix metrics; own position matches without a correct preceding prefix are not successful source-dependent continuation"
+      }
+    },
+    "final": {
+      "complete": 2,
+      "eos": 3,
+      "entry_correct": 7,
+      "native_equal_episode_ce": 5.4545225648632965,
+      "complete_ids": [
+        "development-diverse-length2-00-swap1-q0-forward-home",
+        "development-diverse-length2-00-swap1-q3-forward-home"
+      ],
+      "complete_source_swap_pairs": 0,
+      "metrics": {
+        "entry_own_correct": 7,
+        "entry_teacher_correct": 7,
+        "first_divergent_own_position_correct": 21,
+        "first_divergent_own_prefix_reached": 5,
+        "first_divergent_teacher_correct": 57,
+        "later_copy_covered_positions": 4128,
+        "later_copy_covered_teacher_correct": 437,
+        "missing_rows": 0,
+        "paired_own_position_both_correct": 2,
+        "paired_teacher_both_correct": 6,
+        "rows": 512,
+        "scope": "complete native own-prefix outputs and separately canonical teacher-prefix metrics; own position matches without a correct preceding prefix are not successful source-dependent continuation"
+      }
+    }
+  },
+  "gained": [],
+  "lost": [
+    "development-diverse-length2-00-swap0-q0-forward-home",
+    "development-diverse-length2-00-swap0-q0-forward-job",
+    "development-diverse-length2-00-swap0-q3-forward-home",
+    "development-diverse-length2-00-swap0-q3-forward-job",
+    "development-diverse-length2-00-swap1-q0-forward-job",
+    "development-diverse-length2-00-swap1-q3-forward-job"
+  ],
+  "retained": [
+    "development-diverse-length2-00-swap1-q0-forward-home",
+    "development-diverse-length2-00-swap1-q3-forward-home"
+  ],
+  "changed_outputs": 510,
+  "keep": false,
+  "checked_rows": 1024,
+  "scope": "Saved row hashes, row-ID set, actual-prefix feedback and chosen-token chain, EOS and exact frozen membership reproduced. Native scores/backwards/tokenizer decoding not independently regenerated. Complete Rust report seal verification is producer evidence, separate from this reader.",
+  "timings_seconds": {
+    "initial_evaluation_seconds": 206.301504119,
+    "fit_seconds_including_checkpoints": 1139.810161189,
+    "final_evaluation_seconds": 301.867382876,
+    "elapsed_seconds": 1675.968250215
+  },
+  "updates": 64,
+  "training_row_draws": 512,
+  "target_position_draws": 6664,
+  "manifest_sha256": "3e5407ada60dc04f3188ab946136ad2c68021c1c0500bbcdb16c287ffa2adda1",
+  "resources": {
+    "model_process_wall_seconds": 1680.353487572167,
+    "model_peak_rss_kib": 1467840,
+    "gpu_sampled_max_mib": 2015,
+    "telemetry_interval_seconds": 10,
+    "gpu_type": "RTX5090",
+    "hourly_usd": 1.19
+  }
+}

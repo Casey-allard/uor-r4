@@ -1,0 +1,18 @@
+{
+  "local-preparation-receipts.tar.gz": {
+    "bytes": 9137495,
+    "sha256": "ff6e9d11eecc34bf20548810ec30bbac960bbd29bf97e9925d632a537a236280"
+  },
+  "run-and-runtime.tar.gz": {
+    "bytes": 98402217,
+    "sha256": "0e39960c73349bf43e91c479073c9881c53b613b4172df0d6fc321651cf6fa3c"
+  },
+  "producer-source.bundle": {
+    "bytes": 17159,
+    "sha256": "51b55264b122867f9b43708bf07911bf40c2d64f4fe20c69c1bbdedb489309b3"
+  },
+  "exact-parent-and-panel.tar.gz": {
+    "bytes": 22148342,
+    "sha256": "8ffc75578890f99e76d2d6c90af72a8937f1b679516aad54a9832d7757edfd1a"
+  }
+}

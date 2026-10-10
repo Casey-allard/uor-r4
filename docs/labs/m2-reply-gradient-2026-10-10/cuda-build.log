@@ -1,0 +1,136 @@
+warning: method `score_source_cue` is never used
+   --> crates/uor-r4-integer/src/geometric_cue_carrier.rs:389:19
+    |
+280 | impl<'a> NativeCueCarrier<'a> {
+    | ----------------------------- method in this implementation
+...
+389 |     pub(crate) fn score_source_cue(
+    |                   ^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `uor-r4-integer` (lib) generated 1 warning
+warning: method `position` is never used
+   --> crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs:175:8
+    |
+168 | impl ObservedSpan {
+    | ----------------- method in this implementation
+...
+175 |     fn position(&self) -> (u32, u32, usize) {
+    |        ^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `example` is never used
+    --> crates/uor-r4-core/src/native_geometric/learner/transferable_lexical.rs:1590:8
+     |
+1405 | impl TlTrainer {
+     | -------------- method in this implementation
+...
+1590 |     fn example(&self, q: &TlQuant, ex: &TlExample) -> TlGrads {
+     |        ^^^^^^^
+
+warning: `uor-r4-core` (lib) generated 2 warnings
+   Compiling uor-r4-training v0.1.0 (/root/build/codex-m2-reply-698b41333b60351b707b790ecb7e97aca479b326/crates/uor-r4-training)
+warning: fields `sources` and `response` are never read
+    --> crates/uor-r4-training/src/geometric_source_realizer.rs:6707:5
+     |
+6705 | struct ComposedCopyAssembly {
+     |        -------------------- fields in this struct
+6706 |     context: crate::geometric_context::ContextQ4Output,
+6707 |     sources: Vec<crate::geometric_context::ContextQ4Output>,
+     |     ^^^^^^^
+6708 |     response: Option<crate::geometric_context::ContextQ4Output>,
+     |     ^^^^^^^^
+     |
+     = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `geometric_read` is never used
+    --> crates/uor-r4-training/src/geometric_stack.rs:2452:8
+     |
+1895 | impl StackModel {
+     | --------------- method in this implementation
+...
+2452 |     fn geometric_read(
+     |        ^^^^^^^^^^^^^^
+
+warning: function `recall_cue` is never used
+    --> crates/uor-r4-training/src/relation_compiler.rs:1282:4
+     |
+1282 | fn recall_cue(source: &str) -> bool {
+     |    ^^^^^^^^^^
+
+warning: function `phrase_words` is never used
+    --> crates/uor-r4-training/src/relation_compiler.rs:1293:4
+     |
+1293 | fn phrase_words(span_text: &str, phrase: &str) -> bool {
+     |    ^^^^^^^^^^^^
+
+warning: variant `AmbientLeastSquaresControl` is never constructed
+  --> crates/uor-r4-training/src/geometric_transport_state_credit.rs:45:5
+   |
+42 | enum CreditMode {
+   |      ---------- variant in this enum
+...
+45 |     AmbientLeastSquaresControl,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `CreditMode` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+
+warning: `uor-r4-training` (lib) generated 5 warnings
+warning: type `SavedProtectedCredit` is more private than the item `coupled_episode_learning::Config::saved_protected_credit`
+   --> crates/uor-r4-training/examples/geometric_frozen_map_fit/coupled_episode_learning.rs:142:5
+    |
+142 |     pub saved_protected_credit: Option<SavedProtectedCredit>,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ field `coupled_episode_learning::Config::saved_protected_credit` is reachable at visibility `pub(crate)`
+    |
+note: but type `SavedProtectedCredit` is only usable at visibility `pub(in crate::coupled_episode_learning)`
+   --> crates/uor-r4-training/examples/geometric_frozen_map_fit/protected_credit_import.rs:11:1
+    |
+ 11 | pub(super) struct SavedProtectedCredit {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = note: `#[warn(private_interfaces)]` on by default
+
+warning: field `pair_id` is never read
+   --> crates/uor-r4-training/examples/geometric-frozen-map-fit.rs:652:5
+    |
+646 | struct Label {
+    |        ----- field in this struct
+...
+652 |     pair_id: Option<String>,
+    |     ^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `LOSS_PHASE_NAMES` is never used
+    --> crates/uor-r4-training/examples/geometric-frozen-map-fit.rs:1478:7
+     |
+1478 | const LOSS_PHASE_NAMES: [&str; 3] = ["entry", "later_copy_covered", "later_generate_only"];
+     |       ^^^^^^^^^^^^^^^^
+
+warning: method `bytes` is never used
+   --> crates/uor-r4-training/examples/geometric_frozen_map_fit/coupled_episode_learning.rs:534:8
+    |
+502 | impl RowIncidence {
+    | ----------------- method in this implementation
+...
+534 |     fn bytes(&self) -> usize {
+    |        ^^^^^
+
+warning: method `input_roots` is never used
+  --> crates/uor-r4-training/examples/geometric_frozen_map_fit/protected_credit_import.rs:20:19
+   |
+19 | impl SavedProtectedCredit {
+   | ------------------------- method in this implementation
+20 |     pub(super) fn input_roots(&self) -> Vec<PathBuf> {
+   |                   ^^^^^^^^^^^
+
+warning: function `authenticate` is never used
+   --> crates/uor-r4-training/examples/geometric_frozen_map_fit/protected_joint_vector.rs:848:15
+    |
+848 | pub(super) fn authenticate(
+    |               ^^^^^^^^^^^^
+
+warning: `uor-r4-training` (example "geometric-frozen-map-fit") generated 6 warnings
+    Finished `release` profile [optimized] target(s) in 1m 54s
+PROCESS_ACCOUNTING {"argv": ["cargo", "build", "--release", "--locked", "--offline", "-p", "uor-r4-training", "--features", "cuda", "--example", "geometric-frozen-map-fit"], "started_utc": "2026-10-10T03:52:07.407533+00:00", "seconds": 114.73081090068445, "exit_code": 0, "peak_child_rss_kib": 2297220}

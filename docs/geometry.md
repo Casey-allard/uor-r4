@@ -359,7 +359,13 @@ cause of full512 errors are not established. Protected-margin learning is now in
 does not justify an access rewrite.
 The E1 and Hamming-rank mechanisms in section 11 remain separate pre-registered M1/M4 work.
 
-## Protected native learning (M2)
+## Retained protected native learning (M2; closed by D21)
+
+**Historical negative line, closed by [D21](integration/DECISIONS.md#d21--three-negatives-on-one-line-force-a-pivot-deepseek-trains-the-pointer-fix-codex-stops-the-constraint-line).**
+The following source and measurements are retained evidence, not an active next step.
+The [ordinary reply-completion run](labs/m2-reply-gradient-2026-10-10/README.md)
+uses the existing native Potential/Generate fields and complete-answer gradient loss;
+it does not invoke these constructors or change serving geometry.
 
 <img src="figures/geometry/protected-joint-learning.svg" width="100%" alt="Offline protected joint learning: task CE and original pooled winner/rival Jacobians form one Prefix/Generate direction; finite quantized proposals still require all native winner checks and independent reload.">
 
@@ -383,9 +389,9 @@ is scored or committed; this does not measure native winner loss or establish
 global infeasibility. The [saved displacement attribution](labs/quantized-protection-attribution-2026-10-09/README.md)
 exactly reconstructs all7,680 destination bits: quarter rounding dominates adverse
 conversion-stage sums on the violated rows, while coordinate pressure is distributed
-and includes substantial opposing contributions. This supports investigating joint
-protection-aware discrete formation, not a floating-point/tie exception or guard
-weakening. Positive linearized original margins remain surrogate diagnostics, with
+and includes substantial opposing contributions. This historically motivated joint protection-aware discrete formation; D21
+has since closed that follow-up. No floating-point/tie exception or guard weakening
+was adopted. Positive linearized original margins remain surrogate diagnostics, with
 no native proposal scored. Accepted whole-answer performance remains 8/512. The geometry's basis, signed
 operators, Source authority and D11 serving contract are unchanged.
 

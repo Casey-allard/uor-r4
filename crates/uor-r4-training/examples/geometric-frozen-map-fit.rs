@@ -90,6 +90,8 @@ mod reached_u;
 mod readout_coadaptation;
 #[path = "geometric_frozen_map_fit/readout_constraints.rs"]
 mod readout_constraints;
+#[path = "geometric_frozen_map_fit/reply_completion.rs"]
+mod reply_completion;
 #[path = "geometric_frozen_map_fit/u_constraints.rs"]
 mod u_constraints;
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
@@ -104,6 +106,7 @@ enum Mode {
     EntryScorerFit,
     ContinuationOnly,
     JointContinuation,
+    ReplyCompletion,
 }
 
 const REPLAY_REPORT_SHA: &str = "9582f56c8d285920cd67977fd23d36e8a96beabe7c5f27ea45ad4b1113d3503c";
@@ -785,6 +788,7 @@ fn args() -> Result<(Args, Vec<u8>)> {
     }
     let raw = fs::read(path)?;
     let a: Args = serde_json::from_slice(&raw)?;
+    reply_completion::settings(&a)?;
     control_settings(&a)?;
     continuation_settings(&a)?;
     joint_continuation_settings(&a)?;
@@ -4634,7 +4638,9 @@ struct ContinuationParent {
 }
 impl ContinuationParent {
     fn load(a: &Args) -> Result<Self> {
-        if a.mode == Mode::JointContinuation {
+        if a.mode == Mode::ReplyCompletion {
+            reply_completion::settings(a)?;
+        } else if a.mode == Mode::JointContinuation {
             joint_continuation_settings(a)?
                 .ok_or_else(|| bad("joint continuation config absent"))?;
         } else {
@@ -6358,6 +6364,9 @@ fn run(a: &Args, start: Instant) -> Result<Value> {
         return context_path_credit::run(a, start);
     }
     let d = cuda()?;
+    if a.mode == Mode::ReplyCompletion {
+        return reply_completion::run(a, start, &d);
+    }
     if a.mode == Mode::ContinuationOnly {
         return run_continuation(a, start, &d);
     }
@@ -6635,7 +6644,8 @@ fn main() -> Result<()> {
     report_output::claim(&a.out)?;
     let start = Instant::now();
     let result = (|| -> Result<Value> {
-        if a.context_path_credit.is_some()
+        if a.mode == Mode::ReplyCompletion
+            || a.context_path_credit.is_some()
             || a.prefix_artifact_check.is_some()
             || a.prefix_fragment_learning.is_some()
             || a.coupled_episode_learning.is_some()

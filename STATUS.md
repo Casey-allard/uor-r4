@@ -26,7 +26,7 @@ Pictures of the pre-registered mechanisms are in [docs/geometry.md § 11](docs/g
 | Line | Best measured result |
 |---|---|
 | A. Geometric stack language model | 19.9M chat stack: 0.933 BPB served at the recorded **64-window** protocol, multiplier-free (11.9 MB); the same artifact reads 0.877550 BPB float / 0.886838 BPB served at a [pinned 512-window protocol](docs/labs/criterion2-protocol-pin-2026-10-09/README.md), so the number is protocol-dependent (0.046 BPB between the two counts on identical bytes) and every BPB claim must name its window count and byte basis. criterion 2 is not met either way. 214M Plan A base: dev NLL 2.073. Code and arithmetic answers are still wrong. The ~96M run's result is recorded in the #820 history, not repeated here. |
-| B. Native geometric learner (compiler, exact store, emitter) | 8 of 512 replies complete; best conditional gate 9 of 15. [Pair-only correction excluded at one frozen error](docs/labs/pair-copy-bound-2026-10-09/README.md); [complete donor credit run](docs/labs/full-donor-run-2026-10-09/README.md) changes Prefix gradients and lowers conditional CE, but remains 9/15 and unselected. |
+| B. Native geometric learner (compiler, exact store, emitter) | Accepted 8/512 complete replies; separate conditional gate9/15. [Ordinary full-panel reply learning](docs/labs/m2-reply-gradient-2026-10-10/README.md) regresses8→2; candidate REJECTED, line count1/3. Closed constructor line remains archived. |
 
 Both lines join at M4, one model served under D11.
 

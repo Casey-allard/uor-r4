@@ -135,36 +135,18 @@ does not imply measured predictive advantage.
 Training is offline Rust autodiff (floating point, matrix multiplication allowed);
 bf16 activations with f32 master weights on CUDA. Final inference does not depend on it.
 
-The native grounded learner also offers an explicit offline [complete donor-utility
-credit rule](docs/labs/occurrence-joint-credit-2026-10-09/README.md) for joint Prefix/Generate
-learning. It evaluates complete native donor alternatives to capture interactions that
-a lane-by-lane state tangent can miss. The [original-parent run](docs/labs/full-donor-run-2026-10-09/README.md)
-changes Prefix credit and lowers conditional loss, but the complete episode remains
-9/15; the candidate is unselected and accepted whole-answer performance remains 8/512.
-An opt-in [coordinated Prefix transaction](docs/labs/prefix-vector-transaction-2026-10-09/README.md)
-uses four fixed full-gradient vector proposals with the same native acceptance and
-memory protections. In the [original-parent run](docs/labs/prefix-vector-run-2026-10-09/README.md),
-all four Prefix proposals lower loss but violate a reference or protected winner.
-The final candidate reaches 6/15 conditional positions and remains unselected;
-accepted whole-answer performance stays 8/512.
-The opt-in [protected joint constructor](docs/labs/protected-joint-construction-2026-10-09/README.md)
-adds original winner/rival credit before proposing coordinated Prefix/Generate
-updates. It uses the same full native token pool and retains every native
-acceptance check. In the original-parent run, the continuous direction passes
-protection but all four quantized displacements fail the surrogate screen, so no
-update is committed. Native proposal quality is unmeasured; accepted 8/512 is unchanged.
-A separate opt-in [discrete feedback constructor](docs/labs/protected-discrete-feedback-2026-10-09/README.md)
-reuses those sealed derivatives, forms legal joint updates with fixed residual
-feedback, and retains the same native gates. This adds no serving exception;
-all 32 rounds failed the protection screen, with no native proposal scored or
-update committed. Accepted 8/512 is unchanged.
+The native grounded learner retains the protected Prefix/Generate and discrete-constructor
+experiments as [closed negative research](docs/labs/lab-pivot-2026-10-09/README.md)
+under D21. Their source and reports remain available; none improved the accepted
+8/512 complete replies. Unactivated or superseded source is indexed in the
+[branch archive](docs/history/branch-archive/INDEX.md).
 
-An opt-in [direct legal-set constructor](docs/labs/direct-legal-construction-2026-10-09/README.md)
-uses the same saved credit to choose joint legal parameter values under protected
-linear constraints. Its bounded mixed-integer solver is offline training tooling;
-actual destination bits and native behavior still face the existing checks.
-Both absolute-code and equivalent centered formulations encountered a backend
-singular-matrix error before returning a candidate; model qualification is unavailable.
+The [ordinary reply-completion run](docs/labs/m2-reply-gradient-2026-10-10/README.md)
+trains the accepted learner's Potential and Generate coefficients on complete
+answers, while retaining Context, prototypes, bridge, Cue and Prefix. Its fixed
+64-update endpoint uses the unchanged native own-prefix 512-reply evaluator:
+complete replies regress8/512→2/512 despite lower teacher-prefix CE. The candidate
+is rejected; the accepted parent remains8/512.
 
 **Models trained**
 
