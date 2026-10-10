@@ -1,3 +1,62 @@
+## 2026-10-09 — Decoding the pointer's selections: it attends the sentence FRAME and never the varying slot (deepseek, #2029)
+
+Read on the **control arm**, CPU only, no pod, no training, no knob, $0. Record:
+[pointer-selected-ids-decode-2026-10-09](../labs/pointer-selected-ids-decode-2026-10-09/README.md). No v5
+re-run. **Structural qualifier: this artifact has NO MEMORY READER.**
+
+**INDEX CHECK FIRST: vocabulary 4096, max id 4095, every selected id in range (223 … 2728)** — so the
+trace's indexing is sound and the last three pieces' window readings are **not** in question.
+
+**THE DECODE.** `223 → 'Ġ'` — **a bare space, and it carries the highest attention in both tables
+(0.9202, 0.9064)**; `1498 → 'Ġbrother'`, `2369 → 'Ġtakes'`, `1156 → 'Ġbus'`, `2728 → 'ser'`,
+`1044 → 'ĠWh'`, `754 → 'Ġtake'`, `772 → 'ĠC'`, `1790 → 'ass'`. **The value's own ids are single digits**
+(`22 → '4'`, `19 → '1'`, `27 → '9'`, `26 → '8'`, `24 → '6'`) — which is the whole reason the value is a
+run. **The structural candidates are never selected:** `<|bos|>` (0), `<|eos|>` (1), `.` (16), `:` (28)
+appear in no step of either table.
+
+**THE ANSWER: NEITHER "STRUCTURAL" NOR "ARBITRARY" — IT IS THE FRAME, AND THE VARIABLE SLOT IS SKIPPED.**
+The selected ids are **content subwords, not role markers**, so the structural answer is not what the
+data gives — but they are not arbitrary either: they are the **recurring sentence frame** of the panel's
+own construction, since the two rows compared **share the key `brother|brother's`** and the panel builds
+rows on a shared frame per key.
+
+**THAT CORRECTS MY OWN PREVIOUS PIECE, and the record says so: the phrase "history-insensitive" was
+overstated.** The invariance I measured is **the frame's** invariance, not a demonstration that the head
+ignores history. **The correction strengthens the finding:** the two rows differ in **exactly one respect
+— the value (`41` against `98`)** — and the pointer attends the frame they share and **never the slot
+that differs.** The highest-attention selection in both tables is the **bare space token `'Ġ'`**.
+
+**SO THE SMALLEST TRUE STATEMENT THIS LINE HAS REACHED: the pointer attends the sentence frame and never
+the varying slot.** The digits — the only tokens distinguishing the two rows — are selected on **0 of 13
+rows for the second digit, 3 of 13 for the first, and never both.**
+
+**AGAINST THE PRE-REGISTERED OPTIONS:** STRUCTURAL — **NO** (content subwords, structural candidates
+never selected); CONTENT AT A FIXED OFFSET — **PARTLY, and it is the frame's offset**, since the
+positions recur because the frame recurs; NEITHER/arbitrary — **NO**, the recurrence is explained by the
+shared frame; ids not decoding or out of range — **NO**. **The implication is the owner-level one, not a
+knob:** the head attends the sentence frame and never the varying slot, which is a **training-target**
+property — the targets did not require it to look at the slot that changes. Per the pre-registered
+mapping that belongs to the owner **with a timed calibration run first**, and it is **not** addressed by
+`TopK`, the gate, or a wider keep set.
+
+**WHAT IT DOES NOT SETTLE:** it does **not** prove the head was trained on frame-only targets — it
+measures attention on 13 rows of one artifact; the training-target reading is the natural explanation
+and it is **not** measured here. It says nothing about the reply half or the addressed-memory path, and
+no capability change is claimed: no judge was run and v5's `check_pass` was not re-measured.
+
+**THE LEDGER:** token count REFUTED; minimal pairs / digit order REFUTED; value addressability REFUTED;
+the pointer's single-source shape REFUTED IN ITS SIMPLE FORM AND REPLACED; **"history-insensitive"
+CORRECTED — the invariance is the frame's**; and **"the pointer attends the frame and never the varying
+slot" MEASURED on 13 rows**, the smallest true statement this line has reached.
+
+**Criterion 1 remains NOT MET on both halves and 43/232 is unchanged.** v5 was not re-run;
+STATUS/ROADMAP/#2028 unchanged — checked, not assumed.
+
+**Next: a training decision for the owner, not another measurement and not a knob.** The head must be
+given targets that require the varying slot rather than the frame it already attends — a
+**pre-registered training piece with a fresh sealed panel** (a retrained artifact cannot be compared to
+v5's 10 of 40) and a **timed calibration run before any estimate**.
+
 ## 2026-10-09 — The positional read: the value's position is KEPT and the attention never lands on it (deepseek, #2029)
 
 Read on the **CONTROL arm** (default knobs, byte-for-byte 13 of 13, split 10/2/1), so this is a
