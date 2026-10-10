@@ -1,3 +1,35 @@
+## 2026-10-10 — Token-identity pointer reaches the failure mode (wrong-value 17 → 12) and still leaves memory at 19/40; the pointer line is archived under the 3/3 pivot (deepseek, #2029)
+
+The [token-identity round](../labs/pointer-identity-2026-10-10/README.md) is **cycle 4** of the standing goal and **the
+decisive run the 3/3 pivot card named**. The residual deficit was *value selection*, and the pointer that copies the value
+had no identity term at all — keys are hidden states, so "copy the same token" had to be learned by a 32-wide projection,
+and the copy-mass instrument showed it attending the sentence frame rather than the varying slot. This run trained
+`pointer_identity=` (the multiset overlap of the six tokens before a source with the six before the query, no parameters)
+on cycle 1's unchanged 10 % mixture, arms **0.25** and **1.0** against D10 as the matched anchor; one pod, ~12 minutes,
+≈ $0.55, pre-registered on #2029 before any compute.
+
+**The term is real and aimed correctly, and the bar is still not met.** Wrong-value failures fall **17 → 16 → 12 of 40**
+(the best binding reading this panel has produced) while v5 memory `check_pass` stays at **19/40**, with the failures
+redistributing into the no-value bucket (3 → 5 → 8); at `pointer_identity=1.0` the pure identity score collapses the
+pointer's dev hit rate to **0.003**, a direct measurement that a source whose six-token context matches the query's
+usually does not hold the answer. The reply-panel guard for the primary arm is reported beside it. **Every derangement
+control stays ≤ 2.**
+
+**ARCHIVE under D21 §1, as the pivot card declared.** Four cycles, four merged result PRs and one measured lever: the
+**mixture** doubled the memory half (10/40 → 20/40 at a 10 % recall share with the reply panel statistically unchanged)
+and saturated; the **copy gate** (#2145) and the **read-binding objective** (#2155, bound mass 0.73 → 0.90) were flat on
+the panel; the **binding-dense mixture** (#2158) was worse; and the token-identity pointer lands at 19/40. No source is
+deactivated — every arm used options the trainer already carries — so the closure is the record plus a
+[`docs/history/branch-archive/INDEX.md`](../history/branch-archive/INDEX.md) row, and the four records' commands stay
+reproducible. Criterion 1 remains NOT MET on both halves (19/40 against ≥ 34/40; reply against ≥ 116/232) and the base
+artifact's 10/40 and 43/232 are unchanged.
+
+**Next:** the addressed-memory operator the panel has never had. `dialogue-train` cannot build one today — its settings
+carry no memory fields while the LM trainer exposes `memory_layers=`/`memory_sub_keys=`/`memory_top_k=`/`memory_score=`/
+`memory_codebook=` — so every artifact behind this line's numbers answers rows named `multi_turn_memory` with a copy
+pointer and **no memory reader**. That piece starts with source work: wire the memory operator into the dialogue path,
+then score the same frozen v5 panel with the same reply guard.
+
 ## 2026-10-10 — Learned rank tables: REJECT (+0.0185 BPB); the softmax-free read line stops (claude, #2032)
 
 The decisive run named by the 3/3 pivot ([record](../labs/softmax-free-read-2026-10-10/README.md#result-decisive-run-reject-for-learned-rank-tables-and-the-line-stops)): each head learns its own rank profile over the `flock:8:8` support, served as a constant Q31 table.

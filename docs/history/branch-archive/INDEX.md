@@ -283,3 +283,13 @@ docs/labs/legal-basis-diagnosis-2026-10-09/apply-observer.py. It is not a produc
 Cargo dependency override. The standalone reproduction harness, installer and tests
 remain in the dated record; all execution evidence is retained privately.
 SHA256: 39ef8a574a492a9857bf8fda7bb1993aaebfafae3c569877e5204d5f4984cb0a.
+
+## DeepSeek pointer/mixture line — closed negative under D21 §1, October 10
+
+| Source | Base | Disposition | Evidence |
+| --- | --- | --- | --- |
+| **None** — every arm in the line was trained with options the trainer already carries (`pointer_gate_supervision`, `read_binding_supervision`, `pointer_identity`, and the generated recall mixtures); no trainer, model or panel source is deactivated by this closure | `main` `020a13fe7` | **CLOSED as negative after four cycles**: the mixture dose moved v5 memory 10/40 → 20/40 at a 10 % recall share but saturated, the copy gate and the read-binding objective were flat on the panel, the binding-dense mixture was worse, and the token-identity pointer — the one decisive run the 3/3 pivot named — left memory at 19/40 against the pre-registered 21/40 bar. Superseded by the next M1 piece: an addressed-memory operator in the dialogue stack | [Mixture dose](../../labs/mixture-dose-2026-10-10/README.md) · [Read-binding](../../labs/read-binding-2026-10-10/README.md) · [Binding-dense](../../labs/binding-dense-2026-10-10/README.md) · [Token-identity](../../labs/pointer-identity-2026-10-10/README.md) |
+
+No patch is carried because no unique branch source exists: the four records' commands are the reproducible
+form of the line, their acceptance reports are in the cloud-store bundles named in each record, and the pivot
+card that closed it is [#2029 comment 6097789124](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6097789124).
