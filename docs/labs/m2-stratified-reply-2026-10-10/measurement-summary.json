@@ -1,0 +1,59 @@
+{
+  "source_commit": "30c7d018825dcd4b3f2d2e7791af66ab4c192635",
+  "status": "COMPLETED",
+  "updates": 96,
+  "training_row_draws": 768,
+  "target_position_draws": 9280,
+  "initial_evaluation_seconds": 190.888739745,
+  "fit_seconds_including_checkpoints": 1544.860762344,
+  "final_evaluation_seconds": 224.129652211,
+  "elapsed_seconds": 1981.259449116,
+  "metrics": {
+    "initial": {
+      "entry_own_correct": 8,
+      "entry_teacher_correct": 8,
+      "first_divergent_own_position_correct": 30,
+      "first_divergent_own_prefix_reached": 8,
+      "first_divergent_teacher_correct": 50,
+      "later_copy_covered_positions": 4128,
+      "later_copy_covered_teacher_correct": 355,
+      "missing_rows": 0,
+      "paired_own_position_both_correct": 4,
+      "paired_teacher_both_correct": 6,
+      "rows": 512
+    },
+    "final": {
+      "entry_own_correct": 8,
+      "entry_teacher_correct": 8,
+      "first_divergent_own_position_correct": 33,
+      "first_divergent_own_prefix_reached": 7,
+      "first_divergent_teacher_correct": 63,
+      "later_copy_covered_positions": 4128,
+      "later_copy_covered_teacher_correct": 437,
+      "missing_rows": 0,
+      "paired_own_position_both_correct": 3,
+      "paired_teacher_both_correct": 8,
+      "rows": 512
+    }
+  },
+  "complete_swap_pairs": {
+    "initial": 4,
+    "final": 0
+  },
+  "sha256": {
+    "report.json": "16d03a31fc1eb27ee270cec96a7d388c108522c79b2a87856a0ca94b232aab68",
+    "manifest.json": "987bc137e5876821aef3b80777986c40bf3808f90203a46060fd135bb1e53720"
+  },
+  "process_accounting": {
+    "argv": [
+      "/workspace/uor-r4/codex/m2-stratified-20261010/runtime/geometric-frozen-map-fit",
+      "/workspace/uor-r4/codex/m2-stratified-20261010/model-config.json"
+    ],
+    "started_utc": "2026-10-10T04:55:23.977583+00:00",
+    "seconds": 1986.4348761849978,
+    "exit_code": 0,
+    "peak_child_rss_kib": 1437044
+  },
+  "sampled_gpu_max_mib": 4118,
+  "telemetry_samples": 198
+}

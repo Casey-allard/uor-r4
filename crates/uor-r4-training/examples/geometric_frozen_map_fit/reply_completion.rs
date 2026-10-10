@@ -2,11 +2,71 @@
 //! Only Potential and Generate coefficients train; no U or proposal machinery.
 use super::*;
 
+const QUALIFICATION_INDICES: [usize; 24] = [
+    0, 1, 4, 5, 8, 9, 12, 13, 130, 131, 138, 139, 256, 257, 264, 265, 386, 387, 394, 395, 448, 449,
+    456, 457,
+];
+
+const QUALIFICATION_IDS: [&str; 24] = [
+    "development-diverse-length2-00-swap0-q0-forward-job",
+    "development-diverse-length2-00-swap0-q0-forward-home",
+    "development-diverse-length2-00-swap0-q3-forward-job",
+    "development-diverse-length2-00-swap0-q3-forward-home",
+    "development-diverse-length2-00-swap1-q0-forward-job",
+    "development-diverse-length2-00-swap1-q0-forward-home",
+    "development-diverse-length2-00-swap1-q3-forward-job",
+    "development-diverse-length2-00-swap1-q3-forward-home",
+    "development-diverse-length4-00-swap0-q2-reverse-job",
+    "development-diverse-length4-00-swap0-q2-reverse-home",
+    "development-diverse-length4-00-swap1-q2-reverse-job",
+    "development-diverse-length4-00-swap1-q2-reverse-home",
+    "development-diverse-length8-00-swap0-q4-forward-job",
+    "development-diverse-length8-00-swap0-q4-forward-home",
+    "development-diverse-length8-00-swap1-q4-forward-job",
+    "development-diverse-length8-00-swap1-q4-forward-home",
+    "development-diverse-update-00-swap0-q0-reverse-job",
+    "development-diverse-update-00-swap0-q0-reverse-home",
+    "development-diverse-update-00-swap1-q0-reverse-job",
+    "development-diverse-update-00-swap1-q0-reverse-home",
+    "development-diverse-reassert-00-swap0-q4-forward-job",
+    "development-diverse-reassert-00-swap0-q4-forward-home",
+    "development-diverse-reassert-00-swap1-q4-forward-job",
+    "development-diverse-reassert-00-swap1-q4-forward-home",
+];
+
+pub(super) fn is_mode(mode: Mode) -> bool {
+    matches!(mode, Mode::ReplyCompletion | Mode::ReplyQualification)
+}
+
+fn expected_updates(mode: Mode) -> Result<usize> {
+    match mode {
+        Mode::ReplyCompletion => Ok(64),
+        Mode::ReplyQualification => Ok(96),
+        _ => Err(bad("not a reply training mode")),
+    }
+}
+
+/// Fixed indices are declared before outputs. Shuffle once; repeat the same
+/// 24-row order for 32 epochs, with no loss-based sampling or endpoint selection.
+fn draw_schedule(mode: Mode, seed: u64) -> Result<Vec<usize>> {
+    match mode {
+        Mode::ReplyCompletion => Ok(order(seed, 512)),
+        Mode::ReplyQualification => {
+            let one_epoch = order(seed, QUALIFICATION_INDICES.len())
+                .into_iter()
+                .map(|i| QUALIFICATION_INDICES[i])
+                .collect::<Vec<_>>();
+            Ok(one_epoch.iter().copied().cycle().take(96 * BATCH).collect())
+        }
+        _ => Err(bad("not a reply training schedule")),
+    }
+}
+
 pub(super) fn settings(a: &Args) -> Result<()> {
-    if a.mode != Mode::ReplyCompletion {
+    if !is_mode(a.mode) {
         return Ok(());
     }
-    if a.updates != 64
+    if a.updates != expected_updates(a.mode)?
         || a.seed != 1001
         || a.credit != Credit::RawIdentity
         || a.read_state_pullback != ReadStatePullback::Categorical
@@ -45,7 +105,7 @@ pub(super) fn settings(a: &Args) -> Result<()> {
         || a.generate_episode_completion.is_some()
         || a.prefix_artifact_check.is_some()
     {
-        return Err(bad("reply_completion requires fixed64/seed1001/raw_identity/categorical/all-answer fit without continuation, proposal or diagnostic options"));
+        return Err(bad("reply modes require their fixed64-or96 dose/seed1001/raw_identity/categorical/all-answer fit without continuation, proposal or diagnostic options"));
     }
     Ok(())
 }
@@ -108,6 +168,173 @@ fn outcomes(initial: &Value, final_eval: &Value) -> Result<Value> {
     )
 }
 
+fn qualification_panel(eps: &[Episode]) -> Result<Value> {
+    if eps.len() != 512 {
+        return Err(bad("qualification panel requires fixed512 rows"));
+    }
+    let mut selected = Vec::new();
+    for (&index, &id) in QUALIFICATION_INDICES.iter().zip(&QUALIFICATION_IDS) {
+        let e = &eps[index];
+        if e.packet.id != id {
+            return Err(bad("qualification selected index/ID differs"));
+        }
+        let stratum = id
+            .split('-')
+            .nth(2)
+            .ok_or_else(|| bad("qualification stratum absent"))?;
+        selected.push(json!({"index":index,"id":id,"stratum":stratum,
+            "input_packet_sha256":sha256_bytes(&serde_json::to_vec(&e.packet)?),
+            "complete_canonical_target_with_eos_sha256":sha256_bytes(&serde_json::to_vec(&e.target)?),
+            "target_positions_per_draw":e.target.len(),"draws":32}));
+    }
+    Ok(
+        json!({"selection":"fixed prospective indices and exact IDs; no output-based sampling",
+        "rows":selected,"distinct_rows":24,"epochs":32,"episode_draws":768,
+        "target_position_draws":QUALIFICATION_INDICES.iter().map(|&i|eps[i].target.len()*32).sum::<usize>()}),
+    )
+}
+
+/// Read the already-scored endpoint, authenticating each row and using exactly
+/// the loaded frozen answer oracle. This does not invoke inference or rescore a
+/// checkpoint for selection. Teacher correctness is separate from own feedback.
+fn qualification_rows(
+    a: &Args,
+    evaluation: &Value,
+    initial: &Value,
+    eps: &[Episode],
+) -> Result<Vec<Value>> {
+    let refs = evaluation["rows"]
+        .as_array()
+        .filter(|r| r.len() == 512)
+        .ok_or_else(|| bad("qualification requires full512 saved evaluation"))?;
+    let initial_refs = initial["rows"]
+        .as_array()
+        .filter(|r| r.len() == 512)
+        .ok_or_else(|| bad("qualification requires full512 baseline"))?;
+    let mut measurements = Vec::new();
+    for (&index, &id) in QUALIFICATION_INDICES.iter().zip(&QUALIFICATION_IDS) {
+        let e = &eps[index];
+        let r = &refs[index];
+        if e.packet.id != id || r["id"] != id || initial_refs[index]["id"] != id {
+            return Err(bad("qualification saved row identity differs"));
+        }
+        let filename = r["row_file"]
+            .as_str()
+            .ok_or_else(|| bad("qualification row file absent"))?;
+        let path = a.out.join(filename);
+        if r["row_sha256"] != sha256_file(&path)? {
+            return Err(bad("qualification saved row hash differs"));
+        }
+        let row = read(&path)?;
+        let canonical = row["canonical"]
+            .as_array()
+            .filter(|r| r.len() == e.target.len())
+            .ok_or_else(|| bad("qualification canonical coverage differs"))?;
+        if row["id"] != id || row["canonical_target_ids_labels_only"] != json!(e.target) {
+            return Err(bad("qualification canonical labels differ"));
+        }
+        let mut teacher_correct = 0;
+        for (step, &target) in canonical.iter().zip(&e.target) {
+            if step["target_label_only"] != target {
+                return Err(bad("qualification canonical target differs"));
+            }
+            let chosen = step["native"]["pool"]["summary"]["chosen_token_id"]
+                .as_u64()
+                .ok_or_else(|| bad("qualification canonical winner absent"))?;
+            teacher_correct += usize::from(chosen == u64::from(target));
+        }
+        let generated: Vec<u32> = serde_json::from_value(row["generated_ids"].clone())?;
+        let eos = row["eos"]
+            .as_bool()
+            .ok_or_else(|| bad("qualification EOS absent"))?;
+        let text = row["decoded"]
+            .as_str()
+            .ok_or_else(|| bad("qualification decoded answer absent"))?;
+        let complete = eos && e.answers.accepts(text);
+        if row["complete"] != complete
+            || r["complete"] != complete
+            || row["generated_ids"] != r["generated_ids"]
+            || r["eos"] != eos
+        {
+            return Err(bad(
+                "qualification frozen answer membership/evaluation differs",
+            ));
+        }
+        let original_complete = initial_refs[index]["complete"]
+            .as_bool()
+            .ok_or_else(|| bad("qualification baseline completion absent"))?;
+        let stratum = id
+            .split('-')
+            .nth(2)
+            .ok_or_else(|| bad("qualification stratum absent"))?;
+        measurements.push(json!({"index":index,"id":id,"stratum":stratum,
+            "complete":complete,"teacher_all_tokens_correct":teacher_correct==e.target.len(),
+            "teacher_correct_tokens":teacher_correct,"teacher_total_tokens":e.target.len(),
+            "entry_correct":generated.first()==e.target.first(),"eos":eos,
+            "original_complete":original_complete,"row_file":filename,"row_sha256":r["row_sha256"]}));
+    }
+    Ok(measurements)
+}
+
+fn measurement_counts(rows: &[Value]) -> Value {
+    let complete = rows.iter().filter(|r| r["complete"] == true).count();
+    let teacher = rows
+        .iter()
+        .filter(|r| r["teacher_all_tokens_correct"] == true)
+        .count();
+    let entry = rows.iter().filter(|r| r["entry_correct"] == true).count();
+    let eos = rows.iter().filter(|r| r["eos"] == true).count();
+    let gained = rows
+        .iter()
+        .filter(|r| r["complete"] == true && r["original_complete"] == false)
+        .map(|r| r["id"].clone())
+        .collect::<Vec<_>>();
+    let lost = rows
+        .iter()
+        .filter(|r| r["complete"] == false && r["original_complete"] == true)
+        .map(|r| r["id"].clone())
+        .collect::<Vec<_>>();
+    json!({"cases":rows.len(),"complete":complete,"teacher_all_tokens_correct":teacher,
+        "entry_correct":entry,"eos":eos,"gained_complete_ids":gained,"lost_complete_ids":lost})
+}
+
+fn qualification_outcomes(
+    a: &Args,
+    initial: &Value,
+    final_eval: &Value,
+    eps: &[Episode],
+) -> Result<Value> {
+    qualification_panel(eps)?;
+    let before = qualification_rows(a, initial, initial, eps)?;
+    let after = qualification_rows(a, final_eval, initial, eps)?;
+    let initial_counts = measurement_counts(&before);
+    let final_counts = measurement_counts(&after);
+    let mut strata = Vec::new();
+    for name in ["length2", "length4", "length8", "update", "reassert"] {
+        let old = before
+            .iter()
+            .filter(|r| r["stratum"] == name)
+            .cloned()
+            .collect::<Vec<_>>();
+        let new = after
+            .iter()
+            .filter(|r| r["stratum"] == name)
+            .cloned()
+            .collect::<Vec<_>>();
+        strata.push(json!({"stratum":name,"initial":measurement_counts(&old),"final":measurement_counts(&new)}));
+    }
+    let qualified_fit = final_counts["complete"] == 24;
+    let model_keep = outcomes(initial, final_eval)?["keep"] == true;
+    Ok(
+        json!({"qualification_bar":"24/24 complete own-feedback replies with EOS, including original8",
+        "qualified_fit":qualified_fit,"model_keep":model_keep,
+        "decision":if qualified_fit {"QUALIFIED_FIT"} else if model_keep {"PARTIAL_GAIN_NOT_QUALIFIED"} else {"REJECT"},
+        "initial":initial_counts,"final":final_counts,"by_stratum":strata,
+        "initial_rows":before,"final_rows":after,
+        "scope":"saved full512 endpoints and unchanged answer oracle; teacher all-token correctness is diagnostic;24-row fit qualification is not milestone256/512 or transfer"}),
+    )
+}
+
 pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
     settings(a)?;
     let parent = ContinuationParent::load(a)?;
@@ -167,28 +394,49 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
     let frozen_identity = identities(&frozen)?;
     let mut active = coefficients.clone();
     active.extend(potential.clone());
-    let schedule = order(a.seed, train.len());
+    let qualification = a.mode == Mode::ReplyQualification;
+    let mode_name = if qualification {
+        "reply_qualification"
+    } else {
+        "reply_completion"
+    };
+    let schedule = draw_schedule(a.mode, a.seed)?;
+    if qualification {
+        let selected = qualification_panel(&train)?;
+        qualification_panel(&dev)?;
+        write(a, "qualification-panel.json", &selected)?;
+    }
+    let schedule_policy = if qualification {
+        "fixed shuffled24 repeated32 epochs; 96 batches of8; no checkpoint reselection"
+    } else {
+        "one full512 pass; 64 fixed batches of8; no checkpoint reselection"
+    };
+    let split = if qualification {
+        "fixed24 training subset of the exposed open-development512; full512 evaluation; no held-out claim"
+    } else {
+        "train and evaluation are the identical exposed open-development512; no held-out claim"
+    };
     write(
         a,
         "order.json",
         &json!({"seed":a.seed,"order":schedule,
-        "policy":"one full512 pass; 64 fixed batches of8; no checkpoint reselection"}),
+        "policy":schedule_policy}),
     )?;
     write(
         a,
         "admission.json",
-        &json!({"mode":"reply_completion",
+        &json!({"mode":mode_name,
         "source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),
         "parent_report_sha256":CONTINUATION_PARENT_REPORT_SHA,
         "parent_manifest_sha256":CONTINUATION_PARENT_MANIFEST_SHA,
         "parent_checkpoint_receipt_sha256":sha256_file(&a.checkpoint.join("receipt.json"))?,
         "training_input_sha256":INPUT_SHA,"training_labels_sha256":LABEL_SHA,
         "development_input_sha256":INPUT_SHA,"development_labels_sha256":LABEL_SHA,
-        "split":"train and evaluation are the identical exposed open-development512; no held-out claim",
+        "split":split,
         "active_parameter_names":active.keys().collect::<Vec<_>>(),
         "initial_active_masters":identities(&active)?,"frozen_masters":frozen_identity,
         "optimizer":"fresh AdamW, beta1=.9 beta2=.999 eps=1e-8 weight_decay=0",
-        "rates":{"generate_coefficients":0.003,"potential":0.003},"updates":64,"batch":8,
+        "rates":{"generate_coefficients":0.003,"potential":0.003},"updates":a.updates,"batch":8,
         "loss_scope":"all complete-answer tokens including EOS",
         "phase_policy":loss_weight_policy(true,LossScope::All),
         "credit":a.credit.name(),"read_state_pullback":a.read_state_pullback.name(),
@@ -250,7 +498,8 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
     let mut po = optimizer(&potential, 0.003)?;
     let fit_start = Instant::now();
     let mut updates = Vec::new();
-    for step in 0..64 {
+    let checkpoint_every = if qualification { 24 } else { 32 };
+    for step in 0..a.updates {
         disk_floor(a)?;
         deadline(a, start)?;
         let indices = &schedule[step * BATCH..(step + 1) * BATCH];
@@ -269,12 +518,13 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
         d.synchronize()?;
         updates.push(json!({"step":step+1,"indices":indices,"before_update":receipt,"global_active_gradient_norm":norm}));
         write(a, "updates.json", &json!(updates))?;
-        if (step + 1) % 32 == 0 {
+        if (step + 1) % checkpoint_every == 0 {
             checkpoint(a, step + 1, &l)?;
         }
     }
     let fit_seconds_including_checkpoints = fit_start.elapsed().as_secs_f64();
-    let final_parent = ContinuationParent::from_checkpoint(&a.out.join("checkpoint-0064"))?;
+    let final_parent =
+        ContinuationParent::from_checkpoint(&a.out.join(format!("checkpoint-{:04}", a.updates)))?;
     if final_parent.cue != parent.cue
         || final_parent.joint != parent.joint
         || final_parent.prefix != parent.prefix
@@ -295,7 +545,7 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
     let eval_start = Instant::now();
     let final_eval = evaluate(
         a,
-        "development-0064",
+        &format!("development-{:04}", a.updates),
         &final_parent.integer,
         &final_generate,
         Some(&final_bridge),
@@ -308,24 +558,37 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
         None,
     )?;
     let final_metrics = metrics(a, &final_eval, &dev)?;
-    write(a, "metrics-0064.json", &final_metrics)?;
+    write(a, &format!("metrics-{:04}.json", a.updates), &final_metrics)?;
     let comparison = outcomes(&initial, &final_eval)?;
     write(a, "row-comparison.json", &comparison)?;
-    Ok(
-        json!({"schema":"uor-r4.geometric-reply-completion/1","status":"COMPLETED",
-        "mode":"reply_completion","source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),
-        "device":"cuda:0","updates":64,"batch":8,"training_row_draws":512,
-        "target_position_draws":train.iter().map(|e| e.target.len()).sum::<usize>(),
+    let final_evaluation_seconds = eval_start.elapsed().as_secs_f64();
+    let qualification_report = if qualification {
+        Some(qualification_outcomes(a, &initial, &final_eval, &dev)?)
+    } else {
+        None
+    };
+    if let Some(result) = &qualification_report {
+        write(a, "qualification.json", result)?;
+    }
+    let mut report = json!({"schema":if qualification {"uor-r4.geometric-reply-qualification/1"} else {"uor-r4.geometric-reply-completion/1"},"status":"COMPLETED",
+        "mode":mode_name,"source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),
+        "device":"cuda:0","updates":a.updates,"batch":8,"training_row_draws":schedule.len(),
+        "target_position_draws":schedule.iter().map(|&i| train[i].target.len()).sum::<usize>(),
         "initial_receipt":initial_receipt,"final_receipt":final_parent.receipt,
         "initial_evaluation":initial,"final_evaluation":final_eval,
         "initial_metrics":initial_metrics,"final_metrics":final_metrics,"outcomes":comparison,
         "initial_evaluation_seconds":initial_evaluation_seconds,
         "fit_seconds_including_checkpoints":fit_seconds_including_checkpoints,
-        "final_evaluation_seconds":eval_start.elapsed().as_secs_f64(),
+        "final_evaluation_seconds":final_evaluation_seconds,
         "elapsed_seconds":start.elapsed().as_secs_f64(),
         "final_active_masters":identities(&active)?,"frozen_masters":frozen_identity,
-        "scope":"ordinary Potential/Generate coefficient learning from accepted48/64 over exposed512 complete-answer/EOS positions; Context/prototypes/bridge/Cue/Prefix fixed; no U, protected constructor or solver; native reloaded own-feedback endpoint; no held-out transfer/chat/energy qualification"}),
-    )
+        "scope":"ordinary Potential/Generate coefficient learning from accepted48/64 over exposed512 complete-answer/EOS positions; Context/prototypes/bridge/Cue/Prefix fixed; no U, protected constructor or solver; native reloaded own-feedback endpoint; no held-out transfer/chat/energy qualification"});
+    if let Some(result) = qualification_report {
+        report["qualification"] = result;
+        report["training_indices"] = json!(QUALIFICATION_INDICES);
+        report["scope"] = json!("ordinary Potential/Generate coefficient learning on fixed24 strata repeated32 epochs; full512 native reloaded own-feedback evaluation; qualified_fit requires24/24; modelKEEP separately requires original8 retention and full512 gain; Context/prototypes/bridge/Cue/Prefix frozen, no U or constructor; no held-out transfer/chat/energy qualification");
+    }
+    Ok(report)
 }
 
 #[cfg(test)]
@@ -356,6 +619,77 @@ mod tests {
             assert!(settings(&serde_json::from_value(c)?).is_err(), "{key}");
         }
         Ok(())
+    }
+    #[test]
+    fn reply_qualification_fixed_schedule_covers_only_24_rows_32_times() -> Result<()> {
+        let schedule = draw_schedule(Mode::ReplyQualification, 1001)?;
+        assert_eq!(schedule.len(), 768);
+        assert_eq!(schedule.chunks_exact(BATCH).len(), 96);
+        let mut counts = BTreeMap::new();
+        for &index in &schedule {
+            *counts.entry(index).or_insert(0usize) += 1;
+        }
+        assert_eq!(counts.len(), 24);
+        assert_eq!(
+            counts.keys().copied().collect::<BTreeSet<_>>(),
+            QUALIFICATION_INDICES.into_iter().collect::<BTreeSet<_>>()
+        );
+        for index in QUALIFICATION_INDICES {
+            assert_eq!(counts.get(&index), Some(&32));
+        }
+        for epoch in schedule.chunks_exact(24) {
+            assert_eq!(epoch, &schedule[..24]);
+        }
+        assert!(CONTROL_INDICES.iter().all(|i| counts.contains_key(i)));
+        let legacy = draw_schedule(Mode::ReplyCompletion, 1001)?;
+        assert_eq!(legacy, order(1001, 512));
+        assert_eq!(legacy.len(), 512);
+        assert_eq!(
+            legacy.into_iter().collect::<BTreeSet<_>>(),
+            (0..512).collect::<BTreeSet<_>>()
+        );
+        assert!(draw_schedule(Mode::Fit, 1001).is_err());
+        Ok(())
+    }
+    #[test]
+    fn reply_qualification_admission_fixes96_and_rejects_experimental_options() -> Result<()> {
+        let mut base = config();
+        base["mode"] = json!("reply_qualification");
+        base["updates"] = json!(96);
+        settings(&serde_json::from_value(base.clone())?)?;
+        for (key, value) in [
+            ("updates", json!(64)),
+            ("updates", json!(97)),
+            ("seed", json!(1002)),
+            ("credit", json!("clipped")),
+            ("loss_scope", json!("entry_only")),
+            ("read_state_pullback", json!("legacy")),
+            ("native_code_proposals", json!(true)),
+            ("query_conditioned_read", json!(true)),
+            ("prediction_control_resume", json!("other")),
+        ] {
+            let mut changed = base.clone();
+            changed[key] = value;
+            assert!(
+                settings(&serde_json::from_value(changed)?).is_err(),
+                "{key}"
+            );
+        }
+        let mut legacy = config();
+        legacy["updates"] = json!(96);
+        assert!(settings(&serde_json::from_value(legacy)?).is_err());
+        Ok(())
+    }
+    #[test]
+    fn reply_qualification_teacher_success_is_not_complete_reply_success() {
+        let rows = vec![json!({"id":"teacher-only","complete":false,
+            "teacher_all_tokens_correct":true,"entry_correct":true,"eos":false,"original_complete":true})];
+        let counts = measurement_counts(&rows);
+        assert_eq!(counts["complete"], 0);
+        assert_eq!(counts["teacher_all_tokens_correct"], 1);
+        assert_eq!(counts["entry_correct"], 1);
+        assert_eq!(counts["eos"], 0);
+        assert_eq!(counts["lost_complete_ids"], json!(["teacher-only"]));
     }
     #[test]
     fn reply_completion_gain_does_not_hide_original_reply_loss() -> Result<()> {

@@ -141,12 +141,15 @@ under D21. Their source and reports remain available; none improved the accepted
 8/512 complete replies. Unactivated or superseded source is indexed in the
 [branch archive](docs/history/branch-archive/INDEX.md).
 
-The [ordinary reply-completion run](docs/labs/m2-reply-gradient-2026-10-10/README.md)
-trains the accepted learner's Potential and Generate coefficients on complete
-answers, while retaining Context, prototypes, bridge, Cue and Prefix. Its fixed
-64-update endpoint uses the unchanged native own-prefix 512-reply evaluator:
-complete replies regress8/512→2/512 despite lower teacher-prefix CE. The candidate
-is rejected; the accepted parent remains8/512.
+Ordinary complete-answer training of Potential and Generate coefficients has
+not improved this learner. A [single full-panel pass](docs/labs/m2-reply-gradient-2026-10-10/README.md)
+and a [stratified 24-example fit](docs/labs/m2-stratified-reply-2026-10-10/README.md)
+both regress from 8 to 2 complete replies on the unchanged 512 panel. The latter
+also reaches only 2/24 on its training examples after 32 exposures each, despite
+lower teacher-prefix loss. Both candidates are rejected; the accepted parent
+remains 8/512. This does not establish that the native model family cannot fit
+the task. Context, Generate prototypes, bridge, Cue and Prefix were fixed in
+these two interventions.
 
 **Models trained**
 

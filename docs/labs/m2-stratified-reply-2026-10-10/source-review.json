@@ -1,0 +1,8 @@
+{
+  "status": "PASS_SOURCE_ONLY",
+  "source_commit": "30c7d018825dcd4b3f2d2e7791af66ab4c192635",
+  "reviewer": "independent reply_review agent",
+  "blocking_findings": 0,
+  "scope": "Exact24IDs/schedule768draws9280positions,legacy64preserved,strict96admission,unchangedoptimizer/frozenfamilies,independentcheckpoint96reload,full512beforeauthenticatedsubsetreader,qualifiedfitvsmodelKEEPseparate",
+  "limit": "No model or backward replication; CUDA compile/tests pending"
+}

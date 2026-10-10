@@ -107,6 +107,7 @@ enum Mode {
     ContinuationOnly,
     JointContinuation,
     ReplyCompletion,
+    ReplyQualification,
 }
 
 const REPLAY_REPORT_SHA: &str = "9582f56c8d285920cd67977fd23d36e8a96beabe7c5f27ea45ad4b1113d3503c";
@@ -4638,7 +4639,7 @@ struct ContinuationParent {
 }
 impl ContinuationParent {
     fn load(a: &Args) -> Result<Self> {
-        if a.mode == Mode::ReplyCompletion {
+        if reply_completion::is_mode(a.mode) {
             reply_completion::settings(a)?;
         } else if a.mode == Mode::JointContinuation {
             joint_continuation_settings(a)?
@@ -6364,7 +6365,7 @@ fn run(a: &Args, start: Instant) -> Result<Value> {
         return context_path_credit::run(a, start);
     }
     let d = cuda()?;
-    if a.mode == Mode::ReplyCompletion {
+    if reply_completion::is_mode(a.mode) {
         return reply_completion::run(a, start, &d);
     }
     if a.mode == Mode::ContinuationOnly {
@@ -6644,7 +6645,7 @@ fn main() -> Result<()> {
     report_output::claim(&a.out)?;
     let start = Instant::now();
     let result = (|| -> Result<Value> {
-        if a.mode == Mode::ReplyCompletion
+        if reply_completion::is_mode(a.mode)
             || a.context_path_credit.is_some()
             || a.prefix_artifact_check.is_some()
             || a.prefix_fragment_learning.is_some()

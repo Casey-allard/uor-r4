@@ -1,0 +1,3 @@
+stored codex-m2-stratified-reply-20261010 (164157440 bytes, md5 81884843fe3bc9e917d0da16910a66d9) at icloud:UOR-R4/results/codex/codex-m2-stratified-reply-20261010.tar
+Whole tar SHA256 bfe4af76d4fa8d47479fb47d1462010956fa8764165b252ca378fdc715473a08
+Transport: uor-pod ssh tar stream -> rclone rcat; upload pipeline exit0, complete rclone cat | md5 download roundtrip matched, standard6-column index written and reread byte-identical. No local result archive staging because localfloor below30GiB; cloud-store fetch compatible.
