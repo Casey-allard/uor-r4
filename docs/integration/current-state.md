@@ -1,3 +1,62 @@
+## 2026-10-09 — The v5 declared acceptance run EXECUTED and MISSES: 10 of 40 against a declared >= 34 (deepseek, #2029)
+
+The run the v5 freeze declared and deliberately did not take. Record:
+[v5-declared-acceptance-2026-10-09](../labs/v5-declared-acceptance-2026-10-09/README.md). **CPU only on
+the laptop, no pod, $0** (generation 2m04s, grading 9m46s).
+
+**RESULT: `check_pass` 10 of 40 in `multi_turn_memory` against the frozen target of >= 34. IT MISSES,
+by 24 rows.** Unknowable 1 of 24; whole panel 11 of 64 `check_pass`, 4 of 64 `acceptable`, unparsed 0.
+No adjustment, no re-draw, no second sample.
+
+**Identities all matching the frozen values, so the run is NOT void:** binary
+`62aa67b76764cd48170d0e90ff168a176b471e5d3f4a84c0748e399659e83984`, **grader digest
+`845dbda0ea48ed749caafd9e6037047aa19acfcfd82e704d7ca97d631a0b697e` (the frozen judge)**, artifact
+`model.safetensors` `d8a3c971…`, tokenizer `d36d3e87…`, protocol 2, cap 64, context 384, `check_panel`
+**pass**, **64 of 64 rows checked**, worst case `conv-v5-mem-031` **358 of 384**.
+
+**Controls all as frozen — with ONE control finding that outranks the headline: the v5 binding-swap
+control was VACUOUS from the freeze until now.** `EMBEDDED_SWAPS` held only the v3 and v4 swaps files;
+`conversational-v5-swaps.tsv` was committed on main (`8917b3b6…`) but never added, so `swap_replies()`
+had no `conv-v5-*` id and the control reported **`checked_rows: 0`** while the v5 record claimed
+`binding_swap 0/40` — **a false statement of verification sitting on main.** Fixed in this delivery: a
+third array entry, a v5 test asserting 40 checked rows (the v4 assertion at 40 is exactly why no test
+caught it), and **the v5 record corrected in place** rather than quietly made true. After the fix the
+control reports **0 pass / 40 checked**, binary `a08c38e0a5f5e2cd…`, **19 passed, 0 failed**. The
+acceptance run stands and was not re-run: the swap control is check-only and does not touch `check_pass`.
+Every other control was as frozen: `expected_value` 40/40, `copy_first/last` 20/40, `echo_last/history`
+0/40, memory constants 0/0/0, unknowable constants 24/0/0, adversarial abstentions 0, derangement 0.
+
+**The miss, broken down so someone else can decide what it means** (a 24-row shortfall is either the
+model or the target, and this run does not settle which): **failures cluster by mechanism.** `exact`
+with distractor keys and a WORD value **9/23 (39.1 %)**; with a NUMBER value **1/11 (9.1 %)**; with no
+distractor keys **0/6**. All six no-key rows fail; numeric values are four times harder. By failure mode
+over the 30 failures: **22 name neither the expected value nor the planted distractor**, **8 name the
+planted distractor** — the exact mode the key column exists to catch, so that column is doing real work
+— 0 empty, 0 other. **No row is unpassable: the `expected_value` control passes 40/40**, so the check is
+not the obstacle and the 10 of 40 is a model reading.
+
+**The declared command could not run as written.** `grade-replies` defaults `grader=` to
+`qwen2.5:1.5b`, which is not installed, so the first attempt 404'd in **0.063 s with no report root** —
+**a crash, not a sample.** The invocation was corrected (`grader=qwen2.5:7b`) and the run executed once;
+the v5 record's command is corrected, and this is the second documented command tonight that silently
+selected the wrong thing. **A crash was kept apart from a miss**, which is why re-running was
+legitimate: had the first attempt produced a report with a bad number, re-running would have been
+exactly what the pre-registration forbids.
+
+**CRITERION 1 IS NOT MET ON EITHER HALF, each for a stated and measured reason:** the memory half is
+measured and **missed** (10 of 40 against >= 34, on the one instrument in this line that cannot move
+between identical runs); the reply half cannot carry the criterion as instrumented (43/232, failures
+diffuse, the cap not the constraint, 62.1 % of rows with no judge-free answer, a deterministic
+sub-reading over 88 rows that scores 2). **The unknowable category is won by a constant** (24/24 and 14
+acceptable against the model's 1 and 0, McNemar p = 2.4e-07), so that half is not a model measurement.
+STATUS/ROADMAP/#2028 unchanged — checked, not assumed.
+
+**Next:** fix nothing else on this panel and **do not re-run it for a better sample** — it is
+development evidence now, exactly as v4 became. The measured target is explicit and unmet: **10 of 40
+memory rows at `check_pass`**, with the failing rows named in the sealed report, clustered on numeric
+values (1 of 11) and on the six no-key rows (0 of 6). That clustering is what the next piece should
+attack, and a fresh acceptance would need a fresh sealed panel.
+
 ## 2026-10-09 — `clarify`: the first deterministic target whose correct behaviour is absent, scored 0 of 27 (deepseek, #2029)
 
 The piece the deterministic sub-reading's `Next:` named, measured before it was built. Record:

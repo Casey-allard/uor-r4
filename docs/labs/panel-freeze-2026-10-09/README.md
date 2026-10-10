@@ -267,7 +267,13 @@ so the `checks=` requirement is satisfied and no row is silently unchecked. And 
 the context/token-position check this record previously listed as outstanding.
 
 Check-only controls, all as designed: expected_value 40/40 (bare expected spelling passes);
-binding_swap 0/40 (every swap fails); echo_last 0/40; echo_history 0/40; copy_first_stated 20/40 and
+**(CORRECTED 2026-10-09: `binding_swap` was VACUOUS here — the control reported
+`checked_rows 0`, not 0/40. `EMBEDDED_SWAPS` held only the v3 and v4 swaps files;
+`conversational-v5-swaps.tsv` was committed but never added to it, so `swap_replies()` had no
+`conv-v5-*` id and the control examined nothing. The 0/40 written here was therefore not
+reproducible and this record stated a verification that had not run. Fixed by adding the file to
+`EMBEDDED_SWAPS` and asserting 40 checked rows in a v5 test; the v4 assertion at 40 is exactly why
+no test caught it. See `docs/labs/v5-declared-acceptance-2026-10-09/`.)** binding_swap 0/40 (every swap fails); echo_last 0/40; echo_history 0/40; copy_first_stated 20/40 and
 copy_last_stated 20/40 (neither copy control vacuous); memory constants 0/0/0 of 40; unknowable
 constants 24/0/0 of 24 - the abstention constant passes all 24, which is what makes a model scoring
 below the constant visible; adversarial abstentions 0 in both categories; unknowable expected_value
@@ -281,7 +287,17 @@ frozen acceptance once, declared in advance.
 ## The declared acceptance run (stated now so it cannot be improvised later)
 
     chat-grade grade-replies out=NEW_REPORT_ROOT replies=<candidate replies.json> \
-      checks=data/panels/conversational-v5-checks.tsv
+      checks=data/panels/conversational-v5-checks.tsv grader=qwen2.5:7b
+
+**CORRECTION (2026-10-09, after the declared run): `grader=` is not optional.** As first written this
+command omitted it, and `grade-replies` defaults `grader=` to `qwen2.5:1.5b`, which is not installed on
+this machine — so `/api/chat` answers 404 and curl exits 22 in 0.063 s with **no report root**. That is
+a crash, not a sample: it was not treated as the declared run, the invocation was corrected and the run
+then executed once. The same class of trap as `requests=` not `panel=`: a documented command that
+silently selects the wrong thing. Verified working form:
+
+    chat-grade grade-replies out=NEW_REPORT_ROOT replies=<candidate replies.json> \
+      checks=data/panels/conversational-v5-checks.tsv grader=qwen2.5:7b
     # then read check_pass per category, with EVERY failing row named
 
 Target: >= 34 of the 40 multi_turn_memory rows at `check_pass`. `acceptable` and judge-changed rows are

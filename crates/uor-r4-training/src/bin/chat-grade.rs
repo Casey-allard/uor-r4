@@ -2198,7 +2198,7 @@ impl CopyTally {
 /// The binding-swap replies of the conversational-v3 and -v4 memory rows
 /// (`id reply` per line): each names a stated value bound to the wrong key, so
 /// each must fail its row's `exact` check. The files' ids are disjoint.
-const EMBEDDED_SWAPS: [(&str, &str); 2] = [
+const EMBEDDED_SWAPS: [(&str, &str); 3] = [
     (
         "data/panels/conversational-v3-swaps.tsv",
         include_str!("../../../../data/panels/conversational-v3-swaps.tsv"),
@@ -2206,6 +2206,10 @@ const EMBEDDED_SWAPS: [(&str, &str); 2] = [
     (
         "data/panels/conversational-v4-swaps.tsv",
         include_str!("../../../../data/panels/conversational-v4-swaps.tsv"),
+    ),
+    (
+        "data/panels/conversational-v5-swaps.tsv",
+        include_str!("../../../../data/panels/conversational-v5-swaps.tsv"),
     ),
 ];
 
@@ -4230,6 +4234,32 @@ mod tests {
         .is_err());
         // A clarify phrase the request already contains is not the model's work.
         assert!(validate_checks(&checks, &[single("c1", "Which city are you in?")]).is_err());
+    }
+
+    #[test]
+    fn the_v5_binding_swaps_are_embedded() {
+        // The assertion that would have caught a vacuous control: the v5 swaps
+        // file is committed but was never added to EMBEDDED_SWAPS, so for v5 the
+        // binding-swap control reported checked_rows 0 while the v5 record claimed
+        // 0/40. The v4 assertion is why no test noticed - nothing asserted v5.
+        let swaps = swap_replies().unwrap();
+        let v5: Vec<&String> = swaps
+            .keys()
+            .filter(|k| k.starts_with("conv-v5-mem-"))
+            .collect();
+        assert_eq!(v5.len(), 40, "every v5 memory row needs a binding swap");
+        assert_eq!(
+            swaps.get("conv-v5-mem-001").map(String::as_str),
+            Some("Michael lives in Britain.")
+        );
+        // The other panels keep theirs.
+        assert_eq!(
+            swaps
+                .keys()
+                .filter(|k| k.starts_with("conv-v4-mem-"))
+                .count(),
+            40
+        );
     }
 
     #[test]
