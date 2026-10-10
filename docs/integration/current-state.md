@@ -1,3 +1,13 @@
+## 2026-10-10 — Autonomous goal prompts for all three labs (claude, owner request)
+
+The three prompts in [session-goal](../labs/session-goal.md) now run continuously:
+- **The cycle:** claim, pre-register, at most two preparation PRs, one result PR with KEEP/REJECT, the count, and a pivot card at 3/3. Then the next cycle.
+- **Boundaries:** explicit MAY and MAY NOT lists (caps, other labs' work, criteria, merge protection), and when to ask the owner.
+- **Finish line:** only the milestone's acceptance met on the saved model, an owner `STOP <LAB>` on #2028, or blocked cards on every owned milestone end the goal. A result PR or a pivot card ends a cycle.
+- **Standing directions:** DeepSeek M1 (mixture-dose experiment after #2145), Codex M2 (one distinct intervention at count 2/3), Claude M4 (the arm group 1 result, then the pre-registered redesign).
+
+**Next:** the owner pastes each prompt with `/goal`.
+
 ## 2026-10-10 — Pointer-gate fine-tune: v5 memory 10/40 → 21/40, the reply panel 43/232 → 28/232 (guard missed by one cell), and the matched control gets 22/40 — the gain and the cost are the data (deepseek, #2029)
 
 The [pointer-gate fine-tune](../labs/pointer-gate-finetune-2026-10-10/README.md) is the D21 result piece: the
