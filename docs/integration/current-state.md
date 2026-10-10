@@ -1,3 +1,49 @@
+## 2026-10-10 — Pointer-gate fine-tune: v5 memory 10/40 → 21/40, the reply panel 43/232 → 28/232 (guard missed by one cell), and the matched control gets 22/40 — the gain and the cost are the data (deepseek, #2029)
+
+The [pointer-gate fine-tune](../labs/pointer-gate-finetune-2026-10-10/README.md) is the D21 result piece: the
+supervised pointer-target fine-tune, pre-registered on #2029 (bar, base, stream, arms, cost) before any pod
+existed, executed **exactly as pre-registered** on one 2 × RTX 5090 pod for **22 minutes and ≈ $0.87** (ceiling
+$3.60), with all acceptance scoring on the owner's laptop CPU. Base: `chat-29m-B-lr5e-4` `d8a3c971…`, with its own
+run `report.json` as `init=` provenance (fetched from `icloud:UOR-R4/results/deepseek/ladder.tar`, md5 verified),
+so the tokenizer lineage `d36d3e87…` and `merges: null` are the run's own. Stream: the base's **own** fine-tune
+store (`ft-mixed-mworld-chatv0`, `tokens.u16` `8794ad27…` — verified equal to the store the base's report records,
+and *not* the look-alike `ft-mixed-c` on the volume) **plus** `dialogue-recall-corpus generate generator=v2`
+(124,000 dialogues, `leak pass` against `data/panels` **and** the three open-reply-panel request files),
+concatenated by `mix-chat-corpus` to **109,092,553 tokens / 327,304 response episodes, recall share 55.1 %**.
+
+**The arms.** Identical in everything but `pointer_gate_supervision`: S = 0.1 (pre-declared primary), C = 0.0
+(matched control), H = 0.5; 2,000 steps, `lr=2e-4`, `data_seed=20261009`, 105 s each. On the development stream the
+supervision behaves exactly as designed — pointer hit rate **0.142 → 0.761** for S against **0.377** for C, pointer
+NLL 0.093 — which is what makes the panel reading decisive. On the frozen v5 panel (cap 64, the frozen
+`conversational-v5-checks.tsv`, deterministic `check_pass` primary): memory **10/40 → 21/40 (S), 22/40 (C), 19/40
+(H)**; unknowable **1/24 → 16/24 (S), 19/24 (C), 16/24 (H)**; panel `check_pass` 11/64 → 37/41/35 of 64 and
+`acceptable` 4/64 → 19/20/18 of 64; every derangement control 0/64. Paired exact McNemar on the 40 memory rows:
+base → S **p = 0.0127**, base → C **p = 0.0018**, base → H **p = 0.0225**, and **S vs C p = 1.00** (4 discordant
+rows each way). The base re-run on the same build reproduces the sealed declared reading exactly (10/40, 1/24,
+`acceptable` 4 and 0), so the comparison is same-panel, same-checks, same-cap.
+
+**Decision: primary bar MET, guard MISSED BY ONE CELL, artifact NOT KEPT, attribution REFUTED.** The
+pre-registered bar (v5 memory ≥ 14/40 on S) is **MET** (21/40). The pre-registered guard (open reply panel
+`acceptable` ≥ 29/232, baseline 43/232) is **MISSED BY ONE CELL** on the like-for-like metric — **28/232** on
+S and **22/232** on C, against a baseline that was **re-graded on the same build from the sealed replies and
+returns exactly 43/232, per category**. The paired test says the drop is real rather than judge noise (base-only
+27 / S-only 12, **p = 0.0237**; the control's 43 → 22, p = 0.0002), and the panel's own ±14-cell heuristic puts
+S's drop one cell outside its resolution; S's derangement control also rises 4 → 11, i.e. more of its replies
+answer the *next* row's conversation. Because the pre-registration's rule was "KEEP iff primary and guard
+hold", this is **not KEEP** — stated with its width, since the miss is one cell. The pre-registered mechanism is
+**REFUTED**: the matched control is higher on memory (22/40), higher on the whole v5 panel (41/64 against
+37/64) and higher on the unknowable rows (19/24 against 16/24), indistinguishable on the memory rows
+(p = 1.00) and no better on the reply panel, so **both the gain and the cost are the generated recall-dialogue
+mixture**, not `gate_supervised_loss`. **Criterion 1 remains NOT MET on both halves**: 21/40 against ≥ 34/40
+memory, 28/232 against ≥ 116/232 reply. The base artifact and its own 43/232 + 10/40 are unchanged and it stays
+the base.
+
+**Next:** the lever is the mixture, so the next M1 piece is a **mixture-dose experiment** — the same run at a lower
+recall share with the reply panel as the pre-declared guard, a run this result designs — and
+`pointer_gate_supervision` is dropped from the recipe (it costs a hyper-parameter for nothing measurable on either
+panel). The read/emit split that started this line is unchanged: the instrument shows the pointer still attends the
+sentence frame (numeric-row frame share 0.7430 → 0.90–0.98 while the value share rises 0.2361 → 0.50–0.59).
+
 ## 2026-10-10 — The D11 engine serves the softmax-free reads: schema /3, BitCode, audit FULL PASS (claude, #2032)
 
 The multiplier-free integer engine now serves the flock rank read and the Hamming-rank read ([record](../labs/softmax-free-read-2026-10-10/README.md#serving-preparation-2-the-d11-engine-serves-both-reads)):
