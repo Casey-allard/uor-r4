@@ -1,3 +1,75 @@
+## 2026-10-09 — Plan: the pointer target change, the first step in this line that costs money (deepseek, #2029)
+
+**PLANNING ONLY: $0, no pod, no training, CPU only, no knob.** Record:
+[pointer-target-change-plan-2026-10-09](../labs/pointer-target-change-plan-2026-10-09/README.md). The
+plan is the deliverable and it goes to the owner.
+
+**THE LEDGER IT RESTS ON — five dead readings and one measured statement, not a hunch.** Token count
+REFUTED; digit order REFUTED; **value addressability REFUTED — which stopped a full ladder rebuild**;
+the pointer's single-source shape REFUTED IN ITS SIMPLE FORM AND REPLACED (`TopK(2)` + gate 0.9 moved
+coverage 0 → 3 of 13 and failed its pre-declared bar); **"history-insensitive" CORRECTED — the
+invariance is the shared sentence FRAME's**; and **"the pointer attends the sentence frame and never the
+varying slot" MEASURED on 13 rows** (digits selected 0 of 13 second, 3 of 13 first, never both). Ten
+pieces, all CPU-only, all $0, and the object under investigation moved from the tokenizer to the memory
+path to the pointer to the attention's positional target.
+
+**1. THE TARGET CHANGE IS EXPRESSIBLE IN THE EXISTING TRAINING PATH — no new signal is needed, the
+LABELLING is the new part.** `ReadSupervisionGroup { bound, competing }` is documented as "`bound` holds
+the window positions of **the value the answer must name**; `competing` the positions of the other stated
+values that answer must not name", and `gate_supervised_loss` gives
+`total = mixture + weight * (gate_bce + pointer_nll)` with **`gate_bce = BCE(g_t, [target held by a
+source 0..=t])`** and **`pointer_nll = -log p_copy(target)`**. **So: label the value's digit run as
+`bound` (both positions for a two-token value), the distractor's as `competing`, and train with
+`gate_supervised_loss`** — the run-level marking the current objective has never required.
+
+**2. THE SMALLEST DECISIVE VERSION IS CPU-ONLY AND CAN KILL THE PLAN FOR FREE: build the labels and
+evaluate `pointer_nll`/`gate_bce` on the EXISTING weights, reporting `p_copy` at the value's two digit
+positions BEFORE any update.** If `p_copy` is already high there, the head is not the problem and the
+training piece is unnecessary. Only if it is low does a **single-rung, single-value-type labelled
+training run** follow — no new architecture, no vocabulary change.
+
+**3. WHAT IT INVALIDATES.** A retrained artifact is a new artifact: **v5's 10 of 40 does NOT survive as a
+comparison** (it reads `chat-29m-B-lr5e-4`) and **a fresh sealed panel is required**. **Confirmed again:
+the tokenizer is untouched, so every result citing `d36d3e87…` stays valid** — the reply panel's 43/232,
+the cap-96 comparison, the v5 structural validation. That is why this is a one-rung question, not a
+ladder question.
+
+**4. THE SUCCESS TEST, PRE-DECLARED.** Primary: the same 13 rows, same trace, **both stored digits
+selected as a run on 13 of 13** (currently 0 of 13), `mem-040` still emitting `84`. Secondary: the fresh
+panel's own frozen target, declared before the draw. **The panel must be built AGAINST the obvious
+failure mode — memorising these 13 rows: training labels disjoint from the panel by value, key and frame
+with the disjointness asserted mechanically; held-out magnitude and leading-zero forms; matched rows
+sharing a frame with varied values AND the converse; and a control arm that never sees the label.**
+
+**5. THE FALSIFICATION, IN ADVANCE:** the frame-attention reading is wrong if **both digits are attended
+and the value still is not delivered** (back to the emitter), or **`p_copy` at the value's positions is
+already high before any update**, or **a gain on the trace is lost on the fresh panel** (memorisation),
+or **word rows move as much as numeric rows** (not value-type-specific).
+
+**6. COST, AND THE REFUSAL.** CPU, no pod: the label generator and the pre-training `p_copy` read
+(minutes, and it can kill the plan for free); the 13-row trace read-out (12 seconds, already built);
+drawing and sealing a fresh panel (minutes). GPU via `uor-pod` within the caps (≤ 4 pods, ≤ $8/h,
+EU-RO-1 pinned if the volume is needed): **a timed calibration run comes first and NO THROUGHPUT NUMBER
+IS GIVEN BECAUSE NONE IS CITABLE** — the projection stays `calibration_throughput × corpus_tokens ×
+epochs` until that run exists. **If even the calibration needs a pod, the smallest that works is one
+5090-class pod on the ladder's existing volume, leased for the calibration only and released
+immediately. No pod is brought up by this plan**, and the calibration should not run until §2 step 1 has
+reported.
+
+**7. THE LIMIT THAT STILL BOUNDS EVERYTHING: THIS ARTIFACT HAS NO MEMORY READER.** A pointer/attention
+fix is a **pointer/attention fix** and does not transfer to the addressed-memory path, where **the
+two-token question has never been measured**. If the owner wants the memory path investigated, that is a
+**separate piece** using `memory_read_diagnostic`'s `predicted_token` and `target_routes`.
+
+**Criterion 1 remains NOT MET on both halves and 43/232 is unchanged.** v5 was not re-run;
+STATUS/ROADMAP/#2028 unchanged — checked, not assumed.
+
+**Next: run §2 step 1 — CPU only, no pod, no training** — build the `ReadSupervisionGroup` labels and
+evaluate `pointer_nll`/`gate_bce` on the **existing weights**, reporting `p_copy` at the value's two
+digit positions before any update. **If `p_copy` is already high there, the training piece is
+unnecessary and the emitter is the target.** Only if it is low does the single-rung labelled training
+run follow, with a fresh sealed panel drawn first and a timed calibration run before any cost estimate.
+
 ## 2026-10-09 — Decoding the pointer's selections: it attends the sentence FRAME and never the varying slot (deepseek, #2029)
 
 Read on the **control arm**, CPU only, no pod, no training, no knob, $0. Record:
