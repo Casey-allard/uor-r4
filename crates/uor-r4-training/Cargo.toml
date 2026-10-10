@@ -20,6 +20,8 @@ cpu-accelerate = ["candle-core/accelerate", "candle-nn/accelerate"]
 reference-accelerate = ["uor-r4-model-source/observation-blas-exception"]
 
 [dependencies]
+# Offline bounded legal-set constructor; never linked by native serving crates.
+microlp = "=0.6.0"
 uor-r4-integer = { version = "0.1.0", path = "../uor-r4-integer" }
 candle-core = { version = "=0.9.2", default-features = false }
 candle-nn = { version = "=0.9.2", default-features = false }

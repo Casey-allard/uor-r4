@@ -1,0 +1,41 @@
+{
+  "schema": "uor-r4.centered-legal-exact-source-checks/1",
+  "status": "PASS",
+  "source_commit": "ebd6ecaa41bd1a3ae90e0f8af3b8363724fb3e82",
+  "recorded_at": "2026-10-10T02:02:10.401432+00:00",
+  "encoding": "centered_integer_displacement_k=q-q0/1",
+  "build": {
+    "status": "PASS",
+    "profile": "release",
+    "jobs": 2,
+    "elapsed_seconds": 143.67,
+    "peak_rss_bytes": 1699135488,
+    "source_env": "ebd6ecaa41bd1a3ae90e0f8af3b8363724fb3e82"
+  },
+  "tests": {
+    "status": "PASS",
+    "filter": "coupled_episode_learning",
+    "passed": 53,
+    "failed": 0,
+    "filtered": 111,
+    "elapsed_seconds": 26.85,
+    "test_execution_seconds": 0.02,
+    "peak_rss_bytes": 950943744
+  },
+  "binary": {
+    "path": "/Users/casey.allard/.codex/worktrees/direct-legal-construction/uor-r4/local/build/release/examples/geometric-frozen-map-fit",
+    "bytes": 11211920,
+    "sha256": "2eb0101455163c16e0e18ae0913d43a0a01e8c330387a50848d49fc47774522e"
+  },
+  "logs": {
+    "local/build-centered-exact-runtime-0008.log": {
+      "sha256": "d33932447ec0c3787f79b4de89419813ba9e792a0a34371388eb7cc61e2bc3a0",
+      "bytes": 6157
+    },
+    "local/build-centered-exact-tests-0009.log": {
+      "sha256": "6e218f7ee41ba7245dac907938123183f0378b2d0cf8e99672ec41e587d6c747",
+      "bytes": 13751
+    }
+  },
+  "scope": "Compilation and focused fixtures only; no actual constructor/model attempt invoked by engineering checks."
+}

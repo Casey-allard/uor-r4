@@ -1,0 +1,20 @@
+{
+  "verified_archives": [
+    {
+      "name": "codex-direct-legal-absolute-failure-20261009",
+      "bytes": 309963776,
+      "md5": "661527eb7d8c4636e66f147032a598fb",
+      "remote": "icloud:UOR-R4/results/codex/codex-direct-legal-absolute-failure-20261009.tar",
+      "verification": "cloud-store upload and full remote MD5 round-trip, indexed",
+      "scope": "Complete absolute-code attempt1, original executable, observations, input references and reviews"
+    },
+    {
+      "name": "codex-direct-legal-centered-20261009",
+      "bytes": 310223360,
+      "md5": "5a965dade6ed7b04b8238b4d1e020be3",
+      "remote": "icloud:UOR-R4/results/codex/codex-direct-legal-centered-20261009.tar",
+      "verification": "cloud-store upload and full remote MD5 round-trip, indexed",
+      "scope": "Complete centered attempt2, executable, observations, all preparation/build/test logs, source/result reviews, helpers and input references"
+    }
+  ]
+}

@@ -2,6 +2,8 @@
 use super::*;
 #[path = "protected_discrete_feedback.rs"]
 mod protected_discrete_feedback;
+#[path = "protected_legal_set.rs"]
+mod protected_legal_set;
 const DIM: usize = 2 * COUNT;
 const SWEEPS: usize = 256;
 const TOL: f64 = 1e-10;
@@ -21,18 +23,40 @@ pub(super) fn discrete_policy() -> Value {
  "screen":"original380 unit margins at1e-10*actualdeltaL2 and strict original objective gdotdelta<0",
  "projection":"fixed residual-feedback heuristic, not exact ADMM/convergence guarantee","maximum_alternatives":32,"no_follow_on_coordinate_pass":true})
 }
+pub(super) fn legal_policy() -> Value {
+    json!({"backend":"microlp=0.6.0","branch_node_limit":4096,"root_counts_as_node":false,"time_limit":null,"warm_start":"original noop; advisory backend hint",
+        "coordinates":1920,"legal":"centered k=q-q0 integer[-7-q0,7-q0]; fractional original noop bits or14 canonical changed quarter codes; signedzero preserved",
+        "fractional_encoding":"l,r binary; l+r<=1; k>=r-(q0+7)l; k<=-l+(7-q0)r; delta=k/4+(l+r)(q0/4-m)",
+        "canonical_encoding":"k=q-q0 integer[-7-q0,7-q0], no side binaries; original bits retained at unchanged code",
+        "integer_decode":"raw backend values within1e-6 of a unique integer; reject illegal side/code combination; exact f32 destination bits then independent screens","objective":"minimize original gdotactualdelta","construction_target":"all380 original unitJdelta>=0; prospectively stricter than norm-tolerant admission",
+        "screen":"recompute actual legal-bit delta, all380 unitJdelta>=-1e-10*deltaL2 and strict gdotdelta<0",
+        "maximum_alternatives":1,"no_follow_on_coordinate_pass":true,"backend_status":"observational bounded floating search, not a mathematical optimality/infeasibility certificate"})
+}
+fn maximum_alternatives(mode: PrefixTransaction) -> usize {
+    if mode == PrefixTransaction::ProtectedLegalSet {
+        1
+    } else if discrete_mode(mode) {
+        32
+    } else {
+        4
+    }
+}
 fn discrete_mode(mode: PrefixTransaction) -> bool {
     mode == PrefixTransaction::ProtectedDiscreteFeedback
 }
 fn schema(mode: PrefixTransaction) -> &'static str {
-    if discrete_mode(mode) {
+    if mode == PrefixTransaction::ProtectedLegalSet {
+        "uor-r4.protected-legal-set-centered/1"
+    } else if discrete_mode(mode) {
         "uor-r4.protected-discrete-feedback/1"
     } else {
         "uor-r4.protected-joint-vector/1"
     }
 }
 fn identity(p: &Proposal) -> &'static str {
-    if p.receipt.get("round").is_some() {
+    if p.receipt.get("candidate").is_some() {
+        "candidate"
+    } else if p.receipt.get("round").is_some() {
         "round"
     } else {
         "radius"
@@ -495,6 +519,47 @@ fn proposals(
     }
     Ok((proposals, projection))
 }
+fn legal_proposals(
+    pm: &[f32],
+    pg: &[f32],
+    gm: &[f32],
+    gg: &[f32],
+    j: &[Vec<f32>],
+    saved: Option<&Value>,
+) -> Result<(Vec<Proposal>, Value)> {
+    replay_require(
+        [pm.len(), pg.len(), gm.len(), gg.len()]
+            .iter()
+            .all(|n| *n == COUNT),
+        "legal1920 domain",
+    )?;
+    let m = pm.iter().chain(gm).copied().collect::<Vec<_>>();
+    let g = pg.iter().chain(gg).copied().collect::<Vec<_>>();
+    let rows = unit_rows(j)?;
+    let receipt: protected_legal_set::Receipt = if let Some(saved) = saved {
+        serde_json::from_value(saved.clone())?
+    } else {
+        protected_legal_set::run(&m, &g, &rows)?
+    };
+    protected_legal_set::authenticate(&m, &g, &rows, &receipt)?;
+    let projection = json!({"legal_solver":receipt});
+    let mut proposals = Vec::new();
+    if let Some(bits) = receipt.destination_master_bits {
+        let dest = bits.iter().map(|b| f32::from_bits(*b)).collect::<Vec<_>>();
+        let r = json!({"candidate":0,"destination_master_bits":bits,"actual_delta":receipt.actual_delta,
+            "quantized_margin_residuals":receipt.construction_residuals,"quantized_tolerance":receipt.residual_tolerance,
+            "actual_CE_linear_delta":receipt.gradient_dot,"quantized_constraints_passed":receipt.unchanged_screen_passed,
+            "recomputed_zero_margin_target_passed":receipt.recomputed_zero_margin_target_passed,"eligible":receipt.eligible,"incumbent_epoch":0});
+        proposals.push(Proposal {
+            radius: 0,
+            prefix: dest[..COUNT].to_vec(),
+            unary: dest[COUNT..].to_vec(),
+            receipt: r,
+            eligible: receipt.eligible,
+        });
+    }
+    Ok((proposals, projection))
+}
 fn mode_proposals(
     mode: PrefixTransaction,
     pm: &[f32],
@@ -503,6 +568,9 @@ fn mode_proposals(
     gg: &[f32],
     j: &[Vec<f32>],
 ) -> Result<(Vec<Proposal>, Value)> {
+    if mode == PrefixTransaction::ProtectedLegalSet {
+        return legal_proposals(pm, pg, gm, gg, j, None);
+    }
     if !discrete_mode(mode) {
         return proposals(pm, pg, gm, gg, j);
     }
@@ -655,12 +723,12 @@ fn stage(
         "guard_status":if !objective_gate{"NOT_CHECKED_OBJECTIVE_GATE_FALSE"}else if !failure.is_null(){"FIRST_VETO"}else{"FULL_PASS"},
         "feasible":objective_gate && failure.is_null(),"changed_rows":changes,"staged_summary_digest":digest,"staged_rows_count":UNION});
     let mut receipt = receipt;
-    if identity(proposal) == "round" {
+    if identity(proposal) != "radius" {
         receipt
             .as_object_mut()
             .ok_or_else(|| bad("stage identity"))?
             .remove("radius");
-        receipt["round"] = json!(proposal.radius);
+        receipt[identity(proposal)] = json!(proposal.radius);
     }
     Ok(Stage {
         rows,
@@ -765,7 +833,7 @@ pub(super) fn run(
         selected = json!({"status":"committed","incumbent_epoch":0,"epoch_after":1,"selected_receipt":expected,"selected_restage_exact":true});
         selected[key] = json!(proposal.radius);
     }
-    let summary = json!({"coordinates":0,"maximum_alternatives":if discrete_mode(mode){32}else{4},"evaluated_alternatives":reductions/UNION,"accepted_prefix":usize::from(selected["status"]=="committed"),
+    let summary = json!({"coordinates":0,"maximum_alternatives":maximum_alternatives(mode),"evaluated_alternatives":reductions/UNION,"accepted_prefix":usize::from(selected["status"]=="committed"),
         "accepted_generate":usize::from(selected["status"]=="committed"),"accepted_joint":usize::from(selected["status"]=="committed"),"accepted_epoch":usize::from(selected["status"]=="committed"),
         "initial":baseline,"final":current,"revisited":0,"proposal_stage_pool_reductions":reductions,"selected_restage_pool_reductions":restage});
     write(
@@ -798,10 +866,7 @@ pub(super) fn authenticate_mode(
     checkpoint: &Path,
     mode: PrefixTransaction,
 ) -> Result<()> {
-    replay_require(
-        mode == PrefixTransaction::ProtectedJointVector || discrete_mode(mode),
-        "protected authentication mode",
-    )?;
+    replay_require(mode.is_protected(), "protected authentication mode")?;
     replay_require(
         journal["schema"] == schema(mode)
             && journal["policy"] == policy_for_modes(DonorCredit::FullPoolUtility, mode)
@@ -906,7 +971,18 @@ pub(super) fn authenticate_mode(
             "protected donor margin quantity differs",
         )?;
     }
-    let (projected, projection) = mode_proposals(mode, &pm, &pg, &gm, &gg, &j)?;
+    let (projected, projection) = if mode == PrefixTransaction::ProtectedLegalSet {
+        legal_proposals(
+            &pm,
+            &pg,
+            &gm,
+            &gg,
+            &j,
+            Some(&journal["projection"]["legal_solver"]),
+        )?
+    } else {
+        mode_proposals(mode, &pm, &pg, &gm, &gg, &j)?
+    };
     replay_require(
         journal["projection"] == projection,
         "protected direction projection differs",
@@ -1022,11 +1098,12 @@ pub(super) fn authenticate_mode(
     if let Some((_, radius, native)) = best {
         replay_require(
             selected["status"] == "committed"
-                && selected[if discrete_mode(mode) {
-                    "round"
-                } else {
-                    "radius"
-                }] == radius
+                && selected[identity(
+                    projected
+                        .iter()
+                        .find(|p| p.radius == radius)
+                        .ok_or_else(|| bad("selected protected identity missing"))?,
+                )] == radius
                 && selected["incumbent_epoch"] == 0
                 && selected["epoch_after"] == 1
                 && selected["selected_restage_exact"] == true
@@ -1061,8 +1138,7 @@ pub(super) fn authenticate_mode(
     replay_require(
         journal["coordinate_records"] == json!([])
             && journal["summary"]["coordinates"] == 0
-            && journal["summary"]["maximum_alternatives"]
-                == if discrete_mode(mode) { 32 } else { 4 },
+            && journal["summary"]["maximum_alternatives"] == maximum_alternatives(mode),
         "protected unexpected follow-on coordinate pass",
     )
 }
@@ -1070,6 +1146,144 @@ pub(super) fn authenticate_mode(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn legal_mode_native_pool_and_incidence_keeps_same_epoch_on_veto() -> Result<()> {
+        let (mut red, native, legal, a, b, binding) = fixture()?;
+        let mut factors = [0u32; 8];
+        native.factor_incidence_into(&a, 5, &mut factors, &mut Default::default())?;
+        let key = factors[0] as usize;
+        let mut pg = vec![0.; COUNT];
+        pg[0] = -1.;
+        pg[1] = 1.;
+        let mut gg = vec![0.; COUNT];
+        gg[key] = -1.;
+        let mut pm = vec![-1.75; COUNT];
+        pm[0] = 0.;
+        pm[1] = 0.;
+        let gm = vec![0.; COUNT];
+        let (proposals, receipt) = mode_proposals(
+            PrefixTransaction::ProtectedLegalSet,
+            &pm,
+            &pg,
+            &gm,
+            &gg,
+            &[vec![0.; DIM]],
+        )?;
+        replay_require(
+            proposals.len() == 1 && proposals[0].eligible,
+            "legal fixture incumbent",
+        )?;
+        let (saved, saved_receipt) = legal_proposals(
+            &pm,
+            &pg,
+            &gm,
+            &gg,
+            &[vec![0.; DIM]],
+            Some(&receipt["legal_solver"]),
+        )?;
+        replay_require(
+            saved_receipt == receipt && saved[0].receipt == proposals[0].receipt,
+            "saved legal authentication must not solve",
+        )?;
+        let mut before = vec![0; native.vocab_size()];
+        native.score_into(&b, &mut before, &mut Default::default())?;
+        let caches = vec![
+            red.prepare_generate_patch_cache(before.clone(), vec![4, 4, 5], vec![0, 0, 1 << 23])?,
+            red.prepare_generate_patch_cache(before, vec![4, 5], vec![0, 1 << 23])?,
+        ];
+        let before_masses = caches
+            .iter()
+            .map(|c| c.token_masses().to_vec())
+            .collect::<Vec<_>>();
+        let old_inc = RowIncidence::new(&native, &b, &legal)?.digest()?;
+        let (records, best, count) = evaluate(proposals, |p| {
+            let mut e = native.energy().clone();
+            for lane in 0usize..8 {
+                for bin in 0usize..120 {
+                    e.set_unary(
+                        lane as u8,
+                        bin as u8,
+                        generate::code(p.unary[lane * 120 + bin])?,
+                    )?;
+                }
+            }
+            let g = NativeGeometricGenerate::compile(
+                &binding,
+                8,
+                native.prototypes(),
+                native.packed_biases(),
+                e,
+            )?;
+            let rows = prepare_rows(2, |row| {
+                let ids = if row == 0 { vec![4, 4, 5] } else { vec![4, 5] };
+                let base = if row == 0 {
+                    vec![0, 0, 1 << 23]
+                } else {
+                    vec![0, 1 << 23]
+                };
+                let keys = (0..ids.len())
+                    .map(|i| {
+                        (0..8)
+                            .map(|lane| {
+                                Some(
+                                    lane * 120
+                                        + if lane == 0 {
+                                            if row == 0 {
+                                                usize::from(i == 2)
+                                            } else {
+                                                2 * i
+                                            }
+                                        } else {
+                                            0
+                                        },
+                                )
+                            })
+                            .collect::<Vec<_>>()
+                    })
+                    .collect::<Vec<_>>();
+                let copy = shared::staged_base(&base, &keys, &pm, &p.prefix)?;
+                let donor = earliest(&copy)?;
+                let post = if donor == 0 { a.clone() } else { b.clone() };
+                let mut raw = vec![0; g.vocab_size()];
+                g.score_into(&post, &mut raw, &mut Default::default())?;
+                let inc = RowIncidence::new(&g, &post, &legal)?;
+                if row == 0 {
+                    replay_require(inc.digest()? != old_inc, "changed native donor incidence")?;
+                }
+                Ok(Replacement {
+                    cache: red.prepare_generate_patch_cache(raw, ids, copy)?,
+                    post,
+                    donor,
+                    incidence: Some(inc),
+                })
+            })?;
+            let required = caches[1].summary().chosen_token_id;
+            let chosen = rows[&1].cache.summary().chosen_token_id;
+            replay_require(
+                required == 5 && chosen != required,
+                "actual native late guard veto",
+            )?;
+            replay_require(rows[&0].donor == 0, "actual BASE donor changes")?;
+            // A measured native protected-row veto drops the complete batch.
+            Ok(Stage {
+                rows,
+                objective: json!({"combined":0.}),
+                receipt: json!({"feasible":false,"guard_status":"FIRST_VETO","first_failure":{"guard_index":1,"required":required,"chosen":chosen},"candidate":0,"incumbent_epoch":0}),
+            })
+        })?;
+        replay_require(
+            best.is_none() && count == 2 && records[0]["native"]["incumbent_epoch"] == 0,
+            "legal same epoch veto",
+        )?;
+        replay_require(
+            caches
+                .iter()
+                .zip(before_masses)
+                .all(|(c, m)| c.token_masses() == m),
+            "veto incumbent masses unchanged",
+        )?;
+        Ok(())
+    }
     #[test]
     fn feedback1920_recovery_and_duplicate_receipts() -> Result<()> {
         let mut pm = vec![0.; COUNT];

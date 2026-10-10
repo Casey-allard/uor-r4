@@ -1,0 +1,59 @@
+{
+  "source_commit": "dd69a64965ce4563f7967309b377a065d666bb71",
+  "adversarial": {
+    "verdict": "PASS_SOURCE_ONLY",
+    "agent": "emission_adversarial",
+    "scope": [
+      "compact legal domain and independent decode",
+      "saved-credit and positive-artifact authority",
+      "unchanged native stage/restage/rollback gates",
+      "supervisor terminal floor-stop receipt",
+      "14-root recovery and config relocation"
+    ],
+    "limits": "Reviewer ran no solver, model, build or tests. Actual binary/source admission and positive-only qualification sealing remain parent responsibilities."
+  },
+  "mathematical": {
+    "verdict": "NO_BLOCKING_MATHEMATICAL_DEFECT",
+    "agent": "emission_math",
+    "reviewed_kernel_sha256": "a77480d272aec6b080e9ec409c2f2b97ba4fbba1031db8bf80c6ee7cdd18be9b",
+    "scope": "Compact q/l/r disjunction, objective constant, actual-bit reconstruction and stricter zero-margin target versus norm-tolerant admission",
+    "later_change": "Test expectation for decode(0.13,[0,1,0]) corrected: this is legal lower destination, not malformed. Production kernel unchanged.",
+    "limits": "Source only; no tests, solver or model executed by reviewer."
+  },
+  "final_source_hashes": {
+    "crates/uor-r4-training/examples/geometric_frozen_map_fit/protected_legal_set.rs": "d24ab0b2750ce37fd4d8fdf223349f20232a5d25bfd3a0e745a614a158a8282e",
+    "crates/uor-r4-training/examples/geometric_frozen_map_fit/protected_joint_vector.rs": "7c932999d62db7aaa60946c277ed92442c203567de93708a9412959d110dd09e",
+    "crates/uor-r4-training/examples/geometric_frozen_map_fit/coupled_episode_learning.rs": "f3c8b5d98a4505b5bf766fd2ff79c49caf55a6c10c01198b5a4b97e7bd07c21f",
+    "crates/uor-r4-training/examples/geometric_frozen_map_fit/context_cue_coadapt.rs": "758e16554cbdf34b1335a4c51e0cc4a7ac4240838a178fffaeac5a87ad2f9a62"
+  },
+  "attempt1_saved_result_review": {
+    "agent": "emission_adversarial",
+    "verdict": "PASS_SAVED_EXECUTION_SCOPE",
+    "finding": "Backend InternalError(\"Singular matrix\"); no assignment or proposal, evaluated/staged/restaged/accepted all zero, epoch0. Exact initial/final objective equality, unchanged5/15/17/380,391-row reload,zero newgraphs/backwards. OuterCOMPLETED records export/reload completion only.",
+    "limits": "No reviewer rerun, solver, arithmetic, model or build."
+  },
+  "centered_repair_preflight": {
+    "agents": [
+      "emission_math",
+      "emission_adversarial"
+    ],
+    "verdict": "PASS_SOURCE_ONLY",
+    "kernel_sha256": "f0242836d08dbadbb5659cd8f158d79c8de9420c9de2fb213de9ef149510c24b",
+    "integration_sha256": "b00700fe5f38033fa850a58159ba8def523cec6c0bbadff024633303c45f7355",
+    "scope": "Affine k=q-q0 encoding preserves every legal destination, fractional original bits, objective values and guard inequalities. Raw displacement and schema explicit; same node bound/admission/native gates.",
+    "limits": "No reviewer solver, build, test or model execution. Does not establish that centering resolves backend basis failure.",
+    "source_commit": "ebd6ecaa41bd1a3ae90e0f8af3b8363724fb3e82"
+  },
+  "attempt2_saved_result_review": {
+    "agent": "emission_adversarial",
+    "verdict": "PASS_SAVED_EXECUTION_SCOPE",
+    "findings": "Same backend InternalError(\"Singular matrix\"), no assignment/proposal/stage/restage/update. Initial/final objective exactly equal within/across attempts. Unchanged5/15,17/380 and391-row reload,zero freshgraphs/backwards. Centering did not resolve failure; exactbasis/phase unavailable.",
+    "limits": "No reviewer solver/model/arithmetic rerun."
+  },
+  "next_mechanism_review": {
+    "agent": "emission_math",
+    "verdict": "SAVED_BASIS_DIAGNOSTIC_JUSTIFIED",
+    "scope": "Distinguish structurally singular selected basis from numerical small pivot, locate phase and implicated rows/columns before more changes. No third blind retry.",
+    "limits": "No solver/model run; no global infeasibility or capacity inference."
+  }
+}

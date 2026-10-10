@@ -159,6 +159,13 @@ feedback, and retains the same native gates. This adds no serving exception;
 all 32 rounds failed the protection screen, with no native proposal scored or
 update committed. Accepted 8/512 is unchanged.
 
+An opt-in [direct legal-set constructor](docs/labs/direct-legal-construction-2026-10-09/README.md)
+uses the same saved credit to choose joint legal parameter values under protected
+linear constraints. Its bounded mixed-integer solver is offline training tooling;
+actual destination bits and native behavior still face the existing checks.
+Both absolute-code and equivalent centered formulations encountered a backend
+singular-matrix error before returning a candidate; model qualification is unavailable.
+
 **Models trained**
 
 | Model | Parameters | Data, tokens | Compute | Key result |

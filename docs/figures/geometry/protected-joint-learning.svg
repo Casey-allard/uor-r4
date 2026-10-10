@@ -18,11 +18,11 @@
 <polygon points="350,268 338.28,266.97 341.92,259.44" fill="#0072B2" fill-opacity="1"/>
 <line x1="745" y1="222" x2="655.94" y2="265.12" stroke="#7A4FA3" stroke-width="2.5" stroke-opacity="1" stroke-linecap="round"/>
 <polygon points="650,268 658.08,259.44 661.72,266.97" fill="#7A4FA3" fill-opacity="1"/>
-<rect x="190" y="276" width="620" height="116" rx="10" fill="#f6f9fc" fill-opacity="1" stroke="#009E73" stroke-width="1.5" stroke-opacity="1"/>
-<text x="204" y="303" font-size="17" fill="#009E73" fill-opacity="1" text-anchor="start" font-weight="bold">One joint direction in 1920 master coordinates</text>
-<text x="204" y="330" font-size="14" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">960 Prefix + 960 Generate unary; 256 fixed projection passes</text>
-<text x="204" y="352" font-size="14" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">Check continuous and actual quantized displacement residuals</text>
-<text x="204" y="374" font-size="14" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">Legacy four radii or saved-credit fixed32-round discrete feedback</text>
+<rect x="40" y="276" width="920" height="116" rx="10" fill="#f6f9fc" fill-opacity="1" stroke="#009E73" stroke-width="1.5" stroke-opacity="1"/>
+<text x="54" y="303" font-size="17" fill="#009E73" fill-opacity="1" text-anchor="start" font-weight="bold">Joint proposals in 1920 master coordinates</text>
+<text x="54" y="330" font-size="14" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">960 Prefix + 960 Generate unary; unchanged native protection and strict descent</text>
+<text x="54" y="352" font-size="14" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">Projection/rounding, saved residual feedback, or direct constrained legal choices</text>
+<text x="54" y="374" font-size="14" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">Direct choice: zero-margin target; exact destination bits face the original tolerance screen</text>
 <line x1="500" y1="393" x2="500" y2="419.4" stroke="#009E73" stroke-width="2.5" stroke-opacity="1" stroke-linecap="round"/>
 <polygon points="500,426 495.82,415 504.18,415" fill="#009E73" fill-opacity="1"/>
 <rect x="40" y="437" width="920" height="116" rx="10" fill="#f6f9fc" fill-opacity="1" stroke="#E69F00" stroke-width="1.5" stroke-opacity="1"/>
@@ -31,6 +31,6 @@
 <text x="54" y="513" font-size="14" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">Retain strict CE descent, all 17 references and 380 original winners; exact restage before commit</text>
 <text x="54" y="535" font-size="14" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">All 15 conditional positions including EOS required before actual own-feedback qualification</text>
 <text x="40" y="594" font-size="15" fill="#5f6b7a" fill-opacity="1" text-anchor="start" font-weight="normal">Source, Context, Cue, bridge, U and other Generate families remain frozen.</text>
-<text x="40" y="648" font-size="14" fill="#5f6b7a">Measured: continuous screen passes; all four quantized displacements fail. No native proposal scored.</text>
-<text x="40" y="669" font-size="14" fill="#5f6b7a">Saved credit: 32 feedback rounds / 28 distinct updates; none passes protection. No native proposal scored.</text>
+<text x="40" y="648" font-size="14" fill="#5f6b7a">Prior measured: four rounded offers and 28 distinct feedback updates fail protection.</text>
+<text x="40" y="669" font-size="14" fill="#5f6b7a">Direct legal-set construction: both encodings hit backend singular-matrix failure; no proposal.</text>
 </svg>

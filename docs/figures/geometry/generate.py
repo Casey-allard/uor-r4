@@ -1270,8 +1270,8 @@ def fig_native_input_access():
 def fig_protected_joint_learning():
     fg = Fig("protected-joint-learning.svg", "M2: learning with protected token competition",
              "Offline joint Prefix and Generate learning uses native pooled token margins; native finite checks remain authoritative.",
-             ["Measured: continuous screen passes; all four quantized displacements fail. No native proposal scored.",
-              "Saved credit: 32 feedback rounds / 28 distinct updates; none passes protection. No native proposal scored."])
+             ["Prior measured: four rounded offers and 28 distinct feedback updates fail protection.",
+              "Direct legal-set construction: both encodings hit backend singular-matrix failure; no proposal."])
     def box(x, y, w, title, lines, color):
         fg.rect(x, y, w, 116, "#f6f9fc", color, 1.5, 10)
         fg.text(x + 14, y + 27, title, 17, color, weight="bold")
@@ -1281,7 +1281,7 @@ def fig_protected_joint_learning():
     box(530, 105, 430, "Protected original winners", ["380 full-pool winner / strongest-rival margins", "Explicit unweighted Jacobians; frozen token pairs", "Margin-specific physical-donor utility"], PURPLE)
     fg.arrow(255, 222, 350, 268, BLUE)
     fg.arrow(745, 222, 650, 268, PURPLE)
-    box(190, 276, 620, "One joint direction in 1920 master coordinates", ["960 Prefix + 960 Generate unary; 256 fixed projection passes", "Check continuous and actual quantized displacement residuals", "Legacy four radii or saved-credit fixed32-round discrete feedback"], GREEN)
+    box(40, 276, 920, "Joint proposals in 1920 master coordinates", ["960 Prefix + 960 Generate unary; unchanged native protection and strict descent", "Projection/rounding, saved residual feedback, or direct constrained legal choices", "Direct choice: zero-margin target; exact destination bits face the original tolerance screen"], GREEN)
     fg.arrow(500, 393, 500, 426, GREEN)
     box(40, 437, 920, "Native finite transaction and independent reload", ["Recompute coherent proposed Prefix + donor/post-state + Generate over all 391 rows", "Retain strict CE descent, all 17 references and 380 original winners; exact restage before commit", "All 15 conditional positions including EOS required before actual own-feedback qualification"], ORANGE)
     fg.text(40, 594, "Source, Context, Cue, bridge, U and other Generate families remain frozen.", 15, MUTED)

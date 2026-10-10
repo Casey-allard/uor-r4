@@ -1,0 +1,47 @@
+{
+  "schema": "uor-r4.direct-legal-exact-source-checks/1",
+  "status": "PASS",
+  "source_commit": "dd69a64965ce4563f7967309b377a065d666bb71",
+  "recorded_at": "2026-10-10T01:49:49.308446+00:00",
+  "source_freeze": {
+    "path": "local/source-freeze.json",
+    "sha256": "ceb13fd0c9defe6a641547452280123e0d830535af666528678deac85c98d190"
+  },
+  "build": {
+    "status": "PASS",
+    "profile": "release",
+    "package": "uor-r4-training",
+    "example": "geometric-frozen-map-fit",
+    "elapsed_seconds": 140.38,
+    "peak_rss_bytes": 1948418048,
+    "jobs": 2,
+    "target": "local/build",
+    "source_env": "dd69a64965ce4563f7967309b377a065d666bb71"
+  },
+  "tests": {
+    "status": "PASS",
+    "filter": "coupled_episode_learning",
+    "passed": 51,
+    "failed": 0,
+    "filtered": 111,
+    "elapsed_seconds": 27.82,
+    "test_execution_seconds": 0.04,
+    "peak_rss_bytes": 955809792
+  },
+  "binary": {
+    "path": "/Users/casey.allard/.codex/worktrees/direct-legal-construction/uor-r4/local/build/release/examples/geometric-frozen-map-fit",
+    "bytes": 11213216,
+    "sha256": "38c55883697c37bc01de2d4f6e81c1e54756750ace21f1d56544b1d78e4d94d3"
+  },
+  "logs": {
+    "local/build-exact-runtime-0005.log": {
+      "sha256": "816173eb346db134f1245081b4d44ba0a79ca56e513419ac60833aa0f5eee688",
+      "bytes": 6157
+    },
+    "local/build-exact-tests-0006.log": {
+      "sha256": "5b7980f412d44852e22a86d78858c27b1d438f9520fc0ef1421d4e916dc21d4a",
+      "bytes": 13437
+    }
+  },
+  "scope": "Scoped test fixtures and compilation only; no actual constructor/model experiment invoked by this engineering check."
+}

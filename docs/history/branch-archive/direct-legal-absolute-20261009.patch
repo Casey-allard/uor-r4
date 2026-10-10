@@ -1,0 +1,1538 @@
+From dd69a64965ce4563f7967309b377a065d666bb71 Mon Sep 17 00:00:00 2001
+From: Casey Allard <casey.allard@amnhealthcare.com>
+Date: Fri, 9 Oct 2026 21:44:38 -0400
+Subject: [PATCH] Add direct legal-set construction through protected native
+ transaction
+
+---
+ Cargo.lock                                    |  65 +++
+ README.md                                     |   6 +
+ crates/uor-r4-training/Cargo.toml             |   2 +
+ crates/uor-r4-training/README.md              |  10 +
+ .../context_cue_coadapt.rs                    |   2 +-
+ .../coupled_episode_learning.rs               |  79 ++-
+ .../protected_joint_vector.rs                 | 248 ++++++++-
+ .../protected_legal_set.rs                    | 480 ++++++++++++++++++
+ docs/figures/geometry/generate.py             |   6 +-
+ .../geometry/protected-joint-learning.svg     |  14 +-
+ docs/geometry.md                              |  11 +
+ .../README.md                                 |  90 ++++
+ .../prepare.py                                |  42 ++
+ .../qualify.py                                |  32 ++
+ .../recover.py                                |  29 ++
+ .../run.py                                    |  38 ++
+ 16 files changed, 1118 insertions(+), 36 deletions(-)
+ create mode 100644 crates/uor-r4-training/examples/geometric_frozen_map_fit/protected_legal_set.rs
+ create mode 100644 docs/labs/direct-legal-construction-2026-10-09/README.md
+ create mode 100644 docs/labs/direct-legal-construction-2026-10-09/prepare.py
+ create mode 100644 docs/labs/direct-legal-construction-2026-10-09/qualify.py
+ create mode 100644 docs/labs/direct-legal-construction-2026-10-09/recover.py
+ create mode 100644 docs/labs/direct-legal-construction-2026-10-09/run.py
+
+diff --git a/Cargo.lock b/Cargo.lock
+index 44cc5f7af..9da77dc4f 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -1639,6 +1639,16 @@ dependencies = [
+  "libc",
+ ]
+ 
++[[package]]
++name = "matrixmultiply"
++version = "0.3.11"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "3f607c237553f086e7043417a51df26b2eb899d3caff94e6a67592ff992fedc7"
++dependencies = [
++ "autocfg",
++ "rawpointer",
++]
++
+ [[package]]
+ name = "memchr"
+ version = "2.8.3"
+@@ -1670,12 +1680,38 @@ dependencies = [
+  "paste",
+ ]
+ 
++[[package]]
++name = "microlp"
++version = "0.6.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "a8f19803f918039a07f3c32b23716824d8f073543417bdac5b1b8619817e3674"
++dependencies = [
++ "log",
++ "sprs",
++ "web-time",
++]
++
+ [[package]]
+ name = "minimal-lexical"
+ version = "0.2.1"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
+ 
++[[package]]
++name = "ndarray"
++version = "0.17.2"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "520080814a7a6b4a6e9070823bb24b4531daac8c4627e08ba5de8c5ef2f2752d"
++dependencies = [
++ "matrixmultiply",
++ "num-complex",
++ "num-integer",
++ "num-traits",
++ "portable-atomic",
++ "portable-atomic-util",
++ "rawpointer",
++]
++
+ [[package]]
+ name = "nibble_vec"
+ version = "0.1.0"
+@@ -2154,6 +2190,12 @@ dependencies = [
+  "bitflags 2.13.1",
+ ]
+ 
++[[package]]
++name = "rawpointer"
++version = "0.2.1"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "60a357793950651c4ed0f3f52338f53b2f809f32d83a07f72909fa13e4c6c1e3"
++
+ [[package]]
+ name = "rayon"
+ version = "1.12.0"
+@@ -2472,6 +2514,18 @@ version = "1.1.2"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "199905e6153d6405f9728fe44daace35f8f837bbf830bb6e85fbd5828709a886"
+ 
++[[package]]
++name = "sprs"
++version = "0.11.5"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "70d5a5663aa9f18d287877b8a889ee6cc2314e3a3778193ccc580d048d7d4abc"
++dependencies = [
++ "ndarray",
++ "num-complex",
++ "num-traits",
++ "smallvec",
++]
++
+ [[package]]
+ name = "stable_deref_trait"
+ version = "1.2.1"
+@@ -3232,6 +3286,7 @@ dependencies = [
+  "cudarc 0.19.10",
+  "half",
+  "hex",
++ "microlp",
+  "objc2-metal",
+  "parquet",
+  "rayon",
+@@ -3379,6 +3434,16 @@ dependencies = [
+  "unicode-ident",
+ ]
+ 
++[[package]]
++name = "web-time"
++version = "1.1.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "5a6580f308b1fad9207618087a65c04e7a10bc77e02c8e84e9b00dd4b12fa0bb"
++dependencies = [
++ "js-sys",
++ "wasm-bindgen",
++]
++
+ [[package]]
+ name = "winapi-util"
+ version = "0.1.11"
+diff --git a/README.md b/README.md
+index 6a0bcfc3f..e9940fff3 100644
+--- a/README.md
++++ b/README.md
+@@ -159,6 +159,12 @@ feedback, and retains the same native gates. This adds no serving exception;
+ all 32 rounds failed the protection screen, with no native proposal scored or
+ update committed. Accepted 8/512 is unchanged.
+ 
++An opt-in [direct legal-set constructor](docs/labs/direct-legal-construction-2026-10-09/README.md)
++uses the same saved credit to choose joint legal parameter values under protected
++linear constraints. Its bounded mixed-integer solver is offline training tooling;
++actual destination bits and native behavior still face the existing checks.
++This constructor is not yet qualified as a model improvement.
++
+ **Models trained**
+ 
+ | Model | Parameters | Data, tokens | Compute | Key result |
+diff --git a/crates/uor-r4-training/Cargo.toml b/crates/uor-r4-training/Cargo.toml
+index 2888823a8..6777acca6 100644
+--- a/crates/uor-r4-training/Cargo.toml
++++ b/crates/uor-r4-training/Cargo.toml
+@@ -20,6 +20,8 @@ cpu-accelerate = ["candle-core/accelerate", "candle-nn/accelerate"]
+ reference-accelerate = ["uor-r4-model-source/observation-blas-exception"]
+ 
+ [dependencies]
++# Offline bounded legal-set constructor; never linked by native serving crates.
++microlp = "=0.6.0"
+ uor-r4-integer = { version = "0.1.0", path = "../uor-r4-integer" }
+ candle-core = { version = "=0.9.2", default-features = false }
+ candle-nn = { version = "=0.9.2", default-features = false }
+diff --git a/crates/uor-r4-training/README.md b/crates/uor-r4-training/README.md
+index 2e7f67574..4247577f7 100644
+--- a/crates/uor-r4-training/README.md
++++ b/crates/uor-r4-training/README.md
+@@ -70,6 +70,16 @@ reach the unchanged native391-row gates. See the [saved-credit record](../../doc
+ for exact policy, resource admission and execution status. Historical modes and
+ the full conditional/own-feedback qualification boundary remain unchanged.
+ 
++The distinct `prefix_transaction: "protected_legal_set"` uses the same strict saved
++credit authority and unchanged native transaction. Offline `microlp=0.6.0` chooses
++all 1920 integer/fractional-noop destinations jointly under a zero-margin linear
++target with 4096 branch nodes and no time cutoff. That target is numerically
++stricter than the unchanged norm-tolerant actual-bit screen; all native gates and
++positive-only own-feedback qualification still apply. Solver termination is not
++a mathematical certificate. See the [direct construction record](../../docs/labs/direct-legal-construction-2026-10-09/README.md)
++for the fixed mechanism, exact evidence and execution status. It adds no serving
++dependency or new gradient pass.
++
+ ## Complete-prefix native dialogue learning
+ 
+ `dialogue-prefix-fit` connects the strict retained R1d parameter import to exact
+diff --git a/crates/uor-r4-training/examples/geometric_frozen_map_fit/context_cue_coadapt.rs b/crates/uor-r4-training/examples/geometric_frozen_map_fit/context_cue_coadapt.rs
+index 6d7139909..6a14f05b1 100644
+--- a/crates/uor-r4-training/examples/geometric_frozen_map_fit/context_cue_coadapt.rs
++++ b/crates/uor-r4-training/examples/geometric_frozen_map_fit/context_cue_coadapt.rs
+@@ -91,7 +91,7 @@ pub(super) fn progress(a: &Args, start: Instant) -> Result<()> {
+             "elapsed-estimate-extension-needed.json",
+             &json!({"elapsed_seconds":start.elapsed().as_secs_f64(),
+             "estimated_seconds":a.maximum_seconds,"action":"continue healthy finite work; parent renews lease and records resource estimate extension",
+-            "hard_stop":false,"termination":if a.coupled_episode_learning.as_ref().is_some_and(|c|c.prefix_transaction == super::coupled_episode_learning::PrefixTransaction::ProtectedDiscreteFeedback){"411 inherited backwards;zero new training graphs;32 fixed discrete feedback rounds;at most32 unique eligible joint proposals;one selected restage;391 native reload steps;no coordinate sweep"}else if a.coupled_episode_learning.as_ref().is_some_and(|c|c.prefix_transaction == super::coupled_episode_learning::PrefixTransaction::ProtectedJointVector){"31 objective plus380 protected-margin Jacobians;256 fixed projection passes;four original-epoch joint Prefix/Generate vectors;one selected restage;391 native reload steps;no coordinate sweep"}else if a.coupled_episode_learning.as_ref().is_some_and(|c|c.prefix_transaction == super::coupled_episode_learning::PrefixTransaction::GradientVectorPrefix){"four original-epoch Prefix vectors plus960 Generate coordinates/up to13444 alternatives/one selected Prefix restage/391 native reloadedsteps"}else if a.coupled_episode_learning.is_some(){"1920 mixed coordinates/up to14400 alternatives/391 native reloadedsteps"}else if a.generate_episode_learning.is_some(){"960 coordinates/13440 alllegal alternatives/391 reloadedsteps"}else if a.prefix_fragment_learning.as_ref().is_some_and(|c|c.episode.is_some()){"exactly960 rankedcoordinates plus391 unique episode/guard native exportedreload steps"}else if a.prefix_fragment_learning.as_ref().is_some_and(|c|c.joint.is_some()){"exactly960 rankedcoordinates plus383 unique joint/guard native exportedreload steps"}else if a.prefix_fragment_learning.as_ref().is_some_and(|c|c.trajectory.is_some()){"exactly960 reused rankedcoordinates plus380uniqueguard+1task exported reloadedsteps"}else{"exactly960 rankedcoordinates plus18exportedreloadedsteps"}}),
++            "hard_stop":false,"termination":if a.coupled_episode_learning.as_ref().is_some_and(|c|c.prefix_transaction == super::coupled_episode_learning::PrefixTransaction::ProtectedLegalSet){"411 inherited backwards;zero new training graphs;one direct legal-set incumbent maximum;4096 branch nodes excluding root;no wall-time stop;one selected restage;391 native reload steps;no coordinate sweep"}else if a.coupled_episode_learning.as_ref().is_some_and(|c|c.prefix_transaction == super::coupled_episode_learning::PrefixTransaction::ProtectedDiscreteFeedback){"411 inherited backwards;zero new training graphs;32 fixed discrete feedback rounds;at most32 unique eligible joint proposals;one selected restage;391 native reload steps;no coordinate sweep"}else if a.coupled_episode_learning.as_ref().is_some_and(|c|c.prefix_transaction == super::coupled_episode_learning::PrefixTransaction::ProtectedJointVector){"31 objective plus380 protected-margin Jacobians;256 fixed projection passes;four original-epoch joint Prefix/Generate vectors;one selected restage;391 native reload steps;no coordinate sweep"}else if a.coupled_episode_learning.as_ref().is_some_and(|c|c.prefix_transaction == super::coupled_episode_learning::PrefixTransaction::GradientVectorPrefix){"four original-epoch Prefix vectors plus960 Generate coordinates/up to13444 alternatives/one selected Prefix restage/391 native reloadedsteps"}else if a.coupled_episode_learning.is_some(){"1920 mixed coordinates/up to14400 alternatives/391 native reloadedsteps"}else if a.generate_episode_learning.is_some(){"960 coordinates/13440 alllegal alternatives/391 reloadedsteps"}else if a.prefix_fragment_learning.as_ref().is_some_and(|c|c.episode.is_some()){"exactly960 rankedcoordinates plus391 unique episode/guard native exportedreload steps"}else if a.prefix_fragment_learning.as_ref().is_some_and(|c|c.joint.is_some()){"exactly960 rankedcoordinates plus383 unique joint/guard native exportedreload steps"}else if a.prefix_fragment_learning.as_ref().is_some_and(|c|c.trajectory.is_some()){"exactly960 reused rankedcoordinates plus380uniqueguard+1task exported reloadedsteps"}else{"exactly960 rankedcoordinates plus18exportedreloadedsteps"}}),
+         )?;
+     }
+     Ok(())
+diff --git a/crates/uor-r4-training/examples/geometric_frozen_map_fit/coupled_episode_learning.rs b/crates/uor-r4-training/examples/geometric_frozen_map_fit/coupled_episode_learning.rs
+index b1e2918ae..d35164e75 100644
+--- a/crates/uor-r4-training/examples/geometric_frozen_map_fit/coupled_episode_learning.rs
++++ b/crates/uor-r4-training/examples/geometric_frozen_map_fit/coupled_episode_learning.rs
+@@ -78,12 +78,19 @@ pub(super) enum PrefixTransaction {
+     GradientVectorPrefix,
+     ProtectedJointVector,
+     ProtectedDiscreteFeedback,
++    ProtectedLegalSet,
+ }
+ impl PrefixTransaction {
+     fn is_protected(self) -> bool {
+         matches!(
+             self,
+-            Self::ProtectedJointVector | Self::ProtectedDiscreteFeedback
++            Self::ProtectedJointVector | Self::ProtectedDiscreteFeedback | Self::ProtectedLegalSet
++        )
++    }
++    fn uses_saved_credit(self) -> bool {
++        matches!(
++            self,
++            Self::ProtectedDiscreteFeedback | Self::ProtectedLegalSet
+         )
+     }
+     fn legacy(&self) -> bool {
+@@ -224,8 +231,7 @@ impl Config {
+ pub(super) fn validate_settings(a: &Args) -> Result<()> {
+     if let Some(c) = &a.coupled_episode_learning {
+         replay_require(
+-            (c.prefix_transaction == PrefixTransaction::ProtectedDiscreteFeedback)
+-                == c.saved_protected_credit.is_some(),
++            c.prefix_transaction.uses_saved_credit() == c.saved_protected_credit.is_some(),
+             "discrete protected mode requires explicit saved #2101 credit",
+         )?;
+         if let Some(g) = &c.saved_protected_credit {
+@@ -385,6 +391,22 @@ fn policy_for_modes(credit: DonorCredit, transaction: PrefixTransaction) -> Valu
+         p["total_training_graph_forwards"] = json!(0);
+         p["affected_scope"] = json!("complete391 current candidate Prefix+Generate unary replacement; all physical aliases and original380 guards");
+     }
++    if transaction == PrefixTransaction::ProtectedLegalSet {
++        p["prefix_transaction"] = json!(transaction);
++        p["protected_direction"] = protected_joint_vector::legal_policy();
++        p["prefix"]=json!("saved native-anchored joint derivatives; direct exact legal-destination mixed-integer construction; unchanged native protection and CE gates");
++        p["generate"] = json!("same joint legal-set transaction; no follow-on coordinate pass");
++        p["rank"] = json!(
++            "no new gradient or coordinate-order selection; imported #2101 original derivatives"
++        );
++        p["maximum_alternatives"] = json!(1);
++        p["vector_selection"]=json!("one backend incumbent maximum; actual legal-bit screens before same-original-epoch native391 stage and exact selected restage");
++        p["protected_margin_backward_calls"] = json!(380);
++        p["total_fresh_backward_calls"] = json!(0);
++        p["total_training_graph_forwards"] = json!(0);
++        p["affected_scope"] =
++            json!("complete391 joint replacement; physical aliases and all380 original guards");
++    }
+     p
+ }
+ fn policy_for_args(a: &Args) -> Value {
+@@ -2314,6 +2336,9 @@ fn capacity_for_mode(max_copy: usize, legal: usize, mode: PrefixTransaction) ->
+         } * 1024
+             * 1024u64;
+         cap["vector_compact_best_and_four_receipts_bound"] = json!(compact);
++        if mode == PrefixTransaction::ProtectedLegalSet {
++            cap["legal_compact_one_incumbent_receipt_bound"] = json!(compact);
++        }
+         if mode == PrefixTransaction::ProtectedDiscreteFeedback {
+             cap["discrete_compact_best_and32_receipts_bound"] = json!(compact);
+         }
+@@ -2333,7 +2358,7 @@ fn journal_bound_for_mode(mode: PrefixTransaction) -> Result<u64> {
+     // 380 residuals, at most391 compact donor/post/incidence tuples,31 objective
+     // masses and two380-index guard lists. One selected receipt/projection and
+     // JSON indentation are included in the16MiB bound exercised below.
+-    if mode == PrefixTransaction::ProtectedDiscreteFeedback {
++    if mode.uses_saved_credit() {
+         return Ok(16 * 1024 * 1024);
+     }
+     let legacy = journal_upper_bound()?;
+@@ -2602,6 +2627,17 @@ fn saved_credit_resource_projection(
+     let prior = read(&a.out.join("coupled-pregradient-resource-projection.json"))?;
+     let raw_j = 380 * 1920 * 4u64;
+     let normalized_j = 380 * 1920 * 8u64;
++    let legal_mode = transaction_mode(a) == PrefixTransaction::ProtectedLegalSet;
++    let process_cap = if legal_mode {
++        6 * 1024 * 1024 * 1024u64
++    } else {
++        8 * 1024 * 1024 * 1024u64
++    };
++    let solver_reserve = if legal_mode {
++        2 * 1024 * 1024 * 1024u64
++    } else {
++        0
++    };
+     let feedback_vectors = 32 * 1920 * 4u64 + 8 * 1920 * 8u64 + 32 * 380 * 8u64;
+     let numeric = prior["numeric_upper_bound"]
+         .as_u64()
+@@ -2614,15 +2650,16 @@ fn saved_credit_resource_projection(
+         .ok_or_else(|| bad("saved process bound missing"))?
+         + raw_j
+         + normalized_j
+-        + feedback_vectors;
++        + feedback_vectors
++        + solver_reserve;
+     let report = prior["report_upper_bound"]
+         .as_u64()
+         .ok_or_else(|| bad("saved report bound missing"))?;
+-    let v = json!({"stage":"BEFORE_SAVED_PROTECTED_CREDIT_IMPORT_AND_FINITE_CONSTRUCTOR","raw_jacobian_bytes":raw_j,"normalized_jacobian_bytes":normalized_j,"feedback_vectors_and_residuals_bytes":feedback_vectors,"numeric_upper_bound":numeric,"process_upper_bound":process,"report_upper_bound":report,"numeric_cap":512*1024*1024u64,"process_cap":8*1024*1024*1024u64,"report_cap":a.maximum_report_bytes,"new_training_graph_forwards":0,"new_backward_calls":0,"inherited_objective_backwards":31,"inherited_protected_backwards":380,"maximum_proposal_stage_pool_reductions":32*391,"maximum_selected_restage_pool_reductions":391,"expected_final_pool_reductions":391,"native_reload_steps":391,"guard_training_prefix_traces":"not required; validated compact occurrence keys and native pools retained","constructor_lifetime":"one all391 native replacement batch plus compact best and32 receipts; no candidate stage batches retained simultaneously"});
++    let v = json!({"stage":"BEFORE_SAVED_PROTECTED_CREDIT_IMPORT_AND_FINITE_CONSTRUCTOR","raw_jacobian_bytes":raw_j,"normalized_jacobian_bytes":normalized_j,"feedback_vectors_and_residuals_bytes":feedback_vectors,"solver_process_reserve_bytes":solver_reserve,"solver_reserve_is_projection":true,"backend_memory_bound":"UNVERIFIED;4096 branch nodes is a work bound, not a proven allocation bound; actual RSS must be observed","solver_numeric_storage":"offline solver matrices/search; separate process bound, not native numeric cache","solver_branch_node_limit":if legal_mode{json!(4096)}else{Value::Null},"numeric_upper_bound":numeric,"process_upper_bound":process,"report_upper_bound":report,"numeric_cap":512*1024*1024u64,"process_cap":process_cap,"report_cap":a.maximum_report_bytes,"new_training_graph_forwards":0,"new_backward_calls":0,"inherited_objective_backwards":31,"inherited_protected_backwards":380,"maximum_proposal_stage_pool_reductions":if legal_mode{391}else{32*391},"maximum_selected_restage_pool_reductions":391,"expected_final_pool_reductions":391,"native_reload_steps":391,"guard_training_prefix_traces":"not required; validated compact occurrence keys and native pools retained","constructor_lifetime":if legal_mode{"solver dropped before native stage; one incumbent plus one all391 replacement batch; selected restage after stage dropped"}else{"one all391 native replacement batch plus compact best and32 receipts; no candidate stage batches retained simultaneously"}});
+     write(a, "protected-resource-projection.json", &v)?;
+     replay_require(
+         numeric <= 512 * 1024 * 1024
+-            && process <= 8 * 1024 * 1024 * 1024
++            && process <= process_cap
+             && report + 1024 * 1024 < a.maximum_report_bytes,
+         "saved protected CPU constructor resource projection exceeded",
+     )
+@@ -3386,7 +3423,7 @@ pub(super) fn authenticate_positive_artifact(
+             "coupled artifact donor-credit authority differs",
+         )?;
+         replay_require(
+-            (candidate_config.prefix_transaction == PrefixTransaction::ProtectedDiscreteFeedback)
++            candidate_config.prefix_transaction.uses_saved_credit()
+                 == candidate_config.saved_protected_credit.is_some(),
+             "positive discrete candidate import authority missing or mislabeled",
+         )?;
+@@ -3859,6 +3896,32 @@ mod tests {
+         Ok(())
+     }
+     #[test]
++    fn legal_saved_mode_has_one_offer_and_preserves_legacy_policy() -> Result<()> {
++        let mode = PrefixTransaction::ProtectedLegalSet;
++        assert!(mode.is_protected() && mode.uses_saved_credit() && !mode.legacy());
++        assert!(validate_transaction(mode, DonorCredit::FullPoolUtility, true).is_err());
++        assert!(validate_transaction(mode, DonorCredit::StateTangent, false).is_err());
++        assert!(validate_inherited_transaction(
++            PrefixTransaction::CoordinateAdjacent,
++            mode,
++            &json!({"prefix_transaction":"protected_legal_set"})
++        )
++        .is_err());
++        assert_eq!(journal_bound_for_mode(mode)?, 16 * 1024 * 1024);
++        let p = policy_for_modes(DonorCredit::FullPoolUtility, mode);
++        assert_eq!(p["maximum_alternatives"], 1);
++        assert_eq!(p["total_fresh_backward_calls"], 0);
++        assert_eq!(p["protected_direction"]["branch_node_limit"], 4096);
++        assert_eq!(
++            policy_for_modes(
++                DonorCredit::StateTangent,
++                PrefixTransaction::CoordinateAdjacent
++            ),
++            policy()
++        );
++        Ok(())
++    }
++    #[test]
+     fn discrete_saved_mode_is_protected_but_not_legacy_recovery() {
+         assert!(PrefixTransaction::ProtectedDiscreteFeedback.is_protected());
+         assert!(!PrefixTransaction::ProtectedDiscreteFeedback.legacy());
+diff --git a/crates/uor-r4-training/examples/geometric_frozen_map_fit/protected_joint_vector.rs b/crates/uor-r4-training/examples/geometric_frozen_map_fit/protected_joint_vector.rs
+index 62ecd5737..f6ba30183 100644
+--- a/crates/uor-r4-training/examples/geometric_frozen_map_fit/protected_joint_vector.rs
++++ b/crates/uor-r4-training/examples/geometric_frozen_map_fit/protected_joint_vector.rs
+@@ -2,6 +2,8 @@
+ use super::*;
+ #[path = "protected_discrete_feedback.rs"]
+ mod protected_discrete_feedback;
++#[path = "protected_legal_set.rs"]
++mod protected_legal_set;
+ const DIM: usize = 2 * COUNT;
+ const SWEEPS: usize = 256;
+ const TOL: f64 = 1e-10;
+@@ -21,18 +23,40 @@ pub(super) fn discrete_policy() -> Value {
+  "screen":"original380 unit margins at1e-10*actualdeltaL2 and strict original objective gdotdelta<0",
+  "projection":"fixed residual-feedback heuristic, not exact ADMM/convergence guarantee","maximum_alternatives":32,"no_follow_on_coordinate_pass":true})
+ }
++pub(super) fn legal_policy() -> Value {
++    json!({"backend":"microlp=0.6.0","branch_node_limit":4096,"root_counts_as_node":false,"time_limit":null,"warm_start":"original noop; advisory backend hint",
++        "coordinates":1920,"legal":"compact q integer[-7,7]; fractional original noop bits or14 canonical changed quarter codes; signedzero preserved",
++        "fractional_encoding":"l,r binary; l+r<=1; q>=q0+r-(q0+7)l; q<=q0-l+(7-q0)r; delta=(q-q0)/4+(l+r)(q0/4-m)",
++        "canonical_encoding":"q integer[-7,7], no side binaries; original bits retained at unchanged code",
++        "integer_decode":"raw backend values within1e-6 of a unique integer; reject illegal side/code combination; exact f32 destination bits then independent screens","objective":"minimize original gdotactualdelta","construction_target":"all380 original unitJdelta>=0; prospectively stricter than norm-tolerant admission",
++        "screen":"recompute actual legal-bit delta, all380 unitJdelta>=-1e-10*deltaL2 and strict gdotdelta<0",
++        "maximum_alternatives":1,"no_follow_on_coordinate_pass":true,"backend_status":"observational bounded floating search, not a mathematical optimality/infeasibility certificate"})
++}
++fn maximum_alternatives(mode: PrefixTransaction) -> usize {
++    if mode == PrefixTransaction::ProtectedLegalSet {
++        1
++    } else if discrete_mode(mode) {
++        32
++    } else {
++        4
++    }
++}
+ fn discrete_mode(mode: PrefixTransaction) -> bool {
+     mode == PrefixTransaction::ProtectedDiscreteFeedback
+ }
+ fn schema(mode: PrefixTransaction) -> &'static str {
+-    if discrete_mode(mode) {
++    if mode == PrefixTransaction::ProtectedLegalSet {
++        "uor-r4.protected-legal-set/1"
++    } else if discrete_mode(mode) {
+         "uor-r4.protected-discrete-feedback/1"
+     } else {
+         "uor-r4.protected-joint-vector/1"
+     }
+ }
+ fn identity(p: &Proposal) -> &'static str {
+-    if p.receipt.get("round").is_some() {
++    if p.receipt.get("candidate").is_some() {
++        "candidate"
++    } else if p.receipt.get("round").is_some() {
+         "round"
+     } else {
+         "radius"
+@@ -495,6 +519,47 @@ fn proposals(
+     }
+     Ok((proposals, projection))
+ }
++fn legal_proposals(
++    pm: &[f32],
++    pg: &[f32],
++    gm: &[f32],
++    gg: &[f32],
++    j: &[Vec<f32>],
++    saved: Option<&Value>,
++) -> Result<(Vec<Proposal>, Value)> {
++    replay_require(
++        [pm.len(), pg.len(), gm.len(), gg.len()]
++            .iter()
++            .all(|n| *n == COUNT),
++        "legal1920 domain",
++    )?;
++    let m = pm.iter().chain(gm).copied().collect::<Vec<_>>();
++    let g = pg.iter().chain(gg).copied().collect::<Vec<_>>();
++    let rows = unit_rows(j)?;
++    let receipt: protected_legal_set::Receipt = if let Some(saved) = saved {
++        serde_json::from_value(saved.clone())?
++    } else {
++        protected_legal_set::run(&m, &g, &rows)?
++    };
++    protected_legal_set::authenticate(&m, &g, &rows, &receipt)?;
++    let projection = json!({"legal_solver":receipt});
++    let mut proposals = Vec::new();
++    if let Some(bits) = receipt.destination_master_bits {
++        let dest = bits.iter().map(|b| f32::from_bits(*b)).collect::<Vec<_>>();
++        let r = json!({"candidate":0,"destination_master_bits":bits,"actual_delta":receipt.actual_delta,
++            "quantized_margin_residuals":receipt.construction_residuals,"quantized_tolerance":receipt.residual_tolerance,
++            "actual_CE_linear_delta":receipt.gradient_dot,"quantized_constraints_passed":receipt.unchanged_screen_passed,
++            "recomputed_zero_margin_target_passed":receipt.recomputed_zero_margin_target_passed,"eligible":receipt.eligible,"incumbent_epoch":0});
++        proposals.push(Proposal {
++            radius: 0,
++            prefix: dest[..COUNT].to_vec(),
++            unary: dest[COUNT..].to_vec(),
++            receipt: r,
++            eligible: receipt.eligible,
++        });
++    }
++    Ok((proposals, projection))
++}
+ fn mode_proposals(
+     mode: PrefixTransaction,
+     pm: &[f32],
+@@ -503,6 +568,9 @@ fn mode_proposals(
+     gg: &[f32],
+     j: &[Vec<f32>],
+ ) -> Result<(Vec<Proposal>, Value)> {
++    if mode == PrefixTransaction::ProtectedLegalSet {
++        return legal_proposals(pm, pg, gm, gg, j, None);
++    }
+     if !discrete_mode(mode) {
+         return proposals(pm, pg, gm, gg, j);
+     }
+@@ -655,12 +723,12 @@ fn stage(
+         "guard_status":if !objective_gate{"NOT_CHECKED_OBJECTIVE_GATE_FALSE"}else if !failure.is_null(){"FIRST_VETO"}else{"FULL_PASS"},
+         "feasible":objective_gate && failure.is_null(),"changed_rows":changes,"staged_summary_digest":digest,"staged_rows_count":UNION});
+     let mut receipt = receipt;
+-    if identity(proposal) == "round" {
++    if identity(proposal) != "radius" {
+         receipt
+             .as_object_mut()
+             .ok_or_else(|| bad("stage identity"))?
+             .remove("radius");
+-        receipt["round"] = json!(proposal.radius);
++        receipt[identity(proposal)] = json!(proposal.radius);
+     }
+     Ok(Stage {
+         rows,
+@@ -765,7 +833,7 @@ pub(super) fn run(
+         selected = json!({"status":"committed","incumbent_epoch":0,"epoch_after":1,"selected_receipt":expected,"selected_restage_exact":true});
+         selected[key] = json!(proposal.radius);
+     }
+-    let summary = json!({"coordinates":0,"maximum_alternatives":if discrete_mode(mode){32}else{4},"evaluated_alternatives":reductions/UNION,"accepted_prefix":usize::from(selected["status"]=="committed"),
++    let summary = json!({"coordinates":0,"maximum_alternatives":maximum_alternatives(mode),"evaluated_alternatives":reductions/UNION,"accepted_prefix":usize::from(selected["status"]=="committed"),
+         "accepted_generate":usize::from(selected["status"]=="committed"),"accepted_joint":usize::from(selected["status"]=="committed"),"accepted_epoch":usize::from(selected["status"]=="committed"),
+         "initial":baseline,"final":current,"revisited":0,"proposal_stage_pool_reductions":reductions,"selected_restage_pool_reductions":restage});
+     write(
+@@ -798,10 +866,7 @@ pub(super) fn authenticate_mode(
+     checkpoint: &Path,
+     mode: PrefixTransaction,
+ ) -> Result<()> {
+-    replay_require(
+-        mode == PrefixTransaction::ProtectedJointVector || discrete_mode(mode),
+-        "protected authentication mode",
+-    )?;
++    replay_require(mode.is_protected(), "protected authentication mode")?;
+     replay_require(
+         journal["schema"] == schema(mode)
+             && journal["policy"] == policy_for_modes(DonorCredit::FullPoolUtility, mode)
+@@ -906,7 +971,18 @@ pub(super) fn authenticate_mode(
+             "protected donor margin quantity differs",
+         )?;
+     }
+-    let (projected, projection) = mode_proposals(mode, &pm, &pg, &gm, &gg, &j)?;
++    let (projected, projection) = if mode == PrefixTransaction::ProtectedLegalSet {
++        legal_proposals(
++            &pm,
++            &pg,
++            &gm,
++            &gg,
++            &j,
++            Some(&journal["projection"]["legal_solver"]),
++        )?
++    } else {
++        mode_proposals(mode, &pm, &pg, &gm, &gg, &j)?
++    };
+     replay_require(
+         journal["projection"] == projection,
+         "protected direction projection differs",
+@@ -1022,11 +1098,12 @@ pub(super) fn authenticate_mode(
+     if let Some((_, radius, native)) = best {
+         replay_require(
+             selected["status"] == "committed"
+-                && selected[if discrete_mode(mode) {
+-                    "round"
+-                } else {
+-                    "radius"
+-                }] == radius
++                && selected[identity(
++                    projected
++                        .iter()
++                        .find(|p| p.radius == radius)
++                        .ok_or_else(|| bad("selected protected identity missing"))?,
++                )] == radius
+                 && selected["incumbent_epoch"] == 0
+                 && selected["epoch_after"] == 1
+                 && selected["selected_restage_exact"] == true
+@@ -1061,8 +1138,7 @@ pub(super) fn authenticate_mode(
+     replay_require(
+         journal["coordinate_records"] == json!([])
+             && journal["summary"]["coordinates"] == 0
+-            && journal["summary"]["maximum_alternatives"]
+-                == if discrete_mode(mode) { 32 } else { 4 },
++            && journal["summary"]["maximum_alternatives"] == maximum_alternatives(mode),
+         "protected unexpected follow-on coordinate pass",
+     )
+ }
+@@ -1071,6 +1147,144 @@ pub(super) fn authenticate_mode(
+ mod tests {
+     use super::*;
+     #[test]
++    fn legal_mode_native_pool_and_incidence_keeps_same_epoch_on_veto() -> Result<()> {
++        let (mut red, native, legal, a, b, binding) = fixture()?;
++        let mut factors = [0u32; 8];
++        native.factor_incidence_into(&a, 5, &mut factors, &mut Default::default())?;
++        let key = factors[0] as usize;
++        let mut pg = vec![0.; COUNT];
++        pg[0] = -1.;
++        pg[1] = 1.;
++        let mut gg = vec![0.; COUNT];
++        gg[key] = -1.;
++        let mut pm = vec![-1.75; COUNT];
++        pm[0] = 0.;
++        pm[1] = 0.;
++        let gm = vec![0.; COUNT];
++        let (proposals, receipt) = mode_proposals(
++            PrefixTransaction::ProtectedLegalSet,
++            &pm,
++            &pg,
++            &gm,
++            &gg,
++            &[vec![0.; DIM]],
++        )?;
++        replay_require(
++            proposals.len() == 1 && proposals[0].eligible,
++            "legal fixture incumbent",
++        )?;
++        let (saved, saved_receipt) = legal_proposals(
++            &pm,
++            &pg,
++            &gm,
++            &gg,
++            &[vec![0.; DIM]],
++            Some(&receipt["legal_solver"]),
++        )?;
++        replay_require(
++            saved_receipt == receipt && saved[0].receipt == proposals[0].receipt,
++            "saved legal authentication must not solve",
++        )?;
++        let mut before = vec![0; native.vocab_size()];
++        native.score_into(&b, &mut before, &mut Default::default())?;
++        let caches = vec![
++            red.prepare_generate_patch_cache(before.clone(), vec![4, 4, 5], vec![0, 0, 1 << 23])?,
++            red.prepare_generate_patch_cache(before, vec![4, 5], vec![0, 1 << 23])?,
++        ];
++        let before_masses = caches
++            .iter()
++            .map(|c| c.token_masses().to_vec())
++            .collect::<Vec<_>>();
++        let old_inc = RowIncidence::new(&native, &b, &legal)?.digest()?;
++        let (records, best, count) = evaluate(proposals, |p| {
++            let mut e = native.energy().clone();
++            for lane in 0usize..8 {
++                for bin in 0usize..120 {
++                    e.set_unary(
++                        lane as u8,
++                        bin as u8,
++                        generate::code(p.unary[lane * 120 + bin])?,
++                    )?;
++                }
++            }
++            let g = NativeGeometricGenerate::compile(
++                &binding,
++                8,
++                native.prototypes(),
++                native.packed_biases(),
++                e,
++            )?;
++            let rows = prepare_rows(2, |row| {
++                let ids = if row == 0 { vec![4, 4, 5] } else { vec![4, 5] };
++                let base = if row == 0 {
++                    vec![0, 0, 1 << 23]
++                } else {
++                    vec![0, 1 << 23]
++                };
++                let keys = (0..ids.len())
++                    .map(|i| {
++                        (0..8)
++                            .map(|lane| {
++                                Some(
++                                    lane * 120
++                                        + if lane == 0 {
++                                            if row == 0 {
++                                                usize::from(i == 2)
++                                            } else {
++                                                2 * i
++                                            }
++                                        } else {
++                                            0
++                                        },
++                                )
++                            })
++                            .collect::<Vec<_>>()
++                    })
++                    .collect::<Vec<_>>();
++                let copy = shared::staged_base(&base, &keys, &pm, &p.prefix)?;
++                let donor = earliest(&copy)?;
++                let post = if donor == 0 { a.clone() } else { b.clone() };
++                let mut raw = vec![0; g.vocab_size()];
++                g.score_into(&post, &mut raw, &mut Default::default())?;
++                let inc = RowIncidence::new(&g, &post, &legal)?;
++                if row == 0 {
++                    replay_require(inc.digest()? != old_inc, "changed native donor incidence")?;
++                }
++                Ok(Replacement {
++                    cache: red.prepare_generate_patch_cache(raw, ids, copy)?,
++                    post,
++                    donor,
++                    incidence: Some(inc),
++                })
++            })?;
++            let required = caches[1].summary().chosen_token_id;
++            let chosen = rows[&1].cache.summary().chosen_token_id;
++            replay_require(
++                required == 5 && chosen != required,
++                "actual native late guard veto",
++            )?;
++            replay_require(rows[&0].donor == 0, "actual BASE donor changes")?;
++            // A measured native protected-row veto drops the complete batch.
++            Ok(Stage {
++                rows,
++                objective: json!({"combined":0.}),
++                receipt: json!({"feasible":false,"guard_status":"FIRST_VETO","first_failure":{"guard_index":1,"required":required,"chosen":chosen},"candidate":0,"incumbent_epoch":0}),
++            })
++        })?;
++        replay_require(
++            best.is_none() && count == 2 && records[0]["native"]["incumbent_epoch"] == 0,
++            "legal same epoch veto",
++        )?;
++        replay_require(
++            caches
++                .iter()
++                .zip(before_masses)
++                .all(|(c, m)| c.token_masses() == m),
++            "veto incumbent masses unchanged",
++        )?;
++        Ok(())
++    }
++    #[test]
+     fn feedback1920_recovery_and_duplicate_receipts() -> Result<()> {
+         let mut pm = vec![0.; COUNT];
+         pm[1] = 0.124;
+diff --git a/crates/uor-r4-training/examples/geometric_frozen_map_fit/protected_legal_set.rs b/crates/uor-r4-training/examples/geometric_frozen_map_fit/protected_legal_set.rs
+new file mode 100644
+index 000000000..b7875c3c8
+--- /dev/null
++++ b/crates/uor-r4-training/examples/geometric_frozen_map_fit/protected_legal_set.rs
+@@ -0,0 +1,480 @@
++//! Offline compact mixed-integer legal destinations. Backend statuses are not proofs.
++use microlp::{ComparisonOp, LinearExpr, OptimizationDirection, Problem, SolveOptions, Variable};
++use serde::{Deserialize, Serialize};
++pub(super) const NODE_LIMIT: u64 = 4096;
++const INTEGER_TOL: f64 = 1e-6;
++#[derive(Debug, Clone, PartialEq, Eq)]
++pub(super) enum LegalError {
++    Shape,
++    NonFinite,
++    MasterRange,
++    NonUnitRow,
++    NumericDecode,
++    Overflow,
++}
++impl std::fmt::Display for LegalError {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        write!(f, "legal-set {:?}", self)
++    }
++}
++impl std::error::Error for LegalError {}
++type Result<T> = std::result::Result<T, LegalError>;
++#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
++#[serde(deny_unknown_fields)]
++pub(super) struct Receipt {
++    pub backend: String,
++    pub node_limit: u64,
++    pub time_limit: Option<u64>,
++    pub termination: String,
++    pub status: String,
++    pub nodes_solved: Option<u64>,
++    pub lp_iterations: Option<u64>,
++    pub variables: usize,
++    pub fractional_coordinates: usize,
++    pub constraints: usize,
++    pub backend_objective: Option<f64>,
++    pub objective_constant: f64,
++    pub raw_assignment: Option<Vec<[f64; 3]>>,
++    pub destination_master_bits: Option<Vec<u32>>,
++    pub actual_delta: Option<Vec<f64>>,
++    pub construction_residuals: Option<Vec<f64>>,
++    pub recomputed_zero_margin_target_passed: bool,
++    pub gradient_dot: Option<f64>,
++    pub residual_tolerance: Option<f64>,
++    pub unchanged_screen_passed: bool,
++    pub eligible: bool,
++}
++fn finite_dot(a: &[f64], b: &[f64]) -> Result<f64> {
++    if a.len() != b.len() {
++        return Err(LegalError::Shape);
++    }
++    let mut s = 0.;
++    for (a, b) in a.iter().zip(b) {
++        s += a * b;
++        if !s.is_finite() {
++            return Err(LegalError::Overflow);
++        }
++    }
++    Ok(s)
++}
++fn norm(x: &[f64]) -> Result<f64> {
++    Ok(finite_dot(x, x)?.sqrt())
++}
++fn code(m: f32) -> i8 {
++    (m * 4.).round() as i8
++}
++fn canonical(m: f32) -> bool {
++    m == f32::from(code(m)) * 0.25
++}
++fn destination(m: f32, q: i8) -> f32 {
++    if q == code(m) {
++        m
++    } else {
++        f32::from(q) * 0.25
++    }
++}
++fn integer(x: f64) -> Result<i8> {
++    if !x.is_finite() || (x - x.round()).abs() > INTEGER_TOL || !(-7. ..=7.).contains(&x.round()) {
++        return Err(LegalError::NumericDecode);
++    }
++    Ok(x.round() as i8)
++}
++fn decode(m: f32, raw: [f64; 3]) -> Result<f32> {
++    let q = integer(raw[0])?;
++    let l = integer(raw[1])?;
++    let r = integer(raw[2])?;
++    let q0 = code(m);
++    if canonical(m) {
++        if l != 0 || r != 0 {
++            return Err(LegalError::NumericDecode);
++        }
++    } else if !(0..=1).contains(&l)
++        || !(0..=1).contains(&r)
++        || l + r > 1
++        || q < i8::try_from(i16::from(q0) + i16::from(r) - (i16::from(q0) + 7) * i16::from(l))
++            .map_err(|_| LegalError::NumericDecode)?
++        || q > i8::try_from(i16::from(q0) - i16::from(l) + (7 - i16::from(q0)) * i16::from(r))
++            .map_err(|_| LegalError::NumericDecode)?
++    {
++        return Err(LegalError::NumericDecode);
++    }
++    Ok(destination(m, q))
++}
++fn validate(m: &[f32], g: &[f32], rows: &[Vec<f64>]) -> Result<()> {
++    if m.is_empty() || m.len() != g.len() || rows.iter().any(|r| r.len() != m.len()) {
++        return Err(LegalError::Shape);
++    }
++    if m.iter().chain(g).any(|x| !x.is_finite()) || rows.iter().flatten().any(|x| !x.is_finite()) {
++        return Err(LegalError::NonFinite);
++    }
++    if m.iter().any(|x| !(-1.75..=1.75).contains(x)) {
++        return Err(LegalError::MasterRange);
++    }
++    for row in rows {
++        let n = norm(row)?;
++        if n != 0. && (n - 1.).abs() > 1e-10 {
++            return Err(LegalError::NonUnitRow);
++        }
++    }
++    Ok(())
++}
++#[derive(Clone, Copy)]
++struct Vars {
++    q: Variable,
++    side: Option<(Variable, Variable)>,
++}
++fn expr(vars: &[Vars], m: &[f32], coeff: &[f64]) -> (LinearExpr, f64) {
++    let mut e = LinearExpr::empty();
++    let mut rhs = 0.;
++    for ((v, m), c) in vars.iter().zip(m).zip(coeff) {
++        let q0 = f64::from(code(*m));
++        e.add(v.q, *c * 0.25);
++        rhs += c * q0 * 0.25;
++        if let Some((l, r)) = v.side {
++            let f = q0 * 0.25 - f64::from(*m);
++            e.add(l, c * f);
++            e.add(r, c * f);
++        }
++    }
++    (e, rhs)
++}
++/// One call, no resumes. Root excluded from node limit; no wall-clock limit.
++pub(super) fn run(m: &[f32], g: &[f32], rows: &[Vec<f64>]) -> Result<Receipt> {
++    run_with_limit(m, g, rows, NODE_LIMIT)
++}
++fn run_with_limit(m: &[f32], g: &[f32], rows: &[Vec<f64>], limit: u64) -> Result<Receipt> {
++    validate(m, g, rows)?;
++    let mut p = Problem::new(OptimizationDirection::Minimize);
++    let mut vars = Vec::new();
++    let mut warm = Vec::new();
++    for (&m, &g) in m.iter().zip(g) {
++        let q0 = code(m);
++        let q = p.add_integer_var(f64::from(g) * 0.25, (-7, 7));
++        warm.push((q, f64::from(q0)));
++        let side = if canonical(m) {
++            None
++        } else {
++            let c = f64::from(g) * (f64::from(q0) * 0.25 - f64::from(m));
++            let l = p.add_binary_var(c);
++            let r = p.add_binary_var(c);
++            warm.extend([(l, 0.), (r, 0.)]);
++            p.add_constraint([(l, 1.), (r, 1.)], ComparisonOp::Le, 1.);
++            p.add_constraint(
++                [(q, 1.), (r, -1.), (l, f64::from(q0) + 7.)],
++                ComparisonOp::Ge,
++                f64::from(q0),
++            );
++            p.add_constraint(
++                [(q, 1.), (l, 1.), (r, f64::from(q0) - 7.)],
++                ComparisonOp::Le,
++                f64::from(q0),
++            );
++            Some((l, r))
++        };
++        vars.push(Vars { q, side });
++    }
++    for row in rows {
++        let (e, rhs) = expr(&vars, m, row);
++        if !rhs.is_finite() {
++            return Err(LegalError::Overflow);
++        }
++        p.add_constraint(e, ComparisonOp::Ge, rhs);
++    }
++    let fractional = vars.iter().filter(|v| v.side.is_some()).count();
++    let constant = -m
++        .iter()
++        .zip(g)
++        .map(|(m, g)| f64::from(code(*m)) * 0.25 * f64::from(*g))
++        .sum::<f64>();
++    if !constant.is_finite() {
++        return Err(LegalError::Overflow);
++    }
++    let mut receipt = Receipt {
++        backend: "microlp=0.6.0".into(),
++        node_limit: limit,
++        time_limit: None,
++        termination: String::new(),
++        status: String::new(),
++        nodes_solved: None,
++        lp_iterations: None,
++        variables: m.len() + 2 * fractional,
++        fractional_coordinates: fractional,
++        constraints: rows.len() + 3 * fractional,
++        backend_objective: None,
++        objective_constant: constant,
++        raw_assignment: None,
++        destination_master_bits: None,
++        actual_delta: None,
++        construction_residuals: None,
++        recomputed_zero_margin_target_passed: false,
++        gradient_dot: None,
++        residual_tolerance: None,
++        unchanged_screen_passed: false,
++        eligible: false,
++    };
++    let mut options = SolveOptions::default();
++    options.node_limit = Some(limit);
++    options.time_limit = None;
++    options.warm_start = Some(warm);
++    let outcome = match p.solve_with(options) {
++        Ok(v) => v,
++        Err(e) => {
++            receipt.termination = format!("{e:?}");
++            receipt.status = "BACKEND_NUMERIC_OR_NO_INCUMBENT".into();
++            return Ok(receipt);
++        }
++    };
++    let stats = outcome.stats();
++    receipt.nodes_solved = Some(stats.nodes_solved);
++    receipt.lp_iterations = Some(stats.lp_iterations);
++    receipt.termination = format!("{:?}", outcome.termination_reason());
++    if receipt.nodes_solved.is_some_and(|n| n > limit) {
++        return Err(LegalError::Overflow);
++    }
++    let Some(solution) = outcome.solution() else {
++        receipt.status = "NODE_LIMIT_NO_INCUMBENT".into();
++        return Ok(receipt);
++    };
++    receipt.backend_objective = Some(solution.objective());
++    if !solution.objective().is_finite() {
++        return Err(LegalError::NonFinite);
++    }
++    let raw = vars
++        .iter()
++        .map(|v| {
++            let (l, r) = v
++                .side
++                .map(|(l, r)| (solution.var_value_raw(l), solution.var_value_raw(r)))
++                .unwrap_or((0., 0.));
++            [solution.var_value_raw(v.q), l, r]
++        })
++        .collect::<Vec<_>>();
++    match populate(&mut receipt, m, g, rows, raw.clone()) {
++        Ok(()) => {}
++        Err(LegalError::NumericDecode) => {
++            receipt.raw_assignment = Some(raw);
++            receipt.status = "INTEGER_DECODE_REJECTED".into();
++        }
++        Err(e) => return Err(e),
++    }
++    Ok(receipt)
++}
++fn populate(
++    receipt: &mut Receipt,
++    m: &[f32],
++    g: &[f32],
++    rows: &[Vec<f64>],
++    raw: Vec<[f64; 3]>,
++) -> Result<()> {
++    if raw.len() != m.len() {
++        return Err(LegalError::Shape);
++    }
++    let destination = m
++        .iter()
++        .zip(&raw)
++        .map(|(&m, &r)| decode(m, r))
++        .collect::<Result<Vec<_>>>()?;
++    let delta = destination
++        .iter()
++        .zip(m)
++        .map(|(d, m)| f64::from(*d) - f64::from(*m))
++        .collect::<Vec<_>>();
++    let residual = rows
++        .iter()
++        .map(|r| finite_dot(r, &delta))
++        .collect::<Result<Vec<_>>>()?;
++    let gd = finite_dot(&g.iter().map(|g| f64::from(*g)).collect::<Vec<_>>(), &delta)?;
++    let tolerance = 1e-10 * norm(&delta)?;
++    let construction = residual.iter().all(|r| *r >= 0.);
++    let screen = residual.iter().all(|r| *r >= -tolerance);
++    receipt.status = if gd >= 0. {
++        "NO_DESCENDING_INCUMBENT"
++    } else if !screen {
++        "ACTUAL_SCREEN_REJECTED"
++    } else if receipt.termination == "NodeLimit" {
++        "NODE_LIMIT_DESCENDING_INCUMBENT"
++    } else {
++        "DESCENDING_INCUMBENT"
++    }
++    .into();
++    receipt.raw_assignment = Some(raw);
++    receipt.destination_master_bits = Some(destination.iter().map(|x| x.to_bits()).collect());
++    receipt.actual_delta = Some(delta);
++    receipt.construction_residuals = Some(residual);
++    receipt.recomputed_zero_margin_target_passed = construction;
++    receipt.gradient_dot = Some(gd);
++    receipt.residual_tolerance = Some(tolerance);
++    receipt.unchanged_screen_passed = screen;
++    receipt.eligible = gd < 0. && screen;
++    Ok(())
++}
++/// Validate a saved solution without re-solving, reranking or trusting a backend proof.
++pub(super) fn authenticate(
++    m: &[f32],
++    g: &[f32],
++    rows: &[Vec<f64>],
++    receipt: &Receipt,
++) -> Result<()> {
++    validate(m, g, rows)?;
++    let fractional = m.iter().filter(|m| !canonical(**m)).count();
++    if receipt.backend != "microlp=0.6.0"
++        || receipt.node_limit != NODE_LIMIT
++        || receipt.time_limit.is_some()
++        || receipt.nodes_solved.is_some_and(|n| n > NODE_LIMIT)
++        || receipt.variables != m.len() + 2 * fractional
++        || receipt.fractional_coordinates != fractional
++        || receipt.constraints != rows.len() + 3 * fractional
++    {
++        return Err(LegalError::Shape);
++    }
++    let constant = -m
++        .iter()
++        .zip(g)
++        .map(|(m, g)| f64::from(code(*m)) * 0.25 * f64::from(*g))
++        .sum::<f64>();
++    if receipt.objective_constant != constant {
++        return Err(LegalError::NumericDecode);
++    }
++    let mut expected = receipt.clone();
++    if let Some(raw) = &receipt.raw_assignment {
++        if receipt.nodes_solved.is_none() || receipt.lp_iterations.is_none() {
++            return Err(LegalError::NumericDecode);
++        }
++        if receipt.status == "INTEGER_DECODE_REJECTED" {
++            if raw.len() != m.len()
++                || raw.iter().flatten().any(|v| !v.is_finite())
++                || !m.iter().zip(raw).any(|(&m, &v)| decode(m, v).is_err())
++                || receipt.destination_master_bits.is_some()
++                || receipt.actual_delta.is_some()
++                || receipt.construction_residuals.is_some()
++                || receipt.gradient_dot.is_some()
++                || receipt.residual_tolerance.is_some()
++                || receipt.eligible
++                || receipt.unchanged_screen_passed
++                || receipt.recomputed_zero_margin_target_passed
++            {
++                return Err(LegalError::NumericDecode);
++            }
++            return Ok(());
++        }
++        if !receipt.backend_objective.is_some_and(|x| x.is_finite()) {
++            return Err(LegalError::NonFinite);
++        }
++        populate(&mut expected, m, g, rows, raw.clone())?;
++        if &expected != receipt {
++            return Err(LegalError::NumericDecode);
++        }
++    } else if receipt.destination_master_bits.is_some()
++        || receipt.actual_delta.is_some()
++        || receipt.construction_residuals.is_some()
++        || receipt.gradient_dot.is_some()
++        || receipt.residual_tolerance.is_some()
++        || receipt.eligible
++        || receipt.recomputed_zero_margin_target_passed
++        || receipt.unchanged_screen_passed
++        || receipt.backend_objective.is_some()
++        || !matches!(
++            receipt.status.as_str(),
++            "NODE_LIMIT_NO_INCUMBENT" | "BACKEND_NUMERIC_OR_NO_INCUMBENT"
++        )
++    {
++        return Err(LegalError::NumericDecode);
++    }
++    Ok(())
++}
++#[cfg(test)]
++mod tests {
++    use super::*;
++    #[test]
++    fn exact_domain_fractional_endpoints_and_signed_zero() -> Result<()> {
++        for m in [-1.75, -1.7, -1.6, -0.01, -0.0, 0.0, 0.13, 1.6, 1.7, 1.75] {
++            let mut bits = std::collections::BTreeSet::new();
++            for q in -7..=7 {
++                for l in 0..=1 {
++                    for r in 0..=1 {
++                        if let Ok(v) = decode(m, [q as f64, l as f64, r as f64]) {
++                            bits.insert(v.to_bits());
++                        }
++                    }
++                }
++            }
++            let expected = (-7..=7)
++                .map(|q| destination(m, q).to_bits())
++                .collect::<std::collections::BTreeSet<_>>();
++            assert_eq!(bits, expected);
++            assert_eq!(decode(m, [code(m) as f64, 0., 0.])?.to_bits(), m.to_bits());
++        }
++        Ok(())
++    }
++    #[test]
++    fn true_joint_repair_single_moves_fail() -> Result<()> {
++        let s = 2f64.sqrt().recip();
++        let r = vec![vec![s, -s], vec![-s, s]];
++        let result = run(&[0., 0.], &[1., 1.], &r)?;
++        assert!(result.eligible);
++        let d = result.actual_delta.as_ref().ok_or(LegalError::Shape)?;
++        assert!(d[0] < 0. && d[1] < 0.);
++        assert_eq!(d[0], d[1]);
++        assert!(r
++            .iter()
++            .any(|row| finite_dot(row, &[d[0], 0.]).is_ok_and(|v| v < 0.)));
++        assert!(r
++            .iter()
++            .any(|row| finite_dot(row, &[0., d[1]]).is_ok_and(|v| v < 0.)));
++        authenticate(&[0., 0.], &[1., 1.], &r, &result)?;
++        Ok(())
++    }
++    #[test]
++    fn noop_not_promoted_and_constraints_respected() -> Result<()> {
++        let r = run(&[-0.0], &[1.], &[vec![1.]])?;
++        assert!(!r.eligible);
++        assert_eq!(r.status, "NO_DESCENDING_INCUMBENT");
++        assert_eq!(r.destination_master_bits, Some(vec![(-0f32).to_bits()]));
++        Ok(())
++    }
++    #[test]
++    fn invalid_decode_and_nonfinite_rejected() {
++        assert_eq!(decode(0.13, [1., 1., 0.]), Err(LegalError::NumericDecode));
++        assert_eq!(decode(0.13, [0.5, 0., 0.]), Err(LegalError::NumericDecode));
++        assert_eq!(run(&[0.], &[f32::NAN], &[]), Err(LegalError::NonFinite));
++    }
++    #[test]
++    fn backend_zero_target_is_not_a_stricter_actual_admission_gate() -> Result<()> {
++        let rows = vec![vec![-5e-11, (1.0 - 25e-22f64).sqrt()]];
++        let m = [0., 0.];
++        let g = [-1., 0.];
++        let mut receipt = run(&m, &g, &rows)?;
++        populate(
++            &mut receipt,
++            &m,
++            &g,
++            &rows,
++            vec![[1., 0., 0.], [0., 0., 0.]],
++        )?;
++        assert!(!receipt.recomputed_zero_margin_target_passed);
++        assert!(receipt.unchanged_screen_passed && receipt.eligible);
++        authenticate(&m, &g, &rows, &receipt)?;
++        Ok(())
++    }
++    #[test]
++    fn zero_branch_budget_keeps_noop_incumbent_not_root_relaxation() -> Result<()> {
++        let n = 5f64.sqrt();
++        let r = run_with_limit(&[0., 0.], &[3., 4.], &[vec![1. / n, 2. / n]], 0)?;
++        assert_eq!(r.termination, "NodeLimit");
++        assert_eq!(r.nodes_solved, Some(0));
++        assert!(!r.eligible);
++        assert_eq!(r.gradient_dot, Some(0.));
++        assert_eq!(r.destination_master_bits, Some(vec![0f32.to_bits(); 2]));
++        Ok(())
++    }
++    #[test]
++    fn fixed_node_limit_and_receipt_tamper() -> Result<()> {
++        let r = run_with_limit(&[0.13, 0.17], &[1., -1.], &[vec![0.6, 0.8]], 0)?;
++        assert_eq!(r.nodes_solved, Some(0));
++        assert!(!r.eligible || r.gradient_dot.is_some_and(|x| x < 0.));
++        let mut a = run(&[0.13], &[1.], &[])?;
++        a.destination_master_bits = Some(vec![0.1f32.to_bits()]);
++        assert!(authenticate(&[0.13], &[1.], &[], &a).is_err());
++        Ok(())
++    }
++}
+diff --git a/docs/figures/geometry/generate.py b/docs/figures/geometry/generate.py
+index 70fe8c8cf..b655918b8 100644
+--- a/docs/figures/geometry/generate.py
++++ b/docs/figures/geometry/generate.py
+@@ -1270,8 +1270,8 @@ def fig_native_input_access():
+ def fig_protected_joint_learning():
+     fg = Fig("protected-joint-learning.svg", "M2: learning with protected token competition",
+              "Offline joint Prefix and Generate learning uses native pooled token margins; native finite checks remain authoritative.",
+-             ["Measured: continuous screen passes; all four quantized displacements fail. No native proposal scored.",
+-              "Saved credit: 32 feedback rounds / 28 distinct updates; none passes protection. No native proposal scored."])
++             ["Prior measured: four rounded offers and 28 distinct feedback updates fail protection.",
++              "Direct legal-set construction: 4096 branch nodes, zero-margin target; execution pending."])
+     def box(x, y, w, title, lines, color):
+         fg.rect(x, y, w, 116, "#f6f9fc", color, 1.5, 10)
+         fg.text(x + 14, y + 27, title, 17, color, weight="bold")
+@@ -1281,7 +1281,7 @@ def fig_protected_joint_learning():
+     box(530, 105, 430, "Protected original winners", ["380 full-pool winner / strongest-rival margins", "Explicit unweighted Jacobians; frozen token pairs", "Margin-specific physical-donor utility"], PURPLE)
+     fg.arrow(255, 222, 350, 268, BLUE)
+     fg.arrow(745, 222, 650, 268, PURPLE)
+-    box(190, 276, 620, "One joint direction in 1920 master coordinates", ["960 Prefix + 960 Generate unary; 256 fixed projection passes", "Check continuous and actual quantized displacement residuals", "Legacy four radii or saved-credit fixed32-round discrete feedback"], GREEN)
++    box(40, 276, 920, "Joint proposals in 1920 master coordinates", ["960 Prefix + 960 Generate unary; unchanged native protection and strict descent", "Projection/rounding, saved residual feedback, or direct constrained legal choices", "Direct choice: zero-margin target; exact destination bits face the original tolerance screen"], GREEN)
+     fg.arrow(500, 393, 500, 426, GREEN)
+     box(40, 437, 920, "Native finite transaction and independent reload", ["Recompute coherent proposed Prefix + donor/post-state + Generate over all 391 rows", "Retain strict CE descent, all 17 references and 380 original winners; exact restage before commit", "All 15 conditional positions including EOS required before actual own-feedback qualification"], ORANGE)
+     fg.text(40, 594, "Source, Context, Cue, bridge, U and other Generate families remain frozen.", 15, MUTED)
+diff --git a/docs/figures/geometry/protected-joint-learning.svg b/docs/figures/geometry/protected-joint-learning.svg
+index 9213c58b4..f410f2f43 100644
+--- a/docs/figures/geometry/protected-joint-learning.svg
++++ b/docs/figures/geometry/protected-joint-learning.svg
+@@ -18,11 +18,11 @@
+ <polygon points="350,268 338.28,266.97 341.92,259.44" fill="#0072B2" fill-opacity="1"/>
+ <line x1="745" y1="222" x2="655.94" y2="265.12" stroke="#7A4FA3" stroke-width="2.5" stroke-opacity="1" stroke-linecap="round"/>
+ <polygon points="650,268 658.08,259.44 661.72,266.97" fill="#7A4FA3" fill-opacity="1"/>
+-<rect x="190" y="276" width="620" height="116" rx="10" fill="#f6f9fc" fill-opacity="1" stroke="#009E73" stroke-width="1.5" stroke-opacity="1"/>
+-<text x="204" y="303" font-size="17" fill="#009E73" fill-opacity="1" text-anchor="start" font-weight="bold">One joint direction in 1920 master coordinates</text>
+-<text x="204" y="330" font-size="14" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">960 Prefix + 960 Generate unary; 256 fixed projection passes</text>
+-<text x="204" y="352" font-size="14" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">Check continuous and actual quantized displacement residuals</text>
+-<text x="204" y="374" font-size="14" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">Legacy four radii or saved-credit fixed32-round discrete feedback</text>
++<rect x="40" y="276" width="920" height="116" rx="10" fill="#f6f9fc" fill-opacity="1" stroke="#009E73" stroke-width="1.5" stroke-opacity="1"/>
++<text x="54" y="303" font-size="17" fill="#009E73" fill-opacity="1" text-anchor="start" font-weight="bold">Joint proposals in 1920 master coordinates</text>
++<text x="54" y="330" font-size="14" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">960 Prefix + 960 Generate unary; unchanged native protection and strict descent</text>
++<text x="54" y="352" font-size="14" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">Projection/rounding, saved residual feedback, or direct constrained legal choices</text>
++<text x="54" y="374" font-size="14" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">Direct choice: zero-margin target; exact destination bits face the original tolerance screen</text>
+ <line x1="500" y1="393" x2="500" y2="419.4" stroke="#009E73" stroke-width="2.5" stroke-opacity="1" stroke-linecap="round"/>
+ <polygon points="500,426 495.82,415 504.18,415" fill="#009E73" fill-opacity="1"/>
+ <rect x="40" y="437" width="920" height="116" rx="10" fill="#f6f9fc" fill-opacity="1" stroke="#E69F00" stroke-width="1.5" stroke-opacity="1"/>
+@@ -31,6 +31,6 @@
+ <text x="54" y="513" font-size="14" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">Retain strict CE descent, all 17 references and 380 original winners; exact restage before commit</text>
+ <text x="54" y="535" font-size="14" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">All 15 conditional positions including EOS required before actual own-feedback qualification</text>
+ <text x="40" y="594" font-size="15" fill="#5f6b7a" fill-opacity="1" text-anchor="start" font-weight="normal">Source, Context, Cue, bridge, U and other Generate families remain frozen.</text>
+-<text x="40" y="648" font-size="14" fill="#5f6b7a">Measured: continuous screen passes; all four quantized displacements fail. No native proposal scored.</text>
+-<text x="40" y="669" font-size="14" fill="#5f6b7a">Saved credit: 32 feedback rounds / 28 distinct updates; none passes protection. No native proposal scored.</text>
++<text x="40" y="648" font-size="14" fill="#5f6b7a">Prior measured: four rounded offers and 28 distinct feedback updates fail protection.</text>
++<text x="40" y="669" font-size="14" fill="#5f6b7a">Direct legal-set construction: 4096 branch nodes, zero-margin target; execution pending.</text>
+ </svg>
+diff --git a/docs/geometry.md b/docs/geometry.md
+index 3d833fc80..995e2d0f6 100644
+--- a/docs/geometry.md
++++ b/docs/geometry.md
+@@ -402,6 +402,17 @@ protection screen; no native proposal was scored. Original 5/15 conditional
+ winners and all 17/380 checks survived independent reload, with accepted 8/512
+ unchanged. The candidate is rejected, not evidence of global infeasibility.
+ 
++The [direct legal-set constructor](labs/direct-legal-construction-2026-10-09/README.md)
++adds a separate offline alternative using the same saved credit: jointly choose
++among all 15 legal destinations for each of 1920 Prefix/Generate coordinates with
++pinned pure-Rust mixed-integer search. The backend targets all 380 unit-J residuals
++at zero or above, a stricter construction target than the existing norm-tolerant
++screen; actual reconstructed bits must still pass that unchanged screen and
++strict objective descent before the same native transaction. Noop preserves
++original fractional bits, not a new quarter rounding. Backend work is bounded
++at 4096 branch nodes, with no mathematical optimality/infeasibility claim or serving
++dependency. Execution/promotion is pending; prior negatives and accepted 8/512 stand.
++
+ ## Life of one token
+ 
+ Follow one byte-BPE token through the stack (text path):
+diff --git a/docs/labs/direct-legal-construction-2026-10-09/README.md b/docs/labs/direct-legal-construction-2026-10-09/README.md
+new file mode 100644
+index 000000000..84d19247a
+--- /dev/null
++++ b/docs/labs/direct-legal-construction-2026-10-09/README.md
+@@ -0,0 +1,90 @@
++# Direct joint legal-set construction — 9 October 2026
++
++## Question and prospective mechanism
++
++Can a direct constrained choice of legal Prefix/Generate destinations form a
++protected descending offer where #2117 residual feedback offered none? The
++[saved diagnosis](../discrete-feedback-attribution-2026-10-09/README.md) authenticated
++28 distinct failures, with 338/380 violated-row union and no universal veto.
++This changes proposal formation, not gradients, Source authority, memory access,
++serving operators, native acceptance or model capacity.
++
++[Prospective M2 claim](https://github.com/UOR-Foundation/uor-r4/issues/2030#issuecomment-6092186833).
++**Implementation and execution pending. No model result or promotion.** Accepted
++Source48/Generate64 remains 8/512 complete development replies; separate conditional
++9/15 is not this original 5/15 epoch and cannot be combined with it.
++
++All 1920 original master coordinates and all 15 legal destinations remain available.
++For original code q0=round_ties_away(4m), the noop retains m's original f32 bits;
++each other q in[-7,7] uses q/4. For noncanonical m, use integer q and binary l,r:
++
++```text
++l + r <= 1
++q >= q0 + r - (q0 + 7) l
++q <= q0 - l + (7 - q0) r
++delta = (q - q0)/4 + (l + r)(q0/4 - m)
++```
++
++The three branches cover exactly noop/lower/upper legal codes, including endpoint
++codes. Canonical masters need only q; all decoded noops still retain original bits,
++including negative zero. No answer, token, named guard or named coordinate has an
++exception. Minimize original g·delta subject to all 380 unitJ·delta>=0.
++
++**This zero-margin construction target is stricter than the existing numerical
++admission domain** unitJ·delta>=-1e-10||delta||. It is an explicit inner target, not
++a replacement or weakening of the gate. An unsuccessful search does not cover
++all legal destinations admitted only by that norm tolerance.
++
++Backend: pinned [microlp 0.6.0](https://docs.rs/microlp/0.6.0/microlp/), pure Rust,
++used offline in the training tool only. Use its integer branch-and-bound with a
++fixed 4096-node bound (root relaxation excluded by backend), zero/noop warm start,
++no time cutoff, and at most one returned incumbent. No new hand-written numerical
++optimizer, random seed sweep, radius tuning or residual-feedback schedule.
++The backend warns that difficult problems may lose precision or cycle. Its
++floating-point optimal/infeasible statuses are observations, not mathematical
++certificates. A bounded search returning only noop is not strict descent.
++
++Reconstruct complete legal destination bits from unambiguous integer decisions,
++recompute actual f64 delta, g·delta and all 380 unit-J residuals in the existing
++order, and apply the unchanged strict descent and relative-tolerance screen. Recomputed
++zero-margin satisfaction is a separate diagnostic: small solver-numerical negatives
++may pass the existing relative tolerance, which remains the admission authority.
++Only then may the existing coherent 391-row native transaction score the proposal.
++Keep strict combined/episode CE descent, all 17 reference roles, all 380 original
++winners, exact selected restage and atomic commit, independent saved reload, and
++all 15 conditional positions before positive-only actual-nine qualification.
++
++## Fixed evidence and outcomes
++
++Import the existing authenticated #2101 saved objective and protected derivatives
++through the existing strict importer, using #2117's verified input restoration.
++No new backward or training-graph calls. Same original development input 245
++conditional episode including EOS, 17 reference roles, 380 original guards and 391
++unique native row union; no held-out data. Do not change the model's windows,
++Source eligibility, parameters outside Prefix/Generate unary, or canonical data.
++
++- A screened legal offer and native success advance export/reload/actual-nine.
++- A screened offer with native veto distinguishes finite native behavior from the
++  first-order surrogate; it does not establish model incapacity.
++- No descending offer is unresolved bounded search under the zero-margin target,
++  not a global infeasibility result or permission to enlarge the bound afterward.
++- Numerical/setup failures remain execution evidence, not model-quality negatives.
++
++## Checks and resources
++
++Before actual execution: exact legal-domain fixtures including fractional/noop/
++signed-zero/endpoints, small constrained problems, joint repair where
++single moves fail, no-descending/no-incumbent distinctions, numerical decoding and
++unchanged native stage/rollback fixtures; source review and exact-head build.
++Use scoped tests, claim wording, geometry connection checks and regenerated figures.
++
++Complete projection: 90 minutes, two CPU threads, 6 GiB constructor process RAM (existing 3.56 GiB
++transaction projection plus 2 GiB solver reserve), 3 GiB compile estimate, 6 GiB transient disk,
++512 MiB reports; initially 38 GiB free versus 30 GiB + 128 MiB floor. Same-class local
++allowance was extended 90 minutes before implementation to 1,463,400,028 ms, preserving
++cumulative 1,456,254,279 ms and continuing charges since 01:24:55.251810Z. No GPU, pod,
++paid compute, Python model or new serving dependency. A healthy run is not cancelled
++at a self-estimated wall time; the solver's fixed node bound defines this mechanism.
++
++**Next:** Finish and review the constructor, run the single declared saved-credit
++construction and preserve its native disposition before choosing any successor.
+diff --git a/docs/labs/direct-legal-construction-2026-10-09/prepare.py b/docs/labs/direct-legal-construction-2026-10-09/prepare.py
+new file mode 100644
+index 000000000..f8431899e
+--- /dev/null
++++ b/docs/labs/direct-legal-construction-2026-10-09/prepare.py
+@@ -0,0 +1,42 @@
++#!/usr/bin/env python3
++"""Relocate and authenticate retained inputs; no model or new derivative implementation."""
++from pathlib import Path
++import hashlib,json,subprocess
++W=Path(__file__).resolve().parents[3]
++R=W/'local/recovery/inputs'
++OLD=W/'local/restore/codex-protected-joint-20261009/sol-protected-joint-20261009'
++OUT=W/'local/direct-legal'
++VERIFIER=W/'local/restore/codex-protected-discrete-feedback-20261009/runtime/native-reached-prefix-attribution'
++def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
++def read(p):return json.loads(Path(p).read_text())
++def write(p,v):
++ p.parent.mkdir(parents=True,exist_ok=True)
++ with p.open('x') as f:json.dump(v,f,indent=2);f.write('\n')
++def path(p):
++ assert p.startswith('/workspace/uor-r4/codex/')
++ return R/p.removeprefix('/workspace/uor-r4/codex/')
++reference=read(W/'docs/labs/bounded-pair-run-2026-10-09/input-verification.json')
++checks=[]
++for item in reference['roots']:
++ p=path(item['root'])
++ assert sha(p/'report.json')==item['report_sha256']
++ assert sha(p/'manifest.json')==item['manifest_sha256']
++ subprocess.run([str(VERIFIER),'verify-report',str(p)],check=True)
++ checks.append(dict(root=str(p),report_sha256=sha(p/'report.json'),manifest_sha256=sha(p/'manifest.json'),files=len(read(p/'manifest.json')['files'])))
++for key in ['training_inputs','training_labels','development_inputs','development_labels','parent_config']:
++ item=reference[key];p=path(item['file']);assert sha(p)==item['sha256'] and p.stat().st_size==item['bytes']
++config=read(W/'docs/labs/protected-joint-construction-2026-10-09/model-config.json')
++def relocate(v):
++ if isinstance(v,str) and v.startswith('/workspace/uor-r4/codex/'):return str(path(v))
++ if isinstance(v,list):return [relocate(x) for x in v]
++ if isinstance(v,dict):return {k:relocate(x) for k,x in v.items()}
++ return v
++config=relocate(config)
++config['out']=str(OUT/'runs/attempt1')
++config['maximum_report_bytes']=512<<20
++config['maximum_seconds']=21600
++learning=config['coupled_episode_learning'];learning['prefix_transaction']='protected_legal_set'
++learning['saved_protected_credit']=dict(contract_version=1,root=str(OLD/'runs/protected-joint-0001-attempt3'),runtime_root=str(OLD/'runtime'),observation_root=str(OLD/'observations/protected-joint-0001-attempt3'),expected_runtime_identity_sha256=sha(OLD/'runtime/runtime-identity.json'),expected_observation_manifest_sha256=sha(OLD/'observations/protected-joint-0001-attempt3/manifest.json'))
++write(OUT/'config.json',config)
++write(OUT/'input-verification.json',dict(status='PASS',roots=checks,config_sha256=sha(OUT/'config.json'),verifier_sha256=sha(VERIFIER),imported_backward_calls=411,new_backward_calls=0))
++print(json.dumps(dict(status='PASS',roots=len(checks),config_sha256=sha(OUT/'config.json'))))
+diff --git a/docs/labs/direct-legal-construction-2026-10-09/qualify.py b/docs/labs/direct-legal-construction-2026-10-09/qualify.py
+new file mode 100644
+index 000000000..e26b80709
+--- /dev/null
++++ b/docs/labs/direct-legal-construction-2026-10-09/qualify.py
+@@ -0,0 +1,32 @@
++#!/usr/bin/env python3
++"""Immediate positive-only saved-artifact own-feedback check; Rust owns model and oracle."""
++from pathlib import Path
++import sys
++import copy,hashlib,json,os,resource,subprocess,time
++W=Path(__file__).resolve().parents[3];R=W/'local/direct-legal'
++C=Path(sys.argv[1]).resolve() if len(sys.argv)>1 else R/'config.json';B=W/'local/build/release/examples/geometric-frozen-map-fit'
++V=W/'local/restore/codex-protected-discrete-feedback-20261009/runtime/native-reached-prefix-attribution'
++def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
++def read(p):return json.loads(p.read_text())
++def write(p,v):
++ p.parent.mkdir(parents=True,exist_ok=True)
++ with p.open('x') as f:json.dump(v,f,indent=2);f.write('\n')
++c=read(C);root=Path(c['out']);subprocess.run([str(V),'verify-report',str(root)],check=True)
++r=read(root/'report.json');assert r['status']=='COMPLETED'
++assert r['new_backward_calls']==0 and r['new_training_graph_forwards']==0 and r['all_original380_preserved']
++assert r['finite_episode_positive']==r['final_gate']['passed']
++decision=dict(candidate_report_sha256=sha(root/'report.json'),candidate_manifest_sha256=sha(root/'manifest.json'),binary_sha256=sha(B),config_sha256=sha(C),actual9='NOT_RUN_CONSTRUCTION_NEGATIVE',full512='NOT_RUN',fresh='NOT_RUN',multi_turn='NOT_RUN')
++if r['finite_episode_positive']:
++ assert all(r['final_gate'][k] for k in ['strict_combined_descent','strict_episode_descent','all15_conditional_winners','all17_references','all380_original_winners','passed'])
++ cp=root/'checkpoint-0001';actual=copy.deepcopy(c);learning=actual.pop('coupled_episode_learning')
++ actual['checkpoint']=str(cp);actual['out']=str(R/'qualifications'/root.name);actual['maximum_report_bytes']=256<<20
++ actual['prefix_artifact_check']=dict(retained_candidate_root=str(root),retained_intermediate_root=learning['original_inputs']['retained_intermediate_root'],coupled_episode_candidate=dict(donor_credit='full_pool_utility',prefix_transaction='protected_legal_set',expected_report_sha256=sha(root/'report.json'),expected_manifest_sha256=sha(root/'manifest.json'),expected_generate_sha256=sha(cp/'generate.bin'),expected_unary_master_sha256=sha(cp/'generate-source/generate.unary.f32le'),expected_prefix_packed_sha256=sha(cp/'prefix/prefix-q4.bin'),expected_prefix_master_sha256=sha(cp/'prefix/prefix-source-f32.bin'),expected_continuation_sha256=sha(cp/'continuation-field.bin')))
++ config=R/'qualifications'/f'{root.name}-config.json';write(config,actual)
++ env=dict(os.environ);env.update(RAYON_NUM_THREADS='2',OMP_NUM_THREADS='2',OPENBLAS_NUM_THREADS='2',UOR_REQUIRE_CUDA='0')
++ started=time.monotonic()
++ with (R/'qualifications'/f'{root.name}.log').open('x') as log:
++  process=subprocess.run([str(B),str(config)],env=env,stdout=log,stderr=subprocess.STDOUT)
++ decision.update(actual9='EXECUTED' if process.returncode==0 else 'EXECUTION_FAILED',exit_code=process.returncode,seconds=time.monotonic()-started,config_sha256=sha(config),output=actual['out'],max_rss_bytes=resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss)
++write(R/f'qualification-decision-{root.name}.json',decision)
++print(json.dumps(decision))
++if decision.get('exit_code',0):raise SystemExit(decision['exit_code'])
+diff --git a/docs/labs/direct-legal-construction-2026-10-09/recover.py b/docs/labs/direct-legal-construction-2026-10-09/recover.py
+new file mode 100644
+index 000000000..c10fa7a75
+--- /dev/null
++++ b/docs/labs/direct-legal-construction-2026-10-09/recover.py
+@@ -0,0 +1,29 @@
++#!/usr/bin/env python3
++"""Restore only verified retained archive members; no download, model or derivative work."""
++from pathlib import Path
++import ast, hashlib, json, shutil, tarfile
++W=Path(__file__).resolve().parents[3]
++retained=W/'local/restore/codex-protected-discrete-feedback-20261009/recovery'
++root=W/'local/recovery';root.mkdir(exist_ok=False)
++specs=next(ast.literal_eval(n.value) for n in ast.parse((retained/'fetch.py').read_text()).body if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='specs' for t in n.targets))
++specs.append(('parent','codex/native-prediction/503d64b39-source48-generate64/frozen-checkpoint-and-panel.tar.gz','b1192489b94d06811948fe7e8ac13e3482050cf4',22149739,'767dd285447118dc2c5ce7d0c68554ccaf16dcdec0d894e2f21f5dbf27d278b4','sol-prototype/restore/parent-unpacked',''))
++receipts=[]
++for label,key,rev,size,digest,base,strip in specs:
++ p=retained/'downloads'/label/key
++ assert p.stat().st_size==size and hashlib.sha256(p.read_bytes()).hexdigest()==digest
++ dest=root/'inputs'/base;dest.mkdir(parents=True,exist_ok=False);files=0;expanded=0
++ with tarfile.open(p) as t:
++  for m in t:
++   if strip and not m.name.startswith(strip):continue
++   rel=m.name[len(strip):]
++   if label!='parent' and not(rel.startswith('runs/') or rel in ['saved-episode-authority.json','capture-supervise.py']):continue
++   q=Path(rel);assert not q.is_absolute() and '..' not in q.parts
++   if m.isdir():continue
++   assert m.isfile()
++   assert shutil.disk_usage(W).free>(30<<30)+(128<<20)+m.size
++   target=dest/q;target.parent.mkdir(parents=True,exist_ok=True)
++   with target.open('xb') as out:shutil.copyfileobj(t.extractfile(m),out)
++   files+=1;expanded+=m.size
++ receipts.append(dict(label=label,sha256=digest,bytes=size,revision=rev,files=files,expanded_bytes=expanded))
++ print(json.dumps(receipts[-1]),flush=True)
++(root/'receipts.json').write_text(json.dumps(receipts,indent=2)+'\n')
+diff --git a/docs/labs/direct-legal-construction-2026-10-09/run.py b/docs/labs/direct-legal-construction-2026-10-09/run.py
+new file mode 100644
+index 000000000..27c722dc6
+--- /dev/null
++++ b/docs/labs/direct-legal-construction-2026-10-09/run.py
+@@ -0,0 +1,38 @@
++#!/usr/bin/env python3
++"""Supervise the source-bound Rust saved-credit constructor, without implementing a model."""
++from pathlib import Path
++import sys
++import datetime,hashlib,json,os,resource,shutil,subprocess,time
++W=Path(__file__).resolve().parents[3];R=W/'local/direct-legal'
++B=W/'local/build/release/examples/geometric-frozen-map-fit';C=Path(sys.argv[1]).resolve() if len(sys.argv)>1 else R/'config.json'
++def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
++config=json.loads(C.read_text());out=Path(config['out']);assert not out.exists()
++assert config['coupled_episode_learning']['prefix_transaction']=='protected_legal_set'
++assert config['coupled_episode_learning'].get('saved_protected_credit')
++assert shutil.disk_usage(W).free>(30<<30)+(128<<20)+config['maximum_report_bytes']
++obs=R/'observations'/out.name;obs.mkdir(parents=True,exist_ok=False)
++source=subprocess.check_output(['git','rev-parse','HEAD'],cwd=W,text=True).strip()
++files=[W/'crates/uor-r4-training/examples/geometric-frozen-map-fit.rs',*(W/'crates/uor-r4-training/examples/geometric_frozen_map_fit').glob('*.rs')]
++identity=dict(source_commit=source,binary_sha256=sha(B),config_sha256=sha(C),rust_files={str(p.relative_to(W)):sha(p) for p in files})
++(obs/'runtime.json').write_text(json.dumps(identity,indent=2)+'\n')
++env=dict(os.environ);env.update(RAYON_NUM_THREADS='2',OMP_NUM_THREADS='2',OPENBLAS_NUM_THREADS='2',UOR_REQUIRE_CUDA='0')
++started=datetime.datetime.now(datetime.timezone.utc).isoformat();start=time.monotonic();stop_reason=None
++with (obs/'execution.log').open('x') as log,(obs/'telemetry.jsonl').open('x') as tele:
++ p=subprocess.Popen([str(B),str(C)],cwd=W,env=env,stdout=log,stderr=subprocess.STDOUT)
++ (obs/'launch.json').write_text(json.dumps(dict(pid=p.pid,argv=[str(B),str(C)],started_utc=started,**identity),indent=2)+'\n')
++ while True:
++  alive=p.poll() is None;row=dict(elapsed_seconds=time.monotonic()-start,pid=p.pid,alive=alive,free_bytes=shutil.disk_usage(W).free)
++  if alive:
++   sample=subprocess.run(['ps','-o','rss=','-p',str(p.pid)],capture_output=True,text=True)
++   if sample.stdout.strip():row['rss_bytes']=int(sample.stdout.strip())*1024
++  tele.write(json.dumps(row)+'\n');tele.flush()
++  if not alive:break
++  if row['free_bytes']<(30<<30)+(128<<20):
++   stop_reason='OWNER_DISK_FLOOR';p.terminate();break
++  time.sleep(2)
++ try:rc=p.wait(timeout=10 if stop_reason else None)
++ except subprocess.TimeoutExpired:
++  p.kill();rc=p.wait();stop_reason += '_KILL_AFTER_TERM_TIMEOUT'
++receipt=dict(exit_code=rc,stop_reason=stop_reason,started_utc=started,ended_utc=datetime.datetime.now(datetime.timezone.utc).isoformat(),elapsed_seconds=time.monotonic()-start,children_max_rss_bytes=resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss,**identity)
++(obs/'execution.json').write_text(json.dumps(receipt,indent=2)+'\n')
++print(json.dumps(receipt));raise SystemExit(rc if rc else (1 if stop_reason else 0))
+-- 
+2.54.0 (Apple Git-157)
+

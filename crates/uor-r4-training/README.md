@@ -70,6 +70,18 @@ reach the unchanged native391-row gates. See the [saved-credit record](../../doc
 for exact policy, resource admission and execution status. Historical modes and
 the full conditional/own-feedback qualification boundary remain unchanged.
 
+The distinct `prefix_transaction: "protected_legal_set"` uses the same strict saved
+credit authority and unchanged native transaction. Offline `microlp=0.6.0` chooses
+all 1920 integer/fractional-noop destinations jointly under a zero-margin linear
+target with 4096 branch nodes and no time cutoff. That target is numerically
+stricter than the unchanged norm-tolerant actual-bit screen; all native gates and
+positive-only own-feedback qualification still apply. Solver termination is not
+a mathematical certificate. See the [direct construction record](../../docs/labs/direct-legal-construction-2026-10-09/README.md)
+for the fixed mechanism, exact evidence and execution status. It adds no serving
+dependency or new gradient pass. The centered integer-displacement encoding preserves
+the original legal domain. Both tested encodings returned a backend singular-matrix
+error with no native proposal; this constructor remains operationally unqualified.
+
 ## Complete-prefix native dialogue learning
 
 `dialogue-prefix-fit` connects the strict retained R1d parameter import to exact

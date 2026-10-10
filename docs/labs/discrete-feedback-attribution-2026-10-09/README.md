@@ -165,3 +165,6 @@ under the joint protected inequalities and strict objective descent, with an
 explicit no-solution-found outcome and unchanged independent native gates. Review
 that generic mechanism before implementation; do not reuse a continuous-feedback
 parameter sweep or claim feasibility from positive linearized margins.
+
+
+Follow-through: [direct legal construction](../direct-legal-construction-2026-10-09/README.md) implemented this successor. Absolute and centered representations both encountered a backend singular-matrix error before any proposal; the next question is the failing solver basis, not another feedback sweep. This does not change the saved attribution above.

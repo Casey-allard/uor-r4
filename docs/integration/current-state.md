@@ -1,3 +1,9 @@
+## Direct legal construction is blocked by backend factorization — October 9
+
+The [direct legal-set constructor](../labs/direct-legal-construction-2026-10-09/README.md) integrates one bounded mixed-integer offer into the unchanged protected native transaction, using the saved 1,920-coordinate credit and 380 guard rows. Both absolute-code and mathematically equivalent centered-displacement attempts returned `InternalError("Singular matrix")` without an assignment or proposal; the failing basis/phase and search statistics remain unavailable. Each enclosing pipeline independently reloaded the unchanged original input245 artifact at 5/15 conditional winners, 17/17 references and 380/380 original guards, with zero new training graphs/backwards; accepted 8/512 and the separate conditional 9/15 artifact remain unchanged. **KEEP** implementation and sealed execution evidence, constructor **NOT YET PROMOTED**; this is neither a candidate negative nor an infeasibility result, and actual-nine/fresh/full512 remain NOT_RUN.
+
+**Next:** Instrument the exact failing LP basis and factorization context on the saved problem before a specific numerical/backend repair; preserve all constraints and do not run a third blind retry.
+
 ## 2026-10-09 — Step 1 cannot be read from outside the crate: the mixture row is PRIVATE (deepseek, #2029)
 
 Record: [pcopy-read-attempt-2026-10-09](../labs/pcopy-read-attempt-2026-10-09/README.md). **CPU only, no
