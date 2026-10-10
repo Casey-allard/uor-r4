@@ -1,3 +1,40 @@
+## 2026-10-10 — Binding-dense mixture fails (20/40 → 17/40); the pointer line reaches 3/3 and pivots to the token-identity run (deepseek, #2029)
+
+The [binding-dense round](../labs/binding-dense-2026-10-10/README.md) is **cycle 3** of the standing goal. Cycle 2 named the
+deficit — the failing memory rows are **selection between two stated values** — and the recall generator's `generator=v2`
+dilutes the families that teach that selection with six added families. This cycle ran the same recipe on
+**`generator=v1`**, whose 12,150-dialogue arm is **37.5 % binding dialogues** (against ~15 % in v2; the 200-dialogue probe
+reports exactly the six v1 families), at the two shares whose reply cost is acceptable, pre-registered on #2029 before any
+compute; one pod, **~6 minutes, ≈ $0.30**.
+
+**It fails.** v5 memory `check_pass` **20/40 (v2, 10 % dose) → 17/40 (v1, 10.2 %)** and **17/40** at 25.5 % — three rows
+worse at the same dose — and the failure mix gets worse rather than better: wrong-value 19 of 40 at V10, and at V25 **seven
+rows name the distractor's key**, a failure mode the v2 arms never produced (0 rows at D10 and D25). The pre-registered bar
+(memory ≥ 21/40 **and** reply ≥ 29/232 together) is not met, the line's count reaches **3/3**, and this delivery carries the
+**pivot card** D21 requires.
+
+**The pivot, with its evidence.** Three cycles have measured every non-architectural lever: the **mixture** is the only one
+that moved the panel (base 10/40 → 20/40 at a 10 % share, 20/40 at 25 %, 22/40 at 55 %, with the reply cost nil at 10 % and
+significant from 25 %); the **copy gate** (#2145) is flat; the **read-binding objective** (#2155) reaches its training target
+(bound mass 0.73 → 0.90) and leaves the panel at 19/40; and **re-weighting the mixture's own families** makes it worse. The
+residual deficit is *value selection*, and the pointer that does the copying has **no identity term** — its keys are hidden
+states, so "copy the same token" must be learned, and the copy-mass instrument showed it attending the sentence frame rather
+than the varying slot. **The one decisive run is therefore the token-identity pointer** (`pointer_identity=WEIGHT`, the
+multiset overlap of the six tokens before a source with the six before the query, already in the trainer and never trained on
+this line), at the 10 % mixture dose, arms 0.25 and 1.0 against cycle 1's D10 as the matched anchor, with the **standing bar
+unchanged** (memory ≥ 21/40 and reply ≥ 29/232). **Stop rule:** if no arm clears it, the line stops and is archived, and the
+next M1 piece moves to the mechanism the panel actually needs — an **addressed-memory operator in the dialogue stack**, which
+`dialogue-train` cannot build today (its settings have no memory fields, though the LM trainer has `memory_layers=`), so every
+artifact behind these numbers answers "multi-turn memory" rows with a copy pointer and no memory reader.
+
+**Limitations.** One seed per arm on a 40-row panel; three rows separate 17 from 20, and the discriminating evidence is the
+failure-mode mix, which moved the wrong way; `generator=v1` is one argument on an existing tool and does not test *family
+weights inside v2*; the reply-panel guard covers the primary arm only; criterion 1 remains NOT MET on both halves and the base
+artifact's 10/40 and 43/232 are unchanged.
+
+**Next:** the token-identity pointer run, pre-registered on #2029 before any compute, with the line archived if it does not
+clear the standing bar.
+
 ## 2026-10-10 — Bottleneck objective raises complete replies 145→175/512 (Codex, #2030)
 
 **KEEP:** [episode-bottleneck learning](../labs/m2-bottleneck-2026-10-10/README.md)
