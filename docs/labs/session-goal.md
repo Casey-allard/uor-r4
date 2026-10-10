@@ -1,6 +1,6 @@
 # Session goal for a lab
 
-The owner pastes one of the prompts below into a lab at the start of every session (DeepSeek, Codex or Claude), and the wind-down prompt into a session that is being replaced. It binds the session to its milestone's headline number and closes the loopholes seen on 9 October. That day two labs worked alone for about seven hours: 48 merged PRs, and no milestone moved ([lab-pivot-2026-10-09](lab-pivot-2026-10-09/README.md), [D21](../integration/DECISIONS.md#d21--three-negatives-on-one-line-force-a-pivot-deepseek-trains-the-pointer-fix-codex-stops-the-constraint-line)).
+The owner pastes one of the prompts below into a lab (DeepSeek, Codex or Claude) with `/goal` at the start of every session, and the wind-down prompt into a session that is being replaced. It binds the session to its milestone's headline number and closes the loopholes seen on 9 October. That day two labs worked alone for about seven hours: 48 merged PRs, and no milestone moved ([lab-pivot-2026-10-09](lab-pivot-2026-10-09/README.md), [D21](../integration/DECISIONS.md#d21--three-negatives-on-one-line-force-a-pivot-deepseek-trains-the-pointer-fix-codex-stops-the-constraint-line)).
 
 Every lab's track, including the Claude lab's, is audited against this contract every three hours: [audit.md](audit.md).
 
@@ -35,7 +35,11 @@ Every lab's track, including the Claude lab's, is audited against this contract 
    - a declared next step that is then deferred for more reading;
    - changing an acceptance criterion, panel or grader without an owner decision.
 8. **When you need the owner:** for a new spending class, a criterion change or a conflict with another lab, post the question on the milestone issue, stop that line, and either work on the milestone's other open item or end the session with a card.
-9. **Delivery rules stay as they are** (AGENTS.md, CONTRIBUTING.md § Delivery cadence):
+9. **The finish line is on GitHub, and the prompt states it.**
+   - Every session prompt ends with a `FINISH LINE` clause that names the artifact that ends the session: a merged result PR on the line, or a pivot card or blocked card on the milestone issue.
+   - Status cards, plans, preparation PRs and a session summary never meet it.
+   - The owner pastes the prompt with `/goal`; the hook checks the clause against GitHub, so a lab's goal cannot end early.
+10. **Delivery rules stay as they are** (AGENTS.md, CONTRIBUTING.md § Delivery cadence):
    - merge into `main` before starting the next piece;
    - verify the merge commit on `origin/main`;
    - delete the branch and worktree;
@@ -64,6 +68,12 @@ not, do not open it. When M1 is blocked on the owner, work on M4 (#2032) under t
 Peer audit duty: at each status card, review the Claude lab's PRs merged since your last card
 against docs/labs/audit.md and post "PEER AUDIT (DeepSeek → Claude)" on #2028: OK, or each breach
 with its PR number. Review only; do not change the Claude lab's work.
+
+FINISH LINE: this goal is met ONLY when one of these exists on GitHub: (1) the result PR of the
+pre-registered supervised pointer-target fine-tune, scored on the frozen v5 and reply panels with
+KEEP/REJECT against the bar on #2029, is MERGED into main and a status card citing it is posted on
+#2029; or (2) a pivot card or blocked card on #2029 that names the exact blocker. Status cards,
+plans, preparation PRs and session summaries do not meet it. Until then the goal is not met.
 ```
 
 ## Prompt for the Codex lab (paste at session start)
@@ -89,6 +99,12 @@ pivot card; at most two preparation PRs per session, each naming the run it prep
 on #2030 every 90 minutes or 3 merged PRs; end the session with a result, a pivot card or a blocked
 card. Before opening any PR ask "if this came out the other way, would my next step differ?" — if
 not, do not open it. When M2 is blocked on the owner, work on M3 (#2031) under the same rules.
+
+FINISH LINE: this goal is met ONLY when one of these exists on GitHub: (1) a result PR of a
+model-changing M2 run pre-registered on #2030 in this session, scored on the frozen 512 panel with
+KEEP/REJECT, is MERGED into main and a status card citing it is posted on #2030; or (2) a pivot card
+or blocked card on #2030 that names the exact blocker. Status cards, plans, preparation PRs and
+session summaries do not meet it. Until then the goal is not met.
 ```
 
 ## Prompt for the Claude lab (paste at session start)
@@ -114,6 +130,12 @@ on #2032 every 90 minutes or 3 merged PRs; end the session with a result, a pivo
 card. Before opening any PR ask "if this came out the other way, would my next step differ?" — if
 not, do not open it. Your own PRs are peer-audited by the DeepSeek lab (docs/labs/audit.md); answer any breach it
 posts on #2028 with a pivot card or a fix.
+
+FINISH LINE: this goal is met ONLY when one of these exists on GitHub: (1) the result PR of arm
+group 1 (A, B, D) of the softmax-free read run, with KEEP/REJECT against the bar pre-registered on
+#2032, is MERGED into main and a status card citing it is posted on #2032; or (2) a pivot card or
+blocked card on #2032 that names the exact blocker. Status cards, plans, preparation PRs and session
+summaries do not meet it. Until then the goal is not met.
 ```
 
 ## Prompt to wind down a running session (paste into the old session)

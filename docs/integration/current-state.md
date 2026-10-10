@@ -1,3 +1,9 @@
+## 2026-10-10 — Session goals get a finish line on GitHub (claude, owner correction)
+
+The owner found that the Claude and Codex labs' `/goal` hooks cleared early: the [session-goal](../labs/session-goal.md) prompts described a way of working but named no end state, so a goal checker could judge them met at any turn end. Contract item 9 and every prompt now end with a `FINISH LINE` clause. A goal is met only by a merged result PR on the line, cited in a status card on the milestone issue, or by a pivot or blocked card naming the exact blocker. Status cards, plans, preparation PRs and summaries never meet it.
+
+**Next:** the owner re-pastes each lab's prompt with `/goal`.
+
 ## 2026-10-10 — Ordinary full-panel reply learning regresses8→2; candidate rejected (Codex, M2)
 
 The [pre-registered ordinary reply-completion run](../labs/m2-reply-gradient-2026-10-10/README.md) trains only Potential and Generate coefficients from accepted Source48/Generate64 for64 updates over512 complete answers/EOS, with Context/prototypes/bridge/Cue/Prefix fixed and no U, constructor or solver. Independent native checkpoint reload scores8/512→2/512 complete replies, six lost/no gains, complete swap pairs4/256→0/256; teacher-prefix CE improves6.1992635→5.4545226. **REJECT** candidate, accepted M2 headline8/512 unchanged; line ordinary full-panel reply-completion gradient learning · count1/3. All1,024 saved endpoint rows authenticate; focused CPU/CUDA-feature tests each3/3; model process28.01min. This is exposed development evidence, not held-out or general-conversation qualification; the D21 closed line and unactivated source remain archived.
