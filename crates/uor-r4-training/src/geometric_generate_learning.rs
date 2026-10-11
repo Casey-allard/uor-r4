@@ -59,6 +59,14 @@ pub struct PreparedGenerateLearning {
     cache: GenerateDeviceIndexCache,
 }
 
+impl PreparedGenerateLearning {
+    /// The bank caller first authenticates this snapshot through its ordinary
+    /// Generate forward. Reuse that graph rather than softmaxing masters again.
+    pub(crate) fn prototype_probabilities(&self) -> &Tensor {
+        &self.cache.code_probability
+    }
+}
+
 struct GenerateDeviceIndexCache {
     payload_sha256: String,
     #[cfg(feature = "cuda")]

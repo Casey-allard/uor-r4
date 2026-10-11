@@ -17,6 +17,7 @@ The labs work from these, not only from milestone headline numbers. Every pre-re
 | Pointer-copy head with an exact identity key | M1 #2029 | [pointer-identity-key.md](pointer-identity-key.md) |
 | Read binding (supervised value binding) | M1 #2029 | [read-binding.md](read-binding.md) |
 | Protected / discrete legal construction | M2 #2030 | [protected-legal-construction.md](protected-legal-construction.md) |
+| Live factual/local H4 and Generate prototype learning credit | M2 #2030 | [unified-geometric-carrier-credit.md](unified-geometric-carrier-credit.md) |
 | Starling read: ~7 topological neighbours on the 600-cell, no softmax | M4 #2032 | [starling-read.md](starling-read.md) |
 | E8 orbit memory: an exact-E8-addressed memory in place of the MLP, no softmax | M4 #2032 | [e8-orbit-memory.md](e8-orbit-memory.md) |
 | Spin-native weights: quaternion and icosian maps (Cayley-table products) | M4 #2032 | [spin-native-weights.md](spin-native-weights.md) |

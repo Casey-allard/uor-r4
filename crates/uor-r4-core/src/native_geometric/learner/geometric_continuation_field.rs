@@ -77,6 +77,11 @@ pub struct ContinuationReadCounts {
     pub prototype_reads: u64,
     pub coefficient_reads: u64,
     pub scores: u64,
+    #[serde(default, skip_serializing_if = "zero_count")]
+    pub factor_cache_reads: u64,
+}
+fn zero_count(value: &u64) -> bool {
+    *value == 0
 }
 fn hash(bytes: &[u8]) -> String {
     format!("{:x}", Sha256::digest(bytes))
@@ -429,28 +434,34 @@ impl NativeContinuationField {
                 .algebra()
                 .inverse_counted(local[lane].index(), &mut counts.algebra)?;
         }
+        // The ordered field depends on the prototype, not token identity. -8
+        // is forbidden by admission, so it is an exact unfilled sentinel. This
+        // bounded stack cache survives no call, state change or artifact change.
+        let mut factors = [[-8i8; 120]; MAX_LANES];
         for (token, output) in out.iter_mut().enumerate() {
             let mut sum = 0i32;
             let base = self.prototype_offsets[token];
             for lane in 0..self.lanes() {
                 let prototype = generate.prototypes()[base + lane];
                 bump(&mut counts.prototype_reads)?;
-                let factual_relative = generate.algebra().compose_counted(
-                    factual_inverse[lane],
-                    prototype,
-                    &mut counts.algebra,
-                )?;
-                let local_relative = generate.algebra().compose_counted(
-                    local_inverse[lane],
-                    prototype,
-                    &mut counts.algebra,
-                )?;
-                sum += i32::from(self.coefficient_cross_state(
-                    lane,
-                    factual_relative,
-                    local_relative,
-                )?);
-                bump(&mut counts.coefficient_reads)?;
+                let value = &mut factors[lane][usize::from(prototype)];
+                if *value == -8 {
+                    let factual_relative = generate.algebra().compose_counted(
+                        factual_inverse[lane],
+                        prototype,
+                        &mut counts.algebra,
+                    )?;
+                    let local_relative = generate.algebra().compose_counted(
+                        local_inverse[lane],
+                        prototype,
+                        &mut counts.algebra,
+                    )?;
+                    *value =
+                        self.coefficient_cross_state(lane, factual_relative, local_relative)?;
+                    bump(&mut counts.coefficient_reads)?;
+                }
+                sum += i32::from(*value);
+                bump(&mut counts.factor_cache_reads)?;
             }
             *output = i64::from(sum) << self.score_shift();
             bump(&mut counts.scores)?;
@@ -722,6 +733,104 @@ mod tests {
     }
 
     #[test]
+    fn continuation_cross_state_factors_full_vocabulary_without_erasing_tokens() -> Result<()> {
+        let (binding, _) = fixture()?;
+        let mut vocab = serde_json::Map::new();
+        for id in 0..4096 {
+            let name = match id {
+                0 => "<|bos|>".into(),
+                1 => "<|eos|>".into(),
+                2 => "<|unk|>".into(),
+                3 => ".".into(),
+                _ => format!("token{id}"),
+            };
+            vocab.insert(name, serde_json::json!(id));
+        }
+        let mut tokenizer: serde_json::Value = serde_json::from_slice(TOKENIZER)
+            .map_err(|e| ContinuationFieldError::Artifact(e.to_string()))?;
+        tokenizer["model"]["vocab"] = serde_json::Value::Object(vocab);
+        let source = SourceActionBinding::new(
+            &serde_json::to_vec(&tokenizer)
+                .map_err(|e| ContinuationFieldError::Artifact(e.to_string()))?,
+        )
+        .map_err(|e| ContinuationFieldError::Artifact(e.to_string()))?;
+        let prototypes = (0..4096)
+            .flat_map(|token| (0..8).map(move |lane| ((token + lane * 31) % 120) as u8))
+            .collect::<Vec<_>>();
+        let generate = NativeGeometricGenerate::compile(
+            &source,
+            8,
+            &prototypes,
+            &vec![0; 2048],
+            EnergyTables::zeroed(8, vec![])?,
+        )
+        .map_err(|e| ContinuationFieldError::Artifact(e.to_string()))?;
+        let mut binding = binding;
+        binding.identity.tokenizer_sha256 = generate.metadata().tokenizer_sha256.clone();
+        let mut packed = vec![0; 8 << 13];
+        for lane in 0..8 {
+            for factual in 0..120 {
+                for local in 0..120 {
+                    put_cross(
+                        &mut packed,
+                        lane,
+                        factual,
+                        local,
+                        ((factual * 7 + local * 11 + factual * local + lane) % 15) as i8 - 7,
+                    );
+                }
+            }
+        }
+        let field = NativeContinuationField::compile_cross_state(&binding, &generate, &packed)?;
+        let bytes = field.to_bytes()?;
+        let field = NativeContinuationField::from_bytes(&bytes, &binding, &generate)?;
+        for trial in 0..12 {
+            let factual = (0..8)
+                .map(|lane| H4Code::try_from(((trial * 17 + lane * 19) % 120) as u8))
+                .collect::<std::result::Result<Vec<_>, _>>()
+                .map_err(|e| ContinuationFieldError::Artifact(e.to_string()))?;
+            let local = (0..8)
+                .map(|lane| H4Code::try_from(((trial * 31 + lane * 17) % 120) as u8))
+                .collect::<std::result::Result<Vec<_>, _>>()
+                .map_err(|e| ContinuationFieldError::Artifact(e.to_string()))?;
+            let mut actual = vec![i64::MIN; 4096];
+            let mut counts = ContinuationReadCounts::default();
+            field.score_delta_with_factual_into(
+                &factual,
+                &local,
+                &generate,
+                &mut actual,
+                &mut counts,
+            )?;
+            for (token, &score) in actual.iter().enumerate() {
+                let mut expected = 0i64;
+                for lane in 0..8 {
+                    let prototype = generate.prototypes()[token * 8 + lane];
+                    let left = generate.algebra().compose(
+                        generate.algebra().inverse(factual[lane].index())?,
+                        prototype,
+                    )?;
+                    let right = generate
+                        .algebra()
+                        .compose(generate.algebra().inverse(local[lane].index())?, prototype)?;
+                    expected += i64::from(field.coefficient_cross_state(lane, left, right)?);
+                }
+                assert_eq!(score, expected << 22);
+            }
+            assert_eq!(counts.coefficient_reads, 960);
+            assert_eq!(counts.algebra.product_reads, 1920);
+            assert_eq!(counts.algebra.inverse_reads, 16);
+            assert_eq!(counts.prototype_reads, 32768);
+            assert_eq!(counts.factor_cache_reads, 32768);
+            assert_eq!(counts.scores, 4096);
+            // Shared finite routes do not remove or merge distinct vocabulary IDs.
+            assert_eq!(actual[3], actual[123]);
+        }
+        assert_eq!(field.to_bytes()?, bytes);
+        Ok(())
+    }
+
+    #[test]
     fn continuation_cross_state_zero_roundtrip_and_legacy_contract() -> Result<()> {
         let (binding, generate) = fixture()?;
         let zero =
@@ -748,9 +857,10 @@ mod tests {
         )?;
         assert_eq!(output, [0; 6]);
         assert_eq!(counts.algebra.inverse_reads, 4);
-        assert_eq!(counts.algebra.product_reads, 24);
+        assert_eq!(counts.algebra.product_reads, 18);
         assert_eq!(counts.prototype_reads, 12);
-        assert_eq!(counts.coefficient_reads, 12);
+        assert_eq!(counts.coefficient_reads, 9);
+        assert_eq!(counts.factor_cache_reads, 12);
         assert_eq!(counts.scores, 6);
         assert!(zero
             .score_delta_into(&codes(119, 0)?, &generate, &mut output, &mut counts,)

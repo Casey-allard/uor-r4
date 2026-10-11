@@ -3,7 +3,7 @@
 //! The caller owns a separate causal ContextQ4(query || actual emitted prefix)
 //! replay from identity. It must supply that replay's retained states; this
 //! scorer cannot infer query/prefix provenance from IDs or tensor shapes.
-//! Cross-state fields also require the actual frozen post-bridge factual state.
+//! Cross-state fields also require the actual post-bridge factual state.
 //! No labels, source records, answer lengths or first-token gates enter here.
 //!
 //! Authenticated packed coefficients and frozen Generate prototypes supply
@@ -11,6 +11,8 @@
 //! coefficient credit is added with a subtraction-first zero-valued term.
 //! The optional hard-onehot full120 utility method credits local state choices;
 //! it does not differentiate prototype choices or a global recurrent posterior.
+//! The explicit v3 joint method adds separate factual/local/prototype conditional
+//! utilities, with the other carriers held at their native values.
 //! Refresh prepare_native and all graphs after every optimizer update. CPU
 //! checks packed-master freshness; CUDA freshness is an explicit caller duty.
 //! The ordinary bank scorer must add both native deltas and graph deltas before
@@ -37,6 +39,7 @@ use crate::{
 
 pub const COEFFICIENT_CREDIT_SCOPE: &str = "authenticated-native-Q24-continuation-delta;shared-full120-unary-selected-quarter-grid-STE;frozen-causal-local-state-and-existing-token-prototypes;all-Generate-IDs-every-step;one-final-common-clip-and-token-alias-loss/1";
 pub const STATE_CREDIT_SCOPE: &str = "authenticated-native-Q24-continuation-delta;selected-quarter-grid-STE-once;hard-retained-onehot120-local-state-utility;detached-unary-full120-conditional-utilities;frozen-existing-token-prototypes;no-input-renormalization;local-conditional-surrogate-not-global-posterior/1";
+pub const JOINT_CREDIT_SCOPE: &str = "authenticated-v3-cross-state-H4;selected-quarter-grid-coefficient-STE-once;independent-factual-local-prototype-full120-conditional-utilities;other-carriers-held-native;detached-factors;one-native-forward-and-common-pool;first-order-surrogate-not-hard-choice-derivative-or-joint-posterior/1";
 const Q24: f64 = 16_777_216.;
 // V1 quarter shadow times1/4 is nibble<<20; v2/v3 times1 is nibble<<22.
 const QUARTER_TO_NATS: f64 = 0.25;
@@ -90,6 +93,8 @@ pub struct ContinuationLearningCosts {
     /// Scalar-only admission of optional retained-state onehot carriers.
     pub state_carrier_validation_scalars: usize,
     pub state_carrier_staged_bytes: usize,
+    pub prototype_carrier_rows: usize,
+    pub conditional_utility_bytes_upper: usize,
     pub credit_scope: &'static str,
 }
 
@@ -520,6 +525,120 @@ impl ContinuationLearningWeights {
         self.forward_cached_states_on_device(prepared, local, None, Some(factual))
     }
 
+    /// Exact existing hard forward, plus independent conditional credit through
+    /// the actual carriers. Each utility varies only one carrier, not a joint
+    /// distribution over 120^3 combinations. Prototype probabilities must come
+    /// from the same authenticated current Generate snapshot.
+    pub(crate) fn forward_prepared_joint_choices_on_device(
+        &self,
+        prepared: &PreparedContinuationLearning,
+        factual: &[H4Code],
+        local: &[H4Code],
+        factual_choices: Option<&Tensor>,
+        local_choices: Option<&Tensor>,
+        prototype_probabilities: Option<&Tensor>,
+    ) -> Result<ContinuationDeviceLearningOutput> {
+        if !self.cross_state {
+            return Err(invalid(
+                "joint carrier credit requires v3 cross-state field",
+            ));
+        }
+        let mut output =
+            self.forward_prepared_coefficients_with_factual_on_device(prepared, factual, local)?;
+        for (choices, codes) in [(factual_choices, factual), (local_choices, local)] {
+            if let Some(choices) = choices {
+                carrier_admit(choices, codes, self.device())?;
+            }
+        }
+        if let Some(probabilities) = prototype_probabilities {
+            if probabilities.dims() != [self.vocab_size(), self.lanes, ROOT_COUNT]
+                || probabilities.dtype() != DType::F32
+                || !probabilities.device().same_device(self.device())
+            {
+                return Err(invalid(
+                    "continuation prototype probability shape/dtype/device differs",
+                ));
+            }
+            if self.device().is_cpu() {
+                let values = probabilities.flatten_all()?.to_vec1::<f32>()?;
+                if values.chunks_exact(ROOT_COUNT).any(|row| {
+                    row.iter().any(|v| !v.is_finite() || *v < 0.)
+                        || (row.iter().sum::<f32>() - 1.).abs() > 1e-5
+                }) {
+                    return Err(invalid("continuation prototype probabilities invalid"));
+                }
+            }
+        }
+        let vocab = self.vocab_size();
+        let relative = &prepared.cache.relative;
+        let frozen =
+            (q4_shadow_ste(self.unary.as_tensor())? * self.quarter_to_score_units())?.detach();
+        let mut utility = Tensor::zeros(vocab, DType::F32, self.device())?;
+        for lane in 0..self.lanes {
+            let f = relative.narrow(0, usize::from(factual[lane].index()), 1)?;
+            let l = relative.narrow(0, usize::from(local[lane].index()), 1)?;
+            let prototype_ids = &prepared.cache.prototypes[lane];
+            let fr = f.reshape(ROOT_COUNT)?.index_select(prototype_ids, 0)?;
+            let lr = l.reshape(ROOT_COUNT)?.index_select(prototype_ids, 0)?;
+            let table = frozen
+                .narrow(0, lane, 1)?
+                .reshape(ROOT_COUNT * ROOT_COUNT)?;
+            if factual_choices.is_some() || local_choices.is_some() {
+                // [token, alternative state], shared exact inverse/action table.
+                let alternative = relative.t()?.contiguous()?.index_select(prototype_ids, 0)?;
+                for (choices, a, b) in [
+                    (
+                        factual_choices,
+                        alternative.clone(),
+                        lr.reshape((vocab, 1))?,
+                    ),
+                    (local_choices, fr.reshape((vocab, 1))?, alternative),
+                ] {
+                    if let Some(choices) = choices {
+                        let ids = joint_pair_indices(&a, &b)?;
+                        let values = table
+                            .index_select(&ids.flatten_all()?, 0)?
+                            .reshape((vocab, ROOT_COUNT))?;
+                        utility = (&utility
+                            + values.broadcast_mul(&choices.narrow(0, lane, 1)?)?.sum(1)?)?;
+                    }
+                }
+            }
+            if let Some(probabilities) = prototype_probabilities {
+                // The alternative-prototype utility is identical for every
+                // token at this lane: only 120 factor gathers, not V*120.
+                let ids = joint_pair_indices(&f, &l)?;
+                let values = table
+                    .index_select(&ids.flatten_all()?, 0)?
+                    .reshape((1, ROOT_COUNT))?;
+                let probabilities = probabilities
+                    .narrow(1, lane, 1)?
+                    .reshape((vocab, ROOT_COUNT))?;
+                utility = (&utility + probabilities.broadcast_mul(&values)?.sum(1)?)?;
+            }
+        }
+        output.delta_raw_scores = (&output.delta_raw_scores + (&utility - utility.detach())?)?;
+        let states = usize::from(factual_choices.is_some()) + usize::from(local_choices.is_some());
+        let prototypes = usize::from(prototype_probabilities.is_some());
+        output.costs.per_position_device_index_elements +=
+            self.lanes * ROOT_COUNT * (states * vocab + prototypes);
+        output.costs.conditional_choice_rows = (states + prototypes) * self.lanes * vocab;
+        output.costs.max_conditional_utility_elements = if states + prototypes > 0 {
+            vocab * ROOT_COUNT
+        } else {
+            0
+        };
+        output.costs.state_carrier_validation_scalars = states;
+        output.costs.state_carrier_staged_bytes = states * self.lanes * ROOT_COUNT * 4;
+        output.costs.prototype_carrier_rows = prototypes * self.lanes * vocab;
+        output.costs.conditional_utility_bytes_upper =
+            (states + prototypes) * self.lanes * vocab * ROOT_COUNT * 4;
+        if states + prototypes > 0 {
+            output.costs.credit_scope = JOINT_CREDIT_SCOPE;
+        }
+        Ok(output)
+    }
+
     /// Same hard forward plus full120 utility on the actual retained-state
     /// onehot carrier. Do not softmax this carrier a second time.
     pub fn forward_prepared_state_choices(
@@ -782,6 +901,12 @@ impl ContinuationLearningWeights {
             } else {
                 0
             },
+            prototype_carrier_rows: 0,
+            conditional_utility_bytes_upper: if choices {
+                4 * self.lanes * vocab * ROOT_COUNT
+            } else {
+                0
+            },
             credit_scope: if self.cross_state {
                 "authenticated-v3-cross-state-H4;selected-quarter-grid-coefficient-STE;frozen-factual-and-local-carriers-and-prototypes;every-Copy-and-Generate-alias;one-common-clip/3"
             } else if self.shared_action {
@@ -793,6 +918,15 @@ impl ContinuationLearningWeights {
             },
         }
     }
+}
+
+fn joint_pair_indices(left: &Tensor, right: &Tensor) -> Result<Tensor> {
+    // Both exact finite IDs are <120; every result <14400 is exact in F32.
+    Ok(left
+        .to_dtype(DType::F32)?
+        .affine(ROOT_COUNT as f64, 0.)?
+        .broadcast_add(&right.to_dtype(DType::F32)?)?
+        .to_dtype(DType::U32)?)
 }
 
 impl PreparedContinuationLearning {
@@ -1000,6 +1134,147 @@ mod tests {
     #[test]
     fn continuation_cross_state_native_reload_and_copy_gradient() -> Result<()> {
         cross_state_parity(&Device::Cpu)?;
+        Ok(())
+    }
+
+    #[test]
+    fn continuation_joint_carriers_match_exact_one_carrier_counterfactuals() -> Result<()> {
+        let device = Device::Cpu;
+        let (legacy, generate) = fixture(&device)?;
+        let weights = ContinuationLearningWeights::zeroed_cross_state(
+            legacy.binding(),
+            legacy.native_binding(),
+            2,
+            &device,
+        )?;
+        weights.unary.set(&Tensor::from_vec(
+            (0..2 * ROOT_COUNT * ROOT_COUNT)
+                .map(|i| ((i * 7 + i / ROOT_COUNT * 3) % 15) as f32 * 0.25 - 1.75)
+                .collect::<Vec<_>>(),
+            (2, ROOT_COUNT * ROOT_COUNT),
+            &device,
+        )?)?;
+        let prepared = weights.prepare_native(weights.native_binding(), &generate)?;
+        let factual = state(17, 91)?;
+        let local = state(31, 57)?;
+        let fc = carrier(&factual, &device)?;
+        let lc = carrier(&local, &device)?;
+        let vocab = weights.vocab_size();
+        let mut proto = vec![0f32; vocab * 2 * ROOT_COUNT];
+        for token in 0..vocab {
+            for lane in 0..2 {
+                proto[(token * 2 + lane) * ROOT_COUNT
+                    + usize::from(generate.prototypes()[token * 2 + lane])] = 1.;
+            }
+        }
+        let pc = Var::from_vec(proto, (vocab, 2, ROOT_COUNT), &device)?;
+        let base = weights
+            .forward_prepared_coefficients_with_factual_on_device(&prepared, &factual, &local)?;
+        let joint = weights.forward_prepared_joint_choices_on_device(
+            &prepared,
+            &factual,
+            &local,
+            Some(fc.as_tensor()),
+            Some(lc.as_tensor()),
+            Some(pc.as_tensor()),
+        )?;
+        let mut native = vec![0; vocab];
+        prepared
+            .native
+            .score_delta_with_factual_into(
+                &factual,
+                &local,
+                &generate,
+                &mut native,
+                &mut Default::default(),
+            )
+            .map_err(|e| invalid(e.to_string()))?;
+        assert_eq!(joint.delta_scores_q24.to_vec1::<i64>()?, native);
+        assert_eq!(
+            joint.delta_raw_scores.to_vec1::<f32>()?,
+            base.delta_raw_scores.to_vec1::<f32>()?
+        );
+        // Duplicate physical Copy aliases both consume the same token utility.
+        let probe = |raw: &Tensor| -> Result<Tensor> {
+            Ok(raw
+                .index_select(&Tensor::from_vec(vec![4u32, 4], 2, &device)?, 0)?
+                .sum_all()?)
+        };
+        let grads = probe(&joint.delta_raw_scores)?.backward()?;
+        let base_grads = probe(&base.delta_raw_scores)?.backward()?;
+        assert_eq!(
+            gradient(&grads, weights.unary.as_tensor())?,
+            gradient(&base_grads, weights.unary.as_tensor())?
+        );
+        let mut expected_f = vec![0f32; 2 * ROOT_COUNT];
+        let mut expected_l = expected_f.clone();
+        let mut expected_p = vec![0f32; vocab * 2 * ROOT_COUNT];
+        let algebra = generate.algebra();
+        let value = |lane: usize, f: u8, l: u8, p: u8| -> Result<f32> {
+            let fr = algebra
+                .relative(f, algebra.identity(), p)
+                .map_err(|e| invalid(e.to_string()))?;
+            let lr = algebra
+                .relative(l, algebra.identity(), p)
+                .map_err(|e| invalid(e.to_string()))?;
+            Ok(f32::from(
+                prepared
+                    .native
+                    .coefficient_cross_state(lane, fr, lr)
+                    .map_err(|e| invalid(e.to_string()))?,
+            ) * 0.25)
+        };
+        for lane in 0..2 {
+            let p = generate.prototypes()[4 * 2 + lane];
+            for r in 0..ROOT_COUNT {
+                expected_f[lane * ROOT_COUNT + r] =
+                    2. * value(lane, r as u8, local[lane].index(), p)?;
+                expected_l[lane * ROOT_COUNT + r] =
+                    2. * value(lane, factual[lane].index(), r as u8, p)?;
+                expected_p[(4 * 2 + lane) * ROOT_COUNT + r] =
+                    2. * value(lane, factual[lane].index(), local[lane].index(), r as u8)?;
+            }
+        }
+        assert_eq!(gradient(&grads, fc.as_tensor())?, expected_f);
+        assert_eq!(gradient(&grads, lc.as_tensor())?, expected_l);
+        assert_eq!(gradient(&grads, pc.as_tensor())?, expected_p);
+        assert_eq!(joint.costs.credit_scope, JOINT_CREDIT_SCOPE);
+        assert_eq!(joint.costs.prototype_carrier_rows, vocab * 2);
+        assert_eq!(
+            joint.costs.conditional_utility_bytes_upper,
+            3 * 2 * vocab * ROOT_COUNT * 4
+        );
+        assert_eq!(
+            joint.costs.per_position_device_index_elements,
+            3 * vocab * 2 + 2 * ROOT_COUNT * (2 * vocab + 1)
+        );
+        assert!(weights
+            .forward_prepared_joint_choices_on_device(
+                &prepared,
+                &factual,
+                &local,
+                Some(lc.as_tensor()),
+                None,
+                None,
+            )
+            .is_err());
+        assert!(weights
+            .forward_prepared_joint_choices_on_device(
+                &prepared,
+                &factual,
+                &local,
+                None,
+                None,
+                Some(&Tensor::zeros((vocab, 2, ROOT_COUNT), DType::F32, &device)?),
+            )
+            .is_err());
+        assert!(
+            legacy
+                .forward_prepared_joint_choices_on_device(
+                    &prepared, &factual, &local, None, None, None,
+                )
+                .is_err()
+        );
         Ok(())
     }
 

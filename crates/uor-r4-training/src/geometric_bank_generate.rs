@@ -584,6 +584,7 @@ struct ContinuationBranch<'a> {
     weights: &'a ContinuationLearningWeights,
     prepared: &'a PreparedContinuationLearning,
     context_credit: bool,
+    prototype_credit: bool,
 }
 
 /// Separate local replay and its cost/credit witness, never a supplied answer record.
@@ -757,12 +758,14 @@ impl<'a, 'source> PreparedBankGenerate<'a, 'source> {
             weights,
             prepared,
             context_credit: false,
+            prototype_credit: false,
         });
         Ok(self)
     }
 
-    /// Optional local full120 conditional pullback; it is not prototype credit
-    /// or a derivative of the global recurrent posterior.
+    /// Optional full120 conditional pullback. V3 credits factual and local
+    /// carriers independently; unary versions retain local-only credit.
+    /// This is not prototype credit or a global recurrent posterior derivative.
     pub fn with_continuation_context_credit(mut self, enabled: bool) -> Result<Self> {
         let branch = self
             .continuation
@@ -772,9 +775,27 @@ impl<'a, 'source> PreparedBankGenerate<'a, 'source> {
         Ok(self)
     }
 
+    /// Reuse the current Generate snapshot's prototype graph for the v3 field.
+    /// No extra prototype softmax or normalization enters the native forward.
+    pub fn with_continuation_prototype_credit(mut self, enabled: bool) -> Result<Self> {
+        let branch = self
+            .continuation
+            .as_mut()
+            .ok_or_else(|| invalid("bank continuation field must be installed first"))?;
+        if enabled && !branch.weights.is_cross_state() {
+            return Err(invalid(
+                "continuation prototype credit requires cross-state field",
+            ));
+        }
+        branch.prototype_credit = enabled;
+        Ok(self)
+    }
+
     fn apply_continuation(
         &self,
         generated: &mut GenerateLearningOutput,
+        factual_states: &[H4Code],
+        factual_choices: &Tensor,
         query: &[u32],
         actual_prefix: &[u32],
     ) -> Result<Option<BankContinuationOutput>> {
@@ -793,7 +814,31 @@ impl<'a, 'source> PreparedBankGenerate<'a, 'source> {
         }
         let local_context = self.realizer.context_output(&token_ids, false)?;
         let (states, choices) = final_retained_state(&local_context, self.generate.lanes())?;
-        let field = if branch.context_credit {
+        let field = if branch.weights.is_cross_state() {
+            let device = branch.weights.forward_prepared_joint_choices_on_device(
+                branch.prepared,
+                factual_states,
+                &states,
+                branch.context_credit.then_some(factual_choices),
+                branch.context_credit.then_some(&choices),
+                branch
+                    .prototype_credit
+                    .then_some(self.prepared_generate.prototype_probabilities()),
+            )?;
+            let delta_scores_q24 = device.delta_scores_q24.to_vec1::<i64>()?;
+            let mut costs = device.costs;
+            costs.hard_score_download_bytes = if self.generate.device().is_cuda() {
+                8 * self.generate.vocab_size()
+            } else {
+                0
+            };
+            ContinuationLearningOutput {
+                delta_raw_scores: device.delta_raw_scores,
+                delta_scores_q24,
+                native_counts: device.native_counts,
+                costs,
+            }
+        } else if branch.context_credit {
             branch
                 .weights
                 .forward_prepared_state_choices(branch.prepared, &states, &choices)?
@@ -1040,7 +1085,8 @@ impl<'a, 'source> PreparedBankGenerate<'a, 'source> {
             &states,
             &logits,
         )?;
-        let continuation = self.apply_continuation(&mut generated, query, actual_prefix)?;
+        let continuation =
+            self.apply_continuation(&mut generated, &states, &logits, query, actual_prefix)?;
         if !ids.is_empty()
             && self
                 .continuation
@@ -1156,7 +1202,8 @@ impl<'a, 'source> PreparedBankGenerate<'a, 'source> {
             &states,
             &logits,
         )?;
-        let continuation = self.apply_continuation(&mut generated, query, actual_prefix)?;
+        let continuation =
+            self.apply_continuation(&mut generated, &states, &logits, query, actual_prefix)?;
         let actions = self
             .pool
             .reduce_trace(&generated.scores_q24, &[], &[])

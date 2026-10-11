@@ -1,3 +1,48 @@
+## 2026-10-11 - Saved437 geometric carrier connection prepared; deferred numerical sources preserved inactive (codex, #2030)
+
+Owner pivot [6111898445](https://github.com/UOR-Foundation/uor-r4/issues/2030#issuecomment-6111898445)
+replaces the unfinished generic-constructor comparison with unified geometric
+integration. [Canonical record](../labs/unified-geometric-integration-2026-10-11/README.md),
+[mechanism](../mechanisms/unified-geometric-carrier-credit.md) and
+[preregistration](../labs/unified-geometric-integration-2026-10-11/PREREGISTRATION.md)
+name run `unified-geometric-carrier-437-20261011`. Preparation delivery is pending
+protected merge: line unified geometric integration, count1/3; headline
+dev437/512 plus opened diagnostic0/128 -> unchanged, panel fitting. Fresh
+qualification and model/CUDA fitting are NOT_RUN.
+
+Source connects actual post-read factual/local H4 carriers and current Generate
+prototype choices to the saved v3 field's independent full120 conditional
+utilities, preserving hard forward and coefficient credit once. The native
+finite-factor kernel retains the full4096 pool but evaluates each encountered
+prototype once per lane. Ten native fixtures and one authenticated saved437
+position preserve exact scores/artifact bytes: coefficient reads32768->960 and
+H4 products65536->1920; token/prototype reads remain32768. Nine conditional-credit
+and two actual-bank fixtures pass; operation counts are not speed/energy or
+language results. Rebased final exact-head checks remain part of PR delivery.
+
+The two-seed ON/OFF comparison learns the same Context/prototype inventory for
+two all512 epochs with the original pooled-ranking/EOS objective. Independent
+[TEST FITNESS: FIT CONDITIONAL6112620056](https://github.com/UOR-Foundation/uor-r4/issues/2030#issuecomment-6112620056)
+requires actual CUDA/original-eight parity and full512 saved437 baseline before
+each first update. Four development reports must seal before the unchanged
+opened128 diagnostic; that draw is not genuinely fresh. No dense transformer,
+new MLP, hash-derived semantic metric or cross-domain geometry cast is adopted.
+
+Claude's delivered E8 orbit memory/icosian pairs and latest Starling content-gate
+result are credited, not duplicated. E8 learned-key controls still win; Starling
+recall remains at chance despite aggregate source hits; residual icosian
+direction is repaired but norm/device snap/native activation boundaries remain.
+
+Numerical source3/source6/source7 are checked [INACTIVE patches and INDEX rows](../history/branch-archive/INDEX.md#deferred-numerical-sources-11-october).
+Source6's owned interrupted replay is unfinished, not-negative, no solver
+checkpoint; source7 device/fullLP/producer are NOT_RUN. The owned PRO6000 was
+released/deleted after verified cloud receipts; no idle owned pod remains.
+Same inclusive cycle/ledger continues with prospective10h same-class extension
+to1650772756ms; prior work and all preparation/storage/review/wait/delivery are
+charged without reset. Local shared-floor interruptions affect setup, not the
+mechanism. Next: finish protected preparation delivery, then admitted necessary
+CUDA gates and the registered comparison, not another CPU LP replay.
+
 ## 2026-10-11 — Starling read, rung 3: a content gate does not lift recall; the value path is suspect; line at 3/3 (claude, #2032)
 
 The [record](../labs/starling-content-2026-10-11/README.md) gates the kept 7 neighbours by the read's own q·k instead of the 4-d address dot. There are no new parameters and still no softmax.

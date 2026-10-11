@@ -96,6 +96,8 @@ mod readout_constraints;
 mod reply_completion;
 #[path = "geometric_frozen_map_fit/u_constraints.rs"]
 mod u_constraints;
+#[path = "geometric_frozen_map_fit/unified_geometry.rs"]
+mod unified_geometry;
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 #[derive(Clone, Copy, Deserialize, PartialEq, Eq)]
@@ -108,6 +110,7 @@ enum Mode {
     EntryScorerFit,
     ContinuationOnly,
     CrossStateContinuation,
+    UnifiedGeometry,
     JointContinuation,
     ReplyCompletion,
     ReplyQualification,
@@ -527,6 +530,8 @@ struct Args {
     #[serde(default)]
     joint_continuation: Option<JointContinuationConfig>,
     #[serde(default)]
+    unified_geometry: Option<unified_geometry::Config>,
+    #[serde(default)]
     reference_replay: Option<ReferenceReplayConfig>,
     #[serde(default)]
     native_code_proposals: bool,
@@ -805,7 +810,8 @@ fn args() -> Result<(Args, Vec<u8>)> {
     continuation_settings(&a)?;
     joint_continuation_settings(&a)?;
     reference_replay_settings(&a)?;
-    if ![1001, 1002, 1003].contains(&a.seed)
+    unified_geometry::settings(&a)?;
+    if !(if a.mode == Mode::UnifiedGeometry { [1001, 2001].contains(&a.seed) } else { [1001, 1002, 1003].contains(&a.seed) })
         || a.maximum_seconds == 0
         || a.maximum_report_bytes < (64 << 20)
         || a.maximum_report_bytes > if a.native_code_proposals { 4 << 30 } else { 2 << 30 }
@@ -841,6 +847,17 @@ fn validate_input_output_paths(a: &Args) -> Result<()> {
     .chain(a.baseline.iter())
     .chain(a.prediction_control_resume.iter())
     .chain(a.cross_state_resume.iter().map(|c| &c.root))
+    .chain(a.unified_geometry.iter().map(|c| &c.saved437))
+    .chain(
+        a.unified_geometry
+            .iter()
+            .filter_map(|c| c.opened_diagnostic.as_ref())
+            .flat_map(|d| {
+                d.sealed_development_reports
+                    .iter()
+                    .chain([&d.inputs, &d.labels])
+            }),
+    )
     .chain(a.retained_context_root.iter())
     .chain(
         a.prefix_context_credit
@@ -4656,7 +4673,9 @@ struct ContinuationParent {
 }
 impl ContinuationParent {
     fn load(a: &Args) -> Result<Self> {
-        if reply_completion::is_mode(a.mode) {
+        if a.mode == Mode::UnifiedGeometry {
+            unified_geometry::settings(a)?;
+        } else if reply_completion::is_mode(a.mode) {
             reply_completion::settings(a)?;
         } else if a.mode == Mode::JointContinuation {
             joint_continuation_settings(a)?
@@ -6534,6 +6553,9 @@ fn run(a: &Args, start: Instant) -> Result<Value> {
         return context_path_credit::run(a, start);
     }
     let d = cuda()?;
+    if a.mode == Mode::UnifiedGeometry {
+        return unified_geometry::run(a, start, &d);
+    }
     if reply_completion::is_mode(a.mode) {
         return reply_completion::run(a, start, &d);
     }
@@ -6818,6 +6840,7 @@ fn main() -> Result<()> {
     let start = Instant::now();
     let result = (|| -> Result<Value> {
         if reply_completion::is_mode(a.mode)
+            || a.mode == Mode::UnifiedGeometry
             || a.context_path_credit.is_some()
             || a.prefix_artifact_check.is_some()
             || a.prefix_fragment_learning.is_some()

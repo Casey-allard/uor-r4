@@ -173,10 +173,12 @@ Context–prototype learning are **reopened by the owner under D22**. The constr
 stopped on an absolute LU-pivot tolerance before native panel scoring; that is a
 numerical blocker to fix, not evidence against the mechanism. The earlier joint
 24-row/96-update configuration used the loss subsequently replaced by pooled
-ranking. The ordered work is to repair the constructor and score a legal
-displacement on development512 and the owner-authorized opened128 diagnostic,
-with new fresh qualification reserved for later; then train Context and prototypes
-with pooled ranking on all512 rows and at least two seeds. Historical source and
+ranking. The owner's later unified-geometric pivot defers the unfinished
+generic constructor without a mechanism negative. The active connection trains
+the actual factual/local H4 carriers and Generate prototypes through saved437's
+ordered field, with matched credit ON/OFF, pooled ranking on all512 rows and two
+seeds. All four development reports seal before the unchanged opened128
+diagnostic; genuinely fresh qualification remains later. Historical source and
 reports remain in the [branch archive](docs/history/branch-archive/INDEX.md).
 
 Ordinary complete-answer training of Potential and Generate coefficients has
@@ -209,10 +211,14 @@ EOS-ending replies are wrong. D22 records the 437/512 development gain with zero
 not an M2 milestone move. An expanded-bank replay preparation was interrupted
 by the owner-directed priority change before any optimizer update; its
 [unfinished source and evidence](docs/labs/m2-bank-transfer-interrupted-2026-10-10/README.md)
-are preserved without a KEEP or negative verdict. The next work follows the
-reopened constructor and joint-learning orders. Its [prepared constructor cycle](docs/labs/d22-constructor-2026-10-10/README.md)
-is retained inactive for an owner-requested session transfer; numerical qualification
-and model scoring remain pending, without a negative count. This establishes no general-chat,
+are preserved without a KEEP or negative verdict. The owner's
+[unified geometric integration](docs/labs/unified-geometric-integration-2026-10-11/README.md)
+pivot prepares live Context/prototype credit and exact finite-factor reuse at
+identical saved437. Host fixtures preserve scores while reducing repeated
+coefficient/product counts; actual CUDA fitting, full512 replay and transfer are
+NOT_RUN. The [prepared constructor cycle](docs/labs/d22-constructor-2026-10-10/README.md)
+and numerical successors remain inactive, indexed and unfinished, without a
+mechanism negative. This establishes no general-chat,
 geometric advantage or full-path energy claim.
 
 **Models trained**

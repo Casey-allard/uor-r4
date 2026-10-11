@@ -1,0 +1,632 @@
+diff --git a/crates/uor-r4-training/vendor/microlp/src/lu.rs b/crates/uor-r4-training/vendor/microlp/src/lu.rs
+index f27e93014..8b4e63bb6 100644
+--- a/crates/uor-r4-training/vendor/microlp/src/lu.rs
++++ b/crates/uor-r4-training/vendor/microlp/src/lu.rs
+@@ -744,7 +744,29 @@ mod tests {
+ 
+ // No rounded pivot-zero test occurs in this fallback. The rationals represent
+ // the exact stored IEEE inputs. Rounded factors are admitted only by verify().
+-fn exact_factorize(basis: &crate::repair::Basis) -> Result<LUFactors, Error> {
++fn exact_resource_limits(n: usize) -> Result<(u64, u64), Error> {
++    if n <= 512 {
++        Ok((65_536, 16_384))
++    } else if n <= 1_040 {
++        // The pinned saved437 parent submits 380 + 3*220 rows. Larger bases
++        // get a smaller per-cell bit allowance rather than unbounded storage.
++        Ok((4_096, 4_096))
++    } else {
++        Err(Error::ExactResourceLimit)
++    }
++}
++
++pub(crate) fn exact_factorize(basis: &crate::repair::Basis) -> Result<LUFactors, Error> {
++    exact_resource_limits(basis.columns.len())?;
++    if basis.columns.len() > 512 {
++        if let Some(factors) = triangular_exact_factorize(basis)? {
++            return Ok(factors);
++        }
++    }
++    dense_exact_factorize(basis)
++}
++
++fn dense_exact_factorize(basis: &crate::repair::Basis) -> Result<LUFactors, Error> {
+     match fraction_free_factorize(basis) {
+         Ok(f) => Ok(f),
+         Err(Error::SingularMatrix) => Err(Error::SingularMatrix),
+@@ -752,16 +774,153 @@ fn exact_factorize(basis: &crate::repair::Basis) -> Result<LUFactors, Error> {
+     }
+ }
+ 
++// Peel only exact structural zeros: permutations give B'=[T E;0 F]. T and E
++// retain original dyadic coefficients; no Schur arithmetic or row is dropped.
++fn triangular_exact_factorize(basis: &crate::repair::Basis) -> Result<Option<LUFactors>, Error> {
++    let n = basis.columns.len();
++    let mut active_rows = vec![true; n];
++    let mut active_cols = vec![true; n];
++    let mut peeled = Vec::new();
++    loop {
++        let before = peeled.len();
++        for c in 0..n {
++            if !active_cols[c] {
++                continue;
++            }
++            let (rows, values) = &basis.columns[c];
++            let mut entries = rows
++                .iter()
++                .zip(values)
++                .filter(|&(&r, &v)| active_rows[r] && v != 0.0);
++            let Some((&r, &diagonal)) = entries.next() else {
++                crate::repair::count(|s| s.exact_singular += 1);
++                return Err(Error::SingularMatrix);
++            };
++            if entries.next().is_none() {
++                peeled.push((c, r, diagonal));
++                active_rows[r] = false;
++                active_cols[c] = false;
++            }
++        }
++        if before == peeled.len() {
++            break;
++        }
++    }
++    let p = peeled.len();
++    if p == 0 {
++        return Ok(None);
++    }
++    let core_rows = (0..n).filter(|&r| active_rows[r]).collect::<Vec<_>>();
++    let core_cols = (0..n).filter(|&c| active_cols[c]).collect::<Vec<_>>();
++    let m = n - p;
++    if core_rows.len() != m || core_cols.len() != m {
++        return Err(Error::UnreliableFactorization);
++    }
++    let mut row_to_core = vec![None; n];
++    for (i, &r) in core_rows.iter().enumerate() {
++        row_to_core[r] = Some(i);
++    }
++    let columns = core_cols
++        .iter()
++        .map(|&c| {
++            let (rows, values) = &basis.columns[c];
++            rows.iter()
++                .zip(values)
++                .filter_map(|(&r, &v)| row_to_core[r].filter(|_| v != 0.0).map(|i| (i, v)))
++                .unzip()
++        })
++        .collect::<Vec<(Vec<usize>, Vec<f64>)>>();
++    let core_basis = crate::repair::Basis::new(m, |c| (&columns[c].0, &columns[c].1))?;
++    let core = dense_exact_factorize(&core_basis)?;
++    let mut row_new2orig = peeled.iter().map(|&(_, r, _)| r).collect::<Vec<_>>();
++    let mut col_new2orig = peeled.iter().map(|&(c, _, _)| c).collect::<Vec<_>>();
++    for i in 0..m {
++        let r = core.row_perm.as_ref().map_or(i, |perm| perm.new2orig[i]);
++        let c = core.col_perm.as_ref().map_or(i, |perm| perm.new2orig[i]);
++        row_new2orig.push(core_rows[r]);
++        col_new2orig.push(core_cols[c]);
++    }
++    let inverse = |new2orig: &[usize]| {
++        let mut orig2new = vec![0; n];
++        for (i, &old) in new2orig.iter().enumerate() {
++            orig2new[old] = i;
++        }
++        orig2new
++    };
++    let row_orig2new = inverse(&row_new2orig);
++    let col_orig2new = inverse(&col_new2orig);
++    let core_diagonal = core
++        .upper
++        .diag
++        .as_ref()
++        .ok_or(Error::UnreliableFactorization)?;
++    let mut lower = SparseMat::new(n);
++    let mut upper = SparseMat::new(n);
++    let mut diagonal = Vec::with_capacity(n);
++    for c in 0..n {
++        let original_c = col_new2orig[c];
++        let (rows, values) = &basis.columns[original_c];
++        let mut top = rows
++            .iter()
++            .zip(values)
++            .filter_map(|(&r, &v)| {
++                let i = row_orig2new[r];
++                (i < p && i != c && v != 0.0).then_some((i, v))
++            })
++            .collect::<Vec<_>>();
++        top.sort_unstable_by_key(|&(r, _)| r);
++        for (r, v) in top {
++            if r >= c {
++                return Err(Error::UnreliableFactorization);
++            }
++            upper.push(r, v);
++        }
++        if c < p {
++            diagonal.push(peeled[c].2);
++        } else {
++            let j = c - p;
++            for (r, &v) in core.upper.nondiag.col_iter(j) {
++                upper.push(p + r, v);
++            }
++            for (r, &v) in core.lower.nondiag.col_iter(j) {
++                lower.push(p + r, v);
++            }
++            diagonal.push(core_diagonal[j]);
++        }
++        upper.seal_column();
++        lower.seal_column();
++    }
++    if std::env::var_os("UOR_MICROLP_PROGRESS").is_some() {
++        eprintln!("d22-numerics event=exact-triangular-split rows={n} peeled={p} core={m}");
++    }
++    Ok(Some(LUFactors {
++        lower: TriangleMat {
++            nondiag: lower,
++            diag: None,
++        },
++        upper: TriangleMat {
++            nondiag: upper,
++            diag: Some(diagonal),
++        },
++        row_perm: Some(Perm {
++            orig2new: row_orig2new,
++            new2orig: row_new2orig,
++        }),
++        col_perm: Some(Perm {
++            orig2new: col_orig2new,
++            new2orig: col_new2orig,
++        }),
++    }))
++}
++
+ // Bareiss elimination on exact column-scaled dyadics. Rounded factors are
+ // admitted only by the unchanged original-basis certificate in lu_factorize.
+ fn fraction_free_factorize(basis: &crate::repair::Basis) -> Result<LUFactors, Error> {
+     use num_bigint::BigInt;
+     use num_rational::BigRational;
+     use num_traits::{One, Signed, ToPrimitive, Zero};
+-    const MAX_RAW_BITS: u64 = 65_536;
+-    const MAX_FACTOR_BITS: u64 = 16_384;
+-    fn rounded(x: BigRational) -> Result<f64, Error> {
+-        if x.numer().bits() > MAX_FACTOR_BITS || x.denom().bits() > MAX_FACTOR_BITS {
++    fn rounded(x: BigRational, max_bits: u64) -> Result<f64, Error> {
++        if x.numer().bits() > max_bits || x.denom().bits() > max_bits {
+             return Err(Error::ExactResourceLimit);
+         }
+         let v = x.to_f64().ok_or(Error::NonFiniteFactorization)?;
+@@ -771,9 +930,7 @@ fn fraction_free_factorize(basis: &crate::repair::Basis) -> Result<LUFactors, Er
+         Ok(v)
+     }
+     let n = basis.columns.len();
+-    if n > 512 {
+-        return Err(Error::ExactResourceLimit);
+-    }
++    let (max_raw_bits, max_factor_bits) = exact_resource_limits(n)?;
+     let mut a = vec![vec![BigInt::zero(); n]; n];
+     let mut scales = vec![BigInt::one(); n];
+     for (c, (rs, vs)) in basis.columns.iter().enumerate() {
+@@ -814,10 +971,16 @@ fn fraction_free_factorize(basis: &crate::repair::Basis) -> Result<LUFactors, Er
+         new2orig.swap(k, row);
+         let pivot = a[k][k].clone();
+         for c in k..n {
+-            upper_rows[k][c] = rounded(BigRational::new(a[k][c].clone(), &previous * &scales[c]))?;
++            upper_rows[k][c] = rounded(
++                BigRational::new(a[k][c].clone(), &previous * &scales[c]),
++                max_factor_bits,
++            )?;
+         }
+         for r in k + 1..n {
+-            lower_rows[r][k] = rounded(BigRational::new(a[r][k].clone(), pivot.clone()))?;
++            lower_rows[r][k] = rounded(
++                BigRational::new(a[r][k].clone(), pivot.clone()),
++                max_factor_bits,
++            )?;
+             for c in k + 1..n {
+                 if a[r][c].is_zero() && (a[r][k].is_zero() || a[k][c].is_zero()) {
+                     continue;
+@@ -827,7 +990,7 @@ fn fraction_free_factorize(basis: &crate::repair::Basis) -> Result<LUFactors, Er
+                 if &quotient * &previous != numerator {
+                     return Err(Error::UnreliableFactorization);
+                 }
+-                if quotient.bits() > MAX_RAW_BITS {
++                if quotient.bits() > max_raw_bits {
+                     return Err(Error::ExactResourceLimit);
+                 }
+                 a[r][c] = quotient;
+@@ -878,6 +1041,125 @@ fn fraction_free_factorize(basis: &crate::repair::Basis) -> Result<LUFactors, Er
+     })
+ }
+ 
++#[cfg(feature = "numerical-fixtures")]
++pub(crate) fn exact_capacity_fixture(kind: &str) -> Result<(), Error> {
++    match kind {
++        "parent_dimension" => {
++            let n = 1_040;
++            let mut columns = vec![(Vec::new(), Vec::new()); n];
++            let block = [[0.0, 2.0, 0.0], [3.0, 0.0, 4.0], [1.0, 5.0, 6.0]];
++            for c in 0..n {
++                let mut entries = if c < 3 {
++                    (0..3)
++                        .filter_map(|r| (block[r][c] != 0.0).then_some((r, block[r][c])))
++                        .collect::<Vec<_>>()
++                } else {
++                    vec![(c, if c % 2 == 0 { 1.0 } else { -1.0 })]
++                };
++                if c < 3 {
++                    for r in 3..n {
++                        let value = (r % 5) as f64 * 0.125 - 0.25;
++                        if value != 0.0 {
++                            entries.push((r, value));
++                        }
++                    }
++                }
++                for (r, _) in &mut entries {
++                    *r = (*r * 3 + 17) % n;
++                }
++                entries.sort_unstable_by_key(|&(r, _)| r);
++                columns[(c * 7 + 23) % n] = entries.into_iter().unzip();
++            }
++            let basis = crate::repair::Basis::new(n, |c| (&columns[c].0, &columns[c].1))?;
++            for factors in [
++                fraction_free_factorize(&basis)?,
++                rational_factorize(&basis)?,
++                exact_factorize(&basis)?,
++            ] {
++                crate::repair::verify(&basis, &factors)?;
++            }
++            Ok(())
++        }
++        "dimension_rejection" => {
++            let n = 1_041;
++            let columns = (0..n).map(|r| (vec![r], vec![1.0])).collect::<Vec<_>>();
++            let basis = crate::repair::Basis::new(n, |c| (&columns[c].0, &columns[c].1))?;
++            for result in [
++                fraction_free_factorize(&basis),
++                rational_factorize(&basis),
++                exact_factorize(&basis),
++            ] {
++                if !matches!(result, Err(Error::ExactResourceLimit)) {
++                    return Err(Error::UnreliableFactorization);
++                }
++            }
++            Ok(())
++        }
++        "large_intermediate_rejection" => {
++            let n = 513;
++            let columns = (0..n).map(|r| (vec![r], vec![1e100])).collect::<Vec<_>>();
++            let basis = crate::repair::Basis::new(n, |c| (&columns[c].0, &columns[c].1))?;
++            if !matches!(
++                fraction_free_factorize(&basis),
++                Err(Error::ExactResourceLimit)
++            ) {
++                return Err(Error::UnreliableFactorization);
++            }
++            Ok(())
++        }
++        "peel_chain" => {
++            let n = 1_040;
++            let mut columns = vec![(Vec::new(), Vec::new()); n];
++            for c in 0..n {
++                let mut entries = vec![((c * 3 + 17) % n, 1.0)];
++                if c > 0 {
++                    entries.push((((c - 1) * 3 + 17) % n, 0.25));
++                }
++                entries.sort_unstable_by_key(|&(r, _)| r);
++                columns[(c * 7 + 23) % n] = entries.into_iter().unzip();
++            }
++            let basis = crate::repair::Basis::new(n, |c| (&columns[c].0, &columns[c].1))?;
++            let factors = exact_factorize(&basis)?;
++            crate::repair::verify(&basis, &factors)
++        }
++        "peel_singular" => {
++            let n = 1_040;
++            for empty in [false, true] {
++                let mut columns = (0..n).map(|r| (vec![r], vec![1.0])).collect::<Vec<_>>();
++                columns[1] = if empty {
++                    (vec![], vec![])
++                } else {
++                    columns[0].clone()
++                };
++                let basis = crate::repair::Basis::new(n, |c| (&columns[c].0, &columns[c].1))?;
++                if !matches!(exact_factorize(&basis), Err(Error::SingularMatrix)) {
++                    return Err(Error::UnreliableFactorization);
++                }
++            }
++            let mut columns = (0..n).map(|r| (vec![r], vec![1.0])).collect::<Vec<_>>();
++            columns[0] = (vec![0, 1], vec![1.0, 1.0]);
++            columns[1] = columns[0].clone();
++            let basis = crate::repair::Basis::new(n, |c| (&columns[c].0, &columns[c].1))?;
++            if !matches!(exact_factorize(&basis), Err(Error::SingularMatrix)) {
++                return Err(Error::UnreliableFactorization);
++            }
++            let columns = (0..n)
++                .map(|c| {
++                    let mut entries = vec![(c, 1.0), ((c + 1) % n, f64::from_bits(1))];
++                    entries.sort_unstable_by_key(|&(r, _)| r);
++                    entries.into_iter().unzip()
++                })
++                .collect::<Vec<(Vec<usize>, Vec<f64>)>>();
++            let basis = crate::repair::Basis::new(n, |c| (&columns[c].0, &columns[c].1))?;
++            if triangular_exact_factorize(&basis)?.is_some() {
++                return Err(Error::UnreliableFactorization);
++            }
++            Ok(())
++        }
++        _ => Err(Error::UnreliableFactorization),
++    }
++}
++
+ #[cfg(feature = "numerical-fixtures")]
+ pub(crate) fn fraction_free_fixture() -> Result<(), Error> {
+     for scale in [1e-100, 1.0, 1e100] {
+@@ -908,9 +1190,13 @@ pub(crate) fn fraction_free_fixture() -> Result<(), Error> {
+                 crate::repair::Basis::new(columns.len(), |c| (&columns[c].0, &columns[c].1))?;
+             let rational = rational_factorize(&basis)?;
+             let fraction_free = fraction_free_factorize(&basis)?;
++            let factory = exact_factorize(&basis)?;
+             if format!("{rational:?}") != format!("{fraction_free:?}") {
+                 return Err(Error::UnreliableFactorization);
+             }
++            if format!("{factory:?}") != format!("{fraction_free:?}") {
++                return Err(Error::UnreliableFactorization);
++            }
+             crate::repair::verify(&basis, &fraction_free)?;
+         }
+     }
+@@ -920,10 +1206,8 @@ pub(crate) fn fraction_free_fixture() -> Result<(), Error> {
+ fn rational_factorize(basis: &crate::repair::Basis) -> Result<LUFactors, Error> {
+     use num_rational::BigRational;
+     use num_traits::{Signed, ToPrimitive, Zero};
+-    const MAX_DIM: usize = 512;
+-    const MAX_BITS: u64 = 16_384;
+-    fn bounded(x: BigRational) -> Result<BigRational, Error> {
+-        if x.numer().bits() > MAX_BITS || x.denom().bits() > MAX_BITS {
++    fn bounded(x: BigRational, max_bits: u64) -> Result<BigRational, Error> {
++        if x.numer().bits() > max_bits || x.denom().bits() > max_bits {
+             Err(Error::ExactResourceLimit)
+         } else {
+             Ok(x)
+@@ -937,9 +1221,7 @@ fn rational_factorize(basis: &crate::repair::Basis) -> Result<LUFactors, Error>
+         Ok(v)
+     }
+     let n = basis.columns.len();
+-    if n > MAX_DIM {
+-        return Err(Error::ExactResourceLimit);
+-    }
++    let (_, max_bits) = exact_resource_limits(n)?;
+     let mut a = vec![vec![BigRational::zero(); n]; n];
+     for (c, (rs, vs)) in basis.columns.iter().enumerate() {
+         for (&r, &v) in rs.iter().zip(vs) {
+@@ -964,10 +1246,10 @@ fn rational_factorize(basis: &crate::repair::Basis) -> Result<LUFactors, Error>
+             if a[r][k].is_zero() {
+                 continue;
+             }
+-            a[r][k] = bounded(&a[r][k] / &a[k][k])?;
++            a[r][k] = bounded(&a[r][k] / &a[k][k], max_bits)?;
+             for c in k + 1..n {
+                 if !a[k][c].is_zero() {
+-                    a[r][c] = bounded(&a[r][c] - &a[r][k] * &a[k][c])?;
++                    a[r][c] = bounded(&a[r][c] - &a[r][k] * &a[k][c], max_bits)?;
+                 }
+             }
+         }
+diff --git a/crates/uor-r4-training/vendor/microlp/src/repair.rs b/crates/uor-r4-training/vendor/microlp/src/repair.rs
+index 2c2783094..b5c83759c 100644
+--- a/crates/uor-r4-training/vendor/microlp/src/repair.rs
++++ b/crates/uor-r4-training/vendor/microlp/src/repair.rs
+@@ -183,3 +183,18 @@ pub fn transaction_fixture(kind: &str) -> Result<(), String> {
+ pub fn fraction_free_fixture() -> Result<(), String> {
+     crate::lu::fraction_free_fixture().map_err(|e| e.to_string())
+ }
++
++#[cfg(feature = "numerical-fixtures")]
++pub fn exact_capacity_fixture(kind: &str) -> Result<(), String> {
++    crate::lu::exact_capacity_fixture(kind).map_err(|e| e.to_string())
++}
++
++#[cfg(feature = "numerical-fixtures")]
++pub fn qualify_exact_capacity(columns: Vec<(Vec<usize>, Vec<f64>)>) -> Result<(), String> {
++    let result = (|| {
++        let basis = Basis::new(columns.len(), |c| (&columns[c].0, &columns[c].1))?;
++        let factors = crate::lu::exact_factorize(&basis)?;
++        verify(&basis, &factors)
++    })();
++    result.map_err(|e: Error| e.to_string())
++}
+diff --git a/docs/labs/d22-constructor-2026-10-10/numerical-tests/examples/embedded-capacity.rs b/docs/labs/d22-constructor-2026-10-10/numerical-tests/examples/embedded-capacity.rs
+new file mode 100644
+index 000000000..2f3487833
+--- /dev/null
++++ b/docs/labs/d22-constructor-2026-10-10/numerical-tests/examples/embedded-capacity.rs
+@@ -0,0 +1,73 @@
++//! Derived numerical basis regression, not an LP or model evaluation.
++use sha2::{Digest, Sha256};
++use std::{error::Error, fs, time::Instant};
++
++fn main() -> Result<(), Box<dyn Error>> {
++    let path = std::env::args()
++        .nth(1)
++        .ok_or("expected pinned basis path")?;
++    let bytes = fs::read(path)?;
++    let sha = format!("{:x}", Sha256::digest(&bytes));
++    if sha != "4b5abc63cc98cde36c8ff1ba47f1e9388548f81dad3cb26bf15e73bfb2fbd2b6"
++        || bytes.len() > 16 * 1024 * 1024
++    {
++        return Err("pinned basis identity/size differs".into());
++    }
++    let mut columns: Vec<Vec<(usize, f64)>> = Vec::new();
++    let mut counts = Vec::new();
++    for line in std::str::from_utf8(&bytes)?.lines() {
++        if line.starts_with('#') || line.is_empty() {
++            continue;
++        }
++        let fields = line.split('\t').collect::<Vec<_>>();
++        match fields.as_slice() {
++            ["COLUMN", c, n] => {
++                if c.parse::<usize>()? != columns.len() {
++                    return Err("column order differs".into());
++                }
++                columns.push(Vec::new());
++                counts.push(n.parse::<usize>()?);
++            }
++            ["ENTRY", c, r, bits] => {
++                let c = c.parse::<usize>()?;
++                let r = r.parse::<usize>()?;
++                if columns.is_empty() || c != columns.len() - 1 || r >= 440 {
++                    return Err("entry coordinate differs".into());
++                }
++                let value = f64::from_bits(u64::from_str_radix(bits, 16)?);
++                if !value.is_finite() || columns[c].last().is_some_and(|&(last, _)| last >= r) {
++                    return Err("invalid or unsorted entry".into());
++                }
++                columns[c].push((r, value));
++            }
++            _ => return Err("unknown basis line".into()),
++        }
++    }
++    if columns.len() != 440 || columns.iter().zip(counts).any(|(c, n)| c.len() != n) {
++        return Err("basis dimension/count differs".into());
++    }
++    let mut derived = columns
++        .into_iter()
++        .map(|column| column.into_iter().unzip())
++        .collect::<Vec<_>>();
++    for r in 440..1040 {
++        derived.push((vec![r], vec![1.0]));
++    }
++    microlp::repair::reset_stats();
++    let started = Instant::now();
++    let result = microlp::repair::qualify_exact_capacity(derived);
++    let stats = microlp::repair::stats();
++    println!(
++        "{}",
++        serde_json::json!({
++            "schema":"uor-r4.d22-embedded-capacity-regression/1",
++            "basis_sha256":sha,"original_dimension":440,"derived_dimension":1040,
++            "augmentation":"block diagonal with600 exact identity rows/columns",
++            "status":if result.is_ok(){"QUALIFIED"}else{"NUMERICALLY_REJECTED"},
++            "error":result.as_ref().err(),"certified_solves":stats.certified_solves,
++            "exact_singular":stats.exact_singular,"elapsed_seconds":started.elapsed().as_secs_f64(),
++            "scope":"Forced exact factor plus original-basis residual checks; derived numerical basis, no LP/model inference"
++        })
++    );
++    result.map_err(Into::into)
++}
+diff --git a/docs/labs/d22-constructor-2026-10-10/numerical-tests/source-manifest.json b/docs/labs/d22-constructor-2026-10-10/numerical-tests/source-manifest.json
+index 419414320..ee452862a 100644
+--- a/docs/labs/d22-constructor-2026-10-10/numerical-tests/source-manifest.json
++++ b/docs/labs/d22-constructor-2026-10-10/numerical-tests/source-manifest.json
+@@ -16,7 +16,7 @@
+     },
+     "src/lu.rs": {
+       "upstream_sha256": "ce2ce455b7be1d7b90384c090f0a62da23f4fbde7677b9b262391d5d51b4821f",
+-      "vendor_sha256": "eb32ae6907ff629645a03f02d35bd88650602c93cd6a058e31bb3b72e1c8d4ab"
++      "vendor_sha256": "b5b8b0e66cf8f93980c65ca58af51161dc2e7f10e92253ede27491915bc0cfed"
+     },
+     "src/solver.rs": {
+       "upstream_sha256": "1863f76f5b1f59a53812e54d0a35b6d4bffdf30f694997ca0d25cb90cc49cb88",
+@@ -27,7 +27,7 @@
+       "vendor_sha256": "25d342d379193e9de6975e750172023cf9468d7771b22156b4410f1bacd284ca"
+     }
+   },
+-  "total_bytes": 966228,
++  "total_bytes": 981721,
+   "files": {
+     "crates/uor-r4-training/vendor/microlp/.cargo_vcs_info.json": {
+       "sha256": "9acbfcda1ff08b814e6d668472c58d8d24930ed5ffd218533fa8a1af5d8c5a4f",
+@@ -82,8 +82,8 @@
+       "bytes": 41852
+     },
+     "crates/uor-r4-training/vendor/microlp/src/lu.rs": {
+-      "sha256": "eb32ae6907ff629645a03f02d35bd88650602c93cd6a058e31bb3b72e1c8d4ab",
+-      "bytes": 32868
++      "sha256": "b5b8b0e66cf8f93980c65ca58af51161dc2e7f10e92253ede27491915bc0cfed",
++      "bytes": 43656
+     },
+     "crates/uor-r4-training/vendor/microlp/src/mip/branching.rs": {
+       "sha256": "1b0ab0373959e8bceed3936e377efc22eab372f7c9d112ea770ed1fe4ceb01d2",
+@@ -114,8 +114,8 @@
+       "bytes": 11380
+     },
+     "crates/uor-r4-training/vendor/microlp/src/repair.rs": {
+-      "sha256": "94495f8e0fb6ebf4f38964f9bc482cd937a7f454b04455da96cabcd58e2d7018",
+-      "bytes": 6311
++      "sha256": "03371aa8ec9f24a5773a9476c8815d6066d25609eec505f3e23e17fff27ba744",
++      "bytes": 6878
+     },
+     "crates/uor-r4-training/vendor/microlp/src/solver.rs": {
+       "sha256": "be5460beead7f56923a7f213f44026d6a07b795e85ca93d47db9679de2409222",
+@@ -286,8 +286,8 @@
+       "bytes": 19713
+     },
+     "docs/labs/d22-constructor-2026-10-10/numerical-tests/src/lib.rs": {
+-      "sha256": "cf1a2119bbd81269ce7741de591eeb7339b463f3c95455b788f58ebfbcd890c7",
+-      "bytes": 6233
++      "sha256": "86965529d2e9f472ec87eb995a4888f9f8dc20480d8a125cbfa91fe24059ad99",
++      "bytes": 7247
+     },
+     "docs/labs/d22-constructor-2026-10-10/numerical-tests/src/main.rs": {
+       "sha256": "5679ac5fc5d7e1bb013cbb5a13a3b5114e094c44dfdb9ef7753af5376f430a81",
+@@ -296,16 +296,21 @@
+     "docs/labs/d22-constructor-2026-10-10/numerical-tests/src/report_output.rs": {
+       "sha256": "cda30f9ba4ef8ff3e245ae352cd28932f9a24ab78598f683607e6996598fa810",
+       "bytes": 9726
++    },
++    "docs/labs/d22-constructor-2026-10-10/numerical-tests/examples/embedded-capacity.rs": {
++      "sha256": "bfcebe05964349a171297f43f3a30e71a68cfcade4ad4864504d465375959c5b",
++      "bytes": 3124
+     }
+   },
+-  "previous_manifest_sha256": "3991d69f1029b473eb8f4f4ed0f157e0655b621c2bfde959a154cee9155f3faa",
+-  "repair": "Fixed signed artificial objective; source reviewed; focused qualification and replay16 NOT_RUN",
++  "previous_manifest_sha256": "8ea77784b8b88140c7059183d039c6e26d2eac7bc015f0da3d2d2adc05a8eada",
++  "repair": "Exact structural triangular peeling above512, full original-basis certificates; objective/constraints/EPS unchanged",
+   "initial_synthetic_final_pass": 9,
+   "initial_synthetic_test_functions": 26,
+-  "expected_current_synthetic_test_functions": 28,
++  "expected_current_synthetic_test_functions": 36,
+   "disposition": "Immutable numerical discriminator; unchanged objective/constraints/EPS",
+   "restored_historical_metadata": {
+     "status": "NUMERICAL_SOURCE_SNAPSHOT_EXECUTION_RECEIPTS_SEPARATE"
+   },
+-  "status": "NUMERICAL_SOURCE_SNAPSHOT_EXECUTION_RECEIPTS_SEPARATE"
++  "status": "UNQUALIFIED_SOURCE_EXECUTION_RECEIPTS_SEPARATE",
++  "resource_policy": "Totaldimension<=1040; dense core<=512 uses RAW65536/factor16384, largercore4096; no uniform4096 claim"
+ }
+diff --git a/docs/labs/d22-constructor-2026-10-10/numerical-tests/src/lib.rs b/docs/labs/d22-constructor-2026-10-10/numerical-tests/src/lib.rs
+index dbe880d0e..4dd3d13be 100644
+--- a/docs/labs/d22-constructor-2026-10-10/numerical-tests/src/lib.rs
++++ b/docs/labs/d22-constructor-2026-10-10/numerical-tests/src/lib.rs
+@@ -1,4 +1,35 @@
+ //! Dedicated synthetic numerical fixtures; no model inputs or model evaluation.
++#[test]
++fn exact_permuted_triangular_peel_chain_keeps_all_coefficients() -> Result<(), String> {
++    microlp::repair::exact_capacity_fixture("peel_chain")
++}
++
++#[test]
++fn exact_peel_zero_and_dependent_columns_are_singular() -> Result<(), String> {
++    microlp::repair::reset_stats();
++    microlp::repair::exact_capacity_fixture("peel_singular")?;
++    assert_eq!(microlp::repair::stats().exact_singular, 3);
++    Ok(())
++}
++
++#[test]
++fn exact_parent_dimension_dense_sparse_normal_transpose() -> Result<(), String> {
++    microlp::repair::exact_capacity_fixture("parent_dimension")
++}
++
++#[test]
++fn exact_above_parent_dimension_is_resource_error() -> Result<(), String> {
++    microlp::repair::exact_capacity_fixture("dimension_rejection")
++}
++
++#[test]
++fn exact_large_intermediate_is_resource_error_not_singularity() -> Result<(), String> {
++    microlp::repair::reset_stats();
++    microlp::repair::exact_capacity_fixture("large_intermediate_rejection")?;
++    assert_eq!(microlp::repair::stats().exact_singular, 0);
++    Ok(())
++}
++
+ #[test]
+ fn fraction_free_matches_rational_factors_and_original_certificates() -> Result<(), String> {
+     microlp::repair::fraction_free_fixture()

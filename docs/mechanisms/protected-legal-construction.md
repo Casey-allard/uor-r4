@@ -9,6 +9,16 @@
 - #2134: a scale-aware pivot rule verifies 148 of 150 fresh factors, then rejects.
 
 **None of this reached panel scoring.** The mechanism was never judged. It was blocked by solver numerics, on one saved input (input245) at small scale. D21 §3 archived the line. [D22](../integration/DECISIONS.md#d22--a-negative-closes-a-configuration-never-a-mechanism-five-closures-reopened) §5 reopened it, because a numerical blocker is not a negative.
+
+**11 October owner pivot:** the generic constructor is deferred, not rejected
+as a mechanism. The source6 exact-cost replay was interrupted with partial
+receipts retained as unfinished/not-negative; its owned pod was released and
+deleted. Numerical sources3/6/7 are [indexed INACTIVE patches](../history/branch-archive/INDEX.md#deferred-numerical-sources-11-october).
+No full savedLP result or serialized solver checkpoint is claimed. The active
+M2 work connects [live geometric carrier credit](unified-geometric-carrier-credit.md)
+at identical saved437, preserving panels/objective and the later genuinely
+fresh acceptance requirement. Reactivating the constructor would need a
+separate live work card, identities and resource admission, not an old lease.
 **What success looks like:** Own: the constructor returns a legal, guard-preserving, loss-descending move, and repeated moves keep descending. Headline: M2 #2030 complete correct replies on the 512 panel (8/512 at D21; 437/512 development after #2162; fresh 0/128 in #2164).
 **What failure looks like:** With exact or rational arithmetic (no LU drift), legal moves exist but give no descent over float-then-quantize at equal compute. Or the guard set is infeasible.
 **A fair test:**

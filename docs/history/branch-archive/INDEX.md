@@ -19,6 +19,35 @@ Earlier D21 closures remain historical records. Negative results scope only thei
 configurations, and stopping a novel mechanism requires an owner decision.
 Source retained below is not activated merely by its archival preservation.
 
+## Deferred Numerical Sources, 11 October
+
+The owner-authorized M2 pivot to unified geometric integration defers the
+unfinished generic constructor. These patches preserve source, not model
+results or activation. The source6 replay was interrupted by the owner pivot,
+with `UNFINISHED_NOT_NEGATIVE` disposition; its owned pod was released and
+deleted after verified cloud custody. No solver checkpoint exists.
+
+| Inactive Source | Pinned Restore Base | Patch SHA256 | Evidence Scope |
+|---|---|---|---|
+| [Source3 dirty recovery](codex-d22-source3-inactive-20261011.patch) | `586af8da9682e6ab8efacef25582732c058fa789` | `48e29e61fd61dca32572710de09d46b055a0e42f6e0e3c07e1d4af6d6dd4aac9` | Exact retained dirty source and untracked numerical examples, not the later source6 and not qualified by the historical23 tests. Archival tree `cb864fdb38ecb603f6d54fde9eb53803879f3953`. |
+| [Source6 integer exact-cost recovery](codex-d22-source6-inactive-20261011.patch) | `586af8da9682e6ab8efacef25582732c058fa789` | `d0cbc93b9c2d715a27b7ad5250e0d7df2948f631d0ca343e29433bdf76df28c9` | 53 fixtures,2 replay gates,4 original basis captures and1960 captured exact costs qualified; full savedLP replay unfinished, not a mechanism negative. Archival tree `c3d49b94a1b68a3d48353ccf3d84bb13e42e055c`. |
+| [Source7 CUDA numerical prototype](codex-d22-source7-inactive-20261011.patch) | Empty index; creates only `local/cuda-numerical-source7/` | `688d982a5f3015cdc1c15c778a690f642b2b13568ad6a59568aed5293eeb31e5` |9 short host fixtures and CUDA-feature Rust check only; device/NVRTC/fullLP/integrated producer/model NOT_RUN. Archival tree `1ec8a66be19ea7fead317408f7c3117b0b0cb53a`. Not a geometric-model mechanism. |
+
+All three patches passed `git apply --cached --check` against their named base
+using isolated temporary indexes; no live source/index was replaced. Restore
+the pinned base before applying source3/source6, not newer main wholesale.
+
+Verified cloud source6 qualification: `codex/integer-cost-qualified-source6-regional-20261011.tar`,
+SHA256 `b4cf39f14b462e03f1ee6019f5e5a385f0d2460a20d72b1ffe277d1a44d1b606`,
+MD5 `347f1c3fd1a26d2fcdd7212026683ce7`.
+Final interrupted replay: `codex/m2-source6-replay-checkpoint20261011172100.tar`,
+SHA256 `d6a1b7cbfdd5790407ccc8aa33619e3fe57201e4f0ccaabcf0ba18fc0cda02dd`,
+MD5 `c7b89f39bb20fd791699348c0595888f`.
+Source7: `codex/cuda-numerical-source7.tar`, MD5 `1ff7fb6ad41beacb8d4cfd83ee22704a`.
+The old23-test PASS was for `fbbb46e7`, not this signed recovery. Source fit,
+cloud preservation, arithmetic fixtures and an executed full saved problem
+remain separate evidence.
+
 To revive one: `git apply --3way docs/history/branch-archive/<file>.patch` in a
 fresh worktree from `main`, fix the conflicts, and land it through a PR.
 

@@ -1,0 +1,2556 @@
+diff --git a/crates/uor-r4-training/vendor/microlp/Cargo.toml b/crates/uor-r4-training/vendor/microlp/Cargo.toml
+index dead98f3c..c898b8d82 100644
+--- a/crates/uor-r4-training/vendor/microlp/Cargo.toml
++++ b/crates/uor-r4-training/vendor/microlp/Cargo.toml
+@@ -42,7 +42,7 @@ license = "Apache-2.0"
+ repository = "https://github.com/Specy/microlp/"
+ 
+ [features]
+-numerical-fixtures = []
++numerical-fixtures = ["dep:serde_json"]
+ highs = ["dep:highs"]
+ 
+ [lib]
+@@ -107,5 +107,9 @@ version = "0.4"
+ [dependencies.num-traits]
+ version = "0.2"
+ 
++[dependencies.serde_json]
++version = "1"
++optional = true
++
+ # Independently source-owned numerical dependency; not a workspace member.
+ [workspace]
+diff --git a/crates/uor-r4-training/vendor/microlp/UOR-PATCH.md b/crates/uor-r4-training/vendor/microlp/UOR-PATCH.md
+index 1c5fc9017..42341a2b8 100644
+--- a/crates/uor-r4-training/vendor/microlp/UOR-PATCH.md
++++ b/crates/uor-r4-training/vendor/microlp/UOR-PATCH.md
+@@ -26,12 +26,8 @@ future bound. An empty admissible interval is a numerical failure, not an
+ infeasibility proof. Compensated cost sums and bounded iterative refinement
+ preserve the existing numerical tolerance.
+ 
+-Feasibility recovery may restart the current basis with a temporary signed
+-objective: fixed per-variable costs are assigned once from the entry basis and
+-bound state (basic/fixed/free zero, lower-only +1, upper-only -1), and remain
+-fixed across subsequent pivots. Unsupported or inconsistent nonbasic states
+-are rejected transactionally. Its in-memory state survives Limit/resume and
+-cloning; no serialized in-flight solver checkpoint is supplied.
++One explicit feasibility recovery may restart the current basis with a temporary
++zero working objective. Its persistent state survives interruption and cloning.
+ No successful return from that recovery is permitted until the original
+ objective is restored and optimized, actual original bounds and rows are
+ checked, and both primal and dual phase certificates pass. Interior fixed values
+@@ -45,19 +41,11 @@ only strict residual and normalized-error improvement. The final certificate
+ and tolerance are unchanged. Failed corrections preserve the caller input;
+ sparse corrections retain newly introduced nonzero entries.
+ 
+-Before exact fallback, a failed floating-point factorization may retry the same
+-basis with maximum-magnitude pivot selection. Every retry still requires the
+-unchanged original-basis normal and transposed residual certificates.
+-
+ Exact arithmetic uses Rust `num-bigint`, `num-rational` and `num-traits`.
+-Column-scaled exact dyadics first use fraction-free Bareiss elimination, with
+-checked exact divisions, maximum-magnitude row pivots and consistent previous
+-lower-factor row swaps. This path is bounded to 512 rows, 65,536-bit raw integer
+-intermediates and 16,384-bit normalized factor rationals. A resource or
+-implementation rejection falls back to the retained rational factorizer
+-(512 rows and 16,384-bit rationals); an exact singularity is rejected directly.
+-Rounded factors must still pass the unchanged residual qualification. Exact
+-singularity is distinct from a floating-point threshold failure.
++The fallback is bounded to 512 rows and 16,384-bit rationals; crossing either
++limit is a numerical resource failure. Rounded factors must still pass the
++residual qualification. Exact singularity is distinct from a floating-point
++threshold failure.
+ 
+ The `numerical-fixtures` feature exposes the scoped retained-basis tests. The
+ standalone harness lives in
+diff --git a/crates/uor-r4-training/vendor/microlp/src/exact_cost.rs b/crates/uor-r4-training/vendor/microlp/src/exact_cost.rs
+new file mode 100644
+index 000000000..414194c37
+--- /dev/null
++++ b/crates/uor-r4-training/vendor/microlp/src/exact_cost.rs
+@@ -0,0 +1,805 @@
++//! Exact transpose solves of the stored dyadic basis, without rounded factors.
++use crate::sparse::Error;
++use num_bigint::BigInt;
++use num_rational::BigRational;
++use num_traits::{One, Signed, Zero};
++
++fn bounded(value: &BigRational, bits: u64) -> Result<(), Error> {
++    if value.numer().bits() > bits || value.denom().bits() > bits {
++        Err(Error::ExactResourceLimit)
++    } else {
++        Ok(())
++    }
++}
++
++fn dyadic(value: f64) -> Result<BigRational, Error> {
++    BigRational::from_float(value).ok_or(Error::NonFiniteFactorization)
++}
++
++fn gcd(mut a: BigInt, mut b: BigInt) -> BigInt {
++    a = a.abs();
++    b = b.abs();
++    while !b.is_zero() {
++        let remainder = &a % &b;
++        a = b;
++        b = remainder;
++    }
++    a
++}
++
++fn cost_inputs(
++    rows: &[usize],
++    coefficients: &[f64],
++    multipliers: &[BigRational],
++) -> Result<(), Error> {
++    if rows.len() != coefficients.len()
++        || rows.windows(2).any(|pair| pair[0] >= pair[1])
++        || rows.iter().any(|&r| r >= multipliers.len())
++    {
++        return Err(Error::UnreliableFactorization);
++    }
++    for (&r, &coefficient) in rows.iter().zip(coefficients) {
++        if !coefficient.is_finite() {
++            return Err(Error::NonFiniteFactorization);
++        }
++        if multipliers[r].denom() <= &BigInt::zero() {
++            return Err(Error::UnreliableFactorization);
++        }
++    }
++    Ok(())
++}
++
++/// Reference preserves the existing normalized accumulated-cost cap per term.
++/// Its scratch policy is unchanged: raw_bits is intentionally not applied.
++pub(crate) fn reference_column_cost(
++    working_cost: f64,
++    rows: &[usize],
++    coefficients: &[f64],
++    multipliers: &[BigRational],
++    _raw_bits: u64,
++    result_bits: u64,
++) -> Result<BigRational, Error> {
++    cost_inputs(rows, coefficients, multipliers)?;
++    let mut cost = dyadic(working_cost)?;
++    bounded(&cost, result_bits)?;
++    for (&r, &coefficient) in rows.iter().zip(coefficients) {
++        if coefficient != 0.0 {
++            cost -= dyadic(coefficient)? * &multipliers[r];
++        }
++        bounded(&cost, result_bits)?;
++    }
++    Ok(cost)
++}
++
++// Exact f64 decomposition A / 2^k, including subnormals and signed zero.
++fn dyadic_parts(value: f64) -> Result<(BigInt, usize), Error> {
++    let bits = value.to_bits();
++    let exponent = ((bits >> 52) & 0x7ff) as i32;
++    if exponent == 0x7ff {
++        return Err(Error::NonFiniteFactorization);
++    }
++    let mut mantissa = bits & ((1_u64 << 52) - 1);
++    let shift = if exponent == 0 {
++        -1074
++    } else {
++        mantissa |= 1_u64 << 52;
++        exponent - 1075
++    };
++    if mantissa == 0 {
++        return Ok((BigInt::zero(), 0));
++    }
++    let denominator_shift;
++    let mut numerator;
++    if shift < 0 {
++        let removed = mantissa.trailing_zeros().min((-shift) as u32);
++        mantissa >>= removed;
++        denominator_shift = (-shift) as usize - removed as usize;
++        numerator = BigInt::from(mantissa);
++    } else {
++        denominator_shift = 0;
++        numerator = BigInt::from(mantissa) << shift as usize;
++    }
++    if bits >> 63 != 0 {
++        numerator = -numerator;
++    }
++    Ok((numerator, denominator_shift))
++}
++
++fn scratch_product(a: &BigInt, b: &BigInt, bits: u64) -> Result<BigInt, Error> {
++    if !a.is_zero() && !b.is_zero() && a.bits().saturating_add(b.bits()) > bits {
++        return Err(Error::ExactResourceLimit);
++    }
++    let result = a * b;
++    if result.bits() > bits {
++        return Err(Error::ExactResourceLimit);
++    }
++    Ok(result)
++}
++
++fn scratch_shift(value: BigInt, shift: usize, bits: u64) -> Result<BigInt, Error> {
++    if !value.is_zero() && value.bits().saturating_add(shift as u64) > bits {
++        return Err(Error::ExactResourceLimit);
++    }
++    Ok(value << shift)
++}
++
++fn shared_column_cost(
++    working_cost: f64,
++    rows: &[usize],
++    coefficients: &[f64],
++    multipliers: &[BigRational],
++    raw_bits: u64,
++    result_bits: u64,
++) -> Result<BigRational, Error> {
++    let (objective, objective_shift) = dyadic_parts(working_cost)?;
++    let parts = coefficients
++        .iter()
++        .map(|&v| dyadic_parts(v))
++        .collect::<Result<Vec<_>, _>>()?;
++    let mut denominator = BigInt::one();
++    let mut shift = objective_shift;
++    for (&r, (numerator, coefficient_shift)) in rows.iter().zip(&parts) {
++        if numerator.is_zero() {
++            continue;
++        }
++        shift = shift.max(*coefficient_shift);
++        let divisor = gcd(denominator.clone(), multipliers[r].denom().clone());
++        denominator = scratch_product(&(&denominator / divisor), multipliers[r].denom(), raw_bits)?;
++    }
++    let common = scratch_shift(denominator.clone(), shift, raw_bits)?;
++    if common.bits() > result_bits {
++        // Without reducing each partial cost, this bound cannot certify the
++        // reference per-term result cap; use the reference instead.
++        return Err(Error::ExactResourceLimit);
++    }
++    let mut numerator = scratch_shift(
++        scratch_product(&objective, &denominator, raw_bits)?,
++        shift - objective_shift,
++        raw_bits,
++    )?;
++    if numerator.bits() > result_bits {
++        return Err(Error::ExactResourceLimit);
++    }
++    for (&r, (coefficient, coefficient_shift)) in rows.iter().zip(&parts) {
++        if coefficient.is_zero() {
++            continue;
++        }
++        let quotient = &denominator / multipliers[r].denom();
++        if &quotient * multipliers[r].denom() != denominator {
++            return Err(Error::UnreliableFactorization);
++        }
++        let term = scratch_shift(
++            scratch_product(
++                &scratch_product(coefficient, multipliers[r].numer(), raw_bits)?,
++                &quotient,
++                raw_bits,
++            )?,
++            shift - coefficient_shift,
++            raw_bits,
++        )?;
++        if numerator.bits().max(term.bits()).saturating_add(1) > raw_bits {
++            return Err(Error::ExactResourceLimit);
++        }
++        numerator -= term;
++        if numerator.bits() > result_bits {
++            return Err(Error::ExactResourceLimit);
++        }
++    }
++    let cost = BigRational::new(numerator, common);
++    bounded(&cost, result_bits)?;
++    Ok(cost)
++}
++
++/// One normalization after integer accumulation; conservative scratch/cap
++/// rejection falls back only to the unchanged exact rational reference.
++pub(crate) fn column_cost(
++    working_cost: f64,
++    rows: &[usize],
++    coefficients: &[f64],
++    multipliers: &[BigRational],
++    raw_bits: u64,
++    result_bits: u64,
++) -> Result<BigRational, Error> {
++    cost_inputs(rows, coefficients, multipliers)?;
++    if !working_cost.is_finite() {
++        return Err(Error::NonFiniteFactorization);
++    }
++    match shared_column_cost(
++        working_cost,
++        rows,
++        coefficients,
++        multipliers,
++        raw_bits,
++        result_bits,
++    ) {
++        Err(Error::ExactResourceLimit) => reference_column_cost(
++            working_cost,
++            rows,
++            coefficients,
++            multipliers,
++            raw_bits,
++            result_bits,
++        ),
++        result => result,
++    }
++}
++
++fn integer_core(
++    equations: Vec<Vec<BigRational>>,
++    raw_bits: u64,
++    solution_bits: u64,
++) -> Result<Vec<BigRational>, Error> {
++    let n = equations.len();
++    if n == 0 {
++        return Ok(Vec::new());
++    }
++    let mut a = Vec::with_capacity(n);
++    for equation in equations {
++        if equation.len() != n + 1 {
++            return Err(Error::UnreliableFactorization);
++        }
++        let mut scale = BigInt::one();
++        for value in &equation {
++            bounded(value, raw_bits)?;
++            scale = (&scale / gcd(scale.clone(), value.denom().clone())) * value.denom();
++            if scale.bits() > raw_bits {
++                return Err(Error::ExactResourceLimit);
++            }
++        }
++        let mut row = Vec::with_capacity(n + 1);
++        for value in equation {
++            let integer = value.numer() * (&scale / value.denom());
++            if integer.bits() > raw_bits {
++                return Err(Error::ExactResourceLimit);
++            }
++            row.push(integer);
++        }
++        a.push(row);
++    }
++
++    // Row scaling includes the rational RHS. Bareiss updates the entire
++    // augmented row and checks every division, including after row swaps.
++    let mut previous = BigInt::one();
++    for k in 0..n {
++        let mut pivot_row = k;
++        for r in k + 1..n {
++            if a[r][k].abs() > a[pivot_row][k].abs() {
++                pivot_row = r;
++            }
++        }
++        if a[pivot_row][k].is_zero() {
++            return Err(Error::SingularMatrix);
++        }
++        a.swap(k, pivot_row);
++        let pivot = a[k][k].clone();
++        for r in k + 1..n {
++            for c in k + 1..=n {
++                let numerator = &pivot * &a[r][c] - &a[r][k] * &a[k][c];
++                // Inputs have at most raw_bits bits, so a temporary product
++                // difference has at most twice that allowance plus one bit.
++                if numerator.bits() > 2 * raw_bits + 1 {
++                    return Err(Error::ExactResourceLimit);
++                }
++                let quotient = &numerator / &previous;
++                if &quotient * &previous != numerator {
++                    return Err(Error::UnreliableFactorization);
++                }
++                if quotient.bits() > raw_bits {
++                    return Err(Error::ExactResourceLimit);
++                }
++                a[r][c] = quotient;
++            }
++            a[r][k] = BigInt::zero();
++        }
++        previous = pivot;
++    }
++    let mut solution = vec![BigRational::zero(); n];
++    for r in (0..n).rev() {
++        let mut value = BigRational::from_integer(a[r][n].clone());
++        for c in r + 1..n {
++            let term = BigRational::from_integer(a[r][c].clone()) * &solution[c];
++            bounded(&term, raw_bits)?;
++            value -= term;
++            bounded(&value, raw_bits)?;
++        }
++        value /= BigRational::from_integer(a[r][r].clone());
++        bounded(&value, solution_bits)?;
++        solution[r] = value;
++    }
++    Ok(solution)
++}
++
++#[cfg(feature = "numerical-fixtures")]
++pub(crate) fn fixture(kind: &str) -> Result<(), Error> {
++    fn basis(rows: &[Vec<f64>]) -> Result<crate::repair::Basis, Error> {
++        let n = rows.len();
++        if rows.iter().any(|row| row.len() != n) {
++            return Err(Error::UnreliableFactorization);
++        }
++        let columns = (0..n)
++            .map(|c| {
++                rows.iter()
++                    .enumerate()
++                    .filter_map(|(r, row)| (row[c] != 0.0).then_some((r, row[c])))
++                    .unzip::<_, _, Vec<_>, Vec<_>>()
++            })
++            .collect::<Vec<_>>();
++        crate::repair::Basis::new(n, |c| (&columns[c].0, &columns[c].1))
++    }
++    fn known_solution(rows: &[Vec<f64>], expected: &[f64]) -> Result<(), Error> {
++        let b = basis(rows)?;
++        let rhs = (0..rows.len())
++            .map(|c| rows.iter().zip(expected).map(|(row, &y)| row[c] * y).sum())
++            .collect::<Vec<f64>>();
++        let result = transpose_solve(&b, &rhs)?;
++        let expected = expected
++            .iter()
++            .map(|&v| dyadic(v))
++            .collect::<Result<Vec<_>, _>>()?;
++        if result != expected {
++            return Err(Error::UnreliableFactorization);
++        }
++        Ok(())
++    }
++    fn rejected(result: Result<Vec<BigRational>, Error>, expected: Error) -> Result<(), Error> {
++        match result {
++            Err(error) if error == expected => Ok(()),
++            _ => Err(Error::UnreliableFactorization),
++        }
++    }
++    match kind {
++        "cost-cancellation" => {
++            let b = basis(&[vec![1.0, 1.0], vec![1.0, 1.0 + f64::EPSILON]])?;
++            let multipliers = transpose_solve(&b, &[0.1, 0.0])?;
++            let actual = column_cost(0.1, &[0, 1], &[1.0, 1.0], &multipliers, 65_536, 16_384)?;
++            let reference =
++                reference_column_cost(0.1, &[0, 1], &[1.0, 1.0], &multipliers, 65_536, 16_384)?;
++            if actual != reference || !actual.is_zero() {
++                return Err(Error::UnreliableFactorization);
++            }
++            Ok(())
++        }
++        "cost-odd-denominators" => {
++            let multipliers = vec![
++                BigRational::new(BigInt::from(1), BigInt::from(3)),
++                BigRational::new(BigInt::from(-2), BigInt::from(5)),
++                BigRational::new(BigInt::from(7), BigInt::from(11)),
++            ];
++            let actual = column_cost(
++                0.125,
++                &[0, 1, 2],
++                &[0.5, -2.0, 1.25],
++                &multipliers,
++                65_536,
++                16_384,
++            )?;
++            let reference = reference_column_cost(
++                0.125,
++                &[0, 1, 2],
++                &[0.5, -2.0, 1.25],
++                &multipliers,
++                65_536,
++                16_384,
++            )?;
++            let expected = BigRational::new(BigInt::from(-2161), BigInt::from(1320));
++            if actual != reference || actual != expected {
++                return Err(Error::UnreliableFactorization);
++            }
++            Ok(())
++        }
++        "cost-boundaries" | "cost-working-objective" => {
++            let eps = crate::solver::EPS;
++            for objective in [
++                f64::from_bits(eps.to_bits() - 1),
++                eps,
++                f64::from_bits(eps.to_bits() + 1),
++                -eps,
++                1.0,
++                -1.0,
++                0.0,
++                -0.0,
++                f64::from_bits(1),
++                f64::MIN_POSITIVE,
++                f64::MAX,
++            ] {
++                let actual = column_cost(objective, &[], &[], &[], 65_536, 16_384)?;
++                if actual != dyadic(objective)?
++                    || actual != reference_column_cost(objective, &[], &[], &[], 65_536, 16_384)?
++                {
++                    return Err(Error::UnreliableFactorization);
++                }
++            }
++            let multipliers = vec![BigRational::new(BigInt::from(1), BigInt::from(3))];
++            for objective in [1.0, -1.0] {
++                if column_cost(objective, &[0], &[0.5], &multipliers, 65_536, 16_384)?
++                    != reference_column_cost(objective, &[0], &[0.5], &multipliers, 65_536, 16_384)?
++                {
++                    return Err(Error::UnreliableFactorization);
++                }
++            }
++            for coefficient in [
++                f64::from_bits(1),
++                -f64::from_bits(1),
++                f64::MIN_POSITIVE,
++                f64::MAX,
++            ] {
++                if column_cost(0.0, &[0], &[coefficient], &multipliers, 65_536, 16_384)?
++                    != reference_column_cost(
++                        0.0,
++                        &[0],
++                        &[coefficient],
++                        &multipliers,
++                        65_536,
++                        16_384,
++                    )?
++                {
++                    return Err(Error::UnreliableFactorization);
++                }
++            }
++            Ok(())
++        }
++        "cost-malformed" => {
++            let multipliers = vec![BigRational::one()];
++            for (rows, values) in [
++                (vec![0], vec![]),
++                (vec![1], vec![1.0]),
++                (vec![0, 0], vec![1.0, 2.0]),
++            ] {
++                match column_cost(0.0, &rows, &values, &multipliers, 65_536, 16_384) {
++                    Err(Error::UnreliableFactorization) => {}
++                    _ => return Err(Error::UnreliableFactorization),
++                }
++            }
++            for (objective, coefficient) in [
++                (f64::NAN, 0.0),
++                (0.0, f64::INFINITY),
++                (f64::NEG_INFINITY, 1.0),
++            ] {
++                match column_cost(
++                    objective,
++                    &[0],
++                    &[coefficient],
++                    &multipliers,
++                    65_536,
++                    16_384,
++                ) {
++                    Err(Error::NonFiniteFactorization) => {}
++                    _ => return Err(Error::UnreliableFactorization),
++                }
++            }
++            Ok(())
++        }
++        "cost-result-cap-fallback" => {
++            let multipliers = vec![
++                BigRational::new(BigInt::from(1), BigInt::from(3)),
++                BigRational::new(BigInt::from(1), BigInt::from(5)),
++            ];
++            // Q=15 exceeds the three-bit result cap, although the reference
++            // partial costs are the admitted integers -1 and -2.
++            if !matches!(
++                shared_column_cost(0.0, &[0, 1], &[3.0, 5.0], &multipliers, 64, 3),
++                Err(Error::ExactResourceLimit)
++            ) {
++                return Err(Error::UnreliableFactorization);
++            }
++            let actual = column_cost(0.0, &[0, 1], &[3.0, 5.0], &multipliers, 64, 3)?;
++            let reference = reference_column_cost(0.0, &[0, 1], &[3.0, 5.0], &multipliers, 64, 3)?;
++            if actual != reference || actual != BigRational::from_integer(BigInt::from(-2)) {
++                return Err(Error::UnreliableFactorization);
++            }
++            // Q fits four bits, but the initial unreduced numerator 8*15
++            // does not. The objective 8 and reference partials 7,6 all fit.
++            if !matches!(
++                shared_column_cost(8.0, &[0, 1], &[3.0, 5.0], &multipliers, 64, 4),
++                Err(Error::ExactResourceLimit)
++            ) {
++                return Err(Error::UnreliableFactorization);
++            }
++            let actual = column_cost(8.0, &[0, 1], &[3.0, 5.0], &multipliers, 64, 4)?;
++            let reference = reference_column_cost(8.0, &[0, 1], &[3.0, 5.0], &multipliers, 64, 4)?;
++            if actual != reference || actual != BigRational::from_integer(BigInt::from(6)) {
++                return Err(Error::UnreliableFactorization);
++            }
++            Ok(())
++        }
++        "cost-resource-fallback" => {
++            let multipliers = vec![
++                BigRational::new(BigInt::from(1), BigInt::from(3)),
++                BigRational::new(BigInt::from(1), BigInt::from(5)),
++            ];
++            if !matches!(
++                shared_column_cost(0.0, &[0, 1], &[1.0, 1.0], &multipliers, 4, 64),
++                Err(Error::ExactResourceLimit)
++            ) {
++                return Err(Error::UnreliableFactorization);
++            }
++            let actual = column_cost(0.0, &[0, 1], &[1.0, 1.0], &multipliers, 4, 64)?;
++            if actual != reference_column_cost(0.0, &[0, 1], &[1.0, 1.0], &multipliers, 4, 64)? {
++                return Err(Error::UnreliableFactorization);
++            }
++            let large = BigRational::from_integer(BigInt::one() << 40_usize);
++            let large = vec![large.clone(), large];
++            if !matches!(
++                column_cost(0.0, &[0, 1], &[1.0, -1.0], &large, 65_536, 32),
++                Err(Error::ExactResourceLimit)
++            ) {
++                return Err(Error::UnreliableFactorization);
++            }
++            let zeros = column_cost(-0.0, &[0, 1], &[0.0, -0.0], &multipliers, 4, 64)?;
++            if !zeros.is_zero() {
++                return Err(Error::UnreliableFactorization);
++            }
++            Ok(())
++        }
++        "cancellation" => {
++            use num_traits::ToPrimitive;
++            let b = basis(&[vec![1.0, 1.0], vec![1.0, 1.0 + f64::EPSILON]])?;
++            let result = transpose_solve(&b, &[0.1, 0.0])?;
++            let cost = dyadic(0.1)? - &result[0] - &result[1];
++            if !cost.is_zero() {
++                return Err(Error::UnreliableFactorization);
++            }
++            let rounded = result
++                .iter()
++                .map(|v| v.to_f64().ok_or(Error::NonFiniteFactorization))
++                .collect::<Result<Vec<_>, _>>()?;
++            if (0.1 - (rounded[0] + rounded[1])).abs() <= crate::solver::EPS {
++                return Err(Error::UnreliableFactorization);
++            }
++            Ok(())
++        }
++        "all" => {
++            for name in [
++                "split",
++                "coupling",
++                "empty",
++                "peeled",
++                "core",
++                "singular",
++                "dimension",
++                "nonfinite",
++                "resource",
++            ] {
++                fixture(name)?;
++            }
++            Ok(())
++        }
++        "split" => {
++            let split = [
++                [2.0, 3.0, 5.0, 6.0],
++                [0.0, 4.0, 7.0, 8.0],
++                [0.0, 0.0, 1.0, 2.0],
++                [0.0, 0.0, 3.0, 4.0],
++            ];
++            let row_order = [2, 0, 3, 1];
++            let col_order = [1, 3, 0, 2];
++            let mut original = vec![vec![0.0; 4]; 4];
++            for r in 0..4 {
++                for c in 0..4 {
++                    original[row_order[r]][col_order[c]] = split[r][c];
++                }
++            }
++            known_solution(&original, &[1.0, 2.0, 3.0, 4.0])
++        }
++        "empty" => known_solution(&[], &[]),
++        "coupling" => {
++            let b = basis(&[
++                vec![3.0, 1.0, 1.0],
++                vec![0.0, 1.0, 2.0],
++                vec![0.0, 3.0, 4.0],
++            ])?;
++            let result = transpose_solve(&b, &[1.0, 0.0, 0.0])?;
++            let expected = vec![
++                BigRational::new(BigInt::from(1), BigInt::from(3)),
++                BigRational::new(BigInt::from(1), BigInt::from(6)),
++                BigRational::new(BigInt::from(-1), BigInt::from(6)),
++            ];
++            if result != expected {
++                return Err(Error::UnreliableFactorization);
++            }
++            Ok(())
++        }
++        "peeled" => {
++            known_solution(&[vec![2.0]], &[0.5])?;
++            known_solution(
++                &[
++                    vec![2.0, 3.0, 4.0],
++                    vec![0.0, -4.0, 5.0],
++                    vec![0.0, 0.0, 8.0],
++                ],
++                &[0.5, -2.0, 3.0],
++            )
++        }
++        "core" => known_solution(&[vec![1.0, 2.0], vec![3.0, 4.0]], &[0.5, -2.0]),
++        "singular" => {
++            rejected(
++                transpose_solve(&basis(&[vec![1.0, 2.0], vec![2.0, 4.0]])?, &[1.0, 2.0]),
++                Error::SingularMatrix,
++            )?;
++            rejected(
++                transpose_solve(&basis(&[vec![1.0, 0.0], vec![0.0, 0.0]])?, &[1.0, 0.0]),
++                Error::SingularMatrix,
++            )
++        }
++        "dimension" => rejected(
++            transpose_solve(&basis(&[vec![1.0]])?, &[]),
++            Error::UnreliableFactorization,
++        ),
++        "nonfinite" => {
++            let b = basis(&[vec![1.0]])?;
++            for rhs in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
++                rejected(transpose_solve(&b, &[rhs]), Error::NonFiniteFactorization)?;
++            }
++            Ok(())
++        }
++        "resource" => {
++            let b = crate::repair::Basis::new(1_041, |_| (&[], &[]))?;
++            rejected(
++                transpose_solve(&b, &vec![0.0; 1_041]),
++                Error::ExactResourceLimit,
++            )?;
++            let mut rows = vec![vec![0.0; 17]; 17];
++            for r in 0..17 {
++                rows[r][r] = f64::from_bits(1);
++                if r + 1 < 17 {
++                    rows[r][r + 1] = 1.0;
++                }
++            }
++            let mut rhs = vec![0.0; 17];
++            rhs[0] = 1.0;
++            rejected(
++                transpose_solve(&basis(&rows)?, &rhs),
++                Error::ExactResourceLimit,
++            )
++        }
++        _ => Err(Error::UnreliableFactorization),
++    }
++}
++
++/// Return y in original row order, with an exact witness B^T y = rhs.
++pub(crate) fn transpose_solve(
++    basis: &crate::repair::Basis,
++    rhs: &[f64],
++) -> Result<Vec<BigRational>, Error> {
++    let n = basis.columns.len();
++    let (total_raw_bits, total_solution_bits) = crate::lu::exact_resource_limits(n)?;
++    if rhs.len() != n {
++        return Err(Error::UnreliableFactorization);
++    }
++    let rhs = rhs
++        .iter()
++        .map(|&v| dyadic(v))
++        .collect::<Result<Vec<_>, _>>()?;
++    let mut columns = Vec::with_capacity(n);
++    for (rows, values) in &basis.columns {
++        if rows.len() != values.len()
++            || rows.windows(2).any(|pair| pair[0] >= pair[1])
++            || rows.iter().any(|&r| r >= n)
++        {
++            return Err(Error::UnreliableFactorization);
++        }
++        let values = values
++            .iter()
++            .map(|&v| dyadic(v))
++            .collect::<Result<Vec<_>, _>>()?;
++        for value in &values {
++            bounded(value, total_raw_bits)?;
++        }
++        columns.push((rows, values));
++    }
++    for value in &rhs {
++        bounded(value, total_raw_bits)?;
++    }
++
++    let mut active_rows = vec![true; n];
++    let mut active_cols = vec![true; n];
++    let mut peeled = Vec::new();
++    loop {
++        let before = peeled.len();
++        for c in 0..n {
++            if !active_cols[c] {
++                continue;
++            }
++            let (rows, values) = &columns[c];
++            let mut entries = rows
++                .iter()
++                .zip(values)
++                .filter(|&(&r, v)| active_rows[r] && !v.is_zero());
++            let Some((&r, _)) = entries.next() else {
++                return Err(Error::SingularMatrix);
++            };
++            if entries.next().is_none() {
++                peeled.push((c, r));
++                active_cols[c] = false;
++                active_rows[r] = false;
++            }
++        }
++        if before == peeled.len() {
++            break;
++        }
++    }
++
++    // The peeled columns are equations for T^T. Each has only one
++    // not-yet-solved row, so the transpose top block is solved forward.
++    let mut solution = vec![BigRational::zero(); n];
++    let mut solved = vec![false; n];
++    for &(c, pivot_row) in &peeled {
++        let mut value = rhs[c].clone();
++        let mut diagonal = BigRational::zero();
++        let (rows, coefficients) = &columns[c];
++        for (&r, coefficient) in rows.iter().zip(coefficients) {
++            if r == pivot_row {
++                diagonal = coefficient.clone();
++            } else if !coefficient.is_zero() {
++                if !solved[r] {
++                    return Err(Error::UnreliableFactorization);
++                }
++                let term = coefficient * &solution[r];
++                bounded(&term, total_raw_bits)?;
++                value -= term;
++                bounded(&value, total_raw_bits)?;
++            }
++        }
++        if diagonal.is_zero() {
++            return Err(Error::SingularMatrix);
++        }
++        value /= diagonal;
++        bounded(&value, total_solution_bits)?;
++        solution[pivot_row] = value;
++        solved[pivot_row] = true;
++    }
++
++    let core_rows = (0..n).filter(|&r| active_rows[r]).collect::<Vec<_>>();
++    let core_cols = (0..n).filter(|&c| active_cols[c]).collect::<Vec<_>>();
++    let m = core_rows.len();
++    if core_cols.len() != m {
++        return Err(Error::UnreliableFactorization);
++    }
++    let (core_raw_bits, core_solution_bits) = crate::lu::exact_resource_limits(m)?;
++    let mut row_to_core = vec![None; n];
++    for (i, &r) in core_rows.iter().enumerate() {
++        row_to_core[r] = Some(i);
++    }
++    let mut equations = Vec::with_capacity(m);
++    for &c in &core_cols {
++        let mut equation = vec![BigRational::zero(); m + 1];
++        let mut value = rhs[c].clone();
++        let (rows, coefficients) = &columns[c];
++        for (&r, coefficient) in rows.iter().zip(coefficients) {
++            if let Some(i) = row_to_core[r] {
++                equation[i] = coefficient.clone();
++            } else {
++                if !solved[r] {
++                    return Err(Error::UnreliableFactorization);
++                }
++                let term = coefficient * &solution[r];
++                bounded(&term, core_raw_bits)?;
++                value -= term;
++                bounded(&value, core_raw_bits)?;
++            }
++        }
++        equation[m] = value;
++        equations.push(equation);
++    }
++    let core_solution = integer_core(equations, core_raw_bits, core_solution_bits)?;
++    for (&r, value) in core_rows.iter().zip(core_solution) {
++        solution[r] = value;
++    }
++
++    // Verify every original equation, not just the peeled or core system.
++    // The core-aware allowance matches the existing structural LU policy.
++    let witness_bits = total_raw_bits.max(core_raw_bits);
++    for (c, (rows, coefficients)) in columns.iter().enumerate() {
++        let mut value = BigRational::zero();
++        for (&r, coefficient) in rows.iter().zip(coefficients) {
++            let term = coefficient * &solution[r];
++            bounded(&term, witness_bits)?;
++            value += term;
++            bounded(&value, witness_bits)?;
++        }
++        if value != rhs[c] {
++            return Err(Error::UnreliableFactorization);
++        }
++    }
++    Ok(solution)
++}
+diff --git a/crates/uor-r4-training/vendor/microlp/src/lib.rs b/crates/uor-r4-training/vendor/microlp/src/lib.rs
+index 370555c88..0c2420bad 100644
+--- a/crates/uor-r4-training/vendor/microlp/src/lib.rs
++++ b/crates/uor-r4-training/vendor/microlp/src/lib.rs
+@@ -87,6 +87,7 @@ solution and returns a new [`SolveOutcome`] for the edited problem.
+ #[macro_use]
+ extern crate log;
+ 
++mod exact_cost;
+ mod helpers;
+ mod lu;
+ mod mip;
+diff --git a/crates/uor-r4-training/vendor/microlp/src/lu.rs b/crates/uor-r4-training/vendor/microlp/src/lu.rs
+index f27e93014..f56c93a76 100644
+--- a/crates/uor-r4-training/vendor/microlp/src/lu.rs
++++ b/crates/uor-r4-training/vendor/microlp/src/lu.rs
+@@ -744,7 +744,27 @@ mod tests {
+ 
+ // No rounded pivot-zero test occurs in this fallback. The rationals represent
+ // the exact stored IEEE inputs. Rounded factors are admitted only by verify().
+-fn exact_factorize(basis: &crate::repair::Basis) -> Result<LUFactors, Error> {
++pub(crate) fn exact_resource_limits(n: usize) -> Result<(u64, u64), Error> {
++    if n <= 512 {
++        Ok((65_536, 16_384))
++    } else if n <= 1_040 {
++        // The pinned saved437 parent submits 380 + 3*220 rows. Larger bases
++        // get a smaller per-cell bit allowance rather than unbounded storage.
++        Ok((4_096, 4_096))
++    } else {
++        Err(Error::ExactResourceLimit)
++    }
++}
++
++pub(crate) fn exact_factorize(basis: &crate::repair::Basis) -> Result<LUFactors, Error> {
++    exact_resource_limits(basis.columns.len())?;
++    if let Some(factors) = triangular_exact_factorize(basis)? {
++        return Ok(factors);
++    }
++    dense_exact_factorize(basis)
++}
++
++fn dense_exact_factorize(basis: &crate::repair::Basis) -> Result<LUFactors, Error> {
+     match fraction_free_factorize(basis) {
+         Ok(f) => Ok(f),
+         Err(Error::SingularMatrix) => Err(Error::SingularMatrix),
+@@ -752,16 +772,153 @@ fn exact_factorize(basis: &crate::repair::Basis) -> Result<LUFactors, Error> {
+     }
+ }
+ 
++// Peel only exact structural zeros: permutations give B'=[T E;0 F]. T and E
++// retain original dyadic coefficients; no Schur arithmetic or row is dropped.
++fn triangular_exact_factorize(basis: &crate::repair::Basis) -> Result<Option<LUFactors>, Error> {
++    let n = basis.columns.len();
++    let mut active_rows = vec![true; n];
++    let mut active_cols = vec![true; n];
++    let mut peeled = Vec::new();
++    loop {
++        let before = peeled.len();
++        for c in 0..n {
++            if !active_cols[c] {
++                continue;
++            }
++            let (rows, values) = &basis.columns[c];
++            let mut entries = rows
++                .iter()
++                .zip(values)
++                .filter(|&(&r, &v)| active_rows[r] && v != 0.0);
++            let Some((&r, &diagonal)) = entries.next() else {
++                crate::repair::count(|s| s.exact_singular += 1);
++                return Err(Error::SingularMatrix);
++            };
++            if entries.next().is_none() {
++                peeled.push((c, r, diagonal));
++                active_rows[r] = false;
++                active_cols[c] = false;
++            }
++        }
++        if before == peeled.len() {
++            break;
++        }
++    }
++    let p = peeled.len();
++    if p == 0 {
++        return Ok(None);
++    }
++    let core_rows = (0..n).filter(|&r| active_rows[r]).collect::<Vec<_>>();
++    let core_cols = (0..n).filter(|&c| active_cols[c]).collect::<Vec<_>>();
++    let m = n - p;
++    if core_rows.len() != m || core_cols.len() != m {
++        return Err(Error::UnreliableFactorization);
++    }
++    let mut row_to_core = vec![None; n];
++    for (i, &r) in core_rows.iter().enumerate() {
++        row_to_core[r] = Some(i);
++    }
++    let columns = core_cols
++        .iter()
++        .map(|&c| {
++            let (rows, values) = &basis.columns[c];
++            rows.iter()
++                .zip(values)
++                .filter_map(|(&r, &v)| row_to_core[r].filter(|_| v != 0.0).map(|i| (i, v)))
++                .unzip()
++        })
++        .collect::<Vec<(Vec<usize>, Vec<f64>)>>();
++    let core_basis = crate::repair::Basis::new(m, |c| (&columns[c].0, &columns[c].1))?;
++    let core = dense_exact_factorize(&core_basis)?;
++    let mut row_new2orig = peeled.iter().map(|&(_, r, _)| r).collect::<Vec<_>>();
++    let mut col_new2orig = peeled.iter().map(|&(c, _, _)| c).collect::<Vec<_>>();
++    for i in 0..m {
++        let r = core.row_perm.as_ref().map_or(i, |perm| perm.new2orig[i]);
++        let c = core.col_perm.as_ref().map_or(i, |perm| perm.new2orig[i]);
++        row_new2orig.push(core_rows[r]);
++        col_new2orig.push(core_cols[c]);
++    }
++    let inverse = |new2orig: &[usize]| {
++        let mut orig2new = vec![0; n];
++        for (i, &old) in new2orig.iter().enumerate() {
++            orig2new[old] = i;
++        }
++        orig2new
++    };
++    let row_orig2new = inverse(&row_new2orig);
++    let col_orig2new = inverse(&col_new2orig);
++    let core_diagonal = core
++        .upper
++        .diag
++        .as_ref()
++        .ok_or(Error::UnreliableFactorization)?;
++    let mut lower = SparseMat::new(n);
++    let mut upper = SparseMat::new(n);
++    let mut diagonal = Vec::with_capacity(n);
++    for c in 0..n {
++        let original_c = col_new2orig[c];
++        let (rows, values) = &basis.columns[original_c];
++        let mut top = rows
++            .iter()
++            .zip(values)
++            .filter_map(|(&r, &v)| {
++                let i = row_orig2new[r];
++                (i < p && i != c && v != 0.0).then_some((i, v))
++            })
++            .collect::<Vec<_>>();
++        top.sort_unstable_by_key(|&(r, _)| r);
++        for (r, v) in top {
++            if r >= c {
++                return Err(Error::UnreliableFactorization);
++            }
++            upper.push(r, v);
++        }
++        if c < p {
++            diagonal.push(peeled[c].2);
++        } else {
++            let j = c - p;
++            for (r, &v) in core.upper.nondiag.col_iter(j) {
++                upper.push(p + r, v);
++            }
++            for (r, &v) in core.lower.nondiag.col_iter(j) {
++                lower.push(p + r, v);
++            }
++            diagonal.push(core_diagonal[j]);
++        }
++        upper.seal_column();
++        lower.seal_column();
++    }
++    if std::env::var_os("UOR_MICROLP_PROGRESS").is_some() {
++        eprintln!("d22-numerics event=exact-triangular-split rows={n} peeled={p} core={m}");
++    }
++    Ok(Some(LUFactors {
++        lower: TriangleMat {
++            nondiag: lower,
++            diag: None,
++        },
++        upper: TriangleMat {
++            nondiag: upper,
++            diag: Some(diagonal),
++        },
++        row_perm: Some(Perm {
++            orig2new: row_orig2new,
++            new2orig: row_new2orig,
++        }),
++        col_perm: Some(Perm {
++            orig2new: col_orig2new,
++            new2orig: col_new2orig,
++        }),
++    }))
++}
++
+ // Bareiss elimination on exact column-scaled dyadics. Rounded factors are
+ // admitted only by the unchanged original-basis certificate in lu_factorize.
+ fn fraction_free_factorize(basis: &crate::repair::Basis) -> Result<LUFactors, Error> {
+     use num_bigint::BigInt;
+     use num_rational::BigRational;
+     use num_traits::{One, Signed, ToPrimitive, Zero};
+-    const MAX_RAW_BITS: u64 = 65_536;
+-    const MAX_FACTOR_BITS: u64 = 16_384;
+-    fn rounded(x: BigRational) -> Result<f64, Error> {
+-        if x.numer().bits() > MAX_FACTOR_BITS || x.denom().bits() > MAX_FACTOR_BITS {
++    fn rounded(x: BigRational, max_bits: u64) -> Result<f64, Error> {
++        if x.numer().bits() > max_bits || x.denom().bits() > max_bits {
+             return Err(Error::ExactResourceLimit);
+         }
+         let v = x.to_f64().ok_or(Error::NonFiniteFactorization)?;
+@@ -771,9 +928,7 @@ fn fraction_free_factorize(basis: &crate::repair::Basis) -> Result<LUFactors, Er
+         Ok(v)
+     }
+     let n = basis.columns.len();
+-    if n > 512 {
+-        return Err(Error::ExactResourceLimit);
+-    }
++    let (max_raw_bits, max_factor_bits) = exact_resource_limits(n)?;
+     let mut a = vec![vec![BigInt::zero(); n]; n];
+     let mut scales = vec![BigInt::one(); n];
+     for (c, (rs, vs)) in basis.columns.iter().enumerate() {
+@@ -814,10 +969,16 @@ fn fraction_free_factorize(basis: &crate::repair::Basis) -> Result<LUFactors, Er
+         new2orig.swap(k, row);
+         let pivot = a[k][k].clone();
+         for c in k..n {
+-            upper_rows[k][c] = rounded(BigRational::new(a[k][c].clone(), &previous * &scales[c]))?;
++            upper_rows[k][c] = rounded(
++                BigRational::new(a[k][c].clone(), &previous * &scales[c]),
++                max_factor_bits,
++            )?;
+         }
+         for r in k + 1..n {
+-            lower_rows[r][k] = rounded(BigRational::new(a[r][k].clone(), pivot.clone()))?;
++            lower_rows[r][k] = rounded(
++                BigRational::new(a[r][k].clone(), pivot.clone()),
++                max_factor_bits,
++            )?;
+             for c in k + 1..n {
+                 if a[r][c].is_zero() && (a[r][k].is_zero() || a[k][c].is_zero()) {
+                     continue;
+@@ -827,7 +988,7 @@ fn fraction_free_factorize(basis: &crate::repair::Basis) -> Result<LUFactors, Er
+                 if &quotient * &previous != numerator {
+                     return Err(Error::UnreliableFactorization);
+                 }
+-                if quotient.bits() > MAX_RAW_BITS {
++                if quotient.bits() > max_raw_bits {
+                     return Err(Error::ExactResourceLimit);
+                 }
+                 a[r][c] = quotient;
+@@ -878,6 +1039,125 @@ fn fraction_free_factorize(basis: &crate::repair::Basis) -> Result<LUFactors, Er
+     })
+ }
+ 
++#[cfg(feature = "numerical-fixtures")]
++pub(crate) fn exact_capacity_fixture(kind: &str) -> Result<(), Error> {
++    match kind {
++        "parent_dimension" => {
++            let n = 1_040;
++            let mut columns = vec![(Vec::new(), Vec::new()); n];
++            let block = [[0.0, 2.0, 0.0], [3.0, 0.0, 4.0], [1.0, 5.0, 6.0]];
++            for c in 0..n {
++                let mut entries = if c < 3 {
++                    (0..3)
++                        .filter_map(|r| (block[r][c] != 0.0).then_some((r, block[r][c])))
++                        .collect::<Vec<_>>()
++                } else {
++                    vec![(c, if c % 2 == 0 { 1.0 } else { -1.0 })]
++                };
++                if c < 3 {
++                    for r in 3..n {
++                        let value = (r % 5) as f64 * 0.125 - 0.25;
++                        if value != 0.0 {
++                            entries.push((r, value));
++                        }
++                    }
++                }
++                for (r, _) in &mut entries {
++                    *r = (*r * 3 + 17) % n;
++                }
++                entries.sort_unstable_by_key(|&(r, _)| r);
++                columns[(c * 7 + 23) % n] = entries.into_iter().unzip();
++            }
++            let basis = crate::repair::Basis::new(n, |c| (&columns[c].0, &columns[c].1))?;
++            for factors in [
++                fraction_free_factorize(&basis)?,
++                rational_factorize(&basis)?,
++                exact_factorize(&basis)?,
++            ] {
++                crate::repair::verify(&basis, &factors)?;
++            }
++            Ok(())
++        }
++        "dimension_rejection" => {
++            let n = 1_041;
++            let columns = (0..n).map(|r| (vec![r], vec![1.0])).collect::<Vec<_>>();
++            let basis = crate::repair::Basis::new(n, |c| (&columns[c].0, &columns[c].1))?;
++            for result in [
++                fraction_free_factorize(&basis),
++                rational_factorize(&basis),
++                exact_factorize(&basis),
++            ] {
++                if !matches!(result, Err(Error::ExactResourceLimit)) {
++                    return Err(Error::UnreliableFactorization);
++                }
++            }
++            Ok(())
++        }
++        "large_intermediate_rejection" => {
++            let n = 513;
++            let columns = (0..n).map(|r| (vec![r], vec![1e100])).collect::<Vec<_>>();
++            let basis = crate::repair::Basis::new(n, |c| (&columns[c].0, &columns[c].1))?;
++            if !matches!(
++                fraction_free_factorize(&basis),
++                Err(Error::ExactResourceLimit)
++            ) {
++                return Err(Error::UnreliableFactorization);
++            }
++            Ok(())
++        }
++        "peel_chain" => {
++            let n = 1_040;
++            let mut columns = vec![(Vec::new(), Vec::new()); n];
++            for c in 0..n {
++                let mut entries = vec![((c * 3 + 17) % n, 1.0)];
++                if c > 0 {
++                    entries.push((((c - 1) * 3 + 17) % n, 0.25));
++                }
++                entries.sort_unstable_by_key(|&(r, _)| r);
++                columns[(c * 7 + 23) % n] = entries.into_iter().unzip();
++            }
++            let basis = crate::repair::Basis::new(n, |c| (&columns[c].0, &columns[c].1))?;
++            let factors = exact_factorize(&basis)?;
++            crate::repair::verify(&basis, &factors)
++        }
++        "peel_singular" => {
++            let n = 1_040;
++            for empty in [false, true] {
++                let mut columns = (0..n).map(|r| (vec![r], vec![1.0])).collect::<Vec<_>>();
++                columns[1] = if empty {
++                    (vec![], vec![])
++                } else {
++                    columns[0].clone()
++                };
++                let basis = crate::repair::Basis::new(n, |c| (&columns[c].0, &columns[c].1))?;
++                if !matches!(exact_factorize(&basis), Err(Error::SingularMatrix)) {
++                    return Err(Error::UnreliableFactorization);
++                }
++            }
++            let mut columns = (0..n).map(|r| (vec![r], vec![1.0])).collect::<Vec<_>>();
++            columns[0] = (vec![0, 1], vec![1.0, 1.0]);
++            columns[1] = columns[0].clone();
++            let basis = crate::repair::Basis::new(n, |c| (&columns[c].0, &columns[c].1))?;
++            if !matches!(exact_factorize(&basis), Err(Error::SingularMatrix)) {
++                return Err(Error::UnreliableFactorization);
++            }
++            let columns = (0..n)
++                .map(|c| {
++                    let mut entries = vec![(c, 1.0), ((c + 1) % n, f64::from_bits(1))];
++                    entries.sort_unstable_by_key(|&(r, _)| r);
++                    entries.into_iter().unzip()
++                })
++                .collect::<Vec<(Vec<usize>, Vec<f64>)>>();
++            let basis = crate::repair::Basis::new(n, |c| (&columns[c].0, &columns[c].1))?;
++            if triangular_exact_factorize(&basis)?.is_some() {
++                return Err(Error::UnreliableFactorization);
++            }
++            Ok(())
++        }
++        _ => Err(Error::UnreliableFactorization),
++    }
++}
++
+ #[cfg(feature = "numerical-fixtures")]
+ pub(crate) fn fraction_free_fixture() -> Result<(), Error> {
+     for scale in [1e-100, 1.0, 1e100] {
+@@ -908,9 +1188,11 @@ pub(crate) fn fraction_free_fixture() -> Result<(), Error> {
+                 crate::repair::Basis::new(columns.len(), |c| (&columns[c].0, &columns[c].1))?;
+             let rational = rational_factorize(&basis)?;
+             let fraction_free = fraction_free_factorize(&basis)?;
++            let factory = exact_factorize(&basis)?;
+             if format!("{rational:?}") != format!("{fraction_free:?}") {
+                 return Err(Error::UnreliableFactorization);
+             }
++            crate::repair::verify(&basis, &factory)?;
+             crate::repair::verify(&basis, &fraction_free)?;
+         }
+     }
+@@ -920,10 +1202,8 @@ pub(crate) fn fraction_free_fixture() -> Result<(), Error> {
+ fn rational_factorize(basis: &crate::repair::Basis) -> Result<LUFactors, Error> {
+     use num_rational::BigRational;
+     use num_traits::{Signed, ToPrimitive, Zero};
+-    const MAX_DIM: usize = 512;
+-    const MAX_BITS: u64 = 16_384;
+-    fn bounded(x: BigRational) -> Result<BigRational, Error> {
+-        if x.numer().bits() > MAX_BITS || x.denom().bits() > MAX_BITS {
++    fn bounded(x: BigRational, max_bits: u64) -> Result<BigRational, Error> {
++        if x.numer().bits() > max_bits || x.denom().bits() > max_bits {
+             Err(Error::ExactResourceLimit)
+         } else {
+             Ok(x)
+@@ -937,9 +1217,7 @@ fn rational_factorize(basis: &crate::repair::Basis) -> Result<LUFactors, Error>
+         Ok(v)
+     }
+     let n = basis.columns.len();
+-    if n > MAX_DIM {
+-        return Err(Error::ExactResourceLimit);
+-    }
++    let (_, max_bits) = exact_resource_limits(n)?;
+     let mut a = vec![vec![BigRational::zero(); n]; n];
+     for (c, (rs, vs)) in basis.columns.iter().enumerate() {
+         for (&r, &v) in rs.iter().zip(vs) {
+@@ -964,10 +1242,10 @@ fn rational_factorize(basis: &crate::repair::Basis) -> Result<LUFactors, Error>
+             if a[r][k].is_zero() {
+                 continue;
+             }
+-            a[r][k] = bounded(&a[r][k] / &a[k][k])?;
++            a[r][k] = bounded(&a[r][k] / &a[k][k], max_bits)?;
+             for c in k + 1..n {
+                 if !a[k][c].is_zero() {
+-                    a[r][c] = bounded(&a[r][c] - &a[r][k] * &a[k][c])?;
++                    a[r][c] = bounded(&a[r][c] - &a[r][k] * &a[k][c], max_bits)?;
+                 }
+             }
+         }
+diff --git a/crates/uor-r4-training/vendor/microlp/src/repair.rs b/crates/uor-r4-training/vendor/microlp/src/repair.rs
+index 2c2783094..e2d35068c 100644
+--- a/crates/uor-r4-training/vendor/microlp/src/repair.rs
++++ b/crates/uor-r4-training/vendor/microlp/src/repair.rs
+@@ -22,6 +22,142 @@ pub fn stats() -> Stats {
+ pub fn reset_stats() {
+     STATS.with(|s| *s.borrow_mut() = Stats::default());
+ }
++
++#[cfg(feature = "numerical-fixtures")]
++pub fn exact_cost_fixture(kind: &str) -> Result<(), String> {
++    crate::exact_cost::fixture(kind).map_err(|e| e.to_string())
++}
++
++#[cfg(feature = "numerical-fixtures")]
++pub fn exact_cost_capture_fixture(text: &str) -> Result<String, String> {
++    use serde_json::Value;
++    use std::time::Instant;
++    if text.len() > 16 * 1024 * 1024 {
++        return Err("capture text admission".into());
++    }
++    fn integers(value: &Value) -> Result<Vec<u64>, String> {
++        value
++            .as_array()
++            .ok_or("capture array missing")?
++            .iter()
++            .map(|v| v.as_u64().ok_or_else(|| "capture integer missing".into()))
++            .collect()
++    }
++    fn indexes(value: &Value) -> Result<Vec<usize>, String> {
++        integers(value)?
++            .into_iter()
++            .map(|v| usize::try_from(v).map_err(|_| "capture index overflow".into()))
++            .collect()
++    }
++    fn column(value: &Value) -> Result<(Vec<usize>, Vec<f64>), String> {
++        let rows = indexes(&value["rows"])?;
++        let coefficients = integers(&value["coefficient_bits"])?
++            .into_iter()
++            .map(f64::from_bits)
++            .collect::<Vec<_>>();
++        if rows.len() != coefficients.len() {
++            return Err("capture column length mismatch".into());
++        }
++        Ok((rows, coefficients))
++    }
++    let capture: Value = serde_json::from_str(text).map_err(|e| e.to_string())?;
++    if capture["schema"] != "uor-r4.d22-exact-cost-phase/1"
++        || capture["eps_bits"].as_u64() != Some(crate::solver::EPS.to_bits())
++    {
++        return Err("capture schema or epsilon mismatch".into());
++    }
++    let basic = indexes(&capture["basic_vars"])?;
++    let nonbasic = indexes(&capture["nonbasic_vars"])?;
++    let working = integers(&capture["working_cost_bits"])?
++        .into_iter()
++        .map(f64::from_bits)
++        .collect::<Vec<_>>();
++    if basic.len() > 1_040 || working.len() > 10_000 || nonbasic.len() > 10_000 {
++        return Err("capture dimension admission".into());
++    }
++    let basis = capture["basis_columns"]
++        .as_array()
++        .ok_or("capture basis missing")?
++        .iter()
++        .map(column)
++        .collect::<Result<Vec<_>, _>>()?;
++    if basis.len() != basic.len() {
++        return Err("capture basis length mismatch".into());
++    }
++    let original = capture["original_columns"]
++        .as_array()
++        .ok_or("capture original columns missing")?;
++    if original.len() != working.len() {
++        return Err("capture objective length mismatch".into());
++    }
++    let mut partition = std::collections::BTreeSet::new();
++    for &var in basic.iter().chain(&nonbasic) {
++        if var >= working.len() || !partition.insert(var) {
++            return Err("capture variable partition duplicate or invalid index".into());
++        }
++    }
++    if partition.len() != working.len() {
++        return Err("capture variable partition incomplete".into());
++    }
++    for (column, &var) in basic.iter().enumerate() {
++        if capture["basis_columns"][column] != original[var] {
++            return Err("capture basis does not match original columns".into());
++        }
++    }
++    let rhs = basic
++        .iter()
++        .map(|&var| {
++            working
++                .get(var)
++                .copied()
++                .ok_or_else(|| "capture basic index".to_string())
++        })
++        .collect::<Result<Vec<_>, _>>()?;
++    let basis =
++        Basis::new(basic.len(), |c| (&basis[c].0, &basis[c].1)).map_err(|e| e.to_string())?;
++    let start = Instant::now();
++    let multipliers =
++        crate::exact_cost::transpose_solve(&basis, &rhs).map_err(|e| e.to_string())?;
++    let transpose_seconds = start.elapsed().as_secs_f64();
++    let (raw_bits, result_bits) =
++        crate::lu::exact_resource_limits(basic.len()).map_err(|e| e.to_string())?;
++    let mut optimized_seconds = 0.0;
++    let mut reference_seconds = 0.0;
++    for &var in &nonbasic {
++        let c = working.get(var).copied().ok_or("capture nonbasic index")?;
++        let original = original.get(var).ok_or("capture column index")?;
++        let (rows, coefficients) = column(original)?;
++        let start = Instant::now();
++        let optimized = crate::exact_cost::column_cost(
++            c,
++            &rows,
++            &coefficients,
++            &multipliers,
++            raw_bits,
++            result_bits,
++        );
++        optimized_seconds += start.elapsed().as_secs_f64();
++        let start = Instant::now();
++        let reference = crate::exact_cost::reference_column_cost(
++            c,
++            &rows,
++            &coefficients,
++            &multipliers,
++            raw_bits,
++            result_bits,
++        );
++        reference_seconds += start.elapsed().as_secs_f64();
++        if optimized != reference {
++            return Err(format!("capture exact cost mismatch at variable {var}"));
++        }
++        optimized.map_err(|e| format!("capture cost resource/arithmetic blocker at {var}: {e}"))?;
++    }
++    Ok(serde_json::json!({"schema":"uor-r4.d22-exact-cost-capture-equivalence/1",
++        "status":"EXACT_COSTS_EQUAL", "basis_rows":basic.len(), "compared_costs":nonbasic.len(),
++        "transpose_seconds":transpose_seconds, "optimized_cost_seconds":optimized_seconds,
++        "reference_cost_seconds":reference_seconds,
++        "scope":"Captured dyadic cost equality and local timings, not saved LP completion or model qualification"}).to_string())
++}
+ pub(crate) fn count(f: impl FnOnce(&mut Stats)) {
+     STATS.with(|s| f(&mut s.borrow_mut()));
+ }
+@@ -183,3 +319,18 @@ pub fn transaction_fixture(kind: &str) -> Result<(), String> {
+ pub fn fraction_free_fixture() -> Result<(), String> {
+     crate::lu::fraction_free_fixture().map_err(|e| e.to_string())
+ }
++
++#[cfg(feature = "numerical-fixtures")]
++pub fn exact_capacity_fixture(kind: &str) -> Result<(), String> {
++    crate::lu::exact_capacity_fixture(kind).map_err(|e| e.to_string())
++}
++
++#[cfg(feature = "numerical-fixtures")]
++pub fn qualify_exact_capacity(columns: Vec<(Vec<usize>, Vec<f64>)>) -> Result<(), String> {
++    let result = (|| {
++        let basis = Basis::new(columns.len(), |c| (&columns[c].0, &columns[c].1))?;
++        let factors = crate::lu::exact_factorize(&basis)?;
++        verify(&basis, &factors)
++    })();
++    result.map_err(|e: Error| e.to_string())
++}
+diff --git a/crates/uor-r4-training/vendor/microlp/src/solver.rs b/crates/uor-r4-training/vendor/microlp/src/solver.rs
+index 8a72ab4b5..7f603cf5f 100644
+--- a/crates/uor-r4-training/vendor/microlp/src/solver.rs
++++ b/crates/uor-r4-training/vendor/microlp/src/solver.rs
+@@ -73,6 +73,17 @@ fn compensated_products(terms: impl IntoIterator<Item = (f64, f64)>) -> Result<f
+     Ok(crate::repair::finite(sum + correction)?)
+ }
+ 
++fn exact_cost_valid(
++    cost: &num_rational::BigRational,
++    epsilon: &num_rational::BigRational,
++    at_min: bool,
++    at_max: bool,
++    free: bool,
++) -> bool {
++    use num_traits::Signed;
++    at_min && cost > &-epsilon || at_max && cost < epsilon || free && cost.abs() <= *epsilon
++}
++
+ /// Threshold-pivoting stability coefficient passed to [`lu_factorize`] for
+ /// every LU (re)factorization the simplex performs: a candidate pivot is
+ /// accepted only if its magnitude is at least this fraction of the column's
+@@ -1039,12 +1050,167 @@ impl Solver {
+                 if std::env::var_os("UOR_MICROLP_PROGRESS").is_some() {
+                     eprintln!("d22-numerics reduced-cost-refine-after: {result:?}");
+                 }
+-                Ok(result.is_ok())
++                if result.is_ok() {
++                    Ok(true)
++                } else {
++                    self.certify_exact_working_costs(phase)
++                }
+             }
+             Err(_) => Ok(false),
+         }
+     }
+ 
++    fn certify_exact_working_costs(&mut self, phase: NumericalPhase) -> Result<bool, Error> {
++        let result = self.certify_exact_working_costs_impl(phase);
++        #[cfg(feature = "numerical-fixtures")]
++        if let Err(error) = &result {
++            self.capture_exact_cost_phase(
++                phase,
++                Some(&format!("ARITHMETIC_OR_CAPTURE_FAILURE: {error}")),
++            )?;
++        }
++        result
++    }
++
++    fn certify_exact_working_costs_impl(&mut self, phase: NumericalPhase) -> Result<bool, Error> {
++        use crate::sparse::Error as ArithmeticError;
++        use num_rational::BigRational;
++        use num_traits::{ToPrimitive, Zero};
++        let dyadic =
++            |x: f64| BigRational::from_float(x).ok_or(ArithmeticError::NonFiniteFactorization);
++        #[cfg(feature = "numerical-fixtures")]
++        self.capture_exact_cost_phase(phase, None)?;
++        let rhs = self
++            .basic_vars
++            .iter()
++            .map(|&v| self.working_obj_coeffs[v])
++            .collect::<Vec<_>>();
++        let columns = self
++            .basic_vars
++            .iter()
++            .map(|&var| {
++                self.orig_constraints_csc
++                    .outer_view(var)
++                    .map(|column| (column.indices().to_vec(), column.data().to_vec()))
++                    .ok_or(ArithmeticError::UnreliableFactorization)
++            })
++            .collect::<Result<Vec<_>, _>>()?;
++        let basis =
++            crate::repair::Basis::new(self.num_constraints(), |c| (&columns[c].0, &columns[c].1))?;
++        let multipliers = crate::exact_cost::transpose_solve(&basis, &rhs)?;
++        let epsilon = dyadic(EPS)?;
++        let (raw_bits, bits) = crate::lu::exact_resource_limits(self.num_constraints())?;
++        let mut rounded = Vec::with_capacity(self.nb_vars.len());
++        for (col, &var) in self.nb_vars.iter().enumerate() {
++            let column = self
++                .orig_constraints_csc
++                .outer_view(var)
++                .ok_or(ArithmeticError::UnreliableFactorization)?;
++            let cost = crate::exact_cost::column_cost(
++                self.working_obj_coeffs[var],
++                column.indices(),
++                column.data(),
++                &multipliers,
++                raw_bits,
++                bits,
++            )?;
++            let state = &self.nb_var_states[col];
++            let free = !state.at_min
++                && !state.at_max
++                && self.orig_var_mins[var] == f64::NEG_INFINITY
++                && self.orig_var_maxs[var] == f64::INFINITY;
++            let valid = exact_cost_valid(&cost, &epsilon, state.at_min, state.at_max, free);
++            if !valid {
++                #[cfg(feature = "numerical-fixtures")]
++                self.capture_exact_cost_phase(phase, Some("EXACT_PHASE_VIOLATION"))?;
++                eprintln!("d22-numerics exact-working-cost status=EXACT_PHASE_VIOLATION col={col} var={var} numerator={} denominator={} EPS_bits={:016x}", cost.numer(), cost.denom(), EPS.to_bits());
++                return Ok(false);
++            }
++            let value = cost
++                .to_f64()
++                .ok_or(ArithmeticError::NonFiniteFactorization)?;
++            if !value.is_finite() || (value == 0.0 && !cost.is_zero()) {
++                return Err(ArithmeticError::UnreliableFactorization.into());
++            }
++            rounded.push(value);
++        }
++        // The exact comparison is authoritative; float proposal machinery
++        // must also pass, conservatively rejecting a rounded boundary tie.
++        let old = std::mem::replace(&mut self.nb_var_obj_coeffs, rounded);
++        if self.require_numerical_phase(phase).is_err() {
++            self.nb_var_obj_coeffs = old;
++            #[cfg(feature = "numerical-fixtures")]
++            self.capture_exact_cost_phase(phase, Some("ROUNDED_BOUNDARY_REJECTION"))?;
++            return Ok(false);
++        }
++        eprintln!(
++            "d22-numerics exact-working-cost status=CERTIFIED rows={} columns={}",
++            self.num_constraints(),
++            self.nb_vars.len()
++        );
++        Ok(true)
++    }
++
++    #[cfg(feature = "numerical-fixtures")]
++    fn capture_exact_cost_phase(
++        &self,
++        phase: NumericalPhase,
++        unresolved: Option<&str>,
++    ) -> Result<(), Error> {
++        use std::cell::Cell;
++        use std::io::Write;
++        thread_local! { static CAPTURED: Cell<[bool; 2]> = const { Cell::new([false; 2]) }; }
++        let Some(directory) = std::env::var_os("UOR_MICROLP_PHASE_CAPTURE") else {
++            return Ok(());
++        };
++        let slot = usize::from(unresolved.is_some());
++        if CAPTURED.with(|c| c.get()[slot]) {
++            return Ok(());
++        }
++        let name = if unresolved.is_some() {
++            "phase-first-unresolved-exact.json"
++        } else {
++            "phase-first-failed-refinement.json"
++        };
++        let path = std::path::PathBuf::from(directory).join(name);
++        let columns = self.orig_constraints_csc.outer_iterator().map(|column| {
++            serde_json::json!({"rows": column.indices(), "coefficient_bits": column.data().iter().map(|v| v.to_bits()).collect::<Vec<_>>()})
++        }).collect::<Vec<_>>();
++        let record = serde_json::json!({
++            "schema": "uor-r4.d22-exact-cost-phase/1",
++            "outcome": unresolved.unwrap_or("BEFORE_EXACT_FALLBACK"),
++            "scope": "Original dyadic phase reconstruction fixture, not a resumable solver checkpoint",
++            "phase": format!("{phase:?}"), "iterations": self.lp_iterations, "eps_bits": EPS.to_bits(),
++            "basis_columns": self.basis_solver.current_basis.columns.iter().map(|(rows,values)| serde_json::json!({"rows": rows,"coefficient_bits":values.iter().map(|v|v.to_bits()).collect::<Vec<_>>()})).collect::<Vec<_>>(),
++            "original_columns": columns, "basic_vars": self.basic_vars, "nonbasic_vars": self.nb_vars,
++            "working_cost_bits": self.working_obj_coeffs.iter().map(|v|v.to_bits()).collect::<Vec<_>>(),
++            "original_cost_bits": self.orig_obj_coeffs.iter().map(|v|v.to_bits()).collect::<Vec<_>>(),
++            "original_rhs_bits": self.orig_rhs.iter().map(|v|v.to_bits()).collect::<Vec<_>>(),
++            "min_bits": self.orig_var_mins.iter().map(|v|v.to_bits()).collect::<Vec<_>>(),
++            "max_bits": self.orig_var_maxs.iter().map(|v|v.to_bits()).collect::<Vec<_>>(),
++            "nonbasic_value_bits": self.nb_var_vals.iter().map(|v|v.to_bits()).collect::<Vec<_>>(),
++            "refined_cost_bits": self.nb_var_obj_coeffs.iter().map(|v|v.to_bits()).collect::<Vec<_>>(),
++            "nonbasic_states": self.nb_var_states.iter().zip(&self.nb_var_is_fixed).map(|(s,f)|serde_json::json!({"at_min":s.at_min,"at_max":s.at_max,"fixed":f})).collect::<Vec<_>>()
++        });
++        let mut output = std::fs::OpenOptions::new()
++            .write(true)
++            .create_new(true)
++            .open(path)
++            .map_err(|e| Error::InternalError(format!("exact phase capture: {e}")))?;
++        serde_json::to_writer(&mut output, &record)
++            .map_err(|e| Error::InternalError(format!("exact phase capture: {e}")))?;
++        output
++            .write_all(b"\n")
++            .and_then(|_| output.sync_all())
++            .map_err(|e| Error::InternalError(format!("exact phase capture: {e}")))?;
++        CAPTURED.with(|c| {
++            let mut flags = c.get();
++            flags[slot] = true;
++            c.set(flags);
++        });
++        Ok(())
++    }
++
+     fn certify_phase_with_refinement(&mut self, phase: NumericalPhase) -> Result<(), Error> {
+         if self.phase_certified_with_refinement(phase)? {
+             Ok(())
+@@ -3374,6 +3540,170 @@ pub(crate) fn d22_fixture(kind: &str) -> Result<(), Error> {
+         None,
+     )?;
+     match kind {
++        "exact_cost_nonempty_cancellation" => {
++            let mut case = Solver::try_new(
++                &[0.1, 0.0, 0.1],
++                &[0.0, 0.0, f64::NEG_INFINITY],
++                &[1.0, 1.0, f64::INFINITY],
++                &[
++                    (
++                        CsVec::new(3, vec![0, 1, 2], vec![1.0, 1.0, 1.0]),
++                        ComparisonOp::Eq,
++                        0.0,
++                    ),
++                    (
++                        CsVec::new(3, vec![0, 1, 2], vec![1.0, 1.0 + f64::EPSILON, 1.0]),
++                        ComparisonOp::Eq,
++                        0.0,
++                    ),
++                ],
++                &vec![VarDomain::Real; 3],
++                None,
++            )?;
++            case.load_basis(&Basis(vec![
++                VarStatus::Basic,
++                VarStatus::Basic,
++                VarStatus::Free,
++                VarStatus::AtLower,
++                VarStatus::AtLower,
++            ]))?;
++            require(
++                case.require_numerical_phase(NumericalPhase::Dual).is_err(),
++                "fixture did not expose multiplier cancellation",
++            )?;
++            case.recalc_working_obj_coeffs_impl(true)?;
++            require(
++                case.require_numerical_phase(NumericalPhase::Dual).is_err(),
++                "float refinement unexpectedly closed cancellation fixture",
++            )?;
++            require(
++                case.phase_certified_with_refinement(NumericalPhase::Dual)?,
++                "exact fallback did not certify nonempty phase",
++            )?;
++            let col = match case.var_states[2] {
++                VarState::NonBasic(c) => c,
++                _ => return Err(Error::InternalError("fixture variable is basic".into())),
++            };
++            require(
++                case.nb_var_obj_coeffs[col] == 0.0,
++                "exact cancellation did not reach proposal costs",
++            )
++        }
++        "exact_cost_late_violation_is_transactional" => {
++            let mut case = Solver::try_new(
++                &[1.0, -1.0],
++                &[0.0, 0.0],
++                &[1.0, 1.0],
++                &[],
++                &vec![VarDomain::Real; 2],
++                None,
++            )?;
++            case.load_basis(&Basis(vec![VarStatus::AtLower, VarStatus::AtLower]))?;
++            case.nb_var_obj_coeffs = vec![-2.0, -3.0];
++            let old = case.nb_var_obj_coeffs.clone();
++            require(
++                !case.certify_exact_working_costs(NumericalPhase::Dual)?,
++                "late exact violation admitted",
++            )?;
++            require(
++                case.nb_var_obj_coeffs == old,
++                "late violation partially committed costs",
++            )
++        }
++        "exact_cost_rounded_boundary_is_transactional" => {
++            let tiny = 2.0_f64.powi(-100);
++            let mut case = Solver::try_new(
++                &[3.0 * tiny, EPS],
++                &[0.0, 0.0],
++                &[1.0, 1.0],
++                &[(
++                    CsVec::new(2, vec![0, 1], vec![3.0, 1.0]),
++                    ComparisonOp::Eq,
++                    1.0,
++                )],
++                &vec![VarDomain::Real; 2],
++                None,
++            )?;
++            case.load_basis(&Basis(vec![
++                VarStatus::Basic,
++                VarStatus::AtUpper,
++                VarStatus::AtLower,
++            ]))?;
++            let old = case.nb_var_obj_coeffs.clone();
++            require(
++                !case.certify_exact_working_costs(NumericalPhase::Dual)?,
++                "rounded excluded boundary admitted",
++            )?;
++            require(
++                case.nb_var_obj_coeffs == old,
++                "rounded boundary rejection changed old vector",
++            )
++        }
++        "exact_cost_boundaries" => {
++            use crate::sparse::Error as ArithmeticError;
++            use num_rational::BigRational;
++            let eps =
++                BigRational::from_float(EPS).ok_or(ArithmeticError::NonFiniteFactorization)?;
++            let below = BigRational::from_float(f64::from_bits(EPS.to_bits() - 1))
++                .ok_or(ArithmeticError::NonFiniteFactorization)?;
++            let above = BigRational::from_float(f64::from_bits(EPS.to_bits() + 1))
++                .ok_or(ArithmeticError::NonFiniteFactorization)?;
++            for (cost, lower, upper, free) in [
++                (&below, true, true, true),
++                (&eps, true, false, true),
++                (&above, true, false, false),
++            ] {
++                require(
++                    exact_cost_valid(cost, &eps, true, false, false) == lower,
++                    "exact lower-bound predicate changed",
++                )?;
++                require(
++                    exact_cost_valid(cost, &eps, false, true, false) == upper,
++                    "exact upper-bound predicate changed",
++                )?;
++                require(
++                    exact_cost_valid(cost, &eps, false, false, true) == free,
++                    "exact free predicate changed",
++                )?;
++                require(
++                    exact_cost_valid(&-cost, &eps, true, false, false) == upper,
++                    "negative exact lower boundary changed",
++                )?;
++                require(
++                    exact_cost_valid(&-cost, &eps, false, true, false) == lower,
++                    "negative exact upper boundary changed",
++                )?;
++                require(
++                    exact_cost_valid(cost, &eps, true, true, false),
++                    "fixed exact predicate changed",
++                )?;
++            }
++            Ok(())
++        }
++        "exact_cost_working_objective" => {
++            let mut case = Solver::try_new(&[-1.0], &[0.0], &[1.0], &[], &[VarDomain::Real], None)?;
++            case.load_basis(&Basis(vec![VarStatus::AtLower]))?;
++            case.working_obj_coeffs[0] = 1.0;
++            case.nb_var_obj_coeffs[0] = -1.0;
++            require(
++                case.certify_exact_working_costs(NumericalPhase::Dual)?,
++                "exact working cost used original objective",
++            )?;
++            require(
++                case.nb_var_obj_coeffs[0] == 1.0 && case.orig_obj_coeffs[0] == -1.0,
++                "exact reconstruction changed objective",
++            )?;
++            case.working_obj_coeffs[0] = -1.0;
++            case.nb_var_obj_coeffs[0] = -1.0;
++            require(
++                !case.certify_exact_working_costs(NumericalPhase::Dual)?,
++                "changed objective retained stale certificate",
++            )?;
++            require(
++                case.nb_var_obj_coeffs[0] == -1.0,
++                "exact phase rejection changed proposal costs",
++            )
++        }
+         "failed_reset_is_transactional" => {
+             let before = solver.basis_solver.clone();
+             let singular = CsMat::new_csc((2, 2), vec![0, 1, 2], vec![0, 0], vec![1.0, 1.0]);
+diff --git a/docs/labs/d22-constructor-2026-10-10/numerical-tests/Cargo.lock b/docs/labs/d22-constructor-2026-10-10/numerical-tests/Cargo.lock
+index 3f69f4ec5..2b298e77b 100644
+--- a/docs/labs/d22-constructor-2026-10-10/numerical-tests/Cargo.lock
++++ b/docs/labs/d22-constructor-2026-10-10/numerical-tests/Cargo.lock
+@@ -201,6 +201,7 @@ dependencies = [
+  "num-bigint",
+  "num-rational",
+  "num-traits",
++ "serde_json",
+  "sprs",
+  "web-time",
+ ]
+diff --git a/docs/labs/d22-constructor-2026-10-10/numerical-tests/examples/embedded-capacity.rs b/docs/labs/d22-constructor-2026-10-10/numerical-tests/examples/embedded-capacity.rs
+new file mode 100644
+index 000000000..2f3487833
+--- /dev/null
++++ b/docs/labs/d22-constructor-2026-10-10/numerical-tests/examples/embedded-capacity.rs
+@@ -0,0 +1,73 @@
++//! Derived numerical basis regression, not an LP or model evaluation.
++use sha2::{Digest, Sha256};
++use std::{error::Error, fs, time::Instant};
++
++fn main() -> Result<(), Box<dyn Error>> {
++    let path = std::env::args()
++        .nth(1)
++        .ok_or("expected pinned basis path")?;
++    let bytes = fs::read(path)?;
++    let sha = format!("{:x}", Sha256::digest(&bytes));
++    if sha != "4b5abc63cc98cde36c8ff1ba47f1e9388548f81dad3cb26bf15e73bfb2fbd2b6"
++        || bytes.len() > 16 * 1024 * 1024
++    {
++        return Err("pinned basis identity/size differs".into());
++    }
++    let mut columns: Vec<Vec<(usize, f64)>> = Vec::new();
++    let mut counts = Vec::new();
++    for line in std::str::from_utf8(&bytes)?.lines() {
++        if line.starts_with('#') || line.is_empty() {
++            continue;
++        }
++        let fields = line.split('\t').collect::<Vec<_>>();
++        match fields.as_slice() {
++            ["COLUMN", c, n] => {
++                if c.parse::<usize>()? != columns.len() {
++                    return Err("column order differs".into());
++                }
++                columns.push(Vec::new());
++                counts.push(n.parse::<usize>()?);
++            }
++            ["ENTRY", c, r, bits] => {
++                let c = c.parse::<usize>()?;
++                let r = r.parse::<usize>()?;
++                if columns.is_empty() || c != columns.len() - 1 || r >= 440 {
++                    return Err("entry coordinate differs".into());
++                }
++                let value = f64::from_bits(u64::from_str_radix(bits, 16)?);
++                if !value.is_finite() || columns[c].last().is_some_and(|&(last, _)| last >= r) {
++                    return Err("invalid or unsorted entry".into());
++                }
++                columns[c].push((r, value));
++            }
++            _ => return Err("unknown basis line".into()),
++        }
++    }
++    if columns.len() != 440 || columns.iter().zip(counts).any(|(c, n)| c.len() != n) {
++        return Err("basis dimension/count differs".into());
++    }
++    let mut derived = columns
++        .into_iter()
++        .map(|column| column.into_iter().unzip())
++        .collect::<Vec<_>>();
++    for r in 440..1040 {
++        derived.push((vec![r], vec![1.0]));
++    }
++    microlp::repair::reset_stats();
++    let started = Instant::now();
++    let result = microlp::repair::qualify_exact_capacity(derived);
++    let stats = microlp::repair::stats();
++    println!(
++        "{}",
++        serde_json::json!({
++            "schema":"uor-r4.d22-embedded-capacity-regression/1",
++            "basis_sha256":sha,"original_dimension":440,"derived_dimension":1040,
++            "augmentation":"block diagonal with600 exact identity rows/columns",
++            "status":if result.is_ok(){"QUALIFIED"}else{"NUMERICALLY_REJECTED"},
++            "error":result.as_ref().err(),"certified_solves":stats.certified_solves,
++            "exact_singular":stats.exact_singular,"elapsed_seconds":started.elapsed().as_secs_f64(),
++            "scope":"Forced exact factor plus original-basis residual checks; derived numerical basis, no LP/model inference"
++        })
++    );
++    result.map_err(Into::into)
++}
+diff --git a/docs/labs/d22-constructor-2026-10-10/numerical-tests/examples/exact-cost-capture.rs b/docs/labs/d22-constructor-2026-10-10/numerical-tests/examples/exact-cost-capture.rs
+new file mode 100644
+index 000000000..f9a255a7d
+--- /dev/null
++++ b/docs/labs/d22-constructor-2026-10-10/numerical-tests/examples/exact-cost-capture.rs
+@@ -0,0 +1,11 @@
++use std::{error::Error, fs, path::PathBuf};
++
++fn main() -> Result<(), Box<dyn Error>> {
++    let path = PathBuf::from(std::env::args().nth(1).ok_or("capture path required")?);
++    if fs::metadata(&path)?.len() > 16 * 1024 * 1024 {
++        return Err("capture storage admission".into());
++    }
++    let text = fs::read_to_string(path)?;
++    println!("{}", microlp::repair::exact_cost_capture_fixture(&text)?);
++    Ok(())
++}
+diff --git a/docs/labs/d22-constructor-2026-10-10/numerical-tests/source-manifest.json b/docs/labs/d22-constructor-2026-10-10/numerical-tests/source-manifest.json
+index 419414320..239a6e87b 100644
+--- a/docs/labs/d22-constructor-2026-10-10/numerical-tests/source-manifest.json
++++ b/docs/labs/d22-constructor-2026-10-10/numerical-tests/source-manifest.json
+@@ -8,304 +8,331 @@
+     },
+     "Cargo.toml": {
+       "upstream_sha256": "268bffc88ba782bd7040c56a0397cfec2383c57cdf01a4dbf9916af6bc090576",
+-      "vendor_sha256": "aaa3dea307f7ade5f8610d08eaab1c9d98c4d35aea129cc068f5bf72fe0c1689"
++      "vendor_sha256": "80e8cd8088b8cceb2a9e3267efb35be95699b65528e5d55925caca5bf3c530ef"
+     },
+     "src/lib.rs": {
+       "upstream_sha256": "b939401e62247115270739758909f4e67777f8b105aa70f713a62334dc7a1dc0",
+-      "vendor_sha256": "5351c8ee5ca3f580d929522b5551e140d4d61fb935dd9213255dd63928e38ad2"
++      "vendor_sha256": "eb9b01c237135585b5f4bdeb7741edae54dd241cae6293ce1e4017da99baf484"
+     },
+     "src/lu.rs": {
+       "upstream_sha256": "ce2ce455b7be1d7b90384c090f0a62da23f4fbde7677b9b262391d5d51b4821f",
+-      "vendor_sha256": "eb32ae6907ff629645a03f02d35bd88650602c93cd6a058e31bb3b72e1c8d4ab"
++      "vendor_sha256": "17aa1755b2e40f16325ebc05e319055b193e14230ad00b66518ea89643866b46"
+     },
+     "src/solver.rs": {
+       "upstream_sha256": "1863f76f5b1f59a53812e54d0a35b6d4bffdf30f694997ca0d25cb90cc49cb88",
+-      "vendor_sha256": "be5460beead7f56923a7f213f44026d6a07b795e85ca93d47db9679de2409222"
++      "vendor_sha256": "03a09093de27e02b39faa582bd8d21e4049c5ae6f1c79c969c75f0ae2e6d9174"
+     },
+     "src/sparse.rs": {
+       "upstream_sha256": "f7dd3686eadb2d1a924222f391ca7974c2e0d81ff6b44e756fb2875858241246",
+       "vendor_sha256": "25d342d379193e9de6975e750172023cf9468d7771b22156b4410f1bacd284ca"
++    },
++    "src/exact_cost.rs": {
++      "upstream_sha256": null,
++      "vendor_sha256": "bf15e7e4b16c7a5102cee501419037cda4c3fae95715aae3217379ce657fe6ae"
+     }
+   },
+-  "total_bytes": 966228,
++  "total_bytes": 1051627,
+   "files": {
+     "crates/uor-r4-training/vendor/microlp/.cargo_vcs_info.json": {
+-      "sha256": "9acbfcda1ff08b814e6d668472c58d8d24930ed5ffd218533fa8a1af5d8c5a4f",
+-      "bytes": 94
++      "bytes": 94,
++      "sha256": "9acbfcda1ff08b814e6d668472c58d8d24930ed5ffd218533fa8a1af5d8c5a4f"
+     },
+     "crates/uor-r4-training/vendor/microlp/.gitattributes": {
+-      "sha256": "cb479ff7428431cf7232dddc826d57e93febb3689a6c45ec49962c21a23b2b11",
+-      "bytes": 24
++      "bytes": 24,
++      "sha256": "cb479ff7428431cf7232dddc826d57e93febb3689a6c45ec49962c21a23b2b11"
+     },
+     "crates/uor-r4-training/vendor/microlp/.github/workflows/benchmark.yaml": {
+-      "sha256": "3231d0e13308891f2c3a625cb785aa3e781cae3dde285f80a344b6dc914e5f21",
+-      "bytes": 2305
++      "bytes": 2305,
++      "sha256": "3231d0e13308891f2c3a625cb785aa3e781cae3dde285f80a344b6dc914e5f21"
+     },
+     "crates/uor-r4-training/vendor/microlp/.github/workflows/ci.yaml": {
+-      "sha256": "4564b5b69d00859040142b34fdf910bea30f778d8cc35c131e94b12958c2c262",
+-      "bytes": 6086
++      "bytes": 6086,
++      "sha256": "4564b5b69d00859040142b34fdf910bea30f778d8cc35c131e94b12958c2c262"
+     },
+     "crates/uor-r4-training/vendor/microlp/.gitignore": {
+-      "sha256": "684303236f00296300d167c47bfb220bf282519209c5e0ef4fa6329b10cdaa5b",
+-      "bytes": 115
++      "bytes": 115,
++      "sha256": "684303236f00296300d167c47bfb220bf282519209c5e0ef4fa6329b10cdaa5b"
+     },
+     "crates/uor-r4-training/vendor/microlp/Cargo.lock": {
+-      "sha256": "e64adab62f496024536e6260deff3811b0661f4ac402ffd70f03fa05bd220bae",
+-      "bytes": 38160
++      "bytes": 38160,
++      "sha256": "e64adab62f496024536e6260deff3811b0661f4ac402ffd70f03fa05bd220bae"
+     },
+     "crates/uor-r4-training/vendor/microlp/Cargo.toml": {
+-      "sha256": "aaa3dea307f7ade5f8610d08eaab1c9d98c4d35aea129cc068f5bf72fe0c1689",
+-      "bytes": 2170
++      "bytes": 2243,
++      "sha256": "80e8cd8088b8cceb2a9e3267efb35be95699b65528e5d55925caca5bf3c530ef"
+     },
+     "crates/uor-r4-training/vendor/microlp/Cargo.toml.orig": {
+-      "sha256": "4d186af780a1d78a3d8ab0ab965e65d710c7c0b6a9c3ede4eab0cb62bd4c644d",
+-      "bytes": 1748
++      "bytes": 1748,
++      "sha256": "4d186af780a1d78a3d8ab0ab965e65d710c7c0b6a9c3ede4eab0cb62bd4c644d"
+     },
+     "crates/uor-r4-training/vendor/microlp/LICENSE": {
+-      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+-      "bytes": 11358
++      "bytes": 11358,
++      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+     },
+     "crates/uor-r4-training/vendor/microlp/README.md": {
+-      "sha256": "1bc1dc553f00cd2bdbcccfd5957001fd88ec95bbee0e8fdc9d1d3293e6e0003e",
+-      "bytes": 13330
++      "bytes": 13330,
++      "sha256": "1bc1dc553f00cd2bdbcccfd5957001fd88ec95bbee0e8fdc9d1d3293e6e0003e"
++    },
++    "crates/uor-r4-training/vendor/microlp/UOR-PATCH.md": {
++      "bytes": 3446,
++      "sha256": "c3ab54d6ce92be6c03f4c7e67def59492a6c68ba3e705c9a58c22b5fe6f92b7e"
+     },
+     "crates/uor-r4-training/vendor/microlp/src/ARCHITECTURE.md": {
+-      "sha256": "20dd1d882dd8284ac0f87b2764f11aca1709d540633f1d3a4637ecac9cdc16b2",
+-      "bytes": 38227
++      "bytes": 38227,
++      "sha256": "20dd1d882dd8284ac0f87b2764f11aca1709d540633f1d3a4637ecac9cdc16b2"
++    },
++    "crates/uor-r4-training/vendor/microlp/src/exact_cost.rs": {
++      "bytes": 28782,
++      "sha256": "bf15e7e4b16c7a5102cee501419037cda4c3fae95715aae3217379ce657fe6ae"
+     },
+     "crates/uor-r4-training/vendor/microlp/src/helpers.rs": {
+-      "sha256": "60a45a4cfce03bdad14f88e061f32b3f4a541aeeae1afa64b978e2c08dae12b8",
+-      "bytes": 1467
++      "bytes": 1467,
++      "sha256": "60a45a4cfce03bdad14f88e061f32b3f4a541aeeae1afa64b978e2c08dae12b8"
+     },
+     "crates/uor-r4-training/vendor/microlp/src/lib.rs": {
+-      "sha256": "5351c8ee5ca3f580d929522b5551e140d4d61fb935dd9213255dd63928e38ad2",
+-      "bytes": 41852
++      "bytes": 41868,
++      "sha256": "eb9b01c237135585b5f4bdeb7741edae54dd241cae6293ce1e4017da99baf484"
+     },
+     "crates/uor-r4-training/vendor/microlp/src/lu.rs": {
+-      "sha256": "eb32ae6907ff629645a03f02d35bd88650602c93cd6a058e31bb3b72e1c8d4ab",
+-      "bytes": 32868
++      "bytes": 43522,
++      "sha256": "17aa1755b2e40f16325ebc05e319055b193e14230ad00b66518ea89643866b46"
+     },
+     "crates/uor-r4-training/vendor/microlp/src/mip/branching.rs": {
+-      "sha256": "1b0ab0373959e8bceed3936e377efc22eab372f7c9d112ea770ed1fe4ceb01d2",
+-      "bytes": 7754
++      "bytes": 7754,
++      "sha256": "1b0ab0373959e8bceed3936e377efc22eab372f7c9d112ea770ed1fe4ceb01d2"
+     },
+     "crates/uor-r4-training/vendor/microlp/src/mip/mod.rs": {
+-      "sha256": "d1d908a1422604f5f8db67613d26debb102199c25b6cb7bfaf9c530fc84bd468",
+-      "bytes": 60689
++      "bytes": 60689,
++      "sha256": "d1d908a1422604f5f8db67613d26debb102199c25b6cb7bfaf9c530fc84bd468"
+     },
+     "crates/uor-r4-training/vendor/microlp/src/mip/node.rs": {
+-      "sha256": "00dfcf80f8996b520187cd1262020766f445bccb0e3206d874196f37ad1041b6",
+-      "bytes": 2134
++      "bytes": 2134,
++      "sha256": "00dfcf80f8996b520187cd1262020766f445bccb0e3206d874196f37ad1041b6"
+     },
+     "crates/uor-r4-training/vendor/microlp/src/mip/params.rs": {
+-      "sha256": "3cd1bd96959759562151e81c436d1672af37f0082a7ef9db9ae591d804ed93f7",
+-      "bytes": 3150
++      "bytes": 3150,
++      "sha256": "3cd1bd96959759562151e81c436d1672af37f0082a7ef9db9ae591d804ed93f7"
+     },
+     "crates/uor-r4-training/vendor/microlp/src/ordering.rs": {
+-      "sha256": "3dd84f7e50a42248c5eff23ecf2d0cdd7283c147b762214aea25d47cf67614e2",
+-      "bytes": 24366
++      "bytes": 24366,
++      "sha256": "3dd84f7e50a42248c5eff23ecf2d0cdd7283c147b762214aea25d47cf67614e2"
+     },
+     "crates/uor-r4-training/vendor/microlp/src/problems_solvers/mod.rs": {
+-      "sha256": "77f340a71a60b597c1fddfd5e69b9a65f96d03754d56a939286930b464b1aa0f",
+-      "bytes": 59
++      "bytes": 59,
++      "sha256": "77f340a71a60b597c1fddfd5e69b9a65f96d03754d56a939286930b464b1aa0f"
+     },
+     "crates/uor-r4-training/vendor/microlp/src/problems_solvers/tsp.rs": {
+-      "sha256": "86143d686c0472d39d099c2d967703b279f6dc45fe4f76275d976fe07886ac24",
+-      "bytes": 11380
++      "bytes": 11380,
++      "sha256": "86143d686c0472d39d099c2d967703b279f6dc45fe4f76275d976fe07886ac24"
+     },
+     "crates/uor-r4-training/vendor/microlp/src/repair.rs": {
+-      "sha256": "94495f8e0fb6ebf4f38964f9bc482cd937a7f454b04455da96cabcd58e2d7018",
+-      "bytes": 6311
++      "bytes": 12318,
++      "sha256": "c65327f870df08cbb4a5984533a9243110dd3210822dfa8c10e08167b0a04109"
+     },
+     "crates/uor-r4-training/vendor/microlp/src/solver.rs": {
+-      "sha256": "be5460beead7f56923a7f213f44026d6a07b795e85ca93d47db9679de2409222",
+-      "bytes": 173461
++      "bytes": 188051,
++      "sha256": "03a09093de27e02b39faa582bd8d21e4049c5ae6f1c79c969c75f0ae2e6d9174"
+     },
+     "crates/uor-r4-training/vendor/microlp/src/sparse.rs": {
+-      "sha256": "25d342d379193e9de6975e750172023cf9468d7771b22156b4410f1bacd284ca",
+-      "bytes": 9566
++      "bytes": 9566,
++      "sha256": "25d342d379193e9de6975e750172023cf9468d7771b22156b4410f1bacd284ca"
+     },
+     "crates/uor-r4-training/vendor/microlp/src/tests/aoc.rs": {
+-      "sha256": "b1474ce51454b61eccc8820664c5c195029fb1abe5586b4a5d6030fd03dc49d7",
+-      "bytes": 25171
++      "bytes": 25171,
++      "sha256": "b1474ce51454b61eccc8820664c5c195029fb1abe5586b4a5d6030fd03dc49d7"
+     },
+     "crates/uor-r4-training/vendor/microlp/src/tests/aoc2.rs": {
+-      "sha256": "117148c5f2e73f968679a880073c809da89354103d1b11f32d89aaad27686ca4",
+-      "bytes": 3051
++      "bytes": 3051,
++      "sha256": "117148c5f2e73f968679a880073c809da89354103d1b11f32d89aaad27686ca4"
+     },
+     "crates/uor-r4-training/vendor/microlp/src/tests/general.rs": {
+-      "sha256": "1cbcddddf808acaa835031aa869fa729ac5eee009d5bf573b83590af5e72d47b",
+-      "bytes": 15860
++      "bytes": 15860,
++      "sha256": "1cbcddddf808acaa835031aa869fa729ac5eee009d5bf573b83590af5e72d47b"
+     },
+     "crates/uor-r4-training/vendor/microlp/src/tests/mip_api.rs": {
+-      "sha256": "29b233d6abd3b1a27eaaf0a5a492841cfab25ba1df3923f81e4496d1d79a11eb",
+-      "bytes": 35929
++      "bytes": 35929,
++      "sha256": "29b233d6abd3b1a27eaaf0a5a492841cfab25ba1df3923f81e4496d1d79a11eb"
+     },
+     "crates/uor-r4-training/vendor/microlp/src/tests/mod.rs": {
+-      "sha256": "0873629fb1f3ac5a6a036fbc8c7b14dc6dc4d5824cad0bdb50984ce9ed084225",
+-      "bytes": 89
++      "bytes": 89,
++      "sha256": "0873629fb1f3ac5a6a036fbc8c7b14dc6dc4d5824cad0bdb50984ce9ed084225"
+     },
+     "crates/uor-r4-training/vendor/microlp/src/tests/regressions.rs": {
+-      "sha256": "9ff8d84af299b424bbce9fc898e23c7438ad369cb0dfbe18359bb8fd15d64311",
+-      "bytes": 4146
++      "bytes": 4146,
++      "sha256": "9ff8d84af299b424bbce9fc898e23c7438ad369cb0dfbe18359bb8fd15d64311"
+     },
+     "crates/uor-r4-training/vendor/microlp/src/tests/resume.rs": {
+-      "sha256": "4f26d50894f47b9885012f9fa3d68821b8969a23f10a849d30263a5487ebe9f8",
+-      "bytes": 17562
++      "bytes": 17562,
++      "sha256": "4f26d50894f47b9885012f9fa3d68821b8969a23f10a849d30263a5487ebe9f8"
+     },
+     "crates/uor-r4-training/vendor/microlp/src/tests/tsp/inputs/tsp1-out.txt": {
+-      "sha256": "ff7d3f5192125a12b38d6eb89d0e73fd03b3101360cd35178080fad5048464c8",
+-      "bytes": 411
++      "bytes": 411,
++      "sha256": "ff7d3f5192125a12b38d6eb89d0e73fd03b3101360cd35178080fad5048464c8"
+     },
+     "crates/uor-r4-training/vendor/microlp/src/tests/tsp/inputs/tsp1.tsp": {
+-      "sha256": "282dd50ed54c6264df44c76735597295f55c5c6f1218ec57ffec9f2eaf7409d1",
+-      "bytes": 2069
++      "bytes": 2069,
++      "sha256": "282dd50ed54c6264df44c76735597295f55c5c6f1218ec57ffec9f2eaf7409d1"
+     },
+     "crates/uor-r4-training/vendor/microlp/src/tests/tsp/mod.rs": {
+-      "sha256": "0549359a40fc2e2f88e2e8d62743fc511d474ce4b246824f405c44aceb3548e3",
+-      "bytes": 14
++      "bytes": 14,
++      "sha256": "0549359a40fc2e2f88e2e8d62743fc511d474ce4b246824f405c44aceb3548e3"
+     },
+     "crates/uor-r4-training/vendor/microlp/src/tests/tsp/tsp_test.rs": {
+-      "sha256": "af8840af2716b2292948d4adcf9b2d3251eebf999f93aaa3deaa0b67577d7d6c",
+-      "bytes": 3118
++      "bytes": 3118,
++      "sha256": "af8840af2716b2292948d4adcf9b2d3251eebf999f93aaa3deaa0b67577d7d6c"
+     },
+     "crates/uor-r4-training/vendor/microlp/tests/exhaustive_mip.rs": {
+-      "sha256": "c40ea7cdf189f266973af307f5ae9ef47e19cce8d67e958673a6c77785eea391",
+-      "bytes": 21831
++      "bytes": 21831,
++      "sha256": "c40ea7cdf189f266973af307f5ae9ef47e19cce8d67e958673a6c77785eea391"
+     },
+     "crates/uor-r4-training/vendor/microlp/tests/suite/README.md": {
+-      "sha256": "b7123b098d42cd9e83565d0d9ec9b0c996cc1b8bd80f4e62f83eaef06affff2b",
+-      "bytes": 7923
++      "bytes": 7923,
++      "sha256": "b7123b098d42cd9e83565d0d9ec9b0c996cc1b8bd80f4e62f83eaef06affff2b"
+     },
+     "crates/uor-r4-training/vendor/microlp/tests/suite/cases/incremental.rs": {
+-      "sha256": "4562b83f80357c1f5f1322b915647b16786937b1a14ae42db9f9e7480ccad0e1",
+-      "bytes": 28972
++      "bytes": 28972,
++      "sha256": "4562b83f80357c1f5f1322b915647b16786937b1a14ae42db9f9e7480ccad0e1"
+     },
+     "crates/uor-r4-training/vendor/microlp/tests/suite/cases/lp_random.rs": {
+-      "sha256": "351723f83554da5f2608547da02912963a01aaaa7439bcc15c2197b384d6dbdd",
+-      "bytes": 9233
++      "bytes": 9233,
++      "sha256": "351723f83554da5f2608547da02912963a01aaaa7439bcc15c2197b384d6dbdd"
+     },
+     "crates/uor-r4-training/vendor/microlp/tests/suite/cases/lp_unit.rs": {
+-      "sha256": "fdf4811b80081c36588331894eafbc9639390a8ccc8d66af194b793690aa4a95",
+-      "bytes": 11718
++      "bytes": 11718,
++      "sha256": "fdf4811b80081c36588331894eafbc9639390a8ccc8d66af194b793690aa4a95"
+     },
+     "crates/uor-r4-training/vendor/microlp/tests/suite/cases/milp_families.rs": {
+-      "sha256": "427ee2145ace56571634f8e33e7bc07eb1b50ad9c9a4e92cc7c1c22998fc1871",
+-      "bytes": 24998
++      "bytes": 24998,
++      "sha256": "427ee2145ace56571634f8e33e7bc07eb1b50ad9c9a4e92cc7c1c22998fc1871"
+     },
+     "crates/uor-r4-training/vendor/microlp/tests/suite/cases/milp_random.rs": {
+-      "sha256": "5aaad40998ac24b50adc5e9b8ab76b80fbd07d5606edb2df006c6dd75eb68745",
+-      "bytes": 14273
++      "bytes": 14273,
++      "sha256": "5aaad40998ac24b50adc5e9b8ab76b80fbd07d5606edb2df006c6dd75eb68745"
+     },
+     "crates/uor-r4-training/vendor/microlp/tests/suite/cases/milp_unit.rs": {
+-      "sha256": "d161f53b1f6bfca48078b102c66e7986daad73fc9ee9dbc5a9b9cb908e23e582",
+-      "bytes": 22115
++      "bytes": 22115,
++      "sha256": "d161f53b1f6bfca48078b102c66e7986daad73fc9ee9dbc5a9b9cb908e23e582"
+     },
+     "crates/uor-r4-training/vendor/microlp/tests/suite/cases/milpbench.rs": {
+-      "sha256": "4c61886eecb8d054f54abb3a7460a11b4d733f5a9387556e6ff1468b88a5e3b6",
+-      "bytes": 14795
++      "bytes": 14795,
++      "sha256": "4c61886eecb8d054f54abb3a7460a11b4d733f5a9387556e6ff1468b88a5e3b6"
+     },
+     "crates/uor-r4-training/vendor/microlp/tests/suite/cases/milpbench_xhard.rs": {
+-      "sha256": "080497d50375362daf5fc1a2e30a197841283a73844a2750d92dff5f77b75c7e",
+-      "bytes": 13152
++      "bytes": 13152,
++      "sha256": "080497d50375362daf5fc1a2e30a197841283a73844a2750d92dff5f77b75c7e"
+     },
+     "crates/uor-r4-training/vendor/microlp/tests/suite/cases/miplib.rs": {
+-      "sha256": "1812ce2894183dd3d6af0ce796b11400c0239efffd55f08f1687b314c3fe1469",
+-      "bytes": 8226
++      "bytes": 8226,
++      "sha256": "1812ce2894183dd3d6af0ce796b11400c0239efffd55f08f1687b314c3fe1469"
+     },
+     "crates/uor-r4-training/vendor/microlp/tests/suite/cases/mod.rs": {
+-      "sha256": "f2857f655f5863a9335d17333a2eff0a1928e7e954782b90c45158a4544a2be4",
+-      "bytes": 5797
++      "bytes": 5797,
++      "sha256": "f2857f655f5863a9335d17333a2eff0a1928e7e954782b90c45158a4544a2be4"
+     },
+     "crates/uor-r4-training/vendor/microlp/tests/suite/cases/netlib.rs": {
+-      "sha256": "10977d3e94a9d193042b5b22de66269e82e041d9033c0aaf959b76677c157933",
+-      "bytes": 3954
++      "bytes": 3954,
++      "sha256": "10977d3e94a9d193042b5b22de66269e82e041d9033c0aaf959b76677c157933"
+     },
+     "crates/uor-r4-training/vendor/microlp/tests/suite/cases/warm_restart.rs": {
+-      "sha256": "db0212fe933107a1afa1e429f0d66d322fe44b469dc97f76a7e747e232bca68c",
+-      "bytes": 23814
++      "bytes": 23814,
++      "sha256": "db0212fe933107a1afa1e429f0d66d322fe44b469dc97f76a7e747e232bca68c"
+     },
+     "crates/uor-r4-training/vendor/microlp/tests/suite/lp_format.rs": {
+-      "sha256": "29e8c6161b7072b9a3ddff90b52a4d324e3356a29fc98da7955c097779b97a18",
+-      "bytes": 10455
++      "bytes": 10455,
++      "sha256": "29e8c6161b7072b9a3ddff90b52a4d324e3356a29fc98da7955c097779b97a18"
+     },
+     "crates/uor-r4-training/vendor/microlp/tests/suite/main.rs": {
+-      "sha256": "3f21eb964beee614977799668c95679642d822d45304a047559fda28e386d6a6",
+-      "bytes": 23120
++      "bytes": 23120,
++      "sha256": "3f21eb964beee614977799668c95679642d822d45304a047559fda28e386d6a6"
+     },
+     "crates/uor-r4-training/vendor/microlp/tests/suite/model.rs": {
+-      "sha256": "0552a350dec18df451ec0e1179c9f6ca4c6ab00e41443f1d3a89c7ef4e9a3f47",
+-      "bytes": 4113
++      "bytes": 4113,
++      "sha256": "0552a350dec18df451ec0e1179c9f6ca4c6ab00e41443f1d3a89c7ef4e9a3f47"
+     },
+     "crates/uor-r4-training/vendor/microlp/tests/suite/mps_milp.rs": {
+-      "sha256": "21055b8e6fc15926b4fe4089da224d2b3a01259b6d7ce273ff29f6faac7d7692",
+-      "bytes": 14239
++      "bytes": 14239,
++      "sha256": "21055b8e6fc15926b4fe4089da224d2b3a01259b6d7ce273ff29f6faac7d7692"
+     },
+     "crates/uor-r4-training/vendor/microlp/tests/suite/oracles.rs": {
+-      "sha256": "24ac8e235c4a103c49665316737691b5baa87d921aa8c2eaed0c283e2e67027f",
+-      "bytes": 6482
++      "bytes": 6482,
++      "sha256": "24ac8e235c4a103c49665316737691b5baa87d921aa8c2eaed0c283e2e67027f"
+     },
+     "crates/uor-r4-training/vendor/microlp/tests/suite/rng.rs": {
+-      "sha256": "cea7f8ff99ad678d2a8070f113bc00979f2c1c3bb28e4785aeca7cabfd71ce46",
+-      "bytes": 1235
++      "bytes": 1235,
++      "sha256": "cea7f8ff99ad678d2a8070f113bc00979f2c1c3bb28e4785aeca7cabfd71ce46"
+     },
+     "crates/uor-r4-training/vendor/microlp/tests/suite/verify.rs": {
+-      "sha256": "dae0bf08c5d2b10a324eae3fdcef84bd7dc9046cf618d9ac9668380d42302fad",
+-      "bytes": 7879
++      "bytes": 7879,
++      "sha256": "dae0bf08c5d2b10a324eae3fdcef84bd7dc9046cf618d9ac9668380d42302fad"
++    },
++    "docs/labs/d22-constructor-2026-10-10/numerical-tests/Cargo.lock": {
++      "bytes": 13184,
++      "sha256": "1d46e9e75df215d50a16a89f8eeb704293888743e8f08a065a21dc6f16d136ea"
+     },
+     "docs/labs/d22-constructor-2026-10-10/numerical-tests/Cargo.toml": {
+-      "sha256": "9b79051dfb0233927ba816aab6cedd8896f17af5704c38723cc1212f0267302b",
+-      "bytes": 376
++      "bytes": 376,
++      "sha256": "9b79051dfb0233927ba816aab6cedd8896f17af5704c38723cc1212f0267302b"
+     },
+     "docs/labs/d22-constructor-2026-10-10/numerical-tests/README.md": {
+-      "sha256": "9311ea32b1a63b99d15cedb13528fb1a7273532f3986aefaa158d4800ab86261",
+-      "bytes": 15920
++      "bytes": 15920,
++      "sha256": "9311ea32b1a63b99d15cedb13528fb1a7273532f3986aefaa158d4800ab86261"
+     },
+     "docs/labs/d22-constructor-2026-10-10/numerical-tests/arrayref/Cargo.toml": {
+-      "sha256": "281a9aec42712546c4205d13fdb84da504a787bee056349bd4e3ff8620c39027",
+-      "bytes": 738
++      "bytes": 738,
++      "sha256": "281a9aec42712546c4205d13fdb84da504a787bee056349bd4e3ff8620c39027"
+     },
+     "docs/labs/d22-constructor-2026-10-10/numerical-tests/arrayref/LICENSE": {
+-      "sha256": "1bc7e6f475b3ec99b7e2643411950ae2368c250dd4c5c325f80f9811362a94a1",
+-      "bytes": 1336
++      "bytes": 1336,
++      "sha256": "1bc7e6f475b3ec99b7e2643411950ae2368c250dd4c5c325f80f9811362a94a1"
+     },
+     "docs/labs/d22-constructor-2026-10-10/numerical-tests/arrayref/README.md": {
+-      "sha256": "3fd48dd33b0b77c898b4b706344d7b01f8312d5767530a6c8f3918a5d2195589",
+-      "bytes": 2109
++      "bytes": 2109,
++      "sha256": "3fd48dd33b0b77c898b4b706344d7b01f8312d5767530a6c8f3918a5d2195589"
+     },
+     "docs/labs/d22-constructor-2026-10-10/numerical-tests/arrayref/src/lib.rs": {
+-      "sha256": "b74872c9bb2b836132817e024a3f9205f83a6864de1a9bfb46acc1bfbbc1873a",
+-      "bytes": 17199
++      "bytes": 17199,
++      "sha256": "b74872c9bb2b836132817e024a3f9205f83a6864de1a9bfb46acc1bfbbc1873a"
++    },
++    "docs/labs/d22-constructor-2026-10-10/numerical-tests/examples/embedded-capacity.rs": {
++      "bytes": 3124,
++      "sha256": "bfcebe05964349a171297f43f3a30e71a68cfcade4ad4864504d465375959c5b"
++    },
++    "docs/labs/d22-constructor-2026-10-10/numerical-tests/examples/exact-cost-capture.rs": {
++      "bytes": 419,
++      "sha256": "182511360c2ecb9c1cd7185fe80ccdc18ed9ec3bf485ae16ea47987443d53c7b"
+     },
+     "docs/labs/d22-constructor-2026-10-10/numerical-tests/run-replay.py": {
+-      "sha256": "0e78fcc5eeaaebc894d7219e0109ad4ac0bcdba59d9f420c13d1ac65275b1b5c",
+-      "bytes": 3978
++      "bytes": 3978,
++      "sha256": "0e78fcc5eeaaebc894d7219e0109ad4ac0bcdba59d9f420c13d1ac65275b1b5c"
+     },
+     "docs/labs/d22-constructor-2026-10-10/numerical-tests/src/constructor.rs": {
+-      "sha256": "f0242836d08dbadbb5659cd8f158d79c8de9420c9de2fb213de9ef149510c24b",
+-      "bytes": 19713
++      "bytes": 19713,
++      "sha256": "f0242836d08dbadbb5659cd8f158d79c8de9420c9de2fb213de9ef149510c24b"
+     },
+     "docs/labs/d22-constructor-2026-10-10/numerical-tests/src/lib.rs": {
+-      "sha256": "cf1a2119bbd81269ce7741de591eeb7339b463f3c95455b788f58ebfbcd890c7",
+-      "bytes": 6233
++      "bytes": 11337,
++      "sha256": "a7e3f06a5a810224bdbd05c954451d4c14418c7a3b0b9f1d7a41953b6601f825"
+     },
+     "docs/labs/d22-constructor-2026-10-10/numerical-tests/src/main.rs": {
+-      "sha256": "5679ac5fc5d7e1bb013cbb5a13a3b5114e094c44dfdb9ef7753af5376f430a81",
+-      "bytes": 14482
++      "bytes": 14482,
++      "sha256": "5679ac5fc5d7e1bb013cbb5a13a3b5114e094c44dfdb9ef7753af5376f430a81"
+     },
+     "docs/labs/d22-constructor-2026-10-10/numerical-tests/src/report_output.rs": {
+-      "sha256": "cda30f9ba4ef8ff3e245ae352cd28932f9a24ab78598f683607e6996598fa810",
+-      "bytes": 9726
++      "bytes": 9726,
++      "sha256": "cda30f9ba4ef8ff3e245ae352cd28932f9a24ab78598f683607e6996598fa810"
+     }
+   },
+-  "previous_manifest_sha256": "3991d69f1029b473eb8f4f4ed0f157e0655b621c2bfde959a154cee9155f3faa",
+-  "repair": "Fixed signed artificial objective; source reviewed; focused qualification and replay16 NOT_RUN",
++  "previous_manifest_sha256": "8ea77784b8b88140c7059183d039c6e26d2eac7bc015f0da3d2d2adc05a8eada",
++  "repair": "Exact structural triangular peeling above512, full original-basis certificates; objective/constraints/EPS unchanged",
+   "initial_synthetic_final_pass": 9,
+   "initial_synthetic_test_functions": 26,
+-  "expected_current_synthetic_test_functions": 28,
++  "expected_current_synthetic_test_functions": 36,
+   "disposition": "Immutable numerical discriminator; unchanged objective/constraints/EPS",
+   "restored_historical_metadata": {
+     "status": "NUMERICAL_SOURCE_SNAPSHOT_EXECUTION_RECEIPTS_SEPARATE"
+   },
+-  "status": "NUMERICAL_SOURCE_SNAPSHOT_EXECUTION_RECEIPTS_SEPARATE"
++  "status": "UNQUALIFIED_SOURCE_EXECUTION_RECEIPTS_SEPARATE",
++  "resource_policy": "Totaldimension<=1040; dense core<=512 uses RAW65536/factor16384, largercore4096; no uniform4096 claim",
++  "scope": "Source6 shared-denominator exact cost accumulation candidate; UNBUILT, fixtures/capture equality/saved replay NOT_RUN",
++  "parent_source5_manifest_sha256": "71202d6500370a357935675b1c46488bd81ec961044bacea99984ac8cf56320c"
+ }
+diff --git a/docs/labs/d22-constructor-2026-10-10/numerical-tests/src/lib.rs b/docs/labs/d22-constructor-2026-10-10/numerical-tests/src/lib.rs
+index dbe880d0e..53133cd74 100644
+--- a/docs/labs/d22-constructor-2026-10-10/numerical-tests/src/lib.rs
++++ b/docs/labs/d22-constructor-2026-10-10/numerical-tests/src/lib.rs
+@@ -1,4 +1,142 @@
+ //! Dedicated synthetic numerical fixtures; no model inputs or model evaluation.
++#[test]
++fn captured_costs_require_complete_distinct_partition_and_original_basis() -> Result<(), String> {
++    let column = serde_json::json!({"rows":[0],"coefficient_bits":[1.0f64.to_bits()]});
++    let valid = serde_json::json!({
++        "schema":"uor-r4.d22-exact-cost-phase/1", "eps_bits":1.0e-10f64.to_bits(),
++        "basic_vars":[0], "nonbasic_vars":[1], "basis_columns":[column.clone()],
++        "original_columns":[column.clone(),column.clone()],
++        "working_cost_bits":[0.0f64.to_bits(),0.0f64.to_bits()]
++    });
++    microlp::repair::exact_cost_capture_fixture(&valid.to_string())?;
++    for bad_nonbasic in [
++        serde_json::json!([]),
++        serde_json::json!([1, 1]),
++        serde_json::json!([0]),
++        serde_json::json!([2]),
++    ] {
++        let mut invalid = valid.clone();
++        invalid["nonbasic_vars"] = bad_nonbasic;
++        if microlp::repair::exact_cost_capture_fixture(&invalid.to_string()).is_ok() {
++            return Err("malformed capture partition admitted".into());
++        }
++    }
++    let mut invalid = valid;
++    invalid["basis_columns"][0]["coefficient_bits"][0] = serde_json::json!(2.0f64.to_bits());
++    if microlp::repair::exact_cost_capture_fixture(&invalid.to_string()).is_ok() {
++        return Err("unbound capture basis admitted".into());
++    }
++    Ok(())
++}
++#[test]
++fn shared_denominator_result_cap_falls_back_without_relaxing_reference() -> Result<(), String> {
++    microlp::repair::exact_cost_fixture("cost-result-cap-fallback")
++}
++#[test]
++fn shared_denominator_retains_exact_cancellation() -> Result<(), String> {
++    microlp::repair::exact_cost_fixture("cost-cancellation")
++}
++#[test]
++fn shared_denominator_retains_odd_and_dyadic_factors() -> Result<(), String> {
++    microlp::repair::exact_cost_fixture("cost-odd-denominators")
++}
++#[test]
++fn shared_denominator_preserves_exact_epsilon_boundaries() -> Result<(), String> {
++    microlp::repair::exact_cost_fixture("cost-boundaries")
++}
++#[test]
++fn shared_denominator_uses_current_working_objective() -> Result<(), String> {
++    microlp::repair::exact_cost_fixture("cost-working-objective")
++}
++#[test]
++fn shared_denominator_rejects_malformed_and_nonfinite_inputs() -> Result<(), String> {
++    microlp::repair::exact_cost_fixture("cost-malformed")
++}
++#[test]
++fn shared_denominator_fallback_preserves_reference_resource_caps() -> Result<(), String> {
++    microlp::repair::exact_cost_fixture("cost-resource-fallback")
++}
++#[test]
++fn exact_cost_nonempty_cancellation_reaches_phase_fallback() -> Result<(), String> {
++    microlp::repair::transaction_fixture("exact_cost_nonempty_cancellation")
++}
++
++#[test]
++fn exact_cost_late_violation_never_partially_commits() -> Result<(), String> {
++    microlp::repair::transaction_fixture("exact_cost_late_violation_is_transactional")
++}
++
++#[test]
++fn exact_cost_rounded_boundary_conservatively_rolls_back() -> Result<(), String> {
++    microlp::repair::transaction_fixture("exact_cost_rounded_boundary_is_transactional")
++}
++#[test]
++fn exact_transpose_split_preserves_permutations_and_coupling() -> Result<(), String> {
++    microlp::repair::exact_cost_fixture("split")?;
++    microlp::repair::exact_cost_fixture("coupling")
++}
++
++#[test]
++fn exact_transpose_empty_peeled_and_unpeeled_core() -> Result<(), String> {
++    for kind in ["empty", "peeled", "core"] {
++        microlp::repair::exact_cost_fixture(kind)?;
++    }
++    Ok(())
++}
++
++#[test]
++fn exact_transpose_rejects_singular_invalid_and_resource_inputs() -> Result<(), String> {
++    for kind in ["singular", "dimension", "nonfinite", "resource"] {
++        microlp::repair::exact_cost_fixture(kind)?;
++    }
++    Ok(())
++}
++
++#[test]
++fn exact_reduced_cost_retains_cancellation_until_final_cost() -> Result<(), String> {
++    microlp::repair::exact_cost_fixture("cancellation")
++}
++
++#[test]
++fn exact_reduced_cost_preserves_strict_dyadic_epsilon_boundary() -> Result<(), String> {
++    microlp::repair::transaction_fixture("exact_cost_boundaries")
++}
++
++#[test]
++fn exact_cost_reconstruction_uses_current_working_not_original_objective() -> Result<(), String> {
++    microlp::repair::transaction_fixture("exact_cost_working_objective")
++}
++#[test]
++fn exact_permuted_triangular_peel_chain_keeps_all_coefficients() -> Result<(), String> {
++    microlp::repair::exact_capacity_fixture("peel_chain")
++}
++
++#[test]
++fn exact_peel_zero_and_dependent_columns_are_singular() -> Result<(), String> {
++    microlp::repair::reset_stats();
++    microlp::repair::exact_capacity_fixture("peel_singular")?;
++    assert_eq!(microlp::repair::stats().exact_singular, 3);
++    Ok(())
++}
++
++#[test]
++fn exact_parent_dimension_dense_sparse_normal_transpose() -> Result<(), String> {
++    microlp::repair::exact_capacity_fixture("parent_dimension")
++}
++
++#[test]
++fn exact_above_parent_dimension_is_resource_error() -> Result<(), String> {
++    microlp::repair::exact_capacity_fixture("dimension_rejection")
++}
++
++#[test]
++fn exact_large_intermediate_is_resource_error_not_singularity() -> Result<(), String> {
++    microlp::repair::reset_stats();
++    microlp::repair::exact_capacity_fixture("large_intermediate_rejection")?;
++    assert_eq!(microlp::repair::stats().exact_singular, 0);
++    Ok(())
++}
++
+ #[test]
+ fn fraction_free_matches_rational_factors_and_original_certificates() -> Result<(), String> {
+     microlp::repair::fraction_free_fixture()

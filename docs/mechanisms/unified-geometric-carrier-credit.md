@@ -1,0 +1,55 @@
+# Unified Geometric Carrier Credit
+
+**Idea:** The native saved437 field evaluates ordered factual-state/prototype
+and local-state/prototype H4 relations. Freezing those carriers while learning
+only its coefficients disconnects the geometry from the representation that
+must generalize. Propagate credit to the actual live carriers and prototypes,
+then evaluate actual emitted prefixes after independent native reload.
+
+**What it replaces:** A fixed-state learning boundary, not a transformer MLP.
+M2 already uses finite signed geometric tables. Claude's E8/SpiralCore orbit
+memory, Starling reads and residual icosian maps are separately implemented
+stack mechanisms; they are credited and not reimplemented by this source work.
+
+**Source:** `geometric_continuation_learning.rs` supplies independent full120
+conditional utilities; `geometric_bank_generate.rs` supplies authenticated live
+factual/local Context carriers and current Generate prototype probabilities.
+`geometric_frozen_map_fit/unified_geometry.rs` restores exact saved437 fractional
+masters and fits Context/prototypes on the existing full pooled-ranking/EOS
+objective. `native_geometric/learner/geometric_continuation_field.rs` factors
+repeated native computation onto at most120 encountered prototypes per lane.
+
+**Evidence:** Host conditional-credit and actual-bank fixtures preserve exact
+hard scores/pooling and show the new adjoints. A full4096 finite-factor fixture
+and one authenticated saved437 canonical position preserve integer scores and
+artifact bytes while reducing repeated coefficient reads/products. These are
+source arithmetic/count checks, not language, transfer, speed or energy results.
+Actual CUDA, full512 baseline and model fitting remain NOT_RUN at preparation.
+
+**Fair test:** The [registered comparison](../labs/unified-geometric-integration-2026-10-11/PREREGISTRATION.md)
+uses matched ON/OFF credit, identical active parameters/ordinary credit,
+two seeds and two all512 epochs. All4096 Generate choices and physical Copy
+aliases retain common clipping/pooling; EOS is trained and scored. Both factual
+and local carriers are rebuilt after each update; no saved donor states or
+target-dependent routes enter forward. External conditional FITNESS and exact
+source/device/baseline/resource gates precede model updates.
+
+**Success:** Replicated complete-reply gain over both saved437 and matched OFF,
+then the fixed opened128 diagnostic and later genuinely fresh qualification.
+Nonzero gradients or changed fractional hashes alone are insufficient. A
+development-only improvement remains panel fitting. M2's acceptance is unchanged.
+
+**Failure:** A configuration can fail through harmful hard-choice movement,
+ineffective surrogate-to-hard alignment or lack of transfer. Setup/numerical
+failures are repair blockers; a configuration negative does not close geometry.
+Similar ON/OFF improvements implicate ordinary shared adaptation rather than the
+new field-credit connection, and change the next causal question.
+
+**Boundaries:** Conditional utilities are first-order surrogates, not a joint
+posterior or derivatives of argmax. Exact occurrence/version/payload identity
+stays separate from prototypes/coarse routes. No semantic metric comes from
+hash bits. No cast equates120 H4 elements,64 SpiralCore actions and240 E8 roots;
+cross-domain maps need explicit basis/action/frame/inverse witnesses. The
+960-byte per-call native factor cache does not persist state or prune the
+vocabulary. Bounded full-model routing, a SpiralCore basis bridge and measured
+whole-path energy savings remain separate unfinished responsibilities.

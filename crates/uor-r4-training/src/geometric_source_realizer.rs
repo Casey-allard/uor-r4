@@ -3252,7 +3252,11 @@ mod tests {
             Self::new_with_lanes(1)
         }
         fn new_with_lanes(lanes: usize) -> Result<Self> {
-            let path = std::env::temp_dir().join(format!(
+            let root = std::env::var_os("UOR_TEST_ARTIFACT_ROOT")
+                .map(std::path::PathBuf::from)
+                .unwrap_or_else(std::env::temp_dir);
+            fs::create_dir_all(&root)?;
+            let path = root.join(format!(
                 "uor-source-realizer-{}-{}",
                 std::process::id(),
                 NEXT.fetch_add(1, Ordering::Relaxed)
@@ -5790,9 +5794,7 @@ mod tests {
         readout_fullpool_fixture(&Device::new_cuda(0)?)
     }
 
-    #[test]
-    fn joint_continuation_actual_context_credit_changes_adjoint_without_changing_native_pool(
-    ) -> Result<()> {
+    fn joint_continuation_fixture(cross_state: bool) -> Result<()> {
         use crate::{
             geometric_bank_generate::PreparedBankGenerate,
             geometric_continuation_learning::ContinuationLearningWeights,
@@ -5870,7 +5872,12 @@ mod tests {
             &sha256_bytes(&cb),
             &Device::Cpu,
         )?;
-        let u = ContinuationLearningWeights::zeroed_shared_action(
+        let build = if cross_state {
+            ContinuationLearningWeights::zeroed_cross_state
+        } else {
+            ContinuationLearningWeights::zeroed_shared_action
+        };
+        let u = build(
             fixture.weights.binding(),
             &native.artifact_binding()?,
             2,
@@ -5900,21 +5907,26 @@ mod tests {
         for nonzero in [false, true] {
             if nonzero {
                 u.unary.set(&Tensor::from_vec(
-                    (0..240)
+                    (0..u.unary.elem_count())
                         .map(|i| ((i % 13) as f32 - 6.) * 0.25)
                         .collect::<Vec<_>>(),
-                    (2, 120),
+                    u.unary.shape(),
                     &Device::Cpu,
                 )?)?;
             }
             let us = u.prepare_native(&native.execution_binding()?, &gs.native)?;
             let forward = |credit| -> Result<crate::geometric_bank_generate::BankGenerateOutput> {
-                PreparedBankGenerate::new(&prepared, &generate, &gs, &exp)?
+                let learner = PreparedBankGenerate::new(&prepared, &generate, &gs, &exp)?
                     .with_categorical_read_state_bridge(&bridge)?
                     .with_read_selector_credit(true)
                     .with_continuation_field(&u, &us)?
-                    .with_continuation_context_credit(credit)?
-                    .forward_bank(&segments, &[5], &[4], &cue, &prefix)
+                    .with_continuation_context_credit(credit)?;
+                let mut learner = if cross_state {
+                    learner.with_continuation_prototype_credit(credit)?
+                } else {
+                    learner
+                };
+                learner.forward_bank(&segments, &[5], &[4], &cue, &prefix)
             };
             let frozen = forward(false)?;
             let live = forward(true)?;
@@ -5931,6 +5943,61 @@ mod tests {
                 .ok_or_else(|| invalid("local context absent"))?;
             assert_eq!(witness.token_ids, vec![5, 4]);
             assert_eq!(witness.local_context.trace.time, 2);
+            if cross_state {
+                let mut expected = vec![0; generate.vocab_size()];
+                gs.native
+                    .score_into(
+                        &live.final_state_codes,
+                        &mut expected,
+                        &mut Default::default(),
+                    )
+                    .map_err(|e| invalid(e.to_string()))?;
+                let mut delta = expected.clone();
+                us.native
+                    .score_delta_with_factual_into(
+                        &live.final_state_codes,
+                        &witness.final_state_codes,
+                        &gs.native,
+                        &mut delta,
+                        &mut Default::default(),
+                    )
+                    .map_err(|e| invalid(e.to_string()))?;
+                for (score, d) in expected.iter_mut().zip(&delta) {
+                    *score += d;
+                }
+                assert_eq!(expected, live.generate.scores_q24);
+                let baseline =
+                    native.read_bank_with_prefix_transport(&segments, &[5], &[4], &cue, &prefix)?;
+                let copy = live
+                    .copy_token_ids
+                    .iter()
+                    .enumerate()
+                    .map(|(i, token)| {
+                        baseline
+                            .cue_bank
+                            .bank
+                            .heads
+                            .iter()
+                            .map(|h| h.scores_q24[i])
+                            .sum::<i64>()
+                            + delta[*token as usize]
+                    })
+                    .collect::<Vec<_>>();
+                assert_eq!(copy, live.copy_scores_q24);
+                let mut pool =
+                    uor_r4_integer::geometric_vocabulary_actions::NativeVocabularyActions::new(
+                        fixture.weights.binding().clone(),
+                        &exp,
+                    )
+                    .map_err(|e| invalid(e.to_string()))?;
+                assert_eq!(
+                    serde_json::to_value(
+                        pool.reduce_trace(&expected, &live.copy_token_ids, &copy)
+                            .map_err(|e| invalid(e.to_string()))?
+                    )?,
+                    serde_json::to_value(&live.actions)?
+                );
+            }
             // EOS supplies ordinary complete-answer loss, after the whole
             // target-free pool. This is a local conditional surrogate witness,
             // not an exact derivative of the discrete native forward.
@@ -5963,18 +6030,40 @@ mod tests {
                     "nonzero U must reach actual Context transition masters"
                 );
             }
-            // Enabling state utility must not double coefficient/prototype
-            // credit: detached conditional utilities isolate the added path.
-            for var in generate
-                .parameters()
-                .values()
-                .chain(u.parameters().values())
-            {
+            // Detached utilities do not duplicate factor coefficient credit;
+            // the cross-state arm explicitly adds the missing prototype path.
+            for (name, var) in generate.parameters().iter().chain(u.parameters().iter()) {
+                if cross_state && name == "generate.prototype_choices" {
+                    let before = gradient(&fg, var)?;
+                    let after = gradient(&lg, var)?;
+                    assert!(after.iter().all(|v| v.is_finite()));
+                    if nonzero {
+                        assert!(
+                            before.iter().zip(&after).any(|(a, b)| (a - b).abs() > 1e-7),
+                            "nonzero cross-state field must reach prototype masters"
+                        );
+                    } else {
+                        assert_eq!(before, after);
+                    }
+                    continue;
+                }
                 assert_eq!(gradient(&fg, var)?, gradient(&lg, var)?);
             }
             assert!(gradient(&lg, &u.unary)?.iter().any(|x| x.abs() > 1e-7));
         }
         Ok(())
+    }
+
+    #[test]
+    fn joint_continuation_actual_context_credit_changes_adjoint_without_changing_native_pool(
+    ) -> Result<()> {
+        joint_continuation_fixture(false)
+    }
+
+    #[test]
+    fn joint_cross_state_bank_reaches_context_and_prototypes_with_exact_native_pool() -> Result<()>
+    {
+        joint_continuation_fixture(true)
     }
 
     #[test]
