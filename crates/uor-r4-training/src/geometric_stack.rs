@@ -2034,6 +2034,12 @@ pub struct StackModel {
     /// copy branch can be switched *off* at read-out. `1.0`, the default,
     /// leaves every reply as it was.
     pointer_gate_ceiling: f64,
+    /// Serving-time **read silence** ([`Self::set_read_silence`]): the named
+    /// read layer contributes nothing to the residual on the read-out path
+    /// (`x = x + 0`), so the answers can be attributed to a specific read head.
+    /// `None`, the default, leaves every reply bit for bit as it was; not saved,
+    /// no parameter, no gradient, no training path.
+    read_silence: Option<usize>,
     /// Serving-time copy-stop rule on the pointer branch
     /// ([`Self::set_pointer_copy_stop`]): `None`, the default, is the
     /// historical decoder exactly. Not saved. What the rule did over one reply
@@ -2092,6 +2098,7 @@ impl StackModel {
             pointer_key_fold: None,
             pointer_gate_floor: 0.0,
             pointer_gate_ceiling: 1.0,
+            read_silence: None,
             pointer_copy_stop: None,
             pointer_copy_trace: false,
             pointer_span_extract: None,
@@ -3816,6 +3823,30 @@ impl StackModel {
     /// The copy gate's serving-time ceiling ([`Self::set_pointer_gate_ceiling`]).
     pub fn pointer_gate_ceiling(&self) -> f64 {
         self.pointer_gate_ceiling
+    }
+
+    /// Silence one read layer on the **read-out** path: that layer's read
+    /// contributes nothing to the residual, so a reply's dependence on a
+    /// specific read head can be measured directly. `None`, the default, leaves
+    /// every reply bit for bit as it was. A layer that is not a read layer of
+    /// this model is refused. No parameter, no gradient, no training path, and
+    /// not saved ([`Self::save`] does not record it).
+    pub fn set_read_silence(&mut self, layer: Option<usize>) -> Result<()> {
+        if let Some(layer) = layer {
+            if layer >= self.config.layers() || self.config.layer_kind(layer) != 'a' {
+                return Err(invalid(format!(
+                    "read_silence_layer={layer} is not a read layer of the model"
+                )));
+            }
+        }
+        self.read_silence = layer;
+        Ok(())
+    }
+
+    /// The read layer silenced on the read-out path, if any
+    /// ([`Self::set_read_silence`]).
+    pub fn read_silence(&self) -> Option<usize> {
+        self.read_silence
     }
 
     /// The serving-time pointer gate floor, `0.0` when unset
@@ -7581,6 +7612,11 @@ impl StackModel {
         source: ReadSource<'_>,
     ) -> Result<Tensor> {
         for layer in layers {
+            if self.read_silence == Some(layer) {
+                // Read-out ablation: this read head contributes nothing.
+                x = x.add(&self.mlp(p, layer, &x, capture)?)?;
+                continue;
+            }
             let mixed = match (self.config.arch, self.config.layer_kind(layer)) {
                 (StackArch::Transformer, _) => self.attention(p, layer, &x, capture)?,
                 (StackArch::Hybrid, 'r') => self.recurrence(p, layer, &x, capture)?,
@@ -9453,6 +9489,7 @@ impl StackModel {
         }
         let mut model = Self {
             pointer_gate_ceiling: 1.0,
+            read_silence: None,
             config,
             variables,
             device: device.clone(),

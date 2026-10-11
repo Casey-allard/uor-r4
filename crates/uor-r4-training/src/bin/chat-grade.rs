@@ -162,6 +162,10 @@ impl Args {
         Ok(Self(pairs))
     }
 
+    fn optional(&self, key: &str) -> Option<String> {
+        self.0.get(key).cloned()
+    }
+
     fn required(&self, key: &str) -> Result<String, Error> {
         self.0
             .get(key)
@@ -1578,6 +1582,7 @@ fn answer(
     cycle_repeats: usize,
     pointer_gate_floor: f64,
     pointer_gate_ceiling: f64,
+    read_silence_layer: Option<usize>,
 ) -> Result<Answered, Error> {
     let tokenizer = load_tokenizer(tokenizer_path)?;
     let protocol = DialogueProtocol::literal_roles_version(&tokenizer, version)?;
@@ -1586,6 +1591,7 @@ fn answer(
     let mut model = StackModel::load(model_dir, device)?;
     model.set_pointer_gate_floor(pointer_gate_floor)?;
     model.set_pointer_gate_ceiling(pointer_gate_ceiling)?;
+    model.set_read_silence(read_silence_layer)?;
     let mut costs = Vec::new();
     let clock = Instant::now();
     let mut panel = reply_panel(
@@ -1633,6 +1639,7 @@ fn reply(arguments: &[String]) -> Result<(), Error> {
             "cycle_repeats",
             "pointer_gate_floor",
             "pointer_gate_ceiling",
+            "read_silence_layer",
         ],
     )?;
     let out = PathBuf::from(args.required("out")?);
@@ -1657,6 +1664,13 @@ fn reply(arguments: &[String]) -> Result<(), Error> {
     if pointer_gate_ceiling < pointer_gate_floor {
         return Err("pointer_gate_ceiling must not be below pointer_gate_floor".into());
     }
+    let read_silence_layer: Option<usize> = match args.optional("read_silence_layer") {
+        None => None,
+        Some(text) => Some(
+            text.parse()
+                .map_err(|_| format!("read_silence_layer={text} is not a layer index"))?,
+        ),
+    };
     let (device_label, device) = args.device()?;
     report_output::claim(&out)?;
     let result = (|| -> Result<(), Error> {
@@ -1671,6 +1685,7 @@ fn reply(arguments: &[String]) -> Result<(), Error> {
             cycle_repeats,
             pointer_gate_floor,
             pointer_gate_ceiling,
+            read_silence_layer,
         )?;
         let mut report = json!({
             "schema": "uor-r4.chat-grade-reply/1",
@@ -1683,6 +1698,7 @@ fn reply(arguments: &[String]) -> Result<(), Error> {
             "max_new_tokens": max_new_tokens,
             "pointer_gate_floor": pointer_gate_floor,
             "pointer_gate_ceiling": pointer_gate_ceiling,
+            "read_silence_layer": read_silence_layer,
             "decoding": "greedy over the float model's next-token scores (a pointer model's mixture), ties to the lower id; each step recomputes the whole window",
             "device": device_record(device_label),
             "panel": answered.panel,
@@ -1746,6 +1762,7 @@ fn grade_into(
         3,
         0.0,
         1.0,
+        None,
     )?;
     let judged = judging.judge(&panel)?;
     let mut report = json!({
