@@ -3323,8 +3323,7 @@ impl StackModel {
             } else {
                 None
             };
-            let read =
-                self.starling_read(p, layer, &identity, &value, route, content.as_ref())?;
+            let read = self.starling_read(p, layer, &identity, &value, route, content.as_ref())?;
             return self.finish_geometric_read(
                 p,
                 layer,
@@ -31704,11 +31703,14 @@ mod tests {
             serde_json::from_slice(&fs::read(root.join("config.json"))?)?;
         assert_eq!(config[READ_ROUTE_FIELD], "starling:3:4");
         let loaded = StackModel::load(&root, &cpu())?;
-        assert_eq!(loaded.read_route(), Some(StarlingRoute {
-            m: 3,
-            k: 4,
-            content: false,
-        }));
+        assert_eq!(
+            loaded.read_route(),
+            Some(StarlingRoute {
+                m: 3,
+                k: 4,
+                content: false,
+            })
+        );
         let again = loaded
             .forward(&ids, 1, 32)?
             .flatten_all()?
@@ -31792,10 +31794,7 @@ mod tests {
                 .all(|v| v.is_finite()));
         }
         // The route name round-trips through parse and save/load.
-        assert_eq!(
-            parse_read_route("starling:2:3:content")?,
-            Some(route(true))
-        );
+        assert_eq!(parse_read_route("starling:2:3:content")?, Some(route(true)));
         assert!(parse_read_route("starling:2:3:other").is_err());
         let content = model
             .forward(&ids, 2, 12)?
