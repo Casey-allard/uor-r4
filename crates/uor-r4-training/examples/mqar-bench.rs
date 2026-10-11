@@ -10,7 +10,7 @@
 //!   [dump_scores=false|true] \
 //!   [mode=train|task-baselines] [layout=synthetic|fact] FACT OPTIONS [arm=stack] ARM OPTIONS
 //! arm=stack: [pattern=aaaaaa] [read=l2|dot|lorentz] [rotation=true|false] [width=128] [heads=4] \
-//!   [read_route=none|starling:M:K[:content]] [starling_anneal=FRACTION] \
+//!   [read_route=none|starling:M:K[:content][:shared][:ranked]] [starling_anneal=FRACTION] [starling_oracle_train=false|true] \
 //!   [mlp=384] [age=default|flat|spread] [key_shift=false|true] \
 //!   [lineage=none|f2|qk|qk_jj|identity|so4|conv|wprev|conv8|carrier|rot] [learned_init=lag1|zero]
 //! arm=transformer: [layers=<pattern length>] [width=128] [heads=4] [mlp=matched|<n>] \
@@ -371,6 +371,21 @@ trait ContextArm {
     /// position `q - d + 1`, whose shifted key carries the queried key) is
     /// kept by some read head at the query position. `None` otherwise.
     fn starling_hit_rate(&self, _sequences: &[Sequence], _context: usize) -> Result<Option<f64>> {
+        Ok(None)
+    }
+    /// For a ranked starling read: among (query, read head) cells whose kept
+    /// set holds the true source, the share where the source is the top
+    /// content match. `None` otherwise.
+    fn starling_top_rate(&self, _sequences: &[Sequence], _context: usize) -> Result<Option<f64>> {
+        Ok(None)
+    }
+    /// For a starling read: recall with every head's kept set forced to hold
+    /// each query's true source (diagnostic D1, #2032). `None` otherwise.
+    fn starling_oracle_accuracy(
+        &self,
+        _sequences: &[Sequence],
+        _context: usize,
+    ) -> Result<Option<f64>> {
         Ok(None)
     }
     /// Context positions the arm scores for the token at `position`, summed
@@ -1057,6 +1072,83 @@ impl ContextArm for StackArm {
         Ok(Some(hits as f64 / total.max(1) as f64))
     }
 
+    fn starling_top_rate(&self, sequences: &[Sequence], context: usize) -> Result<Option<f64>> {
+        if !self.model.read_route().is_some_and(|route| route.ranked) {
+            return Ok(None);
+        }
+        let (mut first, mut held) = (0usize, 0usize);
+        for chunk in sequences.chunks(8) {
+            let (ids, _, _) = batch_arrays(chunk, context);
+            uor_r4_training::geometric_stack::starling_record_start();
+            uor_r4_training::geometric_stack::starling_top_start();
+            let forward = self.model.forward(&ids, chunk.len(), context);
+            let kept = uor_r4_training::geometric_stack::starling_record_take();
+            let top = uor_r4_training::geometric_stack::starling_top_take();
+            forward?;
+            let top: std::collections::HashMap<(usize, usize, usize, usize), usize> = top
+                .into_iter()
+                .map(|(layer, b, h, t, j)| ((layer, b, h, t), j))
+                .collect();
+            for (b, sequence) in chunk.iter().enumerate() {
+                for query in &sequence.queries {
+                    let source = query.position - query.distance + 1;
+                    for (layer, row, head, t, sources) in &kept {
+                        if *row == b && *t == query.position && sources.contains(&source) {
+                            held += 1;
+                            if top.get(&(*layer, b, *head, *t)) == Some(&source) {
+                                first += 1;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        Ok(Some(first as f64 / held.max(1) as f64))
+    }
+
+    fn starling_oracle_accuracy(
+        &self,
+        sequences: &[Sequence],
+        context: usize,
+    ) -> Result<Option<f64>> {
+        if self.model.read_route().is_none() {
+            return Ok(None);
+        }
+        let (mut correct, mut total) = (0usize, 0usize);
+        for chunk in sequences.chunks(8) {
+            let (ids, _, _) = batch_arrays(chunk, context);
+            let mut oracle = std::collections::HashMap::new();
+            for (b, sequence) in chunk.iter().enumerate() {
+                for query in &sequence.queries {
+                    oracle.insert((b, query.position), query.position - query.distance + 1);
+                }
+            }
+            uor_r4_training::geometric_stack::starling_oracle_set(Some(oracle));
+            let logits = self.model.forward(&ids, chunk.len(), context);
+            uor_r4_training::geometric_stack::starling_oracle_set(None);
+            let logits = logits?.to_device(&Device::Cpu)?.to_vec2::<f32>()?;
+            for (b, sequence) in chunk.iter().enumerate() {
+                for query in &sequence.queries {
+                    let scores = &logits[b * context + query.position];
+                    let argmax = scores
+                        .iter()
+                        .enumerate()
+                        .fold((0usize, f32::NEG_INFINITY), |best, (i, &v)| {
+                            if v > best.1 {
+                                (i, v)
+                            } else {
+                                best
+                            }
+                        })
+                        .0;
+                    total += 1;
+                    correct += usize::from(argmax == query.value as usize);
+                }
+            }
+        }
+        Ok(Some(correct as f64 / total.max(1) as f64))
+    }
+
     fn kind(&self) -> &'static str {
         match self.model.config.arch {
             StackArch::Geometric => "geometric_stack",
@@ -1115,9 +1207,18 @@ impl ContextArm for StackArm {
         match self.model.read_route() {
             // The starling read scores the candidates of its own cell and the
             // 12 adjacent cells (at most 13 * M, never more than position + 1)
-            // and mixes at most K values; no other position is touched.
+            // and mixes at most K values; no other position is touched. A
+            // content gate also scores each kept slot (K per head, or the
+            // heads x K union of a shared set).
             Some(route) => {
-                self.read_layers() * self.model.config.heads * (13 * route.m).min(position + 1)
+                let heads = self.model.config.heads;
+                let candidates = (13 * route.m).min(position + 1);
+                let gated = match (route.content, route.shared) {
+                    (false, _) => 0,
+                    (true, false) => route.k.min(position + 1),
+                    (true, true) => (heads * route.k).min(position + 1),
+                };
+                self.read_layers() * heads * (candidates + gated)
             }
             None => self.read_layers() * self.model.config.heads * (position + 1),
         }
@@ -1125,7 +1226,7 @@ impl ContextArm for StackArm {
 
     fn access_note(&self) -> String {
         match self.model.config.arch {
-            StackArch::Geometric if self.model.read_route().is_some() => "starling read: read layers x heads x min(13 * M, position + 1): only the candidates in the query's 600-cell vertex and its 12 neighbours are scored (a cell lookup, no all-pairs score); at most K values are mixed".into(),
+            StackArch::Geometric if self.model.read_route().is_some() => "starling read: read layers x heads x min(13 * M, position + 1): only the candidates in the query's 600-cell vertex and its 12 neighbours are scored (a cell lookup, no all-pairs score); a content route adds one q.k per kept slot (K, or heads x K when shared); at most K (or heads x K) values are mixed".into(),
             StackArch::Geometric => "read layers x heads x (position + 1): every causal position is scored by each read head (plus one NoRead slot, not counted); recurrence layers score no positions".into(),
             StackArch::Hybrid => "recurrence layers score no positions; 'a' layers run ordinary causal-softmax attention (every causal position scored by each head, no NoRead slot) -- the read-attribution control".into(),
             StackArch::Transformer => "attention layers x heads x (position + 1): every causal position is scored by each head of the ordinary causal-softmax control; no NoRead slot".into(),
@@ -2298,6 +2399,9 @@ struct Common {
     vocab: usize,
     /// Save the trained weights under `model/` of the report root.
     save_model: bool,
+    /// `starling_oracle_train=true`: diagnostic D1 (#2032). Every training
+    /// batch's true sources are forced into the starling read's kept sets.
+    starling_oracle_train: bool,
     context: usize,
     pairs_per_bucket: usize,
     batch: usize,
@@ -2361,6 +2465,7 @@ impl Common {
             "context": self.context,
             "vocab": self.vocab,
             "save_model": self.save_model,
+            "starling_oracle_train": self.starling_oracle_train,
             "token_ranges": {"filler": FILLER, "keys": KEYS, "values": VALUES},
             "pairing_split": {
                 "classes": CLASSES, "held_out_class": HELD_OUT_CLASS,
@@ -2408,6 +2513,7 @@ fn settings(mut args: Args) -> Result<(Common, ArmSpec, Mode, Option<fact::FactT
         device_name: args.take("device").unwrap_or_else(|| "cpu".into()),
         vocab: VOCAB,
         save_model: args.parsed("save_model", false)?,
+        starling_oracle_train: args.parsed("starling_oracle_train", false)?,
         context: args.parsed(
             "context",
             if fact_layout {
@@ -2654,7 +2760,18 @@ fn run(s: &Common, arm: &mut dyn ContextArm, log: &mut fs::File) -> Result<Value
             .collect::<Result<_>>()?;
         let (ids, targets, weights) = batch_arrays(&batch, s.context);
         arm.begin_step(step, s.steps)?;
-        let loss = arm.loss(&ids, &targets, &weights, s.batch, s.context)?;
+        if s.starling_oracle_train {
+            let mut oracle = std::collections::HashMap::new();
+            for (b, sequence) in batch.iter().enumerate() {
+                for query in &sequence.queries {
+                    oracle.insert((b, query.position), query.position - query.distance + 1);
+                }
+            }
+            uor_r4_training::geometric_stack::starling_oracle_set(Some(oracle));
+        }
+        let loss = arm.loss(&ids, &targets, &weights, s.batch, s.context);
+        uor_r4_training::geometric_stack::starling_oracle_set(None);
+        let loss = loss?;
         let value = f64::from(loss.to_scalar::<f32>()?);
         if !value.is_finite() {
             return Err(invalid(format!("nonfinite loss at step {step}")));
@@ -2724,6 +2841,20 @@ fn run(s: &Common, arm: &mut dyn ContextArm, log: &mut fs::File) -> Result<Value
     );
     eprintln!("{line}");
     writeln!(log, "{line}")?;
+    if let Some(oracle) = arm.starling_oracle_accuracy(&in_class_set, s.context)? {
+        let natural = arm
+            .starling_hit_rate(&in_class_set, s.context)?
+            .unwrap_or(f64::NAN);
+        let top = match arm.starling_top_rate(&in_class_set, s.context)? {
+            Some(rate) => format!("; source ranked first when kept {rate:.4}"),
+            None => String::new(),
+        };
+        let line = format!(
+            "starling oracle (D1): in-class acc with the true source forced into every head's kept set {oracle:.4}; natural hit rate {natural:.4}{top}"
+        );
+        eprintln!("{line}");
+        writeln!(log, "{line}")?;
+    }
     // Save the trained weights BEFORE the stage-0 readout swap: the diagnostic
     // is the memory-heaviest phase here, and a failure in it must not lose the
     // trained model (which `main` otherwise saves only after `run` returns).

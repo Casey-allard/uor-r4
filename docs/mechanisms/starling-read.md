@@ -21,6 +21,12 @@ SpiralCore's Kuramoto witness shows the principle: local coupling over 60 geomet
 - **Rung 1: recall at chance when trained from scratch** ([record](../labs/starling-read-2026-10-11/README.md)). Hard selection gives no gradient to keys outside the kept set. The cost saving is confirmed: 7× fewer positions scored.
 - **Rung 2: the addresses learn, the readout does not** ([record](../labs/starling-anneal-2026-10-11/README.md)). A training-only dense helper is annealed to zero. With it, the true source enters the kept 7 neighbours 73% of the time at peak, against 10% at initialisation. On the pure hard read it stays at 43–56%. Recall is still at chance: the rank table and gate do not pick the right value among the 7.
 - **Rung 3: a content gate does not help** ([record](../labs/starling-content-2026-10-11/README.md)). Gating the kept 7 by the read's q·k leaves recall at chance (0.010), with the source kept 47–56% of the time. The gate was not the bottleneck; the value path, or per-head availability of the source, is suspect. Note: content logits need a tanh-form sigmoid (the exp form overflowed).
+- **Pivot diagnostics** ([record](../labs/starling-pivot-2026-10-11/README.md)):
+  - Velocity routing adds nothing beyond token identity.
+  - With the source at a fixed slot, recall is 1.000, so the value path works.
+  - A shared kept set raises per-head availability to 61–72%, but recall stays at chance.
+  - Content ranking does not learn to rank the source first (0.03–0.29). The likely cause is the missing competitive gradient.
+  - Recommended: a training-only softmax surrogate (owner decision).
 
 ## A fair test needs
 

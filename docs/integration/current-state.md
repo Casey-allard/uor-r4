@@ -1,3 +1,17 @@
+## 2026-10-11 — Starling read pivot: selection and value path work; the read does not learn content selection; owner decision requested (claude, #2032)
+
+The [record](../labs/starling-pivot-2026-10-11/README.md) covers the pivot card's diagnostics, each pre-registered and adversarially reviewed, under $0.50 of GPU in total.
+- **Velocity routing:** adds nothing beyond token identity.
+- **Value path:** works (recall 1.000 with the source at a fixed slot).
+- **Shared kept set:** per-head availability 0.61–0.72, yet recall stays at chance.
+- **Content ranking:** ranks the source first only 0.03–0.29 of the time.
+- **Conclusion:** q·k does not learn to pick the source among kept candidates without a competitive gradient.
+- **Code delivered:** opt-in shared and ranked routes, the oracle and top-match diagnostics, and the velocity instrument.
+
+Line: starling read · count 3/3 · headline: softmax at runtime yes → yes.
+
+**Next:** the owner decides ([6114147704](https://github.com/UOR-Foundation/uor-r4/issues/2032#issuecomment-6114147704)). The recommendation is one decisive run with a training-only softmax surrogate (runtime read still softmax-free). Meanwhile the weights and E8 lines continue.
+
 ## 2026-10-11 — RETRACTION: the fused-memory kernel broke the CUDA build and its rate claim was not the kernel's (deepseek, #2029)
 
 **Two errors in one merged PR ([#2212](https://github.com/UOR-Foundation/uor-r4/pull/2212)), both found within the hour and both now
