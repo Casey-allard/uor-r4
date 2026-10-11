@@ -10,7 +10,7 @@
 //!   [dump_scores=false|true] \
 //!   [mode=train|task-baselines] [layout=synthetic|fact] FACT OPTIONS [arm=stack] ARM OPTIONS
 //! arm=stack: [pattern=aaaaaa] [read=l2|dot|lorentz] [rotation=true|false] [width=128] [heads=4] \
-//!   [read_route=none|starling:M:K] \
+//!   [read_route=none|starling:M:K] [starling_anneal=FRACTION] \
 //!   [mlp=384] [age=default|flat|spread] [key_shift=false|true] \
 //!   [lineage=none|f2|qk|qk_jj|identity|so4|conv|wprev|conv8|carrier|rot] [learned_init=lag1|zero]
 //! arm=transformer: [layers=<pattern length>] [width=128] [heads=4] [mlp=matched|<n>] \
@@ -359,6 +359,20 @@ trait ContextArm {
     fn logits(&self, ids: &[u32], batch: usize, time: usize) -> Result<Tensor>;
     /// One optimizer update from the loss's gradients; returns the gradient norm.
     fn update(&mut self, loss: &Tensor, lr: f64) -> Result<f64>;
+    /// Before training step `step` of `steps` (training-only schedules).
+    fn begin_step(&mut self, _step: usize, _steps: usize) -> Result<()> {
+        Ok(())
+    }
+    /// After a training step's update: training-only state goes back off.
+    fn end_step(&mut self) -> Result<()> {
+        Ok(())
+    }
+    /// For a starling read: the share of queries whose true source (the value
+    /// position `q - d + 1`, whose shifted key carries the queried key) is
+    /// kept by some read head at the query position. `None` otherwise.
+    fn starling_hit_rate(&self, _sequences: &[Sequence], _context: usize) -> Result<Option<f64>> {
+        Ok(None)
+    }
     /// Context positions the arm scores for the token at `position`, summed
     /// over its layers and heads (a recurrence scores none; a full causal read
     /// head scores `position + 1`).
@@ -514,6 +528,10 @@ enum ArmSpec {
         /// (`StackModel::set_read_route`): ~K geometric neighbours by 600-cell
         /// lookup, no all-pairs score, no softmax, no age table.
         route: Option<StarlingRoute>,
+        /// `starling_anneal=FRACTION`: the starling read's training-only dense
+        /// helper weight falls linearly from 1 to 0 over that fraction of the
+        /// steps (`StackModel::set_starling_dense`); absent means none.
+        starling_anneal: Option<f64>,
     },
     /// `arm=transformer`: the ordinary matched control -- `layers` plain
     /// causal-softmax attention blocks (`StackArch::Transformer`, RoPE plus a
@@ -641,6 +659,18 @@ impl ArmSpec {
                 lineage,
                 attn_reads: hybrid,
                 route: parse_read_route(&args.take("read_route").unwrap_or_else(|| "none".into()))?,
+                starling_anneal: match args.take("starling_anneal") {
+                    None => None,
+                    Some(text) => {
+                        let f: f64 = text
+                            .parse()
+                            .map_err(|_| invalid(format!("invalid starling_anneal={text}")))?;
+                        if !(f > 0.0 && f <= 1.0) {
+                            return Err(invalid("starling_anneal is a fraction in (0, 1]"));
+                        }
+                        Some(f)
+                    }
+                },
             }),
             Some("transformer") => {
                 // The control has no read lineage: reject rather than silently ignore.
@@ -691,6 +721,7 @@ impl ArmSpec {
                 age,
                 lineage,
                 route,
+                starling_anneal,
                 ..
             } => format!(
                 "stack-{pattern}-{read:?}{}{}{}{}",
@@ -706,7 +737,10 @@ impl ArmSpec {
                 if *rotation { "" } else { "-no-rotation" },
                 route
                     .map(|r| format!("-{}", r.name().replace(':', "-")))
-                    .unwrap_or_default(),
+                    .unwrap_or_default()
+                    + &starling_anneal
+                        .map(|f| format!("-anneal{f}"))
+                        .unwrap_or_default(),
             )
             .to_lowercase(),
             ArmSpec::Transformer {
@@ -734,8 +768,12 @@ impl ArmSpec {
                 width,
                 route,
                 attn_reads,
+                starling_anneal,
                 ..
             } => {
+                if starling_anneal.is_some() && route.is_none() {
+                    return Err(invalid("starling_anneal needs read_route=starling"));
+                }
                 if route.is_some() {
                     if !pattern.contains('a') || *attn_reads {
                         return Err(invalid("read_route=starling needs a geometric read layer"));
@@ -891,6 +929,7 @@ impl ArmSpec {
                 age,
                 lineage,
                 route,
+                starling_anneal,
                 ..
             } => {
                 let config = self.stack_config(common)?;
@@ -939,6 +978,7 @@ impl ArmSpec {
                     optimizer,
                     age: *age,
                     lineage: *lineage,
+                    starling_anneal: *starling_anneal,
                 }))
             }
             ArmSpec::Transformer { .. } => {
@@ -952,6 +992,7 @@ impl ArmSpec {
                     optimizer,
                     age: AgeInit::Default,
                     lineage: LineageArm::None,
+                    starling_anneal: None,
                 }))
             }
         }
@@ -963,6 +1004,7 @@ struct StackArm {
     optimizer: StackAdamW,
     age: AgeInit,
     lineage: LineageArm,
+    starling_anneal: Option<f64>,
 }
 
 impl StackArm {
@@ -977,6 +1019,44 @@ impl StackArm {
 }
 
 impl ContextArm for StackArm {
+    fn begin_step(&mut self, step: usize, steps: usize) -> Result<()> {
+        if let Some(fraction) = self.starling_anneal {
+            let span = (fraction * steps as f64).max(1.0);
+            let alpha = (1.0 - step as f64 / span).max(0.0);
+            self.model.set_starling_dense(Some(alpha))?;
+        }
+        Ok(())
+    }
+
+    fn end_step(&mut self) -> Result<()> {
+        self.model.set_starling_dense(None)
+    }
+
+    fn starling_hit_rate(&self, sequences: &[Sequence], context: usize) -> Result<Option<f64>> {
+        if self.model.read_route().is_none() {
+            return Ok(None);
+        }
+        let (mut hits, mut total) = (0usize, 0usize);
+        for chunk in sequences.chunks(8) {
+            let (ids, _, _) = batch_arrays(chunk, context);
+            uor_r4_training::geometric_stack::starling_record_start();
+            self.model.forward(&ids, chunk.len(), context)?;
+            let record = uor_r4_training::geometric_stack::starling_record_take();
+            for (b, sequence) in chunk.iter().enumerate() {
+                for query in &sequence.queries {
+                    let source = query.position - query.distance + 1;
+                    total += 1;
+                    if record.iter().any(|(_, row, _, t, kept)| {
+                        *row == b && *t == query.position && kept.contains(&source)
+                    }) {
+                        hits += 1;
+                    }
+                }
+            }
+        }
+        Ok(Some(hits as f64 / total.max(1) as f64))
+    }
+
     fn kind(&self) -> &'static str {
         match self.model.config.arch {
             StackArch::Geometric => "geometric_stack",
@@ -2526,8 +2606,14 @@ fn run(s: &Common, arm: &mut dyn ContextArm, log: &mut fs::File) -> Result<Value
     )?;
     let chunk = s.batch;
     let mut curve = Vec::new();
+    let hit_rate_0 = arm.starling_hit_rate(&curve_in_class, s.context)?;
+    if let Some(rate) = hit_rate_0 {
+        eprintln!("step 0 starling hit rate {rate:.4}");
+        writeln!(log, "step 0 starling hit rate {rate:.4}")?;
+    }
     curve.push(json!({
         "step": 0,
+        "starling_hit_rate": hit_rate_0,
         "in_class": evaluate(&*arm, &curve_in_class, s.context, &buckets, chunk)?,
         "held_out": evaluate(&*arm, &curve_held_out, s.context, &buckets, chunk)?,
     }));
@@ -2567,12 +2653,14 @@ fn run(s: &Common, arm: &mut dyn ContextArm, log: &mut fs::File) -> Result<Value
             })
             .collect::<Result<_>>()?;
         let (ids, targets, weights) = batch_arrays(&batch, s.context);
+        arm.begin_step(step, s.steps)?;
         let loss = arm.loss(&ids, &targets, &weights, s.batch, s.context)?;
         let value = f64::from(loss.to_scalar::<f32>()?);
         if !value.is_finite() {
             return Err(invalid(format!("nonfinite loss at step {step}")));
         }
         let grad_norm = arm.update(&loss, lr)?;
+        arm.end_step()?;
         step += 1;
         step_seconds.push(clock.elapsed().as_secs_f64());
         window_loss += value;
@@ -2580,6 +2668,11 @@ fn run(s: &Common, arm: &mut dyn ContextArm, log: &mut fs::File) -> Result<Value
         if step % s.eval_every == 0 || step == s.steps {
             let in_class = evaluate(&*arm, &curve_in_class, s.context, &buckets, chunk)?;
             let held_out = evaluate(&*arm, &curve_held_out, s.context, &buckets, chunk)?;
+            let hit_rate = arm.starling_hit_rate(&curve_in_class, s.context)?;
+            if let Some(rate) = hit_rate {
+                eprintln!("step {step} starling hit rate {rate:.4}");
+                writeln!(log, "step {step} starling hit rate {rate:.4}")?;
+            }
             let train_loss = window_loss / window_steps.max(1) as f64;
             let line = format!(
                 "step {step} lr {lr:.2e} train query NLL {train_loss:.4} grad {grad_norm:.3} in-class acc {:.3} {} | held-out acc {:.3} ({:.0}s)",
@@ -2593,6 +2686,7 @@ fn run(s: &Common, arm: &mut dyn ContextArm, log: &mut fs::File) -> Result<Value
             curve.push(json!({
                 "step": step, "lr": lr, "train_query_nll": train_loss,
                 "grad_norm": grad_norm, "in_class": in_class, "held_out": held_out,
+                "starling_hit_rate": hit_rate,
                 "elapsed_seconds": started.elapsed().as_secs_f64(),
             }));
             window_loss = 0.0;
@@ -3007,6 +3101,7 @@ mod tests {
             age: AgeInit::Flat,
             lineage: LineageArm::F2,
             route: None,
+            starling_anneal: None,
         };
         spec.validate(&common).expect("valid arm");
         let mut arm = spec.build(&common, &Device::Cpu).expect("arm");
@@ -3212,6 +3307,7 @@ mod tests {
             age: AgeInit::Default,
             lineage: LineageArm::None,
             route: None,
+            starling_anneal: None,
         };
         assert!(stack.parameter_match(&common).expect("null").is_null());
         assert_eq!(

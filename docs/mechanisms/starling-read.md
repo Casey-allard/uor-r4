@@ -19,10 +19,12 @@ SpiralCore's Kuramoto witness shows the principle: local coupling over 60 geomet
 ## Tried
 
 - **Rung 1: recall at chance when trained from scratch** ([record](../labs/starling-read-2026-10-11/README.md)). Hard selection gives no gradient to keys outside the kept set. The cost saving is confirmed: 7× fewer positions scored.
+- **Rung 2: the addresses learn, the readout does not** ([record](../labs/starling-anneal-2026-10-11/README.md)). A training-only dense helper is annealed to zero. With it, the true source enters the kept 7 neighbours 73% of the time at peak, against 10% at initialisation. On the pure hard read it stays at 43–56%. Recall is still at chance: the rank table and gate do not pick the right value among the 7.
 
 ## A fair test needs
 
-- A training signal for the addresses: soft-to-hard annealing, or an address-agreement loss.
+- A training signal for the addresses: soft-to-hard annealing works (rung 2).
+- A readout that singles out the right kept source: a supervised or agreement term on the rank table and gate, or a sharper gate.
 - Recall measured by distance bucket (so eviction is distinguishable).
 - More than one read layer before any multi-hop claim.
 

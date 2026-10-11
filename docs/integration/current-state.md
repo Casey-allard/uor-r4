@@ -1,3 +1,15 @@
+## 2026-10-11 — Starling read, rung 2: the addresses learn; the readout does not use them (claude, #2032)
+
+The [record](../labs/starling-anneal-2026-10-11/README.md) adds a training-only dense helper, annealed to zero over the first half of training. It has no softmax.
+- **The addresses learn.** The share of queries whose true source is among the kept 7 neighbours rises from 10% at initialisation to 73% at peak. On the pure hard read at the end it is still 43% (SA7) and 56% (SA7w).
+- **Recall stays at chance:** 0.011 against L2's 0.617, 3 seeds per arm.
+- **Decision: row 3.** The fault has moved from addressing to the readout: the rank table and gate do not pick the right value among the 7.
+- **Where it ran:** on one RTX 4090 through `uor-pod`. All six runs took 3 minutes, against about 6 h projected on the laptop CPU.
+
+Line: starling read · count 2/3 · headline: softmax at runtime yes → yes.
+
+**Next:** fix the readout (an agreement term on the rank table and gate, or a sharper gate), with a synthetic check first and pre-registered with its own fitness review.
+
 ## 2026-10-11 — Measured tokens/s on GPU: the addressed read is 1.65× slower than the read it replaces, and MACs are not a proxy for time (deepseek, metric direction)
 
 Following the owner's direction — *"it's much more likely tokens/s is the best way to compare"* and *"use GPU on a pod — do not use CPU"* — the

@@ -463,6 +463,28 @@ pub fn parse_read_route(text: &str) -> Result<Option<StarlingRoute>> {
     }
 }
 
+/// Evaluation-time record of the starling read's kept sources
+/// ([`starling_record_start`], [`starling_record_take`]): per call, the
+/// layer, batch row, head, query position and kept positions. Off unless started.
+type StarlingRecord = Vec<(usize, usize, usize, usize, Vec<usize>)>;
+static STARLING_RECORD: std::sync::Mutex<Option<StarlingRecord>> = std::sync::Mutex::new(None);
+
+/// Start recording the starling read's kept sources (clears any record).
+pub fn starling_record_start() {
+    if let Ok(mut record) = STARLING_RECORD.lock() {
+        *record = Some(Vec::new());
+    }
+}
+
+/// Stop recording and return `(layer, batch_row, head, position, kept)` rows.
+pub fn starling_record_take() -> StarlingRecord {
+    STARLING_RECORD
+        .lock()
+        .ok()
+        .and_then(|mut record| record.take())
+        .unwrap_or_default()
+}
+
 /// `config.json` field of the starling read route, written only when set.
 pub const READ_ROUTE_FIELD: &str = "read_route";
 // Separate query and key address maps: with one shared map the key shift's
@@ -2339,6 +2361,9 @@ pub struct StackModel {
     read_key_shift: bool,
     /// The starling read route of every geometric read ([`Self::set_read_route`]).
     read_route: Option<StarlingRoute>,
+    /// Training-only weight of the starling read's dense helper term
+    /// ([`Self::set_starling_dense`]); never saved, `None` in evaluation.
+    starling_dense: Option<f64>,
     /// How the geometric reads weight their kept sources
     /// ([`Self::set_read_weighting`]).
     read_weighting: ReadWeighting,
@@ -2436,6 +2461,7 @@ impl StackModel {
             read_key_shift: false,
             activation_snap: ActivationSnap::None,
             read_route: None,
+            starling_dense: None,
             read_weighting: ReadWeighting::Softmax,
             softsort_tau: None,
             read_lineage: None,
@@ -3317,6 +3343,15 @@ impl StackModel {
                 )
             })
             .collect::<Result<_>>()?;
+        if let Ok(mut record) = STARLING_RECORD.lock() {
+            if let Some(record) = record.as_mut() {
+                for (row, kept) in selections.iter().enumerate() {
+                    for (t, sources) in kept.iter().enumerate() {
+                        record.push((layer, row / heads, row % heads, t, sources.clone()));
+                    }
+                }
+            }
+        }
         for (row, kept) in selections.iter().enumerate() {
             for (t, sources) in kept.iter().enumerate() {
                 let base = (row * time + t) * k;
@@ -3361,8 +3396,32 @@ impl StackModel {
             .gather(&rank, 3)?;
         let weights = table.mul(&gate)?.mul(&live)?;
         let value_width = value.dim(3)?;
-        let values = gather_rows(&value.to_dtype(DType::F32)?, value_width)?;
-        Ok(weights.unsqueeze(4)?.broadcast_mul(&values)?.sum(3)?)
+        let value = value.to_dtype(DType::F32)?;
+        let values = gather_rows(&value, value_width)?;
+        let read = weights.unsqueeze(4)?.broadcast_mul(&values)?.sum(3)?;
+        let Some(alpha) = self.starling_dense.filter(|alpha| *alpha > 0.0) else {
+            return Ok(read);
+        };
+        // Training-only helper: a causal mean over every earlier position of
+        // the same gate on the address dot product, so every key address gets
+        // a gradient while the hard selection is still uninformed. No softmax.
+        let all = a
+            .matmul(&b.transpose(2, 3)?.contiguous()?)?
+            .broadcast_mul(&beta)?
+            .broadcast_add(&gamma)?
+            .neg()?
+            .exp()?
+            .affine(1.0, 1.0)?
+            .recip()?;
+        let mut mean = vec![0f32; time * time];
+        for t in 0..time {
+            for j in 0..=t {
+                mean[t * time + j] = 1.0 / (t + 1) as f32;
+            }
+        }
+        let mean = Tensor::from_vec(mean, (1, 1, time, time), identity.device())?;
+        let dense = all.broadcast_mul(&mean)?.matmul(&value.contiguous()?)?;
+        Ok(read.add(&dense.affine(alpha, 0.0)?)?)
     }
 
     /// One phase of [`ReadLineage::PhaseBinding`] (`map` and `bias` the key's
@@ -3957,6 +4016,24 @@ impl StackModel {
                 .retain(|name, _| !name.contains(".read.starling."));
         }
         self.read_route = route;
+        Ok(())
+    }
+
+    /// Set (`Some(alpha)`, `0 <= alpha`) or clear the training-only weight of
+    /// the starling read's dense helper: the read adds `alpha` times a causal
+    /// mean over every earlier position of `sigmoid(beta <a_t, b_j> + gamma)
+    /// v_j`, so key addresses outside the kept neighbours still learn. A train
+    /// loop sets it around each step and anneals it to zero; evaluation and
+    /// export read the pure starling form. Any model without a route ignores it.
+    pub fn set_starling_dense(&mut self, alpha: Option<f64>) -> Result<()> {
+        if let Some(alpha) = alpha {
+            if !(alpha.is_finite() && alpha >= 0.0) {
+                return Err(invalid(
+                    "a starling dense weight is finite and non-negative",
+                ));
+            }
+        }
+        self.starling_dense = alpha;
         Ok(())
     }
 
@@ -10298,6 +10375,7 @@ impl StackModel {
             read_key_shift: false,
             activation_snap: ActivationSnap::None,
             read_route: None,
+            starling_dense: None,
             read_weighting: ReadWeighting::Softmax,
             softsort_tau: None,
             read_lineage: None,
@@ -31098,6 +31176,58 @@ mod tests {
         // A plain model keeps its config without the field and refuses export.
         assert!(parse_read_route("none")?.is_none());
         assert!(parse_read_route("starling:0:7").is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn the_starling_dense_helper_gives_unselected_keys_a_gradient_and_vanishes_at_zero(
+    ) -> Result<()> {
+        let mut model = StackModel::new(
+            tiny(StackArch::Geometric, "ra", ReadScore::L2, true),
+            &cpu(),
+        )?;
+        model.set_read_route(Some(StarlingRoute { m: 1, k: 1 }))?;
+        let ids: Vec<u32> = (0..24u32).map(|i| (i * 7 + 3) % 37).collect();
+        let weights = random(&mut Initializer(23), &[24, 37], 1.0);
+        let plain = model
+            .forward(&ids, 2, 12)?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        // alpha = 0 is the pure starling read.
+        model.set_starling_dense(Some(0.0))?;
+        assert_eq!(
+            model
+                .forward(&ids, 2, 12)?
+                .flatten_all()?
+                .to_vec1::<f32>()?,
+            plain
+        );
+        // With the helper on, the key address gets a gradient from every
+        // position, and finite differences agree.
+        model.set_starling_dense(Some(1.0))?;
+        let address = model.variables()["layers.01.read.starling.key_address.weight"].clone();
+        let loss =
+            || -> Result<Tensor> { Ok(model.forward(&ids, 2, 12)?.mul(&weights)?.sum_all()?) };
+        let grads = loss()?.backward()?;
+        let g = grads
+            .get(address.as_tensor())
+            .ok_or_else(|| invalid("missing gradient"))?;
+        let direction = random(&mut Initializer(41), address.dims(), 1.0);
+        let analytic = f64::from(g.mul(&direction)?.sum_all()?.to_scalar::<f32>()?);
+        let original = address.as_tensor().copy()?;
+        let eps = 1e-4;
+        address.set(&original.add(&direction.affine(eps, 0.0)?)?)?;
+        let plus = f64::from(loss()?.to_scalar::<f32>()?);
+        address.set(&original.add(&direction.affine(-eps, 0.0)?)?)?;
+        let minus = f64::from(loss()?.to_scalar::<f32>()?);
+        address.set(&original)?;
+        let numeric = (plus - minus) / (2.0 * eps);
+        let scale = analytic.abs().max(numeric.abs()).max(1e-3);
+        assert!(
+            (analytic - numeric).abs() / scale < 2e-2,
+            "analytic {analytic} numeric {numeric}"
+        );
+        assert!(model.set_starling_dense(Some(-1.0)).is_err());
         Ok(())
     }
 }
