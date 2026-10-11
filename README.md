@@ -141,7 +141,12 @@ does not imply measured predictive advantage.
   worth a two-seed run. Configurations are rejected, not the mechanism.
 - **Lorentz and dot-product reads.** The stack's read layers (`a` layers) score earlier
   positions with a Lorentz or dot product plus an age term and a NoRead slot. Status: trained;
-  the Lorentz read has its own packed serving contract.
+  the Lorentz read has its own packed serving contract. **The read is the path that produces the
+  answers** (2026-10-11: removing the facts from the prompt takes the memory panel to 0/40 while
+  switching the copy head off costs one row), and **it can be steered**: supervised value binding
+  from step 0, three seeds against matched controls, raises bound mass 0.732 → 0.90, cuts
+  wrong-value failures 47 → 30 over 120 rows and lifts the memory panel 57 → 65
+  ([powered read binding](docs/labs/read-binding-powered-2026-10-11/README.md)).
 
 ## Training
 
@@ -270,6 +275,7 @@ Every row holds at its exact artifact, data, operator and budget.
 | Sealed 8M stack | 1.1199 BPB | Sealed report; Kneser-Ney 5-gram 1.2803 BPB |
 | 214M Plan A base | FineWeb dev NLL 2.90 to 2.073 | Open development split; rewrite and summarize usable, code and math wrong |
 | Product-key memory trained into the M1 stack (`memory_layers=`, 2,000 steps) | Layer 4, 64 sub-keys: **19/40** (2 seeds, +0.026 BPB against the anchor); layer 4, 256 sub-keys: 22/40, the same as a **no-memory control** at the shorter fit; **layer 8 (a read layer), 256 sub-keys: 20/40 — the anchor's own headline with wrong-value failures 17 → 10 and abstention 0 → 4/24** | [Addressed memory](docs/labs/addressed-memory-2026-10-10/README.md); configurations rejected as winners, the read-layer placement the one worth a two-seed run, mechanism open (D22 §1) |
+| M1 read binding, powered (supervised value binding from step 0, 3 seeds vs matched controls) | **KEEP**: wrong-value failures **47 → 30 over 120 rows** (3 seeds: −5 with 9 repaired/4 broken, −11 with 12 repaired/1 broken at **p = 0.0034**, −1), memory `check_pass` **57 → 65 of 120**, bound mass 0.732 → 0.90, every arm's BPB below the anchor's | [Powered read binding](docs/labs/read-binding-powered-2026-10-11/README.md); the read is the answer path ([attribution](docs/labs/answer-path-2026-10-11/README.md)) |
 | M1 v5 memory panel (frozen, 40 rows) | 20/40 `check_pass` at a 10 % recall share, the adopted M1 base; 10/40 with no recall data; 22/40 at 55 % with the reply panel down to 22/232 | [Mixture dose](docs/labs/mixture-dose-2026-10-10/README.md); one seed per dose, panel noise ±3 rows |
 | Open reply panel (232 rows, `fluent_and_relevant`) | 43/232 sealed base, **37/232** at the adopted 10 % dose (p = 0.42, inside noise), 39/232 with read-binding supervision | [Mixture dose](docs/labs/mixture-dose-2026-10-10/README.md), [Read binding](docs/labs/read-binding-2026-10-10/README.md) |
 | Criterion 2, 29M M1 artifacts served under D11 | **1.20138 BPB** (base) / 1.24402 / 1.24233 against a ≤ 0.90 target, engine **bit-exact** (`d11 − d10 nll = 0.0`, `max |Δlogit| = 0` on 64 windows) | [D11 serving](docs/labs/d11-serving-2026-10-10/README.md); byte basis 2.837427 B/token |

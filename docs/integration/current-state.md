@@ -1,3 +1,29 @@
+## 2026-10-11 — Read binding, powered: three seeds against matched controls cut the wrong-value failures 47 → 30 over 120 rows and lift the memory panel 57 → 65 (deepseek, #2029, D22 order 4, KEEP)
+
+The [powered read-binding round](../labs/read-binding-powered-2026-10-11/README.md) re-tests the mechanism its
+[label](mechanism-brief)/[brief](../mechanisms/read-binding.md) says was judged without power — **supervised from step 0**, **three seeds**
+(three data orders), each against a **matched W=0 control**, with the wrong-value failures paired row by row — and it follows the
+[answer-path attribution](answer-path) that measured the **read** as the path that produces the answers (removing the facts takes the
+panel to 0/40; switching the copy head off costs one row).
+
+**The mechanism reaches its objective on every seed and now takes the headline with it.** Bound mass **0.732 → 0.896 / 0.899 /
+0.905**, competing mass **0.140 → 0.090 / 0.086 / 0.081**; wrong-value failures **47 → 30 over 120 rows** (per seed −5 with 9
+repaired and 4 broken, **−11 with 12 repaired and 1 broken at p = 0.0034**, −1); memory `check_pass` **57 → 65 of 120** (+4 and +5 on
+two seeds, −1 on the third, inside the ±3-row noise), with all three supervised arms **below the anchor's BPB** (1.17142 / 1.17067 /
+1.17060 against 1.17425). **The pre-registered bar is met, so this is a KEEP + iterate (D22 §2) and the line's count resets.**
+
+**The head attribution came out as the brief asked.** Supervising the **first** read layer reaches bound mass 0.786 with 15
+wrong-value failures at the seed where the **last** read layer reaches 0.896 with 12 — the bound head that moves the answers is a
+late read layer, which is the cheap causal contrast in place of a serving-time ablation.
+
+**Declared limitations:** the bound/competing masses are **train-side** (the run's report does not expose held-out ones); two of the
+three paired tests are not significant (p = 0.27, 1.00) and the significant one is the seed that repairs twelve and breaks one; one
+seed sits one row below its control on the headline; the frozen v5 panel holds **40 memory rows** where the brief asks ≥ 120; and
+the head check is a layer contrast, not a serving-time ablation — the named next instrument.
+
+**Next:** the serving-time head ablation, then iterate this mechanism (the brief's open questions: supervise every head, or route the
+output through the binding head; competing-mass margin; phase/lineage tagging of values), with the compute ledger beside quality.
+
 ## 2026-10-11 — Which path produces the answer: the read does, the copy head does not (deepseek, #2029, pointer brief / D22 order 3)
 
 The [answer-path attribution](../labs/answer-path-2026-10-11/README.md) asks the question this line never asked before building on
