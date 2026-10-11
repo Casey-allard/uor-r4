@@ -4559,6 +4559,14 @@ struct DialogueSettings {
     read_binding_source: Option<String>,
     /// `read_binding_layer=L` (default: the last read layer).
     read_binding_layer: Option<usize>,
+    /// `read_binding_competing_weight=W` (default 0, off): weight on the term
+    /// `mean(relu(competing_mass - margin))` of the read-binding supervision
+    /// ([`StackModel::read_supervised_loss`]), so the signal pushes the read off
+    /// the other stated values and not only onto the asked one.
+    read_binding_competing_weight: f64,
+    /// `read_binding_competing_margin=M` (default 0.03): the mass the competing
+    /// values must stay under.
+    read_binding_competing_margin: f64,
 }
 
 impl DialogueSettings {
@@ -4610,6 +4618,12 @@ impl DialogueSettings {
             record["read_binding_labels"] = json!(self.read_binding_labels);
             record["read_binding_source"] = json!(self.read_binding_source);
             record["read_binding_layer"] = json!(self.read_binding_layer);
+            if self.read_binding_competing_weight > 0.0 {
+                record["read_binding_competing_weight"] =
+                    json!(self.read_binding_competing_weight);
+                record["read_binding_competing_margin"] =
+                    json!(self.read_binding_competing_margin);
+            }
         }
         record
     }
@@ -4661,6 +4675,10 @@ impl DialogueSettings {
             lineage["pointer_gate_supervision"] = json!(self.pointer_gate_supervision);
         }
         if self.read_binding_supervision > 0.0 {
+            lineage["read_binding_competing_weight"] =
+                json!(self.read_binding_competing_weight);
+            lineage["read_binding_competing_margin"] =
+                json!(self.read_binding_competing_margin);
             lineage["read_binding_supervision"] = json!({
                 "weight": self.read_binding_supervision,
                 "source": self.read_binding_source,
@@ -4713,6 +4731,24 @@ fn check_read_binding_supervision(s: &DialogueSettings) -> Result<()> {
     if !(weight.is_finite() && weight >= 0.0) {
         return Err(invalid(
             "read_binding_supervision must be finite and nonnegative",
+        ));
+    }
+    let competing = s.read_binding_competing_weight;
+    if !(competing.is_finite() && competing >= 0.0) {
+        return Err(invalid(
+            "read_binding_competing_weight must be finite and nonnegative",
+        ));
+    }
+    if !(s.read_binding_competing_margin.is_finite()
+        && (0.0..1.0).contains(&s.read_binding_competing_margin))
+    {
+        return Err(invalid(
+            "read_binding_competing_margin must be a mass in 0..1",
+        ));
+    }
+    if competing > 0.0 && weight == 0.0 {
+        return Err(invalid(
+            "read_binding_competing_weight needs read_binding_supervision > 0",
         ));
     }
     if weight == 0.0 {
@@ -4893,6 +4929,8 @@ fn dialogue_train_mode(arguments: &[String]) -> Result<()> {
             "read_binding_labels",
             "read_binding_source",
             "read_binding_layer",
+            "read_binding_competing_weight",
+            "read_binding_competing_margin",
             "memory_layers",
             "memory_sub_keys",
             "memory_top_k",
@@ -4959,6 +4997,8 @@ fn dialogue_train_mode(arguments: &[String]) -> Result<()> {
         read_binding_supervision: args.number("read_binding_supervision", 0.0)?,
         read_binding_labels: args.optional("read_binding_labels").map(PathBuf::from),
         read_binding_source: args.optional("read_binding_source"),
+        read_binding_competing_weight: args.number("read_binding_competing_weight", 0.0)?,
+        read_binding_competing_margin: args.number("read_binding_competing_margin", 0.03)?,
         read_binding_layer: args
             .optional("read_binding_layer")
             .map(|v| {
@@ -5458,7 +5498,13 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
     // Under read-binding supervision: the window's supervised steps, rows,
     // sums of the binding term, the selected head's bound and competing
     // masses, and the objective.
-    let mut window_binding = (0usize, 0usize, [0f64; 4]);
+    if s.read_binding_competing_weight > 0.0 {
+        model.set_read_binding_margin(
+            s.read_binding_competing_weight,
+            s.read_binding_competing_margin,
+        )?;
+    }
+    let mut window_binding = (0usize, 0usize, [0f64; 5]);
     let mut binding_totals = (0usize, 0usize);
     // The served representation's work inside this process's updates.
     let mut served_in_steps = ServedStatistics::default();
@@ -5494,6 +5540,7 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
                 parts.bound.iter().map(|&m| f64::from(m)).sum::<f64>() / rows as f64,
                 parts.competing.iter().map(|&m| f64::from(m)).sum::<f64>() / rows as f64,
                 read(&parts.total)?,
+                read(&parts.competing_margin)?,
             ];
             if !terms.iter().all(|t| t.is_finite()) {
                 return Err(invalid(format!(
@@ -5611,7 +5658,8 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
                 point["train_binding_bound_mass"] = json!(window_binding.2[1] / n);
                 point["train_binding_competing_mass"] = json!(window_binding.2[2] / n);
                 point["train_binding_objective"] = json!(window_binding.2[3] / n);
-                window_binding = (0, 0, [0.0; 4]);
+                point["train_binding_margin_term"] = json!(window_binding.2[4] / n);
+                window_binding = (0, 0, [0.0; 5]);
             }
             if let Some((unsnapped, usage)) = &transport {
                 point["dev_unsnapped_response_nll"] = unsnapped["response_mean_nll"].clone();

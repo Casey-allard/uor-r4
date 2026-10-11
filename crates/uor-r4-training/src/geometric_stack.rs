@@ -1051,6 +1051,11 @@ pub struct ReadSupervisedLoss {
     /// Mean over the rows of `-log(m + READ_SUPERVISION_FLOOR)`, `m` the
     /// selected head's mass on the bound value.
     pub binding: Tensor,
+    /// Mean over the rows of `relu(c - margin)`, `c` the selected head's mass on
+    /// the **competing** values: zero while every row keeps the competing values
+    /// under the margin, positive when the read spreads onto them. Zero tensor
+    /// when no competing weight is set.
+    pub competing_margin: Tensor,
     /// Per row: the selected (binding) head's mass on the bound value.
     pub bound: Vec<f32>,
     /// Per row: the selected head's mass on the competing values.
@@ -2358,6 +2363,14 @@ pub struct StackModel {
     /// copy branch can be switched *off* at read-out. `1.0`, the default,
     /// leaves every reply as it was.
     pointer_gate_ceiling: f64,
+    /// Training-only weight on the **competing-mass margin** of the read-binding
+    /// supervision ([`Self::set_read_binding_margin`]): `relu(competing -
+    /// margin)` added to the objective at this weight, so the signal pushes the
+    /// read *off* the other stated values and not only *onto* the asked one.
+    /// `0.0`, the default, leaves every objective as it was.
+    read_binding_competing_weight: f64,
+    /// The margin the competing mass must stay under, in mass units.
+    read_binding_competing_margin: f64,
     /// Serving-time **read silence** ([`Self::set_read_silence`]): the named
     /// read layer contributes nothing to the residual on the read-out path
     /// (`x = x + 0`), so the answers can be attributed to a specific read head.
@@ -2430,6 +2443,8 @@ impl StackModel {
             pointer_key_fold: None,
             pointer_gate_floor: 0.0,
             pointer_gate_ceiling: 1.0,
+            read_binding_competing_weight: 0.0,
+            read_binding_competing_margin: 0.03,
             read_silence: None,
             pointer_copy_stop: None,
             pointer_copy_trace: false,
@@ -4531,6 +4546,36 @@ impl StackModel {
         }
         self.read_silence = layer;
         Ok(())
+    }
+
+    /// Set the **competing-mass margin** of the read-binding supervision: with a
+    /// positive weight the objective gains `weight * mean(relu(c - margin))`,
+    /// where `c` is the selected head's mass on the competing values. `0.0`, the
+    /// default, leaves the objective exactly as it was. Training only: the term
+    /// is not saved and changes no serving path.
+    pub fn set_read_binding_margin(&mut self, weight: f64, margin: f64) -> Result<()> {
+        if !weight.is_finite() || weight < 0.0 {
+            return Err(invalid(
+                "the competing-mass weight must be finite and nonnegative",
+            ));
+        }
+        if !margin.is_finite() || !(0.0..1.0).contains(&margin) {
+            return Err(invalid(
+                "the competing-mass margin must be a mass in 0..1",
+            ));
+        }
+        self.read_binding_competing_weight = weight;
+        self.read_binding_competing_margin = margin;
+        Ok(())
+    }
+
+    /// The competing-mass margin weight and margin
+    /// ([`Self::set_read_binding_margin`]).
+    pub fn read_binding_margin(&self) -> (f64, f64) {
+        (
+            self.read_binding_competing_weight,
+            self.read_binding_competing_margin,
+        )
     }
 
     /// The read layer silenced on the read-out path, if any
@@ -9309,11 +9354,29 @@ impl StackModel {
             .log()?
             .mean_all()?
             .neg()?;
+        let selected_competing = competing.flatten_all()?.index_select(&indices, 0)?;
+        let margin = self.read_binding_competing_margin;
+        let competing_margin = if self.read_binding_competing_weight > 0.0 {
+            selected_competing
+                .affine(1.0, -margin)?
+                .relu()?
+                .mean_all()?
+        } else {
+            selected_competing.zeros_like()?.mean_all()?
+        };
         let total = language.add(&binding.affine(weight, 0.0)?)?;
+        let total = if self.read_binding_competing_weight > 0.0 {
+            total.add(
+                &competing_margin.affine(self.read_binding_competing_weight, 0.0)?,
+            )?
+        } else {
+            total
+        };
         Ok(ReadSupervisedLoss {
             total,
             language,
             binding,
+            competing_margin,
             bound: chosen
                 .iter()
                 .zip(&bound_rows)
@@ -10219,6 +10282,8 @@ impl StackModel {
         }
         let mut model = Self {
             pointer_gate_ceiling: 1.0,
+            read_binding_competing_weight: 0.0,
+            read_binding_competing_margin: 0.03,
             read_silence: None,
             config,
             variables,
@@ -24068,6 +24133,40 @@ mod tests {
             assert!(unsupported.set_read_identity_carry(true).is_err());
             assert!(!unsupported.read_identity_carry());
         }
+        Ok(())
+    }
+
+    #[test]
+    fn a_competing_margin_adds_a_nonnegative_term_and_changes_nothing_at_zero() -> Result<()> {
+        let ids: Vec<u32> = (0..16).map(|i| (i * 7 + 3) % 37).collect();
+        let targets: Vec<u32> = ids.iter().map(|&id| (id + 1) % 37).collect();
+        let weights = vec![1f32; 16];
+        let config = tiny(StackArch::Geometric, "rra", ReadScore::Dot, true);
+        let labels = supervision_target(2);
+        let mut model = StackModel::new(config, &cpu())?;
+        let plain = model.read_supervised_loss(&ids, &targets, &weights, 2, 8, &labels, 0.1)?;
+        // Default: no competing weight, and the term is exactly zero.
+        assert_eq!(model.read_binding_margin(), (0.0, 0.03));
+        assert_eq!(
+            plain.competing_margin.to_scalar::<f32>()?.to_bits(),
+            0f32.to_bits()
+        );
+        let plain_total = plain.total.to_scalar::<f32>()?;
+        // A margin of zero penalises all competing mass: the term is positive
+        // unless the read already puts nothing on the competing values, and the
+        // objective is never below the binding-only one.
+        model.set_read_binding_margin(0.5, 0.0)?;
+        let margin = model.read_supervised_loss(&ids, &targets, &weights, 2, 8, &labels, 0.1)?;
+        let term = margin.competing_margin.to_scalar::<f32>()?;
+        assert!(term >= 0.0);
+        assert!(margin.total.to_scalar::<f32>()? >= plain_total);
+        assert_eq!(
+            margin.binding.to_scalar::<f32>()?.to_bits(),
+            plain.binding.to_scalar::<f32>()?.to_bits()
+        );
+        // Refusals: an out-of-range margin and a negative weight.
+        assert!(model.set_read_binding_margin(0.1, 1.5).is_err());
+        assert!(model.set_read_binding_margin(-1.0, 0.1).is_err());
         Ok(())
     }
 
