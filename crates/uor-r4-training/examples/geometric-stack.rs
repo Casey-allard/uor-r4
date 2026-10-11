@@ -348,9 +348,9 @@ use uor_r4_training::flock::FlockSelect;
 use uor_r4_training::geometric_stack::{
     average_replica_gradients, logits_cross_entropy, parse_flock_select, parse_pointer_route,
     parse_pointer_select, quaternion_served_refusal, ActivationSnap, D11Interim, MapCodec,
-    PointerConfig, PointerIdentity, PointerSelect, Precision, PrimeRoute, QuaternionWeights,
-    ReadLineage, ReadScore, ReadWeighting, RotationGroup, ServedStatistics, StackAdamW, StackArch,
-    StackConfig, StackModel, TransportSnap, TransportUsage,
+    PointerConfig, PointerIdentity, PointerSelect, Precision, PrimeRoute, QuaternionSnap,
+    QuaternionWeights, ReadLineage, ReadScore, ReadWeighting, RotationGroup, ServedStatistics,
+    StackAdamW, StackArch, StackConfig, StackModel, TransportSnap, TransportUsage,
 };
 use uor_r4_training::lut_export::export_llama;
 use uor_r4_training::stack_dialogue::{
@@ -776,6 +776,9 @@ struct Settings {
     read_weighting: Option<ReadWeighting>,
     /// `quaternion_weights=`; `None` keeps the model's own.
     quaternion_weights: Option<QuaternionWeights>,
+    /// `quaternion_snap=icosian`: train with every quaternion map snapped to
+    /// norm x nearest unit icosian (straight-through); `none` (default).
+    quaternion_snap: QuaternionSnap,
     /// `softsort_tau_start=`/`softsort_tau_end=` for `read_weighting=softsort_rank`
     /// (defaults 1.0 and 0.01): the SoftSort temperature falls geometrically
     /// from start to end over the run and is set only around each optimizer
@@ -1244,6 +1247,7 @@ impl Settings {
             "select": self.config.select,
             "read_weighting": self.read_weighting,
             "quaternion_weights": self.quaternion_weights,
+            "quaternion_snap": self.quaternion_snap.name(),
             "softsort_tau": self.softsort_tau.map(|(start, end)| json!({"start": start, "end": end, "schedule": "geometric over steps, training forward only"})),
             "steps": self.steps, "batch": self.batch, "lr": self.lr,
             "warmup": self.warmup, "min_lr": self.min_lr, "weight_decay": self.weight_decay,
@@ -1728,6 +1732,11 @@ fn train_settings(args: &Args) -> Result<Settings> {
     if let Some(snap) = transport_snap {
         snap.check(&config)?;
     }
+    let quaternion_snap = QuaternionSnap::parse(
+        args.optional("quaternion_snap")
+            .as_deref()
+            .unwrap_or("none"),
+    )?;
     let quaternion_weights = quaternion_weights_arg(args)?;
     if quaternion_weights == Some(QuaternionWeights::All) {
         if config.arch != StackArch::Geometric {
@@ -1780,6 +1789,7 @@ fn train_settings(args: &Args) -> Result<Settings> {
         key_shift,
         read_weighting: read_weighting_arg(args)?,
         quaternion_weights,
+        quaternion_snap,
         softsort_tau: softsort_tau_arg(args)?,
         steps: args.number("steps", 7324)?,
         batch: args.number("batch", 16)?,
@@ -2307,6 +2317,12 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
                 &mut model,
                 settings.init.is_none(),
             )?;
+            if settings.quaternion_snap != QuaternionSnap::None {
+                if settings.data_parallel != 1 {
+                    return Err(invalid("quaternion_snap runs with data_parallel=1"));
+                }
+                model.set_quaternion_snap(settings.quaternion_snap)?;
+            }
             apply_read_weighting(settings.read_weighting, &mut model)?;
             let optimizer = StackAdamW::new(&model, settings.weight_decay, settings.clip)?;
             let progress = Progress {
@@ -2326,6 +2342,9 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
             (model, optimizer, progress, Some(state))
         }
     };
+    if model.quaternion_snap() != QuaternionSnap::None && settings.data_parallel != 1 {
+        return Err(invalid("quaternion_snap runs with data_parallel=1"));
+    }
     model.set_precision(settings.precision);
     // After the precision, so a bf16 run with a rank weighting (asked, from
     // `init=` or resumed) is refused; setting the same weighting again keeps
@@ -6563,6 +6582,7 @@ fn main() -> Result<()> {
                     "select",
                     "read_weighting",
                     "quaternion_weights",
+                    "quaternion_snap",
                     "softsort_tau_start",
                     "softsort_tau_end",
                     "data_parallel",

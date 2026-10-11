@@ -1,3 +1,15 @@
+## 2026-10-11 — Icosian weights: a post-hoc snap costs +0.141 BPB, and training it in recovers nothing; the 120 directions are too coarse (claude, #2032)
+
+The [record](../labs/icosian-qat-2026-10-11/README.md) covers both steps.
+- **Spin-snap probe:** snapping a trained quaternion model's weights to norm × nearest icosian costs **+0.141 BPB**. Snapping the activations too costs +0.475.
+- **Trained-in rung:** `quaternion_snap=icosian`, with a straight-through gradient. Training on one RTX 4090 took 13 minutes for 7 runs, against about 7 h projected on the laptop. The snap still costs **+0.140** with a power-of-two norm (the multiplier-free form) and **+0.103** with an f32 norm, against Q256 re-trained on CUDA (1.4944).
+- **Decision: row 4.** The straight-through estimator does not recover the cost at this scale. Most of the cost is in the direction.
+- **Norm bits:** the trained norms need only 3 bits (2^−9 … 2^−2).
+
+Line: geometric weights · count 1/3 · headline: softmax at runtime yes → yes.
+
+**Next:** a finer exact set (residual icosian pairs g₁ + 2^−k·g₂), checked first by reconstruction cosine in minutes, then pre-registered.
+
 ## 2026-10-11 — Starling read, rung 2: the addresses learn; the readout does not use them (claude, #2032)
 
 The [record](../labs/starling-anneal-2026-10-11/README.md) adds a training-only dense helper, annealed to zero over the first half of training. It has no softmax.

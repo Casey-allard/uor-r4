@@ -16,7 +16,11 @@ The model's dense projection matrices are 87.6 % of its per-token arithmetic, wh
 ## Tried
 
 - **Rung 0, quaternion weights, KEEP** ([record](../labs/quaternion-weights-2026-10-11/README.md)). At width 256, it beats dense at equal total parameters by 0.018 BPB (6× noise, equal weight bytes). Against dense at equal width it uses 4× fewer matrix weights for +0.088 BPB. It does not yet save arithmetic.
-- **Rung 1, spin-snap probe:** pre-registered at [6105073154](https://github.com/UOR-Foundation/uor-r4/issues/2032#issuecomment-6105073154) (FIT), running.
+- **Rung 1, icosian snap** ([record](../labs/icosian-qat-2026-10-11/README.md)):
+  - Post-hoc, snapping the weights to norm × nearest icosian costs +0.141 BPB; snapping the activations too costs +0.475.
+  - Trained in with a straight-through gradient, the cost is still +0.140 with a power-of-two norm and +0.103 with an f32 norm.
+  - So the 120 directions, about 15° apart, are too coarse. The norm needs only 3 bits.
+  - Row 4 next: a finer exact set (residual icosian pairs, or the second E8 shell).
 
 ## A fair test needs
 

@@ -334,6 +334,71 @@ pub const QUATERNION_MAPS: [&str; 10] = [
 /// The `config.json` field that records [`QuaternionWeights::All`], written
 /// only when set (absent is [`QuaternionWeights::None`]).
 pub const QUATERNION_WEIGHTS_FIELD: &str = "quaternion_weights";
+/// `config.json` field of the trained-in icosian snap ([`StackModel::set_quaternion_snap`]).
+pub const QUATERNION_SNAP_FIELD: &str = "quaternion_snap";
+
+/// The trained-in icosian snap of [`StackModel::set_quaternion_snap`].
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum QuaternionSnap {
+    None,
+    /// Direction to the nearest unit icosian, norm to the nearest power of
+    /// two: a block product is a Cayley-table read and a shift, no multiplier.
+    Icosian,
+    /// Direction to the nearest unit icosian, f32 norm (locates the cost).
+    IcosianF32,
+}
+
+impl QuaternionSnap {
+    pub fn parse(text: &str) -> Result<Self> {
+        match text {
+            "none" => Ok(Self::None),
+            "icosian" => Ok(Self::Icosian),
+            "icosian_f32" => Ok(Self::IcosianF32),
+            other => Err(invalid(format!(
+                "invalid quaternion_snap={other} (none, icosian or icosian_f32)"
+            ))),
+        }
+    }
+
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::None => "none",
+            Self::Icosian => "icosian",
+            Self::IcosianF32 => "icosian_f32",
+        }
+    }
+}
+
+/// Snap every quaternion of a compact map `[.., 4]` to the nearest of the
+/// 120 unit icosians times its norm (`pow2_norm`: the norm's nearest power of
+/// two), with a straight-through gradient: the forward value is the snapped
+/// map, the gradient reaches the float map as if unsnapped. Zero quaternions
+/// stay zero.
+pub fn icosian_snap_straight_through(compact: &Tensor, pow2_norm: bool) -> Result<Tensor> {
+    let values = compact
+        .to_dtype(DType::F32)?
+        .flatten_all()?
+        .to_vec1::<f32>()?;
+    let roots = icosian_roots();
+    let mut snapped = Vec::with_capacity(values.len());
+    for q in values.chunks_exact(4) {
+        let norm = q.iter().map(|v| v * v).sum::<f32>().sqrt();
+        if norm == 0.0 || !norm.is_finite() {
+            snapped.extend_from_slice(q);
+            continue;
+        }
+        let root = roots[nearest_root([q[0] / norm, q[1] / norm, q[2] / norm, q[3] / norm], roots)];
+        let scale = if pow2_norm {
+            norm.log2().round().exp2()
+        } else {
+            norm
+        };
+        snapped.extend(root.iter().map(|r| r * scale));
+    }
+    let snapped =
+        Tensor::from_vec(snapped, compact.dims(), compact.device())?.to_dtype(compact.dtype())?;
+    Ok(compact.add(&snapped.sub(compact)?.detach())?)
+}
 
 /// Mixed into the seed of the compact quaternion maps' initializer.
 const QUATERNION_SEED_MIX: u64 = 0x5155_4154_4552_4E49;
@@ -2421,6 +2486,8 @@ pub struct StackModel {
     /// Whether the projection maps are quaternion-valued
     /// ([`Self::set_quaternion_weights`]).
     quaternion_weights: QuaternionWeights,
+    /// Trained-in icosian snap of every quaternion map ([`Self::set_quaternion_snap`]).
+    quaternion_snap: QuaternionSnap,
     /// Evaluation-only probe ([`Self::set_activation_snap`]): every projection input lane is
     /// snapped to its nearest unit icosian times a power of two. Never saved.
     activation_snap: ActivationSnap,
@@ -2476,6 +2543,7 @@ impl StackModel {
             pointer_copy_trace: false,
             pointer_span_extract: None,
             quaternion_weights: QuaternionWeights::None,
+            quaternion_snap: QuaternionSnap::None,
         })
     }
 
@@ -2807,7 +2875,15 @@ impl StackModel {
                 let mut dense = BTreeMap::new();
                 for (name, var) in &self.variables {
                     if let Some(weight) = quaternion_dense_name(name) {
-                        dense.insert(weight, quaternion_dense_weight(var.as_tensor())?);
+                        let compact = if self.quaternion_snap != QuaternionSnap::None {
+                            icosian_snap_straight_through(
+                                var.as_tensor(),
+                                self.quaternion_snap == QuaternionSnap::Icosian,
+                            )?
+                        } else {
+                            var.as_tensor().clone()
+                        };
+                        dense.insert(weight, quaternion_dense_weight(&compact)?);
                     }
                 }
                 Ok(Params::Quaternion(&self.variables, dense))
@@ -4059,6 +4135,23 @@ impl StackModel {
     /// dimensions divisible by 4 and no served representation or transport
     /// snap. Setting the mode the model already has is a no-op; a quaternion
     /// model is not turned back into a dense one.
+    /// Train and evaluate every quaternion map snapped to norm × nearest unit
+    /// icosian ([`icosian_snap_straight_through`]): the forward pass is the
+    /// table-servable form, the gradient is straight-through. Needs
+    /// `quaternion_weights=all`; saved as [`QUATERNION_SNAP_FIELD`].
+    pub fn set_quaternion_snap(&mut self, mode: QuaternionSnap) -> Result<()> {
+        if mode != QuaternionSnap::None && self.quaternion_weights != QuaternionWeights::All {
+            return Err(invalid("quaternion_snap needs quaternion_weights=all"));
+        }
+        self.quaternion_snap = mode;
+        Ok(())
+    }
+
+    /// Whether the quaternion maps are icosian-snapped.
+    pub fn quaternion_snap(&self) -> QuaternionSnap {
+        self.quaternion_snap
+    }
+
     pub fn set_quaternion_weights(&mut self, mode: QuaternionWeights) -> Result<()> {
         if mode == self.quaternion_weights {
             return Ok(());
@@ -9949,6 +10042,12 @@ impl StackModel {
             with_field[READ_ROUTE_FIELD] = serde_json::Value::String(route.name());
             config = serde_json::to_vec_pretty(&with_field)?;
         }
+        if self.quaternion_snap != QuaternionSnap::None {
+            let mut with_field: serde_json::Value = serde_json::from_slice(&config)?;
+            with_field[QUATERNION_SNAP_FIELD] =
+                serde_json::Value::String(self.quaternion_snap.name().into());
+            config = serde_json::to_vec_pretty(&with_field)?;
+        }
         if self.read_weighting != ReadWeighting::Softmax {
             // Only when set, so every softmax model keeps its exact bytes.
             let mut with_field: serde_json::Value = serde_json::from_slice(&config)?;
@@ -10386,10 +10485,26 @@ impl StackModel {
             pointer_copy_trace: false,
             pointer_span_extract: None,
             quaternion_weights,
+            quaternion_snap: QuaternionSnap::None,
         };
         model.set_transport_snap(Self::saved_transport_snap(directory)?)?;
         model.set_read_identity_carry(Self::saved_read_identity_carry(directory)?)?;
         model.set_read_key_shift(Self::saved_read_key_shift(directory)?)?;
+        {
+            let saved: serde_json::Value =
+                serde_json::from_slice(&fs::read(directory.join("config.json"))?)?;
+            match saved.get(QUATERNION_SNAP_FIELD) {
+                None => {}
+                Some(serde_json::Value::String(text)) => {
+                    model.set_quaternion_snap(QuaternionSnap::parse(text)?)?
+                }
+                Some(_) => {
+                    return Err(invalid(format!(
+                        "config.json's {QUATERNION_SNAP_FIELD} must be a string"
+                    )))
+                }
+            }
+        }
         if let Some(lineage) = read_lineage {
             // Its variables were loaded above; set_read_lineage would
             // re-initialise them, so the checks it makes are repeated here.
@@ -31228,6 +31343,100 @@ mod tests {
             "analytic {analytic} numeric {numeric}"
         );
         assert!(model.set_starling_dense(Some(-1.0)).is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn the_icosian_snap_is_straight_through_and_round_trips() -> Result<()> {
+        let mut config = tiny(StackArch::Geometric, "ra", ReadScore::L2, true);
+        config.mlp_hidden = 24;
+        let mut model = StackModel::new(config, &cpu())?;
+        assert!(model.set_quaternion_snap(QuaternionSnap::Icosian).is_err());
+        model.set_quaternion_weights(QuaternionWeights::All)?;
+        model.set_quaternion_snap(QuaternionSnap::IcosianF32)?;
+        // Forward value: every compact quaternion is norm x an icosian.
+        let compact = Tensor::from_vec(
+            vec![0.3f32, -1.1, 0.7, 2.9, 0.0, 0.0, 0.0, 0.0],
+            (1, 2, 4),
+            &cpu(),
+        )?;
+        let snapped = icosian_snap_straight_through(&compact, false)?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        let norm = (0.3f32 * 0.3 + 1.1 * 1.1 + 0.7 * 0.7 + 2.9 * 2.9).sqrt();
+        assert!(icosian_roots()
+            .iter()
+            .any(|r| (0..4).all(|c| (snapped[c] / norm - r[c]).abs() < 1e-5)));
+        assert_eq!(&snapped[4..], &[0.0; 4]);
+        // Gradient: straight-through, so d sum(snap(x) * w) / dx = w.
+        let x = Var::from_tensor(&compact)?;
+        let w = Tensor::from_vec(
+            (0..8).map(|i| i as f32 - 3.0).collect::<Vec<_>>(),
+            (1, 2, 4),
+            &cpu(),
+        )?;
+        let grads = icosian_snap_straight_through(x.as_tensor(), false)?
+            .mul(&w)?
+            .sum_all()?
+            .backward()?;
+        let g = grads
+            .get(x.as_tensor())
+            .ok_or_else(|| invalid("missing gradient"))?;
+        assert_eq!(
+            g.flatten_all()?.to_vec1::<f32>()?,
+            w.flatten_all()?.to_vec1::<f32>()?
+        );
+        // The model trains a step's gradient and round-trips the snap.
+        let ids: Vec<u32> = (0..16u32).map(|i| (i * 5 + 1) % 37).collect();
+        let logits = model.forward(&ids, 2, 8)?.flatten_all()?.to_vec1::<f32>()?;
+        let root = std::env::temp_dir().join(format!("icosian-snap-{}", std::process::id()));
+        model.save(&root)?;
+        let loaded = StackModel::load(&root, &cpu())?;
+        assert_eq!(loaded.quaternion_snap(), QuaternionSnap::IcosianF32);
+        assert_eq!(
+            loaded
+                .forward(&ids, 2, 8)?
+                .flatten_all()?
+                .to_vec1::<f32>()?,
+            logits
+        );
+        fs::remove_dir_all(&root)?;
+        Ok(())
+    }
+
+    #[test]
+    fn the_snap_changes_the_logits_to_those_of_the_snapped_weights() -> Result<()> {
+        // Pins that the forward pass really uses the snapped maps: a snapped
+        // model's logits differ from the float model's and equal those of a
+        // float model whose compact maps already hold the snapped values.
+        let mut config = tiny(StackArch::Geometric, "ra", ReadScore::L2, true);
+        config.mlp_hidden = 24;
+        let ids: Vec<u32> = (0..16u32).map(|i| (i * 5 + 1) % 37).collect();
+        for (mode, pow2) in [
+            (QuaternionSnap::Icosian, true),
+            (QuaternionSnap::IcosianF32, false),
+        ] {
+            let mut float = StackModel::new(config.clone(), &cpu())?;
+            float.set_quaternion_weights(QuaternionWeights::All)?;
+            let plain = float.forward(&ids, 2, 8)?.flatten_all()?.to_vec1::<f32>()?;
+            let mut snapped = StackModel::new(config.clone(), &cpu())?;
+            snapped.set_quaternion_weights(QuaternionWeights::All)?;
+            snapped.set_quaternion_snap(mode)?;
+            let on = snapped
+                .forward(&ids, 2, 8)?
+                .flatten_all()?
+                .to_vec1::<f32>()?;
+            assert_ne!(plain, on, "{mode:?}");
+            for (name, var) in float.variables() {
+                if name.ends_with(".quaternion") {
+                    var.set(&icosian_snap_straight_through(var.as_tensor(), pow2)?.detach())?;
+                }
+            }
+            let held = float.forward(&ids, 2, 8)?.flatten_all()?.to_vec1::<f32>()?;
+            for (a, b) in on.iter().zip(&held) {
+                assert!((a - b).abs() < 1e-5, "{mode:?}: {a} vs {b}");
+            }
+        }
         Ok(())
     }
 }
