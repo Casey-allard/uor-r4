@@ -1,4 +1,24 @@
-# The fused product-key memory forward: the memory arm's training step falls from ~2.2 s to 0.175 s, and the remaining gap is the backward
+# RETRACTED (2026-10-11, the same hour): the kernel was never in the binary that produced these numbers
+
+**This record's central claim is wrong and is withdrawn.** The pod that produced the rate comparison was bootstrapped with
+`--ref <main sha>`, which fetches **from GitHub** — so the binary it built contained **main without this cycle's kernel edits**.
+The "≈ 12× step improvement" therefore **cannot** be attributed to the fused kernel: it is the difference between the **fat**
+memory configuration measured earlier (1.19 s/step at 2,000 steps) and the **lean** one measured here (0.175 s/step), i.e. a
+**codebook-size** difference, not a kernel difference. The CPU-versus-CUDA agreement (~1e-9) was likewise produced by two runs of
+the *same* binary, so it says nothing about the kernel either.
+
+**And the kernel broke the CUDA build.** The next pod bootstrap failed with three compile errors in `uor-r4-training` under
+`--features cuda` (`E0308` on the launcher's return type, `E0603` on a private item). The local non-CUDA build and CI passed
+because neither compiles the CUDA feature — so the regression reached `main` and would have broken **every** CUDA build of the
+training stack. The change has been **reverted**.
+
+**What survives:** the fused forward's *source* (in the reverted commit) is a starting point, not a result. The correct next
+steps are to fix the launcher against a CUDA build, verify the kernel on a pod **built from the branch that contains it**, and
+only then measure. Nothing in this record should be cited as a measurement of the fused kernel.
+
+---
+
+# (as originally written) The fused product-key memory forward: the memory arm's training step falls from ~2.2 s to 0.175 s, and the remaining gap is the backward
 
 References #2029 (M1 acceptance, D22 compute line; pre-registered in [#2029 comment 6113443141](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6113443141)).
 Lab: DeepSeek, session `deepseek/kernel`. Work 2026-10-11 20:40–20:55 UTC: **one pod, one CUDA build, four tiny runs ≈ $0.60**,
@@ -67,3 +87,27 @@ runs. The next measurement is a forward-only (served) rate, and the next piece i
 
 - Reports: `~/uor-r4-local/kernel-20261011/{cpu,cuda,rate-mlp,rate-memory}/report.json`, bundled to cloud-store as `[BUNDLE]`.
 - The kernel, launcher and wiring: the PR that carries this record.
+
+## Correction record: how the two errors were found, and what changes
+
+**Found by a bootstrap failure, an hour after merge.** Creating a pod for the follow-up measurement failed at the merged sha with
+three compile errors in `uor-r4-training` under `--features cuda` — `E0308` (the launcher's `Option<Forward>` return used where the
+`cuda_fwd` path expected the tuple) and `E0603` (a private item). **The local non-CUDA build and CI both passed because neither
+compiles the CUDA feature**, which is how a CUDA-only regression reached `main`.
+
+**The rate claim was independently wrong.** That cycle's pod was bootstrapped with `--ref <main sha>`; the tool fetches that sha
+**from GitHub**, so the binary contained `main` **without** the kernel edits. The ≈12× step difference is therefore the
+**fat-versus-lean codebook** effect (1.19 s/step against 0.175 s/step) and the CPU/CUDA agreement compared one binary with itself.
+Both of those were already known facts about the two configurations; neither was evidence for the kernel.
+
+**What this changes in the lab's practice, immediately:**
+
+1. **A kernel change is not verified until a pod built from the branch that contains it runs it.** `--ref` must name the branch's
+   head sha, not the base — and the compile must be read, not assumed.
+2. **CUDA-only code paths need a CUDA compile before merge** — the pod bootstrap is that compile, and it takes minutes.
+3. **A rate claim names the binary's ref and the compared configurations explicitly**, so a configuration difference can never be
+   read as a kernel effect.
+
+Nothing else in the record is retained as a result: the fused forward's source stays in the reverted commit as a **starting point**,
+and the honest next attempt is (a) fix the launcher against a real CUDA build, (b) verify correctness on a pod built from that
+branch, (c) then measure the served rate.

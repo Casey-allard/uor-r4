@@ -489,25 +489,6 @@ impl CustomOp3 for ProductKeyMemory {
         s3: &CudaStorage,
         l3: &Layout,
     ) -> candle_core::Result<(CudaStorage, Shape)> {
-        // The fused forward first: it is the same arithmetic on the device, and
-        // the host bridge is the fallback for a shape or dtype it does not take.
-        if let Some(fused) = crate::geometric_stack::cuda_ops::product_key_memory_fwd(
-            s1,
-            l1,
-            s2,
-            l2,
-            s3,
-            l3,
-            self.rows,
-            self.heads,
-            self.half,
-            self.sub_keys,
-            self.top_k,
-            self.width,
-            self.score == MemoryScore::Lorentz,
-        )? {
-            return Ok(fused);
-        }
         crate::geometric_stack::cuda_ops::via_host3(self, [(s1, l1), (s2, l2), (s3, l3)])
     }
 

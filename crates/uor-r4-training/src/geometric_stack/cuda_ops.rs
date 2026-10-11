@@ -170,61 +170,6 @@ pub(super) fn straight_through_fwd(
     Ok((storage(out, device), l2.shape().clone()))
 }
 
-/// The fused product-key memory forward (`cuda_stack_kernels.rs`, kernel 2b):
-/// the CUDA form of [`crate::stack_memory`]'s per-head selection and weighted
-/// value gather, which otherwise runs the CPU forward on host copies. Returns
-/// `None` when the inputs are not contiguous f32 or the geometry exceeds the
-/// kernel's bounds, so the caller falls back to [`via_host3`].
-#[allow(clippy::too_many_arguments)]
-pub(super) fn product_key_memory_fwd(
-    s1: &CudaStorage,
-    l1: &Layout,
-    s2: &CudaStorage,
-    l2: &Layout,
-    s3: &CudaStorage,
-    l3: &Layout,
-    rows: usize,
-    heads: usize,
-    half: usize,
-    sub_keys: usize,
-    top_k: usize,
-    width: usize,
-    lorentz: bool,
-) -> CResult<Option<Forward>> {
-    if s1.dtype() != DType::F32 {
-        return Ok(None);
-    }
-    if sub_keys > 64 || top_k > 32 || heads == 0 || half == 0 {
-        return Ok(None);
-    }
-    let (Some(query), Some(keys), Some(values)) =
-        (input(s1, l1)?, input(s2, l2)?, input(s3, l3)?)
-    else {
-        return Ok(None);
-    };
-    let device = &s1.device;
-    let out = uninit::<f32>(device, rows * width)?;
-    launch(
-        device,
-        "product_key_memory_fwd",
-        rows * heads,
-        &[
-            Arg::F(query),
-            Arg::F(keys),
-            Arg::F(values),
-            Arg::f(&out),
-            Arg::U32(u32_of(rows, "rows")?),
-            Arg::U32(u32_of(heads, "heads")?),
-            Arg::U32(u32_of(half, "half")?),
-            Arg::U32(u32_of(sub_keys, "sub_keys")?),
-            Arg::U32(u32_of(top_k, "top_k")?),
-            Arg::U32(u32_of(width, "width")?),
-            Arg::U32(u32::from(lorentz)),
-        ],
-    )?;
-    Ok(Some((storage(out, device), Shape::from((rows, width)))))
-}
-
 pub(super) fn swiglu_fwd(s1: &CudaStorage, l1: &Layout, s2: &CudaStorage, l2: &Layout) -> Forward {
     if s1.dtype() == DType::BF16 {
         return super::cuda_ops_bf16::swiglu_fwd(s1, l1, s2, l2);

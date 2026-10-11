@@ -1,23 +1,19 @@
-## 2026-10-11 — The fused product-key memory forward: the memory arm's training step falls ≈12×, and the remaining gap is the backward (deepseek, #2029, compute line)
+## 2026-10-11 — RETRACTION: the fused-memory kernel broke the CUDA build and its rate claim was not the kernel's (deepseek, #2029)
 
-The [fused-kernel round](../labs/fused-memory-kernel-2026-10-11/README.md) acts on the compute direction the [context curve](context-curve-2026-10-11/README.md)
-identified: the memory that replaces an MLP has the arithmetic (**−86 % MACs at that layer**, param-matched at +1.26 M) but not the time
-(**1.65× slower**, because its step ran the exact CPU forward on host copies). The forward is now a **CUDA kernel** (one thread per (row, head):
-per-side sub-key scores, the `top_k` selections with the CPU path's tie-breaking, the candidate join, the softmax, the weighted gather), with the
-host bridge kept as the fallback and the CPU forward as the reference.
+**Two errors in one merged PR ([#2212](https://github.com/UOR-Foundation/uor-r4/pull/2212)), both found within the hour and both now
+reverted.** First, the kernel **broke the CUDA build**: a pod bootstrap at the merged sha fails with three errors in `uor-r4-training`
+under `--features cuda` (`E0308` on the launcher's return type, `E0603` on a private item) — and **CI passed because it does not compile
+the CUDA feature**, so a CUDA-only regression reached `main` that would have broken every CUDA build of the training stack. Second, the
+record's central number was **not attributable to the kernel at all**: that pod was bootstrapped with `--ref <main sha>`, which fetches
+**from GitHub**, so the binary contained `main` **without** the kernel edits. The "≈12× step improvement" is the **fat-versus-lean
+codebook** difference (1.19 s/step against 0.175 s/step) — two configurations already known to differ — and the CPU/CUDA agreement
+(~1e-9) compared one binary with itself.
 
-Measured on one pod (CUDA build, four tiny runs, ≈ $0.60, deleted at the last run):
-
-| | |
-|---|---|
-| correctness | fused forward **equals the CPU forward to ~1e-9** on a memory model (dev NLL 8.309215124 against 8.309215125; `train_loss` identical to six decimals) — agreement to float tolerance, stated as such |
-| rate at full size (width 576, 10 layers, 384 context, CUDA) | MLP **29,050 tok/s** (0.106 s/step) against the memory arm **17,541 tok/s** (0.175 s/step) |
-| **the change** | the same memory arm's step was **≈ 2.2 s** under the host bridge → **0.175 s** now, i.e. **≈ 12×**, closing the gap to the MLP from **~36× to 1.66×** |
-
-**The remaining 1.66× is the backward, which still runs on host copies** — a named, measured next piece rather than a statement about the mechanism.
-The number also **understates serving**: a training step includes the backward, while serving runs only the forward. Next: the backward kernel,
-then a forward-only served rate, then Metal (the compatibility requirement covers CPU/CUDA/Metal) — with the D11 native port still refusing
-product-key memories as its own pre-registered follow-up. **No quality claim**: 20-step runs on a synthetic stream, no panel, not candidates.
+**The [record](../labs/fused-memory-kernel-2026-10-11/README.md) carries a retraction banner, the change is reverted, and the negative
+stays visible** rather than erased. The fused forward's source remains in the reverted commit as a starting point. **Practice changes,
+effective immediately:** a kernel change is not verified until a pod **built from the branch that contains it** runs it (`--ref` names
+the branch head, and the compile is read, not assumed); CUDA-only paths get a CUDA compile before merge; and every rate claim names its
+binary's ref and the configurations compared.
 
 ## 2026-10-11 — The context curve: served tokens/s at 384 / 1,024 / 4,096 on the product path, and the O(n) prize is bounded at ~1.7× (deepseek, #2029, measurement)
 
