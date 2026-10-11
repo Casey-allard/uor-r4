@@ -1,3 +1,29 @@
+## 2026-10-11 — Which path produces the answer: the read does, the copy head does not (deepseek, #2029, pointer brief / D22 order 3)
+
+The [answer-path attribution](../labs/answer-path-2026-10-11/README.md) asks the question this line never asked before building on
+either path: **which mechanism produces the answer token?** Four serving-time conditions, one artifact (the order-3 address arm),
+the frozen v5 panel, no training. **Removing the facts from the prompt takes the memory panel to 0/40** — all 40 rows fail with a
+*missing* value, none with a wrong one — so the answers come from the context through the **read**. **Switching the copy head off
+entirely costs one row** (23 → 22, inside the ±3-row noise) while removing ~6 % of the mixture, so the copy head does not produce
+them; the judge column shows what it *does* contribute — `acceptable` falls 17 → 9 with the copy off, i.e. **local fluency, not the
+value**. Forcing the copy to half the mixture costs **sixteen rows** (23 → 7): a branch worth ~1 row cannot carry 50 % of the output
+without displacing the branch worth 23.
+
+**This re-scopes the whole pointer line, including its apparent wins.** The order-3 result raised the pointer's hit rate
+**0.377 → 0.54** across three seeds at zero likelihood cost while the panel stayed flat; conditions A–C say why — the copy branch
+carries ~6 % of the output (`dev_pointer_mean_gate` 0.056–0.064), so its metrics and the panel were measuring different things.
+Those results stand as read-outs of a 6 % branch and cannot be evidence about what answers the model gives.
+
+**What follows.** The next mechanism on this line must act on the **read** — a softmax search that is 16.6 % of the model's MACs at
+context 384 but **40.5 % at 4,096** — or the output path must be rebuilt so a copy *can* be the answer; the oracle shows that
+enabling the existing copy head cannot do it. The two candidate load-bearing mechanisms of the
+[geometry audit](../integration/geometry-audit-2026-10-11/README.md) therefore start with the read: replace its search with an
+exact address, or invert the order and rebuild the output path first. That choice is the owner's, and it is now a choice between two
+measured paths rather than a guess.
+
+**Next:** the owner's pick between those two; until then the next instrument is a **span-mask ablation** on the read (suppress the
+fact's positions while it stays in the prompt), which separates "the read finds it" from "the generator uses it".
+
 ## 2026-10-11 — Geometry audit: the trained stack's geometric operations are 0.05 % of its arithmetic, and the project's own ledger rule is missing from the model line (deepseek, owner question of 10 October)
 
 The owner asked why the project keeps becoming matrix wrappers with 1–2 % gains. The
