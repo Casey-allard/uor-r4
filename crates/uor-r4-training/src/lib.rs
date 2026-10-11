@@ -32,6 +32,7 @@ pub mod dialogue_episodes;
 pub mod dialogue_learning;
 pub mod dialogue_rounding;
 pub mod dialogue_rounding_artifact;
+pub mod e8_memory;
 pub mod flock;
 pub mod flock_transport;
 pub mod geometric_address;

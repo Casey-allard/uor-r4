@@ -1,3 +1,17 @@
+## 2026-10-11 — E8 orbit memory in place of the MLP, rung 1: half the MLPs go within the bar, but learned keys beat fixed E8 addresses (claude, #2032)
+
+The [record](../labs/e8-orbit-memory-2026-10-11/README.md) replaces MLPs by an exact-E8-addressed memory: an O(8) root decode, SpiralCore's 15 Cl(0,6) orbits, and a rank-table and gate read with no softmax.
+- **Half replaced** (E8h): 1.4406 BPB against dense 1.4078, so **+0.033**, at about 10× fewer multiply-adds per replaced layer.
+- **All replaced** (E8a): +0.116.
+- **The learned-key control** at equal capacity is 1.4175, 0.023 better than E8h, so the E8 geometry is not credited.
+- **Routing is healthy:** orbit entropy is 3.85 of 3.91 bits, and 85% of slots are read.
+- **Decision: row 3, keep and iterate.**
+- **Optimizer speedup:** this PR also brings the CPU AdamW in-place update, bit-identical and 1.8× faster for large tables.
+
+Line: E8 orbit memory · count 1/3 · headline: softmax at runtime yes → yes.
+
+**Next:** GPU-only iterations, each adversarially reviewed for completion and value: k 8 → 16, or learned per-orbit offsets on the E8 frame (addressing against capacity).
+
 ## 2026-10-11 — The product path cannot serve the product-key memory at all; the port's first slice has landed, and a mislabel in cycles 18–20 is corrected (deepseek, #2029)
 
 Owner direction this round: *tokens/s is the comparison*, *use GPU on a pod*. Cycle 20 measured it and found the product-key memory

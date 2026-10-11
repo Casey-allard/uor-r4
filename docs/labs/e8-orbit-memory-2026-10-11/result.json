@@ -1,0 +1,58 @@
+{
+ "bpb_per_seed": {
+  "D256": {
+   "1": 1.4054,
+   "2": 1.4101
+  },
+  "E8h": {
+   "1": 1.4406,
+   "2": 1.4406
+  },
+  "E8a": {
+   "1": 1.5172,
+   "2": 1.5302
+  },
+  "P": {
+   "1": 1.4143,
+   "2": 1.4207
+  }
+ },
+ "mean": {
+  "D256": 1.4078,
+  "E8h": 1.4406,
+  "E8a": 1.5237,
+  "P": 1.4175
+ },
+ "pooled_sd": 0.0054,
+ "noise_E8h_D256": 0.0054,
+ "noise_E8a_D256": 0.0054,
+ "noise_E8h_P": 0.0054,
+ "E8h_minus_D256": 0.0329,
+ "E8a_minus_D256": 0.1159,
+ "E8h_minus_P": 0.0231,
+ "P_minus_D256": 0.0097,
+ "row": 3,
+ "geometry_credit": false,
+ "usage": {
+  "E8h-s1": {
+   "orbit_entropy_bits_mean": 3.85,
+   "slot_share_mean": 0.8319,
+   "max_entropy_bits": 3.9068905956085187
+  },
+  "E8h-s2": {
+   "orbit_entropy_bits_mean": 3.866,
+   "slot_share_mean": 0.845,
+   "max_entropy_bits": 3.9068905956085187
+  },
+  "E8a-s1": {
+   "orbit_entropy_bits_mean": 3.859,
+   "slot_share_mean": 0.8677,
+   "max_entropy_bits": 3.9068905956085187
+  },
+  "E8a-s2": {
+   "orbit_entropy_bits_mean": 3.852,
+   "slot_share_mean": 0.8611,
+   "max_entropy_bits": 3.9068905956085187
+  }
+ }
+}

@@ -779,6 +779,9 @@ struct Settings {
     /// `quaternion_snap=icosian`: train with every quaternion map snapped to
     /// norm x nearest unit icosian (straight-through); `none` (default).
     quaternion_snap: QuaternionSnap,
+    /// `e8_memory=LAYERS:HEADS:K`: those layers' MLPs become E8 orbit
+    /// memories ([`StackModel::set_e8_memory`]); `none` (default) keeps them.
+    e8_memory: Option<uor_r4_training::e8_memory::E8MemoryConfig>,
     /// `softsort_tau_start=`/`softsort_tau_end=` for `read_weighting=softsort_rank`
     /// (defaults 1.0 and 0.01): the SoftSort temperature falls geometrically
     /// from start to end over the run and is set only around each optimizer
@@ -1248,6 +1251,7 @@ impl Settings {
             "read_weighting": self.read_weighting,
             "quaternion_weights": self.quaternion_weights,
             "quaternion_snap": self.quaternion_snap.name(),
+            "e8_memory": self.e8_memory.as_ref().map(|e8| e8.name()),
             "softsort_tau": self.softsort_tau.map(|(start, end)| json!({"start": start, "end": end, "schedule": "geometric over steps, training forward only"})),
             "steps": self.steps, "batch": self.batch, "lr": self.lr,
             "warmup": self.warmup, "min_lr": self.min_lr, "weight_decay": self.weight_decay,
@@ -1790,6 +1794,9 @@ fn train_settings(args: &Args) -> Result<Settings> {
         read_weighting: read_weighting_arg(args)?,
         quaternion_weights,
         quaternion_snap,
+        e8_memory: uor_r4_training::e8_memory::E8MemoryConfig::parse(
+            args.optional("e8_memory").as_deref().unwrap_or("none"),
+        )?,
         softsort_tau: softsort_tau_arg(args)?,
         steps: args.number("steps", 7324)?,
         batch: args.number("batch", 16)?,
@@ -2324,6 +2331,13 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
                 model.set_quaternion_snap(settings.quaternion_snap)?;
             }
             apply_read_weighting(settings.read_weighting, &mut model)?;
+            // Before the optimizer: the E8 memory replaces MLP weights.
+            if let Some(e8) = &settings.e8_memory {
+                if settings.data_parallel != 1 || settings.qat {
+                    return Err(invalid("e8_memory runs with data_parallel=1 and no qat"));
+                }
+                model.set_e8_memory(e8.clone())?;
+            }
             let optimizer = StackAdamW::new(&model, settings.weight_decay, settings.clip)?;
             let progress = Progress {
                 step: 0,
@@ -2339,6 +2353,9 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
             settings.key_shift.check_resumed(&model)?;
             check_resumed_read_weighting(settings.read_weighting, &model)?;
             check_resumed_quaternion_weights(settings.quaternion_weights, &model)?;
+            if model.e8_memory() != settings.e8_memory.as_ref() {
+                return Err(invalid("a resume keeps the checkpoint's e8_memory"));
+            }
             (model, optimizer, progress, Some(state))
         }
     };
@@ -2748,6 +2765,9 @@ fn evaluate_mode(arguments: &[String]) -> Result<()> {
             .as_ref()
             .map(|path| read_tokens(path, u16::MAX as usize + 1))
             .transpose()?;
+        if model.e8_memory().is_some() {
+            uor_r4_training::e8_memory::e8_usage_start();
+        }
         let blocks = (tokens.len() - 1) / time;
         let blocks = max_blocks.map_or(blocks, |limit| blocks.min(limit));
         if blocks <= tune_blocks {
@@ -2793,6 +2813,7 @@ fn evaluate_mode(arguments: &[String]) -> Result<()> {
                 "lens": lens_path.as_ref().map(|p| identity(p)).transpose()?,
                 "softsort_tau": softsort_tau,
                 "activation_snap": args.optional("activation_snap").unwrap_or_else(|| "none".into()),
+                "e8_usage": if model.e8_memory().is_some() { uor_r4_training::e8_memory::e8_usage_take() } else { serde_json::Value::Null },
                 "tune": summary(0..tune_blocks),
                 "comparison": summary(tune_blocks..blocks),
                 "full": summary(0..blocks),
@@ -6583,6 +6604,7 @@ fn main() -> Result<()> {
                     "read_weighting",
                     "quaternion_weights",
                     "quaternion_snap",
+                    "e8_memory",
                     "softsort_tau_start",
                     "softsort_tau_end",
                     "data_parallel",

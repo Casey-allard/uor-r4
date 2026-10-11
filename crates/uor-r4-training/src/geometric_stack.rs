@@ -477,6 +477,27 @@ pub const READ_RANK_LOGITS: &str = "read.rank_logits";
 
 /// The [`READ_RANK_LOGITS`] variables of a configuration: `[heads, M]` per
 /// read layer, `M = window + k + 2` of its flock selection.
+/// One E8 memory layer's variables ([`StackModel::set_e8_memory`]).
+fn e8_memory_shapes(
+    config: &StackConfig,
+    e8: &crate::e8_memory::E8MemoryConfig,
+    layer: usize,
+) -> Vec<(String, Vec<usize>)> {
+    vec![
+        (
+            layer_name(layer, "e8.query.weight"),
+            vec![e8.heads * 16, config.width],
+        ),
+        (
+            layer_name(layer, "e8.values"),
+            vec![crate::e8_memory::E8_SLOTS, config.width],
+        ),
+        (layer_name(layer, "e8.rank"), vec![e8.heads, e8.k]),
+        (layer_name(layer, "e8.beta"), vec![e8.heads]),
+        (layer_name(layer, "e8.gamma"), vec![e8.heads]),
+    ]
+}
+
 fn learned_rank_shapes(config: &StackConfig) -> Result<Vec<(String, Vec<usize>)>> {
     let select = config
         .select
@@ -2429,6 +2450,8 @@ pub struct StackModel {
     /// Training-only weight of the starling read's dense helper term
     /// ([`Self::set_starling_dense`]); never saved, `None` in evaluation.
     starling_dense: Option<f64>,
+    /// Layers whose MLP is an E8 orbit memory ([`Self::set_e8_memory`]).
+    e8_memory: Option<crate::e8_memory::E8MemoryConfig>,
     /// How the geometric reads weight their kept sources
     /// ([`Self::set_read_weighting`]).
     read_weighting: ReadWeighting,
@@ -2529,6 +2552,7 @@ impl StackModel {
             activation_snap: ActivationSnap::None,
             read_route: None,
             starling_dense: None,
+            e8_memory: None,
             read_weighting: ReadWeighting::Softmax,
             softsort_tau: None,
             read_lineage: None,
@@ -3061,6 +3085,13 @@ impl StackModel {
     ) -> Result<Tensor> {
         tap(capture, StackSite::Mlp(layer), || self.unit_norm(x))?;
         let u = self.norm(p, x, &layer_name(layer, "mlp_norm.weight"))?;
+        if let Some(e8) = self
+            .e8_memory
+            .as_ref()
+            .filter(|m| m.layers.contains(&layer))
+        {
+            return self.e8_memory_mlp(p, layer, &u, e8.heads, e8.k);
+        }
         if let Some(memory) = self
             .config
             .memory
@@ -4116,6 +4147,98 @@ impl StackModel {
     /// The starling read route, if any.
     pub fn read_route(&self) -> Option<StarlingRoute> {
         self.read_route
+    }
+
+    /// Replace the MLP of each listed layer by an E8 orbit memory
+    /// ([`crate::e8_memory`]): the layer's `mlp.{gate,up,down}` weights are
+    /// removed and `e8.query.weight` `[heads * 16, width]`, `e8.values`
+    /// `[240^2, width]`, a plain learned rank table `e8.rank` `[heads, k]`
+    /// (`1/k`, no softmax) and a gate `e8.beta`/`e8.gamma` `[heads]` are
+    /// added. Set it before creating the optimizer. Refused on a served or
+    /// bf16 model, a non-geometric stack, a product-key memory layer, or a
+    /// model that already has a different E8 memory. It has no export yet.
+    pub fn set_e8_memory(&mut self, config: crate::e8_memory::E8MemoryConfig) -> Result<()> {
+        if let Some(existing) = &self.e8_memory {
+            return if existing == &config {
+                Ok(())
+            } else {
+                Err(invalid("the E8 memory is already fixed"))
+            };
+        }
+        if self.config.arch != StackArch::Geometric
+            || self.served.is_some()
+            || self.precision.is_bf16()
+        {
+            return Err(invalid(
+                "the E8 memory needs a geometric f32 stack without a served form",
+            ));
+        }
+        if config.heads == 0 || config.k == 0 || config.k > crate::e8_memory::E8_ORBIT_SIZE {
+            return Err(invalid("the E8 memory needs heads >= 1 and 1 <= k <= 16"));
+        }
+        for &layer in &config.layers {
+            if layer >= self.config.layers() || self.config.memory_layer(layer) {
+                return Err(invalid(format!(
+                    "E8 memory layer {layer} is out of range or a product-key memory"
+                )));
+            }
+        }
+        crate::e8_memory::e8_tables()?;
+        let mut rng = Initializer(self.config.seed ^ 0x6538_6d65_6d6f_7279);
+        for &layer in &config.layers {
+            for part in ["gate", "up", "down"] {
+                self.variables
+                    .remove(&layer_name(layer, &format!("mlp.{part}.weight")));
+            }
+            for (name, shape) in e8_memory_shapes(&self.config, &config, layer) {
+                let count: usize = shape.iter().product();
+                let values: Vec<f32> = if name.ends_with("e8.rank") {
+                    vec![1.0 / config.k as f32; count]
+                } else if name.ends_with("e8.beta") {
+                    vec![1.0; count]
+                } else if name.ends_with("e8.gamma") {
+                    vec![0.0; count]
+                } else {
+                    (0..count)
+                        .map(|_| (rng.normal() * INITIAL_STD) as f32)
+                        .collect()
+                };
+                self.variables
+                    .insert(name, Var::from_vec(values, shape.as_slice(), &self.device)?);
+            }
+        }
+        self.e8_memory = Some(config);
+        Ok(())
+    }
+
+    /// The E8 orbit memory configuration, if any.
+    pub fn e8_memory(&self) -> Option<&crate::e8_memory::E8MemoryConfig> {
+        self.e8_memory.as_ref()
+    }
+
+    /// One layer's E8 orbit memory read on the normalized input `u`.
+    fn e8_memory_mlp(
+        &self,
+        p: &Params<'_>,
+        layer: usize,
+        u: &Tensor,
+        heads: usize,
+        k: usize,
+    ) -> Result<Tensor> {
+        let (batch, time, width) = u.dims3()?;
+        let query = self
+            .linear(u, p.layer(layer, "e8.query.weight")?)?
+            .reshape((batch * time, heads * 16))?;
+        Ok(crate::e8_memory::e8_memory_read(
+            layer,
+            &query,
+            p.layer(layer, "e8.values")?,
+            p.layer(layer, "e8.rank")?,
+            p.layer(layer, "e8.beta")?,
+            p.layer(layer, "e8.gamma")?,
+            k,
+        )?
+        .reshape((batch, time, width))?)
     }
 
     /// Whether every read key carries the `j`-turned previous key.
@@ -10048,6 +10171,12 @@ impl StackModel {
                 serde_json::Value::String(self.quaternion_snap.name().into());
             config = serde_json::to_vec_pretty(&with_field)?;
         }
+        if let Some(e8) = &self.e8_memory {
+            // Only when set, so every other model keeps its exact bytes.
+            let mut with_field: serde_json::Value = serde_json::from_slice(&config)?;
+            with_field[E8_MEMORY_FIELD] = serde_json::Value::String(e8.name());
+            config = serde_json::to_vec_pretty(&with_field)?;
+        }
         if self.read_weighting != ReadWeighting::Softmax {
             // Only when set, so every softmax model keeps its exact bytes.
             let mut with_field: serde_json::Value = serde_json::from_slice(&config)?;
@@ -10428,6 +10557,25 @@ impl StackModel {
         if let Some(lineage) = read_lineage {
             shapes.extend(read_lineage_shapes(&config, lineage));
         }
+        let e8_memory = {
+            let saved: serde_json::Value =
+                serde_json::from_slice(&fs::read(directory.join("config.json"))?)?;
+            match saved.get(E8_MEMORY_FIELD) {
+                None => None,
+                Some(serde_json::Value::String(text)) => {
+                    crate::e8_memory::E8MemoryConfig::parse(text)?
+                }
+                Some(_) => return Err(invalid("config.json's e8_memory must be a string")),
+            }
+        };
+        if let Some(e8) = &e8_memory {
+            for &layer in &e8.layers {
+                for part in ["gate", "up", "down"] {
+                    shapes.remove(&layer_name(layer, &format!("mlp.{part}.weight")));
+                }
+                shapes.extend(e8_memory_shapes(&config, e8, layer));
+            }
+        }
         let read_weighting = Self::saved_read_weighting(directory)?;
         if read_weighting.uses_learned_table() {
             // Restored, not re-initialised, by set_read_weighting below.
@@ -10475,6 +10623,7 @@ impl StackModel {
             activation_snap: ActivationSnap::None,
             read_route: None,
             starling_dense: None,
+            e8_memory: None,
             read_weighting: ReadWeighting::Softmax,
             softsort_tau: None,
             read_lineage: None,
@@ -10505,6 +10654,8 @@ impl StackModel {
                 }
             }
         }
+        // Its variables were loaded above; set_e8_memory would re-initialise.
+        model.e8_memory = e8_memory;
         if let Some(lineage) = read_lineage {
             // Its variables were loaded above; set_read_lineage would
             // re-initialise them, so the checks it makes are repeated here.
@@ -11982,6 +12133,7 @@ fn decayed(name: &str, rank: usize) -> bool {
 }
 
 /// One update's constants, in f32 as Candle's `affine` applies them.
+#[derive(Clone, Copy)]
 struct AdamConstants {
     scale: f32,
     beta1: f32,
@@ -11997,7 +12149,9 @@ struct AdamConstants {
 
 /// The AdamW step of one variable in one parallel pass. It performs the same
 /// f32 operations, in the same order, as the composition of Candle operations
-/// it replaced (kept in the tests), so updates are bit-identical.
+/// it replaced (kept in the tests), so updates are bit-identical. Training
+/// runs [`adam_step_cpu_in_place`]; this slice form is the tests' reference.
+#[cfg(test)]
 fn adam_step(
     parameters: &mut [f32],
     gradient: &[f32],
@@ -12021,6 +12175,141 @@ fn adam_step(
                 p[i] = (p[i] * c.keep + 0.0) - (step * c.lr + 0.0);
             }
         });
+}
+
+/// The contiguous f32 slice of a CPU storage, or an error.
+fn cpu_f32<'a>(storage: &'a CpuStorage, layout: &Layout) -> candle_core::Result<&'a [f32]> {
+    match (storage, layout.contiguous_offsets()) {
+        (CpuStorage::F32(values), Some((start, end))) => Ok(&values[start..end]),
+        _ => candle_core::bail!("AdamW needs contiguous F32 tensors"),
+    }
+}
+
+/// [`cpu_f32`], mutable.
+fn cpu_f32_mut<'a>(
+    storage: &'a mut CpuStorage,
+    layout: &Layout,
+) -> candle_core::Result<&'a mut [f32]> {
+    match (storage, layout.contiguous_offsets()) {
+        (CpuStorage::F32(values), Some((start, end))) => Ok(&mut values[start..end]),
+        _ => candle_core::bail!("AdamW needs contiguous F32 tensors"),
+    }
+}
+
+/// One AdamW moment updated in place from the gradient: the first
+/// (`second == false`) or the second moment, with the f32 operations of
+/// [`adam_step`].
+struct AdamMoment {
+    c: AdamConstants,
+    second: bool,
+}
+
+impl candle_core::InplaceOp2 for AdamMoment {
+    fn name(&self) -> &'static str {
+        "adam-moment"
+    }
+
+    fn cpu_fwd(
+        &self,
+        s1: &mut CpuStorage,
+        l1: &Layout,
+        s2: &CpuStorage,
+        l2: &Layout,
+    ) -> candle_core::Result<()> {
+        let (moment, gradient) = (cpu_f32_mut(s1, l1)?, cpu_f32(s2, l2)?);
+        if moment.len() != gradient.len() {
+            candle_core::bail!("AdamW moment and gradient sizes disagree");
+        }
+        const CHUNK: usize = 1 << 14;
+        let c = self.c;
+        let second = self.second;
+        moment
+            .par_chunks_mut(CHUNK)
+            .zip(gradient.par_chunks(CHUNK))
+            .for_each(|(m, g)| {
+                for i in 0..m.len() {
+                    let grad = g[i] * c.scale + 0.0;
+                    m[i] = if second {
+                        (m[i] * c.beta2 + 0.0) + ((grad * grad) * c.rest2 + 0.0)
+                    } else {
+                        (m[i] * c.beta1 + 0.0) + (grad * c.rest1 + 0.0)
+                    };
+                }
+            });
+        Ok(())
+    }
+}
+
+/// The AdamW parameter update in place from the already-updated moments, with
+/// the f32 operations of [`adam_step`].
+struct AdamParameter {
+    c: AdamConstants,
+}
+
+impl candle_core::InplaceOp3 for AdamParameter {
+    fn name(&self) -> &'static str {
+        "adam-parameter"
+    }
+
+    fn cpu_fwd(
+        &self,
+        s1: &mut CpuStorage,
+        l1: &Layout,
+        s2: &CpuStorage,
+        l2: &Layout,
+        s3: &CpuStorage,
+        l3: &Layout,
+    ) -> candle_core::Result<()> {
+        let parameters = cpu_f32_mut(s1, l1)?;
+        let (first, second) = (cpu_f32(s2, l2)?, cpu_f32(s3, l3)?);
+        if parameters.len() != first.len() || parameters.len() != second.len() {
+            candle_core::bail!("AdamW parameter and moment sizes disagree");
+        }
+        const CHUNK: usize = 1 << 14;
+        let c = self.c;
+        parameters
+            .par_chunks_mut(CHUNK)
+            .zip(first.par_chunks(CHUNK))
+            .zip(second.par_chunks(CHUNK))
+            .for_each(|((p, m), v)| {
+                for i in 0..p.len() {
+                    let step = (m[i] * c.correct1 + 0.0)
+                        / (((v[i] * c.correct2 + 0.0).sqrt() * 1.0) + c.epsilon);
+                    p[i] = (p[i] * c.keep + 0.0) - (step * c.lr + 0.0);
+                }
+            });
+        Ok(())
+    }
+}
+
+/// [`adam_step`] on CPU in the variable's and moments' own storage, without
+/// copying them out and back (bit-identical; the copies were most of a step
+/// for large tables such as the E8 memory's values).
+fn adam_step_cpu_in_place(
+    var: &Var,
+    grad: &Tensor,
+    m: &Var,
+    v: &Var,
+    c: &AdamConstants,
+) -> Result<()> {
+    let grad = grad.contiguous()?;
+    m.as_tensor().inplace_op2(
+        &grad,
+        &AdamMoment {
+            c: *c,
+            second: false,
+        },
+    )?;
+    v.as_tensor().inplace_op2(
+        &grad,
+        &AdamMoment {
+            c: *c,
+            second: true,
+        },
+    )?;
+    var.as_tensor()
+        .inplace_op3(m.as_tensor(), v.as_tensor(), &AdamParameter { c: *c })?;
+    Ok(())
 }
 
 /// [`adam_step`] on Metal, in place in the variable's and moments' buffers,
@@ -12244,21 +12533,7 @@ impl StackAdamW {
                 cuda_ops::adam_step_cuda(device, var, grad, m, v, &constants)?;
                 continue;
             }
-            let mut parameters = var.as_tensor().flatten_all()?.to_vec1::<f32>()?;
-            let gradient = grad.flatten_all()?.to_vec1::<f32>()?;
-            let mut first_moment = m.as_tensor().flatten_all()?.to_vec1::<f32>()?;
-            let mut second_moment = v.as_tensor().flatten_all()?.to_vec1::<f32>()?;
-            adam_step(
-                &mut parameters,
-                &gradient,
-                &mut first_moment,
-                &mut second_moment,
-                &constants,
-            );
-            let (shape, device) = (var.shape().clone(), var.device().clone());
-            var.set(&Tensor::from_vec(parameters, &shape, &device)?)?;
-            m.set(&Tensor::from_vec(first_moment, &shape, &device)?)?;
-            v.set(&Tensor::from_vec(second_moment, &shape, &device)?)?;
+            adam_step_cpu_in_place(var, grad, m, v, &constants)?;
         }
         Ok(norm)
     }
@@ -12597,6 +12872,8 @@ impl CustomOp2 for QuaternionScan {
 /// The `config.json` field that records the read key shift
 /// ([`StackModel::set_read_key_shift`]); written only when it is set.
 pub const READ_KEY_SHIFT_FIELD: &str = "read_key_shift";
+/// `config.json` field of the E8 orbit memory ([`StackModel::set_e8_memory`]).
+pub const E8_MEMORY_FIELD: &str = "e8_memory";
 
 /// The `config.json` field that records a softmax-free read weighting
 /// ([`StackModel::set_read_weighting`]): `"rank"`, `"hamming_rank"` or
@@ -25324,6 +25601,30 @@ mod tests {
         assert_eq!(bits(&p2), bits(&p_next.to_vec1::<f32>()?));
         assert_eq!(bits(&m2), bits(&m_next.to_vec1::<f32>()?));
         assert_eq!(bits(&v2), bits(&v_next.to_vec1::<f32>()?));
+        // The in-place step training runs gives the same bits.
+        let var = |x: &Vec<f32>| Var::from_tensor(&Tensor::from_vec(x.clone(), n, &device)?);
+        let (pv, mv, vv) = (var(&p)?, var(&m)?, var(&v)?);
+        adam_step_cpu_in_place(
+            &pv,
+            &Tensor::from_vec(g.clone(), n, &device)?,
+            &mv,
+            &vv,
+            &AdamConstants {
+                scale: scale as f32,
+                beta1: beta1 as f32,
+                rest1: (1.0 - beta1) as f32,
+                beta2: beta2 as f32,
+                rest2: (1.0 - beta2) as f32,
+                correct1: (1.0 / first) as f32,
+                correct2: (1.0 / second) as f32,
+                epsilon: epsilon as f32,
+                keep: keep as f32,
+                lr: lr as f32,
+            },
+        )?;
+        assert_eq!(bits(&p2), bits(&pv.as_tensor().to_vec1::<f32>()?));
+        assert_eq!(bits(&m2), bits(&mv.as_tensor().to_vec1::<f32>()?));
+        assert_eq!(bits(&v2), bits(&vv.as_tensor().to_vec1::<f32>()?));
         Ok(())
     }
 
@@ -31437,6 +31738,58 @@ mod tests {
                 assert!((a - b).abs() < 1e-5, "{mode:?}: {a} vs {b}");
             }
         }
+        Ok(())
+    }
+
+    #[test]
+    fn an_e8_memory_replaces_the_mlp_trains_and_round_trips() -> Result<()> {
+        let mut model = StackModel::new(
+            tiny(StackArch::Geometric, "ra", ReadScore::L2, true),
+            &cpu(),
+        )?;
+        model.set_e8_memory(crate::e8_memory::E8MemoryConfig {
+            layers: vec![1],
+            heads: 2,
+            k: 4,
+        })?;
+        let names = model.variables();
+        assert!(!names.contains_key("layers.01.mlp.gate.weight"));
+        assert!(names.contains_key("layers.00.mlp.gate.weight"));
+        assert!(names.contains_key("layers.01.e8.values"));
+        let ids: Vec<u32> = (0..16u32).map(|i| (i * 5 + 1) % 37).collect();
+        let weights = random(&mut Initializer(17), &[16, 37], 1.0);
+        let vars: Vec<Var> = [
+            "layers.01.e8.rank",
+            "layers.01.e8.beta",
+            "layers.01.e8.gamma",
+            "layers.01.e8.values",
+        ]
+        .iter()
+        .map(|name| model.variables()[*name].clone())
+        .collect();
+        check_gradient(
+            &vars,
+            || Ok(model.forward(&ids, 2, 8)?.mul(&weights)?.sum_all()?),
+            5e-3,
+        )?;
+        let logits = model.forward(&ids, 2, 8)?.flatten_all()?.to_vec1::<f32>()?;
+        assert!(logits.iter().all(|v| v.is_finite()));
+        let root =
+            std::env::temp_dir().join(format!("e8-memory-round-trip-{}", std::process::id()));
+        model.save(&root)?;
+        let loaded = StackModel::load(&root, &cpu())?;
+        assert_eq!(
+            loaded.e8_memory().map(|c| c.name()),
+            Some("1:2:4".to_owned())
+        );
+        assert_eq!(
+            loaded
+                .forward(&ids, 2, 8)?
+                .flatten_all()?
+                .to_vec1::<f32>()?,
+            logits
+        );
+        fs::remove_dir_all(&root)?;
         Ok(())
     }
 }

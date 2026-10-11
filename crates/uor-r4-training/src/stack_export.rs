@@ -378,6 +378,9 @@ pub fn export_stack(
     if model.read_route().is_some() {
         return Err(invalid("the starling read has no served form yet"));
     }
+    if model.e8_memory().is_some() {
+        return Err(invalid("the E8 orbit memory has no served form yet"));
+    }
     if model.read_key_shift() || model.read_lineage().is_some() {
         return Err(invalid(
             "the read key shift or read lineage has no integer export yet (no D11 served form)",
@@ -1159,6 +1162,9 @@ pub fn stack_grid_reference(
 ) -> Result<GridReference> {
     if model.read_route().is_some() {
         return Err(invalid("the starling read has no served form yet"));
+    }
+    if model.e8_memory().is_some() {
+        return Err(invalid("the E8 orbit memory has no served form yet"));
     }
     if model.read_key_shift() || model.read_lineage().is_some() {
         return Err(invalid(
