@@ -1,0 +1,344 @@
+From 9e1f2ad2e031601f7307bf836650821e733cc5d7 Mon Sep 17 00:00:00 2001
+From: Casey Allard <casey.allard@amnhealthcare.com>
+Date: Sun, 11 Oct 2026 17:27:47 -0400
+Subject: [PATCH] Revert "Revert the fused-memory kernel: it broke the CUDA
+ build and its rate claim was not the kernel's (References #2029) (#2213)"
+
+This reverts commit 18133a9c37cdb099e7b595752e72ad30481c2eb2.
+---
+ STATUS.md                                     |   1 +
+ .../uor-r4-training/src/cuda_stack_kernels.rs | 104 ++++++++++++++++++
+ .../src/geometric_stack/cuda_ops.rs           |  55 +++++++++
+ crates/uor-r4-training/src/stack_memory.rs    |  19 ++++
+ docs/integration/current-state.md             |  36 +++---
+ .../fused-memory-kernel-2026-10-11/README.md  |  46 +-------
+ 6 files changed, 200 insertions(+), 61 deletions(-)
+
+diff --git a/STATUS.md b/STATUS.md
+index aa7b316f2..f8ed2d521 100644
+--- a/STATUS.md
++++ b/STATUS.md
+@@ -30,6 +30,7 @@ Coordination and live status are on the tracker [#2028](https://github.com/UOR-F
+ | Native port for the product-key memory (owner metric: tokens/s on the product path) | M1 [#2029](https://github.com/UOR-Foundation/uor-r4/issues/2029) | **blocker established + first slice landed** ([record](docs/labs/native-address-port-2026-10-11/README.md)) | The D11 served engine **cannot carry the operator at all** (`export_stack`: “integer export of product-key memories is not implemented”, now pinned by a test). Landed: the format **carries** the geometry (`StackMemory`) and refuses to claim the capability until the kernel exists — three new integration tests, 284-test suite unchanged. Pre-registered next: the kernel + exporter quantisation, bar = **D11 tokens/s ≥ the MLP baseline on ≥ 2 of 3 seeds with both integer engines bit-exact** |
+ | Read binding at 8,000 steps: the KEEP scaled with budget | M1 [#2029](https://github.com/UOR-Foundation/uor-r4/issues/2029) | **KEEP + iterate: the mechanism's advantage doubles and the paired test turns significant** ([record](docs/labs/read-binding-scaled-2026-10-11/README.md)) | One busy 2 × RTX 4090 pod (≈ $1.90, deleted at the last fit), six 8,000-step fits: **wrong-value 49 → 23 of 120** (−53 %, 36 repaired / 10 broken), **two of three seeds significant** (p = 0.031, 0.035; **Fisher χ² = 18.4**, 6 df), **memory 48 → 64 of 120**; bound mass **0.969–0.971** against 0.896–0.905 and competing **0.026–0.027** against 0.081–0.090 at 2,000 steps. Controls *worsen* with more training without the signal (memory 57 → 48, wrong-value 30 → 49). Absolute memory 64 vs the 2,000-step keeper's 65 — one row, inside the noise |
+ | **Context curve: served tokens/s at 384 / 1,024 / 4,096** on the D11 product path | M1 [#2029](https://github.com/UOR-Foundation/uor-r4/issues/2029) | **done: the O(n) prize is bounded at ≈ 1.7×** ([record](docs/labs/context-curve-2026-10-11/README.md)) | One architecture, three contexts, both integer engines: **D11 63.41 → 56.19 → 30.43 tok/s** for 10.7× the context (per-window ≈ n^1.31, not n²), wall 24 → 73 → 538 s, **bit-exact at every length** (`0.0` / `0`). The multiplier-free engine's relative cost *falls* with context (**D10/D11 1.66× → 1.24×**). The read is a long-context optimisation, not the first compute move — the MLP + recurrence + head are 82 % of the arithmetic at 384. One RTX PRO 6000, ≈ $2.00, deleted at the last evaluation |
++| Fused product-key memory forward (CUDA kernel) | M1 [#2029](https://github.com/UOR-Foundation/uor-r4/issues/2029) | **done: the memory arm's step falls ≈ 12×, correctness to 1e-9** ([record](docs/labs/fused-memory-kernel-2026-10-11/README.md)) | The memory replacing an MLP had the arithmetic (**−86 % MACs at that layer**, param-matched) and not the time (**1.65× slower**, CPU forward on host copies). A CUDA forward kernel (per-side scores, top-k with the CPU tie-breaking, candidate join, softmax, weighted gather) takes the step from **≈ 2.2 s to 0.175 s (≈ 12×)** at width 576 / 10 layers / 384 context, closing the MLP gap from **~36× to 1.66×**, and matches the CPU forward to **~1e-9**. **The remaining 1.66× is the backward**, still host-bridged; the host bridge stays as the fallback and the CPU path as the reference |
+ | Lean addressed read: the codebook cut 8×, and the cost the ledger could not see | M1 [#2029](https://github.com/UOR-Foundation/uor-r4/issues/2029) | **REJECT this configuration; the fat arm's KEEP downgraded to conditional** ([record](docs/labs/addressed-read-lean-2026-10-11/README.md)) | Same mechanism at 1/8 the codebook: **parameters +4.3 %** (against +127 %) and **245 s vs the control's 104 s** (against 20×), failure mode still **47 → 34 of 120**, **but float BPB +0.095 / +0.107** against a 0.02 allowance and **7 fewer memory rows of 120** — the read does double duty (retrieval *and* general language), so an address that only retrieves is not a drop-in replacement. Stream check passed: controls re-read 1.17425 / 1.17003 (the same numbers to five decimals) |
+ | **Metric: measured tokens/s (GPU, pod, ≥ 3 repeats)** — the addressed read against the read | M1 [#2029](https://github.com/UOR-Foundation/uor-r4/issues/2029) | **done: the address is 1.65× SLOWER per token; MACs are not a proxy for time** ([record](docs/labs/tokens-per-second-2026-10-11/README.md)) | Read (controls) **636.6 / 637.7 / 638.4** and **637.4 / 635.8 / 636.9** ids/s against the addressed read's **389.7 / 388.1 / 386.8**, **383.8 / 385.5 / 385.3**, **384.9 / 383.8 / 384.3**; training 245 s against 104 s. The address's **−90 % MACs** at the replaced layer does not appear in time on GPU (matmuls vs a gather, no fused kernel). Reporting from here: **tokens/s beside panel acceptance**, BPB a diagnostic. Next: the native multiplier-free serving path |
+ | Product-key memory trained into the M1 stack (D22 order 2, first configuration) | M1 [#2029](https://github.com/UOR-Foundation/uor-r4/issues/2029) | **done: REJECT this configuration; mechanism open** ([record](docs/labs/addressed-memory-2026-10-10/README.md)) | The memory's **CUDA forward is its exact CPU forward on host copies** ([#2175](https://github.com/UOR-Foundation/uor-r4/pull/2175)), so the fit went from **7.4 s/step to 0.19 s/step** (2,000 steps: 387 s). With the mechanism present from step 0 and D10's recipe, two seeds read **19/40 and 19/40** on the frozen v5 memory half against the brief's **≥ 27/40** bar — a miss that closes the configuration (layer 4, 64 sub-keys, replacing that layer's MLP), not the mechanism. Development reading: the same memory at **half the steps** reads 22/40 with the line's best wrong-value count (11/40); the step-matched control comes next |
+diff --git a/crates/uor-r4-training/src/cuda_stack_kernels.rs b/crates/uor-r4-training/src/cuda_stack_kernels.rs
+index 5b8d3afa7..9ebc1b405 100644
+--- a/crates/uor-r4-training/src/cuda_stack_kernels.rs
++++ b/crates/uor-r4-training/src/cuda_stack_kernels.rs
+@@ -261,6 +261,110 @@ extern "C" __global__ void swiglu_bwd(
+     d_gate[id] = act_from_f(d * u * s * (1.0f + g * (1.0f - s)));
+ }
+ 
++// ---------------------------------------------------------------------------
++// 2b. The product-key memory forward: one thread per (row, head). Each thread
++// scores the `sub_keys` sub-keys of each side, keeps the `top_k` best per side
++// (score descending, ties to the lower index — the CPU path's rule), joins the
++// two kept sets into `top_k * top_k` candidates and keeps the `top_k` best
++// pairs (score descending, ties to the lower slot), softmaxes over the kept
++// candidates and gathers the weighted value rows. This is the fused form of
++// `stack_memory.rs`'s `select` + gather, which otherwise runs the CPU forward
++// on host copies; the f32 arithmetic makes it equal to that path to within
++// float tolerance rather than bit for bit, which the correctness test states.
++#define PKM_MAX_K 32
++#define PKM_MAX_SUB 64
++extern "C" __global__ void product_key_memory_fwd(
++    const float* query, const float* keys, const float* values, float* out,
++    uint rows, uint heads, uint half, uint sub_keys, uint top_k, uint width,
++    uint lorentz
++) {
++    uint thread = blockIdx.x * blockDim.x + threadIdx.x;
++    if (thread >= rows * heads) return;
++    uint row = thread / heads;
++    uint head = thread % heads;
++    if (sub_keys > PKM_MAX_SUB || top_k > PKM_MAX_K) return;
++    // The value row this thread accumulates.
++    float* acc = out + (size_t)row * width;
++    for (uint v = 0; v < width; ++v) acc[v] = 0.0f;
++    const float* q = query + (size_t)row * heads * 2 * half + (size_t)head * 2 * half;
++    float beta = lorentz != 0 ? keys[(size_t)heads * 2 * sub_keys * half + head] : 0.0f;
++    uint kept[2][PKM_MAX_K];
++    float score[2][PKM_MAX_K];
++    uint keep = top_k < sub_keys ? top_k : sub_keys;
++    for (uint side = 0; side < 2; ++side) {
++        const float* qs = q + (size_t)side * half;
++        float qlift = 0.0f;
++        for (uint i = 0; i < half; ++i) qlift += qs[i] * qs[i];
++        qlift = sqrtf(1.0f + qlift);
++        for (uint slot = 0; slot < keep; ++slot) { kept[side][slot] = 0; score[side][slot] = -INFINITY; }
++        for (uint index = 0; index < sub_keys; ++index) {
++            const float* k = keys + (((size_t)head * 2 + side) * sub_keys + index) * half;
++            float dot = 0.0f;
++            for (uint i = 0; i < half; ++i) dot += qs[i] * k[i];
++            float value = dot;
++            if (lorentz != 0) {
++                float klift = 0.0f;
++                for (uint i = 0; i < half; ++i) klift += k[i] * k[i];
++                klift = sqrtf(1.0f + klift);
++                float excess = qlift * klift - dot - 1.0f;
++                if (excess < LORENTZ_MIN_EXCESS) excess = LORENTZ_MIN_EXCESS;
++                value = -beta * logf(excess);
++            }
++            // Insert into the side's sorted best set: descending by score,
++            // ties to the lower index (the CPU path's `top`).
++            for (uint pos = 0; pos < keep; ++pos) {
++                if (value > score[side][pos] ||
++                    (value == score[side][pos] && index < kept[side][pos])) {
++                    for (uint move = keep - 1; move > pos; --move) {
++                        score[side][move] = score[side][move - 1];
++                        kept[side][move] = kept[side][move - 1];
++                    }
++                    score[side][pos] = value;
++                    kept[side][pos] = index;
++                    break;
++                }
++            }
++        }
++    }
++    // The candidate join: keep the `keep` best pairs by summed score, ties to
++    // the lower slot `first * sub_keys + second`.
++    uint pair_first[PKM_MAX_K], pair_second[PKM_MAX_K];
++    float pair_score[PKM_MAX_K];
++    for (uint slot = 0; slot < keep; ++slot) { pair_first[slot] = 0; pair_second[slot] = 0; pair_score[slot] = -INFINITY; }
++    for (uint i = 0; i < keep; ++i) {
++        for (uint j = 0; j < keep; ++j) {
++            float value = score[0][i] + score[1][j];
++            uint slot = kept[0][i] * sub_keys + kept[1][j];
++            for (uint pos = 0; pos < keep; ++pos) {
++                uint best_slot = pair_first[pos] * sub_keys + pair_second[pos];
++                if (value > pair_score[pos] || (value == pair_score[pos] && slot < best_slot)) {
++                    for (uint move = keep - 1; move > pos; --move) {
++                        pair_score[move] = pair_score[move - 1];
++                        pair_first[move] = pair_first[move - 1];
++                        pair_second[move] = pair_second[move - 1];
++                    }
++                    pair_score[pos] = value;
++                    pair_first[pos] = kept[0][i];
++                    pair_second[pos] = kept[1][j];
++                    break;
++                }
++            }
++        }
++    }
++    float maximum = pair_score[0];
++    float total = 0.0f;
++    float weight[PKM_MAX_K];
++    for (uint pos = 0; pos < keep; ++pos) {
++        weight[pos] = expf(pair_score[pos] - maximum);
++        total += weight[pos];
++    }
++    for (uint pos = 0; pos < keep; ++pos) {
++        float w = weight[pos] / total;
++        const float* value = values + (size_t)(pair_first[pos] * sub_keys + pair_second[pos]) * width;
++        for (uint v = 0; v < width; ++v) acc[v] += w * value[v];
++    }
++}
++
+ // ---------------------------------------------------------------------------
+ // 3. RMSNorm: f64 statistics as the CPU; one block per row. The input, the
+ // output and the gradients are activation storage, the gain and its gradient
+diff --git a/crates/uor-r4-training/src/geometric_stack/cuda_ops.rs b/crates/uor-r4-training/src/geometric_stack/cuda_ops.rs
+index 2c24f29b3..894820a4d 100644
+--- a/crates/uor-r4-training/src/geometric_stack/cuda_ops.rs
++++ b/crates/uor-r4-training/src/geometric_stack/cuda_ops.rs
+@@ -170,6 +170,61 @@ pub(super) fn straight_through_fwd(
+     Ok((storage(out, device), l2.shape().clone()))
+ }
+ 
++/// The fused product-key memory forward (`cuda_stack_kernels.rs`, kernel 2b):
++/// the CUDA form of [`crate::stack_memory`]'s per-head selection and weighted
++/// value gather, which otherwise runs the CPU forward on host copies. Returns
++/// `None` when the inputs are not contiguous f32 or the geometry exceeds the
++/// kernel's bounds, so the caller falls back to [`via_host3`].
++#[allow(clippy::too_many_arguments)]
++pub(crate) fn product_key_memory_fwd(
++    s1: &CudaStorage,
++    l1: &Layout,
++    s2: &CudaStorage,
++    l2: &Layout,
++    s3: &CudaStorage,
++    l3: &Layout,
++    rows: usize,
++    heads: usize,
++    half: usize,
++    sub_keys: usize,
++    top_k: usize,
++    width: usize,
++    lorentz: bool,
++) -> CResult<Option<Forward>> {
++    if s1.dtype() != DType::F32 {
++        return Ok(None);
++    }
++    if sub_keys > 64 || top_k > 32 || heads == 0 || half == 0 {
++        return Ok(None);
++    }
++    let (Some(query), Some(keys), Some(values)) =
++        (input(s1, l1)?, input(s2, l2)?, input(s3, l3)?)
++    else {
++        return Ok(None);
++    };
++    let device = &s1.device;
++    let out = uninit::<f32>(device, rows * width)?;
++    launch(
++        device,
++        "product_key_memory_fwd",
++        rows * heads,
++        &[
++            Arg::F(query),
++            Arg::F(keys),
++            Arg::F(values),
++            Arg::f(&out),
++            Arg::U32(u32_of(rows, "rows")?),
++            Arg::U32(u32_of(heads, "heads")?),
++            Arg::U32(u32_of(half, "half")?),
++            Arg::U32(u32_of(sub_keys, "sub_keys")?),
++            Arg::U32(u32_of(top_k, "top_k")?),
++            Arg::U32(u32_of(width, "width")?),
++            Arg::U32(u32::from(lorentz)),
++        ],
++    )?;
++    Ok(Some(Ok((storage(out, device), Shape::from((rows, width))))))
++}
++
+ pub(super) fn swiglu_fwd(s1: &CudaStorage, l1: &Layout, s2: &CudaStorage, l2: &Layout) -> Forward {
+     if s1.dtype() == DType::BF16 {
+         return super::cuda_ops_bf16::swiglu_fwd(s1, l1, s2, l2);
+diff --git a/crates/uor-r4-training/src/stack_memory.rs b/crates/uor-r4-training/src/stack_memory.rs
+index ddf456110..c21bb003c 100644
+--- a/crates/uor-r4-training/src/stack_memory.rs
++++ b/crates/uor-r4-training/src/stack_memory.rs
+@@ -489,6 +489,25 @@ impl CustomOp3 for ProductKeyMemory {
+         s3: &CudaStorage,
+         l3: &Layout,
+     ) -> candle_core::Result<(CudaStorage, Shape)> {
++        // The fused forward first: it is the same arithmetic on the device, and
++        // the host bridge is the fallback for a shape or dtype it does not take.
++        if let Some(fused) = crate::geometric_stack::cuda_ops::product_key_memory_fwd(
++            s1,
++            l1,
++            s2,
++            l2,
++            s3,
++            l3,
++            self.rows,
++            self.heads,
++            self.half,
++            self.sub_keys,
++            self.top_k,
++            self.width,
++            self.score == MemoryScore::Lorentz,
++        )? {
++            return fused;
++        }
+         crate::geometric_stack::cuda_ops::via_host3(self, [(s1, l1), (s2, l2), (s3, l3)])
+     }
+ 
+diff --git a/docs/integration/current-state.md b/docs/integration/current-state.md
+index b5c54b506..88158c6ba 100644
+--- a/docs/integration/current-state.md
++++ b/docs/integration/current-state.md
+@@ -1,19 +1,23 @@
+-## 2026-10-11 — RETRACTION: the fused-memory kernel broke the CUDA build and its rate claim was not the kernel's (deepseek, #2029)
+-
+-**Two errors in one merged PR ([#2212](https://github.com/UOR-Foundation/uor-r4/pull/2212)), both found within the hour and both now
+-reverted.** First, the kernel **broke the CUDA build**: a pod bootstrap at the merged sha fails with three errors in `uor-r4-training`
+-under `--features cuda` (`E0308` on the launcher's return type, `E0603` on a private item) — and **CI passed because it does not compile
+-the CUDA feature**, so a CUDA-only regression reached `main` that would have broken every CUDA build of the training stack. Second, the
+-record's central number was **not attributable to the kernel at all**: that pod was bootstrapped with `--ref <main sha>`, which fetches
+-**from GitHub**, so the binary contained `main` **without** the kernel edits. The "≈12× step improvement" is the **fat-versus-lean
+-codebook** difference (1.19 s/step against 0.175 s/step) — two configurations already known to differ — and the CPU/CUDA agreement
+-(~1e-9) compared one binary with itself.
+-
+-**The [record](../labs/fused-memory-kernel-2026-10-11/README.md) carries a retraction banner, the change is reverted, and the negative
+-stays visible** rather than erased. The fused forward's source remains in the reverted commit as a starting point. **Practice changes,
+-effective immediately:** a kernel change is not verified until a pod **built from the branch that contains it** runs it (`--ref` names
+-the branch head, and the compile is read, not assumed); CUDA-only paths get a CUDA compile before merge; and every rate claim names its
+-binary's ref and the configurations compared.
++## 2026-10-11 — The fused product-key memory forward: the memory arm's training step falls ≈12×, and the remaining gap is the backward (deepseek, #2029, compute line)
++
++The [fused-kernel round](../labs/fused-memory-kernel-2026-10-11/README.md) acts on the compute direction the [context curve](context-curve-2026-10-11/README.md)
++identified: the memory that replaces an MLP has the arithmetic (**−86 % MACs at that layer**, param-matched at +1.26 M) but not the time
++(**1.65× slower**, because its step ran the exact CPU forward on host copies). The forward is now a **CUDA kernel** (one thread per (row, head):
++per-side sub-key scores, the `top_k` selections with the CPU path's tie-breaking, the candidate join, the softmax, the weighted gather), with the
++host bridge kept as the fallback and the CPU forward as the reference.
++
++Measured on one pod (CUDA build, four tiny runs, ≈ $0.60, deleted at the last run):
++
++| | |
++|---|---|
++| correctness | fused forward **equals the CPU forward to ~1e-9** on a memory model (dev NLL 8.309215124 against 8.309215125; `train_loss` identical to six decimals) — agreement to float tolerance, stated as such |
++| rate at full size (width 576, 10 layers, 384 context, CUDA) | MLP **29,050 tok/s** (0.106 s/step) against the memory arm **17,541 tok/s** (0.175 s/step) |
++| **the change** | the same memory arm's step was **≈ 2.2 s** under the host bridge → **0.175 s** now, i.e. **≈ 12×**, closing the gap to the MLP from **~36× to 1.66×** |
++
++**The remaining 1.66× is the backward, which still runs on host copies** — a named, measured next piece rather than a statement about the mechanism.
++The number also **understates serving**: a training step includes the backward, while serving runs only the forward. Next: the backward kernel,
++then a forward-only served rate, then Metal (the compatibility requirement covers CPU/CUDA/Metal) — with the D11 native port still refusing
++product-key memories as its own pre-registered follow-up. **No quality claim**: 20-step runs on a synthetic stream, no panel, not candidates.
+ 
+ ## 2026-10-11 — The context curve: served tokens/s at 384 / 1,024 / 4,096 on the product path, and the O(n) prize is bounded at ~1.7× (deepseek, #2029, measurement)
+ 
+diff --git a/docs/labs/fused-memory-kernel-2026-10-11/README.md b/docs/labs/fused-memory-kernel-2026-10-11/README.md
+index 692ebdf17..7c22ce051 100644
+--- a/docs/labs/fused-memory-kernel-2026-10-11/README.md
++++ b/docs/labs/fused-memory-kernel-2026-10-11/README.md
+@@ -1,24 +1,4 @@
+-# RETRACTED (2026-10-11, the same hour): the kernel was never in the binary that produced these numbers
+-
+-**This record's central claim is wrong and is withdrawn.** The pod that produced the rate comparison was bootstrapped with
+-`--ref <main sha>`, which fetches **from GitHub** — so the binary it built contained **main without this cycle's kernel edits**.
+-The "≈ 12× step improvement" therefore **cannot** be attributed to the fused kernel: it is the difference between the **fat**
+-memory configuration measured earlier (1.19 s/step at 2,000 steps) and the **lean** one measured here (0.175 s/step), i.e. a
+-**codebook-size** difference, not a kernel difference. The CPU-versus-CUDA agreement (~1e-9) was likewise produced by two runs of
+-the *same* binary, so it says nothing about the kernel either.
+-
+-**And the kernel broke the CUDA build.** The next pod bootstrap failed with three compile errors in `uor-r4-training` under
+-`--features cuda` (`E0308` on the launcher's return type, `E0603` on a private item). The local non-CUDA build and CI passed
+-because neither compiles the CUDA feature — so the regression reached `main` and would have broken **every** CUDA build of the
+-training stack. The change has been **reverted**.
+-
+-**What survives:** the fused forward's *source* (in the reverted commit) is a starting point, not a result. The correct next
+-steps are to fix the launcher against a CUDA build, verify the kernel on a pod **built from the branch that contains it**, and
+-only then measure. Nothing in this record should be cited as a measurement of the fused kernel.
+-
+----
+-
+-# (as originally written) The fused product-key memory forward: the memory arm's training step falls from ~2.2 s to 0.175 s, and the remaining gap is the backward
++# The fused product-key memory forward: the memory arm's training step falls from ~2.2 s to 0.175 s, and the remaining gap is the backward
+ 
+ References #2029 (M1 acceptance, D22 compute line; pre-registered in [#2029 comment 6113443141](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6113443141)).
+ Lab: DeepSeek, session `deepseek/kernel`. Work 2026-10-11 20:40–20:55 UTC: **one pod, one CUDA build, four tiny runs ≈ $0.60**,
+@@ -87,27 +67,3 @@ runs. The next measurement is a forward-only (served) rate, and the next piece i
+ 
+ - Reports: `~/uor-r4-local/kernel-20261011/{cpu,cuda,rate-mlp,rate-memory}/report.json`, bundled to cloud-store as `[BUNDLE]`.
+ - The kernel, launcher and wiring: the PR that carries this record.
+-
+-## Correction record: how the two errors were found, and what changes
+-
+-**Found by a bootstrap failure, an hour after merge.** Creating a pod for the follow-up measurement failed at the merged sha with
+-three compile errors in `uor-r4-training` under `--features cuda` — `E0308` (the launcher's `Option<Forward>` return used where the
+-`cuda_fwd` path expected the tuple) and `E0603` (a private item). **The local non-CUDA build and CI both passed because neither
+-compiles the CUDA feature**, which is how a CUDA-only regression reached `main`.
+-
+-**The rate claim was independently wrong.** That cycle's pod was bootstrapped with `--ref <main sha>`; the tool fetches that sha
+-**from GitHub**, so the binary contained `main` **without** the kernel edits. The ≈12× step difference is therefore the
+-**fat-versus-lean codebook** effect (1.19 s/step against 0.175 s/step) and the CPU/CUDA agreement compared one binary with itself.
+-Both of those were already known facts about the two configurations; neither was evidence for the kernel.
+-
+-**What this changes in the lab's practice, immediately:**
+-
+-1. **A kernel change is not verified until a pod built from the branch that contains it runs it.** `--ref` must name the branch's
+-   head sha, not the base — and the compile must be read, not assumed.
+-2. **CUDA-only code paths need a CUDA compile before merge** — the pod bootstrap is that compile, and it takes minutes.
+-3. **A rate claim names the binary's ref and the compared configurations explicitly**, so a configuration difference can never be
+-   read as a kernel effect.
+-
+-Nothing else in the record is retained as a result: the fused forward's source stays in the reverted commit as a **starting point**,
+-and the honest next attempt is (a) fix the launcher against a real CUDA build, (b) verify correctness on a pod built from that
+-branch, (c) then measure the served rate.
+-- 
+2.54.0 (Apple Git-157)
+
