@@ -25,6 +25,11 @@ The model's dense projection matrices are 87.6 % of its per-token arithmetic, wh
   - With an f32 norm, the cost is **+0.016**: the direction is fixed.
   - With a power-of-two norm it is +0.071, so the norm costs +0.055.
   - Next: a finer exact norm set. The host-side snap made training 11× slower, so it moves to the GPU first.
+- **Rung 3, KEEP: 2-bit-mantissa norms** ([record](../labs/icosian-mantissa-2026-10-11/README.md)):
+  - m·2^e·(g₁ + g₂/4) reaches 1.5148 BPB, level with dense at equal parameters.
+  - About 19–20 bits per quaternion, multiplier-free on the weight side.
+  - The snap runs on the GPU, bit-identical and 7.8× faster.
+  - Next: activation snapping.
 
 ## A fair test needs
 

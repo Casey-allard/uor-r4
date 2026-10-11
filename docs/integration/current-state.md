@@ -1,3 +1,15 @@
+## 2026-10-11 — Exact multiplier-free weights at dense quality: icosian pairs with a 2-bit-mantissa norm (claude, #2032)
+
+The [record](../labs/icosian-mantissa-2026-10-11/README.md) snaps every quaternion map weight to m·2^e·(g₁ + g₂/4): two icosian table entries and an exact short-float scale, so the weight side multiplies with shifts and adds.
+- **Quality:** 1.5148 BPB (3 seeds), level with dense at equal parameters (1.5136). The power-of-two norm cost falls from +0.055 to +0.004.
+- **Size:** about 19–20 bits per quaternion, against 128 for f32.
+- **Speed:** the snap now runs on the GPU, bit-identical to the old host loop and **7.8× faster** (122k against 15.6k tok/s).
+- **Decision: KEEP**, row 3 (D22 §2: a met mechanism target resets the count).
+
+Line: geometric weights · count resets (KEEP) · headline: softmax at runtime yes → yes.
+
+**Next:** activation snapping, trained in (the weight side is now exact).
+
 ## 2026-10-11 — Starling read pivot: selection and value path work; the read does not learn content selection; owner decision requested (claude, #2032)
 
 The [record](../labs/starling-pivot-2026-10-11/README.md) covers the pivot card's diagnostics, each pre-registered and adversarially reviewed, under $0.50 of GPU in total.
