@@ -89,3 +89,14 @@ the model worse on general chat text while making it better on the stated-value 
 - Arm reports, models and BPB reports: `/workspace/uor-r4/deepseek/leanaddr-20261011/` on the pod volume, pulled and
   bundled to cloud-store as `[BUNDLE]` (reports, replies and the lens used).
 - Pre-registration and fitness review: [#2029 comment 6109367641](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6109367641).
+
+## CORRECTION (added 2026-10-11, same day): the configuration is an MLP replacement, not a read replacement
+
+**This record inherits a mislabel from the cycle it iterates.** `memory_layers=8` replaces **layer 8's MLP** with the
+product-key memory (`StackModel::mlp` returns the memory for a listed layer; `MemoryConfig::layers` is documented as
+*"Layers whose MLP is replaced by a memory"*); the layer's **read** is untouched.
+
+Where the cycle's own text or the comparison it carries says *"the read"*, read **"that layer's MLP"**, and where it says
+*"replaces the read"*, read **"replaces the MLP"**. The measurements stand as measured: memory 50/120 against the control's
+57/120, wrong-value **34 against 47**, parameters **+4.3 %**, wall **245 s against 104 s**, float BPB **+0.095 / +0.107**,
+and the streams check (the controls re-read 1.17425 and 1.17003 to five decimals).

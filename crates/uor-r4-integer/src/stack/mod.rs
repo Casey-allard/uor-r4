@@ -69,7 +69,7 @@ pub use flock::{
     MAX_FLOCK_CONTEXT, RAW_RANK_WEIGHTS_Q16, RECIPROCAL_Q32,
 };
 pub use format::{
-    stack_schema_for, Fixed, StackNumerics, StackPointer, StackReadSelect, StackShape,
+    stack_schema_for, Fixed, StackMemory, StackNumerics, StackPointer, StackReadSelect, StackShape,
     StackTransportSnap, GROUP, MAGIC, MAX_POINTER_DIM, MAX_READ_SELECT, STACK_POINTER_SCHEMA,
     STACK_READ_SCHEMA, STACK_SCHEMA,
 };

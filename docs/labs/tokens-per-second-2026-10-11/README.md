@@ -73,3 +73,15 @@ than assumed.
   (`d36d3e8700a123e6…`) are in the same directory.
 - Configurations and per-token ledger: [lean addressed read](../labs/addressed-read-lean-2026-10-11/README.md) and
   [addressed read](../labs/addressed-read-2026-10-11/README.md).
+
+## CORRECTION (added 2026-10-11, same day): the arms compared differ in the MLP at layer 8, not in the read
+
+**The rates are right; the labels are wrong.** The four arms differ in whether **layer 8's MLP** is a SwiGLU MLP or a
+product-key memory (`memory_layers=8` replaces the MLP — see `StackModel::mlp` and `MemoryConfig::layers`). The read at
+every layer, including layer 8, is the same softmax read in all four arms.
+
+So in the table above, *"the softmax read (controls)"* should read **"SwiGLU MLP at layer 8 (controls)"**, and *"the
+addressed read"* should read **"product-key memory in place of that MLP"**. The finding is unchanged and now reads
+correctly: **replacing an MLP with a lookup costs 1.65× the throughput on this GPU**, because a lookup does not use the
+matrix units the MLP does. That is a statement about lookup-versus-matmul on this hardware, **not** about addressing the
+read, which has not been measured.

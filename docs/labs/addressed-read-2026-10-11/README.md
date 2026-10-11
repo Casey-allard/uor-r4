@@ -100,3 +100,24 @@ CPU forward on host copies, the stack's rule for configurations without a fused 
 - The paired comparison is the same judge-free row classifier used in the last three cycles
   (`docs/labs/read-binding-powered-2026-10-11/README.md` for the controls' identity).
 - Pre-registration and fitness review: [#2029 comment 6107473230](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6107473230).
+
+## CORRECTION (added 2026-10-11, same day): the intervention was an MLP replacement, not a read replacement
+
+**This record mislabels what was changed.** `memory_layers=L` replaces **layer `L`'s MLP** with the product-key memory —
+`StackModel::mlp` returns the memory for a listed layer (*"The product-key memory in place of `layer`'s MLP"*), the config
+documents `layers` as *"Layers whose MLP is replaced by a memory"*, and the unit test is
+`memory_layers_replace_the_mlp_train_and_round_trip`. The read at layer 8 was never touched.
+
+So everywhere above where this record says *"replaces the read"*, *"the read's computation"*, *"the read it replaces"* or
+*"the addressed read"*, read **"replaces that layer's MLP"** / **"the MLP it replaces"** / **"the MLP-memory arm"**.
+
+**What this changes in the claims, and what it does not.** Every measurement stands exactly as measured — the frozen panel
+(wrong-value 47 → 34 of 120), the parameters (+36.9 M), the training wall (20×), and the MAC comparison. But the *compute
+comparison* is against the **MLP** at that layer, not the read: **173,056 MACs against the MLP's 1,264,896 at context 384
+(7.3× fewer, −86 %)**, which is the number the [geometry audit](../integration/geometry-audit-2026-10-11/README.md) already
+computed for this operator. The layer-2-versus-layer-8 arm contrasts **MLP placement**, not read placement.
+
+**Consequence for the line, stated plainly:** the read-replacement question the [attribution](../labs/answer-path-2026-10-11/README.md)
+and [head ablation](../labs/head-ablation-2026-10-11/README.md) point at **has not been run**. What this cycle tested is
+*a product-key lookup in place of an MLP at one layer*, which is a compute trade (fewer multiplies, more state), not an
+addressing mechanism for the read. The result is corrected here rather than withdrawn; the data is unaffected.

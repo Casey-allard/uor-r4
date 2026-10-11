@@ -1940,6 +1940,38 @@ mod tests {
     }
 
     #[test]
+    /// The product path cannot serve an address yet, and this test pins that
+    /// fact where it lives: `export_stack` refuses a model with a product-key
+    /// memory, so no D11 artifact carries one and the mechanism **cannot be
+    /// measured under the owner's tokens/s comparison on the product path**.
+    /// The format now records the geometry and the served kernel is the port
+    /// this refusal points at; the test exists so that the day the kernel
+    /// lands, the refusal has to be removed deliberately rather than by
+    /// accident.
+    #[test]
+    fn export_refuses_a_product_key_memory_until_the_kernel_serves_it() {
+        let mut model = small("rarr", ReadScore::Dot, false);
+        let memory = crate::stack_memory::MemoryConfig {
+            layers: vec![3],
+            heads: 1,
+            key_dim: 8,
+            sub_keys: 4,
+            top_k: 2,
+            score: crate::stack_memory::MemoryScore::Dot,
+            codebook: None,
+        };
+        model
+            .add_memory_layers(memory, 7)
+            .expect("the memory layers are added to a fresh model");
+        let refusal =
+            export_stack(&model, json!({}), None, None).expect_err("a memory model is refused");
+        let text = refusal.to_string();
+        assert!(
+            text.contains("integer export of product-key memories is not implemented"),
+            "{text}"
+        );
+    }
+
     fn export_refuses_an_in_memory_transport_snap() {
         let mut model = small("rarr", ReadScore::Lorentz, true);
         model

@@ -5,6 +5,7 @@
 use serde_json::{json, Value};
 
 use super::format::MAX_READ_CACHE_BYTES;
+use super::format::StackMemory;
 use super::{IntegerStackModel, StackError, StackShape, MAGIC};
 
 struct Lcg(u64);
@@ -285,6 +286,7 @@ fn shapes_whose_read_caches_exceed_the_bound_are_rejected_before_allocation() {
         read_select: None,
         read_weights: None,
         read_binary: false,
+        memory: None,
     };
     // Dot reads cache an i32 key and value row per position: 2^28 bytes per
     // layer at this width and context, so sixteen layers reach the bound.
@@ -379,6 +381,7 @@ fn the_l2_read_serves_its_scale_and_offset_without_lifts_or_arcosh() {
         read_select: None,
         read_weights: None,
         read_binary: false,
+        memory: None,
     };
     assert_eq!(
         shape("l2").read_cache_bytes(),
@@ -2155,7 +2158,7 @@ fn read_learned_rank_invalid_tables_are_refused() {
             "{why} table accepted"
         );
     }
-    // A learned read without its table, and a learned binary read.
+
     let missing = with_header(&artifact(5), |header| {
         header["schema"] = json!(super::STACK_READ_SCHEMA);
         header["shape"]["read_select"] = json!({"window": window, "k": k});
@@ -2172,4 +2175,5 @@ fn read_learned_rank_invalid_tables_are_refused() {
         IntegerStackModel::parse(&binary).is_err(),
         "learned binary accepted"
     );
+
 }

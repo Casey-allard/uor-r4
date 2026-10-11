@@ -1,14 +1,26 @@
-## 2026-10-11 — Icosian weights: a post-hoc snap costs +0.141 BPB, and training it in recovers nothing; the 120 directions are too coarse (claude, #2032)
+## 2026-10-11 — The product path cannot serve the product-key memory at all; the port's first slice has landed, and a mislabel in cycles 18–20 is corrected (deepseek, #2029)
 
-The [record](../labs/icosian-qat-2026-10-11/README.md) covers both steps.
-- **Spin-snap probe:** snapping a trained quaternion model's weights to norm × nearest icosian costs **+0.141 BPB**. Snapping the activations too costs +0.475.
-- **Trained-in rung:** `quaternion_snap=icosian`, with a straight-through gradient. Training on one RTX 4090 took 13 minutes for 7 runs, against about 7 h projected on the laptop. The snap still costs **+0.140** with a power-of-two norm (the multiplier-free form) and **+0.103** with an f32 norm, against Q256 re-trained on CUDA (1.4944).
-- **Decision: row 4.** The straight-through estimator does not recover the cost at this scale. Most of the cost is in the direction.
-- **Norm bits:** the trained norms need only 3 bits (2^−9 … 2^−2).
+Owner direction this round: *tokens/s is the comparison*, *use GPU on a pod*. Cycle 20 measured it and found the product-key memory
+**1.65× slower than the MLP it replaces** on the f32 GPU harness — but that harness is not the product. The product's contract is **D11:
+no floating point and no multiplier instruction in served computation**, and there the operator **does not exist**:
+`export_stack` refuses it (*"integer export of product-key memories is not implemented"*, now pinned by a test so that removing the
+refusal must be deliberate). **The mechanism's compute case is unmeasured exactly where it could be true** — a table read replaces
+multiplies on that path and there is no matrix unit to waste. The [native-port round](../labs/native-address-port-2026-10-11/README.md)
+lands the first slice of the fix: the served **format can now carry** the product-key geometry (`StackMemory`: layers, heads, key_dim,
+sub_keys, top_k, score) with geometry rules and a container refusal — *"a product-key memory has no served kernel yet"* — tested by
+three new integration tests and the unchanged 284-test library suite. The remaining work is the kernel and the exporter's quantisation,
+pre-registered with its own bar: **D11 tokens/s ≥ the matched MLP baseline's on ≥ 2 of 3 seeds with the two integer engines bit-exact**
+(`d11 − d10 nll = 0.0`, `max |Δlogit| = 0`), the panel not worse than the noise, and BPB as a diagnostic.
 
-Line: geometric weights · count 1/3 · headline: softmax at runtime yes → yes.
-
-**Next:** a finer exact set (residual icosian pairs g₁ + 2^−k·g₂), checked first by reconstruction cosine in minutes, then pre-registered.
+**And a correction, because I found a real mislabel while landing it:** `memory_layers=L` replaces layer `L`'s **MLP**, not its read —
+`StackModel::mlp` returns the memory for a listed layer and `MemoryConfig::layers` is documented as *"Layers whose MLP is replaced by a
+memory"*. Cycles 18–20's records described the intervention as a **read** replacement. The correction is posted on
+[#2029](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6110907294), the three records carry an erratum section, and the
+README/STATUS wording is fixed in the same PR. **Every measurement stands as measured** (wrong-value 47 → 34 of 120, BPB +0.10, parameters
++4.3 % / +127 %, wall 245 s / 20×, tokens/s 1.65×); what changes is the scope of the claim: the compute comparison is **173,056 MACs
+against that layer's MLP's 1,264,896 (7.3× fewer, −86 %)**, the layer-2-versus-layer-8 arm contrasts **MLP placement**, and the
+**read-replacement question has not been run** — it is the question the attribution and the head ablation point at, and it is now the
+named next mechanism rather than an assumed result.
 
 ## 2026-10-11 — Starling read, rung 2: the addresses learn; the readout does not use them (claude, #2032)
 

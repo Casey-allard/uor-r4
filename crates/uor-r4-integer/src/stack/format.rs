@@ -84,6 +84,36 @@ pub struct StackShape {
     /// Hamming-rank selection over sign-bit codes instead of the score.
     #[serde(default)]
     pub read_binary: bool,
+    /// A product-key memory replacing the read at the listed layers; absent
+    /// on a model without one.
+    #[serde(default)]
+    pub memory: Option<StackMemory>,
+}
+
+/// The product-key memory of a layer (`memory` in the shape): the layer
+/// indices whose **MLP** the memory replaces, and the product-key geometry
+/// the served engine must reproduce — `heads` query blocks of `key_dim` per
+/// row, `sub_keys` sub-keys per side of each block, `top_k` kept per side,
+/// and the score the sub-keys are ranked by.
+///
+/// The served arithmetic of a memory layer is a *lookup*: two per-side
+/// rankings of `sub_keys` sub-keys, a `top_k × top_k` candidate join, a
+/// softmax over the kept candidates and a weighted gather of `width`-wide
+/// value rows. It is recorded here so that a container can **carry** it; the
+/// D11 kernel that serves it is not implemented yet, so no exporter writes
+/// this section and a shape carrying one is refused by
+/// [`StackShape::validate`] rather than half-served.
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize)]
+pub struct StackMemory {
+    /// The layer indices the memory replaces, ascending and distinct.
+    pub layers: Vec<usize>,
+    pub heads: usize,
+    /// The width of one head's query block; each side scores `key_dim / 2`.
+    pub key_dim: usize,
+    pub sub_keys: usize,
+    pub top_k: usize,
+    /// `dot` or `lorentz`.
+    pub score: String,
 }
 
 /// The largest selection of a softmax-free read: the recent window, the `k`
@@ -167,6 +197,24 @@ impl StackShape {
                     .is_none_or(|n| n > MAX_READ_SELECT)
         }) {
             Some("the read selection's window or k is zero or exceeds 256 slots")
+        } else if self.memory.as_ref().is_some_and(|m| {
+            m.layers.is_empty()
+                || m.layers.windows(2).any(|w| w[0] >= w[1])
+                || m.layers.iter().any(|&l| l >= self.pattern.len())
+                || m.heads == 0
+                || m.key_dim == 0
+                || !m.key_dim.is_multiple_of(2)
+                || m.sub_keys < 2
+                || m.top_k == 0
+                || m.top_k > m.sub_keys * m.sub_keys
+                || !matches!(m.score.as_str(), "dot" | "lorentz")
+        }) {
+            Some("the product-key memory's layers or geometry are unsupported")
+        } else if self.memory.is_some() {
+            // The format can carry it; no served kernel reads it yet, and a
+            // shape that passed validation would be served as if the memory
+            // were not there. Refused until the kernel lands.
+            Some("a product-key memory has no served kernel yet")
         } else if !pointer_valid {
             Some("the pointer head's width, score or scale is unsupported")
         } else if self.pattern.is_empty() || self.pattern.len() > MAX_LAYERS {

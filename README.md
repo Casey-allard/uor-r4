@@ -150,10 +150,10 @@ does not imply measured predictive advantage.
   **geometric** route to the same goal — phase/lineage tagging of values so binding is
   exact rather than learned — was tried on top of it and is a measured negative: +2.0 M
   parameters, 13.4× the training wall time, unchanged bound mass and a worse panel
-  ([phase binding](docs/labs/phase-binding-2026-10-11/README.md)). Replacing the read's **search with an address** at
-  the layer that carries the answers — the product-key memory trained in from step 0 — cuts the wrong-value failures
-  **47 → 34 of 120** with the headline flat, at **−90 % per-token compute** on that layer (−97 % at 4,096 context) and
-  at **+127 % parameters** (the codebook) with a 20× training wall as implemented
+  ([phase binding](docs/labs/phase-binding-2026-10-11/README.md)). **Replacing a layer's MLP with a
+  product-key lookup** (trained in from step 0) cuts the wrong-value failures **47 → 34 of 120** with the headline flat, for
+  **7.3× fewer MACs than that layer's MLP**, **+127 % parameters** in the codebook and a **20×** training wall as implemented
+  — an MLP replacement, *not* a read replacement (corrected 2026-10-11; the read at that layer is untouched)
   ([addressed read](docs/labs/addressed-read-2026-10-11/README.md)). Cutting its codebook 8× removes both of those
   costs (**+4.3 % parameters, 2.4× the training wall**) and keeps the failure-mode gain, but then the price becomes
   visible: **float BPB +0.10** against matched controls, because the read does double duty — retrieval *and* general
