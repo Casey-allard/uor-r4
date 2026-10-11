@@ -205,6 +205,7 @@ impl StackShape {
                 || m.key_dim == 0
                 || !m.key_dim.is_multiple_of(2)
                 || m.sub_keys < 2
+                || m.sub_keys > crate::stack::kernels::MAX_SELECT_SIDE
                 || m.top_k == 0
                 || m.top_k > m.sub_keys * m.sub_keys
                 || !matches!(m.score.as_str(), "dot" | "lorentz")

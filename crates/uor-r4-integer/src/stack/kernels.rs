@@ -1055,6 +1055,132 @@ pub(crate) fn stack_pointer_mixture(
     }
 }
 
+/// The product-key candidate join of one head: from the `sub_keys` scores of
+/// each side (fixed point, any common scale), the `top_k` best sub-key
+/// indices per side and the `top_k` best pairs by summed score, written to
+/// `out` as `(first, second)` with the slot equal to
+/// `first * sub_keys + second`. Returns how many pairs were written.
+///
+/// The order is the float path's (`stack_memory.rs`): by score **descending**,
+/// ties to the **lower slot index** (`first * sub_keys + second`), which is
+/// the rule `select_nth_unstable_by` + `sort_by` implements there. No
+/// allocation, no multiplication, no division: a selection sort over at most
+/// `sub_keys` entries and a merge of the two sides' kept indices.
+///
+/// `out` must hold at least `top_k * top_k` entries; the caller's `top_k` is
+/// the configuration's and is validated with the shape.
+#[inline(never)]
+pub fn stack_memory_select(
+    first: &[i32],
+    second: &[i32],
+    top_k: usize,
+    out: &mut [(u16, u16)],
+) -> usize {
+    let sub_keys = first.len().min(second.len());
+    // `sub_keys` bounds the kernel's stack buffers (`taken` is indexed by
+    // sub-key), so a side beyond the shape's own bound writes nothing rather
+    // than reading past them. `StackShape::validate` refuses such a shape.
+    if sub_keys == 0 || sub_keys > MAX_SELECT_SIDE || top_k == 0 || out.len() < top_k * top_k {
+        return 0;
+    }
+    let keep = top_k.min(sub_keys);
+    // Each side's `keep` best indices, descending by score, ties to the lower
+    // index: a selection over the first `keep` places of the side's order.
+    let mut first_best = [0u16; MAX_SELECT_SIDE];
+    let mut second_best = [0u16; MAX_SELECT_SIDE];
+    let mut taken = [false; MAX_SELECT_SIDE];
+    for place in 0..keep {
+        let mut best = usize::MAX;
+        for index in 0..sub_keys {
+            if taken[index] {
+                continue;
+            }
+            best = match best {
+                usize::MAX => index,
+                current => {
+                    let (a, b) = (first[index], first[current]);
+                    if a > b || (a == b && index < current) {
+                        index
+                    } else {
+                        current
+                    }
+                }
+            };
+        }
+        if best == usize::MAX {
+            break;
+        }
+        taken[best] = true;
+        first_best[place] = best as u16;
+    }
+    taken = [false; MAX_SELECT_SIDE];
+    for place in 0..keep {
+        let mut best = usize::MAX;
+        for index in 0..sub_keys {
+            if taken[index] {
+                continue;
+            }
+            best = match best {
+                usize::MAX => index,
+                current => {
+                    let (a, b) = (second[index], second[current]);
+                    if a > b || (a == b && index < current) {
+                        index
+                    } else {
+                        current
+                    }
+                }
+            };
+        }
+        if best == usize::MAX {
+            break;
+        }
+        taken[best] = true;
+        second_best[place] = best as u16;
+    }
+    // The candidate join, kept in the same order: by summed score descending,
+    // ties to the lower slot. `keep * keep` is at most `MAX_SELECT_SIDE^2`.
+    let mut written = 0usize;
+    let candidates = keep * keep;
+    let mut used = [false; MAX_SELECT_SIDE * MAX_SELECT_SIDE];
+    for _ in 0..keep.min(candidates) {
+        let mut best: Option<(usize, usize)> = None;
+        for i in 0..keep {
+            for j in 0..keep {
+                let flat = i * keep + j;
+                if used[flat] {
+                    continue;
+                }
+                let (fi, sj) = (first_best[i] as usize, second_best[j] as usize);
+                let score = first[fi] as i64 + second[sj] as i64;
+                best = match best {
+                    None => Some((i, j)),
+                    Some((bi, bj)) => {
+                        let (bf, bs) = (first_best[bi] as usize, second_best[bj] as usize);
+                        let current = first[bf] as i64 + second[bs] as i64;
+                        let slot = fi as i64 * sub_keys as i64 + sj as i64;
+                        let best_slot = bf as i64 * sub_keys as i64 + bs as i64;
+                        if score > current || (score == current && slot < best_slot) {
+                            Some((i, j))
+                        } else {
+                            Some((bi, bj))
+                        }
+                    }
+                };
+            }
+        }
+        let Some((i, j)) = best else { break };
+        used[i * keep + j] = true;
+        out[written] = (first_best[i], second_best[j]);
+        written += 1;
+    }
+    written
+}
+
+/// The largest `sub_keys` the selection kernel keeps per side: the shape's
+/// own bound, so no accepted shape can overflow its stack buffers.
+pub const MAX_SELECT_SIDE: usize = 64;
+
 /// Index of the largest value (first on ties).
 #[inline(never)]
 pub fn stack_argmax(values: &[i32]) -> usize {
