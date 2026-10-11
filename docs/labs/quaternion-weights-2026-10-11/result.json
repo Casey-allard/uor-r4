@@ -1,0 +1,82 @@
+{
+ "bpb_by_seed": {
+  "D256": {
+   "1": 1.405402,
+   "2": 1.410114
+  },
+  "Q256": {
+   "1": 1.493985,
+   "2": 1.49424,
+   "3": 1.499374
+  },
+  "D128": {
+   "1": 1.554689,
+   "2": 1.549741,
+   "3": 1.55158
+  },
+  "D152": {
+   "1": 1.515761,
+   "2": 1.511428
+  }
+ },
+ "bpb_mean": {
+  "D256": 1.407758,
+  "Q256": 1.495866,
+  "D128": 1.552003,
+  "D152": 1.513594
+ },
+ "pooled_seed_sd": 0.002929,
+ "paired_se": {
+  "D128-D256": 0.002069,
+  "Q256-D256": 0.001601,
+  "Q256-D152": 0.001512
+ },
+ "noise": {
+  "D128-D256": 0.002929,
+  "Q256-D256": 0.002929,
+  "Q256-D152": 0.002929
+ },
+ "precondition_D128_minus_D256": 0.144245,
+ "precondition_met": true,
+ "deltas": {
+  "Q256-D256": 0.088108,
+  "Q256-D152": -0.017728,
+  "Q256-D128": -0.056137
+ },
+ "curve": {
+  "dev_noise": 0.00354,
+  "gap_Q256_minus_D152": {
+   "1500": -0.01547,
+   "1750": -0.014751,
+   "2000": -0.016041
+  },
+  "settled": true
+ },
+ "cost": {
+  "D256": {
+   "map_weights": 4358144,
+   "total_params": 5406720,
+   "macs_per_token": 5537792,
+   "weight_bytes_read_f32": 21626880
+  },
+  "Q256": {
+   "map_weights": 1089536,
+   "total_params": 2138112,
+   "macs_per_token": 5537792,
+   "weight_bytes_read_f32": 8552448
+  },
+  "D128": {
+   "map_weights": 1089536,
+   "total_params": 1613824,
+   "macs_per_token": 1679360,
+   "weight_bytes_read_f32": 6455296
+  },
+  "D152": {
+   "map_weights": 1532768,
+   "total_params": 2155360,
+   "macs_per_token": 2233184,
+   "weight_bytes_read_f32": 8621440
+  }
+ },
+ "decision": "KEEP: Q256 <= D152 - 2x noise (structure beats an equal-total-parameter dense model)"
+}

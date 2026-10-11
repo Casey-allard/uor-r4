@@ -265,6 +265,148 @@ impl ReadWeighting {
     }
 }
 
+/// Whether a geometric stack's dense projection maps are quaternion-valued
+/// ([`StackModel::set_quaternion_weights`]). [`Self::None`] is the ordinary
+/// dense model. [`Self::All`] replaces every map of [`QUATERNION_MAPS`] by a
+/// compact tensor `Q` of shape `[out/4, in/4, 4]` (suffix `.quaternion` in
+/// place of `.weight`): block `(i, j)` of the dense map is the Hamilton
+/// left-multiplication matrix of the quaternion `Q[i, j] = (a, b, c, d)`
+/// ([`quaternion_dense_weight`]), so the map holds a quarter of the
+/// parameters. A training study only: it has no served form yet.
+/// The evaluation-only activation snap of [`StackModel::set_activation_snap`]:
+/// `Icosian` snaps each quaternion-map input 4-lane to the nearest unit
+/// icosian times `2^round(log2 |x|)`; `Direction` keeps the exact norm;
+/// `Scale` keeps the exact direction.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ActivationSnap {
+    None,
+    Icosian,
+    Direction,
+    Scale,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum QuaternionWeights {
+    /// Dense maps (the default).
+    #[default]
+    None,
+    /// Every map of [`QUATERNION_MAPS`] quaternion-valued.
+    All,
+}
+
+impl QuaternionWeights {
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::None => "none",
+            Self::All => "all",
+        }
+    }
+
+    pub fn parse(text: &str) -> Result<Self> {
+        match text {
+            "none" => Ok(Self::None),
+            "all" => Ok(Self::All),
+            other => Err(invalid(format!(
+                "invalid quaternion_weights={other} (none or all)"
+            ))),
+        }
+    }
+}
+
+/// The layer maps [`QuaternionWeights::All`] makes quaternion-valued: every
+/// learned projection of a geometric layer. The embedding (and tied head),
+/// norms, biases, convolution taps, decays, `read.null.weight`, `read.age` and
+/// memory/pointer tensors stay as they are.
+pub const QUATERNION_MAPS: [&str; 10] = [
+    "rec.in.weight",
+    "rec.gate.weight",
+    "rec.out.weight",
+    "read.query.weight",
+    "read.key.weight",
+    "read.value.weight",
+    "read.out.weight",
+    "mlp.gate.weight",
+    "mlp.up.weight",
+    "mlp.down.weight",
+];
+
+/// The `config.json` field that records [`QuaternionWeights::All`], written
+/// only when set (absent is [`QuaternionWeights::None`]).
+pub const QUATERNION_WEIGHTS_FIELD: &str = "quaternion_weights";
+
+/// Mixed into the seed of the compact quaternion maps' initializer.
+const QUATERNION_SEED_MIX: u64 = 0x5155_4154_4552_4E49;
+
+/// The compact variable name of the dense map `name`
+/// (`layers.NN.rec.in.weight` -> `layers.NN.rec.in.quaternion`), when `name`
+/// is a layer map of [`QUATERNION_MAPS`].
+fn quaternion_name(name: &str) -> Option<String> {
+    let (_, rest) = name.split_once("layers.")?;
+    let suffix = rest.get(3..)?;
+    QUATERNION_MAPS
+        .contains(&suffix)
+        .then(|| format!("{}.quaternion", &name[..name.len() - ".weight".len()]))
+}
+
+/// The dense map name of a compact quaternion variable, the inverse of
+/// [`quaternion_name`].
+fn quaternion_dense_name(name: &str) -> Option<String> {
+    name.strip_suffix(".quaternion")
+        .map(|stem| format!("{stem}.weight"))
+}
+
+/// The compact shape `[out/4, in/4, 4]` of the dense map `name` of shape
+/// `[out, in]`; a dimension not divisible by 4 is refused, naming the tensor.
+fn quaternion_shape(name: &str, shape: &[usize]) -> Result<Vec<usize>> {
+    match shape {
+        [out, input] if out % 4 == 0 && input % 4 == 0 => Ok(vec![out / 4, input / 4, 4]),
+        _ => Err(invalid(format!(
+            "quaternion_weights=all needs both dimensions of {name} divisible by 4, not {shape:?}"
+        ))),
+    }
+}
+
+/// The signed basis of the Hamilton left-multiplication matrix: row `c` holds
+/// the 4x4 matrix `P_c` (row-major) with `L(q) = sum_c q_c P_c`, where
+/// `L(a, b, c, d) = [[a,-b,-c,-d],[b,a,-d,c],[c,d,a,-b],[d,-c,b,a]]` so that
+/// `L(q) x = q ⊗ x`.
+const HAMILTON_BASIS: [[f32; 16]; 4] = [
+    [
+        1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 1.,
+    ],
+    [
+        0., -1., 0., 0., 1., 0., 0., 0., 0., 0., 0., -1., 0., 0., 1., 0.,
+    ],
+    [
+        0., 0., -1., 0., 0., 0., 0., 1., 1., 0., 0., 0., 0., -1., 0., 0.,
+    ],
+    [
+        0., 0., 0., -1., 0., 0., -1., 0., 0., 1., 0., 0., 1., 0., 0., 0.,
+    ],
+];
+
+/// The dense map `W` `[4 out, 4 in]` of the compact quaternion map `compact`
+/// `[out, in, 4]`: `W[4i + r, 4j + s] = L(compact[i, j])[r, s]`. One matrix
+/// product with the fixed [`HAMILTON_BASIS`] (`[out*in, 4] @ [4, 16]`), then a
+/// block transpose, so gradients reach `compact` by ordinary autodiff.
+pub fn quaternion_dense_weight(compact: &Tensor) -> Result<Tensor> {
+    let (out, input, four) = compact.dims3()?;
+    if four != 4 {
+        return Err(invalid("a compact quaternion map's last dimension is 4"));
+    }
+    let basis = Tensor::from_iter(HAMILTON_BASIS.into_iter().flatten(), compact.device())?
+        .reshape((4, 16))?
+        .to_dtype(compact.dtype())?;
+    Ok(compact
+        .reshape((out * input, 4))?
+        .matmul(&basis)?
+        .reshape((out, input, 4, 4))?
+        .permute((0, 2, 1, 3))?
+        .contiguous()?
+        .reshape((4 * out, 4 * input))?)
+}
+
 /// The per-head logits of [`ReadWeighting::LearnedRank`] in each read layer.
 pub const READ_RANK_LOGITS: &str = "read.rank_logits";
 
@@ -1940,6 +2082,35 @@ fn pointer_variables(
     Ok(variables)
 }
 
+/// [`QuaternionWeights::All`] is defined for geometric stacks only.
+fn check_quaternion_arch(config: &StackConfig) -> Result<()> {
+    if config.arch == StackArch::Geometric {
+        Ok(())
+    } else {
+        Err(invalid(format!(
+            "quaternion_weights=all needs arch=geometric, not {:?}",
+            config.arch
+        )))
+    }
+}
+
+/// `shapes` with every map of [`QUATERNION_MAPS`] replaced by its compact
+/// quaternion variable ([`quaternion_name`], [`quaternion_shape`]).
+fn quaternion_shapes(shapes: BTreeMap<String, Vec<usize>>) -> Result<BTreeMap<String, Vec<usize>>> {
+    shapes
+        .into_iter()
+        .map(|(name, shape)| match quaternion_name(&name) {
+            Some(compact) => Ok((compact, quaternion_shape(&name, &shape)?)),
+            None => Ok((name, shape)),
+        })
+        .collect()
+}
+
+/// `quaternion_weights=all` with `export`, D11, `qat=true` or `transport_snap`.
+pub fn quaternion_served_refusal() -> crate::TrainingError {
+    invalid("quaternion weights have no served form yet")
+}
+
 fn pointer_served_refusal() -> crate::TrainingError {
     invalid(
         "the pointer head has no served representation for quantization-aware training; train \
@@ -2056,6 +2227,12 @@ pub struct StackModel {
     /// saved. What the rule emitted over one reply travels with the reply
     /// itself ([`crate::stack_dialogue::Reply::span_extract`]).
     pointer_span_extract: Option<SpanExtract>,
+    /// Whether the projection maps are quaternion-valued
+    /// ([`Self::set_quaternion_weights`]).
+    quaternion_weights: QuaternionWeights,
+    /// Evaluation-only probe ([`Self::set_activation_snap`]): every projection input lane is
+    /// snapped to its nearest unit icosian times a power of two. Never saved.
+    activation_snap: ActivationSnap,
 }
 
 impl StackModel {
@@ -2091,6 +2268,7 @@ impl StackModel {
             geometric_address: None,
             geometric_span: None,
             read_key_shift: false,
+            activation_snap: ActivationSnap::None,
             read_weighting: ReadWeighting::Softmax,
             softsort_tau: None,
             read_lineage: None,
@@ -2102,6 +2280,7 @@ impl StackModel {
             pointer_copy_stop: None,
             pointer_copy_trace: false,
             pointer_span_extract: None,
+            quaternion_weights: QuaternionWeights::None,
         })
     }
 
@@ -2153,6 +2332,11 @@ impl StackModel {
     /// memory configuration is refused, as is a model with a served
     /// representation. The optimizer of a model must be built after this.
     pub fn add_memory_layers(&mut self, memory: MemoryConfig, seed: u64) -> Result<bool> {
+        if self.quaternion_weights != QuaternionWeights::None {
+            return Err(invalid(
+                "add the memory layers before making the maps quaternion-valued",
+            ));
+        }
         if self.served.is_some() {
             return Err(invalid(
                 "add the memory layers before setting a served representation",
@@ -2422,6 +2606,17 @@ impl StackModel {
             self.validate_geometric_address(config)?;
         }
         match &self.served {
+            None if self.quaternion_weights == QuaternionWeights::All => {
+                // Each dense map expanded once per forward pass, so every
+                // call site reads it by its dense name.
+                let mut dense = BTreeMap::new();
+                for (name, var) in &self.variables {
+                    if let Some(weight) = quaternion_dense_name(name) {
+                        dense.insert(weight, quaternion_dense_weight(var.as_tensor())?);
+                    }
+                }
+                Ok(Params::Quaternion(&self.variables, dense))
+            }
             None => Ok(Params::Float(&self.variables)),
             Some(state) => Ok(Params::Served(self.served_view(state)?)),
         }
@@ -2484,7 +2679,66 @@ impl StackModel {
     /// producing a bf16 activation. The weight's gradient flows back through
     /// its cast, so the master weight and the gradient that reaches it stay
     /// f32.
+    /// Evaluation-only spin-snap probe: when on, every [`Self::linear`] input
+    /// whose width divides by 4 has each 4-lane replaced by
+    /// `2^round(log2 |x|) * nearest_icosian(x / |x|)` before the product (zero
+    /// lanes stay zero). With icosian-snapped quaternion weights this is the
+    /// arithmetic of a table-lookup product. A probe, never trained or saved.
+    pub fn set_activation_snap(&mut self, mode: ActivationSnap) {
+        self.activation_snap = mode;
+    }
+
+    fn snap_activation(&self, input: &Tensor) -> Result<Tensor> {
+        let dims = input.dims().to_vec();
+        let features = dims[dims.len() - 1];
+        if self.activation_snap == ActivationSnap::None || !features.is_multiple_of(4) {
+            return Ok(input.clone());
+        }
+        let dtype = input.dtype();
+        let values = input
+            .to_dtype(DType::F32)?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        let roots = icosian_roots();
+        let mut out = Vec::with_capacity(values.len());
+        for lane in values.chunks_exact(4) {
+            let norm = lane.iter().map(|v| v * v).sum::<f32>().sqrt();
+            if norm == 0.0 || !norm.is_finite() {
+                out.extend_from_slice(lane);
+                continue;
+            }
+            let unit = [
+                lane[0] / norm,
+                lane[1] / norm,
+                lane[2] / norm,
+                lane[3] / norm,
+            ];
+            let direction = match self.activation_snap {
+                ActivationSnap::Scale => unit,
+                _ => roots[nearest_root(unit, roots)],
+            };
+            let scale = match self.activation_snap {
+                ActivationSnap::Direction => norm,
+                _ => norm.log2().round().exp2(),
+            };
+            out.extend(direction.iter().map(|r| r * scale));
+        }
+        Ok(Tensor::from_vec(out, dims, input.device())?.to_dtype(dtype)?)
+    }
+
     fn linear(&self, input: &Tensor, weight: &Tensor) -> Result<Tensor> {
+        let snapped;
+        // Only the quaternion maps' inputs: not the tied head ([vocab, width])
+        // and not the NoRead map ([heads, width]), the two other linear calls
+        // of a plain quaternion-weight geometric stack.
+        let quaternion_map = weight.dim(0)? != self.config.vocab_size
+            && weight.dims() != [self.config.heads, self.config.width];
+        let input = if self.activation_snap != ActivationSnap::None && quaternion_map {
+            snapped = self.snap_activation(input)?;
+            &snapped
+        } else {
+            input
+        };
         let dims = input.dims().to_vec();
         let (rows, features) = (
             dims[..dims.len() - 1].iter().product::<usize>(),
@@ -3339,6 +3593,82 @@ impl StackModel {
     /// Whether every read key carries the `j`-turned previous key.
     pub fn read_key_shift(&self) -> bool {
         self.read_key_shift
+    }
+
+    /// Make the projection maps quaternion-valued ([`QuaternionWeights::All`]):
+    /// every map of [`QUATERNION_MAPS`] the model holds is replaced by a fresh
+    /// compact tensor `[out/4, in/4, 4]` ([`quaternion_dense_weight`]) whose
+    /// components are drawn, from a stream seeded by the configuration's seed,
+    /// with the standard deviation the dense initialization gives that map
+    /// (each dense entry is one signed component, so the dense variance is
+    /// matched; a `rec.gate` block takes the deviation of its first row). The
+    /// dense values are discarded, so this is for a fresh model; build the
+    /// optimizer after it. Geometric stacks only, with every replaced map's
+    /// dimensions divisible by 4 and no served representation or transport
+    /// snap. Setting the mode the model already has is a no-op; a quaternion
+    /// model is not turned back into a dense one.
+    pub fn set_quaternion_weights(&mut self, mode: QuaternionWeights) -> Result<()> {
+        if mode == self.quaternion_weights {
+            return Ok(());
+        }
+        if mode == QuaternionWeights::None {
+            return Err(invalid(
+                "a quaternion-valued model has no dense form to return to",
+            ));
+        }
+        check_quaternion_arch(&self.config)?;
+        if self.served.is_some() || self.transport.is_some() {
+            return Err(quaternion_served_refusal());
+        }
+        let shapes: BTreeMap<String, Vec<usize>> = self
+            .variables
+            .iter()
+            .map(|(name, var)| (name.clone(), var.dims().to_vec()))
+            .collect();
+        let compact = quaternion_shapes(shapes)?;
+        let mut rng = Initializer(self.config.seed ^ QUATERNION_SEED_MIX);
+        let residual_std = INITIAL_STD / (2.0 * self.config.layers() as f64).sqrt();
+        let lanes = self.config.width / 4;
+        let mut replaced = BTreeMap::new();
+        for (name, shape) in &compact {
+            let Some(dense) = quaternion_dense_name(name) else {
+                continue;
+            };
+            let suffix = dense
+                .split_once("layers.")
+                .and_then(|(_, rest)| rest.get(3..))
+                .unwrap_or_default();
+            let row_block = shape[1] * 4;
+            let values: Vec<f32> = (0..shape.iter().product::<usize>())
+                .map(|index| {
+                    let std = match suffix {
+                        "rec.gate.weight" if 4 * (index / row_block) >= lanes => ROTATION_STD,
+                        "read.out.weight" | "rec.out.weight" | "mlp.down.weight" => residual_std,
+                        _ => INITIAL_STD,
+                    };
+                    (rng.normal() * std) as f32
+                })
+                .collect();
+            replaced.insert(
+                dense,
+                (
+                    name.clone(),
+                    Var::from_vec(values, shape.as_slice(), &self.device)?,
+                ),
+            );
+        }
+        for (dense, (name, var)) in replaced {
+            self.variables.remove(&dense);
+            self.variables.insert(name, var);
+        }
+        self.quaternion_weights = mode;
+        Ok(())
+    }
+
+    /// Whether the projection maps are quaternion-valued
+    /// ([`Self::set_quaternion_weights`]).
+    pub fn quaternion_weights(&self) -> QuaternionWeights {
+        self.quaternion_weights
     }
 
     /// How every geometric read weights its kept sources. [`ReadWeighting::Softmax`]
@@ -9105,6 +9435,12 @@ impl StackModel {
             with_field[READ_KEY_SHIFT_FIELD] = serde_json::Value::Bool(true);
             config = serde_json::to_vec_pretty(&with_field)?;
         }
+        if self.quaternion_weights != QuaternionWeights::None {
+            // Only when set, so every dense model keeps its exact bytes.
+            let mut with_field: serde_json::Value = serde_json::from_slice(&config)?;
+            with_field[QUATERNION_WEIGHTS_FIELD] = serde_json::to_value(self.quaternion_weights)?;
+            config = serde_json::to_vec_pretty(&with_field)?;
+        }
         if self.read_weighting != ReadWeighting::Softmax {
             // Only when set, so every softmax model keeps its exact bytes.
             let mut with_field: serde_json::Value = serde_json::from_slice(&config)?;
@@ -9170,6 +9506,22 @@ impl StackModel {
             )));
         }
         Ok(Some(snap))
+    }
+
+    /// The quaternion-weights mode `directory`'s `config.json` records
+    /// ([`Self::set_quaternion_weights`]). Absent means
+    /// [`QuaternionWeights::None`], as for every model saved before the field
+    /// existed; only `"all"` is ever written, so any other value is refused.
+    pub fn saved_quaternion_weights(directory: &Path) -> Result<QuaternionWeights> {
+        let config: serde_json::Value =
+            serde_json::from_slice(&fs::read(directory.join("config.json"))?)?;
+        match config.get(QUATERNION_WEIGHTS_FIELD) {
+            None => Ok(QuaternionWeights::None),
+            Some(value) if value.as_str() == Some("all") => Ok(QuaternionWeights::All),
+            Some(_) => Err(invalid(format!(
+                "config.json's {QUATERNION_WEIGHTS_FIELD} must be absent or \"all\""
+            ))),
+        }
     }
 
     /// The read weighting `directory`'s `config.json` records
@@ -9474,6 +9826,11 @@ impl StackModel {
             // Restored, not re-initialised, by set_read_weighting below.
             shapes.extend(learned_rank_shapes(&config)?);
         }
+        let quaternion_weights = Self::saved_quaternion_weights(directory)?;
+        if quaternion_weights == QuaternionWeights::All {
+            check_quaternion_arch(&config)?;
+            shapes = quaternion_shapes(shapes)?;
+        }
         if tensors.len() != shapes.len() {
             return Err(invalid("saved stack tensors differ from the configuration"));
         }
@@ -9501,6 +9858,7 @@ impl StackModel {
             geometric_address,
             geometric_span,
             read_key_shift: false,
+            activation_snap: ActivationSnap::None,
             read_weighting: ReadWeighting::Softmax,
             softsort_tau: None,
             read_lineage: None,
@@ -9510,6 +9868,7 @@ impl StackModel {
             pointer_copy_stop: None,
             pointer_copy_trace: false,
             pointer_span_extract: None,
+            quaternion_weights,
         };
         model.set_transport_snap(Self::saved_transport_snap(directory)?)?;
         model.set_read_identity_carry(Self::saved_read_identity_carry(directory)?)?;
@@ -10143,6 +10502,9 @@ impl StackModel {
     /// representation: served weights compute the logits the snap reads.
     pub fn set_transport_snap(&mut self, snap: Option<TransportSnap>) -> Result<()> {
         if let Some(snap) = snap {
+            if self.quaternion_weights != QuaternionWeights::None {
+                return Err(quaternion_served_refusal());
+            }
             snap.check(&self.config)?;
         }
         self.transport = snap;
@@ -10692,6 +11054,9 @@ enum Params<'a> {
     Served(Arc<BTreeMap<String, Tensor>>),
     // Ordinary float semantics with immutable, graph-detached parameters.
     Frozen(BTreeMap<String, Tensor>),
+    /// The variables, with each quaternion map read as its dense expansion
+    /// ([`QuaternionWeights::All`]) under its dense name.
+    Quaternion(&'a BTreeMap<String, Var>, BTreeMap<String, Tensor>),
 }
 
 impl Params<'_> {
@@ -10700,6 +11065,9 @@ impl Params<'_> {
             Self::Float(variables) => variables.get(name).map(Var::as_tensor),
             Self::Served(tensors) => tensors.get(name),
             Self::Frozen(tensors) => tensors.get(name),
+            Self::Quaternion(variables, dense) => dense
+                .get(name)
+                .or_else(|| variables.get(name).map(Var::as_tensor)),
         };
         found.ok_or_else(|| invalid(format!("missing stack variable {name}")))
     }
@@ -10711,7 +11079,7 @@ impl Params<'_> {
     /// The output map: the tied embedding, or the served head.
     fn head(&self) -> Result<&Tensor> {
         match self {
-            Self::Float(_) | Self::Frozen(_) => self.get("embedding.weight"),
+            Self::Float(_) | Self::Frozen(_) | Self::Quaternion(..) => self.get("embedding.weight"),
             Self::Served(_) => self.get(SERVED_HEAD),
         }
     }
@@ -10761,6 +11129,9 @@ impl StackModel {
                 return Err(invalid("read identity latch has no served representation"));
             }
             Some(_) if self.config.pointer.is_some() => return Err(pointer_served_refusal()),
+            Some(_) if self.quaternion_weights != QuaternionWeights::None => {
+                return Err(quaternion_served_refusal());
+            }
             Some(codec) => {
                 let plan = served_plan(&self.config)?;
                 self.check_served_plan(&plan)?;
@@ -10959,7 +11330,8 @@ impl StackModel {
 /// Matrices take weight decay; norms, biases, decays, age tables, the
 /// convolution taps and the Lorentz scalars do not.
 fn decayed(name: &str, rank: usize) -> bool {
-    name.ends_with(".weight") && rank == 2 && !name.ends_with("conv.weight")
+    (name.ends_with(".weight") && rank == 2 && !name.ends_with("conv.weight"))
+        || (name.ends_with(".quaternion") && rank == 3)
 }
 
 /// One update's constants, in f32 as Candle's `affine` applies them.
@@ -29795,6 +30167,293 @@ mod tests {
                     }
                 }
             }
+        }
+        Ok(())
+    }
+
+    /// The tiny geometric model of the quaternion-weights tests: width 16,
+    /// two heads, MLP 24, pattern `ra`, context 8, vocabulary 32.
+    fn quaternion_tiny() -> StackConfig {
+        let mut config = tiny(StackArch::Geometric, "ra", ReadScore::L2, true);
+        config.context = 8;
+        config.vocab_size = 32;
+        config
+    }
+
+    /// `p ⊗ q` by the scalar Hamilton product.
+    fn hamilton(p: [f32; 4], q: [f32; 4]) -> [f32; 4] {
+        let ([a1, b1, c1, d1], [a2, b2, c2, d2]) = (p, q);
+        [
+            a1 * a2 - b1 * b2 - c1 * c2 - d1 * d2,
+            a1 * b2 + b1 * a2 + c1 * d2 - d1 * c2,
+            a1 * c2 - b1 * d2 + c1 * a2 + d1 * b2,
+            a1 * d2 + b1 * c2 - c1 * b2 + d1 * a2,
+        ]
+    }
+
+    #[test]
+    fn quaternion_weights_dense_map_is_the_hamilton_product() -> Result<()> {
+        let model = StackModel::new(quaternion_tiny(), &cpu())?;
+        let mut rng = Initializer(17);
+        let q: Vec<f32> = (0..3 * 2 * 4).map(|_| rng.normal() as f32).collect();
+        let x: Vec<f32> = (0..5 * 8).map(|_| rng.normal() as f32).collect();
+        let weight = quaternion_dense_weight(&Tensor::from_vec(q.clone(), (3, 2, 4), &cpu())?)?;
+        assert_eq!(weight.dims(), &[12, 8]);
+        let out = model
+            .linear(&Tensor::from_vec(x.clone(), (5, 8), &cpu())?, &weight)?
+            .to_vec2::<f32>()?;
+        let quaternion = |values: &[f32], at: usize| -> [f32; 4] {
+            [values[at], values[at + 1], values[at + 2], values[at + 3]]
+        };
+        for (row, got) in out.iter().enumerate() {
+            for i in 0..3 {
+                let mut expected = [0f32; 4];
+                for j in 0..2 {
+                    let product = hamilton(
+                        quaternion(&q, (i * 2 + j) * 4),
+                        quaternion(&x, row * 8 + j * 4),
+                    );
+                    for r in 0..4 {
+                        expected[r] += product[r];
+                    }
+                }
+                for r in 0..4 {
+                    assert!(
+                        (got[4 * i + r] - expected[r]).abs() <= 1e-5,
+                        "row {row} block {i} component {r}: {} vs {}",
+                        got[4 * i + r],
+                        expected[r]
+                    );
+                }
+            }
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn quaternion_weights_gradient_matches_central_differences() -> Result<()> {
+        let mut model = StackModel::new(quaternion_tiny(), &cpu())?;
+        model.set_quaternion_weights(QuaternionWeights::All)?;
+        let ids = [3u32, 9, 4, 12, 7, 1, 30, 5];
+        let targets = [9u32, 4, 12, 7, 1, 30, 5, 22];
+        let loss = |model: &StackModel| -> Result<f64> {
+            Ok(model
+                .loss(&ids, &targets, 1, ids.len())?
+                .to_dtype(DType::F64)?
+                .to_scalar::<f64>()?)
+        };
+        let grads = model.loss(&ids, &targets, 1, ids.len())?.backward()?;
+        let mut checked = 0;
+        for name in [
+            "layers.00.rec.in.quaternion",
+            "layers.00.rec.gate.quaternion",
+            "layers.01.read.query.quaternion",
+            "layers.01.read.out.quaternion",
+            "layers.01.mlp.down.quaternion",
+        ] {
+            let var = model.variables()[name].clone();
+            let start = var.as_tensor().flatten_all()?.to_vec1::<f32>()?;
+            let analytic = grads
+                .get(var.as_tensor())
+                .ok_or_else(|| invalid(format!("no gradient for {name}")))?
+                .flatten_all()?
+                .to_vec1::<f32>()?;
+            // The two largest entries of this map's gradient.
+            let mut order: Vec<usize> = (0..analytic.len()).collect();
+            order.sort_by(|&a, &b| analytic[b].abs().total_cmp(&analytic[a].abs()));
+            for &index in &order[..2] {
+                let eps = 1e-2f32;
+                let at = |delta: f32| -> Result<f64> {
+                    let mut values = start.clone();
+                    values[index] += delta;
+                    var.set(&Tensor::from_vec(values, var.as_tensor().dims(), &cpu())?)?;
+                    loss(&model)
+                };
+                let numeric = (at(eps)? - at(-eps)?) / (2.0 * eps as f64);
+                var.set(&Tensor::from_vec(
+                    start.clone(),
+                    var.as_tensor().dims(),
+                    &cpu(),
+                )?)?;
+                let exact = analytic[index] as f64;
+                // The loss is f32 (~3.5), so each side of the difference is
+                // rounded to about one ulp: the central difference cannot
+                // resolve gradients finer than ~2 ulp(loss) / (2 eps), about
+                // 4e-5 here. Measured: step-size sweeps give loss differences
+                // of whole ulps (16 ulp at eps 1e-2), and the attention query adds an
+                // O(eps^2) curvature term (~8e-6 at eps 1e-2).
+                let noise_floor =
+                    2.0 * f32::EPSILON as f64 * loss(&model)?.abs() / (2.0 * eps as f64);
+                assert!(
+                    (exact - numeric).abs() <= 1e-3 * exact.abs().max(numeric.abs()) + noise_floor,
+                    "{name}[{index}]: analytic {exact} vs central difference {numeric}"
+                );
+                checked += 1;
+            }
+        }
+        assert_eq!(checked, 10);
+        Ok(())
+    }
+
+    #[test]
+    fn quaternion_weights_round_trip_keeps_logits_and_compact_shapes() -> Result<()> {
+        let mut model = StackModel::new(quaternion_tiny(), &cpu())?;
+        model.set_quaternion_weights(QuaternionWeights::All)?;
+        let dir = std::env::temp_dir().join(format!("quaternion-save-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir)?;
+        model.save(&dir)?;
+        let config: serde_json::Value =
+            serde_json::from_slice(&fs::read(dir.join("config.json"))?)?;
+        assert_eq!(config[QUATERNION_WEIGHTS_FIELD], serde_json::json!("all"));
+        let loaded = StackModel::load(&dir, &cpu())?;
+        assert_eq!(loaded.quaternion_weights(), QuaternionWeights::All);
+        assert_eq!(loaded.variables().len(), model.variables().len());
+        for (name, var) in model.variables() {
+            assert_eq!(loaded.variables()[name].dims(), var.dims(), "{name}");
+        }
+        assert_eq!(
+            loaded.variables()["layers.00.rec.in.quaternion"].dims(),
+            &[8, 4, 4]
+        );
+        assert!(!loaded.variables().contains_key("layers.00.rec.in.weight"));
+        let ids = [3u32, 9, 4, 12, 7, 1, 30, 5];
+        let before = model
+            .forward(&ids, 1, ids.len())?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        let after = loaded
+            .forward(&ids, 1, ids.len())?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        assert!(same_bits(&before, &after));
+        // A dense model's config carries no field, and loads dense.
+        let dense = StackModel::new(quaternion_tiny(), &cpu())?;
+        dense.save(&dir)?;
+        let config: serde_json::Value =
+            serde_json::from_slice(&fs::read(dir.join("config.json"))?)?;
+        assert!(config.get(QUATERNION_WEIGHTS_FIELD).is_none());
+        assert_eq!(
+            StackModel::load(&dir, &cpu())?.quaternion_weights(),
+            QuaternionWeights::None
+        );
+        fs::remove_dir_all(&dir)?;
+        Ok(())
+    }
+
+    #[test]
+    fn quaternion_weights_count_a_quarter_and_refuse_what_they_cannot_serve() -> Result<()> {
+        let dense = StackModel::new(quaternion_tiny(), &cpu())?;
+        let mut model = StackModel::new(quaternion_tiny(), &cpu())?;
+        model.set_quaternion_weights(QuaternionWeights::All)?;
+        let maps: usize = dense
+            .variables()
+            .iter()
+            .filter(|(name, _)| quaternion_name(name).is_some())
+            .map(|(_, var)| var.elem_count())
+            .sum();
+        assert_eq!(
+            model.parameter_count(),
+            dense.parameter_count() - maps * 3 / 4
+        );
+        // Each component drawn with the dense map's deviation.
+        let values = model.variables()["layers.00.rec.in.quaternion"]
+            .as_tensor()
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        let rms =
+            (values.iter().map(|&v| (v as f64).powi(2)).sum::<f64>() / values.len() as f64).sqrt();
+        assert!((rms / INITIAL_STD - 1.0).abs() < 0.2, "{rms}");
+        assert!(model
+            .set_quaternion_weights(QuaternionWeights::None)
+            .is_err());
+        assert!(model
+            .set_served_representation(Some(Arc::new(D11Interim)))
+            .is_err());
+        let mut transformer = StackModel::new(
+            tiny(StackArch::Transformer, "aa", ReadScore::L2, false),
+            &cpu(),
+        )?;
+        assert!(transformer
+            .set_quaternion_weights(QuaternionWeights::All)
+            .is_err());
+        let mut odd = quaternion_tiny();
+        odd.mlp_hidden = 22;
+        let error = StackModel::new(odd, &cpu())?
+            .set_quaternion_weights(QuaternionWeights::All)
+            .err()
+            .ok_or_else(|| invalid("an MLP of 22 must be refused"))?;
+        assert!(
+            error.to_string().contains("mlp.down.weight")
+                || error.to_string().contains("mlp.gate.weight"),
+            "{error}"
+        );
+        Ok(())
+    }
+    #[test]
+    fn activation_snap_keeps_icosian_lanes_and_snaps_scale_to_a_power_of_two() -> Result<()> {
+        let mut model = StackModel::new(
+            tiny(StackArch::Geometric, "ra", ReadScore::L2, true),
+            &cpu(),
+        )?;
+        let root = icosian_roots()[5];
+        let mut values: Vec<f32> = root.iter().map(|r| 3.0 * r).collect();
+        values.extend([0.0, 0.0, 0.0, 0.0]);
+        let input = Tensor::from_vec(values.clone(), (1, 8), &cpu())?;
+        assert_eq!(
+            model
+                .snap_activation(&input)?
+                .flatten_all()?
+                .to_vec1::<f32>()?,
+            values
+        );
+        model.set_activation_snap(ActivationSnap::Icosian);
+        let out = model
+            .snap_activation(&input)?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        for c in 0..4 {
+            assert!(
+                (out[c] - 4.0 * root[c]).abs() < 1e-6,
+                "lane 0: {:?}",
+                &out[..4]
+            );
+        }
+        assert_eq!(&out[4..], &[0.0, 0.0, 0.0, 0.0]);
+        // Direction keeps |x|; Scale keeps x / |x|.
+        let lane = Tensor::from_vec(vec![0.3f32, -1.1, 0.7, 2.9], (1, 4), &cpu())?;
+        let norm = (0.3f32 * 0.3 + 1.1 * 1.1 + 0.7 * 0.7 + 2.9 * 2.9).sqrt();
+        model.set_activation_snap(ActivationSnap::Direction);
+        let d = model
+            .snap_activation(&lane)?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        assert!((d.iter().map(|v| v * v).sum::<f32>().sqrt() - norm).abs() < 1e-5);
+        assert!(icosian_roots()
+            .iter()
+            .any(|r| (0..4).all(|c| (d[c] / norm - r[c]).abs() < 1e-5)));
+        model.set_activation_snap(ActivationSnap::Scale);
+        let sc = model
+            .snap_activation(&lane)?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        let k = sc[3] / 2.9;
+        assert!((k - norm.log2().round().exp2() / norm).abs() < 1e-5);
+        assert!([0.3f32, -1.1, 0.7, 2.9]
+            .iter()
+            .zip(&sc)
+            .all(|(a, b)| (a * k - b).abs() < 1e-5));
+        // linear snaps only quaternion-map inputs: a head-shaped
+        // ([vocab, width]) or NoRead-shaped ([heads, width]) map is untouched.
+        let config = model.config.clone();
+        let x = random(&mut Initializer(7), &[3, config.width], 1.0);
+        for rows in [config.vocab_size, config.heads, 8] {
+            let w = random(&mut Initializer(9), &[rows, config.width], 1.0);
+            model.set_activation_snap(ActivationSnap::None);
+            let plain = model.linear(&x, &w)?.flatten_all()?.to_vec1::<f32>()?;
+            model.set_activation_snap(ActivationSnap::Icosian);
+            let snapped = model.linear(&x, &w)?.flatten_all()?.to_vec1::<f32>()?;
+            assert_eq!(plain == snapped, rows != 8, "rows {rows}");
         }
         Ok(())
     }

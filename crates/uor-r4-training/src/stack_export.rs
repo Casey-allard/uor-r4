@@ -369,6 +369,9 @@ pub fn export_stack(
     calibration: Option<(&StackCalibration, f64)>,
     snap: Option<TransportSnap>,
 ) -> Result<(Vec<u8>, Value)> {
+    if model.quaternion_weights() != crate::geometric_stack::QuaternionWeights::None {
+        return Err(crate::geometric_stack::quaternion_served_refusal());
+    }
     if model.read_identity_carry() {
         return Err(invalid("read identity carry has no integer export"));
     }

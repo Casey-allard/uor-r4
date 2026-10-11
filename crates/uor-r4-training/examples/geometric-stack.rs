@@ -9,7 +9,7 @@
 //!   out=NEW_REPORT_ROOT (init=ROOT/model | arch=transformer|geometric) [pattern=rrarra] \
 //!   [read=lorentz|dot|l2] [rotation=true|false] [rotation_group=quaternion|u1] [qat=false|true] \
 //!   [transport_snap=none|icosian] [key_shift=false|true|add] [select=none|flock:WINDOW:K] \
-//!   [read_weighting=softmax|rank|hamming_rank|learned_rank] \
+//!   [read_weighting=softmax|rank|hamming_rank|learned_rank] [quaternion_weights=none|all] \
 //!   [seed=1] [steps=7324] [batch=16] [lr=0.002] [warmup=200] [min_lr=0.1] [weight_decay=0.1] \
 //!   [clip=1.0] [eval_every=250] [eval_windows=64] [final_windows=512] [lens=LENS.u16] \
 //!   [merges=MERGES.txt] [checkpoint_every=250] [resume=OLD_ROOT/checkpoint] [max_seconds=inf] \
@@ -277,6 +277,17 @@
 //! clears it); the saved `config.json` records it, every load restores it, and
 //! a resume keeps the checkpoint's (a different explicit value is refused).
 //! The report records the requested value (`read_weighting`, null when absent).
+//! `quaternion_weights=none|all` (`train`) makes every learned projection map
+//! of a geometric stack quaternion-valued (`StackModel::set_quaternion_weights`):
+//! each 4x4 block of `rec.in/gate/out`, `read.query/key/value/out` and
+//! `mlp.gate/up/down` is the Hamilton left-multiplication matrix of one learned
+//! quaternion, stored compact (`*.quaternion`, `[out/4, in/4, 4]`), so those
+//! maps hold a quarter of the parameters. A training study only: `arch=geometric`
+//! on a fresh model (an `init=` model keeps its own; a dense `init=` model is
+//! refused), and `qat=true`, `transport_snap=` and `export` are refused (no
+//! served form yet). Absent keeps the model's own (`none` for a fresh one); the
+//! saved `config.json` records `all`, every load restores it, a resume refuses a
+//! different explicit value, and the report and lineage record the request.
 //! `pointer_route=prime:WINDOW` (`dialogue-train`) replaces the pointer's
 //! learned scores by the exact prime route of ADR-0003
 //! (`uor_r4_training::geometric_stack::PrimeRoute`): a source is admitted when
@@ -336,9 +347,10 @@ use uor_r4_training::dialogue_episodes::{EpisodeIndex, PrefixPolicy, EPISODE_CON
 use uor_r4_training::flock::FlockSelect;
 use uor_r4_training::geometric_stack::{
     average_replica_gradients, logits_cross_entropy, parse_flock_select, parse_pointer_route,
-    parse_pointer_select, D11Interim, MapCodec, PointerConfig, PointerIdentity, PointerSelect,
-    Precision, PrimeRoute, ReadLineage, ReadScore, ReadWeighting, RotationGroup, ServedStatistics,
-    StackAdamW, StackArch, StackConfig, StackModel, TransportSnap, TransportUsage,
+    parse_pointer_select, quaternion_served_refusal, ActivationSnap, D11Interim, MapCodec,
+    PointerConfig, PointerIdentity, PointerSelect, Precision, PrimeRoute, QuaternionWeights,
+    ReadLineage, ReadScore, ReadWeighting, RotationGroup, ServedStatistics, StackAdamW, StackArch,
+    StackConfig, StackModel, TransportSnap, TransportUsage,
 };
 use uor_r4_training::lut_export::export_llama;
 use uor_r4_training::stack_dialogue::{
@@ -762,6 +774,8 @@ struct Settings {
     key_shift: KeyShift,
     /// `read_weighting=`; `None` keeps the model's own.
     read_weighting: Option<ReadWeighting>,
+    /// `quaternion_weights=`; `None` keeps the model's own.
+    quaternion_weights: Option<QuaternionWeights>,
     /// `softsort_tau_start=`/`softsort_tau_end=` for `read_weighting=softsort_rank`
     /// (defaults 1.0 and 0.01): the SoftSort temperature falls geometrically
     /// from start to end over the run and is set only around each optimizer
@@ -1229,6 +1243,7 @@ impl Settings {
             "key_shift": self.key_shift.name(),
             "select": self.config.select,
             "read_weighting": self.read_weighting,
+            "quaternion_weights": self.quaternion_weights,
             "softsort_tau": self.softsort_tau.map(|(start, end)| json!({"start": start, "end": end, "schedule": "geometric over steps, training forward only"})),
             "steps": self.steps, "batch": self.batch, "lr": self.lr,
             "warmup": self.warmup, "min_lr": self.min_lr, "weight_decay": self.weight_decay,
@@ -1265,6 +1280,9 @@ impl Settings {
         }
         if let Some(weighting) = self.read_weighting {
             lineage["read_weighting"] = json!(weighting);
+        }
+        if let Some(mode) = self.quaternion_weights {
+            lineage["quaternion_weights"] = json!(mode);
         }
         lineage
     }
@@ -1629,6 +1647,44 @@ fn softsort_tau_at(schedule: (f64, f64), step: usize, steps: usize) -> f64 {
     start * (end / start).powf(fraction.min(1.0))
 }
 
+/// `quaternion_weights=none|all`; absent (`None`) keeps the model's own.
+fn quaternion_weights_arg(args: &Args) -> Result<Option<QuaternionWeights>> {
+    args.optional("quaternion_weights")
+        .map(|text| Ok(QuaternionWeights::parse(&text)?))
+        .transpose()
+}
+
+/// Sets `quaternion_weights=` on a new model (before the optimizer); an
+/// `init=` model keeps its own, and a different explicit value is refused
+/// (a dense model's maps cannot become quaternion-valued without
+/// re-initialising them).
+fn apply_quaternion_weights(
+    asked: Option<QuaternionWeights>,
+    model: &mut StackModel,
+    fresh: bool,
+) -> Result<()> {
+    match asked {
+        Some(mode) if fresh => model.set_quaternion_weights(mode),
+        Some(mode) if mode != model.quaternion_weights() => Err(invalid(
+            "the init= model and quaternion_weights= disagree on the quaternion weights",
+        )),
+        _ => Ok(()),
+    }
+}
+
+/// A resume keeps the checkpoint's mode; a different explicit one is refused.
+fn check_resumed_quaternion_weights(
+    asked: Option<QuaternionWeights>,
+    model: &StackModel,
+) -> Result<()> {
+    match asked {
+        Some(mode) if mode != model.quaternion_weights() => Err(invalid(
+            "the checkpoint's model and quaternion_weights= disagree on the quaternion weights",
+        )),
+        _ => Ok(()),
+    }
+}
+
 /// Sets `read_weighting=` on an `init=` or new model; absent keeps its own.
 fn apply_read_weighting(asked: Option<ReadWeighting>, model: &mut StackModel) -> Result<()> {
     match asked {
@@ -1672,6 +1728,15 @@ fn train_settings(args: &Args) -> Result<Settings> {
     if let Some(snap) = transport_snap {
         snap.check(&config)?;
     }
+    let quaternion_weights = quaternion_weights_arg(args)?;
+    if quaternion_weights == Some(QuaternionWeights::All) {
+        if config.arch != StackArch::Geometric {
+            return Err(invalid("quaternion_weights=all needs arch=geometric"));
+        }
+        if qat || transport_snap.is_some() {
+            return Err(quaternion_served_refusal());
+        }
+    }
     let key_shift = key_shift_arg(args)?;
     if key_shift.enabled() && (config.arch != StackArch::Geometric || !config.pattern.contains('a'))
     {
@@ -1714,6 +1779,7 @@ fn train_settings(args: &Args) -> Result<Settings> {
         transport_snap,
         key_shift,
         read_weighting: read_weighting_arg(args)?,
+        quaternion_weights,
         softsort_tau: softsort_tau_arg(args)?,
         steps: args.number("steps", 7324)?,
         batch: args.number("batch", 16)?,
@@ -2235,7 +2301,12 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
                     model
                 }
             };
-            // Before the optimizer: learned_rank adds trained logits.
+            // Before the optimizer: both replace or add trained variables.
+            apply_quaternion_weights(
+                settings.quaternion_weights,
+                &mut model,
+                settings.init.is_none(),
+            )?;
             apply_read_weighting(settings.read_weighting, &mut model)?;
             let optimizer = StackAdamW::new(&model, settings.weight_decay, settings.clip)?;
             let progress = Progress {
@@ -2251,6 +2322,7 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
                 load_checkpoint(checkpoint, &lineage, &device)?;
             settings.key_shift.check_resumed(&model)?;
             check_resumed_read_weighting(settings.read_weighting, &model)?;
+            check_resumed_quaternion_weights(settings.quaternion_weights, &model)?;
             (model, optimizer, progress, Some(state))
         }
     };
@@ -2260,7 +2332,14 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
     // any learned rank logits the optimizer already holds.
     model.set_read_weighting(model.read_weighting())?;
     let parameters = model.parameter_count();
-    let active_parameters = model.config.active_parameter_count()?;
+    let active_parameters = match model.quaternion_weights() {
+        QuaternionWeights::None => model.config.active_parameter_count()?,
+        // The configuration counts dense maps; only memory rows are idle.
+        QuaternionWeights::All => {
+            parameters
+                - (model.config.parameter_count()? - model.config.active_parameter_count()?)
+        }
+    };
     eprintln!(
         "{:?} pattern {} read {:?} rotation {} precision {}: {parameters} parameters ({active_parameters} read per token), mlp {}",
         model.config.arch,
@@ -2282,6 +2361,7 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
         replica.set_precision(settings.precision);
         replica.set_read_key_shift(model.read_key_shift())?;
         replica.set_read_weighting(model.read_weighting())?;
+        replica.set_quaternion_weights(model.quaternion_weights())?;
         replica.copy_variables_from(&model)?;
         eprintln!(
             "data parallel: replica on GPU 1, batch halves of {}",
@@ -2600,6 +2680,7 @@ fn evaluate_mode(arguments: &[String]) -> Result<()> {
             "lens",
             "max_blocks",
             "softsort_tau",
+            "activation_snap",
         ],
     )?;
     let model_dir = PathBuf::from(args.required("model")?);
@@ -2623,6 +2704,17 @@ fn evaluate_mode(arguments: &[String]) -> Result<()> {
         // training forward at temperature T instead of the hard (served) rank
         // read: the soft-versus-hard gap shows whether training converged onto
         // the hard table, and the T where the two part shows the score scale.
+        match args.optional("activation_snap").as_deref() {
+            None | Some("none") => {}
+            Some("icosian") => model.set_activation_snap(ActivationSnap::Icosian),
+            Some("direction") => model.set_activation_snap(ActivationSnap::Direction),
+            Some("scale") => model.set_activation_snap(ActivationSnap::Scale),
+            Some(other) => {
+                return Err(invalid(format!(
+                    "invalid activation_snap={other} (none, icosian, direction or scale)"
+                )))
+            }
+        }
         if let Some(tau) = softsort_tau {
             if model.read_weighting() != ReadWeighting::SoftsortRank {
                 return Err(invalid(
@@ -2681,6 +2773,7 @@ fn evaluate_mode(arguments: &[String]) -> Result<()> {
                 "tokens": identity(&tokens_path)?,
                 "lens": lens_path.as_ref().map(|p| identity(p)).transpose()?,
                 "softsort_tau": softsort_tau,
+                "activation_snap": args.optional("activation_snap").unwrap_or_else(|| "none".into()),
                 "tune": summary(0..tune_blocks),
                 "comparison": summary(tune_blocks..blocks),
                 "full": summary(0..blocks),
@@ -6421,6 +6514,7 @@ fn main() -> Result<()> {
                     "key_shift",
                     "select",
                     "read_weighting",
+                    "quaternion_weights",
                     "softsort_tau_start",
                     "softsort_tau_end",
                     "data_parallel",

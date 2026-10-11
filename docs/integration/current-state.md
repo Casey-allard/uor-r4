@@ -1,3 +1,15 @@
+## 2026-10-11 — Quaternion-valued matrices: KEEP. Structure beats plain sizing at equal weight bytes; the compute saving waits on icosian table products (claude, #2032)
+
+The [record](../labs/quaternion-weights-2026-10-11/README.md) measures rung 0 of the spin-native design on the laptop, at \$0.
+- **The arm:** every projection map is quaternion-valued (`quaternion_weights=all`), so each 4×4 block is one Hamilton product.
+- **Against dense at equal total parameters:** Q256 scores 1.4959 BPB against D152's 1.5136, −0.018, six times the noise. The two read almost the same weight bytes per token (8.55 against 8.62 MB).
+- **Against dense at equal width:** 4× fewer matrix weights costs +0.088 (D256 1.4078).
+- **Arithmetic is unchanged:** a Hamilton block is still 16 multiply-adds. Removing it needs icosian table products.
+
+Line: geometric weights · count reset (KEEP) · headline: softmax at runtime yes → yes (served 0.886838 BPB).
+
+**Next:** the spin-snap probe on the three Q256 models (pre-registered, FIT, running): do icosian table-lookup products carry them? Then the starling read and E8 orbit memory rungs (both pre-registered, FIT, queued on the laptop).
+
 ## 2026-10-11 — Head ablation: the supervised read layer is where the answers come from (deepseek, #2029, D22 order 4)
 
 The [head-ablation round](../labs/head-ablation-2026-10-11/README.md) answers the read-binding brief's last unmet requirement — *"a
