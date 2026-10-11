@@ -428,6 +428,157 @@ fn learned_rank_shapes(config: &StackConfig) -> Result<Vec<(String, Vec<usize>)>
         .collect())
 }
 
+/// The starling read ([`StackModel::set_read_route`]): each query reads at
+/// most `k` sources, the nearest by S3 geodesic among the last `m` keys
+/// stored in its own 600-cell vertex and that vertex's 12 neighbours. No
+/// all-pairs score, no softmax and no age table.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct StarlingRoute {
+    pub m: usize,
+    pub k: usize,
+}
+
+impl StarlingRoute {
+    pub fn name(&self) -> String {
+        format!("starling:{}:{}", self.m, self.k)
+    }
+}
+
+/// Parse `read_route=`: `none` or `starling:M:K` (both positive).
+pub fn parse_read_route(text: &str) -> Result<Option<StarlingRoute>> {
+    if text == "none" {
+        return Ok(None);
+    }
+    let bad = || invalid(format!("invalid read_route={text} (none or starling:M:K)"));
+    match text.split(':').collect::<Vec<_>>().as_slice() {
+        ["starling", m, k] => {
+            let m: usize = m.parse().map_err(|_| bad())?;
+            let k: usize = k.parse().map_err(|_| bad())?;
+            if m == 0 || k == 0 {
+                return Err(bad());
+            }
+            Ok(Some(StarlingRoute { m, k }))
+        }
+        _ => Err(bad()),
+    }
+}
+
+/// `config.json` field of the starling read route, written only when set.
+pub const READ_ROUTE_FIELD: &str = "read_route";
+// Separate query and key address maps: with one shared map the key shift's
+// `j`-turned copy of the previous key is orthogonal to the query's own
+// address (<v, j v> = 0) and could never match it.
+const STARLING_QUERY_ADDRESS: &str = "read.starling.query_address.weight";
+const STARLING_KEY_ADDRESS: &str = "read.starling.key_address.weight";
+const STARLING_RANK: &str = "read.starling.rank";
+const STARLING_BETA: &str = "read.starling.beta";
+const STARLING_GAMMA: &str = "read.starling.gamma";
+
+/// The starling read's variables, per read layer.
+fn starling_shapes(config: &StackConfig, route: StarlingRoute) -> Vec<(String, Vec<usize>)> {
+    let side = route.k + 1;
+    (0..config.layers())
+        .filter(|&layer| config.pattern.as_bytes()[layer] == b'a')
+        .flat_map(|layer| {
+            [
+                (
+                    layer_name(layer, STARLING_QUERY_ADDRESS),
+                    vec![config.heads * 4, config.width],
+                ),
+                (
+                    layer_name(layer, STARLING_KEY_ADDRESS),
+                    vec![config.heads * 4, config.width],
+                ),
+                (
+                    layer_name(layer, STARLING_RANK),
+                    vec![config.heads, side, side],
+                ),
+                (layer_name(layer, STARLING_BETA), vec![config.heads]),
+                (layer_name(layer, STARLING_GAMMA), vec![config.heads]),
+            ]
+        })
+        .collect()
+}
+
+/// The 600-cell's vertex adjacency over the 120 unit icosians
+/// ([`icosian_roots`]): each vertex's 12 nearest vertices (dot product
+/// `phi/2`, the largest below 1).
+fn starling_adjacency() -> Result<&'static [[usize; 12]]> {
+    static ADJACENCY: OnceLock<std::result::Result<Vec<[usize; 12]>, String>> = OnceLock::new();
+    ADJACENCY
+        .get_or_init(|| {
+            let roots = icosian_roots();
+            let threshold = ((1.0 + 5f32.sqrt()) / 4.0) - 1e-3;
+            roots
+                .iter()
+                .enumerate()
+                .map(|(i, a)| {
+                    let near: Vec<usize> = roots
+                        .iter()
+                        .enumerate()
+                        .filter(|&(j, b)| {
+                            j != i && (0..4).map(|c| a[c] * b[c]).sum::<f32>() > threshold
+                        })
+                        .map(|(j, _)| j)
+                        .collect();
+                    near.try_into().map_err(|near: Vec<usize>| {
+                        format!("vertex {i} has {} neighbours", near.len())
+                    })
+                })
+                .collect()
+        })
+        .as_ref()
+        .map(Vec::as_slice)
+        .map_err(|message| invalid(message.clone()))
+}
+
+/// One (batch row, head) of the starling selection, on unit 4-vectors
+/// `query` and `key` (`[time, 4]` flattened). Scanning `j` in order, key `j`
+/// enters the ring buffer (depth `m`) of its nearest icosian before query `j`
+/// reads; query `t` keeps the `k` candidates of its own cell and the 12
+/// adjacent cells with the largest dot product (ties: later position). Returns
+/// each query's kept positions in rank order.
+fn starling_select(
+    query: &[f32],
+    key: &[f32],
+    time: usize,
+    route: StarlingRoute,
+) -> Result<Vec<Vec<usize>>> {
+    let roots = icosian_roots();
+    let adjacency = starling_adjacency()?;
+    let vector = |values: &[f32], t: usize| -> [f32; 4] {
+        [
+            values[4 * t],
+            values[4 * t + 1],
+            values[4 * t + 2],
+            values[4 * t + 3],
+        ]
+    };
+    let mut buffers: Vec<std::collections::VecDeque<usize>> =
+        vec![std::collections::VecDeque::new(); roots.len()];
+    let mut kept = Vec::with_capacity(time);
+    for t in 0..time {
+        let cell = nearest_root(vector(key, t), roots);
+        if buffers[cell].len() == route.m {
+            buffers[cell].pop_front();
+        }
+        buffers[cell].push_back(t);
+        let q = vector(query, t);
+        let home = nearest_root(q, roots);
+        let mut candidates: Vec<(f32, usize)> = std::iter::once(home)
+            .chain(adjacency[home].iter().copied())
+            .flat_map(|c| buffers[c].iter().copied())
+            .map(|j| {
+                let b = vector(key, j);
+                ((0..4).map(|c| q[c] * b[c]).sum::<f32>(), j)
+            })
+            .collect();
+        candidates.sort_by(|x, y| y.0.total_cmp(&x.0).then(y.1.cmp(&x.1)));
+        kept.push(candidates.iter().take(route.k).map(|&(_, j)| j).collect());
+    }
+    Ok(kept)
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ReadScore {
@@ -2181,6 +2332,8 @@ pub struct StackModel {
     /// Each read key also carries the previous position's key, turned by the
     /// fixed unit quaternion `j` ([`Self::set_read_key_shift`]).
     read_key_shift: bool,
+    /// The starling read route of every geometric read ([`Self::set_read_route`]).
+    read_route: Option<StarlingRoute>,
     /// How the geometric reads weight their kept sources
     /// ([`Self::set_read_weighting`]).
     read_weighting: ReadWeighting,
@@ -2269,6 +2422,7 @@ impl StackModel {
             geometric_span: None,
             read_key_shift: false,
             activation_snap: ActivationSnap::None,
+            read_route: None,
             read_weighting: ReadWeighting::Softmax,
             softsort_tau: None,
             read_lineage: None,
@@ -2918,6 +3072,25 @@ impl StackModel {
         tap(capture, StackSite::Read(layer), || self.unit_norm(x))?;
         let u = self.norm(p, x, &layer_name(layer, "read_norm.weight"))?;
         let identity = self.read_identity_input(&u)?;
+        if let Some(route) = self.read_route {
+            // The starling read: no query/key scores, NoRead bias or age table.
+            let value = self.heads(
+                &self.linear(&u, p.layer(layer, "read.value.weight")?)?,
+                batch,
+                time,
+            )?;
+            let (value, value_width) = self.read_binding_values(value, layer, binding)?;
+            let read = self.starling_read(p, layer, &identity, &value, route)?;
+            return self.finish_geometric_read(
+                p,
+                layer,
+                &read,
+                value_width,
+                capture,
+                binding,
+                None,
+            );
+        }
         let latched = match (self.read_identity_latch, gates) {
             (_, LatchGates::Projections(..)) => None,
             (Some(mode), _) => Some(match gates {
@@ -3070,6 +3243,111 @@ impl StackModel {
             )?
         };
         self.finish_geometric_read(p, layer, &read, value_width, capture, binding, bound)
+    }
+
+    /// The starling read of [`Self::set_read_route`] on the read identity
+    /// input and the projected values `[batch, heads, time, value_width]`.
+    /// Selection is on the host and detached; the weights
+    /// `R[h][m][r] * sigmoid(beta_h <a_t, b_j> + gamma_h)` and the value mix
+    /// are tensor operations, so addresses, table, gate and values all get
+    /// exact gradients.
+    fn starling_read(
+        &self,
+        p: &Params<'_>,
+        layer: usize,
+        identity: &Tensor,
+        value: &Tensor,
+        route: StarlingRoute,
+    ) -> Result<Tensor> {
+        let (batch, time, _) = identity.dims3()?;
+        let heads = self.config.heads;
+        let (k, side) = (route.k, route.k + 1);
+        let raw = self
+            .linear(identity, p.layer(layer, STARLING_QUERY_ADDRESS)?)?
+            .to_dtype(DType::F32)?;
+        let keyed = self
+            .linear(identity, p.layer(layer, STARLING_KEY_ADDRESS)?)?
+            .to_dtype(DType::F32)?;
+        let keyed = if self.read_key_shift {
+            previous_key_channel(&keyed)?
+        } else {
+            keyed
+        };
+        let unit = |x: &Tensor| -> Result<Tensor> {
+            let x = x
+                .reshape((batch, time, heads, 4))?
+                .transpose(1, 2)?
+                .contiguous()?;
+            let norm = x.sqr()?.sum_keepdim(3)?.affine(1.0, 1e-12)?.sqrt()?;
+            Ok(x.broadcast_div(&norm)?)
+        };
+        let (a, b) = (unit(&raw)?, unit(&keyed)?);
+        let (host_a, host_b) = (
+            a.detach().flatten_all()?.to_vec1::<f32>()?,
+            b.detach().flatten_all()?.to_vec1::<f32>()?,
+        );
+        let rows = batch * heads;
+        let mut index = vec![0u32; rows * time * k];
+        let mut live = vec![0f32; rows * time * k];
+        let mut rank = vec![0u32; rows * time * k];
+        let span = time * 4;
+        let selections: Vec<Vec<Vec<usize>>> = (0..rows)
+            .into_par_iter()
+            .map(|row| {
+                starling_select(
+                    &host_a[row * span..(row + 1) * span],
+                    &host_b[row * span..(row + 1) * span],
+                    time,
+                    route,
+                )
+            })
+            .collect::<Result<_>>()?;
+        for (row, kept) in selections.iter().enumerate() {
+            for (t, sources) in kept.iter().enumerate() {
+                let base = (row * time + t) * k;
+                for (r, &j) in sources.iter().enumerate() {
+                    index[base + r] = j as u32;
+                    live[base + r] = 1.0;
+                    rank[base + r] = (sources.len() * side + r) as u32;
+                }
+            }
+        }
+        let device = identity.device();
+        let index = Tensor::from_vec(index, (batch, heads, time * k), device)?;
+        let live = Tensor::from_vec(live, (batch, heads, time, k), device)?;
+        let rank = Tensor::from_vec(rank, (batch, heads, time, k), device)?;
+        let gather_rows = |x: &Tensor, width: usize| -> Result<Tensor> {
+            let wide = index
+                .unsqueeze(3)?
+                .broadcast_as((batch, heads, time * k, width))?
+                .contiguous()?;
+            Ok(x.contiguous()?
+                .gather(&wide, 2)?
+                .reshape((batch, heads, time, k, width))?)
+        };
+        let dot = a
+            .unsqueeze(3)?
+            .broadcast_mul(&gather_rows(&b, 4)?)?
+            .sum(4)?;
+        let beta = p.layer(layer, STARLING_BETA)?.reshape((1, heads, 1, 1))?;
+        let gamma = p.layer(layer, STARLING_GAMMA)?.reshape((1, heads, 1, 1))?;
+        let gate = dot
+            .broadcast_mul(&beta)?
+            .broadcast_add(&gamma)?
+            .neg()?
+            .exp()?
+            .affine(1.0, 1.0)?
+            .recip()?;
+        let table = p
+            .layer(layer, STARLING_RANK)?
+            .reshape((1, heads, 1, side * side))?
+            .broadcast_as((batch, heads, time, side * side))?
+            .contiguous()?
+            .gather(&rank, 3)?;
+        let weights = table.mul(&gate)?.mul(&live)?;
+        let value_width = value.dim(3)?;
+        let values = gather_rows(&value.to_dtype(DType::F32)?, value_width)?;
+        Ok(weights.unsqueeze(4)?.broadcast_mul(&values)?.sum(3)?)
     }
 
     /// One phase of [`ReadLineage::PhaseBinding`] (`map` and `bias` the key's
@@ -3588,6 +3866,88 @@ impl StackModel {
         }
         self.read_key_shift = enabled;
         Ok(())
+    }
+
+    /// Opt into the starling read ([`StarlingRoute`]) at every geometric read,
+    /// or `None` to remove it. Each read layer gains an address map
+    /// query and key address maps ([`STARLING_QUERY_ADDRESS`],
+    /// [`STARLING_KEY_ADDRESS`], each `[heads * 4, width]`), a plain learned rank table
+    /// [`STARLING_RANK`] `[heads, k + 1, k + 1]` (`1/k` where `r < m`, else 0;
+    /// no softmax and no normalisation) and a gate slope and bias per head.
+    /// The weight of kept source `j` at rank `r` among `m` kept is
+    /// `R[h][m][r] * sigmoid(beta_h * <a_t, b_j> + gamma_h)` on the unit
+    /// addresses. It reads no age table, so it runs past the trained context.
+    /// Setting the same route again keeps the variables. Refused with a served
+    /// form, bf16, a flock selection, a softmax-free weighting, a geometric
+    /// address, a read lineage or an identity latch; it has no export.
+    pub fn set_read_route(&mut self, route: Option<StarlingRoute>) -> Result<()> {
+        if let Some(route) = route {
+            if self.config.arch != StackArch::Geometric || !self.config.pattern.contains('a') {
+                return Err(invalid(
+                    "the starling read needs a geometric stack with a read layer",
+                ));
+            }
+            if self.served.is_some()
+                || self.precision.is_bf16()
+                || self.config.select.is_some()
+                || self.read_weighting != ReadWeighting::Softmax
+                || self.geometric_address.is_some()
+                || self.read_lineage.is_some()
+                || self.read_identity_latch.is_some()
+            {
+                return Err(invalid(
+                    "the starling read excludes a served form, bf16, flock selection, other read weightings, geometric address, lineage and latch",
+                ));
+            }
+            if let Some(existing) = self.read_route {
+                if existing != route {
+                    return Err(invalid("the starling route is already fixed"));
+                }
+            }
+            starling_adjacency()?;
+            let mut rng = Initializer(self.config.seed ^ 0x7374_6172_6c69_6e67);
+            for (name, shape) in starling_shapes(&self.config, route) {
+                if self.variables.contains_key(&name) {
+                    continue;
+                }
+                let count: usize = shape.iter().product();
+                let values: Vec<f32> = if name.ends_with(STARLING_QUERY_ADDRESS)
+                    || name.ends_with(STARLING_KEY_ADDRESS)
+                {
+                    (0..count)
+                        .map(|_| (rng.normal() * INITIAL_STD) as f32)
+                        .collect()
+                } else if name.ends_with(STARLING_RANK) {
+                    let side = route.k + 1;
+                    (0..count)
+                        .map(|i| {
+                            let (m, r) = ((i / side) % side, i % side);
+                            if r < m {
+                                1.0 / route.k as f32
+                            } else {
+                                0.0
+                            }
+                        })
+                        .collect()
+                } else if name.ends_with(STARLING_BETA) {
+                    vec![4.0; count]
+                } else {
+                    vec![0.0; count]
+                };
+                self.variables
+                    .insert(name, Var::from_vec(values, shape.as_slice(), &self.device)?);
+            }
+        } else {
+            self.variables
+                .retain(|name, _| !name.contains(".read.starling."));
+        }
+        self.read_route = route;
+        Ok(())
+    }
+
+    /// The starling read route, if any.
+    pub fn read_route(&self) -> Option<StarlingRoute> {
+        self.read_route
     }
 
     /// Whether every read key carries the `j`-turned previous key.
@@ -7835,7 +8195,10 @@ impl StackModel {
     }
 
     fn embed_with(&self, p: &Params<'_>, ids: &[u32], batch: usize, time: usize) -> Result<Tensor> {
-        if ids.len() != batch * time || time == 0 || time > self.config.context {
+        // The context bounds the read's age table; a starling read has none,
+        // so its model runs at any length.
+        let bounded = self.read_route.is_none() && time > self.config.context;
+        if ids.len() != batch * time || time == 0 || bounded {
             return Err(invalid(
                 "stack forward needs batch * time ids within the context",
             ));
@@ -9195,10 +9558,9 @@ impl StackModel {
         ));
         // The gate the mixture uses, from the same sigmoid value
         // [`Self::floored_gate`] returns for this logit.
-        let gate = self
-            .floored_gate(f64::from(
-                side[(time - 1) * (2 * pointer.dim + 1) + 2 * pointer.dim],
-            ));
+        let gate = self.floored_gate(f64::from(
+            side[(time - 1) * (2 * pointer.dim + 1) + 2 * pointer.dim],
+        ));
         let lse = row_log_sum_exp(&logits);
         let mut mixture: Vec<f64> = logits
             .iter()
@@ -9439,6 +9801,12 @@ impl StackModel {
             // Only when set, so every dense model keeps its exact bytes.
             let mut with_field: serde_json::Value = serde_json::from_slice(&config)?;
             with_field[QUATERNION_WEIGHTS_FIELD] = serde_json::to_value(self.quaternion_weights)?;
+            config = serde_json::to_vec_pretty(&with_field)?;
+        }
+        if let Some(route) = self.read_route {
+            // Only when set, so every other model keeps its exact bytes.
+            let mut with_field: serde_json::Value = serde_json::from_slice(&config)?;
+            with_field[READ_ROUTE_FIELD] = serde_json::Value::String(route.name());
             config = serde_json::to_vec_pretty(&with_field)?;
         }
         if self.read_weighting != ReadWeighting::Softmax {
@@ -9831,6 +10199,11 @@ impl StackModel {
             check_quaternion_arch(&config)?;
             shapes = quaternion_shapes(shapes)?;
         }
+        let read_route = Self::saved_read_route(directory)?;
+        if let Some(route) = read_route {
+            // Restored, not re-initialised, by set_read_route below.
+            shapes.extend(starling_shapes(&config, route));
+        }
         if tensors.len() != shapes.len() {
             return Err(invalid("saved stack tensors differ from the configuration"));
         }
@@ -9859,6 +10232,7 @@ impl StackModel {
             geometric_span,
             read_key_shift: false,
             activation_snap: ActivationSnap::None,
+            read_route: None,
             read_weighting: ReadWeighting::Softmax,
             softsort_tau: None,
             read_lineage: None,
@@ -9888,7 +10262,22 @@ impl StackModel {
             model.read_lineage = Some(lineage);
         }
         model.set_read_weighting(read_weighting)?;
+        model.set_read_route(read_route)?;
         Ok(model)
+    }
+
+    /// The saved starling read route of `directory` (`config.json` field
+    /// [`READ_ROUTE_FIELD`]). Absent means none.
+    pub fn saved_read_route(directory: &Path) -> Result<Option<StarlingRoute>> {
+        let config: serde_json::Value =
+            serde_json::from_slice(&fs::read(directory.join("config.json"))?)?;
+        match config.get(READ_ROUTE_FIELD) {
+            None => Ok(None),
+            Some(serde_json::Value::String(text)) => parse_read_route(text),
+            Some(_) => Err(invalid(format!(
+                "config.json's {READ_ROUTE_FIELD} must be a string"
+            ))),
+        }
     }
 
     /// The saved Step 7a read lineage of `directory` (`config.json` field
@@ -30455,6 +30844,161 @@ mod tests {
             let snapped = model.linear(&x, &w)?.flatten_all()?.to_vec1::<f32>()?;
             assert_eq!(plain == snapped, rows != 8, "rows {rows}");
         }
+        Ok(())
+    }
+
+    fn unit_rows(rng: &mut Initializer, count: usize) -> Vec<f32> {
+        let mut out = Vec::with_capacity(count * 4);
+        for _ in 0..count {
+            let v: Vec<f64> = (0..4).map(|_| rng.normal()).collect();
+            let n = v.iter().map(|x| x * x).sum::<f64>().sqrt();
+            out.extend(v.iter().map(|x| (x / n) as f32));
+        }
+        out
+    }
+
+    #[test]
+    fn starling_adjacency_is_twelve_regular_and_symmetric() -> Result<()> {
+        let adjacency = starling_adjacency()?;
+        assert_eq!(adjacency.len(), 120);
+        for (i, near) in adjacency.iter().enumerate() {
+            assert!(!near.contains(&i));
+            for &j in near {
+                assert!(adjacency[j].contains(&i), "{i} -> {j} is not symmetric");
+            }
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn starling_select_matches_a_brute_force_reference() -> Result<()> {
+        let roots = icosian_roots();
+        let adjacency = starling_adjacency()?;
+        for seed in 0..8 {
+            let mut rng = Initializer(300 + seed);
+            let time = 40;
+            let (query, key) = (unit_rows(&mut rng, time), unit_rows(&mut rng, time));
+            let route = StarlingRoute { m: 2, k: 3 };
+            let kept = starling_select(&query, &key, time, route)?;
+            let vector = |v: &[f32], t: usize| [v[4 * t], v[4 * t + 1], v[4 * t + 2], v[4 * t + 3]];
+            let cells: Vec<usize> = (0..time)
+                .map(|t| nearest_root(vector(&key, t), roots))
+                .collect();
+            for t in 0..time {
+                let home = nearest_root(vector(&query, t), roots);
+                let allowed: Vec<usize> = std::iter::once(home)
+                    .chain(adjacency[home].iter().copied())
+                    .collect();
+                let mut candidates: Vec<(f32, usize)> = Vec::new();
+                for &cell in &allowed {
+                    let recent: Vec<usize> = (0..=t).filter(|&j| cells[j] == cell).collect();
+                    for &j in recent.iter().rev().take(route.m) {
+                        let q = vector(&query, t);
+                        let b = vector(&key, j);
+                        candidates.push(((0..4).map(|c| q[c] * b[c]).sum::<f32>(), j));
+                    }
+                }
+                candidates.sort_by(|x, y| y.0.total_cmp(&x.0).then(y.1.cmp(&x.1)));
+                let expected: Vec<usize> =
+                    candidates.iter().take(route.k).map(|&(_, j)| j).collect();
+                assert_eq!(kept[t], expected, "seed {seed} t {t}");
+            }
+        }
+        Ok(())
+    }
+
+    fn starling_model() -> Result<StackModel> {
+        let mut model = StackModel::new(
+            tiny(StackArch::Geometric, "ra", ReadScore::L2, true),
+            &cpu(),
+        )?;
+        model.set_read_route(Some(StarlingRoute { m: 3, k: 4 }))?;
+        Ok(model)
+    }
+
+    #[test]
+    fn starling_read_gradient_matches_finite_differences() -> Result<()> {
+        let model = starling_model()?;
+        let ids: Vec<u32> = (0..24u32).map(|i| (i * 7 + 3) % 37).collect();
+        let weights = random(&mut Initializer(23), &[24, 37], 1.0);
+        // Table, gate and values: the selection does not depend on them.
+        let smooth: Vec<Var> = [
+            "layers.01.read.starling.rank",
+            "layers.01.read.starling.beta",
+            "layers.01.read.starling.gamma",
+            "layers.01.read.value.weight",
+        ]
+        .iter()
+        .map(|name| model.variables()[*name].clone())
+        .collect();
+        check_gradient(
+            &smooth,
+            || Ok(model.forward(&ids, 2, 12)?.mul(&weights)?.sum_all()?),
+            5e-3,
+        )?;
+        // The address reaches the loss through the gate's dot product; a
+        // small step keeps every cell, so the selection is unchanged.
+        let address = model.variables()["layers.01.read.starling.key_address.weight"].clone();
+        let loss = || -> Result<f64> {
+            Ok(f64::from(
+                model
+                    .forward(&ids, 2, 12)?
+                    .mul(&weights)?
+                    .sum_all()?
+                    .to_scalar::<f32>()?,
+            ))
+        };
+        let grads = model
+            .forward(&ids, 2, 12)?
+            .mul(&weights)?
+            .sum_all()?
+            .backward()?;
+        let grad = grads
+            .get(address.as_tensor())
+            .ok_or_else(|| invalid("missing gradient"))?;
+        let direction = random(&mut Initializer(41), address.dims(), 1.0);
+        let analytic = f64::from(grad.mul(&direction)?.sum_all()?.to_scalar::<f32>()?);
+        let original = address.as_tensor().copy()?;
+        let epsilon = 1e-4;
+        address.set(&original.add(&direction.affine(epsilon, 0.0)?)?)?;
+        let plus = loss()?;
+        address.set(&original.add(&direction.affine(-epsilon, 0.0)?)?)?;
+        let minus = loss()?;
+        address.set(&original)?;
+        let numeric = (plus - minus) / (2.0 * epsilon);
+        let scale = analytic.abs().max(numeric.abs()).max(1e-3);
+        assert!(
+            (analytic - numeric).abs() / scale < 2e-2,
+            "analytic {analytic} numeric {numeric}"
+        );
+        assert!(analytic.abs() > 1e-6, "the address must receive a gradient");
+        Ok(())
+    }
+
+    #[test]
+    fn starling_read_runs_past_the_trained_context_and_round_trips() -> Result<()> {
+        let model = starling_model()?;
+        let ids: Vec<u32> = (0..32u32).map(|i| (i * 11 + 5) % 37).collect();
+        // Context 12; no age table is read, so length 32 works.
+        let logits = model.forward(&ids, 1, 32)?;
+        let values = logits.flatten_all()?.to_vec1::<f32>()?;
+        assert!(values.iter().all(|v| v.is_finite()));
+        let root = std::env::temp_dir().join(format!("starling-round-trip-{}", std::process::id()));
+        model.save(&root)?;
+        let config: serde_json::Value =
+            serde_json::from_slice(&fs::read(root.join("config.json"))?)?;
+        assert_eq!(config[READ_ROUTE_FIELD], "starling:3:4");
+        let loaded = StackModel::load(&root, &cpu())?;
+        assert_eq!(loaded.read_route(), Some(StarlingRoute { m: 3, k: 4 }));
+        let again = loaded
+            .forward(&ids, 1, 32)?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        assert_eq!(values, again);
+        fs::remove_dir_all(&root)?;
+        // A plain model keeps its config without the field and refuses export.
+        assert!(parse_read_route("none")?.is_none());
+        assert!(parse_read_route("starling:0:7").is_err());
         Ok(())
     }
 }

@@ -1,3 +1,15 @@
+## 2026-10-11 — Starling read, rung 1: recall at chance when trained from scratch; the address needs a training signal (claude, #2032)
+
+The [record](../labs/starling-read-2026-10-11/README.md) tests the owner's starling read: ~7 neighbours by 600-cell cell lookup, no softmax, no length wall.
+- **Recall:** on mqar recall it stays at chance (0.009 against L2's 0.617, 3 seeds) in every distance bucket, so this is not eviction.
+- **Cause:** hard selection gives no gradient to keys outside the kept set.
+- **Cost saving confirmed:** 207 positions scored per query against 1,427.
+- **Scope:** row 5 closes only this configuration (D22 §1).
+
+Line: starling read · count 1/3 · headline: softmax at runtime yes → yes.
+
+**Next:** an address-training change (soft addresses over all tokens annealed to the hard 600-cell form; training only), pre-registered with its own fitness review.
+
 ## 2026-10-11 — Phase binding, the geometric route to exact binding: +2 M parameters, 13.4× the training time, worse answers (deepseek, #2029, D22 order 4 iteration)
 
 The [phase-binding iteration](../labs/phase-binding-2026-10-11/README.md) takes the read-binding [brief's](../mechanisms/read-binding.md)

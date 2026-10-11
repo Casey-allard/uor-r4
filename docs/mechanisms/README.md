@@ -17,6 +17,7 @@ The labs work from these, not only from milestone headline numbers. Every pre-re
 | Pointer-copy head with an exact identity key | M1 #2029 | [pointer-identity-key.md](pointer-identity-key.md) |
 | Read binding (supervised value binding) | M1 #2029 | [read-binding.md](read-binding.md) |
 | Protected / discrete legal construction | M2 #2030 | [protected-legal-construction.md](protected-legal-construction.md) |
+| Starling read: ~7 topological neighbours on the 600-cell, no softmax | M4 #2032 | [starling-read.md](starling-read.md) |
 | Spin-native weights: quaternion and icosian maps (Cayley-table products) | M4 #2032 | [spin-native-weights.md](spin-native-weights.md) |
 
 The Claude lab drafted these on 10 October from the source and the records, at the owner's request. Correct them in place when a mechanism's understanding changes. The owner does not need to write them.

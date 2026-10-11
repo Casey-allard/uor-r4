@@ -10,6 +10,7 @@
 //!   [dump_scores=false|true] \
 //!   [mode=train|task-baselines] [layout=synthetic|fact] FACT OPTIONS [arm=stack] ARM OPTIONS
 //! arm=stack: [pattern=aaaaaa] [read=l2|dot|lorentz] [rotation=true|false] [width=128] [heads=4] \
+//!   [read_route=none|starling:M:K] \
 //!   [mlp=384] [age=default|flat|spread] [key_shift=false|true] \
 //!   [lineage=none|f2|qk|qk_jj|identity|so4|conv|wprev|conv8|carrier|rot] [learned_init=lag1|zero]
 //! arm=transformer: [layers=<pattern length>] [width=128] [heads=4] [mlp=matched|<n>] \
@@ -81,9 +82,9 @@ use uor_r4_core::report_output;
 #[cfg(test)]
 use uor_r4_training::geometric_stack::quaternion_j_left;
 use uor_r4_training::geometric_stack::{
-    parse_pointer_route, parse_pointer_select, PointerConfig, PointerSelect, PrimeRoute,
-    ReadBinding, ReadBindingTarget, ReadLineage, ReadScore, RotationGroup, StackAdamW, StackArch,
-    StackConfig, StackModel,
+    parse_pointer_route, parse_pointer_select, parse_read_route, PointerConfig, PointerSelect,
+    PrimeRoute, ReadBinding, ReadBindingTarget, ReadLineage, ReadScore, RotationGroup, StackAdamW,
+    StackArch, StackConfig, StackModel, StarlingRoute,
 };
 use uor_r4_training::{Result, TrainingError};
 
@@ -509,6 +510,10 @@ enum ArmSpec {
         /// read layer as ordinary causal attention. The attribution control that
         /// separates the geometric read from the recurrent stack.
         attn_reads: bool,
+        /// `read_route=starling:M:K`: every read is the starling read
+        /// (`StackModel::set_read_route`): ~K geometric neighbours by 600-cell
+        /// lookup, no all-pairs score, no softmax, no age table.
+        route: Option<StarlingRoute>,
     },
     /// `arm=transformer`: the ordinary matched control -- `layers` plain
     /// causal-softmax attention blocks (`StackArch::Transformer`, RoPE plus a
@@ -635,6 +640,7 @@ impl ArmSpec {
                 },
                 lineage,
                 attn_reads: hybrid,
+                route: parse_read_route(&args.take("read_route").unwrap_or_else(|| "none".into()))?,
             }),
             Some("transformer") => {
                 // The control has no read lineage: reject rather than silently ignore.
@@ -684,9 +690,10 @@ impl ArmSpec {
                 rotation,
                 age,
                 lineage,
+                route,
                 ..
             } => format!(
-                "stack-{pattern}-{read:?}{}{}{}",
+                "stack-{pattern}-{read:?}{}{}{}{}",
                 match age {
                     AgeInit::Default => String::new(),
                     other => format!("-{}-age", other.name()),
@@ -697,6 +704,9 @@ impl ArmSpec {
                     other => format!("-lineage-{}", other.name()),
                 },
                 if *rotation { "" } else { "-no-rotation" },
+                route
+                    .map(|r| format!("-{}", r.name().replace(':', "-")))
+                    .unwrap_or_default(),
             )
             .to_lowercase(),
             ArmSpec::Transformer {
@@ -722,8 +732,18 @@ impl ArmSpec {
                 pattern,
                 lineage,
                 width,
+                route,
+                attn_reads,
                 ..
             } => {
+                if route.is_some() {
+                    if !pattern.contains('a') || *attn_reads {
+                        return Err(invalid("read_route=starling needs a geometric read layer"));
+                    }
+                    if matches!(lineage, LineageArm::Research(_)) {
+                        return Err(invalid("read_route=starling excludes a research lineage"));
+                    }
+                }
                 if *lineage != LineageArm::None && !pattern.contains('a') {
                     return Err(invalid("a key/query lineage needs a read layer"));
                 }
@@ -799,7 +819,11 @@ impl ArmSpec {
                 ..
             } => {
                 let config = StackConfig {
-                    arch: if *attn_reads { StackArch::Hybrid } else { StackArch::Geometric },
+                    arch: if *attn_reads {
+                        StackArch::Hybrid
+                    } else {
+                        StackArch::Geometric
+                    },
                     vocab_size: common.vocab,
                     width: *width,
                     heads: *heads,
@@ -863,9 +887,16 @@ impl ArmSpec {
 
     fn build(&self, common: &Common, device: &Device) -> Result<Box<dyn ContextArm>> {
         match self {
-            ArmSpec::Stack { age, lineage, .. } => {
+            ArmSpec::Stack {
+                age,
+                lineage,
+                route,
+                ..
+            } => {
                 let config = self.stack_config(common)?;
                 let mut model = StackModel::new(config.clone(), device)?;
+                // Before the optimizer: the starling read adds variables.
+                model.set_read_route(*route)?;
                 // The pointer needs BOTH a head and a route: StackConfig carries a
                 // PointerConfig (the head), the route is installed on the model. Both are off
                 // unless `pointer=` is given, which is what every prior run did -- so the
@@ -1001,11 +1032,20 @@ impl ContextArm for StackArm {
     }
 
     fn positions_scored(&self, position: usize) -> usize {
-        self.read_layers() * self.model.config.heads * (position + 1)
+        match self.model.read_route() {
+            // The starling read scores the candidates of its own cell and the
+            // 12 adjacent cells (at most 13 * M, never more than position + 1)
+            // and mixes at most K values; no other position is touched.
+            Some(route) => {
+                self.read_layers() * self.model.config.heads * (13 * route.m).min(position + 1)
+            }
+            None => self.read_layers() * self.model.config.heads * (position + 1),
+        }
     }
 
     fn access_note(&self) -> String {
         match self.model.config.arch {
+            StackArch::Geometric if self.model.read_route().is_some() => "starling read: read layers x heads x min(13 * M, position + 1): only the candidates in the query's 600-cell vertex and its 12 neighbours are scored (a cell lookup, no all-pairs score); at most K values are mixed".into(),
             StackArch::Geometric => "read layers x heads x (position + 1): every causal position is scored by each read head (plus one NoRead slot, not counted); recurrence layers score no positions".into(),
             StackArch::Hybrid => "recurrence layers score no positions; 'a' layers run ordinary causal-softmax attention (every causal position scored by each head, no NoRead slot) -- the read-attribution control".into(),
             StackArch::Transformer => "attention layers x heads x (position + 1): every causal position is scored by each head of the ordinary causal-softmax control; no NoRead slot".into(),
@@ -1338,10 +1378,7 @@ fn context_reachability(
     let mut rows = Vec::new();
     for (s, sequence) in sequences.iter().enumerate() {
         for query in sequence.queries.iter() {
-            rows.push((
-                (s * context + query.position) as u32,
-                query.value as usize,
-            ));
+            rows.push(((s * context + query.position) as u32, query.value as usize));
         }
     }
     let index = Tensor::from_vec(
@@ -1745,9 +1782,8 @@ fn stage0_sieve(
         *admitted_histogram.entry(admitted.len()).or_insert(0usize) += 1;
         let winner = admitted.last().copied();
         let top1 = winner == Some(gold_key);
-        let value_ok = winner.is_some_and(|w| {
-            w + 1 < row_meta.position && ids[base + w + 1] == row_meta.value
-        });
+        let value_ok = winner
+            .is_some_and(|w| w + 1 < row_meta.position && ids[base + w + 1] == row_meta.value);
         winners += usize::from(winner.is_some());
         value_after_winner += usize::from(value_ok);
         outcomes.push(Stage0RowOutcome {
@@ -2599,8 +2635,12 @@ fn run(s: &Common, arm: &mut dyn ContextArm, log: &mut fs::File) -> Result<Value
     // trained model (which `main` otherwise saves only after `run` returns).
     let model_pre_save = if s.save_model {
         match arm.save(&s.out.join("model")) {
-            Ok(()) => json!({"requested": true, "saved": true, "path": "model", "when": "before_stage0"}),
-            Err(error) => json!({"requested": true, "saved": false, "refusal": error.to_string(), "when": "before_stage0"}),
+            Ok(()) => {
+                json!({"requested": true, "saved": true, "path": "model", "when": "before_stage0"})
+            }
+            Err(error) => {
+                json!({"requested": true, "saved": false, "refusal": error.to_string(), "when": "before_stage0"})
+            }
         }
     } else {
         json!({"requested": false})
@@ -2966,6 +3006,7 @@ mod tests {
             mlp_hidden: 16,
             age: AgeInit::Flat,
             lineage: LineageArm::F2,
+            route: None,
         };
         spec.validate(&common).expect("valid arm");
         let mut arm = spec.build(&common, &Device::Cpu).expect("arm");
@@ -3170,6 +3211,7 @@ mod tests {
             mlp_hidden: 384,
             age: AgeInit::Default,
             lineage: LineageArm::None,
+            route: None,
         };
         assert!(stack.parameter_match(&common).expect("null").is_null());
         assert_eq!(
