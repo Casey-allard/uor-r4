@@ -1,3 +1,15 @@
+## 2026-10-11 — Residual icosian pairs: the pair fixes the direction; the power-of-two norm is the remaining cost (claude, #2032)
+
+The [record](../labs/icosian-pair-2026-10-11/README.md) snaps each quaternion weight to 2^e (g₁ + g₂/4). On the weight side that is two icosian table entries, a shift and an add.
+- **f32 norm:** +0.016 BPB against float quaternion weights (1.5105 against 1.4944), level with dense at equal parameters.
+- **Power-of-two norm:** +0.071 (against +0.140 for one icosian).
+- **Decision: row 3.** The norm is the remaining cost.
+- **Run:** 5 runs on 2 × 4090. The owner approved going over the $8/h cap for this FIT rung. The host-side snap made training 11× slower.
+
+Line: geometric weights · count 2/3 · headline: softmax at runtime yes → yes.
+
+**Next:** move the snap onto the GPU, check norm-reconstruction error in minutes, then pre-register a finer exact norm set (2^(e/2) or 2^e·{1, 1.5}).
+
 ## 2026-10-11 — E8 orbit memory in place of the MLP, rung 1: half the MLPs go within the bar, but learned keys beat fixed E8 addresses (claude, #2032)
 
 The [record](../labs/e8-orbit-memory-2026-10-11/README.md) replaces MLPs by an exact-E8-addressed memory: an O(8) root decode, SpiralCore's 15 Cl(0,6) orbits, and a rank-table and gate read with no softmax.

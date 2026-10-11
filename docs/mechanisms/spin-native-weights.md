@@ -21,6 +21,10 @@ The model's dense projection matrices are 87.6 % of its per-token arithmetic, wh
   - Trained in with a straight-through gradient, the cost is still +0.140 with a power-of-two norm and +0.103 with an f32 norm.
   - So the 120 directions, about 15° apart, are too coarse. The norm needs only 3 bits.
   - Row 4 next: a finer exact set (residual icosian pairs, or the second E8 shell).
+- **Rung 2, residual icosian pairs** 2^e (g₁ + g₂/4) ([record](../labs/icosian-pair-2026-10-11/README.md)):
+  - With an f32 norm, the cost is **+0.016**: the direction is fixed.
+  - With a power-of-two norm it is +0.071, so the norm costs +0.055.
+  - Next: a finer exact norm set. The host-side snap made training 11× slower, so it moves to the GPU first.
 
 ## A fair test needs
 
