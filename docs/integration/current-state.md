@@ -1,3 +1,30 @@
+## 2026-10-11 — Exact addressed memory at the read: wrong-value failures 47 → 34 of 120 with the headline flat, and a ledger that says what it costs (deepseek, #2029, D22 order 2, KEEP)
+
+The [addressed-read round](../labs/addressed-read-2026-10-11/README.md) executes **order 2** where the evidence says it matters. The read is
+the answer path ([attribution](answer-path), [ablation](head-ablation)) and its *scoring* is exhausted (two negatives: exactness at 13.4× cost,
+sharper separation at zero cost), so this cycle replaces the read's **computation**: `memory_layers=8` puts the **product-key memory** — a query
+map, sub-key scoring and a value gather, an address lookup — in place of the softmax search at the last read layer, trained **in from step 0**.
+
+**Result, paired against matched no-memory controls at the same seeds:** wrong-value failures **47 → 34 over 120 rows (−13, −28 %)**, on **two
+of three seeds** (−7 and −6, the third 0 — the pre-registered bar), with the headline **exactly flat (57/120 against 57/120)**. A placement arm
+at the **first** read layer is *worse* than its control (−4 memory, −2 wrong-value): the address belongs where the answer is formed. **KEEP +
+iterate** (D22 §2).
+
+**The ledger, which is the other half of the result:** per-token compute at the replaced layer **−90 %** (1,769,472 → 173,056 MACs at context 384,
+and **−97 %** at 4,096, where the read it replaces costs 35× more because a lookup does not grow with context); whole-model MACs/token **−5.3 %**;
+**parameters +36.9 M (+127 %)** — the codebook, state read by address rather than per-token arithmetic; **wall per training step 0.058 s → 1.19 s
+(20×)**, an implementation fact (this configuration runs the exact CPU forward on host copies, GPU utilisation 3–27 %). The first two columns are
+mathematics; the last two are a codebook size and a missing kernel, which is what the ledger is for.
+
+**Open, and named rather than guessed:** the **BPB is pending**. The training pod was reaped when its lease expired before its evaluations ran, and
+the pods started afterwards landed on volumes without `chat-cuda-20261008/data/heldout.u16` — the stream every BPB number in this line uses. The
+interim reading is the arms' development NLL against their controls (0.375 vs 0.377; 0.420 vs 0.413; **0.373 vs 0.307** — third seed worse), so it
+is a real open item. **Nothing in the record claims a BPB result.** Re-measuring it is the first action of the next cycle.
+
+**Declared:** three seeds on a 40-row panel (±3 rows; per-seed headline signs 0 / −2 / +2, so the aggregate is the summary); one memory
+configuration (256 sub-keys, 128 key-dim, 4 heads, top-k 32) — a leaner codebook was not run; read-binding supervision was **off** in these arms
+(it cannot run at layer 8 once the memory replaces the read there), so this is memory-versus-search alone.
+
 ## 2026-10-11 — The competing-mass margin: the read separates twice as sharply and the answers do not move (deepseek, #2029, D22 order 4 iteration)
 
 The [margin round](../labs/read-binding-margin-2026-10-11/README.md) answers the read-binding

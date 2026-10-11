@@ -150,7 +150,11 @@ does not imply measured predictive advantage.
   **geometric** route to the same goal — phase/lineage tagging of values so binding is
   exact rather than learned — was tried on top of it and is a measured negative: +2.0 M
   parameters, 13.4× the training wall time, unchanged bound mass and a worse panel
-  ([phase binding](docs/labs/phase-binding-2026-10-11/README.md)).
+  ([phase binding](docs/labs/phase-binding-2026-10-11/README.md)). Replacing the read's **search with an address** at
+  the layer that carries the answers — the product-key memory trained in from step 0 — cuts the wrong-value failures
+  **47 → 34 of 120** with the headline flat, at **−90 % per-token compute** on that layer (−97 % at 4,096 context) and
+  at **+127 % parameters** (the codebook) with a 20× training wall as implemented
+  ([addressed read](docs/labs/addressed-read-2026-10-11/README.md)); its BPB is pending.
 
 ## Training
 
