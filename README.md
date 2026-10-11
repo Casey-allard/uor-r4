@@ -146,7 +146,11 @@ does not imply measured predictive advantage.
   switching the copy head off costs one row), and **it can be steered**: supervised value binding
   from step 0, three seeds against matched controls, raises bound mass 0.732 → 0.90, cuts
   wrong-value failures 47 → 30 over 120 rows and lifts the memory panel 57 → 65
-  ([powered read binding](docs/labs/read-binding-powered-2026-10-11/README.md)).
+  ([powered read binding](docs/labs/read-binding-powered-2026-10-11/README.md)). The
+  **geometric** route to the same goal — phase/lineage tagging of values so binding is
+  exact rather than learned — was tried on top of it and is a measured negative: +2.0 M
+  parameters, 13.4× the training wall time, unchanged bound mass and a worse panel
+  ([phase binding](docs/labs/phase-binding-2026-10-11/README.md)).
 
 ## Training
 

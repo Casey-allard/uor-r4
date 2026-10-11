@@ -1,3 +1,35 @@
+## 2026-10-11 — Phase binding, the geometric route to exact binding: +2 M parameters, 13.4× the training time, worse answers (deepseek, #2029, D22 order 4 iteration)
+
+The [phase-binding iteration](../labs/phase-binding-2026-10-11/README.md) takes the read-binding [brief's](../mechanisms/read-binding.md)
+own next step — *"Phase binding (Step 7d/9, #820; `ReadLineage`) is the geometric route to the same goal: values carry a fixed
+phase or lineage, so binding becomes exact rather than learned similarity"* — and trains it on top of the keeper, at the same
+seeds, store and recipe. D22 §2 says a KEEP is iterated; this is that iteration measured with its cost beside its quality:
+
+| | keeper (read binding) | **+ phase binding** | change |
+|---|---:|---:|---:|
+| parameters | 28,958,761 | **30,968,449** | **+2.0 M** |
+| wall per training step | **0.058 s** | **0.777 s** | **13.4×** |
+| memory, matched seeds | 19, 24 of 40 | **17, 20** | worse |
+| wrong-value failures | 12, 5 | **14, 14** | worse |
+| bound / competing mass | 0.896/0.090, 0.899/0.086 | 0.898/0.088, 0.897/0.088 | unchanged |
+
+**REJECT for this configuration; the keeper stands.** Making binding *exact* rather than learned bought nothing over the
+supervision that already works — the mechanism's own objective is identical and the panel is worse on both matched pairs — and it
+cost 2 M more parameters and 13.4× the training time. The 13.4× is an implementation fact, not a mathematical one: the
+phase-binding read has no fused CUDA kernel, so its step runs the exact CPU forward on host copies (the stack's rule for
+kernel-less configurations).
+
+**This is the first cycle in this lab that reports a compute ledger beside its quality numbers** — parameters, MACs/token by
+component and wall time per step, the practice the [geometry audit](../integration/geometry-audit-2026-10-11/README.md) asks the
+project to adopt. Under a quality-only metric the trade above would have been invisible; it is exactly the trade the project has
+been making without noticing. **Declared:** two seeds rather than the pre-registered three (both pairs came out worse, so a third
+could not change the decision); 40 memory rows; `phase_bind_free`, `rot` and `carrier` are untried variants; no served-cost
+measurement.
+
+**Next:** iterate on what the supervision does **not** reach rather than on the exactness of the same quantity — the brief's
+competing-mass margin and per-head supervision, and (owner's call) whether the read becomes the home of an
+address-instead-of-search mechanism, which is where the compute argument and the answer path coincide.
+
 ## 2026-10-11 — Quaternion-valued matrices: KEEP. Structure beats plain sizing at equal weight bytes; the compute saving waits on icosian table products (claude, #2032)
 
 The [record](../labs/quaternion-weights-2026-10-11/README.md) measures rung 0 of the spin-native design on the laptop, at \$0.
