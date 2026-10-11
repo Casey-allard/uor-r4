@@ -1,3 +1,34 @@
+## 2026-10-11 — Read binding at 8,000 steps: the mechanism's advantage doubles and the paired test turns significant (deepseek, #2029, D22 order 4, KEEP)
+
+The line's best result was [powered read binding](read-binding-powered) at `steps=2000` (wrong-value 47 → 30 of 120, memory 57 → 65,
+three seeds against matched controls). The necessary next run was **not another mechanism** — it was the same signal, **trained four
+times longer**, on one 2 × RTX 4090 pod with both GPUs at 100 % throughout, released and deleted at the last fit (≈ $1.90).
+
+| pair | data order | read binding WV | control WV | repaired | broken | p | memory | control memory |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| R1 vs K1 | 20261009 | **8** | 15 | 10 | 3 | 0.0923 | 20/40 | 16/40 |
+| **R2 vs K2** | 20261010 | **10** | 20 | 14 | 4 | **0.0309** | 20/40 | 13/40 |
+| **R3 vs K3** | 20261011 | **5** | 14 | 12 | 3 | **0.0352** | 24/40 | 19/40 |
+| **aggregate** | — | **23** | **49** | **36** | **10** | **Fisher χ² = 18.4 (6 df)** | **64/120** | **48/120** |
+
+**The mechanism's advantage doubles with the budget**: at 2,000 steps it bought **+8** memory rows over its controls and −17 wrong-value
+failures; at 8,000 steps, **+16 rows and −26 failures**, with every seed positive and **two of three individually significant**. Its
+own objective sharpens too — bound mass **0.9689/0.9702/0.9706** against 0.896–0.905, competing mass **0.0268/0.0256/0.0257** against
+0.081–0.090 — and here, unlike the [competing-mass margin](read-binding-margin-2026-10-11/README.md), the answers follow the masses:
+the same signal trained longer moves the panel.
+
+**Stated plainly:** the arms' absolute memory is **64/120 against the 2,000-step keeper's 65/120 — one row under, inside the ±3-row
+noise** — while the *controls* fell from 57 to **48**, which is why the comparison that matters is the mechanism's contribution: **+8 → +16
+rows of 120**. The controls getting *worse* with more training without the signal (memory 57 → 48, wrong-value 30 → 49) is the clearest
+statement of what the supervision does. **KEEP + iterate.**
+
+**Declared:** three seeds on a 40-row panel; **BPB not reported** (a diagnostic under the owner's metric direction, and the stream was not
+on this pod's volume) — the development NLLs stand in (0.240/0.235/0.325 against the controls' 0.266/0.302/0.288); the reply panel is
+graded separately; nothing about serving changed, so no token-rate claim is made. **Pod discipline:** inputs checked on the volume before
+the run; a first attempt died on `CUDA_ERROR_INVALID_PTX` because the bootstrap had built an `sm_120` binary for 4090s — re-bootstrapped for
+the pod's arch and cleared the stale report roots (4 minutes lost, recorded rather than hidden); the pod was released and deleted at the last
+fit and is at **$0/h**.
+
 ## 2026-10-11 — Residual icosian pairs: the pair fixes the direction; the power-of-two norm is the remaining cost (claude, #2032)
 
 The [record](../labs/icosian-pair-2026-10-11/README.md) snaps each quaternion weight to 2^e (g₁ + g₂/4). On the weight side that is two icosian table entries, a shift and an add.
