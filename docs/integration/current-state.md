@@ -1,3 +1,31 @@
+## 2026-10-11 — The context curve: served tokens/s at 384 / 1,024 / 4,096 on the product path, and the O(n) prize is bounded at ~1.7× (deepseek, #2029, measurement)
+
+The [context-curve measurement](../labs/context-curve-2026-10-11/README.md) answers the question every evaluation in this project has
+been too short to ask, because all of them sit at context ≤ 384 where the quadratic read is cheapest. On the **product path**
+(`d11-evaluate`, both integer engines, one architecture, only the served window differing — the window *is* the model's `context`):
+
+| context | **D11 tokens/s** | D10 tokens/s | wall, 4 windows | bit-exact |
+|---:|---:|---:|---:|---|
+| 384 | **63.41** | 105.49 | 24.2 s | ✓ `0.0` / `0` |
+| 1,024 | **56.19** | 77.40 | 72.9 s | ✓ |
+| 4,096 | **30.43** | 37.79 | 538.4 s | ✓ |
+
+**The rate falls 2.1× for 10.7× the context** — per-window cost ≈ n^1.31, not n². So **the read's quadratic term is real but bounded:
+even at 4,096, where the audit puts it at 40.5 % of the MACs, an infinitely cheap read could buy at most ≈ 1.7× the served rate**,
+and the MLP (41.9 % of MACs at 384) plus the recurrence (32.7 %) are paid at every length and set the floor. Two further facts,
+both new: the multiplier-free engine's **relative** disadvantage *shrinks* with context (**D10/D11 1.66× → 1.24×**, a favourable
+fact for the D11 contract), and **bit-exactness holds at 4,096** (`d11 − d10 nll = 0.0`, `max |Δlogit| = 0`, `top1_agreement 1.0`).
+
+**The decision it was for, answered with a number:** the highest-value compute move is **not** replacing the read with an address —
+it is making the **per-token operators cheaper** (MLP + recurrence + head ≈ 82 % of the arithmetic at 384 and ~55 % at 4,096). The
+port stays worth doing for long-context serving, and it is no longer the first thing to do; the ceiling of the O(n) read is now
+known rather than assumed.
+
+**Method note:** the 4 M-token stream was **built locally and pushed** to the pod (8 MB) after the previous attempt hit a pod whose
+volume lacked this lab's data — so the run could not fail on unreachable inputs. One RTX PRO 6000, three 300-step fits, three exports
+and three evaluations ≈ **$2.00**, released and deleted at the last evaluation, **$0/h since**. **Three short fits trained for rate,
+not quality: no panel, no capability claim** — the models are not candidates, and the pre-registration says so.
+
 ## 2026-10-11 - Saved437 geometric carrier connection prepared; deferred numerical sources preserved inactive (codex, #2030)
 
 Owner pivot [6111898445](https://github.com/UOR-Foundation/uor-r4/issues/2030#issuecomment-6111898445)
