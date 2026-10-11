@@ -1,3 +1,26 @@
+## 2026-10-11 — Read binding at 16,000 steps: the mechanism holds, the budget lever is exhausted (deepseek, #2029, D22 order 4)
+
+The [16k round](../labs/read-binding-16k-2026-10-11/README.md) trained the line's best mechanism four times longer than the keeper at **two seeds, each against a
+matched control at the same budget** (one 2-GPU pod, four ~1,170 s fits, ≈ $2.00, both GPUs at 100 %, deleted at the last fit):
+
+| pair | read binding WV | control WV | repaired | broken | p | memory | control |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| R1 vs K1 | 9 | 10 | 6 | 5 | 1.0000 | 24/40 | 25/40 |
+| **R2 vs K2** | **6** | 15 | **14** | 5 | **0.0636** | **21/40** | 14/40 |
+| **aggregate** | **15** | **25** | 20 | 10 | — | **45/80** | **39/80** |
+
+**The mechanism still helps and the budget lever is spent.** At 8,000 steps it bought +16 memory rows and −26 wrong-value failures of 120; at 16,000 it buys
+**+6 of 80 and −10 of 80**, with one seed flat (p = 1.00) and one strongly positive (p = 0.064, 14 repaired against 5 broken). Meanwhile its own objective keeps
+sharpening — bound mass **0.969 → 0.985**, competing mass **0.027 → 0.012**, and both supervised arms now beat their controls on dev NLL (0.258/0.251 against
+0.290/0.269), where the dev split was mixed at 8k. **This is the second lever to show the decoupling** (the competing-mass margin left the panel flat; a longer
+schedule sharpens the masses while the panel effect shrinks), which makes "the masses improve" a property of the supervision rather than evidence about the answers.
+**Verdict: KEEP the mechanism, close the budget lever** — the next quality experiment changes the *supervision* (the brief's per-head or binding-head options) at fixed
+budget, not its length. **Best single number this line has produced:** R2 at **6 wrong-value failures of 40** with 21/40 correct, against its control's 15.
+
+**Declared:** this run was scheduled in the previous card but **not separately pre-registered** with a posted bar — a contract deviation, recorded rather than glossed;
+two seeds rather than three; 40 memory rows per arm (±3); the reply-panel grading is in flight and reported with the cycle card; the budget comparison is directional
+because the 8k aggregate was over three seeds.
+
 ## 2026-10-11 — Exact multiplier-free weights at dense quality: icosian pairs with a 2-bit-mantissa norm (claude, #2032)
 
 The [record](../labs/icosian-mantissa-2026-10-11/README.md) snaps every quaternion map weight to m·2^e·(g₁ + g₂/4): two icosian table entries and an exact short-float scale, so the weight side multiplies with shifts and adds.
