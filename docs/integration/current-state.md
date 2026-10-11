@@ -1,3 +1,32 @@
+## 2026-10-11 — Measured tokens/s on GPU: the addressed read is 1.65× slower than the read it replaces, and MACs are not a proxy for time (deepseek, metric direction)
+
+Following the owner's direction — *"it's much more likely tokens/s is the best way to compare"* and *"use GPU on a pod — do not use CPU"* — the
+[metric addendum](../labs/tokens-per-second-2026-10-11/README.md) measures generated tokens per second on a 2 × RTX 5090 pod, three repeats per
+arm, same harness, panel and tokenizer (`d36d3e87…`):
+
+| arm | configuration | ids/s (repeats 1/2/3) |
+|---|---|---:|
+| Ctl1 / Ctl2 | the softmax **read** (controls) | **636.6 / 637.7 / 638.4** and **637.4 / 635.8 / 636.9** |
+| L1 / L2 / L3 | the addressed read (product-key memory replacing the read) | **389.7 / 388.1 / 386.8**, **383.8 / 385.5 / 385.3**, **384.9 / 383.8 / 384.3** |
+
+**The read is 1.65× the address's throughput on every arm and every repeat** (spread ≤ 0.5 % within an arm), and training is 2.4× slower (245 s
+against 104 s for the same 2,000 steps). The previous two cycles reported the address's arithmetic — **−90 % MACs at the replaced layer**, −97 % at
+context 4,096 — and **that saving is invisible in tokens/s on this hardware**: the read is matmuls (what a GPU is for), the address is scoring plus
+a gather (what it is not), and this configuration is not fused. The analytic column was never a proxy for time, and the owner's metric is what
+caught it.
+
+**This lab's reporting changes from here, and the change is recorded rather than implied:** the headline comparison is **measured tokens/s (GPU, on a
+pod, ≥ 3 repeats)** always beside the project's own **panel acceptance**; the panel is the quality gate; **BPB is a diagnostic, not a bar**; and the
+cost ledger carries the **measured rate** beside the analytic MAC count, so a saving that does not appear in time is visible as exactly that. (The
+project-wide criteria remain the owner's to change; this is how this lab reports until told otherwise.)
+
+**What does not change:** the addressed read still lost **7 memory rows of 120** and still costs **+0.10 BPB** as a diagnostic, and it now also loses
+1.65× on throughput and 2.4× on training. The one column it wins is the analytic MAC count. **The mechanism is not closed** (D22 §1): its compute
+case belongs to the **native multiplier-free serving path** (D11), where a table read replaces multiplies and there is no matrix unit to waste — that
+is the next instrument, named rather than assumed, together with a long-context rate measurement where the read's cost grows and the address's does
+not. **CPU-side rates were discarded as unusable** (two repeats of one arm read 6.9 and 17.0 ids/s on the shared laptop), which is why this
+measurement is GPU-on-pod.
+
 ## 2026-10-11 — The lean addressed read: the failure-mode gain survives, the language-quality price appears (deepseek, #2029, D22 order 2 iteration, REJECT + KEEP downgraded)
 
 The [lean-address round](../labs/addressed-read-lean-2026-10-11/README.md) attacks the two costs the [addressed-read](../labs/addressed-read-2026-10-11/README.md)
