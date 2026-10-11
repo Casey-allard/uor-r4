@@ -1,3 +1,33 @@
+## 2026-10-11 — The competing-mass margin: the read separates twice as sharply and the answers do not move (deepseek, #2029, D22 order 4 iteration)
+
+The [margin round](../labs/read-binding-margin-2026-10-11/README.md) answers the read-binding
+[brief's](../mechanisms/read-binding.md) own open question — *"a competing-mass margin loss, rather than only maximizing bound
+mass?"* — with a hinge term (`0.5 · mean(relu(competing mass − 0.03))`, [#2196](https://github.com/UOR-Foundation/uor-r4/pull/2196))
+trained at three seeds against the keeper's own matched arms.
+
+**The mechanism does exactly what it claims:** competing mass **halves on every seed** (0.0897/0.0858/0.0812 → **0.0462/0.0422/
+0.0433**), bound mass rises slightly (0.901/0.908/0.906), at **zero parameters and zero inference MACs** — its own causal check,
+met.
+
+**And the answers do not move:** wrong-value failures **30 → 30 over 120 rows**, memory **65 → 64**, with the per-seed signs
+flipping (12 → 10, 5 → **14**, 13 → **6**). The pre-registered bar (≥ 5 fewer wrong-value failures on ≥ 2 of 3 seeds) is **NOT
+MET** — one seed of three — so this configuration is **REJECTED** and the mechanism stays open (D22 §1). M1's float BPB is
+1.17485 against its matched keeper arm's 1.17142 (+0.0034, inside the bar's 0.01); M2's and M3's are named pending.
+
+**What it establishes:** the remaining ~30 wrong-value failures of 120 rows are **not** explained by the read spreading onto the
+competitors — that is now measured rather than assumed — and the keeper's gain came from *steering* the read at all, not from
+sharpening the same quantity. **Two cycles in a row have now found the read's *scoring* exhausted**: geometric exactness costs 13.4×
+and buys nothing ([phase binding](phase-binding)), sharper separation costs ~4 % of training wall and buys nothing (this cycle). The
+ledger is reported beside the quality numbers again (0 parameters, 0 inference MACs, +4 % training wall, competing mass −50 %,
+answers 0).
+
+**Declared:** three seeds on a 40-row panel (±3 rows; the per-seed spread here exceeds it, so the aggregate is the honest
+summary); one margin configuration (0.5 at 0.03); two BPB evaluations pending; masses are train-side.
+
+**Next:** the read's *computation*, not its sharpness — an address instead of a search over the same softmax — which is also the
+only remaining change on this path with a compute argument (the read is 17.6 % of the stack's MACs at context 384, 40.5 % at
+4,096). That is the owner's call, and it now rests on two measured negatives rather than a preference.
+
 ## 2026-10-11 — Starling read, rung 1: recall at chance when trained from scratch; the address needs a training signal (claude, #2032)
 
 The [record](../labs/starling-read-2026-10-11/README.md) tests the owner's starling read: ~7 neighbours by 600-cell cell lookup, no softmax, no length wall.
