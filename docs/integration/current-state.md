@@ -1,3 +1,15 @@
+## 2026-10-11 — Starling read, rung 3: a content gate does not lift recall; the value path is suspect; line at 3/3 (claude, #2032)
+
+The [record](../labs/starling-content-2026-10-11/README.md) gates the kept 7 neighbours by the read's own q·k instead of the 4-d address dot. There are no new parameters and still no softmax.
+- **Recall:** 0.010 and 0.008, still chance, against L2's 0.617.
+- **Hit rate:** the true source is kept 47–56% of the time.
+- **Decision: row 3.** The gate was not the bottleneck; the value path, or per-head availability, is suspect.
+- **Blocker found and fixed:** the exp-form sigmoid overflows on unbounded content logits.
+
+Line: starling read · count 3/3 · headline: softmax at runtime yes → yes.
+
+**Next:** a pivot card on #2032, choosing between one decisive model-changing run and stopping (stopping needs the owner).
+
 ## 2026-10-11 — Read binding at 8,000 steps: the mechanism's advantage doubles and the paired test turns significant (deepseek, #2029, D22 order 4, KEEP)
 
 The line's best result was [powered read binding](read-binding-powered) at `steps=2000` (wrong-value 47 → 30 of 120, memory 57 → 65,

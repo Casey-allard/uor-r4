@@ -595,31 +595,44 @@ fn learned_rank_shapes(config: &StackConfig) -> Result<Vec<(String, Vec<usize>)>
 pub struct StarlingRoute {
     pub m: usize,
     pub k: usize,
+    /// Gate the kept sources by the read's head-width content dot
+    /// `sigmoid(beta <q_t, k_j> / sqrt(d) + gamma)` (its existing query and
+    /// key maps) instead of the 4-d address dot that selected them.
+    pub content: bool,
 }
 
 impl StarlingRoute {
     pub fn name(&self) -> String {
-        format!("starling:{}:{}", self.m, self.k)
+        if self.content {
+            format!("starling:{}:{}:content", self.m, self.k)
+        } else {
+            format!("starling:{}:{}", self.m, self.k)
+        }
     }
 }
 
-/// Parse `read_route=`: `none` or `starling:M:K` (both positive).
+/// Parse `read_route=`: `none`, `starling:M:K` or `starling:M:K:content`
+/// (M and K positive).
 pub fn parse_read_route(text: &str) -> Result<Option<StarlingRoute>> {
     if text == "none" {
         return Ok(None);
     }
-    let bad = || invalid(format!("invalid read_route={text} (none or starling:M:K)"));
-    match text.split(':').collect::<Vec<_>>().as_slice() {
-        ["starling", m, k] => {
-            let m: usize = m.parse().map_err(|_| bad())?;
-            let k: usize = k.parse().map_err(|_| bad())?;
-            if m == 0 || k == 0 {
-                return Err(bad());
-            }
-            Ok(Some(StarlingRoute { m, k }))
-        }
-        _ => Err(bad()),
+    let bad = || {
+        invalid(format!(
+            "invalid read_route={text} (none, starling:M:K or starling:M:K:content)"
+        ))
+    };
+    let (m, k, content) = match text.split(':').collect::<Vec<_>>().as_slice() {
+        ["starling", m, k] => (*m, *k, false),
+        ["starling", m, k, "content"] => (*m, *k, true),
+        _ => return Err(bad()),
+    };
+    let m: usize = m.parse().map_err(|_| bad())?;
+    let k: usize = k.parse().map_err(|_| bad())?;
+    if m == 0 || k == 0 {
+        return Err(bad());
     }
+    Ok(Some(StarlingRoute { m, k, content }))
 }
 
 /// Evaluation-time record of the starling read's kept sources
@@ -3297,7 +3310,21 @@ impl StackModel {
                 time,
             )?;
             let (value, value_width) = self.read_binding_values(value, layer, binding)?;
-            let read = self.starling_read(p, layer, &identity, &value, route)?;
+            let content = if route.content {
+                let query = self.linear(&identity, p.layer(layer, "read.query.weight")?)?;
+                let mut key = self.linear(&identity, p.layer(layer, "read.key.weight")?)?;
+                if self.read_key_shift {
+                    key = previous_key_channel(&key)?;
+                }
+                Some((
+                    self.heads(&query, batch, time)?.to_dtype(DType::F32)?,
+                    self.heads(&key, batch, time)?.to_dtype(DType::F32)?,
+                ))
+            } else {
+                None
+            };
+            let read =
+                self.starling_read(p, layer, &identity, &value, route, content.as_ref())?;
             return self.finish_geometric_read(
                 p,
                 layer,
@@ -3475,6 +3502,7 @@ impl StackModel {
         identity: &Tensor,
         value: &Tensor,
         route: StarlingRoute,
+        content: Option<&(Tensor, Tensor)>,
     ) -> Result<Tensor> {
         let (batch, time, _) = identity.dims3()?;
         let heads = self.config.heads;
@@ -3551,19 +3579,33 @@ impl StackModel {
                 .gather(&wide, 2)?
                 .reshape((batch, heads, time, k, width))?)
         };
-        let dot = a
-            .unsqueeze(3)?
-            .broadcast_mul(&gather_rows(&b, 4)?)?
-            .sum(4)?;
+        // The gate's score: the address dot, or (content routes) the
+        // head-width content dot scaled by 1/sqrt(d).
+        let dot = match content {
+            None => a
+                .unsqueeze(3)?
+                .broadcast_mul(&gather_rows(&b, 4)?)?
+                .sum(4)?,
+            Some((query, key)) => {
+                let d = query.dim(3)?;
+                query
+                    .unsqueeze(3)?
+                    .broadcast_mul(&gather_rows(key, d)?)?
+                    .sum(4)?
+                    .affine(1.0 / (d as f64).sqrt(), 0.0)?
+            }
+        };
         let beta = p.layer(layer, STARLING_BETA)?.reshape((1, heads, 1, 1))?;
         let gamma = p.layer(layer, STARLING_GAMMA)?.reshape((1, heads, 1, 1))?;
-        let gate = dot
-            .broadcast_mul(&beta)?
-            .broadcast_add(&gamma)?
-            .neg()?
-            .exp()?
-            .affine(1.0, 1.0)?
-            .recip()?;
+        let logit = dot.broadcast_mul(&beta)?.broadcast_add(&gamma)?;
+        let gate = if content.is_some() {
+            // The content dot is unbounded, so 1/(1+exp(-x)) overflows (inf/inf
+            // gradients); the tanh form has finite gradients everywhere. The
+            // address route keeps its exact form (its dot is in [-1, 1]).
+            logit.affine(0.5, 0.0)?.tanh()?.affine(0.5, 0.5)?
+        } else {
+            logit.neg()?.exp()?.affine(1.0, 1.0)?.recip()?
+        };
         let table = p
             .layer(layer, STARLING_RANK)?
             .reshape((1, heads, 1, side * side))?
@@ -3581,6 +3623,9 @@ impl StackModel {
         // Training-only helper: a causal mean over every earlier position of
         // the same gate on the address dot product, so every key address gets
         // a gradient while the hard selection is still uninformed. No softmax.
+        // The helper always scores by the address dot, even on content
+        // routes: it is what teaches the address maps (rung 2), which the
+        // content gate does not reach.
         let all = a
             .matmul(&b.transpose(2, 3)?.contiguous()?)?
             .broadcast_mul(&beta)?
@@ -31540,7 +31585,11 @@ mod tests {
             let mut rng = Initializer(300 + seed);
             let time = 40;
             let (query, key) = (unit_rows(&mut rng, time), unit_rows(&mut rng, time));
-            let route = StarlingRoute { m: 2, k: 3 };
+            let route = StarlingRoute {
+                m: 2,
+                k: 3,
+                content: false,
+            };
             let kept = starling_select(&query, &key, time, route)?;
             let vector = |v: &[f32], t: usize| [v[4 * t], v[4 * t + 1], v[4 * t + 2], v[4 * t + 3]];
             let cells: Vec<usize> = (0..time)
@@ -31574,7 +31623,11 @@ mod tests {
             tiny(StackArch::Geometric, "ra", ReadScore::L2, true),
             &cpu(),
         )?;
-        model.set_read_route(Some(StarlingRoute { m: 3, k: 4 }))?;
+        model.set_read_route(Some(StarlingRoute {
+            m: 3,
+            k: 4,
+            content: false,
+        }))?;
         Ok(model)
     }
 
@@ -31651,7 +31704,11 @@ mod tests {
             serde_json::from_slice(&fs::read(root.join("config.json"))?)?;
         assert_eq!(config[READ_ROUTE_FIELD], "starling:3:4");
         let loaded = StackModel::load(&root, &cpu())?;
-        assert_eq!(loaded.read_route(), Some(StarlingRoute { m: 3, k: 4 }));
+        assert_eq!(loaded.read_route(), Some(StarlingRoute {
+            m: 3,
+            k: 4,
+            content: false,
+        }));
         let again = loaded
             .forward(&ids, 1, 32)?
             .flatten_all()?
@@ -31665,13 +31722,112 @@ mod tests {
     }
 
     #[test]
+    fn the_starling_content_gate_scores_kept_sources_by_query_and_key() -> Result<()> {
+        let route = |content| StarlingRoute {
+            m: 2,
+            k: 3,
+            content,
+        };
+        let ids: Vec<u32> = (0..24u32).map(|i| (i * 7 + 3) % 37).collect();
+        let mut model = StackModel::new(
+            tiny(StackArch::Geometric, "ra", ReadScore::L2, true),
+            &cpu(),
+        )?;
+        model.set_read_route(Some(route(false)))?;
+        let address = model
+            .forward(&ids, 2, 12)?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        // Same variables, content gate on: the logits change (the gate reads
+        // the query and key maps the address route leaves unused).
+        model.read_route = Some(route(true));
+        let content = model
+            .forward(&ids, 2, 12)?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        assert_ne!(address, content);
+        // The query and key maps get exact gradients through the gate (the
+        // selection uses only the address maps, so it does not move).
+        let weights = random(&mut Initializer(31), &[24, 37], 1.0);
+        let vars: Vec<Var> = ["layers.01.read.query.weight", "layers.01.read.key.weight"]
+            .iter()
+            .map(|name| model.variables()[*name].clone())
+            .collect();
+        check_gradient(
+            &vars,
+            || Ok(model.forward(&ids, 2, 12)?.mul(&weights)?.sum_all()?),
+            5e-3,
+        )?;
+        // With the training helper on, the address maps still get a gradient
+        // on a content route (the helper scores by the address dot).
+        model.set_starling_dense(Some(1.0))?;
+        let key_address = model.variables()["layers.01.read.starling.key_address.weight"].clone();
+        let grads = model
+            .forward(&ids, 2, 12)?
+            .mul(&weights)?
+            .sum_all()?
+            .backward()?;
+        let g = grads
+            .get(key_address.as_tensor())
+            .ok_or_else(|| invalid("missing key address gradient"))?;
+        assert!(g.abs()?.sum_all()?.to_scalar::<f32>()? > 0.0);
+        model.set_starling_dense(None)?;
+        // Large content scores keep finite gradients (the gate saturates
+        // instead of overflowing).
+        let beta = model.variables()["layers.01.read.starling.beta"].clone();
+        beta.set(&beta.as_tensor().affine(0.0, 1.0e4)?)?;
+        let grads = model
+            .forward(&ids, 2, 12)?
+            .mul(&weights)?
+            .sum_all()?
+            .backward()?;
+        for var in &vars {
+            let g = grads
+                .get(var.as_tensor())
+                .ok_or_else(|| invalid("missing gradient"))?;
+            assert!(g
+                .flatten_all()?
+                .to_vec1::<f32>()?
+                .iter()
+                .all(|v| v.is_finite()));
+        }
+        // The route name round-trips through parse and save/load.
+        assert_eq!(
+            parse_read_route("starling:2:3:content")?,
+            Some(route(true))
+        );
+        assert!(parse_read_route("starling:2:3:other").is_err());
+        let content = model
+            .forward(&ids, 2, 12)?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        let root = std::env::temp_dir().join(format!("starling-content-{}", std::process::id()));
+        model.save(&root)?;
+        let loaded = StackModel::load(&root, &cpu())?;
+        assert_eq!(loaded.read_route(), Some(route(true)));
+        assert_eq!(
+            loaded
+                .forward(&ids, 2, 12)?
+                .flatten_all()?
+                .to_vec1::<f32>()?,
+            content
+        );
+        fs::remove_dir_all(&root)?;
+        Ok(())
+    }
+
+    #[test]
     fn the_starling_dense_helper_gives_unselected_keys_a_gradient_and_vanishes_at_zero(
     ) -> Result<()> {
         let mut model = StackModel::new(
             tiny(StackArch::Geometric, "ra", ReadScore::L2, true),
             &cpu(),
         )?;
-        model.set_read_route(Some(StarlingRoute { m: 1, k: 1 }))?;
+        model.set_read_route(Some(StarlingRoute {
+            m: 1,
+            k: 1,
+            content: false,
+        }))?;
         let ids: Vec<u32> = (0..24u32).map(|i| (i * 7 + 3) % 37).collect();
         let weights = random(&mut Initializer(23), &[24, 37], 1.0);
         let plain = model
