@@ -1,3 +1,40 @@
+## 2026-10-11 — Head ablation: the supervised read layer is where the answers come from (deepseek, #2029, D22 order 4)
+
+The [head-ablation round](../labs/head-ablation-2026-10-11/README.md) answers the read-binding brief's last unmet requirement — *"a
+head-ablation check that the bound head drives the answer"* — with a new serving-time instrument: `set_read_silence(Some(layer))`
+makes one read layer contribute nothing to the residual (`x = x + 0`), no parameter, no gradient, no training path, recorded in
+`replies.json` ([#2191](https://github.com/UOR-Foundation/uor-r4/pull/2191)). Run on the read-bound artifact **S2** (unablated
+**24/40**), one read layer at a time:
+
+| condition | memory | wrong-value | no value | mean reply words |
+|---|---:|---:|---:|---:|
+| unablated | **24/40** | 5 | 7 | 4.8 |
+| silence the **first** read (layer 2) | 2/40 | 9 | 29 | 18.2 |
+| silence the **middle** read (layer 5) | 7/40 | 12 | 21 | 5.5 |
+| **silence the supervised (last) read (layer 8)** | **0/40** | **0** | **37** | 6.3 |
+
+**The supervised layer is the one whose removal leaves no correct answer in any row, and — unlike the other two ablations — zero
+wrong-value failures**: the model stops producing values rather than producing the wrong ones. The supervision is applied to the
+head that carries the answer, shown rather than assumed. The read layers are also not interchangeable (0/40, 2/40, 7/40), which
+gives the brief's open question — *supervise every head, or route the output through the binding head?* — a measured answer about
+where that routing would matter most.
+
+**With this, three measurements tell one story**, none of them a configuration comparison: the
+[attribution](answer-path) says the answers come from the **read** (facts removed → 0/40; copy head off → one row); the
+[powered read binding](read-binding-powered) says the read can be **steered** and the headline moves with it (wrong-value 47 → 30
+over 120 rows, memory 57 → 65, three seeds against matched controls); and the ablation says the head being steered is the one that
+**carries the answers**.
+
+**Also completed:** the powered cycle's pending BPB pair — **Ctl2 1.17003 against S2's 1.17067**, a difference of 0.0006, inside the
+bar's 0.01, both below the anchor's 1.17425. Ctl3's BPB is the one remaining number (pending).
+
+**Limitations:** one artifact, one seed, 40 rows; silencing a whole layer is coarser than silencing the supervised head (which runs
+per head inside that layer); no judge-side numbers (not needed for a causal check); and the unablated column is the previous
+cycle's scoring rather than a re-run.
+
+**Next:** per-head ablation if the routing question is pursued, then the mechanism's own open questions with the compute ledger
+beside quality — and the owner's decision on whether the read becomes the home of an address-instead-of-search mechanism.
+
 ## 2026-10-11 — Read binding, powered: three seeds against matched controls cut the wrong-value failures 47 → 30 over 120 rows and lift the memory panel 57 → 65 (deepseek, #2029, D22 order 4, KEEP)
 
 The [powered read-binding round](../labs/read-binding-powered-2026-10-11/README.md) re-tests the mechanism its
