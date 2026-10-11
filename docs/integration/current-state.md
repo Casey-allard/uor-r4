@@ -1,3 +1,31 @@
+## 2026-10-11 — The lean addressed read: the failure-mode gain survives, the language-quality price appears (deepseek, #2029, D22 order 2 iteration, REJECT + KEEP downgraded)
+
+The [lean-address round](../labs/addressed-read-lean-2026-10-11/README.md) attacks the two costs the [addressed-read](../labs/addressed-read-2026-10-11/README.md)
+ledger named — **+36.9 M parameters** and **20× the training wall** — by cutting the codebook **8×** (`sub_keys=64 key_dim=64 top_k=16`
+against `256/128/32`), same mechanism, same layer, three seeds against matched controls re-run in-session, **BPB measured in the same
+session** because the previous cycle's was lost with its pod.
+
+**Both ledger costs disappear and the failure-mode gain survives:** parameters **+1.26 M (+4.3 %)**, wall **245 s against the control's
+104 s**, wrong-value **47 → 34 over 120** (−7 and −6 on two seeds, 0 on the third — the pre-registered primary, met).
+
+**And the price the last cycle could not see appears:** float BPB **1.26910 / 1.27659 / 1.27700** against the matched controls'
+**1.17425 / 1.17003** — **+0.095 and +0.107** against the **0.02** this cycle pre-registered — with **7 fewer memory rows of 120**.
+**Secondary criterion breached → REJECT this configuration**, and the more important consequence: **the fat configuration's KEEP is
+downgraded to conditional**, because the cost is a property of the mechanism as implemented, not of the codebook size.
+
+**The stream check passed and is why every number here is comparable:** the pod carried `chat-data-control-20261008/data/heldout.u16`
+instead of the earlier `chat-cuda-20261008` file, so the cycle re-ran and re-evaluated the controls on it — **1.17425 and 1.17003, the
+same numbers to five decimals** they produced on the old stream.
+
+**What it establishes:** the read does **double duty** — it retrieves stated values *and* carries general language quality — so an address
+that only retrieves is not a drop-in replacement. The panel's failure mode improves by 13 rows of 120 while general BPB degrades by ~0.10:
+a trade that a panel-only metric reads as a clean win, which is exactly how the previous cycle's KEEP was reached. The next configurations
+are the two the result motivates: add the address **beside** the read (augment, not replace), or train long enough for it to absorb the
+read's language function.
+
+**Declared:** three seeds on a 40-row panel; the fat configuration's BPB remains unavailable (its models died with a non-canonical pod
+volume); Ctl3's BPB pending; no arm yet adds the address beside the read.
+
 ## 2026-10-11 — Exact addressed memory at the read: wrong-value failures 47 → 34 of 120 with the headline flat, and a ledger that says what it costs (deepseek, #2029, D22 order 2, KEEP)
 
 The [addressed-read round](../labs/addressed-read-2026-10-11/README.md) executes **order 2** where the evidence says it matters. The read is
