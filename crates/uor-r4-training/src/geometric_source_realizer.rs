@@ -129,6 +129,40 @@ struct NativeMetadata {
 }
 
 impl SourceRealizerWeights {
+    pub(crate) fn context_shape(&self) -> (usize, usize) {
+        let c = self.consumer.context.config();
+        (c.heads, c.lanes_per_head)
+    }
+    pub(crate) fn shared_potential(&self) -> crate::geometric_potential_q4::PotentialQ4Weights {
+        self.consumer.potential.shared()
+    }
+    /// All source families may coadapt, but their inventory/shapes/base remain
+    /// bound. This is distinct from the retained-credit frozen-family API.
+    pub fn compile_joint_rebound(
+        &self,
+        parent: &NativeSourceRealizer,
+    ) -> Result<NativeSourceRealizer> {
+        parent.artifact_binding()?;
+        let current = parameter_identities(self)?;
+        if self.binding != parent.binding
+            || self.consumer.context.config().heads != parent.consumer.context.config().heads
+            || self.consumer.context.config().lanes_per_head
+                != parent.consumer.context.config().lanes_per_head
+            || self.consumer.context.config().vocab_size
+                != parent.consumer.context.config().vocab_size
+            || *self.consumer.potential.config() != parent.consumer.potential.config()
+            || current.keys().ne(parent.metadata.source_parameters.keys())
+            || current
+                .iter()
+                .any(|(name, value)| parent.metadata.source_parameters[name].shape != value.shape)
+        {
+            return Err(invalid("joint source inventory/shape differs"));
+        }
+        let mut native = self.compile(parent.metadata.identity.clone())?;
+        let (_, metadata) = native.export_payloads()?;
+        native.compiled_metadata_sha256 = Some(sha256_bytes(&metadata));
+        Ok(native)
+    }
     /// Trainable transition families for retained Copy utility. Root/category
     /// readout coefficients are fixed by that policy, not silently updated with
     /// another branch's partial gradient.
@@ -756,6 +790,9 @@ pub struct NativeSourceRealizer {
 }
 
 impl NativeSourceRealizer {
+    pub(crate) fn consumer_identity(&self) -> &ConsumerIdentity {
+        &self.metadata.identity
+    }
     /// Current packed Stop and Period payloads, in that order. This exposes
     /// numerical bytes only and does not assert independently loaded provenance.
     pub fn terminal_packed_payloads(&self) -> (&[u8], &[u8]) {
@@ -1257,6 +1294,41 @@ fn angular_coefficient_credit(
         .map_err(Into::into)
 }
 impl CueAngularWeights {
+    pub fn rebind_joint(&self, parent: &NativeSourceRealizer, root: &Path) -> Result<Self> {
+        self.rebind_joint_with(parent, root, self.frozen_joint.clone())
+    }
+    pub fn rebind_joint_with(
+        &self,
+        parent: &NativeSourceRealizer,
+        root: &Path,
+        joint: Option<CueJointQ4>,
+    ) -> Result<Self> {
+        if parent.artifact_binding()?.identity != self.metadata.parent.identity
+            || joint.as_ref().map(CueJointQ4::config)
+                != self.frozen_joint.as_ref().map(CueJointQ4::config)
+        {
+            return Err(invalid(
+                "joint cue base or ordered joint configuration differs",
+            ));
+        }
+        let mut angular = CueAngularQ4::new(self.config(), &self.packed_coefficients()?)
+            .map_err(|e| invalid(e.to_string()))?;
+        if let Some(j) = &joint {
+            angular = angular
+                .with_joint(j.clone())
+                .map_err(|e| invalid(e.to_string()))?;
+        }
+        let cue = parent.compile_cue_carrier(angular)?;
+        let mut metadata = self.metadata.clone();
+        metadata.parent = parent.artifact_binding()?;
+        metadata.parent_native_files_sha256 = cue_parent_files(parent, root)?;
+        metadata.native_metadata = serde_json::to_value(cue.metadata())?;
+        Ok(Self {
+            frozen_joint: joint,
+            coefficients: self.coefficients.clone(),
+            metadata,
+        })
+    }
     /// Restore exact quarter masters from authenticated native bytes; retain joint payload frozen.
     pub fn from_native(
         parent: &NativeSourceRealizer,
@@ -1522,6 +1594,27 @@ fn prefix_cue_files(root: &Path, cue: &NativeCueCarrier<'_>) -> Result<BTreeMap<
         .collect()
 }
 impl PrefixAngularWeights {
+    pub fn rebind_joint(
+        &self,
+        parent: &NativeSourceRealizer,
+        root: &Path,
+        cue: &NativeCueCarrier<'_>,
+    ) -> Result<Self> {
+        if parent.artifact_binding()?.identity != self.metadata.parent.identity {
+            return Err(invalid("joint prefix base differs"));
+        }
+        let prefix = parent.compile_prefix_transport(cue, self.native()?)?;
+        let mut metadata = self.metadata.clone();
+        metadata.parent = parent.artifact_binding()?;
+        metadata.parent_native_files_sha256 = prefix_parent_files(parent, root)?;
+        metadata.cue_native_metadata = serde_json::to_value(cue.metadata())?;
+        metadata.native_metadata = serde_json::to_value(prefix.metadata())?;
+        metadata.cue_native_files_sha256.clear();
+        Ok(Self {
+            coefficients: self.coefficients.clone(),
+            metadata,
+        })
+    }
     pub fn from_native(
         parent: &NativeSourceRealizer,
         native_root: &Path,
@@ -3243,21 +3336,21 @@ fn scalar_credit(hard_q24: i64, coefficient: &Tensor, context: &Tensor) -> Resul
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
     use crate::geometric_source_emission_view::SourceEmissionCompiler;
     use std::sync::atomic::{AtomicU64, Ordering};
     use uor_r4_integer::geometric_cue_carrier::{CueJointConfig, CueJointQ4};
     use uor_r4_integer::geometric_occurrence_read::{FrameMetadata, FrameStatus, SourceIdentity};
-    const TOK: &str = r#"{"pre_tokenizer":{"type":"ByteLevel","add_prefix_space":false},"model":{"type":"BPE","vocab":{"<|bos|>":0,"<|eos|>":1,"<|unk|>":2,".":3,"a":4,"b":5,"Ġ":6,"Ġa":7},"merges":["Ġ a"]},"added_tokens":[{"id":0,"content":"<|bos|>"},{"id":1,"content":"<|eos|>"},{"id":2,"content":"<|unk|>"}]}"#;
+    pub(crate) const TOK: &str = r#"{"pre_tokenizer":{"type":"ByteLevel","add_prefix_space":false},"model":{"type":"BPE","vocab":{"<|bos|>":0,"<|eos|>":1,"<|unk|>":2,".":3,"a":4,"b":5,"Ġ":6,"Ġa":7},"merges":["Ġ a"]},"added_tokens":[{"id":0,"content":"<|bos|>"},{"id":1,"content":"<|eos|>"},{"id":2,"content":"<|unk|>"}]}"#;
     static NEXT: AtomicU64 = AtomicU64::new(0);
-    struct Fixture {
-        path: std::path::PathBuf,
-        weights: SourceRealizerWeights,
-        identity: ConsumerIdentity,
+    pub(crate) struct Fixture {
+        pub(crate) path: std::path::PathBuf,
+        pub(crate) weights: SourceRealizerWeights,
+        pub(crate) identity: ConsumerIdentity,
     }
     impl Fixture {
-        fn new() -> Result<Self> {
+        pub(crate) fn new() -> Result<Self> {
             Self::new_with_lanes(1)
         }
         fn new_with_lanes(lanes: usize) -> Result<Self> {

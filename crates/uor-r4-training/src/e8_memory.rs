@@ -38,6 +38,7 @@ pub const E8_SLOTS: usize = E8_ROOTS * E8_ROOTS;
 /// The E8 roots (unit norm, [`Codebook::E8`] order) with their exact
 /// SpiralCore orbit structure.
 pub struct E8Tables {
+    exact_keys: Vec<[i8; 8]>,
     pub roots: Vec<[f32; 8]>,
     index: HashMap<[i8; 8], usize>,
     /// The orbit (0..15) of each root.
@@ -132,6 +133,7 @@ fn build_tables() -> Result<E8Tables> {
         return Err(invalid(format!("{} E8 orbits, not 15", members.len())));
     }
     Ok(E8Tables {
+        exact_keys: keys,
         roots: vectors
             .iter()
             .map(|v| [0, 1, 2, 3, 4, 5, 6, 7].map(|i| v[i] as f32))
@@ -144,6 +146,12 @@ fn build_tables() -> Result<E8Tables> {
 }
 
 impl E8Tables {
+    pub fn exact_root_key(&self, root: u16) -> Result<[i8; 8]> {
+        self.exact_keys
+            .get(usize::from(root))
+            .copied()
+            .ok_or_else(|| invalid("E8 exact root outside240"))
+    }
     /// Apply an existing SpiralCore action to an existing Claude E8 address.
     /// These are distinct typed domains: an action index is not a root index.
     pub fn transport_root(&self, root: u16, action: u8) -> Result<u16> {

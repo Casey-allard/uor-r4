@@ -185,7 +185,11 @@ learning inputs, repairs retained Copy credit and binds Claude/SpiralCore routes
 beside exact records. This is not a trained model promotion; model compute stays
 held for whole-path qualification. The [joint learning design](docs/labs/whole-path-learning-2026-10-11/README.md)
 specifies a shared encoder/revision, learned memory/route decisions and delayed
-reply credit; it is not an implemented or trained joint model. Opened128 and genuinely fresh
+reply credit. Its [source implementation](docs/labs/whole-path-implementation-2026-10-12/README.md)
+connects the actual compiler/store/E8/native-emitter path with shared credit,
+transactional rebinding and focused greedy reload fixtures. It is a CPU source
+reference, not a trained model or qualified CUDA trainer; model compute remains
+held. Opened128 and genuinely fresh
 qualification remain NOT_RUN. Historical source and
 reports remain in the [branch archive](docs/history/branch-archive/INDEX.md).
 

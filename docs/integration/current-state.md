@@ -1,3 +1,20 @@
+## 2026-10-12 - Whole-path compiler/store/E8/native-emitter reference connected, training held (codex, #2030)
+
+The [source result](../labs/whole-path-implementation-2026-10-12/README.md) joins
+real packed compiler spans/views, staged exact memory, bounded Claude E8/SpiralCore
+routes and native pooled emission with one shared parameter/credit inventory.
+Fifteen tiny whole-path fixtures and seven native-bank regressions pass, including
+actual greedy reload, shared coefficient/branch credit, all-component rebinding,
+fractional masters and atomic frame/store/index restoration; no optimizer or
+training was run. CUDA producer, sampled checkpoint/optimizer and batch/data/FIT
+gates remain blocking; this is a connected CPU source reference, not a trained
+model, language/transfer or efficiency result.
+
+**Next:** protected source delivery and preservation, then retain the owner
+training hold; no automatic compute or third preparation loop. Unified count5/3
+on explicit owner implementation, no reset; saved437 plus opened0 panel fitting
+and genuinely fresh NOT_RUN, with acceptance/panels/graders unchanged.
+
 ## 2026-10-12 — Starling readout self-distillation with the tree: one seed reaches softmax-level recall at about 69 candidates per query, two never learn the task (row 4) (claude, #2032)
 
 The [record](../labs/starling-readout-2026-10-12/README.md) is murmuration ladder step 3b: a training-only regression of the served rank-table × gate readout on the softmax of the content score over the kept slots.

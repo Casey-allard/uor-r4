@@ -53,6 +53,7 @@ pub struct GenerateLearningWeights {
 /// Frozen export admission. Its native model, not live float argmax, chooses
 /// prototypes and supplies factual scores. An optimizer update invalidates it.
 pub struct PreparedGenerateLearning {
+    forced_prototypes: Option<Vec<u8>>,
     pub native: NativeGeometricGenerate,
     pub downloaded_master_bytes: usize,
     pub prototype_choice_sha256: String,
@@ -184,6 +185,17 @@ fn initial_token_geometry(vocab: usize, lanes: usize, seed: u64, balanced: bool)
 }
 
 impl GenerateLearningWeights {
+    pub(crate) fn shared(&self) -> Self {
+        Self {
+            binding: self.binding.clone(),
+            lanes: self.lanes,
+            edges: self.edges.clone(),
+            prototype_choices: self.prototype_choices.clone(),
+            unary: self.unary.clone(),
+            pair: self.pair.clone(),
+            bias: self.bias.clone(),
+        }
+    }
     /// Seeded nonzero shared potentials and distinct base-120 tuples where
     /// cardinality permits. Arbitrary initialization has no semantic claim.
     pub fn seeded(
@@ -394,6 +406,15 @@ impl GenerateLearningWeights {
             }
             prototypes.push(chosen as u8);
         }
+        Ok((self.native_for_prototypes(&prototypes)?, choice_digest))
+    }
+    pub fn native_for_prototypes(&self, prototypes: &[u8]) -> Result<NativeGeometricGenerate> {
+        self.validate_shapes()?;
+        if prototypes.len() != self.vocab_size() * self.lanes
+            || prototypes.iter().any(|&r| r >= 120)
+        {
+            return Err(invalid("forced Generate prototype domain/shape differs"));
+        }
         let u = quarter_codes(&self.unary)?;
         let p = quarter_codes(&self.pair)?;
         let b = quarter_codes(&self.bias)?;
@@ -428,10 +449,26 @@ impl GenerateLearningWeights {
             energy,
         )
         .map_err(|e| invalid(e.to_string()))?;
-        Ok((native, choice_digest))
+        Ok(native)
     }
     pub fn prepare_native(&self) -> Result<PreparedGenerateLearning> {
         let (native, prototype_choice_sha256) = self.export_native_with_choice_digest()?;
+        self.prepare_snapshot(native, prototype_choice_sha256, None)
+    }
+    pub fn prepare_with_prototypes(&self, codes: &[u8]) -> Result<PreparedGenerateLearning> {
+        let digest = choice_digest(&self.prototype_choices.flatten_all()?.to_vec1::<f32>()?);
+        self.prepare_snapshot(
+            self.native_for_prototypes(codes)?,
+            digest,
+            Some(codes.to_vec()),
+        )
+    }
+    fn prepare_snapshot(
+        &self,
+        native: NativeGeometricGenerate,
+        prototype_choice_sha256: String,
+        forced_prototypes: Option<Vec<u8>>,
+    ) -> Result<PreparedGenerateLearning> {
         let v = self.vocab_size();
         let mut relation = Vec::with_capacity(ROOT_COUNT * ROOT_COUNT);
         for state in 0..ROOT_COUNT {
@@ -466,6 +503,7 @@ impl GenerateLearningWeights {
             None
         };
         Ok(PreparedGenerateLearning {
+            forced_prototypes,
             native,
             prototype_choice_sha256,
             downloaded_master_bytes: 4
@@ -599,7 +637,12 @@ impl GenerateLearningWeights {
         }
         if self.device().is_cpu()
             && self
-                .export_native()?
+                .native_for_prototypes(
+                    prepared
+                        .forced_prototypes
+                        .as_deref()
+                        .unwrap_or(self.export_native()?.prototypes()),
+                )?
                 .to_bytes()
                 .map_err(|e| invalid(e.to_string()))?
                 != native.to_bytes().map_err(|e| invalid(e.to_string()))?

@@ -1,6 +1,7 @@
 //! Offline learning and a source-only native adapter for learned turn compilation.
-//! The encoder is frozen. Ordinary CE uses quarter-Q4 forward values and an STE;
-//! final checkpoint selection uses the exact packed integer heads on development.
+//! Version1 freezes the encoder. Version2 binds it to a whole-path revision;
+//! its caller owns shared learning/rebinding. Legacy ordinary CE uses quarter-Q4
+//! forward values and an STE with exact integer-head development selection.
 use crate::relation_compiler::{word_spans, Example, ACTS, NONE};
 use crate::stack_grounded_session::{
     CompiledAction, CompilerIdentity, EncoderIdentity, GroundedSessionError, RelationLabel,
@@ -18,6 +19,7 @@ use uor_r4_integer::{
 use uor_r4_tokenizer::ByteBpeTokenizer;
 
 pub const SCHEMA: &str = "uor-r4.native-geometric-turn-compiler/1";
+pub const JOINT_SCHEMA: &str = "uor-r4.native-geometric-turn-compiler/2";
 pub const FEATURE_POLICY: &str = "frozen-signed-H4;turn-final;word-local,inverse(turn)*word,inverse(prefix-before)*prefix-after;independent-original-slice-BPE/1";
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -30,7 +32,7 @@ pub enum FeatureMode {
     OrderedPrefixTransport,
 }
 impl FeatureMode {
-    fn policy(self) -> &'static str {
+    pub(crate) fn policy(self) -> &'static str {
         match self {Self::Endpoint=>FEATURE_POLICY,Self::LocalRelative=>"frozen-signed-H4;ordered-independent-word;current-previous-inverse(previous)*current;span-current-previous-next-transport;absent-masked;aggregate-bias-once/1",Self::LocalProduct=>"frozen-signed-H4;ordered-independent-word;current-previous-previous*current;span-current-previous-next-transport;absent-masked;aggregate-bias-once/1",Self::OrderedPrefixCarrier=>"frozen-signed-H4;local-product-base;incremental-ordered-prefix-before;added-prefix-unary;BOS-masked;aggregate-bias-once/1",Self::OrderedPrefixTransport=>"frozen-signed-H4;local-product-base;incremental-ordered-prefix-before;added-inverse(prefix-before)*current;BOS-masked;aggregate-bias-once/1"}
     }
     fn ordered_prefix(self) -> bool {
@@ -39,7 +41,7 @@ impl FeatureMode {
             Self::OrderedPrefixCarrier | Self::OrderedPrefixTransport
         )
     }
-    fn turn_slots(self, lanes: usize) -> usize {
+    pub(crate) fn turn_slots(self, lanes: usize) -> usize {
         if self == Self::Endpoint {
             lanes
         } else if self.ordered_prefix() {
@@ -48,7 +50,7 @@ impl FeatureMode {
             3 * lanes
         }
     }
-    fn span_slots(self, lanes: usize) -> usize {
+    pub(crate) fn span_slots(self, lanes: usize) -> usize {
         if self == Self::Endpoint {
             3 * lanes
         } else if self.ordered_prefix() {
@@ -112,7 +114,7 @@ impl Default for FitConfig {
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-struct Artifact {
+pub(crate) struct Artifact {
     schema: String,
     feature_policy: String,
     #[serde(default)]
@@ -131,6 +133,8 @@ struct Artifact {
     act_packed: Vec<u8>,
     relation_packed: Vec<u8>,
     span_packed: Vec<u8>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    view_packed: Option<Vec<u8>>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CheckpointReport {
@@ -158,10 +162,10 @@ pub struct FitResult {
     pub selected_step: usize,
 }
 #[derive(Clone, Debug)]
-struct Features {
-    turn: Vec<Vec<Option<u8>>>,
-    words: Vec<Vec<Option<u8>>>,
-    spans: Vec<SourceSpan>,
+pub(crate) struct Features {
+    pub(crate) turn: Vec<Vec<Option<u8>>>,
+    pub(crate) words: Vec<Vec<Option<u8>>>,
+    pub(crate) spans: Vec<SourceSpan>,
 }
 #[derive(Clone, Debug)]
 struct Labeled {
@@ -209,7 +213,7 @@ fn encode(
     }
     Ok(state.states()[..tables.heads() * tables.lanes_per_head()].to_vec())
 }
-fn features(
+pub(crate) fn features(
     native: &NativeSourceRealizer,
     tokenizer: &ByteBpeTokenizer,
     source: &str,
@@ -594,6 +598,54 @@ fn argmax(scores: &[i64]) -> usize {
     best
 }
 
+pub(crate) fn joint_artifact(
+    parent: &NativeSourceRealizer,
+    relations: &[String],
+    config: &FitConfig,
+    masters: &[Vec<f32>; 4],
+) -> Result<Vec<u8>> {
+    relation_valid(relations)?;
+    let lanes = parent.context_config().heads * parent.context_config().lanes_per_head;
+    let shapes = [
+        shape(4, config.feature_mode.turn_slots(lanes)),
+        shape(relations.len() + 1, config.feature_mode.turn_slots(lanes)),
+        shape(2, config.feature_mode.span_slots(lanes)),
+        shape(4, config.feature_mode.turn_slots(lanes)),
+    ];
+    let packed_heads = masters
+        .iter()
+        .zip(shapes)
+        .map(|(m, s)| {
+            if m.len() != s.coefficient_count().map_err(|e| invalid(e.to_string()))?
+                || m.iter().any(|x| !x.is_finite() || x.abs() > 1.75)
+            {
+                return Err(invalid("joint compiler master shape/range differs"));
+            }
+            packed(&m.iter().map(|&x| f64::from(x)).collect::<Vec<_>>())
+        })
+        .collect::<Result<Vec<_>>>()?;
+    Ok(serde_json::to_vec(&Artifact {
+        schema: JOINT_SCHEMA.into(),
+        feature_policy: config.feature_mode.policy().into(),
+        feature_mode: config.feature_mode,
+        initialization_seed: None,
+        initialization_policy: None,
+        parent: parent.artifact_binding().clone(),
+        algebra_sha256: TRUSTED_MATHEMATICAL_SHA256
+            .ok_or_else(|| invalid("unbound compiler algebra"))?
+            .into(),
+        relations: relations.to_vec(),
+        lanes,
+        max_tokens: config.max_tokens,
+        max_words: config.max_words,
+        max_value_words: config.max_value_words,
+        act_packed: packed_heads[0].clone(),
+        relation_packed: packed_heads[1].clone(),
+        span_packed: packed_heads[2].clone(),
+        view_packed: Some(packed_heads[3].clone()),
+    })?)
+}
+
 /// Diagnostic arithmetic only: explain the already admitted native head without
 /// changing feature extraction, scoring, training, or the span decoder.
 fn inspect_head(
@@ -670,8 +722,47 @@ pub struct NativeTurnCompiler<'a> {
     act: NativeTurnHead,
     relation: NativeTurnHead,
     span: NativeTurnHead,
+    view: Option<NativeTurnHead>,
+    choices: Option<std::sync::Arc<dyn TurnChoiceControl>>,
+}
+pub trait TurnChoiceControl: std::fmt::Debug + Send + Sync {
+    fn select(
+        &self,
+        family: &str,
+        rows: &[Vec<Option<u8>>],
+        config: TurnHeadConfig,
+        scores: &[i64],
+    ) -> Result<usize>;
+    fn span(
+        &self,
+        rows: &[Vec<Option<u8>>],
+        config: TurnHeadConfig,
+        scores: &[Vec<i64>],
+        spans: &[SourceSpan],
+        max_words: usize,
+    ) -> Result<Option<SourceSpan>>;
 }
 impl<'a> NativeTurnCompiler<'a> {
+    pub fn with_choice_control(mut self, control: std::sync::Arc<dyn TurnChoiceControl>) -> Self {
+        self.choices = Some(control);
+        self
+    }
+    fn choice(
+        &self,
+        family: &str,
+        head: &NativeTurnHead,
+        rows: &[Vec<Option<u8>>],
+    ) -> Result<usize> {
+        let scores = head.scores_rows(rows).map_err(|e| invalid(e.to_string()))?;
+        let chosen = match &self.choices {
+            Some(control) => control.select(family, rows, head.config(), &scores)?,
+            None => argmax(&scores),
+        };
+        if chosen >= scores.len() {
+            return Err(invalid("compiler choice outside head"));
+        }
+        Ok(chosen)
+    }
     pub fn load(
         bytes: &[u8],
         trusted_sha: &str,
@@ -680,13 +771,18 @@ impl<'a> NativeTurnCompiler<'a> {
         tokenizer_bytes: &[u8],
     ) -> Result<Self> {
         let trusted_tokenizer_sha = verified_tokenizer(native, tokenizer, tokenizer_bytes)?;
-        if bytes.len() > 128 * 1024 {
+        if bytes.len() > 2 * 1024 * 1024 {
             return Err(invalid("compiler artifact exceeds admission byte cap"));
         }
         if sha256_bytes(bytes) != trusted_sha {
             return Err(invalid("compiler artifact SHA does not match trusted root"));
         }
         let artifact: Artifact = serde_json::from_slice(bytes)?;
+        if artifact.schema == SCHEMA && bytes.len() > 128 * 1024 {
+            return Err(invalid(
+                "legacy compiler artifact exceeds admission byte cap",
+            ));
+        }
         relation_valid(&artifact.relations)?;
         let lanes = native.context_config().heads * native.context_config().lanes_per_head;
         if artifact.initialization_policy.as_deref().is_some_and(|p| {
@@ -698,7 +794,8 @@ impl<'a> NativeTurnCompiler<'a> {
         }) {
             return Err(invalid("compiler initialization identity mismatch"));
         }
-        if artifact.schema != SCHEMA
+        if ![SCHEMA, JOINT_SCHEMA].contains(&artifact.schema.as_str())
+            || (artifact.schema == JOINT_SCHEMA) != artifact.view_packed.is_some()
             || artifact.feature_policy != artifact.feature_mode.policy()
             || artifact.parent != *native.artifact_binding()
             || artifact.lanes != lanes
@@ -732,7 +829,7 @@ impl<'a> NativeTurnCompiler<'a> {
         )
         .map_err(|e| invalid(e.to_string()))?;
         let identity = CompilerIdentity {
-            schema: SCHEMA.into(),
+            schema: artifact.schema.clone(),
             artifact_sha256: trusted_sha.into(),
             tokenizer_sha256: trusted_tokenizer_sha.clone(),
             label_schema: "ordered-relation-ids-1-based;assert-update-query-none/1".into(),
@@ -751,6 +848,14 @@ impl<'a> NativeTurnCompiler<'a> {
                 transport_sha256: Some(artifact.algebra_sha256.clone()),
             }),
         };
+        let view = artifact
+            .view_packed
+            .as_ref()
+            .map(|packed| {
+                NativeTurnHead::new(shape(4, artifact.feature_mode.turn_slots(lanes)), packed)
+                    .map_err(|e| invalid(e.to_string()))
+            })
+            .transpose()?;
         Ok(Self {
             artifact,
             bytes: bytes.to_vec(),
@@ -760,6 +865,8 @@ impl<'a> NativeTurnCompiler<'a> {
             act,
             relation,
             span,
+            view,
+            choices: None,
         })
     }
     /// Source-only, diagnostic inspection of exact integer-quarter native scores.
@@ -895,18 +1002,8 @@ impl<'a> NativeTurnCompiler<'a> {
             self.artifact.max_words,
             self.artifact.feature_mode,
         )?;
-        let act = argmax(
-            &self
-                .act
-                .scores_rows(&f.turn)
-                .map_err(|e| invalid(e.to_string()))?,
-        );
-        let relation = argmax(
-            &self
-                .relation
-                .scores_rows(&f.turn)
-                .map_err(|e| invalid(e.to_string()))?,
-        );
+        let act = self.choice("act", &self.act, &f.turn)?;
+        let relation = self.choice("relation", &self.relation, &f.turn)?;
         if act == 3 || relation == self.artifact.relations.len() {
             return Ok(CompiledAction::Unresolved {
                 reason: "native learned none act or relation".into(),
@@ -914,6 +1011,12 @@ impl<'a> NativeTurnCompiler<'a> {
         }
         let relation = (relation + 1) as u32;
         if act == 2 {
+            if let Some(head) = &self.view {
+                let chosen = self.choice("view", head, &f.turn)?;
+                let view = crate::stack_store::view_from_code(chosen as u32)
+                    .ok_or_else(|| invalid("compiler view outside schema"))?;
+                return Ok(CompiledAction::Query { relation, view });
+            }
             return Ok(CompiledAction::QueryCurrent { relation });
         }
         let scores: Vec<Vec<i64>> = f
@@ -925,7 +1028,17 @@ impl<'a> NativeTurnCompiler<'a> {
                     .map_err(|e| invalid(e.to_string()))
             })
             .collect::<Result<_>>()?;
-        let Some(span) = selected_span(&scores, &f.spans, self.artifact.max_value_words) else {
+        let selected = match &self.choices {
+            Some(control) => control.span(
+                &f.words,
+                self.span.config(),
+                &scores,
+                &f.spans,
+                self.artifact.max_value_words,
+            )?,
+            None => selected_span(&scores, &f.spans, self.artifact.max_value_words),
+        };
+        let Some(span) = selected else {
             return Ok(CompiledAction::Unresolved {
                 reason: "native learned span has no positive margin".into(),
             });
@@ -1116,6 +1229,7 @@ pub fn fit_examples(
                 act_packed: packed(&weights[0])?,
                 relation_packed: packed(&weights[1])?,
                 span_packed: packed(&weights[2])?,
+                view_packed: None,
             };
             let bytes = serde_json::to_vec(&artifact)?;
             let (loss, act_correct, relation_correct, span_exact) =

@@ -51,6 +51,7 @@ pub enum ContextFamily {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ContextError {
+    ChoiceControl,
     CaptureActive,
     CaptureLimit,
     CaptureAllocation,
@@ -91,6 +92,7 @@ pub enum ContextError {
 impl fmt::Display for ContextError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::ChoiceControl => f.write_str("offline context choice control failed/active/invalid"),
             Self::CaptureActive => f.write_str("native context capture already active"),
             Self::CaptureLimit => f.write_str("native context capture event limit reached or invalid"),
             Self::CaptureAllocation => f.write_str("native context capture allocation failed"),
@@ -359,6 +361,37 @@ struct DecisionRecorder {
     enabled: AtomicBool,
     capture: Mutex<Option<DecisionCaptureState>>,
 }
+
+/// Explicit offline hard-choice replay/sampling. Normal serving never installs
+/// this controller; no floating-point implementation enters this crate.
+pub trait ContextChoiceControl: fmt::Debug + Send + Sync {
+    fn identity(&self) -> &str;
+    fn select(
+        &self,
+        token: usize,
+        lane: usize,
+        family: ContextDecisionFamily,
+        own: H4Code,
+        neighbor: H4Code,
+        scores_q24: &[i64],
+    ) -> ContextResult<u8>;
+}
+#[derive(Debug)]
+struct ChoiceControlSlot {
+    enabled: AtomicBool,
+    control: Mutex<Option<Arc<dyn ContextChoiceControl>>>,
+}
+pub struct ContextChoiceGuard {
+    slot: Arc<ChoiceControlSlot>,
+}
+impl Drop for ContextChoiceGuard {
+    fn drop(&mut self) {
+        if let Ok(mut control) = self.slot.control.lock() {
+            *control = None;
+            self.slot.enabled.store(false, Ordering::Release);
+        }
+    }
+}
 /// Per-instance offline capture. Drop always detaches, including error paths.
 /// Capture allocates and repeats score reads; it is excluded from normal serving
 /// cost. Callers must synchronize the scope with users of this table instance.
@@ -402,6 +435,7 @@ impl Drop for ContextDecisionCapture {
 
 #[derive(Debug)]
 pub struct NativeContextTables {
+    choice_control: Arc<ChoiceControlSlot>,
     tokens: Box<[TokenTables]>,
     lanes: Box<[LaneTables]>,
     heads: usize,
@@ -555,6 +589,10 @@ impl NativeContextTables {
         let root_readout_reads = transition_reads;
         let category_readout_reads = total * CATEGORY_COUNT * (2 + neighbor_families);
         Ok(Self {
+            choice_control: Arc::new(ChoiceControlSlot {
+                enabled: AtomicBool::new(false),
+                control: Mutex::new(None),
+            }),
             tokens: tokens.into_boxed_slice(),
             lanes: lanes.into_boxed_slice(),
             heads,
@@ -580,6 +618,14 @@ impl NativeContextTables {
     /// score vectors are at most 120 i64 values/event. Allocation/cap failures
     /// poison this capture's result rather than returning a truncated success.
     pub fn capture_decisions(&self, max_events: usize) -> ContextResult<ContextDecisionCapture> {
+        let _choice = self
+            .choice_control
+            .control
+            .lock()
+            .map_err(|_| ContextError::ChoiceControl)?;
+        if self.choice_control.enabled.load(Ordering::Acquire) {
+            return Err(ContextError::ChoiceControl);
+        }
         if max_events == 0 {
             return Err(ContextError::CaptureLimit);
         }
@@ -654,6 +700,69 @@ impl NativeContextTables {
         scores.extend(factors.scores(values, own, neighbor, shift, count));
         let winner = factors.select(values, own, neighbor, shift, count);
         Ok((winner as u8, scores))
+    }
+
+    pub fn control_choices(
+        &self,
+        control: Arc<dyn ContextChoiceControl>,
+    ) -> ContextResult<ContextChoiceGuard> {
+        if control.identity().len() != 64
+            || !control.identity().bytes().all(|b| b.is_ascii_hexdigit())
+        {
+            return Err(ContextError::ChoiceControl);
+        }
+        let mut slot = self
+            .choice_control
+            .control
+            .lock()
+            .map_err(|_| ContextError::ChoiceControl)?;
+        if slot.is_some() || self.recorder.enabled.load(Ordering::Acquire) {
+            return Err(ContextError::ChoiceControl);
+        }
+        *slot = Some(control);
+        self.choice_control.enabled.store(true, Ordering::Release);
+        Ok(ContextChoiceGuard {
+            slot: self.choice_control.clone(),
+        })
+    }
+
+    pub fn choice_control_identity(&self) -> ContextResult<Option<String>> {
+        if !self.choice_control.enabled.load(Ordering::Acquire) {
+            return Ok(None);
+        }
+        Ok(self
+            .choice_control
+            .control
+            .lock()
+            .map_err(|_| ContextError::ChoiceControl)?
+            .as_ref()
+            .map(|c| c.identity().to_owned()))
+    }
+
+    fn controlled_choice(
+        &self,
+        token: usize,
+        lane: usize,
+        family: ContextDecisionFamily,
+        own: H4Code,
+        neighbor: H4Code,
+        greedy: usize,
+    ) -> ContextResult<usize> {
+        if !self.choice_control.enabled.load(Ordering::Acquire) {
+            return Ok(greedy);
+        }
+        let (_, scores) = self.decision_scores(token, lane, family, own, neighbor)?;
+        let slot = self
+            .choice_control
+            .control
+            .lock()
+            .map_err(|_| ContextError::ChoiceControl)?;
+        let control = slot.as_ref().ok_or(ContextError::ChoiceControl)?;
+        let chosen = usize::from(control.select(token, lane, family, own, neighbor, &scores)?);
+        if chosen >= scores.len() {
+            return Err(ContextError::ChoiceControl);
+        }
+        Ok(chosen)
     }
 
     fn record_decisions(
@@ -830,6 +939,14 @@ impl NativeContextState {
             let selected =
                 lane.transition
                     .select(token, old[index], old[lane.neighbor_index], 7, ROOT_COUNT);
+            let selected = tables.controlled_choice(
+                token_id,
+                index,
+                ContextDecisionFamily::Transition,
+                old[index],
+                old[lane.neighbor_index],
+                selected,
+            )?;
             actions[index] = tables.codes[selected];
             next[index] = geometry.compose(old[index], actions[index]);
         }
@@ -887,6 +1004,14 @@ impl NativeContextState {
             let selected =
                 lane.root
                     .select(root, next[index], next[lane.neighbor_index], 7, ROOT_COUNT);
+            let selected = tables.controlled_choice(
+                token_id,
+                index,
+                ContextDecisionFamily::Root,
+                next[index],
+                next[lane.neighbor_index],
+                selected,
+            )?;
             readout_roots[index] = tables.codes[selected];
             let category = lane.category.select(
                 category,
@@ -895,6 +1020,14 @@ impl NativeContextState {
                 6,
                 CATEGORY_COUNT,
             );
+            let category = tables.controlled_choice(
+                token_id,
+                index,
+                ContextDecisionFamily::Category,
+                next[index],
+                next[lane.neighbor_index],
+                category,
+            )?;
             categories[index] = category as u8;
             if category != 0 {
                 output[index] =

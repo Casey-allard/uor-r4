@@ -1,5 +1,11 @@
 # Whole-Path Geometric Learning Design (11 October 2026)
 
+**Implementation follow-up:** the owner-requested [12 October source result](../whole-path-implementation-2026-10-12/README.md)
+connects the real native compiler/store/E8/emitter and shared learning/rebinding
+reference. The historical design-only receipt below is unchanged; full CUDA,
+sampled checkpoint/optimizer and batch qualification remain blocking, with the
+owner training hold in force.
+
 **Owner request:** finish the mathematical/learning design using SpiralCore and
 Claude's work; compiler, memory decisions, routing and emitter learn together;
 do not train yet. **Milestone:** M2 #2030, with M3 durability dependencies.

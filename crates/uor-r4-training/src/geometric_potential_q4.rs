@@ -50,6 +50,16 @@ pub struct PotentialQ4Weights {
     parameters: BTreeMap<String, Var>,
     algebra: Arc<HistoricalH4Tables>,
 }
+impl PotentialQ4Weights {
+    pub(crate) fn shared(&self) -> Self {
+        Self {
+            config: self.config,
+            parent: self.parent.clone(),
+            parameters: self.parameters.clone(),
+            algebra: self.algebra.clone(),
+        }
+    }
+}
 pub struct PotentialQ4Output {
     /// [B,H,T,T]. Only causal entries are computed; future entries are zero and
     /// must be masked by the actual reader before normalization.

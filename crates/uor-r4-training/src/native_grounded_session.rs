@@ -53,6 +53,13 @@ pub struct NativePreparedTurn {
     session_sha256: String,
 }
 impl NativePreparedTurn {
+    pub(crate) fn with_status(mut self, code: u8) -> Result<Self> {
+        self.bank = self
+            .bank
+            .with_status(code)
+            .map_err(|e| invalid(e.to_string()))?;
+        Ok(self)
+    }
     pub fn bank(&self) -> &AdmittedBank {
         &self.bank
     }
@@ -69,6 +76,90 @@ pub struct NativeTurnOutcome {
     pub effect: MemoryEffect,
     pub reads: Vec<(u32, StoreRead)>,
     pub generation: NativeBankGeneration,
+}
+#[derive(Clone, Debug)]
+pub struct NativeRecordSelection {
+    pub relation: u32,
+    pub view: HistoryView,
+    pub record: u64,
+}
+
+fn selected_packet(
+    store: &StackStore,
+    scope: &SessionScope,
+    turns: &[Turn],
+    pending: &Turn,
+    selected: &[NativeRecordSelection],
+) -> Result<(PinnedBankSnapshot, Vec<(u32, StoreRead)>)> {
+    let mut sources = std::collections::BTreeMap::new();
+    let mut reads = Vec::new();
+    let mut seen = std::collections::BTreeSet::new();
+    if selected.len() > 128 {
+        return Err(invalid("selected record admission exceeds128"));
+    }
+    for s in selected {
+        if !seen.insert(s.record) {
+            return Err(invalid("selected record duplicated"));
+        }
+        let read = store
+            .read_at(
+                &scope.scope,
+                &scope.entity,
+                s.relation,
+                s.view,
+                store.commit(),
+            )
+            .map_err(|e| invalid(e.to_string()))?;
+        let value = read
+            .value()
+            .filter(|v| v.record == s.record && !v.conflict)
+            .ok_or_else(|| invalid("selected record is not an eligible exact pinned version"))?;
+        let origin = turns
+            .iter()
+            .chain(std::iter::once(pending))
+            .find(|t| t.record == Some(s.record))
+            .ok_or_else(|| invalid("selected record has no original source witness"))?;
+        sources.insert(
+            origin.event,
+            OwnedBankSource {
+                event: origin.event,
+                record: s.record,
+                commit: value.commit,
+                scope: scope.scope.clone(),
+                entity: scope.entity.clone(),
+                relation: s.relation,
+                view: s.view as u32,
+                status: SnapshotSourceStatus::Found,
+                original_token_ids: value.tokens.clone(),
+            },
+        );
+        reads.push((s.relation, read));
+    }
+    let mut segments = Vec::new();
+    for t in turns.iter().chain(std::iter::once(pending)) {
+        if sources.contains_key(&t.event) {
+            segments.push(OwnedBankSegment::Context {
+                event: t.event,
+                role: 0,
+                token_ids: t.user_ids.clone(),
+            });
+        }
+        if let Some(s) = sources.remove(&t.event) {
+            segments.push(OwnedBankSegment::Source(s));
+        }
+    }
+    Ok((
+        PinnedBankSnapshot {
+            pin: BankPin {
+                lineage: store.lineage(),
+                commit: store.commit(),
+                scope: scope.scope.clone(),
+            },
+            segments,
+            query_ids: pending.user_ids.clone(),
+        },
+        reads,
+    ))
 }
 
 /// A coarse Claude/SpiralCore E8 route beside exact committed content identity.
@@ -145,7 +236,11 @@ fn validate_compiler(
         || sha256_bytes(tokenizer_bytes) != id.tokenizer_sha256
         || id.tokenizer_sha256 != emitter.identity.tokenizer_sha256
         || id.encoder.as_ref() != Some(&expected)
-        || id.schema != crate::geometric_turn_compiler::SCHEMA
+        || ![
+            crate::geometric_turn_compiler::SCHEMA,
+            crate::geometric_turn_compiler::JOINT_SCHEMA,
+        ]
+        .contains(&id.schema.as_str())
         || id.relations.is_empty()
         || id
             .relations
@@ -358,6 +453,29 @@ impl<'a, C: TurnCompiler> NativeGroundedSession<'a, C> {
     pub fn store(&self) -> &StackStore {
         &self.store
     }
+    pub(crate) fn record_source(&self, record: u64) -> Result<&str> {
+        self.turns
+            .iter()
+            .find(|t| t.record == Some(record))
+            .map(|t| t.source.as_str())
+            .ok_or_else(|| invalid("exact record lacks original compiler source"))
+    }
+    pub(crate) fn teacher_step(
+        &mut self,
+        prepared: &NativePreparedTurn,
+        prefix: &[u32],
+    ) -> Result<uor_r4_core::native_geometric::learner::native_bank_generate::NativeBankGenerateStep>
+    {
+        self.check_compiler()?;
+        if prepared.session_sha256 != self.session_sha256()?
+            || prepared.compiler_sha256 != self.compiler_identity.artifact_sha256
+        {
+            return Err(invalid("teacher packet no longer binds this session"));
+        }
+        self.emitter
+            .step(&prepared.bank, prefix)
+            .map_err(|e| invalid(e.to_string()))
+    }
     /// The route is supplied by the existing geometric reader, not derived from
     /// hash bits. Bind only an exact committed record in this session's scope.
     pub fn bind_spiral_route(&self, record: u64, root: u16) -> Result<ExactSpiralRecordRoute> {
@@ -426,6 +544,39 @@ impl<'a, C: TurnCompiler> NativeGroundedSession<'a, C> {
         Ok(())
     }
     pub fn prepare_turn(&self, source: &str) -> Result<NativePreparedTurn> {
+        self.prepare_with(
+            source,
+            None::<
+                fn(
+                    &StackStore,
+                    &CompiledAction,
+                    &MemoryEffect,
+                ) -> Result<Vec<NativeRecordSelection>>,
+            >,
+        )
+    }
+    pub fn prepare_selected_turn(
+        &self,
+        source: &str,
+        select: impl FnOnce(
+            &StackStore,
+            &CompiledAction,
+            &MemoryEffect,
+        ) -> Result<Vec<NativeRecordSelection>>,
+    ) -> Result<NativePreparedTurn> {
+        self.prepare_with(source, Some(select))
+    }
+    fn prepare_with(
+        &self,
+        source: &str,
+        select: Option<
+            impl FnOnce(
+                &StackStore,
+                &CompiledAction,
+                &MemoryEffect,
+            ) -> Result<Vec<NativeRecordSelection>>,
+        >,
+    ) -> Result<NativePreparedTurn> {
         self.check_compiler()?;
         if self.turns.len() >= self.limits.max_turns
             || source.len() > self.limits.max_source_bytes
@@ -471,11 +622,63 @@ impl<'a, C: TurnCompiler> NativeGroundedSession<'a, C> {
             reply_ids: Vec::new(),
             record,
         };
-        let (input, reads) = packet(&staged, &self.scope, &self.turns, &turn)?;
-        let bank = self
+        let selected_path = select.is_some();
+        let (mut input, reads) = match select {
+            Some(f) => selected_packet(
+                &staged,
+                &self.scope,
+                &self.turns,
+                &turn,
+                &f(&staged, &turn.action, &effect)?,
+            )?,
+            None => packet(&staged, &self.scope, &self.turns, &turn)?,
+        };
+        // The selected path admits source witnesses, not all historical text.
+        // One most-recent unselected exchange is optional within the remaining
+        // native budget. Legacy all-address packet behavior stays unchanged.
+        let mut bank = self
             .emitter
-            .admit_bank(input)
+            .admit_bank(PinnedBankSnapshot {
+                pin: input.pin.clone(),
+                segments: input.segments.clone(),
+                query_ids: input.query_ids.clone(),
+            })
             .map_err(|e| invalid(e.to_string()))?;
+        if selected_path {
+            if let Some(previous) = self.turns.last() {
+                let already_included = input.segments.iter().any(|s| match s {
+                    OwnedBankSegment::Source(s) => s.event == previous.event,
+                    OwnedBankSegment::Context { event, .. } => *event == previous.event,
+                });
+                if !already_included
+                    && bank.base_tokens() + previous.user_ids.len() + previous.reply_ids.len()
+                        <= 120
+                {
+                    input.segments.push(OwnedBankSegment::Context {
+                        event: previous.event,
+                        role: 0,
+                        token_ids: previous.user_ids.clone(),
+                    });
+                    if !previous.reply_ids.is_empty() {
+                        input.segments.push(OwnedBankSegment::Context {
+                            event: previous.event,
+                            role: 1,
+                            token_ids: previous.reply_ids.clone(),
+                        });
+                    }
+                    input.segments.sort_by_key(|s| match s {
+                        OwnedBankSegment::Source(s) => (s.event, 1),
+                        OwnedBankSegment::Context { event, role, .. } => {
+                            (*event, if *role == 0 { 0 } else { 2 })
+                        }
+                    });
+                    bank = self
+                        .emitter
+                        .admit_bank(input)
+                        .map_err(|e| invalid(e.to_string()))?;
+                }
+            }
+        }
         Ok(NativePreparedTurn {
             bank,
             effect,
@@ -492,8 +695,24 @@ impl<'a, C: TurnCompiler> NativeGroundedSession<'a, C> {
     }
     pub fn emit_prepared(
         &mut self,
+        prepared: NativePreparedTurn,
+        limits: GenerationLimits,
+    ) -> Result<NativeTurnOutcome> {
+        self.emit_prepared_with(prepared, limits, |generator, bank, limits| {
+            generator
+                .generate(bank, limits)
+                .map_err(|e| invalid(e.to_string()))
+        })
+    }
+    pub(crate) fn emit_prepared_with(
+        &mut self,
         mut prepared: NativePreparedTurn,
         limits: GenerationLimits,
+        generate: impl FnOnce(
+            &mut NativeBankGenerator,
+            &AdmittedBank,
+            GenerationLimits,
+        ) -> Result<NativeBankGeneration>,
     ) -> Result<NativeTurnOutcome> {
         self.check_compiler()?;
         if prepared.compiler_sha256 != self.compiler_identity.artifact_sha256
@@ -505,10 +724,19 @@ impl<'a, C: TurnCompiler> NativeGroundedSession<'a, C> {
         if limits.maximum_tokens == 0 {
             return Err(invalid("native reply token admission is zero"));
         }
-        let generation = self
-            .emitter
-            .generate(&prepared.bank, limits)
-            .map_err(|e| invalid(e.to_string()))?;
+        let generation = generate(&mut self.emitter, &prepared.bank, limits)?;
+        if generation.pin != *prepared.bank.pin()
+            || generation.generated_ids.len() > limits.maximum_tokens
+            || generation
+                .generated_ids
+                .iter()
+                .any(|&id| !self.emitter.token_binding().admits_token(id))
+            || generation.executed_steps != generation.generated_ids.len()
+        {
+            return Err(invalid(
+                "offline generation receipt differs from admitted bank/limits",
+            ));
+        }
         if generation.executed_steps == 0 {
             return Err(invalid("native bank leaves no reply context budget"));
         }
@@ -550,6 +778,14 @@ impl<'a, C: TurnCompiler> NativeGroundedSession<'a, C> {
     /// The expected digest comes from separately trusted custody, not a field
     /// inside this snapshot. Inner replay checks do not authenticate reply IDs.
     pub fn restore(&mut self, bytes: &[u8], trusted_sha256: &str) -> Result<()> {
+        self.restore_checked(bytes, trusted_sha256, |_, _| Ok(()))
+    }
+    pub(crate) fn restore_checked(
+        &mut self,
+        bytes: &[u8],
+        trusted_sha256: &str,
+        check: impl FnOnce(&StackStore, &[(u64, String)]) -> Result<()>,
+    ) -> Result<()> {
         self.check_compiler()?;
         if bytes.len() > self.limits.max_snapshot_bytes || sha256_bytes(bytes) != trusted_sha256 {
             return Err(invalid("native snapshot admission exceeded"));
@@ -622,6 +858,12 @@ impl<'a, C: TurnCompiler> NativeGroundedSession<'a, C> {
                 "native snapshot store not explained by compiler history",
             ));
         }
+        let witnesses = s
+            .turns
+            .iter()
+            .filter_map(|t| t.record.map(|r| (r, t.source.clone())))
+            .collect::<Vec<_>>();
+        check(&restored, &witnesses)?;
         self.store = restored;
         self.turns = s.turns;
         Ok(())
