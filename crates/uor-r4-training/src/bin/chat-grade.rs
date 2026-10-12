@@ -9,7 +9,8 @@
 //!   requests=PANEL.json[,MORE.json] [protocol=2] [max_new_tokens=64] \
 //!   [grader=qwen2.5:1.5b] [ollama_url=http://127.0.0.1:11434] [device=cpu|cuda|metal]
 //! chat-grade reply out=NEW_REPORT_ROOT model=ROOT/model tokenizer=T.json \
-//!   requests=PANEL.json[,MORE.json] [protocol=2] [max_new_tokens=64] [device=cpu|cuda|metal]
+//!   requests=PANEL.json[,MORE.json] [protocol=2] [max_new_tokens=64] \
+//!   [copy_oracle=span checks=CHECKS.tsv] [device=cpu|cuda|metal]
 //! chat-grade grade-replies out=NEW_REPORT_ROOT replies=REPLIES.json \
 //!   [grader=qwen2.5:1.5b] [ollama_url=http://127.0.0.1:11434] [ill_posed=IDS.txt]
 //! chat-grade check requests=PANEL.json[,MORE.json] tokenizer=T.json \
@@ -1560,6 +1561,8 @@ struct Answered {
     /// The `reply_panel` record with each reply's cost.
     panel: Value,
     generation_seconds: f64,
+    /// The copy-span oracle's per-turn record (empty when the oracle is off).
+    copy_oracle_record: Vec<Value>,
 }
 
 /// Answer every request greedily (`reply_panel` over `greedy_reply`) and
@@ -1571,6 +1574,14 @@ struct Answered {
 /// mixture even where the learned gate is shut, which is the forced-copy oracle
 /// of the pointer mechanism brief (a read-out change: no parameter, no gradient,
 /// no training path).
+/// `copy_oracle_checks`: the span half of the forced-copy oracle. When set,
+/// each checked `exact` row's expected value is located in the row's own
+/// history (its last occurrence, by decoded text) and the model's copy-span
+/// oracle ([`StackModel::set_copy_span_oracle`]) is set to that span for the
+/// row's replies, so the copy branch reads exactly the stated value while the
+/// head and the gate stay the model's own; every row's span (or its absence)
+/// is recorded. Rows without an `exact` check run plain.
+#[allow(clippy::too_many_arguments)]
 fn answer(
     model_dir: &Path,
     tokenizer_path: &Path,
@@ -1583,6 +1594,7 @@ fn answer(
     pointer_gate_floor: f64,
     pointer_gate_ceiling: f64,
     read_silence_layer: Option<usize>,
+    copy_oracle_checks: Option<&Checks>,
 ) -> Result<Answered, Error> {
     let tokenizer = load_tokenizer(tokenizer_path)?;
     let protocol = DialogueProtocol::literal_roles_version(&tokenizer, version)?;
@@ -1592,7 +1604,22 @@ fn answer(
     model.set_pointer_gate_floor(pointer_gate_floor)?;
     model.set_pointer_gate_ceiling(pointer_gate_ceiling)?;
     model.set_read_silence(read_silence_layer)?;
+    let oracle_values: Option<BTreeMap<String, Vec<String>>> = copy_oracle_checks.map(|checks| {
+        checks
+            .rows
+            .iter()
+            .filter_map(|(id, check)| match &check.kind {
+                CheckKind::Exact(terms) => Some((
+                    id.clone(),
+                    terms.iter().map(|phrase| phrase.join(" ")).collect(),
+                )),
+                _ => None,
+            })
+            .collect()
+    });
     let mut costs = Vec::new();
+    let mut oracle_cursor = (0usize, 0usize);
+    let mut oracle_record: Vec<Value> = Vec::new();
     let clock = Instant::now();
     let mut panel = reply_panel(
         &encoder,
@@ -1602,12 +1629,37 @@ fn answer(
         max_new_tokens,
         &|ids| tokenizer.decode(ids),
         &mut |history, cap| {
+            if let Some(values) = &oracle_values {
+                let (row, _) = oracle_cursor;
+                let id = requests[row].id.as_str();
+                let span = values.get(id).and_then(|alternatives| {
+                    find_value_span(history, &|ids| tokenizer.decode(ids), alternatives)
+                });
+                model.set_copy_span_oracle(span)?;
+                oracle_record.push(json!({
+                    "id": id,
+                    "span": span,
+                    "note": if span.is_some() {
+                        "the copy branch reads the value's last occurrence; head and gate are the model's own"
+                    } else {
+                        "no exact-check value or the value is not stated in the window; the row runs plain"
+                    },
+                }));
+            }
             let started = Instant::now();
             let reply = greedy_reply_with(&model, history, cap, protocol.eos_id, cycle_repeats)?;
             costs.push(TurnCost {
                 ids: reply.ids.len(),
                 seconds: started.elapsed().as_secs_f64(),
             });
+            if oracle_values.is_some() {
+                let (row, turn) = oracle_cursor;
+                oracle_cursor = if turn + 1 == requests[row].user_turns.len() {
+                    (row + 1, 0)
+                } else {
+                    (row, turn + 1)
+                };
+            }
             Ok(reply)
         },
     )?;
@@ -1619,7 +1671,45 @@ fn answer(
         model,
         panel,
         generation_seconds,
+        copy_oracle_record: oracle_record,
     })
+}
+
+/// The window span of a value's last occurrence in `history`, by decoded text
+/// (decoding is per-id concatenation, so token `j` covers exactly the
+/// characters between the `j`-th and `j + 1`-th prefix decodings). The last
+/// occurrence over every alternative spelling wins; a value that is not stated
+/// in the window has no span. This is the copy-span oracle's source map: it
+/// reads the frozen check's expected value and the row's own history, nothing
+/// else.
+fn find_value_span(
+    history: &[u32],
+    decode: &dyn Fn(&[u32]) -> String,
+    alternatives: &[String],
+) -> Option<(usize, usize)> {
+    let mut boundaries = Vec::with_capacity(history.len() + 1);
+    boundaries.push(0usize);
+    let mut text = String::new();
+    for &id in history {
+        text.push_str(&decode(&[id]));
+        boundaries.push(text.len());
+    }
+    // The rightmost occurrence of any alternative spelling, as a char range.
+    let (hit, needle_len) = alternatives
+        .iter()
+        .filter_map(|alternative| {
+            let needle = alternative.trim();
+            if needle.is_empty() {
+                return None;
+            }
+            text.rmatch_indices(needle)
+                .next()
+                .map(|(at, _)| (at, needle.len()))
+        })
+        .max_by_key(|&(at, _)| at)?;
+    let start = boundaries.iter().rposition(|&b| b <= hit)?;
+    let end = boundaries.iter().position(|&b| b >= hit + needle_len)?;
+    (start < end).then_some((start, end))
 }
 
 /// `reply`: the greedy replies alone, with their costs; no grader.
@@ -1640,6 +1730,8 @@ fn reply(arguments: &[String]) -> Result<(), Error> {
             "pointer_gate_floor",
             "pointer_gate_ceiling",
             "read_silence_layer",
+            "copy_oracle",
+            "checks",
         ],
     )?;
     let out = PathBuf::from(args.required("out")?);
@@ -1671,6 +1763,19 @@ fn reply(arguments: &[String]) -> Result<(), Error> {
                 .map_err(|_| format!("read_silence_layer={text} is not a layer index"))?,
         ),
     };
+    let copy_oracle = match args.optional("copy_oracle").as_deref() {
+        None => None,
+        Some("span") => Some(()),
+        Some(other) => return Err(format!("copy_oracle={other} is not a mode (span)").into()),
+    };
+    let copy_oracle_checks = if copy_oracle.is_some() {
+        if args.optional("checks").is_none() {
+            return Err("copy_oracle=span needs the panel's checks= file (the oracle reads the expected values from it)".into());
+        }
+        Some(load_checks(&args)?)
+    } else {
+        None
+    };
     let (device_label, device) = args.device()?;
     report_output::claim(&out)?;
     let result = (|| -> Result<(), Error> {
@@ -1686,6 +1791,7 @@ fn reply(arguments: &[String]) -> Result<(), Error> {
             pointer_gate_floor,
             pointer_gate_ceiling,
             read_silence_layer,
+            copy_oracle_checks.as_ref(),
         )?;
         let mut report = json!({
             "schema": "uor-r4.chat-grade-reply/1",
@@ -1699,6 +1805,8 @@ fn reply(arguments: &[String]) -> Result<(), Error> {
             "pointer_gate_floor": pointer_gate_floor,
             "pointer_gate_ceiling": pointer_gate_ceiling,
             "read_silence_layer": read_silence_layer,
+            "copy_oracle": if copy_oracle.is_some() { json!("span") } else { Value::Null },
+            "copy_oracle_checks": copy_oracle_checks.as_ref().map(|c| c.source.clone()),
             "decoding": "greedy over the float model's next-token scores (a pointer model's mixture), ties to the lower id; each step recomputes the whole window",
             "device": device_record(device_label),
             "panel": answered.panel,
@@ -1709,6 +1817,9 @@ fn reply(arguments: &[String]) -> Result<(), Error> {
         });
         if cycle_repeats != 3 {
             report["cycle_repeats"] = json!(cycle_repeats);
+        }
+        if !answered.copy_oracle_record.is_empty() {
+            report["copy_oracle_spans"] = json!(answered.copy_oracle_record);
         }
         fs::write(
             out.join("replies.json"),
@@ -1751,6 +1862,7 @@ fn grade_into(
         model,
         panel,
         generation_seconds,
+        copy_oracle_record: _,
     } = answer(
         model_dir,
         tokenizer_path,
@@ -1762,6 +1874,7 @@ fn grade_into(
         3,
         0.0,
         1.0,
+        None,
         None,
     )?;
     let judged = judging.judge(&panel)?;
@@ -3856,6 +3969,42 @@ mod tests {
             category: category.into(),
             user_turns: vec![format!("turn of {id}")],
         }
+    }
+
+    #[test]
+    fn the_oracle_span_is_the_values_last_occurrence() {
+        // Token-per-word decode: a token's characters are exactly its word, so
+        // the span arithmetic is checked by hand.
+        let words = [
+            "<s>", "my ", "pet ", "is ", "Bart", ", ", "the ", "cat ", "is ", "Britain", " ",
+            "and ", "Britain", " wins",
+        ];
+        let history: Vec<u32> = (0..words.len() as u32).collect();
+        let decode = |ids: &[u32]| {
+            ids.iter()
+                .map(|&i| words[i as usize])
+                .collect::<Vec<_>>()
+                .join("")
+        };
+        // "Britain" is stated twice; the oracle reads the last (token 12).
+        assert_eq!(
+            find_value_span(&history, &decode, &["Britain".to_string()]),
+            Some((12, 13))
+        );
+        // A value whose characters cross a token boundary covers both tokens.
+        assert_eq!(
+            find_value_span(&history, &decode, &["the cat".to_string()]),
+            Some((6, 8))
+        );
+        // A value that is never stated has no span, so its row runs plain.
+        assert_eq!(
+            find_value_span(&history, &decode, &["Shelby".to_string()]),
+            None
+        );
+        assert_eq!(
+            find_value_span(&history, &decode, &["  ".to_string()]),
+            None
+        );
     }
 
     /// A graded row with reply `reply`: `[fluent, relevant]` for the reply,

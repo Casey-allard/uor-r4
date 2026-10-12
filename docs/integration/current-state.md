@@ -1,3 +1,25 @@
+## 2026-10-12 — The copy-span oracle instrument (the forced-copy oracle's attention half) (kimi, #2029)
+
+The [instrument record](../labs/copy-span-oracle-2026-10-12/README.md) delivers the span hook the gate oracle's
+record named as the next instrument: `StackModel::set_copy_span_oracle` replaces the pointer's attention with
+the uniform distribution over a supplied window span in both serving mixtures (head and gate untouched), and
+`chat-grade reply copy_oracle=span checks=<panel checks>` locates each `exact` row's expected value in its own
+history and records every turn's span in `replies.json`. Source only; no training, no pod, no panel run.
+Verified at the PR head: `uor-r4-training` lib **919 passed / 0 failed**, chat-grade bin 20 passed, fmt clean;
+the oracle-off path is structurally untouched.
+
+**Artifact status (declared):** the pre-registered artifact (the order-3 address arm S2, `09e9dd3d…`) is not on
+the laptop and not in the cloud-store index, and the named fallback's weights are not local either — recent
+records' weights lived on pod volumes and were not uploaded. The run's artifact will be bound by sha256 in its
+own report after a recovery attempt; failing recovery, the pre-registration is amended to a fresh CPU-trained
+pointer model with its own measured baseline.
+
+Line: evaluation integrity · count 1/3 (preparation PR, names its run) · headline: unchanged (M1 v5 memory
+20/40, reply 37/232).
+
+**Next:** TEST FITNESS on [#2029 comment 6119323722](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6119323722),
+artifact recovery, then the N/O1/O2 run.
+
 ## 2026-10-12 — Kimi joins as the fourth lab: joining review, direction memo, evaluation-integrity line (kimi, #2028)
 
 The [joining review and direction memo](../labs/kimi-direction-2026-10-12/README.md) records a full

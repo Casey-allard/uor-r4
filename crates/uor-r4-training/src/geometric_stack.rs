@@ -3162,6 +3162,14 @@ pub struct StackModel {
     /// saved. What the rule emitted over one reply travels with the reply
     /// itself ([`crate::stack_dialogue::Reply::span_extract`]).
     pointer_span_extract: Option<SpanExtract>,
+    /// Serving-time **copy-span oracle** ([`Self::set_copy_span_oracle`]): when
+    /// set, the pointer branch's attention in the read-out mixture is replaced
+    /// by the uniform distribution over that window span, so the copy branch
+    /// reads exactly the supplied source while the head, the gate and every
+    /// parameter stay the model's own. `None`, the default, leaves every reply
+    /// bit for bit as it was. Not saved; no parameter, no gradient, no training
+    /// path.
+    copy_span_oracle: Option<(usize, usize)>,
     /// Whether the projection maps are quaternion-valued
     /// ([`Self::set_quaternion_weights`]).
     quaternion_weights: QuaternionWeights,
@@ -3226,6 +3234,7 @@ impl StackModel {
             pointer_copy_stop: None,
             pointer_copy_trace: false,
             pointer_span_extract: None,
+            copy_span_oracle: None,
             quaternion_weights: QuaternionWeights::None,
             quaternion_snap: QuaternionSnap::None,
         })
@@ -5904,6 +5913,39 @@ impl StackModel {
     /// The copy gate's serving-time ceiling ([`Self::set_pointer_gate_ceiling`]).
     pub fn pointer_gate_ceiling(&self) -> f64 {
         self.pointer_gate_ceiling
+    }
+
+    /// Set or clear the serving-time **copy-span oracle** (the field
+    /// [`Self::copy_span_oracle`]): a half-open span of window positions the
+    /// copy branch is forced to read, the attention half of the forced-copy
+    /// oracle the pointer mechanism's brief asks for (the gate half is
+    /// [`Self::set_pointer_gate_floor`]). With a span set, the read-out mixture
+    /// replaces the pointer's attention — however it was computed (scores,
+    /// selection or route) — by the uniform distribution over the span; the
+    /// head, the gate and every parameter stay the model's own. `None`, the
+    /// default, leaves every reply bit for bit as it was. The span is validated
+    /// against the window at read time: a span outside the scored window is an
+    /// error, not a silent fallback. A span on a model without a pointer head
+    /// is refused. No parameter, no gradient, no training path; not saved.
+    pub fn set_copy_span_oracle(&mut self, span: Option<(usize, usize)>) -> Result<()> {
+        if let Some((start, end)) = span {
+            if start >= end {
+                return Err(invalid("a copy-span oracle needs start < end"));
+            }
+            if self.config.pointer.is_none() {
+                return Err(invalid(
+                    "the model has no pointer head to oracle the copy of",
+                ));
+            }
+        }
+        self.copy_span_oracle = span;
+        Ok(())
+    }
+
+    /// The copy-span oracle's span, when one is set
+    /// ([`Self::set_copy_span_oracle`]).
+    pub fn copy_span_oracle(&self) -> Option<(usize, usize)> {
+        self.copy_span_oracle
     }
 
     /// Silence one read layer on the **read-out** path: that layer's read
@@ -10303,7 +10345,22 @@ impl StackModel {
         } else {
             ids
         };
-        let attention = pointer_attention(&side, 0, time - 1, &rule, matched)?;
+        let attention = match self.copy_span_oracle {
+            None => pointer_attention(&side, 0, time - 1, &rule, matched)?,
+            Some((start, end)) if end <= time => {
+                let share = 1.0 / (end - start) as f64;
+                let mut oracle = vec![0.0; time];
+                for weight in &mut oracle[start..end] {
+                    *weight = share;
+                }
+                oracle
+            }
+            Some(_) => {
+                return Err(invalid(
+                    "the copy-span oracle lies outside the scored window",
+                ));
+            }
+        };
         let gate = self.floored_gate(f64::from(
             side[(time - 1) * (2 * pointer.dim + 1) + 2 * pointer.dim],
         ));
@@ -11006,7 +11063,22 @@ impl StackModel {
         } else {
             ids
         };
-        let attention = pointer_attention(&side, 0, time - 1, &rule, matched)?;
+        let attention = match self.copy_span_oracle {
+            None => pointer_attention(&side, 0, time - 1, &rule, matched)?,
+            Some((start, end)) if end <= time => {
+                let share = 1.0 / (end - start) as f64;
+                let mut oracle = vec![0.0; time];
+                for weight in &mut oracle[start..end] {
+                    *weight = share;
+                }
+                oracle
+            }
+            Some(_) => {
+                return Err(invalid(
+                    "the copy-span oracle lies outside the scored window",
+                ));
+            }
+        };
         let raw_gate = sigmoid_f64(f64::from(
             side[(time - 1) * (2 * pointer.dim + 1) + 2 * pointer.dim],
         ));
@@ -11740,6 +11812,7 @@ impl StackModel {
             pointer_copy_stop: None,
             pointer_copy_trace: false,
             pointer_span_extract: None,
+            copy_span_oracle: None,
             quaternion_weights,
             quaternion_snap: QuaternionSnap::None,
         };
@@ -31418,6 +31491,46 @@ mod tests {
             let toy = toy_pointer(pointer, 2.0, -30.0)?;
             assert_eq!(argmax(&toy.next_scores(&history)?), 5, "{score:?}");
         }
+        Ok(())
+    }
+
+    #[test]
+    fn the_copy_span_oracle_replaces_the_pointers_attention() -> Result<()> {
+        // The oracle span, not the model's keys, decides where the copy branch
+        // reads: with the span on the position holding token 2, the copy
+        // copies 2 although the toy's query is built to attend token 9.
+        let history = [1u32, 9, 2, 5];
+        for score in [ReadScore::Dot, ReadScore::Lorentz] {
+            let pointer = PointerConfig {
+                score,
+                ..PointerConfig::new(16)
+            };
+            // Gate near 1: the mixture is the copy branch.
+            let mut toy = toy_pointer(pointer, 2.0, 30.0)?;
+            assert_eq!(argmax(&toy.next_scores(&history)?), 9, "{score:?}");
+            toy.set_copy_span_oracle(Some((2, 3)))?;
+            assert_eq!(argmax(&toy.next_scores(&history)?), 2, "{score:?}");
+            // Clearing the oracle restores the model's own attention exactly.
+            toy.set_copy_span_oracle(None)?;
+            assert_eq!(argmax(&toy.next_scores(&history)?), 9, "{score:?}");
+            // A span past the window is an error, not a silent fallback.
+            toy.set_copy_span_oracle(Some((2, 8)))?;
+            assert!(toy.next_scores(&history).is_err(), "{score:?}");
+            // An empty or reversed span is refused at the setter.
+            assert!(toy.set_copy_span_oracle(Some((3, 3))).is_err(), "{score:?}");
+            assert!(toy.set_copy_span_oracle(Some((3, 2))).is_err(), "{score:?}");
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn the_copy_span_oracle_needs_a_pointer_head() -> Result<()> {
+        let mut plain = StackModel::new(
+            tiny(StackArch::Geometric, "a", ReadScore::Dot, false),
+            &cpu(),
+        )?;
+        assert!(plain.set_copy_span_oracle(Some((0, 1))).is_err());
+        assert!(plain.set_copy_span_oracle(None).is_ok());
         Ok(())
     }
 
