@@ -55,6 +55,29 @@ structure is decorative; or quality falls beyond the panel's noise, which would 
   address by more than the noise on ≥2 of 3 seeds (the attribution clause), with no headline loss beyond noise. The normal null is reported beside
   them for scale: it bounds how much any address could buy.
 
+**The structure the route should use: a spanning tree over the layer-2 cells (Matthew, Spiralcore, 11 October).**
+The address above is two-levelled — a cell and a representative — and the route is a top-k by agreement. The author of the cockpit that supplied the
+addressing schema points at the better structure, and it is better for four concrete reasons: **a spanning tree over the cells makes routing a path,
+not a search.**
+
+- **Addresses become paths.** A position's address is the **tree path from the root to its cell**, so an address is canonical (one node, one path),
+  **translatable** (re-rooting re-encodes it, which is Spiralcore's *context translation across demarcs*), and compared by **prefix**: agreement is
+  "shared ancestors", which is a distance on the tree rather than a hash coincidence.
+- **Routing becomes loop-free and bounded.** The route from a query's cell to a source's cell is the **path through their nearest common ancestor**,
+  so the candidate set is the adjacent subtree and the cost is **O(depth)**, not a scan and not a top-k over the whole window. Ties — the thing that
+  has bitten every scored read on this line — do not exist in a tree: two nodes have exactly one path between them.
+- **The nulls stop being hashes and become geometry.** A **tangent** movement is now *within a node* (same cell, different representative — the
+  fine coordinate the geometry says is arbitrary), and a **normal** movement is a *branch change* (a different cell, hence a different path). Both are
+  defined by the tree itself, so the attribution clause tests the tree's structure rather than my choice of scramble.
+- **It is the layer-2 discipline the owner named.** Spanning trees exist precisely to give a loop-free, canonically addressed topology over a
+  structure that has no natural ordering — which is what the read's window is.
+
+**What this changes in the experiment:** the address is built over a **spanning tree of the cells** (root fixed and recorded; depth and branching
+recorded); the route is the tree path rather than a top-k; the tangent and normal arms are the within-node and branch-change movements defined above;
+and the reported compute becomes **O(depth) per token** against the softmax read's O(n), with the same quality and attribution clauses. The primitive
+in `stack_address.rs` already carries the cell/representative split the tree is built on; the tree itself is the next slice, with tests for
+canonical paths, single-path uniqueness, and the two movements being structural.
+
 **Open design questions:**
 - **Which invariant?** Prime/UOR address of the token identity; an icosian/H4 phase; a murmuration-style family key; or a composition (identity
   address + a coarser family key for routing).
