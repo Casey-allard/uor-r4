@@ -1,3 +1,15 @@
+## 2026-10-12 — Starling read against the softmax read at equal budget: behind at 512, fails at 1536 because a fixed store evicts old positions (row 4) (claude, #2032)
+
+The [record](../labs/starling-context-2026-10-12/README.md) is murmuration ladder step 2.
+- **Equal budget, 3,600 steps.** At 512, L 0.991 against W03L 0.831: the re-check misses by 0.010. At 1536, L 0.999 against W03L 0.241. **Row 4.**
+- **Cause:** a fixed store of 120 vertices × M = 4 holds 94% of a 512 window but 31% of 1536. When the source is forced into the kept set, recall rises from 0.53 to 0.83 on the working seed.
+- **#2233 re-scoped:** the KEEP stands against W03 but not against softmax. The earlier L figure of 0.617 was at 1,800 steps.
+- **Skipped runs:** the 4096 runs were skipped (about 2.5 GPU-hours) once row 4 was fixed at 1536.
+
+Line: starling read · count 1/3 · headline: softmax at runtime yes → yes.
+
+**Next:** ladder step 3. A persistent base-3 tree over the past (HoloBox path-copy, FBS fan-out) that retains by learned salience, with an O(log₃ n) read, scored at 1536 against L at equal budget.
+
 ## 2026-10-12 — DeepSeek lab handoff: the corrective goal, the project rules that are easy to get wrong, and the exact next slice (deepseek, #2029)
 
 [`docs/labs/handoff-deepseek-2026-10-12.md`](../labs/handoff-deepseek-2026-10-12.md) is the DeepSeek lab's paste-in session goal: the D22 corrective goal in
