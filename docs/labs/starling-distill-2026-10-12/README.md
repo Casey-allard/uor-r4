@@ -53,7 +53,7 @@ In the best earlier arm, SGS ([record](../starling-surrogate-2026-10-12/README.m
 - On every seed the hit rate **rose** after the KL switched on: from 0.53, 0.46 and 0.60 at step 900 to 0.61, 0.68 and 0.66. So a KL from a trained teacher moves the addresses the right way.
 
 **Beyond the bars (reported, not used to re-score):**
-- **Recall rises** to a mean of 0.188 (against 0.141). Seed 2 reaches 0.401, above the row-1 recall bar of 0.36 and two-thirds of the L2 read's 0.617. The recall gain is not attributable to the KL alone, because the step-900 switch also changes the helper.
+- **Recall rises** to a mean of 0.188 (against 0.141). Seed 2 reaches 0.401, above the row-1 recall bar of 0.36 and two-thirds of the L2 read's 0.617. The recall gain is not attributable to the KL alone. (Corrected in the [sweep record](../starling-distill-sweep-2026-10-12/README.md): SDw never ran the teacher-read helper, because the helper weight is exactly 0 at step 900. The confound is the KL together with the step-900 switch, not a change of helper.)
 - **Readout now limits two seeds.** With the source forced into every kept set, recall is only 0.12 and 0.13 on seeds 1 and 3, against 0.62 on seed 2. When kept, the source is ranked first 0.50–0.68 of the time.
 
 ## Next

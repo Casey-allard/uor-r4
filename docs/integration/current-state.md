@@ -10,6 +10,19 @@ Line: bench maintenance (no line count) · headline: unchanged.
 
 **Next:** the owner decides whether `arm=transformer` is retired.
 
+## 2026-10-12 — Starling distillation sweep: a heavier KL raises the hit rate but breaks the readout; a lighter KL gives the best starling recall so far, 0.380 (claude, #2032)
+
+The [record](../labs/starling-distill-sweep-2026-10-12/README.md) is murmuration ladder step 1b: three variants of SDw, 3 seeds each, on the GPU.
+- **W3 (KL weight 3.0):** hit rate 0.97/0.68/0.64 (mean 0.765), recall 0.128. **Row 3 by the bars**, best arm W3.
+- **W03 (KL weight 0.3):** recall **0.141/0.561/0.439, mean 0.380.** That is 62% of the L2 softmax read's 0.617, with no softmax at runtime, and the best starling result so far.
+- **S33 (KL from step 594, with the teacher-read helper):** collapses on 2 of 3 seeds.
+- **The hit rate no longer tracks recall.** Heavy KL breaks the readout.
+
+Line: starling read · count 5 (owner-directed continuation) · headline: softmax at runtime yes → yes.
+
+**Next:** pre-register a recall-scored step from W03 (weight ≤ 0.3, more steps, against per-seed instability). Then ladder step 2 (distance and context).
+
+
 ## 2026-10-11 - Compiler/store/native-bank connection and retained geometric Copy credit (codex, #2030)
 
 The [source repair](../labs/native-bound-content-2026-10-11/README.md) connects
