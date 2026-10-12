@@ -1090,6 +1090,27 @@ static STARLING_COST: [std::sync::atomic::AtomicU64; 3] = [
     std::sync::atomic::AtomicU64::new(0),
 ];
 
+thread_local! {
+    /// Effective readout slots (observation only), while measuring: the sum
+    /// over forwards of the mean participation ratio (sum|w|)^2 / sum w^2 of
+    /// the starling readout weights over live queries, and the forward count.
+    static STARLING_READOUT: std::cell::Cell<Option<(f64, u64)>> =
+        const { std::cell::Cell::new(None) };
+}
+
+/// Starts measuring the starling readout's effective slot count.
+pub fn starling_readout_start() {
+    STARLING_READOUT.with(|cell| cell.set(Some((0.0, 0))));
+}
+
+/// The mean effective readout slot count since [`starling_readout_start`]
+/// (and stops measuring); `None` if no starling read ran.
+pub fn starling_readout_take() -> Option<f64> {
+    STARLING_READOUT
+        .with(|cell| cell.take())
+        .and_then(|(sum, count)| (count > 0).then(|| sum / count as f64))
+}
+
 /// Clears the starling candidate counters ([`starling_cost_take`]).
 pub fn starling_cost_reset() {
     for counter in &STARLING_COST {
@@ -3047,6 +3068,7 @@ pub struct StackModel {
     /// teacher read. Never saved; serving never computes it.
     starling_distill: Option<f64>,
     starling_salience: Option<f64>,
+    starling_rank_distill: Option<f64>,
     /// Layers whose MLP is an E8 orbit memory ([`Self::set_e8_memory`]).
     e8_memory: Option<crate::e8_memory::E8MemoryConfig>,
     /// How the geometric reads weight their kept sources
@@ -3152,6 +3174,7 @@ impl StackModel {
             starling_surrogate: false,
             starling_distill: None,
             starling_salience: None,
+            starling_rank_distill: None,
             e8_memory: None,
             read_weighting: ReadWeighting::Softmax,
             softsort_tau: None,
@@ -4247,6 +4270,48 @@ impl StackModel {
             .contiguous()?
             .gather(&rank, 3)?;
         let weights = table.mul(&gate)?.mul(&live)?;
+        let training = STARLING_TRAINING_FORWARD.with(|flag| flag.get());
+        // Training-only readout self-distillation: regress the served weights
+        // (rank table x gate) on the softmax of the content score over the
+        // live slots, detached; active with the distillation KL.
+        if let (Some(weight), Some(_), true, true) = (
+            self.starling_rank_distill,
+            content,
+            training,
+            self.starling_distill.is_some(),
+        ) {
+            let fixed = dot.detach();
+            let masked = fixed.add(&live.affine(1e4, -1e4)?)?;
+            let target = candle_nn_softmax_last_dim(&masked)?.mul(&live)?;
+            // The readout only: the gate is recomputed from the detached
+            // score, so this term trains the rank table, beta and gamma and
+            // never the content selection (q.k).
+            let gate_readout = fixed
+                .broadcast_mul(&beta)?
+                .broadcast_add(&gamma)?
+                .affine(0.5, 0.0)?
+                .tanh()?
+                .affine(0.5, 0.5)?;
+            let readout = table.mul(&gate_readout)?.mul(&live)?;
+            let error = readout.sub(&target)?.sqr()?.sum(3)?.mean_all()?;
+            starling_aux_add(error.affine(weight, 0.0)?)?;
+        }
+        if STARLING_READOUT.with(|cell| cell.get().is_some()) {
+            let magnitude = weights.detach().abs()?;
+            let total = magnitude.sum(3)?;
+            let squares = weights.detach().sqr()?.sum(3)?;
+            let any = live.sum(3)?.gt(0.0)?.to_dtype(DType::F32)?;
+            let ratio = total.sqr()?.div(&squares.affine(1.0, 1e-12)?)?.mul(&any)?;
+            let count = any.sum_all()?.to_scalar::<f32>()?;
+            if count > 0.0 {
+                let mean = (ratio.sum_all()?.to_scalar::<f32>()? / count) as f64;
+                STARLING_READOUT.with(|cell| {
+                    if let Some((sum, n)) = cell.get() {
+                        cell.set(Some((sum + mean, n + 1)));
+                    }
+                });
+            }
+        }
         let value_width = value.dim(3)?;
         let value = value.to_dtype(DType::F32)?;
         let values = gather_rows(&value, value_width)?;
@@ -5014,6 +5079,23 @@ impl StackModel {
             }
         }
         self.starling_salience = weight;
+        Ok(())
+    }
+
+    /// Training-only readout self-distillation (`Some(weight)`, weight > 0)
+    /// for a content starling route: in the distillation's training forwards,
+    /// the served readout weights (rank table x gate) are regressed on the
+    /// softmax of the content score over the live slots. Never saved.
+    pub fn set_starling_rank_distill(&mut self, weight: Option<f64>) -> Result<()> {
+        if let Some(weight) = weight {
+            if !(weight.is_finite() && weight > 0.0) {
+                return Err(invalid("a rank distillation weight is finite and positive"));
+            }
+            if !self.read_route.is_some_and(|route| route.content) {
+                return Err(invalid("rank distillation needs a content read route"));
+            }
+        }
+        self.starling_rank_distill = weight;
         Ok(())
     }
 
@@ -11536,6 +11618,7 @@ impl StackModel {
             starling_surrogate: false,
             starling_distill: None,
             starling_salience: None,
+            starling_rank_distill: None,
             e8_memory: None,
             read_weighting: ReadWeighting::Softmax,
             softsort_tau: None,
@@ -33003,6 +33086,75 @@ mod tests {
             .get(salience.as_tensor())
             .ok_or_else(|| invalid("no salience gradient"))?;
         assert!(g.abs()?.sum_all()?.to_scalar::<f32>()? > 0.0);
+        Ok(())
+    }
+
+    #[test]
+    fn starling_rank_distillation_trains_the_readout_and_keeps_the_forward() -> Result<()> {
+        let route = StarlingRoute {
+            m: 2,
+            k: 3,
+            content: true,
+            shared: true,
+            ranked: true,
+            tree: false,
+        };
+        let ids: Vec<u32> = (0..24u32).map(|i| (i * 7 + 3) % 37).collect();
+        let mut model = StackModel::new(
+            tiny(StackArch::Geometric, "ra", ReadScore::L2, true),
+            &cpu(),
+        )?;
+        model.set_read_route(Some(route))?;
+        let plain = model
+            .forward(&ids, 2, 12)?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        model.set_starling_distill(Some(0.5))?;
+        starling_aux_take();
+        // The KL alone, then the KL plus the readout term.
+        starling_training_forward(true);
+        let base = model.forward(&ids, 2, 12);
+        starling_training_forward(false);
+        base?;
+        let kl = starling_aux_take()
+            .ok_or_else(|| invalid("no KL"))?
+            .to_scalar::<f32>()?;
+        model.set_starling_rank_distill(Some(1.0))?;
+        starling_training_forward(true);
+        let logits = model.forward(&ids, 2, 12);
+        starling_training_forward(false);
+        let logits = logits?;
+        assert_eq!(logits.flatten_all()?.to_vec1::<f32>()?, plain);
+        let aux = starling_aux_take().ok_or_else(|| invalid("no auxiliary loss"))?;
+        let both = aux.to_scalar::<f32>()?;
+        assert!(both.is_finite() && both >= kl, "kl {kl} both {both}");
+        let rank = model.variables()["layers.01.read.starling.rank"].clone();
+        let beta = model.variables()["layers.01.read.starling.beta"].clone();
+        let gamma = model.variables()["layers.01.read.starling.gamma"].clone();
+        let grads = aux.backward()?;
+        for var in [&rank, &beta, &gamma] {
+            let g = grads
+                .get(var.as_tensor())
+                .ok_or_else(|| invalid("no readout gradient"))?;
+            assert!(g.abs()?.sum_all()?.to_scalar::<f32>()? > 0.0);
+        }
+        // Measurement: the effective slot count is between 1 and the slots.
+        starling_readout_start();
+        model.forward(&ids, 2, 12)?;
+        let effective = starling_readout_take().ok_or_else(|| invalid("no measurement"))?;
+        assert!((1.0..=12.0).contains(&effective), "effective {effective}");
+        // An address-only route refuses it.
+        let mut address = StackModel::new(
+            tiny(StackArch::Geometric, "ra", ReadScore::L2, true),
+            &cpu(),
+        )?;
+        address.set_read_route(Some(StarlingRoute {
+            content: false,
+            shared: false,
+            ranked: false,
+            ..route
+        }))?;
+        assert!(address.set_starling_rank_distill(Some(1.0)).is_err());
         Ok(())
     }
 

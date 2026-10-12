@@ -10,7 +10,7 @@
 //!   [dump_scores=false|true] [reachability=true|false] \
 //!   [mode=train|task-baselines] [layout=synthetic|fact] FACT OPTIONS [arm=stack] ARM OPTIONS
 //! arm=stack: [pattern=aaaaaa] [read=l2|dot|lorentz] [rotation=true|false] [width=128] [heads=4] \
-//!   [read_route=none|starling:M:K[:content][:shared][:ranked]] [starling_anneal=FRACTION] [starling_oracle_train=false|true] [starling_surrogate=false|true] [starling_distill=WEIGHT] [starling_distill_start=FRACTION] [starling_salience=WEIGHT] \
+//!   [read_route=none|starling:M:K[:content][:shared][:ranked]] [starling_anneal=FRACTION] [starling_oracle_train=false|true] [starling_surrogate=false|true] [starling_distill=WEIGHT] [starling_distill_start=FRACTION] [starling_salience=WEIGHT] [starling_rank_distill=WEIGHT] \
 //!   [mlp=384] [age=default|flat|spread] [key_shift=false|true] \
 //!   [lineage=none|f2|qk|qk_jj|identity|so4|conv|wprev|conv8|carrier|rot] [learned_init=lag1|zero]
 //! arm=transformer: [layers=<pattern length>] [width=128] [heads=4] [mlp=matched|<n>] \
@@ -404,6 +404,13 @@ trait ContextArm {
     fn set_starling_salience(&mut self, weight: Option<f64>) -> Result<()> {
         if weight.is_some() {
             return Err(invalid("starling_salience needs a starling stack arm"));
+        }
+        Ok(())
+    }
+    /// Training-only readout self-distillation for a content starling route.
+    fn set_starling_rank_distill(&mut self, weight: Option<f64>) -> Result<()> {
+        if weight.is_some() {
+            return Err(invalid("starling_rank_distill needs a starling stack arm"));
         }
         Ok(())
     }
@@ -1153,6 +1160,10 @@ impl ContextArm for StackArm {
 
     fn set_starling_salience(&mut self, weight: Option<f64>) -> Result<()> {
         self.model.set_starling_salience(weight)
+    }
+
+    fn set_starling_rank_distill(&mut self, weight: Option<f64>) -> Result<()> {
+        self.model.set_starling_rank_distill(weight)
     }
 
     fn last_aux(&self) -> f64 {
@@ -2486,6 +2497,9 @@ struct Common {
     /// `starling_salience=WEIGHT`: training-only salience regression for a
     /// content tree route (active in the distillation's training forwards).
     starling_salience: Option<f64>,
+    /// `starling_rank_distill=WEIGHT`: training-only readout self-distillation
+    /// (active in the distillation's training forwards).
+    starling_rank_distill: Option<f64>,
     context: usize,
     pairs_per_bucket: usize,
     batch: usize,
@@ -2559,6 +2573,7 @@ impl Common {
             "starling_distill": self.starling_distill,
             "starling_distill_start": self.starling_distill_start,
             "starling_salience": self.starling_salience,
+            "starling_rank_distill": self.starling_rank_distill,
             "token_ranges": {"filler": FILLER, "keys": KEYS, "values": VALUES},
             "pairing_split": {
                 "classes": CLASSES, "held_out_class": HELD_OUT_CLASS,
@@ -2617,6 +2632,13 @@ fn settings(mut args: Args) -> Result<(Common, ArmSpec, Mode, Option<fact::FactT
             })
             .transpose()?,
         starling_distill_start: args.parsed("starling_distill_start", 0.0f64)?,
+        starling_rank_distill: args
+            .take("starling_rank_distill")
+            .map(|text| {
+                text.parse::<f64>()
+                    .map_err(|_| invalid(format!("invalid starling_rank_distill={text}")))
+            })
+            .transpose()?,
         starling_salience: args
             .take("starling_salience")
             .map(|text| {
@@ -2810,6 +2832,12 @@ fn run(s: &Common, arm: &mut dyn ContextArm, log: &mut fs::File) -> Result<Value
         ));
     }
     arm.set_starling_salience(s.starling_salience)?;
+    if s.starling_rank_distill.is_some() && s.starling_distill.is_none() {
+        return Err(invalid(
+            "starling_rank_distill needs starling_distill (it is active with it)",
+        ));
+    }
+    arm.set_starling_rank_distill(s.starling_rank_distill)?;
     let buckets = buckets_for(s.context);
     let line = format!(
         "{} {}: {} parameters, context {}, buckets {:?}",
@@ -2963,8 +2991,15 @@ fn run(s: &Common, arm: &mut dyn ContextArm, log: &mut fs::File) -> Result<Value
         Pairing::Train,
     )?;
     uor_r4_training::geometric_stack::starling_cost_reset();
+    uor_r4_training::geometric_stack::starling_readout_start();
     let in_class = evaluate(&*arm, &in_class_set, s.context, &buckets, chunk)?;
     let starling_cost = uor_r4_training::geometric_stack::starling_cost_take();
+    let readout_slots = uor_r4_training::geometric_stack::starling_readout_take();
+    if let Some(slots) = readout_slots {
+        let line = format!("starling readout effective slots (final in-class panel): {slots:.2}");
+        eprintln!("{line}");
+        writeln!(log, "{line}")?;
+    }
     if let Some((mean, max)) = starling_cost {
         let line = format!(
             "starling candidates scored per query (final in-class panel): mean {mean:.1} max {max}"
@@ -3088,6 +3123,7 @@ fn run(s: &Common, arm: &mut dyn ContextArm, log: &mut fs::File) -> Result<Value
             "positions_scored_per_query_token_mean": in_class["positions_scored_per_query_token_mean"],
             "positions_scored_per_token_mean_over_window": mean_positions,
             "positions_scored_at_last_position": arm.positions_scored(s.context - 1),
+            "starling_readout_effective_slots": readout_slots,
             "starling_candidates_per_query_measured": starling_cost
                 .map(|(mean, max)| json!({"mean": mean, "max": max})),
             "counts": arm.access_note(),
@@ -3389,6 +3425,7 @@ mod tests {
             starling_distill: None,
             starling_distill_start: 0.0,
             starling_salience: None,
+            starling_rank_distill: None,
             select: None,
         };
         let spec = ArmSpec::Stack {
@@ -3592,6 +3629,7 @@ mod tests {
             starling_distill: None,
             starling_distill_start: 0.0,
             starling_salience: None,
+            starling_rank_distill: None,
         }
     }
 

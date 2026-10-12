@@ -1,3 +1,15 @@
+## 2026-10-12 — Starling readout self-distillation with the tree: one seed reaches softmax-level recall at about 69 candidates per query, two never learn the task (row 4) (claude, #2032)
+
+The [record](../labs/starling-readout-2026-10-12/README.md) is murmuration ladder step 3b: a training-only regression of the served rank-table × gate readout on the softmax of the content score over the kept slots.
+- **Recall at 1536:** 0.063, **0.964**, 0.104 (mean 0.377) against WT's 0.329. **Row 4.**
+- **Seed 2 matches softmax:** recall 0.964, flat to d1000 (0.967), held-out 0.955, at **68.9 candidates per query** against 1536, with no softmax at runtime.
+- **Seeds 1 and 3 never learn the task:** train NLL about 3.9, and forced-in recall 0.06–0.13, even with the source kept 100% of the time and the readout concentrated on about 2 slots.
+- **The limit is learning reliability:** the failing seeds are still at chance when the dense helper anneals out at step 1800.
+
+Line: starling read · count 1/3 · headline: softmax at runtime yes → yes.
+
+**Next:** the helper schedule. Keep the dense helper until the model learns (a longer anneal, or one gated on NLL), scored on recall over 3 seeds against WTR.
+
 ## 2026-10-12 — Starling read with a persistent base-3 tree (HoloBox/FBS): retention fixed, recall flat across distance at 6–36 candidates per query; readout now limits (claude, #2032)
 
 The [record](../labs/starling-tree-2026-10-12/README.md) is murmuration ladder step 3. Each 600-cell vertex keeps its recent ring plus a base-3 odometer of salient blocks, and a query reads its 13 vertices' full stores.
