@@ -21,9 +21,9 @@
 //! or the 240 roots of E8 for 8-dimensional halves. A fixed codebook addresses
 //! the memory by fixed geometric codes; only the query map and the values learn.
 
-use candle_core::{CpuStorage, CustomOp3, Layout, Shape, Tensor};
 #[cfg(feature = "cuda")]
 use candle_core::CudaStorage;
+use candle_core::{CpuStorage, CustomOp3, Layout, Shape, Tensor};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 

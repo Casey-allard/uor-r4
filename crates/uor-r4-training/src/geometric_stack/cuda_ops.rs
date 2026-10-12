@@ -1129,9 +1129,9 @@ struct CudaReadPass {
 
 impl FusedRead {
     /// Whether the CUDA kernels cover this configuration (all three scores;
-    /// RoPE and flock selection run on the host).
+    /// RoPE, a flock selection and an address-routed read run on the host).
     pub(super) fn cuda_covered(&self) -> bool {
-        !self.rope && self.select.is_none()
+        !self.rope && self.select.is_none() && self.route.is_none()
     }
 
     pub(super) fn cuda_dims(&self) -> CResult<[u32; 8]> {

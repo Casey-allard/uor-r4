@@ -18,6 +18,8 @@
 /// The prime whose multiples scatter the token identity across the address
 /// space. Fixed, and deliberately the smallest prime that is not a power of
 /// two: the address must not be a bit slice of the identity.
+use serde::{Deserialize, Serialize};
+
 const ADDRESS_PRIME: u32 = 2_654_435_761;
 
 /// The address of one source position: `token`'s identity scattered by
@@ -215,6 +217,24 @@ impl Address {
         }
     }
 
+    /// The **token-cell configuration** of the DeepSeek invariant-addressed
+    /// read (the router slice): the cell is the token identity itself,
+    /// `token % cells` — not the distance bucket [`Self::of`] uses — and the
+    /// representative is the same O(1) position address. Two occurrences of
+    /// one token share their cell whatever their age, so the tree routes a
+    /// query token to other occurrences of that token.
+    ///
+    /// [`Self::of`] is untouched: it is the bucket-cell configuration the
+    /// earlier slices and their tests are pinned to. This constructor is the
+    /// second, identity-cell configuration, and it is what the gated router
+    /// asks the tree about.
+    pub fn of_ident(token: u32, back: usize, buckets: u32, cells: u32, inner: u32) -> Self {
+        let cell = if cells == 0 { 0 } else { token % cells };
+        Address {
+            cell,
+            representative: position_address(token, back, buckets, inner.max(1)),
+        }
+    }
     /// The packed form the router compares: cell first, representative behind
     /// it, so agreement is coarse-to-fine and a cell match always outranks a
     /// representative match.
@@ -435,6 +455,10 @@ impl CellTree {
     /// is on the query's path is at most one edge from it, so the candidate set
     /// is the adjacent subtree rather than the window, and its size is bounded
     /// by the branching factor times the depth rather than by the context.
+    ///
+    /// Cost: the walk is O((depth + branching) * window) per query row -- the
+    /// path is visited once and each cell on it is scanned against the window's
+    /// positions -- not O(1).
     pub fn route(&self, query: u32, candidates: &[u32], out: &mut [usize]) -> usize {
         if query as usize >= self.parent.len() {
             return 0;
@@ -577,7 +601,8 @@ mod tree_tests {
 /// - [`RouteNull::Normal`] moves the **cells** themselves, so the candidate set
 ///   changes too. This is the coarser null: it destroys the structure and
 ///   bounds how much *any* addressing could buy.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum RouteNull {
     /// The real arm: no movement.
     #[default]
@@ -598,7 +623,13 @@ pub enum RouteNull {
 /// geometry, how many candidates to take, and which null arm is active. Every
 /// field is recorded with the run, and the default is **no routing at all**, so
 /// a run that does not ask for this mechanism executes the model it had.
-#[derive(Clone, Debug)]
+///
+/// Deserialization is tolerant: every field defaults, so a serialized form may
+/// carry only what the run set — and the *absent* form is the default-off
+/// state, which the read must reproduce bit for bit
+/// ([`RouteConfig::default`]).
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct RouteConfig {
     /// Cells in the spanning tree.
     pub cells: u32,
@@ -639,10 +670,120 @@ impl RouteConfig {
         self.k > 0 && self.cells > 1
     }
 
+    /// A balanced binary spanning tree over the cells (node i's children are
+    /// 2i + 1 and 2i + 2, root 0): depth ceil(log2 cells), so the route is
+    /// O(log cells) per query rather than O(cells). The default tree the
+    /// examples build when a run names only the cell count.
+    pub fn balanced(cells: u32, buckets: u32, inner_bits: u32, k: usize, null: RouteNull) -> Self {
+        let mut edges = Vec::new();
+        for i in 0..cells {
+            let left = 2 * i + 1;
+            let right = 2 * i + 2;
+            if left < cells {
+                edges.push((i, left));
+            }
+            if right < cells {
+                edges.push((i, right));
+            }
+        }
+        RouteConfig {
+            cells,
+            edges,
+            root: 0,
+            buckets,
+            inner_bits,
+            k,
+            null,
+        }
+    }
+
+    /// Whether this is exactly the default-off state: what an absent
+    /// `read_router` deserializes to, and the only form a saved configuration
+    /// may omit. (An asked-for routing that happens to be inactive is still
+    /// recorded, so the record of the run is exact.)
+    pub fn is_default_off(&self) -> bool {
+        self == &RouteConfig::default()
+    }
+
     /// The tree this configuration describes.
     pub fn tree(&self) -> CellTree {
         CellTree::build(self.cells, &self.edges, self.root)
     }
+
+    /// Structural validation of an **active** configuration (inactive ones
+    /// route nowhere and need none): the cell count, the candidate count, the
+    /// packed-address bit budget, the buckets and a spanning tree over every
+    /// cell. This is a configuration check, not a model check — the model's
+    /// own combinations (flocks, other read mechanisms) refuse the router at
+    /// their setters.
+    pub fn validate(&self) -> crate::Result<()> {
+        if !self.active() {
+            return Ok(());
+        }
+        let invalid = |message: String| crate::TrainingError::Invalid(message);
+        if self.cells < 2 {
+            return Err(invalid(format!(
+                "a routed read needs at least two cells (got {})",
+                self.cells
+            )));
+        }
+        if self.k == 0 || self.k > 32 {
+            return Err(invalid(format!(
+                "a routed read keeps 1..=32 candidates per query (got {})",
+                self.k
+            )));
+        }
+        // The packed form is cell << inner_bits | representative: the cell
+        // must fit above the representative's bits in one u32.
+        if self.inner_bits == 0 || self.inner_bits > 20 {
+            return Err(invalid(format!(
+                "a routed read's representative is 1..=20 bits (got {})",
+                self.inner_bits
+            )));
+        }
+        if self.cells >= 2u64.checked_shl(32 - self.inner_bits).unwrap_or(0) as u32 {
+            return Err(invalid(format!(
+                "{} cells do not fit above {} inner bits in a packed address",
+                self.cells, self.inner_bits
+            )));
+        }
+        if self.buckets == 0 {
+            return Err(invalid(
+                "a routed read needs at least one distance bucket".to_string(),
+            ));
+        }
+        if self.root >= self.cells {
+            return Err(invalid(format!(
+                "the tree's root {} is not a cell of {}",
+                self.root, self.cells
+            )));
+        }
+        let tree = self.tree();
+        if tree.reached() != self.cells as usize {
+            return Err(invalid(format!(
+                "the edges must span every cell: reached {} of {}",
+                tree.reached(),
+                self.cells
+            )));
+        }
+        Ok(())
+    }
+}
+
+/// The identity cells of one window's tokens under `config` —
+/// `token % cells` after the null movement's cell part. Causal by
+/// construction: the cell of position `j` depends only on the token there, so
+/// prefix `cells[..=t]` is the window every query position `t` routes over,
+/// and nothing has to be recomputed as the window grows. Inactive
+/// configurations return an empty vector.
+pub fn row_cells(config: &RouteConfig, tokens: &[u32]) -> Vec<u32> {
+    if !config.active() {
+        return Vec::new();
+    }
+    tokens
+        .iter()
+        .map(|&token| source_address_ident(config, Source { token, back: 0 }).cell)
+        .collect()
 }
 
 /// One source position as the router sees it: the token it carries and how far
@@ -674,6 +815,42 @@ pub fn source_address(config: &RouteConfig, source: Source) -> Address {
     }
 }
 
+/// The address of a source position under this configuration's **identity-cell**
+/// variant ([`Address::of_ident`], the DeepSeek invariant-addressed read's own
+/// configuration), after the null movement (if any). Same rule as
+/// [`source_address`], except the cell is `token % cells` rather than the
+/// distance bucket, so the null arms move exactly what they move on the bucket
+/// arm: [`RouteNull::Tangent`] keeps the token cell and moves the fine
+/// coordinate; [`RouteNull::Normal`] moves the cell.
+pub fn source_address_ident(config: &RouteConfig, source: Source) -> Address {
+    let inner = 1u32 << config.inner_bits.min(31);
+    let address = Address::of_ident(
+        source.token,
+        source.back,
+        config.buckets,
+        config.cells.max(1),
+        inner,
+    );
+    match config.null {
+        RouteNull::None => address,
+        RouteNull::Tangent { step } => address.tangent(step, inner),
+        RouteNull::Normal { offset } => address.normal(config.cells.max(1), offset),
+    }
+}
+
+/// The packed addresses of the sources a gated read keeps, in the kept-list
+/// order [`crate::flock::flock_select`] gives — the sink (position 0) first,
+/// then the ascending local positions, then the routed candidates — passed to
+/// the read's dynamics in that order so the kept values, scores and addresses
+/// never have to be reordered. `sources[j]` is the window's `j`-th position;
+/// `kept` are the kept indices of that window in exactly kept order (indices
+/// outside `sources` are dropped).
+pub fn kept_addresses_packed(config: &RouteConfig, sources: &[Source], kept: &[usize]) -> Vec<u32> {
+    kept.iter()
+        .filter(|&&j| j < sources.len())
+        .map(|&j| source_address_ident(config, sources[j]).packed(config.inner_bits))
+        .collect()
+}
 /// The routing decision: write the indices of the sources the read should look
 /// at, nearest first, and return how many were written. Pure — it takes sources
 /// and their ages and returns indices, so the read's own change is a call and
@@ -699,6 +876,47 @@ pub fn route_sources(
         .map(|&source| source_address(config, source).cell)
         .collect();
     tree.route(query_cell, &cells, out)
+}
+
+/// The kept positions of one query row under the identity-cell configuration
+/// (the router slice's token-modulo-cells address, see Address::of_ident): the
+/// query's own position and the routed candidates on the spanning tree, at most
+/// config.k positions, in a deterministic order (the query first, then the
+/// nearest-cell candidates). When config.k covers the whole visible prefix
+/// (k >= query + 1) every visible position is kept, so the routed read
+/// reproduces the full read bit for bit -- routing is a bound, and a bound at
+/// least as wide as the window routes nothing away. An inactive configuration
+/// returns the query position alone (the caller never routes it).
+/// tokens[j] is the token of visible position j (tokens.len() > query).
+///
+/// Cost: the tree walk is O((depth + branching) * window) per query row -- the
+/// path is visited once and each cell on it is scanned against the window's
+/// positions -- not O(1).
+pub fn routed_keep(config: &RouteConfig, query: usize, tokens: &[u32]) -> Vec<usize> {
+    if query >= tokens.len() {
+        return Vec::new();
+    }
+    if config.k >= query + 1 {
+        return (0..=query).collect();
+    }
+    let mut kept = vec![query];
+    if !config.active() || config.k <= 1 {
+        return kept;
+    }
+    let cells: Vec<u32> = tokens[..=query]
+        .iter()
+        .map(|&token| source_address_ident(config, Source { token, back: 0 }).cell)
+        .collect();
+    let tree = config.tree();
+    let mut out = vec![usize::MAX; config.k - 1];
+    let written = tree.route(cells[query], &cells, &mut out);
+    for &j in &out[..written] {
+        if j != query {
+            kept.push(j);
+        }
+    }
+    kept.truncate(config.k);
+    kept
 }
 
 #[cfg(test)]
@@ -796,5 +1014,181 @@ mod decision_tests {
             source_address(&cfg_n, sources[0]).cell
         );
         assert!(normal_written <= sources.len());
+    }
+}
+
+#[cfg(test)]
+mod ident_address_tests {
+    use super::*;
+
+    /// The plan's configuration, small: 4 cells, 4 distance buckets.
+    fn ident_config(null: RouteNull) -> RouteConfig {
+        RouteConfig {
+            cells: 4,
+            edges: vec![(0, 1), (1, 2), (2, 3)],
+            root: 0,
+            buckets: 4,
+            inner_bits: 12,
+            k: 4,
+            null,
+        }
+    }
+
+    #[test]
+    fn the_identity_cell_is_the_token_modulo_the_cells() {
+        // `cell = token % cells`, whatever the age.
+        let inner = 1u32 << 12;
+        for (token, back) in [(0u32, 0usize), (5, 300), (9, 1024), (4095, 17)] {
+            let address = Address::of_ident(token, back, 8, 4, inner);
+            assert_eq!(address.cell, token % 4);
+            assert_eq!(
+                address.representative,
+                position_address(token, back, 8, inner),
+                "the representative is the same position address as the bucket configuration"
+            );
+        }
+        // Two occurrences of one token share a cell whatever their age; the
+        // bucket configuration would separate them.
+        let young = Address::of_ident(7, 0, 8, 4, inner);
+        let old = Address::of_ident(7, 700, 8, 4, inner);
+        assert_eq!(young.cell, old.cell);
+        assert_ne!(
+            young.representative, old.representative,
+            "ages still split the fine coordinate"
+        );
+        // And a zero cell count degrades to cell 0 rather than panicking.
+        assert_eq!(Address::of_ident(5, 0, 8, 0, inner).cell, 0);
+    }
+
+    #[test]
+    fn the_ident_source_address_carries_the_null_movements() {
+        let inner = 1u32 << 12;
+        let source = Source {
+            token: 11,
+            back: 300,
+        };
+        let real = source_address_ident(&ident_config(RouteNull::None), source);
+        assert_eq!(real, Address::of_ident(11, 300, 4, 4, inner));
+        // A tangent movement keeps the token cell and moves the representative.
+        let tangent = source_address_ident(
+            &ident_config(RouteNull::Tangent { step: 0x9E37_79B9 }),
+            source,
+        );
+        assert_eq!(tangent.cell, real.cell);
+        assert_ne!(tangent.representative, real.representative);
+        // A normal movement moves the cell.
+        let normal = source_address_ident(&ident_config(RouteNull::Normal { offset: 1 }), source);
+        assert_ne!(normal.cell, real.cell);
+        assert_eq!(normal.representative, real.representative);
+    }
+
+    #[test]
+    fn the_kept_addresses_follow_the_flock_kept_list_order() {
+        // flock_select order: the sink (position 0) first, then the ascending
+        // local positions, then the routed candidates — the caller passes that
+        // exact order and the addresses come back one-for-one.
+        let cfg = ident_config(RouteNull::None);
+        let sources = [
+            Source { token: 3, back: 4 }, // sink
+            Source { token: 5, back: 3 },
+            Source { token: 5, back: 2 }, // local
+            Source { token: 9, back: 1 }, // local
+            Source {
+                token: 3,
+                back: 500,
+            }, // routed candidate, later in the window
+        ];
+        let kept = [0usize, 2, 3, 4]; // sink, window ascending, routed
+        let packed = kept_addresses_packed(&cfg, &sources, &kept);
+        assert_eq!(packed.len(), kept.len());
+        for (slot, &j) in kept.iter().enumerate() {
+            let want = source_address_ident(&cfg, sources[j]).packed(cfg.inner_bits);
+            assert_eq!(
+                packed[slot], want,
+                "slot {slot} must carry kept index {j}'s address in kept order"
+            );
+        }
+        // Out-of-window indices are dropped rather than panicking.
+        let packed = kept_addresses_packed(&cfg, &sources, &[0, 99, 2]);
+        assert_eq!(packed.len(), 2);
+        // And the null arm carries through: a tangent movement changes the
+        // packed fine coordinate, and nothing else.
+        let moved = kept_addresses_packed(
+            &ident_config(RouteNull::Tangent { step: 0x9E37_79B9 }),
+            &sources,
+            &kept,
+        );
+        assert_ne!(moved, packed);
+    }
+
+    #[test]
+    fn the_route_config_serializes_and_an_absent_form_defaults_off() {
+        // Round-trip a full configuration.
+        let cfg = ident_config(RouteNull::Tangent { step: 0x9E37_79B9 });
+        let text = serde_json::to_string(&cfg).unwrap();
+        let read: RouteConfig = serde_json::from_str(&text).unwrap();
+        let re = serde_json::to_string(&read).unwrap();
+        assert_eq!(text, re, "a round trip must not change the serialized form");
+        // An absent form is the default-off state: no cells, k = 0, no null.
+        let off: RouteConfig = serde_json::from_str("{}").unwrap();
+        assert!(!off.active());
+        assert_eq!(off.cells, 0);
+        assert_eq!(off.k, 0);
+        assert_eq!(off.null, RouteNull::None);
+        // The null arms have names.
+        assert_eq!(
+            serde_json::to_string(&RouteNull::Tangent { step: 3 }).unwrap(),
+            "{\"tangent\":{\"step\":3}}"
+        );
+        let back: RouteNull = serde_json::from_str("{\"normal\":{\"offset\":1}}").unwrap();
+        assert_eq!(back, RouteNull::Normal { offset: 1 });
+    }
+}
+
+#[cfg(test)]
+mod routed_keep_tests {
+    use super::*;
+
+    #[test]
+    fn routed_keep_at_k_eq_window_keeps_every_visible_position() {
+        // A balanced tree spans every cell; at k >= window the bound covers the
+        // whole causal prefix, so the routed read reproduces the full read.
+        let cfg = RouteConfig::balanced(4, 4, 12, 8, RouteNull::None);
+        let tokens = [3u32, 7, 9, 15, 2, 8, 5, 11];
+        for query in 0..tokens.len() {
+            assert_eq!(
+                routed_keep(&cfg, query, &tokens),
+                (0..=query).collect::<Vec<usize>>()
+            );
+        }
+    }
+
+    #[test]
+    fn routed_keep_tangent_holds_cells_and_normal_moves_them() {
+        let real = RouteConfig::balanced(4, 4, 12, 2, RouteNull::None);
+        let tangent = RouteConfig::balanced(4, 4, 12, 2, RouteNull::Tangent { step: 0x9E37_79B9 });
+        let tokens = [0u32, 5, 9, 13, 17, 1, 6, 10, 14];
+        for query in 4..tokens.len() {
+            // A tangent null moves only the representative, never the cell, so
+            // the kept set is identical to the real address.
+            assert_eq!(
+                routed_keep(&real, query, &tokens),
+                routed_keep(&tangent, query, &tokens)
+            );
+        }
+        // A normal null moves the cell, so the route may change; it must stay
+        // within the visible prefix.
+        let normal = RouteConfig::balanced(4, 4, 12, 2, RouteNull::Normal { offset: 1 });
+        let kept = routed_keep(&normal, 8, &tokens);
+        assert!(kept.iter().all(|&j| j < tokens.len()));
+        assert!(!kept.is_empty());
+    }
+
+    #[test]
+    fn a_balanced_tree_spans_every_cell() {
+        let cfg = RouteConfig::balanced(256, 64, 12, 16, RouteNull::None);
+        let tree = cfg.tree();
+        assert_eq!(tree.reached(), 256);
+        assert!(cfg.validate().is_ok());
     }
 }

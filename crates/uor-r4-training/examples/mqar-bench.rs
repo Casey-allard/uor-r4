@@ -649,6 +649,7 @@ fn reference_config(
         memory: None,
         select: None,
         pointer: None,
+        read_router: None,
     };
     config.validate()?;
     Ok(config)
@@ -929,6 +930,7 @@ impl ArmSpec {
                     memory: None,
                     select: None,
                     pointer: None,
+                    read_router: None,
                 };
                 config.validate()?;
                 Ok(config)
@@ -966,6 +968,7 @@ impl ArmSpec {
                     memory: None,
                     select: None,
                     pointer: None,
+                    read_router: None,
                 };
                 control.mlp_hidden = match mlp_hidden {
                     Some(explicit) => *explicit,
@@ -3497,6 +3500,7 @@ mod tests {
             memory: None,
             select: None,
             pointer: None,
+            read_router: None,
         }
     }
 

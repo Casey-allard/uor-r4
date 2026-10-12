@@ -409,7 +409,10 @@ fn run(argv: &[String]) -> Result<(), String> {
     // (a') the same sixteen clause names with their literal single-turn reading, applied to every
     // assistant turn as its own single-turn document.
     let unit_ledger = validate_turn_units(&documents);
-    report_ledger("literal single-turn reading, one unit per assistant turn", &unit_ledger);
+    report_ledger(
+        "literal single-turn reading, one unit per assistant turn",
+        &unit_ledger,
+    );
     // Annex: why two clauses are read per turn (these are expected non-zero).
     let (multi_run, interior_eos) = literal_single_turn_counts(&stream, &mask);
     println!(
@@ -438,7 +441,14 @@ fn run(argv: &[String]) -> Result<(), String> {
         corruption_test(&stream, &mask);
     }
 
-    write_store(&args.output, &stream, &mask, &args, &sources, &tokenizer_sha256)?;
+    write_store(
+        &args.output,
+        &stream,
+        &mask,
+        &args,
+        &sources,
+        &tokenizer_sha256,
+    )?;
     let population = verify_store(&args.output, &stream, &mask)?;
 
     let tokens_path = args.output.join("tokens.u16");
@@ -484,7 +494,11 @@ fn run(argv: &[String]) -> Result<(), String> {
     );
 
     for (index, document) in documents.iter().take(2).enumerate() {
-        let ids: Vec<u32> = document.tokens.iter().map(|&token| u32::from(token)).collect();
+        let ids: Vec<u32> = document
+            .tokens
+            .iter()
+            .map(|&token| u32::from(token))
+            .collect();
         println!(
             "document {index} ({}, turn-2 answer {:?}): {}",
             document.kind,
@@ -503,7 +517,11 @@ fn run(argv: &[String]) -> Result<(), String> {
                 continue;
             }
             *seen += 1;
-            let ids: Vec<u32> = document.tokens.iter().map(|&token| u32::from(token)).collect();
+            let ids: Vec<u32> = document
+                .tokens
+                .iter()
+                .map(|&token| u32::from(token))
+                .collect();
             println!(
                 "  [{}] dependent={} turn-2 answer {:?}\n    {}",
                 document.kind,
@@ -990,7 +1008,9 @@ fn list_items(answer_text: &str) -> Result<Vec<String>, String> {
         .filter(|item| !item.is_empty())
         .collect();
     if items.len() < 2 {
-        return Err(format!("answer {answer_text:?} is not a comma-separated list"));
+        return Err(format!(
+            "answer {answer_text:?} is not a comma-separated list"
+        ));
     }
     Ok(items)
 }
@@ -1259,7 +1279,10 @@ fn validate_documents(stream: &[u16], mask: &[u8]) -> Ledger {
                 continue;
             }
             let marker_start = run_start - ASSISTANT_MARKER.len();
-            if mask[marker_start..run_start].iter().any(|&value| value != 0) {
+            if mask[marker_start..run_start]
+                .iter()
+                .any(|&value| value != 0)
+            {
                 ledger.hit(
                     "response_marker_unmasked",
                     document,
@@ -1382,7 +1405,11 @@ fn corruption_test(stream: &[u16], mask: &[u8]) {
     // Case 1: leave the document's terminal EOS unmasked.
     let mut corrupted = mask.to_vec();
     corrupted[end - 1] = 0;
-    report_corruption("case 1 (terminal EOS of the document left unmasked)", stream, &corrupted);
+    report_corruption(
+        "case 1 (terminal EOS of the document left unmasked)",
+        stream,
+        &corrupted,
+    );
 
     // Case 2: mask the separator that opens the second turn, merging the two response runs.
     let runs = mask_runs(&mask[start..end]);

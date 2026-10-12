@@ -1178,6 +1178,7 @@ mod tests {
             memory: None,
             select: None,
             pointer: None,
+            read_router: None,
         };
         let mut model = StackModel::new(config, &Device::Cpu)?;
         model.set_read_identity_latch(ReadIdentityLatch::Held)?;

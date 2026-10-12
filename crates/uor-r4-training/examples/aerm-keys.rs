@@ -2760,6 +2760,8 @@ mod tests {
             memory: None,
             select: None,
             pointer: None,
+
+            read_router: None,
         };
         config.validate()?;
         StackModel::new(config, &Device::Cpu)

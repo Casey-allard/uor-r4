@@ -1033,6 +1033,7 @@ mod tests {
                 memory: None,
                 select: None,
                 pointer: Some(PointerConfig::new(4)),
+                read_router: None,
             },
             &Device::Cpu,
         )

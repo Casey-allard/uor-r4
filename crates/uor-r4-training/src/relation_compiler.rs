@@ -1281,8 +1281,18 @@ pub fn relation_phrase(source: &str) -> Option<String> {
 /// Imperatives and wh-words, so a question written without a `?` is still read as one.
 fn recall_cue(source: &str) -> bool {
     const CUES: [&str; 12] = [
-        "what", "where", "who", "when", "which", "how", "tell me", "remind me", "do you",
-        "did i", "can you", "could you",
+        "what",
+        "where",
+        "who",
+        "when",
+        "which",
+        "how",
+        "tell me",
+        "remind me",
+        "do you",
+        "did i",
+        "can you",
+        "could you",
     ];
     let lower = source.trim_start().to_lowercase();
     CUES.iter().any(|cue| lower.starts_with(cue))
@@ -1291,7 +1301,10 @@ fn recall_cue(source: &str) -> bool {
 /// Whether every word of a marked span already appears in the relation phrase — i.e. the
 /// span is the relation's own words rather than a value held for it.
 fn phrase_words(span_text: &str, phrase: &str) -> bool {
-    let p: Vec<String> = phrase.split_whitespace().map(|w| w.to_lowercase()).collect();
+    let p: Vec<String> = phrase
+        .split_whitespace()
+        .map(|w| w.to_lowercase())
+        .collect();
     let words: Vec<String> = span_text
         .split(|c: char| !c.is_alphanumeric())
         .filter(|w| !w.is_empty())
@@ -2971,6 +2984,7 @@ mod tests {
                 memory: None,
                 select: None,
                 pointer: None,
+                read_router: None,
             },
             &candle_core::Device::Cpu,
         )?;

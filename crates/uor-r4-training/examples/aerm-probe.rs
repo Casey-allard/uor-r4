@@ -249,6 +249,7 @@ fn run(args: &Args, out: &Path) -> Result<()> {
         memory: None,
         select: None,
         pointer: None,
+        read_router: None,
     };
     template.validate()?;
     let train_template = AermConfig {

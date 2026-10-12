@@ -126,6 +126,7 @@ use crate::geometric_potential_native::{self, CompiledGeometricPotentials};
 use crate::geometric_span::{self, GeometricSpanConfig, SpanPolicy};
 use crate::geometric_span_native::{self, CompiledSpanActions};
 use crate::lut_export::{dequantize_matrix, quantize_matrix};
+use crate::stack_address::{self, RouteConfig};
 use crate::stack_export::{
     block, decay_of_rate, decay_rate, fixed, fixed_value, fold_columns, grid_code, grid_value, pad,
 };
@@ -1533,6 +1534,13 @@ struct ReadSource<'a> {
     // Admitted incremental reader output, already in the residual frame.
     // Conversion to F32 occurs outside the integer session.
     integer_residual: Option<(usize, &'a Tensor)>,
+    /// The forward's input tokens, for the invariant-addressed router
+    /// (StackConfig::read_router): routing is a fixed function of token
+    /// identity, so the read routes over these rather than the hidden states.
+    /// Populated only at the one entry point with the tokens in scope
+    /// (hidden_hooked); every other read source sets None, and a routed
+    /// forward without tokens is an error, never a silent full read.
+    ids: Option<&'a [u32]>,
 }
 
 #[derive(Clone, Copy)]
@@ -1620,6 +1628,7 @@ impl Default for ReadSource<'_> {
             no_read: NoReadSource::LegacyFloat,
             composition: None,
             integer_residual: None,
+            ids: None,
         }
     }
 }
@@ -2467,6 +2476,12 @@ pub struct StackConfig {
     /// without one.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub pointer: Option<PointerConfig>,
+    /// The invariant-addressed router of every geometric read
+    /// (crate::stack_address::RouteConfig); absent from configurations without
+    /// one, in which the read is exactly the unrouted model, bit for bit.
+    /// Replaces a flock selection (see validate()).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub read_router: Option<RouteConfig>,
 }
 
 impl StackConfig {
@@ -2487,6 +2502,7 @@ impl StackConfig {
             memory: None,
             select: None,
             pointer: None,
+            read_router: None,
         }
     }
 
@@ -2525,6 +2541,7 @@ impl StackConfig {
             memory: None,
             select: None,
             pointer: None,
+            read_router: None,
         };
         config.validate()?;
         Ok(config)
@@ -2608,6 +2625,26 @@ impl StackConfig {
         }
         if let Some(pointer) = &self.pointer {
             pointer.validate()?;
+        }
+        if let Some(router) = &self.read_router {
+            router.validate()?;
+            if router.active() {
+                if self.arch != StackArch::Geometric {
+                    return Err(invalid(
+                        "the invariant-addressed router gates the geometric reads; \
+                         the transformer control's attention is not routed",
+                    ));
+                }
+                if !self.pattern.contains('a') {
+                    return Err(invalid("the invariant-addressed router needs a read layer"));
+                }
+                if self.select.is_some() {
+                    return Err(invalid(
+                        "the invariant-addressed router replaces the read's selection: \
+                         read_router and select are alternatives",
+                    ));
+                }
+            }
         }
         if self.rotation_group == RotationGroup::U1 && !self.rotation {
             return Err(invalid(
@@ -3368,6 +3405,12 @@ impl StackModel {
         if self.geometric_address.is_some() && select.is_some() {
             return Err(invalid("geometric addressing requires full causal support"));
         }
+        if select.is_some() && self.config.read_router.as_ref().is_some_and(|r| r.active()) {
+            return Err(invalid(
+                "the invariant-addressed router replaces the read's selection: \
+                 clear read_router before setting a flock selection",
+            ));
+        }
         if let Some(select) = &select {
             validate_flock(select)?;
         }
@@ -3385,6 +3428,44 @@ impl StackModel {
         }
         self.config.select = select;
         Ok(())
+    }
+
+    /// Set the invariant-addressed router of every geometric read
+    /// (StackConfig::read_router), or clear it with None. Routing is a fixed
+    /// function of the input tokens, so the parameters do not change: it
+    /// applies to weights trained without it, and clearing it restores the
+    /// unrouted read bit for bit. An active router is refused on a
+    /// non-geometric stack or a pattern without a read, together with a flock
+    /// selection (both in StackConfig::validate), and with a served form, bf16,
+    /// a softmax-free read weighting, the starling route, a geometric address,
+    /// a read lineage or an identity latch, which all replace parts of the read
+    /// the router is defined on.
+    pub fn set_read_router(&mut self, router: Option<RouteConfig>) -> Result<()> {
+        let mut config = self.config.clone();
+        config.read_router = router;
+        config.validate()?;
+        if config.read_router.as_ref().is_some_and(|r| r.active())
+            && (self.served.is_some()
+                || self.precision.is_bf16()
+                || self.read_weighting != ReadWeighting::Softmax
+                || self.read_route.is_some()
+                || self.geometric_address.is_some()
+                || self.read_lineage.is_some()
+                || self.read_identity_latch.is_some())
+        {
+            return Err(invalid(
+                "the invariant-addressed router excludes a served form, bf16, other \
+                 read weightings, the starling route, geometric address, lineage and latch",
+            ));
+        }
+        self.config = config;
+        Ok(())
+    }
+
+    /// The invariant-addressed router of the geometric reads
+    /// (StackConfig::read_router).
+    pub fn read_router(&self) -> Option<&RouteConfig> {
+        self.config.read_router.as_ref()
     }
 
     /// Route the pointer's sources by exact prime arithmetic ([`PrimeRoute`])
@@ -4033,6 +4114,21 @@ impl StackModel {
                 true,
                 select,
                 &table,
+            )?
+        } else if let Some(router) = self.config.read_router.as_ref().filter(|r| r.active()) {
+            let ids = source.ids.ok_or_else(|| {
+                invalid("the invariant-addressed router needs the forward's input tokens; this read's source carries none")
+            })?;
+            let route = Arc::new(RouteKeep::new(router, batch, time, ids)?);
+            fused_read_routed(
+                &query,
+                &key,
+                &value,
+                &aux,
+                self.config.read,
+                true,
+                true,
+                route,
             )?
         } else {
             fused_read_weighted(
@@ -5840,9 +5936,7 @@ impl StackModel {
             ));
         }
         if !margin.is_finite() || !(0.0..1.0).contains(&margin) {
-            return Err(invalid(
-                "the competing-mass margin must be a mass in 0..1",
-            ));
+            return Err(invalid("the competing-mass margin must be a mass in 0..1"));
         }
         self.read_binding_competing_weight = weight;
         self.read_binding_competing_margin = margin;
@@ -6101,6 +6195,7 @@ impl StackModel {
                 no_read: NoReadSource::LegacyFloat,
                 composition: None,
                 integer_residual: None,
+                ids: None,
             },
         )?;
         let hidden = self.finish_hooked(&p, x, &mut None)?;
@@ -6264,6 +6359,7 @@ impl StackModel {
                 no_read: NoReadSource::LegacyFloat,
                 composition: None,
                 integer_residual: None,
+                ids: None,
             },
         )?;
         let hidden = self.finish_hooked(&p, x, &mut None)?;
@@ -8228,6 +8324,7 @@ impl StackModel {
                 no_read: NoReadSource::LegacyFloat,
                 composition: None,
                 integer_residual: None,
+                ids: None,
             },
         )?;
         let hidden = self.finish_hooked(&p, x, &mut None)?;
@@ -9498,6 +9595,8 @@ impl StackModel {
                 no_read: NoReadSource::LegacyFloat,
                 composition: None,
                 integer_residual: None,
+
+                ids: Some(ids),
             };
             let hidden = self.layer_range_with_source(
                 p,
@@ -9510,7 +9609,20 @@ impl StackModel {
             )?;
             return self.finish_hooked(p, hidden, capture);
         }
-        self.layers_hooked(p, x, capture)
+        let source = ReadSource {
+            ids: Some(ids),
+            ..ReadSource::default()
+        };
+        let hidden = self.layer_range_with_source(
+            p,
+            x,
+            0..self.config.layers(),
+            capture,
+            &mut None,
+            LatchGates::Soft,
+            source,
+        )?;
+        self.finish_hooked(p, hidden, capture)
     }
 
     /// The token embeddings [batch, time, width] that the first layer reads.
@@ -9898,6 +10010,7 @@ impl StackModel {
                 no_read: NoReadSource::LegacyFloat,
                 composition: None,
                 integer_residual: None,
+                ids: None,
             },
         )?;
         let hidden = self.finish_hooked(p, x, &mut None)?;
@@ -10646,9 +10759,7 @@ impl StackModel {
         };
         let total = language.add(&binding.affine(weight, 0.0)?)?;
         let total = if self.read_binding_competing_weight > 0.0 {
-            total.add(
-                &competing_margin.affine(self.read_binding_competing_weight, 0.0)?,
-            )?
+            total.add(&competing_margin.affine(self.read_binding_competing_weight, 0.0)?)?
         } else {
             total
         };
@@ -11793,6 +11904,7 @@ impl StackModel {
                         no_read: NoReadSource::LegacyFloat,
                         composition: None,
                         integer_residual: None,
+                        ids: None,
                     },
                 )?,
             };
@@ -15034,7 +15146,43 @@ fn axpy(alpha: f32, x: &[f32], y: &mut [f32]) {
 /// over (window, head) blocks, with an exact backward that recomputes the
 /// probabilities. Inner loops run over positions or features as `axpy`, so
 /// they vectorize.
-#[derive(Clone, Copy, Debug)]
+/// The routed kept positions of one forward, precomputed on the host from
+/// the token window: kept[row * time + t] is the deterministic kept list of
+/// query position t in batch row row (see crate::stack_address::routed_keep).
+/// Built once per read call from the forward's tokens; the read's op and its
+/// backward share it through an Arc.
+#[derive(Debug)]
+pub struct RouteKeep {
+    kept: Vec<Vec<usize>>,
+    time: usize,
+}
+
+impl RouteKeep {
+    /// Precompute every row's kept positions from an active configuration and
+    /// batch * time tokens. The configuration must be active (the caller
+    /// checks); the tokens are the forward's ids.
+    pub fn new(config: &RouteConfig, batch: usize, time: usize, tokens: &[u32]) -> Result<Self> {
+        if tokens.len() != batch * time || time == 0 {
+            return Err(invalid(
+                "the router's token window is not the forward's batch * time",
+            ));
+        }
+        let mut kept = Vec::with_capacity(batch * time);
+        for row in tokens.chunks(time) {
+            for t in 0..time {
+                kept.push(stack_address::routed_keep(config, t, row));
+            }
+        }
+        Ok(RouteKeep { kept, time })
+    }
+
+    /// The kept lists of one batch row, indexed by query position t.
+    fn row(&self, row: usize) -> &[Vec<usize>] {
+        &self.kept[row * self.time..(row + 1) * self.time]
+    }
+}
+
+#[derive(Clone, Debug)]
 struct FusedRead {
     batch: usize,
     heads: usize,
@@ -15048,6 +15196,10 @@ struct FusedRead {
     rope: bool,
     /// Flock selection of the sources each row softmaxes over.
     select: Option<FlockSelect>,
+    /// The invariant-addressed router's precomputed kept lists, or None. A
+    /// route replaces a flock selection (the model's setters refuse both);
+    /// the kept lists are read-only here and shared with the backward.
+    route: Option<Arc<RouteKeep>>,
     /// [`ReadWeighting::Rank`]: the forward mixes values by [`rank_weights`]
     /// instead of the softmax; the backward is straight-through (see
     /// [`fused_read_weighted`]). Needs `select`.
@@ -15069,6 +15221,9 @@ struct Block<'a> {
     null: Option<&'a [f32]>,
     age: Option<&'a [f32]>,
     learned: Option<&'a [f32]>,
+    /// The routed kept lists of this block's batch row (kept[t] per query
+    /// position t), or None when unrouted.
+    route: Option<&'a [Vec<usize>]>,
     /// Lifts sqrt(1 + |x|^2) of queries and keys, for Lorentz; for L2 the
     /// squared norms |x|^2.
     query_lift: Vec<f64>,
@@ -15127,6 +15282,35 @@ fn drop_unkept(
     keep.resize(scores.len(), false);
     for entry in &selection.entries {
         keep[entry.position] = true;
+    }
+    for (score, &kept) in scores.iter_mut().zip(keep.iter()) {
+        if !kept {
+            *score = f32::NEG_INFINITY;
+        }
+    }
+    true
+}
+
+/// Apply a precomputed kept list (the invariant-addressed router) to one row:
+/// every position of scores (positions 0..=t) not in kept_positions becomes
+/// -inf, so its softmax weight is exactly 0. Returns whether any was dropped;
+/// when none is (the kept list covers the row) scores is untouched, so a route
+/// that covers the row is the plain row bit for bit. keep is scratch.
+/// Comparisons and moves only.
+fn drop_unkept_positions(
+    kept_positions: &[usize],
+    scores: &mut [f32],
+    keep: &mut Vec<bool>,
+) -> bool {
+    if kept_positions.len() >= scores.len() {
+        return false;
+    }
+    keep.clear();
+    keep.resize(scores.len(), false);
+    for &position in kept_positions {
+        if position < keep.len() {
+            keep[position] = true;
+        }
     }
     for (score, &kept) in scores.iter_mut().zip(keep.iter()) {
         if !kept {
@@ -15372,7 +15556,7 @@ impl FusedRead {
     }
 
     fn block<'a>(
-        &self,
+        &'a self,
         query: &[f32],
         kv: &[f32],
         aux: &'a [f32],
@@ -15464,6 +15648,10 @@ impl FusedRead {
                 ) + head * size;
                 &aux[base..base + size]
             }),
+            route: self
+                .route
+                .as_ref()
+                .map(|route| route.row(index / self.heads)),
             query_lift,
             key_lift,
             beta,
@@ -15518,7 +15706,18 @@ impl FusedRead {
             row[j] = score;
             maximum = maximum.max(score);
         }
-        if let Some(select) = self.select {
+        if let Some(route) = block.route {
+            // The invariant-addressed route: the kept set is a fixed function
+            // of the token window (precomputed on the host), not of the scores.
+            // Unkept scores become -inf so their weight is exactly zero, exactly
+            // as a flock selection drops them.
+            if drop_unkept_positions(&route[t], row, keep) {
+                maximum = block.null.map_or(f32::NEG_INFINITY, |null| null[t]);
+                for &score in row.iter() {
+                    maximum = maximum.max(score);
+                }
+            }
+        } else if let Some(select) = self.select {
             // Unkept scores become -inf, so their weight is exactly zero
             // (`exp(-inf - maximum)`), and the maximum is over the kept ones
             // and the NoRead slot, which is not a position and is not selected.
@@ -15666,7 +15865,7 @@ impl FusedRead {
     /// Whether the Metal kernels cover this configuration (RoPE, flock
     /// selection and the L2 control run on the host).
     fn metal_covered(&self) -> bool {
-        !self.rope && self.select.is_none() && self.score != ReadScore::L2
+        !self.rope && self.select.is_none() && self.route.is_none() && self.score != ReadScore::L2
     }
 
     fn metal_dims(&self) -> [u32; 8] {
@@ -16392,7 +16591,42 @@ pub fn fused_read_weighted(
     rank: bool,
 ) -> Result<Tensor> {
     fused_read_ranked(
-        query, key, value, aux, score, null, age, rope, select, rank, None,
+        query, key, value, aux, score, null, age, rope, select, rank, None, None,
+    )
+}
+
+/// The fused read whose rows softmax over the positions the invariant-addressed
+/// router keeps (see crate::stack_address::routed_keep and RouteKeep), built
+/// from the configuration and the window's tokens: the query's own position and
+/// the nearest cells on the spanning tree. The score, the NoRead slot, the age
+/// table and the softmax itself are the plain read's; only which positions a row
+/// softmaxes over changes, so a kept set covering the row is the plain row bit
+/// for bit. A route combined with a flock select or a rank read is an error
+/// here (the model's own setters refuse them earlier).
+#[allow(clippy::too_many_arguments)]
+pub fn fused_read_routed(
+    query: &Tensor,
+    key: &Tensor,
+    value: &Tensor,
+    aux: &Tensor,
+    score: ReadScore,
+    null: bool,
+    age: bool,
+    route: Arc<RouteKeep>,
+) -> Result<Tensor> {
+    fused_read_ranked(
+        query,
+        key,
+        value,
+        aux,
+        score,
+        null,
+        age,
+        false,
+        None,
+        false,
+        None,
+        Some(route),
     )
 }
 
@@ -16427,6 +16661,7 @@ pub fn fused_read_learned_rank(
         Some(select),
         true,
         Some(table),
+        None,
     )
 }
 
@@ -16650,9 +16885,15 @@ fn fused_read_ranked(
     select: Option<FlockSelect>,
     rank: bool,
     table: Option<&Tensor>,
+    route: Option<Arc<RouteKeep>>,
 ) -> Result<Tensor> {
     if rank && select.is_none() {
         return Err(invalid("a rank read needs a flock selection"));
+    }
+    if route.is_some() && (select.is_some() || rank) {
+        return Err(invalid(
+            "the invariant-addressed router replaces the flock selection: it does not combine with one, nor with a rank read",
+        ));
     }
     // Under `precision=bf16` the query, key and value are bf16 (the fused-read
     // CUDA kernels of the bf16 module read that storage and score in f32); the
@@ -16714,6 +16955,7 @@ fn fused_read_ranked(
         age,
         rope,
         select,
+        route,
         rank,
         learned,
     };
@@ -19079,6 +19321,7 @@ mod tests {
             memory: None,
             select: None,
             pointer: None,
+            read_router: None,
         };
         let model = StackModel::new(config, &Device::Cpu)?;
         let ids = vec![1, 2, 3, 4];
@@ -19124,6 +19367,7 @@ mod tests {
             memory: None,
             select: None,
             pointer: None,
+            read_router: None,
         };
         let model = StackModel::new(config, &Device::Cpu)?;
         let ids = vec![1, 2];
@@ -20357,7 +20601,76 @@ mod tests {
             memory: None,
             select: None,
             pointer: None,
+            read_router: None,
         }
+    }
+
+    #[test]
+    fn the_read_router_off_state_reproduces_the_unrouted_loss_bit_for_bit() -> Result<()> {
+        let device = Device::Cpu;
+        let base = tiny(StackArch::Geometric, "rara", ReadScore::Lorentz, true);
+        let mut off = base.clone();
+        off.read_router = Some(RouteConfig::default()); // inactive: routes nothing
+        let plain = StackModel::new(base, &device)?;
+        let routed = StackModel::new(off, &device)?;
+        let ids = vec![3, 7, 9, 15, 2, 8, 5, 11];
+        let targets = vec![7, 9, 15, 2, 8, 5, 11, 3];
+        let a = plain.target_nll(&ids, &targets, 1, 8)?;
+        let b = routed.target_nll(&ids, &targets, 1, 8)?;
+        assert_eq!(
+            a, b,
+            "an inactive read_router must reproduce the plain read bit for bit"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn the_read_router_at_k_eq_window_reproduces_the_full_read_bit_for_bit() -> Result<()> {
+        let device = Device::Cpu;
+        let base = tiny(StackArch::Geometric, "rara", ReadScore::Lorentz, true);
+        let mut routed = base.clone();
+        routed.read_router = Some(RouteConfig::balanced(
+            8,
+            4,
+            12,
+            16,
+            stack_address::RouteNull::None,
+        ));
+        let plain = StackModel::new(base, &device)?;
+        let routed = StackModel::new(routed, &device)?;
+        let ids = vec![3, 7, 9, 15, 2, 8, 5, 11];
+        let targets = vec![7, 9, 15, 2, 8, 5, 11, 3];
+        let a = plain.target_nll(&ids, &targets, 1, 8)?;
+        let b = routed.target_nll(&ids, &targets, 1, 8)?;
+        assert_eq!(
+            a, b,
+            "a route whose k covers the window must reproduce the full read bit for bit"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn the_read_router_round_trips_through_config_json() -> Result<()> {
+        let mut config = tiny(StackArch::Geometric, "rara", ReadScore::Lorentz, true);
+        config.read_router = Some(RouteConfig::balanced(
+            256,
+            64,
+            12,
+            16,
+            stack_address::RouteNull::Tangent { step: 3 },
+        ));
+        config.validate()?;
+        let text = serde_json::to_string(&config)?;
+        let read: StackConfig = serde_json::from_str(&text)?;
+        assert_eq!(read, config);
+        assert_eq!(read.read_router, config.read_router);
+        // An absent field deserializes to off.
+        let mut off = tiny(StackArch::Geometric, "rara", ReadScore::Lorentz, true);
+        off.read_router = None;
+        let text = serde_json::to_string(&off)?;
+        let read: StackConfig = serde_json::from_str(&text)?;
+        assert!(read.read_router.is_none());
+        Ok(())
     }
 
     fn binding_rows(layer: usize) -> ReadBindingTarget {
@@ -25672,11 +25985,14 @@ mod tests {
 
     #[test]
     #[test]
-    fn the_read_score_can_be_switched_on_a_loaded_shape_and_the_default_is_untouched()
-    -> Result<()> {
+    fn the_read_score_can_be_switched_on_a_loaded_shape_and_the_default_is_untouched() -> Result<()>
+    {
         let ids: Vec<u32> = (0..8).map(|i| (i * 5 + 1) % 37).collect();
         let targets: Vec<u32> = ids.iter().map(|&id| (id + 3) % 37).collect();
-        let mut model = StackModel::new(tiny(StackArch::Geometric, "rra", ReadScore::L2, true), &cpu())?;
+        let mut model = StackModel::new(
+            tiny(StackArch::Geometric, "rra", ReadScore::L2, true),
+            &cpu(),
+        )?;
         // The checkpoint's own score is what a run without the flag trains.
         assert_eq!(model.config.read, ReadScore::L2);
         let before = model.loss(&ids, &targets, 1, 8)?.to_scalar::<f32>()?;
@@ -25688,7 +26004,10 @@ mod tests {
         // Switching back reproduces the original model exactly on the same row.
         model.set_read_score(ReadScore::L2)?;
         assert_eq!(
-            model.loss(&ids, &targets, 1, 8)?.to_scalar::<f32>()?.to_bits(),
+            model
+                .loss(&ids, &targets, 1, 8)?
+                .to_scalar::<f32>()?
+                .to_bits(),
             before.to_bits()
         );
         Ok(())
@@ -26720,6 +27039,7 @@ mod tests {
             memory: None,
             select: None,
             pointer: None,
+            read_router: None,
         }
     }
 
@@ -33175,7 +33495,10 @@ mod tests {
         )?;
         model.set_read_route(Some(route))?;
         starling_aux_take();
-        let plain = model.forward(&ids, 2, 12)?.flatten_all()?.to_vec1::<f32>()?;
+        let plain = model
+            .forward(&ids, 2, 12)?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
         assert!(starling_aux_take().is_none());
         model.set_starling_distill(Some(0.5))?;
         // Outside a training-loss forward, nothing is computed or stored.
@@ -33259,10 +33582,19 @@ mod tests {
         let (plain_logits, plain_grad, plain_value) = run(&model)?;
         model.set_starling_surrogate(true)?;
         let (surrogate_logits, surrogate_grad, surrogate_value) = run(&model)?;
-        assert_eq!(plain_logits, surrogate_logits, "the forward must not change");
-        assert_ne!(plain_grad, surrogate_grad, "the surrogate must add a gradient");
+        assert_eq!(
+            plain_logits, surrogate_logits,
+            "the forward must not change"
+        );
+        assert_ne!(
+            plain_grad, surrogate_grad,
+            "the surrogate must add a gradient"
+        );
         // The values keep the softmax-free read's gradient exactly.
-        assert_eq!(plain_value, surrogate_value, "the surrogate must not touch values");
+        assert_eq!(
+            plain_value, surrogate_value,
+            "the surrogate must not touch values"
+        );
         // An address (non-content) route refuses the surrogate; a model's
         // route is fixed once set, so check on a fresh model.
         let mut address = StackModel::new(

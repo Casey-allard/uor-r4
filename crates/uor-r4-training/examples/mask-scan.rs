@@ -44,14 +44,22 @@ fn main() {
     let raw = std::fs::read(&argv[0]).expect("read corpus");
     let tok_bytes = std::fs::read(&argv[1]).expect("read tokenizer");
     let tokenizer = HfBpeTokenizer::from_tokenizer_json_bytes(&tok_bytes).expect("parse tokenizer");
-    let payload = if raw.len() > skip { &raw[skip..] } else { &raw[..] };
+    let payload = if raw.len() > skip {
+        &raw[skip..]
+    } else {
+        &raw[..]
+    };
     let stream: Vec<u16> = payload
         .chunks_exact(2)
         .map(|c| u16::from_le_bytes([c[0], c[1]]))
         .collect();
 
     for label in ["Assistant:", "User:"] {
-        let ids: Vec<u16> = tokenizer.encode(label).into_iter().map(|i| i as u16).collect();
+        let ids: Vec<u16> = tokenizer
+            .encode(label)
+            .into_iter()
+            .map(|i| i as u16)
+            .collect();
         let hits = occurrences(&stream, &ids);
         let mut gaps: Vec<usize> = hits.windows(2).map(|w| w[1] - w[0]).collect();
         gaps.sort_unstable();
@@ -73,7 +81,11 @@ fn main() {
         // Contract from dialogue_episodes.rs:385-405: the assistant marker itself is mask=0 and
         // the response run starts immediately after it, ends at a genuine terminal EOS inclusive,
         // and contains no other EOS.
-        let assistant: Vec<u16> = tokenizer.encode("Assistant:").into_iter().map(|i| i as u16).collect();
+        let assistant: Vec<u16> = tokenizer
+            .encode("Assistant:")
+            .into_iter()
+            .map(|i| i as u16)
+            .collect();
         let eos_id = tokenizer
             .encode("<|eos|>")
             .first()

@@ -353,6 +353,7 @@ use uor_r4_training::geometric_stack::{
     StackAdamW, StackArch, StackConfig, StackModel, TransportSnap, TransportUsage,
 };
 use uor_r4_training::lut_export::export_llama;
+use uor_r4_training::stack_address::{RouteConfig, RouteNull};
 use uor_r4_training::stack_dialogue::{
     annotate_turn_costs, check_panel, development, episode_contract_for, greedy_reply,
     load_requests, reply_panel, trim, DialogueSplit, Reply, TurnCost, MAX_NEW_TOKENS,
@@ -4635,6 +4636,9 @@ struct DialogueSettings {
     /// loaded from `init=`, which otherwise keeps the checkpoint's own score.
     /// Recorded because it changes the model's function.
     read_override: Option<uor_r4_training::geometric_stack::ReadScore>,
+    /// The invariant-addressed router of the reads (read_router=on|off plus
+    /// read_router_k/buckets/cells/inner_bits/null/step/offset); None means off.
+    read_router: Option<RouteConfig>,
     /// `read_binding_layer=L` (default: the last read layer).
     read_binding_layer: Option<usize>,
     /// `read_binding_competing_weight=W` (default 0, off): weight on the term
@@ -4691,19 +4695,39 @@ impl DialogueSettings {
         if self.pointer_gate_supervision > 0.0 {
             record["pointer_gate_supervision"] = json!(self.pointer_gate_supervision);
         }
+        if let Some(read) = self.read_override {
+            record["read_override"] = json!(format!("{read:?}").to_lowercase());
+        }
+        if let Some(router) = &self.read_router {
+            record["read_router"] = json!("on");
+            record["read_router_k"] = json!(router.k);
+            record["read_router_buckets"] = json!(router.buckets);
+            record["read_router_cells"] = json!(router.cells);
+            record["read_router_inner_bits"] = json!(router.inner_bits);
+            match router.null {
+                RouteNull::None => {
+                    record["read_router_null"] = json!("none");
+                }
+                RouteNull::Tangent { step } => {
+                    record["read_router_null"] = json!("tangent");
+                    record["read_router_step"] = json!(step);
+                }
+                RouteNull::Normal { offset } => {
+                    record["read_router_null"] = json!("normal");
+                    record["read_router_offset"] = json!(offset);
+                }
+            }
+        } else {
+            record["read_router"] = json!("off");
+        }
         if self.read_binding_supervision > 0.0 {
             record["read_binding_supervision"] = json!(self.read_binding_supervision);
             record["read_binding_labels"] = json!(self.read_binding_labels);
             record["read_binding_source"] = json!(self.read_binding_source);
             record["read_binding_layer"] = json!(self.read_binding_layer);
-            if let Some(read) = self.read_override {
-                record["read_override"] = json!(format!("{read:?}").to_lowercase());
-            }
             if self.read_binding_competing_weight > 0.0 {
-                record["read_binding_competing_weight"] =
-                    json!(self.read_binding_competing_weight);
-                record["read_binding_competing_margin"] =
-                    json!(self.read_binding_competing_margin);
+                record["read_binding_competing_weight"] = json!(self.read_binding_competing_weight);
+                record["read_binding_competing_margin"] = json!(self.read_binding_competing_margin);
             }
         }
         record
@@ -4756,10 +4780,8 @@ impl DialogueSettings {
             lineage["pointer_gate_supervision"] = json!(self.pointer_gate_supervision);
         }
         if self.read_binding_supervision > 0.0 {
-            lineage["read_binding_competing_weight"] =
-                json!(self.read_binding_competing_weight);
-            lineage["read_binding_competing_margin"] =
-                json!(self.read_binding_competing_margin);
+            lineage["read_binding_competing_weight"] = json!(self.read_binding_competing_weight);
+            lineage["read_binding_competing_margin"] = json!(self.read_binding_competing_margin);
             lineage["read_binding_supervision"] = json!({
                 "weight": self.read_binding_supervision,
                 "source": self.read_binding_source,
@@ -4948,6 +4970,39 @@ fn check_init_tokenizer(model: &Path, tokenizer: &Path) -> Result<()> {
 
 /// Response learning on the prepared literal-role dialogue corpus with the
 /// retained study's episodes (`uor_r4_training::stack_dialogue`).
+/// Parse the invariant-addressed router options: read_router=on builds a
+/// balanced spanning tree over read_router_cells with the given k, buckets and
+/// inner bits, and the null arm (none, tangent with read_router_step, or
+/// normal with read_router_offset). read_router=off (the default) returns None.
+fn read_router_arg(args: &Args) -> Result<Option<RouteConfig>> {
+    match args.optional("read_router").as_deref() {
+        None | Some("off") => return Ok(None),
+        Some("on") => {}
+        Some(other) => return Err(invalid(format!("invalid read_router={other} (off or on)"))),
+    }
+    let null = match args.optional("read_router_null").as_deref() {
+        None | Some("none") => RouteNull::None,
+        Some("tangent") => RouteNull::Tangent {
+            step: args.number("read_router_step", 0x9E37_79B9u32)?,
+        },
+        Some("normal") => RouteNull::Normal {
+            offset: args.number("read_router_offset", 1u32)?,
+        },
+        Some(other) => {
+            return Err(invalid(format!(
+                "invalid read_router_null={other} (none, tangent or normal)"
+            )))
+        }
+    };
+    Ok(Some(RouteConfig::balanced(
+        args.number("read_router_cells", 256u32)?,
+        args.number("read_router_buckets", 64u32)?,
+        args.number("read_router_inner_bits", 12u32)?,
+        args.number("read_router_k", 16usize)?,
+        null,
+    )))
+}
+
 fn dialogue_train_mode(arguments: &[String]) -> Result<()> {
     let args = Args::parse(
         arguments,
@@ -5011,6 +5066,14 @@ fn dialogue_train_mode(arguments: &[String]) -> Result<()> {
             "read_binding_source",
             "read_binding_layer",
             "read_override",
+            "read_router",
+            "read_router_k",
+            "read_router_buckets",
+            "read_router_cells",
+            "read_router_inner_bits",
+            "read_router_null",
+            "read_router_step",
+            "read_router_offset",
             "read_binding_competing_weight",
             "read_binding_competing_margin",
             "memory_layers",
@@ -5092,6 +5155,7 @@ fn dialogue_train_mode(arguments: &[String]) -> Result<()> {
                 )))
             }
         },
+        read_router: read_router_arg(&args)?,
         read_binding_layer: args
             .optional("read_binding_layer")
             .map(|v| {
@@ -5361,7 +5425,7 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
     // saved model; a pointer added to a model saved without one draws its
     // weights from `seed=` (the saved seed by default), which its `init_seed`
     // records.
-    let (config, pointer_added, memory_added) = match &s.init {
+    let (mut config, pointer_added, memory_added) = match &s.init {
         Some(directory) => {
             check_init_tokenizer(directory, &s.tokenizer)?;
             let saved = StackModel::load(directory, &device)?.config;
@@ -5369,6 +5433,7 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
         }
         None => (stack_config(args, Some(vocab))?, false, false),
     };
+    config.read_router = s.read_router.clone();
     let pointer_seed: u64 = if pointer_added {
         config
             .pointer
@@ -5450,6 +5515,9 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
                         // below compares against a configuration carrying the
                         // same override, so the run cannot hide the switch.
                         model.set_read_score(read)?;
+                    }
+                    if let Some(router) = &s.read_router {
+                        model.set_read_router(Some(router.clone()))?;
                     }
                     if memory_added {
                         // The memory replaces the named layers' MLPs, so its

@@ -905,6 +905,7 @@ mod tests {
             memory: None,
             select: None,
             pointer: None,
+            read_router: None,
         };
         StackModel::new(config, &Device::Cpu).expect("tiny stack")
     }
@@ -1429,6 +1430,7 @@ mod tests {
             memory: None,
             select: None,
             pointer: None,
+            read_router: None,
         };
         let mut model = StackModel::new(config, &Device::Cpu).expect("stack");
         for (name, snap) in [("free", None), ("snapped", Some(TransportSnap::Icosian))] {
