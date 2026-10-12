@@ -232,6 +232,7 @@ fn fitted_adapter_drives_actual_clis_and_each_fresh_process_matches_generation()
             pointer: Some(PointerConfig::new(4)),
 
             read_router: None,
+            objective: uor_r4_training::geometric_stack::Objective::Ce,
         },
         &Device::Cpu,
     )

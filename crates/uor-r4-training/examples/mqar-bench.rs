@@ -675,6 +675,7 @@ fn reference_config(
         select: None,
         pointer: None,
         read_router: None,
+        objective: uor_r4_training::geometric_stack::Objective::Ce,
     };
     config.validate()?;
     Ok(config)
@@ -961,6 +962,7 @@ impl ArmSpec {
                     select: None,
                     pointer: None,
                     read_router: None,
+                    objective: uor_r4_training::geometric_stack::Objective::Ce,
                 };
                 config.validate()?;
                 Ok(config)
@@ -999,6 +1001,7 @@ impl ArmSpec {
                     select: None,
                     pointer: None,
                     read_router: None,
+                    objective: uor_r4_training::geometric_stack::Objective::Ce,
                 };
                 control.mlp_hidden = match mlp_hidden {
                     Some(explicit) => *explicit,
@@ -3692,6 +3695,7 @@ mod tests {
             select: None,
             pointer: None,
             read_router: None,
+            objective: uor_r4_training::geometric_stack::Objective::Ce,
         }
     }
 

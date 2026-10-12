@@ -361,6 +361,7 @@ fn mixed(args: &Args, out: &Path) -> Result<()> {
         select: None,
         pointer: None,
         read_router: None,
+        objective: uor_r4_training::geometric_stack::Objective::Ce,
     };
     stack_template.validate()?;
     let mixed_template = MixedConfig {
@@ -607,6 +608,7 @@ fn stories(args: &Args, out: &Path) -> Result<()> {
         select: None,
         pointer: None,
         read_router: None,
+        objective: uor_r4_training::geometric_stack::Objective::Ce,
     };
     stack_template.validate()?;
     let story_template = StoryConfig {

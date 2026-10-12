@@ -2762,6 +2762,7 @@ mod tests {
             pointer: None,
 
             read_router: None,
+            objective: uor_r4_training::geometric_stack::Objective::Ce,
         };
         config.validate()?;
         StackModel::new(config, &Device::Cpu)

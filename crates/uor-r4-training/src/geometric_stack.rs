@@ -1360,6 +1360,42 @@ fn is_quaternion(group: &RotationGroup) -> bool {
     *group == RotationGroup::Quaternion
 }
 
+/// The model's training objective (D23, 2026-10-12: no softmax anywhere,
+/// including the implicit softmax inside cross-entropy; owner, same date: no
+/// softplus or any other softmax-shaped term either). `Ce` is the historical
+/// cross-entropy over softmax logits, kept for existing artifacts and
+/// configurations exactly as it was; `MarginHinge` is the first softmax-free
+/// objective: a rank hinge against the strongest rival logits, with no
+/// normalized exponential anywhere in the forward or the gradient — the only
+/// exponential in it is none at all.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Objective {
+    /// Cross-entropy over softmax logits (implicit softmax; prohibited for new
+    /// runs by D23 and retained so existing artifacts load and reproduce).
+    #[default]
+    Ce,
+    /// `mean_k relu(1 − z_target + z_k)` over the top-`rivals` non-target
+    /// logits of each row: a rank hinge with no exponential of any kind.
+    MarginHinge { rivals: usize },
+}
+
+impl Objective {
+    /// The objective's own name, for reports and validation errors.
+    pub fn name(self) -> &'static str {
+        match self {
+            Objective::Ce => "ce",
+            Objective::MarginHinge { .. } => "margin_hinge",
+        }
+    }
+
+    /// [`Objective::Ce`], the serialization default (a `Ce` configuration
+    /// writes no field, so older configs stay byte-identical).
+    pub fn is_ce(&self) -> bool {
+        matches!(self, Objective::Ce)
+    }
+}
+
 /// The CUDA kernels that run the recurrence core (a training-speed choice;
 /// both compute the same values, bit for bit).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -2510,6 +2546,12 @@ pub struct StackConfig {
     /// Replaces a flock selection (see validate()).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub read_router: Option<RouteConfig>,
+    /// The training objective ([`Objective`]): absent from configurations
+    /// saved before the control existed, which train and evaluate under the
+    /// historical cross-entropy exactly as before; only a margin objective
+    /// writes the field.
+    #[serde(default, skip_serializing_if = "Objective::is_ce")]
+    pub objective: Objective,
 }
 
 impl StackConfig {
@@ -2531,6 +2573,7 @@ impl StackConfig {
             select: None,
             pointer: None,
             read_router: None,
+            objective: Objective::Ce,
         }
     }
 
@@ -2570,6 +2613,7 @@ impl StackConfig {
             select: None,
             pointer: None,
             read_router: None,
+            objective: Objective::Ce,
         };
         config.validate()?;
         Ok(config)
@@ -2678,6 +2722,20 @@ impl StackConfig {
             return Err(invalid(
                 "rotation_group=u1 restricts the learned transport, so it needs rotation=true",
             ));
+        }
+        match self.objective {
+            Objective::Ce => {}
+            Objective::MarginHinge { rivals } => {
+                if !(1..=64).contains(&rivals) {
+                    return Err(invalid("a margin objective's rivals are 1 to 64"));
+                }
+                if self.pointer.is_some() {
+                    return Err(invalid(
+                        "a margin objective has no pointer-mixture form yet (the pointer's \
+                         own objective is the next rung): pointer=none with a margin objective",
+                    ));
+                }
+            }
         }
         Ok(())
     }
@@ -10768,10 +10826,17 @@ impl StackModel {
             return self.pointer_loss(ids, targets, None, batch, time);
         }
         let logits = self.forward(ids, batch, time)?;
-        Ok(logits.apply_op1(CrossEntropy {
-            targets: targets.to_vec(),
-            weights: None,
-        })?)
+        Ok(match self.config.objective {
+            Objective::Ce => logits.apply_op1(CrossEntropy {
+                targets: targets.to_vec(),
+                weights: None,
+            })?,
+            Objective::MarginHinge { rivals } => logits.apply_op1(MarginRank {
+                targets: targets.to_vec(),
+                weights: None,
+                rivals,
+            })?,
+        })
     }
 
     /// Weighted mean next-token negative log-likelihood (nats):
@@ -10806,10 +10871,17 @@ impl StackModel {
             return self.pointer_loss(ids, targets, Some(weights), batch, time);
         }
         let logits = self.forward(ids, batch, time)?;
-        Ok(logits.apply_op1(CrossEntropy {
-            targets: targets.to_vec(),
-            weights: Some(weights.to_vec()),
-        })?)
+        Ok(match self.config.objective {
+            Objective::Ce => logits.apply_op1(CrossEntropy {
+                targets: targets.to_vec(),
+                weights: Some(weights.to_vec()),
+            })?,
+            Objective::MarginHinge { rivals } => logits.apply_op1(MarginRank {
+                targets: targets.to_vec(),
+                weights: Some(weights.to_vec()),
+                rivals,
+            })?,
+        })
     }
 
     /// [`Self::weighted_loss`] of a pointer model with copy-gate supervision
@@ -17976,6 +18048,180 @@ impl candle_core::CustomOp1 for CrossEntropy {
     }
 }
 
+/// One row's margin loss and violated-pair count: the mean of
+/// `relu(1 − z_target + z)` over the `rivals` strongest non-target logits.
+fn margin_row(row: &[f32], target: usize, rivals: usize) -> (f64, usize) {
+    let z_t = f64::from(row[target]);
+    let mut gaps: Vec<f64> = row
+        .iter()
+        .enumerate()
+        .filter(|&(index, _)| index != target)
+        .map(|(_, &z)| 1.0 + f64::from(z) - z_t)
+        .collect();
+    gaps.sort_by(|a, b| b.total_cmp(a));
+    let take = rivals.min(gaps.len());
+    let mut total = 0.0;
+    let mut violated = 0;
+    for &gap in &gaps[..take] {
+        if gap > 0.0 {
+            violated += 1;
+            total += gap;
+        }
+    }
+    (total / take as f64, violated)
+}
+
+/// One row's margin gradient at `scale`: `−violated/take` at the target and
+/// `+1/take` at each violated rival (`take` is the loss's own average). No
+/// exponential of any kind enters the forward or the gradient.
+fn margin_row_grad(row: &[f32], target: usize, rivals: usize, scale: f64, out: &mut [f32]) {
+    let z_t = f64::from(row[target]);
+    let mut order: Vec<usize> = (0..row.len()).filter(|&index| index != target).collect();
+    order.sort_by(|&a, &b| f64::from(row[b]).total_cmp(&f64::from(row[a])));
+    let take = rivals.min(order.len());
+    let share = scale / take as f64;
+    let mut violated = 0usize;
+    for &index in &order[..take] {
+        if 1.0 + f64::from(row[index]) - z_t > 0.0 {
+            out[index] += share as f32;
+            violated += 1;
+        }
+    }
+    out[target] -= (violated as f64 * share) as f32;
+}
+
+/// Rank-margin loss of `[rows, vocabulary]` logits (D23's first softmax-free
+/// objective; [`Objective`]): no normalized exponential enters the forward or
+/// the gradient. The weighted-mean semantics are [`CrossEntropy`]'s exactly.
+/// CUDA carries the f32 forward and backward (one warp per row, ties to the
+/// lower index like the CPU stable sort); Metal is refused for now.
+struct MarginRank {
+    targets: Vec<u32>,
+    /// Per-row weights of a weighted mean; `None` weighs every row equally.
+    weights: Option<Vec<f32>>,
+    rivals: usize,
+}
+
+impl MarginRank {
+    /// The op's refusal on devices whose kernel has not landed: the CUDA
+    /// kernel comes with the rung's pod verification (a documented gap, on
+    /// the pattern of the export refusals).
+    fn no_device_kernel<T>(device: &str) -> candle_core::Result<T> {
+        candle_core::bail!(
+            "the margin objective has no {device} kernel yet (lands with the rung's pod verification)"
+        )
+    }
+}
+
+impl candle_core::CustomOp1 for MarginRank {
+    fn name(&self) -> &'static str {
+        "geometric-stack-margin-rank"
+    }
+
+    fn cpu_fwd(
+        &self,
+        storage: &CpuStorage,
+        layout: &Layout,
+    ) -> candle_core::Result<(CpuStorage, Shape)> {
+        let (rows, vocabulary) = layout.shape().dims2()?;
+        let logits = contiguous(storage, layout)?;
+        let mean = match &self.weights {
+            None => {
+                let total: f64 = logits
+                    .par_chunks(vocabulary)
+                    .zip(self.targets.par_iter())
+                    .map(|(row, &target)| margin_row(row, target as usize, self.rivals).0)
+                    .sum();
+                total / rows as f64
+            }
+            Some(weights) => {
+                let total: f64 = logits
+                    .par_chunks(vocabulary)
+                    .zip(self.targets.par_iter())
+                    .zip(weights.par_iter())
+                    .filter(|item| *item.1 != 0.0)
+                    .map(|((row, &target), &weight)| {
+                        f64::from(weight) * margin_row(row, target as usize, self.rivals).0
+                    })
+                    .sum();
+                total / weights.iter().map(|&w| f64::from(w)).sum::<f64>()
+            }
+        };
+        Ok((CpuStorage::F32(vec![mean as f32]), Shape::from(())))
+    }
+
+    #[cfg(feature = "metal")]
+    fn metal_fwd(
+        &self,
+        _storage: &MetalStorage,
+        _layout: &Layout,
+    ) -> candle_core::Result<(MetalStorage, Shape)> {
+        Self::no_device_kernel("Metal")
+    }
+
+    #[cfg(feature = "cuda")]
+    fn cuda_fwd(
+        &self,
+        storage: &CudaStorage,
+        layout: &Layout,
+    ) -> candle_core::Result<(CudaStorage, Shape)> {
+        cuda_ops::margin_rank_fwd(self, storage, layout)
+    }
+
+    fn bwd(
+        &self,
+        logits: &Tensor,
+        _loss: &Tensor,
+        grad: &Tensor,
+    ) -> candle_core::Result<Option<Tensor>> {
+        let (rows, vocabulary) = logits.dims2()?;
+        #[cfg(feature = "cuda")]
+        if let Device::Cuda(device) = logits.device() {
+            return Ok(Some(cuda_ops::margin_rank_bwd(self, device, logits, grad)?));
+        }
+        #[cfg(feature = "metal")]
+        if logits.device().is_metal() {
+            return Self::no_device_kernel("Metal");
+        }
+        let values = logits.flatten_all()?.to_vec1::<f32>()?;
+        let mut out = vec![0f32; values.len()];
+        let grad = f64::from(grad.to_scalar::<f32>()?);
+        match &self.weights {
+            None => {
+                let scale = grad / rows as f64;
+                out.par_chunks_mut(vocabulary)
+                    .zip(values.par_chunks(vocabulary))
+                    .zip(self.targets.par_iter())
+                    .for_each(|((out, row), &target)| {
+                        margin_row_grad(row, target as usize, self.rivals, scale, out)
+                    });
+            }
+            Some(weights) => {
+                let total: f64 = weights.iter().map(|&w| f64::from(w)).sum();
+                out.par_chunks_mut(vocabulary)
+                    .zip(values.par_chunks(vocabulary))
+                    .zip(self.targets.par_iter())
+                    .zip(weights.par_iter())
+                    .filter(|item| *item.1 != 0.0)
+                    .for_each(|(((out, row), &target), &weight)| {
+                        margin_row_grad(
+                            row,
+                            target as usize,
+                            self.rivals,
+                            grad * f64::from(weight) / total,
+                            out,
+                        )
+                    });
+            }
+        }
+        Ok(Some(Tensor::from_vec(
+            out,
+            logits.shape(),
+            logits.device(),
+        )?))
+    }
+}
+
 /// Mean (or weighted mean) cross-entropy of `[rows, classes]` logits against
 /// `targets`, with the fused forward and backward of
 /// [`StackModel::weighted_loss`]: for callers that adjust the logits first, or
@@ -19577,6 +19823,7 @@ mod tests {
             select: None,
             pointer: None,
             read_router: None,
+            objective: Objective::Ce,
         };
         let model = StackModel::new(config, &Device::Cpu)?;
         let ids = vec![1, 2, 3, 4];
@@ -19623,6 +19870,7 @@ mod tests {
             select: None,
             pointer: None,
             read_router: None,
+            objective: Objective::Ce,
         };
         let model = StackModel::new(config, &Device::Cpu)?;
         let ids = vec![1, 2];
@@ -20857,7 +21105,136 @@ mod tests {
             select: None,
             pointer: None,
             read_router: None,
+            objective: Objective::Ce,
         }
+    }
+
+    #[test]
+    fn the_ce_objective_stays_bit_exact_through_the_dispatch() -> Result<()> {
+        let model = StackModel::new(
+            tiny(StackArch::Geometric, "rra", ReadScore::Lorentz, true),
+            &cpu(),
+        )?;
+        let ids: Vec<u32> = (0..16).map(|i| (i * 7 % 37) as u32).collect();
+        let targets: Vec<u32> = ids.iter().map(|&i| (i + 1) % 37).collect();
+        let weights = [
+            1.0f32, 0.0, 2.0, 0.5, 1.5, 0.0, 1.0, 3.0, 1.0, 0.0, 2.0, 0.5, 1.5, 0.0, 1.0, 3.0,
+        ];
+        let weighted = model.weighted_loss(&ids, &targets, &weights, 2, 8)?;
+        let plain = model.loss(&ids, &targets, 2, 8)?;
+        // Captured on the pre-dispatch code path (tmp_ce_baseline_capture).
+        assert_eq!(
+            weighted.to_scalar::<f32>()?.to_bits(),
+            3.6685734f32.to_bits()
+        );
+        assert_eq!(plain.to_scalar::<f32>()?.to_bits(), 3.6366668f32.to_bits());
+        Ok(())
+    }
+
+    #[test]
+    fn the_margin_row_matches_a_hand_computation() {
+        // Non-target gaps `1 + z − z_t` over [1.5, 0.1, 2.5] descending.
+        let row = [0.5f32, 1.0, -0.4, 2.0];
+        let (hard1, violated1) = margin_row(&row, 0, 1);
+        assert!((hard1 - 2.5).abs() < 1e-12 && violated1 == 1);
+        let (hard2, violated2) = margin_row(&row, 0, 2);
+        assert!((hard2 - 2.0).abs() < 1e-12 && violated2 == 2);
+        // All three violated gaps averaged over the three rivals.
+        let (hard3, violated3) = margin_row(&row, 0, 8);
+        assert!((hard3 - (2.5 + 1.5 + 0.1) / 3.0).abs() < 1e-6 && violated3 == 3);
+        // A row whose target wins by the margin has no loss and no violation.
+        let win = [3.0f32, 0.0, 0.5, -1.0];
+        let (zero, vzero) = margin_row(&win, 0, 3);
+        assert_eq!(zero, 0.0);
+        assert_eq!(vzero, 0);
+    }
+
+    #[test]
+    fn the_margin_row_grad_matches_the_finite_difference() {
+        // Off every hinge kink, so the finite difference is unambiguous.
+        let row = [0.5f32, 1.0, -0.4, 2.0];
+        for rivals in [1usize, 2, 3] {
+            let mut grad = vec![0.0f32; row.len()];
+            margin_row_grad(&row, 0, rivals, 1.0, &mut grad);
+            let step = 1e-3f32;
+            for (i, &g) in grad.iter().enumerate() {
+                if g == 0.0 {
+                    continue;
+                }
+                let mut up = row;
+                up[i] += step;
+                let mut down = row;
+                down[i] -= step;
+                let numeric = (margin_row(&up, 0, rivals).0 - margin_row(&down, 0, rivals).0)
+                    / (2.0 * f64::from(step));
+                assert!(
+                    (f64::from(g) - numeric).abs() < 0.02,
+                    "rivals={rivals} slot {i}: analytic {g} vs numeric {numeric}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn the_objective_dispatches_and_fewer_rivals_sharpen() -> Result<()> {
+        let mut config = tiny(StackArch::Geometric, "rra", ReadScore::Lorentz, true);
+        let ids: Vec<u32> = (0..16).map(|i| (i * 7 % 37) as u32).collect();
+        let targets: Vec<u32> = ids.iter().map(|&i| (i + 1) % 37).collect();
+        config.objective = Objective::MarginHinge { rivals: 1 };
+        let hinge = StackModel::new(config.clone(), &cpu())?.loss(&ids, &targets, 2, 8)?;
+        config.objective = Objective::MarginHinge { rivals: 8 };
+        let hinge8 = StackModel::new(config, &cpu())?.loss(&ids, &targets, 2, 8)?;
+        let (hinge, hinge8) = (hinge.to_scalar::<f32>()?, hinge8.to_scalar::<f32>()?);
+        assert!(hinge.is_finite() && hinge >= 0.0, "hinge {hinge}");
+        assert!(hinge8.is_finite() && hinge8 >= 0.0, "hinge8 {hinge8}");
+        assert!(
+            hinge >= hinge8,
+            "the mean over fewer top rivals is the sharper loss: {hinge} vs {hinge8}"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn the_objective_round_trips_and_validates() -> Result<()> {
+        for objective in [Objective::Ce, Objective::MarginHinge { rivals: 8 }] {
+            let text = serde_json::to_string(&objective)?;
+            let back: Objective = serde_json::from_str(&text)?;
+            assert_eq!(objective, back, "{text}");
+        }
+        let mut config = tiny(StackArch::Geometric, "rra", ReadScore::Lorentz, true);
+        config.objective = Objective::MarginHinge { rivals: 0 };
+        assert!(config.validate().is_err(), "rivals 0 is refused");
+        config.objective = Objective::MarginHinge { rivals: 65 };
+        assert!(config.validate().is_err(), "rivals 65 is refused");
+        config.objective = Objective::MarginHinge { rivals: 8 };
+        config.pointer = Some(PointerConfig::new(4));
+        assert!(
+            config.validate().is_err(),
+            "a margin objective refuses a pointer head for now"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn a_non_pointer_models_next_scores_are_the_raw_last_logits() -> Result<()> {
+        // D23 serving compliance for the margin rung's scoring path: a
+        // non-pointer model's `next_scores` returns the last position's logits
+        // unchanged — no softmax is computed anywhere in the serving read-out.
+        let model = StackModel::new(
+            tiny(StackArch::Geometric, "rra", ReadScore::Lorentz, true),
+            &cpu(),
+        )?;
+        let ids: Vec<u32> = (0..16).map(|i| (i * 7 % 37) as u32).collect();
+        let next = model.next_scores(&ids[..=11])?;
+        let last = model
+            .forward(&ids[..=11], 1, 12)?
+            .get(11)?
+            .to_vec1::<f32>()?;
+        assert_eq!(next.len(), last.len());
+        for (a, b) in next.iter().zip(&last) {
+            assert_eq!(a.to_bits(), b.to_bits());
+        }
+        Ok(())
     }
 
     #[test]
@@ -27295,6 +27672,7 @@ mod tests {
             select: None,
             pointer: None,
             read_router: None,
+            objective: Objective::Ce,
         }
     }
 

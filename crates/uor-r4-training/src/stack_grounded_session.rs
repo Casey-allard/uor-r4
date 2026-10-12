@@ -1654,6 +1654,7 @@ mod tests {
                 select: None,
                 pointer: Some(PointerConfig::new(4)),
                 read_router: None,
+                objective: crate::geometric_stack::Objective::Ce,
             },
             &Device::Cpu,
         )

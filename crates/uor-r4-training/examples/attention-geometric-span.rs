@@ -384,6 +384,7 @@ fn run(
                 pointer: None,
 
                 read_router: None,
+                objective: uor_r4_training::geometric_stack::Objective::Ce,
             };
             let mut model = StackModel::new(config, &Device::Cpu)?;
             model.set_read_identity_latch(mode)?;

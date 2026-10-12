@@ -2133,6 +2133,7 @@ mod tests {
             select: None,
             pointer: None,
             read_router: None,
+            objective: crate::geometric_stack::Objective::Ce,
         };
         let tracked = TrackedStack::new(config, None, &task, 5, &device)?;
         let ids: Vec<u32> = (0..16).map(|i| (i * 257 % 4099) as u32).collect();
@@ -2233,6 +2234,7 @@ mod tests {
             select: None,
             pointer: None,
             read_router: None,
+            objective: crate::geometric_stack::Objective::Ce,
         };
         let tracked = TrackedStack::new(config, None, &task, 7, &device)?.with_context_lanes(
             LaneKind::ReflectionPair,

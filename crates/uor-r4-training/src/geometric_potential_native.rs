@@ -1179,6 +1179,7 @@ mod tests {
             select: None,
             pointer: None,
             read_router: None,
+            objective: crate::geometric_stack::Objective::Ce,
         };
         let mut model = StackModel::new(config, &Device::Cpu)?;
         model.set_read_identity_latch(ReadIdentityLatch::Held)?;

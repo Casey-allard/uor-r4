@@ -463,6 +463,113 @@ extern "C" __global__ void cross_entropy_grad_act(
 }
 
 // ---------------------------------------------------------------------------
+// Rank-margin (the D23 softmax-free objective): row losses and gradients. One
+// warp per row, at most 8 rivals, logits compared in f32 and losses
+// accumulated in f64 like the CPU's `margin_row`. Ties resolve to the lower
+// index, the CPU stable-sort's order. No exponential of any kind anywhere.
+__device__ __forceinline__ void margin_select_impl(
+    const float* row, uint target, uint vocab, uint k,
+    float* gaps, uint* indices, float* shared_gaps, uint* shared_indices
+) {
+    // Each lane keeps its strided scan's top-k (descending, ties to the lower index).
+    float local_gap[8];
+    uint local_idx[8];
+    uint n = 0;
+    for (uint i = threadIdx.x; i < vocab; i += 32) {
+        if (i == target) continue;
+        float gap = row[i];
+        if (n < k) {
+            uint j = n++;
+            while (j > 0 && (local_gap[j-1] < gap || (local_gap[j-1] == gap && local_idx[j-1] > i))) {
+                local_gap[j] = local_gap[j-1]; local_idx[j] = local_idx[j-1]; j--;
+            }
+            local_gap[j] = gap; local_idx[j] = i;
+        } else if (gap > local_gap[k-1] || (gap == local_gap[k-1] && i < local_idx[k-1])) {
+            uint j = k - 1;
+            while (j > 0 && (local_gap[j-1] < gap || (local_gap[j-1] == gap && local_idx[j-1] > i))) {
+                local_gap[j] = local_gap[j-1]; local_idx[j] = local_idx[j-1]; j--;
+            }
+            local_gap[j] = gap; local_idx[j] = i;
+        }
+    }
+    uint base = (threadIdx.x & 31) * 8;
+    #pragma unroll
+    for (uint j = 0; j < 8; j++) {
+        shared_gaps[base + j] = (j < n) ? local_gap[j] : -3.402823466e38f;
+        shared_indices[base + j] = (j < n) ? local_idx[j] : 0u;
+    }
+    __syncwarp();
+    if ((threadIdx.x & 31) == 0) {
+        // Merge the warp's candidates: k selection rounds, ties to the lower index.
+        for (uint s = 0; s < k; s++) {
+            float best = -3.402823466e38f;
+            uint bi = 0xffffffffu;
+            for (uint j = 0; j < 256; j++) {
+                if (shared_gaps[j] > best ||
+                    (bi != 0xffffffffu && shared_gaps[j] == best && shared_indices[j] < shared_indices[bi])) {
+                    best = shared_gaps[j]; bi = j;
+                }
+            }
+            if (bi == 0xffffffffu) { gaps[s] = -3.402823466e38f; indices[s] = target; continue; }
+            gaps[s] = best; indices[s] = shared_indices[bi];
+            shared_gaps[bi] = -3.402823466e38f;
+        }
+    }
+    __syncwarp();
+}
+
+__device__ __forceinline__ void margin_rank_rows_impl(
+    const float* logits, const uint* targets, double* loss, uint vocab, uint rivals
+) {
+    __shared__ float shared_gaps[256];
+    __shared__ uint shared_indices[256];
+    u64 offset = (u64)blockIdx.x * vocab;
+    float gaps[8]; uint indices[8];
+    margin_select_impl(logits + offset, targets[blockIdx.x], vocab, rivals, gaps, indices, shared_gaps, shared_indices);
+    if (threadIdx.x == 0) {
+        float zt = logits[offset + targets[blockIdx.x]];
+        double total = 0.0;
+        uint take = rivals < vocab - 1 ? rivals : vocab - 1;
+        for (uint s = 0; s < rivals; s++) {
+            double gap = 1.0 + (double)gaps[s] - (double)zt;
+            if (gap > 0.0) total += gap;
+        }
+        loss[blockIdx.x] = total / (double)take;
+    }
+}
+
+extern "C" __global__ void margin_rank_rows(
+    const float* logits, const uint* targets, double* loss, uint vocab, uint rivals
+) {
+    margin_rank_rows_impl(logits, targets, loss, vocab, rivals);
+}
+
+extern "C" __global__ void margin_rank_grad(
+    const float* logits, const uint* targets, const double* scale,
+    float* grad, uint vocab, uint rivals
+) {
+    __shared__ float shared_gaps[256];
+    __shared__ uint shared_indices[256];
+    u64 offset = (u64)blockIdx.x * vocab;
+    float gaps[8]; uint indices[8];
+    margin_select_impl(logits + offset, targets[blockIdx.x], vocab, rivals, gaps, indices, shared_gaps, shared_indices);
+    uint target = targets[blockIdx.x];
+    float zt = logits[offset + target];
+    uint take = rivals < vocab - 1 ? rivals : vocab - 1;
+    if (threadIdx.x == 0) {
+        uint violated = 0;
+        for (uint s = 0; s < rivals; s++) {
+            double gap = 1.0 + (double)gaps[s] - (double)zt;
+            if (gap > 0.0) {
+                grad[offset + indices[s]] = (float)(scale[blockIdx.x] / (double)take);
+                violated++;
+            }
+        }
+        grad[offset + target] = (float)(-((double)violated) * scale[blockIdx.x] / (double)take);
+    }
+}
+
+// ---------------------------------------------------------------------------
 // 6. Recurrence core. rotation: 0 none, 1 quaternion (S3), 2 U(1).
 // ---------------------------------------------------------------------------
 __device__ __forceinline__ float gelu_value(float x) {

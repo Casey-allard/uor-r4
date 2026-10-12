@@ -2260,6 +2260,7 @@ fn bf16_model_config(seed: u64) -> uor_r4_training::geometric_stack::StackConfig
         select: None,
         pointer: None,
         read_router: None,
+        objective: uor_r4_training::geometric_stack::Objective::Ce,
     }
 }
 
@@ -2439,6 +2440,7 @@ fn test_step7a_read_lineage_parity() -> uor_r4_training::Result<()> {
         select: None,
         pointer: None,
         read_router: None,
+        objective: uor_r4_training::geometric_stack::Objective::Ce,
     };
     let (batch, time) = (2usize, 48usize);
     let ids: Vec<u32> = (0..batch * time)
@@ -3116,5 +3118,74 @@ fn test_chunked_recurrence_parity() -> uor_r4_training::Result<()> {
     set_cuda_recurrence_kernels(CudaRecurrenceKernels::Split);
     set_recurrence_tile(uor_r4_training::geometric_stack::RECURRENCE_TILE);
     assert_eq!(cuda_recurrence_kernels(), CudaRecurrenceKernels::Split);
+    Ok(())
+}
+
+/// The rank-margin objective (D23's softmax-free loss): the same model saved
+/// on the CPU gives the same weighted margin loss and the same gradients on
+/// CUDA at one and eight rivals, ties to the CPU's stable-sort order.
+#[cfg(feature = "cuda")]
+#[test]
+fn test_margin_objective_parity() -> uor_r4_training::Result<()> {
+    use uor_r4_training::geometric_stack::{Objective, StackModel};
+
+    let cuda = match candle_core::Device::new_cuda(0) {
+        Ok(dev) => dev,
+        Err(e) => return no_device(e),
+    };
+    let cpu = candle_core::Device::Cpu;
+    let (batch, time) = (2usize, 48usize);
+    let ids: Vec<u32> = (0..batch * time)
+        .map(|i| ((i * 31 + 7) % 97) as u32)
+        .collect();
+    let targets: Vec<u32> = (0..batch * time)
+        .map(|i| ((i * 17 + 3) % 97) as u32)
+        .collect();
+    let weights: Vec<f32> = (0..batch * time)
+        .map(|i| {
+            if i % 5 == 0 {
+                0.0
+            } else {
+                0.5 + (i % 7) as f32 * 0.25
+            }
+        })
+        .collect();
+    let dir = std::env::temp_dir().join(format!("cuda-margin-parity-{}", std::process::id()));
+    for rivals in [1usize, 8] {
+        let mut config = crate::bf16_model_config(3);
+        config.vocab_size = 97;
+        config.context = 48;
+        config.pattern = "rrrr".into();
+        config.read_router = None;
+        config.objective = Objective::MarginHinge { rivals };
+        StackModel::new(config.clone(), &cpu)?.save(&dir)?;
+        let mut runs = Vec::new();
+        for device in [&cpu, &cuda] {
+            let model = StackModel::load(&dir, device)?;
+            assert_eq!(model.config.objective, Objective::MarginHinge { rivals });
+            let loss = model.weighted_loss(&ids, &targets, &weights, batch, time)?;
+            let grads = loss.backward()?;
+            let mut variable_grads = Vec::new();
+            for (name, var) in model.variables() {
+                if name.starts_with("embedding.") || name.starts_with("head.") {
+                    let grad = grads.get(var.as_tensor()).expect("margin gradient");
+                    variable_grads.push((name.clone(), values(grad)?));
+                }
+            }
+            runs.push((values(&loss)?, variable_grads));
+        }
+        compare(
+            &runs[0].0,
+            &runs[1].0,
+            1e-4,
+            &format!("margin({rivals}) loss"),
+        );
+        assert_eq!(runs[0].1.len(), runs[1].1.len());
+        for ((n0, g0), (n1, g1)) in runs[0].1.iter().zip(&runs[1].1) {
+            assert_eq!(n0, n1);
+            compare(g0, g1, 1e-3, &format!("margin({rivals}) grad {n0}"));
+        }
+    }
+    std::fs::remove_dir_all(&dir)?;
     Ok(())
 }

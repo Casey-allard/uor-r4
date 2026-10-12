@@ -250,6 +250,7 @@ fn run(args: &Args, out: &Path) -> Result<()> {
         select: None,
         pointer: None,
         read_router: None,
+        objective: uor_r4_training::geometric_stack::Objective::Ce,
     };
     template.validate()?;
     let train_template = AermConfig {

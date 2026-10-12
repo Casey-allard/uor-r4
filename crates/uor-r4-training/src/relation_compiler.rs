@@ -2985,6 +2985,7 @@ mod tests {
                 select: None,
                 pointer: None,
                 read_router: None,
+                objective: crate::geometric_stack::Objective::Ce,
             },
             &candle_core::Device::Cpu,
         )?;

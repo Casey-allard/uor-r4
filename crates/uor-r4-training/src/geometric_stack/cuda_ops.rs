@@ -547,6 +547,131 @@ pub(super) fn cross_entropy_bwd(
 }
 
 // ---------------------------------------------------------------------------
+// Rank-margin (the D23 softmax-free objective; [`crate::geometric_stack::MarginRank`]).
+
+/// Row rank-margin losses (f64) of `[rows, vocabulary]` logits.
+fn margin_rank_rows(
+    device: &CudaDevice,
+    logits: CudaView<'_, f32>,
+    targets: &CudaSlice<u32>,
+    rows: usize,
+    vocabulary: usize,
+    rivals: usize,
+) -> CResult<CudaSlice<f64>> {
+    let loss = zeros::<f64>(device, rows)?;
+    launch_groups(
+        device,
+        "margin_rank_rows",
+        (rows, 1, 1),
+        (32, 1, 1),
+        &[
+            Arg::F(logits),
+            Arg::u(targets),
+            Arg::d(&loss),
+            Arg::U32(u32_of(vocabulary, "vocabulary")?),
+            Arg::U32(u32_of(rivals, "rivals")?),
+        ],
+    )?;
+    Ok(loss)
+}
+
+fn check_margin(op: &MarginRank, rows: usize, vocabulary: usize) -> CResult<()> {
+    if rows == 0 || vocabulary < 2 {
+        candle_core::bail!("MarginRank requires positive rows and a vocabulary of at least 2");
+    }
+    if op.targets.len() != rows || op.weights.as_ref().is_some_and(|w| w.len() != rows) {
+        candle_core::bail!("MarginRank needs one target and one weight per row");
+    }
+    if op.targets.iter().any(|&t| t as usize >= vocabulary) {
+        candle_core::bail!("MarginRank target outside the vocabulary");
+    }
+    if op.rivals == 0 || op.rivals > 8 {
+        candle_core::bail!("MarginRank rivals are 1 to 8 on the CUDA kernel");
+    }
+    Ok(())
+}
+
+pub(super) fn margin_rank_fwd(op: &MarginRank, s: &CudaStorage, l: &Layout) -> Forward {
+    if s.dtype() != DType::F32 {
+        candle_core::bail!("the margin objective's CUDA kernel is f32 for now");
+    }
+    let (rows, vocabulary) = l.shape().dims2()?;
+    check_margin(op, rows, vocabulary)?;
+    let Some(logits) = input(s, l)? else {
+        return via_host1(op, s, l);
+    };
+    let device = &s.device;
+    let targets = device.clone_htod(&op.targets)?;
+    let loss = margin_rank_rows(device, logits, &targets, rows, vocabulary, op.rivals)?;
+    let row_losses = device.clone_dtoh(&loss)?;
+    let mean = match &op.weights {
+        None => row_losses.iter().sum::<f64>() / rows as f64,
+        Some(weights) => {
+            let total: f64 = row_losses
+                .iter()
+                .zip(weights)
+                .filter(|(_, &w)| w != 0.0)
+                .map(|(&l, &w)| f64::from(w) * l)
+                .sum();
+            total / weights.iter().map(|&w| f64::from(w)).sum::<f64>()
+        }
+    };
+    let out = device.clone_htod(&vec![mean as f32])?;
+    Ok((storage(out, device), Shape::from(())))
+}
+
+pub(super) fn margin_rank_bwd(
+    op: &MarginRank,
+    device: &CudaDevice,
+    logits: &Tensor,
+    grad: &Tensor,
+) -> CResult<Tensor> {
+    if logits.dtype() != DType::F32 {
+        candle_core::bail!("the margin objective's CUDA kernel is f32 for now");
+    }
+    let (rows, vocabulary) = logits.dims2()?;
+    check_margin(op, rows, vocabulary)?;
+    let grad = f64::from(grad.to_scalar::<f32>()?);
+    let scales: Vec<f64> = match &op.weights {
+        None => vec![grad / rows as f64; rows],
+        Some(weights) => {
+            let total: f64 = weights.iter().map(|&w| f64::from(w)).sum();
+            weights
+                .iter()
+                .map(|&w| {
+                    if w == 0.0 {
+                        0.0
+                    } else {
+                        grad * f64::from(w) / total
+                    }
+                })
+                .collect()
+        }
+    };
+    let l = ready(logits)?;
+    let (ls, ll) = l.storage_and_layout();
+    let lv = view(&ls, ll)?;
+    let targets = device.clone_htod(&op.targets)?;
+    let scale = device.clone_htod(&scales)?;
+    let out = zeros::<f32>(device, rows * vocabulary)?;
+    launch_groups(
+        device,
+        "margin_rank_grad",
+        (rows, 1, 1),
+        (32, 1, 1),
+        &[
+            Arg::F(lv),
+            Arg::u(&targets),
+            Arg::d(&scale),
+            Arg::f(&out),
+            Arg::U32(u32_of(vocabulary, "vocabulary")?),
+            Arg::U32(u32_of(op.rivals, "rivals")?),
+        ],
+    )?;
+    Ok(tensor(out, device, logits.shape()))
+}
+
+// ---------------------------------------------------------------------------
 // The recurrence core.
 
 impl RecurrenceCore {

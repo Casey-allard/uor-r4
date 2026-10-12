@@ -277,6 +277,15 @@
 //! clears it); the saved `config.json` records it, every load restores it, and
 //! a resume keeps the checkpoint's (a different explicit value is refused).
 //! The report records the requested value (`read_weighting`, null when absent).
+//! `objective=ce|hinge|hinge8` (`train` and `dialogue-train`) sets the training
+//! objective (`StackConfig::objective`, D23): `ce` is the historical
+//! cross-entropy over softmax logits (existing artifacts only); `hinge` and
+//! `hinge8` are the softmax-free rank margins `mean relu(1 − z_target + z_k)`
+//! over the strongest 1 and 8 non-target logits, with no exponential of any
+//! kind anywhere in the forward or the gradient. A margin objective refuses a
+//! pointer (`pointer=` other than `none`) and carries a CUDA f32 kernel
+//! (Metal is refused for now). The saved `config.json` records the objective,
+//! every load restores it, and the report's config carries it.
 //! `quaternion_weights=none|all` (`train`) makes every learned projection map
 //! of a geometric stack quaternion-valued (`StackModel::set_quaternion_weights`):
 //! each 4x4 block of `rec.in/gate/out`, `read.query/key/value/out` and
@@ -348,9 +357,10 @@ use uor_r4_training::flock::FlockSelect;
 use uor_r4_training::geometric_stack::{
     average_replica_gradients, logits_cross_entropy, parse_flock_select, parse_pointer_route,
     parse_pointer_select, quaternion_served_refusal, ActivationSnap, D11Interim, MapCodec,
-    PointerConfig, PointerIdentity, PointerSelect, Precision, PrimeRoute, QuaternionSnap,
-    QuaternionWeights, ReadLineage, ReadScore, ReadWeighting, RotationGroup, ServedStatistics,
-    StackAdamW, StackArch, StackConfig, StackModel, TransportSnap, TransportUsage,
+    Objective, PointerConfig, PointerIdentity, PointerSelect, Precision, PrimeRoute,
+    QuaternionSnap, QuaternionWeights, ReadLineage, ReadScore, ReadWeighting, RotationGroup,
+    ServedStatistics, StackAdamW, StackArch, StackConfig, StackModel, TransportSnap,
+    TransportUsage,
 };
 use uor_r4_training::lut_export::export_llama;
 use uor_r4_training::stack_address::{RouteConfig, RouteNull};
@@ -1598,6 +1608,22 @@ fn stack_config(args: &Args, vocab: Option<usize>) -> Result<StackConfig> {
         config.memory = Some(memory);
         config.validate()?;
     }
+    // The training objective (D23): `ce` is the historical cross-entropy over
+    // softmax logits (existing artifacts only); `hinge`/`hinge8` are the
+    // softmax-free rank margins at 1 and 8 rivals, `softmargin` the
+    // softplus-margin carve-out check. A margin objective refuses a pointer
+    // (its own objective is the next rung).
+    config.objective = match args.optional("objective").as_deref() {
+        None | Some("ce") => Objective::Ce,
+        Some("hinge") => Objective::MarginHinge { rivals: 1 },
+        Some("hinge8") => Objective::MarginHinge { rivals: 8 },
+        Some(other) => {
+            return Err(invalid(format!(
+                "invalid objective={other} (ce, hinge or hinge8)"
+            )))
+        }
+    };
+    config.validate()?;
     // The A1 read mechanisms, on any fresh shape (`dialogue-train` accepts
     // all of them, `train` only `select=`; the other modes never see them).
     if let Some(select) = select_arg(args)? {
@@ -5051,6 +5077,7 @@ fn dialogue_train_mode(arguments: &[String]) -> Result<()> {
             "key_shift",
             "read_weighting",
             "read_lineage",
+            "objective",
             "select",
             "pointer",
             "pointer_score",
@@ -6737,6 +6764,7 @@ fn main() -> Result<()> {
                     "key_shift",
                     "select",
                     "read_weighting",
+                    "objective",
                     "quaternion_weights",
                     "quaternion_snap",
                     "activation_snap",

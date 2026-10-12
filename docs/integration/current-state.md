@@ -1,3 +1,38 @@
+## 2026-10-12 — The rank-margin objective: D23's first softmax-free training loss, with its CUDA kernel (kimi, #2029)
+
+The [record](../labs/margin-objective-2026-10-12/README.md) delivers the census's largest gap: a training
+objective with no softmax anywhere. `Objective::MarginHinge` is a rank hinge `mean_k relu(1 − z_t + z_k)`
+over each row's strongest rivals — no exponential of any kind in the forward or the gradient — with CPU
+and CUDA f32 forward/backward kernels (one warp per row, ties to the CPU's stable-sort order), a
+`StackConfig::objective` field that leaves every existing config byte-identical, and the trainer flag
+`objective=hinge|hinge8`. Nine focused tests (hand computation, finite-difference gradient, Ce
+bit-exactness, refusals, a serving-compliance witness that a non-pointer model's `next_scores` are the raw
+last logits); the full lib suite **938 passed / 0 failed**. The pointer's own objective, the rank read's
+CUDA kernel and the score-gradient stop are rung 0b's named work. The revised
+[learning-law design](../labs/d23-learning-law-design-2026-10-12/README.md) carries the replacement program
+and the owner-supplied SpiralCore/murmurations review.
+
+Line: evaluation integrity · count 1/3 (preparation PR, names its run) · headline: unchanged (M1 v5 memory
+20/40, reply 37/232).
+
+**Next:** TEST FITNESS on rung 0 (#2029 comment 6124773996 as amended), then the M1/M8 arms on one pod.
+
+## 2026-10-12 — D23 replacement learning law: the geometric replacement program (kimi, #2029)
+
+The revised [design](../labs/d23-learning-law-design-2026-10-12/README.md) — under the owner's no-softplus /
+no-softmax-shaped rule and the geometric-replacements-on-GPU direction — replaces softmax's three jobs with
+geometric processes: a **rank-margin objective** (hard hinge, no exponential at all — implemented, this
+PR's sibling), the **rank-table read** with a score-gradient stop (its CUDA kernel next), **exact hard
+selection over the 600-cell with rank-margin address credit** for the murmuration read (teacher-free), and
+**raw-score greedy output** (clean for non-pointer models). Basis deep-reviewed this session: the
+SpiralCore v69 site (600-cell/H4 addressing, Cl(0,6) E8 operator orbits, H2 decagons, FBS binder, Kuramoto
+phase coupling) and the elliptic-curve murmurations paper (role recoverable from trace-oscillation
+patterns). Rung 0 (recurrence-only, hinge-only) is pre-registered and amended on #2029 and waits for TEST
+FITNESS.
+
+Line: evaluation integrity · count 1/3 · headline: unchanged (M1 v5 memory 20/40, reply 37/232).
+
+**Next:** TEST FITNESS on the rung; the margin-objective prep PR; rung 0 on one pod.
 ## 2026-10-12 — D23 softmax census: every active executed path computes a normalized exponential; the compliance checker lands (kimi, #2028)
 
 The [census](../labs/softmax-census-2026-10-12/README.md) answers D23's inspection requirement for the whole
@@ -16,7 +51,6 @@ as a configuration), sampling (clean) and the aids, in one design.
 Line: evaluation integrity · count 1/3 (instrument PR; prepares the D23-compliant runs) · headline: unchanged.
 Kimi's span-oracle and bench runs remain held until a compliant objective exists (blocked cards posted).
 
-**Next:** the owner's replacement learning law; this checker is its TEST FITNESS gate; the held runs re-register.
 
 ## October 12: no CPU model compute, and the softmax rule gets an interlock
 
@@ -67,7 +101,6 @@ Line unified geometric integration; count5/3 ->6/3 on this explicit-owner source
 delivery, no reset; saved437/512+opened0/128 unchanged panel fitting.
 **Next:** retain the no-training hold; device qualification and raw-instrument
 fitness/preregistration/TEST FITNESS remain gates, not automatic run permission.
->>>>>>> origin/main
 
 ## 2026-10-12 — Why starling learning is a lottery, and a dense bootstrap that removes most of it: 3/5 seeds match softmax at 1536 (row 2) (claude, #2032)
 

@@ -5238,6 +5238,7 @@ mod tests {
             select: None,
             pointer: None,
             read_router: None,
+            objective: crate::geometric_stack::Objective::Ce,
         };
         let model = AermModel::new(config, 2, true, 3, &device)?;
         let ids: Vec<u32> = (0..32).map(|i| (i * 7 % 400) as u32).collect();
@@ -5273,6 +5274,7 @@ mod tests {
             select: None,
             pointer: None,
             read_router: None,
+            objective: crate::geometric_stack::Objective::Ce,
         };
         let stack = StackModel::new(config.clone(), &device)?;
         let ids: Vec<u32> = (0..32).map(|i| (i * 11 % 400) as u32).collect();
@@ -5371,6 +5373,7 @@ mod tests {
             select: None,
             pointer: None,
             read_router: None,
+            objective: crate::geometric_stack::Objective::Ce,
         };
         let model = AermModel::new(config, 2, true, 5, &device)?;
         let mut rng = Rng::new(3);
@@ -5422,6 +5425,7 @@ mod tests {
             select: None,
             pointer: None,
             read_router: None,
+            objective: crate::geometric_stack::Objective::Ce,
         };
         let mut stack = StackModel::new(config.clone(), &device)?;
         stack.set_transport_snap(Some(TransportSnap::Icosian))?;
@@ -5495,6 +5499,7 @@ mod tests {
             select: None,
             pointer: None,
             read_router: None,
+            objective: crate::geometric_stack::Objective::Ce,
         };
         // A checkpoint saved as usual loads.
         AermModel::new(config.clone(), 2, true, 23, &device)?.save(&directory)?;
@@ -5554,6 +5559,7 @@ mod tests {
             select: None,
             pointer: None,
             read_router: None,
+            objective: crate::geometric_stack::Objective::Ce,
         };
         let mut model = AermModel::new(config.clone(), 2, true, 11, &device)?;
         // Non-zero, deterministic head and memory values: an all-zero branch
