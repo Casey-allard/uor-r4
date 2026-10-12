@@ -910,6 +910,44 @@ pub fn starling_oracle_set(oracle: Option<StarlingOracle>) {
     STARLING_ORACLE.with(|slot| *slot.borrow_mut() = oracle);
 }
 
+thread_local! {
+    /// Training-only auxiliary loss of the starling reads on this thread
+    /// (summed over read layers), taken by the train loop.
+    static STARLING_AUX: std::cell::RefCell<Option<Tensor>> =
+        const { std::cell::RefCell::new(None) };
+}
+
+thread_local! {
+    /// Whether this thread's current forward is a training-loss forward:
+    /// starling distillation runs only then, so evaluation forwards never
+    /// build (or retain) its teacher graph.
+    static STARLING_TRAINING_FORWARD: std::cell::Cell<bool> =
+        const { std::cell::Cell::new(false) };
+}
+
+/// Mark this thread's forwards as training-loss forwards (`true`) or not.
+/// A train loop sets it around the loss forward only.
+pub fn starling_training_forward(on: bool) {
+    STARLING_TRAINING_FORWARD.with(|flag| flag.set(on));
+}
+
+/// Take (and clear) the starling reads' auxiliary loss from this thread's
+/// last forward pass, if any.
+pub fn starling_aux_take() -> Option<Tensor> {
+    STARLING_AUX.with(|aux| aux.borrow_mut().take())
+}
+
+fn starling_aux_add(term: Tensor) -> Result<()> {
+    STARLING_AUX.with(|aux| -> Result<()> {
+        let mut slot = aux.borrow_mut();
+        *slot = Some(match slot.take() {
+            Some(sum) => sum.add(&term)?,
+            None => term,
+        });
+        Ok(())
+    })
+}
+
 /// Start recording the starling read's kept sources on this thread (clears
 /// any record).
 pub fn starling_record_start() {
@@ -2836,6 +2874,13 @@ pub struct StackModel {
     /// kept slots' content scores, so q.k gets the softmax's competitive
     /// gradient while the forward value stays the softmax-free read.
     starling_surrogate: bool,
+    /// Training-only selector distillation weight for a content starling
+    /// route: the read stores `weight * KL(teacher || addresses)` in
+    /// [`starling_aux_take`], the teacher being the dense content softmax over
+    /// every earlier position (detached) and the student `softmax(tau <a,b>)`
+    /// on the 4-d addresses. With the dense helper on, the helper is that
+    /// teacher read. Never saved; serving never computes it.
+    starling_distill: Option<f64>,
     /// Layers whose MLP is an E8 orbit memory ([`Self::set_e8_memory`]).
     e8_memory: Option<crate::e8_memory::E8MemoryConfig>,
     /// How the geometric reads weight their kept sources
@@ -2939,6 +2984,7 @@ impl StackModel {
             read_route: None,
             starling_dense: None,
             starling_surrogate: false,
+            starling_distill: None,
             e8_memory: None,
             read_weighting: ReadWeighting::Softmax,
             softsort_tau: None,
@@ -4023,15 +4069,52 @@ impl StackModel {
             // gradient stays the softmax-free read's.
             let masked = dot.add(&live.affine(1e4, -1e4)?)?;
             let soft = candle_nn_softmax_last_dim(&masked)?.mul(&live)?;
-            let read_soft = soft
-                .unsqueeze(4)?
-                .broadcast_mul(&values.detach())?
-                .sum(3)?;
+            let read_soft = soft.unsqueeze(4)?.broadcast_mul(&values.detach())?.sum(3)?;
             read = read.add(&read_soft.sub(&read_soft.detach())?)?;
         }
+        // Training-only selector distillation and dense content teacher.
+        let training = STARLING_TRAINING_FORWARD.with(|flag| flag.get());
+        let teacher = match (self.starling_distill.filter(|_| training), content) {
+            (Some(weight), Some((query, key))) => {
+                let d = query.dim(3)?;
+                let mut causal = vec![0f32; time * time];
+                for t in 0..time {
+                    for j in t + 1..time {
+                        causal[t * time + j] = -1e4;
+                    }
+                }
+                let causal = Tensor::from_vec(causal, (1, 1, time, time), identity.device())?;
+                let scores = query
+                    .contiguous()?
+                    .matmul(&key.transpose(2, 3)?.contiguous()?)?
+                    .affine(1.0 / (d as f64).sqrt(), 0.0)?
+                    .broadcast_add(&causal)?;
+                let log_teacher = log_softmax_last_dim(&scores)?;
+                let student = a
+                    .matmul(&b.transpose(2, 3)?.contiguous()?)?
+                    .affine(STARLING_DISTILL_TAU, 0.0)?
+                    .broadcast_add(&causal)?;
+                let log_student = log_softmax_last_dim(&student)?;
+                let target = log_teacher.detach();
+                let kl = target
+                    .exp()?
+                    .mul(&target.sub(&log_student)?)?
+                    .sum_keepdim(3)?
+                    .mean_all()?;
+                starling_aux_add(kl.affine(weight, 0.0)?)?;
+                Some(log_teacher.exp()?)
+            }
+            _ => None,
+        };
         let Some(alpha) = self.starling_dense.filter(|alpha| *alpha > 0.0) else {
             return Ok(read);
         };
+        if let Some(attention) = teacher {
+            // The helper is the dense content teacher read itself, so q and k
+            // learn densely while the helper is on (annealed to zero).
+            let dense = attention.matmul(&value.contiguous()?)?;
+            return Ok(read.add(&dense.affine(alpha, 0.0)?)?);
+        }
         // Training-only helper: a causal mean over every earlier position of
         // the same gate on the address dot product, so every key address gets
         // a gradient while the hard selection is still uninformed. No softmax.
@@ -4683,6 +4766,21 @@ impl StackModel {
                 .retain(|name, _| !name.contains(".read.starling."));
         }
         self.read_route = route;
+        Ok(())
+    }
+
+    /// Training-only selector distillation (`Some(weight)`, weight > 0) for a
+    /// content starling route; `None` clears it. See [`starling_aux_take`].
+    pub fn set_starling_distill(&mut self, weight: Option<f64>) -> Result<()> {
+        if let Some(weight) = weight {
+            if !(weight.is_finite() && weight > 0.0) {
+                return Err(invalid("a distillation weight is finite and positive"));
+            }
+            if !self.read_route.is_some_and(|route| route.content) {
+                return Err(invalid("starling distillation needs a content read route"));
+            }
+        }
+        self.starling_distill = weight;
         Ok(())
     }
 
@@ -11203,6 +11301,7 @@ impl StackModel {
             read_route: None,
             starling_dense: None,
             starling_surrogate: false,
+            starling_distill: None,
             e8_memory: None,
             read_weighting: ReadWeighting::Softmax,
             softsort_tau: None,
@@ -16185,6 +16284,18 @@ pub fn softsort_learned_read(
 }
 
 /// Softmax over the last dimension, from tensor operations (exact autograd).
+/// Inverse temperature of the address student in starling distillation
+/// (unit 4-d addresses: dots in [-1, 1]).
+const STARLING_DISTILL_TAU: f64 = 16.0;
+
+/// Numerically stable log-softmax over the last dimension.
+fn log_softmax_last_dim(x: &Tensor) -> Result<Tensor> {
+    let last = x.rank() - 1;
+    let shifted = x.broadcast_sub(&x.max_keepdim(last)?.detach())?;
+    let log_sum = shifted.exp()?.sum_keepdim(last)?.log()?;
+    Ok(shifted.broadcast_sub(&log_sum)?)
+}
+
 fn candle_nn_softmax_last_dim(x: &Tensor) -> Result<Tensor> {
     let last = x.rank() - 1;
     let shifted = x.broadcast_sub(&x.max_keepdim(last)?.detach())?;
@@ -32400,6 +32511,59 @@ mod tests {
         let alive = [1.0, 1.0, 1.0, 1.0, 0.0];
         assert_eq!(content_order(&score, &alive), vec![1, 3, 0, 2]);
         assert!(content_order(&[1.0], &[0.0]).is_empty());
+    }
+
+    #[test]
+    fn starling_distillation_adds_a_kl_that_trains_the_addresses() -> Result<()> {
+        let route = StarlingRoute {
+            m: 2,
+            k: 3,
+            content: true,
+            shared: true,
+            ranked: true,
+        };
+        let ids: Vec<u32> = (0..24u32).map(|i| (i * 7 + 3) % 37).collect();
+        let mut model = StackModel::new(
+            tiny(StackArch::Geometric, "ra", ReadScore::L2, true),
+            &cpu(),
+        )?;
+        model.set_read_route(Some(route))?;
+        starling_aux_take();
+        let plain = model.forward(&ids, 2, 12)?.flatten_all()?.to_vec1::<f32>()?;
+        assert!(starling_aux_take().is_none());
+        model.set_starling_distill(Some(0.5))?;
+        // Outside a training-loss forward, nothing is computed or stored.
+        model.forward(&ids, 2, 12)?;
+        assert!(starling_aux_take().is_none());
+        starling_training_forward(true);
+        let logits = model.forward(&ids, 2, 12);
+        starling_training_forward(false);
+        let logits = logits?;
+        // With the dense helper off, the forward value is unchanged.
+        assert_eq!(logits.flatten_all()?.to_vec1::<f32>()?, plain);
+        let aux = starling_aux_take().ok_or_else(|| invalid("no distillation loss"))?;
+        let kl = aux.to_scalar::<f32>()?;
+        assert!(kl.is_finite() && kl >= 0.0, "kl {kl}");
+        // Its gradient reaches the key address map (the selection's input).
+        let key_address = model.variables()["layers.01.read.starling.key_address.weight"].clone();
+        let grads = aux.backward()?;
+        let g = grads
+            .get(key_address.as_tensor())
+            .ok_or_else(|| invalid("no key address gradient"))?;
+        assert!(g.abs()?.sum_all()?.to_scalar::<f32>()? > 0.0);
+        // An address-only route refuses it.
+        let mut address = StackModel::new(
+            tiny(StackArch::Geometric, "ra", ReadScore::L2, true),
+            &cpu(),
+        )?;
+        address.set_read_route(Some(StarlingRoute {
+            content: false,
+            shared: false,
+            ranked: false,
+            ..route
+        }))?;
+        assert!(address.set_starling_distill(Some(0.5)).is_err());
+        Ok(())
     }
 
     #[test]

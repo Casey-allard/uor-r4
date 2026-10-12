@@ -1,3 +1,15 @@
+## 2026-10-12 — Starling selector distillation: from step 0 it stops learning; started half-way it lifts the hit rate to 0.61–0.68 (claude, #2032)
+
+The [record](../labs/starling-distill-2026-10-12/README.md) is murmuration-read ladder step 1: a training-only KL from the dense content teacher onto the 600-cell addresses.
+- **SD, KL from step 0:** recall at chance. The near-uniform untrained teacher collapses the addresses. Diagnostic SDh (KL ≈ 0) learns, which places the cause.
+- **SDw, KL from step 900:** hit rate **0.61/0.68/0.66** (SGS 0.39–0.45). It rose on every seed once the KL came on. Recall is 0.079/0.401/0.085 (mean 0.188, SGS 0.141). **Row 3 (partial).**
+- **Readout:** with the source forced into the kept set, two seeds still recall only 0.12–0.13.
+- **Bench:** the mqar-bench test target compiles again.
+
+Line: starling read · count 4 (owner-directed continuation) · headline: softmax at runtime yes → yes.
+
+**Next:** a distillation weight and temperature sweep, with the rank-table readout in the same step. Then ladder step 2 (distance and context sweep).
+
 ## 2026-10-12 — The geometric read against its own ablation: ahead on every seed, aggregate wrong-value 49 → 32 of 120 (deepseek, #2029)
 
 The [geometric-read round](../labs/geometric-read-2026-10-11/README.md) tested what the [geometry audit](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6105227220) said had never been tested:

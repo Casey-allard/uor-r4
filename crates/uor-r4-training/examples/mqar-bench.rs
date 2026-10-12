@@ -10,7 +10,7 @@
 //!   [dump_scores=false|true] \
 //!   [mode=train|task-baselines] [layout=synthetic|fact] FACT OPTIONS [arm=stack] ARM OPTIONS
 //! arm=stack: [pattern=aaaaaa] [read=l2|dot|lorentz] [rotation=true|false] [width=128] [heads=4] \
-//!   [read_route=none|starling:M:K[:content][:shared][:ranked]] [starling_anneal=FRACTION] [starling_oracle_train=false|true] [starling_surrogate=false|true] \
+//!   [read_route=none|starling:M:K[:content][:shared][:ranked]] [starling_anneal=FRACTION] [starling_oracle_train=false|true] [starling_surrogate=false|true] [starling_distill=WEIGHT] [starling_distill_start=FRACTION] \
 //!   [mlp=384] [age=default|flat|spread] [key_shift=false|true] \
 //!   [lineage=none|f2|qk|qk_jj|identity|so4|conv|wprev|conv8|carrier|rot] [learned_init=lag1|zero]
 //! arm=transformer: [layers=<pattern length>] [width=128] [heads=4] [mlp=matched|<n>] \
@@ -385,6 +385,17 @@ trait ContextArm {
             return Err(invalid("starling_surrogate needs a starling stack arm"));
         }
         Ok(())
+    }
+    /// Training-only selector distillation for a content starling route.
+    fn set_starling_distill(&mut self, weight: Option<f64>) -> Result<()> {
+        if weight.is_some() {
+            return Err(invalid("starling_distill needs a starling stack arm"));
+        }
+        Ok(())
+    }
+    /// The last training step's auxiliary (distillation) loss term, 0 if none.
+    fn last_aux(&self) -> f64 {
+        0.0
     }
     /// For a starling read: recall with every head's kept set forced to hold
     /// each query's true source (diagnostic D1, #2032). `None` otherwise.
@@ -1001,6 +1012,7 @@ impl ArmSpec {
                     age: *age,
                     lineage: *lineage,
                     starling_anneal: *starling_anneal,
+                    last_aux: std::cell::Cell::new(0.0),
                 }))
             }
             ArmSpec::Transformer { .. } => {
@@ -1015,6 +1027,7 @@ impl ArmSpec {
                     age: AgeInit::Default,
                     lineage: LineageArm::None,
                     starling_anneal: None,
+                    last_aux: std::cell::Cell::new(0.0),
                 }))
             }
         }
@@ -1027,6 +1040,9 @@ struct StackArm {
     age: AgeInit,
     lineage: LineageArm,
     starling_anneal: Option<f64>,
+    /// The last training step's starling distillation term (0 without it),
+    /// logged separately so the reported NLL stays language-only.
+    last_aux: std::cell::Cell<f64>,
 }
 
 impl StackArm {
@@ -1117,6 +1133,14 @@ impl ContextArm for StackArm {
         self.model.set_starling_surrogate(on)
     }
 
+    fn set_starling_distill(&mut self, weight: Option<f64>) -> Result<()> {
+        self.model.set_starling_distill(weight)
+    }
+
+    fn last_aux(&self) -> f64 {
+        self.last_aux.get()
+    }
+
     fn starling_oracle_accuracy(
         &self,
         sequences: &[Sequence],
@@ -1202,11 +1226,29 @@ impl ContextArm for StackArm {
         batch: usize,
         time: usize,
     ) -> Result<Tensor> {
-        self.model.weighted_loss(ids, targets, weights, batch, time)
+        uor_r4_training::geometric_stack::starling_aux_take();
+        uor_r4_training::geometric_stack::starling_training_forward(true);
+        let language = self.model.weighted_loss(ids, targets, weights, batch, time);
+        uor_r4_training::geometric_stack::starling_training_forward(false);
+        let language = language?;
+        // Training-only starling selector distillation, when set.
+        match uor_r4_training::geometric_stack::starling_aux_take() {
+            Some(aux) => {
+                self.last_aux
+                    .set(f64::from(aux.detach().to_scalar::<f32>()?));
+                Ok(language.add(&aux)?)
+            }
+            None => {
+                self.last_aux.set(0.0);
+                Ok(language)
+            }
+        }
     }
 
     fn logits(&self, ids: &[u32], batch: usize, time: usize) -> Result<Tensor> {
-        self.model.forward(ids, batch, time)
+        let logits = self.model.forward(ids, batch, time);
+        uor_r4_training::geometric_stack::starling_aux_take();
+        logits
     }
 
     fn update(&mut self, loss: &Tensor, lr: f64) -> Result<f64> {
@@ -2416,6 +2458,13 @@ struct Common {
     /// `starling_surrogate=true`: training-only softmax-over-kept gradient for a
     /// content starling route (the forward stays softmax-free).
     starling_surrogate: bool,
+    /// `starling_distill=WEIGHT`: training-only selector distillation for a
+    /// content starling route (KL from a dense content teacher).
+    starling_distill: Option<f64>,
+    /// `starling_distill_start=FRACTION`: the distillation term is off before
+    /// this fraction of the steps (the address helper trains the selector
+    /// first), then on at `starling_distill`'s weight. Default 0.
+    starling_distill_start: f64,
     context: usize,
     pairs_per_bucket: usize,
     batch: usize,
@@ -2481,6 +2530,8 @@ impl Common {
             "save_model": self.save_model,
             "starling_oracle_train": self.starling_oracle_train,
             "starling_surrogate": self.starling_surrogate,
+            "starling_distill": self.starling_distill,
+            "starling_distill_start": self.starling_distill_start,
             "token_ranges": {"filler": FILLER, "keys": KEYS, "values": VALUES},
             "pairing_split": {
                 "classes": CLASSES, "held_out_class": HELD_OUT_CLASS,
@@ -2530,6 +2581,14 @@ fn settings(mut args: Args) -> Result<(Common, ArmSpec, Mode, Option<fact::FactT
         save_model: args.parsed("save_model", false)?,
         starling_oracle_train: args.parsed("starling_oracle_train", false)?,
         starling_surrogate: args.parsed("starling_surrogate", false)?,
+        starling_distill: args
+            .take("starling_distill")
+            .map(|text| {
+                text.parse::<f64>()
+                    .map_err(|_| invalid(format!("invalid starling_distill={text}")))
+            })
+            .transpose()?,
+        starling_distill_start: args.parsed("starling_distill_start", 0.0f64)?,
         context: args.parsed(
             "context",
             if fact_layout {
@@ -2573,6 +2632,12 @@ fn settings(mut args: Args) -> Result<(Common, ArmSpec, Mode, Option<fact::FactT
         stage0_dump: args.take("stage0_dump").map(PathBuf::from),
     };
     let mut common = common;
+    if !(0.0..1.0).contains(&common.starling_distill_start) {
+        return Err(invalid("starling_distill_start is a fraction in [0, 1)"));
+    }
+    if common.starling_distill_start > 0.0 && common.starling_distill.is_none() {
+        return Err(invalid("starling_distill_start needs starling_distill"));
+    }
     let probe_text = args
         .take("probe_steps")
         // The fact layout probes once, after training (or never: `none`).
@@ -2702,6 +2767,7 @@ fn run(s: &Common, arm: &mut dyn ContextArm, log: &mut fs::File) -> Result<Value
     use std::io::Write;
     let started = Instant::now();
     arm.set_starling_surrogate(s.starling_surrogate)?;
+    arm.set_starling_distill(s.starling_distill)?;
     let buckets = buckets_for(s.context);
     let line = format!(
         "{} {}: {} parameters, context {}, buckets {:?}",
@@ -2750,7 +2816,7 @@ fn run(s: &Common, arm: &mut dyn ContextArm, log: &mut fs::File) -> Result<Value
         seconds: 0.0,
     };
     prober.run(&*arm, 0, log)?;
-    let (mut window_loss, mut window_steps) = (0f64, 0usize);
+    let (mut window_loss, mut window_aux, mut window_steps) = (0f64, 0f64, 0usize);
     let mut step_seconds = Vec::new();
     let mut stopped_early = false;
     let mut step = 0;
@@ -2777,6 +2843,10 @@ fn run(s: &Common, arm: &mut dyn ContextArm, log: &mut fs::File) -> Result<Value
             .collect::<Result<_>>()?;
         let (ids, targets, weights) = batch_arrays(&batch, s.context);
         arm.begin_step(step, s.steps)?;
+        if s.starling_distill.is_some() && s.starling_distill_start > 0.0 {
+            let on = step as f64 >= s.starling_distill_start * s.steps as f64;
+            arm.set_starling_distill(s.starling_distill.filter(|_| on))?;
+        }
         if s.starling_oracle_train {
             let mut oracle = std::collections::HashMap::new();
             for (b, sequence) in batch.iter().enumerate() {
@@ -2797,7 +2867,10 @@ fn run(s: &Common, arm: &mut dyn ContextArm, log: &mut fs::File) -> Result<Value
         arm.end_step()?;
         step += 1;
         step_seconds.push(clock.elapsed().as_secs_f64());
-        window_loss += value;
+        // Language-only NLL; the distillation term is logged on its own.
+        let aux = arm.last_aux();
+        window_loss += value - aux;
+        window_aux += aux;
         window_steps += 1;
         if step % s.eval_every == 0 || step == s.steps {
             let in_class = evaluate(&*arm, &curve_in_class, s.context, &buckets, chunk)?;
@@ -2808,6 +2881,11 @@ fn run(s: &Common, arm: &mut dyn ContextArm, log: &mut fs::File) -> Result<Value
                 writeln!(log, "step {step} starling hit rate {rate:.4}")?;
             }
             let train_loss = window_loss / window_steps.max(1) as f64;
+            let train_aux = window_aux / window_steps.max(1) as f64;
+            if s.starling_distill.is_some() {
+                eprintln!("step {step} distill KL term {train_aux:.5}");
+                writeln!(log, "step {step} distill KL term {train_aux:.5}")?;
+            }
             let line = format!(
                 "step {step} lr {lr:.2e} train query NLL {train_loss:.4} grad {grad_norm:.3} in-class acc {:.3} {} | held-out acc {:.3} ({:.0}s)",
                 in_class["accuracy"].as_f64().unwrap_or(f64::NAN),
@@ -2821,9 +2899,11 @@ fn run(s: &Common, arm: &mut dyn ContextArm, log: &mut fs::File) -> Result<Value
                 "step": step, "lr": lr, "train_query_nll": train_loss,
                 "grad_norm": grad_norm, "in_class": in_class, "held_out": held_out,
                 "starling_hit_rate": hit_rate,
+                "distill_kl_term": train_aux,
                 "elapsed_seconds": started.elapsed().as_secs_f64(),
             }));
             window_loss = 0.0;
+            window_aux = 0.0;
             window_steps = 0;
         }
         prober.run(&*arm, step, log)?;
@@ -3238,6 +3318,11 @@ mod tests {
             // added them, and the test target must compile.
             init: None,
             stage0_dump: None,
+            starling_oracle_train: false,
+            starling_surrogate: false,
+            starling_distill: None,
+            starling_distill_start: 0.0,
+            select: None,
         };
         let spec = ArmSpec::Stack {
             pattern: "rar".into(),
@@ -3248,6 +3333,7 @@ mod tests {
             mlp_hidden: 16,
             age: AgeInit::Flat,
             lineage: LineageArm::F2,
+            attn_reads: false,
             route: None,
             starling_anneal: None,
         };
@@ -3409,6 +3495,14 @@ mod tests {
             probe_steps: Vec::new(),
             probe_sequences: 1,
             dump_scores: false,
+            select: None,
+            stage0: false,
+            init: None,
+            stage0_dump: None,
+            starling_oracle_train: false,
+            starling_surrogate: false,
+            starling_distill: None,
+            starling_distill_start: 0.0,
         }
     }
 
@@ -3454,6 +3548,7 @@ mod tests {
             mlp_hidden: 384,
             age: AgeInit::Default,
             lineage: LineageArm::None,
+            attn_reads: false,
             route: None,
             starling_anneal: None,
         };
@@ -3496,6 +3591,8 @@ mod tests {
                 optimizer,
                 age: AgeInit::Default,
                 lineage: LineageArm::None,
+                starling_anneal: None,
+                last_aux: std::cell::Cell::new(0.0),
             };
             let reach = context_reachability(&arm, &sequences, 64).expect("reachability");
             let queries = sequences
