@@ -2831,6 +2831,11 @@ pub struct StackModel {
     /// Training-only weight of the starling read's dense helper term
     /// ([`Self::set_starling_dense`]); never saved, `None` in evaluation.
     starling_dense: Option<f64>,
+    /// Training-only: a content route's read also carries
+    /// `read_soft - read_soft.detach()`, the values mixed by a softmax over the
+    /// kept slots' content scores, so q.k gets the softmax's competitive
+    /// gradient while the forward value stays the softmax-free read.
+    starling_surrogate: bool,
     /// Layers whose MLP is an E8 orbit memory ([`Self::set_e8_memory`]).
     e8_memory: Option<crate::e8_memory::E8MemoryConfig>,
     /// How the geometric reads weight their kept sources
@@ -2933,6 +2938,7 @@ impl StackModel {
             activation_snap: ActivationSnap::None,
             read_route: None,
             starling_dense: None,
+            starling_surrogate: false,
             e8_memory: None,
             read_weighting: ReadWeighting::Softmax,
             softsort_tau: None,
@@ -4010,7 +4016,19 @@ impl StackModel {
         let value_width = value.dim(3)?;
         let value = value.to_dtype(DType::F32)?;
         let values = gather_rows(&value, value_width)?;
-        let read = weights.unsqueeze(4)?.broadcast_mul(&values)?.sum(3)?;
+        let mut read = weights.unsqueeze(4)?.broadcast_mul(&values)?.sum(3)?;
+        if self.starling_surrogate && content.is_some() {
+            // Zero in the forward value, softmax-over-kept in the backward,
+            // through q and k only: the values are detached, so their
+            // gradient stays the softmax-free read's.
+            let masked = dot.add(&live.affine(1e4, -1e4)?)?;
+            let soft = candle_nn_softmax_last_dim(&masked)?.mul(&live)?;
+            let read_soft = soft
+                .unsqueeze(4)?
+                .broadcast_mul(&values.detach())?
+                .sum(3)?;
+            read = read.add(&read_soft.sub(&read_soft.detach())?)?;
+        }
         let Some(alpha) = self.starling_dense.filter(|alpha| *alpha > 0.0) else {
             return Ok(read);
         };
@@ -4665,6 +4683,16 @@ impl StackModel {
                 .retain(|name, _| !name.contains(".read.starling."));
         }
         self.read_route = route;
+        Ok(())
+    }
+
+    /// Training-only softmax-surrogate gradient for a content starling route
+    /// (the forward value is unchanged; never saved).
+    pub fn set_starling_surrogate(&mut self, on: bool) -> Result<()> {
+        if on && !self.read_route.is_some_and(|route| route.content) {
+            return Err(invalid("the starling surrogate needs a content read route"));
+        }
+        self.starling_surrogate = on;
         Ok(())
     }
 
@@ -11174,6 +11202,7 @@ impl StackModel {
             activation_snap: ActivationSnap::None,
             read_route: None,
             starling_dense: None,
+            starling_surrogate: false,
             e8_memory: None,
             read_weighting: ReadWeighting::Softmax,
             softsort_tau: None,
@@ -32371,6 +32400,71 @@ mod tests {
         let alive = [1.0, 1.0, 1.0, 1.0, 0.0];
         assert_eq!(content_order(&score, &alive), vec![1, 3, 0, 2]);
         assert!(content_order(&[1.0], &[0.0]).is_empty());
+    }
+
+    #[test]
+    fn the_starling_surrogate_keeps_the_forward_and_adds_a_softmax_gradient() -> Result<()> {
+        let route = StarlingRoute {
+            m: 2,
+            k: 3,
+            content: true,
+            shared: true,
+            ranked: true,
+        };
+        let ids: Vec<u32> = (0..24u32).map(|i| (i * 7 + 3) % 37).collect();
+        let mut model = StackModel::new(
+            tiny(StackArch::Geometric, "ra", ReadScore::L2, true),
+            &cpu(),
+        )?;
+        model.set_read_route(Some(route))?;
+        let weights = random(&mut Initializer(47), &[24, 37], 1.0);
+        let query = model.variables()["layers.01.read.query.weight"].clone();
+        let value = model.variables()["layers.01.read.value.weight"].clone();
+        let run = |model: &StackModel| -> Result<(Vec<u32>, Vec<f32>, Vec<u32>)> {
+            let logits = model.forward(&ids, 2, 12)?;
+            let bits = logits
+                .flatten_all()?
+                .to_vec1::<f32>()?
+                .iter()
+                .map(|v| v.to_bits())
+                .collect();
+            let grads = logits.mul(&weights)?.sum_all()?.backward()?;
+            let g = grads
+                .get(query.as_tensor())
+                .ok_or_else(|| invalid("missing query gradient"))?
+                .flatten_all()?
+                .to_vec1::<f32>()?;
+            let v = grads
+                .get(value.as_tensor())
+                .ok_or_else(|| invalid("missing value gradient"))?
+                .flatten_all()?
+                .to_vec1::<f32>()?
+                .iter()
+                .map(|x| x.to_bits())
+                .collect();
+            Ok((bits, g, v))
+        };
+        let (plain_logits, plain_grad, plain_value) = run(&model)?;
+        model.set_starling_surrogate(true)?;
+        let (surrogate_logits, surrogate_grad, surrogate_value) = run(&model)?;
+        assert_eq!(plain_logits, surrogate_logits, "the forward must not change");
+        assert_ne!(plain_grad, surrogate_grad, "the surrogate must add a gradient");
+        // The values keep the softmax-free read's gradient exactly.
+        assert_eq!(plain_value, surrogate_value, "the surrogate must not touch values");
+        // An address (non-content) route refuses the surrogate; a model's
+        // route is fixed once set, so check on a fresh model.
+        let mut address = StackModel::new(
+            tiny(StackArch::Geometric, "ra", ReadScore::L2, true),
+            &cpu(),
+        )?;
+        address.set_read_route(Some(StarlingRoute {
+            content: false,
+            ranked: false,
+            shared: false,
+            ..route
+        }))?;
+        assert!(address.set_starling_surrogate(true).is_err());
+        Ok(())
     }
 
     #[test]

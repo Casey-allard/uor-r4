@@ -1,3 +1,16 @@
+## 2026-10-12 — Starling with a training-only softmax surrogate: content selection learned, recall lifts unevenly (claude, #2032)
+
+The [record](../labs/starling-surrogate-2026-10-12/README.md) adds a training-only softmax-over-kept gradient through q·k. The forward is unchanged, so the runtime read stays softmax-free.
+- **Content selection:** the source is ranked first when kept **0.55–0.78** of the time, against 0.03–0.12 without the surrogate.
+- **Recall, shared + ranked:** 0.044, 0.288, 0.091 (mean 0.141, seed SD 0.13).
+- **Decision:** reading 3 by the pre-registered bars (reading 2 needed 0.28). The line goes to the owner.
+- **Where the bottleneck is now:** per-seed instability (address learning), not content selection.
+- **Also fixed:** the x86 test failures ([#2221](https://github.com/UOR-Foundation/uor-r4/pull/2221)).
+
+Line: starling read · count 3/3 · headline: softmax at runtime yes → yes.
+
+**Next:** the owner decides: pause (pre-registered recommendation), or one targeted step on address stability under the surrogate.
+
 ## 2026-10-11 - Unified comparison interrupted; coherent512 panel is not the unified model (codex, #2030)
 
 The [result](../labs/unified-geometric-integration-2026-10-11/README.md) retains

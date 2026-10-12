@@ -10,7 +10,7 @@
 //!   [dump_scores=false|true] \
 //!   [mode=train|task-baselines] [layout=synthetic|fact] FACT OPTIONS [arm=stack] ARM OPTIONS
 //! arm=stack: [pattern=aaaaaa] [read=l2|dot|lorentz] [rotation=true|false] [width=128] [heads=4] \
-//!   [read_route=none|starling:M:K[:content][:shared][:ranked]] [starling_anneal=FRACTION] [starling_oracle_train=false|true] \
+//!   [read_route=none|starling:M:K[:content][:shared][:ranked]] [starling_anneal=FRACTION] [starling_oracle_train=false|true] [starling_surrogate=false|true] \
 //!   [mlp=384] [age=default|flat|spread] [key_shift=false|true] \
 //!   [lineage=none|f2|qk|qk_jj|identity|so4|conv|wprev|conv8|carrier|rot] [learned_init=lag1|zero]
 //! arm=transformer: [layers=<pattern length>] [width=128] [heads=4] [mlp=matched|<n>] \
@@ -378,6 +378,13 @@ trait ContextArm {
     /// content match. `None` otherwise.
     fn starling_top_rate(&self, _sequences: &[Sequence], _context: usize) -> Result<Option<f64>> {
         Ok(None)
+    }
+    /// Training-only softmax-surrogate gradient for a content starling route.
+    fn set_starling_surrogate(&mut self, on: bool) -> Result<()> {
+        if on {
+            return Err(invalid("starling_surrogate needs a starling stack arm"));
+        }
+        Ok(())
     }
     /// For a starling read: recall with every head's kept set forced to hold
     /// each query's true source (diagnostic D1, #2032). `None` otherwise.
@@ -1104,6 +1111,10 @@ impl ContextArm for StackArm {
             }
         }
         Ok(Some(first as f64 / held.max(1) as f64))
+    }
+
+    fn set_starling_surrogate(&mut self, on: bool) -> Result<()> {
+        self.model.set_starling_surrogate(on)
     }
 
     fn starling_oracle_accuracy(
@@ -2402,6 +2413,9 @@ struct Common {
     /// `starling_oracle_train=true`: diagnostic D1 (#2032). Every training
     /// batch's true sources are forced into the starling read's kept sets.
     starling_oracle_train: bool,
+    /// `starling_surrogate=true`: training-only softmax-over-kept gradient for a
+    /// content starling route (the forward stays softmax-free).
+    starling_surrogate: bool,
     context: usize,
     pairs_per_bucket: usize,
     batch: usize,
@@ -2466,6 +2480,7 @@ impl Common {
             "vocab": self.vocab,
             "save_model": self.save_model,
             "starling_oracle_train": self.starling_oracle_train,
+            "starling_surrogate": self.starling_surrogate,
             "token_ranges": {"filler": FILLER, "keys": KEYS, "values": VALUES},
             "pairing_split": {
                 "classes": CLASSES, "held_out_class": HELD_OUT_CLASS,
@@ -2514,6 +2529,7 @@ fn settings(mut args: Args) -> Result<(Common, ArmSpec, Mode, Option<fact::FactT
         vocab: VOCAB,
         save_model: args.parsed("save_model", false)?,
         starling_oracle_train: args.parsed("starling_oracle_train", false)?,
+        starling_surrogate: args.parsed("starling_surrogate", false)?,
         context: args.parsed(
             "context",
             if fact_layout {
@@ -2685,6 +2701,7 @@ impl Prober<'_> {
 fn run(s: &Common, arm: &mut dyn ContextArm, log: &mut fs::File) -> Result<Value> {
     use std::io::Write;
     let started = Instant::now();
+    arm.set_starling_surrogate(s.starling_surrogate)?;
     let buckets = buckets_for(s.context);
     let line = format!(
         "{} {}: {} parameters, context {}, buckets {:?}",

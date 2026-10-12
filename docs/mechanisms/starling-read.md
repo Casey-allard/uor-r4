@@ -27,6 +27,10 @@ SpiralCore's Kuramoto witness shows the principle: local coupling over 60 geomet
   - A shared kept set raises per-head availability to 61–72%, but recall stays at chance.
   - Content ranking does not learn to rank the source first (0.03–0.29). The likely cause is the missing competitive gradient.
   - Recommended: a training-only softmax surrogate (owner decision).
+- **Softmax surrogate (training only)** ([record](../labs/starling-surrogate-2026-10-12/README.md)):
+  - It teaches content selection: the source is ranked first 0.55–0.78 of the time when kept, against 0.03–0.12 without it.
+  - With a shared kept set, recall lifts off chance unevenly (0.044, 0.288, 0.091).
+  - Below the pre-registered reading-2 bar, so the line goes to the owner.
 
 ## A fair test needs
 
