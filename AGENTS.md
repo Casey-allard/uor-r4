@@ -1,5 +1,17 @@
 # AGENTS.md — UOR-R4 Geometric Language Model
 
+> **Owner direction, October 12: no softmax anywhere ever no matter what.**
+> [D23](docs/integration/DECISIONS.md#d23---no-softmax-anywhere-in-the-active-project)
+> prohibits softmax in training, serving, sampling, objectives, auxiliary losses,
+> teachers and new comparator runs. This includes log-softmax, implicit softmax
+> inside cross-entropy, and mathematically equivalent table/renamed implementations.
+> There is no training-only, bootstrap or runtime-only exception. Trace the entire
+> executed learning/output path before claiming compliance. Preserve historical
+> source and measurements as inactive evidence, not permission to execute them.
+> Codex's #2246 sampled producer is blocked under this rule. This policy is not a
+> claim that existing source is compliant or a comprehensive runtime interlock.
+> Existing owner training/pod holds remain; no replacement law is approved here.
+
 > **Owner direction, October 9 — main consolidation and workspace cleanup:**
 > `origin/main` is the shared source of truth for every participant. Finish and
 > verify the protected merge of each deliverable before starting its successor,

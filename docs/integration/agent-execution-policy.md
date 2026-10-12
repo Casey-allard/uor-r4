@@ -1,5 +1,14 @@
 # Native geometric AI execution policy
 
+> **October 12 owner rule: no softmax anywhere ever no matter what.**
+> D23 supersedes earlier allowances for softmax in training, serving, sampling,
+> objectives, auxiliary losses, teachers and comparators. Log-softmax, implicit
+> softmax objectives and equivalent normalized-exponential table implementations
+> are not exceptions. Audit the entire executed objective/output/gradient path,
+> not just the attention/read operator. Historical evidence remains preserved but
+> inactive. Existing source is not thereby compliant; this is mandatory policy,
+> not a comprehensive executable interlock. Existing compute holds remain.
+
 > **Current owner direction, October 1 — D19:** grounded conversation and durable
 > memory lead the active canonical plan. Codex rejoins Claude and OpenCode–DeepSeek
 > for the owner-authorized continuation; other historical lab assignments are

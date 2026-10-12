@@ -1,5 +1,10 @@
 {
   "architecture": {
+    "softmax_allowed": false,
+    "softmax_prohibition_authority": "D23_owner_2026_10_12",
+    "softmax_prohibition_scope": ["training", "serving", "sampling", "objectives", "auxiliary_losses", "teachers", "comparators"],
+    "softmax_equivalent_implementations_allowed": false,
+    "softmax_historical_evidence": "preserve_inactive_not_authorized_for_execution",
     "current_serving_design": "deterministic_geometric_addressing_and_shared_typed_operators",
     "dense_transformer_disguised_as_lookup_allowed": false,
     "expert_gating": "conditional_future_option_not_current_design",

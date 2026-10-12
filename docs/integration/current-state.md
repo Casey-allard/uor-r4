@@ -1,3 +1,16 @@
+## October 12: owner prohibits softmax everywhere; sampled producer blocked
+
+[D23](DECISIONS.md#d23---no-softmax-anywhere-in-the-active-project) supersedes
+earlier permissions in every active training, serving, sampling, teacher,
+auxiliary-loss and comparator path, including equivalent implicit/table forms.
+The [policy record](../labs/no-softmax-2026-10-12/README.md) preserves past evidence
+without permission to rerun it. Codex #2246's sampled-choice law uses softmax and
+is BLOCKED pending replacement. Prior fixtures do not establish compliance.
+Project-wide source removal/interlocks are unfinished; a softmax-free reader
+does not establish a compliant objective/output/gradient path. No model compute
+or rental in this policy delivery; existing holds remain. M2 saved437/512 and
+opened0/128 remain unchanged, genuinely fresh qualification NOT_RUN.
+
 ## Whole-path producer, sampled recovery and episode credit source checked — October 12
 
 The [source record](../labs/whole-path-recovery-2026-10-12/README.md) connects CUDA

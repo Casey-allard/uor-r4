@@ -189,7 +189,9 @@ reply credit. Its [source implementation](docs/labs/whole-path-implementation-20
 connects the actual compiler/store/E8/native-emitter path with shared credit,
 transactional rebinding and focused greedy reload fixtures. The [producer and recovery extension](docs/labs/whole-path-recovery-2026-10-12/README.md)
 adds device graph source, replayable sampled checkpoints and isolated episodes
-sharing one parameter inventory and prototype credit. Tiny CPU-reference checks
+sharing one parameter inventory and prototype credit. **Under the October 12
+[D23 owner rule](docs/labs/no-softmax-2026-10-12/README.md), this sampled path is
+BLOCKED because its choice law uses softmax.** Tiny historical CPU-reference checks
 cover these connections and all64 SpiralCore frames; actual CUDA execution,
 optimizer recovery and trained-model qualification remain unverified. Model
 compute stays held. Opened128 and genuinely fresh
@@ -291,7 +293,7 @@ float comparator, so no general energy advantage is established.
 - **The weights:** a constant Q31 rank table, either the fixed `1/(r+1)` or a per-head table learned in training.
 - **Hamming scores:** for the Hamming-rank read, scores come from `BitCode` sign codes (XOR plus a multiplier-free popcount).
 - **Artifacts:** they use schema `uor-r4.lut-stack/3`, which the frozen D10 engine refuses.
-- **Not the default yet:** the served model still uses the exp-table softmax read, because the softmax-free reads trained so far cost 0.017–0.04 BPB ([record](docs/labs/softmax-free-read-2026-10-10/README.md), [brief](docs/mechanisms/flock-rank-reads.md)).
+- **Historical default, now prohibited:** the existing exp-table softmax read is not authorized under [D23](docs/labs/no-softmax-2026-10-12/README.md). Earlier softmax-free read measurements cost 0.017–0.04 BPB ([record](docs/labs/softmax-free-read-2026-10-10/README.md), [brief](docs/mechanisms/flock-rank-reads.md)); they do not create an exception or certify the whole training/output path as compliant.
 
 ```sh
 # Serve an exported stack artifact (multiplier-free engine)

@@ -1,5 +1,11 @@
 # Unified Geometric Carrier Credit
 
+**October 12, D23:** the delivered whole-path sampled-choice law uses softmax and
+is BLOCKED pending compliant replacement. Prior source fixtures are historical
+implementation evidence, not compliance or permission to execute. The absolute
+[no-softmax policy](../labs/no-softmax-2026-10-12/README.md) applies to the complete
+learning/output path, not just geometric routing. No training is authorized.
+
 **Idea:** The native saved437 field evaluates ordered factual-state/prototype
 and local-state/prototype H4 relations. Freezing those carriers while learning
 only its coefficients disconnects the geometry from the representation that

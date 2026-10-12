@@ -1137,3 +1137,34 @@ D21 stays. These rules amend how it counts and what may be closed.
   - **(e) Read-binding supervision, powered** (≥ 3 seeds or ≥ 200 fresh rows, wrong-value rate as the primary metric).
   - **(f) Adopt the 10 % recall dose (#2151) as the M1 base.**
 - **Claude, M4 #2032:** the softmax-free read continues on its new line (arm W, wide learned flock). A next step on it fixes the training mismatch: a straight-through gradient that matches the rank forward, and hyperparameters tuned for the read.
+
+## D23 - No softmax anywhere in the active project
+
+**Authority, October 12:** Casey: "no softmax anywhere ever no matter what".
+The direction is relayed on [#2028](https://github.com/UOR-Foundation/uor-r4/issues/2028#issuecomment-6124029555).
+
+- Softmax is prohibited in training, serving, sampling, objectives, auxiliary
+  losses, teachers and new comparator runs. No temporary-bootstrap, training-only
+  or runtime-only exception exists. This supersedes earlier unrestricted-training
+  language and permissions for softmax reference runs.
+- Log-softmax, implicit softmax inside cross-entropy and mathematically equivalent
+  normalized-exponential implementations, including table-based or renamed forms,
+  do not evade the prohibition. Inspect the complete executed output/objective/
+  gradient path before claiming compliance; a softmax-free reader is insufficient.
+- This decision does not prohibit every unrelated scalar exponential or select a
+  substitute learning law. A replacement must retain the geometric architecture,
+  coherent shared learning and identity/orientation contracts, with prospective
+  TEST FITNESS before model compute. Existing owner compute holds remain.
+- Historical source, artifacts and measurements remain preserved as inactive
+  evidence, not authorized execution. Earlier measured numbers are not erased.
+  Existing code is not certified compliant by adopting this policy.
+- Codex #2246 sampled producer uses softmax and is **BLOCKED** pending a compliant
+  replacement. Its focused reference tests were implementation evidence only;
+  no training or CUDA execution was performed. This is not a mechanism negative,
+  model success or D21/D22 count reset.
+- NVRTC is a compiler, not a mathematical operator. Compliance depends on what
+  the complete program computes, irrespective of compilation backend.
+
+The [delivery record](../labs/no-softmax-2026-10-12/README.md) records scope and
+limitations. This policy is mandatory agent governance, not a comprehensive
+Rust/CLI interlock or a claim of completed project-wide softmax removal.
