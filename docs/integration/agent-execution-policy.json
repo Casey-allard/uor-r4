@@ -5,6 +5,8 @@
     "softmax_prohibition_scope": ["training", "serving", "sampling", "objectives", "auxiliary_losses", "teachers", "comparators"],
     "softmax_equivalent_implementations_allowed": false,
     "softmax_historical_evidence": "preserve_inactive_not_authorized_for_execution",
+    "softmax_replacement_required": "designed_geometric_mechanism_with_prospective_test_fitness",
+    "softmax_interlock": "scripts/check_no_softmax.py",
     "current_serving_design": "deterministic_geometric_addressing_and_shared_typed_operators",
     "dense_transformer_disguised_as_lookup_allowed": false,
     "expert_gating": "conditional_future_option_not_current_design",
@@ -63,6 +65,12 @@
     "admissibility": "docs/integration/mechanism-admissibility-2026-10.md"
   },
   "execution": {
+    "model_compute_device": "gpu_only",
+    "cpu_model_compute_allowed": false,
+    "host_fallback_for_scoring_normalization_or_value_mix": "defect_to_fix_with_kernel",
+    "host_fallback_run_as_mechanism_evidence": false,
+    "gpu_spend_scope": "decisions_it_can_change_only",
+    "excluded_configuration_run_allowed": false,
     "allowed": [
       "build_compile_and_lint",
       "focused_tests",

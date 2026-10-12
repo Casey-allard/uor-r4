@@ -1,3 +1,25 @@
+## October 12: no CPU model compute, and the softmax rule gets an interlock
+
+[D24](DECISIONS.md#d24---no-cpu-model-compute-and-no-gpu-on-non-decisive-work) adds the
+clauses [D23](DECISIONS.md#d23---no-softmax-anywhere-in-the-active-project) did not carry:
+model compute never runs on the CPU, a host-side fallback is a **defect** rather than
+mechanism evidence (both the arithmetic and the step time are wrong), and GPU time goes
+only where it can change a decision. Every prohibited softmax site is replaced by a
+designed geometric mechanism with prospective TEST FITNESS.
+
+D23 recorded that no interlock existed. `scripts/check_no_softmax.py` is it: the ratchet
+scans `crates/**` (`.rs/.cu/.cuh/.wgsl`) and fails when a softmax site is added, while
+`scripts/no-softmax-baseline.json` may only decrease and `--update-baseline` refuses to
+raise a count. Baseline 145 files / 1649 sites; verified failing on an added site. The
+[record](../labs/no-cpu-gpu-only-2026-10-12/README.md) carries scope and limits - it is not
+a claim that project-wide removal is complete.
+
+Under the rule the M1 #2029 invariant-addressed router campaign was cancelled and its pod
+deleted at 2 of 3 arm-A seeds: arms A/C normalize over the kept candidates with softmax,
+arm B *is* the full softmax read, and the routed read executes host-side. Retained reading
+in iCloud (`router-abandoned-2026-10-12.tar`, md5 `f411b7d1`). This is a configuration
+cancellation under an owner rule - not a mechanism negative, and not a D21/D22 count.
+
 ## October 12: owner prohibits softmax everywhere; sampled producer blocked
 
 [D23](DECISIONS.md#d23---no-softmax-anywhere-in-the-active-project) supersedes

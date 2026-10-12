@@ -1168,3 +1168,43 @@ The direction is relayed on [#2028](https://github.com/UOR-Foundation/uor-r4/iss
 The [delivery record](../labs/no-softmax-2026-10-12/README.md) records scope and
 limitations. This policy is mandatory agent governance, not a comprehensive
 Rust/CLI interlock or a claim of completed project-wide softmax removal.
+
+## D24 - No CPU model compute, and no GPU on non-decisive work
+
+**Authority, October 12:** Casey, restating the rule in the same session:
+"no softmax at all anywhere", "no CPU runs at all - rewrite for GPU", "do not
+waste GPU runs on bullshit that doesn't matter". Recorded with D23 as one
+governance block; D23 carries the softmax prohibition, this carries the rest.
+
+- **Model compute never runs on the CPU.** Training, evaluation, and every part of
+  the forward that scoring, normalization or the value mix touches are GPU work. A
+  path that silently falls back to the host - as a routed read does today when
+  `cuda_covered()` is false - is a **defect**: fix it with a kernel. It is not a
+  measured cost of the mechanism and not a result to report.
+- **A host-fallback execution is not mechanism evidence.** Both the arithmetic and
+  the step time are wrong, so a fit produced that way may be cited only as a scoped
+  reading of that flawed configuration. Existing numbers are not erased; they are
+  not evidence for the mechanism.
+- **GPU time is spent only where it can change a decision.** A configuration these
+  rules already exclude, or a comparison whose baseline they forbid, does not get a
+  run. Such a campaign is cancelled, not extended.
+- **Every prohibited softmax site is replaced by a designed geometric mechanism** -
+  exact `Z[phi]`/zeta-phase interference, typed H4/icosian pairing, Lorentz or
+  address geometry, or exact hard selection by address - with a prospective TEST
+  FITNESS review before model compute, per D23.
+- **Interlock.** `scripts/check_no_softmax.py` ratchets the executable tree against
+  `scripts/no-softmax-baseline.json`: a softmax site may not be added, and the
+  baseline may only decrease. D23 recorded that no interlock existed; this is it.
+  It is not a claim that project-wide removal is complete.
+- **Cancelled under this rule (recorded):** the M1 #2029 invariant-addressed router
+  campaign stopped at 2 of 3 arm-A seeds. Arms A and C normalize over the kept
+  candidates with softmax, arm B *is* the full softmax read, and the routed read
+  executes host-side - all three violate D23/D24. The retained reading is
+  `icloud:UOR-R4/results/deepseek/router-abandoned-2026-10-12.tar`
+  (md5 f411b7d1870afdabcd2195ce27a8c157), with each fit's report.json, config.json,
+  manifest and full log. Model weights were not retained: the configuration is
+  excluded, and the pod volume was non-canonical with no canonical companion. This
+  is not a mechanism negative and does not count under D21/D22.
+
+Historical records keep their text as evidence; they are not rewritten.
+
