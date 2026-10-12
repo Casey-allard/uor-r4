@@ -1,5 +1,18 @@
 # UOR-R4 Geometric Language Model — canonical project plan
 
+## Owner direction — operator phase before further training, October 12
+
+The owner's 2026-10-12 decisions ([#2029 comment 6133330776](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6133330776)) make the
+[operator phase](../labs/operator-phase-2026-10-12/README.md) the critical path for every training
+line: no exponential-family squashing anywhere (the SwiGLU sigmoid carve-out is closed) and no
+dense matmul in training or serving. Kimi lab is the project manager. Line assignments: Claude —
+starling/murmuration read; DeepSeek — invariant-addressed router/memory; Codex — CI/ratchet
+enforcement + M2 grounded reply; Kimi — objective layer, geometric operators, CUDA kernels. The
+phase order is OP1 geometric gate → OP2 Hamilton-projection kernels → OP3 matmul-free head
+(product-key arm, then murmuration fixed-address arm) → rung 0 resumed on the compliant trunk →
+rung 0b rank-read kernel → margin-trained starling readout. No training is compliant until OP1–OP3
+land; no GPU spend without a TEST FITNESS: FIT verdict.
+
 ## Active programme — grounded conversation and durable memory, October 1
 
 **Owner-adopted direction:** [D19](DECISIONS.md#d19--grounded-conversation-and-durable-memory-first).

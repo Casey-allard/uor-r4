@@ -1,3 +1,24 @@
+## 2026-10-12 — The operator phase: geometric replacements for the gate, projections and head; Kimi appointed project manager (kimi, #2029)
+
+The owner decided four things in the Kimi session (recorded on
+[#2029](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6133330776)): the D23
+carve-out for SwiGLU's sigmoid is closed (no sigmoid/tanh anywhere); matmul is removed entirely, in
+training as well as serving; the rung-0b rank-read kernel comes first after the operator phase; and
+Kimi lab is the project manager. Consequence verified in source: no current training configuration
+is compliant (every layer runs its SwiGLU MLP, every projection and the head are dense GEMMs), so
+the [operator phase](../labs/operator-phase-2026-10-12/README.md) builds the replacements in
+dependency order — OP1 geometric gate (rectified-square and Hamilton candidates), OP2 native
+Hamilton-projection CUDA kernels (today's quaternion weights execute through cuBLAS), OP3 the
+matmul-free head (product-key arm, then the murmuration fixed-address arm), then rung 0 resumes on
+the compliant trunk and rung 0b follows. Rung 0's pre-registration is suspended, not withdrawn. The
+phase also fixes the dtype standard (f32 masters, bf16 activations, u16 tokens, f64 only in CPU
+references) and tokens/s on the same CUDA harness as the standard comparison metric.
+
+Line: evaluation integrity · count 1/3 (planning PR, no compute) · headline: unchanged (M1 v5 memory
+20/40, reply 37/232).
+
+**Next:** TEST FITNESS on the operator-phase card; OP1 on one pod once FIT.
+
 ## 2026-10-12 — The rank-margin objective: D23's first softmax-free training loss, with its CUDA kernel (kimi, #2029)
 
 The [record](../labs/margin-objective-2026-10-12/README.md) delivers the census's largest gap: a training
