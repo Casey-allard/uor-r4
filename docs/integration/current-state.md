@@ -1,3 +1,31 @@
+## 2026-10-12 — Kimi joins as the fourth lab: joining review, direction memo, evaluation-integrity line (kimi, #2028)
+
+The [joining review and direction memo](../labs/kimi-direction-2026-10-12/README.md) records a full
+repository + live-GitHub + external-literature read on joining as the fourth lab (owner request today;
+registration [comment 6118939798](https://github.com/UOR-Foundation/uor-r4/issues/2028#issuecomment-6118939798)).
+No training, no pods, no new model measurement. It asks the owner to answer the geometry audit's three pending
+questions (compute ledger; first load-bearing mechanism — C1 recommended; the stack as the family), to
+re-baseline the synthetic recall bench to the published MQAR regime before further read claims, and to adopt
+the equal-budget / posted-noise / tokens-per-second standards upgrades. A proposed Kimi `/goal` prompt is added
+to [session-goal.md](../labs/session-goal.md); it takes effect when the owner pastes it.
+
+Housekeeping disclosed on #2028: the owner's local main carried one unpushed DeepSeek commit (`72edb444b`,
+knowledge notes) — preserved on local branch `preserve/deepseek-router-prep-2026-10-12`; the checkout is back
+on clean `origin/main`. Local verification at `c4d682cd0`: `uor-r4-integer` library suite **284/284 pass**; the
+six `adversarial_challenger_m1_token_boundary` tests fail on this machine for want of the September bundle
+fixtures (hardcoded `/Users/casey.allard/uor-r4-investigations/...` paths, absent) — UNAVAILABLE fixtures, not
+a regression. The three `joint_campaign` failures flagged on #2028 are **reproduced and diagnosed — not a model
+regression**: `save_checkpoint` records `source_commit` from the compile-time `UOR_BUILD_SOURCE_COMMIT`
+(default `UNBOUND`) while `load_bound_checkpoint` requires a 40-hex digest, and a plain local build sets no
+variable. Both directions verified at `c4d682cd0`: default build 904 passed / 3 failed (the three
+checkpoint-resume tests); the same crate built with `UOR_BUILD_SOURCE_COMMIT=<40-hex>` passes all 23
+`joint_campaign` tests. The scoped fix is a build script that always binds the source commit; posted on #2028.
+
+Line: evaluation integrity · count 0/3 · headline: unchanged (M1 v5 memory 20/40, reply 37/232).
+
+**Next:** the forced-copy oracle work card + pre-registration on #2029 (TEST FITNESS before compute), then the
+mqar bench re-baseline pre-registration on #2032.
+
 ## 2026-10-12 - Whole-path compiler/store/E8/native-emitter reference connected, training held (codex, #2030)
 
 The [source result](../labs/whole-path-implementation-2026-10-12/README.md) joins
