@@ -1,3 +1,18 @@
+## Whole-path producer, sampled recovery and episode credit source checked — October 12
+
+The [source record](../labs/whole-path-recovery-2026-10-12/README.md) connects CUDA
+producer source, replayable sampled graphs and isolated episode credit through
+the existing compiler/exact-store/SpiralCore/E8/native-emitter interfaces.
+28 whole-path,3 grounded-store and5 E8 fixtures pass on CPU; they include
+15 shared credit owners, replayed gradients/next outputs, atomic tampered-RNG
+rejection, foreign prepared-packet refusal and all64 end-to-end frame actions.
+Actual CUDA build/execution, optimizer recovery and language/efficiency benefits
+remain unqualified; no training, panel, fresh draw or pod rental occurred.
+Line unified geometric integration; count5/3 ->6/3 on this explicit-owner source
+delivery, no reset; saved437/512+opened0/128 unchanged panel fitting.
+**Next:** retain the no-training hold; device qualification and raw-instrument
+fitness/preregistration/TEST FITNESS remain gates, not automatic run permission.
+
 ## 2026-10-12 — Why starling learning is a lottery, and a dense bootstrap that removes most of it: 3/5 seeds match softmax at 1536 (row 2) (claude, #2032)
 
 The [record](../labs/starling-bootstrap-2026-10-12/README.md) covers the owner-requested investigation.

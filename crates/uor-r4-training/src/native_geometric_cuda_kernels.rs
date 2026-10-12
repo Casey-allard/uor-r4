@@ -78,6 +78,22 @@ fn ptx() -> Result<&'static str> {
     }
 }
 const SOURCE: &str = r#"
+extern "C" __global__ void whole_path_cdf(const float*p,double*out,unsigned n){
+ if(blockIdx.x||threadIdx.x)return;double sum=0;
+ for(unsigned i=0;i<n;i++){sum=__dadd_rn(sum,(double)p[i]);out[i]=sum;}
+ out[n-1]=1.;
+}
+extern "C" __global__ void whole_path_alias_sum(const double*x,const unsigned*offsets,const unsigned*indices,double*out,unsigned n){
+ unsigned token=blockIdx.x*blockDim.x+threadIdx.x;if(token>=n)return;
+ double sum=0;for(unsigned j=offsets[token];j<offsets[token+1];j++)sum=__dadd_rn(sum,x[indices[j]]);out[token]=sum;
+}
+extern "C" __global__ void whole_path_alias_log(const float*x,const unsigned*offsets,const unsigned*indices,float*out,unsigned n){
+ unsigned token=blockIdx.x*blockDim.x+threadIdx.x;if(token>=n)return;
+ double m=(double)x[indices[offsets[token]]];
+ for(unsigned j=offsets[token]+1;j<offsets[token+1];j++)m=fmax(m,(double)x[indices[j]]);
+ double sum=0;for(unsigned j=offsets[token];j<offsets[token+1];j++)sum=__dadd_rn(sum,exp((double)x[indices[j]]-m));
+ out[token]=(float)(m+log(sum));
+}
 // Exact native Generate Q24 factors are immutable admitted snapshot data.
 // Relative rows encode inv(state)*prototype; identity is table-defined (1).
 extern "C" __global__ void native_generate_q24(const unsigned*rel,const unsigned*proto,

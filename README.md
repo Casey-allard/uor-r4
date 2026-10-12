@@ -187,9 +187,12 @@ held for whole-path qualification. The [joint learning design](docs/labs/whole-p
 specifies a shared encoder/revision, learned memory/route decisions and delayed
 reply credit. Its [source implementation](docs/labs/whole-path-implementation-2026-10-12/README.md)
 connects the actual compiler/store/E8/native-emitter path with shared credit,
-transactional rebinding and focused greedy reload fixtures. It is a CPU source
-reference, not a trained model or qualified CUDA trainer; model compute remains
-held. Opened128 and genuinely fresh
+transactional rebinding and focused greedy reload fixtures. The [producer and recovery extension](docs/labs/whole-path-recovery-2026-10-12/README.md)
+adds device graph source, replayable sampled checkpoints and isolated episodes
+sharing one parameter inventory and prototype credit. Tiny CPU-reference checks
+cover these connections and all64 SpiralCore frames; actual CUDA execution,
+optimizer recovery and trained-model qualification remain unverified. Model
+compute stays held. Opened128 and genuinely fresh
 qualification remain NOT_RUN. Historical source and
 reports remain in the [branch archive](docs/history/branch-archive/INDEX.md).
 

@@ -466,15 +466,20 @@ impl<'a, C: TurnCompiler> NativeGroundedSession<'a, C> {
         prefix: &[u32],
     ) -> Result<uor_r4_core::native_geometric::learner::native_bank_generate::NativeBankGenerateStep>
     {
-        self.check_compiler()?;
-        if prepared.session_sha256 != self.session_sha256()?
-            || prepared.compiler_sha256 != self.compiler_identity.artifact_sha256
-        {
-            return Err(invalid("teacher packet no longer binds this session"));
-        }
+        self.validate_prepared_turn(prepared)?;
         self.emitter
             .step(&prepared.bank, prefix)
             .map_err(|e| invalid(e.to_string()))
+    }
+    pub(crate) fn validate_prepared_turn(&self, prepared: &NativePreparedTurn) -> Result<()> {
+        self.check_compiler()?;
+        if prepared.compiler_sha256 != self.compiler_identity.artifact_sha256
+            || prepared.session_sha256 != self.session_sha256()?
+            || prepared.turn.event != self.turns.len() as u64 + 1
+        {
+            return Err(invalid("prepared native turn is stale/foreign"));
+        }
+        Ok(())
     }
     /// The route is supplied by the existing geometric reader, not derived from
     /// hash bits. Bind only an exact committed record in this session's scope.
@@ -714,13 +719,7 @@ impl<'a, C: TurnCompiler> NativeGroundedSession<'a, C> {
             GenerationLimits,
         ) -> Result<NativeBankGeneration>,
     ) -> Result<NativeTurnOutcome> {
-        self.check_compiler()?;
-        if prepared.compiler_sha256 != self.compiler_identity.artifact_sha256
-            || prepared.session_sha256 != self.session_sha256()?
-            || prepared.turn.event != self.turns.len() as u64 + 1
-        {
-            return Err(invalid("prepared native turn is stale/foreign"));
-        }
+        self.validate_prepared_turn(&prepared)?;
         if limits.maximum_tokens == 0 {
             return Err(invalid("native reply token admission is zero"));
         }

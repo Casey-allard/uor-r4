@@ -49,8 +49,13 @@ now joins actual native compiler/store/E8/emitter decisions with one shared Var
 inventory, pooled complete-answer/EOS and terminal episode credit, actual
 stochastic branch laws, fresh whole-revision bindings and greedy snapshots.
 Fifteen tiny fixtures exercise these connections, not language or efficiency.
-CUDA, sampled checkpoint/optimizer, multi-episode batch and full-instrument
-qualification remain blocking; no training loop or run is activated.
+The [producer/recovery extension](../labs/whole-path-recovery-2026-10-12/README.md)
+adds CUDA numerical graph source, sampled replay recovery and equal-episode
+batch credit. Its28 whole-path CPU-reference fixtures include native Q24 parity,
+15 shared parameter groups, replayed gradients/next outputs, cross-episode
+packet rejection and all64 end-to-end frame actions. Actual CUDA build/execution,
+optimizer recovery and full-instrument qualification remain blocking; no
+training loop or run is activated.
 
 **Executed configuration, then owner interruption:** Three completed/sealed arms
 independently reproduce the saved437 baseline, then score0/512 at their fixed
