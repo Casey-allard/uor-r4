@@ -4631,6 +4631,10 @@ struct DialogueSettings {
     /// `read_binding_source=LABEL`: the training store source the labels
     /// belong to.
     read_binding_source: Option<String>,
+    /// `read_override=dot|lorentz|l2`: switch the read's score on a model
+    /// loaded from `init=`, which otherwise keeps the checkpoint's own score.
+    /// Recorded because it changes the model's function.
+    read_override: Option<uor_r4_training::geometric_stack::ReadScore>,
     /// `read_binding_layer=L` (default: the last read layer).
     read_binding_layer: Option<usize>,
     /// `read_binding_competing_weight=W` (default 0, off): weight on the term
@@ -4692,6 +4696,9 @@ impl DialogueSettings {
             record["read_binding_labels"] = json!(self.read_binding_labels);
             record["read_binding_source"] = json!(self.read_binding_source);
             record["read_binding_layer"] = json!(self.read_binding_layer);
+            if let Some(read) = self.read_override {
+                record["read_override"] = json!(format!("{read:?}").to_lowercase());
+            }
             if self.read_binding_competing_weight > 0.0 {
                 record["read_binding_competing_weight"] =
                     json!(self.read_binding_competing_weight);
@@ -5003,6 +5010,7 @@ fn dialogue_train_mode(arguments: &[String]) -> Result<()> {
             "read_binding_labels",
             "read_binding_source",
             "read_binding_layer",
+            "read_override",
             "read_binding_competing_weight",
             "read_binding_competing_margin",
             "memory_layers",
@@ -5073,6 +5081,17 @@ fn dialogue_train_mode(arguments: &[String]) -> Result<()> {
         read_binding_source: args.optional("read_binding_source"),
         read_binding_competing_weight: args.number("read_binding_competing_weight", 0.0)?,
         read_binding_competing_margin: args.number("read_binding_competing_margin", 0.03)?,
+        read_override: match args.optional("read_override").as_deref() {
+            None => None,
+            Some("dot") => Some(uor_r4_training::geometric_stack::ReadScore::Dot),
+            Some("lorentz") => Some(uor_r4_training::geometric_stack::ReadScore::Lorentz),
+            Some("l2") => Some(uor_r4_training::geometric_stack::ReadScore::L2),
+            Some(other) => {
+                return Err(invalid(format!(
+                    "invalid read_override={other} (dot, lorentz or l2)"
+                )))
+            }
+        },
         read_binding_layer: args
             .optional("read_binding_layer")
             .map(|v| {
@@ -5107,7 +5126,7 @@ fn dialogue_train_mode(arguments: &[String]) -> Result<()> {
     // The snap needs a rotating geometric stack: `init=`'s, or the shape
     // options' (whose vocabulary the corpus sets later).
     if let Some(snap) = settings.transport_snap {
-        let config = match &settings.init {
+        let mut config = match &settings.init {
             Some(directory) => {
                 serde_json::from_slice::<StackConfig>(&fs::read(directory.join("config.json"))?)?
             }
@@ -5422,6 +5441,16 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
                     let mut model = StackModel::load(directory, &device)?;
                     model.extend_context(config.context)?;
                     model.set_select(config.select)?;
+                    // `read_override=` switches the read's score on a checkpoint
+                    // trained with another one: the base carries the flat control
+                    // (`l2`), so this is how the geometric read (`lorentz`) is
+                    // fine-tuned in — recorded above, never silent.
+                    if let Some(read) = s.read_override {
+                        // Recorded in the run's settings; the consistency check
+                        // below compares against a configuration carrying the
+                        // same override, so the run cannot hide the switch.
+                        model.set_read_score(read)?;
+                    }
                     if memory_added {
                         // The memory replaces the named layers' MLPs, so its
                         // weights are initialised fresh from the model's seed
@@ -5442,7 +5471,11 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
                         model.set_pointer_route(pointer.route)?;
                         model.set_pointer_identity(pointer.identity)?;
                     }
-                    if model.config != config {
+                    let mut expected = config.clone();
+                    if let Some(read) = s.read_override {
+                        expected.read = read;
+                    }
+                    if model.config != expected {
                         return Err(invalid(
                             "the extended init= model differs from its configuration",
                         ));

@@ -4373,6 +4373,26 @@ impl StackModel {
     ///
     /// This initial float-training mechanism has no integer export or served
     /// representation; both must refuse it until the corresponding port exists.
+    /// Set the read's score on a model **loaded from a checkpoint**: the read's
+    /// parameters are shape-identical between `dot`, `lorentz` and `l2`, so a
+    /// fine-tune can switch the score the base was not trained with — which is
+    /// how the geometric read is tested against the flat control the deployed
+    /// base carries (`read=l2`). The configuration is revalidated; the change is
+    /// recorded by the caller, because it changes the model's function and must
+    /// never be silent.
+    pub fn set_read_score(&mut self, read: ReadScore) -> Result<()> {
+        if self.served.is_some() {
+            return Err(invalid(
+                "set the read score before setting a served representation",
+            ));
+        }
+        let mut config = self.config.clone();
+        config.read = read;
+        config.validate()?;
+        self.config = config;
+        Ok(())
+    }
+
     pub fn set_read_identity_carry(&mut self, enabled: bool) -> Result<()> {
         if enabled {
             if self.read_identity_latch.is_some() || self.geometric_span.is_some() {
@@ -25183,6 +25203,29 @@ mod tests {
     }
 
     #[test]
+    #[test]
+    fn the_read_score_can_be_switched_on_a_loaded_shape_and_the_default_is_untouched()
+    -> Result<()> {
+        let ids: Vec<u32> = (0..8).map(|i| (i * 5 + 1) % 37).collect();
+        let targets: Vec<u32> = ids.iter().map(|&id| (id + 3) % 37).collect();
+        let mut model = StackModel::new(tiny(StackArch::Geometric, "rra", ReadScore::L2, true), &cpu())?;
+        // The checkpoint's own score is what a run without the flag trains.
+        assert_eq!(model.config.read, ReadScore::L2);
+        let before = model.loss(&ids, &targets, 1, 8)?.to_scalar::<f32>()?;
+        // The switch is explicit, recorded by the caller, and revalidated.
+        model.set_read_score(ReadScore::Lorentz)?;
+        assert_eq!(model.config.read, ReadScore::Lorentz);
+        let after = model.loss(&ids, &targets, 1, 8)?.to_scalar::<f32>()?;
+        assert!(after.is_finite() && before.is_finite());
+        // Switching back reproduces the original model exactly on the same row.
+        model.set_read_score(ReadScore::L2)?;
+        assert_eq!(
+            model.loss(&ids, &targets, 1, 8)?.to_scalar::<f32>()?.to_bits(),
+            before.to_bits()
+        );
+        Ok(())
+    }
+
     fn read_binding_labels_leave_language_and_its_gradient_unchanged() -> Result<()> {
         let ids: Vec<u32> = (0..16).map(|i| (i * 7 + 3) % 37).collect();
         let targets: Vec<u32> = ids.iter().map(|&id| (id + 1) % 37).collect();
