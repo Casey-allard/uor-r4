@@ -10,7 +10,7 @@
 //!   [dump_scores=false|true] [reachability=true|false] \
 //!   [mode=train|task-baselines] [layout=synthetic|fact] FACT OPTIONS [arm=stack] ARM OPTIONS
 //! arm=stack: [pattern=aaaaaa] [read=l2|dot|lorentz] [rotation=true|false] [width=128] [heads=4] \
-//!   [read_route=none|starling:M:K[:content][:shared][:ranked]] [starling_anneal=FRACTION] [starling_oracle_train=false|true] [starling_surrogate=false|true] [starling_distill=WEIGHT] [starling_distill_start=FRACTION] [starling_salience=WEIGHT] [starling_rank_distill=WEIGHT] \
+//!   [read_route=none|starling:M:K[:content][:shared][:ranked]] [starling_anneal=FRACTION] [starling_oracle_train=false|true] [starling_surrogate=false|true] [starling_distill=WEIGHT] [starling_distill_start=FRACTION] [starling_salience=WEIGHT] [starling_rank_distill=WEIGHT] [track_bootstrap=false|true] [starling_bootstrap=NLL] [starling_handover=FRACTION] [starling_teacher_read=false|true] [starling_bootstrap_kl=false|true] [starling_teacher_age=false|true] \
 //!   [mlp=384] [age=default|flat|spread] [key_shift=false|true] \
 //!   [lineage=none|f2|qk|qk_jj|identity|so4|conv|wprev|conv8|carrier|rot] [learned_init=lag1|zero]
 //! arm=transformer: [layers=<pattern length>] [width=128] [heads=4] [mlp=matched|<n>] \
@@ -407,12 +407,37 @@ trait ContextArm {
         }
         Ok(())
     }
+    /// The teacher scores with the L2 read's own learned score.
+    fn set_starling_teacher_read(&mut self, on: bool) -> Result<()> {
+        if on {
+            return Err(invalid("starling_teacher_read needs a starling stack arm"));
+        }
+        Ok(())
+    }
+    /// The read-score teacher also adds the L2 read's learned age table.
+    fn set_starling_teacher_age(&mut self, on: bool) -> Result<()> {
+        if on {
+            return Err(invalid("starling_teacher_age needs a starling stack arm"));
+        }
+        Ok(())
+    }
     /// Training-only readout self-distillation for a content starling route.
     fn set_starling_rank_distill(&mut self, weight: Option<f64>) -> Result<()> {
         if weight.is_some() {
             return Err(invalid("starling_rank_distill needs a starling stack arm"));
         }
         Ok(())
+    }
+    /// The dense-bootstrap phase of a starling arm for the next training
+    /// step: the dense helper's weight and whether it is the content teacher
+    /// read, and the distillation weight.
+    fn set_starling_phase(
+        &mut self,
+        _alpha: Option<f64>,
+        _teacher_helper: bool,
+        _distill: Option<f64>,
+    ) -> Result<()> {
+        Err(invalid("starling_bootstrap needs a starling stack arm"))
     }
     /// The last training step's auxiliary (distillation) loss term, 0 if none.
     fn last_aux(&self) -> f64 {
@@ -826,6 +851,11 @@ impl ArmSpec {
                 starling_anneal,
                 ..
             } => {
+                if starling_anneal.is_some() && common.starling_bootstrap.is_some() {
+                    return Err(invalid(
+                        "starling_bootstrap sets the helper itself; drop starling_anneal",
+                    ));
+                }
                 if starling_anneal.is_some() && route.is_none() {
                     return Err(invalid("starling_anneal needs read_route=starling"));
                 }
@@ -1167,6 +1197,25 @@ impl ContextArm for StackArm {
 
     fn set_starling_rank_distill(&mut self, weight: Option<f64>) -> Result<()> {
         self.model.set_starling_rank_distill(weight)
+    }
+
+    fn set_starling_teacher_read(&mut self, on: bool) -> Result<()> {
+        self.model.set_starling_teacher_read(on)
+    }
+
+    fn set_starling_teacher_age(&mut self, on: bool) -> Result<()> {
+        self.model.set_starling_teacher_age(on)
+    }
+
+    fn set_starling_phase(
+        &mut self,
+        alpha: Option<f64>,
+        teacher_helper: bool,
+        distill: Option<f64>,
+    ) -> Result<()> {
+        self.model.set_starling_teacher_helper(teacher_helper)?;
+        self.model.set_starling_distill(distill)?;
+        self.model.set_starling_dense(alpha)
     }
 
     fn last_aux(&self) -> f64 {
@@ -2503,6 +2552,30 @@ struct Common {
     /// `starling_rank_distill=WEIGHT`: training-only readout self-distillation
     /// (active in the distillation's training forwards).
     starling_rank_distill: Option<f64>,
+    /// `track_bootstrap=true` (starling arms): at each evaluation point, log
+    /// the dense helper's weight on the true source and the source's share
+    /// of its mass (measured in the preceding training forward), and recall
+    /// with the true source forced into the kept sets. Observation only.
+    track_bootstrap: bool,
+    /// `starling_bootstrap=NLL`: a dense bootstrap schedule. Until the
+    /// training query NLL over an evaluation window (with the helper on)
+    /// falls to NLL (at the latest half the steps), the dense helper is the content teacher read at full weight
+    /// and the distillation is off; from that trigger the helper anneals to
+    /// zero over `starling_handover` of the steps while the distillation
+    /// (with salience and readout terms) is on. Training only.
+    starling_bootstrap: Option<f64>,
+    /// `starling_handover=FRACTION`: the bootstrap's anneal length (default 0.25).
+    starling_handover: f64,
+    /// `starling_teacher_read=true`: the teacher scores with the L2 read's own
+    /// learned score (the L2 control's attention). Training only.
+    starling_teacher_read: bool,
+    /// `starling_bootstrap_kl=true`: the distillation KL (with salience and
+    /// readout terms) is on during the dense bootstrap phase too, so the
+    /// addresses learn before the handover. Training only.
+    starling_bootstrap_kl: bool,
+    /// `starling_teacher_age=true`: the read-score teacher also adds the L2
+    /// read's learned age table. Training only.
+    starling_teacher_age: bool,
     context: usize,
     pairs_per_bucket: usize,
     batch: usize,
@@ -2577,6 +2650,12 @@ impl Common {
             "starling_distill_start": self.starling_distill_start,
             "starling_salience": self.starling_salience,
             "starling_rank_distill": self.starling_rank_distill,
+            "track_bootstrap": self.track_bootstrap,
+            "starling_bootstrap": self.starling_bootstrap,
+            "starling_handover": self.starling_handover,
+            "starling_teacher_read": self.starling_teacher_read,
+            "starling_bootstrap_kl": self.starling_bootstrap_kl,
+            "starling_teacher_age": self.starling_teacher_age,
             "token_ranges": {"filler": FILLER, "keys": KEYS, "values": VALUES},
             "pairing_split": {
                 "classes": CLASSES, "held_out_class": HELD_OUT_CLASS,
@@ -2635,6 +2714,18 @@ fn settings(mut args: Args) -> Result<(Common, ArmSpec, Mode, Option<fact::FactT
             })
             .transpose()?,
         starling_distill_start: args.parsed("starling_distill_start", 0.0f64)?,
+        track_bootstrap: args.parsed("track_bootstrap", false)?,
+        starling_bootstrap: args
+            .take("starling_bootstrap")
+            .map(|text| {
+                text.parse::<f64>()
+                    .map_err(|_| invalid(format!("invalid starling_bootstrap={text}")))
+            })
+            .transpose()?,
+        starling_handover: args.parsed("starling_handover", 0.25f64)?,
+        starling_teacher_read: args.parsed("starling_teacher_read", false)?,
+        starling_bootstrap_kl: args.parsed("starling_bootstrap_kl", false)?,
+        starling_teacher_age: args.parsed("starling_teacher_age", false)?,
         starling_rank_distill: args
             .take("starling_rank_distill")
             .map(|text| {
@@ -2695,6 +2786,24 @@ fn settings(mut args: Args) -> Result<(Common, ArmSpec, Mode, Option<fact::FactT
     let mut common = common;
     if !(0.0..1.0).contains(&common.starling_distill_start) {
         return Err(invalid("starling_distill_start is a fraction in [0, 1)"));
+    }
+    if let Some(threshold) = common.starling_bootstrap {
+        if !(threshold.is_finite() && threshold > 0.0) || common.starling_distill.is_none() {
+            return Err(invalid(
+                "starling_bootstrap is a positive NLL threshold and needs starling_distill",
+            ));
+        }
+        if common.starling_distill_start > 0.0 {
+            return Err(invalid(
+                "starling_bootstrap sets its own distillation start; drop starling_distill_start",
+            ));
+        }
+        if common.starling_bootstrap_kl && common.starling_bootstrap.is_none() {
+            return Err(invalid("starling_bootstrap_kl needs starling_bootstrap"));
+        }
+        if !(common.starling_handover > 0.0 && common.starling_handover <= 1.0) {
+            return Err(invalid("starling_handover is a fraction in (0, 1]"));
+        }
     }
     if common.starling_distill_start > 0.0 && common.starling_distill.is_none() {
         return Err(invalid("starling_distill_start needs starling_distill"));
@@ -2841,6 +2950,12 @@ fn run(s: &Common, arm: &mut dyn ContextArm, log: &mut fs::File) -> Result<Value
         ));
     }
     arm.set_starling_rank_distill(s.starling_rank_distill)?;
+    if s.starling_teacher_read {
+        arm.set_starling_teacher_read(true)?;
+    }
+    if s.starling_teacher_age {
+        arm.set_starling_teacher_age(true)?;
+    }
     let buckets = buckets_for(s.context);
     let line = format!(
         "{} {}: {} parameters, context {}, buckets {:?}",
@@ -2890,6 +3005,10 @@ fn run(s: &Common, arm: &mut dyn ContextArm, log: &mut fs::File) -> Result<Value
     };
     prober.run(&*arm, 0, log)?;
     let (mut window_loss, mut window_aux, mut window_steps) = (0f64, 0f64, 0usize);
+    let mut bootstrap_probe: Option<(f64, f64)> = None;
+    // Dense bootstrap: the step at which the handover starts (None: still
+    // bootstrapping).
+    let mut bootstrap_trigger: Option<usize> = None;
     let mut step_seconds = Vec::new();
     let mut stopped_early = false;
     let mut step = 0;
@@ -2916,6 +3035,35 @@ fn run(s: &Common, arm: &mut dyn ContextArm, log: &mut fs::File) -> Result<Value
             .collect::<Result<_>>()?;
         let (ids, targets, weights) = batch_arrays(&batch, s.context);
         arm.begin_step(step, s.steps)?;
+        if s.starling_bootstrap.is_some() {
+            if bootstrap_trigger.is_none() && step >= s.steps / 2 {
+                bootstrap_trigger = Some(step);
+                let line = format!("step {step} bootstrap handover starts (cap: half the steps)");
+                eprintln!("{line}");
+                writeln!(log, "{line}")?;
+            }
+            match bootstrap_trigger {
+                None => arm.set_starling_phase(
+                    Some(1.0),
+                    true,
+                    s.starling_distill.filter(|_| s.starling_bootstrap_kl),
+                )?,
+                Some(start) => {
+                    let span = (s.starling_handover * s.steps as f64).max(1.0);
+                    let alpha = (1.0 - (step - start) as f64 / span).max(0.0);
+                    if step + 1 == s.steps && alpha > 0.0 {
+                        let line = format!("step {step} bootstrap: the handover did not finish (helper weight {alpha:.3} at the last step)");
+                        eprintln!("{line}");
+                        writeln!(log, "{line}")?;
+                    }
+                    arm.set_starling_phase(
+                        (alpha > 0.0).then_some(alpha),
+                        alpha > 0.0,
+                        s.starling_distill,
+                    )?;
+                }
+            }
+        }
         if s.starling_distill.is_some() && s.starling_distill_start > 0.0 {
             let on = step as f64 >= s.starling_distill_start * s.steps as f64;
             arm.set_starling_distill(s.starling_distill.filter(|_| on))?;
@@ -2929,7 +3077,20 @@ fn run(s: &Common, arm: &mut dyn ContextArm, log: &mut fs::File) -> Result<Value
             }
             uor_r4_training::geometric_stack::starling_oracle_set(Some(oracle));
         }
+        let probing = s.track_bootstrap && ((step + 1) % s.eval_every == 0 || step + 1 == s.steps);
+        if probing {
+            let mut sources = std::collections::HashMap::new();
+            for (b, sequence) in batch.iter().enumerate() {
+                for query in &sequence.queries {
+                    sources.insert((b, query.position), query.position - query.distance + 1);
+                }
+            }
+            uor_r4_training::geometric_stack::starling_probe_set(sources);
+        }
         let loss = arm.loss(&ids, &targets, &weights, s.batch, s.context);
+        if probing {
+            bootstrap_probe = uor_r4_training::geometric_stack::starling_probe_take();
+        }
         uor_r4_training::geometric_stack::starling_oracle_set(None);
         let loss = loss?;
         let value = f64::from(loss.to_scalar::<f32>()?);
@@ -2954,7 +3115,31 @@ fn run(s: &Common, arm: &mut dyn ContextArm, log: &mut fs::File) -> Result<Value
                 writeln!(log, "step {step} starling hit rate {rate:.4}")?;
             }
             let train_loss = window_loss / window_steps.max(1) as f64;
+            // The escape signal is the training NLL with the helper on (the
+            // curve evaluation runs without it).
+            if let (Some(threshold), None) = (s.starling_bootstrap, bootstrap_trigger) {
+                if train_loss <= threshold {
+                    bootstrap_trigger = Some(step);
+                    let line = format!(
+                        "step {step} bootstrap handover starts (train NLL {train_loss:.4} <= {threshold})"
+                    );
+                    eprintln!("{line}");
+                    writeln!(log, "{line}")?;
+                }
+            }
             let train_aux = window_aux / window_steps.max(1) as f64;
+            if s.track_bootstrap {
+                let forced = arm.starling_oracle_accuracy(&curve_in_class, s.context)?;
+                let line = format!(
+                    "step {step} bootstrap: helper weight on source {} share {} forced-in recall {}",
+                    bootstrap_probe.map_or("-".into(), |(w, _)| format!("{w:.6}")),
+                    bootstrap_probe.map_or("-".into(), |(_, z)| format!("{z:.5}")),
+                    forced.map_or("-".into(), |f| format!("{f:.4}")),
+                );
+                eprintln!("{line}");
+                writeln!(log, "{line}")?;
+                bootstrap_probe = None;
+            }
             if s.starling_distill.is_some() {
                 eprintln!("step {step} distill KL term {train_aux:.5}");
                 writeln!(log, "step {step} distill KL term {train_aux:.5}")?;
@@ -3429,6 +3614,12 @@ mod tests {
             starling_distill_start: 0.0,
             starling_salience: None,
             starling_rank_distill: None,
+            track_bootstrap: false,
+            starling_bootstrap: None,
+            starling_handover: 0.25,
+            starling_teacher_read: false,
+            starling_bootstrap_kl: false,
+            starling_teacher_age: false,
             select: None,
         };
         let spec = ArmSpec::Stack {
@@ -3634,6 +3825,12 @@ mod tests {
             starling_distill_start: 0.0,
             starling_salience: None,
             starling_rank_distill: None,
+            track_bootstrap: false,
+            starling_bootstrap: None,
+            starling_handover: 0.25,
+            starling_teacher_read: false,
+            starling_bootstrap_kl: false,
+            starling_teacher_age: false,
         }
     }
 

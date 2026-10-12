@@ -1099,6 +1099,34 @@ thread_local! {
         const { std::cell::Cell::new(None) };
 }
 
+/// A bootstrap probe over one training forward (observation only): the true
+/// source of each (batch row, query position) and, once measured, the mean
+/// over those queries and heads of the dense helper's weight on the source
+/// and of the source's share of the helper's mass at that query.
+/// The sums are over every read layer's (query, head) pairs.
+type StarlingProbe = (
+    std::collections::HashMap<(usize, usize), usize>,
+    (f64, f64, u64),
+);
+
+thread_local! {
+    static STARLING_PROBE: std::cell::RefCell<Option<StarlingProbe>> =
+        const { std::cell::RefCell::new(None) };
+}
+
+/// Arms the bootstrap probe for the next forward with the true sources.
+pub fn starling_probe_set(sources: std::collections::HashMap<(usize, usize), usize>) {
+    STARLING_PROBE.with(|probe| *probe.borrow_mut() = Some((sources, (0.0, 0.0, 0))));
+}
+
+/// The probe's (helper weight on the source, source share of helper mass),
+/// disarming it; `None` if the helper did not run.
+pub fn starling_probe_take() -> Option<(f64, f64)> {
+    STARLING_PROBE
+        .with(|probe| probe.borrow_mut().take())
+        .and_then(|(_, (weight, share, n))| (n > 0).then(|| (weight / n as f64, share / n as f64)))
+}
+
 /// Starts measuring the starling readout's effective slot count.
 pub fn starling_readout_start() {
     STARLING_READOUT.with(|cell| cell.set(Some((0.0, 0))));
@@ -3106,6 +3134,9 @@ pub struct StackModel {
     starling_distill: Option<f64>,
     starling_salience: Option<f64>,
     starling_rank_distill: Option<f64>,
+    starling_teacher_helper: bool,
+    starling_teacher_read: bool,
+    starling_teacher_age: bool,
     /// Layers whose MLP is an E8 orbit memory ([`Self::set_e8_memory`]).
     e8_memory: Option<crate::e8_memory::E8MemoryConfig>,
     /// How the geometric reads weight their kept sources
@@ -3220,6 +3251,9 @@ impl StackModel {
             starling_distill: None,
             starling_salience: None,
             starling_rank_distill: None,
+            starling_teacher_helper: false,
+            starling_teacher_read: false,
+            starling_teacher_age: false,
             e8_memory: None,
             read_weighting: ReadWeighting::Softmax,
             softsort_tau: None,
@@ -4432,8 +4466,14 @@ impl StackModel {
         }
         // Training-only selector distillation and dense content teacher.
         let training = STARLING_TRAINING_FORWARD.with(|flag| flag.get());
-        let teacher = match (self.starling_distill.filter(|_| training), content) {
-            (Some(weight), Some((query, key))) => {
+        // The teacher is built for the distillation KL, or (training only)
+        // as the dense bootstrap helper on its own ([`StackModel::
+        // set_starling_teacher_helper`]); the KL and the salience regression
+        // need the distillation weight.
+        let distill_weight = self.starling_distill.filter(|_| training);
+        let want_teacher = training && (distill_weight.is_some() || self.starling_teacher_helper);
+        let teacher = match (want_teacher, content) {
+            (true, Some((query, key))) => {
                 let d = query.dim(3)?;
                 let mut causal = vec![0f32; time * time];
                 for t in 0..time {
@@ -4442,31 +4482,79 @@ impl StackModel {
                     }
                 }
                 let causal = Tensor::from_vec(causal, (1, 1, time, time), identity.device())?;
-                let scores = query
+                let inner = query
                     .contiguous()?
-                    .matmul(&key.transpose(2, 3)?.contiguous()?)?
-                    .affine(1.0 / (d as f64).sqrt(), 0.0)?
-                    .broadcast_add(&causal)?;
+                    .matmul(&key.transpose(2, 3)?.contiguous()?)?;
+                // The teacher's score: by default q.k/sqrt(d); with
+                // `set_starling_teacher_read`, the L2 read's own learned score
+                // -beta (|q - k| - offset), the attention the L2 control uses.
+                let scores = if self.starling_teacher_read {
+                    let l2;
+                    let beta = p
+                        .layer(layer, "read.log_beta")?
+                        .exp()?
+                        .reshape((1, heads, 1, 1))?;
+                    let offset = p.layer(layer, "read.offset")?.reshape((1, heads, 1, 1))?;
+                    let qs = query.sqr()?.sum_keepdim(3)?;
+                    let ks = key.sqr()?.sum_keepdim(3)?.transpose(2, 3)?;
+                    l2 = qs
+                        .broadcast_add(&ks)?
+                        .sub(&inner.affine(2.0, 0.0)?)?
+                        .clamp(L2_MIN_SQUARED as f32, f32::MAX)?
+                        .sqrt()?
+                        .broadcast_sub(&offset)?
+                        .broadcast_mul(&beta)?
+                        .neg()?
+                        .broadcast_add(&causal)?;
+                    // With `set_starling_teacher_age`, also the L2 read's own
+                    // learned age table (per head, per distance), as the L2
+                    // control adds it.
+                    if self.starling_teacher_age {
+                        let mut ages = vec![0u32; time * time];
+                        for t in 0..time {
+                            for j in 0..=t {
+                                ages[t * time + j] = (t - j) as u32;
+                            }
+                        }
+                        let ages = Tensor::from_vec(ages, time * time, identity.device())?;
+                        let age = p.layer(layer, "read.age")?;
+                        let table = age
+                            .narrow(1, 0, time)?
+                            .index_select(&ages, 1)?
+                            .reshape((1, heads, time, time))?;
+                        l2.broadcast_add(&table)?
+                    } else {
+                        l2
+                    }
+                } else {
+                    inner
+                        .affine(1.0 / (d as f64).sqrt(), 0.0)?
+                        .broadcast_add(&causal)?
+                };
                 let log_teacher = log_softmax_last_dim(&scores)?;
-                let student = a
-                    .matmul(&b.transpose(2, 3)?.contiguous()?)?
-                    .affine(STARLING_DISTILL_TAU, 0.0)?
-                    .broadcast_add(&causal)?;
-                let log_student = log_softmax_last_dim(&student)?;
-                let target = log_teacher.detach();
-                let kl = target
-                    .exp()?
-                    .mul(&target.sub(&log_student)?)?
-                    .sum_keepdim(3)?
-                    .mean_all()?;
-                starling_aux_add(kl.affine(weight, 0.0)?)?;
+                if let Some(weight) = distill_weight {
+                    let student = a
+                        .matmul(&b.transpose(2, 3)?.contiguous()?)?
+                        .affine(STARLING_DISTILL_TAU, 0.0)?
+                        .broadcast_add(&causal)?;
+                    let log_student = log_softmax_last_dim(&student)?;
+                    let target = log_teacher.detach();
+                    let kl = target
+                        .exp()?
+                        .mul(&target.sub(&log_student)?)?
+                        .sum_keepdim(3)?
+                        .mean_all()?;
+                    starling_aux_add(kl.affine(weight, 0.0)?)?;
+                }
                 let attention = log_teacher.exp()?;
                 // Tree routes: regress each position's salience on the log of
                 // the teacher's mean attention into it per later query (so
                 // early positions are not favoured for having more readers),
                 // both centred per row since only the order is used. Training
                 // only.
-                if let (Some(salience), Some(weight)) = (&salience, self.starling_salience) {
+                if let (Some(salience), Some(weight), true) =
+                    (&salience, self.starling_salience, distill_weight.is_some())
+                {
                     let readers: Vec<f32> = (0..time).map(|j| (time - j) as f32).collect();
                     let readers = Tensor::from_vec(readers, (1, 1, time), identity.device())?;
                     let target = attention
@@ -4518,7 +4606,56 @@ impl StackModel {
             }
         }
         let mean = Tensor::from_vec(mean, (1, 1, time, time), identity.device())?;
-        let dense = all.broadcast_mul(&mean)?.matmul(&value.contiguous()?)?;
+        let weighted = all.broadcast_mul(&mean)?;
+        let sources: Option<Vec<(usize, usize, usize)>> = STARLING_PROBE.with(|probe| {
+            probe.borrow().as_ref().map(|(map, _)| {
+                map.iter()
+                    .filter(|(&(b, t), &j)| b < batch && t < time && j <= t)
+                    .map(|(&(b, t), &j)| (b, t, j))
+                    .collect()
+            })
+        });
+        if let Some(sources) = sources.filter(|s| !s.is_empty()) {
+            // Observation only: the helper's weight on each true source and
+            // its share of the helper's (causal) mass at that query.
+            let totals = weighted.detach().sum(3)?;
+            let mut picks = Vec::with_capacity(sources.len() * heads);
+            let mut rows = Vec::with_capacity(sources.len() * heads);
+            for &(b, t, j) in &sources {
+                for h in 0..heads {
+                    let row = (b * heads + h) * time + t;
+                    picks.push((row * time + j) as u32);
+                    rows.push(row as u32);
+                }
+            }
+            let count = picks.len();
+            let picks = Tensor::from_vec(picks, count, identity.device())?;
+            let rows = Tensor::from_vec(rows, count, identity.device())?;
+            let weight = weighted
+                .detach()
+                .flatten_all()?
+                .index_select(&picks, 0)?
+                .to_vec1::<f32>()?;
+            let total = totals
+                .flatten_all()?
+                .index_select(&rows, 0)?
+                .to_vec1::<f32>()?;
+            let sum_weight = weight.iter().map(|&w| w as f64).sum::<f64>();
+            let sum_share = weight
+                .iter()
+                .zip(&total)
+                .map(|(&w, &z)| (w as f64) / (z as f64).max(1e-12))
+                .sum::<f64>();
+            // Accumulated over every read layer of the forward.
+            STARLING_PROBE.with(|probe| {
+                if let Some((_, (w, z, n))) = probe.borrow_mut().as_mut() {
+                    *w += sum_weight;
+                    *z += sum_share;
+                    *n += count as u64;
+                }
+            });
+        }
+        let dense = weighted.matmul(&value.contiguous()?)?;
         Ok(read.add(&dense.affine(alpha, 0.0)?)?)
     }
 
@@ -5184,6 +5321,48 @@ impl StackModel {
             }
         }
         self.starling_salience = weight;
+        Ok(())
+    }
+
+    /// Training-only dense bootstrap for a content starling route: in training
+    /// forwards the dense content teacher (softmax of q.k/sqrt(d) over every
+    /// earlier position) is built even without the distillation KL, so the
+    /// dense helper ([`StackModel::set_starling_dense`]) is the teacher read,
+    /// a concentrated read like the L2 control's. Never saved or served.
+    pub fn set_starling_teacher_helper(&mut self, on: bool) -> Result<()> {
+        if on && !self.read_route.is_some_and(|route| route.content) {
+            return Err(invalid("the teacher helper needs a content read route"));
+        }
+        self.starling_teacher_helper = on;
+        Ok(())
+    }
+
+    /// The dense content teacher scores with the L2 read's own learned score
+    /// `-beta (|q - k| - offset)` instead of `q.k/sqrt(d)` (training only;
+    /// needs a content route on an L2 read).
+    pub fn set_starling_teacher_read(&mut self, on: bool) -> Result<()> {
+        if on
+            && (!self.read_route.is_some_and(|route| route.content)
+                || self.config.read != ReadScore::L2)
+        {
+            return Err(invalid(
+                "the read-score teacher needs a content route on an L2 read",
+            ));
+        }
+        self.starling_teacher_read = on;
+        Ok(())
+    }
+
+    /// With the read-score teacher, also add the L2 read's learned age table
+    /// (per head, per distance), so the teacher is the L2 control's
+    /// attention except for its null slot (training only).
+    pub fn set_starling_teacher_age(&mut self, on: bool) -> Result<()> {
+        if on && !self.starling_teacher_read {
+            return Err(invalid(
+                "the teacher age table needs the read-score teacher",
+            ));
+        }
+        self.starling_teacher_age = on;
         Ok(())
     }
 
@@ -11802,6 +11981,9 @@ impl StackModel {
             starling_distill: None,
             starling_salience: None,
             starling_rank_distill: None,
+            starling_teacher_helper: false,
+            starling_teacher_read: false,
+            starling_teacher_age: false,
             e8_memory: None,
             read_weighting: ReadWeighting::Softmax,
             softsort_tau: None,

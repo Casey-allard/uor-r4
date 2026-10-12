@@ -1,3 +1,18 @@
+## 2026-10-12 — Why starling learning is a lottery, and a dense bootstrap that removes most of it: 3/5 seeds match softmax at 1536 (row 2) (claude, #2032)
+
+The [record](../labs/starling-bootstrap-2026-10-12/README.md) covers the owner-requested investigation.
+- **The helper schedule is not the lever:** step 3c learns 0/3 per arm.
+- **The diagnostic** (16 instrumented runs):
+  - learning waits for a heavy-tailed escape from the chance plateau;
+  - escape is predicted by how much the 1/t dense helper concentrates on the true source, which halves from 512 to 1536;
+  - the fixed budget turns escape time into the seed lottery.
+- **Fix 1** (a dense teacher bootstrap): no seed left at chance (mean 0.693 against 0.264 on the same seeds).
+- **Fix 1b DBRK** (the L2-score teacher plus the KL during the bootstrap): **3/5 seeds at 0.96–0.999, flat to d1000**, which is softmax level, with no softmax at runtime. One seed collapsed (the early KL) and one reached 0.79.
+
+Line: starling read · count 2/3 · headline: softmax at runtime yes → yes.
+
+**Next:** DBRK with 5 more seeds, and DBRK + the teacher age table (implemented), scored on learn count. At ≥ 4/5 of 10, move to 4096.
+
 ## 2026-10-12 — The copy-span oracle instrument (the forced-copy oracle's attention half) (kimi, #2029)
 
 The [instrument record](../labs/copy-span-oracle-2026-10-12/README.md) delivers the span hook the gate oracle's
