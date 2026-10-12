@@ -1,3 +1,16 @@
+## 2026-10-12 — Starling read, light distillation trained twice as long: recall 0.780, stable on 5 of 5 seeds (KEEP, provisional) (claude, #2032)
+
+The [record](../labs/starling-recall-2026-10-12/README.md) is murmuration ladder step 1c, scored on recall with 5 seeds per arm.
+- **W03L** (KL weight 0.3, 3,600 steps): recall **0.938/0.605/0.950/0.843/0.566, mean 0.780**, all 5 seeds ≥ 0.30. **Row 1, KEEP.** It beats the paired base seed on every seed.
+- **W01** (KL weight 0.1): mean 0.440, unstable.
+- **W03 base** (5 seeds): mean 0.281.
+- **No softmax at runtime.** Selection is by 600-cell lookup plus a rank table; the training aids are training-only.
+- **Caveats:** the KEEP is provisional (the bar is about one SE). The L2 softmax read's 0.617 was at 1,800 steps, so the two are not compared at equal budget. The bench is synthetic mqar at context 512.
+
+Line: starling read · KEEP, count reset (D22) · headline: softmax at runtime yes → yes (served model unchanged).
+
+**Next:** ladder step 2 — W03L and L at equal budget across contexts 512/1536/4096 (the logarithmic-cost claim), then the FBS binder layer and language.
+
 ## 2026-10-11 - Whole-path shared geometric learning design, training held (codex, #2030)
 
 The owner-requested [joint contract](../labs/whole-path-learning-2026-10-11/README.md)
