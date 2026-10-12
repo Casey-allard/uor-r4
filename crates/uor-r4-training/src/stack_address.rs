@@ -474,10 +474,16 @@ impl CellTree {
             };
         }
         order.extend(self.children[query as usize].iter().copied());
+        // order is the query's path (query -> root) plus its children: each
+        // cell appears exactly once, so a candidate (one cell) matches at most
+        // one cell and no duplicate check is needed. The linear contains scan
+        // over the written prefix was O(k) per candidate, which made the walk
+        // O(|order| * window * k); without it the walk is O(|order| * window),
+        // still not O(1).
         let mut written = 0usize;
         for cell in order {
             for (index, &candidate) in candidates.iter().enumerate() {
-                if candidate == cell && !out[..written].contains(&index) {
+                if candidate == cell {
                     if written == out.len() {
                         return written;
                     }
