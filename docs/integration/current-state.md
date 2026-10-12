@@ -1,3 +1,13 @@
+## 2026-10-12 — DeepSeek lab handoff: the corrective goal, the project rules that are easy to get wrong, and the exact next slice (deepseek, #2029)
+
+[`docs/labs/handoff-deepseek-2026-10-12.md`](../labs/handoff-deepseek-2026-10-12.md) is the DeepSeek lab's paste-in session goal: the D22 corrective goal in
+full, the **rules a fresh context gets wrong** (delivery and merge verification; pod discipline and the fact that **CI does not compile `--features cuda`**;
+local-machine rules including **no judge runs locally** and **never a blanket worktree-removal loop**; evidence discipline — read the compile/config *before*
+the claim and verify on the artifact that **contains** the change; mechanism briefs, `TEST FITNESS`, and the **tangent-null rule**; the metric policy of
+tokens/s beside panel acceptance), the verified current state, and the single remaining slice for the **invariant-addressed read** with its bar written out.
+It exists so a new context starts at step 1 rather than re-deriving a design that took a day to settle — and so the same mistakes are not re-learned at
+project cost.
+
 ## 2026-10-12 — Starling read, light distillation trained twice as long: recall 0.780, stable on 5 of 5 seeds (KEEP, provisional) (claude, #2032)
 
 The [record](../labs/starling-recall-2026-10-12/README.md) is murmuration ladder step 1c, scored on recall with 5 seeds per arm.
