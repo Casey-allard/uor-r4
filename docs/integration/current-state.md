@@ -1,3 +1,15 @@
+## 2026-10-12 — mqar-bench control-match test: the tolerance was wrong, the geometric count is unchanged (claude, #2032)
+
+`the_transformer_control_is_parameter_matched_to_the_geometric_arm` was first compiled after #2224 and failed at its tolerance check.
+- **No count drift.** The two merges that touch `parameter_count` are #2174 (it froze 1,370,008) and #2193 (quaternion maps, opt-in only). `StackConfig::shapes` has not changed since #2174. Summed by hand, the `rrarra` arm at width 128, 4 heads, MLP 384, context 512 and vocab 512 is still **1,370,008**.
+- **Cause.** The test allowed `3 * width` (384), but one control MLP unit is `3 * width * layers` (2,304), so rounding can leave up to 1,152. The solved control has MLP 395 and 1,370,496 parameters (+488). The bound is now half a unit, and the 395 width and 1,370,496 count are frozen.
+- **Checked on a pod** (aoq49jic2vhg1a, RTX 4090) at `33a008a`: the test passes, and all 17 `mqar-bench` tests pass.
+- **Proposed:** the owner direction of 3 October forbids transformer baselines, so `arm=transformer` could be retired (owner call). Its earlier results remain evidence.
+
+Line: bench maintenance (no line count) · headline: unchanged.
+
+**Next:** the owner decides whether `arm=transformer` is retired.
+
 ## 2026-10-11 - Compiler/store/native-bank connection and retained geometric Copy credit (codex, #2030)
 
 The [source repair](../labs/native-bound-content-2026-10-11/README.md) connects
@@ -15,6 +27,7 @@ neighbor route, which has no arithmetic trace/family operator.
 card naming `unified-bound-content-437`; owner training hold stays in force.
 New preregistration/whole-path FIT and explicit compiler/representation
 dependencies precede any model run; acceptance/panels/graders unchanged.
+
 ## 2026-10-12 — Starling selector distillation: from step 0 it stops learning; started half-way it lifts the hit rate to 0.61–0.68 (claude, #2032)
 
 The [record](../labs/starling-distill-2026-10-12/README.md) is murmuration-read ladder step 1: a training-only KL from the dense content teacher onto the 600-cell addresses.

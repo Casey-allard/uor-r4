@@ -3508,7 +3508,8 @@ mod tests {
 
     /// The matched control's construction: the ordinary attention stack
     /// (`StackArch::Transformer`, attention layers only) whose parameter count
-    /// is the geometric reference arm's, to within one MLP column.
+    /// is the geometric reference arm's, to within half an MLP hidden unit
+    /// (one unit is `3 * width` parameters in every one of its layers).
     #[test]
     fn the_transformer_control_is_parameter_matched_to_the_geometric_arm() {
         let common = common_for("/tmp/unused-d20-control-match", 512);
@@ -3530,11 +3531,16 @@ mod tests {
         let target = reference.parameter_count().expect("reference count");
         let got = control.parameter_count().expect("control count");
         assert_eq!(target, 1_370_008, "the frozen recipe's geometric arm");
-        // The closest MLP width lands within one column of the target.
+        // The closest MLP width lands within half a hidden unit of the target:
+        // a unit is `3 * width` parameters per layer, so the rounding residual
+        // is at most `3 * width * layers / 2` (1,152 here), not `3 * width`.
+        let unit = 3 * control.width * control.layers();
         assert!(
-            (got as i64 - target as i64).unsigned_abs() <= (3 * control.width) as u64,
+            (got as i64 - target as i64).unsigned_abs() <= (unit / 2) as u64,
             "control {got} vs reference {target}"
         );
+        assert_eq!(control.mlp_hidden, 395, "the solved control MLP width");
+        assert_eq!(got, 1_370_496, "the control's count: +488 over the arm");
         let match_record = spec.parameter_match(&common).expect("match record");
         assert_eq!(match_record["reference_geometric"]["parameters"], target);
         assert_eq!(match_record["control"]["parameters"], got);
