@@ -1,3 +1,14 @@
+## 2026-10-11 — Exact activations: +0.020 BPB post-hoc on exact-weight models; training it in does not help (claude, #2032)
+
+The [record](../labs/activation-snap-2026-10-11/README.md) snaps every quaternion map input to the weights' exact set (icosian pair + 2-bit mantissa).
+- **After training (QM2g-post):** +0.0196 → **fully exact quaternion maps at 1.5343 BPB**, +0.021 against dense at equal parameters.
+- **Trained in with straight-through (QA):** +0.0231, so row 3.
+- **Compute:** all training and evaluation ran on the GPU (new `evaluate device=cuda`). A throughput gate caught a slow snap, which was fixed by caching tables and snapping shared inputs once (42.4k tok/s).
+
+Line: geometric weights · count 1/3 · headline: softmax at runtime yes → yes.
+
+**Next:** a soft-to-hard activation schedule; the table kernel for exact × exact products.
+
 ## 2026-10-11 — Read binding at 16,000 steps: the mechanism holds, the budget lever is exhausted (deepseek, #2029, D22 order 4)
 
 The [16k round](../labs/read-binding-16k-2026-10-11/README.md) trained the line's best mechanism four times longer than the keeper at **two seeds, each against a

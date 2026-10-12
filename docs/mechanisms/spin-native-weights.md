@@ -30,6 +30,10 @@ The model's dense projection matrices are 87.6 % of its per-token arithmetic, wh
   - About 19–20 bits per quaternion, multiplier-free on the weight side.
   - The snap runs on the GPU, bit-identical and 7.8× faster.
   - Next: activation snapping.
+- **Rung 4, activations** ([record](../labs/activation-snap-2026-10-11/README.md)):
+  - Snapping every map input to the same exact set after training costs +0.0196: fully exact maps at +0.021 against dense.
+  - Trained in with a straight-through gradient it is slightly worse (+0.0231).
+  - Next: a soft-to-hard schedule.
 
 ## A fair test needs
 

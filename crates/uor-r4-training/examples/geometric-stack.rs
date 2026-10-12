@@ -779,6 +779,10 @@ struct Settings {
     /// `quaternion_snap=icosian`: train with every quaternion map snapped to
     /// norm x nearest unit icosian (straight-through); `none` (default).
     quaternion_snap: QuaternionSnap,
+    /// `activation_snap=icosian_pair|icosian_pair_f32`: train with every
+    /// quaternion map input snapped to the weights' exact set
+    /// (straight-through); saved in the model; `none` (default).
+    activation_snap: ActivationSnap,
     /// `e8_memory=LAYERS:HEADS:K`: those layers' MLPs become E8 orbit
     /// memories ([`StackModel::set_e8_memory`]); `none` (default) keeps them.
     e8_memory: Option<uor_r4_training::e8_memory::E8MemoryConfig>,
@@ -1251,6 +1255,7 @@ impl Settings {
             "read_weighting": self.read_weighting,
             "quaternion_weights": self.quaternion_weights,
             "quaternion_snap": self.quaternion_snap.name(),
+            "activation_snap": self.activation_snap.trained_name().unwrap_or("none"),
             "e8_memory": self.e8_memory.as_ref().map(|e8| e8.name()),
             "softsort_tau": self.softsort_tau.map(|(start, end)| json!({"start": start, "end": end, "schedule": "geometric over steps, training forward only"})),
             "steps": self.steps, "batch": self.batch, "lr": self.lr,
@@ -1741,6 +1746,11 @@ fn train_settings(args: &Args) -> Result<Settings> {
             .as_deref()
             .unwrap_or("none"),
     )?;
+    let activation_snap = ActivationSnap::parse_trained(
+        args.optional("activation_snap")
+            .as_deref()
+            .unwrap_or("none"),
+    )?;
     let quaternion_weights = quaternion_weights_arg(args)?;
     if quaternion_weights == Some(QuaternionWeights::All) {
         if config.arch != StackArch::Geometric {
@@ -1794,6 +1804,7 @@ fn train_settings(args: &Args) -> Result<Settings> {
         read_weighting: read_weighting_arg(args)?,
         quaternion_weights,
         quaternion_snap,
+        activation_snap,
         e8_memory: uor_r4_training::e8_memory::E8MemoryConfig::parse(
             args.optional("e8_memory").as_deref().unwrap_or("none"),
         )?,
@@ -2330,6 +2341,15 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
                 }
                 model.set_quaternion_snap(settings.quaternion_snap)?;
             }
+            if settings.activation_snap != ActivationSnap::None {
+                if settings.data_parallel != 1 {
+                    return Err(invalid("activation_snap runs with data_parallel=1"));
+                }
+                if model.quaternion_weights() != QuaternionWeights::All {
+                    return Err(invalid("activation_snap needs quaternion_weights=all"));
+                }
+                model.set_activation_snap(settings.activation_snap);
+            }
             apply_read_weighting(settings.read_weighting, &mut model)?;
             // Before the optimizer: the E8 memory replaces MLP weights.
             if let Some(e8) = &settings.e8_memory {
@@ -2717,8 +2737,12 @@ fn evaluate_mode(arguments: &[String]) -> Result<()> {
             "max_blocks",
             "softsort_tau",
             "activation_snap",
+            "device",
+            "tf32",
         ],
     )?;
+    // `device=cuda` evaluates on the GPU (default cpu, as before).
+    let device = device_arg(&args)?;
     let model_dir = PathBuf::from(args.required("model")?);
     let tokens_path = PathBuf::from(args.required("tokens")?);
     let lens_path = args.optional("lens").map(PathBuf::from);
@@ -2735,7 +2759,7 @@ fn evaluate_mode(arguments: &[String]) -> Result<()> {
     report_output::claim(&out)?;
     let result = (|| -> Result<()> {
         // `evaluate` runs the artifact as saved: the load restores its transport snap by design.
-        let mut model = StackModel::load(&model_dir, &Device::Cpu)?;
+        let mut model = StackModel::load(&model_dir, &device)?;
         // `softsort_tau=T` scores a `softsort_rank` model with its SoftSort
         // training forward at temperature T instead of the hard (served) rank
         // read: the soft-versus-hard gap shows whether training converged onto
@@ -2745,9 +2769,11 @@ fn evaluate_mode(arguments: &[String]) -> Result<()> {
             Some("icosian") => model.set_activation_snap(ActivationSnap::Icosian),
             Some("direction") => model.set_activation_snap(ActivationSnap::Direction),
             Some("scale") => model.set_activation_snap(ActivationSnap::Scale),
+            Some("icosian_pair") => model.set_activation_snap(ActivationSnap::IcosianPair),
+            Some("icosian_pair_f32") => model.set_activation_snap(ActivationSnap::IcosianPairF32),
             Some(other) => {
                 return Err(invalid(format!(
-                    "invalid activation_snap={other} (none, icosian, direction or scale)"
+                    "invalid activation_snap={other} (none, icosian, direction, scale, icosian_pair or icosian_pair_f32)"
                 )))
             }
         }
@@ -2812,7 +2838,15 @@ fn evaluate_mode(arguments: &[String]) -> Result<()> {
                 "tokens": identity(&tokens_path)?,
                 "lens": lens_path.as_ref().map(|p| identity(p)).transpose()?,
                 "softsort_tau": softsort_tau,
-                "activation_snap": args.optional("activation_snap").unwrap_or_else(|| "none".into()),
+                // The snap actually applied: a trained-in mode from the model, else
+                // the probe mode named on the command line.
+                "activation_snap": model
+                    .activation_snap()
+                    .trained_name()
+                    .map(String::from)
+                    .unwrap_or_else(|| args.optional("activation_snap").unwrap_or_else(|| "none".into())),
+                "device": args.optional("device").unwrap_or_else(|| "cpu".into()),
+                "tf32": args.optional("tf32").unwrap_or_else(|| "false".into()),
                 "e8_usage": if model.e8_memory().is_some() { uor_r4_training::e8_memory::e8_usage_take() } else { serde_json::Value::Null },
                 "tune": summary(0..tune_blocks),
                 "comparison": summary(tune_blocks..blocks),
@@ -6604,6 +6638,7 @@ fn main() -> Result<()> {
                     "read_weighting",
                     "quaternion_weights",
                     "quaternion_snap",
+                    "activation_snap",
                     "e8_memory",
                     "softsort_tau_start",
                     "softsort_tau_end",
