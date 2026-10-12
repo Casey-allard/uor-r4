@@ -10,7 +10,7 @@
 //!   [dump_scores=false|true] [reachability=true|false] \
 //!   [mode=train|task-baselines] [layout=synthetic|fact] FACT OPTIONS [arm=stack] ARM OPTIONS
 //! arm=stack: [pattern=aaaaaa] [read=l2|dot|lorentz] [rotation=true|false] [width=128] [heads=4] \
-//!   [read_route=none|starling:M:K[:content][:shared][:ranked]] [starling_anneal=FRACTION] [starling_oracle_train=false|true] [starling_surrogate=false|true] [starling_distill=WEIGHT] [starling_distill_start=FRACTION] \
+//!   [read_route=none|starling:M:K[:content][:shared][:ranked]] [starling_anneal=FRACTION] [starling_oracle_train=false|true] [starling_surrogate=false|true] [starling_distill=WEIGHT] [starling_distill_start=FRACTION] [starling_salience=WEIGHT] \
 //!   [mlp=384] [age=default|flat|spread] [key_shift=false|true] \
 //!   [lineage=none|f2|qk|qk_jj|identity|so4|conv|wprev|conv8|carrier|rot] [learned_init=lag1|zero]
 //! arm=transformer: [layers=<pattern length>] [width=128] [heads=4] [mlp=matched|<n>] \
@@ -397,6 +397,13 @@ trait ContextArm {
     fn set_starling_distill(&mut self, weight: Option<f64>) -> Result<()> {
         if weight.is_some() {
             return Err(invalid("starling_distill needs a starling stack arm"));
+        }
+        Ok(())
+    }
+    /// Training-only salience regression for a content tree starling route.
+    fn set_starling_salience(&mut self, weight: Option<f64>) -> Result<()> {
+        if weight.is_some() {
+            return Err(invalid("starling_salience needs a starling stack arm"));
         }
         Ok(())
     }
@@ -1142,6 +1149,10 @@ impl ContextArm for StackArm {
 
     fn set_starling_distill(&mut self, weight: Option<f64>) -> Result<()> {
         self.model.set_starling_distill(weight)
+    }
+
+    fn set_starling_salience(&mut self, weight: Option<f64>) -> Result<()> {
+        self.model.set_starling_salience(weight)
     }
 
     fn last_aux(&self) -> f64 {
@@ -2472,6 +2483,9 @@ struct Common {
     /// this fraction of the steps (the address helper trains the selector
     /// first), then on at `starling_distill`'s weight. Default 0.
     starling_distill_start: f64,
+    /// `starling_salience=WEIGHT`: training-only salience regression for a
+    /// content tree route (active in the distillation's training forwards).
+    starling_salience: Option<f64>,
     context: usize,
     pairs_per_bucket: usize,
     batch: usize,
@@ -2544,6 +2558,7 @@ impl Common {
             "starling_surrogate": self.starling_surrogate,
             "starling_distill": self.starling_distill,
             "starling_distill_start": self.starling_distill_start,
+            "starling_salience": self.starling_salience,
             "token_ranges": {"filler": FILLER, "keys": KEYS, "values": VALUES},
             "pairing_split": {
                 "classes": CLASSES, "held_out_class": HELD_OUT_CLASS,
@@ -2602,6 +2617,13 @@ fn settings(mut args: Args) -> Result<(Common, ArmSpec, Mode, Option<fact::FactT
             })
             .transpose()?,
         starling_distill_start: args.parsed("starling_distill_start", 0.0f64)?,
+        starling_salience: args
+            .take("starling_salience")
+            .map(|text| {
+                text.parse::<f64>()
+                    .map_err(|_| invalid(format!("invalid starling_salience={text}")))
+            })
+            .transpose()?,
         context: args.parsed(
             "context",
             if fact_layout {
@@ -2782,6 +2804,12 @@ fn run(s: &Common, arm: &mut dyn ContextArm, log: &mut fs::File) -> Result<Value
     let started = Instant::now();
     arm.set_starling_surrogate(s.starling_surrogate)?;
     arm.set_starling_distill(s.starling_distill)?;
+    if s.starling_salience.is_some() && s.starling_distill.is_none() {
+        return Err(invalid(
+            "starling_salience needs starling_distill (its teacher)",
+        ));
+    }
+    arm.set_starling_salience(s.starling_salience)?;
     let buckets = buckets_for(s.context);
     let line = format!(
         "{} {}: {} parameters, context {}, buckets {:?}",
@@ -2934,7 +2962,16 @@ fn run(s: &Common, arm: &mut dyn ContextArm, log: &mut fs::File) -> Result<Value
         s.final_sequences,
         Pairing::Train,
     )?;
+    uor_r4_training::geometric_stack::starling_cost_reset();
     let in_class = evaluate(&*arm, &in_class_set, s.context, &buckets, chunk)?;
+    let starling_cost = uor_r4_training::geometric_stack::starling_cost_take();
+    if let Some((mean, max)) = starling_cost {
+        let line = format!(
+            "starling candidates scored per query (final in-class panel): mean {mean:.1} max {max}"
+        );
+        eprintln!("{line}");
+        writeln!(log, "{line}")?;
+    }
     let held_out_set = sequences(
         s,
         &buckets,
@@ -3051,6 +3088,8 @@ fn run(s: &Common, arm: &mut dyn ContextArm, log: &mut fs::File) -> Result<Value
             "positions_scored_per_query_token_mean": in_class["positions_scored_per_query_token_mean"],
             "positions_scored_per_token_mean_over_window": mean_positions,
             "positions_scored_at_last_position": arm.positions_scored(s.context - 1),
+            "starling_candidates_per_query_measured": starling_cost
+                .map(|(mean, max)| json!({"mean": mean, "max": max})),
             "counts": arm.access_note(),
         },
         "steps_completed": step,
@@ -3349,6 +3388,7 @@ mod tests {
             starling_surrogate: false,
             starling_distill: None,
             starling_distill_start: 0.0,
+            starling_salience: None,
             select: None,
         };
         let spec = ArmSpec::Stack {
@@ -3551,6 +3591,7 @@ mod tests {
             starling_surrogate: false,
             starling_distill: None,
             starling_distill_start: 0.0,
+            starling_salience: None,
         }
     }
 

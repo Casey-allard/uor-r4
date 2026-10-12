@@ -1,3 +1,15 @@
+## 2026-10-12 — Starling read with a persistent base-3 tree (HoloBox/FBS): retention fixed, recall flat across distance at 6–36 candidates per query; readout now limits (claude, #2032)
+
+The [record](../labs/starling-tree-2026-10-12/README.md) is murmuration ladder step 3. Each 600-cell vertex keeps its recent ring plus a base-3 odometer of salient blocks, and a query reads its 13 vertices' full stores.
+- **At 1536:** hit rate 0.99/0.68/0.90 against step 2's 0.56–0.61. d1000 recall is 0.035/0.584/0.316 against 0.006–0.137: recall no longer decays with distance.
+- **Cost:** 6–36 candidates per query on average (at most 190), against softmax's 1536.
+- **Recall:** 0.031/0.615/0.340, mean 0.329, against L's 0.999. **Row 3:** retention is fixed but the readout is not. On seed 1 the source is kept 99% of the time, but recall is 0.03 even with it forced in.
+- **The tree is kept** as a component (its mechanism target is met, D22).
+
+Line: starling read · count reset (tree target met) · headline: softmax at runtime yes → yes.
+
+**Next:** the readout at 1536 with the tree on (rank weights distilled from the teacher over the kept set; late-phase stability).
+
 ## 2026-10-12 — Starling read against the softmax read at equal budget: behind at 512, fails at 1536 because a fixed store evicts old positions (row 4) (claude, #2032)
 
 The [record](../labs/starling-context-2026-10-12/README.md) is murmuration ladder step 2.

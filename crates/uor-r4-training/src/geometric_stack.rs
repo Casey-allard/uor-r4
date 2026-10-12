@@ -819,6 +819,15 @@ pub struct StarlingRoute {
     /// weight them through the rank table by that rank: competition among the
     /// candidates by sorting, no exponential and no normalisation.
     pub ranked: bool,
+    /// A persistent base-3 tree over each vertex's past (HoloBox path-copy
+    /// pattern, FBS carry): a key evicted from the vertex's ring of `m` joins
+    /// a pending list; every `m` evictions form a level-0 block; a level holds
+    /// at most two blocks, and a third merges the three, keeps the `m` most
+    /// salient (learned `read.starling.salience`) and carries them up one
+    /// level. A query reads every stored key of its home vertex and the 12
+    /// adjacent ones, so old salient keys stay readable at O(m log3 n)
+    /// candidates per vertex.
+    pub tree: bool,
 }
 
 impl StarlingRoute {
@@ -833,11 +842,14 @@ impl StarlingRoute {
         if self.ranked {
             name += ":ranked";
         }
+        if self.tree {
+            name += ":tree";
+        }
         name
     }
 }
 
-/// Parse `read_route=`: `none` or `starling:M:K[:content][:shared][:ranked]`
+/// Parse `read_route=`: `none` or `starling:M:K[:content][:shared][:ranked][:tree]`
 /// (M and K positive; `ranked` needs `content`).
 pub fn parse_read_route(text: &str) -> Result<Option<StarlingRoute>> {
     if text == "none" {
@@ -845,7 +857,7 @@ pub fn parse_read_route(text: &str) -> Result<Option<StarlingRoute>> {
     }
     let bad = || {
         invalid(format!(
-            "invalid read_route={text} (none or starling:M:K[:content][:shared][:ranked])"
+            "invalid read_route={text} (none or starling:M:K[:content][:shared][:ranked][:tree])"
         ))
     };
     let parts: Vec<&str> = text.split(':').collect();
@@ -854,16 +866,17 @@ pub fn parse_read_route(text: &str) -> Result<Option<StarlingRoute>> {
         _ => return Err(bad()),
     };
     // Flags in this order, each at most once.
-    let mut order = ["content", "shared", "ranked"].iter();
+    let mut order = ["content", "shared", "ranked", "tree"].iter();
     for flag in flags {
         if !order.any(|known| known == flag) {
             return Err(bad());
         }
     }
-    let (content, shared, ranked) = (
+    let (content, shared, ranked, tree) = (
         flags.contains(&"content"),
         flags.contains(&"shared"),
         flags.contains(&"ranked"),
+        flags.contains(&"tree"),
     );
     if ranked && !content {
         return Err(bad());
@@ -879,6 +892,7 @@ pub fn parse_read_route(text: &str) -> Result<Option<StarlingRoute>> {
         content,
         shared,
         ranked,
+        tree,
     }))
 }
 
@@ -1000,6 +1014,7 @@ const STARLING_KEY_ADDRESS: &str = "read.starling.key_address.weight";
 const STARLING_RANK: &str = "read.starling.rank";
 const STARLING_BETA: &str = "read.starling.beta";
 const STARLING_GAMMA: &str = "read.starling.gamma";
+const STARLING_SALIENCE: &str = "read.starling.salience.weight";
 
 /// The starling read's variables, per read layer.
 fn starling_shapes(config: &StackConfig, route: StarlingRoute) -> Vec<(String, Vec<usize>)> {
@@ -1023,6 +1038,13 @@ fn starling_shapes(config: &StackConfig, route: StarlingRoute) -> Vec<(String, V
                 (layer_name(layer, STARLING_BETA), vec![config.heads]),
                 (layer_name(layer, STARLING_GAMMA), vec![config.heads]),
             ]
+            .into_iter()
+            .chain(route.tree.then(|| {
+                (
+                    layer_name(layer, STARLING_SALIENCE),
+                    vec![config.heads, config.width],
+                )
+            }))
         })
         .collect()
 }
@@ -1059,6 +1081,92 @@ fn starling_adjacency() -> Result<&'static [[usize; 12]]> {
         .map_err(|message| invalid(message.clone()))
 }
 
+/// Measured candidates per starling query (observation only): the sum,
+/// count and maximum over every query since [`starling_cost_reset`], across
+/// threads. Cheap (one atomic add per selection call).
+static STARLING_COST: [std::sync::atomic::AtomicU64; 3] = [
+    std::sync::atomic::AtomicU64::new(0),
+    std::sync::atomic::AtomicU64::new(0),
+    std::sync::atomic::AtomicU64::new(0),
+];
+
+/// Clears the starling candidate counters ([`starling_cost_take`]).
+pub fn starling_cost_reset() {
+    for counter in &STARLING_COST {
+        counter.store(0, std::sync::atomic::Ordering::Relaxed);
+    }
+}
+
+/// The mean and maximum candidates scored per starling query since the last
+/// [`starling_cost_reset`]; `None` if no query ran.
+pub fn starling_cost_take() -> Option<(f64, u64)> {
+    use std::sync::atomic::Ordering::Relaxed;
+    let count = STARLING_COST[1].load(Relaxed);
+    (count > 0).then(|| {
+        (
+            STARLING_COST[0].load(Relaxed) as f64 / count as f64,
+            STARLING_COST[2].load(Relaxed),
+        )
+    })
+}
+
+fn starling_cost_add(sum: u64, count: u64, max: u64) {
+    use std::sync::atomic::Ordering::Relaxed;
+    STARLING_COST[0].fetch_add(sum, Relaxed);
+    STARLING_COST[1].fetch_add(count, Relaxed);
+    STARLING_COST[2].fetch_max(max, Relaxed);
+}
+
+/// One vertex's store under [`StarlingRoute::tree`]: its ring of the last `m`
+/// keys, the pending evictions, and the base-3 levels of salient blocks.
+#[derive(Default)]
+struct StarlingTreeCell {
+    ring: std::collections::VecDeque<usize>,
+    pending: Vec<usize>,
+    levels: Vec<Vec<Vec<usize>>>,
+}
+
+impl StarlingTreeCell {
+    /// Stores key `t`: the ring's oldest key moves to the pending list; `m`
+    /// pending keys form a block that carries into the levels.
+    fn push(&mut self, t: usize, m: usize, salience: &[f32]) {
+        if self.ring.len() == m {
+            if let Some(old) = self.ring.pop_front() {
+                self.pending.push(old);
+                if self.pending.len() == m {
+                    let block = std::mem::take(&mut self.pending);
+                    self.carry(0, block, m, salience);
+                }
+            }
+        }
+        self.ring.push_back(t);
+    }
+
+    /// Adds a block at `level`; a third block merges the three, keeps the `m`
+    /// most salient (ties: later position) and carries them one level up.
+    fn carry(&mut self, level: usize, block: Vec<usize>, m: usize, salience: &[f32]) {
+        if self.levels.len() == level {
+            self.levels.push(Vec::new());
+        }
+        self.levels[level].push(block);
+        if self.levels[level].len() == 3 {
+            let mut merged: Vec<usize> = self.levels[level].drain(..).flatten().collect();
+            merged.sort_by(|&x, &y| salience[y].total_cmp(&salience[x]).then(y.cmp(&x)));
+            merged.truncate(m);
+            self.carry(level + 1, merged, m, salience);
+        }
+    }
+
+    /// Every stored key: ring, pending and all levels.
+    fn all(&self) -> impl Iterator<Item = usize> + '_ {
+        self.ring
+            .iter()
+            .chain(self.pending.iter())
+            .chain(self.levels.iter().flatten().flatten())
+            .copied()
+    }
+}
+
 /// One (batch row, head) of the starling selection, on unit 4-vectors
 /// `query` and `key` (`[time, 4]` flattened). Scanning `j` in order, key `j`
 /// enters the ring buffer (depth `m`) of its nearest icosian before query `j`
@@ -1068,9 +1176,16 @@ fn starling_adjacency() -> Result<&'static [[usize; 12]]> {
 fn starling_select(
     query: &[f32],
     key: &[f32],
+    salience: Option<&[f32]>,
     time: usize,
     route: StarlingRoute,
 ) -> Result<Vec<Vec<usize>>> {
+    if route.tree {
+        let salience = salience
+            .filter(|s| s.len() == time)
+            .ok_or_else(|| invalid("a tree route needs one salience per position"))?;
+        return starling_select_tree(query, key, salience, time, route);
+    }
     let roots = icosian_roots();
     let adjacency = starling_adjacency()?;
     let vector = |values: &[f32], t: usize| -> [f32; 4] {
@@ -1084,6 +1199,7 @@ fn starling_select(
     let mut buffers: Vec<std::collections::VecDeque<usize>> =
         vec![std::collections::VecDeque::new(); roots.len()];
     let mut kept = Vec::with_capacity(time);
+    let mut cost = (0u64, 0u64);
     for t in 0..time {
         let cell = nearest_root(vector(key, t), roots);
         if buffers[cell].len() == route.m {
@@ -1100,9 +1216,58 @@ fn starling_select(
                 ((0..4).map(|c| q[c] * b[c]).sum::<f32>(), j)
             })
             .collect();
+        cost.0 += candidates.len() as u64;
+        cost.1 = cost.1.max(candidates.len() as u64);
         candidates.sort_by(|x, y| y.0.total_cmp(&x.0).then(y.1.cmp(&x.1)));
         kept.push(candidates.iter().take(route.k).map(|&(_, j)| j).collect());
     }
+    starling_cost_add(cost.0, time as u64, cost.1);
+    Ok(kept)
+}
+
+/// [`starling_select`] under [`StarlingRoute::tree`]: the home vertex and its
+/// 12 adjacent vertices each contribute every stored key
+/// ([`StarlingTreeCell::all`]), so a key evicted from any read vertex's ring
+/// stays readable while it remains salient.
+fn starling_select_tree(
+    query: &[f32],
+    key: &[f32],
+    salience: &[f32],
+    time: usize,
+    route: StarlingRoute,
+) -> Result<Vec<Vec<usize>>> {
+    let roots = icosian_roots();
+    let adjacency = starling_adjacency()?;
+    let vector = |values: &[f32], t: usize| -> [f32; 4] {
+        [
+            values[4 * t],
+            values[4 * t + 1],
+            values[4 * t + 2],
+            values[4 * t + 3],
+        ]
+    };
+    let mut cells: Vec<StarlingTreeCell> = (0..roots.len()).map(|_| Default::default()).collect();
+    let mut kept = Vec::with_capacity(time);
+    let mut cost = (0u64, 0u64);
+    for t in 0..time {
+        let cell = nearest_root(vector(key, t), roots);
+        cells[cell].push(t, route.m, salience);
+        let q = vector(query, t);
+        let home = nearest_root(q, roots);
+        let mut candidates: Vec<(f32, usize)> = std::iter::once(home)
+            .chain(adjacency[home].iter().copied())
+            .flat_map(|c| cells[c].all())
+            .map(|j| {
+                let b = vector(key, j);
+                ((0..4).map(|c| q[c] * b[c]).sum::<f32>(), j)
+            })
+            .collect();
+        cost.0 += candidates.len() as u64;
+        cost.1 = cost.1.max(candidates.len() as u64);
+        candidates.sort_by(|x, y| y.0.total_cmp(&x.0).then(y.1.cmp(&x.1)));
+        kept.push(candidates.iter().take(route.k).map(|&(_, j)| j).collect());
+    }
+    starling_cost_add(cost.0, time as u64, cost.1);
     Ok(kept)
 }
 
@@ -2881,6 +3046,7 @@ pub struct StackModel {
     /// on the 4-d addresses. With the dense helper on, the helper is that
     /// teacher read. Never saved; serving never computes it.
     starling_distill: Option<f64>,
+    starling_salience: Option<f64>,
     /// Layers whose MLP is an E8 orbit memory ([`Self::set_e8_memory`]).
     e8_memory: Option<crate::e8_memory::E8MemoryConfig>,
     /// How the geometric reads weight their kept sources
@@ -2985,6 +3151,7 @@ impl StackModel {
             starling_dense: None,
             starling_surrogate: false,
             starling_distill: None,
+            starling_salience: None,
             e8_memory: None,
             read_weighting: ReadWeighting::Softmax,
             softsort_tau: None,
@@ -3903,6 +4070,24 @@ impl StackModel {
             a.detach().flatten_all()?.to_vec1::<f32>()?,
             b.detach().flatten_all()?.to_vec1::<f32>()?,
         );
+        // Tree routes: one learned salience per (position, head), `[batch,
+        // heads, time]`, used by the selection only through a hard sort.
+        let salience = if route.tree {
+            Some(
+                // From the detached stream: salience is only sorted, and its
+                // training-only regression must not train the shared trunk.
+                self.linear(&identity.detach(), p.layer(layer, STARLING_SALIENCE)?)?
+                    .to_dtype(DType::F32)?
+                    .transpose(1, 2)?
+                    .contiguous()?,
+            )
+        } else {
+            None
+        };
+        let host_salience = match &salience {
+            Some(s) => s.detach().flatten_all()?.to_vec1::<f32>()?,
+            None => Vec::new(),
+        };
         let rows = batch * heads;
         // Slots per head: K, or heads x K for a shared kept set.
         let slots = if route.shared { heads * k } else { k };
@@ -3916,6 +4101,9 @@ impl StackModel {
                 starling_select(
                     &host_a[row * span..(row + 1) * span],
                     &host_b[row * span..(row + 1) * span],
+                    route
+                        .tree
+                        .then(|| &host_salience[row * time..(row + 1) * time]),
                     time,
                     route,
                 )
@@ -4102,7 +4290,31 @@ impl StackModel {
                     .sum_keepdim(3)?
                     .mean_all()?;
                 starling_aux_add(kl.affine(weight, 0.0)?)?;
-                Some(log_teacher.exp()?)
+                let attention = log_teacher.exp()?;
+                // Tree routes: regress each position's salience on the log of
+                // the teacher's mean attention into it per later query (so
+                // early positions are not favoured for having more readers),
+                // both centred per row since only the order is used. Training
+                // only.
+                if let (Some(salience), Some(weight)) = (&salience, self.starling_salience) {
+                    let readers: Vec<f32> = (0..time).map(|j| (time - j) as f32).collect();
+                    let readers = Tensor::from_vec(readers, (1, 1, time), identity.device())?;
+                    let target = attention
+                        .detach()
+                        .sum(2)?
+                        .broadcast_div(&readers)?
+                        .affine(1.0, 1e-6)?
+                        .log()?;
+                    let centre = |x: &Tensor| -> Result<Tensor> {
+                        Ok(x.broadcast_sub(&x.mean_keepdim(2)?)?)
+                    };
+                    let error = centre(salience)?
+                        .sub(&centre(&target)?)?
+                        .sqr()?
+                        .mean_all()?;
+                    starling_aux_add(error.affine(weight, 0.0)?)?;
+                }
+                Some(attention)
             }
             _ => None,
         };
@@ -4723,6 +4935,7 @@ impl StackModel {
                 let count: usize = shape.iter().product();
                 let values: Vec<f32> = if name.ends_with(STARLING_QUERY_ADDRESS)
                     || name.ends_with(STARLING_KEY_ADDRESS)
+                    || name.ends_with(STARLING_SALIENCE)
                 {
                     (0..count)
                         .map(|_| (rng.normal() * INITIAL_STD) as f32)
@@ -4781,6 +4994,26 @@ impl StackModel {
             }
         }
         self.starling_distill = weight;
+        Ok(())
+    }
+
+    /// Training-only salience regression (`Some(weight)`, weight > 0) for a
+    /// tree route: each position's salience is regressed on the log of the
+    /// dense content teacher's total future attention into it, in the same
+    /// training forwards as the distillation KL (so it needs one). Never saved.
+    pub fn set_starling_salience(&mut self, weight: Option<f64>) -> Result<()> {
+        if let Some(weight) = weight {
+            if !(weight.is_finite() && weight > 0.0) {
+                return Err(invalid("a salience weight is finite and positive"));
+            }
+            if !self
+                .read_route
+                .is_some_and(|route| route.tree && route.content)
+            {
+                return Err(invalid("salience training needs a content tree read route"));
+            }
+        }
+        self.starling_salience = weight;
         Ok(())
     }
 
@@ -11302,6 +11535,7 @@ impl StackModel {
             starling_dense: None,
             starling_surrogate: false,
             starling_distill: None,
+            starling_salience: None,
             e8_memory: None,
             read_weighting: ReadWeighting::Softmax,
             softsort_tau: None,
@@ -32213,8 +32447,9 @@ mod tests {
                 content: false,
                 shared: false,
                 ranked: false,
+                tree: false,
             };
-            let kept = starling_select(&query, &key, time, route)?;
+            let kept = starling_select(&query, &key, None, time, route)?;
             let vector = |v: &[f32], t: usize| [v[4 * t], v[4 * t + 1], v[4 * t + 2], v[4 * t + 3]];
             let cells: Vec<usize> = (0..time)
                 .map(|t| nearest_root(vector(&key, t), roots))
@@ -32253,6 +32488,7 @@ mod tests {
             content: false,
             shared: false,
             ranked: false,
+            tree: false,
         }))?;
         Ok(model)
     }
@@ -32356,6 +32592,7 @@ mod tests {
                 content: false,
                 shared: false,
                 ranked: false,
+                tree: false,
             })
         );
         let again = loaded
@@ -32382,6 +32619,7 @@ mod tests {
             content: false,
             shared: false,
             ranked: false,
+            tree: false,
         }))?;
         let ids: Vec<u32> = (0..24u32).map(|i| (i * 7 + 3) % 37).collect();
         let natural = model
@@ -32422,6 +32660,7 @@ mod tests {
             content: true,
             shared,
             ranked: false,
+            tree: false,
         };
         let ids: Vec<u32> = (0..24u32).map(|i| (i * 7 + 3) % 37).collect();
         let mut model = StackModel::new(
@@ -32513,6 +32752,260 @@ mod tests {
         assert!(content_order(&[1.0], &[0.0]).is_empty());
     }
 
+    /// The tree's stored keys for one vertex, computed in batch rather than by
+    /// the online odometer: the ring is the last `m` arrivals; the earlier
+    /// ones, in order, form blocks of `m` (a remainder stays pending); at each
+    /// level every three consecutive blocks merge to their `m` most salient
+    /// (ties: later) as one block of the next level, and the rest stay.
+    fn tree_reference_store(arrivals: &[usize], m: usize, salience: &[f32]) -> Vec<usize> {
+        let split = arrivals.len().saturating_sub(m);
+        let (evicted, ring) = arrivals.split_at(split);
+        let full = evicted.len() / m * m;
+        let mut stored: Vec<usize> = ring.to_vec();
+        stored.extend_from_slice(&evicted[full..]);
+        let mut blocks: Vec<Vec<usize>> = evicted[..full].chunks(m).map(|c| c.to_vec()).collect();
+        while !blocks.is_empty() {
+            let groups = blocks.len() / 3;
+            for block in &blocks[groups * 3..] {
+                stored.extend_from_slice(block);
+            }
+            blocks = (0..groups)
+                .map(|g| {
+                    let mut merged: Vec<usize> = blocks[3 * g..3 * g + 3].concat();
+                    merged.sort_by(|&x, &y| salience[y].total_cmp(&salience[x]).then(y.cmp(&x)));
+                    merged.truncate(m);
+                    merged
+                })
+                .collect();
+        }
+        stored
+    }
+
+    #[test]
+    fn starling_tree_select_matches_a_batch_reference() -> Result<()> {
+        let roots = icosian_roots();
+        let adjacency = starling_adjacency()?;
+        let vector = |v: &[f32], t: usize| [v[4 * t], v[4 * t + 1], v[4 * t + 2], v[4 * t + 3]];
+        for (seed, m) in [(0u64, 1usize), (1, 2), (2, 3), (3, 2)] {
+            let mut rng = Initializer(700 + seed);
+            let time = 90;
+            // Half the queries sit on the busy vertex, so they read its tree.
+            let random = unit_rows(&mut rng, time);
+            let query: Vec<f32> = (0..time)
+                .flat_map(|t| {
+                    if t % 2 == 0 {
+                        roots[0].to_vec()
+                    } else {
+                        random[4 * t..4 * t + 4].to_vec()
+                    }
+                })
+                .collect();
+            // Keys concentrated on two adjacent vertices, so stores overflow,
+            // merge and carry through several levels.
+            let (r0, r1) = (0usize, adjacency[0][0]);
+            let mut key = Vec::with_capacity(4 * time);
+            for t in 0..time {
+                let root = if (rng.normal() > 0.0) || t % 5 == 0 {
+                    roots[r0]
+                } else {
+                    roots[r1]
+                };
+                // Small noise keeps the vertex but breaks score ties.
+                let noisy: Vec<f32> = root
+                    .iter()
+                    .map(|&x| x + 0.01 * rng.normal() as f32)
+                    .collect();
+                let norm = noisy.iter().map(|x| x * x).sum::<f32>().sqrt();
+                key.extend(noisy.iter().map(|x| x / norm));
+            }
+            let salience: Vec<f32> = (0..time).map(|_| rng.normal() as f32).collect();
+            let route = StarlingRoute {
+                m,
+                k: 4,
+                content: false,
+                shared: false,
+                ranked: false,
+                tree: true,
+            };
+            let kept = starling_select(&query, &key, Some(&salience), time, route)?;
+            let cells: Vec<usize> = (0..time)
+                .map(|t| nearest_root(vector(&key, t), roots))
+                .collect();
+            let mut merged_somewhere = false;
+            for t in 0..time {
+                let home = nearest_root(vector(&query, t), roots);
+                let arrivals =
+                    |cell: usize| -> Vec<usize> { (0..=t).filter(|&j| cells[j] == cell).collect() };
+                let home_store = tree_reference_store(&arrivals(home), m, &salience);
+                merged_somewhere |= home_store.len() < arrivals(home).len();
+                let mut candidates: Vec<(f32, usize)> = home_store
+                    .into_iter()
+                    .chain(
+                        adjacency[home]
+                            .iter()
+                            .flat_map(|&c| tree_reference_store(&arrivals(c), m, &salience)),
+                    )
+                    .map(|j| {
+                        let (q, b) = (vector(&query, t), vector(&key, j));
+                        ((0..4).map(|c| q[c] * b[c]).sum::<f32>(), j)
+                    })
+                    .collect();
+                candidates.sort_by(|x, y| y.0.total_cmp(&x.0).then(y.1.cmp(&x.1)));
+                let expected: Vec<usize> =
+                    candidates.iter().take(route.k).map(|&(_, j)| j).collect();
+                assert_eq!(kept[t], expected, "seed {seed} m {m} t {t}");
+            }
+            assert!(merged_somewhere, "seed {seed}: the tree never merged");
+        }
+        // The most salient key of a vertex is never dropped by a merge.
+        let mut rng = Initializer(801);
+        let time = 120;
+        let salience: Vec<f32> = (0..time).map(|_| rng.normal() as f32).collect();
+        let arrivals: Vec<usize> = (0..time).collect();
+        let best = (0..time)
+            .max_by(|&x, &y| salience[x].total_cmp(&salience[y]))
+            .ok_or_else(|| invalid("empty"))?;
+        let mut cell = StarlingTreeCell::default();
+        for &t in &arrivals {
+            cell.push(t, 2, &salience);
+        }
+        let stored: Vec<usize> = cell.all().collect();
+        assert!(stored.contains(&best));
+        let mut sorted = stored.clone();
+        sorted.sort_unstable();
+        let mut reference = tree_reference_store(&arrivals, 2, &salience);
+        reference.sort_unstable();
+        assert_eq!(sorted, reference);
+        // Logarithmic: 120 arrivals at m = 2 keep far fewer than 120.
+        assert!(stored.len() <= 2 + 1 + 2 * 2 * 5, "stored {}", stored.len());
+        // Ties keep the later position: with equal salience every merge keeps
+        // its block's latest keys.
+        let flat = vec![0.0f32; 9];
+        let mut cell = StarlingTreeCell::default();
+        for t in 0..9 {
+            cell.push(t, 1, &flat);
+        }
+        // Ring [8]; evicted 0..=7 form blocks [0]..[7]; level 0 merges
+        // {0,1,2} -> [2] and {3,4,5} -> [5], keeps [6],[7]; level 1 holds [2],[5].
+        let mut stored: Vec<usize> = cell.all().collect();
+        stored.sort_unstable();
+        assert_eq!(stored, vec![2, 5, 6, 7, 8]);
+        Ok(())
+    }
+
+    #[test]
+    fn starling_salience_does_not_change_logits_without_merges() -> Result<()> {
+        let route = StarlingRoute {
+            m: 64,
+            k: 3,
+            content: true,
+            shared: true,
+            ranked: true,
+            tree: true,
+        };
+        let ids: Vec<u32> = (0..24u32).map(|i| (i * 7 + 3) % 37).collect();
+        let mut model = StackModel::new(
+            tiny(StackArch::Geometric, "ra", ReadScore::L2, true),
+            &cpu(),
+        )?;
+        model.set_read_route(Some(route))?;
+        let before = model
+            .forward(&ids, 2, 12)?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        let salience = model.variables()["layers.01.read.starling.salience.weight"].clone();
+        salience.set(&salience.as_tensor().affine(-3.0, 1.0)?)?;
+        let after = model
+            .forward(&ids, 2, 12)?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        assert_eq!(before, after);
+        Ok(())
+    }
+
+    #[test]
+    fn starling_tree_equals_the_ring_without_evictions() -> Result<()> {
+        let mut rng = Initializer(901);
+        let time = 50;
+        let (query, key) = (unit_rows(&mut rng, time), unit_rows(&mut rng, time));
+        let salience: Vec<f32> = (0..time).map(|_| rng.normal() as f32).collect();
+        let route = StarlingRoute {
+            m: 64,
+            k: 5,
+            content: false,
+            shared: false,
+            ranked: false,
+            tree: false,
+        };
+        let ring = starling_select(&query, &key, None, time, route)?;
+        let tree = starling_select(
+            &query,
+            &key,
+            Some(&salience),
+            time,
+            StarlingRoute {
+                tree: true,
+                ..route
+            },
+        )?;
+        assert_eq!(ring, tree);
+        // A tree route without salience is refused.
+        assert!(starling_select(
+            &query,
+            &key,
+            None,
+            time,
+            StarlingRoute {
+                tree: true,
+                ..route
+            }
+        )
+        .is_err());
+        // The route name round-trips through the parser.
+        let parsed = parse_read_route("starling:4:7:content:shared:ranked:tree")?
+            .ok_or_else(|| invalid("no route"))?;
+        assert!(parsed.tree && parsed.ranked);
+        assert_eq!(parsed.name(), "starling:4:7:content:shared:ranked:tree");
+        assert!(parse_read_route("starling:4:7:tree:content").is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn starling_salience_regression_trains_the_salience_map() -> Result<()> {
+        let route = StarlingRoute {
+            m: 2,
+            k: 3,
+            content: true,
+            shared: true,
+            ranked: true,
+            tree: true,
+        };
+        let ids: Vec<u32> = (0..24u32).map(|i| (i * 7 + 3) % 37).collect();
+        let mut model = StackModel::new(
+            tiny(StackArch::Geometric, "ra", ReadScore::L2, true),
+            &cpu(),
+        )?;
+        // Salience needs a tree route.
+        assert!(model.set_starling_salience(Some(1.0)).is_err());
+        model.set_read_route(Some(route))?;
+        model.set_starling_distill(Some(0.5))?;
+        model.set_starling_salience(Some(1.0))?;
+        starling_aux_take();
+        starling_training_forward(true);
+        let logits = model.forward(&ids, 2, 12);
+        starling_training_forward(false);
+        logits?;
+        let aux = starling_aux_take().ok_or_else(|| invalid("no auxiliary loss"))?;
+        assert!(aux.to_scalar::<f32>()?.is_finite());
+        let salience = model.variables()["layers.01.read.starling.salience.weight"].clone();
+        let grads = aux.backward()?;
+        let g = grads
+            .get(salience.as_tensor())
+            .ok_or_else(|| invalid("no salience gradient"))?;
+        assert!(g.abs()?.sum_all()?.to_scalar::<f32>()? > 0.0);
+        Ok(())
+    }
+
     #[test]
     fn starling_distillation_adds_a_kl_that_trains_the_addresses() -> Result<()> {
         let route = StarlingRoute {
@@ -32521,6 +33014,7 @@ mod tests {
             content: true,
             shared: true,
             ranked: true,
+            tree: false,
         };
         let ids: Vec<u32> = (0..24u32).map(|i| (i * 7 + 3) % 37).collect();
         let mut model = StackModel::new(
@@ -32560,6 +33054,7 @@ mod tests {
             content: false,
             shared: false,
             ranked: false,
+            tree: false,
             ..route
         }))?;
         assert!(address.set_starling_distill(Some(0.5)).is_err());
@@ -32574,6 +33069,7 @@ mod tests {
             content: true,
             shared: true,
             ranked: true,
+            tree: false,
         };
         let ids: Vec<u32> = (0..24u32).map(|i| (i * 7 + 3) % 37).collect();
         let mut model = StackModel::new(
@@ -32624,6 +33120,7 @@ mod tests {
         address.set_read_route(Some(StarlingRoute {
             content: false,
             ranked: false,
+            tree: false,
             shared: false,
             ..route
         }))?;
@@ -32639,6 +33136,7 @@ mod tests {
             content: true,
             shared: true,
             ranked,
+            tree: false,
         };
         let ids: Vec<u32> = (0..24u32).map(|i| (i * 7 + 3) % 37).collect();
         let mut model = StackModel::new(
@@ -32696,6 +33194,7 @@ mod tests {
             content,
             shared: false,
             ranked: false,
+            tree: false,
         };
         let ids: Vec<u32> = (0..24u32).map(|i| (i * 7 + 3) % 37).collect();
         let mut model = StackModel::new(
@@ -32798,6 +33297,7 @@ mod tests {
             content: false,
             shared: false,
             ranked: false,
+            tree: false,
         }))?;
         let ids: Vec<u32> = (0..24u32).map(|i| (i * 7 + 3) % 37).collect();
         let weights = random(&mut Initializer(23), &[24, 37], 1.0);
