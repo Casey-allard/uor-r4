@@ -3121,7 +3121,7 @@ fn test_chunked_recurrence_parity() -> uor_r4_training::Result<()> {
     Ok(())
 }
 
-/// The rank-margin objective (D23's softmax-free loss): the same model saved
+/// The rank-margin objective (D23's exponential-free loss): the same model saved
 /// on the CPU gives the same weighted margin loss and the same gradients on
 /// CUDA at one and eight rivals, ties to the CPU's stable-sort order.
 #[cfg(feature = "cuda")]

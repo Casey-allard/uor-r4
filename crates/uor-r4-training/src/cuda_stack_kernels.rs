@@ -463,7 +463,7 @@ extern "C" __global__ void cross_entropy_grad_act(
 }
 
 // ---------------------------------------------------------------------------
-// Rank-margin (the D23 softmax-free objective): row losses and gradients. One
+// Rank-margin (the D23 exponential-free objective): row losses and gradients. One
 // warp per row, at most 8 rivals, logits compared in f32 and losses
 // accumulated in f64 like the CPU's `margin_row`. Ties resolve to the lower
 // index, the CPU stable-sort's order. No exponential of any kind anywhere.

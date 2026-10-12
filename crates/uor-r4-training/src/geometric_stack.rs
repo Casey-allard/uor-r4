@@ -1360,19 +1360,21 @@ fn is_quaternion(group: &RotationGroup) -> bool {
     *group == RotationGroup::Quaternion
 }
 
-/// The model's training objective (D23, 2026-10-12: no softmax anywhere,
-/// including the implicit softmax inside cross-entropy; owner, same date: no
-/// softplus or any other softmax-shaped term either). `Ce` is the historical
-/// cross-entropy over softmax logits, kept for existing artifacts and
-/// configurations exactly as it was; `MarginHinge` is the first softmax-free
-/// objective: a rank hinge against the strongest rival logits, with no
-/// normalized exponential anywhere in the forward or the gradient — the only
-/// exponential in it is none at all.
+/// The model's training objective (D23, 2026-10-12: no normalized
+/// exponentials anywhere, including the implicit one inside cross-entropy;
+/// owner, same date: no softplus or any other exponential-shaped term
+/// either). `Ce` is the historical cross-entropy over normalized-exponential
+/// logits, kept for existing artifacts and configurations exactly as it was;
+/// `MarginHinge` is the first exponential-free objective: a rank hinge
+/// against the strongest rival logits, with no normalized exponential
+/// anywhere in the forward or the gradient — the only exponential in it is
+/// none at all.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Objective {
-    /// Cross-entropy over softmax logits (implicit softmax; prohibited for new
-    /// runs by D23 and retained so existing artifacts load and reproduce).
+    /// Cross-entropy over normalized-exponential logits (the implicit
+    /// normalization is prohibited for new runs by D23 and retained so
+    /// existing artifacts load and reproduce).
     #[default]
     Ce,
     /// `mean_k relu(1 − z_target + z_k)` over the top-`rivals` non-target
@@ -18090,8 +18092,9 @@ fn margin_row_grad(row: &[f32], target: usize, rivals: usize, scale: f64, out: &
     out[target] -= (violated as f64 * share) as f32;
 }
 
-/// Rank-margin loss of `[rows, vocabulary]` logits (D23's first softmax-free
-/// objective; [`Objective`]): no normalized exponential enters the forward or
+/// Rank-margin loss of `[rows, vocabulary]` logits (D23's first
+/// exponential-free objective; [`Objective`]): no normalized exponential
+/// enters the forward or
 /// the gradient. The weighted-mean semantics are [`CrossEntropy`]'s exactly.
 /// CUDA carries the f32 forward and backward (one warp per row, ties to the
 /// lower index like the CPU stable sort); Metal is refused for now.
@@ -21219,7 +21222,8 @@ mod tests {
     fn a_non_pointer_models_next_scores_are_the_raw_last_logits() -> Result<()> {
         // D23 serving compliance for the margin rung's scoring path: a
         // non-pointer model's `next_scores` returns the last position's logits
-        // unchanged — no softmax is computed anywhere in the serving read-out.
+        // unchanged — no normalized exponential is computed anywhere in the
+        // serving read-out.
         let model = StackModel::new(
             tiny(StackArch::Geometric, "rra", ReadScore::Lorentz, true),
             &cpu(),

@@ -279,8 +279,9 @@
 //! The report records the requested value (`read_weighting`, null when absent).
 //! `objective=ce|hinge|hinge8` (`train` and `dialogue-train`) sets the training
 //! objective (`StackConfig::objective`, D23): `ce` is the historical
-//! cross-entropy over softmax logits (existing artifacts only); `hinge` and
-//! `hinge8` are the softmax-free rank margins `mean relu(1 − z_target + z_k)`
+//! cross-entropy over normalized-exponential logits (existing artifacts
+//! only); `hinge` and `hinge8` are the exponential-free rank margins
+//! `mean relu(1 − z_target + z_k)`
 //! over the strongest 1 and 8 non-target logits, with no exponential of any
 //! kind anywhere in the forward or the gradient. A margin objective refuses a
 //! pointer (`pointer=` other than `none`) and carries a CUDA f32 kernel
@@ -1609,10 +1610,10 @@ fn stack_config(args: &Args, vocab: Option<usize>) -> Result<StackConfig> {
         config.validate()?;
     }
     // The training objective (D23): `ce` is the historical cross-entropy over
-    // softmax logits (existing artifacts only); `hinge`/`hinge8` are the
-    // softmax-free rank margins at 1 and 8 rivals, `softmargin` the
-    // softplus-margin carve-out check. A margin objective refuses a pointer
-    // (its own objective is the next rung).
+    // normalized-exponential logits (existing artifacts only); `hinge` and
+    // `hinge8` are the exponential-free rank margins at 1 and 8 rivals,
+    // `softmargin` the softplus-margin carve-out check. A margin objective
+    // refuses a pointer (its own objective is the next rung).
     config.objective = match args.optional("objective").as_deref() {
         None | Some("ce") => Objective::Ce,
         Some("hinge") => Objective::MarginHinge { rivals: 1 },

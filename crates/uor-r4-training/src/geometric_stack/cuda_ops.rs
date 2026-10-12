@@ -547,7 +547,7 @@ pub(super) fn cross_entropy_bwd(
 }
 
 // ---------------------------------------------------------------------------
-// Rank-margin (the D23 softmax-free objective; [`crate::geometric_stack::MarginRank`]).
+// Rank-margin (the D23 exponential-free objective; [`crate::geometric_stack::MarginRank`]).
 
 /// Row rank-margin losses (f64) of `[rows, vocabulary]` logits.
 fn margin_rank_rows(
