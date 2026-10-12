@@ -18738,6 +18738,18 @@ mod tests {
         loss: impl Fn() -> Result<Tensor>,
         tolerance: f64,
     ) -> Result<()> {
+        check_gradient_with(vars, loss, tolerance, 1e-3)
+    }
+
+    /// [`check_gradient`] with central-difference step `epsilon`. A loss that is
+    /// smooth over a wider range can use a larger step, which keeps the f32
+    /// rounding of the loss small against the difference being measured.
+    fn check_gradient_with(
+        vars: &[Var],
+        loss: impl Fn() -> Result<Tensor>,
+        tolerance: f64,
+        epsilon: f64,
+    ) -> Result<()> {
         let grads = loss()?.backward()?;
         let mut rng = Initializer(99);
         let directions: Vec<Tensor> = vars
@@ -18751,7 +18763,6 @@ mod tests {
                 .ok_or_else(|| invalid("missing gradient"))?;
             analytic += f64::from(grad.mul(direction)?.sum_all()?.to_scalar::<f32>()?);
         }
-        let epsilon = 1e-3;
         let originals: Vec<Tensor> = vars
             .iter()
             .map(|var| var.as_tensor().copy())
@@ -32149,12 +32160,30 @@ mod tests {
         let direction = random(&mut Initializer(41), address.dims(), 1.0);
         let analytic = f64::from(grad.mul(&direction)?.sum_all()?.to_scalar::<f32>()?);
         let original = address.as_tensor().copy()?;
-        let epsilon = 1e-4;
-        address.set(&original.add(&direction.affine(epsilon, 0.0)?)?)?;
-        let plus = loss()?;
-        address.set(&original.add(&direction.affine(-epsilon, 0.0)?)?)?;
-        let minus = loss()?;
+        // The difference is only meaningful while the hard selection is fixed:
+        // take the largest step whose kept sets at -eps and +eps equal the
+        // unperturbed ones (a larger step keeps f32 rounding of the loss small
+        // against the change; too small a step is rounding-dominated).
+        let kept_at = |eps: f64| -> Result<(f64, StarlingRecord)> {
+            address.set(&original.add(&direction.affine(eps, 0.0)?)?)?;
+            starling_record_start();
+            let value = loss();
+            let record = starling_record_take();
+            Ok((value?, record))
+        };
+        let (_, base) = kept_at(0.0)?;
+        let mut chosen = None;
+        for epsilon in [1e-2, 3e-3, 1e-3, 3e-4] {
+            let (plus, kept_plus) = kept_at(epsilon)?;
+            let (minus, kept_minus) = kept_at(-epsilon)?;
+            if kept_plus == base && kept_minus == base {
+                chosen = Some((epsilon, plus, minus));
+                break;
+            }
+        }
         address.set(&original)?;
+        let (epsilon, plus, minus) =
+            chosen.ok_or_else(|| invalid("every step changes the starling selection"))?;
         let numeric = (plus - minus) / (2.0 * epsilon);
         let scale = analytic.abs().max(numeric.abs()).max(1e-3);
         assert!(
@@ -32435,10 +32464,13 @@ mod tests {
             .iter()
             .map(|name| model.variables()[*name].clone())
             .collect();
-        check_gradient(
+        // Selection reads only the address maps, so q and k move the loss
+        // smoothly; a 1e-2 step keeps f32 rounding small against the change.
+        check_gradient_with(
             &vars,
             || Ok(model.forward(&ids, 2, 12)?.mul(&weights)?.sum_all()?),
             5e-3,
+            1e-2,
         )?;
         // With the training helper on, the address maps still get a gradient
         // on a content route (the helper scores by the address dot).
