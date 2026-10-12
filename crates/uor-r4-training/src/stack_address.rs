@@ -557,3 +557,244 @@ mod tree_tests {
         assert_eq!(tree.normal_cell(3), 2, "a leaf falls back to its parent");
     }
 }
+
+// ---------------------------------------------------------------------------
+// The routing decision, as a pure function
+// ---------------------------------------------------------------------------
+
+/// Which movement the null arm applies, if any.
+///
+/// The two movements test different things, and the distinction is the whole
+/// point of the control (**owner correction: a null requires a tangent
+/// movement**):
+///
+/// - [`RouteNull::Tangent`] moves the **representative** inside each cell and
+///   leaves the cells alone. The **candidate set is unchanged**; what changes is
+///   the fine coordinate the read scores. If the model does as well under it,
+///   the read depends only on the cell — the geometry — and the representative
+///   is arbitrary; if it degrades, that fine coordinate is load-bearing and the
+///   address is a lookup rather than an invariant.
+/// - [`RouteNull::Normal`] moves the **cells** themselves, so the candidate set
+///   changes too. This is the coarser null: it destroys the structure and
+///   bounds how much *any* addressing could buy.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+pub enum RouteNull {
+    /// The real arm: no movement.
+    #[default]
+    None,
+    /// Hold the cell, move the representative (the attribution clause).
+    Tangent {
+        /// The odd multiplier the movement applies to the representative.
+        step: u32,
+    },
+    /// Change the cell (the scale clause).
+    Normal {
+        /// The odd offset the movement applies to the cell.
+        offset: u32,
+    },
+}
+
+/// The routing configuration of one run: the tree over the cells, the address
+/// geometry, how many candidates to take, and which null arm is active. Every
+/// field is recorded with the run, and the default is **no routing at all**, so
+/// a run that does not ask for this mechanism executes the model it had.
+#[derive(Clone, Debug)]
+pub struct RouteConfig {
+    /// Cells in the spanning tree.
+    pub cells: u32,
+    /// Undirected cell edges; the tree is built from these and the root below.
+    pub edges: Vec<(u32, u32)>,
+    /// The root of the spanning tree.
+    pub root: u32,
+    /// Distance buckets — the family key in the address.
+    pub buckets: u32,
+    /// Bits of the address the representative occupies (the rest is the cell).
+    pub inner_bits: u32,
+    /// How many candidates to route to.
+    pub k: usize,
+    /// Which null arm is active.
+    pub null: RouteNull,
+}
+
+impl Default for RouteConfig {
+    fn default() -> Self {
+        // No cells, no edges, k = 0: the "off" state the read must reproduce
+        // bit for bit when the mechanism is not asked for.
+        RouteConfig {
+            cells: 0,
+            edges: Vec::new(),
+            root: 0,
+            buckets: 1,
+            inner_bits: 12,
+            k: 0,
+            null: RouteNull::None,
+        }
+    }
+}
+
+impl RouteConfig {
+    /// Whether routing is active at all. A run with `k = 0` or a single cell
+    /// routes nowhere and must behave exactly as the unrouted model.
+    pub fn active(&self) -> bool {
+        self.k > 0 && self.cells > 1
+    }
+
+    /// The tree this configuration describes.
+    pub fn tree(&self) -> CellTree {
+        CellTree::build(self.cells, &self.edges, self.root)
+    }
+}
+
+/// One source position as the router sees it: the token it carries and how far
+/// back it is (its age, which is the family key).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Source {
+    /// The token identity.
+    pub token: u32,
+    /// The position's age in tokens.
+    pub back: usize,
+}
+
+/// The address of a source position under `config`, after the null movement (if
+/// any). For [`RouteNull::Tangent`] the **cell is untouched** and only the
+/// representative moves; for [`RouteNull::Normal`] the cell moves.
+pub fn source_address(config: &RouteConfig, source: Source) -> Address {
+    let inner = 1u32 << config.inner_bits.min(31);
+    let address = Address::of(
+        source.token,
+        source.back,
+        config.buckets,
+        config.cells.max(1),
+        inner,
+    );
+    match config.null {
+        RouteNull::None => address,
+        RouteNull::Tangent { step } => address.tangent(step, inner),
+        RouteNull::Normal { offset } => address.normal(config.cells.max(1), offset),
+    }
+}
+
+/// The routing decision: write the indices of the sources the read should look
+/// at, nearest first, and return how many were written. Pure — it takes sources
+/// and their ages and returns indices, so the read's own change is a call and
+/// not a rewrite, and the decision can be tested without a model.
+///
+/// The **cells** decide the route (that is the coarse invariant); the
+/// **representatives** travel with the candidates and are what the read scores,
+/// which is why the tangent null changes the read's input without changing its
+/// candidate set.
+pub fn route_sources(
+    config: &RouteConfig,
+    query: Source,
+    sources: &[Source],
+    out: &mut [usize],
+) -> usize {
+    if !config.active() {
+        return 0;
+    }
+    let tree = config.tree();
+    let query_cell = source_address(config, query).cell;
+    let cells: Vec<u32> = sources
+        .iter()
+        .map(|&source| source_address(config, source).cell)
+        .collect();
+    tree.route(query_cell, &cells, out)
+}
+
+#[cfg(test)]
+mod decision_tests {
+    use super::*;
+
+    fn config(null: RouteNull) -> RouteConfig {
+        // A 4-cell chain, 0-1-2-3, rooted at 0, with k = 4.
+        RouteConfig {
+            cells: 4,
+            edges: vec![(0, 1), (1, 2), (2, 3)],
+            root: 0,
+            buckets: 4,
+            inner_bits: 12,
+            k: 4,
+            null,
+        }
+    }
+
+    #[test]
+    fn an_inactive_configuration_routes_nothing() {
+        let off = RouteConfig::default();
+        assert!(!off.active());
+        let sources = [Source { token: 1, back: 0 }, Source { token: 2, back: 1 }];
+        let mut out = [usize::MAX; 4];
+        assert_eq!(route_sources(&off, sources[0], &sources, &mut out), 0);
+        // And `k = 0` with cells present is still inactive.
+        let mut k0 = config(RouteNull::None);
+        k0.k = 0;
+        assert!(!k0.active());
+        assert_eq!(route_sources(&k0, sources[0], &sources, &mut out), 0);
+    }
+
+    #[test]
+    fn the_route_follows_the_cells_and_returns_indices() {
+        let cfg = config(RouteNull::None);
+        // Ages chosen so the four sources land in four different cells.
+        let sources = [
+            Source { token: 5, back: 0 },
+            Source { token: 5, back: 1 },
+            Source { token: 5, back: 2 },
+            Source { token: 5, back: 3 },
+        ];
+        let mut out = [usize::MAX; 4];
+        let written = route_sources(&cfg, sources[0], &sources, &mut out);
+        assert!(written >= 1);
+        // The query's own cell is routed first.
+        assert_eq!(out[0], 0);
+        // Every written index is a real source, and none repeats.
+        for &index in &out[..written] {
+            assert!(index < sources.len());
+            assert_eq!(out[..written].iter().filter(|&&i| i == index).count(), 1);
+        }
+    }
+
+    #[test]
+    fn a_tangent_null_keeps_the_candidate_set_and_a_normal_null_moves_it() {
+        let sources = [
+            Source { token: 5, back: 0 },
+            Source { token: 5, back: 1 },
+            Source { token: 5, back: 2 },
+            Source { token: 5, back: 3 },
+        ];
+        let mut real = [usize::MAX; 4];
+        let mut tangent = [usize::MAX; 4];
+        let mut normal = [usize::MAX; 4];
+        let real_written = route_sources(&config(RouteNull::None), sources[0], &sources, &mut real);
+        let tangent_written = route_sources(
+            &config(RouteNull::Tangent { step: 0x9E37_79B9 }),
+            sources[0],
+            &sources,
+            &mut tangent,
+        );
+        let normal_written = route_sources(
+            &config(RouteNull::Normal { offset: 1 }),
+            sources[0],
+            &sources,
+            &mut normal,
+        );
+        // The tangent arm routes to the same candidates: it changes the fine
+        // coordinate the read scores, not the cell the route compares.
+        assert_eq!(real_written, tangent_written);
+        assert_eq!(&real[..real_written], &tangent[..tangent_written]);
+        // The tangent arm does move the representatives, which is what the read
+        // scores - so the arm is not the real arm.
+        let cfg_t = config(RouteNull::Tangent { step: 0x9E37_79B9 });
+        assert_ne!(
+            source_address(&config(RouteNull::None), sources[0]).representative,
+            source_address(&cfg_t, sources[0]).representative
+        );
+        // The normal arm changes the cells, so the route itself may differ.
+        let cfg_n = config(RouteNull::Normal { offset: 1 });
+        assert_ne!(
+            source_address(&config(RouteNull::None), sources[0]).cell,
+            source_address(&cfg_n, sources[0]).cell
+        );
+        assert!(normal_written <= sources.len());
+    }
+}
