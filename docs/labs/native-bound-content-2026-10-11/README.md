@@ -8,6 +8,11 @@ unchanged, panel fitting. No count reset, mechanism closure or model promotion.
 binding/credit, reuse SpiralCore and Claude, and do not train yet.
 **Prepares:** `unified-bound-content-437`, NOT_RUN, not preregistered/cleared.
 
+The subsequent owner-requested [whole-path design](../whole-path-learning-2026-10-11/README.md)
+specifies joint compiler/encoder/route/field coadaptation and delayed memory
+credit. It does not retroactively qualify those missing paths with this record's
+source fixtures; training remains held.
+
 ## Implemented Connection
 
 `native_grounded_session::NativeGroundedSession` consumes the existing

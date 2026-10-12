@@ -1,3 +1,19 @@
+## 2026-10-11 - Whole-path shared geometric learning design, training held (codex, #2030)
+
+The owner-requested [joint contract](../labs/whole-path-learning-2026-10-11/README.md)
+specifies one shared native encoder/revision, predicted exact-address plus bounded
+SpiralCore/Claude E8 family routing, exact content/version residuals and common
+Copy/Generate/EOS emission. Compiler/write/query/root/admission decisions receive
+delayed episode credit under an explicit stochastic hard-decision law; serving
+remains greedy, and packed-choice approximation is not claimed as an argmax
+gradient. All learned factor families coadapt and rebind transactionally; this
+is design, not an implemented/qualified joint trainer or model result.
+
+**Next:** one implementation/result delivery for `unified-bound-content-437`,
+with declared branch/credit/reload/CUDA gates and new preregistration/FIT before
+any run. Owner training hold remains; no model compute, panel or fresh draw.
+Unified line count4/3 on this explicitly requested design, no reset; saved437
+plus opened0 remain panel fitting, acceptance/panels/graders unchanged.
 ## 2026-10-12 — mqar-bench control-match test: the tolerance was wrong, the geometric count is unchanged (claude, #2032)
 
 `the_transformer_control_is_parameter_matched_to_the_geometric_arm` was first compiled after #2224 and failed at its tolerance check.

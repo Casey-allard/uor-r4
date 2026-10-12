@@ -35,6 +35,17 @@ artifact bytes while reducing repeated coefficient reads/products. These are
 source arithmetic/count checks, not language, transfer, speed or energy results.
 Actual CUDA, full512 baseline and model fitting remain NOT_RUN at preparation.
 
+**Whole-path learning design (not implemented):** the [joint contract](../labs/whole-path-learning-2026-10-11/DESIGN.md)
+removes the frozen compiler/shared-encoder boundary and requires all learned
+field families to coadapt in one revision. Compiler/write/query, E8 root/family
+admission and consumed donor decisions get delayed episode credit through an
+explicit stochastic hard-decision graph; greedy native export remains the
+qualification authority. Existing finite120 tools are local conditional credit,
+not an episode posterior, and cannot be added a second time to the same node's
+score-function estimator. Exact content survives beside bounded geometric
+summaries and SpiralCore frame transport. No trainer, run or efficiency result
+is activated by this design; the owner training hold stays.
+
 **Executed configuration, then owner interruption:** Three completed/sealed arms
 independently reproduce the saved437 baseline, then score0/512 at their fixed
 128-update endpoints (OFF1001, ON1001, OFF2001). ON2001 is unfinished before its
