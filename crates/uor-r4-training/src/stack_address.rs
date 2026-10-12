@@ -171,7 +171,10 @@ mod tests {
         let moved = (0..space)
             .filter(|&a| permute_address(a, space, step, offset) != a)
             .count();
-        assert!(moved > (space as usize) * 9 / 10, "the permutation barely moves");
+        assert!(
+            moved > (space as usize) * 9 / 10,
+            "the permutation barely moves"
+        );
     }
 }
 
@@ -216,7 +219,8 @@ impl Address {
     /// it, so agreement is coarse-to-fine and a cell match always outranks a
     /// representative match.
     pub fn packed(&self, inner_bits: u32) -> u32 {
-        (self.cell << inner_bits.min(31)) | (self.representative & ((1u32 << inner_bits.min(31)) - 1))
+        (self.cell << inner_bits.min(31))
+            | (self.representative & ((1u32 << inner_bits.min(31)) - 1))
     }
 
     /// A **tangent** movement: the same cell, a different representative. This
@@ -257,7 +261,10 @@ mod movement_tests {
         let inner = 1u32 << 12;
         let address = Address::of(11, 300, 8, 8, inner);
         let moved = address.tangent(0x9E37_79B9, inner);
-        assert_eq!(moved.cell, address.cell, "a tangent movement must keep the cell");
+        assert_eq!(
+            moved.cell, address.cell,
+            "a tangent movement must keep the cell"
+        );
         assert_ne!(
             moved.representative, address.representative,
             "a tangent movement must actually move"
@@ -269,17 +276,284 @@ mod movement_tests {
     fn a_normal_movement_changes_the_cell_and_keeps_the_representative() {
         let address = Address::of(11, 300, 8, 8, 1 << 12);
         let moved = address.normal(8, 0x9E37_79B9);
-        assert_ne!(moved.cell, address.cell, "a normal movement must leave the cell");
+        assert_ne!(
+            moved.cell, address.cell,
+            "a normal movement must leave the cell"
+        );
         assert_eq!(moved.representative, address.representative);
     }
 
     #[test]
     fn packing_is_coarse_to_fine_so_a_cell_match_outranks_a_fine_one() {
         let inner_bits = 12;
-        let a = Address { cell: 3, representative: 0 }.packed(inner_bits);
-        let b = Address { cell: 2, representative: (1 << 12) - 1 }.packed(inner_bits);
+        let a = Address {
+            cell: 3,
+            representative: 0,
+        }
+        .packed(inner_bits);
+        let b = Address {
+            cell: 2,
+            representative: (1 << 12) - 1,
+        }
+        .packed(inner_bits);
         assert!(a > b, "the cell must dominate the packed order");
         // And the packed order equals the (cell, representative) order.
         assert_eq!(a, (3 << inner_bits) | 0);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// The spanning tree the route walks (Matthew, Spiralcore: "layer-2 spanning tree")
+// ---------------------------------------------------------------------------
+
+/// A spanning tree over the cells. The cells are the layer-2 objects — the
+/// coarse invariants a source position belongs to — and the tree is what turns
+/// routing from a *search* into a *path*: two cells have exactly one path
+/// between them, so addresses are canonical (one node, one path from the root),
+/// comparable by shared ancestry, and the route is the path through the nearest
+/// common ancestor rather than a top-k over the window.
+///
+/// Built deterministically by breadth-first traversal from `root`, with the
+/// first edge that reaches a cell winning, so the tree depends only on the cell
+/// count, the edge list and the root — all recorded with the run.
+#[derive(Clone, Debug)]
+pub struct CellTree {
+    parent: Vec<u32>,
+    depth: Vec<u32>,
+    children: Vec<Vec<u32>>,
+    root: u32,
+    reached: usize,
+}
+
+impl CellTree {
+    /// Build the tree over `cells` nodes from undirected `edges`, rooted at
+    /// `root`. Unreached cells keep themselves as parent (a forest is allowed
+    /// and reported through [`Self::reached`]); a tree needs every cell reached.
+    pub fn build(cells: u32, edges: &[(u32, u32)], root: u32) -> Self {
+        let n = cells as usize;
+        let root = if root < cells { root } else { 0 };
+        let mut adjacent: Vec<Vec<u32>> = vec![Vec::new(); n];
+        for &(a, b) in edges {
+            if a < cells && b < cells && a != b {
+                adjacent[a as usize].push(b);
+                adjacent[b as usize].push(a);
+            }
+        }
+        let mut parent: Vec<u32> = (0..cells).collect();
+        let mut depth = vec![u32::MAX; n];
+        let mut children: Vec<Vec<u32>> = vec![Vec::new(); n];
+        let mut queue = std::collections::VecDeque::new();
+        depth[root as usize] = 0;
+        queue.push_back(root);
+        let mut reached = 0usize;
+        while let Some(node) = queue.pop_front() {
+            reached += 1;
+            let mut next = adjacent[node as usize].clone();
+            next.sort_unstable();
+            for neighbour in next {
+                if depth[neighbour as usize] == u32::MAX {
+                    depth[neighbour as usize] = depth[node as usize] + 1;
+                    parent[neighbour as usize] = node;
+                    children[node as usize].push(neighbour);
+                    queue.push_back(neighbour);
+                }
+            }
+        }
+        CellTree {
+            parent,
+            depth,
+            children,
+            root,
+            reached,
+        }
+    }
+
+    /// How many cells the traversal reached; a value below the cell count means
+    /// the edge list does not span the cells and the tree is a forest.
+    pub fn reached(&self) -> usize {
+        self.reached
+    }
+
+    /// The root.
+    pub fn root(&self) -> u32 {
+        self.root
+    }
+
+    /// The canonical address of a cell: its **path from the root**, which is
+    /// what makes re-rooting a re-encoding (Spiralcore's context translation)
+    /// rather than a renumbering.
+    pub fn path(&self, cell: u32) -> Vec<u32> {
+        let mut out = Vec::new();
+        if cell as usize >= self.parent.len() || self.depth[cell as usize] == u32::MAX {
+            return out;
+        }
+        let mut node = cell;
+        loop {
+            out.push(node);
+            if node == self.root {
+                break;
+            }
+            node = self.parent[node as usize];
+        }
+        out.reverse();
+        out
+    }
+
+    /// The nearest common ancestor of two cells — the node the route passes
+    /// through, and the only one every path between them shares.
+    pub fn common_ancestor(&self, a: u32, b: u32) -> Option<u32> {
+        if a as usize >= self.parent.len() || b as usize >= self.parent.len() {
+            return None;
+        }
+        if self.depth[a as usize] == u32::MAX || self.depth[b as usize] == u32::MAX {
+            return None;
+        }
+        let (mut x, mut y) = (a, b);
+        while self.depth[x as usize] > self.depth[y as usize] {
+            x = self.parent[x as usize];
+        }
+        while self.depth[y as usize] > self.depth[x as usize] {
+            y = self.parent[y as usize];
+        }
+        while x != y {
+            x = self.parent[x as usize];
+            y = self.parent[y as usize];
+        }
+        Some(x)
+    }
+
+    /// How many ancestors two cells share: prefix agreement on the tree, which
+    /// replaces the hash agreement the first slice used.
+    pub fn shared_ancestors(&self, a: u32, b: u32) -> usize {
+        let (pa, pb) = (self.path(a), self.path(b));
+        pa.iter().zip(pb.iter()).take_while(|(x, y)| x == y).count()
+    }
+
+    /// The route: write the indices of the source cells the read should look at,
+    /// **nearest first** — the query's own cell, then its ancestors up to the
+    /// root, then its children — and return how many were written. A cell that
+    /// is on the query's path is at most one edge from it, so the candidate set
+    /// is the adjacent subtree rather than the window, and its size is bounded
+    /// by the branching factor times the depth rather than by the context.
+    pub fn route(&self, query: u32, candidates: &[u32], out: &mut [usize]) -> usize {
+        if query as usize >= self.parent.len() {
+            return 0;
+        }
+        let mut order: Vec<u32> = Vec::new();
+        let mut node = Some(query);
+        while let Some(current) = node {
+            order.push(current);
+            node = if current == self.root {
+                None
+            } else {
+                Some(self.parent[current as usize])
+            };
+        }
+        order.extend(self.children[query as usize].iter().copied());
+        let mut written = 0usize;
+        for cell in order {
+            for (index, &candidate) in candidates.iter().enumerate() {
+                if candidate == cell && !out[..written].contains(&index) {
+                    if written == out.len() {
+                        return written;
+                    }
+                    out[written] = index;
+                    written += 1;
+                }
+            }
+        }
+        written
+    }
+
+    /// A **tangent** movement of a cell: stay at the node, change only the
+    /// representative — which is [`Address::tangent`]'s job, so this is the
+    /// identity on the tree and exists to make the attribution clause uniform
+    /// (the tree does not move under a tangent movement; only the fine
+    /// coordinate does).
+    pub fn tangent_cell(&self, cell: u32) -> u32 {
+        cell
+    }
+
+    /// A **normal** movement of a cell: leave the node — the first child, or the
+    /// parent when there is none — so the cell, and therefore its path, changes.
+    pub fn normal_cell(&self, cell: u32) -> u32 {
+        if cell as usize >= self.parent.len() {
+            return cell;
+        }
+        match self.children[cell as usize].first() {
+            Some(&child) => child,
+            None => self.parent[cell as usize],
+        }
+    }
+}
+
+#[cfg(test)]
+mod tree_tests {
+    use super::*;
+
+    fn chain() -> CellTree {
+        // 0 - 1 - 2 - 3, rooted at 0.
+        CellTree::build(4, &[(0, 1), (1, 2), (2, 3)], 0)
+    }
+
+    #[test]
+    fn the_tree_spans_and_paths_are_canonical() {
+        let tree = chain();
+        assert_eq!(tree.reached(), 4, "the edge list must span the cells");
+        assert_eq!(tree.path(0), vec![0]);
+        assert_eq!(tree.path(3), vec![0, 1, 2, 3]);
+        // The same cell has one path, whatever order it is asked for.
+        assert_eq!(tree.path(2), tree.path(2));
+        // A forest is allowed and reported rather than hidden.
+        let forest = CellTree::build(4, &[(0, 1)], 0);
+        assert_eq!(forest.reached(), 2);
+        assert!(forest.path(3).is_empty());
+    }
+
+    #[test]
+    fn two_cells_have_exactly_one_path_so_there_are_no_ties() {
+        let tree = chain();
+        assert_eq!(tree.common_ancestor(3, 2), Some(2));
+        assert_eq!(tree.common_ancestor(3, 1), Some(1));
+        assert_eq!(tree.common_ancestor(3, 0), Some(0));
+        assert_eq!(tree.common_ancestor(2, 2), Some(2));
+        // Prefix agreement is shared ancestry, counted on the path.
+        assert_eq!(tree.shared_ancestors(3, 2), 3); // 0,1,2
+        assert_eq!(tree.shared_ancestors(3, 0), 1); // 0
+        assert_eq!(tree.shared_ancestors(1, 3), 2); // 0,1
+    }
+
+    #[test]
+    fn the_route_walks_the_adjacent_subtree_nearest_first() {
+        let tree = chain();
+        // Candidates out of order; the query is cell 2.
+        let candidates = [3u32, 0, 2, 1];
+        let mut out = [usize::MAX; 4];
+        let written = tree.route(2, &candidates, &mut out);
+        // Order: the query's cell (index 2), then its parent, then the root, then
+        // its child — the path, not a score.
+        assert_eq!(written, 4);
+        assert_eq!(&out[..4], &[2, 3, 1, 0]);
+        // A bounded `out` writes only what fits.
+        let mut small = [usize::MAX; 2];
+        assert_eq!(tree.route(2, &candidates, &mut small), 2);
+        assert_eq!(&small[..2], &[2, 3]);
+    }
+
+    #[test]
+    fn tangent_movements_stay_at_the_node_and_normal_movements_leave_it() {
+        let tree = chain();
+        assert_eq!(
+            tree.tangent_cell(2),
+            2,
+            "a tangent movement must not move the node"
+        );
+        assert_ne!(
+            tree.normal_cell(2),
+            2,
+            "a normal movement must leave the node"
+        );
+        assert_eq!(tree.normal_cell(2), 3, "the first child");
+        assert_eq!(tree.normal_cell(3), 2, "a leaf falls back to its parent");
     }
 }
