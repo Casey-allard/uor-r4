@@ -42,13 +42,18 @@ structure is decorative; or quality falls beyond the panel's noise, which would 
 **A fair test:**
 - **Train it in from step 0** — the address function is part of the model's construction, never bolted onto a finished model.
 - **≥3 seeds or ≥200 fresh rows**, the frozen M1 memory panel as acceptance, wrong-value failures primary with the ±3-row noise floor.
-- **Two controls, both required.** (1) The **full softmax read** at the same budget — the thing being replaced. (2) A **null address**: the same
-  routing machinery with the address **permuted** (a fixed random bijection over the address space), so the test separates *routing* from
-  *structure*. Without the null control a routing win cannot be attributed to geometry, and that is the trap this line has fallen into before.
+- **Three controls, all required.** (1) The **full softmax read** at the same budget — the thing being replaced. (2) A **tangent null**: the
+  address moved **along** the manifold — the cell (the coarse invariant the route compares) is held and the representative inside it moves — so the
+  test asks whether the *geometry* is load-bearing rather than whether *any* address works. (3) A **normal null**: the cell itself changed (a
+  permutation of the whole address space is its extreme case), which destroys the structure and tests only that routing beats noise.
+  **Owner correction, 11 October: a null requires a tangent movement.** A permutation alone is the wrong null — it moves off the manifold, so it
+  cannot separate "the model uses the geometry" from "the model uses some address". A mechanism that survives the normal null but **dies under the
+  tangent null is keying on an arbitrary fine coordinate — a lookup, not an invariant**; one that survives both is reading structure.
 - **Report the compute beside the quality**: MACs/token at two contexts and **served tokens/s on the product path** (the owner's metric), never
   one without the other.
-- **Bar:** at or below the control's wrong-value count by ≥5 rows on ≥2 of 3 seeds, with the null-address arm **worse** than the real one by more
-  than the noise — and no headline loss beyond noise.
+- **Bar:** at or below the softmax control's wrong-value count by ≥5 rows on ≥2 of 3 seeds, **and** the **tangent** arm worse than the real
+  address by more than the noise on ≥2 of 3 seeds (the attribution clause), with no headline loss beyond noise. The normal null is reported beside
+  them for scale: it bounds how much any address could buy.
 
 **Open design questions:**
 - **Which invariant?** Prime/UOR address of the token identity; an icosian/H4 phase; a murmuration-style family key; or a composition (identity

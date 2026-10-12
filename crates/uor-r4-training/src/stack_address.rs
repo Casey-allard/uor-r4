@@ -174,3 +174,112 @@ mod tests {
         assert!(moved > (space as usize) * 9 / 10, "the permutation barely moves");
     }
 }
+
+// ---------------------------------------------------------------------------
+// The tangent and normal movements of the null control
+// ---------------------------------------------------------------------------
+
+/// An address with its structure made explicit: the **cell** it occupies (the
+/// coarse invariant — the family key that routes) and the **representative**
+/// inside that cell (the position's fine coordinate). A null control that
+/// permutes addresses destroys both, which tests only whether *any* address
+/// works; the control the mechanism needs is a movement that keeps the cell and
+/// moves the representative — a **tangent** movement, along the manifold rather
+/// than off it.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Address {
+    /// The coarse invariant: unchanged by a tangent movement, and what routing
+    /// compares.
+    pub cell: u32,
+    /// The fine coordinate inside the cell: what a tangent movement changes.
+    pub representative: u32,
+}
+
+impl Address {
+    /// The address of one source position as `(cell, representative)`:
+    /// the cell is the family key (the distance bucket, which is the coarse
+    /// invariant the read routes on) and the representative is the scattered
+    /// token identity inside it.
+    pub fn of(token: u32, back: usize, buckets: u32, cell_space: u32, inner_space: u32) -> Self {
+        let cell = if buckets == 0 {
+            0
+        } else {
+            (back as u64 % u64::from(buckets)) as u32 % cell_space.max(1)
+        };
+        Address {
+            cell,
+            representative: position_address(token, back, buckets, inner_space.max(1)),
+        }
+    }
+
+    /// The packed form the router compares: cell first, representative behind
+    /// it, so agreement is coarse-to-fine and a cell match always outranks a
+    /// representative match.
+    pub fn packed(&self, inner_bits: u32) -> u32 {
+        (self.cell << inner_bits.min(31)) | (self.representative & ((1u32 << inner_bits.min(31)) - 1))
+    }
+
+    /// A **tangent** movement: the same cell, a different representative. This
+    /// is the null that matters — if the model does as well with the
+    /// representative moved, it is using the cell (the geometry) and not an
+    /// arbitrary fine coordinate; if it degrades, the fine coordinate is
+    /// load-bearing and the address is a lookup rather than an invariant.
+    pub fn tangent(&self, step: u32, inner_space: u32) -> Self {
+        Address {
+            cell: self.cell,
+            representative: self
+                .representative
+                .wrapping_mul(step | 1)
+                .wrapping_add(step.rotate_left(7))
+                % inner_space.max(1),
+        }
+    }
+
+    /// A **normal** movement: a different cell, so the coarse invariant itself
+    /// changes. This is the coarser null (a permutation of the whole address
+    /// space is the extreme case of it): it tests whether *any* structure
+    /// works, and a mechanism that survives it but dies under [`Self::tangent`]
+    /// is keying on an arbitrary representative rather than on the geometry.
+    pub fn normal(&self, cell_space: u32, offset: u32) -> Self {
+        Address {
+            cell: self.cell.wrapping_add(offset | 1) % cell_space.max(1),
+            representative: self.representative,
+        }
+    }
+}
+
+#[cfg(test)]
+mod movement_tests {
+    use super::*;
+
+    #[test]
+    fn a_tangent_movement_keeps_the_cell_and_moves_the_representative() {
+        let inner = 1u32 << 12;
+        let address = Address::of(11, 300, 8, 8, inner);
+        let moved = address.tangent(0x9E37_79B9, inner);
+        assert_eq!(moved.cell, address.cell, "a tangent movement must keep the cell");
+        assert_ne!(
+            moved.representative, address.representative,
+            "a tangent movement must actually move"
+        );
+        assert!(moved.representative < inner);
+    }
+
+    #[test]
+    fn a_normal_movement_changes_the_cell_and_keeps_the_representative() {
+        let address = Address::of(11, 300, 8, 8, 1 << 12);
+        let moved = address.normal(8, 0x9E37_79B9);
+        assert_ne!(moved.cell, address.cell, "a normal movement must leave the cell");
+        assert_eq!(moved.representative, address.representative);
+    }
+
+    #[test]
+    fn packing_is_coarse_to_fine_so_a_cell_match_outranks_a_fine_one() {
+        let inner_bits = 12;
+        let a = Address { cell: 3, representative: 0 }.packed(inner_bits);
+        let b = Address { cell: 2, representative: (1 << 12) - 1 }.packed(inner_bits);
+        assert!(a > b, "the cell must dominate the packed order");
+        // And the packed order equals the (cell, representative) order.
+        assert_eq!(a, (3 << inner_bits) | 0);
+    }
+}
