@@ -1677,11 +1677,12 @@ fn answer(
 
 /// The window span of a value's last occurrence in `history`, by decoded text
 /// (decoding is per-id concatenation, so token `j` covers exactly the
-/// characters between the `j`-th and `j + 1`-th prefix decodings). The last
-/// occurrence over every alternative spelling wins; a value that is not stated
-/// in the window has no span. This is the copy-span oracle's source map: it
-/// reads the frozen check's expected value and the row's own history, nothing
-/// else.
+/// characters between the `j`-th and `j + 1`-th prefix decodings). The match
+/// is ASCII-case-insensitive: the frozen checks' terms are lowercase words
+/// while the conversations state the values capitalised. The last occurrence
+/// over every alternative spelling wins; a value that is not stated in the
+/// window has no span. This is the copy-span oracle's source map: it reads
+/// the frozen check's expected value and the row's own history, nothing else.
 fn find_value_span(
     history: &[u32],
     decode: &dyn Fn(&[u32]) -> String,
@@ -1694,19 +1695,25 @@ fn find_value_span(
         text.push_str(&decode(&[id]));
         boundaries.push(text.len());
     }
-    // The rightmost occurrence of any alternative spelling, as a char range.
-    let (hit, needle_len) = alternatives
-        .iter()
-        .filter_map(|alternative| {
-            let needle = alternative.trim();
-            if needle.is_empty() {
-                return None;
+    // The rightmost occurrence of any alternative spelling, as a byte range.
+    let mut best: Option<(usize, usize)> = None;
+    for alternative in alternatives {
+        let needle = alternative.trim();
+        if needle.is_empty() || needle.len() > text.len() {
+            continue;
+        }
+        for (at, _) in text
+            .as_bytes()
+            .windows(needle.len())
+            .enumerate()
+            .filter(|(_, window)| window.eq_ignore_ascii_case(needle.as_bytes()))
+        {
+            if best.is_none_or(|(best_at, _)| at >= best_at) {
+                best = Some((at, needle.len()));
             }
-            text.rmatch_indices(needle)
-                .next()
-                .map(|(at, _)| (at, needle.len()))
-        })
-        .max_by_key(|&(at, _)| at)?;
+        }
+    }
+    let (hit, needle_len) = best?;
     let start = boundaries.iter().rposition(|&b| b <= hit)?;
     let end = boundaries.iter().position(|&b| b >= hit + needle_len)?;
     (start < end).then_some((start, end))
@@ -3989,6 +3996,12 @@ mod tests {
         // "Britain" is stated twice; the oracle reads the last (token 12).
         assert_eq!(
             find_value_span(&history, &decode, &["Britain".to_string()]),
+            Some((12, 13))
+        );
+        // The frozen checks' terms are lowercase words while the conversation
+        // states the value capitalised: the match is case-insensitive.
+        assert_eq!(
+            find_value_span(&history, &decode, &["britain".to_string()]),
             Some((12, 13))
         );
         // A value whose characters cross a token boundary covers both tokens.

@@ -1,3 +1,23 @@
+## 2026-10-12 — D23 softmax census: every active executed path computes a normalized exponential; the compliance checker lands (kimi, #2028)
+
+The [census](../labs/softmax-census-2026-10-12/README.md) answers D23's inspection requirement for the whole
+project, and [`scripts/softmax_path_check.py`](../../scripts/softmax_path_check.py) is the executable
+instrument for it (`--path` per executed path; `--self-test` passes). Current verdict at this head: the Line A
+objective (14 sites — LSE forward, `exp(v−lse)` backward, CPU/CUDA/Metal), the stack serving mixture (14 — the
+head's `softmax(z)` and the pointer mixture), the D11 engine (7 — read, head and mixture normalize from the
+sealed exp table; the sampler itself is clean but softmax-fed), the native learner (21) and the training aids
+(63 — every surrogate, distillation and teacher) all compute a normalized exponential. **Already softmax-free
+in-tree:** the rank-family reads and their Q31 D11 serving path plus the export gate (a configuration, not the
+default), greedy decoding, the copy-span oracle's uniform forced attention, hard native bank generation, the
+A3 sieve, E8 gate mixing, VSA rectified-quadratic scoring, and rank/margin objectives (diagnostics only).
+The replacement learning law needs an objective (the largest gap), an output distribution, the read (solved
+as a configuration), sampling (clean) and the aids, in one design.
+
+Line: evaluation integrity · count 1/3 (instrument PR; prepares the D23-compliant runs) · headline: unchanged.
+Kimi's span-oracle and bench runs remain held until a compliant objective exists (blocked cards posted).
+
+**Next:** the owner's replacement learning law; this checker is its TEST FITNESS gate; the held runs re-register.
+
 ## October 12: no CPU model compute, and the softmax rule gets an interlock
 
 [D24](DECISIONS.md#d24---no-cpu-model-compute-and-no-gpu-on-non-decisive-work) adds the
@@ -47,6 +67,7 @@ Line unified geometric integration; count5/3 ->6/3 on this explicit-owner source
 delivery, no reset; saved437/512+opened0/128 unchanged panel fitting.
 **Next:** retain the no-training hold; device qualification and raw-instrument
 fitness/preregistration/TEST FITNESS remain gates, not automatic run permission.
+>>>>>>> origin/main
 
 ## 2026-10-12 — Why starling learning is a lottery, and a dense bootstrap that removes most of it: 3/5 seeds match softmax at 1536 (row 2) (claude, #2032)
 
