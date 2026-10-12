@@ -7,7 +7,7 @@
 //!   [batch=8] [steps=1800] [lr=0.001] [warmup=100] [min_lr=0.1] [weight_decay=0.1] [clip=1.0] \
 //!   [eval_every=100] [curve_sequences=8] [final_sequences=64] [seed=1] [max_seconds=1200] \
 //!   [probe_steps=0,600,final|none] [probe_sequences=16] [save_model=false|true] \
-//!   [dump_scores=false|true] \
+//!   [dump_scores=false|true] [reachability=true|false] \
 //!   [mode=train|task-baselines] [layout=synthetic|fact] FACT OPTIONS [arm=stack] ARM OPTIONS
 //! arm=stack: [pattern=aaaaaa] [read=l2|dot|lorentz] [rotation=true|false] [width=128] [heads=4] \
 //!   [read_route=none|starling:M:K[:content][:shared][:ranked]] [starling_anneal=FRACTION] [starling_oracle_train=false|true] [starling_surrogate=false|true] [starling_distill=WEIGHT] [starling_distill_start=FRACTION] \
@@ -118,7 +118,7 @@ struct Bucket {
     high: usize,
 }
 
-const ALL_BUCKETS: [Bucket; 5] = [
+const ALL_BUCKETS: [Bucket; 6] = [
     Bucket {
         name: "d16",
         low: 12,
@@ -143,6 +143,13 @@ const ALL_BUCKETS: [Bucket; 5] = [
         name: "d1000",
         low: 1000,
         high: 1100,
+    },
+    // Long-context recall (context 4096, murmuration ladder step 2); shorter
+    // windows filter it out, so their draws are unchanged.
+    Bucket {
+        name: "d3000",
+        low: 3000,
+        high: 3600,
     },
 ];
 
@@ -2496,6 +2503,11 @@ struct Common {
     probe_sequences: usize,
     /// TEMPORARY (T2): dump the read's weight rows on the held-out set.
     dump_scores: bool,
+    /// `reachability=false` skips the two observation-only D20 reachability
+    /// counters after the final evaluation. Each runs the whole final panel in
+    /// one forward (the firing counter as sequences x buckets items), which
+    /// does not fit at context 4096. Default true.
+    reachability: bool,
     /// Stage 0 (offline, no training): after the final evaluation, rank the
     /// gold source with the model's own fused score (A1), with a plain dot
     /// product over the *same frozen q/k* (A2), and with the exact
@@ -2546,6 +2558,7 @@ impl Common {
             "max_seconds": self.max_seconds,
             "probe_steps": self.probe_steps, "probe_sequences": self.probe_sequences,
             "dump_scores": self.dump_scores,
+            "reachability": self.reachability,
             "stage0": self.stage0,
             "init": self.init.as_ref().map(|p| p.display().to_string()),
             "stage0_dump": self.stage0_dump.as_ref().map(|p| p.display().to_string()),
@@ -2622,6 +2635,7 @@ fn settings(mut args: Args) -> Result<(Common, ArmSpec, Mode, Option<fact::FactT
         probe_sequences: args.parsed("probe_sequences", 16usize)?,
         // TEMPORARY (T2): `dump_scores=1` writes the read's own weight rows on
         // the held-out set into the report root; the default path is unchanged.
+        reachability: args.parsed("reachability", true)?,
         dump_scores: match args.take("dump_scores").as_deref() {
             None | Some("0") | Some("false") => false,
             Some("1") | Some("true") => true,
@@ -2996,8 +3010,15 @@ fn run(s: &Common, arm: &mut dyn ContextArm, log: &mut fs::File) -> Result<Value
     // D20 section 2 condition 3: two reachability counters on the scored
     // positions of the final in-class panel. Both are observation only.
     let reach_clock = Instant::now();
-    let firing = read_firing(&*arm, &in_class_set, s.context, &buckets)?;
-    let reachability = context_reachability(&*arm, &in_class_set, s.context)?;
+    let (firing, reachability) = if s.reachability {
+        (
+            read_firing(&*arm, &in_class_set, s.context, &buckets)?,
+            context_reachability(&*arm, &in_class_set, s.context)?,
+        )
+    } else {
+        let skipped = json!({"status": "not requested (reachability=false)"});
+        (skipped.clone(), skipped)
+    };
     let reachability_seconds = reach_clock.elapsed().as_secs_f64();
     let reach_line = format!(
         "reachability: read rows {} nonzero {}; key-ablation changed rows {}/{} (argmax {}), max |dlogit| {:.6}",
@@ -3012,6 +3033,11 @@ fn run(s: &Common, arm: &mut dyn ContextArm, log: &mut fs::File) -> Result<Value
             .unwrap_or(0),
         reachability["max_abs_logit_delta"].as_f64().unwrap_or(f64::NAN),
     );
+    let reach_line = if s.reachability {
+        reach_line
+    } else {
+        "reachability: not requested (reachability=false)".to_string()
+    };
     eprintln!("{reach_line}");
     writeln!(log, "{reach_line}")?;
     let mut sorted = step_seconds.clone();
@@ -3313,6 +3339,7 @@ mod tests {
             probe_steps: vec![0],
             probe_sequences: 2,
             dump_scores: false,
+            reachability: true,
             stage0: false,
             // `init` and `stage0_dump` complete the literal: the follow-up
             // added them, and the test target must compile.
@@ -3471,6 +3498,26 @@ mod tests {
         assert_ne!(small("ra", true).shapes(), small("ra", false).shapes());
     }
 
+    #[test]
+    fn long_context_buckets_leave_short_windows_unchanged() {
+        let names = |context| {
+            buckets_for(context)
+                .iter()
+                .map(|b| b.name)
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(names(512), ["d16", "d64", "d200", "d400"]);
+        assert_eq!(names(1536), ["d16", "d64", "d200", "d400", "d1000"]);
+        assert_eq!(
+            names(4096),
+            ["d16", "d64", "d200", "d400", "d1000", "d3000"]
+        );
+        // Every bucket's queries fit the window that admits it.
+        for context in [512, 1536, 4096] {
+            assert!(buckets_for(context).iter().all(|b| b.high < context));
+        }
+    }
+
     fn common_for(out: &str, context: usize) -> Common {
         Common {
             out: PathBuf::from(out),
@@ -3495,6 +3542,7 @@ mod tests {
             probe_steps: Vec::new(),
             probe_sequences: 1,
             dump_scores: false,
+            reachability: true,
             select: None,
             stage0: false,
             init: None,
