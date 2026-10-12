@@ -8,6 +8,7 @@
 use super::geometric_continuation_field::{ContinuationReadCounts, NativeContinuationField};
 use super::geometric_generate::{GenerateReadCounts, NativeGeometricGenerate};
 use super::geometric_read_state_bridge::{BridgeReadCounts, NativeGeometricReadStateBridge};
+use crate::native_geometric::hamming_refinement::metric::Metric;
 use sha2::{Digest, Sha256};
 use std::path::Path;
 use uor_r4_integer::{
@@ -133,8 +134,19 @@ pub struct AdmittedBank {
     query_ids: Vec<u32>,
     base_tokens: usize,
     source_metadata_sha256: String,
+    query_conditioned_selection: bool,
+    execution_sha256: String,
 }
 impl AdmittedBank {
+    pub fn source_metadata_sha256(&self) -> &str {
+        &self.source_metadata_sha256
+    }
+    pub fn query_ids(&self) -> &[u32] {
+        &self.query_ids
+    }
+    pub fn query_conditioned_selection(&self) -> bool {
+        self.query_conditioned_selection
+    }
     pub fn pin(&self) -> &BankPin {
         &self.pin
     }
@@ -146,7 +158,8 @@ impl AdmittedBank {
             .iter()
             .any(|s| matches!(s, OwnedBankSegment::Source(_)))
     }
-    fn borrowed_segments(&self) -> Result<Vec<SourceBankSegment<'_>>> {
+    /// The same immutable views/provenance used by serving, for bound learning.
+    pub fn borrowed_segments(&self) -> Result<Vec<SourceBankSegment<'_>>> {
         self.segments
             .iter()
             .zip(&self.views)
@@ -214,6 +227,7 @@ pub struct NativeBankGenerator {
     /// cumulative source state is closest to the query state instead of the
     /// earliest raw Copy maximum, so the selection depends on what was asked.
     query_conditioned_selection: bool,
+    query_metric: Metric,
 }
 /// Independently encoded query followed by actual emitted tokens. Fact text
 /// never enters this register; factual transport and Copy remain available.
@@ -321,20 +335,21 @@ fn earliest_raw_max(scores: &[i64]) -> Result<usize> {
 }
 /// Choose the occurrence whose cumulative source state is closest to the query
 /// state, so that what was asked decides what gets read. Integer-only: the
-/// distance is an L1 sum over H4 code indices, with no product of runtime
-/// values. Ties fall back to the summed Copy score and then to the earliest
+/// distance sums artifact-bound hemisphere XOR/popcounts, never ID differences.
+/// Ties fall back to the summed Copy score and then to the earliest
 /// occurrence, which makes the previous policy the degenerate case.
-fn query_conditioned_choice(
+pub fn query_conditioned_choice(
+    metric: &Metric,
     query: &[H4Code],
     bank: &BankRealizerTrace,
     scores: &[i64],
 ) -> Result<usize> {
-    if bank.candidates.is_empty() {
+    if bank.candidates.is_empty() || scores.len() != bank.candidates.len() {
         return Err(NativeBankGenerateError::Input(
             "bank read has no candidates".into(),
         ));
     }
-    let mut best: Option<(i64, i64, usize)> = None;
+    let mut best: Option<(i64, std::cmp::Reverse<i64>, usize)> = None;
     for (index, candidate) in bank.candidates.iter().enumerate() {
         let state = bank
             .context
@@ -347,18 +362,14 @@ fn query_conditioned_choice(
         let mut distance = 0i64;
         for (q, &s) in query.iter().zip(state.iter()) {
             distance = distance
-                .checked_add((q.index() as i64 - i64::from(s)).abs())
+                .checked_add(i64::from(
+                    metric
+                        .root_distance(u16::from(q.index()), u16::from(s))
+                        .map_err(execution)?,
+                ))
                 .ok_or(NativeBankGenerateError::Arithmetic)?;
         }
-        let key = (
-            distance,
-            scores
-                .get(index)
-                .copied()
-                .unwrap_or(i64::MIN)
-                .saturating_neg(),
-            index,
-        );
+        let key = (distance, std::cmp::Reverse(scores[index]), index);
         if best.is_none_or(|current| key < current) {
             best = Some(key);
         }
@@ -435,6 +446,7 @@ impl NativeBankGenerator {
         }
         let pool =
             NativeVocabularyActions::new(model.binding().clone(), a.exp.bytes).map_err(artifact)?;
+        let query_metric = Metric::historical(model.context_encoder_parts().1).map_err(artifact)?;
         Ok(Self {
             model,
             generate,
@@ -447,6 +459,7 @@ impl NativeBankGenerator {
             continuation: None,
             continuation_sha256: None,
             query_conditioned_selection: false,
+            query_metric,
         })
     }
     /// Opt in to a selection that reads what was asked. The default policy is
@@ -458,6 +471,27 @@ impl NativeBankGenerator {
     }
     pub fn source_binding(&self) -> &NativeArtifactBinding {
         self.model.artifact_binding()
+    }
+    pub fn token_binding(&self) -> &SourceActionBinding {
+        self.model.binding()
+    }
+    /// Complete immutable consumer identity, including sidecars and selection.
+    /// A source metadata hash alone does not bind these separately loaded tables.
+    pub fn execution_sha256(&self) -> Result<String> {
+        let bytes = serde_json::to_vec(&(
+            self.source_binding(),
+            &self.generate_sha256,
+            &self.bridge_sha256,
+            self.cue.config(),
+            hash(self.cue.packed_coefficients()),
+            self.cue.joint().map(|j| j.metadata()),
+            self.prefix.config(),
+            hash(self.prefix.packed_coefficients()),
+            &self.continuation_sha256,
+            self.query_conditioned_selection,
+        ))
+        .map_err(execution)?;
+        Ok(hash(&bytes))
     }
     pub fn generate_sha256(&self) -> &str {
         &self.generate_sha256
@@ -551,6 +585,8 @@ impl NativeBankGenerator {
             query_ids: s.query_ids,
             base_tokens: base,
             source_metadata_sha256: self.model.artifact_binding().metadata_sha256.clone(),
+            query_conditioned_selection: self.query_conditioned_selection,
+            execution_sha256: self.execution_sha256()?,
         })
     }
     pub fn step(
@@ -558,7 +594,10 @@ impl NativeBankGenerator {
         bank: &AdmittedBank,
         actual_prefix: &[u32],
     ) -> Result<NativeBankGenerateStep> {
-        if bank.source_metadata_sha256 != self.model.artifact_binding().metadata_sha256 {
+        if bank.source_metadata_sha256 != self.model.artifact_binding().metadata_sha256
+            || bank.query_conditioned_selection != self.query_conditioned_selection
+            || bank.execution_sha256 != self.execution_sha256()?
+        {
             return Err(artifact(
                 "admitted bank belongs to a different source artifact",
             ));
@@ -620,7 +659,7 @@ impl NativeBankGenerator {
         };
         let bridge_witness = if let (Some(bridge), Some(trace)) = (&self.bridge, &bank_trace) {
             let selected = if self.query_conditioned_selection {
-                query_conditioned_choice(&codes, &trace.cue_bank.bank, &scores)?
+                query_conditioned_choice(&self.query_metric, &codes, &trace.cue_bank.bank, &scores)?
             } else {
                 earliest_raw_max(&scores)?
             };
@@ -940,6 +979,8 @@ mod tests {
             query_ids: vec![4, 7],
             base_tokens: 5,
             source_metadata_sha256: String::new(),
+            query_conditioned_selection: false,
+            execution_sha256: String::new(),
         };
         assert_eq!(bank.no_source_ids(&[7, 3])?, [7, 4, 3, 4, 7, 7, 3]);
         let borrowed = bank.borrowed_segments()?;

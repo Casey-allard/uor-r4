@@ -26,6 +26,7 @@ use crate::geometric_value_producer::{ValueProducerOutput, ValueProducerWeights}
 use crate::{invalid, Result};
 
 pub const SURROGATE: &str = "native-context-trace-conditioned;frozen-q4-consumer-inputs;potential-offdiagonal-ambient-directed-Hamilton/root120;self-angular-zero;category33-native-lane-score-counterfactual-both-self-roles;NoRead-all-lanes-root-linear/category33;value-native-choice-decoded-prototype-and-zero-anchor;nat-units/1";
+pub const RETAINED_COPY_SURROGATE: &str = "frozen-native-observation-and-consumer;all120-retained-state-counterfactuals-including-neighbor-readout;one-context-owned-temporal-pullback;no-ambient-projection;conditional-other-states-factual;readout-coefficients-frozen/1";
 const Q24: f64 = 16_777_216.;
 const Q25: f64 = 33_554_432.;
 const ALGEBRA: &[u8] = include_bytes!("../../uor-r4-integer/fixtures/historical-h4-tables-v1.bin");
@@ -63,6 +64,356 @@ fn tensor_values(t: &Tensor, shape: &[usize]) -> Result<Vec<f32>> {
 }
 fn code(root: u8) -> Result<H4Code> {
     H4Code::try_from(root).map_err(|e| invalid(e.to_string()))
+}
+
+/// Exact finite observation of a retained-state change, including neighboring
+/// lane readouts. Coefficients are fixed; this credits transitions, not readout
+/// parameters. The caller binds the chronological tokens to this native replay.
+fn retained_observation_credit(
+    tables: &uor_r4_integer::geometric_context::NativeContextTables,
+    context: &ContextQ4Output,
+    tokens: &[u32],
+    times: &[usize],
+    score: impl Fn(&[AddressLane]) -> Result<Vec<i64>>,
+) -> Result<Tensor> {
+    use uor_r4_integer::geometric_context::NativeContextState;
+    let (d, _) = admit(context)?;
+    if d.batch != 1
+        || tokens.len() != d.time
+        || context.state_choices.dims() != [1, d.time, d.heads, d.lanes, 120]
+        || context.state_choices.dtype() != DType::F32
+        || !context
+            .state_choices
+            .device()
+            .same_device(context.root_logits.device())
+        || tables.heads() != d.heads
+        || tables.lanes_per_head() != d.lanes
+        || times.iter().any(|&t| t >= d.time)
+        || times.windows(2).any(|t| t[0] >= t[1])
+    {
+        return Err(invalid(
+            "retained Copy token/state/table/position binding differs",
+        ));
+    }
+    for t in 0..d.time {
+        let states = context.trace.states[t]
+            .iter()
+            .copied()
+            .map(code)
+            .collect::<Result<Vec<_>>>()?;
+        let observed = NativeContextState::observe_states(tokens[t] as usize, &states, tables)
+            .map_err(|e| invalid(e.to_string()))?;
+        if observed.output[..d.width()] != context.trace.codes[t * d.width()..(t + 1) * d.width()] {
+            return Err(invalid(
+                "retained Copy observation differs from native replay",
+            ));
+        }
+    }
+    let hard = score(&context.trace.codes)?;
+    let edges = hard.len();
+    let utility_count = times
+        .len()
+        .checked_mul(d.width())
+        .and_then(|n| n.checked_mul(120))
+        .and_then(|n| n.checked_mul(edges))
+        .ok_or_else(|| invalid("retained Copy utility size overflow"))?;
+    if utility_count > 32 * 1024 * 1024 {
+        return Err(invalid("retained Copy utility exceeds128MiB admission"));
+    }
+    if context.state_choices.device().is_cpu() {
+        let values = context.state_choices.flatten_all()?.to_vec1::<f32>()?;
+        for (at, row) in values.chunks_exact(120).enumerate() {
+            let state = context.trace.states[at / d.width()][at % d.width()] as usize;
+            if row
+                .iter()
+                .enumerate()
+                .any(|(r, &value)| value != f32::from(u8::from(r == state)))
+            {
+                return Err(invalid(
+                    "retained Copy choices differ from native hard state",
+                ));
+            }
+        }
+    }
+    let mut indices = Vec::new();
+    let mut utilities = Vec::new();
+    for &t in times {
+        let factual = context.trace.states[t]
+            .iter()
+            .copied()
+            .map(code)
+            .collect::<Result<Vec<_>>>()?;
+        for lane in 0..d.width() {
+            indices.push((t * d.width() + lane) as u32);
+            for root in 0..120 {
+                let mut states = factual.clone();
+                states[lane] = code(root)?;
+                let observed =
+                    NativeContextState::observe_states(tokens[t] as usize, &states, tables)
+                        .map_err(|e| invalid(e.to_string()))?;
+                let mut codes = context.trace.codes.clone();
+                codes[t * d.width()..(t + 1) * d.width()]
+                    .copy_from_slice(&observed.output[..d.width()]);
+                let alternative = score(&codes)?;
+                if alternative.len() != edges {
+                    return Err(invalid("retained Copy utility shape differs"));
+                }
+                utilities.extend(
+                    alternative
+                        .iter()
+                        .zip(&hard)
+                        .map(|(&a, &b)| ((a as f64 - b as f64) / Q24) as f32),
+                );
+            }
+        }
+    }
+    let device = context.state_choices.device();
+    if indices.is_empty() {
+        return Ok(Tensor::from_vec(
+            hard.iter()
+                .map(|&s| (s as f64 / Q24) as f32)
+                .collect::<Vec<_>>(),
+            edges,
+            device,
+        )?);
+    }
+    let n = indices.len();
+    let utility = Tensor::from_vec(utilities, (n, 120, edges), device)?;
+    let index = Tensor::from_vec(indices, n, device)?;
+    let choices = context
+        .state_choices
+        .reshape((d.count(), 120))?
+        .index_select(&index, 0)?;
+    let credit = choices.unsqueeze(2)?.broadcast_mul(&utility)?.sum((0, 1))?;
+    device_hard_anchor(&hard, credit)
+}
+
+pub fn frozen_potential_selected_retained_forward(
+    weights: &PotentialQ4Weights,
+    tables: &uor_r4_integer::geometric_context::NativeContextTables,
+    context: &ContextQ4Output,
+    tokens: &[u32],
+    pairs: &[ContextPotentialPair],
+) -> Result<PotentialQ4Output> {
+    let (d, _) = admit(context)?;
+    if pairs.len() > 128
+        || weights.config().heads != d.heads
+        || weights.config().lanes_per_head != d.lanes
+        || pairs
+            .iter()
+            .any(|p| p.batch != 0 || p.query >= d.time || p.key > p.query)
+    {
+        return Err(invalid("retained potential dimensions/causal pairs differ"));
+    }
+    let codec = NativePotentialQ4::new(
+        PotentialQ4Config {
+            heads: d.heads,
+            lanes_per_head: d.lanes,
+        },
+        &weights.packed_coefficients()?,
+    )
+    .map_err(|e| invalid(e.to_string()))?;
+    let geometry = HistoricalH4Tables::from_bytes(ALGEBRA).map_err(|e| invalid(e.to_string()))?;
+    let absent = AddressLane::new(1, 0, false).map_err(|e| invalid(e.to_string()))?;
+    let content = vec![absent; d.count()];
+    let score = |codes: &[AddressLane]| -> Result<Vec<i64>> {
+        pairs
+            .iter()
+            .flat_map(|p| (0..d.heads).map(move |h| (p, h)))
+            .map(|(p, h)| {
+                let q = d.index(0, p.query, h, 0);
+                let k = d.index(0, p.key, h, 0);
+                codec
+                    .score(
+                        h,
+                        &content[q..q + d.lanes],
+                        &content[k..k + d.lanes],
+                        &codes[q..q + d.lanes],
+                        &codes[k..k + d.lanes],
+                        &geometry,
+                    )
+                    .map_err(|e| invalid(e.to_string()))
+            })
+            .collect()
+    };
+    let hard = score(&context.trace.codes)?;
+    let times: Vec<_> = pairs
+        .iter()
+        .flat_map(|p| [p.query, p.key])
+        .collect::<std::collections::BTreeSet<_>>()
+        .into_iter()
+        .collect();
+    let scores = retained_observation_credit(tables, context, tokens, &times, score)?
+        .reshape((pairs.len(), d.heads))?;
+    Ok(PotentialQ4Output {
+        scores,
+        scores_q24: hard,
+        content_codes: content,
+        context_codes: context.trace.codes.clone(),
+    })
+}
+
+pub fn frozen_cue_retained_forward(
+    config: CueAngularConfig,
+    packed: &[u8],
+    joint: Option<&uor_r4_integer::geometric_cue_carrier::CueJointQ4>,
+    carrier: &CueCarrierTrace,
+    tables: &uor_r4_integer::geometric_context::NativeContextTables,
+    query: &ContextQ4Output,
+    cues: &[ContextQ4Output],
+) -> Result<CueRootCreditOutput> {
+    if config != carrier.metadata.potential || cues.len() != carrier.cues.len() {
+        return Err(invalid("retained cue config/count differs"));
+    }
+    validate_cue_state_joint_payload(joint, &carrier.metadata.joint)?;
+    if crate::sha256_bytes(packed) != carrier.metadata.potential_packed_sha256 {
+        return Err(invalid("retained cue coefficient binding differs"));
+    }
+    cue_final_roots(query, &carrier.query)?;
+    for (c, p) in cues.iter().zip(&carrier.cues) {
+        cue_final_roots(c, &p.state)?;
+    }
+    let op = CueStateCredit::new(config, packed, joint, carrier)?;
+    let n = carrier.candidate_cue_indices.len();
+    let score = |q: &[AddressLane], keys: &[Vec<AddressLane>]| -> Result<Vec<i64>> {
+        (0..config.heads)
+            .flat_map(|h| carrier.candidate_cue_indices.iter().map(move |s| (h, s)))
+            .map(|(h, s)| s.map_or(Ok(0), |s| op.score(h, q, &keys[s])))
+            .collect()
+    };
+    let q = retained_observation_credit(
+        tables,
+        query,
+        &carrier.query.token_ids,
+        &[query.trace.time - 1],
+        |codes| {
+            score(
+                &codes[(query.trace.time - 1) * op.base.query.len()..],
+                &op.base.cues,
+            )
+        },
+    )?;
+    let mut credit = (&q - q.detach())?;
+    for (s, c) in cues.iter().enumerate() {
+        let key = retained_observation_credit(
+            tables,
+            c,
+            &carrier.cues[s].state.token_ids,
+            &[c.trace.time - 1],
+            |codes| {
+                let mut keys = op.base.cues.clone();
+                keys[s] = codes[(c.trace.time - 1) * op.base.query.len()..].to_vec();
+                score(&op.base.query, &keys)
+            },
+        )?;
+        credit = (credit + (&key - key.detach())?)?;
+    }
+    let hard: Vec<_> = op.base.hard.iter().flatten().copied().collect();
+    Ok(CueRootCreditOutput {
+        scores: device_hard_anchor(&hard, credit)?.reshape((config.heads, n))?,
+        scores_q24: op.base.hard,
+    })
+}
+
+#[cfg(test)]
+mod retained_copy_tests {
+    use super::*;
+    use crate::geometric_context::ContextWeights;
+    use candle_core::Var;
+    use uor_r4_integer::geometric_context::NativeContextState;
+    use uor_r4_integer::geometric_context_q4::{ContextQ4Config, NativeContextQ4};
+
+    #[test]
+    fn retained_copy_exact120_utility_includes_neighbor_observation_and_single_pullback(
+    ) -> Result<()> {
+        let weights = ContextWeights::new_finite_choice(3, 8, 1, 17)?.into_q4()?;
+        for var in weights.parameters().values() {
+            var.set(&Tensor::zeros_like(var.as_tensor())?)?;
+        }
+        let root = &weights.parameters()["neighbor_root"];
+        let mut values = vec![0.; root.elem_count()];
+        for lane in 0..2 {
+            for state in 0..120 {
+                let vector = CANONICAL_BASIS_Q25[(state + 17) % 120];
+                for axis in 0..4 {
+                    values[(lane * 120 + state) * 4 + axis] =
+                        (f64::from(vector[axis]) / Q25 * 1.5) as f32;
+                }
+            }
+        }
+        root.set(&Tensor::from_vec(values, root.shape(), &Device::Cpu)?)?;
+        let category = &weights.parameters()["token_category"];
+        let mut values = vec![0f32; category.elem_count()];
+        for row in values.chunks_exact_mut(33) {
+            row[1] = 1.5;
+        }
+        category.set(&Tensor::from_vec(values, category.shape(), &Device::Cpu)?)?;
+        let codec = NativeContextQ4::new(
+            ContextQ4Config {
+                vocab_size: 3,
+                heads: 1,
+                lanes_per_head: 2,
+            },
+            &weights.packed_coefficients()?,
+        )
+        .map_err(|e| invalid(e.to_string()))?;
+        let mut context = weights.forward_q4(&[0], 1, 1, false)?;
+        let original_choices = context.state_choices.clone();
+        let choice = Var::from_tensor(&original_choices)?;
+        context.state_choices = choice.as_tensor().clone();
+        let score = |codes: &[AddressLane]| -> Result<Vec<i64>> {
+            Ok(vec![(i64::from(codes[1].root() % 7) - 3) << 24])
+        };
+        let out = retained_observation_credit(codec.native(), &context, &[0], &[0], score)?;
+        let hard = score(&context.trace.codes)?[0];
+        assert_eq!(out.to_vec1::<f32>()?, vec![(hard as f64 / Q24) as f32]);
+        let gradients = out.sum_all()?.backward()?;
+        let actual = gradients
+            .get(choice.as_tensor())
+            .ok_or_else(|| invalid("finite choices disconnected"))?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        let factual = context.trace.states[0]
+            .iter()
+            .copied()
+            .map(code)
+            .collect::<Result<Vec<_>>>()?;
+        for lane in 0..2 {
+            for root in 0..120 {
+                let mut states = factual.clone();
+                states[lane] = code(root as u8)?;
+                let observed = NativeContextState::observe_states(0, &states, codec.native())
+                    .map_err(|e| invalid(e.to_string()))?;
+                let expected = (score(&observed.output[..2])?[0] - hard) as f64 / Q24;
+                assert_eq!(actual[lane * 120 + root], expected as f32);
+            }
+        }
+        assert!(
+            actual[..120].iter().any(|v| v.abs() > 0.1),
+            "neighbor-dependent observer must reach the OTHER retained lane"
+        );
+        assert!(
+            actual[120..].iter().all(|v| *v == 0.),
+            "frozen-neighbor observer has no fabricated own-lane credit"
+        );
+        assert!(gradients.get(category.as_tensor()).is_none());
+        assert!(gradients.get(root.as_tensor()).is_none());
+        // Restore the authentic state graph; Context owns one pullback/carry.
+        context.state_choices = original_choices;
+        let out = retained_observation_credit(codec.native(), &context, &[0], &[0], score)?;
+        let gradients = out.sum_all()?.backward()?;
+        assert!(
+            gradients
+                .get(weights.parameters()["token_transition"].as_tensor())
+                .ok_or_else(|| invalid("finite utility missing transition credit"))?
+                .abs()?
+                .sum_all()?
+                .to_scalar::<f32>()?
+                > 0.
+        );
+        assert!(retained_observation_credit(codec.native(), &context, &[], &[0], score).is_err());
+        Ok(())
+    }
 }
 fn root(root: u8) -> [f64; 4] {
     CANONICAL_BASIS_Q25[usize::from(root)].map(|x| f64::from(x) / Q25)

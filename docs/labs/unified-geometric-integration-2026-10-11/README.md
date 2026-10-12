@@ -1,6 +1,6 @@
 # Unified geometric integration (11 October 2026)
 
-**Status:** owner-interrupted comparison; completed measurements retained, no candidate promoted. Combined result/audit delivery pending.
+**Status:** owner-interrupted comparison; completed measurements retained, no candidate promoted. Delivered in #2219 at `b0e149dbdd15d4fb84ab0707a880bdadd5eb82c7`, with whole-tree verification.
 **Milestone:** M2 [#2030](https://github.com/UOR-Foundation/uor-r4/issues/2030).
 **Line:** unified geometric route/action/learning integration; count2/3 on this result delivery (preparation #2210 was1/3).
 **Run:** `unified-geometric-carrier-437-20261011`.

@@ -1,3 +1,20 @@
+## 2026-10-11 - Compiler/store/native-bank connection and retained geometric Copy credit (codex, #2030)
+
+The [source repair](../labs/native-bound-content-2026-10-11/README.md) connects
+predicted compiler spans, the existing exact store and native bank/emitter with
+atomic turns, complete consumer bindings/reload and shared admitted learning
+inputs. It adds finite120 Copy/Prefix utilities with frozen-observation guards,
+reuses mapped Hamming for the optional reader, and binds Claude/SpiralCore E8
+transport to exact record identities; nine qualification and seven native-bank
+regression fixtures pass, not a trained model promotion. Saved437 plus opened0 remain panel fitting; unified
+line count3/3 on source delivery; no training or paid compute. The supplied
+elliptic-curve murmurations paper is distinguished from the implemented Starling
+neighbor route, which has no arithmetic trace/family operator.
+
+**Next:** final-head qualification/protected delivery, then the mandatory pivot
+card naming `unified-bound-content-437`; owner training hold stays in force.
+New preregistration/whole-path FIT and explicit compiler/representation
+dependencies precede any model run; acceptance/panels/graders unchanged.
 ## 2026-10-12 — Starling selector distillation: from step 0 it stops learning; started half-way it lifts the hit rate to 0.61–0.68 (claude, #2032)
 
 The [record](../labs/starling-distill-2026-10-12/README.md) is murmuration-read ladder step 1: a training-only KL from the dense content teacher onto the 600-cell addresses.

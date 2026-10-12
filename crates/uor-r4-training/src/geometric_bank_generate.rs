@@ -54,6 +54,7 @@ use crate::{
 pub const CREDIT_SCOPE:&str="same-actual-fullbank-context;retained-H4-onehot120-Generate;full120-temporal-utility-factual-action-carry-and-one-choice-pullback;frozen-native-allsource-Copy-context/cue/prefix-credit-legacy-ambient4;one-common-clipped-fullvocab-token-alias-marginal;no-old-terminals-or-bonus;all-Copy-occurrences-scored-without-selected-winner;local-finite-choice-surrogate-not-global-posterior/3";
 pub const NO_SOURCE_CREDIT_SCOPE:&str="actual-causal-history-context;retained-H4-onehot120-Generate;full120-temporal-utility-factual-action-carry-and-one-choice-pullback;full-legal-vocabulary;zero-Copy-occurrences;no-fabricated-source-or-initial-token;local-finite-choice-surrogate-not-global-posterior/2";
 pub const PREFIX_TEMPORAL_CREDIT_SCOPE: &str = "same-actual-fullbank-context;Generate-and-exact-prefix-Copy-table-full120-temporal-utility;one-context-choice-pullback;contextual-readout/cue-Copy-credit-legacy-ambient4;all-source-occurrences-no-selected-winner;local-conditional-surrogate-not-global-posterior/4";
+pub const RETAINED_COPY_CREDIT_SCOPE: &str = "same-admitted-native-bank;Copy-context-and-cue-full120-retained-state-native-observation-utilities;Prefix-and-Generate-full120-temporal-utility;observational-readout-parameters-frozen;one-context-owned-pullback;conditional-not-global-posterior/1";
 
 /// Shared frozen upstream operators for fixed teacher-prefix continuation fits.
 /// Ownership prevents replacing Context/Potential/Generate/bridge/cue/prefix
@@ -573,6 +574,8 @@ pub struct PreparedBankGenerate<'a, 'source> {
     prepared_generate: &'a PreparedGenerateLearning,
     pool: NativeVocabularyActions,
     prefix_temporal_utility: bool,
+    retained_copy_utility: bool,
+    query_metric: Option<uor_r4_core::native_geometric::hamming_refinement::metric::Metric>,
     read_state_bridge: Option<ReadStateBridge<'a>>,
     read_selector_credit: bool,
     continuation: Option<ContinuationBranch<'a>>,
@@ -717,6 +720,8 @@ impl<'a, 'source> PreparedBankGenerate<'a, 'source> {
             prepared_generate,
             pool,
             prefix_temporal_utility: false,
+            retained_copy_utility: false,
+            query_metric: None,
             read_state_bridge: None,
             read_selector_credit: true,
             continuation: None,
@@ -866,6 +871,72 @@ impl<'a, 'source> PreparedBankGenerate<'a, 'source> {
         self
     }
 
+    /// Copy's finite observation and Prefix use the same retained-state utility
+    /// channel as Generate. Native scores stay identical; root/category readout
+    /// masters must remain frozen in a fit using this transition-credit policy.
+    pub fn with_retained_copy_utility(mut self) -> Self {
+        self.retained_copy_utility = true;
+        self.prefix_temporal_utility = true;
+        self
+    }
+
+    /// Match the native optional reader using the same bound Hamming metric.
+    /// No geometric score is inferred from table-index numeric order.
+    pub fn with_query_conditioned_selection(mut self) -> Result<Self> {
+        let tables = uor_r4_integer::h4_tables::HistoricalH4Tables::from_bytes(include_bytes!(
+            "../../uor-r4-integer/fixtures/historical-h4-tables-v1.bin"
+        ))
+        .map_err(|e| invalid(e.to_string()))?;
+        self.query_metric = Some(
+            uor_r4_core::native_geometric::hamming_refinement::metric::Metric::historical(&tables)
+                .map_err(|e| invalid(e.to_string()))?,
+        );
+        // Copy-score softmax is not a pullback of hemisphere-distance routing.
+        // Keep that route frozen until a distinct finite route utility is qualified.
+        self.read_selector_credit = false;
+        Ok(self)
+    }
+
+    /// Consume the exact immutable native input/views rather than reauthoring a
+    /// training-only bank. Prepared operators must be rebuilt after an update.
+    pub fn forward_admitted_bank(
+        &mut self,
+        bank: &AdmittedBank,
+        actual_prefix: &[u32],
+        cue: &NativeCueCarrier<'_>,
+        prefix: &NativePrefixTransport<'_>,
+    ) -> Result<BankGenerateOutput> {
+        if bank.source_metadata_sha256() != self.realizer.execution_binding()?.metadata_sha256 {
+            return Err(invalid(
+                "admitted bank encoder changed; re-admit with current binding",
+            ));
+        }
+        if bank.query_conditioned_selection() != self.query_metric.is_some() {
+            return Err(invalid(
+                "admitted bank read-selection policy differs from learner",
+            ));
+        }
+        let segments = bank
+            .borrowed_segments()
+            .map_err(|e| invalid(e.to_string()))?;
+        if segments
+            .iter()
+            .any(|s| matches!(s, SourceBankSegment::Source { .. }))
+        {
+            self.forward_bank(&segments, bank.query_ids(), actual_prefix, cue, prefix)
+        } else {
+            let mut ids = Vec::new();
+            for s in segments {
+                if let SourceBankSegment::Context { token_ids, .. } = s {
+                    ids.extend_from_slice(token_ids);
+                }
+            }
+            ids.extend_from_slice(bank.query_ids());
+            ids.extend_from_slice(actual_prefix);
+            self.forward_no_source_with_query(&ids, bank.query_ids(), actual_prefix)
+        }
+    }
+
     /// Opt into a target-free hard read followed by signed H4 state transport.
     /// Offline selector credit uses detached alternative poststates; only the
     /// factual selected bridge receives parameter and context-state adjoints.
@@ -932,7 +1003,21 @@ impl<'a, 'source> PreparedBankGenerate<'a, 'source> {
         cue: &NativeCueCarrier<'_>,
         prefix: &NativePrefixTransport<'_>,
     ) -> Result<BankGenerateOutput> {
-        let mut copy = if self.prefix_temporal_utility {
+        if self.query_metric.is_some() && self.read_selector_credit {
+            return Err(invalid(
+                "Hamming route cannot use Copy-score selector adjoint",
+            ));
+        }
+        let mut copy = if self.retained_copy_utility {
+            self.realizer
+                .forward_bank_composed_copy_with_retained_utility(
+                    segments,
+                    query,
+                    actual_prefix,
+                    cue,
+                    prefix,
+                )?
+        } else if self.prefix_temporal_utility {
             self.realizer
                 .forward_bank_composed_copy_with_prefix_utility(
                     segments,
@@ -1033,7 +1118,13 @@ impl<'a, 'source> PreparedBankGenerate<'a, 'source> {
         let causal_token_ids = bank.context.tokens.clone();
         let (mut states, mut logits) = final_retained_state(&copy.context, self.generate.lanes())?;
         let read_state_bridge = if let Some(prepared) = self.read_state_bridge {
-            let selected = hard_read_index(&scores)?;
+            let selected = if let Some(metric) = &self.query_metric {
+                uor_r4_core::native_geometric::learner::native_bank_generate::query_conditioned_choice(
+                    metric,&states,&copy.trace.cue_bank.bank,&scores)
+                    .map_err(|e| invalid(e.to_string()))?
+            } else {
+                hard_read_index(&scores)?
+            };
             let candidate = &bank.candidates[selected];
             let (source, source_choices) = retained_state_at(
                 &copy.context,
@@ -1148,6 +1239,8 @@ impl<'a, 'source> PreparedBankGenerate<'a, 'source> {
                 "hard-native-allbank-occurrence-read;signed-H4-selected-source-state-transport;selector-adjoint-disabled;factual-bridge-and-emission-pool-credit/1"
             } else if self.read_state_bridge.is_some() {
                 "hard-native-allbank-occurrence-read;signed-H4-selected-source-state-transport;detached-contrast-poststate-selector-credit;local-decoder-state-sensitivity-not-candidate-loss/1"
+            } else if self.retained_copy_utility {
+                RETAINED_COPY_CREDIT_SCOPE
             } else if self.prefix_temporal_utility {
                 PREFIX_TEMPORAL_CREDIT_SCOPE
             } else {

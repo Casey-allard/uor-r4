@@ -26,6 +26,43 @@ pub struct Metric {
     geometry_digest: [u8; 32],
 }
 impl Metric {
+    /// Reuse canonical hemisphere predicates in the native historical H4 order.
+    /// Verify the explicit group map; do not cast historical IDs to sorted IDs.
+    pub fn historical(
+        tables: &uor_r4_integer::h4_tables::HistoricalH4Tables,
+    ) -> Result<Self, MetricError> {
+        static METRIC: std::sync::OnceLock<Result<Metric, MetricError>> =
+            std::sync::OnceLock::new();
+        METRIC
+            .get_or_init(|| Self::compile_historical(tables))
+            .clone()
+    }
+
+    fn compile_historical(
+        tables: &uor_r4_integer::h4_tables::HistoricalH4Tables,
+    ) -> Result<Self, MetricError> {
+        use uor_r4_integer::h4_tables::H4Code;
+        let geometry = BoundGeometry::canonical().map_err(|_| MetricError::Geometry)?;
+        let mut signatures = [[0; 2]; ROOTS];
+        for (a, signature) in signatures.iter_mut().enumerate() {
+            let a = H4Code::try_from(a as u8).map_err(|_| MetricError::Geometry)?;
+            *signature = geometry
+                .signature(tables.sorted_index(a))
+                .map_err(|_| MetricError::Geometry)?;
+            for b in 0..ROOTS {
+                let b = H4Code::try_from(b as u8).map_err(|_| MetricError::Geometry)?;
+                if geometry
+                    .product(tables.sorted_index(a), tables.sorted_index(b))
+                    .map_err(|_| MetricError::Geometry)?
+                    != tables.sorted_index(tables.compose(a, b))
+                {
+                    return Err(MetricError::Geometry);
+                }
+            }
+        }
+        Self::from_signatures(signatures, geometry.identity_digest())
+    }
+
     pub fn new(geometry: &BoundGeometry) -> Result<Self, MetricError> {
         let mut signatures = [[0u64; 2]; ROOTS];
         for (root, signature) in signatures.iter_mut().enumerate() {
@@ -194,3 +231,44 @@ pub fn census(geometry: &BoundGeometry) -> Result<MetricCensus, MetricError> {
 #[cfg(test)]
 #[path = "metric_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+mod historical_tests {
+    use super::*;
+    use uor_r4_integer::h4_tables::{H4Code, HistoricalH4Tables};
+    #[test]
+    fn historical_hamming_uses_witnessed_anchor_map_not_index_order() -> Result<(), MetricError> {
+        let tables = HistoricalH4Tables::from_bytes(include_bytes!(
+            "../../../../uor-r4-integer/fixtures/historical-h4-tables-v1.bin"
+        ))
+        .map_err(|_| MetricError::Geometry)?;
+        let canonical =
+            Metric::new(&BoundGeometry::canonical().map_err(|_| MetricError::Geometry)?)?;
+        let historical = Metric::historical(&tables)?;
+        let mut opposite_index_preference = false;
+        for q in 0..120u16 {
+            let qcode = H4Code::try_from(q as u8).map_err(|_| MetricError::Geometry)?;
+            for k in 0..120u16 {
+                let kcode = H4Code::try_from(k as u8).map_err(|_| MetricError::Geometry)?;
+                assert_eq!(
+                    historical.root_distance(q, k)?,
+                    canonical
+                        .root_distance(tables.sorted_index(qcode), tables.sorted_index(kcode))?
+                );
+                assert_eq!(historical.root_distance(q, q)?, 0);
+                for other in 0..120u16 {
+                    if q.abs_diff(k) < q.abs_diff(other)
+                        && historical.root_distance(q, k)? > historical.root_distance(q, other)?
+                    {
+                        opposite_index_preference = true;
+                    }
+                }
+            }
+        }
+        assert!(
+            opposite_index_preference,
+            "H4 index differences cannot stand in for geometric distances"
+        );
+        Ok(())
+    }
+}

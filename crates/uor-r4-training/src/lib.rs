@@ -86,6 +86,7 @@ pub mod metal_stack_kernels;
 pub mod milestone_world;
 pub mod milestone_world_v2;
 pub mod milestone_world_v2_probe;
+pub mod native_grounded_session;
 pub mod ngram;
 pub mod paraphrase_review;
 pub mod read_localize;

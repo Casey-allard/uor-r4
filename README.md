@@ -179,8 +179,11 @@ completed three0/512 endpoints from exact437 baselines; the owner interrupted
 the fourth before optimization for a [whole-path audit](docs/labs/unified-geometric-integration-2026-10-11/AUDIT.md).
 No candidate is promoted or geometric mechanism closed. The512 panel coherently
 tests literal emission from supplied records, not the complete learned
-compiler/store/conversation path. Further model compute is held for a coherent
-representation, binding and credit connection; opened128 and genuinely fresh
+compiler/store/conversation path. A [source connection](docs/labs/native-bound-content-2026-10-11/README.md)
+now joins predicted spans, exact versions and the native emitter, shares admitted
+learning inputs, repairs retained Copy credit and binds Claude/SpiralCore routes
+beside exact records. This is not a trained model promotion; model compute stays
+held for whole-path qualification. Opened128 and genuinely fresh
 qualification remain NOT_RUN. Historical source and
 reports remain in the [branch archive](docs/history/branch-archive/INDEX.md).
 

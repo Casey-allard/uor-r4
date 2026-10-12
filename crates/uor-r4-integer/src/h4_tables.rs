@@ -111,6 +111,11 @@ impl HistoricalH4Tables {
         H4Code::IDENTITY
     }
 
+    /// Exact canonical anchor index, not a metric or another group's state ID.
+    pub fn sorted_index(&self, code: H4Code) -> u16 {
+        u16::from(self.payload[MAPPING_OFFSET + usize::from(code.0)])
+    }
+
     pub fn inverse(&self, code: H4Code) -> H4Code {
         H4Code(self.payload[INVERSE_OFFSET + usize::from(code.0)])
     }

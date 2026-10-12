@@ -44,6 +44,9 @@ pub struct E8Tables {
     pub orbit_of: Vec<u8>,
     /// The 16 roots of each orbit, ascending.
     pub members: Vec<[u16; E8_ORBIT_SIZE]>,
+    /// Offline-compiled SpiralCore signed actions; numerical route transport is
+    /// a bounded integer lookup, with no float root decoding in that operation.
+    action_images: Vec<[u16; E8_ROOTS]>,
 }
 
 /// A root's exact integer key: coordinates times `2 sqrt 2` (D8 roots give
@@ -77,6 +80,21 @@ fn build_tables() -> Result<E8Tables> {
     }
     let group = uor_r4_core::spiralcore_operator::cl06_finite_group()
         .map_err(|e| invalid(format!("SpiralCore group: {e:?}")))?;
+    let mut action_images = Vec::with_capacity(group.len());
+    for element in &group {
+        let mut images = [0; E8_ROOTS];
+        for (root, key) in keys.iter().enumerate() {
+            let mut image = [0i8; 8];
+            for (r, out) in image.iter_mut().enumerate() {
+                *out = (0..8).map(|c| element.entries()[r][c] * key[c]).sum();
+            }
+            images[root] = *index
+                .get(&image)
+                .ok_or_else(|| invalid("SpiralCore action leaves E8 root set"))?
+                as u16;
+        }
+        action_images.push(images);
+    }
     let mut orbit_of = vec![u8::MAX; E8_ROOTS];
     let mut members = Vec::new();
     for start in 0..E8_ROOTS {
@@ -121,10 +139,20 @@ fn build_tables() -> Result<E8Tables> {
         index,
         orbit_of,
         members,
+        action_images,
     })
 }
 
 impl E8Tables {
+    /// Apply an existing SpiralCore action to an existing Claude E8 address.
+    /// These are distinct typed domains: an action index is not a root index.
+    pub fn transport_root(&self, root: u16, action: u8) -> Result<u16> {
+        self.action_images
+            .get(usize::from(action))
+            .and_then(|r| r.get(usize::from(root)))
+            .copied()
+            .ok_or_else(|| invalid("E8 root/SpiralCore action outside bound domain"))
+    }
     /// The root with the largest dot product with `x`, in O(8): the best D8
     /// root takes the two largest `|x_i|` with their signs; the best
     /// half-integer root takes the signs of `x`, flipping the smallest `|x_i|`
@@ -424,6 +452,43 @@ mod tests {
             }
         }
         assert!(seen.iter().all(|&s| s));
+        Ok(())
+    }
+
+    #[test]
+    fn exact_spiral_e8_transport_preserves_orbits_and_ordered_composition() -> Result<()> {
+        let t = e8_tables()?;
+        let g = uor_r4_core::spiralcore_operator::cl06_finite_composition_table()
+            .map_err(|e| invalid(e.to_string()))?;
+        for root in 0..E8_ROOTS as u16 {
+            assert_eq!(t.transport_root(root, g.identity_index())?, root);
+            for a in 0..64u8 {
+                let image = t.transport_root(root, a)?;
+                assert_eq!(
+                    t.orbit_of[usize::from(root)],
+                    t.orbit_of[usize::from(image)]
+                );
+                assert_eq!(
+                    t.transport_root(
+                        image,
+                        g.inverse_index(a)
+                            .ok_or_else(|| invalid("inverse absent"))?
+                    )?,
+                    root
+                );
+                for b in 0..64u8 {
+                    let product = g
+                        .compose_index(a, b)
+                        .ok_or_else(|| invalid("product absent"))?;
+                    assert_eq!(
+                        t.transport_root(t.transport_root(root, b)?, a)?,
+                        t.transport_root(root, product)?
+                    );
+                }
+            }
+        }
+        assert!(t.transport_root(240, 0).is_err());
+        assert!(t.transport_root(0, 64).is_err());
         Ok(())
     }
 

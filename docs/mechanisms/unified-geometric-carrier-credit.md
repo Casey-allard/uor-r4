@@ -19,6 +19,15 @@ masters and fits Context/prototypes on the existing full pooled-ranking/EOS
 objective. `native_geometric/learner/geometric_continuation_field.rs` factors
 repeated native computation onto at most120 encountered prototypes per lane.
 
+**Source connection repair:** [native bound content](../labs/native-bound-content-2026-10-11/README.md)
+joins predicted compiler spans, versioned memory and the native bank; learning
+uses the same admitted inputs. Opt-in finite Copy observation credit includes
+neighbor effects, reuses full120 Prefix and freezes observation masters. Mapped
+Hamming replaces optional ID arithmetic, and Claude/SpiralCore E8 actions carry
+coarse routes beside exact records. No E8/H4 cast, model score or energy result
+follows. The [supplied arithmetic paper](../labs/native-bound-content-2026-10-11/MURMURATIONS.md)
+is not implemented by the current biological-neighbor Starling route.
+
 **Evidence:** Host conditional-credit and actual-bank fixtures preserve exact
 hard scores/pooling and show the new adjoints. A full4096 finite-factor fixture
 and one authenticated saved437 canonical position preserve integer scores and
