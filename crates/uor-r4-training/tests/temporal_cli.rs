@@ -230,6 +230,8 @@ fn fitted_adapter_drives_actual_clis_and_each_fresh_process_matches_generation()
             memory: None,
             select: None,
             pointer: Some(PointerConfig::new(4)),
+
+            read_router: None,
         },
         &Device::Cpu,
     )

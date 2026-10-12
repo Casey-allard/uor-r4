@@ -2259,6 +2259,7 @@ fn bf16_model_config(seed: u64) -> uor_r4_training::geometric_stack::StackConfig
         memory: None,
         select: None,
         pointer: None,
+        read_router: None,
     }
 }
 
@@ -2437,6 +2438,7 @@ fn test_step7a_read_lineage_parity() -> uor_r4_training::Result<()> {
         memory: None,
         select: None,
         pointer: None,
+        read_router: None,
     };
     let (batch, time) = (2usize, 48usize);
     let ids: Vec<u32> = (0..batch * time)
