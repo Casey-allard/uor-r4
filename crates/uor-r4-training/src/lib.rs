@@ -95,6 +95,7 @@ pub mod reference_eval;
 pub mod relation_compiler;
 pub mod s8_panel_count;
 pub mod stack_aerm;
+pub mod stack_address;
 pub mod stack_checkpoint;
 pub mod stack_dialogue;
 pub mod stack_export;
