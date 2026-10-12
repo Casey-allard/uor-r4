@@ -26,8 +26,19 @@ artifact bytes while reducing repeated coefficient reads/products. These are
 source arithmetic/count checks, not language, transfer, speed or energy results.
 Actual CUDA, full512 baseline and model fitting remain NOT_RUN at preparation.
 
+**Executed configuration, then owner interruption:** Three completed/sealed arms
+independently reproduce the saved437 baseline, then score0/512 at their fixed
+128-update endpoints (OFF1001, ON1001, OFF2001). ON2001 is unfinished before its
+optimizer, not-negative; opened128 and genuinely fresh qualification are NOT_RUN.
+Saved437 is retained, no endpoint promoted, no mechanism closed. The [whole-path
+audit](../labs/unified-geometric-integration-2026-10-11/AUDIT.md) distinguishes a
+coherent literal-emission panel from a full unified-model test. It identifies
+changing carriers/prototypes under frozen learned factors and mixed finite/ambient
+credit as unresolved integration risks, not established causes. Old FIT does not
+clear a rerun; further model compute is held pending coherent path qualification.
+
 **Fair test:** The [registered comparison](../labs/unified-geometric-integration-2026-10-11/PREREGISTRATION.md)
-uses matched ON/OFF credit, identical active parameters/ordinary credit,
+historically used matched ON/OFF credit, identical active parameters/ordinary credit,
 two seeds and two all512 epochs. All4096 Generate choices and physical Copy
 aliases retain common clipping/pooling; EOS is trained and scored. Both factual
 and local carriers are rebuilt after each update; no saved donor states or

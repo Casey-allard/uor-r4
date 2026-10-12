@@ -1,3 +1,24 @@
+## 2026-10-11 - Unified comparison interrupted; coherent512 panel is not the unified model (codex, #2030)
+
+The [result](../labs/unified-geometric-integration-2026-10-11/README.md) retains
+three sealed128-update endpoints: OFF1001/ON1001/OFF2001 each reproduce saved437,
+then score0/512; ON2001 was owner-interrupted before optimization and is
+UNFINISHED_NOT_NEGATIVE. The [whole-path audit](../labs/unified-geometric-integration-2026-10-11/AUDIT.md)
+independently reconstructs512/512 labels/target bytes, but identifies128 supplied
+banks,48 answers, pre-authored records and untested compiler/store/conversation
+boundaries; frozen learned factors under changing carriers plus mixed credit
+remain source-established risks, not proven collapse causes. Saved437/opened0
+remain panel fitting; no candidate promotion or mechanism closure; opened128
+and genuinely fresh qualification are NOT_RUN. Full cloud custody is verified,
+owned4090 deleted (13,412s at$0.89/h, estimated$3.315744); inclusive accounting
+continues without reset. Line unified geometric integration, count2/3 on this
+delivery, headline437/512 plus opened0/128 -> unchanged.
+
+**Next:** no further model compute or old-recipe resume; source-qualify one
+coherent typed binding/frame/credit connection, reusing SpiralCore's finite
+actions, Claude's delivered E8/icosian work and the existing compiler/store.
+Scientific changes need new preregistration/FIT; acceptance/panels stay fixed.
+
 ## 2026-10-11 — Exact activations: +0.020 BPB post-hoc on exact-weight models; training it in does not help (claude, #2032)
 
 The [record](../labs/activation-snap-2026-10-11/README.md) snaps every quaternion map input to the weights' exact set (icosian pair + 2-bit mantissa).

@@ -1,6 +1,6 @@
 # Saved437 Geometric Carrier Connection
 
-Status: prospective; no model compute authorized by this document alone. External TEST FITNESS is required on #2030, and source/device gates must pass before the first optimizer update.
+Status: historical registration of the owner-interrupted comparison. Three arms completed; ON2001 was interrupted before optimization. This document does not authorize resume, the opened diagnostic or further compute. The [result](README.md) and [whole-path audit](AUDIT.md) govern the current decision; changed scientific work requires new registration/FIT after source qualification. Original settings and bars below remain unchanged.
 
 ## Causal Question
 

@@ -174,11 +174,14 @@ stopped on an absolute LU-pivot tolerance before native panel scoring; that is a
 numerical blocker to fix, not evidence against the mechanism. The earlier joint
 24-row/96-update configuration used the loss subsequently replaced by pooled
 ranking. The owner's later unified-geometric pivot defers the unfinished
-generic constructor without a mechanism negative. The active connection trains
-the actual factual/local H4 carriers and Generate prototypes through saved437's
-ordered field, with matched credit ON/OFF, pooled ranking on all512 rows and two
-seeds. All four development reports seal before the unchanged opened128
-diagnostic; genuinely fresh qualification remains later. Historical source and
+generic constructor without a mechanism negative. Its carrier-credit comparison
+completed three0/512 endpoints from exact437 baselines; the owner interrupted
+the fourth before optimization for a [whole-path audit](docs/labs/unified-geometric-integration-2026-10-11/AUDIT.md).
+No candidate is promoted or geometric mechanism closed. The512 panel coherently
+tests literal emission from supplied records, not the complete learned
+compiler/store/conversation path. Further model compute is held for a coherent
+representation, binding and credit connection; opened128 and genuinely fresh
+qualification remain NOT_RUN. Historical source and
 reports remain in the [branch archive](docs/history/branch-archive/INDEX.md).
 
 Ordinary complete-answer training of Potential and Generate coefficients has
@@ -213,10 +216,14 @@ by the owner-directed priority change before any optimizer update; its
 [unfinished source and evidence](docs/labs/m2-bank-transfer-interrupted-2026-10-10/README.md)
 are preserved without a KEEP or negative verdict. The owner's
 [unified geometric integration](docs/labs/unified-geometric-integration-2026-10-11/README.md)
-pivot prepares live Context/prototype credit and exact finite-factor reuse at
+pivot delivered live Context/prototype credit and exact finite-factor reuse at
 identical saved437. Host fixtures preserve scores while reducing repeated
-coefficient/product counts; actual CUDA fitting, full512 replay and transfer are
-NOT_RUN. The [prepared constructor cycle](docs/labs/d22-constructor-2026-10-10/README.md)
+coefficient/product counts. Actual CUDA baseline/native reload gates passed;
+three completed configurations lost all437 successes and the fourth was
+owner-interrupted before learning. This does not establish geometric incapacity;
+the [audit](docs/labs/unified-geometric-integration-2026-10-11/AUDIT.md) separates
+component-test fitness from the missing unified path. Transfer is NOT_RUN.
+The [prepared constructor cycle](docs/labs/d22-constructor-2026-10-10/README.md)
 and numerical successors remain inactive, indexed and unfinished, without a
 mechanism negative. This establishes no general-chat,
 geometric advantage or full-path energy claim.
