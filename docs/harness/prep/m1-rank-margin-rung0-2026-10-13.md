@@ -6,44 +6,48 @@
 - mechanism brief: docs/mechanisms/rank-margin-objective.md
 - run: Rung 0 on the compliant trunk: train the recurrence-only geometric stack (pattern rrrrrr, no read, no pointer) with the margin hinge objective on mw-balp; arms M1 (hinge, 1 rival) and M8 (hinge, 8 rivals), 2 seeds each; GPU-only on one Vast pod (D26)
 - line: evaluation integrity - count 1/3 (D21/D22 count is owned by the milestone, not this sheet; no count is reset by this sheet)
-- amendments: **Amendment 1** (2026-10-13) - vacuity-proof bars per Claude lab's first `NOT_FIT` review; **Amendment 2** (kimi/pm1, 2026-10-13) - decisive bars moved to scale-invariant rank measures (top-1, recall@8) vs a GPU-computed count-predictor reference; hinge/unviolated kept as floors+diagnostics; token-margin term isolated from address_margin; deps 1-3 pinned as landed; data MD5/sha256/dev-window/epoch pins added; dep 4 rescoped to composed-path qualification (reviews: [#2029 comment 6137914625](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6137914625), [#6138896299](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6138896299), short [#6139080745](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6139080745)).
+- amendments: **Amendment 1** (2026-10-13) - vacuity-proof bars per Claude lab's first `NOT_FIT` review; **Amendment 2** (kimi/pm1, 2026-10-13) - decisive bars moved to scale-invariant rank measures (top-1, recall@8) vs a GPU-computed count-predictor reference; hinge/unviolated kept as floors+diagnostics; token-margin term isolated from address_margin; deps 1-3 pinned as landed; data MD5/sha256/dev-window/epoch pins added; dep 4 rescoped to composed-path qualification (reviews: [#2029 comment 6137914625](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6137914625), [#6138896299](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6138896299), short [#6139080745](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6139080745)); **Amendment 3** (kimi/pm1, 2026-10-13) - exact dev scored-set/window/denominator policy and count-predictor units pinned per [PM ratification 6139449267](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6139449267); config pin completed (`rec_gates=geometric`, `gate=hamilton`); Codex complete-path repair registered as pre-execution dependency.
 
 ## Bar (pre-registered)
 
-Amended twice on 2026-10-13. Amendment 1 closed the vacuity and tolerance holes in Claude lab's first
-`NOT_FIT` review ([#2029 comment 6137914625](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6137914625)).
+Amended three times on 2026-10-13: Amendment 1 closed the vacuity and tolerance holes in Claude lab's first
+`NOT_FIT` review ([#2029 comment 6137914625](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6137914625));
 **Amendment 2** answers Claude's FIT re-review ([#2029 comment 6138896299](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6138896299);
 short version [6139080745](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6139080745)):
-the decisive bars are now **scale-invariant rank measures**, because the head's raw score is a negative
+the decisive bars are **scale-invariant rank measures**, because the head's raw score is a negative
 mean-L1 displacement over the **learned** token table at fixed scale 1
 (`docs/labs/geometric-head-shared-writer-2026-10-13/README.md`; interface receipt
 [#2029 comment 6138582838](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6138582838)) —
 a hinge floor in table units moves with the table norm (weight decay 0.1 only partly resists), so it cannot
-be the decisive bar. These are **dev-panel bars**: measured on the pinned mw-balp dev panel during the run;
-the frozen `v5-reply` panel is **not** scored by this rung.
+be the decisive bar; **Amendment 3** pins the dev evaluation policy below (scored set, coverage, denominator,
+count-predictor units). These are **dev-panel bars**: measured on the pinned mw-balp dev panel during the
+run; the frozen `v5-reply` panel is **not** scored by this rung.
 
-- **Bar (i) — raw-score top-1, vs the count predictor.** Raw-score top-1 accuracy over the masked response
-  tokens of the pinned dev panel **beats the count predictor's top-1 by >= 5 percentage points, on both
-  seeds**.
+- **Bar (i) — raw-score top-1, vs the count predictor.** Raw-score top-1 accuracy over the scored set of
+  the pinned dev panel (dev evaluation policy below) **beats the count predictor's top-1 by >= 5 percentage
+  points, on both seeds**.
 - **Bar (ii) — recall@8 over the declared kept list, vs the count predictor.** recall@8 over the head's
   declared kept list **`top_token_ids(8)`** (bounded candidates only, smallest exact token identity on a
   tie, no target-aware insertion; `native_vector_writer.rs:95`) **beats the count predictor's recall@8 by
   >= 5 percentage points, on both seeds**.
 - **Reference — the count predictor.** A token-frequency count predictor computed on the **same dev
   windows**, on the leased GPU inside the run: one frequency table over the dev tokens, scoring every
-  masked response position (ties by smallest token identity). It is a **count baseline only — no normalized
+  position of the scored set defined in the dev evaluation policy below (ties by smallest token identity);
+  its score unit is the raw occurrence count (policy below). It is a **count baseline only — no normalized
   exponential, no training, no model parameters** — and is lawful under the no-exponential rule (D23). Its
-  top-1, recall@8, token-margin hinge loss and unviolated rate are reported alongside, at both rival counts.
+  top-1, recall@8, hinge loss and unviolated rate are reported alongside, at both rival counts — the
+  diagnostics in **count units**, never compared numerically with the model's mean-L1-units hinge.
 - **Anti-vacuity guards (Amendment 1's floors, kept alongside; not the decisive bars).** Final dev
   **token-margin hinge loss < 0.5 raw-score units** on both seeds, and dev **unviolated-target rate
   >= max(5x the same-seed untrained constant rate, 1% absolute)** on both seeds. Honest note: the untrained
   constant is ≈ 0, so `5 x 0 = 0` is vacuous and the **1% absolute floor** is the operative device; the
   0.5 floor is calibrated by the count predictor's own reported hinge loss.
-- **The bars' noise floor.** The masked-response-token denominator is **14,287** (the dev manifest's
-  `response_tokens`): the Wilson 95% half-width at that n is **< 0.83 points at any plausible accuracy**
-  (0.66 at 20%, 0.82 at 50%), so the 5-point margin sits far above interval noise; the run additionally
-  reports the **between-seed disagreement** on both bars as the empirical noise readout. A bar must not be
-  narrower than its panel's noise (D22 section 3).
+- **The bars' noise floor.** The scored denominator is n ≈ 14.3k — the dev manifest's `response_tokens`
+  = **14,287**; the run **computes and reports** the counted value under the dev evaluation policy below,
+  and any mismatch with 14,287 is reported, not absorbed. The Wilson 95% half-width at that n is **< 0.83
+  points at any plausible accuracy** (0.66 at 20%, 0.82 at 50%), so the 5-point margin sits far above
+  interval noise; the run additionally reports the **between-seed disagreement** on both bars as the
+  empirical noise readout. A bar must not be narrower than its panel's noise (D22 section 3).
 - **Reported diagnostics (not decisive).** The dev token-margin hinge-loss curve, the unviolated rate, the
   monotone-curve diagnostic (below), and the **mean token-table L1 norm per checkpoint**, so table-scale
   drift is visible.
@@ -70,16 +74,41 @@ the frozen `v5-reply` panel is **not** scored by this rung.
 
 - split: mw-balp train + its dev split; the frozen v5-reply panel rows are never training data; a KEEP reports fresh held-out dev transfer (D22 section 4).
 - train pin: `data/ft-balp.tar` (private store `datasets/caseyallard/uor-r4-store`), 326,860,800 bytes, md5 `45fbd266ecab1e5c113e10ec7ae1e918`, sha256 `b1d2211377a2e99d5977cc95d46875027023b08867488b1372185b3f62a1473f`. The run reads only the `mw-balp/train/` member: 7,512,797 tokens (u16), response mask (u8), manifest schema `uor-r4-chat-corpus/v1`, m-world-v2, seed 13, 60,000 conversations, vocab 4096, member `tokens_sha256` `3dee858f84b750f507ceb3dc3f393711741950954735efaaf61bf704c017a4c8`. The tar also carries `balp/` and `mw-orcp/` members the run does **not** read, and the store's `data/MD5SUMS` has **no** ft-balp entry (store-hygiene note) — the md5 above is the pin.
-- dev pin: `data/ft-dev.tar`, 143,360 bytes, md5 `0a1d0a05020a5d80b5d008fd5b731134` (matches the store's MD5SUMS), sha256 `45e93e32918f8ad5c977ad3a98926b561173049aacd8bfce2b6e2e49a0390b5c`. Extracted manifest (`local/sheet-pins/ft/dev/manifest.json`): 400 conversations, m-world-v2, vocab 4096, manifest `tokens: 42,856` and `response_tokens: 14,287`, probe exclusion already applied at generation (362 probe n-grams, 8 words; 0 rejected draws). The file is labelled `"split": "train"` — a generator artifact; this file **is** the frozen dev panel this sheet scores. `tokens.u16` is 85,776 bytes = 42,888 u16, giving exactly **111 non-overlapping 384-token windows** — the dev window count pin (scored at the run's context 384).
+- dev pin: `data/ft-dev.tar`, 143,360 bytes, md5 `0a1d0a05020a5d80b5d008fd5b731134` (matches the store's MD5SUMS), sha256 `45e93e32918f8ad5c977ad3a98926b561173049aacd8bfce2b6e2e49a0390b5c`. Extracted manifest (`local/sheet-pins/ft/dev/manifest.json`): 400 conversations, m-world-v2, vocab 4096, manifest `tokens: 42,856` and `response_tokens: 14,287`, probe exclusion already applied at generation (362 probe n-grams, 8 words; 0 rejected draws). The file is labelled `"split": "train"` — a generator artifact; this file **is** the frozen dev panel this sheet scores, and its token FILE is authoritative (42,888 u16 = 85,776 bytes; the manifest's `tokens: 42,856` differs by 32 and **both numbers are reported**, never silently reconciled — see the dev evaluation policy below). Coverage: 111 non-overlapping 384-token windows **plus one tail window** over the remaining 264 positions (policy below).
 - tokenizer pin: sha256 `d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89`, vocab 4096, bos 0 / eos 1 / unk 2.
 - dose pin: 7,324 steps x batch 16 x context 384 = 44,957,696 tokens, about **6 passes** over the 7,512,797-token train split.
+
+## Dev evaluation policy (Amendment 3, per [PM ratification 6139449267](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6139449267))
+
+The exact policy Codex's CLI/metrics agent implements against, pinned so the bars' denominator and units
+cannot drift:
+
+- **Authoritative source.** The dev token FILE is authoritative: **42,888 u16 tokens** in `data/ft-dev.tar`
+  (md5 `0a1d0a05020a5d80b5d008fd5b731134`, sha256 `45e93e32918f8ad5c977ad3a98926b561173049aacd8bfce2b6e2e49a0390b5c`).
+  The manifest's `tokens: 42,856` differs by 32; the run **reports both numbers and flags the mismatch** —
+  it never silently picks one.
+- **Scored set.** Every position `p` with `response_mask[p]=1` that has at least one in-document
+  predecessor. Context **resets at each `<|bos|>` document boundary** (bos_id = 0); no scored position
+  reads across a boundary.
+- **Coverage.** All 42,888 positions are covered: **111 non-overlapping 384-token windows plus one tail
+  window** covering the remaining 264 positions; the tail window's context may overlap the previous window
+  but it scores only its tail positions. Windows are a **batching device**, not an exclusion rule.
+- **Denominator.** The run **computes and reports** the scored count under this rule. The sheet's noise
+  analysis cites n ≈ 14.3k (manifest `response_tokens` = 14,287, Wilson 95% half-width < 0.83 points); the
+  pre-registered expectation is that the counted denominator **equals the mask sum over scored positions**,
+  and any mismatch with 14,287 is reported, not absorbed.
+- **Count-predictor score units.** The decisive bars need only an ordering: `score(t)` = occurrence count
+  of `t` in the dev stream, ties by smallest token identity; top-1 = argmax; recall@8 = membership among the
+  8 highest-count identities. The count predictor's hinge/unviolated diagnostics use raw counts as the
+  score unit (margin-1 hinge in **count units**) and are reported in their own units — **never numerically
+  compared** with the model's mean-L1-units hinge.
 
 ## Steps
 - steps: 7324 steps, batch 16, lr 0.002, warmup 200, min_lr 0.1, weight_decay 0.1, context 384 (the geometric-stack example's pinned defaults)
 
 ## Minimum test power (D22 section 3)
 - seeds: 2 (>= 2 seeds for a decisive run)
-- fresh rows: not the decisive axis here - the two seeds carry D22 section 3, and rung 0 scores the pinned mw-balp dev panel (111 windows) whose denominator is pinned above rather than estimated here. No fresh draw is scored by rung 0; the frozen panels are rung 0b.
+- fresh rows: not the decisive axis here - the two seeds carry D22 section 3, and rung 0 scores the pinned mw-balp dev panel (111 + 1 tail windows; dev evaluation policy above) whose denominator is pinned above rather than estimated here. No fresh draw is scored by rung 0; the frozen panels are rung 0b.
 - decisive run: YES - D22 section 3 needs >= 2 seeds OR >= 200 fresh rows
 - trained in rather than bolted on: YES - state the pretraining or the full fine-tune that gives the base time to adapt (a short add-on is a probe, not a decisive run)
 - fresh-transfer plan for a KEEP: the two decisive rank bars - (i) top-1 and (ii) recall@8, each vs the count predictor - are re-measured on a fresh held-out draw of mw-balp windows the run never trained on, with the anti-vacuity guards and the run's own dev diagnostics (hinge curve, post-warmup monotone check, L1 norm, between-seed disagreement) reported alongside. The frozen v5-reply panel is **not** the transfer measure here: rung 0 is recurrence-only and has no read or reply path, so it cannot be scored on that panel.
@@ -115,7 +144,7 @@ the frozen `v5-reply` panel is **not** scored by this rung.
 ## The exact executed path (merged commits / open PRs)
 
 The rung trains the config below through this path. Each element is merged or in flight on `origin/main` at
-`0c8a1722a`; the sheet is the registration the dependencies are checked against.
+`96c0ccb0a`; the sheet is the registration the dependencies are checked against.
 
 | Element | State | Where |
 | --- | --- | --- |
@@ -126,9 +155,9 @@ The rung trains the config below through this path. Each element is merged or in
 | Recurrence | **LANDED** — `rec_gates=geometric` (#2293, merge `d7934bf03`): clamped-linear opening, exact dyadic rate-select table (`lambda = 2^-(s+1)`, keeps precomputed), Hamilton output gate; rate-selector credit is the declared secant surrogate; the executed recurrence path is squash-free by source sweep, and `RecGates::Historical` is preserved as the reproduction path, prohibited for new runs | `geometric_stack.rs` `RecGates` (`:1419`) and the `rate_select` CUDA kernels (`cuda_stack_kernels.rs`); record `docs/labs/recurrence-geometric-gates-2026-10-13/README.md` |
 | Read | Not present in this rung (pattern `rrrrrr`), which is exactly why rung 0 comes before rung 0b | — |
 
-**The run is BLOCKED until dependency 4 below lands** (dependencies 1, 2 and 3 are landed: #2279 `c6cd409da`,
-#2301 `d41dc422f`, #2293 `d7934bf03`). This sheet is the registration they are checked against; no step of it
-executes while the training hold stands.
+**The run is BLOCKED until dependency 4 below lands and the repair PRs (item 5) merge** (dependencies 1, 2
+and 3 are landed: #2279 `c6cd409da`, #2301 `d41dc422f`, #2293 `d7934bf03`). This sheet is the registration
+they are checked against; no step of it executes while the training hold stands.
 
 ## Remaining dense, squashing or host-fallback sites on the path
 
@@ -163,6 +192,7 @@ same unlawful kernels as CUDA but is unused on pods; the rung runs CUDA only.
 
 | Field | Value |
 | --- | --- |
+| config line | `head=spiralcore_product projection=spiralcore_fbs rec_gates=geometric gate=hamilton`; F32; CUDA-only; no sampling (raw-score greedy emission replaces probability sampling on this path) |
 | width | 256 |
 | pattern | `rrrrrr` — six recurrence blocks, no read layers |
 | heads | 4 |
@@ -187,9 +217,9 @@ evaluator is computed or reported anywhere in this rung.**
 
 | Measure | Definition and unit |
 | --- | --- |
-| Raw-score top-1 | fraction of masked response positions whose target wins on raw score; deterministic tie rule: smallest token identity. Decisive bar (i): vs the count predictor, >= 5 points on both seeds |
+| Raw-score top-1 | fraction of scored positions (dev evaluation policy) whose target wins on raw score; deterministic tie rule: smallest token identity. Decisive bar (i): vs the count predictor, >= 5 points on both seeds |
 | Target rank / recall@K | rank of the target and the fraction with the target in the declared kept list `top_token_ids(8)` (K = 8, matching the M8 arm's rivals). Decisive bar (ii): vs the count predictor, >= 5 points on both seeds |
-| Count predictor (the reference) | token-frequency table over the same dev windows; its top-1, recall@8, token-margin hinge loss and unviolated rate are reported at both rival counts. Count baseline only: no normalized exponential, no training |
+| Count predictor (the reference) | token-frequency table over the same dev windows, scoring the scored set defined in the dev evaluation policy; its top-1, recall@8, hinge loss and unviolated rate are reported at both rival counts — the diagnostics in **count units**, never compared numerically with the model's mean-L1-units hinge. Count baseline only: no normalized exponential, no training |
 | Margin hinge (token term) | `mean_k max(0, 1 - z_target + z_rival)` over the head's token scores, raw-score units at the fixed scale 1, read from the `token_margin` term alone; anti-vacuity guard < 0.5 |
 | Unviolated-target rate | fraction of dev positions with zero token-margin hinge violation; anti-vacuity guard >= max(5x the untrained constant, 1%), the 1% floor operative |
 | Dev margin-loss curve (diagnostic) | per arm, per checkpoint, per seed |
@@ -203,10 +233,11 @@ recurrence-only model has no read or reply path. Milestone acceptance is unchang
 
 The panel JSON states that the reply panel's noise is **unstated**, and that the 40-row memory panel's
 observed noise is **+/-3 rows**. Neither panel is scored by this rung. The noise that binds this rung is the
-**dev-panel** noise: at the pinned denominator of 14,287 the Wilson 95% half-width is < 0.83 points at any
-plausible accuracy, so the 5-point bar margin sits far above interval noise; the run also reports the
-**between-seed disagreement** as the empirical readout. The bars are applied to **both** seeds; a one-seed
-pass is *iterate*, never a negative (D22).
+**dev-panel** noise: at the pre-registered scored denominator n ≈ 14.3k (manifest `response_tokens` 14,287;
+the run computes and reports the counted value — dev evaluation policy above) the Wilson 95% half-width is
+< 0.83 points at any plausible accuracy, so the 5-point bar margin sits far above interval noise; the run
+also reports the **between-seed disagreement** as the empirical readout. The bars are applied to **both**
+seeds; a one-seed pass is *iterate*, never a negative (D22).
 
 ## Mechanism-own target and distinct outcome decisions
 
@@ -249,9 +280,10 @@ The FIT review checks each of these as it lands; none of them is delivered by th
 2. **OP3a head and shared native vector writer — LANDED (2026-10-13)** (Codex; [ownership split ratified #2029 comment 6138381873](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6138381873)). PR [#2301](https://github.com/UOR-Foundation/uor-r4/pull/2301), merge commit `d41dc422f`: `head=spiralcore_product` (requires `projection=spiralcore_fbs`); raw score = negative mean-L1 displacement over the SAME learned embedding table at fixed scale 1; kept list `top_token_ids(8)` (smallest-identity ties); 8 product cells = 128 candidate comparisons at V=4096 (bounded above by 512); the objective returns separate `token_margin` + `address_margin` terms (weight 1 each; the address term is a declared auxiliary surrogate for hard admission); omitted targets are scored but never inserted into inference candidates; legacy probability paths refuse. **The five finite CUDA controls qualify the head/writer kernels only — they do not qualify the composed full-trunk learning path** (record: `docs/labs/geometric-head-shared-writer-2026-10-13/README.md`).
 3. **The recurrence squash replacements — LANDED (2026-10-13).** PR [#2293](https://github.com/UOR-Foundation/uor-r4/pull/2293), merge commit `d7934bf03`: `rec_gates=geometric` — clamped-linear opening, exact dyadic rate-select table (`lambda = 2^-(s+1)`, keeps precomputed), Hamilton output gate; rate-selector credit is the declared secant surrogate; the executed recurrence path is verified squash-free by source sweep, and `RecGates::Historical` is preserved as the reproduction path, prohibited for new runs (record: `docs/labs/recurrence-geometric-gates-2026-10-13/README.md`).
 4. **The lawful device-qualification gate for the composed path — OPEN** (Codex — same split). Stored-or-analytic expected values for the composed projection + recurrence + head path the run executes, no CPU model reference; Codex's next stated step is to freeze and qualify the complete declared learning/output path.
+5. **Codex's complete-path repair PRs — IN FLIGHT; must merge before execution** (claim `codex/rung0-complete-path-20261013`; ratified in [PM ratification 6139449267](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6139449267)). Scope: ordinary-recurrence geometric dispatch, CLI `rec_gates`/native-eval wiring, head row-cap 4096 to 6144, `RateSelect` backward secant sign, and direct interior rate-bin decay initialization (`Historical` init untouched, so existing artifacts reproduce exactly). Their commits will be cited in the FIT re-request. **Initialization pin:** the repair PR must record the exact interior bin scores it uses (values + rationale, e.g. dyadic-table midpoints) so this sheet can cite them once landed.
 
-Until dependency **4** lands **and the owner explicitly releases the training hold**, the run does not
-execute. A `TEST FITNESS: FIT` verdict lifts no hold by itself.
+Until dependency **4** lands, the **repair PRs (item 5) merge**, **and the owner explicitly releases the
+training hold**, the run does not execute. A `TEST FITNESS: FIT` verdict lifts no hold by itself.
 
 ## Verdict
 TEST FITNESS: PENDING

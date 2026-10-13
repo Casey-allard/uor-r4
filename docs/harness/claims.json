@@ -13,10 +13,10 @@
     "lab": "codex",
     "note": "Head/writer ownership ratified6138381873; exactsource09b3ee6df independentlyreviewed; fixedCUDAqualification inprogress; trainingheld."
   },
-  "kimi/rung0-sheet-amend2-20261013": {
-    "branch": "kimi/rung0-sheet-amend2-20261013",
-    "claimed_at": "2026-10-13T01:53:07-04:00",
-    "head": "0c8a1722a",
+  "kimi/rung0-sheet-amend3-20261013": {
+    "branch": "kimi/rung0-sheet-amend3-20261013",
+    "claimed_at": "2026-10-13T02:11:52-04:00",
+    "head": "96c0ccb0a",
     "lab": "kimi",
     "note": ""
   }
