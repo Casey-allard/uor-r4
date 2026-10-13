@@ -1,5 +1,19 @@
 # Branch archive
 
+## October 13 — S1/S2 floating-point qualification and writer repair (Codex)
+
+[Inactive source patch](s1-s2-float-inactive-20261013.patch), SHA256
+`8dbfc9feb897cbe43609c2f6da1b2e33e24c3d1ca880d85bc42da516a34835f5`,
+restores source `7569f94e67bec672b9b3d6bf7e25fdc06f4cac5f` from base
+`7e7dd06359f294735c50d767fa9f488af1c4f8ec`. Isolated-index application
+reproduces its complete tree exactly. Casey's no-floating-point model direction
+supersedes this F32/F64 qualification; this is **inactive preservation**, not a
+mechanism negative or execution permission. The latest executed controls were
+31/33; the final writer repair's new regression is NOT_RUN. Source bundle,
+all attempts and verified cloud restoration details are in the
+[preservation record](../../labs/s1-s2-float-preservation-2026-10-13/README.md).
+No peer source is activated, reverted or deleted by this archive.
+
 ## October 13 — pre-D29 Candle computational backend (Codex)
 
 [Restoration patch](candle-core-pre-d29-inactive-20261013.patch), SHA256
