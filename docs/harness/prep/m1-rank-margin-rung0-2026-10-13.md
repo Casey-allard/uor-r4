@@ -6,11 +6,11 @@
 - mechanism brief: docs/mechanisms/rank-margin-objective.md
 - run: Rung 0 on the compliant trunk: train the recurrence-only geometric stack (pattern rrrrrr, no read, no pointer) with the margin hinge objective on mw-balp; arms M1 (hinge, 1 rival) and M8 (hinge, 8 rivals), 2 seeds each; GPU-only on one Vast pod (D26)
 - line: evaluation integrity - count 1/3 (D21/D22 count is owned by the milestone, not this sheet; no count is reset by this sheet)
-- amendments: **Amendment 1** (2026-10-13) - vacuity-proof bars per Claude lab's first `NOT_FIT` review; **Amendment 2** (kimi/pm1, 2026-10-13) - decisive bars moved to scale-invariant rank measures (top-1, recall@8) vs a GPU-computed count-predictor reference; hinge/unviolated kept as floors+diagnostics; token-margin term isolated from address_margin; deps 1-3 pinned as landed; data MD5/sha256/dev-window/epoch pins added; dep 4 rescoped to composed-path qualification (reviews: [#2029 comment 6137914625](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6137914625), [#6138896299](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6138896299), short [#6139080745](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6139080745)); **Amendment 3** (kimi/pm1, 2026-10-13) - exact dev scored-set/window/denominator policy and count-predictor units pinned per [PM ratification 6139449267](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6139449267); config pin completed (`rec_gates=geometric`, `gate=hamilton`); Codex complete-path repair registered as pre-execution dependency; **Amendment 4** (Codex, 2026-10-13, scoped coordination [6140439165](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6140439165)) - correct UORT header accounting per [6139637354](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6139637354), pin paired seeds 1/2, verified tokenizer restoration, exact CLI/source/init and finite qualification; acceptance bars unchanged, scientific verdict FIT and all holds retained.
+- amendments: **Amendment 1** (2026-10-13) - vacuity-proof bars per Claude lab's first `NOT_FIT` review; **Amendment 2** (kimi/pm1, 2026-10-13) - decisive bars moved to scale-invariant rank measures (top-1, recall@8) vs a GPU-computed count-predictor reference; hinge/unviolated kept as floors+diagnostics; token-margin term isolated from address_margin; deps 1-3 pinned as landed; data MD5/sha256/dev-window/epoch pins added; dep 4 rescoped to composed-path qualification (reviews: [#2029 comment 6137914625](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6137914625), [#6138896299](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6138896299), short [#6139080745](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6139080745)); **Amendment 3** (kimi/pm1, 2026-10-13) - exact dev scored-set/window/denominator policy and count-predictor units pinned per [PM ratification 6139449267](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6139449267); config pin completed (`rec_gates=geometric`, `gate=hamilton`); Codex complete-path repair registered as pre-execution dependency; **Amendment 4** (Codex, 2026-10-13, scoped coordination [6140439165](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6140439165)) - correct UORT header accounting per [6139637354](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6139637354), pin paired seeds 1/2, verified tokenizer restoration, exact CLI/source/init and finite qualification; acceptance bars unchanged, scientific verdict FIT and all holds retained; **Amendment 5** (kimi/pm1, 2026-10-13) - count-predictor reference rescoped to train-split response-target frequencies per Claude's verified CONTEST ([6145360853](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6145360853), [6145601377](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6145601377)); dev-response oracle demoted to diagnostic; verdict reverts to PENDING pending the code fix + Claude's re-review.
 
 ## Bar (pre-registered)
 
-Amended three times for the design on 2026-10-13, followed by Amendment 4's scoped factual/source pins: Amendment 1 closed the vacuity and tolerance holes in Claude lab's first
+Amended three times for the design on 2026-10-13, followed by Amendment 4's scoped factual/source pins and Amendment 5's count-predictor reference correction: Amendment 1 closed the vacuity and tolerance holes in Claude lab's first
 `NOT_FIT` review ([#2029 comment 6137914625](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6137914625));
 **Amendment 2** answers Claude's FIT re-review ([#2029 comment 6138896299](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6138896299);
 short version [6139080745](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6139080745)):
@@ -30,13 +30,26 @@ run; the frozen `v5-reply` panel is **not** scored by this rung.
   declared kept list **`top_token_ids(8)`** (bounded candidates only, smallest exact token identity on a
   tie, no target-aware insertion; `native_vector_writer.rs:95`) **beats the count predictor's recall@8 by
   >= 5 percentage points, on both seeds**.
-- **Reference — the count predictor.** A token-frequency count predictor computed on the **same dev
-  windows**, on the leased GPU inside the run: one frequency table over the dev tokens, scoring every
-  position of the scored set defined in the dev evaluation policy below (ties by smallest token identity);
-  its score unit is the raw occurrence count (policy below). It is a **count baseline only — no normalized
-  exponential, no training, no model parameters** — and is lawful under the no-exponential rule (D23). Its
-  top-1, recall@8, hinge loss and unviolated rate are reported alongside, at both rival counts — the
-  diagnostics in **count units**, never compared numerically with the model's mean-L1-units hinge.
+- **Reference — the count predictor (Amendment 5; corrected scope).** A token-frequency count table over
+  the **response-masked target positions of the TRAIN split** (`mw-balp/train/`: 7,512,797 tokens,
+  2,425,925 response-masked targets; ties by smallest token identity), computed on the leased GPU inside the
+  run, scoring every position of the scored set defined in the dev evaluation policy below. It is a
+  **count table only — no normalized exponential, no training, no model parameters** — lawful under D23, and
+  it must **never read dev targets**. Additionally the run reports a **dev-response oracle** (the same table
+  built on the dev response targets) as a **diagnostic only**, never as the reference the bars are measured
+  against. Its top-1, recall@8, hinge loss and unviolated rate are reported alongside, at both rival counts —
+  the diagnostics in **count units**, never compared numerically with the model's mean-L1-units hinge.
+- **Why the reference was rescoped (Amendment 5).** The first definition counted every dev token, but the
+  bars score only masked response positions. Measured on the pinned dev panel: the whole-stream reference
+  scores **0.17% top-1 / 16.6% recall@8**, while the response-frequency table scores **8.6% / 28.9%** — and a
+  constant emitter (always-token-1) matches the response-frequency level, so against the wrong reference the
+  +5pp bars are passable by a constant: the vacuity class Amendments 1–2 closed. Claude's CONTEST
+  ([6145360853](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6145360853)) was
+  reproduced exactly by the PM (0.17%/16.57% vs 8.58%/28.94%).
+- **Expected reference level.** The dev-response oracle ≈ **8.6% top-1 / 28.9% recall@8**; the train-split
+  response reference is expected near that level and is **measured and reported in-run**. The decisive bars
+  are unchanged: top-1 and recall@8 each beat the corrected reference by ≥ 5 percentage points on both
+  seeds; the anti-vacuity floors (hinge < 0.5; unviolated ≥ max(5× untrained, 1%)) are unchanged.
 - **Anti-vacuity guards (Amendment 1's floors, kept alongside; not the decisive bars).** Final dev
   **token-margin hinge loss < 0.5 raw-score units** on both seeds, and dev **unviolated-target rate
   >= max(5x the same-seed untrained constant rate, 1% absolute)** on both seeds. Honest note: the untrained
@@ -92,11 +105,13 @@ cannot drift:
   analysis cites n ≈ 14.3k (manifest `response_tokens` = 14,287, Wilson 95% half-width < 0.83 points); the
   pre-registered expectation is that the counted denominator **equals the mask sum over scored positions**,
   and any mismatch with 14,287 is reported, not absorbed.
-- **Count-predictor score units.** The decisive bars need only an ordering: `score(t)` = occurrence count
-  of `t` in the dev stream, ties by smallest token identity; top-1 = argmax; recall@8 = membership among the
-  8 highest-count identities. The count predictor's hinge/unviolated diagnostics use raw counts as the
-  score unit (margin-1 hinge in **count units**) and are reported in their own units — **never numerically
-  compared** with the model's mean-L1-units hinge.
+- **Count-predictor score units (population corrected by Amendment 5).** The decisive bars need only an
+  ordering: `score(t)` = occurrence count of `t` over the **response-masked target positions of the TRAIN
+  split** (`mw-balp/train/`: 7,512,797 tokens, 2,425,925 response-masked targets), ties by smallest token
+  identity; top-1 = argmax; recall@8 = membership among the 8 highest-count identities. The count
+  predictor's hinge/unviolated diagnostics use raw counts as the score unit (margin-1 hinge in **count
+  units**) and are reported in their own units — **never numerically compared** with the model's
+  mean-L1-units hinge.
 
 ## Steps
 - steps: 7324 steps, batch 16, lr 0.002, warmup 200, min_lr 0.1, weight_decay 0.1, context 384 (the geometric-stack example's pinned defaults)
@@ -112,7 +127,7 @@ cannot drift:
 ## Cost (charged cumulatively, before execution)
 - preparation: no GPU - source, sheet and dataset checks on the owner's laptop (data already published; no re-tokenisation planned). Peak RAM and storage are bounded by the existing tree plus the run's own cache.
 - run: one Vast pod, 1x RTX 5090 (or the next rung of the ladder), **<= $4 total UNVERIFIED projection** for the whole job (arms M1 and M8 x 2 seeds = 4 runs on one GPU, sequential); historical 1x4090 estimate was <= $2. Context 384, batch 16, 7324 steps per run. Within the owner caps (<= 4 running pods, <= $8/h across all labs).
-- controls: **no separate control pod.** The bar's control is the **count predictor** (a frequency table over the same dev windows, computed on the same leased GPU inside the run — no training, no exponential), plus the same-seed *untrained* model's constant for the anti-vacuity guard (a zero-step forward on the same windows); the historical CE artifacts are quoted as cross-objective readings at their own scope, never as a like-for-like baseline, and no banned CE arm is run.
+- controls: **no separate control pod.** The bar's control is the **count predictor** (a frequency table over the **response-masked target positions of the TRAIN split** — never dev targets; the dev-response oracle is reported as a diagnostic only — computed on the same leased GPU inside the run, no training, no exponential), plus the same-seed *untrained* model's constant for the anti-vacuity guard (a zero-step forward on the same windows); the historical CE artifacts are quoted as cross-objective readings at their own scope, never as a like-for-like baseline, and no banned CE arm is run.
 - evaluation: scored on the same pod during the run - the decisive top-1 and recall@8 against the count predictor, the anti-vacuity guards (token-margin hinge loss, unviolated rate), the reported diagnostics (dev curve, table L1 norm, between-seed disagreement), and (only for a KEEP) the fresh held-out draw. No panel grading is charged here: the frozen v5-reply panel is not scored by rung 0.
 - retries: inside the same <= $4 projection and the same lease - diagnose, correct and retry within the remaining budget; a self-set wall-clock estimate is not a stop rule, and a healthy run is extended and its lease renewed rather than cancelled.
 - storage: checkpoints and reports are small (the pinned config is well under 100 M parameters); retained artifacts go to the iCloud store (`cloud-store put`) and the local copy is removed after the MD5 round-trip. The 128 MiB physical stop margin is respected; no artifact is deleted while it is unique evidence.
@@ -229,7 +244,7 @@ evaluator is computed or reported anywhere in this rung.**
 | --- | --- |
 | Raw-score top-1 | fraction of scored positions (dev evaluation policy) whose target wins on raw score; deterministic tie rule: smallest token identity. Decisive bar (i): vs the count predictor, >= 5 points on both seeds |
 | Target rank / recall@K | rank of the target and the fraction with the target in the declared kept list `top_token_ids(8)` (K = 8, matching the M8 arm's rivals). Decisive bar (ii): vs the count predictor, >= 5 points on both seeds |
-| Count predictor (the reference) | token-frequency table over the same dev windows, scoring the scored set defined in the dev evaluation policy; its top-1, recall@8, hinge loss and unviolated rate are reported at both rival counts — the diagnostics in **count units**, never compared numerically with the model's mean-L1-units hinge. Count baseline only: no normalized exponential, no training |
+| Count predictor (the reference, Amendment 5) | token-frequency table over the **response-masked target positions of the TRAIN split** (7,512,797 tokens; 2,425,925 response-masked targets; never dev targets), scoring the scored set defined in the dev evaluation policy; the dev-response oracle is a diagnostic only. Its top-1, recall@8, hinge loss and unviolated rate are reported at both rival counts — the diagnostics in **count units**, never compared numerically with the model's mean-L1-units hinge. Count baseline only: no normalized exponential, no training |
 | Margin hinge (token term) | `mean_k max(0, 1 - z_target + z_rival)` over the head's token scores, raw-score units at the fixed scale 1, read from the `token_margin` term alone; anti-vacuity guard < 0.5 |
 | Unviolated-target rate | fraction of dev positions with zero token-margin hinge violation; anti-vacuity guard >= max(5x the untrained constant, 1%), the 1% floor operative |
 | Dev margin-loss curve (diagnostic) | per arm, per checkpoint, per seed |
@@ -293,19 +308,22 @@ The FIT review checks each of these as it lands; none of them is delivered by th
 3. **The recurrence component law — LANDED #2293; ordinary-path repair qualified at `05c84bece`.** PR [#2293](https://github.com/UOR-Foundation/uor-r4/pull/2293), merge `d7934bf03`, supplies `rec_gates=geometric`'s composed clamped-linear/rate-table/Hamilton law and explicit secant surrogate. Its early source sweep does not establish ordinary dispatch. Final source `05c84bece50789163bd0f049a2ae76b8a314ef45` repairs ordinary dispatch, signed credit and initialization and passes the complete configured finite controls (items4–5). `RecGates::Historical` source/init remains inactive evidence for new runs. Records: `docs/labs/recurrence-geometric-gates-2026-10-13/README.md` and `docs/labs/rung0-complete-path-2026-10-13/README.md`.
 4. **The lawful device-qualification gate for the composed path — finite controls PASS, protected delivery through #2318** (Codex — same split). Final source `05c84bece50789163bd0f049a2ae76b8a314ef45` passes 18 finite controls (11 CUDA,7 metadata), including the actual batch16×context384 width256/MLP384/V4096/six-recurrence forward/backward, signed rate/keep table, device clipping, full6144-row writer, native metrics/count/mask and artifact reload/refusals. No optimizer update, corpus/model-quality evaluation, CPU model reference or training. Record: `docs/labs/rung0-complete-path-2026-10-13/README.md`. The2.04s full-shape control is not training throughput; the<= $4 training projection above remains UNVERIFIED.
 5. **Codex's complete-path repairs — final source/device qualified, protected delivery through #2318** (claim `codex/rung0-complete-path-20261013`, source `05c84bece50789163bd0f049a2ae76b8a314ef45`). Actual ordinary geometric dispatch, native CLI/evaluation, row-cap8192 with element bound admitting6144, signed secant credit, direct interior initialization, device clipping and diagnostic helper guards are implemented. The existing pre-repair source is an indexed restoration patch at base `d4dd3caa9`. The final sheet/source identity is bound in the prospective FIT review on M1; the actual protected merge SHA is verified and appended to its delivery receipt. Training remains HELD.
+6. **Count-predictor scope fix — IN FLIGHT (Codex).** `native_rung0.rs` `Evaluator::new` counts response-masked target positions from the train split, with one fixed control proving unmasked tokens never enter the count; routed by [PM ruling 6145669094](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6145669094).
 
-Until dependency **4** lands, the **repair PRs (item 5) merge**, **and the owner explicitly releases the
-training hold**, the run does not execute. A `TEST FITNESS: FIT` verdict lifts no hold by itself.
+Until the **count-predictor scope fix (item 6) lands** (dependencies 1–5 are landed and the complete-path
+repairs are delivered through #2318) **and the owner explicitly releases the training hold**, the run does
+not execute. A `TEST FITNESS: FIT` verdict lifts no hold by itself.
 
 ## Verdict
 
-Prospective scientific review: Codex head_review and root, reviewed pre-stamp
-Git blob `bf0a0ededd2027794ff5ddcdab23f53782683df3`, SHA256
-`9b1efca7277023e96c60ce066870bf1d788609d114fe52e061a2ad0b628273ed`.
-The final stamped sheet/head is bound in the milestone review comment.
-Protected delivery through #2318 must be verified before execution. Global
-training and the separate M2 training/rental hold remain **HELD**; only the
-owner can release them. FIT records scientific design readiness, no permission
-to run. The optimizer update is compiled/source-reviewed and NOT_RUN; the
-four-run cost remains an UNVERIFIED projection. No acceptance bar was changed.
-TEST FITNESS: FIT (reviewer Codex head_review; root exact-head review, 2026-10-13)
+Amendment 4's prospective FIT (Codex head_review and root, reviewed pre-stamp Git blob
+`bf0a0ededd2027794ff5ddcdab23f53782683df3`, SHA256
+`9b1efca7277023e96c60ce066870bf1d788609d114fe52e061a2ad0b628273ed`) stands as the design record at that
+blob. **Amendment 5 reverts the verdict to PENDING on the contested count-predictor reference**
+([PM ruling 6145669094](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6145669094));
+Claude re-reviews the `native_rung0.rs` fix and this amendment and CONFIRMs to restore FIT. Global
+training and the separate M2 training/rental hold remain **HELD**; only the owner can release them. FIT
+records scientific design readiness, no permission to run. The optimizer update is compiled/source-reviewed
+and NOT_RUN; the four-run cost remains an UNVERIFIED projection. No acceptance bar was changed.
+
+TEST FITNESS: PENDING
