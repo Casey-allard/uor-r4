@@ -1,0 +1,7 @@
+{"kind": "prep", "lab": "claude", "mechanism": "starling-read", "milestone": "m4", "schema": 1, "sheet": "docs/harness/prep/m4-starling-read-2026-10-13.md", "ts": "2026-10-13T00:49:14-04:00", "verdict": "PENDING"}
+{"count": 1, "event": "harness_team_dispatched", "kind": "team", "lab": "claude", "role": "evidence-auditor", "route": "deepseek-account/deepseek-v4-pro", "schema": 1, "state": "dispatched", "ts": "2026-10-13T00:49:42-04:00"}
+{"branch": "onboard/claude", "kind": "claim", "lab": "claude", "schema": 1, "ts": "2026-10-13T00:50:00-04:00"}
+{"branch": "onboard/claude", "kind": "release", "lab": "claude", "schema": 1, "ts": "2026-10-13T00:50:01-04:00"}
+{"count": "2/3", "event": "harness_heartbeat", "headline": "M4: softmax at runtime: yes -> target no (D23 prohibits softmax project-wide)", "kind": "heartbeat", "lab": "claude", "line": "starling read", "milestone": "m4", "next": "Preserve teacher-free starling/murmuration source; after compliant operator phase and explicit hold release, rung0 then rung0b GPU read/gradient. Old dense bootstrap/teacher follow-ups inactive.", "posted": false, "schema": 1, "ts": "2026-10-13T00:50:08-04:00"}
+{"branch": "claude/readme-geometry-2026-10-13", "kind": "claim", "lab": "claude", "schema": 1, "ts": "2026-10-13T00:58:26-04:00"}
+{"branch": "claude/readme-geometry-2026-10-13", "kind": "claim", "lab": "claude", "schema": 1, "ts": "2026-10-13T01:14:56-04:00"}

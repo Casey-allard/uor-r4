@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760" width="1200" height="760" role="img" aria-labelledby="t d" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+<title id="t">The compliant next-token path</title>
+<desc id="d">Token, embedding table read, recurrence layers with a clamped opening, an exact rate table and a Hamilton output gate, a geometric feed-forward made of the SpiralCore/FBS projection and the G2 Hamilton gate, then a geometric head that is not built yet, raw scores, a rank-margin hinge in training and greedy argmax in serving.</desc>
+<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#424A53"/></marker><pattern id="hP" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="#FFF7E3"/><line x1="0" y1="0" x2="0" y2="9" stroke="#F1D79A" stroke-width="2.2"/></pattern><pattern id="hF" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="#F0F2F4"/><path d="M0,0 L8,8 M8,0 L0,8" stroke="#D3D8DD" stroke-width="1"/></pattern></defs>
+<rect x="0.5" y="0.5" width="1199" height="759" rx="16" fill="#FFFFFF" stroke="#D0D7DE" stroke-width="1"/>
+<text x="40" y="52" font-size="26" font-weight="700" fill="#1F2328" text-anchor="start">How the next token will be predicted: the compliant path</text>
+<text x="40" y="80" font-size="14.5" font-weight="400" fill="#57606A" text-anchor="start">The path rung 0 trains: no softmax, sigmoid, tanh, softplus or dense matrix product, forward or backward.</text>
+<rect x="40" y="150" width="120" height="92" rx="10" fill="#E3F4EE" stroke="#007A5E" stroke-width="2.5"/>
+<text x="54" y="176" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start">token x_t</text>
+<text x="54" y="197" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">byte-BPE id</text>
+<rect x="190" y="150" width="170" height="92" rx="10" fill="#E3F4EE" stroke="#007A5E" stroke-width="2.5"/>
+<text x="204" y="176" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start">embedding</text>
+<text x="204" y="197" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">a table read: one</text>
+<text x="204" y="213" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">row per token</text>
+<path d="M160,196 L190,196" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
+<path d="M360,196 L392,196" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
+<rect x="392" y="112" width="768" height="330" rx="14" fill="#F6F8FA" stroke="#D0D7DE" stroke-width="1"/>
+<text x="412" y="138" font-size="14.5" font-weight="700" fill="#1F2328" text-anchor="start">N layers (rung 0: pattern rrrrrr, recurrence only)</text>
+<rect x="412" y="154" width="360" height="270" rx="10" fill="#E4EFF8" stroke="#0072B2" stroke-width="1.75"/>
+<text x="426" y="180" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start">recurrence (r layer), #2293</text>
+<text x="426" y="201" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">per 4-lane quaternion state h:</text>
+<text x="426" y="217" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">opening = clamp(gate + decay, 0, 1)</text>
+<text x="426" y="233" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">λ = rate table[s]  (16 exact powers of ½)</text>
+<text x="426" y="249" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">keep = √(1 − λ²)  (precomputed)</text>
+<text x="426" y="265" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">h_t = λ·(u_t ⊗ h_{t−1}) + keep·a_t</text>
+<text x="426" y="281" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">output: Hamilton gate  q(g) ⊗ y</text>
+<text x="426" y="297" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">gradient: declared geometric secant</text>
+<text x="426" y="313" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">over the table's neighbours</text>
+<rect x="426" y="394" width="118" height="22" rx="11" fill="#0072B2" stroke="#0072B2" stroke-width="1.5"/>
+<text x="485" y="409" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">BUILT &amp; TESTED</text>
+<rect x="790" y="154" width="350" height="270" rx="10" fill="#E4EFF8" stroke="#0072B2" stroke-width="1.75"/>
+<text x="804" y="180" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start">geometric feed-forward</text>
+<text x="804" y="201" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">SpiralCore/FBS projection (#2279):</text>
+<text x="804" y="217" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">a learned query picks one carrier</text>
+<text x="804" y="233" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">per output block; signed BFS actions</text>
+<text x="804" y="249" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">transport it. No weight per</text>
+<text x="804" y="265" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">input/output pair.</text>
+<text x="804" y="281" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">G2 gate (#2260): out = q(g) ⊗ u,</text>
+<text x="804" y="297" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">a rotation of the value, not a squash</text>
+<rect x="804" y="394" width="118" height="22" rx="11" fill="#0072B2" stroke="#0072B2" stroke-width="1.5"/>
+<text x="863" y="409" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">BUILT &amp; TESTED</text>
+<path d="M772,290 L790,290" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
+<path d="M776,442 L776,470 L330,470 L330,500" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
+<rect x="160" y="500" width="340" height="130" rx="10" fill="#FFFFFF" stroke="#6E7781" stroke-width="1.75" stroke-dasharray="6 5"/>
+<text x="174" y="526" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start">geometric head (OP3a)</text>
+<text x="174" y="547" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">product-key scoring over the vocabulary;</text>
+<text x="174" y="563" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">replaces the dense tied head.</text>
+<text x="174" y="579" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">Rung 0 dependency 2: not built yet.</text>
+<rect x="174" y="600" width="69" height="22" rx="11" fill="#FFFFFF" stroke="#6E7781" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="208.5" y="615" font-size="11" font-weight="700" fill="#424A53" text-anchor="middle" letter-spacing="0.4">PLANNED</text>
+<path d="M500,560 L540,560" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
+<rect x="540" y="500" width="210" height="120" rx="10" fill="#FFFFFF" stroke="#D0D7DE" stroke-width="1.5"/>
+<text x="556" y="524" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start">raw scores z_t</text>
+<rect x="562" y="550" width="22" height="56" rx="3" fill="#007A5E" stroke="#007A5E" stroke-width="1"/>
+<rect x="596" y="566" width="22" height="40" rx="3" fill="#8C959F" stroke="#8C959F" stroke-width="1"/>
+<rect x="630" y="576" width="22" height="30" rx="3" fill="#8C959F" stroke="#8C959F" stroke-width="1"/>
+<rect x="664" y="584" width="22" height="22" rx="3" fill="#8C959F" stroke="#8C959F" stroke-width="1"/>
+<rect x="698" y="594" width="22" height="12" rx="3" fill="#8C959F" stroke="#8C959F" stroke-width="1"/>
+<text x="645" y="614" font-size="10.5" font-weight="400" fill="#57606A" text-anchor="middle">no normalization</text>
+<path d="M750,535 L790,520" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
+<path d="M750,585 L790,600" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
+<rect x="790" y="470" width="370" height="92" rx="10" fill="#E4EFF8" stroke="#0072B2" stroke-width="1.75"/>
+<text x="804" y="496" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start">train: rank-margin hinge (#2255)</text>
+<text x="804" y="517" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">mean over rivals k of max(0, 1 − z_target + z_k);</text>
+<text x="804" y="533" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">1 or 8 declared rivals, no exponential</text>
+<rect x="790" y="572" width="370" height="92" rx="10" fill="#E3F4EE" stroke="#007A5E" stroke-width="2.5"/>
+<text x="804" y="598" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start">serve: greedy argmax (D11)</text>
+<text x="804" y="619" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">the largest integer score wins;</text>
+<text x="804" y="635" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">no sampling, so no softmax is needed</text>
+<text x="40" y="694" font-size="12.5" font-weight="400" fill="#57606A" text-anchor="start">Later: read layers (starling / rank-table reads) join in rung 0b. Before any run: device qualification (dependency 4), TEST FITNESS and the owner's hold</text>
+<text x="40" y="712" font-size="12.5" font-weight="400" fill="#57606A" text-anchor="start">release. Built &amp; tested means landed source with focused tests: none of this path has been trained yet.</text>
+<path d="M40,724 L1160,724" fill="none" stroke="#D0D7DE" stroke-width="1"/>
+<text x="40" y="746" font-size="13.5" font-weight="700" fill="#1F2328" text-anchor="start">Status</text>
+<rect x="110" y="731" width="34" height="20" rx="5" fill="#E3F4EE" stroke="#007A5E" stroke-width="2"/>
+<text x="152" y="746" font-size="13" font-weight="400" fill="#2B3138" text-anchor="start">Working</text>
+<rect x="232.05" y="731" width="34" height="20" rx="5" fill="#E4EFF8" stroke="#0072B2" stroke-width="1.75"/>
+<text x="274.05" y="746" font-size="13" font-weight="400" fill="#2B3138" text-anchor="start">Built &amp; tested</text>
+<rect x="404.15000000000003" y="731" width="34" height="20" rx="5" fill="#FFFFFF" stroke="#6E7781" stroke-width="1.75" stroke-dasharray="6 5"/>
+<text x="446.15000000000003" y="746" font-size="13" font-weight="400" fill="#2B3138" text-anchor="start">Planned</text>
+</svg>

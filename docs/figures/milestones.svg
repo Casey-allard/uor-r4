@@ -1,116 +1,91 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760" width="1200" height="760" role="img" aria-labelledby="t d" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
-<title id="t">UOR-R4 progress toward the alpha</title>
-<desc id="d">Eight milestones on a horizontal track. M1 to M4 are in progress, M5 to M8 are not started. M1 and M2 feed M4, M4 leads to M5, M6, M7 and the alpha at M8.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 660" width="1200" height="660" role="img" aria-labelledby="t d" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+<title id="t">Milestones M1 to M8</title>
+<desc id="d">M1 language base in progress (reply 37 of 232, memory 20 of 40, compliant trunk source landed); M2 grounded reply held (437 of 512 development replies, 0 of 128 on fresh transfer); M3 durable memory paused; M4 one served model held; M5 to M8 not started.</desc>
 <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#424A53"/></marker><pattern id="hP" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="#FFF7E3"/><line x1="0" y1="0" x2="0" y2="9" stroke="#F1D79A" stroke-width="2.2"/></pattern><pattern id="hF" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="#F0F2F4"/><path d="M0,0 L8,8 M8,0 L0,8" stroke="#D3D8DD" stroke-width="1"/></pattern></defs>
-<rect x="0.5" y="0.5" width="1199" height="759" rx="16" fill="#FFFFFF" stroke="#D0D7DE"/>
-<text x="40" y="52" font-size="26" font-weight="700" fill="#1F2328" text-anchor="start" >Progress toward the alpha</text>
-<text x="40" y="80" font-size="14.5" font-weight="400" fill="#57606A" text-anchor="start" >Pre-alpha, 9 Oct 2026. No model holds a useful conversation yet.</text>
-<line x1="40" y1="290" x2="1160" y2="290" stroke="#8C959F" stroke-width="4" stroke-linecap="round"/>
-<path d="M110,260 L110,190 L530,190 L530,258" fill="none" stroke="#0072B2" stroke-width="2" marker-end="url(#ah)"/>
-<path d="M250,260 L250,220 L530,220 L530,258" fill="none" stroke="#0072B2" stroke-width="2" marker-end="url(#ah)"/>
-<text x="320.0" y="182" font-size="12.5" font-weight="700" fill="#0072B2" text-anchor="middle" >M1 + M2 feed M4</text>
-<circle cx="110" cy="290" r="26" fill="#FFFFFF" stroke="#B87A00" stroke-width="3"/>
-<path d="M110,264 A26,26 0 0 0 110,316 Z" fill="#E69F00"/>
-<text x="110" y="295" font-size="14" font-weight="700" fill="#1F2328" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="3">M1</text>
-<rect x="45" y="350" width="130" height="200" rx="10" fill="url(#hP)" stroke="#B87A00" stroke-width="2"/>
-<text x="59" y="376" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >Language</text>
-<text x="59" y="395" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >base</text>
-<text x="59" y="416" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >214M base dev</text>
-<text x="59" y="432" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >NLL 2.073;</text>
-<text x="59" y="448" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >19.9M chat</text>
-<text x="59" y="464" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >stack 0.886838 BPB</text>
-<rect x="55" y="520" width="110" height="22" rx="11" fill="#E69F00" stroke="#B87A00" stroke-width="1.5"/>
-<text x="110.0" y="535" font-size="11" font-weight="700" fill="#1F2328" text-anchor="middle" letter-spacing="0.4">PARTIAL</text>
-<circle cx="250" cy="290" r="26" fill="#FFFFFF" stroke="#B87A00" stroke-width="3"/>
-<path d="M250,264 A26,26 0 0 0 250,316 Z" fill="#E69F00"/>
-<text x="250" y="295" font-size="14" font-weight="700" fill="#1F2328" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="3">M2</text>
-<rect x="185" y="350" width="130" height="200" rx="10" fill="url(#hP)" stroke="#B87A00" stroke-width="2"/>
-<text x="199" y="376" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >Grounded</text>
-<text x="199" y="395" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >reply from</text>
-<text x="199" y="414" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >exact memory</text>
-<text x="199" y="435" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >437 of 512</text>
-<text x="199" y="451" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >replies</text>
-<text x="199" y="467" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >complete</text>
-<rect x="195" y="520" width="110" height="22" rx="11" fill="#E69F00" stroke="#B87A00" stroke-width="1.5"/>
-<text x="250.0" y="535" font-size="11" font-weight="700" fill="#1F2328" text-anchor="middle" letter-spacing="0.4">PARTIAL</text>
-<circle cx="390" cy="290" r="26" fill="#FFFFFF" stroke="#B87A00" stroke-width="3"/>
-<path d="M390,264 A26,26 0 0 0 390,316 Z" fill="#E69F00"/>
-<text x="390" y="295" font-size="14" font-weight="700" fill="#1F2328" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="3">M3</text>
-<rect x="325" y="350" width="130" height="200" rx="10" fill="url(#hP)" stroke="#B87A00" stroke-width="2"/>
-<text x="339" y="376" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >Durable</text>
-<text x="339" y="395" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >memory</text>
-<text x="339" y="416" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >evaluator and</text>
-<text x="339" y="432" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >session</text>
-<text x="339" y="448" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >delivered; not</text>
-<text x="339" y="464" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >qualified</text>
-<rect x="335" y="520" width="110" height="22" rx="11" fill="#E69F00" stroke="#B87A00" stroke-width="1.5"/>
-<text x="390.0" y="535" font-size="11" font-weight="700" fill="#1F2328" text-anchor="middle" letter-spacing="0.4">PARTIAL</text>
-<circle cx="530" cy="290" r="26" fill="#FFFFFF" stroke="#B87A00" stroke-width="3"/>
-<path d="M530,264 A26,26 0 0 0 530,316 Z" fill="#E69F00"/>
-<text x="530" y="295" font-size="14" font-weight="700" fill="#1F2328" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="3">M4</text>
-<rect x="465" y="350" width="130" height="200" rx="10" fill="url(#hP)" stroke="#B87A00" stroke-width="2"/>
-<text x="479" y="376" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >One served</text>
-<text x="479" y="395" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >model</text>
-<text x="479" y="416" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >stack now</text>
-<text x="479" y="432" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >served via uor-</text>
-<text x="479" y="448" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >chat --stack;</text>
-<text x="479" y="464" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >join with the</text>
-<text x="479" y="480" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >native learner</text>
-<text x="479" y="496" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >not done</text>
-<rect x="475" y="520" width="110" height="22" rx="11" fill="#E69F00" stroke="#B87A00" stroke-width="1.5"/>
-<text x="530.0" y="535" font-size="11" font-weight="700" fill="#1F2328" text-anchor="middle" letter-spacing="0.4">PARTIAL</text>
-<circle cx="670" cy="290" r="26" fill="#FFFFFF" stroke="#6E7781" stroke-width="2.5" stroke-dasharray="6 5"/>
-<text x="670" y="295" font-size="14" font-weight="700" fill="#1F2328" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="3">M5</text>
-<rect x="605" y="350" width="130" height="200" rx="10" fill="#FFFFFF" stroke="#6E7781" stroke-width="1.75" stroke-dasharray="6 5"/>
-<text x="619" y="376" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >Laptop cost</text>
-<text x="619" y="397" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >J/token on an</text>
-<text x="619" y="413" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >M1 laptop</text>
-<text x="619" y="429" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >unmeasured</text>
-<rect x="615" y="520" width="110" height="22" rx="11" fill="#FFFFFF" stroke="#6E7781" stroke-width="1.5" stroke-dasharray="4 3"/>
-<text x="670.0" y="535" font-size="11" font-weight="700" fill="#424A53" text-anchor="middle" letter-spacing="0.4">PLANNED</text>
-<circle cx="810" cy="290" r="26" fill="#FFFFFF" stroke="#6E7781" stroke-width="2.5" stroke-dasharray="6 5"/>
-<text x="810" y="295" font-size="14" font-weight="700" fill="#1F2328" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="3">M6</text>
-<rect x="745" y="350" width="130" height="200" rx="10" fill="#FFFFFF" stroke="#6E7781" stroke-width="1.75" stroke-dasharray="6 5"/>
-<text x="759" y="376" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >Reasoning &amp;</text>
-<text x="759" y="395" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >coding</text>
-<text x="759" y="416" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >not started</text>
-<rect x="755" y="520" width="110" height="22" rx="11" fill="#FFFFFF" stroke="#6E7781" stroke-width="1.5" stroke-dasharray="4 3"/>
-<text x="810.0" y="535" font-size="11" font-weight="700" fill="#424A53" text-anchor="middle" letter-spacing="0.4">PLANNED</text>
-<circle cx="950" cy="290" r="26" fill="#FFFFFF" stroke="#6E7781" stroke-width="2.5" stroke-dasharray="6 5"/>
-<text x="950" y="295" font-size="14" font-weight="700" fill="#1F2328" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="3">M7</text>
-<rect x="885" y="350" width="130" height="200" rx="10" fill="#FFFFFF" stroke="#6E7781" stroke-width="1.75" stroke-dasharray="6 5"/>
-<text x="899" y="376" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >Distribution</text>
-<text x="899" y="397" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >local API only;</text>
-<text x="899" y="413" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >no native or</text>
-<text x="899" y="429" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >stack model in</text>
-<text x="899" y="445" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >the Studio</text>
-<rect x="895" y="520" width="110" height="22" rx="11" fill="#FFFFFF" stroke="#6E7781" stroke-width="1.5" stroke-dasharray="4 3"/>
-<text x="950.0" y="535" font-size="11" font-weight="700" fill="#424A53" text-anchor="middle" letter-spacing="0.4">PLANNED</text>
-<circle cx="1090" cy="290" r="26" fill="#FFFFFF" stroke="#6E7781" stroke-width="2.5" stroke-dasharray="6 5"/>
-<text x="1090" y="295" font-size="14" font-weight="700" fill="#1F2328" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="3">M8</text>
-<rect x="1025" y="350" width="130" height="200" rx="10" fill="#FFFFFF" stroke="#6E7781" stroke-width="1.75" stroke-dasharray="6 5"/>
-<text x="1039" y="376" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >Alpha</text>
-<text x="1039" y="397" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >not started</text>
-<rect x="1035" y="520" width="110" height="22" rx="11" fill="#FFFFFF" stroke="#6E7781" stroke-width="1.5" stroke-dasharray="4 3"/>
-<text x="1090.0" y="535" font-size="11" font-weight="700" fill="#424A53" text-anchor="middle" letter-spacing="0.4">PLANNED</text>
-<path d="M559,290 L640,290" fill="none" stroke="#0072B2" stroke-width="2" marker-end="url(#ah)"/>
-<path d="M699,290 L780,290" fill="none" stroke="#0072B2" stroke-width="2" marker-end="url(#ah)"/>
-<path d="M839,290 L920,290" fill="none" stroke="#0072B2" stroke-width="2" marker-end="url(#ah)"/>
-<path d="M979,290 L1060,290" fill="none" stroke="#0072B2" stroke-width="2" marker-end="url(#ah)"/>
-<text x="880.0" y="248" font-size="12.5" font-weight="700" fill="#0072B2" text-anchor="middle" >M4 then M5 to M8, in order</text>
-<text x="40" y="640" font-size="12.5" font-weight="400" fill="#424A53" text-anchor="start" >Marker key: half-filled circle = in progress, dashed empty circle = not started. M3 is in progress and not on the M4 dependency path above.</text>
-<line x1="40" y1="700" x2="1160" y2="700" stroke="#D0D7DE"/>
-<text x="40" y="720" font-size="12.5" font-weight="700" fill="#1F2328" text-anchor="start" >Status</text>
-<rect x="100" y="708" width="26" height="18" rx="4" fill="#E3F4EE" stroke="#007A5E" stroke-width="2.5"/>
-<text x="134" y="721" font-size="12.5" font-weight="400" fill="#1F2328" text-anchor="start" >Working (served/trained)</text>
-<rect x="314.4" y="708" width="26" height="18" rx="4" fill="#E4EFF8" stroke="#0072B2" stroke-width="1.75"/>
-<text x="348.4" y="721" font-size="12.5" font-weight="400" fill="#1F2328" text-anchor="start" >Built &amp; tested</text>
-<rect x="462.79999999999995" y="708" width="26" height="18" rx="4" fill="url(#hP)" stroke="#B87A00" stroke-width="2"/>
-<text x="496.79999999999995" y="721" font-size="12.5" font-weight="400" fill="#1F2328" text-anchor="start" >Partial / in progress</text>
-<rect x="657.4" y="708" width="26" height="18" rx="4" fill="#FFFFFF" stroke="#6E7781" stroke-width="1.75" stroke-dasharray="6 5"/>
-<text x="691.4" y="721" font-size="12.5" font-weight="400" fill="#1F2328" text-anchor="start" >Planned / not started</text>
-<rect x="852.0" y="708" width="26" height="18" rx="4" fill="url(#hF)" stroke="#57606A" stroke-width="2" stroke-dasharray="2 4"/>
-<text x="886.0" y="721" font-size="12.5" font-weight="400" fill="#1F2328" text-anchor="start" >Frozen (historical contract)</text>
-<text x="40" y="741" font-size="12" fill="#7a4f00">historical (pre-D25): these are pre-D25 float/matmul-form measurements; training is held and both milestones remain short of their targets.</text>
+<rect x="0.5" y="0.5" width="1199" height="659" rx="16" fill="#FFFFFF" stroke="#D0D7DE" stroke-width="1"/>
+<text x="40" y="52" font-size="26" font-weight="700" fill="#1F2328" text-anchor="start">Progress toward the alpha</text>
+<text x="40" y="80" font-size="14.5" font-weight="400" fill="#57606A" text-anchor="start">Pre-alpha, 13 October 2026. No model holds a useful conversation yet. Each milestone closes only on a saved model.</text>
+<path d="M60,168 L1140,168" fill="none" stroke="#8C959F" stroke-width="4"/>
+<circle cx="100" cy="168" r="30" fill="#FFF0CC" stroke="#B87A00" stroke-width="3"/>
+<text x="100" y="174" font-size="16" font-weight="700" fill="#1F2328" text-anchor="middle">M1</text>
+<circle cx="243" cy="168" r="30" fill="#F4F0F8" stroke="#7A4FA3" stroke-width="3" stroke-dasharray="9 4"/>
+<text x="243" y="174" font-size="16" font-weight="700" fill="#1F2328" text-anchor="middle">M2</text>
+<circle cx="386" cy="168" r="30" fill="#F6F8FA" stroke="#8C959F" stroke-width="3" stroke-dasharray="2 4"/>
+<text x="386" y="174" font-size="16" font-weight="700" fill="#1F2328" text-anchor="middle">M3</text>
+<circle cx="529" cy="168" r="30" fill="#F4F0F8" stroke="#7A4FA3" stroke-width="3" stroke-dasharray="9 4"/>
+<text x="529" y="174" font-size="16" font-weight="700" fill="#1F2328" text-anchor="middle">M4</text>
+<circle cx="672" cy="168" r="30" fill="#FFFFFF" stroke="#6E7781" stroke-width="3" stroke-dasharray="6 5"/>
+<text x="672" y="174" font-size="16" font-weight="700" fill="#1F2328" text-anchor="middle">M5</text>
+<circle cx="815" cy="168" r="30" fill="#FFFFFF" stroke="#6E7781" stroke-width="3" stroke-dasharray="6 5"/>
+<text x="815" y="174" font-size="16" font-weight="700" fill="#1F2328" text-anchor="middle">M6</text>
+<circle cx="958" cy="168" r="30" fill="#FFFFFF" stroke="#6E7781" stroke-width="3" stroke-dasharray="6 5"/>
+<text x="958" y="174" font-size="16" font-weight="700" fill="#1F2328" text-anchor="middle">M7</text>
+<circle cx="1101" cy="168" r="30" fill="#FFFFFF" stroke="#6E7781" stroke-width="3" stroke-dasharray="6 5"/>
+<text x="1101" y="174" font-size="16" font-weight="700" fill="#1F2328" text-anchor="middle">M8</text>
+<path d="M100,136 L100,112 L529,112 L529,134" fill="none" stroke="#0072B2" stroke-width="2" marker-end="url(#ah)"/>
+<path d="M243,136 L243,124 L529,124" fill="none" stroke="#0072B2" stroke-width="2"/>
+<text x="315" y="106" font-size="12.5" font-weight="700" fill="#0072B2" text-anchor="middle">M1 + M2 join at M4</text>
+<rect x="40" y="230" width="265" height="172" rx="10" fill="url(#hP)" stroke="#B87A00" stroke-width="2"/>
+<text x="54" y="256" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start">M1  Language base</text>
+<text x="54" y="277" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">reply 37/232 → 116</text>
+<text x="54" y="293" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">memory 20/40 → 34</text>
+<text x="54" y="309" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">trunk: source landed</text>
+<rect x="54" y="372" width="97" height="22" rx="11" fill="#E69F00" stroke="#B87A00" stroke-width="1.5"/>
+<text x="102.5" y="387" font-size="11" font-weight="700" fill="#1F2328" text-anchor="middle" letter-spacing="0.4">IN PROGRESS</text>
+<rect x="323" y="230" width="265" height="172" rx="10" fill="#F4F0F8" stroke="#7A4FA3" stroke-width="2" stroke-dasharray="9 4"/>
+<text x="337" y="256" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start">M2  Grounded reply</text>
+<text x="337" y="277" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">437/512 dev replies,</text>
+<text x="337" y="293" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">0/128 fresh transfer;</text>
+<text x="337" y="309" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">training held</text>
+<rect x="337" y="372" width="48" height="22" rx="11" fill="#7A4FA3" stroke="#7A4FA3" stroke-width="1.5"/>
+<text x="361" y="387" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">HELD</text>
+<rect x="606" y="230" width="265" height="172" rx="10" fill="#F6F8FA" stroke="#8C959F" stroke-width="1.75" stroke-dasharray="2 4"/>
+<text x="620" y="256" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start">M3  Durable memory</text>
+<text x="620" y="277" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">evaluator and session</text>
+<text x="620" y="293" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">built; waits on an</text>
+<text x="620" y="309" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">M1 or M2 model</text>
+<rect x="620" y="372" width="62" height="22" rx="11" fill="#8C959F" stroke="#8C959F" stroke-width="1.5"/>
+<text x="651" y="387" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">PAUSED</text>
+<rect x="889" y="230" width="265" height="172" rx="10" fill="#F4F0F8" stroke="#7A4FA3" stroke-width="2" stroke-dasharray="9 4"/>
+<text x="903" y="256" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start">M4  One served model</text>
+<text x="903" y="277" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">softmax at runtime:</text>
+<text x="903" y="293" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">yes, must be no (D23);</text>
+<text x="903" y="309" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">needs a lawful model</text>
+<rect x="903" y="372" width="48" height="22" rx="11" fill="#7A4FA3" stroke="#7A4FA3" stroke-width="1.5"/>
+<text x="927" y="387" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">HELD</text>
+<rect x="40" y="420" width="265" height="172" rx="10" fill="#FFFFFF" stroke="#6E7781" stroke-width="1.75" stroke-dasharray="6 5"/>
+<text x="54" y="446" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start">M5  Laptop cost</text>
+<text x="54" y="467" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">J/token on an M1</text>
+<text x="54" y="483" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">laptop: not measured</text>
+<rect x="54" y="562" width="69" height="22" rx="11" fill="#FFFFFF" stroke="#6E7781" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="88.5" y="577" font-size="11" font-weight="700" fill="#424A53" text-anchor="middle" letter-spacing="0.4">PLANNED</text>
+<rect x="323" y="420" width="265" height="172" rx="10" fill="#FFFFFF" stroke="#6E7781" stroke-width="1.75" stroke-dasharray="6 5"/>
+<text x="337" y="446" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start">M6  Reasoning &amp; coding</text>
+<text x="337" y="467" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">exact arithmetic is</text>
+<text x="337" y="483" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">the visible gap</text>
+<rect x="337" y="562" width="69" height="22" rx="11" fill="#FFFFFF" stroke="#6E7781" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="371.5" y="577" font-size="11" font-weight="700" fill="#424A53" text-anchor="middle" letter-spacing="0.4">PLANNED</text>
+<rect x="606" y="420" width="265" height="172" rx="10" fill="#FFFFFF" stroke="#6E7781" stroke-width="1.75" stroke-dasharray="6 5"/>
+<text x="620" y="446" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start">M7  Distribution</text>
+<text x="620" y="467" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">API, WASM, Studio;</text>
+<text x="620" y="483" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">local API only so far</text>
+<rect x="620" y="562" width="69" height="22" rx="11" fill="#FFFFFF" stroke="#6E7781" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="654.5" y="577" font-size="11" font-weight="700" fill="#424A53" text-anchor="middle" letter-spacing="0.4">PLANNED</text>
+<rect x="889" y="420" width="265" height="172" rx="10" fill="#FFFFFF" stroke="#6E7781" stroke-width="1.75" stroke-dasharray="6 5"/>
+<text x="903" y="446" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start">M8  Alpha release</text>
+<text x="903" y="467" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">one labelled release</text>
+<text x="903" y="483" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">on the same model</text>
+<rect x="903" y="562" width="69" height="22" rx="11" fill="#FFFFFF" stroke="#6E7781" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="937.5" y="577" font-size="11" font-weight="700" fill="#424A53" text-anchor="middle" letter-spacing="0.4">PLANNED</text>
+<path d="M40,614 L1160,614" fill="none" stroke="#D0D7DE" stroke-width="1"/>
+<text x="40" y="636" font-size="13.5" font-weight="700" fill="#1F2328" text-anchor="start">Status</text>
+<rect x="110" y="621" width="34" height="20" rx="5" fill="url(#hP)" stroke="#B87A00" stroke-width="2"/>
+<text x="152" y="636" font-size="13" font-weight="400" fill="#2B3138" text-anchor="start">In progress</text>
+<rect x="260.65" y="621" width="34" height="20" rx="5" fill="#F4F0F8" stroke="#7A4FA3" stroke-width="2" stroke-dasharray="9 4"/>
+<text x="302.65" y="636" font-size="13" font-weight="400" fill="#2B3138" text-anchor="start">Held by the owner</text>
+<rect x="454.2" y="621" width="34" height="20" rx="5" fill="#F6F8FA" stroke="#8C959F" stroke-width="1.75" stroke-dasharray="2 4"/>
+<text x="496.2" y="636" font-size="13" font-weight="400" fill="#2B3138" text-anchor="start">Paused</text>
+<rect x="569.1" y="621" width="34" height="20" rx="5" fill="#FFFFFF" stroke="#6E7781" stroke-width="1.75" stroke-dasharray="6 5"/>
+<text x="611.1" y="636" font-size="13" font-weight="400" fill="#2B3138" text-anchor="start">Planned</text>
 </svg>

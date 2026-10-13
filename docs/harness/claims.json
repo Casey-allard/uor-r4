@@ -1,4 +1,11 @@
 {
+  "claude/readme-geometry-2026-10-13": {
+    "branch": "claude/readme-geometry-2026-10-13",
+    "claimed_at": "2026-10-13T01:14:56-04:00",
+    "head": "b441de265",
+    "lab": "claude",
+    "note": "README, geometry page and figures"
+  },
   "kimi/d27-rust-first-2026-10-13": {
     "branch": "kimi/d27-rust-first-2026-10-13",
     "claimed_at": "2026-10-12T23:44:17-04:00",

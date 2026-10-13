@@ -1,97 +1,94 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" width="1200" height="900" role="img" aria-labelledby="t d" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
-<title id="t">UOR-R4 training pipeline</title>
-<desc id="d">Data sources SmolLM-Corpus, SmolTalk, TinyStories and project memory-dialogue data go through prepare tools and a mixer, then the byte-BPE tokenizer, geometric-stack pretraining on GPU pods, dialogue fine-tuning, export to a lookup artifact with GPTQ at most 4 bits, and chat-grade panels. Status is marked on every step.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 680" width="1200" height="680" role="img" aria-labelledby="t d" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+<title id="t">The gated training pipeline</title>
+<desc id="d">Data from the private HF store, a pre-registration sheet, a TEST FITNESS review and the owner's hold release come before any GPU time. A Vast.ai pod bootstrapped from the store trains the compliant trunk on GPU only, evaluates with raw-score measures and keeps the results in iCloud and the store. Export to D11 waits for the integer engine to bind the new geometric modes.</desc>
 <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#424A53"/></marker><pattern id="hP" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="#FFF7E3"/><line x1="0" y1="0" x2="0" y2="9" stroke="#F1D79A" stroke-width="2.2"/></pattern><pattern id="hF" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="#F0F2F4"/><path d="M0,0 L8,8 M8,0 L0,8" stroke="#D3D8DD" stroke-width="1"/></pattern></defs>
-<rect x="0.5" y="0.5" width="1199" height="899" rx="16" fill="#FFFFFF" stroke="#D0D7DE"/>
-<text x="40" y="52" font-size="26" font-weight="700" fill="#1F2328" text-anchor="start" >Training pipeline: from corpora to a graded chat model</text>
-<text x="40" y="80" font-size="14.5" font-weight="400" fill="#57606A" text-anchor="start" >Rust tools only. GPU pods are leased through uor-pod; every step is charged to the cumulative resource ledger.</text>
-<rect x="40" y="110" width="265" height="64" rx="10" fill="#FFFFFF" stroke="#8C959F" stroke-width="1.5"/>
-<text x="54" y="138" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >SmolLM-Corpus</text>
-<text x="54" y="160" font-size="12.5" font-weight="400" fill="#57606A" text-anchor="start" >input data: text</text>
-<rect x="325" y="110" width="265" height="64" rx="10" fill="#FFFFFF" stroke="#8C959F" stroke-width="1.5"/>
-<text x="339" y="138" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >TinyStories</text>
-<text x="339" y="160" font-size="12.5" font-weight="400" fill="#57606A" text-anchor="start" >input data: text</text>
-<rect x="610" y="110" width="265" height="64" rx="10" fill="#FFFFFF" stroke="#8C959F" stroke-width="1.5"/>
-<text x="624" y="138" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >SmolTalk</text>
-<text x="624" y="160" font-size="12.5" font-weight="400" fill="#57606A" text-anchor="start" >input data: chat</text>
-<rect x="895" y="110" width="265" height="64" rx="10" fill="#FFFFFF" stroke="#8C959F" stroke-width="1.5"/>
-<text x="909" y="138" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >Project memory-dialogue data</text>
-<text x="909" y="160" font-size="12.5" font-weight="400" fill="#57606A" text-anchor="start" >input data: recall dialogues</text>
-<rect x="40" y="214" width="550" height="96" rx="10" fill="#E3F4EE" stroke="#007A5E" stroke-width="2.5"/>
-<text x="54" y="240" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >prepare-text-parquet</text>
-<text x="54" y="261" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >SmolLM-Corpus and TinyStories to token shards</text>
-<rect x="54" y="280" width="68" height="22" rx="11" fill="#007A5E" stroke="#007A5E" stroke-width="1.5"/>
-<text x="88.2" y="295" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">WORKING</text>
-<rect x="610" y="214" width="265" height="96" rx="10" fill="#E3F4EE" stroke="#007A5E" stroke-width="2.5"/>
-<text x="624" y="240" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >prepare-chat-parquet</text>
-<text x="624" y="261" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >SmolTalk to chat parquet</text>
-<rect x="624" y="280" width="68" height="22" rx="11" fill="#007A5E" stroke="#007A5E" stroke-width="1.5"/>
-<text x="658.2" y="295" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">WORKING</text>
-<rect x="895" y="214" width="265" height="96" rx="10" fill="#E3F4EE" stroke="#007A5E" stroke-width="2.5"/>
-<text x="909" y="240" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >dialogue-recall-corpus</text>
-<text x="909" y="261" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >memory-dialogue data</text>
-<rect x="909" y="280" width="68" height="22" rx="11" fill="#007A5E" stroke="#007A5E" stroke-width="1.5"/>
-<text x="943.2" y="295" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">WORKING</text>
-<path d="M172,174 L172,214" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
-<path d="M457,174 L457,214" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
-<path d="M742,174 L742,214" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
-<path d="M1027,174 L1027,214" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
-<rect x="610" y="340" width="550" height="96" rx="10" fill="#E3F4EE" stroke="#007A5E" stroke-width="2.5"/>
-<text x="624" y="366" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >mix-chat-corpus</text>
-<text x="624" y="387" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >mixes chat and recall dialogues into one fine-tune corpus</text>
-<rect x="624" y="406" width="68" height="22" rx="11" fill="#007A5E" stroke="#007A5E" stroke-width="1.5"/>
-<text x="658.2" y="421" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">WORKING</text>
-<path d="M742,310 L742,340" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
-<path d="M1027,310 L1027,340" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
-<rect x="40" y="340" width="550" height="96" rx="10" fill="#E3F4EE" stroke="#007A5E" stroke-width="2.5"/>
-<text x="54" y="366" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >Byte-BPE tokenizer (#1017)</text>
-<text x="54" y="387" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >one fixed tokenizer identity shared by every stage</text>
-<rect x="54" y="406" width="68" height="22" rx="11" fill="#007A5E" stroke="#007A5E" stroke-width="1.5"/>
-<text x="88.2" y="421" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">WORKING</text>
-<path d="M315,310 L315,340" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
-<path d="M610,388 L590,388" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
-<rect x="40" y="466" width="550" height="126" rx="10" fill="#E3F4EE" stroke="#007A5E" stroke-width="2.5"/>
-<text x="54" y="492" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >Geometric-stack pretrain</text>
-<text x="54" y="513" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >CUDA, flash-style read, bf16 activations with f32 master weights; Runpod pods</text>
-<text x="54" y="529" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >via uor-pod lease. 214M Plan A base: dev NLL 2.073.</text>
-<rect x="54" y="562" width="68" height="22" rx="11" fill="#007A5E" stroke="#007A5E" stroke-width="1.5"/>
-<text x="88.2" y="577" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">WORKING</text>
-<path d="M315,436 L315,466" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
-<rect x="610" y="466" width="550" height="126" rx="10" fill="url(#hP)" stroke="#B87A00" stroke-width="2"/>
-<text x="624" y="492" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >dialogue-train fine-tune</text>
-<text x="624" y="513" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >chat fine-tune of the stack. 19.9M served 0.886838 BPB; code and arithmetic</text>
-<text x="624" y="529" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >answers are still wrong.</text>
-<rect x="624" y="562" width="68" height="22" rx="11" fill="#E69F00" stroke="#B87A00" stroke-width="1.5"/>
-<text x="658.2" y="577" font-size="11" font-weight="700" fill="#1F2328" text-anchor="middle" letter-spacing="0.4">PARTIAL</text>
-<path d="M590,529 L610,529" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
-<path d="M885,436 L885,466" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
-<rect x="610" y="632" width="550" height="110" rx="10" fill="#E3F4EE" stroke="#007A5E" stroke-width="2.5"/>
-<text x="624" y="658" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >Export</text>
-<text x="624" y="679" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >stack_export to UORLUT01 (.lut), GPTQ at most 4-bit; d11-evaluate against the</text>
-<text x="624" y="695" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >float oracle</text>
-<rect x="624" y="712" width="68" height="22" rx="11" fill="#007A5E" stroke="#007A5E" stroke-width="1.5"/>
-<text x="658.2" y="727" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">WORKING</text>
-<path d="M885,592 L885,632" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
-<rect x="40" y="632" width="550" height="110" rx="10" fill="#E4EFF8" stroke="#0072B2" stroke-width="1.75"/>
-<text x="54" y="658" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >chat-grade panels</text>
-<text x="54" y="679" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >held-out panels with answer-oracle membership judging. No model yet passes the</text>
-<text x="54" y="695" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >useful-conversation bar.</text>
-<rect x="54" y="712" width="119" height="22" rx="11" fill="#0072B2" stroke="#0072B2" stroke-width="1.5"/>
-<text x="113.4" y="727" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">BUILT &amp; TESTED</text>
-<path d="M610,687 L590,687" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
-<text x="40" y="784" font-size="12.5" font-weight="400" fill="#57606A" text-anchor="start" >Side paths: cloud-store archives finished runs to iCloud; lab-runner records the cumulative ledger.</text>
-<line x1="40" y1="834" x2="1160" y2="834" stroke="#D0D7DE"/>
-<text x="40" y="854" font-size="12.5" font-weight="700" fill="#1F2328" text-anchor="start" >Status</text>
-<rect x="100" y="842" width="26" height="18" rx="4" fill="#E3F4EE" stroke="#007A5E" stroke-width="2.5"/>
-<text x="134" y="855" font-size="12.5" font-weight="400" fill="#1F2328" text-anchor="start" >Working (served/trained)</text>
-<rect x="314.4" y="842" width="26" height="18" rx="4" fill="#E4EFF8" stroke="#0072B2" stroke-width="1.75"/>
-<text x="348.4" y="855" font-size="12.5" font-weight="400" fill="#1F2328" text-anchor="start" >Built &amp; tested</text>
-<rect x="462.79999999999995" y="842" width="26" height="18" rx="4" fill="url(#hP)" stroke="#B87A00" stroke-width="2"/>
-<text x="496.79999999999995" y="855" font-size="12.5" font-weight="400" fill="#1F2328" text-anchor="start" >Partial / in progress</text>
-<rect x="657.4" y="842" width="26" height="18" rx="4" fill="#FFFFFF" stroke="#6E7781" stroke-width="1.75" stroke-dasharray="6 5"/>
-<text x="691.4" y="855" font-size="12.5" font-weight="400" fill="#1F2328" text-anchor="start" >Planned / not started</text>
-<rect x="852.0" y="842" width="26" height="18" rx="4" fill="url(#hF)" stroke="#57606A" stroke-width="2" stroke-dasharray="2 4"/>
-<text x="886.0" y="855" font-size="12.5" font-weight="400" fill="#1F2328" text-anchor="start" >Frozen (historical contract)</text>
-<text x="40" y="876" font-size="12" fill="#7a4f00">held under D25: no compliant training configuration is qualified and the interfaces above are historical (float/matmul form).</text>
+<rect x="0.5" y="0.5" width="1199" height="679" rx="16" fill="#FFFFFF" stroke="#D0D7DE" stroke-width="1"/>
+<text x="40" y="52" font-size="26" font-weight="700" fill="#1F2328" text-anchor="start">Training: three gates before any GPU time</text>
+<text x="40" y="80" font-size="14.5" font-weight="400" fill="#57606A" text-anchor="start">Every run is pre-registered, reviewed and released by the owner before it starts. Status 13 October 2026: no compliant run yet.</text>
+<text x="40" y="118" font-size="14" font-weight="700" fill="#0072B2" text-anchor="start">BEFORE THE RUN</text>
+<rect x="40" y="130" width="250" height="128" rx="10" fill="#E3F4EE" stroke="#007A5E" stroke-width="2.5"/>
+<text x="54" y="156" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start">Data</text>
+<text x="54" y="177" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">tokenizer, memory dialogues,</text>
+<text x="54" y="193" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">TinyStories, step-5 inputs:</text>
+<text x="54" y="209" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">the private HF store</text>
+<rect x="54" y="228" width="69" height="22" rx="11" fill="#007A5E" stroke="#007A5E" stroke-width="1.5"/>
+<text x="88.5" y="243" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">WORKING</text>
+<rect x="320" y="130" width="250" height="128" rx="10" fill="#E4EFF8" stroke="#0072B2" stroke-width="1.75"/>
+<text x="334" y="156" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start">Pre-registration sheet</text>
+<text x="334" y="177" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">bar, seeds, dose, measures,</text>
+<text x="334" y="193" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">cost (harness: prep new)</text>
+<rect x="334" y="228" width="118" height="22" rx="11" fill="#0072B2" stroke="#0072B2" stroke-width="1.5"/>
+<text x="393" y="243" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">BUILT &amp; TESTED</text>
+<rect x="600" y="130" width="260" height="128" rx="10" fill="#E4EFF8" stroke="#0072B2" stroke-width="1.75"/>
+<text x="614" y="156" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start">TEST FITNESS review</text>
+<text x="614" y="177" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">a non-author lab returns</text>
+<text x="614" y="193" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">FIT or NOT_FIT before compute</text>
+<rect x="614" y="228" width="118" height="22" rx="11" fill="#0072B2" stroke="#0072B2" stroke-width="1.5"/>
+<text x="673" y="243" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">BUILT &amp; TESTED</text>
+<rect x="890" y="130" width="270" height="128" rx="10" fill="#F4F0F8" stroke="#7A4FA3" stroke-width="2" stroke-dasharray="9 4"/>
+<text x="904" y="156" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start">Owner hold release</text>
+<text x="904" y="177" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">training held since 12 Oct;</text>
+<text x="904" y="193" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">FIT alone releases nothing</text>
+<rect x="904" y="228" width="48" height="22" rx="11" fill="#7A4FA3" stroke="#7A4FA3" stroke-width="1.5"/>
+<text x="928" y="243" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">HELD</text>
+<path d="M290,194 L320,194" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
+<path d="M570,194 L600,194" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
+<path d="M860,194 L890,194" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
+<path d="M1025,258 L1025,280 L260,280 L260,306" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
+<text x="40" y="300" font-size="14" font-weight="700" fill="#0072B2" text-anchor="start">THE RUN (GPU ONLY)</text>
+<rect x="40" y="308" width="250" height="132" rx="10" fill="#E3F4EE" stroke="#007A5E" stroke-width="2.5"/>
+<text x="54" y="334" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start">Vast.ai GPU pod</text>
+<text x="54" y="355" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">uor-pod up; bootstrap from the</text>
+<text x="54" y="371" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">HF store (Rust, crates,</text>
+<text x="54" y="387" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">binaries): ready in 57 s warm</text>
+<rect x="54" y="410" width="69" height="22" rx="11" fill="#007A5E" stroke="#007A5E" stroke-width="1.5"/>
+<text x="88.5" y="425" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">WORKING</text>
+<rect x="320" y="308" width="250" height="132" rx="10" fill="#FFFFFF" stroke="#6E7781" stroke-width="1.75" stroke-dasharray="6 5"/>
+<text x="334" y="334" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start">Train</text>
+<text x="334" y="355" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">compliant trunk, rank-margin</text>
+<text x="334" y="371" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">hinge; no CPU model compute,</text>
+<text x="334" y="387" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">no host fallback (D24)</text>
+<rect x="334" y="410" width="69" height="22" rx="11" fill="#FFFFFF" stroke="#6E7781" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="368.5" y="425" font-size="11" font-weight="700" fill="#424A53" text-anchor="middle" letter-spacing="0.4">PLANNED</text>
+<rect x="600" y="308" width="260" height="132" rx="10" fill="#FFFFFF" stroke="#6E7781" stroke-width="1.75" stroke-dasharray="6 5"/>
+<text x="614" y="334" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start">Evaluate</text>
+<text x="614" y="355" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">raw-score top-1, rank and</text>
+<text x="614" y="371" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">recall@K, the hinge, tokens/s;</text>
+<text x="614" y="387" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">frozen panels, fresh transfer</text>
+<rect x="614" y="410" width="69" height="22" rx="11" fill="#FFFFFF" stroke="#6E7781" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="648.5" y="425" font-size="11" font-weight="700" fill="#424A53" text-anchor="middle" letter-spacing="0.4">PLANNED</text>
+<rect x="890" y="308" width="270" height="132" rx="10" fill="#E3F4EE" stroke="#007A5E" stroke-width="2.5"/>
+<text x="904" y="334" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start">Keep the results</text>
+<text x="904" y="355" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">down archives to the laptop or</text>
+<text x="904" y="371" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">the HF store; iCloud copy,</text>
+<text x="904" y="387" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">MD5-verified</text>
+<rect x="904" y="410" width="69" height="22" rx="11" fill="#007A5E" stroke="#007A5E" stroke-width="1.5"/>
+<text x="938.5" y="425" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">WORKING</text>
+<path d="M290,374 L320,374" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
+<path d="M570,374 L600,374" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
+<path d="M860,374 L890,374" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
+<text x="40" y="476" font-size="14" font-weight="700" fill="#0072B2" text-anchor="start">AFTER A KEEP</text>
+<rect x="40" y="488" width="530" height="116" rx="10" fill="#FFFFFF" stroke="#6E7781" stroke-width="1.75" stroke-dasharray="6 5"/>
+<text x="54" y="514" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start">Export to D11</text>
+<text x="54" y="535" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">the integer engine still binds the historical modes and refuses</text>
+<text x="54" y="551" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">the new geometric ones until it is extended</text>
+<rect x="54" y="574" width="69" height="22" rx="11" fill="#FFFFFF" stroke="#6E7781" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="88.5" y="589" font-size="11" font-weight="700" fill="#424A53" text-anchor="middle" letter-spacing="0.4">PLANNED</text>
+<rect x="600" y="488" width="560" height="116" rx="10" fill="#E4EFF8" stroke="#0072B2" stroke-width="1.75"/>
+<text x="614" y="514" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start">Milestone panels</text>
+<text x="614" y="535" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">chat-grade replies, the v5 memory panel and the native</text>
+<text x="614" y="551" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">512-episode panel: frozen before any run is scored</text>
+<rect x="614" y="574" width="118" height="22" rx="11" fill="#0072B2" stroke="#0072B2" stroke-width="1.5"/>
+<text x="673" y="589" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">BUILT &amp; TESTED</text>
+<path d="M40,634 L1160,634" fill="none" stroke="#D0D7DE" stroke-width="1"/>
+<text x="40" y="656" font-size="13.5" font-weight="700" fill="#1F2328" text-anchor="start">Status</text>
+<rect x="110" y="641" width="34" height="20" rx="5" fill="#E3F4EE" stroke="#007A5E" stroke-width="2"/>
+<text x="152" y="656" font-size="13" font-weight="400" fill="#2B3138" text-anchor="start">Working</text>
+<rect x="232.05" y="641" width="34" height="20" rx="5" fill="#E4EFF8" stroke="#0072B2" stroke-width="1.75"/>
+<text x="274.05" y="656" font-size="13" font-weight="400" fill="#2B3138" text-anchor="start">Built &amp; tested</text>
+<rect x="404.15000000000003" y="641" width="34" height="20" rx="5" fill="#FFFFFF" stroke="#6E7781" stroke-width="1.75" stroke-dasharray="6 5"/>
+<text x="446.15000000000003" y="656" font-size="13" font-weight="400" fill="#2B3138" text-anchor="start">Planned</text>
+<rect x="526.2" y="641" width="34" height="20" rx="5" fill="#F4F0F8" stroke="#7A4FA3" stroke-width="2" stroke-dasharray="9 4"/>
+<text x="568.2" y="656" font-size="13" font-weight="400" fill="#2B3138" text-anchor="start">Held by the owner</text>
 </svg>

@@ -1,3 +1,19 @@
+## 2026-10-13 — The README, the geometry page and the figures reflect the current path (claude, #2028)
+
+The [README](../../README.md) was rewritten as a research overview of about 300 lines. Visible sections:
+question, architecture, milestones, the current path (operator-phase checklist), rules D11 and D22–D27,
+mechanisms with status, scoped key results, a bookkeeping table, the R9 roster and the quick start. Longer
+tables are in `<details>`. The [geometry page](../geometry.md) now leads with the compliant next-token path
+and the four trunk operators. Its math sections are kept with corrected status lines. The previous float-form
+page is preserved intact at [history/geometry-float-form-2026-10.md](../history/geometry-float-form-2026-10.md).
+The status figures are now generated in Rust (`cargo run -p xtask -- figures`, D27): five were regenerated and
+two are new. The [mechanism index](../mechanisms/README.md) gains a checked Status column. A
+[bookkeeping](../bookkeeping.md) standard is proposed for the PM's plan.
+[Record](../labs/readme-geometry-2026-10-13/README.md).
+
+Line: no model line — documentation · count 0/3 unchanged · headline 37/232 → 37/232 (unchanged).
+
+**Next:** the PM decides whether to adopt the bookkeeping standard; Claude re-reviews the amended rung-0 sheet.
 ## 2026-10-13 — The PM's two proposed checks are implemented, and they caught three live claims (lead, tooling)
 
 The PM's [operating rules](../harness/pm-rules.md) asked the harness owner to consider two machine checks; both are now in `multilab`, and between them they found a real problem on the first run. **`multilab.claim_not_merged`** flags a claim whose branch already has a merged PR — a claim that outlives its merge tells every other lab the branch is busy when it is finished, and deters work that is safe to start. **`multilab.claim_stale`** flags a claim held more than 24 hours with no live heartbeat, which is the PM's proposed line between "holding while working" and "holding a lock". Both immediately flagged **three live claims by Kimi** (`kimi/d27-rust-first`, `kimi/pm-rules`, `kimi/rung0-sheet-bars`) whose PRs #2278, #2295 and #2290 are all merged and whose branches are deleted — verified against GitHub, not inferred. **The merged-claim check had a false positive when first written** and it is worth recording: "not on origin" was treated as merged, but a branch that was never pushed looks identical, so a lab holding a claim on unpushed work would have been told to release it. The check is now evidence-based — a merged PR, or no commits ahead of main — and returns "not established" rather than guessing, with tests pinning both the real case and the never-pushed case.

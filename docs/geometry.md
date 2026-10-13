@@ -1,100 +1,90 @@
 # The geometry, illustrated
 
-> **Historical float form (pre-D23).** This page documents the geometric stack's *float training form as
-> it was built before the rules of 12 October 2026*. Read as the current contract it is wrong in three
-> ways: it shows softmax reads and a softmax output head, a sigmoid copy gate, and a SwiGLU MLP over
-> dense projections. [D23](../docs/integration/DECISIONS.md#d23---no-softmax-anywhere-in-the-active-project)
-> and [D25](../docs/integration/DECISIONS.md#d25---geometric-operator-phase-and-current-lab-direction)
-> now prohibit every one of those anywhere in an executed path — softmax, softplus, sigmoid and tanh,
-> and dense matrix multiplication in training as well as serving — so the path descriptions below are
-> the historical construction, not the target. The *mechanisms* the page illustrates (quaternions and
-> S³ state, the 120 icosians and exact `Z[phi]`, prime addressing and exact memory, Hopf observation
-> with its kept fiber, zeta phases, VSA/Hamming, SpiralCore) remain the project's architectural
-> reference, and each section is annotated where its executed form changed. Current state: the Hamilton
-> rotation gate (OP1) and the fused Hamilton-projection operator (OP2) are merged; the dense all-pair
-> projection form is under owner-directed replacement; the head and the remaining dense sites follow.
-> **No training configuration is compliant yet and training is held.**
+This page is a picture-first tour of the geometric objects the UOR-R4 Geometric Language Model is built
+from, and of how the model the project is building now uses them. "Geometric" means that the model's
+state, memory and operators live on exact geometric objects: unit quaternions, a fixed 120-element icosian
+table, exact golden-ratio integers, prime addresses and the SpiralCore signed action. A transformer's dense
+attention and MLP blocks are not used. The serving target ([D11](integration/DECISIONS.md#d11--native-multiplier-free-transformerless-serving-for-every-lab-d10-superseded))
+uses no floating point and no multiplier instruction.
 
-This page is a picture-first tour of the geometric objects the UOR-R4 Geometric Language Model is
-built from. "Geometric" here means that the model's state and memory live on exact geometric
-objects (unit quaternions, a fixed 120-element icosian table, exact golden-ratio integers, prime
-addresses) rather than on a transformer's dense attention and MLP blocks at run time. The target
-serving path (decision D11) uses no floating point and no multiplier instruction. Everything below
-describes the mechanisms as built; a measured advantage over ordinary controls is not yet
-established (see [README, Results](../README.md#results-so-far)).
+> **Status, 13 October 2026.** The rules of 12 October ([D23](integration/DECISIONS.md#d23---no-softmax-anywhere-in-the-active-project),
+> [D24](integration/DECISIONS.md#d24---no-cpu-model-compute-and-no-gpu-on-non-decisive-work),
+> [D25](integration/DECISIONS.md#d25---geometric-operator-phase-and-current-lab-direction)) prohibit
+> softmax, sigmoid, tanh, softplus and dense matrix products anywhere a model executes. The page describes
+> the **compliant path** being assembled under those rules. Three of its operators and its objective are
+> source with focused tests, and two dependencies are not built. **No compliant model has been trained yet,
+> and training is held.** The earlier float form (softmax reads and head, sigmoid copy gate, SwiGLU over
+> dense projections) is preserved at [geometry-float-form-2026-10](history/geometry-float-form-2026-10.md).
+> Everything here describes mechanisms as built. A measured advantage over ordinary controls is not
+> established ([README, Results](../README.md#results-so-far)).
 
-Two overview figures first: the [architecture](figures/architecture.svg) and the stack of geometric
-mechanisms.
+<img src="figures/architecture.svg" width="100%" alt="Architecture: line A, the geometric stack language base, has a compliant trunk as tested source but no geometric head yet; line B, the native learner, completes 437 of 512 development replies but 0 of 128 on fresh transfer; both join as one model served under D11 at M4">
 
-<img src="figures/architecture.svg" width="100%" alt="Architecture overview: language base line, grounded memory line, and integer serving">
+<img src="figures/geometry-stack.svg" width="100%" alt="The geometry stack: each geometric layer, from prime addressing and zeta phases to R4/S3 state, icosians, exact Z[phi], SpiralCore transport and the rank-margin objective, with where it is used and its status">
 
-<img src="figures/geometry-stack.svg" width="100%" alt="The geometry stack: prime addressing, zeta phases, R4/S3 state, H4 and icosian structure with exact Z[phi]">
+Two code paths use these objects. The **geometric stack** (`crates/uor-r4-training/src/geometric_stack.rs`,
+line A) is the language base being rebuilt. The **native learner** (`crates/uor-r4-core/src/native_geometric/`,
+line B) is the exact addressed-memory path. They share ideas but not all mechanisms; each section says which.
 
-Two code paths use these objects. The **geometric stack** (`crates/uor-r4-training/src/geometric_stack.rs`)
-is the trained language model. The **native learner** (`crates/uor-r4-core/src/native_geometric/`)
-is the exact addressed-memory path. They share ideas but not all mechanisms; each section says which.
+## The compliant next-token path
 
-## How the next token is predicted
+<img src="figures/geometry/compliant-path.svg" width="100%" alt="The compliant next-token path: embedding, recurrence with geometric gates, geometric feed-forward with the SpiralCore/FBS projection and the G2 Hamilton gate, a geometric head not yet built, raw scores, a rank-margin hinge in training and greedy argmax in serving">
 
-<img src="figures/geometry/next-token.svg" width="100%" alt="Pipeline of the geometric stack: token id, embedding, sixteen alternating recurrence and read layers, final norm, logits, softmax, optional copy head, next-token probabilities, and the served integer form">
+This is the path the first lawful training run (rung 0, [pre-registration](harness/prep/m1-rank-margin-rung0-2026-10-13.md))
+executes for one token. Rung 0 is deliberately small: width 256, six recurrence blocks (`rrrrrr`), no read
+layer and no pointer, so every executed operation can be traced.
 
-This is the path of the trained **geometric stack** (`crates/uor-r4-training/src/geometric_stack.rs`)
-for one token. The numbers match the figure's badges. Section 2 and the later sections draw the
-geometric objects in detail; [Life of one token](#life-of-one-token) lists the same path step by step.
+1. **Embed.** The byte-BPE id selects one row of the learned embedding (vocabulary 4,096).
+2. **Carry the state by rotation** (`rec_gates=geometric`, [#2293](https://github.com/UOR-Foundation/uor-r4/pull/2293)).
+   Each 4-channel lane is one quaternion. The previous state is rotated by an input-dependent unit
+   quaternion and blended with new input: h_t = λ_t (u_t · h_{t−1}) + keep_t · a_t. The rate λ_t is read
+   from a fixed table of 16 exact powers of two, λ = 2^−(s+1), with keep = √(1 − λ²) stored beside each
+   entry. The entry s is chosen by a clamped-linear opening, clamp(g + decay, 0, 1), which replaced the
+   sigmoid, exp and softplus. The output gate is a Hamilton rotation, which replaced GELU.
+3. **Geometric feed-forward.** The projections are the SpiralCore/FBS signed action
+   (`projection=spiralcore_fbs`, [#2279](https://github.com/UOR-Foundation/uor-r4/pull/2279)). Each output block selects one
+   carrier and transports it by the composed SpiralCore BFS action, so no input×output coefficient
+   matrix is used. The gate is the G2 Hamilton gate (`gate=hamilton`, [#2260](https://github.com/UOR-Foundation/uor-r4/pull/2260)):
+   the gate block names a unit quaternion that rotates the value block, out = q(g) ⊗ u.
+4. **Geometric head (not built).** Vocabulary scoring by a product-key geometric head (OP3a). Until it
+   lands, the only head is the tied embedding through a dense product, which D25 forbids. Rung 0
+   cannot run without the new head.
+5. **Raw scores.** The head's outputs are used as unnormalized scores. No probability distribution is
+   formed anywhere.
+6. **Training: a rank-margin hinge** ([#2255](https://github.com/UOR-Foundation/uor-r4/pull/2255)). L = mean_k max(0, 1 − z_target + z_rival_k)
+   over the k strongest wrong tokens, with k fixed in advance. Every term is a comparison and a
+   subtraction. Quality is reported as raw-score top-1, target rank and recall@K. NLL and BPB do not
+   exist on this path.
+7. **Serving: greedy argmax** over integer scores, through the D11 engine
+   ([Serving without multiplication](#serving-without-multiplication)).
 
-1. **Embed.** The byte-BPE id x_t selects one row of the learned embedding matrix E (vocabulary 4,096,
-   width d; d = 1536 at 214M). Formula: h⁰_t = E[x_t].
-2. **Carry the state by rotation (`r` layers).** For each 4-channel lane, projections give a unit
-   quaternion u_t, a gate λ_t and an input a_t (a width-4 causal convolution). The previous state is
-   rotated by u_t and blended with the new input: h_t = λ_t (u_t · h_{t−1}) + √(1−λ_t²) a_t. In
-   training, u_t can optionally be snapped to the nearest of the 120 unit icosians (straight-through).
-3. **Read the past (`a` layers).** The layer scores earlier positions with a Dot or a Lorentz
-   (hyperbolic) score, −β·arcosh(1+e), adds an age term and a NoRead slot, and a softmax mixes the
-   earlier states: h_t ← Σ_s softmax(score)_s · h_s.
-   *Historical (pre-D23): the softmax mix is banned in executed paths. The trainer already carries
-   exponential-free read weightings (`read_weighting=rank|hamming_rank|learned_rank`); which one the
-   compliant trunk trains is still being settled.*
-4. **MLP and residual.** Every layer ends in a SwiGLU MLP with a residual connection.
-   *Current: the gate is selectable (OP1, merged) — `gate=swiglu|hamilton`, where `swiglu` exists only
-   so existing artifacts reproduce and `hamilton` rotates each 4-lane value block by the unit quaternion
-   its gate block names. D25 bans the dense SwiGLU block as the executed form; a geometric feed-forward
-   block (Hamilton gate over Hamilton projections, OP2 merged for the quaternion-valued maps) replaces
-   it.* The 16 layers
-   follow the pattern `rrarrarrarrarrar` (r = recurrence, a = read).
-5. **Logits.** A final norm, then z_t = norm(h_t) · Eᵀ, with the output head tied to the embedding E
-   (float form; the served form has its own head). In the float form a softmax over the 4,096 tokens
-   gives p_soft = softmax(z_t).
-6. **Optional copy head.** *Historical (pre-D23): both the sigmoid gate and the softmax-shaped mixture
-   below are banned in executed paths.* A gate g_t = sigmoid(w_g·h_t + b_g) mixes in a copy
-   distribution:
-   p(v) = (1−g_t)·softmax(z_t)[v] + g_t·p_copy(v), where p_copy sums attention over earlier positions
-   that hold token v. The sources are chosen by a learned score or by the exact prime route: gcd of the
-   prime products of the last ≤ 6 tokens against earlier windows, or the longest n-let
-   ([section 7](#7-prime-uor-addressing-and-exact-memory)).
-7. **Serving.** Steps 2–6 run in fixed point through the D11 integer table kernels (4-bit weights, no
-   multiplier instruction, no floating point). The integer path is bit-exact with the float path on a
-   3,072-target check.
+**What is still missing.**
 
-**What it does not use.** The stack's prediction path uses no Hamming distances, no spin and no
-spherical harmonics. Hamming/popcount and H4 codes appear in the native learner (the exact
-addressed-memory path) and in the frozen R4G1 runtime. Spherical harmonics appear only in
-`native_geometric/learner/geometric_attention.rs`. The "R4/Spin" models in the project history were
-transformers. The output softmax is standard: the geometry is in how state is carried (quaternion
-rotation), how the past is read (Lorentz score) and how exact copying is routed (primes).
+- The head (step 4).
+- A device-qualification gate that checks kernels against stored or analytic values, with no CPU
+  reference (D24).
+- The read layers. Rung 0b adds the starling and rank-table reads with a rank-consistent gradient.
 
-### Softmax at runtime: where it is gone and where it is still emulated
+Each item has a named owner on the [operator plan](labs/operator-phase-2026-10-12/README.md) and its
+milestone issue.
 
-> **Historical reading (pre-D23/D25).** This table records what the D11 integer engine did at the time
-> of writing, including rows where it *emulated* softmax with a table and a row where a softmax-shaped
-> mixture survived. Under D23/D25 those rows are open non-compliance, not an acceptable end state: a
-> table-emulated softmax is the same banned operation.
+## The operators of the compliant trunk
 
-| Place | What the served engine does | Status |
-|---|---|---|
-| Next-token choice | Greedy argmax over integer i32 scores (`stack_argmax`, `crates/uor-r4-integer/src/stack/chat.rs:296`) | No softmax for token choice. Sampling would need one and is not implemented. |
-| Read-layer weights | exp(−d) read from a sealed lookup table (`stack_exp_neg`, `crates/uor-r4-integer/src/stack/kernels.rs:350–375`; table spec `format.rs:228`), then integer normalization. No float, no multiplier instruction. | Table-emulated softmax, not yet designed out. |
-| Flock selection | Fixed rank weights w_i ∝ 1/(i+1) from a table (`crates/uor-r4-integer/src/stack/flock.rs:356–436`) | A softmax-free alternative already in the engine. |
-| Copy-head mixture | Computed in fixed point by the integer engines | Softmax-shaped, through the same tables. |
+<img src="figures/geometry/operators.svg" width="100%" alt="The three new operators: the G2 Hamilton gate rotating a value block on a circle, the SpiralCore/FBS ternary binder tree with one routed carrier, and the rank-margin hinge as bars for the target and its declared rivals">
+
+| Operator | What it computes | Replaces | Code | Record |
+|---|---|---|---|---|
+| G2 Hamilton gate | out = q(g) ⊗ u: the gate block, read as a unit quaternion, rotates the 4-lane value block. The norm is preserved and no squashing function is used. | the SwiGLU sigmoid | `geometric_stack.rs` (`gate=hamilton`) | [gate ops](labs/gate-ops-2026-10-12/README.md) |
+| SpiralCore/FBS projection | Exact carrier selection in ordered ternary binders, then the signed SpiralCore BFS action. The query credit is a declared geometric secant surrogate. | dense and all-pair (`HamiltonLinear`) projections | `spiralcore_fbs.rs`, `spiralcore_fbs.cu` | [brief](mechanisms/spiralcore-fbs-projection.md) |
+| Geometric recurrence gates | A clamped opening chooses an entry of an exact 16-step dyadic rate table, and a Hamilton output gate follows. | sigmoid opening, `exp` decay, softplus transform, GELU output | `geometric_stack.rs` (`rec_gates=geometric`), `rate_select` CUDA kernels | [record](labs/recurrence-geometric-gates-2026-10-13/README.md) |
+| Rank-margin objective | A hinge over declared rivals on raw scores. A row whose target already leads by the margin contributes zero gradient. | softmax cross-entropy | `geometric_stack.rs` (`Objective::MarginHinge`) | [brief](mechanisms/rank-margin-objective.md) |
+
+These operators are not differentiable everywhere: hard selection and table reads have no true
+derivative. Where a gradient is needed, the source declares a named surrogate, such as the root-edge
+secant or the clamp's exact subgradient. A surrogate is a design choice to be tested. It does not
+guarantee descent.
+
+The sections below draw each geometric object in turn.
 
 ## 1. Quaternions and rotation
 
@@ -110,7 +100,8 @@ one quaternion state. The update is a left-multiplication by an input-dependent 
 section for the formula. The quaternion algebra is fixed; the rotation the model chooses is learned.
 Code: `crates/uor-r4-training/src/geometric_stack.rs` (`quaternion_scan`).
 
-**Status.** Trained and served (the integer engines run the exported stack).
+**Status.** Trained and served in the historical float form (the integer engines run the exported
+stack). The compliant trunk keeps the quaternion product unchanged; it is already free of squashing functions.
 
 ## 2. The state lives on S³ and moves step by step
 
@@ -125,14 +116,19 @@ old position survives.
     h_t = λ_t (u_t · h_{t−1}) + √(1−λ_t²) a_t
 
 Here u_t is an input-dependent unit quaternion (near identity at initialisation), λ_t in (0,1) is a
-gated decay, and a_t is the input after a width-4 causal convolution. One exact scan runs the
+gated decay, and a_t is the input after a width-4 causal convolution. In the compliant trunk
+(`rec_gates=geometric`), λ_t is read from the exact 16-entry dyadic table and √(1−λ_t²) is stored
+beside it ([the compliant path](#the-compliant-next-token-path), step 2). One exact scan runs the
 recurrence; the backward pass is the reverse scan. The `a` layer is the other temporal mixer: a
 multi-head read over positions up to t, scored by a Lorentz (hyperbolic) or Dot score, with a learned
 age term per head and distance, and a NoRead slot whose value is zero. The layer pattern letters
-(for example `rrarrarr…`) choose the mixer per layer; every layer ends with a SwiGLU MLP and a
-residual connection (historical pre-D25; the merged OP1 gate replaces it, see the banner). Code: `geometric_stack.rs` (header; `layer_kind`, `fused_read`).
+(for example `rrarrarr…`) choose the mixer per layer, and every layer ends with a feed-forward block and
+a residual connection. In the float form that block was a SwiGLU MLP and the read was a softmax over
+scores. In the compliant trunk the block is the SpiralCore/FBS projection with the G2 Hamilton gate, and
+the read layers wait for rung 0b's rank reads. Code: `geometric_stack.rs` (header; `layer_kind`, `fused_read`).
 
-**Status.** Trained and served.
+**Status.** The recurrence was trained and served in the float form. The compliant gates (#2293) are
+source with focused tests, not yet trained.
 
 ## 3. The 120 icosians and the 600-cell codebook
 
@@ -227,8 +223,9 @@ reveals. Identity is exact; it is an identifier, not a semantic distance.
 (id+1)-th prime and `route_key(ids, end, window)` is the u128 product of the distinct primes of up to
 6 tokens ending at `end`. An earlier source is admitted either by `SharedAtom` (default:
 `gcd(query_key, key) > 1`, score `ln(gcd) + 0.5·j/(t+1)`) or by `Ngram` (the longest matching n-let,
-score the sum of `ln p` over its atoms plus the same recency term). Attention is then
-softmax(4.0 · score) over admitted sources only and exactly zero elsewhere. Admission, gcd and
+score the sum of `ln p` over its atoms plus the same recency term). In the historical float form,
+attention was then softmax(4.0 · score) over admitted sources only and exactly zero elsewhere; D23
+prohibits that mix, so a compliant port would need exact hard selection or a rank table. Admission, gcd and
 sharpness are fixed; only the optional ranked variant adds a learned score. Code:
 `crates/uor-r4-training/src/geometric_stack.rs` (`RouteAdmission`, `route_attention`).
 
@@ -262,18 +259,20 @@ described as mis-wired). Mode 1 derives each code from the learned icosian-root 
 nearest of the 120 roots, a Voronoi cell over the learned embeddings), and since PR #2077 these codes
 are trainable and refresh during training. Mode 2 binds the root code with a readout-hash residual.
 
-**Status.** Built and tested. A pre-registered retraining test (M1, #2029) is running; no measured
-advantage is claimed here. VSA is not tied to SpiralCore (next section).
+**Status.** Built and tested. The native VSA test is done: trained codes improve held-out BPB by
+0.014–0.023, and codes built from icosian roots alone collapse token identity
+([record](labs/vsa-native-test-2026-10-09/README.md); a historical float-form measurement). VSA is not
+tied to SpiralCore (next section).
 
 ## 9. What carries route history (and what SpiralCore is)
 
 | Question | Answer | Where |
 | --- | --- | --- |
-| What carries route order? | The stack's quaternion recurrence: quaternion products are order-dependent, so the state encodes the order of rotations. Trained and served. | `geometric_stack.rs` |
+| What carries route order? | The stack's quaternion recurrence. Quaternion products depend on order, so the state encodes the order of rotations. | `geometric_stack.rs` |
 | What tracks accumulated phase? | `hopf_metric.rs` tracks a cumulative U(1) holonomy phase and a geodesic distance. Line B only. | `native_geometric/` |
 | What are chirality and polarity? | Exact signs on Z[φ]. Line B only. | `native_geometric/` |
-| What is SpiralCore? | `spiralcore_operator.rs` reproduces the SpiralCore v63 octonion/Cl(0,6) convention exactly (oriented Fano cycles (124)(235)(346)(457)(561)(672)(713); 15 bivectors ↔ 15 semiprimes; a 64-state composition table). It is an exact finite control in `recursive_geometric_attention.rs` (A10), re-checked in graph-certify, and sits on no training or serving path (0 references in `uor-r4-training`, `uor-r4-integer`, `uor-r4-api`). Mark (N3mesis)'s later supplied substrate sketch uses a different, inconsistent orientation; it must not replace this canonical table (see the review below). | `uor-r4-core/src/spiralcore_operator.rs` |
-| What was tried and what is pre-registered? | Recursive geometric attention over earlier tokens (A1) was stopped on 1 October (D18) because a reusable state erased order. A route-holonomy read (rank earlier positions by the angle of h_j⁻¹·h_t, softmax-free) and an octonion-signed binding test that may promote SpiralCore to a state carrier are pre-registered on M1 (#2029). | #2029 |
+| What is SpiralCore? | `spiralcore_operator.rs` reproduces the SpiralCore v63 octonion/Cl(0,6) convention exactly: the oriented Fano cycles (124)(235)(346)(457)(561)(672)(713), 15 bivectors ↔ 15 semiprimes, and a 64-state composition table. **Since #2279 its signed BFS action is the trunk's projection** (`spiralcore_fbs.rs`). One anchor orbit holds 16 roots and 64 signed operator states, and an output block's carrier is moved by the composed edge history. The orientation in Mark (N3mesis)'s later substrate sketch is different and inconsistent, and it must not replace this canonical table (see the review in section 10). | `uor-r4-core/src/spiralcore_operator.rs`, `uor-r4-training/src/spiralcore_fbs.rs` |
+| What was tried earlier? | Recursive geometric attention over earlier tokens (A1) was stopped on 1 October (D18) because a reusable state erased order. Under D22 that closes the configuration, not the mechanism. A route-holonomy read and an octonion-signed binding remain designs (see [Designs not yet built](#designs-not-yet-built)). | #2029 |
 
 ## 10. How the geometric pieces connect
 
@@ -290,11 +289,11 @@ Matthew (SpiralCore v63/v69); the octonion and Fano material to Mark (N3mesis, N
 
 | From | To | Map | Forced or chosen | Where in code | Used by |
 | --- | --- | --- | --- | --- | --- |
-| Six-prime registry {5, 7, 11, 13, 17, 19} | 15 semiprimes p·q | products of distinct pairs | forced | `spiralcore_operator.rs` | SpiralCore control |
+| Six-prime registry {5, 7, 11, 13, 17, 19} | 15 semiprimes p·q | products of distinct pairs | forced | `spiralcore_operator.rs` | SpiralCore control; trunk projection (#2279) |
 | 15 semiprimes | 15 edges of K6 | edge (p, q); unique factorisation | forced | `verify_connections.py` | — |
 | 15 edges of K6 | 15 half-turn axes of the icosahedral group | each half-turn fixes exactly one pair of the 6 five-fold axes | forced, once the six axes carry the six labels | v69 AXIS2 | pre-registered E1 |
 | Six primes | six five-fold axes | a labelling | **chosen**: 720 labellings, 12 inequivalent under rotation | `verify_connections.py` prints its choice | — |
-| Semiprimes p_i·p_j | Cl(0,6) bivectors B_ij | B_ij·B_jk = −B_ik, mirroring p_i p_j · p_j p_k → p_i p_k; the B_ij generate a group of order 64 that maps onto the 32 square-free even prime products (kernel ±1) | forced | `spiralcore_operator.rs` | SpiralCore control |
+| Semiprimes p_i·p_j | Cl(0,6) bivectors B_ij | B_ij·B_jk = −B_ik, mirroring p_i p_j · p_j p_k → p_i p_k; the B_ij generate a group of order 64 that maps onto the 32 square-free even prime products (kernel ±1) | forced | `spiralcore_operator.rs` | SpiralCore control; trunk projection (#2279) |
 | Cl(0,6) bivectors | octonions | Cl(0,6) acting on the octonions through the 7 Fano lines (124)(235)(346)(457)(561)(672)(713) | forced | `spiralcore_operator.rs`, `cd_space.rs` | control; pre-registered octonion-signed binding |
 | Fano plane | XOR on 3-bit indices | after relabelling, every line is {a, b, a⊕b}, so the octonion product is a signed XOR (168 relabellings) | forced (up to relabelling) | `verify_connections.py` | pre-registered binding, Hamming-rank read |
 | Octonions | quaternions | each Fano line spans a copy of the quaternions; the octonions are alternative and norm-multiplicative, and 168 of 210 ordered unit triples are non-associative (exactly the non-collinear ones) | forced | `cd_space.rs` | stack transport |
@@ -330,159 +329,22 @@ continue to concern the repository's specified structures, not certification of 
 A further fact: the icosahedron's five orthogonal frames of two-fold axes form a *synthematic total* of
 K6, five perfect matchings that together cover all 15 edges.
 
-## 11. Pre-registered mechanisms (not yet measured)
+## Designs not yet built
 
-These three mechanisms follow from the connections above and are pre-registered with fixed thresholds on M1
-[#2029](https://github.com/UOR-Foundation/uor-r4/issues/2029) and M4
-[#2032](https://github.com/UOR-Foundation/uor-r4/issues/2032). **None has a measured result yet.**
-Each is integer-only and softmax-free by construction.
+Three integer-only, softmax-free designs follow from the connections above. They have figures and full
+descriptions on the [archived page](history/geometry-float-form-2026-10.md#11-pre-registered-mechanisms-not-yet-measured).
+Under D22 each needs its own pre-registration and a `TEST FITNESS: FIT` review before compute.
 
-<img src="figures/geometry/exact-2i-lanes.svg" width="100%" alt="Exact icosian holonomy lanes: tokens map to icosians, a lane state is a product in the 120-element group updated by a 120 by 120 table, and earlier positions are ranked by the shell index of the relative product">
+- **Exact icosian holonomy lanes.** A lane state is a product in the 120-element group, updated by a
+  120 × 120 table. Earlier positions are ranked by the shell index of the relative product.
+- **Octonion-signed binding.** On the Fano plane, e_a · e_b = ±e_(a⊕b): a signed XOR whose sign depends
+  on operand order, unlike plain XOR.
+- **Hamming-rank read.** Binarized query and keys are compared by popcount, then ranked and weighted by
+  a fixed rank table. A version trained beside a softmax stack measured +0.259 BPB against softmax
+  ([flock reads](mechanisms/flock-rank-reads.md)). That closes only that configuration.
 
-**Exact icosian holonomy lanes (E1).**
-- **How it works:** each token maps to an icosian u_t, and a lane carries the exact product h_t = u_t·h_{t−1}. The state is 7 bits, updated by one read of a 120×120 table. A read ranks earlier positions by the shell index (0–8) of h_j⁻¹·h_t, using rank-table weights.
-- **Why it's interesting:** the product keeps route order, because the group is not commutative, and it is exactly invertible.
-- **Caveat:** it never decays, so it runs beside the learned r-layer rather than replacing it.
-- **Source:** Matthew's SpiralCore v69 peer-shell catalogue.
-
-<img src="figures/geometry/octonion-signed-binding.svg" width="100%" alt="Octonion-signed binding: on the Fano plane every line is a, b, a xor b, and e_a times e_b equals plus or minus e_(a xor b), so the order of the operands changes the sign, unlike plain XOR">
-
-**Octonion-signed binding.** Binding by XOR of the 3-bit Fano indices plus the Fano sign gives
-e_a·e_b = ±e_{a⊕b}, after a declared relabelling with a coherent sign table;
-for distinct imaginary basis units, e_a·e_b = −e_b·e_a.
-- Plain XOR binding loses the order of its operands; the sign keeps it.
-- Non-associativity keeps grouping: (a·b)·c ≠ a·(b·c) for 168 of 210 ordered unit triples (verified).
-- **Cost:** add, subtract and one sign-table read.
-- **Source:** motivation from Mark (N3mesis)'s octonion/Fano material; the implemented convention is Matthew (SpiralCore)'s v63 table. The later substrate draft's all-positive orientations are not adopted.
-
-<img src="figures/geometry/hamming-rank-read.svg" width="100%" alt="Hamming-rank read: binarized query and keys, distance equals popcount of query xor key plus an age term, positions sorted and weighted by a fixed rank table, with no softmax">
-
-**Hamming-rank read.**
-- **How it works:** binarize the learned query and keys, score each earlier position by popcount(q ⊕ k_j) plus an age term, sort the positions, and weight them with the flock rank table w_i ∝ 1/(i+1).
-- **Why it's interesting:** it would replace today's exp-table-emulated softmax with XOR, popcount and a table.
-- **Status:** arm D of the softmax-free read experiment. It will use the shared `BitCode` primitive.
-- **Source:** motivated by Mark (N3mesis)'s XOR/Hamming sketch.
-
-## Native bank input access (M2)
-
-<img src="figures/geometry/native-input-access.svg" width="100%" alt="Current M2 input path: all supplied context, query and actual prefix tokens update geometric state, but only Source occurrences enter the explicit read and Copy lists; read-only history access is not yet integrated.">
-
-The native bank generator is a separate caller from the stack's all-position read described below.
-It encodes every admitted Source/Context token, the full query and actual response prefix in order.
-The query also has its own H4 cue carrier and, when configured, a query-plus-prefix continuation field.
-However, its direct occurrence read compares the final query snapshot only against **Source** positions;
-those same candidates supply Copy IDs and optional bridge donors. Processing an early query token into
-state does not make that position an independently selectable key. The combined 128-token admission cap
-is specific to this reader and rejects overflow; it is not a project-wide context limit.
-
-A read-only history role could expose retained input positions without granting Source/Copy authority.
-It is **not yet integrated or qualified**, and source inspection does not establish that its absence
-causes the current language errors. The [caller trace and causal comparison](labs/input-access-trace-2026-10-09/README.md)
-keep input influence, explicit read access, donor selection and emission distinct. Existing H4 operators
-can support the comparison; no conversion to E8 is inherently required for this access boundary.
-The [token-zero intervention](labs/early-query-causal-2026-10-09/README.md) now measures
-that influence on one novel job/home pair: 8/8 final state lanes, 3981/4096 Generate
-scores and 11/11 Copy scores differ, with the same Source candidates and donor;
-both novel replies fail, while both original controls complete. Thus total early-cue
-erasure before scoring is excluded for this pair; semantic sufficiency and the
-cause of full512 errors are not established. Protected-margin learning is now integrated below; this influence witness alone
-does not justify an access rewrite.
-The E1 and Hamming-rank mechanisms in section 11 remain separate pre-registered M1/M4 work.
-
-## Retained protected native learning (M2; closed by D21)
-
-**Historical negative line, closed by [D21](integration/DECISIONS.md#d21--three-negatives-on-one-line-force-a-pivot-deepseek-trains-the-pointer-fix-codex-stops-the-constraint-line).**
-The following source and measurements are retained evidence, not an active next step.
-The [ordinary reply-completion run](labs/m2-reply-gradient-2026-10-10/README.md)
-uses the existing native Potential/Generate fields and complete-answer gradient loss;
-it does not invoke these constructors or change serving geometry.
-
-<img src="figures/geometry/protected-joint-learning.svg" width="100%" alt="Offline protected joint learning: task CE and original pooled winner/rival Jacobians form one Prefix/Generate direction; finite quantized proposals still require all native winner checks and independent reload.">
-
-The [protected joint constructor](labs/protected-joint-construction-2026-10-09/README.md)
-connects the native pooled-token margin to the same authenticated geometric
-Prefix occurrence credit and factual Generate unary graph used by task CE.
-Protected examples shape a proposed direction before native acceptance; they do
-not become extra facts, retrieval candidates or answer-specific serving rules.
-The margin's donor surrogate uses complete forced-donor winner/rival contrasts,
-with factual Copy and frozen U; no hard-argmax derivative is claimed.
-
-The fixed 256-pass direction search and four joint quantized trials preserve the
-complete Generate/Copy pool. They are offline surrogates: actual quarter-grid
-movement and a changed donor can invalidate first-order protection. Native
-combined/episode descent, 17 reference roles, 380 original winners and the full
-15-position conditional gate remain decisive, followed by saved-artifact actual
-own-feedback qualification on a positive construction. The original-parent run
-passes the continuous constraints, but all four quantized displacements fail
-the surrogate screen (104/170/98/93 violated rows out of 380). No native proposal
-is scored or committed; this does not measure native winner loss or establish
-global infeasibility. The [saved displacement attribution](labs/quantized-protection-attribution-2026-10-09/README.md)
-exactly reconstructs all7,680 destination bits: quarter rounding dominates adverse
-conversion-stage sums on the violated rows, while coordinate pressure is distributed
-and includes substantial opposing contributions. This historically motivated joint protection-aware discrete formation; D21
-has since closed that follow-up. No floating-point/tie exception or guard weakening
-was adopted. Positive linearized original margins remain surrogate diagnostics, with
-no native proposal scored. Accepted whole-answer performance remains 8/512. The geometry's basis, signed
-operators, Source authority and D11 serving contract are unchanged.
-
-The [saved-credit discrete feedback constructor](labs/protected-discrete-feedback-2026-10-09/README.md)
-adds an offline formation alternative: retain the original protected direction,
-fix one quarter-scale target, and feed discrete protection residuals through
-32 fixed rounds with32 cyclic corrections each. Legal destinations preserve
-original fractional bits for unchanged codes. Only unique actual displacements
-passing the same Jacobian and descent screens reach native391-row evaluation.
-It imports the original derivatives without new training graphs; this finite
-heuristic does not establish convergence, feasibility or a geometric advantage.
-Its measured 32 rounds produced 28 distinct legal updates, all failing the
-protection screen; no native proposal was scored. Original 5/15 conditional
-winners and all 17/380 checks survived independent reload, with accepted 8/512
-unchanged. The candidate is rejected, not evidence of global infeasibility.
-
-The [direct legal-set constructor](labs/direct-legal-construction-2026-10-09/README.md)
-adds a separate offline alternative using the same saved credit: jointly choose
-among all 15 legal destinations for each of 1920 Prefix/Generate coordinates with
-pinned pure-Rust mixed-integer search. The backend targets all 380 unit-J residuals
-at zero or above, a stricter construction target than the existing norm-tolerant
-screen; actual reconstructed bits must still pass that unchanged screen and
-strict objective descent before the same native transaction. Noop preserves
-original fractional bits, not a new quarter rounding. Backend work is bounded
-at 4096 branch nodes, with no mathematical optimality/infeasibility claim or serving
-dependency. Absolute-code and equivalent centered-displacement executions both
-returned a backend singular-matrix error with no assignment or native proposal;
-this is unavailable model-quality evidence. Original 5/15 plus 17/380 survived
-unchanged reload; prior negatives and accepted 8/512 stand.
-
-## Life of one token
-
-> **Historical float walkthrough (pre-D23).** The steps below repeat the float path above, including the
-> softmax read, the SwiGLU MLP, the softmax head and the sigmoid copy gate; the banner at the top states
-> the current contract.
-
-Follow one byte-BPE token through the stack (text path):
-
-1. **Embed.** The token id selects a row of `embedding.weight` (width d; tied with the output head in
-   float/frozen form).
-2. **Project** (section 2). Each recurrent layer applies a norm, then projections give the width-4
-   causal-convolution input a_t, a unit quaternion u_t and a decay λ_t for each 4-channel lane.
-3. **Snap (optional)** (section 3). In training, u_t is replaced by the nearest of the 120 icosians,
-   with a straight-through gradient.
-4. **Transport** (sections 1 and 2). h_t = λ_t (u_t · h_{t−1}) + √(1−λ_t²) a_t.
-5. **Read** (section 2). An `a` layer reads positions up to t with a Lorentz or Dot score, an age term
-   and a NoRead slot; then the SwiGLU MLP and residual.
-6. **Logits.** A final norm, then logits z_t = norm(h_t) · embeddingᵀ (tied), then softmax
-   (historical; the head's compliant form is the next rung).
-7. **Copy (optional)** (section 7). A pointer head computes a query, keys and a gate g_t; attention
-   over earlier positions uses a learned score or the exact prime route (gcd of window products, or
-   longest n-let), with `ln gcd` plus recency and sharpness 4.
-8. **Mix.** p(v|t) = (1−g_t) softmax(z_t)[v] + g_t p_copy(v|t), where p_copy sums attention over
-   earlier positions holding token v. The gate is learned (bias initialised at −2).
-9. **Serve** (next section). The D11 integer and table engines run steps 2–8 in fixed point; a pointer
-   is exported only if it keeps every source.
-
-Zeta phases (section 6) and Hopf observation (section 5) do not appear in this path; they belong to
-the native addressed-memory path, which runs separately: byte → add four zeta phase deltas → policy
-picks root deltas (icosian product table) → policy picks key roots → record stored → later reads
-score `ranks[q · k⁻¹]` over the last 256 records → lease → typed action.
+The starling and flock rank reads, the reads rung 0b adds, have their own briefs:
+[starling read](mechanisms/starling-read.md) and [flock / rank-table reads](mechanisms/flock-rank-reads.md).
 
 ## Serving without multiplication
 
@@ -499,5 +361,14 @@ earlier integer engine. Code: `crates/uor-r4-integer/src/stack/kernels.rs` (`sta
 (The numbers in the example are illustrative, not taken from the code.)
 
 ## Reproduce the figures
+
+The status diagrams (architecture, milestones, pipelines, the geometry stack, the compliant path and the
+operators) are generated in Rust, and CI-style checks confirm that they are current:
+
+    cargo run -p xtask -- figures            # check
+    cargo run -p xtask -- figures --write    # regenerate
+
+The mathematical figures in sections 1–10 are drawn by a standard-library script. Porting it to Rust (D27)
+is a recorded follow-up:
 
     python3 docs/figures/geometry/generate.py

@@ -11,6 +11,7 @@ use std::process::ExitCode;
 use repo_model::{codegen, Model};
 
 mod audit;
+mod figures;
 mod gate;
 mod gnaf_conformance;
 mod gnaf_firewall;
@@ -47,6 +48,7 @@ fn main() -> ExitCode {
         "gnaf-manifest" => gnaf_manifest::gnaf_manifest(&root, !write),
         "gnaf-conformance" => gnaf_conformance::gnaf_conformance(&root, !write),
         "kappa" => kappa::run(&std::env::args().skip(2).collect::<Vec<_>>()),
+        "figures" => figures::run(&root, write),
         _ => {
             eprintln!(
                 "cargo xtask <task>\n\
@@ -64,8 +66,9 @@ fn main() -> ExitCode {
                  gnaf-manifest     #653 SPEC 4/5: MANIFEST.json's 3 identity stages are current and acyclic (currently red: pre-existing staleness; not in `validate`)\n\
                  gnaf-conformance  #653 SPEC 17.3: CONFORMANCE.md is deterministically generated from model/claims.json and current\n\
                  kappa <cmd>       #624: publish/fetch/tag against a kappa-registry (R4_KAPPA_REGISTRY)\n\
+                 figures           D27: the README/geometry status diagrams are generated and current\n\
                  \n\
-                 --write           check-model/gnaf-root/gnaf-manifest/gnaf-conformance: rewrite the generated file instead of checking it"
+                 --write           check-model/gnaf-root/gnaf-manifest/gnaf-conformance/figures: rewrite the generated file instead of checking it"
             );
             return ExitCode::from(2);
         }
