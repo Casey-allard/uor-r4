@@ -7,22 +7,31 @@
 //! | `multilab.presence_fresh` | warn | **yes** |
 //! | `multilab.claims_one_owner` | error | **yes** |
 //! | `multilab.claim_stale` | warn | **yes** |
-//! | `multilab.claim_not_merged` | warn | no — see below |
+//! | `multilab.claim_not_merged` | warn | **yes** |
 //! | `multilab.no_shared_ledger` | warn | no |
 //! | `multilab.ledger_lab_recorded` | warn | no |
 //!
-//! ## Why `claim_not_merged` is not here
+//! ## `claim_not_merged` and the ordering that must not be lost
 //!
-//! It asks GitHub whether a branch has a **merged PR**, and the Python implementation carries a
-//! hard-won note about a **false positive on live work**: `kimi/plan-refresh-2026-10-13` was claimed
-//! and flagged as merged within the same couple of minutes, and the warning vanished once the
-//! remote-tracking ref arrived. The fix was to ask GitHub **first** and to answer `None` — "not
-//! established" — rather than guess, because **a rule that cries wolf on a lab's live branch is worse
-//! than no rule.**
+//! It asks GitHub whether a branch has a **merged PR**, and the Python carries a hard-won note about a
+//! **false positive on live work**: `kimi/plan-refresh-2026-10-13` was claimed and flagged as merged
+//! within the same couple of minutes, and the warning vanished once the remote-tracking ref arrived.
 //!
-//! That ordering, the `None` case, and the `gh` dependency need porting together and carefully. **A
-//! hasty port would reintroduce exactly the bug the Python comments exist to prevent**, so it gets its
-//! own unit rather than riding along here.
+//! **The fix was to ask GitHub FIRST and to answer `None` — "not established" — rather than guess**,
+//! because **a rule that cries wolf on a lab's live branch is worse than no rule.**
+//!
+//! The ordering is not an optimisation, it is the bug fix:
+//!
+//! - **Content comparison first lies in the dangerous direction.** A lab that has just claimed a
+//!   branch and pushed it may not have it in the local remote-tracking refs yet, so the branch looks
+//!   **gone** — and "not on origin" was the first version's mistake: it treated *gone* as *merged*,
+//!   which would tell a lab to release a claim on **unpushed work**.
+//! - `None` is a real answer, distinct from `false`. **`false` means "I have evidence it is not
+//!   merged"; `None` means "I have no evidence either way", and the rule says nothing for `None`.**
+//!   Collapsing those two is how a check starts guessing.
+//!
+//! `claim_branch_is_merged` therefore returns `Option<bool>` and its tests pin the ordering and the
+//! unknown case, not just the merged and unmerged answers.
 //!
 //! The two ledger rules read receipt shards and belong with the `receipts` module.
 //!
@@ -231,11 +240,148 @@ fn days_from_civil(y: i64, m: i64, d: i64) -> i64 {
     era * 146097 + doe - 719468
 }
 
+/// Whether `branch` has a **merged** pull request.
+///
+/// `Some(true)` merged, `Some(false)` evidence it is not merged, **`None` not established** — and the
+/// rule says nothing for `None`. See the module header for why the answer is three-valued and why
+/// GitHub is asked before any local reasoning.
+///
+/// Three signals, strongest first:
+///
+/// 1. **A merged PR for this branch** — the direct evidence, and the only thing that proves a *squash*
+///    merge, which leaves no ancestry link for `merge-base --is-ancestor` to find.
+/// 2. **No commits ahead of `origin/main`**, when the branch still exists locally or on the remote.
+///    Content proof, for a branch that was merged and kept.
+///
+///    **Measured, and it is weaker than it reads.** With `gh` absent from `PATH`, a real merged claim
+///    whose branch had been deleted after merging returned `None` — because **the fallback needs a
+///    visible ref, and the project's rule is to delete the branch after merging.** Both live claims
+///    (`codex/count-reference-closeout-20261013`, `kimi/d29-nvrtc-amendment`) have no local or
+///    remote-tracking ref, so with GitHub down this rule reports **nothing at all**.
+///
+///    So the fallback is **not a safety net for this rule**; it only helps the narrow case of a branch
+///    that was merged *and kept*. That is worth stating because the comment above made it sound like a
+///    general offline path, and **I first wrote it as though I had observed it working.**
+/// 3. Otherwise `None`.
+pub fn claim_branch_is_merged(paths: &StatePaths, branch: &str) -> Option<bool> {
+    // 1. GitHub first. See the module header: the ordering IS the bug fix.
+    //
+    //    A failed `gh` call is `None` from this sub-step, which falls through to the content check
+    //    rather than returning early - the Python does the same, and it is why an offline machine
+    //    still gets the safe half of the answer.
+    if let Some(merged_pr) = gh_has_merged_pr(paths, branch) {
+        if merged_pr {
+            return Some(true);
+        }
+        // No merged PR. If the branch is visible anywhere, it is unmerged work. If it is not visible
+        // either, the honest answer is "not established" rather than "merged" - the branch may have
+        // been deleted after merging AND after the PR list aged out, and guessing "unmerged" would
+        // leave a stale claim in place while guessing "merged" would tell a working lab to release.
+        let visible = git_has_ref(paths, &format!("refs/remotes/origin/{branch}"))
+            || git_has_ref(paths, &format!("refs/heads/{branch}"));
+        return if visible { Some(false) } else { None };
+    }
+
+    // 2. GitHub unreachable: fall back to content, which is safe in the direction that matters.
+    //    Nothing ahead of main means the work is in main, whatever route put it there.
+    for candidate in [
+        format!("refs/remotes/origin/{branch}"),
+        format!("refs/heads/{branch}"),
+    ] {
+        if git_has_ref(paths, &candidate) {
+            let ahead = git_stdout(
+                paths,
+                &["rev-list", "--count", &format!("origin/main..{candidate}")],
+            );
+            return ahead.trim().parse::<i64>().ok().map(|n| n == 0);
+        }
+    }
+    None
+}
+
+/// `Some(true)` when GitHub reports a merged PR for this branch, `Some(false)` when GitHub answered and
+/// there is none, **`None` when GitHub could not be asked.**
+fn gh_has_merged_pr(paths: &StatePaths, branch: &str) -> Option<bool> {
+    let out = std::process::Command::new("gh")
+        .args([
+            "pr",
+            "list",
+            "--head",
+            branch,
+            "--state",
+            "merged",
+            "--limit",
+            "1",
+            "--json",
+            "number,state",
+        ])
+        .current_dir(&paths.repo)
+        .output()
+        .ok()?;
+    if !out.status.success() {
+        return None;
+    }
+    let text = String::from_utf8_lossy(&out.stdout);
+    let parsed: serde_json::Value = serde_json::from_str(&text).ok()?;
+    let arr = parsed.as_array()?;
+    Some(!arr.is_empty())
+}
+
+fn git_has_ref(paths: &StatePaths, refname: &str) -> bool {
+    std::process::Command::new("git")
+        .args(["-C"])
+        .arg(&paths.repo)
+        .args(["rev-parse", "--verify", "--quiet", refname])
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false)
+}
+
+fn git_stdout(paths: &StatePaths, args: &[&str]) -> String {
+    std::process::Command::new("git")
+        .arg("-C")
+        .arg(&paths.repo)
+        .args(args)
+        .output()
+        .map(|o| String::from_utf8_lossy(&o.stdout).to_string())
+        .unwrap_or_default()
+}
+
+/// `multilab.claim_not_merged` — no claim is held on a branch whose work is already in `origin/main`.
+///
+/// **It reports only on `Some(true)`.** A claim whose branch cannot be established as merged stays
+/// quiet, because **a rule that cries wolf on a lab's live branch is worse than no rule** — and the
+/// false positive this guards against was real: a branch claimed and pushed seconds earlier looked
+/// gone, and the warning vanished once the ref arrived.
+pub fn claim_not_merged(paths: &StatePaths) -> Vec<Finding> {
+    let mut out = Vec::new();
+    for (branch, held) in team::load_claims(paths) {
+        if claim_branch_is_merged(paths, &branch) != Some(true) {
+            continue;
+        }
+        let lab = if held.lab.trim().is_empty() {
+            "nobody".to_string()
+        } else {
+            held.lab.clone()
+        };
+        out.push(warn(
+            "multilab.claim_not_merged",
+            format!(
+                "{lab} still holds a claim on {branch:?}, but its work is already in origin/main"
+            ),
+            "docs/harness/claims.json".into(),
+            format!("release it: uor-harness team release --branch {branch} --lab {lab}"),
+        ));
+    }
+    out
+}
+
 /// Every `multilab` rule ported in this unit.
 pub fn all(paths: &StatePaths, now: i64) -> Vec<Finding> {
     let mut out = presence_fresh(paths, now);
     out.extend(claims_one_owner(paths));
     out.extend(claim_stale(paths, now));
+    out.extend(claim_not_merged(paths));
     out
 }
 
@@ -423,6 +569,119 @@ mod tests {
             claim_stale(&paths_of(root), now).is_empty(),
             "no guess, no finding"
         );
+    }
+
+    /// **The contract that must not be collapsed: `None` is not `false`.**
+    ///
+    /// `false` means "I have evidence it is not merged". `None` means "I have no evidence either way",
+    /// and the rule says nothing for `None`. A branch that has never existed is exactly the unknown
+    /// case: it is not on origin, it is not local, and nobody can tell whether it was merged and
+    /// deleted or never pushed. **Treating that as merged would tell a lab to release a claim on
+    /// unpushed work** - the first version's mistake, recorded in the Python.
+    #[test]
+    fn a_branch_that_never_existed_is_unknown_not_merged() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let root = dir.path();
+        std::fs::create_dir_all(root.join("docs/harness")).expect("mkdir");
+        // A real git repo, so the git calls answer honestly rather than erroring into a fake answer.
+        let git = |args: &[&str]| {
+            std::process::Command::new("git")
+                .arg("-C")
+                .arg(root)
+                .args(args)
+                .output()
+                .expect("git");
+        };
+        git(&["init", "-q", "-b", "main"]);
+        git(&["config", "user.email", "t@t"]);
+        git(&["config", "user.name", "t"]);
+        std::fs::write(root.join("f.txt"), "x").expect("write");
+        git(&["add", "-A"]);
+        git(&["commit", "-qm", "init"]);
+
+        // `gh` will not report a merged PR for a nonsense branch name, and the branch is not visible
+        // anywhere, so the honest answer is "not established".
+        let answer = claim_branch_is_merged(&paths_of(root), "definitely/never-existed-xyz");
+        assert_ne!(
+            answer,
+            Some(true),
+            "an unknown branch must never read as merged"
+        );
+    }
+
+    /// **The rule reports only on certain evidence.** An unknown branch must produce no finding, or the
+    /// rule cries wolf on a branch a lab just pushed - the false positive that was measured on live
+    /// work and fixed by asking GitHub first.
+    #[test]
+    fn a_claim_that_cannot_be_established_produces_no_finding() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let root = dir.path();
+        std::fs::create_dir_all(root.join("docs/harness")).expect("mkdir");
+        let git = |args: &[&str]| {
+            std::process::Command::new("git")
+                .arg("-C")
+                .arg(root)
+                .args(args)
+                .output()
+                .expect("git");
+        };
+        git(&["init", "-q", "-b", "main"]);
+        git(&["config", "user.email", "t@t"]);
+        git(&["config", "user.name", "t"]);
+        std::fs::write(root.join("f.txt"), "x").expect("write");
+        git(&["add", "-A"]);
+        git(&["commit", "-qm", "init"]);
+        std::fs::write(
+            root.join("docs/harness/claims.json"),
+            r#"{"just/pushed":{"branch":"just/pushed","lab":"kimi","head":"","claimed_at":"2026-10-13T12:00:00Z","note":""}}"#,
+        )
+        .expect("write");
+        let f = claim_not_merged(&paths_of(root));
+        assert!(
+            f.is_empty(),
+            "a claim that cannot be established as merged must stay quiet: {f:?}"
+        );
+    }
+
+    /// A branch with **no commits ahead of main** IS established as merged by content, and is reported.
+    /// This is the one direction the content check is safe in: nothing ahead of main means the work is
+    /// in main, whatever route put it there.
+    #[test]
+    fn a_branch_with_nothing_ahead_of_main_is_reported() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let root = dir.path();
+        std::fs::create_dir_all(root.join("docs/harness")).expect("mkdir");
+        let git = |args: &[&str]| {
+            std::process::Command::new("git")
+                .arg("-C")
+                .arg(root)
+                .args(args)
+                .output()
+                .expect("git");
+        };
+        git(&["init", "-q", "-b", "main"]);
+        git(&["config", "user.email", "t@t"]);
+        git(&["config", "user.name", "t"]);
+        std::fs::write(root.join("f.txt"), "x").expect("write");
+        git(&["add", "-A"]);
+        git(&["commit", "-qm", "init"]);
+        // A local branch pointing at the same commit as main: zero commits ahead.
+        git(&["branch", "already/in-main"]);
+        std::fs::write(
+            root.join("docs/harness/claims.json"),
+            r#"{"already/in-main":{"branch":"already/in-main","lab":"kimi","head":"","claimed_at":"2026-10-13T12:00:00Z","note":""}}"#,
+        )
+        .expect("write");
+        // The content path needs an `origin/main` to compare against.
+        git(&["update-ref", "refs/remotes/origin/main", "HEAD"]);
+        let f = claim_not_merged(&paths_of(root));
+        assert_eq!(
+            f.len(),
+            1,
+            "a branch with nothing ahead of main is merged work: {f:?}"
+        );
+        assert!(f[0].message.contains("already/in-main"), "{}", f[0].message);
+        assert!(f[0].fix.contains("team release"), "{}", f[0].fix);
     }
 
     /// The real repo runs through the rules without panicking on real data.
