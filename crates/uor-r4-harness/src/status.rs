@@ -409,16 +409,9 @@ pub fn render(paths: &StatePaths, regs: Option<&Registries>, now_rfc3339: &str) 
         ));
     }
 
-    // 3. DELIVERY - stated, not omitted. A status that silently lacks its delivery section reads as
-    // "nothing to report", which is the opposite of the truth when the section is simply not ported.
-    lines.push(String::new());
-    lines.push("3. DELIVERY".to_string());
-    lines.push(
-        "   not ported to Rust yet: PRs, merge queue and delivery run in Python \
-         (`scripts/harness/cli.py status`). Listed so its absence is visible rather than read as \
-         nothing to report."
-            .to_string(),
-    );
+    // 3. DELIVERY - resolved from local git, so a lab offline or rate-limited still learns whether
+    // finished work is sitting on a branch.
+    lines.extend(render_delivery(&delivery_view(paths)));
 
     let mut out = lines.join("\n");
     out.push('\n');
@@ -474,14 +467,23 @@ mod tests {
         );
     }
 
-    /// An unported section must SAY it is unported. A silently empty delivery section reads as
-    /// "nothing to deliver", which is the opposite of the truth.
+    /// Section 3 renders from local git, and it says what it cannot know. An earlier version of this
+    /// view marked section 3 unported; that stopped being true, and a test asserting it would have
+    /// gone on passing while the section was broken.
     #[test]
-    fn the_unported_delivery_section_states_that_it_is_unported() {
+    fn the_delivery_section_renders_and_names_its_limit() {
         let regs = Registries::load(&paths()).expect("registry");
         let text = render(&paths(), Some(&regs), "2026-10-13T02:00:00-04:00");
         let delivery = text.split("3. DELIVERY").nth(1).expect("delivery section");
-        assert!(delivery.contains("not ported"), "{delivery}");
+        assert!(
+            !delivery.contains("not ported"),
+            "section 3 renders now: {delivery}"
+        );
+        assert!(delivery.contains("origin/main"), "{delivery}");
+        assert!(
+            delivery.contains("not available from git alone"),
+            "{delivery}"
+        );
     }
 
     /// Status must never raise: it is what a lab runs when something is already wrong.
@@ -1068,6 +1070,113 @@ mod aggregation_tests {
         StatePaths::resolve(repo, None, Some("/nonexistent-live"))
     }
 
+    /// The delivery view answers the question the owner's delete-after-merge rule makes load-bearing,
+    /// from local git alone.
+    #[test]
+    fn the_delivery_view_resolves_origin_main_and_classifies_every_branch() {
+        let view = delivery_view(&paths());
+        assert!(view.error.is_empty(), "{}", view.error);
+        assert_eq!(view.origin_main.len(), 40, "a full sha");
+        assert!(
+            !view.trunk.is_empty(),
+            "the trunk is resolved from origin/HEAD"
+        );
+        for r in &view.rows {
+            // Every branch is classified, and the two classes are mutually exclusive by construction.
+            assert_ne!(r.name, view.trunk, "the trunk is not a candidate");
+            assert_eq!(
+                r.orphan,
+                r.unmerged == 0,
+                "{}: orphan must mean zero unmerged",
+                r.name
+            );
+            assert!(
+                !r.safe_to_delete || r.orphan,
+                "{}: safe_to_delete implies finished",
+                r.name
+            );
+        }
+    }
+
+    /// **The bug this check had on first use.** A branch can hold no commits main lacks and STILL be
+    /// the only copy of uncommitted work: `codex/geometric-path-repair` pointed at a commit already in
+    /// main while its worktree held twelve modified files. Calling that "finished" would have invited
+    /// a delete of work that exists nowhere else.
+    #[test]
+    fn finished_by_commits_is_not_the_same_as_safe_to_delete() {
+        let view = delivery_view(&paths());
+        for r in view.held_by_uncommitted() {
+            assert!(
+                r.orphan,
+                "{}: held branches are still finished by commits",
+                r.name
+            );
+            assert!(
+                !r.safe_to_delete,
+                "{}: must not be offered for deletion",
+                r.name
+            );
+            assert!(r.uncommitted > 0, "{}: held for a reason", r.name);
+            assert!(
+                !r.worktree.is_empty(),
+                "{}: the holding worktree is named",
+                r.name
+            );
+        }
+        // And the removable set is exactly the finished, clean ones.
+        for r in view.removable() {
+            assert!(r.orphan && r.uncommitted == 0, "{}", r.name);
+        }
+        let total = view.removable().len() + view.held_by_uncommitted().len();
+        assert_eq!(
+            total,
+            view.orphans().len(),
+            "every orphan lands in exactly one of the two lists"
+        );
+    }
+
+    /// No `fix:` line is offered for a branch that is not safe to delete. The renderer and the data
+    /// must agree, because the fix line is what a lab would paste into a shell.
+    #[test]
+    fn the_renderer_never_offers_a_fix_for_a_held_branch() {
+        let view = delivery_view(&paths());
+        let lines = render_delivery(&view);
+        let text = lines.join("\n");
+        for r in view.held_by_uncommitted() {
+            let held_section = text
+                .split("finished by commits, but a worktree holds uncommitted work")
+                .nth(1)
+                .unwrap_or("");
+            assert!(
+                held_section.contains(&r.name),
+                "the branch is named under the warning"
+            );
+            assert!(
+                !held_section.contains(&r.fix),
+                "{}: a fix command under a do-NOT-delete heading would be pasted",
+                r.name
+            );
+        }
+    }
+
+    /// The view must say it cannot name the merging PR, because a lab reading "finished" will assume
+    /// the tool knows how it finished.
+    #[test]
+    fn the_view_states_that_pr_numbers_come_from_github() {
+        let view = delivery_view(&paths());
+        let text = render_delivery(&view).join("\n");
+        assert!(text.contains("not available from git alone"), "{text}");
+        assert!(text.contains("cli.py status"), "and where to get them");
+    }
+
+    /// A stale `origin/main` is the value a lab would act on, so the note travels with it.
+    #[test]
+    fn the_staleness_note_is_always_present() {
+        let view = delivery_view(&paths());
+        let text = render_delivery(&view).join("\n");
+        assert!(text.contains("last fetched value"), "{text}");
+    }
+
     #[test]
     fn previous_month_steps_back_and_wraps_the_year() {
         assert_eq!(previous_month("2026-10"), "2026-09");
@@ -1204,4 +1313,291 @@ mod aggregation_tests {
         assert!(clause.contains("UNAVAILABLE"), "{clause}");
         assert!(!clause.contains("all four updated"), "{clause}");
     }
+}
+
+// ------------------------------------------------------------------------ delivery (section 3)
+//
+// Section 3 answers "is finished work still sitting on a branch?" - the question the owner's
+// one-owner-per-branch and delete-after-merge rules make load-bearing. Python asks GitHub for each
+// branch's PR. This port answers it from LOCAL GIT ALONE, using the same content test the guarded
+// branch delete uses: `git cherry origin/main <branch>`.
+//
+// That is a real difference and it is deliberate rather than a shortcut. A branch whose commits are
+// all already upstream is finished whether or not this machine can reach GitHub, so a lab offline, on
+// a pod, or rate-limited still gets the answer. The cost is stated in the rendered output: without the
+// PR number, the view cannot say WHICH PR merged it, and it says that rather than implying it knows.
+
+/// One local branch, resolved against `origin/main`.
+#[derive(Debug, Clone)]
+pub struct BranchRow {
+    pub name: String,
+    pub head: String,
+    /// Commits whose changes are NOT yet in `origin/main`. Empty means the branch is finished.
+    pub unmerged: usize,
+    pub current: bool,
+    /// Commits upstream, but the branch still exists. NOT the same as "safe to delete": see
+    /// `uncommitted`.
+    pub orphan: bool,
+    /// The worktree this branch is checked out in, if any.
+    pub worktree: String,
+    /// Uncommitted changes in that worktree. A branch whose commits are all upstream can still be
+    /// holding the only copy of uncommitted work, so it must not be called deletable.
+    pub uncommitted: usize,
+    /// Finished AND holding nothing uncommitted. Only this is safe to delete.
+    pub safe_to_delete: bool,
+    pub fix: String,
+}
+
+/// A git invocation against the repository. Returns `(ok, stdout)`.
+fn git_out(repo: &std::path::Path, args: &[&str]) -> (bool, String, String) {
+    match std::process::Command::new("git")
+        .arg("-C")
+        .arg(repo)
+        .args(args)
+        .output()
+    {
+        Ok(o) => (
+            o.status.success(),
+            String::from_utf8_lossy(&o.stdout).trim().to_string(),
+            String::from_utf8_lossy(&o.stderr).trim().to_string(),
+        ),
+        Err(e) => (false, String::new(), format!("git not runnable: {e}")),
+    }
+}
+
+/// The delivery view: where this checkout is, and which branches still hold unfinished work.
+#[derive(Debug, Clone)]
+pub struct DeliveryView {
+    pub branch: String,
+    pub worktree: String,
+    pub origin_main: String,
+    pub origin_main_subject: String,
+    pub trunk: String,
+    pub rows: Vec<BranchRow>,
+    /// Set when `origin/main` cannot be resolved, which makes every orphan judgement meaningless.
+    pub error: String,
+}
+
+impl DeliveryView {
+    /// Branches holding only finished work, whether or not they are safe to delete.
+    pub fn orphans(&self) -> Vec<&BranchRow> {
+        self.rows.iter().filter(|r| r.orphan).collect()
+    }
+
+    /// Finished and holding nothing uncommitted: the ones the rules actually want removed.
+    pub fn removable(&self) -> Vec<&BranchRow> {
+        self.rows
+            .iter()
+            .filter(|r| r.orphan && r.safe_to_delete)
+            .collect()
+    }
+
+    /// Finished by commits, but a worktree still holds uncommitted changes. Reported separately,
+    /// because recommending deletion here would destroy work that exists nowhere else.
+    pub fn held_by_uncommitted(&self) -> Vec<&BranchRow> {
+        self.rows
+            .iter()
+            .filter(|r| r.orphan && !r.safe_to_delete)
+            .collect()
+    }
+
+    pub fn unfinished(&self) -> Vec<&BranchRow> {
+        self.rows
+            .iter()
+            .filter(|r| !r.orphan && r.unmerged > 0)
+            .collect()
+    }
+}
+
+/// Build the delivery view from local git.
+///
+/// `refs/heads` is read rather than `git branch`, because `git branch` output is presentation and has
+/// changed between versions; a format string is a contract.
+pub fn delivery_view(paths: &StatePaths) -> DeliveryView {
+    let repo = paths.repo.as_path();
+    let (_, branch, _) = git_out(repo, &["rev-parse", "--abbrev-ref", "HEAD"]);
+    // The trunk is whatever `origin/HEAD` points at; main is the fallback this repository always has.
+    let (ok_head, head_ref, _) = git_out(
+        repo,
+        &["symbolic-ref", "--short", "refs/remotes/origin/HEAD"],
+    );
+    let trunk = if ok_head && !head_ref.is_empty() {
+        head_ref.rsplit('/').next().unwrap_or("main").to_string()
+    } else {
+        "main".to_string()
+    };
+
+    let (ok_main, main_sha, main_err) = git_out(repo, &["rev-parse", "origin/main"]);
+    let (_, subject, _) = git_out(repo, &["log", "-1", "--format=%h %s", "origin/main"]);
+
+    let mut view = DeliveryView {
+        branch,
+        worktree: paths.repo.display().to_string(),
+        origin_main: if ok_main { main_sha } else { String::new() },
+        origin_main_subject: subject,
+        trunk,
+        rows: Vec::new(),
+        error: if ok_main { String::new() } else { main_err },
+    };
+    if !ok_main {
+        return view;
+    }
+
+    let (ok_refs, refs, _) = git_out(
+        repo,
+        &["for-each-ref", "--format=%(refname:short)", "refs/heads"],
+    );
+
+    // Which worktree holds each branch, and whether that worktree has uncommitted changes.
+    //
+    // This is the check that stops the view recommending a destructive command. A branch can hold no
+    // commits main lacks and STILL be the only copy of uncommitted work:
+    // `codex/geometric-path-repair` was exactly that, pointing at a commit already in main while its
+    // worktree held twelve modified files. Reporting it as merely "finished" would invite a delete.
+    let mut worktrees: Vec<(String, String)> = Vec::new(); // (path, branch)
+    let (ok_wt, wt_out, _) = git_out(repo, &["worktree", "list", "--porcelain"]);
+    if ok_wt {
+        let mut path = String::new();
+        for line in wt_out.lines() {
+            if let Some(p) = line.strip_prefix("worktree ") {
+                path = p.trim().to_string();
+            } else if let Some(b) = line.strip_prefix("branch ") {
+                let name = b.trim().trim_start_matches("refs/heads/").to_string();
+                worktrees.push((path.clone(), name));
+            }
+        }
+    }
+    if !ok_refs {
+        return view;
+    }
+    for name in refs.lines().map(str::trim).filter(|n| !n.is_empty()) {
+        if name == view.trunk || name == "master" {
+            continue;
+        }
+        // `-` means the commit's changes are already upstream; `+` means they are not. This is the
+        // same content test the guarded branch delete uses, and for the same reason: a squash merge
+        // leaves no ancestry link, so ancestry cannot see that a branch is finished.
+        let (ok_cherry, cherry, _) = git_out(repo, &["cherry", "origin/main", name]);
+        if !ok_cherry {
+            continue;
+        }
+        let unmerged = cherry.lines().filter(|l| l.starts_with('+')).count();
+        let (_, head, _) = git_out(repo, &["rev-parse", name]);
+        let mut wt_path = String::new();
+        let mut uncommitted = 0usize;
+        for (p, b) in &worktrees {
+            if b == name {
+                wt_path = p.clone();
+                // `--porcelain` counts untracked and modified entries; both are work that would be
+                // lost, so both count.
+                let (ok_st, st, _) = git_out(std::path::Path::new(p), &["status", "--porcelain"]);
+                if ok_st {
+                    uncommitted = st.lines().filter(|l| !l.trim().is_empty()).count();
+                }
+                break;
+            }
+        }
+        let orphan = unmerged == 0;
+        view.rows.push(BranchRow {
+            name: name.to_string(),
+            head,
+            unmerged,
+            current: name == view.branch,
+            orphan,
+            worktree: wt_path,
+            uncommitted,
+            safe_to_delete: orphan && uncommitted == 0,
+            fix: format!("git branch -D {name} && git push origin --delete {name}"),
+        });
+    }
+    view.rows.sort_by(|a, b| a.name.cmp(&b.name));
+    view
+}
+
+/// Render section 3.
+pub fn render_delivery(view: &DeliveryView) -> Vec<String> {
+    let mut lines = vec!["3. DELIVERY".to_string()];
+    if !view.error.is_empty() {
+        lines.push(format!(
+            "   UNAVAILABLE: cannot resolve origin/main: {}",
+            view.error
+        ));
+        return lines;
+    }
+    lines.push(format!(
+        "   branch {} · worktree {} · origin/main {}",
+        if view.branch.is_empty() {
+            "?"
+        } else {
+            &view.branch
+        },
+        view.worktree,
+        if view.origin_main.len() >= 8 {
+            &view.origin_main[..8]
+        } else {
+            &view.origin_main
+        }
+    ));
+    if !view.origin_main_subject.is_empty() {
+        lines.push(format!(
+            "      {}",
+            truncate(&view.origin_main_subject, 120)
+        ));
+    }
+    // Stated every time, because the value is a cached ref and a stale answer here is the one a lab
+    // would act on when deciding a branch is safe to delete.
+    lines.push("   note: origin/main is the last fetched value; run `git fetch --prune origin` before trusting it".to_string());
+
+    let removable = view.removable();
+    if removable.is_empty() {
+        lines.push("   branches holding only finished work: none safe to delete".to_string());
+    } else {
+        lines.push(format!(
+            "   branches holding only finished work: {} (delete these - main is the authority)",
+            removable.len()
+        ));
+        for o in removable.iter().take(10) {
+            let here = if o.current { " [checked out here]" } else { "" };
+            lines.push(format!("      {}{here}", o.name));
+            lines.push(format!("         fix: {}", o.fix));
+        }
+        if removable.len() > 10 {
+            lines.push(format!("      (+{} more)", removable.len() - 10));
+        }
+    }
+    // Reported separately, and with no `fix` line: these are NOT safe to delete.
+    let held = view.held_by_uncommitted();
+    if !held.is_empty() {
+        lines.push(format!(
+            "   finished by commits, but a worktree holds uncommitted work: {} (do NOT delete)",
+            held.len()
+        ));
+        for o in held.iter().take(10) {
+            lines.push(format!(
+                "      {} - {} uncommitted change(s) in {}",
+                o.name, o.uncommitted, o.worktree
+            ));
+        }
+    }
+    let unfinished = view.unfinished();
+    if !unfinished.is_empty() {
+        lines.push(format!(
+            "   branches with unmerged work: {} (these are live; their owners decide)",
+            unfinished.len()
+        ));
+        for r in unfinished.iter().take(10) {
+            lines.push(format!(
+                "      {} ({} commit(s) not in main)",
+                r.name, r.unmerged
+            ));
+        }
+    }
+    // This port reads git, not GitHub, so it cannot name the PR that merged a branch.
+    lines.push(
+        "   PR numbers: not available from git alone - this view proves a branch is FINISHED by \
+         content (`git cherry`), not by which PR merged it. `scripts/harness/cli.py status` asks \
+         GitHub and names the PR."
+            .to_string(),
+    );
+    lines
 }
