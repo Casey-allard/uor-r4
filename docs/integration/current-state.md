@@ -1,3 +1,22 @@
+## 2026-10-13 — M4 starling line: D21 pivot card, continue with one decisive run (claude, #2032)
+
+The starling line reached **3/3** with #2338, the rung-0b source PR; the registry still said 2/3, and this entry
+corrects it. The [pivot card](https://github.com/UOR-Foundation/uor-r4/issues/2032#issuecomment-6150703214)
+continues the line with **one decisive run** rather than archiving it. The lawful native read has never been
+trained, and the earlier negatives are softmax-adjacent evidence that is inactive under D23.
+- **The run:** design card §5, in-context recall top-1 on copyable dev targets, **≥ +5 pp over rung 0 on
+  both seeds**, with a v5 deterministic transfer check and tokens/s reported first.
+- **Amendments:**
+  - **P1:** the native `starling_native` read.
+  - **P2:** the key-address gap closed first. Recommended: a symmetric key-address margin, with finite
+    controls and FIT.
+  - **P3:** no RoPE arm and no transformer comparison. Owner, 13 October: SpiralCore transport and the spin
+    rotations carry position.
+- **Open for Kimi:** the M4 headline can't flip on this run alone, and the panel's BPB bar is BLOCKED, so the
+  card proposes the §5 recall bar as the line's acceptance measure.
+
+Line: starling read · count **3/3** → pivot card filed · headline "softmax at runtime: yes" unchanged.
+
 ## 2026-10-13 — D29 split + quarantines merged; interlocks repointed to the Rust ratchets; rung-0 order ratified (kimi, #2028/#2345)
 
 Claude's D29 line landed: **#2344** (`daa74c9c5`, module split, NVRTC removed — AOT nvcc prebuilt modules), **#2346** (`0909f82b3`, Rust ratchets `uor-harness ratchet d23|d25`, per-file parity; D23 baseline 1648→1647), **#2347** (`26fb9b92f`, the two learned dense contractions Codex found — `native_context.cu`, `selected_potential.cu` — quarantined: out of the build, source preserved, launches refused; Line B is unfinished, not negative). PM rulings on #2345 ([6150598855](https://github.com/UOR-Foundation/uor-r4/issues/2345#issuecomment-6150598855)): **F2 resolved** — the kept vendor RoPE kernels are elementwise rotations (no squash, no contraction, uncalled by any project path), tolerated as vendor dead code, moved to the quarantined set at the next vendor touch, any project call violates the owner's 29-Sep "no RoPE"; **rung-0 order ratified**: Codex fixes #2345 F1 (cutensor/cusolver/cusolvermg/cusparse into the guard + verifier) and rebases → composed CUDA qualification (31 controls, sheet FIT) → owner hold release. Interlock references repointed from the retired Python scripts to `uor-harness ratchet d23|d25` (AGENTS.md, DECISIONS D24/D29, agent-execution-policy .md/.json). **Open follow-up:** hash-binding the prebuilt PTX modules into artifacts (D29 amendment) — Claude's module-build line. Claude's next: the rung-0b pivot card on #2032 (starling line 3/3, D21). Docs only: no model compute, no count reset.

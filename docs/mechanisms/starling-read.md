@@ -43,6 +43,12 @@ Rungs 1–3, the pivot and the surrogate were measured beside softmax helpers, s
   - The null is a utility-0 candidate, so abstention is learned through truncation.
   - Exploration slots (zero forward weight) give near-miss keys credit, fixing rung 1's "keys outside the kept set get no gradient".
   - The decisive §5 run (in-context recall top-1 on copyable dev targets against rung 0) needs its own sheet after rung 0 reports.
+- **D21 pivot card, 13 October** ([#2032 6150703214](https://github.com/UOR-Foundation/uor-r4/issues/2032#issuecomment-6150703214)). The line is at 3/3, and the card continues it with one decisive run instead of archiving it: §5, plus three amendments.
+  - P1: the native `native_read=starling_native` read.
+  - P2: the key-address gap closed first. The recommended fix is a symmetric key-address margin, with its own finite controls and FIT.
+  - P3: no RoPE arm and no transformer comparison.
+
+  The run is gated on rung 0, P2 and the owner's hold release.
 
 ## A fair test needs
 

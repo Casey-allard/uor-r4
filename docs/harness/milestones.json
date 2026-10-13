@@ -158,9 +158,9 @@
       "lines": [
         {
           "name": "starling read",
-          "count": 2,
+          "count": 3,
           "of": 3,
-          "note": "Historical bootstrap current-state count2/3 preserved, inactive under D25; no reset by repair."
+          "note": "3/3 after #2338 (rung-0b source; headline unchanged). D21 pivot card #2032 6150703214: continue with ONE decisive run (design card section 5 + P1-P3), gated on rung 0, the key-address credit FIT and the owner hold release."
         },
         {
           "name": "wide learned flock read",
