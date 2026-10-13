@@ -1,10 +1,18 @@
+## 2026-10-13 — Correction: the remaining `status` rules read the LOCAL LEDGER, not GitHub (deepseek, tooling)
+
+**I said twice — to the owner and in this file — that `status.heartbeat_receipts` and `status.registry_vs_github` are "the two rules whose subject is the GitHub conversation" and that porting them "means porting `gh` pagination, comment parsing and the headline grammar together." I checked, and that is wrong for at least the first of them.** `_rule_heartbeat_receipts` reads **receipt rows from the local ledger shards** (`_receipt_rows` → `_read_receipts`) and asks whether every **in-progress** milestone has a heartbeat receipt within `STALE_HOURS = 24`. **There is no GitHub call in it.** **The correction matters because the estimate was load-bearing:** I used it to justify **deferring these rules repeatedly** — *"that is a unit of work, not a line"* — and a deferral argued from a wrong premise is a deferral for no reason. **The rule is smaller than I said, and it was postponed on the strength of my own mis-description.** `registry_vs_github` may well read GitHub, and I have not verified that half. **Also corrected in place:** the nine current-state entries that carried the "GitHub-conversation" framing now name `heartbeat_receipts` as reading the local ledger, so the next reader does not inherit the same wrong estimate. **The general lesson, which this port has now produced three times:** I have repeatedly **described a dependency instead of reading it** — the "GitHub unreachable" claim, the `claim_not_merged` "fallback", and now this — and **each time the description was more expensive than the code.** *Acting on a docstring is not the same as knowing*, and neither is acting on my own summary of one.
+
+Line: no model line - tooling · count 0/3 unchanged · headline 37/232 → 37/232 (unchanged).
+
+**Next:** `status.heartbeat_receipts`, now known to be small — then `registry_vs_github` (its GitHub dependency unverified), `guard_covered`, the `briefing` `DIRECTION:` form, the four-rule decision, `lint`/`prlint`, `panel`, the `scripts/` tail, and `git switch`/`delete-merged` with their guards.
+
 ## 2026-10-13 — D30 check-port: `harness.state_formats`, and the `skipped` hole it closes (deepseek, tooling)
 
 `harness.state_formats` is Rust with **exact agreement with Python — 0 findings, all pass** — so coverage reads **31 of 40 rules**. **THIS RULE WAS RUST BEFORE IT WAS PORTED: only the translation was Python** — the Python rule **shells out to `uor-harness check-formats`** and turns the exit code into a finding, so this port removes a **subprocess**, not a duplicate scan; the rule now calls `Contract::check` **in process**, the same code `check-formats` runs, with no binary to locate, no timeout, and **no chance of reporting a different build's answer than the one under test** — which is not hypothetical, since `check-formats` exists precisely because naming the Rust `check` produced **infinite recursion** until a timeout fired. **THE PYTHON'S `skipped` STATUS WAS A HOLE, AND RUST CANNOT FALL INTO IT:** the Python has three outcomes — `ok`, drift, and **`skipped` when the Rust binary is not built** — and the skipped case is reported as `info` with `ok=True`, so **it does not fail and a contract check that did not run reads as acceptable**; that state cannot arise in Rust **because the rule IS the binary**, so an unloadable contract is an **error** — *"the frozen contract could not be loaded, so nothing was checked"* — and **the port closes the gap by having no such state to enter**, where a machine without the binary previously got a green `check` on the one rule whose whole job is to notice that persisted state drifted. **One finding per format rather than one per contract**, because **a single finding for several drifted formats sends the reader to the wrong file**. **Limits, stated:** `check` still delegates; **the one-finding-per-format change is a deliberate divergence from Python's shape — the counts agree on the real repo (0 and 0) but a drifted contract would produce a different NUMBER of findings in the two implementations, stated rather than presented as parity**; **`Contract::load` failing is an error where Python would say `skipped`, so on a machine with a missing contract file the two implementations now disagree BY DESIGN, and the Rust answer is the one that does not hide a gap**; and the agreement measurement is a hand-run probe.
 
 Line: no model line - tooling · count 0/3 unchanged · headline 37/232 → 37/232 (unchanged).
 
-**Next:** the two GitHub-conversation `status` rules, `guard_covered` with the full id set, the `briefing` `DIRECTION:` form — then the four-rule unportable decision, `lint`/`prlint`, `panel`, the `scripts/` tail, and `git switch`/`delete-merged` with their guards.
+**Next:** the remaining `status` rules (`heartbeat_receipts`, which reads the LOCAL LEDGER and not GitHub - see the correction below - and `registry_vs_github`), `guard_covered` with the full id set, the `briefing` `DIRECTION:` form — then the four-rule unportable decision, `lint`/`prlint`, `panel`, the `scripts/` tail, and `git switch`/`delete-merged` with their guards.
 
 ## 2026-10-13 — D30 check-port 10 of 10: the `prlint` rules — the module set is complete (deepseek, tooling)
 
@@ -12,15 +20,15 @@ Line: no model line - tooling · count 0/3 unchanged · headline 37/232 → 37/2
 
 Line: no model line - tooling · count 0/3 unchanged · headline 37/232 → 37/232 (unchanged).
 
-**Next:** `harness.state_formats`, the two GitHub-conversation `status` rules, `guard_covered` with the full id set, the `briefing` `DIRECTION:` form — then the decision on the four unportable rules, `lint`/`prlint`, `panel`, the `scripts/` tail, and `git switch`/`delete-merged` with their guards.
+**Next:** `harness.state_formats`, the remaining `status` rules (`heartbeat_receipts`, which reads the LOCAL LEDGER and not GitHub - see the correction below - and `registry_vs_github`), `guard_covered` with the full id set, the `briefing` `DIRECTION:` form — then the decision on the four unportable rules, `lint`/`prlint`, `panel`, the `scripts/` tail, and `git switch`/`delete-merged` with their guards.
 
 ## 2026-10-13 — D30 check-port 9 of 10: the `receipts` rules (deepseek, tooling)
 
-`receipts.parse` and `receipts.ledger_present` are Rust with **exact agreement with Python — all pass in both** — so coverage reads **29 of 40 rules (arena 4, briefing 3, budget 2, harness 3, mistakes 2, multilab 6, prep 5, receipts 2, status 2)**. **Two rules over one file, and I CHECKED before assuming they overlapped: `receipts.parse` and `budget.receipts_parse` are COMPLEMENTARY, NOT DUPLICATES** — one reports a missing key as a single "has no ts/kind" finding while the other separates ts from kind; the non-object case is checked only by `budget.receipts_parse`; and **an unknown `kind` is checked only by `receipts.parse`** — so **a bad line can produce two findings from two rules, and that is correct, because the two rules answer different questions; porting only one would lose a check and merging them would change what `check` reports.** **The kind check is an error rather than a warning for a reason: a `kind` outside the set means the ledger holds something nothing reads** — either a typo, so the record is filed under a heading no reader looks at, or a new kind added without a reader, which is the same problem with better intentions; **measured against the real ledger, it carries 7 of the 10 known kinds** (claim, heartbeat, prep, receipt, release, skill, team), so the set covers practice rather than being aspirational. **`skill_usage_recorded` is deliberately NOT ported: ITS BODY RETURNS AN EMPTY LIST ON BOTH BRANCHES** — the Python says so in a comment, "informational only: the engine prints ok for an empty list" — so **it is a rule that cannot fail**, and porting it would add a function whose only observable effect is to be counted; that is the same call made for `budget.no_new_spending_class`, and **a rule that cannot fail reads as coverage**. **`ledger_present` is deliberately narrow: a ledger directory that exists and holds nothing reads as a working ledger**, which is the case it reports, while **a directory that does not exist returns no finding** because a fresh checkout has none and reporting it would fire on every clone before any work happened. **Limits, stated:** `check` still delegates at 9 of 10 modules, with only `prlint` (2 rules) left plus `harness.state_formats` and the two GitHub-conversation `status` rules; **`KINDS` is a hand-kept copy of Python's set and nothing in CI compares them, so a kind added to Python and not here would make Rust report a VALID receipt as unknown — a finding that is WRONG rather than missing**; both ledger rules read the committed ledger only, not the live tier, as Python does; **a non-object JSON line is not reported by `receipts.parse`**, falling into the "has no ts/kind" branch so the message states an imprecise reason for the right verdict, while `budget.receipts_parse` names the real problem (Python's behaviour, kept); and the agreement measurement is a hand-run probe.
+`receipts.parse` and `receipts.ledger_present` are Rust with **exact agreement with Python — all pass in both** — so coverage reads **29 of 40 rules (arena 4, briefing 3, budget 2, harness 3, mistakes 2, multilab 6, prep 5, receipts 2, status 2)**. **Two rules over one file, and I CHECKED before assuming they overlapped: `receipts.parse` and `budget.receipts_parse` are COMPLEMENTARY, NOT DUPLICATES** — one reports a missing key as a single "has no ts/kind" finding while the other separates ts from kind; the non-object case is checked only by `budget.receipts_parse`; and **an unknown `kind` is checked only by `receipts.parse`** — so **a bad line can produce two findings from two rules, and that is correct, because the two rules answer different questions; porting only one would lose a check and merging them would change what `check` reports.** **The kind check is an error rather than a warning for a reason: a `kind` outside the set means the ledger holds something nothing reads** — either a typo, so the record is filed under a heading no reader looks at, or a new kind added without a reader, which is the same problem with better intentions; **measured against the real ledger, it carries 7 of the 10 known kinds** (claim, heartbeat, prep, receipt, release, skill, team), so the set covers practice rather than being aspirational. **`skill_usage_recorded` is deliberately NOT ported: ITS BODY RETURNS AN EMPTY LIST ON BOTH BRANCHES** — the Python says so in a comment, "informational only: the engine prints ok for an empty list" — so **it is a rule that cannot fail**, and porting it would add a function whose only observable effect is to be counted; that is the same call made for `budget.no_new_spending_class`, and **a rule that cannot fail reads as coverage**. **`ledger_present` is deliberately narrow: a ledger directory that exists and holds nothing reads as a working ledger**, which is the case it reports, while **a directory that does not exist returns no finding** because a fresh checkout has none and reporting it would fire on every clone before any work happened. **Limits, stated:** `check` still delegates at 9 of 10 modules, with only `prlint` (2 rules) left plus `harness.state_formats` and the remaining `status` rules (`heartbeat_receipts`, which reads the LOCAL LEDGER and not GitHub - see the correction below - and `registry_vs_github`); **`KINDS` is a hand-kept copy of Python's set and nothing in CI compares them, so a kind added to Python and not here would make Rust report a VALID receipt as unknown — a finding that is WRONG rather than missing**; both ledger rules read the committed ledger only, not the live tier, as Python does; **a non-object JSON line is not reported by `receipts.parse`**, falling into the "has no ts/kind" branch so the message states an imprecise reason for the right verdict, while `budget.receipts_parse` names the real problem (Python's behaviour, kept); and the agreement measurement is a hand-run probe.
 
 Line: no model line - tooling · count 0/3 unchanged · headline 37/232 → 37/232 (unchanged).
 
-**Next:** `prlint` (2 rules) to finish the module set, then `harness.state_formats`, the two GitHub-conversation `status` rules, `guard_covered`, the `DIRECTION:` form in `briefing`, and the `lint`/`prlint`, `panel`, `scripts/` tail, `git switch`/`delete-merged` work.
+**Next:** `prlint` (2 rules) to finish the module set, then `harness.state_formats`, the remaining `status` rules (`heartbeat_receipts`, which reads the LOCAL LEDGER and not GitHub - see the correction below - and `registry_vs_github`), `guard_covered`, the `DIRECTION:` form in `briefing`, and the `lint`/`prlint`, `panel`, `scripts/` tail, `git switch`/`delete-merged` work.
 
 ## 2026-10-13 — D30 check-port 8 of 10: the `briefing` rules (deepseek, tooling)
 
@@ -28,7 +36,7 @@ Line: no model line - tooling · count 0/3 unchanged · headline 37/232 → 37/2
 
 Line: no model line - tooling · count 0/3 unchanged · headline 37/232 → 37/232 (unchanged).
 
-**Next:** `receipts` (3), `prlint` (2), `harness.state_formats`, the two GitHub-conversation `status` rules, `guard_covered`, and the `DIRECTION:` form above.
+**Next:** `receipts` (3), `prlint` (2), `harness.state_formats`, the remaining `status` rules (`heartbeat_receipts`, which reads the LOCAL LEDGER and not GitHub - see the correction below - and `registry_vs_github`), `guard_covered`, and the `DIRECTION:` form above.
 
 ## 2026-10-13 — D30 check-port 7 of 10: the `budget` rules (deepseek, tooling)
 
@@ -36,7 +44,7 @@ Line: no model line - tooling · count 0/3 unchanged · headline 37/232 → 37/2
 
 Line: no model line - tooling · count 0/3 unchanged · headline 37/232 → 37/232 (unchanged).
 
-**Next:** `briefing` (3), `receipts` (3), `prlint` (2), `harness.state_formats`, the two GitHub-conversation `status` rules, and `guard_covered` with the full id set.
+**Next:** `briefing` (3), `receipts` (3), `prlint` (2), `harness.state_formats`, the remaining `status` rules (`heartbeat_receipts`, which reads the LOCAL LEDGER and not GitHub - see the correction below - and `registry_vs_github`), and `guard_covered` with the full id set.
 
 ## 2026-10-13 — D30 check-port 6 of 10: the `arena` rules (deepseek, tooling)
 
@@ -44,7 +52,7 @@ All four `arena` rules are Rust with **exact agreement with Python — all pass 
 
 Line: no model line - tooling · count 0/3 unchanged · headline 37/232 → 37/232 (unchanged).
 
-**Next:** `briefing` (3), `receipts` (3), `budget` (3), `prlint` (2), `harness.state_formats`, the two GitHub-conversation `status` rules, and `guard_covered` with the full id set.
+**Next:** `briefing` (3), `receipts` (3), `budget` (3), `prlint` (2), `harness.state_formats`, the remaining `status` rules (`heartbeat_receipts`, which reads the LOCAL LEDGER and not GitHub - see the correction below - and `registry_vs_github`), and `guard_covered` with the full id set.
 
 ## 2026-10-13 — D30 check-port 5 of 10: the `mistakes` rules, and one I refused to ship (deepseek, tooling)
 
@@ -52,7 +60,7 @@ Line: no model line - tooling · count 0/3 unchanged · headline 37/232 → 37/2
 
 Line: no model line - tooling · count 0/3 unchanged · headline 37/232 → 37/232 (unchanged).
 
-**Next:** `guard_covered` with the full registered-id set, `stale_check`, then `arena` (4), `briefing` (3), `receipts` (3), `budget` (3), `prlint` (2), `harness.state_formats`, the two GitHub-conversation `status` rules.
+**Next:** `guard_covered` with the full registered-id set, `stale_check`, then `arena` (4), `briefing` (3), `receipts` (3), `budget` (3), `prlint` (2), `harness.state_formats`, the remaining `status` rules (`heartbeat_receipts`, which reads the LOCAL LEDGER and not GitHub - see the correction below - and `registry_vs_github`).
 
 ## 2026-10-13 — D30 check-port 4 of 10: the `status` rules about the checkout (deepseek, tooling)
 
@@ -60,7 +68,7 @@ Line: no model line - tooling · count 0/3 unchanged · headline 37/232 → 37/2
 
 Line: no model line - tooling · count 0/3 unchanged · headline 37/232 → 37/232 (unchanged).
 
-**Next:** the two GitHub-conversation `status` rules, then `mistakes`, `arena`, `briefing`, `receipts`, `budget`, `prlint`, `harness.state_formats`.
+**Next:** the remaining `status` rules (`heartbeat_receipts`, which reads the LOCAL LEDGER and not GitHub - see the correction below - and `registry_vs_github`), then `mistakes`, `arena`, `briefing`, `receipts`, `budget`, `prlint`, `harness.state_formats`.
 
 ## 2026-10-13 — `check` module 3 complete: all six `multilab` rules are Rust (deepseek, tooling)
 
