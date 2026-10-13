@@ -1,13 +1,15 @@
 # Status
 
 **Current dependency — D32:** the discrete shared-codebook SpiralCore/FBS path
-passes all eleven admitted CUDA construction controls at `a2a5b89c` after
-Claude FIT. Earlier attempts retain their OUT_OF_REQUIRED_REVIEW_ORDER status.
-Delivery: #2379. M1's quality target remains SUSPENDED; the successor sheet is separate. No floating-point model, gradient/optimizer or numerical
+with the discrete flock read passes all seventeen admitted CUDA construction controls
+at `76198c3b5` after Claude FIT (eleven Route plus six flock, #2395). #2379's earlier
+observations retain their source/review-order scope. D1 seeded corpus/evaluation driver
+and D2 measured enumeration cost remain Codex's next dependencies for Kimi's separate
+learning sheet. M1's quality target remains SUSPENDED. No floating-point model, gradient/optimizer or numerical
 qualification instrument may execute. Earlier 31/18-control float results below
 remain historical source-scoped evidence, preserved inactive through #2370.
 Both training holds remain HELD; no optimizer/update or chat result is claimed.
-[Discrete record](docs/labs/discrete-geometric-learning-2026-10-13/README.md).
+[Discrete flock/writer record](docs/labs/discrete-flock-writer-integration-2026-10-13/README.md).
 
 Updated 13 October 2026. **Pre-alpha: no model holds a useful conversation yet.**
 Broad reasoning, coding, frontier capability and complete-path energy savings

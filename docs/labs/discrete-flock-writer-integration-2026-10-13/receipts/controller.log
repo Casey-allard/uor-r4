@@ -1,0 +1,21 @@
+Tue Oct 13 23:14:21 UTC 2026
+/workspace/codex-flock/target/debug/discrete-stack: OK
+/workspace/codex-flock/target/debug/build/uor-r4-discrete-99d5025f72e5ed35/out/discrete.ptx: OK
+{"index":1,"name":"exact_writer","status":"PASS"}
+{"index":2,"name":"virtual_proposals","status":"PASS"}
+{"index":3,"name":"context_transport","status":"PASS"}
+{"index":4,"name":"isolated_windows","status":"PASS"}
+{"index":5,"name":"collision_and_omitted_target","status":"PASS"}
+{"index":6,"name":"nonvacuity","status":"PASS"}
+{"index":7,"name":"artifact_and_identity","status":"PASS"}
+{"index":8,"name":"inventory_bounds","status":"PASS"}
+{"index":9,"name":"variable_length_prefixes","status":"PASS"}
+{"index":10,"name":"target_independent_admission","status":"PASS"}
+{"index":11,"name":"token_relabelling_preserves_geometry","status":"PASS"}
+{"index":1,"name":"flock_identity_read","status":"PASS"}
+{"index":2,"name":"flock_gate_counterfactual","status":"PASS"}
+{"index":3,"name":"flock_transport_witnesses","status":"PASS"}
+{"index":4,"name":"flock_payload_witness","status":"PASS"}
+{"index":5,"name":"flock_selection_and_eligibility","status":"PASS"}
+{"index":6,"name":"flock_refusals_and_noop","status":"PASS"}
+Tue Oct 13 23:14:36 UTC 2026

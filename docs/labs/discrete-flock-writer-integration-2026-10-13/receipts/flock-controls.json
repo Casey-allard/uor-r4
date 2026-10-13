@@ -1,0 +1,44 @@
+{
+  "applied_updates": 0,
+  "attempted": 6,
+  "controls": [
+    {
+      "index": 1,
+      "name": "flock_identity_read",
+      "status": "PASS"
+    },
+    {
+      "index": 2,
+      "name": "flock_gate_counterfactual",
+      "status": "PASS"
+    },
+    {
+      "index": 3,
+      "name": "flock_transport_witnesses",
+      "status": "PASS"
+    },
+    {
+      "index": 4,
+      "name": "flock_payload_witness",
+      "status": "PASS"
+    },
+    {
+      "index": 5,
+      "name": "flock_selection_and_eligibility",
+      "status": "PASS"
+    },
+    {
+      "index": 6,
+      "name": "flock_refusals_and_noop",
+      "status": "PASS"
+    }
+  ],
+  "failed": 0,
+  "not_run": 0,
+  "passed": 6,
+  "registered": 6,
+  "schema": "uor-r4.discrete-spiralcore-fbs/2",
+  "status": "PASS",
+  "suite": "flock",
+  "training": "HELD"
+}

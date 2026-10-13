@@ -13,14 +13,14 @@ model that runs on a laptop?*
 **Status, 13 October 2026: pre-alpha.** No model in this repository holds a useful conversation yet.
 Under D32 the model and its learning/qualification instruments are discrete: no
 floating-point forward, gradients, optimizer or matrix multiplication. The new
-SpiralCore/FBS shared-vector path passes **all eleven admitted CUDA construction
-controls** after Claude FIT at source `a2a5b89cdddd1b32bf32f0e3c18d6b21e994e523`.
-Earlier attempts remain observations outside required review order. Delivery: #2379.
-Selection is query-addressed against fixed branch/frontier roots; leaf content supplies
-the carried payload, and the query's own prefix leaf is selectable. M1's quality target
+SpiralCore/FBS shared-vector path with the discrete flock read passes **all seventeen
+admitted CUDA construction controls** after Claude FIT at source `76198c3b5` (#2395).
+Eleven Route controls preserve #2379's construction laws; six flock controls cover
+content-based frame selection, transported payloads and exact three-way gate proposals.
+Both reads use the same integer input/carry/output codebook and writer. M1's quality target
 remains SUSPENDED pending a discriminating reply grader under R14.
 **Training and the separate M2 holds remain held**; no update or useful-chat result.
-[Discrete record](docs/labs/discrete-geometric-learning-2026-10-13/README.md).
+[Discrete flock/writer record](docs/labs/discrete-flock-writer-integration-2026-10-13/README.md).
 Earlier 31/18-control float receipts retain their exact historical scope;
 [PR #2370](https://github.com/UOR-Foundation/uor-r4/pull/2370) preserves that evidence.
 
@@ -131,7 +131,7 @@ Index: [docs/mechanisms/](docs/mechanisms/README.md).
 
 | Mechanism | Milestone | Where it stands |
 |---|---|---|
-| [Discrete SpiralCore/FBS learning and shared writer](docs/mechanisms/discrete-geometric-learning.md) | M1, M2, M4 | source a2a5b89c; eleven admitted CUDA construction controls PASS after Claude FIT; delivery #2379, training held |
+| [Discrete SpiralCore/FBS learning and shared writer](docs/mechanisms/discrete-geometric-learning.md) | M1, M2, M4 | source76198c3b5; seventeen admitted CUDA construction controls PASS after Claude FIT, including flock/Gate; #2395, training held |
 | [SpiralCore/FBS projection](docs/mechanisms/spiralcore-fbs-projection.md) | M1, M2 | prior floating form preserved inactive under D32 |
 | [Rank-margin objective](docs/mechanisms/rank-margin-objective.md) | M1 | prior floating objective preserved; discrete successor is separately registered |
 | [Starling read](docs/mechanisms/starling-read.md) (~7 neighbours on the 600-cell) | M4 | served softmax-free; its gradient is rung 0b |

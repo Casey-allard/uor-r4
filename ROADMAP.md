@@ -2,14 +2,15 @@
 
 **Current learning permission — D32:** discrete/exact GPU model computation and
 instruments only; no floating-point forward, gradient, optimizer or matrix product.
-The standalone shared-writer FBS path passes eleven admitted CUDA construction
-controls at `a2a5b89c` after Claude FIT. Earlier attempts remain outside required
-review order. Delivery: #2379; M1's quality target remains SUSPENDED pending its
-separate successor sheet. Earlier operator/31/18-control float entries
+The shared-writer FBS path with the discrete flock read passes seventeen admitted
+CUDA construction controls at `76198c3b5` after Claude FIT (#2395). D1 seeded driver/
+evaluator and D2 measured enumeration cost remain Codex's next dependencies; Kimi's
+separate learning sheet stays PENDING. M1's quality target remains SUSPENDED pending
+a discriminating grader. Earlier operator/31/18-control float entries
 are preserved historical source scopes, not executable training permissions
 (preservation #2370). Training and separate M2 holds remain HELD. Kimi owns the
 discrete successor sheet; a FIT review releases no hold.
-[Discrete record](docs/labs/discrete-geometric-learning-2026-10-13/README.md).
+[Discrete flock/writer record](docs/labs/discrete-flock-writer-integration-2026-10-13/README.md).
 
 Updated 13 October 2026. **Pre-alpha.** Useful conversation, broad reasoning, coding, frontier
 capability and lower complete-path energy are not established.

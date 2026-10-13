@@ -5,13 +5,15 @@
 D32 supersedes all earlier floating-point model/training/instrument permissions.
 Use discrete exact SpiralCore/E8/FBS moves and one native integer input/carry/output
 writer, without float forward, gradients, optimizer or matrix multiplication.
-The corrected standalone path at `a2a5b89c` passes eleven admitted CUDA construction
-controls after Claude FIT. Earlier attempts remain outside required review order.
-Delivery: #2379; M1's quality target remains SUSPENDED pending its separate successor
-sheet. Selection compares the query with fixed branch/frontier roots; leaf content
-supplies the payload, and the query's own prefix leaf is selectable. Both holds remain
+The composed discrete flock/shared-writer path at `76198c3b5` passes seventeen admitted
+CUDA construction controls after Claude FIT (#2395): eleven Route and six flock.
+The Route read retains query-to-fixed-port selection; Flock ranks earlier frame contents,
+transports separate payloads with actual BFS actions and tests three exact gate trits.
+Both use one integer codebook/writer. D1 seeded driver/evaluator and D2 measured cost
+are Codex-owned next for Kimi's PENDING learning sheet; M1's quality target stays
+SUSPENDED pending a discriminating grader. Both holds remain
 HELD; no update, language or headline result follows.
-[Discrete record](../labs/discrete-geometric-learning-2026-10-13/README.md).
+[Discrete flock/writer record](../labs/discrete-flock-writer-integration-2026-10-13/README.md).
 Older31/18-control float receipts and unfinished instruments remain inactive,
 source-scoped evidence preserved through #2370. Historical ladders below retain
 their capability obligations but cannot restore a superseded computation law.
