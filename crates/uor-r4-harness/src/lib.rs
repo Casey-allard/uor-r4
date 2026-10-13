@@ -23,6 +23,7 @@
 pub mod briefing;
 pub mod contract;
 pub mod githelp;
+pub mod harnessrules;
 pub mod mistakes;
 pub mod multilab;
 pub mod notes;

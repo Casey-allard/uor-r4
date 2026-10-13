@@ -39,6 +39,7 @@ pub struct Finding {
 }
 
 impl Finding {
+    #[allow(dead_code)]
     fn error(rule_id: &'static str, message: String, path: String, fix: &str) -> Self {
         Finding {
             rule_id,
@@ -48,6 +49,7 @@ impl Finding {
             fix: fix.to_string(),
         }
     }
+    #[allow(dead_code)]
     fn warn(rule_id: &'static str, message: String, path: String, fix: &str) -> Self {
         Finding {
             rule_id,
