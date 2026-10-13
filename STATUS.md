@@ -17,6 +17,11 @@ multiplication in training or serving; model/reference compute is GPU-only with
 host fallback refused. Scalar float geometric GPU learning is distinct from D11
 integer/table, multiplier-free serving. No current training configuration has
 whole-path compliance qualification.
+The owner clarified that both model lines share one directly learned native
+geometric vector representation and writer, using E8/SpiralCore/icosian/FSB
+plus flock/murmuration attention. Total block count is unqualified; the historical
+MiniLM 384D teacher width is not a dependency. The [signed-axis source repair](docs/labs/native-vector-transport-2026-10-12/README.md)
+is static geometry construction, not unified-writer/model qualification.
 
 The [operator phase](docs/labs/operator-phase-2026-10-12/README.md) is source first:
 OP2 Hamilton projections → OP1 G2 gate → OP3a geometric head → complete-path

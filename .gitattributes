@@ -37,3 +37,6 @@ research/**/*.xlsx filter=lfs diff=lfs merge=lfs -text
 proofs/wasm-gemm-gnaf/** linguist-vendored
 
 docs/labs/consolidation-2026-10-09/*.bundle binary
+
+# Preserve unified-patch blank-line context markers verbatim.
+docs/history/branch-archive/native-vector-transport-2026-10-12/generic-contraction-removal.patch -whitespace

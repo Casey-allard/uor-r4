@@ -32,6 +32,24 @@ FIT. Rung 0b rank-read CUDA/gradient work follows the operator phase and resumed
 then margin-trained starling. Historical schedules and comparators below remain evidence
 and cannot reactivate themselves. Preservation and protected delivery remain mandatory.
 
+### Shared native vector/writer requirement — current owner clarification
+
+The owner clarified in the current Codex chat that both lines converge on the
+same natively learned geometric vector representation and writer. Train the
+vectors/operators directly; keep token carriage, SpiralCore/FSB transport,
+E8/icosian structure and flock/murmuration attention on that shared path. Exact
+token/version/occurrence identity is separate from the geometric address. The
+[exact signed-axis source repair](../labs/native-vector-transport-2026-10-12/README.md)
+removes generic contractions from static geometry construction without changing
+canonical operator tables; it is not a unified model or writer qualification.
+
+The existing 8D geometry is the structural building block; total block count is
+unqualified, chosen for a material capacity/cost need rather than MiniLM's 384D
+teacher width. Historical MiniLM tables are inactive retrieval evidence. No new
+width/quality bar, fit or hold release is adopted. OP2/G2/OP3a and the complete
+GPU learning/output path remain dependencies; no separate dense head or hidden
+probability helper can implement the common writer.
+
 ## Active programme — grounded conversation and durable memory, October 1
 
 > Capability obligations below remain. Their dated schedules, training permissions
@@ -330,7 +348,7 @@ embeddings alone are not assumed to contain reasoning.
    now completes loaded projection451/512 versus467/512 parent and repairs the
    source/native hard-choice bridge: all512 packet/Q16 traces agree with native
    outputs unchanged. The [fixed q4 answer fits](geometric-value-q4-fit-2026-10-02.md)
-   now complete640 updates perseed with bank/upstream/tail frozen. Retain both
+   now complete 640 updates perseed with bank/upstream/tail frozen. Retain both
    learned candidates, projection and unrestricted parents, including every
    gain/loss and CE. End this dose; advance the remaining attention coefficient
    boundary through connected geometric source/compiler/learning/native callers.

@@ -85,10 +85,9 @@ fn build_tables() -> Result<E8Tables> {
     for element in &group {
         let mut images = [0; E8_ROOTS];
         for (root, key) in keys.iter().enumerate() {
-            let mut image = [0i8; 8];
-            for (r, out) in image.iter_mut().enumerate() {
-                *out = (0..8).map(|c| element.entries()[r][c] * key[c]).sum();
-            }
+            let image = element
+                .apply_root_key(*key)
+                .map_err(|e| invalid(format!("SpiralCore root transport: {e}")))?;
             images[root] = *index
                 .get(&image)
                 .ok_or_else(|| invalid("SpiralCore action leaves E8 root set"))?
@@ -104,11 +103,9 @@ fn build_tables() -> Result<E8Tables> {
         }
         let mut orbit = Vec::new();
         for element in &group {
-            let m = element.entries();
-            let mut image = [0i8; 8];
-            for (r, out) in image.iter_mut().enumerate() {
-                *out = (0..8).map(|c| m[r][c] * keys[start][c]).sum();
-            }
+            let image = element
+                .apply_root_key(keys[start])
+                .map_err(|e| invalid(format!("SpiralCore orbit transport: {e}")))?;
             let j = *index
                 .get(&image)
                 .ok_or_else(|| invalid("the SpiralCore group does not preserve the E8 roots"))?;

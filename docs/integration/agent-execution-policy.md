@@ -26,6 +26,20 @@ The owner-directed mode is `native_geometric_ai`. The
 historical ladders; [current-state.md](current-state.md) owns measured results.
 The [machine policy](agent-execution-policy.json) captures stable invariants.
 
+## Shared native vectors and writer — current owner clarification
+
+Both language-stack and compiler/exact-store/emitter paths must directly learn,
+carry tokens through and natively consume the same geometric vectors and writer.
+The candidates are E8, SpiralCore, icosian operators and FSB routing, with
+flock/murmuration attention. Ternary and arithmetic modulo 256 are possible
+substrates; the current prohibitions and holds still govern their execution.
+Exact token/occurrence/version identity must survive independently of geometric
+addresses. Existing 8D blocks do not fix total width or adopt MiniLM's historical
+384D teacher. Capacity and complete integration remain unqualified; this
+clarification adopts no new numeric bar or hold release. See the
+[current plan](project-track.md#shared-native-vectorwriter-requirement--current-owner-clarification)
+and [source record](../labs/native-vector-transport-2026-10-12/README.md).
+
 ## Durable autonomous labs — current owner charter, September 29
 
 [D14](DECISIONS.md#d14--durable-autonomous-labs-and-correctable-governance) adopts

@@ -1,5 +1,14 @@
 # Branch archive
 
+## October 12 — superseded generic SpiralCore contraction source
+
+[Native vector transport source record](../../labs/native-vector-transport-2026-10-12/README.md):
+[patch](native-vector-transport-2026-10-12/generic-contraction-removal.patch)
+against main `8773ac8dd` captures the exact signed-axis replacement and static
+checks. Apply in reverse at the delivered source to restore the removed generic
+composition/root-table loops; retained inactive evidence, never run permission.
+Canonical operator/wire identity stays fixed; no model result or mechanism stop.
+
 Work that existed only on a branch and was not in `main` when branches were
 unified into `main` on 9 October 2026 (owner direction: `origin/main` is the
 single source of truth). Each patch is `git diff <merge-base> <tip>` of one

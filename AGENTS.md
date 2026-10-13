@@ -22,6 +22,16 @@
 > allowed; CPU model/reference execution and new prohibited comparators are not.
 > Preserve historical source, measurements, checkpoints and other labs' work.
 > Older permissions and dated next actions below cannot reactivate them.
+>
+> **Owner clarification in this Codex chat:** the candidate mechanisms are E8,
+> SpiralCore, icosian operators and FSB routing, with flock/murmuration for
+> attention. Both the language-stack and compiler/exact-store/emitter paths
+> must learn directly in, carry tokens through and natively consume one geometric
+> vector representation through the same writer. Ternary/modulo 256 are possible
+> arithmetic substrates, not permission for hidden normalized-exponential or
+> dense operations. Preserve exact token/occurrence/version identity separately
+> from geometric addresses. The existing 8D geometric block does not freeze the
+> model's total width; no 384D MiniLM dependency or new width bar is adopted.
 
 > **Owner direction, October 12: no softmax anywhere ever no matter what.**
 > [D23](docs/integration/DECISIONS.md#d23---no-softmax-anywhere-in-the-active-project)

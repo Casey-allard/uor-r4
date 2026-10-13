@@ -21,6 +21,10 @@ are source dependencies, followed by complete-path/device qualification, amended
 prospective FIT and explicit release of the applicable owner hold before training.
 No partial-trunk fit or fresh prohibited comparator. Rung0 is suspended; rung0b
 follows the operator phase/resumed rung0, then teacher-free starling.
+Both lines must learn/use one native vector representation and writer under the
+owner's current clarification (E8/SpiralCore/icosian/FSB and flock/murmuration).
+Existing 8D structural blocks do not freeze total width or import a MiniLM 384D
+dependency; capacity/cost and complete native use remain unqualified.
 
 ## Milestones
 

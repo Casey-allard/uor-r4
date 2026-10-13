@@ -30,6 +30,11 @@ useful model, and records the answer either way. Success is defined by the
 eight milestones below; each closes only when its acceptance is met on a saved
 model.
 
+Both model lines are directed toward one directly learned native geometric
+vector representation and writer: E8/SpiralCore/icosian/FSB transport and
+flock/murmuration attention. Existing 8D geometric blocks do not mandate a 384D
+MiniLM embedding; total width and useful native integration remain unqualified.
+
 ## Where we are
 
 **0 of 8 milestones complete; 4 in progress** (M1 to M4). M5 to M8 have not started.
@@ -204,7 +209,7 @@ adds device graph source, replayable sampled checkpoints and isolated episodes
 sharing one parameter inventory and prototype credit. **Under the October 12
 [D23 owner rule](docs/labs/no-softmax-2026-10-12/README.md), this sampled path is
 BLOCKED because its choice law uses softmax.** Tiny historical CPU-reference checks
-cover these connections and all64 SpiralCore frames; actual CUDA execution,
+cover these connections and all 64 SpiralCore frames; actual CUDA execution,
 optimizer recovery and trained-model qualification remain unverified. Model
 compute stays held. Opened128 and genuinely fresh
 qualification remain NOT_RUN. Historical source and

@@ -76,7 +76,27 @@
     ],
     "offline_scalar_floating_point_geometric_arithmetic_allowed": true,
     "geometric_feed_forward_allowed": true,
-    "op1_gate_arm": "hamilton_G2_only_G1_withdrawn"
+    "op1_gate_arm": "hamilton_G2_only_G1_withdrawn",
+    "native_vector_writer_contract": {
+      "owner_authority": "current_Codex_chat_clarification_relay_6136085443",
+      "learning": "direct_native_geometric_vectors_and_operators",
+      "token_carriage": "same_representation_and_transport_frame",
+      "writer": "one_shared_native_writer_for_stack_and_compiler_store_emitter",
+      "candidate_mechanisms": [
+        "E8",
+        "SpiralCore",
+        "icosian_operators",
+        "FSB_routing"
+      ],
+      "attention": "flock_murmuration",
+      "possible_arithmetic_substrates": [
+        "ternary",
+        "Z_modulo_256"
+      ],
+      "total_width": "unqualified_prospective_capacity_cost_choice_not_MiniLM384",
+      "exact_token_occurrence_version_identity": "retained_separately_from_geometric_address",
+      "implementation_status": "not_yet_integrated_or_trained"
+    }
   },
   "delivery": {
     "direct_push_to_main": false,

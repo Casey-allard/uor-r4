@@ -1,0 +1,8 @@
+{
+  "schema": "uor-r4.retained-source-patch/1",
+  "base": "8773ac8dd367370ce637f876771ffd91155f87b6",
+  "patch_sha256": "10e328dede0428120bde3dac5b51062dafb16e344f96646cf0aa8a1057693ea1",
+  "restore": "git apply --reverse generic-contraction-removal.patch at delivered source",
+  "disposition": "superseded generic contraction; retained inactive source; canonical geometry preserved",
+  "activation_permission": false
+}

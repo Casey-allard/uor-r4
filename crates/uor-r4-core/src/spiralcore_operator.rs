@@ -204,23 +204,70 @@ impl SignedMatrix8 {
         &self.0
     }
 
-    pub fn checked_mul(self, right: Self) -> Result<Self, SpiralCoreOperatorError> {
-        let mut product = [[0i8; BASIS_DIMENSION]; BASIS_DIMENSION];
-        for (row, product_row) in product.iter_mut().enumerate() {
-            for (column, product_entry) in product_row.iter_mut().enumerate() {
-                let mut sum = 0i16;
-                for inner in 0..BASIS_DIMENSION {
-                    sum = sum
-                        .checked_add(
-                            i16::from(self.0[row][inner]) * i16::from(right.0[inner][column]),
-                        )
-                        .ok_or(SpiralCoreOperatorError::ArithmeticOverflow)?;
+    /// Decode the exact signed-axis action. The array representation is retained
+    /// for the canonical wire identity, not executed as a dense contraction.
+    fn signed_axes(self) -> Result<[SignedBasisUnit; BASIS_DIMENSION], SpiralCoreOperatorError> {
+        let mut axes = [SignedBasisUnit { sign: 1, index: 0 }; BASIS_DIMENSION];
+        let mut columns = [false; BASIS_DIMENSION];
+        for (row, axis) in axes.iter_mut().enumerate() {
+            let mut selected = None;
+            for (column, &value) in self.0[row].iter().enumerate() {
+                match value {
+                    0 => {}
+                    -1 | 1 if selected.is_none() && !columns[column] => {
+                        selected = Some(SignedBasisUnit {
+                            sign: value,
+                            index: column as u8,
+                        });
+                    }
+                    _ => {
+                        return Err(SpiralCoreOperatorError::Invariant(
+                            "operator is not a signed permutation".into(),
+                        ));
+                    }
                 }
-                *product_entry =
-                    i8::try_from(sum).map_err(|_| SpiralCoreOperatorError::ArithmeticOverflow)?;
             }
+            *axis = selected.ok_or_else(|| {
+                SpiralCoreOperatorError::Invariant("operator has an empty axis".into())
+            })?;
+            columns[usize::from(axis.index)] = true;
+        }
+        Ok(axes)
+    }
+
+    /// Compose signed-axis transport by index and sign. This is the finite
+    /// geometric action itself; no matrix product or numeric multiply is used.
+    pub fn checked_mul(self, right: Self) -> Result<Self, SpiralCoreOperatorError> {
+        let left_axes = self.signed_axes()?;
+        let right_axes = right.signed_axes()?;
+        let mut product = [[0i8; BASIS_DIMENSION]; BASIS_DIMENSION];
+        for (row, left) in left_axes.iter().enumerate() {
+            let right = right_axes[usize::from(left.index)];
+            product[row][usize::from(right.index)] = if left.sign == right.sign { 1 } else { -1 };
         }
         Ok(Self(product))
+    }
+
+    /// Apply the exact action while constructing canonical integer root tables.
+    /// Model execution must use the admitted device path; this host primitive
+    /// is not a CPU model/reference fallback or a learned projection.
+    pub fn apply_root_key(
+        self,
+        vector: [i8; BASIS_DIMENSION],
+    ) -> Result<[i8; BASIS_DIMENSION], SpiralCoreOperatorError> {
+        let axes = self.signed_axes()?;
+        let mut output = [0; BASIS_DIMENSION];
+        for (out, axis) in output.iter_mut().zip(axes) {
+            let value = vector[usize::from(axis.index)];
+            *out = if axis.sign == 1 {
+                value
+            } else {
+                value
+                    .checked_neg()
+                    .ok_or(SpiralCoreOperatorError::ArithmeticOverflow)?
+            };
+        }
+        Ok(output)
     }
 
     pub fn checked_power(self, mut exponent: u64) -> Result<Self, SpiralCoreOperatorError> {
@@ -1184,6 +1231,77 @@ pub fn validate_spiralcore_v63_operator(
 #[cfg(test)]
 mod finite_composition_table_tests {
     use super::*;
+
+    #[test]
+    fn signed_axis_transport_preserves_exact_e8_catalogue_and_inverse() {
+        // Canonical doubled E8 roots, constructed independently of the action:
+        // two +/-2 coordinates, or eight +/-1 coordinates of even parity.
+        let mut roots = BTreeSet::new();
+        for left in 0..BASIS_DIMENSION {
+            for right in left + 1..BASIS_DIMENSION {
+                for a in [-2, 2] {
+                    for b in [-2, 2] {
+                        let mut root = [0; BASIS_DIMENSION];
+                        root[left] = a;
+                        root[right] = b;
+                        roots.insert(root);
+                    }
+                }
+            }
+        }
+        for signs in 0u16..256 {
+            if signs.count_ones() & 1 == 0 {
+                roots.insert(std::array::from_fn(|axis| {
+                    if signs & (1 << axis) == 0 {
+                        1
+                    } else {
+                        -1
+                    }
+                }));
+            }
+        }
+        assert_eq!(roots.len(), 240);
+        let table = cl06_finite_composition_table().unwrap();
+        for (index, action) in table.states().iter().enumerate() {
+            let inverse = table
+                .state(table.inverse_index(index as u8).unwrap())
+                .unwrap();
+            let images = roots
+                .iter()
+                .map(|root| action.apply_root_key(*root).unwrap())
+                .collect::<BTreeSet<_>>();
+            assert_eq!(images, roots);
+            for root in &roots {
+                let transported = action.apply_root_key(*root).unwrap();
+                assert_eq!(inverse.apply_root_key(transported).unwrap(), *root);
+            }
+        }
+    }
+
+    #[test]
+    fn signed_axis_transport_rejects_invalid_actions_and_overflow() {
+        let mut duplicate = SignedMatrix8::identity();
+        duplicate.0[1] = duplicate.0[0];
+        assert!(matches!(
+            duplicate.checked_mul(SignedMatrix8::identity()),
+            Err(SpiralCoreOperatorError::Invariant(_))
+        ));
+        let mut dense = SignedMatrix8::identity();
+        dense.0[0][1] = 1;
+        assert!(matches!(
+            dense.apply_root_key([0; BASIS_DIMENSION]),
+            Err(SpiralCoreOperatorError::Invariant(_))
+        ));
+        let negative = SignedMatrix8::identity().negated().unwrap();
+        assert_eq!(
+            negative.apply_root_key([1; BASIS_DIMENSION]).unwrap(),
+            [-1; BASIS_DIMENSION]
+        );
+        assert!(matches!(
+            negative.apply_root_key([i8::MIN; BASIS_DIMENSION]),
+            Err(SpiralCoreOperatorError::ArithmeticOverflow)
+        ));
+    }
 
     #[test]
     fn exact_finite_composition_table_is_complete_associative_and_ordered() {

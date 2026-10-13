@@ -1,3 +1,25 @@
+## 2026-10-13 — SpiralCore composition and E8 root-table construction use exact signed-axis transport (Codex, #2029)
+
+The [source record](../labs/native-vector-transport-2026-10-12/README.md) removes
+generic 8×8 contraction loops from the fixed SpiralCore signed-permutation
+composition and both E8 static-root table builders, retaining canonical wire,
+operator and table identity. This is a static geometry/operator dependency, not
+direct vector learning, unified writer completion, full prohibited-source removal,
+GPU/model execution or a speed/energy result; exact-head compile/static-algebra
+receipts belong to the protected PR. The owner's shared native vector/writer
+requirement is recorded in AGENTS/current plan: E8/SpiralCore/icosian/FSB plus
+flock/murmuration; 8D structural blocks do not mandate MiniLM's 384D total width.
+
+Line: unified geometric route/action/learning integration · count 6/3 → 7/3
+on this explicitly owner-directed source dependency; no headline/count reset.
+M1 memory 20/40, reply 37/232 and M2 saved 437/512 + opened 0/128
+unchanged; later genuinely fresh qualification NOT_RUN.
+
+**Next:** shared GPU-native learned-vector/writer integration and remaining
+operator removals, preserving source/frame/token identities. All training and
+M2 rental holds remain; static identity checks and source landing release neither.
+
+
 ## 2026-10-13 — OP2 implemented: the fused Hamilton projection makes the quaternion maps matmul-free (kimi, #2029)
 
 The [record](../labs/hamilton-linear-2026-10-13/README.md) lands the amended order's first rung: with
@@ -18,6 +40,28 @@ memory 20/40, reply 37/232).
 
 **Next:** OP3a (the product-key head) per the amended order; the pod parity receipt for `hamilton_linear`
 needs a prospective kernel card and TEST FITNESS first, and training stays held.
+
+
+## 2026-10-12 — OP1 implemented G2-only: the Hamilton rotation gate and its CUDA kernels (kimi, #2029)
+
+The [record](../labs/gate-ops-2026-10-12/README.md) lands the operator phase's gate under the
+[owner's late amendment](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6135511346): the
+trunk's MLP gate can be the Hamilton rotation `(g/|g|) ⊗ u` (one quaternion per 4-lane block rotating the up
+block), selected by `gate=swiglu|hamilton` on `train` and `dialogue-train`, with exact CPU forward/backward,
+CUDA C kernels (f32 and bf16 launchers, one thread per 4-block — the same Hamilton product OP2 is to fuse),
+a `StackConfig::gate` field that leaves every existing config byte-identical, and refusals where the integer
+engines have no gate yet (`qat=true`, export/D11). G1 (rectified square) is withdrawn as non-geometric and no
+G1 source ships; the historical SwiGLU stays only as the byte-identical default. The trunk dispatches the gate
+as the op itself, so bf16 activations reach the bf16 kernel. Local checks: full lib suite **944 passed / 0 failed (base 938 + 6 Hamilton-gate tests)**, the
+no-exponential interlock at its 1649 baseline, and a host-executed check of the kernel against the CPU op and an
+independent spec implementation (<= 9.3e-7 peak-scaled) — kernel arithmetic only, no device and no run. The
+icosian snap and the exact hard-forward bridge remain open.
+
+Line: evaluation integrity · count 1/3 (source implementation, no compute) · headline: unchanged (M1 v5
+memory 20/40, reply 37/232).
+
+**Next:** OP2's fused Hamilton-product kernel first, per the amended order; then the pod parity receipt for
+this gate's tests (`UOR_REQUIRE_CUDA=1`) and OP1(G2) TEST FITNESS, with training still held.
 
 ## 2026-10-12 — Instructions and operator sequence reconciled; training holds preserved (Codex, #2028/#2029)
 
@@ -60,26 +104,6 @@ Line: no model line — tooling · count 0/3 unchanged · headline 37/232 → 37
 **Next:** decide whether `uor-harness brief -m <milestone>` replaces re-deriving session context from
 prose; the two standing branches need their owning labs to clear them; and `uor-knowledge` needs a
 refresh path wired into session start before anyone trusts it for a decision.
-## 2026-10-12 — OP1 implemented G2-only: the Hamilton rotation gate and its CUDA kernels (kimi, #2029)
-
-The [record](../labs/gate-ops-2026-10-12/README.md) lands the operator phase's gate under the
-[owner's late amendment](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6135511346): the
-trunk's MLP gate can be the Hamilton rotation `(g/|g|) ⊗ u` (one quaternion per 4-lane block rotating the up
-block), selected by `gate=swiglu|hamilton` on `train` and `dialogue-train`, with exact CPU forward/backward,
-CUDA C kernels (f32 and bf16 launchers, one thread per 4-block — the same Hamilton product OP2 is to fuse),
-a `StackConfig::gate` field that leaves every existing config byte-identical, and refusals where the integer
-engines have no gate yet (`qat=true`, export/D11). G1 (rectified square) is withdrawn as non-geometric and no
-G1 source ships; the historical SwiGLU stays only as the byte-identical default. The trunk dispatches the gate
-as the op itself, so bf16 activations reach the bf16 kernel. Local checks: full lib suite **944 passed / 0 failed (base 938 + 6 Hamilton-gate tests)**, the
-no-exponential interlock at its 1649 baseline, and a host-executed check of the kernel against the CPU op and an
-independent spec implementation (<= 9.3e-7 peak-scaled) — kernel arithmetic only, no device and no run. The
-icosian snap and the exact hard-forward bridge remain open.
-
-Line: evaluation integrity · count 1/3 (source implementation, no compute) · headline: unchanged (M1 v5
-memory 20/40, reply 37/232).
-
-**Next:** OP2's fused Hamilton-product kernel first, per the amended order; then the pod parity receipt for
-this gate's tests (`UOR_REQUIRE_CUDA=1`) and OP1(G2) TEST FITNESS, with training still held.
 
 ## 2026-10-12 — The operator phase: geometric replacements for the gate, projections and head; Kimi appointed project manager (kimi, #2029)
 
