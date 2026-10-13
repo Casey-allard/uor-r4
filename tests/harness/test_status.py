@@ -870,5 +870,68 @@ class TestRemoteBranchesWithoutPr(unittest.TestCase):
             self.fail(f"the branch scan raised {type(exc).__name__}: {exc}")
 
 
+class TestGuardedBranchDelete(unittest.TestCase):
+    """Deleting a branch must be PROVEN, because an unmerged remote branch is usually the only copy.
+
+    This exists because of a real mistake: `gh pr merge --auto` was followed by a poll and then an
+    UNCONDITIONAL remote delete. The PR auto-closed as DIRTY mid-poll, the loop exited without
+    noticing, and the delete ran anyway - removing the only remote copy of unmerged work. It was
+    recovered from a local commit, but nothing in the sequence prevented the loss.
+    """
+
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory(prefix="harness-delete-test-")
+        self.addCleanup(self._tmp.cleanup)
+        self.repo = Path(self._tmp.name)
+        (self.repo / "docs" / "harness").mkdir(parents=True, exist_ok=True)
+        self.paths = HarnessPaths.discover(repo=self.repo, state=self.repo / ".harness")
+
+    def test_a_branch_with_no_merged_pr_is_refused(self) -> None:
+        """The default answer is NO, whatever the reason for not being able to prove a merge.
+
+        Asserted on `safe_to_delete` - the flag the caller acts on - rather than on the wording of
+        the reason. The first version of this test checked for a word in the message, which is
+        testing prose; the property that matters is that nothing is deleted without proof.
+        """
+        r = githelp.delete_merged_branch(self.paths, "someone/unmerged-work")
+        self.assertFalse(r["safe_to_delete"], r)
+        self.assertTrue(r["reason"], "a refusal must say why")
+
+    def test_a_claimed_branch_is_refused_even_when_merged(self) -> None:
+        """A merged PR is NOT proof a branch is finished.
+
+        A lab can merge and keep going, or hold the branch while a follow-up lands. The first
+        version recommended deleting `kimi/plan-refresh-2026-10-13` - merged, but under Kimi's live
+        claim - which would have destroyed a peer's working branch.
+        """
+        (self.repo / "docs" / "harness" / "claims.json").write_text(
+            json.dumps({"someone/claimed": {"branch": "someone/claimed", "lab": "kimi", "claimed_at": "2026-10-13T00:00:00-04:00"}}),
+            encoding="utf-8",
+        )
+        r = githelp.delete_merged_branch(self.paths, "someone/claimed")
+        self.assertFalse(r["safe_to_delete"], r)
+        self.assertIn("live claim", r["reason"])
+        self.assertIn("team release", r["reason"], "the refusal must say how to proceed")
+
+    def test_reporting_changes_nothing(self) -> None:
+        """Without --apply it must be read-only: no deletion, whatever the verdict."""
+        r = githelp.delete_merged_branch(self.paths, "someone/unmerged-work", apply=False)
+        self.assertFalse(r.get("deleted"), r)
+
+    def test_the_flag_and_the_reason_never_disagree(self) -> None:
+        """The bug that took two attempts: a guard set the reason but left the flag, so a REFUSED
+        branch still printed 'would delete'. The flag is what acts; the reason is what a human
+        reads, and they must agree."""
+        (self.repo / "docs" / "harness" / "claims.json").write_text(
+            json.dumps({"x/y": {"branch": "x/y", "lab": "codex", "claimed_at": "2026-10-13T00:00:00-04:00"}}),
+            encoding="utf-8",
+        )
+        for branch in ("x/y", "no/merged-pr"):
+            with self.subTest(branch=branch):
+                r = githelp.delete_merged_branch(self.paths, branch)
+                self.assertFalse(r["safe_to_delete"], f"{branch}: {r}")
+                self.assertNotIn("merged as", r["reason"], f"{branch}: reason claims a merge")
+
+
 if __name__ == "__main__":  # pragma: no cover
     unittest.main()

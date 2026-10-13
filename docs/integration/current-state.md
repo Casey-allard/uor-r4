@@ -1,3 +1,11 @@
+## 2026-10-13 — An unguarded branch delete lost (and recovered) a PR, and the guard against it (lead, tooling)
+
+Merging with `gh pr merge --auto`, I polled the PR state and then ran the branch cleanup **unconditionally**. Partway through the poll the PR **auto-closed as `DIRTY`** — a concurrent merge made it conflict, so it never merged. The loop exited without noticing and the delete ran anyway, removing the only remote copy of the Rust heartbeat work. **It was recovered** (the commit was still reachable locally; the branch was recreated, rebased and merged as #2302), but nothing in the sequence *prevented* the loss, and recovery depended on the local clone still holding the commit. Two failures compounded: a poll loop that treated an unexpected state (`CLOSED`) as done, and a delete with no precondition. `cli.py git delete-merged --branch <name> [--apply]` now refuses unless the merge is **proven** — a merged PR whose merge commit is an ancestor of `origin/main` — and refuses equally when GitHub is unreachable, when `origin/<branch>` holds commits the merge did not carry, and **when any lab holds a live claim**. That last one was found by using the tool: the first version recommended deleting `kimi/plan-refresh-2026-10-13`, which was under Kimi's live claim, because the merge gate ran *before* the claim guard and an unreachable GitHub returned early — so the protection failed exactly when the evidence was weakest. Recorded as mistake `unguarded-branch-delete` so `mistakes find` surfaces it to every lab.
+
+Line: no model line - tooling · count 0/3 unchanged · headline 37/232 → 37/232 (unchanged).
+
+**Next:** the port stands at 2,404 Rust lines against 11,566 Python; heartbeat, presence, receipt and the format check are Rust. `check`'s 49 rules, `prep`, `status`, `briefing`, `mistakes`, `prlint` and `arena` remain to port, module by module, each verified against the Python suite.
+
 ## 2026-10-13 — OP3a and one native vector writer pass finite CUDA boundaries (Codex, #2029/#2030)
 
 The [head/shared-writer record](../labs/geometric-head-shared-writer-2026-10-13/README.md)

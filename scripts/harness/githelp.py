@@ -573,6 +573,142 @@ def cmd_clean_merged(args: argparse.Namespace, paths: HarnessPaths) -> int:
     print(f"deleted {removed} merged branch(es); worktrees were untouched")
     return 0
 
+def delete_merged_branch(paths: HarnessPaths, branch: str, apply: bool = False) -> dict:
+    """Delete a branch locally AND on the remote, but only if its merge is PROVEN.
+
+    This exists because of a real mistake. I merged a pull request with `gh pr merge --auto`, polled
+    its state, and then ran the remote delete **unconditionally**. The PR had auto-closed as DIRTY
+    midway through the poll; the loop exited without noticing, the delete ran anyway, and the only
+    remote copy of unmerged work was removed. The work survived in a local commit and was recovered,
+    but nothing in the command sequence prevented the loss - and a script that deletes a branch
+    without asking whether the merge happened will eventually delete work that cannot be recovered.
+
+    So the proof comes first and the answer can be no:
+
+      * a MERGED pull request whose merge commit is an ancestor of origin/main, or
+      * the branch content is entirely in origin/main (the squash-merge case)
+
+    Anything else is refused with the reason, because an unmerged branch on the remote is the last
+    copy of that work in most cases.
+
+    `apply=False` reports what would happen and changes nothing.
+    """
+    import subprocess
+
+    def git(*args: str) -> tuple[int, str]:
+        try:
+            proc = subprocess.run(
+                ["git", "-C", str(paths.repo), *args],
+                capture_output=True, text=True, timeout=30, check=False,
+            )
+            return proc.returncode, (proc.stdout + proc.stderr).strip()
+        except (OSError, subprocess.SubprocessError) as exc:
+            return 1, f"{type(exc).__name__}: {exc}"
+
+    # `safe_to_delete` is the ONLY flag the caller acts on. An earlier version used `merged` for
+    # this and a guard returned early without clearing it, so a REFUSED branch still printed
+    # "would delete". One flag with one meaning makes that impossible.
+    result: dict = {"branch": branch, "safe_to_delete": False, "merged": False, "reason": "", "deleted": False}
+
+    # 0. A LIVE CLAIM IS CHECKED FIRST, and it does not matter whether the PR merged.
+    #
+    #    A merged PR is not proof a branch is finished: a lab can merge and keep going, or hold the
+    #    branch while a follow-up lands. Gatekeeping on the merge first also meant an unreachable
+    #    GitHub returned before this guard ran, so a claimed branch could be deleted whenever the
+    #    network was down - the worst arrangement, since the protection failed exactly when the
+    #    evidence was weakest. A claim needs no network to read.
+    # 1b. somebody may still be WORKING here. A merged PR is not proof the branch is finished: a
+    #     lab can merge, then keep going on the same branch, or hold it while a follow-up lands.
+    #     This check is here because the first version recommended deleting
+    #     `kimi/plan-refresh-2026-10-13` - merged, yes, but under Kimi's live claim, and a harness
+    #     that deletes a peer's working branch is worse than one that leaves a stale branch behind.
+    try:
+        import multilab
+
+        held = multilab.load_claims(paths).get(branch)
+    except Exception:  # noqa: BLE001 - an advisory guard must not break the check
+        held = None
+    if held:
+        owner = held.get("lab") or "an unidentified lab"
+        # CLEAR the flag, not just the reason. This is the same mistake twice in one function: a
+        # guard that explains itself but leaves `safe_to_delete` set still tells the caller to go
+        # ahead. The flag is what acts; the reason is only what a human reads.
+        result["safe_to_delete"] = False
+        result["reason"] = (
+            f"{owner} holds a live claim on this branch - merged or not, its owner decides when it "
+            f"is finished. Release the claim first if the work is done: "
+            f"cli.py team release --branch {branch} --lab {owner}"
+        )
+        return result
+
+    # 1. a merged PR, and its merge commit actually on main
+    try:
+        from status import gh_json
+
+        ok, data, err = gh_json(
+            ["pr", "list", "--head", branch, "--state", "merged", "--limit", "1",
+             "--json", "number,mergeCommit"],
+            paths.repo,
+        )
+        if not ok:
+            result["reason"] = f"cannot ask GitHub about the PR ({err or 'unknown error'}), and an unverified merge is not a merge"
+            return result
+        if data:
+            merge_oid = ((data[0].get("mergeCommit") or {}) or {}).get("oid", "")
+            num = data[0].get("number")
+            if merge_oid:
+                rc, _ = git("merge-base", "--is-ancestor", merge_oid, "origin/main")
+                if rc == 0:
+                    result.update(
+                        merged=True,
+                        safe_to_delete=True,
+                        reason=f"PR #{num} merged as {merge_oid[:9]}, on main",
+                    )
+                else:
+                    result["reason"] = (
+                        f"PR #{num} is marked merged ({merge_oid[:9]}) but that commit is NOT "
+                        f"on origin/main"
+                    )
+                    return result
+            else:
+                result["reason"] = f"PR #{num} is merged but reports no merge commit"
+                return result
+        else:
+            result["reason"] = "no merged PR for this branch"
+            return result
+    except ImportError:  # pragma: no cover - status ships with the harness
+        result["reason"] = "the status module is unavailable, so the merge cannot be proven"
+        return result
+
+    # 2. even with a merged PR, the remote ref must actually be gone-or-equal, not different work
+    rc, out = git("rev-parse", "--verify", "--quiet", f"refs/remotes/origin/{branch}")
+    if rc == 0:
+        rc2, ahead = git("rev-list", "--count", f"origin/main..origin/{branch}")
+        if rc2 == 0 and ahead.isdigit() and int(ahead) > 0:
+            result["reason"] = (
+                f"origin/{branch} has {ahead} commit(s) not in main - it holds work the "
+                f"merge did not carry"
+            )
+            result["merged"] = False
+            result["safe_to_delete"] = False
+            return result
+
+    if not apply:
+        return result
+
+    # local first, then remote: a failed remote delete leaves the local copy for the next attempt
+    rc, out = git("branch", "-D", branch)
+    if rc == 0:
+        result["deleted"] = True
+    else:
+        result["local_error"] = out
+    rc, out = git("push", "origin", "--delete", branch)
+    result["remote_deleted"] = rc == 0
+    if rc != 0 and "remote ref does not exist" not in out:
+        result["remote_error"] = out
+    return result
+
+
 def remote_branches_without_pr(paths, limit: int = 20) -> list[dict]:
     """Remote branches that have no PR and are not merged into origin/main.
 

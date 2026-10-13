@@ -427,6 +427,22 @@ def cmd_git(args: argparse.Namespace, paths: HarnessPaths, reg: Registry) -> int
         return G.status(args, paths)
     if args.action == "clean-merged":
         return G.cmd_clean_merged(args, paths)
+    if args.action == "delete-merged":
+        result = G.delete_merged_branch(paths, args.branch, apply=getattr(args, "apply", False))
+        if getattr(args, "json", False):
+            print(json.dumps(result, indent=2))
+        elif result.get("safe_to_delete"):
+            verb = "deleted" if result.get("deleted") else "would delete"
+            remote = ""
+            if result.get("deleted"):
+                remote = " (remote: " + ("deleted" if result.get("remote_deleted") else "NOT deleted") + ")"
+            print(f"{verb} {result['branch']}: {result['reason']}{remote}")
+            if not result.get("apply") and not result.get("deleted"):
+                print(f"  run with --apply to delete it")
+        else:
+            print(f"REFUSED to delete {result['branch']}: {result['reason']}")
+            print("  an unmerged remote branch is usually the only copy of that work")
+        return 0 if result.get("safe_to_delete") else 1
     return EXIT_USAGE
 
 
@@ -652,6 +668,13 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub2.add_parser("status")
     s.set_defaults(fn=cmd_git)
     s = sub2.add_parser("clean-merged", help="remove local branches already merged into origin/main")
+    s.add_argument("--apply", action="store_true", help="actually delete (default: report)")
+    s.set_defaults(fn=cmd_git)
+    s = sub2.add_parser(
+        "delete-merged",
+        help="delete a branch locally AND on the remote, only if its merge is proven",
+    )
+    s.add_argument("--branch", required=True)
     s.add_argument("--apply", action="store_true", help="actually delete (default: report)")
     s.set_defaults(fn=cmd_git)
 
