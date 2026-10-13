@@ -1,0 +1,144 @@
+# uor-pod job by=claude/d29 pod=vast-55769892 gpu=0 queued 2026-10-13T16:02:48Z
+# cmd: /workspace/d29-libtest.sh
+# start 2026-10-13T16:02:48Z (holding /root/gpu0.lock)
+SOURCE 8db5ccb4abfff45be6fb00f263b254fb58f7c7a9
+warning: method `score_source_cue` is never used
+   --> crates/uor-r4-integer/src/geometric_cue_carrier.rs:389:19
+    |
+280 | impl<'a> NativeCueCarrier<'a> {
+    | ----------------------------- method in this implementation
+...
+389 |     pub(crate) fn score_source_cue(
+    |                   ^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `uor-r4-integer` (lib) generated 1 warning
+warning: method `position` is never used
+   --> crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs:175:8
+    |
+168 | impl ObservedSpan {
+    | ----------------- method in this implementation
+...
+175 |     fn position(&self) -> (u32, u32, usize) {
+    |        ^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `example` is never used
+    --> crates/uor-r4-core/src/native_geometric/learner/transferable_lexical.rs:1590:8
+     |
+1405 | impl TlTrainer {
+     | -------------- method in this implementation
+...
+1590 |     fn example(&self, q: &TlQuant, ex: &TlExample) -> TlGrads {
+     |        ^^^^^^^
+
+warning: `uor-r4-core` (lib) generated 2 warnings
+warning: duplicated attribute
+     --> crates/uor-r4-training/src/geometric_stack.rs:28653:5
+      |
+28653 |     #[test]
+      |     ^^^^^^^
+      |
+      = note: `#[warn(duplicate_macro_attributes)]` on by default
+
+warning: duplicated attribute
+    --> crates/uor-r4-training/src/stack_export.rs:1967:5
+     |
+1967 |     #[test]
+     |     ^^^^^^^
+
+warning: variable does not need to be mutable
+     --> crates/uor-r4-training/src/geometric_stack.rs:27376:17
+      |
+27376 |             let mut value = |delta: f32| -> Result<f32> {
+      |                 ----^^^^^
+      |                 |
+      |                 help: remove this `mut`
+      |
+      = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: fields `sources` and `response` are never read
+    --> crates/uor-r4-training/src/geometric_source_realizer.rs:7322:5
+     |
+7320 | struct ComposedCopyAssembly {
+     |        -------------------- fields in this struct
+7321 |     context: crate::geometric_context::ContextQ4Output,
+7322 |     sources: Vec<crate::geometric_context::ContextQ4Output>,
+     |     ^^^^^^^
+7323 |     response: Option<crate::geometric_context::ContextQ4Output>,
+     |     ^^^^^^^^
+     |
+     = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: associated function `no_device_kernel` is never used
+     --> crates/uor-r4-training/src/geometric_stack.rs:19329:8
+      |
+19325 | impl MarginRank {
+      | --------------- associated function in this implementation
+...
+19329 |     fn no_device_kernel<T>(device: &str) -> candle_core::Result<T> {
+      |        ^^^^^^^^^^^^^^^^
+
+warning: function `read_binding_labels_leave_language_and_its_gradient_unchanged` is never used
+     --> crates/uor-r4-training/src/geometric_stack.rs:28682:8
+      |
+28682 |     fn read_binding_labels_leave_language_and_its_gradient_unchanged() -> Result<()> {
+      |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `recall_cue` is never used
+    --> crates/uor-r4-training/src/relation_compiler.rs:1282:4
+     |
+1282 | fn recall_cue(source: &str) -> bool {
+     |    ^^^^^^^^^^
+
+warning: function `phrase_words` is never used
+    --> crates/uor-r4-training/src/relation_compiler.rs:1303:4
+     |
+1303 | fn phrase_words(span_text: &str, phrase: &str) -> bool {
+     |    ^^^^^^^^^^^^
+
+warning: function `export_refuses_an_in_memory_transport_snap` is never used
+    --> crates/uor-r4-training/src/stack_export.rs:1991:8
+     |
+1991 |     fn export_refuses_an_in_memory_transport_snap() {
+     |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: methods `context_scores` and `continuation_scores` are never used
+    --> crates/uor-r4-training/src/whole_path_device.rs:1230:19
+     |
+ 819 | impl WholePathCudaProducer {
+     | -------------------------- methods in this implementation
+...
+1230 |     pub(super) fn context_scores(
+     |                   ^^^^^^^^^^^^^^
+...
+1570 |     fn continuation_scores(&self, post: &Tensor, local: &Tensor) -> Result<Tensor> {
+     |        ^^^^^^^^^^^^^^^^^^^
+
+warning: `uor-r4-training` (lib test) generated 10 warnings (run `cargo fix --lib -p uor-r4-training --tests` to apply 1 suggestion)
+    Finished `release` profile [optimized] target(s) in 0.16s
+     Running unittests src/lib.rs (/root/build/target/release/deps/uor_r4_training-d92daac1975a872a)
+
+running 16 tests
+test geometric_stack::tests::native_starling_read_cuda_integration_control ... ok
+test starling_native::cuda_tests::credit_capture_passes_the_read_gradient_bit_exactly ... ok
+test starling_native::cuda_tests::k1_batch_and_head_isolation ... ok
+test starling_native::cuda_tests::k1_document_reset_isolates_documents ... ok
+test starling_native::cuda_tests::k1_refuses_non_finite_addresses ... ok
+test starling_native::cuda_tests::k1_ring_ties_neighbours_and_far_cells ... ok
+test starling_native::cuda_tests::k3a_active_hinge_known_answers ... ok
+test starling_native::cuda_tests::k3b_tie_and_empty_pair_set_give_zero ... ok
+test starling_native::cuda_tests::k3c_address_credit_off_home ... ok
+test starling_native::cuda_tests::k3c_composed_normalisation_gradient ... ok
+test starling_native::cuda_tests::k3d_home_or_unhelpful_gives_no_address_credit ... ok
+test starling_native::spec_tests::codebook_has_120_vertices_with_12_neighbours ... ok
+test starling_native::spec_tests::cpu_entry_is_refused_before_any_model_arithmetic ... ok
+test starling_native::spec_tests::kernel_and_module_carry_no_prohibited_operation_or_runtime_compiler ... ok
+test starling_native::spec_tests::reset_mask_marks_document_starts_only ... ok
+test starling_native::spec_tests::route_parses_and_refuses_bad_shapes ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 1004 filtered out; finished in 20.68s
+
+# exit=0 end=2026-10-13T16:03:10Z

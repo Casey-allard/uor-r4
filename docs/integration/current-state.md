@@ -1,3 +1,33 @@
+## 2026-10-13 — D29 module split and the end of NVRTC: every CUDA module compliant and built ahead of time (claude, #2028)
+
+Every CUDA kernel in `uor-r4-training` is now compiled by nvcc at build time (`build.rs`, `cuda` feature)
+and loaded by the driver. `cudarc`'s `nvrtc` feature is dropped. [Record](../labs/d29-module-split-2026-10-13/README.md).
+- **Module sizes:**
+  - geometric stack: 57 → 24 kernels;
+  - native context: 17 → 14;
+  - selected potential: 1.
+- **Excluded families:** softmax, sigmoid, softplus, GELU, exp/log normalisation and `wmma`/`mma` (33 stack
+  plus 3 native kernels). They are preserved verbatim, never compiled, in
+  `docs/history/d29-excluded-kernels-2026-10-13/`. A launch by name is refused loudly.
+- **Interlocks** (`tests/d29_compiled_modules.rs`, Rust):
+  - no banned token in any compiled source;
+  - no excluded kernel defined;
+  - no runtime compiler;
+  - with `cuda`, no `ex2.`/`lg2.`/`tanh.`/`mma.`/`wmma.` instruction in any built PTX.
+- **GPU check:** RTX 5090, nvcc 12.8. All five modules build, the interlocks pass 4/4 and the starling
+  controls pass 16/16 on the new stack module. GPU time ≈ $0.20.
+- **Not changed here:**
+  - `tests/cuda_stack_ops_parity.rs` does not compile on main (missing `rec_gates`), which breaks the pod
+    bootstrap's parity gate (DeepSeek);
+  - candle's own vendor kernels carry exp/tanh/GELU (PM to route under D29's vendor scope);
+  - the no-softmax baseline is not lowered (it has a Python-only updater).
+
+Line: no model line — compliance infrastructure · count unchanged · headlines unchanged.
+
+**Next:**
+- Codex re-qualifies the rung-0 path under D29.
+- DeepSeek fixes the bootstrap parity gate.
+- Then the rung-0b pivot card on #2032.
 ## 2026-10-13 — D30: hard substrate rules — no matmul/softmax anywhere (no wrappers), Rust only, GPU-only heavy compute (kimi, #2028)
 
 Owner direction, 13 Oct, posted to all labs ([comment 6149487903](https://github.com/UOR-Foundation/uor-r4/issues/2028#issuecomment-6149487903)) and filed as [D30](DECISIONS.md#d30--hard-substrate-rules-no-matmul-or-softmax-anywhere-no-wrapper-laundering-rust-only-gpu-only-heavy-compute-pod-kernel-builds): (1) **no matmul and no softmax anywhere** in model, training, serving, teachers, comparators, or tooling, with an explicit **anti-laundering** clause — a banned op behind a geometric name, wrapper, runtime-filled table, FFI, or vendor library is still banned; compliance is what compiles and executes, not what it is named; retired mechanisms are archived as evidence, never deleted; (2) **no Python, Rust only** across tools, harness, training, serving — the harness's Python delegation is a transitional shim; (3) **GPU-only for anything designable for GPU** — model compute on Vast pods (D26), **no big CPU runs locally**, laptop carries orchestration/harness/docs/small builds; (4) **pod kernel builds authorized** — AOT nvcc on the pod, prebuilt modules per the D29 amendment. Also merged: R11 ([#2340](https://github.com/UOR-Foundation/uor-r4/pull/2340), `a976522c3`) — `gh` CLI is the standard GitHub interface and rule changes come from the PM. Docs only: no model compute, no count reset.

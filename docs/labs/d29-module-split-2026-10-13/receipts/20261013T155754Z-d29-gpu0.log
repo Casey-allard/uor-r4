@@ -1,0 +1,431 @@
+# uor-pod job by=claude/d29 pod=vast-55769892 gpu=0 queued 2026-10-13T15:57:54Z
+# cmd: bash -c set -o pipefail; export HF_TOKEN_PATH=/root/.cache/huggingface/token; mkdir -p /workspace/st && hf download caseyallard/uor-r4-store toolchain/rust-1.97.1-x86_64.tar toolchain/cargo-registry.tar --repo-type dataset --local-dir /workspace/st 2>&1 | tail -1; tar -C /root -xf /workspace/st/toolchain/rust-1.97.1-x86_64.tar && mkdir -p /root/.cargo && tar -C /root/.cargo -xf /workspace/st/toolchain/cargo-registry.tar || echo TOOLCHAIN_FAIL; export RUSTUP_HOME=/root/.rustup CARGO_HOME=/root/.cargo PATH=/root/.cargo/bin:/usr/local/cuda/bin:$PATH LD_LIBRARY_PATH=/usr/local/cuda/lib64 CUDA_COMPUTE_CAP=120 CARGO_TARGET_DIR=/root/build/target CARGO_BUILD_JOBS=16; D=/root/build/src-8db5ccb4abfff45be6fb00f263b254fb58f7c7a9; cd $D && echo SOURCE $(git rev-parse HEAD) && nvcc --version | tail -1 && rustc +1.97.1 --version && cargo +1.97.1 test --release -p uor-r4-training --features cuda --test d29_compiled_modules --test cuda_stack_ops_parity --lib --no-run 2>&1 | grep -E 'Executable|^error|-->|nvcc failed|panicked' ; echo BUILD_DONE && cargo +1.97.1 test --release -p uor-r4-training --features cuda --test d29_compiled_modules -- --test-threads=1 && cargo +1.97.1 test --release -p uor-r4-training --features cuda --test cuda_stack_ops_parity -- test_cuda_kernel_modules_are_built_ahead_of_time && cargo +1.97.1 test --release -p uor-r4-training --features cuda --lib -- starling_native:: native_starling_read_cuda_integration_control --test-threads=1; echo QUALIFICATION_RC=$?
+# start 2026-10-13T15:57:54Z (holding /root/gpu0.lock)
+PS4='+ '
+  path: /workspace/st
+SOURCE 8db5ccb4abfff45be6fb00f263b254fb58f7c7a9
+Build cuda_12.8.r12.8/compiler.35583870_0
+rustc 1.97.1 (8bab26f4f 2026-07-14)
+   --> crates/uor-r4-integer/src/geometric_cue_carrier.rs:389:19
+   --> crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs:175:8
+    --> crates/uor-r4-core/src/native_geometric/learner/transferable_lexical.rs:1590:8
+    --> crates/uor-r4-training/src/geometric_source_realizer.rs:7322:5
+    --> crates/uor-r4-training/src/geometric_stack.rs:4290:8
+     --> crates/uor-r4-training/src/geometric_stack.rs:19329:8
+    --> crates/uor-r4-training/src/relation_compiler.rs:1282:4
+    --> crates/uor-r4-training/src/relation_compiler.rs:1303:4
+    --> crates/uor-r4-training/src/whole_path_device.rs:1230:19
+ --> crates/uor-r4-training/src/whole_path_device_ops.rs:6:8
+  --> crates/uor-r4-training/src/whole_path_device_ops.rs:61:15
+  --> crates/uor-r4-training/src/whole_path_device_ops.rs:72:8
+  --> crates/uor-r4-training/src/whole_path_device_ops.rs:80:8
+   --> crates/uor-r4-training/src/whole_path_device_ops.rs:225:15
+   --> crates/uor-r4-training/src/whole_path_device_ops.rs:229:15
+  --> crates/uor-r4-training/src/geometric_transport_state_credit.rs:45:5
+     --> crates/uor-r4-training/src/geometric_stack.rs:28653:5
+    --> crates/uor-r4-training/src/stack_export.rs:1967:5
+     --> crates/uor-r4-training/src/geometric_stack.rs:27376:17
+   --> crates/uor-r4-training/src/bin/relation-split-set.rs:214:5
+ --> crates/uor-r4-training/src/bin/prepare-simplewiki-tokens.rs:4:35
+     --> crates/uor-r4-training/src/geometric_stack.rs:28682:8
+    --> crates/uor-r4-training/src/stack_export.rs:1991:8
+  --> crates/uor-r4-training/src/bin/heldout-memory-panel.rs:43:5
+error[E0063]: missing field `rec_gates` in initializer of `StackConfig`
+    --> crates/uor-r4-training/tests/cuda_stack_ops_parity.rs:2248:5
+error[E0063]: missing field `rec_gates` in initializer of `StackConfig`
+    --> crates/uor-r4-training/tests/cuda_stack_ops_parity.rs:2429:18
+   --> crates/uor-r4-training/src/bin/disjoint-panel.rs:487:4
+error: could not compile `uor-r4-training` (test "cuda_stack_ops_parity") due to 2 previous errors
+BUILD_DONE
+warning: method `score_source_cue` is never used
+   --> crates/uor-r4-integer/src/geometric_cue_carrier.rs:389:19
+    |
+280 | impl<'a> NativeCueCarrier<'a> {
+    | ----------------------------- method in this implementation
+...
+389 |     pub(crate) fn score_source_cue(
+    |                   ^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `uor-r4-integer` (lib) generated 1 warning
+warning: method `position` is never used
+   --> crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs:175:8
+    |
+168 | impl ObservedSpan {
+    | ----------------- method in this implementation
+...
+175 |     fn position(&self) -> (u32, u32, usize) {
+    |        ^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `example` is never used
+    --> crates/uor-r4-core/src/native_geometric/learner/transferable_lexical.rs:1590:8
+     |
+1405 | impl TlTrainer {
+     | -------------- method in this implementation
+...
+1590 |     fn example(&self, q: &TlQuant, ex: &TlExample) -> TlGrads {
+     |        ^^^^^^^
+
+warning: `uor-r4-core` (lib) generated 2 warnings
+warning: fields `sources` and `response` are never read
+    --> crates/uor-r4-training/src/geometric_source_realizer.rs:7322:5
+     |
+7320 | struct ComposedCopyAssembly {
+     |        -------------------- fields in this struct
+7321 |     context: crate::geometric_context::ContextQ4Output,
+7322 |     sources: Vec<crate::geometric_context::ContextQ4Output>,
+     |     ^^^^^^^
+7323 |     response: Option<crate::geometric_context::ContextQ4Output>,
+     |     ^^^^^^^^
+     |
+     = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `geometric_read` is never used
+    --> crates/uor-r4-training/src/geometric_stack.rs:4290:8
+     |
+3475 | impl StackModel {
+     | --------------- method in this implementation
+...
+4290 |     fn geometric_read(
+     |        ^^^^^^^^^^^^^^
+
+warning: associated function `no_device_kernel` is never used
+     --> crates/uor-r4-training/src/geometric_stack.rs:19329:8
+      |
+19325 | impl MarginRank {
+      | --------------- associated function in this implementation
+...
+19329 |     fn no_device_kernel<T>(device: &str) -> candle_core::Result<T> {
+      |        ^^^^^^^^^^^^^^^^
+
+warning: function `recall_cue` is never used
+    --> crates/uor-r4-training/src/relation_compiler.rs:1282:4
+     |
+1282 | fn recall_cue(source: &str) -> bool {
+     |    ^^^^^^^^^^
+
+warning: function `phrase_words` is never used
+    --> crates/uor-r4-training/src/relation_compiler.rs:1303:4
+     |
+1303 | fn phrase_words(span_text: &str, phrase: &str) -> bool {
+     |    ^^^^^^^^^^^^
+
+warning: methods `context_scores` and `continuation_scores` are never used
+    --> crates/uor-r4-training/src/whole_path_device.rs:1230:19
+     |
+ 819 | impl WholePathCudaProducer {
+     | -------------------------- methods in this implementation
+...
+1230 |     pub(super) fn context_scores(
+     |                   ^^^^^^^^^^^^^^
+...
+1570 |     fn continuation_scores(&self, post: &Tensor, local: &Tensor) -> Result<Tensor> {
+     |        ^^^^^^^^^^^^^^^^^^^
+
+warning: struct `Cdf` is never constructed
+ --> crates/uor-r4-training/src/whole_path_device_ops.rs:6:8
+  |
+6 | struct Cdf;
+  |        ^^^
+
+warning: function `cdf` is never used
+  --> crates/uor-r4-training/src/whole_path_device_ops.rs:61:15
+   |
+61 | pub(super) fn cdf(probability: &Tensor) -> Result<Tensor> {
+   |               ^^^
+
+warning: struct `Aliases` is never constructed
+  --> crates/uor-r4-training/src/whole_path_device_ops.rs:72:8
+   |
+72 | struct Aliases {
+   |        ^^^^^^^
+
+warning: associated function `new` is never used
+  --> crates/uor-r4-training/src/whole_path_device_ops.rs:80:8
+   |
+79 | impl Aliases {
+   | ------------ associated function in this implementation
+80 |     fn new(vocab: usize, copy_ids: &[u32], sum: bool) -> Result<Self> {
+   |        ^^^
+
+warning: function `log_masses` is never used
+   --> crates/uor-r4-training/src/whole_path_device_ops.rs:225:15
+    |
+225 | pub(super) fn log_masses(scores: &Tensor, vocab: usize, copy_ids: &[u32]) -> Result<Tensor> {
+    |               ^^^^^^^^^^
+
+warning: function `native_masses` is never used
+   --> crates/uor-r4-training/src/whole_path_device_ops.rs:229:15
+    |
+229 | pub(super) fn native_masses(weights: &Tensor, vocab: usize, copy_ids: &[u32]) -> Result<Tensor> {
+    |               ^^^^^^^^^^^^^
+
+warning: variant `AmbientLeastSquaresControl` is never constructed
+  --> crates/uor-r4-training/src/geometric_transport_state_credit.rs:45:5
+   |
+42 | enum CreditMode {
+   |      ---------- variant in this enum
+...
+45 |     AmbientLeastSquaresControl,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `CreditMode` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+
+warning: `uor-r4-training` (lib) generated 13 warnings
+warning: field `question` is never read
+   --> crates/uor-r4-training/src/bin/relation-split-set.rs:214:5
+    |
+205 | struct Row {
+    |        --- field in this struct
+...
+214 |     question: String,
+    |     ^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `Write`
+ --> crates/uor-r4-training/src/bin/prepare-simplewiki-tokens.rs:4:35
+  |
+4 | use std::io::{BufRead, BufReader, Write};
+  |                                   ^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+   Compiling uor-r4-training v0.1.0 (/root/build/src-8db5ccb4abfff45be6fb00f263b254fb58f7c7a9/crates/uor-r4-training)
+warning: `uor-r4-training` (bin "relation-split-set") generated 1 warning
+warning: `uor-r4-training` (bin "prepare-simplewiki-tokens") generated 1 warning (run `cargo fix --bin "prepare-simplewiki-tokens" -p uor-r4-training` to apply 1 suggestion)
+warning: fields `id` and `competing_id` are never read
+  --> crates/uor-r4-training/src/bin/heldout-memory-panel.rs:43:5
+   |
+42 | struct Heldout {
+   |        ------- fields in this struct
+43 |     id: &'static str,
+   |     ^^
+...
+46 |     competing_id: &'static str,
+   |     ^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `contains_word` is never used
+   --> crates/uor-r4-training/src/bin/disjoint-panel.rs:487:4
+    |
+487 | fn contains_word(hay: &str, needle: &str) -> bool {
+    |    ^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `uor-r4-training` (bin "heldout-memory-panel") generated 1 warning
+warning: `uor-r4-training` (bin "disjoint-panel") generated 1 warning
+    Finished `release` profile [optimized] target(s) in 5.13s
+     Running tests/d29_compiled_modules.rs (/root/build/target/release/deps/d29_compiled_modules-10fb157b89c6ad3c)
+
+running 4 tests
+test built_ptx_modules_carry_no_banned_instruction ... ok
+test compiled_sources_carry_no_banned_operation ... ok
+test no_excluded_historical_kernel_is_compiled ... ok
+test nothing_in_the_crate_calls_a_runtime_compiler ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+warning: method `score_source_cue` is never used
+   --> crates/uor-r4-integer/src/geometric_cue_carrier.rs:389:19
+    |
+280 | impl<'a> NativeCueCarrier<'a> {
+    | ----------------------------- method in this implementation
+...
+389 |     pub(crate) fn score_source_cue(
+    |                   ^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `uor-r4-integer` (lib) generated 1 warning
+warning: method `position` is never used
+   --> crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs:175:8
+    |
+168 | impl ObservedSpan {
+    | ----------------- method in this implementation
+...
+175 |     fn position(&self) -> (u32, u32, usize) {
+    |        ^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `example` is never used
+    --> crates/uor-r4-core/src/native_geometric/learner/transferable_lexical.rs:1590:8
+     |
+1405 | impl TlTrainer {
+     | -------------- method in this implementation
+...
+1590 |     fn example(&self, q: &TlQuant, ex: &TlExample) -> TlGrads {
+     |        ^^^^^^^
+
+warning: `uor-r4-core` (lib) generated 2 warnings
+warning: fields `sources` and `response` are never read
+    --> crates/uor-r4-training/src/geometric_source_realizer.rs:7322:5
+     |
+7320 | struct ComposedCopyAssembly {
+     |        -------------------- fields in this struct
+7321 |     context: crate::geometric_context::ContextQ4Output,
+7322 |     sources: Vec<crate::geometric_context::ContextQ4Output>,
+     |     ^^^^^^^
+7323 |     response: Option<crate::geometric_context::ContextQ4Output>,
+     |     ^^^^^^^^
+     |
+     = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `geometric_read` is never used
+    --> crates/uor-r4-training/src/geometric_stack.rs:4290:8
+     |
+3475 | impl StackModel {
+     | --------------- method in this implementation
+...
+4290 |     fn geometric_read(
+     |        ^^^^^^^^^^^^^^
+
+warning: associated function `no_device_kernel` is never used
+     --> crates/uor-r4-training/src/geometric_stack.rs:19329:8
+      |
+19325 | impl MarginRank {
+      | --------------- associated function in this implementation
+...
+19329 |     fn no_device_kernel<T>(device: &str) -> candle_core::Result<T> {
+      |        ^^^^^^^^^^^^^^^^
+
+warning: function `recall_cue` is never used
+    --> crates/uor-r4-training/src/relation_compiler.rs:1282:4
+     |
+1282 | fn recall_cue(source: &str) -> bool {
+     |    ^^^^^^^^^^
+
+warning: function `phrase_words` is never used
+    --> crates/uor-r4-training/src/relation_compiler.rs:1303:4
+     |
+1303 | fn phrase_words(span_text: &str, phrase: &str) -> bool {
+     |    ^^^^^^^^^^^^
+
+warning: methods `context_scores` and `continuation_scores` are never used
+    --> crates/uor-r4-training/src/whole_path_device.rs:1230:19
+     |
+ 819 | impl WholePathCudaProducer {
+     | -------------------------- methods in this implementation
+...
+1230 |     pub(super) fn context_scores(
+     |                   ^^^^^^^^^^^^^^
+...
+1570 |     fn continuation_scores(&self, post: &Tensor, local: &Tensor) -> Result<Tensor> {
+     |        ^^^^^^^^^^^^^^^^^^^
+
+warning: struct `Cdf` is never constructed
+ --> crates/uor-r4-training/src/whole_path_device_ops.rs:6:8
+  |
+6 | struct Cdf;
+  |        ^^^
+
+warning: function `cdf` is never used
+  --> crates/uor-r4-training/src/whole_path_device_ops.rs:61:15
+   |
+61 | pub(super) fn cdf(probability: &Tensor) -> Result<Tensor> {
+   |               ^^^
+
+warning: struct `Aliases` is never constructed
+  --> crates/uor-r4-training/src/whole_path_device_ops.rs:72:8
+   |
+72 | struct Aliases {
+   |        ^^^^^^^
+
+warning: associated function `new` is never used
+  --> crates/uor-r4-training/src/whole_path_device_ops.rs:80:8
+   |
+79 | impl Aliases {
+   | ------------ associated function in this implementation
+80 |     fn new(vocab: usize, copy_ids: &[u32], sum: bool) -> Result<Self> {
+   |        ^^^
+
+warning: function `log_masses` is never used
+   --> crates/uor-r4-training/src/whole_path_device_ops.rs:225:15
+    |
+225 | pub(super) fn log_masses(scores: &Tensor, vocab: usize, copy_ids: &[u32]) -> Result<Tensor> {
+    |               ^^^^^^^^^^
+
+warning: function `native_masses` is never used
+   --> crates/uor-r4-training/src/whole_path_device_ops.rs:229:15
+    |
+229 | pub(super) fn native_masses(weights: &Tensor, vocab: usize, copy_ids: &[u32]) -> Result<Tensor> {
+    |               ^^^^^^^^^^^^^
+
+warning: variant `AmbientLeastSquaresControl` is never constructed
+  --> crates/uor-r4-training/src/geometric_transport_state_credit.rs:45:5
+   |
+42 | enum CreditMode {
+   |      ---------- variant in this enum
+...
+45 |     AmbientLeastSquaresControl,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `CreditMode` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+
+warning: `uor-r4-training` (lib) generated 13 warnings
+warning: function `contains_word` is never used
+   --> crates/uor-r4-training/src/bin/disjoint-panel.rs:487:4
+    |
+487 | fn contains_word(hay: &str, needle: &str) -> bool {
+    |    ^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+   Compiling uor-r4-training v0.1.0 (/root/build/src-8db5ccb4abfff45be6fb00f263b254fb58f7c7a9/crates/uor-r4-training)
+warning: `uor-r4-training` (bin "disjoint-panel") generated 1 warning
+warning: fields `id` and `competing_id` are never read
+  --> crates/uor-r4-training/src/bin/heldout-memory-panel.rs:43:5
+   |
+42 | struct Heldout {
+   |        ------- fields in this struct
+43 |     id: &'static str,
+   |     ^^
+...
+46 |     competing_id: &'static str,
+   |     ^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: field `question` is never read
+   --> crates/uor-r4-training/src/bin/relation-split-set.rs:214:5
+    |
+205 | struct Row {
+    |        --- field in this struct
+...
+214 |     question: String,
+    |     ^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `Write`
+ --> crates/uor-r4-training/src/bin/prepare-simplewiki-tokens.rs:4:35
+  |
+4 | use std::io::{BufRead, BufReader, Write};
+  |                                   ^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `uor-r4-training` (bin "heldout-memory-panel") generated 1 warning
+warning: `uor-r4-training` (bin "relation-split-set") generated 1 warning
+warning: `uor-r4-training` (bin "prepare-simplewiki-tokens") generated 1 warning (run `cargo fix --bin "prepare-simplewiki-tokens" -p uor-r4-training` to apply 1 suggestion)
+error[E0063]: missing field `rec_gates` in initializer of `StackConfig`
+    --> crates/uor-r4-training/tests/cuda_stack_ops_parity.rs:2248:5
+     |
+2248 |     StackConfig {
+     |     ^^^^^^^^^^^ missing `rec_gates`
+
+error[E0063]: missing field `rec_gates` in initializer of `StackConfig`
+    --> crates/uor-r4-training/tests/cuda_stack_ops_parity.rs:2429:18
+     |
+2429 |     let config = StackConfig {
+     |                  ^^^^^^^^^^^ missing `rec_gates`
+
+For more information about this error, try `rustc --explain E0063`.
+error: could not compile `uor-r4-training` (test "cuda_stack_ops_parity") due to 2 previous errors
+# exit=0 end=2026-10-13T16:00:52Z

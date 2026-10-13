@@ -6,8 +6,8 @@
 //! control. Without a CUDA device every device test prints that it was
 //! skipped and returns `Ok(())`, so a pass count proves nothing; set
 //! `UOR_REQUIRE_CUDA=1` to make a missing device fail every device test (use it
-//! on GPU hosts and in any lane that claims GPU results). The NVRTC compile
-//! test needs only the toolkit.
+//! on GPU hosts and in any lane that claims GPU results). The module check
+//! needs no device; nvcc built the PTX at compile time.
 
 /// A missing device: a failure under `UOR_REQUIRE_CUDA=1`, otherwise a
 /// printed skip (never a silent pass).
@@ -21,10 +21,11 @@ fn no_device(error: impl std::fmt::Display) -> uor_r4_training::Result<()> {
     Ok(())
 }
 
-/// The kernel source compiles with the installed NVRTC (no device needed).
+/// Both ahead-of-time stack modules were built by nvcc and carry kernels (no
+/// runtime compiler: the owner banned NVRTC on 13 October 2026).
 #[cfg(feature = "cuda")]
 #[test]
-fn test_cuda_kernels_compile_with_nvrtc() -> uor_r4_training::Result<()> {
+fn test_cuda_kernel_modules_are_built_ahead_of_time() -> uor_r4_training::Result<()> {
     uor_r4_training::cuda_stack_kernels::cuda::compile_check()?;
     Ok(())
 }
