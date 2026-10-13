@@ -53,7 +53,11 @@ pub const INVENTORY: &[(&str, &[&str])] = &[
     ("prlint", &[concat!("prlint.", "soft", "max", "_ban")]),
     (
         "status",
-        &["status.branch_claimed", "status.no_orphan_branches"],
+        &[
+            "status.branch_claimed",
+            "status.no_orphan_branches",
+            "status.heartbeat_receipts",
+        ],
     ),
     (
         "arena",
