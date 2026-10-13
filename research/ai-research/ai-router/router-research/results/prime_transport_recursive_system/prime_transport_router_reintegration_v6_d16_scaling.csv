@@ -1,0 +1,5 @@
+budget,delay,accuracy,vs_chance,delta_vs_prev_budget,delta_vs_v6serial_5000,delta_vs_v6opt_5000,route_entropy,transport_usage_fraction,attention_alpha0,temp_at_budget_end,note
+5000,16,0.421,0.171,n/a,0.002,-0.057,1.6044,0.9854,0.0625,0.1,v6_step0_injection_only;temp_schedule=v6opt_matched_first_5000_then_held;v6_serial_5000=0.419;v6_opt_5000=0.478
+7500,16,0.734,0.484,0.313,0.315,0.256,1.3098,1.0,0.0627,0.1,v6_step0_injection_only;temp_schedule=v6opt_matched_first_5000_then_held;v6_serial_5000=0.419;v6_opt_5000=0.478
+10000,16,1.0,0.75,0.266,0.581,0.522,1.1329,1.0,0.7143,0.1,v6_step0_injection_only;temp_schedule=v6opt_matched_first_5000_then_held;v6_serial_5000=0.419;v6_opt_5000=0.478
+15000,16,1.0,0.75,0.0,0.581,0.522,1.131,1.0,0.7366,0.1,v6_step0_injection_only;temp_schedule=v6opt_matched_first_5000_then_held;v6_serial_5000=0.419;v6_opt_5000=0.478

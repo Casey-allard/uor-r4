@@ -1,0 +1,9 @@
+D,max_steps,infer_mode,accuracy,solve_step,steps_per_sec,wall_time_s,forward_time_ms,speedup_hard_vs_soft,alpha0,transport_fraction,geom_mlp_agreement,note
+24,3000,soft,1.0,2500,103.1,29.1,4.603,2.008,0.8625,0.2511,0.1796,standard MLP + Gumbel-softmax inference
+24,3000,hard_geom,1.0,2500,103.1,29.1,2.292,2.008,0.8625,0.2511,0.1796,"k=1 angular proximity, no MLP, hard tau"
+32,5000,soft,1.0,3000,76.8,65.12,6.275,1.908,0.8837,0.4046,0.1704,standard MLP + Gumbel-softmax inference
+32,5000,hard_geom,1.0,3000,76.8,65.12,3.289,1.908,0.8837,0.4046,0.1704,"k=1 angular proximity, no MLP, hard tau"
+48,8000,soft,1.0,3500,49.8,160.49,8.864,1.777,0.891,0.4284,0.1969,standard MLP + Gumbel-softmax inference
+48,8000,hard_geom,1.0,3500,49.8,160.49,4.988,1.777,0.891,0.4284,0.1969,"k=1 angular proximity, no MLP, hard tau"
+64,12000,soft,1.0,4500,39.8,301.65,11.661,1.96,0.8979,0.9352,0.1051,standard MLP + Gumbel-softmax inference
+64,12000,hard_geom,1.0,4500,39.8,301.65,5.951,1.96,0.8979,0.9352,0.1051,"k=1 angular proximity, no MLP, hard tau"

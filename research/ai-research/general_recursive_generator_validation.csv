@@ -1,0 +1,10 @@
+tuplet,offsets,wheel_W,orbit_length_L,admissible_phases,exact_recursive_match,raw_word_bits,generator_bits_estimate,raw/generator_ratio,components
+twins,"[0, 2]",210,35,15,True,35,90,0.3888888888888889,B=90
+twins,"[0, 2]",2310,385,135,True,385,130,2.9615384615384617,B=90; U11=36; tau11_slope=4
+twins,"[0, 2]",30030,5005,1485,True,5005,178,28.117977528089888,B=90; U11=36; tau11_slope=4; U13=44; tau13_slope=4
+triplet_026,"[0, 2, 6]",210,35,8,True,35,48,0.7291666666666666,B=48
+triplet_026,"[0, 2, 6]",2310,385,64,True,385,84,4.583333333333333,B=48; U11=32; tau11_slope=4
+triplet_026,"[0, 2, 6]",30030,5005,640,True,5005,128,39.1015625,B=48; U11=32; tau11_slope=4; U13=40; tau13_slope=4
+quadruplet_0268,"[0, 2, 6, 8]",210,35,3,True,35,18,1.9444444444444444,B=18
+quadruplet_0268,"[0, 2, 6, 8]",2310,385,21,True,385,50,7.7,B=18; U11=28; tau11_slope=4
+quadruplet_0268,"[0, 2, 6, 8]",30030,5005,189,True,5005,90,55.611111111111114,B=18; U11=28; tau11_slope=4; U13=36; tau13_slope=4

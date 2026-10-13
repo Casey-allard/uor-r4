@@ -1,0 +1,159 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+
+\title{Referee Consolidated Report (Revised Draft): Remaining Proof \& Computation Blockers}
+\author{Reviewer - Referee:  Dr.\ Amir Rahnama}
+\date{January 28, 2026}
+
+\begin{document}
+\maketitle
+
+I reviewed the revised manuscript rigorously and here is my referee points:
+
+\section*{Executive summary}
+\begin{itemize}[leftmargin=*]
+\item \textbf{Improvement acknowledged.} The revised draft now explicitly admits that a finite Pick matrix does \emph{not} by itself imply the needed infinite positivity (tail issue) and repositions Pick as a corroboration rather than the core implication.
+\item \textbf{Main blockers remain.} As written, the manuscript still (i) claims that it suffices to certify a Schur bound for $\Theta_{\rm raw}$ on an \emph{open half-plane}, but (ii) the hybrid inputs provided certify only a \emph{finite rectangle} for $\Theta_{\rm proj}$ and an \emph{omitted} large-height estimate. In addition, I could \emph{not} regenerate the rectangle certificate on my Windows environment using the stated parameters; the run terminates with many unresolved boxes and $\lvert\Theta\rvert$ upper bounds far above $1$.
+\end{itemize}
+
+\section*{A. What I actually reproduced vs.\ what failed}
+\subsection*{A1. Pick artifacts (reproducibility looks plausible)}
+The revised paper references Pick artifacts (e.g.\ $N=16$ at $\sigma_0=0.599,0.6,0.7$). The logic of ``finite Pick is corroboration only'' is now consistent with standard Nevanlinna--Pick theory.
+
+\subsection*{A2. Rectangle artifact (regeneration failed on my machine)}
+On my Windows run, with the command line matching Appendix~A parameters
+(max\_boxes=500000, min widths $10^{-4}$ and $10^{-3}$, prec=260),
+the verifier ended with \texttt{ok=False} and \emph{many} failures of the form
+\texttt{theta\_not\_lt\_one\_min\_width}, concentrated near $(\sigma,t)\approx(0.69,18.4)$, with reported
+$\texttt{abs\_theta\_upper}\approx 1.75$.
+This directly conflicts with the shipped artifact quoted in the manuscript (which reports $\theta_{\rm hi}\approx 0.9999928763<1$ and \texttt{ok=true}).
+
+\textbf{Interpretation:} this is currently a \emph{reproducibility blocker} for Lemma~6 as an independent audit on my platform.
+I cannot tell (uncertain) whether the cause is (i) platform-dependent enclosure width (python-flint/ARB build differences),
+(ii) a parameter mismatch (including subtle resume/override behavior), or (iii) a genuine mathematical obstruction
+near those boxes. I have suggestions for what \emph{must} be checked is listed in \S D, that will be more efficient time complexity on your powerful machine. 
+
+\section*{B. Theoretical blockers in the revised manuscript (must be fixed)}
+\subsection*{B1. Logical mismatch: ``Schur on an open half-plane'' vs.\ what is certified}
+Earlier, the paper states that to prove Theorem~1 it suffices to certify a Schur bound for $\Theta_{\rm raw}$ on some open half-plane $\{\Re s>0.6-\varepsilon\}$.
+Later, Section~4 declares the Schur bound is ``discharged'' by \emph{(i)} a rectangle bound on
+$R^\ast=[0.6,0.7]\times[-20,20]$ for $\Theta_{\rm proj}$ and \emph{(ii)} large-height asymptotics.
+
+\textbf{Problem:} A rectangle bound plus a large-$|t|$ bound does \emph{not} by itself establish a Schur bound on the entire half-plane
+$\{\Re s>0.6-\varepsilon\}$, which is what is invoked to apply Corollary~5 on an unbounded domain.
+As written, the ``domain decomposition'' paragraph does not cover the region
+\[
+\{\, \sigma\ge 0.7,\ |t|\le 20\,\},
+\]
+which is a large part of the half-plane $\Re s\ge 0.6$.
+
+\textbf{Required fix (one of the following):}
+\begin{enumerate}[leftmargin=*]
+\item \textbf{Rewrite the implication chain.} Replace the half-plane Schur reduction by a patching argument that only needs
+``no poles of $J$'' on \emph{(i)} the compact kernel and \emph{(ii)} the complementary region, and present a fully rigorous analytic
+argument on \emph{both} complementary pieces (including $\sigma\ge 0.7,\ |t|\le 20$).
+\item \textbf{Or actually certify the needed half-plane Schur bound.} This would require a certified (or analytic) bound for $\Theta_{\rm raw}$
+for all $\Re s>0.599$, not merely on $\sigma\le 0.7$ and/or $|t|>20$.
+\end{enumerate}
+
+\subsection*{B2. ``Large-height asymptotics'' is currently not a proof}
+The revised draft contains an explicit placeholder citation for ``standard explicit bounds on $\zeta(s)$'' and states
+that details are omitted while the rectangle check is the primary certified content.
+This is not acceptable for a referee-proof claim unless the omitted estimate is made explicit:
+one needs a stated lemma with hypotheses, constants, and a fully referenced inequality chain proving
+$\lvert\Theta_{\rm raw}(s)\rvert<1$ for $|t|\ge 20$ and $\Re s\ge 0.6$.
+
+\textbf{Required fix:} Provide an explicit bound of the form
+\[
+\lvert \Theta_{\rm raw}(s)-\tfrac{1}{3}\rvert \le \eta(\sigma,t)\quad\Rightarrow\quad \lvert \Theta_{\rm raw}(s)\rvert<1,
+\]
+with a concrete numerical $\eta$ valid for $(\sigma,t)$ in the claimed tail region, together with citations to the exact
+$\zeta$-bounds used (including any constants).
+
+\subsection*{B3. Justification of the unbounded-domain step}
+The domain-decomposition paragraph asserts (paraphrasing) that rectangle coverage + tail coverage + $\Theta\to 1/3$ ``implies''
+$\lvert\Theta\rvert<1$ on the whole half-plane $\Re s\ge 0.6$.
+This implication is not immediate on an unbounded domain without an additional analytic principle
+(e.g.\ a Phragm\'en--Lindel\"of type argument on strips/half-planes, or a direct uniform estimate in $\sigma$).
+
+In order to refer to the right statements in manuscript, I provided a table in the following that shows what should be done in which statement/ratifacts. 
+
+\section*{C. Computationally-dependent statements and required artifacts}
+\begin{center}
+\begin{tabular}{@{}p{0.34\linewidth}p{0.60\linewidth}@{}}
+\toprule
+\textbf{Statement in manuscript} & \textbf{What must be audited / artifacts needed} \\
+\midrule
+Lemma 6 (Rectangle certification: $\sup_{R^\ast}|\Theta_{\rm proj}|<1$ and denominators nonvanishing) &
+\texttt{theta\_certify\_sigma06\_07\_t0\_20\_outer\_zeta\_proj.json} \\
+Proposition 8 (Finite Pick gap at $\sigma_0=0.599$, etc.) &
+\texttt{pick\_sigma0599\_raw\_zeta\_N16.json}, \texttt{pick\_sigma06\_raw\_zeta\_N16.json},
+\texttt{pick\_sigma07\_raw\_zeta\_N16.json} \\
+Table 1 (summary of certified fields) &
+Same artifacts as above, plus consistency checks against the table values \\
+Appendix A (audit manifest and commands) &
+\texttt{verify\_attachment\_arb.py} (script hash/version), plus environment pinning (python version and python-flint build) \\
+Large-height asymptotics (no artifact provided) &
+\textbf{Not an artifact issue:} this is a missing written analytic lemma + citations \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section*{D. What you should run on a powerful machine (and what to check)}
+\subsection*{D1. Fast audit (quick integrity check)}
+Verify that the shipped JSON fields match Table~1 and that the script hash/version matches the repo state.
+
+\subsection*{D2. Regeneration audit (recommended because my regen failed)}
+Run \emph{from scratch} (do not resume) on a Linux/macOS machine if possible (uncertain but likely reduces platform variance).
+
+\paragraph{Baseline command (matches Appendix A intent).}
+\begin{quote}\small\ttfamily
+python scripts/verify\_attachment\_arb.py --theta-certify \\
+\ \ --theta-time-limit 18000 --arith-gauge outer\_zeta\_proj --arith-P-cut 2000 \\
+\ \ --rect-sigma-min 0.6 --rect-sigma-max 0.7 --rect-t-min 0.0 --rect-t-max 20.0 \\
+\ \ --outer-mode midpoint --outer-P-cut 2000 --outer-T 50.0 --outer-n 2001 \\
+\ \ --theta-init-n-sigma 10 --theta-init-n-t 50 \\
+\ \ --theta-min-sigma-width 0.0001 --theta-min-t-width 0.001 \\
+\ \ --theta-max-boxes 500000 --prec 260 \\
+\ \ --theta-out run\_out/artifacts\_regen/theta\_certify\_sigma06\_07\_t0\_20\_outer\_zeta\_proj\_REGEN.json
+\end{quote}
+
+\paragraph{If baseline fails (my case): robust variant to try.}
+The goal is to shrink interval enclosures and allow more refinement:
+increase precision and allow more boxes / finer widths (expect longer run time on a strong machine).
+\begin{quote}\small\ttfamily
+python scripts/verify\_attachment\_arb.py --theta-certify \\
+\ \ --theta-time-limit 18000 --arith-gauge outer\_zeta\_proj --arith-P-cut 2000 \\
+\ \ --rect-sigma-min 0.6 --rect-sigma-max 0.7 --rect-t-min 0.0 --rect-t-max 20.0 \\
+\ \ --outer-mode rigorous --outer-P-cut 4000 --outer-T 80.0 --outer-n 4001 \\
+\ \ --theta-init-n-sigma 12 --theta-init-n-t 60 \\
+\ \ --theta-min-sigma-width 0.00005 --theta-min-t-width 0.0005 \\
+\ \ --theta-max-boxes 3000000 --prec 400 \\
+\ \ --theta-out run\_out/artifacts\_regen/theta\_certify\_sigma06\_07\_t0\_20\_outer\_zeta\_proj\_REGEN\_ROBUST.json
+\end{quote}
+
+\textbf{What to report back:}
+\begin{itemize}[leftmargin=*]
+\item Whether \texttt{results.ok} becomes \texttt{true}.
+\item The certified \texttt{theta\_hi} (must be $<1$).
+\item Whether the denominators checks (\texttt{min\_abs\_zeta\_lower}, \texttt{min\_abs\_O\_lower}) stay bounded away from $0$.
+\item If it still fails, capture 10 worst failing boxes (largest \texttt{abs\_theta\_upper}) to diagnose whether the issue is purely enclosure width or a deeper obstruction.
+\end{itemize}
+
+\subsection*{D3. Resume caution (important)}
+If you ever use \texttt{--theta-resume-in}, you must ensure \emph{all} rectangle and gauge parameters match the original run.
+Otherwise, defaults may silently change the certified region/gauge and produce an invalid ``resume'' artifact (uncertain in general, but I observed this behavior in practice).
+
+\section*{E. Summary}
+The revision correctly downgrades the Pick certificate to ``corroboration'' and removes reliance on an unproven
+``finite $\Rightarrow$ infinite'' tail step. However, two items still prevent referee-grade acceptance:
+\begin{enumerate}[leftmargin=*]
+\item The hybrid strategy must be rewritten to rigorously cover \emph{all} of $\Re s\ge 0.6$ (in particular $\sigma\ge 0.7$ with $|t|\le 20$), or else the claimed half-plane Schur reduction must be removed/replaced by a correct patching argument.
+\item The large-height asymptotics must be written as an explicit lemma with constants and citations (no placeholders), and the rectangle certificate must be independently regenerable (my Windows regeneration fails under the stated parameters).
+\end{enumerate}
+
+\end{document}

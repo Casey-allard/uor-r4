@@ -1,0 +1,514 @@
+\documentclass[11pt]{article}
+\input{riemann_common_preamble.tex}
+
+\title{Energy barriers and Carleson budgets\\for off-critical zeros of the Riemann zeta function}
+\author{Jonathan Washburn}
+\date{January 2, 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This paper develops effective near-field barriers against off-critical zeros of $\zeta(s)$ by comparing a quantized windowed phase cost to a scale-tracked Carleson energy budget.
+It yields an explicit protection height $T_{\rm safe}(\eta)$ such that any zero $\rho=\beta+i\gamma$ with $\tfrac12<\beta<0.6$ and $\eta=\beta-\tfrac12$ must satisfy $|\gamma|>T_{\rm safe}(\eta)$.
+\end{abstract}
+
+\section{Introduction}\label{sec:intro}
+
+The Riemann zeta function $\zeta(s)$ extends meromorphically to $\C$ with a simple pole at $s=1$.
+Its nontrivial zeros encode fine fluctuations of primes, and the Riemann Hypothesis asserts that all nontrivial zeros lie on the critical line $\Re s=\tfrac12$; see \cite{Titchmarsh,IK}.
+This paper isolates a complementary statement of \emph{effective} type: we derive an explicit height barrier against zeros that lie strictly to the right of the critical line but remain in the near strip
+\[
+  \tfrac12 < \Re s < 0.6.
+\]
+
+\subsection*{Effective statement (no all-heights claim)}
+Write a hypothetical off-critical zero as $\rho=\beta+i\gamma$ with $\tfrac12<\beta<0.6$ and set
+\[
+  \eta\ :=\ \beta-\tfrac12\in(0,0.1),
+  \qquad
+  T\ :=\ |\gamma|,
+  \qquad
+  \angles{T}\ :=\ \sqrt{1+T^2}.
+\]
+The main output is a computable \emph{protection height} $T_{\rm safe}(\eta)$ such that off-critical zeros at depth $\eta$ cannot occur below height $T_{\rm safe}(\eta)$.
+An explicit closed-form definition of $T_{\rm safe}(\eta)$ (in terms of the budget constants) is given in Definition~\ref{def:Tsafe}.
+
+\begin{theorem}[Effective near-field barrier]\label{thm:nearfield-barrier}
+There exists an explicit, computable function $\eta\mapsto T_{\rm safe}(\eta)$ on $(0,0.1)$ with the following property:
+if $\rho=\beta+i\gamma$ is a zero of $\zeta(s)$ with $\tfrac12<\beta<0.6$ and $\eta=\beta-\tfrac12$, then necessarily
+\[
+  |\gamma|\ >\ T_{\rm safe}(\eta).
+\]
+Equivalently, for each fixed $\eta\in(0,0.1)$, there are no zeros of $\zeta$ in the region
+\[
+  \Bigl\{\,s\in\C:\ \Re s>\tfrac12+\eta,\ \Re s<0.6,\ |\,\Im s\,|\le T_{\rm safe}(\eta)\Bigr\}.
+\]
+\end{theorem}
+
+\begin{remark}[Magnitude of the barrier]\label{rem:Tsafe-magnitude}
+The bound is extremely large.
+For example (with the specific window and constants used in this paper), one obtains
+$T_{\rm safe}(0.1)\approx 10^{74}$ and $T_{\rm safe}(0.01)\gtrsim 10^{8800}$.
+The point of Theorem~\ref{thm:nearfield-barrier} is therefore not that the resulting height is small, but that it is \emph{fully explicit} and arises from a clean analytic inequality.
+\end{remark}
+
+\subsection*{Why the result is effective: energy cost versus Carleson budget}
+The method is an energy comparison with two inputs:
+\begin{itemize}
+\item \textbf{Lower bound (quantized phase cost).}
+An off-critical zero forces a nontrivial amount of boundary phase winding for a normalized zeta-ratio.
+After localizing by a compactly supported window of width $L\sim 2\eta$, this produces a \emph{minimum} phase-mass cost
+\[
+  L_{\rm rec}\ =\ 4\arctan(2)\ \approx\ 4.428.
+\]
+\item \textbf{Upper bound (Carleson energy budget).}
+The same localized phase mass is bounded above by a Carleson-box energy constant for a harmonic extension.
+This Carleson budget naturally splits into:
+  \begin{itemize}
+  \item a \emph{prime-layer} contribution depending only on the local scale $L$, controlled unconditionally by explicit prime-tail bounds and harmonic-analysis estimates;
+  \item a \emph{zero-layer} contribution depending on the height $T$, whose dominant term is proportional to $L\log\angles{T}$ and comes from the Poisson balayage of critical-line zeros.
+  \end{itemize}
+\end{itemize}
+Since the zero-layer term grows with $T$, the conclusion is inherently height-dependent: the argument rules out an off-critical zero at depth $\eta$ only up to the point where the available Carleson budget can match the fixed vortex cost.
+This is the precise sense in which the barrier is \emph{effective} rather than \emph{uniform in height}.
+
+\subsection*{Context within the three-paper split}
+This paper is the ``near-field'' component of the split project.
+Paper~I provides an unconditional far-field zero-free region ($\Re s\ge 0.6$) by a certified bounded-real (Schur/Pick) argument.
+The present paper is logically independent of that certification: it supplies a separate, effective barrier mechanism in the remaining strip $\tfrac12<\Re s<0.6$.
+
+\subsection*{Roadmap}
+Section~\ref{sec:setup} fixes the windowing and phase conventions and defines the Carleson-box energy.
+Section~\ref{sec:trigger} proves the quantized phase-cost lower bound (the Blaschke trigger), and Section~\ref{sec:carleson-ub} records the CR--Green upper bound by box energy.
+Section~\ref{sec:tsafe} combines these into the barrier inequality and defines $T_{\rm safe}(\eta)$.
+Finally, Section~\ref{sec:budget} discharges the budget decomposition (primes + zeros), completing the effective near-field exclusion.
+
+\section{Setup: windowing, phase conventions, and Carleson energy}\label{sec:setup}
+
+This section fixes notation for the near-field barrier argument.
+The main objects are:
+(i) a compactly supported \emph{window} that localizes near the height of a hypothetical zero,
+(ii) a boundary \emph{phase} whose distributional derivative records the vortex created by an off-critical zero,
+and (iii) a \emph{Carleson box energy} that provides an upper budget for that localized phase mass.
+
+\subsection*{Half-plane, boundary parameterization, and off-critical zeros}
+We work on the right half-plane
+\[
+  \Omega\ :=\ \{\,s\in\C:\ \Re s>\tfrac12\,\},
+\]
+with boundary line $\partial\Omega=\{\,\tfrac12+it:\ t\in\R\,\}$.
+Write a hypothetical off-critical zero as $\rho=\beta+i\gamma$ with $\tfrac12<\beta<0.6$, and set
+\[
+  \eta:=\beta-\tfrac12\in(0,0.1),
+  \qquad
+  T:=|\gamma|.
+\]
+The natural near-field length scale associated to depth $\eta$ is
+\[
+  L:=2\eta,
+  \qquad
+  I_{\gamma,L}:=[\gamma-L,\gamma+L].
+\]
+
+\subsection*{Flat-top windows}
+Fix once and for all an even $C^\infty$ flat-top cutoff $\psi:\R\to[0,1]$ such that
+\[
+  \psi\equiv 1\ \text{ on }[-1,1],
+  \qquad
+  \operatorname{supp}\psi\subset[-2,2].
+\]
+For $L>0$ and $t_0\in\R$ define the rescaled window and its normalized version by
+\[
+  \psi_{L,t_0}(t):=\psi\!\left(\frac{t-t_0}{L}\right),
+  \qquad
+  \varphi_{L,t_0}(t):=\frac{1}{L}\,\psi\!\left(\frac{t-t_0}{L}\right),
+  \qquad
+  m_\psi:=\int_{\R}\psi(t)\,dt.
+\]
+Then $\int_{\R}\varphi_{L,t_0}(t)\,dt=m_\psi$, the support satisfies
+$\operatorname{supp}\varphi_{L,t_0}\subset[t_0-2L,t_0+2L]$, and $\varphi_{L,t_0}\equiv L^{-1}$ on $[t_0-L,t_0+L]$.
+We will test boundary distributions against $\psi_{L,\gamma}$ to localize at the zero’s height.
+
+\subsection*{Half-plane Blaschke factors and the phase-cost kernel}
+For $\rho=\tfrac12+\eta+i\gamma\in\Omega$ define the reflected point across $\partial\Omega$ by
+\[
+  \rho^\ast\ :=\ 1-\overline{\rho}\ =\ \tfrac12-\eta+i\gamma,
+\]
+and define the half-plane Blaschke (pole) factor
+\[
+  C_\rho(s)\ :=\ \frac{s-\rho^\ast}{s-\rho}.
+\]
+On the boundary $s=\tfrac12+it$ one has $|C_\rho(\tfrac12+it)|=1$ and a direct computation gives the distributional identity
+\[
+  \frac{d}{dt}\arg C_\rho\!\bigl(\tfrac12+it\bigr)
+  \ =\ \frac{2\eta}{(t-\gamma)^2+\eta^2}\ \ge\ 0.
+\]
+This is the basic \emph{vortex kernel}: it is nonnegative, concentrated on the scale $|t-\gamma|\lesssim \eta$, and integrates to $2\pi$.
+Windowing against $\psi_{2\eta,\gamma}$ yields the explicit lower bound
+\[
+  \int_{\R}\psi_{2\eta,\gamma}(t)\,\frac{2\eta}{(t-\gamma)^2+\eta^2}\,dt\ \ge\ 4\arctan(2)\ =:\ L_{\rm rec}.
+\]
+
+\subsection*{Phase convention and boundary phase mass}
+Let $\mathcal J$ be a meromorphic function on $\Omega$ such that any zero $\rho\in\Omega$ of $\zeta$ produces a pole of $\mathcal J$ at $\rho$ (for example, a normalized zeta-ratio).
+On the boundary $\partial\Omega$ we select a phase $w:\R\to\R$ so that the distribution $-w'$ is a \emph{nonnegative} boundary distribution and the contribution of a pole at $\rho$ contains the kernel from the Blaschke factor $C_\rho$ above.
+Concretely, one may take (where boundary values exist)
+\[
+  w(t)\ :=\ -\arg \mathcal J\!\bigl(\tfrac12+it\bigr),
+\]
+i.e.\ work with $\mathcal J^{-1}$ so that pole contributions enter $-w'$ with a positive sign.
+All phase identities in this paper are used only after testing against a smooth compactly supported window, so $-w'$ is interpreted distributionally.
+
+\subsection*{Carleson boxes and energy}
+Write points in $\Omega$ as $s=\sigma+it$ with $\sigma>\tfrac12$.
+For an interval $I\subset\R$ and an aperture parameter $\alpha\ge 1$, define the Carleson box above $I$ by
+\[
+  Q(\alpha I)\ :=\ I\times(0,\alpha|I|]\ =\ \{\,(\,t,\sigma-\tfrac12\,):\ t\in I,\ 0<\sigma-\tfrac12\le \alpha|I|\,\}.
+\]
+Let $U$ be a harmonic function on $\Omega$ (in the application, $U$ is a log-modulus potential associated to $\mathcal J$ on regions where $\mathcal J$ is holomorphic and nonvanishing).
+Define the associated (scale-invariant) energy measure
+\[
+  d\lambda\ :=\ |\nabla U(\sigma,t)|^2\,(\sigma-\tfrac12)\,dt\,d\sigma,
+\]
+and the box energy by $\lambda(Q(\alpha I))=\iint_{Q(\alpha I)}d\lambda$.
+The Carleson box-energy ratio at base interval $I$ is
+\[
+  \mathcal C_{\rm box}(U;I)\ :=\ \frac{1}{|I|}\,\lambda\bigl(Q(\alpha I)\bigr).
+\]
+At the near-field scale $L=2\eta$ we will apply this with $I=I_{\gamma,L}$.
+Later sections establish an explicit upper bound for $\mathcal C_{\rm box}(U;I_{\gamma,L})$ as a function of $L$ and $T=|\gamma|$, and combine it with the windowed lower bound coming from the Blaschke factor to obtain the effective barrier.
+
+\section{Phase-cost lower bound (Blaschke trigger)}\label{sec:trigger}
+
+This section proves the universal lower bound on localized phase mass forced by a single off-critical pole/zero.
+The estimate is independent of height $T=|\gamma|$ and depends on the depth $\eta$ only through the localization scale $L=2\eta$.
+
+\begin{lemma}[Blaschke trigger: quantized phase cost]\label{lem:blaschke-trigger}
+Let $\rho=\tfrac12+\eta+i\gamma\in\Omega$ with $\eta>0$ and set $L:=2\eta$.
+Assume $\mathcal J$ is meromorphic on $\Omega$ with a pole at $\rho$ and that its boundary phase is chosen as in Section~\ref{sec:setup} so that the distribution $-w'$ is nonnegative and contains the pole contribution associated to the half-plane Blaschke factor $C_\rho$.
+Then one has the windowed lower bound
+\begin{equation}\label{eq:blaschke-trigger}
+  \int_{\R}\psi_{L,\gamma}(t)\,(-w'(t))\,dt\ \ge\ L_{\rm rec},
+  \qquad
+  L_{\rm rec}:=4\arctan(2).
+\end{equation}
+\end{lemma}
+\begin{proof}
+On the boundary line $s=\tfrac12+it$, the pole factor $C_\rho$ satisfies
+\[
+  \frac{d}{dt}\arg C_\rho\!\bigl(\tfrac12+it\bigr)
+  \ =\ \frac{2\eta}{(t-\gamma)^2+\eta^2}\ \ge\ 0
+\]
+in distributions (Section~\ref{sec:setup}).
+By hypothesis, $-w'$ is a nonnegative distribution that dominates the pole contribution, hence
+\[
+  -w'(t)\ \ge\ \frac{2\eta}{(t-\gamma)^2+\eta^2}
+\]
+in the sense of distributions.
+Testing against the nonnegative window $\psi_{L,\gamma}$ gives
+\[
+  \int_{\R}\psi_{L,\gamma}(t)\,(-w'(t))\,dt
+  \ \ge\
+  \int_{\R}\psi_{L,\gamma}(t)\,\frac{2\eta}{(t-\gamma)^2+\eta^2}\,dt.
+\]
+Since $L=2\eta$ and $\psi_{2\eta,\gamma}\equiv 1$ on $[\gamma-2\eta,\gamma+2\eta]$, we obtain
+\[
+  \int_{\R}\psi_{2\eta,\gamma}(t)\,\frac{2\eta}{(t-\gamma)^2+\eta^2}\,dt
+  \ \ge\
+  \int_{\gamma-2\eta}^{\gamma+2\eta}\frac{2\eta}{(t-\gamma)^2+\eta^2}\,dt.
+\]
+With the change of variables $u=t-\gamma$, the last integral is explicit:
+\[
+  \int_{-2\eta}^{2\eta}\frac{2\eta}{u^2+\eta^2}\,du
+  \ =\ 4\arctan(2)\ =\ L_{\rm rec}.
+\]
+Combining these inequalities yields \eqref{eq:blaschke-trigger}.
+\end{proof}
+
+\begin{remark}[Why the trigger is ``quantized'']\label{rem:trigger-quantized}
+The constant $L_{\rm rec}=4\arctan(2)$ is universal: it comes from integrating a fixed fraction of the Poisson kernel associated to the pole at scale $L=2\eta$.
+In particular, it does not decay as $T\to\infty$.
+This height-independence is what makes an energy comparison possible: the lower bound stays fixed while the available Carleson budget varies with scale and height.
+\end{remark}
+
+\section{Carleson energy upper bound (CR--Green / box budget)}\label{sec:carleson-ub}
+
+This section records the analytic inequality that upper-bounds the same windowed phase mass from Section~\ref{sec:trigger} by a Carleson-box energy.
+Combined with Lemma~\ref{lem:blaschke-trigger}, it yields the core ``cost versus budget'' comparison behind the effective barrier.
+
+\subsection*{CR--Green window inequality}
+\begin{lemma}[CR--Green bound for windowed phase mass]\label{lem:cr-green-window}
+Fix an aperture $\alpha\ge 1$.
+There exists a constant $C(\psi)=C(\alpha,\psi)<\infty$ with the following property.
+Let $t_0\in\R$, $L>0$, and set the support interval
+\[
+  I^\ast\ :=\ [t_0-2L,\,t_0+2L].
+\]
+Assume $F$ is holomorphic and zero-free on the Carleson box $Q(\alpha I^\ast)$ and write
+\[
+  \log F\ =\ U+iV
+\]
+there, with $U,V$ harmonic and $V$ a harmonic conjugate of $U$.
+Define the boundary phase $w(t):=-V(\tfrac12+it)$ on $I^\ast$ (so that $-w'(t)=\partial_t V(\tfrac12+it)$ in distributions).
+Then
+\begin{equation}\label{eq:cr-green-window}
+  \int_{\R}\psi_{L,t_0}(t)\,(-w'(t))\,dt
+  \ \le\
+  C(\psi)\,
+  \Big(\iint_{Q(\alpha I^\ast)} |\nabla U(\sigma,t)|^2\,(\sigma-\tfrac12)\,dt\,d\sigma\Big)^{1/2}.
+\end{equation}
+\end{lemma}
+\begin{proof}
+Since $F$ is holomorphic and zero-free on $Q(\alpha I^\ast)$, the branch $\log F$ is holomorphic there.
+In particular $U$ and $V$ satisfy the Cauchy--Riemann relations on $Q(\alpha I^\ast)$, and on the boundary line $\Re s=\tfrac12$ we have (in distributions)
+$\partial_t V=\partial_\sigma U$.
+Let $\Psi_{L,t_0}$ denote the harmonic (Poisson) extension to $\Omega$ of the boundary function $\psi_{L,t_0}$.
+With $w(t)=-V(\tfrac12+it)$, we obtain
+\[
+  \int_{\R}\psi_{L,t_0}(t)\,(-w'(t))\,dt
+  \ =\ \int_{\R}\psi_{L,t_0}(t)\,\partial_\sigma U(\tfrac12+it)\,dt.
+\]
+Green's identity on the box $Q(\alpha I^\ast)$ (using that both $U$ and $\Psi_{L,t_0}$ are harmonic there, and that $\psi_{L,t_0}$ is supported in $I^\ast$) converts this boundary pairing into a Dirichlet pairing of the form
+\[
+  \int_{\R}\psi_{L,t_0}(t)\,\partial_\sigma U(\tfrac12+it)\,dt
+  \ =\ \iint_{Q(\alpha I^\ast)} \nabla U\cdot \nabla \Psi_{L,t_0}\,(\sigma-\tfrac12)\,dt\,d\sigma.
+\]
+Applying Cauchy--Schwarz gives
+\[
+  \int_{\R}\psi_{L,t_0}\,(-w')
+  \ \le\
+  \Big(\iint_{Q(\alpha I^\ast)} |\nabla U|^2\,(\sigma-\tfrac12)\Big)^{1/2}
+  \Big(\iint_{Q(\alpha I^\ast)} |\nabla \Psi_{L,t_0}|^2\,(\sigma-\tfrac12)\Big)^{1/2}.
+\]
+The second factor is scale-invariant under $(t,\sigma-\tfrac12)\mapsto (t_0+Lt,\,L(\sigma-\tfrac12))$, hence depends only on $\alpha$ and the fixed window profile $\psi$.
+Absorb it into $C(\psi)$ to obtain \eqref{eq:cr-green-window}.
+\end{proof}
+
+\subsection*{Carleson box formulation}
+Recall the Carleson ratio from Section~\ref{sec:setup}:
+\[
+  \mathcal C_{\rm box}(U;I^\ast)\ :=\ \frac{1}{|I^\ast|}\iint_{Q(\alpha I^\ast)} |\nabla U|^2\,(\sigma-\tfrac12)\,dt\,d\sigma.
+\]
+Since $|I^\ast|=4L$, the bound \eqref{eq:cr-green-window} can be rewritten as
+\begin{equation}\label{eq:cr-green-carleson}
+  \int_{\R}\psi_{L,t_0}(t)\,(-w'(t))\,dt
+  \ \le\
+  C(\psi)\,\sqrt{|I^\ast|\,\mathcal C_{\rm box}(U;I^\ast)}
+  \ =\ C(\psi)\,\sqrt{4L\,\mathcal C_{\rm box}(U;I^\ast)}.
+\end{equation}
+In Sections~\ref{sec:tsafe} and \ref{sec:budget} we estimate $\mathcal C_{\rm box}(U;I^\ast)$ for the particular $U$ arising from the zeta-ratio normalization, yielding a computable budget as a function of the near-field scale $L=2\eta$ and height $T=|t_0|$.
+
+\section{Energy barrier inequality and definition of \texorpdfstring{$T_{\rm safe}(\eta)$}{Tsafe(eta)}}\label{sec:tsafe}
+
+This section packages the near-field argument into a single inequality: any off-critical pole forces a fixed phase-cost (Section~\ref{sec:trigger}), while the available phase mass is bounded above by a Carleson energy budget (Section~\ref{sec:carleson-ub}).
+Solving the resulting inequality for height produces the explicit protection height $T_{\rm safe}(\eta)$.
+
+\subsection*{Barrier inequality: cost versus budget}
+\begin{proposition}[Energy barrier inequality]\label{prop:energy-barrier}
+Let $\rho=\tfrac12+\eta+i\gamma\in\Omega$ with $\eta\in(0,0.1)$ and set $L:=2\eta$ and $t_0:=\gamma$.
+Assume $\mathcal J$ has a pole at $\rho$, and let $w$ be the boundary phase chosen so that $-w'$ is nonnegative and contains the pole contribution (Section~\ref{sec:setup}).
+Let $I^\ast=[t_0-2L,t_0+2L]$ be the support interval of $\psi_{L,t_0}$.
+
+If the CR--Green estimate of Lemma~\ref{lem:cr-green-window} applies to a holomorphic/zero-free neutralization of $\mathcal J$ on $Q(\alpha I^\ast)$ with harmonic log-modulus $U$, then
+\begin{equation}\label{eq:barrier-ineq}
+  L\cdot \mathcal C_{\rm box}(U;I^\ast)\ \ge\ \frac{L_{\rm rec}^2}{4\,C(\psi)^2}.
+\end{equation}
+\end{proposition}
+\begin{proof}
+Apply Lemma~\ref{lem:blaschke-trigger} with $L=2\eta$ and $t_0=\gamma$ to get the lower bound
+\[
+  \int_{\R}\psi_{L,t_0}(t)\,(-w'(t))\,dt\ \ge\ L_{\rm rec}.
+\]
+Apply \eqref{eq:cr-green-carleson} to the (neutralized) holomorphic/zero-free object on $Q(\alpha I^\ast)$ to get the upper bound
+\[
+  \int_{\R}\psi_{L,t_0}(t)\,(-w'(t))\,dt\ \le\ C(\psi)\,\sqrt{4L\,\mathcal C_{\rm box}(U;I^\ast)}.
+\]
+Combining and squaring yields
+$L_{\rm rec}^2 \le 4C(\psi)^2\,L\,\mathcal C_{\rm box}(U;I^\ast)$, which is \eqref{eq:barrier-ineq}.
+\end{proof}
+
+\subsection*{Budget model and an explicit protection height}
+To turn \eqref{eq:barrier-ineq} into a height exclusion, one needs an explicit upper bound on the box ratio $\mathcal C_{\rm box}(U;I^\ast)$ in terms of the near-field scale $L$ and height $T:=|t_0|$.
+The guiding structure is a two-term budget:
+\begin{itemize}
+\item a \emph{prime-layer} term depending only on $L$ (height-independent);
+\item a \emph{zero-layer} term of size $\asymp L\log\angles{T}$ coming from the density of critical-line zeros.
+\end{itemize}
+
+\begin{proposition}[Carleson budget upper bound]\label{prop:budget-bound}
+There exist explicit constants $K_0,K_1,\kappa>0$ such that for all $L\in(0,0.2]$ and all heights $T\ge 0$,
+\begin{equation}\label{eq:budget}
+  \mathcal C_{\rm box}(U;I^\ast)\ \le\
+  \underbrace{K_0+K_1\log\!\Bigl(1+\frac{\kappa}{L}\Bigr)}_{\mathcal C_{\rm prime}(L)}
+  \ +\
+  \underbrace{\bigl(1+L\log\angles{T}\bigr)}_{\mathcal C_{\rm zeros}(L,T)},
+\end{equation}
+where $I^\ast=[t_0-2L,t_0+2L]$ with $|t_0|=T$ and $U$ is the harmonic potential of the neutralized object on $Q(\alpha I^\ast)$.
+\end{proposition}
+\noindent The proof of Proposition~\ref{prop:budget-bound} is given in Section~\ref{sec:budget}.
+
+\begin{definition}[Protection height]\label{def:Tsafe}
+Let $\eta\in(0,0.1)$ and set $L:=2\eta$.
+Define
+\begin{equation}\label{eq:Tsafe-def-p2}
+  T_{\rm safe}(\eta)\ :=\
+  \sqrt{\exp\!\left(2\,\frac{\tfrac{L_{\rm rec}^2}{4\,C(\psi)^2}\;-\;L\big(\mathcal C_{\rm prime}(L)+1\big)}{L^2}\right)\ -\ 1},
+  \qquad
+  \mathcal C_{\rm prime}(L):=K_0+K_1\log\!\Bigl(1+\frac{\kappa}{L}\Bigr),
+\end{equation}
+with the convention that $T_{\rm safe}(\eta)=0$ if the quantity inside the square root is $\le 0$.
+\end{definition}
+
+\begin{theorem}[Effective near-field exclusion from the budget bound]\label{thm:nearfield-from-budget}
+Assume Proposition~\ref{prop:budget-bound}.
+If $\rho=\beta+i\gamma$ is a zero of $\zeta(s)$ with $\tfrac12<\beta<0.6$ and $\eta=\beta-\tfrac12$, then
+\[
+  |\gamma|\ >\ T_{\rm safe}(\eta),
+\]
+where $T_{\rm safe}$ is defined in \eqref{eq:Tsafe-def-p2}.
+\end{theorem}
+\begin{proof}
+Let $\rho=\tfrac12+\eta+i\gamma$ be such a zero and set $L:=2\eta$ and $T:=|\gamma|$.
+The barrier inequality \eqref{eq:barrier-ineq} gives
+\[
+  \frac{L_{\rm rec}^2}{4\,C(\psi)^2}
+  \ \le\
+  L\cdot \mathcal C_{\rm box}(U;I^\ast).
+\]
+Applying the budget bound \eqref{eq:budget} yields
+\[
+  \frac{L_{\rm rec}^2}{4\,C(\psi)^2}
+  \ \le\
+  L\Big(\mathcal C_{\rm prime}(L)+1\Big)\ +\ L^2\log\angles{T}.
+\]
+Rearranging gives a lower bound on $\log\angles{T}$, and the definition \eqref{eq:Tsafe-def-p2} is exactly the threshold obtained by solving
+$\angles{T}=\exp(\cdots)$ for $T$.
+\end{proof}
+
+\begin{remark}[Why the result is height-limited]\label{rem:height-limited}
+The prime-layer term $\mathcal C_{\rm prime}(L)$ is height-independent and grows only logarithmically as $L\downarrow 0$.
+The obstruction to an all-heights near-field exclusion is the term $L^2\log\angles{T}$: as $T\to\infty$ it eventually dominates at fixed $L$, so the inequality can no longer contradict the existence of a pole.
+This is precisely why the present method produces a computable \emph{effective} height bound rather than a uniform zero-free strip.
+\end{remark}
+
+\section{Discharging the budget bound: primes + zeros}\label{sec:budget}
+
+This section justifies Proposition~\ref{prop:budget-bound} by decomposing the Carleson energy into two contributions:
+\begin{itemize}
+\item a \textbf{prime-layer term} controlled unconditionally and depending only on the scale $L$;
+\item a \textbf{zero-layer term} coming from the density of critical-line zeros near height $T$.
+\end{itemize}
+Only standard inputs are used: Mertens-type prime bounds and the Riemann--von Mangoldt zero count; see \cite{MV,Titchmarsh}.
+
+\subsection*{A bookkeeping inequality for sums of potentials}
+In applications, the potential $U$ is built (after local neutralization to ensure harmonicity) as a sum of simpler harmonic potentials.
+We record a crude but useful estimate.
+
+\begin{lemma}[Energy subadditivity up to constants]\label{lem:energy-subadd}
+Let $U_1,U_2$ be harmonic on $Q(\alpha I^\ast)$ and set $U=U_1+U_2$.
+Then
+\[
+  \mathcal C_{\rm box}(U;I^\ast)\ \le\ 2\,\mathcal C_{\rm box}(U_1;I^\ast)\ +\ 2\,\mathcal C_{\rm box}(U_2;I^\ast).
+\]
+\end{lemma}
+\begin{proof}
+Use $|\nabla(U_1+U_2)|^2\le 2|\nabla U_1|^2+2|\nabla U_2|^2$ pointwise and integrate over $Q(\alpha I^\ast)$.
+\end{proof}
+
+\subsection*{Prime-layer bound (scale-tracked)}
+The prime-layer term is height-independent and grows only logarithmically as $L\downarrow 0$.
+We isolate it as a standalone bound.
+
+\begin{proposition}[Prime-layer Carleson bound]\label{prop:prime-layer}
+There exist absolute constants $K_0,K_1,\kappa>0$ such that for every $L\in(0,0.2]$ and every $t_0\in\R$,
+the prime-layer contribution satisfies
+\[
+  \mathcal C_{\rm prime}(L)\ \le\ K_0\ +\ K_1\log\!\Bigl(1+\frac{\kappa}{L}\Bigr),
+\]
+where $\mathcal C_{\rm prime}(L)$ denotes the Carleson ratio associated to the prime-controlled part of $U$ on $Q(\alpha I^\ast)$.
+\end{proposition}
+\begin{proof}
+We indicate the standard bookkeeping behind this bound.
+At scale $L$, the prime-controlled part of the potential $U$ is built from a windowed prime-frequency superposition; after expanding its Dirichlet energy on $Q(\alpha I^\ast)$, one obtains a diagonal term (a weighted $\ell^2$ sum over primes) plus an off-diagonal term (a discrete Hilbert-form sum over prime pairs).
+
+The diagonal term produces the logarithmic dependence $\log(1+\kappa/L)$ by elementary summation together with scale invariance of the box and Mertens-type bounds (see \cite[Ch.~1]{MV}).
+The off-diagonal term is controlled by the Montgomery--Vaughan Hilbert inequality (see \cite[Ch.~9]{MV}), giving at most a constant multiple of the diagonal contribution.
+Collecting these estimates and absorbing prime tails into $K_0$ yields the stated bound.
+\end{proof}
+
+\subsection*{Zero-layer bound (balayage / zero counting)}
+The height dependence enters through the density of zeros on the critical line.
+
+\begin{proposition}[Zero-layer Carleson bound]\label{prop:zero-layer}
+There exists an absolute constant $C>0$ such that for every $L\in(0,0.2]$ and every $t_0\in\R$ (set $T:=|t_0|$),
+the zero-layer contribution satisfies
+\[
+  \mathcal C_{\rm zeros}(L,T)\ \le\ C\Bigl(1+L\log\angles{T}\Bigr).
+\]
+\end{proposition}
+\begin{proof}
+On $Q(\alpha I^\ast)$ one neutralizes the zeros of $\zeta$ (equivalently $\xi$) in a slightly enlarged box by dividing by the corresponding finite product of half-plane Blaschke factors.
+The removed factors contribute explicitly and positively to the phase derivative $-w'$; the remaining (neutralized) log-modulus is harmonic on the box.
+Thus the zero-layer bookkeeping reduces to counting how many critical-line zeros lie at heights comparable to $T$ within an interval of length comparable to $L$.
+
+By the Riemann--von Mangoldt formula (see \cite[Thm.~9.3]{Titchmarsh}), the number of critical-line ordinates in such an interval satisfies
+\[
+  N(T+O(L)) - N(T-O(L))\ \ll\ 1 + L\log\angles{T}.
+\]
+Each such zero contributes a uniformly bounded amount to the Carleson ratio at scale $L$ (depending only on the fixed aperture), because the Dirichlet energy of a single half-plane Blaschke factor over $Q(\alpha I^\ast)$ is $O(|I^\ast|)\asymp L$.
+After dividing by $|I^\ast|\asymp L$ in the definition of $\mathcal C_{\rm box}$, this yields an $O(1)$ contribution per zero, and hence the stated bound.
+\end{proof}
+
+\subsection*{Proof of Proposition~\ref{prop:budget-bound}}
+\begin{proof}[Proof of Proposition~\ref{prop:budget-bound}]
+Decompose the (neutralized) potential $U$ on $Q(\alpha I^\ast)$ into a prime-controlled part plus a zero-layer part.
+Applying Lemma~\ref{lem:energy-subadd} and absorbing absolute constants into $K_0,K_1$ and the leading ``$+1$'' term gives
+\[
+  \mathcal C_{\rm box}(U;I^\ast)\ \le\ \mathcal C_{\rm prime}(L)\ +\ \mathcal C_{\rm zeros}(L,T).
+\]
+Now apply Proposition~\ref{prop:prime-layer} and Proposition~\ref{prop:zero-layer} to obtain \eqref{eq:budget}.
+\end{proof}
+
+\section*{Conclusion and limitations (effective status)}
+
+The argument in this paper is a deterministic energy comparison.
+An off-critical zero at depth $\eta$ forces a \emph{quantized} windowed phase cost (the Blaschke trigger, Lemma~\ref{lem:blaschke-trigger}), while the same windowed phase mass is bounded above by a Carleson energy budget via a CR--Green inequality (Lemma~\ref{lem:cr-green-window}).
+This produces the barrier inequality (Proposition~\ref{prop:energy-barrier}), and with the explicit two-term budget (Proposition~\ref{prop:budget-bound}) yields an explicit protection height $T_{\rm safe}(\eta)$ (Definition~\ref{def:Tsafe}) excluding off-critical zeros below that height (Theorem~\ref{thm:nearfield-from-budget}).
+
+\paragraph{What is proved.}
+For each fixed $\eta\in(0,0.1)$ the method yields a fully explicit height threshold $T_{\rm safe}(\eta)$ such that no zeros of $\zeta(s)$ can occur in
+\[
+  \Bigl\{\,s\in\C:\ \tfrac12+\eta<\Re s<0.6,\ |\,\Im s\,|\le T_{\rm safe}(\eta)\Bigr\}.
+\]
+All inputs used to define $T_{\rm safe}$ are classical (prime tail bounds, harmonic analysis on the half-plane, and the Riemann--von Mangoldt formula).
+
+\paragraph{What is \emph{not} proved.}
+This paper does \emph{not} prove a zero-free near-field strip uniformly for all heights, and it does \emph{not} prove the Riemann Hypothesis.
+The conclusion is explicitly height-limited.
+
+\paragraph{The single obstruction to an all-heights near-field exclusion.}
+The obstruction is transparent in the budget bound \eqref{eq:budget}: the prime-layer term is height-independent, but the zeros term contains the growth
+\[
+  \mathcal C_{\rm zeros}(L,T)\ \asymp\ 1+L\log\angles{T}.
+\]
+After inserting $L=2\eta$ into the barrier inequality, this produces the factor $L^2\log\angles{T}$ that eventually dominates as $T\to\infty$ (Remark~\ref{rem:height-limited}).
+Any route to an all-heights near-field result within this framework would therefore require a substantially stronger input controlling the zeros contribution uniformly in $T$.
+
+\section*{Statements and Declarations}
+
+\paragraph{Competing interests.}
+The author declares no competing interests.
+
+\paragraph{Data and materials availability.}
+This paper contains no new computational artifacts beyond the repository materials used in the unconditional far-field certification (Paper~I of this series).
+All files needed to compile this manuscript are included in the repository.
+
+\paragraph{Reproducibility.}
+All analytic arguments are intended to be reproducible from the stated lemmas and cited sources.
+When combined with the certified far-field audit of Paper~I, the series provides a fully auditable record of the unconditional \(\Re s\ge 0.6\) step and the effective near-field barrier mechanism.
+
+\input{riemann_bibliography.tex}
+\end{document}
+
+

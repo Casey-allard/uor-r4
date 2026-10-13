@@ -1,0 +1,446 @@
+{
+  "event_gate_mode": "soft_error",
+  "event_gate_tau": 0.002,
+  "event_gate_threshold": 0.063,
+  "experiment_id": "inc0153_event_corr_repar_screen_poincare",
+  "graph_mode": "poincare_4d",
+  "routes": [
+    {
+      "correlation_error_signal": {
+        "error_mean": {
+          "mean": 0.06328070433531417,
+          "std": 0.0,
+          "values": [
+            0.06328070433531417
+          ]
+        },
+        "error_std": {
+          "mean": 0.0018586432768833401,
+          "std": 0.0,
+          "values": [
+            0.0018586432768833401
+          ]
+        },
+        "gate_active_frac": {
+          "mean": 0.7942708333333334,
+          "std": 0.0,
+          "values": [
+            0.7942708333333334
+          ]
+        },
+        "gate_mean": {
+          "mean": 0.5505396431344732,
+          "std": 0.0,
+          "values": [
+            0.5505396431344732
+          ]
+        },
+        "gate_std": {
+          "mean": 0.17222261527965593,
+          "std": 0.0,
+          "values": [
+            0.17222261527965593
+          ]
+        },
+        "highfreq_residual_mean": {
+          "mean": 0.045982517264081514,
+          "std": 0.0,
+          "values": [
+            0.045982517264081514
+          ]
+        },
+        "highfreq_residual_std": {
+          "mean": 0.1433744055051556,
+          "std": 0.0,
+          "values": [
+            0.1433744055051556
+          ]
+        },
+        "highfreq_vs_gate_pearson": {
+          "mean": -0.46052584426925136,
+          "std": 0.0,
+          "values": [
+            -0.46052584426925136
+          ]
+        },
+        "highfreq_vs_gate_spearman": {
+          "mean": -0.10297272896815977,
+          "std": 0.0,
+          "values": [
+            -0.10297272896815977
+          ]
+        },
+        "roughness_mean": {
+          "mean": 0.045030880192827326,
+          "std": 0.0,
+          "values": [
+            0.045030880192827326
+          ]
+        },
+        "roughness_std": {
+          "mean": 0.14520128499129253,
+          "std": 0.0,
+          "values": [
+            0.14520128499129253
+          ]
+        },
+        "roughness_vs_error_pearson": {
+          "mean": -0.007349728395192382,
+          "std": 0.0,
+          "values": [
+            -0.007349728395192382
+          ]
+        },
+        "roughness_vs_error_spearman": {
+          "mean": -0.04272341561832423,
+          "std": 0.0,
+          "values": [
+            -0.04272341561832423
+          ]
+        },
+        "roughness_vs_gate_pearson": {
+          "mean": -0.016493480876973082,
+          "std": 0.0,
+          "values": [
+            -0.016493480876973082
+          ]
+        },
+        "roughness_vs_gate_spearman": {
+          "mean": -0.04272341561832423,
+          "std": 0.0,
+          "values": [
+            -0.04272341561832423
+          ]
+        }
+      },
+      "correlation_margin_signal": {
+        "error_mean": {
+          "mean": 0.06328070433531417,
+          "std": 0.0,
+          "values": [
+            0.06328070433531417
+          ]
+        },
+        "error_std": {
+          "mean": 0.0018586432768833401,
+          "std": 0.0,
+          "values": [
+            0.0018586432768833401
+          ]
+        },
+        "gate_active_frac": {
+          "mean": 0.7942708333333334,
+          "std": 0.0,
+          "values": [
+            0.7942708333333334
+          ]
+        },
+        "gate_mean": {
+          "mean": 0.5505396431344732,
+          "std": 0.0,
+          "values": [
+            0.5505396431344732
+          ]
+        },
+        "gate_std": {
+          "mean": 0.17222261527965593,
+          "std": 0.0,
+          "values": [
+            0.17222261527965593
+          ]
+        },
+        "highfreq_residual_mean": {
+          "mean": 0.032403812500293824,
+          "std": 0.0,
+          "values": [
+            0.032403812500293824
+          ]
+        },
+        "highfreq_residual_std": {
+          "mean": 0.032503902569503806,
+          "std": 0.0,
+          "values": [
+            0.032503902569503806
+          ]
+        },
+        "highfreq_vs_gate_pearson": {
+          "mean": -0.4632650007121222,
+          "std": 0.0,
+          "values": [
+            -0.4632650007121222
+          ]
+        },
+        "highfreq_vs_gate_spearman": {
+          "mean": -0.050547836628123836,
+          "std": 0.0,
+          "values": [
+            -0.050547836628123836
+          ]
+        },
+        "roughness_mean": {
+          "mean": 0.0022814808721203575,
+          "std": 0.0,
+          "values": [
+            0.0022814808721203575
+          ]
+        },
+        "roughness_std": {
+          "mean": 0.005897759245863076,
+          "std": 0.0,
+          "values": [
+            0.005897759245863076
+          ]
+        },
+        "roughness_vs_error_pearson": {
+          "mean": 0.15697262862833902,
+          "std": 0.0,
+          "values": [
+            0.15697262862833902
+          ]
+        },
+        "roughness_vs_error_spearman": {
+          "mean": 0.5285754552236276,
+          "std": 0.0,
+          "values": [
+            0.5285754552236276
+          ]
+        },
+        "roughness_vs_gate_pearson": {
+          "mean": 0.24953184007043344,
+          "std": 0.0,
+          "values": [
+            0.24953184007043344
+          ]
+        },
+        "roughness_vs_gate_spearman": {
+          "mean": 0.5285754552236276,
+          "std": 0.0,
+          "values": [
+            0.5285754552236276
+          ]
+        }
+      },
+      "route_id": "HOPF_BASE_K75"
+    },
+    {
+      "correlation_error_signal": {
+        "error_mean": {
+          "mean": 0.06318187263797286,
+          "std": 0.0,
+          "values": [
+            0.06318187263797286
+          ]
+        },
+        "error_std": {
+          "mean": 0.0019210065668391764,
+          "std": 0.0,
+          "values": [
+            0.0019210065668391764
+          ]
+        },
+        "gate_active_frac": {
+          "mean": 0.7734375,
+          "std": 0.0,
+          "values": [
+            0.7734375
+          ]
+        },
+        "gate_mean": {
+          "mean": 0.5413426219246223,
+          "std": 0.0,
+          "values": [
+            0.5413426219246223
+          ]
+        },
+        "gate_std": {
+          "mean": 0.1657602133083681,
+          "std": 0.0,
+          "values": [
+            0.1657602133083681
+          ]
+        },
+        "highfreq_residual_mean": {
+          "mean": 0.08004725819953083,
+          "std": 0.0,
+          "values": [
+            0.08004725819953083
+          ]
+        },
+        "highfreq_residual_std": {
+          "mean": 0.1703562417197384,
+          "std": 0.0,
+          "values": [
+            0.1703562417197384
+          ]
+        },
+        "highfreq_vs_gate_pearson": {
+          "mean": -0.6003314165981437,
+          "std": 0.0,
+          "values": [
+            -0.6003314165981437
+          ]
+        },
+        "highfreq_vs_gate_spearman": {
+          "mean": -0.21178770641890746,
+          "std": 0.0,
+          "values": [
+            -0.21178770641890746
+          ]
+        },
+        "roughness_mean": {
+          "mean": 0.060982557539464764,
+          "std": 0.0,
+          "values": [
+            0.060982557539464764
+          ]
+        },
+        "roughness_std": {
+          "mean": 0.1567126661965688,
+          "std": 0.0,
+          "values": [
+            0.1567126661965688
+          ]
+        },
+        "roughness_vs_error_pearson": {
+          "mean": 0.04451892372961653,
+          "std": 0.0,
+          "values": [
+            0.04451892372961653
+          ]
+        },
+        "roughness_vs_error_spearman": {
+          "mean": -0.03259087518225899,
+          "std": 0.0,
+          "values": [
+            -0.03259087518225899
+          ]
+        },
+        "roughness_vs_gate_pearson": {
+          "mean": 0.026582711825681875,
+          "std": 0.0,
+          "values": [
+            0.026582711825681875
+          ]
+        },
+        "roughness_vs_gate_spearman": {
+          "mean": -0.03259087518225899,
+          "std": 0.0,
+          "values": [
+            -0.03259087518225899
+          ]
+        }
+      },
+      "correlation_margin_signal": {
+        "error_mean": {
+          "mean": 0.06318187263797286,
+          "std": 0.0,
+          "values": [
+            0.06318187263797286
+          ]
+        },
+        "error_std": {
+          "mean": 0.0019210065668391764,
+          "std": 0.0,
+          "values": [
+            0.0019210065668391764
+          ]
+        },
+        "gate_active_frac": {
+          "mean": 0.7734375,
+          "std": 0.0,
+          "values": [
+            0.7734375
+          ]
+        },
+        "gate_mean": {
+          "mean": 0.5413426219246223,
+          "std": 0.0,
+          "values": [
+            0.5413426219246223
+          ]
+        },
+        "gate_std": {
+          "mean": 0.1657602133083681,
+          "std": 0.0,
+          "values": [
+            0.1657602133083681
+          ]
+        },
+        "highfreq_residual_mean": {
+          "mean": 0.03116720322822412,
+          "std": 0.0,
+          "values": [
+            0.03116720322822412
+          ]
+        },
+        "highfreq_residual_std": {
+          "mean": 0.03209614229954683,
+          "std": 0.0,
+          "values": [
+            0.03209614229954683
+          ]
+        },
+        "highfreq_vs_gate_pearson": {
+          "mean": -0.4628144673179869,
+          "std": 0.0,
+          "values": [
+            -0.4628144673179869
+          ]
+        },
+        "highfreq_vs_gate_spearman": {
+          "mean": -0.11955066800040691,
+          "std": 0.0,
+          "values": [
+            -0.11955066800040691
+          ]
+        },
+        "roughness_mean": {
+          "mean": 0.0021828701374587405,
+          "std": 0.0,
+          "values": [
+            0.0021828701374587405
+          ]
+        },
+        "roughness_std": {
+          "mean": 0.005574529206101718,
+          "std": 0.0,
+          "values": [
+            0.005574529206101718
+          ]
+        },
+        "roughness_vs_error_pearson": {
+          "mean": 0.03306909809200545,
+          "std": 0.0,
+          "values": [
+            0.03306909809200545
+          ]
+        },
+        "roughness_vs_error_spearman": {
+          "mean": 0.4681209945407073,
+          "std": 0.0,
+          "values": [
+            0.4681209945407073
+          ]
+        },
+        "roughness_vs_gate_pearson": {
+          "mean": 0.16805207700094865,
+          "std": 0.0,
+          "values": [
+            0.16805207700094865
+          ]
+        },
+        "roughness_vs_gate_spearman": {
+          "mean": 0.4681209945407073,
+          "std": 0.0,
+          "values": [
+            0.4681209945407073
+          ]
+        }
+      },
+      "route_id": "HOPF_TRANS_K75_L0"
+    }
+  ],
+  "seeds": [
+    0
+  ]
+}

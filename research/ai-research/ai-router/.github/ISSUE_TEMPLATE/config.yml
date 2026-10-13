@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Router Research Tracking Guide
+    url: https://example.invalid/router-research-local-tracking
+    about: Use the local issue registry in router-research/docs/program/ISSUE_REGISTRY.md when GitHub is not the source of truth.

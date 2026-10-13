@@ -1,0 +1,9 @@
+variant,label,corridor_width,n_trials,acc_mean,acc_std,acc_min,route_entropy,transport_frac,corridor_size,failure,any_degraded
+exact_k1,k=1 exact nearest-neighbor (deterministic),0.35,1,1.0,0.0,1.0,1.3555,2.8236,nan,False,False
+top2_random,top-2 uniform random,0.35,10,1.0,0.0,1.0,1.5958,2.4704,nan,False,False
+top3_random,top-3 uniform random,0.35,10,1.0,0.0,1.0,1.6313,2.1565,nan,False,False
+top4_random,top-4 uniform random,0.35,10,1.0,0.0,1.0,1.6592,1.8808,nan,False,False
+fixed_op_0,fixed operator 0 (negative control),0.35,1,1.0,0.0,1.0,0.0,1.7737,nan,False,False
+corridor_random,corridor random (ang_sim >= max - 0.35),0.35,10,1.0,0.0,1.0,1.3977,2.7758,1.3748,False,False
+corridor_tight,corridor tight (ang_sim >= max - 0.1),0.1,10,1.0,0.0,1.0,1.3612,2.8223,1.1017,False,False
+unrestricted_rand,uniform random over all 6 (negative control),0.35,10,1.0,0.0,1.0,1.6798,1.2567,nan,False,False

@@ -1,0 +1,25 @@
+{
+  "attempts": [
+    {
+      "detail": "download_failed",
+      "kind": "wikitext2",
+      "status": "fail"
+    },
+    {
+      "detail": "ptb_github_raw",
+      "kind": "ptb",
+      "status": "ok"
+    }
+  ],
+  "dataset_used": "ptb",
+  "source": {
+    "test": "data/lm_proxy/raw/ptb/ptb.test.txt",
+    "train": "data/lm_proxy/raw/ptb/ptb.train.txt",
+    "valid": "data/lm_proxy/raw/ptb/ptb.valid.txt"
+  },
+  "source_detail": "ptb_github_raw",
+  "test_tokens": 82430,
+  "train_tokens": 929589,
+  "valid_tokens": 73760,
+  "vocab_size": 10002
+}

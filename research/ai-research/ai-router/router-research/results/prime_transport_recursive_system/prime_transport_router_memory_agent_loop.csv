@@ -1,0 +1,4 @@
+bundle_id,trace_source,entity_count,route_reuse_fraction,query_hit_fraction_on_reuse,per_entity_retrieval_accuracy,shared_ledger_retrieval_accuracy,action_correctness,joint_control_loop_correctness,promoted_query_fraction_on_reuse,promotion_step_fraction,effective_joint_state_resolution_fraction,route_decision_instability
+visible_threshold_tight_density_matched_rows.csv:bundle0,visible_threshold_tight_density_matched_rows.csv,3,0.7402597402597403,1.0,1.0,1.0,0.39826839826839827,0.17218543046357615,0.21052631578947367,0.18181818181818182,0.6777271293827585,0.0
+visible_threshold_second_tight_density_matched_rows.csv:bundle0,visible_threshold_second_tight_density_matched_rows.csv,3,0.942057942057942,1.0,1.0,1.0,0.7968031968031968,0.6852898095835949,0.7663485330505478,0.7372627372627373,0.7489660538248109,0.0
+ALL,ALL,3.0,0.8411588411588411,1.0,1.0,1.0,0.5975357975357976,0.4287376200235855,0.48843742442001076,0.4595404595404595,0.7133465916037847,0.0

@@ -1,0 +1,9 @@
+state_name,selected_as_s_min,mean_membership_purity_fraction,mean_split_partition_purity_fraction,mean_combined_capture_fraction_of_spin,mean_label_ratio_to_spin,interpretation
+chart_exact_address_(b_phi_r),no,1.0,1.0,1.0,7.273714418110126,exact address; not a compression
+b_only,no,0.22016036299598135,0.22016036299598135,0.0,0.1570915619389587,too weak as predictive state
+next_return_gap,yes,1.0,0.69033629362971,0.7502981320146836,0.6121906310452204,smallest genuine compressed residual candidate
+prev_next_gap_pair,no,1.0,0.7699750264223661,0.8118207348148488,1.539815778208287,comparison candidate
+return_gap_seq_2,no,1.0,0.9496106636229231,0.9675504681489275,1.7124951811424987,comparison candidate
+return_gap_seq_3,no,1.0,0.9602369022363723,0.973799550914556,2.9235293321401783,comparison candidate
+transition_memory_3,no,0.8721478521478522,0.4989653636572511,0.11687144795266546,0.4059643848549572,comparison candidate
+full_spin_predictive_state,no,1.0,1.0,1.0,1.0,reference predictive partition

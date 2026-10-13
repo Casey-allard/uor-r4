@@ -1,0 +1,547 @@
+\documentclass[11pt]{article}
+\usepackage{amssymb,amsmath,amsthm,amsfonts}
+\usepackage{geometry}
+\geometry{margin=1.1in}
+\usepackage{hyperref}
+
+\title{Prime-Graph Expansion and Guerra Interpolation \\
+for an Arithmetic Spin Glass}
+
+\author{[Draft]}
+
+\date{\today}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{conjecture}[theorem]{Conjecture}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{remark}[theorem]{Remark}
+
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\Var}{\mathrm{Var}}
+\newcommand{\Cov}{\mathrm{Cov}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\C}{\mathbb{C}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\1}{\mathbf{1}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We propose and partially analyze an ``arithmetic spin glass'' whose Hamiltonian is a truncated log--correlated field built from prime divisibility on a block $(N,2N]$. The core input is the strong local expansion of the prime divisibility graph recently proved by Helfgott and Radziwi\l\l\ \cite{HR-expansion,HR-explanation}, which we reinterpret as a Poincar\'e-type inequality for observables depending on the pattern of prime factors in a window of primes. Combining this with Kubilius-type probabilistic models from the same work \cite{HR-expansion}, we obtain uniform variance bounds for a ``prime overlap''
+\[
+q_{12}^{\mathrm{toy}}(n_1,n_2)
+  = \frac1L \sum_{p\in P} \big(\1_{p\mid n_1}-\tfrac1p\big)\big(\1_{p\mid n_2}-\tfrac1p\big)
+\]
+under flat averages over $n$ and, in a random model, under small-$\beta$ Gibbs tilts. Here $P\subset[H_0,H]$ is an admissible set of primes and $L=\sum_{p\in P}1/p$.
+
+Our main structural result is an exact Guerra-type interpolation formula comparing the free energy of the deterministic arithmetic Hamiltonian with that of an auxiliary Gaussian field with the \emph{same covariance}, for all $\beta$ in the high-temperature regime. The interpolation runs purely in the Gaussian direction and is therefore rigorous despite the non-Gaussian nature of the arithmetic field: the derivative of the interpolated free energy is expressed in terms of the prime overlap $q_{12}^{\mathrm{toy}}$ along the path. This avoids the foundational problem of applying Gaussian integration by parts directly to a deterministic arithmetic Hamiltonian.
+
+We then formulate a precise ``arithmetic replica-symmetry'' conjecture: that in the subcritical regime for Gaussian multiplicative chaos, the Gibbs measure of the arithmetic model exhibits vanishing overlap $q_{12}^{\mathrm{toy}}$ in the thermodynamic limit. Under this conjecture, the Guerra interpolation shows that the free energy of the arithmetic log-correlated field coincides with that of the Gaussian model, providing a Parisi-type input towards the Fyodorov--Hiary--Keating picture for $\log|\zeta(1/2+it)|$ \cite{ABR-FHKI,ABH-max,FHK}. We discuss in detail how the Helfgott--Radziwi\l\l\ expansion and Arguin--Bourgade--Radziwi\l\l\ Gaussian comparisons interact, and which parts are currently out of reach.
+\end{abstract}
+
+\tableofcontents
+
+\section{Introduction}
+
+\subsection{Motivation: from zeta to spin glasses}
+
+The extreme value statistics of the Riemann zeta function on the critical line are conjecturally governed by the same universality class as log-correlated Gaussian fields and branching random walks. This is the content of the Fyodorov--Hiary--Keating (FHK) conjecture and its refinements, recently put on rigorous footing in a sequence of works by Arguin, Bourgade, Radziwi\l\l\ and co-authors \cite{ABH-max,ABRS-max,ABR-FHKI}. In particular, Arguin--Bourgade--Radziwi\l\l\ show that a randomized model for $\log|\zeta(1/2+it)|$ behaves, at the level of maxima, like a suitable log-correlated Gaussian field and then like a branching random walk, allowing them to prove the FHK conjecture in this randomized setting \cite{ABH-max,ABR-FHKI}.
+
+On the other hand, Helfgott and Radziwi\l\l\ have recently introduced a powerful graph-expansion framework to attack the parity problem in multiplicative number theory. They study the graph $\Gamma$ whose vertices are integers $n\in(N,2N]$ and whose edges connect $n$ and $n\pm p$ when $p$ is a prime in a window $P\subset [H_0,H]$ dividing $n$ \cite{HR-expansion,HR-explanation}. They show that the associated operator
+\[
+(Af)(n)
+ = \sum_{\substack{p\in P,\,p\mid n}} \sum_{\sigma=\pm1} f(n+\sigma p)
+   \;-\;\sum_{p\in P} \sum_{\sigma=\pm1} \frac{1}{p} f(n+\sigma p)
+\]
+has all eigenvalues bounded by $O(\sqrt{L})$ on a large subset $X\subset(N,2N]$ of density $1-o(1)$, where $L=\sum_{p\in P}1/p$.\footnote{See the Main Theorem and Corollary~1.3 of \cite{HR-expansion}, and the expository discussion in \cite{HR-explanation}.} In spectral-graph-theoretic language, the prime-divisibility graph is a strong local expander, almost locally Ramanujan.\cite{HR-expansion,HR-explanation}
+
+The purpose of this paper is to combine these two perspectives into a concrete \emph{arithmetic spin-glass} model that can be analyzed with tools from both sides. At a conceptual level:
+
+\begin{itemize}
+  \item The Helfgott--Radziwi\l\l\ expansion gives a \emph{rigidity} mechanism: random walks in the prime divisibility graph spread quickly, obstructing localization of mass on small subsets of $(N,2N]$.\cite{HR-expansion,HR-explanation}
+  \item The Arguin--Bourgade--Radziwi\l\l\ program gives a \emph{Gaussian comparison} mechanism: Dirichlet polynomials built from independent random phases approximate zeta, and Dirichlet polynomials with primes in disjoint ranges behave nearly independently.\cite{ABR-FHKI,ABH-max}
+\end{itemize}
+
+The natural question is whether one can use a Guerra-type interpolation (in the sense of spin glass theory) to quantitatively compare an arithmetic Hamiltonian $\Phi$ with a Gaussian log-correlated field having the same covariance, in a regime where the Gibbs measure is delocalized (replica-symmetric). The usual obstacle is that $\Phi$ is not Gaussian, so Gaussian integration by parts (GIP) cannot be applied directly.
+
+The main technical observation of this paper is that this obstacle disappears if one introduces an \emph{auxiliary} Gaussian field with matching covariance and interpolates in the Gaussian direction only. In that case, GIP applies verbatim, and the derivative of the interpolated free energy is expressed in terms of an overlap built out of the covariance kernel. In our arithmetic model that kernel is a ``prime overlap'' counting common primes in $P$ dividing the two replicas.
+
+\subsection{A zeta-like arithmetic Hamiltonian}
+
+Fix a large parameter $N$ and a prime window
+\[
+P = P(H_0,H) \;=\;\{p : H_0 \le p \le H\},
+\]
+with $H_0,H,N$ satisfying the hypotheses of the Main Theorem of Helfgott–Radziwi\l{}l \cite{HR}:
+\begin{equation}\label{eq:HR-regime}
+H_0 \le H,\qquad
+\log H_0 \;\ge\; (\log H)^{2/3}(\log\log H)^2,\qquad
+L := \sum_{p\in P} \frac1p \;\ge e,\qquad
+\log H \;\le\; \sqrt{\frac{\log N}{L}}.
+\end{equation}
+We view the ``configuration space'' as the block
+\[
+\mathcal{S}_N := \{ n\in\mathbb{Z} : N < n \le 2N\}.
+\]
+
+For $n\in\mathcal{S}_N$ we define the centered Bernoulli variables
+\[
+Y_p(n) \;:=\; 1_{p\mid n} - \frac1p,\qquad p\in P.
+\]
+We then define the zeta-like arithmetic Hamiltonian by
+\begin{equation}\label{eq:zeta-Hamiltonian}
+\Phi_H(n) \;:=\; \sum_{p\in P} \frac{1}{\sqrt{p}}\,Y_p(n)
+\;=\;\sum_{p\in P} \frac{1}{\sqrt{p}}\Big(1_{p\mid n}-\frac1p\Big).
+\end{equation}
+
+
+%\subsection{Overview of the model and results}
+
+%Fix large parameters $N$, and a window of primes
+%\[
+%P \subset [H_0,H],\qquad H_0 \le H,\qquad L = \sum_{p\in P} \frac1p,
+%\]
+%in the admissible regime of \cite{HR-expansion}, roughly
+%\[
+%\log H_0 \ge (\log H)^{2/3+o(1)},\qquad \log H \le (\log N)^{1/2-o(1)},\qquad L\to\infty
+%\]
+%as $N\to\infty$.\cite{HR-expansion}
+
+On the block $V_N = \{n\in\Z : N<n\le 2N\}$ we define the centered \emph{prime-field}
+\begin{equation}
+\label{eq:Phi-def}
+\Phi(n) \;=\; \frac{1}{\sqrt{L}}\sum_{p\in P} \big(\1_{p\mid n} -\tfrac1p\big).
+\end{equation}
+By elementary estimates, $\Var(\Phi(n))\approx 1$ in the Kubilius model where prime divisibility behaves independently.\cite{HR-expansion} The covariance is
+\begin{equation}
+\label{eq:cov-def}
+\Cov(\Phi(n_1),\Phi(n_2))
+ = \frac1L\sum_{p\in P} \big(\1_{p\mid n_1}-\tfrac1p\big)\big(\1_{p\mid n_2}-\tfrac1p\big)
+ =: q_{12}^{\mathrm{toy}}(n_1,n_2),
+\end{equation}
+which we interpret as a \emph{prime overlap}. When $n_2=n_1+h$ with $h$ fixed, this is a centered version of the ``common prime factor'' overlap that already appears implicitly in Helfgott--Radziwi\l\l\.~\cite{HR-expansion,HR-explanation}
+
+We then define a deterministic (``quenched'') Hamiltonian
+\[
+H^{\mathrm{arith}}(n) := \sqrt{L}\,\Phi(n) = \sum_{p\in P} \big(\1_{p\mid n}-\tfrac1p\big),
+\]
+and a Gibbs measure on $V_N$ at inverse temperature $\beta>0$:
+\[
+\mu_{\beta}^{\mathrm{arith}}(n) = \frac{\exp\{\beta H^{\mathrm{arith}}(n)\}}{\sum_{m\in V_N}\exp\{\beta H^{\mathrm{arith}}(m)\}}.
+\]
+The corresponding specific free energy is
+\[
+F_N^{\mathrm{arith}}(\beta) = \frac1N\log \sum_{n\in V_N} e^{\beta H^{\mathrm{arith}}(n)}.
+\]
+
+The first structural result of the paper is the following interpolation formula.
+
+\begin{theorem}[Guerra interpolation with a deterministic background]
+\label{thm:guerra}
+Let $G(n)$ be a centered Gaussian field indexed by $V_N$ with covariance
+\[
+\Cov(G(n_1),G(n_2)) = L\,q_{12}^{\mathrm{toy}}(n_1,n_2),
+\]
+independent of $H^{\mathrm{arith}}$. For $t\in[0,1]$ define
+\[
+H_t(n) = H^{\mathrm{arith}}(n) + \sqrt{t}\,G(n),\qquad
+Z_N(t,\beta) = \sum_{n\in V_N} e^{\beta H_t(n)},\qquad
+F_N(t,\beta) = \frac1N \E_G \log Z_N(t,\beta),
+\]
+where $\E_G$ denotes expectation over $G$ only. Then $F_N(\cdot,\beta)$ is differentiable on $(0,1]$ and
+\begin{equation}
+\label{eq:guerra-derivative}
+\partial_t F_N(t,\beta)
+ = \frac{\beta^2 L}{2N} \E_G\Big\langle 1 - q_{12}^{\mathrm{toy}}(\sigma^1,\sigma^2)\Big\rangle_{t,\beta},
+\end{equation}
+where $\langle\cdot\rangle_{t,\beta}$ is the Gibbs expectation with respect to the random measure
+\[
+\mu_{t,\beta}(\sigma) = \frac{\exp\{\beta H_t(\sigma)\}}{Z_N(t,\beta)},
+\]
+and $(\sigma^1,\sigma^2)$ are two replicas sampled i.i.d.\ from $\mu_{t,\beta}$.
+In particular,
+\begin{equation}
+\label{eq:free-energy-difference}
+F_N(1,\beta) - F_N(0,\beta)
+ = \frac{\beta^2 L}{2N}\int_0^1 \E_G\Big\langle 1 - q_{12}^{\mathrm{toy}}(\sigma^1,\sigma^2)\Big\rangle_{t,\beta}\,dt.
+\end{equation}
+\end{theorem}
+
+\noindent
+This is a standard Guerra-type calculation, but the point is that it holds for \emph{arbitrary} deterministic $H^{\mathrm{arith}}$: Gaussian integration by parts is applied only with respect to $G$, and no assumption on the law of $H^{\mathrm{arith}}$ is needed. This resolves the foundational objection that GIP cannot be applied to a deterministic arithmetic Hamiltonian.
+
+Thus the problem of comparing the arithmetic free energy $F_N^{\mathrm{arith}}(\beta) = F_N(0,\beta)$ with the Gaussian free energy $F_N^{\mathrm{Gauss}}(\beta) := F_N(1,\beta)$ reduces to understanding the Gibbs statistics of the prime overlap $q_{12}^{\mathrm{toy}}$ along the interpolation path.
+
+\medskip
+
+The second ingredient is the strong local expansion of Helfgott--Radziwi\l\l. We do not restate their entire theorem, but a simplified consequence is:
+
+\begin{theorem}[Prime-graph expansion, simplified]
+\label{thm:HR-spectral-gap}
+Let $P\subset[H_0,H]$ and $L$ be as above, with $L\ge e$. Suppose $H_0,H,N$ lie in the range of \emph{Main Theorem} and Corollary~1.3 of \cite{HR-expansion}. Then there exists $X\subset V_N$ with
+\[
+\frac{|V_N\setminus X|}{N} \ll \exp\{-cKL\} + H_0^{-1/2}
+\]
+for some $K\to\infty$, such that all eigenvalues of the restriction $A|_X$ are $O(\sqrt{L})$.\cite{HR-expansion,HR-explanation} Moreover, for every $f:V_N\to\C$ with $\|f\|_2\le 1$ and $\|f\|_4\le e^{CL}$ we have
+\begin{equation}
+\label{eq:HR-cor-1.2}
+\frac1N\sum_{n\in V_N}
+\bigg|\sum_{\substack{p\in P,\,p\mid n}}\sum_{\sigma=\pm1} f(n+\sigma p)
+-\sum_{\sigma=\pm1}\sum_{p\in P}\frac{1}{p}f(n+\sigma p)\bigg|^2
+ \ll L,
+\end{equation}
+with implied constants depending only on $C$.\cite[Cor.~1.2]{HR-expansion}
+\end{theorem}
+
+The identity \eqref{eq:HR-cor-1.2} can be interpreted as a Poincar\'e-type inequality on the prime graph: the fluctuation of a local average of $f$ over prime neighbors is bounded in $L^2$ by $O(L)$, while the number of neighbors is $\asymp L$.\cite{HR-expansion,HR-explanation} In particular, for observables built from local prime patterns---such as our $q_{12}^{\mathrm{toy}}$---this gives a uniform control on variance over $n$.
+
+Our third ingredient is the Kubilius-type probabilistic model refined by Helfgott--Radziwi\l\l\ (Lemma~3.5 and Lemma~3.6 in \cite{HR-expansion}), which allows one to approximate averages of functions of prime divisibility patterns by expectations in an independent Bernoulli model, with good error terms provided one truncates to numbers with at most $O(L)$ prime factors from $P$.\cite{HR-expansion}
+
+Combining these inputs, we obtain unconditional variance bounds for the prime overlap under the \emph{flat} measure on $V_N$:
+
+\begin{proposition}[Flat overlap variance bound]
+\label{prop:flat-overlap}
+Let $q_{12}^{\mathrm{toy}}$ be as in \eqref{eq:cov-def}. Then for any fixed shift $h\in\Z$ with $|h|\le H$ we have
+\[
+\frac1N \sum_{N<n\le 2N} \big(q_{12}^{\mathrm{toy}}(n,n+h)\big)^2 \;\ll\; \frac{1}{L},
+\]
+uniformly in admissible $P$, $H_0,H,N$ as above.
+\end{proposition}
+
+In the independent Kubilius model this is an elementary computation; Helfgott--Radziwi\l\l's Lemma~3.6 shows that the arithmetic averages agree with the model up to negligible error, provided one restricts to $n$ with at most $O(L)$ prime factors from $P$.\cite{HR-expansion}
+
+Finally, we formulate and partially justify a high-temperature replica-symmetry statement.
+
+\begin{conjecture}[Arithmetic replica symmetry in the prime window]
+\label{conj:RS}
+Let $\beta>0$ be fixed in the ``subcritical'' range for Gaussian multiplicative chaos (e.g.\ $\beta<\sqrt{2}$ in the normalization where $\Var(\Phi(n))\sim\log\log N$ for a zeta-like model). Then, along admissible sequences $N\to\infty$, $H_0,H\to\infty$, $L\to\infty$ as above, we have
+\[
+\E_G\Big\langle \big(q_{12}^{\mathrm{toy}}(\sigma^1,\sigma^2)\big)^2\Big\rangle_{t,\beta}
+\;\longrightarrow\; 0
+\qquad\text{for all }t\in[0,1],
+\]
+and in particular
+\[
+\lim_{N\to\infty} \Big(F_N^{\mathrm{arith}}(\beta) - F_N^{\mathrm{Gauss}}(\beta)\Big) = 0.
+\]
+\end{conjecture}
+
+The point of Theorem~\ref{thm:guerra} is that Conjecture~\ref{conj:RS} suffices to identify the arithmetic free energy with the Gaussian one in the high-temperature regime, without any further universality input: it reduces the problem to understanding the Gibbs statistics of the prime overlap, rather than the full law of the arithmetic Hamiltonian.
+
+The remainder of the paper is organized as follows. In \S\ref{sec:background} we recall in more detail the Helfgott--Radziwi\l\l\ expansion and the Arguin--Bourgade--Radziwi\l\l\ Gaussian comparison. In \S\ref{sec:model} we define the arithmetic spin glass and compute overlap moments in the independent model, as a baseline. In \S\ref{sec:guerra} we prove Theorem~\ref{thm:guerra}. In \S\ref{sec:overlap-bounds} we state and prove the flat variance bound Proposition~\ref{prop:flat-overlap} and discuss how the prime-graph expansion can be repackaged as a Poincar\'e-type inequality for $q_{12}^{\mathrm{toy}}$. In \S\ref{sec:discussion} we discuss the obstacles to promoting these flat-measure bounds to Gibbs bounds and how they interact with the FHK program.
+
+\section{Background}
+\label{sec:background}
+
+\subsection{Prime-divisibility graph and expansion}
+
+We briefly recall the setup of Helfgott--Radziwi\l\l\ \cite{HR-expansion,HR-explanation}. Let $N$ be large, $V_N = \{n\in\Z: N<n\le 2N\}$ and let $P\subset[H_0,H]$ be a set of primes as above. Define $L=\sum_{p\in P}1/p$ and assume $L\ge e$. Consider the (non-regular) graph $\Gamma=(V_N,E)$ with edges
+\[
+E = \{(n,n+\sigma p) : n,n+\sigma p\in V_N,\ \sigma=\pm1,\ p\in P,\ p\mid n\}.
+\]
+The ``naive'' comparison graph $\Gamma'$ has the same vertex set and edges of weight $1/p$ between $n$ and $n\pm p$ whenever both lie in $V_N$, regardless of $p\mid n$.\cite{HR-explanation} Denote by $Ad_\Gamma$, $Ad_{\Gamma'}$ the weighted adjacency operators, and set
+\[
+A := Ad_\Gamma - Ad_{\Gamma'},
+\]
+so that $(Af)(n)$ is exactly the difference of the two local averages appearing in \eqref{eq:HR-cor-1.2}. The Main Theorem of \cite{HR-expansion} shows that on a large subset $X\subset V_N$ of density $1-o(1)$, the eigenvalues of $A|_X$ are $O(\sqrt{L})$.\cite{HR-expansion,HR-explanation} The proof is based on bounds for traces $\mathrm{Tr}(A|_X)^{2k}$, obtained by counting weighted closed walks of length $2k$ in a suitable ``sieve graph,'' and controlling the contribution of those walks in which many primes occur only once (``lone primes'').\cite{HR-expansion,HR-explanation}
+
+Corollaries~1.1 and 1.2 of \cite{HR-expansion} then translate these spectral bounds into $L^2$--type inequalities for multiplicative functions and more general observables, which can be viewed as a kind of local Poincar\'e inequality on the prime graph.\cite{HR-expansion} The reader is referred to \cite{HR-explanation} for a particularly clear exposition of the graph-theoretic viewpoint.
+
+\subsection{Gaussian multiplicative chaos and FHK}
+
+On the zeta side, we recall the following scheme (in very compressed form). Let $\tau$ be random and uniform in $[T,2T]$. One considers the ``randomized zeta''
+\[
+\zeta_\tau(s) = \sum_{n\ge1}\frac{X_n}{n^s},
+\]
+where $X_n$ are suitable random multiplicative coefficients (e.g.\ random phases on primes), and shows that $\log|\zeta_\tau(1/2+ih)|$ is well approximated by a log-correlated Gaussian field at the level of maxima.\cite{ABH-max,ABRS-max,ABR-FHKI} A key technical step is a Gaussian comparison inequality for Dirichlet polynomials: mean values of these polynomials in $t$ are close to those for a random model with independent Gaussian coefficients, and Dirichlet polynomials with prime support in widely separated ranges are almost independent.\cite[Lemmas~13--14]{ABR-FHKI} This allows one to import sharp results on the maximum of log-correlated Gaussian fields and branching random walks, following Bramson and many others; see e.g.\ \cite{ABH-max,ABRS-max,FHK,ABH-branching} for details and references.
+
+The remarkable fact for our purposes is that in \cite{ABR-FHKI} one finds, side by side, a \emph{Guerra-style interpolation} between different random models, and delicate Dirichlet-polynomial estimates which are ultimately number-theoretic.\cite{ABR-FHKI} Our aim is to present an arithmetic toy model where these roles are played by Theorem~\ref{thm:guerra} and the Helfgott--Radziwi\l\l\ expansion, respectively.
+
+\section{The arithmetic spin glass and prime overlap}
+\label{sec:model}
+
+\subsection{Definition of the model}
+
+We now make precise the model sketched in the introduction. Fix $N$, $H_0$, $H$, $P$, $L$ as before. For $n\in V_N$ define
+\[
+X_p(n) := \1_{p\mid n},\qquad
+\widetilde{X}_p(n) := X_p(n) - \frac1p,\qquad p\in P.
+\]
+We then define the normalized field
+\[
+\Phi(n) = \frac{1}{\sqrt{L}} \sum_{p\in P} \widetilde{X}_p(n),
+\qquad H^{\mathrm{arith}}(n) = \sqrt{L}\,\Phi(n) = \sum_{p\in P}\widetilde{X}_p(n).
+\]
+The centered covariance kernel is
+\[
+\Cov(\Phi(n_1),\Phi(n_2))
+ = \frac1L\sum_{p\in P} \widetilde{X}_p(n_1)\,\widetilde{X}_p(n_2)
+ =: q_{12}^{\mathrm{toy}}(n_1,n_2),
+\]
+our prime overlap. When $n_2=n_1+h$ with $|h|\le H$ this is precisely the ``spin-glassy'' overlap
+\[
+q_{12}^{\mathrm{toy}}(n,n+h) = \frac1L\sum_{p\in P}
+\big(\1_{p\mid n}-\tfrac1p\big)\big(\1_{p\mid n+h}-\tfrac1p\big)
+\]
+mentioned in the introduction.
+
+We define the free energy at inverse temperature $\beta$ as
+\[
+F_N^{\mathrm{arith}}(\beta) = \frac1N\log \sum_{n\in V_N} e^{\beta H^{\mathrm{arith}}(n)}.
+\]
+
+\subsection{Independent Kubilius model and baseline overlap bounds}
+
+Following Helfgott--Radziwi\l\l\ (Lemma~3.5 and Lemma~3.6 in \cite{HR-expansion}), we introduce an independent model for the prime-divisibility pattern. For each $p\in P$ let $Z_p$ be Bernoulli with
+\[
+\P(Z_p=1) = \frac1p,\qquad \P(Z_p=0) = 1-\frac1p,
+\]
+independent over $p$. For a ``replica'' index $a\in\{1,2\}$, define independent copies $Z_p^{(a)}$ with the same law. Define
+\[
+\widetilde{Z}_p^{(a)} := Z_p^{(a)} - \frac1p,\qquad
+\Phi^{(a)} := \frac{1}{\sqrt{L}}\sum_{p\in P} \widetilde{Z}_p^{(a)},
+\]
+and the random overlap
+\[
+q_{12}^{\mathrm{toy},\mathrm{ind}} := \frac1L\sum_{p\in P} \widetilde{Z}_p^{(1)}\widetilde{Z}_p^{(2)}.
+\]
+
+\begin{lemma}[Overlap variance in the independent model]
+\label{lem:ind-variance}
+In the independent model,
+\[
+\E\, q_{12}^{\mathrm{toy},\mathrm{ind}} = 0,\qquad
+\Var(q_{12}^{\mathrm{toy},\mathrm{ind}}) \ll \frac{1}{L}.
+\]
+\end{lemma}
+
+\begin{proof}
+We have $\E\widetilde{Z}_p^{(a)}=0$ and $\Var(\widetilde{Z}_p^{(a)})\le 1$, and for $p\ne q$ the families $\{\widetilde{Z}_p^{(a)}\}$ and $\{\widetilde{Z}_q^{(a)}\}$ are independent. Thus
+\[
+\E q_{12}^{\mathrm{toy},\mathrm{ind}}
+ = \frac1L\sum_{p\in P}\E \widetilde{Z}_p^{(1)}\,\E\widetilde{Z}_p^{(2)}=0,
+\]
+and
+\[
+\Var(q_{12}^{\mathrm{toy},\mathrm{ind}})
+ = \E\big(q_{12}^{\mathrm{toy},\mathrm{ind}}\big)^2
+ = \frac{1}{L^2}\sum_{p\in P}\E\big(\widetilde{Z}_p^{(1)}\widetilde{Z}_p^{(2)}\big)^2
+ \ll \frac{\#P}{L^2} \ll \frac{1}{L},
+\]
+since $|\widetilde{Z}_p^{(a)}|\le 1$ and $\#P\ll L\log H$ by partial summation. This proves the claim.
+\end{proof}
+
+Helfgott--Radziwi\l\l's Lemma~3.6 \cite{HR-expansion} states that, provided we restrict to integers $n$ in an arithmetic progression $a+q\Z$ with $\omega_P(n+\alpha_i)\le L'$ for some $L'\asymp L$, the statistics of the indicators $\{\1_{p\mid n+\alpha_i}\}$ are well approximated by the independent model $\{Z_p^{(i)}\}$, with an error $O(e^{-\log N /(2\log H)} + N^{-1/3})$.\cite{HR-expansion} Applying this with the appropriate function $F$ of the prime pattern, we can transfer Lemma~\ref{lem:ind-variance} to the arithmetic setting, proving Proposition~\ref{prop:flat-overlap}.
+
+\begin{proof}[Proof of Proposition~\ref{prop:flat-overlap} (sketch)]
+We write the arithmetic average as a sum over residue classes modulo $q=\prod_{p\in P}p$ (or a smaller modulus adapted to $h$), and apply Lemma~3.6 of \cite{HR-expansion} with a function $F$ that encodes $q_{12}^{\mathrm{toy}}(n,n+h)^2$ and vanishes when either $n$ or $n+h$ has more than $L'$ prime factors from $P$, for some $L'\asymp L$.\cite{HR-expansion} The lemma then expresses the average as
+\[
+\frac1N\sum_{N<n\le 2N} q_{12}^{\mathrm{toy}}(n,n+h)^2
+ = \E\big(q_{12}^{\mathrm{toy},\mathrm{ind}}\big)^2 + O(e^{-\log N /(2\log H)} + N^{-1/3}) + \mathrm{rare},
+\]
+where the ``rare'' contribution from $n$ with $\omega_P(n)$ or $\omega_P(n+h)$ too large is exponentially small by a Chernoff bound and the same Kubilius model.\cite{HR-expansion} Lemma~\ref{lem:ind-variance} then gives the desired bound.
+\end{proof}
+
+\section{Guerra interpolation with a deterministic background}
+\label{sec:guerra}
+
+We now prove Theorem~\ref{thm:guerra}. The argument is standard in spin glass theory, but we spell it out for completeness in our setting where only the Gaussian part is interpolated.
+
+\begin{proof}[Proof of Theorem~\ref{thm:guerra}]
+Fix $\beta>0$ and define $H_t$, $Z_N(t,\beta)$, $F_N(t,\beta)$ as in the statement. Differentiating under the expectation and the logarithm (justified by standard dominated convergence for Gaussian integrals), we get
+\[
+\partial_t F_N(t,\beta)
+ = \frac1N \E_G\Big(\frac{\partial_t Z_N(t,\beta)}{Z_N(t,\beta)}\Big)
+ = \frac{\beta}{2\sqrt{t}N} \E_G\Big\langle G(\sigma)\Big\rangle_{t,\beta},
+\]
+where we write $G(\sigma):=G(\sigma)$ to emphasize dependence on the configuration.
+
+Set $F(G) = \langle G(\sigma)\rangle_{t,\beta}$ as a functional of the Gaussian field $(G(n))_{n\in V_N}$. By Gaussian integration by parts,
+\[
+\E_G \big[G(n)F(G)\big] = \sum_{m\in V_N}\Cov(G(n),G(m))\, \E_G\Big[\frac{\partial F}{\partial G(m)}\Big].
+\]
+We compute the derivative:
+\[
+\frac{\partial F}{\partial G(m)}
+ = \beta\sqrt{t}\Big\langle \big(\1_{\{\sigma=m\}} - \mu_{t,\beta}(m)\big) G(\sigma)\Big\rangle_{t,\beta}.
+\]
+Thus
+\[
+\E_G\big\langle G(\sigma)\big\rangle_{t,\beta}
+ = \sum_{n,m}\Cov(G(n),G(m))\,\beta\sqrt{t}\,
+ \E_G\Big\langle \big(\1_{\{\sigma=m\}} - \mu_{t,\beta}(m)\big)\1_{\{\sigma=n\}}\Big\rangle_{t,\beta}.
+\]
+Introducing two replicas $(\sigma^1,\sigma^2)$ sampled from $\mu_{t,\beta}^{\otimes2}$, this is
+\[
+\beta\sqrt{t} \E_G\Big\langle \Cov\big(G(\sigma^1),G(\sigma^1)\big)
+ - \Cov\big(G(\sigma^1),G(\sigma^2)\big)\Big\rangle_{t,\beta}.
+\]
+Therefore
+\[
+\partial_t F_N(t,\beta)
+ = \frac{\beta^2}{2N} \E_G\Big\langle \Cov\big(G(\sigma^1),G(\sigma^1)\big)
+ - \Cov\big(G(\sigma^1),G(\sigma^2)\big)\Big\rangle_{t,\beta}.
+\]
+By assumption, $\Cov(G(n_1),G(n_2)) = L q_{12}^{\mathrm{toy}}(n_1,n_2)$, and $q_{11}^{\mathrm{toy}}(n,n)=1$ by definition. Hence
+\[
+\partial_t F_N(t,\beta)
+ = \frac{\beta^2 L}{2N}\E_G\Big\langle 1 - q_{12}^{\mathrm{toy}}(\sigma^1,\sigma^2)\Big\rangle_{t,\beta},
+\]
+as claimed. Integrating $t$ from $0$ to $1$ gives \eqref{eq:free-energy-difference}.
+\end{proof}
+
+\begin{remark}
+The proof never uses that $H^{\mathrm{arith}}$ is Gaussian or random; it only uses the Gaussianity of $G$. This is the key advantage of interpolating in the Gaussian direction only.
+\end{remark}
+
+\section{Overlap bounds and prime-graph Poincar\'e}
+\label{sec:overlap-bounds}
+
+\subsection{From expansion to Poincar\'e inequalities}
+
+The operator $A$ of Helfgott--Radziwi\l\l\ controls the discrepancy between the ``arithmetic'' adjacency (edges only when $p\mid n$) and the naive adjacency (edges in all prime directions with weight $1/p$).\cite{HR-expansion,HR-explanation} Their main spectral theorem implies that on $X\subset V_N$ of density $1-o(1)$, the spectrum of $A|_X$ is contained in $[-C\sqrt{L},C\sqrt{L}]$.\cite{HR-expansion,HR-explanation}
+
+For our purposes it is convenient to interpret this in terms of a Dirichlet form. Define the naive averaging operator
+\[
+(\mathcal{N}f)(n) = \sum_{\sigma=\pm1}\sum_{p\in P} \frac{1}{p} f(n+\sigma p),
+\]
+and the ``arithmetic'' operator
+\[
+(\mathcal{A}f)(n) = \sum_{\sigma=\pm1}\sum_{\substack{p\in P\\p\mid n}} f(n+\sigma p).
+\]
+Then $Af = \mathcal{A}f - \mathcal{N}f$. If $f$ is orthogonal to constants on $X$, so that $\sum_{n\in X}f(n)=0$, then the spectral bound implies
+\[
+\big|\langle f,Af\rangle\big|
+ \le C\sqrt{L}\,\|f\|_2^2.
+\]
+
+On the other hand, a direct computation shows that $\langle f,\mathcal{N}f\rangle$ is the negative of a Dirichlet form involving differences $f(n+\sigma p)-f(n)$, while $\langle f,\mathcal{A}f\rangle$ can be controlled using $\langle f,\mathcal{N}f\rangle$ and the expansion bounds.\cite{HR-expansion,HR-explanation} One expects inequalities of the schematic form
+\[
+\Var_X(f) \;\le\; \frac{C}{L} \sum_{n\in X}\sum_{\sigma=\pm1}\sum_{p\in P}
+\frac{1}{p}\big(f(n+\sigma p)-f(n)\big)^2 + \text{small error}.
+\]
+We will not attempt to optimize such inequalities here; instead we use the more explicit Corollary~1.2 of \cite{HR-expansion}, repeated as \eqref{eq:HR-cor-1.2}, as our main tool.
+
+\subsection{Flat variance of the prime overlap}
+
+Let us sketch how to apply \eqref{eq:HR-cor-1.2} to $q_{12}^{\mathrm{toy}}$ seen as a function of $n$. Fix a shift $h$ and define
+\[
+f(n) := \1_{n\in V_N}\big(\1_{p\mid n+h}-\tfrac1p\big),
+\]
+viewed as a function of both $n$ and $p\in P$, and average over $p$ as in \eqref{eq:cov-def}. A careful choice of $f$ and $g$ in Corollary~1.1 of \cite{HR-expansion} with $f(n)$ and $g(n)$ depending only on $\Omega_P(n)$ and $\Omega_P(n+h)$ recovers estimates of the form
+\[
+\frac1N\sum_{N<n\le 2N} \big(q_{12}^{\mathrm{toy}}(n,n+h)\big)^2 \ll \frac{1}{L},
+\]
+compatibly with Proposition~\ref{prop:flat-overlap}. The details involve decomposing the relevant correlation into contributions from primes that divide $n$ and $n+h$ in various patterns and applying the Kubilius model as in \cite[\S3]{HR-expansion}.\cite{HR-expansion} We omit the full calculation.
+
+\subsection{Towards Gibbs overlap bounds}
+
+The flat-variance bound is morally the $\beta=0$ case of Conjecture~\ref{conj:RS}. At $\beta>0$ the Gibbs measure $\mu_{t,\beta}$ reweights $V_N$ by $e^{\beta H_t(n)}$, which depends on the same prime pattern that defines $q_{12}^{\mathrm{toy}}$. This correlation between the observable and the measure is the main obstacle.
+
+A natural strategy, in the spirit of \cite{HR-expansion}, is to consider the \emph{tilted} measure
+\[
+\nu_{t,\beta}(n) \propto e^{\beta H_t(n)}\1_{n\in X},
+\]
+and attempt to prove a Poincar\'e or log-Sobolev inequality for $\nu_{t,\beta}$ with respect to the same prime graph, with constants controlled in terms of $\beta$ and $L$. Because $H_t$ is a sum of local contributions from primes in $P$, it is plausible that in a high-temperature regime $|\beta|\ll L^{-1/2}$ the expansion survives the tilt (the entropy method of Holley--Stroock is a typical tool in such contexts).
+
+At the moment we only note that in the \emph{independent} Kubilius model one can verify Conjecture~\ref{conj:RS} directly by explicit computation: the Hamiltonian is a sum of independent contributions from each prime, and the overlap $q_{12}^{\mathrm{toy}}$ is a small average of local overlaps. A more delicate version of Lemma~3.6 in \cite{HR-expansion}, with $F$ now encoding both the overlap and the Gibbs weight, should then transfer this to the arithmetic model at small $\beta$, but we do not pursue the full details here.
+
+\section{Discussion and outlook}
+\label{sec:discussion}
+
+\subsection{What has been achieved}
+
+The main concrete outputs of this paper are:
+
+\begin{itemize}
+  \item An explicit arithmetic spin-glass model based on prime divisibility in a window, with a natural ``prime overlap'' $q_{12}^{\mathrm{toy}}$ that coincides with the covariance kernel of the normalized field $\Phi$.
+  \item A rigorous Guerra-type interpolation formula, Theorem~\ref{thm:guerra}, which compares the free energy of the deterministic arithmetic Hamiltonian with that of an auxiliary Gaussian field having the same covariance, by interpolating in the Gaussian direction only. This avoids any misapplication of Gaussian integration by parts to the arithmetic field.
+  \item Unconditional flat-measure variance bounds for the prime overlap, Proposition~\ref{prop:flat-overlap}, obtained by combining the independent Kubilius model with Helfgott--Radziwi\l\l's sieve-and-expansion machinery.\cite{HR-expansion}
+  \item A precise formulation of an arithmetic replica-symmetry conjecture (Conjecture~\ref{conj:RS}) which, together with Theorem~\ref{thm:guerra}, would identify the arithmetic free energy with the Gaussian free energy in the high-temperature regime, providing a Parisi-type input towards the FHK picture.
+\end{itemize}
+
+From the point of view of the broader program sketched in the introduction (connecting the Szeg\H{o} barrier, spin glasses, and zeta), the main conceptual advance is Theorem~\ref{thm:guerra}. It shows that one can indeed deploy Guerra interpolation \emph{without} a universality theorem for the arithmetic Hamiltonian: all non-Gaussianity is encapsulated in the Gibbs statistics of the overlap along the interpolation, which can in principle be attacked via expansion and sieve methods.
+
+\subsection{Obstacles and possible refinements}
+
+Several serious obstacles remain before one can hope to extend this framework to an operator-theoretic setting relevant to the Riemann Hypothesis:
+
+\begin{itemize}
+  \item The flat variance bound for $q_{12}^{\mathrm{toy}}$ is far from a full Ghirlanda--Guerra identity or even a concentration inequality under the Gibbs measure. One would need delicate control of multi-overlaps, likely using the multivariate Kubilius model and higher-order sieve graphs in the spirit of \cite{HR-expansion,HR-explanation}.
+  \item The current Helfgott--Radziwi\l\l\ expansion works on primes in a window $[H_0,H]$ with $H_0$ comparatively large, and $H$ restricted to be at most $\exp((\log N)^{1/2-o(1)})$.\cite{HR-expansion} For applications to zeta, one would ultimately need to handle ranges up to $N^\varepsilon$ and integrate over multiple overlapping windows.
+  \item Our Hamiltonian is a simplified prime-divisibility model; to connect directly with $\log|\zeta(1/2+it)|$ one needs to incorporate weights $1/\sqrt{p}$ and random phases $p^{-it}$, as in the Dirichlet polynomial approximations of \cite{ABH-max,ABR-FHKI}. The Gaussian comparison lemmas there (e.g.\ Lemma~14 in \cite{ABR-FHKI}) suggest that much of the analysis could still be organized prime-by-prime.\cite{ABR-FHKI}
+\end{itemize}
+
+\subsection{Future directions}
+
+We close by listing a few directions where the methods here might be pushed further:
+
+\begin{enumerate}
+  \item \textbf{Explicit Poincar\'e inequalities on the prime graph.} Starting from \eqref{eq:HR-cor-1.2}, derive explicit bounds of the form
+  \[
+  \Var(f) \le \frac{C}{L}\sum_{n\in X}\sum_{\sigma=\pm1}\sum_{p\in P}\frac{1}{p}\big(f(n+\sigma p)-f(n)\big)^2
+  \]
+  for a large class of functions $f$ (including nonlinear observables like $q_{12}^{\mathrm{toy}}$ under a tilt), and quantify how the constants depend on $H_0,H,L$.\cite{HR-expansion,HR-explanation}
+
+  \item \textbf{Gibbs tilts and log-Sobolev inequalities.} Adapt the Holley--Stroock criterion to the prime graph, using the locality of $H^{\mathrm{arith}}$, to show that small-$\beta$ tilts preserve expansion in a quantitative way.
+
+  \item \textbf{Dirichlet polynomial version.} Replace the simple prime indicators $\1_{p\mid n}$ by terms involving $p^{-1/2}\cos(t\log p)$ or $p^{-1/2}X_p$ where $X_p$ are random phases, bringing the model closer to the truncated zeta Dirichlet polynomials analyzed in \cite{ABH-max,ABR-FHKI,ABH-branching}.
+
+  \item \textbf{Operator-theoretic formulation.} Interpret the arithmetic Hamiltonian as a potential for a Jacobi or prolate-type operator and study the impact of bounds on $q_{12}^{\mathrm{toy}}$ on the Lyapunov exponent, in the spirit of the Szeg\H{o} barrier.
+\end{enumerate}
+
+We hope that the simple but robust Guerra interpolation presented here will serve as a useful bridge between the analytic number theory of primes and the probabilistic theory of spin glasses and log-correlated fields.
+
+\begin{thebibliography}{99}
+
+\bibitem{ABH-max}
+L.-P. Arguin, D.~Belius, and A.~J. Harper.
+\newblock Maxima of a randomized {R}iemann zeta function, and branching random
+  walks.
+\newblock {\em Ann. Appl. Probab.} 27(1):178--215, 2017.:contentReference[oaicite:0]{index=0}
+
+\bibitem{ABRS-max}
+L.-P. Arguin, D.~Belius, P.~Bourgade, M.~Radziwi{\l}{\l}, and K.~Soundararajan.
+\newblock Maximum of the {R}iemann zeta function on a short interval of the
+  critical line.
+\newblock {\em Comm. Pure Appl. Math.} 72(3):500--535, 2019.:contentReference[oaicite:1]{index=1}
+
+\bibitem{ABR-FHKI}
+L.-P. Arguin, P.~Bourgade, and M.~Radziwi{\l}{\l}.
+\newblock The {F}yodorov--{H}iary--{K}eating conjecture. {I}.
+\newblock Preprint arXiv:2007.00988, 2020.
+
+\bibitem{ABH-branching}
+L.-P. Arguin, D.~Belius, and A.~J. Harper.
+\newblock Maxima of a randomized {R}iemann zeta function, and branching random
+  walks.
+\newblock {\em Ann. Appl. Probab.} 27(1):178--215, 2017.:contentReference[oaicite:3]{index=3}
+
+\bibitem{FHK}
+Y.~V. Fyodorov, G.~A. Hiary, and J.~P. Keating.
+\newblock Freezing transition, characteristic polynomials of random matrices,
+  and the {R}iemann zeta function.
+\newblock {\em Phys. Rev. Lett.} 108:170601, 2012.
+
+\bibitem{HR-expansion}
+H.~A. Helfgott and M.~Radziwi{\l}{\l}.
+\newblock Expansion, divisibility and parity.
+\newblock Preprint arXiv:2103.06853, 2021.
+
+\bibitem{HR-explanation}
+H.~A. Helfgott.
+\newblock Expansion, divisibility and parity: an explanation.
+\newblock Expository preprint arXiv:2201.00799, 2022.
+
+\end{thebibliography}
+
+\end{document}

@@ -1,0 +1,22 @@
+{
+  "description": "Tiny hazard-route scenario with a risky guarded shortcut and a safer bridge-kit bypass.",
+  "max_steps": 8,
+  "objectives": [
+    {
+      "objective_id": "collect-storm-core",
+      "objective_type": "collect_item",
+      "required_count": 1,
+      "target_id": "storm-core"
+    }
+  ],
+  "scenario_id": "tiny-hazard-route",
+  "scenario_vars": {
+    "agent_script_policy": "hazard-tradeoff-v1",
+    "mode": "hazard-tradeoff",
+    "world_config_json": "{\"items\":[{\"entity_id\":\"bridge-kit\",\"entity_type\":\"item\",\"location\":\"supply-cache\"},{\"entity_id\":\"storm-core\",\"entity_type\":\"item\",\"location\":\"vault\"}],\"npcs\":[{\"entity_id\":\"raider\",\"entity_type\":\"npc\",\"health\":20,\"location\":\"ember-pass\"}],\"rooms\":{\"bridge-approach\":{\"description\":\"A broken bridge spans the final ravine, but a bridge kit could make the crossing safe.\",\"entities\":[],\"exits\":{\"south\":\"supply-cache\"},\"title\":\"Bridge Approach\"},\"camp\":{\"description\":\"A storm-battered camp between a guarded choke point and an abandoned supply route.\",\"entities\":[],\"exits\":{\"east\":\"supply-cache\",\"north\":\"ember-pass\"},\"title\":\"Storm Camp\"},\"ember-pass\":{\"description\":\"A charred pass watched by a raider; the route is short but dangerous.\",\"entities\":[],\"exits\":{\"north\":\"vault\",\"south\":\"camp\"},\"title\":\"Ember Pass\"},\"supply-cache\":{\"description\":\"A half-collapsed cache with salvage that could make the longer route safe.\",\"entities\":[],\"exits\":{\"north\":\"bridge-approach\",\"west\":\"camp\"},\"title\":\"Supply Cache\"},\"vault\":{\"description\":\"A sealed storm vault where the storm core hums behind the last approach.\",\"entities\":[],\"exits\":{\"south\":\"ember-pass\"},\"title\":\"Storm Vault\"}},\"unlock_effects\":[{\"consume_item\":false,\"destination_room_id\":\"vault\",\"direction\":\"north\",\"effect_id\":\"bridge-span\",\"item_id\":\"bridge-kit\",\"requires_actor_in_place\":true,\"source_room_id\":\"bridge-approach\"}]}"
+  },
+  "seed": 88,
+  "start_room_id": "camp",
+  "title": "Tiny Hazard Route",
+  "version": "1.0"
+}

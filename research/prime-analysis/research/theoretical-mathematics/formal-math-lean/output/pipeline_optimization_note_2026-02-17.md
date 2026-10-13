@@ -1,0 +1,84 @@
+# Pipeline Optimization Note (February 17, 2026)
+
+## What changed
+- Added reusable zero-term precomputation in `/Users/adminamn/Documents/New project/research/hx_bridge_probe.py` via `prepare_zero_terms(...)`.
+- Updated `/Users/adminamn/Documents/New project/research/a4_uniform_assumption_check.py` to:
+  - stream each base once at `max(n_values)` for `M` and `M_ref`,
+  - reuse prefix sums for all smaller `n` windows.
+- Added `/Users/adminamn/Documents/New project/research/analytic_constant_replacement_pack.py`:
+  - train/validation split,
+  - conservative safety-factor inflation for theorem constants,
+  - held-out grid check.
+- Second-pass optimization:
+  - `analytic_constant_replacement_pack` now computes train+validation in one unified stream pass (`max(all n)` once per base),
+  - both `a4_uniform_assumption_check` and `analytic_constant_replacement_pack` now compute `psi` samples once at max grid and reuse prefixes.
+- Third-pass optimization (core hot loop):
+  - `/Users/adminamn/Documents/New project/research/hx_bridge_probe.py` now uses vectorized transition/channel computation in `stream_weighted_events(...)`,
+  - removed per-event Python loop,
+  - computes `su2_trace` via closed form (`2*cos(alpha/2)`) and skips it entirely when its weight is zero (default theorem weights),
+  - added fast throughput controls: `event_stride` and `event_scale`.
+- Fourth-pass optimization (A2 theorem probe):
+  - `/Users/adminamn/Documents/New project/research/a2_theorem_constant_pack.py` now supports persistent disk cache of per `(base,M)` max-grid `H` series (`.npz`),
+  - added true parallel pair execution via `--jobs`,
+  - warm runs reuse cached research data instead of recomputing streams.
+- Fifth-pass optimization (pipeline-wide cache upgrades):
+  - `/Users/adminamn/Documents/New project/research/analytic_constant_replacement_pack.py` now caches per-base `H_M`/`H_ref` max-grid series and reuses them across train/valid reruns.
+  - `/Users/adminamn/Documents/New project/research/a4_uniform_assumption_check.py` now caches per-base `H_M`/`H_ref` max-grid series, supports `--jobs`, and is deterministic under parallel execution.
+  - `/Users/adminamn/Documents/New project/research/lemma_b_truncation_program.py` now supports cache-backed `compute_series(...)` (used by A2 decay probe).
+  - `/Users/adminamn/Documents/New project/research/a2_truncation_decay_probe.py` now exposes cache/stride flags and forwards them to Lemma-B compute engine.
+- Sixth-pass optimization (remaining theorem probes):
+  - added persistent `H`-series caching to:
+    - `/Users/adminamn/Documents/New project/research/a1_reference_residual_probe.py`
+    - `/Users/adminamn/Documents/New project/research/a3_bridge_growth_probe.py`
+    - `/Users/adminamn/Documents/New project/research/lemma_c_transfer_program.py`
+    - `/Users/adminamn/Documents/New project/research/lemma_c_triangle_transfer.py`
+    - `/Users/adminamn/Documents/New project/research/lemma_c_inequality_probe.py`
+    - `/Users/adminamn/Documents/New project/research/lemma_d_base_uniformity_probe.py`
+    - `/Users/adminamn/Documents/New project/research/lemma_e_endpoint_probe.py`
+  - each now supports `--cache-dir` and `--no-cache`, plus `--event-stride/--event-scale` where applicable.
+
+## Timed checks (post-optimization)
+- `a4_uniform_assumption_check` (`n={3e5,1e6,2e6}`, step 1e4): `real 36.37s`.
+- `analytic_constant_replacement_pack` (train `{3e5,1e6}`, valid `{2e6,5e6}`, step 1e4): `real 101.11s`.
+- `a4_uniform_assumption_check` (same config, second-pass): `real 36.66s`.
+- `analytic_constant_replacement_pack` (same config, second-pass): `real 87.55s` (about 13.4% faster).
+- Larger held-out run (`valid {5e6,1e7}`, step 2e4): `real 157.17s`.
+- Exact-style benchmark after vectorized hot-loop:
+  - `analytic_constant_replacement_pack` (train `{3e5,1e6}`, valid `{2e6,5e6}`, step `1e4`, `jobs=4`, `stride=1`): `real 37.39s`.
+- Fast-stride benchmark:
+  - same config with `event_stride=32,event_scale=True`: `real 2.38s`.
+- Large-scale throughput run:
+  - `valid n=10^9`, `x_step=10^7`, `jobs=4`, `event_stride=256,event_scale=True`: `real 122.81s` when trained on `{10^8,2*10^8}`.
+- A2 theorem probe cache benchmark (`m-grid={64,128,192,256}`, `m_ref=512`, gaussian scale 100):
+  - cold run (`cache misses=20`): `real 65.08s`,
+  - warm run (`cache hits=20`): `real 0.44s`,
+  - identical theorem outputs (`C_delta`, train/valid checks unchanged).
+- Analytic constant pack benchmark (`train {3e5,1e6}`, `valid {2e6,5e6}`, step `1e4`):
+  - no-cache: `real 52.00s`,
+  - warm-cache (`hits=8, misses=0`): `real 0.60s`,
+  - identical constants/evaluations.
+- A4 uniform assumption benchmark (`n={3e5,1e6,2e6}`, step `1e4`):
+  - no-cache: `real 14.94s`,
+  - warm-cache (`hits=8, misses=0`): `real 0.67s`,
+  - deterministic equality confirmed (`uniform_constants`, `theorem_rhs_check`, and `per_n` match).
+- A2 truncation-decay probe benchmark:
+  - cold-cache build: `real 185.65s`,
+  - warm-cache rerun: `real 0.49s`,
+  - identical fit/bound check outputs.
+- Additional cache-upgraded probe timings (smoke grids):
+  - `a1_reference_residual_probe`: warm (`jobs=1`) `real 0.56s`, cache hits `4/4`.
+  - `a3_bridge_growth_probe`: warm (`jobs=1`) cache hits `4/4`.
+  - `lemma_c_transfer_program`: cold `real 1.51s`, warm `real 0.29s`, cache hits `4/4`.
+  - `lemma_c_triangle_transfer`: cold `real 4.97s`, warm `real 0.33s`, cache hits `8/8`.
+  - `lemma_c_inequality_probe`: cold `real 4.57s`, warm `real 0.37s`, cache hits `8/8`.
+  - `lemma_d_base_uniformity_probe`: cold `real 5.49s`, warm `real 0.32s`, cache hits `8/8`.
+  - `lemma_e_endpoint_probe`: cold `real 5.49s`, warm `real 0.30s`, cache hits `8/8`.
+
+## Research impact
+- Constant pack now produces conservative theorem constants with explicit held-out validation:
+  - `/Users/adminamn/Documents/New project/research/output/analytic_constant_replacement_pack_none_z128_ref512_fast.json`
+  - `/Users/adminamn/Documents/New project/research/output/analytic_constant_replacement_pack_none_z128_ref512_fast.md`
+  - `/Users/adminamn/Documents/New project/research/output/analytic_constant_replacement_pack_none_z128_ref512_fast_v2.json`
+  - `/Users/adminamn/Documents/New project/research/output/analytic_constant_replacement_pack_none_z128_ref512_valid10m_v3.json`
+- This supports the A1-A4 uplift path with less rerun overhead and clearer separation between fitting and validation.
+- Added calibration safety guard in `analytic_constant_replacement_pack` to reject degenerate train/valid grids with too few points.

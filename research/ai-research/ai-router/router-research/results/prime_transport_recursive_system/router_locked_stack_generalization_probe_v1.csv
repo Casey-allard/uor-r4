@@ -1,0 +1,13 @@
+task,config,ctrl_mode,horizon,accuracy,solve_step,no_last_accuracy,decodability_initial,decodability_mid,decodability_final,alpha_last,runtime_seconds,note
+mod12_quarter,locked_stack,projective,24,0.9653,,0.9717,1.0,1.0,1.0,0.0349,107.5,task=mod12_quarter; D=24; anchor=two_i_rot; ctrl_mode=projective; eps_high=1.0; noise_sigma=0.00; geom=GEOM_K3
+mod12_quarter,sincos_baseline,baseline,24,0.9844,,0.9761,1.0,1.0,1.0,0.0394,85.0,task=mod12_quarter; D=24; anchor=two_i_rot; ctrl_mode=baseline; eps_high=1.0; noise_sigma=0.00; geom=GEOM_K3
+mod12_quarter_noisy,locked_stack,projective,24,0.7686,,0.7593,1.0,1.0,1.0,0.0321,109.5,task=mod12_quarter_noisy; D=24; anchor=two_i_rot; ctrl_mode=projective; eps_high=1.0; noise_sigma=0.10; geom=GEOM_K3
+mod12_quarter_noisy,sincos_baseline,baseline,24,0.96,,0.9653,1.0,1.0,1.0,0.0474,88.8,task=mod12_quarter_noisy; D=24; anchor=two_i_rot; ctrl_mode=baseline; eps_high=1.0; noise_sigma=0.10; geom=GEOM_K3
+mod8_quarter,locked_stack,projective,24,0.9536,1500,0.9517,1.0,1.0,1.0,0.0058,73.5,task=mod8_quarter; D=24; anchor=two_i_rot; ctrl_mode=projective; eps_high=1.0; noise_sigma=0.00; geom=GEOM_K2
+mod8_quarter,sincos_baseline,baseline,24,0.896,,0.9048,1.0,1.0,1.0,0.0877,63.9,task=mod8_quarter; D=24; anchor=two_i_rot; ctrl_mode=baseline; eps_high=1.0; noise_sigma=0.00; geom=GEOM_K2
+mod12_quarter,locked_stack,projective,32,0.9028,,0.9185,1.0,1.0,1.0,0.0173,151.9,task=mod12_quarter; D=32; anchor=two_i_rot; ctrl_mode=projective; eps_high=1.0; noise_sigma=0.00; geom=GEOM_K3
+mod12_quarter,sincos_baseline,baseline,32,0.9912,,0.9956,1.0,1.0,1.0,0.0172,121.5,task=mod12_quarter; D=32; anchor=two_i_rot; ctrl_mode=baseline; eps_high=1.0; noise_sigma=0.00; geom=GEOM_K3
+mod12_quarter_noisy,locked_stack,projective,32,0.9634,,0.9731,1.0,1.0,1.0,0.035,154.7,task=mod12_quarter_noisy; D=32; anchor=two_i_rot; ctrl_mode=projective; eps_high=1.0; noise_sigma=0.10; geom=GEOM_K3
+mod12_quarter_noisy,sincos_baseline,baseline,32,0.9937,,0.9941,1.0,1.0,1.0,0.044,122.6,task=mod12_quarter_noisy; D=32; anchor=two_i_rot; ctrl_mode=baseline; eps_high=1.0; noise_sigma=0.10; geom=GEOM_K3
+mod8_quarter,locked_stack,projective,32,1.0,1500,1.0,1.0,1.0,1.0,0.024,96.2,task=mod8_quarter; D=32; anchor=two_i_rot; ctrl_mode=projective; eps_high=1.0; noise_sigma=0.00; geom=GEOM_K2
+mod8_quarter,sincos_baseline,baseline,32,0.8037,,0.8062,1.0,1.0,1.0,0.0257,85.4,task=mod8_quarter; D=32; anchor=two_i_rot; ctrl_mode=baseline; eps_high=1.0; noise_sigma=0.00; geom=GEOM_K2

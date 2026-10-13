@@ -1,0 +1,104 @@
+{
+  "config": "configs/spectral_inc0148_geometry_native_screen.json",
+  "graph_mode": "poincare_4d",
+  "knn_k": 12,
+  "lowfreq_modes": 8,
+  "max_points": 384,
+  "results": [
+    {
+      "args": {
+        "field4_dims": "4,66,5,22",
+        "phase4_dims": "3,65,2,21",
+        "phase_field_lambda": 0.0,
+        "phase_transport_lambda": 0.0,
+        "sector_mode": "phase4d_hopf_base"
+      },
+      "metrics": {
+        "graph_edges": 2934,
+        "graph_sigma": 0.08909005775272799,
+        "label_classes_present": 143,
+        "label_indicator_dirichlet_mean": 1.0020619894802874,
+        "label_indicator_dirichlet_min": 0.9537414261804872,
+        "label_indicator_lowfreq_max": 0.10945023368318119,
+        "label_indicator_lowfreq_mean": 0.020929909783786296,
+        "label_onehot_dirichlet_energy": 1.000660406853678,
+        "label_onehot_lowfreq_energy": 0.02148944107122968,
+        "n_points": 384,
+        "sector_lowfreq_energy": 0.47399055174716154,
+        "shell_lowfreq_energy": 0.0,
+        "spectral_eigenvalues_head": [
+          3.0198495662694094e-16,
+          0.01624103364896255,
+          0.0268326598815529,
+          0.040677409441807325,
+          0.06847770977710299,
+          0.0692493901718221,
+          0.07324694556085147,
+          0.10427076512432425,
+          0.12570428389690477,
+          0.13861358158717088,
+          0.17845038542603964,
+          0.19467631628927887
+        ],
+        "spectral_gap_23": 0.01059162623259035,
+        "spectral_gap_34": 0.013844749560254426,
+        "spectral_lambda2": 0.01624103364896255,
+        "spectral_lambda3": 0.0268326598815529,
+        "spectral_lambda4": 0.040677409441807325,
+        "spectral_lowfreq_mass_ratio": 0.0013664067643315843,
+        "spectral_mode_participation_mean": 0.3024465299859956,
+        "spectral_mode_participation_min": 0.14742093292823144,
+        "spectral_zero_eigs": 1
+      },
+      "route_id": "HOPF_BASE_K75"
+    },
+    {
+      "args": {
+        "field4_dims": "4,66,5,22",
+        "phase4_dims": "3,65,2,21",
+        "phase_field_lambda": 0.0,
+        "phase_transport_lambda": 0.0,
+        "sector_mode": "phase4d_hopf_transport"
+      },
+      "metrics": {
+        "graph_edges": 2934,
+        "graph_sigma": 0.08909005775272799,
+        "label_classes_present": 143,
+        "label_indicator_dirichlet_mean": 1.0020619894802874,
+        "label_indicator_dirichlet_min": 0.9537414261804872,
+        "label_indicator_lowfreq_max": 0.10945023368318119,
+        "label_indicator_lowfreq_mean": 0.020929909783786296,
+        "label_onehot_dirichlet_energy": 1.000660406853678,
+        "label_onehot_lowfreq_energy": 0.02148944107122968,
+        "n_points": 384,
+        "sector_lowfreq_energy": 0.7620333150745524,
+        "shell_lowfreq_energy": 0.0,
+        "spectral_eigenvalues_head": [
+          3.0198495662694094e-16,
+          0.01624103364896255,
+          0.0268326598815529,
+          0.040677409441807325,
+          0.06847770977710299,
+          0.0692493901718221,
+          0.07324694556085147,
+          0.10427076512432425,
+          0.12570428389690477,
+          0.13861358158717088,
+          0.17845038542603964,
+          0.19467631628927887
+        ],
+        "spectral_gap_23": 0.01059162623259035,
+        "spectral_gap_34": 0.013844749560254426,
+        "spectral_lambda2": 0.01624103364896255,
+        "spectral_lambda3": 0.0268326598815529,
+        "spectral_lambda4": 0.040677409441807325,
+        "spectral_lowfreq_mass_ratio": 0.0013664067643315843,
+        "spectral_mode_participation_mean": 0.3024465299859956,
+        "spectral_mode_participation_min": 0.14742093292823144,
+        "spectral_zero_eigs": 1
+      },
+      "route_id": "HOPF_TRANS_K75_L0"
+    }
+  ],
+  "seed": 1
+}

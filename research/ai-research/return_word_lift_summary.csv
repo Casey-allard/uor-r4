@@ -1,0 +1,8 @@
+experiment,base_unique_windows_210,proj_2310_unique_windows,proj_30030_unique_windows,210_equals_proj2310,210_equals_proj30030
+projection_window_k=5,6,6,6,True,True
+projection_window_k=9,14,14,14,True,True
+projection_window_k=13,22,22,22,True,True
+return_word_lengths,2,4,10,False,False
+1_centered_neighborhood_radius=3,1,1,1,True,True
+1_centered_neighborhood_radius=5,3,3,3,True,True
+1_centered_neighborhood_radius=8,3,3,3,True,True

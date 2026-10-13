@@ -1,0 +1,4 @@
+operator,sample_count,cap,tau_return_count,tau_return_fraction,avg_tau_return_depth,median_tau_return_depth,avg_cycle_length,max_cycle_length,unresolved_fraction,note
+T_r*,1000,200,608,0.608000,58.177632,47.000000,52.181818,192,0.307000,cap=200; sample_per_stratum=500; rng_seed=42; same sample as prior audit
+T_r*,1000,500,638,0.638000,67.835423,50.000000,102.025370,342,0.054000,cap=500; sample_per_stratum=500; rng_seed=42; same sample as prior audit
+T_r*,1000,1000,638,0.638000,67.835423,50.000000,124.542000,519,0.000000,cap=1000; sample_per_stratum=500; rng_seed=42; same sample as prior audit

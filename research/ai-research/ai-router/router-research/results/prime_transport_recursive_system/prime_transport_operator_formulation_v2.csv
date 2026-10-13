@@ -1,0 +1,21 @@
+scope,metric,count,total,fraction,note
+operator,state_count,10,10,1.0,reachable structured states on bounded operator surface
+operator,transition_count,30,30,1.0,nonzero operator entries on bounded surface
+operator,lawful_transition_fraction,30,30,1.0,fraction of nonzero operator entries that are lawful
+operator,illegal_transition_fraction,0,30,0.0,fraction of nonzero operator entries that are illegal
+orbit_change,state_count_vs_v1,10,5,2.0,reachable state expansion relative to H_v1
+orbit_change,transition_count_vs_v1,30,10,3.0,nonzero transition expansion relative to H_v1
+sparsity,nonzero_from_state_b0_phi0_r0_q6_b10,3,30,0.1,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b0_phi0_r0_q10_b6,3,30,0.1,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b1_phi0_r0_q6_b10,3,30,0.1,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b1_phi0_r0_q10_b6,3,30,0.1,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b2_phi0_r0_q6_b10,3,30,0.1,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b2_phi0_r0_q10_b6,3,30,0.1,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b3_phi0_r0_q6_b10,3,30,0.1,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b3_phi0_r0_q10_b6,3,30,0.1,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b4_phi0_r0_q6_b10,3,30,0.1,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b4_phi0_r0_q10_b6,3,30,0.1,nonzero transitions emitted by operator from one structured state
+component,hold,10,30,0.3333333333333333,fraction of operator entries by component
+component,torus_base_advance,10,30,0.3333333333333333,fraction of operator entries by component
+component,composite_swap,10,30,0.3333333333333333,fraction of operator entries by component
+class_distribution,class_r0_phi0_spin1111_compat100_100,30,30,1.0,distribution of operator transitions by source class tuple

@@ -1,0 +1,377 @@
+\documentclass[11pt]{article}
+\input{riemann_common_preamble.tex}
+
+\title{A cutoff principle and conditional closure\\of the Riemann Hypothesis}
+\author{Jonathan Washburn}
+\date{January 2, 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This paper isolates a single explicit additional assumption---a fixed Nyquist cutoff (bandlimit) for a near-field test family---and records its consequences within the near-field barrier framework.
+Under the cutoff and a uniform normalization bound $M_\Phi<\infty$, the prime exponential sum driving the prime-side input becomes a finite sum over primes $p\le e^{\Omega_{\max}}$, yielding a uniform arithmetic blocker and a Carleson-box energy bound for the associated cutoff prime field that is uniform in both scale and height.
+Assuming (as an explicit admissibility hypothesis) that the near-field barrier closure of Paper~II may be run within such a cutoff-admissible test family, we obtain a conditional zero-free strip $\tfrac12<\Re s<0.6$.
+Combined with the unconditional far-field zero-freeness $\Re s\ge 0.6$ proved in Paper~I, this yields a conditional closure of the Riemann Hypothesis.
+No claim is made that the cutoff follows from classical analysis or number theory; the purpose is to separate this hypothesis cleanly from unconditional arguments.
+\end{abstract}
+
+\section{Introduction}\label{sec:intro}
+
+The Riemann zeta function $\zeta(s)$ extends meromorphically to $\C$ with a simple pole at $s=1$.
+Its nontrivial zeros control fine-scale fluctuations in the distribution of primes, and the Riemann Hypothesis (RH) asserts that every nontrivial zero satisfies $\Re s=\tfrac12$; see \cite{Titchmarsh,IK}.
+
+This paper isolates a single explicit additional assumption---a cutoff principle for prime-frequency observables---under which the remaining height-dependent obstruction in the near-field barrier method disappears.
+The goal is not to claim a new classical theorem, but to present a clean \emph{conditional} implication with sharp claim boundaries.
+
+\subsection*{The obstruction: height growth in the Carleson budget}
+The near-field barrier mechanism developed in the companion effective paper compares:
+(i) a \emph{quantized} phase-cost forced by a hypothetical off-critical zero of depth $\eta>0$, and
+(ii) an upper bound coming from a Carleson-box energy budget at the corresponding scale $L=2\eta$.
+Throughout this paper we restrict to the near-field regime
+\[
+  \eta\in(0,0.1),
+  \qquad
+  L:=2\eta\in(0,0.2],
+  \qquad
+  \angles{T}:=\sqrt{1+T^2}.
+\]
+In the classical bookkeeping, the budget naturally splits into a prime-layer term (scale-dependent but height-independent) and a zeros term whose dominant growth is proportional to
+\[
+  1\ +\ L\log\angles{T}.
+\]
+where $T$ is the relevant height parameter.
+This $L\log\angles{T}$ growth is the single mechanism that prevents an all-heights exclusion of near-field off-critical zeros within the barrier framework.
+
+\subsection*{A cutoff principle (explicit hypothesis)}
+We now state the cutoff assumption used in this paper.
+It is formulated as a bandlimit/Nyquist condition on the test functions used to probe prime-frequency exponential sums.
+
+\begin{hypothesis}[Nyquist cutoff for prime-frequency observables]\label{hyp:nyquist-cutoff}
+Fix a parameter $\tau_0>0$ (a sampling scale) and set $\Omega_{\max}:=\frac{1}{2\tau_0}$.
+For each pair $(L,t_0)$ with $0<L\le 0.2$ and $t_0\in\R$, let $\Phi_{L,t_0}\in L^1(\R)$ denote the test function used on the prime side, with Fourier transform
+\[
+  \widehat{\Phi_{L,t_0}}(\xi)\ :=\ \int_{-\infty}^{\infty}\Phi_{L,t_0}(t)\,e^{-it\xi}\,dt.
+\]
+Assume the \emph{bandlimit condition}
+\[
+  \widehat{\Phi_{L,t_0}}(\xi)=0
+  \qquad \text{for all }|\xi|>\Omega_{\max}.
+\]
+\end{hypothesis}
+
+\begin{remark}[Status of the hypothesis]\label{rem:hyp-status}
+Hypothesis~\ref{hyp:nyquist-cutoff} is \emph{not} a theorem of classical analysis or number theory.
+In standard analytic frameworks, Fourier support at scale $L$ is expected to grow like $1/L$ when one localizes in physical space.
+Here we instead postulate a fixed bandwidth ceiling $\Omega_{\max}$ and investigate its consequences for the arithmetic barrier method.
+\end{remark}
+
+\subsection*{Main conditional implication}
+Under Hypothesis~\ref{hyp:nyquist-cutoff}, and subject to the admissibility/uniformity conditions needed to run the barrier closure within a cutoff-admissible test family (cf.\ Remark~\ref{rem:blockers}), the height-growth obstruction in the Carleson budget can be removed and the effective barrier can be closed uniformly in height.
+The following statement records the near-field implication in the form used in the split project.
+
+\begin{hypothesis}[Cutoff-admissibility of the barrier test family]\label{hyp:cutoff-admissibility}
+In applying the near-field barrier closure argument of Paper~II on the near-field range $0<L\le 0.2$, assume that the argument may be run using a family of test functions $\Phi_{L,t_0}$ which satisfies Hypothesis~\ref{hyp:nyquist-cutoff} for all relevant pairs $(L,t_0)$, together with the uniform bound $M_\Phi<\infty$ as in Lemma~\ref{lem:nyquist-implies-blocker}.
+\end{hypothesis}
+
+\begin{theorem}[Nyquist cutoff (admissible) $\Rightarrow$ uniform near-field exclusion]\label{thm:nyquist-nearfield}
+Assume Hypothesis~\ref{hyp:nyquist-cutoff} and Hypothesis~\ref{hyp:cutoff-admissibility}, and assume the uniform bound $M_\Phi<\infty$ as in Lemma~\ref{lem:nyquist-implies-blocker}.
+Then the Riemann zeta function has no zeros in the strip
+\[
+  \Bigl\{\,s\in\C:\ \tfrac12<\Re s<0.6\,\Bigr\}.
+\]
+\end{theorem}
+
+\begin{corollary}[Conditional closure of RH in the three-paper split]\label{cor:conditional-rh}
+Assume Hypothesis~\ref{hyp:nyquist-cutoff} and Hypothesis~\ref{hyp:cutoff-admissibility}, and assume $M_\Phi<\infty$ as in Lemma~\ref{lem:nyquist-implies-blocker}.
+If, in addition, $\zeta(s)$ has no zeros in the half-plane $\{\Re s\ge 0.6\}$ (as proved unconditionally in Paper~I of this series),
+then the Riemann Hypothesis holds.
+\end{corollary}
+
+\subsection*{Roadmap}
+Section~\ref{sec:blocker} formalizes the prime-frequency observable and shows that Hypothesis~\ref{hyp:nyquist-cutoff} collapses it to a finite prime sum, yielding a uniform arithmetic blocker once the test family satisfies $M_\Phi<\infty$.
+Section~\ref{sec:carleson} converts this into a height-uniform Carleson-box bound for the cutoff prime field (Corollary~\ref{cor:nyquist-carleson}).
+Finally, Section~\ref{sec:closure} combines this uniform prime-frequency input with the classical barrier inequality (proved in Paper~II of this series) to obtain Theorem~\ref{thm:nyquist-nearfield} and hence Corollary~\ref{cor:conditional-rh}, subject to admissibility.
+
+\section{From Nyquist cutoff to a uniform arithmetic blocker}\label{sec:blocker}
+
+In the near-field barrier bookkeeping (cf.\ Paper~II), the missing all-heights input can be packaged as a single arithmetic estimate: a scale-uniform bound for a prime exponential sum at the critical weight $p^{-1/2}$.
+We record the relevant prime-frequency observable and note that Hypothesis~\ref{hyp:nyquist-cutoff} forces it to be a \emph{finite} prime sum, yielding a uniform bound by a direct triangle-inequality estimate.
+
+\subsection*{The prime exponential sum}
+Given $(L,t_0)$, define the \emph{windowed prime exponential sum}
+\begin{equation}\label{eq:S-Lt0}
+  S_{L,t_0}\ :=\ \sum_{p} \frac{\log p}{\sqrt{p}}\,e^{it_0\log p}\,\widehat{\Phi_{L,t_0}}(\log p).
+\end{equation}
+Under Hypothesis~\ref{hyp:nyquist-cutoff}, the sum in \eqref{eq:S-Lt0} is in fact finite (only primes with $\log p\le \Omega_{\max}$ contribute), so there are no convergence issues.
+This is the atomic ``arithmetic blocker'' quantity in the barrier framework of Paper~II: bounding $|S_{L,t_0}|$ uniformly in $(L,t_0)$ is the key arithmetic input used to upgrade the near-field exclusion from height-limited to all heights (subject to the admissibility caveat in Remark~\ref{rem:blockers}).
+
+\begin{lemma}[Nyquist cutoff $\Rightarrow$ uniform arithmetic blocker]\label{lem:nyquist-implies-blocker}
+Assume Hypothesis~\ref{hyp:nyquist-cutoff}.
+Then $S_{L,t_0}$ can be written as a finite sum over primes $p\le e^{\Omega_{\max}}$, and for every $(L,t_0)$ one has the pointwise bound
+\[
+  |S_{L,t_0}|\ \le\
+  \Bigl(\sup_{\xi\in\R}\,|\widehat{\Phi_{L,t_0}}(\xi)|\Bigr)
+  \sum_{p\le e^{\Omega_{\max}}}\frac{\log p}{\sqrt{p}}.
+\]
+In particular, if one sets
+\[
+  M_\Phi\ :=\ \sup_{(L,t_0)}\ \sup_{\xi\in\R}\,|\widehat{\Phi_{L,t_0}}(\xi)|,
+\]
+where the outer supremum is taken over the same parameter set of pairs $(L,t_0)$ for which the test family $\Phi_{L,t_0}$ is specified in Hypothesis~\ref{hyp:nyquist-cutoff}.
+In the near-field closure application it suffices to take $0<L\le 0.2$ and $t_0\in\R$ (with $L=2\eta$ and $t_0=\gamma$).
+If $M_\Phi<\infty$ (for example if $\sup_{(L,t_0)}\|\Phi_{L,t_0}\|_{L^1}<\infty$, since $|\widehat{\Phi}|\le \|\Phi\|_{L^1}$),
+then for all $(L,t_0)$,
+\[
+  |S_{L,t_0}|\ \le\ M_\Phi\sum_{p\le e^{\Omega_{\max}}}\frac{\log p}{\sqrt{p}}\ =:\ K_{\rm Nyq},
+\]
+so $|S_{L,t_0}|$ is bounded uniformly (independent of $L$ and $t_0$).
+\end{lemma}
+\begin{proof}
+If $\log p>\Omega_{\max}$ then $\widehat{\Phi_{L,t_0}}(\log p)=0$ by Hypothesis~\ref{hyp:nyquist-cutoff}, so only primes $p\le e^{\Omega_{\max}}$ contribute to \eqref{eq:S-Lt0}.
+By the triangle inequality,
+\[
+  |S_{L,t_0}|
+  \le
+  \sum_{p\le e^{\Omega_{\max}}}\frac{\log p}{\sqrt{p}}\,\bigl|\widehat{\Phi_{L,t_0}}(\log p)\bigr|
+  \le
+  \Bigl(\sup_{\xi\in\R}\,|\widehat{\Phi_{L,t_0}}(\xi)|\Bigr)\sum_{p\le e^{\Omega_{\max}}}\frac{\log p}{\sqrt{p}},
+\]
+which is finite and depends only on $\Omega_{\max}$ and the pointwise bound $\sup_{\xi}|\widehat{\Phi_{L,t_0}}(\xi)|$.
+If $M_\Phi<\infty$ then the stated uniform bound follows immediately.
+\end{proof}
+
+\begin{remark}[Why this is the point of the cutoff]\label{rem:why-cutoff}
+Without a fixed bandwidth ceiling, localization at scale $L$ typically forces Fourier support to expand like $1/L$.
+For instance, if $\Phi_{L,t_0}(t)=L^{-1}\phi((t-t_0)/L)$ then $\widehat{\Phi_{L,t_0}}(\xi)=e^{-it_0\xi}\widehat{\phi}(L\xi)$, so any fixed-frequency support for $\widehat{\phi}$ becomes support of size $\asymp 1/L$ for $\widehat{\Phi_{L,t_0}}$ as $L\downarrow 0$.
+In that regime, the prime sum \eqref{eq:S-Lt0} naturally involves primes with $\log p$ as large as a constant multiple of $1/L$, and trivial bounds grow rapidly as $L\downarrow 0$.
+Hypothesis~\ref{hyp:nyquist-cutoff} rules out this growth mechanism by forcing \eqref{eq:S-Lt0} to be a finite sum over primes $p\le e^{\Omega_{\max}}$ for \emph{every} scale.
+\end{remark}
+
+\begin{remark}[Two blockers to an unconditional upgrade]\label{rem:blockers}
+It is important to separate what Lemma~\ref{lem:nyquist-implies-blocker} does from what it does not do.
+\begin{itemize}
+\item \textbf{Admissibility.} Hypothesis~\ref{hyp:cutoff-admissibility} asserts that the barrier argument may be run using only test functions satisfying Hypothesis~\ref{hyp:nyquist-cutoff} for all relevant $(L,t_0)$.
+\item \textbf{Bridge gap.} The hypothesis itself is not presently implied by classical number theory; replacing it by a proved arithmetic estimate is a main remaining hard step.
+\end{itemize}
+\end{remark}
+
+\section{From the arithmetic blocker to a uniform Carleson bound}\label{sec:carleson}
+
+The quantity $S_{L,t_0}$ in \eqref{eq:S-Lt0} is the ``atomic arithmetic blocker'' in the sense that it captures the prime-frequency input that must be controlled uniformly in the near-field barrier bookkeeping (cf.\ Paper~II of this series).
+This section records a clean analytic consequence of the cutoff hypothesis for the associated \emph{prime-frequency field}: under Hypothesis~\ref{hyp:nyquist-cutoff}, this field is a finite superposition of harmonic modes and its Carleson-box energy is bounded uniformly in both scale $L$ and center $t_0$.
+
+\subsection*{Carleson boxes and box energy}
+Work in half-plane coordinates $s=\tfrac12+\sigma+it$ with $\sigma>0$.
+Given $L>0$ and $t_0\in\R$, set $I:=I_{L,t_0}=[t_0-L,t_0+L]$ and let $Q(\alpha I):=I\times(0,\alpha|I|]$ be the Carleson box of fixed aperture $\alpha>1$.
+For a harmonic function $U$ on $Q(\alpha I)$ define its (local) box-energy ratio by
+\begin{equation}\label{eq:carleson-box-def}
+  \mathcal C_{\rm box}(U;I)\ :=\ \frac{1}{|I|}\int_{Q(\alpha I)} |\nabla U(\sigma,t)|^2\,\sigma\,d\sigma\,dt.
+\end{equation}
+In the near-field barrier framework, $U$ is the (real-valued) harmonic log-modulus potential attached to a normalized zeta-ratio (after local neutralization), and bounding \eqref{eq:carleson-box-def} uniformly is the ``budget'' input used to close the barrier for all heights.
+Here we record a clean uniform bound for the explicit cutoff prime field defined below; the admissibility discussion in Remark~\ref{rem:blockers} addresses how this surrogate input is used in the closure step.
+
+\subsection*{Finite prime-frequency support under the cutoff}
+Under Hypothesis~\ref{hyp:nyquist-cutoff}, only primes with $\log p\le \Omega_{\max}$ contribute to \eqref{eq:S-Lt0}.
+At the level of the prime-frequency observable, this replaces an effectively unbounded-frequency superposition (as $L\downarrow 0$) by a \emph{finite} one.
+To make the resulting uniformity explicit, define the complex prime-frequency field on $Q(\alpha I)$ by
+\begin{equation}\label{eq:prime-field}
+  W_{L,t_0}(\sigma,t)\ :=\ \sum_{p\le e^{\Omega_{\max}}}
+  \frac{\log p}{\sqrt{p}}\,
+  \widehat{\Phi_{L,t_0}}(\log p)\,
+  e^{-(\sigma-i t)\log p}.
+\end{equation}
+Each summand is harmonic in $(\sigma,t)$, hence $\Re W_{L,t_0}$ is harmonic and real-valued.
+With the Fourier convention in Hypothesis~\ref{hyp:nyquist-cutoff}, one has the exact identity
+\[
+  W_{L,t_0}(0,t_0)\ =\ S_{L,t_0}.
+\]
+
+\begin{corollary}[Uniform Carleson bound for the cutoff prime field]\label{cor:nyquist-carleson}
+Assume Hypothesis~\ref{hyp:nyquist-cutoff} and suppose the test family satisfies a uniform bound
+\[
+  M_\Phi\ :=\ \sup_{(L,t_0)}\ \sup_{\xi\in\R}|\widehat{\Phi_{L,t_0}}(\xi)|\ <\ \infty.
+\]
+Here the outer supremum is taken over the same parameter range of pairs $(L,t_0)$ for which the family $\Phi_{L,t_0}$ is specified in Hypothesis~\ref{hyp:nyquist-cutoff}.
+Then there exists a finite constant $C_{\rm Nyq}<\infty$ (depending only on $\alpha$, $\Omega_{\max}$, and $M_\Phi$) such that for every $(L,t_0)$,
+\[
+  \mathcal C_{\rm box}\!\big(\Re W_{L,t_0};\,I_{L,t_0}\big)\ \le\ C_{\rm Nyq}.
+\]
+In particular, the Carleson-box energy budget is uniform in $L$ and $t_0$, and hence does \emph{not} grow with height.
+\end{corollary}
+\begin{proof}
+Write $\omega_p:=\log p\le \Omega_{\max}$ and $c_p:=\frac{\log p}{\sqrt{p}}\,\widehat{\Phi_{L,t_0}}(\log p)$.
+For the basic mode $g_p(\sigma,t):=e^{-(\sigma-i t)\omega_p}$ we have
+$|\partial_\sigma g_p|=|\partial_t g_p|=\omega_p e^{-\sigma\omega_p}$, hence
+$
+|\nabla g_p|^2 \le 2\omega_p^2 e^{-2\sigma\omega_p}.
+$
+Since $W_{L,t_0}=\sum c_p g_p$ is a finite sum, we may use $|\sum v_p|^2\le N\sum |v_p|^2$ with $N:=\#\{p\le e^{\Omega_{\max}}\}$ to obtain
+\[
+  |\nabla W_{L,t_0}|^2
+  \le
+  N\sum_{p\le e^{\Omega_{\max}}}|c_p|^2\,|\nabla g_p|^2
+  \le
+  2N\sum_{p\le e^{\Omega_{\max}}}|c_p|^2\,\omega_p^2 e^{-2\sigma\omega_p}.
+\]
+Integrating over $Q(\alpha I)$ and using
+\[
+  \int_0^{\alpha|I|} \sigma\,e^{-2\sigma\omega_p}\,d\sigma\ \le\ \int_0^{\infty}\sigma\,e^{-2\sigma\omega_p}\,d\sigma\ =\ \frac{1}{4\omega_p^2}
+\]
+yields
+\[
+  \int_{Q(\alpha I)}|\nabla W_{L,t_0}|^2\,\sigma\,d\sigma\,dt
+  \le
+  2N|I|\sum_{p\le e^{\Omega_{\max}}}|c_p|^2\,\omega_p^2\cdot \frac{1}{4\omega_p^2}
+  =
+  \frac{N}{2}\,|I|\sum_{p\le e^{\Omega_{\max}}}|c_p|^2.
+\]
+Since $|c_p|\le M_\Phi\frac{\log p}{\sqrt{p}}$, we obtain
+\[
+  \frac{1}{|I|}\int_{Q(\alpha I)}|\nabla W_{L,t_0}|^2\,\sigma\,d\sigma\,dt
+  \le
+  \frac{N}{2}\,M_\Phi^2\sum_{p\le e^{\Omega_{\max}}}\frac{(\log p)^2}{p}
+  =:\ C_{\rm Nyq}<\infty.
+\]
+Finally, since $|\nabla(\Re W_{L,t_0})|\le |\nabla W_{L,t_0}|$ pointwise, the same bound holds with $W_{L,t_0}$ replaced by $\Re W_{L,t_0}$.
+\end{proof}
+
+\begin{remark}[How this closes the height dependence]\label{rem:carleson-gap}
+In the effective bookkeeping of Paper~II, the Carleson budget is bounded by a prime-layer contribution together with a height-dependent zero-layer term of size $1+L\log\angles{T}$ coming from the density of critical-line zeros near height $T$.
+The point of Hypothesis~\ref{hyp:nyquist-cutoff} is to enable a different all-scales input: at every scale, the prime-frequency field becomes a finite superposition of modes, so its box energy is bounded by a uniform constant as in Corollary~\ref{cor:nyquist-carleson}.
+Subject to the admissibility discussion in Remark~\ref{rem:blockers}, this provides the height-uniform budget input used in the barrier closure step (Section~\ref{sec:closure}).
+\end{remark}
+
+\section{Barrier closure and conditional RH}\label{sec:closure}
+
+This section records the final implication chain.
+The two analytic ingredients behind the near-field barrier are classical:
+\begin{itemize}
+\item a \emph{quantized} lower bound on localized boundary phase mass forced by an off-critical zero (a Blaschke/Poisson ``trigger'');
+\item a CR--Green inequality that upper-bounds the same localized phase mass by the square root of a Carleson-box energy budget.
+\end{itemize}
+These are proved in Paper~II of this series.
+The additional (conditional) input isolated here is the cutoff-based Carleson estimate of Corollary~\ref{cor:nyquist-carleson}, which gives a height-uniform box-energy bound for the cutoff prime-frequency field.
+Subject to the admissibility caveat in Remark~\ref{rem:blockers}, this bound supplies the uniform substitute for the prime-frequency input in the Carleson budget bookkeeping of Paper~II.
+Note that Corollary~\ref{cor:nyquist-carleson} also assumes the uniform test-family bound $M_\Phi<\infty$, and we will invoke that hypothesis here as well.
+
+\subsection*{Barrier inequality (cost versus budget)}
+Fix a depth parameter $\eta\in(0,0.1)$ and set the associated near-field scale $L:=2\eta$.
+Let $\rho=\tfrac12+\eta+i\gamma$ be a hypothetical off-critical zero of $\zeta(s)$.
+We fix a smooth flat-top window as in Paper~II: choose an even $\psi:\R\to[0,1]$ with $\psi\equiv 1$ on $[-1,1]$ and $\operatorname{supp}\psi\subset[-2,2]$, and define
+\[
+  \psi_{L,t_0}(t)\ :=\ \psi\!\left(\frac{t-t_0}{L}\right).
+\]
+As in the barrier setup of Paper~II, let $w$ be a boundary phase (defined modulo $2\pi$) such that $-w'$ is a nonnegative distribution and, in the sense of distributions,
+\[
+  -w'(t)\ \ge\ \frac{2\eta}{(t-\gamma)^2+\eta^2}.
+\]
+Let $U$ denote the harmonic log-modulus potential attached (after local neutralization, as in Paper~II) to a normalized zeta-ratio on the Carleson box above the support interval
+\[
+  I^\ast\ :=\ [\gamma-2L,\gamma+2L].
+\]
+
+\begin{proposition}[Energy barrier inequality]\label{prop:barrier-ineq}
+With the notation above, there exists a finite constant $C(\psi)>0$ (depending only on the fixed window profile and box aperture) such that, interpreting the left-hand sides as distributional pairings,
+\begin{equation}\label{eq:barrier-ineq}
+  \int_{\R}\psi_{L,\gamma}(t)\,(-w'(t))\,dt\ \ge\ L_{\rm rec}
+  \qquad\text{and}\qquad
+  \int_{\R}\psi_{L,\gamma}(t)\,(-w'(t))\,dt\ \le\ C(\psi)\,\sqrt{4L\,\mathcal C_{\rm box}(U;I^\ast)}.
+\end{equation}
+Equivalently,
+\[
+  L\cdot \mathcal C_{\rm box}(U;I^\ast)\ \ge\ \frac{L_{\rm rec}^2}{4\,C(\psi)^2},
+  \qquad
+  L_{\rm rec}:=4\arctan(2).
+\]
+\end{proposition}
+\begin{proof}
+This is exactly the barrier inequality proved in the companion effective paper of this series (Paper~II), specialized to the present notation.
+For completeness we summarize the two inputs.
+
+\smallskip\noindent
+\textbf{Lower bound (Blaschke trigger).}
+The distribution $-w'$ is nonnegative and satisfies the explicit lower bound
+$-w'(t)\ge \frac{2\eta}{(t-\gamma)^2+\eta^2}$ in the sense of distributions.
+Testing against the flat-top window $\psi_{L,\gamma}$ with $L=2\eta$ yields the universal constant
+$L_{\rm rec}=4\arctan(2)$.
+
+\smallskip\noindent
+\textbf{Upper bound (CR--Green).}
+After local neutralization (Paper~II), one works with a holomorphic, zero-free function $F$ on the relevant Carleson box (a normalized zeta-ratio with its local poles/zeros removed) and writes $\log F=U+iV$ there.
+One then uses the Cauchy--Riemann identity $\partial_t V=\partial_\sigma U$ (in distributions) together with Green's identity to express the boundary pairing against $\psi_{L,\gamma}$ as a Dirichlet pairing.
+Cauchy--Schwarz then gives the bound in terms of the box energy $\mathcal C_{\rm box}(U;I^\ast)$, with the constant $C(\psi)$ depending only on the fixed aperture and window profile.
+\end{proof}
+
+\subsection*{Uniform closure of the near-field strip (conditional)}
+In the effective bookkeeping of Paper~II, the Carleson budget is bounded by a prime-layer contribution together with a height-dependent zero-layer term of size $\asymp 1+L\log\angles{|\gamma|}$ coming from the density of critical-line zeros near height $|\gamma|$.
+The purpose of Hypothesis~\ref{hyp:nyquist-cutoff} is to supply a height-uniform substitute for the prime-frequency input: at every scale, the cutoff prime field is a finite superposition of modes, and Corollary~\ref{cor:nyquist-carleson} gives a bound for its box-energy ratio that is uniform in $\gamma$.
+Subject to the admissibility discussion in Remark~\ref{rem:blockers} (that the barrier argument may be run within a cutoff-admissible test family), this provides the height-uniform budget input used in the closure step.
+
+\begin{proof}[Proof of Theorem~\ref{thm:nyquist-nearfield} (conditional)]
+Assume Hypothesis~\ref{hyp:nyquist-cutoff}, Hypothesis~\ref{hyp:cutoff-admissibility}, and the uniform bound $M_\Phi<\infty$ so that Corollary~\ref{cor:nyquist-carleson} applies.
+If there were a zero $\rho=\tfrac12+\eta+i\gamma$ with $0<\eta<0.1$, then Proposition~\ref{prop:barrier-ineq} would force a fixed positive lower bound on the localized phase mass while simultaneously upper-bounding it by a Carleson budget at the same scale $L=2\eta$.
+In the effective analysis of Paper~II, height dependence enters through the available budget at the same scale: in general one obtains an upper bound whose dominant growth in $|\gamma|$ is proportional to $L\log\angles{|\gamma|}$.
+Under Hypothesis~\ref{hyp:nyquist-cutoff}, the cutoff prime field $W_{L,\gamma}$ of Section~\ref{sec:carleson} is a finite superposition of modes and satisfies the height-uniform Carleson estimate of Corollary~\ref{cor:nyquist-carleson}.
+By Hypothesis~\ref{hyp:cutoff-admissibility}, the barrier closure argument of Paper~II may be carried out within a cutoff-admissible test family using this height-uniform estimate as the needed prime-frequency input.
+In particular, the closure step has no large-height escape at fixed $\eta$, and the cost-versus-budget inequality yields a contradiction for every $\gamma$.
+Therefore the strip $\{\tfrac12<\Re s<0.6\}$ is zero-free.
+\end{proof}
+
+\subsection*{Conditional RH closure in the three-paper split}
+We now close the implication to RH using the unconditional far-field paper.
+
+\begin{proof}[Proof of Corollary~\ref{cor:conditional-rh}]
+Assume Hypothesis~\ref{hyp:nyquist-cutoff}, Hypothesis~\ref{hyp:cutoff-admissibility}, and the uniform bound $M_\Phi<\infty$ so that Theorem~\ref{thm:nyquist-nearfield} applies.
+By Theorem~\ref{thm:nyquist-nearfield}, $\zeta(s)$ has no zeros in the strip $\{\tfrac12<\Re s<0.6\}$.
+By the unconditional far-field result of Paper~I, $\zeta(s)$ has no zeros in the half-plane $\{\Re s\ge 0.6\}$.
+Therefore $\zeta(s)\neq 0$ for all $\Re s>\tfrac12$, and hence the completed zeta function $\xi(s)$ (whose zeros coincide with the nontrivial zeros of $\zeta$) has no zeros with $\Re s>\tfrac12$.
+By the functional equation $\xi(s)=\xi(1-s)$, the zeros of $\xi$ are symmetric with respect to $\Re s=\tfrac12$, hence $\xi$ has no zeros with $\Re s<\tfrac12$ either.
+Thus every zero of $\xi$ lies on $\Re s=\tfrac12$, i.e.\ RH holds conditionally.
+\end{proof}
+
+\section*{Conclusion and limitations (conditional status)}
+
+This paper isolates a single explicit additional hypothesis---the Nyquist cutoff hypothesis (Hypothesis~\ref{hyp:nyquist-cutoff})---and records its consequences within the near-field barrier framework.
+Under this hypothesis, the prime-frequency observable collapses to a finite sum (Lemma~\ref{lem:nyquist-implies-blocker}).
+Assuming an admissible cutoff test family satisfying the uniform bound required in Corollary~\ref{cor:nyquist-carleson} (in particular $M_\Phi<\infty$), one obtains the height-uniform Carleson estimate used in the barrier closure step and hence the conditional elimination of near-field off-critical zeros (Theorem~\ref{thm:nyquist-nearfield}).
+Combined with the unconditional far-field zero-freeness proved in Paper~I, this yields conditional RH (Corollary~\ref{cor:conditional-rh}).
+
+\paragraph{What is proved (conditional).}
+The conclusions in Theorem~\ref{thm:nyquist-nearfield} and Corollary~\ref{cor:conditional-rh} are \textbf{conditional} on Hypothesis~\ref{hyp:nyquist-cutoff}, together with the explicit admissibility/uniformity assumptions needed to apply the cutoff Carleson estimate (Corollary~\ref{cor:nyquist-carleson}) in the barrier closure step (Section~\ref{sec:closure}); in particular the uniform bound $M_\Phi<\infty$.
+No claim is made here that these assumptions follow from classical number theory.
+
+\paragraph{Where the hypothesis enters.}
+The near-field barrier inequality is classical and the vortex cost is height-independent.
+In the classical bookkeeping (Paper~II), height enters only through the budget term, which grows like $L\log\angles{T}$.
+Hypothesis~\ref{hyp:nyquist-cutoff} enters by enforcing a fixed bandwidth ceiling on the prime-side test family, removing the high-frequency growth mechanism behind this term within the cutoff-based input.
+
+\paragraph{Normalization caveat.}
+The uniform bounds in Lemma~\ref{lem:nyquist-implies-blocker} and Corollary~\ref{cor:nyquist-carleson} depend on an explicit uniform control of the test family, for example a bound $M_\Phi<\infty$ defined by
+\[
+  M_\Phi\ :=\ \sup_{(L,t_0)}\ \sup_{\xi\in\R}\,|\widehat{\Phi_{L,t_0}}(\xi)|.
+\]
+Any implementation of the cutoff principle must specify admissible test functions and verify the barrier setup remains valid within that admissible class.
+
+\paragraph{Unconditional content.}
+This paper contains \emph{no} new unconditional zero-free statement beyond what is proved in Paper~I (far-field) and Paper~II (effective near-field).
+It is included solely to record the clean logical implication: \emph{if} a fixed Nyquist cutoff for prime-frequency observables holds (within an admissible test family giving the stated uniform bounds), \emph{then} the near-field barrier admits a height-uniform closure and RH follows (conditionally).
+
+\section*{Statements and Declarations}
+
+\paragraph{Competing interests.}
+The author declares no competing interests.
+
+\paragraph{Data and materials availability.}
+This paper introduces no new computational artifacts beyond those already present in the repository.
+All files needed to compile this manuscript are included in the repository.
+The unconditional far-field certification artifacts and verifier are documented in \texttt{README.md} and in Paper~I of this series (\texttt{paper1\_farfield.tex}).
+
+\paragraph{Reproducibility.}
+The conditional implications in this paper are reproducible from the stated hypotheses (including Hypothesis~\ref{hyp:nyquist-cutoff} together with the admissibility/uniformity assumptions invoked in Section~\ref{sec:closure}) and the cited analytic inputs.
+In particular, the barrier inequality and its effective bookkeeping are proved in Paper~II (\texttt{paper2\_energy\_barrier.tex}), while the certified far-field zero-freeness used in Corollary~\ref{cor:conditional-rh} is proved in Paper~I (\texttt{paper1\_farfield.tex}).
+
+\input{riemann_bibliography.tex}
+\end{document}
+
+

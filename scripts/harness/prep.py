@@ -836,6 +836,16 @@ def _build_rules() -> list[Rule]:
         ),
         register_rule(
             Rule(
+                id="prep.no_prohibited_teacher",
+                description="a pre-registration must not propose a prohibited teacher or comparator",
+                severity="error",
+                check=_check_no_prohibited_teacher,
+                rationale="D23/D25 and the owner's 3 October direction: no softmax teacher, no dense helper, no transformer control",
+                mistake="geometry-carries-learning",
+            )
+        ),
+        register_rule(
+            Rule(
                 id="prep.panel_frozen",
                 description="every panel referenced by milestones.json exists, is frozen, and carries a grader and a bar",
                 severity="error",
@@ -1013,3 +1023,47 @@ def main(args: Any, paths: HarnessPaths, reg: Registry) -> int:  # pragma: no co
     if action == "fit":
         return fit_review(args, paths, reg)
     return list_sheets(args, paths, reg)
+
+
+# A prohibited teacher/comparator proposed as the learning signal or control arm. The
+# owner closed every one of these: D23 (no softmax anywhere, including teachers and
+# comparators), D25 (no dense matmul), and the 3 October direction (no transformer
+# baselines). The patterns are deliberately narrow - they target a teacher/control
+# being *proposed*, not the word appearing in a scope or prohibition note.
+_PROHIBITED_TEACHER = (
+    re.compile(r"\bsoftmax\s+(?:teacher|target|supervis|distill)", re.IGNORECASE),
+    re.compile(r"\b(?:distil|imitat|copy)\w*\s+(?:from|the)\s+softmax", re.IGNORECASE),
+    re.compile(r"\btransformer\s+(?:baseline|control|comparator|teacher)", re.IGNORECASE),
+    re.compile(r"\b(?:dense|L2)[- ]?(?:control|teacher|helper)\s+(?:as|for)\s+the\s+(?:learning|training)\s+signal", re.IGNORECASE),
+)
+# a sheet that states the prohibition is not proposing it
+_ACKNOWLEDGES = ("D23", "D25", "prohibited", "not permitted", "forbidden", "no softmax", "rule freeze")
+
+
+def _check_no_prohibited_teacher(paths: HarnessPaths, reg: Registry) -> list[RuleResult]:
+    out: list[RuleResult] = []
+    for f in sheet_files(paths):
+        text = read_text(f)
+        if not text.strip():
+            continue
+        rel = _rel(f, paths.repo)
+        for pattern in _PROHIBITED_TEACHER:
+            for m in pattern.finditer(text):
+                window = text[max(0, m.start() - 260) : m.end() + 260]
+                if any(a.lower() in window.lower() for a in _ACKNOWLEDGES):
+                    continue
+                out.append(
+                    RuleResult(
+                        rule_id="prep.no_prohibited_teacher",
+                        severity="error",
+                        ok=False,
+                        message=(
+                            f"{rel} proposes a prohibited teacher or comparator: {m.group(0)!r}. "
+                            "The learning signal must come from the geometry (D23/D25; owner, 3 October)."
+                        ),
+                        path=rel,
+                        fix="replace it with a geometric signal (cells, Hopf rings, icosian pairing, tree levels), "
+                            "or state explicitly in the sheet that the mention is the prohibition being honoured",
+                    )
+                )
+    return out

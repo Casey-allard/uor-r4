@@ -1,0 +1,860 @@
+{
+  "step1_r_eff": {
+    "min": 0.999999787033734,
+    "max": 1.0000001809930212,
+    "mean": 1.0000000000239215,
+    "median": 0.9999999999638374,
+    "p05": 0.9999999102475428,
+    "p25": 0.999999963186087,
+    "p50": 0.9999999999638374,
+    "p75": 1.0000000374758662,
+    "p95": 1.000000090225947,
+    "p99": 1.0000001249444452
+  },
+  "step2_shell_sweep": [
+    {
+      "K": 250,
+      "mode": "BASE",
+      "sqrt_K": 15.811388300841896,
+      "active_sectors": 244,
+      "sectors_above_1pct": 23,
+      "sector_entropy": 5.023311765827064,
+      "sector_gini": 0.5320737704918033,
+      "active_over_sqrt_K": 15.431914981621691,
+      "effective_bucket_count": 151.9135738170721,
+      "routing_gini": 0.5320737704918033,
+      "kchi": 15,
+      "kdelta": 17
+    },
+    {
+      "K": 250,
+      "mode": "TRANS",
+      "sqrt_K": 15.811388300841896,
+      "active_sectors": 184,
+      "sectors_above_1pct": 32,
+      "sector_entropy": 4.2167759650173595,
+      "sector_gini": 0.7214282608695652,
+      "active_over_sqrt_K": 11.637181789419635,
+      "effective_bucket_count": 67.81449516007496,
+      "routing_gini": 0.7214282608695652,
+      "kchi": 5,
+      "kdelta": 10
+    },
+    {
+      "K": 300,
+      "mode": "BASE",
+      "sqrt_K": 17.320508075688775,
+      "active_sectors": 292,
+      "sectors_above_1pct": 21,
+      "sector_entropy": 5.213225602773475,
+      "sector_gini": 0.5283465753424659,
+      "active_over_sqrt_K": 16.85862786033707,
+      "effective_bucket_count": 183.68560042286964,
+      "routing_gini": 0.5283465753424659,
+      "kchi": 17,
+      "kdelta": 18
+    },
+    {
+      "K": 300,
+      "mode": "TRANS",
+      "sqrt_K": 17.320508075688775,
+      "active_sectors": 216,
+      "sectors_above_1pct": 30,
+      "sector_entropy": 4.363822465261102,
+      "sector_gini": 0.7238240740740742,
+      "active_over_sqrt_K": 12.470765814495916,
+      "effective_bucket_count": 78.55684204691528,
+      "routing_gini": 0.7238240740740742,
+      "kchi": 6,
+      "kdelta": 10
+    },
+    {
+      "K": 400,
+      "mode": "BASE",
+      "sqrt_K": 20.0,
+      "active_sectors": 377,
+      "sectors_above_1pct": 14,
+      "sector_entropy": 5.491945782119002,
+      "sector_gini": 0.5145750663129973,
+      "active_over_sqrt_K": 18.85,
+      "effective_bucket_count": 242.7290454979845,
+      "routing_gini": 0.5145750663129973,
+      "kchi": 20,
+      "kdelta": 20
+    },
+    {
+      "K": 400,
+      "mode": "TRANS",
+      "sqrt_K": 20.0,
+      "active_sectors": 267,
+      "sectors_above_1pct": 34,
+      "sector_entropy": 4.616656311603454,
+      "sector_gini": 0.7128943820224718,
+      "active_over_sqrt_K": 13.35,
+      "effective_bucket_count": 101.15523444459294,
+      "routing_gini": 0.7128943820224718,
+      "kchi": 8,
+      "kdelta": 10
+    },
+    {
+      "K": 600,
+      "mode": "BASE",
+      "sqrt_K": 24.49489742783178,
+      "active_sectors": 533,
+      "sectors_above_1pct": 2,
+      "sector_entropy": 5.868384071259066,
+      "sector_gini": 0.49659512195121946,
+      "active_over_sqrt_K": 21.7596338817239,
+      "effective_bucket_count": 353.6770014220956,
+      "routing_gini": 0.49659512195121946,
+      "kchi": 24,
+      "kdelta": 25
+    },
+    {
+      "K": 600,
+      "mode": "TRANS",
+      "sqrt_K": 24.49489742783178,
+      "active_sectors": 338,
+      "sectors_above_1pct": 32,
+      "sector_entropy": 4.845363665445488,
+      "sector_gini": 0.7144248520710059,
+      "active_over_sqrt_K": 13.798792217678571,
+      "effective_bucket_count": 127.14951347129207,
+      "routing_gini": 0.7144248520710059,
+      "kchi": 10,
+      "kdelta": 10
+    },
+    {
+      "K": 1000,
+      "mode": "BASE",
+      "sqrt_K": 31.622776601683793,
+      "active_sectors": 806,
+      "sectors_above_1pct": 0,
+      "sector_entropy": 6.285803027036214,
+      "sector_gini": 0.4930823821339949,
+      "active_over_sqrt_K": 25.487957940957138,
+      "effective_bucket_count": 536.8952589833018,
+      "routing_gini": 0.4930823821339949,
+      "kchi": 31,
+      "kdelta": 33
+    },
+    {
+      "K": 1000,
+      "mode": "TRANS",
+      "sqrt_K": 31.622776601683793,
+      "active_sectors": 451,
+      "sectors_above_1pct": 27,
+      "sector_entropy": 5.102200595987367,
+      "sector_gini": 0.7144567627494456,
+      "active_over_sqrt_K": 14.261872247359392,
+      "effective_bucket_count": 164.38325069053326,
+      "routing_gini": 0.7144567627494456,
+      "kchi": 10,
+      "kdelta": 10
+    }
+  ],
+  "step3_forced_shells": [
+    {
+      "delta_r": 0.6,
+      "mode": "BASE",
+      "n_tokens": 5000,
+      "n_shells": 1,
+      "shell_list": [
+        2
+      ],
+      "shell_distribution": {
+        "2": 5000
+      },
+      "n_active_sectors": 100,
+      "sectors_above_1pct": 44,
+      "n_buckets": 100,
+      "effective_bucket_count": 69.32079556483407,
+      "routing_gini": 0.4706919999999999,
+      "top_half_concentration": 0.8566,
+      "sector_entropy": 4.238744941481405,
+      "sector_gini": 0.4706919999999999
+    },
+    {
+      "delta_r": 0.6,
+      "mode": "TRANS",
+      "n_tokens": 5000,
+      "n_shells": 1,
+      "shell_list": [
+        2
+      ],
+      "shell_distribution": {
+        "2": 5000
+      },
+      "n_active_sectors": 86,
+      "sectors_above_1pct": 27,
+      "n_buckets": 86,
+      "effective_bucket_count": 36.36961468754229,
+      "routing_gini": 0.6857488372093024,
+      "top_half_concentration": 0.9546,
+      "sector_entropy": 3.593733664704183,
+      "sector_gini": 0.6857488372093024
+    },
+    {
+      "delta_r": 1.0,
+      "mode": "BASE",
+      "n_tokens": 5000,
+      "n_shells": 1,
+      "shell_list": [
+        1
+      ],
+      "shell_distribution": {
+        "1": 5000
+      },
+      "n_active_sectors": 100,
+      "sectors_above_1pct": 44,
+      "n_buckets": 100,
+      "effective_bucket_count": 69.32079556483407,
+      "routing_gini": 0.4706919999999999,
+      "top_half_concentration": 0.8566,
+      "sector_entropy": 4.238744941481405,
+      "sector_gini": 0.4706919999999999
+    },
+    {
+      "delta_r": 1.0,
+      "mode": "TRANS",
+      "n_tokens": 5000,
+      "n_shells": 1,
+      "shell_list": [
+        1
+      ],
+      "shell_distribution": {
+        "1": 5000
+      },
+      "n_active_sectors": 86,
+      "sectors_above_1pct": 27,
+      "n_buckets": 86,
+      "effective_bucket_count": 36.36961468754229,
+      "routing_gini": 0.6857488372093024,
+      "top_half_concentration": 0.9546,
+      "sector_entropy": 3.593733664704183,
+      "sector_gini": 0.6857488372093024
+    },
+    {
+      "delta_r": 1.5,
+      "mode": "BASE",
+      "n_tokens": 5000,
+      "n_shells": 1,
+      "shell_list": [
+        1
+      ],
+      "shell_distribution": {
+        "1": 5000
+      },
+      "n_active_sectors": 100,
+      "sectors_above_1pct": 44,
+      "n_buckets": 100,
+      "effective_bucket_count": 69.32079556483407,
+      "routing_gini": 0.4706919999999999,
+      "top_half_concentration": 0.8566,
+      "sector_entropy": 4.238744941481405,
+      "sector_gini": 0.4706919999999999
+    },
+    {
+      "delta_r": 1.5,
+      "mode": "TRANS",
+      "n_tokens": 5000,
+      "n_shells": 1,
+      "shell_list": [
+        1
+      ],
+      "shell_distribution": {
+        "1": 5000
+      },
+      "n_active_sectors": 86,
+      "sectors_above_1pct": 27,
+      "n_buckets": 86,
+      "effective_bucket_count": 36.36961468754229,
+      "routing_gini": 0.6857488372093024,
+      "top_half_concentration": 0.9546,
+      "sector_entropy": 3.593733664704183,
+      "sector_gini": 0.6857488372093024
+    },
+    {
+      "delta_r": 1.8,
+      "mode": "BASE",
+      "n_tokens": 5000,
+      "n_shells": 1,
+      "shell_list": [
+        0
+      ],
+      "shell_distribution": {
+        "0": 5000
+      },
+      "n_active_sectors": 100,
+      "sectors_above_1pct": 44,
+      "n_buckets": 100,
+      "effective_bucket_count": 69.32079556483407,
+      "routing_gini": 0.4706919999999999,
+      "top_half_concentration": 0.8566,
+      "sector_entropy": 4.238744941481405,
+      "sector_gini": 0.4706919999999999
+    },
+    {
+      "delta_r": 1.8,
+      "mode": "TRANS",
+      "n_tokens": 5000,
+      "n_shells": 1,
+      "shell_list": [
+        0
+      ],
+      "shell_distribution": {
+        "0": 5000
+      },
+      "n_active_sectors": 86,
+      "sectors_above_1pct": 27,
+      "n_buckets": 86,
+      "effective_bucket_count": 36.36961468754229,
+      "routing_gini": 0.6857488372093024,
+      "top_half_concentration": 0.9546,
+      "sector_entropy": 3.593733664704183,
+      "sector_gini": 0.6857488372093024
+    },
+    {
+      "delta_r": 2.0,
+      "mode": "BASE",
+      "n_tokens": 5000,
+      "n_shells": 1,
+      "shell_list": [
+        0
+      ],
+      "shell_distribution": {
+        "0": 5000
+      },
+      "n_active_sectors": 100,
+      "sectors_above_1pct": 44,
+      "n_buckets": 100,
+      "effective_bucket_count": 69.32079556483407,
+      "routing_gini": 0.4706919999999999,
+      "top_half_concentration": 0.8566,
+      "sector_entropy": 4.238744941481405,
+      "sector_gini": 0.4706919999999999
+    },
+    {
+      "delta_r": 2.0,
+      "mode": "TRANS",
+      "n_tokens": 5000,
+      "n_shells": 1,
+      "shell_list": [
+        0
+      ],
+      "shell_distribution": {
+        "0": 5000
+      },
+      "n_active_sectors": 86,
+      "sectors_above_1pct": 27,
+      "n_buckets": 86,
+      "effective_bucket_count": 36.36961468754229,
+      "routing_gini": 0.6857488372093024,
+      "top_half_concentration": 0.9546,
+      "sector_entropy": 3.593733664704183,
+      "sector_gini": 0.6857488372093024
+    },
+    {
+      "delta_r": 3.6,
+      "mode": "BASE",
+      "n_tokens": 5000,
+      "n_shells": 1,
+      "shell_list": [
+        0
+      ],
+      "shell_distribution": {
+        "0": 5000
+      },
+      "n_active_sectors": 100,
+      "sectors_above_1pct": 44,
+      "n_buckets": 100,
+      "effective_bucket_count": 69.32079556483407,
+      "routing_gini": 0.4706919999999999,
+      "top_half_concentration": 0.8566,
+      "sector_entropy": 4.238744941481405,
+      "sector_gini": 0.4706919999999999
+    },
+    {
+      "delta_r": 3.6,
+      "mode": "TRANS",
+      "n_tokens": 5000,
+      "n_shells": 1,
+      "shell_list": [
+        0
+      ],
+      "shell_distribution": {
+        "0": 5000
+      },
+      "n_active_sectors": 86,
+      "sectors_above_1pct": 27,
+      "n_buckets": 86,
+      "effective_bucket_count": 36.36961468754229,
+      "routing_gini": 0.6857488372093024,
+      "top_half_concentration": 0.9546,
+      "sector_entropy": 3.593733664704183,
+      "sector_gini": 0.6857488372093024
+    },
+    {
+      "delta_r": 20.0,
+      "mode": "BASE",
+      "n_tokens": 5000,
+      "n_shells": 1,
+      "shell_list": [
+        0
+      ],
+      "shell_distribution": {
+        "0": 5000
+      },
+      "n_active_sectors": 100,
+      "sectors_above_1pct": 44,
+      "n_buckets": 100,
+      "effective_bucket_count": 69.32079556483407,
+      "routing_gini": 0.4706919999999999,
+      "top_half_concentration": 0.8566,
+      "sector_entropy": 4.238744941481405,
+      "sector_gini": 0.4706919999999999
+    },
+    {
+      "delta_r": 20.0,
+      "mode": "TRANS",
+      "n_tokens": 5000,
+      "n_shells": 1,
+      "shell_list": [
+        0
+      ],
+      "shell_distribution": {
+        "0": 5000
+      },
+      "n_active_sectors": 86,
+      "sectors_above_1pct": 27,
+      "n_buckets": 86,
+      "effective_bucket_count": 36.36961468754229,
+      "routing_gini": 0.6857488372093024,
+      "top_half_concentration": 0.9546,
+      "sector_entropy": 3.593733664704183,
+      "sector_gini": 0.6857488372093024
+    }
+  ],
+  "step4_sector_scaling": [
+    {
+      "K": 10,
+      "mode": "BASE",
+      "sqrt_K": 3.1622776601683795,
+      "active_sectors": 10,
+      "sectors_above_1pct": 10,
+      "sector_entropy": 2.1651757587247333,
+      "sector_gini": 0.28647999999999985,
+      "active_over_sqrt_K": 3.162277660168379,
+      "effective_bucket_count": 8.716133718780538,
+      "routing_gini": 0.28647999999999985,
+      "kchi": 3,
+      "kdelta": 4
+    },
+    {
+      "K": 10,
+      "mode": "TRANS",
+      "sqrt_K": 3.1622776601683795,
+      "active_sectors": 8,
+      "sectors_above_1pct": 8,
+      "sector_entropy": 1.9255210185824834,
+      "sector_gini": 0.3071999999999999,
+      "active_over_sqrt_K": 2.5298221281347035,
+      "effective_bucket_count": 6.858721256351988,
+      "routing_gini": 0.3071999999999999,
+      "kchi": 2,
+      "kdelta": 2
+    },
+    {
+      "K": 15,
+      "mode": "BASE",
+      "sqrt_K": 3.872983346207417,
+      "active_sectors": 15,
+      "sectors_above_1pct": 14,
+      "sector_entropy": 2.4994087301578576,
+      "sector_gini": 0.3511200000000001,
+      "active_over_sqrt_K": 3.8729833462074166,
+      "effective_bucket_count": 12.175292948502896,
+      "routing_gini": 0.3511200000000001,
+      "kchi": 3,
+      "kdelta": 5
+    },
+    {
+      "K": 15,
+      "mode": "TRANS",
+      "sqrt_K": 3.872983346207417,
+      "active_sectors": 12,
+      "sectors_above_1pct": 12,
+      "sector_entropy": 2.297092751851778,
+      "sector_gini": 0.33499999999999996,
+      "active_over_sqrt_K": 3.0983866769659336,
+      "effective_bucket_count": 9.9452271418773,
+      "routing_gini": 0.33499999999999996,
+      "kchi": 2,
+      "kdelta": 3
+    },
+    {
+      "K": 25,
+      "mode": "BASE",
+      "sqrt_K": 5.0,
+      "active_sectors": 25,
+      "sectors_above_1pct": 20,
+      "sector_entropy": 2.990822328652538,
+      "sector_gini": 0.366784,
+      "active_over_sqrt_K": 5.0,
+      "effective_bucket_count": 19.90204178348817,
+      "routing_gini": 0.366784,
+      "kchi": 5,
+      "kdelta": 5
+    },
+    {
+      "K": 25,
+      "mode": "TRANS",
+      "sqrt_K": 5.0,
+      "active_sectors": 24,
+      "sectors_above_1pct": 20,
+      "sector_entropy": 2.9525159298336145,
+      "sector_gini": 0.36924999999999986,
+      "active_over_sqrt_K": 4.8,
+      "effective_bucket_count": 19.154083487376568,
+      "routing_gini": 0.36924999999999986,
+      "kchi": 3,
+      "kdelta": 4
+    },
+    {
+      "K": 35,
+      "mode": "BASE",
+      "sqrt_K": 5.916079783099616,
+      "active_sectors": 35,
+      "sectors_above_1pct": 24,
+      "sector_entropy": 3.249486349429666,
+      "sector_gini": 0.43131428571428576,
+      "active_over_sqrt_K": 5.916079783099616,
+      "effective_bucket_count": 25.777096096024813,
+      "routing_gini": 0.43131428571428576,
+      "kchi": 5,
+      "kdelta": 7
+    },
+    {
+      "K": 35,
+      "mode": "TRANS",
+      "sqrt_K": 5.916079783099616,
+      "active_sectors": 32,
+      "sectors_above_1pct": 25,
+      "sector_entropy": 3.2037499624406687,
+      "sector_gini": 0.3928125,
+      "active_over_sqrt_K": 5.408987230262506,
+      "effective_bucket_count": 24.624698970634448,
+      "routing_gini": 0.3928125,
+      "kchi": 4,
+      "kdelta": 4
+    },
+    {
+      "K": 50,
+      "mode": "BASE",
+      "sqrt_K": 7.0710678118654755,
+      "active_sectors": 50,
+      "sectors_above_1pct": 30,
+      "sector_entropy": 3.5482210966004084,
+      "sector_gini": 0.4612879999999999,
+      "active_over_sqrt_K": 7.071067811865475,
+      "effective_bucket_count": 34.75144300944886,
+      "routing_gini": 0.4612879999999999,
+      "kchi": 7,
+      "kdelta": 8
+    },
+    {
+      "K": 50,
+      "mode": "TRANS",
+      "sqrt_K": 7.0710678118654755,
+      "active_sectors": 50,
+      "sectors_above_1pct": 27,
+      "sector_entropy": 3.450015310518789,
+      "sector_gini": 0.5247120000000001,
+      "active_over_sqrt_K": 7.071067811865475,
+      "effective_bucket_count": 31.500874599788304,
+      "routing_gini": 0.5247120000000001,
+      "kchi": 5,
+      "kdelta": 5
+    },
+    {
+      "K": 75,
+      "mode": "BASE",
+      "sqrt_K": 8.660254037844387,
+      "active_sectors": 75,
+      "sectors_above_1pct": 36,
+      "sector_entropy": 3.9135088610037236,
+      "sector_gini": 0.49271466666666663,
+      "active_over_sqrt_K": 8.660254037844386,
+      "effective_bucket_count": 50.0743480002957,
+      "routing_gini": 0.49271466666666663,
+      "kchi": 8,
+      "kdelta": 10
+    },
+    {
+      "K": 75,
+      "mode": "TRANS",
+      "sqrt_K": 8.660254037844387,
+      "active_sectors": 71,
+      "sectors_above_1pct": 27,
+      "sector_entropy": 3.4704000733248708,
+      "sector_gini": 0.6635436619718309,
+      "active_over_sqrt_K": 8.198373822492686,
+      "effective_bucket_count": 32.14960207037862,
+      "routing_gini": 0.6635436619718309,
+      "kchi": 5,
+      "kdelta": 5
+    },
+    {
+      "K": 100,
+      "mode": "BASE",
+      "sqrt_K": 10.0,
+      "active_sectors": 100,
+      "sectors_above_1pct": 44,
+      "sector_entropy": 4.238744941481405,
+      "sector_gini": 0.4706919999999999,
+      "active_over_sqrt_K": 10.0,
+      "effective_bucket_count": 69.32079556483407,
+      "routing_gini": 0.4706919999999999,
+      "kchi": 10,
+      "kdelta": 10
+    },
+    {
+      "K": 100,
+      "mode": "TRANS",
+      "sqrt_K": 10.0,
+      "active_sectors": 86,
+      "sectors_above_1pct": 27,
+      "sector_entropy": 3.593733664704183,
+      "sector_gini": 0.6857488372093024,
+      "active_over_sqrt_K": 8.6,
+      "effective_bucket_count": 36.36961468754229,
+      "routing_gini": 0.6857488372093024,
+      "kchi": 5,
+      "kdelta": 5
+    },
+    {
+      "K": 125,
+      "mode": "BASE",
+      "sqrt_K": 11.180339887498949,
+      "active_sectors": 124,
+      "sectors_above_1pct": 40,
+      "sector_entropy": 4.374459963304348,
+      "sector_gini": 0.5181,
+      "active_over_sqrt_K": 11.090897168398957,
+      "effective_bucket_count": 79.39695070562419,
+      "routing_gini": 0.5181,
+      "kchi": 11,
+      "kdelta": 12
+    },
+    {
+      "K": 125,
+      "mode": "TRANS",
+      "sqrt_K": 11.180339887498949,
+      "active_sectors": 105,
+      "sectors_above_1pct": 28,
+      "sector_entropy": 3.6672253256310405,
+      "sector_gini": 0.7202514285714285,
+      "active_over_sqrt_K": 9.391485505499116,
+      "effective_bucket_count": 39.1431455601668,
+      "routing_gini": 0.7202514285714285,
+      "kchi": 5,
+      "kdelta": 5
+    },
+    {
+      "K": 150,
+      "mode": "BASE",
+      "sqrt_K": 12.24744871391589,
+      "active_sectors": 148,
+      "sectors_above_1pct": 38,
+      "sector_entropy": 4.536340715130907,
+      "sector_gini": 0.5266,
+      "active_over_sqrt_K": 12.084149397730345,
+      "effective_bucket_count": 93.34858530483524,
+      "routing_gini": 0.5266,
+      "kchi": 12,
+      "kdelta": 13
+    },
+    {
+      "K": 150,
+      "mode": "TRANS",
+      "sqrt_K": 12.24744871391589,
+      "active_sectors": 120,
+      "sectors_above_1pct": 30,
+      "sector_entropy": 3.861860207950224,
+      "sector_gini": 0.7038900000000001,
+      "active_over_sqrt_K": 9.797958971132713,
+      "effective_bucket_count": 47.5537289677011,
+      "routing_gini": 0.7038900000000001,
+      "kchi": 5,
+      "kdelta": 6
+    },
+    {
+      "K": 200,
+      "mode": "BASE",
+      "sqrt_K": 14.142135623730951,
+      "active_sectors": 197,
+      "sectors_above_1pct": 34,
+      "sector_entropy": 4.78687151208391,
+      "sector_gini": 0.5442984771573605,
+      "active_over_sqrt_K": 13.930003589374985,
+      "effective_bucket_count": 119.92559539261968,
+      "routing_gini": 0.5442984771573605,
+      "kchi": 14,
+      "kdelta": 15
+    },
+    {
+      "K": 200,
+      "mode": "TRANS",
+      "sqrt_K": 14.142135623730951,
+      "active_sectors": 154,
+      "sectors_above_1pct": 30,
+      "sector_entropy": 4.045172132528685,
+      "sector_gini": 0.7210883116883116,
+      "active_over_sqrt_K": 10.889444430272832,
+      "effective_bucket_count": 57.12101757315272,
+      "routing_gini": 0.7210883116883116,
+      "kchi": 5,
+      "kdelta": 8
+    },
+    {
+      "K": 250,
+      "mode": "BASE",
+      "sqrt_K": 15.811388300841896,
+      "active_sectors": 244,
+      "sectors_above_1pct": 23,
+      "sector_entropy": 5.023311765827064,
+      "sector_gini": 0.5320737704918033,
+      "active_over_sqrt_K": 15.431914981621691,
+      "effective_bucket_count": 151.9135738170721,
+      "routing_gini": 0.5320737704918033,
+      "kchi": 15,
+      "kdelta": 17
+    },
+    {
+      "K": 250,
+      "mode": "TRANS",
+      "sqrt_K": 15.811388300841896,
+      "active_sectors": 184,
+      "sectors_above_1pct": 32,
+      "sector_entropy": 4.2167759650173595,
+      "sector_gini": 0.7214282608695652,
+      "active_over_sqrt_K": 11.637181789419635,
+      "effective_bucket_count": 67.81449516007496,
+      "routing_gini": 0.7214282608695652,
+      "kchi": 5,
+      "kdelta": 10
+    },
+    {
+      "K": 300,
+      "mode": "BASE",
+      "sqrt_K": 17.320508075688775,
+      "active_sectors": 292,
+      "sectors_above_1pct": 21,
+      "sector_entropy": 5.213225602773475,
+      "sector_gini": 0.5283465753424659,
+      "active_over_sqrt_K": 16.85862786033707,
+      "effective_bucket_count": 183.68560042286964,
+      "routing_gini": 0.5283465753424659,
+      "kchi": 17,
+      "kdelta": 18
+    },
+    {
+      "K": 300,
+      "mode": "TRANS",
+      "sqrt_K": 17.320508075688775,
+      "active_sectors": 216,
+      "sectors_above_1pct": 30,
+      "sector_entropy": 4.363822465261102,
+      "sector_gini": 0.7238240740740742,
+      "active_over_sqrt_K": 12.470765814495916,
+      "effective_bucket_count": 78.55684204691528,
+      "routing_gini": 0.7238240740740742,
+      "kchi": 6,
+      "kdelta": 10
+    },
+    {
+      "K": 400,
+      "mode": "BASE",
+      "sqrt_K": 20.0,
+      "active_sectors": 377,
+      "sectors_above_1pct": 14,
+      "sector_entropy": 5.491945782119002,
+      "sector_gini": 0.5145750663129973,
+      "active_over_sqrt_K": 18.85,
+      "effective_bucket_count": 242.7290454979845,
+      "routing_gini": 0.5145750663129973,
+      "kchi": 20,
+      "kdelta": 20
+    },
+    {
+      "K": 400,
+      "mode": "TRANS",
+      "sqrt_K": 20.0,
+      "active_sectors": 267,
+      "sectors_above_1pct": 34,
+      "sector_entropy": 4.616656311603454,
+      "sector_gini": 0.7128943820224718,
+      "active_over_sqrt_K": 13.35,
+      "effective_bucket_count": 101.15523444459294,
+      "routing_gini": 0.7128943820224718,
+      "kchi": 8,
+      "kdelta": 10
+    },
+    {
+      "K": 600,
+      "mode": "BASE",
+      "sqrt_K": 24.49489742783178,
+      "active_sectors": 533,
+      "sectors_above_1pct": 2,
+      "sector_entropy": 5.868384071259066,
+      "sector_gini": 0.49659512195121946,
+      "active_over_sqrt_K": 21.7596338817239,
+      "effective_bucket_count": 353.6770014220956,
+      "routing_gini": 0.49659512195121946,
+      "kchi": 24,
+      "kdelta": 25
+    },
+    {
+      "K": 600,
+      "mode": "TRANS",
+      "sqrt_K": 24.49489742783178,
+      "active_sectors": 338,
+      "sectors_above_1pct": 32,
+      "sector_entropy": 4.845363665445488,
+      "sector_gini": 0.7144248520710059,
+      "active_over_sqrt_K": 13.798792217678571,
+      "effective_bucket_count": 127.14951347129207,
+      "routing_gini": 0.7144248520710059,
+      "kchi": 10,
+      "kdelta": 10
+    },
+    {
+      "K": 1000,
+      "mode": "BASE",
+      "sqrt_K": 31.622776601683793,
+      "active_sectors": 806,
+      "sectors_above_1pct": 0,
+      "sector_entropy": 6.285803027036214,
+      "sector_gini": 0.4930823821339949,
+      "active_over_sqrt_K": 25.487957940957138,
+      "effective_bucket_count": 536.8952589833018,
+      "routing_gini": 0.4930823821339949,
+      "kchi": 31,
+      "kdelta": 33
+    },
+    {
+      "K": 1000,
+      "mode": "TRANS",
+      "sqrt_K": 31.622776601683793,
+      "active_sectors": 451,
+      "sectors_above_1pct": 27,
+      "sector_entropy": 5.102200595987367,
+      "sector_gini": 0.7144567627494456,
+      "active_over_sqrt_K": 14.261872247359392,
+      "effective_bucket_count": 164.38325069053326,
+      "routing_gini": 0.7144567627494456,
+      "kchi": 10,
+      "kdelta": 10
+    }
+  ]
+}

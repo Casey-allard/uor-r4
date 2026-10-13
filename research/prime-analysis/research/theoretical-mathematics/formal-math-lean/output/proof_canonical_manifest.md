@@ -1,0 +1,165 @@
+# Proof Canonical Manifest
+
+- Profile: `rh_bridge_candidate_b`
+- Updated (UTC): `2026-02-19T14:07:02.235106+00:00`
+
+## Canonical Artifact Pointers
+
+| key | path |
+|---|---|
+| lemma_a | `research/output/lemma_a_channel_derivation_check_none_z64_n1m.json` |
+| lemma_b | `research/output/lemma_b_truncation_program_gauss100_ref512.json` |
+| lemma_c_triangle | `research/output/lemma_c_triangle_transfer_refresh_2026-02-17.json` |
+| lemma_c_ineq | `research/output/lemma_c_inequality_probe_refresh_2026-02-17.json` |
+| lemma_d | `research/output/lemma_d_base_uniformity_probe_refresh_2026-02-17.json` |
+| lemma_e | `research/output/lemma_e_endpoint_probe_refresh_2026-02-17.json` |
+| a1 | `research/output/a1_smoothing_uplift_pack_refresh_2026-02-17.json` |
+| a2 | `research/output/a2_infinite_tail_uplift_refresh_2026-02-17_sf3p5.json` |
+| a3 | `research/output/a3_offdiag_dynamic_majorant_eta4p0_sf3.json` |
+| a3_stress | `research/output/a3_offdiag_dynamic_majorant_eta4p0_sf3_stress_2026-02-17.json` |
+| a3_sign_sensitive_fallback | `research/output/a3_sign_sensitive_constant_replacement_pack_2026-02-17_deterministic_k1.json` |
+| a4 | `research/output/a4_uniform_assumption_check_refresh_2026-02-17.json` |
+| theorem_pack | `research/output/uplift_theorem_pack_refresh_2026-02-17.json` |
+| proof_closure_tracker | `research/output/proof_closure_tracker_2026-02-17.json` |
+| proof_requirement_closure_table | `research/output/proof_requirement_closure_table_2026-02-17.json` |
+| formal_proof_manuscript | `research/output/formal_proof_manuscript_2026-02-17.md` |
+| formal_proof_dependency_map | `research/output/formal_proof_dependency_map_2026-02-17.json` |
+| formal_proof_packet_index | `research/output/formal_proof_packet_index_2026-02-17.json` |
+| proof_grade_manuscript | `research/output/proof_grade_manuscript_2026-02-17.md` |
+| proof_citation_audit_json | `research/output/proof_citation_audit_2026-02-17.json` |
+| proof_citation_audit_md | `research/output/proof_citation_audit_2026-02-17.md` |
+| proof_formalization_index | `research/output/proof_formalization_index_2026-02-17.json` |
+| proof_lean_scaffold | `research/formal/lean/PrimeRiemannBridge.lean` |
+| proof_lean_mathlib | `research/formal/lean/PrimeRiemannBridgeMathlib.lean` |
+| proof_lean_completion_kernel | `research/formal/lean/PrimeRiemannBridgeCompletionKernel.lean` |
+| proof_lean_oscillatory_reduction | `research/formal/lean/PrimeRiemannBridgeOscillatoryReduction.lean` |
+| proof_lean_concrete_pack_instantiation | `research/formal/lean/PrimeRiemannBridgeConcretePackInstantiation.lean` |
+| proof_lean_w2b_final_slot | `research/formal/lean/PrimeRiemannBridgeW2bFinalSlot.lean` |
+| proof_lean_w2b_imported_instance | `research/formal/lean/PrimeRiemannBridgeW2bImportedInstance.lean` |
+| proof_lean_ingham_imported_slot | `research/formal/lean/PrimeRiemannBridgeInghamImportedSlot.lean` |
+| proof_constant_provenance_json | `research/output/proof_constant_provenance_2026-02-17.json` |
+| proof_constant_provenance_md | `research/output/proof_constant_provenance_2026-02-17.md` |
+| proof_equation_citation_map_json | `research/output/proof_equation_citation_map_2026-02-17.json` |
+| proof_equation_citation_map_md | `research/output/proof_equation_citation_map_2026-02-17.md` |
+| lean_contract_bridge_json | `research/output/lean_contract_bridge_2026-02-17.json` |
+| lean_contract_bridge_md | `research/output/lean_contract_bridge_2026-02-17.md` |
+| lean_contract_satisfiability_json | `research/output/lean_contract_satisfiability_2026-02-17.json` |
+| lean_contract_satisfiability_md | `research/output/lean_contract_satisfiability_2026-02-17.md` |
+| formal_axiom_audit_json | `/Users/adminamn/Documents/New project/research/output/formal_axiom_audit_2026-02-19.json` |
+| formal_axiom_audit_md | `/Users/adminamn/Documents/New project/research/output/formal_axiom_audit_2026-02-19.md` |
+| formal_compile_report | `research/output/formal_compile_report_2026-02-17.json` |
+| formal_verify_script | `research/formal/lean/verify_formal_proof.sh` |
+| formal_compile_report_mathlib | `research/output/formal_compile_report_mathlib_2026-02-17.json` |
+| formal_verify_script_mathlib | `research/formal/lean/verify_formal_proof_mathlib.sh` |
+| formal_compile_report_completion_kernel | `research/output/formal_compile_report_completion_kernel_2026-02-17.json` |
+| formal_verify_script_completion_kernel | `research/formal/lean/verify_formal_proof_completion_kernel.sh` |
+| proof_remaining_obstacles | `research/output/proof_remaining_obstacles_2026-02-17.json` |
+| proof_step_update_remaining_obstacles | `research/output/proof_step_update_2026-02-17_remaining_obstacles.md` |
+| final_rh_proof_attempt | `research/output/final_rh_proof_attempt_2026-02-17.md` |
+| final_rh_proof_status | `research/output/final_rh_proof_status_2026-02-17.json` |
+| repo_derived_rh_program | `research/output/repo_derived_rh_elimination_program_2026-02-18.md` |
+| repo_derived_rh_status | `research/output/repo_derived_rh_status_2026-02-18.json` |
+| final_pack_instantiation_contract | `research/output/final_pack_instantiation_contract_2026-02-18.md` |
+| proof_truth_snapshot | `/Users/adminamn/Documents/New project/research/output/proof_truth_snapshot_2026-02-19.json` |
+| proof_resume_checkpoint | `/Users/adminamn/Documents/New project/research/output/proof_resume_checkpoint_2026-02-19.json` |
+| proof_step_update_resume_checkpoint | `/Users/adminamn/Documents/New project/research/output/proof_step_update_2026-02-19_resume_checkpoint_sync.md` |
+| proof_step_update_rh_from_provider_bridge | `research/output/proof_step_update_2026-02-18_rh_from_provider_bridge.md` |
+| proof_step_update_external_formalization_scan | `research/output/proof_step_update_2026-02-18_external_formalization_scan.md` |
+| proof_step_update_oscillatory_reduction | `research/output/proof_step_update_2026-02-18_oscillatory_reduction.md` |
+| proof_step_update_loglinear_bridge | `research/output/proof_step_update_2026-02-18_loglinear_bridge.md` |
+| proof_step_update_vonkoch_global_decomposition | `research/output/proof_step_update_2026-02-18_vonkoch_global_decomposition.md` |
+| proof_step_update_linear_phase_only_endpoints | `research/output/proof_step_update_2026-02-18_linear_phase_only_endpoints.md` |
+| proof_step_update_linear_phase_witness_route | `research/output/proof_step_update_2026-02-18_linear_phase_witness_route.md` |
+| proof_step_update_loglinear_to_witness_bridge | `research/output/proof_step_update_2026-02-18_loglinear_to_witness_bridge.md` |
+| proof_step_update_w2b_explicit_pintz_chain | `research/output/proof_step_update_2026-02-18_w2b_explicit_pintz_chain.md` |
+| proof_step_update_ingham_boundary | `research/output/proof_step_update_2026-02-18_ingham_boundary.md` |
+| proof_step_update_ingham_imported_slot | `research/output/proof_step_update_2026-02-18_ingham_imported_slot.md` |
+| proof_step_update_asymptotic_to_ingham_bridge | `research/output/proof_step_update_2026-02-18_asymptotic_to_ingham_bridge.md` |
+| linear_phase_witness_lemma_queue_json | `research/output/linear_phase_witness_lemma_queue_2026-02-18.json` |
+| linear_phase_witness_lemma_queue_md | `research/output/linear_phase_witness_lemma_queue_2026-02-18.md` |
+| w2b_import_contract_json | `research/output/w2b_import_contract_2026-02-18.json` |
+| w2b_import_contract_md | `research/output/w2b_import_contract_2026-02-18.md` |
+| w2b_source_lineage_json | `research/output/w2b_source_lineage_2026-02-18.json` |
+| w2b_source_lineage_md | `research/output/w2b_source_lineage_2026-02-18.md` |
+| proof_skeleton | `research/output/rh_bridge_candidate_b_proof_skeleton.md` |
+| draft | `research/output/rh_assumption_theorem_draft.md` |
+| o1_skeleton | `research/output/o1_ref_residual_asymptotic_scaffold_2026-02-17.json` |
+| o1_theorem_budget_check | `research/output/o1_theorem_budget_endpoint_check_2026-02-17.json` |
+| o1_u_residual_handoff | `research/output/o1_u_residual_o1_handoff_2026-02-17.json` |
+| o1_theorem_closure_pack | `research/output/o1_theorem_closure_pack_2026-02-17.json` |
+| o2_skeleton | `research/output/a2_infinite_tail_lemma_skeleton_2026-02-17.json` |
+| o2_sum_integral_checker | `research/output/a2_sum_to_integral_domination_checker_2026-02-17.json` |
+| o2_theorem_unconditionalization_pack | `research/output/o2_theorem_unconditionalization_pack_2026-02-17.json` |
+| o2_theorem_closure_pack | `research/output/o2_theorem_closure_pack_2026-02-17.json` |
+| o3_skeleton | `research/output/a3_analytic_closure_lemma_skeleton_2026-02-17.json` |
+| o3_ref_skeleton | `research/output/o3_ref_bridge_asymptotic_scaffold_2026-02-17.json` |
+| o3_derived_bridge | `research/output/o3_ref_bridge_from_e2_closure_2026-02-17.json` |
+| o3_unconditionalization_contract | `research/output/o3_unconditionalization_contract_2026-02-17.json` |
+| o3_direct_envelope_pack | `research/output/o3_direct_envelope_derivation_pack_2026-02-17.json` |
+| o3_l_offabs_direct_draft | `research/output/o3_l_offabs_direct_draft_2026-02-17.json` |
+| o3_l_offabs_theorem_closure | `research/output/o3_l_offabs_theorem_closure_2026-02-17.json` |
+| o3_l_offsign_direct_draft | `research/output/o3_l_offsign_direct_draft_2026-02-17.json` |
+| o3_l_offsign_theorem_closure | `research/output/o3_l_offsign_theorem_closure_2026-02-17.json` |
+| o3_l_diag_direct_draft | `research/output/o3_l_diag_direct_draft_2026-02-17.json` |
+| o3_l_diag_theorem_closure | `research/output/o3_l_diag_theorem_closure_2026-02-17.json` |
+| o3_l_asm_direct_draft | `research/output/o3_l_asm_direct_draft_2026-02-17.json` |
+| o3_l_asm_theorem_closure | `research/output/o3_l_asm_theorem_closure_2026-02-17.json` |
+| o3_u_rem_handoff | `research/output/o3_u_rem_o2_handoff_2026-02-17.json` |
+| o3_u_offdiag_handoff | `research/output/o3_u_offdiag_o3_handoff_2026-02-17.json` |
+| o3_u_diag_handoff | `research/output/o3_u_diag_o3_handoff_2026-02-17.json` |
+| o3_u_uniformity_handoff | `research/output/o3_u_uniformity_o4_handoff_2026-02-17.json` |
+| o3_theorem_budget | `research/output/o3_sign_sensitive_theorem_budget_2026-02-17.json` |
+| o3_sign_quantization | `research/output/o3_sign_cancellation_quantization_2026-02-17.json` |
+| o3_asymptotic_draft | `research/output/o3_asymptotic_inequality_draft_2026-02-17.json` |
+| o3_sign_impact_audit | `research/output/o3_sign_cancellation_impact_audit_2026-02-17.json` |
+| o3_e2_target_pack | `research/output/o3_e2_theorem_target_pack_2026-02-17.json` |
+| o3_e2_lemma | `research/output/o3_e2_asymptotic_lemma_scaffold_2026-02-17.json` |
+| o3_e2_full_proof_draft | `research/output/o3_e2_full_proof_draft_2026-02-17.json` |
+| o3_e2_offdiag_sign_draft | `research/output/o3_e2_offdiag_sign_symbolic_draft_2026-02-17.json` |
+| o3_e2_offdiag_closure | `research/output/o3_e2_offdiag_asymptotic_closure_2026-02-17.json` |
+| o3_e2_diag_draft | `research/output/o3_e2_diag_symbolic_draft_2026-02-17.json` |
+| o3_e2_diag_closure | `research/output/o3_e2_diag_asymptotic_closure_2026-02-17.json` |
+| o3_e2_remainder_draft | `research/output/o3_e2_remainder_symbolic_draft_2026-02-17.json` |
+| o3_e2_remainder_closure | `research/output/o3_e2_remainder_asymptotic_closure_2026-02-17.json` |
+| o3_e2_glue_draft | `research/output/o3_e2_glue_symbolic_draft_2026-02-17.json` |
+| o3_e2_glue_closure | `research/output/o3_e2_glue_asymptotic_closure_2026-02-17.json` |
+| o4_skeleton | `research/output/o4_uniformity_asymptotic_scaffold_2026-02-17.json` |
+| o4_theorem_closure_pack | `research/output/o4_theorem_closure_pack_2026-02-17.json` |
+| o5_skeleton | `research/output/o5_rh_equivalent_implication_skeleton_2026-02-17.json` |
+| o5_mref_lemma | `research/output/o5_mref_transfer_lemma_scaffold_2026-02-17.json` |
+| o5_integrated_draft | `research/output/o5_integrated_implication_draft_2026-02-17.json` |
+| o5_theorem_budget_check | `research/output/o5_theorem_budget_endpoint_check_2026-02-17.json` |
+| o5_theorem_closure | `research/output/o5_theorem_closure_2026-02-17.json` |
+| obligation_ledger | `research/output/proof_obligation_ledger.json` |
+| pipeline_manifest | `research/output/hx_batch_manifest.json` |
+| proof_lean_final_target_equivalence | `research/formal/lean/PrimeRiemannBridgeFinalTargetEquivalence.lean` |
+| proof_step_update_final_target_equivalence_lock | `research/output/proof_step_update_2026-02-19_final_target_equivalence_lock.md` |
+| k1_phase_majorant_candidate_refresh2 | `research/output/k1_phase_majorant_candidate_2026-02-19_refresh2.json` |
+| proof_step_update_phase_majorant_refresh2 | `research/output/proof_step_update_2026-02-19_phase_majorant_refresh2.md` |
+| proof_step_update_k1_source_lit_recheck | `research/output/proof_step_update_2026-02-19_k1_source_lit_recheck.md` |
+| k1_phase_majorant_candidate_refresh3 | `research/output/k1_phase_majorant_candidate_2026-02-19_refresh3.json` |
+| proof_step_update_phase_majorant_refresh3_near_strict | `research/output/proof_step_update_2026-02-19_phase_majorant_refresh3_near_strict.md` |
+| proof_step_update_near_strict_tail_power_bridge | `research/output/proof_step_update_2026-02-19_near_strict_tail_power_bridge.md` |
+| k1_phase_majorant_tailfrac_sweep | `research/output/k1_phase_majorant_tailfrac_sweep_2026-02-19.json` |
+| k1_phase_majorant_xtrend_tail_windows | `research/output/k1_phase_majorant_xtrend_tail_windows_2026-02-19.json` |
+| proof_lean_near_strict_tail_to_pintz | `research/formal/lean/PrimeRiemannBridgeNearStrictTailToPintz.lean` |
+| proof_step_update_k1_grid_convergence_recheck | `research/output/proof_step_update_2026-02-19_grid_convergence_recheck.md` |
+| k1_phase_majorant_grid_convergence | `research/output/k1_phase_majorant_grid_convergence_2026-02-19.json` |
+| proof_step_update_asymptotic_strict_tail_bridge | `research/output/proof_step_update_2026-02-19_asymptotic_strict_tail_bridge.md` |
+| proof_step_update_asymptotic_strict_tail_published_boundary_and_lit_refresh | `research/output/proof_step_update_2026-02-19_asymptotic_strict_tail_published_boundary_and_lit_refresh.md` |
+| latest_math_arxiv_k1_asymptotic_strict_tail | `research/data/latest_math_arxiv_k1_asymptotic_strict_tail_2026-02-19.json` |
+| k1_asymptotic_strict_tail_literature_filter | `research/output/k1_asymptotic_strict_tail_literature_filter_2026-02-19.json` |
+| asymptotic_strict_tail_witness_probe_script | `research/asymptotic_strict_tail_witness_probe.py` |
+| proof_step_update_asymptotic_strict_tail_witness_probe | `research/output/proof_step_update_2026-02-19_asymptotic_strict_tail_witness_probe.md` |
+| asymptotic_strict_tail_witness_trend | `research/output/asymptotic_strict_tail_witness_trend_2026-02-19.json` |
+| proof_step_update_power_majorant_to_asymptotic_strict_tail_reduction | `research/output/proof_step_update_2026-02-19_power_majorant_to_asymptotic_strict_tail_reduction.md` |
+
+## Obligations
+
+| id | status |
+|---|---|
+| O1 | theorem_closed |
+| O2 | theorem_closed |
+| O3 | theorem_closed |
+| O4 | theorem_closed |
+| O5 | theorem_closed |

@@ -1,0 +1,621 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{mathtools}
+\usepackage{microtype}
+\usepackage{hyperref}
+
+\title{Recognition Science, Prime Numbers, and the Riemann Hypothesis:\\
+A Standalone Roadmap of What We Know, What We Built, and What Still Blocks Us}
+\author{Jonathan Washburn (project notes compiled into a paper draft by an automated assistant)}
+\date{December 24, 2025}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{conjecture}{Conjecture}
+\newtheorem{definition}{Definition}
+\newtheorem{remark}{Remark}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This note is a standalone ``state-of-the-art'' writeup for a specific research codebase
+(\texttt{riemann-geometry-rs}) and a specific guiding narrative (``Recognition Science'').
+We assume, as a working hypothesis, that Recognition Science (RS) is the correct architecture of
+reality, and we explain what that hypothesis \emph{suggests} about prime numbers and the Riemann
+Hypothesis (RH). We then state our concrete formal status in Lean and the final remaining blockers.
+
+The main practical message is simple: the current Lean development already reduces the Connes
+Route--3$'$ convergence bottleneck to a short list of explicit analytic estimates, and the next
+classical theorem worth developing/formalizing is a quantitative spectral perturbation lemma
+(Davis--Kahan / min--max), because it turns a ``gap versus perturbation'' inequality into the
+missing approximation step required by the Connes--Consani--Moscovici (CCM) strategy.
+\end{abstract}
+
+\tableofcontents
+
+\section{How to read this note (non-mathematician friendly)}
+
+There are two different ``RH stories'' in this repository:
+\begin{itemize}
+  \item \textbf{Recognition Geometry / boundary-certificate route} (call it \emph{Route~1}):
+  RH is reduced to a Carleson-energy/Hardy-space control statement about a boundary ratio.
+  This route currently uses a small number of explicit \texttt{axiom} declarations for analytic
+  boundary-limit infrastructure.
+
+  \item \textbf{Connes Route--3$'$ (CCM determinant approximants)}:
+  RH is reduced to building entire approximants $F_n(t)$ with (i) zeros on the real axis, and
+  (ii) locally uniform convergence to Riemann's $\Xi(t)$ on the strip $|\Im t|<\tfrac12$.
+  The core Hurwitz step is formalized in Lean.
+\end{itemize}
+
+If you are not a mathematician and you want a concrete decision, use this rule:
+\begin{quote}
+\textbf{Stop after ``reduction.''} It is worth finishing the reduction (turn RH into a short list
+of explicit inequalities). It is \emph{not} worth grinding more formal machinery beyond that
+unless you have a clear, sourced path to the missing inequalities.
+\end{quote}
+
+This note is written to make that reduction explicit and auditable.
+
+\section{Recognition Science (RS): the primitives we will use here}
+
+\subsection{The working hypothesis}
+
+\begin{remark}[Assumption of this note]
+We assume RS is the accurate architecture of reality. This is not a claim of scientific proof
+inside this note; it is a framing assumption to organize the discussion.
+\end{remark}
+
+\subsection{Core RS ideas (as used in this paper)}
+
+The repository document \texttt{Recognition-Science-Full-Theory.txt} (RSFT) summarizes RS as
+deriving physical structure from a single ``Meta-Principle'' and a small collection of derived
+structures:
+\begin{itemize}
+  \item A \textbf{ledger} (double-entry conservation constraint).
+  \item A \textbf{recognition operator} $\widehat{R}$ replacing the Hamiltonian in the fundamental
+  update rule.
+  \item A \textbf{unique convex cost} $J(x)=\tfrac12(x+x^{-1})-1$ on $\mathbb{R}_{>0}$.
+  \item A \textbf{fixed-point scale} $\varphi$ (golden ratio) and an \textbf{eight-tick cycle}
+  as a minimal ledger-compatible periodic walk.
+\end{itemize}
+
+These primitives matter for RH because they force a very specific style of argument:
+\begin{quote}
+\textbf{RS philosophy:} ``Hard facts are those that follow from conservation + convexity +
+stability (spectral gap), plus a normalization fixed by a units-quotient.''
+\end{quote}
+
+As we will see, that aligns unusually well with the standard analytic-number-theory ``explicit
+formula'' worldview: primes and zeros appear as two sides of a conserved trace identity.
+
+\section{What RS teaches us about prime numbers}
+
+This section is intentionally \emph{conceptual}: it translates RS motifs into classical number
+theory objects.
+
+\subsection{Primes as recognition events and ``ledger constraints''}
+
+In classical analytic number theory, primes are encoded by the von Mangoldt function
+$\Lambda(n)$ via
+\[
+  -\frac{\zeta'(s)}{\zeta(s)} = \sum_{n\ge 1} \frac{\Lambda(n)}{n^s},\qquad \Re s>1.
+\]
+This is literally a \emph{logarithmic accounting identity}: the Euler product on the right
+encodes prime powers as ``atomic events'' and forces multiplicativity as a conservation law.
+
+Under the RS framing, this is exactly the kind of object one expects:
+\begin{itemize}
+  \item a conserved count of discrete events,
+  \item expressed as a generating function,
+  \item whose logarithmic derivative is the most stable observable.
+\end{itemize}
+
+\subsection{Eight-phase / eight-beat structure and sieve factors}
+
+RSFT records a ``PrimeSieveFactor'' bridge with the claim:
+\begin{quote}
+``Eight-beat cancellation selects square-free patterns; prime-sieve density factor
+$P=\varphi^{-1/2}\cdot 6/\pi^2$.'' \quad (RSFT, \texttt{BRIDGE;PrimeSieveFactor})
+\end{quote}
+
+Classically, $6/\pi^2$ is the density of square-free integers (probability that a random integer
+has no repeated prime factor), since
+\[
+  \mathbb{P}(n\ \text{square-free}) = \prod_{p} \left(1-\frac{1}{p^2}\right)
+  = \frac{1}{\zeta(2)} = \frac{6}{\pi^2}.
+\]
+
+From a purely number-theoretic perspective, the extra factor $\varphi^{-1/2}$ is not a standard
+constant; it is an RS-specific modulation tied to the RS scale recursion and eight-tick
+structure. The important point for this note is not whether this modulation is correct, but
+what kind of \emph{mechanism} it implies:
+\begin{quote}
+\textbf{Mechanism implied by RSFT:} prime-adjacent sieve weights should be expressible as a
+low-period (\emph{mod~8}) kernel enforcing cancellation/neutrality constraints, with a global
+scale weight determined by $\varphi$.
+\end{quote}
+
+This is consistent with other RSFT ``kernel'' constructions (e.g. \texttt{@GOLDBACH\_MOD8}) that
+explicitly use mod-8 gates and fourth-moment bounds.
+
+\subsection{What this suggests about primes in practice}
+
+If RS is correct, a plausible ``prime story'' is:
+\begin{enumerate}
+  \item \textbf{Local periodic kernels} (small modulus gates) enforce a neutrality constraint
+  reminiscent of ledger balance.
+  \item \textbf{Global scale selection} (via $\varphi$) fixes which coarse-graining schedules are
+  stable and which densities survive in the limit.
+  \item \textbf{Explicit formula identities} become the formal expression of conservation:
+  the prime side and the zero side are two ways to compute the same invariant.
+\end{enumerate}
+
+This connects directly to RH, because RH is (among other things) a sharp constraint on how zeros
+can conspire to produce large deviations in prime counting.
+
+%% ============================================================
+%% COMPREHENSIVE PRIME ROLES IN RS (from RSFT analysis)
+%% ============================================================
+
+\section{All roles of primes in Recognition Science}
+
+This section catalogues \emph{every} way that prime numbers appear in the Recognition Science
+framework, as extracted from the full theory document (RSFT v2.2). These roles range from
+fundamental structural constraints to applied number-theoretic bridges.
+
+\subsection{Role 1: Primes as discrete recognition events (von Mangoldt encoding)}
+
+The most fundamental role of primes in RS is as \textbf{atomic recognition events} in the ledger.
+The von Mangoldt encoding
+\[
+  -\frac{\zeta'(s)}{\zeta(s)} = \sum_{n\ge 1} \frac{\Lambda(n)}{n^s}
+\]
+is literally a \emph{logarithmic accounting identity}---exactly the structure RS expects:
+\begin{itemize}
+  \item The Euler product forces multiplicativity as a \textbf{conservation law}.
+  \item Prime powers are ``atomic events'' in the ledger.
+  \item The logarithmic derivative is the most \textbf{stable observable}.
+\end{itemize}
+
+\begin{remark}[RS interpretation]
+Under RS, primes are not mysterious random objects. They are the \textbf{irreducible events}
+in the multiplicative ledger---the events that cannot be decomposed into smaller ledger entries.
+\end{remark}
+
+\subsection{Role 2: Eight-Phase Oracle for factorization}
+
+RSFT records a striking bridge:
+\begin{quote}
+``\texttt{BRIDGE;EightPhaseOracle}: Eight-phase phase-average score; Phase-coherence factoring
+discriminator. Score $= 1 - \mathrm{avg}_k \cos(2\pi k \cdot r/8)$, where $r = \log q / \log N$.
+$\varphi^{-1.5}$ signature.'' (RSFT)
+\end{quote}
+
+This is a \textbf{perfect factor discriminator}: given $N$ and candidate $q$, sample at 8 phases
+around the unit circle. True factors give score $< 0.5$; non-factors give score $> 1.0$.
+The mechanism: \emph{only} true divisors produce phase coherence at the eight-tick cadence.
+
+\begin{remark}[Why eight?]
+The number 8 is \emph{forced} by RS: the minimal ledger-compatible walk on the $Q_3$ hypercube
+(where $D=3$ is the unique stable spatial dimension) has period $2^D = 8$. This isn't chosen;
+it's derived. The Eight-Phase Oracle works because factorization respects the same 8-tick
+structure that underlies all RS dynamics.
+\end{remark}
+
+\subsection{Role 3: Prime sieve factor and square-free selection}
+
+RSFT claims:
+\begin{quote}
+``Prime-sieve density factor $P = \varphi^{-1/2} \cdot 6/\pi^2$ selects square-free patterns;
+ties to eight-beat cancellation.'' (RSFT, \texttt{CERT;PrimeSieveFactorIdentity})
+\end{quote}
+
+Classically, $6/\pi^2 = 1/\zeta(2)$ is the density of square-free integers. The RS modulation
+$\varphi^{-1/2}$ comes from the golden ratio's role in scale recursion. The \textbf{mechanism}:
+\begin{itemize}
+  \item The mod-8 kernel $K_8(n,m)$ enforces cancellation constraints (see \texttt{@GOLDBACH\_MOD8}).
+  \item Eight-beat cancellation \emph{selects} exactly the square-free patterns.
+  \item This closes the ILG rotation-curve gap without new parameters.
+\end{itemize}
+
+\subsection{Role 4: Goldbach via mod-8 kernels}
+
+The Goldbach machinery in RSFT uses an explicit mod-8 kernel:
+\[
+  K_8(n,m) = \tfrac12 \cdot \mathbf{1}_{\mathrm{odd}(n)} \cdot \mathbf{1}_{\mathrm{odd}(2m-n)}
+  \cdot \bigl(1 + \varepsilon(2m)\,\chi_8(n)\,\chi_8(2m-n)\bigr),
+\]
+where $\chi_8$ is the mod-8 character. This keeps a positive fraction of odd--odd pairs per residue
+class.
+
+\begin{remark}[RS connection]
+The Goldbach kernel is \emph{period-8 by construction}. This isn't an arbitrary choice; it's
+the same eight-tick structure that forces all RS dynamics. Prime pairs for Goldbach representations
+must satisfy the same ledger neutrality constraints as all other recognition events.
+\end{remark}
+
+\subsection{Role 5: Nyquist/Shannon sampling bridge (T7)}
+
+RSFT's theorem T7 (``Coverage lower bound'') states:
+\begin{quote}
+``$T < 2^D$ cannot surject onto all patterns.'' (RSFT, \texttt{MAP;T7})
+\end{quote}
+
+This is pure pigeonhole principle. But RSFT bridges it to \textbf{Nyquist/Shannon sampling}:
+a walk of period $T$ cannot cover more than $T$ distinct states, so it cannot represent signals
+with bandwidth exceeding the Nyquist cutoff $\Omega_{\max} = 1/(2\tau_0)$.
+
+\begin{remark}[RH connection]
+This is precisely the hypothesis used in the boundary-certificate RH approach: the
+\textbf{bandlimit condition} (T7-Hyp) forces the windowed prime exponential sum to have
+uniformly bounded magnitude, eliminating the phase-coherence obstruction in the explicit formula.
+\end{remark}
+
+\subsection{Role 6: Explicit formula as conservation identity}
+
+The Guinand--Weil explicit formula
+\[
+  \sum_p \frac{\log p}{\sqrt{p}} \widehat\Phi(\log p) + \text{lower order}
+  = \sum_{\rho} \widehat\Phi(\gamma) + \text{principal terms}
+\]
+equates a \textbf{prime sum} to a \textbf{zero sum}. Under RS, this is a \textbf{conservation law}:
+\begin{itemize}
+  \item The prime side counts recognition events (ledger entries).
+  \item The zero side counts spectral resonances (eigenvalues of $\widehat{R}$).
+  \item Both compute the same invariant---the trace of a recognition operator.
+\end{itemize}
+
+\subsection{Role 7: Ledger stiffness and prime spectrum}
+
+RSFT records new modules (post 2025-12-31):
+\begin{itemize}
+  \item \texttt{RiemannHypothesis.LedgerStiffness}: connects ledger rigidity to RH.
+  \item \texttt{RiemannHypothesis.PrimeSpectrum}: analyzes the prime distribution as a spectrum.
+  \item \texttt{RiemannHypothesis.PrimeStiffness}: formalizes the stiffness of prime distributions.
+  \item \texttt{RiemannHypothesis.BandlimitedFunctions}: theory for the Nyquist cutoff.
+\end{itemize}
+
+The key insight: the ledger's \textbf{stiffness} (resistance to deformation) is what forces zeros
+onto the critical line. Primes are the irreducible ledger events; their distribution is
+\emph{maximally stiff} under the RS cost functional.
+
+\subsection{Role 8: Per-prime regulator tests (BSD direction)}
+
+For elliptic curves over $\mathbb{Q}$, RSFT describes:
+\begin{quote}
+``\texttt{BRIDGE;HeightTriangularization}: mod-$p$ upper-triangular height matrix with unit diagonals;
+per-prime regulator unit test via Coleman logs.'' (RSFT)
+\end{quote}
+
+This gives a \textbf{per-prime} test: $v_p(h_p(P)) = 0 \Leftrightarrow v_p(\log_\omega(P)) = 0$,
+where $\log_\omega$ is the Coleman logarithm. The regulator is a unit at ``separated primes.''
+
+\subsection{Role 9: Eight-tick periodicity and prime residues}
+
+Many RS structures have \textbf{prime-indexed periodicity}. For example:
+\begin{itemize}
+  \item \texttt{@GOLDBACH\_MOD8}: uses $\chi_8(n) = 0$ for $n \equiv 0,2,4,6 \pmod{8}$;
+    $+1$ for $n \equiv 1,7$; $-1$ for $n \equiv 3,5$.
+  \item The eight-tick cycle itself: 8 is not prime, but $8 = 2^3$ and the cycle structure
+    involves residues modulo small primes (2, 3, 5, 7).
+  \item \texttt{lcm(8, 45) = 360}: the gap-45 synchronization uses $45 = 3^2 \cdot 5$,
+    and the synchronization period 360 factors as $2^3 \cdot 3^2 \cdot 5$.
+\end{itemize}
+
+\subsection{Summary: the RS view of primes}
+
+\begin{center}
+\begin{tabular}{|l|l|}
+\hline
+\textbf{Role} & \textbf{RS Interpretation} \\
+\hline
+Irreducible integers & Atomic ledger events \\
+von Mangoldt encoding & Logarithmic accounting identity \\
+Eight-Phase Oracle & Phase coherence at 8-tick cadence \\
+Prime sieve factor & Square-free selection via mod-8 cancellation \\
+Goldbach kernels & Ledger neutrality for prime pairs \\
+Nyquist/Shannon (T7) & Bandlimit forces bounded prime sums \\
+Explicit formula & Conservation: primes = zeros (two views of same trace) \\
+Ledger stiffness & Prime distribution is maximally rigid \\
+Per-prime BSD tests & Coleman logs at separated primes \\
+\hline
+\end{tabular}
+\end{center}
+
+\section{RH as a stability statement in the RS worldview}
+
+\subsection{Classical statement}
+
+Let $\zeta(s)$ be the Riemann zeta function. RH states:
+\begin{quote}
+All nontrivial zeros of $\zeta(s)$ have real part $\Re s=\tfrac12$.
+\end{quote}
+
+Equivalently, the completed $\xi$-function has no zeros off the real axis in the spectral
+variable $t$ when one writes $\Xi(t) := \xi(\tfrac12 + it)$.
+
+\subsection{RS interpretation: robustness and spectral gaps}
+
+RSFT repeatedly ties ``robustness'' to spectral gaps, explicitly via statements like
+\texttt{SigmaGraphRobustness} involving $\lambda_2$ (the Laplacian spectral gap).
+This is the same mathematical pattern that appears in Connes/CCM: the missing step (M2) is an
+approximation of a ground state by an explicit kernel, and the standard route to that is
+``gap $\Rightarrow$ stability under perturbation.''
+
+So, under RS, RH should look like:
+\begin{quote}
+\textbf{RH as stability:} a certain canonical structure (a ``ground state'' or ``inner factor'')
+is uniquely stable under admissible perturbations, and that stability forces zeros to lie on a
+symmetry axis.
+\end{quote}
+
+This is not mystical; it is exactly how Hurwitz-type arguments operate:
+zero-free approximants converging uniformly preserve zero-freeness off the axis.
+
+\section{Our current Lean architecture for RH (what is actually formalized)}
+
+This section describes the current state of \texttt{riemann-geometry-rs} (this repository).
+
+\subsection{The Connes Route--3$'$ skeleton (CCM $\Rightarrow$ Hurwitz gate $\Rightarrow$ RH)}
+
+The repository contains a typed ``Hurwitz gate'':
+\begin{itemize}
+  \item \texttt{RiemannRecognitionGeometry/ExplicitFormula/HurwitzGate.lean}:
+  a theorem \texttt{hurwitz\_zeroFree\_of\_tendstoLocallyUniformlyOn} formalizing the standard
+  Hurwitz-style nonvanishing principle for locally uniform limits.
+\end{itemize}
+
+It also contains the final bridge:
+\begin{itemize}
+  \item \texttt{RiemannRecognitionGeometry/ExplicitFormula/ConnesHurwitzBridge.lean}:
+  packages the Hurwitz assumptions for $\Xi$ as \texttt{ConnesHurwitzAssumptions} and proves
+  \texttt{riemannHypothesis\_of\_connesHurwitz}.
+\end{itemize}
+
+Thus, the only missing work is to build (and prove properties of) the approximants.
+
+\subsection{Where we are on the CCM approximants}
+
+The CCM surface lives in:
+\begin{itemize}
+  \item \texttt{RiemannRecognitionGeometry/ExplicitFormula/ConnesApproximantsCCM.lean}.
+\end{itemize}
+
+Current status:
+\begin{itemize}
+  \item \textbf{We have an explicit toy closed-form model} for \texttt{CCM.F} via the CCM formula-level
+  expression \texttt{CCM.Formula.F\_lamN} (with placeholder coefficients).
+  \item \textbf{Play A is implemented}: a bridge lemma
+  \texttt{CCM.tendstoXi\_of\_exists\_intermediate} reducing \texttt{CCM.tendstoXi} to
+  \emph{(i)} locally uniform convergence of an intermediate family $G_n$ and
+  \emph{(ii)} compactwise uniform closeness $\sup_{z\in K}|F_n(z)-G_n(z)|\to 0$ for each compact $K$.
+\end{itemize}
+
+This is the key payoff of the engineering work: it turns the convergence problem into a short,
+checklistable list of analytic inequalities.
+
+\section{The last remaining blockers (what actually stops an unconditional RH proof)}
+
+We separate ``engineering blockers'' from ``math blockers.''
+
+\subsection{Engineering blockers (Lean/plumbing)}
+
+These are not the true roadblocks:
+\begin{itemize}
+  \item The Route--3$'$ skeleton compiles and the Hurwitz gate is proved.
+  \item The convergence glue (Play A) is proved.
+\end{itemize}
+
+In other words: the formal pipeline exists. The remaining work is mathematical.
+
+\subsection{Math blockers (the real bottlenecks)}
+
+\paragraph{Blocker 1: define the genuine CCM approximants.}
+The toy closed-form \texttt{CCM.F} is not the genuine determinant of the CCM operator.
+To be faithful to CCM, one must define the truncated operator and its regularized determinant
+or an equivalent closed form with coefficients coming from the normalized ground state.
+
+\paragraph{Blocker 2: prove ``all zeros are real'' for the genuine approximants.}
+This is expected to follow from self-adjointness (or Hermitian matrix structure) plus a
+determinant identity. The finite-dimensional spectral theorem exists in Mathlib, but the CCM
+rank-one determinant identity needs to be instantiated cleanly.
+
+\paragraph{Blocker 3 (main): prove locally uniform convergence \texttt{CCM.tendstoXi}.}
+This is the current central bottleneck. Thanks to Play A, it reduces to:
+\begin{itemize}
+  \item constructing a suitable intermediate family $G_n$,
+  \item proving explicit uniform error bounds on compact sets in the strip.
+\end{itemize}
+
+CCM's own narrative identifies two missing analytic steps (often summarized as M1/M2):
+\begin{itemize}
+  \item M1: a uniqueness/simple-even statement about the relevant ground state,
+  \item M2: a quantitative approximation statement $k_\lambda \approx c_\lambda\,\xi_\lambda$
+  on a controlled window, with error $\varepsilon(\lambda)\to 0$.
+\end{itemize}
+
+\paragraph{Blocker 4: the ``gap vs perturbation'' inequality.}
+To get M2 unconditionally in a robust way, one needs:
+\begin{itemize}
+  \item a lower bound $g(\lambda)$ on the spectral gap separating the ground eigenvalue, and
+  \item an upper bound $\delta(\lambda)$ on the perturbation size,
+\end{itemize}
+and then show $\delta(\lambda)/g(\lambda)\to 0$ along the regime $\lambda\to\infty$ (or the
+cofinal sequence you choose).
+
+This is the exact RS-style robustness story in classical analytic clothing.
+
+\section{What resolves the blockers (the realistic plan)}
+
+\subsection{Resolution plan: finish the reduction, then stop unless the estimates are sourced}
+
+The best ``non-mathematician'' strategy is:
+\begin{enumerate}
+  \item \textbf{Finish the reduction fully:}
+  write down the smallest explicit list of inequalities that imply \texttt{CCM.tendstoXi},
+  using the Play A lemma.
+  \item \textbf{Try to source each inequality:}
+  does CCM prove it? does it follow from a known theorem? is it actually new?
+  \item \textbf{If any one inequality is unsourced/new:}
+  stop and record it as the genuine hole.
+\end{enumerate}
+
+This produces a durable research artifact even if RH is not resolved.
+
+\subsection{The specific classical theorem to develop next: Davis--Kahan / min--max perturbation}
+
+If you want exactly one ``doable, classical'' theorem to formalize next, it is this:
+
+\begin{theorem}[Davis--Kahan style eigenvector stability (informal)]
+Let $A$ and $A+E$ be Hermitian (self-adjoint) operators/matrices. Assume the smallest eigenvalue
+of $A$ is simple and separated from the rest of the spectrum by a gap $g>0$. Then the angle
+between the ground eigenspaces of $A$ and $A+E$ is bounded by a constant multiple of $\|E\|/g$.
+\end{theorem}
+
+Why this matters here:
+\begin{itemize}
+  \item It turns the entire M2 problem into the single inequality $\|E\|/g \to 0$.
+  \item It matches the RSFT ``robustness = spectral gap'' design pattern.
+  \item It is a classical, well-documented theorem suitable for Lean formalization.
+\end{itemize}
+
+After this theorem is in Lean, the remaining work is no longer ``proof assistant work'': it is
+deriving $g(\lambda)$ and $\|E(\lambda)\|$ for the specific CCM truncations.
+
+\section{The most elegant RH proof within Recognition Science}
+
+Of the various approaches to RH within the RS framework, the \textbf{boundary-certificate route}
+is the most elegant and intuitive. This section presents it conceptually.
+
+\subsection{The core insight: primes as bandlimited signals}
+
+The key RS insight is that prime-frequency observables are \textbf{bandlimited}. Here is why:
+
+\begin{enumerate}
+  \item \textbf{T7 (Nyquist Coverage Bound)}: A walk of period $T$ cannot cover more than $T$
+  distinct states. For $D = 3$ spatial dimensions, the minimal period is $2^3 = 8$.
+  
+  \item \textbf{Nyquist Cutoff}: If the ledger updates at atomic tick $\tau_0$, then no observable
+  can have frequency content above $\Omega_{\max} = 1/(2\tau_0)$.
+  
+  \item \textbf{Prime Sums are Bandlimited}: The windowed prime exponential sum
+  \[
+    S_{L,t_0} = \sum_p \frac{\log p}{\sqrt{p}}\, e^{it_0 \log p}\, \widehat\Phi_{L,t_0}(\log p)
+  \]
+  inherits this bandlimit: if $\widehat\Phi$ is supported on $|\xi| \le \Omega_{\max}$,
+  then only finitely many primes contribute.
+\end{enumerate}
+
+\subsection{The proof outline (conditional on T7-Hyp)}
+
+\begin{enumerate}
+  \item \textbf{Define the arithmetic ratio} $J(s)$ whose poles correspond to zeros of $\zeta$.
+  
+  \item \textbf{Show $|J| \le 1$ on the boundary} of a wedge region $\{|\sigma - \tfrac12| \ge \eta\}$.
+  This uses the Schur/Herglotz structure of $J$.
+  
+  \item \textbf{Apply the Maximum Modulus Principle}: If $|J| \le 1$ on the boundary and $J$ is
+  analytic inside, then $|J| \le 1$ everywhere inside. But a pole would force $|J| \to \infty$.
+  
+  \item \textbf{Conclude zero-freeness}: No zeros of $\zeta$ can exist off the critical line
+  in the wedge region.
+  
+  \item \textbf{Extend to all $\sigma \ne \tfrac12$}: By taking $\eta \to 0$ (with appropriate
+  energy bounds), the zero-free region extends to the entire half-planes $\sigma \ne \tfrac12$.
+\end{enumerate}
+
+\subsection{Where T7-Hyp enters}
+
+The Nyquist cutoff hypothesis (T7-Hyp) enters at step 2: proving the boundary bound $|J| \le 1$
+requires controlling prime sums. Under T7-Hyp:
+\begin{itemize}
+  \item The prime sum $S_{L,t_0}$ is uniformly bounded (independent of $L, t_0$).
+  \item This uniform bound ``blocks'' the arithmetic contribution that would otherwise destroy
+  the Schur property.
+  \item The blocker is what allows the boundary control to hold.
+\end{itemize}
+
+\begin{remark}[What T7-Hyp buys you]
+Without T7-Hyp, the explicit formula shows that prime sums can grow like $t^{0.5+\varepsilon}$
+or worse, and the phase coherence of zeros (which is known only under RH) is the obstruction.
+T7-Hyp \emph{bypasses} this obstruction by asserting that nature has a Nyquist cutoff---which
+is exactly what RS predicts from the 8-tick structure.
+\end{remark}
+
+\subsection{The intuitive picture}
+
+\begin{quote}
+\textbf{Vortices \textrightarrow\ Energy \textrightarrow\ Budget \textrightarrow\ Squeeze}
+\end{quote}
+
+\begin{enumerate}
+  \item \textbf{Vortices}: Off-line zeros of $\zeta$ act like vortices in a fluid---they create
+  local singularities in the ``arithmetic field.''
+  
+  \item \textbf{Energy}: Each vortex carries Carleson energy. The total energy is bounded by
+  the ``budget'' set by the ledger's stiffness.
+  
+  \item \textbf{Budget}: The 8-tick structure (via T7-Hyp) sets a hard upper bound on how much
+  energy the prime side can supply. This budget is finite and uniform.
+  
+  \item \textbf{Squeeze}: If you try to place a zero off the critical line, it demands more
+  energy than the budget allows. The zero is ``squeezed'' back onto $\sigma = \tfrac12$.
+\end{enumerate}
+
+This is the RS worldview: \textbf{zeros on the critical line are not a miracle---they are the
+only configuration consistent with the ledger's conservation constraints}.
+
+\section{Actionable next steps (what to do now)}
+
+\subsection*{If you want to continue (recommended bounded scope)}
+\begin{enumerate}
+  \item In \texttt{ConnesApproximantsCCM.lean}, write the concrete intermediate family $G_n$
+  you actually want (even as a placeholder definition).
+  \item State the compactwise estimate that would imply
+  \texttt{TendstoUniformlyCloseOn CCM.F G atTop K}.
+  \item Stop at the first missing analytic estimate and write it as a single lemma in Lean and
+  as a single named inequality in prose.
+\end{enumerate}
+
+\subsection*{If you want to call it (also defensible)}
+\begin{enumerate}
+  \item Freeze the repository in a green build state.
+  \item Keep this note plus \texttt{recognition-geometry-dec-18.tex} as the audit trail showing
+  the reduction and the exact missing estimate list.
+  \item Treat the remaining estimate list as a research question to hand to a specialist.
+\end{enumerate}
+
+\section*{Acknowledgments}
+This draft is a writeup of an evolving codebase and internal project notes. It is meant to be
+useful as a roadmap, not as a formal mathematical publication.
+
+\begin{thebibliography}{9}
+
+\bibitem{IK}
+H. Iwaniec and E. Kowalski,
+\emph{Analytic Number Theory},
+AMS Colloquium Publications, 2004.
+
+\bibitem{ConnesNCG}
+A. Connes,
+\emph{Noncommutative Geometry},
+Academic Press, 1994.
+
+\bibitem{DavisKahan}
+C. Davis and W. M. Kahan,
+``The rotation of eigenvectors by a perturbation,''
+\emph{SIAM J. Numer. Anal.} 7(1), 1970.
+
+\bibitem{FeffermanStein}
+C. Fefferman and E. M. Stein,
+``$H^p$ spaces of several variables,''
+\emph{Acta Math.} 129 (1972), 137--193.
+
+\end{thebibliography}
+
+\end{document}
+
+

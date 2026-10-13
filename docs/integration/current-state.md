@@ -79,6 +79,27 @@ memory 20/40, reply 37/232).
 needs a prospective kernel card and TEST FITNESS first, and training stays held.
 
 
+## 2026-10-12 — Research material removed from the repository was restored byte-exact; the disk problem is solved with skip-worktree instead (lead, repository integrity)
+
+The [record](../labs/repository-integrity-2026-10-12/README.md) corrects a mistake in PR #2263, which removed
+`research/{prime-analysis,ai-research,archives}` (11,171 files, ~1 GB) from the tree because a verified iCloud copy
+existed. The owner rejected the reasoning — *"do not delete anything because this whole repository is a research
+project and we need to keep all evidence"* — and the material is restored byte-exact (PR #2266): all three directory
+trees hash identical to `7fc6e0b88`. Nothing was lost, because the files were always in git history and three
+MD5-verified iCloud archives had been written first; `.gitignore` no longer hides the paths. The disk problem is now
+solved the other way round: the material stays **tracked**, and `scripts/storage/research-data drop-local` uses git's
+own `skip-worktree` bit to keep it out of one checkout (~991 MB, `restore-local` reverses it), with no commit and a
+clean `git status`. The unit also consolidates five durable lessons out of provider-local memory so they are portable
+(`kill-only-own-pids`, `detached-run-watcher`, `archive-reference-check`, `geometry-carries-learning`,
+`no-transformer-baselines`), adds `archive-is-not-deletion` for this mistake, and adds the rule
+`prep.no_prohibited_teacher`, which fails a pre-registration proposing a softmax teacher, dense helper or transformer
+control — the drift that happened on 12 October.
+
+Line: no model line — repository integrity · count 0/3 unchanged · headline 37/232 → 37/232 (unchanged).
+
+**Next:** the regression arena design and session-start adoption remain; both proceed on the corrected basis that a
+second copy is archived *in addition*, never instead.
+
 ## 2026-10-12 — Owner rules matmul out everywhere; the ternary/XOR alternative assessed and the lab data moved out of every checkout (lead, governance + workspace)
 
 The [record](../labs/owner-ruling-and-storage-2026-10-12/README.md) covers two owner-approved units.

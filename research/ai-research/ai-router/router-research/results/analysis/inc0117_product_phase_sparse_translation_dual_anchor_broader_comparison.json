@@ -1,0 +1,144 @@
+{
+  "branch_status": "positive_explanatory",
+  "default_packet_route_ids": [
+    "DENSE_Q01_T2500",
+    "CHART_H4XH4_FIELD_A150_EVT_T070_BF2_SB1_CPX8_Q01_T2500",
+    "DENSE_Q01_T40000",
+    "CHART_H4XH4_FIELD_A150_EVT_T070_CPX8_Q01_T40000"
+  ],
+  "excluded_by_default_route_ids": [
+    "CHART_H4XH4_FIELD_A150_EVT_T070_CPX8_Q01_T2500",
+    "CHART_H4XH4_FIELD_A150_EVT_T070_BF2_SB1_CPX8_Q01_T40000"
+  ],
+  "generated_at": "2026-03-12T17:08:37.198801-04:00",
+  "inheritance_rules": [
+    "Always carry CHART_H4XH4_FIELD_A150_EVT_T070_CPX8_Q01_T40000 as the sole upper-bank routed representative in broader comparisons.",
+    "Only add CHART_H4XH4_FIELD_A150_EVT_T070_BF2_SB1_CPX8_Q01_T40000 when an explicit upper-bank pruning or systems comparator is required.",
+    "Keep CHART_H4XH4_FIELD_A150_EVT_T070_BF2_SB1_CPX8_Q01_T2500 as the default lower-bank routed representative because the lower-bank dense story remains systems-only.",
+    "Do not carry CHART_H4XH4_FIELD_A150_EVT_T070_CPX8_Q01_T2500 by default; it remains a lower-bank pruning/quality reference rather than the lower-bank default routed point."
+  ],
+  "lower_anchor_default_read": {
+    "amortized_delta_sec": {
+      "count": 12,
+      "flat_count": 0,
+      "max": 0.24183637602254748,
+      "mean": -0.0020251211584157622,
+      "median": -0.000505646486999467,
+      "min": -0.1255572489462793,
+      "negative_count": 6,
+      "positive_count": 6,
+      "robust_sign": "robust_improvement",
+      "sign_consistency": "mixed",
+      "stddev": 0.08774784612194612,
+      "trim_count": 1,
+      "trimmed_mean": -0.014058058097725734
+    },
+    "baseline_route_id": "DENSE_Q01_T2500",
+    "candidate_fraction_delta": {
+      "count": 12,
+      "flat_count": 0,
+      "max": -0.8042,
+      "mean": -0.81063448,
+      "median": -0.81130512,
+      "min": -0.81572768,
+      "negative_count": 12,
+      "positive_count": 0,
+      "robust_sign": "robust_improvement",
+      "sign_consistency": "stable_improvement",
+      "stddev": 0.004146225146998145,
+      "trim_count": 1,
+      "trimmed_mean": -0.8107686079999998
+    },
+    "classification": "systems-only",
+    "interpretation": "Amortized cost stays robustly favorable under both median and trimmed-mean summaries. Candidate-fraction and candidate-count reduction both remain robust. Retrieval-search cost remains a robust part of the advantage. Top-1 stays lower under the robust summaries.",
+    "quality_read": "quality_negative",
+    "route_id": "CHART_H4XH4_FIELD_A150_EVT_T070_BF2_SB1_CPX8_Q01_T2500",
+    "systems_verdict": "promote",
+    "top1_tolerance_gap_abs": 0.00744
+  },
+  "optional_comparator_route_ids": [
+    "CHART_H4XH4_FIELD_A150_EVT_T070_BF2_SB1_CPX8_Q01_T40000"
+  ],
+  "optional_upper_comparator": {
+    "classification": "quality-near systems promotion",
+    "inclusion_mode": "optional",
+    "interpretation": "Amortized cost stays robustly favorable under both median and trimmed-mean summaries. Candidate-fraction and candidate-count reduction both remain robust. Retrieval-search cost remains a robust part of the advantage. Top-1 stays lower under the robust summaries.",
+    "quality_read": "quality_near",
+    "route_id": "CHART_H4XH4_FIELD_A150_EVT_T070_BF2_SB1_CPX8_Q01_T40000",
+    "systems_verdict": "promote"
+  },
+  "overall_broader_comparison_read": "Default dual-anchor broader comparison is now explicit: lower bank stays systems-only via CHART_H4XH4_FIELD_A150_EVT_T070_BF2_SB1_CPX8_Q01_T2500, while upper bank stays quality-near systems promotion via CHART_H4XH4_FIELD_A150_EVT_T070_CPX8_Q01_T40000. CHART_H4XH4_FIELD_A150_EVT_T070_BF2_SB1_CPX8_Q01_T40000 remains optional comparator-only.",
+  "overall_dense_frontier_claim": "upper-bank near-frontier; lower-bank systems-only",
+  "packet_id": "inc0116_product_phase_sparse_translation_dual_anchor_broader_comparison_packet",
+  "packet_mode": "dual_anchor_default_packet",
+  "source_frontier_analysis": [
+    "inc0104_product_phase_soft_sparse_translation_backfill_recovery_confirm",
+    "inc0105_product_phase_soft_sparse_translation_upper_bank_carry_forward_confirm",
+    "inc0108_product_phase_sparse_translation_repeated_timing_hardening_lower_r2",
+    "inc0108_product_phase_sparse_translation_repeated_timing_hardening_lower_r3",
+    "inc0108_product_phase_sparse_translation_repeated_timing_hardening_upper_r2",
+    "inc0108_product_phase_sparse_translation_repeated_timing_hardening_upper_r3"
+  ],
+  "source_packet": {
+    "contract": {
+      "lower_confirm": "inc0104_product_phase_soft_sparse_translation_backfill_recovery_confirm",
+      "selection_analysis": {
+        "confirm_analysis": "inc0113_product_phase_sparse_translation_upper_bank_dense_gap_decomposition_confirm",
+        "gap_analysis": [
+          "inc0113_product_phase_sparse_translation_upper_bank_dense_gap_decomposition_confirm"
+        ],
+        "quality_analysis": [
+          "inc0105_product_phase_soft_sparse_translation_upper_bank_carry_forward_confirm",
+          "inc0108_product_phase_sparse_translation_repeated_timing_hardening_upper_r2",
+          "inc0108_product_phase_sparse_translation_repeated_timing_hardening_upper_r3",
+          "inc0112_product_phase_sparse_translation_upper_bank_dense_quality_tolerance_hardening_r4",
+          "inc0112_product_phase_sparse_translation_upper_bank_dense_quality_tolerance_hardening_r5"
+        ]
+      },
+      "upper_confirm": "inc0113_product_phase_sparse_translation_upper_bank_dense_gap_decomposition_confirm"
+    },
+    "lower_config_experiment_id": "inc0104_product_phase_soft_sparse_translation_backfill_recovery_confirm",
+    "lower_config_path": "/Users/adminamn/ai-router/router-research/configs/proxy_transfer_inc0104_product_phase_soft_sparse_translation_backfill_recovery_confirm.json",
+    "upper_config_experiment_id": "inc0113_product_phase_sparse_translation_upper_bank_dense_gap_decomposition_confirm",
+    "upper_config_path": "/Users/adminamn/ai-router/router-research/configs/proxy_transfer_inc0113_product_phase_sparse_translation_upper_bank_dense_gap_decomposition_confirm.json"
+  },
+  "upper_anchor_default_read": {
+    "amortized_delta_sec": {
+      "count": 12,
+      "flat_count": 0,
+      "max": -5.0965143740177155,
+      "mean": -7.405049722088734,
+      "median": -7.207634207501542,
+      "min": -10.574589791009203,
+      "negative_count": 12,
+      "positive_count": 0,
+      "robust_sign": "robust_improvement",
+      "sign_consistency": "stable_improvement",
+      "stddev": 1.6347446131625016,
+      "trim_count": 1,
+      "trimmed_mean": -7.318949250003788
+    },
+    "baseline_route_id": "DENSE_Q01_T40000",
+    "candidate_fraction_delta": {
+      "count": 12,
+      "flat_count": 0,
+      "max": -0.801630355,
+      "mean": -0.8162361275000002,
+      "median": -0.813011078125,
+      "min": -0.83729199875,
+      "negative_count": 12,
+      "positive_count": 0,
+      "robust_sign": "robust_improvement",
+      "sign_consistency": "stable_improvement",
+      "stddev": 0.014944738478812301,
+      "trim_count": 1,
+      "trimmed_mean": -0.8155911176250001
+    },
+    "classification": "quality-near systems promotion",
+    "interpretation": "Amortized cost stays robustly favorable under both median and trimmed-mean summaries. Candidate-fraction and candidate-count reduction both remain robust. Retrieval-search cost remains a robust part of the advantage. Top-1 stays lower under the robust summaries.",
+    "quality_read": "quality_near",
+    "route_id": "CHART_H4XH4_FIELD_A150_EVT_T070_CPX8_Q01_T40000",
+    "systems_verdict": "promote",
+    "top1_tolerance_gap_abs": 0.0014400000000000003
+  }
+}

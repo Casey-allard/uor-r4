@@ -1,0 +1,2 @@
+wheel_W,orbit_length_L,direct_admissible_phases,compressed_admissible_phases,exact_match,hamming_difference,base_phase_count_|B|,fiber_phase_count_|U143*|,product_|B|*|U143*|
+30030,5005,189,189,True,0,3,63,189

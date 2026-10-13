@@ -1,0 +1,24 @@
+{
+  "scenario_id": "tiny-fetch-quest",
+  "title": "Tiny Fetch Quest",
+  "description": "Minimal 3-room scenario with item collection and NPC combat for vertical-slice e2e testing.",
+  "start_room_id": "entrance",
+  "max_steps": 5,
+  "seed": 42,
+  "version": "1.0",
+  "scenario_vars": {
+    "mode": "vertical-slice",
+    "seed_variation_policy": "tiny_fetch_v1",
+    "seed_variation_axis": "key_room",
+    "seed_variation_values_json": "[\"treasury\",\"corridor\"]",
+    "world_config_json": "{\"items\":[{\"entity_id\":\"golden-key\",\"entity_type\":\"item\",\"location\":\"treasury\"}],\"npcs\":[{\"entity_id\":\"guard-1\",\"entity_type\":\"npc\",\"health\":30,\"location\":\"corridor\"}],\"rooms\":{\"corridor\":{\"description\":\"A narrow stone corridor. The entrance is to the west and a treasury lies to the east.\",\"entities\":[],\"exits\":{\"east\":\"treasury\",\"west\":\"entrance\"},\"title\":\"Stone Corridor\"},\"entrance\":{\"description\":\"A dimly lit entrance hall. A corridor leads east.\",\"entities\":[],\"exits\":{\"east\":\"corridor\"},\"title\":\"Entrance Hall\"},\"treasury\":{\"description\":\"A small treasury chamber. A golden key rests on a pedestal.\",\"entities\":[],\"exits\":{\"west\":\"corridor\"},\"title\":\"Treasury Chamber\"}}}"
+  },
+  "objectives": [
+    {
+      "objective_id": "collect-golden-key",
+      "objective_type": "collect_item",
+      "target_id": "golden-key",
+      "required_count": 1
+    }
+  ]
+}

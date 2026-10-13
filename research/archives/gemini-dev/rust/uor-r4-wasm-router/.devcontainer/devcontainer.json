@@ -1,0 +1,30 @@
+{
+  "name": "UOR R4 Router Devcontainer",
+  "features": {
+    "ghcr.io/devcontainers/features/rust:1": {},
+    "ghcr.io/guiyomh/features/just:0": {},
+    "ghcr.io/lumenpink/devcontainer-features/wasm-pack:0": {},
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.12"
+    },
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "20"
+    },
+    "ghcr.io/devcontainers-contrib/features/apt-packages:1": {
+      "packages": "patchelf,gcc-aarch64-linux-gnu"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "rust-lang.rust-analyzer",
+        "tamasfe.even-better-toml",
+        "anthropic.claude-code",
+        "leanprover.lean4"
+      ],
+      "settings": {
+        "rust-analyzer.cargo.target": "wasm32-unknown-unknown"
+      }
+    }
+  }
+}

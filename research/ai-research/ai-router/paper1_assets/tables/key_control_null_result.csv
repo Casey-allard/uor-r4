@@ -1,0 +1,4 @@
+control_case,dataset_or_setting,baseline_mean_val_ppl,hopf_mean_val_ppl,permuted_mean_val_ppl,hopf_vs_baseline_ratio,hopf_minus_permuted_ppl,baseline_mean_eff_b,hopf_mean_eff_b,permuted_mean_eff_b,learned_sparse_mean_eff_b,concentration_guard_limit,concentration_guard_passed,interpretation
+PTB_null_HOPF_vs_PERMUTED,PTB,152.2607,164.5379,164.4096,1.0806,0.1283,43.1865,45.9632,45.815,,,,Hopf and permuted are effectively indistinguishable on PTB quality.
+WT2_null_HOPF_vs_PERMUTED,WT2,105.8487,114.4492,114.4783,1.0813,-0.0292,35.3681,40.9422,42.2812,,,,The same null result replicates on WT2.
+Baseline_rationale_aux_loss_control,PTB_aux_control_screen,154.5547,165.5856,165.2497,1.0714,0.3359,43.9996,47.7397,47.1431,62.7746,57.6,False,"Load-balancing aux loss drives routing toward near-uniform usage, so no-aux top-1 is the correct paper comparator."

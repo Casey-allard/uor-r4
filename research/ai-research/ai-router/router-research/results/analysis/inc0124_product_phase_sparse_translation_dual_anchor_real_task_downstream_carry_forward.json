@@ -1,0 +1,76 @@
+{
+  "branch_status": "positive_explanatory",
+  "carry_forward_contract": "dual_anchor_downstream_real_task_default_comparison",
+  "comparison_surface": "lm_proxy_real_task_downstream",
+  "default_downstream_real_task_routes": {
+    "description": "Default downstream real-task comparison: lower-bank dense baseline plus the lower-bank systems-only routed point, and upper-bank dense baseline plus the promoted upper-bank downstream routed reference.",
+    "route_ids": [
+      "DENSE_Q01_T2500",
+      "CHART_H4XH4_FIELD_A150_EVT_T070_BF2_SB1_CPX8_Q01_T2500",
+      "DENSE_Q01_T40000",
+      "CHART_H4XH4_FIELD_A150_EVT_T070_CPX8_Q01_T40000"
+    ]
+  },
+  "excluded_by_default": {
+    "description": "Routes excluded from the default downstream real-task comparison because they are either comparator-only or carry a nondefault lower-bank pruning/quality read.",
+    "route_ids": [
+      "CHART_H4XH4_FIELD_A150_EVT_T070_CPX8_Q01_T2500",
+      "CHART_H4XH4_FIELD_A150_EVT_T070_BF2_SB1_CPX8_Q01_T40000"
+    ]
+  },
+  "generated_at": "2026-03-12T18:14:16.749260-04:00",
+  "inheritance_rules": [
+    "Always carry CHART_H4XH4_FIELD_A150_EVT_T070_CPX8_Q01_T40000 as the sole upper-bank routed representative in broader comparisons.",
+    "Only add CHART_H4XH4_FIELD_A150_EVT_T070_BF2_SB1_CPX8_Q01_T40000 when an explicit upper-bank pruning or systems comparator is required.",
+    "Keep CHART_H4XH4_FIELD_A150_EVT_T070_BF2_SB1_CPX8_Q01_T2500 as the default lower-bank routed representative because the lower-bank dense story remains systems-only.",
+    "Do not carry CHART_H4XH4_FIELD_A150_EVT_T070_CPX8_Q01_T2500 by default; it remains a lower-bank pruning/quality reference rather than the lower-bank default routed point.",
+    "Task-side comparisons should update docs/reports/REAL_TASK_COMPARISON.md from this exact inherited packet instead of rebuilding lower-bank or upper-bank sparse route forks.",
+    "Downstream real-task branches should inherit this exact packet manifest rather than reconstructing route ids and args from older broader or task-side artifacts.",
+    "Downstream real-task branches should start from this exact manifest-backed extension artifact and must record any optional comparator reintroduction explicitly."
+  ],
+  "interpretation": "The explicit downstream LM-proxy real-task comparison now carries forward CHART_H4XH4_FIELD_A150_EVT_T070_BF2_SB1_CPX8_Q01_T2500 as the lower-bank systems-only default and CHART_H4XH4_FIELD_A150_EVT_T070_CPX8_Q01_T40000 as the promoted upper-bank downstream default. CHART_H4XH4_FIELD_A150_EVT_T070_BF2_SB1_CPX8_Q01_T40000 remains available only when a downstream real-task branch explicitly needs a pruning or systems comparator.",
+  "lower_bank_default": {
+    "baseline_route_id": "DENSE_Q01_T2500",
+    "classification": "systems-only",
+    "quality_read": "quality_negative",
+    "recommendation": {
+      "reason": "lower-bank downstream dense replacement remains systems-first rather than near-frontier quality",
+      "route_id": "CHART_H4XH4_FIELD_A150_EVT_T070_BF2_SB1_CPX8_Q01_T2500",
+      "verdict": "carry_as_systems_only_default"
+    },
+    "route_id": "CHART_H4XH4_FIELD_A150_EVT_T070_BF2_SB1_CPX8_Q01_T2500"
+  },
+  "optional_comparators": {
+    "description": "Routes kept available only for explicit upper-bank pruning or systems side-by-side downstream real-task comparisons.",
+    "route_ids": [
+      "CHART_H4XH4_FIELD_A150_EVT_T070_BF2_SB1_CPX8_Q01_T40000"
+    ]
+  },
+  "optional_upper_bank_comparator": {
+    "classification": "quality-near systems promotion",
+    "quality_read": "quality_near",
+    "recommendation": {
+      "reason": "only reintroduce when an explicit pruning or systems comparator is required",
+      "route_id": "CHART_H4XH4_FIELD_A150_EVT_T070_BF2_SB1_CPX8_Q01_T40000",
+      "verdict": "optional_only"
+    },
+    "route_id": "CHART_H4XH4_FIELD_A150_EVT_T070_BF2_SB1_CPX8_Q01_T40000"
+  },
+  "packet_id": "inc0121_product_phase_sparse_translation_dual_anchor_real_task_packet_manifest",
+  "packet_mode": "downstream_dual_anchor_real_task_default_packet",
+  "source_downstream_comparison": {
+    "comparison_surface": "lm_proxy_real_task_downstream",
+    "overall_downstream_comparison_read": "Explicit downstream LM-proxy dual-anchor real-task comparison is now fixed: lower bank remains systems-only by default via CHART_H4XH4_FIELD_A150_EVT_T070_BF2_SB1_CPX8_Q01_T2500, upper bank remains quality-near systems promotion by default via CHART_H4XH4_FIELD_A150_EVT_T070_CPX8_Q01_T40000, and CHART_H4XH4_FIELD_A150_EVT_T070_BF2_SB1_CPX8_Q01_T40000 remains optional comparator-only."
+  },
+  "upper_bank_default": {
+    "baseline_route_id": "DENSE_Q01_T40000",
+    "classification": "quality-near systems promotion",
+    "quality_read": "quality_near",
+    "recommendation": {
+      "reason": "upper-bank downstream routed point remains the default quality-near systems promotion",
+      "route_id": "CHART_H4XH4_FIELD_A150_EVT_T070_CPX8_Q01_T40000",
+      "verdict": "carry_as_promoted_real_task_default"
+    },
+    "route_id": "CHART_H4XH4_FIELD_A150_EVT_T070_CPX8_Q01_T40000"
+  }
+}

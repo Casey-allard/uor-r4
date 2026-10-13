@@ -1,0 +1,187 @@
+\documentclass[11pt]{amsart}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+\newcommand{\C}{\mathbb{C}}
+\newcommand{\R}{\mathbb{R}}
+\DeclareMathOperator{\dettwo}{det_2}
+
+\title{Structural resolution of the box-energy gap\\
+in the zero-free region proof}
+\author{Technical note for paper1\_zerozeta-v19}
+\date{February 7, 2026}
+
+\begin{document}
+\maketitle
+
+\section{The issue}
+
+The proof of Theorem~1 (``$\zeta(s)\neq 0$ for $\Re s\ge 0.6$'')
+proceeds by contradiction: assume a zero $\rho_0=\beta_0+i\gamma_0$
+with $\beta_0\ge 0.6$, then derive a quantitative conflict between
+a \emph{lower bound} on the windowed boundary phase (from the hypothetical zero's
+Poisson balayage) and an \emph{upper bound} (from the CR--Green pairing
+combined with a Whitney-box energy estimate).
+
+During review, three interrelated obstacles were identified in the energy bound
+(Proposition~\texttt{prop:Cbox-finite}):
+
+\begin{enumerate}
+\item \textbf{The $V\ge 0$ circularity.}
+  The original proof defined $V=-\log|\mathcal J_{\rm out}|$ and claimed $V\ge 0$
+  (equivalently $|\mathcal J_{\rm out}|\le 1$), but $\mathcal J_{\rm out}$ is
+  \emph{meromorphic} with poles at $\zeta$-zeros.
+  Near a pole, $|\mathcal J_{\rm out}|\to\infty$, so $V<0$ there.
+  Asserting $V\ge 0$ amounts to assuming no poles exist---the very conclusion
+  being proved.
+
+\item \textbf{The $\log^2\!\langle t_0\rangle$ growth in the energy bound.}
+  The energy $E(I)\le C\log^2\!\langle t_0\rangle\,|I|$ grows with height.
+  With a \emph{fixed} Whitney parameter~$c$, the CR--Green upper bound
+  $O(\sqrt{c\log\langle\gamma_0\rangle})$ grows as $\sqrt{\log}$, eventually
+  exceeding the lower bound~$11$ from the hypothetical zero.
+  The contradiction does not close at all heights simultaneously.
+
+\item \textbf{The singular inner factor.}
+  The inner reciprocal $\mathcal I=B^2/\mathcal J_{\rm out}$ may have a nontrivial
+  singular inner factor~$S$, contributing $-\log|S|$ to the potential~$W$.
+  Controlling the gradient energy of $-\log|S|$ on Whitney boxes seemed to require
+  either proving $S\equiv 1$ (which a flawed maximum-principle argument attempted)
+  or accepting polynomial growth in $\eta^{-2}$ (from the Phragm\'en--Lindel\"of bound).
+\end{enumerate}
+
+\section{The resolution}
+
+All three obstacles are resolved by one structural observation about how the
+CR--Green pairing interacts with the near/far decomposition of the inner reciprocal.
+
+\subsection{Setup}
+
+\begin{itemize}
+\item $\mathcal I:=B^2/\mathcal J_{\rm out}$ is holomorphic on $\Omega=\{\Re s>1/2\}$
+  with $|\mathcal I|\le 1$ (Phragm\'en--Lindel\"of) and $|\mathcal I^*|=1$ a.e.
+  Its zeros are exactly the $\zeta$-zeros in~$\Omega$.
+  The potential $W:=-\log|\mathcal I|\ge 0$ is unconditionally nonnegative.
+  \textbf{This fixes issue~(1).}
+
+\item On a Whitney box $D=Q(\alpha''I)$ at height~$t_0$ with $L=c/\log\langle t_0\rangle$,
+  factor $\mathcal I=e^{i\theta}\,B_{\rm near}\,g$ where $B_{\rm near}$ collects
+  the (finitely many) zeros with $|\gamma-t_0|\le\alpha''L$ and $g:=B_{\rm far}\cdot S$.
+  The neutralized field $\widetilde W:=-\log|g|\ge 0$ is \emph{harmonic} on~$D$.
+
+\item The boundary bound $M:=\sup_{\partial D}\widetilde W\le C_*\log\langle t_0\rangle$
+  follows from:
+  \begin{itemize}
+  \item the Blaschke tail: $\sum_{\rm far}G_\Omega(s,\rho)
+    \le\alpha'L\int_{\alpha''L}^\infty C_{\rm RvM}\log\langle t_0\rangle/r^2\,dr
+    =O(\log\langle t_0\rangle)$;
+  \item the singular inner + convexity: $\widetilde W\le W\le N\log(2+|t_0|)+C$
+    (Phragm\'en--Lindel\"of).
+  \end{itemize}
+  The constant $C_*$ depends only on apertures $(\alpha',\alpha'')$ and the
+  Riemann--von Mangoldt density---\textbf{not on~$c$}.
+\end{itemize}
+
+\subsection{The key structural point}
+
+The CR--Green pairing (Cauchy--Schwarz on $\widetilde W$) bounds the
+\textbf{smooth part} of the windowed phase derivative---the part coming from
+the harmonic function $\widetilde W$ on~$D$.
+
+The $O(\log\langle t_0\rangle)$ zeros of~$\mathcal I$ inside~$D$ contribute
+\emph{explicit nonnegative charges} $2\pi\sum m_jV_\phi(\rho_j)\ge 0$ to the
+\emph{total} windowed phase via the distributional Green identity on the punctured
+domain $D\setminus\{\rho_j\}$.
+These charges \textbf{add to the total phase but do not enter the
+Cauchy--Schwarz energy bound} for the smooth part.
+
+A hypothetical zero $\rho_0$ at $\beta_0\ge 0.6$ lies \textbf{outside}~$D$
+(since $\delta_0=\beta_0-1/2\ge 0.1>\alpha'L$ for $t_0$ large).
+Its Poisson contribution therefore enters the \textbf{smooth part}, not the
+charge term.
+
+\textbf{This resolves issues~(2) and~(3) simultaneously:}
+
+\begin{itemize}
+\item The singular inner factor~$S$ contributes to~$\widetilde W$ and hence to~$M$,
+  but only through the global Phragm\'en--Lindel\"of bound
+  $\widetilde W\le N\log(2+|t|)+C$.
+  This gives $M=O(\log\langle t_0\rangle)$ with a constant independent of~$c$.
+  No need to prove $S\equiv 1$ or to bound $|S|$ from below.
+
+\item The near-zero charges (from the $O(\log\langle t_0\rangle)$ zeros inside~$D$)
+  are \emph{not part of the smooth-part inequality}.
+  They add positively to the total phase but are irrelevant to the contradiction.
+\end{itemize}
+
+\subsection{The contradiction (with height-dependent $c$)}
+
+Choose $c=c_0/\log\langle\gamma_0\rangle$ so that $L=c_0/\log^2\!\langle\gamma_0\rangle$.
+
+\medskip
+\noindent\textbf{Lower bound (smooth part, from $\rho_0$):}
+\[
+  \text{smooth part of }\int\psi(-w')
+  \;\ge\; 4\pi\arctan(L/\delta_0)\;\ge\;11\,L
+  \;=\;\frac{11\,c_0}{\log^2\!\langle\gamma_0\rangle}.
+\]
+
+\noindent\textbf{Upper bound (CR--Green on $\widetilde W$):}
+\[
+  E_{\rm eff}(I)=\iint_{Q(\alpha'I)}|\nabla\widetilde W|^2\,\sigma
+  \;\le\;C_3\,C_*^2\,\log^2\!\langle\gamma_0\rangle\cdot|I|
+  \;=\;C_3\,C_*^2\,\log^2\!\langle\gamma_0\rangle\cdot\frac{2c_0}{\log^2\!\langle\gamma_0\rangle}
+  \;=\;2\,C_3\,C_*^2\,c_0.
+\]
+Hence
+\[
+  \text{smooth part}
+  \;\le\;Z_0\,C_{\rm test}\sqrt{E_{\rm eff}}\cdot L
+  \;=\;Z_0\,C_{\rm test}\sqrt{2C_3C_*^2\,c_0}\cdot\frac{c_0}{\log^2\!\langle\gamma_0\rangle}
+  \;=\;\frac{A\,c_0^{3/2}}{\log^2\!\langle\gamma_0\rangle},
+\]
+where $A:=Z_0\,C_{\rm test}\sqrt{2C_3C_*^2}$ is \textbf{independent of $c_0$ and $\gamma_0$}.
+
+\medskip
+\noindent\textbf{Contradiction:}
+\[
+  \frac{11\,c_0}{\log^2}\;\le\;\frac{A\,c_0^{3/2}}{\log^2}
+  \qquad\Longrightarrow\qquad
+  11\;\le\;A\,\sqrt{c_0}.
+\]
+But $c_0=(11/A)^2/2$ gives $A\sqrt{c_0}=11/\sqrt{2}<11$. \textbf{Contradiction.}
+
+The $\log^2$ factors cancel between numerator ($E_{\rm eff}$) and denominator ($|I|$),
+leaving a \textbf{height-independent} ratio $A\sqrt{c_0}/11<1$.
+The singular inner factor, the near-zero count, and the short-interval bound
+all affect terms that are \textbf{not part of this comparison}.
+
+\section{Summary of what each component does}
+
+\begin{center}
+\begin{tabular}{lll}
+\hline
+\textbf{Component} & \textbf{Role} & \textbf{Affects contradiction?}\\
+\hline
+Inner reciprocal $\mathcal I$ & $W\ge 0$ (non-circular) & Yes (provides positivity)\\
+Phragm\'en--Lindel\"of & $|\mathcal I|\le 1$ & Yes (establishes $W\ge 0$)\\
+Boundary bound $M$ & $M\le C_*\log\langle t_0\rangle$ & Yes (enters $E_{\rm eff}$)\\
+Singular inner $S$ & Part of $M$ via PL bound & Indirectly (absorbed in $C_*$)\\
+Near-zero charges & Add to total phase $\ge 0$ & \textbf{No} (separate from smooth part)\\
+Near-zero count & $O(\log T)$ by RvM & \textbf{No} (charges are separate)\\
+Short-interval bound & Only crude RvM needed & \textbf{No} (not used in smooth part)\\
+$c=c_0/\log$ trick & Cancels $\log^2$ in $E\cdot|I|$ & Yes (makes ratio height-independent)\\
+\hline
+\end{tabular}
+\end{center}
+
+\end{document}

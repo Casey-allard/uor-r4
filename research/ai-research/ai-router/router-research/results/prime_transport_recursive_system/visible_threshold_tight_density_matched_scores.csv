@@ -1,0 +1,7 @@
+predictor,pearson_visible_threshold,spearman_visible_threshold
+num_first_splitting_classes,0.9564075046153204,0.9710083124552245
+total_extra_child_classes_from_first_split,0.9399990380479505,0.9710083124552245
+fraction_first_splitting_classes,0.9812266895112338,0.9710083124552245
+gap_max,0.22291128503014113,0.2537596094612761
+gap_span,-0.22291128503014113,-0.2537596094612761
+new_prime,nan,nan

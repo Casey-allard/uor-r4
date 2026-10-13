@@ -1,0 +1,12 @@
+trace_source,tuplet_name,offsets,parent_W,child_W,visible_H_first,trace_length,r_depth,rstatic_transition_match_fraction,rmin_transition_match_fraction,rfull_transition_match_fraction,rmin_unique_route_keys,rfull_unique_route_keys,rmin_promotion_fraction,rmin_sufficient_without_promotion_fraction,max_unresolved_fraction_within_rmin_route,mean_unresolved_fraction_within_rmin_route
+visible_threshold_tight_density_matched_rows.csv,quadruplet,"[0,2,6,8]",2310,30030,21,385,1,1.0,1.0,1.0,385,120,0.0,1.0,0.0,0.0
+visible_threshold_tight_density_matched_rows.csv,double_twins_p17,"[0,2,34,36]",2310,30030,21,385,1,1.0,1.0,1.0,385,120,0.0,1.0,0.0,0.0
+visible_threshold_tight_density_matched_rows.csv,quad_alt_0618,"[0,2,6,18]",2310,30030,6,385,1,1.0,1.0,1.0,385,50,0.0,1.0,0.0,0.0
+visible_threshold_tight_density_matched_rows.csv,quad_alt_0826,"[0,2,8,26]",2310,30030,16,385,1,1.0,1.0,1.0,385,95,0.0,1.0,0.0,0.0
+visible_threshold_tight_density_matched_rows.csv,quad_alt_1836,"[0,2,18,36]",2310,30030,16,385,1,1.0,1.0,1.0,385,95,0.0,1.0,0.0,0.0
+visible_threshold_tight_density_matched_rows.csv,quad_alt_3854,"[0,2,38,54]",2310,30030,26,385,1,1.0,1.0,1.0,385,180,0.0,1.0,0.0,0.0
+visible_threshold_second_tight_density_matched_rows.csv,quad_alt_0406,"[0,2,4,6]",30030,510510,36,5005,2,1.0,1.0,1.0,5005,255,0.0,1.0,0.0,0.0
+visible_threshold_second_tight_density_matched_rows.csv,double_twins_p17,"[0,2,34,36]",30030,510510,41,5005,2,1.0,1.0,1.0,5005,400,0.0,1.0,0.0,0.0
+visible_threshold_second_tight_density_matched_rows.csv,quad_alt_0618,"[0,2,6,18]",30030,510510,46,5005,2,1.0,1.0,1.0,5005,570,0.0,1.0,0.0,0.0
+visible_threshold_second_tight_density_matched_rows.csv,quadruplet,"[0,2,6,8]",30030,510510,51,5005,2,1.0,1.0,1.0,5005,665,0.0,1.0,0.0,0.0
+ALL,ALL,ALL,,,,22330,,1.0,1.0,1.0,2233.0,255.0,0.0,1.0,0.0,0.0

@@ -1,0 +1,5 @@
+Metadata-Version: 2.4
+Name: mudbench
+Version: 0.0.0
+Summary: MUDBench Phase 0 scaffold
+Requires-Python: >=3.10

@@ -1,0 +1,102 @@
+{
+  "branch_status": "positive_explanatory",
+  "comparison_surface": "lm_proxy_real_task",
+  "default_real_task_route_ids": [
+    "DENSE_Q01_T2500",
+    "CHART_H4XH4_FIELD_A150_EVT_T070_BF2_SB1_CPX8_Q01_T2500",
+    "DENSE_Q01_T40000",
+    "CHART_H4XH4_FIELD_A150_EVT_T070_CPX8_Q01_T40000"
+  ],
+  "excluded_by_default_route_ids": [
+    "CHART_H4XH4_FIELD_A150_EVT_T070_CPX8_Q01_T2500",
+    "CHART_H4XH4_FIELD_A150_EVT_T070_BF2_SB1_CPX8_Q01_T40000"
+  ],
+  "generated_at": "2026-03-12T17:24:11.452342-04:00",
+  "inheritance_rules": [
+    "Always carry CHART_H4XH4_FIELD_A150_EVT_T070_CPX8_Q01_T40000 as the sole upper-bank routed representative in broader comparisons.",
+    "Only add CHART_H4XH4_FIELD_A150_EVT_T070_BF2_SB1_CPX8_Q01_T40000 when an explicit upper-bank pruning or systems comparator is required.",
+    "Keep CHART_H4XH4_FIELD_A150_EVT_T070_BF2_SB1_CPX8_Q01_T2500 as the default lower-bank routed representative because the lower-bank dense story remains systems-only.",
+    "Do not carry CHART_H4XH4_FIELD_A150_EVT_T070_CPX8_Q01_T2500 by default; it remains a lower-bank pruning/quality reference rather than the lower-bank default routed point.",
+    "Task-side comparisons should update docs/reports/REAL_TASK_COMPARISON.md from this exact inherited packet instead of rebuilding lower-bank or upper-bank sparse route forks."
+  ],
+  "lower_anchor_real_task_read": {
+    "baseline_route_id": "DENSE_Q01_T2500",
+    "classification": "systems-only",
+    "quality_read": "quality_negative",
+    "route_id": "CHART_H4XH4_FIELD_A150_EVT_T070_BF2_SB1_CPX8_Q01_T2500",
+    "systems_verdict": "promote",
+    "top1_tolerance_gap_abs": 0.00744
+  },
+  "optional_real_task_comparator_route_ids": [
+    "CHART_H4XH4_FIELD_A150_EVT_T070_BF2_SB1_CPX8_Q01_T40000"
+  ],
+  "optional_upper_real_task_comparator": {
+    "classification": "quality-near systems promotion",
+    "inclusion_mode": "optional",
+    "quality_read": "quality_near",
+    "route_id": "CHART_H4XH4_FIELD_A150_EVT_T070_BF2_SB1_CPX8_Q01_T40000",
+    "systems_verdict": "promote"
+  },
+  "overall_real_task_comparison_read": "Explicit LM-proxy dual-anchor real-task comparison is now fixed: lower bank remains systems-only by default via CHART_H4XH4_FIELD_A150_EVT_T070_BF2_SB1_CPX8_Q01_T2500, upper bank remains quality-near systems promotion by default via CHART_H4XH4_FIELD_A150_EVT_T070_CPX8_Q01_T40000, and CHART_H4XH4_FIELD_A150_EVT_T070_BF2_SB1_CPX8_Q01_T40000 remains optional comparator-only.",
+  "packet_id": "inc0116_product_phase_sparse_translation_dual_anchor_broader_comparison_packet",
+  "packet_mode": "dual_anchor_default_packet",
+  "promotion_recommendation": {
+    "lower_bank_default": {
+      "reason": "lower-bank dense replacement remains systems-first rather than near-frontier quality",
+      "route_id": "CHART_H4XH4_FIELD_A150_EVT_T070_BF2_SB1_CPX8_Q01_T2500",
+      "verdict": "carry_as_systems_only_default"
+    },
+    "upper_bank_default": {
+      "reason": "upper-bank routed point remains the default quality-near systems promotion",
+      "route_id": "CHART_H4XH4_FIELD_A150_EVT_T070_CPX8_Q01_T40000",
+      "verdict": "carry_as_promoted_real_task_default"
+    },
+    "upper_bank_optional_comparator": {
+      "reason": "only reintroduce when an explicit pruning or systems comparator is required",
+      "route_id": "CHART_H4XH4_FIELD_A150_EVT_T070_BF2_SB1_CPX8_Q01_T40000",
+      "verdict": "optional_only"
+    }
+  },
+  "report_target_path": "docs/reports/REAL_TASK_COMPARISON.md",
+  "required_outputs": [
+    "transfer comparison artifact",
+    "update to docs/reports/REAL_TASK_COMPARISON.md",
+    "recommendation on whether transfer evidence is strong enough for promotion"
+  ],
+  "source_packet": {
+    "contract": {
+      "lower_confirm": "inc0104_product_phase_soft_sparse_translation_backfill_recovery_confirm",
+      "selection_analysis": {
+        "confirm_analysis": "inc0113_product_phase_sparse_translation_upper_bank_dense_gap_decomposition_confirm",
+        "gap_analysis": [
+          "inc0113_product_phase_sparse_translation_upper_bank_dense_gap_decomposition_confirm"
+        ],
+        "quality_analysis": [
+          "inc0105_product_phase_soft_sparse_translation_upper_bank_carry_forward_confirm",
+          "inc0108_product_phase_sparse_translation_repeated_timing_hardening_upper_r2",
+          "inc0108_product_phase_sparse_translation_repeated_timing_hardening_upper_r3",
+          "inc0112_product_phase_sparse_translation_upper_bank_dense_quality_tolerance_hardening_r4",
+          "inc0112_product_phase_sparse_translation_upper_bank_dense_quality_tolerance_hardening_r5"
+        ]
+      },
+      "upper_confirm": "inc0113_product_phase_sparse_translation_upper_bank_dense_gap_decomposition_confirm"
+    },
+    "lower_config_experiment_id": "inc0104_product_phase_soft_sparse_translation_backfill_recovery_confirm",
+    "lower_config_path": "/Users/adminamn/ai-router/router-research/configs/proxy_transfer_inc0104_product_phase_soft_sparse_translation_backfill_recovery_confirm.json",
+    "upper_config_experiment_id": "inc0113_product_phase_sparse_translation_upper_bank_dense_gap_decomposition_confirm",
+    "upper_config_path": "/Users/adminamn/ai-router/router-research/configs/proxy_transfer_inc0113_product_phase_sparse_translation_upper_bank_dense_gap_decomposition_confirm.json"
+  },
+  "source_task_side_extension": {
+    "packet_id": "inc0116_product_phase_sparse_translation_dual_anchor_broader_comparison_packet",
+    "task_side_extension_read": "Task-side dual-anchor inheritance is now explicit: lower bank stays systems-only by default via CHART_H4XH4_FIELD_A150_EVT_T070_BF2_SB1_CPX8_Q01_T2500, upper bank stays quality-near systems promotion by default via CHART_H4XH4_FIELD_A150_EVT_T070_CPX8_Q01_T40000, and CHART_H4XH4_FIELD_A150_EVT_T070_BF2_SB1_CPX8_Q01_T40000 remains optional comparator-only.",
+    "task_side_surface": "real_task_comparison"
+  },
+  "upper_anchor_real_task_read": {
+    "baseline_route_id": "DENSE_Q01_T40000",
+    "classification": "quality-near systems promotion",
+    "quality_read": "quality_near",
+    "route_id": "CHART_H4XH4_FIELD_A150_EVT_T070_CPX8_Q01_T40000",
+    "systems_verdict": "promote",
+    "top1_tolerance_gap_abs": 0.0014400000000000003
+  }
+}

@@ -1,0 +1,37 @@
+operator,cluster,fixed_point_count,fixed_point_fraction,field_family,invariant_count,invariant_fraction,note
+T_b,non-transport,0,0.000000,FULL,0,0.000000,States s where O(s)==s (all 10 fields unchanged)
+T_b,non-transport,0,0.000000,theta,0,0.000000,States where theta fields all unchanged under T_b; full fp count=0
+T_b,non-transport,0,0.000000,rho,525355,1.000000,States where rho fields all unchanged under T_b; full fp count=0
+T_b,non-transport,0,0.000000,sigma,56464,0.107478,States where sigma fields all unchanged under T_b; full fp count=0
+T_b,non-transport,0,0.000000,tau_holonomy,597,0.001136,States where tau_holonomy fields all unchanged under T_b; full fp count=0
+T_b,non-transport,0,0.000000,swap_geometry,525355,1.000000,States where swap_geometry fields all unchanged under T_b; full fp count=0
+T_x,non-transport,0,0.000000,FULL,0,0.000000,States s where O(s)==s (all 10 fields unchanged)
+T_x,non-transport,0,0.000000,theta,525355,1.000000,States where theta fields all unchanged under T_x; full fp count=0
+T_x,non-transport,0,0.000000,rho,525355,1.000000,States where rho fields all unchanged under T_x; full fp count=0
+T_x,non-transport,0,0.000000,sigma,42323,0.080561,States where sigma fields all unchanged under T_x; full fp count=0
+T_x,non-transport,0,0.000000,tau_holonomy,0,0.000000,States where tau_holonomy fields all unchanged under T_x; full fp count=0
+T_x,non-transport,0,0.000000,swap_geometry,0,0.000000,States where swap_geometry fields all unchanged under T_x; full fp count=0
+T_y,non-transport,0,0.000000,FULL,0,0.000000,States s where O(s)==s (all 10 fields unchanged)
+T_y,non-transport,0,0.000000,theta,525355,1.000000,States where theta fields all unchanged under T_y; full fp count=0
+T_y,non-transport,0,0.000000,rho,525355,1.000000,States where rho fields all unchanged under T_y; full fp count=0
+T_y,non-transport,0,0.000000,sigma,214836,0.408935,States where sigma fields all unchanged under T_y; full fp count=0
+T_y,non-transport,0,0.000000,tau_holonomy,4021,0.007654,States where tau_holonomy fields all unchanged under T_y; full fp count=0
+T_y,non-transport,0,0.000000,swap_geometry,0,0.000000,States where swap_geometry fields all unchanged under T_y; full fp count=0
+T_c,transport,0,0.000000,FULL,0,0.000000,States s where O(s)==s (all 10 fields unchanged)
+T_c,transport,0,0.000000,theta,0,0.000000,States where theta fields all unchanged under T_c; full fp count=0
+T_c,transport,0,0.000000,rho,525355,1.000000,States where rho fields all unchanged under T_c; full fp count=0
+T_c,transport,0,0.000000,sigma,209227,0.398258,States where sigma fields all unchanged under T_c; full fp count=0
+T_c,transport,0,0.000000,tau_holonomy,3971,0.007559,States where tau_holonomy fields all unchanged under T_c; full fp count=0
+T_c,transport,0,0.000000,swap_geometry,525355,1.000000,States where swap_geometry fields all unchanged under T_c; full fp count=0
+T_z',transport,0,0.000000,FULL,0,0.000000,States s where O(s)==s (all 10 fields unchanged)
+T_z',transport,0,0.000000,theta,0,0.000000,States where theta fields all unchanged under T_z'; full fp count=0
+T_z',transport,0,0.000000,rho,525355,1.000000,States where rho fields all unchanged under T_z'; full fp count=0
+T_z',transport,0,0.000000,sigma,207484,0.394941,States where sigma fields all unchanged under T_z'; full fp count=0
+T_z',transport,0,0.000000,tau_holonomy,6250,0.011897,States where tau_holonomy fields all unchanged under T_z'; full fp count=0
+T_z',transport,0,0.000000,swap_geometry,525355,1.000000,States where swap_geometry fields all unchanged under T_z'; full fp count=0
+T_r*,transport,0,0.000000,FULL,0,0.000000,States s where O(s)==s (all 10 fields unchanged)
+T_r*,transport,0,0.000000,theta,175285,0.333651,States where theta fields all unchanged under T_r*; full fp count=0
+T_r*,transport,0,0.000000,rho,0,0.000000,States where rho fields all unchanged under T_r*; full fp count=0
+T_r*,transport,0,0.000000,sigma,197789,0.376486,States where sigma fields all unchanged under T_r*; full fp count=0
+T_r*,transport,0,0.000000,tau_holonomy,6493,0.012359,States where tau_holonomy fields all unchanged under T_r*; full fp count=0
+T_r*,transport,0,0.000000,swap_geometry,525355,1.000000,States where swap_geometry fields all unchanged under T_r*; full fp count=0

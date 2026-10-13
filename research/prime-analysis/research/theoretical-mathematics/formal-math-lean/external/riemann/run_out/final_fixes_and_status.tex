@@ -1,0 +1,141 @@
+\documentclass[11pt]{amsart}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+
+\newcommand{\C}{\mathbb{C}}
+\DeclareMathOperator{\dettwo}{det_2}
+
+\title{Final fixes and honest status\\of the zero-free region proof}
+\author{Technical companion to paper1\_zerozeta-v19}
+\date{February 7, 2026}
+
+\begin{document}
+\maketitle
+
+\section{Fixes implemented in this round}
+
+\subsection{Fix A: ``holomorphic and nonvanishing'' for harmonicity}
+
+\textbf{Complaint:} The proof claimed $\log|\mathcal J_{\rm neut}|$ is harmonic
+because $\mathcal J_{\rm neut}$ is holomorphic, but holomorphic alone doesn't imply
+harmonicity of the log-modulus (zeros reintroduce singularities).
+
+\textbf{Fix:} The theorem proof now explicitly states that $\mathcal J_{\rm neut}$
+is \emph{holomorphic and nonvanishing} on~$D$, with a sentence explaining why:
+the poles of $\mathcal J_{\rm out}$ are exactly canceled (with multiplicity) by the
+zeros of $B_{\rm box}$, and $\mathcal J_{\rm out}$ has no zeros in~$D$ (the only zero
+at $s=1$ lies outside~$D$ for large~$t_0$).
+
+\subsection{Fix B: Proposition restated for neutralized energy}
+
+\textbf{Complaint:} The proposition's headline bound was for
+$E(I)=\iint|\nabla\log|\mathcal J_{\rm out}||^2\sigma$, which is \emph{infinite}
+if there are poles in the box.
+
+\textbf{Fix:} The proposition now defines and bounds $E_{\rm neut}(I)$,
+the energy of the \emph{neutralized harmonic function}
+$\log|\mathcal J_{\rm neut}|=2\log|B|+\widetilde W$.
+The infinite-energy near-Blaschke singularities are explicitly excluded
+from the bound.
+
+\subsection{Fix C: Constant notation}
+
+\textbf{Complaint:} The proposition stated $C(\alpha',c)$ but the theorem proof
+treated it as $C(\alpha')$ independent of~$c$.
+
+\textbf{Fix:} The proposition now states $C(\alpha')$ throughout, with an explicit
+note that independence from~$c$ comes from the $L$-cancellation in the Poisson integral.
+
+\subsection{Fix D: $B_{\rm box}$ definition and multiplicities}
+
+\textbf{Complaint:} $B_{\rm box}$ was described as ``zeros with ordinate in~$D$''
+without specifying both coordinates or multiplicities.
+
+\textbf{Fix:} The theorem proof now says ``the zeros of~$\zeta$ with ordinate in~$D$
+(i.e.\ $|\gamma-\gamma_0|\le\alpha''L$ and $\beta>1/2$)'' and states that each
+Blaschke factor cancels the corresponding pole ``with multiplicity.''
+
+\section{The remaining open step: the singular inner factor}
+
+\subsection{What was claimed before}
+
+Previous versions claimed the singular inner factor~$S$ of the inner reciprocal
+$\mathcal I=B^2/\mathcal J_{\rm out}$ could be controlled by the pointwise bound
+$-\log|S|\le W\le N\log(2+|t|)+C$.
+
+\subsection{Why this is insufficient}
+
+The bound $W(s)\le N\log(2+|t|)+C$ at fixed height $\sigma>0$ relies on a
+polynomial lower bound for $|\mathcal I(s)|$, which in turn requires a lower bound
+on $|\zeta(1/2+\sigma+it)|$.
+For \emph{fixed}~$\sigma$, such bounds exist (Hadamard product + zero repulsion).
+But on the Whitney schedule $\sigma=\alpha''L=\alpha''c_0/\log^2\!\langle t_0\rangle\to 0$,
+the exponent~$N(\sigma)$ degrades (grows as~$1/\sigma$), and the resulting bound on~$M$
+picks up an extra factor of $\log\langle t_0\rangle$.
+
+Concretely: the singular measure $\nu_S$ has uniformly bounded mass
+$\nu_S([t_0-1,t_0+1])\le\nu_*<\infty$ (from the bounded values of $W$ at $\Re s=3/2$).
+The Poisson integral at height $\sigma=\alpha''L$ is
+$P_\sigma[\nu_{S,{\rm near}}]\le\nu_*/(\pi\alpha''L)=O(\log\langle t_0\rangle/c)$.
+With $c=c_0/\log$: this is $O(\log^2/c_0)$, adding one uncancelable~$\log$ to~$M$.
+
+The energy then grows as $M^2|I|=O(\log^4/c_0^2\cdot c_0/\log^2)=O(\log^2/c_0)$,
+and $\sqrt{E}\cdot L=O(\sqrt{c_0}/\log)$ while the lower bound is $O(c_0/\log^2)$.
+The ratio Upper/Lower $=O(\log/\sqrt{c_0})\to\infty$.
+
+\subsection{What would close the proof}
+
+The proof is complete \textbf{if} $S\equiv 1$ (equivalently $\nu_S=0$).
+Under this condition:
+\begin{itemize}
+\item $M=O(\log\langle t_0\rangle)$ with constant independent of~$c$.
+\item $E_{\rm neut}=O(c_0)$ (height-independent after the $c=c_0/\log$ trick).
+\item Ratio Upper/Lower $=A\sqrt{c_0}/11<1$ for $c_0<(11/A)^2/2$. Contradiction. \checkmark
+\end{itemize}
+
+Three potential routes to establishing $S\equiv 1$:
+\begin{enumerate}
+\item Show that the boundary log-modulus limits of each factor of~$\mathcal I$
+  converge in $L^1(\mathbb R,(1+t^2)^{-1}dt)$ (not just $L^1_{\rm loc}$),
+  and that the sum converges to~$0$ in that weighted sense.
+  This would give $\int W(\sigma,\cdot)/(1+t^2)\,dt\to 0$ as $\sigma\to 0$,
+  which is the standard criterion for $S\equiv 1$.
+\item Show that $(s-1)\zeta(s)/s$ restricted to~$\Omega$ belongs to the
+  \emph{Cartwright class} (entire of exponential type with $\log^+$ in
+  $L^1(\mathbb R,(1+t^2)^{-1}dt)$), which implies its inner factor is a pure
+  Blaschke product with no singular part (Krein/Koosis theory).
+\item Bound the singular measure $\nu_S$ directly from the explicit formula
+  for $\mathcal I=B\mathcal O_\zeta\zeta/\dettwo$, using the Carleson energy
+  of $\dettwo$ and the boundary trace properties of~$\zeta$.
+\end{enumerate}
+
+\section{Current state of the proof}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Component} & \textbf{Status} & \textbf{Unconditional?}\\
+\midrule
+Inner reciprocal $\mathcal I$, $|\mathcal I|\le 1$ & Proved & Yes\\
+Neutralized ratio $\mathcal J_{\rm neut}$ & Proved & Yes\\
+Phase-velocity lower bound & Proved & Yes\\
+CR--Green on harmonic $\log|\mathcal J_{\rm neut}|$ & Proved & Yes\\
+Blaschke-tail energy bound ($S\equiv 1$ case) & Proved & Yes\\
+$c=c_0/\log$ cancellation algebra & Proved & Yes\\
+Contradiction ($S\equiv 1$ case) & Proved & Yes\\
+\midrule
+Singular inner factor $S\equiv 1$ & \textbf{Open} & ---\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\medskip
+The paper's Theorem~1 is proved \textbf{conditional on $S\equiv 1$}.
+Establishing $S\equiv 1$ would make the proof fully unconditional.
+
+\end{document}

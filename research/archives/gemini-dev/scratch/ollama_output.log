@@ -1,0 +1,76 @@
+time=2026-05-22T20:25:30.446-04:00 level=INFO source=routes.go:1802 msg="server config" env="map[HTTPS_PROXY: HTTP_PROXY: NO_PROXY: OLLAMA_CONTEXT_LENGTH:0 OLLAMA_DEBUG:INFO OLLAMA_DEBUG_LOG_REQUESTS:false OLLAMA_EDITOR: OLLAMA_FLASH_ATTENTION:false OLLAMA_GPU_OVERHEAD:0 OLLAMA_HOST:http://127.0.0.1:11434 OLLAMA_KEEP_ALIVE:5m0s OLLAMA_KV_CACHE_TYPE: OLLAMA_LLM_LIBRARY: OLLAMA_LOAD_TIMEOUT:5m0s OLLAMA_MAX_LOADED_MODELS:0 OLLAMA_MAX_QUEUE:512 OLLAMA_MAX_TRANSFER_STREAMS:4 OLLAMA_MODELS:/Users/adminamn/.ollama/models OLLAMA_MULTIUSER_CACHE:false OLLAMA_NEW_ENGINE:false OLLAMA_NOHISTORY:false OLLAMA_NOPRUNE:false OLLAMA_NO_CLOUD:false OLLAMA_NUM_PARALLEL:1 OLLAMA_ORIGINS:[http://localhost https://localhost http://localhost:* https://localhost:* http://127.0.0.1 https://127.0.0.1 http://127.0.0.1:* https://127.0.0.1:* http://0.0.0.0 https://0.0.0.0 http://0.0.0.0:* https://0.0.0.0:* app://* file://* tauri://* vscode-webview://* vscode-file://*] OLLAMA_REMOTES:[ollama.com] OLLAMA_SCHED_SPREAD:false http_proxy: https_proxy: no_proxy:]"
+time=2026-05-22T20:25:30.447-04:00 level=INFO source=routes.go:1804 msg="Ollama cloud disabled: false"
+time=2026-05-22T20:25:30.449-04:00 level=INFO source=images.go:517 msg="total blobs: 4"
+time=2026-05-22T20:25:30.449-04:00 level=INFO source=images.go:524 msg="total unused blobs removed: 0"
+time=2026-05-22T20:25:30.450-04:00 level=INFO source=routes.go:1864 msg="Listening on 127.0.0.1:11434 (version 0.24.0)"
+time=2026-05-22T20:25:30.453-04:00 level=INFO source=runner.go:67 msg="discovering available GPUs..."
+time=2026-05-22T20:25:30.457-04:00 level=INFO source=server.go:433 msg="starting runner" cmd="/Applications/Ollama.app/Contents/Resources/ollama runner --ollama-engine --port 64346"
+time=2026-05-22T20:25:30.576-04:00 level=INFO source=model_recommendations.go:177 msg="model recommendations cache sleep scheduled" wait=4h17m34.807176126s consecutive_failures=0
+time=2026-05-22T20:25:30.683-04:00 level=INFO source=types.go:42 msg="inference compute" id=0 filter_id=0 library=Metal compute=0.0 name=Metal description="Apple M1" libdirs="" driver=0.0 pci_id="" type=discrete total="11.8 GiB" available="11.8 GiB"
+time=2026-05-22T20:25:30.683-04:00 level=INFO source=routes.go:1914 msg="vram-based default context" total_vram="11.8 GiB" default_num_ctx=4096
+[GIN] 2026/05/22 - 20:25:35 | 200 |     1.32825ms |       127.0.0.1 | GET      "/api/tags"
+time=2026-05-22T20:25:38.668-04:00 level=INFO source=model.go:97 msg="gemma4: token IDs" image=255999 image_end=258882 audio=256000 audio_end=258883
+time=2026-05-22T20:25:38.669-04:00 level=INFO source=server.go:259 msg="enabling flash attention"
+time=2026-05-22T20:25:38.669-04:00 level=INFO source=server.go:433 msg="starting runner" cmd="/Applications/Ollama.app/Contents/Resources/ollama runner --ollama-engine --model /Users/adminamn/.ollama/models/blobs/sha256-4c27e0f5b5adf02ac956c7322bd2ee7636fe3f45a8512c9aba5385242cb6e09a --port 64364"
+time=2026-05-22T20:25:38.671-04:00 level=INFO source=sched.go:484 msg="system memory" total="16.0 GiB" free="5.3 GiB" free_swap="0 B"
+time=2026-05-22T20:25:38.671-04:00 level=INFO source=sched.go:491 msg="gpu memory" id=0 library=Metal available="11.3 GiB" free="11.8 GiB" minimum="512.0 MiB" overhead="0 B"
+time=2026-05-22T20:25:38.671-04:00 level=INFO source=server.go:792 msg="loading model" "model layers"=43 requested=-1
+time=2026-05-22T20:25:38.727-04:00 level=INFO source=runner.go:1450 msg="starting ollama engine"
+time=2026-05-22T20:25:38.727-04:00 level=INFO source=runner.go:1485 msg="Server listening on 127.0.0.1:64364"
+time=2026-05-22T20:25:38.738-04:00 level=INFO source=runner.go:1297 msg=load request="{Operation:fit LoraPath:[] Parallel:1 BatchSize:512 FlashAttention:Enabled KvSize:4096 KvCacheType: NumThreads:4 GPULayers:43[ID:0 Layers:43(0..42)] MultiUserCache:false ProjectorPath: MainGPU:0 UseMmap:false}"
+time=2026-05-22T20:25:38.785-04:00 level=INFO source=ggml.go:144 msg="" architecture=gemma4 file_type=Q4_K_M name="" description="" num_tensors=2131 num_key_values=55
+ggml_metal_device_init: tensor API disabled for pre-M5 and pre-A19 devices
+ggml_metal_library_init: using embedded metal library
+ggml_metal_library_init: loaded in 0.012 sec
+ggml_metal_rsets_init: creating a residency set collection (keep_alive = 180 s)
+ggml_metal_device_init: GPU name:   Apple M1
+ggml_metal_device_init: GPU family: MTLGPUFamilyApple7  (1007)
+ggml_metal_device_init: GPU family: MTLGPUFamilyCommon3 (3003)
+ggml_metal_device_init: GPU family: MTLGPUFamilyMetal4  (5002)
+ggml_metal_device_init: simdgroup reduction   = true
+ggml_metal_device_init: simdgroup matrix mul. = true
+ggml_metal_device_init: has unified memory    = true
+ggml_metal_device_init: has bfloat            = true
+ggml_metal_device_init: has tensor            = false
+ggml_metal_device_init: use residency sets    = true
+ggml_metal_device_init: use shared buffers    = true
+ggml_metal_device_init: recommendedMaxWorkingSetSize  = 12713.12 MB
+load_backend: loaded CPU backend from /Applications/Ollama.app/Contents/Resources/libggml-cpu.so
+time=2026-05-22T20:25:38.840-04:00 level=INFO source=ggml.go:104 msg=system Metal.0.EMBED_LIBRARY=1 CPU.0.NEON=1 CPU.0.ARM_FMA=1 CPU.0.FP16_VA=1 CPU.0.DOTPROD=1 CPU.0.LLAMAFILE=1 CPU.0.ACCELERATE=1 CPU.1.NEON=1 CPU.1.ARM_FMA=1 CPU.1.FP16_VA=1 CPU.1.DOTPROD=1 CPU.1.LLAMAFILE=1 compiler=cgo(clang)
+ggml_metal_init: allocating
+ggml_metal_init: picking default device: Apple M1
+ggml_metal_init: use fusion         = true
+ggml_metal_init: use concurrency    = true
+ggml_metal_init: use graph optimize = true
+time=2026-05-22T20:25:38.864-04:00 level=INFO source=model.go:97 msg="gemma4: token IDs" image=255999 image_end=258882 audio=256000 audio_end=258883
+time=2026-05-22T20:25:38.877-04:00 level=INFO source=model.go:138 msg="vision: decode" elapsed=1.29125ms bounds=(0,0)-(2048,2048)
+time=2026-05-22T20:25:38.976-04:00 level=INFO source=model.go:145 msg="vision: preprocess" elapsed=98.730542ms size="[768 768]"
+time=2026-05-22T20:25:38.976-04:00 level=INFO source=model.go:148 msg="vision: pixelValues" shape="[768 768 3]" dim0=768 dim1=768 dim2=3
+time=2026-05-22T20:25:38.976-04:00 level=INFO source=model.go:152 msg="vision: patches" patchesX=48 patchesY=48 total=2304 patchSize=16
+time=2026-05-22T20:25:38.977-04:00 level=INFO source=model.go:156 msg="vision: encoded" elapsed=101.563584ms shape="[2560 256]"
+time=2026-05-22T20:25:38.998-04:00 level=INFO source=runner.go:1297 msg=load request="{Operation:alloc LoraPath:[] Parallel:1 BatchSize:512 FlashAttention:Enabled KvSize:4096 KvCacheType: NumThreads:4 GPULayers:43[ID:0 Layers:43(0..42)] MultiUserCache:false ProjectorPath: MainGPU:0 UseMmap:false}"
+time=2026-05-22T20:25:41.794-04:00 level=INFO source=model.go:97 msg="gemma4: token IDs" image=255999 image_end=258882 audio=256000 audio_end=258883
+time=2026-05-22T20:25:42.210-04:00 level=INFO source=device.go:240 msg="model weights" device=Metal size="8.9 GiB"
+time=2026-05-22T20:25:41.903-04:00 level=INFO source=model.go:138 msg="vision: decode" elapsed=9.00575ms bounds=(0,0)-(2048,2048)
+time=2026-05-22T20:25:42.024-04:00 level=INFO source=model.go:145 msg="vision: preprocess" elapsed=119.596875ms size="[768 768]"
+time=2026-05-22T20:25:42.026-04:00 level=INFO source=model.go:148 msg="vision: pixelValues" shape="[768 768 3]" dim0=768 dim1=768 dim2=3
+time=2026-05-22T20:25:42.026-04:00 level=INFO source=model.go:152 msg="vision: patches" patchesX=48 patchesY=48 total=2304 patchSize=16
+time=2026-05-22T20:25:42.032-04:00 level=INFO source=model.go:156 msg="vision: encoded" elapsed=137.864166ms shape="[2560 256]"
+time=2026-05-22T20:25:42.206-04:00 level=INFO source=runner.go:1297 msg=load request="{Operation:commit LoraPath:[] Parallel:1 BatchSize:512 FlashAttention:Enabled KvSize:4096 KvCacheType: NumThreads:4 GPULayers:43[ID:0 Layers:43(0..42)] MultiUserCache:false ProjectorPath: MainGPU:0 UseMmap:false}"
+time=2026-05-22T20:25:42.210-04:00 level=INFO source=ggml.go:490 msg="offloading 42 repeating layers to GPU"
+time=2026-05-22T20:25:42.212-04:00 level=INFO source=ggml.go:497 msg="offloading output layer to GPU"
+time=2026-05-22T20:25:42.212-04:00 level=INFO source=ggml.go:502 msg="offloaded 43/43 layers to GPU"
+time=2026-05-22T20:25:42.886-04:00 level=INFO source=device.go:245 msg="model weights" device=CPU size="587.0 MiB"
+time=2026-05-22T20:25:43.188-04:00 level=INFO source=device.go:251 msg="kv cache" device=Metal size="224.0 MiB"
+time=2026-05-22T20:25:43.281-04:00 level=INFO source=device.go:262 msg="compute graph" device=Metal size="133.5 MiB"
+time=2026-05-22T20:25:45.437-04:00 level=INFO source=device.go:267 msg="compute graph" device=CPU size="5.0 MiB"
+time=2026-05-22T20:25:46.854-04:00 level=INFO source=device.go:272 msg="total memory" size="9.8 GiB"
+time=2026-05-22T20:25:46.890-04:00 level=INFO source=sched.go:561 msg="loaded runners" count=1
+time=2026-05-22T20:25:46.905-04:00 level=INFO source=server.go:1385 msg="waiting for llama runner to start responding"
+time=2026-05-22T20:25:47.017-04:00 level=INFO source=server.go:1428 msg="waiting for server to become available" status="llm server loading model"
+time=2026-05-22T20:25:49.567-04:00 level=INFO source=server.go:1428 msg="waiting for server to become available" status="llm server not responding"
+time=2026-05-22T20:25:51.490-04:00 level=INFO source=server.go:1428 msg="waiting for server to become available" status="llm server loading model"
+time=2026-05-22T20:25:51.826-04:00 level=INFO source=server.go:1432 msg="llama runner started in 13.16 seconds"
+[GIN] 2026/05/22 - 20:26:15 | 200 | 37.653612166s |       127.0.0.1 | POST     "/api/generate"
+[GIN] 2026/05/22 - 20:27:06 | 200 | 36.352006125s |       127.0.0.1 | POST     "/api/generate"
+[GIN] 2026/05/22 - 20:28:17 | 200 |  32.00941675s |       127.0.0.1 | POST     "/api/generate"

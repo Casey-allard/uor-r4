@@ -1,0 +1,19 @@
+section,config_label,workers,threads_per_worker,cores_used,label,D,vname,final_acc,canon_acc,canon_delta,canon_equiv,wall_s,total_wall_s,speedup_vs_serial,all_correct,note
+step2_breakdown,instrumented_D16_original_s42,1,8,1,D16/original_s42,16,original_s42,0.8135,0.9658,-0.1523,,80.225,80.225,,,t_setup=0.704s; t_fwd=40.075s(50.4%); t_bwd=37.957s(47.8%); fwd+bwd=98.2pct; CRITICAL:W1_W2_trained_not_used_in_eval; CRITICAL:torch_rand_like_uses_global_RNG_not_seeded_generator
+step3_thread_benchmark,1w_8t,1,8,8,D16/original_s42,16,original_s42,0.9941,0.9658,0.0283,YES,,429.9,1.0,False,workers=1; threads=8; cores=8/8; total_wall=429.9s; 
+step3_thread_benchmark,1w_8t,1,8,8,D16/shift1_s42,16,shift1_s42,0.9927,0.9775,0.0152,YES,,429.9,1.0,False,workers=1; threads=8; cores=8/8; total_wall=429.9s; 
+step3_thread_benchmark,1w_8t,1,8,8,D24/original_s42,24,original_s42,0.7002,0.9956,-0.2954,NO,,429.9,1.0,False,workers=1; threads=8; cores=8/8; total_wall=429.9s; GLOBAL_RNG_CONTAMINATION:serial_run3_gets_polluted_state
+step3_thread_benchmark,1w_8t,1,8,8,D24/shift1_s42,24,shift1_s42,0.9883,0.999,-0.0107,YES,,429.9,1.0,False,workers=1; threads=8; cores=8/8; total_wall=429.9s; 
+step3_thread_benchmark,2w_4t,2,4,8,D16/original_s42,16,original_s42,0.9917,0.9658,0.0259,YES,,237.7,1.809,False,workers=2; threads=4; cores=8/8; total_wall=237.7s; 
+step3_thread_benchmark,2w_4t,2,4,8,D16/shift1_s42,16,shift1_s42,0.9932,0.9775,0.0157,YES,,237.7,1.809,False,workers=2; threads=4; cores=8/8; total_wall=237.7s; 
+step3_thread_benchmark,2w_4t,2,4,8,D24/original_s42,24,original_s42,0.9106,0.9956,-0.085,NO,,237.7,1.809,False,workers=2; threads=4; cores=8/8; total_wall=237.7s; 
+step3_thread_benchmark,2w_4t,2,4,8,D24/shift1_s42,24,shift1_s42,0.981,0.999,-0.018,YES,,237.7,1.809,False,workers=2; threads=4; cores=8/8; total_wall=237.7s; 
+step3_thread_benchmark,4w_2t,4,2,8,D16/original_s42,16,original_s42,0.998,0.9658,0.0322,YES,,162.0,2.654,True,workers=4; threads=2; cores=8/8; total_wall=162.0s; 
+step3_thread_benchmark,4w_2t,4,2,8,D16/shift1_s42,16,shift1_s42,0.9937,0.9775,0.0162,YES,,162.0,2.654,True,workers=4; threads=2; cores=8/8; total_wall=162.0s; 
+step3_thread_benchmark,4w_2t,4,2,8,D24/original_s42,24,original_s42,0.9897,0.9956,-0.0059,YES,,162.0,2.654,True,workers=4; threads=2; cores=8/8; total_wall=162.0s; 
+step3_thread_benchmark,4w_2t,4,2,8,D24/shift1_s42,24,shift1_s42,0.9951,0.999,-0.0039,YES,,162.0,2.654,True,workers=4; threads=2; cores=8/8; total_wall=162.0s; 
+step3_thread_benchmark,8w_1t,8,1,8,D16/original_s42,16,original_s42,0.9946,0.9658,0.0288,YES,,140.0,3.071,True,workers=8; threads=1; cores=8/8; total_wall=140.0s; 
+step3_thread_benchmark,8w_1t,8,1,8,D16/shift1_s42,16,shift1_s42,0.9878,0.9775,0.0103,YES,,140.0,3.071,True,workers=8; threads=1; cores=8/8; total_wall=140.0s; 
+step3_thread_benchmark,8w_1t,8,1,8,D24/original_s42,24,original_s42,0.9937,0.9956,-0.0019,YES,,140.0,3.071,True,workers=8; threads=1; cores=8/8; total_wall=140.0s; 
+step3_thread_benchmark,8w_1t,8,1,8,D24/shift1_s42,24,shift1_s42,0.9751,0.999,-0.0239,YES,,140.0,3.071,True,workers=8; threads=1; cores=8/8; total_wall=140.0s; 
+step3_summary,SELECTED,8,1,8,ALL_4_RUNS,,all,,,,,,140.0,3.071,True,selected=8w_1t; serial_wall=429.9s; best_wall=140.0s; speedup=3.07x; cpu_count=8; serial_D24orig_acc=0.7002_is_convergence_failure_not_reference

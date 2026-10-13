@@ -1,0 +1,83 @@
+scope,metric,count,total,fraction,note
+operator,state_count,60,60,1.0,reachable structured states on bounded operator surface
+operator,transition_count,360,360,1.0,nonzero operator entries on bounded surface
+operator,lawful_transition_fraction,360,360,1.0,fraction of nonzero operator entries that are lawful
+operator,illegal_transition_fraction,0,360,0.0,fraction of nonzero operator entries that are illegal
+orbit_change,state_count_vs_v4,60,20,3.0,reachable state expansion relative to H_v4
+orbit_change,transition_count_vs_v4,360,100,3.6,nonzero transition expansion relative to H_v4
+class_escape,distinct_class_identities_reached,3,3,1.0,number of distinct target class identities reached
+class_escape,fraction_staying_in_original_class,120,360,0.3333333333333333,target transitions remaining in original class class_r0_phi0_spin1111_compat100_100
+class_escape,fraction_entering_new_lawful_class,240,360,0.6666666666666666,target transitions entering any new lawful class identity
+generator_axis,T_z_changes_radial_class,0,1,0.0,fiber_phase_lift does not change r
+generator_axis,T_z_changes_fiber_class,1,1,1.0,fiber_phase_lift changes phi
+generator_axis,T_z_changes_spin_class,0,1,0.0,fiber_phase_lift preserves spin_h via explicit transport map
+generator_axis,T_z_changes_composite_compat_class,0,1,0.0,fiber_phase_lift preserves composite compatibility class
+sparsity,nonzero_from_state_b0_phi0_r0_q6_b10_tw0,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b0_phi0_r0_q6_b10_tw1,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b0_phi0_r0_q10_b6_tw0,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b0_phi0_r0_q10_b6_tw1,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b0_phi1_r0_q6_b10_tw0,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b0_phi1_r0_q6_b10_tw1,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b0_phi1_r0_q10_b6_tw0,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b0_phi1_r0_q10_b6_tw1,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b0_phi2_r0_q6_b10_tw0,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b0_phi2_r0_q6_b10_tw1,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b0_phi2_r0_q10_b6_tw0,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b0_phi2_r0_q10_b6_tw1,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b1_phi0_r0_q6_b10_tw0,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b1_phi0_r0_q6_b10_tw1,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b1_phi0_r0_q10_b6_tw0,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b1_phi0_r0_q10_b6_tw1,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b1_phi1_r0_q6_b10_tw0,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b1_phi1_r0_q6_b10_tw1,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b1_phi1_r0_q10_b6_tw0,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b1_phi1_r0_q10_b6_tw1,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b1_phi2_r0_q6_b10_tw0,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b1_phi2_r0_q6_b10_tw1,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b1_phi2_r0_q10_b6_tw0,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b1_phi2_r0_q10_b6_tw1,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b2_phi0_r0_q6_b10_tw0,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b2_phi0_r0_q6_b10_tw1,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b2_phi0_r0_q10_b6_tw0,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b2_phi0_r0_q10_b6_tw1,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b2_phi1_r0_q6_b10_tw0,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b2_phi1_r0_q6_b10_tw1,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b2_phi1_r0_q10_b6_tw0,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b2_phi1_r0_q10_b6_tw1,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b2_phi2_r0_q6_b10_tw0,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b2_phi2_r0_q6_b10_tw1,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b2_phi2_r0_q10_b6_tw0,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b2_phi2_r0_q10_b6_tw1,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b3_phi0_r0_q6_b10_tw0,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b3_phi0_r0_q6_b10_tw1,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b3_phi0_r0_q10_b6_tw0,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b3_phi0_r0_q10_b6_tw1,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b3_phi1_r0_q6_b10_tw0,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b3_phi1_r0_q6_b10_tw1,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b3_phi1_r0_q10_b6_tw0,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b3_phi1_r0_q10_b6_tw1,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b3_phi2_r0_q6_b10_tw0,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b3_phi2_r0_q6_b10_tw1,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b3_phi2_r0_q10_b6_tw0,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b3_phi2_r0_q10_b6_tw1,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b4_phi0_r0_q6_b10_tw0,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b4_phi0_r0_q6_b10_tw1,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b4_phi0_r0_q10_b6_tw0,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b4_phi0_r0_q10_b6_tw1,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b4_phi1_r0_q6_b10_tw0,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b4_phi1_r0_q6_b10_tw1,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b4_phi1_r0_q10_b6_tw0,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b4_phi1_r0_q10_b6_tw1,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b4_phi2_r0_q6_b10_tw0,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b4_phi2_r0_q6_b10_tw1,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b4_phi2_r0_q10_b6_tw0,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b4_phi2_r0_q10_b6_tw1,6,360,0.016666666666666666,nonzero transitions emitted by operator from one structured state
+component,hold,60,360,0.16666666666666666,fraction of operator entries by component
+component,torus_base_advance,60,360,0.16666666666666666,fraction of operator entries by component
+component,composite_swap,60,360,0.16666666666666666,fraction of operator entries by component
+component,coupled_torus_kick,60,360,0.16666666666666666,fraction of operator entries by component
+component,composite_twist,60,360,0.16666666666666666,fraction of operator entries by component
+component,fiber_phase_lift,60,360,0.16666666666666666,fraction of operator entries by component
+class_distribution,class_r0_phi0_spin1111_compat100_100,120,360,0.3333333333333333,distribution of operator transitions by target class tuple
+class_distribution,class_r0_phi1_spin1111_compat100_100,120,360,0.3333333333333333,distribution of operator transitions by target class tuple
+class_distribution,class_r0_phi2_spin1111_compat100_100,120,360,0.3333333333333333,distribution of operator transitions by target class tuple

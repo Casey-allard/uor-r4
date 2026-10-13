@@ -1,0 +1,28 @@
+scope,metric,count,total,fraction,note
+operator,state_count,154897,154897,1.0,reachable states with T_z' rebuilt from spin_H_core_v3
+operator,transition_count,1084279,1084279,1.0,nonzero operator entries with one additional core-v3-derived component
+operator,lawful_transition_fraction,1084279,1084279,1.0,fraction of nonzero operator entries that are lawful
+operator,illegal_transition_fraction,0,1084279,0.0,fraction of nonzero operator entries that are illegal
+class_escape,distinct_class_identities_reached,34008,34008,1.0,distinct tau-aware target class identities reached
+spin_escape,distinct_spin_classes_reached,16,16,1.0,distinct target spin classes reached
+radial_escape,distinct_radial_classes_reached,3,3,1.0,distinct target radial classes reached
+radial_escape,fraction_changing_radial_class,154897,1084279,0.14285714285714285,fraction of transitions changing radial class
+spin_escape,fraction_changing_spin_class_lawfully,290794,1084279,0.26819112055107586,fraction of transitions changing spin class lawfully
+tau_escape,fraction_changing_tau_lawfully,772739,1084279,0.7126754276344004,fraction of transitions changing tau lawfully
+core_dependency,rebuilt_component_depends_on_spin_H_core_v3,1,1,1.0,T_z' calls active_transport_lift_core_v3 and reads sigma** global_regressive_mode_index
+core_dependency,sigma_parent_mode_identity_materially_used,1,1,1.0,"T_z' uses sigma** generator_projection_profile, generator_orbit_profile, and derived mode orbit"
+core_dependency,theta_materially_used,1,1,1.0,T_z' uses theta.base_angle and theta.fiber_phase in lift phase-step logic
+core_dependency,rho_materially_used,1,1,1.0,"T_z' uses rho.radial_class, radial_direction, radial_target_phi, and unfolding_load in lift phase-step logic"
+core_dependency,h_materially_used,1,1,1.0,"T_z' uses h.recursive_phase, h.fiber_recursive_phase, and h.holonomy_bit in lift tau update logic"
+comparison_vs_v13,state_count_change,37393,117504,0.31822746459694984,reachable state change vs prior operator with older T_z'
+comparison_vs_v13,transition_count_change,261751,822528,0.31822746459694984,transition count change vs prior operator with older T_z'
+comparison_vs_v13,class_diversity_change,653,33355,0.0195772747713987,class diversity change vs prior operator with older T_z'
+comparison_vs_v13,spin_diversity_change,0,16,0.0,spin diversity change vs prior operator with older T_z'
+comparison_vs_v13,radial_diversity_change,0,3,0.0,radial diversity change vs prior operator with older T_z'
+component,hold,154897,1084279,0.14285714285714285,fraction of operator entries by component
+component,torus_base_advance,154897,1084279,0.14285714285714285,fraction of operator entries by component
+component,composite_swap,154897,1084279,0.14285714285714285,fraction of operator entries by component
+component,coupled_torus_kick,154897,1084279,0.14285714285714285,fraction of operator entries by component
+component,composite_twist,154897,1084279,0.14285714285714285,fraction of operator entries by component
+component,fiber_phase_lift_spin_transport,154897,1084279,0.14285714285714285,fraction of operator entries by component
+component,radial_transport_unfolding,154897,1084279,0.14285714285714285,fraction of operator entries by component

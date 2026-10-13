@@ -1,0 +1,14 @@
+scope,metric,count,total,fraction,note
+candidate_supply,total_candidate_count_before_gate,276,276,1.0,all side-step candidates before class enforcement
+candidate_supply,total_candidate_count_after_gate,42,276,0.15217391304347827,lawful candidates remaining after enforced direct-comparison gate
+side_step,has_at_least_one_lawful_candidate,14,46,0.30434782608695654,side-steps with lawful supply > 0
+side_step,zero_lawful_candidates,32,46,0.6956521739130435,side-steps that become explicit no_lawful_move
+side_step,explicit_failure_no_lawful_move,32,46,0.6956521739130435,failed side-transports with no fallback
+candidate_supply,average_lawful_candidates_per_side_step,42,46,0.9130434782608695,mean lawful candidate count per side-step
+sequence,terminated_sequences_due_to_no_lawful_move,16,16,1.0,sequences halted because one or both sides had no lawful move
+candidate_fail,radial_mismatch,144,276,0.5217391304347826,candidates rejected for radial class mismatch
+candidate_fail,fiber_mismatch,180,276,0.6521739130434783,candidates rejected for fiber class mismatch
+candidate_fail,spin_mismatch,0,276,0.0,candidates rejected for spin_h mismatch
+candidate_fail,composite_compat_mismatch,127,276,0.4601449275362319,candidates rejected for composite compatibility mismatch
+lawful_candidate_distribution,lawful_count_0,32,46,0.6956521739130435,distribution over lawful candidate counts per side-step
+lawful_candidate_distribution,lawful_count_3,14,46,0.30434782608695654,distribution over lawful candidate counts per side-step

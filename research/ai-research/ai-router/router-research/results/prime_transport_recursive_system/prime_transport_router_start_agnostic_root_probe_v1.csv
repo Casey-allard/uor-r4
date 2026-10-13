@@ -1,0 +1,9 @@
+config,anchor_type,horizon,accuracy,solve_step,no_last_accuracy,decodability_initial,decodability_mid,decodability_final,alpha_last,runtime_seconds,note
+baseline,none,24,0.9858,,0.9907,1.0,1.0,1.0,0.0391,71.1,task=mod12_quarter_D24_no_inject; D=24; anchor=none; eps_high=1.0; geom=GEOM_K3; d_hyb=16; radial=1.0
+sqrt2_radial,sqrt2_norm,24,0.9829,,0.9878,1.0,1.0,1.0,0.0352,67.4,task=mod12_quarter_D24_no_inject; D=24; anchor=sqrt2_norm; eps_high=1.0; geom=GEOM_K3; d_hyb=16; radial=1.0
+two_i_orient,two_i_rot,24,0.9922,,0.9922,1.0,1.0,1.0,0.0266,71.5,task=mod12_quarter_D24_no_inject; D=24; anchor=two_i_rot; eps_high=1.0; geom=GEOM_K3; d_hyb=16; radial=1.0
+combined,combined,24,0.9844,,0.9907,1.0,1.0,1.0,0.0437,70.8,task=mod12_quarter_D24_no_inject; D=24; anchor=combined; eps_high=1.0; geom=GEOM_K3; d_hyb=16; radial=1.0
+baseline,none,32,0.7109,,0.7104,1.0,1.0,1.0,0.0261,94.0,task=mod12_quarter_D32_no_inject; D=32; anchor=none; eps_high=1.0; geom=GEOM_K3; d_hyb=16; radial=1.0
+sqrt2_radial,sqrt2_norm,32,0.9785,,0.9829,1.0,1.0,1.0,0.0333,91.6,task=mod12_quarter_D32_no_inject; D=32; anchor=sqrt2_norm; eps_high=1.0; geom=GEOM_K3; d_hyb=16; radial=1.0
+two_i_orient,two_i_rot,32,0.9873,,0.9927,1.0,1.0,1.0,0.0264,92.8,task=mod12_quarter_D32_no_inject; D=32; anchor=two_i_rot; eps_high=1.0; geom=GEOM_K3; d_hyb=16; radial=1.0
+combined,combined,32,0.9536,,0.9609,1.0,1.0,1.0,0.0255,97.2,task=mod12_quarter_D32_no_inject; D=32; anchor=combined; eps_high=1.0; geom=GEOM_K3; d_hyb=16; radial=1.0

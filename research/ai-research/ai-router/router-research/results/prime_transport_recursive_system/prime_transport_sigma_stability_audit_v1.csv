@@ -1,0 +1,7 @@
+operator,cluster,sigma_stable_count,sigma_stable_fraction,theta_invariant_within_sigma_stable,rho_invariant_within_sigma_stable,tau_invariant_within_sigma_stable,swap_geometry_invariant_within_sigma_stable,note
+T_b,non-transport,56464,0.107478,0.000000,1.000000,0.000779,1.000000,sigma-stable: 56464/525355; conditional fractions within sigma-stable subset
+T_x,non-transport,42323,0.080561,1.000000,1.000000,0.000000,0.000000,sigma-stable: 42323/525355; conditional fractions within sigma-stable subset
+T_y,non-transport,214836,0.408935,1.000000,1.000000,0.016771,0.000000,sigma-stable: 214836/525355; conditional fractions within sigma-stable subset
+T_c,transport,209227,0.398258,0.000000,1.000000,0.008928,1.000000,sigma-stable: 209227/525355; conditional fractions within sigma-stable subset
+T_z',transport,207484,0.394941,0.000000,1.000000,0.010704,1.000000,sigma-stable: 207484/525355; conditional fractions within sigma-stable subset
+T_r*,transport,197789,0.376486,0.333613,0.000000,0.010840,1.000000,sigma-stable: 197789/525355; conditional fractions within sigma-stable subset

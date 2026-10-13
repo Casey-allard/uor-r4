@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# pre-push hook
+# Validates that canonical research state documents are internally consistent
+# before allowing a push. Prevents drift between ACTIVE_STATE, KILL_LIST,
+# ROUTE_MATRIX, and the active increment docs from landing in history.
+#
+# To bypass in an emergency: git push --no-verify
+# (but update the docs first whenever possible)
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+CHECK="$REPO_ROOT/router-research/tools/check_research_state.py"
+
+if [[ ! -f "$CHECK" ]]; then
+    echo "pre-push: check_research_state.py not found, skipping validation"
+    exit 0
+fi
+
+echo "pre-push: validating research state..."
+if ! python3 "$CHECK"; then
+    echo ""
+    echo "pre-push: BLOCKED — canonical research state is inconsistent."
+    echo "  Fix the issues above, then push again."
+    echo "  To skip (use only when docs update is deferred): git push --no-verify"
+    exit 1
+fi
+
+echo "pre-push: research state OK"

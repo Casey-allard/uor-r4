@@ -35,9 +35,9 @@ MANIFEST = "docs/harness/research-data.json"
 TIMEOUT = 120
 
 
-def run(args: list[str], timeout: int = TIMEOUT) -> tuple[int, str]:
+def run(args: list[str], timeout: int = TIMEOUT, stdin: str | None = None) -> tuple[int, str]:
     try:
-        p = subprocess.run(args, capture_output=True, text=True, timeout=timeout, check=False)
+        p = subprocess.run(args, capture_output=True, text=True, timeout=timeout, check=False, input=stdin)
         return p.returncode, (p.stdout or "") + (p.stderr or "")
     except (OSError, subprocess.SubprocessError) as exc:
         return 127, str(exc)
@@ -168,7 +168,85 @@ def _now() -> str:
     return datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
 
 
+# ------------------------------------------------------------------ local-only checkout
+#
+# The material stays TRACKED. That is the point: this is a research project, the repository
+# is the record, and a space problem is a problem with one working copy - not a reason to
+# remove evidence. git's own skip-worktree bit means "this file is tracked, but do not
+# materialise or compare it in my checkout", so a clone or worktree can stay small while
+# origin keeps everything. No commit is made; `git status` stays clean.
+
+TRACKED_DIRS = ("research/prime-analysis", "research/ai-research", "research/archives")
+
+
+def _tracked_files(root: Path, subdir: str) -> list[str]:
+    rc, out = run(["git", "-C", str(root), "ls-files", "-z", subdir], timeout=300)
+    if rc != 0:
+        return []
+    return [f for f in out.split("\0") if f]
+
+
+def _skip_worktree(root: Path, paths: list[str], on: bool) -> int:
+    """Set or clear the skip-worktree bit. Batched: one git call per few thousand paths."""
+    if not paths:
+        return 0
+    flag = "--skip-worktree" if on else "--no-skip-worktree"
+    done = 0
+    batch = 2000
+    for i in range(0, len(paths), batch):
+        rc, _ = run(["git", "-C", str(root), "update-index", flag, "--stdin"],
+                    timeout=600, stdin="\n".join(paths[i:i + batch]) + "\n")
+        if rc == 0:
+            done += len(paths[i:i + batch])
+    return done
+
+
+def cmd_drop_local(root: Path, args: argparse.Namespace) -> int:
+    total_files, total_bytes = 0, 0
+    for sub in TRACKED_DIRS:
+        files = _tracked_files(root, sub)
+        if not files:
+            print(f"  {sub}: not tracked in this checkout, skipping")
+            continue
+        rc, out = run(["du", "-sk", str(root / sub)], timeout=300)
+        size = int(out.split()[0]) * 1024 if rc == 0 and out.strip() else 0
+        marked = _skip_worktree(root, files, True)
+        # remove the working copies only after the bit is set, so git sees no change
+        target = root / sub
+        if target.exists():
+            rc, _ = run(["rm", "-rf", str(target)], timeout=900)
+        total_files += marked
+        total_bytes += size
+        print(f"  {sub}: {marked} files marked skip-worktree, {human(size)} released")
+    print()
+    print(f"{total_files} files stay tracked in origin; {human(total_bytes)} freed from this checkout.")
+    print("bring them back with: scripts/storage/research-data --restore-local")
+    return 0
+
+
+def cmd_restore_local(root: Path, args: argparse.Namespace) -> int:
+    total = 0
+    for sub in TRACKED_DIRS:
+        files = _tracked_files(root, sub)
+        if not files:
+            continue
+        marked = _skip_worktree(root, files, False)
+        rc, _ = run(["git", "-C", str(root), "checkout", "--", sub], timeout=900)
+        total += marked
+        print(f"  {sub}: {marked} files restored into this checkout")
+    print()
+    print(f"{total} files materialised. They were never removed from the repository.")
+    return 0
+
+
+#: the README documents `--drop-local`; argparse subcommands cannot begin with "--",
+#: so translate the documented flag spelling to the subcommand before parsing.
+_FLAG_ALIASES = {"--drop-local": "drop-local", "--restore-local": "restore-local"}
+
+
 def main(argv: list[str] | None = None) -> int:
+    raw = list(sys.argv[1:] if argv is None else argv)
+    argv = [_FLAG_ALIASES.get(a, a) for a in raw]
     ap = argparse.ArgumentParser(description="Report and restore archived research material (read-only by default).")
     ap.add_argument("--repo", default=None)
     sub = ap.add_subparsers(dest="action")
@@ -180,6 +258,10 @@ def main(argv: list[str] | None = None) -> int:
     s.add_argument("name")
     s.add_argument("--run", action="store_true", help="actually fetch (default: print the command)")
     s.set_defaults(fn=cmd_restore)
+    s = sub.add_parser("drop-local", help="keep the material tracked but out of this checkout (skip-worktree)")
+    s.set_defaults(fn=cmd_drop_local)
+    s = sub.add_parser("restore-local", help="bring skip-worktree material back into this checkout")
+    s.set_defaults(fn=cmd_restore_local)
     args = ap.parse_args(argv)
     if not getattr(args, "fn", None):
         ap.print_help()

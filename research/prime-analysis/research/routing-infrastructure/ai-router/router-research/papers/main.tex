@@ -1,0 +1,522 @@
+\documentclass[11pt]{article}
+
+% ── Packages ─────────────────────────────────────────────────────────────────
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{microtype}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{parskip}
+\usepackage{natbib}
+\usepackage{enumitem}
+
+% ── Hyperref setup ────────────────────────────────────────────────────────────
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!60!black,
+  citecolor=blue!60!black,
+  urlcolor=blue!60!black
+}
+
+% ── Code listing style ────────────────────────────────────────────────────────
+\lstset{
+  language=Python,
+  basicstyle=\ttfamily\footnotesize,
+  keywordstyle=\color{blue!70!black}\bfseries,
+  stringstyle=\color{red!60!black},
+  commentstyle=\color{gray},
+  backgroundcolor=\color{gray!8},
+  frame=single,
+  framerule=0.4pt,
+  rulecolor=\color{gray!40},
+  breaklines=true,
+  breakatwhitespace=true,
+  columns=flexible,
+  keepspaces=true,
+  showstringspaces=false,
+  xleftmargin=4pt,
+  xrightmargin=4pt
+}
+
+% ── Title ─────────────────────────────────────────────────────────────────────
+\title{%
+  \textbf{Angular Manifold Routing: Sublinear Compute Reduction\\
+  via Hopf-Base Sector Discretization}
+}
+
+\author{%
+  Casey Allard\\[2pt]
+  \textit{Independent Researcher}\\[2pt]
+  \small\texttt{caseyallard@hotmail.com}
+}
+
+\date{March 2026}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\begin{document}
+\maketitle
+
+% ── Abstract ─────────────────────────────────────────────────────────────────
+\begin{abstract}
+We show that the same geometric property of normalized token embeddings that enables
+TurboQuant's extreme data compression~\citep{turboquant2026} also enables sublinear
+routing computation in transformer-style architectures.
+TurboQuant demonstrated that L2-normalized embeddings on the unit hypersphere are
+\emph{angularly non-uniform}, and that random rotation destroys this structure for
+near-optimal scalar quantization.
+We independently developed the complementary direction: a fixed Hopf fibration map
+exploits the same angular non-uniformity to concentrate token routing into a sparse
+subset of available expert sectors.
+
+Across 169 experimental increments on a PPMI-SVD semantic proxy, we establish:
+(1)~the routing footprint scales as $K^{0.572}$ versus $K^{1.0}$ for dense routing;
+(2)~this advantage grows with $K$ and persists at $K{=}5000$ (ratio $2.6$--$2.8\times$);
+(3)~the mechanism is purely angular and norm-invariant ($\Delta\alpha < 0.015$ across
+L1/L2/L3/L4 normalizations);
+and (4)~a fixed 4D Hopf geometry outperforms 100D adaptive $K$-means on semantically
+structured embeddings.
+
+We validate the mechanism in a small trainable language model (PTB, confirmed 2 seeds,
+4000 steps): fixed geometric routing replaces learned gating with only 8\% validation
+perplexity cost and no learned gate matrix, while using 46 of 64 effective expert paths at
+convergence ($1.4\times$ more efficient than dense routing).
+A second-dataset replication on WikiText-2 (confirmed 2 seeds) finds a
+HOPF/BASELINE ratio of $1.081$---numerically identical to the PTB confirmed ratio---under identical
+training conditions.
+A key honest finding: the specific Hopf sector geometry does not add advantage over
+randomly-permuted fixed routing in trainable LM settings---experts co-adapt their
+weights---but the 8\% PPL gap is stable across both datasets and both seed counts.
+This result is scoped to the 2-layer toy-scale trainable setting and should not be
+read as a claim of broad MoE replacement or large-scale transformer substitution.
+
+We provide a standalone Python script (numpy only, $<60$~s) reproducing the core result.
+Taken together with TurboQuant, this work suggests the angular non-uniformity of
+embeddings has engineering consequences in both data compression and routing computation.
+\end{abstract}
+
+% ── 1. Background ─────────────────────────────────────────────────────────────
+\section{Background: TurboQuant and Angular Non-Uniformity}
+
+\subsection{The geometric fact}
+
+\citet{turboquant2026} demonstrated a previously underappreciated property of modern
+language model embeddings: L2-normalized token representations on the unit hypersphere
+are \emph{angularly non-uniform}.
+Projecting hidden states or token embeddings to the sphere reveals that they cluster
+into preferred angular regions rather than distributing uniformly.
+
+TurboQuant's engineering response: \textbf{destroy} this structure via random orthogonal
+rotation, producing near-independent scalar components amenable to per-dimension scalar
+quantization at extreme bit-depths.
+This achieves state-of-the-art KV-cache and vector-index compression, validated at
+production scale.
+
+\subsection{Our parallel, complementary choice}
+
+We independently arrived at the same geometric fact through a different path---not
+compression, but routing efficiency.
+If token embeddings are angularly non-uniform, a \emph{fixed sector map} that divides
+the sphere into regions will receive non-uniform routing: some sectors capture many
+semantically similar tokens while others stay empty.
+This produces a sparse routing distribution, reducing the effective compute footprint.
+
+Our engineering response: \textbf{exploit} the angular non-uniformity via a fixed Hopf
+fibration map to create sparse, semantically coherent routing.
+
+\begin{table}[h]
+\centering
+\caption{TurboQuant vs.\ this work: same geometric fact, opposite engineering choice.}
+\label{tab:comparison}
+\begin{tabular}{lll}
+\toprule
+                    & \textbf{TurboQuant} & \textbf{This work} \\
+\midrule
+Angular structure   & Destroyed (random rotation)   & Exploited (Hopf map)          \\
+Purpose             & Data compression              & Compute reduction             \\
+Mechanism           & Near-independent scalars      & Sparse sector routing         \\
+Scale validated     & Production LLMs               & Proxy + 2-layer LM            \\
+Claim               & Store/transmit fewer bits     & Compute fewer routing paths   \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Independent parallel development}
+
+Our research chain (INC-0143 through INC-0173) predates the TurboQuant public release.
+TurboQuant provides independent corroboration of the geometric fact at production scale
+and motivates framing our contribution as its complementary extension.
+
+% ── 2. The Mechanism ──────────────────────────────────────────────────────────
+\section{The Mechanism: Hopf Angular Routing}
+
+\subsection{The winning algorithm}
+
+After testing more than 20 routing variants---adaptive $K$-means, shell-aware variants,
+product phase maps, complex transport, and SO(8) learned rotations---a single method
+survived all falsification attempts: \texttt{sector\_mode = phase4d\_hopf\_transport},
+$\lambda{=}1.0$, L2-normalization, single shell.
+
+The algorithm assigns a routing sector to any L2-normalized input
+$\mathbf{x} \in \mathbb{R}^D$ in four steps.
+
+\textbf{Step 1 -- Project to 4D Hopf subspace:}
+$a = x_{i},\; b = x_{j},\; c = x_{k},\; d = x_{l}$
+(indices selected once on a held-out proxy; canonical values: $(3, 65, 2, 21)$).
+
+\textbf{Step 2 -- Hopf base coordinates:}
+\begin{align}
+  \rho_1 &= \sqrt{a^2+b^2},\quad \rho_2 = \sqrt{c^2+d^2}, \nonumber\\
+  \chi_u &= \frac{\rho_2^2}{\rho_1^2+\rho_2^2}\in[0,1], \quad
+  \delta  = \arctan2(b,a)-\arctan2(d,c)\in[-\pi,\pi], \nonumber\\
+  \alpha  &= \tfrac{1}{2}\bigl(\arctan2(b,a)+\arctan2(d,c)\bigr)\in[-\pi,\pi].
+  \label{eq:hopf_coords}
+\end{align}
+
+\textbf{Step 3 -- Phase transport (Levi-Civita correction):}
+\begin{equation}
+  \chi = \arcsin\!\left(\frac{\rho_2}{\sqrt{\rho_1^2+\rho_2^2}}\right), \qquad
+  \alpha_t = \alpha + \tfrac{1}{2}\lambda\cos(2\chi)\,\delta.
+  \label{eq:transport}
+\end{equation}
+
+\textbf{Step 4 -- Assign sector} across budget $K$:
+allocate bins $(k_\chi,k_\delta,k_\alpha)$ with product $\le K$; sector $= b_\chi \cdot k_\delta k_\alpha + b_\delta \cdot k_\alpha + b_{\alpha_t}$.
+
+\subsection{Mechanism isolation (INC-0147)}
+
+The raw fiber mean phase $\alpha = \frac{1}{2}(\theta_1+\theta_2)$ is the primary
+mechanism (Table~\ref{tab:mechanism}).
+
+\begin{table}[h]
+\centering
+\caption{Mechanism isolation on PPMI-SVD proxy.
+Higher Gini ratio = more concentrated routing = better compute reduction.}
+\label{tab:mechanism}
+\begin{tabular}{lcc}
+\toprule
+Variant                                        & Gini ratio (rel\_diff) & Increment \\
+\midrule
+HOPF\_BASE ($\chi+\delta$ only, no $\alpha$)   & 46.0\%                 & INC-0147  \\
+HOPF $\lambda{=}0$ (raw $\alpha$, no transport)& 66.7\% ($+$20.6 pp)    & INC-0147  \\
+HOPF $\lambda{=}1.0$ (canonical)               & 68.7\% ($+$2 pp LC)    & INC-0147  \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The raw fiber phase $(\theta_1+\theta_2)/2$ provides nearly all the gain;
+the Levi-Civita transport adds only ${\approx}2$ percentage points.
+
+\subsection{Fixed geometry vs.\ adaptive (INC-0144)}
+
+Fixed 4D Hopf geometry outperforms 100D adaptive $K$-means: rel\_diff 31.2\%
+(stable, 5 seeds) vs.\ 3.1\% (variable, $-5.8\%$ to $+12.0\%$).
+The Hopf map captures fiber geometry of the $S^3$ manifold; Euclidean cluster
+centroids miss this structure.
+
+% ── 3. Scaling Law ────────────────────────────────────────────────────────────
+\section{Scaling Law and Hardware Consequences}
+
+\subsection{The canonical scaling law}
+
+On the PPMI-SVD proxy ($>$160 runs, 7 seeds, $K=25$ to $5000$):
+
+\begin{table}[h]
+\centering
+\caption{Routing scaling laws. HOPF = canonical Hopf with full transport; PERM = structure-destroyed
+control (same marginal statistics, randomly permuted sectors).}
+\label{tab:scaling}
+\begin{tabular}{llcc}
+\toprule
+Routing         & Scaling law                                & $R^2$  & Range \\
+\midrule
+HOPF            & $\hat{e} = 2.957 \cdot K^{\mathbf{0.572}}$ & 0.963  & $K$=25--400 \\
+HOPF            & $\hat{e} \approx K^{0.657}$                 & 0.991  & $K$=25--5000 \\
+PERM            & $\hat{e} = 1.664 \cdot K^{0.814}$           & 0.993  & $K$=25--5000 \\
+DENSE           & $\hat{e} = K^{1.0}$                         & 1.000  & all $K$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Figure~\ref{fig:scaling} shows the log-log scaling curves.
+The Hopf advantage grows with $K$: the PERM/ORIG compression ratio reaches
+$2.21\times$ at $K{=}400$, $2.55\times$ at $K{=}1000$, and stabilises at
+$2.6$--$2.8\times$ across $K{=}600$--$5000$ (INC-0170).
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.72\linewidth]{figures/fig_scaling_law.pdf}
+\caption{Log-log routing footprint ($\mathrm{eff}_b$) vs.\ $K$.
+  HOPF (blue circles) scales as $K^{0.572}$ vs.\ $K^{1.0}$ for dense routing.
+  The PERM control (orange squares) scales at $K^{0.814}$---intermediate,
+  confirming angular \emph{structure} (not mere non-uniformity) is the mechanism.
+  Lines show parametric fits; points are confirmed experimental means.}
+\label{fig:scaling}
+\end{figure}
+
+\subsection{Hardware proxy (INC-0165, 80 runs, 5 seeds)}
+
+Simulating routing cache pressure:
+HOPF achieves $3.0$--$4.9\times$ lower effective cost and $2.5$--$2.9\times$
+fewer LRU-16 cache misses vs.\ dense routing.
+Phase transport amplifies the hardware advantage by $1.5$--$2.4\times$ vs.\ BASE.
+Gains do not saturate through $K{=}5000$.
+
+\subsection{Norm invariance (INC-0168)}
+
+The scaling exponent is norm-invariant: $\alpha{=}0.572$ varies by $<0.015$ across L1,
+L2, L3, L4 normalizations.
+The mechanism is purely angular.
+Shell stratification (radial layers) degrades the Gini ratio by 19\% and is excluded.
+
+% ── 4. Transformer Routing ────────────────────────────────────────────────────
+\section{Extension to Transformer Routing}
+
+\subsection{Experiment design}
+
+Architecture: 2-layer transformer, $h{=}128$, 4 attention heads, vocab$=$5000,
+seq\_len$=$32, $K{=}64$ experts.
+Three FFN conditions (all $K{=}64$, $\ge 5.6$M parameters):
+
+\begin{table}[h]
+\centering
+\caption{LM routing conditions.}
+\label{tab:conditions}
+\begin{tabular}{lll}
+\toprule
+Condition     & Gate             & Routing \\
+\midrule
+BASELINE      & Learned $K{\times}D$ + softmax $\to$ top-1 & Supervised \\
+HOPF-ROUTED   & None             & L2-norm(hidden) $\to$ Hopf sector \\
+PERMUTED      & None             & Hopf sectors randomly permuted \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Training: 4000 steps, cosine LR $3\times10^{-4}$, batch 64.
+Confirmed: 2 seeds, PTB and WikiText-2.
+
+\subsection{Results: PTB (INC-0171, 2 seeds confirmed)}
+
+\begin{table}[h]
+\centering
+\caption{PTB LM results (2-seed mean, 4000 steps). eff$_b$ = effective expert paths
+out of $K{=}64$. Lower eff$_b$ relative to $K$ = more concentrated routing.}
+\label{tab:ptb}
+\begin{tabular}{lcccc}
+\toprule
+Method        & Val PPL & eff$_b$ & Params    & eff\_ratio vs DENSE \\
+\midrule
+BASELINE      & \textbf{152.26} & 43.19 & 5,660,672 & $1.48\times$          \\
+HOPF-ROUTED   & \textbf{164.54} & 45.96 & 5,644,288 & $\mathbf{1.39\times}$ \\
+PERMUTED      & \textbf{164.41} & 45.81 & 5,644,288 & $1.40\times$          \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+HOPF/BASELINE PPL ratio: \textbf{1.081} (2 seeds, both within $\le1.10$ threshold).\\
+HOPF vs.\ PERMUTED: $\Delta\text{ppl} = +0.13$ (statistically indistinguishable).\\
+eff\_ratio decline: $1.65\times$ at step 2000 $\to$ $1.39\times$ at convergence
+(experts expand sector coverage during training; paper reports convergence value).
+
+\subsection{Results: WikiText-2 (INC-0173, 2 seeds confirmed)}
+
+\begin{table}[h]
+\centering
+\caption{WikiText-2 replication (2-seed detail). Identical setup to PTB.}
+\label{tab:wt2}
+\begin{tabular}{lccccc}
+\toprule
+Method & Seed 0 PPL & Seed 1 PPL & Mean PPL & Mean eff$_b$ \\
+\midrule
+BASELINE    & 106.96 & 104.74 & 105.85 & 35.37 \\
+HOPF-ROUTED & 113.65 & 115.25 & 114.45 & 40.94 \\
+PERMUTED    & 113.86 & 115.09 & 114.48 & 42.28 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[h]
+\centering
+\caption{Cross-dataset summary. WT2 confirms the PTB result at equal 2-seed standard.}
+\label{tab:crossdataset}
+\begin{tabular}{lcc}
+\toprule
+Metric                      & PTB (INC-0171) & WT2 (INC-0173) \\
+\midrule
+HOPF/BASELINE PPL ratio     & 1.081          & \textbf{1.081} \\
+HOPF vs.\ PERMUTED $|\Delta\text{ppl}|$ & 0.13  & \textbf{0.03}  \\
+HOPF vs.\ DENSE eff\_ratio  & $1.39\times$   & $\mathbf{1.56\times}$ \\
+BASELINE mean eff$_b$       & 44.00          & 35.37          \\
+HOPF mean eff$_b$           & 45.96          & 40.94          \\
+Seeds confirmed             & 2              & 2              \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Interpretation}
+
+\textbf{Finding 1 -- Fixed geometric routing replaces learned gating at 8\% PPL cost
+(confirmed, cross-dataset).}
+HOPF-ROUTED achieves within-8\% validation perplexity of the learned gating baseline
+with no learned gate matrix, confirmed across 2 seeds and two datasets.
+The HOPF/BASELINE ratio of 1.081 is numerically identical on PTB and WT2, an unusually tight cross-dataset replication.
+
+\textbf{On the correct baseline.}
+The BASELINE uses learned top-1 gating \emph{without} load-balance auxiliary loss.
+A control experiment (INC-0172, killed on design grounds) showed that imposing
+Switch-style~\citep{fedus2022switch} load-balance auxiliary loss drives routing to
+near-uniform distribution (eff$_b{=}62.77$ vs.\ BASELINE eff$_b{=}44$) and slightly
+degrades perplexity.
+This establishes that \emph{native learned concentration}---not imposed balance---is the
+correct architectural regime for this comparison.
+HOPF and BASELINE both operate in the same concentration regime; the 8\% gap is the cost
+of fixing the gate in that regime.
+
+\textbf{Finding 2 -- Hopf geometry is not distinguished from random fixed routing in
+trainable LM (confirmed).}
+HOPF and PERMUTED are statistically indistinguishable across both datasets (PTB
+$\Delta{=}0.13$~ppl; WT2 $|\Delta|{=}0.03$~ppl).
+In a trainable LM, expert weight matrices co-adapt to any fixed routing scheme.
+The proxy experiments (Sections~2--3) reveal genuine angular structure on static
+embeddings; in end-to-end training, this structure advantage is absorbed.
+The claim is precisely scoped to the efficiency transfer, not to geometry-specific
+quality advantage.
+
+% ── 5. Discussion ─────────────────────────────────────────────────────────────
+\section{Discussion, Reproducibility, and Scope}
+
+\subsection{Reproducing the core result}
+
+\begin{lstlisting}[caption={Core routing function (numpy only, $<60$~s to reproduce Table~\ref{tab:scaling}).},
+                   label={lst:routing}]
+def hopf_transport_sectors(x, K, dims=(3, 65, 2, 21), lam=1.0):
+    """Assign L2-normalised vectors to Hopf angular sectors."""
+    a, b, c, d = x[:,dims[0]], x[:,dims[1]], x[:,dims[2]], x[:,dims[3]]
+    rho1 = np.sqrt(a**2 + b**2)
+    rho2 = np.sqrt(c**2 + d**2)
+    chi_u = np.clip(rho2**2 / np.maximum(rho1**2 + rho2**2, 1e-30), 0, 1)
+    chi   = np.arcsin(np.clip(rho2 / np.maximum(
+                np.sqrt(rho1**2 + rho2**2), 1e-30), 0, 1))
+    theta1, theta2 = np.arctan2(b, a), np.arctan2(d, c)
+    delta = wrap_to_pi(theta1 - theta2)
+    alpha = wrap_to_pi(0.5 * (theta1 + theta2))
+    ta    = wrap_to_pi(alpha + 0.5 * lam * np.cos(2 * chi) * delta)
+    kchi, kdelta, kalpha = allocate_triplet_bins_budget(K)
+    bchi   = np.clip((chi_u * kchi).astype(int),   0, kchi   - 1)
+    bdelta = np.clip(((delta  + np.pi)/(2*np.pi) * kdelta).astype(int),
+                     0, kdelta - 1)
+    balpha = np.clip(((ta + np.pi)/(2*np.pi) * kalpha).astype(int),
+                     0, kalpha - 1)
+    return bchi * kdelta * kalpha + bdelta * kalpha + balpha
+\end{lstlisting}
+
+Full reproduction:
+\begin{verbatim}
+python hopf_routing_demo.py   # numpy only; reproduces Table 3
+\end{verbatim}
+
+A standalone reproduction bundle, including \texttt{hopf\_routing\_demo.py},
+figure-generation code, and manuscript source, is available at:
+\url{https://doi.org/10.5281/zenodo.19243034}
+
+\subsection{What this work does not prove}
+
+We are explicit about the scope boundaries:
+
+\begin{itemize}[leftmargin=1.4em,itemsep=2pt]
+
+\item \textbf{Proxy scale only (Sections~2--3).}
+The PPMI-SVD proxy captures semantic structure but uses an EMA update rule, not
+backpropagation.
+Large-scale LM validation of the proxy claims is future work;
+TurboQuant provides partial independent corroboration of the geometric fact.
+
+\item \textbf{Hopf geometry vs.\ random fixed routing not distinguished in LM training.}
+The efficiency gain transfers; the specific sector geometry is absorbed by learning
+(Finding~2, both datasets).
+
+\item \textbf{Native concentration regime only.}
+The BASELINE is top-1 gating without auxiliary loss.
+The claim does not extend to Switch-Transformer-style MoE with explicit balance
+constraints; the INC-0172 control confirmed that imposed balance yields near-uniform
+routing, a different architectural regime.
+
+\item \textbf{Attention routing not tested.}
+All routing is in the FFN gate; Q/K angular routing is a separate problem.
+
+\item \textbf{Single research group.}
+No external replication for Sections~2--3.
+TurboQuant is the closest independent corroboration of the underlying geometric fact.
+
+\end{itemize}
+
+\subsection{Broader perspective}
+
+The convergence of TurboQuant and this work on the same geometric property---approached
+from opposite engineering directions---invites a broader observation.
+TurboQuant destroys angular non-uniformity to achieve compression;
+this work exploits it to achieve routing sparsity;
+the proxy experiments show it also governs semantic concentration and expert
+specialization.
+If the same angular geometry governs compression, concentration, and routing
+substitution, then these may not be separate mechanisms at all, but partial
+expressions of a deeper computational substrate: the way trained language models
+organize information angularly on the hypersphere.
+Mapping this substrate explicitly---rather than treating each application independently---
+is the natural next research direction.
+
+\subsection{Next steps}
+
+The most natural extension is validating the efficiency transfer at larger model and
+dataset scale.
+More broadly, the convergence of TurboQuant and this work on a shared geometric property
+invites investigation of whether the angular structure of normalized embeddings constitutes
+a common substrate underlying multiple inference-time efficiency mechanisms;
+we leave this to future work.
+
+% ── References ────────────────────────────────────────────────────────────────
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+% ── Appendix ──────────────────────────────────────────────────────────────────
+\appendix
+\section{Evidence Chain Summary}
+
+\begin{table}[h]
+\centering
+\caption{Key increments in the evidence chain. Full records are available in the released artifact bundle.}
+\label{tab:evidence}
+\small
+\begin{tabular}{p{2.9cm}p{1.5cm}p{8.8cm}}
+\toprule
+Increment range     & Section & Finding \\
+\midrule
+INC-0143--0146      & \S2     & Fixed H\textsuperscript{4} Hopf outperforms 100D K-means;
+                               Gini advantage established \\
+INC-0147            & \S2     & Mechanism isolation: raw fiber $\alpha=(\theta_1+\theta_2)/2$
+                               is primary mechanism (+20.6~pp) \\
+INC-0148--0159      & \S3     & Training-time scaling, EMA update rule, $K{=}250$--$1000$ \\
+INC-0160--0165      & \S3     & Hardware proxy: $3.0$--$4.9\times$ eff\_cost reduction,
+                               $2.5$--$2.9\times$ LRU miss reduction \\
+INC-0166--0168      & \S3     & Norm invariance ($\Delta\alpha < 0.015$), shell hierarchy
+                               excluded, canonical law \\
+INC-0169            & \S3     & Law freeze: $\hat{e} = 2.957 \cdot K^{0.572}$ (canonical HOPF) \\
+INC-0170            & \S3     & Large-$K$: ratio $2.6$--$2.8\times$ at $K{=}600$--$5000$
+                               (does not collapse) \\
+INC-0171            & \S4     & LM integration (PTB, 2 seeds): HOPF within 8\% PPL,
+                               eff$_b{=}46/64$, $1.39\times$ vs DENSE \\
+INC-0172 (killed)   & \S4     & Imposed load-balance aux loss $\to$ near-uniform routing
+                               (eff$_b{=}63$); confirms native concentration
+                               as correct comparator \\
+INC-0173            & \S4     & WT2 replication (2 seeds): ratio $1.081$ (mean),
+                               identical to PTB; HOPF${\approx}$PERM ($|\Delta|{=}0.03$~ppl) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\end{document}

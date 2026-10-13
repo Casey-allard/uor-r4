@@ -1,0 +1,16 @@
+{
+  "context_len": 32,
+  "d": 128,
+  "dy": 256,
+  "n_test": 40000,
+  "n_train": 40000,
+  "n_val": 40000,
+  "sha256": {
+    "x_test": "d88adf1110c4a3e42c471e5f4a57229a27273c1b759fb373af27d216ce4a2880",
+    "x_train": "31eaf3765a46aaa68fd81fe4c08999fc5b0a5da96f2835ef3edc20f157da5d87",
+    "x_val": "8c33b78495cd4e2c988f6b71f8557e246cb9b92604bc6fed44e43398654352d6",
+    "y_test": "3416743fb559862c8472f3a646bd70d1b346bed770f8f655466edb14f5924d59",
+    "y_train": "f83430e22dfa422f513f0ddb30f50d6acd5beced8005b4e845a140d56832ff14",
+    "y_val": "f3ca714a23ef1fbfd0fb5b2e6c50684a35f0e9f124714bfdad465849dc8b6f78"
+  }
+}

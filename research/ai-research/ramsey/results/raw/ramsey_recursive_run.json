@@ -1,0 +1,28 @@
+{
+  "instances": 180,
+  "families": [
+    "balanced_binary_partitions",
+    "fibonacci_block_growth",
+    "lucas_like_growth",
+    "prime_anchor_partitioning",
+    "random_baseline"
+  ],
+  "n_values": [
+    8,
+    10,
+    12,
+    14,
+    16,
+    18,
+    20,
+    22,
+    24
+  ],
+  "seeds": [
+    0,
+    1,
+    2,
+    3
+  ],
+  "recommendation": "KEEP"
+}

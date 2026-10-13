@@ -1,0 +1,20 @@
+{
+  "context_len": 32,
+  "d": 100,
+  "dy": 256,
+  "embedding": "ppmi_svd",
+  "n_components": 100,
+  "n_test": 50000,
+  "n_train": 50000,
+  "n_val": 50000,
+  "pre_screen_phase4_dims": "3,65,2,21",
+  "sha256": {
+    "x_test": "29e9fbfded4b65adfad79fb8c415560ca6d9bc5f82c5a92b9ae856b3b57b382c",
+    "x_train": "9613e962e42ef5f96cd352f6a0d4125ccdf7737787fc81c4d05b68baebd49bd8",
+    "x_val": "c1788f265d1904e86d439d6612f71dd419cb571d4725666344ffd29c3008cfa6",
+    "y_test": "8cb9576ab4ff9b7d8245fb9af7a1f14a504d147aff16144adb81159e3cade937",
+    "y_train": "a87c4c1b9d7c3cf4feff7e2cf548ab1796be4dd6cf4ec01bbd7e71a954e61938",
+    "y_val": "e215099a5292f635bf3509dc3ec58ba080e3eb730eeceee259ff5e7b054b8b85"
+  },
+  "window": 5
+}

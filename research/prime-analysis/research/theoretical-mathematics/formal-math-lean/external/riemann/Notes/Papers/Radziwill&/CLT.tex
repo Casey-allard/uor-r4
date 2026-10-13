@@ -1,0 +1,766 @@
+
+%%Version of 30 June 2014 
+
+%%%%%%%%%%%%%%
+
+\documentclass[12pt, notitlepage]{amsart}
+\usepackage{latexsym, amsfonts, amsmath, amssymb, amsthm, cite}
+\usepackage{verbatim}
+%%%%%%%%%% Start TeXmacs macros
+\newcommand{\mathbbm}{\mathbb}
+\newcommand{\tmem}{\textit}
+\newcommand{\tmmathbf}{\mathbf}
+\newcommand{\tmtextit}{\textit}
+\newcommand{\tmtextbf}{\textbf}
+\newcommand{\tmscript}[1]{\text{\scriptsize{$#1$}}}
+\newtheorem{lemma}{Lemma}
+\newtheorem{proposition}{Proposition}
+\newtheorem{theorem}{Theorem}
+\newtheorem*{nonumlemma}{Lemma}
+\newtheorem{corollary}{Corollary}
+\newtheorem{conjecture}{Conjecture}
+\newtheorem{remark}{Remark}
+%%%%%%%%%% End TeXmacs macros
+
+\newcommand{\assign}{:=}
+\newcommand{\mathcatalan}{C}
+\newcommand{\mathd}{\mathrm{d}}
+\newcommand{\upl}{+}
+%\newcommand{i}{\mathrm{i}}
+\newcommand{\tmop}{\text}
+\newcommand{\um}{-}
+
+\pagestyle{headings}
+
+\oddsidemargin -0.25in
+\evensidemargin -0.25in
+\textwidth 6.5in
+
+\sloppy
+\flushbottom
+\parindent 1em
+
+\marginparwidth 48pt
+\marginparsep 10pt
+\columnsep 10mm
+
+\usepackage{graphicx}
+\usepackage{mathrsfs}
+
+\begin{document}
+   
+\title{Selberg's central limit theorem for $\log |\zeta(\tfrac 12+it)|$}
+\  \author{Maksym Radziwi\l\l \   and K. Soundararajan} 
+ \address{Department of Mathematics \\ Rutgers University \\ 110 Frelinghuysen Rd. \\ Piscataway \\  NJ 08854-8019} 
+ \email{maksym.radziwill@gmail.com}
+\address{Department of Mathematics \\ Stanford University \\
+450 Serra Mall, Bldg. 380\\ Stanford \\ CA 94305-2125}
+\email{ksound@math.stanford.edu}
+\thanks{The first author was partially supported by NSF grant DMS-1128155. The second author is partially supported by NSF grant DMS-1500237, and a Simons Investigator award from the Simons Foundation} 
+
+\date{\today}
+\maketitle 
+
+
+\section{Introduction} 
+\noindent
+In this paper we give a new and simple proof of Selberg's influential theorem \cite{Selberg1, Selberg2} that $\log |\zeta(\tfrac 12+it)|$ has an approximately normal distribution with mean zero and variance $\tfrac 12 \log \log |t|$.  Apart from some basic facts about the Riemann zeta function, we have tried to make our proof  self-contained. 
+
+\begin{theorem} \label{mainthm} Let $V$ be a fixed real number.  Then for all large $T$, 
+$$ 
+\frac{1}{T} \text{meas}\Big\{ T\le t\le 2T: \ \ \log |\zeta(\tfrac 12+it)| \ge V \sqrt{\tfrac 12 \log \log T} \Big\}  
+\sim \frac{1}{\sqrt{2\pi}} \int_{V}^{\infty} e^{-u^2/2} du. 
+$$ 
+\end{theorem} 
+We outline the steps of the proof.  The first step is to show that $\log |\zeta(\tfrac 12+it)|$ is usually close to $\log 
+|\zeta(\sigma+it)|$ for suitable $\sigma$ near $\tfrac 12$.   
+ 
+ \begin{proposition} 
+\label{Prop1}  Let $T$ be large, and suppose $T\le t\le 2T$.  Then for any $\sigma >1/2$ we have 
+$$ 
+\int_{t-1}^{t+1} \Big| \log |\zeta(\tfrac 12+iy)| - \log |\zeta(\sigma+iy)| \Big| dy \ll (\sigma -\tfrac 12) \log T. 
+$$ 
+\end{proposition}  
+The proof of Proposition \ref{Prop1} is the only place where we will briefly need to mention the zeros of $\zeta(s)$. 
+From now on, we set $\sigma_0 = \tfrac 12+ \frac{W}{\log T}$, for a suitable parameter $W\ge 3$ to be chosen later.  
+From Proposition \ref{Prop1}, and in view of the Theorem \ref{mainthm} that we set out to prove, 
+we see that if $W = o(\sqrt{\log \log T})$ then we may typically approximate 
+$\log |\zeta(\tfrac 12+it)|$ by $\log |\zeta(\sigma_0+it)|$. Thus we may from now on focus on the distribution of $\log |\zeta(\sigma_0+it)|$. 
+
+There is considerable latitude in choosing parameters such as $W$, but to fix ideas we select 
+\begin{equation} 
+\label{1.0} 
+W= (\log \log \log T)^4, \ \  X = T^{1/(\log \log \log T)^2}, \\ \text{ and } Y = T^{1/(\log \log T)^2}. 
+\end{equation} 
+Here $X$ and $Y$ are two parameters that will appear shortly.
+Put 
+\begin{equation} 
+\label{1.1} 
+{\mathcal P}(s) = {\mathcal P}(s;X) = \sum_{2\le n\le X} \frac{\Lambda(n)}{n^s \log n}. 
+\end{equation} 
+By computing moments, it is not hard to determine the distribution of ${\mathcal P}(s)$.  
+
+\begin{proposition}  \label{Prop2}   As $t$ varies in $T\le t\le 2T$, the distribution of $\text{Re} ({\mathcal P}(\sigma_0+it))$ is approximately 
+normal with mean $0$ and variance $\sim \frac 12 \log \log T$.  
+\end{proposition}  
+
+
+
+Our goal is now to connect Re(${\mathcal P}(\sigma_0+it)$) with $\log |\zeta(\sigma_0+it)|$ for most values of $t$.  
+This is done in two stages.  First we introduce a Dirichlet polynomial $M(s)$ which we show is typically close to 
+$\exp(-{\mathcal P}(s))$.  Define $a(n) =1$ if $n$ is composed of only primes below $X$, and it has at most $100 \log \log T$ primes 
+below $Y$, and at most $100\log \log \log T$ primes between $Y$ and $X$; set $a(n)=0$ in all other cases.   Put 
+\begin{equation} 
+\label{1.2} 
+M(s) = \sum_{n} \frac{\mu(n) a(n)}{n^s}. 
+\end{equation} 
+Note that $a(n)=0$ unless $n\le Y^{100\log \log T} X^{100\log \log \log T} <T^{\epsilon}$, and so $M(s)$ is a short Dirichlet 
+polynomial.   
+
+
+\begin{proposition}  \label{Prop3} With notations as above, we have for $T\le t\le 2T$ 
+$$
+M(\sigma_0+it) = (1+o(1))  \exp(-\mathcal{P}(\sigma_0+it)),  
+$$  
+except perhaps on a subset of measure $o(T)$.  
+\end{proposition} 
+
+The final step of the proof shows that $\zeta(\sigma_0+it) M(\sigma_0+it)$ is typically close to $1$.  
+
+\begin{proposition} \label{Prop4} 
+With notations as above, 
+$$ 
+\int_{T}^{2T} |1-\zeta(\sigma_0+it) M(\sigma_0+it)|^2  dt = o(1), 
+$$ 
+so that for $T\le t\le 2T$ we have 
+$$ 
+\zeta(\sigma_0+it) M(\sigma_0+it) = 1+o (1), 
+$$ 
+except perhaps on a set of measure $o(T)$.    
+\end{proposition} 
+
+\begin{proof}[Proof of Theorem \ref{mainthm}]  To recapitulate the argument, Proposition \ref{Prop4} shows that typically $\zeta(\sigma_0+it) \approx M(\sigma_0+it)^{-1}$, 
+which by Proposition \ref{Prop3} is $\approx \exp({\mathcal P}(\sigma_0+it))$, and therefore by Proposition \ref{Prop2} we 
+may conclude that $\log |\zeta(\sigma_0+it)|$ is normally distributed.  Finally by Proposition \ref{Prop1} we deduce from this 
+the normal distribution of $\log |\zeta(\tfrac 12+it)|$.   This completes the proof of Theorem \ref{mainthm}. 
+\end{proof}  
+
+ 
+After developing the proofs of the propositions, in Section 7 we compare and contrast our approach with previous 
+proofs, and also discuss possible extensions of this technique.  
+
+\section{Proof of Proposition \ref{Prop1}} 
+
+\noindent Put $G(s) =s(s-1)\pi^{-s/2} \Gamma(s/2)$ and $\xi(s)= G(s)\zeta(s)$ denote the completed $\zeta$-function.  
+If $t$ is large and $t-1\le y\le t+1$, then by Stirling's formula $|\log G(\sigma+iy)/G(1/2+iy)| \ll (\sigma -1/2)\log t$, and 
+so it is enough to prove that 
+$$ 
+\int_{t-1}^{t+1} \Big| \log \Big|\frac{\xi(\tfrac 12+iy)}{\xi(\sigma+iy)} \Big|\Big| dy \ll (\sigma -\tfrac 12) \log T. 
+$$ 
+
+Recall Hadamard's factorization formula 
+$$ 
+\xi(s) = e^{A+Bs} \prod_{\rho} \Big(1-\frac s{\rho}\Big) e^{s/\rho}, 
+$$ 
+where $A$ and $B$ are constants with $B= -\sum_{\rho} \text{Re }(1/\rho)$.  
+Thus (assuming that $y$ is not the ordinate of a zero of $\zeta(s)$) 
+$$ 
+\log \Big| \frac{\xi(\tfrac 12+iy)}{\xi(\sigma+iy)}\Big| = \sum_{\rho} \log \Big| \frac{\tfrac 12 +iy-\rho}{\sigma+iy -\rho}\Big|.
+$$ 
+  Integrating the above over $y \in (t-1,t+1)$ we 
+get 
+\begin{equation} 
+\label{2.1}
+\int_{t-1}^{t+1} \Big| \log \Big|\frac{\xi(\tfrac 12+iy)}{\xi(\sigma+iy)}\Big| \Big| dy 
+\le \sum_{\rho} \int_{t-1}^{t+1} \Big| \log \Big| \frac{\tfrac 12+iy-\rho}{\sigma+iy-\rho}\Big| \Big|dy. 
+\end{equation} 
+
+Suppose $\rho=\beta+i\gamma$ is a zero of $\zeta(s)$.  If $|t-\gamma| \ge 2$ then we check readily that 
+$$ 
+\int_{t-1}^{t+1} \Big| \log \Big| \frac{\tfrac 12+iy-\rho}{\sigma+iy-\rho}\Big| \Big| dy \ll \frac{(\sigma- \tfrac 12)}{(t-\gamma)^2}. 
+$$ 
+In the range $|t-\gamma|\le 2$ we use 
+$$ 
+  \int_{t-1}^{t+1} \Big| \log  \Big|\frac{\tfrac 12+iy-\rho}{\sigma+iy-\rho}\Big|\Big| dy \le \frac{1}{2} \int_{-\infty}^{\infty} \Big| \log \frac{(\beta-\tfrac 12)^2+x^2}{(\beta-\sigma)^2+x^2}\Big| dx = \pi (\sigma-\tfrac 12).
+$$ 
+Thus in either case 
+$$ 
+\int_{t-1}^{t+1} \Big| \log \Big| \frac{\tfrac 12+iy-\rho}{\sigma+iy-\rho}\Big| \Big| dy \ll \frac{(\sigma -\tfrac 12)}{1+(t-\gamma)^2}.
+$$ 
+Inserting this in \eqref{2.1}, and noting that there are $\ll \log (t +k)$ zeros with $k \le |t-\gamma| <k+1$,  the proposition follows.
+  
+\section{Proof of Proposition \ref{Prop2}} 
+
+\noindent We begin by showing that we may restrict the sum in ${\mathcal P}(s)$ just to primes.  The contribution of cubes and higher powers of primes is clearly $O(1)$, and we need only discard the contribution of squares of primes.  By integrating out, it is easy to see that 
+$$ 
+\int_T^{2T} \Big| \sum_{p\le \sqrt{X}} \frac{1}{2p^{2(\sigma_0+it)} } \Big|^2 dt \ll \sum_{p_1, p_2 \le \sqrt{X}} \min\Big(T, \frac{1}{|\log (p_1/p_2)|} \Big) \ll T. 
+$$ 
+Therefore, the measure of the set $t\in [T,2T]$ with the contribution of prime squares being larger than $L$ (say) is at most 
+$\ll T/L^2$.  In view of this, to establish Proposition \ref{Prop2}, it is enough  to prove that
+$$
+\mathcal{P}_0(\sigma_0 + it) := \text{Re } \sum_{p \leq X} \frac{1}{p^{\sigma_0 + it}} 
+$$
+has an approximately Gaussian distribution with mean 0 and variance $\sim {\tfrac 12 \log\log T}$.   We establish this by computing moments.  
+
+\begin{lemma} \label{lemma1} Suppose that $k$ and $\ell$ are non-negative integers with $X^{k+\ell} \le {T}$.   Then, if $k\neq \ell$, 
+$$ 
+\int_{T}^{2T} {\mathcal P}_0(\sigma_0+it)^{k} {\mathcal P}_0(\sigma_0-it)^{\ell} dt \ll T,  
+$$  
+while if $k=\ell$ we have 
+$$ 
+\int_{T}^{2T} |{\mathcal P}_0(\sigma_0+it)|^{2k} dt = k! T (\log \log T)^{k} +O_k(T(\log \log T)^{k-1+\epsilon}). 
+$$ 
+\end{lemma} 
+\begin{proof}  Write ${\mathcal P}(s)^k = \sum_{n} a_k(n)n^{-s}$, where $a_k(n) =0$ unless $n$ has the prime factorization  $n=p_1^{\alpha_1}\cdots p_{r}^{\alpha_r}$ where $p_1$, $\ldots$, $p_r$ are distinct primes below $X$, and $\alpha_1+\ldots+\alpha_r=k$, in which case $a_k(n) = k!/(\alpha_1! \cdots \alpha_r!)$.   Therefore, expanding out the integral, we obtain 
+$$ 
+\int_T^{2T} {\mathcal P}_0(\sigma_0+it)^k {\mathcal P}_0(\sigma_0-it)^{\ell} dt = T \sum_{n} \frac{a_k(n)a_\ell(n)}{n^{2\sigma_0} } 
++ O\Big( \sum_{m\neq n} \frac{a_k(m)a_{\ell}(n)}{(mn)^{\sigma_0}} \frac{1}{|\log (m/n)|} \Big). 
+$$ 
+If $m\neq n$, then $|\log (m/n)| \ge 1/\sqrt{mn}$ and so the off-diagonal terms above contribute $\ll \sum_{m \neq n} a_k(m)a_{\ell}(n) 
+\ll X^{k+\ell}$.  Note that if $k\neq \ell$ then $a_k(n)a_\ell(n)$ is always zero, and the first statement of the lemma follows.  
+
+It remains in the case $k=\ell$ to discuss the diagonal term $\sum_{n} a_k(n)^2/n^{2\sigma_0}$.  The terms with $n$ not being square-free are easily seen to contribute $O_k((\log \log T)^{k-2})$.  Finally the square-free terms $n$ give 
+$$ 
+k! \sum_{\substack{ p_1,\ldots, p_k \le X \\ p_j \text{ distinct }} } \frac{1}{(p_1 \cdots p_k)^{2\sigma_0}  } = k! \Big(\sum_{p\le X} \frac{1}{p^{2\sigma_0}} \Big)^k + O_k((\log \log T)^{k-1}), 
+$$ 
+and the lemma follows.
+\end{proof} 
+
+From Lemma \ref{lemma1} we see that if $X^{k} \le T$ then for odd $k$ 
+$$ 
+\int_T^{2T} (\text{Re } {\mathcal P}_0(\sigma_0+it)^{k} dt \ll T, 
+$$ 
+while if $k$ is even then 
+$$ 
+\frac 1T \int_{T}^{2T} (\text{Re } {\mathcal P}_0(\sigma_0+it)^k dt =  2^{-k} \binom{k}{k/2} (k/2)! (\log \log T)^{k/2} + O_k((\log \log T)^{k-1+\epsilon}). 
+$$ 
+These moments match the moments of a Gaussian random variable with mean zero and variance $\sim \tfrac 12\log \log T$, and since the Gaussian is determined by its moments, our proposition follows.  
+
+
+
+\section{Proof of Proposition \ref{Prop3}}  
+
+\noindent Let us decompose ${\mathcal P}(s)$ as ${\mathcal P}_1(s)+{\mathcal P}_2(s)$, where  
+$$
+\mathcal{P}_1(s) = \sum_{2 \leq n \leq Y} \frac{\Lambda(n)}{n^s \log n}, \qquad  \text{and} \qquad \mathcal{P}_2(s) =
+\sum_{Y < n \le X} \frac{\Lambda(n)}{n^{s} \log n}. 
+$$
+Put 
+$$ 
+{\mathcal M}_1(s) = \sum_{0\le k\le 100\log \log T} \frac{(-1)^k}{k!} {\mathcal P}_1(s)^k, \qquad 
+\text{and} \qquad 
+{\mathcal M}_2(s) = \sum_{0\le k\le 100\log \log \log T} \frac{(-1)^k}{k!} {\mathcal P}_2(s)^k. 
+$$ 
+
+
+\begin{lemma} \label{lemma2}  For $T\le t\le 2T$ we have 
+\begin{equation} 
+\label{3.1} 
+|{\mathcal P}_1(\sigma_0+it)| \le \log \log T, \text{  and  }  |{\mathcal P}_2(\sigma_0+it)| \le \log \log \log T,
+\end{equation} 
+except perhaps for a set of measure $\ll T/\log \log \log T$.   When the bounds \eqref{3.1} hold, we have 
+\begin{equation} 
+\label{3.2} 
+{\mathcal M}_1(\sigma_0+it) = \exp(-{\mathcal P}_1(\sigma_0+it)) \Big(1+O((\log T)^{-99})\Big),
+\end{equation} 
+and 
+\begin{equation} 
+\label{3.3} 
+{\mathcal M}_2(\sigma_0+it) = \exp(-{\mathcal P}_2(\sigma_0+it)) \Big(1+O((\log \log T)^{-99})\Big).
+\end{equation}
+\end{lemma} 
+\begin{proof}  Note that 
+$$ 
+\int_T^{2T} |{\mathcal P}_1(\sigma_0+it)|^2 dt \ll \sum_{2\le n_1, n_2 \le Y} \frac{\Lambda(n_1)\Lambda(n_2)}{(n_1n_2)^{\sigma_0} 
+\log n_1 \log n_2} \min\Big( T, \frac{1}{|\log (n_1/n_2)|}  \Big) \ll T\log \log T,  
+$$ 
+and similarly 
+$$ 
+\int_T^{2T} |{\mathcal P}_2(\sigma_0+it)|^2 dt \ll T\log \log \log T. 
+$$ 
+The first assertion \eqref{3.1} follows.  
+ 
+ If $|z|\le K$ then using Stirling's formula it is straightforward to check that 
+ $$ 
+ \Big| e^{z} - \sum_{0\le k\le 100K} \frac{z^k}{k!} \Big| \le e^{-99K},
+ $$ 
+ and therefore the estimates \eqref{3.2} and \eqref{3.3} hold.  
+\end{proof}  
+
+
+
+Put $a_1(n) =1$ if $n$ is composed of at most $100\log \log T$ primes all below $Y$, and zero otherwise.  Put 
+$a_2(n) =1$ if $n$ is composed of at most $100\log \log \log T$ primes all between $Y$ and $X$, and zero otherwise.  Then $M(s)=M_1(s)M_2(s)$ with 
+$$ 
+M_1(s) = \sum_n \frac{\mu(n)a_1(n)}{n^s} \qquad \text{and} \qquad
+M_2(s) = \sum_n \frac{\mu(n) a_2(n)}{n^s}. 
+$$  
+
+\begin{lemma} \label{lemma3}  With notations as above, we have 
+$$ 
+\int_T^{2T} |{\mathcal M}_1(\sigma_0+it)  - M_1(\sigma_0+it)|^2 dt \ll  T(\log T)^{-60}, 
+$$ 
+and 
+$$ 
+\int_T^{2T} |{\mathcal M}_2(\sigma_0+it) - M_2(\sigma_0+it)|^2 dt \ll  T(\log \log T)^{-60}. 
+$$ 
+\end{lemma}  
+\begin{proof}  We establish the first estimate, and the second follows similarly.  If we expand ${\mathcal M}_1(s)$ into a Dirichlet series $\sum_{n} b(n)n^{-s}$, then we may see that $|b(n)| \le 1$ for all $n$, $b(n) =0$ unless $n 
+\le Y^{100\log \log T}$ is composed only of primes below $Y$, and $b(n) = \mu(n) a_1(n)$ if  $\Omega(n)\le 100\log \log T$.  (It is the presence of prime powers in ${\mathcal P}(s)$ that prevents ${\mathcal M}_1(s)$ from simply being $M_1(s)$.)  Thus, putting $c(n) = b(n) - \mu(n)a_1(n)$ temporarily, we see that 
+$$ 
+\int_T^{2T} |{\mathcal M}_1(\sigma_0+it) - M_1(\sigma_0 +it)|^2 dt \ll 
+\sum_{n_1, n_2} \frac{|c(n_1)c(n_2)|}{(n_1n_2)^{\sigma_0}} \min \Big( T ,\frac{1}{|\log (n_1/n_2)|}\Big). 
+$$ 
+The terms with $n_1 \neq n_2$ contribute (since $|\log (n_1/n_2)| \gg 1/\sqrt{n_1n_2}$ in that case) 
+$$ 
+\ll \sum_{n_1 \neq n_2 \le Y^{100\log \log T}} 1 \ll T^{\epsilon}.  
+$$ 
+The diagonal terms $n_1=n_2$ contribute, for any $1<r<2$, 
+$$ 
+\ll T \sum_{\substack{ p| n \implies p\le Y \\ \Omega(n) >100\log \log T}} \frac{1}{n} \ll T r^{-100\log \log T} \prod_{p\le Y}\Big(1 +\frac{r}{p}+ \frac{r^2}{p^2}+\ldots \Big).  
+$$ 
+Choosing $r=e^{2/3}$, say, the above is $\ll T(\log T)^{-60}$.  
+\end{proof} 
+
+\begin{proof}[Proof of Proposition \ref{Prop3}]   From Lemma \ref{lemma3} it follows that except on a set of measure $o(T)$, one 
+has $M_1(\sigma_0+it) = {\mathcal M}_1(\sigma_0+it) + O((\log T)^{-25})$.  Moreover, from \eqref{3.2}
+ (except on a set of measure $o(T)$) we note that ${\mathcal M}_1(\sigma_0+it) = \exp(-{\mathcal P}_1(\sigma_0+it))(1+O((\log T)^{-99}))$, and by \eqref{3.1} that $ (\log T)^{-1} \ll |{\mathcal M}_1(\sigma_0+it) | \ll \log T$.  Therefore, we may conclude that, 
+ except on a set of measure $o(T)$, 
+ $$ 
+ M_1(\sigma_0+it) = {\mathcal M}_1(\sigma_0+it) + O((\log T)^{-25}) = \exp(-{\mathcal P}_1(\sigma_0+it)) (1+O((\log T)^{-20})). 
+ $$ 
+Similarly, except on a set of measure $o(T)$, we have 
+$$ 
+M_2(\sigma_0+it) = {\mathcal M}_2(\sigma_0+it) + O((\log \log T)^{-25}) = \exp(-{\mathcal P}_2(\sigma_0+it)) (1+O((\log \log T)^{-20})).
+$$ 
+Multiplying these estimates we obtain 
+$$ 
+M(\sigma_0+it) = \exp(-{\mathcal P}(\sigma_0+it)) (1+O((\log \log T)^{-20})),
+$$ 
+completing our proof.  \end{proof}
+
+%From Lemma \ref{lemma2} we know that except for $t$ in a set of measure $o(T)$, 
+%we have $|{\mathcal P}_1(\sigma_0+it)| \le \log \log T$, and 
+
+%It follows from  \ref{lemma3} that for almost all $T \leq t \leq 2T$, 
+%\begin{align*}
+%M_1(\sigma_0 + it) & = \mathcal{M}_1(\sigma_0 + it) + O((\log T)^{-59}) \ , \ \\
+%M_2(\sigma_0 + it) & = \mathcal{M}_2(\sigma_0 + it) + O((\log\log T)^{-59}). 
+%\end{align*}
+%On the other hand, according to the first part of Lemma \ref{lemma2}, for almost all $T \leq t \leq 2T$
+%we have $(\log T)^{-1} \leq |\mathcal{M}_1(\sigma_0 + it)| \leq \log T$ and
+%$(\log\log T)^{-1} \leq |\mathcal{M}_2(\sigma_0 + it)| \leq \log\log T$. Therefore for almost all $T \leq t \leq 2T$,
+%\begin{align*}
+%M_1(\sigma + it) & = \mathcal{M}_1(\sigma_0 + it) \cdot (1 + O((\log T)^{-58})) \ , \ \\
+%M_2(\sigma + it) & = \mathcal{M}_2(\sigma_0 + it) \cdot (1 + O((\log \log T)^{-58})). 
+%\end{align*}
+%Therefore, for almost all $T \leq t \leq 2T$,
+%\begin{align*}
+%M(\sigma_0 + it) & = M_1(\sigma_0 + it)M_2(\sigma + it) \\
+%& = \mathcal{M}_1 (\sigma_0 + it) \mathcal{M}_2(\sigma_0 + it) \cdot (1 + O((\log\log T)^{-58})). 
+%\end{align*}
+%By the second part of Lemma \ref{lemma2}, for almost all $T \leq t \leq 2T$, this is
+%$$
+%\exp \Big (-(\mathcal{P}_1(s) + \mathcal{P}_2(s)) \Big )\cdot(1 + O((\log\log T)^{-58})). 
+%$$
+%And since 
+%$\mathcal{P}(s) = \mathcal{P}_1(s) + \mathcal{P}_2(s)$
+%the claim follows. 
+%\end{proof}
+
+\section{Proof of Proposition \ref{Prop4}} 
+  
+\noindent For $T\le t\le 2T$, one has $\zeta(\sigma_0+it) = \sum_{n\le T} n^{-\sigma_0-it} + O(T^{-\frac 12})$, and 
+so 
+$$ 
+\int_T^{2T} \zeta(\sigma_0 +it) M(\sigma_0+it) dt = \sum_{n\le T} \sum_{m} \frac{a(m)\mu(m)}{(mn)^{\sigma} } 
+\int_T^{2T} (mn)^{-it} dt + O(T^{\frac 12+\epsilon}) = T + O(T^{\frac 12+\epsilon}). 
+$$ 
+Therefore, expanding the square, we see that 
+\begin{equation} 
+\label{5.1} 
+\int_{T}^{2T} |1-\zeta(\sigma_0 + it) M(\sigma_0 + it)|^2   dt =  
+ \int_T^{2T} |\zeta(\sigma_0+it) M(\sigma_0+it)|^2 dt -T +O(T^{\frac 12 +\epsilon}). 
+\end{equation}  
+It remains to evaluate the integral above, and to do this we shall use the following familiar lemma (see for example Lemma 6 of Selberg \cite{Selberg2}).  For completeness 
+we include a quick proof of the lemma in the next section, and we note that we give only a version sufficient for our purposes and not 
+the sharpest known result.   
+
+ \begin{lemma} \label{lemma4}  Let $h$ and $k$ be non-negative integers, with $h,k \le T$.  Then, for any $1\ge \sigma > \tfrac 12$, 
+ \begin{align*}
+\int_{T}^{2T}  \Big ( \frac{h}{k} \Big )^{it} |\zeta(\sigma + it )|^2 dt 
+ &= \int_T^{2T} \Big( \zeta(2\sigma) \Big( \frac{(h,k)^2}{hk}\Big)^{\sigma}  + \Big(\frac{t}{2\pi}\Big)^{1-2\sigma} \zeta(2-2\sigma) \Big( \frac{(h,k)^2}{hk}\Big)^{1-\sigma}\Big) dt\\ 
+ & + O(T^{1-\sigma+\epsilon} \min(h,k)).   
+\end{align*}
+\end{lemma}  
+
+Assuming Lemma \ref{lemma4}, we now complete the proof of Proposition \ref{Prop4}.   In view of \eqref{5.1} 
+we must show that 
+\begin{equation} 
+\label{5.2} 
+\sum_{h,k} \frac{\mu(h)\mu(k) a(h)a(k)}{(hk)^{\sigma_0}} \int_T^{2T} \Big(\frac{h}{k} \Big)^{it} |\zeta(\sigma_0+it)|^2 \sim T, 
+\end{equation} 
+and to do this we appeal to Lemma \ref{lemma4}.  The error terms are easily seen to be $o(T)$, and we now focus on the 
+main terms arising from Lemma \ref{lemma4}, beginning with the first main term.  This contributes 
+\begin{equation} 
+\label{5.3} 
+T \zeta(2\sigma_0) \sum_{h,k} \frac{\mu(h)\mu(k)a(h)a(k)}{(hk)^{2\sigma_0}} (h,k)^{2\sigma_0}. 
+\end{equation} 
+Write $h=h_1h_2$ where $h_1$ is composed only of primes below $Y$, and $h_2$ of primes between $Y$ and $X$, and then 
+$a(h) =a_1(h_1) a_2(h_2)$ in the notation of section 3.  Writing similarly $a(k)=a_1(k_1)a_2(k_2)$, we see that the quantity in 
+\eqref{5.3} factors as 
+\begin{equation} 
+\label{5.4} 
+T \zeta(2\sigma_0) \Big(\sum_{h_1,k_1} \frac{\mu(h_1)\mu(k_1)a_1(h_1)a_1(k_1)}{(h_1k_1)^{2\sigma_0}} (h_1,k_1)^{2\sigma_0}\Big) 
+\Big( \sum_{h_2,k_2} \frac{\mu(h_2)\mu(k_2)a_2(h_2)a_2(k_2)}{(h_2k_2)^{2\sigma_0}} (h_2,k_2)^{2\sigma_0}\Big). 
+\end{equation}  
+
+Consider the first factor in \eqref{5.4}.  If we ignore the condition that $h_1$ and $k_1$ must have at most $100 \log \log T$ 
+prime factors, then the resulting sum is simply 
+$$ 
+\sum_{\substack{ h_1, k_1 \\ p|h_1k_1\implies p\le Y}} \frac{\mu(h_1)\mu(k_1)}{(h_1k_1)^{2\sigma_0}} (h_1,k_1)^{2\sigma_0}
+= \prod_{p\le Y} \Big(1- \frac{1}{p^{2\sigma_0}}\Big). 
+$$ 
+In approximating the first factor by the product above, we incur an error term which is at most (by symmetry we may suppose that 
+$h_1$ has many prime factors) 
+\begin{align*}
+&\ll \sum_{\substack{ h_1, k_1 \\ p|h_1k_1\implies p\le Y \\ \Omega(h_1) >100\log \log T}} \frac{|\mu(h_1)\mu(k_1)|}{(h_1k_1)^{2\sigma_0}} (h_1,k_1)^{2\sigma_0}\\
+& \ll  e^{-100\log \log T}  \sum_{\substack{ h_1, k_1 \\ p|h_1k_1\implies p\le Y }} \frac{|\mu(h_1)\mu(k_1)|}{(h_1k_1)^{2\sigma_0}} (h_1,k_1)^{2\sigma_0} e^{\Omega(h_1)}\\
+& \ll 
+(\log T)^{-100} \prod_{p\le Y} \Big( 1+ \frac{1+2e}{p} \Big) \ll   (\log T)^{-90} .
+\end{align*} 
+Similarly one obtains that the second factor in \eqref{5.4} is 
+$$ 
+\prod_{Y<p\le X} \Big(1-\frac{1}{p^{2\sigma_0}}  \Big) + O((\log \log T)^{-90}). 
+$$ 
+Using these in \eqref{5.4}, we obtain that the first main term is 
+$$ 
+\sim T\zeta(2\sigma_0) \prod_{p\le X} \Big(1-\frac{1}{p^{2\sigma_0}}\Big) = T \prod_{p> X} \Big(1-\frac{1}{p^{2\sigma_0}}\Big)^{-1} 
+\sim T
+$$ 
+since $(\sigma_0 - \tfrac 12)^{-1} = o(\log T / \log X)$. 
+In the same way we see that the second main term arising from Lemma \ref{lemma4} is 
+\begin{align*}
+&\zeta(2-2\sigma_0) \Big(\int_T^{2T} \Big(\frac{t}{2\pi}\Big)^{1-2\sigma_0} dt \Big)  \sum_{h,k} \frac{\mu(h)\mu(k)a(h)a(k)}{hk} (h,k)^{2-2\sigma_0} \\
+& \sim  \Big(\int_T^{2T} \Big(\frac{t}{2\pi}\Big)^{1-2\sigma_0} dt \Big)  \zeta(2-2\sigma_0) 
+\prod_{p\le X} \Big(1- \frac{2}{p} + \frac{1}{p^{2\sigma_0}}\Big) = o(T).
+\end{align*}
+This completes our proof of \eqref{5.2}, and hence of Proposition \ref{Prop4}.    
+   
+ \section{Proof of Lemma \ref{lemma4}} 
+ 
+ \noindent Put $G(s) = \pi^{-s/2} s(s-1) \Gamma(s/2)$, so that $\xi(s) = G(s) \zeta(s)=\xi(1-s)$ is the completed zeta function.   
+ Define for any given $s\in {\Bbb C}$ 
+ $$ 
+ I(s) = I(\overline{s}) = \frac{1}{2\pi i} \int_{(c)} \xi(z+s) \xi(z+\overline{s}) e^{z^2} \frac{dz}{z}, 
+ $$ 
+ where the integral is over the line from $c-i\infty$ to $c+i\infty$ for any $c>0$.   By moving the 
+ line of integration to the left, and using the functional equation $\xi(z+s)\xi(z+\overline{s}) = \xi(-z+(1-s))\xi(-z+(1-\overline{s}))$ we obtain that 
+ \begin{equation} 
+ \label{6.1} 
+ |\zeta(s)|^2 = \frac{1}{|G(s)|^2} \Big( I(s) + I(1-s) \Big). 
+ \end{equation} 
+   
+From now on suppose that $s=\sigma+it$ with $T\le t\le 2T$, and $1 \ge \sigma  \ge \tfrac 12$.   If $z$ is a complex number with real part $c=1-\sigma + 1/\log T$, then an application of Stirling's formula gives 
+$$ 
+\frac{G(z+s)G(z+\overline{s})}{|G(s)|^2} =\Big( \frac{t}{2\pi }\Big)^{z} \Big( 1+ O\Big( \frac{|z|}{T}\Big)\Big) .
+$$ 
+Therefore, we see that 
+$$ 
+\frac{I(s)}{|G(s)|^2} = \frac{1}{2\pi i}\int_{(1-\sigma+1/\log T)} \Big(\frac{t}{2\pi}\Big)^{z} \zeta(z+s)\zeta(z+\overline{s}) 
+e^{z^2}\frac{dz}{z} +  O(T^{-\sigma +\epsilon}). 
+$$  
+Since we are in the region of absolute convergence of $\zeta(z+s)$ and $\zeta(z+\overline{s})$, we obtain 
+\begin{align}
+\label{6.2}
+\int_T^{2T} \Big(\frac{h}{k} \Big)^{it} \frac{I(s)}{|G(s)|^2}dt 
+&= \frac{1}{2\pi i} \int_{(1-\sigma+1/\log T)} \frac{e^{z^2}}{ z} \sum_{m,n=1}^{\infty} 
+\frac{1}{(mn)^{z+\sigma}} \Big( \int_T^{2T} \Big(\frac{hm}{kn}\Big)^{it} \Big(\frac{t}{2\pi}\Big)^z dt \Big) dz \nonumber\\
+&\hskip .5 in + O(T^{1-\sigma+\epsilon}).  
+\end{align}
+In the integral in \eqref{6.2}, we distinguish the diagonal terms $hm=kn$ from the off-diagonal terms $hm\neq kn$.  The 
+diagonal terms $hm=kn$ may be parametrized as $m=Nk/(h,k)$ and $n=Nh/(h,k)$, and therefore these terms contribute 
+\begin{equation} 
+\label{6.3} 
+\frac{1}{2\pi i} \int_{(1-\sigma+1/\log T)} \frac{e^{z^2}}{ z} \zeta(2z+2\sigma) \Big( \frac{(h,k)^2}{hk}\Big)^{z+\sigma} 
+\Big(\int_{T}^{2T} \Big(\frac{t}{2\pi}\Big)^z dt \Big) dz. 
+\end{equation} 
+As for the off-diagonal terms, the inner integral over $t$ may be bounded by $\ll T^{1-\sigma} \min(T, 1/|\log (hm/kn)|)$, and 
+therefore these contribute 
+\begin{equation} 
+\label{6.4} 
+\ll T^{1-\sigma} \sum_{\substack{m,n =1 \\ hm\neq kn}}^{\infty} \frac{1}{(mn)^{1+1/\log T}} \min \Big( T , \frac{1}{|\log (hm/kn)|}\Big) 
+\ll \min(h,k) T^{1-\sigma+\epsilon}. 
+\end{equation} 
+The final estimate above follows by first discarding terms with $hm/(kn)>2$ or $<1/2$, and for the remaining terms (assume that $k\le h$) noting that for a given $m$ the sum over values $n$ may be bounded by $kT^{\epsilon}$ (here it may be useful to distinguish the cases $hm>T$ and $hm<T$).     
+ 
+ From \eqref{6.2}, \eqref{6.3} and \eqref{6.4}, we conclude that 
+ \begin{align} 
+ \label{6.5} 
+   \int_T^{2T} \Big(\frac{h}{k} \Big)^{it} \frac{I(s)}{|G(s)|^2}dt& = \frac{1}{2\pi i} \int_{(1-\sigma+1/\log T)} \frac{e^{z^2}}{ z} \zeta(2z+2\sigma) \Big( \frac{(h,k)^2}{hk}\Big)^{z+\sigma} 
+\Big(\int_{T}^{2T} \Big(\frac{t}{2\pi}\Big)^z dt \Big) dz \nonumber \\
+&\hskip .5 in + O(\min(h,k) T^{1-\sigma+\epsilon}).
+\end{align} 
+ A similar argument gives 
+ \begin{align} 
+ \label{6.6} 
+ \int_T^{2T}\Big(\frac{h}{k} \Big)^{it} &\frac{I(1-s)}{|G(s)|^2}dt =  O(T^{1-\sigma+\epsilon} \min(h,k)) \nonumber\\ 
+ &+ \frac{1}{2\pi i} \int_{(\sigma+1/\log T)} 
+ \frac{e^{z^2}}{z} \zeta(2z+2-2\sigma)\Big(\frac{(h,k)^2}{hk}\Big)^{z+1-\sigma} \Big(\int_T^{2T} \Big(\frac{t}{2\pi} \Big)^{z+1-2\sigma} dt\Big) dz.
+ \end{align}    
+ With a suitable change of variables, we can combine the main terms in \eqref{6.5} and \eqref{6.6} as 
+ $$ 
+ \frac{1}{2\pi i} \int_{(1+1/\log T)} \zeta(2z) \Big(\frac{(h,k)^2}{hk}\Big)^z \Big(\int_{T}^{2T} \Big(\frac{t}{2\pi} \Big)^{z-\sigma} dt\Big) 
+ \Big( \frac{e^{(z-\sigma)^2}}{z-\sigma} + \frac{e^{(z-1+\sigma)^2}}{z-1+\sigma}\Big) dz, 
+ $$    
+ and moving the line of integration to the left we obtain the main term of the lemma as the residues of the poles at $z=\sigma$ and $z=1-\sigma$ (note that the potential pole at $z=1/2$ from $\zeta(2z)$ is canceled by a zero of $e^{(z-\sigma)^2}/(z-\sigma) + e^{(z-1+\sigma)^2}/(z-1+\sigma)$ there).   This completes our proof of Lemma \ref{lemma4}.
+ 
+ \section{Discussion} 
+ 
+ 
+ \noindent In common with Selberg's proof of Theorem \ref{mainthm} our proof relies on the Gaussian distribution of short sums over 
+ primes, as in Proposition \ref{Prop2}.  In contrast with Selberg's proof, we do not need to invoke zero density estimates for $\zeta(s)$,  %and we do not need to derive a formula expressing $\log \zeta(s)$ in terms of primes and zeros; 
+ the easier mean-value theorem in Proposition \ref{Prop4} provides for us a sufficient substitute.  Selberg's original proof also 
+ used an intricate argument expressing $\log \zeta(s)$ in terms of primes and zeros; an elegant alternative approach was given 
+ by Bombieri and Hejhal \cite{BomHej}, although they too require a strong zero density result near the critical line.  We should also point out that by just focussing on the central limit theorem, we have not obtained asymptotic formulae for the moments of $\log |\zeta(\tfrac 12+it)|$ which Selberg established.  
+  
+  
+  In Selberg's approach, it was easier to handle Im $\log \zeta(\tfrac 12+it)$, and the case of $\log |\zeta(\tfrac 12+it)|$ entailed additional technicalities.  In contrast, our method works well for $\log |\zeta(\tfrac 12+it)|$ but requires substantial modifications to handle Im $\log \zeta(\tfrac 12+it)$.  The reason is that Proposition \ref{Prop4} guarantees that typically $|\zeta(\sigma_0+it)| \approx |M(\sigma_0+it)|^{-1}$, but it could be that Im $ \log \zeta(\frac 12+it)$ 
+ and Im $ \log M(\sigma_0+it)^{-1}$ are not typically close but differ by a substantial integer multiple of $2\pi$.  
+In this respect our argument shares some similarities with Laurin\v{c}ikas's proof of Selberg's central limit theorem \cite{Laur}, 
+ which relies on bounding small moments of $|\zeta(\tfrac 12+it)|$ using Heath-Brown's work on fractional moments \cite{HBFrac1}. In particular, Laurin\v{c}ikas's argument also breaks down for the imaginary part of $\log \zeta(\tfrac 12 + it)$.
+
+
+ %may be thought of as encoding simultaneously a weak version of both such results.
+ 
+We can quantify the argument given here, providing a rate of convergence to the limiting distribution.  
+ With more effort (in particular taking higher moments in Lemma \ref{lemma2} to obtain better bounds on the exceptional set there) 
+ we can recover previous results in this direction, but have not been able to obtain anything stronger.  We also remark that the argument also gives the joint distribution of $\log |\zeta(\tfrac 12+it)|$ and $\log |\zeta(\tfrac 12+it +i\alpha)|$ (for any fixed non-zero $\alpha \in {\Bbb R}$) and shows that these are distributed like independent Gaussians.  One can allow for more than one shift, and also keep track of the uniformity in $\alpha$.   
+ 
+%Furthermore with a bit more work our argument recovers the same rates of convergence to the Gaussian as obtained by Selberg
+%. The latter requires some small modifications such as taking more moments of $\mathcal{P}_1$ and $\mathcal{P}_2$ 
+%in the proof of Lemma \ref{lemma2} to obtain better bounds for the exceptional set on 
+%which $M(\sigma_0 + it)$ is not close to the Euler product. 
+
+Our proof of Proposition \ref{Prop3} (in Section 4) involved splitting the mollifier $M(s)$ into two factors, or equivalently of the prime sum ${\mathcal P}(s)$ into two pieces.  We would have liked to get away with just one prime sum, but this barely fails.  In order to use Proposition \ref{Prop1} successfully, we are forced to take $W= o(\sqrt{\log \log T})$.   To mollify successfully on the 
+$\frac 12+\frac{W}{\log T}$ line (see Proposition \ref{Prop4}) we need to work with primes going up to roughly $T^{\frac 1W}$.  If $W=o(\sqrt{\log \log T})$ then this length is $T^{A/\sqrt{\log \log T}}$ for a large parameter $A$, and if we try to expand $\exp({\mathcal P}(s))$ into a series (as in Section 4) we will be forced to take more than $\sqrt{\log \log T} $ terms in the exponential series.  This 
+leads to Dirichlet polynomials that are just a little too long.  We resolve this (see Section 4) by splitting ${\mathcal P}$ into two terms, exploiting the fact that the longer sum ${\mathcal P}_2$ has a significantly smaller variance.  
+ 
+
+\begin{comment}
+In our approach the use of a mollifier which splits into a product of two Dirichlet polynomial might seem unnatural. Why not work instead with just one mollifier? If we model the Riemann zeta-function at height $t \asymp T$ by a random Euler product of length $T$ and the mollifier by a random Euler product of length $X$, then we should work on a line $\sigma_0 = 1/2 + W / \log T$ for which, 
+$$
+\mathbb{E} \Big | \prod_{X \leq p \leq T} \Big (1 - \frac{X(p)}{p^{\sigma_0}} \Big )^{-1} - 1 \Big |^2 = o(1)
+$$
+Working out the expectation this implies that $W > \log T / \log X$. Since our Proposition \ref{Prop1} forces us to pick
+$W = o(\sqrt{\log\log T})$ this implies that
+$X > T^{\psi(T) / \sqrt{\log\log T}}$ for some $\psi(T)$ tending to infinity. As a next step we try to approximate
+our mollifier, for almost all $t$, by an actual Euler product $\exp( - \mathcal{P}(s))$ with $\mathcal{P}$ of length 
+$X$. However once $X > T^{1/\log\log T}$ 
+this is not possible: $\mathcal{P}$ will have variance of size $\log\log T$, and therefore requires at least
+$\log\log T$ terms in the expansion of $\exp$, but this forces us to take at least $\log\log T$ moments and
+hence $X$ would have to be smaller than $T^{1/\log\log T}$. This issue is of course resolved by factoring
+the mollifier into a product of two mollifiers. The key point is that $\mathcal{P}_1$ has variance $\log\log T$ and therefore
+the associated mollifier has length smaller than $T^{1/\log\log T}$. As we saw above this is not sufficient to establish Selberg's
+central limit theorem and we make up this loss by introducing another mollifier handling the remaining primes in the range
+up to $T^{1/\log\log\log T}$. Note that importantly the variance of the second Dirichlet polynomial
+is significantly smaller. 
+ \end{comment}
+ 
+ 
+ Propositions \ref{Prop1}, \ref{Prop2}, and \ref{Prop3} in our argument are quite general and analogs may be established for 
+ higher degree $L$-functions in the $t$-aspect.  An analog of Proposition \ref{Prop4} however can at present only be established for $L$-functions of degree $2$ (relying here upon information on the shifted convolution problem), and unknown for degrees $3$ or higher.   However, some hybrid results are possible.   For example, by adapting the techniques in \cite{CIS1, CIS2} we can establish an analog of Proposition \ref{Prop4} for twists of a fixed $GL(3)$ $L$-function by primitive Dirichlet characters with conductor below $Q$.  In this way one can show that as $\chi$ ranges over all primitive Dirichlet characters with conductor below $Q$, and $t$ ranges between $-1$ and $1$, the distribution of $\log |L(\tfrac 12+it, f\times \chi)|$ is approximately normal with mean $0$ and variance $\sim \tfrac 12\log \log Q$; here $f$ is a fixed eigenform on $GL(3)$.  
+ 
+ 
+ Keating and Snaith \cite{KeSn1} have conjectured that central values of $L$-functions in families have a log normal distribution with an appropriate mean and  variance depending on the family.   For example, we may consider the family of quadratic Dirichlet $L$-functions $L(\tfrac 12,\chi_d)$ where $d$ ranges over fundamental discriminants of size $X$.  In this setting, we may carry out the arguments of Propositions \ref{Prop2}, \ref{Prop3} and \ref{Prop4} and conclude that $\log L(\sigma_0,\chi_d)$ has a normal distribution with mean $\sim \tfrac 12\log \log X$ and variance $\sim \log \log X$, provided that $\sigma_0 =\tfrac 12+ \frac{W}{\log X}$ where $W$ is any function with $W\to \infty$ as $X\to \infty$ and with $\log W = o(\log \log X)$.   However in this situation we do not have an analog of Proposition \ref{Prop1} allowing us to pass from this to the central value; indeed, our knowledge at present does not exclude the possibility that $L(\tfrac 12,\chi_d)=0$ for a positive proportion of discriminants $d$.  
+ 
+ Finally we remark that the proof presented here was suggested by earlier work of the authors \cite{RS1}, where general one sided central limit theorems towards the Keating-Snaith conjectures are established.  
+ 
+ \bibliography{Refs}{}
+ \bibliographystyle{plain}  
+\end{document} 
+ 
+ 
+ %This follows upon computing moments of \text{Re}$ {\mathcal P}_0(\sigma_0+it)$.  
+%Indeed let $\Phi(\cdot)$ be a smooth function compactly supported in $[1/2, 5/2]$. Then it's enough to show that for every fixed $k \geq 1$, 
+%$$
+%\int_{\mathbb{R}} \Big (\frac{\Re \mathcal{P}_0(\sigma_0 + it)}{\sqrt{ \tfrac 12 \log\log T}} \Big )^k \cdot \Phi \Big ( \frac{t}{T} \Big ) dt = T (\widehat{\Phi}(0) + o(1))
+%\int_{\mathbb{R}} x^k e^{-x^2/2} \cdot \frac{dx}{\sqrt{2\pi}} 
+%$$
+%as $T \rightarrow \infty$. 
+%For this the following lemma will be useful.
+%\begin{lemma}
+%We have, for primes $p_1, \ldots, p_r$ such that $p_1 \ldots p_r \leq T^{1/2}$, 
+%$$
+%\int_{\mathbb{R}} \prod_{\ell = 1}^{r} \cos(t \log p_\ell) \Phi \Big ( \frac{t}{T} \Big ) dt
+% = T \widehat{\Phi}(0) f(p_1 \ldots p_r) + O_A(T^{-A})
+%$$
+%with $f$ a multiplicative function such that,
+%$$
+%f(p^{\alpha}) = \frac{1}{2^{\alpha}} \binom{\alpha}{\alpha/2}
+%$$
+%\end{lemma}
+\begin{proof}
+Let $p_1 \ldots p_r = q_1^{\alpha_1} \ldots q_{s}^{\alpha_s}$ be the
+prime factorization of $p_1 \ldots p_r$. Then, we re-write our
+initial expression as
+$$
+\int_{\mathbb{R}} \prod_{\ell = 1}^{s} \cos(t \log q_\ell)^{\alpha_{\ell}} \cdot \Phi \Big ( \frac{t}{T} \Big ) dt 
+$$
+Now expand
+$$
+\cos^{\alpha}(t \log p) = \frac{1}{2^{\alpha}} \sum_{k \leq \alpha}
+\binom{\alpha}{k} \exp(it (k - 2 \alpha) \log p)
+$$
+Multiplying all the terms against each other only the terms with
+$k = \alpha/2$ survive, leading to the desired main term, with an error of $O_A(T^{-A})$. 
+\end{proof}
+
+We notice that
+$$
+\int_{\mathbb{R}} x^k \cdot e^{-x^2/2} \cdot \frac{dx}{\sqrt{2\pi}} = \begin{cases}
+0 & , \text{ if } k \text{ is odd} \\
+(k-1)\cdot (k-3) \cdot \ldots \cdot 1 & , \text{ if } k \text{ is even}
+\end{cases}
+$$
+Using the lemma we find that
+$$
+\int_{\mathbb{R}} (\Re \mathcal{P}_0(\sigma_0 + it))^{k} \cdot
+\Phi \Big ( \frac{t}{T} \Big ) dt
+ = T \widehat{\Phi}(0) \sum_{p_1, \ldots, p_k \leq X_2} 
+\frac{f(p_1 \ldots p_{k})}{(p_1 \ldots p_k)^{\sigma_0}} 
++ O_A(T^{-A}) 
+$$
+If there are $i,j,k,\ell$ in the tuple $(p_1, \ldots, p_k)$ such that $p_i = p_j = p_k = p_{\ell}$ then 
+the contribution of such tuples  is
+$$
+\ll_{k} T (\log\log T)^{k/2 - 1}. 
+$$
+(We can assume this bound by induction on $k$). Therefore we work only with tuples for which the $p_i$ group into pairwise equal terms, but not four-wise (or more!). The number of groupings is 
+$$
+2^{k/2} (k/2)! \binom{k}{k/2} = 2^{k/2} \cdot \frac{k!}{(k/2)!}
+$$
+and in addition on each such tuple $f(p_1 \ldots p_k) = 2^{-k}$. 
+Finally each pair $p_i = p_j$ contributes 
+$$
+\sum_{p \leq X_2} \frac{1}{p}
+$$
+to the sum. Therefore the remaining tuples contribute
+$$
+\frac{k!}{2^{k/2} (k/2)!} \cdot (\log\log T)^{k} + O_k((\log\log T)^{k/2 - 1}). 
+$$
+The constant appearing here is another way of expressing the Gaussian moment. 
+
+The proof has two main steps.  First we show that $\zeta(\tfrac 12+it)$ is usually 
+close to $\zeta(\sigma+it)$ if $\sigma$ is near $\tfrac 12$.  Then we determine the 
+distribution of $\log |\zeta(\sigma+it)|$ for a suitable $\sigma>\tfrac 12$.  
+
+We begin with the first step of the argument.  
+
+      
+      In fact, this Proposition applies to any $L$-function (even of large degree).  
+ 
+Let $\sigma_0>\tfrac 12$ be a parameter that we shall choose later.  We shall let $X$ be a very small power of $T$, and 
+$M$ a small positive power of $T$, and put 
+$$ 
+{\mathcal P}(s) = \sum_{2\le n\le X_2} \frac{\Lambda(n)}{n^s\log n},
+$$ 
+and 
+$$ 
+M(s) = \sum_{\substack{p | n \implies p \leq X_1 \\ \Omega(n) \leq W_1}} \frac{\mu(n)}{n^s}
+\sum_{\substack{p | n \implies X_1 < p \leq X_2 \\ \Omega(n) \leq W_2}} \frac{\mu(n)}{n^s}. 
+$$ 
+where $W_1 = 100 \log\log T$, $W_2 = 100 \log\log\log T$, and $X_1 = T^{1/W_1^2}$, $X_2 = T^{1/W_2^2}$. 
+Selberg's Theorem then follows from the following three propositions.  
+
+where for any entire $G(s)$ such that $G(s) = G(-s), G(0) = 1$, 
+\begin{align*}
+V_{\delta, \delta}(x, t)  := \frac{1}{2\pi i} \int_{(2)} \frac{G(s)}{s} \cdot g_{\delta, \delta}(s, t) x^{-s} ds \ , \ 
+g_{\delta, \delta}(s, t)  := \pi^{-s} \cdot \frac{\Gamma \Big ( \frac{\tfrac 12 + \delta + s + it}{2} \Big ) 
+\Gamma \Big ( \frac{\tfrac 12 + \delta + s + it}{2} \Big )}{\Gamma \Big ( \frac{\tfrac 12 + \delta + it}{2}
+\Big ) \Gamma \Big ( \frac{\tfrac 12 + \delta + it}{2} \Big )}
+\end{align*}
+and finally $X_{\delta, \delta}(t) = g_{-\delta, -\delta}(-2\delta, t)$. 
+
+
+Note that by Stirling's formula,
+$$
+g_{\delta, \delta}(s, t) := \Big ( \frac{t}{2\pi} \Big )^{s} \cdot \Big ( 1 + O \Big ( \frac{1 + |s|^2}{1 + |t|} \Big ) \Big ).
+$$ 
+Let $c(n)$ denote the coefficients of $M(s)$. Thus $c(n)$ is the indicator of the integers divisible by
+at most $W_1$ prime factors $< X_1$, and at most $W_2$ prime factors in $[X_1, X_2]$.
+Using the Lemma our main task boils down to understanding, 
+\begin{equation} \label{contour}
+\sum_{h k = m n} \frac{c(h) c(k) V_{\alpha, \alpha}(m n, t)}{h^{1/2 + \delta} k^{1/2 + \delta} m^{1/2 + \alpha} n^{1/2 + \alpha}}
+= \frac{1}{2\pi i} \int_{(\delta - \alpha + 1/\log T)} \frac{G(s)}{s} \cdot g_{\alpha, \alpha}(s, t) F(s) ds
+\end{equation}
+where 
+\begin{equation} \label{series}
+F_{\alpha}(s) := \sum_{h m = k n} 
+\frac{c(h)c(k)}{h^{1/2 + \delta} k^{1/2 + \delta} m^{1/2 + \alpha + s} n^{1/2 + \alpha + s}} 
+= \sum_{n} \frac{1}{n^{1 + 2\delta}} \Big ( \sum_{n = h k} c(h) m^{-\alpha + \delta -s} \Big )^2
+\end{equation}
+and $\alpha \in \{-\delta, \delta\}$. A first simple observation is that if we choose $G(s) = e^{s^2}$ then we can
+truncate the sum at $|\Im s| < W_1$ since $|F(s)| < (\log T)^{100}$. 
+
+Having done that, let us deal with the case of $\alpha = \delta$. Note that in this case the contour in (\ref{contour}) lies on $\Re s = 1/\log T$.  In (\ref{series}) we will think of $h$ as equal to $a b$ with $a,b$ such that $p | a \implies p \leq X_1$
+and $\Omega(a) \leq W_1$ and $p | b \implies X_1 < p \leq X_2$ and $\Omega(b) \leq W_2$. 
+In addition in (\ref{series}) we express $n$ as $a b c$ with $p | a \implies p \leq X_1$, $p | b \implies X_1 < p \leq X_2$
+and $p | c \implies p > X_2$. We will say that $n \in S$ if in addition $\Omega(a) \leq W_1$ and $\Omega(b) \leq W_2$.
+
+If $n = a b c \notin S$ then either 1) $\Omega(a) > W_1$ or 2) $\Omega(a) \leq W_1$ and $\Omega(b)  > W_2$. In the first event
+we take an $\alpha < 2$ and bound the sum by
+\begin{align*}
+\sum_{\substack{n = a b c \\ \Omega(a) > W_1}} \frac{d(n)}{n^{1 + 2 \delta}} & \leq 
+e^{-\alpha W_1} \sum_{n} \frac{d(n) \cdot e^{\alpha \Omega(n)}}{n^{1 + 2 \delta}} 
+\leq (\log T)^{-100 \alpha} \cdot \prod_{p} \Big ( 1 + \sum_{\ell} \frac{(\ell + 1)e^{\alpha \ell}}{p^{\alpha (1 + 2 \delta) \ell}} \Big )
+\\ & \ll (\log T)^{-100 \alpha} \cdot \delta^{-(2 e^{\alpha})} \ll (\log T)^{-50}  \ , \ \alpha = 1
+\end{align*}
+using that $\delta > 1/\log T$. 
+In the second event write $n = n_1 n_2$ with all the prime factors of $n_1$ in $[1, X_1]$ and all
+prime factors of $n_2$ in $[X_1, \infty]$. Using that $\Omega(n_1) \leq W_1$, we notice that 
+$$
+\sum_{n = h m } c(h) m^{-s} = 
+\sum_{\substack{n = a b m \\ p | a \implies p \leq X_1 \\ p | b \implies X_1 < p \leq X_2}} \mu(a) \mu(b)  \mathbf{1}_{\Omega(b) \leq W_2} m^{-s} = f_s(n_1; \leq X_1) \sum_{\substack{n_2 = b m \\ p | b \implies X_1 < p \leq X_2 \\ p | m \implies p > X_1}}
+\mu(b) \mathbf{1}_{\Omega(b) \leq W_1} m^{-s} 
+$$
+with $f_s$ multiplicative, defined as
+$$
+f_s(m; \leq X_1) := \sum_{\substack{m = a b \\ p | a,b \implies p \leq X_1}} \mu(a) b^{-s} \ , \ f_s(p) = \begin{cases}
+p^{-s} - 1 & \text{ for } p \leq X_1 \\ 
+1 & \text{ for } p > X_1
+\end{cases}
+$$
+Therefore the
+contribution from these integers is
+$$
+\ll \sum_{\substack{\Omega(n) > W_2}} \frac{|f_s(n; \leq X_1)|^2 \cdot d(n; \geq X_1)}{n^{1 + 2 \delta}}\ll r^{-100\log \log T} 
+
+$$
+where $d(n; \geq w)$ counts the number of divisors of $n$ composed only of prime factors $> w$.
+Using Chernoff's bound with $\alpha = 1$ the above is
+\begin{align*}
+\ll e^{-\alpha W_2} \prod_{p \leq X_1} \Big ( 1 + \frac{|p^{-s} - 1|^2}{p^{1 + 2 \delta}} \Big ) \prod_{p > X_1} \Big ( 1 + 
+\frac{2}{p^{1 + 2\delta}} \Big ) \ll e^{-\alpha W_2} \cdot (\log\log T)^4 \ll (\log\log T)^{-50}
+\end{align*}
+provided that $|\Im s| < \log T / \log X_1 = W_1^2$. 
+
+On the remaining integers $n \in S$ we have
+$$
+\sum_{n \in S} \frac{1}{n^{1 + 2 \delta}} \cdot \Big ( \sum_{n = h m } c(h) m^{-s} \Big )^2 = \sum_{\substack{n \in S}} \frac{1}{n^{1 + 2\delta}} \Big ( \sum_{\substack{ n = h m \\ p | h \implies p \leq X_2}} \mu(h) m^{-s} \Big )^2 
+$$
+The condition $n \in S$ can be omitted at the price
+of an additional error term $\ll (\log\log T)^{-50}$, so that the above Dirichlet series equals
+$$
+\prod_{p \leq X_1} \Big ( 1 - \frac{1}{p^{1 + 2 \delta}} \Big ) \cdot \zeta(1 + 2\delta + s)  + O((\log\log T)^{-50}). 
+$$
+Therefore
+\begin{align*}
+\frac{1}{2\pi i} \int_{(1/\log T)} \frac{G(s)}{s} \cdot g_{\alpha, \alpha}(s, t) F(s) ds &  = 
+\prod_{p > X_1} \Big ( 1 - \frac{1}{p^{1 + 2\delta}} \Big )^{-1} + O((\log\log T)^{-50}) = 1 + o(1).
+\end{align*}
+Combining this estimate with Lemma \ref{approx} gives the desired main term  $\widehat{\Phi}(0) T (1 + o(1))$. 
+Dealing with the case $\alpha = - \delta$ in (\ref{contour}) is entirely analogous
+with the only difference being that the end result is multiplied by $X_{-\delta, -\delta}(t) = (t/2\pi)^{-2\delta} ( 1 + o(1))$. 
+Because of this repeating the same steps as before gives an error term of $O((\log\log T)^{-49})$ and a ``main term'' of
+$(t/2\pi)^{-2\delta}$ which is absorbed into the error term. 

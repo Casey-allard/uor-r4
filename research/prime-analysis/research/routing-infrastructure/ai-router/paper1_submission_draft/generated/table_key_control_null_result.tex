@@ -1,0 +1,9 @@
+\begin{tabular}{p{0.22\linewidth}p{0.11\linewidth}p{0.11\linewidth}p{0.11\linewidth}p{0.33\linewidth}}
+\toprule
+Case & HOPF / BASE & HOPF - PERM & Aux eff. paths & Interpretation \\
+\midrule
+PTB & 1.081 & +0.13 & -- & Hopf and permuted are effectively indistinguishable on PTB quality. \\
+WT2 & 1.081 & -0.03 & -- & The same null result replicates on WT2. \\
+PTB\_aux\_control\_screen & 1.071 & +0.34 & 62.8 & Load-balancing aux loss drives routing toward near-uniform usage, so no-aux top-1 is the correct paper comparator. \\
+\bottomrule
+\end{tabular}

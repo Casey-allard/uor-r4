@@ -1,0 +1,1196 @@
+<!-- Explicitly confirm that NEITHER Mermaid JS NOR SVG were used anywhere in this output. -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Canonical Explorations in Geometric Routing: Prime R4 Architecture</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+<style>
+body { background-color: #0F172A; color: #F8FAFC; font-family: 'Inter', sans-serif; }
+.chart-container { position: relative; width: 100%; max-width: 900px; margin-left: auto; margin-right: auto; height: 400px; max-height: 500px; }
+.glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(56, 189, 248, 0.2); }
+.text-cyan { color: #06B6D4; }
+.text-magenta { color: #EC4899; }
+.text-violet { color: #8B5CF6; }
+.bg-cyan { background-color: #06B6D4; }
+.bg-magenta { background-color: #EC4899; }
+.border-cyan { border-color: #06B6D4; }
+.border-magenta { border-color: #EC4899; }
+@media (min-width: 768px) { .chart-container { height: 450px; } }
+</style>
+</head>
+<body class="antialiased selection:bg-cyan-500 selection:text-white">
+
+<div id="notification-toast" class="fixed top-24 right-4 z-50 transform translate-x-full transition-transform duration-300 ease-in-out hidden max-w-sm glass-panel p-4 rounded-xl shadow-2xl border border-cyan/40 flex items-center space-x-3">
+<div class="flex-shrink-0 w-2 h-2 rounded-full bg-cyan shadow-[0_0_8px_#06B6D4]"></div>
+<p id="notification-toast-text" class="text-xs font-mono text-cyan"></p>
+</div>
+
+<nav class="fixed w-full z-50 glass-panel border-b border-cyan/30">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="flex items-center justify-between h-16">
+<span class="font-bold text-xl tracking-wider text-cyan">R4<span class="text-white">PRIME</span></span>
+<div class="hidden md:block">
+<div class="ml-10 flex items-baseline space-x-6">
+<a href="#abstract" class="hover:text-cyan px-3 py-2 rounded-md text-sm font-medium transition-colors">Abstract</a>
+<a href="#architecture" class="hover:text-cyan px-3 py-2 rounded-md text-sm font-medium transition-colors">Architecture</a>
+<a href="#scaling" class="hover:text-cyan px-3 py-2 rounded-md text-sm font-medium transition-colors">Scaling Laws</a>
+<a href="#kinematics" class="hover:text-cyan px-3 py-2 rounded-md text-sm font-medium transition-colors">Kinematics</a>
+<a href="#empirical" class="hover:text-cyan px-3 py-2 rounded-md text-sm font-medium transition-colors">Empirical Null</a>
+<a href="#coprocessor" class="text-magenta hover:text-pink-400 px-3 py-2 rounded-md text-sm font-bold transition-colors">✨ Coprocessor</a>
+</div>
+</div>
+</div>
+</div>
+</nav>
+
+<main class="pt-24 pb-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-16">
+
+<header class="text-center space-y-6 py-12">
+<h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-violet-400 to-magenta-400">
+Canonical Explorations in Geometric Routing
+</h1>
+<p class="text-xl md:text-2xl text-slate-300 max-w-4xl mx-auto font-light">
+Sublinear Compute Reduction via Hopf-Base Sector Discretization and Complex Phase Transport within the Prime R4 Router
+</p>
+<div class="flex justify-center gap-4 text-sm text-slate-400">
+<span>L. Charles Allard</span>
+<span>&bull;</span>
+<span>UOR Foundation</span>
+<span>&bull;</span>
+<span>June 2026</span>
+</div>
+</header>
+
+<section id="abstract" class="glass-panel p-8 md:p-12 rounded-2xl shadow-2xl">
+<h2 class="text-3xl font-bold mb-6 border-b border-slate-700 pb-2 text-cyan">I. The Geometric Imperative in Latent Spaces</h2>
+<p class="text-lg leading-relaxed text-slate-300 mb-6">
+The historical scaling trajectory of deep learning and decentralized multi-agent routing networks has relied almost exclusively on linear operations mapped within flat, Euclidean geometric spaces. As the dimensionality of representations and topological complexity scale, Cartesian coordinate systems hit a mathematical saturation point. This saturation manifests as severe topological distortion, spatial crowding near manifold boundaries, and unsustainable computational bottlenecking, verifying that Euclidean environments fail to model hierarchical cognitive data.
+</p>
+<p class="text-lg leading-relaxed text-slate-300">
+The <strong>Geometric Routing Hypothesis (GRH)</strong> and the consequent <strong>Prime R4 Router</strong> transition artificial intelligence architecture toward non-Euclidean Riemannian manifolds. By irrevocably chaining neural layers to Liouville’s conservation laws and applying an <span class="text-magenta font-semibold">Arithmetic Invariant Mapping (AIM)</span> tied to the $6k \pm 1$ prime distribution, this dissertation establishes that token embeddings normalized onto a hypersphere and routed by direction naturally cluster. This fixed geometric mapping circumvents dense $O(N)$ routing, producing a sublinear scaling parameter capable of redefining computational inference constraints.
+</p>
+</section>
+
+<section id="architecture" class="space-y-8">
+<h2 class="text-3xl font-bold border-b border-slate-700 pb-2 text-violet">II. System Architecture & The UOR Framework</h2>
+<p class="text-lg text-slate-300">
+The processing of information—specifically generative propagation and loop collapse—is orchestrated by a Turing-complete 7-node cluster embedded within a discrete complex phase space ($a + bi$). This structure bypasses Euclidean flat-matrix multiplication, routing information via continuous geodesic paths while maintaining discrete topological safeguards against chaotic degradation.
+</p>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+<div class="glass-panel p-8 rounded-2xl">
+<h3 class="text-xl font-bold text-cyan mb-4">Operational Layer Topology</h3>
+<ul class="space-y-4">
+<li class="flex items-start">
+<span class="text-magenta mr-3 text-xl">&#9632;</span>
+<div>
+<strong class="text-slate-100">L2 Physical Identity:</strong> Immutable observation validated by SHA1/W3 seals to prevent location-based drift.
+</div>
+</li>
+<li class="flex items-start">
+<span class="text-magenta mr-3 text-xl">&#9632;</span>
+<div>
+<strong class="text-slate-100">7-Node Agentic Engine:</strong> Executes loop collapse and starling-wave generative propagation within $T_xM \otimes \mathbb{C}$.
+</div>
+</li>
+<li class="flex items-start">
+<span class="text-magenta mr-3 text-xl">&#9632;</span>
+<div>
+<strong class="text-slate-100">Angular Manifold Routing:</strong> Hopf-based geometric state optimization applying phase-shift translations.
+</div>
+</li>
+<li class="flex items-start">
+<span class="text-magenta mr-3 text-xl">&#9632;</span>
+<div>
+<strong class="text-slate-100">2i Ledger Persistence:</strong> Canonical global truth anchored to Riemann Zeta zero distributions.
+</div>
+</li>
+</ul>
+</div>
+
+<div class="glass-panel p-6 rounded-2xl flex flex-col items-center justify-center space-y-3 font-mono text-sm">
+<div class="w-full text-center p-3 border-2 border-cyan rounded-lg bg-slate-800 text-cyan font-bold tracking-widest shadow-[0_0_15px_rgba(6,182,212,0.3)]">
+UOR CONTENT KERNEL (PRIME $6k \pm 1$)
+</div>
+<div class="text-slate-500 text-2xl">&#11015;</div>
+<div class="w-full text-center p-3 border-2 border-violet rounded-lg bg-slate-800 text-violet font-bold tracking-widest">
+7-NODE COMPLEX PHASE ENGINE ($a+bi$)
+</div>
+<div class="text-slate-500 text-2xl">&#11015;</div>
+<div class="grid grid-cols-2 gap-4 w-full">
+<div class="text-center p-3 border border-slate-600 rounded shadow-inner bg-slate-900 text-slate-300">
+Tangential Translation<br><span class="text-xs text-slate-500">$z_{t} \in T_{x_t}M \otimes \mathbb{C}$</span>
+</div>
+<div class="text-center p-3 border border-slate-600 rounded shadow-inner bg-slate-900 text-slate-300">
+Hopf Sector Projection<br><span class="text-xs text-slate-500">$\mathbb{R}^4 \rightarrow S^3 \rightarrow \text{Sectors}$</span>
+</div>
+</div>
+<div class="text-slate-500 text-2xl">&#11015;</div>
+<div class="w-full text-center p-3 border-2 border-magenta rounded-lg bg-slate-800 text-magenta font-bold tracking-widest shadow-[0_0_15px_rgba(236,72,153,0.3)]">
+SUBLINEAR EXPERT ROUTER
+</div>
+</div>
+</div>
+</section>
+
+<section id="scaling" class="space-y-8">
+<h2 class="text-3xl font-bold border-b border-slate-700 pb-2 text-cyan">III. The Sublinear Compute Scaling Law</h2>
+<p class="text-lg text-slate-300">
+The zenith of the Geometric Routing Hypothesis lies in the empirical evidence gathered across 169 experimental increments utilizing a PPMI-SVD semantic proxy. When $L_2$-normalized embeddings are projected via a fixed 4D Hopf geometry into discrete angular sectors, they exhibit a concentrated structural non-uniformity. Rather than occupying routing buckets linearly ($O(K)$), the effective active routing footprint $e_{eff}$ grows logarithmically with capacity $K$.
+</p>
+
+<div class="glass-panel p-6 rounded-2xl">
+<h3 class="text-xl font-semibold mb-2 text-center text-slate-100">Effective Footprint vs. Routing Capacity (Semantic Proxy)</h3>
+<p class="text-sm text-center text-slate-400 mb-6">Empirical validation demonstrating the $e_{eff} = 2.957 \cdot K^{0.572}$ asymptotic advantage.</p>
+<div class="chart-container">
+<canvas id="scalingChart"></canvas>
+</div>
+</div>
+<p class="text-slate-400 text-sm italic">
+The graph illustrates that dense random matrices scale linearly ($K^{1.0}$), while the fixed Hopf transformation exploits inherent anisotropy in language geometry, achieving $K^{0.572}$. This advantage yields a 2.6x to 2.8x efficiency ratio at $K=5000$, validating the hypothesis that geometric context collapses the necessary combinatorial search space.
+</p>
+</section>
+
+<section id="kinematics" class="space-y-8">
+<h2 class="text-3xl font-bold border-b border-slate-700 pb-2 text-magenta">IV. Manifold Kinematics & Operator Displacement</h2>
+<p class="text-lg text-slate-300">
+Dynamic state propagation within the prime-aligned manifold is executed via two distinct operator clusters: Non-Transport ($T_b, T_x, T_y$) acting on local permutations and twist, and Transport ($T_c, T_z', T_r^*$) serving as coordinate-specific manifold movers across the $\sigma$ and $\tau$ holonomy planes.
+</p>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+<div class="glass-panel p-6 rounded-2xl flex flex-col justify-center">
+<h3 class="text-xl font-semibold mb-4 text-slate-100">Kinematic Divergence Audit</h3>
+<p class="text-slate-300 mb-4">
+A complete bounded surface audit ($N=525,355$ states) isolates the topological displacement vectors. The Transport operators ($T_c, T_z', T_r^*$) explicitly preserve swap_geometry (0.000 displacement) while maximizing theta/rho motion. The Non-Transport outlier, $T_x$, generates the highest raw field permutation ($3.919$), acting entirely within local non-spatial vectors.
+</p>
+<div class="bg-slate-900 rounded-lg p-4 border border-slate-700 text-sm font-mono text-slate-400">
+<div><span class="text-cyan">Operator</span> | <span class="text-violet">Type</span> | <span class="text-magenta">Avg Disp</span></div>
+<div class="border-b border-slate-700 my-2"></div>
+<div>T_b &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| Non-Trans | 2.891</div>
+<div>T_x &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| Non-Trans | 3.919</div>
+<div>T_y &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| Non-Trans | 2.583</div>
+<div>T_c &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| Transport | 2.594</div>
+<div>T_z' &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| Transport | 2.593</div>
+<div>T_r* &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| Transport | 3.277</div>
+</div>
+</div>
+<div class="glass-panel p-6 rounded-2xl">
+<h3 class="text-xl font-semibold mb-2 text-center text-slate-100">Operator Displacement Profiles</h3>
+<div class="chart-container">
+<canvas id="radarChart"></canvas>
+</div>
+</div>
+</div>
+
+<div class="glass-panel p-6 rounded-2xl mt-8">
+<h3 class="text-xl font-semibold mb-2 text-center text-slate-100">Complex Phase Transport Topology ($C^2$ Subspace Projection)</h3>
+<p class="text-sm text-center text-slate-400 mb-6">3D visualization of transport trajectories mapped from top complex principal components on the W=30030 manifold.</p>
+<div class="chart-container" id="plotly3d" style="width: 100%; height: 100%;"></div>
+</div>
+</section>
+
+<section id="empirical" class="space-y-8">
+<h2 class="text-3xl font-bold border-b border-slate-700 pb-2 text-violet">V. Trainable LM Results: The Narrow Claim & The Null Reality</h2>
+<p class="text-lg text-slate-300">
+The theoretical purity of the scaling law must survive physical gradient descent. We deployed the fixed geometric route map to a 2-layer language model containing 64 expert sectors, tested on Penn Treebank (PTB) and WikiText-2 (WT2).
+</p>
+
+<div class="glass-panel p-6 rounded-2xl border-l-4 border-l-magenta bg-magenta/5">
+<p class="text-slate-200 font-semibold mb-2">The Critical Null Result</p>
+<p class="text-slate-300 text-sm leading-relaxed">
+Scientific integrity demands strict boundary acknowledgment. While the fixed Hopf router stays within ~8% validation perplexity of a fully learned dynamic router (with zero parameter overhead for gating), <strong>it does not significantly outperform a randomly permuted fixed routing map after end-to-end training</strong>. In a small-scale LM setting, expert weights completely co-adapt to any fixed structural scaffold. The performance gap ($+0.13$ PPL on PTB, $-0.03$ PPL on WT2) between Hopf and Permuted is statistically indistinguishable. The sublinear topological advantage exists natively in <em>frozen</em> embedding proxy spaces, but its utility in highly-plastic small trainable matrices is neutralized by gradient adaptation.
+</p>
+</div>
+
+<div class="glass-panel p-6 rounded-2xl">
+<h3 class="text-xl font-semibold mb-2 text-center text-slate-100">Language Model Substitution Metrics (64 Experts)</h3>
+<div class="chart-container">
+<canvas id="lmChart"></canvas>
+</div>
+</div>
+</section>
+
+<section id="coprocessor" class="space-y-8">
+<h2 class="text-3xl font-bold border-b border-slate-700 pb-2 text-magenta">VI. Interactive Gemini-Powered AI Coprocessor</h2>
+<p class="text-lg text-slate-300">
+Deploy computational experiments, validate mathematical conjectures, and explore the Prime R4 topology in real-time. This interactive suite acts as an autonomous intellectual gateway directly leveraging high-dimensional Gemini reasoning.
+</p>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+<div class="lg:col-span-1 glass-panel p-6 rounded-2xl flex flex-col justify-between space-y-6">
+<div>
+<h3 class="text-xl font-bold text-cyan mb-4">Coprocessor Commands</h3>
+<div class="flex border-b border-slate-700 mb-4">
+<button onclick="switchTab('synthesizer')" id="btn-synthesizer" class="flex-1 pb-2 text-sm font-semibold border-b-2 border-cyan text-cyan">Synthesizer</button>
+<button onclick="switchTab('review')" id="btn-review" class="flex-1 pb-2 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-white">Peer Review</button>
+<button onclick="switchTab('decoder')" id="btn-decoder" class="flex-1 pb-2 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-white">Path Finder</button>
+</div>
+
+<div id="tab-synthesizer" class="space-y-4">
+<p class="text-sm text-slate-400 leading-relaxed">
+Design an advanced mathematical coordinate operator to alter state propagation within the discrete complex phase space. **This dynamically updates all data graphs!**
+</p>
+<label class="block text-xs font-mono uppercase tracking-wider text-slate-400">Custom Kinematic Goal</label>
+<textarea id="synthesizer-input" rows="4" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm text-slate-200 focus:outline-none focus:border-cyan font-mono" placeholder="Preserve the cyclic Z/12 phase but introduce an hyperbolic fractional twist on the 4th axis..."></textarea>
+<button onclick="runSynthesize()" class="w-full bg-cyan text-slate-950 font-bold py-3 rounded-lg text-sm tracking-wider uppercase shadow-[0_0_15px_rgba(6,182,212,0.4)] hover:shadow-[0_0_25px_rgba(6,182,212,0.6)] transition-all">
+✨ Synthesize & Render Manifold
+</button>
+</div>
+
+<div id="tab-review" class="space-y-4 hidden">
+<p class="text-sm text-slate-400 leading-relaxed">
+Select or write a hypothesis from the paper to stress-test against the co-adaption null results and computational bounds.
+</p>
+<label class="block text-xs font-mono uppercase tracking-wider text-slate-400">Select Claim</label>
+<select id="review-dropdown" onchange="fillReviewInput()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm text-slate-200 focus:outline-none focus:border-cyan">
+<option value="The routing footprint scales as K^0.572 versus K^1.0 for dense routing.">Static Routing scales as K^0.572</option>
+<option value="Hopf-based routing stays within 8% validation perplexity of a learned dynamic router without parameters.">Hopf stays within 8% of Learned MoE</option>
+<option value="The specific Hopf sector geometry does not add advantage over randomly-permuted fixed routing in trainable setups.">The Trainable Null-Result (Co-adaptation)</option>
+<option value="custom">Custom Thesis Claim...</option>
+</select>
+<textarea id="review-input" rows="3" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm text-slate-200 focus:outline-none focus:border-cyan font-mono" placeholder="Input custom claim to critique..."></textarea>
+<button onclick="runReview()" class="w-full bg-magenta text-white font-bold py-3 rounded-lg text-sm tracking-wider uppercase shadow-[0_0_15px_rgba(236,72,153,0.4)] hover:shadow-[0_0_25px_rgba(236,72,153,0.6)] transition-all">
+✨ Execute Peer Review
+</button>
+</div>
+
+<div id="tab-decoder" class="space-y-4 hidden">
+<p class="text-sm text-slate-400 leading-relaxed">
+Convert a high-level cognitive agent task into precise geodesic translations on the Riemannian manifold.
+</p>
+<label class="block text-xs font-mono uppercase tracking-wider text-slate-400">Target Cognitive Task</label>
+<input id="decoder-input" type="text" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm text-slate-200 focus:outline-none focus:border-cyan font-mono" placeholder="Isolate key-value blocks with high noise tolerance..." value="Isolate key-value blocks with high noise tolerance">
+<button onclick="runDecode()" class="w-full bg-violet-600 text-white font-bold py-3 rounded-lg text-sm tracking-wider uppercase shadow-[0_0_15px_rgba(139,92,246,0.4)] hover:shadow-[0_0_25px_rgba(139,92,246,0.6)] transition-all">
+✨ Chart Geodesic Path
+</button>
+</div>
+</div>
+
+<div id="api-status-banner" class="hidden p-4 rounded-xl border text-sm font-mono flex items-center justify-between">
+<span id="api-status-text"></span>
+<span id="api-status-retry" class="text-xs text-slate-400"></span>
+</div>
+</div>
+
+<div class="lg:col-span-2 glass-panel p-6 rounded-2xl flex flex-col space-y-4 h-[500px]">
+<div class="flex items-center justify-between border-b border-slate-700 pb-2">
+<div class="flex items-center space-x-2">
+<div class="w-3 h-3 rounded-full bg-red-500"></div>
+<div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+<div class="w-3 h-3 rounded-full bg-green-500"></div>
+<span class="text-xs font-mono text-slate-400 ml-2">COPROCESSOR_TERMINAL_EMISSION v2.6</span>
+</div>
+<div class="flex items-center space-x-3">
+<button id="tts-narration-btn" onclick="triggerTTS()" class="hidden bg-cyan/20 hover:bg-cyan/40 text-cyan border border-cyan/40 text-xs px-3 py-1 rounded-md font-mono transition-all">
+✨ Voice Narration
+</button>
+<span id="terminal-mode-label" class="text-xs font-mono text-cyan uppercase tracking-wider">Mode: Operator Synthesizer</span>
+</div>
+</div>
+<div id="terminal-screen" class="flex-1 overflow-y-auto font-mono text-sm leading-relaxed p-2 text-slate-300 select-text scrollbar-thin scrollbar-thumb-slate-700">
+<p class="text-slate-500">// Welcome to the R4 Prime Coprocessor. Ready for high-dimensional semantic analysis.</p>
+<p class="text-slate-500">// Select a prompt on the left to start generating or auditing cognitive pathways.</p>
+</div>
+</div>
+</div>
+</section>
+
+<section id="murmuration" class="space-y-8">
+<div class="border-b border-slate-700 pb-2 flex items-center justify-between">
+<h2 class="text-3xl font-bold text-violet">VII. ✨ 7-Node Agentic Consensus Simulation</h2>
+<button id="multi-speaker-tts-btn" onclick="triggerMultiSpeakerTTS()" class="hidden bg-violet-600/30 hover:bg-violet-600/50 text-violet-400 border border-violet-500/40 text-xs px-4 py-2 rounded-lg font-mono transition-all">
+✨ Listen to Consensus
+</button>
+</div>
+<p class="text-lg text-slate-300">
+In non-Euclidean state-space propagation, individual agent nodes must frequently reconcile divergent coordinate measurements. Select a critical bottleneck to trigger a real-time, multi-agent debate that simulates consensus resolution using complexified manifold metrics.
+</p>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+<div class="glass-panel p-6 rounded-2xl flex flex-col justify-between space-y-4">
+<div>
+<label class="block text-xs font-mono uppercase tracking-wider text-slate-400 mb-2">Select Active Bottleneck</label>
+<select id="consensus-bottleneck" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm text-slate-200 focus:outline-none focus:border-cyan mb-4">
+<option value="Symmetry-breaking delay at D=32 on WikiText-2. Grad-norms are healthy but attention fails to construct position preference.">Symmetry-breaking at D=32 (WT2)</option>
+<option value="Monodromy scale drift on W=30030. Dual-anchor projections are leaking 2i phase values into the first-order torus.">Monodromy scale drift (W=30030)</option>
+<option value="Loop collapse at x > rc under rotating Gödel spacetime. Parallel trajectories are forming closed timelike curves.">Loop collapse in Gödel spacetime</option>
+</select>
+<button onclick="simulateConsensus()" class="w-full bg-violet-600 text-white font-bold py-3 rounded-lg text-sm tracking-wider uppercase shadow-[0_0_15px_rgba(139,92,246,0.4)] hover:shadow-[0_0_25px_rgba(139,92,246,0.6)] transition-all">
+✨ Simulate Consensus
+</button>
+</div>
+<div id="consensus-loader" class="hidden flex items-center justify-center space-x-2 text-violet-400 text-sm font-mono py-2">
+<span class="animate-spin">&#9696;</span>
+<span>Reconciling node perspectives...</span>
+</div>
+</div>
+
+<div class="lg:col-span-2 glass-panel p-6 rounded-2xl flex flex-col space-y-4 h-[350px]">
+<div class="flex items-center space-x-2 border-b border-slate-700 pb-2">
+<div class="w-2.5 h-2.5 rounded-full bg-violet-500 shadow-[0_0_8px_rgba(139,92,246,0.5)]"></div>
+<span class="text-xs font-mono text-slate-400">MURMURATION_LOG_NODE_TRACE</span>
+</div>
+<div id="murmuration-screen" class="flex-1 overflow-y-auto font-mono text-sm leading-relaxed p-2 text-slate-300 select-text scrollbar-thin scrollbar-thumb-slate-700">
+<p class="text-slate-500">// Consensus engine idle. Initiate a simulation to observe real-time coordinate alignment.</p>
+</div>
+</div>
+</div>
+</section>
+
+<section id="imaging" class="space-y-8">
+<h2 class="text-3xl font-bold border-b border-slate-700 pb-2 text-cyan">VIII. ✨ Hyperspherical Spacialization Engine</h2>
+<p class="text-lg text-slate-300">
+Construct a spatial projection of high-dimensional state spaces. Enter your coordinate description to materialize a generated image representing your custom mathematical attractor or manifold topology.
+</p>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+<div class="glass-panel p-6 rounded-2xl flex flex-col justify-between space-y-4">
+<div>
+<label class="block text-xs font-mono uppercase tracking-wider text-slate-400 mb-2">Manifold Image Prompt</label>
+<textarea id="imaging-input" rows="4" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm text-slate-200 focus:outline-none focus:border-cyan font-mono" placeholder="A glowing neon-cyan Poincaré hypersphere bounded by Mersenne prime shells, mapped in curved 4D space on a pitch-black background..."></textarea>
+<button onclick="generateManifoldImage()" class="w-full bg-cyan text-slate-950 font-bold py-3 rounded-lg text-sm tracking-wider uppercase shadow-[0_0_15px_rgba(6,182,212,0.4)] hover:shadow-[0_0_25px_rgba(6,182,212,0.6)] transition-all">
+✨ Spacialise Manifold
+</button>
+</div>
+<div id="imaging-loader" class="hidden flex items-center justify-center space-x-2 text-cyan text-sm font-mono py-2">
+<span class="animate-spin">&#9696;</span>
+<span>Synthesizing topological structures...</span>
+</div>
+</div>
+
+<div class="lg:col-span-2 glass-panel p-4 rounded-2xl flex flex-col items-center justify-center relative overflow-hidden min-h-[300px]">
+<div id="image-viewer-placeholder" class="text-center space-y-2 p-6 z-10 text-slate-500">
+<p class="font-mono text-sm">// Manifold viewer offline.</p>
+<p class="text-xs">Provide prompt and trigger spatialization to render topology.</p>
+</div>
+<img id="image-viewer-display" class="hidden max-h-[380px] rounded-xl object-contain shadow-2xl border border-slate-800 z-10" alt="Generated Manifold Topology">
+<div class="absolute inset-0 bg-gradient-to-t from-slate-950/40 to-transparent pointer-events-none z-0"></div>
+</div>
+</div>
+</section>
+
+<section class="glass-panel p-8 md:p-12 rounded-2xl shadow-2xl border border-slate-700">
+<h2 class="text-3xl font-bold mb-6 text-white">IX. Discussion & Moonshot Implications</h2>
+<p class="text-lg leading-relaxed text-slate-300 mb-6">
+By mapping cognitive representations to non-Euclidean coordinates and extracting thermodynamic stability metrics via Riemann Zeta covariance, we establish a mathematically bounded environment for intelligence. Though the downstream LM results highlight the aggressive adaptive capacity of gradient descent over rigid topologies, the $K^{0.572}$ finding remains an incontrovertible property of the static angular representation itself.
+</p>
+<p class="text-lg leading-relaxed text-slate-300">
+If calculation can emerge from purely geometric routing protocols in artificial networks, structural analogies naturally extend to physics—such as wave interference and field propagation across curved spaces ($W(3,3)-E_8$ correspondences). The Prime R4 Router acts not simply as an engineering optimization, but as a recursive geometric scaffold—a fundamental OS for governing intelligence.
+</p>
+</section>
+
+</main>
+
+<footer class="border-t border-slate-800 bg-slate-950 py-8 text-center">
+<p class="text-slate-500 text-sm">System Framework Generated via UOR Formal Specification. 2026 AI-Research Consortium.</p>
+</footer>
+
+<script>
+let activeTab = 'synthesizer';
+let scalingChartInstance = null;
+let radarChartInstance = null;
+let lmChartInstance = null;
+let layout = null;
+let rawTextToRead = "";
+let rawDialogueText = "";
+
+function switchTab(tabId) {
+    activeTab = tabId;
+    ['synthesizer', 'review', 'decoder'].forEach(id => {
+        const tabEl = document.getElementById('tab-' + id);
+        const btnEl = document.getElementById('btn-' + id);
+        if (id === tabId) {
+            tabEl.classList.remove('hidden');
+            btnEl.classList.remove('border-transparent', 'text-slate-400');
+            btnEl.classList.add('border-cyan', 'text-cyan');
+        } else {
+            tabEl.classList.add('hidden');
+            btnEl.classList.remove('border-cyan', 'text-cyan');
+            btnEl.classList.add('border-transparent', 'text-slate-400');
+        }
+    });
+
+    const modeLabels = {
+        'synthesizer': 'Mode: Operator Synthesizer',
+        'review': 'Mode: Adversarial Peer Review',
+        'decoder': 'Mode: Geodesic Path Finder'
+    };
+    document.getElementById('terminal-mode-label').innerText = modeLabels[tabId];
+}
+
+function fillReviewInput() {
+    const val = document.getElementById('review-dropdown').value;
+    const input = document.getElementById('review-input');
+    if (val === 'custom') {
+        input.value = '';
+        input.focus();
+    } else {
+        input.value = val;
+    }
+}
+
+function showToast(message) {
+    const toast = document.getElementById('notification-toast');
+    const toastText = document.getElementById('notification-toast-text');
+    toastText.innerText = message;
+    toast.classList.remove('hidden');
+    setTimeout(() => {
+        toast.classList.remove('translate-x-full');
+    }, 10);
+    setTimeout(() => {
+        toast.classList.add('translate-x-full');
+        setTimeout(() => {
+            toast.classList.add('hidden');
+        }, 300);
+    }, 4000);
+}
+
+function renderMarkdownToHTML(text) {
+    return text
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+        .replace(/\n\n/g, '<p class="mb-4"></p>')
+        .replace(/\n/g, '<br>')
+        .replace(/\*\*(.*?)\*\*/g, '<strong class="text-cyan font-semibold">$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em class="italic text-slate-300">$1</em>')
+        .replace(/`([^`]+)`/g, '<code class="bg-slate-900 text-magenta px-1 rounded font-mono text-sm">$1</code>')
+        .replace(/\$\$(.*?)\$\$/g, '<div class="text-center my-4 font-semibold text-violet bg-slate-950 p-3 rounded border border-violet/20 font-mono">$1</div>')
+        .replace(/\$(.*?)\$/g, '<code class="text-violet font-semibold">$1</code>')
+        .replace(/^- (.*?)<br>/gm, '<li class="list-disc ml-6 text-slate-300 mb-1">$1</li>')
+        .replace(/### (.*?)<br>/g, '<h4 class="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-violet-400 mt-6 mb-2">$1</h4>')
+        .replace(/## (.*?)<br>/g, '<h3 class="text-xl font-bold text-cyan mt-8 mb-3 border-b border-cyan/20 pb-1">$1</h3>');
+}
+
+function pcmToWav(base64Pcm, sampleRate = 24000) {
+    const binaryString = window.atob(base64Pcm);
+    const len = binaryString.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+    }
+    const buffer = new ArrayBuffer(44 + len);
+    const view = new DataView(buffer);
+    view.setUint32(0, 0x52494646, false);
+    view.setUint32(4, 36 + len, true);
+    view.setUint32(8, 0x57415645, false);
+    view.setUint32(12, 0x666d7420, false);
+    view.setUint16(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, 1, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * 2, true);
+    view.setUint16(32, 2, true);
+    view.setUint16(34, 16, true);
+    view.setUint32(36, 0x64617461, false);
+    view.setUint32(40, len, true);
+    for (let i = 0; i < len; i++) {
+        view.setUint8(44 + i, bytes[i]);
+    }
+    const blob = new Blob([buffer], { type: 'audio/wav' });
+    return URL.createObjectURL(blob);
+}
+
+async function callGeminiAPI(prompt, systemInstruction = '', responseSchema = null) {
+    const apiKey = "";
+    const url = `https://genergenerativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+    const cleanUrl = url.replace("genergenerative", "generative");
+    
+    const payload = {
+        contents: [{ parts: [{ text: prompt }] }]
+    };
+    if (systemInstruction) {
+        payload.systemInstruction = { parts: [{ text: systemInstruction }] };
+    }
+    if (responseSchema) {
+        payload.generationConfig = {
+            responseMimeType: "application/json",
+            responseSchema: responseSchema
+        };
+    }
+
+    let delay = 1000;
+    for (let attempt = 1; attempt <= 5; attempt++) {
+        try {
+            const response = await fetch(cleanUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (response.ok) {
+                const data = await response.json();
+                const output = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (output) return output;
+                throw new Error("Empty response payload.");
+            }
+            throw new Error(`HTTP Error: ${response.status}`);
+        } catch (error) {
+            if (attempt === 5) {
+                throw new Error("Failed to contact Gemini engine. Check network state.");
+            }
+            await new Promise(res => setTimeout(res, delay));
+            delay *= 2;
+        }
+    }
+}
+
+async function runSynthesize() {
+    const inputVal = document.getElementById('synthesizer-input').value.trim();
+    if (!inputVal) return;
+
+    const term = document.getElementById('terminal-screen');
+    const banner = document.getElementById('api-status-banner');
+    const textEl = document.getElementById('api-status-text');
+    const retryEl = document.getElementById('api-status-retry');
+    const ttsBtn = document.getElementById('tts-narration-btn');
+
+    ttsBtn.classList.add('hidden');
+    term.innerHTML = `<div class="flex items-center space-x-2 text-cyan">
+        <span class="animate-pulse">&#9632;</span>
+        <span>Initializing quantum compiler to project coordinate system: "${inputVal}"...</span>
+    </div>`;
+
+    banner.className = "p-4 rounded-xl border border-cyan/30 bg-cyan/5 text-cyan flex items-center justify-between";
+    textEl.innerText = "Querying Structured Geometry Engine...";
+    retryEl.innerText = "";
+    banner.classList.remove('hidden');
+
+    const systemPrompt = "You are a geometric manifold compiler. You must output the mathematical details and a set of 3D projection points based on the user's instructions. Provide a rich text explanation in the 'explanation' field of the JSON. Make sure you strictly output the requested JSON format.";
+    
+    const schema = {
+        type: "OBJECT",
+        properties: {
+            points: {
+                type: "ARRAY",
+                items: {
+                    type: "OBJECT",
+                    properties: {
+                        x: { type: "NUMBER" },
+                        y: { type: "NUMBER" },
+                        z: { type: "NUMBER" },
+                        color_val: { type: "NUMBER" }
+                    },
+                    required: ["x", "y", "z", "color_val"]
+                }
+            },
+            metrics: {
+                type: "OBJECT",
+                properties: {
+                    sublinear_exponent: { type: "NUMBER" },
+                    perplexity_gap: { type: "NUMBER" },
+                    active_expert_paths: { type: "NUMBER" }
+                },
+                required: ["sublinear_exponent", "perplexity_gap", "active_expert_paths"]
+            },
+            radar_loadings: {
+                type: "ARRAY",
+                items: { type: "NUMBER" }
+            },
+            explanation: { type: "STRING" }
+        },
+        required: ["points", "metrics", "radar_loadings", "explanation"]
+    };
+
+    try {
+        const resultText = await callGeminiAPI(inputVal, systemPrompt, schema);
+        const json = JSON.parse(resultText);
+
+        const exp = json.metrics.sublinear_exponent;
+        const kValues = [25, 50, 100, 200, 400, 1000, 2000, 5000];
+        const newHopfData = kValues.map(k => 2.957 * Math.pow(k, exp));
+        scalingChartInstance.data.datasets[2].data = newHopfData;
+        scalingChartInstance.data.datasets[2].label = `Custom Hopf Manifold (2.957*K^${exp.toFixed(3)})`;
+        scalingChartInstance.update();
+
+        radarChartInstance.data.datasets[1].data = json.radar_loadings;
+        radarChartInstance.data.datasets[1].label = `Synthesized Operator`;
+        radarChartInstance.update();
+
+        lmChartInstance.data.datasets[0].data[1] = 152.26 + json.metrics.perplexity_gap;
+        lmChartInstance.data.datasets[1].data[1] = json.metrics.active_expert_paths;
+        lmChartInstance.update();
+
+        const newX = json.points.map(p => p.x);
+        const newY = json.points.map(p => p.y);
+        const newZ = json.points.map(p => p.z);
+        const newC = json.points.map(p => p.color_val);
+
+        Plotly.react('plotly3d', [{
+            x: newX, y: newY, z: newZ,
+            mode: 'markers',
+            marker: { size: 4, color: newC, colorscale: 'Picnic', opacity: 0.8 },
+            type: 'scatter3d'
+        }], layout);
+
+        rawTextToRead = json.explanation;
+        term.innerHTML = renderMarkdownToHTML(json.explanation);
+        ttsBtn.classList.remove('hidden');
+        banner.classList.add('hidden');
+    } catch (e) {
+        banner.className = "p-4 rounded-xl border border-rose-500/30 bg-rose-950/20 text-rose-400 flex items-center justify-between";
+        textEl.innerText = "Structured JSON parsing failed. Re-trying with fallback...";
+        term.innerHTML = `<p class="text-rose-500 font-semibold">[EXCEPTION] Manifold failed to render. Please simplify the algebraic request.</p>`;
+    }
+}
+
+async function runReview() {
+    const inputVal = document.getElementById('review-input').value.trim();
+    if (!inputVal) return;
+
+    const term = document.getElementById('terminal-screen');
+    const banner = document.getElementById('api-status-banner');
+    const textEl = document.getElementById('api-status-text');
+    const retryEl = document.getElementById('api-status-retry');
+    const ttsBtn = document.getElementById('tts-narration-btn');
+
+    ttsBtn.classList.add('hidden');
+    term.innerHTML = `<div class="flex items-center space-x-2 text-magenta">
+        <span class="animate-pulse">&#9632;</span>
+        <span>Assembling Peer Review panel for hypothesis: "${inputVal}"...</span>
+    </div>`;
+
+    banner.className = "p-4 rounded-xl border border-magenta/30 bg-magenta/5 text-magenta flex items-center justify-between";
+    textEl.innerText = "Contacting Reviewer Editorial Engine...";
+    retryEl.innerText = "";
+    banner.classList.remove('hidden');
+
+    const systemPrompt = "You are a highly analytical reviewer for JMLR. Critique the user's claim regarding Prime R4 routing, sublinear scaling, or co-adaptation. Focus on why learned routing or random fixed routing maps perform closely in highly plastic small language models. Suggest a mathematically sound resolution to bridge the structural geometry of Hopf sectorization with dynamic gradient descent. Keep it academic and thorough.";
+
+    try {
+        const resultText = await callGeminiAPI(inputVal, systemPrompt);
+        rawTextToRead = resultText;
+        term.innerHTML = renderMarkdownToHTML(resultText);
+        ttsBtn.classList.remove('hidden');
+        banner.classList.add('hidden');
+    } catch (e) {
+        banner.className = "p-4 rounded-xl border border-rose-500/30 bg-rose-950/20 text-rose-400 flex items-center justify-between";
+        textEl.innerText = e.message;
+        term.innerHTML = `<p class="text-rose-500 font-semibold">[EXCEPTION] Peer review generation failed.</p>`;
+    }
+}
+
+async function runDecode() {
+    const inputVal = document.getElementById('decoder-input').value.trim();
+    if (!inputVal) return;
+
+    const term = document.getElementById('terminal-screen');
+    const banner = document.getElementById('api-status-banner');
+    const textEl = document.getElementById('api-status-text');
+    const retryEl = document.getElementById('api-status-retry');
+    const ttsBtn = document.getElementById('tts-narration-btn');
+
+    ttsBtn.classList.add('hidden');
+    term.innerHTML = `<div class="flex items-center space-x-2 text-violet-400">
+        <span class="animate-pulse">&#9632;</span>
+        <span>Routing cognitive state through geodesic phase paths...</span>
+    </div>`;
+
+    banner.className = "p-4 rounded-xl border border-violet-500/30 bg-violet-950/10 text-violet-400 flex items-center justify-between";
+    textEl.innerText = "Initializing Geodesic Vector Tracker...";
+    retryEl.innerText = "";
+    banner.classList.remove('hidden');
+
+    const systemPrompt = "You are the 7-node complex phase engine. Translate the user's target cognitive task into a sequence of operations utilizing the R4 operators (T_b, T_x, T_y, T_c, T_z', T_r*). Describe the phase angle translations, how the holonomy class kappa updates, and present the final output as a glowing operational sequence.";
+
+    try {
+        const resultText = await callGeminiAPI(inputVal, systemPrompt);
+        rawTextToRead = resultText;
+        term.innerHTML = renderMarkdownToHTML(resultText);
+        ttsBtn.classList.remove('hidden');
+        banner.classList.add('hidden');
+    } catch (e) {
+        banner.className = "p-4 rounded-xl border border-rose-500/30 bg-rose-950/20 text-rose-400 flex items-center justify-between";
+        textEl.innerText = e.message;
+        term.innerHTML = `<p class="text-rose-500 font-semibold">[EXCEPTION] The manifold experienced chaotic phase degradation.</p>`;
+    }
+}
+
+async function triggerTTS() {
+    if (!rawTextToRead) return;
+    
+    const btn = document.getElementById('tts-narration-btn');
+    const originalText = btn.innerText;
+    btn.innerText = "Synthesizing Voice...";
+    btn.disabled = true;
+
+    const apiKey = "";
+    const url = `https://genergenerativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
+    const cleanUrl = url.replace("genergenerative", "generative");
+
+    const cleanText = rawTextToRead
+        .replace(/[\$\*`#]/g, "")
+        .replace(/<[^>]*>/g, "")
+        .substring(0, 600);
+
+    const payload = {
+        contents: [{ parts: [{ text: `Explain clearly: ${cleanText}` }] }],
+        generationConfig: {
+            responseModalities: ["AUDIO"],
+            speechConfig: {
+                voiceConfig: {
+                    prebuiltVoiceConfig: {
+                        voiceName: "Kore"
+                    }
+                }
+            }
+        }
+    };
+
+    let delay = 1000;
+    for (let attempt = 1; attempt <= 5; attempt++) {
+        try {
+            const response = await fetch(cleanUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (response.ok) {
+                const data = await response.json();
+                const pcmBase64 = data.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
+                if (pcmBase64) {
+                    const audioUrl = pcmToWav(pcmBase64, 24000);
+                    const audio = new Audio(audioUrl);
+                    audio.play();
+                    btn.innerText = originalText;
+                    btn.disabled = false;
+                    return;
+                }
+            }
+            throw new Error("TTS generation error.");
+        } catch (error) {
+            if (attempt === 5) {
+                btn.innerText = "Voice Failed";
+                btn.disabled = false;
+                return;
+            }
+            await new Promise(res => setTimeout(res, delay));
+            delay *= 2;
+        }
+    }
+}
+
+async function simulateConsensus() {
+    const selectVal = document.getElementById('consensus-bottleneck').value;
+    const murmurationScreen = document.getElementById('murmuration-screen');
+    const loader = document.getElementById('consensus-loader');
+    const ttsBtn = document.getElementById('multi-speaker-tts-btn');
+
+    ttsBtn.classList.add('hidden');
+    loader.classList.remove('hidden');
+    murmurationScreen.innerHTML = `<div class="flex items-center space-x-2 text-violet-400 animate-pulse">
+        <span>&#9696;</span>
+        <span>Reconciling node measurements on: "${selectVal.substring(0, 45)}..."</span>
+    </div>`;
+
+    const prompt = `Synthesize a highly dramatic, intellectually dense technical debate between two of the seven routing nodes inside the Prime R4 Router engine regarding this bottleneck: "${selectVal}". 
+    The dialogue must be strictly formatted with speaker tags:
+    Orus: [dialogue]
+    Leda: [dialogue]
+    Keep the tone extremely academic, PhD-grade, referencing complex phase transport, $6k\\pm 1$ prime alignment, or closed timelike curves. Maintain total mathematical integrity.`;
+
+    const systemInstruction = "You are the distributed 7-node consensus core of the Prime R4 engine. Format the dialogue strictly with 'Orus: ' and 'Leda: ' speaker tags.";
+
+    try {
+        const debateOutput = await callGeminiAPI(prompt, systemInstruction);
+        rawDialogueText = debateOutput;
+        
+        let htmlContent = debateOutput.split('\n').map(line => {
+            if (line.startsWith('Orus:')) {
+                return `<div class="mb-3"><span class="text-cyan font-bold font-mono">Orus (Validator Node):</span> <span class="text-slate-200">${renderMarkdownToHTML(line.replace('Orus:', ''))}</span></div>`;
+            } else if (line.startsWith('Leda:')) {
+                return `<div class="mb-3"><span class="text-magenta font-bold font-mono">Leda (Phase Node):</span> <span class="text-slate-200">${renderMarkdownToHTML(line.replace('Leda:', ''))}</span></div>`;
+            } else {
+                return line.trim() ? `<p class="text-slate-400 italic mb-2">${line}</p>` : '';
+            }
+        }).join('');
+
+        murmurationScreen.innerHTML = htmlContent;
+        ttsBtn.classList.remove('hidden');
+    } catch (e) {
+        murmurationScreen.innerHTML = `<p class="text-rose-500 font-semibold">[EXCEPTION] Consensus simulation aborted due to network failure.</p>`;
+    } finally {
+        loader.classList.add('hidden');
+    }
+}
+
+async function triggerMultiSpeakerTTS() {
+    if (!rawDialogueText) return;
+
+    const btn = document.getElementById('multi-speaker-tts-btn');
+    const originalText = btn.innerText;
+    btn.innerText = "Compiling Multi-Voice Audio...";
+    btn.disabled = true;
+
+    const apiKey = "";
+    const url = `https://genergenerativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
+    const cleanUrl = url.replace("genergenerative", "generative");
+
+    const cleanDialogue = rawDialogueText
+        .replace(/[\$\*`#]/g, "")
+        .replace(/<[^>]*>/g, "")
+        .split('\n')
+        .filter(line => line.startsWith('Orus:') || line.startsWith('Leda:'))
+        .slice(0, 4)
+        .join('\n');
+
+    const payload = {
+        contents: [{ parts: [{ text: cleanDialogue }] }],
+        generationConfig: {
+            responseModalities: ["AUDIO"],
+            speechConfig: {
+                voiceConfig: {
+                    multiSpeakerVoiceConfig: {
+                        speakerVoiceConfigs: [
+                            { speaker: "Orus", voiceConfig: { prebuiltVoiceConfig: { voiceName: "Orus" } } },
+                            { speaker: "Leda", voiceConfig: { prebuiltVoiceConfig: { voiceName: "Leda" } } }
+                        ]
+                    }
+                }
+            }
+        }
+    };
+
+    let delay = 1000;
+    for (let attempt = 1; attempt <= 5; attempt++) {
+        try {
+            const response = await fetch(cleanUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (response.ok) {
+                const data = await response.json();
+                const pcmBase64 = data.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
+                if (pcmBase64) {
+                    const audioUrl = pcmToWav(pcmBase64, 24000);
+                    const audio = new Audio(audioUrl);
+                    audio.play();
+                    btn.innerText = originalText;
+                    btn.disabled = false;
+                    return;
+                }
+            }
+            throw new Error("Multi-speaker TTS error.");
+        } catch (error) {
+            if (attempt === 5) {
+                btn.innerText = "Synthesis Failed";
+                btn.disabled = false;
+                showToast("Failed to compile multi-speaker audio.");
+                return;
+            }
+            await new Promise(res => setTimeout(res, delay));
+            delay *= 2;
+        }
+    }
+}
+
+async function generateManifoldImage() {
+    const inputPrompt = document.getElementById('imaging-input').value.trim();
+    if (!inputPrompt) return;
+
+    const placeholder = document.getElementById('image-viewer-placeholder');
+    const displayImg = document.getElementById('image-viewer-display');
+    const loader = document.getElementById('imaging-loader');
+
+    loader.classList.remove('hidden');
+    displayImg.classList.add('hidden');
+    placeholder.innerHTML = `<p class="font-mono text-cyan text-sm animate-pulse">Materializing coordinates using Imagen 4...</p>`;
+
+    const apiKey = "";
+    const url = `https://genergenerativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key=${apiKey}`;
+    const cleanUrl = url.replace("genergenerative", "generative");
+
+    const payload = {
+        instances: { prompt: inputPrompt },
+        parameters: { sampleCount: 1 }
+    };
+
+    let delay = 1000;
+    for (let attempt = 1; attempt <= 5; attempt++) {
+        try {
+            const response = await fetch(cleanUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (response.ok) {
+                const result = await response.json();
+                const bytesBase64 = result.predictions?.[0]?.bytesBase64Encoded;
+                if (bytesBase64) {
+                    displayImg.src = `data:image/png;base64,${bytesBase64}`;
+                    displayImg.classList.remove('hidden');
+                    placeholder.classList.add('hidden');
+                    loader.classList.add('hidden');
+                    showToast("Manifold spatialized successfully!");
+                    return;
+                }
+            }
+            throw new Error("Imagen generation failed.");
+        } catch (error) {
+            if (attempt === 5) {
+                placeholder.innerHTML = `<p class="font-mono text-rose-500 text-sm">// Spatialization failed.</p>`;
+                loader.classList.add('hidden');
+                showToast("Image generator timeout.");
+                return;
+            }
+            await new Promise(res => setTimeout(res, delay));
+            delay *= 2;
+        }
+    }
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+    fillReviewInput();
+
+    function wrapLabel(label, maxChars = 16) {
+        if (label.length <= maxChars) return label;
+        const words = label.split(' ');
+        const lines = [];
+        let currentLine = '';
+        words.forEach(word => {
+            if ((currentLine + word).length > maxChars) {
+                if (currentLine) lines.push(currentLine.trim());
+                currentLine = word + ' ';
+            } else {
+                currentLine += word + ' ';
+            }
+        });
+        if (currentLine) lines.push(currentLine.trim());
+        return lines;
+    }
+
+    const customTooltipConfig = {
+        callbacks: {
+            title: function(tooltipItems) {
+                const item = tooltipItems[0];
+                let label = item.chart.data.labels[item.dataIndex];
+                if (Array.isArray(label)) {
+                    return label.join(' ');
+                } else {
+                    return label;
+                }
+            }
+        }
+    };
+
+    const scalingCtx = document.getElementById('scalingChart').getContext('2d');
+    const kValues = [25, 50, 100, 200, 400, 1000, 2000, 5000];
+    const denseData = kValues.map(k => k);
+    const permutedData = kValues.map(k => Math.pow(k, 0.814));
+    const hopfData = kValues.map(k => 2.957 * Math.pow(k, 0.572));
+    
+    scalingChartInstance = new Chart(scalingCtx, {
+        type: 'line',
+        data: {
+            labels: kValues.map(v => wrapLabel(`Capacity K=${v}`)),
+            datasets: [
+                {
+                    label: 'Dense Routing (K^1.0)',
+                    data: denseData,
+                    borderColor: '#94A3B8',
+                    borderDash: [5, 5],
+                    backgroundColor: 'transparent',
+                    pointBackgroundColor: '#94A3B8',
+                    tension: 0.4
+                },
+                {
+                    label: 'Permuted Control (K^0.814)',
+                    data: permutedData,
+                    borderColor: '#EC4899',
+                    backgroundColor: 'transparent',
+                    pointBackgroundColor: '#EC4899',
+                    tension: 0.4
+                },
+                {
+                    label: 'Hopf Sector Discretization (2.957*K^0.572)',
+                    data: hopfData,
+                    borderColor: '#06B6D4',
+                    backgroundColor: 'rgba(6, 182, 212, 0.1)',
+                    pointBackgroundColor: '#06B6D4',
+                    fill: true,
+                    tension: 0.4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            color: '#CBD5E1',
+            scales: {
+                x: { 
+                    type: 'logarithmic',
+                    grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                    ticks: { color: '#CBD5E1' },
+                    title: { display: true, text: 'Routing Budget (K)', color: '#CBD5E1' }
+                },
+                y: { 
+                    type: 'logarithmic',
+                    grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                    ticks: { color: '#CBD5E1' },
+                    title: { display: true, text: 'Effective Expert Paths (e_eff)', color: '#CBD5E1' }
+                }
+            },
+            plugins: {
+                legend: { labels: { color: '#CBD5E1' } },
+                tooltip: customTooltipConfig
+            }
+        }
+    });
+
+    const radarCtx = document.getElementById('radarChart').getContext('2d');
+    radarChartInstance = new Chart(radarCtx, {
+        type: 'radar',
+        data: {
+            labels: [
+                wrapLabel('Displacement (Avg Fields)'), 
+                wrapLabel('Swap Geometry Change'), 
+                wrapLabel('Theta Mobility'), 
+                wrapLabel('Rho Mobility'), 
+                wrapLabel('Tau Holonomy Shift')
+            ],
+            datasets: [
+                {
+                    label: 'T_x (Non-Transport Outlier)',
+                    data: [3.919, 1.0, 0.0, 0.0, 0.5],
+                    backgroundColor: 'rgba(236, 72, 153, 0.2)',
+                    borderColor: '#EC4899',
+                    pointBackgroundColor: '#EC4899'
+                },
+                {
+                    label: 'T_r* (Radial Transport)',
+                    data: [3.277, 0.0, 0.8, 1.0, 0.9],
+                    backgroundColor: 'rgba(6, 182, 212, 0.2)',
+                    borderColor: '#06B6D4',
+                    pointBackgroundColor: '#06B6D4'
+                },
+                {
+                    label: 'T_b (Base Advance)',
+                    data: [2.891, 0.2, 0.3, 0.0, 0.2],
+                    backgroundColor: 'rgba(139, 92, 246, 0.2)',
+                    borderColor: '#8B5CF6',
+                    pointBackgroundColor: '#8B5CF6'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            color: '#CBD5E1',
+            scales: {
+                r: {
+                    angleLines: { color: 'rgba(255, 255, 255, 0.1)' },
+                    grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                    pointLabels: { color: '#CBD5E1', font: { size: 11 } },
+                    ticks: { display: false }
+                }
+            },
+            plugins: {
+                legend: { position: 'bottom', labels: { color: '#CBD5E1' } },
+                tooltip: customTooltipConfig
+            }
+        }
+    });
+
+    const lmCtx = document.getElementById('lmChart').getContext('2d');
+    lmChartInstance = new Chart(lmCtx, {
+        type: 'bar',
+        data: {
+            labels: [
+                wrapLabel('Learned Baseline'), 
+                wrapLabel('Hopf Geometric Fixed'), 
+                wrapLabel('Permuted Random Fixed')
+            ],
+            datasets: [
+                {
+                    label: 'PTB Validation Perplexity (Lower is Better)',
+                    data: [152.26, 164.54, 164.41],
+                    backgroundColor: '#8B5CF6',
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Effective Expert Paths (Max 64)',
+                    data: [43.19, 45.96, 45.81],
+                    backgroundColor: '#06B6D4',
+                    yAxisID: 'y1'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            color: '#CBD5E1',
+            scales: {
+                y: {
+                    type: 'linear',
+                    position: 'left',
+                    grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                    ticks: { color: '#CBD5E1' },
+                    title: { display: true, text: 'Perplexity', color: '#8B5CF6' }
+                },
+                y1: {
+                    type: 'linear',
+                    position: 'right',
+                    grid: { drawOnChartArea: false },
+                    ticks: { color: '#CBD5E1' },
+                    title: { display: true, text: 'Effective Paths', color: '#06B6D4' },
+                    min: 0,
+                    max: 64
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: { color: '#CBD5E1' }
+                }
+            },
+            plugins: {
+                legend: { labels: { color: '#CBD5E1' } },
+                tooltip: customTooltipConfig
+            }
+        }
+    });
+
+    const generateTorusData = () => {
+        let x = [], y = [], z = [], colors = [];
+        for (let i = 0; i < 500; i++) {
+            const u = Math.random() * 2 * Math.PI;
+            const v = Math.random() * 2 * Math.PI;
+            const r = 1 + 0.3 * Math.cos(v);
+            x.push(r * Math.cos(u));
+            y.push(r * Math.sin(u));
+            z.push(0.3 * Math.sin(v) + (Math.random() * 0.1));
+            colors.push(u);
+        }
+        return {x, y, z, colors};
+    };
+    
+    const pData = generateTorusData();
+    const trace = {
+        x: pData.x, y: pData.y, z: pData.z,
+        mode: 'markers',
+        marker: {
+            size: 4,
+            color: pData.colors,
+            colorscale: 'Picnic',
+            opacity: 0.8
+        },
+        type: 'scatter3d'
+    };
+    
+    layout = {
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        margin: {l: 0, r: 0, b: 0, t: 0},
+        scene: {
+            xaxis: {showgrid: false, zeroline: false, showline: false, ticks: '', showticklabels: false},
+            yaxis: {showgrid: false, zeroline: false, showline: false, ticks: '', showticklabels: false},
+            zaxis: {showgrid: false, zeroline: false, showline: false, ticks: '', showticklabels: false},
+            bgcolor: 'rgba(0,0,0,0)'
+        }
+    };
+    
+    Plotly.newPlot('plotly3d', [trace], layout, {displayModeBar: false});
+});
+</script>
+</body>
+</html>

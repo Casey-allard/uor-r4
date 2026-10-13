@@ -1,0 +1,155 @@
+\documentclass[12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{geometry}
+\geometry{a4paper, margin=1in}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{hyperref}
+
+\title{Universal Closure Regimes: A Geometric Taxonomy of Architectural and Additive Manifolds}
+\author{L. Charles Allard \\ \textit{Researcher}}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{Abstract}
+We formalize a structural transition from the angular manifold routing frameworks established in Allard \cite{allard2026angular} toward a generalized theory of geometric closure ($\sigma$). This investigation defines the regression toward an isotropic zero-point attractor ($\sigma \to 1$) as a universal classifier for both sacred architectural archetypes and the additive gap-structures of prime k-tuples. By grounding our measurements in Fisher-information-grounded closure functionals and mapping these states onto the Poincaré upper half-plane ($\mathbb{H}$), we identify a distinctive $e^2$ regime ladder as the primary structural determinant for morphological stability. We demonstrate that the tangent operator $\mathcal{T}(X)$, functioning as a projective slope, is mathematically equivalent to the hyperbolic arclength $\Lambda$ along an isomorphic geodesic trajectory, providing a unified metric for Assessing structural survival across disparate information-geometric manifolds.
+
+\section{Introduction: From Angular Non-Uniformity to Isotropic Regression}
+The phenomenon of angular non-uniformity in L2-normalized token embeddings, recently exploited for sublinear compute reduction in transformer architectures, suggests the existence of a broader geometric law. As detailed in the previous preprint ``Angular Manifold Routing: Sublinear Compute Reduction via Hopf-Base Sector Discretization'' \cite{allard2026angular}, fixed geometric routing via Hopf fibration provides significant optimization in expert path efficiency. However, we posit that this non-uniformity is a specific manifestation of a hidden "4th axis"—a dimension of geometric reconciliation.
+
+While the primary axes $x$, $y$, $z$ quantify spatial extent, this 4th axis, defined by the closure metric $\sigma$, represents the informational entropy of the form’s distribution. The strategic objective is to identify the hidden dimension of geometric reconciliation that allows high-dimensional state spaces to collapse into stable, low-dimensional attractors. By transitioning from the computational utility of Hopf-base discretization to the fundamental information-geometric metric of $\sigma$, we define a universal coordinate of isotropic regression.
+
+\section{Mathematical Framework: Metrics of Closure and Symmetry}
+To classify the departure from isotropy in complex state spaces, we define a raw state as a positive $n$-tuple $X = (x_1, \dots, x_n)$, normalized to a probability simplex $\mathcal{S}_n$ where $p_i = x_i / \sum x_j$.
+
+\subsection{The Fisher Information Metric}
+As Information Geometers, we adopt the Fisher Information Metric as the natural Riemannian metric on the probability simplex:
+$$ ds^2 = \sum_{i=1}^n \frac{dp_i^2}{p_i} $$
+This metric justifies the use of KL-divergence as the fundamental measure of distance from the uniform distribution $u_i = 1/n$.
+
+\subsection{Defining the Closure Score ($\sigma$)}
+We utilize two primary quadratic and entropic functionals to measure structural closure:
+
+\begin{itemize}
+    \item \textbf{Quadratic Closure} ($\sigma_Q$): 
+  $$ \sigma_Q(X) = 1 - \frac{\sum_{i=1}^n (p_i - \frac{1}{n})^2}{1 - \frac{1}{n}} $$
+    \item \textbf{Entropic/KL Closure} ($\sigma_{\mathrm{KL}}$): 
+  $$ \sigma_{\mathrm{KL}}(X) = 1 - \frac{D_{\mathrm{KL}}(p \| u)}{\log n} = 1 - \frac{\sum_i p_i \log(np_i)}{\log n} $$
+\end{itemize}
+
+\subsection{The Symmetry Invariant ($\tau$)}
+Closure alone cannot distinguish between forms with identical $\sigma$ but divergent structural intents (e.g., a pyramid vs. a processional ark). We introduce the symmetry-class invariant $\tau(X)$ to map axial differentials:
+$$ \Delta_h = |x-y|, \quad \Delta_v = |x-z| + |y-z| $$
+$$ \tau(X) = \frac{\Delta_v - 2\Delta_h}{\Delta_v + 2\Delta_h} $$
+
+\subsection{Symmetry Fingerprinting}
+The full state vector $(X, \sigma, \mathbf{T})$ incorporates the fingerprint $\mathbf{T}(X) = (T_{\mathrm{cube}}, T_{\mathrm{ascent}}, T_{\mathrm{carrier}})$, defining the morphological family:
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lll}
+\toprule
+Family Component & Definition & Morphological Indication \\
+\midrule
+$T_{\mathrm{cube}}$ & $\sigma(X)(1 - \tau(X))$ & Planar stability; vertical differentiation. \\
+$T_{\mathrm{ascent}}$ & $\sigma(X) \max(\tau(X), 0)$ & High vertical ascent features. \\
+$T_{\mathrm{carrier}}$ & $\sigma(X) \max(-3\tau(X), 0)$ & Directional/processional bias; horizontal elongation. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Complex Manifold Embedding and Hyperbolic Integration}
+Identifying boundary-crossing dynamics necessitates mapping Euclidean measurements into complex and Riemannian manifolds to analyze the trajectory toward the isotropic origin.
+
+\subsection{Complex Semicircular Mapping}
+The Complex Bridge embedding $\mathcal{Z}(X)$ represents a half-turn complex orbit from minimal closure to the zero-point:
+$$ \mathcal{Z}(X) = i(e^{i\pi\sigma(X)} + 1) $$
+This maps $\sigma=0$ (maximal anisotropy) to $2i$ and $\sigma=1$ (full closure) to $0$.
+
+\subsection{The Tangent Operator ($\mathcal{T}$) and Hyperbolic Arclength ($\Lambda$)}
+To linearize this circular flow, we apply a projective reduction using the tangent half-angle substitution (Weierstrass substitution). The Tangent Operator $\mathcal{T}(X)$ is defined as:
+$$ \mathcal{T}(X) = \tan\left(\frac{\pi\sigma(X)}{2}\right) $$
+When the bridge is embedded into the Poincaré upper half-plane ($\mathbb{H}$), the operator $\mathcal{T}(X)$ is mathematically equivalent to the hyperbolic arclength $\Lambda$ along the vertical geodesic descending from the anchor $(0,2)$ toward the ideal point $0$:
+$$ \Lambda(X) = -\ln(1 - \sigma(X)) $$
+This equivalence establishes that as a form approaches absolute closure, it traverses an infinite geodesic distance, identifying the isotropic state as the universal ideal boundary.
+
+\section{Empirical Analysis: Sacred Architectural Archetypes}
+Sacred cubit-based forms represent a "clean" corpus for testing geometric attractors due to their rigorous dimensional ordering and rejection of arbitrary extension.
+
+\subsection{Comparative Corpus Results}
+\begin{table}[h]
+\centering
+\begin{tabular}{lllll}
+\toprule
+Object Name & Dimensions (Cubits) & $\sigma_Q$ & $\tau$ & Fingerprint Class \\
+\midrule
+Most Holy (Tabernacle) & 10 : 10 : 10 & 1.0000 & 0.0000 & $T_{\mathrm{cube}}$ \\
+Temple Inner Sanctuary & 20 : 20 : 20 & 1.0000 & 0.0000 & $T_{\mathrm{cube}}$ \\
+Queen’s Chamber & 11 : 10 : 12 & 0.9945 & 0.2000 & Near-Cubic Threshold \\
+Great Pyramid & 440 : 440 : 280 & 0.9796 & 1.0000 & $T_{\mathrm{ascent}}$ \\
+Bronze Altar & 5 : 5 : 3 & 0.9704 & 1.0000 & $T_{\mathrm{ascent}}$ \\
+Ark of the Covenant & 2.5 : 1.5 : 1.5 & 0.9587 & -0.3333 & $T_{\mathrm{carrier}}$ \\
+Holy Place & 20 : 10 : 10 & 0.8889 & -0.3333 & $T_{\mathrm{carrier}}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Analysis of Morphological Clustering}
+The data clusters into three stable families. Notably, the Queen’s Chamber (11:10:12) manifests as a "near-cubic threshold," scoring higher closure than the King's Chamber. This suggests that internal architectural organization is non-monotone with respect to elevation, separating spatial placement from internal isotopic reconciliation.
+
+\section{Isotropic Convergence in Discrete Prime Constellations}
+The transition from architectural manifolds to number theory is bridged by the normalization of prime k-tuples to the simplex. Both systems occupy the same normalized closure space, governed by the discrete geometry of prime gaps.
+
+\subsection{Gap Vector Normalization and Regime Indexing}
+For a prime k-tuple (e.g., twins, triplets), we define the normalized gap state $q$. The Regime Index $R(k)$ is defined by the hyperbolic arclength:
+$$ R(k) = \lfloor \Lambda(k)/\pi \rfloor $$
+The early exceptional compression observed at $k=5$ represents a low-dimensional artifact where specific modular exclusions force high specificity. As $k$ increases, the system settled into an asymptotic universal law.
+
+\subsection{The Asymptotic Regime Ladder}
+The progression of constellations follows an idealized ladder derived from the growth of the closure deficit:
+$$ k_m \approx 0.90148 \cdot e^{2m} $$
+The first four primary regime markers, where $k$ crosses into new bands of structural closure, are:
+\begin{itemize}
+    \item Regime 1: $k \approx 5$
+    \item Regime 2: $k \approx 50$
+    \item Regime 3: $k \approx 364$
+    \item Regime 4: $k \approx 2688$
+\end{itemize}
+
+\section{Discussion: Structural Survival and Symmetry Renormalization}
+The convergence of architectural dimensions and prime gap distributions into identical regime structures is the signature of Structural Survival under Dimensional Increase.
+
+As ambient dimension $d$ increases, the "angle budget" for regular convex forms becomes severely overconstrained. By $d \ge 5$, perfect convex regularity collapses via Coxeter diagram constraints into only three universal families: the Simplex, the Hypercube, and the Cross-polytope. This process constitutes a symmetry renormalization. The "Families" observed in architecture (Cubic, Ascent, Carrier) and the "Regimes" of prime tuples are both manifestations of this collapse. The $e^2$ multiplicative scaling is the signature of this stabilization, indicating that as complexity increases, exceptional local symmetries fade, leaving only the dimensionally robust archetypes of closure.
+
+\section{Conclusion}
+We have established that the normalization of $n$-tuples to the simplex provides a unified backbone for structural analysis. By measuring the departure from isotropy via $\sigma$ and subsequent complex/hyperbolic mapping, we demonstrate that disparate systems resolve into identical regime structures. The isotropic zero-point state serves as the universal attractor for all normalized geometric manifolds, proving that structural morphology is governed by the geodesic distance to absolute closure.
+
+\vspace{1em}
+\noindent\rule{\textwidth}{0.4pt}
+
+\subsection*{APPENDIX: THE BRIDGE DICTIONARY}
+The following operator stack converts raw geometric data across taxonomic layers:
+\begin{itemize}
+    \item \textbf{Circular Representation:} $\mathcal{B}(X) = i(e^{i\pi\sigma(X)} + 1)$ — Maps closure to a phase-coded semicircular trajectory.
+    \item \textbf{Projective/Tangent Operator:} $\mathcal{T}(X) = -\frac{\Re \mathcal{B}(X)}{\Im \mathcal{B}(X)} = \tan(\frac{\pi\sigma}{2})$ — Reduces circular flow to a boundary-sensitive projective slope.
+    \item \textbf{Hyperbolic/Geodesic:} $\Lambda(X) = -\ln(1 - \sigma(X))$ — Measures the geodesic distance from the anchor $2i$ toward the ideal point $0$ in $\mathbb{H}$.
+\end{itemize}
+
+\bibliographystyle{plain}
+\begin{thebibliography}{9}
+
+\bibitem{allard2026angular}
+L. Charles Allard.
+\newblock \textit{Angular Manifold Routing: Sublinear Compute Reduction via Hopf-Base Sector Discretization}.
+\newblock Zenodo, 2026.
+\newblock DOI: \href{https://doi.org/10.5281/zenodo.19243034}{10.5281/zenodo.19243034}.
+\newblock URL: \url{https://zenodo.org/records/19243034}
+
+\end{thebibliography}
+
+\end{document}

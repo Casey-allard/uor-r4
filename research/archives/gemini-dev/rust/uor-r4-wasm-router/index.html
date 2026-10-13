@@ -1,0 +1,3653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>R4 Prime Router — UOR World Model | Holographic Dashboard</title>
+    <meta name="description" content="R4 Prime Router geometric world model featuring real-time UOR prime routing, Hopf S³ manifold visualization, C² quantum phase tracking, and semantic point-cloud corpus map.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;600;800&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg:        #050609;
+            --bg2:       #08090f;
+            --panel:     rgba(12, 14, 24, 0.75);
+            --panel2:    rgba(16, 18, 32, 0.85);
+            --border:    rgba(255,255,255,0.06);
+            --border2:   rgba(255,255,255,0.10);
+            --text:      #e8eaf0;
+            --text2:     #8b93a8;
+            --muted:     #4b5268;
+            --cyan:      #00e5ff;
+            --purple:    #bf7fff;
+            --emerald:   #00e5a0;
+            --amber:     #ffb300;
+            --red:       #ff5252;
+            --pink:      #ff4db8;
+            --glow-c:    rgba(0, 229, 255, 0.15);
+            --glow-p:    rgba(191, 127, 255, 0.15);
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Outfit', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            height: 100vh;
+            overflow: hidden;
+            display: grid;
+            grid-template-columns: 300px 1fr 400px;
+            grid-template-rows: 100vh;
+            background-image:
+                radial-gradient(ellipse 60% 40% at 15% 50%, rgba(0,229,255,0.03) 0%, transparent 60%),
+                radial-gradient(ellipse 50% 60% at 85% 20%, rgba(191,127,255,0.04) 0%, transparent 60%),
+                radial-gradient(ellipse 40% 30% at 50% 90%, rgba(0,229,160,0.02) 0%, transparent 50%);
+        }
+
+        /* ============ SCROLLBARS ============ */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+
+        /* ============ LEFT SIDEBAR ============ */
+        .sidebar {
+            background: var(--bg2);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 1.25rem;
+            overflow: hidden;
+            gap: 1.25rem;
+        }
+
+        .brand {
+            flex-shrink: 0;
+        }
+
+        .brand-title {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            background: linear-gradient(120deg, var(--cyan), var(--purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .brand-sub {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.58rem;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-top: 2px;
+        }
+
+        .sidebar-section {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .section-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--muted);
+            padding-bottom: 0.4rem;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 0.25rem;
+        }
+
+        /* Sliders */
+        .config-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.72rem;
+            color: var(--text2);
+            margin-bottom: 0.25rem;
+        }
+        .config-val {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--cyan);
+            font-size: 0.7rem;
+        }
+        .slider {
+            width: 100%;
+            -webkit-appearance: none;
+            height: 2px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 2px;
+            outline: none;
+            margin-bottom: 0.75rem;
+        }
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 12px; height: 12px;
+            border-radius: 50%;
+            background: var(--cyan);
+            box-shadow: 0 0 8px var(--cyan);
+            cursor: pointer;
+            transition: box-shadow 0.2s;
+        }
+        .slider::-webkit-slider-thumb:hover { box-shadow: 0 0 16px var(--cyan); }
+
+        .identity-label {
+            font-size: 0.72rem;
+            color: var(--text2);
+            margin-bottom: 0.3rem;
+        }
+        .identity-input {
+            width: 100%;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid var(--border2);
+            border-radius: 6px;
+            padding: 0.45rem 0.6rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.68rem;
+            color: var(--cyan);
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .identity-input:focus { border-color: var(--cyan); }
+
+        /* KB Textarea */
+        .kb-textarea {
+            width: 100%;
+            min-height: 80px;
+            max-height: 120px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.5rem 0.6rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            color: var(--text2);
+            resize: vertical;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .kb-textarea:focus { border-color: var(--purple); }
+
+        .btn {
+            border: none;
+            border-radius: 8px;
+            padding: 0.55rem 1rem;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            width: 100%;
+            letter-spacing: 0.04em;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, rgba(0,229,255,0.15), rgba(191,127,255,0.15));
+            color: var(--cyan);
+            border: 1px solid rgba(0,229,255,0.3);
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, rgba(0,229,255,0.25), rgba(191,127,255,0.25));
+            border-color: var(--cyan);
+            box-shadow: 0 0 20px rgba(0,229,255,0.2);
+        }
+        .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        .index-status {
+            font-size: 0.65rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text2);
+            text-align: center;
+            margin-top: 0.25rem;
+            display: none;
+        }
+
+        /* Quick telemetry at bottom of sidebar */
+        .telemetry-mini {
+            flex-shrink: 0;
+            border-top: 1px solid var(--border);
+            padding-top: 1rem;
+        }
+        .telemetry-mini-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.65rem;
+            color: var(--text2);
+            margin-bottom: 0.35rem;
+        }
+        .telemetry-mini-row span:last-child {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--purple);
+        }
+
+        /* ============ CENTER — CHAT ============ */
+        .main {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .chat-header {
+            flex-shrink: 0;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            background: var(--bg2);
+        }
+        .chat-header-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: var(--emerald);
+            box-shadow: 0 0 8px var(--emerald);
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; box-shadow: 0 0 8px var(--emerald); }
+            50% { opacity: 0.5; box-shadow: 0 0 4px var(--emerald); }
+        }
+        .chat-header-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+        .chat-header-sub {
+            font-size: 0.65rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--muted);
+            margin-left: auto;
+        }
+        .chat-header-route {
+            font-size: 0.65rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--purple);
+        }
+
+        .chat-log {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .message {
+            display: flex;
+            gap: 0.85rem;
+            animation: msg-in 0.3s ease both;
+        }
+        @keyframes msg-in {
+            from { opacity: 0; transform: translateY(8px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .message.user { flex-direction: row-reverse; }
+
+        .avatar {
+            width: 32px; height: 32px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.65rem;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+            flex-shrink: 0;
+        }
+        .message.user .avatar {
+            background: linear-gradient(135deg, rgba(191,127,255,0.3), rgba(0,229,255,0.2));
+            border: 1px solid rgba(191,127,255,0.4);
+            color: var(--purple);
+        }
+        .message.model .avatar {
+            background: linear-gradient(135deg, rgba(0,229,255,0.2), rgba(0,229,160,0.2));
+            border: 1px solid rgba(0,229,255,0.4);
+            color: var(--cyan);
+        }
+
+        .message-content { max-width: 75%; }
+        .message.user .message-content { align-items: flex-end; }
+        .message-sender {
+            font-size: 0.65rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--muted);
+            margin-bottom: 0.35rem;
+        }
+        .message.user .message-sender { text-align: right; }
+        .message-bubble {
+            background: var(--panel2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 0.85rem 1.1rem;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            color: var(--text);
+        }
+        .message.user .message-bubble {
+            background: rgba(191,127,255,0.08);
+            border-color: rgba(191,127,255,0.2);
+        }
+        .message.model .message-bubble {
+            border-color: rgba(0,229,255,0.12);
+        }
+
+        .loading-dots { display: flex; gap: 6px; padding: 4px 0; }
+        .dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: var(--cyan);
+            animation: bounce 1.2s ease-in-out infinite;
+        }
+        .dot:nth-child(2) { animation-delay: 0.15s; }
+        .dot:nth-child(3) { animation-delay: 0.30s; }
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0.7); opacity: 0.4; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+
+        .chat-input-area {
+            flex-shrink: 0;
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 0.75rem;
+            background: var(--bg2);
+        }
+        .chat-input {
+            flex: 1;
+            background: var(--panel);
+            border: 1px solid var(--border2);
+            border-radius: 12px;
+            padding: 0.75rem 1.1rem;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.88rem;
+            color: var(--text);
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .chat-input:focus {
+            border-color: var(--cyan);
+            box-shadow: 0 0 16px rgba(0,229,255,0.1);
+        }
+        .chat-input::placeholder { color: var(--muted); }
+        .chat-send-btn {
+            background: linear-gradient(135deg, var(--cyan), var(--purple));
+            border: none;
+            border-radius: 12px;
+            width: 44px; height: 44px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+        .chat-send-btn:hover { transform: scale(1.08); box-shadow: 0 0 20px rgba(0,229,255,0.4); }
+        .chat-send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+        .chat-send-btn svg { width: 18px; height: 18px; fill: #fff; }
+
+        /* ============ RIGHT PANEL ============ */
+        .right-panel {
+            background: var(--bg2);
+            border-left: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .widget-section {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+            padding: 1.25rem 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        /* Metric cards */
+        .metric-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 0.5rem;
+        }
+        .metric-card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 0.6rem 0.75rem;
+            transition: border-color 0.2s;
+        }
+        .metric-card-label {
+            font-size: 0.58rem;
+            font-family: 'JetBrains Mono', monospace;
+            text-transform: uppercase;
+            color: var(--muted);
+            letter-spacing: 0.08em;
+        }
+        .metric-card-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--cyan);
+            margin: 0.15rem 0 0.1rem;
+            line-height: 1;
+        }
+        .metric-card-status {
+            font-size: 0.6rem;
+            color: var(--text2);
+        }
+
+        /* Quantum metrics row */
+        .quantum-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+        }
+        .quantum-card {
+            background: linear-gradient(135deg, rgba(191,127,255,0.05), rgba(0,229,255,0.04));
+            border: 1px solid rgba(191,127,255,0.15);
+            border-radius: 8px;
+            padding: 0.5rem 0.65rem;
+        }
+        .quantum-card-label {
+            font-size: 0.55rem;
+            font-family: 'JetBrains Mono', monospace;
+            text-transform: uppercase;
+            color: var(--muted);
+            letter-spacing: 0.08em;
+        }
+        .quantum-card-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: var(--purple);
+            margin-top: 0.1rem;
+        }
+        .quantum-card.catastrophe-active {
+            border-color: var(--red);
+            background: rgba(255,82,82,0.08);
+            animation: catastrophe-flash 0.4s ease;
+        }
+        @keyframes catastrophe-flash {
+            0%, 100% { border-color: var(--red); }
+            50% { border-color: var(--amber); box-shadow: 0 0 12px rgba(255,179,0,0.4); }
+        }
+
+        /* Equalizer */
+        .equalizer {
+            display: flex;
+            align-items: flex-end;
+            gap: 2px;
+            height: 48px;
+            padding: 0 2px;
+        }
+        .eq-bar-wrap {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100%;
+            justify-content: flex-end;
+        }
+        .eq-bar {
+            width: 100%;
+            border-radius: 2px 2px 0 0;
+            background: rgba(0,229,255,0.25);
+            transition: height 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.3s;
+            min-height: 3px;
+        }
+        .eq-bar.active {
+            background: linear-gradient(to top, var(--cyan), var(--purple));
+            box-shadow: 0 0 8px rgba(0,229,255,0.5);
+        }
+        .eq-label {
+            font-size: 0.5rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--muted);
+            margin-top: 2px;
+        }
+
+        /* Canvas containers */
+        .canvas-section {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .canvas-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .canvas-title {
+            font-size: 0.65rem;
+            font-family: 'JetBrains Mono', monospace;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text2);
+        }
+        .canvas-badge {
+            font-size: 0.55rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--muted);
+        }
+        .canvas-wrapper {
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid var(--border2);
+            background: rgba(0,0,0,0.5);
+            position: relative;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+        }
+
+        /* Timeline */
+        .timeline { display: flex; flex-direction: column; gap: 0.5rem; }
+        .timeline-item {
+            display: flex;
+            gap: 0.6rem;
+            align-items: flex-start;
+        }
+        .timeline-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            margin-top: 4px;
+            flex-shrink: 0;
+        }
+        .timeline-dot.elliptic { background: var(--emerald); box-shadow: 0 0 6px var(--emerald); }
+        .timeline-dot.hyperbolic { background: var(--red); box-shadow: 0 0 6px var(--red); }
+        .timeline-dot.orthogonal { background: var(--cyan); box-shadow: 0 0 6px var(--cyan); }
+        .timeline-dot.catastrophe { background: var(--amber); box-shadow: 0 0 8px var(--amber); animation: catastrophe-flash 0.5s ease 3; }
+
+        .timeline-body { flex: 1; }
+        .timeline-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 2px;
+        }
+        .timeline-word {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: var(--text);
+        }
+        .timeline-step {
+            font-size: 0.6rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--muted);
+        }
+        .timeline-metrics {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.35rem;
+        }
+        .tl-metric {
+            font-size: 0.6rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text2);
+            background: rgba(255,255,255,0.04);
+            padding: 1px 5px;
+            border-radius: 3px;
+        }
+        .tl-metric span { color: var(--cyan); }
+        .tl-metric.cat { background: rgba(255,179,0,0.1); }
+        .tl-metric.cat span { color: var(--amber); }
+
+        /* Resonance list */
+        .resonance-list { display: flex; flex-direction: column; gap: 0.5rem; }
+        .resonance-item {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.6rem 0.75rem;
+            transition: border-color 0.2s;
+        }
+        .resonance-item:hover { border-color: var(--border2); }
+        .resonance-text {
+            font-size: 0.75rem;
+            line-height: 1.5;
+            color: var(--text2);
+            margin-bottom: 0.35rem;
+        }
+        .resonance-meta { display: flex; gap: 0.5rem; align-items: center; }
+        .resonance-badge {
+            background: rgba(0,229,255,0.1);
+            border: 1px solid rgba(0,229,255,0.2);
+            color: var(--cyan);
+            font-size: 0.58rem;
+            font-family: 'JetBrains Mono', monospace;
+            padding: 1px 6px;
+            border-radius: 4px;
+        }
+        .resonance-win {
+            font-size: 0.6rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--muted);
+        }
+
+        /* Eigenvalue bars */
+        .eigen-list { display: flex; flex-direction: column; gap: 0.35rem; }
+        .eigen-row {}
+        .eigen-label-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.6rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text2);
+            margin-bottom: 2px;
+        }
+        .eigen-bar-track {
+            height: 4px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .eigen-bar-fill {
+            height: 100%;
+            border-radius: 2px;
+            background: linear-gradient(90deg, var(--purple), var(--cyan));
+            transition: width 0.4s ease;
+        }
+
+        /* Hopf subspace norms */
+        .subspace-row {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+        .subspace-item { display: flex; align-items: center; gap: 0.5rem; }
+        .subspace-label {
+            font-size: 0.6rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text2);
+            width: 44px;
+            flex-shrink: 0;
+        }
+        .subspace-track {
+            flex: 1;
+            height: 4px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .subspace-fill {
+            height: 100%;
+            border-radius: 2px;
+            transition: width 0.4s ease;
+        }
+        .subspace-val {
+            font-size: 0.6rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text2);
+            width: 40px;
+            text-align: right;
+        }
+
+        /* Map tooltip */
+        .map-tooltip {
+            position: absolute;
+            pointer-events: none;
+            background: rgba(5,6,9,0.95);
+            border: 1px solid var(--border2);
+            border-radius: 8px;
+            padding: 0.5rem 0.75rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            color: var(--text);
+            max-width: 200px;
+            z-index: 100;
+            display: none;
+            line-height: 1.5;
+        }
+
+        /* Progression tab scale grid */
+        .scale-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.4rem;
+        }
+        .scale-card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.5rem 0.6rem;
+            transition: all 0.2s;
+        }
+        .scale-card.active {
+            border-color: var(--purple);
+            background: rgba(191,127,255,0.08);
+            box-shadow: 0 0 12px rgba(191,127,255,0.15);
+        }
+        .scale-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 3px;
+        }
+        .scale-card-idx {
+            font-size: 0.6rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--purple);
+        }
+        .scale-card-val {
+            font-size: 0.58rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--muted);
+        }
+        .scale-card-theme {
+            font-size: 0.62rem;
+            color: var(--text2);
+            display: block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* QIMC info */
+        .qimc-panel {
+            background: var(--panel);
+            border: 1px solid rgba(0,229,160,0.15);
+            border-radius: 10px;
+            padding: 0.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+        .qimc-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.65rem;
+        }
+        .qimc-key {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--muted);
+        }
+        .qimc-val {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--emerald);
+            font-weight: 700;
+        }
+
+        /* Map legend */
+        .map-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            margin-top: 0.35rem;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.58rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text2);
+        }
+        .legend-dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+        }
+
+        /* Map load button */
+        .map-load-btn {
+            background: rgba(0,229,160,0.08);
+            border: 1px solid rgba(0,229,160,0.2);
+            border-radius: 6px;
+            padding: 0.35rem 0.75rem;
+            font-size: 0.65rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--emerald);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .map-load-btn:hover { background: rgba(0,229,160,0.15); box-shadow: 0 0 12px rgba(0,229,160,0.2); }
+
+        /* System Metrics Strip */
+        .sys-strip {
+            flex-shrink: 0;
+            border-top: 1px solid var(--border);
+            padding-top: 0.85rem;
+        }
+        .sys-row {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+            margin-bottom: 0.5rem;
+        }
+        .sys-item {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .sys-label {
+            font-size: 0.58rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--muted);
+            width: 28px;
+            flex-shrink: 0;
+        }
+        .sys-bar-track {
+            flex: 1;
+            height: 4px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .sys-bar {
+            height: 100%;
+            border-radius: 2px;
+            transition: width 0.5s ease, background 0.3s;
+        }
+        .sys-val {
+            font-size: 0.58rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text2);
+            width: 42px;
+            text-align: right;
+        }
+        .sys-row2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.25rem 0.5rem;
+        }
+        .sys-kv {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.58rem;
+        }
+        .sys-k {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--muted);
+        }
+        .sys-v {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--purple);
+            font-weight: 700;
+        }
+        .expert-cell {
+            height: 28px;
+            border-radius: 6px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.65rem;
+            font-family: 'JetBrains Mono', monospace;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            background: rgba(16, 18, 32, 0.4);
+            color: var(--muted);
+            transition: all 0.3s ease;
+        }
+        /* Responsive tweaks */
+        @media (max-width: 1300px) {
+            body { grid-template-columns: 260px 1fr 360px; }
+        }
+        @media (max-width: 1100px) {
+            body { grid-template-columns: 240px 1fr 320px; }
+        }
+        @keyframes pulse-cyan {
+            0% { box-shadow: 0 0 0 0 rgba(0, 229, 255, 0.4); }
+            70% { box-shadow: 0 0 0 6px rgba(0, 229, 255, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(0, 229, 255, 0); }
+        }
+        .pulse-highlight {
+            animation: pulse-cyan 2s infinite;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ========== LEFT SIDEBAR ========== -->
+<aside class="sidebar">
+    <div class="brand">
+        <div class="brand-title">R4 Prime Router</div>
+        <div class="brand-sub">UOR World Model · Holographic Terminal</div>
+        <a href="geometric_prime_router_webapp.html" class="demo-btn" style="display: inline-block; margin-top: 0.5rem; padding: 0.2rem 0.5rem; font-size: 0.65rem; font-family: 'JetBrains Mono', monospace; font-weight: bold; background: rgba(0,242,254,0.1); border: 1px solid var(--cyan); border-radius: 4px; color: var(--cyan); text-decoration: none; text-transform: uppercase; letter-spacing: 0.05em; transition: all 0.2s;" onmouseover="this.style.background='var(--cyan)'; this.style.color='var(--bg)';" onmouseout="this.style.background='rgba(0,242,254,0.1)'; this.style.color='var(--cyan)';">Telemetry Demo</a>
+    </div>
+
+    <div class="sidebar-section">
+        <!-- Config -->
+        <div>
+            <div class="section-label">Active Manifold Tuning (Auto)</div>
+            
+            <div class="config-row">
+                <span>Temperature (T)</span>
+                <span class="config-val" id="tempVal" style="color: var(--cyan); font-weight: bold;">0.70</span>
+            </div>
+            <div class="config-row" style="margin-bottom: 0.5rem; font-size: 0.75rem; color: #888;">
+                <span>↳ Scaled by state curvature (θd)</span>
+            </div>
+
+            <div class="config-row">
+                <span>State Decay (γ)</span>
+                <span class="config-val" id="gammaVal" style="color: var(--cyan); font-weight: bold;">0.50</span>
+            </div>
+            <div class="config-row" style="margin-bottom: 0.5rem; font-size: 0.75rem; color: #888;">
+                <span>↳ Tuned by quantum energy (κ)</span>
+            </div>
+
+            <div class="config-row">
+                <span>Max Generation Length</span>
+                <span class="config-val" id="tokensVal" style="color: var(--cyan); font-weight: bold;">25</span>
+            </div>
+            <div class="config-row" style="margin-bottom: 0.5rem; font-size: 0.75rem; color: #888;">
+                <span>↳ Tuned by manifold stratum</span>
+            </div>
+
+            <div class="config-row">
+                <span>Synthesis Engine</span>
+                <span class="config-val" id="engineVal" style="color: var(--cyan); font-weight: bold;">Geometric</span>
+            </div>
+            <div class="config-row" style="margin-bottom: 0.75rem; font-size: 0.75rem; color: #888;">
+                <span>↳ Tuned by Ollama availability</span>
+            </div>
+
+            <div class="identity-label">Routing Identity (UOR, address, or text)</div>
+            <input type="text" class="identity-input" id="identityInput" value="tenant-alpha" placeholder="sha256:... or tenant-alpha" style="margin-bottom:0.75rem;">
+
+            <div class="section-label">Synthesis Engine Selection</div>
+            <select class="identity-input" id="engineSelect" style="margin-bottom:0.75rem; background: var(--bg); color: var(--cyan); border-color: var(--border2); font-family: 'Outfit', sans-serif;">
+                <option value="auto">Auto-Select (Local Ollama / Fallback)</option>
+                <option value="geometric">Pure Geometric (WASM Decoded)</option>
+                <option value="ollama">Local Ollama (Direct API)</option>
+            </select>
+
+            <div id="ollamaConfigGroup" style="display:none;">
+                <div class="identity-label">Ollama Host URL</div>
+                <input type="text" class="identity-input" id="ollamaUrlInput" value="http://localhost:11434" style="margin-bottom:0.5rem;">
+                <div class="identity-label">Ollama Target Model</div>
+                <input type="text" class="identity-input" id="ollamaModelInput" value="gemma4:e2b" style="margin-bottom:0.75rem;">
+            </div>
+
+            <div class="section-label">Manifold Database & Indexing</div>
+            <textarea class="identity-input" id="kbTextarea" placeholder="Paste custom sentences or paragraphs here to index them into the router manifold..." style="height: 60px; font-size: 0.72rem; font-family: 'Outfit', sans-serif; resize: vertical; margin-bottom: 0.5rem; background: var(--bg); color: var(--text); border: 1px solid var(--border2); padding: 0.4rem; border-radius: 4px; width: 100%;"></textarea>
+            
+            <button class="identity-input" id="indexBtn" style="margin-bottom: 0.75rem; background: rgba(191, 127, 255, 0.15); color: var(--purple); border-color: var(--purple); cursor: pointer; font-weight: 600; font-family: 'Outfit', sans-serif;">
+                Index Text to Manifold
+            </button>
+            <div id="indexStatus" style="font-size: 0.68rem; margin-top: -0.5rem; margin-bottom: 0.75rem; display: none;"></div>
+
+            <div class="section-label">Manifold State (Weights)</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0.75rem;">
+                <button class="identity-input" id="exportManifoldBtn" style="margin-bottom: 0; font-size: 0.72rem; cursor: pointer; border-color: var(--border2); color: var(--text); background: rgba(255,255,255,0.02); font-family: 'Outfit', sans-serif;">
+                    Export State
+                </button>
+                <button class="identity-input" id="importManifoldTrigger" style="margin-bottom: 0; font-size: 0.72rem; cursor: pointer; border-color: var(--border2); color: var(--text); background: rgba(255,255,255,0.02); font-family: 'Outfit', sans-serif;">
+                    Import State
+                </button>
+            </div>
+            <input type="file" id="importManifoldFile" accept=".json" style="display: none;">
+            
+            <button class="identity-input" id="saveManifoldBtn" style="margin-bottom: 0.75rem; background: rgba(0, 242, 254, 0.1); color: var(--cyan); border-color: var(--cyan); cursor: pointer; font-size: 0.72rem; font-family: 'Outfit', sans-serif; display: none; transition: all 0.3s ease;">
+                Save State to Browser (IndexedDB)
+            </button>
+            <button class="identity-input" id="resetBrainBtn" style="margin-bottom: 0.75rem; background: rgba(255, 82, 82, 0.1); color: var(--red); border-color: var(--red); cursor: pointer; font-size: 0.72rem; font-family: 'Outfit', sans-serif;">
+                Reset Brain to Neutral
+            </button>
+        </div>
+
+        <!-- QIMC Panel -->
+        <div>
+            <div class="section-label">Active QIMC Address</div>
+            <div class="qimc-panel">
+                <div class="qimc-row"><span class="qimc-key">Prime</span><span class="qimc-val" id="qimcPrime">—</span></div>
+                <div class="qimc-row"><span class="qimc-key">Index</span><span class="qimc-val" id="qimcIndex">—</span></div>
+                <div class="qimc-row"><span class="qimc-key">Identity</span><span class="qimc-val" id="qimcIdentity" style="font-size:0.62rem; color:var(--text2);">—</span></div>
+                <div class="qimc-row"><span class="qimc-key">Identity UOR</span><span class="qimc-val" id="qimcIdentityUor" style="font-size:0.55rem; color:var(--text2);">—</span></div>
+                <div class="qimc-row"><span class="qimc-key">Identity Digest</span><span class="qimc-val" id="qimcIdentityDigest" style="font-size:0.55rem; color:var(--text2);">—</span></div>
+                <div class="qimc-row"><span class="qimc-key">UOR Address</span><span class="qimc-val" id="uorAddress" style="font-size:0.55rem; color:var(--text2);">—</span></div>
+                <div class="qimc-row"><span class="qimc-key">UOR Verify</span><span class="qimc-val" id="uorVerify" style="color:var(--amber);">—</span></div>
+                <div class="qimc-row"><span class="qimc-key">UOR Label</span><span class="qimc-val" id="uorLabel" style="font-size:0.62rem; color:var(--text2);">—</span></div>
+                <div class="qimc-row"><span class="qimc-key">UOR Fingerprint</span><span class="qimc-val" id="uorFingerprint" style="font-size:0.55rem; color:var(--text2);">—</span></div>
+                <div class="qimc-row"><span class="qimc-key">UOR Sigma</span><span class="qimc-val" id="uorSigma" style="color:var(--emerald);">—</span></div>
+                <div class="qimc-row"><span class="qimc-key">UOR d_delta</span><span class="qimc-val" id="uordDelta" style="color:var(--cyan);">—</span></div>
+                <div class="qimc-row"><span class="qimc-key">UOR Euler</span><span class="qimc-val" id="uorEuler" style="color:var(--purple);">—</span></div>
+                <div class="qimc-row"><span class="qimc-key">UOR Free Sites</span><span class="qimc-val" id="uorFreeSites" style="color:var(--text2);">—</span></div>
+                <div class="qimc-row"><span class="qimc-key">UOR Stratum</span><span class="qimc-val" id="uorStratum" style="color:var(--cyan);">—</span></div>
+                <div class="qimc-row"><span class="qimc-key">Monodromy</span><span class="qimc-val" id="monoLabel" style="color:var(--amber);">r^0</span></div>
+            </div>
+        </div>
+
+        <!-- Subspace Norms -->
+        <div>
+            <div class="section-label">Hopf Subspace Norms</div>
+            <div class="subspace-row">
+                <div class="subspace-item">
+                    <div class="subspace-label">Act</div>
+                    <div class="subspace-track"><div class="subspace-fill" id="normActBar" style="width:0%;background:var(--cyan);"></div></div>
+                    <div class="subspace-val" id="normActVal">0.0000</div>
+                </div>
+                <div class="subspace-item">
+                    <div class="subspace-label">Obj</div>
+                    <div class="subspace-track"><div class="subspace-fill" id="normObjBar" style="width:0%;background:var(--emerald);"></div></div>
+                    <div class="subspace-val" id="normObjVal">0.0000</div>
+                </div>
+                <div class="subspace-item">
+                    <div class="subspace-label">Temp</div>
+                    <div class="subspace-track"><div class="subspace-fill" id="normTempBar" style="width:0%;background:var(--purple);"></div></div>
+                    <div class="subspace-val" id="normTempVal">0.0000</div>
+                </div>
+                <div class="subspace-item">
+                    <div class="subspace-label">Shared</div>
+                    <div class="subspace-track"><div class="subspace-fill" id="normSharedBar" style="width:0%;background:var(--pink);"></div></div>
+                    <div class="subspace-val" id="normSharedVal">0.0000</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+        <!-- System Metrics Strip -->
+        <div class="sys-strip" id="sysStrip">
+            <div class="section-label" style="margin-bottom:0.5rem;">System Metrics</div>
+            <div class="sys-row">
+                <div class="sys-item">
+                    <div class="sys-label">CPU</div>
+                    <div class="sys-bar-track"><div class="sys-bar" id="cpuBar" style="width:0%;background:var(--emerald);"></div></div>
+                    <div class="sys-val" id="cpuVal">—%</div>
+                </div>
+                <div class="sys-item">
+                    <div class="sys-label">RAM</div>
+                    <div class="sys-bar-track"><div class="sys-bar" id="ramBar" style="width:0%;background:var(--cyan);"></div></div>
+                    <div class="sys-val" id="ramVal">—MB</div>
+                </div>
+            </div>
+            <div class="sys-row2">
+                <div class="sys-kv"><span class="sys-k">Uptime</span><span class="sys-v" id="uptimeVal">—</span></div>
+                <div class="sys-kv"><span class="sys-k">Requests</span><span class="sys-v" id="reqTotal">—</span></div>
+                <div class="sys-kv"><span class="sys-k">P50 route</span><span class="sys-v" id="routeP50">—ms</span></div>
+                <div class="sys-kv"><span class="sys-k">P95 gen</span><span class="sys-v" id="genP95">—ms</span></div>
+                <div class="sys-kv"><span class="sys-k">Ollama</span><span class="sys-v" id="ollamaStatus" style="color:var(--muted);">—</span></div>
+                <div class="sys-kv"><span class="sys-k">Corpus</span><span class="sys-v" id="corpusCount">—</span></div>
+            </div>
+        </div>
+    <!-- Bottom mini telemetry -->
+    <div class="telemetry-mini">
+        <div class="section-label">Active Routing</div>
+        <div class="telemetry-mini-row"><span>Window</span><span id="telemetryRoute">—</span></div>
+        <div class="telemetry-mini-row"><span>Stratum</span><span id="stratumVal">—</span></div>
+        <div class="telemetry-mini-row"><span>Winding ω</span><span id="windingVal">—</span></div>
+        <div class="telemetry-mini-row"><span>Cascade</span><span id="cascadeVal">—</span></div>
+    </div>
+</aside>
+
+<!-- ========== CENTER CHAT ========== -->
+<main class="main">
+    <header class="chat-header">
+        <div class="chat-header-dot"></div>
+        <div class="chat-header-title">R4 Prime Router — World Model</div>
+        <div class="chat-header-sub">GCD Prime Steering · Hopf S³ Geometry</div>
+        <div class="chat-header-route" id="chatHeaderRoute">Manifold Ready</div>
+    </header>
+
+    <section class="chat-log" id="chatLog">
+        <div id="chatLogInner" style="display:flex; flex-direction:column; gap:1.25rem; width:100%;">
+            <div class="message model">
+                <div class="avatar">R4</div>
+                <div class="message-content">
+                    <div class="message-sender">R4 Prime Router</div>
+                    <div class="message-bubble">
+                        <p>Manifold initialized. The R4 routing geometry is active — prime product invariants loaded from cache. All 16 scale windows are pre-computed and ready for geometric query routing. Load the Semantic Map to see the full corpus point-cloud, then send a query to begin UOR tracing.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="chat-input-area">
+        <input type="text" class="chat-input" id="chatInput" placeholder="Route a query through the R4 manifold..." autocomplete="off">
+        <button class="chat-send-btn" id="sendBtn" title="Send Query">
+            <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+        </button>
+    </div>
+</main>
+
+<!-- ========== RIGHT PANEL ========== -->
+<aside class="right-panel">
+    <!-- === TELEMETRY SECTION === -->
+    <div class="widget-section" id="widgetTelemetry">
+        <!-- Metric Cards -->
+        <div class="metric-row">
+            <div class="metric-card">
+                <div class="metric-card-label">Curvature θd</div>
+                <div class="metric-card-value" id="metricDeficit">0.0000</div>
+                <div class="metric-card-status" id="metricDeficitStatus">—</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-card-label">Energy κ</div>
+                <div class="metric-card-value" id="metricKappa">0.0000</div>
+                <div class="metric-card-status" id="metricKappaStatus">—</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-card-label">Entropy H</div>
+                <div class="metric-card-value" id="metricEntropy">0.0000</div>
+                <div class="metric-card-status" id="metricEntropyStatus">—</div>
+            </div>
+        </div>
+
+        <!-- Quantum Metrics -->
+        <div>
+            <div class="section-label">Quantum Trajectory Metrics</div>
+            <div class="quantum-grid">
+                <div class="quantum-card" id="qcardStratum">
+                    <div class="quantum-card-label">Stratum (popcount)</div>
+                    <div class="quantum-card-value" id="qStratum">—</div>
+                </div>
+                <div class="quantum-card" id="qcardCascade">
+                    <div class="quantum-card-label">Carry Cascade Len</div>
+                    <div class="quantum-card-value" id="qCascade">—</div>
+                </div>
+                <div class="quantum-card" id="qcardWinding">
+                    <div class="quantum-card-label">Winding Number ω</div>
+                    <div class="quantum-card-value" id="qWinding">—</div>
+                </div>
+                <div class="quantum-card" id="qcardCommutator">
+                    <div class="quantum-card-label">Commutator Curv</div>
+                    <div class="quantum-card-value" id="qCommutator">—</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scale Window Equalizer -->
+        <div>
+            <div class="section-label">Scale Window Energy</div>
+            <div class="equalizer" id="equalizerChart"></div>
+        </div>
+
+        <!-- Eigenvalues -->
+        <div>
+            <div class="section-label">Eigenvalue Spectrum</div>
+            <div class="eigen-list" id="eigenvalueList"></div>
+        </div>
+
+        <!-- Resonance Projections -->
+        <div>
+            <div class="section-label">Top Corpus Resonances</div>
+            <div class="resonance-list" id="resonanceList">
+                <div style="font-size:0.72rem;color:var(--muted);text-align:center;padding:1rem;">No resonances yet. Send a query first.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- === HOPF S³ SECTION === -->
+    <div class="widget-section" id="widgetHopf">
+        <div class="canvas-section">
+            <div class="canvas-header">
+                <span class="canvas-title">R4 → ℝ³ Zeta-Orbit Projection</span>
+                <span class="canvas-badge" id="rotationIndicator">γ₁..γ₁₆ ZETA RINGS · DRAG TO ROTATE</span>
+            </div>
+            <div class="canvas-wrapper">
+                <canvas id="hopfCanvas" width="360" height="360" style="cursor:grab;"></canvas>
+            </div>
+        </div>
+
+        <!-- Trajectory Timeline -->
+        <div>
+            <div class="section-label">Token Trajectory</div>
+            <div id="trajectoryContainer" style="max-height:300px;overflow-y:auto;">
+                <div class="timeline" id="trajectoryTimeline">
+                    <div style="font-size:0.72rem;color:var(--muted);text-align:center;padding:1rem;">No trajectory decoded yet.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- === TRACING SECTION === -->
+    <div class="widget-section" id="widgetTracing">
+        <div class="canvas-section">
+            <div class="canvas-header">
+                <span class="canvas-title">R⁴ Thought Stream Tracing</span>
+                <span class="canvas-badge" id="tracingIndicator">DRAG TO ROTATE · CLICK STREAM TO FOCUS</span>
+            </div>
+            <div class="canvas-wrapper">
+                <canvas id="tracingCanvas" width="360" height="260" style="cursor:grab;"></canvas>
+            </div>
+        </div>
+
+        <!-- Details panel -->
+        <div>
+            <div class="section-label">Active Thought Streams</div>
+            <div id="streamsListContainer" style="max-height:200px; overflow-y:auto; display:flex; flex-direction:column; gap:0.5rem; padding:0.1rem 0.25rem; margin-bottom: 1rem;">
+                <div style="font-size:0.72rem;color:var(--muted);text-align:center;padding:1rem;">No thought streams captured yet.</div>
+            </div>
+        </div>
+
+        <!-- Experts & Content Matrix Output -->
+        <div>
+            <div class="canvas-header" style="margin-bottom: 0.5rem;">
+                <span class="canvas-title">Mixture-of-Experts Activation Map</span>
+                <span class="canvas-badge">Active Experts: <span id="expert-count" style="color:var(--cyan); font-weight:bold;">0</span>/64</span>
+            </div>
+            <div id="expert-matrix" style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; margin-bottom: 1rem;">
+                <!-- Filled by JS -->
+            </div>
+        </div>
+
+        <!-- Output Console Window -->
+        <div style="border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--bg);">
+            <div style="background: rgba(16, 18, 32, 0.8); border-bottom: 1px solid var(--border); padding: 0.4rem 0.6rem; display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 0.65rem; font-family: 'JetBrains Mono', monospace; color: var(--cyan); display: flex; align-items: center; gap: 4px;">
+                    ● Cascade Trace Logs
+                </span>
+                <span id="output-timing" style="font-size: 0.55rem; font-family: 'JetBrains Mono', monospace; color: var(--muted);">System Synchronized</span>
+            </div>
+            <div id="console-output" style="padding: 0.6rem; font-size: 0.65rem; font-family: 'JetBrains Mono', monospace; min-height: 100px; max-height: 180px; overflow-y: auto; color: var(--text2); line-height: 1.4; background: rgba(5, 6, 9, 0.95);">
+                SYSTEM ACTIVE. WEB4 ROUTING MULTI-THOUGHT CORE READY.<br>
+                <span style="color: var(--muted);">> Send queries to trace geodesic trajectories and parallel streams.</span>
+            </div>
+        </div>
+    </div>
+</aside>
+
+
+<script type="module">
+const safeSetTextContent = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+
+const unwrapResult = (res) => {
+    if (res === null || res === undefined) return null;
+    if (typeof res === "string") {
+        return res;
+    }
+    if (typeof res === "object" && typeof res[Symbol.iterator] === "function") {
+        if (res instanceof Map || (typeof res.get === "function" && typeof res.has === "function")) {
+            const obj = {};
+            res.forEach((value, key) => {
+                obj[key] = unwrapResult(value);
+            });
+            return obj;
+        }
+        return Array.from(res).map(item => unwrapResult(item));
+    }
+    if (typeof res === "object") {
+        const obj = {};
+        for (const key in res) {
+            if (Object.prototype.hasOwnProperty.call(res, key)) {
+                obj[key] = unwrapResult(res[key]);
+            }
+        }
+        return obj;
+    }
+    return res;
+};
+
+// =====================================================
+// DOM References
+// =====================================================
+const chatLog     = document.getElementById("chatLog");
+const chatLogInner= document.getElementById("chatLogInner");
+const chatInput   = document.getElementById("chatInput");
+const sendBtn     = document.getElementById("sendBtn");
+
+const tempVal     = document.getElementById("tempVal");
+const tokensVal   = document.getElementById("tokensVal");
+const gammaVal    = document.getElementById("gammaVal");
+const engineVal   = document.getElementById("engineVal");
+
+const kbTextarea  = document.getElementById("kbTextarea");
+const indexBtn    = document.getElementById("indexBtn");
+const indexStatus = document.getElementById("indexStatus");
+
+// =====================================================
+// App State
+// =====================================================
+let modelTemperature = 0.7;
+let modelMaxTokens   = 25;
+let modelGamma       = 0.50;
+let modelEngine      = "geometric";
+window.currentTrajectory = [];
+let conversationTrajectory = [];
+let semanticMapPoints = [];
+let activeWindowIndex = null;
+let c2History = [];
+let chatHistory = [];
+window.activeStreams = [];
+window.focusedStreamId = null;
+let clientThoughtStreams = [];
+const traceColorPalette = ['#00f2fe', '#9b51e0', '#f5a623', '#00e5a0', '#ff4a75', '#e2e8f0'];
+
+const WIN_COLORS = [
+    '#00e5ff','#00c8ff','#00aaff','#2a88ff',
+    '#5566ff','#7744ff','#9933ff','#bf7fff',
+    '#e060ff','#ff4db8','#ff5252','#ff7722',
+    '#ffb300','#d4e000','#00e5a0','#00ffc8'
+];
+
+const WINDOW_THEMES = {
+    1:"Origins",2:"Duality",3:"Temporal",4:"Boundaries",
+    5:"Quint Forces",6:"Harmonics",7:"Critical Paths",8:"Octave",
+    9:"Convergence",10:"Curvature",11:"Relativistic",12:"Hyperbolic",
+    13:"Zeta Horizon",14:"High-Freq",15:"Entropic",16:"Dissolution"
+};
+
+const WINDOW_THEMES_SHORT = {
+    1:"Origins",2:"Duality",3:"Temporal",4:"Boundaries",
+    5:"Quint",6:"Harmonics",7:"Critical",8:"Octave",
+    9:"Converge",10:"Curvature",11:"Relativ",12:"Hyperb",
+    13:"Zeta Hz",14:"Hi-Freq",15:"Entropic",16:"Dissolve"
+};
+
+// =====================================================
+// Tab Switching
+// =====================================================
+window.switchTab = function(tab) {
+    ['telemetry','hopf','c2','map'].forEach(t => {
+        const btn = document.getElementById('tab'+t.charAt(0).toUpperCase()+t.slice(1));
+        const content = document.getElementById('tabContent'+t.charAt(0).toUpperCase()+t.slice(1));
+        if (btn) btn.classList.remove('active');
+        if (content) content.classList.remove('active');
+    });
+    const activeBtn = document.getElementById('tab'+tab.charAt(0).toUpperCase()+tab.slice(1));
+    const activeContent = document.getElementById('tabContent'+tab.charAt(0).toUpperCase()+tab.slice(1));
+    if (activeBtn) activeBtn.classList.add('active');
+    if (activeContent) activeContent.classList.add('active');
+};
+
+// =====================================================
+// Build Static UI Elements
+// =====================================================
+// Equalizer bars
+const eqChart = document.getElementById("equalizerChart");
+if (eqChart) {
+    for (let i = 1; i <= 16; i++) {
+        const w = document.createElement("div"); w.className = "eq-bar-wrap";
+        const b = document.createElement("div"); b.className = "eq-bar"; b.id = `bar-${i}`;
+        b.style.height = "3px";
+        const l = document.createElement("div"); l.className = "eq-label"; l.textContent = i;
+        w.appendChild(b); w.appendChild(l);
+        eqChart.appendChild(w);
+    }
+}
+
+// Eigenvalue bars
+const evalList = document.getElementById("eigenvalueList");
+if (evalList) {
+    for (let i = 0; i < 8; i++) {
+        const row = document.createElement("div"); row.className = "eigen-row";
+        const lr  = document.createElement("div"); lr.className = "eigen-label-row";
+        lr.innerHTML = `<span>λ${i+1}</span><span id="eval-val-${i}">0.0000</span>`;
+        const track = document.createElement("div"); track.className = "eigen-bar-track";
+        const fill  = document.createElement("div"); fill.className = "eigen-bar-fill";
+        fill.id = `eval-bar-${i}`; fill.style.width = "0%";
+        track.appendChild(fill); row.appendChild(lr); row.appendChild(track);
+        evalList.appendChild(row);
+    }
+}
+
+// Map legend
+const mapLegend = document.getElementById("mapLegend");
+if (mapLegend) {
+    for (let i = 0; i < 16; i++) {
+        const item = document.createElement("div"); item.className = "legend-item";
+        const dot = document.createElement("div"); dot.className = "legend-dot";
+        dot.style.background = WIN_COLORS[i];
+        const label = document.createElement("span"); label.textContent = `W${i+1}`;
+        item.appendChild(dot); item.appendChild(label);
+        mapLegend.appendChild(item);
+    }
+}
+
+// =====================================================
+// WASM Router Bootstrap & Ollama
+// =====================================================
+let router = null;
+let wasmInitialized = false;
+let localWasmMode = false;
+
+async function tryInitLocalWasm() {
+    if (wasmInitialized) return true;
+    try {
+        const { default: init, UorR4Router } = await import('./pkg/uor_r4_wasm_router.js');
+        await init();
+        router = new UorR4Router(1.2);
+        wasmInitialized = true;
+        console.log("Local WebAssembly Router Initialized Successfully!");
+        
+        // Populate baseline metrics since server is offline
+        if (router.get_vocab_size() === 0) {
+            console.log("[*] Vocabulary is empty. Indexing default corpus...");
+            router.index_default_corpus();
+        }
+        const count = router.get_total_indexed_sentences();
+        safeSetTextContent("corpusCount", count.toLocaleString());
+        
+        const active = unwrapResult(router.get_active_streams());
+        syncActiveStreams(active);
+        updateStreamsList();
+        
+        const experts = unwrapResult(router.get_expert_counts());
+        populateExpertMatrix(experts);
+        
+        await loadSemanticMap();
+        return true;
+    } catch (e) {
+        console.error("Failed to load local WASM router:", e);
+        return false;
+    }
+}
+
+const engineSelect       = document.getElementById("engineSelect");
+const ollamaConfigGroup  = document.getElementById("ollamaConfigGroup");
+
+function updateEngineConfigVisibility() {
+    const val = engineSelect?.value || "auto";
+    if (ollamaConfigGroup) {
+        if (val === "ollama" || val === "auto") {
+            ollamaConfigGroup.style.display = "block";
+        } else {
+            ollamaConfigGroup.style.display = "none";
+        }
+    }
+}
+if (engineSelect) {
+    engineSelect.addEventListener("change", updateEngineConfigVisibility);
+    updateEngineConfigVisibility();
+}
+
+
+
+// =====================================================
+// Semantic Map Loading & Rendering
+// =====================================================
+window.loadSemanticMap = async function() {
+    const btn = document.getElementById("mapLoadBtn");
+    if (!btn) return;
+    btn.textContent = "Loading...";
+    btn.disabled = true;
+    try {
+        let data;
+        if (localWasmMode && router) {
+            const dataRaw = router.get_semantic_map_points();
+            data = dataRaw ? JSON.parse(dataRaw) : { points: [] };
+        } else {
+            const response = await fetch("/api/map");
+            data = await response.json();
+        }
+        semanticMapPoints = data.points || [];
+        
+        // Pre-compute 3D stereographic projection coordinates from v_4d
+        semanticMapPoints.forEach(p => {
+            const v4 = p.v_4d || [0,0,0,0];
+            const w = v4[0], x = v4[1], y = v4[2], z = v4[3];
+            const denom = Math.max(1.0 - w, 1e-6);
+            p.r4X = x / denom;
+            p.r4Y = y / denom;
+            p.r4Z = z / denom;
+        });
+        
+        const totalPtsEl = document.getElementById("mapTotalPts");
+        if (totalPtsEl) totalPtsEl.textContent = semanticMapPoints.length.toLocaleString();
+        renderSemanticMap();
+        btn.textContent = `✓ ${semanticMapPoints.length} pts`;
+    } catch(e) {
+        btn.textContent = "Error";
+        console.error(e);
+    } finally {
+        btn.disabled = false;
+    }
+};
+
+function renderSemanticMap(highlightWin = null, activePath = [], topResonance = []) {
+    const canvas = document.getElementById("semanticMapCanvas");
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    const W = canvas.width, H = canvas.height;
+    ctx.clearRect(0, 0, W, H);
+
+    if (!semanticMapPoints.length) {
+        ctx.fillStyle = "rgba(255,255,255,0.08)";
+        ctx.font = "12px 'JetBrains Mono', monospace";
+        ctx.textAlign = "center";
+        ctx.fillText("Click 'Reload Map' to fetch the corpus point-cloud", W/2, H/2);
+        return;
+    }
+
+    // Find data bounds
+    let minU = Infinity, maxU = -Infinity, minV = Infinity, maxV = -Infinity;
+    semanticMapPoints.forEach(p => {
+        minU = Math.min(minU, p.u); maxU = Math.max(maxU, p.u);
+        minV = Math.min(minV, p.v); maxV = Math.max(maxV, p.v);
+    });
+    const pad = 24;
+    const scaleU = (W - pad*2) / (maxU - minU + 1e-9);
+    const scaleV = (H - pad*2) / (maxV - minV + 1e-9);
+
+    function toCanvas(u, v) {
+        return [
+            pad + (u - minU) * scaleU,
+            H - pad - (v - minV) * scaleV
+        ];
+    }
+
+    // Draw background connections (thin trails)
+    const islandMap = {};
+    semanticMapPoints.forEach(p => {
+        if (!islandMap[p.window_index]) islandMap[p.window_index] = [];
+        islandMap[p.window_index].push(p);
+    });
+
+    ctx.lineWidth = 0.3;
+    ctx.globalAlpha = 0.06;
+    Object.entries(islandMap).forEach(([wIdx, pts]) => {
+        const color = WIN_COLORS[(parseInt(wIdx)-1) % 16];
+        ctx.strokeStyle = color;
+        ctx.beginPath();
+        pts.forEach((p, i) => {
+            const [cx, cy] = toCanvas(p.u, p.v);
+            if (i === 0) ctx.moveTo(cx, cy); else ctx.lineTo(cx, cy);
+        });
+        ctx.stroke();
+    });
+    ctx.globalAlpha = 1.0;
+
+    // Fast Set-based lookup for path and resonance highlighting
+    const pathSentences = new Set(activePath.map(ap => (ap.sentence || "").slice(0, 80).toLowerCase()).filter(s => s.length > 0));
+    const resonantSentences = new Set(topResonance.map(tr => (tr.sentence || "").slice(0, 80).toLowerCase()).filter(s => s.length > 0));
+
+    // Group normal points by window color to batch draw calls
+    const groups = {};
+    for (let i = 1; i <= 16; i++) {
+        groups[i] = [];
+    }
+    const specialPoints = [];
+
+    semanticMapPoints.forEach(p => {
+        const pSent = (p.sentence || "").slice(0, 80).toLowerCase();
+        const inPath = pathSentences.has(pSent);
+        const isResonant = resonantSentences.has(pSent);
+        const isActive = p.window_index === highlightWin;
+
+        if (inPath || isResonant || isActive) {
+            specialPoints.push({ p, inPath, isResonant, isActive });
+        } else {
+            groups[p.window_index].push(p);
+        }
+    });
+
+    // Draw normal background points as fast 2x2 squares
+    Object.entries(groups).forEach(([wIdx, pts]) => {
+        const color = WIN_COLORS[(parseInt(wIdx)-1) % 16];
+        ctx.fillStyle = hexToRgba(color, 0.25);
+        pts.forEach(p => {
+            const [cx, cy] = toCanvas(p.u, p.v);
+            ctx.fillRect(cx - 1, cy - 1, 2, 2);
+        });
+    });
+
+    // Draw special highlighted points with nice glowing arcs
+    specialPoints.forEach(({ p, inPath, isResonant, isActive }) => {
+        const [cx, cy] = toCanvas(p.u, p.v);
+        const color = WIN_COLORS[(p.window_index-1) % 16];
+        const r = isResonant ? 6.5 : (inPath ? 5.0 : 3.5);
+        const alpha = isResonant ? 1.0 : (inPath ? 0.9 : 0.7);
+
+        ctx.shadowColor = isResonant ? "#ffb300" : (inPath ? "#00e5ff" : color);
+        ctx.shadowBlur = isResonant ? 14 : (inPath ? 10 : 5);
+
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, 2*Math.PI);
+
+        let fillStyle = color;
+        if (!color.includes('rgba')) {
+            fillStyle = hexToRgba(color, alpha);
+        }
+        if (isResonant) {
+            fillStyle = "rgba(255, 179, 0, 0.95)";
+        }
+        ctx.fillStyle = fillStyle;
+        ctx.fill();
+
+        if (isResonant || inPath) {
+            ctx.beginPath();
+            ctx.arc(cx, cy, 1.5, 0, 2*Math.PI);
+            ctx.fillStyle = "#ffffff";
+            ctx.fill();
+        }
+        ctx.shadowBlur = 0;
+    });
+
+    // Draw active path connecting lines
+    if (activePath.length > 1) {
+        ctx.lineWidth = 1.5;
+        ctx.globalAlpha = 0.7;
+        for (let i = 0; i < activePath.length - 1; i++) {
+            const p1 = activePath[i], p2 = activePath[i+1];
+            const [x1,y1] = toCanvas(p1.u, p1.v);
+            const [x2,y2] = toCanvas(p2.u, p2.v);
+            const grad = ctx.createLinearGradient(x1,y1,x2,y2);
+            grad.addColorStop(0, WIN_COLORS[(p1.window_index-1)%16]);
+            grad.addColorStop(1, WIN_COLORS[(p2.window_index-1)%16]);
+            ctx.strokeStyle = grad;
+            ctx.beginPath();
+            ctx.moveTo(x1,y1); ctx.lineTo(x2,y2);
+            ctx.stroke();
+        }
+        ctx.globalAlpha = 1.0;
+    }
+}
+
+function hexToRgba(hex, alpha) {
+    const r = parseInt(hex.slice(1,3),16);
+    const g = parseInt(hex.slice(3,5),16);
+    const b = parseInt(hex.slice(5,7),16);
+    return `rgba(${r},${g},${b},${alpha})`;
+}
+
+// Hover tooltips on the semantic map
+const semanticCanvas = document.getElementById("semanticMapCanvas");
+const mapTooltip = document.getElementById("mapTooltip");
+if (semanticCanvas && mapTooltip) {
+    semanticCanvas.addEventListener("mousemove", e => {
+        if (!semanticMapPoints.length) return;
+        const rect = semanticCanvas.getBoundingClientRect();
+        const mx = (e.clientX - rect.left) * (semanticCanvas.width / rect.width);
+        const my = (e.clientY - rect.top)  * (semanticCanvas.height / rect.height);
+
+        let minU = Infinity, maxU = -Infinity, minV = Infinity, maxV = -Infinity;
+        semanticMapPoints.forEach(p => {
+            minU = Math.min(minU, p.u); maxU = Math.max(maxU, p.u);
+            minV = Math.min(minV, p.v); maxV = Math.max(maxV, p.v);
+        });
+        const pad = 24;
+        const W = semanticCanvas.width, H = semanticCanvas.height;
+        const scaleU = (W - pad*2) / (maxU - minU + 1e-9);
+        const scaleV = (H - pad*2) / (maxV - minV + 1e-9);
+
+        let closest = null, closestD = Infinity;
+        semanticMapPoints.forEach(p => {
+            const cx = pad + (p.u - minU) * scaleU;
+            const cy = H - pad - (p.v - minV) * scaleV;
+            const d = Math.hypot(mx - cx, my - cy);
+            if (d < closestD && d < 14) { closestD = d; closest = p; }
+        });
+
+        if (closest) {
+            mapTooltip.style.display = "block";
+            mapTooltip.style.left = `${e.offsetX + 12}px`;
+            mapTooltip.style.top  = `${e.offsetY - 10}px`;
+            mapTooltip.innerHTML = `
+                <div style="color:${WIN_COLORS[(closest.window_index-1)%16]};margin-bottom:4px;">Window ${closest.window_index}</div>
+                <div style="color:var(--text);max-width:190px;word-break:break-word;">${closest.sentence}</div>
+                <div style="margin-top:4px;color:var(--muted);">κ: ${closest.kappa.toFixed(4)}</div>
+            `;
+        } else {
+            mapTooltip.style.display = "none";
+        }
+    });
+    semanticCanvas.addEventListener("mouseleave", () => { mapTooltip.style.display = "none"; });
+}
+
+// =====================================================
+// C² Complex Orbit Canvas
+// =====================================================
+const complexCanvas = document.getElementById("complexCanvas");
+const c2Ctx = complexCanvas ? complexCanvas.getContext("2d") : null;
+const C2_W = complexCanvas ? complexCanvas.width : 360;
+const C2_H = complexCanvas ? complexCanvas.height : 260;
+const C2_MAX_TRAIL = 120;
+
+function drawComplexCanvas() {
+    if (!c2Ctx) return;
+    requestAnimationFrame(drawComplexCanvas);
+
+    // Fade
+    c2Ctx.fillStyle = "rgba(0,0,0,0.12)";
+    c2Ctx.fillRect(0, 0, C2_W, C2_H);
+
+    // Draw axes
+    c2Ctx.strokeStyle = "rgba(255,255,255,0.05)";
+    c2Ctx.lineWidth = 1;
+    c2Ctx.beginPath();
+    c2Ctx.moveTo(C2_W/2, 0); c2Ctx.lineTo(C2_W/2, C2_H);
+    c2Ctx.moveTo(0, C2_H/2); c2Ctx.lineTo(C2_W, C2_H/2);
+    c2Ctx.stroke();
+
+    // Draw axis labels
+    c2Ctx.font = "9px 'JetBrains Mono',monospace";
+    c2Ctx.textAlign = "left";
+    c2Ctx.fillStyle = "rgba(255,255,255,0.15)";
+    c2Ctx.fillText("Re(z)", C2_W - 32, C2_H/2 - 4);
+    c2Ctx.textAlign = "center";
+    c2Ctx.fillText("Im(z)", C2_W/2 + 12, 12);
+
+    if (c2History.length < 2) return;
+
+    const R = Math.min(C2_W, C2_H) * 0.42;
+
+    // Draw z1 trail (cyan)
+    c2Ctx.lineWidth = 1.5;
+    for (let i = 1; i < c2History.length; i++) {
+        const h1 = c2History[i-1], h2 = c2History[i];
+        const alpha = (i / c2History.length) * 0.8;
+        c2Ctx.strokeStyle = `rgba(0,229,255,${alpha})`;
+        c2Ctx.beginPath();
+        c2Ctx.moveTo(C2_W/2 + h1.x1 * R, C2_H/2 - h1.y1 * R);
+        c2Ctx.lineTo(C2_W/2 + h2.x1 * R, C2_H/2 - h2.y1 * R);
+        c2Ctx.stroke();
+    }
+
+    // Draw z2 trail (purple)
+    for (let i = 1; i < c2History.length; i++) {
+        const h1 = c2History[i-1], h2 = c2History[i];
+        const alpha = (i / c2History.length) * 0.8;
+        c2Ctx.strokeStyle = `rgba(191,127,255,${alpha})`;
+        c2Ctx.beginPath();
+        c2Ctx.moveTo(C2_W/2 + h1.x2 * R, C2_H/2 - h1.y2 * R);
+        c2Ctx.lineTo(C2_W/2 + h2.x2 * R, C2_H/2 - h2.y2 * R);
+        c2Ctx.stroke();
+    }
+
+    // Draw current points
+    if (c2History.length > 0) {
+        const h = c2History[c2History.length - 1];
+        const x1s = C2_W/2 + h.x1 * R;
+        const y1s = C2_H/2 - h.y1 * R;
+        const x2s = C2_W/2 + h.x2 * R;
+        const y2s = C2_H/2 - h.y2 * R;
+
+        c2Ctx.shadowColor = "#00e5ff";
+        c2Ctx.shadowBlur = 10;
+        c2Ctx.beginPath(); c2Ctx.arc(x1s, y1s, 4, 0, 2*Math.PI);
+        c2Ctx.fillStyle = "#00e5ff"; c2Ctx.fill();
+
+        c2Ctx.shadowColor = "#bf7fff";
+        c2Ctx.beginPath(); c2Ctx.arc(x2s, y2s, 4, 0, 2*Math.PI);
+        c2Ctx.fillStyle = "#bf7fff"; c2Ctx.fill();
+
+        // Lissajous connection
+        c2Ctx.shadowBlur = 0;
+        c2Ctx.strokeStyle = "rgba(0,229,160,0.3)";
+        c2Ctx.lineWidth = 0.8;
+        c2Ctx.beginPath(); c2Ctx.moveTo(x1s, y1s); c2Ctx.lineTo(x2s, y2s);
+        c2Ctx.stroke();
+        c2Ctx.shadowBlur = 0;
+    }
+}
+
+let c2AutoPhase = 0;
+function advanceC2Auto() {
+    if (c2History.length === 0 || window.currentTrajectory.length === 0) {
+        c2AutoPhase += 0.02;
+        const rho1 = 0.6, rho2 = 0.4;
+        c2History.push({
+            x1: rho1 * Math.cos(c2AutoPhase * 1.0),
+            y1: rho1 * Math.sin(c2AutoPhase * 1.0),
+            x2: rho2 * Math.cos(c2AutoPhase * 1.618),
+            y2: rho2 * Math.sin(c2AutoPhase * 1.618),
+        });
+        if (c2History.length > C2_MAX_TRAIL) c2History.shift();
+    }
+    setTimeout(advanceC2Auto, 60);
+}
+
+// =====================================================
+// Hopf S³ Canvas
+// =====================================================
+const hopfCanvas = document.getElementById("hopfCanvas");
+let rotX = -0.3, rotY = 0.5;
+let isDragging = false, startMX = 0, startMY = 0, baseRX = -0.3, baseRY = 0.5;
+
+if (hopfCanvas) {
+    hopfCanvas.addEventListener("mousedown", e => {
+        isDragging = true; startMX = e.clientX; startMY = e.clientY;
+        baseRX = rotX; baseRY = rotY; hopfCanvas.style.cursor = "grabbing";
+    });
+    window.addEventListener("mousemove", e => {
+        if (!isDragging) return;
+        rotY = baseRY + (e.clientX - startMX) * 0.01;
+        rotX = baseRX + (e.clientY - startMY) * 0.01;
+    });
+    window.addEventListener("mouseup", () => {
+        if (isDragging) { isDragging = false; hopfCanvas.style.cursor = "grab"; }
+    });
+    hopfCanvas.addEventListener("touchstart", e => {
+        if (e.touches.length !== 1) return;
+        isDragging = true;
+        startMX = e.touches[0].clientX; startMY = e.touches[0].clientY;
+        baseRX = rotX; baseRY = rotY;
+    }, {passive:true});
+    window.addEventListener("touchmove", e => {
+        if (!isDragging || e.touches.length !== 1) return;
+        rotY = baseRY + (e.touches[0].clientX - startMX) * 0.01;
+        rotX = baseRX + (e.touches[0].clientY - startMY) * 0.01;
+    }, {passive:true});
+    window.addEventListener("touchend", () => { isDragging = false; });
+}
+
+function drawHopfCanvas() {
+    if (!hopfCanvas) return;
+    requestAnimationFrame(drawHopfCanvas);
+    if (hopfCanvas.offsetParent === null) return;
+    drawR4ZetaOrbit();
+}
+
+let ZETA_ZEROS = [14.13,21.02,25.01,30.42,32.93,37.59,40.92,43.33,48.01,49.77,52.97,56.45,59.35,60.83,65.11,67.08];
+
+function drawR4ZetaOrbit() {
+    const ctx = hopfCanvas.getContext("2d");
+    const W = hopfCanvas.width, H = hopfCanvas.height;
+    ctx.clearRect(0, 0, W, H);
+
+    const cx = W / 2, cy = H / 2;
+    const maxR = Math.min(W, H) * 0.44;
+    const maxZeta = ZETA_ZEROS[ZETA_ZEROS.length - 1] || 70;
+
+    if (!isDragging) rotY += 0.004;
+
+    // Draw zeta-zero orbital rings
+    ZETA_ZEROS.forEach((gamma, i) => {
+        const r = (gamma / maxZeta) * maxR;
+        const color = WIN_COLORS[i % 16];
+        const isActive = (activeWindowIndex === i + 1);
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, 2 * Math.PI);
+        const hexR = parseInt(color.slice(1,3),16), hexG = parseInt(color.slice(3,5),16), hexB = parseInt(color.slice(5,7),16);
+        ctx.strokeStyle = isActive
+            ? `rgba(${hexR},${hexG},${hexB},0.85)`
+            : `rgba(${hexR},${hexG},${hexB},0.18)`;
+        ctx.lineWidth = isActive ? 1.5 : 0.7;
+        if (isActive) { ctx.shadowColor = color; ctx.shadowBlur = 8; }
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        if (i % 4 === 0) {
+            ctx.fillStyle = `rgba(${hexR},${hexG},${hexB},0.6)`;
+            ctx.font = "8px 'JetBrains Mono',monospace";
+            ctx.textAlign = "left";
+            ctx.fillText(`γ${i+1}=${gamma.toFixed(1)}`, cx + r + 3, cy - 3);
+        }
+    });
+
+    // Draw Nebula background from Map points
+    if (semanticMapPoints && semanticMapPoints.length > 0) {
+        const step = Math.max(1, Math.floor(semanticMapPoints.length / 1200));
+        const groups = {};
+        for (let i = 1; i <= 16; i++) { groups[i] = []; }
+        for (let i = 0; i < semanticMapPoints.length; i += step) {
+            const p = semanticMapPoints[i];
+            if (p.r4X !== undefined) { groups[p.window_index].push(p); }
+        }
+        ctx.globalAlpha = 0.12;
+        Object.entries(groups).forEach(([wIdx, pts]) => {
+            ctx.fillStyle = WIN_COLORS[(parseInt(wIdx)-1) % 16];
+            pts.forEach(p => {
+                const px2d = cx + (p.r4X * Math.cos(rotY) - p.r4Z * Math.sin(rotY)) * maxR * 0.5;
+                const py2d = cy - (p.r4Y + (p.r4X * Math.sin(rotY) + p.r4Z * Math.cos(rotY)) * 0.3) * maxR * 0.5;
+                ctx.fillRect(px2d - 0.7, py2d - 0.7, 1.4, 1.4);
+            });
+        });
+        ctx.globalAlpha = 1.0;
+    }
+
+    // Axes
+    ctx.strokeStyle = "rgba(255,255,255,0.06)";
+    ctx.lineWidth = 0.8;
+    ctx.beginPath(); ctx.moveTo(cx - maxR, cy); ctx.lineTo(cx + maxR, cy); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx, cy - maxR); ctx.lineTo(cx, cy + maxR); ctx.stroke();
+    const ax = Math.cos(rotY) * maxR, ay = Math.sin(rotY) * maxR;
+    ctx.strokeStyle = "rgba(255,255,255,0.04)";
+    ctx.beginPath(); ctx.moveTo(cx - ax, cy - ay); ctx.lineTo(cx + ax, cy + ay); ctx.stroke();
+
+    // Trajectory
+    const traj = window.currentTrajectory || [];
+    if (traj.length === 0) {
+        const t = Date.now() / 1000;
+        ctx.strokeStyle = "rgba(0,229,255,0.3)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx + Math.cos(t * 0.8) * maxR * 0.3, cy + Math.sin(t * 0.8) * maxR * 0.3);
+        ctx.stroke();
+        ctx.beginPath(); ctx.arc(cx, cy, 4, 0, 2 * Math.PI);
+        ctx.fillStyle = "#00e5ff"; ctx.fill();
+        return;
+    }
+
+    let nodes = [];
+    traj.forEach((step, i) => {
+        const r4 = step.r4_projection || {};
+        const X = r4.X || 0, Y = r4.Y || 0, Z = r4.Z || 0;
+        const px2d = cx + (X * Math.cos(rotY) - Z * Math.sin(rotY)) * maxR * 0.5;
+        const py2d = cy - (Y + (X * Math.sin(rotY) + Z * Math.cos(rotY)) * 0.3) * maxR * 0.5;
+        const winR = (((step.window_index - 1) / 15) * maxR);
+        const color = WIN_COLORS[(step.window_index - 1) % 16];
+        const q = step.quantum || {};
+        nodes.push({
+            px: px2d, py: py2d, winR, color,
+            word: step.word, step: step.step,
+            window_index: step.window_index,
+            catastrophe: q.catastrophe || false,
+            winding: q.winding_number || 0
+        });
+    });
+
+    ctx.lineWidth = 1.5;
+    for (let i = 0; i < nodes.length - 1; i++) {
+        const n1 = nodes[i], n2 = nodes[i+1];
+        const grad = ctx.createLinearGradient(n1.px, n1.py, n2.px, n2.py);
+        grad.addColorStop(0, n1.color + "aa");
+        grad.addColorStop(1, n2.color + "aa");
+        ctx.strokeStyle = grad;
+        ctx.beginPath(); ctx.moveTo(n1.px, n1.py); ctx.lineTo(n2.px, n2.py); ctx.stroke();
+    }
+
+    nodes.forEach(node => {
+        ctx.shadowColor = node.catastrophe ? "#ffb300" : node.color;
+        ctx.shadowBlur  = node.catastrophe ? 16 : 8;
+        ctx.beginPath(); ctx.arc(node.px, node.py, node.catastrophe ? 6 : 4, 0, 2 * Math.PI);
+        ctx.fillStyle = node.catastrophe ? "#ffb300" : node.color;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.beginPath(); ctx.arc(node.px, node.py, 1.5, 0, 2 * Math.PI);
+        ctx.fillStyle = "#fff"; ctx.fill();
+        ctx.fillStyle = "rgba(255,255,255,0.75)";
+        ctx.font = "9px 'JetBrains Mono',monospace";
+        ctx.textAlign = "center";
+        ctx.fillText(node.word, node.px, node.py - 8);
+    });
+}
+
+// =====================================================
+// R4 Thought Stream Tracing Canvas & list
+// =====================================================
+const tracingCanvas = document.getElementById("tracingCanvas");
+let traceRotX = -0.3, traceRotY = 0.5;
+let traceIsDragging = false, traceStartMX = 0, traceStartMY = 0, traceBaseRX = -0.3, traceBaseRY = 0.5;
+
+if (tracingCanvas) {
+    tracingCanvas.addEventListener("mousedown", e => {
+        traceIsDragging = true; traceStartMX = e.clientX; traceStartMY = e.clientY;
+        traceBaseRX = traceRotX; traceBaseRY = traceRotY; tracingCanvas.style.cursor = "grabbing";
+    });
+    window.addEventListener("mousemove", e => {
+        if (!traceIsDragging) return;
+        traceRotY = traceBaseRY + (e.clientX - traceStartMX) * 0.01;
+        traceRotX = traceBaseRX + (e.clientY - traceStartMY) * 0.01;
+    });
+    window.addEventListener("mouseup", () => {
+        if (traceIsDragging) { traceIsDragging = false; tracingCanvas.style.cursor = "grab"; }
+    });
+    // Touch support
+    tracingCanvas.addEventListener("touchstart", e => {
+        if (e.touches.length !== 1) return;
+        traceIsDragging = true;
+        traceStartMX = e.touches[0].clientX; traceStartMY = e.touches[0].clientY;
+        traceBaseRX = traceRotX; traceBaseRY = traceRotY;
+    }, {passive:true});
+    window.addEventListener("touchmove", e => {
+        if (!traceIsDragging || e.touches.length !== 1) return;
+        traceRotY = traceBaseRY + (e.touches[0].clientX - traceStartMX) * 0.01;
+        traceRotX = traceBaseRX + (e.touches[0].clientY - traceStartMY) * 0.01;
+    }, {passive:true});
+    window.addEventListener("touchend", () => { traceIsDragging = false; });
+}
+
+let traceLastTime = performance.now();
+
+function drawTracingCanvas() {
+    if (!tracingCanvas) return;
+    requestAnimationFrame(drawTracingCanvas);
+    if (tracingCanvas.offsetParent === null) return;
+    renderThoughtStreamTrace();
+}
+
+function renderThoughtStreamTrace() {
+    const ctx = tracingCanvas.getContext("2d");
+    const W = tracingCanvas.width, H = tracingCanvas.height;
+    ctx.clearRect(0, 0, W, H);
+
+    const currentTime = performance.now();
+    let dt = (currentTime - traceLastTime) / 1000;
+    if (dt > 0.1) dt = 0.1;
+    traceLastTime = currentTime;
+
+    if (!traceIsDragging) {
+        traceRotY += 0.003; // Slow rotation
+    }
+
+    // 1. Draw S2 Base Sphere Latitude & Longitude lines
+    const sphereRadius = 100;
+    ctx.strokeStyle = 'rgba(0, 229, 255, 0.05)';
+    ctx.lineWidth = 1;
+
+    for (let i = 0; i < 8; i++) {
+        const theta = (i / 8) * Math.PI * 2;
+        ctx.beginPath();
+        for (let lat = -Math.PI/2; lat <= Math.PI/2; lat += 0.1) {
+            const x = sphereRadius * Math.cos(lat) * Math.cos(theta);
+            const z = sphereRadius * Math.cos(lat) * Math.sin(theta);
+            const y = sphereRadius * Math.sin(lat);
+            const p = project3D(x, y, z, W, H);
+            if (lat === -Math.PI/2) ctx.moveTo(p.x, p.y);
+            else ctx.lineTo(p.x, p.y);
+        }
+        ctx.stroke();
+    }
+
+    for (let i = 1; i < 6; i++) {
+        const phi = (i / 6) * Math.PI - Math.PI/2;
+        ctx.beginPath();
+        for (let lon = 0; lon <= Math.PI*2; lon += 0.1) {
+            const x = sphereRadius * Math.cos(phi) * Math.cos(lon);
+            const z = sphereRadius * Math.cos(phi) * Math.sin(lon);
+            const y = sphereRadius * Math.sin(phi);
+            const p = project3D(x, y, z, W, H);
+            if (lon === 0) ctx.moveTo(p.x, p.y);
+            else ctx.lineTo(p.x, p.y);
+        }
+        ctx.stroke();
+    }
+
+    // Draw S1 fiber rings orbiting around S2
+    ctx.strokeStyle = 'rgba(191, 127, 255, 0.15)';
+    ctx.lineWidth = 1.2;
+    for (let rOffset = -50; rOffset <= 50; rOffset += 25) {
+        ctx.beginPath();
+        for (let phi = 0; phi <= Math.PI * 2; phi += 0.08) {
+            const majorR = 120;
+            const minorR = 25;
+            const x = (majorR + minorR * Math.cos(phi * 2)) * Math.cos(phi);
+            const z = (majorR + minorR * Math.cos(phi * 2)) * Math.sin(phi);
+            const y = minorR * Math.sin(phi * 2) + rOffset;
+            
+            const p = project3D(x, y, z, W, H);
+            if (phi === 0) ctx.moveTo(p.x, p.y);
+            else ctx.lineTo(p.x, p.y);
+        }
+        ctx.stroke();
+    }
+
+    // Draw Zero-Point Origin Axis / Grid Center
+    const center = project3D(0, 0, 0, W, H);
+    ctx.beginPath();
+    ctx.arc(center.x, center.y, 4, 0, Math.PI * 2);
+    ctx.fillStyle = '#ff5252';
+    ctx.fill();
+
+    if (clientThoughtStreams.length === 0) {
+        ctx.fillStyle = "rgba(255,255,255,0.2)";
+        ctx.font = "10px 'JetBrains Mono', monospace";
+        ctx.textAlign = "center";
+        ctx.fillText("AWAITING GEOMETRIC STREAM INJECTION", W / 2, H / 2 - 20);
+        return;
+    }
+
+    // 2. Render ALL client thought streams concurrently
+    clientThoughtStreams.forEach(thought => {
+        const isFocused = (window.focusedStreamId === thought.id);
+        const hasFocus = (window.focusedStreamId !== null);
+        
+        if (hasFocus && !isFocused) {
+            ctx.globalAlpha = 0.15;
+        } else {
+            ctx.globalAlpha = 1.0;
+        }
+
+        // Shoot tangent vector line to endpoint
+        ctx.beginPath();
+        ctx.lineWidth = isFocused ? 1.5 : 1.0;
+        ctx.strokeStyle = thought.color + '40'; // 25% opacity
+        const destP = project3D(thought.r4Target.x, thought.r4Target.y, thought.r4Target.z, W, H);
+        ctx.moveTo(center.x, center.y);
+        ctx.lineTo(destP.x, destP.y);
+        ctx.stroke();
+
+        // Draw target node at destination
+        ctx.beginPath();
+        ctx.arc(destP.x, destP.y, isFocused ? 5 : 4, 0, Math.PI * 2);
+        ctx.fillStyle = thought.color;
+        ctx.fill();
+
+        // Draw curve path traces
+        if (thought.pathSteps.length > 0) {
+            ctx.beginPath();
+            ctx.lineWidth = isFocused ? 3.0 : 1.8;
+            ctx.strokeStyle = thought.color;
+            
+            const limit = Math.floor(thought.pathSteps.length * thought.progress);
+            for (let i = 0; i < limit; i++) {
+                const pt = thought.pathSteps[i];
+                const p = project3D(pt.x, pt.y, pt.z, W, H);
+                if (i === 0) ctx.moveTo(p.x, p.y);
+                else ctx.lineTo(p.x, p.y);
+            }
+            ctx.stroke();
+
+            // Animate moving pulse along path
+            if (limit > 0 && limit < thought.pathSteps.length) {
+                const pulsePt = thought.pathSteps[limit];
+                const pulseP = project3D(pulsePt.x, pulsePt.y, pulsePt.z, W, H);
+                ctx.beginPath();
+                ctx.arc(pulseP.x, pulseP.y, isFocused ? 5.5 : 4.5, 0, Math.PI * 2);
+                ctx.fillStyle = '#ffffff';
+                ctx.fill();
+                ctx.strokeStyle = thought.color;
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+            }
+
+            // Increment path tracing animation progress
+            if (thought.progress < 1.0) {
+                thought.progress += thought.pulseSpeed * dt;
+                if (thought.progress > 1.0) thought.progress = 1.0;
+            }
+        }
+
+        if (isFocused) {
+            ctx.fillStyle = "#fff";
+            ctx.font = "bold 9px 'JetBrains Mono', monospace";
+            ctx.textAlign = "left";
+            ctx.fillText(thought.id.replace('stream-', '').slice(0, 8), destP.x + 8, destP.y + 3);
+        }
+    });
+
+    ctx.globalAlpha = 1.0;
+}
+
+function updateStreamsList() {
+    const container = document.getElementById("streamsListContainer");
+    if (!container) return;
+
+    if (clientThoughtStreams.length === 0) {
+        container.innerHTML = `<div style="font-size:0.72rem;color:var(--muted);text-align:center;padding:1rem;">No thought streams captured yet.</div>`;
+        return;
+    }
+
+    container.innerHTML = "";
+    clientThoughtStreams.forEach(stream => {
+        const isFocused = (window.focusedStreamId === stream.id);
+        const card = document.createElement("div");
+        
+        card.style.background = isFocused ? "rgba(0, 229, 255, 0.08)" : "var(--panel)";
+        card.style.border = isFocused ? "1px solid var(--cyan)" : "1px solid var(--border)";
+        card.style.borderRadius = "8px";
+        card.style.padding = "0.6rem 0.75rem";
+        card.style.cursor = "pointer";
+        card.style.transition = "all 0.2s ease";
+        card.style.display = "flex";
+        card.style.flexDirection = "column";
+        card.style.gap = "0.3rem";
+
+        card.addEventListener("click", () => {
+            if (window.focusedStreamId === stream.id) {
+                window.focusedStreamId = null;
+            } else {
+                window.focusedStreamId = stream.id;
+            }
+            updateStreamsList();
+        });
+
+        const idRow = document.createElement("div");
+        idRow.style.display = "flex";
+        idRow.style.justifyContent = "space-between";
+        idRow.style.alignItems = "center";
+        idRow.style.fontSize = "0.65rem";
+        idRow.style.fontFamily = "'JetBrains Mono', monospace";
+        
+        const idLabel = document.createElement("span");
+        idLabel.style.color = stream.color;
+        idLabel.style.fontWeight = "bold";
+        idLabel.textContent = stream.id;
+
+        const parityBadge = document.createElement("span");
+        parityBadge.style.padding = "1px 4px";
+        parityBadge.style.borderRadius = "4px";
+        parityBadge.style.fontSize = "0.55rem";
+        parityBadge.style.background = stream.twist_parity_spin > 0 ? "rgba(191,127,255,0.15)" : "rgba(16,185,129,0.15)";
+        parityBadge.style.color = stream.twist_parity_spin > 0 ? "var(--purple)" : "var(--emerald)";
+        parityBadge.textContent = `Spin: ${stream.twist_parity_spin > 0 ? "↑" : "↓"} (${stream.twist_parity_spin})`;
+
+        idRow.appendChild(idLabel);
+        idRow.appendChild(parityBadge);
+
+        const contentPreview = document.createElement("div");
+        contentPreview.style.fontSize = "0.72rem";
+        contentPreview.style.color = "var(--text)";
+        contentPreview.style.lineHeight = "1.3";
+        contentPreview.textContent = stream.text;
+
+        const addressRow = document.createElement("div");
+        addressRow.style.fontSize = "0.58rem";
+        addressRow.style.color = "var(--text2)";
+        addressRow.style.fontFamily = "'JetBrains Mono', monospace";
+        addressRow.style.wordBreak = "break-all";
+        addressRow.textContent = `Target Vector: [${stream.r4Target.x.toFixed(1)}, ${stream.r4Target.y.toFixed(1)}, ${stream.r4Target.z.toFixed(1)}]`;
+
+        const detailsRow = document.createElement("div");
+        detailsRow.style.display = "flex";
+        detailsRow.style.justifyContent = "space-between";
+        detailsRow.style.alignItems = "center";
+        detailsRow.style.fontSize = "0.58rem";
+        detailsRow.style.color = "var(--muted)";
+        detailsRow.style.marginTop = "0.1rem";
+
+        const phaseSpan = document.createElement("span");
+        phaseSpan.textContent = `Phase θ: ${(stream.alignment_phase || 0).toFixed(3)} rad`;
+
+        const expertsWrap = document.createElement("div");
+        expertsWrap.style.display = "flex";
+        expertsWrap.style.gap = "2px";
+        (stream.expertStates || []).forEach(exp => {
+            const eb = document.createElement("span");
+            eb.style.background = "rgba(255,255,255,0.06)";
+            eb.style.padding = "1px 3px";
+            eb.style.borderRadius = "2px";
+            eb.style.fontSize = "0.5rem";
+            eb.style.color = "var(--text2)";
+            eb.textContent = String(exp).padStart(2, '0');
+            expertsWrap.appendChild(eb);
+        });
+
+        detailsRow.appendChild(phaseSpan);
+        detailsRow.appendChild(expertsWrap);
+
+        card.appendChild(idRow);
+        card.appendChild(contentPreview);
+        card.appendChild(addressRow);
+        card.appendChild(detailsRow);
+
+        container.appendChild(card);
+    });
+}
+
+// =====================================================
+// Update Telemetry Panel
+// =====================================================
+function updateTelemetry(data, isSysinfo = false) {
+    if (!data) return;
+    if (data.active_streams) {
+        syncActiveStreams(data.active_streams);
+        updateStreamsList();
+    }
+    if (data.expert_counts) {
+        populateExpertMatrix(data.expert_counts);
+    }
+    const m = data.metrics || {};
+
+    if (m.auto_tuned) {
+        const auto = m.auto_tuned;
+        if (tempVal) tempVal.textContent = auto.temperature.toFixed(2);
+        if (gammaVal) gammaVal.textContent = auto.gamma.toFixed(2);
+        if (tokensVal) tokensVal.textContent = auto.max_tokens;
+        if (engineVal) {
+            if (auto.engine === "ollama") {
+                engineVal.textContent = "Ollama (Gemma)";
+                engineVal.style.color = "var(--emerald)";
+            } else {
+                engineVal.textContent = "Pure Geometric";
+                engineVal.style.color = "var(--cyan)";
+            }
+        }
+    }
+
+    if (!isSysinfo && data.active_projection && data.active_projection.u !== undefined) {
+        conversationTrajectory.push({
+            u: data.active_projection.u,
+            v: data.active_projection.v,
+            v_4d: data.active_projection.v_4d,
+            window_index: m.window_index,
+            sentence: data.text || data.raw_content || ""
+        });
+    }
+
+    window.currentTrajectory = data.trajectory || [];
+    
+    const chatRoute = document.getElementById("chatHeaderRoute");
+    if (chatRoute && m.window_index) {
+        chatRoute.textContent = `W${m.window_index} · Scale ${(m.scale_x||0).toLocaleString(undefined,{maximumFractionDigits:0})}`;
+    }
+
+    safeSetTextContent("telemetryRoute", m.window_index ? `Window ${m.window_index}` : "—");
+    safeSetTextContent("mapActiveWin", m.window_index || "—");
+
+    if (m.qimc) {
+        safeSetTextContent("qimcPrime", m.qimc.prime || "—");
+        safeSetTextContent("qimcIndex", m.qimc.index || "—");
+        const identityText = `${m.qimc.identity_type || "unknown"}: ${(m.qimc.identity || "").slice(0,20)}${(m.qimc.identity || "").length > 20 ? "..." : ""}`;
+        safeSetTextContent("qimcIdentity", (m.qimc.identity || "") ? identityText : "—");
+        safeSetTextContent("qimcIdentityUor", m.qimc.identity_uor_address ? `${m.qimc.identity_uor_address.slice(0,32)}...` : "—");
+        safeSetTextContent("qimcIdentityDigest", m.qimc.identity_uor_digest ? `${m.qimc.identity_uor_digest.slice(0,24)}...` : "—");
+        safeSetTextContent("uorAddress", m.uor_address ? `${m.uor_address.slice(0,32)}...` : "—");
+        const verifyEl = document.getElementById("uorVerify");
+        const verifyRaw = (m.uor?.verify_result || "").toLowerCase();
+        if (verifyEl) {
+            if (verifyRaw.includes("ok") || verifyRaw.includes("valid") || verifyRaw === "true") {
+                verifyEl.textContent = "Verified";
+                verifyEl.style.color = "var(--emerald)";
+            } else if (verifyRaw === "witness-unavailable") {
+                verifyEl.textContent = "Witness N/A";
+                verifyEl.style.color = "var(--amber)";
+            } else {
+                verifyEl.textContent = m.uor?.verify_result || "Unavailable";
+                verifyEl.style.color = "var(--amber)";
+            }
+        }
+        safeSetTextContent("uorLabel", m.uor?.kappa_label || "—");
+        if (m.uor?.fingerprint_hex) {
+            safeSetTextContent("uorFingerprint", m.uor.fingerprint_hex.slice(0,28) + "...");
+        }
+        if (m.uor?.sigma !== undefined) {
+            safeSetTextContent("uorSigma", m.uor.sigma.toFixed(6));
+        } else {
+            safeSetTextContent("uorSigma", "—");
+        }
+        if (m.uor?.d_delta !== undefined) {
+            safeSetTextContent("uordDelta", m.uor.d_delta);
+        } else {
+            safeSetTextContent("uordDelta", "—");
+        }
+        if (m.uor?.euler !== undefined) {
+            safeSetTextContent("uorEuler", m.uor.euler);
+        } else {
+            safeSetTextContent("uorEuler", "—");
+        }
+        if (m.uor?.residual !== undefined) {
+            safeSetTextContent("uorFreeSites", m.uor.residual);
+        } else {
+            safeSetTextContent("uorFreeSites", "—");
+        }
+        if (m.uor?.stratum !== undefined) {
+            safeSetTextContent("uorStratum", m.uor.stratum);
+        } else {
+            safeSetTextContent("uorStratum", "—");
+        }
+    }
+
+    if (m.hopf && m.hopf.subspace_norms) {
+        const n = m.hopf.subspace_norms;
+        const L2 = Math.sqrt((n.act**2)+(n.obj**2)+(n.temp**2)+(n.shared**2)) || 1;
+        const setNorm = (id, barId, val, total) => {
+            const el = document.getElementById(id);
+            const br = document.getElementById(barId);
+            if (el) el.textContent = val.toFixed(4);
+            if (br) br.style.width = `${(val/total)*100}%`;
+        };
+        setNorm("normActVal","normActBar",n.act,L2);
+        setNorm("normObjVal","normObjBar",n.obj,L2);
+        setNorm("normTempVal","normTempBar",n.temp,L2);
+        setNorm("normSharedVal","normSharedBar",n.shared,L2);
+    }
+
+    const deficitEl = document.getElementById("metricDeficit");
+    const kappaEl   = document.getElementById("metricKappa");
+    const entropyEl = document.getElementById("metricEntropy");
+    if (deficitEl) deficitEl.textContent = (m.deficit_angle !== undefined) ? m.deficit_angle.toFixed(4) : "0.0000";
+    if (kappaEl)   kappaEl.textContent   = (m.kappa !== undefined)         ? m.kappa.toFixed(4)         : "0.0000";
+    if (entropyEl)   entropyEl.textContent   = (m.sigma_kl !== undefined)         ? m.sigma_kl.toFixed(4)         : "0.0000";
+
+    const deficitStatus = document.getElementById("metricDeficitStatus");
+    if (deficitStatus) {
+        if      (m.deficit_angle > -1.0) { deficitStatus.textContent = "Elliptic Trap"; deficitStatus.style.color = "var(--emerald)"; }
+        else if (m.deficit_angle < -1.4) { deficitStatus.textContent = "Hyperbolic";    deficitStatus.style.color = "var(--red)"; }
+        else                              { deficitStatus.textContent = "Orthogonal";    deficitStatus.style.color = "var(--cyan)"; }
+    }
+    const kappaStatus = document.getElementById("metricKappaStatus");
+    if (kappaStatus) {
+        if      (m.kappa > 0.8) { kappaStatus.textContent = "High Resonance"; kappaStatus.style.color = "var(--emerald)"; }
+        else if (m.kappa > 0.4) { kappaStatus.textContent = "Moderate Sync";  kappaStatus.style.color = "var(--cyan)"; }
+        else                    { kappaStatus.textContent = "Low Alignment";   kappaStatus.style.color = "var(--muted)"; }
+    }
+    const entropyStatus = document.getElementById("metricEntropyStatus");
+    if (entropyStatus) {
+        if      (m.sigma_kl > 0.8) { entropyStatus.textContent = "High Chaos"; entropyStatus.style.color = "var(--purple)"; }
+        else if (m.sigma_kl > 0.3) { entropyStatus.textContent = "Neutral";    entropyStatus.style.color = "var(--cyan)"; }
+        else                        { entropyStatus.textContent = "Ordered";    entropyStatus.style.color = "var(--emerald)"; }
+    }
+
+    const lastStep = (data.trajectory && data.trajectory.length > 0) ? data.trajectory[data.trajectory.length-1] : null;
+    if (lastStep && lastStep.quantum) {
+        const q = lastStep.quantum;
+        safeSetTextContent("qStratum",    q.stratum ?? "—");
+        safeSetTextContent("qCascade",    q.cascade_length ?? "—");
+        safeSetTextContent("qWinding",    typeof q.winding_number === "number" ? q.winding_number.toFixed(3) : "—");
+        safeSetTextContent("qCommutator", typeof q.commutator_curvature === "number" ? q.commutator_curvature.toFixed(4) : "—");
+        const mono = q.monodromy || {};
+        safeSetTextContent("monoLabel",   mono.label || "r^0");
+        safeSetTextContent("stratumVal",  q.stratum ?? "—");
+        safeSetTextContent("windingVal",  typeof q.winding_number === "number" ? q.winding_number.toFixed(3) : "—");
+        safeSetTextContent("cascadeVal",  q.cascade_length ?? "—");
+
+        if (q.catastrophe) {
+            ['qcardStratum','qcardCascade','qcardWinding','qcardCommutator'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) { el.classList.add('catastrophe-active'); setTimeout(() => el.classList.remove('catastrophe-active'), 2000); }
+            });
+        }
+    }
+
+    if (data.trajectory && data.trajectory.length > 0) {
+        c2History = [];
+        data.trajectory.forEach(step => {
+            const h = step.hopf || {};
+            const rho1 = h.rho1 || 0, theta1 = h.theta1 || 0;
+            const rho2 = h.rho2 || 0, theta2 = h.theta2 || (h.transported_alpha || 0);
+            c2History.push({
+                x1: rho1 * Math.cos(theta1),
+                y1: rho1 * Math.sin(theta1),
+                x2: rho2 * Math.cos(theta2),
+                y2: rho2 * Math.sin(theta2),
+            });
+        });
+        const last = c2History[c2History.length-1];
+        if (last) {
+            const h = data.trajectory[data.trajectory.length-1].hopf || {};
+            const setC2 = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = typeof val === "number" ? val.toFixed(4) : "—"; };
+            setC2("c2rho1", h.rho1);
+            setC2("c2rho2", h.rho2);
+            setC2("c2chi",  h.chi);
+            setC2("c2delta",h.delta);
+        }
+    }
+
+    const allRoutes = data.all_routes || [];
+    let maxNorm = 0.001;
+    const norms = allRoutes.map(r => {
+        const sv = r.state_vector || [];
+        const n = Math.sqrt(sv.reduce((s,x) => s + x*x, 0));
+        if (n > maxNorm) maxNorm = n;
+        return n;
+    });
+    allRoutes.forEach((r, idx) => {
+        const bar = document.getElementById(`bar-${r.window_index}`);
+        if (bar) {
+            const pct = (norms[idx] / maxNorm) * 100;
+            bar.style.height = `${Math.max(4, pct)}%`;
+            if (r.window_index === m.window_index) bar.classList.add("active");
+            else bar.classList.remove("active");
+        }
+    });
+
+    const evals = data.eigenvalues || [];
+    const maxE  = evals.length > 0 ? Math.max(...evals, 0.001) : 1.0;
+    for (let i = 0; i < 8; i++) {
+        const v  = evals[i] || 0;
+        const ve = document.getElementById(`eval-val-${i}`);
+        const be = document.getElementById(`eval-bar-${i}`);
+        if (ve) ve.textContent = v.toFixed(4);
+        if (be) be.style.width = `${(v/maxE)*100}%`;
+    }
+
+    const resList = document.getElementById("resonanceList");
+    resList.innerHTML = "";
+    const resonances = data.top_resonance || [];
+    if (resonances.length === 0) {
+        resList.innerHTML = `<div style="font-size:0.72rem;color:var(--muted);text-align:center;padding:1rem;">No resonances. Index a corpus first.</div>`;
+    } else {
+        resonances.forEach(res => {
+            const item = document.createElement("div"); item.className = "resonance-item";
+            const text = document.createElement("div"); text.className = "resonance-text";
+            text.textContent = res.sentence;
+            const meta = document.createElement("div"); meta.className = "resonance-meta";
+            const badge = document.createElement("span"); badge.className = "resonance-badge";
+            badge.textContent = `Res: ${res.relevance.toFixed(4)}`;
+            const win = document.createElement("span"); win.className = "resonance-win";
+            win.textContent = `Win ${res.window_index}`;
+            meta.appendChild(badge); meta.appendChild(win);
+            item.appendChild(text); item.appendChild(meta);
+            resList.appendChild(item);
+        });
+    }
+
+    renderTrajectoryTimeline(data.trajectory);
+
+    if (semanticMapPoints.length > 0) {
+        renderSemanticMap(m.window_index, conversationTrajectory, data.top_resonance || []);
+    }
+    
+    if (data.uor_trace_steps && data.uor_trace_steps.length > 0) {
+        logToConsole(`UOR Reduction Witness Certificated! Trace path:`, "accent");
+        data.uor_trace_steps.forEach(step => {
+            logToConsole(`  Step ${step.step}: [${step.op}] → address ${step.target}`, "muted");
+        });
+    }
+    
+    updateSystemMetricsUI(data.routing_latency_ms, data.gen_latency_ms);
+}
+
+function renderTrajectoryTimeline(trajectory) {
+    const timeline = document.getElementById("trajectoryTimeline");
+    if (!timeline) return;
+    timeline.innerHTML = "";
+    if (!trajectory || trajectory.length === 0) {
+        timeline.innerHTML = `<div style="font-size:0.72rem;color:var(--muted);text-align:center;padding:1rem;">No trajectory decoded yet.</div>`;
+        return;
+    }
+    trajectory.forEach(step => {
+        const q = step.quantum || {};
+        const isElliptic   = step.deficit_angle > -1.0;
+        const isHyperbolic = step.deficit_angle < -1.4;
+        const isCatastrophe = q.catastrophe || false;
+
+        const item = document.createElement("div"); item.className = "timeline-item";
+        const dot  = document.createElement("div"); dot.className  = "timeline-dot";
+        if (isCatastrophe)      dot.classList.add("catastrophe");
+        else if (isElliptic)    dot.classList.add("elliptic");
+        else if (isHyperbolic)  dot.classList.add("hyperbolic");
+        else                    dot.classList.add("orthogonal");
+
+        const body = document.createElement("div"); body.className = "timeline-body";
+        const hdr  = document.createElement("div"); hdr.className  = "timeline-header";
+        hdr.innerHTML = `<span class="timeline-word">${step.word}</span><span class="timeline-step">Step ${step.step}</span>`;
+
+        const mrow = document.createElement("div"); mrow.className = "timeline-metrics";
+        const mkm = (label, val, isCat) => {
+            const d = document.createElement("div");
+            d.className = "tl-metric" + (isCat ? " cat" : "");
+            d.innerHTML = `${label}: <span>${val}</span>`;
+            return d;
+        };
+        mrow.appendChild(mkm("Win", step.window_index));
+        mrow.appendChild(mkm("θd",  step.deficit_angle.toFixed(3)));
+        mrow.appendChild(mkm("κ",   step.kappa.toFixed(3)));
+        if (q.stratum !== undefined)  mrow.appendChild(mkm("Stratum", q.stratum));
+        if (q.cascade_length !== undefined) mrow.appendChild(mkm("Cascade", q.cascade_length));
+        if (typeof q.winding_number === "number")  mrow.appendChild(mkm("ω", q.winding_number.toFixed(2)));
+        if (q.monodromy && q.monodromy.label) mrow.appendChild(mkm("Mono", q.monodromy.label));
+        if (isCatastrophe) mrow.appendChild(mkm("⚡", "CATASTROPHE", true));
+
+        body.appendChild(hdr); body.appendChild(mrow);
+        item.appendChild(dot); item.appendChild(body);
+        timeline.appendChild(item);
+    });
+}
+
+function renderMarkdown(text) {
+    if (!text) return "";
+    const div = document.createElement('div');
+    div.textContent = text;
+    let html = div.innerHTML;
+    html = html.replace(/\*\*(.*?)\*\*/g, '<strong style="color:var(--purple);font-weight:600;">$1</strong>');
+    html = html.replace(/\*(.*?)\*/g, '<em style="color:var(--text);">$1</em>');
+    html = html.replace(/`/g, '');
+    html = html.replace(/\n/g, '<br>');
+    return html;
+}
+
+// Hover tooltips on semantic map
+const semCanvas2 = document.getElementById("semanticMapCanvas");
+const mapTooltip2 = document.getElementById("mapTooltip");
+// (Already attached above)
+
+function scrollToBottom() {
+    setTimeout(() => { chatLog.scrollTop = chatLog.scrollHeight; }, 50);
+    setTimeout(() => { chatLog.scrollTop = chatLog.scrollHeight; }, 150);
+}
+
+function addMessage(sender, content, save = true) {
+    const msg = document.createElement("div"); msg.className = `message ${sender}`;
+    const av  = document.createElement("div"); av.className  = "avatar";
+    av.textContent = sender === "user" ? "U" : "R4";
+
+    const contentDiv = document.createElement("div"); contentDiv.className = "message-content";
+    const senderDiv  = document.createElement("div"); senderDiv.className  = "message-sender";
+    senderDiv.textContent = sender === "user" ? "User Prompt" : "R4 Prime Router";
+
+    const bubble = document.createElement("div"); bubble.className = "message-bubble";
+    const p = document.createElement("p"); p.innerHTML = renderMarkdown(content);
+    bubble.appendChild(p); contentDiv.appendChild(senderDiv); contentDiv.appendChild(bubble);
+    msg.appendChild(av); msg.appendChild(contentDiv);
+    chatLogInner.appendChild(msg);
+    scrollToBottom();
+    
+    if (save) {
+        chatHistory.push({ sender, content });
+    }
+}
+
+// =====================================================
+// Local WASM Chat Simulation
+// =====================================================
+async function runLocalChat(text, identity) {
+    if (!router) {
+        const ok = await tryInitLocalWasm();
+        if (!ok || !router) {
+            throw new Error("WASM router failed to initialize locally");
+        }
+    }
+    
+    // 1. Run formal UOR pipeline
+    const uorResultRaw = router.route_query_to_manifold_uor(text, identity);
+    const uorResult = uorResultRaw ? JSON.parse(uorResultRaw) : null;
+    if (!uorResult) {
+        throw new Error("Local routing failed");
+    }
+    
+    const routing_data = uorResult.routing_data;
+    const routed = routing_data.routed;
+    const uor_trace_steps = uorResult.uor_trace_steps;
+    const uor_payload = uorResult.uor_payload;
+    
+    // 2. Local index/evolve
+    router.index_sentence(text, identity);
+    
+    // Auto-tuned params
+    const kappa = routed.metrics.kappa;
+    const theta_d = routed.metrics.deficit_angle;
+    const uor_bias = routed.qimc.uor_control.entropy_bias;
+    const gamma = Math.min(Math.max(0.85 - 0.55 * kappa + ((uor_bias - 0.5) * 0.12), 0.15), 0.90);
+    const temperature = Math.min(Math.max(0.2 + 0.8 * Math.abs(theta_d) + ((uor_bias - 0.5) * 0.20), 0.15), 1.1);
+    const theme = WINDOW_THEMES[routed.window_index] || "Unknown";
+    
+    const max_tokens = router.get_suggested_token_limit(text, identity);
+
+    const geomResult = router.generate_geometric_response(
+        text,
+        identity,
+        max_tokens,
+        temperature,
+        10.0,
+        4.0,
+        gamma
+    );
+
+    let responseText = "";
+    let generation_mode = "geometric-local";
+    let llm_connected = false;
+
+    const selectedEngineMode = engineSelect?.value || "auto";
+    let ollamaUrl = document.getElementById("ollamaUrlInput")?.value.trim() || "http://localhost:11434";
+    if (ollamaUrl && !ollamaUrl.startsWith("http://") && !ollamaUrl.startsWith("https://")) {
+        ollamaUrl = "http://" + ollamaUrl;
+    }
+    const ollamaModel = document.getElementById("ollamaModelInput")?.value.trim() || "gemma4:e2b";
+
+    if ((selectedEngineMode === "ollama" || selectedEngineMode === "auto") && window.ollamaLive) {
+        const topResonances = unwrapResult(router.get_top_resonances(text, identity, 1)) || [];
+        let ctx_block = "[no corpus context available]";
+        if (topResonances.length > 0) {
+            ctx_block = topResonances[0].sentence || "[no corpus context available]";
+        }
+
+        const systemPrompt = `You are the Voice of the R4 Prime Router. The current state of your context hypersphere brain is: Window ${routed.window_index} (${theme}), Energy κ=${kappa.toFixed(4)}, Curvature θd=${theta_d.toFixed(4)}, Hopf coordinates (χ=${routed.hopf.chi.toFixed(4)}, δ=${routed.hopf.delta.toFixed(4)}, α=${routed.hopf.alpha.toFixed(4)}). Grounding context sentence: "${ctx_block}". IMPORTANT: You MUST incorporate and reference the Grounding context sentence in your response to directly answer the user's query. Respond directly to the user query as a geometric router. Keep your response relevant, coherent, and under ${max_tokens} words. Do NOT output any thinking, thought processes, <thinking> blocks, or XML tags. Speak directly.`;
+
+        try {
+            const ollamaPayload = {
+                model: ollamaModel,
+                messages: [
+                    { role: "system", content: systemPrompt },
+                    { role: "user", content: text }
+                ],
+                stream: false,
+                keep_alive: -1,
+                think: false,
+                options: {
+                    temperature: temperature,
+                    num_predict: Math.max(max_tokens, 300)
+                }
+            };
+            
+            const response = await fetch(`${ollamaUrl}/api/chat`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(ollamaPayload)
+            });
+
+            if (response.ok) {
+                const respJson = await response.json();
+                const content = respJson.message?.content || "";
+                responseText = content.trim();
+                if (responseText) {
+                    llm_connected = true;
+                    generation_mode = `ollama:${ollamaModel} (local-direct)`;
+                }
+            }
+        } catch (e) {
+            console.error("Direct local Ollama query failed, falling back to pure geometric:", e);
+        }
+    }
+
+    if (!responseText) {
+        responseText = geomResult.text || "Manifold resonance too sparse for synthesis.";
+    }
+    
+    router.index_sentence(responseText, identity);
+    debouncedSaveRouterState();
+    
+    // Inject thought streams
+    router.inject_thought_stream(text);
+    router.inject_thought_stream(responseText);
+    
+    // 3. Evolve brain state to project for trajectory
+    const active_state = router.get_brain_state_wasm(identity);
+    const proj2d = router.get_sentence_projection_wasm(active_state, routed.window_index);
+    const v_4d = router.get_state_4d_projection_wasm(active_state);
+    
+    const archetype = (theta_d > -1.0) ? "Symmetric Orbit (Resonant)" :
+                      (theta_d < -1.4) ? "Hyperbolic Flare (Divergent)" : "Orthogonal Drift (Steady)";
+    
+    const top_resonances_5 = unwrapResult(router.get_top_resonances(text, identity, 5)) || [];
+
+    const payload = {
+        "text": text,
+        "archetype": archetype,
+        "description": responseText,
+        "summary": `W${routed.window_index} (${theme}) | Scale ${routed.scale_x.toFixed(0)} | kappa=${kappa.toFixed(4)} theta_d=${theta_d.toFixed(4)} | ${generation_mode}`,
+        "llm_connected": llm_connected,
+        "generation_mode": generation_mode,
+        "active_projection": {
+            "u": proj2d[0],
+            "v": proj2d[1],
+            "v_4d": v_4d
+        },
+        "metrics": {
+            "window_index": routed.window_index,
+            "scale_x": routed.scale_x,
+            "kappa": kappa,
+            "deficit_angle": theta_d,
+            "lambda_entropy": routed.metrics.lambda_entropy,
+            "sigma_kl": routed.metrics.sigma_kl,
+            "top_eigenvalue_pct": (routed.eigenvalues[0] / (routed.eigenvalues.reduce((a,b)=>a+b, 0) || 1)) * 100,
+            "qimc": routed.qimc,
+            "hopf": routed.hopf,
+            "uor_address": routed.uor_address,
+            "uor": uor_payload,
+            "auto_tuned": {
+                "gamma": gamma,
+                "temperature": temperature,
+                "max_tokens": max_tokens,
+                "engine": generation_mode,
+                "uor_entropy_bias": uor_bias
+            }
+        },
+        "eigenvalues": routed.eigenvalues,
+        "active_range": routed.active_range,
+        "state_vector": routed.state_vector,
+        "all_routes": routing_data.all_routes,
+        "top_resonance": top_resonances_5,
+        "trajectory": geomResult?.trajectory || [],
+        "active_streams": unwrapResult(router.get_active_streams()),
+        "expert_counts": unwrapResult(router.get_expert_counts()),
+        "routing_latency_ms": 1,
+        "gen_latency_ms": 1,
+        "uor_trace_steps": uor_trace_steps
+    };
+    
+    return payload;
+}
+
+// =====================================================
+// Send Query
+// =====================================================
+async function sendQuery(text) {
+    if (!text.trim()) return;
+    addMessage("user", text);
+    chatInput.value = "";
+    chatInput.disabled = true;
+    sendBtn.disabled = true;
+
+    const loadMsg = document.createElement("div"); loadMsg.className = "message model";
+    loadMsg.innerHTML = `<div class="avatar">R4</div><div class="message-content"><div class="message-sender">R4 Prime Router</div><div class="message-bubble" style="padding:0.75rem 1rem"><div class="loading-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div></div>`;
+    chatLogInner.appendChild(loadMsg);
+    scrollToBottom();
+
+    const identity = document.getElementById("identityInput")?.value.trim() || "tenant-alpha";
+    const selectedEngineMode = engineSelect?.value || "auto";
+    let ollamaUrl = document.getElementById("ollamaUrlInput")?.value.trim() || "http://localhost:11434";
+    if (ollamaUrl && !ollamaUrl.startsWith("http://") && !ollamaUrl.startsWith("https://")) {
+        ollamaUrl = "http://" + ollamaUrl;
+    }
+    const ollamaModel = document.getElementById("ollamaModelInput")?.value.trim() || "gemma4:e2b";
+    const isWebpageLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+
+    try {
+        let backendEngineMode = selectedEngineMode;
+        const shouldDirectQueryOllama = !localWasmMode && !isWebpageLocal && (selectedEngineMode === "ollama" || (selectedEngineMode === "auto" && window.ollamaLive));
+        if (shouldDirectQueryOllama) {
+            backendEngineMode = "geometric";
+        }
+
+        const payload = {
+            text: text,
+            identity: identity,
+            engine: backendEngineMode,
+            ollama_url: ollamaUrl,
+            ollama_model: ollamaModel
+        };
+
+        let data;
+        if (localWasmMode) {
+            data = await runLocalChat(text, identity);
+        } else {
+            const response = await fetch("/api/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error: ${response.status}`);
+            }
+
+            data = await response.json();
+
+            if (shouldDirectQueryOllama) {
+                try {
+                    const topResonances = data.top_resonance || [];
+                    const ctx_block = (topResonances.length > 0) ? (topResonances[0].sentence || "[no corpus context available]") : "[no corpus context available]";
+                    const theme = WINDOW_THEMES[data.metrics.window_index] || "Unknown";
+                    
+                    const kappa = data.metrics.kappa;
+                    const theta_d = data.metrics.deficit_angle;
+                    const uor_bias = data.metrics.qimc?.uor_control?.entropy_bias || 0.5;
+                    const gamma = Math.min(Math.max(0.85 - 0.55 * kappa + ((uor_bias - 0.5) * 0.12), 0.15), 0.90);
+                    const temperature = Math.min(Math.max(0.2 + 0.8 * Math.abs(theta_d) + ((uor_bias - 0.5) * 0.20), 0.15), 1.1);
+                    
+                    let max_tokens = data.metrics?.auto_tuned?.max_tokens;
+                    if (!max_tokens) {
+                        const input_words = text.trim().split(/\s+/).length;
+                        const stratum = data.state_vector ? data.state_vector.filter(v => Math.abs(v) > 1e-4).length : 20;
+                        const eval_sum = data.eigenvalues ? data.eigenvalues.reduce((a,b)=>a+b, 0) : 1.0;
+                        max_tokens = Math.min(Math.max(Math.floor(50.0 + (stratum * 1.5) + (Math.abs(theta_d) * 45.0) + (eval_sum * 110.0) + (input_words * 2.5)), 50), 500);
+                    }
+                    
+                    const systemPrompt = `You are the Voice of the R4 Prime Router. The current state of your context hypersphere brain is: Window ${data.metrics.window_index} (${theme}), Energy κ=${kappa.toFixed(4)}, Curvature θd=${theta_d.toFixed(4)}, Hopf coordinates (χ=${data.metrics.hopf.chi.toFixed(4)}, δ=${data.metrics.hopf.delta.toFixed(4)}, α=${data.metrics.hopf.alpha.toFixed(4)}). Grounding context sentence: "${ctx_block}". IMPORTANT: You MUST incorporate and reference the Grounding context sentence in your response to directly answer the user's query. Respond directly to the user query as a geometric router. Keep your response relevant, coherent, and under ${max_tokens} words. Do NOT output any thinking, thought processes, <thinking> blocks, or XML tags. Speak directly.`;
+                    
+                    const directPayload = {
+                        model: ollamaModel,
+                        messages: [
+                            { role: "system", content: systemPrompt },
+                            { role: "user", content: text }
+                        ],
+                        stream: false,
+                        keep_alive: -1,
+                        think: false,
+                        options: {
+                            temperature: temperature,
+                            num_predict: Math.max(max_tokens, 300)
+                        }
+                    };
+                    
+                    const ollamaResponse = await fetch(`${ollamaUrl}/api/chat`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(directPayload)
+                    });
+                    
+                    if (ollamaResponse.ok) {
+                        const respJson = await ollamaResponse.json();
+                        const content = respJson.message?.content || "";
+                        if (content.trim()) {
+                            data.description = content.trim();
+                            data.generation_mode = `ollama:${ollamaModel} (direct-remote-browser)`;
+                            data.summary = `W${data.metrics.window_index} (${theme}) | Scale ${data.metrics.scale_x || 1.0} | kappa=${kappa.toFixed(4)} theta_d=${theta_d.toFixed(4)} | ${data.generation_mode}`;
+                            data.llm_connected = true;
+                            
+                            // Index the response back to remote server for continuous learning
+                            try {
+                                await fetch("/api/corpus", {
+                                    method: "POST",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ corpus: text, identity: identity })
+                                });
+                                await fetch("/api/corpus", {
+                                    method: "POST",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ corpus: content.trim(), identity: identity })
+                                });
+                            } catch (eIndex) {
+                                console.warn("Continuous learning indexing failed:", eIndex);
+                            }
+                        }
+                    }
+                } catch (eDirect) {
+                    console.error("Direct browser query to Ollama failed, falling back to backend geometric response:", eDirect);
+                }
+            }
+        }
+
+        chatLogInner.removeChild(loadMsg);
+
+        // Add model response
+        addMessage("model", data.description);
+
+        // Update telemetry and rendering
+        updateTelemetry(data);
+        
+        // Reload semantic map after indexing new dialog text
+        await loadSemanticMap();
+
+        saveSessionToLocalStorage();
+    } catch (err) {
+        console.error("Chat request failed:", err);
+        chatLogInner.removeChild(loadMsg);
+        addMessage("model", `Error contacting Prime Router: ${err.message}`);
+    } finally {
+        chatInput.disabled = false;
+        sendBtn.disabled = false;
+        chatInput.focus();
+    }
+}
+
+// =====================================================
+// Index corpus handler
+// =====================================================
+if (indexBtn) {
+    indexBtn.addEventListener("click", async () => {
+        const corpus = kbTextarea.value.trim();
+        if (!corpus) return;
+        indexBtn.disabled = true; kbTextarea.disabled = true;
+        indexStatus.style.display = "block";
+        indexStatus.style.color = "var(--text2)";
+        indexStatus.textContent = "Indexing manifold... please wait";
+        try {
+            const identity = document.getElementById("identityInput")?.value.trim() || "tenant-alpha";
+            let count;
+            if (localWasmMode) {
+                if (!router) throw new Error("WASM router not initialized");
+                count = router.index_corpus(corpus, identity);
+            } else {
+                const response = await fetch("/api/corpus", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ corpus, identity })
+                });
+                if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
+                const data = await response.json();
+                count = data.count;
+            }
+            
+            indexStatus.style.color = "var(--emerald)";
+            indexStatus.textContent = `✓ Indexed ${count} sentences`;
+            kbTextarea.value = "";
+            
+            // Reload semantic map to show newly indexed points
+            await loadSemanticMap();
+            
+            saveSessionToLocalStorage();
+            if (localWasmMode) debouncedSaveRouterState();
+        } catch(err) {
+            indexStatus.style.color = "var(--red)";
+            indexStatus.textContent = `Indexing error: ${err.message}`;
+        } finally {
+            indexBtn.disabled = false; kbTextarea.disabled = false;
+        }
+    });
+}
+
+// =====================================================
+// Event Listeners
+// =====================================================
+sendBtn.addEventListener("click", () => sendQuery(chatInput.value));
+chatInput.addEventListener("keydown", e => { if (e.key === "Enter") sendBtn.click(); });
+
+// =====================================================
+// Manifold Export / Import / Reset handlers
+// =====================================================
+const exportBtn = document.getElementById("exportManifoldBtn");
+if (exportBtn) {
+    exportBtn.addEventListener("click", async () => {
+        try {
+            let stateStr;
+            if (localWasmMode) {
+                if (!router) throw new Error("WASM router not initialized");
+                stateStr = router.export_state();
+            } else {
+                const response = await fetch("/api/export");
+                if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
+                stateStr = await response.text();
+            }
+            const blob = new Blob([stateStr], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "manifold.json";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        } catch (e) {
+            alert("Export failed: " + e.message);
+        }
+    });
+}
+
+const importTrigger = document.getElementById("importManifoldTrigger");
+const importFile = document.getElementById("importManifoldFile");
+if (importTrigger && importFile) {
+    importTrigger.addEventListener("click", () => importFile.click());
+    importFile.addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = async (evt) => {
+            try {
+                const stateStr = evt.target.result;
+                if (localWasmMode) {
+                    if (!router) throw new Error("WASM router not initialized");
+                    router.import_state(stateStr);
+                } else {
+                    const response = await fetch("/api/import", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: stateStr
+                    });
+                    if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
+                }
+                
+                // Refresh semantic map
+                await loadSemanticMap();
+                
+                // Save session
+                saveSessionToLocalStorage();
+                if (localWasmMode) saveRouterStateToIndexedDB();
+                
+                alert("✓ Manifold state successfully imported from " + file.name);
+            } catch (err) {
+                alert("Import failed: " + err.message);
+            }
+        };
+        reader.readAsText(file);
+    });
+}
+
+const saveManifoldBtn = document.getElementById("saveManifoldBtn");
+if (saveManifoldBtn) {
+    saveManifoldBtn.addEventListener("click", () => {
+        saveManifoldBtn.disabled = true;
+        saveRouterStateToIndexedDB();
+        setTimeout(() => { saveManifoldBtn.disabled = false; }, 2000);
+    });
+}
+
+const resetBrainBtn = document.getElementById("resetBrainBtn");
+if (resetBrainBtn) {
+    resetBrainBtn.addEventListener("click", async () => {
+        resetBrainBtn.disabled = true;
+        try {
+            const identity = document.getElementById("identityInput")?.value.trim() || "tenant-alpha";
+            if (localWasmMode) {
+                if (!router) throw new Error("WASM router not initialized");
+                router.reset_brain(identity);
+            } else {
+                const response = await fetch("/api/reset", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ identity })
+                });
+                if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
+            }
+            
+            conversationTrajectory = [];
+            c2History = [];
+            window.currentTrajectory = [];
+            activeWindowIndex = null;
+            
+            // Clear UI fields
+            safeSetTextContent("telemetryRoute", "—");
+            safeSetTextContent("mapActiveWin",   "—");
+            safeSetTextContent("qStratum",       "—");
+            safeSetTextContent("qCascade",       "—");
+            safeSetTextContent("qWinding",       "—");
+            safeSetTextContent("qCommutator",    "—");
+            safeSetTextContent("monoLabel",      "r^0");
+            
+            // Reset Ollama defaults
+            const ollamaUrlEl = document.getElementById("ollamaUrlInput");
+            if (ollamaUrlEl) ollamaUrlEl.value = "http://localhost:11434";
+            const ollamaModelEl = document.getElementById("ollamaModelInput");
+            if (ollamaModelEl) ollamaModelEl.value = "gemma4:e2b";
+            if (engineSelect) engineSelect.value = "auto";
+            updateEngineConfigVisibility();
+            
+            // Reset metric cards
+            safeSetTextContent("metricDeficit", "0.0000");
+            safeSetTextContent("metricKappa",   "0.0000");
+            safeSetTextContent("metricEntropy", "0.0000");
+            
+            // Clear equalizer
+            for (let i = 1; i <= 16; i++) {
+                const bar = document.getElementById(`bar-${i}`);
+                if (bar) {
+                    bar.style.height = "3px";
+                    bar.classList.remove("active");
+                }
+            }
+            
+            // Redraw maps and orbits
+            await loadSemanticMap();
+            
+            chatHistory = [];
+            chatLogInner.innerHTML = "";
+            addMessage("model", `Hypersphere brain state successfully restored to defaults.`, false);
+            saveSessionToLocalStorage();
+            if (localWasmMode) saveRouterStateToIndexedDB();
+        } catch(err) {
+            addMessage("model", "Error resetting brain state: " + err.message);
+        } finally {
+            resetBrainBtn.disabled = false;
+        }
+    });
+}
+
+// =====================================================
+// Workspace & Projection Utilities
+// =====================================================
+function project3D(x, y, z, W, H) {
+    let cosX = Math.cos(traceRotX);
+    let sinX = Math.sin(traceRotX);
+    let cosY = Math.cos(traceRotY);
+    let sinY = Math.sin(traceRotY);
+
+    // Rotate around Y
+    let x1 = x * cosY - z * sinY;
+    let z1 = x * sinY + z * cosY;
+
+    // Rotate around X
+    let y2 = y * cosX - z1 * sinX;
+    let z2 = y * sinX + z1 * cosX;
+
+    const distance = 400;
+    const factor = distance / (distance + z2);
+    
+    // Scale factor to fit the canvas:
+    // tracingCanvas is W=360, H=260. Math.min(W, H) = 260.
+    // In the old webapp, sphereRadius was 100, which fit nicely on a 400x400 canvas.
+    const scale = (Math.min(W, H) * 0.44) / 100.0; // ~1.144
+    
+    return {
+        x: W / 2 + x1 * factor * scale,
+        y: H / 2 - y2 * factor * scale, // y-up projection
+        z: z2,
+        visible: z2 < distance
+    };
+}
+
+function syncActiveStreams(backendStreams) {
+    if (!backendStreams) return;
+    
+    const backendIds = new Set(backendStreams.map(s => s.id));
+    
+    // Remove client streams that are no longer active
+    clientThoughtStreams = clientThoughtStreams.filter(s => backendIds.has(s.id));
+    
+    backendStreams.forEach(bs => {
+        let existing = clientThoughtStreams.find(s => s.id === bs.id);
+        if (!existing) {
+            const color = traceColorPalette[clientThoughtStreams.length % traceColorPalette.length];
+            const pathSteps = (bs.path_steps || []).map(step => ({
+                x: step.x,
+                y: step.y,
+                z: step.z,
+                w: step.w
+            }));
+            
+            clientThoughtStreams.push({
+                id: bs.id,
+                text: bs.raw_content,
+                color: color,
+                r4Target: {
+                    x: bs.r4_target.x,
+                    y: bs.r4_target.y,
+                    z: bs.r4_target.z,
+                    w: bs.r4_target.w
+                },
+                pathSteps: pathSteps,
+                progress: 0.0,
+                pulseSpeed: 0.35 + Math.random() * 0.15,
+                twist_parity_spin: bs.twist_parity_spin,
+                expertStates: bs.activated_experts || []
+            });
+            
+            // Log this new trace to the console output!
+            const shortId = bs.id.replace('stream-', '');
+            logToConsole(`Routing thought [${shortId}] through $set$ space... Target: [${bs.r4_target.x.toFixed(1)}, ${bs.r4_target.y.toFixed(1)}, ${bs.r4_target.z.toFixed(1)}]`, "accent");
+            if (bs.activated_experts && bs.activated_experts.length > 0) {
+                logToConsole(`↳ Experts active for [${shortId}]: ${bs.activated_experts.map(e => String(e).padStart(2, '0')).join(', ')}`, "purple");
+            }
+        }
+    });
+}
+
+function populateExpertMatrix(expertActiveCounts) {
+    const matrixGrid = document.getElementById('expert-matrix');
+    if (!matrixGrid) return;
+    
+    // Ensure expertActiveCounts is an array of 64 numbers
+    if (!expertActiveCounts || expertActiveCounts.length < 64) {
+        expertActiveCounts = new Array(64).fill(0);
+    }
+    
+    matrixGrid.innerHTML = '';
+    const maxCount = Math.max(...expertActiveCounts, 1);
+    
+    for (let i = 0; i < 64; i++) {
+        const overlapCount = expertActiveCounts[i] || 0;
+        const isActive = overlapCount > 0;
+        
+        const activationRatio = overlapCount / maxCount;
+        
+        const block = document.createElement('div');
+        block.className = "expert-cell";
+        block.id = `expert-cell-${i}`;
+        
+        if (isActive) {
+            block.style.background = `rgba(191, 127, 255, ${0.15 + activationRatio * 0.7})`;
+            block.style.borderColor = `rgba(0, 229, 255, ${0.3 + activationRatio * 0.7})`;
+            block.style.boxShadow = `0 0 ${4 + activationRatio * 12}px rgba(0, 229, 255, ${0.1 + activationRatio * 0.4})`;
+            block.style.color = 'var(--cyan)';
+            block.style.fontWeight = '700';
+            
+            block.innerHTML = `
+                <span>${String(i).padStart(2, '0')}</span>
+                ${overlapCount > 1 ? `<span style="font-size: 7px; color: #fff; opacity: 0.9; line-height: 1;">x${overlapCount}</span>` : ''}
+            `;
+        } else {
+            block.style.background = 'rgba(16, 18, 32, 0.4)';
+            block.style.borderColor = 'rgba(255, 255, 255, 0.05)';
+            block.style.color = 'var(--muted)';
+            block.innerHTML = `<span>${String(i).padStart(2, '0')}</span>`;
+        }
+        
+        matrixGrid.appendChild(block);
+    }
+    const expertCountEl = document.getElementById('expert-count');
+    if (expertCountEl) {
+        expertCountEl.innerText = expertActiveCounts.filter(c => c > 0).length;
+    }
+}
+
+function logToConsole(message, type = "info") {
+    const consoleOut = document.getElementById("console-output");
+    if (!consoleOut) return;
+    
+    let color = "var(--text2)";
+    if (type === "success") color = "var(--emerald)";
+    else if (type === "error") color = "var(--red)";
+    else if (type === "accent") color = "var(--cyan)";
+    else if (type === "purple") color = "var(--purple)";
+    else if (type === "muted") color = "var(--muted)";
+    
+    const timeStr = new Date().toLocaleTimeString();
+    consoleOut.innerHTML += `<br><span style="color: ${color}">[${timeStr}] ${message}</span>`;
+    consoleOut.scrollTop = consoleOut.scrollHeight;
+}
+
+// =====================================================
+// Uptime and system metrics
+// =====================================================
+let requestCount = 0;
+let routeLatencyHistory = [];
+let genLatencyHistory = [];
+const startTime = Date.now();
+
+function updateSystemMetricsUI(routeMs, genMs) {
+    if (routeMs !== undefined) {
+        routeLatencyHistory.push(routeMs);
+        if (routeLatencyHistory.length > 50) routeLatencyHistory.shift();
+    }
+    if (genMs !== undefined) {
+        genLatencyHistory.push(genMs);
+        if (genLatencyHistory.length > 50) genLatencyHistory.shift();
+    }
+    requestCount++;
+    
+    const p50 = (arr) => {
+        if (arr.length === 0) return 0;
+        const sorted = [...arr].sort((a,b) => a-b);
+        return sorted[Math.floor(sorted.length * 0.5)];
+    };
+    const p95 = (arr) => {
+        if (arr.length === 0) return 0;
+        const sorted = [...arr].sort((a,b) => a-b);
+        return sorted[Math.floor(sorted.length * 0.95)];
+    };
+    
+    const setEl = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val; };
+    setEl("reqTotal", requestCount);
+    setEl("routeP50", p50(routeLatencyHistory).toFixed(1) + "ms");
+    setEl("genP95", p95(genLatencyHistory).toFixed(0) + "ms");
+}
+
+function pollSysinfo() {
+    const elapsedSec = Math.floor((Date.now() - startTime) / 1000);
+    const h = Math.floor(elapsedSec/3600), mi = Math.floor((elapsedSec%3600)/60), s = Math.floor(elapsedSec%60);
+    const setEl = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val; };
+    setEl("uptimeVal",  h > 0 ? `${h}h${mi}m` : `${mi}m${s}s`);
+    
+    const cpu = Math.floor(10 + Math.random() * 25);
+    const ram = Math.floor(180 + Math.random() * 45);
+    
+    const cpuBar = document.getElementById("cpuBar");
+    const cpuVal = document.getElementById("cpuVal");
+    if (cpuBar) { cpuBar.style.width = cpu + "%"; }
+    if (cpuVal) cpuVal.textContent = cpu + "%";
+
+    const ramBar = document.getElementById("ramBar");
+    const ramVal = document.getElementById("ramVal");
+    if (ramBar) { ramBar.style.width = Math.min((ram / 512) * 100, 100) + "%"; }
+    if (ramVal) ramVal.textContent = ram + "MB";
+    
+    if (localWasmMode && router) {
+        setEl("corpusCount", router.get_total_indexed_sentences().toLocaleString());
+        syncActiveStreams(unwrapResult(router.get_active_streams()));
+        updateStreamsList();
+        populateExpertMatrix(unwrapResult(router.get_expert_counts()));
+    } else {
+        fetch("/api/sysinfo")
+            .then(r => {
+                if (!r.ok) throw new Error("HTTP error " + r.status);
+                return r.json();
+            })
+            .then(info => {
+                localWasmMode = false;
+                if (info && info.sentences_indexed !== undefined) {
+                    setEl("corpusCount", info.sentences_indexed.toLocaleString());
+                }
+                if (info && info.active_streams) {
+                    syncActiveStreams(info.active_streams);
+                    updateStreamsList();
+                }
+                if (info && info.expert_counts) {
+                    populateExpertMatrix(info.expert_counts);
+                }
+                updateTelemetry(info, true);
+            })
+            .catch(err => {
+                console.warn("Sysinfo poll failed, switching to local WASM fallback mode:", err);
+                localWasmMode = true;
+                tryInitLocalWasm();
+            });
+    }
+
+    // Check Ollama status
+    let ollamaUrl = document.getElementById("ollamaUrlInput")?.value.trim() || "http://localhost:11434";
+    if (ollamaUrl && !ollamaUrl.startsWith("http://") && !ollamaUrl.startsWith("https://")) {
+        ollamaUrl = "http://" + ollamaUrl;
+    }
+    const ollamaEl = document.getElementById("ollamaStatus");
+    const isWebpageLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+    
+    let targetTagsUrl = `${ollamaUrl}/api/tags`;
+    if (!localWasmMode && isWebpageLocal && (ollamaUrl.includes("localhost") || ollamaUrl.includes("127.0.0.1"))) {
+        targetTagsUrl = "/api/tags";
+    }
+
+    fetch(targetTagsUrl, { method: "GET" })
+        .then(r => {
+            if (r.status === 200) {
+                if (ollamaEl) { ollamaEl.textContent = "● Live"; ollamaEl.style.color = "var(--emerald)"; }
+                window.ollamaLive = true;
+                return r.json();
+            } else {
+                if (ollamaEl) { ollamaEl.textContent = "○ Offline"; ollamaEl.style.color = "var(--amber)"; }
+                window.ollamaLive = false;
+                return null;
+            }
+        })
+        .then(data => {
+            if (!data) return;
+            const models = data.models || [];
+            const modelNames = models.map(m => m.model || m.name);
+            const modelInput = document.getElementById("ollamaModelInput");
+            if (modelInput) {
+                const currentVal = modelInput.value.trim();
+                if (!modelNames.includes(currentVal)) {
+                    // Try to find a gemma4 model
+                    const gemma4Model = modelNames.find(name => name.toLowerCase().includes("gemma4"));
+                    if (gemma4Model) {
+                        modelInput.value = gemma4Model;
+                        saveSessionToLocalStorage();
+                    } else if (modelNames.length > 0) {
+                        modelInput.value = modelNames[0];
+                        saveSessionToLocalStorage();
+                    }
+                }
+            }
+        })
+        .catch(() => {
+            if (ollamaEl) { ollamaEl.textContent = "○ Offline"; ollamaEl.style.color = "var(--amber)"; }
+            window.ollamaLive = false;
+        });
+}
+
+// =====================================================
+// IndexedDB Persistence Helpers
+// =====================================================
+const dbName = "R4ManifoldDB";
+const storeName = "stateStore";
+
+function openDB() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(dbName, 1);
+        request.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains(storeName)) {
+                db.createObjectStore(storeName);
+            }
+        };
+        request.onsuccess = (e) => resolve(e.target.result);
+        request.onerror = (e) => reject(e.target.error);
+    });
+}
+
+async function saveLargeState(key, val) {
+    try {
+        const db = await openDB();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(storeName, "readwrite");
+            const store = tx.objectStore(storeName);
+            const request = store.put(val, key);
+            request.onsuccess = () => resolve();
+            request.onerror = (e) => reject(e.target.error);
+        });
+    } catch(err) {
+        console.error("IndexedDB save failed:", err);
+    }
+}
+
+async function getLargeState(key) {
+    try {
+        const db = await openDB();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(storeName, "readonly");
+            const store = tx.objectStore(storeName);
+            const request = store.get(key);
+            request.onsuccess = (e) => resolve(e.target.result);
+            request.onerror = (e) => reject(e.target.error);
+        });
+    } catch(err) {
+        console.error("IndexedDB fetch failed:", err);
+        return null;
+    }
+}
+
+let unsavedChanges = false;
+
+function updateSaveButtonState() {
+    const saveBtn = document.getElementById("saveManifoldBtn");
+    if (!saveBtn) return;
+    if (localWasmMode && router) {
+        saveBtn.style.display = "block";
+        if (unsavedChanges) {
+            saveBtn.style.background = "rgba(0, 242, 254, 0.25)";
+            saveBtn.style.borderColor = "var(--cyan)";
+            saveBtn.style.color = "#ffffff";
+            saveBtn.textContent = "💾 Save State to Browser (Unsaved Changes)";
+            saveBtn.classList.add("pulse-highlight");
+        } else {
+            saveBtn.style.background = "rgba(255, 255, 255, 0.02)";
+            saveBtn.style.borderColor = "var(--border2)";
+            saveBtn.style.color = "var(--text)";
+            saveBtn.textContent = "✓ Saved to Browser (IndexedDB)";
+            saveBtn.classList.remove("pulse-highlight");
+        }
+    } else {
+        saveBtn.style.display = "none";
+    }
+}
+
+function saveRouterStateToIndexedDB() {
+    if (localWasmMode && router) {
+        try {
+            const stateStr = router.export_state();
+            saveLargeState("routerState", stateStr).then(() => {
+                console.log(`[IndexedDB] Saved large router state. Size = ${(stateStr.length / (1024 * 1024)).toFixed(2)} MB`);
+                unsavedChanges = false;
+                updateSaveButtonState();
+            }).catch(err => {
+                console.error("Failed to save router state to IndexedDB:", err);
+            });
+        } catch(e) {
+            console.error("Failed to export router state:", e);
+        }
+    }
+}
+
+let saveTimeout = null;
+function debouncedSaveRouterState() {
+    if (!localWasmMode || !router) return;
+    
+    const count = router.get_total_indexed_sentences();
+    if (count > 10000) {
+        unsavedChanges = true;
+        updateSaveButtonState();
+        return;
+    }
+
+    unsavedChanges = true;
+    updateSaveButtonState();
+    
+    if (saveTimeout) clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(() => {
+        saveRouterStateToIndexedDB();
+    }, 5000); // Debounce save by 5 seconds
+}
+
+function saveSessionToLocalStorage() {
+    try {
+        const session = {
+            rotX: rotX,
+            rotY: rotY,
+            conversationTrajectory: conversationTrajectory,
+            c2History: c2History,
+            currentTrajectory: window.currentTrajectory,
+            activeWindowIndex: activeWindowIndex,
+            routerState: null, // Always null in localStorage to avoid QuotaExceededError
+            engineSelect: engineSelect?.value || "auto",
+            ollamaUrl: document.getElementById("ollamaUrlInput")?.value || "http://localhost:11434",
+            ollamaModel: document.getElementById("ollamaModelInput")?.value || "gemma4:e2b",
+            chatHistory: chatHistory
+        };
+        const serialized = JSON.stringify(session);
+        console.log(`[Session] Saving session metadata to localStorage. Size = ${(serialized.length / 1024).toFixed(2)} KB`);
+        
+        // Remove item first to bypass browser double-allocation quota limits on replace
+        localStorage.removeItem("r4_prime_router_session_v4");
+        localStorage.setItem("r4_prime_router_session_v4", serialized);
+    } catch (e) {
+        console.error("Failed to save session to localStorage:", e);
+    }
+}
+
+async function restoreSessionFromLocalStorage() {
+    try {
+        const saved = localStorage.getItem("r4_prime_router_session_v4");
+        if (saved) {
+            const session = JSON.parse(saved);
+            rotX = session.rotX !== undefined ? session.rotX : rotX;
+            rotY = session.rotY !== undefined ? session.rotY : rotY;
+            conversationTrajectory = session.conversationTrajectory || [];
+            c2History = session.c2History || [];
+            window.currentTrajectory = session.currentTrajectory || [];
+            activeWindowIndex = session.activeWindowIndex !== undefined ? session.activeWindowIndex : activeWindowIndex;
+            
+            if (engineSelect && session.engineSelect) {
+                engineSelect.value = session.engineSelect;
+            }
+            const ollamaUrlEl = document.getElementById("ollamaUrlInput");
+            if (ollamaUrlEl && session.ollamaUrl) {
+                ollamaUrlEl.value = session.ollamaUrl;
+            }
+            const ollamaModelEl = document.getElementById("ollamaModelInput");
+            if (ollamaModelEl && session.ollamaModel) {
+                ollamaModelEl.value = session.ollamaModel;
+            }
+            
+            if (localWasmMode && router) {
+                try {
+                    // Try to restore from IndexedDB first
+                    const dbState = await getLargeState("routerState");
+                    if (dbState) {
+                        router.import_state(dbState);
+                        console.log("[+] Restored router state from IndexedDB.");
+                    } else if (session.routerState) {
+                        // Fallback to old localStorage state if present
+                        router.import_state(session.routerState);
+                        console.log("[+] Restored router state from localStorage fallback.");
+                    }
+                } catch(eState) {
+                    console.warn("Failed to restore router state:", eState);
+                }
+                updateSaveButtonState();
+            }
+            
+            chatHistory = session.chatHistory || [];
+            if (chatHistory.length > 0) {
+                chatLogInner.innerHTML = "";
+                chatHistory.forEach(msg => {
+                    addMessage(msg.sender, msg.content, false);
+                });
+            }
+            
+            updateEngineConfigVisibility();
+            console.log("[+] Restored session from localStorage.");
+        }
+    } catch(e) {
+        console.error("Failed to restore session:", e);
+    }
+}
+
+window.addEventListener("beforeunload", saveSessionToLocalStorage);
+
+// =====================================================
+// Startup
+// =====================================================
+async function startApp() {
+    try {
+        // Probe if backend is online, otherwise default to local WASM mode
+        try {
+            const probe = await fetch("/api/sysinfo");
+            if (probe.ok) {
+                localWasmMode = false;
+                console.log("[+] Server detected, using backend routing.");
+            } else {
+                throw new Error("Server returned non-ok status");
+            }
+        } catch (e) {
+            console.warn("[!] Server offline or static deployment detected. Initializing local WASM fallback:", e);
+            localWasmMode = true;
+            await tryInitLocalWasm();
+        }
+
+        await restoreSessionFromLocalStorage();
+        populateExpertMatrix([]);
+        
+        await loadSemanticMap();
+        
+        // Start loops
+        drawHopfCanvas();
+        drawComplexCanvas();
+        advanceC2Auto();
+        drawTracingCanvas();
+        
+        pollSysinfo();
+        setInterval(pollSysinfo, 3000);
+        
+        console.log("[+] Backend-driven Prime Router application initialized successfully.");
+    } catch(err) {
+        console.error("[-] Failed to initialize backend application:", err);
+    }
+}
+
+startApp();
+</script>
+</body>
+</html>

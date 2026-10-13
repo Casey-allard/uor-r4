@@ -1,0 +1,11 @@
+case,variant,D,n_samples,acc,h3_err,phase_err,runtime_s,note
+A,original_s42,20,2048,1.0,0.0,2.5e-07,0.017128,baseline; H3 preserved; direct carrier readout
+B,original_s42,20,2048,0.255859,0.0,nan,0.009825,"H3 zeroed at tau_init; eps_high=1.0 preserves zero; atan2(0,0)=0 → pred=constant(partition_offset); acc=fraction_of_class"
+C_h3_readout,original_s42,20,2048,0.329102,0.0,1.00390613,0.009509,H3 readout (k%4) applied to H2 target (k%6); wrong carrier → acc~=4/12=0.333; mechanism is carrier-specific
+C_h2_readout,original_s42,20,2048,1.0,0.0,nan,0.009855,H2 readout (k%6) on H2 target (k%6); H2 also preserved by eps_high=1.0; different carrier readout; acc=1.0
+D,original_s42,20,2048,1.0,0.0,nan,0.009517,Joint CRT from H2(k%6)+H3(k%4) → k%12; both carriers preserved; 12-class uniquely recoverable; still trivial carrier readout from TWO preserved harmonics
+A,shift1_s42,20,2048,1.0,0.0,2.5e-07,0.010582,baseline; H3 preserved; direct carrier readout
+B,shift1_s42,20,2048,0.255859,0.0,nan,0.01008,"H3 zeroed at tau_init; eps_high=1.0 preserves zero; atan2(0,0)=0 → pred=constant(partition_offset); acc=fraction_of_class"
+C_h3_readout,shift1_s42,20,2048,0.329102,0.0,1.0,0.009749,H3 readout (k%4) applied to H2 target (k%6); wrong carrier → acc~=4/12=0.333; mechanism is carrier-specific
+C_h2_readout,shift1_s42,20,2048,1.0,0.0,nan,0.00978,H2 readout (k%6) on H2 target (k%6); H2 also preserved by eps_high=1.0; different carrier readout; acc=1.0
+D,shift1_s42,20,2048,1.0,0.0,nan,0.010592,Joint CRT from H2(k%6)+H3(k%4) → k%12; both carriers preserved; 12-class uniquely recoverable; still trivial carrier readout from TWO preserved harmonics

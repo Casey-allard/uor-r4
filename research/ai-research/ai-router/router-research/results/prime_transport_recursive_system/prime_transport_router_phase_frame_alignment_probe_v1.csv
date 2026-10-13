@@ -1,0 +1,63 @@
+measurement_type,variant,step,angular_alignment,radial_scale_ratio,basis_match_score,bg_std,snr_proxy,cross_inj_acc,note
+manifold,tau0_table (pool),—,1.0,—,1.0,—,—,—,on_manifold=YES  max_dev=0.0
+manifold,TN_ang (all entries),—,1.0,—,1.0,—,—,—,on_manifold=YES  max_dev=0.0
+manifold,hard_geom τ at t=0,—,1.0,—,1.0,—,—,—,on_manifold=YES  max_dev=0.0
+manifold,hard_geom τ at t=D-1,—,1.0,—,1.0,—,—,—,on_manifold=YES  max_dev=0.0
+manifold,W_tok_inject (4 vecs),—,0.7915,—,0.5467,—,—,—,on_manifold=NO  max_dev=0.7879
+angular_drift,hard_geom_routing,0,1.0,—,1.0,—,—,—,mean_pair_norm=1.0  std_pair_norm=0.0
+angular_drift,hard_geom_routing,1,0.703,—,0.703,—,—,—,mean_pair_norm=1.0  std_pair_norm=0.0
+angular_drift,hard_geom_routing,2,0.5709,—,0.7031,—,—,—,mean_pair_norm=1.0  std_pair_norm=0.0
+angular_drift,hard_geom_routing,3,0.5387,—,0.697,—,—,—,mean_pair_norm=1.0  std_pair_norm=0.0
+angular_drift,hard_geom_routing,4,0.5016,—,0.7101,—,—,—,mean_pair_norm=1.0  std_pair_norm=0.0
+angular_drift,hard_geom_routing,5,0.4622,—,0.7058,—,—,—,mean_pair_norm=1.0  std_pair_norm=0.0
+angular_drift,hard_geom_routing,6,0.476,—,0.7064,—,—,—,mean_pair_norm=1.0  std_pair_norm=0.0
+angular_drift,hard_geom_routing,7,0.4362,—,0.6993,—,—,—,mean_pair_norm=1.0  std_pair_norm=0.0
+angular_drift,hard_geom_routing,8,0.4145,—,0.6997,—,—,—,mean_pair_norm=1.0  std_pair_norm=0.0
+angular_drift,hard_geom_routing,9,0.4319,—,0.7055,—,—,—,mean_pair_norm=1.0  std_pair_norm=0.0
+angular_drift,hard_geom_routing,10,0.397,—,0.7037,—,—,—,mean_pair_norm=1.0  std_pair_norm=0.0
+angular_drift,hard_geom_routing,11,0.3769,—,0.7051,—,—,—,mean_pair_norm=1.0  std_pair_norm=0.0
+angular_drift,hard_geom_routing,12,0.3872,—,0.7088,—,—,—,mean_pair_norm=1.0  std_pair_norm=0.0
+angular_drift,hard_geom_routing,13,0.3652,—,0.7106,—,—,—,mean_pair_norm=1.0  std_pair_norm=0.0
+angular_drift,hard_geom_routing,14,0.3453,—,0.707,—,—,—,mean_pair_norm=1.0  std_pair_norm=0.0
+angular_drift,hard_geom_routing,15,0.3708,—,0.7117,—,—,—,mean_pair_norm=1.0  std_pair_norm=0.0
+angular_drift,hard_geom_routing,16,0.354,—,0.7054,—,—,—,mean_pair_norm=1.0  std_pair_norm=0.0
+angular_drift,hard_geom_routing,17,0.3411,—,0.7091,—,—,—,mean_pair_norm=1.0  std_pair_norm=0.0
+angular_drift,hard_geom_routing,18,0.3517,—,0.7146,—,—,—,mean_pair_norm=1.0  std_pair_norm=0.0
+angular_drift,hard_geom_routing,19,0.3384,—,0.7098,—,—,—,mean_pair_norm=1.0  std_pair_norm=0.0
+angular_drift,hard_geom_routing,20,0.3089,—,0.7062,—,—,—,mean_pair_norm=1.0  std_pair_norm=0.0
+angular_drift,hard_geom_routing,21,0.3253,—,0.7115,—,—,—,mean_pair_norm=1.0  std_pair_norm=0.0
+angular_drift,hard_geom_routing,22,0.3118,—,0.7057,—,—,—,mean_pair_norm=1.0  std_pair_norm=0.0
+angular_drift,hard_geom_routing,23,0.2972,—,0.7109,—,—,—,mean_pair_norm=1.0  std_pair_norm=0.0
+radial_consistency,hard_geom_routing,0,—,1.9839,—,0.0671,—,—,min=1.25  max=2.0
+radial_consistency,hard_geom_routing,1,—,1.9857,—,0.0622,—,—,min=1.25  max=2.0
+radial_consistency,hard_geom_routing,2,—,1.9848,—,0.0608,—,—,min=1.5  max=2.0
+radial_consistency,hard_geom_routing,3,—,1.985,—,0.0628,—,—,min=1.4045  max=2.0
+radial_consistency,hard_geom_routing,4,—,1.9876,—,0.0584,—,—,min=1.25  max=2.0
+radial_consistency,hard_geom_routing,5,—,1.985,—,0.065,—,—,min=1.5  max=2.0
+radial_consistency,hard_geom_routing,6,—,1.9851,—,0.0664,—,—,min=1.25  max=2.0
+radial_consistency,hard_geom_routing,7,—,1.9869,—,0.0594,—,—,min=1.5  max=2.0
+radial_consistency,hard_geom_routing,8,—,1.9888,—,0.0504,—,—,min=1.5  max=2.0
+radial_consistency,hard_geom_routing,9,—,1.9875,—,0.0603,—,—,min=1.5  max=2.0
+radial_consistency,hard_geom_routing,10,—,1.9864,—,0.0574,—,—,min=1.5  max=2.0
+radial_consistency,hard_geom_routing,11,—,1.9875,—,0.057,—,—,min=1.5  max=2.0
+radial_consistency,hard_geom_routing,12,—,1.988,—,0.0596,—,—,min=1.25  max=2.0
+radial_consistency,hard_geom_routing,13,—,1.9891,—,0.0569,—,—,min=1.25  max=2.0
+radial_consistency,hard_geom_routing,14,—,1.9896,—,0.0521,—,—,min=1.5  max=2.0
+radial_consistency,hard_geom_routing,15,—,1.987,—,0.0598,—,—,min=1.25  max=2.0
+radial_consistency,hard_geom_routing,16,—,1.989,—,0.0543,—,—,min=1.25  max=2.0
+radial_consistency,hard_geom_routing,17,—,1.9878,—,0.0587,—,—,min=1.25  max=2.0
+radial_consistency,hard_geom_routing,18,—,1.9903,—,0.0505,—,—,min=1.5  max=2.0
+radial_consistency,hard_geom_routing,19,—,1.9883,—,0.0597,—,—,min=1.25  max=2.0
+radial_consistency,hard_geom_routing,20,—,1.9888,—,0.0604,—,—,min=1.25  max=2.0
+radial_consistency,hard_geom_routing,21,—,1.9907,—,0.052,—,—,min=1.5  max=2.0
+radial_consistency,hard_geom_routing,22,—,1.9912,—,0.0474,—,—,min=1.5  max=2.0
+radial_consistency,hard_geom_routing,23,—,1.99,—,0.0509,—,—,min=1.5  max=2.0
+snr_cross_injection,inject@t=0,0,—,—,1.0,1.0968,3.5584,1.0,inj_sep=3.9029
+snr_cross_injection,inject@t=6,6,—,—,1.0,1.098,3.5546,1.0,inj_sep=3.9029
+snr_cross_injection,inject@t=12,12,—,—,1.0,1.0992,3.5508,1.0,inj_sep=3.9029
+snr_cross_injection,inject@t=18,18,—,—,1.0,1.0983,3.5536,1.0,inj_sep=3.9029
+snr_cross_injection,inject@t=23,23,—,—,1.0,1.0946,3.5657,1.0,inj_sep=3.9029
+inject_tn_alignment,W_tok_inject[x0=0],—,0.5592,—,0.5592,—,—,—,"inject_norm=2.4074  pair_norms=[0.2121, 0.6967, 1.5183, 0.7338]"
+inject_tn_alignment,W_tok_inject[x0=1],—,0.7364,—,0.7364,—,—,—,"inject_norm=2.3752  pair_norms=[0.3273, 0.4625, 0.8438, 0.9014]"
+inject_tn_alignment,W_tok_inject[x0=2],—,0.4593,—,0.4593,—,—,—,"inject_norm=2.3642  pair_norms=[0.4443, 0.5727, 1.6525, 0.5355]"
+inject_tn_alignment,W_tok_inject[x0=3],—,0.7693,—,0.7693,—,—,—,"inject_norm=2.4311  pair_norms=[0.2473, 0.7286, 1.108, 1.6796]"

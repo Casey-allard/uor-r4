@@ -1,0 +1,22 @@
+{
+  "description": "Tiny delayed-cost scenario where one power cell can be spent early for a shortcut or saved for the final vault seal.",
+  "max_steps": 8,
+  "objectives": [
+    {
+      "objective_id": "collect-archive-ledger",
+      "objective_type": "collect_item",
+      "required_count": 1,
+      "target_id": "archive-ledger"
+    }
+  ],
+  "scenario_id": "tiny-delayed-cost",
+  "scenario_vars": {
+    "agent_script_policy": "delayed-cost-v1",
+    "mode": "delayed-cost-planning",
+    "world_config_json": "{\"items\":[{\"entity_id\":\"power-cell\",\"entity_type\":\"item\",\"location\":\"depot\"},{\"entity_id\":\"archive-ledger\",\"entity_type\":\"item\",\"location\":\"vault\"}],\"rooms\":{\"camp\":{\"description\":\"A split base camp between a dormant tram spur and a maintenance route into the vault wing.\",\"entities\":[],\"exits\":{\"east\":\"depot\",\"north\":\"tram-hub\"},\"title\":\"Camp\"},\"depot\":{\"description\":\"A supply depot where a single power cell rests on a charging cradle.\",\"entities\":[],\"exits\":{\"east\":\"service-tunnel\",\"west\":\"camp\"},\"title\":\"Depot\"},\"service-tunnel\":{\"description\":\"A cramped service tunnel that reaches the vault threshold without spending the cell early.\",\"entities\":[],\"exits\":{\"north\":\"vault-door\",\"west\":\"depot\"},\"title\":\"Service Tunnel\"},\"tram-hub\":{\"description\":\"An inactive tram hub where the power cell can energize a shortcut, but doing so will drain it.\",\"entities\":[],\"exits\":{\"south\":\"camp\"},\"title\":\"Tram Hub\"},\"vault\":{\"description\":\"The inner archive vault, where the ledger waits once the final seal is powered.\",\"entities\":[],\"exits\":{\"south\":\"vault-door\"},\"title\":\"Vault\"},\"vault-door\":{\"description\":\"A sealed vault threshold whose northern lock also requires the same power cell.\",\"entities\":[],\"exits\":{\"south\":\"service-tunnel\"},\"title\":\"Vault Door\"}},\"unlock_effects\":[{\"consume_item\":true,\"destination_room_id\":\"vault-door\",\"direction\":\"east\",\"effect_id\":\"tram-bypass\",\"item_id\":\"power-cell\",\"requires_actor_in_place\":true,\"source_room_id\":\"tram-hub\"},{\"consume_item\":true,\"destination_room_id\":\"vault\",\"direction\":\"north\",\"effect_id\":\"vault-seal\",\"item_id\":\"power-cell\",\"requires_actor_in_place\":true,\"source_room_id\":\"vault-door\"}]}"
+  },
+  "seed": 93,
+  "start_room_id": "camp",
+  "title": "Tiny Delayed Cost",
+  "version": "1.0"
+}

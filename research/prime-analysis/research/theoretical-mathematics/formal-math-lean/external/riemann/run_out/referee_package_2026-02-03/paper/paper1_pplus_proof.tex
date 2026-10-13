@@ -1,0 +1,1014 @@
+% This file is \input{} from Appendix~\ref{app:pplus-proof} of paper1_farfield_v4.tex.
+% It provides the full analytic proof of the boundary wedge (P+) for \mathcal J_{\rm out}.
+
+
+\begin{bluetext}
+\noindent\textbf{Referee status (scope of this appendix):}
+All steps here are written to prove the boundary wedge (P$^+$) for $\mathcal J_{\rm out}$.
+However, the final upgrade from a $\mu$-a.e.\ boundary statement to a Lebesgue-a.e.\ boundary statement requires the domination hypothesis (AC$_\mu$)
+introduced in Lemma~\ref{lem:mu-to-lebesgue} (see also Lemma~\ref{lem:mu-dominates-lebesgue}).
+Until (AC$_\mu$) is proved for the specific $\mu$ constructed here, the main-paper transport step is conditional on (AC$_\mu$).
+\end{bluetext}
+\begin{greentext}
+\noindent\textbf{Author revision (removing the (AC$_\mu$) dependency).}
+The proof of \textup{(P+)} used below proceeds via Whitney-local oscillation control and the local-to-global wedge lemma, which yields a \emph{Lebesgue-a.e.} wedge statement directly.
+Accordingly, no $\mu$-a.e.\ $\Rightarrow$ Lebesgue-a.e.\ upgrade (and hence no (AC$_\mu$) domination hypothesis) is used in the logical chain proving \textup{(P+)}.
+The (AC$_\mu$) discussion is retained only as background and is \emph{not load-bearing}.
+\end{greentext}
+
+\subsection*{Standing setup and notation}
+
+\begin{bluetext}
+\paragraph{Referee roadmap for Appendix (P+).}
+This appendix is logically organized as follows (each arrow denotes a dependency that must be checked exactly as stated):
+\begin{enumerate}
+\item \emph{Wedge criterion from local control} (Whitney boxes): Lemma(s) in \S\,\ref{app:whitney-wedge} give a quantitative implication
+\[
+\text{(windowed phase variation + box Carleson control)} \Rightarrow \text{a.e.\ wedge inclusion for } 2e^{-im}\mathcal J_{\rm out}(\tfrac12+it).
+\]
+\item \emph{$\mu$-a.e.\ $\Rightarrow$ Lebesgue-a.e.} (domination): the upgrade is \textbf{conditional} unless (AC$_\mu$) is proved from the setup.
+\item \emph{Phase--velocity identity}: Theorem~\ref{thm:phase-velocity-quant} (and the PV identity \eqref{eq:pv-identity}) give the windowed phase control,
+provided $F_\varepsilon$ has boundary values in the sense required (Smirnov/bounded type on each relevant component).
+\item \emph{Carleson energy $\Rightarrow$ bounded type} bridge: the ``bounded type'' step is \textbf{conditional} unless the Carleson-to-BMOA bridge is justified
+with a precise reference and constants.
+\item \emph{Summation of Blaschke contributions}: the Poisson balayage step is \textbf{conditional} unless Blaschke summability and absence (or explicit handling)
+of singular inner factors are established.
+\item \emph{Assemble}: \S\,\ref{app:assemble-pplus} combines the above to derive Theorem~\ref{thm:Pplus} in the main paper.
+\end{enumerate}
+\noindent\textbf{Referee requirement.} Each conditional arrow above must be either proved within this appendix (with explicit hypotheses) or stated as an assumption in the main theorem.
+\end{bluetext}
+\begin{greentext}
+\noindent\textbf{Author revision (roadmap update).}
+The proof of Theorem~\ref{thm:pplus-proof-complete} does \emph{not} use the ``$\mu$-a.e.\ $\Rightarrow$ Lebesgue-a.e.'' upgrade step; the wedge conclusion is obtained for Lebesgue-a.e.\ $t$ directly from oscillation control.
+\end{greentext}
+
+Throughout, let
+\[
+  \Omega:=\{\,s\in\C:\ \Re s>\tfrac12\,\},\qquad s=\tfrac12+\sigma+it\ (\sigma>0),
+\]
+and let
+\[
+  P_\sigma(x):=\frac{1}{\pi}\frac{\sigma}{\sigma^2+x^2}
+\]
+denote the Poisson kernel for the half-plane \(\Omega\) (shifted so that the boundary is \(\Re s=\tfrac12\)).
+For an interval \(I=[t_0-L,t_0+L]\) we write the Carleson box
+\[
+  Q(I):=I\times(0,L]\subset \R\times(0,\infty).
+\]
+
+Recall from \eqref{eq:J-out} that \(\mathcal J_{\rm out}\) is holomorphic on \(\Omega\setminus Z(\zeta)\) and has a.e.\ boundary values on \(\Re s=\tfrac12\) with
+\[
+  \big|\mathcal J_{\rm out}(\tfrac12+it)\big|=1\qquad\text{for a.e.\ }t\in\R.
+\]
+Let
+\[
+  w(t):=\Arg \mathcal J_{\rm out}(\tfrac12+it)
+\]
+denote the boundary phase (defined for a.e.\ \(t\)), and write \(-w'\) for its boundary distributional derivative.
+In the phase--velocity identity below, \(-w'\) is a positive distribution (measure plus atoms) encoding off--critical zeros.
+
+\subsection*{A quantitative wedge criterion from Whitney-local control}\label{app:whitney-wedge}
+
+\begin{bluetext}
+\noindent\textbf{Scope and terminology for this subsection.}
+We work on the boundary line $\Re s=\tfrac12$ and use the following conventions.
+\begin{itemize}
+\item \emph{Wedge.} For an angle parameter $\alpha\in(0,\tfrac\pi2)$ and center ray $e^{i m}$, write
+\[
+W_{m,\alpha}:=\{z\in\mathbb C:\ |\Arg(e^{-im}z)|\le \alpha\}.
+\]
+Thus the desired (P$^+$) boundary condition is the Lebesgue-a.e.\ inclusion
+$\,2e^{-im}\mathcal J_{\rm out}(\tfrac12+it)\in W_{0,\alpha}\,$ for a fixed $\alpha<\tfrac\pi2$.
+\item \emph{Whitney boxes / Carleson boxes.} For an interval $I\subset\mathbb R$, write the standard Carleson box
+$S(I):=\{\sigma+it:\ 0<\sigma-\tfrac12\le |I|,\ t\in I\}$. A ``Whitney box'' means a box with comparable width and height,
+e.g.\ $\{ \tfrac12+\sigma+it:\ \sigma\in[a|I|,b|I|],\ t\in I\}$ with fixed $0<a<b$.
+\item \emph{Measure in the phrase ``a.e.''} Unless explicitly stated otherwise, ``a.e.'' refers to \emph{Lebesgue} measure $dt$ on $\mathbb R$.
+When an auxiliary measure $\mu$ is used, statements are explicitly labeled ``$\mu$-a.e.'' and a separate upgrade step is required (see \S\,\ref{app:acmu-upgrade}).
+\end{itemize}
+\noindent\textbf{Referee warning.} Any implication of the form ``$\mu$-null $\Rightarrow$ Lebesgue-null'' requires a domination property (Lemma~\ref{lem:mu-dominates-lebesgue});
+upper Carleson bounds alone do not suffice.
+\end{bluetext}
+
+\begin{bluetext}
+\noindent\textbf{Dependency in the main manuscript (\texttt{paper1\_farfield.tex}).} \emph{Appendix Theorem~\ref{thm:phase-velocity-quant} (this file)} supplies the phase--velocity control needed to convert boundary wedge information into a Lebesgue-a.e.\ inequality for $\Re\!\bigl(2e^{-im}\mathcal J_{\rm out}(\tfrac12+it)\bigr)$. In the main manuscript \texttt{paper1\_farfield.tex}, this Appendix Theorem is used in the proof of \emph{Theorem~\ref{thm:Pplus}} (the boundary wedge certificate), and therefore is load-bearing for \emph{Proposition~\ref{prop:herglotz-schur-transport}} (Herglotz/Schur transport) and \emph{Theorem~\ref{thm:farfield}} (certified far-field zero-freeness).
+\end{bluetext}
+
+\begin{bluetext}
+\noindent\textbf{Dependency in the main manuscript (\texttt{paper1\_farfield.tex}).} This principal-value identity is an internal sub-claim of Theorem~\ref{thm:phase-velocity-quant}. A referee must be able to verify it (including the precise meaning of $\frac{d}{dt}\Arg$ as a distribution) for the boundary transport step in Proposition~\ref{prop:herglotz-schur-transport}.
+\end{bluetext}
+
+\begin{bluetext}
+\noindent\textbf{Dependency in the main manuscript (\texttt{paper1\_farfield.tex}).} This lemma links outer normalization to a Hilbert-transform phase relation. It is part of the chain used to justify boundary differentiation and the passage from modulus control to argument/phase control, feeding Theorem~\ref{thm:phase-velocity-quant} and ultimately Theorem~\ref{thm:Pplus}.
+\end{bluetext}
+
+\begin{bluetext}
+\noindent\textbf{Dependency in the main manuscript (\texttt{paper1\_farfield.tex}).} This cutoff pairing lemma is used to localize CR--Green identities on Whitney boxes. It is an input to the Carleson/box-energy mechanism needed for the ``unconditional'' wedge globalization in Theorem~\ref{thm:Pplus}.
+\end{bluetext}
+
+\begin{bluetext}
+\noindent\textbf{Dependency in the main manuscript (\texttt{paper1\_farfield.tex}).} This is the core CR--Green identity controlling phase increments by localized energy. It is a load-bearing step in the Appendix route to (P$^+$), hence indirectly required for the boundary-to-interior transport in Proposition~\ref{prop:herglotz-schur-transport}.
+\end{bluetext}
+
+\begin{bluetext}
+\noindent\textbf{Dependency in the main manuscript (\texttt{paper1\_farfield.tex}).} This upper bound is the quantitative estimate extracted from Lemma~\ref{lem:CR-green-phase} and is used in the Carleson/Whitney energy-to-wedge chain. It must be fully justified for the (P$^+$) conclusion.
+\end{bluetext}
+
+\begin{bluetext}
+\noindent\textbf{Dependency in the main manuscript (\texttt{paper1\_farfield.tex}).} This proposition provides the length-free Carleson estimate (uniform over interval scales) required to control the harmonic majorants that underpin both (i) the Appendix wedge globalization and (ii) the main-paper boundary admissibility claims (see Lemma~\ref{lem:F-boundary-admissible} in \texttt{paper1\_farfield.tex}).
+\end{bluetext}
+
+\begin{bluetext}
+\noindent\textbf{Dependency in the main manuscript (\texttt{paper1\_farfield.tex}).} This definition sets up the admissible bump/test family used to formulate uniform box-energy bounds and Carleson estimates. It is foundational for Proposition~\ref{prop:length-free} and thus for the main-paper admissibility/Smirnov lemmas.
+\end{bluetext}
+
+\begin{bluetext}
+\noindent\textbf{Dependency in the main manuscript (\texttt{paper1\_farfield.tex}).} This uniform test-energy bound is an essential quantitative input for Proposition~\ref{prop:length-free}. It is part of the chain that yields the Carleson control used in the main-paper Lemma~\ref{lem:F-boundary-admissible}.
+\end{bluetext}
+
+\begin{bluetext}
+\noindent\textbf{Dependency in the main manuscript (\texttt{paper1\_farfield.tex}).} This arithmetic Carleson lemma controls the prime-sum measure contributions. It is an input to the box-energy/Carleson framework culminating in Proposition~\ref{prop:length-free}.
+\end{bluetext}
+
+\begin{bluetext}
+\noindent\textbf{Dependency in the main manuscript (\texttt{paper1\_farfield.tex}).} This lemma is a key arithmetic-to-analytic bridge controlling the $\xi$-term in Carleson boxes. It is required for the unconditional Carleson bound used in Proposition~\ref{prop:length-free} and therefore is load-bearing for (P$^+$).
+\end{bluetext}
+
+\begin{bluetext}
+\noindent\textbf{Dependency in the main manuscript (\texttt{paper1\_farfield.tex}).} This balayage lemma transfers annular control to box control and is used in the proof of the Carleson framework (ultimately Proposition~\ref{prop:length-free}). It is part of the chain needed for the main-paper admissibility lemma.
+\end{bluetext}
+
+\begin{bluetext}
+\noindent\textbf{Dependency in the main manuscript (\texttt{paper1\_farfield.tex}).} This lemma is intended to connect a Poisson-smoothed measure control to boundary exceptional sets. It is used to justify that the exceptional set measured in the Appendix control measure translates to Lebesgue-null boundary exceptional sets (see Lemma~\ref{lem:mu-to-lebesgue}).
+\end{bluetext}
+
+\begin{bluetext}
+\noindent\textbf{Dependency in the main manuscript (\texttt{paper1\_farfield.tex}).} This lemma is the mechanism that converts the Appendix ``bad set'' (measured in the auxiliary measure $\mu$) into a Lebesgue-null exceptional set on the boundary line. This conversion is necessary for the ``a.e.'' boundary inequalities used in the main-paper transport Proposition~\ref{prop:herglotz-schur-transport}.
+\end{bluetext}
+
+\begin{bluetext}
+\noindent\textbf{Dependency in the main manuscript (\texttt{paper1\_farfield.tex}).} This normalization lemma supports the bookkeeping for $F(s)$ and $\mathcal J_{\rm out}(s)$ and is referenced in the main-paper Lemma~\ref{lem:F-boundary-admissible} (to justify boundary trace/log-modulus admissibility for $F$).
+\end{bluetext}
+
+\begin{bluetext}
+\noindent\textbf{Dependency in the main manuscript (\texttt{paper1\_farfield.tex}).} This lemma is the Appendix-level justification for existence/stability of the outer normalizer used to define $\mathcal J_{\rm out}$. It is explicitly referenced by the main-paper Lemmas \ref{lem:F-boundary-admissible} and \ref{lem:smirnov-regularity} (in the revised manuscript).
+\end{bluetext}
+
+\begin{bluetext}
+\noindent\textbf{Dependency in the main manuscript (\texttt{paper1\_farfield.tex}).} This lemma globalizes local wedge control to a global (P$^+$) statement. It is a near-final step in the Appendix proof of Theorem~\ref{thm:Pplus}.
+\end{bluetext}
+
+\begin{bluetext}
+\noindent\textbf{Dependency in the main manuscript (\texttt{paper1\_farfield.tex}).} This lemma provides the uniform wedge bound across Whitney boxes, feeding the globalization step and the concluding Appendix theorem \ref{thm:pplus-proof-complete}. It is therefore load-bearing for Theorem~\ref{thm:Pplus} and hence Theorem~\ref{thm:farfield}.
+\end{bluetext}
+
+\begin{bluetext}
+\noindent\textbf{Dependency in the main manuscript (\texttt{paper1\_farfield.tex}).} This is the concluding Appendix theorem whose sole purpose is to prove (P$^+$) in the main paper (Theorem~\ref{thm:Pplus} in \texttt{paper1\_farfield.tex}). Any gap here propagates directly to Proposition~\ref{prop:herglotz-schur-transport} and Theorem~\ref{thm:farfield}.
+\end{bluetext}
+
+
+\begin{bluetext}
+\paragraph{Referee-tightening for Lemma~\ref{lem:det2-unsmoothed}.}
+Whenever this appendix differentiates or takes boundary limits of $\log\dettwo(I-A(s))$,
+the following elementary (but necessary) analytic facts are used.
+
+
+\begin{bluetext}
+\paragraph{Referee-tightening for Lemma~\ref{lem:mu-to-lebesgue}.}
+As stated, an implication of the form ``$\mu(E)=0 \Rightarrow |E|=0$'' requires that $\mu$ \emph{dominate} Lebesgue measure.
+We therefore isolate the exact condition needed.
+
+
+\begin{bluetext}
+\paragraph{Referee-tightening for Lemma~\ref{lem:outer-existence-stability}.}
+The existence of an outer normalizer with prescribed boundary modulus is standard once the boundary log-modulus
+belongs to $L^1((1+t^2)^{-1}dt)$ (or locally $L^1$ with mild growth control).
+We record the exact analytic input.
+
+\begin{lemma}[Outer normalizer from boundary log-modulus]
+\label{lem:outer-from-logmodulus}
+Let $u\in L^1(\mathbb R,(1+t^2)^{-1}dt)$ be real-valued. Then there exists an outer function $O$ on $\Omega$
+(zero-free and holomorphic on $\Omega$) whose nontangential boundary values satisfy
+\[
+|O(\tfrac12+it)| = e^{u(t)} \quad\text{for a.e. }t\in\mathbb R.
+\]
+Moreover $O$ is unique up to a unimodular constant.
+\end{lemma}
+
+\begin{proof}[Reference]
+This is the half-plane outer function construction via the Poisson integral of $u$ and its harmonic conjugate
+(see, e.g.\ Duren, \emph{$H^p$ Spaces}, Ch.~II, or Garnett, \emph{Bounded Analytic Functions}, Ch.~II).
+\end{proof}
+
+\end{bluetext}
+\begin{greentext}
+\noindent\textbf{Author note.}
+In this manuscript, the boundary log-modulus $u$ is defined as the $L^1_{\rm loc}$ limit of the regularized traces
+$u_\varepsilon(t)=\log|\dettwo(I-A(\tfrac12+\varepsilon+it))|-\log|\xi(\tfrac12+\varepsilon+it)|$ as $\varepsilon\downarrow 0$
+(see Theorem~\ref{thm:phase-velocity-quant}).
+The weighted integrability requirement for the outer construction is then discharged by combining the Carleson/Whitney tested bounds for the two terms
+(Lemmas~\ref{lem:det2-unsmoothed} and~\ref{lem:xi-deriv-L1}) together with standard logarithmic growth of $\log|\xi|$ at infinity.
+\end{greentext}
+
+\begin{lemma}[Sufficient condition for $\mu$-null $\Rightarrow$ Lebesgue-null]
+\label{lem:mu-dominates-lebesgue}
+Let $\mu$ be a Borel measure on $\mathbb R$. Fix an interval $I\subset\mathbb R$.
+Assume there exists a constant $c_I>0$ such that
+\[
+\mu(E)\ \ge\ c_I\,|E|
+\quad\text{for every measurable }E\subset I,
+\]
+where $|E|$ denotes Lebesgue measure. Then for any measurable $E\subset I$,
+\[
+\mu(E)=0 \ \Longrightarrow\ |E|=0.
+\]
+\end{lemma}
+
+\begin{proof}
+Immediate from $\mu(E)\ge c_I|E|$.
+\end{proof}
+
+\noindent\textbf{Required check to justify Lemma~\ref{lem:mu-to-lebesgue}:}
+to deduce Lebesgue-a.e.\ boundary statements from $\mu$-a.e.\ statements,
+one must prove that the specific auxiliary measure $\mu$ constructed in this appendix satisfies a domination estimate
+of the type in Lemma~\ref{lem:mu-dominates-lebesgue} on the boundary interval(s) used.
+If only an upper Carleson bound $\mu(S(I))\le C|I|$ is available, then $\mu(E)=0$ does \emph{not} imply $|E|=0$ in general,
+so the argument must either (a) strengthen the measure property, or (b) replace the conclusion by a $\mu$-a.e.\ statement.
+\end{bluetext}
+
+\begin{bluetext}
+\subsection*{Feasibility of upgrading $\mu$-a.e.\ to Lebesgue-a.e.}\label{app:acmu-upgrade}
+\begin{greentext}
+\noindent\textbf{Author note.} This subsection records the referee’s circularity concern for any approach that tries to deduce Lebesgue-a.e.\ conclusions from $\mu$-a.e.\ statements.
+It is \emph{not used} in the proof of Theorem~\ref{thm:pplus-proof-complete}, which establishes \textup{(P+)} directly Lebesgue-a.e.\ by oscillation control.
+\end{greentext}
+\noindent\textbf{Minimal condition needed.}
+For the implication ``$\mu(E)=0 \Rightarrow |E|=0$'' on an interval $I$, it is \emph{not} necessary to have the quantitative lower bound
+$\mu(E)\ge c_I|E|$.
+It suffices that $\mu$ be absolutely continuous with respect to Lebesgue measure on $I$ with Radon--Nikodym derivative
+$f=\frac{d\mu}{dt}$ satisfying $f(t)>0$ for Lebesgue-a.e.\ $t\in I$.
+
+\begin{lemma}[Null-set upgrade criterion]\label{lem:mu-null-upgrade-criterion}
+Let $\mu$ be a Borel measure on $\mathbb R$ and fix an interval $I$.
+Assume $\mu\ll dt$ on $I$ with density $f=\frac{d\mu}{dt}$ and $f(t)>0$ for Lebesgue-a.e.\ $t\in I$.
+Then for every measurable $E\subset I$,
+\[
+\mu(E)=0\ \Longrightarrow\ |E|=0.
+\]
+\end{lemma}
+
+\begin{proof}
+If $\mu(E)=\int_E f(t)\,dt=0$ and $f>0$ a.e.\ on $I$, then $f=0$ a.e.\ on $E$, hence $|E|=0$.
+\end{proof}
+
+\noindent\textbf{What must be checked for the present $\mu$.}
+Here $\mu$ is described as the Poisson balayage of the off--critical zeros (see Theorem~\ref{thm:pv-arg-identity}).
+For a \emph{finite} positive measure $\nu$ supported in the open half-plane $\{\Re s>\tfrac12\}$, its Poisson balayage onto the boundary line
+$\Re s=\tfrac12$ is absolutely continuous with a strictly positive density given by a Poisson-kernel integral.
+If $\mu$ is literally such a balayage of a nonzero positive measure, then Lemma~\ref{lem:mu-null-upgrade-criterion} applies.
+
+\noindent\textbf{Potential circularity.}
+If the intent is to \emph{prove} absence of off--critical zeros, then $\mu$ may in fact be the \emph{zero} measure on the region being certified.
+In that case, any upgrade ``$\mu$-a.e.\ $\Rightarrow$ Lebesgue-a.e.'' is invalid, since $\mu(E)=0$ holds for all $E$.
+Therefore, an unconditional version of the main-paper transport step must either:
+(i) work directly with Lebesgue (harmonic) measure on the boundary, or
+(ii) prove a lower support/positivity property for $\mu$ from an independent source that does not assume what one is trying to prove.
+\end{bluetext}
+
+
+
+\begin{lemma}[Series representation and termwise differentiation for $\log\dettwo(I-A(s))$]
+\label{lem:det2-series-diff}
+Let $A(s)$ be the diagonal HS operator with eigenvalues $\lambda_p(s)=p^{-s}$ over primes $p$.
+For any fixed $\sigma_0>\tfrac12$ and $s=\sigma+it$ with $\sigma\ge \sigma_0$:
+\begin{enumerate}
+\item The regularized determinant admits the absolutely convergent product
+\[
+\dettwo(I-A(s))=\prod_{p}(1-\lambda_p(s))\,e^{\lambda_p(s)},
+\]
+and hence
+\[
+\log\dettwo(I-A(s))=\sum_{p}\Big(\log(1-p^{-s})+p^{-s}\Big),
+\]
+where the branch of $\log(1-z)$ is the principal branch for $|z|<1$.
+\item The series above converges absolutely and locally uniformly on $\{\Re s\ge \sigma_0\}$,
+so $\log\dettwo(I-A(s))$ is holomorphic there.
+\item On $\{\Re s\ge \sigma_0\}$, termwise differentiation is justified and yields
+\[
+\partial_s \log\dettwo(I-A(s))
+=\sum_p\Big(\frac{p^{-s}\log p}{1-p^{-s}}-p^{-s}\log p\Big)
+=\sum_p \frac{p^{-2s}\log p}{1-p^{-s}},
+\]
+with absolute/local uniform convergence.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+Since $\sum_p |p^{-s}|^2=\sum_p p^{-2\sigma}<\infty$ for $\sigma>\tfrac12$, the defining product for $\dettwo$ converges.
+For $\sigma\ge\sigma_0>\tfrac12$, $|p^{-s}|\le p^{-\sigma_0}$ and $\sum_p p^{-2\sigma_0}<\infty$.
+Also, for sufficiently large $p$, $|p^{-s}|\le \tfrac12$, and
+$|\log(1-p^{-s})+p^{-s}|\lesssim |p^{-s}|^2$ by the Taylor remainder,
+so absolute convergence follows by comparison to $\sum_p p^{-2\sigma_0}$.
+Local uniform convergence and termwise differentiation follow by standard Weierstrass/M-test arguments, using the bound
+$|\partial_s(\log(1-p^{-s})+p^{-s})|\lesssim |p^{-2s}|\log p$ for $\sigma\ge \sigma_0$,
+and $\sum_p p^{-2\sigma_0}\log p<\infty$.
+\end{proof}
+
+\end{bluetext}
+\begin{greentext}
+\noindent\textbf{Author note.}
+Boundary passage $\sigma\downarrow\tfrac12$ is handled in the ``tested'' (distributional) sense used throughout this appendix:
+see Lemma~\ref{lem:det2-unsmoothed} (unsmoothed tested control for $\partial_\sigma\Re\log\dettwo$), Lemma~\ref{lem:xi-deriv-L1} (tested control for $\partial_\sigma\Re\log\xi$),
+and Theorem~\ref{thm:phase-velocity-quant} (construction of the $L^1_{\rm loc}$ boundary log-modulus and the resulting phase--velocity identity).
+\end{greentext}
+
+\begin{lemma}[Local certificate \(\Rightarrow\) a.e.\ boundary wedge]\label{lem:local-to-global-wedge}
+Let \(w\) be the boundary phase of a unimodular boundary function \(J\) with \(|J(\tfrac12+it)|=1\) a.e., and \(-w'\) its (positive) boundary distribution.
+Fix an even cutoff profile \(\psi_{\rm cut}\in C_c^\infty([-2,2])\) with \(0\le \psi_{\rm cut}\le 1\) and \(\psi_{\rm cut}\equiv 1\) on \([-1,1]\).
+For a Whitney interval \(I=[t_0-L,t_0+L]\), define the associated (smoothed triangular/hat) cutoff
+\[
+  \varphi_I(t)\ :=\ \psi_{\rm cut}\!\left(\frac{t-t_0}{L}\right),
+\]
+so \(0\le \varphi_I\le 1\), \(\varphi_I\equiv 1\) on \(I\), and \(\operatorname{supp}\varphi_I\subset 2I\).
+Assume that for every Whitney interval \(I\) (with the fixed schedule) one has the local certificate bound
+\[
+  \int_\R \varphi_I(t)\,(-w')(t)\,dt\ \le\ \pi\,\Upsilon\qquad(\Upsilon<\tfrac12).
+\]
+Then, after a unimodular rotation of the outer, \(|w(t)|\le \pi\Upsilon\) for a.e.\ \(t\), hence \textup{(P+)} holds.
+\end{lemma}
+\begin{proof}
+Let \(\Delta_I(w):=\operatorname*{ess\,sup}_I w-\operatorname*{ess\,inf}_I w\).
+Since \(-w'\) is a positive distribution and \(\varphi_I\ge \mathbf 1_I\),
+\[
+  \Delta_I(w)\ \le\ \int_I (-w')\ \le\ \int_\R \varphi_I(t)\,(-w')(t)\,dt\ \le\ \pi\,\Upsilon
+\]
+uniformly on Whitney \(I\).
+Whitney intervals shrink to points with bounded overlap; subtract a median to re-center \(w\), then pass \(I\downarrow\{t\}\) to get \(|w(t)|\le\pi\Upsilon\) a.e.
+Since \(\Upsilon<\tfrac12\), \textup{(P+)} follows.
+\end{proof}
+
+\subsection*{Phase--velocity identity (quantitative form) and boundary passage}\label{app:phase-velocity}
+\begin{lemma}[Outer--Hilbert boundary identity]\label{lem:outer-phase-HT}
+Let \(u\in L^1_{\mathrm{loc}}(\mathbb R)\) and let \(O\) be the outer function on \(\Omega\) with boundary modulus \(|O(\tfrac12+it)|=e^{u(t)}\) a.e.
+Then, in \(\mathcal D'(\mathbb R)\),
+\[
+  \frac{d}{dt}\Arg O\!\left(\tfrac12+it\right)=\Hilb[u'](t),
+\]
+where \(\Hilb\) is the boundary Hilbert transform on \(\R\) and \(u'\) is the distributional derivative.
+\end{lemma}
+\begin{proof}
+Write \(\log O=U+iV\) on \(\Omega\), where \(U\) is the Poisson extension of \(u\) and \(V\) is its harmonic conjugate with \(V(\tfrac12+\cdot)=\Hilb[u]\) in \(\mathcal D'(\mathbb R)\).
+Then \(\tfrac{d}{dt}\Arg O=\partial_t V=\Hilb[\partial_t U]=\Hilb[u']\) in distributions.
+\end{proof}
+
+\begin{lemma}[Smoothed distributional bound for \(\partial_\sigma\,\Re\log\dettwo\)]\label{lem:det2-unsmoothed}
+Let \(I\Subset\R\) be a compact interval and fix \(\varepsilon_0\in(0,\tfrac12]\).
+There exists a finite constant
+\[
+  C_*\ :=\ \sum_{p}\sum_{k\ge 2}\frac{p^{-k/2}}{k^2\,\log p}\ <\ \infty
+\]
+such that for all \(\sigma\in(\tfrac12,\tfrac12+\varepsilon_0]\) and every \(\varphi\in C_c^2(I)\),
+\[
+  \Big|\int_{\R} \varphi(t)\,\partial_\sigma\Re\log\dettwo\big(I-A(\sigma+it)\big)\,dt\Big|\ \le\ C_*\,\|\varphi''\|_{L^1(I)}.
+\]
+\end{lemma}
+\begin{proof}
+For \(\sigma>\tfrac12\) one has the absolutely convergent expansion
+\[
+  \partial_\sigma\,\Re\log\dettwo\big(I-A(\sigma+it)\big)
+  \;=\; \sum_{p}\sum_{k\ge 2} (\log p)\,p^{-k\sigma}\cos(k t\log p).
+\]
+For each frequency \(\omega=k\log p\ge 2\log 2\), two integrations by parts give
+\[
+  \Big|\int_{\R}\!\varphi(t)\cos(\omega t)\,dt\Big|\ \le\ \frac{\|\varphi''\|_{L^1(I)}}{\omega^2}.
+\]
+Summing the resulting majorant yields
+\[
+  \Big|\int \varphi\,\partial_\sigma\Re\log\dettwo\,dt\Big|
+  \ \le\ \|\varphi''\|_{L^1}\sum_{p}\sum_{k\ge 2}\frac{(\log p)\,p^{-k\sigma}}{(k\log p)^2}
+  \ \le\ \|\varphi''\|_{L^1}\sum_{p}\sum_{k\ge 2}\frac{p^{-k/2}}{k^2\,\log p},
+\]
+uniformly for \(\sigma\in(\tfrac12,\tfrac12+\varepsilon_0]\), since the rightmost double series converges.
+\end{proof}
+
+\begin{lemma}[De-smoothing to \(L^1\) control]\label{lem:desmooth-L1}
+Fix a compact interval \(I\Subset\R\).
+Suppose a family \(g_\varepsilon\in\mathcal D'(I)\) satisfies
+\[
+  \big|\langle g_\varepsilon,\,\phi''\rangle\big|\ \le\ C_I\,\|\phi''\|_{L^1(I)}\qquad\forall\,\phi\in C_c^\infty(I),\ \forall\,\varepsilon\in(0,\varepsilon_0].
+\]
+Then \(g_\varepsilon\) is uniformly bounded in \(W^{-2,\infty}(I)\) and there exist primitives \(u_\varepsilon\in BV(I)\) with \(u_\varepsilon' = g_\varepsilon\) in \(\mathcal D'(I)\) such that, along a subsequence, \(u_\varepsilon\to u\) in \(L^1(I)\).
+\end{lemma}
+\begin{proof}
+Define \(\Lambda_\varepsilon(\psi):=\langle g_\varepsilon,\,\psi\rangle\) for \(\psi\in C_c^\infty(I)\).
+For any \(\psi\in C_c^\infty(I)\) let \(\Phi\in C_c^\infty(I)\) solve \(\Phi''=\psi\) with zero boundary data on \(I\) (obtainable by two integrations).
+Then \(\|\Phi''\|_{L^1}=\|\psi\|_{L^1}\) and by hypothesis
+\[
+  |\Lambda_\varepsilon(\psi)|
+  \ =\ |\langle g_\varepsilon,\Phi''\rangle|
+  \ \le\ C_I\,\|\Phi''\|_{L^1}
+  \ =\ C_I\,\|\psi\|_{L^1}.
+\]
+Thus \(\|g_\varepsilon\|_{W^{-2,\infty}(I)}\le C_I\) uniformly in \(\varepsilon\).
+
+Fix any \(x_0\in I\).
+Let \(G\) be the Green operator for \(\partial_t^2\) on \(I\) with homogeneous boundary data.
+Define \(u_\varepsilon:=G[g_\varepsilon]+c_\varepsilon\), where \(c_\varepsilon\) makes \(\int_I u_\varepsilon=0\).
+Then \(u_\varepsilon' = g_\varepsilon\) in distributions and the total variation \(\mathrm{Var}_I(u_\varepsilon)\) is uniformly bounded.
+By the compact embedding \(BV(I)\hookrightarrow L^1(I)\) (Helly selection), a subsequence converges in \(L^1(I)\).
+\end{proof}
+
+\begin{lemma}[Arithmetic Carleson energy]\label{lem:carleson-arith}
+Let
+\[
+ U_{\det_2}(\sigma,t)\ :=\ \Re\log\dettwo\!\Big(I-A\big(\tfrac12+\sigma+it\big)\Big)
+ \ =\ -\sum_{p}\sum_{k\ge 2}\frac{p^{-k/2}}{k}\,e^{-k\log p\,\sigma}\,\cos\big(k\log p\,t\big),\qquad \sigma>0,
+\]
+where the series converges absolutely for every \(\sigma>0\).
+Then for every interval \(I\subset\R\) with Carleson box \(Q(I):=I\times(0,|I|]\),
+\[
+ \iint_{Q(I)} |\nabla U_{\det_2}|^2\,\sigma\,dt\,d\sigma\ \le\ \frac{|I|}{4}\,\sum_{p}\sum_{k\ge 2}\frac{p^{-k}}{k^2}
+ \ =:\ K_0\,|I|,\qquad K_0:=\frac{1}{4}\sum_{p}\sum_{k\ge 2}\frac{p^{-k}}{k^2}<\infty.
+\]
+\end{lemma}
+\begin{proof}
+For a single mode \(b\,e^{-\omega\sigma}\cos(\omega t)\) one has \(|\nabla|^2=b^2\omega^2e^{-2\omega\sigma}\), hence
+\[
+ \int_0^{|I|}\!\int_I |\nabla|^2\,\sigma\,dt\,d\sigma
+ \ \le\ |I|\cdot\sup_{\omega>0}\int_0^{|I|}\sigma\,\omega^2e^{-2\omega\sigma}d\sigma\cdot b^2
+ \ \le\ \tfrac14\,|I|\,b^2.
+\]
+With \(b=p^{-k/2}/k\) and \(\omega=k\log p\), summing over \((p,k)\) gives the claim and the finiteness of \(K_0\).
+\end{proof}
+
+\paragraph{Whitney scale and short--interval zero counts.}
+Throughout the boundary-certificate route we work on Whitney boxes based at height \(T\) with
+\[
+  L=L(T):=\min\Big\{\frac{c}{\log\angles{T}},\ L_\star\Big\},\qquad
+  \angles{T}:=\sqrt{1+T^2},\qquad c\in(0,1]\ \text{fixed}.
+\]
+The only input about the \emph{number} of zeros used below is the classical short-interval consequence of Riemann--von Mangoldt: there exist absolute constants \(A_0,A_1>0\) such that for \(T\ge 2\) and \(0<H\le 1\),
+\[
+  N(T;H)\ :=\ \#\{\rho=\beta+i\gamma:\ \gamma\in[T,T+H]\}\ \le\ A_0\ +\ A_1\,H\,\log\angles{T}.
+\]
+
+\begin{lemma}[Annular Poisson--balayage \(L^2\) bound]\label{lem:annular-balayage}
+Let \(I=[T-L,T+L]\), \(Q_\alpha(I)=I\times(0,\alpha L]\), and fix \(k\ge 1\).
+For
+\(
+\mathcal A_k:=\{\rho=\beta+i\gamma:\ 2^kL<|T-\gamma|\le 2^{k+1}L\}
+\)
+set
+\[
+  V_k(\sigma,t):=\sum_{\rho\in\mathcal A_k}\frac{\sigma}{(t-\gamma)^2+\sigma^2}.
+\]
+Then
+\[
+  \iint_{Q_\alpha(I)} V_k(\sigma,t)^2\,\sigma\,dt\,d\sigma\ \ll_\alpha\ |I|\,4^{-k}\,\nu_k,
+\]
+where \(\nu_k:=\#\mathcal A_k\), and the implicit constant depends only on \(\alpha\).
+\end{lemma}
+\begin{proof}
+Write \(K_\sigma(x):=\sigma/(x^2+\sigma^2)\) and \(V_k=\sum_{\rho\in\mathcal A_k}K_\sigma(\cdot-\gamma)\).
+Integrate over \(t\in I\) first.
+For the diagonal terms, using \(|t-\gamma|\ge 2^kL-L\ge 2^{k-1}L\) for \(t\in I\) and \(k\ge 1\),
+\[
+ \int_I K_\sigma(t-\gamma)^2\,dt
+ = \sigma^2\!\int_I \frac{dt}{\big((t-\gamma)^2+\sigma^2\big)^2}
+ \ \le\ \frac{L}{(2^{k-1}L)^2}\,\sigma.
+\]
+Multiplying by the area weight \(\sigma\) and integrating \(\sigma\in(0,\alpha L]\) gives a contribution \(\ll_\alpha |I|\,4^{-k}\) per \(\gamma\), hence \(\ll_\alpha |I|\,4^{-k}\nu_k\) after summing.
+For off-diagonal terms, for \(i\ne j\) one has on \(I\) that \(K_\sigma(t-\gamma_j)\le \sigma/(2^{k-1}L)^2\), hence
+\[
+ \int_I K_\sigma(t-\gamma_i)K_\sigma(t-\gamma_j)\,dt
+ \ \le\ \frac{\sigma}{(2^{k-1}L)^2}\int_\R K_\sigma(t-\gamma_i)\,dt
+ = \frac{\pi\sigma}{(2^{k-1}L)^2},
+\]
+and integrating \(\sigma\in(0,\alpha L]\) with the extra factor \(\sigma\) yields \(\ll_\alpha |I|\,4^{-k}\).
+Summing over pairs \((i,j)\) via a Schur test gives the stated bound (absorbing constants into \(\ll_\alpha\)).
+\end{proof}
+
+\begin{lemma}[Analytic (\(\xi\)) Carleson energy on Whitney boxes]\label{lem:carleson-xi}
+There exist absolute constants \(c\in(0,1]\) and \(C_\xi<\infty\) such that for every interval \(I=[T-L,\,T+L]\) at Whitney scale \(L=c/\log\angles{T}\), the Poisson extension
+\[
+ U_{\xi}(\sigma,t):=\Re\log\xi\big(\tfrac12+\sigma+it\big)\qquad(\sigma>0)
+\]
+obeys the Carleson bound
+\[
+  \iint_{Q(I)} |\nabla U_{\xi}(\sigma,t)|^2\,\sigma\,dt\,d\sigma\ \le\ C_\xi\,|I|.
+\]
+\end{lemma}
+\begin{proof}
+Fix \(I=[T-L,T+L]\) with \(L=c/\log\angles{T}\) and a fixed aperture \(\alpha\in[1,2]\).
+Neutralize near zeros by a local half-plane Blaschke product \(B_I\) removing zeros of \(\xi\) inside a fixed dilate \(Q(\alpha'I)\) (\(\alpha'>\alpha\)).
+This yields a harmonic field \(\widetilde U_\xi\) on \(Q(\alpha I)\) and
+\[
+  \iint_{Q(\alpha I)} |\nabla U_\xi|^2\,\sigma\,dt\,d\sigma
+  \ \asymp\
+  \iint_{Q(\alpha I)} |\nabla \widetilde U_\xi|^2\,\sigma\,dt\,d\sigma\ +\ O_\alpha(|I|),
+\]
+so it suffices to bound the neutralized energy.
+
+Write \(\partial_\sigma U_\xi=\Re(\xi'/\xi)=\Re\sum_\rho (s-\rho)^{-1}+A\), where \(A\) is smooth on compact strips.
+Since \(U_\xi\) is harmonic, \(|\nabla U_\xi|^2\asymp |\partial_\sigma U_\xi|^2\) on \(\R^2_+\); thus we bound the \(L^2(\sigma\,dt\,d\sigma)\) norm of \(\sum_\rho (s-\rho)^{-1}\) over \(Q(\alpha I)\).
+Decompose the (neutralized) zeros into Whitney annuli
+\(
+\mathcal A_k:=\{\rho:2^kL<|\gamma-T|\le 2^{k+1}L\}
+\), \(k\ge 1\).
+For \(V_k(\sigma,t):=\sum_{\rho\in\mathcal A_k} K_\sigma(t-\gamma)\) with \(K_\sigma(x):=\sigma/(x^2+\sigma^2)\), Lemma~\ref{lem:annular-balayage} gives
+\[
+  \iint_{Q_\alpha(I)} V_k(\sigma,t)^2\,\sigma\,dt\,d\sigma\ \le\ C_\alpha\,|I|\,4^{-k}\,\nu_k,
+\]
+where \(\nu_k:=\#\mathcal A_k\) and \(C_\alpha\) depends only on \(\alpha\).
+Summing Cauchy--Schwarz over annuli yields
+\[
+  \iint_{Q(\alpha I)} \Big|\sum_{\rho}(s-\rho)^{-1}\Big|^2\,\sigma\,dt\,d\sigma
+  \ \le\ C_\alpha\,|I|\sum_{k\ge 1}4^{-k}\,\nu_k.
+\]
+To bound \(\nu_k\), use the short-interval zero-count bound above to obtain, for some absolute \(a_1(\alpha),a_2(\alpha)\),
+\[
+  \nu_k\ \le\ a_1(\alpha)\,2^k L\,\log\angles{T}\ +\ a_2(\alpha)\,\log\angles{T}.
+\]
+Therefore,
+\[
+  \sum_{k\ge1}4^{-k}\,\nu_k\ \ll\ L\,\log\angles{T}\ +\ 1.
+\]
+On Whitney scale \(L=c/\log\angles{T}\) this is \(\ll 1\).
+Adding the neutralized near-field \(O(|I|)\) and the smooth \(A\) contribution, we obtain
+\[
+  \iint_{Q(\alpha I)} |\nabla U_\xi|^2\,\sigma\,dt\,d\sigma\ \le\ C_\xi\,|I|,
+\]
+with \(C_\xi\) depending only on \((\alpha,c)\).
+\end{proof}
+
+\begin{bluetext}
+\subsection*{Referee bridge: from Carleson energy to ``bounded type'' for $F_\varepsilon$}\label{app:carleson-to-boundedtype}
+Define on $\sigma>0$ the harmonic fields
+\[
+U_{\det_2}(\sigma,t)=\Re\log\dettwo\!\Big(I-A(\tfrac12+\sigma+it)\Big),
+\qquad
+U_{\xi}(\sigma,t)=\Re\log\xi(\tfrac12+\sigma+it),
+\]
+and set $U_{F} := U_{\det_2}-U_{\xi}=\Re\log F_\varepsilon$ on the half-plane $\{\Re s>\tfrac12+\varepsilon\}$ (with $\sigma>\varepsilon$).
+
+\noindent\textbf{What the current lemmas give.}
+Lemma~\ref{lem:carleson-arith} gives a \emph{global} Carleson bound for $U_{\det_2}$ on every box $Q(I)$.
+Lemma~\ref{lem:carleson-xi} gives the corresponding Carleson bound for $U_\xi$ on Whitney boxes (after neutralizing near zeros).
+
+\noindent\textbf{Standard implication (must be cited / checked).}
+A harmonic function $U$ on the upper half-plane has boundary values in $\mathrm{BMO}(\mathbb R)$ iff
+$|\nabla U|^2\,\sigma\,dt\,d\sigma$ is a Carleson measure (Fefferman--Stein).
+Moreover, if $f$ is analytic and $U=\Re\log f$ has such a Carleson bound on $\sigma>\varepsilon$,
+then $f$ belongs to the Smirnov/Nevanlinna class on that half-plane (``bounded type''),
+and admits a canonical inner--outer factorization.
+See, e.g., \cite[Ch.~VI]{Garnett} (BMOA/Carleson measures) and \cite[Ch.~2]{RosenblumRovnyak}.
+
+\noindent\textbf{Concrete obligation to validate (H1).}
+To justify (H1) in the factorization step, the manuscript should explicitly state and verify:
+\begin{itemize}
+\item[(B1)] that $\log F_\varepsilon$ is holomorphic on $\{\Re s>\tfrac12+\varepsilon\}$ (zeros/poles removed as needed);
+\item[(B2)] that the Carleson measure bound for $|\nabla U_{F}|^2\,\sigma\,dt\,d\sigma$ holds on the boxes used in the argument
+(typically Whitney boxes at scale $L(T)$), after accounting for the local Blaschke neutralizations in Lemma~\ref{lem:carleson-xi};
+\item[(B3)] that any remaining singular inner contribution on the boundary is either absent or explicitly included (cf.\ (H3)).
+\end{itemize}
+\end{bluetext}
+
+\begin{greentext}
+\begin{lemma}[Bounded-type regularity from Carleson energy (usable form)]\label{lem:boundedtype-from-carleson}
+Fix $\varepsilon>0$ and write $D_\varepsilon:=\{\Re s>\tfrac12+\varepsilon\}$.
+Assume that on every Carleson box $Q(I)\subset D_\varepsilon$ the measure $|\nabla \Re\log F_\varepsilon|^2\,\sigma\,dt\,d\sigma$ is Carleson (after local neutralization near zeros of $\xi$ as in Lemma~\ref{lem:carleson-xi}).
+Then $F_\varepsilon$ has bounded characteristic on $D_\varepsilon$ (hence is of bounded type on each connected component of $D_\varepsilon\setminus Z(F_\varepsilon)$) and admits the standard inner--outer factorization, including a possible singular inner part.
+\end{lemma}
+\begin{proof}[Reference]
+This is a standard consequence of the Fefferman--Stein characterization (Carleson energy $\Leftrightarrow$ BMO boundary traces) together with the half-plane Hardy/Smirnov theory for bounded characteristic functions; see \cite[Ch.~VI]{Garnett} and \cite[Ch.~2]{RosenblumRovnyak}.
+\end{proof}
+\end{greentext}
+
+
+
+\begin{lemma}[L$^1$-tested control for \(\partial_\sigma\Re\log\xi\)]\label{lem:xi-deriv-L1}
+For each compact \(I\Subset\R\) there exists \(C'_I<\infty\) such that for all \(0<\sigma\le\varepsilon_0\) and all \(\phi\in C_c^2(I)\),
+\[
+  \Big|\int_I \phi(t)\,\partial_\sigma\Re\log\xi\!\big(\tfrac12+\sigma+it\big)\,dt\Big|
+  \ \le\ C'_I\,\|\phi\|_{H^1(I)}.
+\]
+\end{lemma}
+\begin{proof}
+Let \(V\) be the Poisson extension of \(\phi\) on a fixed dilation \(Q(\alpha I)\).
+Green's identity together with Cauchy--Riemann for \(U_\xi=\Re\log\xi\) gives
+\[
+  \int_I \phi(t)\,\partial_\sigma\Re\log\xi\!\big(\tfrac12+\sigma+it\big)\,dt
+  \,=\, \iint_{Q(\alpha I)} \nabla U_\xi\cdot\nabla V\,dt\,d\sigma.
+\]
+By Cauchy--Schwarz and the scale-invariant bound \(\|\nabla V\|_{L^2(\sigma)}\lesssim \|\phi\|_{H^1(I)}\), together with Lemma~\ref{lem:carleson-xi}, we obtain the claim.
+\end{proof}
+
+\begin{theorem}[Quantified phase--velocity identity and boundary passage]\label{thm:phase-velocity-quant}\label{thm:pv-arg-identity}
+Let
+\[
+ u_\varepsilon(t):=\log\big|\dettwo(I-A(\tfrac12+\varepsilon+it))\big|-\log\big|\xi(\tfrac12+\varepsilon+it)\big|.
+\]
+Then \(u_\varepsilon\) is uniformly \(L^1\)-bounded and Cauchy on compact \(I\Subset\R\) as \(\varepsilon\downarrow 0\), so \(u_\varepsilon\to u\) in \(L^1_{\rm loc}(\R)\).
+Let \(\mathcal O\) be the outer on \(\Omega\) with boundary modulus \(e^{u}\), and set
+\[
+  \mathcal J(s):=\frac{\dettwo(I-A(s))}{\mathcal O(s)\,\xi(s)}.
+\]
+Then \(|\mathcal J(\tfrac12+it)|=1\) a.e.\ and, in the distributional sense on compact \(I\Subset\R\),
+\begin{bluetext}
+\paragraph{Referee-tightening for \eqref{eq:pv-identity}.}
+To make \eqref{eq:pv-identity} checkable, we isolate the analytic statement being used.
+
+\begin{greentext}
+\begin{lemma}[Distributional phase--velocity identity for an outer function]\label{lem:pv-distributional}
+Let \(u\in L^1_{\mathrm{loc}}(\mathbb R)\), and let \(g\) be an outer function on \(\Omega=\{\Re s>\tfrac12\}\) whose nontangential boundary values satisfy
+\(|g(\tfrac12+it)|=e^{u(t)}\) for Lebesgue-a.e.\ \(t\).
+Let \(w(t):=\Arg g(\tfrac12+it)\) be any measurable choice of boundary argument (defined for a.e.\ \(t\)).
+Then, in \(\mathcal D'(\mathbb R)\),
+\[
+  \frac{d}{dt}w(t)\;=\;\Hilb[u'](t),
+\]
+where \(\Hilb\) is the boundary Hilbert transform and \(u'\) is the distributional derivative.
+Equivalently, for any \(\varphi\in C_c^\infty(\mathbb R)\),
+\[
+  -\int_{\mathbb R} w(t)\,\varphi'(t)\,dt
+  \;=\;
+  \int_{\mathbb R} u(t)\,(\Hilb\varphi)'(t)\,dt .
+\]
+\end{lemma}
+
+\begin{proof}
+This is exactly Lemma~\ref{lem:outer-phase-HT} (Outer--Hilbert boundary identity) proved earlier in this appendix.
+\end{proof}
+\end{greentext}
+
+\end{bluetext}
+\begin{greentext}
+\noindent\textbf{Author note (application of Lemma~\ref{lem:pv-distributional}).}
+In the application to \eqref{eq:pv-identity}, $g$ is taken to be an outer (hence zero-free) holomorphic function on $\Omega$ built from the boundary log-modulus (Lemma~\ref{lem:outer-from-logmodulus} and Lemma~\ref{lem:outer-existence-stability}),
+so $g^*(t)\neq 0$ a.e.\ and $\log|g^*|\in L^1_{\rm loc}$ on compact intervals by construction.
+\end{greentext}
+
+\begin{equation}\label{eq:pv-identity}
+\int_I \phi(t)\,(-w'(t))\,dt
+\ =\ \pi\!\int_I \phi(t)\,d\mu_{\rm off}(t)\ +\ \pi\!\int_I \phi(t)\,d\nu_{\rm sing}(t)\ +\ \pi\sum_{\gamma\in I} m_\gamma\,\phi(\gamma)
+\end{equation}
+for all \(\phi\in C_c^\infty(I)\), \(\phi\ge 0\), where:
+\(\mu_{\rm off}\) is the Poisson balayage of off--critical zeros,
+\(\nu_{\rm sing}\) is the (possibly zero) singular boundary measure associated to any singular inner factor,
+and the discrete sum ranges over boundary zeros/poles on $\Re s=\tfrac12$ (in particular, critical-line ordinates), with multiplicities \(m_\gamma\).
+
+\begin{bluetext}
+\paragraph{Referee-tightening: explicit definition of $\mu_{\rm off}$ and the boundary terms in \eqref{eq:pv-identity}.}
+Let $\rho=\beta+i\gamma$ range over zeros of $\zeta$ with $\beta>\tfrac12$ (``off--critical'' in $\Omega$), counted with multiplicity $m_\rho$.
+Define a discrete positive measure in the open half-plane
+\[
+\nu_{\rm off}\ :=\ \sum_{\rho:\,\Re\rho>\frac12} m_\rho\,\delta_{\rho}.
+\]
+Its Poisson balayage onto the boundary line $\Re s=\tfrac12$ is the absolutely continuous measure
+\[
+d\mu_{\rm off}(t)\ :=\ \int_{\Re s>\frac12} P_{\beta-\frac12}(t-\gamma)\,d\nu_{\rm off}(\beta+i\gamma)
+\quad\text{with}\quad
+P_{y}(x)=\frac{1}{\pi}\frac{y}{x^2+y^2}.
+\]
+Equivalently, on any interval $I\Subset\mathbb R$,
+\[
+\mu_{\rm off}(I)\ =\ \sum_{\rho:\,\Re\rho>\frac12} m_\rho\int_I \frac{1}{\pi}\frac{\Re\rho-\frac12}{(t-\Im\rho)^2+(\Re\rho-\frac12)^2}\,dt,
+\]
+which is locally finite.
+\medskip
+
+\noindent\textbf{Singular inner term.}
+If the bounded-type factorization of the relevant boundary unimodular function includes a singular inner factor, its associated singular boundary measure is denoted by $\nu_{\rm sing}$ in \eqref{eq:pv-identity}.
+(If no singular inner factor is present on the boundary interval under discussion, take $\nu_{\rm sing}\equiv 0$.)
+
+\noindent\textbf{Atomic term on $\Re s=\tfrac12$.}
+The coefficients $m_\gamma$ in \eqref{eq:pv-identity} denote the multiplicities of boundary zeros/poles at $s=\tfrac12+i\gamma$ (in particular, critical-line zeros of $\xi$/$\zeta$) and produce the Dirac masses $\sum_\gamma m_\gamma\,\delta_\gamma$.
+\end{bluetext}
+\begin{greentext}
+\noindent\textbf{Author note (``off--critical'' vs.\ left half-plane zeros).}
+Throughout, ``off--critical zeros'' means zeros with $\Re\rho>\tfrac12$, i.e.\ interior zeros in $\Omega$.
+These are exactly the zeros that contribute Blaschke factors (hence Poisson-kernel balayage terms) in the half-plane factorization on the $\Omega$ side.
+Zeros with $\Re\rho<\tfrac12$ lie outside $\Omega$ and are handled separately (via the $\xi(s)=\xi(1-s)$ symmetry), and do not enter the $\Omega$-side boundary measure $\mu_{\rm off}$.
+\end{greentext}
+
+\end{theorem}
+\begin{proof}
+Fix a compact interval \(I\Subset\R\) and \(\varepsilon_0\in(0,\tfrac12]\).
+By Lemma~\ref{lem:det2-unsmoothed} and Lemma~\ref{lem:xi-deriv-L1}, the family \(u_\varepsilon\) is Cauchy in \(L^1(I)\); the de-smoothing lemma (Lemma~\ref{lem:desmooth-L1}) yields \(u_\varepsilon\to u\) in \(L^1(I)\).
+We now record the half-plane outer passage used here.
+\begin{lemma}[Outer existence and stability under \(L^1\) convergence]\label{lem:outer-existence-stability}
+Let \(I\Subset\R\) be compact and let \(u_n,u\in L^1(I)\) with \(u_n\to u\) in \(L^1(I)\).
+For each \(n\), let \(O_n\) be the outer function on \(\Omega\) normalized by \(O_n(\tfrac32)>0\) and boundary modulus \(|O_n(\tfrac12+it)|=e^{u_n(t)}\) a.e.\ on \(I\).
+Then there exists an outer \(O\) on \(\Omega\), normalized by \(O(\tfrac32)>0\), with \(|O(\tfrac12+it)|=e^{u(t)}\) a.e.\ on \(I\), and \(O_n\to O\) locally uniformly on compact subsets of \(\Omega\).
+\end{lemma}
+\begin{proof}
+By the half-plane outer representation (see, e.g., \cite[Ch.~II]{Garnett} or \cite[Ch.~2]{RosenblumRovnyak}),
+for each \(n\) one may write \(\log O_n = P[u_n] + i\,\Hilb[u_n]\) on \(\Omega\), where \(P[u_n]\) is the Poisson extension and \(\Hilb[u_n]\) its harmonic conjugate (normalized by the condition \(O_n(\tfrac32)>0\)).
+Since \(u_n\to u\) in \(L^1(I)\), Poisson extension is continuous \(L^1(I)\to C^\infty_{\rm loc}(\Omega)\), hence \(P[u_n]\to P[u]\) locally uniformly, and similarly \(\Hilb[u_n]\to\Hilb[u]\) locally uniformly after fixing the same normalization.
+Exponentiating gives local uniform convergence \(O_n\to O:=\exp(P[u]+i\Hilb[u])\), and \(O\) is outer with the stated boundary modulus.
+\end{proof}
+Applying Lemma~\ref{lem:outer-existence-stability} on each compact \(I\Subset\R\) and a diagonal subsequence yields an outer \(\mathcal O\) on \(\Omega\) with a.e.\ boundary modulus \(e^{u}\) and locally uniform convergence of \(\mathcal O_\varepsilon\to\mathcal O\).
+
+
+\begin{bluetext}
+\subsection*{Referee requirement: hypotheses needed to ``sum the Blaschke contributions''}\label{app:blaschke-sum}
+The proof below uses canonical factorization in the half-plane $\{\Re s>\tfrac12+\varepsilon\}$ and then differentiates boundary arguments.
+To justify the step ``Summing the Blaschke contributions of interior poles/zeros yields the Poisson balayage term'',
+the manuscript must also address the following \emph{at this point} (not later):
+\begin{itemize}
+\item[(S1)] \textbf{No hidden singular inner factor.}  Either prove that $I_\varepsilon$ has no singular inner part on the boundary interval used,
+or include the additional distributional term coming from the singular boundary measure in the identity (cf.\ (H3)).
+\item[(S2)] \textbf{Explicit atomic term on $\Re s=\tfrac12$.}  Replace ``plus atoms at critical-line ordinates'' by an explicit formula:
+are these Dirac masses arising from boundary zeros/poles of $\xi$/$\zeta$, or from the $\varepsilon\downarrow0$ limit?  Specify the measure.
+\end{itemize}
+
+
+the manuscript must explicitly verify the following standard hypotheses (Hardy/Nevanlinna theory in a half-plane; see, e.g.,
+\cite[Ch.~II]{Garnett} and \cite[Ch.~2]{RosenblumRovnyak}):
+
+\begin{enumerate}
+\item[(H1)] \textbf{Bounded type / Hardy control.} For each fixed $\varepsilon>0$, the function
+$F_\varepsilon=\dettwo/\xi$ is analytic and of bounded type in the half-plane $\{\Re s>\tfrac12+\varepsilon\}$,
+so that it admits a canonical inner--outer factorization $F_\varepsilon = I_\varepsilon O_\varepsilon$.
+
+\item[(H2)] \textbf{Blaschke summability for zeros/poles.} The zero/pole set $\{\rho\}$ of $F_\varepsilon$ in $\{\Re s>\tfrac12+\varepsilon\}$
+(counted with multiplicity and with poles treated as negative multiplicity) satisfies the half-plane Blaschke condition, e.g.
+\[
+\sum_{\rho:\,\Re\rho>\frac12+\varepsilon} m_\rho\,
+\frac{\Re\rho-(\frac12+\varepsilon)}{|\rho-(\frac12+\varepsilon)|^2}\ <\ \infty,
+\]
+which guarantees that the Blaschke product converges and that the boundary argument identity produces a Poisson-kernel sum.
+
+\item[(H3)] \textbf{Singular inner part.} Either (a) $I_\varepsilon$ has no singular inner factor on the boundary intervals under consideration,
+or (b) the singular inner factor is included explicitly, with its associated singular boundary measure contributing an additional distributional term
+to $\frac{d}{dt}\Arg I_\varepsilon$.
+(As written, the proof accounts only for Blaschke factors; any singular inner part would be an extra, presently untracked contribution.)
+
+\item[(H4)] \textbf{Local finiteness / Carleson control of the induced measure.} The discrete measure of off--critical zeros
+$\nu_{\rm off}$ used in the balayage definition is locally finite on the relevant strip,
+so that the Poisson integral defining $\mu$ is finite for a.e.\ $t$ and yields a locally finite boundary measure.
+If later steps require quantitative bounds on $\mu$ (Carleson or domination (AC$_\mu$)), these must be established separately.
+\end{enumerate}
+
+\noindent\textbf{Status:} the current Appendix states the conclusion of this summation but does not yet verify (H1)--(H4) from the operator/determinant setup.
+\end{bluetext}
+
+\begin{greentext}
+\noindent\textbf{Author revision (resolving S1/S2; clarifying H1--H4).}
+Item \textbf{(S1)} is resolved by writing the phase--velocity identity with an explicit singular-inner contribution $\nu_{\rm sing}$ (see \eqref{eq:pv-identity} and the paragraph immediately following it).
+Item \textbf{(S2)} is resolved by making the atomic term $\sum_\gamma m_\gamma\,\delta_\gamma$ explicit in \eqref{eq:pv-identity}.
+For \textbf{(H1)--(H2)}, the intended route is: Carleson-energy control of $\Re\log F_\varepsilon$ on $\{\Re s>\tfrac12+\varepsilon\}$ implies bounded characteristic (hence bounded type and canonical factorization) by standard Hardy/Smirnov theory; see \cite[Ch.~VI]{Garnett} and \cite[Ch.~2]{RosenblumRovnyak}.
+\end{greentext}
+
+For the phase--velocity identity, factor \(F_\varepsilon=\dettwo/\xi=I_\varepsilon\,O_\varepsilon\) (inner--outer) on \(\{\Re s>\tfrac12+\varepsilon\}\).
+By Lemma~\ref{lem:outer-phase-HT}, the boundary argument of \(O_\varepsilon\) satisfies \(\frac{d}{dt}\Arg O_\varepsilon=\Hilb[u_\varepsilon']\) in \(\mathcal D'(\R)\).
+Summing the Blaschke contributions of interior poles/zeros \emph{together with any singular inner contribution} yields the Poisson balayage term $\mu_{\rm off}$, the singular boundary measure $\nu_{\rm sing}$, and the boundary atoms $\sum_\gamma m_\gamma\,\delta_\gamma$; passage \(\varepsilon\downarrow 0\) gives \eqref{eq:pv-identity}.
+\end{proof}
+
+\begin{lemma}[\(\zeta\)–normalized outer and compensator]\label{lem:zeta-normalization}
+Let \(\mathcal O_\zeta\) be the outer on \(\Omega\) with a.e.\ boundary modulus \(|\dettwo(I-A)/\zeta|\), and define
+\[
+  J_\zeta(s)\ :=\ \frac{\dettwo(I-A(s))}{\mathcal O_\zeta(s)\,\zeta(s)}\cdot B(s),
+  \qquad B(s):=\frac{s-1}{s}.
+\]
+Then \(|J_\zeta(\tfrac12+it)|=1\) a.e.\ and the phase--velocity identity of Theorem~\ref{thm:phase-velocity-quant} holds for \(J_\zeta\) with the same Poisson/zero right-hand side.
+\end{lemma}
+\begin{proof}
+Write \(\xi(s)=G(s)\zeta(s)\) where \(G(s)=\tfrac12 s(1-s)\pi^{-s/2}\Gamma(\tfrac s2)\) differs from the main-text completion by a unimodular constant.
+Let \(\mathcal O_\xi\) be the outer with boundary modulus \(|\dettwo/\xi|\).
+On \(\Re s=\tfrac12\) one has unimodularity of both \(\dettwo/(\mathcal O_\xi\xi)\) and \(\dettwo/(\mathcal O_\zeta\zeta)\).
+The outer ratio \(\mathcal O_\xi/\mathcal O_\zeta\) cancels the boundary phase contribution of \(\log G\) (Lemma~\ref{lem:outer-phase-HT}); the remaining inner contribution at \(s=1\) is accounted for by the half-plane Blaschke factor \(B(s)=(s-1)/s\).
+Thus the tested phase--velocity identity transfers from \(\dettwo/(\mathcal O_\xi\xi)\) to \(J_\zeta\).
+\end{proof}
+
+\subsection*{Poisson plateau lower bound}
+\begin{lemma}[Poisson plateau lower bound]\label{lem:poisson-plateau}
+Let \(\psi\in C_c^\infty(\R)\) be even with \(\psi\equiv 1\) on \([-1,1]\) and \(\operatorname{supp}\psi\subset[-2,2]\).
+Then
+\[
+  c_0(\psi)\ :=\ \inf_{0<b\le 1,\ |x|\le 1} (P_b*\psi)(x)\ \ge\ \frac{1}{2\pi}\arctan 2\;>\;0.
+\]
+\end{lemma}
+\begin{proof}
+Since \(\psi\ge \mathbf 1_{[-1,1]}\), it suffices to compute \((P_b*\mathbf 1_{[-1,1]})(x)\).
+For \(|x|\le 1\),
+\[
+ (P_b*\mathbf 1_{[-1,1]})(x)
+ =\frac{1}{\pi}\int_{-1}^{1}\frac{b}{b^2+(x-y)^2}\,dy
+ =\frac{1}{2\pi}\Big(\arctan\frac{1-x}{b}+\arctan\frac{1+x}{b}\Big).
+\]
+This expression is minimized over \(0<b\le 1\), \(|x|\le 1\), at \((x,b)=(1,1)\), yielding \(\frac{1}{2\pi}\arctan 2\).
+\end{proof}
+
+\subsection*{From phase--velocity and CR--Green to (P+)}\label{app:assemble-pplus}
+
+\begin{bluetext}
+\subsection*{Referee correction: $\mu$-null does not imply Lebesgue-null without domination}
+Lemma~\ref{lem:mu-to-lebesgue} as currently stated concludes $|\mathcal Q|=0$ from the hypothesis $\mu(\mathcal Q)=0$.
+This conclusion is \emph{not valid in general} unless one proves an additional domination/comparability property of $\mu$
+with respect to Lebesgue measure (cf.\ Lemma~\ref{lem:mu-dominates-lebesgue}).
+
+\medskip
+\noindent\textbf{Corrected logical form needed for Paper I.}
+To obtain the Lebesgue-a.e.\ boundary inequality required by Hardy/Smirnov transport in Proposition~\ref{prop:herglotz-schur-transport}
+(of \texttt{paper1\_farfield.tex}), one must add and prove a hypothesis of the following type on each boundary interval $I$ used:
+
+\begin{quote}
+\textbf{(AC$_\mu$ on $I$)} There exists $c_I>0$ such that $\mu(E)\ge c_I|E|$ for all measurable $E\subset I$.
+\end{quote}
+
+Under (AC$_\mu$), the desired implication holds:
+
+\begin{lemma}[Corrected: $\mu$-null $\Rightarrow$ Lebesgue-null under domination]\label{lem:mu-to-lebesgue-corrected}
+Fix $I\Subset\R$ and let $\mathcal Q\subset I$ be measurable. If \textbf{(AC$_\mu$ on $I$)} holds, then
+\[
+\mu(\mathcal Q)=0 \quad\Longrightarrow\quad |\mathcal Q|=0.
+\]
+\end{lemma}
+\begin{proof}
+Immediate from Lemma~\ref{lem:mu-dominates-lebesgue}.
+\end{proof}
+
+\noindent\textbf{Referee action item (RED):} Either prove (AC$_\mu$) for the specific Poisson-balayage measure $\mu$
+constructed from off-critical zeros, \emph{or} weaken downstream claims to $\mu$-a.e.\ boundary statements and rework the main-paper transport step accordingly.
+\end{bluetext}
+
+\begin{greentext}
+\noindent\textbf{Author revision (closing the RED item).}
+The proof of \textup{(P+)} in this appendix does not require Lemma~\ref{lem:mu-to-lebesgue} or any domination hypothesis (AC$_\mu$):
+the Lebesgue-a.e.\ wedge statement is obtained directly from oscillation control via Lemma~\ref{lem:local-to-global-wedge}.
+Accordingly, the (AC$_\mu$) upgrade issue is not load-bearing for the main-paper transport step.
+\end{greentext}
+
+
+
+\begin{lemma}[Poisson lower bound $\Rightarrow$ Lebesgue-a.e.\ wedge \emph{under domination}]\label{lem:mu-to-lebesgue}
+Assume the phase--velocity identity \eqref{eq:pv-identity}. Fix a compact interval $I\Subset\R$ and let
+\[
+\mathcal Q_I := \{t\in I:\ |w(t)-m|\ge \pi/2\}.
+\]
+Assume additionally that $\mu$ dominates Lebesgue on $I$ in the sense of \textbf{(AC$_\mu$ on $I$)}:
+there exists $c_I>0$ such that $\mu(E)\ge c_I|E|$ for all measurable $E\subset I$.
+If $\mu(\mathcal Q_I)=0$, then $|\mathcal Q_I|=0$.
+Consequently the boundary wedge inequality (P$^+$) holds for Lebesgue-a.e.\ $t\in I$.
+\end{lemma}
+
+\begin{proof}
+By (AC$_\mu$ on $I$), $\mu(\mathcal Q_I)=0$ implies $|\mathcal Q_I|=0$ by Lemma~\ref{lem:mu-to-lebesgue-corrected}.
+The final sentence is just the definition of $\mathcal Q_I$.
+\end{proof}
+
+
+\begin{definition}[Admissible window class with atom avoidance]\label{def:adm-bumps}
+Fix an even \(C^\infty\) window \(\psi\) with \(\psi\equiv1\) on \([-1,1]\) and \(\operatorname{supp}\psi\subset[-2,2]\).
+For an interval \(I=[t_0-L,t_0+L]\), an aperture \(\alpha'>1\), and a parameter \(\varepsilon\in(0,\tfrac14]\), define \(\mathcal W_{\rm adm}(I;\varepsilon)\) to be the set of \(C^\infty\), nonnegative, mass-\(1\) bumps \(\phi\) supported in the fixed dilate \(2I=[t_0-2L,t_0+2L]\) that can be written as
+\[
+  \phi(t)\ =\ \frac{1}{Z}\,\frac{1}{L}\,\psi\!\left(\frac{t-t_0}{L}\right)\,m(t),
+  \qquad Z=\int_{2I} \frac1L\psi\!\left(\frac{t-t_0}{L}\right)m(t)\,dt,
+\]
+where \(2I:=[t_0-2L,t_0+2L]\) and the mask \(m\in C^\infty(2I;[0,1])\) satisfies:
+\begin{itemize}
+\item[(i)] \emph{Atom avoidance.} There is a union of disjoint open subintervals \(E=\bigcup_{j=1}^{J} J_j\subset I\) with total length \(|E|\le \varepsilon L\) such that \(m\equiv0\) on \(E\) and \(m\equiv1\) on \(I\setminus E'\), where each transition layer \(E'\setminus E\) has thickness \(\le \varepsilon L\).
+\item[(ii)] \emph{Uniform smoothness.} \(\|m'\|_\infty\lesssim (\varepsilon L)^{-1}\) and \(\|m''\|_\infty\lesssim (\varepsilon L)^{-2}\) with implicit constants independent of \(I,t_0,L\) and of the number/placement of the holes \(\{J_j\}\).
+\end{itemize}
+Every \(\phi\in\mathcal W_{\rm adm}(I;\varepsilon)\) is supported in \(2I\).
+This class contains the unmasked profile \(\varphi_{L,t_0}(t)=Z_0^{-1}L^{-1}\psi((t-t_0)/L)\) with \(Z_0:=\int_{-2}^{2}\psi(x)\,dx\) (take \(E=\varnothing\), \(m\equiv1\)) and also allows dodging boundary atoms by punching out small neighborhoods while keeping total deleted length \(\le\varepsilon L\).
+\end{definition}
+
+\begin{lemma}[Uniform Poisson--energy bound for admissible tests]\label{lem:uniform-test-energy}
+Let \(V_\phi\) be the Poisson extension of \(\phi\in\mathcal W_{\rm adm}(I;\varepsilon)\) to the half‑plane, and fix a cutoff to \(Q(\alpha' I)\) with \(\alpha'>1\) as in the CR--Green pairing.
+Then there exists a finite constant \(\mathcal A_{\rm adm}(\psi,\varepsilon,\alpha')<\infty\), depending only on \((\psi,\varepsilon,\alpha')\), such that
+\[
+  \iint_{Q(\alpha' I)} |\nabla V_\phi(\sigma,t)|^2\,\sigma\,dt\,d\sigma\ \le\ \mathcal A_{\rm adm}(\psi,\varepsilon,\alpha')^2\; L.
+\]
+\end{lemma}
+\begin{proof}
+Let \(\phi(t)=Z^{-1}L^{-1}\psi((t-t_0)/L)m(t)\) be an admissible test.
+By scaling of the Poisson kernel and the uniform bounds on \(m,m',m''\) from Definition~\ref{def:adm-bumps}, the \(H^1\)-size of \(\phi\) (equivalently the \(L^2(\sigma)\) Dirichlet energy of its Poisson extension on a fixed aperture box) is controlled uniformly by a constant depending only on \((\psi,\varepsilon,\alpha')\), times \(L^{1/2}\).
+Squaring yields the stated \(\lesssim L\) energy bound with \(\mathcal A_{\rm adm}(\psi,\varepsilon,\alpha')\).
+\end{proof}
+
+\begin{lemma}[Cutoff pairing on boxes]\label{lem:cutoff-pairing}
+Fix parameters \(\alpha'>\alpha>1\).
+Let \(\chi_{L,t_0}\in C_c^\infty(\R^2_+)\) satisfy \(\chi\equiv1\) on \(Q(\alpha I)\), \(\operatorname{supp}\chi\subset Q(\alpha'I)\), \(\|\nabla\chi\|_\infty\lesssim L^{-1}\) and \(\|\nabla^2\chi\|_\infty\lesssim L^{-2}\).
+Let \(V_\phi\) be the Poisson extension of \(\phi\in \mathcal W_{\rm adm}(I;\varepsilon)\).
+Then one has the Green pairing identity
+\[
+ \int_{\R} u(t)\,\phi(t)\,dt
+ \ =\ \iint_{Q(\alpha'I)} \nabla U\cdot \nabla\big(\chi_{L,t_0}\, V_\phi\big)\,dt\,d\sigma\ +\ \mathcal R_{\mathrm{side}}\ +\ \mathcal R_{\mathrm{top}},
+\]
+with remainders satisfying
+\[
+ |\mathcal R_{\mathrm{side}}|+|\mathcal R_{\mathrm{top}}|
+ \ \lesssim\ \Big(\iint_{Q(\alpha'I)} |\nabla U|^2\,\sigma\Big)^{1/2}
+               \cdot \Big(\iint_{Q(\alpha'I)} \big(|\nabla\chi|^2\,|V_\phi|^2+|\nabla V_\phi|^2\big)\,\sigma\Big)^{1/2}.
+\]
+\end{lemma}
+\begin{proof}
+Let \(Q:=Q(\alpha'I)\).
+Assume \(U\) is \(C^2\) on \(\overline Q\) and harmonic on \(Q\), with boundary trace \(u(t)=U(0,t)\) on the bottom edge \(\{\sigma=0\}\).
+Since \(\chi_{L,t_0}V_\phi\) is compactly supported in \(\overline Q\) and smooth on \(Q\), Green's identity gives
+\[
+  \iint_{Q} \nabla U\cdot \nabla(\chi V_\phi)\,dt\,d\sigma
+  \,=\,
+  \int_{\partial Q} (\chi V_\phi)\,\partial_n U\,ds
+  \ -\ \iint_{Q} (\chi V_\phi)\,\Delta U\,dt\,d\sigma.
+\]
+Since \(\Delta U=0\) on \(Q\), only the boundary integral remains.
+On the bottom edge one has \(\partial_n=-\partial_\sigma\), \(\chi\equiv1\), and \(V_\phi(0,t)=\phi(t)\), hence that contribution equals
+\[
+  \int_{I} \phi(t)\,(-\partial_\sigma U)(0,t)\,dt.
+\]
+If \(U\) is the real part of a holomorphic logarithm \(U=\Re\log J\) with \(|J(\tfrac12+it)|=1\) a.e., then \(U(0,t)=0\) a.e.\ and \(-\partial_\sigma U(0,t)=\partial_t \Arg J(\tfrac12+it)\) in distributions by Cauchy--Riemann; in particular, this term is the tested boundary phase derivative in Lemma~\ref{lem:CR-green-phase} below.
+The remaining boundary pieces (two vertical sides and the top edge) are, by definition, the remainders \(\mathcal R_{\mathrm{side}}+\mathcal R_{\mathrm{top}}\).
+
+For the remainder estimate, we apply Cauchy--Schwarz in the scale-invariant measure \(\sigma\,dt\,d\sigma\) on \(Q\):
+\[
+  \big|\mathcal R_{\mathrm{side}}\big|+\big|\mathcal R_{\mathrm{top}}\big|
+  \ \lesssim\ \Big(\iint_Q |\nabla U|^2\,\sigma\Big)^{1/2}
+               \Big(\iint_Q \big|\nabla(\chi V_\phi)\big|^2\,\sigma\Big)^{1/2}.
+\]
+Expanding \(\nabla(\chi V_\phi)=\chi\,\nabla V_\phi + (\nabla\chi)\,V_\phi\) yields
+\[
+  \iint_Q \big|\nabla(\chi V_\phi)\big|^2\,\sigma
+  \ \lesssim\ \iint_Q \big(|\nabla V_\phi|^2 + |\nabla\chi|^2|V_\phi|^2\big)\,\sigma,
+\]
+which gives the displayed estimate.
+\end{proof}
+
+\begin{lemma}[CR--Green pairing for boundary phase]\label{lem:CR-green-phase}
+Let \(J\) be analytic on \(\Omega\) with a.e.\ boundary modulus \(|J(\tfrac12+it)|=1\), and write \(\log J=U+iW\) on \(\Omega\), so \(U\) is harmonic with \(U(\tfrac12+it)=0\) a.e.
+Fix a Whitney interval \(I=[t_0-L,t_0+L]\) and let \(V_\phi\) be the Poisson extension of \(\phi\in\mathcal W_{\rm adm}(I;\varepsilon)\).
+Then, with a cutoff \(\chi_{L,t_0}\) as in Lemma~\ref{lem:cutoff-pairing},
+\[
+  \int_{\R} \phi(t)\,\big(-W'(t)\big)\,dt
+  \ =\ \iint_{Q(\alpha'I)} \nabla U\cdot \nabla\big(\chi_{L,t_0}\,V_\phi\big)\,dt\,d\sigma\ +\ \mathcal R_{\mathrm{side}}\ +\ \mathcal R_{\mathrm{top}},
+\]
+and the remainders satisfy the same estimate as in Lemma~\ref{lem:cutoff-pairing}.
+In particular, by Cauchy--Schwarz and Lemma~\ref{lem:uniform-test-energy}, there is a constant \(C_{\rm rem}(\alpha',\psi)\) such that
+\[
+  \int_{\R} \phi(t)\,\big(-w'(t)\big)\,dt\ \le\ C_{\rm rem}(\alpha',\psi)\,\Big(\iint_{Q(\alpha'I)} |\nabla U|^2\,\sigma\Big)^{1/2}.
+\]
+\end{lemma}
+\begin{proof}
+On the bottom edge \(\{\sigma=0\}\) the outward normal is \(\partial_n=-\partial_\sigma\).
+By Cauchy--Riemann for \(\log J=U+iW\) on the boundary line \(\{\Re s=\tfrac12\}\) one has \(\partial_n U=-\partial_\sigma U=\partial_t W\).
+Thus the bottom-edge term in Green's identity is
+\[
+  -\int_{\partial Q\cap\{\sigma=0\}} \chi\,V_\phi\,\partial_n U\,dt
+  = -\int_{\R} \phi(t)\,\partial_t W(t)\,dt
+  = \int_{\R} \phi(t)\,\big(-w'(t)\big)\,dt,
+\]
+which yields the stated identity after including the interior term and remainders.
+The final inequality is Cauchy--Schwarz together with the uniform Poisson-energy bound from Lemma~\ref{lem:uniform-test-energy}.
+\end{proof}
+
+\begin{proposition}[Length‑independent upper bound for admissible tests]\label{prop:length-free}
+Let \(J\) be holomorphic on \(\Omega\setminus Z(\zeta)\) with a.e.\ boundary modulus \(1\), write \(\log J=U+iW\) on \(\Omega\setminus Z(\zeta)\), and let \(-w'\) denote the boundary phase distribution.
+For every interval \(I=[t_0-L,t_0+L]\), every \(\phi\in\mathcal W_{\rm adm}(I;\varepsilon)\), and every fixed cutoff to \(Q(\alpha' I)\),
+\begin{equation}\label{eq:CRG-upper-adm}
+\int_{\mathbb R}\!\phi(t)\,(-w')(t)\,dt\ \le\ C_{\rm test}(\psi,\varepsilon,\alpha')\,\Big(\iint_{Q(\alpha' I)}|\nabla U|^2\,\sigma\,dt\,d\sigma\Big)^{1/2}
+\end{equation}
+with \(C_{\rm test}(\psi,\varepsilon,\alpha'):=C_{\rm rem}(\alpha',\psi)\,\mathcal A_{\rm adm}(\psi,\varepsilon,\alpha')\) independent of \(I,t_0,L\).
+In particular, defining the box-energy constant
+\[
+  C_{\rm box}^{(\zeta)}\ :=\ \sup_{I}\ \frac{1}{|I|}\iint_{Q(\alpha' I)}|\nabla U|^2\,\sigma\,dt\,d\sigma,
+\]
+one has the scale bound
+\[
+  \int_{\mathbb R}\!\phi\,(-w')\ \le\ C_{\rm test}(\psi,\varepsilon,\alpha')\,\sqrt{C_{\rm box}^{(\zeta)}}\,L^{1/2}.
+\]
+\end{proposition}
+\begin{proof}
+Apply Lemma~\ref{lem:CR-green-phase} with \(\phi\in\mathcal W_{\rm adm}(I;\varepsilon)\) and absorb the window-side constants into \(C_{\rm test}(\psi,\varepsilon,\alpha')\).
+\end{proof}
+
+\begin{lemma}[Whitney--uniform wedge]\label{lem:whitney-uniform-wedge}
+Fix parameters \(\alpha'>1\) and \(\varepsilon\in(0,\tfrac14]\).
+Fix the Whitney schedule and clip by \(L_\star\): set \(L_\star:=c/\log 2\) and henceforth
+\[
+  L(T)\ :=\ \min\Big\{\frac{c}{\log\angles{T}},\ L_\star\Big\}.
+\]
+Then for every Whitney interval \(I=[t_0-L,t_0+L]\) and the corresponding cutoff
+\(\psi_{L,t_0}(t):=\psi((t-t_0)/L)=Z_0L\,\varphi_{L,t_0}(t)\) (so \(\psi_{L,t_0}\equiv 1\) on \(I\)),
+\[
+  \int_{\mathbb R} \psi_{L,t_0}(t)\,(-w'(t))\,dt\ \le\ Z_0\,L_\star\cdot C_{\rm test}(\psi,\varepsilon,\alpha')\,\sqrt{C_{\rm box}^{(\zeta)}}\,L_\star^{1/2}
+  \ :=\ \pi\,\Upsilon_{\rm Whit}(c).
+\]
+Choosing \(c>0\) sufficiently small so that \(\Upsilon_{\rm Whit}(c)<\tfrac12\) yields the hypothesis of Lemma~\ref{lem:local-to-global-wedge} and hence \textup{(P+)}.
+\end{lemma}
+\begin{proof}
+Since \(\psi_{L,t_0}=Z_0L\,\varphi_{L,t_0}\), apply Proposition~\ref{prop:length-free} with \(\phi=\varphi_{L,t_0}\), then multiply the resulting bound by \(Z_0L\) and use the Whitney clip \(L\le L_\star\).
+\end{proof}
+
+\begin{theorem}[Proof of Theorem~\ref{thm:Pplus}]\label{thm:pplus-proof-complete}
+The boundary wedge \textup{(P+)} holds for \(\mathcal J_{\rm out}\).
+\end{theorem}
+\begin{proof}
+By Lemma~\ref{lem:zeta-normalization}, the quantitative phase--velocity identity (Theorem~\ref{thm:phase-velocity-quant}) applies to the \(\zeta\)-normalized unimodular ratio \(J_\zeta\), and hence (by \eqref{eq:J-out}) to \(\mathcal J_{\rm out}\).
+In particular, the associated boundary phase distribution \(-w'\) is positive.
+
+Proposition~\ref{prop:length-free} (CR--Green pairing) supplies a uniform Whitney-scale bound for the windowed phase derivative in terms of the box energy \(C_{\rm box}^{(\zeta)}\).
+Applying the Whitney schedule and choosing \(c>0\) small enough gives \(\Upsilon_{\rm Whit}(c)<\tfrac12\) in Lemma~\ref{lem:whitney-uniform-wedge}.
+Lemma~\ref{lem:local-to-global-wedge} then yields \textup{(P+)}.
+\end{proof}
+

@@ -1,0 +1,4 @@
+H,num_distinct_small_patterns,num_small_phases_that_split_upstairs,num_small_patterns_with_any_split,max_large_future_classes_over_all_patterns
+55,536,78265,535,7
+56,582,78577,581,10
+57,628,78889,627,10

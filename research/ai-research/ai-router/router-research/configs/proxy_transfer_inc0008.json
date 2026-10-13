@@ -1,0 +1,63 @@
+{
+  "experiment_id": "inc0008_proxy_transfer_multiseed",
+  "seeds": [0, 1],
+  "common_args": {
+    "input": "data/wikitext2_proxy/wikitext2_proxy.npz",
+    "eval_split": "test",
+    "max_train": 3000,
+    "max_eval": 1500,
+    "K": 8,
+    "delta_r": 3.0,
+    "kmeans_iters": 12,
+    "epochs": 1,
+    "eta_p": 0.04,
+    "eta_m": 0.08,
+    "extra_budget": 32,
+    "max_slots_per_bucket": 4,
+    "split_rounds": 40,
+    "min_split_gain": 0.0001,
+    "learn_so8": 0,
+    "learn_scale": 1,
+    "scale_mode": "radial",
+    "radial_bins": 10,
+    "radial_rmax": 0.0,
+    "radial_update_frac": 0.25,
+    "radial_l2": 0.0,
+    "chart_iters": 120,
+    "chart_alpha": 0.01,
+    "chart_beta": 50.0,
+    "so8_step": 0.1,
+    "so8_candidates": 8,
+    "scale_step": 0.08,
+    "scale_candidates": 8,
+    "scale_clip": 2.0,
+    "recluster_after_chart": 1,
+    "fast_dev": 0,
+    "early_stop_patience": 0,
+    "early_stop_min_delta": 0.0,
+    "cache_dir": "results/cache",
+    "cache_chart": 0,
+    "cache_routes": 0,
+    "time_pressure_lambda": 0.0
+  },
+  "routes": [
+    {
+      "route_id": "R0",
+      "args": {
+        "sector_mode": "kmeans",
+        "phase_dims": "0,1",
+        "phase4_dims": "0,2,4,6",
+        "complex_dims": "0,1"
+      }
+    },
+    {
+      "route_id": "R5B",
+      "args": {
+        "sector_mode": "phase4d",
+        "phase_dims": "0,1",
+        "phase4_dims": "0,2,4,6",
+        "complex_dims": "0,1"
+      }
+    }
+  ]
+}

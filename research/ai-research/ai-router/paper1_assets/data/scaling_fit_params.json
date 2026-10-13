@@ -1,0 +1,32 @@
+{
+  "source_analysis": "inc0170_large_k.json",
+  "anchor_fit_reference": {
+    "TRANS_ORIG": {
+      "alpha": 0.5717,
+      "c": 2.9569,
+      "r2": 0.9628
+    },
+    "TRANS_PERM": {
+      "alpha": 0.8142,
+      "c": 1.6637,
+      "r2": 0.9929
+    }
+  },
+  "large_k_fit_reference": {
+    "TRANS_ORIG": {
+      "alpha": 0.656676479901168,
+      "c": 2.0729691270372896,
+      "r2": 0.9907706397135692
+    },
+    "TRANS_PERM": {
+      "alpha": 0.81574589089876,
+      "c": 1.6964649219147248,
+      "r2": 0.99860689067688
+    }
+  },
+  "dense_reference": {
+    "alpha": 1.0,
+    "c": 1.0,
+    "r2": 1.0
+  }
+}

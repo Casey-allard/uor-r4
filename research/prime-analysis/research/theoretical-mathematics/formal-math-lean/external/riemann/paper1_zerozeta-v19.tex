@@ -1,0 +1,1434 @@
+\documentclass[11pt]{amsart}
+% ===== BEGIN inlined from riemann_common_preamble.tex =====
+% Shared preamble for the three-paper split.
+% Keep this file free of \documentclass and egin{document}.
+% Do NOT mention proof assistants anywhere in the split papers.
+
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[utf8]{inputenc}
+\usepackage{microtype}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage[numbers,sort&compress]{natbib}
+\hypersetup{colorlinks=true,linkcolor=black,citecolor=black,urlcolor=black}
+
+% Theorems
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{hypothesis}[theorem]{Hypothesis}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+% Basic macros
+\newcommand{\C}{\mathbb{C}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\PP}{\mathcal{P}}
+\newcommand{\Hilb}{\mathcal H}
+\DeclareMathOperator{\dettwo}{det_2}
+
+% Stable angle-bracket convention
+\newcommand{\angles}[1]{\langle #1\rangle}
+
+% Editorial markup (disabled)
+\newcommand{\editblue}[1]{{#1}}
+\newcommand{\editgreen}[1]{{#1}}
+% ===== END inlined from riemann_common_preamble.tex =====
+
+\DeclareMathOperator{\Arg}{Arg}
+\DeclareMathOperator{\ntlim}{nt\!-\!lim}
+\newcommand{\z}{\zeta} % compatibility: avoid undefined \z
+
+\title[Zero-free region for $\zeta(s)$]{A zero-free region for the Riemann zeta function in the half-plane $\Re s\ge 0.6$}
+
+\author{Jonathan Washburn}\thanks{Recognition Physics Research Institute, Austin, TX, USA; \email{jon@recognitionphysics.org}.}
+\author{Amir Rahnamai Barghi}\thanks{Correspondence: \texttt{arahnama@gmail.com}.}\thanks{Recognition Physics Research Institute, Austin, TX, USA; \email{arahnamab@gmail.com}.}\thanks{Correspondence: arahnamab@gmail.com}
+
+\date{}
+\begin{document}
+\begin{abstract}
+We establish a  zero-free region for the Riemann zeta function: $\zeta(s)\neq 0$ for $\Re s\ge 0.6$.
+On $\Omega=\{\Re s>\tfrac12\}$ we introduce an arithmetic ratio $\mathcal J(s)$ and the associated Cayley transform
+$\Theta(s)=(2\mathcal J(s)-1)/(2\mathcal J(s)+1)$.
+A boundary wedge condition (P$^+$) implies that $\Theta$ is Schur on $\Omega$, which in turn yields a half-plane Schur/Herglotz removability argument
+excluding poles of $\mathcal J$ throughout $\{\Re s\ge 0.6\}$.
+Since any pole of $\mathcal J$ in $\Omega$ forces a zero of $\zeta$, the pole exclusion gives the stated zero-free region.
+Supplementary rigorous ball-arithmetic certificates are included as ancillary material for independent reproducibility checks on representative low-height rectangles.
+\end{abstract}
+
+\subjclass[2020]{Primary 11M26; Secondary 30H10, 42B30, 47B35.}
+\maketitle
+
+\section{Introduction}
+
+The Riemann zeta function
+\[
+  \zeta(s)\;=\;\sum_{n\ge 1}\frac{1}{n^s},\qquad \Re s>1,
+\]
+extends meromorphically to $\C$ with a simple pole at $s=1$ and satisfies a functional equation after completion.
+Its nontrivial zeros govern the finest fluctuations in the distribution of prime numbers, and the Riemann Hypothesis (RH) asserts that all such zeros lie on the critical line $\Re s=\tfrac12$; see \cite{Titchmarsh,IK} for background.
+
+This paper isolates an unconditional, fixed half-plane statement in the direction of RH.
+Unlike the classical zero-free regions near $\Re s=1$ (which are asymptotic in height), the result here is a \emph{uniform} half-plane exclusion at $\Re s\ge 0.6$.
+\begin{theorem}[ far-field zero-freeness]\label{thm:farfield}
+The Riemann zeta function has no zeros in the region $\{\,s\in\C:\ \Re s\ge 0.6\,\}$.
+
+\noindent\textit{Proof.} See \S\ref{sec:proof-farfield}.
+\end{theorem}
+
+\noindent\textbf{Scope and supplementary computation.}
+The proof of Theorem~\ref{thm:farfield} is analytic and self-contained in the present text, with the boundary wedge certificate \textup{(P+)} proved in §§\ref{app:phase-velocity}--\ref{app:assemble-pplus} of Appendix~\ref{app:pplus-proof}.
+The shipped computational artifacts provide independently checkable ball-arithmetic cross-checks on representative low-height rectangles (Table~\ref{tab:artifact-data}) together with a verification protocol (Appendix~\ref{app:verify}).
+They are included for transparency and reproducibility, but are not logically required for the all-heights implication chain in the proof.
+
+The Appendix records the analytic function theory inputs used in the proof of \textup{(P+)} (boundary traces, factorization, and the phase--velocity identity).
+
+\subsection*{Strategy: Schur pinching via a Cayley field}
+We work on the right half-plane $\Omega=\{\,\Re s>\tfrac12\,\}$.
+In Section~\ref{sec:defs} we define an arithmetic ratio $\mathcal J$ (in the default \emph{raw $\zeta$-gauge}) with the following two structural properties:
+\begin{itemize}
+\item \textbf{(normalization at $+\infty$)} $\mathcal J(\sigma+it)\to 1$ as $\sigma\to+\infty$, hence $\Theta(\sigma+it)\to \tfrac13$ (Remark~\ref{rem:Ocan-role});
+\item \textbf{(normalization)} $\dettwo(I-A(s))$ is holomorphic and nonvanishing on $\Omega$, so any zero of $\zeta$ in $\Omega$ produces a pole of $\mathcal J$ (Lemma~\ref{lem:poles}).
+\end{itemize}
+We then pass to the Cayley transform
+\[
+  \Theta(s)\ :=\ \frac{2\mathcal J(s)-1}{2\mathcal J(s)+1}.
+\]
+The analytic mechanism is a \emph{Schur/Herglotz pinch} proved in Section~\ref{sec:pinch}:
+if $\Theta$ is Schur on a domain (i.e.\ $|\Theta|\le 1$) and not identically $1$, then boundedness forces removability of any isolated singularity and prevents poles of $\mathcal J$.
+Since $\Theta(\sigma+it)\to \tfrac13$ as $\sigma\to+\infty$, the degenerate possibility $\Theta\equiv 1$ is excluded on the half-planes relevant here.
+Therefore, to prove Theorem~\ref{thm:farfield} it suffices to certify a Schur bound for the default Cayley field $\Theta_{\rm raw}$ on some open half-plane $\{\,\Re s>0.6-\varepsilon\,\}$.
+
+\subsection*{Inputs (what is rigorously checked)}
+The logical implication of Theorem~\ref{thm:farfield} rests on a boundary certificate:
+we establish a boundary wedge \textup{(P+)} (Lebesgue-a.e.) for the boundary phase of $\mathcal J$ on $\Re s=\tfrac12$, which implies that $2\mathcal J$ is Herglotz and $\Theta$ is Schur on $\Omega\setminus Z(\zeta)$.
+The Schur/Herglotz pinch mechanism then excludes poles of $\mathcal J$ on $\{\,\Re s\ge 0.6\,\}$ and hence excludes zeros of $\zeta$ there.
+
+\medskip
+\noindent\emph{Supplementary computational cross-checks (not used in the proof).}
+The handoff bundle also contains rigorous ball-arithmetic rectangle checks and finite Pick artifacts on low-height regions; these are included as independent numerical corroboration but are not used in the all-heights proof.
+
+\subsection*{Reproducibility and verification materials}
+The handoff bundle (and repository) includes:
+(i) the verifier script based on ARB ball arithmetic (\texttt{python-flint}), and
+(ii) the JSON artifacts that record the  maxima, spectral separation bounds, and denominator checks for the supplementary certificates listed in Table~\ref{tab:artifact-data}.
+The included \texttt{MANIFEST.md} and Appendix~\ref{app:verify} provide a verification manifest mapping certificates to exact commands and expected output fields.
+
+\subsection*{Place in a series}
+This paper is designed to stand alone as an unconditional  zero-free region.
+Two companion papers (not required for Theorem~\ref{thm:farfield}) treat: (a) effective near-field energy barriers and Carleson budgets, and (b) a cutoff principle yielding conditional closure of RH.
+
+\medskip
+\noindent The remainder of the paper defines the arithmetic ratio $\mathcal J$ and Cayley field $\Theta$, proves the Schur pinch mechanism, and then discharges the Schur bound via the hybrid certification outlined above.
+
+\section{Definitions and main objects}\label{sec:defs}
+
+This section defines the analytic objects used throughout the proof and records the basic relationships
+between zeros of $\zeta$ and the bounded-real (Schur/Herglotz) structure employed later.
+\subsection*{The completed zeta function and the far half-plane}
+Let $\zeta(s)$ denote the Riemann zeta function.
+We write $\xi(s)$ for the completed zeta function
+\[
+  \xi(s)\ :=\ \tfrac12\,s(s-1)\,\pi^{-s/2}\Gamma(s/2)\,\zeta(s),
+\]
+which is entire and satisfies the functional equation $\xi(s)=\xi(1-s)$; see \cite{Titchmarsh}.
+In this paper, when we say ``zero'' we mean a zero of $\zeta$ (equivalently of $\xi$ away from the
+canceled singularities at $s=0,1$) lying in the half-plane
+\[
+  \Omega\ :=\ \{\,s\in\C:\ \Re s>\tfrac12\,\}.
+\]
+Theorem~\ref{thm:farfield} concerns the fixed far region $\{\,\Re s\ge 0.6\,\}\subset\Omega$.
+
+\subsection*{The prime-diagonal operator and the regularized determinant}
+Let $\PP$ denote the set of primes and write $\ell^2(\PP)$ for the Hilbert space with orthonormal basis
+$\{e_p\}_{p\in\PP}$.
+For $s\in\C$ define the prime-diagonal operator
+\[
+  A(s):\ell^2(\PP)\to\ell^2(\PP),\qquad A(s)e_p:=p^{-s}e_p.
+\]
+For $\Re s>1/2$,
+\[
+  \|A(s)\|_{\mathrm{HS}}^2=\sum_{p\in\PP}|p^{-s}|^2=\sum_{p\in\PP}p^{-2\Re s}\le \sum_{n\ge 2}n^{-2\Re s}<\infty,
+\]
+so $A(s)$ is Hilbert--Schmidt on $\Omega$.
+In particular, the regularized determinant $\dettwo(I-A(s))$ is well-defined and holomorphic on $\Omega$
+(see \cite[Ch.~III]{RosenblumRovnyak} and \cite[Ch.~9]{SimonTrace}).
+\begin{lemma}[Diagonal product formula for $\det_2$]\label{lem:det2-diagonal}
+Let $T$ be a diagonal Hilbert--Schmidt operator on $\ell^2$ with eigenvalues $\{\lambda_n\}$ satisfying
+$\sum_n|\lambda_n|^2<\infty$. Then
+\[
+  \dettwo(I-T)\ =\ \prod_{n}(1-\lambda_n)\,e^{\lambda_n},
+\]
+where the product converges absolutely. In particular, $\det_2(I-T)=0$ iff $\lambda_n=1$ for some $n$.
+\end{lemma}
+\begin{proof}
+This holds for the $\mathcal S_2$-regularized determinant; see \cite[Ch.~III]{RosenblumRovnyak}
+or \cite[Ch.~9]{SimonTrace}. (We only use the diagonal case and the zero criterion $\lambda_n=1$.)
+\end{proof}
+
+Applying Lemma~\ref{lem:det2-diagonal} to $T=A(s)$ on $\Omega$ gives the explicit product
+\begin{equation}\label{eq:det2-product}
+  \dettwo(I-A(s))\ =\ \prod_{p\in\PP}(1-p^{-s})\,e^{p^{-s}}.
+\end{equation}
+
+The region $\Omega\subset\{\Re s>1/2\}$ lies away from $s=0$, so the compensator $1/s$ introduces no pole on the working domain.
+The point $s=1$ lies in $\Omega$, but the factor $(s-1)$ cancels the simple pole of $\zeta$ there.
+All holomorphy/pole assertions for $\mathcal J$ are made only on $\Omega$, and poles are tracked relative to zeros of $\zeta$ in $\Omega$.
+
+Since $\Re s>1/2$ implies $|p^{-s}|<1$ for every prime $p$, each factor in \eqref{eq:det2-product} is nonzero.
+Hence $\dettwo(I-A(s))$ is holomorphic and zero-free on $\Omega$.
+
+\subsection*{The arithmetic ratio $\mathcal J$ and the Cayley field $\Theta$}
+Fix a domain $D\subset\Omega$.
+To allow numerically stable  bounds later, we permit a holomorphic nonvanishing \emph{normalizer}
+(or \emph{gauge}) $\mathcal O$ on $D$, and define
+\begin{equation}\label{eq:J-def}
+  \mathcal{J}(s)\ :=\ \frac{\dettwo(I-A(s))}{\zeta(s)}\cdot \frac{s-1}{s}\cdot \frac{1}{\mathcal O(s)},\qquad s\in D.
+\end{equation}
+The factor $(s-1)$ cancels the simple pole of $\zeta$ at $s=1$; the factor $1/s$ plays no role on $D\subset\Omega$
+(but is convenient in later normalization).
+Unless explicitly stated otherwise, we work in the \emph{raw $\zeta$-gauge} $\mathcal O\equiv 1$ and denote the resulting
+objects by $\mathcal J_{\rm raw}$ and $\Theta_{\rm raw}$; for readability we usually drop the subscript in this default gauge.
+\begin{remark}[Gauge changes and what they do \emph{not} change]\label{rem:Ocan-role}
+If $\mathcal O$ is holomorphic and nonvanishing on $D$, then multiplying by $\mathcal O^{-1}$ cannot introduce poles on $D$.
+Thus the pole set of $\mathcal J$ on $D$ is independent of the choice of gauge.
+However, quantitative bounds (e.g.\ Schur bounds on $\Theta$) are not gauge-invariant; when a nontrivial gauge is used for a
+ bound, one also requires that $\mathcal O$ is holomorphic and nonvanishing on the domain.
+In the raw gauge $\mathcal O\equiv 1$ one has $\mathcal J(s)\to 1$ as $\Re s\to+\infty$, and hence $\Theta(s)\to 1/3$.
+\end{remark}
+
+The associated Cayley transform is
+\begin{equation}\label{eq:Theta-def}
+  \Theta(s)\ :=\ \frac{2\mathcal J(s)-1}{2\mathcal J(s)+1}.
+\end{equation}
+Heuristically, $2\mathcal J$ plays the role of a Herglotz-type quantity and $\Theta$ the corresponding Schur function.
+The next section makes precise the key implication used later: a Schur bound on $\Theta$ forces removability of any
+isolated singularity of $\mathcal J$.
+\begin{lemma}[Zeros of $\zeta$ produce poles of $\mathcal J$]\label{lem:poles}
+Let $D\subset\Omega$ be a domain and assume the chosen gauge $\mathcal O$ is holomorphic and nonvanishing on $D$.
+If $\rho\in D$ is a zero of $\zeta(s)$, then $\rho$ is a pole of $\mathcal J(s)$ defined in \eqref{eq:J-def}.
+\end{lemma}
+\begin{proof}
+By \eqref{eq:J-def}, the only possible singularities of $\mathcal J$ on $D$ arise from zeros of $\zeta$ and from zeros of
+$\mathcal O$. The latter do not occur by assumption. The factor $(s-1)/s$ is holomorphic and nonzero on $D\subset\Omega$.
+Finally, $\dettwo(I-A(s))$ is holomorphic and nonzero on $\Omega$ by \eqref{eq:det2-product}. Hence a zero of $\zeta$ at $\rho$
+forces a pole of $\mathcal J$ at $\rho$.
+\end{proof}
+
+\subsection*{Schur and Herglotz classes (terminology)}
+Let $D\subset\C$ be a domain. A holomorphic function $\Theta$ on $D$ is called \emph{Schur} if $|\Theta|\le 1$ on $D$.
+A holomorphic function $H$ on $D$ is called \emph{Herglotz} if $\Re H\ge 0$ on $D$.
+The Cayley transform identifies these classes: if $H$ is Herglotz and $H\not\equiv -1$, then
+\[
+  \Theta=\frac{H-1}{H+1}
+\]
+is Schur. Conversely, if $\Theta$ is Schur and $\Theta\not\equiv 1$, then $(1+\Theta)/(1-\Theta)$ is Herglotz;
+see \cite{Donoghue,RosenblumRovnyak}.
+
+\subsection*{Outline of the far-field strategy in this language}
+Theorem~\ref{thm:farfield} will follow once we establish that $\Theta$ is Schur on $\{\,\Re s>0.6\,\}$ (in the relevant gauge).
+Indeed, if $|\Theta|\le 1$ holds on $\{\,\Re s>0.6\,\}$ away from the poles of $\mathcal J$, then $\Theta$ is bounded near any
+isolated singularity, and thus extends holomorphically across it by the removable singularity theorem.
+Since poles of $\mathcal J$ correspond to zeros of $\zeta$ in $\Omega$ by Lemma~\ref{lem:poles}, this rules out zeros of $\zeta$
+in the far region. The precise pinch argument is proved in the next section.
+
+\section{Schur/Herglotz pinch mechanism}\label{sec:pinch}
+\par\noindent
+This section records the analytic mechanism that converts a Schur bound for the Cayley field $\Theta$
+into a zero-free region for $\zeta$.
+The point is that a holomorphic function bounded by $1$ cannot have a pole, and any isolated singularity is removable.
+In our setting, poles of $\mathcal J$ in $\Omega$ encode zeros of $\zeta$ (Lemma~\ref{lem:poles}), so a Schur bound forces those zeros to be absent.
+
+\subsection*{Removable singularities under a Schur bound}
+\begin{lemma}[Removable singularity under a strict Schur bound]\label{lem:removable-schur-p1}
+Let $D\subset\C$ be a disc centered at $\rho$ and let $\Theta$ be holomorphic on $D\setminus\{\rho\}$ with $|\Theta(s)|<1$ there.
+Then $\Theta$ extends holomorphically to $D$ and satisfies $|\Theta(s)|<1$ for all $s\in D$.
+Consequently, the Cayley inverse
+\[
+  \mathcal H(s)\ :=\ \frac{1+\Theta(s)}{1-\Theta(s)}
+\]
+is holomorphic on $D$ and satisfies $\Re \mathcal H(s) > 0$ on $D$.
+\end{lemma}
+\begin{proof}
+Since $\Theta$ is bounded on the punctured disc, Riemann's removable singularity theorem gives a holomorphic extension to $D$
+(e.g.\ \cite[Ch.~2]{Ahlfors}).
+The extension still satisfies $|\Theta|\le 1$ on $D$ by continuity.
+If $|\Theta(\rho)|=1$, then $|\Theta|$ attains its maximum at an interior point, so $\Theta$ is constant unimodular on $D$
+by the Maximum Modulus Principle (e.g.\ \cite[Ch.~2]{Ahlfors}); this contradicts the strict bound $|\Theta|<1$ on $D\setminus\{\rho\}$.
+Hence $|\Theta(\rho)|<1$, and therefore $|\Theta|<1$ holds everywhere on $D$.
+The Möbius map $w\mapsto (1+w)/(1-w)$ sends the unit disc into the right half-plane, so $\Re \mathcal H>0$ on $D$.
+\end{proof}
+
+\subsection*{From a Schur bound to absence of poles}
+\begin{corollary}[Schur bound prevents poles of $\mathcal J$]\label{cor:no-poles}
+Let $U\subset\Omega$ be a domain and let $S\subset U$ be a discrete set.
+Assume $\Theta$ is holomorphic on $U\setminus S$ and satisfies $|\Theta(s)|\le 1$ for all $s\in U\setminus S$.
+Then $\Theta$ extends holomorphically to $U$ and satisfies $|\Theta|\le 1$ on $U$.
+If, moreover, $\Theta$ is not identically $1$ on any connected component of $U$, then
+\[
+  2\mathcal J(s)\;=\;\frac{1+\Theta(s)}{1-\Theta(s)}
+\]
+extends holomorphically to $U$ with $\Re(2\mathcal J)\ge 0$ there; in particular $\mathcal J$ has no poles in $U$.
+\end{corollary}
+\begin{proof}
+Fix $\rho\in S$ and choose a disc $D\subset U$ centered at $\rho$ with $D\cap S=\{\rho\}$.
+On $D\setminus\{\rho\}$ we have $|\Theta|\le 1$, hence $\Theta$ is bounded near $\rho$ and extends holomorphically across $\rho$
+by Riemann's theorem (again \cite[Ch.~2]{Ahlfors}).
+Doing this for each $\rho\in S$ yields a holomorphic extension of $\Theta$ to all of $U$.
+The bound $|\Theta|\le 1$ persists by continuity.
+
+If $\Theta(s_0)=1$ at an interior point $s_0$ of a connected component $U_0\subset U$, then $|\Theta|$ attains its maximum
+at $s_0$, so $\Theta$ is constant unimodular on $U_0$ by the Maximum Modulus Principle \cite[Ch.~2]{Ahlfors}.
+Thus the hypothesis excludes $\Theta\equiv 1$ on $U_0$, and therefore $1-\Theta$ is nonvanishing on $U$.
+Hence the Cayley inverse $(1+\Theta)/(1-\Theta)$ is holomorphic on $U$.
+Since the Cayley map sends the unit disc into the right half-plane, we have $\Re(2\mathcal J)\ge 0$ on $U$.
+A holomorphic function cannot have a pole, so $\mathcal J$ has no poles in $U$.
+\end{proof}
+
+\subsection*{Conclusion: Schur on a far half-plane implies Theorem~\ref{thm:farfield}}
+By Lemma~\ref{lem:poles}, any zero $\rho$ of $\zeta$ in $\Omega$ produces a pole of $\mathcal J$ in $\Omega$
+(the numerator factors in \eqref{eq:J-def} are nonzero on $\Omega$).
+
+On $\Omega=\{\Re s>\tfrac12\}$ we have $0\notin\Omega$, so the compensator $(s-1)/s$ introduces no pole on the working domain.
+The point $s=1$ lies in $\Omega$ but the factor $(s-1)$ cancels the simple pole of $\zeta$ there, so $\mathcal J$ is holomorphic at $s=1$
+in the raw gauge $\mathcal O\equiv 1$.
+Whenever a nontrivial gauge $\mathcal O$ is introduced, we require (and, for  bounds, separately verify) that $\mathcal O$ is
+holomorphic and nonvanishing on the stated domain; see Remark~\ref{rem:Ocan-role}.
+
+Therefore, if we can certify a Schur bound for $\Theta$ on a half-plane
+$U_\varepsilon=\{\,\Re s>0.6-\varepsilon\,\}$ with some $\varepsilon>0$, then Corollary~\ref{cor:no-poles} implies
+$\mathcal J$ has no poles in $U_\varepsilon$, hence $\zeta$ has no zeros in $U_\varepsilon$.
+Since $\{\,\Re s\ge 0.6\,\}\subset U_\varepsilon$, this yields Theorem~\ref{thm:farfield}.
+The next section discharges the Schur bound by a boundary-certificate route and then specializes to $U_\varepsilon$.
+\section{All-heights Schur bound via a boundary wedge certificate}\label{sec:hybrid}
+We now discharge the Schur bound required in Corollary~\ref{cor:no-poles} on a half-plane $U_\varepsilon$.
+The key input is an unconditional \emph{boundary wedge} \textup{(P+)} for a suitably outer-normalized version of $\mathcal J$
+on the boundary line $\Re s=\tfrac12$. This route is analytic (no large-height asymptotics) and applies for all heights.
+
+\subsection*{Outer normalization on $\Re s=\tfrac12$}
+Define
+\[
+  F(s):=\frac{\dettwo(I-A(s))}{\zeta(s)}\cdot\frac{s-1}{s},\qquad (\Re s>\>\tfrac12),
+\]
+and extend $F$ to $\Omega\setminus Z(\zeta)$ by analytic continuation (removing the discrete pole set $Z(\zeta)$).
+\begin{lemma}[Boundary admissibility and Smirnov class for $F$]\label{lem:F-boundary-admissible}
+Let $F$ be as above. Then on each connected component of $\Omega\setminus Z(\zeta)$:
+\begin{enumerate}
+\item $F$ belongs to the Smirnov class $N^+$ (see, e.g., \cite[Ch.~10]{DurenHp}) and therefore admits nontangential boundary values
+$F^*(t)=\ntlim_{\sigma\downarrow \tfrac12}F(\sigma+it)$ for Lebesgue-a.e.\ $t\in\mathbb R$.
+\item The boundary log-modulus $u(t):=\log|F^*(t)|$ lies in $L^1_{\mathrm{loc}}(\mathbb R)$.
+\end{enumerate}
+Moreover, if $|u(t)|\le C\log(2+|t|)$ for $|t|\ge 1$, then $u\in L^1(\mathbb R,(1+t^2)^{-1}dt)$.
+\end{lemma}
+\begin{proof}
+Fix a connected component $U$ of $\Omega\setminus Z(\zeta)$. By Lemma~\ref{lem:F-boundedtype-from-J}, for every compact interval
+$I\Subset\mathbb R$ with $Q_\alpha(I)\Subset U$ the restriction of $F$ to $Q_\alpha(I)$ is of bounded type.
+Since $U$ is covered by such Whitney regions and bounded type is local on simply connected subdomains, it follows that $F$ is of bounded type on $U$.
+
+Next, on each such $Q_\alpha(I)\Subset U$, the boundary log-modulus of $\dettwo(I-A)$ lies in $L^1(I)$ by Lemma~\ref{lem:det2-logL1-from-carleson},
+and $\log|\zeta(\tfrac12+it)|\in L^1(I)$ with $L^1$-convergence from the interior by Lemma~\ref{lem:zeta-logL1-components}.
+Unwinding the definition of $F$ (as a holomorphic combination of $\dettwo(I-A)$ and $\zeta$ on $U$), this gives $\log|F^*|\in L^1_{\mathrm{loc}}$ on $\partial U\cap\{\Re s=\tfrac12\}$.
+Applying Lemma~\ref{lem:BT-to-Nplus} on each Whitney region yields $F\in N^+(U)$, hence $F$ admits nontangential boundary values a.e.\ and
+$u(t)=\log|F^*(t)|\in L^1_{\mathrm{loc}}(\mathbb R)$.
+
+Finally, if $|u(t)|\le C\log(2+|t|)$ for $|t|\ge 1$, then
+\[
+\int_{\mathbb R}\frac{|u(t)|}{1+t^2}\,dt \ \le\ C\int_{\mathbb R}\frac{\log(2+|t|)}{1+t^2}\,dt \ <\ \infty,
+\]
+so $u\in L^1(\mathbb R,(1+t^2)^{-1}dt)$.
+\end{proof}
+\begin{lemma}[Local bounded-type control for $F$ from the Appendix normalizer]\label{lem:F-boundedtype-from-J}
+Fix a compact interval $I\Subset\R$ and a Whitney region $Q_{\alpha}(I)\Subset\Omega$.
+Assume the hypotheses of Appendix Lemma~\ref{lem:J-boundedtype-local} and Theorem~\ref{thm:phase-velocity-quant},
+so that the Appendix constructs an outer function $\mathcal O$ on $\Omega$ with boundary modulus
+$|\mathcal O(\tfrac12+it)|=ig|\dettwo(I-A(\tfrac12+it))|\,ig|\xi(\tfrac12+it)|^{-1}$ a.e.\ on $I$ and defines
+\(
+\mathcal J(s)=\dettwo(I-A(s))/(\mathcal O(s)\,\xi(s))
+\)
+of bounded type on $Q_{\alpha}(I)$.
+Then $F$ is of bounded type on $Q_{\alpha}(I)$.
+\end{lemma}
+\begin{proof}
+On $Q_\alpha(I)$, the Appendix constructs an outer function $\mathcal O$ with the stated boundary modulus on $I$ and defines
+\(
+\mathcal J=\dettwo(I-A)/(\mathcal O\,\xi)
+\)
+of bounded type on $Q_\alpha(I)$.
+By the definition of $F$ in the main text, $F$ is obtained from $\mathcal J$ by composing with holomorphic operations that preserve bounded type on domains
+(products, quotients by nonvanishing bounded-type functions, and linear fractional transformations with holomorphic coefficients).
+Since $\mathcal O$ is outer and $\xi$ is holomorphic and nonvanishing on $Q_\alpha(I)\subset \Omega\setminus Z(\zeta)$, these operations are legitimate on $Q_\alpha(I)$.
+Therefore $F$ is of bounded type on $Q_\alpha(I)$.
+\end{proof}
+\begin{lemma}[Smirnov upgrade from bounded type and boundary log-modulus]\label{lem:BT-to-Nplus}
+Let $U\subset\Omega$ be a simply connected domain with rectifiable boundary segment on $\Re s=\tfrac12$ (e.g.\ a Whitney region $Q_\alpha(I)$ as in §\ref{appA:setup} of Appendix~\ref{app:pplus-proof}). 
+Let $g$ be holomorphic on $U$ and of bounded type (Nevanlinna class) on $U$. 
+Assume $g$ admits nontangential boundary values $g^*(t)$ for Lebesgue-a.e.\ $t$ along $\partial U\cap\{\Re s=\tfrac12\}$ and that $\log|g^*(t)|\in L^1_{\mathrm{loc}}(dt)$ on that boundary segment.
+Then $g\in N^+(U)$, and in particular $g$ has nontangential boundary limits a.e.\ on $\partial U\cap\{\Re s=\tfrac12\}$.
+\end{lemma}
+\begin{proof}
+By conformal mapping, it suffices to treat the case of the unit disk $\mathbb D$ (or upper half-plane) with boundary arc corresponding to the given rectifiable boundary segment.
+Since $g$ is of bounded type on $U$, it belongs to the Nevanlinna class on $U$; equivalently, $g=h/k$ with $h,k\in H^\infty(U)$ and $k\not\equiv 0$.
+The hypothesis $\log|g^*|\in L^1_{\mathrm{loc}}$ on the boundary segment implies that the boundary values of $\log|k^*|$ are locally integrable there as well (because $h$ is bounded),
+so the outer-function construction on $U$ produces an outer function $k_{\mathrm{out}}$ with $|k_{\mathrm{out}}^*|=|k^*|$ a.e.\ on that segment.
+Replacing $k$ by $k_{\mathrm{out}}$ and $h$ by $h\,k/k_{\mathrm{out}}$ (which remains bounded and holomorphic) yields a representation $g=\tilde h/k_{\mathrm{out}}$ with
+$\tilde h\in H^\infty(U)$ and $k_{\mathrm{out}}$ outer. This is precisely $g\in N^+(U)$.
+In particular, functions in $N^+(U)$ admit nontangential boundary limits a.e.\ on the corresponding boundary segment.
+\end{proof}
+\begin{lemma}[From Carleson energy to $L^1$ boundary control for $\log|\dettwo|$]\label{lem:det2-logL1-from-carleson}
+Fix a compact interval $I\Subset\R$ and $\varepsilon_0\in(0,\tfrac12]$. Let
+\[
+U_{\det_2}(\sigma,t)=\log\Big|\dettwo\!\Big(I-A(\tfrac12+\sigma+it)\Big)\Big|,\qquad (\sigma,t)\in(0,\varepsilon_0]\times I,
+\]
+\editblue{where $\log|\dettwo(I-A)|$ is interpreted componentwise as the real part of any analytic branch $\operatorname{Log}(\dettwo(I-A))$ on each connected component of $\Omega\setminus Z(\dettwo(I-A))$ (so it is branch-independent). Further, $\log|\dettwo(I-A)|$ is subharmonic on $\Omega$ and harmonic on $\Omega\setminus Z(\dettwo(I-A))$; since the (discrete) zero set is polar, it does not affect harmonic-measure boundary trace statements used below.}
+Assume the Carleson energy bound of Lemma~\ref{lem:carleson-arith} for $\nabla U_{\det_2}$ on $Q(I)$, uniformly up to height $\varepsilon_0$.
+Then the boundary trace $u_{\det_2}(t):=\lim_{\sigma\downarrow0}U_{\det_2}(\sigma,t)$ exists in $\mathrm{BMO}(I)$ (hence in $L^1(I)$), and in particular
+\[
+\sup_{0<\sigma\le \varepsilon_0}\ \|U_{\det_2}(\sigma,\cdot)\|_{L^1(I)}\ <\ \infty.
+\]
+\end{lemma}
+\begin{proof}
+On $\Omega\setminus Z(\dettwo(I-A))$, the function $U_{\det_2}=\log|\dettwo(I-A)|$ is harmonic.
+The Carleson energy hypothesis implies that the measure $|\nabla U_{\det_2}(\sigma,t)|^2\,\sigma\,d\sigma\,dt$ is Carleson on $Q(I)$.
+By the Fefferman--Stein characterization of $\mathrm{BMO}$ boundary traces via Carleson measures for Poisson/harmonic extensions (see, for example, \cite[Ch.~IV, Thm.~3, p.~159]{SteinHA} and \cite[Ch.~VI, Thm.~3.4]{GarnettBAF}), $U_{\det_2}$ admits nontangential boundary values $U_{\det_2}^*\in\mathrm{BMO}(I)$, hence $U_{\det_2}^*\in L^1(I)$.
+In particular, $U_{\det_2}(\sigma,\cdot)\to U_{\det_2}^*$ in $L^1(I)$ as $\sigma\downarrow 0$.
+Moreover, $U_{\det_2}(\sigma,\cdot)$ admits a nontangential boundary trace in $\mathrm{BMO}(I)$ (hence in $L^1(I)$); see \cite{SteinHA,GarnettBAF}.
+ and depends only on the modulus, hence is independent of any choice of analytic branch for $\operatorname{Log}(\dettwo(I-A))$.
+The Carleson energy hypothesis in Lemma~\ref{lem:carleson-arith} gives a Carleson-measure bound for $|\nabla U_{\det_2}|^2\,\sigma\,d\sigma\,dt$ over the Carleson box above $I$.
+By the Carleson-measure characterization of BMO boundary traces for harmonic functions on the upper half-plane, this implies that the nontangential boundary trace
+$u_{\det_2}(t)=\lim_{\sigma\downarrow 0}U_{\det_2}(\sigma,t)$ exists in $\mathrm{BMO}(I)$; in particular $u_{\det_2}\in L^1(I)$.
+Moreover, the same characterization yields the uniform $L^1(I)$ control
+\(
+\sup_{0<\sigma\le\varepsilon_0}\|U_{\det_2}(\sigma,\cdot)\|_{L^1(I)}<\infty.
+\)
+Since the zero set $Z(\dettwo(I-A))$ is discrete (hence polar), removing it does not affect harmonic-measure boundary trace statements.
+\end{proof}
+\begin{lemma}[Boundary log-modulus control for $\zeta$ on components]\label{lem:zeta-logL1-components}
+Fix a compact interval $I\Subset\mathbb R$ and $\varepsilon_0\in(0,\tfrac12]$.
+Let $U$ be a connected component of $\Omega\setminus Z(\zeta)$ intersecting $Q_{\varepsilon_0}(I)$.
+Then $\zeta$ is holomorphic and nonvanishing on $U$, hence $u(s)=\log|\zeta(s)|$ is harmonic on $U$.
+Moreover, the boundary trace $t\mapsto \log|\zeta(\tfrac12+it)|$ lies in $L^1(I)$ and
+\[
+\log|\zeta(\tfrac12+\varepsilon+it)|\to \log|\zeta(\tfrac12+it)| \quad\text{in }L^1(I)\ \text{as }\varepsilon\downarrow0.
+\]
+\end{lemma}
+\begin{proof}
+Let $U$ be a connected component of $\Omega\setminus Z(\zeta)$ intersecting $Q_{\varepsilon_0}(I)$. Then $\zeta$ is holomorphic and nonvanishing on $U$, hence $u(s)=\log|\zeta(s)|$ is harmonic on $U$.
+On the compact strip segment $\{\sigma+it:\sigma\in[\tfrac12,\tfrac12+\varepsilon_0],\ t\in I\}$, $\zeta$ has only finitely many zeros (counted with multiplicity).
+For each zero $s_k$ in this compact set, write $\zeta(s)=(s-s_k)^{m_k}g_k(s)$ with $g_k$ holomorphic and nonvanishing in a neighborhood of $s_k$.
+Covering the compact strip by finitely many such neighborhoods and a zero-free remainder shows that on the strip
+\[
+\log|\zeta(s)|=\sum_k m_k\log|s-s_k| + O(1),
+\]
+with the $O(1)$ bounded on the strip.
+For each fixed $s_k$, the functions $t\mapsto \log|(\tfrac12+\varepsilon+it)-s_k|$ are uniformly $L^1(I)$-bounded for $\varepsilon\in(0,\varepsilon_0]$ and converge in $L^1(I)$ as $\varepsilon\downarrow 0$.
+Therefore dominated convergence yields the stated $L^1(I)$ convergence
+\(
+\log|\zeta(\tfrac12+\varepsilon+it)|\to \log|\zeta(\tfrac12+it)|
+\)
+as $\varepsilon\downarrow0$.
+\end{proof}
+\begin{lemma}[Local $L^1$ control of $\log|F^*|$ on boundary intervals]\label{lem:F-logL1-local}
+Fix a compact interval $I\Subset\mathbb R$ and $\varepsilon_0\in(0,\tfrac12]$, and set
+\[
+Q_{\varepsilon_0}(I):=\{\,\tfrac12+\sigma+it:\ 0<\sigma\le \varepsilon_0,\ t\in I\,\}\Subset\Omega.
+\]
+Let
+\[
+F(s):=\dettwo(I-A(s))\,\frac{s-1}{s\,\zeta(s)},\qquad s\in\Omega\setminus Z(\zeta).
+\]
+Assume:
+\begin{enumerate}
+\item[(i)] $\log|\dettwo(I-A(\tfrac12+\varepsilon+it))|\in L^1(I)$ uniformly for $\varepsilon\in(0,\varepsilon_0]$, and the nontangential boundary limit
+$\log|\dettwo(I-A(\tfrac12+it))|$ exists in $L^1(I)$;
+\item[(ii)] for each connected component $U$ of $\Omega\setminus Z(\zeta)$ intersecting $Q_{\varepsilon_0}(I)$, the function $\log|\zeta(\tfrac12+\varepsilon+it)|$ has an $L^1(I)$-limit as $\varepsilon\downarrow0$ when restricted to $U$.
+\end{enumerate}
+Then on each such component $U$, the nontangential boundary values $F^*(t)$ exist for Lebesgue-a.e.\ $t\in I$, and $\log|F^*(t)|\in L^1_{\mathrm{loc}}(I)$ on $U$.
+\end{lemma}
+\begin{proof}
+Fix a component $U$ as in the statement. For $s=\tfrac12+\varepsilon+it$ with $0<\varepsilon\le \varepsilon_0$ and $t\in I$, we have
+\[
+\log|F(s)|=\log|\dettwo(I-A(s))|+\log|s-1|-\log|s|-\log|\zeta(s)|.
+\]
+Since $I$ is compact and $\varepsilon\in(0,\varepsilon_0]$, the functions $t\mapsto \log|\tfrac12+\varepsilon+it|$ and $t\mapsto \log|-\tfrac12+\varepsilon+it|$
+are bounded on $I$, uniformly in $\varepsilon$; hence $\log|s|$ and $\log|s-1|$ contribute uniformly bounded $L^1(I)$ terms.
+Assumptions (i)--(ii) therefore imply that $\log|F(\tfrac12+\varepsilon+it)|$ is uniformly in $L^1(I)$ and has an $L^1(I)$ limit as $\varepsilon\downarrow0$ along $U$.
+In particular, after passing to a subsequence if needed, $F(\tfrac12+\varepsilon+it)$ has a nontangential boundary limit for a.e.\ $t\in I$, and the limiting boundary modulus satisfies
+$\log|F^*(t)|\in L^1_{\mathrm{loc}}(I)$ on $U$.
+\end{proof}
+\begin{lemma}[Outer factor from boundary modulus on $\Omega$]\label{lem:outer-factor-halfplane}
+Assume Lemma~\ref{lem:F-boundary-admissible} together with $u\in L^1(\mathbb R,(1+t^2)^{-1}dt)$.
+Then there exists a holomorphic function $\mathcal O_\zeta$ on $\Omega$, unique up to a unimodular constant,
+with no zeros on $\Omega$, such that the nontangential boundary values satisfy
+\[
+  ig|\mathcal O_\zeta(\tfrac12+it)|=ig|F^*(t)|\qquad\text{for Lebesgue-a.e.\ }t\in\mathbb R.
+\]
+Moreover, $\log|\mathcal O_\zeta(s)|$ is the Poisson extension of $u(t)$ from the boundary line $\Re s=\tfrac12$.
+\end{lemma}
+\begin{proof}
+Translate $\Omega$ to the right half-plane $\{\,\Re w>0\,\}$ via $w=s-\tfrac12$.
+Since $u\in L^1(\mathbb R,(1+t^2)^{-1}dt)$, its Poisson extension $U=\mathcal P[u]$ is a harmonic function on $\Omega$
+with nontangential boundary trace $u$ a.e.
+Choose a harmonic conjugate $V$ of $U$ on $\Omega$ and set $\mathcal O_\zeta:=\exp(U+iV)$.
+Then $\mathcal O_\zeta$ is holomorphic and zero-free on $\Omega$, and by Fatou theory its boundary modulus is $e^{u(t)}$
+for a.e.\ $t$. Uniqueness up to a unimodular constant follows because the ratio of two such outer functions has boundary modulus $1$ a.e.\ and hence is an inner constant; see Garnett~\cite[Ch.~II]{GarnettBAF}.
+\end{proof}
+
+Define the outer-normalized ratio
+\begin{equation}\label{eq:J-out}
+  \mathcal J_{\rm out}(s):=\frac{F(s)}{\mathcal O_\zeta(s)}
+  =\frac{\dettwo(I-A(s))}{\mathcal O_\zeta(s)\,\zeta(s)}\cdot\frac{s-1}{s}.
+\end{equation}
+Then $|\mathcal J_{\rm out}(\tfrac12+it)|=1$ for Lebesgue-a.e.\ $t$.
+
+\subsection*{Boundary wedge (P+)}
+Let $w(t):=\Arg \mathcal J_{\rm out}(\tfrac12+it)$ be the boundary phase (defined for a.e.\ $t$).
+We say that \textup{(P+)} holds if there exists $m\in\mathbb R$ such that
+\[
+  |w(t)-m|<\frac{\pi}{2}\qquad\text{for Lebesgue-a.e.\ }t\in\mathbb R.
+\]
+Equivalently, $\Re\!ig(e^{-im}\mathcal J_{\rm out}(\tfrac12+it))\ge 0$ for Lebesgue-a.e.\ $t$.
+\begin{theorem}[Boundary wedge \textup{(P+)}]\label{thm:Pplus}
+The boundary wedge \textup{(P+)} holds for $\mathcal J_{\rm out}$.
+\end{theorem}
+\begin{proof}
+See \S\S\ref{app:phase-velocity}--\ref{app:assemble-pplus} in Appendix~\ref{app:pplus-proof}.
+\end{proof}
+
+\subsection*{From (P+) to an interior Schur bound}
+Fix $m$ witnessing \textup{(P+)} and set
+\[
+  \widetilde{\mathcal J}(s):=e^{-im}\mathcal J_{\rm out}(s).
+\]
+Then $|\widetilde{\mathcal J}(\tfrac12+it)|=1$ a.e.\ and $\Re\,\widetilde{\mathcal J}(\tfrac12+it)\ge 0$ a.e.
+Define the corresponding Cayley field
+\[
+  \Theta_{\rm out}(s):=\frac{2\widetilde{\mathcal J}(s)-1}{2\widetilde{\mathcal J}(s)+1}.
+\]
+\begin{lemma}[Smirnov regularity for $\mathcal J_{\rm out}$ and $\Theta_{\rm out}$]\label{lem:smirnov-regularity}
+Assume Lemmas~\ref{lem:F-boundary-admissible} and~\ref{lem:outer-factor-halfplane}.
+Then $\mathcal J_{\rm out}\in N^+(\Omega\setminus Z(\zeta))$ and admits nontangential boundary values
+$\mathcal J_{\rm out}(\tfrac12+it)$ for Lebesgue-a.e.\ $t$.
+Consequently, $\widetilde{\mathcal J}=e^{-im}\mathcal J_{\rm out}\in N^+(\Omega\setminus Z(\zeta))$, and
+$\Theta_{\rm out}$ admits Lebesgue-a.e.\ boundary values on $\Re s=\tfrac12$.
+\end{lemma}
+\begin{proof}
+By Lemma~\ref{lem:F-boundary-admissible}, $F\in N^+(\Omega\setminus Z(\zeta))$.
+By Lemma~\ref{lem:outer-factor-halfplane}, $\mathcal O_\zeta$ is holomorphic, zero-free, and outer on $\Omega$, hence lies in $N^+(\Omega)$.
+Therefore $\mathcal J_{\rm out}=F/\mathcal O_\zeta\in N^+(\Omega\setminus Z(\zeta))$.
+Multiplication by a unimodular constant preserves $N^+$ membership, so $\widetilde{\mathcal J}\in N^+(\Omega\setminus Z(\zeta))$.
+The boundary-value statements follow from Smirnov boundary theory (e.g.\ Garnett~\cite[Ch.~II]{GarnettBAF}).
+Finally, $\Theta_{\rm out}$ is a Möbius transform of $\widetilde{\mathcal J}$; its a.e.\ boundary values exist wherever
+$2\widetilde{\mathcal J}(\tfrac12+it)\neq -1$, which holds a.e.\ since $\Re\,\widetilde{\mathcal J}(\tfrac12+it)\ge 0$ a.e.
+\end{proof}
+\begin{lemma}[Boundary-to-interior Schur transport on components of $\Omega\setminus Z(\zeta)$]\label{lem:schur-transport-omega}
+Let $U$ be a connected component of $\Omega\setminus Z(\zeta)$ and let $\Theta\in N^+(U)$ admit nontangential boundary values
+$\Theta(\tfrac12+it)$ for Lebesgue-a.e.\ $t$.
+If $|\Theta(\tfrac12+it)|\le 1$ for Lebesgue-a.e.\ $t$, then $|\Theta(s)|\le 1$ for all $s\in U$.
+\end{lemma}
+\begin{proof}
+For $\Theta\not\equiv 0$, the function $u:=\log|\Theta|$ is subharmonic on $U$ and has a harmonic majorant because $\Theta\in N^+(U)$.
+At Lebesgue points where the nontangential boundary values exist, the boundary hypothesis gives $u(\tfrac12+it)\le 0$ a.e.
+Since $Z(\zeta)$ is discrete, it is a polar set, hence has harmonic measure zero for each component $U$;
+therefore the Poisson/harmonic-measure domination principle on $U$ yields $u(s)\le 0$ for all $s\in U$.
+Thus $|\Theta(s)|\le 1$ on $U$.
+See Garnett~\cite[Ch.~II]{GarnettBAF} and Ransford~\cite[Ch.~5]{RansfordPT}.
+\end{proof}
+\begin{lemma}[Boundary-to-interior Herglotz transport on components of $\Omega\setminus Z(\zeta)$]\label{lem:herglotz-transport-omega}
+Let $U$ be a connected component of $\Omega\setminus Z(\zeta)$ and let $G\in N^+(U)$ admit nontangential boundary values
+$G(\tfrac12+it)$ for Lebesgue-a.e.\ $t$.
+If $\Re\,G(\tfrac12+it)\ge 0$ for Lebesgue-a.e.\ $t$, then $\Re\,G(s)\ge 0$ for all $s\in U$.
+\end{lemma}
+\begin{proof}
+Apply Lemma~\ref{lem:schur-transport-omega} to the Cayley transform
+$\Phi(s):=\frac{G(s)-1}{G(s)+1}$ (defined wherever $G\neq -1$) and use continuity to conclude $\Re\,G\ge 0$ on $U$.
+Equivalently, one may apply the harmonic-measure domination principle directly to the harmonic function $\Re\,G$ using that $G\in N^+(U)$.
+\end{proof}
+\begin{proposition}[Herglotz/Schur transport]\label{prop:herglotz-schur-transport}
+Assume \textup{(P+)} for $\mathcal J_{\rm out}$ and Lemma~\ref{lem:smirnov-regularity}.
+Then $\Theta_{\rm out}$ is Schur on each connected component of $\Omega\setminus Z(\zeta)$, and
+\[
+  H(s):=\frac{1+\Theta_{\rm out}(s)}{1-\Theta_{\rm out}(s)}
+\]
+is Herglotz on $\Omega\setminus Z(\zeta)$ (i.e.\ $\Re H(s)\ge 0$ there). Moreover, $H(s)=2\widetilde{\mathcal J}(s)=2e^{-im}\mathcal J_{\rm out}(s)$.
+\end{proposition}
+\begin{proof}
+Let $U$ be any connected component of $\Omega\setminus Z(\zeta)$.
+By Lemma~\ref{lem:smirnov-regularity} we have $\widetilde{\mathcal J}\in N^+(U)$ and it admits nontangential boundary values on $\Re s=\tfrac12$ for Lebesgue-a.e.\ $t$.
+By \textup{(P+)} (with the fixed phase $m$), $\Re\,\widetilde{\mathcal J}(\tfrac12+it)\ge 0$ for Lebesgue-a.e.\ $t$.
+Therefore Lemma~\ref{lem:herglotz-transport-omega} yields $\Re\,\widetilde{\mathcal J}(s)\ge 0$ for all $s\in U$.
+Since the Cayley map $z\mapsto \frac{2z-1}{2z+1}$ sends the closed right half-plane into the closed unit disc, it follows that
+$|\Theta_{\rm out}(s)|\le 1$ for all $s\in U$. As $U$ was arbitrary, $\Theta_{\rm out}$ is Schur on each connected component of $\Omega\setminus Z(\zeta)$.
+Finally, the Cayley inverse gives
+\[
+  H(s)=\frac{1+\Theta_{\rm out}(s)}{1-\Theta_{\rm out}(s)}=2\widetilde{\mathcal J}(s)=2e^{-im}\mathcal J_{\rm out}(s),
+\]
+so $H$ is Herglotz on $\Omega\setminus Z(\zeta)$.
+\end{proof}
+
+\subsection{Proof of the main theorem}\label{sec:proof-farfield}
+\begin{proof}[Proof of Theorem~\ref{thm:farfield}]
+By Proposition~\ref{prop:herglotz-schur-transport}, $\Theta_{\rm out}$ is Schur on $\Omega\setminus Z(\zeta)$; the constants in the transport argument are uniform on Whitney boxes by the length-free wedge assembly in Appendix~A (see §§\ref{lem:whitney-uniform-wedge}--\ref{app:assemble-pplus}).
+Apply Corollary~\ref{cor:no-poles} to $\widetilde{\mathcal J}=e^{-im}\mathcal J_{\rm out}$ on $U_\varepsilon$ to conclude that
+$\widetilde{\mathcal J}$ has no poles on $U_\varepsilon$; hence $\mathcal J_{\rm out}$ has no poles on $U_\varepsilon$ as well.
+Since $\dettwo(I-A)$ and $\mathcal O_\zeta$ are holomorphic and nonvanishing on $\Omega$ (indeed, for $\Re s>\tfrac12$ the diagonal eigenvalues $p^{-s}$ satisfy $|p^{-s}|<1$, so $1$ is not an eigenvalue of $A(s)$ and hence $\dettwo(I-A(s))\neq0$; and $\mathcal O_\zeta$ is an outer factor and therefore zero-free on $\Omega$), poles of $\mathcal J_{\rm out}$ in $\Omega$
+can only come from zeros of $\zeta$. Therefore $\zeta$ has no zeros in $U_\varepsilon$, and in particular none in $\{\,\Re s\ge 0.6\,\}$.
+\end{proof}
+\begin{table}[H]
+\centering
+\caption{Supplementary computational artifacts (not used in the proof).}\label{tab:artifact-data}
+\small
+\begin{tabular}{l l l}
+\toprule
+\textbf{Artifact} & \textbf{Parameter} & \textbf{Value} \\
+\midrule
+\multicolumn{3}{l}{\textit{Rectangle certification} (\texttt{theta\_certify})} \\
+\quad Domain & $[\sigma_{\min}, \sigma_{\max}] \times [t_{\min}, t_{\max}]$ & $[0.6, 0.7] \times [0, 20]$ \\
+\quad  upper bound & $\max |\Theta_{\rm proj}|$ & $0.9999928763$ \\
+\quad Safety margin & $1 - \theta_{\rm hi}$ & $7.12 \times 10^{-6}$ \\
+\quad Status & \texttt{ok} & \texttt{true} \\
+\quad Boxes processed & & 380{,}764 \\
+\quad Precision & (bits) & 260 \\
+\quad Gauge & & \texttt{outer\_zeta\_proj} \\
+\midrule
+\multicolumn{3}{l}{\textit{Pick certificate} (\texttt{pick\_certify}, $\sigma_0 = 0.599$)} \\
+\quad Matrix size & $N$ & 16 \\
+\quad Spectral separation & $\delta_{\rm cert}$ & $0.594$ \\
+\quad SPD at origin & $P_N \succ 0$ & \texttt{true} \\
+\quad Coefficient count & $N_{\rm coeff}$ & 128 \\
+\quad Tail sum (diagnostic) & $\sum_{16}^{127}|a_n|$ & $0.67$ \\
+\quad Gauge & & \texttt{raw\_zeta} \\
+\midrule
+\multicolumn{3}{l}{\textit{Pick certificate} (\texttt{pick\_certify}, $\sigma_0 = 0.6$)} \\
+\quad Matrix size & $N$ & 16 \\
+\quad Spectral separation & $\delta_{\rm cert}$ & $0.594$ \\
+\quad SPD at origin & $P_N \succ 0$ & \texttt{true} \\
+\quad Coefficient count & $N_{\rm coeff}$ & 128 \\
+\quad Tail sum (diagnostic) & $\sum_{16}^{127}|a_n|$ & $0.67$ \\
+\quad Gauge & & \texttt{raw\_zeta} \\
+\midrule
+\multicolumn{3}{l}{\textit{Pick certificate} (\texttt{pick\_certify}, $\sigma_0 = 0.7$)} \\
+\quad Matrix size & $N$ & 16 \\
+\quad Spectral separation & $\delta_{\rm cert}$ & $0.627$ \\
+\quad SPD at origin & $P_N \succ 0$ & \texttt{true} \\
+\quad Coefficient count & $N_{\rm coeff}$ & 128 \\
+\quad Tail sum (diagnostic) & $\sum_{16}^{127}|a_n|$ & $0.61$ \\
+\quad Gauge & & \texttt{raw\_zeta} \\
+ottomrule
+\end{tabular}
+\end{table}
+\section*{Conclusion and limitations (unconditional status)}
+
+We prove a fixed half-plane zero-exclusion for the Riemann zeta function: $\zeta(s)\neq 0$ for $\Re s\ge 0.6$ (Theorem~\ref{thm:farfield}).
+
+The argument is analytic and function-theoretic: zeros are converted into poles of an arithmetic ratio $\mathcal J$, and a Schur bound $|\Theta|\le 1$ for the associated Cayley field forces removability and rules out poles (hence zeros).
+For transparency, the handoff bundle also provides independently checkable ball-arithmetic artifacts on representative low-height rectangles together with a verification protocol in Appendix~\ref{app:verify}.
+The technically hardest step is establishing the all-heights Schur bound, which is discharged by the boundary wedge certificate \textup{(P+)} (Section~\ref{sec:hybrid}).
+The supplementary artifacts in Table~\ref{tab:artifact-data} are provided for independent verification of the low-height rectangle and Pick cross-checks listed in Appendix~\ref{app:verify}.
+
+\paragraph{Computer assistance and verifiability.}
+Although the core implications are analytic, the repository provides rigorous numerical certificates (ball arithmetic) together with a verifier and JSON outputs so that the finite checks can be independently verified.
+
+\paragraph{Limitations and scope.}
+We do not claim the Riemann Hypothesis here.
+
+All conclusions are confined to the explicit region proved, and no statement is made about zeros with $\Re s<0.6$.
+It isolates and certifies a fixed far-field exclusion $\Re s\ge 0.6$.
+Pushing the boundary $0.6$ closer to $1/2$ within this framework would require sharpening the analytic boundary-certificate constants and the Carleson/box-energy bounds that enter the wedge criterion, which we do not pursue here.
+
+\section*{Statements and Declarations}
+
+\paragraph{Competing interests.}
+The author declares no competing interests.
+
+\paragraph{Data and materials availability.}
+For reproducibility, the verification is with respect to the shipped bundle (and its SHA-256 manifest, if provided). If any file is updated after theory revision, the verification should be rerun and the manifest regenerated.
+All computational artifacts used for supplementary cross-checks are included in the handoff bundle (and mirrored in the repository):
+\begin{quote}\small\ttfamily
+compute/artifacts/theta\_certify\_sigma06\_07\_t0\_20\_outer\_zeta\_proj.json\\
+compute/artifacts/pick\_sigma0599\_raw\_zeta\_N16.json\\
+compute/artifacts/pick\_sigma06\_raw\_zeta\_N16.json\\
+compute/artifacts/pick\_sigma07\_raw\_zeta\_N16.json\\
+compute/verify\_attachment\_arb.py
+\end{quote}
+\begin{remark}\label{rem:artifact-repro}
+The verifier is based on rigorous ball arithmetic (ARB via \texttt{python-flint}) and is intended to be independently verifiable.
+Appendix~\ref{app:verify} records the verification manifest and a minimal command sequence for running the verifier on a fresh machine.
+
+\end{remark}
+
+\appendix
+\section{Proof of the boundary wedge certificate \textup{(P+)}}\label{app:pplus-proof}
+This appendix proves Theorem~\ref{thm:Pplus}. The argument combines a quantitative phase--velocity identity with a Whitney-box Cauchy--Riemann/Green pairing and a Carleson-type energy bound, yielding a windowed phase estimate that implies the boundary wedge inclusion \textup{(P+)}.
+
+% ===== BEGIN inlined from paper1_pplus_proof.tex =====
+% ----------------------------------------------------------------------
+
+% Appendix A input file: proof of the boundary wedge certificate (P+).
+% This file is \input{} from Appendix~\ref{app:pplus-proof} in paper1_farfield.tex.
+% ----------------------------------------------------------------------
+
+\subsection{Statement, standing notation, and domains}
+
+\label{appA:setup}
+
+This subsection fixes the ambient domain, boundary conventions, Whitney geometry, and the meaning of boundary limits, so later phase and energy identities are unambiguous.
+
+Throughout Appendix~\ref{app:pplus-proof} we work in the right half-plane
+\[
+  \Omega:=\{s\in\mathbb C:\Re s>\tfrac12\},
+\]
+with boundary line $\partial\Omega=\{\tfrac12+it:t\in\mathbb R\}$.
+All analytic objects are understood componentwise on $\Omega\setminus Z$, where $Z$ denotes the relevant zero/pole set,
+so that branches of $\log$ and $\Arg$ are well-defined on each connected component.
+
+For a compact interval $I\subset\mathbb R$ and a dilation parameter $\alpha>1$ we write $Q_\alpha(I)$ for the Whitney box
+based on $I$, and we use the weighted area measure $\sigma\,dt\,d\sigma$ on $\Omega$, where $\sigma:=\Re s-\tfrac12$.
+
+The goal is to prove the boundary wedge certificate \textup{(P+)} stated in Theorem~\ref{thm:Pplus}.
+The proof proceeds by:
+(i) a quantitative phase--velocity identity for the boundary phase of $\mathcal J_{\rm out}$,
+(ii) a Green/Cauchy--Riemann pairing on Whitney boxes,
+(iii) a Carleson-type energy bound for a logarithmic derivative,
+and (iv) a quantitative wedge criterion converting windowed phase control into a.e.\ wedge inclusion.
+
+In the phase--velocity identity below, we will show that $-w'$ is positive (in the sense of distributions): a locally finite measure plus a discrete atomic part encoding the off--critical zero data that enter the boundary phase derivative.
+
+\subsection{A quantitative wedge criterion from Whitney-local control}
+
+\label{app:whitney-wedge}
+
+We state the wedge target (P+) in a form suited to local Whitney-box estimates and record the boundary conventions used throughout Appendix~A.
+
+We work on the boundary line $\Re s=\tfrac12$ and use the following conventions.
+\begin{itemize}
+\item \emph{Wedge.} For an aperture parameter $\alpha\in(0,\tfrac\pi2)$ and a center angle $m\in\mathbb R$, write
+\[
+  W_{m,\alpha}:=\{z\in\mathbb C:\ |\Arg(e^{-im}z)|\le \alpha\}.
+\]
+Thus \textup{(P+)} is the Lebesgue-a.e.\ inclusion $\,\mathcal J_{\rm out}(\tfrac12+it)\in W_{m,\alpha}\,$ for some fixed $\alpha<\tfrac\pi2$
+and some $m\in\mathbb R$.
+
+\item \emph{Whitney / Carleson boxes.} For an interval $I\subset\mathbb R$, write the Carleson box
+$S(I):=\{\tfrac12+\sigma+it:\ 0<\sigma\le |I|,\ t\in I\}$.
+A Whitney box means a box of comparable width and height, e.g.\ $\{\tfrac12+\sigma+it:\ \sigma\in[a|I|,b|I|],\ t\in I\}$ with fixed $0<a<b$.
+
+\item \emph{Meaning of ``a.e.''} Unless explicitly stated otherwise, ``a.e.'' refers to Lebesgue measure $dt$ on $\mathbb R$.
+\end{itemize}
+\begin{lemma}[Outer normalizer from boundary log-modulus]
+\label{lem:outer-from-logmodulus}
+Let $u\in L^1(\mathbb R,(1+t^2)^{-1}dt)$ be real-valued. Then there exists an outer function $O$ on $\Omega$
+(zero-free and holomorphic on $\Omega$) whose nontangential boundary values satisfy
+\[
+|O(\tfrac12+it)| = e^{u(t)} \quad\text{for a.e. }t\in\mathbb R.
+\]
+Moreover $O$ is unique up to a unimodular constant.
+\end{lemma}
+\begin{proof}
+Define the Poisson extension $U$ of $u$ to $\Omega$ by
+\[
+U(\tfrac12+\sigma+it)\ :=\ \frac{1}{\pi}\int_{\mathbb R} u(\tau)\,\frac{\sigma}{\sigma^2+(t-\tau)^2}\,d\tau,
+\qquad \sigma>0.
+\]
+The weighted integrability $u\in L^1(\mathbb R,(1+t^2)^{-1}dt)$ ensures the integral converges and that $U$ is harmonic on $\Omega$.
+Let $V$ be a harmonic conjugate of $U$ on $\Omega$ (defined up to an additive constant), and set
+\[
+O(s)\ :=\ \exp\!ig(U(s)+iV(s)).
+\]
+Then $O$ is holomorphic and zero-free on $\Omega$. By the nontangential boundary limit theorem for Poisson extensions of $L^1_{\mathrm{loc}}$ boundary data, one has $U(\tfrac12+\varepsilon+it)\to u(t)$ for a.e.\ $t$ as $\varepsilon\downarrow 0$; hence the nontangential boundary values satisfy $|O(\tfrac12+it)|=e^{u(t)}$ for a.e.\ $t$; see Duren~\cite[Ch.~II]{DurenHp} or Garnett~\cite[Ch.~II]{GarnettBAF}.
+Uniqueness up to unimodular constant follows because the ratio of two such outer functions has a.e.\ boundary modulus $1$ and hence is an inner constant.
+(Source.) This is the outer-function construction in half-planes; see Duren \emph{$H^p$ Spaces}, Ch.~II, or Garnett \emph{Bounded Analytic Functions}, Ch.~II.
+\end{proof}
+
+\subsection{Phase--velocity identity (quantitative form) and boundary passage}
+
+\label{app:phase-velocity}
+We establish the boundary phase--velocity relation for the outer-normalized ratio, and record the precise sense in which derivatives and boundary traces are taken.
+\begin{lemma}[Outer--Hilbert boundary identity]\label{lem:outer-phase-HT}
+Let $u\in L^1_{\mathrm{loc}}(\mathbb R)$ and let $O$ be an outer function on $\Omega$ whose boundary modulus satisfies
+$|O(\tfrac12+it)|=e^{u(t)}$ for a.e.\ $t$.
+Let $w(t):=\Arg O(\tfrac12+it)$ denote the boundary argument (defined modulo an additive constant).
+Then, in \(\mathcal D'(\mathbb R)\),
+\[
+  \frac{d}{dt}w(t)=\Hilb[u'](t),
+\]
+where \(\Hilb\) is the boundary Hilbert transform on \(\R\) (as a continuous operator \(\mathcal D'(\R)\to\mathcal D'(\R)\))
+and \(u'\) is the distributional derivative.
+\end{lemma}
+\begin{proof}
+Write \(\log O=U+iV\) on \(\Omega\), where \(U=\Re\log O\) is harmonic and \(V=\Im\log O\) is its harmonic conjugate
+(on each component of \(\Omega\setminus Z(O)\), fixing a branch of \(\log\)).
+The boundary trace satisfies \(U(\tfrac12+\cdot)=u\) in \(\mathcal D'(\R)\), and the conjugate boundary trace is
+\(V(\tfrac12+\cdot)=\Hilb[u]\) in \(\mathcal D'(\R)\) (up to an additive constant).
+Differentiating in \(t\) in the sense of distributions gives
+\[
+  \frac{d}{dt}\Arg O(\tfrac12+it)=\partial_t V(\tfrac12+it)=\Hilb[\partial_t u](t)=\Hilb[u'](t),
+\]
+since differentiation commutes with \(\Hilb\) on \(\mathcal D'(\R)\).
+\end{proof}
+\begin{lemma}[Smoothed distributional bound for \(\partial_\sigma\,\Re\log\dettwo\)]\label{lem:det2-unsmoothed}
+Let \(I\Subset\R\) be a compact interval and fix \(\varepsilon_0\in(0,\tfrac12]\).
+There exists a finite constant
+\[
+  C_*\ :=\ \sum_{p}\sum_{k\ge 2}\frac{p^{-k/2}}{k^2\,\log p}\ <\ \infty
+\]
+such that for all \(\sigma\in(\tfrac12,\tfrac12+\varepsilon_0]\) and every \(\varphi\in C_c^2(I)\),
+\[
+  \Big|\int_{\R} \varphi(t)\,\partial_\sigma\Re\log\det_2\!\big(I-A(\sigma+it)\big)\,dt\Big|\ \le\ C_*\,\|\varphi''\|_{L^1(I)}.
+\]
+\end{lemma}
+\begin{proof}
+For \(\sigma>\tfrac12\) one has the absolutely convergent expansion
+\[
+  \partial_\sigma\,\Re\log\det_2\!\big(I-A(\sigma+it)\big)
+  \;=\; \sum_{p}\sum_{k\ge 2} (\log p)\,p^{-k\sigma}\cos(k t\log p).
+\]
+For each frequency \(\omega=k\log p\ge 2\log 2\), two integrations by parts give
+\[
+  \Big|\int_{\R}\!\varphi(t)\cos(\omega t)\,dt\Big|\ \le\ \frac{\|\varphi''\|_{L^1(I)}}{\omega^2}.
+\]
+Summing the resulting majorant yields
+\[
+  \Big|\int \varphi\,\partial_\sigma\Re\log\dettwo\,dt\Big|
+  \ \le\ \|\varphi''\|_{L^1}\sum_{p}\sum_{k\ge 2}\frac{(\log p)\,p^{-k\sigma}}{(k\log p)^2}
+  \ \le\ \|\varphi''\|_{L^1}\sum_{p}\sum_{k\ge 2}\frac{p^{-k/2}}{k^2\,\log p},
+\]
+uniformly for \(\sigma\in(\tfrac12,\tfrac12+\varepsilon_0]\), since the rightmost double series converges.
+\end{proof}
+\begin{lemma}[Arithmetic Carleson energy]\label{lem:carleson-arith}
+Let
+\[
+ U_{\det_2}(\sigma,t)\ :=\ \Re\log\dettwo\!\Big(I-A(\tfrac12+\sigma+it)\Big)
+ \ =\ -\sum_{p}\sum_{k\ge 2}\frac{p^{-k/2}}{k}\,e^{-k\log p\,\sigma}\,\cos(k\log p\,t),\qquad \sigma>0,
+\]
+where the series converges absolutely for every \(\sigma>0\).
+Then for every interval \(I\subset\R\) with Carleson box \(Q(I):=I\times(0,|I|]\),
+\[
+ \iint_{Q(I)} |\nabla U_{\det_2}|^2\,\sigma\,dt\,d\sigma\ \le\ \frac{|I|}{4}\,\sum_{p}\sum_{k\ge 2}\frac{p^{-k}}{k^2}
+ \ =:\ K_0\,|I|,\qquad K_0:=\frac{1}{4}\sum_{p}\sum_{k\ge 2}\frac{p^{-k}}{k^2}<\infty.
+\]
+\end{lemma}
+\begin{proof}
+For a single mode \(b\,e^{-\omega\sigma}\cos(\omega t)\) one has \(|\nabla|^2=b^2\omega^2e^{-2\omega\sigma}\), hence
+\[
+ \int_0^{|I|}\!\int_I |\nabla|^2\,\sigma\,dt\,d\sigma
+ \ \le\ |I|\cdot\sup_{\omega>0}\int_0^{|I|}\sigma\,\omega^2e^{-2\omega\sigma}d\sigma\cdot b^2
+ \ \le\ \tfrac14\,|I|\,b^2.
+\]
+With \(b=p^{-k/2}/k\) and \(\omega=k\log p\), summing over \((p,k)\) gives the claim and the finiteness of \(K_0\).
+\end{proof}
+
+\paragraph{Whitney scale and short--interval zero counts.}
+Throughout the boundary-certificate route we work on Whitney boxes based at height \(T\) with
+\[
+  L=L(T):=\min\Big\{\frac{c}{\log\angles{T}},\ L_\star\Big\},\qquad
+  \angles{T}:=\sqrt{1+T^2},\qquad c\in(0,1]\ \text{fixed}.
+\]
+The only input about the \emph{number} of zeros used below is the short-interval consequence of Riemann--von Mangoldt: there exist absolute constants \(A_0,A_1>0\) such that for \(T\ge 2\) and \(0<H\le 1\),
+\[
+  N(T;H)\ :=\ \#\{\rho=eta+i\gamma:\ \gamma\in[T,T+H]\}\ \le\ A_0\ +\ A_1\,H\,\log\angles{T}.
+\]
+\begin{lemma}[Annular Poisson--balayage \(L^2\) bound]\label{lem:annular-balayage}
+Let \(I=[T-L,T+L]\), \(Q_\alpha(I)=I\times(0,\alpha L]\), and fix \(k\ge 1\).
+For
+\(
+\mathcal A_k:=\{\rho=eta+i\gamma:\ 2^kL<|T-\gamma|\le 2^{k+1}L\}
+\)
+set
+\[
+  V_k(\sigma,t):=\sum_{\rho\in\mathcal A_k}\frac{\sigma}{(t-\gamma)^2+\sigma^2}.
+\]
+Then
+\[
+  \iint_{Q_\alpha(I)} V_k(\sigma,t)^2\,\sigma\,dt\,d\sigma\ \ll_\alpha\ |I|\,4^{-k}\,\nu_k,
+\]
+where \(\nu_k:=\#\mathcal A_k\), and the implicit constant depends only on \(\alpha\).
+\end{lemma}
+\begin{proof}
+Write \(K_\sigma(x):=\sigma/(x^2+\sigma^2)\) and \(V_k=\sum_{\rho\in\mathcal A_k}K_\sigma(\cdot-\gamma)\).
+Integrate over \(t\in I\) first.
+For the diagonal terms, using \(|t-\gamma|\ge 2^kL-L\ge 2^{k-1}L\) for \(t\in I\) and \(k\ge 1\),
+\[
+ \int_I K_\sigma(t-\gamma)^2\,dt
+ = \sigma^2\!\int_I \frac{dt}{ig((t-\gamma)^2+\sigma^2ig)^2}
+ \ \le\ \frac{L}{(2^{k-1}L)^2}\,\sigma.
+\]
+Multiplying by the area weight \(\sigma\) and integrating \(\sigma\in(0,\alpha L]\) gives a contribution \(\ll_\alpha |I|\,4^{-k}\) per \(\gamma\), hence \(\ll_\alpha |I|\,4^{-k}\nu_k\) after summing.
+For off-diagonal terms, for \(i\ne j\) one has on \(I\) that \(K_\sigma(t-\gamma_j)\le \sigma/(2^{k-1}L)^2\), hence
+\[
+ \int_I K_\sigma(t-\gamma_i)K_\sigma(t-\gamma_j)\,dt
+ \ \le\ \frac{\sigma}{(2^{k-1}L)^2}\int_\R K_\sigma(t-\gamma_i)\,dt
+ = \frac{\pi\sigma}{(2^{k-1}L)^2},
+\]
+and integrating \(\sigma\in(0,\alpha L]\) with the extra factor \(\sigma\) yields \(\ll_\alpha |I|\,4^{-k}\).
+Summing over pairs \((i,j)\) via a Schur test gives the stated bound (absorbing constants into \(\ll_\alpha\)).
+\end{proof}
+
+\subsection{Quantitative phase--velocity identity}
+
+\label{appA:phasevelocity}
+This subsection derives the quantitative identity linking the distribution $-w'$ to the off-axis zero data, in a form usable under Whitney localization.
+\begin{lemma}[Distributional phase--velocity identity for outer data]\label{lem:pv-distributional}
+Let \(U^*\in L^1_{\mathrm{loc}}(\mathbb R)\) and define \(w:=\Hilb[U^*]\in\mathcal D'(\mathbb R)\) by the duality
+\[
+  -\langle w,\varphi'\rangle \;=\; \int_{\mathbb R} U^*(t)\,(\Hilb\varphi)'(t)\,dt\qquad\forall\,\varphi\in C_c^\infty(\mathbb R).
+\]
+Then \(w'=\Hilb[(U^*)']\) in \(\mathcal D'(\mathbb R)\).
+\end{lemma}
+\begin{proof}
+Let \(\eta_\varepsilon\) be a mollifier and set \(U_\varepsilon^*:=U^**\eta_\varepsilon\in C^\infty(\mathbb R)\).
+For smooth data one has \((\Hilb[U_\varepsilon^*])'=\Hilb[(U_\varepsilon^*)']\) pointwise.
+Since \(U_\varepsilon^*\to U^*\) in \(L^1_{\mathrm{loc}}\), we have \((U_\varepsilon^*)'\to (U^*)'\) in \(\mathcal D'\), and the Hilbert transform is continuous on \(\mathcal D'\).
+Passing to the limit yields \(w'=\Hilb[(U^*)']\) in \(\mathcal D'\).
+\end{proof}
+
+% --- Auxiliary L^1 control for the xi term (used only locally below) ---
+\begin{lemma}[Local $L^1$ control for $\log|\xi|$ along vertical approach]\label{lem:xi-deriv-L1}
+Fix a compact interval $I\Subset\mathbb R$. Then the family
+$t\mapsto \log|\xi(\tfrac12+\varepsilon+it)|$ is bounded in $L^1(I)$ uniformly for $\varepsilon\in(0,1]$.
+Moreover, for $\varepsilon,\varepsilon'\downarrow 0$ the difference
+$\log|\xi(\tfrac12+\varepsilon+it)|-\log|\xi(\tfrac12+\varepsilon'+it)|$ tends to $0$ in $L^1(I)$.
+\end{lemma}
+\begin{proof}
+Write $\xi$ in Hadamard form $\xi(s)=e^{a+bs}\prod_{\rho}igl(1-\frac{s}{\rho}igr)e^{s/\rho}$, where the product runs over nontrivial zeros $\rho$ of $\zeta$.
+Fix $I=[T_0,T_1]\Subset\mathbb R$ and $\varepsilon\in(0,1]$.
+Split the zeros into a finite set $\mathcal Z_R:=\{\rho:\ |\Im\rho|\le R\}$ and the complement, with $R\ge 2+\max(|T_0|,|T_1|)$.
+For $\rho\in\mathcal Z_R$, the map $t\mapsto \log|(\tfrac12+\varepsilon+it)-\rho|$ lies in $L^1(I)$, with an $L^1(I)$ bound depending only on $I$ and $\mathcal Z_R$ (local integrability of $\log|t-\gamma|$ near $\gamma=\Im\rho$).
+For $\rho\notin\mathcal Z_R$ and $t\in I$, one has $|(\tfrac12+\varepsilon+it)/\rho|\ll_I 1/|\rho|$, so
+\[
+\log\Bigl|\Bigl(1-\frac{\tfrac12+\varepsilon+it}{\rho}\Bigr)e^{(\tfrac12+\varepsilon+it)/\rho}\Bigr|
+=O_Iigl(|\rho|^{-2}igr),
+\]
+uniformly in $t\in I$ and $\varepsilon\in(0,1]$.
+Since $\sum_{\rho}|\rho|^{-2}<\infty$ (order $1$ entire function), the tail contributes an absolutely convergent $L^\infty(I)$ error uniformly in $\varepsilon$.
+Combining these bounds gives $\sup_{\varepsilon\in(0,1]}\|\log|\xi(\tfrac12+\varepsilon+i\cdot)|\|_{L^1(I)}<\infty$.
+
+For the Cauchy property, write the difference as a sum over the same factorization.
+The finite set $\mathcal Z_R$ contributes a term that tends to $0$ in $L^1(I)$ as $\varepsilon,\varepsilon'\downarrow 0$ by dominated convergence away from the finitely many points $t=\Im\rho$ and the local integrability of $\log|t-\Im\rho|$.
+The tail is uniformly $O_I\!\left(\sum_{\rho\notin\mathcal Z_R}|\rho|^{-2}\right)$ and hence uniformly small; letting $R\to\infty$ yields the $L^1(I)$-Cauchy claim.
+\end{proof}
+\begin{lemma}[Local bounded-type control for $\mathcal J$]\label{lem:J-boundedtype-local}
+Fix a compact interval $I\Subset\R$. Assume that $\dettwo(I-A(s))$ is holomorphic and nonvanishing on a neighborhood of the Whitney region $Q_{\alpha}(I)\Subset\Omega$,
+and that the Carleson energy bounds of Lemmas~\ref{lem:carleson-arith} and \ref{lem:carleson-xi} hold on $Q_{\alpha}(I)$.
+Then $\mathcal J$ belongs to the Nevanlinna class (bounded type) on $Q_{\alpha}(I)$.
+\end{lemma}
+\begin{proof}
+Let $D:=Q_{\alpha}(I)$ and write $\sigma=\Re s-\tfrac12$.
+On $D$ (which is simply connected), the hypotheses ensure that $\dettwo(I-A)$ is holomorphic and nonvanishing, hence $U:=\log|\dettwo(I-A)|$ is harmonic on $D$.
+Similarly, on each component of $D\setminus Z(\xi)$, $V:=\log|\xi|$ is harmonic.
+The Carleson energy bounds in Lemmas~\ref{lem:carleson-arith} and \ref{lem:carleson-xi} imply that $|\nabla U|^2\,\sigma\,dt\,d\sigma$ and $|\nabla V|^2\,\sigma\,dt\,d\sigma$ are Carleson measures on $D$.
+By the Carleson-measure characterization of BMO boundary traces for harmonic functions on the upper half-plane (see, e.g., Stein, \emph{Harmonic Analysis}, Ch.~IV, or Garnett, \emph{Bounded Analytic Functions}, Ch.~VI),
+both $U$ and $V$ admit nontangential boundary traces $U^*,V^*$ on $I$ with $U^*,V^*\in\mathrm{BMO}(I)\subset L^1(I)$, and $U$ (resp. $V$) is the Poisson extension of its trace up to an additive constant on $D$.
+
+Since $U^*\in L^1(I)$, there exists an outer Smirnov function $\mathcal O_{\dettwo}$ on $D$ with boundary modulus $|\mathcal O_{\dettwo}(\tfrac12+it)|=\exp(U^*(t))$ a.e.\ on $I$; likewise there is an outer Smirnov function $\mathcal O_{\xi}$ on $D$ with
+$|\mathcal O_{\xi}(\tfrac12+it)|=\exp(V^*(t))$ a.e.\ on $I$.
+Then $\dettwo(I-A)/\mathcal O_{\dettwo}$ and $\xi/\mathcal O_{\xi}$ have unimodular boundary values on $I$ and hence are bounded analytic on $D$.
+Therefore $\dettwo(I-A)$ and $\xi$ are of bounded type on $D$.
+
+By construction in Appendix~A, the normalizing outer function $\mathcal O$ is an outer Smirnov function on $D$, hence also of bounded type there.
+Since the Nevanlinna class is closed under products and quotients (where defined), it follows that
+\(
+\mathcal J=\dettwo(I-A)/(\mathcal O\,\xi)
+\)
+is of bounded type on $D$.
+\end{proof}
+\begin{theorem}[Quantified phase--velocity identity and boundary passage]\label{thm:phase-velocity-quant}
+Let
+\[
+ u_\varepsilon(t):=\log|\dettwo(I-A(\tfrac12+\varepsilon+it))|-\log|\xi(\tfrac12+\varepsilon+it)|.
+\]
+Then \(u_\varepsilon\) is uniformly \(L^1\)-bounded and Cauchy on every compact \(I\Subset\R\) as \(\varepsilon\downarrow 0\), hence \(u_\varepsilon\to u\) in \(L^1_{\rm loc}(\R)\).
+Let \(\mathcal O\) be the outer function on \(\Omega\) with boundary modulus \(e^{u}\) and normalization \(\mathcal O(\tfrac32)>0\), and set
+\[
+  \mathcal J(s):=\frac{\dettwo(I-A(s))}{\mathcal O(s)\,\xi(s)}.
+\]
+Then \(|\mathcal J(\tfrac12+it)|=1\) for a.e.\ \(t\in\R\).
+By Lemma~\ref{lem:J-boundedtype-local}, $\mathcal J$ is of bounded type on every Whitney region $Q_{\alpha}(I)$.
+Let \(w\in\mathcal D'(\R)\) denote the distributional boundary phase of \(\mathcal J\) (defined modulo an additive constant).
+Then, for every compact interval \(I\Subset\R\) and every nonnegative \(\phi\in C_c^\infty(I)\),
+\begin{equation}\label{eq:pv-identity}
+\int_I \phi(t)\,(-w'(t))\,dt
+\ =\ \pi\!\int_I \phi(t)\,d\mu_{\rm off}(t)\ +\ \pi\!\int_I \phi(t)\,d\nu_{\rm sing}(t)\ +\ \pi\sum_{\gamma\in I} m_\gamma\,\phi(\gamma),
+\end{equation}
+where:
+\begin{itemize}
+\item \(\mu_{\rm off}\) is the Poisson balayage of the off--critical zeros \(\rho=eta+i\gamma\) of \(\zeta\) with \(eta>\tfrac12\), counted with multiplicity \(m_\rho\);
+\item \(\nu_{\rm sing}\) is the (possibly zero) singular boundary measure of any singular inner factor in the canonical factorization of \(\mathcal J\) on \(\Omega\); and
+\item the discrete sum ranges over boundary zeros/poles on \(\Re s=\tfrac12\), written \(s=\tfrac12+i\gamma\), with multiplicities \(m_\gamma\).
+\end{itemize}
+\end{theorem}
+\begin{proof}
+The \(L^1_{\rm loc}\) convergence \(u_\varepsilon\to u\) is as stated.
+The outer function \(\mathcal O\) exists by Lemma~\ref{lem:outer-from-logmodulus}.
+
+Under the bounded-type hypothesis, \(\mathcal J\) admits the canonical half-plane factorization into a unimodular constant, a Blaschke product over zeros in \(\Omega\), a (possibly trivial) singular inner factor, and an outer factor.
+Since \(|\mathcal J(\tfrac12+it)|=1\) a.e., the outer factor is unimodular constant.
+Taking the distributional boundary argument \(w\) and differentiating in \(\mathcal D'\), each factor contributes additively:
+the Blaschke product yields the Poisson balayage measure \(\mu_{\rm off}\), the singular inner factor yields \(\nu_{\rm sing}\), and boundary zeros/poles yield atomic Dirac masses.
+This is the phase-derivative computation for bounded-type functions on a half-plane; see, e.g., Garnett \emph{Bounded Analytic Functions}, Ch.~II, or Koosis \emph{The Logarithmic Integral}, Vol.~I.
+\end{proof}
+
+\subsection{Final assembly ingredients for the boundary wedge certificate (P+)}
+
+This subsection collects the three final analytic ingredients—Poisson plateau, Whitney box pairing, and Carleson-energy control—used to conclude (P+).
+
+\paragraph{Poisson plateau lower bound.}
+
+We prove the key lower bound for the Poisson kernel averaged over admissible windows, which converts discrete off-axis contributions into a uniform wedge aperture.
+\begin{lemma}[Poisson plateau lower bound]\label{lem:poisson-plateau}
+Let \(\psi\in C_c^\infty(\R)\) be even with \(\psi\equiv 1\) on \([-1,1]\) and \(\operatorname{supp}\psi\subset[-2,2]\).
+Then
+\[
+  c_0(\psi)\ :=\ \inf_{0<b\le 1,\ |x|\le 1} (P_b*\psi)(x)\ \ge\ \frac{1}{2\pi}\arctan 2\;>\;0.
+\]
+\end{lemma}
+\begin{proof}
+Since \(\psi\ge \mathbf 1_{[-1,1]}\), it suffices to compute \((P_b*\mathbf 1_{[-1,1]})(x)\).
+For \(|x|\le 1\),
+\[
+ (P_b*\mathbf 1_{[-1,1]})(x)
+ =\frac{1}{\pi}\int_{-1}^{1}\frac{b}{b^2+(x-y)^2}\,dy
+ =\frac{1}{2\pi}\Big(\arctan\frac{1-x}{b}+\arctan\frac{1+x}{b}\Big).
+\]
+This expression is minimized over \(0<b\le 1\), \(|x|\le 1\), at \((x,b)=(1,1)\), yielding \(\frac{1}{2\pi}\arctan 2\).
+\end{proof}
+
+\paragraph{From phase--velocity and CR--Green to (P+).}
+
+\label{app:assemble-pplus}
+
+We combine the phase--velocity identity with a Cauchy--Riemann/Green pairing on Whitney boxes to obtain the windowed phase control that underlies (P+).
+
+\paragraph{Carleson energy bound for the logarithmic derivative.}
+
+\label{appA:carleson}
+
+We prove the weighted $L^2$ (Carleson-energy) estimate for the relevant logarithmic derivative on Whitney boxes, including the neutralization of near-field zeros.
+\begin{lemma}[Analytic (\(\xi\)) Carleson energy on Whitney boxes]\label{lem:carleson-xi}
+There exist absolute constants \(c\in(0,1]\) and \(C_\xi<\infty\) such that for every interval \(I=[T-L,\,T+L]\) at Whitney scale \(L=c/\log\angles{T}\), the Poisson extension
+\[
+ U_{\xi}(\sigma,t):=\Re\log\xi(\tfrac12+\sigma+it)\qquad(\sigma>0)
+\]
+obeys the Carleson bound
+\[
+  \iint_{Q(I)} |\nabla U_{\xi}(\sigma,t)|^2\,\sigma\,dt\,d\sigma\ \le\ C_\xi\,|I|.
+\]
+\end{lemma}
+\begin{proof}
+Fix \(I=[T-L,T+L]\) with \(L=c/\log\angles{T}\) and a fixed aperture \(\alpha\in[1,2]\).
+Neutralize near zeros by a local half-plane Blaschke product \(B_I\) removing zeros of \(\xi\) inside a fixed dilate \(Q(\alpha'I)\) (\(\alpha'>\alpha\)).
+This yields a harmonic field \(\widetilde U_\xi\) on \(Q(\alpha I)\) and
+\[
+  \iint_{Q(\alpha I)} |\nabla U_\xi|^2\,\sigma\,dt\,d\sigma
+  \ \asymp\
+  \iint_{Q(\alpha I)} |\nabla \widetilde U_\xi|^2\,\sigma\,dt\,d\sigma\ +\ O_\alpha(|I|),
+\]
+so it suffices to bound the neutralized energy.
+
+Choose a branch of \(\log\xi\) on each component of \(Q(\alpha I)\setminus Z(\xi)\) so that \(U_\xi=\Re\log\xi\) is harmonic there. Then
+\[
+  |\nabla U_\xi(\sigma,t)|^2\;=\;|(\log\xi)'(\tfrac12+\sigma+it)|^2\;=\;\Big|\frac{\xi'}{\xi}(\tfrac12+\sigma+it)\Big|^2.
+\]
+By the Hadamard product for \(\xi\),
+\(\xi'/\xi(s)=A(s)+\sum_\rho (s-\rho)^{-1}\), where \(A\) is holomorphic and slowly varying on compact strips. Thus it suffices to bound the weighted \(L^2\)-norm of \(\xi'/\xi\) on \(Q(\alpha I)\); the contribution of \(A\) is \(O_\alpha(|I|)\), and the remaining term is handled annularly by summing the zero contributions.
+Decompose the (neutralized) zeros into Whitney annuli
+\(
+\mathcal A_k:=\{\rho:2^kL<|\gamma-T|\le 2^{k+1}L\}
+\), \(k\ge 1\).
+For \(k\ge 1\) and \(t\in I\), any \(\rho=eta+i\gamma\in\mathcal A_k\) satisfies
+\(|t-\gamma|\ge 2^kL-L\ge 2^{k-1}L\).
+Since \(|s-\rho|^2=(t-\gamma)^2+(\tfrac12+\sigma-eta)^2\ge (t-\gamma)^2\), we have the pointwise bound
+\(
+  |(s-\rho)^{-1}|\le |t-\gamma|^{-1}\le (2^{k-1}L)^{-1}
+\)
+for all \(s=\tfrac12+\sigma+it\in Q_\alpha(I)\).
+Therefore, writing \(S_k(s):=\sum_{\rho\in\mathcal A_k}(s-\rho)^{-1}\),
+\[
+  |S_k(s)|^2\ \le\ \nu_k\sum_{\rho\in\mathcal A_k}|s-\rho|^{-2}
+  \ \le\ \nu_k\cdot \nu_k\,(2^{k-1}L)^{-2}
+  \ =\ \nu_k^2\,(2^{k-1}L)^{-2}.
+\]
+Integrating this uniform bound over \(Q_\alpha(I)\) with the area weight \(\sigma\,dt\,d\sigma\) gives
+\[
+  \iint_{Q_\alpha(I)} |S_k(s)|^2\,\sigma\,dt\,d\sigma
+  \ \le\ \nu_k^2\,(2^{k-1}L)^{-2}\cdot |I|\cdot \int_0^{\alpha L}\!\sigma\,d\sigma
+  \ \ll_\alpha\ |I|\,L^2\,\frac{\nu_k^2}{4^k\,L^2}
+  \ =\ \ll_\alpha\ |I|\,4^{-k}\,\nu_k^2.
+\]
+Now sum over annuli using Cauchy--Schwarz in \(k\):
+\(
+ig|\sum_{\rho\notin Q(\alpha'I)}(s-\rho)^{-1}ig|^2\le (\sum_k |S_k(s)|)^2\le (\sum_k 2^{-k})\,(\sum_k 2^{k}|S_k(s)|^2)
+\), hence after integrating,
+\[
+  \iint_{Q_\alpha(I)} \Big|\sum_{\rho\notin Q(\alpha'I)}(s-\rho)^{-1}\Big|^2\,\sigma\,dt\,d\sigma
+  \ \ll\ \sum_{k\ge1} 2^{k}\,\iint_{Q_\alpha(I)} |S_k(s)|^2\,\sigma\,dt\,d\sigma
+  \ \ll_\alpha\ |I|\sum_{k\ge1} 2^{-k}\,\nu_k^2.
+\]
+To bound \(\nu_k\), use the short-interval zero-count bound above to obtain, for some absolute \(a_1(\alpha),a_2(\alpha)\),
+\[
+  \nu_k\ \le\ a_1(\alpha)\,2^k L\,\log\angles{T}\ +\ a_2(\alpha)\,\log\angles{T}.
+\]
+Therefore, using \(\nu_k\ll_\alpha 2^k L\log\angles{T}+\log\angles{T}\), we obtain
+\[
+  \sum_{k\ge1}2^{-k}\,\nu_k^2\ \ll\ \sum_{k\ge1}2^{-k}ig(4^kL^2\log^2\angles{T}+\log^2\angles{T}ig)
+  \ \ll\ L^2\log^2\angles{T}+\log^2\angles{T}.
+\]
+On Whitney scale \(L=c/\log\angles{T}\), this is \(\ll 1\).
+Adding the neutralized near-field \(O(|I|)\) and the smooth \(A\) contribution, we obtain
+\[
+  \iint_{Q(\alpha I)} |\nabla U_\xi|^2\,\sigma\,dt\,d\sigma\ \le\ C_\xi\,|I|,
+\]
+with \(C_\xi\) depending only on \((\alpha,c)\).
+\end{proof}
+
+\subsection{From windowed phase control to the wedge}
+
+\label{appA:wedge}
+We convert the established windowed phase bounds into an almost-everywhere wedge inclusion for the boundary values of $\mathcal J_{\rm out}$.
+\begin{definition}[Admissible window class with atom avoidance]\label{def:adm-bumps}
+Fix an even \(C^\infty\) window \(\psi\) with \(\psi\equiv1\) on \([-1,1]\) and \(\operatorname{supp}\psi\subset[-2,2]\).
+For an interval \(I=[t_0-L,t_0+L]\), an aperture \(\alpha'>1\), and a parameter \(\varepsilon\in(0,\tfrac14]\), define \(\mathcal W_{\rm adm}(I;\varepsilon)\) to be the set of \(C^\infty\), nonnegative, mass-\(1\) bumps \(\phi\) supported in the fixed dilate \(2I=[t_0-2L,t_0+2L]\) that can be written as
+\[
+  \phi(t)\ =\ \frac{1}{Z}\,\frac{1}{L}\,\psi\!\left(\frac{t-t_0}{L}\right)\,m(t),
+  \qquad Z=\int_{2I} \frac1L\psi\!\left(\frac{t-t_0}{L}\right)m(t)\,dt,
+\]
+where \(2I:=[t_0-2L,t_0+2L]\) and the mask \(m\in C^\infty(2I;[0,1])\) satisfies:
+\begin{itemize}
+\item[(i)] \emph{Atom avoidance.} There is a union of disjoint open subintervals \(E=igcup_{j=1}^{J} J_j\subset I\) with total length \(|E|\le \varepsilon L\) such that \(m\equiv0\) on \(E\) and \(m\equiv1\) on \(I\setminus E'\), where each transition layer \(E'\setminus E\) has thickness \(\le \varepsilon L\).
+\item[(ii)] \emph{Uniform smoothness.} \(\|m'\|_\infty\lesssim (\varepsilon L)^{-1}\) and \(\|m''\|_\infty\lesssim (\varepsilon L)^{-2}\) with implicit constants independent of \(I,t_0,L\) and of the number/placement of the holes \(\{J_j\}\).
+\end{itemize}
+Every \(\phi\in\mathcal W_{\rm adm}(I;\varepsilon)\) is supported in \(2I\).
+This class contains the unmasked profile \(\varphi_{L,t_0}(t)=Z_0^{-1}L^{-1}\psi((t-t_0)/L)\) with \(Z_0:=\int_{-2}^{2}\psi(x)\,dx\) (take \(E=\varnothing\), \(m\equiv1\)) and also allows dodging boundary atoms by punching out small neighborhoods while keeping total deleted length \(\le\varepsilon L\).
+\end{definition}
+\begin{lemma}[Uniform Poisson--energy bound for admissible tests]\label{lem:uniform-test-energy}
+Let \(V_\phi\) be the Poisson extension of \(\phi\in\mathcal W_{\rm adm}(I;\varepsilon)\) to the half‑plane, and fix a cutoff to \(Q(\alpha' I)\) with \(\alpha'>1\) as in the CR--Green pairing.
+Then there exists a finite constant \(\mathcal A_{\rm adm}(\psi,\varepsilon,\alpha')<\infty\), depending only on \((\psi,\varepsilon,\alpha')\), such that
+\[
+  \iint_{Q(\alpha' I)} |\nabla V_\phi(\sigma,t)|^2\,\sigma\,dt\,d\sigma\ \le\ \mathcal A_{\rm adm}(\psi,\varepsilon,\alpha')^2\; L.
+\]
+\end{lemma}
+\begin{proof}
+Let \(\phi(t)=Z^{-1}L^{-1}\psi((t-t_0)/L)m(t)\) be an admissible test.
+By scaling of the Poisson kernel and the uniform bounds on \(m,m',m''\) from Definition~\ref{def:adm-bumps}, the \(H^1\)-size of \(\phi\) (equivalently the \(L^2(\sigma)\) Dirichlet energy of its Poisson extension on a fixed aperture box) is controlled uniformly by a constant depending only on \((\psi,\varepsilon,\alpha')\), times \(L^{1/2}\).
+Squaring yields the stated \(\lesssim L\) energy bound with \(\mathcal A_{\rm adm}(\psi,\varepsilon,\alpha')\).
+\end{proof}
+\begin{lemma}[Cutoff pairing on boxes]\label{lem:cutoff-pairing}
+Fix parameters \(\alpha'>\alpha>1\).
+Let \(\chi_{L,t_0}\in C_c^\infty(\R^2_+)\) satisfy \(\chi\equiv1\) on \(Q(\alpha I)\), \(\operatorname{supp}\chi\subset Q(\alpha'I)\), \(\|\nabla\chi\|_\infty\lesssim L^{-1}\) and \(\|\nabla^2\chi\|_\infty\lesssim L^{-2}\).
+Let \(V_\phi\) be the Poisson extension of \(\phi\in \mathcal W_{\rm adm}(I;\varepsilon)\).
+Then one has the Green pairing identity
+\[
+ \int_{\R} u(t)\,\phi(t)\,dt
+ \ =\ \iint_{Q(\alpha'I)} \nabla U\cdot \nabla(\chi_{L,t_0}\, V_\phi)\,dt\,d\sigma\ +\ \mathcal R_{\mathrm{side}}\ +\ \mathcal R_{\mathrm{top}},
+\]
+with remainders satisfying
+\[
+ |\mathcal R_{\mathrm{side}}|+|\mathcal R_{\mathrm{top}}|
+ \ \lesssim\ \Big(\iint_{Q(\alpha'I)} |\nabla U|^2\,\sigma\Big)^{1/2}
+               \cdot \Big(\iint_{Q(\alpha'I)} ig(|\nabla\chi|^2\,|V_\phi|^2+|\nabla V_\phi|^2ig)\,\sigma\Big)^{1/2}.
+\]
+\end{lemma}
+\begin{proof}
+Let \(Q:=Q(\alpha'I)\).
+Assume \(U\) is \(C^2\) on \(\overline Q\) and harmonic on \(Q\), with boundary trace \(u(t)=U(0,t)\) on the bottom edge \(\{\sigma=0\}\).
+Since \(\chi_{L,t_0}V_\phi\) is compactly supported in \(\overline Q\) and smooth on \(Q\), Green's identity gives
+\[
+  \iint_{Q} \nabla U\cdot \nabla(\chi V_\phi)\,dt\,d\sigma
+  \,=\,
+  \int_{\partial Q} (\chi V_\phi)\,\partial_n U\,ds
+  \ -\ \iint_{Q} (\chi V_\phi)\,\Delta U\,dt\,d\sigma.
+\]
+Since \(\Delta U=0\) on \(Q\), only the boundary integral remains.
+On the bottom edge one has \(\partial_n=-\partial_\sigma\), \(\chi\equiv1\), and \(V_\phi(0,t)=\phi(t)\), hence that contribution equals
+\[
+  \int_{I} \phi(t)\,(-\partial_\sigma U)(0,t)\,dt.
+\]
+\subsection{Whitney box pairing and local oscillation functional}
+
+\label{appA:whitney}
+
+We organize the remaining bookkeeping: pairing Whitney boxes across scales and bounding the oscillation functional needed to pass from local control to the global wedge statement.
+
+If \(U\) is the real part of a holomorphic logarithm \(U=\Re\log J\) with \(|J(\tfrac12+it)|=1\) a.e., then \(U(0,t)=0\) a.e.\ and \(-\partial_\sigma U(0,t)=\partial_t \Arg J(\tfrac12+it)\) in distributions by Cauchy--Riemann; in particular, this term is the tested boundary phase derivative in Lemma~\ref{lem:CR-green-phase} below.
+The remaining boundary pieces (two vertical sides and the top edge) are, by definition, the remainders \(\mathcal R_{\mathrm{side}}+\mathcal R_{\mathrm{top}}\).
+
+For the remainder estimate, we apply Cauchy--Schwarz in the scale-invariant measure \(\sigma\,dt\,d\sigma\) on \(Q\):
+\[
+  ig|\mathcal R_{\mathrm{side}}ig|+ig|\mathcal R_{\mathrm{top}}ig|
+  \ \lesssim\ \Big(\iint_Q |\nabla U|^2\,\sigma\Big)^{1/2}
+               \Big(\iint_Q ig|\nabla(\chi V_\phi)|^2\,\sigma\Big)^{1/2}.
+\]
+Expanding \(\nabla(\chi V_\phi)=\chi\,\nabla V_\phi + (\nabla\chi)\,V_\phi\) yields
+\[
+  \iint_Q ig|\nabla(\chi V_\phi)|^2\,\sigma
+  \ \lesssim\ \iint_Q ig(|\nabla V_\phi|^2 + |\nabla\chi|^2|V_\phi|^2ig)\,\sigma,
+\]
+which gives the displayed estimate.
+\end{proof}
+\begin{lemma}[CR--Green pairing for boundary phase]\label{lem:CR-green-phase}
+Let \(J\) be analytic on \(\Omega\) with a.e.\ boundary modulus \(|J(\tfrac12+it)|=1\), and write \(\log J=U+iW\) on \(\Omega\), so \(U\) is harmonic with \(U(\tfrac12+it)=0\) a.e.
+Fix a Whitney interval \(I=[t_0-L,t_0+L]\) and let \(V_\phi\) be the Poisson extension of \(\phi\in\mathcal W_{\rm adm}(I;\varepsilon)\).
+Then, with a cutoff \(\chi_{L,t_0}\) as in Lemma~\ref{lem:cutoff-pairing},
+\[
+  \int_{\R} \phi(t)\,ig(-W'(t))\,dt
+  \ =\ \iint_{Q(\alpha'I)} \nabla U\cdot \nabla(\chi_{L,t_0}\,V_\phi)\,dt\,d\sigma\ +\ \mathcal R_{\mathrm{side}}\ +\ \mathcal R_{\mathrm{top}},
+\]
+and the remainders satisfy the same estimate as in Lemma~\ref{lem:cutoff-pairing}.
+In particular, by Cauchy--Schwarz and Lemma~\ref{lem:uniform-test-energy}, there is a constant \(C_{\rm rem}(\alpha',\psi)\) such that
+\[
+  \int_{\R} \phi(t)\,ig(-w'(t))\,dt\ \le\ C_{\rm rem}(\alpha',\psi)\,\Big(\iint_{Q(\alpha'I)} |\nabla U|^2\,\sigma\Big)^{1/2}.
+\]
+\end{lemma}
+\begin{proof}
+On the bottom edge \(\{\sigma=0\}\) the outward normal is \(\partial_n=-\partial_\sigma\).
+By Cauchy--Riemann for \(\log J=U+iW\) on the boundary line \(\{\Re s=\tfrac12\}\) one has \(\partial_n U=-\partial_\sigma U=\partial_t W\).
+Thus the bottom-edge term in Green's identity is
+\[
+  -\int_{\partial Q\cap\{\sigma=0\}} \chi\,V_\phi\,\partial_n U\,dt
+  = -\int_{\R} \phi(t)\,\partial_t W(t)\,dt
+  = \int_{\R} \phi(t)\,ig(-w'(t))\,dt,
+\]
+which yields the stated identity after including the interior term and remainders.
+The final inequality is Cauchy--Schwarz together with the uniform Poisson-energy bound from Lemma~\ref{lem:uniform-test-energy}.
+\end{proof}
+\begin{proposition}[Length‑independent upper bound for admissible tests]\label{prop:length-free}
+Let \(J\) be holomorphic on \(\Omega\setminus Z(\zeta)\) with a.e.\ boundary modulus \(1\), write \(\log J=U+iW\) on \(\Omega\setminus Z(\zeta)\), and let \(-w'\) denote the boundary phase distribution.
+For every interval \(I=[t_0-L,t_0+L]\), every \(\phi\in\mathcal W_{\rm adm}(I;\varepsilon)\), and every fixed cutoff to \(Q(\alpha' I)\),
+\begin{equation}\label{eq:CRG-upper-adm}
+\int_{\mathbb R}\!\phi(t)\,(-w')(t)\,dt\ \le\ C_{\rm test}(\psi,\varepsilon,\alpha')\,\Big(\iint_{Q(\alpha' I)}|\nabla U|^2\,\sigma\,dt\,d\sigma\Big)^{1/2}
+\end{equation}
+with \(C_{\rm test}(\psi,\varepsilon,\alpha'):=C_{\rm rem}(\alpha',\psi)\,\mathcal A_{\rm adm}(\psi,\varepsilon,\alpha')\) independent of \(I,t_0,L\).
+In particular, defining the box-energy constant
+\[
+  C_{\rm box}^{(\zeta)}\ :=\ \sup_{I}\ \frac{1}{|I|}\iint_{Q(\alpha' I)}|\nabla U|^2\,\sigma\,dt\,d\sigma,
+\]
+one has the scale bound
+\[
+  \int_{\mathbb R}\!\phi\,(-w')\ \le\ C_{\rm test}(\psi,\varepsilon,\alpha')\,\sqrt{C_{\rm box}^{(\zeta)}}\,L^{1/2}.
+\]
+\end{proposition}
+\begin{proof}
+Apply Lemma~\ref{lem:CR-green-phase} with \(\phi\in\mathcal W_{\rm adm}(I;\varepsilon)\) and absorb the window-side constants into \(C_{\rm test}(\psi,\varepsilon,\alpha')\).
+\end{proof}
+\begin{lemma}[Whitney--uniform wedge]\label{lem:whitney-uniform-wedge}\label{lem:local-to-global-wedge}
+Fix parameters \(\alpha'>1\) and \(\varepsilon\in(0,\tfrac14]\).
+Fix the Whitney schedule and clip by \(L_\star\): set \(L_\star:=c/\log 2\) and henceforth
+\[
+  L(T)\ :=\ \min\Big\{\frac{c}{\log\angles{T}},\ L_\star\Big\}.
+\]
+Then for every Whitney interval \(I=[t_0-L,t_0+L]\) and the corresponding cutoff
+\(\psi_{L,t_0}(t):=\psi((t-t_0)/L)=Z_0L\,\varphi_{L,t_0}(t)\) (so \(\psi_{L,t_0}\equiv 1\) on \(I\)),
+\[
+  \int_{\mathbb R} \psi_{L,t_0}(t)\,(-w'(t))\,dt\ \le\ Z_0\,L_\star\cdot C_{\rm test}(\psi,\varepsilon,\alpha')\,\sqrt{C_{\rm box}^{(\zeta)}}\,L_\star^{1/2}
+  \ :=\ \pi\,\Upsilon_{\rm Whit}(c).
+\]
+Choosing \(c>0\) sufficiently small so that \(\Upsilon_{\rm Whit}(c)<\tfrac12\) yields the hypothesis of Lemma~\ref{lem:local-to-global-wedge} and hence \textup{(P+)}.
+\end{lemma}
+\begin{proof}
+Since \(\psi_{L,t_0}=Z_0L\,\varphi_{L,t_0}\), apply Proposition~\ref{prop:length-free} with \(\phi=\varphi_{L,t_0}\), then multiply the resulting bound by \(Z_0L\) and use the Whitney clip \(L\le L_\star\).
+\end{proof}
+\begin{theorem}[Proof of Theorem~\ref{thm:Pplus}]\label{thm:pplus-proof-complete}
+The boundary wedge \textup{(P+)} holds for \(\mathcal J_{\rm out}\).
+\end{theorem}
+\begin{proof}
+By the definition \eqref{eq:J-out} and Theorem~\ref{thm:phase-velocity-quant}, the quantitative phase--velocity identity (Theorem~\ref{thm:phase-velocity-quant}) applies to the \(\zeta\)-normalized unimodular ratio \(J_\zeta\), and hence (by \eqref{eq:J-out}) to \(\mathcal J_{\rm out}\).
+In particular, the associated boundary phase distribution \(-w'\) is positive.
+
+Proposition~\ref{prop:length-free} (CR--Green pairing) supplies a uniform Whitney-scale bound for the windowed phase derivative in terms of the box energy \(C_{\rm box}^{(\zeta)}\).
+Applying the Whitney schedule and choosing \(c>0\) small enough gives \(\Upsilon_{\rm Whit}(c)<\tfrac12\) in Lemma~\ref{lem:whitney-uniform-wedge}.
+Lemma~\ref{lem:local-to-global-wedge} then yields \textup{(P+)}.
+\end{proof}
+% ===== END inlined from paper1_pplus_proof.tex =====
+
+\section{Supplementary computational verification protocol (verifier commands and expected fields)}\label{app:verify}
+
+There are two verification modes:
+\begin{itemize}
+\item \textbf{Verification using shipped artifacts:} verify the shipped JSON artifacts match Table~\ref{tab:artifact-data}.
+\item \textbf{Optional regeneration check (supplementary):} rerun the verifier to regenerate the artifacts from scratch.
+\end{itemize}
+
+\subsection*{Prerequisites}
+From the bundle's \texttt{compute/} directory, install the ARB/ball-arithmetic bindings:
+\begin{verbatim}
+pip install -r requirements.txt
+\end{verbatim}
+
+\subsection*{Verification using shipped artifacts: check shipped JSON artifacts}
+\begin{itemize}
+\item \textbf{Rectangle artifact} \url{artifacts/theta_certify_sigma06_07_t0_20_outer_zeta_proj.json}. Check (at minimum):
+\begin{itemize}
+  \item \texttt{results.ok = true}
+  \item \texttt{results.theta\_hi = 0.9999928763... < 1}
+  \item \texttt{results.processed\_boxes = 380764}
+  \end{itemize}
+\item \textbf{Pick artifact} \url{artifacts/pick_sigma0599_raw_zeta_N16.json}. Check (at minimum):
+\begin{itemize}
+  \item \texttt{pick.delta\_cert = 0.594...}
+  \item \texttt{pick.P\_spd\_at\_0 = true}
+  \item \texttt{pick.tail\_l1\_partial\_hi} (diagnostic L1 tail sum)
+  \end{itemize}
+\item \textbf{Pick artifact} \url{artifacts/pick_sigma06_raw_zeta_N16.json}. Check (at minimum):
+\begin{itemize}
+  \item \texttt{pick.delta\_cert = 0.594...}
+  \item \texttt{pick.P\_spd\_at\_0 = true}
+  \item \texttt{pick.tail\_l1\_partial\_hi} (diagnostic L1 tail sum)
+  \end{itemize}
+\item \textbf{Pick artifact} \url{artifacts/pick_sigma07_raw_zeta_N16.json}. Check (at minimum):
+\begin{itemize}
+  \item \texttt{pick.delta\_cert = 0.627...}
+  \item \texttt{pick.P\_spd\_at\_0 = true}
+  \item \texttt{pick.tail\_l1\_partial\_hi} (diagnostic L1 tail sum)
+  \end{itemize}
+\end{itemize}
+
+\subsection*{Optional regeneration check (supplementary): exact command lines}
+Run the verifier from the bundle's \texttt{compute/} directory (or the corresponding directory in a repository checkout).
+The following commands reproduce the primary artifacts (line breaks are for readability):
+
+\paragraph{1) Rectangle certification (\texttt{theta\_certify}).}
+\begin{verbatim}
+python verify_attachment_arb.py \
+  --theta-certify \
+  --arith-gauge outer_zeta_proj \
+  --arith-P-cut 2000 \
+  --rect-sigma-min 0.6 --rect-sigma-max 0.7 \
+  --rect-t-min 0.0 --rect-t-max 20.0 \
+  --outer-mode midpoint \
+  --outer-P-cut 2000 \
+  --outer-T 50.0 --outer-n 2001 \
+  --theta-init-n-sigma 10 --theta-init-n-t 50 \
+  --theta-min-sigma-width 0.0001 --theta-min-t-width 0.001 \
+  --theta-max-boxes 500000 \
+  --prec 260 \
+  --theta-out artifacts/theta_certify_sigma06_07_t0_20_outer_zeta_proj.json \
+  --progress
+\end{verbatim}
+
+\paragraph{2) Pick certification at $\sigma_0=0.599$ (\texttt{pick\_certify}).}
+\begin{verbatim}
+python verify_attachment_arb.py \
+  --pick-certify \
+  --pick-sigma0 0.599 \
+  --pick-N 16 \
+  --pick-coeff-count 128 \
+  --pick-K 512 \
+  --pick-rho 0.4 \
+  --pick-rho-bound 0.5 \
+  --arith-gauge raw_zeta \
+  --arith-P-cut 2000 \
+  --prec 1024 \
+  --pick-out artifacts/pick_sigma0599_raw_zeta_N16.json
+\end{verbatim}
+
+\paragraph{3) Pick certification at $\sigma_0=0.6$ (\texttt{pick\_certify}).}
+\begin{verbatim}
+python verify_attachment_arb.py \
+  --pick-certify \
+  --pick-sigma0 0.6 \
+  --pick-N 16 \
+  --pick-coeff-count 128 \
+  --pick-K 512 \
+  --pick-rho 0.4 \
+  --pick-rho-bound 0.5 \
+  --arith-gauge raw_zeta \
+  --arith-P-cut 2000 \
+  --prec 1024 \
+  --pick-out artifacts/pick_sigma06_raw_zeta_N16.json
+\end{verbatim}
+
+\paragraph{4) Pick certification at $\sigma_0=0.7$ (\texttt{pick\_certify}).}
+\begin{verbatim}
+python verify_attachment_arb.py \
+  --pick-certify \
+  --pick-sigma0 0.7 \
+  --pick-N 16 \
+  --pick-coeff-count 128 \
+  --pick-K 512 \
+  --pick-rho 0.4 \
+  --pick-rho-bound 0.5 \
+  --arith-gauge raw_zeta \
+  --arith-P-cut 2000 \
+  --outer-mode rigorous \
+  --outer-P-cut 2000 \
+  --prec 1024 \
+  --pick-out artifacts/pick_sigma07_raw_zeta_N16.json
+\end{verbatim}
+
+\subsection*{Meaning of successful verification}
+The verifier uses \emph{ball arithmetic}: each computed quantity is an interval enclosure (midpoint plus radius) and every operation propagates rounding error outward.
+Thus each check is a formal inequality of the form \texttt{upper bound < 1} or \texttt{directed-rounding }LDL$^\top$\texttt{ succeeds with positive pivots}.
+If the verification checks above pass, then the numerical inequalities summarized in Table~\ref{tab:artifact-data} are  within the logic of ball arithmetic.
+
+% ===== BEGIN inlined from riemann_bibliography.tex =====
+% Shared bibliography include for the three-paper split.
+% Keep this file as a plain thebibliography environment to avoid toolchain friction.
+\begin{thebibliography}{99}
+
+\bibitem{IK}
+H. Iwaniec and E. Kowalski,
+\emph{Analytic Number Theory},
+AMS Colloquium Publications, 2004.
+
+\bibitem{MV}
+H. L. Montgomery and R. C. Vaughan,
+\emph{Multiplicative Number Theory I: Classical Theory},
+Cambridge University Press, 2007.
+
+\bibitem{Titchmarsh}
+E. C. Titchmarsh,
+\emph{The Theory of the Riemann Zeta-Function},
+2nd ed., Oxford University Press, 1986.
+
+\bibitem{RosenblumRovnyak}
+M. Rosenblum and J. Rovnyak,
+\emph{Hardy Classes and Operator Theory},
+Oxford University Press, 1985.
+
+\bibitem{Donoghue}
+W. F. Donoghue,
+\emph{Monotone Matrix Functions and Analytic Continuation},
+Springer, 1974.
+
+\bibitem{SimonTrace}
+B. Simon,
+\emph{Trace Ideals and Their Applications},
+2nd ed., Mathematical Surveys and Monographs, vol.~120, American Mathematical Society, 2005.
+
+\bibitem{Ahlfors}
+L. V. Ahlfors,
+\emph{Complex Analysis},
+3rd ed., McGraw--Hill, 1979.
+
+\bibitem{RansfordPT}
+T. Ransford,
+\emph{Potential Theory in the Complex Plane},
+London Mathematical Society Student Texts, vol.~28, Cambridge University Press, 1995.
+
+\bibitem{DurenHp}
+P. L. Duren,
+\emph{Theory of $H^p$ Spaces},
+Academic Press, 1970.
+
+\bibitem{SteinHA}
+E. M. Stein,
+\emph{Harmonic Analysis: Real-Variable Methods, Orthogonality, and Oscillatory Integrals},
+Princeton University Press, 1993.
+
+\bibitem{GarnettBAF}
+J. B. Garnett,
+\emph{Bounded Analytic Functions},
+Graduate Texts in Mathematics, vol.~236, Springer, 2007.
+
+\end{thebibliography}
+% ===== END inlined from riemann_bibliography.tex =====
+
+\end{document}

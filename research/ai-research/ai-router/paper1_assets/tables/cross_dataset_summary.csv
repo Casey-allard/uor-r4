@@ -1,0 +1,7 @@
+metric,PTB,WT2
+hopf_vs_baseline_ppl_ratio,1.0806,1.0813
+hopf_vs_permuted_delta_ppl,0.1283,-0.0292
+hopf_eff_ratio_vs_dense,1.3924,1.5632
+baseline_mean_eff_buckets,43.1865,35.3681
+hopf_mean_eff_buckets,45.9632,40.9422
+permuted_mean_eff_buckets,45.815,42.2812

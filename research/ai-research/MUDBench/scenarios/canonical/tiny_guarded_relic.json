@@ -1,0 +1,22 @@
+{
+  "scenario_id": "tiny-guarded-relic",
+  "title": "Tiny Guarded Relic",
+  "description": "Richer tiny scenario requiring navigation, defeating a sentinel, unlocking a sealed reliquary, and retrieving the relic.",
+  "start_room_id": "camp",
+  "max_steps": 8,
+  "seed": 77,
+  "version": "1.0",
+  "scenario_vars": {
+    "mode": "guarded-relic",
+    "agent_script_policy": "guarded-relic-v1",
+    "world_config_json": "{\"items\":[{\"entity_id\":\"relic-key\",\"entity_type\":\"item\",\"location\":\"armory\"},{\"entity_id\":\"relic\",\"entity_type\":\"item\",\"location\":\"reliquary\"}],\"npcs\":[{\"entity_id\":\"sentinel\",\"entity_type\":\"npc\",\"health\":10,\"location\":\"watch-post\"}],\"rooms\":{\"armory\":{\"description\":\"A cramped armory with a single iron key resting on a rack.\",\"entities\":[],\"exits\":{\"north\":\"watch-post\",\"west\":\"camp\"},\"title\":\"Armory\"},\"camp\":{\"description\":\"A wind-beaten camp at the edge of the ruins.\",\"entities\":[],\"exits\":{\"east\":\"armory\"},\"title\":\"Camp\"},\"reliquary\":{\"description\":\"A sealed reliquary where the relic rests on a stone pedestal.\",\"entities\":[],\"exits\":{\"south\":\"seal-door\"},\"title\":\"Reliquary\"},\"seal-door\":{\"description\":\"A heavy sealed door blocks the final chamber.\",\"entities\":[],\"exits\":{\"west\":\"watch-post\"},\"title\":\"Seal Door\"},\"watch-post\":{\"description\":\"A narrow watch-post where a sentinel keeps vigil over the sealed door.\",\"entities\":[],\"exits\":{\"east\":\"seal-door\",\"south\":\"armory\"},\"title\":\"Watch Post\"}},\"unlock_effects\":[{\"effect_id\":\"reliquary-seal\",\"item_id\":\"relic-key\",\"source_room_id\":\"seal-door\",\"direction\":\"north\",\"destination_room_id\":\"reliquary\",\"consume_item\":false,\"requires_actor_in_place\":true}]}"
+  },
+  "objectives": [
+    {
+      "objective_id": "collect-relic",
+      "objective_type": "collect_item",
+      "target_id": "relic",
+      "required_count": 1
+    }
+  ]
+}

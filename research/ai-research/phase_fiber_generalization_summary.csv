@@ -1,0 +1,4 @@
+tuplet,offsets,|B|_mod35,|U11*|,|U13*|,|U143*|,W2310_direct_ones,W2310_product_|B|*|U11*|,W2310_exact_match,W30030_direct_ones,W30030_product_|B|*|U143*|,W30030_exact_match
+twins,"[0, 2]",15,9,11,99,135,135,True,1485,1485,True
+triplet_026,"[0, 2, 6]",8,8,10,80,64,64,True,640,640,True
+quadruplet_0268,"[0, 2, 6, 8]",3,7,9,63,21,21,True,189,189,True

@@ -1,0 +1,19 @@
+operator,cluster,stratum,sample_count,tau_return_count,tau_return_fraction,avg_tau_return_depth,median_tau_return_depth,avg_cycle_length,max_cycle_length,unresolved_at_cap_fraction,note
+T_b,non-transport,sigma_stable,500,252,0.504000,13.333333,12.000000,22.080000,105,0.000000,cap=200; sample_per_stratum=500; rng_seed=42
+T_b,non-transport,non_sigma_stable,500,367,0.734000,31.059946,24,55.540000,120,0.000000,cap=200; sample_per_stratum=500; rng_seed=42
+T_b,non-transport,pooled,1000,619,0.619000,23.843296,18,38.810000,120,0.000000,cap=200; sample_per_stratum=500; rng_seed=42
+T_x,non-transport,sigma_stable,500,326,0.652000,6,6.000000,6,6,0.000000,cap=200; sample_per_stratum=500; rng_seed=42
+T_x,non-transport,non_sigma_stable,500,167,0.334000,5.796407,5,6,6,0.000000,cap=200; sample_per_stratum=500; rng_seed=42
+T_x,non-transport,pooled,1000,493,0.493000,5.931034,6,6,6,0.000000,cap=200; sample_per_stratum=500; rng_seed=42
+T_y,non-transport,sigma_stable,500,311,0.622000,10.929260,8,17.908000,120,0.000000,cap=200; sample_per_stratum=500; rng_seed=42
+T_y,non-transport,non_sigma_stable,500,295,0.590000,12.332203,9,19.284000,120,0.000000,cap=200; sample_per_stratum=500; rng_seed=42
+T_y,non-transport,pooled,1000,606,0.606000,11.612211,9.000000,18.596000,120,0.000000,cap=200; sample_per_stratum=500; rng_seed=42
+T_c,transport,sigma_stable,500,133,0.266000,25.278195,18,23.846000,135,0.000000,cap=200; sample_per_stratum=500; rng_seed=42
+T_c,transport,non_sigma_stable,500,123,0.246000,29.772358,19,26.232000,135,0.000000,cap=200; sample_per_stratum=500; rng_seed=42
+T_c,transport,pooled,1000,256,0.256000,27.437500,18.000000,25.039000,135,0.000000,cap=200; sample_per_stratum=500; rng_seed=42
+T_z',transport,sigma_stable,500,186,0.372000,32.451613,25.500000,36.698000,144,0.000000,cap=200; sample_per_stratum=500; rng_seed=42
+T_z',transport,non_sigma_stable,500,181,0.362000,34.574586,28,35.352000,144,0.000000,cap=200; sample_per_stratum=500; rng_seed=42
+T_z',transport,pooled,1000,367,0.367000,33.498638,27,36.025000,144,0.000000,cap=200; sample_per_stratum=500; rng_seed=42
+T_r*,transport,sigma_stable,500,303,0.606000,58.709571,48,50.481268,192,0.306000,cap=200; sample_per_stratum=500; rng_seed=42
+T_r*,transport,non_sigma_stable,500,305,0.610000,57.649180,47,53.887283,192,0.308000,cap=200; sample_per_stratum=500; rng_seed=42
+T_r*,transport,pooled,1000,608,0.608000,58.177632,47.000000,52.181818,192,0.307000,cap=200; sample_per_stratum=500; rng_seed=42

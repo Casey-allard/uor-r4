@@ -1,34 +1,40 @@
 # research/
 
-Research material collected during the project. Most of it is small and tracked.
+Research material collected during the project: papers, notes, analysis scripts and data.
+**All of it is tracked in git.** This is a research project and the repository is the record,
+so nothing here is removed to save space — see the owner direction below.
 
-Three directories were **archived to the iCloud store and untracked on 12 October 2026**
-(owner direction: labs work in one checkout and duplicate no data). Together they were
-about 1 GB of mostly binary material — a 53 MB `.npz` (twice), 20 MB CSVs and 14–23 MB
-PDFs — that every worktree and clone used to carry:
+## A local disk note, not a repository change
 
-| archive | path | size | files |
-|---|---|---|---|
-| `prime-analysis` | `research/prime-analysis` | 566 MB | 7,713 |
-| `ai-research` | `research/ai-research` | 378 MB | 3,337 |
-| `archives` | `research/archives` | 103 MB | 129 |
+Three directories are large and largely dormant:
 
-They are not lost. Each is a tar in the MD5-verified store, indexed at
-`icloud:UOR-R4/index/<name>.tsv`, and restorable in about a minute:
+| directory | size | files |
+|---|---|---|
+| `research/prime-analysis` | 535 MB | 7,713 |
+| `research/ai-research` | 358 MB | 3,337 |
+| `research/archives` | 99 MB | 129 |
+
+They stay **tracked in git** so every clone and every future reader has them. Because they are
+dormant, a working copy may keep them out of the checkout *locally* without changing the
+repository, using git's own `skip-worktree` bit:
 
 ```sh
-scripts/storage/research-data status                  # what is archived, what is present
-scripts/storage/research-data restore prime-analysis --run
+scripts/storage/research-data drop-local     # mark them skip-worktree and remove the working copies
+scripts/storage/research-data restore-local  # bring them back into this checkout
 ```
 
-`restore` downloads the tar, verifies it against the index MD5, and extracts it in place.
-The manifest with sizes and checksums is [docs/harness/research-data.json](../docs/harness/research-data.json).
+That is a per-checkout convenience. No commit is made, nothing leaves the repository, and
+`git status` stays clean because the files are still tracked. A fresh clone gets everything
+normally.
 
-One detail, stated because it is a real difference: the tar round trip normalises the
-encoding of non-ASCII filenames. Verified before the local copies were removed, the
-restored `prime-analysis` tree had the same 7,713 files and a byte-identical content
-digest; two filenames in `research/theoretical-mathematics/prime-number-theory/` come back
-with normalised Unicode. Contents are unaffected.
+They are also archived to the MD5-verified iCloud store as a second copy, listed in
+[docs/harness/research-data.json](../docs/harness/research-data.json):
 
-The bytes still exist in this repository's git history; they are simply no longer checked
-out. This is a working-copy change, not a history rewrite, so it is reversible.
+```sh
+scripts/storage/research-data status
+scripts/storage/research-data restore <name> --run
+```
+
+**Owner direction, 12 October 2026:** do not delete research material to reclaim space. If
+something is dormant or its purpose is unclear, keep it — archive a copy if useful, and leave
+the repository whole. Evidence is the point of this project.

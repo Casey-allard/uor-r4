@@ -1,0 +1,4 @@
+condition,mean_val_ppl,std_val_ppl,mean_eff_buckets,std_eff_buckets,eff_ratio_vs_dense,n_seeds,n_params
+BASELINE,105.8487,1.5693,35.3681,4.8961,1.8095,2,5660672
+HOPF,114.4492,1.137,40.9422,6.2697,1.5632,2,5644288
+PERMUTED,114.4783,0.8718,42.2812,4.9805,1.5137,2,5644288

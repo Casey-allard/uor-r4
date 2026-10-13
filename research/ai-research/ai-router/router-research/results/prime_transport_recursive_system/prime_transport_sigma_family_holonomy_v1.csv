@@ -1,0 +1,26 @@
+scope,metric,count,total,fraction,note
+summary,primary_states_examined,45,45,1.0,distinct primary chart states on the bounded lawful H_v8 surface
+summary,distinct_parent_states_reached,38315,45,851.4444444444445,distinct canonical parent states with sigma family holonomy law
+summary,collision_count,0,45,0.0,many-to-one collisions from primary chart states into sigma-family-holonomy parent states
+summary,recursive_consistency_rate,38315,38315,1.0,fraction of parent states whose lawful component updates remain canonical
+projection,sigma_updated_directly_by_R_G,1,1,1.0,sigma is updated by direct regressive maps R_G with family holonomy law
+projection,profile_fields_are_derived_diagnostics_only,1,1,1.0,seed_orbit and action/composition profiles remain derived diagnostics only
+projection,spin_h4_derivable_from_parent,1,1,1.0,Pi_pred(spin_H_core_v5) -> sigma.current_mode
+projection,tau_derivable_from_parent,1,1,1.0,Pi_rec(spin_H_core_v5) -> tau
+projection,kappa_derivable_from_parent,1,1,1.0,Pi_hol(spin_H_core_v5) -> kappa
+composition,R_Tz_after_R_Tr_exact_agreement_count,27605,38315,0.7204750097872896,exact sigma agreement under family-level holonomy/composition law
+comparison_vs_v4,R_Tz_after_R_Tr_exact_agreement_count_improvement,27605,38315,0.7204750097872896,exact-agreement gain relative to the direct sigma family without holonomy law
+composition,R_Tc_after_R_Tr_exact_agreement_count,38315,38315,1.0,exact sigma agreement under family-level holonomy/composition law
+comparison_vs_v4,R_Tc_after_R_Tr_exact_agreement_count_improvement,38315,38315,1.0,exact-agreement gain relative to the direct sigma family without holonomy law
+composition,R_Ty_after_R_Tr_exact_agreement_count,22174,38315,0.5787289573274175,exact sigma agreement under family-level holonomy/composition law
+comparison_vs_v4,R_Ty_after_R_Tr_exact_agreement_count_improvement,13191,38315,0.3442776980294924,exact-agreement gain relative to the direct sigma family without holonomy law
+comparison_vs_v4,collision_change,0,45,0.0,change in collisions relative to spin_H_core_v4
+comparison_vs_v4,recursive_consistency_change,0,38315,0.0,change in recursive consistency relative to spin_H_core_v4
+comparison_vs_v4,distinct_state_count_change,0,38315,0.0,change in distinct parent states relative to spin_H_core_v4
+update_law,hold,38315,38315,1.0,dominant_component_delta=theta0_rho0_sigma0_h0
+update_law,torus_base_advance,38315,38315,1.0,dominant_component_delta=theta1_rho0_sigma0_h0
+update_law,composite_swap,19463,38315,0.5079733785723607,dominant_component_delta=theta0_rho0_sigma1_h1
+update_law,coupled_torus_kick,21161,38315,0.5522902257601462,dominant_component_delta=theta1_rho1_sigma1_h1
+update_law,composite_twist,37607,38315,0.9815215972856584,dominant_component_delta=theta0_rho1_sigma1_h1
+update_law,fiber_phase_lift_spin_transport,37551,38315,0.9800600287093828,dominant_component_delta=theta1_rho1_sigma1_h1
+update_law,radial_transport_unfolding,28857,38315,0.7531515072425943,dominant_component_delta=theta1_rho1_sigma1_h1

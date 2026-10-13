@@ -1,0 +1,37 @@
+phase,thread_count,run_idx,wall_time_seconds,steps_per_second,cpu_user_seconds,cpu_sys_seconds,cpu_total_seconds,cpu_efficiency,cpu_utilization_note,note
+build_warmup_pool,1,0,1.626,0,1.607,0.013,1.62,0.996,"pure Python, single-core, eff=1.00",POOL_SIZE=4000
+bfs_warm_up,1,0,87.239,0,85.871,1.108,86.979,0.997,"pure Python BFS, single-core, eff=1.00",343665 states discovered
+build_state_tables,1,0,2.951,0,2.885,0.06,2.944,0.998,"numpy/torch tensor build, eff=1.00","TN=[343665, 6, 21], TR=[343665, 6]"
+angular_conversion,1,0,0.24,0,0.198,0.042,0.24,0.998,torch tensor ops,"TN_ang=[343665, 6, 8]"
+first_fwd_bwd,1,0,0.0282,35.5,0.0173,0.0065,0.0239,0.846,"lazy init + first pass, eff=0.85","single step, includes any torch lazy init"
+warmup,1,0,1.012,98.8,0.933,0.076,1.009,0.997,"cache priming, eff=1.00",100 warmup steps discarded
+cold_training,1,0,4.952,101.0,4.597,0.34,4.938,0.997,"cold start, eff=1.00","500 steps, fresh model, no warmup"
+steady_training,1,0,21.496,93.0,19.756,1.597,21.352,0.993,"steady state, eff=0.99",2000 steps after 100 warmup
+first_fwd_bwd,1,1,0.0102,98.0,0.0094,0.0008,0.0102,0.996,"lazy init + first pass, eff=1.00","single step, includes any torch lazy init"
+warmup,1,1,1.079,92.7,0.992,0.078,1.07,0.992,"cache priming, eff=0.99",100 warmup steps discarded
+cold_training,1,1,5.425,92.2,4.982,0.403,5.385,0.993,"cold start, eff=0.99","500 steps, fresh model, no warmup"
+steady_training,1,1,20.048,99.8,18.586,1.398,19.984,0.997,"steady state, eff=1.00",2000 steps after 100 warmup
+first_fwd_bwd,2,0,0.0115,87.3,0.0105,0.0014,0.0119,1.035,"lazy init + first pass, eff=1.03","single step, includes any torch lazy init"
+warmup,2,0,1.09,91.7,1.005,0.127,1.131,1.038,"cache priming, eff=1.04",100 warmup steps discarded
+cold_training,2,0,5.514,90.7,5.078,0.649,5.727,1.039,"cold start, eff=1.04","500 steps, fresh model, no warmup"
+steady_training,2,0,22.235,89.9,20.385,2.668,23.053,1.037,"steady state, eff=1.04",2000 steps after 100 warmup
+first_fwd_bwd,2,1,0.01,100.4,0.0094,0.001,0.0104,1.04,"lazy init + first pass, eff=1.04","single step, includes any torch lazy init"
+warmup,2,1,1.107,90.3,1.015,0.133,1.148,1.037,"cache priming, eff=1.04",100 warmup steps discarded
+cold_training,2,1,5.432,92.0,5.023,0.617,5.64,1.038,"cold start, eff=1.04","500 steps, fresh model, no warmup"
+steady_training,2,1,21.059,95.0,19.604,2.269,21.873,1.039,"steady state, eff=1.04",2000 steps after 100 warmup
+first_fwd_bwd,4,0,0.0114,87.3,0.011,0.002,0.0129,1.13,"lazy init + first pass, eff=1.13","single step, includes any torch lazy init"
+warmup,4,0,1.084,92.2,1.036,0.179,1.215,1.12,"cache priming, eff=1.12",100 warmup steps discarded
+cold_training,4,0,5.471,91.4,5.229,0.918,6.147,1.123,"cold start, eff=1.12","500 steps, fresh model, no warmup"
+steady_training,4,0,21.878,91.4,20.865,3.626,24.491,1.119,"steady state, eff=1.12",2000 steps after 100 warmup
+first_fwd_bwd,4,1,0.0119,83.8,0.0109,0.0025,0.0134,1.122,"lazy init + first pass, eff=1.12","single step, includes any torch lazy init"
+warmup,4,1,1.146,87.3,1.08,0.199,1.279,1.116,"cache priming, eff=1.12",100 warmup steps discarded
+cold_training,4,1,5.545,90.2,5.265,0.928,6.193,1.117,"cold start, eff=1.12","500 steps, fresh model, no warmup"
+steady_training,4,1,22.162,90.2,21.075,3.718,24.793,1.119,"steady state, eff=1.12",2000 steps after 100 warmup
+first_fwd_bwd,8,0,0.0121,82.3,0.011,0.0045,0.0155,1.279,"lazy init + first pass, eff=1.28","single step, includes any torch lazy init"
+warmup,8,0,1.263,79.2,1.142,0.47,1.613,1.277,"cache priming, eff=1.28",100 warmup steps discarded
+cold_training,8,0,6.301,79.4,5.674,2.32,7.994,1.269,"cold start, eff=1.27","500 steps, fresh model, no warmup"
+steady_training,8,0,27.644,72.3,24.517,9.989,34.505,1.248,"steady state, eff=1.25",2000 steps after 100 warmup
+first_fwd_bwd,8,1,0.0132,75.5,0.012,0.0049,0.0169,1.273,"lazy init + first pass, eff=1.27","single step, includes any torch lazy init"
+warmup,8,1,1.426,70.1,1.262,0.508,1.77,1.241,"cache priming, eff=1.24",100 warmup steps discarded
+cold_training,8,1,7.287,68.6,6.423,2.612,9.035,1.24,"cold start, eff=1.24","500 steps, fresh model, no warmup"
+steady_training,8,1,26.071,76.7,23.324,9.632,32.956,1.264,"steady state, eff=1.26",2000 steps after 100 warmup

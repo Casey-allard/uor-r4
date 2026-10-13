@@ -1,0 +1,45 @@
+phase,attack,D,infer_mode,accuracy,accuracy_std,delta_from_clean,failure,noise_std_rad,noise_deg,note
+A_angular_noise,noise_std=0.000,24,hard_geom,1.0,0.0,-0.0,False,0.0,0.0,0.0° angular rotation noise on cur_dir
+A_angular_noise,noise_std=0.000,24,soft_mlp,1.0,0.0,-0.0,False,0.0,0.0,0.0° angular rotation noise on tau_prev
+A_angular_noise,noise_std=0.050,24,hard_geom,1.0,0.0,-0.0,False,0.05,2.9,2.9° angular rotation noise on cur_dir
+A_angular_noise,noise_std=0.050,24,soft_mlp,1.0,0.0,-0.0,False,0.05,2.9,2.9° angular rotation noise on tau_prev
+A_angular_noise,noise_std=0.100,24,hard_geom,1.0,0.0,-0.0,False,0.1,5.7,5.7° angular rotation noise on cur_dir
+A_angular_noise,noise_std=0.100,24,soft_mlp,1.0,0.0,-0.0,False,0.1,5.7,5.7° angular rotation noise on tau_prev
+A_angular_noise,noise_std=0.200,24,hard_geom,1.0,0.0,-0.0,False,0.2,11.5,11.5° angular rotation noise on cur_dir
+A_angular_noise,noise_std=0.200,24,soft_mlp,1.0,0.0,-0.0,False,0.2,11.5,11.5° angular rotation noise on tau_prev
+A_angular_noise,noise_std=0.500,24,hard_geom,1.0,0.0,-0.0,False,0.5,28.6,28.6° angular rotation noise on cur_dir
+A_angular_noise,noise_std=0.500,24,soft_mlp,1.0,0.0,-0.0,False,0.5,28.6,28.6° angular rotation noise on tau_prev
+A_angular_noise,noise_std=1.000,24,hard_geom,1.0,0.0,-0.0,False,1.0,57.3,57.3° angular rotation noise on cur_dir
+A_angular_noise,noise_std=1.000,24,soft_mlp,1.0,0.0,-0.0,False,1.0,57.3,57.3° angular rotation noise on tau_prev
+A_angular_noise,noise_std=1.570,24,hard_geom,1.0,0.0,-0.0,False,1.57,90.0,90.0° angular rotation noise on cur_dir
+A_angular_noise,noise_std=1.570,24,soft_mlp,1.0,0.0,-0.0,False,1.57,90.0,90.0° angular rotation noise on tau_prev
+A_angular_noise,noise_std=3.140,24,hard_geom,1.0,0.0,-0.0,False,3.14,179.9,179.9° angular rotation noise on cur_dir
+A_angular_noise,noise_std=3.140,24,soft_mlp,1.0,0.0,-0.0,False,3.14,179.9,179.9° angular rotation noise on tau_prev
+B1_d_extrapolation,d_eval=64,64,hard_geom,1.0,0.0,0.0,False,0.0,0.0,D=64 model tested at D=64 (in-distribution)
+B1_d_extrapolation,d_eval=64,64,soft_mlp,1.0,0.0,0.0,False,0.0,0.0,D=64 model tested at D=64 (in-distribution)
+B1_d_extrapolation,d_eval=80,80,hard_geom,1.0,0.0,0.0,False,0.0,0.0,D=64 model tested at D=80 (OOD extrapolation)
+B1_d_extrapolation,d_eval=80,80,soft_mlp,1.0,0.0,0.0,False,0.0,0.0,D=64 model tested at D=80 (OOD extrapolation)
+B1_d_extrapolation,d_eval=96,96,hard_geom,1.0,0.0,0.0,False,0.0,0.0,D=64 model tested at D=96 (OOD extrapolation)
+B1_d_extrapolation,d_eval=96,96,soft_mlp,1.0,0.0,0.0,False,0.0,0.0,D=64 model tested at D=96 (OOD extrapolation)
+B1_d_extrapolation,d_eval=128,128,hard_geom,1.0,0.0,0.0,False,0.0,0.0,D=64 model tested at D=128 (OOD extrapolation)
+B1_d_extrapolation,d_eval=128,128,soft_mlp,1.0,0.0,0.0,False,0.0,0.0,D=64 model tested at D=128 (OOD extrapolation)
+B2_adv_pool,training_pool,24,hard_geom,1.0,0.0,0.0,False,0.0,0.0,training_pool
+B2_adv_pool,training_pool,24,soft_mlp,1.0,0.0,0.0,False,0.0,0.0,training_pool
+B2_adv_pool,adversarial_pool,24,hard_geom,1.0,0.0,0.0,False,0.0,0.0,adversarial_pool
+B2_adv_pool,adversarial_pool,24,soft_mlp,1.0,0.0,0.0,False,0.0,0.0,adversarial_pool
+C1_margin_analysis,margin_distribution,24,hard_geom,1.0,0.0,0.0,False,0.0,0.0,margin_mean=0.7103 std=0.5537 p10=0.118 p50=0.634 p90=1.5 tight_frac=6.3%
+C2_random_tie,tie_thr=0.5,24,hard_geom,1.0,0.0,0.0,False,0.0,0.0,random tie-break when margin<0.5; 43.9% steps affected
+C2_random_tie,tie_thr=0.2,24,hard_geom,1.0,0.0,0.0,False,0.0,0.0,random tie-break when margin<0.2; 23.4% steps affected
+C2_random_tie,tie_thr=0.1,24,hard_geom,1.0,0.0,0.0,False,0.0,0.0,random tie-break when margin<0.1; 9.5% steps affected
+C2_random_tie,tie_thr=0.05,24,hard_geom,1.0,0.0,0.0,False,0.0,0.0,random tie-break when margin<0.05; 6.6% steps affected
+C2_random_tie,tie_thr=0.01,24,hard_geom,1.0,0.0,0.0,False,0.0,0.0,random tie-break when margin<0.01; 6.3% steps affected
+C3_targeted_swap,swap_factor=0.25,24,hard_geom,1.0,0.0,0.0,False,0.0,0.0,targeted swap noise = 0.25×margin per step
+C3_targeted_swap,swap_factor=0.5,24,hard_geom,1.0,0.0,0.0,False,0.0,0.0,targeted swap noise = 0.5×margin per step
+C3_targeted_swap,swap_factor=1.0,24,hard_geom,1.0,0.0,0.0,False,0.0,0.0,targeted swap noise = 1.0×margin per step
+C3_targeted_swap,swap_factor=2.0,24,hard_geom,1.0,0.0,0.0,False,0.0,0.0,targeted swap noise = 2.0×margin per step
+C4_clustered_states,top50pct,24,hard_geom,1.0,0.0,0.0,False,0.0,0.0,50% most-clustered states (n=2004); mean_cluster_sim≥0.780
+C4_clustered_states,top50pct,24,soft_mlp,1.0,0.0,0.0,False,0.0,0.0,50% most-clustered states (n=2004); mean_cluster_sim≥0.780
+C4_clustered_states,top25pct,24,hard_geom,1.0,0.0,0.0,False,0.0,0.0,25% most-clustered states (n=1000); mean_cluster_sim≥1.119
+C4_clustered_states,top25pct,24,soft_mlp,1.0,0.0,0.0,False,0.0,0.0,25% most-clustered states (n=1000); mean_cluster_sim≥1.119
+C4_clustered_states,top10pct,24,hard_geom,1.0,0.0,0.0,False,0.0,0.0,10% most-clustered states (n=400); mean_cluster_sim≥1.437
+C4_clustered_states,top10pct,24,soft_mlp,1.0,0.0,0.0,False,0.0,0.0,10% most-clustered states (n=400); mean_cluster_sim≥1.437

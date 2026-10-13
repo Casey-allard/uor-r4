@@ -1,0 +1,100 @@
+{
+  "branch_outcome": "no_selective_retrieval_rescue_surface",
+  "contract_check": {
+    "difference_is_event_gate_only": true,
+    "event_gate_retrieval_surface_active": false,
+    "event_gate_retrieval_surface_reason": "Current routed retrieval uses fixed routed train/eval embeddings; event-gate knobs are consumed only by sparse_event_training_audit.",
+    "rescue_surface_supported": false,
+    "route_arg_difference_keys": [
+      "event_gate_tau"
+    ],
+    "route_arg_differences": {
+      "event_gate_tau": {
+        "baseline": 0.01,
+        "candidate": 0.002
+      }
+    }
+  },
+  "experiment_id": "inc0127_product_phase_sparse_event_translation_systems_cost_rescue",
+  "generated_at": "2026-03-12T23:17:25.801395+00:00",
+  "interpretation": "The translated near-hard and translated soft-sparse routes differ only in sparse-event audit knobs, and those knobs are not wired into the translated retrieval surface in the current harness. The observed runtime gap is therefore not a selective retrieval-rescue branch.",
+  "next_honest_branch": {
+    "increment": "INC-0128",
+    "reason": "If sparse-event translated behavior should matter downstream, the event controller must couple into the translated route or retrieval surface instead of remaining audit-only.",
+    "title": "Product Phase Sparse Event Translation Route-Coupled Pilot"
+  },
+  "proxy_reference": {
+    "analysis_experiment_id": "inc0125_product_phase_sparse_event_proxy_trainability_hardening_confirm",
+    "baseline_route_id": "H4XH4_FIELD_A150_EVT_T070",
+    "baseline_summary": {
+      "event_gate_active_frac": 0.0,
+      "event_gate_mean": 0.31895874588441564,
+      "event_gate_retrieval_surface_active": NaN,
+      "query_route_sec": NaN,
+      "retrieval_candidate_fraction_mean": NaN,
+      "retrieval_online_total_per_repeat_sec": NaN,
+      "retrieval_search_sec": NaN,
+      "retrieval_total_amortized_per_repeat_sec": NaN,
+      "route_index_build_sec": NaN,
+      "seed_count": 4.0,
+      "test_top1_after": NaN
+    },
+    "candidate_route_id": "H4XH4_FIELD_A150_EVT_T070_TAU002",
+    "candidate_summary": {
+      "event_gate_active_frac": 0.0,
+      "event_gate_mean": 0.020037709410938576,
+      "event_gate_retrieval_surface_active": NaN,
+      "query_route_sec": NaN,
+      "retrieval_candidate_fraction_mean": NaN,
+      "retrieval_online_total_per_repeat_sec": NaN,
+      "retrieval_search_sec": NaN,
+      "retrieval_total_amortized_per_repeat_sec": NaN,
+      "route_index_build_sec": NaN,
+      "seed_count": 4.0,
+      "test_top1_after": NaN
+    }
+  },
+  "translation": {
+    "analysis_experiment_id": "inc0102_product_phase_near_hard_event_translation_screen",
+    "baseline_route_id": "CHART_H4XH4_FIELD_A150_EVT_T070_CPX8_Q01_T2500",
+    "baseline_summary": {
+      "event_gate_active_frac": 0.0,
+      "event_gate_mean": 0.31921151306791695,
+      "event_gate_retrieval_surface_active": NaN,
+      "query_route_sec": 0.021356041979743168,
+      "retrieval_candidate_fraction_mean": 0.18901600000000002,
+      "retrieval_online_total_per_repeat_sec": 0.11700935449334793,
+      "retrieval_search_sec": 0.09565331251360476,
+      "retrieval_total_amortized_per_repeat_sec": 0.14574681298108771,
+      "route_index_build_sec": 0.0277475414914079,
+      "seed_count": 2.0,
+      "test_top1_after": 0.0444
+    },
+    "candidate_route_id": "CHART_H4XH4_FIELD_A150_EVT_T070_TAU002_CPX8_Q01_T2500",
+    "candidate_summary": {
+      "event_gate_active_frac": 0.0,
+      "event_gate_mean": 0.02097289647184307,
+      "event_gate_retrieval_surface_active": NaN,
+      "query_route_sec": 0.032463812531204894,
+      "retrieval_candidate_fraction_mean": 0.18901600000000002,
+      "retrieval_online_total_per_repeat_sec": 0.21561179199488834,
+      "retrieval_search_sec": 0.18314797946368344,
+      "retrieval_total_amortized_per_repeat_sec": 0.2634353754692711,
+      "route_index_build_sec": 0.04663741649710573,
+      "seed_count": 2.0,
+      "test_top1_after": 0.0444
+    },
+    "config_experiment_id": "inc0102_product_phase_near_hard_event_translation_screen",
+    "deltas_candidate_minus_baseline": {
+      "amortized_delta_candidate_minus_baseline_sec": 0.11768856248818338,
+      "candidate_fraction_delta_candidate_minus_baseline": 0.0,
+      "online_delta_candidate_minus_baseline_sec": 0.09860243750154041,
+      "proxy_event_gate_active_frac_delta_candidate_minus_baseline": 0.0,
+      "proxy_event_gate_mean_delta_candidate_minus_baseline": -0.29892103647347706,
+      "retrieval_search_delta_candidate_minus_baseline_sec": 0.08749466695007868,
+      "route_index_build_delta_candidate_minus_baseline_sec": 0.01888987500569783,
+      "route_query_delta_candidate_minus_baseline_sec": 0.011107770551461726,
+      "top1_delta_candidate_minus_baseline": 0.0
+    }
+  }
+}

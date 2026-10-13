@@ -1,0 +1,16 @@
+scope,metric,count,total,fraction,note
+observable,spin_h4_is_canonical_state,0,1,0.0,spin_h4 is not the canonical regressive spin state
+observable,spin_h4_predictive_horizon,4,4,1.0,spin_h4 reflects only a bounded four-step predictive observation
+observable,tau_is_recursive_projection,1,1,1.0,tau is a bounded recursive-closure summary rather than a foundational peer state
+observable,kappa_is_holonomy_projection,1,1,1.0,kappa is a one-bit holonomy observable rather than a foundational peer state
+canonical,parent_object_defined,1,1,1.0,canonical parent object is spin_H = ((b,phi),rho,sigma,h)
+canonical,theta_carries_angular_identity,1,1,1.0,theta equals (b,phi)
+canonical,rho_carries_radial_unfolding_identity,1,1,1.0,rho is the radial-unfolding mode and is not reducible to plain r alone
+canonical,sigma_carries_regressive_spin_mode,1,1,1.0,sigma is the recursive predictive parent state from which bounded predictive words are projected
+canonical,h_carries_recursive_closure_and_holonomy,1,1,1.0,h is the closure and holonomy parent state from which tau and kappa are projected
+projection,Pi_pred_maps_spin_H_to_spin_h4,1,1,1.0,Pi_pred(spin_H) yields bounded predictive observable spin_h4
+projection,Pi_rec_maps_spin_H_to_tau,1,1,1.0,Pi_rec(spin_H) yields bounded recursive closure summary tau
+projection,Pi_hol_maps_spin_H_to_kappa,1,1,1.0,Pi_hol(spin_H) yields holonomy bit kappa
+projection,Pi_rad_maps_spin_H_to_r,1,1,1.0,Pi_rad(spin_H) yields bounded radial class r
+distinction,generator_law_is_not_spin_state,1,1,1.0,operator generators are update laws acting on canonical spin_H rather than the identity itself
+next_primitive,canonical_spin_H_core_state_object,1,1,1.0,the single next primitive is the native canonical spin_H core state object

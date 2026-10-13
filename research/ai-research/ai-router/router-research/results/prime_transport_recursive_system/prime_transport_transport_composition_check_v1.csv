@@ -1,0 +1,20 @@
+metric,value,note
+surface_version,v22,geometry_native_operator_model_v22.py with T_c (v20) + T_z' (v21) + T_r* (v22) all rebuilt from spin_H_core_v6
+state_count,223357,total states in bounded v22 surface at depth=8
+Tc_after_Tr_distinct,yes,T_c(T_r*(s)) distinct: 111482 unique target states across 223357 inputs (49.91%)
+Tr_after_Tc_distinct,yes,T_r*(T_c(s)) distinct: 109139 unique target states across 223357 inputs (48.86%)
+Tc_Tr_noncollapsed,yes,exact state agreement count = 100 of 223357 (fraction = 0.000448); compositions are non-commutative and non-degenerate
+Tz_after_Tr_distinct,yes,T_z'(T_r*(s)) distinct: 127400 unique target states across 223357 inputs (57.04%)
+Tr_after_Tz_distinct,yes,T_r*(T_z'(s)) distinct: 127543 unique target states across 223357 inputs (57.10%)
+Tz_Tr_noncollapsed,yes,exact state agreement count = 47 of 223357 (fraction = 0.000210); compositions are non-commutative and non-degenerate
+transport_composition_check_passed,yes,both operator pairs are distinct and non-collapsed on the bounded v22 surface
+Tc_Tr_exact_agreement_count,100,states s where T_c(T_r*(s)) == T_r*(T_c(s))
+Tc_Tr_exact_agreement_fraction,0.000448,100 / 223357
+Tc_after_Tr_image_size,111482,distinct states in image of T_c ∘ T_r*
+Tr_after_Tc_image_size,109139,distinct states in image of T_r* ∘ T_c
+Tc_Tr_image_overlap,38369,states in both images; overlap fraction = 38369 / 223357 = 0.1718
+Tz_Tr_exact_agreement_count,47,states s where T_z'(T_r*(s)) == T_r*(T_z'(s))
+Tz_Tr_exact_agreement_fraction,0.000210,47 / 223357
+Tz_after_Tr_image_size,127400,distinct states in image of T_z' ∘ T_r*
+Tr_after_Tz_image_size,127543,distinct states in image of T_r* ∘ T_z'
+Tz_Tr_image_overlap,51767,states in both images; overlap fraction = 51767 / 223357 = 0.2318

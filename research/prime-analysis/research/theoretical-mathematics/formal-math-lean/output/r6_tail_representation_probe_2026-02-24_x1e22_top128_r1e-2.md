@@ -1,0 +1,161 @@
+# R6 Tail Representation Probe
+
+Generated: 2026-02-24T14:54:15.411326+00:00
+
+## Config
+- beta: 0.55
+- eta: 0.04459256509988893
+- x1: 1.008470047206049e+19
+- tail_points: 819
+- omega_policy: top
+- omega_count: 128
+- include_decay_column: True
+
+- ridge_alpha: 0.01
+
+## Fit Metrics
+- tail_sup_abs_before: 0.0541991533192472
+- tail_sup_abs_after: 0.025162827358403684
+- tail_sup_ratio_after_over_before: 0.46426605984392494
+- tail_rmse_before: 0.022944822460934117
+- tail_rmse_after: 0.0067319404894192495
+- tail_rmse_ratio_after_over_before: 0.29339693087105206
+- all_sup_abs_before: 0.22968267407607257
+- all_sup_abs_after: 0.29882392347480086
+- all_sup_ratio_after_over_before: 1.3010294515111236
+- eps_majorant_C_tail_with_eta: 0.2008551643848783
+- eps_majorant_C_all_with_eta: 0.6445964395049235
+
+## Omitted Modes (Fitted)
+- omega=14.134725142, kappa=0.135538, theta=0.0612772
+- omega=21.022039639, kappa=0.0853205, theta=0.00075475
+- omega=25.01085758, kappa=0.0710299, theta=0.0254996
+- omega=30.424876126, kappa=0.0675083, theta=-0.0212864
+- omega=32.935061588, kappa=0.0458245, theta=-3.07772
+- omega=37.586178159, kappa=0.0408264, theta=-3.08553
+- omega=40.918719012, kappa=0.0329207, theta=3.13723
+- omega=43.327073281, kappa=0.0390592, theta=3.09498
+- omega=48.005150881, kappa=0.0351576, theta=-3.14003
+- omega=49.773832478, kappa=0.0287592, theta=-3.01257
+- omega=52.970321478, kappa=0.0306925, theta=-3.05737
+- omega=56.446247697, kappa=0.0359769, theta=-0.0467452
+- omega=59.347044003, kappa=0.0241786, theta=-2.95082
+- omega=60.831778525, kappa=0.026479, theta=-3.00925
+- omega=65.112544048, kappa=0.0282763, theta=-2.93515
+- omega=67.079810529, kappa=0.0242022, theta=-0.377166
+- omega=69.546401711, kappa=0.0214666, theta=2.96879
+- omega=72.067157674, kappa=0.021829, theta=-3.09742
+- omega=75.704690699, kappa=0.0157398, theta=3.08359
+- omega=77.144840069, kappa=0.020133, theta=3.08861
+- omega=79.33737502, kappa=0.0145472, theta=-3.08517
+- omega=82.910380854, kappa=0.0155633, theta=2.98494
+- omega=84.735492981, kappa=0.0207602, theta=3.02752
+- omega=87.425274613, kappa=0.0187674, theta=2.79071
+- omega=88.809111208, kappa=0.0160762, theta=3.11796
+- omega=92.491899271, kappa=0.0209864, theta=-0.340908
+- omega=94.651344041, kappa=0.0148255, theta=-3.09219
+- omega=95.870634228, kappa=0.0153491, theta=2.98673
+- omega=98.831194218, kappa=0.0158631, theta=2.92854
+- omega=101.317851006, kappa=0.0176599, theta=-0.203646
+- omega=103.72553804, kappa=0.0132456, theta=2.90019
+- omega=105.446623052, kappa=0.0170594, theta=3.07632
+- omega=107.168611184, kappa=0.0103695, theta=-2.85771
+- omega=111.029535543, kappa=0.0195609, theta=0.0588108
+- omega=111.874659177, kappa=0.0161192, theta=-3.13768
+- omega=114.320220915, kappa=0.0116711, theta=-2.93144
+- omega=116.226680321, kappa=0.0161414, theta=3.1397
+- omega=118.790782866, kappa=0.0096946, theta=3.06859
+- omega=121.370125002, kappa=0.0108807, theta=0.342753
+- omega=122.946829294, kappa=0.0115303, theta=2.47601
+- omega=124.256818554, kappa=0.0121714, theta=2.99652
+- omega=127.51668388, kappa=0.0119731, theta=-3.01031
+- omega=129.5787042, kappa=0.0107134, theta=3.06115
+- omega=131.087688531, kappa=0.017396, theta=-0.145341
+- omega=133.497737203, kappa=0.0175441, theta=-3.13338
+- omega=134.756509753, kappa=0.00521049, theta=2.75765
+- omega=138.116042055, kappa=0.0141245, theta=3.12756
+- omega=139.736208952, kappa=0.0131478, theta=-2.80733
+- omega=141.123707404, kappa=0.0152098, theta=-3.13779
+- omega=143.111845808, kappa=0.0121253, theta=-3.1412
+- omega=146.000982487, kappa=0.0156864, theta=2.97714
+- omega=147.422765343, kappa=0.0118915, theta=-2.85617
+- omega=150.053520421, kappa=0.0168997, theta=-2.98605
+- omega=150.925257612, kappa=0.0136351, theta=2.88161
+- omega=153.024693811, kappa=0.014351, theta=2.75745
+- omega=156.112909294, kappa=0.0098193, theta=3.13425
+- omega=157.597591818, kappa=0.011027, theta=-3.13708
+- omega=158.849988171, kappa=0.00768664, theta=2.86896
+- omega=161.188964138, kappa=0.0083591, theta=2.9273
+- omega=163.030709687, kappa=0.0100674, theta=-3.03022
+- omega=165.537069188, kappa=0.0101118, theta=3.03605
+- omega=167.184439978, kappa=0.0140867, theta=0.222619
+- omega=169.094515416, kappa=0.0098643, theta=3.10302
+- omega=169.911976479, kappa=0.0139076, theta=-3.08211
+- omega=173.41153652, kappa=0.0103005, theta=3.04161
+- omega=174.754191523, kappa=0.00771414, theta=3.04303
+- omega=176.441434298, kappa=0.00770253, theta=-2.73717
+- omega=178.377407776, kappa=0.00554391, theta=2.57928
+- omega=179.91648402, kappa=0.00720633, theta=3.02124
+- omega=182.207078484, kappa=0.00929049, theta=3.08951
+- omega=184.874467848, kappa=0.00567557, theta=-2.60743
+- omega=185.598783678, kappa=0.00886487, theta=3.01214
+- omega=187.228922584, kappa=0.00678591, theta=2.63289
+- omega=189.416158656, kappa=0.00660417, theta=2.89938
+- omega=192.026656361, kappa=0.00750201, theta=-2.98078
+- omega=193.079726604, kappa=0.0100664, theta=-2.85874
+- omega=195.26539668, kappa=0.00899095, theta=3.13447
+- omega=196.876481841, kappa=0.00568609, theta=3.00599
+- omega=198.015309676, kappa=0.0140155, theta=3.10301
+- omega=201.264751944, kappa=0.00529441, theta=-2.93845
+- omega=202.493594514, kappa=0.0097325, theta=-2.87956
+- omega=204.189671803, kappa=0.00149837, theta=2.91288
+- omega=205.394697202, kappa=0.00705219, theta=2.88457
+- omega=207.906258888, kappa=0.00721307, theta=-2.92239
+- omega=209.576509717, kappa=0.0076345, theta=-2.85644
+- omega=211.690862595, kappa=0.00636379, theta=2.89396
+- omega=213.34791936, kappa=0.00949393, theta=3.03315
+- omega=214.547044783, kappa=0.00851618, theta=2.94741
+- omega=216.169538508, kappa=0.0104345, theta=-2.84916
+- omega=219.067596349, kappa=0.00458826, theta=2.82129
+- omega=220.714918839, kappa=0.00757182, theta=-2.49192
+- omega=221.430705555, kappa=0.00724833, theta=-2.55531
+- omega=224.007000255, kappa=0.00328188, theta=-3.11831
+- omega=224.98332467, kappa=0.00335422, theta=-2.41737
+- omega=227.42144428, kappa=0.0121607, theta=2.99904
+- omega=229.337413306, kappa=0.00895862, theta=2.65035
+- omega=231.2501887, kappa=0.00839783, theta=2.64189
+- omega=231.987235253, kappa=0.0114038, theta=3.10582
+- omega=233.693404179, kappa=0.00713428, theta=-3.04916
+- omega=236.524229666, kappa=0.00457688, theta=2.92687
+- omega=237.769820481, kappa=0.00806579, theta=2.7865
+- omega=239.555477573, kappa=0.00939347, theta=-2.8482
+- omega=241.049157796, kappa=0.00988339, theta=-2.95868
+- omega=242.823271934, kappa=0.00240719, theta=-2.69958
+- omega=244.070898497, kappa=0.00571297, theta=2.39084
+- omega=247.136990075, kappa=0.00693137, theta=2.7644
+- omega=248.10199006, kappa=0.005433, theta=-2.54288
+- omega=249.573689645, kappa=0.00558727, theta=2.91791
+- omega=251.014947795, kappa=0.0063347, theta=-3.11632
+- omega=253.069986748, kappa=0.00783184, theta=-3.09462
+- omega=255.306256455, kappa=0.00396399, theta=-2.8856
+- omega=256.380713694, kappa=0.0105003, theta=2.86323
+- omega=258.610439492, kappa=0.00816154, theta=-3.03825
+- omega=259.87440699, kappa=0.00992613, theta=-3.14033
+- omega=260.805084505, kappa=0.00651641, theta=2.43989
+- omega=263.573893905, kappa=0.0120488, theta=-2.82556
+- omega=265.557851839, kappa=0.00391654, theta=2.67586
+- omega=266.614973782, kappa=0.00684504, theta=-3.06347
+- omega=267.921915083, kappa=0.00109327, theta=-3.07715
+- omega=269.970449024, kappa=0.00582758, theta=2.47532
+- omega=271.494055642, kappa=0.00372032, theta=3.11021
+- omega=273.459609188, kappa=0.0066283, theta=2.62588
+- omega=275.587492649, kappa=0.00719219, theta=-2.62894
+- omega=276.452049503, kappa=0.00662062, theta=-2.70138
+- omega=278.25074353, kappa=0.00478166, theta=2.93792
+- omega=279.229250928, kappa=0.00977191, theta=-3.13874
+- omega=282.465114765, kappa=0.00556315, theta=1.71575
+- omega=283.211185733, kappa=0.00616314, theta=-3.05213
+- decay_column_coeff: -0.00016371632405258381
+
+## Interpretation
+- If tail ratios are very small, finite omitted-mode representation is numerically plausible on the tested window; this remains evidence, not proof.

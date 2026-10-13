@@ -1,0 +1,5 @@
+tuplet_name,offsets,parent_W,child_W,new_prime,parent_admissible_density,first_internal_split_H,first_visible_split_H,lag_visible_minus_internal,forbidden_residues,gap_multiset,gap_min,gap_max,gap_span,num_parent_classes_pre_threshold,num_first_splitting_classes,fraction_first_splitting_classes,fraction_parent_mass_in_first_splitting_classes,max_child_classes_from_first_split,total_extra_child_classes_from_first_split
+quad_alt_0406,"[0,2,4,6]",30030,510510,17,0.03776223776223776,1,36,35,1 2 7 13,1 5 5 6,1,6,11,255,223,0.8745098039215686,0.8801198801198801,10,467
+double_twins_p17,"[0,2,34,36]",30030,510510,17,0.03776223776223776,1,41,40,2 13,6 11,6,11,6,400,368,0.92,0.8547452547452548,8,792
+quad_alt_0618,"[0,2,6,18]",30030,510510,17,0.03776223776223776,1,46,45,1 2 13 16,1 2 3 11,1,11,6,570,538,0.9438596491228071,0.9344655344655345,16,1805
+quadruplet,"[0,2,6,8]",30030,510510,17,0.03776223776223776,1,51,50,1 2 12 13,1 1 5 10,1,10,7,665,633,0.9518796992481203,0.9768231768231769,10,1879

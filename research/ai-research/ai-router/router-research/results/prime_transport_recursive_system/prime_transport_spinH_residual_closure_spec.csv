@@ -1,0 +1,29 @@
+scope,metric,count,total,fraction,note
+summary,canonical_transport_identities,37178,37682,0.986624913751924,transport identities with unique lawful successor under every operator component
+summary,branching_transport_identities,504,37682,0.013375086248076004,transport identities with at least one lawful component yielding more than one successor
+component_pattern,fiber_and_radial_branching,291,504,0.5773809523809523,branching occurs under both fiber lift and radial transport
+component_pattern,fiber_only_branching,125,504,0.24801587301587302,branching occurs only under fiber_phase_lift_spin_transport
+component_pattern,radial_only_branching,88,504,0.1746031746031746,branching occurs only under radial_transport_unfolding
+hidden_state,branching_preimages_exactly_two,504,504,1.0,every branching transport identity has exactly two operator-state preimages
+hidden_state,branching_preimages_differ_only_by_twist,504,504,1.0,the two preimages are identical on all currently recorded transport-driving fields except twist parity
+hidden_state,branching_cases_with_query_binding_variation,0,504,0.0,no branching case varies by ordered composite pair
+hidden_state,branching_cases_with_compatibility_variation,0,504,0.0,no branching case varies by composite compatibility class
+hidden_state,branching_cases_with_admissibility_variation,0,504,0.0,no branching case varies by admissible_transition flag
+hidden_state,branching_cases_with_twist_variation,504,504,1.0,all branching cases vary by hidden twist parity
+comparison,canonical_cases_with_multi_preimage,129,37178,0.0034697939641723606,canonical set also contains a small subgroup with two twist-separated preimages that still collapse under lawful continuation
+unfolding_distribution,branching_unfolding_load_0,65,504,0.12896825396825398,branching concentrated in low unfolding shell
+unfolding_distribution,branching_unfolding_load_1,306,504,0.6071428571428571,branching concentrated in low unfolding shell
+unfolding_distribution,branching_unfolding_load_2,133,504,0.2638888888888889,branching concentrated in low unfolding shell
+unfolding_distribution,branching_unfolding_load_3,0,504,0.0,no branching observed at unfolding load 3
+unfolding_distribution,branching_unfolding_load_4,0,504,0.0,no branching observed at unfolding load 4
+direction_distribution,branching_radial_direction_plus,257,504,0.5099206349206349,branching appears under both radial directions
+direction_distribution,branching_radial_direction_minus,247,504,0.49007936507936506,branching appears under both radial directions
+predictive_distribution,branching_distinct_current_spin_classes,8,16,0.5,branching occupies only half of the bounded current-spin classes present on the lawful surface
+invariant,missing_residual_invariant_kappa,1,1,1.0,kappa is the current transport holonomy bit equal to hidden twist parity
+update_law,I_preserves_kappa,1,1,1.0,kappa_prime equals kappa under hold
+update_law,T_b_preserves_kappa,1,1,1.0,kappa_prime equals kappa under torus_base_advance
+update_law,T_x_preserves_kappa,1,1,1.0,kappa_prime equals kappa under composite_swap
+update_law,T_c_preserves_kappa,1,1,1.0,kappa_prime equals kappa under coupled_torus_kick
+update_law,T_y_flips_kappa,1,1,1.0,kappa_prime equals 1 minus kappa under composite_twist
+update_law,T_z_preserves_kappa,1,1,1.0,kappa_prime equals kappa under fiber_phase_lift_spin_transport
+update_law,T_r_star_preserves_kappa,1,1,1.0,kappa_prime equals kappa under radial_transport_unfolding

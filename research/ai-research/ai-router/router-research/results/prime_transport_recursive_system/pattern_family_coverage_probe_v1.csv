@@ -1,0 +1,13 @@
+case,target,readout_type,acc,carrier_used,runtime_s,notes
+CLASS1,k_mod4,H3_direct,1.0,H3,0.002887,Direct carrier readout; acc=1.0000; D=0 sufficient
+CLASS1,k_mod6,H2_direct,1.0,H2,0.000203,Direct carrier readout; acc=1.0000; D=0 sufficient
+CLASS1,k_mod12,CRT_direct,1.0,CRT,0.000162,Direct carrier readout; acc=1.0000; D=0 sufficient
+CLASS2,parity,CRT_opt|linear_probe,1.0,CRT,0.015786,H3_opt=1.0000 H2_opt=1.0000 CRT_opt=1.0000 | linear_probe_test=0.4612 linear_probe_train=0.4900
+CLASS2,ge6,CRT_opt|linear_probe,1.0,CRT,0.009186,H3_opt=0.6636 H2_opt=0.5225 CRT_opt=1.0000 | linear_probe_test=1.0000 linear_probe_train=1.0000
+CLASS2,set0_3_7_11,CRT_opt|linear_probe,1.0,CRT,0.005896,H3_opt=0.9121 H2_opt=0.6797 CRT_opt=1.0000 | linear_probe_test=1.0000 linear_probe_train=1.0000
+CLASS2,floor_k_3,CRT_opt|linear_probe,1.0,CRT,0.013486,H3_opt=0.3545 H2_opt=0.5225 CRT_opt=1.0000 | linear_probe_test=1.0000 linear_probe_train=1.0000
+CLASS3,xor_mod4_mod3,CRT_opt|linear_probe,1.0,CRT,0.015545,H3_opt=0.3545 H2_opt=0.5225 CRT_opt=1.0000 | linear_probe_test=1.0000 linear_probe_train=1.0000
+CLASS3,eq_mod6_mod4,CRT_opt|linear_probe,1.0,CRT,0.011549,H3_opt=0.6509 H2_opt=0.6763 CRT_opt=1.0000 | linear_probe_test=1.0000 linear_probe_train=1.0000
+CLASS3,perm42,CRT_opt|linear_probe,1.0,CRT,0.013077,H3_opt=0.3545 H2_opt=0.5225 CRT_opt=1.0000 | linear_probe_test=1.0000 linear_probe_train=1.0000
+CLASS4/CLASS2,floor_k_3,harmonic+linear_probe_trajectory,1.0,CRT,0.118382,harm_D0=1.0000 harm_D20=1.0000 | probe_D0=1.0000 probe_D20=0.2275 | D=20 steps
+CLASS4/CLASS3,xor_mod4_mod3,harmonic+linear_probe_trajectory,1.0,CRT,0.09493,harm_D0=1.0000 harm_D20=1.0000 | probe_D0=1.0000 probe_D20=0.2280 | D=20 steps

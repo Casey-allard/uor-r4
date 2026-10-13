@@ -1,0 +1,236 @@
+scope,metric,count,total,fraction,note
+summary,primary_states_examined,15,15,1.0,"distinct primary chart states (b,phi,r) on the bounded lawful operator surface"
+summary,distinct_transport_identities_reached,131,15,8.733333333333333,distinct active transport identities under spin_H_candidate_v1 lift
+summary,collision_count,0,15,0.0,many-to-one collisions from primary chart states into active transport identities
+summary,ambiguity_count,15,15,1.0,primary chart states with more than one transport identity under repeated lawful iteration
+summary,recursive_consistency_rate,0,15,0.0,fraction of primary chart states whose transport identity remains canonical under bounded lawful iteration
+summary,canonical_states_under_iteration,0,15,0.0,primary states that retain a single transport identity under repeated lawful transport
+summary,noncanonical_branching_states,15,15,1.0,primary states whose transport identity branches under repeated lawful transport
+representation,angular_identity_preserved,1,1,1.0,active transport lift preserves b exactly and carries phi explicitly
+representation,radial_identity_preserved,1,1,1.0,active transport lift preserves r exactly
+representation,predictive_structure_preserved,1,1,1.0,active transport lift carries predictive spin_h4 structure explicitly
+representation,recursively_closed_enough_for_operator_derivation,0,1,0.0,strict closure test: every primary state must keep a single transport identity under lawful iteration
+primary_distribution,primary_b0_phi0_r0,9,131,0.06870229007633588,transport_images=b0_phi(0)_r0_spin0000|b0_phi(0)_r0_spin0001|b0_phi(0)_r0_spin0010|b0_phi(0)_r0_spin0100|b0_phi(0)_r0_spin0101|b0_phi(0)_r0_spin1000|b0_phi(0)_r0_spin1010|b0_phi(0)_r0_spin1100|b0_phi(0)_r0_spin1111
+primary_distribution,primary_b0_phi1_r0,9,131,0.06870229007633588,transport_images=b0_phi(1)_r0_spin0000|b0_phi(1)_r0_spin0001|b0_phi(1)_r0_spin0010|b0_phi(1)_r0_spin0100|b0_phi(1)_r0_spin0101|b0_phi(1)_r0_spin0111|b0_phi(1)_r0_spin1000|b0_phi(1)_r0_spin1010|b0_phi(1)_r0_spin1110
+primary_distribution,primary_b0_phi2_r0,9,131,0.06870229007633588,transport_images=b0_phi(2)_r0_spin0000|b0_phi(2)_r0_spin0001|b0_phi(2)_r0_spin0010|b0_phi(2)_r0_spin0100|b0_phi(2)_r0_spin0101|b0_phi(2)_r0_spin0110|b0_phi(2)_r0_spin1000|b0_phi(2)_r0_spin1001|b0_phi(2)_r0_spin1010
+primary_distribution,primary_b1_phi0_r0,9,131,0.06870229007633588,transport_images=b1_phi(0)_r0_spin0000|b1_phi(0)_r0_spin0001|b1_phi(0)_r0_spin0010|b1_phi(0)_r0_spin0100|b1_phi(0)_r0_spin0101|b1_phi(0)_r0_spin1000|b1_phi(0)_r0_spin1010|b1_phi(0)_r0_spin1100|b1_phi(0)_r0_spin1111
+primary_distribution,primary_b1_phi1_r0,9,131,0.06870229007633588,transport_images=b1_phi(1)_r0_spin0000|b1_phi(1)_r0_spin0001|b1_phi(1)_r0_spin0010|b1_phi(1)_r0_spin0100|b1_phi(1)_r0_spin0101|b1_phi(1)_r0_spin0111|b1_phi(1)_r0_spin1000|b1_phi(1)_r0_spin1010|b1_phi(1)_r0_spin1110
+primary_distribution,primary_b1_phi2_r0,9,131,0.06870229007633588,transport_images=b1_phi(2)_r0_spin0000|b1_phi(2)_r0_spin0001|b1_phi(2)_r0_spin0010|b1_phi(2)_r0_spin0100|b1_phi(2)_r0_spin0101|b1_phi(2)_r0_spin0110|b1_phi(2)_r0_spin1000|b1_phi(2)_r0_spin1001|b1_phi(2)_r0_spin1010
+primary_distribution,primary_b2_phi0_r0,9,131,0.06870229007633588,transport_images=b2_phi(0)_r0_spin0000|b2_phi(0)_r0_spin0001|b2_phi(0)_r0_spin0010|b2_phi(0)_r0_spin0100|b2_phi(0)_r0_spin0101|b2_phi(0)_r0_spin1000|b2_phi(0)_r0_spin1010|b2_phi(0)_r0_spin1100|b2_phi(0)_r0_spin1111
+primary_distribution,primary_b2_phi1_r0,9,131,0.06870229007633588,transport_images=b2_phi(1)_r0_spin0000|b2_phi(1)_r0_spin0001|b2_phi(1)_r0_spin0010|b2_phi(1)_r0_spin0100|b2_phi(1)_r0_spin0101|b2_phi(1)_r0_spin0111|b2_phi(1)_r0_spin1000|b2_phi(1)_r0_spin1010|b2_phi(1)_r0_spin1110
+primary_distribution,primary_b2_phi2_r0,7,131,0.05343511450381679,transport_images=b2_phi(2)_r0_spin0000|b2_phi(2)_r0_spin0010|b2_phi(2)_r0_spin0101|b2_phi(2)_r0_spin0110|b2_phi(2)_r0_spin1000|b2_phi(2)_r0_spin1001|b2_phi(2)_r0_spin1010
+primary_distribution,primary_b3_phi0_r0,9,131,0.06870229007633588,transport_images=b3_phi(0)_r0_spin0000|b3_phi(0)_r0_spin0001|b3_phi(0)_r0_spin0010|b3_phi(0)_r0_spin0100|b3_phi(0)_r0_spin0101|b3_phi(0)_r0_spin1000|b3_phi(0)_r0_spin1010|b3_phi(0)_r0_spin1100|b3_phi(0)_r0_spin1111
+primary_distribution,primary_b3_phi1_r0,9,131,0.06870229007633588,transport_images=b3_phi(1)_r0_spin0000|b3_phi(1)_r0_spin0001|b3_phi(1)_r0_spin0010|b3_phi(1)_r0_spin0100|b3_phi(1)_r0_spin0101|b3_phi(1)_r0_spin0111|b3_phi(1)_r0_spin1000|b3_phi(1)_r0_spin1010|b3_phi(1)_r0_spin1110
+primary_distribution,primary_b3_phi2_r0,9,131,0.06870229007633588,transport_images=b3_phi(2)_r0_spin0000|b3_phi(2)_r0_spin0001|b3_phi(2)_r0_spin0010|b3_phi(2)_r0_spin0100|b3_phi(2)_r0_spin0101|b3_phi(2)_r0_spin0110|b3_phi(2)_r0_spin1000|b3_phi(2)_r0_spin1001|b3_phi(2)_r0_spin1010
+primary_distribution,primary_b4_phi0_r0,9,131,0.06870229007633588,transport_images=b4_phi(0)_r0_spin0000|b4_phi(0)_r0_spin0001|b4_phi(0)_r0_spin0010|b4_phi(0)_r0_spin0100|b4_phi(0)_r0_spin0101|b4_phi(0)_r0_spin1000|b4_phi(0)_r0_spin1010|b4_phi(0)_r0_spin1100|b4_phi(0)_r0_spin1111
+primary_distribution,primary_b4_phi1_r0,9,131,0.06870229007633588,transport_images=b4_phi(1)_r0_spin0000|b4_phi(1)_r0_spin0001|b4_phi(1)_r0_spin0010|b4_phi(1)_r0_spin0100|b4_phi(1)_r0_spin0101|b4_phi(1)_r0_spin0111|b4_phi(1)_r0_spin1000|b4_phi(1)_r0_spin1010|b4_phi(1)_r0_spin1110
+primary_distribution,primary_b4_phi2_r0,7,131,0.05343511450381679,transport_images=b4_phi(2)_r0_spin0000|b4_phi(2)_r0_spin0010|b4_phi(2)_r0_spin0101|b4_phi(2)_r0_spin0110|b4_phi(2)_r0_spin1000|b4_phi(2)_r0_spin1001|b4_phi(2)_r0_spin1010
+transport_distribution,transport_b0_phi(0)_r0_spin0000,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b0_phi(0)_r0_spin0001,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b0_phi(0)_r0_spin0010,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b0_phi(0)_r0_spin0100,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b0_phi(0)_r0_spin0101,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b0_phi(0)_r0_spin1000,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b0_phi(0)_r0_spin1010,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b0_phi(0)_r0_spin1100,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b0_phi(0)_r0_spin1111,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b0_phi(1)_r0_spin0000,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b0_phi(1)_r0_spin0001,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b0_phi(1)_r0_spin0010,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b0_phi(1)_r0_spin0100,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b0_phi(1)_r0_spin0101,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b0_phi(1)_r0_spin0111,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b0_phi(1)_r0_spin1000,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b0_phi(1)_r0_spin1010,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b0_phi(1)_r0_spin1110,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b0_phi(2)_r0_spin0000,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b0_phi(2)_r0_spin0001,3,461,0.006507592190889371,reachable operator states carrying this active transport identity
+transport_distribution,transport_b0_phi(2)_r0_spin0010,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b0_phi(2)_r0_spin0100,3,461,0.006507592190889371,reachable operator states carrying this active transport identity
+transport_distribution,transport_b0_phi(2)_r0_spin0101,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b0_phi(2)_r0_spin0110,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b0_phi(2)_r0_spin1000,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b0_phi(2)_r0_spin1001,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b0_phi(2)_r0_spin1010,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b1_phi(0)_r0_spin0000,3,461,0.006507592190889371,reachable operator states carrying this active transport identity
+transport_distribution,transport_b1_phi(0)_r0_spin0001,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b1_phi(0)_r0_spin0010,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b1_phi(0)_r0_spin0100,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b1_phi(0)_r0_spin0101,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b1_phi(0)_r0_spin1000,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b1_phi(0)_r0_spin1010,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b1_phi(0)_r0_spin1100,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b1_phi(0)_r0_spin1111,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b1_phi(1)_r0_spin0000,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b1_phi(1)_r0_spin0001,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b1_phi(1)_r0_spin0010,3,461,0.006507592190889371,reachable operator states carrying this active transport identity
+transport_distribution,transport_b1_phi(1)_r0_spin0100,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b1_phi(1)_r0_spin0101,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b1_phi(1)_r0_spin0111,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b1_phi(1)_r0_spin1000,3,461,0.006507592190889371,reachable operator states carrying this active transport identity
+transport_distribution,transport_b1_phi(1)_r0_spin1010,3,461,0.006507592190889371,reachable operator states carrying this active transport identity
+transport_distribution,transport_b1_phi(1)_r0_spin1110,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b1_phi(2)_r0_spin0000,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b1_phi(2)_r0_spin0001,1,461,0.0021691973969631237,reachable operator states carrying this active transport identity
+transport_distribution,transport_b1_phi(2)_r0_spin0010,3,461,0.006507592190889371,reachable operator states carrying this active transport identity
+transport_distribution,transport_b1_phi(2)_r0_spin0100,1,461,0.0021691973969631237,reachable operator states carrying this active transport identity
+transport_distribution,transport_b1_phi(2)_r0_spin0101,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b1_phi(2)_r0_spin0110,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b1_phi(2)_r0_spin1000,3,461,0.006507592190889371,reachable operator states carrying this active transport identity
+transport_distribution,transport_b1_phi(2)_r0_spin1001,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b1_phi(2)_r0_spin1010,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b2_phi(0)_r0_spin0000,1,461,0.0021691973969631237,reachable operator states carrying this active transport identity
+transport_distribution,transport_b2_phi(0)_r0_spin0001,3,461,0.006507592190889371,reachable operator states carrying this active transport identity
+transport_distribution,transport_b2_phi(0)_r0_spin0010,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b2_phi(0)_r0_spin0100,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b2_phi(0)_r0_spin0101,3,461,0.006507592190889371,reachable operator states carrying this active transport identity
+transport_distribution,transport_b2_phi(0)_r0_spin1000,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b2_phi(0)_r0_spin1010,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b2_phi(0)_r0_spin1100,3,461,0.006507592190889371,reachable operator states carrying this active transport identity
+transport_distribution,transport_b2_phi(0)_r0_spin1111,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b2_phi(1)_r0_spin0000,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b2_phi(1)_r0_spin0001,3,461,0.006507592190889371,reachable operator states carrying this active transport identity
+transport_distribution,transport_b2_phi(1)_r0_spin0010,1,461,0.0021691973969631237,reachable operator states carrying this active transport identity
+transport_distribution,transport_b2_phi(1)_r0_spin0100,3,461,0.006507592190889371,reachable operator states carrying this active transport identity
+transport_distribution,transport_b2_phi(1)_r0_spin0101,3,461,0.006507592190889371,reachable operator states carrying this active transport identity
+transport_distribution,transport_b2_phi(1)_r0_spin0111,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b2_phi(1)_r0_spin1000,1,461,0.0021691973969631237,reachable operator states carrying this active transport identity
+transport_distribution,transport_b2_phi(1)_r0_spin1010,1,461,0.0021691973969631237,reachable operator states carrying this active transport identity
+transport_distribution,transport_b2_phi(1)_r0_spin1110,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b2_phi(2)_r0_spin0000,3,461,0.006507592190889371,reachable operator states carrying this active transport identity
+transport_distribution,transport_b2_phi(2)_r0_spin0010,1,461,0.0021691973969631237,reachable operator states carrying this active transport identity
+transport_distribution,transport_b2_phi(2)_r0_spin0101,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b2_phi(2)_r0_spin0110,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b2_phi(2)_r0_spin1000,1,461,0.0021691973969631237,reachable operator states carrying this active transport identity
+transport_distribution,transport_b2_phi(2)_r0_spin1001,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b2_phi(2)_r0_spin1010,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b3_phi(0)_r0_spin0000,3,461,0.006507592190889371,reachable operator states carrying this active transport identity
+transport_distribution,transport_b3_phi(0)_r0_spin0001,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b3_phi(0)_r0_spin0010,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b3_phi(0)_r0_spin0100,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b3_phi(0)_r0_spin0101,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b3_phi(0)_r0_spin1000,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b3_phi(0)_r0_spin1010,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b3_phi(0)_r0_spin1100,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b3_phi(0)_r0_spin1111,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b3_phi(1)_r0_spin0000,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b3_phi(1)_r0_spin0001,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b3_phi(1)_r0_spin0010,3,461,0.006507592190889371,reachable operator states carrying this active transport identity
+transport_distribution,transport_b3_phi(1)_r0_spin0100,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b3_phi(1)_r0_spin0101,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b3_phi(1)_r0_spin0111,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b3_phi(1)_r0_spin1000,3,461,0.006507592190889371,reachable operator states carrying this active transport identity
+transport_distribution,transport_b3_phi(1)_r0_spin1010,3,461,0.006507592190889371,reachable operator states carrying this active transport identity
+transport_distribution,transport_b3_phi(1)_r0_spin1110,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b3_phi(2)_r0_spin0000,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b3_phi(2)_r0_spin0001,1,461,0.0021691973969631237,reachable operator states carrying this active transport identity
+transport_distribution,transport_b3_phi(2)_r0_spin0010,3,461,0.006507592190889371,reachable operator states carrying this active transport identity
+transport_distribution,transport_b3_phi(2)_r0_spin0100,1,461,0.0021691973969631237,reachable operator states carrying this active transport identity
+transport_distribution,transport_b3_phi(2)_r0_spin0101,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b3_phi(2)_r0_spin0110,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b3_phi(2)_r0_spin1000,3,461,0.006507592190889371,reachable operator states carrying this active transport identity
+transport_distribution,transport_b3_phi(2)_r0_spin1001,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b3_phi(2)_r0_spin1010,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b4_phi(0)_r0_spin0000,2,461,0.004338394793926247,reachable operator states carrying this active transport identity
+transport_distribution,transport_b4_phi(0)_r0_spin0001,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b4_phi(0)_r0_spin0010,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b4_phi(0)_r0_spin0100,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b4_phi(0)_r0_spin0101,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b4_phi(0)_r0_spin1000,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b4_phi(0)_r0_spin1010,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b4_phi(0)_r0_spin1100,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b4_phi(0)_r0_spin1111,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b4_phi(1)_r0_spin0000,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b4_phi(1)_r0_spin0001,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b4_phi(1)_r0_spin0010,2,461,0.004338394793926247,reachable operator states carrying this active transport identity
+transport_distribution,transport_b4_phi(1)_r0_spin0100,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b4_phi(1)_r0_spin0101,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b4_phi(1)_r0_spin0111,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b4_phi(1)_r0_spin1000,2,461,0.004338394793926247,reachable operator states carrying this active transport identity
+transport_distribution,transport_b4_phi(1)_r0_spin1010,2,461,0.004338394793926247,reachable operator states carrying this active transport identity
+transport_distribution,transport_b4_phi(1)_r0_spin1110,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b4_phi(2)_r0_spin0000,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b4_phi(2)_r0_spin0010,2,461,0.004338394793926247,reachable operator states carrying this active transport identity
+transport_distribution,transport_b4_phi(2)_r0_spin0101,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b4_phi(2)_r0_spin0110,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b4_phi(2)_r0_spin1000,2,461,0.004338394793926247,reachable operator states carrying this active transport identity
+transport_distribution,transport_b4_phi(2)_r0_spin1001,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+transport_distribution,transport_b4_phi(2)_r0_spin1010,4,461,0.008676789587852495,reachable operator states carrying this active transport identity
+spin_distribution,spin_0000,52,461,0.11279826464208242,distribution of predictive spin component among reachable states
+spin_distribution,spin_0001,43,461,0.09327548806941431,distribution of predictive spin component among reachable states
+spin_distribution,spin_0010,46,461,0.09978308026030369,distribution of predictive spin component among reachable states
+spin_distribution,spin_0100,44,461,0.09544468546637744,distribution of predictive spin component among reachable states
+spin_distribution,spin_0101,58,461,0.12581344902386118,distribution of predictive spin component among reachable states
+spin_distribution,spin_0110,20,461,0.04338394793926247,distribution of predictive spin component among reachable states
+spin_distribution,spin_0111,20,461,0.04338394793926247,distribution of predictive spin component among reachable states
+spin_distribution,spin_1000,46,461,0.09978308026030369,distribution of predictive spin component among reachable states
+spin_distribution,spin_1001,20,461,0.04338394793926247,distribution of predictive spin component among reachable states
+spin_distribution,spin_1010,53,461,0.11496746203904555,distribution of predictive spin component among reachable states
+spin_distribution,spin_1100,19,461,0.04121475054229935,distribution of predictive spin component among reachable states
+spin_distribution,spin_1110,20,461,0.04338394793926247,distribution of predictive spin component among reachable states
+spin_distribution,spin_1111,20,461,0.04338394793926247,distribution of predictive spin component among reachable states
+class_distribution,class_b0_r0_spin0000,12,461,0.026030368763557483,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b0_r0_spin0001,11,461,0.02386117136659436,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b0_r0_spin0010,12,461,0.026030368763557483,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b0_r0_spin0100,11,461,0.02386117136659436,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b0_r0_spin0101,12,461,0.026030368763557483,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b0_r0_spin0110,4,461,0.008676789587852495,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b0_r0_spin0111,4,461,0.008676789587852495,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b0_r0_spin1000,12,461,0.026030368763557483,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b0_r0_spin1001,4,461,0.008676789587852495,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b0_r0_spin1010,12,461,0.026030368763557483,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b0_r0_spin1100,4,461,0.008676789587852495,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b0_r0_spin1110,4,461,0.008676789587852495,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b0_r0_spin1111,4,461,0.008676789587852495,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b1_r0_spin0000,11,461,0.02386117136659436,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b1_r0_spin0001,9,461,0.019522776572668113,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b1_r0_spin0010,10,461,0.021691973969631236,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b1_r0_spin0100,9,461,0.019522776572668113,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b1_r0_spin0101,12,461,0.026030368763557483,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b1_r0_spin0110,4,461,0.008676789587852495,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b1_r0_spin0111,4,461,0.008676789587852495,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b1_r0_spin1000,10,461,0.021691973969631236,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b1_r0_spin1001,4,461,0.008676789587852495,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b1_r0_spin1010,11,461,0.02386117136659436,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b1_r0_spin1100,4,461,0.008676789587852495,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b1_r0_spin1110,4,461,0.008676789587852495,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b1_r0_spin1111,4,461,0.008676789587852495,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b2_r0_spin0000,8,461,0.01735357917570499,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b2_r0_spin0001,6,461,0.013015184381778741,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b2_r0_spin0010,6,461,0.013015184381778741,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b2_r0_spin0100,7,461,0.015184381778741865,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b2_r0_spin0101,10,461,0.021691973969631236,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b2_r0_spin0110,4,461,0.008676789587852495,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b2_r0_spin0111,4,461,0.008676789587852495,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b2_r0_spin1000,6,461,0.013015184381778741,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b2_r0_spin1001,4,461,0.008676789587852495,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b2_r0_spin1010,9,461,0.019522776572668113,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b2_r0_spin1100,3,461,0.006507592190889371,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b2_r0_spin1110,4,461,0.008676789587852495,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b2_r0_spin1111,4,461,0.008676789587852495,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b3_r0_spin0000,11,461,0.02386117136659436,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b3_r0_spin0001,9,461,0.019522776572668113,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b3_r0_spin0010,10,461,0.021691973969631236,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b3_r0_spin0100,9,461,0.019522776572668113,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b3_r0_spin0101,12,461,0.026030368763557483,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b3_r0_spin0110,4,461,0.008676789587852495,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b3_r0_spin0111,4,461,0.008676789587852495,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b3_r0_spin1000,10,461,0.021691973969631236,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b3_r0_spin1001,4,461,0.008676789587852495,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b3_r0_spin1010,11,461,0.02386117136659436,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b3_r0_spin1100,4,461,0.008676789587852495,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b3_r0_spin1110,4,461,0.008676789587852495,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b3_r0_spin1111,4,461,0.008676789587852495,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b4_r0_spin0000,10,461,0.021691973969631236,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b4_r0_spin0001,8,461,0.01735357917570499,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b4_r0_spin0010,8,461,0.01735357917570499,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b4_r0_spin0100,8,461,0.01735357917570499,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b4_r0_spin0101,12,461,0.026030368763557483,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b4_r0_spin0110,4,461,0.008676789587852495,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b4_r0_spin0111,4,461,0.008676789587852495,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b4_r0_spin1000,8,461,0.01735357917570499,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b4_r0_spin1001,4,461,0.008676789587852495,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b4_r0_spin1010,10,461,0.021691973969631236,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b4_r0_spin1100,4,461,0.008676789587852495,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b4_r0_spin1110,4,461,0.008676789587852495,distribution of active transport identities by transport-side class coordinates
+class_distribution,class_b4_r0_spin1111,4,461,0.008676789587852495,distribution of active transport identities by transport-side class coordinates

@@ -1,0 +1,85 @@
+{
+  "probe": "geometry_space_type_probe_v1",
+  "branch": "geometry_space_type_probe_v1",
+  "contract": "prompt_contract_v4.md",
+  "n_samples": 1024,
+  "n_per_class": 256,
+  "vocab": 4,
+  "operator": "cos_metric",
+  "basis": "apply_anchor_two_i (2i frame)",
+  "comparison_subspace": "H3 pair (per-space equivalent subspace)",
+  "eps_high": 1.0,
+  "no_training": true,
+  "threshold_meaningful_delta": 0.05,
+  "space_candidates": {
+    "CURRENT_BASELINE": {
+      "description": "R^16 hybrid: 12 angular (6 harmonic pairs) + 4 magnitude",
+      "dims": 16,
+      "h3_dims": [
+        10,
+        11
+      ],
+      "angular_dims": 12,
+      "magnitude_dims": 4
+    },
+    "R4_FLAT": {
+      "description": "R^4: h2+h3 pairs of dominant block (block3) only",
+      "dims": 4,
+      "h3_dims": [
+        2,
+        3
+      ],
+      "source_dims_from_baseline_angular": [
+        8,
+        9,
+        10,
+        11
+      ],
+      "angular_dims": 4,
+      "magnitude_dims": 0
+    },
+    "REDUCED_BLOCK": {
+      "description": "R^12: 12 angular dims only (4 magnitude dims removed from R^16)",
+      "dims": 12,
+      "h3_dims": [
+        10,
+        11
+      ],
+      "angular_dims": 12,
+      "magnitude_dims": 0
+    }
+  },
+  "separation_metrics": {
+    "CURRENT_BASELINE": {
+      "mean_matched_cos": 1.0,
+      "mean_mismatched_cos": -0.33333333,
+      "separation_delta": 1.33333333,
+      "n_matched_pairs": 1024,
+      "n_mismatched_pairs": 3072
+    },
+    "R4_FLAT": {
+      "mean_matched_cos": 1.0,
+      "mean_mismatched_cos": -0.33333333,
+      "separation_delta": 1.33333333,
+      "n_matched_pairs": 1024,
+      "n_mismatched_pairs": 3072
+    },
+    "REDUCED_BLOCK": {
+      "mean_matched_cos": 1.0,
+      "mean_mismatched_cos": -0.33333333,
+      "separation_delta": 1.33333333,
+      "n_matched_pairs": 1024,
+      "n_mismatched_pairs": 3072
+    }
+  },
+  "classification": "SPACE_INVARIANT_SIGNAL",
+  "structural_equivalence_pass": true,
+  "structural_equivalence_detail": {
+    "n_samples_consistent": true,
+    "h3_identical_baseline_vs_r4": true,
+    "h3_identical_baseline_vs_reduced": true,
+    "h3_max_diff_r4": 0.0,
+    "h3_max_diff_reduced": 0.0,
+    "prototype_count_per_space": 4
+  }
+}

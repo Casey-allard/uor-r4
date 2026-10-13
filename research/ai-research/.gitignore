@@ -1,0 +1,9 @@
+.DS_Store
+__pycache__/
+*.pyc
+MUDBench/tmp/
+ai-router/Archive.zip
+ai-router/paper1_arxiv_submission_bundle.tar.gz
+ai-router/paper1_master_spec_impl.zip
+ai-router/router-research/results/prime_transport_recursive_system/state_cache/state_tables_full.pt
+*terres_arctiques_11-c.130-1740.png

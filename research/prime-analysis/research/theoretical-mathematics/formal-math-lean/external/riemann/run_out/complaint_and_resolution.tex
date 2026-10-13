@@ -1,0 +1,283 @@
+\documentclass[11pt]{amsart}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+\newcommand{\C}{\mathbb{C}}
+\newcommand{\R}{\mathbb{R}}
+\DeclareMathOperator{\dettwo}{det_2}
+
+\title{Complaint and Resolution:\\
+The box-energy bound in the zero-free region proof}
+\author{Technical companion to paper1\_zerozeta-v19}
+\date{February 7, 2026}
+
+\begin{document}
+\maketitle
+
+\section{Context}
+
+The paper proves:
+
+\begin{theorem}[Far-field zero-freeness]
+The Riemann zeta function has no zeros in the region
+$\{\,s\in\C:\ \Re s\ge 0.6\,\}$.
+\end{theorem}
+
+The proof proceeds by contradiction: assuming a zero $\rho_0=\beta_0+i\gamma_0$
+with $\beta_0\ge 0.6$ exists, it derives a quantitative conflict between
+a phase-velocity lower bound (from the zero's Poisson balayage) and a
+CR--Green upper bound (from a Whitney-box energy estimate).
+
+During adversarial review, three complaints were raised against the energy bound.
+This document states each complaint precisely and explains how it is resolved
+in the current version of the paper.
+
+\section{Complaint 1: the $V\ge 0$ circularity}
+
+\subsection*{The complaint}
+
+The original proof defined $V:=-\log|\mathcal J_{\rm out}|\ge 0$ and used
+this positivity to derive the energy bound via a strip comparison and
+interior gradient estimate.
+But $\mathcal J_{\rm out}$ is \emph{meromorphic} on $\Omega=\{\Re s>1/2\}$
+with poles at zeros of~$\zeta$.
+Near a pole, $|\mathcal J_{\rm out}|\to\infty$, so $V<0$.
+Asserting $V\ge 0$ is equivalent to assuming $\mathcal J_{\rm out}$ has no poles,
+which is the conclusion being proved.
+\textbf{The proof was circular.}
+
+\subsection*{The resolution: the inner reciprocal}
+
+Define the \emph{analytic inner reciprocal}
+\[
+  \mathcal I(s)\ :=\ \frac{B(s)^2}{\mathcal J_{\rm out}(s)}
+  \ =\ \frac{B(s)\,\mathcal O_\zeta(s)\,\zeta(s)}{\dettwo(I-A(s))}\,,
+  \qquad B(s):=\frac{s-1}{s}.
+\]
+
+\begin{itemize}
+\item $\mathcal I$ is \textbf{holomorphic} on $\Omega$:
+  the pole of $\zeta$ at $s=1$ is canceled by $B$;
+  zeros of $\zeta$ become \emph{zeros} (not poles) of $\mathcal I$;
+  $\dettwo(I-A)$ is nonvanishing on $\Omega$.
+
+\item $|\mathcal I(\tfrac12+it)|=1$ for a.e.\ $t$:
+  on $\partial\Omega$, $|B|=1$ and $|\mathcal J_{\rm out}|=1$.
+
+\item $|\mathcal I(s)|\le 1$ for all $s\in\Omega$:
+  by the Phragm\'en--Lindel\"of principle applied to $\log|\mathcal I|$
+  (subharmonic, boundary trace~$0$ a.e., growth $o(|s|)$).
+\end{itemize}
+
+The nonnegative potential $W:=-\log|\mathcal I|\ge 0$ is therefore
+\textbf{unconditionally} nonnegative.
+No assumption about $\zeta$-zeros is used.
+
+\subsection*{Why the PL argument is fully justified}
+
+A concern was raised that the PL bound ``$|\mathcal I|\le 1$ from a.e.\ boundary
+unimodularity'' requires hidden Smirnov or Hardy class hypotheses.
+
+This is not the case.
+The PL principle for the half-plane states:
+
+\begin{quote}
+\emph{If $u$ is subharmonic on $\Omega$, has nontangential boundary trace
+$u^*\le 0$ a.e., and satisfies $u(s)=o(|s|)$ as $|s|\to\infty$ in~$\Omega$,
+then $u\le 0$ on~$\Omega$.}
+\end{quote}
+
+For $u=\log|\mathcal I|$:
+\begin{enumerate}
+\item $u$ is subharmonic ($\mathcal I$ holomorphic).
+\item The nontangential boundary trace $u^*=0$ a.e.\ is established by
+  showing that each factor of $\mathcal I=B\,\mathcal O_\zeta\,\zeta/\dettwo$
+  has $L^1_{\rm loc}$-convergent log-modulus as $\sigma\to 0$:
+  \begin{itemize}
+  \item $\log|B|\to 0$ uniformly ($B$ is continuous, $|B^*|=1$);
+  \item $\log|\mathcal O_\zeta|\to u(t)$ in $L^1_{\rm loc}$
+    (Poisson extension of boundary data);
+  \item $\log|\zeta(\tfrac12+\sigma+it)|\to\log|\zeta^*(t)|$ in $L^1_{\rm loc}$
+    (the paper's boundary-trace lemma);
+  \item $\log|\dettwo(\tfrac12+\sigma+it)|\to\log|\dettwo^*(t)|$ in $L^1_{\rm loc}$
+    (BMO trace from the arithmetic Carleson energy).
+  \end{itemize}
+  By the algebraic identity $u=\log|\dettwo^*|-\log|\zeta^*|$
+  (from the construction of $\mathcal O_\zeta$), the traces sum to~$0$.
+\item $u(s)=O(\log(2+|s|))=o(|s|)$ (polynomial growth from convexity bounds).
+\end{enumerate}
+
+No Smirnov/Hardy class is invoked. Only the PL principle for subharmonic functions
+with controlled growth and boundary trace.
+
+\section{Complaint 2: the $\log^2\!\langle t_0\rangle$ growth\\
+and short-interval zero control}
+
+\subsection*{The complaint}
+
+The energy bound gives $E(I)\le C\log^2\!\langle t_0\rangle\,|I|$ on Whitney boxes.
+With a \emph{fixed} Whitney parameter~$c$, the CR--Green upper bound
+$O(\sqrt{c\log\langle\gamma_0\rangle})$ grows as $\sqrt{\log}$
+and eventually exceeds the lower bound~$11$ from the hypothetical zero.
+So the contradiction does not close at all heights with a single fixed~$c$.
+
+Additionally, the bound $M=\sup_{\partial D}\widetilde W\le C_*\log\langle t_0\rangle$
+was claimed to require ``short-interval zero control at scale~$L$'' ---
+specifically the bound $N(T;H)\le A_0+A_1H\log\langle T\rangle$ with $A_0$
+independent of~$T$, which is not a consequence of the classical Riemann--von
+Mangoldt formula.
+
+\subsection*{The resolution}
+
+\textbf{(a) The $M$ bound does not require short-interval control.}
+
+The Poisson-averaged Green-kernel sum over far zeros is:
+\[
+  \sum_{|\gamma-t_0|>\alpha''L}G_\Omega(s,\rho)
+  \;\le\;\alpha'L\int_{\alpha''L}^{\infty}\frac{C_{\rm RvM}\log\langle t_0\rangle}{r^2}\,dr
+  \;=\;\frac{\alpha'C_{\rm RvM}\log\langle t_0\rangle}{\alpha''}.
+\]
+
+The key cancellation: the factor $\sigma\le\alpha'L$ in the Green kernel numerator
+cancels the $1/(\alpha''L)$ from the integral $\int_{\alpha''L}^\infty 1/r^2\,dr$.
+The result $\alpha'C_{\rm RvM}\log\langle t_0\rangle/\alpha''$ is
+\textbf{independent of $L$ and $c$}.
+
+Only the coarse $O(\log\langle t_0\rangle)$ zero count per unit ordinate interval
+is used (a standard consequence of Riemann--von Mangoldt).
+No short-interval control at scale~$L$ is needed.
+
+\medskip
+\textbf{(b) The $\log^2$ growth is absorbed by the height-dependent $c$ trick.}
+
+In a proof by contradiction, $\gamma_0$ is fixed, so $c$ may depend on~$\gamma_0$.
+Choosing $c=c_0/\log\langle\gamma_0\rangle$ gives $L=c_0/\log^2\!\langle\gamma_0\rangle$
+and
+\[
+  E_{\rm eff}(I)\;=\;C\log^2\!\langle\gamma_0\rangle\cdot|I|
+  \;=\;C\log^2\!\langle\gamma_0\rangle\cdot\frac{2c_0}{\log^2\!\langle\gamma_0\rangle}
+  \;=\;2Cc_0
+  \qquad\text{(height-independent)}.
+\]
+
+The constant $C=C_3C_*^2$ depends only on apertures $(\alpha',\alpha'')$ and the
+RvM/convexity constants---\textbf{not on $c$}---because $C_*$ is independent of $L$
+(see part~(a) above).
+
+\section{Complaint 3: the singular inner factor}
+
+\subsection*{The complaint}
+
+The inner reciprocal $\mathcal I$ may have a nontrivial singular inner factor~$S$
+in its canonical factorization $\mathcal I=e^{i\theta}B_{\mathcal I}S$.
+The term $-\log|S|$ is the Poisson integral of a singular measure~$\nu_S$,
+and on Whitney boxes of height $\sigma\sim L$, it could blow up as
+$\nu_S(\R)/L$ without an a~priori bound on~$\nu_S$.
+
+An earlier version of the paper attempted to prove $S\equiv 1$ via a
+strip comparison for the superharmonic function $W=-\log|\mathcal I|$,
+but the comparison principle goes the wrong way for superharmonic functions
+(the maximum, not the minimum, can be achieved at interior singularities).
+
+\subsection*{The resolution: the singular inner factor is absorbed by the global $W$ bound}
+
+The key observation:
+\[
+  -\log|S(s)|\ \le\ -\log|\mathcal I(s)|\ =\ W(s)
+  \qquad(s\in\Omega),
+\]
+because $|\mathcal I|=|B_{\mathcal I}|\cdot|S|\le|S|$
+(the Blaschke part satisfies $|B_{\mathcal I}|\le 1$).
+
+And $W(s)\le N\log(2+|t|)+C$ on $\{0<\sigma\le 1\}$
+from the polynomial growth bound in Lemma~\texttt{inner-reciprocal}(3)
+(convexity bounds for $\zeta$, convergent products for $\dettwo$,
+Poisson-controlled modulus of $\mathcal O_\zeta$).
+
+This is a \textbf{pointwise} upper bound on $-\log|S|$ that:
+\begin{itemize}
+\item does not depend on the singular measure $\nu_S$,
+\item does not depend on $L$ or $c$,
+\item does not require proving $S\equiv 1$.
+\end{itemize}
+
+On the dilated Whitney box $\partial D$: $-\log|S|\le W\le N\log\langle t_0\rangle+C$,
+which is absorbed into the boundary bound $M\le C_*\log\langle t_0\rangle$ with
+$C_*$ depending only on the convexity exponent~$N$ and the apertures.
+
+\section{Complaint 4: the near-zero count and energy}
+
+\subsection*{The complaint}
+
+The paper originally claimed that the number of zeros of $\mathcal I$ inside the
+Whitney box is $O(1)$.
+The correct bound (from Riemann--von Mangoldt) is $O(\log\langle t_0\rangle)$,
+not~$O(1)$, because the RvM error term $O(\log T)$ dominates on Whitney scale.
+
+\subsection*{The resolution: near-zero charges are separate from the smooth-part bound}
+
+The $O(\log\langle t_0\rangle)$ in-box zeros of $\mathcal I$ contribute
+\emph{explicit nonnegative charges}
+$2\pi\sum m_jV_\phi(\rho_j)\ge 0$
+to the total windowed phase via the distributional Green identity
+on the punctured domain.
+
+These charges \textbf{add to the total phase but do not enter the
+Cauchy--Schwarz energy bound for the smooth part}.
+
+The CR--Green pairing bounds the \emph{smooth part} of the windowed phase
+(the boundary normal derivative of the neutralized harmonic function~$\widetilde W$).
+The hypothetical zero $\rho_0$ at $\beta_0\ge 0.6$ lies \textbf{outside} the box
+(since $\delta_0=\beta_0-1/2\ge 0.1>\alpha'L$ for $t_0$ large),
+so its Poisson contribution enters the smooth part, not the charge term.
+
+The contradiction is therefore between:
+\begin{itemize}
+\item \textbf{Smooth-part lower bound} (from $\rho_0$): $\ge 11L$
+\item \textbf{Smooth-part upper bound} (from CR--Green on $\widetilde W$):
+  $\le A\sqrt{c_0}\cdot L$
+\end{itemize}
+For $c_0<(11/A)^2$: $A\sqrt{c_0}<11$. \textbf{Contradiction.}
+
+The near-zero count ($O(1)$ or $O(\log T)$) is irrelevant to this comparison.
+
+\section{Summary: the contradiction algebra}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{lll}
+\toprule
+\textbf{Quantity} & \textbf{Value} & \textbf{Scaling}\\
+\midrule
+Whitney parameter & $c=c_0/\log\langle\gamma_0\rangle$ & height-dependent\\
+Box half-length & $L=c_0/\log^2\!\langle\gamma_0\rangle$ & $\to 0$\\
+Interval length & $|I|=2c_0/\log^2\!\langle\gamma_0\rangle$ & $\to 0$\\
+Boundary bound & $M=C_*\log\langle\gamma_0\rangle$ & grows\\
+Effective energy & $E_{\rm eff}=C_3C_*^2\log^2\cdot|I|=2C_3C_*^2c_0$ & \textbf{constant}\\
+Smooth-part upper & $A\sqrt{c_0}\cdot L$ & $\propto L$\\
+Smooth-part lower (from $\rho_0$) & $11L$ & $\propto L$\\
+\textbf{Ratio upper/lower} & $A\sqrt{c_0}/11$ & \textbf{height-independent}\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\medskip
+For $c_0=(11/A)^2/2$: ratio $=1/\sqrt{2}<1$. \textbf{Contradiction at every height.}
+
+The $\log^2$ from the energy cancels the $1/\log^2$ from $|I|$.
+The singular inner factor is absorbed by the PL bound on~$W$.
+The near-zero charges don't enter the smooth-part comparison.
+The constant~$A$ depends only on apertures $(\alpha',\alpha'')$,
+the convexity exponent~$N$, and $C_{\rm RvM}$---none of which depend on~$c$ or~$\gamma_0$.
+
+\end{document}

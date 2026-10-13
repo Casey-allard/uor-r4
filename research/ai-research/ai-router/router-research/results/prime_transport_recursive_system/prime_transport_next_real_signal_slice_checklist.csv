@@ -1,0 +1,11 @@
+category,item,value,reason
+slice,replay_1,/Users/adminamn/AI-Research/MUDBench/tmp/timing_mode_eval_v1/off_baseline.json.replay.json,Current guarded real-signal source already used in the first replay trial.
+slice,replay_2,/Users/adminamn/AI-Research/MUDBench/tmp/timing_mode_eval_v1/equal-cadence_baseline.json.replay.json,Smallest already-available companion replay that expands the slice without defining a new benchmark family.
+slice,scenario_set,"tiny-delayed-retrieval;tiny-fetch-quest;tiny-hidden-key;tiny-locked-path;tiny-social-trade",Keeps the same canonical tiny-suite scenario set for direct comparability.
+slice,total_runs,10,Two replay artifacts with five runs each.
+slice,total_steps,64,Doubles the current replay-based real-signal step budget from 32 to 64.
+guardrail,boundary,research-only wrapper boundary only,No live MUDBench seam changes.
+guardrail,policy,keep original base_gap policy unchanged,Do not redesign routing policy before the larger slice test.
+guardrail,comparison,"base_gap;angular_hopf;angular_hopf_guarded(optional diagnostic)",Preserve direct comparability to the current guarded real-signal result.
+metric,required,"route_reuse_fraction;fallback_step_fraction;effective_resolved_fraction;route_decision_instability",Same bounded metrics already established.
+decision_gate,question,Does natural route reuse emerge on the paired replay slice without artificial coarsening?,This is the next unresolved practical question.

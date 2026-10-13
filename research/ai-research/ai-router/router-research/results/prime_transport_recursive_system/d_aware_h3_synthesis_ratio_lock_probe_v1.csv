@@ -1,0 +1,226 @@
+case,D,timestep,match_flag,success_flag,full_radial,subspace_radial,radial_ratio,cos_metric,sin_metric,candidate_name,candidate_value,n_samples,notes
+A_stripped_carrier,20,20,1,1,3.162277,1.000000,0.316228,1.000000,-0.000000,step_cos,1.000000,1024,eps=1.0; H3 frozen; radial=constant; cos=1.0 trivially; n_success=1024
+A_stripped_carrier,20,20,1,1,3.162277,1.000000,0.316228,1.000000,-0.000000,h1_cos,-0.051547,1024,eps=1.0; H3 frozen; radial=constant; cos=1.0 trivially; n_success=1024
+A_stripped_carrier,20,20,1,1,3.162277,1.000000,0.316228,1.000000,-0.000000,h3_h1_ratio,19.399595,1024,eps=1.0; H3 frozen; radial=constant; cos=1.0 trivially; n_success=1024
+B_synthesis_overall,1,1,1,-1,3.162277,1.000000,0.316228,0.388672,-0.333984,step_cos,0.388672,1024,eps=0.0; H3 not preserved; n_success=440
+B_synthesis_overall,1,1,1,-1,3.162277,1.000000,0.316228,0.388672,-0.333984,h1_cos,0.483818,1024,eps=0.0; H3 not preserved; n_success=440
+B_synthesis_overall,1,1,1,-1,3.162277,1.000000,0.316228,0.388672,-0.333984,h3_h1_ratio,0.803343,1024,eps=0.0; H3 not preserved; n_success=440
+B_synthesis_overall,5,5,1,-1,3.162277,1.000000,0.316228,-0.009766,-0.107422,step_cos,0.457031,1024,eps=0.0; H3 not preserved; n_success=242
+B_synthesis_overall,5,5,1,-1,3.162277,1.000000,0.316228,-0.009766,-0.107422,h1_cos,0.019809,1024,eps=0.0; H3 not preserved; n_success=242
+B_synthesis_overall,5,5,1,-1,3.162277,1.000000,0.316228,-0.009766,-0.107422,h3_h1_ratio,-0.492986,1024,eps=0.0; H3 not preserved; n_success=242
+B_synthesis_overall,20,20,1,-1,3.162277,1.000000,0.316228,-0.004883,-0.077148,step_cos,0.607422,1024,eps=0.0; H3 not preserved; n_success=239
+B_synthesis_overall,20,20,1,-1,3.162277,1.000000,0.316228,-0.004883,-0.077148,h1_cos,-0.008362,1024,eps=0.0; H3 not preserved; n_success=239
+B_synthesis_overall,20,20,1,-1,3.162277,1.000000,0.316228,-0.004883,-0.077148,h3_h1_ratio,-0.583966,1024,eps=0.0; H3 not preserved; n_success=239
+B_synthesis_overall,32,32,1,-1,3.162277,1.000000,0.316228,0.040039,-0.059570,step_cos,0.697266,1024,eps=0.0; H3 not preserved; n_success=265
+B_synthesis_overall,32,32,1,-1,3.162277,1.000000,0.316228,0.040039,-0.059570,h1_cos,-0.001213,1024,eps=0.0; H3 not preserved; n_success=265
+B_synthesis_overall,32,32,1,-1,3.162277,1.000000,0.316228,0.040039,-0.059570,h3_h1_ratio,33.020008,1024,eps=0.0; H3 not preserved; n_success=265
+C_matched_vs_mismatch,20,20,1,1,3.162277,1.000000,0.316228,1.000000,-0.000000,h1_cos,0.035565,239,eps=0.0; matched (true class); success_flag=1
+C_matched_vs_mismatch,20,20,1,1,3.162277,1.000000,0.316228,1.000000,-0.000000,h3_h1_ratio,28.117640,239,eps=0.0; matched (true class); success_flag=1
+C_matched_vs_mismatch,20,20,1,0,3.162278,1.000000,0.316228,-0.310828,-0.100637,h1_cos,-0.021735,785,eps=0.0; matched (true class); success_flag=0
+C_matched_vs_mismatch,20,20,1,0,3.162278,1.000000,0.316228,-0.310828,-0.100637,h3_h1_ratio,-14.300632,785,eps=0.0; matched (true class); success_flag=0
+C_matched_vs_mismatch,20,20,0,1,3.162277,1.000000,0.316228,0.000000,1.000000,h1_cos,0.035565,239,eps=0.0; mismatched (adjacent class); success_flag=1
+C_matched_vs_mismatch,20,20,0,1,3.162277,1.000000,0.316228,0.000000,1.000000,h3_h1_ratio,0.000003,239,eps=0.0; mismatched (adjacent class); success_flag=1
+C_matched_vs_mismatch,20,20,0,0,3.162278,1.000000,0.316228,0.100637,-0.310828,h1_cos,-0.021735,785,eps=0.0; mismatched (adjacent class); success_flag=0
+C_matched_vs_mismatch,20,20,0,0,3.162278,1.000000,0.316228,0.100637,-0.310828,h3_h1_ratio,4.630122,785,eps=0.0; mismatched (adjacent class); success_flag=0
+D_success_vs_failure,20,20,1,1,3.162277,1.000000,0.316228,1.000000,-0.000000,h1_cos,0.035565,239,eps=0.0; D=20; success_flag=1
+D_success_vs_failure,20,20,1,1,3.162277,1.000000,0.316228,1.000000,-0.000000,h3_h1_ratio,28.117640,239,eps=0.0; D=20; success_flag=1
+D_success_vs_failure,20,20,1,0,3.162278,1.000000,0.316228,-0.310828,-0.100637,h1_cos,-0.021735,785,eps=0.0; D=20; success_flag=0
+D_success_vs_failure,20,20,1,0,3.162278,1.000000,0.316228,-0.310828,-0.100637,h3_h1_ratio,-14.300632,785,eps=0.0; D=20; success_flag=0
+E_phase_evolution,32,0,1,1,3.162277,1.000000,0.316228,1.000000,-0.000000,step_cos,nan,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,0,1,1,3.162277,1.000000,0.316228,1.000000,-0.000000,h1_cos,1.000000,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,0,1,1,3.162277,1.000000,0.316228,1.000000,-0.000000,h3_h1_ratio,1.000000,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,1,1,1,3.162277,1.000000,0.316228,0.366038,-0.286793,step_cos,0.366038,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,1,1,1,3.162277,1.000000,0.316228,0.366038,-0.286793,h1_cos,0.499782,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,1,1,1,3.162277,1.000000,0.316228,0.366038,-0.286793,h3_h1_ratio,0.732394,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,2,1,1,3.162277,1.000000,0.316228,0.207547,-0.083019,step_cos,0.358491,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,2,1,1,3.162277,1.000000,0.316228,0.207547,-0.083019,h1_cos,-0.020348,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,2,1,1,3.162277,1.000000,0.316228,0.207547,-0.083019,h3_h1_ratio,10.199721,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,3,1,1,3.162277,1.000000,0.316228,0.079245,0.022642,step_cos,0.335849,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,3,1,1,3.162277,1.000000,0.316228,0.079245,0.022642,h1_cos,-0.003033,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,3,1,1,3.162277,1.000000,0.316228,0.079245,0.022642,h3_h1_ratio,26.124440,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,4,1,1,3.162277,1.000000,0.316228,0.086792,-0.015094,step_cos,0.320755,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,4,1,1,3.162277,1.000000,0.316228,0.086792,-0.015094,h1_cos,0.081268,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,4,1,1,3.162277,1.000000,0.316228,0.086792,-0.015094,h3_h1_ratio,1.067984,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,5,1,1,3.162277,1.000000,0.316228,0.132075,-0.022642,step_cos,0.418868,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,5,1,1,3.162277,1.000000,0.316228,0.132075,-0.022642,h1_cos,0.011420,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,5,1,1,3.162277,1.000000,0.316228,0.132075,-0.022642,h3_h1_ratio,11.565355,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,6,1,1,3.162277,1.000000,0.316228,0.116981,0.030189,step_cos,0.426415,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,6,1,1,3.162277,1.000000,0.316228,0.116981,0.030189,h1_cos,0.030830,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,6,1,1,3.162277,1.000000,0.316228,0.116981,0.030189,h3_h1_ratio,3.794429,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,7,1,1,3.162277,1.000000,0.316228,0.162264,0.030189,step_cos,0.418868,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,7,1,1,3.162277,1.000000,0.316228,0.162264,0.030189,h1_cos,-0.015564,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,7,1,1,3.162277,1.000000,0.316228,0.162264,0.030189,h3_h1_ratio,10.425864,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,8,1,1,3.162277,1.000000,0.316228,0.083019,0.011321,step_cos,0.460377,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,8,1,1,3.162277,1.000000,0.316228,0.083019,0.011321,h1_cos,0.060242,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,8,1,1,3.162277,1.000000,0.316228,0.083019,0.011321,h3_h1_ratio,1.378091,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,9,1,1,3.162277,1.000000,0.316228,0.052830,0.086792,step_cos,0.486793,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,9,1,1,3.162277,1.000000,0.316228,0.052830,0.086792,h1_cos,-0.043495,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,9,1,1,3.162277,1.000000,0.316228,0.052830,0.086792,h3_h1_ratio,1.214616,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,10,1,1,3.162277,1.000000,0.316228,0.132075,0.060377,step_cos,0.467925,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,10,1,1,3.162277,1.000000,0.316228,0.132075,0.060377,h1_cos,0.026415,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,10,1,1,3.162277,1.000000,0.316228,0.132075,0.060377,h3_h1_ratio,5.000000,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,11,1,1,3.162277,1.000000,0.316228,0.132075,-0.015094,step_cos,0.509434,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,11,1,1,3.162277,1.000000,0.316228,0.132075,-0.015094,h1_cos,-0.050438,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,11,1,1,3.162277,1.000000,0.316228,0.132075,-0.015094,h3_h1_ratio,2.618580,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,12,1,1,3.162277,1.000000,0.316228,0.233962,0.018868,step_cos,0.445283,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,12,1,1,3.162277,1.000000,0.316228,0.233962,0.018868,h1_cos,-0.010815,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,12,1,1,3.162277,1.000000,0.316228,0.233962,0.018868,h3_h1_ratio,21.632764,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,13,1,1,3.162277,1.000000,0.316228,0.230189,-0.090566,step_cos,0.483019,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,13,1,1,3.162277,1.000000,0.316228,0.230189,-0.090566,h1_cos,-0.019238,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,13,1,1,3.162277,1.000000,0.316228,0.230189,-0.090566,h3_h1_ratio,11.965294,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,14,1,1,3.162277,1.000000,0.316228,0.200000,0.000000,step_cos,0.509434,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,14,1,1,3.162277,1.000000,0.316228,0.200000,0.000000,h1_cos,-0.065433,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,14,1,1,3.162277,1.000000,0.316228,0.200000,0.000000,h3_h1_ratio,3.056561,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,15,1,1,3.162277,1.000000,0.316228,0.249057,0.033962,step_cos,0.535849,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,15,1,1,3.162277,1.000000,0.316228,0.249057,0.033962,h1_cos,-0.026144,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,15,1,1,3.162277,1.000000,0.316228,0.249057,0.033962,h3_h1_ratio,9.526280,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,16,1,1,3.162277,1.000000,0.316228,0.260377,0.007547,step_cos,0.513208,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,16,1,1,3.162277,1.000000,0.316228,0.260377,0.007547,h1_cos,-0.069035,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,16,1,1,3.162277,1.000000,0.316228,0.260377,0.007547,h3_h1_ratio,3.771680,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,17,1,1,3.162277,1.000000,0.316228,0.275472,-0.037736,step_cos,0.577359,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,17,1,1,3.162277,1.000000,0.316228,0.275472,-0.037736,h1_cos,0.037366,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,17,1,1,3.162277,1.000000,0.316228,0.275472,-0.037736,h3_h1_ratio,7.372302,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,18,1,1,3.162277,1.000000,0.316228,0.267925,-0.045283,step_cos,0.547170,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,18,1,1,3.162277,1.000000,0.316228,0.267925,-0.045283,h1_cos,0.026243,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,18,1,1,3.162277,1.000000,0.316228,0.267925,-0.045283,h3_h1_ratio,10.209236,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,19,1,1,3.162277,1.000000,0.316228,0.320755,0.007547,step_cos,0.471698,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,19,1,1,3.162277,1.000000,0.316228,0.320755,0.007547,h1_cos,0.010581,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,19,1,1,3.162277,1.000000,0.316228,0.320755,0.007547,h3_h1_ratio,30.315478,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,20,1,1,3.162277,1.000000,0.316228,0.305660,0.015094,step_cos,0.577358,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,20,1,1,3.162277,1.000000,0.316228,0.305660,0.015094,h1_cos,-0.041139,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,20,1,1,3.162277,1.000000,0.316228,0.305660,0.015094,h3_h1_ratio,7.429881,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,21,1,1,3.162277,1.000000,0.316228,0.369811,-0.003774,step_cos,0.558491,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,21,1,1,3.162277,1.000000,0.316228,0.369811,-0.003774,h1_cos,-0.026280,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,21,1,1,3.162277,1.000000,0.316228,0.369811,-0.003774,h3_h1_ratio,14.072168,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,22,1,1,3.162277,1.000000,0.316228,0.433962,-0.067925,step_cos,0.588679,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,22,1,1,3.162277,1.000000,0.316228,0.433962,-0.067925,h1_cos,-0.019879,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,22,1,1,3.162277,1.000000,0.316228,0.433962,-0.067925,h3_h1_ratio,21.830152,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,23,1,1,3.162277,1.000000,0.316228,0.411321,-0.090566,step_cos,0.607547,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,23,1,1,3.162277,1.000000,0.316228,0.411321,-0.090566,h1_cos,-0.086522,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,23,1,1,3.162277,1.000000,0.316228,0.411321,-0.090566,h3_h1_ratio,4.753970,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,24,1,1,3.162277,1.000000,0.316228,0.347170,0.018868,step_cos,0.626415,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,24,1,1,3.162277,1.000000,0.316228,0.347170,0.018868,h1_cos,-0.050907,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,24,1,1,3.162277,1.000000,0.316228,0.347170,0.018868,h3_h1_ratio,6.819677,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,25,1,1,3.162277,1.000000,0.316228,0.396226,-0.060377,step_cos,0.611321,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,25,1,1,3.162277,1.000000,0.316228,0.396226,-0.060377,h1_cos,-0.006301,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,25,1,1,3.162277,1.000000,0.316228,0.396226,-0.060377,h3_h1_ratio,62.879165,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,26,1,1,3.162277,1.000000,0.316228,0.369811,-0.049057,step_cos,0.611321,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,26,1,1,3.162277,1.000000,0.316228,0.369811,-0.049057,h1_cos,0.071292,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,26,1,1,3.162277,1.000000,0.316228,0.369811,-0.049057,h3_h1_ratio,5.187298,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,27,1,1,3.162277,1.000000,0.316228,0.396226,-0.098113,step_cos,0.566038,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,27,1,1,3.162277,1.000000,0.316228,0.396226,-0.098113,h1_cos,-0.023517,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,27,1,1,3.162277,1.000000,0.316228,0.396226,-0.098113,h3_h1_ratio,16.848395,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,28,1,1,3.162277,1.000000,0.316228,0.426415,-0.060377,step_cos,0.600000,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,28,1,1,3.162277,1.000000,0.316228,0.426415,-0.060377,h1_cos,0.039722,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,28,1,1,3.162277,1.000000,0.316228,0.426415,-0.060377,h3_h1_ratio,10.735035,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,29,1,1,3.162277,1.000000,0.316228,0.449057,0.007547,step_cos,0.607547,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,29,1,1,3.162277,1.000000,0.316228,0.449057,0.007547,h1_cos,0.046899,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,29,1,1,3.162277,1.000000,0.316228,0.449057,0.007547,h3_h1_ratio,9.574992,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,30,1,1,3.162277,1.000000,0.316228,0.483019,-0.003774,step_cos,0.641509,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,30,1,1,3.162277,1.000000,0.316228,0.483019,-0.003774,h1_cos,0.027525,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,30,1,1,3.162277,1.000000,0.316228,0.483019,-0.003774,h3_h1_ratio,17.548115,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,31,1,1,3.162277,1.000000,0.316228,0.671698,-0.086793,step_cos,0.637736,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,31,1,1,3.162277,1.000000,0.316228,0.671698,-0.086793,h1_cos,0.047404,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,31,1,1,3.162277,1.000000,0.316228,0.671698,-0.086793,h3_h1_ratio,14.169516,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,32,1,1,3.162277,1.000000,0.316228,1.000000,-0.000000,step_cos,0.671698,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,32,1,1,3.162277,1.000000,0.316228,1.000000,-0.000000,h1_cos,-0.020755,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,32,1,1,3.162277,1.000000,0.316228,1.000000,-0.000000,h3_h1_ratio,48.181835,265,eps=0.0; D=32; success; phase_tracking
+E_phase_evolution,32,0,1,0,3.162278,1.000000,0.316228,1.000000,-0.000000,step_cos,nan,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,0,1,0,3.162278,1.000000,0.316228,1.000000,-0.000000,h1_cos,1.000000,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,0,1,0,3.162278,1.000000,0.316228,1.000000,-0.000000,h3_h1_ratio,1.000000,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,1,1,0,3.162278,1.000000,0.316228,0.396574,-0.350461,step_cos,0.396574,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,1,1,0,3.162278,1.000000,0.316228,0.396574,-0.350461,h1_cos,0.478244,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,1,1,0,3.162278,1.000000,0.316228,0.396574,-0.350461,h3_h1_ratio,0.829230,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,2,1,0,3.162278,1.000000,0.316228,0.118577,-0.198946,step_cos,0.384717,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,2,1,0,3.162278,1.000000,0.316228,0.118577,-0.198946,h1_cos,0.096964,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,2,1,0,3.162278,1.000000,0.316228,0.118577,-0.198946,h3_h1_ratio,1.222901,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,3,1,0,3.162278,1.000000,0.316228,0.001318,-0.076416,step_cos,0.392622,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,3,1,0,3.162278,1.000000,0.316228,0.001318,-0.076416,h1_cos,-0.096409,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,3,1,0,3.162278,1.000000,0.316228,0.001318,-0.076416,h3_h1_ratio,0.013666,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,4,1,0,3.162278,1.000000,0.316228,-0.032938,-0.092227,step_cos,0.507246,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,4,1,0,3.162278,1.000000,0.316228,-0.032938,-0.092227,h1_cos,0.077989,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,4,1,0,3.162278,1.000000,0.316228,-0.032938,-0.092227,h3_h1_ratio,-0.422343,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,5,1,0,3.162278,1.000000,0.316228,-0.059289,-0.137022,step_cos,0.470356,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,5,1,0,3.162278,1.000000,0.316228,-0.059289,-0.137022,h1_cos,0.022738,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,5,1,0,3.162278,1.000000,0.316228,-0.059289,-0.137022,h3_h1_ratio,-2.607438,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,6,1,0,3.162278,1.000000,0.316228,-0.035573,-0.097497,step_cos,0.494071,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,6,1,0,3.162278,1.000000,0.316228,-0.035573,-0.097497,h1_cos,-0.073860,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,6,1,0,3.162278,1.000000,0.316228,-0.035573,-0.097497,h3_h1_ratio,-0.481630,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,7,1,0,3.162278,1.000000,0.316228,-0.034256,-0.098814,step_cos,0.511199,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,7,1,0,3.162278,1.000000,0.316228,-0.034256,-0.098814,h1_cos,0.084930,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,7,1,0,3.162278,1.000000,0.316228,-0.034256,-0.098814,h3_h1_ratio,-0.403341,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,8,1,0,3.162278,1.000000,0.316228,-0.055336,-0.104084,step_cos,0.530962,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,8,1,0,3.162278,1.000000,0.316228,-0.055336,-0.104084,h1_cos,0.004340,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,8,1,0,3.162278,1.000000,0.316228,-0.055336,-0.104084,h3_h1_ratio,-12.749595,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,9,1,0,3.162278,1.000000,0.316228,-0.048748,-0.079051,step_cos,0.500659,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,9,1,0,3.162278,1.000000,0.316228,-0.048748,-0.079051,h1_cos,-0.046627,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,9,1,0,3.162278,1.000000,0.316228,-0.048748,-0.079051,h3_h1_ratio,-1.045501,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,10,1,0,3.162278,1.000000,0.316228,-0.065876,-0.059289,step_cos,0.516469,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,10,1,0,3.162278,1.000000,0.316228,-0.065876,-0.059289,h1_cos,0.059685,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,10,1,0,3.162278,1.000000,0.316228,-0.065876,-0.059289,h3_h1_ratio,-1.103722,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,11,1,0,3.162278,1.000000,0.316228,-0.044796,-0.090909,step_cos,0.520422,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,11,1,0,3.162278,1.000000,0.316228,-0.044796,-0.090909,h1_cos,0.057653,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,11,1,0,3.162278,1.000000,0.316228,-0.044796,-0.090909,h3_h1_ratio,-0.776995,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,12,1,0,3.162278,1.000000,0.316228,-0.069829,-0.094862,step_cos,0.537549,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,12,1,0,3.162278,1.000000,0.316228,-0.069829,-0.094862,h1_cos,-0.079719,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,12,1,0,3.162278,1.000000,0.316228,-0.069829,-0.094862,h3_h1_ratio,-0.875931,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,13,1,0,3.162278,1.000000,0.316228,-0.071146,-0.090909,step_cos,0.587615,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,13,1,0,3.162278,1.000000,0.316228,-0.071146,-0.090909,h1_cos,0.020396,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,13,1,0,3.162278,1.000000,0.316228,-0.071146,-0.090909,h3_h1_ratio,-3.488201,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,14,1,0,3.162278,1.000000,0.316228,-0.104084,-0.118577,step_cos,0.558630,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,14,1,0,3.162278,1.000000,0.316228,-0.104084,-0.118577,h1_cos,-0.048559,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,14,1,0,3.162278,1.000000,0.316228,-0.104084,-0.118577,h3_h1_ratio,-2.143453,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,15,1,0,3.162278,1.000000,0.316228,-0.114625,-0.086957,step_cos,0.557312,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,15,1,0,3.162278,1.000000,0.316228,-0.114625,-0.086957,h1_cos,-0.073554,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,15,1,0,3.162278,1.000000,0.316228,-0.114625,-0.086957,h3_h1_ratio,-1.558370,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,16,1,0,3.162278,1.000000,0.316228,-0.151515,-0.121212,step_cos,0.591568,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,16,1,0,3.162278,1.000000,0.316228,-0.151515,-0.121212,h1_cos,0.032676,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,16,1,0,3.162278,1.000000,0.316228,-0.151515,-0.121212,h3_h1_ratio,-4.636862,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,17,1,0,3.162278,1.000000,0.316228,-0.123847,-0.090909,step_cos,0.595520,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,17,1,0,3.162278,1.000000,0.316228,-0.123847,-0.090909,h1_cos,-0.037619,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,17,1,0,3.162278,1.000000,0.316228,-0.123847,-0.090909,h3_h1_ratio,-3.292175,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,18,1,0,3.162278,1.000000,0.316228,-0.077734,-0.073781,step_cos,0.595520,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,18,1,0,3.162278,1.000000,0.316228,-0.077734,-0.073781,h1_cos,-0.060814,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,18,1,0,3.162278,1.000000,0.316228,-0.077734,-0.073781,h3_h1_ratio,-1.278228,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,19,1,0,3.162278,1.000000,0.316228,-0.086957,-0.077734,step_cos,0.606061,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,19,1,0,3.162278,1.000000,0.316228,-0.086957,-0.077734,h1_cos,0.025326,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,19,1,0,3.162278,1.000000,0.316228,-0.086957,-0.077734,h3_h1_ratio,-3.433489,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,20,1,0,3.162278,1.000000,0.316228,-0.113307,-0.109354,step_cos,0.617918,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,20,1,0,3.162278,1.000000,0.316228,-0.113307,-0.109354,h1_cos,0.003083,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,20,1,0,3.162278,1.000000,0.316228,-0.113307,-0.109354,h3_h1_ratio,-36.756156,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,21,1,0,3.162278,1.000000,0.316228,-0.152833,-0.111989,step_cos,0.649539,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,21,1,0,3.162278,1.000000,0.316228,-0.152833,-0.111989,h1_cos,-0.085141,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,21,1,0,3.162278,1.000000,0.316228,-0.152833,-0.111989,h3_h1_ratio,-1.795061,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,22,1,0,3.162278,1.000000,0.316228,-0.119895,-0.110672,step_cos,0.592885,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,22,1,0,3.162278,1.000000,0.316228,-0.119895,-0.110672,h1_cos,0.036159,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,22,1,0,3.162278,1.000000,0.316228,-0.119895,-0.110672,h3_h1_ratio,-3.315740,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,23,1,0,3.162278,1.000000,0.316228,-0.113307,-0.090909,step_cos,0.664032,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,23,1,0,3.162278,1.000000,0.316228,-0.113307,-0.090909,h1_cos,-0.051664,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,23,1,0,3.162278,1.000000,0.316228,-0.113307,-0.090909,h3_h1_ratio,-2.193161,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,24,1,0,3.162278,1.000000,0.316228,-0.148880,-0.055336,step_cos,0.629776,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,24,1,0,3.162278,1.000000,0.316228,-0.148880,-0.055336,h1_cos,-0.110690,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,24,1,0,3.162278,1.000000,0.316228,-0.148880,-0.055336,h3_h1_ratio,-1.345013,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,25,1,0,3.162278,1.000000,0.316228,-0.162055,-0.063241,step_cos,0.625824,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,25,1,0,3.162278,1.000000,0.316228,-0.162055,-0.063241,h1_cos,0.037042,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,25,1,0,3.162278,1.000000,0.316228,-0.162055,-0.063241,h3_h1_ratio,-4.374931,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,26,1,0,3.162278,1.000000,0.316228,-0.146245,-0.076416,step_cos,0.704875,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,26,1,0,3.162278,1.000000,0.316228,-0.146245,-0.076416,h1_cos,-0.037266,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,26,1,0,3.162278,1.000000,0.316228,-0.146245,-0.076416,h3_h1_ratio,-3.924397,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,27,1,0,3.162278,1.000000,0.316228,-0.106719,-0.100132,step_cos,0.678524,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,27,1,0,3.162278,1.000000,0.316228,-0.106719,-0.100132,h1_cos,-0.079871,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,27,1,0,3.162278,1.000000,0.316228,-0.106719,-0.100132,h3_h1_ratio,-1.336154,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,28,1,0,3.162278,1.000000,0.316228,-0.150198,-0.106719,step_cos,0.642951,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,28,1,0,3.162278,1.000000,0.316228,-0.150198,-0.106719,h1_cos,0.047453,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,28,1,0,3.162278,1.000000,0.316228,-0.150198,-0.106719,h3_h1_ratio,-3.165202,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,29,1,0,3.162278,1.000000,0.316228,-0.175231,-0.110672,step_cos,0.671937,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,29,1,0,3.162278,1.000000,0.316228,-0.175231,-0.110672,h1_cos,-0.061782,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,29,1,0,3.162278,1.000000,0.316228,-0.175231,-0.110672,h3_h1_ratio,-2.836286,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,30,1,0,3.162278,1.000000,0.316228,-0.142292,-0.101449,step_cos,0.700922,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,30,1,0,3.162278,1.000000,0.316228,-0.142292,-0.101449,h1_cos,-0.097128,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,30,1,0,3.162278,1.000000,0.316228,-0.142292,-0.101449,h3_h1_ratio,-1.465005,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,31,1,0,3.162278,1.000000,0.316228,-0.204216,-0.105402,step_cos,0.708827,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,31,1,0,3.162278,1.000000,0.316228,-0.204216,-0.105402,h1_cos,0.041489,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,31,1,0,3.162278,1.000000,0.316228,-0.204216,-0.105402,h3_h1_ratio,-4.922138,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,32,1,0,3.162278,1.000000,0.316228,-0.295125,-0.080369,step_cos,0.706192,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,32,1,0,3.162278,1.000000,0.316228,-0.295125,-0.080369,h1_cos,0.005610,759,eps=0.0; D=32; failure; phase_tracking
+E_phase_evolution,32,32,1,0,3.162278,1.000000,0.316228,-0.295125,-0.080369,h3_h1_ratio,-52.602761,759,eps=0.0; D=32; failure; phase_tracking

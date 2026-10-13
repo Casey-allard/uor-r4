@@ -1,0 +1,62 @@
+{
+  "baseline_route": "HOPF_BASE_K25_PHI",
+  "comparisons": [
+    {
+      "key_diff_count": 0,
+      "key_diff_rate": 0.0,
+      "route_id": "HOPF_BASE_K25_PHI",
+      "sector_diff_count": 0,
+      "sector_diff_rate": 0.0,
+      "shell_diff_count": 0,
+      "shell_diff_rate": 0.0
+    },
+    {
+      "key_diff_count": 2500,
+      "key_diff_rate": 1.0,
+      "route_id": "HOPF_K25_BASE_PHI",
+      "sector_diff_count": 2500,
+      "sector_diff_rate": 1.0,
+      "shell_diff_count": 80,
+      "shell_diff_rate": 0.032
+    },
+    {
+      "key_diff_count": 2480,
+      "key_diff_rate": 0.992,
+      "route_id": "HOPF_CPX_TRANSPORT_L050_F050",
+      "sector_diff_count": 2466,
+      "sector_diff_rate": 0.9864,
+      "shell_diff_count": 185,
+      "shell_diff_rate": 0.074
+    },
+    {
+      "key_diff_count": 2480,
+      "key_diff_rate": 0.992,
+      "route_id": "HOPF_CPX_TRANSPORT_L050_F100",
+      "sector_diff_count": 2466,
+      "sector_diff_rate": 0.9864,
+      "shell_diff_count": 148,
+      "shell_diff_rate": 0.0592
+    },
+    {
+      "key_diff_count": 2480,
+      "key_diff_rate": 0.992,
+      "route_id": "HOPF_CPX_TRANSPORT_L100_F100",
+      "sector_diff_count": 2466,
+      "sector_diff_rate": 0.9864,
+      "shell_diff_count": 148,
+      "shell_diff_rate": 0.0592
+    },
+    {
+      "key_diff_count": 2364,
+      "key_diff_rate": 0.9456,
+      "route_id": "R0",
+      "sector_diff_count": 2300,
+      "sector_diff_rate": 0.92,
+      "shell_diff_count": 1171,
+      "shell_diff_rate": 0.4684
+    }
+  ],
+  "config": "configs/proxy_transfer_inc0064_coupled_complex_phase_screen.json",
+  "n_eval": 2500,
+  "seed": 0
+}

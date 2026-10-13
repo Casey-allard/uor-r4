@@ -1,0 +1,6 @@
+variant,candidate_fanout,geom_only,accuracy,solve_step,steps_per_second,wall_time_s,forward_time_ms,fwd_speedup_vs_k6,candidate_work_pct_of_fwd,alpha0,transport_fraction,k1_geom_eval_acc,geom_mlp_agreement,note
+k6_baseline,6,False,1.0,2500,96.1,31.22,5.069,1.0,47.6,0.8619,0.7096,1.0,0.1419,"All 6 candidates — standard forward pass, exact baseline"
+k4_geom,4,False,1.0,2500,85.3,35.17,5.987,0.847,Δ-18.1% vs k6,0.862,0.1903,1.0,0.1862,Top-4 by angular proximity; 2 most-distant masked to -inf
+k3_geom,3,False,1.0,2500,94.6,31.72,5.506,0.921,Δ-8.6% vs k6,0.862,0.3677,1.0,0.1775,Top-3 by angular proximity; 3 most-distant masked to -inf
+k2_geom,2,False,1.0,2500,96.2,31.17,5.615,0.903,Δ-10.8% vs k6,0.8623,0.4231,1.0,0.1802,Top-2 by angular proximity; 4 most-distant masked to -inf
+k1_geom_hard,1,True,1.0,2500,346.2,8.67,2.184,2.321,Δ+56.9% vs k6,0.8627,0.3735,1.0,-1.0,Top-1 by angular proximity; hard tau; MLP bypassed; W1/W2 no-grad

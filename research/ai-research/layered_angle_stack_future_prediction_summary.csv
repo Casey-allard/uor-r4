@@ -1,0 +1,16 @@
+horizon_H,model,base_entropy_bits,conditional_entropy_bits,information_gain_bits,pure_group_fraction,total_groups
+1,raw_coarse_route_only,-0.0,0.0,-0.0,1.0,8
+1,angle_x17_only,-0.0,0.0,-0.0,1.0,17
+1,angle_x17_x19,-0.0,0.0,-0.0,1.0,323
+1,angle_x17_x19_x23,-0.0,0.0,-0.0,1.0,7429
+1,route_plus_angle_stack,-0.0,0.0,-0.0,1.0,59432
+3,raw_coarse_route_only,-0.0,0.0,-0.0,1.0,8
+3,angle_x17_only,-0.0,0.0,-0.0,1.0,17
+3,angle_x17_x19,-0.0,0.0,-0.0,1.0,323
+3,angle_x17_x19_x23,-0.0,0.0,-0.0,1.0,7429
+3,route_plus_angle_stack,-0.0,0.0,-0.0,1.0,59432
+5,raw_coarse_route_only,-0.0,0.0,-0.0,1.0,8
+5,angle_x17_only,-0.0,0.0,-0.0,1.0,17
+5,angle_x17_x19,-0.0,0.0,-0.0,1.0,323
+5,angle_x17_x19_x23,-0.0,0.0,-0.0,1.0,7429
+5,route_plus_angle_stack,-0.0,0.0,-0.0,1.0,59432

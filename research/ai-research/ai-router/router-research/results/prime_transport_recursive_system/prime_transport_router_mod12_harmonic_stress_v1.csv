@@ -1,0 +1,11 @@
+regime,geometry_regime,ablation,d_tau_ang,d_tau_hyb,accuracy,delta_vs_baseline,solve_step,alpha0,b_pos0_trained,runtime_seconds,note
+reduced_k1,reduced,training_summary,8,12,0.2788,0.0,,0.2455,2.013,57.4,training result
+fuller_k3,fuller,training_summary,14,18,0.3726,0.0938,,0.272,2.1511,72.4,training result
+reduced_k1,reduced,full,8,12,0.2534,0.2534,,0.2456,,0.0029,reference
+reduced_k1,reduced,tau0_direct,8,12,0.2646,0.2534,,1.0,,0.0002,tau0 alone FAILS — k=1 cannot linearly decode quarter-phase classes ✗
+reduced_k1,reduced,no_tau0,8,12,0.2563,0.2534,,0.0,,0.0027,t=0 is critical (collapse)
+reduced_k1,reduced,last_only,8,12,0.2451,0.2534,,0.0,,0.0047,final position alone insufficient
+fuller_k3,fuller,full,14,18,0.1865,0.1865,,0.272,,0.0041,reference
+fuller_k3,fuller,tau0_direct,14,18,0.1357,0.1865,,1.0,,0.0002,tau0 alone FAILS — k=1 cannot linearly decode quarter-phase classes ✗
+fuller_k3,fuller,no_tau0,14,18,0.229,0.1865,,0.0,,0.0041,t=0 is critical (collapse)
+fuller_k3,fuller,last_only,14,18,0.2246,0.1865,,0.0,,0.0041,final position alone insufficient

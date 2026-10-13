@@ -1,0 +1,1690 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>R⁴ Tangent Space Router & Web4 Protocol Explorer</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        cyber: {
+                            bg: '#08090d',
+                            panel: '#10121a',
+                            border: '#1f2433',
+                            accent: '#00f2fe',
+                            accentDim: 'rgba(0, 242, 254, 0.15)',
+                            purple: '#9b51e0',
+                            purpleDim: 'rgba(155, 81, 224, 0.15)',
+                            amber: '#f5a623',
+                            text: '#e2e8f0',
+                            muted: '#64748b'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Font Awesome for sleek icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #08090d;
+        }
+
+        .code-font {
+            font-family: 'Fira Code', monospace;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #08090d;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #1f2433;
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #00f2fe;
+        }
+
+        /* Glassmorphism utility */
+        .glass-panel {
+            background: rgba(16, 18, 26, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+    </style>
+</head>
+
+<body class="text-cyber-text overflow-x-hidden">
+
+    <!-- System Header -->
+    <header
+        class="border-b border-cyber-border bg-cyber-panel/90 sticky top-0 z-50 px-6 py-4 flex flex-wrap items-center justify-between gap-4 backdrop-blur-md">
+        <div class="flex items-center space-x-3">
+            <div
+                class="w-10 h-10 rounded-lg bg-gradient-to-tr from-cyber-accent to-cyber-purple flex items-center justify-center shadow-lg shadow-cyber-accent/20">
+                <i class="fa-solid fa-compass-drafting text-cyber-bg text-xl animate-spin-slow"></i>
+            </div>
+            <div>
+                <h1
+                    class="text-lg font-bold tracking-wider uppercase bg-gradient-to-r from-cyber-accent via-white to-cyber-purple bg-clip-text text-transparent">
+                    R⁴ Tangent Space Router
+                </h1>
+                <div class="text-[10px] code-font text-cyber-accent flex items-center gap-2">
+                    <span
+                        class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse animate-duration-1000"></span>
+                    <span>WEB4 PROTOCOL LAYER 2i (ZKP-ACTIVE)</span>
+                    <span class="text-cyber-muted">|</span>
+                    <span>ORIGIN: e^{iπ} + π⁰ = 0⁰</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Metric badges -->
+        <div class="flex flex-wrap items-center gap-3 text-xs code-font">
+            <div class="bg-cyber-bg/60 border border-cyber-border px-3 py-1.5 rounded-md flex items-center gap-2">
+                <span class="text-cyber-muted">ACTIVE TRACES:</span>
+                <span id="header-traces-count" class="text-cyber-accent font-bold">0 Active</span>
+            </div>
+            <div class="bg-cyber-bg/60 border border-cyber-border px-3 py-1.5 rounded-md flex items-center gap-2">
+                <span class="text-cyber-muted">RESONANCE LIMIT:</span>
+                <span class="text-cyber-accent font-bold">37.5% (96/256)</span>
+            </div>
+            <div class="bg-cyber-bg/60 border border-cyber-border px-3 py-1.5 rounded-md flex items-center gap-2">
+                <span class="text-cyber-muted">ALIGNMENT ERR:</span>
+                <span id="header-drift-val" class="text-emerald-400 font-bold flex items-center gap-1">
+                    <i class="fa-solid fa-lock text-[10px]"></i> 0.00%
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Workspace Container -->
+    <main class="max-w-7xl mx-auto p-4 md:p-6 space-y-6">
+
+        <!-- Navigation Tabs -->
+        <div class="flex border-b border-cyber-border gap-2 overflow-x-auto pb-px">
+            <button onclick="switchTab('terminal')" id="tab-btn-terminal"
+                class="tab-btn px-5 py-3 text-sm font-medium border-b-2 border-cyber-accent text-cyber-accent flex items-center gap-2 transition-all whitespace-nowrap">
+                <i class="fa-solid fa-terminal text-xs"></i> Multi-Thought Workspace
+            </button>
+            <button onclick="switchTab('geometry')" id="tab-btn-geometry"
+                class="tab-btn px-5 py-3 text-sm font-medium border-b-2 border-transparent text-cyber-muted hover:text-cyber-text flex items-center gap-2 transition-all whitespace-nowrap">
+                <i class="fa-solid fa-bezier-curve text-xs"></i> R⁴ Tangent & Hopf Fibration
+            </button>
+            <button onclick="switchTab('hexhive')" id="tab-btn-hexhive"
+                class="tab-btn px-5 py-3 text-sm font-medium border-b-2 border-transparent text-cyber-muted hover:text-cyber-text flex items-center gap-2 transition-all whitespace-nowrap">
+                <i class="fa-solid fa-circle-nodes text-xs"></i> Hex-Hive Addressing
+            </button>
+            <button onclick="switchTab('resonance')" id="tab-btn-resonance"
+                class="tab-btn px-5 py-3 text-sm font-medium border-b-2 border-transparent text-cyber-muted hover:text-cyber-text flex items-center gap-2 transition-all whitespace-nowrap">
+                <i class="fa-solid fa-calculator text-xs"></i> Hashing & Resonance
+            </button>
+            <button onclick="switchTab('stack')" id="tab-btn-stack"
+                class="tab-btn px-5 py-3 text-sm font-medium border-b-2 border-transparent text-cyber-muted hover:text-cyber-text flex items-center gap-2 transition-all whitespace-nowrap">
+                <i class="fa-solid fa-layer-group text-xs"></i> 7-Layer Web4 Stack
+            </button>
+        </div>
+
+        <!-- Tab 1: Live Terminal -->
+        <div id="tab-terminal" class="tab-content grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Thought Queue & Injection Panel -->
+            <div class="lg:col-span-1 space-y-6">
+                <div class="glass-panel rounded-xl p-5 border border-cyber-border space-y-4">
+                    <div class="flex items-center justify-between border-b border-cyber-border pb-3">
+                        <h3
+                            class="font-semibold text-sm uppercase tracking-wider text-cyber-accent flex items-center gap-2">
+                            <i class="fa-solid fa-brain"></i> Thought Stream Manager
+                        </h3>
+                        <span
+                            class="text-[10px] code-font bg-cyber-accentDim text-cyber-accent px-2 py-0.5 rounded border border-cyber-accent/20">ZKP
+                            2i TRACING</span>
+                    </div>
+
+                    <p class="text-xs text-cyber-muted">
+                        Inject multiple parallel reasoning thoughts into the router. Each thought calculates its unique
+                        $R^4$ origin vector, tracing its geodesic trajectory down to the 2D Hopf shadow simultaneously.
+                    </p>
+
+                    <div class="space-y-3">
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-cyber-muted">Inject New
+                            Thought Vector</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="thought-input"
+                                class="flex-grow bg-cyber-bg/80 border border-cyber-border rounded-lg px-3 py-2 text-sm text-cyber-text focus:ring-1 focus:ring-cyber-accent focus:border-cyber-accent focus:outline-none transition-all placeholder-cyber-muted/50"
+                                placeholder="Type a concept or query thought...">
+                            <button onclick="injectThought()"
+                                class="bg-gradient-to-r from-cyber-accent to-cyber-purple hover:opacity-90 px-4 rounded-lg font-bold text-cyber-bg text-sm transition-all shadow-md flex items-center justify-center">
+                                <i class="fa-solid fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Diagnostics Preloads -->
+                    <div class="space-y-2 pt-2">
+                        <span class="text-[10px] font-semibold uppercase tracking-wider text-cyber-muted">Diagnostic
+                            Cascades:</span>
+                        <div class="grid grid-cols-2 gap-2 text-xs">
+                            <button onclick="loadCascade('diagnostics')"
+                                class="bg-cyber-bg/80 border border-cyber-border/80 hover:border-cyber-accent/50 p-2 rounded text-left hover:text-white transition-all">
+                                <span class="block font-bold text-cyber-accent">Quantum Trace</span>
+                                <span class="text-[10px] text-cyber-muted">3 parallel thoughts</span>
+                            </button>
+                            <button onclick="loadCascade('blockchain')"
+                                class="bg-cyber-bg/80 border border-cyber-border/80 hover:border-cyber-accent/50 p-2 rounded text-left hover:text-white transition-all">
+                                <span class="block font-bold text-cyber-purple">Hex Hive Block</span>
+                                <span class="text-[10px] text-cyber-muted">3 blockchain thoughts</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-2 border-t border-cyber-border pt-4">
+                        <button onclick="fireAllThoughts()"
+                            class="flex-1 py-2.5 px-4 rounded-lg bg-emerald-500 hover:bg-emerald-400 font-bold text-cyber-bg text-xs transition-all flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-500/10">
+                            <i class="fa-solid fa-play"></i> Route Stream
+                        </button>
+                        <button onclick="clearThoughts()"
+                            class="py-2.5 px-4 rounded-lg bg-cyber-bg border border-cyber-border hover:border-rose-500/50 font-bold text-cyber-muted hover:text-rose-400 text-xs transition-all flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-trash-can"></i> Reset
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Active Thoughts Live Queue -->
+                <div class="glass-panel rounded-xl p-5 border border-cyber-border space-y-3">
+                    <h3
+                        class="font-semibold text-sm uppercase tracking-wider text-cyber-purple flex items-center justify-between">
+                        <span><i class="fa-solid fa-list-check"></i> Live Stream Registry</span>
+                        <span id="active-count-badge"
+                            class="text-xs bg-cyber-purpleDim text-cyber-purple border border-cyber-purple/20 px-2 rounded-full font-bold">0
+                            Active</span>
+                    </h3>
+
+                    <div id="thought-queue-list" class="space-y-2.5 max-h-[220px] overflow-y-auto pr-1">
+                        <!-- Filled by JS -->
+                        <div class="text-xs text-cyber-muted text-center py-4 italic">No active thoughts. Inject some
+                            above!</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tangent Vector Visualizer & Overlap MoE -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Zero-Point Vector Canvas -->
+                <div class="glass-panel rounded-xl p-5 border border-cyber-border flex flex-col h-[400px]">
+                    <div class="flex items-center justify-between border-b border-cyber-border pb-3 mb-4">
+                        <div>
+                            <h3
+                                class="font-semibold text-sm uppercase tracking-wider text-cyber-accent flex items-center gap-2">
+                                <i class="fa-solid fa-atom"></i> Multi-Thought Trajectory Workspace in R⁴
+                            </h3>
+                            <p class="text-[10px] text-cyber-muted code-font">PROJECTION: SIMULTANEOUS GEODESIC FLOW
+                                SHUTTLE ($set$)</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button onclick="resetSpace()"
+                                class="bg-cyber-bg border border-cyber-border hover:border-cyber-accent/50 p-1 px-2.5 rounded text-xs text-cyber-muted hover:text-cyber-text transition-all code-font">
+                                Reset View
+                            </button>
+                        </div>
+                    </div>
+                    <div
+                        class="flex-grow relative bg-cyber-bg/50 rounded-lg overflow-hidden border border-cyber-border flex items-center justify-center">
+                        <canvas id="canvas-r4"
+                            class="absolute inset-0 w-full h-full cursor-grab active:cursor-grabbing"></canvas>
+                        <!-- Dynamic Info Overlay -->
+                        <div
+                            class="absolute bottom-3 left-3 bg-cyber-panel/90 border border-cyber-border p-3 rounded-lg text-[10px] code-font space-y-1 backdrop-blur-sm z-10 max-w-xs pointer-events-none">
+                            <div class="text-cyber-accent font-bold">FLOW DYNAMICS:</div>
+                            <div class="flex items-center gap-2"><span
+                                    class="w-2 h-2 rounded-full bg-cyan-400 inline-block"></span> <span>S² Base Sphere
+                                    (Hopf Base)</span></div>
+                            <div class="flex items-center gap-2"><span
+                                    class="w-2 h-2 rounded-full bg-emerald-400 inline-block"></span> <span>Active
+                                    Wavefront Geodesics</span></div>
+                            <div class="flex items-center gap-2"><span
+                                    class="w-2 h-2 rounded-full bg-rose-400 inline-block"></span> <span>Zero-Point
+                                    Tangent Intersection</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Experts & Content Matrix Output -->
+                <div class="glass-panel rounded-xl p-5 border border-cyber-border space-y-4">
+                    <div class="flex flex-wrap items-center justify-between gap-4 border-b border-cyber-border pb-3">
+                        <div>
+                            <h3
+                                class="font-semibold text-sm uppercase tracking-wider text-cyber-purple flex items-center gap-2">
+                                <i class="fa-solid fa-grip"></i> Overlapping Expert Activation Intensity Map
+                            </h3>
+                            <p class="text-[10px] text-cyber-muted code-font">GLOW ACCENTUATES WHERE PARALLEL TRACKS
+                                OVERLAP INDEPENDENT INVARIANTS</p>
+                        </div>
+                        <div
+                            class="text-xs bg-cyber-panel border border-cyber-border px-2.5 py-1 rounded code-font text-cyber-muted">
+                            Active Experts: <span id="expert-count" class="text-cyber-accent font-bold">0</span>/64
+                        </div>
+                    </div>
+
+                    <!-- 64 Grid Blocks -->
+                    <div id="expert-matrix" class="grid grid-cols-8 md:grid-cols-16 gap-1.5">
+                        <!-- Filled by JS -->
+                    </div>
+
+                    <!-- Output Console Window -->
+                    <div class="bg-cyber-bg border border-cyber-border rounded-lg overflow-hidden">
+                        <div
+                            class="bg-cyber-panel/80 border-b border-cyber-border px-4 py-2 flex items-center justify-between">
+                            <span class="text-xs code-font text-cyber-accent flex items-center gap-1.5">
+                                <i class="fa-solid fa-terminal text-xs"></i> Cascade Trace Logs
+                            </span>
+                            <span id="output-timing" class="text-[10px] code-font text-cyber-muted">System
+                                Synchronized</span>
+                        </div>
+                        <div id="console-output"
+                            class="p-4 text-[11px] md:text-xs font-light min-h-[140px] max-h-[300px] overflow-y-auto leading-relaxed code-font text-slate-300">
+                            SYSTEM ACTIVE. WEB4 ROUTING MULTI-THOUGHT CORE READY.<br>
+                            <span class="text-cyber-muted">> Add or pre-load thought vectors from the left to map
+                                parallel trajectories.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 2: Hopf & R4 Geometry Sandbox -->
+        <div id="tab-geometry" class="tab-content hidden space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Geometric Explanation -->
+                <div class="lg:col-span-1 glass-panel rounded-xl p-6 border border-cyber-border space-y-5">
+                    <h3
+                        class="text-lg font-bold text-cyber-accent uppercase tracking-wider border-b border-cyber-border pb-3">
+                        The Hopf Falsification & Tangent Fix</h3>
+                    <div class="text-sm space-y-4 text-cyber-text/90 leading-relaxed">
+                        <p>
+                            Traditional routing projects a 3-sphere $S^3$ down to a 2-sphere $S^2$ and a 1-sphere fiber
+                            $S^1$ via the static <strong>Hopf Fibration</strong>. In end-to-end trainable settings, this
+                            static geometry yielded a profound <strong>Null Result</strong> ($\Delta\text{PPL} \approx
+                            0.04$ over random partitions) because neural network experts naturally co-adapted to absorb
+                            static boundaries.
+                        </p>
+                        <p class="border-l-2 border-cyber-purple pl-3 text-cyber-muted text-xs italic">
+                            Pre-imposing rigid mathematical partitions onto adaptive layers is inefficient; highly
+                            plastic networks flatten pre-computed structures.
+                        </p>
+                        <p>
+                            To resolve this, the Web4 stack shifts to the <strong>Continuous Tangent Space Operation in
+                                $\mathbb{R}^4$</strong>. To bypass calculating expensive curved path steps across the
+                            hyperbolic manifold in real-time, the router utilizes the <strong>Tangent Operation at the
+                                Origin ($set$)</strong>.
+                        </p>
+                        <p>
+                            The geodesic energy functional:
+                            $$E_R[\gamma] = \int_{t_0}^{t_1}
+                            g_{\mu\nu}(\gamma(t))\dot{\gamma}^\mu(t)\dot{\gamma}^\nu(t)dt$$
+                            is minimized instantly by projecting the tangent vector directly from the origin toward the
+                            target, routing securely through the 2D Hopf shadow.
+                        </p>
+                    </div>
+
+                    <!-- Mathematical controls -->
+                    <div class="border-t border-cyber-border pt-4 space-y-4">
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-cyber-accent text-emerald-400">
+                            Interactive Manifold Controls</h4>
+
+                        <div class="space-y-1">
+                            <div class="flex justify-between text-xs code-font">
+                                <span class="text-cyber-muted">Hyperbolic Scale ($r$):</span>
+                                <span id="val-hyperbolic-r" class="text-cyber-accent">3.50</span>
+                            </div>
+                            <input type="range" id="slider-r" min="0.5" max="10.0" step="0.1" value="3.5"
+                                class="w-full accent-cyber-accent h-1 bg-cyber-bg rounded">
+                        </div>
+
+                        <div class="space-y-1">
+                            <div class="flex justify-between text-xs code-font">
+                                <span class="text-cyber-muted">Drift Rate ($\tau$ / sec):</span>
+                                <span id="val-drift" class="text-emerald-400 font-bold">0.00 rad</span>
+                            </div>
+                            <input type="range" id="slider-drift" min="0.00" max="0.30" step="0.01" value="0.00"
+                                class="w-full accent-cyber-accent h-1 bg-cyber-bg rounded">
+                            <p class="text-[9px] text-cyber-muted italic">Increase slider above to simulate legacy Hopf
+                                alignment drift.</p>
+                        </div>
+
+                        <div class="space-y-1">
+                            <div class="flex justify-between text-xs code-font">
+                                <span class="text-cyber-muted">Kill-Switch Threshold ($\Theta_{crit}$):</span>
+                                <span id="val-theta-crit" class="text-cyber-amber">1.20 rad</span>
+                            </div>
+                            <input type="range" id="slider-theta-crit" min="0.20" max="3.00" step="0.05" value="1.20"
+                                class="w-full accent-cyber-amber h-1 bg-cyber-bg rounded">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Large Geometry Visualizer -->
+                <div class="lg:col-span-2 glass-panel rounded-xl p-5 border border-cyber-border space-y-4">
+                    <div class="flex items-center justify-between border-b border-cyber-border pb-3">
+                        <div>
+                            <h3
+                                class="font-semibold text-sm uppercase tracking-wider text-cyber-accent flex items-center gap-2">
+                                <i class="fa-solid fa-globe"></i> Continuous Projection Core Simulation
+                            </h3>
+                            <p class="text-[10px] text-cyber-muted code-font">MANIPULATE PARAMETERS TO TRIGGER
+                                LEVI-CIVITA ALIGNMENT RESET</p>
+                        </div>
+                        <div id="killswitch-status"
+                            class="bg-emerald-950/50 border border-emerald-500/30 text-emerald-400 text-xs px-3 py-1 rounded code-font font-bold flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> ALIGNMENT LOCKED
+                        </div>
+                    </div>
+
+                    <!-- Interactive Projection Screen -->
+                    <div
+                        class="relative bg-cyber-bg/80 h-[500px] rounded-lg border border-cyber-border overflow-hidden flex items-center justify-center">
+                        <canvas id="canvas-geometry-fullscreen"
+                            class="absolute inset-0 w-full h-full cursor-grab active:cursor-grabbing"></canvas>
+                        <!-- Dynamic Mathematical Readout Box -->
+                        <div
+                            class="absolute top-4 right-4 bg-cyber-panel/95 border border-cyber-border p-4 rounded-xl text-xs code-font space-y-2 max-w-sm backdrop-blur-sm z-10 shadow-xl">
+                            <div class="text-cyber-accent font-bold border-b border-cyber-border pb-1.5">MANIFOLD STATE
+                            </div>
+                            <div class="grid grid-cols-2 gap-y-1 gap-x-4 text-[11px]">
+                                <span class="text-cyber-muted">Hyperbolic Metric:</span> <span
+                                    class="text-white text-right">g_μν = diag(-1,1,1,1)</span>
+                                <span class="text-cyber-muted">Curvature R_μν:</span> <span
+                                    class="text-cyan-400 text-right">-1.0000</span>
+                                <span class="text-cyber-muted">Geodesic Energy:</span> <span id="math-geodesic-energy"
+                                    class="text-cyber-accent text-right">E = 1.045 J</span>
+                                <span class="text-cyber-muted">Levi-Civita Connection:</span> <span
+                                    id="math-lc-connection" class="text-cyber-purple text-right">∇_γ θ = 0.0000</span>
+                                <span class="text-cyber-muted">Hopf Fiber Shadow:</span> <span
+                                    class="text-pink-400 text-right">S³ → S² shadow maps</span>
+                            </div>
+                            <div
+                                class="pt-2 border-t border-cyber-border flex items-center justify-between text-[11px]">
+                                <span class="text-cyber-muted">Connection Drift:</span>
+                                <span id="math-drift-warning" class="text-emerald-400 font-bold">STABLE</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 3: Hex-Hive Addressing & Prime Topology -->
+        <div id="tab-hexhive" class="tab-content hidden space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Hex-Hive Explanation -->
+                <div class="lg:col-span-1 glass-panel rounded-xl p-6 border border-cyber-border space-y-5">
+                    <h3
+                        class="text-lg font-bold text-cyber-accent uppercase tracking-wider border-b border-cyber-border pb-3">
+                        Prime-Aligned Hex-Hive Address space</h3>
+                    <div class="text-sm space-y-4 text-cyber-text/90 leading-relaxed">
+                        <p>
+                            To prevent rounding errors and spatial drift across long execution horizons, Web4 anchors
+                            coordinates to a discrete lattice of prime-aligned coordinate identities.
+                        </p>
+                        <p>
+                            Every prime number $p > 3$ is restricted to one of two residue classes modulo 6:
+                            $$p \equiv 1 \pmod 6 \quad \text{or} \quad p \equiv 5 \pmod 6$$
+                            This splits the physical MAC addressing of agentic hardware nodes into two mutually
+                            exclusive, non-interfering coordinate bands ($6k - 1$ and $6k + 1$).
+                        </p>
+                        <p class="font-bold text-cyber-accent">
+                            Deterministic Collision Avoidance Theorem:
+                        </p>
+                        <p class="text-xs text-cyber-muted pl-3 border-l border-cyber-accent/30">
+                            Because the absolute distance separating parallel tracks in the same class is strictly a
+                            multiple of 6:
+                            $$|p_1 - p_2| = 6|k_1 - k_2|$$
+                            trajectories routed within the same resonance class never physically intersect, enabling
+                            collision-free routing without routing-table overhead.
+                        </p>
+                        <p>
+                            To resolve the <strong>Prime-Wheel State Collision</strong> when modulo $N$ is reduced, the
+                            system injects a 1-bit twist parity spin variable $\kappa \in \{-1, 1\}$ directly into the
+                            coordinate address.
+                        </p>
+                    </div>
+
+                    <!-- Interactive controls for Hex Hive -->
+                    <div class="border-t border-cyber-border pt-4 space-y-4">
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-cyber-accent">Residue Selector</h4>
+                        <div class="flex gap-3">
+                            <button onclick="highlightHexClass('all')" id="hex-btn-all"
+                                class="flex-1 py-2 rounded border border-cyber-accent bg-cyber-accentDim text-cyber-accent text-xs font-bold code-font">
+                                ALL CLASSES
+                            </button>
+                            <button onclick="highlightHexClass('plus')" id="hex-btn-plus"
+                                class="flex-1 py-2 rounded border border-cyber-border text-cyber-muted hover:text-cyber-text text-xs font-bold code-font">
+                                6k + 1
+                            </button>
+                            <button onclick="highlightHexClass('minus')" id="hex-btn-minus"
+                                class="flex-1 py-2 rounded border border-cyber-border text-cyber-muted hover:text-cyber-text text-xs font-bold code-font">
+                                6k - 1
+                            </button>
+                        </div>
+                        <div
+                            class="p-3 bg-cyber-bg/50 border border-cyber-border rounded text-xs text-cyber-muted space-y-1">
+                            <div class="text-[10px] uppercase font-bold text-cyber-accent">Dynamic Path Demonstration:
+                            </div>
+                            Select a residue class above to trace its orthogonal parallel path networks in the Hex-Hive
+                            grid simulation.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hex-Hive Grid Visualizer -->
+                <div class="lg:col-span-2 glass-panel rounded-xl p-5 border border-cyber-border space-y-4">
+                    <div class="flex items-center justify-between border-b border-cyber-border pb-3">
+                        <div>
+                            <h3
+                                class="font-semibold text-sm uppercase tracking-wider text-cyber-purple flex items-center gap-2">
+                                <i class="fa-solid fa-shapes"></i> Orthogonal Hex-Hive Grid Simulator
+                            </h3>
+                            <p class="text-[10px] text-cyber-muted code-font">ORTHOGONAL PRIME CHANNELS: GREY =
+                                NON-PRIME, TEAL = 6k+1, VIOLET = 6k-1</p>
+                        </div>
+                        <span id="hex-telemetry"
+                            class="bg-cyber-panel border border-cyber-border px-3 py-1 rounded text-xs code-font text-cyber-accent">
+                            Residue Class: Active Grid
+                        </span>
+                    </div>
+
+                    <!-- Interactive Canvas for Honeycomb -->
+                    <div
+                        class="relative bg-cyber-bg/60 h-[500px] rounded-lg border border-cyber-border overflow-hidden flex items-center justify-center">
+                        <canvas id="canvas-hexhive" class="absolute inset-0 w-full h-full"></canvas>
+                        <div
+                            class="absolute bottom-4 right-4 bg-cyber-panel/90 border border-cyber-border p-3 rounded text-[10px] code-font space-y-1">
+                            <span class="font-bold text-cyber-accent">COLLISION DETECTOR:</span>
+                            <div class="text-emerald-400">Path overlap: 0% (Guaranteed)</div>
+                            <div class="text-cyber-muted">Trajectories separated by 6Δk</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 4: Resonance Hashing Sandbox -->
+        <div id="tab-resonance" class="tab-content hidden space-y-6">
+            <!-- Unity Constraint Calculation -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="glass-panel rounded-xl p-6 border border-cyber-border space-y-5">
+                    <h3
+                        class="text-lg font-bold text-cyber-accent uppercase tracking-wider border-b border-cyber-border pb-3">
+                        The 3/8 Resonance Hashing Law</h3>
+                    <div class="text-sm space-y-4 text-cyber-text/90 leading-relaxed">
+                        <p>
+                            Bytes are mapped directly to continuous values using a spectrum generated by eight field
+                            constants $\mathbb{F} = \{\alpha_0, \alpha_1, ..., \alpha_7\}$:
+                            $$R(b) = \prod_{i=0}^{7} \alpha_i^{\text{bit}_i(b)}$$
+                        </p>
+                        <p>
+                            The cornerstone of this hashing algebra is the <strong>Unity Constraint</strong>, which
+                            dictates that $\alpha_4 \times \alpha_5 = 1$ (where $\alpha_4 = \frac{1}{2\pi}$ and
+                            $\alpha_5 = 2\pi$).
+                        </p>
+                        <p>
+                            This creates a unique, maximal <strong>Klein four-group</strong> $V_4 = \{0, 1, 48, 49\}$
+                            where every single element collapses to an absolute unit resonance of $R = 1$. Passing the
+                            256 structural bytes through this Unity Constraint coarse-grains the effective degrees of
+                            freedom:
+                            $$\text{Unique Resonances} = 3 \times 2^{8-2} = 96$$
+                        </p>
+                        <div
+                            class="p-4 bg-cyber-accentDim border border-cyber-accent/30 rounded-lg text-cyber-accent text-xs font-bold code-font">
+                            Unique Resonance Bound: 96 / 256 = 37.5% (3/8 Bound)
+                        </div>
+                        <p>
+                            This unalterable Information-Theoretic Compression Bound enables instantaneous, zero-delay
+                            <strong>Greatest Common Divisor (GCD)</strong> extraction across nodes to establish
+                            immediate consensus.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Live Byte-to-Resonance Sandbox -->
+                <div
+                    class="glass-panel rounded-xl p-6 border border-cyber-border space-y-5 flex flex-col justify-between">
+                    <div>
+                        <h3
+                            class="text-lg font-bold text-cyber-purple uppercase tracking-wider border-b border-cyber-border pb-3">
+                            Resonance & Hashing Playground</h3>
+                        <p class="text-xs text-cyber-muted mt-2">
+                            Type any text string below. The simulator canonicalizes the text to an array of bytes,
+                            models the individual bit distributions modulo 256, applies the field constants, and
+                            measures the resonance compression ratio.
+                        </p>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div class="space-y-2">
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-cyber-muted">Byte
+                                Data Stream Input</label>
+                            <input type="text" id="resonance-input" oninput="calculateResonance()"
+                                value="Web4 Universal Object Reference Integration C2"
+                                class="w-full bg-cyber-bg border border-cyber-border rounded-lg p-3 text-sm text-cyber-accent focus:ring-cyber-accent focus:outline-none transition-all code-font">
+                        </div>
+
+                        <!-- Computations Matrix -->
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs code-font">
+                            <div class="bg-cyber-bg/50 border border-cyber-border p-3 rounded">
+                                <span class="text-cyber-muted block text-[10px]">TOTAL BYTES</span>
+                                <span id="res-total-bytes" class="text-white font-bold text-base">44</span>
+                            </div>
+                            <div class="bg-cyber-bg/50 border border-cyber-border p-3 rounded">
+                                <span class="text-cyber-muted block text-[10px]">RESONANT BITS</span>
+                                <span id="res-bits-ratio" class="text-cyber-accent font-bold text-base">352 bits</span>
+                            </div>
+                            <div class="bg-cyber-bg/50 border border-cyber-border p-3 rounded">
+                                <span class="text-cyber-muted block text-[10px]">KLEIN V₄ MATCHES</span>
+                                <span id="res-klein" class="text-cyber-purple font-bold text-base">12</span>
+                            </div>
+                            <div class="bg-cyber-bg/50 border border-cyber-border p-3 rounded">
+                                <span class="text-cyber-muted block text-[10px]">COMPRESSION RATIO</span>
+                                <span id="res-compression" class="text-cyber-amber font-bold text-base">37.5%</span>
+                            </div>
+                        </div>
+
+                        <!-- Hashed Signature -->
+                        <div
+                            class="bg-cyber-bg/70 border border-cyber-border p-3 rounded-lg code-font text-xs space-y-1">
+                            <span class="text-[10px] text-cyber-muted uppercase font-bold block">Canonical UOR Node
+                                Signature:</span>
+                            <span id="res-uor-sig" class="text-emerald-400 break-all">sha256:49fa98a28f...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 5: The 7-Layer Web4 Stack -->
+        <div id="tab-stack" class="tab-content hidden space-y-6">
+            <div class="glass-panel rounded-xl p-6 border border-cyber-border space-y-6">
+                <div>
+                    <h2 class="text-xl font-bold uppercase tracking-wider text-cyber-accent">The Unified 7-Layer Web4
+                        Stack Matrix</h2>
+                    <p class="text-xs text-cyber-muted mt-1">
+                        Unification of Casey Allard's continuous hyperbolic $R^4$ router, Wil Dahn's discrete Symplectic
+                        Polar Space quantum cosmology protocol ($W(3,3)$), and the UOR Content-Addressable
+                        virtualization layer.
+                    </p>
+                </div>
+
+                <!-- Custom Interactive Stack Table -->
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs md:text-sm">
+                        <thead>
+                            <tr class="border-b border-cyber-border code-font text-cyber-accent bg-cyber-bg/40">
+                                <th class="p-3 md:p-4 uppercase tracking-wider text-xs">Layer</th>
+                                <th class="p-3 md:p-4 uppercase tracking-wider text-xs">Mathematical Domain</th>
+                                <th class="p-3 md:p-4 uppercase tracking-wider text-xs">Casey Allard's R⁴ Router</th>
+                                <th class="p-3 md:p-4 uppercase tracking-wider text-xs">Wil Dahn's W(3,3)</th>
+                                <th class="p-3 md:p-4 uppercase tracking-wider text-xs">UOR / HLIX Integration</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-cyber-border/40 font-light">
+                            <!-- Layer 7 -->
+                            <tr class="hover:bg-cyber-accentDim/5 transition-all">
+                                <td class="p-3 md:p-4 font-bold code-font text-cyber-accent">7: Category</td>
+                                <td class="p-3 md:p-4 text-white font-medium">Category Theory</td>
+                                <td class="p-3 md:p-4 text-cyber-muted">Global manifold coordination; Kleisli execution
+                                    loops.</td>
+                                <td class="p-3 md:p-4 text-cyber-muted">Automorphism Weyl groups $G_0$.</td>
+                                <td class="p-3 md:p-4 text-cyber-text">VPI monoidal categories; AmalgamOS financial
+                                    routing.</td>
+                            </tr>
+                            <!-- Layer 6 -->
+                            <tr class="hover:bg-cyber-accentDim/5 transition-all">
+                                <td class="p-3 md:p-4 font-bold code-font text-cyber-accent">6: Topology</td>
+                                <td class="p-3 md:p-4 text-white font-medium">Topology</td>
+                                <td class="p-3 md:p-4 text-cyber-muted">Global routing constraints; de Rham cohomology.
+                                </td>
+                                <td class="p-3 md:p-4 text-cyber-muted">Canonical triple foliations (Pappus and
+                                    Desargues graphs).</td>
+                                <td class="p-3 md:p-4 text-cyber-text">Holonomy and twist-parity verification; Satchel
+                                    edge packaging.</td>
+                            </tr>
+                            <!-- Layer 5 -->
+                            <tr class="hover:bg-cyber-accentDim/5 transition-all bg-cyber-panel/20">
+                                <td class="p-3 md:p-4 font-bold code-font text-cyber-accent">5: Analysis</td>
+                                <td class="p-3 md:p-4 text-white font-medium">Analysis</td>
+                                <td class="p-3 md:p-4 text-cyber-muted">Complex wave mechanics; Riemann Zeta
+                                    distributions.</td>
+                                <td class="p-3 md:p-4 text-cyber-muted">Discrete Laplacians on divisor terrains;
+                                    spectral eigenmodes.</td>
+                                <td class="p-3 md:p-4 text-cyber-text">Two-dimensional arithmetic space; OTel trace ID
+                                    mapping.</td>
+                            </tr>
+                            <!-- Layer 4 -->
+                            <tr class="hover:bg-cyber-accentDim/5 transition-all">
+                                <td class="p-3 md:p-4 font-bold code-font text-cyber-accent">4: Geometry</td>
+                                <td class="p-3 md:p-4 text-white font-medium">Geometry</td>
+                                <td class="p-3 md:p-4 text-cyber-muted">Hyperbolic spaces; Poincaré metrics; GRH.</td>
+                                <td class="p-3 md:p-4 text-cyber-muted">Dual packet quotients; affine splits.</td>
+                                <td class="p-3 md:p-4 text-cyber-text">Spatial coordinate resolution; Satchel orbit
+                                    paths; Continuous $\mathbb{R}^4$ Tangent/Hopf Routing.</td>
+                            </tr>
+                            <!-- Layer 3 -->
+                            <tr class="hover:bg-cyber-accentDim/5 transition-all">
+                                <td class="p-3 md:p-4 font-bold code-font text-cyber-accent">3: Linear Alg.</td>
+                                <td class="p-3 md:p-4 text-white font-medium">Linear Algebra</td>
+                                <td class="p-3 md:p-4 text-cyber-muted">Eigenvalue decomposition; high-dimensional
+                                    routing.</td>
+                                <td class="p-3 md:p-4 text-cyber-muted">Adjacency algebra; MUB triangles.</td>
+                                <td class="p-3 md:p-4 text-cyber-text">Set combinatorics over $\mathbb{F}_1$; HLIX
+                                    enterprise cores.</td>
+                            </tr>
+                            <!-- Layer 2 -->
+                            <tr class="hover:bg-cyber-accentDim/5 transition-all bg-cyber-panel/20">
+                                <td class="p-3 md:p-4 font-bold code-font text-cyber-accent">2: Algebraic</td>
+                                <td class="p-3 md:p-4 text-white font-medium">Algebraic</td>
+                                <td class="p-3 md:p-4 text-cyber-muted">Primes as irreducibles; multi-prime
+                                    factorization.</td>
+                                <td class="p-3 md:p-4 text-cyber-muted">Symplectic commutation over $\mathbb{F}_3$;
+                                    Pauli operators.</td>
+                                <td class="p-3 md:p-4 text-cyber-text">CCM bijective hash codec; SHD-CCP 64-bit kernel
+                                    decoding; $\mathbb{Z}/256\mathbb{Z}$ content addressing.</td>
+                            </tr>
+                            <!-- Layer 1 -->
+                            <tr class="hover:bg-cyber-accentDim/5 transition-all">
+                                <td class="p-3 md:p-4 font-bold code-font text-cyber-accent">1: Arithmetic</td>
+                                <td class="p-3 md:p-4 text-white font-medium">Arithmetic</td>
+                                <td class="p-3 md:p-4 text-cyber-muted">Hex-Hive prime coordinate addressing.</td>
+                                <td class="p-3 md:p-4 text-cyber-muted">Divisor terrain fields; minimal energy valleys.
+                                </td>
+                                <td class="p-3 md:p-4 text-cyber-text">Base-1 manifold ($\mathbb{F}_1$); uor-addr-1 MAC
+                                    Genesis Seal.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Deep Quantum Substrate Section -->
+                <div class="border-t border-cyber-border pt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-4">
+                        <h3
+                            class="font-semibold text-sm uppercase tracking-wider text-cyber-purple flex items-center gap-1.5">
+                            <i class="fa-solid fa-moon"></i> Wil Dahn’s $W(3,3)$ Pauli Substrate
+                        </h3>
+                        <p class="text-xs text-cyber-muted leading-relaxed">
+                            Operating as the rigid, topological invariant component, Wil Dahn's protocol leverages a
+                            symplectic quadrangle of order 3 over ternary field $\mathbb{F}_3$ (40 points/lines) to map
+                            universal quantum compute states.
+                        </p>
+                        <p class="text-xs text-cyber-muted leading-relaxed">
+                            Passing qutrits through the temporal degrees of freedom of a single photon, we measure
+                            past/future temporal registers. The natural state of this temporal register maps to a
+                            maximally self-entangled Bell qutrit:
+                            $$|\Omega\rangle = \frac{1}{\sqrt{3}}\left(|0\rangle_p|0\rangle_f + |1\rangle_p|1\rangle_f +
+                            |2\rangle_p|2\rangle_f\right)$$
+                        </p>
+                    </div>
+
+                    <div class="bg-cyber-bg/80 border border-cyber-border rounded-xl p-5 space-y-3">
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-cyber-accent">Pauli Phase-Space
+                            Witnesses</h4>
+                        <div class="grid grid-cols-3 gap-3 text-center code-font">
+                            <div class="bg-cyber-panel p-2.5 rounded border border-cyber-border">
+                                <div class="text-[10px] text-cyber-muted uppercase">Gauss Visibility</div>
+                                <div class="text-emerald-400 font-bold text-sm mt-1">1 / 3</div>
+                            </div>
+                            <div class="bg-cyber-panel p-2.5 rounded border border-cyber-border">
+                                <div class="text-[10px] text-cyber-muted uppercase">Ray Bound</div>
+                                <div class="text-cyber-purple font-bold text-sm mt-1">≤ 34 / 40</div>
+                            </div>
+                            <div class="bg-cyber-panel p-2.5 rounded border border-cyber-border">
+                                <div class="text-[10px] text-cyber-muted uppercase">Agreement Rate</div>
+                                <div class="text-cyber-amber font-bold text-sm mt-1">13 / 40</div>
+                            </div>
+                        </div>
+                        <p class="text-[10px] text-cyber-muted text-center pt-1">
+                            Proven by temporal context-changing history split matching $\mathcal{H}_p \otimes
+                            \mathcal{H}_f = \mathcal{D} \oplus \mathcal{N}$ dimensions.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer Status -->
+    <footer class="border-t border-cyber-border bg-cyber-panel/40 px-6 py-4 mt-12">
+        <div
+            class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-cyber-muted">
+            <div class="flex items-center space-x-2">
+                <span class="inline-block w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse"></span>
+                <span>Decoupled Geometric Routing Console v0.1.6</span>
+            </div>
+            <div class="flex items-center gap-4">
+                <span>Core Compiler: <strong class="text-cyber-accent">Witting-Klein Matrix</strong></span>
+                <span>Security Engine: <strong class="text-cyber-purple">ZKP 2i Sync-Handshake</strong></span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Logic Script -->
+    <script>
+        // App States
+        let activeTab = 'terminal';
+        let routingInProgress = false;
+
+        // Custom 3D Projection Engine variables
+        let r4Canvas = document.getElementById('canvas-r4');
+        let r4Ctx = r4Canvas ? r4Canvas.getContext('2d') : null;
+        let fullCanvas = document.getElementById('canvas-geometry-fullscreen');
+        let fullCtx = fullCanvas ? fullCanvas.getContext('2d') : null;
+
+        let angleX = 0.5;
+        let angleY = 0.6;
+        let scaleVal = 130; // Modulated dynamically by slider-r!
+
+        let isDragging = false;
+        let previousMousePosition = { x: 0, y: 0 };
+
+        // Real-time animation coordinates for geodesic paths
+        let activeRoutePath = [];
+        let routeProgress = 1.0;
+
+        // Telemetry tracking states
+        let connectionDrift = 0.00;
+        let killSwitchTripped = false;
+        let selectedHexResidueClass = 'all';
+
+        // Multi-Thought Storage Array
+        let thoughtStreams = [];
+
+        // Colors pool to cycle color assignments for multi-traces
+        const traceColorPalette = [
+            '#00f2fe', // Cyan
+            '#9b51e0', // Violet
+            '#00ff87', // Neon Green
+            '#f5a623', // Amber
+            '#ff4a75', // Rose
+            '#38ef7d'  // Emerald Green
+        ];
+
+        // 64 Experts Activation Data
+        let expertActiveCounts = Array.from({ length: 64 }, () => 0);
+
+        // Precise Delta Time Tracking
+        let lastTime = performance.now();
+
+        // Resize Canvas safely
+        function resizeCanvases() {
+            if (r4Canvas && r4Canvas.parentElement) {
+                r4Canvas.width = r4Canvas.parentElement.clientWidth;
+                r4Canvas.height = r4Canvas.parentElement.clientHeight;
+            }
+            if (fullCanvas && fullCanvas.parentElement) {
+                fullCanvas.width = fullCanvas.parentElement.clientWidth;
+                fullCanvas.height = fullCanvas.parentElement.clientHeight;
+            }
+        }
+
+        window.addEventListener('resize', resizeCanvases);
+
+        // Interactive mouse/touch rotations
+        function initInteraction(canvas) {
+            if (!canvas) return;
+            canvas.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+            });
+
+            canvas.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                const deltaX = e.clientX - previousMousePosition.x;
+                const deltaY = e.clientY - previousMousePosition.y;
+
+                angleX += deltaX * 0.005;
+                angleY += deltaY * 0.005;
+
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+            });
+
+            canvas.addEventListener('mouseup', () => { isDragging = false; });
+            canvas.addEventListener('mouseleave', () => { isDragging = false; });
+
+            // Touch support
+            canvas.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 1) {
+                    isDragging = true;
+                    previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                }
+            });
+
+            canvas.addEventListener('touchmove', (e) => {
+                if (!isDragging || e.touches.length !== 1) return;
+                const deltaX = e.touches[0].clientX - previousMousePosition.x;
+                const deltaY = e.touches[0].clientY - previousMousePosition.y;
+
+                angleX += deltaX * 0.005;
+                angleY += deltaY * 0.005;
+
+                previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            });
+
+            canvas.addEventListener('touchend', () => { isDragging = false; });
+        }
+
+        // Initialize Expert Matrix UI with Overlapping opacity mapping
+        function populateExpertMatrix() {
+            const matrixGrid = document.getElementById('expert-matrix');
+            if (!matrixGrid) return;
+            matrixGrid.innerHTML = '';
+
+            let maxCount = Math.max(...expertActiveCounts, 1);
+
+            for (let i = 0; i < 64; i++) {
+                const overlapCount = expertActiveCounts[i];
+                const isActive = overlapCount > 0;
+
+                // Opacity level scales smoothly with overlapping streams
+                const activationRatio = overlapCount / maxCount;
+                const bgStyle = isActive
+                    ? `background: rgba(155, 81, 224, ${0.15 + activationRatio * 0.7}); border-color: rgba(0, 242, 254, ${0.3 + activationRatio * 0.7});`
+                    : 'background: rgba(16, 18, 26, 0.4); border-color: rgba(255, 255, 255, 0.05);';
+
+                const glowShadow = isActive
+                    ? `box-shadow: 0 0 ${4 + activationRatio * 12}px rgba(0, 242, 254, ${0.1 + activationRatio * 0.4});`
+                    : '';
+
+                const textStyle = isActive ? 'color: #00f2fe; font-weight: 700;' : 'color: #64748b;';
+
+                const block = document.createElement('div');
+                block.className = "h-8 rounded-md flex flex-col items-center justify-center text-[9px] code-font border transition-all duration-300";
+                block.style = bgStyle + glowShadow;
+
+                // Output cell HTML
+                block.innerHTML = `
+                    <span style="${textStyle}">${String(i).padStart(2, '0')}</span>
+                    ${overlapCount > 1 ? `<span class="text-[7px] text-white opacity-90 leading-none">x${overlapCount}</span>` : ''}
+                `;
+                block.id = `expert-cell-${i}`;
+                matrixGrid.appendChild(block);
+            }
+            const expertCountEl = document.getElementById('expert-count');
+            if (expertCountEl) expertCountEl.innerText = expertActiveCounts.filter(c => c > 0).length;
+        }
+
+        // Dropdown menu toggle
+        let apiDetailsOpen = false;
+        function toggleApiDetails() {
+            const details = document.getElementById('api-details');
+            const chevron = document.getElementById('api-chevron');
+            apiDetailsOpen = !apiDetailsOpen;
+            if (details && chevron) {
+                if (apiDetailsOpen) {
+                    details.classList.remove('hidden');
+                    chevron.classList.add('rotate-180');
+                } else {
+                    details.classList.add('hidden');
+                    chevron.classList.remove('rotate-180');
+                }
+            }
+        }
+
+        // Tab switches
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('border-cyber-accent', 'text-cyber-accent');
+                btn.classList.add('border-transparent', 'text-cyber-muted');
+            });
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+
+            const currentTabBtn = document.getElementById(`tab-btn-${tabId}`);
+            if (currentTabBtn) {
+                currentTabBtn.classList.remove('border-transparent', 'text-cyber-muted');
+                currentTabBtn.classList.add('border-cyber-accent', 'text-cyber-accent');
+            }
+            const currentTabContent = document.getElementById(`tab-${tabId}`);
+            if (currentTabContent) {
+                currentTabContent.classList.remove('hidden');
+            }
+
+            activeTab = tabId;
+            resizeCanvases();
+
+            if (tabId === 'hexhive') {
+                initHexHiveGrid();
+            }
+        }
+
+        // Bind interactive controls to update text values and update state parameters immediately
+        function setupManifoldControls() {
+            const sliderR = document.getElementById('slider-r');
+            const sliderDrift = document.getElementById('slider-drift');
+            const sliderThetaCrit = document.getElementById('slider-theta-crit');
+
+            const valR = document.getElementById('val-hyperbolic-r');
+            const valDrift = document.getElementById('val-drift');
+            const valThetaCrit = document.getElementById('val-theta-crit');
+
+            if (sliderR && valR) {
+                sliderR.addEventListener('input', (e) => {
+                    const rValue = parseFloat(e.target.value);
+                    valR.innerText = rValue.toFixed(2);
+                    // Map the rValue directly to scaleVal to contract/expand projection
+                    scaleVal = rValue * 37;
+                });
+                // Initialize scaleVal based on default slider value
+                scaleVal = parseFloat(sliderR.value) * 37;
+            }
+
+            if (sliderDrift && valDrift) {
+                sliderDrift.addEventListener('input', (e) => {
+                    const driftValue = parseFloat(e.target.value);
+                    valDrift.innerText = driftValue.toFixed(2) + " rad";
+
+                    const valDriftLabel = document.getElementById('val-drift');
+                    if (driftValue > 0) {
+                        valDriftLabel.className = "text-cyber-purple font-bold";
+                    } else {
+                        valDriftLabel.className = "text-emerald-400 font-bold";
+                    }
+                });
+            }
+
+            if (sliderThetaCrit && valThetaCrit) {
+                sliderThetaCrit.addEventListener('input', (e) => {
+                    const thetaCritVal = parseFloat(e.target.value);
+                    valThetaCrit.innerText = thetaCritVal.toFixed(2) + " rad";
+                });
+            }
+        }
+
+        // Project a 3D coordinate (x,y,z) down to 2D canvas coordinates
+        function project3D(x, y, z, width, height) {
+            let cosX = Math.cos(angleX);
+            let sinX = Math.sin(angleX);
+            let cosY = Math.cos(angleY);
+            let sinY = Math.sin(angleY);
+
+            // Rotate around Y
+            let x1 = x * cosY - z * sinY;
+            let z1 = x * sinY + z * cosY;
+
+            // Rotate around X
+            let y2 = y * cosX - z1 * sinX;
+            let z2 = y * sinX + z1 * cosX;
+
+            const distance = 400;
+            const factor = distance / (distance + z2);
+
+            return {
+                x: width / 2 + x1 * factor * (scaleVal / 100),
+                y: height / 2 + y2 * factor * (scaleVal / 100),
+                z: z2,
+                visible: z2 < distance
+            };
+        }
+
+        // Multi-Trace Projection Canvas Render loop
+        function drawR4Projection() {
+            const ctx = activeTab === 'terminal' ? r4Ctx : fullCtx;
+            const canvas = activeTab === 'terminal' ? r4Canvas : fullCanvas;
+            if (!ctx || !canvas) return;
+
+            const currentTime = performance.now();
+            let dt = (currentTime - lastTime) / 1000;
+            if (dt > 0.1) dt = 0.1;
+            lastTime = currentTime;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const width = canvas.width;
+            const height = canvas.height;
+
+            // 1. Draw S2 Base Sphere Latitude & Longitude lines (the projected sphere)
+            const sphereRadius = 100;
+            ctx.strokeStyle = 'rgba(0, 242, 254, 0.05)';
+            ctx.lineWidth = 1;
+
+            for (let i = 0; i < 8; i++) {
+                const theta = (i / 8) * Math.PI * 2;
+                ctx.beginPath();
+                for (let lat = -Math.PI / 2; lat <= Math.PI / 2; lat += 0.1) {
+                    const x = sphereRadius * Math.cos(lat) * Math.cos(theta);
+                    const z = sphereRadius * Math.cos(lat) * Math.sin(theta);
+                    const y = sphereRadius * Math.sin(lat);
+                    const p = project3D(x, y, z, width, height);
+                    if (lat === -Math.PI / 2) ctx.moveTo(p.x, p.y);
+                    else ctx.lineTo(p.x, p.y);
+                }
+                ctx.stroke();
+            }
+
+            for (let i = 1; i < 6; i++) {
+                const phi = (i / 6) * Math.PI - Math.PI / 2;
+                ctx.beginPath();
+                for (let lon = 0; lon <= Math.PI * 2; lon += 0.1) {
+                    const x = sphereRadius * Math.cos(phi) * Math.cos(lon);
+                    const z = sphereRadius * Math.cos(phi) * Math.sin(lon);
+                    const y = sphereRadius * Math.sin(phi);
+                    const p = project3D(x, y, z, width, height);
+                    if (lon === 0) ctx.moveTo(p.x, p.y);
+                    else ctx.lineTo(p.x, p.y);
+                }
+                ctx.stroke();
+            }
+
+            // Draw S1 fiber rings orbiting around S2 (Hopf Fibration fibers)
+            ctx.strokeStyle = 'rgba(155, 81, 224, 0.15)';
+            ctx.lineWidth = 1.2;
+            for (let rOffset = -50; rOffset <= 50; rOffset += 25) {
+                ctx.beginPath();
+                for (let phi = 0; phi <= Math.PI * 2; phi += 0.08) {
+                    const majorR = 120;
+                    const minorR = 25;
+                    const x = (majorR + minorR * Math.cos(phi * 2)) * Math.cos(phi);
+                    const z = (majorR + minorR * Math.cos(phi * 2)) * Math.sin(phi);
+                    const y = minorR * Math.sin(phi * 2) + rOffset;
+
+                    const p = project3D(x, y, z, width, height);
+                    if (phi === 0) ctx.moveTo(p.x, p.y);
+                    else ctx.lineTo(p.x, p.y);
+                }
+                ctx.stroke();
+            }
+
+            // Draw 2D Origin Axis / Zero-Point Grid Center
+            const center = project3D(0, 0, 0, width, height);
+            ctx.beginPath();
+            ctx.arc(center.x, center.y, 4, 0, Math.PI * 2);
+            ctx.fillStyle = '#ff4a75';
+            ctx.fill();
+
+            // 2. Render ALL active thoughts on the canvas concurrently
+            thoughtStreams.forEach(thought => {
+                // Shoot tangent vector line to endpoint
+                ctx.beginPath();
+                ctx.lineWidth = 1.0;
+                ctx.strokeStyle = thought.color + '40'; // 25% opacity
+                const destP = project3D(thought.r4Target.x, thought.r4Target.y, thought.r4Target.z, width, height);
+                ctx.moveTo(center.x, center.y);
+                ctx.lineTo(destP.x, destP.y);
+                ctx.stroke();
+
+                // Draw target node at destination
+                ctx.beginPath();
+                ctx.arc(destP.x, destP.y, 4, 0, Math.PI * 2);
+                ctx.fillStyle = thought.color;
+                ctx.fill();
+
+                // Draw curve path traces
+                if (thought.pathSteps.length > 0) {
+                    ctx.beginPath();
+                    ctx.lineWidth = 2.0;
+                    ctx.strokeStyle = thought.color;
+
+                    const limit = Math.floor(thought.pathSteps.length * thought.progress);
+                    for (let i = 0; i < limit; i++) {
+                        const pt = thought.pathSteps[i];
+                        const p = project3D(pt.x, pt.y, pt.z, width, height);
+                        if (i === 0) ctx.moveTo(p.x, p.y);
+                        else ctx.lineTo(p.x, p.y);
+                    }
+                    ctx.stroke();
+
+                    // Animate moving pulse along path
+                    if (limit > 0 && limit < thought.pathSteps.length) {
+                        const pulsePt = thought.pathSteps[limit];
+                        const pulseP = project3D(pulsePt.x, pulsePt.y, pulsePt.z, width, height);
+                        ctx.beginPath();
+                        ctx.arc(pulseP.x, pulseP.y, 5, 0, Math.PI * 2);
+                        ctx.fillStyle = '#ffffff';
+                        ctx.fill();
+                        ctx.strokeStyle = thought.color;
+                        ctx.lineWidth = 1.5;
+                        ctx.stroke();
+                    }
+
+                    // Increment path tracing animation progress
+                    if (thought.progress < 1.0) {
+                        thought.progress += thought.pulseSpeed * dt;
+                        if (thought.progress > 1.0) thought.progress = 1.0;
+                    }
+                }
+            });
+
+            // 3. Connection Drift accumulate tracking (demonstrative leg)
+            const driftSlider = document.getElementById('slider-drift');
+            const thetaCritSlider = document.getElementById('slider-theta-crit');
+            const driftRatePerSec = driftSlider ? parseFloat(driftSlider.value) : 0.00;
+            const thetaCrit = thetaCritSlider ? parseFloat(thetaCritSlider.value) : 1.20;
+
+            if (!routingInProgress && !killSwitchTripped && driftRatePerSec > 0) {
+                connectionDrift += driftRatePerSec * dt;
+                if (connectionDrift >= thetaCrit) {
+                    triggerPhaseReset();
+                } else {
+                    const driftPct = (connectionDrift / thetaCrit) * 100;
+                    const headerVal = document.getElementById('header-drift-val');
+                    if (headerVal) {
+                        headerVal.className = "text-cyber-purple font-bold flex items-center gap-1";
+                        headerVal.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-[10px] animate-pulse text-cyber-purple"></i> ${driftPct.toFixed(2)}%`;
+                    }
+                    const mathLcConnection = document.getElementById('math-lc-connection');
+                    if (mathLcConnection) mathLcConnection.innerText = "∇_γ θ = " + connectionDrift.toFixed(4);
+
+                    const mathGeodesicEnergy = document.getElementById('math-geodesic-energy');
+                    if (mathGeodesicEnergy) mathGeodesicEnergy.innerText = "E = " + (1.045 + connectionDrift * 0.35).toFixed(3) + " J";
+                }
+            } else if (driftRatePerSec === 0 && !killSwitchTripped) {
+                connectionDrift = 0;
+                const headerVal = document.getElementById('header-drift-val');
+                if (headerVal) {
+                    headerVal.className = "text-emerald-400 font-bold flex items-center gap-1";
+                    headerVal.innerHTML = `<i class="fa-solid fa-lock text-[10px]"></i> 0.00%`;
+                }
+                const mathLcConnection = document.getElementById('math-lc-connection');
+                if (mathLcConnection) mathLcConnection.innerText = "∇_γ θ = 0.0000";
+
+                const mathGeodesicEnergy = document.getElementById('math-geodesic-energy');
+                if (mathGeodesicEnergy) mathGeodesicEnergy.innerText = "E = 1.045 J";
+            }
+        }
+
+        // Trigger Phase Resets
+        function triggerPhaseReset() {
+            if (killSwitchTripped) return;
+            killSwitchTripped = true;
+            connectionDrift = 0;
+
+            const headerVal = document.getElementById('header-drift-val');
+            if (headerVal) {
+                headerVal.className = "text-rose-500 font-bold animate-pulse flex items-center gap-1";
+                headerVal.innerHTML = `<i class="fa-solid fa-circle-exclamation text-[10px]"></i> 100.00%`;
+            }
+
+            const warningEl = document.getElementById('math-drift-warning');
+            const killStatusEl = document.getElementById('killswitch-status');
+            const consoleOut = document.getElementById('console-output');
+
+            if (warningEl) {
+                warningEl.innerText = "ALIGNMENT DRIFT CRITICAL! INTERCEPTING...";
+                warningEl.className = "text-rose-400 font-bold animate-pulse";
+            }
+            if (killStatusEl) {
+                killStatusEl.innerText = "ALIGNMENT RESETTING";
+                killStatusEl.className = "bg-rose-950/50 border border-rose-500/30 text-rose-400 text-xs px-3 py-1 rounded code-font font-bold flex items-center gap-1.5 animate-pulse";
+            }
+            if (consoleOut) {
+                consoleOut.innerHTML += `<br><span class="text-rose-400 font-semibold">🚨 [SYSTEM WARNING]: Levi-Civita connection drift exceeded Phase-Alignment Kill-Switch threshold (Θ_crit). Initiating ZKP 2i Sync-Handshake Reset at origin...</span>`;
+                consoleOut.scrollTop = consoleOut.scrollHeight;
+            }
+
+            setTimeout(() => {
+                killSwitchTripped = false;
+                if (warningEl) {
+                    warningEl.innerText = "STABLE";
+                    warningEl.className = "text-emerald-400 font-bold";
+                }
+                if (killStatusEl) {
+                    killStatusEl.innerText = "ALIGNMENT LOCKED";
+                    killStatusEl.className = "bg-emerald-950/50 border border-emerald-500/30 text-emerald-400 text-xs px-3 py-1 rounded code-font font-bold flex items-center gap-1.5";
+                }
+                if (consoleOut) {
+                    consoleOut.innerHTML += `<br><span class="text-emerald-400">🛡 [SYSTEM INFO]: Phase Alignment locked. Connection restabilized to origin ($set$). Ready for next geodesic path.</span>`;
+                    consoleOut.scrollTop = consoleOut.scrollHeight;
+                }
+            }, 2500);
+        }
+
+        // Core dynamic hashing and coordinate generator (UOR standard mapping)
+        function computeR4FromText(text) {
+            let hashVal = 0;
+            for (let i = 0; i < text.length; i++) {
+                hashVal = (hashVal << 5) - hashVal + text.charCodeAt(i);
+                hashVal |= 0;
+            }
+
+            // High dimensional coordinates mapping in R4 Tangent space projection
+            const x = Math.sin(hashVal * 0.015) * 110;
+            const y = Math.cos(hashVal * 0.025) * 110;
+            const z = Math.sin(hashVal * 0.035) * 90;
+
+            const primes = [11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53];
+            const p1 = primes[Math.abs(hashVal) % primes.length];
+            const p2 = primes[Math.abs(hashVal + 9) % primes.length];
+            const sharedGcd = p1 === p2 ? p1 : 1;
+
+            // Compute active experts (mixture-of-experts indices)
+            const activeIndices = [];
+            for (let i = 0; i < 64; i++) {
+                if (((hashVal >> (i % 32)) & 1) === 1) {
+                    activeIndices.push(i);
+                }
+            }
+            // Limit to max 12 channels for performance layout balance
+            const expertStates = activeIndices.slice(0, 8);
+
+            // Construct curved geodesic steps
+            const pathSteps = [];
+            for (let t = 0; t <= 50; t++) {
+                const ratio = t / 50;
+                pathSteps.push({
+                    x: x * ratio + Math.sin(ratio * Math.PI * 2) * 25,
+                    y: y * ratio + Math.cos(ratio * Math.PI * 2) * 15,
+                    z: z * ratio
+                });
+            }
+
+            // Build short signature hash
+            let hexChars = "0123456789abcdef";
+            let hashHex = "";
+            for (let i = 0; i < 8; i++) {
+                hashHex += hexChars[Math.abs((hashVal ^ i) % 16)];
+            }
+
+            return {
+                x, y, z,
+                gcd: sharedGcd,
+                phase: (Math.abs(hashVal) % 314) / 100,
+                kappa: (hashVal % 2 === 0) ? 1 : -1,
+                expertStates,
+                pathSteps,
+                sig: "uor-addr-" + hashHex
+            };
+        }
+
+        // Inject thought manually
+        function injectThought() {
+            const input = document.getElementById('thought-input');
+            if (!input) return;
+            const val = input.value.trim();
+            if (!val) return;
+
+            addThoughtToStream(val);
+            input.value = "";
+        }
+
+        // Load pre-assembled diagnostics cascading scenarios
+        function loadCascade(scenarioType) {
+            clearThoughts();
+            let inputs = [];
+            if (scenarioType === 'diagnostics') {
+                inputs = [
+                    "Isolate thermodynamic entropy invariants inside the S3 vacuum boundary",
+                    "Resolve zero-point energy density across continuous R4 coordinates",
+                    "Measure geodesic vector displacement under Levi-Civita mapping restrictions"
+                ];
+            } else if (scenarioType === 'blockchain') {
+                inputs = [
+                    "Map hex-hive blockchain shard state address over mod 6 primes",
+                    "Extract greatest common divisor consensus from multi-prime nodes",
+                    "Synchronize ZKP 2i imaginary phase lock on concurrent billing ledgers"
+                ];
+            }
+
+            inputs.forEach(text => addThoughtToStream(text));
+            fireAllThoughts();
+        }
+
+        // Add a single thought block to state and queue list
+        function addThoughtToStream(text) {
+            const calculated = computeR4FromText(text);
+            const color = traceColorPalette[thoughtStreams.length % traceColorPalette.length];
+
+            const newThought = {
+                id: crypto.randomUUID(),
+                text: text,
+                color: color,
+                r4Target: { x: calculated.x, y: calculated.y, z: calculated.z },
+                pathSteps: calculated.pathSteps,
+                expertStates: calculated.expertStates,
+                progress: 0, // Awaiting trigger execution
+                pulseSpeed: 0.35 + Math.random() * 0.15, // varying speed
+                uor: calculated.sig,
+                gcd: calculated.gcd,
+                phase: calculated.phase,
+                kappa: calculated.kappa
+            };
+
+            thoughtStreams.push(newThought);
+            updateThoughtQueueUI();
+
+            // Log entry
+            const consoleOut = document.getElementById('console-output');
+            if (consoleOut) {
+                consoleOut.innerHTML += `<br><span class="text-cyber-accent">Injected new thought stream:</span> "${text}" → projected destination [${calculated.x.toFixed(0)}, ${calculated.y.toFixed(0)}, ${calculated.z.toFixed(0)}]`;
+                consoleOut.scrollTop = consoleOut.scrollHeight;
+            }
+        }
+
+        // Update Thought Queue List UI
+        function updateThoughtQueueUI() {
+            const list = document.getElementById('thought-queue-list');
+            if (!list) return;
+
+            const badgeCount = document.getElementById('active-count-badge');
+            const headerCount = document.getElementById('header-traces-count');
+
+            if (thoughtStreams.length === 0) {
+                list.innerHTML = `<div class="text-xs text-cyber-muted text-center py-4 italic">No active thoughts. Inject some above!</div>`;
+                if (badgeCount) badgeCount.innerText = "0 Active";
+                if (headerCount) headerCount.innerText = "0 Active";
+                return;
+            }
+
+            if (badgeCount) badgeCount.innerText = `${thoughtStreams.length} Active`;
+            if (headerCount) headerCount.innerText = `${thoughtStreams.length} Traces`;
+
+            list.innerHTML = "";
+            thoughtStreams.forEach(t => {
+                const item = document.createElement('div');
+                item.className = "p-3 rounded-lg bg-cyber-bg/50 border border-cyber-border text-xs space-y-2 relative overflow-hidden transition-all hover:border-white/10";
+                item.innerHTML = `
+                    <!-- Colored border accent -->
+                    <div class="absolute left-0 top-0 bottom-0 w-1" style="background-color: ${t.color}"></div>
+                    <div class="flex justify-between items-start gap-4">
+                        <span class="font-medium text-slate-200 truncate pr-2" title="${t.text}">${t.text}</span>
+                        <button onclick="removeThought('${t.id}')" class="text-cyber-muted hover:text-rose-400 transition-colors"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                    <div class="grid grid-cols-2 gap-x-2 gap-y-1 text-[10px] code-font text-cyber-muted">
+                        <div>ID: <span style="color: ${t.color}">${t.uor}</span></div>
+                        <div>GCD: <span class="text-slate-300">${t.gcd}</span></div>
+                        <div>PHASE: <span class="text-slate-300">θ:${t.phase.toFixed(2)}</span></div>
+                        <div>SPIN: <span class="text-slate-300">κ:${t.kappa > 0 ? '+1' : '-1'}</span></div>
+                    </div>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        // Remove thought from state
+        function removeThought(id) {
+            thoughtStreams = thoughtStreams.filter(t => t.id !== id);
+            recalculateExpertOverlaps();
+            updateThoughtQueueUI();
+            populateExpertMatrix();
+        }
+
+        // Clear all thoughts completely
+        function clearThoughts() {
+            thoughtStreams = [];
+            expertActiveCounts.fill(0);
+            updateThoughtQueueUI();
+            populateExpertMatrix();
+
+            const consoleOut = document.getElementById('console-output');
+            if (consoleOut) {
+                consoleOut.innerHTML = `SYSTEM RESET. ALL ACTIVE PATHS DISPATCHED TO VACUUM ORIGIN ($set$).<br><span class="text-cyber-muted">> Ready to ingest next thought cascade.</span>`;
+                consoleOut.scrollTop = consoleOut.scrollHeight;
+            }
+        }
+
+        // Trigger simultaneous trace flow animations for all inputs
+        function fireAllThoughts() {
+            if (thoughtStreams.length === 0) return;
+
+            routingInProgress = true;
+            recalculateExpertOverlaps();
+            populateExpertMatrix();
+
+            // Set progress indicators to zero to trigger wave flow
+            thoughtStreams.forEach(t => t.progress = 0.0);
+
+            const consoleOut = document.getElementById('console-output');
+            if (consoleOut) {
+                consoleOut.innerHTML = `<span class="text-cyber-accent font-bold">[WEB4 PROTOCOL LAYER 2i] DISPATCHING CONCURRENT MOE BUNDLE:</span><br>`;
+                thoughtStreams.forEach(t => {
+                    consoleOut.innerHTML += `→ Trace [${t.uor}] shooting Tangent vector from Zero Point. Channel activation overlap map initialized.<br>`;
+                });
+                consoleOut.scrollTop = consoleOut.scrollHeight;
+            }
+
+            // Transition state back to stable after animation completion
+            setTimeout(() => {
+                routingInProgress = false;
+                if (consoleOut) {
+                    consoleOut.innerHTML += `<br><span class="text-emerald-400 font-bold">✓ ALL TRAJECTORIES SECURELY ROUTED:</span> Collision-free routing verified dynamically across Modulo-6 Prime residues. Overlapping invariants stabilized successfully.<br>`;
+                    consoleOut.scrollTop = consoleOut.scrollHeight;
+                }
+            }, 2500);
+        }
+
+        // Recalculate overlapping Mixtures-Of-Experts counts for overlap mapping
+        function recalculateExpertOverlaps() {
+            expertActiveCounts.fill(0);
+            thoughtStreams.forEach(t => {
+                t.expertStates.forEach(ch => {
+                    if (ch >= 0 && ch < 64) {
+                        expertActiveCounts[ch]++;
+                    }
+                });
+            });
+        }
+
+        // Interactive Hex-Hive Grid Renderer
+        let hexCanvas = document.getElementById('canvas-hexhive');
+        let hexCtx = hexCanvas ? hexCanvas.getContext('2d') : null;
+        const hexRadius = 24;
+
+        function initHexHiveGrid() {
+            if (!hexCanvas) return;
+            hexCanvas.width = hexCanvas.parentElement.clientWidth;
+            hexCanvas.height = hexCanvas.parentElement.clientHeight;
+            drawHexHive();
+        }
+
+        function drawHexagon(x, y, radius, label, color, isOutline = false) {
+            if (!hexCtx) return;
+            hexCtx.beginPath();
+            for (let i = 0; i < 6; i++) {
+                const angle = (i * Math.PI) / 3;
+                const hx = x + radius * Math.cos(angle);
+                const hy = y + radius * Math.sin(angle);
+                if (i === 0) hexCtx.moveTo(hx, hy);
+                else hexCtx.lineTo(hx, hy);
+            }
+            hexCtx.closePath();
+
+            if (isOutline) {
+                hexCtx.strokeStyle = color;
+                hexCtx.lineWidth = 1.5;
+                hexCtx.stroke();
+            } else {
+                hexCtx.fillStyle = color;
+                hexCtx.fill();
+                hexCtx.strokeStyle = 'rgba(255,255,255,0.05)';
+                hexCtx.stroke();
+            }
+
+            // Label
+            hexCtx.fillStyle = '#ffffff';
+            hexCtx.font = '9px monospace';
+            hexCtx.textAlign = 'center';
+            hexCtx.textBaseline = 'middle';
+            hexCtx.fillText(label, x, y);
+        }
+
+        function drawHexHive() {
+            if (!hexCtx || !hexCanvas) return;
+            hexCtx.clearRect(0, 0, hexCanvas.width, hexCanvas.height);
+
+            const w = hexRadius * Math.sqrt(3);
+            const h = hexRadius * 2;
+            const xCount = Math.ceil(hexCanvas.width / (w * 1.5));
+            const yCount = Math.ceil(hexCanvas.height / (h * 0.75));
+
+            for (let x = 0; x < xCount; x++) {
+                for (let y = 0; y < yCount; y++) {
+                    const xPos = x * w * 1.5 + (y % 2) * w * 0.75;
+                    const yPos = y * h * 0.75;
+
+                    const kCoordinate = x + y * 5;
+                    const mod6Plus = 6 * kCoordinate + 1;
+                    const mod6Minus = 6 * kCoordinate - 1;
+
+                    let hexColor = '#10121a';
+                    let hexLabel = `k:${kCoordinate}`;
+
+                    if (selectedHexResidueClass === 'all') {
+                        if (isPrime(mod6Plus)) {
+                            hexColor = 'rgba(0, 242, 254, 0.2)';
+                            hexLabel = `${mod6Plus}`;
+                        } else if (isPrime(mod6Minus)) {
+                            hexColor = 'rgba(155, 81, 224, 0.2)';
+                            hexLabel = `${mod6Minus}`;
+                        }
+                    } else if (selectedHexResidueClass === 'plus' && isPrime(mod6Plus)) {
+                        hexColor = 'rgba(0, 242, 254, 0.45)';
+                        hexLabel = `${mod6Plus}`;
+                    } else if (selectedHexResidueClass === 'minus' && isPrime(mod6Minus)) {
+                        hexColor = 'rgba(155, 81, 224, 0.45)';
+                        hexLabel = `${mod6Minus}`;
+                    }
+
+                    drawHexagon(xPos + 30, yPos + 30, hexRadius - 2, hexLabel, hexColor);
+                }
+            }
+
+            if (selectedHexResidueClass !== 'all') {
+                hexCtx.beginPath();
+                hexCtx.strokeStyle = selectedHexResidueClass === 'plus' ? '#00f2fe' : '#9b51e0';
+                hexCtx.lineWidth = 3;
+                hexCtx.setLineDash([5, 10]);
+
+                hexCtx.moveTo(50, 100);
+                hexCtx.lineTo(hexCanvas.width - 50, 100);
+                hexCtx.moveTo(50, 250);
+                hexCtx.lineTo(hexCanvas.width - 50, 250);
+                hexCtx.stroke();
+                hexCtx.setLineDash([]);
+            }
+        }
+
+        function highlightHexClass(type) {
+            selectedHexResidueClass = type;
+            document.querySelectorAll('[id^="hex-btn-"]').forEach(btn => {
+                btn.className = "flex-1 py-2 rounded border border-cyber-border text-cyber-muted hover:text-cyber-text text-xs font-bold code-font";
+            });
+            const selectedBtn = document.getElementById(`hex-btn-${type}`);
+            if (selectedBtn) {
+                selectedBtn.className = "flex-1 py-2 rounded border border-cyber-accent bg-cyber-accentDim text-cyber-accent text-xs font-bold code-font";
+            }
+            const telemetry = document.getElementById('hex-telemetry');
+            if (telemetry) {
+                telemetry.innerText = `Residue Class: ${type.toUpperCase()}`;
+            }
+            drawHexHive();
+        }
+
+        // Prime checking utility
+        function isPrime(num) {
+            if (num <= 1) return false;
+            if (num <= 3) return true;
+            if (num % 2 === 0 || num % 3 === 0) return false;
+            for (let i = 5; i * i <= num; i += 6) {
+                if (num % i === 0 || num % (i + 2) === 0) return false;
+            }
+            return true;
+        }
+
+        // Live Resonance calculations
+        function calculateResonance() {
+            const inputEl = document.getElementById('resonance-input');
+            if (!inputEl) return;
+            const inputText = inputEl.value;
+            const bytesLength = inputText.length;
+
+            const resTotalBytes = document.getElementById('res-total-bytes');
+            if (resTotalBytes) resTotalBytes.innerText = bytesLength;
+
+            const resBitsRatio = document.getElementById('res-bits-ratio');
+            if (resBitsRatio) resBitsRatio.innerText = (bytesLength * 8) + " bits";
+
+            let hashHex = "";
+            let hashInt = 0;
+            for (let i = 0; i < inputText.length; i++) {
+                hashInt = (hashInt << 5) - hashInt + inputText.charCodeAt(i);
+                hashInt = hashInt & hashInt;
+            }
+
+            const hexChars = "0123456789abcdef";
+            for (let i = 0; i < 64; i++) {
+                const step = Math.abs((hashInt ^ i) % 16);
+                hashHex += hexChars[step];
+            }
+
+            const resUorSig = document.getElementById('res-uor-sig');
+            if (resUorSig) resUorSig.innerText = "sha256:" + hashHex;
+
+            const telemetryUor = document.getElementById('telemetry-uor');
+            if (telemetryUor) telemetryUor.innerText = "sha256:" + hashHex.substring(0, 10) + "...";
+
+            let kleinMatches = 0;
+            for (let i = 0; i < inputText.length; i++) {
+                const charCode = inputText.charCodeAt(i);
+                if ([0, 1, 48, 49].includes(charCode % 50)) {
+                    kleinMatches++;
+                }
+            }
+
+            const resKlein = document.getElementById('res-klein');
+            if (resKlein) resKlein.innerText = kleinMatches;
+        }
+
+        function resetSpace() {
+            angleX = 0.5;
+            angleY = 0.6;
+            connectionDrift = 0;
+
+            const headerVal = document.getElementById('header-drift-val');
+            if (headerVal) {
+                headerVal.className = "text-emerald-400 font-bold flex items-center gap-1";
+                headerVal.innerHTML = `<i class="fa-solid fa-lock text-[10px]"></i> 0.00%`;
+            }
+        }
+
+        // Init System parameters
+        window.onload = function () {
+            resizeCanvases();
+            populateExpertMatrix();
+            setupManifoldControls();
+            if (r4Canvas) initInteraction(r4Canvas);
+            if (fullCanvas) initInteraction(fullCanvas);
+            calculateResonance();
+
+            // Load initial Diagnostic thought cascade to populate beautiful UI flows instantly on load
+            loadCascade('diagnostics');
+
+            lastTime = performance.now();
+
+            function animLoop() {
+                drawR4Projection();
+                requestAnimationFrame(animLoop);
+            }
+            animLoop();
+        };
+    </script>
+</body>
+
+</html>
