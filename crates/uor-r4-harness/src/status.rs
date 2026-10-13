@@ -467,25 +467,6 @@ mod tests {
         );
     }
 
-    /// Section 3 renders from local git, and it says what it cannot know. An earlier version of this
-    /// view marked section 3 unported; that stopped being true, and a test asserting it would have
-    /// gone on passing while the section was broken.
-    #[test]
-    fn the_delivery_section_renders_and_names_its_limit() {
-        let regs = Registries::load(&paths()).expect("registry");
-        let text = render(&paths(), Some(&regs), "2026-10-13T02:00:00-04:00");
-        let delivery = text.split("3. DELIVERY").nth(1).expect("delivery section");
-        assert!(
-            !delivery.contains("not ported"),
-            "section 3 renders now: {delivery}"
-        );
-        assert!(delivery.contains("origin/main"), "{delivery}");
-        assert!(
-            delivery.contains("not available from git alone"),
-            "{delivery}"
-        );
-    }
-
     /// Status must never raise: it is what a lab runs when something is already wrong.
     #[test]
     fn a_missing_registry_renders_unavailable_rather_than_panicking() {
@@ -1070,111 +1051,218 @@ mod aggregation_tests {
         StatePaths::resolve(repo, None, Some("/nonexistent-live"))
     }
 
-    /// The delivery view answers the question the owner's delete-after-merge rule makes load-bearing,
-    /// from local git alone.
+    /// A scratch repository whose branches this test controls.
+    ///
+    /// The first version of these tests ran against the checkout itself, which made them pass locally
+    /// and FAIL IN CI: GitHub Actions clones shallow with no `origin/main`, so `delivery_view` reported
+    /// UNAVAILABLE and four tests died. Tests for "is this branch finished" must own the branches they
+    /// judge. This builds a real git repo, not a mock - the code under test shells out to git, and a
+    /// mock of git would test the mock.
+    struct Fixture {
+        dir: tempfile::TempDir,
+        paths: StatePaths,
+    }
+
+    impl Fixture {
+        fn new() -> Fixture {
+            let dir = tempfile::tempdir().expect("tempdir");
+            let repo = dir.path().to_path_buf();
+            let run = |args: &[&str]| {
+                let out = std::process::Command::new("git")
+                    .arg("-C")
+                    .arg(&repo)
+                    .args(args)
+                    .output()
+                    .expect("git runs");
+                assert!(
+                    out.status.success(),
+                    "git {args:?}: {}",
+                    String::from_utf8_lossy(&out.stderr)
+                );
+            };
+            run(&["init", "-q", "-b", "main"]);
+            run(&["config", "user.email", "t@example.invalid"]);
+            run(&["config", "user.name", "t"]);
+            std::fs::write(repo.join("f.txt"), "one\n").expect("write");
+            run(&["add", "-A"]);
+            run(&["commit", "-qm", "first"]);
+            // `origin/main` as a real remote-tracking ref, which is what delivery_view reads.
+            run(&["update-ref", "refs/remotes/origin/main", "HEAD"]);
+            std::fs::create_dir_all(repo.join("docs/harness")).expect("mkdir");
+            Fixture {
+                dir,
+                paths: StatePaths::resolve(&repo, None, Some("/nonexistent-live")),
+            }
+        }
+
+        fn repo(&self) -> &std::path::Path {
+            self.dir.path()
+        }
+
+        fn git(&self, args: &[&str]) -> String {
+            let out = std::process::Command::new("git")
+                .arg("-C")
+                .arg(self.repo())
+                .args(args)
+                .output()
+                .expect("git runs");
+            String::from_utf8_lossy(&out.stdout).trim().to_string()
+        }
+
+        /// A branch that adds a commit main does not have.
+        fn branch_with_new_work(&self, name: &str) {
+            self.git(&["checkout", "-q", "-b", name, "main"]);
+            std::fs::write(self.repo().join("f.txt"), format!("{name}\n")).expect("write");
+            self.git(&["add", "-A"]);
+            self.git(&["commit", "-qm", name]);
+            self.git(&["checkout", "-q", "main"]);
+        }
+
+        /// A branch pointing at a commit already in main, i.e. finished.
+        fn finished_branch(&self, name: &str) {
+            self.git(&["branch", name, "main"]);
+        }
+    }
+
     #[test]
-    fn the_delivery_view_resolves_origin_main_and_classifies_every_branch() {
-        let view = delivery_view(&paths());
-        assert!(view.error.is_empty(), "{}", view.error);
-        assert_eq!(view.origin_main.len(), 40, "a full sha");
+    fn a_missing_origin_main_is_reported_not_guessed() {
+        // A shallow CI clone has no origin/main. The view must say so rather than call every branch
+        // unfinished or finished - the failure mode that broke CI.
+        let dir = tempfile::tempdir().expect("tempdir");
+        let repo = dir.path().to_path_buf();
+        for args in [
+            vec!["init", "-q", "-b", "main"],
+            vec!["config", "user.email", "t@example.invalid"],
+            vec!["config", "user.name", "t"],
+        ] {
+            let _ = std::process::Command::new("git")
+                .arg("-C")
+                .arg(&repo)
+                .args(&args)
+                .output();
+        }
+        let paths = StatePaths::resolve(&repo, None, Some("/nonexistent-live"));
+        let view = delivery_view(&paths);
         assert!(
-            !view.trunk.is_empty(),
-            "the trunk is resolved from origin/HEAD"
+            !view.error.is_empty(),
+            "no origin/main is an error, not an empty success"
         );
-        for r in &view.rows {
-            // Every branch is classified, and the two classes are mutually exclusive by construction.
-            assert_ne!(r.name, view.trunk, "the trunk is not a candidate");
-            assert_eq!(
-                r.orphan,
-                r.unmerged == 0,
-                "{}: orphan must mean zero unmerged",
-                r.name
-            );
-            assert!(
-                !r.safe_to_delete || r.orphan,
-                "{}: safe_to_delete implies finished",
-                r.name
-            );
-        }
-    }
-
-    /// **The bug this check had on first use.** A branch can hold no commits main lacks and STILL be
-    /// the only copy of uncommitted work: `codex/geometric-path-repair` pointed at a commit already in
-    /// main while its worktree held twelve modified files. Calling that "finished" would have invited
-    /// a delete of work that exists nowhere else.
-    #[test]
-    fn finished_by_commits_is_not_the_same_as_safe_to_delete() {
-        let view = delivery_view(&paths());
-        for r in view.held_by_uncommitted() {
-            assert!(
-                r.orphan,
-                "{}: held branches are still finished by commits",
-                r.name
-            );
-            assert!(
-                !r.safe_to_delete,
-                "{}: must not be offered for deletion",
-                r.name
-            );
-            assert!(r.uncommitted > 0, "{}: held for a reason", r.name);
-            assert!(
-                !r.worktree.is_empty(),
-                "{}: the holding worktree is named",
-                r.name
-            );
-        }
-        // And the removable set is exactly the finished, clean ones.
-        for r in view.removable() {
-            assert!(r.orphan && r.uncommitted == 0, "{}", r.name);
-        }
-        let total = view.removable().len() + view.held_by_uncommitted().len();
-        assert_eq!(
-            total,
-            view.orphans().len(),
-            "every orphan lands in exactly one of the two lists"
+        assert!(
+            view.rows.is_empty(),
+            "no branch is judged without a reference point"
+        );
+        let text = render_delivery(&view).join("\n");
+        assert!(text.contains("UNAVAILABLE"), "{text}");
+        assert!(
+            !text.contains("none safe to delete"),
+            "must not claim a clean bill of health: {text}"
         );
     }
 
-    /// No `fix:` line is offered for a branch that is not safe to delete. The renderer and the data
-    /// must agree, because the fix line is what a lab would paste into a shell.
     #[test]
-    fn the_renderer_never_offers_a_fix_for_a_held_branch() {
-        let view = delivery_view(&paths());
-        let lines = render_delivery(&view);
-        let text = lines.join("\n");
-        for r in view.held_by_uncommitted() {
-            let held_section = text
-                .split("finished by commits, but a worktree holds uncommitted work")
-                .nth(1)
-                .unwrap_or("");
-            assert!(
-                held_section.contains(&r.name),
-                "the branch is named under the warning"
-            );
-            assert!(
-                !held_section.contains(&r.fix),
-                "{}: a fix command under a do-NOT-delete heading would be pasted",
-                r.name
-            );
-        }
-    }
+    fn a_finished_branch_is_offered_and_an_unmerged_one_is_not() {
+        let f = Fixture::new();
+        f.finished_branch("done/thing");
+        f.branch_with_new_work("live/thing");
+        let view = delivery_view(&f.paths);
+        assert!(view.error.is_empty(), "{}", view.error);
 
-    /// The view must say it cannot name the merging PR, because a lab reading "finished" will assume
-    /// the tool knows how it finished.
-    #[test]
-    fn the_view_states_that_pr_numbers_come_from_github() {
-        let view = delivery_view(&paths());
-        let text = render_delivery(&view).join("\n");
-        assert!(text.contains("not available from git alone"), "{text}");
-        assert!(text.contains("cli.py status"), "and where to get them");
-    }
+        let removable: Vec<&str> = view.removable().iter().map(|r| r.name.as_str()).collect();
+        assert!(removable.contains(&"done/thing"), "{removable:?}");
+        assert!(
+            !removable.contains(&"live/thing"),
+            "unmerged work is not offered"
+        );
 
-    /// A stale `origin/main` is the value a lab would act on, so the note travels with it.
-    #[test]
-    fn the_staleness_note_is_always_present() {
-        let view = delivery_view(&paths());
+        let unfinished: Vec<&str> = view.unfinished().iter().map(|r| r.name.as_str()).collect();
+        assert!(unfinished.contains(&"live/thing"), "{unfinished:?}");
+        assert!(!unfinished.contains(&"done/thing"));
+
         let text = render_delivery(&view).join("\n");
+        assert!(text.contains("done/thing"), "{text}");
+        assert!(text.contains("live/thing"), "{text}");
         assert!(text.contains("last fetched value"), "{text}");
+        assert!(text.contains("not available from git alone"), "{text}");
+    }
+
+    /// The bug this check had on first use, reproduced on controlled state.
+    #[test]
+    fn a_finished_branch_holding_uncommitted_work_is_never_offered() {
+        let f = Fixture::new();
+        f.finished_branch("held/thing");
+        // Check it out in a second worktree, then dirty that worktree.
+        let wt = f.repo().join(".wt");
+        f.git(&[
+            "worktree",
+            "add",
+            "-q",
+            wt.to_str().expect("utf8"),
+            "held/thing",
+        ]);
+        std::fs::write(wt.join("f.txt"), "uncommitted\n").expect("write");
+
+        let view = delivery_view(&f.paths);
+        let held: Vec<&str> = view
+            .held_by_uncommitted()
+            .iter()
+            .map(|r| r.name.as_str())
+            .collect();
+        assert!(held.contains(&"held/thing"), "held: {held:?}");
+        let removable: Vec<&str> = view.removable().iter().map(|r| r.name.as_str()).collect();
+        assert!(
+            !removable.contains(&"held/thing"),
+            "must not be offered: {removable:?}"
+        );
+
+        let text = render_delivery(&view).join("\n");
+        let warning = text
+            .split("finished by commits, but a worktree holds uncommitted work")
+            .nth(1)
+            .expect("the warning section");
+        assert!(warning.contains("held/thing"), "{warning}");
+        assert!(warning.contains("do NOT delete"), "{warning}");
+        assert!(
+            !warning.contains("git branch -D held/thing"),
+            "no fix command under a do-not-delete heading: {warning}"
+        );
+    }
+
+    #[test]
+    fn the_trunk_is_never_a_candidate() {
+        let f = Fixture::new();
+        f.finished_branch("done/thing");
+        let view = delivery_view(&f.paths);
+        assert!(
+            !view.rows.iter().any(|r| r.name == view.trunk),
+            "the trunk is not a branch to clean up"
+        );
+    }
+
+    /// Section 3 renders, and it says what it cannot know.
+    ///
+    /// Asserted against a controlled fixture rather than the checkout: the first version ran against
+    /// whatever repository the tests happened to be in and passed locally while failing in CI, where
+    /// the clone is shallow and has no `origin/main`.
+    #[test]
+    fn the_delivery_section_renders_in_the_view() {
+        let f = Fixture::new();
+        f.finished_branch("done/thing");
+        let view = delivery_view(&f.paths);
+        let text = render_delivery(&view).join("\n");
+        assert!(
+            !text.contains("not ported"),
+            "section 3 renders now: {text}"
+        );
+        assert!(text.contains("origin/main"), "{text}");
+        assert!(text.contains("done/thing"), "{text}");
+        // The limit is stated wherever it renders, including in the whole view.
+        let regs = Registries::load(&paths()).ok();
+        let whole = render(&f.paths, regs.as_ref(), "2026-10-13T02:00:00-04:00");
+        let delivery = whole.split("3. DELIVERY").nth(1).expect("section 3");
+        assert!(
+            delivery.contains("not available from git alone"),
+            "{delivery}"
+        );
     }
 
     #[test]
