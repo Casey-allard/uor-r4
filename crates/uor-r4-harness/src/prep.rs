@@ -456,6 +456,72 @@ pub struct NewSheet {
     pub rows: Option<u32>,
 }
 
+/// Render a `TEST FITNESS` review block (Python `prep fit`).
+///
+/// **The verdict clears compute for the configuration in that sheet ONLY** (D22), so the block names
+/// the sheet and the milestone and carries that sentence. A review that does not say what it clears is
+/// a review a lab can over-read.
+pub fn render_fit(
+    verdict: &str,
+    milestone: &crate::registries::Milestone,
+    sheet: &str,
+    reviewer: &str,
+    note: &str,
+    mechanism: &str,
+) -> String {
+    let missing = |v: &str| {
+        if v.trim().is_empty() {
+            "MISSING".to_string()
+        } else {
+            v.trim().to_string()
+        }
+    };
+    let mut out = String::new();
+    out.push_str(&format!(
+        "TEST FITNESS: {verdict} - {} #{}{}\n",
+        milestone.id,
+        milestone.issue,
+        if mechanism.trim().is_empty() {
+            String::new()
+        } else {
+            format!(" {mechanism}")
+        }
+    ));
+    out.push_str(&format!("sheet: {}\n", missing(sheet)));
+    out.push_str(&format!("reviewer: {}\n", missing(reviewer)));
+    out.push_str(&format!("note: {}\n", missing(note)));
+    out.push_str(&format!("date: {}\n", today()));
+    out.push_str(
+        "A FIT verdict clears compute for the configuration in that sheet only (D22). \n\n         Every mechanism pre-registration gets a TEST FITNESS review on its milestone before compute.",
+    );
+    out
+}
+
+/// The pre-registration directory.
+pub fn prep_dir(paths: &StatePaths) -> PathBuf {
+    paths.repo.join("docs").join("harness").join("prep")
+}
+
+/// The default sheet path for a milestone and mechanism.
+///
+/// `<milestone-key>-<mechanism-or-no-mechanism>-<date>.md`, slugged — **the same name Python writes**,
+/// because a lab that runs the Rust `prep new` and the Python one must land on one file rather than
+/// two. Two names for one sheet is how a milestone ends up with a duplicate pre-registration and
+/// `prep-check` reports on whichever it finds first.
+pub fn sheet_name(milestone_key: &str, mechanism: &str, date: &str) -> String {
+    let mech = if mechanism.trim().is_empty() {
+        "no-mechanism"
+    } else {
+        mechanism
+    };
+    format!(
+        "{}-{}-{}.md",
+        crate::state::slug(milestone_key),
+        crate::state::slug(mech),
+        date
+    )
+}
+
 /// Whether the sheet describes model work, which decides the D24 placement text.
 ///
 /// A heuristic over the lab's own words, and deliberately crude: the alternative is asking for a

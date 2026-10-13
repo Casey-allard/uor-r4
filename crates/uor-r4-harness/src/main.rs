@@ -17,6 +17,7 @@ use uor_r4_harness::mistakes;
 use uor_r4_harness::multilab;
 use uor_r4_harness::notes;
 use uor_r4_harness::onboard::{detect_runtime, onboard};
+use uor_r4_harness::prep;
 use uor_r4_harness::prep::{check_all, SheetReport};
 use uor_r4_harness::presence::{heartbeat, Presence};
 use uor_r4_harness::receipt::{
@@ -44,7 +45,7 @@ const PYTHON_PASSTHROUGH_VALUE_FLAGS: [&str; 1] = ["--only"];
 /// BEFORE flag parsing: an unported command's flags are unknown to this binary, and rejecting one
 /// meant delegation only worked for commands whose flags happened to be in the lists - `check --only`
 /// failed with "unknown option --only" before it could delegate. Which defeats the point.
-const PORTED_COMMANDS: [&str; 21] = [
+const PORTED_COMMANDS: [&str; 22] = [
     "onboard",
     "check-formats",
     "presence",
@@ -59,6 +60,7 @@ const PORTED_COMMANDS: [&str; 21] = [
     "mistakes",
     "multilab",
     "git",
+    "prep",
     "prep-check",
     "registry",
     "prep-render",
@@ -103,7 +105,7 @@ const SUBCOMMAND_FLAGS: [&str; 31] = [
 ];
 
 /// The subset that takes a value, so the value is not mistaken for a command.
-const SUBCOMMAND_VALUE_FLAGS: [&str; 29] = [
+const SUBCOMMAND_VALUE_FLAGS: [&str; 32] = [
     "--kind",
     "--milestone",
     "-m",
@@ -133,6 +135,9 @@ const SUBCOMMAND_VALUE_FLAGS: [&str; 29] = [
     "-f",
     "--files",
     "--actor",
+    "--verdict",
+    "--reviewer",
+    "--sheet",
 ];
 
 const USAGE: &str = "\
@@ -176,6 +181,9 @@ COMMANDS:
     ledger-sync Append this lab's live receipts into the committed shard. Run
                 before opening a PR so the record reaches review. Append-only.
                 Use --dry-run to see what would be written.
+    prep        The D22 gate: `new` writes a pre-registration sheet, `fit`
+                records a TEST FITNESS review, `list` shows the sheets. Get a
+                sheet to FIT on the milestone before any compute.
     prep-check  Read every pre-registration sheet: its TEST FITNESS verdict and
                 which required blocks are missing. The read half of the D22 gate.
     registry    The milestone registry as this implementation reads it: headline,
@@ -333,6 +341,7 @@ fn main() -> ExitCode {
         Some("mistakes") => cmd_mistakes(&repo, &rest, json),
         Some("multilab") => cmd_multilab(&repo, &rest, json),
         Some("git") => cmd_git(&repo, &rest, json),
+        Some("prep") => cmd_prep(&repo, &rest, json),
         Some("prep-check") => cmd_prep_check(&repo, json),
         Some("registry") => cmd_registry(&repo, json),
         Some("prep-render") => cmd_prep_render(&repo, &rest),
@@ -749,6 +758,186 @@ fn flag_values(args: &[String], long: &str, short: &str) -> Vec<String> {
         i += 1;
     }
     out
+}
+
+/// `prep <action>` - the D22 pre-training gate (D30 port of the Python `prep`).
+///
+/// `new` writes the sheet, `fit` records the review that clears compute, `list` shows what exists.
+/// **This is the gate that decides whether a run may start**, so the port keeps the rule it must:
+/// **a FIT verdict clears compute for the configuration in that sheet ONLY** (D22).
+fn cmd_prep(repo: &Path, args: &[String], json: bool) -> ExitCode {
+    let paths = StatePaths::from_env(repo);
+    let action = action_word(args);
+    let regs = match Registries::load(&paths) {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("uor-harness: {e}");
+            return ExitCode::from(2);
+        }
+    };
+    let key = flag_value(args, "--milestone")
+        .or_else(|| flag_value(args, "-m"))
+        .unwrap_or_default();
+
+    match action {
+        "list" => {
+            let sheets = prep::check_all(&paths);
+            if json {
+                let rows: Vec<String> = sheets
+                    .iter()
+                    .map(|r| {
+                        format!(
+                            "    {{\"path\": {:?}, \"fitness\": {:?}}}",
+                            r.path.display().to_string(),
+                            r.fitness
+                        )
+                    })
+                    .collect();
+                println!("{{\n  \"sheets\": [\n{}\n  ]\n}}", rows.join(",\n"));
+            } else if sheets.is_empty() {
+                println!("no pre-registration sheets yet");
+                println!("  write one with: uor-harness prep new -m <milestone>");
+            } else {
+                println!("{} pre-registration sheet(s)\n", sheets.len());
+                for r in &sheets {
+                    let rel = r.path.strip_prefix(&paths.repo).unwrap_or(&r.path);
+                    println!("  {:<22} {}", r.fitness, rel.display());
+                }
+            }
+            ExitCode::SUCCESS
+        }
+        "fit" => {
+            // The verdict names the state that clears compute, so an unknown one is refused rather
+            // than recorded - a receipt saying "FIT-ish" would clear a run on a typo.
+            let verdict = flag_value(args, "--verdict")
+                .unwrap_or_default()
+                .to_uppercase();
+            if !["FIT", "NOT_FIT", "PENDING", "ABSENT"].contains(&verdict.as_str()) {
+                eprintln!(
+                    "uor-harness prep fit: verdict must be one of FIT, NOT_FIT, PENDING, ABSENT (got {:?})",
+                    verdict
+                );
+                return ExitCode::from(2);
+            }
+            let Some(m) = regs.milestone(&key) else {
+                eprintln!("uor-harness prep fit: no milestone {key:?}; try `uor-harness registry`");
+                return ExitCode::from(2);
+            };
+            let reviewer = flag_value(args, "--reviewer").unwrap_or_default();
+            let note = flag_value(args, "--note").unwrap_or_default();
+            let sheet = flag_value(args, "--sheet").unwrap_or_default();
+            let mechanism = flag_value(args, "--mechanism").unwrap_or_default();
+            let body = prep::render_fit(&verdict, m, &sheet, &reviewer, &note, &mechanism);
+
+            let lab = flag_value(args, "--lab")
+                .or_else(|| std::env::var("UOR_LAB").ok())
+                .unwrap_or_default();
+            let mut r = NewReceipt::new("prep", lab.clone());
+            r = r.with("milestone", m.id.clone());
+            r = r.with("verdict", verdict.clone());
+            if !sheet.is_empty() {
+                r = r.with("sheet", sheet.clone());
+            }
+            if !reviewer.is_empty() {
+                r = r.with("reviewer", reviewer.clone());
+            }
+            // The receipt is best-effort on purpose: **the sheet matters more than its receipt**, and
+            // a broken ledger must not lose the review.
+            let shard = append(&paths, &r, &current_month());
+            if json {
+                println!(
+                    "{{\"verdict\": {:?}, \"milestone\": {:?}, \"receipt\": {:?}}}",
+                    verdict,
+                    m.id,
+                    shard.map(|p| p.display().to_string()).unwrap_or_default()
+                );
+            } else {
+                print!("{body}");
+                match shard {
+                    Ok(p) => println!("\nrecorded in {}", p.display()),
+                    Err(e) => eprintln!("uor-harness: prep fit: receipt not recorded: {e}"),
+                }
+            }
+            ExitCode::SUCCESS
+        }
+        "new" => {
+            let Some(m) = regs.milestone(&key) else {
+                eprintln!("uor-harness prep new: no milestone {key:?}; try `uor-harness registry`");
+                return ExitCode::from(2);
+            };
+            let panel = regs.panel_for(m);
+            let mech = flag_value(args, "--mechanism").unwrap_or_default();
+            let sheet = prep::NewSheet {
+                date: flag_value(args, "--date").unwrap_or_default(),
+                mechanism: mech.clone(),
+                run: flag_value(args, "--run").unwrap_or_default(),
+                bar: flag_value(args, "--bar").unwrap_or_default(),
+                base: flag_value(args, "--base").unwrap_or_default(),
+                split: flag_value(args, "--split").unwrap_or_default(),
+                steps: flag_value(args, "--steps").unwrap_or_default(),
+                stop: flag_value(args, "--stop").unwrap_or_default(),
+                cost: flag_value(args, "--cost").unwrap_or_default(),
+                seeds: flag_value(args, "--seeds").and_then(|v| v.parse().ok()),
+                rows: flag_value(args, "--rows").and_then(|v| v.parse().ok()),
+            };
+            // The rules come from the registry, so a sheet rendered by Rust and one rendered by Python
+            // cite the same set - the drift parity caught when these were two constants.
+            let rules: std::collections::HashMap<String, String> = regs
+                .owner_rules
+                .iter()
+                .filter_map(|r| {
+                    let id = r.get("id")?.as_str()?.to_string();
+                    let text = r.get("rule")?.as_str()?.to_string();
+                    Some((id, text))
+                })
+                .collect();
+            let lookup = |id: &str| rules.get(id).cloned().unwrap_or_default();
+            let body = prep::render_sheet(&sheet, m, panel, &lookup, &paths);
+            let date = prep::today();
+            let name = prep::sheet_name(&m.key, &mech, &date);
+            let target = prep_dir_of(&paths).join(&name);
+
+            if let Some(parent) = target.parent() {
+                if let Err(e) = std::fs::create_dir_all(parent) {
+                    eprintln!("uor-harness: cannot create {}: {e}", parent.display());
+                    return ExitCode::from(1);
+                }
+            }
+            if let Err(e) = std::fs::write(&target, &body) {
+                eprintln!("uor-harness: cannot write {}: {e}", target.display());
+                return ExitCode::from(1);
+            }
+            if json {
+                println!(
+                    "{{\"sheet\": {:?}, \"fitness\": {:?}}}",
+                    target.display().to_string(),
+                    prep::test_fitness(&body)
+                );
+            } else {
+                println!(
+                    "wrote {}",
+                    target
+                        .strip_prefix(&paths.repo)
+                        .unwrap_or(&target)
+                        .display()
+                );
+                print!("{body}");
+            }
+            ExitCode::SUCCESS
+        }
+        "" => {
+            eprintln!("uor-harness prep: which action? new, fit, list");
+            ExitCode::from(2)
+        }
+        other => {
+            eprintln!("uor-harness prep: unknown action {other:?}; try new, fit, list");
+            ExitCode::from(2)
+        }
+    }
+}
+
+fn prep_dir_of(paths: &StatePaths) -> std::path::PathBuf {
+    uor_r4_harness::prep::prep_dir(paths)
 }
 
 /// `git <action>` - branch hygiene (D30 port of the Python `git`).
