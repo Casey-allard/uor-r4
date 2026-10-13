@@ -350,6 +350,20 @@ class TestPmProposedChecks(_IsolatedTiers):
             "an unknown branch must read as 'not established', never as merged",
         )
 
+    def test_a_branch_claimed_seconds_ago_is_not_called_merged(self) -> None:
+        """The race that produced a false positive on live work.
+
+        `kimi/plan-refresh-2026-10-13` was claimed and then flagged as already merged within the
+        same couple of minutes, and the warning vanished once the push became visible. The cause:
+        the check asked "is it gone from origin?" before asking "is there a merged PR?" — and a
+        branch pushed seconds ago can be in neither place yet.
+
+        A rule that cries wolf on a lab's live branch is worse than no rule: it teaches people to
+        ignore the check that exists to stop them colliding.
+        """
+        result = multilab._branch_is_merged(self.paths, "freshly/claimed-and-pushed")
+        self.assertIsNone(result, "an unverifiable branch must stay silent, not accuse")
+
     def test_the_abandoned_window_is_a_day(self) -> None:
         """The PM proposed 24 hours; a shorter window would flag labs that are simply mid-task."""
         self.assertEqual(multilab.CLAIM_ABANDONED_HOURS, 24)

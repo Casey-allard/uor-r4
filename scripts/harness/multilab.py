@@ -622,33 +622,40 @@ def _branch_is_merged(paths: HarnessPaths, branch: str) -> bool | None:
         except (OSError, subprocess.SubprocessError):
             return ""
 
-    ref = None
-    for candidate in (f"refs/remotes/origin/{branch}", f"refs/heads/{branch}"):
-        if git("rev-parse", "--verify", "--quiet", candidate):
-            ref = candidate
-            break
-
-    # 2. content proof, when there is a ref to compare
-    if ref is not None:
-        ahead = git("rev-list", "--count", f"origin/main..{ref}")
-        if ahead.isdigit():
-            return int(ahead) == 0
-        return None
-
-    # 1. the branch is gone: only a merged PR proves that was a merge rather than a deletion
+    # 1. A merged PR is the direct evidence, and the only thing that proves a squash merge. Asked
+    #    FIRST, because a stale local ref makes the content comparison below lie in the other
+    #    direction: a lab that has just claimed a branch and pushed it may not have it in the local
+    #    remote-tracking refs yet, so the branch looks "gone", and asking GitHub for a PR on a
+    #    branch pushed seconds ago can come back empty before the push is fully visible.
+    #
+    #    That race produced a false positive on live work: `kimi/plan-refresh-2026-10-13` was
+    #    claimed and flagged as merged within the same couple of minutes, then the warning vanished
+    #    once the ref arrived. A rule that cries wolf on a lab's live branch is worse than no rule.
     try:
         from status import gh_json
     except ImportError:  # pragma: no cover - status ships with the harness
-        return None
-    ok, data, _err = gh_json(
-        ["pr", "list", "--head", branch, "--state", "merged", "--limit", "1", "--json", "number,state"],
-        paths.repo,
-    )
-    if not ok:
-        return None  # cannot ask GitHub; do not guess
-    if data:
-        return True
-    # Deleted with no merged PR: deleted, not merged. Not evidence of a merge, so not our call.
+        pass
+    else:
+        ok, data, _err = gh_json(
+            ["pr", "list", "--head", branch, "--state", "merged", "--limit", "1", "--json", "number,state"],
+            paths.repo,
+        )
+        if ok:
+            if data:
+                return True
+            # No merged PR. If the branch is visible, it is unmerged work; if it is not visible
+            # either, the honest answer is "not established" rather than "merged".
+            for candidate in (f"refs/remotes/origin/{branch}", f"refs/heads/{branch}"):
+                if git("rev-parse", "--verify", "--quiet", candidate):
+                    return False
+            return None
+
+    # 2. GitHub unreachable: fall back to content, which is safe in the direction that matters.
+    #    Nothing ahead of main means the work is in main, whatever route put it there.
+    for candidate in (f"refs/remotes/origin/{branch}", f"refs/heads/{branch}"):
+        if git("rev-parse", "--verify", "--quiet", candidate):
+            ahead = git("rev-list", "--count", f"origin/main..{candidate}")
+            return int(ahead) == 0 if ahead.isdigit() else None
     return None
 
 
@@ -725,18 +732,27 @@ def _check_claim_stale(paths: HarnessPaths, reg: Any) -> list[RuleResult]:  # no
 
 
 def _parse_claimed_at(text: str):  # noqa: ANN202 - datetime | None
-    """Parse a claim timestamp, tolerating the offset form the harness writes."""
-    from datetime import datetime
+    """Parse a claim timestamp in either offset form.
+
+    `datetime.fromisoformat` did not accept the `Z` suffix until Python 3.11, and this harness
+    supports 3.9 (verified on 3.9.6). That matters more than a compatibility nicety: the Rust
+    implementation writes `Z` timestamps, so without this a claim written in Rust is unreadable by
+    the Python harness on 3.9 — the two implementations would disagree about a claim's age, and the
+    staleness rule would silently stop working. Found by running the suite on 3.9 after it passed on
+    3.15.
+    """
+    from datetime import datetime, timezone
 
     if not text:
         return None
+    normalised = text.strip()
+    if normalised.endswith(("Z", "z")):
+        normalised = normalised[:-1] + "+00:00"
     try:
-        parsed = datetime.fromisoformat(text)
+        parsed = datetime.fromisoformat(normalised)
     except ValueError:
         return None
     if parsed.tzinfo is None:
-        from datetime import timezone
-
         parsed = parsed.replace(tzinfo=timezone.utc)
     return parsed
 
