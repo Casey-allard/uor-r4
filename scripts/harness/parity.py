@@ -334,6 +334,55 @@ def prep_agreement(binary: Path) -> list[str]:
     return findings
 
 
+def registry_agreement(binary: Path) -> list[str]:
+    """Every milestone's headline and line counts must read identically in both implementations.
+
+    The headline is the number a run is scored against, so a reader that disagrees about it is a
+    pre-registration written against a different bar than the panel grades. The registry is also
+    where three live headline FORMS meet — vacuous ("not qualified"), qualitative ("yes -> target
+    no") and numeric — and rendering the wrong one misstates the bar.
+    """
+    findings: list[str] = []
+    code, out, err = run([str(binary), "registry", "--repo", str(REPO), "--json"])
+    if code != 0:
+        findings.append(f"registry agreement: the Rust reader exited {code}: {err[:200]}")
+        return findings
+    try:
+        rust_rows = {r["key"]: r for r in json.loads(out)["milestones"]}
+    except (json.JSONDecodeError, KeyError, TypeError) as exc:
+        findings.append(f"registry agreement: could not read the Rust output ({exc})")
+        return findings
+
+    probe = (
+        "import json,sys;"
+        "sys.path.insert(0,'scripts/harness');"
+        "import core,registries;"
+        "p=core.HarnessPaths.discover(repo='.');"
+        "ms=registries.load_milestones(p);"
+        "print(json.dumps({k:{'headline':m.headline_line(),'lines':m.line_counts(),'issue':m.issue}"
+        " for k,m in ms.by_key.items()}))"
+    )
+    code, out, err = run([sys.executable, "-c", probe])
+    if code != 0:
+        findings.append(f"registry agreement: the Python reader failed: {err[:200]}")
+        return findings
+    py_rows = json.loads(out)
+
+    if set(rust_rows) != set(py_rows):
+        findings.append(
+            f"registry agreement: milestone sets differ (rust {sorted(rust_rows)}, python {sorted(py_rows)})"
+        )
+    for key in sorted(set(rust_rows) & set(py_rows)):
+        r, q = rust_rows[key], py_rows[key]
+        if r["headline"] != q["headline"]:
+            findings.append(f"registry {key} headline: rust {r['headline']!r} != python {q['headline']!r}")
+        if r["lines"] != q["lines"]:
+            findings.append(f"registry {key} lines: rust {r['lines']!r} != python {q['lines']!r}")
+        if r["issue"] != q["issue"]:
+            findings.append(f"registry {key} issue: rust {r['issue']} != python {q['issue']}")
+    return findings
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Check Rust/Python harness parity on shared state.")
     ap.add_argument("--build", action="store_true", help="build the Rust binary first")
@@ -421,6 +470,8 @@ def main(argv: list[str] | None = None) -> int:
     findings.extend(interop)
     prep = prep_agreement(binary)
     findings.extend(prep)
+    registry = registry_agreement(binary)
+    findings.extend(registry)
 
     if args.json:
         print(json.dumps({
@@ -429,6 +480,7 @@ def main(argv: list[str] | None = None) -> int:
             "controlled_cases": 6,
             "write_interop": "ok" if not interop else "FAILED",
             "prep_agreement": "ok" if not prep else "FAILED",
+            "registry_agreement": "ok" if not registry else "FAILED",
             "state_valid": not invalid,
             "binary": str(binary),
             "formats": len(r_formats),
@@ -452,6 +504,10 @@ def main(argv: list[str] | None = None) -> int:
             + ("ok" if not interop else f"FAILED ({len(interop)})")
         )
         print("  prep sheets read identically by both: " + ("ok" if not prep else f"FAILED ({len(prep)})"))
+        print(
+            "  milestone headlines and line counts identical: "
+            + ("ok" if not registry else f"FAILED ({len(registry)})")
+        )
     return 1 if findings else 0
 
 

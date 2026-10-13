@@ -15,6 +15,7 @@ use uor_r4_harness::onboard::{detect_runtime, onboard};
 use uor_r4_harness::prep::{check_all, SheetReport};
 use uor_r4_harness::presence::{heartbeat, Presence};
 use uor_r4_harness::receipt::{append, current_month, Receipt as NewReceipt};
+use uor_r4_harness::registries::Registries;
 use uor_r4_harness::state::{read_ledger, PresenceRow, StatePaths};
 use uor_r4_harness::Contract;
 
@@ -72,6 +73,9 @@ COMMANDS:
                 Use --dry-run to see what would be written.
     prep-check  Read every pre-registration sheet: its TEST FITNESS verdict and
                 which required blocks are missing. The read half of the D22 gate.
+    registry    The milestone registry as this implementation reads it: headline,
+                panel and line counts per milestone. Compared against Python by
+                parity.py, because the headline is the number a run is scored on.
     help        This text.
 
 The Python harness owns behaviour until this path passes the same checks; the
@@ -168,6 +172,7 @@ fn main() -> ExitCode {
         Some("receipt") => cmd_receipt(&repo, &rest, json),
         Some("heartbeat") => cmd_heartbeat(&repo, &rest, json),
         Some("prep-check") => cmd_prep_check(&repo, json),
+        Some("registry") => cmd_registry(&repo, json),
         Some(other) => {
             eprintln!("uor-harness: unknown command {other}\n\n{USAGE}");
             ExitCode::from(2)
@@ -317,6 +322,57 @@ fn cmd_heartbeat(repo: &Path, args: &[String], json: bool) -> ExitCode {
             // Say so rather than pretend: peers will not see this until they fetch the record.
             println!(
                 "  note: the live tier could not be written, so peers see this on their next fetch"
+            );
+        }
+    }
+    ExitCode::SUCCESS
+}
+
+fn cmd_registry(repo: &Path, json: bool) -> ExitCode {
+    let paths = StatePaths::from_env(repo);
+    let regs = match Registries::load(&paths) {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("uor-harness: {e}");
+            return ExitCode::from(2);
+        }
+    };
+    if json {
+        let rows: Vec<String> = regs
+            .milestones
+            .iter()
+            .map(|m| {
+                let panel = regs.panel_for(m).map(|p| p.id.clone()).unwrap_or_default();
+                format!(
+                    "    {{\"key\": {:?}, \"id\": {:?}, \"issue\": {}, \"headline\": {:?}, \"panel\": {:?}, \"lines\": {:?}}}",
+                    m.key,
+                    m.id,
+                    m.issue,
+                    m.headline_line(),
+                    panel,
+                    m.line_counts()
+                )
+            })
+            .collect();
+        println!(
+            "{{\n  \"milestones\": [\n{}\n  ],\n  \"panels\": {},\n  \"owner_rules\": {}\n}}",
+            rows.join(",\n"),
+            regs.panels.len(),
+            regs.owner_rules.len()
+        );
+    } else {
+        println!(
+            "{} milestones, {} panels, {} owner rules",
+            regs.milestones.len(),
+            regs.panels.len(),
+            regs.owner_rules.len()
+        );
+        for m in &regs.milestones {
+            println!(
+                "  {:<6} {:<52} {}",
+                m.id,
+                m.headline_line(),
+                m.line_counts()
             );
         }
     }
