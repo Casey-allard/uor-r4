@@ -16,6 +16,7 @@ use uor_r4_harness::prep::{check_all, SheetReport};
 use uor_r4_harness::presence::{heartbeat, Presence};
 use uor_r4_harness::receipt::{append, current_month, Receipt as NewReceipt};
 use uor_r4_harness::registries::Registries;
+use uor_r4_harness::shards;
 use uor_r4_harness::state::{read_ledger, PresenceRow, StatePaths};
 use uor_r4_harness::status;
 use uor_r4_harness::Contract;
@@ -100,6 +101,9 @@ COMMANDS:
                 parity.py, because the headline is the number a run is scored on.
     prep-render Render a pre-registration sheet to stdout without writing it. The
                 WRITE half of the D22 gate, checked byte-for-byte against Python.
+    shard-check Refuse a ledger shard that lost lines. A shard may grow and
+                may never shrink; exits 1 on a lost receipt. Compares the
+                working tree against --base (default origin/main).
     status      What is true now. Sections 1 (milestones) and 2 (receipts) are
                 ported; section 3 (delivery) says so rather than rendering blank.
     help        This text.
@@ -205,6 +209,7 @@ fn main() -> ExitCode {
         Some("prep-check") => cmd_prep_check(&repo, json),
         Some("registry") => cmd_registry(&repo, json),
         Some("prep-render") => cmd_prep_render(&repo, &rest),
+        Some("shard-check") => cmd_shard_check(&repo, &rest, json),
         Some("status") => cmd_status(&repo, &rest),
         Some(other) => {
             eprintln!("uor-harness: unknown command {other}\n\n{USAGE}");
@@ -359,6 +364,52 @@ fn cmd_heartbeat(repo: &Path, args: &[String], json: bool) -> ExitCode {
         }
     }
     ExitCode::SUCCESS
+}
+
+fn cmd_shard_check(repo: &Path, args: &[String], json: bool) -> ExitCode {
+    let paths = StatePaths::from_env(repo);
+    let base = flag_value(args, "--base").unwrap_or_else(|| "origin/main".to_string());
+    let reports = match shards::check_ledger(&paths, &base) {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("uor-harness: {e}");
+            return ExitCode::from(2);
+        }
+    };
+    if reports.is_empty() {
+        println!("shard integrity: no ledger shards present under docs/harness/ledger/");
+        return ExitCode::SUCCESS;
+    }
+    let bad = shards::violations(&reports);
+    if json {
+        let rows: Vec<String> = reports
+            .iter()
+            .map(|r| {
+                format!(
+                    "    {{\"shard\": {:?}, \"base_lines\": {}, \"head_lines\": {}, \"lost\": {}, \"added\": {}, \"ok\": {}}}",
+                    r.path.display().to_string(),
+                    r.base_lines,
+                    r.head_lines,
+                    r.lost_count(),
+                    r.added,
+                    r.ok()
+                )
+            })
+            .collect();
+        println!(
+            "{{\n  \"base\": {:?},\n  \"shards\": [\n{}\n  ],\n  \"violations\": {}\n}}",
+            base,
+            rows.join(",\n"),
+            bad.len()
+        );
+    } else {
+        print!("{}", shards::render(&reports));
+    }
+    if bad.is_empty() {
+        ExitCode::SUCCESS
+    } else {
+        ExitCode::FAILURE
+    }
 }
 
 fn cmd_status(repo: &Path, args: &[String]) -> ExitCode {

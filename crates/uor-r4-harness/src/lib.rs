@@ -26,6 +26,7 @@ pub mod prep;
 pub mod presence;
 pub mod receipt;
 pub mod registries;
+pub mod shards;
 pub mod state;
 pub mod status;
 
@@ -35,5 +36,6 @@ pub use prep::{check_all, check_sheet, test_fitness, SheetReport};
 pub use presence::{heartbeat, Presence, PRESENCE_TTL_MINUTES};
 pub use receipt::{append, shard_path, Receipt};
 pub use registries::{fmt_num, Milestone, Panel, Registries};
+pub use shards::{check_ledger, compare, ShardReport};
 pub use state::{PresenceRow, ReceiptRow, StatePaths};
 pub use status::{milestone_rows, render as render_status, MilestoneRow};

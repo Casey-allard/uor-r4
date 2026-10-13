@@ -142,6 +142,33 @@ jobs:
             echo 'Agreement about reading state. The Python harness still owns behaviour.'
           } >> "$GITHUB_STEP_SUMMARY"
 
+      - name: The ledger may grow and may never shrink
+        # A ledger shard is the cumulative record, sharded per lab so concurrent writers never
+        # contend. Sharding fixes WRITE contention, not MERGE contention, which is where the loss
+        # actually happened: #2305's merge dropped two of Kimi's receipts from the kimi shard and
+        # they had to be restored by hand (#2028 comment 6139538248, at least the fourth
+        # shared-store clobber in one day).
+        #
+        # The comparison is a MULTISET, not a set: duplicate receipts are normal here (the kimi
+        # shard holds 8, `unknown` holds 18 of 24) because the same action recorded twice in one
+        # second is byte-identical. A set comparison would miss deleting one of a pair.
+        #
+        # Reordering is allowed - a branch that appends and resorts loses nothing. The rule is
+        # "no receipt disappears", because a guard that fires on safe changes gets disabled.
+        env:
+          CARGO_TARGET_DIR: local/harness-target
+        shell: bash
+        run: |
+          set -euo pipefail
+          # origin/main must exist locally, or the check has nothing to compare against and
+          # would report a clean result from an empty comparison. A guard that passes because it
+          # could not look is worse than no guard.
+          # Plain fetch, NOT `--depth=1 main:refs/remotes/origin/main`: the shallow-refspec form
+          # DELETED the remote-tracking refs here and left the check with no comparison point.
+          git fetch --no-tags origin main
+          git rev-parse --verify "origin/main^{commit}" >/dev/null
+          ./local/harness-target/debug/uor-harness shard-check --repo . --base origin/main
+
       - name: Harness rules with the Rust binary present
         # `check` includes `harness.state_formats`, which the Rust implementation performs. The
         # `harness` job runs `check` without a binary and skips that one rule; here it runs for real.
