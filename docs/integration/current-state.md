@@ -1,3 +1,23 @@
+## 2026-10-13 — D27: Rust first, and the uor-foundation ecosystem as the shared floor (kimi, #2028)
+
+[D27](../integration/DECISIONS.md#d27---rust-first-and-the-uor-foundation-ecosystem-as-the-shared-floor) records
+the owner's chat direction: Rust is the default for all new project code — model, training, tooling, data
+preparation and scripts — for efficiency, native UOR compatibility and WASM reach, with Python only where Rust
+genuinely cannot do the job (the existing `scripts/harness/` scripts are grandfathered). The uor-foundation
+sibling repositories are the shared floor to reuse before rewriting, at their pinned revisions: `uor-addr`
+(canonical content addressing, already a dependency), `UOR-Framework` (the typed UOR ontology, already
+pinned), `uor-matmul` **in its lawful parts only** (exact dyadic accumulation, the codec/codebook identity
+machinery, the tabulated no-multiply path, the tropical (max,+) lane already pinned for parity in
+`uor-r4-graph-cli`) — its dense GEMM entry points stay banned everywhere executed under D25 — plus `prism`
+(transitive through `uor-addr`) and the `LexLean`/`PrismPM` patterns (claim register, honesty gate,
+attestation). Every imported interface surface gets a D25 compliance check first. Nothing is retroactive,
+and no hold changes.
+
+Line: no model line — governance · count 0/3 · headline 37/232 → 37/232 (unchanged).
+
+**Next:** apply the rule in new work (the pre-registered rung 0's remaining source items on M1 #2029 are the
+first test of it), and take a sibling repin only as its own compatibility decision against the source audit.
+
 ## 2026-10-13 — Rung 0 pre-registered: the rank-margin objective's TEST FITNESS sheet is PENDING (kimi, #2029)
 
 The [sheet](../harness/prep/m1-rank-margin-rung0-2026-10-13.md) registers rung 0 on the compliant trunk — the

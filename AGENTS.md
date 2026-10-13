@@ -123,6 +123,11 @@ This section overrides historical process and scheduling rules below. Technical
 invariants still apply to the runtime where they are declared.
 
 - Use Rust for data preparation, training, artifact construction and inference.
+  Rust is the default for all new code including tooling (D27); the uor-foundation
+  sibling crates (uor-addr, UOR-Framework, uor-matmul's lawful
+  table/tropical/codec parts, prism, LexLean/PrismPM patterns) are the shared
+  ecosystem floor - reuse before rewriting. Python only where Rust genuinely cannot
+  do the job.
   Training may use scalar floating-point geometric arithmetic on GPU, but no dense matrix multiplication or prohibited squashing. The training hold remains. Final inference
   executes learned geometric operators through bounded routing, state updates
   and integer/table lookup. A dense transformer hidden behind lookup is not the

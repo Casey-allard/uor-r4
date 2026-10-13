@@ -1316,3 +1316,47 @@ a one-hour trial, which passed (13 October, 01:07–01:15Z).
 
 The [delivery record](../labs/vast-provider-2026-10-13/README.md) has the
 trial and live-smoke measurements and the limits.
+
+## D27 - Rust first, and the uor-foundation ecosystem as the shared floor
+
+**Authority, October 13:** Casey, in the Kimi session: *"we are supposed to use
+rust for efficiency and uor compatibility natively whenever possible... prism and
+uor-framework along with uor-addr and uor-matmul (and lexlean, and prismpm) all in
+the uor-foundation github all were useful for a shared ecosystem floor, so rust is
+the best language we can use right now (also its compatible with wasm)... try to
+use rust unless you absolutely cannot code your way around using python for some
+reason."* Drafted by the Kimi lab (project manager).
+
+- **Rust is the default for all new project code** - model, training, tooling, data
+  preparation and scripts - for efficiency, native UOR compatibility and WASM
+  reach. Python is used only where Rust genuinely cannot do the job. The existing
+  Python harness scripts (`scripts/harness/`) are grandfathered; no new Python is
+  added where Rust works.
+- **The uor-foundation sibling repositories are the shared ecosystem floor**: reuse
+  them before rewriting them, at the pinned revisions in `Cargo.toml`/`Cargo.lock`
+  (a repin is its own compatibility decision, and
+  [the source audit](uor-source-audit.md) records the upstream deltas).
+  - **`uor-addr`** - canonical content addressing. Already pinned
+    (rev `165b51e3e`), and the `uor-r4-core` address/identity paths already use it.
+  - **`UOR-Framework`** - the typed UOR ontology. Already pinned as
+    `uor-foundation`, `uor-foundation-sdk` and `uor-foundation-verify`
+    (rev `51c013822`).
+  - **`uor-matmul`** - under D25, only its lawful parts are usable: its exact
+    dyadic accumulation semantics (one final rounding, not sequential FMA/BLAS
+    rounding), its codec/codebook identity machinery (a schema-tagged manifest with
+    codebook and code digests), its tabulated no-multiply path, and the tropical
+    (max,+) selection lane (`uor_matmul_core::dot_tropical_ref`, already pinned for
+    parity in `crates/uor-r4-graph-cli`). **Its dense GEMM entry points remain
+    banned in every executed training and serving path** (D25) - as does anything
+    from a sibling that would smuggle one in under a different name.
+  - **`prism`** - the standard-library facade, transitive through `uor-addr`.
+  - **`LexLean` and `PrismPM`** - pattern-level reuse: the repo-model /
+    repo-conformance claim register and the honesty-gate discipline, with the
+    packaging and attestation patterns. Neither is a dependency of this workspace.
+- **Every interface surface imported from a sibling gets a D25 compliance check
+  first**: no softmax-family operation, no dense matrix multiplication in an
+  executed path. A dormant upstream does not block pattern-level reuse with
+  attribution.
+- **Nothing here is retroactive.** Existing artifacts, measurements and the
+  historical Python/dense references keep their exact scope as inactive evidence,
+  and no training or rental hold is changed by this decision.

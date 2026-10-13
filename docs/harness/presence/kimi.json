@@ -1,0 +1,13 @@
+{
+  "branch": "kimi/d27-rust-first-2026-10-13",
+  "doing": "evaluation integrity 1/3",
+  "host": "Caseys-MacBook-Pro.local",
+  "lab": "kimi",
+  "milestone": "m1",
+  "next": "OP2 Hamilton kernel source first, then OP1 G2-only gate and OP3a geometric head; full-path qualification and amended FIT. Training held; G1 withdrawn, OP3b later research. No old campaign restart.",
+  "schema": 1,
+  "session": "",
+  "source": "",
+  "updated": "2026-10-12T23:44:17-04:00",
+  "worktree": "/Users/casey.allard/uor-r4/.worktrees/kimi-lab"
+}
