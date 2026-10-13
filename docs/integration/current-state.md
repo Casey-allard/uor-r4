@@ -19,6 +19,28 @@ unchanged; later genuinely fresh qualification NOT_RUN.
 operator removals, preserving source/frame/token identities. All training and
 M2 rental holds remain; static identity checks and source landing release neither.
 
+## 2026-10-13 — D25 gets its interlock: a no-matmul ratchet over the executable tree (kimi, #2028)
+
+The owner restated on 2026-10-13 that neither softmax nor matmul may appear anywhere, and that neither may be
+hidden behind a helper with a geometric name; D23 had a machine-checkable guard and D25 had none. The
+[record](../labs/no-matmul-interlock-2026-10-13/README.md) adds `scripts/check_no_matmul.py` +
+`scripts/no-matmul-baseline.json`, built to D23's mechanics (mirroring `scripts/check_no_softmax.py`, which is
+untouched): it counts `.matmul(`, `MatMul`, `cublas` and word-boundary `gemm` **in code** (comments and plain
+strings stripped, so prose and "Zero-GEMM" labels do not trip it; raw strings kept, because the CUDA kernels
+live in one), fails on any file above its baseline or any new file with a hit, and refuses `--update-baseline`
+that would raise a count. `--list` prints every site for the wrapper audit a text gate cannot decide. Baseline
+at `19500bf22`: **95 sites in 26 files** (`uor-r4-training` 89, `uor-r4-model-source` 6), all `.matmul(`; zero
+`MatMul`/`cublas`/`gemm` sites in code; **102 tensor-core intrinsic occurrences in 1 file**, listed
+informationally because the owner anticipates tensor cores for structured geometric kernels while a dense GEMM
+on tensor cores stays banned. All four control paths were exercised (a real site FAILs, prose does not count,
+a raised baseline is refused, a lowered one locks in). Not wired into CI here: that and any harness
+`checkrules.py` registration are the follow-ups (Codex and the harness owner respectively).
+
+Line: evaluation integrity · count 1/3 (tooling guard, no compute) · headline: unchanged (M1 v5 memory 20/40,
+reply 37/232).
+
+**Next:** wire `scripts/check_no_matmul.py` beside D23's gate in CI (Codex's surface), then burn the 95 sites
+down with the operator rungs (OP3a head, then the rest of the lawful path).
 
 ## 2026-10-13 — OP2 implemented: the fused Hamilton projection makes the quaternion maps matmul-free (kimi, #2029)
 
