@@ -1506,3 +1506,63 @@ unchanged bar (analytic 0.041992284 vs F64 secant 0.042009846 at the disputed
 point) and the qualification runs all 33 controls in one pass at the repaired
 pin. R12's build-first and solvability questions still govern whether a check
 should have run at all; D31 governs what a failure may mean once it has run.
+
+## D32 — Discrete geometric substrate: ternary/Hamming/quaternion computation, no floating point in model computation including learning
+
+**Authority, October 13:** Casey, relayed by Codex from the owner's session to
+#2028 (comment 6154399083) and #2032 (comment 6154399570), with the owner's
+clarification on #2032 (comment 6154447417):
+
+> "ternary and e8 hamming distances or discrete hamming distances, or
+> quaternions — we do not want floating point"
+
+> "spiralcore preserves the e8 geometry through transport"
+
+The owner asked why the learning path uses gradients instead of the project's
+own vector/spinor/flock/FBS geometry. This decision is the answer made binding.
+
+1. **The model's computation is discrete, including learning.** Scores,
+   comparisons, state transitions and credit assignment are defined on
+   ternary/exact-valued coordinates, E8-label or ternary-coordinate Hamming
+   distances, or exact quaternion/icosian actions. No floating-point forward
+   pass, no floating-point optimizer, and no floating-point gradient anywhere
+   in the model path. Scalar float arithmetic that D8/D0-b permitted for
+   offline training is **superseded for the model path** by this decision;
+   D0-b's serving rules (D11) already excluded it there.
+2. **The backbone is the existing geometry-preserving SpiralCore transport
+   with FBS,** not an arbitrary bit encoding substituted for E8. Discrete
+   learning selects and credits admissible geometric moves and routes within
+   that structure. E8/icosian identities, orientation and the shared writer's
+   native carrier are preserved. Ternary/Hamming comparisons are defined on
+   the actual transported representation.
+3. **Design cautions recorded with the direction.** Ternary-coordinate
+   Hamming distance is not bit-code Hamming distance; an E8 label's Hamming
+   distance is not automatically the E8 lattice metric. Exact icosian or
+   quaternion actions can use integer-pair Z[phi] coefficients or finite
+   transition tables. Learning can compare admissible neighboring discrete
+   states and apply local credit without a floating-point optimizer. These
+   are the design direction to specify and review, not claims that an
+   implementation exists or is qualified.
+4. **Existing floating-point work is preserved, not deleted.** F32 production
+   operators, the F64 secant instrument, the murmuration qualification work
+   and the writer adjoint repair remain as archived source and evidence under
+   their exact scopes. This is a scope correction, not a mechanism negative
+   (D22), and it permits no deletion of anyone's work.
+5. **No floating-point numerical qualification or training launches.** Any
+   pre-registration whose registered training or qualification law runs a
+   floating-point optimizer or floating-point model computation is frozen —
+   recorded, not executable — until it is re-registered on a compliant
+   discrete learning law. A FIT verdict on such a sheet does not release
+   anything. Training and M2 remain held until the owner releases the hold on
+   a compliant sheet.
+6. **Per-lab application at filing:** Claude stops further F32/F64 numerical
+   work or promotion (source and instrument work preserved); DeepSeek aligns
+   the native routing/memory learning design with discrete/ternary/exact
+   geometric state and updates; Kimi (PM) records the rule and reconciles the
+   active plan and sheets; Codex specifies the discrete learning law for
+   review. New design and review work proceeds; no compute beyond
+   preservation.
+
+Where any older decision, sheet, rung plan or operator card assumes a
+floating-point training law or floating-point model computation, D32 wins.
+D23/D29/D30 remain fully in force and are not widened by this decision.
