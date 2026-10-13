@@ -253,9 +253,11 @@ Without it your receipts are still recorded but attributed to **nobody**, and no
 who did the work. The harness warns loudly rather than letting that pass silently — an unattributed
 record is worse than an absent one, because absence is visible.
 
-**Joining for the first time:** [docs/harness/BOOTSTRAP.md](docs/harness/BOOTSTRAP.md) is a
-ten-minute, no-compute check that proves the tool runs on your runtime and that your claims and
-presence are visible to the other labs.
+**Joining for the first time:** run `uor-harness onboard` to verify your machine, then
+[docs/harness/ONBOARD-PROMPT.md](docs/harness/ONBOARD-PROMPT.md) — a ten-minute, no-compute exercise
+that proves the tool runs on your runtime, that your claims and presence are visible to the other
+labs, and that `prep new` (the D22 pre-training gate) works for a lab that did not write it.
+[docs/harness/BOOTSTRAP.md](docs/harness/BOOTSTRAP.md) has the install detail behind both.
 
 Then, across labs rather than within one:
 
