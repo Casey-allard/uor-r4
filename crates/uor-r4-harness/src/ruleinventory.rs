@@ -54,6 +54,15 @@ pub const INVENTORY: &[(&str, &[&str])] = &[
         &["status.branch_claimed", "status.no_orphan_branches"],
     ),
     (
+        "arena",
+        &[
+            "arena.rows_valid",
+            "arena.parents_exist",
+            "arena.decisive_power",
+            "arena.knows_what_it_cannot_measure",
+        ],
+    ),
+    (
         "harness",
         &[
             "harness.milestones.present",
