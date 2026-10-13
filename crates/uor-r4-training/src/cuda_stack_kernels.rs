@@ -319,6 +319,146 @@ extern "C" __global__ void hamilton_gate_bwd(
 }
 
 // ---------------------------------------------------------------------------
+// 2c. The fused Hamilton projection (the quaternion-valued maps of
+// `quaternion_weights=all`): `y_j = Σ_k W_jk ⊗ x_k` over quaternion blocks,
+// with the weight compact as [out/4, in/4, 4] and the activation read as
+// in/4 blocks. Every term is one Hamilton product (16 products, 12 sums) and
+// the accumulation is f32; no matrix product is issued. One warp per output
+// quaternion, per (out, in) weight block and per (row, in) activation block,
+// with the lanes striding the reduced dimension and a shuffle-down reduce of
+// the four accumulator lanes.
+// ---------------------------------------------------------------------------
+__device__ __forceinline__ void warp_reduce4(float* a0, float* a1, float* a2, float* a3) {
+    for (int o = 16; o > 0; o >>= 1) {
+        *a0 += __shfl_down_sync(0xffffffffu, *a0, o);
+        *a1 += __shfl_down_sync(0xffffffffu, *a1, o);
+        *a2 += __shfl_down_sync(0xffffffffu, *a2, o);
+        *a3 += __shfl_down_sync(0xffffffffu, *a3, o);
+    }
+}
+
+template <typename S>
+__device__ __forceinline__ void hamilton_linear_fwd_impl(
+    const S* weight, const S* input, S* out,
+    uint rows, uint out_blocks, uint in_blocks
+) {
+    uint warp = (blockIdx.x * blockDim.x + threadIdx.x) >> 5;
+    uint lane = threadIdx.x & 31;
+    if (warp >= rows * out_blocks) return;
+    uint row = warp / out_blocks;
+    uint j = warp % out_blocks;
+    float a0 = 0.0f, a1 = 0.0f, a2 = 0.0f, a3 = 0.0f;
+    for (uint k = lane; k < in_blocks; k += 32) {
+        uint wi = (j * in_blocks + k) * 4;
+        uint xi = (row * in_blocks + k) * 4;
+        float w0 = act_to_f(weight[wi]), w1 = act_to_f(weight[wi + 1]);
+        float w2 = act_to_f(weight[wi + 2]), w3 = act_to_f(weight[wi + 3]);
+        float x0 = act_to_f(input[xi]), x1 = act_to_f(input[xi + 1]);
+        float x2 = act_to_f(input[xi + 2]), x3 = act_to_f(input[xi + 3]);
+        a0 += w0 * x0 - w1 * x1 - w2 * x2 - w3 * x3;
+        a1 += w0 * x1 + w1 * x0 + w2 * x3 - w3 * x2;
+        a2 += w0 * x2 - w1 * x3 + w2 * x0 + w3 * x1;
+        a3 += w0 * x3 + w1 * x2 - w2 * x1 + w3 * x0;
+    }
+    warp_reduce4(&a0, &a1, &a2, &a3);
+    if (lane == 0) {
+        uint o = (row * out_blocks + j) * 4;
+        out[o] = act_from_f(a0);
+        out[o + 1] = act_from_f(a1);
+        out[o + 2] = act_from_f(a2);
+        out[o + 3] = act_from_f(a3);
+    }
+}
+
+// dW_jk = Σ_rows dy_j ⊗ conj(x_k): one warp per weight block, lanes over rows.
+template <typename S>
+__device__ __forceinline__ void hamilton_linear_bwd_w_impl(
+    const S* input, const S* grad, S* d_weight,
+    uint rows, uint out_blocks, uint in_blocks
+) {
+    uint warp = (blockIdx.x * blockDim.x + threadIdx.x) >> 5;
+    uint lane = threadIdx.x & 31;
+    if (warp >= out_blocks * in_blocks) return;
+    uint j = warp / in_blocks;
+    uint k = warp % in_blocks;
+    float a0 = 0.0f, a1 = 0.0f, a2 = 0.0f, a3 = 0.0f;
+    for (uint row = lane; row < rows; row += 32) {
+        uint di = (row * out_blocks + j) * 4;
+        uint xi = (row * in_blocks + k) * 4;
+        float d0 = act_to_f(grad[di]), d1 = act_to_f(grad[di + 1]);
+        float d2 = act_to_f(grad[di + 2]), d3 = act_to_f(grad[di + 3]);
+        float x0 = act_to_f(input[xi]), x1 = act_to_f(input[xi + 1]);
+        float x2 = act_to_f(input[xi + 2]), x3 = act_to_f(input[xi + 3]);
+        a0 += d0 * x0 + d1 * x1 + d2 * x2 + d3 * x3;
+        a1 += d1 * x0 - d0 * x1 + d3 * x2 - d2 * x3;
+        a2 += d2 * x0 - d0 * x2 + d1 * x3 - d3 * x1;
+        a3 += d3 * x0 - d0 * x3 - d1 * x2 + d2 * x1;
+    }
+    warp_reduce4(&a0, &a1, &a2, &a3);
+    if (lane == 0) {
+        uint o = (j * in_blocks + k) * 4;
+        d_weight[o] = act_from_f(a0);
+        d_weight[o + 1] = act_from_f(a1);
+        d_weight[o + 2] = act_from_f(a2);
+        d_weight[o + 3] = act_from_f(a3);
+    }
+}
+
+// dx_k = Σ_j conj(W_jk) ⊗ dy_j: one warp per (row, k), lanes over output blocks.
+template <typename S>
+__device__ __forceinline__ void hamilton_linear_bwd_x_impl(
+    const S* weight, const S* grad, S* d_input,
+    uint rows, uint out_blocks, uint in_blocks
+) {
+    uint warp = (blockIdx.x * blockDim.x + threadIdx.x) >> 5;
+    uint lane = threadIdx.x & 31;
+    if (warp >= rows * in_blocks) return;
+    uint row = warp / in_blocks;
+    uint k = warp % in_blocks;
+    float a0 = 0.0f, a1 = 0.0f, a2 = 0.0f, a3 = 0.0f;
+    for (uint j = lane; j < out_blocks; j += 32) {
+        uint wi = (j * in_blocks + k) * 4;
+        uint di = (row * out_blocks + j) * 4;
+        float w0 = act_to_f(weight[wi]), w1 = act_to_f(weight[wi + 1]);
+        float w2 = act_to_f(weight[wi + 2]), w3 = act_to_f(weight[wi + 3]);
+        float d0 = act_to_f(grad[di]), d1 = act_to_f(grad[di + 1]);
+        float d2 = act_to_f(grad[di + 2]), d3 = act_to_f(grad[di + 3]);
+        a0 += w0 * d0 + w1 * d1 + w2 * d2 + w3 * d3;
+        a1 += w0 * d1 - w1 * d0 - w2 * d3 + w3 * d2;
+        a2 += w0 * d2 + w1 * d3 - w2 * d0 - w3 * d1;
+        a3 += w0 * d3 - w1 * d2 + w2 * d1 - w3 * d0;
+    }
+    warp_reduce4(&a0, &a1, &a2, &a3);
+    if (lane == 0) {
+        uint o = (row * in_blocks + k) * 4;
+        d_input[o] = act_from_f(a0);
+        d_input[o + 1] = act_from_f(a1);
+        d_input[o + 2] = act_from_f(a2);
+        d_input[o + 3] = act_from_f(a3);
+    }
+}
+
+extern "C" __global__ void hamilton_linear_fwd(
+    const act_t* weight, const act_t* input, act_t* out,
+    uint rows, uint out_blocks, uint in_blocks
+) {
+    hamilton_linear_fwd_impl<act_t>(weight, input, out, rows, out_blocks, in_blocks);
+}
+
+extern "C" __global__ void hamilton_linear_bwd_w(
+    const act_t* input, const act_t* grad, act_t* d_weight,
+    uint rows, uint out_blocks, uint in_blocks
+) {
+    hamilton_linear_bwd_w_impl<act_t>(input, grad, d_weight, rows, out_blocks, in_blocks);
+}
+
+extern "C" __global__ void hamilton_linear_bwd_x(
+    const act_t* weight, const act_t* grad, act_t* d_input,
+    uint rows, uint out_blocks, uint in_blocks
+) {
+    hamilton_linear_bwd_x_impl<act_t>(weight, grad, d_input, rows, out_blocks, in_blocks);
+}
+// ---------------------------------------------------------------------------
 // 3. RMSNorm: f64 statistics as the CPU; one block per row. The input, the
 // output and the gradients are activation storage, the gain and its gradient
 // are f32 parameters, and the statistics are f64 in both builds.

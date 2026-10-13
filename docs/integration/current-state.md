@@ -1,3 +1,24 @@
+## 2026-10-13 — OP2 implemented: the fused Hamilton projection makes the quaternion maps matmul-free (kimi, #2029)
+
+The [record](../labs/hamilton-linear-2026-10-13/README.md) lands the amended order's first rung: with
+`quaternion_weights=all` every projection now executes as a structured Hamilton product
+(`y_j = Σ_k W_jk ⊗ x_k` over `[out/4, in/4, 4]` blocks) instead of the dense `[4·out, 4·in]` expansion run
+through cuBLAS, with a forward and both gradients (weight and activation) implemented on the CPU (f64
+accumulation) and as `hamilton_linear_fwd/bwd_w/bwd_x` CUDA kernels (one warp per output quaternion, f32
+accumulation, `act_t`-typed so the f32 and bf16 builds share the source; Metal refused). The storage decision
+needed no new format: the compact form already *is* the saved artifact, so the per-forward dense expansion was
+deleted outright and existing artifacts load unchanged. Local checks: full lib suite **949 passed / 0 failed**
+(base 944 + 5 tests: hand computation, dense-expansion agreement `< 1e-5`, central-difference gradients,
+refusals, a quaternion-weights model step), the no-exponential interlock at 1649, and a host execution of the
+three kernels against an independent f64 reference (<= 8.4e-7 peak-scaled) — kernel arithmetic only, no device
+and no run.
+
+Line: evaluation integrity · count 1/3 (source implementation, no compute) · headline: unchanged (M1 v5
+memory 20/40, reply 37/232).
+
+**Next:** OP3a (the product-key head) per the amended order; the pod parity receipt for `hamilton_linear`
+needs a prospective kernel card and TEST FITNESS first, and training stays held.
+
 ## 2026-10-12 — Instructions and operator sequence reconciled; training holds preserved (Codex, #2028/#2029)
 
 The [reconciliation record](../labs/instruction-reconciliation-2026-10-12/README.md)

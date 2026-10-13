@@ -3378,3 +3378,123 @@ fn test_bf16_hamilton_gate_model_parity() -> uor_r4_training::Result<()> {
     }
     Ok(())
 }
+
+/// The fused Hamilton projection: the same tensors give the same forward and
+/// the same weight and activation gradients on the CPU (f64 accumulation) and
+/// on CUDA (f32 accumulation), so the quaternion-valued maps execute the same
+/// math without any dense matrix product.
+#[cfg(feature = "cuda")]
+#[test]
+fn test_hamilton_linear_parity() -> uor_r4_training::Result<()> {
+    use candle_core::{Tensor, Var};
+    use uor_r4_training::geometric_stack::hamilton_linear;
+
+    let cuda_dev = match candle_core::Device::new_cuda(0) {
+        Ok(dev) => dev,
+        Err(e) => return no_device(e),
+    };
+    let cpu_dev = candle_core::Device::Cpu;
+
+    let (out_blocks, in_blocks, rows) = (4usize, 6usize, 5usize);
+    let weight_data: Vec<f32> = (0..out_blocks * in_blocks * 4)
+        .map(|i| (i as f32 * 0.021 - 1.0).sin())
+        .collect();
+    let input_data: Vec<f32> = (0..rows * 4 * in_blocks)
+        .map(|i| (i as f32 * 0.013 + 0.4).cos())
+        .collect();
+    let grad_data: Vec<f32> = (0..rows * out_blocks * 4)
+        .map(|i| (i as f32 * 0.017).cos())
+        .collect();
+
+    let mut runs = Vec::new();
+    for device in [&cpu_dev, &cuda_dev] {
+        let weight = Var::from_tensor(&Tensor::from_vec(
+            weight_data.clone(),
+            (out_blocks, in_blocks, 4),
+            device,
+        )?)?;
+        let input = Var::from_tensor(&Tensor::from_vec(
+            input_data.clone(),
+            (rows, 4 * in_blocks),
+            device,
+        )?)?;
+        let out = hamilton_linear(weight.as_tensor(), input.as_tensor())?;
+        let weights = Tensor::from_vec(grad_data.clone(), (rows, 4 * out_blocks), device)?;
+        let grads = out.mul(&weights)?.sum_all()?.backward()?;
+        let d_weight = values(grads.get(weight.as_tensor()).expect("hamilton dW"))?;
+        let d_input = values(grads.get(input.as_tensor()).expect("hamilton dX"))?;
+        runs.push((values(&out)?, d_weight, d_input));
+    }
+    compare(&runs[0].0, &runs[1].0, 1e-4, "hamilton_linear forward");
+    compare(&runs[0].1, &runs[1].1, 1e-4, "hamilton_linear dW");
+    compare(&runs[0].2, &runs[1].2, 1e-4, "hamilton_linear dX");
+    Ok(())
+}
+
+/// The fused projection under `precision=bf16`: the bf16 storage path gives the
+/// same forward and gradients as its own f32 trunk (the operands are rounded,
+/// the accumulation stays f32), so the bf16 twins serve the quaternion maps.
+#[cfg(feature = "cuda")]
+#[test]
+fn test_bf16_hamilton_linear_parity() -> uor_r4_training::Result<()> {
+    use candle_core::{DType, Tensor, Var};
+    use uor_r4_training::geometric_stack::hamilton_linear;
+
+    let cuda_dev = match candle_core::Device::new_cuda(0) {
+        Ok(dev) => dev,
+        Err(e) => return no_device(e),
+    };
+    let (out_blocks, in_blocks, rows) = (4usize, 6usize, 5usize);
+    let weight_data: Vec<f32> = (0..out_blocks * in_blocks * 4)
+        .map(|i| (i as f32 * 0.021 - 1.0).sin())
+        .collect();
+    let input_data: Vec<f32> = (0..rows * 4 * in_blocks)
+        .map(|i| (i as f32 * 0.013 + 0.4).cos())
+        .collect();
+    let grad_data: Vec<f32> = (0..rows * out_blocks * 4)
+        .map(|i| (i as f32 * 0.017).cos())
+        .collect();
+
+    let mut runs = Vec::new();
+    for dtype in [DType::F32, DType::BF16] {
+        let weight = Var::from_tensor(
+            &Tensor::from_vec(weight_data.clone(), (out_blocks, in_blocks, 4), &cuda_dev)?
+                .to_dtype(dtype)?,
+        )?;
+        let input = Var::from_tensor(
+            &Tensor::from_vec(input_data.clone(), (rows, 4 * in_blocks), &cuda_dev)?
+                .to_dtype(dtype)?,
+        )?;
+        let out = hamilton_linear(weight.as_tensor(), input.as_tensor())?;
+        let weights = Tensor::from_vec(grad_data.clone(), (rows, 4 * out_blocks), &cuda_dev)?
+            .to_dtype(dtype)?;
+        let grads = out.mul(&weights)?.sum_all()?.backward()?;
+        let d_weight = values(
+            &grads
+                .get(weight.as_tensor())
+                .expect("bf16 hamilton dW")
+                .to_dtype(DType::F32)?,
+        )?;
+        let d_input = values(
+            &grads
+                .get(input.as_tensor())
+                .expect("bf16 hamilton dX")
+                .to_dtype(DType::F32)?,
+        )?;
+        runs.push((values(&out.to_dtype(DType::F32)?)?, d_weight, d_input));
+    }
+    let (f32_out, bf16_out) = (runs[0].0.clone(), runs[1].0.clone());
+    let worst = assert_bf16_close(
+        &f32_out,
+        &bf16_out,
+        2e-2,
+        2e-2,
+        "HamiltonLinear bf16 forward",
+    );
+    println!("bf16 HamiltonLinear forward max |diff| {worst:e}");
+    let worst = assert_bf16_close(&runs[0].1, &runs[1].1, 5e-2, 2e-2, "HamiltonLinear bf16 dW");
+    println!("bf16 HamiltonLinear dW max |diff| {worst:e}");
+    let worst = assert_bf16_close(&runs[0].2, &runs[1].2, 5e-2, 2e-2, "HamiltonLinear bf16 dX");
+    println!("bf16 HamiltonLinear dX max |diff| {worst:e}");
+    Ok(())
+}

@@ -3762,19 +3762,22 @@ impl StackModel {
         }
         match &self.served {
             None if self.quaternion_weights == QuaternionWeights::All => {
-                // Each dense map expanded once per forward pass, so every
-                // call site reads it by its dense name.
-                let mut dense = BTreeMap::new();
+                // Each quaternion map snapped once per forward pass, in its
+                // compact form: `linear` executes it as a Hamilton product, so
+                // no dense expansion is built at all.
+                let mut compact_maps = BTreeMap::new();
                 for (name, var) in &self.variables {
-                    if let Some(weight) = quaternion_dense_name(name) {
-                        let compact = quaternion_snap_straight_through(
-                            var.as_tensor(),
-                            self.quaternion_snap,
-                        )?;
-                        dense.insert(weight, quaternion_dense_weight(&compact)?);
+                    if let Some(dense) = quaternion_dense_name(name) {
+                        compact_maps.insert(
+                            dense,
+                            quaternion_snap_straight_through(
+                                var.as_tensor(),
+                                self.quaternion_snap,
+                            )?,
+                        );
                     }
                 }
-                Ok(Params::Quaternion(&self.variables, dense))
+                Ok(Params::Quaternion(&self.variables, compact_maps))
             }
             None => Ok(Params::Float(&self.variables)),
             Some(state) => Ok(Params::Served(self.served_view(state)?)),
@@ -3912,6 +3915,24 @@ impl StackModel {
     }
 
     fn linear(&self, input: &Tensor, weight: &Tensor) -> Result<Tensor> {
+        // A compact quaternion map ([`QuaternionWeights::All`]) is executed as a
+        // fused Hamilton product; every other map keeps the dense product below,
+        // byte for byte.
+        let snapped_compact;
+        if weight.dims().len() == 3 {
+            let input = if self.activation_snap != ActivationSnap::None {
+                snapped_compact = self.snap_activation(input)?;
+                &snapped_compact
+            } else {
+                input
+            };
+            let weight = if self.precision.is_bf16() {
+                weight.to_dtype(DType::BF16)?
+            } else {
+                weight.clone()
+            };
+            return hamilton_linear(&weight, input);
+        }
         let snapped;
         // Only the quaternion maps' inputs: not the tied head ([vocab, width])
         // and not the NoRead map ([heads, width]), the two other linear calls
@@ -9418,11 +9439,17 @@ impl StackModel {
             if projection.compiled.metadata().layer != layer {
                 return Err(invalid("geometric value codec read layer differs"));
             }
-            projection.compiled.validate_for(
-                p.layer(layer, "read.value.weight")?,
-                potential,
-                reducer,
-            )?;
+            let value_weight = p.layer(layer, "read.value.weight")?;
+            if value_weight.dims().len() == 3 {
+                return Err(invalid(
+                    "the compiled native value projection validates a dense weight, and a \
+                     quaternion-valued model has none: its projections execute as Hamilton \
+                     products",
+                ));
+            }
+            projection
+                .compiled
+                .validate_for(value_weight, potential, reducer)?;
             let projected = if projection.residual {
                 crate::geometric_value_native::project_residual_native(
                     &values,
@@ -13370,8 +13397,9 @@ enum Params<'a> {
     Served(Arc<BTreeMap<String, Tensor>>),
     // Ordinary float semantics with immutable, graph-detached parameters.
     Frozen(BTreeMap<String, Tensor>),
-    /// The variables, with each quaternion map read as its dense expansion
-    /// ([`QuaternionWeights::All`]) under its dense name.
+    /// The variables, with each quaternion map ([`QuaternionWeights::All`]) read
+    /// compact (`[out/4, in/4, 4]`) under its dense name: `linear` executes it as
+    /// a Hamilton product ([`hamilton_linear`]), never as an expanded matrix.
     Quaternion(&'a BTreeMap<String, Var>, BTreeMap<String, Tensor>),
 }
 
@@ -18051,6 +18079,269 @@ pub fn hamilton_gate(gate: &Tensor, up: &Tensor) -> Result<Tensor> {
     Ok(gate
         .contiguous()?
         .apply_op2(&up.contiguous()?, HamiltonGate)?)
+}
+
+// ---------------------------------------------------------------------------
+// The fused Hamilton projection ([`QuaternionWeights::All`]'s execution path).
+//
+// `y_j = Σ_k W_jk ⊗ x_k` over quaternion blocks: the weight is the compact map
+// `[out/4, in/4, 4]`, the activation is `[.., in]` read as `in/4` quaternion
+// blocks, and every term is one Hamilton product (16 products, 12 sums). No
+// dense matrix product is called in either direction, which is what makes the
+// quaternion-valued projections legal under the no-matmul rule.
+
+/// The Hamilton product of two 4-vectors in `f64` (the CPU reference path).
+#[inline]
+fn hamilton_product_f64(a: [f64; 4], b: [f64; 4]) -> [f64; 4] {
+    [
+        a[0] * b[0] - a[1] * b[1] - a[2] * b[2] - a[3] * b[3],
+        a[0] * b[1] + a[1] * b[0] + a[2] * b[3] - a[3] * b[2],
+        a[0] * b[2] - a[1] * b[3] + a[2] * b[0] + a[3] * b[1],
+        a[0] * b[3] + a[1] * b[2] - a[2] * b[1] + a[3] * b[0],
+    ]
+}
+
+/// The conjugate of an `f64` 4-vector.
+#[inline]
+fn conjugate_f64(a: [f64; 4]) -> [f64; 4] {
+    [a[0], -a[1], -a[2], -a[3]]
+}
+
+/// The `(out/4, in/4)` block shape of a compact quaternion map `[out/4, in/4, 4]`.
+fn hamilton_linear_blocks(weight: &Tensor) -> Result<(usize, usize)> {
+    match weight.dims() {
+        [out, input, 4] => Ok((*out, *input)),
+        dims => Err(invalid(format!(
+            "a compact quaternion map is [out/4, in/4, 4] with a 4-long block, not {dims:?}"
+        ))),
+    }
+}
+
+struct HamiltonLinear;
+
+impl CustomOp2 for HamiltonLinear {
+    fn name(&self) -> &'static str {
+        "geometric-stack-hamilton-linear"
+    }
+
+    fn cpu_fwd(
+        &self,
+        s1: &CpuStorage,
+        l1: &Layout,
+        s2: &CpuStorage,
+        l2: &Layout,
+    ) -> candle_core::Result<(CpuStorage, Shape)> {
+        if s1.dtype() != DType::F32 || s2.dtype() != DType::F32 {
+            candle_core::bail!("the CPU Hamilton projection needs F32; bf16 is a device precision");
+        }
+        let (weight, input) = (contiguous(s1, l1)?, contiguous(s2, l2)?);
+        let (out_blocks, in_blocks) = match l1.shape().dims() {
+            [out, input, 4] => (*out, *input),
+            dims => {
+                candle_core::bail!("a compact quaternion map is [out/4, in/4, 4], not {dims:?}")
+            }
+        };
+        let in_features = 4 * in_blocks;
+        if in_features == 0 || input.len() % in_features != 0 {
+            candle_core::bail!(
+                "the Hamilton projection's activation width must be a multiple of {in_features}"
+            );
+        }
+        if l2.shape().dims().last() != Some(&in_features) {
+            candle_core::bail!(
+                "the Hamilton projection's last dimension must be {in_features}, not {:?}",
+                l2.shape().dims()
+            );
+        }
+        let rows = input.len() / in_features;
+        // One task per output quaternion, each accumulating over k in f64.
+        let mut out = vec![0f32; rows * out_blocks * 4];
+        out.par_chunks_mut(4).enumerate().for_each(|(q, o)| {
+            let (row, j) = (q / out_blocks, q % out_blocks);
+            let mut acc = [0f64; 4];
+            for k in 0..in_blocks {
+                let w = &weight[(j * in_blocks + k) * 4..][..4];
+                let x = &input[row * in_features + k * 4..][..4];
+                let (w, x) = (
+                    [
+                        f64::from(w[0]),
+                        f64::from(w[1]),
+                        f64::from(w[2]),
+                        f64::from(w[3]),
+                    ],
+                    [
+                        f64::from(x[0]),
+                        f64::from(x[1]),
+                        f64::from(x[2]),
+                        f64::from(x[3]),
+                    ],
+                );
+                let term = hamilton_product_f64(w, x);
+                for c in 0..4 {
+                    acc[c] += term[c];
+                }
+            }
+            for c in 0..4 {
+                o[c] = acc[c] as f32;
+            }
+        });
+        let mut dims = l2.shape().dims().to_vec();
+        let last = dims.len() - 1;
+        dims[last] = 4 * out_blocks;
+        Ok((CpuStorage::F32(out), Shape::from_dims(&dims)))
+    }
+
+    #[cfg(feature = "metal")]
+    fn metal_fwd(
+        &self,
+        _s1: &MetalStorage,
+        _l1: &Layout,
+        _s2: &MetalStorage,
+        _l2: &Layout,
+    ) -> candle_core::Result<(MetalStorage, Shape)> {
+        candle_core::bail!("the Hamilton projection has no Metal kernel yet")
+    }
+
+    #[cfg(feature = "cuda")]
+    fn cuda_fwd(
+        &self,
+        s1: &CudaStorage,
+        l1: &Layout,
+        s2: &CudaStorage,
+        l2: &Layout,
+    ) -> candle_core::Result<(CudaStorage, Shape)> {
+        cuda_ops::hamilton_linear_fwd(s1, l1, s2, l2)
+    }
+
+    fn bwd(
+        &self,
+        weight: &Tensor,
+        input: &Tensor,
+        _out: &Tensor,
+        grad: &Tensor,
+    ) -> candle_core::Result<(Option<Tensor>, Option<Tensor>)> {
+        #[cfg(feature = "cuda")]
+        if let Device::Cuda(device) = weight.device() {
+            let (d_weight, d_input) = cuda_ops::hamilton_linear_bwd(device, weight, input, grad)?;
+            return Ok((Some(d_weight), Some(d_input)));
+        }
+        #[cfg(feature = "metal")]
+        if weight.device().is_metal() {
+            candle_core::bail!("the Hamilton projection has no Metal kernel yet");
+        }
+        let (out_blocks, in_blocks) = match weight.dims() {
+            [out, input, 4] => (*out, *input),
+            dims => {
+                candle_core::bail!("a compact quaternion map is [out/4, in/4, 4], not {dims:?}")
+            }
+        };
+        let (ws, xs, gs) = (
+            weight.flatten_all()?.to_vec1::<f32>()?,
+            input.flatten_all()?.to_vec1::<f32>()?,
+            grad.flatten_all()?.to_vec1::<f32>()?,
+        );
+        let in_features = 4 * in_blocks;
+        if xs.len() % in_features != 0 || gs.len() % (4 * out_blocks) != 0 {
+            candle_core::bail!("the Hamilton projection's gradient shapes do not match");
+        }
+        let rows = xs.len() / in_features;
+        if gs.len() != rows * 4 * out_blocks {
+            candle_core::bail!("the Hamilton projection's gradient rows do not match");
+        }
+        // dW_jk = Σ_rows dy_j ⊗ conj(x_k).
+        let mut d_weight = vec![0f32; out_blocks * in_blocks * 4];
+        d_weight.par_chunks_mut(4).enumerate().for_each(|(jk, o)| {
+            let (j, k) = (jk / in_blocks, jk % in_blocks);
+            let mut acc = [0f64; 4];
+            for row in 0..rows {
+                let dy = &gs[(row * out_blocks + j) * 4..][..4];
+                let x = &xs[row * in_features + k * 4..][..4];
+                let (dy, x) = (
+                    [
+                        f64::from(dy[0]),
+                        f64::from(dy[1]),
+                        f64::from(dy[2]),
+                        f64::from(dy[3]),
+                    ],
+                    [
+                        f64::from(x[0]),
+                        f64::from(x[1]),
+                        f64::from(x[2]),
+                        f64::from(x[3]),
+                    ],
+                );
+                let term = hamilton_product_f64(dy, conjugate_f64(x));
+                for c in 0..4 {
+                    acc[c] += term[c];
+                }
+            }
+            for c in 0..4 {
+                o[c] = acc[c] as f32;
+            }
+        });
+        // dx_k = Σ_j conj(W_jk) ⊗ dy_j.
+        let mut d_input = vec![0f32; rows * in_features];
+        d_input.par_chunks_mut(4).enumerate().for_each(|(rk, o)| {
+            let (row, k) = (rk / in_blocks, rk % in_blocks);
+            let mut acc = [0f64; 4];
+            for j in 0..out_blocks {
+                let w = &ws[(j * in_blocks + k) * 4..][..4];
+                let dy = &gs[(row * out_blocks + j) * 4..][..4];
+                let (w, dy) = (
+                    [
+                        f64::from(w[0]),
+                        f64::from(w[1]),
+                        f64::from(w[2]),
+                        f64::from(w[3]),
+                    ],
+                    [
+                        f64::from(dy[0]),
+                        f64::from(dy[1]),
+                        f64::from(dy[2]),
+                        f64::from(dy[3]),
+                    ],
+                );
+                let term = hamilton_product_f64(conjugate_f64(w), dy);
+                for c in 0..4 {
+                    acc[c] += term[c];
+                }
+            }
+            for c in 0..4 {
+                o[c] = acc[c] as f32;
+            }
+        });
+        Ok((
+            Some(Tensor::from_vec(d_weight, weight.shape(), weight.device())?),
+            Some(Tensor::from_vec(d_input, input.shape(), input.device())?),
+        ))
+    }
+}
+
+/// Fused Hamilton projection: `y_j = Σ_k W_jk ⊗ x_k` for a compact quaternion
+/// map `weight` `[out/4, in/4, 4]` and an activation `input` `[.., in]`.
+pub fn hamilton_linear(weight: &Tensor, input: &Tensor) -> Result<Tensor> {
+    if !matches!(weight.dtype(), DType::F32 | DType::BF16) || weight.dtype() != input.dtype() {
+        return Err(invalid(
+            "hamilton_linear needs one f32 or bf16 dtype on the weight and the activation",
+        ));
+    }
+    let (out_blocks, in_blocks) = hamilton_linear_blocks(weight)?;
+    let in_features = 4 * in_blocks;
+    if weight.elem_count() == 0 || input.elem_count() == 0 {
+        return Err(invalid("hamilton_linear requires non-empty tensors"));
+    }
+    if input.dims().last() != Some(&in_features) {
+        return Err(invalid(format!(
+            "hamilton_linear reads an activation of width {in_features}, not {:?}",
+            input.dims()
+        )));
+    }
+    if in_blocks == 0 || out_blocks == 0 {
+        return Err(invalid("hamilton_linear requires whole quaternion blocks"));
+    }
+    Ok(weight
+        .contiguous()?
+        .apply_op2(&input.contiguous()?, HamiltonLinear)?)
 }
 
 // ---------------------------------------------------------------------------
@@ -33715,6 +34006,170 @@ mod tests {
                     );
                 }
             }
+        }
+        Ok(())
+    }
+
+    /// The fused Hamilton projection on a hand-computed two-block case: two
+    /// output blocks over two input blocks, with the quaternion products worked
+    /// out in the test.
+    #[test]
+    fn the_hamilton_projection_matches_a_hand_computation() -> Result<()> {
+        // W[0,0] = W[0,1] = 1 (the identity), W[1,0] = i, W[1,1] = k.
+        let weight = Tensor::from_vec(
+            vec![
+                1.0f32, 0.0, 0.0, 0.0, //
+                1.0, 0.0, 0.0, 0.0, //
+                0.0, 1.0, 0.0, 0.0, //
+                0.0, 0.0, 0.0, 1.0,
+            ],
+            (2, 2, 4),
+            &cpu(),
+        )?;
+        let input = Tensor::from_vec(
+            vec![
+                1.0f32, 2.0, 3.0, 4.0, 0.0, 1.0, 0.0, -1.0, // row 0
+                0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, // row 1
+            ],
+            (2, 8),
+            &cpu(),
+        )?;
+        let out = hamilton_linear(&weight, &input)?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        // Row 0: y_0 = 1⊗(1,2,3,4) + 1⊗(0,1,0,-1) = (1,3,3,3) and
+        // y_1 = i⊗(1,2,3,4) + k⊗(0,1,0,-1) = (-2,1,-4,3) + (1,0,1,0).
+        // Row 1: y_0 = 1⊗(1,0,0,0) = (1,0,0,0) and y_1 = k⊗(1,0,0,0).
+        let want = [
+            1.0f32, 3.0, 3.0, 3.0, -1.0, 1.0, -3.0, 3.0, //
+            1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0,
+        ];
+        assert_eq!(out.len(), want.len());
+        for (i, (got, w)) in out.iter().zip(want).enumerate() {
+            assert!((got - w).abs() < 1e-6, "slot {i}: {out:?} vs {want:?}");
+        }
+        Ok(())
+    }
+
+    /// The fused projection computes what the dense Hamilton matrix does: the
+    /// same compact weight expanded by [`quaternion_dense_weight`] and
+    /// multiplied as a matrix gives the same values.
+    #[test]
+    fn the_hamilton_projection_matches_the_dense_expansion() -> Result<()> {
+        let mut rng = Initializer(83);
+        for (out_blocks, in_blocks, rows) in [(2usize, 3usize, 5usize), (4, 1, 7), (1, 5, 2)] {
+            let compact = random(&mut rng, &[out_blocks, in_blocks, 4], 1.0);
+            let input = random(&mut rng, &[rows, 4 * in_blocks], 1.0);
+            let fused = hamilton_linear(&compact, &input)?
+                .flatten_all()?
+                .to_vec1::<f32>()?;
+            let dense = input
+                .matmul(&quaternion_dense_weight(&compact)?.t()?)?
+                .flatten_all()?
+                .to_vec1::<f32>()?;
+            assert_eq!(fused.len(), dense.len());
+            let peak = dense.iter().fold(0f32, |m, v| m.max(v.abs()));
+            let gap = fused
+                .iter()
+                .zip(&dense)
+                .fold(0f32, |m, (a, b)| m.max((a - b).abs()));
+            assert!(
+                gap < 1e-5,
+                "{out_blocks}x{in_blocks} blocks, {rows} rows: gap {gap} against a peak of {peak}"
+            );
+        }
+        Ok(())
+    }
+
+    /// The fused projection's weight and activation gradients against central
+    /// differences.
+    #[test]
+    fn the_hamilton_projection_gradients_match_central_differences() -> Result<()> {
+        let mut rng = Initializer(67);
+        let weight = Var::from_tensor(&random(&mut rng, &[2, 3, 4], 1.0))?;
+        let input = Var::from_tensor(&random(&mut rng, &[4, 12], 1.0))?;
+        let weights = random(&mut rng, &[4, 8], 1.0);
+        check_gradient(
+            &[weight.clone(), input.clone()],
+            || {
+                Ok(hamilton_linear(weight.as_tensor(), input.as_tensor())?
+                    .mul(&weights)?
+                    .sum_all()?)
+            },
+            1e-2,
+        )
+    }
+
+    /// The fused projection refuses a partial quaternion block and a dtype the
+    /// CPU reference cannot run.
+    #[test]
+    fn the_hamilton_projection_refuses_what_it_cannot_run() -> Result<()> {
+        let weight = Tensor::from_vec(vec![0.5f32; 8], (2, 1, 4), &cpu())?;
+        let input = Tensor::from_vec(vec![0.5f32; 4], (1, 4), &cpu())?;
+        assert!(hamilton_linear(&weight, &input).is_ok(), "one block runs");
+        let partial = Tensor::from_vec(vec![0.5f32; 6], (2, 3), &cpu())?;
+        assert!(
+            hamilton_linear(&partial, &input).is_err(),
+            "a weight block is [out/4, in/4, 4]"
+        );
+        let short = Tensor::from_vec(vec![0.5f32; 4], (2, 2), &cpu())?;
+        assert!(
+            hamilton_linear(&short, &input).is_err(),
+            "the activation width must be whole input blocks"
+        );
+        let wide = Tensor::from_vec(vec![0.5f32; 6], (1, 6), &cpu())?;
+        assert!(
+            hamilton_linear(&weight, &wide).is_err(),
+            "the activation width must match the weight"
+        );
+        assert!(
+            hamilton_linear(
+                &weight.to_dtype(DType::BF16)?,
+                &input.to_dtype(DType::BF16)?
+            )
+            .is_err(),
+            "the CPU reference is f32; bf16 is a device precision"
+        );
+        assert!(
+            hamilton_linear(&weight.to_dtype(DType::U32)?, &input).is_err(),
+            "f32 or bf16 only"
+        );
+        Ok(())
+    }
+
+    /// A quaternion-weights model runs its whole forward and backward through
+    /// the fused projections: every compact map gets a finite gradient.
+    #[test]
+    fn a_quaternion_weights_model_runs_the_fused_projection() -> Result<()> {
+        let mut model = StackModel::new(quaternion_tiny(), &cpu())?;
+        model.set_quaternion_weights(QuaternionWeights::All)?;
+        let ids = [3u32, 9, 4, 12, 7, 1, 30, 5];
+        let targets = [9u32, 4, 12, 7, 1, 30, 5, 22];
+        let loss = model.loss(&ids, &targets, 1, ids.len())?;
+        let value = loss.to_scalar::<f32>()?;
+        assert!(value.is_finite() && value > 0.0, "loss {value}");
+        let grads = loss.backward()?;
+        let maps: Vec<String> = model
+            .variables()
+            .keys()
+            .filter(|name| name.ends_with(".quaternion"))
+            .cloned()
+            .collect();
+        // Three recurrence maps and three MLP maps on the `r` layer, four read
+        // maps and three MLP maps on the `a` layer.
+        assert_eq!(maps.len(), 13, "{maps:?}");
+        for name in &maps {
+            let var = &model.variables()[name];
+            let grad = grads
+                .get(var.as_tensor())
+                .ok_or_else(|| invalid(format!("no gradient for {name}")))?
+                .flatten_all()?
+                .to_vec1::<f32>()?;
+            assert!(grad.iter().all(|v| v.is_finite()), "{name} is not finite");
+            assert!(
+                grad.iter().any(|&v| v != 0.0),
+                "{name} gets no gradient through the fused projection"
+            );
         }
         Ok(())
     }

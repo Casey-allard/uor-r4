@@ -311,6 +311,129 @@ pub(super) fn hamilton_gate_bwd(
     ))
 }
 
+/// Threads of one warp: the Hamilton projection's kernels reduce four
+/// accumulators across a warp, so every launch is a whole number of warps.
+const WARP: usize = 32;
+
+/// The `(out/4, in/4)` block shape of a compact quaternion map.
+fn hamilton_linear_blocks(dims: &[usize]) -> CResult<(usize, usize)> {
+    match dims {
+        [out, input, 4] => Ok((*out, *input)),
+        dims => candle_core::bail!("a compact quaternion map is [out/4, in/4, 4], not {dims:?}"),
+    }
+}
+
+/// The activation width of a compact quaternion map's input and the rows of a
+/// `[.., in]` activation: `(rows, out/4, in/4)`.
+fn hamilton_linear_rows(
+    weight: &[usize],
+    input: &[usize],
+    elems: usize,
+) -> CResult<(usize, usize, usize)> {
+    let (out_blocks, in_blocks) = hamilton_linear_blocks(weight)?;
+    let in_features = 4 * in_blocks;
+    if out_blocks == 0 || in_blocks == 0 {
+        candle_core::bail!("the Hamilton projection needs whole quaternion blocks");
+    }
+    if elems % in_features != 0 || input.last() != Some(&in_features) {
+        candle_core::bail!(
+            "the Hamilton projection reads an activation of width {in_features}, not {input:?}"
+        );
+    }
+    Ok((elems / in_features, out_blocks, in_blocks))
+}
+
+pub(super) fn hamilton_linear_fwd(
+    s1: &CudaStorage,
+    l1: &Layout,
+    s2: &CudaStorage,
+    l2: &Layout,
+) -> Forward {
+    if s1.dtype() == DType::BF16 {
+        return super::cuda_ops_bf16::hamilton_linear_fwd(s1, l1, s2, l2);
+    }
+    let (rows, out_blocks, in_blocks) = hamilton_linear_rows(
+        l1.shape().dims(),
+        l2.shape().dims(),
+        l2.shape().elem_count(),
+    )?;
+    let (Some(weight), Some(input)) = (input(s1, l1)?, input(s2, l2)?) else {
+        candle_core::bail!("the Hamilton projection needs contiguous F32 tensors");
+    };
+    let device = &s1.device;
+    let out = uninit::<f32>(device, rows * out_blocks * 4)?;
+    launch(
+        device,
+        "hamilton_linear_fwd",
+        rows * out_blocks * WARP,
+        &[
+            Arg::F(weight),
+            Arg::F(input),
+            Arg::f(&out),
+            Arg::U32(u32_of(rows, "rows")?),
+            Arg::U32(u32_of(out_blocks, "out blocks")?),
+            Arg::U32(u32_of(in_blocks, "in blocks")?),
+        ],
+    )?;
+    let mut dims = l2.shape().dims().to_vec();
+    let last = dims.len() - 1;
+    dims[last] = 4 * out_blocks;
+    Ok((storage(out, device), Shape::from_dims(&dims)))
+}
+
+pub(super) fn hamilton_linear_bwd(
+    device: &CudaDevice,
+    weight: &Tensor,
+    input: &Tensor,
+    grad: &Tensor,
+) -> CResult<(Tensor, Tensor)> {
+    if weight.dtype() == DType::BF16 {
+        return super::cuda_ops_bf16::hamilton_linear_bwd(device, weight, input, grad);
+    }
+    let (w, x, d) = (ready(weight)?, ready(input)?, ready(grad)?);
+    let (rows, out_blocks, in_blocks) = hamilton_linear_rows(w.dims(), x.dims(), x.elem_count())?;
+    if d.elem_count() != rows * out_blocks * 4 {
+        candle_core::bail!("the Hamilton projection's gradient does not match its output");
+    }
+    let (ws, wl) = w.storage_and_layout();
+    let (xs, xl) = x.storage_and_layout();
+    let (ds, dl) = d.storage_and_layout();
+    let d_weight = uninit::<f32>(device, out_blocks * in_blocks * 4)?;
+    let d_input = uninit::<f32>(device, x.elem_count())?;
+    let args = [
+        Arg::F(view(&xs, xl)?),
+        Arg::F(view(&ds, dl)?),
+        Arg::f(&d_weight),
+        Arg::U32(u32_of(rows, "rows")?),
+        Arg::U32(u32_of(out_blocks, "out blocks")?),
+        Arg::U32(u32_of(in_blocks, "in blocks")?),
+    ];
+    launch(
+        device,
+        "hamilton_linear_bwd_w",
+        out_blocks * in_blocks * WARP,
+        &args,
+    )?;
+    let args = [
+        Arg::F(view(&ws, wl)?),
+        Arg::F(view(&ds, dl)?),
+        Arg::f(&d_input),
+        Arg::U32(u32_of(rows, "rows")?),
+        Arg::U32(u32_of(out_blocks, "out blocks")?),
+        Arg::U32(u32_of(in_blocks, "in blocks")?),
+    ];
+    launch(
+        device,
+        "hamilton_linear_bwd_x",
+        rows * in_blocks * WARP,
+        &args,
+    )?;
+    Ok((
+        tensor(d_weight, device, weight.shape()),
+        tensor(d_input, device, input.shape()),
+    ))
+}
+
 /// Threads per block of the row reductions (a multiple of 32).
 const ROW_THREADS: usize = 256;
 /// Rows per partial sum of the RMSNorm weight gradient.
