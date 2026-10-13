@@ -260,3 +260,26 @@ D32 and all standing decisions.
   the successor rung-0 sheet and requests TEST FITNESS from Claude only when the law is pinned
   in source with exact expected-value controls. No compute before FIT, and no FIT releases the
   training hold — the owner does.
+
+## R14 — No target is set or restated off a vacuous instrument
+
+**Authority, October 13:** owner direction in session — a test criterion that is arbitrary is not
+legal under the harness; the owner is not to be asked to pick numbers off such criteria.
+
+- **A headline target exists only when its instrument passes R12's four questions on evidence.**
+  If an instrument is shown vacuous (a constant answer clears half the panel), confounded
+  (a copy control ties the model), or noisy beyond the bar, then every target and every
+  pass/fail reading derived from it is **void**, not "approximately informative".
+- **Application: the M1 reply-quality headline is suspended.** The qwen-graded 116/232 target is
+  banned under D28 (neural grader); the deterministic 88-row re-score is vacuous under Claude's
+  F3/F5 audit findings (a constant canned reply scores 40/88; several zeros are instrument false
+  negatives). Neither number, nor any re-scaled variant of them, binds anything. There is no M1
+  reply target until the v2 check table exists with frozen positive controls, per-category
+  best-constant pairing and abstention-as-discrimination scoring — and even then a target is set
+  from measured mechanism behavior, not picked.
+- **Build-first governs (R12).** While the discrete mechanism is under construction, what binds
+  is construction correctness: exact laws, exact controls, interface integrity. Capability
+  targets attach only after the mechanism exists end to end and its instrument is non-vacuous.
+- **Process:** labs never ask the owner to choose between arbitrary test numbers. A lab that
+  wants a target proposes the instrument fix first; the PM rules on vacuity with evidence; the
+  owner's role is limited to releasing holds and stopping mechanisms (D22).
