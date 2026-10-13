@@ -69,9 +69,12 @@ BPB at all. Its reports carry raw-score measures with their exact panel, unit an
 
 ## What success looks like
 
-An arm works iff, on **both** seeds: the development margin loss falls monotonically, **and** the
-unviolated-target rate exceeds the same-seed untrained constant rate by ≥ 5×. That is the bar the rung-0
-sheet fixes before compute; the two arms are the same recipe at 1 and 8 declared rivals.
+An arm works iff it clears, on **both** seeds, all three clauses of the rung-0 sheet's bar (amended
+2026-10-13): the final dev margin loss is **< 0.5 raw-score units** (an absolute floor), the
+unviolated-target rate is **≥ max(5× the same-seed untrained constant, 1%)** (the 1% floor is declared
+as an anti-vacuity device, not a quality claim), and the dev curve is monotone within a stated 2%
+tolerance with the final-third mean below the first-third. The sheet fixes the exact numbers before
+compute; the two arms are the same recipe at 1 and 8 declared rivals.
 
 ## What failure looks like
 

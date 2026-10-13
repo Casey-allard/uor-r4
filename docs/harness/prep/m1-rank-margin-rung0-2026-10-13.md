@@ -8,7 +8,28 @@
 - line: evaluation integrity - count 1/3 (D21/D22 count is owned by the milestone, not this sheet; no count is reset by this sheet)
 
 ## Bar (pre-registered)
-- bar: an arm works iff dev margin loss falls monotonically AND the dev unviolated-target rate exceeds the same-seed untrained constant rate by >= 5x, on BOTH seeds; bars never narrower than panel noise (D22)
+
+Amended 2026-10-13 to close the two holes in Claude lab's `NOT_FIT` review of this sheet
+([#2029 comment 6137914625](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6137914625)):
+a `5x` ratio that can pass on nothing (the same-seed untrained constant is ≈ 0), and "falls monotonically"
+with no stated tolerance. These are **dev-curve bars** — measured on the mw-balp dev split during the run;
+the frozen `v5-reply` panel is **not** scored by this rung, and this amendment moves neither panel.
+
+- **Bar (i) — absolute loss floor.** Final dev margin loss **< 0.5 raw-score units on both seeds** — half the
+  per-position maximum meaningful hinge violation (the hinge is `max(0, 1 - z_target + z_rival)`); a position
+  tied or inverted against its rival already contributes >= 1 raw-score unit, and unlike a ratio against the
+  untrained constant this floor is absolute and does not shrink with its reference, so it cannot pass
+  vacuously.
+- **Bar (ii) — unviolated-target rate, with a declared anti-vacuity floor.** Dev unviolated-target rate
+  **>= max(5x the same-seed untrained constant rate, 1% absolute) on both seeds.** An untrained model's
+  unviolated-target rate is ≈ 0, so `5 x 0 = 0` would be vacuous; the **1% absolute floor** is declared
+  explicitly as an anti-vacuity device, **not a quality claim**.
+- **Bar (iii) — monotonicity, with a stated tolerance.** Dev margin loss is evaluated **every 128 steps**
+  with the example harness. After warmup (**step >= 1024**), no evaluation point exceeds the running minimum
+  by more than **2% of the step-128 evaluation**, and the **final-third mean is below the first-third mean**
+  (thirds of the post-warmup evaluation points).
+- bars never narrower than panel noise (D22): the dev-curve bars above stay no narrower than the noise stated
+  below.
 - panel: `v5-reply` (grader: chat-grade (graded by qwen2.5:7b, grade-replies, temperature 0, seed 1), frozen: yes)
 - panel noise: unstated for the reply panel; on the 40-row memory panel +/-3 rows is the noise seen (docs/labs/handoff-deepseek-2026-10-12.md: 'Bars are never narrower than the panel's noise (+/-3 rows on the 40-row memory panel)'). A bar must not be narrower than its panel's noise.
   - reply-acceptable: acceptable replies on the open reply panel 37/232 -> 116/232 acceptable replies [open]
@@ -30,7 +51,7 @@
 - fresh rows: not the decisive axis here - the two seeds carry D22 section 3, and rung 0 scores the mw-balp dev split, whose own row/window count is recorded in the run manifest at build rather than estimated here. No fresh draw is scored by rung 0; the frozen panels are rung 0b.
 - decisive run: YES - D22 section 3 needs >= 2 seeds OR >= 200 fresh rows
 - trained in rather than bolted on: YES - state the pretraining or the full fine-tune that gives the base time to adapt (a short add-on is a probe, not a decisive run)
-- fresh-transfer plan for a KEEP: the same two bars (monotone dev margin loss, >= 5x the same-seed untrained unviolated-target rate) are re-measured on a fresh held-out draw of mw-balp windows the run never trained on, with the run's own dev curve reported alongside. The frozen v5-reply panel is **not** the transfer measure here: rung 0 is recurrence-only and has no read or reply path, so it cannot be scored on that panel.
+- fresh-transfer plan for a KEEP: the two point bars - (i) the absolute loss floor and (ii) the floored unviolated-rate bar - are re-measured on a fresh held-out draw of mw-balp windows the run never trained on, with the run's own dev curve (bar (iii)) reported alongside. The frozen v5-reply panel is **not** the transfer measure here: rung 0 is recurrence-only and has no read or reply path, so it cannot be scored on that panel.
 - noise floor: the bars above must not be narrower than the panel's stated noise; a single-row bar is not a bar
 
 ## Cost (charged cumulatively, before execution)
@@ -68,19 +89,21 @@ the sheet is the registration the dependencies are checked against.
 | Element | State | Where |
 | --- | --- | --- |
 | Gate (MLP) | **Merged** — the Hamilton rotation G2, `Gate::Hamilton`, no exponential in either direction; the trunk applies the op itself so bf16 activations reach the bf16 kernel | `geometric_stack.rs:4022` (dispatch), `hamilton_gate` (`:18066`); #2260 merged |
-| Projection | **In flight, no PR** — Codex's owner-directed exact SpiralCore/FBS signed-action 8D native projection replaces `HamiltonLinear`'s dense all-pair contraction; claim [#2029 comment 6136794551](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6136794551) | `struct HamiltonLinear` (`:18120`) and `hamilton_linear_fwd/bwd_w/bwd_x` (`cuda_stack_kernels.rs`); #2262 merged, replacement not landed |
+| Projection | **LANDED** — #2279 (merge `c6cd409da`): Codex's owner-directed exact SpiralCore/FBS signed-action 8D native projection, `projection=spiralcore_fbs`; the dense all-pair contraction is retired with refusals and the projection is device-qualified on a Vast RTX 5090 | `crates/uor-r4-training/src/spiralcore_fbs.rs` (+ `spiralcore_fbs.cu` via `cuda_stack_kernels.rs`); record `docs/labs/spiralcore-fbs-projection-2026-10-12/README.md` |
 | Head | **Not built** — the OP3a product-key geometric head is Kimi's next source item; today the head is the tied embedding through the same dense `linear()` | `StackModel::head` (`:10049`) |
 | Objective | **Merged/in-tree** — `Objective::MarginHinge` with the CUDA f32 kernels | `:1374`, `margin_row`/`margin_row_grad` (`:18574`/`:18598`), `margin_rank_rows`/`margin_rank_grad` (`cuda_stack_kernels.rs:738`/`:744`) |
 | Recurrence | **Unlawful sites remain** (below) — the quaternion-transport recurrence with its held/drive carry already squash-free, and its opening, decay and output gate still exponential-family | `geometric_stack.rs:14977`/`:14978`/`:15274`, CUDA and Metal twins |
 | Read | Not present in this rung (pattern `rrrrrr`), which is exactly why rung 0 comes before rung 0b | — |
 
-**The run is BLOCKED until the four dependencies below land.** This sheet is the registration they are
+**The run is BLOCKED until dependencies 2-4 below land** (dependency 1, the projection, landed as #2279 /
+`c6cd409da`). This sheet is the registration they are
 checked against; no step of it executes while the training hold stands.
 
 ## Remaining dense, squashing or host-fallback sites on the path
 
 From the completed recurrence trace at `d094d86df`. These are the sites the run would execute today; each
-must be replaced before the rung is lawful, and the replacements are named source items.
+must be replaced before the rung is lawful, and the replacements are named source items. (The dense all-pair
+projection row is already resolved: its replacement landed as #2279.)
 
 | Site | What it does | Where (verified at `d094d86df`) | Named replacement |
 | --- | --- | --- | --- |
@@ -89,7 +112,7 @@ must be replaced before the rung is lawful, and the replacements are named sourc
 | Decay parameter transform | `log_a = softplus(-d)` (`-log1p(exp(-d))`) forward `:15261`, backward `:15392`; CUDA `:797`; Metal `:570` | `:14941` | as above. **Caveat, not a solution:** the served `DecayRate` codec currently encodes the same transform (`"grid codes of the rate `8 softplus(-decay)`"`, `:13055`) — reusing that table would *move* the softplus rather than remove it, so the lawful rate selection is a new source item, not a re-use |
 | Output gate | `state * gelu(g[i])` (tanh-GELU) | `:15274`; CUDA `:864`-`:867` fwd, `:911`/`:916`-`:917` bwd; Metal `:474`-`:477`, `:635` | the Hamilton gate (`gate=hamilton`, `:18066`) extended to the recurrence output |
 | Per-head exp in the read path | `exp` in the score/softplus normalization | CUDA `:992`; Metal `:732` | not executed by this rung (no read layer); it is rung 0b's item |
-| Dense all-pair projection | `HamiltonLinear`'s quaternion contraction | `:18120` (+ its CUDA kernels/launchers) | Codex's SpiralCore/FBS 8D native projection (in flight, claim above) |
+| Dense all-pair projection | `HamiltonLinear`'s quaternion contraction | `:18120` (+ its CUDA kernels/launchers) | Codex's SpiralCore/FBS 8D native projection — **landed** (#2279, `c6cd409da`); the dense contraction is retired with refusals |
 | Dense vocabulary head | tied `embedding.weight` through `linear()` | `:10049` | OP3a product-key geometric head (not built) |
 | Host fallback | when `cuda_covered()` is false the read runs the exact CPU forward on host copies | `geometric_stack.rs` read path; `whole_path_device.rs` | **must refuse loudly** (D24): the rung has no read layer, so this path is not executed here, and the refusal is a named dependency (4) |
 
@@ -109,7 +132,7 @@ same unlawful kernels as CUDA but is unused on pods; the rung runs CUDA only.
 | vocabulary | 4096 |
 | pointer | `none` — the margin objective refuses a pointer today (`:2773`) |
 | gate | `hamilton` |
-| projection | the post-Codex SpiralCore/FBS 8D native projection (dependency 1) |
+| projection | `spiralcore_fbs` — the landed SpiralCore/FBS 8D native projection (dependency 1, satisfied: #2279 `c6cd409da`) |
 | head | OP3a product-key geometric head (dependency 2) |
 | objective | `hinge`, arms at 1 and 8 declared rivals |
 | initialization | `StackConfig` default initialization at that config, one RNG seed per arm-seed pair; the **exact parameter count is recorded in the run manifest at build**, not guessed here |
@@ -135,17 +158,17 @@ recurrence-only model has no read or reply path. Milestone acceptance is unchang
 ## Panel noise
 
 The panel JSON states that the reply panel's noise is **unstated**, and that the 40-row memory panel's
-observed noise is **+/-3 rows**. Neither panel is scored by this rung. The rung's own bar is the monotone
-dev-margin-loss plus the >= 5x unviolated-rate rule applied to **both** seeds, which is wider than seed-level
-jitter by construction; a one-seed pass is *iterate*, never a negative (D22).
+observed noise is **+/-3 rows**. Neither panel is scored by this rung. The rung's own bars are the amended
+dev-curve clauses (i)-(iii), each applied to **both** seeds; a one-seed pass is *iterate*, never a negative
+(D22).
 
 ## Mechanism-own target and distinct outcome decisions
 
-- **KEEP** — both bars met on both seeds: the margin hinge becomes the project's training objective. A KEEP
-  reports fresh held-out dev transfer (D22 section 4) and proceeds to rung 0b (rank-read CUDA kernel,
-  score-gradient stop, murmuration address credit).
-- **ITERATE** — one seed passes, or the ratio is 2-5x: diagnose the configuration (objective scale, dose,
-  initialization); one revised run needs a **new sheet**.
+- **KEEP** — all three bar clauses (i)-(iii) met on both seeds: the margin hinge becomes the project's
+  training objective. A KEEP reports fresh held-out dev transfer (D22 section 4) and proceeds to rung 0b
+  (rank-read CUDA kernel, score-gradient stop, murmuration address credit).
+- **ITERATE** — one seed passes, or the unviolated-target ratio is 2-5x: diagnose the configuration
+  (objective scale, dose, initialization); one revised run needs a **new sheet**.
 - **BLOCKER** — a diverged or non-finite loss, a kernel defect, or an observed host fallback: a tooling
   blocker to fix, **not** a mechanism negative (D22 section 1-2).
 - **A mechanism stop is an owner decision.** No outcome of this run stops the rank-margin family, and this
@@ -169,17 +192,17 @@ exits zero on a CPU reference is not device qualification.
 
 ## Dependencies that must merge first
 
-The FIT review checks each of these when it lands; none of them is delivered by this sheet:
+The FIT review checks each of these as it lands; none of them is delivered by this sheet:
 
-1. **Codex's SpiralCore/FBS projection PR** — replaces `HamiltonLinear`'s dense all-pair contraction.
-2. **OP3a, the product-key geometric head** (Kimi) — replaces the dense tied head.
+1. **Codex's SpiralCore/FBS projection PR — LANDED (2026-10-13).** PR [#2279](https://github.com/UOR-Foundation/uor-r4/pull/2279), merge commit `c6cd409da`: `projection=spiralcore_fbs`, the dense all-pair contraction retired with refusals, device-qualified on a Vast RTX 5090 (record: `docs/labs/spiralcore-fbs-projection-2026-10-12/README.md`).
+2. **OP3a, the product-key geometric head** (Kimi) — replaces the dense tied head. **Open.**
 3. **The recurrence squash replacements** — opening selection, exact decay rate, output gate (Kimi source
-   items).
+   items). **Open, in flight as the kimi lab source PR.**
 4. **The lawful device-qualification gate** (Kimi, with Codex enforcement) — stored/analytic expected values,
-   no CPU model reference.
+   no CPU model reference. **Open.**
 
-Until all four land **and the owner explicitly releases the training hold**, the run does not execute. A
-`TEST FITNESS: FIT` verdict lifts no hold by itself.
+Until dependencies **2-4** land **and the owner explicitly releases the training hold**, the run does not
+execute. A `TEST FITNESS: FIT` verdict lifts no hold by itself.
 
 ## Verdict
 TEST FITNESS: PENDING
