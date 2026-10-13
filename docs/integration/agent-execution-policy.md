@@ -52,10 +52,17 @@ Complete intent compilation, trained language quality/capacity and D11 serving
 remain unqualified. The [composed rung-0 source repair](../labs/rung0-complete-path-2026-10-13/README.md)
 implements the actual native learning/evaluation wiring at `05c84bece50789163bd0f049a2ae76b8a314ef45`;
 18 finite controls pass at the declared rung-0 shape. Optimizer update is
-compiled/source-reviewed only. Corrected Amendment4 has prospective scientific
-FIT with unchanged bars. Protected delivery through [#2318](https://github.com/UOR-Foundation/uor-r4/pull/2318);
-actual merge proof is appended after verification. Training/M2 holds remain HELD
-and require explicit owner release. This implementation status changes no invariant or hold.
+compiled/source-reviewed only. Protected #2318 merge is verified at
+`5b22739a31eafb131d25e098bb7f02ab803d4fe7`; its Amendment4 FIT retains its
+original scope. Current Amendment5 is scientific PENDING with unchanged bars.
+The [masked TRAIN count-reference repair](../labs/count-reference-2026-10-13/README.md)
+at frozen source `2fd6358bbc52d2a202a872ad0954ebb12894606f` is implemented;
+11 new finite controls PASS (9 metadata,2 CUDA); protected delivery pending. TRAIN tokens,
+response mask and reference policy bind native settings/checkpoints/artifacts;
+the masked DEV oracle is diagnostic only. Finite controls and protected merge
+precede Claude's CONFIRM under PM board6146134405, then explicit owner hold
+release/resource admission remains required. Training/M2 holds remain HELD.
+This implementation status changes no invariant or hold.
 
 ## Durable autonomous labs — current owner charter, September 29
 

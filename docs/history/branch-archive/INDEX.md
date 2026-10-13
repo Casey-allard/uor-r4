@@ -1,5 +1,24 @@
 # Branch archive
 
+## October 13 — retired whole-DEV count reference (Codex)
+
+[Restoration patch](rung0-whole-dev-count-oracle-inactive-20261013.patch), SHA256
+`b11645321f42d3a89136968b987dda045a58c0da7d16ecf0b2ee31f79b678b64`,
+restores `crates/uor-r4-training/examples/geometric-stack.rs` and its
+`geometric-stack/native_rung0.rs` helper from count-reference source
+`2fd6358bbc52d2a202a872ad0954ebb12894606f` to their original bytes at
+`53742969261b6e4aa2a8c77bd03d269e1bade966`. The original helper constructed its
+primary count table from the entire DEV token stream, including unmasked prompt
+tokens. That source is **inactive oracle evidence**, not a valid TRAIN reference
+or permission to execute a held run. The replacement counts response-masked
+TRAIN targets; a separate masked DEV oracle is explicitly diagnostic only.
+An isolated Git-index application restores both original files exactly: CLI
+SHA256 `7dfae090af3bd919e012c21022fff1c7ccaca13dd94c2e05bdd34963c37f5467`,
+helper SHA256 `69dc381e82eb5a4c7c16768efcfa9d1051a4daaa32963557f2cd2b4df0b58069`.
+Earlier finite controls retain their original source/configuration scope; no
+learned language result or training run is reclassified or promoted. All prior
+source, measurements, artifacts and other labs' work remain preserved.
+
 ## October 13 — pre-repair rung0 path (Codex)
 
 [Restoration patch](rung0-pre-repair-inactive-20261013.patch), SHA256

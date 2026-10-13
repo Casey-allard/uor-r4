@@ -2,6 +2,13 @@
 //! (`uor_r4_training::geometric_stack`) on u16 token files, and prepare those
 //! files with the lab's byte-level BPE.
 //!
+//! Native rung0 requires one `train=TRAIN.uort` stream with `train_mask=TRAIN.response_mask.u8`
+//! and `expected_train_targets=2425925`, separately from `valid=DEV.uort valid_mask=DEV.response_mask.u8`.
+//! Native standalone `evaluate` additionally requires `train_reference=TRAIN.uort train_mask=TRAIN.response_mask.u8`
+//! and `expected_train_targets=2425925`; the saved artifact must bind the same TRAIN reference.
+//! The primary count predictor counts response-masked TRAIN targets on CUDA. The response-masked DEV
+//! oracle is a separate diagnostic; no DEV counts substitute for the training reference.
+//!
 //! Modes:
 //!
 //! ```text
@@ -783,6 +790,8 @@ struct Settings {
     /// probability proportional to `train_weights`, then its start uniformly.
     train: Vec<PathBuf>,
     train_weights: Vec<f64>,
+    train_mask: Option<PathBuf>,
+    expected_train_targets: usize,
     valid: PathBuf,
     valid_mask: Option<PathBuf>,
     native_bos_id: Option<u32>,
@@ -1281,6 +1290,8 @@ impl Settings {
         );
         json!({
             "train": self.train, "train_weights": self.train_weights, "valid": self.valid,
+            "train_mask": self.train_mask, "expected_train_targets": self.expected_train_targets,
+            "native_count_reference_policy": self.native_vector_head.then_some(NATIVE_COUNT_REFERENCE_POLICY),
             "valid_mask": self.valid_mask, "bos_id": self.native_bos_id, "expected_dev_targets": self.expected_dev_targets,
             "lens": self.lens, "merges": self.merges, "tokenizer": self.tokenizer,
             "config": self.config, "init": init,
@@ -1343,7 +1354,9 @@ impl Settings {
                 "kept_cells": uor_r4_training::native_vector_writer::DEFAULT_KEPT_CELLS,
             });
             lineage["evaluation"] =
-                json!("native masked-response token/address margins, top1, recall8; no likelihood");
+                json!("native masked-response token/address margins, top1, recall8; TRAIN response-masked count reference; DEV response oracle diagnostic only; no likelihood");
+            lineage["native_count_reference_policy"] = json!(NATIVE_COUNT_REFERENCE_POLICY);
+            lineage["expected_train_targets"] = json!(self.expected_train_targets);
         }
         lineage
     }
@@ -1363,6 +1376,10 @@ impl Settings {
             "merges": self.merges.as_deref().map(content).transpose()?,
             "tokenizer": self.tokenizer.as_deref().map(content).transpose()?,
         });
+        if self.native_vector_head {
+            inputs["train_mask"] =
+                serde_json::to_value(self.train_mask.as_deref().map(content).transpose()?)?;
+        }
         if let Some(files) = init {
             inputs["init"] = json!({
                 "model": files.model.content(),
@@ -1823,6 +1840,67 @@ fn native_bos_identity(path: &Path) -> Result<u32> {
         .bos_id)
 }
 
+const NATIVE_COUNT_REFERENCE_POLICY: &str =
+    "train-response-masked-targets-with-within-document-predecessor/v1";
+const NATIVE_COUNT_REFERENCE_FILE: &str = "native_count_reference.json";
+
+fn native_input_content(path: &Path) -> Result<Value> {
+    Ok(json!({"bytes": fs::metadata(path)?.len(), "sha256": sha256_file(path)?}))
+}
+
+/// Input admission only: no model, frequency counts, ranking or score arithmetic.
+fn native_train_reference_options(
+    streams: usize,
+    mask: Option<&Path>,
+    expected_targets: usize,
+) -> Result<()> {
+    if streams != 1 || mask.is_none() || expected_targets == 0 {
+        return Err(invalid("native rung0 requires exactly one train=TRAIN.uort stream, train_mask=TRAIN.response_mask.u8 and positive expected_train_targets=2425925 (or the pinned panel's count); no DEV fallback"));
+    }
+    Ok(())
+}
+
+fn native_reference_binding(
+    train_content: &Value,
+    mask_content: &Value,
+    tokenizer_content: &Value,
+    reference: &native_rung0::MaskedTargets,
+    expected_targets: usize,
+    bos_id: u32,
+) -> Result<Value> {
+    if expected_targets == 0 || reference.len() != expected_targets {
+        return Err(invalid(format!("TRAIN masked response targets differ from expected_train_targets: {} != {expected_targets}", reference.len())));
+    }
+    Ok(json!({
+        "schema": "uor-r4.native-count-reference/1", "source_split": "train",
+        "frequency_policy": NATIVE_COUNT_REFERENCE_POLICY,
+        "train": train_content, "train_mask": mask_content, "tokenizer": tokenizer_content,
+        "payload_tokens": reference.payload_tokens(), "reference_targets": reference.len(),
+        "expected_train_targets": expected_targets, "bos_id": bos_id,
+    }))
+}
+
+fn require_bound_native_reference(saved: &Value, requested: &Value) -> Result<()> {
+    if saved != requested
+        || saved["schema"] != "uor-r4.native-count-reference/1"
+        || saved["source_split"] != "train"
+        || saved["frequency_policy"] != NATIVE_COUNT_REFERENCE_POLICY
+    {
+        return Err(invalid("native count-reference binding is missing, stale or differs from TRAIN tokens/mask/tokenizer/policy/counts; no DEV reference fallback or old native lineage admission"));
+    }
+    Ok(())
+}
+
+fn save_native_reference_binding(model_dir: &Path, lineage: &Value) -> Result<()> {
+    if let Some(binding) = lineage.get("native_count_reference") {
+        fs::write(
+            model_dir.join(NATIVE_COUNT_REFERENCE_FILE),
+            serde_json::to_vec_pretty(binding)?,
+        )?;
+    }
+    Ok(())
+}
+
 fn native_process_options(
     sample_tokens: usize,
     max_seconds: f64,
@@ -1952,9 +2030,16 @@ fn train_settings(args: &Args) -> Result<Settings> {
     {
         return Err(invalid("one positive train weight per training stream"));
     }
+    let train_mask = args.optional("train_mask").map(PathBuf::from);
+    let expected_train_targets = args.number("expected_train_targets", 2425925)?;
+    if native_vector_head {
+        native_train_reference_options(train.len(), train_mask.as_deref(), expected_train_targets)?;
+    }
     let mut settings = Settings {
         train,
         train_weights,
+        train_mask,
+        expected_train_targets,
         valid: PathBuf::from(args.required("valid")?),
         valid_mask: args.optional("valid_mask").map(PathBuf::from),
         native_bos_id: if native_vector_head {
@@ -2260,13 +2345,18 @@ fn evaluate_training_modes(
     lens: Option<&[u32]>,
     windows: usize,
     plan: Option<&native_rung0::PanelPlan>,
+    training_reference: Option<&native_rung0::MaskedTargets>,
 ) -> Result<(Evaluation, Option<Evaluation>)> {
     if model.native_vector_head_spec().is_some() {
         let mask = mask.ok_or_else(|| invalid("native dev evaluation needs valid_mask"))?;
         let plan = plan.ok_or_else(|| {
             invalid("native dev evaluation lacks prevalidated document-window metadata")
         })?;
-        let evaluator = native_rung0::Evaluator::new(model, valid, mask, plan.clone())?;
+        let training_reference = training_reference.ok_or_else(|| {
+            invalid("native dev evaluation lacks prevalidated TRAIN masked-target reference")
+        })?;
+        let evaluator =
+            native_rung0::Evaluator::new(model, training_reference, valid, mask, plan.clone())?;
         let record = model.scored_in_f32(|model| evaluator.evaluate(model, valid, mask))?;
         Ok((Evaluation::Native(record), None))
     } else {
@@ -2439,6 +2529,7 @@ fn save_checkpoint(
     let staging = out.join("checkpoint.partial");
     let _ = fs::remove_dir_all(&staging);
     model.save(&staging.join("model"))?;
+    save_native_reference_binding(&staging.join("model"), lineage)?;
     optimizer.save(&staging.join("optimizer"))?;
     fs::write(
         staging.join("state.json"),
@@ -2512,7 +2603,8 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
         .as_deref()
         .map(InitFiles::identify)
         .transpose()?;
-    let lineage = settings.lineage(&settings.input_contents(init_files.as_ref())?);
+    let input_contents = settings.input_contents(init_files.as_ref())?;
+    let mut lineage = settings.lineage(&input_contents);
     let vocabulary = settings.config.vocab_size;
     let train: Vec<Vec<u32>> = settings
         .train
@@ -2537,6 +2629,38 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
                 "native dev requires both verified tokenizer BOS and response mask",
             )),
         }
+    };
+    let native_training_reference = if settings.native_vector_head {
+        native_train_reference_options(
+            train.len(),
+            settings.train_mask.as_deref(),
+            settings.expected_train_targets,
+        )?;
+        if input_contents["train"][0] == input_contents["valid"] {
+            return Err(invalid("TRAIN count reference must be a separately pinned training stream, not the DEV panel"));
+        }
+        let mask = fs::read(
+            settings
+                .train_mask
+                .as_ref()
+                .ok_or_else(|| invalid("missing train_mask"))?,
+        )?;
+        let bos = settings
+            .native_bos_id
+            .ok_or_else(|| invalid("missing tokenizer BOS"))?;
+        let reference = native_rung0::MaskedTargets::new(&train[0], &mask, bos)?;
+        let binding = native_reference_binding(
+            &input_contents["train"][0],
+            &input_contents["train_mask"],
+            &input_contents["tokenizer"],
+            &reference,
+            settings.expected_train_targets,
+            bos,
+        )?;
+        lineage["native_count_reference"] = binding;
+        Some(reference)
+    } else {
+        None
     };
     let native_eval_plan = panel_plan(settings.eval_windows)?;
     let native_final_plan = panel_plan(settings.final_windows)?;
@@ -2700,6 +2824,7 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
             lens.as_deref(),
             settings.eval_windows,
             native_eval_plan.as_ref(),
+            native_training_reference.as_ref(),
         )?;
         let transport =
             evaluate_transport(&mut model, &valid, lens.as_deref(), settings.eval_windows)?;
@@ -2830,6 +2955,7 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
                 lens.as_deref(),
                 settings.eval_windows,
                 native_eval_plan.as_ref(),
+                native_training_reference.as_ref(),
             )?;
             let transport =
                 evaluate_transport(&mut model, &valid, lens.as_deref(), settings.eval_windows)?;
@@ -2875,6 +3001,7 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
         lens.as_deref(),
         settings.final_windows,
         native_final_plan.as_ref(),
+        native_training_reference.as_ref(),
     )?;
     let final_transport =
         evaluate_transport(&mut model, &valid, lens.as_deref(), settings.final_windows)?;
@@ -2886,6 +3013,7 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
         eprintln!("final unsnapped: {}", unsnapped.record());
     }
     model.save(&out.join("model"))?;
+    save_native_reference_binding(&out.join("model"), &lineage)?;
     if !stopped_early {
         // A completed run keeps only its final model; a stopped one keeps the
         // checkpoint that `resume=` continues from.
@@ -2930,6 +3058,7 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
         "samples": sample_record,
         "inputs": {
             "train": settings.train.iter().map(|p| identity(p)).collect::<Result<Vec<_>>>()?,
+            "train_mask": settings.train_mask.as_ref().map(|p| identity(p)).transpose()?,
             "valid": identity(&settings.valid)?,
             "valid_mask": settings.valid_mask.as_ref().map(|p| identity(p)).transpose()?,
             "lens": settings.lens.as_ref().map(|p| identity(p)).transpose()?,
@@ -2941,6 +3070,8 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
         "model_sha256": sha256_file(&out.join("model").join("model.safetensors"))?,
     });
     if settings.native_vector_head {
+        report["native_count_reference"] = lineage["native_count_reference"].clone();
+        report["settings"]["native_count_reference"] = lineage["native_count_reference"].clone();
         report["untrained_constant"] = report["curve"]
             .as_array()
             .and_then(|curve| curve.iter().find(|point| point["step"].as_u64() == Some(0)))
@@ -2948,7 +3079,7 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
             .ok_or_else(|| invalid("native run lacks its same-seed zero-step dev constant"))?;
         report["native_objective"] = json!({
             "training": "mean token_margin + mean address_margin; coefficient1 each",
-            "dev_bars": "token_margin and token-only unviolated; top1/recall8",
+            "dev_bars": "token_margin and token-only unviolated; top1/recall8 versus TRAIN response-masked count reference; DEV response oracle diagnostic only",
             "head": "spiralcore_product", "candidate_cells": 8, "kept_token_k": 8,
             "timing_boundary": "synchronized GPU boundaries around the entire step, including host window preparation, forward/backward and update; not kernel-only throughput",
         });
@@ -3044,6 +3175,9 @@ fn evaluate_mode(arguments: &[String]) -> Result<()> {
             "out",
             "tune_blocks",
             "valid_mask",
+            "train_reference",
+            "train_mask",
+            "expected_train_targets",
             "tokenizer",
             "expected_dev_targets",
             "lens",
@@ -3071,38 +3205,100 @@ fn evaluate_mode(arguments: &[String]) -> Result<()> {
         .transpose()?;
     report_output::claim(&out)?;
     let result = (|| -> Result<()> {
-        // `evaluate` runs the artifact as saved: the load restores its transport snap by design.
-        let mut model = StackModel::load(&model_dir, &device)?;
-        if model.native_vector_head_spec().is_some() {
+        // Read configuration and validate all native reference/panel metadata before model allocation.
+        let saved_config: Value =
+            serde_json::from_slice(&fs::read(model_dir.join("config.json"))?)?;
+        let native_inputs = if saved_config.get("native_vector_head").is_some() {
             if args.optional("tune_blocks").is_some()
                 || args.optional("softsort_tau").is_some()
                 || args.optional("activation_snap").is_some()
             {
                 return Err(invalid("native evaluate uses its complete masked panel, with no historical tune/squash/snap mode"));
             }
-            let tokens = read_tokens(&tokens_path, model.config.vocab_size)?;
+            let config: StackConfig = serde_json::from_value(saved_config)?;
+            config.validate()?;
+            if !device.is_cuda() {
+                return Err(invalid("native evaluate requires device=cuda before model allocation; no CPU reference fallback"));
+            }
+            let train_path = PathBuf::from(args.required("train_reference")?);
+            let train_mask_path = PathBuf::from(args.required("train_mask")?);
+            let expected_train_targets = args.number("expected_train_targets", 2425925)?;
+            native_train_reference_options(1, Some(&train_mask_path), expected_train_targets)?;
+            let train_content = native_input_content(&train_path)?;
+            if train_content == native_input_content(&tokens_path)? {
+                return Err(invalid("native evaluate requires separately pinned TRAIN reference tokens, not DEV as the primary count reference"));
+            }
+            let tokens = read_tokens(&tokens_path, config.vocab_size)?;
             let mask_path = PathBuf::from(args.required("valid_mask")?);
             let mask = fs::read(&mask_path)?;
-            let windows = max_blocks.unwrap_or(tokens.len() / model.config.context);
+            let windows = max_blocks.unwrap_or(tokens.len() / config.context);
             let tokenizer_path = PathBuf::from(args.required("tokenizer")?);
             let bos = native_bos_identity(&tokenizer_path)?;
             let plan = native_rung0::PanelPlan::new(
                 &tokens,
                 &mask,
-                model.config.context,
+                config.context,
                 windows,
                 bos,
                 args.number("expected_dev_targets", 14287)?,
             )?;
-            let evaluation = native_rung0::Evaluator::new(&model, &tokens, &mask, plan)?
-                .evaluate(&model, &tokens, &mask)?;
+            let train_tokens = read_tokens(&train_path, config.vocab_size)?;
+            let train_mask = fs::read(&train_mask_path)?;
+            let training_reference =
+                native_rung0::MaskedTargets::new(&train_tokens, &train_mask, bos)?;
+            let binding = native_reference_binding(
+                &train_content,
+                &native_input_content(&train_mask_path)?,
+                &native_input_content(&tokenizer_path)?,
+                &training_reference,
+                expected_train_targets,
+                bos,
+            )?;
+            let saved_binding: Value = serde_json::from_slice(&fs::read(model_dir.join(NATIVE_COUNT_REFERENCE_FILE))
+                .map_err(|e| invalid(format!("native artifact lacks readable TRAIN count-reference binding (old lineage refused): {e}")))?)?;
+            require_bound_native_reference(&saved_binding, &binding)?;
+            Some((
+                tokens,
+                mask,
+                plan,
+                training_reference,
+                binding,
+                train_path,
+                train_mask_path,
+                mask_path,
+                tokenizer_path,
+            ))
+        } else {
+            None
+        };
+        // `evaluate` runs the artifact as saved: the load restores its transport snap by design.
+        let mut model = StackModel::load(&model_dir, &device)?;
+        if model.native_vector_head_spec().is_some() {
+            let (
+                tokens,
+                mask,
+                plan,
+                training_reference,
+                binding,
+                train_path,
+                train_mask_path,
+                mask_path,
+                tokenizer_path,
+            ) = native_inputs.ok_or_else(|| {
+                invalid("native evaluation lacks prevalidated TRAIN reference and DEV panel")
+            })?;
+            let evaluation =
+                native_rung0::Evaluator::new(&model, &training_reference, &tokens, &mask, plan)?
+                    .evaluate(&model, &tokens, &mask)?;
             fs::write(
                 out.join("evaluation.json"),
                 serde_json::to_vec_pretty(&json!({
-                    "schema": "uor-r4.native-rung0-evaluation/1",
+                    "schema": "uor-r4.native-rung0-evaluation/2",
                     "model": identity(&model_dir.join("model.safetensors"))?,
                     "config": model.config, "tokens": identity(&tokens_path)?,
-                    "valid_mask": identity(&mask_path)?, "tokenizer":identity(&tokenizer_path)?, "full": evaluation,
+                    "valid_mask": identity(&mask_path)?, "tokenizer":identity(&tokenizer_path)?,
+                    "train_reference": identity(&train_path)?, "train_mask": identity(&train_mask_path)?,
+                    "native_count_reference": binding, "full": evaluation,
                 }))?,
             )?;
             return Ok(());
@@ -7040,6 +7236,8 @@ fn main() -> Result<()> {
                 &[
                     "train",
                     "train_weights",
+                    "train_mask",
+                    "expected_train_targets",
                     "width",
                     "heads",
                     "layers",
@@ -7861,6 +8059,61 @@ mod native_rung0_argument_tests {
         assert!(native_process_options(0, f64::NAN, false).is_err());
         Ok(())
     }
+    #[test]
+    fn native_train_reference_arguments_require_one_masked_stream_and_positive_count() -> Result<()>
+    {
+        native_train_reference_options(1, Some(Path::new("train-mask.u8")), 2425925)?;
+        assert!(native_train_reference_options(1, None, 2425925).is_err());
+        assert!(
+            native_train_reference_options(2, Some(Path::new("train-mask.u8")), 2425925).is_err()
+        );
+        assert!(native_train_reference_options(1, Some(Path::new("train-mask.u8")), 0).is_err());
+        let missing = Args::parse(
+            &["valid_mask=dev-mask.u8".into()],
+            &["valid_mask", "train_reference", "train_mask"],
+        )?;
+        assert!(missing.required("train_reference").is_err());
+        assert!(missing.required("train_mask").is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn native_reference_metadata_rejects_invalid_masks_and_count_claims() -> Result<()> {
+        let tokens = [0, 9, 1, 8, 2];
+        let mask = [0, 0, 1, 0, 1];
+        let reference = native_rung0::MaskedTargets::new(&tokens, &mask, 0)?;
+        assert_eq!(reference.len(), 2);
+        assert_eq!(reference.payload_tokens(), 5);
+        assert!(native_rung0::MaskedTargets::new(&tokens, &mask[..4], 0).is_err());
+        assert!(native_rung0::MaskedTargets::new(&tokens, &[0, 0, 2, 0, 1], 0).is_err());
+        assert!(native_rung0::MaskedTargets::new(&tokens, &[0; 5], 0).is_err());
+        let content = json!({"bytes": 10, "sha256": "train-token-pin"});
+        let mask_content = json!({"bytes": 5, "sha256": "train-mask-pin"});
+        let tokenizer = json!({"bytes": 30, "sha256": "tokenizer-pin"});
+        assert!(
+            native_reference_binding(&content, &mask_content, &tokenizer, &reference, 3, 0)
+                .is_err()
+        );
+        let binding =
+            native_reference_binding(&content, &mask_content, &tokenizer, &reference, 2, 0)?;
+        require_bound_native_reference(&binding, &binding)?;
+        assert_eq!(binding["source_split"], "train");
+        assert_eq!(binding["reference_targets"], 2);
+        for (field, changed) in [
+            ("source_split", json!("dev")),
+            ("frequency_policy", json!("dev-all-tokens")),
+            ("train_mask", json!({"bytes": 5, "sha256": "changed-mask"})),
+            ("train", json!({"bytes": 10, "sha256": "changed-train"})),
+            ("expected_train_targets", json!(3)),
+        ] {
+            let mut stale = binding.clone();
+            stale[field] = changed;
+            assert!(require_bound_native_reference(&stale, &binding).is_err());
+        }
+        assert!(require_bound_native_reference(&Value::Null, &binding).is_err());
+        Ok(())
+    }
+
     #[test]
     fn native_metric_record_never_mislabels_raw_margins_as_likelihood() {
         let record=Evaluation::Native(json!({"token_margin":1.0,"address_margin":1.0,"total_margin":2.0,"top1":0.0,"recall_at_8":1.0})).record();

@@ -79,12 +79,17 @@ context; the UORT payload is 42856 tokens with a 64-byte header, 111 global bloc
 and 232 tail tokens, 14287 eligible targets. These are source/metadata findings. Eighteen finite controls pass, including the
 actual batch 16×context 384 six-recurrence forward/backward, useful rate credit,
 6144-row writer, device clipping and native dev/artifact metrics. Optimizer update
-is compiled/source-reviewed only. The corrected Amendment4 sheet has prospective
-scientific FIT with unchanged bars, source/data/CLI/init pins and paired seeds1/2.
-Kimi ratifies the source/data policy; scoped correction coordination is retained.
-Protected delivery through [#2318](https://github.com/UOR-Foundation/uor-r4/pull/2318);
-actual merge proof is appended after verification. The owner can then consider
-explicit hold release; training and separate M2 holds remain HELD. No test or delivery
+is compiled/source-reviewed only. Protected #2318 merge is verified at
+`5b22739a31eafb131d25e098bb7f02ab803d4fe7`. The predecessor Amendment4 FIT
+retains its original scope; current Amendment5 is scientific **PENDING**, with
+unchanged bars and paired seeds1/2. The
+[masked TRAIN count-reference repair](../labs/count-reference-2026-10-13/README.md)
+is implemented at frozen source `2fd6358bbc52d2a202a872ad0954ebb12894606f`;
+11 new finite controls PASS (9 metadata,2 CUDA); protected delivery pending. One TRAIN
+stream and response mask bind the primary reference; the DEV response oracle
+is diagnostic only. Next: protected delivery, then Claude's
+CONFIRM under [PM board6146134405](https://github.com/UOR-Foundation/uor-r4/issues/2028#issuecomment-6146134405)
+before any owner hold-release decision. Training and separate M2 holds remain HELD. No test or delivery
 automatically releases training. Shared intent/compiler/full M2 and D11 remain
 separate unqualified obligations.
 
