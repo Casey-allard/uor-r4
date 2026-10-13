@@ -38,8 +38,9 @@ D22 are in [DECISIONS.md](../../../integration/DECISIONS.md#d21--three-negatives
 4. **Pre-register before compute** with the `experiment-prereg` skill: bar, panel
    noise, base artifact, data split, seeds/rows, steps, stop rule and complete
    cost, posted on the milestone issue, then a `TEST FITNESS: FIT` review on that
-   issue. Admit the resources per the `cost-and-compute-admission` skill: CPU work
-   on the owner's laptop, GPU work only through `scripts/pod/uor-pod` within the
+   issue. Existing training/M2 rental holds remain; FIT releases no hold.
+   Admit resources per `cost-and-compute-admission`: non-model CPU work locally,
+   all model/reference work on GPU only through `scripts/pod/uor-pod` within the
    caps (≤ 4 pods, ≤ $8/h all labs, no new spending class).
 5. **Run, then score on the frozen acceptance panel** (`panel-scoring`). A run is
    scored on the panel it pre-registered against, not on a new metric invented

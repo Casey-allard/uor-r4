@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "note": "Machine view of the live milestone contract. The GitHub issues (#2028-#2032) and docs/labs/session-goal.md are authoritative; this file is a cache that must agree with them. Verified against aaa210ef4 on 2026-10-12.",
+  "note": "Cache reconciled under D25 with the latest owner comments and current session contract on 12 October; GitHub and main authorities remain authoritative. Historical line counts are not reset.",
   "tracker": {
     "issue": 2028,
     "title": "[Roadmap] UOR-R4 - path to a native conversation and memory alpha"
@@ -42,12 +42,15 @@
         },
         {
           "name": "evaluation integrity",
-          "count": 0,
+          "count": 1,
           "of": 3,
-          "lab": "kimi"
+          "lab": "kimi",
+          "note": "Recorded operator card6134571032; no reset by instruction repair."
         }
       ],
-      "next": "Re-register the cycle-8 product-key run with a no-memory control, a memory-off evaluation of each checkpoint, a fine-tune long enough for the base to adapt, and a fresh held-out memory set; get TEST FITNESS: FIT before compute (D22 5d/5e)."
+      "next": "OP2 Hamilton kernel source first, then OP1 G2-only gate and OP3a geometric head; full-path qualification and amended FIT. Training held; G1 withdrawn, OP3b later research. No old campaign restart.",
+      "project_manager": "kimi",
+      "training_hold": true
     },
     "m2": {
       "issue": 2030,
@@ -65,10 +68,11 @@
       },
       "secondary": [
         {
-          "label": "fresh transfer (opened)",
+          "label": "opened transfer diagnostic (not fresh qualification)",
           "current": 0,
-          "target": 51,
-          "of": 128
+          "target": null,
+          "of": 128,
+          "note": "40% genuinely fresh acceptance remains; the opened0/128 cannot qualify it."
         }
       ],
       "panel": "m2-reply512",
@@ -79,13 +83,15 @@
       ],
       "lines": [
         {
-          "name": "protected/discrete constructor",
-          "count": 0,
+          "name": "unified geometric route/action/learning integration",
+          "count": 6,
           "of": 3,
-          "note": "reopened by D22 5a; the registry recorded 5/3 from the 12 October GitHub card, but the live prompt resets the line to 0/3 on reopening - the prompt is what the lab reads"
+          "note": "Delivered #2246 card6123976994: explicit-owner source count6/3, no reset. Earlier constructor line is inactive/unfinished, not an active0/3."
         }
       ],
-      "next": "Resolve the CUDA producer, sampled checkpoint/optimizer, multi-episode batch and raw instrument gates; then pre-register and get FIT. Owner training hold is in force."
+      "next": "Preserve source and training/rental hold. Sampled law blocked; CUDA/device/optimizer/data/FIT unqualified. No automatic constructor/fit/fresh draw/third prep loop.",
+      "training_hold": true,
+      "rental_hold": true
     },
     "m3": {
       "issue": 2031,
@@ -113,7 +119,7 @@
           "of": 3
         }
       ],
-      "next": "Qualify learned grounding and abstention plus reset/forget, restart, eviction and scope isolation on the saved model; #1718 (20.8% false-write) and #1738 are open defects."
+      "next": "Preserve durable-memory interfaces and known defects; no automatic qualification campaign while shared compliance dependencies and holds remain."
     },
     "m4": {
       "issue": 2032,
@@ -149,17 +155,19 @@
       "lines": [
         {
           "name": "starling read",
-          "count": 1,
-          "of": 3
+          "count": 2,
+          "of": 3,
+          "note": "Historical bootstrap current-state count2/3 preserved, inactive under D25; no reset by repair."
         },
         {
           "name": "wide learned flock read",
           "count": 0,
           "of": 3,
-          "note": "registry follows the live prompt (0/3). The 12 October #2032 card recorded 1/3 for an arm-W miss that was not merged as a counted negative; the current-state entry says the count is reset because the tree met its mechanism target, then the arm misses again. Reconcile with the milestone issue before relying on either."
+          "note": "Historical line/cache dispute retained; inactive old campaign. Inherit exact count from live milestone before a materially amended registration; no reset by repair."
         }
       ],
-      "next": "Ten-seed starling confirmation plus the teacher age table, then 4096; then D11 CLI parity, kernel audit and fresh-process restore."
+      "next": "Preserve teacher-free starling/murmuration source; after compliant operator phase and explicit hold release, rung0 then rung0b GPU read/gradient. Old dense bootstrap/teacher follow-ups inactive.",
+      "training_hold": true
     }
   },
   "owner_rules": [
@@ -191,36 +199,43 @@
       "id": "OWNER-2026-10-12-NO-ACTIVATIONS",
       "rule": "No softplus, sigmoid or tanh anywhere: the scalar-activation carve-out is closed.",
       "scope": "all",
-      "source": "GitHub #2029 comment 2026-10-13T00:46Z (owner, Claude session)"
+      "source": "https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6135511346"
     },
     {
       "id": "OWNER-2026-10-12-NO-MATMUL",
-      "rule": "No matmul in training or serving. CONFLICT: agent-execution-policy.json still states that training may use matrix multiplication; the newer owner freeze governs, and the policy file needs an owner ruling or an update.",
+      "rule": "No dense matrix multiplication in training or serving. D25 reconciles the machine/readable policy; scalar geometric GPU arithmetic remains allowed.",
       "scope": "all",
-      "source": "GitHub #2029 comment 2026-10-13T00:46Z"
+      "source": "https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6135511346"
     },
     {
       "id": "OWNER-2026-10-12-GEOMETRY-ONLY",
       "rule": "OP1 runs the Hamilton rotation gate G2 only; the rectified-square arm G1 is withdrawn as non-geometric. A G2 miss closes that configuration only (D22); there is no non-geometric fallback.",
       "scope": "m1",
-      "source": "GitHub #2029 comment 2026-10-13T00:46Z"
+      "source": "https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6135511346"
     },
     {
       "id": "OWNER-2026-10-12-NO-MLP-SCOPE",
       "rule": "The ban is on the dense SwiGLU MLP, not on a feed-forward block built from the project's geometry; a Hamilton gate plus Hamilton projections is acceptable.",
       "scope": "all",
-      "source": "GitHub #2029 comment 2026-10-13T00:46Z"
+      "source": "https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6135511346"
     },
     {
       "id": "OWNER-2026-10-12-RULE-FREEZE",
       "rule": "The rules as of 2026-10-12 21:55 are the COMPLETE constraint set until the first compliant training run (rung 0 on the compliant trunk) reports. New concerns need a proposal card and take effect only after that run; cost or safety problems are the only exception. A result that needed softmax anywhere is not progress on any line.",
       "scope": "all",
-      "source": "GitHub #2029 comment 2026-10-13T00:46Z"
+      "source": "https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6135511346"
+    },
+    {
+      "id": "D25",
+      "rule": "Current geometric operator phase: OP2 first -> OP1 G2 only -> OP3a -> lawful rung0 after hold release -> OP4/rung0b; OP3b later research. Training and independent M2 rental hold remain. FIT lifts no hold; preserve peer work and frozen constraint set.",
+      "scope": "all",
+      "source": "docs/integration/DECISIONS.md"
     }
   ],
   "constraint_freeze": {
     "as_of": "2026-10-12T21:55 local (owner, Claude session)",
     "exit": "the first compliant training run (rung 0 on the compliant trunk) reports",
-    "note": "The constraint set changed four times on 12 October; about 40 PRs merged that day and the M1 headline did not move. This block makes a brief state the frozen set rather than whichever subset happened to be in DECISIONS.md."
+    "note": "The constraint set changed four times on 12 October; about 40 PRs merged that day and the M1 headline did not move. This block makes a brief state the frozen set rather than whichever subset happened to be in DECISIONS.md.",
+    "source": "https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6135511346"
   }
 }

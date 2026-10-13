@@ -1,19 +1,42 @@
 # UOR-R4 Geometric Language Model — canonical project plan
 
-## Owner direction — operator phase before further training, October 12
+## Owner direction — operator preparation before training, October 12
 
-The owner's 2026-10-12 decisions ([#2029 comment 6133330776](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6133330776)) make the
-[operator phase](../labs/operator-phase-2026-10-12/README.md) the critical path for every training
-line: no exponential-family squashing anywhere (the SwiGLU sigmoid carve-out is closed) and no
-dense matmul in training or serving. Kimi lab is the project manager. Line assignments: Claude —
-starling/murmuration read; DeepSeek — invariant-addressed router/memory; Codex — CI/ratchet
-enforcement + M2 grounded reply; Kimi — objective layer, geometric operators, CUDA kernels. The
-phase order is OP1 geometric gate → OP2 Hamilton-projection kernels → OP3 matmul-free head
-(product-key arm, then murmuration fixed-address arm) → rung 0 resumed on the compliant trunk →
-rung 0b rank-read kernel → margin-trained starling readout. No training is compliant until OP1–OP3
-land; no GPU spend without a TEST FITNESS: FIT verdict.
+[D25](DECISIONS.md#d25---geometric-operator-phase-and-current-lab-direction) records the
+latest owner direction: no softmax/softplus/sigmoid/tanh or equivalent squashing in any
+executed model/learning/output/teacher/comparator path; no dense matrix multiplication in
+training or serving; GPU-only model compute/reference execution with no host fallback.
+Scalar floating-point geometric arithmetic remains possible in offline GPU learning;
+D11 integer/table, multiplier-free serving remains the target.
+
+**Training remains held, including the separate M2 training/rental hold.** Kimi is the
+current project manager. Claude owns starling/murmuration reads, DeepSeek
+invariant-addressed router/memory, Codex enforcement and M2 grounded reply, and Kimi
+objectives/geometric operators/CUDA. These are current assignments, not authority to
+run a suspended registration or alter another lab's work.
+
+The [repaired operator plan](../labs/operator-phase-2026-10-12/README.md) is the shared
+immediate dependency: **OP2 Hamilton-projection source → OP1 G2 gate source → OP3a geometric
+head source → whole-path source/device qualification and prospective FIT**. G2 is the sole gate arm; G1 is withdrawn, and geometric feed-forward blocks are
+permitted. The late owner clarification puts OP2 first and OP3b later, after
+OP3a. The constraint set is frozen through the first compliant rung0 result;
+new concerns are deferred proposal cards except cost/safety. No partial
+operator-trunk training, fresh prohibited comparator, CPU model reference or automatic
+fallback promotion is allowed. Quality measures use raw scores/generated answers with
+explicit units; numerical quality bars need an amended registration, not the former
+“BPB within 0.02 nats” clause. Tokens/s uses the same CUDA harness.
+
+Only explicit release of the applicable owner hold can then enable the compliant rung 0.
+Rung 0 is suspended, not withdrawn; its metric/control clauses must be amended before
+FIT. Rung 0b rank-read CUDA/gradient work follows the operator phase and resumed rung 0,
+then margin-trained starling. Historical schedules and comparators below remain evidence
+and cannot reactivate themselves. Preservation and protected delivery remain mandatory.
 
 ## Active programme — grounded conversation and durable memory, October 1
+
+> Capability obligations below remain. Their dated schedules, training permissions
+> and “next” actions are retained history, superseded by the current operator
+> dependency and holds above. Read current state for the actual next source task.
 
 **Owner-adopted direction:** [D19](DECISIONS.md#d19--grounded-conversation-and-durable-memory-first).
 This section is the active plan. It supersedes earlier schedules, fixed lab
@@ -26,7 +49,7 @@ The first useful product is **grounded conversation with durable memory**. The
 full alpha still includes useful conversation/memory **and** executable
 coding/reasoning on the same native path. Frontier intelligence on a laptop is
 the long-term research objective, not an established feasibility or scaling
-result. Rust offline training may use floats and matrix multiplication. Final
+result. Rust offline learning may use scalar floating-point geometric arithmetic on GPU; D25 prohibits dense matrix multiplication, and training remains held. Final
 serving follows D11/D0-b; D5 selected parameter access remains the final cost
 target. No transformer backbone, hidden teacher answers or new Python model
 dependency is adopted. Geometry remains the preferred representation and
@@ -1281,7 +1304,7 @@ Expose the accepted native artifact through one complete capability API and WASM
 
 ## Practical iteration and machine budget
 
-Before execution, establish complete preparation/build/fit/control/evaluation/retry/checkpoint requirements with context windows, CPU/threads, wall-time, peak RAM, new/temporary/retained storage and stop margin. Refresh the shared cumulative ledger and storage receipts; no session/issue reset or silent ceiling expansion is permitted. Training duration is secondary to serving quality/energy, but machine authorization still applies. Continue source/implementation work that does not depend on unavailable execution resources. No external GPU/CUDA or paid compute is authorized by this plan.
+Before execution, establish complete preparation/build/fit/control/evaluation/retry/checkpoint requirements with context windows, CPU/threads, wall-time, peak RAM, new/temporary/retained storage and stop margin. Refresh the shared cumulative ledger and storage receipts; no session/issue reset or silent ceiling expansion is permitted. Training duration is secondary to serving quality/energy, but machine authorization still applies. Continue source/implementation work that does not depend on unavailable execution resources. GPU work is governed by the later uor-pod rules and D24/D25; the training and separate M2 rental holds override standing admission.
 
 Use one model process by default, valid warm caches and existing drivers/preservation populations. Coordinate independent bounded review when it saves work. Diagnose and revise within authorized limits; avoid unchanged retries or endless sidecar probes. Stop/checkpoint at configured limits. No global 15-minute or one-retry rule governs new native work.
 

@@ -1,100 +1,162 @@
-# The operator phase: geometric replacements for the gate, the projections and the head
+# The operator phase: geometric replacements for the gate, projections and head
 
-References #2029 (M1); implements the owner decisions of 2026-10-12 recorded at
-[#2029 comment 6133330776](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6133330776).
-Lab: Kimi (project manager), session `kimi/pm1`, 2026-10-12. This PR is source and record only:
-no training, no panel run, no model compute. Every rung below waits for TEST FITNESS.
+References #2029 (M1) and #2032 (M4). Kimi is project manager and owns the operator
+implementation. This record is repaired under the owner's
+[D25 direction](../../integration/DECISIONS.md#d25---geometric-operator-phase-and-current-lab-direction).
+The [late owner clarification](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6135511346)
+sets **OP2 first, G2-only OP1, OP3a, rung0, then OP4/rung0b**; OP3b stays later
+research. A geometric feed-forward block is permitted. The constraint set is
+frozen through the first compliant rung0 result; new concerns are deferred
+proposal cards except cost/safety. This repair adds no constraint.
+The [original registration](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6134571032)
+and [original plan at aaa210ef4](https://github.com/UOR-Foundation/uor-r4/blob/aaa210ef46301623f10164ae5af586d7f558483a/docs/labs/operator-phase-2026-10-12/README.md)
+remain historical evidence. This amendment supersedes their execution sequence,
+CPU/cuBLAS comparator permissions and mixed-unit quality bars; it is **not FIT clearance**.
 
-> **One line.** The owner's two decisions — no exponential-family squashing anywhere (softmax,
-> softplus, sigmoid, tanh) and full matmul removal — make every current training configuration
-> non-compliant: each stack layer executes its SwiGLU MLP unconditionally
-> (`geometric_stack.rs:12241`) and every projection and the head are dense GEMMs. This phase
-> builds the three geometric operators that make training legal again, in dependency order, each
-> with a matched frozen baseline, each behind a TEST FITNESS verdict. Rung 0 (pre-reg
-> [6124773996](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6124773996)) is
-> suspended, not withdrawn: it runs unchanged once the stack it trains is compliant.
+## Current decision and holds
 
-## OP1 — the geometric gate (SwiGLU replacement)
+**Training remains held.** M2's separate training/rental hold also remains.
+OP1–OP3 are source/kernel implementation dependencies, not separate training
+campaigns on an otherwise prohibited trunk. No full-model training, evaluation,
+benchmark or generation runs until the entire executed path complies, its source
+and device behavior are qualified, prospective TEST FITNESS is FIT, and the
+owner explicitly releases the applicable hold. A FIT verdict does not release it.
+An isolated lawful GPU kernel qualification requires a separate named decision,
+prospective FIT and resource admission; it cannot contain banned operations,
+execute a CPU model reference or become an implicit training run.
 
-SwiGLU's `sigmoid(g)·g·u` (`geometric_stack.rs:17633`; CUDA `swiglu_fwd/bwd`,
-`cuda_stack_kernels.rs:240-268`) is the last exponential-family term in the trunk. Two
-exponential-free candidates:
+Current source still contains unconditional SwiGLU, dense projections and a dense
+vocabulary head. The margin objective's delivery does not make those paths lawful.
+Every executed forward/backward/objective/output/auxiliary path must exclude
+softmax, softplus, sigmoid, tanh, their equivalents and dense matrix contractions;
+model compute is GPU-only with host fallback refused. Replacing cuBLAS with a
+handwritten dense contraction does not satisfy the geometric replacement rule.
+Historical source/artifacts/results stay preserved and inactive.
 
-- **G1, rectified square:** `relu(g)² ⊙ u` — elementwise; the gradient is exact; the cheapest
-  possible legal gate; the ReLU² family is the known-stable member of the GLU literature.
-- **G2, Hamilton gate:** the gate projection is read as one quaternion per 4-block, unit-normalized
-  and icosian-snapped through the existing STE machinery, and the up-projection is *rotated* by it:
-  `out = q(g) ⊗ u`. The gate is a rotation of the value, not a squash — the project's own geometry
-  doing the gating.
+## OP1 — geometric gate source
 
-**Control:** the frozen pre-ban SwiGLU artifact's own metrics (no new banned comparator run — the
-ban covers comparators). **Bar:** development BPB within 0.02 nats of the frozen matched baseline,
-both seeds; tokens/s on the same harness within 5% of the SwiGLU kernel's rate. **Decision
-branches:** G1 is the legality fix; G2 is the mechanism test. If G2 is within noise of G1, G2
-carries the line (geometric nativeness at no cost). If G2 misses, G1 ships and the negative closes
-that *configuration* (D22), not the Hamilton-gate idea.
+Implement the candidate forward **and backward** on CUDA, including all gate,
+retention/decay and output call sites reached by the declared configuration.
+Trace recurrence squashes too; removing SwiGLU alone is insufficient.
 
-## OP2 — Hamilton-projection kernels (matmul-free projections)
+- **G2 Hamilton gate:** quaternion gate `q(g)` rotates each value block by
+  `q(g) ⊗ u`. Specify unit-normalization, zero/near-zero behavior, icosian snap,
+  exact hard-forward geometry and the actual gradient bridge.
+**G1 is withdrawn by the owner as non-geometric.** Its source/proposal history
+remains preserved; it is not a comparator arm or fallback. A G2 configuration
+miss leads to geometric iteration under D22, never a non-geometric substitution.
 
-`quaternion_weights=all` already makes every learned projection quaternion-valued mathematically,
-but it executes the 4×4 Hamilton blocks through cuBLAS (`geometric_stack.rs:745-755`) — a dense
-GEMM, banned. OP2 is a fused CUDA kernel computing the Hamilton product per 4-block directly (16
-scalar multiplies + 12 additions per block, no GEMM call, no cuBLAS), with the f64 CPU reference, a
-pod parity test, and f32 + bf16 arms. **Bar:** parity with the existing cuBLAS path inside the
-parity harness's tolerance; tokens/s not more than 10% below cuBLAS at the bench shape (a fused
-structured kernel against a tuned GEMM — the honest declared cost); then `quaternion_weights=all`
-becomes the default for the compliant stack. Serving stays D11: icosian-snapped weights turn the
-products into table reads; the export path is a later rung (the config currently refuses export
-with quaternion weights, `geometric_stack.rs:3103`).
+Source deliverable: implemented device forward/backward, declared arithmetic and
+identity/orientation behavior, build checks and static dispatch review. Any
+qualification kernel executes only the lawful operator on GPU, using stored or
+analytically specified expected values; no CPU reference forward or fresh banned
+SwiGLU comparator. **No OP1 language fit on a partial trunk. OP2 is implemented first; OP3a
+and the rest of the lawful path must exist before integrated training.**
 
-## OP3 — the matmul-free head
+## OP2 — native Hamilton projection source
 
-The vocab head is a `d×V` dense GEMM (`geometric_stack.rs:12243`, also 9612/10546/11296/11394).
-Two arms:
+`quaternion_weights=all` currently expresses Hamilton blocks through dense GEMM.
+Implement native structured Hamilton forward and gradient kernels instead, covering
+all embedding/trunk/gate/head-facing projections reached by the chosen path.
+Name each remaining dense or fallback site; one fast forward kernel is incomplete
+if the optimizer's graph calls a banned backward contraction.
 
-- **OP3a, factorized product-key head (engineering arm):** the same product-key factorization that
-  is the memory's best-measured slot read, as fused structured kernels — low risk, restores a legal
-  head first.
-- **OP3b, murmuration head (research arm):** every vocabulary token carries a fixed geometric
-  address from the prime-indexed H4/icosian codebook (the `e8_memory`/`h4_tables` substrate); the
-  score is a quaternion correlation between the final state and each address, computed in one fused
-  top-k selection kernel. No learned dense weight matrix. The margin objective (#2255) consumes raw
-  scores, and greedy serving needs no normalization — the head never requires a softmax to exist.
+Scalar floating-point geometric products in GPU learning are allowed. D11
+serving still requires exact snapped/table/additive geometric execution with no
+float or multiplier instruction. The existing quaternion export refusal is an
+unfinished dependency, not evidence of served compliance.
 
-**Honest flag, stated prospectively:** the score pass touches V addresses; it is a structured scan
-with fixed geometric addresses, not a learned GEMM, and snapped addresses make serving table reads
-and adds. If OP3b misses its bar, the negative closes the *fixed-address head* configuration and
-OP3a carries the line — the fallback is declared now, not invented after the fact. **Bar (both
-arms):** development BPB within 0.02 nats of the frozen baseline head on the same trunk, both
-seeds; head tokens/s within 10%; top-1 agreement with the frozen artifact reported as a diagnostic,
-not a bar.
+Qualification compares lawful GPU kernels against analytically specified values
+or already retained, identity-bound pre-ban outputs. Do not run cuBLAS, a
+handwritten dense comparator or a CPU model reference. If stored values do not
+exist at the matched shape/dtype, parity is **UNAVAILABLE**, not PASS. Report max
+absolute/relative error and exact shape/dtype/source; numeric tolerances and speed
+bars are fixed in the amended prospective kernel card before execution. A kernel
+wiring/numerical failure is a blocker to repair, not a mechanism negative.
 
-## OP4 — rung 0b (owner's work order: first after the operator phase)
+## OP3 — geometric head source (OP3a first; OP3b later research)
 
-The rank-table read is served end-to-end (flock rank reads, +0.0185 BPB vs softmax at 19.93M/2
-seeds) but trains through a softmax-derived straight-through gradient (banned) and has no CUDA
-kernel (host-only). Rung 0b builds the rank/flock read kernel (kept-list indices + rank table
-fused into the tile read) and a rank-consistent gradient, then the margin-trained starling readout
-that unblocks Claude's line.
+- **OP3a product-key head proposal:** specify the actual addressed/factorized
+  scoring, candidate admission, omitted-target handling, full learning credit and
+  CUDA forward/backward. A factorized pair of dense GEMMs is still prohibited.
+  There is no low-risk or automatic shipping claim before this design is reviewed.
+- **OP3b murmuration fixed-address proposal:** token addresses use the
+  prime-indexed H4/icosian codebook; quaternion correlation and hard/rank selection
+  produce raw scores without exponential normalization. Preserve token identity,
+  chirality/orientation, codebook collision handling and target credit. The full
+  vocabulary score pass touches V addresses; report that scan and its cost.
 
-## Standards fixed by this phase
+Both proposals need an objective over the actual admitted candidates and raw
+scores, a declared treatment of targets outside the kept list, and GPU credit
+through the complete learning path. Greedy decoding uses raw-score selection.
+OP3a is the owner-directed first head implementation; it must itself meet the
+existing compliance/FIT requirements. OP3b is later research, not a required
+pre-rung0 head comparison. Source delivery or a configuration miss retires no
+fixed-address mechanism. A compliant, FIT-reviewed alternative
+may be retained only after the predeclared experiment resolves its own target
+and fresh transfer under D22; mechanism stops remain owner decisions.
 
-- **Dtype standard:** f32 master weights and Adam moments; bf16 activation storage with f32/f64
-  accumulation on CUDA; u16 tokens on disk, u32 at the index tensor; TF32 off; f64 confined to CPU
-  references and statistics (basis: the frozen bf16 gate, 1.217× at matched quality).
-- **Metric:** tokens/s on the same CUDA harness (`examples/geometric-stack.rs:2587/2655`) reported
-  beside every quality number — the owner's standard comparison.
-- **Fail-closed CUDA:** a run that would fall back to host compute refuses loudly instead of
-  computing on the CPU (D24); the silent `via_host*` path is a defect wherever this phase touches it.
-- **Failure review:** every miss gets an external full-context review (evidence-auditor /
-  source-falsifier) before it counts; a negative closes a configuration, never a mechanism (D22);
-  mechanism stops are owner decisions.
+## Whole-path admission and quality measures
 
-## Sequencing, cost, gates
+After OP1–OP3 source lands, freeze the actual configuration and trace the complete
+embedding, recurrence, gate, projection, memory/read, head, objective, gradient,
+optimizer, output and sampling path. The recurrence-only rung has no read layer,
+but still needs lawful recurrence gates, projections and head. Device qualification
+must demonstrate GPU execution and loud refusal of host fallback. Existing textual
+ratchets are partial instruments, not semantic certification.
 
-Order: **OP1 → OP2 → OP3 (a then b) → rung 0 resumed on the compliant trunk → OP4/rung 0b →
-margin-trained starling readout.** Training arms run at the established bench config (19.93M,
-w512 h8 ctx384) on one 1×4090 pod, one job per GPU, lease/release per the pod rules; kernel work
-pays only the parity-gate receipt. Prospective projection: OP1 ≤ $4, OP2 ≤ $1, OP3 ≤ $6, OP4 ≤ $2;
-total phase ≤ $13, inside the ≤ 4 pods / ≤ $8/h caps; each run's report records pod, lease, rate
-and wall time. No GPU spend before each rung's TEST FITNESS: FIT.
+The prior phrase “BPB within 0.02 nats” is withdrawn: bits/byte and nats/token are
+different units, and a normalized-exponential NLL evaluator is prohibited.
+Historical BPB/NLL results keep their original scope and cannot be converted into
+a new objective or quality gate by renaming them. Proposed lawful diagnostics are:
+
+| Measure | Definition and unit | What it can establish |
+| --- | --- | --- |
+| Raw-score top-1 | Fraction of fixed next-token targets whose raw score wins; deterministic tie rule | Prediction accuracy on that exact panel, not likelihood or conversation |
+| Target rank / recall@K | Rank of the target and fraction admitted to the declared kept list | Address/read/head selection and omitted-target failures |
+| Margin hinge | `mean_k max(0, 1 - z_target + z_rival)` over declared rivals; raw-score units with fixed score scale | Development objective behavior, not BPB/NLL; compare only matched definitions/scales |
+| Complete replies and memory | Existing answer-membership graders, complete answer/EOS, fixed panels and later fresh transfer | Existing M1/M2 capability obligations, unchanged |
+| Tokens/s | Useful tokens divided by synchronized GPU elapsed seconds, on the same harness | Speed at named shape/dtype/context/batch; not quality or energy |
+
+No numerical replacement quality bar is frozen here. The amended registration
+must pin panels, graders, actual initialization/parameters, candidate sets, score
+scale, seeds, training dose, noise, mechanism-own target and distinct outcome
+decisions before FIT. Decisive model comparisons use at least two seeds or 200
+fresh rows, train the mechanism in, report fresh transfer for a KEEP, and do not
+weaken existing milestone criteria. Where an old criterion cannot be executed
+lawfully, record it BLOCKED pending prospective owner-approved amendment.
+
+Frozen historical throughput is context only unless its harness, source, shape,
+dtype, measurement boundary and useful work match. Missing matched timing is
+UNAVAILABLE; do not recreate a prohibited comparator to fill it. Use lawful
+matched geometric alternatives once they exist, and report total path tokens/s
+beside operator timing. Preserve the original 5%/10% proposals as history, not
+reviewed admission bars.
+
+## Sequence, owners and resources
+
+1. **Preparation:** Kimi implements OP2 → OP1 G2 → OP3a; OP3b stays later research; Codex maintains enforcement
+   and M2 source dependencies; Claude retains starling/murmuration source and
+   DeepSeek retains invariant-addressed router/memory source. Claims identify
+   exclusive paths; no takeover, duplicate campaign or peer cleanup.
+2. **Admission:** complete-path source/device qualification and amended
+   prospective TEST FITNESS. Separate lawful kernel cards may resolve arithmetic
+   risks; they are not model fits and lift no hold.
+3. **After explicit owner hold release:** resumed compliant rung 0, followed by
+   rung 0b rank-read CUDA kernels and rank-consistent gradients, then the
+   margin-trained starling readout. Old dense bootstrap/teacher/SoftSort schedules
+   remain inactive. M2 still needs its own hold release and qualification.
+
+The earlier 19.93M/w512/h8/ctx384 bench and ≤$13 phase projection are retained
+planning context, not admission or a new spend authorization. Changing projections
+and head may change parameter count. Each amended card projects source/build,
+qualification/fit/controls/evaluation/retries/storage cost on the actual design.
+Pods use uor-pod, one job/GPU, existing ≤4 pods and ≤$8/h caps, no new spending
+class; existing holds win. This repair spends **$0 on GPU and runs no model**.
+
+Dtype intent: f32 masters/optimizer moments, bf16 activation storage with declared
+CUDA accumulation, u16 disk tokens/u32 index tensor, TF32 off. Any precision arm
+requires explicit design and device qualification; retained f64 CPU references are
+source evidence only. Serving remains D11. Numerical/tooling failures are blockers;
+configuration negatives preserve the mechanism, and D22 fresh-transfer/noise rules
+remain. No source/policy delivery resets the capability headline or research count.

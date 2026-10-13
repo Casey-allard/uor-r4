@@ -1,6 +1,6 @@
 ---
 name: cost-and-compute-admission
-description: Admit and budget a run before execution — CPU on the owner's laptop, GPU only through uor-pod within the owner caps, the cumulative ledger, and the hard stops that are not negotiable.
+description: Admit and budget a run before execution — non-model CPU work locally, GPU-only model execution through uor-pod within the owner caps, the cumulative ledger, and the hard stops that are not negotiable.
 version: 1
 harness: 1
 kind: research
@@ -22,17 +22,17 @@ artifacts and compute", and D24 in [DECISIONS.md](../../../integration/DECISIONS
 ## Do this
 
 1. **Classify the work before choosing a machine.**
-   - CPU-bound work — data preparation, grading, the native prose learner, local
-     fixtures — runs on the owner's laptop. Rent a pod for it only when it truly
-     exceeds the laptop (RAM, disk or wall time), and then the smallest offering.
-   - GPU work — geometric-stack training, CUDA evaluation — goes through
-     `scripts/pod/uor-pod` and never falls back to the laptop CPU.
+   - Non-model editing/build/static checks, Rust preparation and grading stored
+     outputs run locally. The native prose learner and model/parity fixtures are
+     not CPU exceptions.
+   - Model work is GPU-only through uor-pod, subject to D23–D25 and applicable
+     holds. **Training and M2 training/rental remain held; FIT lifts neither.**
    - Model compute never runs on the CPU (D24). Training, evaluation and every
      part of the forward that scoring, normalization or the value mix touches are
      GPU work; a silent host-side fallback is a defect to fix with a kernel, not a
      cost to report and not mechanism evidence.
 2. **Check the decision first (D24).** If the configuration is already excluded by
-   D23/D24 — a softmax site, or a comparison whose baseline those rules forbid —
+   D23–D25 — prohibited squashing/dense matrix multiplication, or a comparison whose baseline those rules forbid —
    or if neither outcome changes the next step, the campaign is cancelled, not
    extended. This check comes before any price estimate.
 3. **Write the complete projection** into the pre-registration: preparation,

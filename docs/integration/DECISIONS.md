@@ -1208,3 +1208,65 @@ governance block; D23 carries the softmax prohibition, this carries the rest.
 
 Historical records keep their text as evidence; they are not rewritten.
 
+## D25 - Geometric operator phase and current lab direction
+
+**Authority, October 12:** the owner's decisions recorded on
+[#2029](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6133330776),
+amended by the [late owner clarification](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6135511346),
+and the owner's explicit instruction in Codex chat to reconcile the
+instructions and tracker, fix the operator plan, protected-merge it, keep the
+training hold and preserve everyone's work. The reconciliation claim is
+[#2029 comment 6135490872](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6135490872).
+
+- D23's prohibition also includes softplus, sigmoid and tanh: no
+  exponential-family squashing in any executed model, training, gradient,
+  output, sampling, teacher or comparator path, including equivalent renamed
+  or table forms. The SwiGLU sigmoid exception is closed.
+- No dense matrix multiplication/GEMM in training or serving. Replacing a
+  library call with a handwritten dense matrix contraction is not a geometric
+  replacement. Native Hamilton transport, geometric rank/margin selection,
+  exact addressing and icosian/E8 operators are the intended substrate.
+  Scalar floating-point geometric arithmetic remains legal in offline GPU
+  learning; D11's integer/table, multiplier-free serving contract remains.
+- D24 applies to the full model path, including reference/parity runs: GPU
+  only, no CPU model execution and no hidden host fallback. Local editing,
+  compilation, static checks, data preparation and grading of stored outputs
+  remain possible without model execution. Preserve CPU reference source and
+  pre-ban comparator measurements as inactive evidence; do not rerun them.
+- Kimi is the current project manager for the shared plan, assignments and
+  collision resolution; the owner retains strategic authority. Claude owns
+  starling/murmuration reads, DeepSeek invariant-addressed router/memory,
+  Codex enforcement/M2 grounded reply, and Kimi objectives/operators/CUDA.
+- OP1 uses G2 Hamilton rotation only. G1 rectified-square is withdrawn by the
+  owner as non-geometric; there is no non-geometric fallback. A geometric
+  feed-forward block (Hamilton gate plus Hamilton projections) is permitted;
+  the MLP ban applies to the dense SwiGLU block.
+- Build order is OP2 Hamilton kernel first, then OP1 G2, OP3a product-key
+  head, compliant rung0, and OP4/rung0b rank-read/gradient. OP3b remains
+  the research arm after OP3a, not an extra prerequisite for rung0. These are implementation
+  dependencies before an integrated training experiment. Source landing or an
+  isolated kernel check does not establish whole-path compliance. Rung 0 is
+  suspended, not withdrawn; its obsolete metric/control clauses must be amended
+  before prospective review. Rung 0b follows the compliant operator phase and
+  resumed rung 0, then margin-trained starling readout.
+- **Rule freeze:** the 12 October constraint set plus the late G2-only/build-order/
+  geometric-feed-forward clarifications is complete until the first compliant
+  rung0 result reports. New concerns go to a proposal card and take effect only
+  after that result, except cost/safety problems. No new constraint is adopted
+  by this reconciliation. Softmax-dependent results do not count as active progress.
+- **Training remains held.** The independent M2 no-training/no-rental hold
+  also remains. Prospective TEST FITNESS, complete source/device qualification
+  and explicit owner release of the applicable hold precede a run; a FIT
+  verdict or this documentation delivery releases no hold and rents no pod.
+- Tokens/s on the same CUDA harness is the speed comparison. Quality still
+  needs a lawful raw-score or generated-answer measure. Historical BPB/NLL
+  numbers remain evidence, not permission to execute a normalized-exponential
+  evaluator. No new numeric quality threshold, milestone acceptance change,
+  mechanism retirement or count reset is adopted by this reconciliation.
+- Preserve every lab's unique source, artifacts, jobs, leases and worktrees;
+  cleanup is limited to the deliverer's verified redundant workspace/branch.
+
+The [repaired operator plan](../labs/operator-phase-2026-10-12/README.md) defines
+the preparation/admission boundary. This is agent governance, not a claim that
+existing executables enforce all prohibitions or that a compliant model exists.
+

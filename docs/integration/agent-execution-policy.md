@@ -1,5 +1,6 @@
 # Native geometric AI execution policy
 
+> **Current operator direction, October 12:** [D25](DECISIONS.md#d25---geometric-operator-phase-and-current-lab-direction) extends D23 to softplus/sigmoid/tanh and bans dense matrix multiplication in training and serving. D24 makes all model/reference execution GPU-only. Kimi is current project manager. OP1–OP3 source/kernel preparation precedes any integrated training; **training and the separate M2 training/rental hold remain**. FIT is necessary but releases no hold. Earlier permissions below are superseded; preserved historical sections do not authorize execution.
 > **October 12 owner rule: no softmax anywhere ever no matter what.**
 > D23 supersedes earlier allowances for softmax in training, serving, sampling,
 > objectives, auxiliary losses, teachers and comparators. Log-softmax, implicit
@@ -171,15 +172,17 @@ Every PR names its lab and its class. Once its class's conditions hold, the appr
 ## Architecture and scope
 
 Prepare data, train, construct artifacts and run inference in Rust. Training may
-use floating point and matrix multiplication. Final inference executes learned
+use scalar floating-point geometric arithmetic and gradients on GPU, with no
+dense matrix multiplication or prohibited squashing; training remains held. Final inference executes learned
 geometric operators through bounded routes, state transitions and integer/table
 lookup; a dense transformer stored behind a lookup interface does not satisfy
 that target. **Owner direction (2026-09-23):** the programme's ultimate goal is a **fully
 transformerless geometric language model in which geometry *replaces* floating-point matrix
 multiplication**; the serving contract below is the intended end-state, not only a boundary on the
 current prototype. Keep prior Python/dense artifacts as comparison evidence and do
-not add a Python model dependency. Owner-adopted [D0-b](DECISIONS.md) permits
-bounded <=4-bit integer/ternary linear maps implemented by add/subtract/shift/lookup.
+not add a Python model dependency. D25 supersedes the earlier dense-map stepping
+stone in [D0-b](DECISIONS.md): native geometric/addressed operators are required,
+with integer/add/subtract/shift/lookup serving.
 The declared numerical kernel must execute no multiplier instruction. Served
 computation must use no floating-point or transcendental arithmetic. This allowance does not make a linear map cease to
 be a mathematical contraction, or establish an efficiency advantage. Geometric
@@ -204,7 +207,7 @@ before starting its successor (owner direction, October 9).
 
 ### No CPU model compute, no non-decisive GPU work (owner rule, 2026-10-12)
 
-D23 bans softmax. This adds the two clauses stated with it.
+D23 bans softmax; D25 also bans softplus/sigmoid/tanh and dense matrix multiplication. D24 supplies the execution boundary below, including model reference/parity runs.
 
 **Model compute never runs on the CPU.** Training, evaluation, and every part of
 the forward that scoring, normalization or the value mix touches are GPU work. A
@@ -243,9 +246,11 @@ changing the model to satisfy an arbitrary short historical experiment.
 A failed command permits diagnosis, correction and another run or resume within
 the remaining authorized budget when that can change the outcome. There is no
 global 15-minute cutoff or one-retry quota. Avoid unchanged blind retries,
-stop/checkpoint at configured limits, and apply the standing local-extension
-authorization below before a necessary cumulative increase. External cost
-requires separate explicit authorization. Reuse measurements and checkpoints
+extend estimates and renew leases rather than cancelling a healthy owner-admitted
+run; only owner holds/caps, disk floors or failure/divergence require stopping.
+Apply the standing local-extension authorization before a necessary cumulative
+increase. GPU spending follows uor-pod caps and applicable holds; a new external
+spending class requires owner authorization. Reuse measurements and checkpoints
 when their inputs remain valid.
 
 Open development evaluation is part of learning. Keep final held-out evaluation

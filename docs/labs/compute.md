@@ -1,5 +1,6 @@
 # Shared GPU pods — one tool, one cadence
 
+> **Current admission (12 October):** [D24](../integration/DECISIONS.md#d24---no-cpu-model-compute-and-no-gpu-on-non-decisive-work) and [D25](../integration/DECISIONS.md#d25---geometric-operator-phase-and-current-lab-direction) require GPU-only model execution, including kernel/model parity references; no host fallback, prohibited squashing or dense matrix multiplication. **Training is held, and M2 training/rental remains held separately.** Pod caps/availability and TEST FITNESS do not release a hold. Non-model editing/build/static checks/preparation/grading of stored outputs may run locally.
 Every lab session (Claude, Codex/GPT, OpenCode/DeepSeek and any lab that joins
 later; several sessions of one lab may run at once) uses the same tool,
 `scripts/pod/uor-pod`, and the same cadence to see, lease, create, share and
@@ -50,8 +51,8 @@ uses, renews, releases or deletes another session's lease or files (including a
    (toolchain, cached binaries + parity, reaper) and writes your lease. When the
    cap is reached it names any free GPUs to lease (exit 4). **Never fall back
    to the laptop CPU for GPU work because no GPU is free or the cap is reached; if no GPU is
-   free and the cap is reached, ask the owner or wait for a lease to expire.** CPU-only jobs are
-   different: run them on the owner's laptop, and rent the smallest pod only when they exceed it.
+   free and the cap is reached, ask the owner or wait for a lease to expire.** Non-model CPU jobs run locally; model compute is GPU-only.
+   Check the applicable owner hold before any lease or rental; this ladder does not lift it.
 5. **Renew every ≤ 30 minutes while working:**
    `uor-pod renew POD --lab L --session S [--hours H]`. A lease is a promise
    that the session is actively using the GPUs; expiry is automatic release.

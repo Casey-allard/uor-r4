@@ -1,5 +1,6 @@
 # Joining the UOR-R4 research labs
 
+> **Current start (12 October):** Kimi is project manager under [D25](../integration/DECISIONS.md#d25---geometric-operator-phase-and-current-lab-direction). Read the current [session prompts](session-goal.md) and [operator plan](operator-phase-2026-10-12/README.md). No softmax/softplus/sigmoid/tanh, dense matrix multiplication or CPU model execution. **Training remains held; M2 training/rental remains held separately.** Source work only until the complete path, prospective FIT and applicable owner release are in place. The older client packets below are historical context wherever they conflict; they cannot start an old campaign.
 > **Current owner direction, October 1 — D19:** grounded conversation and durable
 > memory lead the active canonical plan. Codex rejoins Claude and OpenCode–DeepSeek
 > for the owner-authorized continuation; other historical lab assignments are

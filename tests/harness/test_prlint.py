@@ -293,7 +293,9 @@ class TestProgressControl(Fixtures):
         self.assertIn("prlint.headline_present", self.rules(body))
 
     def test_registry_count_above_the_declared_one_warns(self) -> None:
-        """The registry says the starling read is already at 1/3 (M4 #2032)."""
+        """A controlled registry at 1/3 warns when the body declares 0/3."""
+        self.reg = Registry.load(self.paths)
+        self.reg.milestones.get("m4").lines = [{"name": "starling read", "count": 1, "of": 3}]
         body = fill(
             line="starling read · count 0/3 · headline 0.886838 → 0.886838",
             result="BPB unchanged at 0.886838. Decision: NOT YET PROMOTED\n\nPre-registration: TEST FITNESS: FIT at #issuecomment-1.",

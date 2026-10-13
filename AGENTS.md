@@ -1,5 +1,28 @@
 # AGENTS.md — UOR-R4 Geometric Language Model
 
+> **Current operating direction, October 12 — operator phase and training hold.**
+> [D25](docs/integration/DECISIONS.md#d25---geometric-operator-phase-and-current-lab-direction)
+> records the owner's latest rules: no softmax, softplus, sigmoid or tanh anywhere
+> in executed model paths, including objectives, gradients, sampling, teachers,
+> comparators and equivalent renamed/table forms; no dense matrix multiplication
+> in training or serving; GPU-only model compute, with no host fallback. Offline
+> scalar floating-point geometric arithmetic remains permitted on GPU; D11 serving
+> remains integer/table based with no floating point or multiplier instruction.
+> Kimi is the current project manager; the owner retains strategic authority.
+> The [operator plan](docs/labs/operator-phase-2026-10-12/README.md) is the one
+> immediate dependency: implement OP2 Hamilton projections → OP1 G2 gate → OP3a
+> geometric head, then review the complete executed learning/output path before
+> any training. G2 is the only OP1 arm; G1 is withdrawn. Geometric feed-forward
+> blocks are permitted. OP3b is later research, not a rung0 prerequisite. The
+> constraint set is frozen through the first compliant rung0 result; new concerns
+> are deferred proposal cards except cost/safety. OP1–OP3 preparation is not
+> permission to train a partial trunk.
+> **The global training hold and the separate M2 training/rental hold remain.**
+> A FIT review does not lift an owner hold. Local source/build/document work is
+> allowed; CPU model/reference execution and new prohibited comparators are not.
+> Preserve historical source, measurements, checkpoints and other labs' work.
+> Older permissions and dated next actions below cannot reactivate them.
+
 > **Owner direction, October 12: no softmax anywhere ever no matter what.**
 > [D23](docs/integration/DECISIONS.md#d23---no-softmax-anywhere-in-the-active-project)
 > prohibits softmax in training, serving, sampling, objectives, auxiliary losses,
@@ -64,7 +87,7 @@
 > Scientific integrity, D11/D5, unique-material preservation, live job ownership
 > and resource admission remain. See [D19](docs/integration/DECISIONS.md#d19--grounded-conversation-and-durable-memory-first).
 
-**Owner clarification, September 19:** D0-b, D1 and D2 in [DECISIONS.md](docs/integration/DECISIONS.md) are owner-approved. D0-b supersedes the old blanket prohibition on additive mathematical linear maps. Offline Rust training may use matrix multiplication. The [takeover review](docs/integration/takeover-review-2026-09-19.md) and latest current-state entry reconcile the three model paths and the next bounded task; dated experiment instructions do not override them.
+**Owner clarification, September 19:** D0-b, D1 and D2 in [DECISIONS.md](docs/integration/DECISIONS.md) are owner-approved. D0-b supersedes the old blanket prohibition on additive mathematical linear maps. That September permission is historical: D25 now prohibits dense matrix multiplication in training and serving. The [takeover review](docs/integration/takeover-review-2026-09-19.md) and latest current-state entry reconcile the three model paths and the next bounded task; dated experiment instructions do not override them.
 
 The owner-directed mode is `native_geometric_ai`. Build a learned local language model using the project's prime/zeta/R4 geometry, exact addressed memory and shared typed operators. The objective is useful conversation/memory and coding/reasoning, ultimately frontier capability on consumer M1-class laptops with lower energy and wasted compute. The model remains pre-alpha.
 
@@ -90,7 +113,7 @@ This section overrides historical process and scheduling rules below. Technical
 invariants still apply to the runtime where they are declared.
 
 - Use Rust for data preparation, training, artifact construction and inference.
-  Training may use floating point and matrix multiplication. Final inference
+  Training may use scalar floating-point geometric arithmetic on GPU, but no dense matrix multiplication or prohibited squashing. The training hold remains. Final inference
   executes learned geometric operators through bounded routing, state updates
   and integer/table lookup. A dense transformer hidden behind lookup is not the
   target. Preserve old Python/dense references as evidence; do not add a Python
@@ -193,15 +216,16 @@ may run on it.
 
 Use the name **UOR-R4 Geometric Language Model**. Technically it is an experimental autoregressive geometric state model with exact addressed memory and learned typed operators. Native attention/context access does not make it a transformer. Historical dense R4/Spin references remain transformers. Do not rename package/CLI/schema identifiers merely to change presentation.
 
-Offline Rust training can use floating point, gradients and matrix multiplication. Final serving follows owner-adopted [D0-b](docs/integration/DECISIONS.md): bounded integer/ternary linear maps with weights at most 4 bits are permitted when executed as additions, subtraction, shifts and table reads, with no multiplier instruction in the declared numerical kernel and no floating-point/transcendental arithmetic in served computation. Owner decision [D11](docs/integration/DECISIONS.md#d11--native-multiplier-free-transformerless-serving-for-every-lab-d10-superseded) (2026-09-27) supersedes D10: every lab serves under one native contract, ROADMAP §0 R1–R5. Served kernels have no floating point and no multiplier instruction (products of runtime values use tables or exact geometric structure). There is no transformer backbone. Dense per-token weight access is only a labelled interim stepping stone. Geometric routing and shared typed operators remain the preferred architecture. These additive maps are still mathematical linear maps; report their dense parameter access and cost accurately. Converted open-weight transformers (D10's SmolLM2) are comparators or offline teachers only. `uor-r4-lut`/`lut-chat` are frozen non-mission comparators, and D10-era results keep their scope. Hidden teacher/provider responses are not adopted. Geometric address/page selection is allowed; the design currently uses shared typed operators. Expert gates are only a conditional future option requiring a demonstrated capability need and full laptop-cost evidence; do not silently adopt MoE or sparse learned gating.
+Offline Rust training may use scalar floating-point geometric arithmetic and gradients on GPU, with no dense matrix multiplication or prohibited squashing (D25); training remains held. D25 supersedes the earlier D0-b dense-map stepping stone: native geometric/addressed operators are required; serving remains integer/table/additive with no floating point, transcendental arithmetic or multiplier instruction. Owner decision [D11](docs/integration/DECISIONS.md#d11--native-multiplier-free-transformerless-serving-for-every-lab-d10-superseded) (2026-09-27) supersedes D10: every lab serves under one native contract, ROADMAP §0 R1–R5. Served kernels have no floating point and no multiplier instruction (products of runtime values use tables or exact geometric structure). There is no transformer backbone. Dense per-token weight-map execution is historical evidence, not an active stepping stone under D25. Geometric routing and shared typed operators remain the preferred architecture. These additive maps are still mathematical linear maps; report their dense parameter access and cost accurately. Converted open-weight transformers (D10's SmolLM2) remain inactive historical evidence; no new prohibited comparator or teacher execution. `uor-r4-lut`/`lut-chat` are frozen non-mission comparators, and D10-era results keep their scope. Hidden teacher/provider responses are not adopted. Geometric address/page selection is allowed; the design currently uses shared typed operators. Expert gates are only a conditional future option requiring a demonstrated capability need and full laptop-cost evidence; do not silently adopt MoE or sparse learned gating.
 
 Bounded inference and contextual/copy attention exist. General prose, general reasoning, frontier capability and complete-path energy savings are not established. A successful authored arithmetic or copying panel does not qualify them. Keep candidate admission separate from ranking and harmonic influence. Preserve exact occurrence/version/word identity separately from span boundaries. A prime/hash identity is not a semantic distance. More scalar features cannot recover distinctions erased by representation.
 
 ## Execution-lane invariants
 
 
-- **Native training:** Rust may use floating point, matrix multiplication and
-  gradients to learn geometric read/write/selection and nonlinear operators.
+- **Native training:** Rust may use scalar floating-point geometric arithmetic and
+  gradients on GPU, with no dense matrix multiplication or prohibited squashing,
+  to learn geometric read/write/selection and nonlinear operators. Training is held.
   Bind the source/configuration, tokenizer, data and learned parameters to each
   artifact. An offline teacher can be a declared comparator or training source;
   it cannot author serving responses.
@@ -271,7 +295,8 @@ acceptance criteria and protected delivery requirements remain in force.
 - Touch Runpod pods only through `scripts/pod/uor-pod`; run `uor-pod status` before any GPU work and read its "Free GPUs you can lease now" line.
 - Identity is lab + session: pass `--lab L --session S` (or export `UOR_POD_SESSION`). Lease the GPUs you use (`uor-pod lease POD --lab L --session S --gpus 0,1 --purpose … --hours H`), set `--hours` to the whole job plus margin and renew (`uor-pod renew`) if it runs longer — an expiring lease is never a reason to stop a live job; release when done; leases expire automatically.
 - Another session's GPU is never yours, even when idle; never touch another session's lease, files or `KEEP_ALIVE`. Only an expired lease may be taken over, and `lease` checks there is no live job.
-- No free GPU and within the caps (≤ 4 running pods, ≤ $8/h, all labs together): `uor-pod up --lab L --session S --purpose … --hours H` (2 × RTX 5090; EUR-NO-1 → EU-RO-1 → EUR-IS-1). Never fall back to the laptop CPU for GPU work; caps reached and nothing free: wait for an expiry or ask the owner. **CPU-only work runs on the owner's laptop** (Ryzen-class workstation when available): the native prose learner (`train-native-prose`), data preparation, grading and other CPU-bound jobs. Rent a pod for CPU work only when it truly exceeds the local machine (RAM, disk or wall time), and then choose the smallest pod (one GPU, or a CPU-only offering) (owner, 9 October 2026). GPU work (geometric-stack training, CUDA evaluation) still goes through `uor-pod` and never falls back to the laptop CPU.
+- No free GPU and within the caps (≤ 4 running pods, ≤ $8/h, all labs together): `uor-pod up --lab L --session S --purpose … --hours H` (2 × RTX 5090; EUR-NO-1 → EU-RO-1 → EUR-IS-1). Never fall back to the laptop CPU for GPU work; caps reached and nothing free: wait for an expiry or ask the owner. **Non-model CPU work runs on the owner's laptop:** source editing, compilation, static/document checks, Rust data preparation and grading stored outputs. Training, evaluation, inference and model/parity references are GPU-only under D24/D25; `train-native-prose` is not a CPU exception. Existing training/rental holds override standing pod admission.
+
 - Without `--gpu`, `up` works down the ladder 5090 → 4090 → PRO 6000 (2 GPUs, then 1). It places pods in the volume datacenters first and then in any allowlisted region; a pod outside EUR-NO-1 is non-canonical and gets its data from the private HF store `caseyallard/uor-r4-store` ([compute.md § Any region](docs/labs/compute.md#any-region)).
 - One job per GPU with `uor-pod run … --gpu K -- CMD`; GPU evaluation uses `device=cuda`.
 - Durable output only on `/workspace` (network volume). Do not keep stopped pods as storage. Release, then `uor-pod down POD` when no other session holds it.

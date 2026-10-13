@@ -2,7 +2,15 @@
   "architecture": {
     "softmax_allowed": false,
     "softmax_prohibition_authority": "D23_owner_2026_10_12",
-    "softmax_prohibition_scope": ["training", "serving", "sampling", "objectives", "auxiliary_losses", "teachers", "comparators"],
+    "softmax_prohibition_scope": [
+      "training",
+      "serving",
+      "sampling",
+      "objectives",
+      "auxiliary_losses",
+      "teachers",
+      "comparators"
+    ],
     "softmax_equivalent_implementations_allowed": false,
     "softmax_historical_evidence": "preserve_inactive_not_authorized_for_execution",
     "softmax_replacement_required": "designed_geometric_mechanism_with_prospective_test_fitness",
@@ -30,11 +38,11 @@
       "artifact_construction",
       "inference"
     ],
-    "serving_matrix_products_allowed": true,
-    "training_matrix_multiplication_allowed": true,
+    "serving_matrix_products_allowed": false,
+    "training_matrix_multiplication_allowed": false,
     "model_name": "UOR-R4 Geometric Language Model",
-    "serving_matrix_products_scope": "D0-b only: bounded <=4-bit integer/ternary linear maps executed through add_subtract_shift_table_reads; no multiplier instruction in declared numerical kernel and no floats or transcendentals in served computation",
-    "serving_contract": "docs/integration/DECISIONS.md#d0-b--what-no-matmul-at-serving-means-adopted",
+    "serving_matrix_products_scope": "D25 supersedes dense-map stepping stones: native geometric/addressed operators only; D11 integer/add_subtract_shift_table_reads, no float or multiplier instruction",
+    "serving_contract": "docs/integration/DECISIONS.md#d25---geometric-operator-phase-and-current-lab-direction",
     "serving_kernel_multiplier_instructions_allowed": false,
     "serving_kernel_floating_point_allowed": false,
     "serving_weight_max_bits": 4,
@@ -43,7 +51,32 @@
     "serving_transcendentals_allowed": false,
     "offline_autodiff_training_allowed": true,
     "serving_contract_current": "docs/integration/DECISIONS.md#d11--native-multiplier-free-transformerless-serving-for-every-lab-d10-superseded",
-    "serving_kernel_integer_divider_instructions_allowed": false
+    "serving_kernel_integer_divider_instructions_allowed": false,
+    "dense_matrix_multiplication_allowed": false,
+    "dense_matrix_multiplication_authority": "D25_owner_2026_10_12",
+    "prohibited_squashing": [
+      "softmax",
+      "log_softmax",
+      "softplus",
+      "sigmoid",
+      "tanh",
+      "equivalent_renamed_or_table_forms"
+    ],
+    "prohibited_squashing_scope": [
+      "model_forward",
+      "model_backward",
+      "training",
+      "evaluation",
+      "serving",
+      "sampling",
+      "objectives",
+      "auxiliary_losses",
+      "teachers",
+      "comparators"
+    ],
+    "offline_scalar_floating_point_geometric_arithmetic_allowed": true,
+    "geometric_feed_forward_allowed": true,
+    "op1_gate_arm": "hamilton_G2_only_G1_withdrawn"
   },
   "delivery": {
     "direct_push_to_main": false,
@@ -98,7 +131,7 @@
       ],
       "external_cost": "requires_explicit_owner_authorization",
       "global_fixed_time_or_retry_quota": false,
-      "stop": "checkpoint_and_stop_at_configured_limits",
+      "stop": "owner_hold_or_cap_disk_floor_or_failed_diverged_run_only_extend_estimates_for_healthy_admitted_run",
       "standing_owner_authorization": "Necessary local model/time/storage extensions preauthorized 2026-09-06; record complete projection, reason, increment and updated cumulative limits before use; preserve 128 MiB stop margin; no deletion or paid/external compute.",
       "separate_measured_costs": [
         "model_training",
@@ -114,7 +147,7 @@
         "internal": {
           "target": 60,
           "warning": 40,
-          "stop": 25
+          "stop": 30
         },
         "inner_workspace": {
           "target": 120,
@@ -177,6 +210,33 @@
       "blanket_tests_reviews_or_sweeps_required": false,
       "budget_scope": "preparation_build_model_agents_analysis_delivery_cumulative",
       "enforcement_scope": "mandatory_agent_policy_not_os_or_rust_cli_interlock"
+    },
+    "model_reference_device": "gpu_only",
+    "cpu_model_reference_execution_allowed": false,
+    "training_hold": true,
+    "m2_training_and_rental_hold": true,
+    "fit_releases_owner_hold": false,
+    "training_admission": [
+      "applicable_owner_hold_explicitly_released",
+      "complete_executed_path_compliant",
+      "source_and_gpu_device_qualification",
+      "prospective_test_fitness_fit"
+    ],
+    "local_non_model_work_allowed": [
+      "source_editing",
+      "compilation",
+      "static_document_checks",
+      "rust_data_preparation",
+      "grading_stored_outputs"
+    ],
+    "constraint_freeze": {
+      "authority": "D25_late_owner_clarification_6135511346",
+      "until": "first_compliant_rung0_result_reports",
+      "new_concerns": "proposal_cards_effective_after_exit",
+      "exceptions": [
+        "cost",
+        "safety"
+      ]
     }
   },
   "mode": "native_geometric_ai",
@@ -192,7 +252,16 @@
     "active_continuation_plan": "docs/integration/project-track.md",
     "lab_entry": "docs/labs/README.md",
     "first_product_priority": "grounded_conversation_and_durable_memory",
-    "adoption": "docs/integration/DECISIONS.md#d19--grounded-conversation-and-durable-memory-first"
+    "adoption": "docs/integration/DECISIONS.md#d19--grounded-conversation-and-durable-memory-first",
+    "immediate_dependency": "docs/labs/operator-phase-2026-10-12/README.md",
+    "operator_build_order": [
+      "OP2_Hamilton_kernel",
+      "OP1_G2_gate",
+      "OP3a_product_key_head",
+      "compliant_rung0_after_hold_release",
+      "OP4_rung0b_rank_read_gradient"
+    ],
+    "op3b": "later_research_after_OP3a_not_rung0_prerequisite"
   },
   "research": {
     "broad_mapping_default": "reuse_existing_history_and_source_audits_expand_only_for_a_decision_relevant_unknown",
@@ -233,7 +302,8 @@
     "type": "ownership_coordinated_main_based_workspace",
     "isolated_worktree_required": false,
     "successor_requires_verified_main_merge": true,
-    "cleanup_after_verified_delivery": true
+    "cleanup_after_verified_delivery": true,
+    "codex_isolated_worktree_required": true
   },
   "organization": {
     "authority": "docs/labs/protocol.md",
@@ -248,7 +318,8 @@
     "currently_available": [
       "claude",
       "opencode_deepseek",
-      "codex"
+      "codex",
+      "kimi"
     ],
     "claims": "live_github_and_verified_coordination_with_manual_fallback",
     "heartbeat_seconds": 300,
@@ -264,7 +335,9 @@
     },
     "single_shared_policy_on_main": true,
     "charter_record": "docs/integration/DECISIONS.md#d14--durable-autonomous-labs-and-correctable-governance",
-    "availability_semantics": "owner_authorized_roster_not_verified_process_liveness"
+    "availability_semantics": "owner_authorized_roster_not_verified_process_liveness",
+    "current_project_manager": "kimi",
+    "project_manager_authority": "D25_owner_2026_10_12_current_assignment_owner_retains_strategy"
   },
   "merge_review": {
     "classes": {

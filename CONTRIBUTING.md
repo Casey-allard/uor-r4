@@ -1,5 +1,6 @@
 # Contributing to UOR-R4
 
+> **Current rules (12 October):** [D25](docs/integration/DECISIONS.md#d25---geometric-operator-phase-and-current-lab-direction). No softmax/softplus/sigmoid/tanh or equivalent squashing anywhere in the executed model path; no dense matrix multiplication in training or serving; GPU-only model compute, no host fallback. **Training remains held, including the separate M2 training/rental hold.** Source/build/document work may proceed. Kimi coordinates the [operator phase](docs/labs/operator-phase-2026-10-12/README.md); source delivery and FIT do not release a hold. Preserve all peer work.
 Welcome. UOR-R4 is an open research project (goal and status in the [README](README.md)).
 Contributors are human researchers, AI labs (Claude, Codex, DeepSeek) and anyone who
 follows the procedure below. This is the current, owner-approved workflow; [AGENTS.md](AGENTS.md)
@@ -137,7 +138,8 @@ The harness is tooling: it runs no model compute, and its own output is never mo
   [docs/labs/compute.md](docs/labs/compute.md).
 - Never put project data, builds or downloads in `/tmp` or `/private/tmp`; use gitignored paths
   inside your worktree (`/local/`, `target/`), so `uor-hygiene` and worktree removal reclaim them.
-- GPU work (geometric-stack training, CUDA evaluation) goes through `uor-pod`. **CPU-only work runs on the owner's laptop** (Ryzen-class workstation when available): the native prose learner (`train-native-prose`), data preparation, grading and other CPU-bound jobs. Rent a pod for CPU work only when it truly exceeds the local machine (RAM, disk or wall time), and then choose the smallest pod (one GPU, or a CPU-only offering) (owner, 9 October 2026). GPU work (geometric-stack training, CUDA evaluation) still goes through `uor-pod` and never falls back to the laptop CPU.
+- Non-model CPU work (editing, compilation, static checks, Rust data preparation and grading stored outputs) runs locally. Every model forward, backward, evaluation and parity/reference execution is GPU-only under D24/D25. No CPU learner exception; no training or rental follows from this reconciliation.
+
 - Never read or print API keys. No new paid or external compute class without the owner.
 
 ## Claim wording and evidence

@@ -1,3 +1,25 @@
+## 2026-10-12 — Instructions and operator sequence reconciled; training holds preserved (Codex, #2028/#2029)
+
+The [reconciliation record](../labs/instruction-reconciliation-2026-10-12/README.md)
+implements the owner's instruction to align active instructions, machine policy,
+session/client entry points, navigation and tracker with [D25](DECISIONS.md#d25---geometric-operator-phase-and-current-lab-direction):
+no prohibited squashing/dense matrix multiplication/CPU model compute, Kimi current
+PM and all peer work preserved. The [operator repair](../labs/operator-phase-2026-10-12/README.md)
+puts OP1–OP3 source before integrated training, removes live prohibited/CPU
+comparators and the mixed-unit BPB bar, and defines raw-score/answer measures with
+numeric replacement bars still pending amended registration/FIT. **Training and
+M2 training/rental remain held; FIT and this delivery release neither hold.**
+No model/build/GPU work or capability/criterion/count reset; M1 memory20/40,
+reply37/232 and M2 saved437/512+opened0/128 remain unchanged, fresh NOT_RUN.
+
+Line: explicit-owner instruction reconciliation, no model experiment/count reset;
+M2 unified6/3 and Kimi operator1/3 retained at their existing scope.
+
+**Next:** Kimi coordinates amended registration and bounded OP1–OP3 source;
+complete-path/device qualification, prospective FIT and explicit applicable owner
+hold release precede training. All older next actions below are historical where
+superseded; no partial-trunk fit or automatic M2 prep loop.
+
 ## 2026-10-12 — A research harness that makes the plan, the skills, the team and the lessons queryable (lead, tooling)
 
 The [record](../labs/harness-2026-10-12/README.md) is a standard-library CLI (`scripts/harness/cli.py`)

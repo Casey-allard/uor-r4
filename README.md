@@ -10,7 +10,7 @@
 [![Last commit](https://img.shields.io/github/last-commit/UOR-Foundation/uor-r4/main)](https://github.com/UOR-Foundation/uor-r4/commits/main)
 [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97-Hugging%20Face-ffcc4d)](https://huggingface.co/caseyallard/uor-r4-geometric-214m)
 
-Updated 10 October 2026. **Status: pre-alpha. No model in this repository holds a useful conversation yet.**
+Updated 12 October 2026. **Status: pre-alpha. No model in this repository holds a useful conversation yet.**
 
 ## Goal
 
@@ -22,8 +22,10 @@ instruction (the D11 contract), at lower energy than a comparable model.
 The geometry is R4/S3/H4 quaternion state and transport, prime (UOR)
 addressing, exact `Z[phi]` arithmetic and fixed zeta-zero phases, combined with
 exact addressed memory and learned typed operators. Training is offline Rust,
-where floating point and matrix multiplication are allowed. Serving is integer
-and table lookup only. The project asks whether this combination can reach a
+with scalar floating-point geometric arithmetic on GPU; dense matrix multiplication
+and softmax/softplus/sigmoid/tanh are prohibited throughout the executed model,
+learning, output, teacher and comparator paths ([D25](docs/integration/DECISIONS.md#d25---geometric-operator-phase-and-current-lab-direction)). Serving is integer
+and table lookup only. **Training remains held; M2 training/rental is held separately.** The project asks whether this combination can reach a
 useful model, and records the answer either way. Success is defined by the
 eight milestones below; each closes only when its acceptance is met on a saved
 model.
@@ -31,13 +33,18 @@ model.
 ## Where we are
 
 **0 of 8 milestones complete; 4 in progress** (M1 to M4). M5 to M8 have not started.
+Kimi is current project manager. The immediate dependency is the [repaired operator
+phase](docs/labs/operator-phase-2026-10-12/README.md): gate/projection/head source,
+then complete-path/device qualification and prospective FIT. No partial-trunk fit;
+no hold release through source delivery or FIT. Older measurements/commands below
+are inactive evidence wherever their executed path violates D23–D25.
 
 | Milestone | Issue | Status | Latest result |
 | --- | --- | --- | --- |
-| M1 Language base | [#2029](https://github.com/UOR-Foundation/uor-r4/issues/2029) | in progress | 29M chat line: v5 memory 10/40 → 20/40 with a 10 % recall mix at no measurable reply cost (reply 43 → 37/232, #2151; adopted as base under D22), against targets 34/40 and 116/232; served 1.20–1.24 BPB, bit-exact D11 (#2163); product-key memory now trains into a saved model (#2168). 19.9M chat stack 0.877550 float / 0.886838 served BPB at 512 windows ([protocol](docs/labs/criterion2-protocol-pin-2026-10-09/README.md)); 214M base dev NLL 2.073 |
-| M2 Grounded reply from exact memory | [#2030](https://github.com/UOR-Foundation/uor-r4/issues/2030) | in progress | 437/512 complete replies; development target 256 passed; fresh qualification 0/128 (52 required), failed |
+| M1 Language base | [#2029](https://github.com/UOR-Foundation/uor-r4/issues/2029) | in progress; training held | Historical 29M v5 memory20/40 and reply37/232 against targets34/40 and116/232; historical 19.9M served0.886838 BPB at512 windows ([protocol](docs/labs/criterion2-protocol-pin-2026-10-09/README.md)). Next: compliant gate/projections/head source; no compliant training configuration qualified |
+| M2 Grounded reply from exact memory | [#2030](https://github.com/UOR-Foundation/uor-r4/issues/2030) | in progress; training/rental held | Saved437/512 development and opened0/128 transfer diagnostic remain panel fitting; genuinely fresh qualification NOT_RUN. [Whole-path recovery source](docs/labs/whole-path-recovery-2026-10-12/README.md) is delivered; sampled law blocked and CUDA execution unqualified |
 | M3 Durable conversation memory | [#2031](https://github.com/UOR-Foundation/uor-r4/issues/2031) | in progress | Evaluator and session delivered (#1568, #1578); not qualified |
-| M4 One served model (D11 and CLI) | [#2032](https://github.com/UOR-Foundation/uor-r4/issues/2032) | in progress | Softmax at runtime: **still yes**. D11 now also serves softmax-free flock reads (rank, Hamming-rank and learned rank tables; #2144, #2153), but every trained configuration so far misses the 0.01 BPB bar (best: learned tables, +0.0172 to +0.0185); `uor-chat --stack` serves the stack (#2050) |
+| M4 One served model (D11 and CLI) | [#2032](https://github.com/UOR-Foundation/uor-r4/issues/2032) | in progress; compute blocked | Historical served artifacts contain prohibited paths; rank-read components do not establish whole-path compliance. Dense bootstrap/teacher/SoftSort follow-ups inactive. Next: compliant trunk, rung0b GPU rank-read/gradient, then teacher-free starling |
 | M5 Laptop cost (D5) | [#2033](https://github.com/UOR-Foundation/uor-r4/issues/2033) | not started | No M1 energy measurement yet |
 | M6 Reasoning and coding | [#2034](https://github.com/UOR-Foundation/uor-r4/issues/2034) | not started | Exact arithmetic is the visible gap |
 | M7 Distribution (API, WASM, Studio) | [#2035](https://github.com/UOR-Foundation/uor-r4/issues/2035) | not started | Local API only |
@@ -49,10 +56,10 @@ Tracker: [#2028](https://github.com/UOR-Foundation/uor-r4/issues/2028). Measured
 
 | Capability | State | Entry point |
 | --- | --- | --- |
-| Train, evaluate and export a geometric stack language model | Works, 8M to 214M parameters, offline Rust autodiff | `geometric-stack` example in `uor-r4-training` |
-| Serve an exported stack artifact with no float and no multiplier instruction | Works; bit-exact against the float path on a 3,072-target check | `uor-r4-stack generate`, and `uor-chat --stack <ARTIFACT.lut>` (greedy decoding only) |
-| Train and serve softmax-free flock reads (rank table, Hamming rank via `BitCode`, learned per-head rank tables) | Works end to end (artifact schema `uor-r4.lut-stack/3`, D11 audit FULL PASS); not yet as good as the softmax read | `geometric-stack train select=flock:W:K read_weighting=` (`rank`, `hamming_rank` or `learned_rank`), then `export` and `d11-evaluate reference=none` |
-| Native grounded-reply learner (compiler, exact store, emitter) | Runs; completes 437/512 exposed development replies, 0/128 fresh replies | `crates/uor-r4-core/src/native_geometric/` |
+| Train, evaluate and export a geometric stack language model | Historical source/artifacts retained; execution held pending compliant path | `geometric-stack` example in `uor-r4-training` (old commands below are not run authorization) |
+| Serve an exported stack artifact with no float and no multiplier instruction | Historical D11 bit-exactness evidence; existing whole path is not D23–D25 qualified | `uor-r4-stack` / `uor-chat --stack` (inactive until compliant device/path admission) |
+| Rank-family read components | Historical source and served components retained; objective/gradient/GPU path unfinished under latest rules | Rank/flock source; next rung0b, no old fit/export/evaluation rerun |
+| Native grounded-reply learner (compiler, exact store, emitter) | Historical saved437/512 exposed development, opened0/128 transfer; training/rental held | `crates/uor-r4-core/src/native_geometric/`; sampled law blocked |
 | Native chat CLI | Exists | `crates/uor-r4-api/src/bin/r4-native-chat.rs` |
 
 **What does not work yet**
@@ -60,7 +67,7 @@ Tracker: [#2028](https://github.com/UOR-Foundation/uor-r4/issues/2028). Measured
 - **Useful conversation.** The best chat stack is a 19.9M model with a measured
   bits-per-byte score, not a model that holds a conversation.
 - **Arithmetic and code.** The 214M base still gets code and math arithmetic wrong.
-- **Grounded replies at scale.** The native learner completes 437/512 replies on the exposed frozen panel, passing its 256-reply development target, but fails fresh qualification at 0/128 against 52 required.
+- **Grounded replies at scale.** The native learner retains437/512 on the exposed development panel and0/128 on the opened transfer diagnostic; later genuinely fresh qualification is NOT_RUN, and M2 remains unmet.
 - **One model.** The stack (line A) and the native learner (line B) are not yet joined (M4).
 - **Browser Studio.** The Pages Studio runs the older R4G1 router, not the native or stack model (M7).
 - **Laptop cost.** Full-path energy, RAM and parameter-access cost on an M1 are not measured (M5).
@@ -161,12 +168,17 @@ does not imply measured predictive advantage.
 
 ## Training
 
+**Held under D25.** Examples below document historical interfaces, not permission
+to execute them. No current training configuration is qualified; use the operator
+plan for the active source dependency.
+
 <img src="docs/figures/training-pipeline.svg" alt="Training pipeline: data preparation, tokenizer, geometric stack training on GPU pods, fine-tuning, export to a lookup-table artifact, evaluation" width="100%">
 
 *Figure 3. Offline Rust data preparation, training, export and grading.*
 
-Training is offline Rust autodiff (floating point, matrix multiplication allowed);
-bf16 activations with f32 master weights on CUDA. Final inference does not depend on it.
+The intended learning path is offline Rust autodiff with scalar floating-point
+geometric arithmetic on GPU, bf16 activations and f32 masters. Dense matrix
+multiplication is prohibited. These are design intentions; training remains held.
 
 The native grounded learner's protected/discrete constructor and joint
 Context–prototype learning are **reopened by the owner under D22**. The constructor
@@ -276,6 +288,9 @@ recorded in one place (a cumulative ledger is kept per [AGENTS.md](AGENTS.md)).
 
 ## Serving
 
+**Historical interfaces.** Existing artifact paths are not whole-path D23–D25
+qualified; do not execute them as a compliance demonstration.
+
 <img src="docs/figures/serving-pipeline.svg" alt="Serving pipeline: lookup-table stack artifact, multiplier-free kernels, session, chat CLI" width="100%">
 
 *Figure 4. An exported artifact is loaded and run with add, subtract, shift, compare and table reads.*
@@ -318,7 +333,7 @@ Every row holds at its exact artifact, data, operator and budget.
 | Open reply panel (232 rows, `fluent_and_relevant`) | 43/232 sealed base, **37/232** at the adopted 10 % dose (p = 0.42, inside noise), 39/232 with read-binding supervision | [Mixture dose](docs/labs/mixture-dose-2026-10-10/README.md), [Read binding](docs/labs/read-binding-2026-10-10/README.md) |
 | Criterion 2, 29M M1 artifacts served under D11 | **1.20138 BPB** (base) / 1.24402 / 1.24233 against a ≤ 0.90 target, engine **bit-exact** (`d11 − d10 nll = 0.0`, `max |Δlogit| = 0` on 64 windows) | [D11 serving](docs/labs/d11-serving-2026-10-10/README.md); byte basis 2.837427 B/token |
 | v4 memory panel (frozen `exact` check pass) | 31/40 at 214M, 26/40 at 96M | 40 memory rows of `conversational-v4*`; Step 7d fine-tunes, one seed; chat-grade `acceptable` is 27/40 at 214M |
-| Native grounded learner | **437/512 complete replies**, up from177; 260 gained, none lost, 177 retained | [Native pooled-token ranking](docs/labs/m2-pooled-rank-2026-10-10/README.md), frozen exposed 512-episode panel; development threshold 256 passed, fresh qualification 0/128 (52 required), failed; panel fitting under D22, not an M2 move |
+| Native grounded learner | **437/512 complete replies**, up from177; 260 gained, none lost, 177 retained | [Native pooled-token ranking](docs/labs/m2-pooled-rank-2026-10-10/README.md), frozen exposed 512-episode panel; development threshold 256 passed, opened transfer diagnostic0/128; later genuinely fresh qualification NOT_RUN; panel fitting under D22, not an M2 move |
 | D11 serving engine | Bit-exact with the float path | NLL equal on 3,072 targets |
 | Softmax-free flock reads (M4 recipe, 2 seeds each) | Δ float BPB against softmax 0.877198: fixed rank `flock:8:8` +0.040; Hamming rank +0.259; learned rank tables `flock:8:8` +0.0185; learned `flock:32:32` +0.0172 | Bar 0.01; all served by D11, at equal speed except `flock:32:32`, which is 15 % slower. Widening the support 17 → 66 sources buys 0.0013, so the remaining cost is the rank weighting or its training, not the support ([record](docs/labs/softmax-free-read-2026-10-10/README.md)) |
 | M1 memory (29M chat line, frozen v5 panel) | 10/40 → 20/40 with a 10 % recall mix; read binding moves bound mass 0.73 → 0.90 and wrong-value failures 17 → 12 | One seed per arm; ±3/40 is panel noise (#2151, #2155) |
@@ -351,20 +366,27 @@ Sources: [current state](docs/integration/current-state.md), [evidence index](do
 Plan of record: [project-track.md](docs/integration/project-track.md). Dependency view: [ROADMAP.md](ROADMAP.md).
 Compute board: [#2037](https://github.com/UOR-Foundation/uor-r4/issues/2037).
 
-**Experiments in flight (pre-registered with thresholds fixed in advance):**
+**Retained experiment evidence and earlier proposals (not active run instructions):**
+
+The operator phase supersedes these schedules. Old registrations need amendment
+under D25 before prospective FIT; no hold is lifted here.
 
 | Experiment | Milestone | Status | Question |
 | --- | --- | --- | --- |
 | Native VSA retraining (4 arms × 2 seeds) | M1 [#2029](https://github.com/UOR-Foundation/uor-r4/issues/2029) | **done: KEEP** ([record](docs/labs/vsa-native-test-2026-10-09/README.md)) | Trained VSA (fixed codes) improves held-out BPB by 0.014–0.023. Icosian-root codes don't: they collapse token identity. Mode 2 (root + per-token residual) is worse than fixed codes on all 4 cells: not KEEP |
-| Softmax-free reads: soft (A), flock rank (B), B + prime-route copy (C), Hamming-rank (D) | M4 [#2032](https://github.com/UOR-Foundation/uor-r4/issues/2032) | pre-registered | Can served reads drop the table-emulated softmax with no loss? |
-| Route-holonomy read | M1 #2029 | pre-registered | Can the angle of h_j⁻¹·h_t rank earlier positions, order-aware and softmax-free? |
-| Exact icosian holonomy lanes (E1) | M1 #2029 | pre-registered | Does an exact 2I group product beside the r-layer help, beyond a shuffled-geometry control? |
-| Octonion-signed binding, then transport | M1 #2029 | pre-registered | Does a Fano-signed XOR keep order and grouping that plain XOR loses? |
+| Softmax-free reads: soft (A), flock rank (B), B + prime-route copy (C), Hamming-rank (D) | M4 [#2032](https://github.com/UOR-Foundation/uor-r4/issues/2032) | earlier registration held under D25 | Can served reads drop the table-emulated softmax with no loss? |
+| Route-holonomy read | M1 #2029 | earlier registration held under D25 | Can the angle of h_j⁻¹·h_t rank earlier positions, order-aware and softmax-free? |
+| Exact icosian holonomy lanes (E1) | M1 #2029 | earlier registration held under D25 | Does an exact 2I group product beside the r-layer help, beyond a shuffled-geometry control? |
+| Octonion-signed binding, then transport | M1 #2029 | earlier registration held under D25 | Does a Fano-signed XOR keep order and grouping that plain XOR loses? |
 | Shared `BitCode` primitive | M4 #2032 | planned (engineering) | One Hamming/popcount type for the native learner, R4G1 and the integer engine |
 
 Pictures of the pre-registered mechanisms are in [docs/geometry.md § 11](docs/geometry.md#11-pre-registered-mechanisms-not-yet-measured); none of them has a measured result yet.
 
 ## Quick start
+
+**Source/build entry points only while held.** Model commands below are historical
+interface examples, not permission to train, evaluate or generate through prohibited
+paths. Source checks must not execute a CPU model reference.
 
 Rust 1.97.1 is pinned by `rust-toolchain.toml`. Training data and trained artifacts are not in
 the repository; see [Models and data](#models-and-data).
