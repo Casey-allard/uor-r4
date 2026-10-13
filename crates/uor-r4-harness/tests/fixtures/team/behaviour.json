@@ -1,0 +1,63 @@
+{
+  "_": [
+    "Golden behaviour of the Python `team` command, captured 13 October 2026 BEFORE porting it.",
+    "",
+    "This is the trap-1 mitigation from docs/labs/d30-no-python-2026-10-13: parity.py compares Rust",
+    "against Python, so it dies when Python does. Once `team` is Rust there is no second opinion to",
+    "disagree with, so the behaviour that mattered is frozen here as literal expectations and asserted",
+    "by crates/uor-r4-harness/src/team.rs tests.",
+    "",
+    "Captured by running the Python harness against a throwaway git repo with an empty claims store and",
+    "an isolated live tier. Timestamps and short SHAs are time-dependent and are asserted by SHAPE, not",
+    "by value; every other field is asserted exactly."
+  ],
+
+  "claims_empty": {
+    "current_branch": "main",
+    "claims": {}
+  },
+
+  "claim_entry_keys": ["branch", "lab", "head", "claimed_at", "note"],
+  "claim_fields": {
+    "branch": "probe/one",
+    "lab": "claude",
+    "note": "",
+    "_head": "a short SHA, or empty string when git cannot answer",
+    "_claimed_at": "ISO 8601 with the local UTC offset, e.g. 2026-10-13T13:35:28-04:00"
+  },
+
+  "refusal_other_lab_holds": {
+    "_stdout": "team claim: probe/one is already held by lab 'claude' since 2026-10-13T13:35:28-04:00",
+    "_stderr_second_line": "  use a different branch, or release it with: team release --branch <name>",
+    "_exit": "EXIT_FAIL"
+  },
+
+  "refusal_no_lab": {
+    "_stderr": "team claim: a lab is required (--lab), because a claim without an owner is not a claim",
+    "_exit": "EXIT_USAGE"
+  },
+
+  "refusal_no_branch": {
+    "_stderr": "team claim: a branch name is required",
+    "_exit": "EXIT_USAGE"
+  },
+
+  "release_absent": {
+    "_stderr": "team release: no claim on 'probe/one'",
+    "_exit": "EXIT_FAIL"
+  },
+
+  "release_ok": {
+    "_stdout": "released probe/one (was held by claude)",
+    "_exit": "EXIT_OK"
+  },
+
+  "rules_that_are_not_obvious": {
+    "same_lab_may_reclaim": "claiming a branch your own lab already holds SUCCEEDS (existing['lab'] == lab is not a refusal); it refreshes the entry",
+    "release_allows_other_lab_when_unowned": "release with no --lab releases regardless of owner; release --lab X refuses when the entry's lab is not X",
+    "release_syncs_the_removal": "the live mirror is republished on release - a mirror only ever added to resurrects released claims",
+    "claim_records_a_ledger_line": "kind=claim on success only; a refused claim writes nothing",
+    "release_records_a_ledger_line": "kind=release, lab defaulting to the entry's previous owner",
+    "empty_branch_and_lab_are_usage_errors": "ValueError from claim_branch, surfaced as EXIT_USAGE, not EXIT_FAIL"
+  }
+}

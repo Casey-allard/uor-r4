@@ -23,6 +23,7 @@ use uor_r4_harness::registries::Registries;
 use uor_r4_harness::shards;
 use uor_r4_harness::state::{read_ledger, PresenceRow, StatePaths};
 use uor_r4_harness::status;
+use uor_r4_harness::team;
 use uor_r4_harness::Contract;
 
 /// Flags that only a subcommand understands, forwarded rather than rejected at the top level.
@@ -39,7 +40,7 @@ const PYTHON_PASSTHROUGH_VALUE_FLAGS: [&str; 1] = ["--only"];
 /// BEFORE flag parsing: an unported command's flags are unknown to this binary, and rejecting one
 /// meant delegation only worked for commands whose flags happened to be in the lists - `check --only`
 /// failed with "unknown option --only" before it could delegate. Which defeats the point.
-const PORTED_COMMANDS: [&str; 16] = [
+const PORTED_COMMANDS: [&str; 17] = [
     "onboard",
     "check-formats",
     "presence",
@@ -49,6 +50,7 @@ const PORTED_COMMANDS: [&str; 16] = [
     "ledger-sync",
     "notes",
     "version",
+    "team",
     "prep-check",
     "registry",
     "prep-render",
@@ -143,6 +145,8 @@ COMMANDS:
                 Rust side; use --dry-run to see the line without recording it.
     heartbeat   Check in: publish presence and append a receipt, both to the LIVE
                 tier, so a check-in never dirties a working checkout (R10).
+    team        Branch claims: claim, release, claims, roster.
+                `team claim --branch B --lab L` before you start work.
     version     The commit this binary was built from, and whether it is
                 behind origin/main - answers why a flag was rejected.
     notes       Unread notes: comments on the milestone issues this lab has
@@ -303,6 +307,7 @@ fn main() -> ExitCode {
         Some("ledger-sync") => cmd_ledger_sync(&repo, &rest, json),
         Some("notes") => cmd_notes(&repo, &rest, json),
         Some("version") => cmd_version(&repo),
+        Some("team") => cmd_team(&repo, &rest, json),
         Some("prep-check") => cmd_prep_check(&repo, json),
         Some("registry") => cmd_registry(&repo, json),
         Some("prep-render") => cmd_prep_render(&repo, &rest),
@@ -398,6 +403,171 @@ fn flag_value(args: &[String], name: &str) -> Option<String> {
         i += 1;
     }
     None
+}
+
+/// The first bare word in `args` that is not the value of a value-taking flag.
+///
+/// Shared by every grouped command (`team`, `multilab`), because each hit the same two bugs: taking
+/// `args[0]` picked up a forwarded `--repo`, and taking "the first word without a dash" picked up the
+/// repo PATH. The value list is the only thing that can tell a flag's argument from a subcommand.
+fn action_word(args: &[String]) -> &str {
+    let mut skip_next = false;
+    for a in args {
+        if skip_next {
+            skip_next = false;
+            continue;
+        }
+        if a.starts_with('-') {
+            // A value-taking flag consumes the next token even when written `--flag value`.
+            //
+            // `--repo` is listed explicitly because it is consumed by the TOP-LEVEL parser and pushed
+            // into `rest` for the subcommand's benefit, so it never had to appear in
+            // SUBCOMMAND_VALUE_FLAGS. That made its path a candidate action, and `team --repo <dir>
+            // claims` answered `unknown action "<path>"`.
+            let takes_value =
+                a == "--repo" || (SUBCOMMAND_VALUE_FLAGS.contains(&a.as_str()) && !a.contains('='));
+            skip_next = takes_value && !a.contains('=');
+            continue;
+        }
+        return a;
+    }
+    ""
+}
+
+/// `team <action>` - branch claims (D30 port of the Python `team`).
+///
+/// `claim` / `release` / `claims` are here; `roster` and `dispatch` still delegate, because they read
+/// the roles registry and the port is landing in the order labs use it. **`team` is NOT in the
+/// delegated set**, so the "not ported yet" notice stays off for the actions that are Rust and each
+/// remaining action says so individually.
+fn cmd_team(repo: &Path, args: &[String], json: bool) -> ExitCode {
+    let paths = StatePaths::from_env(repo);
+    // The action is the first bare word that is NOT the value of a preceding value-taking flag.
+    //
+    // Two wrong versions preceded this one: `args[0]` made `--repo <dir>` the action (the top-level
+    // parser forwards both into `rest`), and "first word not starting with `-`" made the repo PATH the
+    // action, because the path is a bare word too. The flag's value has to be stepped over, not
+    // treated as a candidate.
+    let action = action_word(args);
+    let branch = flag_value(args, "--branch").unwrap_or_default();
+    let lab = flag_value(args, "--lab")
+        .or_else(|| std::env::var("UOR_LAB").ok())
+        .unwrap_or_default();
+    let note = flag_value(args, "--note").unwrap_or_default();
+
+    match action {
+        "claim" => match team::claim_branch(&paths, &branch, &lab, &note) {
+            Ok(c) => {
+                if json {
+                    println!(
+                        "{}",
+                        serde_json::to_string_pretty(&c.to_json()).unwrap_or_default()
+                    );
+                } else {
+                    println!("claimed {} for lab {} at {}", c.branch, c.lab, c.claimed_at);
+                    println!(
+                        "  head {} · {}",
+                        c.head,
+                        team::claims_file(&paths).display()
+                    );
+                }
+                ExitCode::SUCCESS
+            }
+            Err(team::ClaimError::Usage(m)) => {
+                eprintln!("team claim: {m}");
+                ExitCode::from(2)
+            }
+            Err(team::ClaimError::Held(c)) => {
+                eprintln!("team claim: {}", team::held_message(&c));
+                eprintln!("  use a different branch, or release it with: uor-harness team release --branch <name>");
+                ExitCode::from(1)
+            }
+            Err(team::ClaimError::NotHeld(b)) => {
+                eprintln!("team claim: no claim on {b:?}");
+                ExitCode::from(1)
+            }
+        },
+        "release" => match team::release_branch(&paths, &branch, &lab) {
+            Ok(c) => {
+                if json {
+                    println!(
+                        "{}",
+                        serde_json::to_string_pretty(&c.to_json()).unwrap_or_default()
+                    );
+                } else {
+                    println!("released {} (was held by {})", c.branch, c.lab);
+                }
+                ExitCode::SUCCESS
+            }
+            Err(team::ClaimError::NotHeld(b)) => {
+                eprintln!("team release: no claim on {b:?}");
+                ExitCode::from(1)
+            }
+            Err(team::ClaimError::Held(c)) => {
+                // Refusing to release someone else's claim is the point: a release that ignored the
+                // owner would let any lab free any branch.
+                eprintln!(
+                    "team release: {} is held by lab {:?}, not {lab:?}",
+                    c.branch, c.lab
+                );
+                ExitCode::from(1)
+            }
+            Err(team::ClaimError::Usage(m)) => {
+                eprintln!("team release: {m}");
+                ExitCode::from(2)
+            }
+        },
+        "claims" => {
+            let claims = team::load_claims(&paths);
+            let cur = team::current_branch(repo);
+            if json {
+                let obj: serde_json::Map<String, serde_json::Value> = claims
+                    .iter()
+                    .map(|(k, v)| (k.clone(), v.to_json()))
+                    .collect();
+                let body = serde_json::json!({
+                    "current_branch": cur,
+                    "claims": serde_json::Value::Object(obj),
+                });
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&body).unwrap_or_default()
+                );
+            } else if claims.is_empty() {
+                println!(
+                    "no branch claims recorded · current branch {}",
+                    if cur.is_empty() { "(detached)" } else { &cur }
+                );
+                println!("claim one with: uor-harness team claim --branch <name> --lab <lab>");
+            } else {
+                println!(
+                    "branch claims ({}) · current branch {}",
+                    claims.len(),
+                    if cur.is_empty() { "(detached)" } else { &cur }
+                );
+                for (br, rec) in &claims {
+                    let mark = if *br == cur { "  <- current" } else { "" };
+                    println!(
+                        "  {br:<44} lab={:<10} since {}{mark}",
+                        rec.lab, rec.claimed_at
+                    );
+                }
+            }
+            ExitCode::SUCCESS
+        }
+        // `roster` and `dispatch` read the roles registry and are not ported yet. Saying so per
+        // action keeps the progress measure honest: the notice shrinks action by action, not
+        // command by command.
+        "roster" | "dispatch" => delegate_to_python(repo, "team", args),
+        "" => {
+            eprintln!("uor-harness team: which action? claim, release, claims, roster, dispatch");
+            ExitCode::from(2)
+        }
+        other => {
+            eprintln!("uor-harness team: unknown action {other:?}; try claim, release, claims, roster, dispatch");
+            ExitCode::from(2)
+        }
+    }
 }
 
 /// `version` - which commit this binary came from, and whether it is behind `origin/main`.
