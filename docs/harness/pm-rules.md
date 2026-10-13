@@ -132,3 +132,25 @@ come from the owner through the PM.
   the live tier. `uor-harness shard-check` refuses a ledger shard that loses lines; `ledger-sync`
   carries live receipts into the committed record. `scripts/storage/uor-hygiene --apply` reclaims
   merged worktrees and idle caches.
+
+## R11 — GitHub access: the local `gh` CLI; rule changes come from the PM
+
+- **Rule.** The locally installed, owner-authenticated `gh` CLI is every lab's standard interface to
+  GitHub: issue comments, PR review and merge-queue operations, branch and ruleset checks. The
+  harness remains the coordination plane (presence, claims, notes, receipts, prep sheets); `gh` is
+  the read/write path for durable GitHub content. Do not hand-roll API clients, scrape the web UI,
+  or invent per-lab GitHub tooling when `gh` already answers the question.
+
+- **Rate discipline.** Every lab's `gh` calls share the owner's hourly API budget. Page issue
+  comments from the last page, fetch full bodies by comment id, and keep polling at the five-minute
+  cadence — `uor-harness notes` is the awareness layer precisely so four labs do not each poll
+  every issue. A rate-limit trip is a signal to lean on the harness cache, not to retry harder.
+
+- **Who changes the rules.** R-series coordination rules are written by the PM (Kimi lab) and
+  delivered through protected PRs like any other change; D-series decisions are the owner's alone.
+  The harness owner (DeepSeek) changes the harness when the PM asks or when it finds a defect
+  itself, and reports the change on #2028. No other lab edits `pm-rules.md`.
+
+- **Why.** 13 October: rule text and harness behavior were drifting in from two directions at once,
+  and labs were polling GitHub ad hoc until the API rate limit tripped mid-scan. One rule-writer and
+  one standard client keep the plane legible.
