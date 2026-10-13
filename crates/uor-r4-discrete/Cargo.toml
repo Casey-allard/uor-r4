@@ -1,0 +1,23 @@
+[package]
+name = "uor-r4-discrete"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Exact SpiralCore/FBS learning proposals and shared geometric vector writer"
+
+[features]
+default = []
+cuda = ["dep:cudarc"]
+
+[dependencies]
+cudarc = { version = "=0.19.10", default-features = false, features = ["std", "driver", "cuda-12080", "dynamic-linking"], optional = true }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha2 = "0.10.8"
+
+[build-dependencies]
+uor-r4-core = { path = "../uor-r4-core" }
+
+[[bin]]
+name = "discrete-stack"
+path = "src/main.rs"

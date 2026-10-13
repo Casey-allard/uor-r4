@@ -3,6 +3,7 @@ members = [
     "crates/uor-r4-core",
     "crates/uor-r4-source-interface",
     "crates/uor-r4-training",
+    "crates/uor-r4-discrete",
     "crates/uor-r4-integer",
     "crates/uor-r4-lut",
     "crates/uor-r4-simd",

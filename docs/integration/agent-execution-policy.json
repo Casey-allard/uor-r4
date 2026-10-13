@@ -49,7 +49,7 @@
     "geometric_routing_priority": true,
     "serving_floating_point_allowed": false,
     "serving_transcendentals_allowed": false,
-    "offline_autodiff_training_allowed": true,
+    "offline_autodiff_training_allowed": false,
     "serving_contract_current": "docs/integration/DECISIONS.md#d11--native-multiplier-free-transformerless-serving-for-every-lab-d10-superseded",
     "serving_kernel_integer_divider_instructions_allowed": false,
     "dense_matrix_multiplication_allowed": false,
@@ -74,7 +74,12 @@
       "teachers",
       "comparators"
     ],
-    "offline_scalar_floating_point_geometric_arithmetic_allowed": true,
+    "offline_scalar_floating_point_geometric_arithmetic_allowed": false,
+    "model_floating_point_allowed": false,
+    "floating_point_model_instruments_allowed": false,
+    "floating_point_gradients_and_optimizer_allowed": false,
+    "discrete_learning_authority": "D32_owner_2026_10_13",
+    "learning_substrate": "exact_SpiralCore_E8_FBS_admissible_moves_shared_integer_input_carry_output_writer",
     "geometric_feed_forward_allowed": true,
     "op1_gate_arm": "hamilton_G2_only_G1_withdrawn",
     "native_vector_writer_contract": {
@@ -95,7 +100,7 @@
       ],
       "total_width": "unqualified_prospective_capacity_cost_choice_not_MiniLM384",
       "exact_token_occurrence_version_identity": "retained_separately_from_geometric_address",
-      "implementation_status": "shared_embedding_tensor_stack_and_compiler_store_emitter_vector_channel_delivered_PR2301_composed_predecessor_05c84bece_18_finite_controls_PASS_delivered_PR2318_merge5b22739_masked_TRAIN_reference_and_diagnostic_DEV_oracle_repair2fd6358bb_11_finite_controls_PASS_9_metadata_2_CUDA_protected_PR2328_merged9e904a834_Amendment5_independent_Claude6146716704_CONFIRM_FIT_physical_sheet_PENDING_Kimi_mechanical_pins_and_verdict_restoration_owed_before_owner_release_optimizer_update_NOT_RUN_training_and_M2_holds_HELD_full_M2_D11_unqualified"
+      "implementation_status": "D32_discrete_standalone_a2a5b89c_build_PASS_11_admitted_CUDA_controls_PASS_after_Claude_FIT_prior_attempts_OUT_OF_REQUIRED_REVIEW_ORDER_delivery_PR2379_M1_quality_target_SUSPENDED_shared_integer_codebook_carry_windows_FBS_writer_proposals_apply_NEVER_RUN_holds_HELD_full_M2_D11_unqualified_prior_float_31_18_control_scopes_preserved_inactive_PR2370"
     }
   },
   "delivery": {
@@ -190,7 +195,7 @@
       "python_model_implementation_or_product_dependency"
     ],
     "verification": "focused_checks_for_changed_rust_path_and_actual_behavior_with_relevant_broader_checks",
-    "learning_contract": "D8: persistent reference, native joint learning, explicit discretization and serving-mask ladder; actual language-to-context gradients and hard-path behavior required",
+    "learning_contract": "D32: discrete_native_geometric_moves_over_actual_context_and_shared_writer_no_float_model_instrument_gradient_optimizer_or_matmul_D8_float_bridge_preserved_inactive_training_HELD",
     "progress_control": {
       "required_before_model_compute": true,
       "authority": "docs/integration/agent-execution-policy.md#progress-control--owner-correction-september-25",
@@ -273,13 +278,19 @@
     "lab_entry": "docs/labs/README.md",
     "first_product_priority": "grounded_conversation_and_durable_memory",
     "adoption": "docs/integration/DECISIONS.md#d19--grounded-conversation-and-durable-memory-first",
-    "immediate_dependency": "docs/labs/operator-phase-2026-10-12/README.md",
-    "operator_build_order": [
+    "immediate_dependency": "docs/labs/discrete-geometric-learning-2026-10-13/README.md",
+    "historical_pre_D32_operator_build_order": [
       "OP2_SpiralCore_BFS_Atomic_Ternary_FBS_projection",
       "OP1_G2_gate",
       "OP3a_product_key_head",
       "compliant_rung0_after_hold_release",
       "OP4_rung0b_rank_read_gradient"
+    ],
+    "operator_build_order": [
+      "exact_SpiralCore_E8_FBS_integer_carrier_and_shared_writer",
+      "source_bound_finite_construction_FIT_and_CUDA_qualification",
+      "discrete_read_interface_and_successor_sheet",
+      "explicit_owner_hold_release_before_learning_updates"
     ],
     "op3b": "later_research_after_OP3a_not_rung0_prerequisite",
     "projection_kernel_authorization": {

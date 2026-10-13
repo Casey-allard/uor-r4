@@ -11,9 +11,18 @@ model that runs on a laptop?*
 [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97-Hugging%20Face-ffcc4d)](https://huggingface.co/caseyallard/uor-r4-geometric-214m)
 
 **Status, 13 October 2026: pre-alpha.** No model in this repository holds a useful conversation yet.
-The native-only CUDA training/evaluation source and repaired compiled dependency boundary pass
-all 31 finite controls at `1f1547bfd70f01edc9aa36d34a46e5bc43edc34c`; protected delivery is pending. **Training and the separate M2 holds remain held**.
-[Current D29 record](docs/labs/d29-vendor-boundary-2026-10-13/README.md).
+Under D32 the model and its learning/qualification instruments are discrete: no
+floating-point forward, gradients, optimizer or matrix multiplication. The new
+SpiralCore/FBS shared-vector path passes **all eleven admitted CUDA construction
+controls** after Claude FIT at source `a2a5b89cdddd1b32bf32f0e3c18d6b21e994e523`.
+Earlier attempts remain observations outside required review order. Delivery: #2379.
+Selection is query-addressed against fixed branch/frontier roots; leaf content supplies
+the carried payload, and the query's own prefix leaf is selectable. M1's quality target
+remains SUSPENDED pending a discriminating reply grader under R14.
+**Training and the separate M2 holds remain held**; no update or useful-chat result.
+[Discrete record](docs/labs/discrete-geometric-learning-2026-10-13/README.md).
+Earlier 31/18-control float receipts retain their exact historical scope;
+[PR #2370](https://github.com/UOR-Foundation/uor-r4/pull/2370) preserves that evidence.
 
 ## The question
 
@@ -32,6 +41,12 @@ The answer is recorded either way. Architectural priority is not a measured adva
 project keeps the two apart.
 
 ## Architecture
+
+The active standalone discrete path uses actual64-state SpiralCore transport,
+ordered FBS context and one integer codebook for input, carried vectors and output.
+Its sixteen-root orbit is not full E8 coverage or a language result; Claude's
+discrete read/integration remain separate. The diagram and older line descriptions
+below preserve the prior architecture snapshot, not an executable float trunk.
 
 <img src="docs/figures/architecture.svg" alt="Architecture: line A, the geometric stack language base, shows the earlier operator status; the native head now exists, the revised compiled boundary passes finite controls at its declared source scope, and training is held; line B, the native learner, completes 437 of 512 development replies but 0 of 128 on fresh transfer; both join as one model served under D11 at M4" width="100%">
 
@@ -55,7 +70,7 @@ Live tracker: [#2028](https://github.com/UOR-Foundation/uor-r4/issues/2028).
 
 | Milestone | Issue | Status | Headline now → target |
 |---|---|---|---|
-| M1 Language base | [#2029](https://github.com/UOR-Foundation/uor-r4/issues/2029) | in progress; training held | acceptable replies 37 → 116 of 232; v5 memory 20 → 34 of 40 |
+| M1 Language base | [#2029](https://github.com/UOR-Foundation/uor-r4/issues/2029) | in progress; training held | reply headline SUSPENDED/no target under R14 pending a discriminating v2 grader; prior memory20/40 remains historical |
 | M2 Grounded reply from exact memory | [#2030](https://github.com/UOR-Foundation/uor-r4/issues/2030) | held | 437/512 development replies (above 256), but 0/128 on fresh transfer |
 | M3 Durable conversation memory | [#2031](https://github.com/UOR-Foundation/uor-r4/issues/2031) | paused | evaluator and session built; waits on an M1 or M2 model |
 | M4 One served model (D11 and a CLI) | [#2032](https://github.com/UOR-Foundation/uor-r4/issues/2032) | held | softmax at runtime: yes → must be no (D23) |
@@ -116,8 +131,9 @@ Index: [docs/mechanisms/](docs/mechanisms/README.md).
 
 | Mechanism | Milestone | Where it stands |
 |---|---|---|
-| [SpiralCore/FBS projection](docs/mechanisms/spiralcore-fbs-projection.md) | M1, M2 | source, tested; in the compliant trunk |
-| [Rank-margin objective](docs/mechanisms/rank-margin-objective.md) | M1 | source, tested; rung 0's objective |
+| [Discrete SpiralCore/FBS learning and shared writer](docs/mechanisms/discrete-geometric-learning.md) | M1, M2, M4 | source a2a5b89c; eleven admitted CUDA construction controls PASS after Claude FIT; delivery #2379, training held |
+| [SpiralCore/FBS projection](docs/mechanisms/spiralcore-fbs-projection.md) | M1, M2 | prior floating form preserved inactive under D32 |
+| [Rank-margin objective](docs/mechanisms/rank-margin-objective.md) | M1 | prior floating objective preserved; discrete successor is separately registered |
 | [Starling read](docs/mechanisms/starling-read.md) (~7 neighbours on the 600-cell) | M4 | served softmax-free; its gradient is rung 0b |
 | [Flock / rank-table reads](docs/mechanisms/flock-rank-reads.md) | M4 | served; earlier measurements from a softmax-trained stack |
 | [E8 orbit memory](docs/mechanisms/e8-orbit-memory.md) | M4 | source; rung 1 KEEP and iterate (historical) |

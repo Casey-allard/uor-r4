@@ -1,0 +1,24 @@
+UOR-R4 shared GPU pods — rules (docs/labs/compute.md; AGENTS.md "GPU pods")
+ 1. Only this tool touches pods. Run 'uor-pod status' before any GPU work.
+ 2. Identity = --lab L --session S (or UOR_POD_SESSION). Lease the GPUs you use:
+    uor-pod lease POD --lab L --session S --gpus 0,1 --purpose ... --hours H
+    renew every <= 30 min while working; release when done. Leases auto-expire.
+ 3. Another session's GPU is never yours, even when idle: only its holder
+    (release) or expiry frees it. An EXPIRED lease may be taken over after a
+    probe shows no live job. Never touch another session's lease or KEEP_ALIVE.
+ 4. No free GPU and caps allow (<= 4 pods, <= $8.00/h, all labs and providers together):
+    uor-pod up --lab L --session S --purpose ... --hours H  (2 x RTX 5090 on
+    Vast.ai, cheapest verified datacenter host). Never fall back to the laptop CPU.
+    Caps reached and nothing free: wait for an expiry or ask the owner.
+ 5. One job per GPU: uor-pod run POD --lab L --session S --gpu K -- CMD (device=cuda).
+ 6. Durable output only on /workspace (Runpod network volume; on a Vast pod
+    'down' archives it to the laptop). No stopped pods as storage.
+ 7. Done: release, then 'uor-pod down POD' if no other session holds it.
+    Never print API keys or ~/.runpod/config.toml.
+
+Pods (caps: <= 4 running pods, <= $8.00/h; idle reap after 20 min without a live lease)
+Running: 0 pod(s) (0 counted toward the cap of 4; uor-test-* pods are not), $0/h of $8.00/h
+Free GPUs you can lease now: none. Spin up your own pod: uor-pod up --lab L --session S --purpose ... --hours H. Never fall back to the laptop CPU.
+Vast offers (verified datacenter hosts, reliability > 0.98; $/GPU/h, 1 GPU):
+  5090: 3 offers, cheapest $0.892 (Czechia, CZ)
+  4090: no offer

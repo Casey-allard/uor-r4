@@ -1,12 +1,28 @@
 # UOR-R4 Geometric Language Model — canonical project plan
 
-## Owner direction — operator preparation before training, October 12
+## Current owner direction — discrete model and instruments, October 13
+
+D32 supersedes all earlier floating-point model/training/instrument permissions.
+Use discrete exact SpiralCore/E8/FBS moves and one native integer input/carry/output
+writer, without float forward, gradients, optimizer or matrix multiplication.
+The corrected standalone path at `a2a5b89c` passes eleven admitted CUDA construction
+controls after Claude FIT. Earlier attempts remain outside required review order.
+Delivery: #2379; M1's quality target remains SUSPENDED pending its separate successor
+sheet. Selection compares the query with fixed branch/frontier roots; leaf content
+supplies the payload, and the query's own prefix leaf is selectable. Both holds remain
+HELD; no update, language or headline result follows.
+[Discrete record](../labs/discrete-geometric-learning-2026-10-13/README.md).
+Older31/18-control float receipts and unfinished instruments remain inactive,
+source-scoped evidence preserved through #2370. Historical ladders below retain
+their capability obligations but cannot restore a superseded computation law.
+
+## Historical operator preparation, October 12 — superseded substrate
 
 [D25](DECISIONS.md#d25---geometric-operator-phase-and-current-lab-direction) records the
 latest owner direction: no softmax/softplus/sigmoid/tanh or equivalent squashing in any
 executed model/learning/output/teacher/comparator path; no dense matrix multiplication in
 training or serving; GPU-only model compute/reference execution with no host fallback.
-Scalar floating-point geometric arithmetic remains possible in offline GPU learning;
+Its scalar floating-point GPU-learning allowance is historical and superseded by D32;
 D11 integer/table, multiplier-free serving remains the target.
 
 **Training remains held, including the separate M2 training/rental hold.** Kimi is the
@@ -112,7 +128,8 @@ The first useful product is **grounded conversation with durable memory**. The
 full alpha still includes useful conversation/memory **and** executable
 coding/reasoning on the same native path. Frontier intelligence on a laptop is
 the long-term research objective, not an established feasibility or scaling
-result. Rust offline learning may use scalar floating-point geometric arithmetic on GPU; D25 prohibits dense matrix multiplication, and training remains held. Final
+result. D32 requires discrete geometric GPU learning/model instruments without
+float forward, gradients, optimizer or matrix products; training remains held. Final
 serving follows D11/D0-b; D5 selected parameter access remains the final cost
 target. No transformer backbone, hidden teacher answers or new Python model
 dependency is adopted. Geometry remains the preferred representation and
@@ -1238,6 +1255,10 @@ Use the product name **UOR-R4 Geometric Language Model** and the technical descr
 The [direction review](model-direction-2026-09.md) codifies the source investigation and capability assessment. [Current state](current-state.md) owns changing artifacts/results; live [#820](https://github.com/UOR-Foundation/uor-r4/issues/820) owns programme status. This document owns ordered responsibilities and acceptance. [The project map](../PROJECT_MAP.md) locates code, research/imports, historical engines and retained evidence.
 
 ## Required mechanism roles
+
+**Dated September substrate guidance below is preserved history.** Its float,
+gradient and matrix-product permissions are superseded by D32; current roles use
+discrete geometric moves, the native shared writer and held training admission.
 
 Prepare data, train, construct artifacts and infer in Rust. Offline floating point, gradients and matrix multiplication, including uor-matmul, are permitted. Final serving follows owner-adopted [D0-b](DECISIONS.md): bounded <=4-bit integer/ternary linear maps may execute through additions/subtractions/shifts/table reads, with no multiplier instruction in the declared numerical kernel and no floating point or transcendental arithmetic in served computation. Geometric routing remains the preferred architecture; no transformer backbone or runtime teacher/provider responses are adopted. Deterministic geometric address/page selection is allowed. Shared typed operators are current; expert gates remain conditional future work requiring capability need and measured complete laptop cost.
 

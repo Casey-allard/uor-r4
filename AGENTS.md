@@ -1,12 +1,24 @@
 # AGENTS.md — UOR-R4 Geometric Language Model
 
-> **Current operating direction, October 12 — operator phase and training hold.**
+> **Current direction, October 13 — D32 discrete model and instruments.**
+> D32 supersedes floating-point model/learning permissions: no floating-point
+> forward, gradients, optimizer or numerical model instrument, and no matrix
+> multiplication. Use native SpiralCore/E8/FBS geometry and one integer
+> input/carry/output writer. Source `a2a5b89c` passes eleven admitted CUDA
+> construction controls after Claude FIT; apply remains NEVER_RUN. Delivery: #2379.
+> Earlier attempts retain their out-of-required-review-order labels. No trained
+> language or full-model claim follows. Prior F32/F64/31/18-control evidence is
+> preserved inactive through #2370. Both training holds remain HELD; FIT releases
+> neither. See [D32](docs/integration/DECISIONS.md#d32--discrete-geometric-substrate-ternaryhammingquaternion-computation-no-floating-point-in-model-computation-including-learning)
+> and the [discrete record](docs/labs/discrete-geometric-learning-2026-10-13/README.md).
+>
+> **Historical October 12 operator phase — retained context, superseded by D32.**
 > [D25](docs/integration/DECISIONS.md#d25---geometric-operator-phase-and-current-lab-direction)
 > records the owner's latest rules: no softmax, softplus, sigmoid or tanh anywhere
 > in executed model paths, including objectives, gradients, sampling, teachers,
 > comparators and equivalent renamed/table forms; no dense matrix multiplication
-> in training or serving; GPU-only model compute, with no host fallback. Offline
-> scalar floating-point geometric arithmetic remains permitted on GPU; D11 serving
+> in training or serving; GPU-only model compute, with no host fallback. Its offline
+> scalar floating-point allowance is now superseded by D32; D11 serving
 > remains integer/table based with no floating point or multiplier instruction.
 > Kimi is the current project manager; the owner retains strategic authority.
 > The [operator plan](docs/labs/operator-phase-2026-10-12/README.md) is the one
@@ -137,7 +149,9 @@ invariants still apply to the runtime where they are declared.
   table/tropical/codec parts, prism, LexLean/PrismPM patterns) are the shared
   ecosystem floor - reuse before rewriting. Python only where Rust genuinely cannot
   do the job.
-  Training may use scalar floating-point geometric arithmetic on GPU, but no dense matrix multiplication or prohibited squashing. The training hold remains. Final inference
+  D32 requires discrete GPU model computation and instruments, including learning:
+  no floating-point forward/gradient/optimizer, matrix multiplication or prohibited
+  squashing. Training remains held. Final inference
   executes learned geometric operators through bounded routing, state updates
   and integer/table lookup. A dense transformer hidden behind lookup is not the
   target. Preserve old Python/dense references as evidence; do not add a Python
@@ -296,18 +310,23 @@ may run on it.
 
 ## Architecture and claim boundaries
 
+**Current D32 substrate:** model computation and its instruments, including learning,
+are discrete/exact and GPU-only, with no floating point, gradient optimizer or matmul.
+The following pre-D32 permission paragraph is retained historical context only;
+its offline scalar-float allowance is inactive and cannot authorize execution.
+
 Use the name **UOR-R4 Geometric Language Model**. Technically it is an experimental autoregressive geometric state model with exact addressed memory and learned typed operators. Native attention/context access does not make it a transformer. Historical dense R4/Spin references remain transformers. Do not rename package/CLI/schema identifiers merely to change presentation.
 
-Offline Rust training may use scalar floating-point geometric arithmetic and gradients on GPU, with no dense matrix multiplication or prohibited squashing (D25); training remains held. D25 supersedes the earlier D0-b dense-map stepping stone: native geometric/addressed operators are required; serving remains integer/table/additive with no floating point, transcendental arithmetic or multiplier instruction. Owner decision [D11](docs/integration/DECISIONS.md#d11--native-multiplier-free-transformerless-serving-for-every-lab-d10-superseded) (2026-09-27) supersedes D10: every lab serves under one native contract, ROADMAP §0 R1–R5. Served kernels have no floating point and no multiplier instruction (products of runtime values use tables or exact geometric structure). There is no transformer backbone. Dense per-token weight-map execution is historical evidence, not an active stepping stone under D25. Geometric routing and shared typed operators remain the preferred architecture. These additive maps are still mathematical linear maps; report their dense parameter access and cost accurately. Converted open-weight transformers (D10's SmolLM2) remain inactive historical evidence; no new prohibited comparator or teacher execution. `uor-r4-lut`/`lut-chat` are frozen non-mission comparators, and D10-era results keep their scope. Hidden teacher/provider responses are not adopted. Geometric address/page selection is allowed; the design currently uses shared typed operators. Expert gates are only a conditional future option requiring a demonstrated capability need and full laptop-cost evidence; do not silently adopt MoE or sparse learned gating.
+Before D32, D25 permitted scalar floating-point geometric GPU learning and gradients; that permission is now inactive. Current learning uses discrete geometric moves and remains held. D25 supersedes the earlier D0-b dense-map stepping stone: native geometric/addressed operators are required; serving remains integer/table/additive with no floating point, transcendental arithmetic or multiplier instruction. Owner decision [D11](docs/integration/DECISIONS.md#d11--native-multiplier-free-transformerless-serving-for-every-lab-d10-superseded) (2026-09-27) supersedes D10: every lab serves under one native contract, ROADMAP §0 R1–R5. Served kernels have no floating point and no multiplier instruction (products of runtime values use tables or exact geometric structure). There is no transformer backbone. Dense per-token weight-map execution is historical evidence, not an active stepping stone under D25. Geometric routing and shared typed operators remain the preferred architecture. These additive maps are still mathematical linear maps; report their dense parameter access and cost accurately. Converted open-weight transformers (D10's SmolLM2) remain inactive historical evidence; no new prohibited comparator or teacher execution. `uor-r4-lut`/`lut-chat` are frozen non-mission comparators, and D10-era results keep their scope. Hidden teacher/provider responses are not adopted. Geometric address/page selection is allowed; the design currently uses shared typed operators. Expert gates are only a conditional future option requiring a demonstrated capability need and full laptop-cost evidence; do not silently adopt MoE or sparse learned gating.
 
 Bounded inference and contextual/copy attention exist. General prose, general reasoning, frontier capability and complete-path energy savings are not established. A successful authored arithmetic or copying panel does not qualify them. Keep candidate admission separate from ranking and harmonic influence. Preserve exact occurrence/version/word identity separately from span boundaries. A prime/hash identity is not a semantic distance. More scalar features cannot recover distinctions erased by representation.
 
 ## Execution-lane invariants
 
 
-- **Native training:** Rust may use scalar floating-point geometric arithmetic and
-  gradients on GPU, with no dense matrix multiplication or prohibited squashing,
-  to learn geometric read/write/selection and nonlinear operators. Training is held.
+- **Native learning:** use discrete/exact geometric GPU moves and comparisons under
+  D32, with no floating-point model/instrument, gradient, optimizer, matrix
+  multiplication or prohibited squashing. Training is held.
   Bind the source/configuration, tokenizer, data and learned parameters to each
   artifact. An offline teacher can be a declared comparator or training source;
   it cannot author serving responses.

@@ -2401,6 +2401,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "uor-r4-discrete"
+version = "0.1.0"
+dependencies = [
+ "cudarc",
+ "serde",
+ "serde_json",
+ "sha2",
+ "uor-r4-core",
+]
+
+[[package]]
 name = "uor-r4-graph-certify"
 version = "0.1.0"
 dependencies = [

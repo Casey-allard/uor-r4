@@ -10,17 +10,28 @@ One page per novel mechanism the project is built to invent and test. Each brief
 
 The labs work from these, not only from milestone headline numbers. Every pre-registration of a mechanism run is reviewed against its brief before compute, and the review is posted as `TEST FITNESS: FIT` or `NOT FIT` on the milestone ([D22](../integration/DECISIONS.md#d22--a-negative-closes-a-configuration-never-a-mechanism-five-closures-reopened)). A negative closes a configuration, never one of these mechanisms; stopping a mechanism needs the owner.
 
-Status as of 13 October 2026. "Source, tested" means the code is merged with focused tests. None of these
-mechanisms has been trained under D23–D25 yet, and training is held. Rows marked *historical* were measured
-in the pre-D23 float form.
+Status as of13 October2026. D32 requires discrete model computation and instruments,
+including learning, without float gradients/optimizers or matrix multiplication.
+Both training holds remain HELD. The discrete path at `a2a5b89c` passes eleven
+admitted CUDA construction controls after Claude FIT. Earlier attempts retain
+their launch blocker/review-order history. Delivery: #2379; M1's quality target
+remains SUSPENDED pending its separate successor sheet.
+No learned-language result follows. Older float trunk/results remain preserved
+inactive through [#2370](https://github.com/UOR-Foundation/uor-r4/pull/2370).
 
-**On the compliant trunk (the operator phase).**
+**Current discrete source.**
+
+| Mechanism | Milestone | Status | Brief |
+|---|---|---|---|
+| Exact SpiralCore/FBS moves and shared integer vector writer | M1 #2029 / M4 #2032 | source a2a5b89c;11 admitted CUDA controls PASS after Claude FIT; delivery #2379, training held; M1 quality target SUSPENDED | [discrete-geometric-learning.md](discrete-geometric-learning.md) |
+
+**Pre-D32 operator phase — preserved inactive float source scopes.**
 
 | Mechanism | Milestone | Status | Brief |
 |---|---|---|---|
 | SpiralCore BFS plus retained ternary FBS projection | M1 #2029 / M2 #2030 | source, tested; the trunk's projection (#2279) | [spiralcore-fbs-projection.md](spiralcore-fbs-projection.md) |
 | Rank-margin objective: a hard hinge over declared rivals, raw-score units, no exponential | M1 #2029 | source, tested; rung 0's objective (#2255) | [rank-margin-objective.md](rank-margin-objective.md) |
-| Starling read: ~7 topological neighbours on the 600-cell, no softmax | M4 #2032 | served softmax-free; its rank-consistent gradient is rung 0b | [starling-read.md](starling-read.md) |
+| Starling read: ~7 topological neighbours on the 600-cell, no softmax | M4 #2032 | historical rank/float source; discrete murmuration is a separate design | [starling-read.md](starling-read.md) |
 | Flock / rank-table reads (softmax-free attention) | M4 #2032 | served; measured beside a softmax stack (historical) | [flock-rank-reads.md](flock-rank-reads.md) |
 
 The G2 Hamilton gate (#2260) and the geometric recurrence gates (#2293) are trunk operators recorded in

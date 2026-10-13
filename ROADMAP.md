@@ -1,5 +1,16 @@
 # UOR-R4 Geometric Language Model - roadmap
 
+**Current learning permission — D32:** discrete/exact GPU model computation and
+instruments only; no floating-point forward, gradient, optimizer or matrix product.
+The standalone shared-writer FBS path passes eleven admitted CUDA construction
+controls at `a2a5b89c` after Claude FIT. Earlier attempts remain outside required
+review order. Delivery: #2379; M1's quality target remains SUSPENDED pending its
+separate successor sheet. Earlier operator/31/18-control float entries
+are preserved historical source scopes, not executable training permissions
+(preservation #2370). Training and separate M2 holds remain HELD. Kimi owns the
+discrete successor sheet; a FIT review releases no hold.
+[Discrete record](docs/labs/discrete-geometric-learning-2026-10-13/README.md).
+
 Updated 13 October 2026. **Pre-alpha.** Useful conversation, broad reasoning, coding, frontier
 capability and lower complete-path energy are not established.
 
@@ -52,7 +63,7 @@ closes only when its acceptance is met on the saved model.
 
 | | Milestone | Status | Goal and acceptance summary | Latest result |
 |---|---|---|---|---|
-| M1 | [Language base](https://github.com/UOR-Foundation/uor-r4/issues/2029) (Kimi, DeepSeek; Claude read source) | in progress; training held | Existing language/chat/memory obligations unchanged; obsolete metric clauses need prospective owner amendment | Historical memory20/40, reply37/232; historical19.9M served0.886838 BPB at512 windows; OP1 local Hamilton gate retained; OP2 dense quaternion contraction replaced by SpiralCore/FBS geometry (#2279); OP3a/shared writer finite CUDA-qualified and delivered #2301 (merge d41dc422f); composed rung-0 source/18 finite controls pass (11 CUDA,7 metadata), protected #2318 merge5b22739 verified; masked TRAIN-reference repair2fd6358bb implemented, 11 new controls PASS (9 metadata,2 CUDA); Amendment5 independentClaudeCONFIRMFIT6146716704; Amendment6 sheetFIT, bars unchanged; repaired compiled boundary 31 controls PASS at `1f1547bfd`; protected delivery pending; DEV oracle diagnostic only; recurrence geometric gates #2293 landed and integrated, squash-free by source sweep; complete declared recurrence-only forward/backward/output qualifies at its fixed scope; optimizer update not executed; no new quality result |
+| M1 | [Language base](https://github.com/UOR-Foundation/uor-r4/issues/2029) (Kimi, DeepSeek; Claude read source) | in progress; training held | Reply headline SUSPENDED/no target under R14 pending discriminating v2; D32 discrete construction and new training sheet precede owner hold release | D32 discrete source/record: [PR2379](https://github.com/UOR-Foundation/uor-r4/pull/2379), assigned-review qualification pending. The following are preserved pre-D32 scopes, not current execution permission: historical memory20/40, reply37/232; historical19.9M served0.886838 BPB at512 windows; OP1 local Hamilton gate retained; OP2 dense quaternion contraction replaced by SpiralCore/FBS geometry (#2279); OP3a/shared writer finite CUDA-qualified and delivered #2301 (merge d41dc422f); composed rung-0 source/18 finite controls pass (11 CUDA,7 metadata), protected #2318 merge5b22739 verified; masked TRAIN-reference repair2fd6358bb implemented, 11 new controls PASS (9 metadata,2 CUDA); Amendment5 independentClaudeCONFIRMFIT6146716704; Amendment6 sheetFIT, bars unchanged; repaired compiled boundary 31 controls PASS at `1f1547bfd`; protected delivery pending; DEV oracle diagnostic only; recurrence geometric gates #2293 landed and integrated, squash-free by source sweep; complete declared recurrence-only forward/backward/output qualifies at its fixed scope; optimizer update not executed; no new quality result |
 | M2 | [Grounded reply from exact memory](https://github.com/UOR-Foundation/uor-r4/issues/2030) (Codex) | in progress; training/rental held | Saved≥256/512 AND genuinely fresh≥40%, existing panels/graders unchanged | Saved437/512 + opened0/128 remain panel fitting; fresh NOT_RUN. Whole-path recovery source delivered; sampled law refuses; shared vector infrastructure finite CUDA-qualified, full M2 unqualified, count12/3 after masked TRAIN-reference #2328 delivery (prior11/3 retained; closeout is the same unit), no reset; new evaluator qualification11 controls PASS (9 metadata,2 CUDA) and Amendment5 independentCONFIRMFIT; Amendment6 sheetFIT; repaired compiled boundary 31 controls PASS at `1f1547bfd`; protected delivery pending |
 | M3 | [Durable conversation memory](https://github.com/UOR-Foundation/uor-r4/issues/2031) | in progress | Memory persists across sessions and answers stay grounded | evaluator and session delivered; not qualified |
 | M4 | [One served model, D11 and CLI](https://github.com/UOR-Foundation/uor-r4/issues/2032) (Claude read source) | in progress; compute blocked | One model under D11 and full D23–D25 compliance; old runtime-only/metric clauses require prospective owner amendment | Historical artifacts/components retained inactive; model/stack executors are excluded from the selected integer facade. No old SoftSort/dense-bootstrap/teacher follow-up; compliant trunk/rung0b precede teacher-free starling |
@@ -88,9 +99,10 @@ Pictures of the pre-registered mechanisms are in [docs/geometry.md § 11](docs/g
 
 **North star: geometric intelligence.** The goal is a working geometric language model whose
 runtime uses integer, fixed-point and geometric operations only: no transformer, no matrix
-multiplication and no floating point. Offline GPU learning may use scalar floating-point geometric arithmetic, but
-D25 prohibits dense matrix multiplication and exponential-family squashing in
-training as well as serving; D24 prohibits CPU model compute. Non-model
+multiplication and no floating point. D32 extends the discrete requirement to
+learning and numerical model instruments: no float forward, gradients or optimizer.
+D25 prohibits matrix multiplication and exponential-family squashing;
+D24 prohibits CPU model compute. Non-model
 preparation/analysis/tooling may run locally. Training remains held.
 
 The owner reaffirmed this target on 2026-09-27: "Keep the native, multiplier-free serving

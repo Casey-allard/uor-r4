@@ -1,5 +1,17 @@
 # Native geometric AI execution policy
 
+> **Current D32 direction, October 13:** model computation and instruments,
+> including learning, are discrete/exact and GPU-only. No floating-point forward,
+> gradient, optimizer, numerical model instrument or matrix multiplication is
+> admitted. Source `a2a5b89c` passes eleven admitted CUDA construction controls
+> after Claude FIT; earlier attempts remain outside required review order.
+> Delivery: #2379. M1's quality target remains SUSPENDED, with no model update
+> or quality claim.
+> Earlier31/18-control float evidence is preserved inactive through #2370.
+> Global training and separate M2 holds remain HELD; FIT releases neither.
+> [D32](DECISIONS.md#d32--discrete-geometric-substrate-ternaryhammingquaternion-computation-no-floating-point-in-model-computation-including-learning),
+> [discrete record](../labs/discrete-geometric-learning-2026-10-13/README.md).
+
 > **Current operator direction, October 12:** [D25](DECISIONS.md#d25---geometric-operator-phase-and-current-lab-direction) extends D23 to softplus/sigmoid/tanh and bans dense matrix multiplication in training and serving. D24 makes all model/reference execution GPU-only. Kimi is current project manager. OP1–OP3 source/kernel preparation precedes any integrated training; **training and the separate M2 training/rental hold remain**. FIT is necessary but releases no hold. Earlier permissions below are superseded; preserved historical sections do not authorize execution.
 > **October 12 owner rule: no softmax anywhere ever no matter what.**
 > D23 supersedes earlier allowances for softmax in training, serving, sampling,
@@ -212,9 +224,10 @@ Every PR names its lab and its class. Once its class's conditions hold, the appr
 
 ## Architecture and scope
 
-Prepare data, train, construct artifacts and run inference in Rust. Training may
-use scalar floating-point geometric arithmetic and gradients on GPU, with no
-dense matrix multiplication or prohibited squashing; training remains held. Final inference executes learned
+Prepare data, construct artifacts and run inference in Rust. D32 requires discrete
+GPU learning/model computation and instruments, with no float forward, gradients,
+optimizer, matrix multiplication or prohibited squashing; training remains held.
+Final inference executes learned
 geometric operators through bounded routes, state transitions and integer/table
 lookup; a dense transformer stored behind a lookup interface does not satisfy
 that target. **Owner direction (2026-09-23):** the programme's ultimate goal is a **fully
@@ -268,13 +281,12 @@ does not claim project-wide removal is complete.
 
 ## Learning and budget
 
-[D8](DECISIONS.md#d8--correct-the-training-method-and-reference-ladder) makes a
-working reference and an explicit differentiable training-to-serving bridge the
-active implementation sequence. Use the reusable offline Rust autodiff tool;
-verify the actual next-token gradient path, hard/relaxed discrepancy and serving
-mask. Preserve native discrete scaffolds and old reference artifacts, but do not
-resume local selector adjustments as the default programme. Complete the declared
-rung through its decision with fixed evaluator identities and matched controls.
+[D32](DECISIONS.md#d32--discrete-geometric-substrate-ternaryhammingquaternion-computation-no-floating-point-in-model-computation-including-learning)
+supersedes D8's floating-point/autodiff bridge. Credit and updates use declared
+admissible discrete geometric moves over the actual context/shared-writer cost.
+Preserve the earlier source, references and differentiable measurements as
+inactive history. Complete a compliant prospective rung with fixed evaluator
+identities and matched controls; neither source construction nor FIT lifts a hold.
 An integrity check or dependency does not establish language learning. Record
 actual fitting, evaluation and local accelerator time separately from compilation
 and orchestration, while retaining the cumulative ledger below.

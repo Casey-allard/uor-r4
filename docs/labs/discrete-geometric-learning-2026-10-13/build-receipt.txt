@@ -1,0 +1,49 @@
+   |        ^^^^^^^^^^^^^^^^^^^^
+
+warning: `uor-r4-core` (lib) generated 4 warnings
+   Compiling uor-r4-discrete v0.1.0 (/workspace/uor-r4-discrete/crates/uor-r4-discrete)
+warning: constant `FRAME_REACHABILITY` is never used
+  --> /workspace/discrete-target/debug/build/uor-r4-discrete-99d5025f72e5ed35/out/geometry.rs:10:11
+   |
+10 | pub const FRAME_REACHABILITY: [u8; 64] = [64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64...
+   |           ^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `ROOT_REACHABILITY` is never used
+  --> /workspace/discrete-target/debug/build/uor-r4-discrete-99d5025f72e5ed35/out/geometry.rs:11:11
+   |
+11 | pub const ROOT_REACHABILITY: [u8; 16] = [16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16];
+   |           ^^^^^^^^^^^^^^^^^
+
+warning: `uor-r4-discrete` (lib) generated 2 warnings
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 9.02s
+94dfc5fbb702becde5a910a2ce4ca3d5ee72ef7685839945cbb0bad97f420027  /workspace/discrete-target/debug/discrete-stack
+e50304bf73b7b81cdc876af5687ea65df3749a9dcd8c43197c794b8d6649c878  /workspace/discrete-target/debug/build/uor-r4-discrete-99d5025f72e5ed35/out/discrete.ptx
+.visible .entry discrete_init(
+.visible .entry discrete_encode(
+.visible .entry discrete_forward(
+.visible .entry discrete_counterfactual(
+.visible .entry discrete_choose(
+.visible .entry discrete_apply(
+.visible .entry discrete_validate(
+	linux-vdso.so.1 (0x00007ffd53fc4000)
+	libcuda.so.1 => /lib/x86_64-linux-gnu/libcuda.so.1 (0x00007f824d279000)
+	libgcc_s.so.1 => /lib/x86_64-linux-gnu/libgcc_s.so.1 (0x00007f824d24b000)
+	libc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007f824d038000)
+	/lib64/ld-linux-x86-64.so.2 (0x00007f8252c1f000)
+	libpthread.so.0 => /lib/x86_64-linux-gnu/libpthread.so.0 (0x00007f824d033000)
+	libm.so.6 => /lib/x86_64-linux-gnu/libm.so.6 (0x00007f824cf4a000)
+	libdl.so.2 => /lib/x86_64-linux-gnu/libdl.so.2 (0x00007f824cf43000)
+	librt.so.1 => /lib/x86_64-linux-gnu/librt.so.1 (0x00007f824cf3e000)
+exact_writer
+virtual_proposals
+context_transport
+isolated_windows
+collision_and_omitted_target
+nonvacuity
+artifact_and_identity
+inventory_bounds
+variable_length_prefixes
+target_independent_admission
+token_relabelling_preserves_geometry

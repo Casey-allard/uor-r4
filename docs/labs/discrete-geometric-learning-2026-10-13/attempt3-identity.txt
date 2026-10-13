@@ -1,0 +1,37 @@
+Restored executable; numerical source a2a5b89cdddd1b32bf32f0e3c18d6b21e994e523; not rebuilt on this pod
+c9879778a1b0187db3d473c4041886cae14cd245f2544867e721527bd834548e  discrete-stack
+e50304bf73b7b81cdc876af5687ea65df3749a9dcd8c43197c794b8d6649c878  discrete.ptx
+7f1644125d0bedf7334f55d3b09023bad21391980a86b15981910174b44d5864  source.tar
+nvcc: NVIDIA (R) Cuda compiler driver
+Copyright (c) 2005-2025 NVIDIA Corporation
+Built on Fri_Feb_21_20:23:50_PST_2025
+Cuda compilation tools, release 12.8, V12.8.93
+Build cuda_12.8.r12.8/compiler.35583870_0
+NVIDIA GeForce RTX 5090, 580.173.02, 32607 MiB
+PRETTY_NAME="Ubuntu 24.04.3 LTS"
+NAME="Ubuntu"
+VERSION_ID="24.04"
+VERSION="24.04.3 LTS (Noble Numbat)"
+VERSION_CODENAME=noble
+ID=ubuntu
+ID_LIKE=debian
+HOME_URL="https://www.ubuntu.com/"
+SUPPORT_URL="https://help.ubuntu.com/"
+BUG_REPORT_URL="https://bugs.launchpad.net/ubuntu/"
+PRIVACY_POLICY_URL="https://www.ubuntu.com/legal/terms-and-policies/privacy-policy"
+UBUNTU_CODENAME=noble
+LOGO=ubuntu-logo
+Original build toolchain follows:
+a2a5b89cdddd1b32bf32f0e3c18d6b21e994e523
+c9879778a1b0187db3d473c4041886cae14cd245f2544867e721527bd834548e  /workspace/discrete-target/debug/discrete-stack
+nvcc: NVIDIA (R) Cuda compiler driver
+Copyright (c) 2005-2025 NVIDIA Corporation
+Built on Fri_Feb_21_20:23:50_PST_2025
+Cuda compilation tools, release 12.8, V12.8.93
+Build cuda_12.8.r12.8/compiler.35583870_0
+rustc 1.97.1 (8bab26f4f 2026-07-14)
+NVIDIA GeForce RTX 5090, 595.80, 32607 MiB
+2026-10-13T21:16:45Z
+training=HELD; apply=NEVER_RUN; finite_controls=11
+2026-10-13T22:24:52Z
+Claude FIT6156328158; training=HELD; apply=NEVER_RUN; finite_controls=11

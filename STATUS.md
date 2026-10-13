@@ -1,5 +1,14 @@
 # Status
 
+**Current dependency — D32:** the discrete shared-codebook SpiralCore/FBS path
+passes all eleven admitted CUDA construction controls at `a2a5b89c` after
+Claude FIT. Earlier attempts retain their OUT_OF_REQUIRED_REVIEW_ORDER status.
+Delivery: #2379. M1's quality target remains SUSPENDED; the successor sheet is separate. No floating-point model, gradient/optimizer or numerical
+qualification instrument may execute. Earlier 31/18-control float results below
+remain historical source-scoped evidence, preserved inactive through #2370.
+Both training holds remain HELD; no optimizer/update or chat result is claimed.
+[Discrete record](docs/labs/discrete-geometric-learning-2026-10-13/README.md).
+
 Updated 13 October 2026. **Pre-alpha: no model holds a useful conversation yet.**
 Broad reasoning, coding, frontier capability and complete-path energy savings
 remain unestablished. Results/artifact identities are in [current state](docs/integration/current-state.md);
@@ -9,15 +18,15 @@ and its linked experiment records retain all historical readings.
 
 ## Current dependency and hold
 
-**Current compiled boundary:** the native-only source cut, corrected and frozen at `1f1547bfd70f01edc9aa36d34a46e5bc43edc34c`, passes CUDA compilation and all 31 exact finite controls on RTX4090, nvcc12.8.93, compute_89, Rust1.97.1. It excludes historical core/integer model executors, teachers, LUT engines and exporters; `geometric-stack` now selects the native train/evaluate CLI and lineage/optimizer admission refusals. The vendor PTX export/instruction census, selected dependency/features, four executable import checks and five project interlocks pass, with exactly three project PTX modules. Earlier setup/driver/controller and clipping failures are preserved as corrected blockers. Protected delivery is pending; no optimizer update/corpus/training/CPU model ran. Earlier 18/11-control results below retain their original source scope. [D29 record](docs/labs/d29-vendor-boundary-2026-10-13/README.md). Independent Amendment6 FIT and the separate finite FIT sheet release no hold.
+**Historical pre-D32 compiled boundary (inactive float source scope):** the native-only source cut, corrected and frozen at `1f1547bfd70f01edc9aa36d34a46e5bc43edc34c`, passes CUDA compilation and all 31 exact finite controls on RTX4090, nvcc12.8.93, compute_89, Rust1.97.1. It excludes historical core/integer model executors, teachers, LUT engines and exporters; `geometric-stack` now selects the native train/evaluate CLI and lineage/optimizer admission refusals. The vendor PTX export/instruction census, selected dependency/features, four executable import checks and five project interlocks pass, with exactly three project PTX modules. Earlier setup/driver/controller and clipping failures are preserved as corrected blockers. Protected delivery is pending; no optimizer update/corpus/training/CPU model ran. Earlier 18/11-control results below retain their original source scope. [D29 record](docs/labs/d29-vendor-boundary-2026-10-13/README.md). Independent Amendment6 FIT and the separate finite FIT sheet release no hold.
 
 **Training remains held; M2 training/rental remains held separately.** Kimi is
 project manager under [D25](docs/integration/DECISIONS.md#d25---geometric-operator-phase-and-current-lab-direction).
 No softmax/softplus/sigmoid/tanh or equivalent squashing anywhere in an executed
 model/objective/gradient/output/teacher/comparator path; no dense matrix
 multiplication in training or serving; model/reference compute is GPU-only with
-host fallback refused. Scalar float geometric GPU learning is distinct from D11
-integer/table, multiplier-free serving. The predecessor declared recurrence-only path has finite CUDA forward/backward/output
+host fallback refused. D32 also excludes floating-point learning and numerical
+model instruments; D11 retains its multiplier-free serving contract. The predecessor declared recurrence-only path has finite CUDA forward/backward/output
 qualification at its original rung-0 source/shape; it does not qualify the new compiled boundary. The optimizer update is compiled and
 source-reviewed, not executed. Amendment5 supersedes the whole-DEV count-reference scope and has independent
 scientific [Claude CONFIRM FIT6146716704](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6146716704) on merged source #2328. The physical
@@ -59,10 +68,10 @@ the same synchronized CUDA harness. No model training or quality run occurred.
 
 | Line | Retained reading and limitation | Current next dependency |
 | --- | --- | --- |
-| M1 language base | Historical v5 memory20/40, reply37/232 (targets34/40 and116/232); historical19.9M served0.886838 BPB at512 windows ([protocol](docs/labs/criterion2-protocol-pin-2026-10-09/README.md)). No new quality result | D29 qualification preservation/final-source review/protected delivery, then applicable explicit owner hold release; other native router/memory work retains its own ownership |
+| M1 language base | Historical v5 memory20/40, reply37/232 (targets34/40 and116/232); historical19.9M served0.886838 BPB at512 windows ([protocol](docs/labs/criterion2-protocol-pin-2026-10-09/README.md)). No new quality result | D32 discrete construction: assigned Claude FIT and admitted finite qualification, then protected source delivery and Kimi successor sheet; owner release still required |
 | M2 grounded reply | Saved437/512 development + opened0/128 transfer diagnostic remain panel fitting; genuinely fresh qualification NOT_RUN. [Whole-path recovery source](docs/labs/whole-path-recovery-2026-10-12/README.md) delivered; CUDA execution unqualified; sampled law refuses. Head/shared vector channel and the repaired compiled boundary have finite CUDA qualification at `1f1547bfd`; full M2 remains unqualified. Unified line count12/3 after masked-reference source delivery #2328 (previous11/3 retained; closeout is the same unit), no reset | Masked TRAIN-reference repair delivered in #2328; Claude CONFIRM FIT recorded; D29 finite qualification passes; protected delivery remains; coherent full-M2 intent/compiler path and explicit owner hold release remain dependencies |
 | M3 durable memory | Evaluator/session delivered; unqualified | Preserve interfaces; no automatic experiment when M2 is held |
-| M4 one served model | Historical D11 bit-exact artifacts and rank-read components retained; historical artifacts include prohibited paths; their model executors are excluded from the selected build. [Starling bootstrap](docs/labs/starling-bootstrap-2026-10-12/README.md) is inactive evidence | Claude teacher-free starling/murmuration source; compliant trunk → resumed rung0 → rung0b GPU read/gradient → starling |
+| M4 one served model | Historical D11 bit-exact artifacts and rank-read components retained; historical artifacts include prohibited paths; their model executors are excluded from the selected build. [Starling bootstrap](docs/labs/starling-bootstrap-2026-10-12/README.md) is inactive evidence | Claude discrete murmuration read against shared integer carrier; reviewed finite qualification, then owner-released discrete learning; no float gradient path |
 
 Historical BPB/NLL is preserved at its original scope and cannot authorize a new
 normalized-exponential evaluator. Raw-score/answer quality and speed are separate;

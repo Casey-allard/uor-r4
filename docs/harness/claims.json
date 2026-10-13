@@ -1,11 +1,4 @@
 {
-  "codex/count-reference-closeout-20261013": {
-    "branch": "codex/count-reference-closeout-20261013",
-    "claimed_at": "2026-10-13T09:34:41-04:00",
-    "head": "9e904a834",
-    "lab": "codex",
-    "note": ""
-  },
   "kimi/d29-nvrtc-amendment": {
     "branch": "kimi/d29-nvrtc-amendment",
     "claimed_at": "2026-10-13T11:31:25-04:00",

@@ -1,0 +1,4 @@
+c9879778a1b0187db3d473c4041886cae14cd245f2544867e721527bd834548e  /workspace/discrete-target/debug/discrete-stack
+
+warning: `uor-r4-discrete` (lib) generated 2 warnings
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.73s

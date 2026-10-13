@@ -1,0 +1,68 @@
+{
+  "applied_updates": 0,
+  "attempted": 11,
+  "controls": [
+    {
+      "index": 1,
+      "name": "exact_writer",
+      "status": "PASS"
+    },
+    {
+      "index": 2,
+      "name": "virtual_proposals",
+      "status": "PASS"
+    },
+    {
+      "index": 3,
+      "name": "context_transport",
+      "status": "PASS"
+    },
+    {
+      "index": 4,
+      "name": "isolated_windows",
+      "status": "PASS"
+    },
+    {
+      "index": 5,
+      "name": "collision_and_omitted_target",
+      "status": "PASS"
+    },
+    {
+      "index": 6,
+      "name": "nonvacuity",
+      "status": "PASS"
+    },
+    {
+      "index": 7,
+      "name": "artifact_and_identity",
+      "status": "PASS"
+    },
+    {
+      "index": 8,
+      "name": "inventory_bounds",
+      "status": "PASS"
+    },
+    {
+      "index": 9,
+      "name": "variable_length_prefixes",
+      "status": "PASS"
+    },
+    {
+      "index": 10,
+      "name": "target_independent_admission",
+      "status": "PASS"
+    },
+    {
+      "index": 11,
+      "name": "token_relabelling_preserves_geometry",
+      "status": "PASS"
+    }
+  ],
+  "failed": 0,
+  "not_run": 0,
+  "passed": 11,
+  "registered": 11,
+  "schema": "uor-r4.discrete-spiralcore-fbs/1",
+  "status": "PASS",
+  "training": "HELD"
+}

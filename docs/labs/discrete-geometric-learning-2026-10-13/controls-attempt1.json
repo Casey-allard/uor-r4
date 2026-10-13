@@ -1,0 +1,78 @@
+{
+  "applied_updates": 0,
+  "attempted": 2,
+  "controls": [
+    {
+      "index": 1,
+      "name": "exact_writer",
+      "status": "PASS"
+    },
+    {
+      "error": "CUDA: DriverError(CUDA_ERROR_LAUNCH_OUT_OF_RESOURCES, \"too many resources requested for launch\")",
+      "index": 2,
+      "name": "virtual_proposals",
+      "status": "HARD_STOP"
+    },
+    {
+      "index": 3,
+      "name": "context_transport",
+      "reason": "preceding CUDA fault; model/device safety not established",
+      "status": "NOT_RUN"
+    },
+    {
+      "index": 4,
+      "name": "isolated_windows",
+      "reason": "preceding CUDA fault; model/device safety not established",
+      "status": "NOT_RUN"
+    },
+    {
+      "index": 5,
+      "name": "collision_and_omitted_target",
+      "reason": "preceding CUDA fault; model/device safety not established",
+      "status": "NOT_RUN"
+    },
+    {
+      "index": 6,
+      "name": "nonvacuity",
+      "reason": "preceding CUDA fault; model/device safety not established",
+      "status": "NOT_RUN"
+    },
+    {
+      "index": 7,
+      "name": "artifact_and_identity",
+      "reason": "preceding CUDA fault; model/device safety not established",
+      "status": "NOT_RUN"
+    },
+    {
+      "index": 8,
+      "name": "inventory_bounds",
+      "reason": "preceding CUDA fault; model/device safety not established",
+      "status": "NOT_RUN"
+    },
+    {
+      "index": 9,
+      "name": "variable_length_prefixes",
+      "reason": "preceding CUDA fault; model/device safety not established",
+      "status": "NOT_RUN"
+    },
+    {
+      "index": 10,
+      "name": "target_independent_admission",
+      "reason": "preceding CUDA fault; model/device safety not established",
+      "status": "NOT_RUN"
+    },
+    {
+      "index": 11,
+      "name": "token_relabelling_preserves_geometry",
+      "reason": "preceding CUDA fault; model/device safety not established",
+      "status": "NOT_RUN"
+    }
+  ],
+  "failed": 1,
+  "not_run": 9,
+  "passed": 1,
+  "registered": 11,
+  "schema": "uor-r4.discrete-spiralcore-fbs/1",
+  "status": "ABORTED",
+  "training": "HELD"
+}
