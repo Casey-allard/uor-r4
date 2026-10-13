@@ -1,4 +1,0 @@
-# Phase 0 placeholder runtime configuration
-runtime:
-  mode: benchmark
-  seed: 0
