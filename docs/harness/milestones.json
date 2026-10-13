@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "note": "Cache reconciled under D25 with the latest owner comments and current session contract on 12 October; GitHub and main authorities remain authoritative. Historical line counts are not reset.",
+  "note": "Cache reconciled on13October after protected PR2318 complete rung0 source/FIT delivery; GitHub and main authorities remain authoritative. Historical line counts are not reset. Training holds remain.",
   "tracker": {
     "issue": 2028,
     "title": "[Roadmap] UOR-R4 - path to a native conversation and memory alpha"
@@ -49,7 +49,7 @@
           "note": "Recorded operator card6134571032; no reset by instruction repair."
         }
       ],
-      "next": "OP2 SpiralCore BFS plus retained Atomic Ternary FBS projection qualified at finite-kernel scope; local G2 retained. OP3a geometric head and complete lawful GPU path/shared writer remain dependencies. Training held; no old campaign restart.",
+      "next": "OP1/OP2/OP3a and shared vector channel delivered; actual recurrence-only rung0 learning/output path finite-qualified18PASS in PR2318 merge5b22739a3. Corrected Amendment4 prospective FIT6140707742. Training held; explicit owner release and future resource admission precede execution; no old campaign restart.",
       "project_manager": "kimi",
       "training_hold": true
     },
@@ -86,12 +86,12 @@
       "lines": [
         {
           "name": "unified geometric route/action/learning integration",
-          "count": 8,
+          "count": 11,
           "of": 3,
-          "note": "Owner-requested dense quaternion replacement with actual SpiralCore BFS plus retained FBS; count7/3 to8/3, finite CUDA qualification only, no headline reset or training hold release. Previous source/results preserved."
+          "note": "Projection PR2279 count8, head/writer PR2301 count9, complete-path PR2318 count10; this postmerge registry/ownership reconciliation count11. No model-quality gain, no headline reset, no training hold release; all prior source/results preserved."
         }
       ],
-      "next": "Preserve source and training/rental holds. Named owner-authorized projection pod build/tests complete; finite operator qualified. OP3a/full-path GPU compliance, common vector writer, model/data/FIT and applicable hold release remain dependencies; no automatic fit/fresh-draw campaign.",
+      "next": "Rung0 complete-path source/18 fixed controls and corrected prospectiveFIT delivered through PR2318 at5b22739a3; shared native vector writer delivered. Preserve global training and separate M2 training/rental holds. Full M2 learned intent/compiler, fresh qualification and D11 remain unqualified; no automatic fit/fresh-draw campaign.",
       "training_hold": true,
       "rental_hold": true,
       "projection_kernel_authorization": "Current Codex claim2029#6136794551 only; build and finite GPU tests authorized, completed, own pod deleted. Training remains held."

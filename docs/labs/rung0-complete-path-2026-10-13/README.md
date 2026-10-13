@@ -12,8 +12,9 @@ restores the training crate to pre-repair base `d4dd3caa9`; an isolated Git-inde
 application reproduces that base tree. Retention does not permit historical
 prohibited execution.
 **Training remains held, including the separate M2 training/rental hold.**
-Line: unified geometric route/action/learning integration, count 9/3 → 10/3 on
-completed delivery, no headline reset. M1 memory20/40, reply37/232; M2
+Line: unified geometric route/action/learning integration, count9/3→10/3 in
+PR2318, then11/3 for postmerge harness-cache/ownership reconciliation; no
+headline reset. M1 memory20/40, reply37/232; M2
 saved437/512, opened0/128 and genuinely fresh NOT_RUN are unchanged.
 
 ## Current decision and mechanism
@@ -191,8 +192,15 @@ Missing historical
 model-time ledger is not a zero balance. Only source-bound finite controls are
 admitted; no model fit or unrelated rental campaign is released.
 
-Protected delivery uses PR #2318; its actual merge/source/tree proof and owned
-cleanup receipts are appended to the preserved delivery archive after verification. Historical
+Protected PR #2318 merged at `5b22739a31eafb131d25e098bb7f02ab803d4fe7`.
+Fresh origin/main contains it. Full merge tree `fdfc1405bcbb7d73f4b04ea0620c87265176f937`
+equals the reviewed head and independent merge combination; the training crate
+is byte-identical to qualified source05c84bece. Peer #2317 added only the existing
+tempfile dependency membership to the harness; full Cargo.lock equality is not
+claimed. Private HF DELIVERY.json is pinned/download/byte/SHA verified at commit
+`91cdedd6a307ee96c829472ce7d414bb8b0778b0`, SHA256
+`5510e7ab9959a55f4360df5f530e0a3851d7dc9e0cd51bfae2f13e3d20e339ee`.
+Actual merge/source/tree proof and owned cleanup receipts are preserved separately. Historical
 source and failures retain their exact scope; a tooling defect is a blocker to
 repair, not a mechanism negative. Head/writer #2301 delivery is complete and is
 not reopened by this successor's qualification work.

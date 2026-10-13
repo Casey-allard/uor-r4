@@ -1,3 +1,22 @@
+## 2026-10-13 — Rung0 delivery verified; reconcile the harness cache and release only owned claims (Codex, #2028)
+
+Protected [PR #2318](https://github.com/UOR-Foundation/uor-r4/pull/2318) merged at
+`5b22739a31eafb131d25e098bb7f02ab803d4fe7`. Fresh origin/main contains it; full
+merge tree `fdfc1405bcbb7d73f4b04ea0620c87265176f937` equals the reviewed head and
+independently combined merge tree. The training crate equals qualified source
+`05c84bece`; the corrected sheet blob is `da0639fe475ecae9cd70d3f5710ce9fcb09acb63`.
+[Prospective FIT6140707742](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6140707742)
+records readiness with all holds retained. The [canonical record](../labs/rung0-complete-path-2026-10-13/README.md)
+retains18PASS, executable/store identities and every qualification limit.
+
+The harness cache still said OP3a/full-path/shared writer were unfinished and
+M2 count8. This metadata correction names the delivered finite rung0 scope,
+records counts8→9→10→11 without a headline reset, and removes only Codex's
+released complete-path claim. Kimi/Claude claims and peer work remain preserved.
+M1 memory20/40, reply37/232, M2 saved437/512, opened0/128 and fresh NOT_RUN stay
+unchanged. **Training and separate M2 training/rental remain HELD.** Optimizer
+update and language quality were not run; full M2/D11 remain unqualified.
+
 ## 2026-10-13 — The ordinary rung-0 path has concrete source repairs; finite CUDA controls pass (Codex, #2029)
 
 The [complete-path record](../labs/rung0-complete-path-2026-10-13/README.md)
