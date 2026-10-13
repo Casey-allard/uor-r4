@@ -425,3 +425,114 @@ def main(args: Any, paths: HarnessPaths, reg: Registry) -> int:
 def register_rules() -> list[Rule]:
     """No rules: this module is the hook and the delivery report, not a guard."""
     return []
+
+
+# --------------------------------------------------------------- merged-branch cleanup
+#
+# Owner direction, 12 October 2026: merge branches into main through the PR and do not leave
+# them behind. GitHub auto-delete is off for this repository, so a merged PR leaves a stale
+# local branch with a "[gone]" upstream and, if it had a worktree, the whole checkout behind it.
+# This finds those safely: a branch is removable only when its head is contained in
+# origin/main AND it is not checked out in any worktree. Other labs' merged branches are
+# reported, never removed unless asked for by name.
+
+
+def _git_raw(args: list[str], cwd: Path | None = None) -> tuple[int, str]:
+    """Git with an exit code and combined output. Distinct from the module's `_run`, which
+    returns (ok, stdout, err) and is used by the hook installer."""
+    try:
+        p = subprocess.run(args, cwd=str(cwd) if cwd else None, capture_output=True, text=True, timeout=60, check=False)
+        return p.returncode, (p.stdout or "") + (p.stderr or "")
+    except (OSError, subprocess.SubprocessError) as exc:  # pragma: no cover
+        return 127, str(exc)
+
+
+def merged_branches(root: Path) -> dict[str, list[str]]:
+    """Split local branches into removable / checked-out / unmerged.
+
+    Two merge shapes have to be recognised, and only the first is an ancestor test:
+
+    * a merge commit, where the branch head IS an ancestor of origin/main;
+    * a **squash merge**, which is what this repository's queue uses - the branch head is
+      never an ancestor, so `merge-base --is-ancestor` is false even though every change
+      landed. Those are identified by their upstream being `[gone]`, which means the remote
+      branch was deleted, plus no commits in origin/main..branch that are not already in main.
+
+    A branch is only ever listed as removable when it is not checked out in any worktree.
+    """
+    rc, out = _git_raw(["git", "-C", str(root), "for-each-ref", "--format=%(refname:short)", "refs/heads/"])
+    branches = [b for b in out.splitlines() if b.strip() and b.strip() != "main"]
+
+    rc, out = _git_raw(["git", "-C", str(root), "worktree", "list", "--porcelain"])
+    held: set[str] = set()
+    for line in out.splitlines():
+        if line.startswith("branch refs/heads/"):
+            held.add(line[len("branch refs/heads/") :].strip())
+    prunable_worktrees = "prunable" in out
+
+    rc, up = _git_raw(["git", "-C", str(root), "for-each-ref", "--format=%(refname:short)\t%(upstream:track)",
+                   "refs/heads/"])
+    gone: set[str] = set()
+    for line in up.splitlines():
+        if "\t" in line:
+            name, track = line.split("\t", 1)
+            if "gone" in track:
+                gone.add(name.strip())
+
+    removable, checked_out, unmerged = [], [], []
+    for b in branches:
+        if b in held:
+            checked_out.append(b)
+            continue
+        rc, _ = _git_raw(["git", "-C", str(root), "merge-base", "--is-ancestor", b, "origin/main"])
+        if rc == 0:
+            removable.append(b)          # a real merge: the head is in main
+            continue
+        if b in gone:
+            # squash-merged: the remote branch was deleted after the PR merged
+            removable.append(b)
+            continue
+        unmerged.append(b)
+    return {
+        "removable": sorted(removable),
+        "checked_out": sorted(checked_out),
+        "unmerged": sorted(unmerged),
+        "stale_worktree_refs": prunable_worktrees,
+    }
+
+
+def cmd_clean_merged(args: argparse.Namespace, paths: HarnessPaths) -> int:
+    state = merged_branches(paths.repo)
+    if getattr(args, "json", False):
+        print(json.dumps(state, indent=2))
+        return 0
+    print(f"local branches: {len(state['removable'])} merged into origin/main and not checked out, "
+          f"{len(state['checked_out'])} in a worktree, {len(state['unmerged'])} unmerged")
+    if state["removable"]:
+        print()
+        print("merged and safe to delete:")
+        for b in state["removable"]:
+            print(f"  {b}")
+    if state["unmerged"]:
+        print()
+        print("NOT merged - kept (their owners decide):")
+        for b in state["unmerged"]:
+            print(f"  {b}")
+    if not getattr(args, "apply", False):
+        if state["removable"]:
+            print()
+            print(f"delete them with:  cli.py git clean-merged --apply")
+        return 0
+    removed = 0
+    for b in state["removable"]:
+        # -d, not -D: it refuses if git does not agree the branch is merged. The belt to
+        # the merge-base brace above.
+        rc, out = _git_raw(["git", "-C", str(paths.repo), "branch", "-d", b])
+        if rc == 0:
+            removed += 1
+            print(f"  deleted {b}")
+        else:
+            print(f"  KEPT {b}: {out.strip()}")
+    print()
+    print(f"deleted {removed} merged branch(es); worktrees were untouched")
+    return 0

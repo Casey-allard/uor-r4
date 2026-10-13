@@ -398,6 +398,8 @@ def cmd_git(args: argparse.Namespace, paths: HarnessPaths, reg: Registry) -> int
         return G.install_hooks(args, paths)
     if args.action == "status":
         return G.status(args, paths)
+    if args.action == "clean-merged":
+        return G.cmd_clean_merged(args, paths)
     return EXIT_USAGE
 
 
@@ -607,6 +609,9 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub2.add_parser("install-hooks")
     s.set_defaults(fn=cmd_git)
     s = sub2.add_parser("status")
+    s.set_defaults(fn=cmd_git)
+    s = sub2.add_parser("clean-merged", help="remove local branches already merged into origin/main")
+    s.add_argument("--apply", action="store_true", help="actually delete (default: report)")
     s.set_defaults(fn=cmd_git)
 
     sp = sub.add_parser("check", help="run every machine-checkable rule")
