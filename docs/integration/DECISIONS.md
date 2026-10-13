@@ -1312,9 +1312,14 @@ following the owner's request to move GPU rental from Runpod to the cheaper
 Vast.ai. The owner opened and funded the Vast.ai account (prepaid) and approved
 a one-hour trial, which passed (13 October, 01:07–01:15Z).
 
-- `uor-pod up` rents new pods on Vast.ai by default. Runpod stays an authorized
-  provider (`up --provider runpod`, `UOR_POD_PROVIDER=runpod`); no other
-  provider is authorized. Both go through `scripts/pod/uor-pod` only.
+- `uor-pod up` rents new pods on Vast.ai. **Amended the same day** (Casey: "we
+  dont use runpod anymore we use vastai now"; "you may leave runpod as a backup
+  secondary only if no choices have existed for a while and all work is blocked
+  by needing a pod when runpod can supply it"): Runpod is an emergency backup
+  only. `up --wait` switches to it after 30 minutes with no Vast offer, and only
+  when Runpod has stock, recording the switch in the ledger and on the compute
+  board; choosing Runpod by hand needs `--owner-approved`. No other provider is
+  authorized. Both go through `scripts/pod/uor-pod` only.
 - Only verified datacenter hosts are rented (no community hosts). The owner caps
   are unchanged and count both providers together: ≤ 4 running pods, ≤ $8/h.
 - A Vast pod has no shared network volume. Its data comes from the private HF

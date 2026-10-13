@@ -4,8 +4,8 @@
 Every lab session (Claude, Codex/GPT, OpenCode/DeepSeek and any lab that joins
 later; several sessions of one lab may run at once) uses the same tool,
 `scripts/pod/uor-pod`, and the same cadence to see, lease, create, share and
-delete the owner's GPU pods: Vast.ai by default since 13 October 2026
-([D26](../integration/DECISIONS.md#d26---vastai-is-the-default-provider-for-new-pods)), Runpod with `--provider runpod`. The goals: no pod idles, no session is
+delete the owner's GPU pods: Vast.ai since 13 October 2026, with Runpod as an
+emergency backup only ([D26](../integration/DECISIONS.md#d26---vastai-is-the-default-provider-for-new-pods)). The goals: no pod idles, no session is
 surprised by another's pod, and any session can take over a pod whose lease
 expired. The source of truth is the laptop state directory below. The
 [Compute board #2037](https://github.com/UOR-Foundation/uor-r4/issues/2037) is
@@ -231,9 +231,12 @@ Owner-approved 7 October 2026 (#1750).
 Owner direction, 13 October 2026 ([D26](../integration/DECISIONS.md#d26---vastai-is-the-default-provider-for-new-pods)):
 new pods go to Vast.ai, a marketplace that was 40–60 % cheaper per GPU-hour than
 Runpod Secure Cloud for the GPUs this project uses (a verified datacenter RTX 5090
-was $0.469/h against Runpod's $1.19/h on 13 October). Runpod stays available with
-`up --provider runpod` or `UOR_POD_PROVIDER=runpod`; every other command takes
-either kind of pod.
+was $0.469/h against Runpod's $1.19/h on 13 October). The owner then retired Runpod
+to an emergency backup: `up --wait` switches to it only after 30 min with no Vast
+offer (`UOR_POD_RUNPOD_FALLBACK_MIN`) and only when it has stock, ledgered and
+posted to the board; choosing it by hand needs `--owner-approved`. The tool lists
+Vast only (`UOR_POD_PROVIDERS`, default `vast`; the Runpod path stays for its
+remaining volume and for Runpod-only accounts); every command takes either kind of pod.
 
 - **Ids.** A Vast pod is `vast-<contract number>` in every command, lease, ledger
   line and cache entry. `status` lists both providers in one table (`vol=vast-disk`)
@@ -261,9 +264,10 @@ either kind of pod.
 - **Results.** `down` copies `/workspace/uor-r4/{jobs,pods,runs,evals}` to
   `~/.local/share/uor-r4/compute/vast-archive/<pod>/` before it destroys the
   instance, and records the archive in the ledger; move it to iCloud with
-  `cloud-store put`. Above 5 GB (`UOR_POD_VAST_ARCHIVE_MAX_MB`) it refuses: archive
-  large results yourself, then `down --confirm-archived`. `reap` archives what it
-  can before destroying an idle unleased Vast pod.
+  `cloud-store put`. Above 5 GB (`UOR_POD_VAST_ARCHIVE_MAX_MB`) it refuses;
+  `down --to-store` instead has the pod upload them to the HF store under
+  `vast-archive/<pod>/` (no laptop copy, no size cap). `reap` archives what it can
+  before destroying an idle unleased Vast pod.
 - **Destroy.** `vastai destroy instance` asks `[y/N]` and aborts when nobody
   answers; the tool answers it and then confirms the instance is gone from the
   listing. By hand: `echo y | vastai destroy instance N`.
@@ -276,6 +280,48 @@ either kind of pod.
   `pipx install --python python3.14 vastai`; Python 3.15 has no Pillow wheel yet)
   and its key lives in `~/.config/vastai/vast_api_key`, written by the owner with
   `vastai set api-key`. The account's SSH key is `~/.ssh/uor_compute`.
+
+## The HF store: what a pod gets from it and gives back (13 October 2026)
+
+A pod without the shared volume (every Vast pod) bootstraps from the private HF
+store `caseyallard/uor-r4-store` and the container image, and saves to the store:
+
+| Need | Source | Fetched / uploaded by |
+| --- | --- | --- |
+| Data (`data/*`, 2.7 GB) | store | bootstrap (`--non-canonical`) |
+| Base models (`bases/*`) | store | the job (`uor-store get bases/<name>/ DIR`) |
+| Rust 1.97.1 (`toolchain/rust-1.97.1-x86_64.tar`, 612 MB) | store, else rustup | bootstrap; the first pod without it uploads it |
+| Crate cache (`toolchain/cargo-registry.tar`, 149 MB) | store, else crates.io | bootstrap; uploaded when the store had none |
+| Project binaries (`bin/<sha>-sm<cap>.tar`, 143 MB) | store, else built on the pod | bootstrap; used only with parity PASS and matching SHA256SUMS; a pod that built it uploads it |
+| CUDA 12.8 toolkit | the image, else NVIDIA's apt repository | bootstrap (not mirrored: NVIDIA's licence covers only listed runtime files) |
+| Results | the pod | `/root/uor-store put DIR results/<lab>/<topic-date>/`, or `down --to-store` |
+
+`uor-store` (installed on every pod as `/root/uor-store`; also runs on the laptop):
+`put LOCAL REMOTE`, `get REMOTE [DIR]` (a folder when REMOTE ends in `/`; it downloads
+into a fresh directory first, so an old local copy is never reported as a download),
+`ls [PREFIX]` (the Hub's tree API with `curl` and `jq`, every page). A store build is
+used only when it holds plain files, its `BUILD.json` names this commit and GPU with
+parity PASS, and its `SHA256SUMS` lists exactly the expected binaries and verifies; a
+toolchain archive that does not unpack falls back to rustup or crates.io. No step of
+this path adds Python (owner: GPU and Rust over CPU and Python). It uses the owner's
+token (write role, kept so pods can store results; owner 13 October). The bootstrap
+also sets the build's jobs from the cgroup's `cpu.max` when the provider does not
+name the CPU quota (`nproc` reports the host: 128 on a 16-CPU Vast pod).
+
+**Measured, 13 October (Vast RTX 5090):** a cold pod fetched the data, installed
+Rust and uploaded it, built (194 s with the old jobs count), passed parity 43/43 and
+uploaded the crate cache and binaries: 330 s. A fresh pod at the same commit took
+everything from the store and built nothing: **57 s** to ready. On it, `cargo check
+--offline --features cuda --tests` of `uor-r4-training` passed in 43 s from the
+store's crate cache alone.
+
+**CUDA development on the standard image** (checked on that pod): driver 595.84
+(CUDA 13.2), `nvcc` 12.8 compiled and ran a test kernel (0 wrong of 1,048,576),
+`compute-sanitizer` 0 errors, NVRTC 12.8 loads, cudart/cuBLAS/cuFFT/cuRAND/
+cuSPARSE/nvJitLink present, `cuda-gdb`, `ncu`, `cuobjdump`, `nvdisasm` present.
+Nsight Systems is not in the image: `apt-get install -y cuda-nsight-systems-12-8`
+installs `nsys` (verified). NVIDIA's apt repository answered, so the toolkit
+fallback is reachable.
 
 ## Layout of `/workspace` (canonical volume)
 

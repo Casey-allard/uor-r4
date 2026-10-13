@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # uor-pod — the one shared tool every UOR-R4 lab session uses to see, lease,
 # create, share and delete GPU pods (#820). Rules: docs/labs/compute.md.
-# Providers: Vast.ai (default for new pods, owner 2026-10-13, D26) and Runpod
-# (UOR_POD_PROVIDER=runpod or `up --provider runpod`). A Vast pod's id is
-# vast-<contract>; every command takes either kind.
+# Provider: Vast.ai (owner 2026-10-13, D26; "we dont use runpod anymore"). The
+# Runpod path stays only for its remaining volume and history, opt-in with
+# UOR_POD_PROVIDERS="vast runpod" (and UOR_POD_PROVIDER=runpod or `up --provider
+# runpod`). A Vast pod's id is vast-<contract>; every command takes either kind.
 # Identity on every mutating command: --lab L --session S (or UOR_POD_SESSION=S).
 #
 #   uor-pod                                    the rules (one screen)
@@ -17,7 +18,7 @@
 #   uor-pod lease   POD --lab L --session S --gpus 0,1 --purpose "..." --hours H [--card URL] [--gpu KEY]
 #   uor-pod renew   POD --lab L --session S [--hours H]
 #   uor-pod release POD --lab L --session S
-#   uor-pod down    POD --lab L --session S [--discard-local] [--confirm-archived]
+#   uor-pod down    POD --lab L --session S [--discard-local] [--confirm-archived] [--to-store]
 #   uor-pod run     POD --lab L --session S --gpu K[,K2] -- CMD...
 #   uor-pod register POD --lab L --session S --purpose "..." [--gpu KEY] [--keep REASON]
 #   uor-pod keep|unkeep POD [--purpose REASON]   protect a pod with unique data from down/reap
@@ -99,9 +100,14 @@ SSH_WAIT_SECONDS=${UOR_POD_SSH_WAIT:-900}
 PROVIDER=${UOR_POD_PROVIDER:-vast}
 case $PROVIDER in vast|runpod) ;; *) echo "uor-pod: UOR_POD_PROVIDER must be vast or runpod (got '$PROVIDER')" >&2; exit 1;; esac
 # Providers this account uses: each one's pods are listed and counted toward the
-# caps, so a missing CLI or a failed listing is an error for `up`. An account
-# with one provider sets UOR_POD_PROVIDERS to it (scripts/pod/config.example).
-PROVIDERS=${UOR_POD_PROVIDERS:-vast runpod}
+# caps, so a missing CLI or a failed listing is an error for `up`. The project
+# uses Vast only (Runpod retired 13 October); a Runpod account sets
+# UOR_POD_PROVIDERS=runpod (scripts/pod/config.example).
+PROVIDERS=${UOR_POD_PROVIDERS:-vast}
+# Runpod is the emergency backup only (owner 2026-10-13: "only if no choices have
+# existed for a while and all work is blocked by needing a pod when runpod can
+# supply it"): `up --wait` switches to it after this long with no Vast offer.
+RUNPOD_FALLBACK_MIN=${UOR_POD_RUNPOD_FALLBACK_MIN:-30}
 # Vast offers `up` accepts: verified datacenter hosts only (no community hosts:
 # their operator holds the disk and our HF token), CUDA 12.8+, enough disk and
 # bandwidth; the cheapest wins. A Vast pod has no shared network volume: its
@@ -524,7 +530,7 @@ unmirror_lease() {
 # ---------------------------------------------------------------- argument parsing
 LAB='' SESSION='' ID='' WHO='' PURPOSE='' HOURS='' CARD='' GPUS='' GPU='' COUNT='' REF=main
 OWNER_OK=0 OFF_VOLUME=0 WAIT=0 WAIT_HOURS=2 NO_BOOT=0 KEEP_FAIL=0 OLLAMA=0 FORCE=0 FORCE_RETRY=0 OPTS_SEEN=''
-LADDER=0 NO_MIRROR=0 DISCARD_LOCAL=0 CONFIRM_ARCHIVED=0 DU=0 NLINES=20 VIA='' UP_TEST=0 KEEP_REASON='' OLDER=24h YES=0
+LADDER=0 NO_MIRROR=0 DISCARD_LOCAL=0 CONFIRM_ARCHIVED=0 TO_STORE=0 DU=0 NLINES=20 VIA='' UP_TEST=0 KEEP_REASON='' OLDER=24h YES=0
 POS=()
 parse() {
   while [ $# -gt 0 ]; do
@@ -557,6 +563,7 @@ parse() {
       --no-mirror) NO_MIRROR=1; shift;;
       --discard-local) DISCARD_LOCAL=1; shift;;
       --confirm-archived|--confirm-pushed) CONFIRM_ARCHIVED=1; shift;;
+      --to-store) TO_STORE=1; shift;;
       --du) DU=1; shift;;
       --test) UP_TEST=1; shift;;
       --keep) KEEP_REASON=${2:?}; shift 2;;
@@ -692,16 +699,18 @@ cmd_status() {
   else
     echo "Free GPUs you can lease now: none. Spin up your own pod: uor-pod up --lab L --session S --purpose ... --hours H. Never fall back to the laptop CPU."
   fi
-  print_stock_table "$(gpu_stock)" "5090 4090"
-  print_vast_stock "5090 4090"
-  if [ "$DU" = 1 ]; then
-    local vp
-    vp=$(volume_pod "$pods") || { echo "Volume $VOLUME_ID: no running pod mounts it; usage unknown"; return 0; }
-    echo "Volume $VOLUME_ID usage (du via $vp; quota 200 GB):"
-    pod_ssh "$vp" 'timeout 300 du -sh /workspace/* 2>/dev/null | sort -h; timeout 300 du -sh /workspace 2>/dev/null' </dev/null |
-      sed 's/^/    /' || echo "    du failed"
-  else
-    echo "Volume $VOLUME_ID: run 'uor-pod status --du' for usage (du over the network volume takes a while)"
+  if uses runpod; then print_stock_table "$(gpu_stock)" "5090 4090"; fi
+  if uses vast; then print_vast_stock "5090 4090"; fi
+  if uses runpod; then
+    if [ "$DU" = 1 ]; then
+      local vp
+      vp=$(volume_pod "$pods") || { echo "Volume $VOLUME_ID: no running pod mounts it; usage unknown"; return 0; }
+      echo "Volume $VOLUME_ID usage (du via $vp; quota 200 GB):"
+      pod_ssh "$vp" 'timeout 300 du -sh /workspace/* 2>/dev/null | sort -h; timeout 300 du -sh /workspace 2>/dev/null' </dev/null |
+        sed 's/^/    /' || echo "    du failed"
+    else
+      echo "Volume $VOLUME_ID: run 'uor-pod status --du' for usage (du over the network volume takes a while)"
+    fi
   fi
 }
 
@@ -1041,6 +1050,12 @@ breaker_check() {
 
 cmd_up() {
   check_up_args
+  # On a Vast account Runpod is the backup: never chosen by hand without the owner
+  if [ "$PROVIDER" = runpod ] && uses vast && [ "$OWNER_OK" != 1 ]; then
+    die "Runpod is the backup only (owner, 13 October 2026): 'up --wait' falls back to it after $RUNPOD_FALLBACK_MIN min with no Vast offer. To choose it by hand, add --owner-approved citing the owner's decision (nothing was created)"
+  fi
+  # a Runpod placement must also count Runpod's pods toward the caps
+  if [ "$PROVIDER" = runpod ] && ! uses runpod; then PROVIDERS="$PROVIDERS runpod"; fi
   [ -n "$LAB" ] && [ -n "$PURPOSE" ] && [ -n "$HOURS" ] || die "up needs --lab, --session, --purpose and --hours"
   check_who; check_hours "$HOURS"
   local req=${GPU:-5090} count=${COUNT:-2} tier rc deadline waited=0 rungs=${GPU:-$GPU_LADDER} want
@@ -1096,12 +1111,22 @@ cmd_up() {
     [ "$cap_only" = 0 ] || die "$UP_CAPMSG"
     echo "$UP_STOCK"
     if [ "$WAIT" != 1 ] && [ "$PROVIDER" = vast ]; then
-      die "no Vast offer for $want (verified datacenter, reliability > $VAST_MIN_REL, CUDA 12.8+). Re-run with --wait (retries every minute for --wait-hours, default 2), or --provider runpod"
+      die "no Vast offer for $want (verified datacenter, reliability > $VAST_MIN_REL, CUDA 12.8+). Re-run with --wait: it retries every minute for --wait-hours (default 2) and, after $RUNPOD_FALLBACK_MIN min with no Vast offer, uses Runpod as the backup when it has stock"
     fi
     if [ "$WAIT" != 1 ]; then
       die "no $want stock in $VOLUME_DCS${EXTRA_VOLUME_DCS:+ $EXTRA_VOLUME_DCS}. Re-run with --wait (retries every minute for --wait-hours, default 2)$([ "$req" = 5090 ] && echo ', or choose --gpu 4090 explicitly'); --allow-off-volume places it without a volume"
     fi
     if is_dry; then echo "DRY-RUN: would retry every $((WAIT_INTERVAL / 60)) min until $(jq -rn --argjson t "$deadline" '$t | todate')"; return 0; fi
+    # blocked on Vast for long enough: Runpod as the backup, when it is installed
+    if [ "$PROVIDER" = vast ] && [ "$waited" -ge $((RUNPOD_FALLBACK_MIN * 60)) ] && have_runpod; then
+      warn "no Vast offer for $want in $((waited / 60)) min: work is blocked, so trying Runpod as the backup (owner rule of 13 October)"
+      lock_acquire; ledger up-fallback-runpod "$LAB" '' "$(jq -cn --arg g "$want" --argjson w "$waited" --arg p "$PURPOSE" '{gpu: $g, waited_s: $w, purpose: $p}')"; lock_release
+      board "up fallback: no Vast offer for $want in $((waited / 60)) min, trying Runpod as the backup (by=$WHO — $PURPOSE)"
+      PROVIDER=runpod
+      uses runpod || PROVIDERS="$PROVIDERS runpod"
+      count=${COUNT:-2}
+      continue
+    fi
     if [ "$(now_epoch)" -ge "$deadline" ]; then
       lock_acquire; ledger up-gave-up "$LAB" '' "{\"gpu\": \"$want\", \"count\": $count, \"waited_s\": $waited}"; lock_release
       board "up gave up: no $count x $want in $VOLUME_DCS after $((waited / 60)) min (by=$WHO — $PURPOSE)"
@@ -1396,8 +1421,9 @@ vast_archive() {  # POD -> 0 when archived (or nothing to archive)
   # shellcheck disable=SC2086  # one path per word
   kb=$(pod_ssh "$pod" "cd /workspace && du -sk $(echo $have) | awk '{s += \$1} END {print s + 0}'" </dev/null) || kb=''
   case $kb in ''|*[!0-9]*) warn "cannot size the results on $pod"; return 1;; esac
+  if [ "$TO_STORE" = 1 ]; then vast_archive_store "$pod" "$have" "$kb"; return; fi
   if [ "$kb" -gt $((VAST_ARCHIVE_MAX_MB * 1024)) ]; then
-    warn "$pod holds $((kb / 1024)) MB of results (over $VAST_ARCHIVE_MAX_MB MB for the laptop)"; return 1
+    warn "$pod holds $((kb / 1024)) MB of results (over $VAST_ARCHIVE_MAX_MB MB for the laptop); 'down --to-store' uploads them from the pod to the HF store instead"; return 1
   fi
   dest=$STATE/vast-archive/$pod
   if is_dry; then echo "DRY-RUN: archive $pod:/workspace/{$(echo $have | tr ' ' ',')} ($kb KB) -> $dest" >&2; return 0; fi
@@ -1407,6 +1433,23 @@ vast_archive() {  # POD -> 0 when archived (or nothing to archive)
     { warn "copying the results of $pod failed (partial copy in $dest)"; return 1; }
   lock_acquire; ledger vast-archive "${LAB:-?}" "$pod" "$(jq -cn --arg d "$dest" --argjson kb "$kb" '{dest: $d, kb: $kb}')"; lock_release
   echo "Archived $((kb / 1024)) MB of $pod results to $dest (move them to iCloud: cloud-store put <lab> $dest)"
+}
+
+# down --to-store: the pod uploads its result directories to the HF store
+# (vast-archive/<pod>/<dir>) with /root/uor-store and the owner's write token,
+# then `down` destroys it. No laptop disk is used, so there is no size cap.
+vast_archive_store() {  # POD DIRS KB -> 0 when every directory was uploaded
+  local pod=$1 have=$2 kb=$3 d
+  if ! is_dry && ! pod_ssh "$pod" 'test -x /root/uor-store' </dev/null; then
+    warn "$pod has no /root/uor-store (bootstrapped before it existed): run 'uor-pod bootstrap $pod' to install it, or archive without --to-store"; return 1
+  fi
+  if is_dry; then echo "DRY-RUN: on $pod: /root/uor-store put /workspace/<dir> vast-archive/$pod/<dir> for: $have ($kb KB)" >&2; return 0; fi
+  for d in $have; do
+    pod_ssh "$pod" "/root/uor-store put /workspace/$d vast-archive/$pod/$d" </dev/null ||
+      { warn "uploading /workspace/$d of $pod to the HF store failed"; return 1; }
+  done
+  lock_acquire; ledger vast-archive "${LAB:-?}" "$pod" "$(jq -cn --arg d "hf:vast-archive/$pod" --argjson kb "$kb" '{dest: $d, kb: $kb}')"; lock_release
+  echo "Archived $((kb / 1024)) MB of $pod results to the HF store under vast-archive/$pod/ (uor-store get vast-archive/$pod/ DIR restores them)"
 }
 
 cmd_down() {
@@ -1434,6 +1477,9 @@ cmd_down() {
     if [ -n "$kb" ] && [ "$kb" -gt 4 ] && [ "$DISCARD_LOCAL" != 1 ]; then
       die "/root/runs holds ${kb} KB on the container disk (lost on delete). Copy what matters to /workspace, then re-run with --discard-local"
     fi
+  fi
+  if [ "$TO_STORE" = 1 ] && ! is_vast "$pod"; then
+    warn "--to-store applies to Vast pods only (a Runpod pod's /workspace is the network volume); ignored for $pod"
   fi
   if is_vast "$pod" && [ "$CONFIRM_ARCHIVED" != 1 ]; then
     vast_archive "$pod" ||
@@ -1603,7 +1649,7 @@ preflight_bootstrap_args() {  # SHA -> dies unless the bootstrap accepts every a
 # Helper files `up`/`bootstrap`/`seed` upload from next to this script. A missing
 # or broken one used to surface only after the pod was created (and then deleted):
 # check them all first, so a bad checkout costs nothing.
-HELPERS_BOOT='uor-pod-bootstrap.sh uor-reaper.sh'
+HELPERS_BOOT='uor-pod-bootstrap.sh uor-reaper.sh uor-store'
 HELPERS_SEED='hot-set.txt'
 preflight_helpers() {  # [FILES...] (default: what `up` needs) -> dies listing every problem
   local f p problems=''
@@ -1644,10 +1690,12 @@ do_bootstrap() {  # POD -> copy reaper + bootstrap, mirror leases, run bootstrap
   BOOT_LOG_LOCAL=$STATE/logs/bootstrap-$pod-$ts.log
   BOOT_LOG_ON_VOLUME=1; [ "$off" != true ] || BOOT_LOG_ON_VOLUME=0
   echo "Bootstrapping $pod at $sha (log: $BOOT_LOG_LOCAL; pod volume: $BOOT_LOG_REMOTE)"
-  if is_dry; then echo "DRY-RUN: copy uor-pod-bootstrap.sh + uor-reaper.sh to $pod and run: bash /root/uor-pod-bootstrap.sh ${BOOT_ARGS[*]} | tee $BOOT_LOG_REMOTE" >&2; return 0; fi
+  if is_dry; then echo "DRY-RUN: copy uor-pod-bootstrap.sh + uor-reaper.sh + uor-store to $pod and run: bash /root/uor-pod-bootstrap.sh ${BOOT_ARGS[*]} | tee $BOOT_LOG_REMOTE" >&2; return 0; fi
   wait_ssh "$pod" 300 || { warn "SSH to $pod still refused after 300 s"; return 1; }
   pod_ssh "$pod" 'mkdir -p /root/leases && cat > /root/uor-reaper.sh && chmod 755 /root/uor-reaper.sh' < "$HERE/uor-reaper.sh" || return 1
   pod_ssh "$pod" 'cat > /root/uor-pod-bootstrap.sh && chmod 755 /root/uor-pod-bootstrap.sh' < "$HERE/uor-pod-bootstrap.sh" || return 1
+  # uor-store: save results to (and fetch from) the HF store from the pod
+  pod_ssh "$pod" 'cat > /root/uor-store && chmod 755 /root/uor-store' < "$HERE/uor-store" || return 1
   for l in "$STATE/leases/$pod"/*.json; do
     [ -f "$l" ] || continue
     mirror_lease "$pod" "$(basename "$l" .json)"

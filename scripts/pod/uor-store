@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+# uor-store — save and fetch files in the project's private Hugging Face store
+# (caseyallard/uor-r4-store; UOR_HF_STORE overrides) from a pod or the laptop.
+# `uor-pod up` installs it on every pod as /root/uor-store.
+#
+#   uor-store put LOCAL REMOTE    upload a file or a directory to REMOTE (a path in the
+#                                 store; results go under results/<lab>/<topic-date>/)
+#   uor-store get REMOTE [DIR]    download a file, or a folder when REMOTE ends in /,
+#                                 into DIR (default: the current directory)
+#   uor-store ls [PREFIX]         list the store's files (under PREFIX), with sizes
+#
+# The token is the owner's `hf auth login` token, which `uor-pod up` copies to
+# /root/.cache/huggingface/token on a pod; it is read by the hf CLI from there
+# (HF_TOKEN_PATH) and never printed. Uploads need its write role.
+set -euo pipefail
+
+STORE=${UOR_HF_STORE:-caseyallard/uor-r4-store}
+if [ -z "${HF_TOKEN_PATH:-}" ] && [ -f /root/.cache/huggingface/token ]; then
+  export HF_TOKEN_PATH=/root/.cache/huggingface/token
+fi
+die() { echo "uor-store: $*" >&2; exit 1; }
+need_hf() {
+  command -v hf >/dev/null 2>&1 ||
+    pip install -q --break-system-packages "huggingface_hub[cli]" >/dev/null 2>&1 || true
+  command -v hf >/dev/null 2>&1 || die "the hf CLI is not installed and could not be installed"
+}
+case $STORE in *[!A-Za-z0-9._/-]*|'') die "UOR_HF_STORE must look like owner/name (got '$STORE')";; esac
+
+cmd=${1:-}
+case $cmd in
+  put)
+    [ $# = 3 ] || die "usage: uor-store put LOCAL REMOTE"
+    [ -e "$2" ] || die "no such file or directory: $2"
+    case $3 in /*|*..*|'') die "REMOTE is a path inside the store, without a leading / or '..' (got '$3')";; esac
+    need_hf
+    hf upload "$STORE" "$2" "$3" --repo-type dataset --commit-message "uor-store put $3 from $(hostname 2>/dev/null || echo host)" >/dev/null
+    echo "uploaded $2 -> $STORE:$3";;
+  get)
+    [ $# -ge 2 ] && [ $# -le 3 ] || die "usage: uor-store get REMOTE [DIR]"
+    case $2 in /*|*..*|'') die "REMOTE is a path inside the store, without a leading / or '..' (got '$2')";; esac
+    need_hf
+    dir=${3:-.}
+    mkdir -p "$dir"
+    # into a fresh directory first: hf falls back to whatever is already in its
+    # --local-dir when the store cannot be read, so an old copy in DIR must never
+    # count as a download
+    tmp=$(mktemp -d "$dir/.uor-store.XXXXXX")
+    trap 'rm -rf "$tmp"' EXIT
+    case $2 in
+      */) hf download "$STORE" --repo-type dataset --include "$2*" --local-dir "$tmp" >/dev/null || true;;
+      *) hf download "$STORE" "$2" --repo-type dataset --local-dir "$tmp" >/dev/null || true;;
+    esac
+    [ -e "$tmp/$2" ] || die "nothing downloaded for $2 (not in $STORE, or the token cannot read it)"
+    mkdir -p "$(dirname "$dir/${2%/}")"
+    case $2 in
+      */) mkdir -p "$dir/$2" && cp -R "$tmp/$2." "$dir/$2";;
+      *) mv -f "$tmp/$2" "$dir/$2";;
+    esac
+    echo "downloaded $STORE:$2 -> $dir/$2";;
+  ls)
+    # the Hub's tree API, page by page (it pages large listings: follow Link rel=next)
+    command -v jq >/dev/null 2>&1 || die "ls needs jq"
+    tokf=${HF_TOKEN_PATH:-${HF_HOME:-$HOME/.cache/huggingface}/token}
+    [ -r "$tokf" ] || die "no Hugging Face token at $tokf"
+    case ${2:-} in /*|*..*) die "PREFIX is a path inside the store (got '$2')";; esac
+    url="https://huggingface.co/api/datasets/$STORE/tree/main${2:+/${2%/}}?recursive=true"
+    hdr=$(mktemp); trap 'rm -f "$hdr"' EXIT
+    while [ -n "$url" ]; do
+      printf 'Authorization: Bearer %s\n' "$(cat "$tokf")" | curl -fsS -H @- -D "$hdr" "$url" |
+        jq -r '.[] | select(.type == "file") | "\(.size / 1048576 * 10 | round / 10) MB  \(.path)"' ||
+        die "listing $STORE failed"
+      url=$(tr -d '\r' < "$hdr" | sed -n 's/^[Ll]ink: .*<\([^>]*\)>; *rel="next".*/\1/p' | head -1)
+    done;;
+  *) sed -n '2,15p' "$0"; exit 2;;
+esac

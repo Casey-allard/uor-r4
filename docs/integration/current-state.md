@@ -1,3 +1,15 @@
+## 2026-10-13 — Pods bootstrap from the HF store and save to it (claude, #2028)
+
+A pod now gets the Rust toolchain, the crate cache and the binaries for its commit from
+the private HF store, and a pod that had to make one uploads it; `uor-store` saves results
+from any pod and `down --to-store` archives a Vast pod straight to the store. Live on Vast
+5090s: a cold pod built and uploaded (330 s); a fresh pod took everything from the store
+and built nothing (**57 s**); an offline CUDA `cargo check` passed from the store's crate
+cache; `nvcc`, NVRTC, `compute-sanitizer`, `cuda-gdb` and `ncu` work (`nsys` via NVIDIA apt).
+[Record](../labs/pod-hf-store-2026-10-13/README.md).
+
+Line: infrastructure · no count · headline unchanged (M1 v5 memory 20/40, reply 37/232). Holds unchanged.
+
 ## 2026-10-12 — Dense quaternion contraction replaced with SpiralCore BFS plus retained FBS geometry (codex, #2029/#2030)
 
 The owner required both supplied mechanisms together and explicitly authorized

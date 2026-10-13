@@ -300,7 +300,7 @@ SmolLM2 weights (Apache-2.0) were used only as an offline comparator, never on a
 Third-party text is not republished; the project-generated sets are. See [Models and data](#models-and-data).
 
 **Compute.** GPU pods through `scripts/pod/uor-pod` only: 2 x RTX 5090, RTX 4090 and RTX PRO 6000,
-rented on Vast.ai by default since 13 October 2026 (Runpod remains available), under caps of 4 pods
+rented on Vast.ai since 13 October 2026 (Runpod only as an emergency backup), under caps of 4 pods
 and $8 per hour for all labs and both providers together. Total GPU-hours and cost are not
 recorded in one place (a cumulative ledger is kept per [AGENTS.md](AGENTS.md)).
 

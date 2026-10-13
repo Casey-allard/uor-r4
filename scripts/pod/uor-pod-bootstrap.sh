@@ -5,11 +5,17 @@
 #   bash /root/uor-pod-bootstrap.sh --sha FULL_SHA [--pod ID] [--with-ollama] [--off-volume] [--non-canonical]
 #        [--repo-url URL] [--hf-store NAME]   (values limited to [A-Za-z0-9:/._@-])
 #
-# Everything slow is cached on the shared network volume (/workspace) so the
-# second pod of a kind starts in seconds:
+# Everything slow is cached on /workspace (the shared network volume on Runpod,
+# the instance disk on Vast) so the second pod of a kind starts in seconds:
 #   /workspace/toolchain/rust-<ver>-x86_64.tar, cargo-registry.tar   Rust, unpacked to /root
 #   /workspace/bin/<sha>-sm<cap>/          release binaries + BUILD.json + parity.log
 #   /workspace/toolchain/ollama, /workspace/ollama   Ollama binary and models (--with-ollama)
+# The private HF store (caseyallard/uor-r4-store, or --hf-store) backs the first
+# two for pods without the volume: a missing toolchain/<file> or
+# bin/<sha>-sm<cap>.tar is downloaded from it, and a pod that had to make one
+# uploads it (only a parity-PASS build). The CUDA toolkit is not mirrored there
+# (NVIDIA's licence covers only listed runtime files): it comes from the image,
+# else from NVIDIA's apt repository. Best effort: a store failure only costs time.
 # The build itself runs on the container disk (/root/build); the source is a
 # shallow fetch of the public repository at exactly --sha.
 # It writes /root/.uor-pod-env (sourced by login shells and `uor-pod run` jobs)
@@ -48,6 +54,30 @@ BINS_EXAMPLES="geometric-stack m-world mqar-bench"
 BINS_BINS="chat-grade dialogue-recall-corpus mix-chat-corpus"
 T0=$(date +%s)
 log() { echo "[bootstrap $(date -u +%T) +$(( $(date +%s) - T0 ))s] $*"; }
+# ---- the HF store (functions; best effort). The token is the copy uor-pod writes
+# to /root: the image's HF_HOME is on /workspace (a shared volume on Runpod).
+STORE=${ARG_HF_STORE:-${UOR_HF_STORE:-caseyallard/uor-r4-store}}
+STORE_PUSH=${UOR_STORE_PUSH:-1}   # 0: never upload (a read-only token, a test)
+if [ -f /root/.cache/huggingface/token ]; then export HF_TOKEN_PATH=/root/.cache/huggingface/token; fi
+store_ready() {  # -> 0 when the hf CLI is available (installed on first use)
+  command -v hf >/dev/null 2>&1 ||
+    pip install -q --break-system-packages "huggingface_hub[cli]" >/dev/null 2>&1 || true
+  command -v hf >/dev/null 2>&1
+}
+store_get() {  # REMOTE FILE -> 0 when the store had REMOTE and it is now at FILE
+  local r=$1 f=$2 d
+  store_ready || return 1
+  mkdir -p "$(dirname "$f")" && d=$(mktemp -d "$(dirname "$f")/.store.XXXXXX") || return 1
+  if hf download "$STORE" "$r" --repo-type dataset --local-dir "$d" >/dev/null 2>&1 && [ -s "$d/$r" ]; then
+    mv -f "$d/$r" "$f"; rm -rf "$d"; return 0
+  fi
+  rm -rf "$d"; return 1
+}
+store_put() {  # FILE REMOTE -> 0 when uploaded
+  [ "$STORE_PUSH" = 1 ] || return 1
+  store_ready || return 1
+  hf upload "$STORE" "$1" "$2" --repo-type dataset --commit-message "pod ${POD:-?}: $2" >/dev/null 2>&1
+}
 # ---- binary cache for this commit and compute capability (functions; run below)
 # /workspace/bin/<sha>-sm<cap>/ is shared by every pod on the volume. A build
 # lock only avoids duplicate work; it never makes a pod wait long for another
@@ -150,11 +180,57 @@ publish_stage() {  # STAGE -> publish to the cache path, or keep privately; sets
   exec 7>&-
 }
 
+# bin/<sha>-sm<cap>.tar in the HF store: unpacked into staging and published like
+# a local build, but only when it is a parity-PASS build whose SHA256SUMS verify.
+store_fetch_bin() {  # -> 0 when the cache now holds the store's build
+  local r=bin/$SHA-sm$CAP.tar tarf=$BINROOT/.$SHA-sm$CAP.store.$POD_TAG.$$.tar stage=$BINROOT/.$SHA-sm$CAP.store.$POD_TAG.$$
+  store_get "$r" "$tarf" || return 1
+  rm -rf "$stage"; mkdir -p "$stage"
+  # only plain files and directories (no links that could point a job's binary
+  # elsewhere); BUILD.json must name this commit and GPU with parity PASS; and
+  # SHA256SUMS must cover exactly the expected binaries, each one verifying
+  if ! tar -tvf "$tarf" 2>/dev/null | cut -c1 | grep -qv '^[-d]$' &&
+     tar --no-same-owner -xf "$tarf" -C "$stage" 2>/dev/null && store_build_ok "$stage"; then
+    rm -f "$tarf"
+    publish_stage "$stage"
+    if cache_ok; then return 0; fi
+  else
+    log "WARNING: the store's $r is not a parity-PASS build with matching checksums; building here"
+  fi
+  rm -rf "$stage" "$tarf"; return 1
+}
+store_build_ok() {  # STAGE -> 0 when it is a parity-PASS build of SHA/CAP whose SHA256SUMS name exactly the binaries and verify
+  local st=$1 want have
+  [ -f "$st/BUILD.json" ] && [ -s "$st/SHA256SUMS" ] || return 1
+  grep -q '"parity": "PASS"' "$st/BUILD.json" && grep -q "\"sha\": \"$SHA\"" "$st/BUILD.json" &&
+    grep -Eq "\"compute_cap\": $CAP([,} ]|\$)" "$st/BUILD.json" || return 1
+  # shellcheck disable=SC2086  # word lists
+  want=$(printf '%s\n' $BINS_EXAMPLES $BINS_BINS | sort)
+  have=$(awk '{ f = $2; sub(/^\*/, "", f); print f }' "$st/SHA256SUMS" | sort)
+  [ "$want" = "$have" ] || return 1
+  (cd "$st" && sha256sum -c --quiet SHA256SUMS >/dev/null 2>&1)
+}
+store_push_bin() {  # after a parity-PASS build here: upload it for the next pod
+  local r=bin/$SHA-sm$CAP.tar tarf=$BINROOT/.$SHA-sm$CAP.push.$POD_TAG.$$.tar
+  cache_ok || return 0
+  if tar -C "$BIN" -cf "$tarf" . && store_put "$tarf" "$r"; then log "uploaded $r to the HF store $STORE"
+  else log "WARNING: could not upload $r to the HF store (the next pod builds again)"; fi
+  rm -f "$tarf"
+}
+
+REG_PUSH=0
+store_push_registry() {  # after the build is published: the crate cache, when the store had none
+  [ "$REG_PUSH" = 1 ] && [ -s "${REG_TAR:-}" ] || return 0
+  if store_put "$REG_TAR" toolchain/cargo-registry.tar; then log "uploaded toolchain/cargo-registry.tar to the HF store"; fi
+  REG_PUSH=0
+}
+
 obtain_bin() {  # -> BIN holds release binaries + BUILD.json for SHA/CAP (built here when needed)
   local stage
   BIN=$BINROOT/$SHA-sm$CAP
   LOCK=$BINROOT/.$SHA-sm$CAP.lock
   if cache_ok; then log "cache hit: $BIN"; return 0; fi
+  if store_fetch_bin; then log "cache hit from the HF store: $BIN"; return 0; fi
   HAVE_LOCK=0
   exec 8>"$LOCK"
   if flock -w 5 8; then
@@ -172,6 +248,8 @@ obtain_bin() {  # -> BIN holds release binaries + BUILD.json for SHA/CAP (built 
     rm -rf "$stage"; mkdir -p "$stage"
     build_into "$stage"
     publish_stage "$stage"
+    store_push_bin
+    store_push_registry
   fi
   heartbeat_stop
   exec 8>&-
@@ -259,11 +337,8 @@ if [ "$NONCANON" = 1 ] || [ -n "$ARG_HF_STORE" ]; then
   if [ -n "$missing" ]; then
     store=${ARG_HF_STORE:-${UOR_HF_STORE:-caseyallard/uor-r4-store}}
     log "non-canonical volume: fetching$missing from HF dataset $store"
-    # uor-pod copies the token to /root (the pod's own disk); the image's HF_HOME
-    # (/workspace/.cache/huggingface/, where hf looks by default) is a shared
-    # volume on Runpod, so point hf at the private copy instead (13 October:
-    # without this the store answered 401 although the token was valid)
-    if [ -f /root/.cache/huggingface/token ]; then export HF_TOKEN_PATH=/root/.cache/huggingface/token; fi
+    # (HF_TOKEN_PATH is set above: the image's HF_HOME is not where uor-pod puts
+    # the token; without it the store answered 401 on 13 October)
     if pip install -q --break-system-packages "huggingface_hub[cli]" &&
        hf download "$store" --repo-type dataset $(for f in $missing; do printf -- "--include data/%s " "$f"; done) --local-dir /workspace/uor-r4/; then
       fetched=''
@@ -329,20 +404,36 @@ export PATH=$CARGO_HOME/bin:$CUDA/bin:$PATH
 T_RUST=0
 if ! cargo "+$RUST_VERSION" --version >/dev/null 2>&1; then
   t=$(date +%s)
-  if [ -s "$RUST_TAR" ]; then
+  RUST_OK=0
+  if [ -s "$RUST_TAR" ] || store_get "toolchain/${RUST_TAR##*/}" "$RUST_TAR"; then
     log "unpacking cached Rust $RUST_VERSION from $RUST_TAR"
-    tar -C /root -xf "$RUST_TAR"
-  else
-    log "installing Rust $RUST_VERSION (first pod on this volume) and caching it"
+    if tar -C /root -xf "$RUST_TAR" && cargo "+$RUST_VERSION" --version >/dev/null 2>&1; then RUST_OK=1
+    else log "WARNING: $RUST_TAR did not give a working Rust $RUST_VERSION; installing it with rustup"; rm -f "$RUST_TAR"; fi
+  fi
+  if [ "$RUST_OK" = 0 ]; then
+    log "installing Rust $RUST_VERSION (not on the volume or in the store) and caching it"
     curl -fsSL https://sh.rustup.rs | sh -s -- -y --no-modify-path --profile minimal --default-toolchain "$RUST_VERSION" >/dev/null 2>&1
     tar -C /root -cf "$RUST_TAR.tmp.$$" .rustup .cargo/bin .cargo/env && mv -f "$RUST_TAR.tmp.$$" "$RUST_TAR"
+    if store_put "$RUST_TAR" "toolchain/${RUST_TAR##*/}"; then log "uploaded toolchain/${RUST_TAR##*/} to the HF store"; fi
   fi
   T_RUST=$(( $(date +%s) - t ))
 fi
-if [ -s "$REG_TAR" ] && [ ! -d "$CARGO_HOME/registry" ]; then tar -C "$CARGO_HOME" -xf "$REG_TAR"; fi
+# the crate cache: from the volume, else the store (then cargo needs crates.io
+# only for crates added since); a pod that had neither uploads its own after the build
+REG_FROM_STORE=0
+if [ ! -s "$REG_TAR" ] && store_get toolchain/cargo-registry.tar "$REG_TAR"; then REG_FROM_STORE=1; log "crate cache from the HF store"; fi
+if [ -s "$REG_TAR" ] && [ ! -d "$CARGO_HOME/registry" ] && ! tar -C "$CARGO_HOME" -xf "$REG_TAR"; then
+  log "WARNING: $REG_TAR did not unpack; cargo fetches the crates from crates.io"
+  rm -rf "$CARGO_HOME/registry" "$CARGO_HOME/git" "$REG_TAR"; REG_FROM_STORE=0
+fi
 RUSTC_VERSION=$(rustc "+$RUST_VERSION" --version)
-# the pod's CPU quota, not the host's core count (nproc reports the host)
+# the pod's CPU quota, not the host's core count (nproc reports the host): Runpod
+# names it; elsewhere (Vast) the cgroup's cpu.max "quota period" holds it (on
+# 13 October a 16-CPU Vast pod saw nproc=128 and built 2x slower with 128 jobs)
 JOBS=$(tr '\0' '\n' < /proc/1/environ | sed -n 's/^RUNPOD_CPU_COUNT=//p' | head -1)
+if [ -z "$JOBS" ] && read -r CPU_Q CPU_P 2>/dev/null < /sys/fs/cgroup/cpu.max && [ "$CPU_Q" != max ] && [ "${CPU_P:-0}" -gt 0 ]; then
+  JOBS=$(( (CPU_Q + CPU_P - 1) / CPU_P ))
+fi
 export CARGO_BUILD_JOBS=${JOBS:-$(nproc)}
 log "Rust: $RUSTC_VERSION (local, $CARGO_BUILD_JOBS build jobs)"
 
@@ -396,6 +487,7 @@ json.dump({
 PY
   if tar -C "$CARGO_HOME" -cf "$REG_TAR.tmp.$POD_TAG.$$" registry git 2>/dev/null; then
     mv -f "$REG_TAR.tmp.$POD_TAG.$$" "$REG_TAR"
+    [ "$REG_FROM_STORE" = 1 ] || REG_PUSH=1   # uploaded once the build is published
   else
     rm -f "$REG_TAR.tmp.$POD_TAG.$$"
   fi
