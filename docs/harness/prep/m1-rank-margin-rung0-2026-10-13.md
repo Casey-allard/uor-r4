@@ -90,30 +90,31 @@ the sheet is the registration the dependencies are checked against.
 | --- | --- | --- |
 | Gate (MLP) | **Merged** — the Hamilton rotation G2, `Gate::Hamilton`, no exponential in either direction; the trunk applies the op itself so bf16 activations reach the bf16 kernel | `geometric_stack.rs:4022` (dispatch), `hamilton_gate` (`:18066`); #2260 merged |
 | Projection | **LANDED** — #2279 (merge `c6cd409da`): Codex's owner-directed exact SpiralCore/FBS signed-action 8D native projection, `projection=spiralcore_fbs`; the dense all-pair contraction is retired with refusals and the projection is device-qualified on a Vast RTX 5090 | `crates/uor-r4-training/src/spiralcore_fbs.rs` (+ `spiralcore_fbs.cu` via `cuda_stack_kernels.rs`); record `docs/labs/spiralcore-fbs-projection-2026-10-12/README.md` |
-| Head | **Not built** — the OP3a product-key geometric head is Kimi's next source item; today the head is the tied embedding through the same dense `linear()` | `StackModel::head` (`:10049`) |
+| Head | **In flight (Codex)** — the OP3a geometric head is Codex-owned per the [ownership split](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6138381873); its finite kernel/qualification card is **FIT** (self-review under the exact-head rule, [#2029 comment 6138479221](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6138479221)); in flight on `codex/geometric-head-shared-writer-20261013`. Today the head is still the tied embedding through the dense `linear()` | `StackModel::head` (`:10049`) |
 | Objective | **Merged/in-tree** — `Objective::MarginHinge` with the CUDA f32 kernels | `:1374`, `margin_row`/`margin_row_grad` (`:18574`/`:18598`), `margin_rank_rows`/`margin_rank_grad` (`cuda_stack_kernels.rs:738`/`:744`) |
-| Recurrence | **Unlawful sites remain** (below) — the quaternion-transport recurrence with its held/drive carry already squash-free, and its opening, decay and output gate still exponential-family | `geometric_stack.rs:14977`/`:14978`/`:15274`, CUDA and Metal twins |
+| Recurrence | **LANDED** — `rec_gates=geometric` (#2293, merge `d7934bf03`): clamped-linear opening, exact dyadic rate-select table (`lambda = 2^-(s+1)`, keeps precomputed), Hamilton output gate, geometric secant surrogate credit; the executed recurrence path is squash-free by source sweep, and `RecGates::Historical` is preserved as the reproduction path, prohibited for new runs | `geometric_stack.rs` `RecGates` (`:1419`) and the `rate_select` CUDA kernels (`cuda_stack_kernels.rs`); record `docs/labs/recurrence-geometric-gates-2026-10-13/README.md` |
 | Read | Not present in this rung (pattern `rrrrrr`), which is exactly why rung 0 comes before rung 0b | — |
 
-**The run is BLOCKED until dependencies 2-4 below land** (dependency 1, the projection, landed as #2279 /
-`c6cd409da`). This sheet is the registration they are
-checked against; no step of it executes while the training hold stands.
+**The run is BLOCKED until dependencies 2 and 4 below land** (dependency 1, the projection, landed as #2279 /
+`c6cd409da`; dependency 3, the recurrence gates, landed as #2293 / `d7934bf03`). This sheet is the registration
+they are checked against; no step of it executes while the training hold stands.
 
 ## Remaining dense, squashing or host-fallback sites on the path
 
 From the completed recurrence trace at `d094d86df`. These are the sites the run would execute today; each
-must be replaced before the rung is lawful, and the replacements are named source items. (The dense all-pair
-projection row is already resolved: its replacement landed as #2279.)
+must be replaced before the rung is lawful, and the replacements are named source items. (Resolved: the dense
+all-pair projection by #2279, and the four recurrence rows by #2293; the remaining rows are the read-path exp
+(rung 0b), the dense head (dependency 2) and the host fallback (dependency 4).)
 
 | Site | What it does | Where (verified at `d094d86df`) | Named replacement |
 | --- | --- | --- | --- |
-| Opening sigmoid | `opening = sigmoid(gate_row[lane])` | `geometric_stack.rs:14977`; CUDA `cuda_stack_kernels.rs:853`/`:916`; Metal `metal_stack_kernels.rs:443`/`:641` | exact hard/rank selection by address — the `LatchGates::Hard` precedent (`:1745`) |
-| Per-token decay rate | `lambda = exp(8 * opening * log_a[lane])` | `:14978`; CUDA `:854`/`:917`; Metal `:444`/`:642` | an **exact** rate selection (grid/table read with a stated identity) |
-| Decay parameter transform | `log_a = softplus(-d)` (`-log1p(exp(-d))`) forward `:15261`, backward `:15392`; CUDA `:797`; Metal `:570` | `:14941` | as above. **Caveat, not a solution:** the served `DecayRate` codec currently encodes the same transform (`"grid codes of the rate `8 softplus(-decay)`"`, `:13055`) — reusing that table would *move* the softplus rather than remove it, so the lawful rate selection is a new source item, not a re-use |
-| Output gate | `state * gelu(g[i])` (tanh-GELU) | `:15274`; CUDA `:864`-`:867` fwd, `:911`/`:916`-`:917` bwd; Metal `:474`-`:477`, `:635` | the Hamilton gate (`gate=hamilton`, `:18066`) extended to the recurrence output |
+| Opening sigmoid | `opening = sigmoid(gate_row[lane])` | `geometric_stack.rs:14977`; CUDA `cuda_stack_kernels.rs:853`/`:916`; Metal `metal_stack_kernels.rs:443`/`:641` | **Resolved by #2293** — the clamped-linear opening (`score = clamp(gate opening + decay, 0, 1)`, exact subgradient) |
+| Per-token decay rate | `lambda = exp(8 * opening * log_a[lane])` | `:14978`; CUDA `:854`/`:917`; Metal `:444`/`:642` | **Resolved by #2293** — `rate_select`, an exact threshold table read (dyadic entries `lambda = 2^-(s+1)`, `keep = sqrt(1 - lambda^2)` precomputed) |
+| Decay parameter transform | `log_a = softplus(-d)` (`-log1p(exp(-d))`) forward `:15261`, backward `:15392`; CUDA `:797`; Metal `:570` | `:14941` | **Resolved by #2293** — the per-lane decay parameter is read raw as the rate-selector score; no softplus transform remains in the geometric arm, so the codec caveat no longer applies to this rung's config |
+| Output gate | `state * gelu(g[i])` (tanh-GELU) | `:15274`; CUDA `:864`-`:867` fwd, `:911`/`:916`-`:917` bwd; Metal `:474`-`:477`, `:635` | **Resolved by #2293** — the Hamilton rotation gate (`hamilton_gate`) on the recurrence output, the pre-declared `gate=hamilton` extension |
 | Per-head exp in the read path | `exp` in the score/softplus normalization | CUDA `:992`; Metal `:732` | not executed by this rung (no read layer); it is rung 0b's item |
 | Dense all-pair projection | `HamiltonLinear`'s quaternion contraction | `:18120` (+ its CUDA kernels/launchers) | Codex's SpiralCore/FBS 8D native projection — **landed** (#2279, `c6cd409da`); the dense contraction is retired with refusals |
-| Dense vocabulary head | tied `embedding.weight` through `linear()` | `:10049` | OP3a product-key geometric head (not built) |
+| Dense vocabulary head | tied `embedding.weight` through `linear()` | `:10049` | OP3a geometric head — **in flight (Codex)**; replaces the dense tied head (dependency 2) |
 | Host fallback | when `cuda_covered()` is false the read runs the exact CPU forward on host copies | `geometric_stack.rs` read path; `whole_path_device.rs` | **must refuse loudly** (D24): the rung has no read layer, so this path is not executed here, and the refusal is a named dependency (4) |
 
 The state carry itself (the quaternion product and `keep * drive`) is already squash-free, and the served
@@ -132,8 +133,9 @@ same unlawful kernels as CUDA but is unused on pods; the rung runs CUDA only.
 | vocabulary | 4096 |
 | pointer | `none` — the margin objective refuses a pointer today (`:2773`) |
 | gate | `hamilton` |
+| rec gates | `rec_gates=geometric` — landed #2293; `historical` (the serde default) is preserved as the reproduction path and prohibited for new runs |
 | projection | `spiralcore_fbs` — the landed SpiralCore/FBS 8D native projection (dependency 1, satisfied: #2279 `c6cd409da`) |
-| head | OP3a product-key geometric head (dependency 2) |
+| head | OP3a geometric head (dependency 2; Codex-owned, in flight on `codex/geometric-head-shared-writer-20261013`) |
 | objective | `hinge`, arms at 1 and 8 declared rivals |
 | initialization | `StackConfig` default initialization at that config, one RNG seed per arm-seed pair; the **exact parameter count is recorded in the run manifest at build**, not guessed here |
 | training dtype | f32 — it matches the landed margin CUDA f32 kernel; a bf16 margin kernel is out of scope for this rung |
@@ -187,21 +189,20 @@ The kernels qualify **on device against stored golden vectors and analytic known
 quaternion norm preserved under Hamilton transport, the exact icosian/E8 signed-action table identities, and
 margin rows computed by hand — with **no CPU model reference** (D24). The current bootstrap parity test
 compares against CPU references and is therefore itself out of step with D24/D25; replacing it with
-stored/analytic expected values is dependency (4), owned by Kimi with Codex on enforcement. A parity file that
-exits zero on a CPU reference is not device qualification.
+stored/analytic expected values is dependency (4), owned by Codex per the [ownership split](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6138381873);
+Codex's fixed-controls pattern — stored/analytic expected values, no CPU reference — is the template. A parity
+file that exits zero on a CPU reference is not device qualification.
 
 ## Dependencies that must merge first
 
 The FIT review checks each of these as it lands; none of them is delivered by this sheet:
 
 1. **Codex's SpiralCore/FBS projection PR — LANDED (2026-10-13).** PR [#2279](https://github.com/UOR-Foundation/uor-r4/pull/2279), merge commit `c6cd409da`: `projection=spiralcore_fbs`, the dense all-pair contraction retired with refusals, device-qualified on a Vast RTX 5090 (record: `docs/labs/spiralcore-fbs-projection-2026-10-12/README.md`).
-2. **OP3a, the product-key geometric head** (Kimi) — replaces the dense tied head. **Open.**
-3. **The recurrence squash replacements** — opening selection, exact decay rate, output gate (Kimi source
-   items). **Open, in flight as the kimi lab source PR.**
-4. **The lawful device-qualification gate** (Kimi, with Codex enforcement) — stored/analytic expected values,
-   no CPU model reference. **Open.**
+2. **OP3a, the product-key geometric head** (Codex — [ownership split ratified #2029 comment 6138381873](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6138381873)) — replaces the dense tied head. **In flight** on `codex/geometric-head-shared-writer-20261013`; its finite kernel qualification card is **FIT** (self-review under the exact-head rule, [#2029 comment 6138479221](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6138479221)).
+3. **The recurrence squash replacements — LANDED (2026-10-13).** PR [#2293](https://github.com/UOR-Foundation/uor-r4/pull/2293), merge commit `d7934bf03`: `rec_gates=geometric` — clamped-linear opening, exact dyadic rate-select table (`lambda = 2^-(s+1)`, keeps precomputed), Hamilton output gate, geometric secant surrogate credit; the executed recurrence path is verified squash-free by source sweep, and `RecGates::Historical` is preserved as the reproduction path, prohibited for new runs (record: `docs/labs/recurrence-geometric-gates-2026-10-13/README.md`).
+4. **The lawful device-qualification gate** (Codex — same split) — stored/analytic expected values, no CPU model reference; Codex's fixed-controls pattern is the template. **Open.**
 
-Until dependencies **2-4** land **and the owner explicitly releases the training hold**, the run does not
+Until dependencies **2 and 4** land **and the owner explicitly releases the training hold**, the run does not
 execute. A `TEST FITNESS: FIT` verdict lifts no hold by itself.
 
 ## Verdict

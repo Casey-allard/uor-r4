@@ -1,5 +1,11 @@
 # The operator phase: geometric replacements for the gate, projections and head
 
+## Status 2026-10-13
+
+OP1 G2 Hamilton gate landed (#2260); OP2's dense HamiltonLinear was superseded by the owner-directed SpiralCore BFS + retained FBS projection (#2279) — the plan's OP2 entry is satisfied by that replacement, not by the original dense form; recurrence geometric gates landed (#2293), making the executed recurrence squash-free; OP3a head is Codex-owned and in flight; the rung-0 sheet (docs/harness/prep/m1-rank-margin-rung0-2026-10-13.md) carries the live bars and dependency list.
+
+*Everything below this section is the 2026-10-12 registration and repair text, kept as history.*
+
 References #2029 (M1) and #2032 (M4). Kimi is project manager and owns the operator
 implementation. This record is repaired under the owner's
 [D25 direction](../../integration/DECISIONS.md#d25---geometric-operator-phase-and-current-lab-direction).

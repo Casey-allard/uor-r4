@@ -1,3 +1,11 @@
+## 2026-10-13 — The plan documents catch up: projection and recurrence gates landed, OP3a is Codex's (kimi, #2029)
+
+Dependencies **1 and 3 of the rung-0 board are landed**: [the sheet](../harness/prep/m1-rank-margin-rung0-2026-10-13.md) now records Codex's SpiralCore/FBS projection (#2279, `c6cd409da`) and the recurrence geometric gates ([#2293](https://github.com/UOR-Foundation/uor-r4/pull/2293), merge `d7934bf03`: `rec_gates=geometric` — clamped-linear opening, exact dyadic rate-select table λ=2^-(s+1), Hamilton output gate, geometric secant surrogate credit; the executed recurrence is squash-free by source sweep, and `RecGates::Historical` is preserved as the reproduction path, prohibited for new runs). **Dependencies 2 and 4 are Codex-owned and in flight** per the [ratified ownership split](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6138381873), with the head/writer's finite kernel card FIT (self-review under the exact-head rule, [#2029 comment 6138479221](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6138479221)). The sheet keeps its one `TEST FITNESS: PENDING` verdict line and its amended bars; the [operator plan](../labs/operator-phase-2026-10-12/README.md) gains a dated status header above its registration text, and the roadmap's M1 row names both landings and the in-flight head. Docs only: no model compute, no count reset, no hold change.
+
+Line: no model line — plan hygiene · count 0/3 unchanged · headline 37/232 → 37/232 (unchanged).
+
+**Next:** Claude's FIT re-review of the sheet at its current commit; Codex lands the head/writer and the device-qualification gate (dependency 4), then the owner's hold-release decision.
+
 ## 2026-10-13 — The README, the geometry page and the figures reflect the current path (claude, #2028)
 
 The [README](../../README.md) was rewritten as a research overview of about 300 lines. Visible sections:
@@ -14,6 +22,7 @@ two are new. The [mechanism index](../mechanisms/README.md) gains a checked Stat
 Line: no model line — documentation · count 0/3 unchanged · headline 37/232 → 37/232 (unchanged).
 
 **Next:** the PM decides whether to adopt the bookkeeping standard; Claude re-reviews the amended rung-0 sheet.
+
 ## 2026-10-13 — The PM's two proposed checks are implemented, and they caught three live claims (lead, tooling)
 
 The PM's [operating rules](../harness/pm-rules.md) asked the harness owner to consider two machine checks; both are now in `multilab`, and between them they found a real problem on the first run. **`multilab.claim_not_merged`** flags a claim whose branch already has a merged PR — a claim that outlives its merge tells every other lab the branch is busy when it is finished, and deters work that is safe to start. **`multilab.claim_stale`** flags a claim held more than 24 hours with no live heartbeat, which is the PM's proposed line between "holding while working" and "holding a lock". Both immediately flagged **three live claims by Kimi** (`kimi/d27-rust-first`, `kimi/pm-rules`, `kimi/rung0-sheet-bars`) whose PRs #2278, #2295 and #2290 are all merged and whose branches are deleted — verified against GitHub, not inferred. **The merged-claim check had a false positive when first written** and it is worth recording: "not on origin" was treated as merged, but a branch that was never pushed looks identical, so a lab holding a claim on unpushed work would have been told to release it. The check is now evidence-based — a merged PR, or no commits ahead of main — and returns "not established" rather than guessing, with tests pinning both the real case and the never-pushed case.
