@@ -44,3 +44,10 @@ Claude outputs/
 /.worktrees/
 /.claude/worktrees/
 .token-optimizer/
+
+# Harness local state (caches, budget probes, heartbeat scratch): never committed.
+/.harness/
+
+# Python bytecode from harness runs.
+__pycache__/
+*.pyc

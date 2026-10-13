@@ -1,0 +1,226 @@
+{
+  "schema": 1,
+  "note": "Machine view of the live milestone contract. The GitHub issues (#2028-#2032) and docs/labs/session-goal.md are authoritative; this file is a cache that must agree with them. Verified against aaa210ef4 on 2026-10-12.",
+  "tracker": {
+    "issue": 2028,
+    "title": "[Roadmap] UOR-R4 - path to a native conversation and memory alpha"
+  },
+  "milestones": {
+    "m1": {
+      "issue": 2029,
+      "id": "M1",
+      "title": "Language base: a geometric stack language model good enough to carry chat",
+      "lab": "deepseek",
+      "status": "in-progress",
+      "headline": {
+        "label": "reply acceptable",
+        "current": 37,
+        "target": 116,
+        "of": 232,
+        "unit": "acceptable replies"
+      },
+      "secondary": [
+        {
+          "label": "v5 memory check_pass",
+          "current": 20,
+          "target": 34,
+          "of": 40
+        }
+      ],
+      "panel": "v5-reply",
+      "base_artifact": "D10 (10% recall dose, adopted under D22 5f)",
+      "mechanisms": [
+        "exact-addressed-memory",
+        "pointer-identity-key",
+        "read-binding"
+      ],
+      "lines": [
+        {
+          "name": "exact addressed memory",
+          "count": 0,
+          "of": 3
+        },
+        {
+          "name": "evaluation integrity",
+          "count": 0,
+          "of": 3,
+          "lab": "kimi"
+        }
+      ],
+      "next": "Re-register the cycle-8 product-key run with a no-memory control, a memory-off evaluation of each checkpoint, a fine-tune long enough for the base to adapt, and a fresh held-out memory set; get TEST FITNESS: FIT before compute (D22 5d/5e)."
+    },
+    "m2": {
+      "issue": 2030,
+      "id": "M2",
+      "title": "Grounded reply from exact memory: the native learner completes correct replies",
+      "lab": "codex",
+      "status": "in-progress",
+      "headline": {
+        "label": "complete correct replies (dev)",
+        "current": 437,
+        "target": 256,
+        "of": 512,
+        "unit": "replies",
+        "direction": "open"
+      },
+      "secondary": [
+        {
+          "label": "fresh transfer (opened)",
+          "current": 0,
+          "target": 51,
+          "of": 128
+        }
+      ],
+      "panel": "m2-reply512",
+      "base_artifact": "saved437 parent; linked unified-bound-content-437 NOT_RUN",
+      "mechanisms": [
+        "protected-legal-construction",
+        "unified-geometric-carrier-credit"
+      ],
+      "lines": [
+        {
+          "name": "protected/discrete constructor",
+          "count": 0,
+          "of": 3,
+          "note": "reopened by D22 5a; the registry recorded 5/3 from the 12 October GitHub card, but the live prompt resets the line to 0/3 on reopening - the prompt is what the lab reads"
+        }
+      ],
+      "next": "Resolve the CUDA producer, sampled checkpoint/optimizer, multi-episode batch and raw instrument gates; then pre-register and get FIT. Owner training hold is in force."
+    },
+    "m3": {
+      "issue": 2031,
+      "id": "M3",
+      "title": "Durable conversation memory: provenance, conflict, abstention, reset and restart",
+      "lab": "codex",
+      "status": "in-progress",
+      "headline": {
+        "label": "typed outcomes qualified on the saved model",
+        "current": 0,
+        "target": 1,
+        "of": 1,
+        "unit": "qualified milestone",
+        "vacuous": true
+      },
+      "panel": "m3-memory",
+      "base_artifact": "stack_grounded_session (#1568) + typed-script evaluator (#1578)",
+      "mechanisms": [
+        "exact-addressed-memory"
+      ],
+      "lines": [
+        {
+          "name": "learned grounding and abstention",
+          "count": 0,
+          "of": 3
+        }
+      ],
+      "next": "Qualify learned grounding and abstention plus reset/forget, restart, eviction and scope isolation on the saved model; #1718 (20.8% false-write) and #1738 are open defects."
+    },
+    "m4": {
+      "issue": 2032,
+      "id": "M4",
+      "title": "One served model: the chosen model through D11 integer serving and a CLI",
+      "lab": "claude",
+      "status": "in-progress",
+      "headline": {
+        "label": "softmax at runtime",
+        "text": "softmax at runtime: yes",
+        "target": 0,
+        "target_display": "no (D23 prohibits softmax project-wide)",
+        "of": 1,
+        "unit": "prohibited site",
+        "note": "the live prompt's qualitative headline; D23 makes \"no\" the only accepted value. Acceptance items 1-3 (D11 parity, kernel audit, fresh-process restore) remain open."
+      },
+      "secondary": [
+        {
+          "label": "served BPB at 512 windows",
+          "current": 0.886838,
+          "target": 0.9,
+          "of": null
+        }
+      ],
+      "panel": "m4-served",
+      "base_artifact": "19.9M chat stack, 0.933 BPB served",
+      "mechanisms": [
+        "starling-read",
+        "flock-rank-reads",
+        "e8-orbit-memory",
+        "spin-native-weights"
+      ],
+      "lines": [
+        {
+          "name": "starling read",
+          "count": 1,
+          "of": 3
+        },
+        {
+          "name": "wide learned flock read",
+          "count": 0,
+          "of": 3,
+          "note": "registry follows the live prompt (0/3). The 12 October #2032 card recorded 1/3 for an arm-W miss that was not merged as a counted negative; the current-state entry says the count is reset because the tree met its mechanism target, then the arm misses again. Reconcile with the milestone issue before relying on either."
+        }
+      ],
+      "next": "Ten-seed starling confirmation plus the teacher age table, then 4096; then D11 CLI parity, kernel audit and fresh-process restore."
+    }
+  },
+  "owner_rules": [
+    {
+      "id": "D21",
+      "rule": "Three consecutive merged PRs on one line that do not move the milestone headline force a pivot card.",
+      "scope": "all",
+      "source": "docs/integration/DECISIONS.md"
+    },
+    {
+      "id": "D22",
+      "rule": "A negative closes a configuration, never a mechanism. Decisive runs use >=2 seeds or >=200 fresh rows, train the mechanism in, and carry a TEST FITNESS: FIT review on the milestone before compute.",
+      "scope": "all",
+      "source": "docs/integration/DECISIONS.md"
+    },
+    {
+      "id": "D23",
+      "rule": "No softmax anywhere in the active project: training, serving, sampling, objectives, auxiliary losses, teachers, comparators. No table/renamed equivalent. Interlock scripts/check_no_softmax.py.",
+      "scope": "all",
+      "source": "docs/integration/DECISIONS.md"
+    },
+    {
+      "id": "D24",
+      "rule": "No CPU model compute; no GPU on work that cannot change a decision. A host-side fallback is a defect, not a cost to report.",
+      "scope": "all",
+      "source": "docs/integration/DECISIONS.md"
+    },
+    {
+      "id": "OWNER-2026-10-12-NO-ACTIVATIONS",
+      "rule": "No softplus, sigmoid or tanh anywhere: the scalar-activation carve-out is closed.",
+      "scope": "all",
+      "source": "GitHub #2029 comment 2026-10-13T00:46Z (owner, Claude session)"
+    },
+    {
+      "id": "OWNER-2026-10-12-NO-MATMUL",
+      "rule": "No matmul in training or serving. CONFLICT: agent-execution-policy.json still states that training may use matrix multiplication; the newer owner freeze governs, and the policy file needs an owner ruling or an update.",
+      "scope": "all",
+      "source": "GitHub #2029 comment 2026-10-13T00:46Z"
+    },
+    {
+      "id": "OWNER-2026-10-12-GEOMETRY-ONLY",
+      "rule": "OP1 runs the Hamilton rotation gate G2 only; the rectified-square arm G1 is withdrawn as non-geometric. A G2 miss closes that configuration only (D22); there is no non-geometric fallback.",
+      "scope": "m1",
+      "source": "GitHub #2029 comment 2026-10-13T00:46Z"
+    },
+    {
+      "id": "OWNER-2026-10-12-NO-MLP-SCOPE",
+      "rule": "The ban is on the dense SwiGLU MLP, not on a feed-forward block built from the project's geometry; a Hamilton gate plus Hamilton projections is acceptable.",
+      "scope": "all",
+      "source": "GitHub #2029 comment 2026-10-13T00:46Z"
+    },
+    {
+      "id": "OWNER-2026-10-12-RULE-FREEZE",
+      "rule": "The rules as of 2026-10-12 21:55 are the COMPLETE constraint set until the first compliant training run (rung 0 on the compliant trunk) reports. New concerns need a proposal card and take effect only after that run; cost or safety problems are the only exception. A result that needed softmax anywhere is not progress on any line.",
+      "scope": "all",
+      "source": "GitHub #2029 comment 2026-10-13T00:46Z"
+    }
+  ],
+  "constraint_freeze": {
+    "as_of": "2026-10-12T21:55 local (owner, Claude session)",
+    "exit": "the first compliant training run (rung 0 on the compliant trunk) reports",
+    "note": "The constraint set changed four times on 12 October; about 40 PRs merged that day and the M1 headline did not move. This block makes a brief state the frozen set rather than whichever subset happened to be in DECISIONS.md."
+  }
+}

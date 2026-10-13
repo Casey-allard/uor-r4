@@ -1,0 +1,87 @@
+{
+  "schema": 1,
+  "note": "The dispatchable expert team: one role per question, with the default model route a lab should use. Routes are advisory defaults read from the configured subagent routes; a lab may override one, but a dispatch never widens the owner's compute caps or the D23/D24 rules. Read with `python3 scripts/harness/cli.py team roster`; record a dispatch with `team dispatch`.",
+  "roles": {
+    "architecture-reviewer": {
+      "title": "Architecture reviewer",
+      "seat": "planner",
+      "route": {"provider": "deepseek-account", "model": "deepseek-v4-pro", "reasoning": "max"},
+      "purpose": "Does this proposed change fit the native geometric architecture, or does it smuggle in a dense transformer, a CPU fallback or a softmax by another name?",
+      "skills": ["context-hydration", "research-plan-cycle", "expert-dispatch"],
+      "when": ["architecture review", "does this fit the native path", "new mechanism design", "adopt external prior art", "D11 D23 D24 compliance"],
+      "read_only": true
+    },
+    "experiment-designer": {
+      "title": "Experiment designer",
+      "seat": "planner",
+      "route": {"provider": "deepseek-account", "model": "deepseek-v4-pro", "reasoning": "high"},
+      "purpose": "What is the smallest decisive run that could move this milestone's headline, and what are its bar, split, seeds and stop rule?",
+      "skills": ["experiment-prereg", "panel-scoring", "cost-and-compute-admission"],
+      "when": ["design a run", "pre-register", "choose the bar", "what is a fair test", "test fitness"],
+      "read_only": true
+    },
+    "test-methodologist": {
+      "title": "Test methodologist",
+      "seat": "reviewer",
+      "route": {"provider": "deepseek-account", "model": "deepseek-v4-pro", "reasoning": "max"},
+      "purpose": "Could this pre-registered test as written actually judge the mechanism it names, or is it underpowered, bolted on, or circular?",
+      "skills": ["experiment-prereg", "panel-scoring", "lesson-and-guard"],
+      "when": ["TEST FITNESS review", "is the bar wide enough", "panel noise", "single seed", "judge the mechanism"],
+      "read_only": true
+    },
+    "systems-cost": {
+      "title": "Systems and cost",
+      "seat": "instrumenter",
+      "route": {"provider": "deepseek-account", "model": "deepseek-flash", "reasoning": "high"},
+      "purpose": "Is this run admissible at all — right machine, within the owner caps, on the cumulative ledger, and clear of the disk floor?",
+      "skills": ["cost-and-compute-admission", "lesson-and-guard"],
+      "when": ["budget", "cost projection", "uor-pod lease", "storage margin", "caps", "cumulative ledger"],
+      "read_only": true
+    },
+    "evidence-auditor": {
+      "title": "Evidence auditor",
+      "seat": "reviewer",
+      "route": {"provider": "deepseek-account", "model": "deepseek-v4-pro", "reasoning": "max"},
+      "purpose": "Is the delivered record complete and honest — exact artifact identities, scoped numbers, preserved negatives and a Next that follows?",
+      "skills": ["evidence-record", "panel-scoring", "lesson-and-guard"],
+      "when": ["audit the record", "review evidence", "delivery cadence", "check the numbers", "claim wording"],
+      "read_only": true
+    },
+    "source-falsifier": {
+      "title": "Source falsifier",
+      "seat": "reviewer",
+      "route": {"provider": "deepseek-account", "model": "deepseek-v4-pro", "reasoning": "max"},
+      "purpose": "What in the actual source contradicts this claim, and what is the smallest reproduction that would falsify it?",
+      "skills": ["context-hydration", "lesson-and-guard", "expert-dispatch"],
+      "when": ["falsify this", "contradict the claim", "independent reproduction", "does the source really do this", "check the citation"],
+      "read_only": true
+    },
+    "instrumenter": {
+      "title": "Instrumenter and implementer",
+      "seat": "engineer",
+      "route": {"provider": "deepseek-account", "model": "deepseek-v4-pro", "reasoning": "high"},
+      "purpose": "Build the named instrument, kernel or fixture at this path, with its focused test, without changing the contract it serves.",
+      "skills": ["cost-and-compute-admission", "experiment-prereg", "lesson-and-guard"],
+      "when": ["implement the instrument", "write the kernel", "fix the blocker", "add the fixture", "make the change"],
+      "read_only": false
+    },
+    "delivery-reviewer": {
+      "title": "Delivery reviewer",
+      "seat": "reviewer",
+      "route": {"provider": "deepseek-account", "model": "deepseek-v4-pro", "reasoning": "max"},
+      "purpose": "Is this exactly the PR described — line, count, headline, exact-head checks, record and current-state entry — and is anything in it stale or silently widened?",
+      "skills": ["research-plan-cycle", "evidence-record", "expert-dispatch"],
+      "when": ["exact-head review", "review the PR body", "line and count", "merge queue readiness", "delivery cadence check"],
+      "read_only": true
+    },
+    "history-curator": {
+      "title": "History curator",
+      "seat": "archivist",
+      "route": {"provider": "deepseek-account", "model": "deepseek-flash", "reasoning": "high"},
+      "purpose": "Has this configuration already been tested, kept or rejected, and what is the D21 count and the earlier lesson that applies here?",
+      "skills": ["evidence-record", "lesson-and-guard", "context-hydration"],
+      "when": ["what was already tried", "negative results", "D21 count", "archive a line", "prior evidence"],
+      "read_only": true
+    }
+  }
+}

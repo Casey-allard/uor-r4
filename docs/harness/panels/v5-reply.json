@@ -1,0 +1,37 @@
+{
+  "schema": 1,
+  "note": "Frozen acceptance panels. Targets come from the milestone issues (#2029-#2032) and docs/labs/session-goal.md; docs/harness/milestones.json is the machine cache. Where a panel's noise is not stated anywhere, the JSON says so instead of inventing one.",
+  "panels": {
+    "v5-reply": {
+      "title": "M1 language base: the open reply panel plus the v5 multi-turn memory panel",
+      "milestone": "m1",
+      "frozen": true,
+      "grader": "chat-grade (graded by qwen2.5:7b, grade-replies, temperature 0, seed 1)",
+      "source": "issue #2029 acceptance 1 and current state; docs/harness/milestones.json; docs/labs/session-goal.md DeepSeek DIRECTION",
+      "noise": "unstated for the reply panel; on the 40-row memory panel +/-3 rows is the noise seen (docs/labs/handoff-deepseek-2026-10-12.md: 'Bars are never narrower than the panel's noise (+/-3 rows on the 40-row memory panel)'). A bar must not be narrower than its panel's noise.",
+      "seeds": ">= 2 for a decisive run (D22 section 3)",
+      "rows": ">= 200 fresh rows for a decisive run (D22 section 3); the open reply panel is 232 rows",
+      "bars": [
+        {
+          "id": "reply-acceptable",
+          "label": "acceptable replies on the open reply panel",
+          "current": 37,
+          "target": 116,
+          "of": 232,
+          "unit": "acceptable replies",
+          "direction": "open"
+        },
+        {
+          "id": "v5-memory-check-pass",
+          "label": "v5 multi-turn memory panel check_pass",
+          "current": 20,
+          "target": 34,
+          "of": 40,
+          "unit": "check_pass rows",
+          "direction": "open",
+          "noise": "+/-3 rows (bench noise; not a stated panel sigma)"
+        }
+      ]
+    }
+  }
+}

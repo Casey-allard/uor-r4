@@ -1,0 +1,154 @@
+"""Tests for the harness core: front matter, redaction, receipts, brief assembly.
+
+Run from the repo root:  python3 -m unittest discover -s tests/harness -t . -v
+"""
+
+from __future__ import annotations
+
+import json
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+REPO = Path(__file__).resolve().parents[2]
+HARNESS = REPO / "scripts" / "harness"
+if str(HARNESS) not in sys.path:
+    sys.path.insert(0, str(HARNESS))
+
+import core  # noqa: E402
+import receipts  # noqa: E402
+import registries  # noqa: E402
+
+
+class TestFrontMatter(unittest.TestCase):
+    def test_scalars_lists_and_nested(self) -> None:
+        text = (
+            "---\n"
+            "name: demo\n"
+            "version: 2\n"
+            "flag: true\n"
+            "ratio: 0.5\n"
+            "tags: [a, b, c]\n"
+            "block:\n"
+            "  - one\n"
+            "  - two\n"
+            "nested:\n"
+            "  route:\n"
+            "    provider: deepseek-account\n"
+            "    model: deepseek-flash\n"
+            "---\n"
+            "body text\n"
+        )
+        fm, body = core.parse_front_matter(text)
+        self.assertEqual(fm["name"], "demo")
+        self.assertEqual(fm["version"], 2)
+        self.assertIs(fm["flag"], True)
+        self.assertEqual(fm["ratio"], 0.5)
+        self.assertEqual(fm["tags"], ["a", "b", "c"])
+        self.assertEqual(fm["block"], ["one", "two"])
+        self.assertEqual(fm["nested"]["route"]["model"], "deepseek-flash")
+        self.assertEqual(body.strip(), "body text")
+
+    def test_no_front_matter_is_not_an_error(self) -> None:
+        fm, body = core.parse_front_matter("# just markdown\n")
+        self.assertEqual(fm, {})
+        self.assertIn("just markdown", body)
+
+    def test_quoted_values_keep_their_text(self) -> None:
+        fm, _ = core.parse_front_matter('---\nwhen: ["a, b", c]\n---\nx\n')
+        self.assertEqual(fm["when"], ["a, b", "c"])
+
+
+class TestRedaction(unittest.TestCase):
+    def test_token_shapes_are_redacted(self) -> None:
+        text = "token ghp_abcdefghijklmnop and sk-abcdefghijkl"
+        out = core.redact(text)
+        self.assertNotIn("ghp_abcdefghijklmnop", out)
+        self.assertNotIn("sk-abcdefghijkl", out)
+        self.assertIn("<redacted>", out)
+
+    def test_secret_paths_are_recognised(self) -> None:
+        self.assertTrue(core.is_secret_path(Path("/home/u/.runpod/config.toml")))
+        self.assertTrue(core.is_secret_path(Path("/home/u/.dsh/.credentials.yaml")))
+        self.assertFalse(core.is_secret_path(Path("/repo/docs/harness/README.md")))
+
+
+class TestReceipts(unittest.TestCase):
+    def setUp(self) -> None:
+        self.tmp = tempfile.TemporaryDirectory()
+        root = Path(self.tmp.name)
+        (root / "docs" / "harness" / "ledger").mkdir(parents=True)
+        self.paths = core.HarnessPaths(repo=root, harness=root / "docs" / "harness", state=root / ".harness")
+
+    def tearDown(self) -> None:
+        self.tmp.cleanup()
+
+    def test_record_and_read_roundtrip(self) -> None:
+        rec = receipts.record(self.paths, "skill", skill="research-plan-cycle", milestone="m1")
+        self.assertEqual(rec["kind"], "skill")
+        self.assertEqual(rec["event"], "harness_skill_used")
+        self.assertIn("ts", rec)
+        back = receipts.read(self.paths)
+        self.assertEqual(len(back), 1)
+        self.assertEqual(back[0]["skill"], "research-plan-cycle")
+
+    def test_unknown_kind_is_rejected(self) -> None:
+        with self.assertRaises(ValueError):
+            receipts.record(self.paths, "nonsense")
+
+    def test_secret_like_fields_are_dropped(self) -> None:
+        rec = receipts.record(self.paths, "team", role="systems-cost", token="ghp_abcdefghijklmnop")
+        self.assertNotIn("token", rec)
+        raw = (self.paths.ledger_dir / f"{core.month()}.jsonl").read_text()
+        self.assertNotIn("ghp_", raw)
+
+    def test_summarize_counts_by_kind(self) -> None:
+        receipts.record(self.paths, "skill", skill="a")
+        receipts.record(self.paths, "skill", skill="a")
+        receipts.record(self.paths, "team", role="r")
+        s = receipts.summarize(self.paths)
+        self.assertEqual(s["total"], 3)
+        self.assertEqual(s["by_kind"], {"skill": 2, "team": 1})
+        self.assertEqual(s["skills_used"], {"a": 2})
+
+    def test_read_tolerates_a_corrupt_line(self) -> None:
+        receipts.record(self.paths, "skill", skill="a")
+        path = self.paths.ledger_dir / f"{core.month()}.jsonl"
+        with path.open("a", encoding="utf-8") as fh:
+            fh.write("{not json\n")
+        self.assertEqual(len(receipts.read(self.paths)), 1)
+
+
+class TestRealRegistries(unittest.TestCase):
+    """The committed registries must actually load; a broken registry is a hard error."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.paths = core.HarnessPaths.discover(repo=REPO)
+        cls.reg = registries.Registry.load(cls.paths)
+
+    def test_milestones_present(self) -> None:
+        for key in ("m1", "m2", "m3", "m4"):
+            self.assertIsNotNone(self.reg.milestones.get(key), key)
+        self.assertEqual(self.reg.milestones.get("m1").issue, 2029)
+        self.assertEqual(self.reg.milestones.get("2029").id, "M1")
+
+    def test_owner_rules_present(self) -> None:
+        ids = {r["id"] for r in self.reg.milestones.owner_rules}
+        self.assertLessEqual({"D21", "D22", "D23", "D24"}, ids)
+
+    def test_milestone_headline_line_is_readable(self) -> None:
+        line = self.reg.milestones.get("m1").headline_line()
+        self.assertIn("M1", line)
+        self.assertIn("->", line)
+
+    def test_decisions_parse_and_include_d23(self) -> None:
+        self.assertTrue(len(self.reg.decisions) >= 20)
+        from registries import find_decision
+
+        self.assertIsNotNone(find_decision(self.reg.decisions, "D23"))
+
+
+if __name__ == "__main__":
+    unittest.main()

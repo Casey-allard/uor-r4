@@ -169,6 +169,26 @@ withdraws the recent64 training follow-up. Training length, evaluation length,
 memory access and vector width must be reported separately. All agents, including
 RDC/DeepSeek/OpenCode sessions, inherit these rules through this file.
 
+## Research harness — start here, do not reconstruct the rules
+
+The plan, the milestone headline, the skills, the expert team, the acceptance panels, the
+pre-registrations and the lessons from past mistakes are queryable rather than prose to be
+re-derived each session. Read [docs/harness/README.md](docs/harness/README.md) once, then use it:
+
+- `python3 scripts/harness/cli.py status` — what is true now: headline, lines, receipts, delivery.
+- `python3 scripts/harness/cli.py brief -m m1` — the context for the task, with every source named.
+- `python3 scripts/harness/cli.py prep new -m m1` — the pre-registration sheet; get it to
+  `TEST FITNESS: FIT` on the milestone before any compute (D22).
+- `python3 scripts/harness/cli.py check` — every machine-checkable rule, with the fix for each.
+- `python3 scripts/harness/cli.py skill use <id>` / `team dispatch <role>` — one receipt line in
+  `docs/harness/ledger/`, so the owner can see what was actually loaded and deployed.
+- `python3 scripts/harness/cli.py mistakes find -f <files>` — what went wrong here before.
+
+The harness is a view over the authorities named in this file, never a replacement for them: the
+milestone issues, `DECISIONS.md`, `docs/mechanisms/` and the dated `docs/labs/` records stay
+authoritative. It runs no model compute and cannot move a headline number; per D24 no GPU work
+may run on it.
+
 ## Architecture and claim boundaries
 
 Use the name **UOR-R4 Geometric Language Model**. Technically it is an experimental autoregressive geometric state model with exact addressed memory and learned typed operators. Native attention/context access does not make it a transformer. Historical dense R4/Spin references remain transformers. Do not rename package/CLI/schema identifiers merely to change presentation.

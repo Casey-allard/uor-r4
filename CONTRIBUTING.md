@@ -97,6 +97,33 @@ Never add a dated changelog. Keep claims scoped and measured, with negatives whe
 claims are marked as unverified. A failed or retracted result stays on the record with its
 correction; it is never silently replaced.
 
+## The harness: run it, do not reconstruct it
+
+Planning, the milestone headline, what a skill requires, what a run costs and what went wrong
+before are all queryable. Do not rebuild them from prose each session, and do not carry them
+in your head:
+
+```
+python3 scripts/harness/cli.py status              # what is true now
+python3 scripts/harness/cli.py brief -m m1         # the context for this task, with sources
+python3 scripts/harness/cli.py prep new -m m1      # pre-register before any compute
+python3 scripts/harness/cli.py lint check --body-file <pr body>
+python3 scripts/harness/cli.py check               # every machine-checkable rule
+```
+
+Two habits keep it honest, and both are cheap:
+
+- **Receipt the work.** `cli.py skill use <id>` and `cli.py team dispatch <role>` write one line
+  to `docs/harness/ledger/`. A skill that was loaded, or an agent that was dispatched, without a
+  receipt is invisible to the owner - which is the failure this exists to end.
+- **Make a lesson a guard.** When something goes wrong, `cli.py mistakes capture` records the
+  trigger, symptom and lesson and names the rule that will catch it next time. A lesson with no
+  guard is a note that will be forgotten again.
+
+See [docs/harness/README.md](docs/harness/README.md) for the surface and
+[docs/harness/CONTRACT.md](docs/harness/CONTRACT.md) for every rule and its rationale.
+The harness is tooling: it runs no model compute, and its own output is never model evidence.
+
 ## Data, artifacts and compute
 
 - Results and large artifacts go to iCloud with `cloud-store put <lab> <dir>` (MD5 round-trip),

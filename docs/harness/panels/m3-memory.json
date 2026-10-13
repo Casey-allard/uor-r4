@@ -1,0 +1,28 @@
+{
+  "schema": 1,
+  "note": "Frozen acceptance panels. Targets come from the milestone issues (#2029-#2032) and docs/labs/session-goal.md; docs/harness/milestones.json is the machine cache. Where a panel's noise is not stated anywhere, the JSON says so instead of inventing one.",
+  "panels": {
+    "m3-memory": {
+      "title": "M3 durable conversation memory: typed outcomes qualified on the saved model",
+      "milestone": "m3",
+      "frozen": true,
+      "grader": "the typed-script evaluator delivered in #1578 (crates/uor-r4-training/src/bin/grounded-session.rs over grounded_session_eval), on stack_grounded_session (#1568)",
+      "source": "issue #2031 acceptance (full acceptance of #962 and #954 carried over verbatim) and current state (9 October); docs/harness/milestones.json",
+      "noise": "unstated. M3's acceptance is a set of capability qualifications (learned grounding and abstention, reset/forget, restart, eviction, scope isolation), so no panel sigma exists to quote; known defects #1718 (20.8% false-write, 8.7% overwrite) and #1738 are open. The 20.8% false-write rate is a defect measurement, not a frozen bar.",
+      "seeds": ">= 2 for a decisive run (D22 section 3); a fresh draw needs its criteria frozen before the draw",
+      "rows": ">= 200 fresh rows for a decisive run (D22 section 3)",
+      "bars": [
+        {
+          "id": "typed-outcomes-qualified",
+          "label": "typed outcomes (Answer/Conflict/Clarify/Abstain with provenance) qualified on the saved model",
+          "current": 0,
+          "target": 1,
+          "of": 1,
+          "unit": "qualified milestone",
+          "direction": "open",
+          "note": "the registry marks this headline 'vacuous': it is a capability gate (qualified / not qualified), not a measured count, so there is no numeric movement to score until the capability is demonstrated. It is the only acceptance item M3 states."
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "schema": 1,
+  "note": "Frozen acceptance panels. Targets come from the milestone issues (#2029-#2032) and docs/labs/session-goal.md; docs/harness/milestones.json is the machine cache. Where a panel's noise is not stated anywhere, the JSON says so instead of inventing one.",
+  "panels": {
+    "m2-reply512": {
+      "title": "M2 grounded reply: the frozen 512 reply panel plus the opened fresh-transfer draw",
+      "milestone": "m2",
+      "frozen": true,
+      "grader": "the saved native learner's own complete-reply evaluator (uor-r4-core::native_geometric compiler -> exact store -> emitter; the frozen 512 development panel and the fresh 128-row draw)",
+      "source": "issue #2030 acceptance 1-2 and current state (10 October); docs/harness/milestones.json",
+      "noise": "unstated. No panel sigma or seed-to-seed spread is stated for the 512 panel anywhere read (issue #2030, milestones.json, session-goal.md). A bar must not be narrower than it; measure it before claiming a real difference.",
+      "seeds": ">= 2 for a decisive run (D22 section 3); D22 section 5b names >= 2 seeds for joint learning",
+      "rows": ">= 200 fresh rows for a decisive run (D22 section 3); the fresh transfer draw is 128 rows, so the seed floor applies there",
+      "bars": [
+        {
+          "id": "complete-correct-512",
+          "label": "complete correct replies on the frozen development panel",
+          "current": 437,
+          "target": 256,
+          "of": 512,
+          "unit": "correct replies",
+          "direction": "open",
+          "note": "the registry's current value (437) already exceeds the target (256); the milestone is marked incomplete because D22 section 4 records the saved model's fresh transfer at 0/128, so the development number is panel fitting until transfer exists"
+        },
+        {
+          "id": "fresh-transfer",
+          "label": "fresh held-out transfer (opened draw)",
+          "current": 0,
+          "target": 51,
+          "of": 128,
+          "unit": "correct replies",
+          "direction": "open",
+          "note": "the registry's target 51/128 equals the issue's '>= 40%' rule (0.40 x 128 = 51.2, so 51), and the issue also fixes the criteria before the draw"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "schema": 1,
+  "note": "Frozen acceptance panels. Targets come from the milestone issues (#2029-#2032) and docs/labs/session-goal.md; docs/harness/milestones.json is the machine cache. Where a panel's noise is not stated anywhere, the JSON says so instead of inventing one.",
+  "panels": {
+    "m4-served": {
+      "title": "M4 one served model: no softmax at runtime, and served BPB at 512 windows",
+      "milestone": "m4",
+      "frozen": true,
+      "grader": "the D11 integer serving path (bit-exact integer parity against the float reference) plus scripts/check_no_softmax.py for acceptance item 0",
+      "source": "issue #2032 acceptance 0-3 and current state (9 October); docs/harness/milestones.json; D23/D24 in docs/integration/DECISIONS.md",
+      "noise": "unstated for both bars. BPB differences smaller than the run's own seed/step spread are not differences; measure that spread before calling a BPB move real. D23 makes acceptance item 0 absolute: any prohibited site, at any size, is a violation rather than noise.",
+      "seeds": ">= 2 for a decisive run (D22 section 3); the M4 next step in the registry names a ten-seed starling confirmation",
+      "rows": ">= 200 fresh rows for a decisive run (D22 section 3)",
+      "bars": [
+        {
+          "id": "softmax-at-runtime",
+          "label": "softmax-shaped normalization in the served read and copy paths (D23; acceptance item 0)",
+          "current": 0,
+          "target": 0,
+          "of": 1,
+          "unit": "prohibited site",
+          "direction": "must be 0",
+          "note": "a forbid bar with no headroom: the target is the current value (0), so zero is PASS, any measured site is FAIL, and there is no 'improvement' to score. check_no_softmax.py ratchets the executable tree against scripts/no-softmax-baseline.json (D24 interlock)."
+        },
+        {
+          "id": "served-bpb-512",
+          "label": "served BPB at 512 windows",
+          "current": 0.886838,
+          "target": 0.9,
+          "of": null,
+          "unit": "BPB",
+          "direction": "ceiling",
+          "note": "lower is better and the target is a ceiling; the registry's current value (0.886838) is already below the 0.9 acceptance ceiling, so this bar is met and the milestone's open items are D11 CLI parity, the kernel audit and fresh-process restore. The issue body's older 0.933 BPB belongs to the 19.9M chat stack and is a different artifact from the registry's 0.886838 - do not average them."
+        }
+      ]
+    }
+  }
+}

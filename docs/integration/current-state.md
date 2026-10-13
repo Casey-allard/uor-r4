@@ -1,3 +1,23 @@
+## 2026-10-12 — A research harness that makes the plan, the skills, the team and the lessons queryable (lead, tooling)
+
+The [record](../labs/harness-2026-10-12/README.md) is a standard-library CLI (`scripts/harness/cli.py`)
+plus registries under `docs/harness/`: 12 commands, 9 skills, 9 dispatchable roles, 13 mined lessons,
+4 frozen panels, a rule engine, and receipts that record every skill use and agent dispatch as one
+committed JSON line. No model compute was run and none is admitted to it (D24); no headline number
+moved. It found, as its first act, that the milestone registry had drifted from the live
+`session-goal.md` prompts (M2 `protected/discrete constructor` 5/3 on the GitHub card against 0/3 in
+the prompt the lab reads; the Kimi lab's `evaluation integrity` line present in no registry), that a
+PR body could satisfy the D22 gate by matching the template's own unticked pre-registration checkbox,
+and that two merged branches (`deepseek/invariant-router` #2247, `bpb-split` #2081) are still standing
+against the 9 October rule. 212 tests pass; `.github/workflows/harness.yml` runs the rules
+path-filtered so they do not compete for the shared runner slot.
+
+Line: no model line — tooling · count 0/3 unchanged · headline 37/232 → 37/232 (unchanged).
+
+**Next:** decide whether `uor-harness brief -m <milestone>` replaces re-deriving session context from
+prose; the two standing branches need their owning labs to clear them; and `uor-knowledge` needs a
+refresh path wired into session start before anyone trusts it for a decision.
+
 ## 2026-10-12 — The operator phase: geometric replacements for the gate, projections and head; Kimi appointed project manager (kimi, #2029)
 
 The owner decided four things in the Kimi session (recorded on

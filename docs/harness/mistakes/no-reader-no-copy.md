@@ -1,0 +1,49 @@
+---
+id: no-reader-no-copy
+title: Copy or read recalled across a multi-turn conversation when the artifact has no reader
+date: 2026-10-09
+severity: block
+class: evidence
+trigger: [no reader, no memory reader, chain traversal, abstention, eviction, copy recalled, multi-turn, cross-product]
+paths: [crates/uor-r4-core/src/native_geometric/**, docs/labs/**, docs/mechanisms/read-binding.md]
+milestones: [m1, m3]
+mechanism: read-binding
+guard: none: the qualifier lives on the artifact, not in a file the engine can read; the acceptance panel and the record carry it
+evidence: [docs/labs/pointer-selected-ids-decode-2026-10-09/README.md, docs/labs/pcopy-mass-read-2026-10-09/README.md, docs/mechanisms/read-binding.md]
+status: active
+---
+
+## What happened
+
+The decode record carries its own structural qualifier in the first paragraph: "this
+artifact has NO MEMORY READER". It is a reading on the control arm - the pointer attends
+the sentence frame, never the value's slot - and it was deliberately not offered as a v5
+re-run, a judge result or a `check_pass` measurement. Around the same period the same lab
+produced several copy/read readings across numeric rows, word rows and 13 rows of one
+artifact at one knob setting.
+
+## Symptom
+
+A capability is claimed from an artifact that cannot exercise it: a memory read recalled
+on a model with no reader, an abstention offered without proving eviction, a copy claim
+from a control arm, or a qualified change that covers one value of an interacting set.
+Chain traversal makes it worse: a rejected or unfollowed link is not proof the record is
+absent.
+
+## Lesson
+
+State the artifact's structural qualifier in the same breath as the result, and prove the
+negative separately. Absence of a record needs an eviction witness (an overwritten ring
+slot), not an unfollowed link. A change is qualified only over the cross-product of
+interacting supported behaviors (for example same-value reassertions with
+initial/previous/current intents), not over the one combination that was run.
+
+## How to apply
+
+- First paragraph of the record: what artifact this is, what it cannot do, and which arm
+  (control or treatment) produced the reading.
+- For an abstention, attach the eviction evidence; without it, do not offer the abstention.
+- Cover the cross-product before claiming the behavior; enumerate the combinations in the
+  record even when only one ran.
+- Run the cheap actual-artifact multi-turn check as soon as a candidate passes
+  construction, before the preservation, comparison and final-fresh campaign.
