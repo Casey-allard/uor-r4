@@ -337,8 +337,18 @@ __device__ __forceinline__ float rate_entry(uint index) {
 }
 
 __device__ __forceinline__ float keep_entry(uint index) {
-    float rate = rate_entry(index);
-    return sqrtf(1.0f - rate * rate);
+    // Same precomputed F32 table as KEEP_TABLE; no backend-dependent
+    // subtraction/square-root rounding changes the declared table entries.
+    const float entries[16] = {
+        0.8660253882408142f, 0.9682458639144897f,
+        0.9921567440032959f, 0.9980449676513672f,
+        0.9995115995407104f, 0.9998779296875f,
+        0.999969482421875f, 0.9999923706054688f,
+        0.9999980926513672f, 0.9999995231628418f,
+        0.9999998807907104f, 0.9999999403953552f,
+        1.0f, 1.0f, 1.0f, 1.0f
+    };
+    return entries[index];
 }
 
 __device__ __forceinline__ uint rate_index_of(float score) {
@@ -367,7 +377,7 @@ extern "C" __global__ void rate_select_bwd(
     float credit = 0.0f;
     float sides = 0.0f;
     if (index > 0u) {
-        credit += d_lambda * (rate_entry(index - 1u) - rate_entry(index))
+        credit -= d_lambda * (rate_entry(index - 1u) - rate_entry(index))
                 + d_keep * (keep_entry(index - 1u) - keep_entry(index));
         sides += 1.0f;
     }

@@ -3087,6 +3087,13 @@ fn initial_variable_values(
                 }
             })
             .collect(),
+        // Direct rate-address parameters for the geometric law. Historical
+        // inverse-logistic logits are >1 and would saturate its exact clamp.
+        // Round-robin bin centres keep all sixteen declared addresses in the
+        // initialization; this consumes no RNG and preserves seed draw order.
+        "rec.decay" if config.rec_gates == RecGates::Geometric => (0..count)
+            .map(|lane| ((lane % RATE_ENTRIES) as f32 + 0.5) / RATE_ENTRIES as f32)
+            .collect(),
         "rec.decay" => (0..count)
             .map(|lane| {
                 let fraction = lane as f64 / (count.max(2) - 1) as f64;
@@ -9804,6 +9811,16 @@ impl StackModel {
         x: &Tensor,
         capture: &mut Capture<'_>,
     ) -> Result<Tensor> {
+        if self.config.rec_gates == RecGates::Geometric {
+            // The fused historical core retains sigmoid/exponential/GELU laws.
+            // A geometric configuration must never enter that core merely
+            // because the ordinary forward (rather than a diagnostic) is used.
+            if self.transport.is_some() {
+                return Err(invalid("geometric recurrence has no CUDA transport-snap implementation; no host fallback"));
+            }
+            tap(capture, StackSite::Recurrence(layer), || self.unit_norm(x))?;
+            return self.composed_recurrence_hooked(p, layer, x, ComposedTransport::Free, capture);
+        }
         let (batch, time, width) = x.dims3()?;
         tap(capture, StackSite::Recurrence(layer), || self.unit_norm(x))?;
         let u = self.norm(p, x, &layer_name(layer, "rec_norm.weight"))?;
@@ -10248,6 +10265,35 @@ impl StackModel {
         self.native_vector_head.as_ref()
     }
 
+    /// Admission for the currently declared recurrence-only native learning
+    /// path. A head-only qualification cannot admit a historical trunk.
+    pub fn validate_native_learning_path(&self) -> Result<()> {
+        if self.native_vector_head.is_none() {
+            return Ok(());
+        }
+        self.native_vector_writer()?;
+        if !self.device.is_cuda()
+            || self.precision != Precision::F32
+            || self.config.arch != StackArch::Geometric
+            || self.config.rec_gates != RecGates::Geometric
+            || self.config.gate != Gate::Hamilton
+            || self.config.pattern.is_empty()
+            || !self.config.pattern.chars().all(|kind| kind == 'r')
+            || self.config.memory.is_some()
+            || self.e8_memory.is_some()
+            || self.served.is_some()
+            || self.transport.is_some()
+            || self.geometric_address.is_some()
+            || self.geometric_span.is_some()
+            || self.read_silence.is_some()
+            || self.activation_snap != ActivationSnap::None
+            || self.quaternion_snap != QuaternionSnap::None
+        {
+            return Err(invalid("native learning requires the declared F32 CUDA recurrence-only geometric/Hamilton/FBS trunk; historical, read, memory, served and host-snap paths are not admitted"));
+        }
+        Ok(())
+    }
+
     /// Typed bounded candidates, including IDs and admission, rather than a
     /// fabricated all-vocabulary logits tensor. Full-trunk use remains held.
     pub fn native_head_candidates(
@@ -10348,6 +10394,7 @@ impl StackModel {
         gates: LatchGates,
         source: ReadSource<'_>,
     ) -> Result<Tensor> {
+        self.validate_native_learning_path()?;
         for layer in layers {
             if self.read_silence == Some(layer) {
                 // Read-out ablation: this read head contributes nothing.
@@ -12630,6 +12677,7 @@ impl StackModel {
         time: usize,
         transport: ComposedTransport<'_>,
     ) -> Result<Tensor> {
+        self.validate_native_learning_path()?;
         let p = self.params()?;
         let mut x = self.embed_with(&p, ids, batch, time)?;
         let tokens = x.clone();
@@ -12678,6 +12726,23 @@ impl StackModel {
         x: &Tensor,
         transport: ComposedTransport<'_>,
     ) -> Result<Tensor> {
+        self.composed_recurrence_hooked(p, layer, x, transport, &mut None)
+    }
+
+    fn composed_recurrence_hooked(
+        &self,
+        p: &Params<'_>,
+        layer: usize,
+        x: &Tensor,
+        transport: ComposedTransport<'_>,
+        capture: &mut Capture<'_>,
+    ) -> Result<Tensor> {
+        self.validate_native_learning_path()?;
+        if self.config.rec_gates == RecGates::Geometric
+            && (!self.device.is_cuda() || !matches!(transport, ComposedTransport::Free))
+        {
+            return Err(invalid("geometric recurrence requires CUDA with unsnapped transport; no CPU reference or host snap fallback"));
+        }
         let (batch, time, width) = x.dims3()?;
         let lanes = width / 4;
         let u = self.norm(p, x, &layer_name(layer, "rec_norm.weight"))?;
@@ -12781,6 +12846,9 @@ impl StackModel {
         } else {
             state.mul(&gate.gelu()?)?
         };
+        tap(capture, StackSite::RecurrenceOut(layer), || {
+            Ok(mixed.clone())
+        })?;
         self.linear(&mixed, p.layer(layer, "rec.out.weight")?)
     }
 }
@@ -14288,6 +14356,40 @@ pub fn gradient_square_sum_reference(tensors: &[&Tensor]) -> Result<f32> {
     Ok(Tensor::cat(&sums, 0)?.sum_all()?.to_scalar::<f32>()?)
 }
 
+/// Compute norm and clipping on CUDA. Only the diagnostic norm is returned
+/// to the host; the model-dependent clipping scale remains a device tensor.
+fn cuda_gradient_clip(tensors: &[&Tensor], clip: f64) -> Result<(Tensor, Tensor)> {
+    let first = tensors
+        .first()
+        .ok_or_else(|| invalid("no CUDA gradients to clip"))?;
+    if !first.device().is_cuda()
+        || tensors.iter().any(|tensor| {
+            tensor.dtype() != DType::F32 || !tensor.device().same_device(first.device())
+        })
+        || !clip.is_finite()
+        || clip < 0.0
+        || (clip > 0.0 && clip < f32::MIN_POSITIVE as f64)
+        || clip > f64::from(f32::MAX)
+        || (clip > 0.0 && clip as f32 == 0.0)
+    {
+        return Err(invalid(
+            "gradient clipping requires F32-representable configuration and same-device F32 CUDA gradients",
+        ));
+    }
+    let squares = tensors
+        .iter()
+        .map(|grad| grad.sqr()?.sum_all()?.reshape(1))
+        .collect::<candle_core::Result<Vec<_>>>()?;
+    let norm = Tensor::cat(&squares, 0)?.sum_all()?.sqrt()?;
+    let scale = if clip > 0.0 {
+        Tensor::full(clip as f32, (), first.device())?
+            .broadcast_div(&norm.clamp(clip, f32::MAX as f64)?)?
+    } else {
+        Tensor::ones((), DType::F32, first.device())?
+    };
+    Ok((norm, scale))
+}
+
 /// AdamW with global gradient-norm clipping and resumable moments.
 pub struct StackAdamW {
     pub beta1: f64,
@@ -14367,8 +14469,23 @@ impl StackAdamW {
         grads: &candle_core::backprop::GradStore,
         lr: f64,
     ) -> Result<f64> {
+        model.validate_native_learning_path()?;
         let mut total = 0f64;
-        if matches!(model.device(), Device::Metal(_) | Device::Cuda(_)) {
+        let mut device_scale = None;
+        if model.device().is_cuda() {
+            let present: Vec<&Tensor> = model
+                .variables()
+                .values()
+                .filter_map(|var| grads.get(var.as_tensor()))
+                .collect();
+            if !present.is_empty() {
+                let (norm, scale) = cuda_gradient_clip(&present, self.clip)?;
+                // Reporting/error admission only: this scalar does not compute
+                // or feed clipping, gradients, moments or parameter values.
+                total = f64::from(norm.to_scalar::<f32>()?);
+                device_scale = Some(scale);
+            }
+        } else if matches!(model.device(), Device::Metal(_)) {
             let present: Vec<&Tensor> = model
                 .variables()
                 .values()
@@ -14384,11 +14501,17 @@ impl StackAdamW {
                 }
             }
         }
-        let norm = total.sqrt();
+        let norm = if model.device().is_cuda() {
+            total
+        } else {
+            total.sqrt()
+        };
         if !norm.is_finite() {
             return Err(invalid("nonfinite gradient norm"));
         }
-        let scale = if self.clip > 0.0 && norm > self.clip {
+        let scale = if device_scale.is_some() {
+            1.0
+        } else if self.clip > 0.0 && norm > self.clip {
             self.clip / norm
         } else {
             1.0
@@ -14399,6 +14522,13 @@ impl StackAdamW {
         for (name, var) in model.variables() {
             let Some(grad) = grads.get(var.as_tensor()) else {
                 continue;
+            };
+            let clipped;
+            let grad = if let Some(scale) = &device_scale {
+                clipped = grad.broadcast_mul(scale)?;
+                &clipped
+            } else {
+                grad
             };
             let (m, v) = self
                 .moments
@@ -18506,7 +18636,7 @@ pub fn rate_index(score: f32) -> usize {
 /// incoming adjoints `(d lambda, d keep)` with the neighbours' complete
 /// counterfactual table displacement `(lambda_s' - lambda_s, keep_s' - keep_s)`
 /// and resolves that loss contrast along the fixed edge between the entries
-/// (`1 / RATE_ENTRIES`), one half to each side and the whole weight to a lone
+/// (`(s' - s) / RATE_ENTRIES`), one half to each side and the whole weight to a lone
 /// neighbour at either end of the table. No probability, no exponential and no
 /// learned coefficient appears: the surrogate is a secant over a fixed table.
 struct RateSelect;
@@ -18588,7 +18718,9 @@ impl candle_core::CustomOp1 for RateSelect {
                 let contrast = f64::from(d_lambda)
                     * f64::from(RATE_TABLE[neighbour] - RATE_TABLE[s])
                     + f64::from(d_keep) * f64::from(KEEP_TABLE[neighbour] - KEEP_TABLE[s]);
-                credit += contrast;
+                // The lower edge points in the negative score direction.
+                // Divide by its signed displacement, not its unsigned length.
+                credit += contrast / (neighbour as f64 - s as f64);
                 sides += 1.0;
             }
             if sides > 0.0 {
@@ -22113,7 +22245,8 @@ mod tests {
         for neighbour in [7usize, 9] {
             want += 0.5
                 * (f64::from(d_lambda) * f64::from(RATE_TABLE[neighbour] - RATE_TABLE[8])
-                    + f64::from(d_keep) * f64::from(KEEP_TABLE[neighbour] - KEEP_TABLE[8]));
+                    + f64::from(d_keep) * f64::from(KEEP_TABLE[neighbour] - KEEP_TABLE[8]))
+                / (neighbour as f64 - 8.0);
         }
         want *= RATE_ENTRIES as f64;
         assert!(
@@ -22166,6 +22299,200 @@ mod tests {
             d_raw[1] != 0.0,
             "inside the segment the credit must reach the raw score"
         );
+        Ok(())
+    }
+
+    /// Stored analytic one-sided/central secants, all model arithmetic on CUDA.
+    /// In particular lambda decreases as the address score increases on BOTH
+    /// neighbours; treating the lower edge as positive reverses its credit.
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn geometric_rate_cuda_uses_signed_edges_and_exact_keep_table() -> Result<()> {
+        let device = Device::new_cuda(0)?;
+        let scores = Var::from_tensor(&Tensor::from_vec(vec![0.0f32, 0.1, 0.95], 3, &device)?)?;
+        let selected = rate_select(scores.as_tensor())?;
+        let incoming = Tensor::from_vec(vec![1.0f32, 0.0, 1.0, 0.0, 1.0, 0.0], (3, 2), &device)?;
+        let gradients = selected.mul(&incoming)?.sum_all()?.backward()?;
+        let actual = gradients
+            .get(scores.as_tensor())
+            .ok_or_else(|| invalid("CUDA rate score credit missing"))?
+            .to_vec1::<f32>()?;
+        assert_eq!(actual, vec![-4.0f32, -3.0, -0.000244140625]);
+
+        // Score constants enumerate the declared table addresses, not a host
+        // evaluation of the forward or its reference arithmetic.
+        let addresses = Tensor::from_vec(
+            (0..RATE_ENTRIES)
+                .map(|i| i as f32 / 16.0)
+                .collect::<Vec<_>>(),
+            RATE_ENTRIES,
+            &device,
+        )?;
+        let values = rate_select(&addresses)?.to_vec2::<f32>()?;
+        for (index, value) in values.iter().enumerate() {
+            assert_eq!(value[0].to_bits(), RATE_TABLE[index].to_bits());
+            assert_eq!(value[1].to_bits(), KEEP_TABLE[index].to_bits());
+        }
+        Ok(())
+    }
+
+    /// Ordinary six-layer dispatch, not the separate composed diagnostic API.
+    /// One fixed GPU forward/backward, without an optimizer or quality panel.
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn geometric_rung0_cuda_ordinary_path_has_learning_credit() -> Result<()> {
+        let device = Device::new_cuda(0)?;
+        let mut config = StackConfig::transformer_control(42);
+        config.arch = StackArch::Geometric;
+        config.pattern = "rrrrrr".into();
+        config.width = 256;
+        config.heads = 4;
+        config.mlp_hidden = 384;
+        config.context = 384;
+        config.vocab_size = 4096;
+        config.rotation = true;
+        config.gate = Gate::Hamilton;
+        config.rec_gates = RecGates::Geometric;
+        config.objective = Objective::MarginHinge { rivals: 8 };
+        let mut model = StackModel::new(config, &device)?;
+        model.set_quaternion_weights(QuaternionWeights::SpiralcoreFbs)?;
+        model.set_native_vector_head(8)?;
+        let batch = 16;
+        let time = 384;
+        // Deterministic fixture token IDs, not a corpus or quality panel.
+        let cycle = [0u32, 1, 0, 2, 1, 3, 2, 4];
+        let next_cycle = [1u32, 0, 2, 1, 3, 2, 4, 5];
+        let ids = (0..batch * time)
+            .map(|i| cycle[i % cycle.len()])
+            .collect::<Vec<_>>();
+        let targets = (0..batch * time)
+            .map(|i| next_cycle[i % next_cycle.len()])
+            .collect::<Vec<_>>();
+        let loss = model.loss(&ids, &targets, batch, time)?;
+        assert!(loss.to_scalar::<f32>()?.is_finite());
+        let gradients = loss.backward()?;
+        for (name, variable) in model.variables() {
+            let gradient = gradients
+                .get(variable.as_tensor())
+                .ok_or_else(|| invalid(format!("ordinary rung0 credit missing: {name}")))?;
+            assert!(
+                gradient.device().is_cuda(),
+                "gradient moved off CUDA: {name}"
+            );
+            assert_eq!(gradient.shape(), variable.shape(), "gradient shape: {name}");
+            assert_eq!(
+                gradient.abs()?.le(f32::MAX)?.min_all()?.to_scalar::<u8>()?,
+                1,
+                "nonfinite ordinary rung0 credit: {name}"
+            );
+            if name.ends_with("rec.decay") || name.ends_with("rec.gate.spiralcore_fbs") {
+                assert!(
+                    gradient.abs()?.sum_all()?.to_scalar::<f32>()? > 0.0,
+                    "geometric rate/opening credit disconnected at fresh initialization: {name}"
+                );
+            }
+        }
+        Ok(())
+    }
+
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn geometric_cuda_clipping_matches_stored_analytic_values() -> Result<()> {
+        let device = Device::new_cuda(0)?;
+        let first = Tensor::from_vec(vec![3.0f32], 1, &device)?;
+        let second = Tensor::from_vec(vec![4.0f32], 1, &device)?;
+        let (norm, scale) = cuda_gradient_clip(&[&first, &second], 2.5)?;
+        assert!(norm.device().is_cuda() && scale.device().is_cuda());
+        assert_eq!(norm.to_scalar::<f32>()?, 5.0);
+        assert_eq!(scale.to_scalar::<f32>()?, 0.5);
+        assert_eq!(first.broadcast_mul(&scale)?.to_vec1::<f32>()?, vec![1.5]);
+        assert_eq!(second.broadcast_mul(&scale)?.to_vec1::<f32>()?, vec![2.0]);
+        for limit in [0.0, 10.0] {
+            let (norm, scale) = cuda_gradient_clip(&[&first, &second], limit)?;
+            assert_eq!(norm.to_scalar::<f32>()?, 5.0);
+            assert_eq!(scale.to_scalar::<f32>()?, 1.0);
+        }
+        let zero = Tensor::zeros(2, DType::F32, &device)?;
+        let (norm, scale) = cuda_gradient_clip(&[&zero], 2.5)?;
+        assert_eq!(norm.to_scalar::<f32>()?, 0.0);
+        assert_eq!(scale.to_scalar::<f32>()?, 1.0);
+        let host_constant = Tensor::from_vec(vec![3.0f32], 1, &Device::Cpu)?;
+        assert!(cuda_gradient_clip(&[&host_constant], 2.5).is_err());
+        assert!(cuda_gradient_clip(&[&first], f64::NAN).is_err());
+        assert!(cuda_gradient_clip(&[&first], 1e-100).is_err());
+        assert!(cuda_gradient_clip(&[&zero], 1e-40).is_err());
+        assert!(cuda_gradient_clip(&[&first], f64::from(f32::MAX) * 2.0).is_err());
+        Ok(())
+    }
+
+    /// Stored zero-carrier golden: six actual recurrence/projection/MLP layers
+    /// map zero to zero; the exact table has token0=zero and every other row=1.
+    /// Thus all atlas cells tie, cells0..7 are admitted, emission is token0,
+    /// and omitted target8 has token-margin2 plus address-margin1.
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn geometric_rung0_cuda_composition_matches_zero_carrier_golden() -> Result<()> {
+        let device = Device::new_cuda(0)?;
+        let mut config = StackConfig::transformer_control(42);
+        config.arch = StackArch::Geometric;
+        config.pattern = "rrrrrr".into();
+        config.width = 256;
+        config.heads = 4;
+        config.mlp_hidden = 384;
+        config.context = 384;
+        config.vocab_size = 4096;
+        config.rotation = true;
+        config.gate = Gate::Hamilton;
+        config.rec_gates = RecGates::Geometric;
+        config.objective = Objective::MarginHinge { rivals: 1 };
+        let mut model = StackModel::new(config, &device)?;
+        model.set_quaternion_weights(QuaternionWeights::SpiralcoreFbs)?;
+        model.set_native_vector_head(8)?;
+        for variable in model.variables().values() {
+            variable.set(&Tensor::zeros(variable.shape(), DType::F32, &device)?)?;
+        }
+        model.variables()["final_norm.weight"].set(&Tensor::ones(256, DType::F32, &device)?)?;
+        let table = Tensor::cat(
+            &[
+                Tensor::zeros((1, 256), DType::F32, &device)?,
+                Tensor::ones((4095, 256), DType::F32, &device)?,
+            ],
+            0,
+        )?;
+        model.variables()["embedding.weight"].set(&table)?;
+        let hidden = model.hidden(&[0, 0], 1, 2)?;
+        assert_eq!(hidden.dims(), &[2, 256]);
+        assert_eq!(hidden.abs()?.sum_all()?.to_scalar::<f32>()?, 0.0);
+        let writer = model.native_vector_writer()?;
+        let candidates = writer.candidates(&hidden)?;
+        assert_eq!(
+            candidates.cell_ids().to_vec2::<u32>()?,
+            vec![vec![0, 1, 2, 3, 4, 5, 6, 7]; 2]
+        );
+        assert_eq!(writer.write(&hidden)?.to_vec1::<u32>()?, vec![0, 0]);
+        let admitted = writer.margin_components(&candidates, &[0, 0], 1)?;
+        assert_eq!(admitted.token_margin.to_scalar::<f32>()?, 0.0);
+        assert_eq!(admitted.address_margin.to_scalar::<f32>()?, 1.0);
+        let omitted = writer.margin_components(&candidates, &[8, 8], 1)?;
+        assert_eq!(omitted.token_margin.to_scalar::<f32>()?, 2.0);
+        assert_eq!(omitted.address_margin.to_scalar::<f32>()?, 1.0);
+        assert_eq!(model.loss(&[0, 0], &[8, 8], 1, 2)?.to_scalar::<f32>()?, 3.0);
+
+        // These mutations must refuse before their historical/read paths run.
+        model.config.rec_gates = RecGates::Historical;
+        assert!(model.hidden(&[0], 1, 1).is_err());
+        assert!(model.logits_with_transport(&[0], 1, 1, None).is_err());
+        model.config.rec_gates = RecGates::Geometric;
+        model.config.gate = Gate::Swiglu;
+        assert!(model.hidden(&[0], 1, 1).is_err());
+        assert!(model.logits_with_transport(&[0], 1, 1, None).is_err());
+        model.config.gate = Gate::Hamilton;
+        model.config.pattern = "rrrrra".into();
+        assert!(model.hidden(&[0], 1, 1).is_err());
+        assert!(model.logits_with_transport(&[0], 1, 1, None).is_err());
+        model.config.pattern = "rrrrrr".into();
+        model.set_precision(Precision::Bf16);
+        assert!(model.hidden(&[0], 1, 1).is_err());
         Ok(())
     }
 

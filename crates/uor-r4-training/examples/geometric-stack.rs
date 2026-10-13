@@ -360,6 +360,9 @@ use std::time::Instant;
 use candle_core::{DType, Device};
 use serde_json::{json, Value};
 use uor_r4_core::native_geometric::learner::embedding::canonical_h4_roots;
+#[path = "geometric-stack/native_rung0.rs"]
+mod native_rung0;
+
 use uor_r4_core::report_output;
 use uor_r4_tokenizer::dialogue::DialogueProtocol;
 use uor_r4_training::dialogue_development;
@@ -781,6 +784,9 @@ struct Settings {
     train: Vec<PathBuf>,
     train_weights: Vec<f64>,
     valid: PathBuf,
+    valid_mask: Option<PathBuf>,
+    native_bos_id: Option<u32>,
+    expected_dev_targets: usize,
     lens: Option<PathBuf>,
     merges: Option<PathBuf>,
     tokenizer: Option<PathBuf>,
@@ -1275,6 +1281,7 @@ impl Settings {
         );
         json!({
             "train": self.train, "train_weights": self.train_weights, "valid": self.valid,
+            "valid_mask": self.valid_mask, "bos_id": self.native_bos_id, "expected_dev_targets": self.expected_dev_targets,
             "lens": self.lens, "merges": self.merges, "tokenizer": self.tokenizer,
             "config": self.config, "init": init,
             "qat": self.qat, "qat_codec": self.qat.then(|| qat_codec().name().to_owned()),
@@ -1327,6 +1334,17 @@ impl Settings {
         if let Some(mode) = self.quaternion_weights {
             lineage["quaternion_weights"] = json!(mode);
         }
+        if self.native_vector_head {
+            lineage["head"] = json!("spiralcore_product");
+            lineage["native_vector_head"] = json!({
+                "schema": uor_r4_training::native_vector_writer::SCHEMA,
+                "vocabulary": self.config.vocab_size,
+                "width": self.config.width,
+                "kept_cells": uor_r4_training::native_vector_writer::DEFAULT_KEPT_CELLS,
+            });
+            lineage["evaluation"] =
+                json!("native masked-response token/address margins, top1, recall8; no likelihood");
+        }
         lineage
     }
 
@@ -1340,6 +1358,7 @@ impl Settings {
         let mut inputs = json!({
             "train": self.train.iter().map(|p| content(p)).collect::<Result<Vec<_>>>()?,
             "valid": content(&self.valid)?,
+            "valid_mask": self.valid_mask.as_deref().map(content).transpose()?,
             "lens": self.lens.as_deref().map(content).transpose()?,
             "merges": self.merges.as_deref().map(content).transpose()?,
             "tokenizer": self.tokenizer.as_deref().map(content).transpose()?,
@@ -1431,6 +1450,7 @@ fn init_config(args: &Args, directory: &Path) -> Result<StackConfig> {
             "rotation_group",
             rotation_group_name(config.rotation_group).to_owned(),
         ),
+        ("rec_gates", config.rec_gates.name().to_owned()),
         ("width", config.width.to_string()),
         ("heads", config.heads.to_string()),
         ("layers", config.layers().to_string()),
@@ -1658,6 +1678,15 @@ fn stack_config(args: &Args, vocab: Option<usize>) -> Result<StackConfig> {
             )))
         }
     };
+    config.rec_gates = match args.optional("rec_gates").as_deref() {
+        None | Some("historical") => RecGates::Historical,
+        Some("geometric") => RecGates::Geometric,
+        Some(other) => {
+            return Err(invalid(format!(
+                "invalid rec_gates={other} (geometric; historical artifacts only)"
+            )))
+        }
+    };
     config.validate()?;
     // The A1 read mechanisms, on any fresh shape (`dialogue-train` accepts
     // all of them, `train` only `select=`; the other modes never see them).
@@ -1784,6 +1813,55 @@ fn check_resumed_read_weighting(asked: Option<ReadWeighting>, model: &StackModel
     }
 }
 
+fn native_bos_identity(path: &Path) -> Result<u32> {
+    let tokenizer = uor_r4_tokenizer::ByteBpeTokenizer::from_tokenizer_json_bytes(&fs::read(path)?)
+        .ok_or_else(|| {
+            invalid("native dev BOS identity needs the pinned readable tokenizer.json")
+        })?;
+    Ok(DialogueProtocol::literal_roles_v2(&tokenizer)
+        .map_err(|e| invalid(format!("native dev tokenizer special-token identity: {e}")))?
+        .bos_id)
+}
+
+fn native_process_options(
+    sample_tokens: usize,
+    max_seconds: f64,
+    host_nan_trace: bool,
+) -> Result<()> {
+    if sample_tokens != 0 || max_seconds.is_nan() || max_seconds <= 0.0 || host_nan_trace {
+        return Err(invalid("native rung0 refuses host sampling and host tensor diagnostics; sample_tokens=0, positive max_seconds estimate, UOR_NAN_TRACE must not be1 (healthy work extends a self-set estimate)"));
+    }
+    Ok(())
+}
+
+fn require_native_training_config(
+    config: &StackConfig,
+    native_head: bool,
+    projection: Option<QuaternionWeights>,
+) -> Result<()> {
+    if !native_head
+        || projection != Some(QuaternionWeights::SpiralcoreFbs)
+        || config.arch != StackArch::Geometric
+        || config.gate != Gate::Hamilton
+        || config.rec_gates != RecGates::Geometric
+        || !matches!(config.objective, Objective::MarginHinge { rivals: 1 | 8 })
+        || config.pointer.is_some()
+        || config.select.is_some()
+        || config.memory.is_some()
+        || config.pattern.is_empty()
+        || config.pattern.chars().any(|c| c != 'r')
+    {
+        return Err(invalid("new train runs require the native recurrence-only path: arch=geometric, pattern=rrrrrr, gate=hamilton, rec_gates=geometric, projection=spiralcore_fbs, head=spiralcore_product, objective=hinge|hinge8; no pointer/read/memory or historical fallback"));
+    }
+    uor_r4_training::native_vector_writer::WriterSpec {
+        vocabulary: config.vocab_size,
+        width: config.width,
+        kept_cells: uor_r4_training::native_vector_writer::DEFAULT_KEPT_CELLS,
+    }
+    .validate()?;
+    Ok(())
+}
+
 fn train_settings(args: &Args) -> Result<Settings> {
     let init = args.optional("init").map(PathBuf::from);
     let mut config = match &init {
@@ -1844,6 +1922,7 @@ fn train_settings(args: &Args) -> Result<Settings> {
             return Err(quaternion_served_refusal());
         }
     }
+    require_native_training_config(&config, native_vector_head, quaternion_weights)?;
     let key_shift = key_shift_arg(args)?;
     if key_shift.enabled() && (config.arch != StackArch::Geometric || !config.pattern.contains('a'))
     {
@@ -1877,6 +1956,15 @@ fn train_settings(args: &Args) -> Result<Settings> {
         train,
         train_weights,
         valid: PathBuf::from(args.required("valid")?),
+        valid_mask: args.optional("valid_mask").map(PathBuf::from),
+        native_bos_id: if native_vector_head {
+            Some(native_bos_identity(Path::new(
+                &args.required("tokenizer")?,
+            ))?)
+        } else {
+            None
+        },
+        expected_dev_targets: args.number("expected_dev_targets", 14287)?,
         lens: args.optional("lens").map(PathBuf::from),
         merges: args.optional("merges").map(PathBuf::from),
         tokenizer: args.optional("tokenizer").map(PathBuf::from),
@@ -1907,11 +1995,18 @@ fn train_settings(args: &Args) -> Result<Settings> {
         checkpoint_every: args.number("checkpoint_every", 250)?,
         resume: args.optional("resume").map(PathBuf::from),
         max_seconds: args.number("max_seconds", f64::INFINITY)?,
-        sample_tokens: args.number("sample_tokens", 128)?,
+        sample_tokens: args.number("sample_tokens", if native_vector_head { 0 } else { 128 })?,
         device: device_arg(args)?,
         precision: Precision::F32,
         data_parallel: args.number("data_parallel", 1)?,
     };
+    if settings.native_vector_head {
+        native_process_options(
+            settings.sample_tokens,
+            settings.max_seconds,
+            std::env::var("UOR_NAN_TRACE").is_ok_and(|v| v == "1"),
+        )?;
+    }
     settings.precision = precision_arg(args, &settings.device)?;
     if !(1..=2).contains(&settings.data_parallel) {
         return Err(invalid("data_parallel must be 1 or 2"));
@@ -1924,6 +2019,22 @@ fn train_settings(args: &Args) -> Result<Settings> {
         settings.config.select.is_some(),
         settings.config.memory.is_some(),
     )?;
+    if settings.native_vector_head
+        && (settings.init.is_some()
+            || !settings.device.is_cuda()
+            || settings.precision != Precision::F32
+            || settings.sample_tokens != 0
+            || settings.valid_mask.is_none()
+            || settings.qat
+            || settings.transport_snap.is_some()
+            || settings.quaternion_snap != QuaternionSnap::None
+            || settings.activation_snap != ActivationSnap::None
+            || settings.e8_memory.is_some()
+            || settings.softsort_tau.is_some()
+            || tf32_enabled())
+    {
+        return Err(invalid("native rung0 requires seed initialization (no init=), device=cuda precision=f32 sample_tokens=0 valid_mask=MASK.u8, no QAT/snap/extra memory/squashing/TF32"));
+    }
     if settings.data_parallel == 2
         && (!matches!(settings.device, Device::Cuda(_))
             || settings.batch % 2 != 0
@@ -2051,15 +2162,25 @@ fn cosine_rate(lr: f64, warmup: usize, min_lr: f64, steps: usize, step: usize) -
     floor + (lr - floor) * 0.5 * (1.0 + (std::f64::consts::PI * progress).cos())
 }
 
-struct Evaluation {
-    nll: f64,
-    bits_per_byte: Option<f64>,
-    targets: usize,
+enum Evaluation {
+    Historical {
+        nll: f64,
+        bits_per_byte: Option<f64>,
+        targets: usize,
+    },
+    Native(Value),
 }
 
 impl Evaluation {
     fn record(&self) -> Value {
-        json!({"nll": self.nll, "bits_per_byte": self.bits_per_byte, "targets": self.targets})
+        match self {
+            Self::Historical {
+                nll,
+                bits_per_byte,
+                targets,
+            } => json!({"nll": nll, "bits_per_byte": bits_per_byte, "targets": targets}),
+            Self::Native(record) => record.clone(),
+        }
     }
 }
 
@@ -2070,6 +2191,11 @@ fn evaluate(
     lens: Option<&[u32]>,
     windows: usize,
 ) -> Result<Evaluation> {
+    if model.native_vector_head_spec().is_some() {
+        return Err(invalid(
+            "native evaluator requires valid_mask and the raw token/address metric path",
+        ));
+    }
     let time = model.config.context;
     let stride = (valid.len() - time - 1) / windows;
     let starts: Vec<usize> = (0..windows).map(|window| window * stride).collect();
@@ -2093,7 +2219,7 @@ fn evaluate(
             .sum::<f64>();
         targets_seen += targets.len();
     }
-    Ok(Evaluation {
+    Ok(Evaluation::Historical {
         nll: nll / targets_seen as f64,
         bits_per_byte: lens.map(|_| nll / std::f64::consts::LN_2 / bytes),
         targets: targets_seen,
@@ -2125,6 +2251,27 @@ fn evaluate_modes(
     windows: usize,
 ) -> Result<(Evaluation, Option<Evaluation>)> {
     in_both_modes(model, |model| evaluate(model, valid, lens, windows))
+}
+
+fn evaluate_training_modes(
+    model: &mut StackModel,
+    valid: &[u32],
+    mask: Option<&[u8]>,
+    lens: Option<&[u32]>,
+    windows: usize,
+    plan: Option<&native_rung0::PanelPlan>,
+) -> Result<(Evaluation, Option<Evaluation>)> {
+    if model.native_vector_head_spec().is_some() {
+        let mask = mask.ok_or_else(|| invalid("native dev evaluation needs valid_mask"))?;
+        let plan = plan.ok_or_else(|| {
+            invalid("native dev evaluation lacks prevalidated document-window metadata")
+        })?;
+        let evaluator = native_rung0::Evaluator::new(model, valid, mask, plan.clone())?;
+        let record = model.scored_in_f32(|model| evaluator.evaluate(model, valid, mask))?;
+        Ok((Evaluation::Native(record), None))
+    } else {
+        evaluate_modes(model, valid, lens, windows)
+    }
 }
 
 /// In a transport-snap run, on the windows [`evaluate`] scores: the NLL of
@@ -2374,6 +2521,25 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
         .collect::<Result<_>>()?;
     let weight_total: f64 = settings.train_weights.iter().sum();
     let valid = read_tokens(&settings.valid, vocabulary)?;
+    let valid_mask = settings.valid_mask.as_ref().map(fs::read).transpose()?;
+    let panel_plan = |windows| -> Result<Option<native_rung0::PanelPlan>> {
+        match (&valid_mask, settings.native_bos_id) {
+            (Some(mask), Some(bos)) => Ok(Some(native_rung0::PanelPlan::new(
+                &valid,
+                mask,
+                settings.config.context,
+                windows,
+                bos,
+                settings.expected_dev_targets,
+            )?)),
+            (None, None) => Ok(None),
+            _ => Err(invalid(
+                "native dev requires both verified tokenizer BOS and response mask",
+            )),
+        }
+    };
+    let native_eval_plan = panel_plan(settings.eval_windows)?;
+    let native_final_plan = panel_plan(settings.final_windows)?;
     let lens = settings
         .lens
         .as_ref()
@@ -2463,6 +2629,11 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
             settings.key_shift.check_resumed(&model)?;
             check_resumed_read_weighting(settings.read_weighting, &model)?;
             check_resumed_quaternion_weights(settings.quaternion_weights, &model)?;
+            if model.native_vector_head_spec().is_some() != settings.native_vector_head {
+                return Err(invalid(
+                    "resume head= differs from the checkpoint's native head",
+                ));
+            }
             if model.e8_memory() != settings.e8_memory.as_ref() {
                 return Err(invalid("a resume keeps the checkpoint's e8_memory"));
             }
@@ -2521,9 +2692,15 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
         None
     };
     // A run from a trained model scores it before any update.
-    if settings.init.is_some() && progress.step == 0 {
-        let (evaluation, float) =
-            evaluate_modes(&mut model, &valid, lens.as_deref(), settings.eval_windows)?;
+    if (settings.init.is_some() || settings.native_vector_head) && progress.step == 0 {
+        let (evaluation, float) = evaluate_training_modes(
+            &mut model,
+            &valid,
+            valid_mask.as_deref(),
+            lens.as_deref(),
+            settings.eval_windows,
+            native_eval_plan.as_ref(),
+        )?;
         let transport =
             evaluate_transport(&mut model, &valid, lens.as_deref(), settings.eval_windows)?;
         let mut point = json!({"step": 0, "tokens": 0, "dev": evaluation.record()});
@@ -2536,6 +2713,7 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
     }
     let mut window_loss = (0f64, 0usize);
     let mut stopped_early = false;
+    let mut estimate_extended = false;
     // This process's updates: their seconds, and the served representation's
     // work inside them.
     let mut step_seconds = Vec::new();
@@ -2546,6 +2724,9 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
     let nan_trace = std::env::var("UOR_NAN_TRACE").is_ok_and(|v| v == "1");
     while progress.step < settings.steps {
         let lr = learning_rate(settings, progress.step);
+        if settings.native_vector_head {
+            device.synchronize()?;
+        }
         let clock = Instant::now();
         let mut ids = Vec::with_capacity(settings.batch * time);
         let mut targets = Vec::with_capacity(settings.batch * time);
@@ -2627,6 +2808,9 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
         if let Some(replica) = &replica {
             replica.copy_variables_from(&model)?;
         }
+        if settings.native_vector_head {
+            device.synchronize()?;
+        }
         let seconds = clock.elapsed().as_secs_f64();
         add_served_work(
             &mut served_in_steps,
@@ -2639,8 +2823,14 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
         window_loss.0 += value;
         window_loss.1 += 1;
         if progress.step % settings.eval_every == 0 || progress.step == settings.steps {
-            let (evaluation, float) =
-                evaluate_modes(&mut model, &valid, lens.as_deref(), settings.eval_windows)?;
+            let (evaluation, float) = evaluate_training_modes(
+                &mut model,
+                &valid,
+                valid_mask.as_deref(),
+                lens.as_deref(),
+                settings.eval_windows,
+                native_eval_plan.as_ref(),
+            )?;
             let transport =
                 evaluate_transport(&mut model, &valid, lens.as_deref(), settings.eval_windows)?;
             let tokens = progress.step * settings.batch * time;
@@ -2666,13 +2856,26 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
             save_checkpoint(out, &model, &optimizer, &progress, &lineage)?;
         }
         if started.elapsed().as_secs_f64() > settings.max_seconds {
-            stopped_early = true;
-            save_checkpoint(out, &model, &optimizer, &progress, &lineage)?;
-            break;
+            if settings.native_vector_head {
+                if !estimate_extended {
+                    eprintln!("native healthy run exceeded its max_seconds estimate at step {}; extending rather than stopping; renew the owning lease and record the extension", progress.step);
+                    estimate_extended = true;
+                }
+            } else {
+                stopped_early = true;
+                save_checkpoint(out, &model, &optimizer, &progress, &lineage)?;
+                break;
+            }
         }
     }
-    let (final_evaluation, final_float) =
-        evaluate_modes(&mut model, &valid, lens.as_deref(), settings.final_windows)?;
+    let (final_evaluation, final_float) = evaluate_training_modes(
+        &mut model,
+        &valid,
+        valid_mask.as_deref(),
+        lens.as_deref(),
+        settings.final_windows,
+        native_final_plan.as_ref(),
+    )?;
     let final_transport =
         evaluate_transport(&mut model, &valid, lens.as_deref(), settings.final_windows)?;
     eprintln!("final: {}", final_evaluation.record());
@@ -2713,7 +2916,7 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
         "parameters": parameters,
         "active_parameters": active_parameters,
         "completed_steps": progress.step,
-        "stopped_early": stopped_early,
+        "stopped_early": stopped_early, "estimate_extended":estimate_extended,
         "resumed_from": resumed_from,
         "target_visits": progress.step * settings.batch * time,
         "train_seconds": progress.train_seconds,
@@ -2728,6 +2931,7 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
         "inputs": {
             "train": settings.train.iter().map(|p| identity(p)).collect::<Result<Vec<_>>>()?,
             "valid": identity(&settings.valid)?,
+            "valid_mask": settings.valid_mask.as_ref().map(|p| identity(p)).transpose()?,
             "lens": settings.lens.as_ref().map(|p| identity(p)).transpose()?,
             "merges": settings.merges.as_ref().map(|p| identity(p)).transpose()?,
             "tokenizer": settings.tokenizer.as_ref().map(|p| identity(p)).transpose()?,
@@ -2736,6 +2940,19 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
         "executable": identity(&executable)?,
         "model_sha256": sha256_file(&out.join("model").join("model.safetensors"))?,
     });
+    if settings.native_vector_head {
+        report["untrained_constant"] = report["curve"]
+            .as_array()
+            .and_then(|curve| curve.iter().find(|point| point["step"].as_u64() == Some(0)))
+            .map(|point| point["dev"].clone())
+            .ok_or_else(|| invalid("native run lacks its same-seed zero-step dev constant"))?;
+        report["native_objective"] = json!({
+            "training": "mean token_margin + mean address_margin; coefficient1 each",
+            "dev_bars": "token_margin and token-only unviolated; top1/recall8",
+            "head": "spiralcore_product", "candidate_cells": 8, "kept_token_k": 8,
+            "timing_boundary": "synchronized GPU boundaries around the entire step, including host window preparation, forward/backward and update; not kernel-only throughput",
+        });
+    }
     if let Some(codec) = model.served_codec() {
         report["qat"] = json!({
             "codec": codec.name(),
@@ -2826,6 +3043,9 @@ fn evaluate_mode(arguments: &[String]) -> Result<()> {
             "tokens",
             "out",
             "tune_blocks",
+            "valid_mask",
+            "tokenizer",
+            "expected_dev_targets",
             "lens",
             "max_blocks",
             "softsort_tau",
@@ -2853,6 +3073,40 @@ fn evaluate_mode(arguments: &[String]) -> Result<()> {
     let result = (|| -> Result<()> {
         // `evaluate` runs the artifact as saved: the load restores its transport snap by design.
         let mut model = StackModel::load(&model_dir, &device)?;
+        if model.native_vector_head_spec().is_some() {
+            if args.optional("tune_blocks").is_some()
+                || args.optional("softsort_tau").is_some()
+                || args.optional("activation_snap").is_some()
+            {
+                return Err(invalid("native evaluate uses its complete masked panel, with no historical tune/squash/snap mode"));
+            }
+            let tokens = read_tokens(&tokens_path, model.config.vocab_size)?;
+            let mask_path = PathBuf::from(args.required("valid_mask")?);
+            let mask = fs::read(&mask_path)?;
+            let windows = max_blocks.unwrap_or(tokens.len() / model.config.context);
+            let tokenizer_path = PathBuf::from(args.required("tokenizer")?);
+            let bos = native_bos_identity(&tokenizer_path)?;
+            let plan = native_rung0::PanelPlan::new(
+                &tokens,
+                &mask,
+                model.config.context,
+                windows,
+                bos,
+                args.number("expected_dev_targets", 14287)?,
+            )?;
+            let evaluation = native_rung0::Evaluator::new(&model, &tokens, &mask, plan)?
+                .evaluate(&model, &tokens, &mask)?;
+            fs::write(
+                out.join("evaluation.json"),
+                serde_json::to_vec_pretty(&json!({
+                    "schema": "uor-r4.native-rung0-evaluation/1",
+                    "model": identity(&model_dir.join("model.safetensors"))?,
+                    "config": model.config, "tokens": identity(&tokens_path)?,
+                    "valid_mask": identity(&mask_path)?, "tokenizer":identity(&tokenizer_path)?, "full": evaluation,
+                }))?,
+            )?;
+            return Ok(());
+        }
         // `softsort_tau=T` scores a `softsort_rank` model with its SoftSort
         // training forward at temperature T instead of the hard (served) rank
         // read: the soft-versus-hard gap shows whether training converged onto
@@ -6793,6 +7047,8 @@ fn main() -> Result<()> {
                     "stack_mlp",
                     "context",
                     "valid",
+                    "valid_mask",
+                    "expected_dev_targets",
                     "out",
                     "arch",
                     "pattern",
@@ -6833,6 +7089,7 @@ fn main() -> Result<()> {
                     "read_weighting",
                     "objective",
                     "gate",
+                    "rec_gates",
                     "quaternion_weights",
                     "projection",
                     "head",
@@ -7544,5 +7801,71 @@ mod tests {
         assert_eq!(parse(&["key_shift=add", "init=x"])?, KeyShift::AddToInit);
         assert!(parse(&["key_shift=yes"]).is_err());
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod native_rung0_argument_tests {
+    use super::*;
+    fn native_config() -> Result<StackConfig> {
+        let mut config = StackConfig::transformer(256, 4, 6, 768, 384, 1)?;
+        config.arch = StackArch::Geometric;
+        config.pattern = "rrrrrr".into();
+        config.mlp_hidden = 384;
+        config.gate = Gate::Hamilton;
+        config.rec_gates = RecGates::Geometric;
+        config.objective = Objective::MarginHinge { rivals: 8 };
+        config.validate()?;
+        Ok(config)
+    }
+    #[test]
+    fn complete_native_argument_contract_refuses_legacy_modes() -> Result<()> {
+        let config = native_config()?;
+        require_native_training_config(&config, true, Some(QuaternionWeights::SpiralcoreFbs))?;
+        assert!(require_native_training_config(
+            &config,
+            false,
+            Some(QuaternionWeights::SpiralcoreFbs)
+        )
+        .is_err());
+        let mut historical = config.clone();
+        historical.rec_gates = RecGates::Historical;
+        assert!(require_native_training_config(
+            &historical,
+            true,
+            Some(QuaternionWeights::SpiralcoreFbs)
+        )
+        .is_err());
+        let mut ce = config.clone();
+        ce.objective = Objective::Ce;
+        assert!(
+            require_native_training_config(&ce, true, Some(QuaternionWeights::SpiralcoreFbs))
+                .is_err()
+        );
+        let mut read = config;
+        read.pattern = "rrarra".into();
+        assert!(require_native_training_config(
+            &read,
+            true,
+            Some(QuaternionWeights::SpiralcoreFbs)
+        )
+        .is_err());
+        Ok(())
+    }
+    #[test]
+    fn native_process_flags_refuse_sampling_host_diagnostics_and_bad_estimates() -> Result<()> {
+        native_process_options(0, f64::INFINITY, false)?;
+        assert!(native_process_options(128, f64::INFINITY, false).is_err());
+        assert!(native_process_options(0, f64::INFINITY, true).is_err());
+        native_process_options(0, 60., false)?;
+        assert!(native_process_options(0, f64::NAN, false).is_err());
+        Ok(())
+    }
+    #[test]
+    fn native_metric_record_never_mislabels_raw_margins_as_likelihood() {
+        let record=Evaluation::Native(json!({"token_margin":1.0,"address_margin":1.0,"total_margin":2.0,"top1":0.0,"recall_at_8":1.0})).record();
+        assert_eq!(record["total_margin"], 2.0);
+        assert!(record.get("nll").is_none());
+        assert!(record.get("bits_per_byte").is_none());
     }
 }

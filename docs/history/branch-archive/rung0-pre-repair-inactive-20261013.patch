@@ -1,0 +1,1809 @@
+diff --git a/crates/uor-r4-training/examples/geometric-stack.rs b/crates/uor-r4-training/examples/geometric-stack.rs
+index 0ba2e09f4..4b6ee7053 100644
+--- a/crates/uor-r4-training/examples/geometric-stack.rs
++++ b/crates/uor-r4-training/examples/geometric-stack.rs
+@@ -360,9 +360,6 @@ use std::time::Instant;
+ use candle_core::{DType, Device};
+ use serde_json::{json, Value};
+ use uor_r4_core::native_geometric::learner::embedding::canonical_h4_roots;
+-#[path = "geometric-stack/native_rung0.rs"]
+-mod native_rung0;
+-
+ use uor_r4_core::report_output;
+ use uor_r4_tokenizer::dialogue::DialogueProtocol;
+ use uor_r4_training::dialogue_development;
+@@ -784,9 +781,6 @@ struct Settings {
+     train: Vec<PathBuf>,
+     train_weights: Vec<f64>,
+     valid: PathBuf,
+-    valid_mask: Option<PathBuf>,
+-    native_bos_id: Option<u32>,
+-    expected_dev_targets: usize,
+     lens: Option<PathBuf>,
+     merges: Option<PathBuf>,
+     tokenizer: Option<PathBuf>,
+@@ -1281,7 +1275,6 @@ impl Settings {
+         );
+         json!({
+             "train": self.train, "train_weights": self.train_weights, "valid": self.valid,
+-            "valid_mask": self.valid_mask, "bos_id": self.native_bos_id, "expected_dev_targets": self.expected_dev_targets,
+             "lens": self.lens, "merges": self.merges, "tokenizer": self.tokenizer,
+             "config": self.config, "init": init,
+             "qat": self.qat, "qat_codec": self.qat.then(|| qat_codec().name().to_owned()),
+@@ -1334,17 +1327,6 @@ impl Settings {
+         if let Some(mode) = self.quaternion_weights {
+             lineage["quaternion_weights"] = json!(mode);
+         }
+-        if self.native_vector_head {
+-            lineage["head"] = json!("spiralcore_product");
+-            lineage["native_vector_head"] = json!({
+-                "schema": uor_r4_training::native_vector_writer::SCHEMA,
+-                "vocabulary": self.config.vocab_size,
+-                "width": self.config.width,
+-                "kept_cells": uor_r4_training::native_vector_writer::DEFAULT_KEPT_CELLS,
+-            });
+-            lineage["evaluation"] =
+-                json!("native masked-response token/address margins, top1, recall8; no likelihood");
+-        }
+         lineage
+     }
+ 
+@@ -1358,7 +1340,6 @@ impl Settings {
+         let mut inputs = json!({
+             "train": self.train.iter().map(|p| content(p)).collect::<Result<Vec<_>>>()?,
+             "valid": content(&self.valid)?,
+-            "valid_mask": self.valid_mask.as_deref().map(content).transpose()?,
+             "lens": self.lens.as_deref().map(content).transpose()?,
+             "merges": self.merges.as_deref().map(content).transpose()?,
+             "tokenizer": self.tokenizer.as_deref().map(content).transpose()?,
+@@ -1450,7 +1431,6 @@ fn init_config(args: &Args, directory: &Path) -> Result<StackConfig> {
+             "rotation_group",
+             rotation_group_name(config.rotation_group).to_owned(),
+         ),
+-        ("rec_gates", config.rec_gates.name().to_owned()),
+         ("width", config.width.to_string()),
+         ("heads", config.heads.to_string()),
+         ("layers", config.layers().to_string()),
+@@ -1678,15 +1658,6 @@ fn stack_config(args: &Args, vocab: Option<usize>) -> Result<StackConfig> {
+             )))
+         }
+     };
+-    config.rec_gates = match args.optional("rec_gates").as_deref() {
+-        None | Some("historical") => RecGates::Historical,
+-        Some("geometric") => RecGates::Geometric,
+-        Some(other) => {
+-            return Err(invalid(format!(
+-                "invalid rec_gates={other} (geometric; historical artifacts only)"
+-            )))
+-        }
+-    };
+     config.validate()?;
+     // The A1 read mechanisms, on any fresh shape (`dialogue-train` accepts
+     // all of them, `train` only `select=`; the other modes never see them).
+@@ -1813,55 +1784,6 @@ fn check_resumed_read_weighting(asked: Option<ReadWeighting>, model: &StackModel
+     }
+ }
+ 
+-fn native_bos_identity(path: &Path) -> Result<u32> {
+-    let tokenizer = uor_r4_tokenizer::ByteBpeTokenizer::from_tokenizer_json_bytes(&fs::read(path)?)
+-        .ok_or_else(|| {
+-            invalid("native dev BOS identity needs the pinned readable tokenizer.json")
+-        })?;
+-    Ok(DialogueProtocol::literal_roles_v2(&tokenizer)
+-        .map_err(|e| invalid(format!("native dev tokenizer special-token identity: {e}")))?
+-        .bos_id)
+-}
+-
+-fn native_process_options(
+-    sample_tokens: usize,
+-    max_seconds: f64,
+-    host_nan_trace: bool,
+-) -> Result<()> {
+-    if sample_tokens != 0 || max_seconds.is_nan() || max_seconds <= 0.0 || host_nan_trace {
+-        return Err(invalid("native rung0 refuses host sampling and host tensor diagnostics; sample_tokens=0, positive max_seconds estimate, UOR_NAN_TRACE must not be1 (healthy work extends a self-set estimate)"));
+-    }
+-    Ok(())
+-}
+-
+-fn require_native_training_config(
+-    config: &StackConfig,
+-    native_head: bool,
+-    projection: Option<QuaternionWeights>,
+-) -> Result<()> {
+-    if !native_head
+-        || projection != Some(QuaternionWeights::SpiralcoreFbs)
+-        || config.arch != StackArch::Geometric
+-        || config.gate != Gate::Hamilton
+-        || config.rec_gates != RecGates::Geometric
+-        || !matches!(config.objective, Objective::MarginHinge { rivals: 1 | 8 })
+-        || config.pointer.is_some()
+-        || config.select.is_some()
+-        || config.memory.is_some()
+-        || config.pattern.is_empty()
+-        || config.pattern.chars().any(|c| c != 'r')
+-    {
+-        return Err(invalid("new train runs require the native recurrence-only path: arch=geometric, pattern=rrrrrr, gate=hamilton, rec_gates=geometric, projection=spiralcore_fbs, head=spiralcore_product, objective=hinge|hinge8; no pointer/read/memory or historical fallback"));
+-    }
+-    uor_r4_training::native_vector_writer::WriterSpec {
+-        vocabulary: config.vocab_size,
+-        width: config.width,
+-        kept_cells: uor_r4_training::native_vector_writer::DEFAULT_KEPT_CELLS,
+-    }
+-    .validate()?;
+-    Ok(())
+-}
+-
+ fn train_settings(args: &Args) -> Result<Settings> {
+     let init = args.optional("init").map(PathBuf::from);
+     let mut config = match &init {
+@@ -1922,7 +1844,6 @@ fn train_settings(args: &Args) -> Result<Settings> {
+             return Err(quaternion_served_refusal());
+         }
+     }
+-    require_native_training_config(&config, native_vector_head, quaternion_weights)?;
+     let key_shift = key_shift_arg(args)?;
+     if key_shift.enabled() && (config.arch != StackArch::Geometric || !config.pattern.contains('a'))
+     {
+@@ -1956,15 +1877,6 @@ fn train_settings(args: &Args) -> Result<Settings> {
+         train,
+         train_weights,
+         valid: PathBuf::from(args.required("valid")?),
+-        valid_mask: args.optional("valid_mask").map(PathBuf::from),
+-        native_bos_id: if native_vector_head {
+-            Some(native_bos_identity(Path::new(
+-                &args.required("tokenizer")?,
+-            ))?)
+-        } else {
+-            None
+-        },
+-        expected_dev_targets: args.number("expected_dev_targets", 14287)?,
+         lens: args.optional("lens").map(PathBuf::from),
+         merges: args.optional("merges").map(PathBuf::from),
+         tokenizer: args.optional("tokenizer").map(PathBuf::from),
+@@ -1995,18 +1907,11 @@ fn train_settings(args: &Args) -> Result<Settings> {
+         checkpoint_every: args.number("checkpoint_every", 250)?,
+         resume: args.optional("resume").map(PathBuf::from),
+         max_seconds: args.number("max_seconds", f64::INFINITY)?,
+-        sample_tokens: args.number("sample_tokens", if native_vector_head { 0 } else { 128 })?,
++        sample_tokens: args.number("sample_tokens", 128)?,
+         device: device_arg(args)?,
+         precision: Precision::F32,
+         data_parallel: args.number("data_parallel", 1)?,
+     };
+-    if settings.native_vector_head {
+-        native_process_options(
+-            settings.sample_tokens,
+-            settings.max_seconds,
+-            std::env::var("UOR_NAN_TRACE").is_ok_and(|v| v == "1"),
+-        )?;
+-    }
+     settings.precision = precision_arg(args, &settings.device)?;
+     if !(1..=2).contains(&settings.data_parallel) {
+         return Err(invalid("data_parallel must be 1 or 2"));
+@@ -2019,22 +1924,6 @@ fn train_settings(args: &Args) -> Result<Settings> {
+         settings.config.select.is_some(),
+         settings.config.memory.is_some(),
+     )?;
+-    if settings.native_vector_head
+-        && (settings.init.is_some()
+-            || !settings.device.is_cuda()
+-            || settings.precision != Precision::F32
+-            || settings.sample_tokens != 0
+-            || settings.valid_mask.is_none()
+-            || settings.qat
+-            || settings.transport_snap.is_some()
+-            || settings.quaternion_snap != QuaternionSnap::None
+-            || settings.activation_snap != ActivationSnap::None
+-            || settings.e8_memory.is_some()
+-            || settings.softsort_tau.is_some()
+-            || tf32_enabled())
+-    {
+-        return Err(invalid("native rung0 requires seed initialization (no init=), device=cuda precision=f32 sample_tokens=0 valid_mask=MASK.u8, no QAT/snap/extra memory/squashing/TF32"));
+-    }
+     if settings.data_parallel == 2
+         && (!matches!(settings.device, Device::Cuda(_))
+             || settings.batch % 2 != 0
+@@ -2162,25 +2051,15 @@ fn cosine_rate(lr: f64, warmup: usize, min_lr: f64, steps: usize, step: usize) -
+     floor + (lr - floor) * 0.5 * (1.0 + (std::f64::consts::PI * progress).cos())
+ }
+ 
+-enum Evaluation {
+-    Historical {
+-        nll: f64,
+-        bits_per_byte: Option<f64>,
+-        targets: usize,
+-    },
+-    Native(Value),
++struct Evaluation {
++    nll: f64,
++    bits_per_byte: Option<f64>,
++    targets: usize,
+ }
+ 
+ impl Evaluation {
+     fn record(&self) -> Value {
+-        match self {
+-            Self::Historical {
+-                nll,
+-                bits_per_byte,
+-                targets,
+-            } => json!({"nll": nll, "bits_per_byte": bits_per_byte, "targets": targets}),
+-            Self::Native(record) => record.clone(),
+-        }
++        json!({"nll": self.nll, "bits_per_byte": self.bits_per_byte, "targets": self.targets})
+     }
+ }
+ 
+@@ -2191,11 +2070,6 @@ fn evaluate(
+     lens: Option<&[u32]>,
+     windows: usize,
+ ) -> Result<Evaluation> {
+-    if model.native_vector_head_spec().is_some() {
+-        return Err(invalid(
+-            "native evaluator requires valid_mask and the raw token/address metric path",
+-        ));
+-    }
+     let time = model.config.context;
+     let stride = (valid.len() - time - 1) / windows;
+     let starts: Vec<usize> = (0..windows).map(|window| window * stride).collect();
+@@ -2219,7 +2093,7 @@ fn evaluate(
+             .sum::<f64>();
+         targets_seen += targets.len();
+     }
+-    Ok(Evaluation::Historical {
++    Ok(Evaluation {
+         nll: nll / targets_seen as f64,
+         bits_per_byte: lens.map(|_| nll / std::f64::consts::LN_2 / bytes),
+         targets: targets_seen,
+@@ -2253,27 +2127,6 @@ fn evaluate_modes(
+     in_both_modes(model, |model| evaluate(model, valid, lens, windows))
+ }
+ 
+-fn evaluate_training_modes(
+-    model: &mut StackModel,
+-    valid: &[u32],
+-    mask: Option<&[u8]>,
+-    lens: Option<&[u32]>,
+-    windows: usize,
+-    plan: Option<&native_rung0::PanelPlan>,
+-) -> Result<(Evaluation, Option<Evaluation>)> {
+-    if model.native_vector_head_spec().is_some() {
+-        let mask = mask.ok_or_else(|| invalid("native dev evaluation needs valid_mask"))?;
+-        let plan = plan.ok_or_else(|| {
+-            invalid("native dev evaluation lacks prevalidated document-window metadata")
+-        })?;
+-        let evaluator = native_rung0::Evaluator::new(model, valid, mask, plan.clone())?;
+-        let record = model.scored_in_f32(|model| evaluator.evaluate(model, valid, mask))?;
+-        Ok((Evaluation::Native(record), None))
+-    } else {
+-        evaluate_modes(model, valid, lens, windows)
+-    }
+-}
+-
+ /// In a transport-snap run, on the windows [`evaluate`] scores: the NLL of
+ /// the same weights with the transport free (a served representation
+ /// unchanged), and the roots the snapped forward selects there.
+@@ -2521,25 +2374,6 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
+         .collect::<Result<_>>()?;
+     let weight_total: f64 = settings.train_weights.iter().sum();
+     let valid = read_tokens(&settings.valid, vocabulary)?;
+-    let valid_mask = settings.valid_mask.as_ref().map(fs::read).transpose()?;
+-    let panel_plan = |windows| -> Result<Option<native_rung0::PanelPlan>> {
+-        match (&valid_mask, settings.native_bos_id) {
+-            (Some(mask), Some(bos)) => Ok(Some(native_rung0::PanelPlan::new(
+-                &valid,
+-                mask,
+-                settings.config.context,
+-                windows,
+-                bos,
+-                settings.expected_dev_targets,
+-            )?)),
+-            (None, None) => Ok(None),
+-            _ => Err(invalid(
+-                "native dev requires both verified tokenizer BOS and response mask",
+-            )),
+-        }
+-    };
+-    let native_eval_plan = panel_plan(settings.eval_windows)?;
+-    let native_final_plan = panel_plan(settings.final_windows)?;
+     let lens = settings
+         .lens
+         .as_ref()
+@@ -2629,11 +2463,6 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
+             settings.key_shift.check_resumed(&model)?;
+             check_resumed_read_weighting(settings.read_weighting, &model)?;
+             check_resumed_quaternion_weights(settings.quaternion_weights, &model)?;
+-            if model.native_vector_head_spec().is_some() != settings.native_vector_head {
+-                return Err(invalid(
+-                    "resume head= differs from the checkpoint's native head",
+-                ));
+-            }
+             if model.e8_memory() != settings.e8_memory.as_ref() {
+                 return Err(invalid("a resume keeps the checkpoint's e8_memory"));
+             }
+@@ -2692,15 +2521,9 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
+         None
+     };
+     // A run from a trained model scores it before any update.
+-    if (settings.init.is_some() || settings.native_vector_head) && progress.step == 0 {
+-        let (evaluation, float) = evaluate_training_modes(
+-            &mut model,
+-            &valid,
+-            valid_mask.as_deref(),
+-            lens.as_deref(),
+-            settings.eval_windows,
+-            native_eval_plan.as_ref(),
+-        )?;
++    if settings.init.is_some() && progress.step == 0 {
++        let (evaluation, float) =
++            evaluate_modes(&mut model, &valid, lens.as_deref(), settings.eval_windows)?;
+         let transport =
+             evaluate_transport(&mut model, &valid, lens.as_deref(), settings.eval_windows)?;
+         let mut point = json!({"step": 0, "tokens": 0, "dev": evaluation.record()});
+@@ -2713,7 +2536,6 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
+     }
+     let mut window_loss = (0f64, 0usize);
+     let mut stopped_early = false;
+-    let mut estimate_extended = false;
+     // This process's updates: their seconds, and the served representation's
+     // work inside them.
+     let mut step_seconds = Vec::new();
+@@ -2724,9 +2546,6 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
+     let nan_trace = std::env::var("UOR_NAN_TRACE").is_ok_and(|v| v == "1");
+     while progress.step < settings.steps {
+         let lr = learning_rate(settings, progress.step);
+-        if settings.native_vector_head {
+-            device.synchronize()?;
+-        }
+         let clock = Instant::now();
+         let mut ids = Vec::with_capacity(settings.batch * time);
+         let mut targets = Vec::with_capacity(settings.batch * time);
+@@ -2808,9 +2627,6 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
+         if let Some(replica) = &replica {
+             replica.copy_variables_from(&model)?;
+         }
+-        if settings.native_vector_head {
+-            device.synchronize()?;
+-        }
+         let seconds = clock.elapsed().as_secs_f64();
+         add_served_work(
+             &mut served_in_steps,
+@@ -2823,14 +2639,8 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
+         window_loss.0 += value;
+         window_loss.1 += 1;
+         if progress.step % settings.eval_every == 0 || progress.step == settings.steps {
+-            let (evaluation, float) = evaluate_training_modes(
+-                &mut model,
+-                &valid,
+-                valid_mask.as_deref(),
+-                lens.as_deref(),
+-                settings.eval_windows,
+-                native_eval_plan.as_ref(),
+-            )?;
++            let (evaluation, float) =
++                evaluate_modes(&mut model, &valid, lens.as_deref(), settings.eval_windows)?;
+             let transport =
+                 evaluate_transport(&mut model, &valid, lens.as_deref(), settings.eval_windows)?;
+             let tokens = progress.step * settings.batch * time;
+@@ -2856,26 +2666,13 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
+             save_checkpoint(out, &model, &optimizer, &progress, &lineage)?;
+         }
+         if started.elapsed().as_secs_f64() > settings.max_seconds {
+-            if settings.native_vector_head {
+-                if !estimate_extended {
+-                    eprintln!("native healthy run exceeded its max_seconds estimate at step {}; extending rather than stopping; renew the owning lease and record the extension", progress.step);
+-                    estimate_extended = true;
+-                }
+-            } else {
+-                stopped_early = true;
+-                save_checkpoint(out, &model, &optimizer, &progress, &lineage)?;
+-                break;
+-            }
++            stopped_early = true;
++            save_checkpoint(out, &model, &optimizer, &progress, &lineage)?;
++            break;
+         }
+     }
+-    let (final_evaluation, final_float) = evaluate_training_modes(
+-        &mut model,
+-        &valid,
+-        valid_mask.as_deref(),
+-        lens.as_deref(),
+-        settings.final_windows,
+-        native_final_plan.as_ref(),
+-    )?;
++    let (final_evaluation, final_float) =
++        evaluate_modes(&mut model, &valid, lens.as_deref(), settings.final_windows)?;
+     let final_transport =
+         evaluate_transport(&mut model, &valid, lens.as_deref(), settings.final_windows)?;
+     eprintln!("final: {}", final_evaluation.record());
+@@ -2916,7 +2713,7 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
+         "parameters": parameters,
+         "active_parameters": active_parameters,
+         "completed_steps": progress.step,
+-        "stopped_early": stopped_early, "estimate_extended":estimate_extended,
++        "stopped_early": stopped_early,
+         "resumed_from": resumed_from,
+         "target_visits": progress.step * settings.batch * time,
+         "train_seconds": progress.train_seconds,
+@@ -2931,7 +2728,6 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
+         "inputs": {
+             "train": settings.train.iter().map(|p| identity(p)).collect::<Result<Vec<_>>>()?,
+             "valid": identity(&settings.valid)?,
+-            "valid_mask": settings.valid_mask.as_ref().map(|p| identity(p)).transpose()?,
+             "lens": settings.lens.as_ref().map(|p| identity(p)).transpose()?,
+             "merges": settings.merges.as_ref().map(|p| identity(p)).transpose()?,
+             "tokenizer": settings.tokenizer.as_ref().map(|p| identity(p)).transpose()?,
+@@ -2940,19 +2736,6 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
+         "executable": identity(&executable)?,
+         "model_sha256": sha256_file(&out.join("model").join("model.safetensors"))?,
+     });
+-    if settings.native_vector_head {
+-        report["untrained_constant"] = report["curve"]
+-            .as_array()
+-            .and_then(|curve| curve.iter().find(|point| point["step"].as_u64() == Some(0)))
+-            .map(|point| point["dev"].clone())
+-            .ok_or_else(|| invalid("native run lacks its same-seed zero-step dev constant"))?;
+-        report["native_objective"] = json!({
+-            "training": "mean token_margin + mean address_margin; coefficient1 each",
+-            "dev_bars": "token_margin and token-only unviolated; top1/recall8",
+-            "head": "spiralcore_product", "candidate_cells": 8, "kept_token_k": 8,
+-            "timing_boundary": "synchronized GPU boundaries around the entire step, including host window preparation, forward/backward and update; not kernel-only throughput",
+-        });
+-    }
+     if let Some(codec) = model.served_codec() {
+         report["qat"] = json!({
+             "codec": codec.name(),
+@@ -3043,9 +2826,6 @@ fn evaluate_mode(arguments: &[String]) -> Result<()> {
+             "tokens",
+             "out",
+             "tune_blocks",
+-            "valid_mask",
+-            "tokenizer",
+-            "expected_dev_targets",
+             "lens",
+             "max_blocks",
+             "softsort_tau",
+@@ -3073,40 +2853,6 @@ fn evaluate_mode(arguments: &[String]) -> Result<()> {
+     let result = (|| -> Result<()> {
+         // `evaluate` runs the artifact as saved: the load restores its transport snap by design.
+         let mut model = StackModel::load(&model_dir, &device)?;
+-        if model.native_vector_head_spec().is_some() {
+-            if args.optional("tune_blocks").is_some()
+-                || args.optional("softsort_tau").is_some()
+-                || args.optional("activation_snap").is_some()
+-            {
+-                return Err(invalid("native evaluate uses its complete masked panel, with no historical tune/squash/snap mode"));
+-            }
+-            let tokens = read_tokens(&tokens_path, model.config.vocab_size)?;
+-            let mask_path = PathBuf::from(args.required("valid_mask")?);
+-            let mask = fs::read(&mask_path)?;
+-            let windows = max_blocks.unwrap_or(tokens.len() / model.config.context);
+-            let tokenizer_path = PathBuf::from(args.required("tokenizer")?);
+-            let bos = native_bos_identity(&tokenizer_path)?;
+-            let plan = native_rung0::PanelPlan::new(
+-                &tokens,
+-                &mask,
+-                model.config.context,
+-                windows,
+-                bos,
+-                args.number("expected_dev_targets", 14287)?,
+-            )?;
+-            let evaluation = native_rung0::Evaluator::new(&model, &tokens, &mask, plan)?
+-                .evaluate(&model, &tokens, &mask)?;
+-            fs::write(
+-                out.join("evaluation.json"),
+-                serde_json::to_vec_pretty(&json!({
+-                    "schema": "uor-r4.native-rung0-evaluation/1",
+-                    "model": identity(&model_dir.join("model.safetensors"))?,
+-                    "config": model.config, "tokens": identity(&tokens_path)?,
+-                    "valid_mask": identity(&mask_path)?, "tokenizer":identity(&tokenizer_path)?, "full": evaluation,
+-                }))?,
+-            )?;
+-            return Ok(());
+-        }
+         // `softsort_tau=T` scores a `softsort_rank` model with its SoftSort
+         // training forward at temperature T instead of the hard (served) rank
+         // read: the soft-versus-hard gap shows whether training converged onto
+@@ -7047,8 +6793,6 @@ fn main() -> Result<()> {
+                     "stack_mlp",
+                     "context",
+                     "valid",
+-                    "valid_mask",
+-                    "expected_dev_targets",
+                     "out",
+                     "arch",
+                     "pattern",
+@@ -7089,7 +6833,6 @@ fn main() -> Result<()> {
+                     "read_weighting",
+                     "objective",
+                     "gate",
+-                    "rec_gates",
+                     "quaternion_weights",
+                     "projection",
+                     "head",
+@@ -7803,69 +7546,3 @@ mod tests {
+         Ok(())
+     }
+ }
+-
+-#[cfg(test)]
+-mod native_rung0_argument_tests {
+-    use super::*;
+-    fn native_config() -> Result<StackConfig> {
+-        let mut config = StackConfig::transformer(256, 4, 6, 768, 384, 1)?;
+-        config.arch = StackArch::Geometric;
+-        config.pattern = "rrrrrr".into();
+-        config.mlp_hidden = 384;
+-        config.gate = Gate::Hamilton;
+-        config.rec_gates = RecGates::Geometric;
+-        config.objective = Objective::MarginHinge { rivals: 8 };
+-        config.validate()?;
+-        Ok(config)
+-    }
+-    #[test]
+-    fn complete_native_argument_contract_refuses_legacy_modes() -> Result<()> {
+-        let config = native_config()?;
+-        require_native_training_config(&config, true, Some(QuaternionWeights::SpiralcoreFbs))?;
+-        assert!(require_native_training_config(
+-            &config,
+-            false,
+-            Some(QuaternionWeights::SpiralcoreFbs)
+-        )
+-        .is_err());
+-        let mut historical = config.clone();
+-        historical.rec_gates = RecGates::Historical;
+-        assert!(require_native_training_config(
+-            &historical,
+-            true,
+-            Some(QuaternionWeights::SpiralcoreFbs)
+-        )
+-        .is_err());
+-        let mut ce = config.clone();
+-        ce.objective = Objective::Ce;
+-        assert!(
+-            require_native_training_config(&ce, true, Some(QuaternionWeights::SpiralcoreFbs))
+-                .is_err()
+-        );
+-        let mut read = config;
+-        read.pattern = "rrarra".into();
+-        assert!(require_native_training_config(
+-            &read,
+-            true,
+-            Some(QuaternionWeights::SpiralcoreFbs)
+-        )
+-        .is_err());
+-        Ok(())
+-    }
+-    #[test]
+-    fn native_process_flags_refuse_sampling_host_diagnostics_and_bad_estimates() -> Result<()> {
+-        native_process_options(0, f64::INFINITY, false)?;
+-        assert!(native_process_options(128, f64::INFINITY, false).is_err());
+-        assert!(native_process_options(0, f64::INFINITY, true).is_err());
+-        native_process_options(0, 60., false)?;
+-        assert!(native_process_options(0, f64::NAN, false).is_err());
+-        Ok(())
+-    }
+-    #[test]
+-    fn native_metric_record_never_mislabels_raw_margins_as_likelihood() {
+-        let record=Evaluation::Native(json!({"token_margin":1.0,"address_margin":1.0,"total_margin":2.0,"top1":0.0,"recall_at_8":1.0})).record();
+-        assert_eq!(record["total_margin"], 2.0);
+-        assert!(record.get("nll").is_none());
+-        assert!(record.get("bits_per_byte").is_none());
+-    }
+-}
+diff --git a/crates/uor-r4-training/examples/geometric-stack/native_rung0.rs b/crates/uor-r4-training/examples/geometric-stack/native_rung0.rs
+deleted file mode 100644
+index 3a8529269..000000000
+--- a/crates/uor-r4-training/examples/geometric-stack/native_rung0.rs
++++ /dev/null
+@@ -1,457 +0,0 @@
+-//! Native rung-0 development metrics. All score/count arithmetic stays on CUDA.
+-//! Host code prepares token/mask indices and serializes final scalar receipts.
+-use super::invalid;
+-use candle_core::{DType, Tensor};
+-use serde_json::{json, Value};
+-use uor_r4_training::geometric_stack::{Objective, StackModel};
+-use uor_r4_training::Result;
+-
+-pub fn window_starts(tokens: usize, context: usize, windows: usize) -> Result<Vec<usize>> {
+-    if context == 0 || windows == 0 || tokens <= context || windows > (tokens - 1) / context {
+-        return Err(invalid(
+-            "native dev windows need complete non-overlapping input/shifted-target blocks",
+-        ));
+-    }
+-    Ok((0..windows).map(|i| i * context).collect())
+-}
+-
+-pub fn validate_mask(tokens: usize, mask: &[u8]) -> Result<()> {
+-    if mask.len() != tokens || mask.iter().any(|&v| v > 1) {
+-        return Err(invalid(
+-            "valid_mask must contain one binary response-mask byte per valid token",
+-        ));
+-    }
+-    Ok(())
+-}
+-
+-#[derive(Clone, Debug)]
+-pub struct Window {
+-    start: usize,
+-    time: usize,
+-    score_from: usize,
+-}
+-#[derive(Clone, Debug)]
+-pub struct PanelPlan {
+-    windows: Vec<Window>,
+-    pub scored_targets: usize,
+-    pub total_mask_targets: usize,
+-    full_blocks: usize,
+-    tail_tokens: usize,
+-    bos_id: u32,
+-    expected_targets: usize,
+-}
+-impl PanelPlan {
+-    /// Token/mask partitioning is metadata preparation, before any model call.
+-    pub fn new(
+-        valid: &[u32],
+-        mask: &[u8],
+-        context: usize,
+-        full_blocks: usize,
+-        bos_id: u32,
+-        expected_targets: usize,
+-    ) -> Result<Self> {
+-        validate_mask(valid.len(), mask)?;
+-        if context == 0 || valid.first() != Some(&bos_id) || full_blocks != valid.len() / context {
+-            return Err(invalid("native dev panel must begin at verified BOS and pin all complete global context blocks"));
+-        }
+-        let documents: Vec<usize> = valid
+-            .iter()
+-            .enumerate()
+-            .filter_map(|(i, &id)| (id == bos_id).then_some(i))
+-            .collect();
+-        let mut windows = Vec::new();
+-        let mut scored_targets = 0;
+-        for (i, &begin) in documents.iter().enumerate() {
+-            let end = documents.get(i + 1).copied().unwrap_or(valid.len());
+-            let mut first = begin + 1;
+-            while first < end {
+-                let target_end = (first + context).min(end);
+-                let start = (target_end - 1).saturating_sub(context).max(begin);
+-                scored_targets += mask[first..target_end].iter().filter(|&&m| m != 0).count();
+-                windows.push(Window {
+-                    start,
+-                    time: target_end - 1 - start,
+-                    score_from: first,
+-                });
+-                first = target_end;
+-            }
+-        }
+-        if scored_targets == 0 {
+-            return Err(invalid("native development panel has no eligible masked targets with within-document predecessors"));
+-        }
+-        Ok(Self {
+-            windows,
+-            scored_targets,
+-            total_mask_targets: mask.iter().filter(|&&m| m != 0).count(),
+-            full_blocks,
+-            tail_tokens: valid.len() % context,
+-            bos_id,
+-            expected_targets,
+-        })
+-    }
+-}
+-
+-/// Device frequency table over the declared dev-window INPUT tokens. Raw counts
+-/// are occurrence-count scores, not probabilities or an exponential family.
+-pub struct Evaluator {
+-    plan: PanelPlan,
+-    count_table: Tensor,
+-    top_count_ids: Tensor,
+-    top_count_scores: Tensor,
+-    reference_tokens: usize,
+-}
+-impl Evaluator {
+-    pub fn new(model: &StackModel, valid: &[u32], mask: &[u8], plan: PanelPlan) -> Result<Self> {
+-        if !model.device().is_cuda() || model.native_vector_head_spec().is_none() {
+-            return Err(invalid(
+-                "native development metrics require a CUDA native vector head",
+-            ));
+-        }
+-        validate_mask(valid.len(), mask)?;
+-        let ids = valid.to_vec();
+-        let reference_tokens = ids.len();
+-        let index = Tensor::from_vec(ids, reference_tokens, model.device())?;
+-        let count_table = Tensor::zeros(model.config.vocab_size, DType::F32, model.device())?
+-            .scatter_add(
+-                &index,
+-                &Tensor::ones(reference_tokens, DType::F32, model.device())?,
+-                0,
+-            )?;
+-        let identities = Tensor::from_vec(
+-            (0..model.config.vocab_size as u32).collect::<Vec<_>>(),
+-            model.config.vocab_size,
+-            model.device(),
+-        )?;
+-        let mut available = Tensor::ones(model.config.vocab_size, DType::U8, model.device())?;
+-        let mut top_ids = Vec::new();
+-        let mut top_scores = Vec::new();
+-        for _ in 0..9 {
+-            let scores = available.where_cond(
+-                &count_table,
+-                &Tensor::full(-1.0f32, model.config.vocab_size, model.device())?,
+-            )?;
+-            let best = scores.max_all()?;
+-            let tied = scores.broadcast_eq(&best)?;
+-            let id = tied
+-                .where_cond(
+-                    &identities,
+-                    &Tensor::full(u32::MAX, model.config.vocab_size, model.device())?,
+-                )?
+-                .min_all()?;
+-            available = available.mul(&identities.broadcast_ne(&id)?)?;
+-            top_ids.push(id.reshape(1)?);
+-            top_scores.push(best.reshape(1)?);
+-        }
+-        Ok(Self {
+-            plan,
+-            count_table,
+-            top_count_ids: Tensor::cat(&top_ids, 0)?,
+-            top_count_scores: Tensor::cat(&top_scores, 0)?,
+-            reference_tokens,
+-        })
+-    }
+-
+-    pub fn evaluate(&self, model: &StackModel, valid: &[u32], mask: &[u8]) -> Result<Value> {
+-        validate_mask(valid.len(), mask)?;
+-        let Objective::MarginHinge { rivals } = model.config.objective else {
+-            return Err(invalid(
+-                "native evaluation needs its declared margin-rival count",
+-            ));
+-        };
+-        let device = model.device();
+-        let writer = model.native_vector_writer()?;
+-        let mut sums = Tensor::zeros(3, DType::F32, device)?;
+-        let mut counts = Tensor::zeros(5, DType::U32, device)?;
+-        let mut reference_loss = Tensor::zeros((), DType::F32, device)?;
+-        let mut reference_counts = Tensor::zeros(3, DType::U32, device)?;
+-        let mut targets_seen = 0usize;
+-        for group in self.plan.windows.chunks(16) {
+-            let time = group
+-                .iter()
+-                .map(|w| w.time)
+-                .max()
+-                .ok_or_else(|| invalid("empty native window group"))?;
+-            let mut ids = Vec::with_capacity(group.len() * time);
+-            let mut targets = Vec::new();
+-            let mut scored = Vec::new();
+-            for (row, window) in group.iter().enumerate() {
+-                ids.extend_from_slice(&valid[window.start..window.start + window.time]);
+-                ids.extend(std::iter::repeat_n(self.plan.bos_id, time - window.time));
+-                for position in 0..window.time {
+-                    let target_position = window.start + position + 1;
+-                    if target_position >= window.score_from && mask[target_position] != 0 {
+-                        scored.push((row * time + position) as u32);
+-                        targets.push(valid[target_position]);
+-                    }
+-                }
+-            }
+-            if targets.is_empty() {
+-                continue;
+-            }
+-            let n = targets.len();
+-            let hidden = model.hidden(&ids, group.len(), time)?.detach();
+-            let selected = hidden.index_select(&Tensor::from_vec(scored, n, device)?, 0)?;
+-            let candidates = writer.candidates(&selected)?;
+-            let metrics = writer.metrics(&candidates, &targets, rivals, 8)?;
+-            let as_row = |t: &Tensor| -> Result<Tensor> { Ok(t.reshape(1)?) };
+-            let losses = Tensor::cat(
+-                &[
+-                    as_row(&metrics.token_margin)?,
+-                    as_row(&metrics.address_margin)?,
+-                    as_row(&metrics.total_margin)?,
+-                ],
+-                0,
+-            )?
+-            .affine(n as f64, 0.0)?;
+-            sums = sums.add(&losses)?;
+-            counts = counts.add(&Tensor::cat(
+-                &[
+-                    as_row(&metrics.top1_count)?,
+-                    as_row(&metrics.recall_at_k_count)?,
+-                    as_row(&metrics.token_unviolated_count)?,
+-                    as_row(&metrics.total_unviolated_count)?,
+-                    as_row(&metrics.admitted_target_count)?,
+-                ],
+-                0,
+-            )?)?;
+-            let target_ids = Tensor::from_vec(targets, n, device)?;
+-            let target_score = self
+-                .count_table
+-                .index_select(&target_ids, 0)?
+-                .unsqueeze(1)?;
+-            let candidates = self.top_count_ids.unsqueeze(0)?.broadcast_as((n, 9))?;
+-            let mut available = candidates.broadcast_ne(&target_ids.unsqueeze(1)?)?;
+-            let rival_scores = self.top_count_scores.unsqueeze(0)?.broadcast_as((n, 9))?;
+-            let mut row_loss = Tensor::zeros((n, 1), DType::F32, device)?;
+-            for _ in 0..rivals {
+-                let scores =
+-                    available.where_cond(&rival_scores, &Tensor::full(-1.0f32, (n, 9), device)?)?;
+-                let best = scores.max_keepdim(1)?;
+-                row_loss = row_loss.add(
+-                    &best
+-                        .sub(&target_score)?
+-                        .affine(1.0, 1.0)?
+-                        .maximum(&Tensor::zeros((n, 1), DType::F32, device)?)?,
+-                )?;
+-                let tied = scores.broadcast_eq(&best)?.mul(&available)?;
+-                let id = tied
+-                    .where_cond(&candidates, &Tensor::full(u32::MAX, (n, 9), device)?)?
+-                    .min_keepdim(1)?;
+-                available = available.mul(&candidates.broadcast_ne(&id)?)?;
+-            }
+-            row_loss = row_loss.affine(1.0 / rivals as f64, 0.0)?;
+-            reference_loss = reference_loss.add(&row_loss.sum_all()?)?;
+-            let top1 = target_ids
+-                .broadcast_eq(&self.top_count_ids.narrow(0, 0, 1)?.reshape(())?)?
+-                .to_dtype(DType::U32)?
+-                .sum_all()?;
+-            let recall = target_ids
+-                .unsqueeze(1)?
+-                .broadcast_eq(&self.top_count_ids.narrow(0, 0, 8)?.unsqueeze(0)?)?
+-                .to_dtype(DType::U32)?
+-                .sum_all()?;
+-            let unviolated = row_loss.eq(0.0f32)?.to_dtype(DType::U32)?.sum_all()?;
+-            reference_counts = reference_counts.add(&Tensor::cat(
+-                &[as_row(&top1)?, as_row(&recall)?, as_row(&unviolated)?],
+-                0,
+-            )?)?;
+-            targets_seen += n;
+-        }
+-        if targets_seen != self.plan.scored_targets {
+-            return Err(invalid(
+-                "native evaluator lost or duplicated planned masked target positions",
+-            ));
+-        }
+-        if targets_seen == 0 {
+-            return Err(invalid(
+-                "native development panel has no scored shifted-response targets",
+-            ));
+-        }
+-        // Normalize on device; only finalized scalar reports cross to the host.
+-        let means = sums
+-            .affine(1.0 / targets_seen as f64, 0.0)?
+-            .to_vec1::<f32>()?;
+-        let rates = counts
+-            .to_dtype(DType::F32)?
+-            .affine(1.0 / targets_seen as f64, 0.0)?
+-            .to_vec1::<f32>()?;
+-        let reference_rates = reference_counts
+-            .to_dtype(DType::F32)?
+-            .affine(1.0 / targets_seen as f64, 0.0)?
+-            .to_vec1::<f32>()?;
+-        let count_loss = reference_loss
+-            .affine(1.0 / targets_seen as f64, 0.0)?
+-            .to_scalar::<f32>()?;
+-        let norm = writer
+-            .table()
+-            .abs()?
+-            .sum(1)?
+-            .mean_all()?
+-            .to_scalar::<f32>()?;
+-        Ok(
+-            json!({ "schema":"uor-r4.native-rung0-development/1", "payload_tokens":valid.len(), "response_mask_bytes":mask.len(), "document_windows":self.plan.windows.len(), "full_global_blocks":self.plan.full_blocks, "global_tail_tokens":self.plan.tail_tokens, "expected_targets":self.plan.expected_targets, "denominator_mismatch":targets_seen!=self.plan.expected_targets, "total_mask_targets":self.plan.total_mask_targets, "bos_id":self.plan.bos_id, "targets":targets_seen, "mask_policy":"all masked targets with within-document predecessor, reset each BOS, context-bounded windows, overlapping tail context scored once", "token_margin":means[0], "address_margin":means[1], "total_margin":means[2], "unviolated_target_rate":rates[2], "total_unviolated_target_rate":rates[3], "top1":rates[0], "recall_at_8":rates[1], "admitted_target_rate":rates[4], "token_table_mean_l1_norm":norm, "table_norm_units":"mean per-token sum of absolute coordinates", "score_units":"mean absolute coordinate displacement; fixed scale1", "rivals":rivals, "kept_token_k":8, "count_predictor": { "reference_tokens":self.reference_tokens, "frequency_policy":"entire pinned dev token stream including tail", "score_units":"raw occurrence counts", "top1":reference_rates[0], "recall_at_8":reference_rates[1], "token_margin":count_loss, "unviolated_target_rate":reference_rates[2] } }),
+-        )
+-    }
+-}
+-
+-#[cfg(test)]
+-mod tests {
+-    use super::*;
+-    #[test]
+-    fn exact_window_and_shifted_mask_contract_is_metadata_only() -> Result<()> {
+-        assert_eq!(window_starts(42856, 384, 111)?.len(), 111);
+-        assert_eq!(window_starts(42856, 384, 111)?[110], 42240);
+-        assert!(window_starts(42856, 384, 112).is_err());
+-        assert!(validate_mask(3, &[0, 1, 1]).is_ok());
+-        assert!(validate_mask(3, &[0, 1, 2]).is_err());
+-        assert!(validate_mask(3, &[1, 1]).is_err());
+-        Ok(())
+-    }
+-    #[test]
+-    fn uort_header_inventory_is_not_token_payload_or_tail() -> Result<()> {
+-        use uor_r4_core::native_geometric::mmap_corpus::{CorpusHeader, CORPUS_HEADER_SIZE};
+-        let bytes = CorpusHeader::new(42856, 4096).to_bytes();
+-        let decoded = CorpusHeader::from_bytes(&bytes).map_err(|e| invalid(e.to_string()))?;
+-        assert_eq!(CORPUS_HEADER_SIZE, 64);
+-        assert_eq!(decoded.total_tokens, 42856);
+-        assert_eq!(
+-            CORPUS_HEADER_SIZE + decoded.total_tokens as usize * 2,
+-            85776
+-        );
+-        assert_ne!(85776 / 2, decoded.total_tokens as usize);
+-        assert_eq!(decoded.total_tokens as usize / 384, 111);
+-        assert_eq!(decoded.total_tokens as usize % 384, 232);
+-        Ok(())
+-    }
+-
+-    #[test]
+-    fn document_boundaries_and_overlap_tail_score_every_mask_once() -> Result<()> {
+-        let valid = [7, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+-        let mask = [0, 1, 1, 1, 1, 1, 1, 0, 1, 1];
+-        let plan = PanelPlan::new(&valid, &mask, 4, 2, 7, 8)?;
+-        assert_eq!(plan.scored_targets, 8);
+-        assert_eq!(plan.tail_tokens, 2);
+-        let mut seen = Vec::new();
+-        for window in &plan.windows {
+-            for p in window.start + 1..window.start + window.time + 1 {
+-                if p >= window.score_from && mask[p] != 0 {
+-                    seen.push(p);
+-                }
+-            }
+-        }
+-        assert_eq!(seen, vec![1, 2, 3, 4, 5, 6, 8, 9]);
+-        assert!(PanelPlan::new(&valid[1..], &mask[1..], 4, 2, 7, 8).is_err());
+-        Ok(())
+-    }
+-}
+-
+-#[cfg(all(test, feature = "cuda"))]
+-mod cuda_fixed_tests {
+-    use super::*;
+-    use std::path::PathBuf;
+-    use uor_r4_training::geometric_stack::{
+-        Gate, QuaternionWeights, RecGates, StackArch, StackConfig,
+-    };
+-
+-    #[test]
+-    fn cuda_document_evaluator_known_answers_and_native_artifact_roundtrip() -> Result<()> {
+-        let parent = std::env::var_os("UOR_FINITE_REPORT_ROOT")
+-            .map(PathBuf::from)
+-            .ok_or_else(||invalid("CUDA finite artifact test needs UOR_FINITE_REPORT_ROOT under /workspace; no system temporary directory"))?;
+-        if !parent.is_absolute() || !parent.starts_with("/workspace") {
+-            return Err(invalid(
+-                "finite CUDA report root must be absolute and under /workspace",
+-            ));
+-        }
+-        let report = parent.join("native-document-evaluator");
+-        uor_r4_core::report_output::claim(&report)?;
+-        let result = (|| -> Result<()> {
+-            let device = candle_core::Device::new_cuda(0)?; // Missing CUDA is failure.
+-            let valid = [0, 1, 2, 1, 0, 2, 1, 2, 1];
+-            let mask = [0, 1, 1, 1, 0, 1, 1, 1, 1];
+-            let plan = PanelPlan::new(&valid, &mask, 4, 2, 0, 7)?;
+-            let close = |record: &Value, key: &str, want: f64| -> Result<()> {
+-                let got = record[key]
+-                    .as_f64()
+-                    .ok_or_else(|| invalid(format!("missing metric {key}")))?;
+-                assert!(
+-                    (got - want).abs() < 1e-6,
+-                    "{key}: {got} vs stored analytic {want}"
+-                );
+-                Ok(())
+-            };
+-            for rivals in [1, 8] {
+-                let mut config = StackConfig::transformer(32, 4, 6, 64, 4, 11)?;
+-                config.arch = StackArch::Geometric;
+-                config.pattern = "rrrrrr".into();
+-                config.vocab_size = 512; // 16 candidates leaves enough non-target rivals for M8.
+-                config.mlp_hidden = 64;
+-                config.gate = Gate::Hamilton;
+-                config.rec_gates = RecGates::Geometric;
+-                config.objective = Objective::MarginHinge { rivals };
+-                let mut model = StackModel::new(config, &device)?;
+-                model.set_quaternion_weights(QuaternionWeights::SpiralcoreFbs)?;
+-                model.set_native_vector_head(8)?;
+-                for var in model.variables().values() {
+-                    var.set(&Tensor::zeros(var.shape(), DType::F32, &device)?)?;
+-                }
+-                // Stored analytic fixture: zero carriers/table, tied atlas cells.
+-                // No CPU forward/reference and no optimizer/update is executed.
+-                let metrics = Evaluator::new(&model, &valid, &mask, plan.clone())?
+-                    .evaluate(&model, &valid, &mask)?;
+-                assert_eq!(metrics["targets"], 7);
+-                assert_eq!(metrics["denominator_mismatch"], false);
+-                close(&metrics, "token_margin", 1.)?;
+-                close(&metrics, "address_margin", 1.)?;
+-                close(&metrics, "total_margin", 2.)?;
+-                close(&metrics, "top1", 0.)?;
+-                close(&metrics, "recall_at_8", 1.)?;
+-                close(&metrics, "unviolated_target_rate", 0.)?;
+-                close(&metrics["count_predictor"], "top1", 4. / 7.)?;
+-                close(&metrics["count_predictor"], "recall_at_8", 1.)?;
+-                close(
+-                    &metrics["count_predictor"],
+-                    "token_margin",
+-                    if rivals == 1 { 6. / 7. } else { 3. / 28. },
+-                )?;
+-                let directory = report.join(format!("arm-{rivals}"));
+-                model.save(&directory)?;
+-                let restored = StackModel::load(&directory, &device)?;
+-                let restored_metrics = Evaluator::new(&restored, &valid, &mask, plan.clone())?
+-                    .evaluate(&restored, &valid, &mask)?;
+-                assert_eq!(restored_metrics, metrics);
+-                let query = Tensor::zeros((1, 32), DType::F32, &device)?;
+-                assert_eq!(
+-                    model
+-                        .native_vector_channel()?
+-                        .emit(&query)?
+-                        .to_vec1::<u32>()?,
+-                    restored
+-                        .native_vector_channel()?
+-                        .emit(&query)?
+-                        .to_vec1::<u32>()?
+-                );
+-                let config_path = directory.join("config.json");
+-                let original = std::fs::read(&config_path)?;
+-                let mut missing: Value = serde_json::from_slice(&original)?;
+-                missing
+-                    .as_object_mut()
+-                    .ok_or_else(|| invalid("artifact config object"))?
+-                    .remove("native_vector_head");
+-                std::fs::write(&config_path, serde_json::to_vec_pretty(&missing)?)?;
+-                assert!(StackModel::load(&directory, &device).is_err());
+-                let mut stale: Value = serde_json::from_slice(&original)?;
+-                stale["native_vector_head"]["source_sha256"] = json!("stale");
+-                std::fs::write(&config_path, serde_json::to_vec_pretty(&stale)?)?;
+-                assert!(StackModel::load(&directory, &device).is_err());
+-                std::fs::write(&config_path, original)?;
+-                std::fs::write(
+-                    report.join(format!("arm-{rivals}-metrics.json")),
+-                    serde_json::to_vec_pretty(&metrics)?,
+-                )?;
+-            }
+-            Ok(())
+-        })();
+-        super::super::finish(&report, result)
+-    }
+-}
+diff --git a/crates/uor-r4-training/src/cuda_stack_kernels.rs b/crates/uor-r4-training/src/cuda_stack_kernels.rs
+index 8ea32dbf3..fbd5faef6 100644
+--- a/crates/uor-r4-training/src/cuda_stack_kernels.rs
++++ b/crates/uor-r4-training/src/cuda_stack_kernels.rs
+@@ -337,18 +337,8 @@ __device__ __forceinline__ float rate_entry(uint index) {
+ }
+ 
+ __device__ __forceinline__ float keep_entry(uint index) {
+-    // Same precomputed F32 table as KEEP_TABLE; no backend-dependent
+-    // subtraction/square-root rounding changes the declared table entries.
+-    const float entries[16] = {
+-        0.8660253882408142f, 0.9682458639144897f,
+-        0.9921567440032959f, 0.9980449676513672f,
+-        0.9995115995407104f, 0.9998779296875f,
+-        0.999969482421875f, 0.9999923706054688f,
+-        0.9999980926513672f, 0.9999995231628418f,
+-        0.9999998807907104f, 0.9999999403953552f,
+-        1.0f, 1.0f, 1.0f, 1.0f
+-    };
+-    return entries[index];
++    float rate = rate_entry(index);
++    return sqrtf(1.0f - rate * rate);
+ }
+ 
+ __device__ __forceinline__ uint rate_index_of(float score) {
+@@ -377,7 +367,7 @@ extern "C" __global__ void rate_select_bwd(
+     float credit = 0.0f;
+     float sides = 0.0f;
+     if (index > 0u) {
+-        credit -= d_lambda * (rate_entry(index - 1u) - rate_entry(index))
++        credit += d_lambda * (rate_entry(index - 1u) - rate_entry(index))
+                 + d_keep * (keep_entry(index - 1u) - keep_entry(index));
+         sides += 1.0f;
+     }
+diff --git a/crates/uor-r4-training/src/geometric_stack.rs b/crates/uor-r4-training/src/geometric_stack.rs
+index b0cfb85b9..200d27706 100644
+--- a/crates/uor-r4-training/src/geometric_stack.rs
++++ b/crates/uor-r4-training/src/geometric_stack.rs
+@@ -3087,13 +3087,6 @@ fn initial_variable_values(
+                 }
+             })
+             .collect(),
+-        // Direct rate-address parameters for the geometric law. Historical
+-        // inverse-logistic logits are >1 and would saturate its exact clamp.
+-        // Round-robin bin centres keep all sixteen declared addresses in the
+-        // initialization; this consumes no RNG and preserves seed draw order.
+-        "rec.decay" if config.rec_gates == RecGates::Geometric => (0..count)
+-            .map(|lane| ((lane % RATE_ENTRIES) as f32 + 0.5) / RATE_ENTRIES as f32)
+-            .collect(),
+         "rec.decay" => (0..count)
+             .map(|lane| {
+                 let fraction = lane as f64 / (count.max(2) - 1) as f64;
+@@ -9811,16 +9804,6 @@ impl StackModel {
+         x: &Tensor,
+         capture: &mut Capture<'_>,
+     ) -> Result<Tensor> {
+-        if self.config.rec_gates == RecGates::Geometric {
+-            // The fused historical core retains sigmoid/exponential/GELU laws.
+-            // A geometric configuration must never enter that core merely
+-            // because the ordinary forward (rather than a diagnostic) is used.
+-            if self.transport.is_some() {
+-                return Err(invalid("geometric recurrence has no CUDA transport-snap implementation; no host fallback"));
+-            }
+-            tap(capture, StackSite::Recurrence(layer), || self.unit_norm(x))?;
+-            return self.composed_recurrence_hooked(p, layer, x, ComposedTransport::Free, capture);
+-        }
+         let (batch, time, width) = x.dims3()?;
+         tap(capture, StackSite::Recurrence(layer), || self.unit_norm(x))?;
+         let u = self.norm(p, x, &layer_name(layer, "rec_norm.weight"))?;
+@@ -10265,35 +10248,6 @@ impl StackModel {
+         self.native_vector_head.as_ref()
+     }
+ 
+-    /// Admission for the currently declared recurrence-only native learning
+-    /// path. A head-only qualification cannot admit a historical trunk.
+-    pub fn validate_native_learning_path(&self) -> Result<()> {
+-        if self.native_vector_head.is_none() {
+-            return Ok(());
+-        }
+-        self.native_vector_writer()?;
+-        if !self.device.is_cuda()
+-            || self.precision != Precision::F32
+-            || self.config.arch != StackArch::Geometric
+-            || self.config.rec_gates != RecGates::Geometric
+-            || self.config.gate != Gate::Hamilton
+-            || self.config.pattern.is_empty()
+-            || !self.config.pattern.chars().all(|kind| kind == 'r')
+-            || self.config.memory.is_some()
+-            || self.e8_memory.is_some()
+-            || self.served.is_some()
+-            || self.transport.is_some()
+-            || self.geometric_address.is_some()
+-            || self.geometric_span.is_some()
+-            || self.read_silence.is_some()
+-            || self.activation_snap != ActivationSnap::None
+-            || self.quaternion_snap != QuaternionSnap::None
+-        {
+-            return Err(invalid("native learning requires the declared F32 CUDA recurrence-only geometric/Hamilton/FBS trunk; historical, read, memory, served and host-snap paths are not admitted"));
+-        }
+-        Ok(())
+-    }
+-
+     /// Typed bounded candidates, including IDs and admission, rather than a
+     /// fabricated all-vocabulary logits tensor. Full-trunk use remains held.
+     pub fn native_head_candidates(
+@@ -10394,7 +10348,6 @@ impl StackModel {
+         gates: LatchGates,
+         source: ReadSource<'_>,
+     ) -> Result<Tensor> {
+-        self.validate_native_learning_path()?;
+         for layer in layers {
+             if self.read_silence == Some(layer) {
+                 // Read-out ablation: this read head contributes nothing.
+@@ -12677,7 +12630,6 @@ impl StackModel {
+         time: usize,
+         transport: ComposedTransport<'_>,
+     ) -> Result<Tensor> {
+-        self.validate_native_learning_path()?;
+         let p = self.params()?;
+         let mut x = self.embed_with(&p, ids, batch, time)?;
+         let tokens = x.clone();
+@@ -12726,23 +12678,6 @@ impl StackModel {
+         x: &Tensor,
+         transport: ComposedTransport<'_>,
+     ) -> Result<Tensor> {
+-        self.composed_recurrence_hooked(p, layer, x, transport, &mut None)
+-    }
+-
+-    fn composed_recurrence_hooked(
+-        &self,
+-        p: &Params<'_>,
+-        layer: usize,
+-        x: &Tensor,
+-        transport: ComposedTransport<'_>,
+-        capture: &mut Capture<'_>,
+-    ) -> Result<Tensor> {
+-        self.validate_native_learning_path()?;
+-        if self.config.rec_gates == RecGates::Geometric
+-            && (!self.device.is_cuda() || !matches!(transport, ComposedTransport::Free))
+-        {
+-            return Err(invalid("geometric recurrence requires CUDA with unsnapped transport; no CPU reference or host snap fallback"));
+-        }
+         let (batch, time, width) = x.dims3()?;
+         let lanes = width / 4;
+         let u = self.norm(p, x, &layer_name(layer, "rec_norm.weight"))?;
+@@ -12846,9 +12781,6 @@ impl StackModel {
+         } else {
+             state.mul(&gate.gelu()?)?
+         };
+-        tap(capture, StackSite::RecurrenceOut(layer), || {
+-            Ok(mixed.clone())
+-        })?;
+         self.linear(&mixed, p.layer(layer, "rec.out.weight")?)
+     }
+ }
+@@ -14356,40 +14288,6 @@ pub fn gradient_square_sum_reference(tensors: &[&Tensor]) -> Result<f32> {
+     Ok(Tensor::cat(&sums, 0)?.sum_all()?.to_scalar::<f32>()?)
+ }
+ 
+-/// Compute norm and clipping on CUDA. Only the diagnostic norm is returned
+-/// to the host; the model-dependent clipping scale remains a device tensor.
+-fn cuda_gradient_clip(tensors: &[&Tensor], clip: f64) -> Result<(Tensor, Tensor)> {
+-    let first = tensors
+-        .first()
+-        .ok_or_else(|| invalid("no CUDA gradients to clip"))?;
+-    if !first.device().is_cuda()
+-        || tensors.iter().any(|tensor| {
+-            tensor.dtype() != DType::F32 || !tensor.device().same_device(first.device())
+-        })
+-        || !clip.is_finite()
+-        || clip < 0.0
+-        || (clip > 0.0 && clip < f32::MIN_POSITIVE as f64)
+-        || clip > f64::from(f32::MAX)
+-        || (clip > 0.0 && clip as f32 == 0.0)
+-    {
+-        return Err(invalid(
+-            "gradient clipping requires F32-representable configuration and same-device F32 CUDA gradients",
+-        ));
+-    }
+-    let squares = tensors
+-        .iter()
+-        .map(|grad| grad.sqr()?.sum_all()?.reshape(1))
+-        .collect::<candle_core::Result<Vec<_>>>()?;
+-    let norm = Tensor::cat(&squares, 0)?.sum_all()?.sqrt()?;
+-    let scale = if clip > 0.0 {
+-        Tensor::full(clip as f32, (), first.device())?
+-            .broadcast_div(&norm.clamp(clip, f32::MAX as f64)?)?
+-    } else {
+-        Tensor::ones((), DType::F32, first.device())?
+-    };
+-    Ok((norm, scale))
+-}
+-
+ /// AdamW with global gradient-norm clipping and resumable moments.
+ pub struct StackAdamW {
+     pub beta1: f64,
+@@ -14469,23 +14367,8 @@ impl StackAdamW {
+         grads: &candle_core::backprop::GradStore,
+         lr: f64,
+     ) -> Result<f64> {
+-        model.validate_native_learning_path()?;
+         let mut total = 0f64;
+-        let mut device_scale = None;
+-        if model.device().is_cuda() {
+-            let present: Vec<&Tensor> = model
+-                .variables()
+-                .values()
+-                .filter_map(|var| grads.get(var.as_tensor()))
+-                .collect();
+-            if !present.is_empty() {
+-                let (norm, scale) = cuda_gradient_clip(&present, self.clip)?;
+-                // Reporting/error admission only: this scalar does not compute
+-                // or feed clipping, gradients, moments or parameter values.
+-                total = f64::from(norm.to_scalar::<f32>()?);
+-                device_scale = Some(scale);
+-            }
+-        } else if matches!(model.device(), Device::Metal(_)) {
++        if matches!(model.device(), Device::Metal(_) | Device::Cuda(_)) {
+             let present: Vec<&Tensor> = model
+                 .variables()
+                 .values()
+@@ -14501,17 +14384,11 @@ impl StackAdamW {
+                 }
+             }
+         }
+-        let norm = if model.device().is_cuda() {
+-            total
+-        } else {
+-            total.sqrt()
+-        };
++        let norm = total.sqrt();
+         if !norm.is_finite() {
+             return Err(invalid("nonfinite gradient norm"));
+         }
+-        let scale = if device_scale.is_some() {
+-            1.0
+-        } else if self.clip > 0.0 && norm > self.clip {
++        let scale = if self.clip > 0.0 && norm > self.clip {
+             self.clip / norm
+         } else {
+             1.0
+@@ -14523,13 +14400,6 @@ impl StackAdamW {
+             let Some(grad) = grads.get(var.as_tensor()) else {
+                 continue;
+             };
+-            let clipped;
+-            let grad = if let Some(scale) = &device_scale {
+-                clipped = grad.broadcast_mul(scale)?;
+-                &clipped
+-            } else {
+-                grad
+-            };
+             let (m, v) = self
+                 .moments
+                 .get(name)
+@@ -18636,7 +18506,7 @@ pub fn rate_index(score: f32) -> usize {
+ /// incoming adjoints `(d lambda, d keep)` with the neighbours' complete
+ /// counterfactual table displacement `(lambda_s' - lambda_s, keep_s' - keep_s)`
+ /// and resolves that loss contrast along the fixed edge between the entries
+-/// (`(s' - s) / RATE_ENTRIES`), one half to each side and the whole weight to a lone
++/// (`1 / RATE_ENTRIES`), one half to each side and the whole weight to a lone
+ /// neighbour at either end of the table. No probability, no exponential and no
+ /// learned coefficient appears: the surrogate is a secant over a fixed table.
+ struct RateSelect;
+@@ -18718,9 +18588,7 @@ impl candle_core::CustomOp1 for RateSelect {
+                 let contrast = f64::from(d_lambda)
+                     * f64::from(RATE_TABLE[neighbour] - RATE_TABLE[s])
+                     + f64::from(d_keep) * f64::from(KEEP_TABLE[neighbour] - KEEP_TABLE[s]);
+-                // The lower edge points in the negative score direction.
+-                // Divide by its signed displacement, not its unsigned length.
+-                credit += contrast / (neighbour as f64 - s as f64);
++                credit += contrast;
+                 sides += 1.0;
+             }
+             if sides > 0.0 {
+@@ -22245,8 +22113,7 @@ mod tests {
+         for neighbour in [7usize, 9] {
+             want += 0.5
+                 * (f64::from(d_lambda) * f64::from(RATE_TABLE[neighbour] - RATE_TABLE[8])
+-                    + f64::from(d_keep) * f64::from(KEEP_TABLE[neighbour] - KEEP_TABLE[8]))
+-                / (neighbour as f64 - 8.0);
++                    + f64::from(d_keep) * f64::from(KEEP_TABLE[neighbour] - KEEP_TABLE[8]));
+         }
+         want *= RATE_ENTRIES as f64;
+         assert!(
+@@ -22302,200 +22169,6 @@ mod tests {
+         Ok(())
+     }
+ 
+-    /// Stored analytic one-sided/central secants, all model arithmetic on CUDA.
+-    /// In particular lambda decreases as the address score increases on BOTH
+-    /// neighbours; treating the lower edge as positive reverses its credit.
+-    #[cfg(feature = "cuda")]
+-    #[test]
+-    fn geometric_rate_cuda_uses_signed_edges_and_exact_keep_table() -> Result<()> {
+-        let device = Device::new_cuda(0)?;
+-        let scores = Var::from_tensor(&Tensor::from_vec(vec![0.0f32, 0.1, 0.95], 3, &device)?)?;
+-        let selected = rate_select(scores.as_tensor())?;
+-        let incoming = Tensor::from_vec(vec![1.0f32, 0.0, 1.0, 0.0, 1.0, 0.0], (3, 2), &device)?;
+-        let gradients = selected.mul(&incoming)?.sum_all()?.backward()?;
+-        let actual = gradients
+-            .get(scores.as_tensor())
+-            .ok_or_else(|| invalid("CUDA rate score credit missing"))?
+-            .to_vec1::<f32>()?;
+-        assert_eq!(actual, vec![-4.0f32, -3.0, -0.000244140625]);
+-
+-        // Score constants enumerate the declared table addresses, not a host
+-        // evaluation of the forward or its reference arithmetic.
+-        let addresses = Tensor::from_vec(
+-            (0..RATE_ENTRIES)
+-                .map(|i| i as f32 / 16.0)
+-                .collect::<Vec<_>>(),
+-            RATE_ENTRIES,
+-            &device,
+-        )?;
+-        let values = rate_select(&addresses)?.to_vec2::<f32>()?;
+-        for (index, value) in values.iter().enumerate() {
+-            assert_eq!(value[0].to_bits(), RATE_TABLE[index].to_bits());
+-            assert_eq!(value[1].to_bits(), KEEP_TABLE[index].to_bits());
+-        }
+-        Ok(())
+-    }
+-
+-    /// Ordinary six-layer dispatch, not the separate composed diagnostic API.
+-    /// One fixed GPU forward/backward, without an optimizer or quality panel.
+-    #[cfg(feature = "cuda")]
+-    #[test]
+-    fn geometric_rung0_cuda_ordinary_path_has_learning_credit() -> Result<()> {
+-        let device = Device::new_cuda(0)?;
+-        let mut config = StackConfig::transformer_control(42);
+-        config.arch = StackArch::Geometric;
+-        config.pattern = "rrrrrr".into();
+-        config.width = 256;
+-        config.heads = 4;
+-        config.mlp_hidden = 384;
+-        config.context = 384;
+-        config.vocab_size = 4096;
+-        config.rotation = true;
+-        config.gate = Gate::Hamilton;
+-        config.rec_gates = RecGates::Geometric;
+-        config.objective = Objective::MarginHinge { rivals: 8 };
+-        let mut model = StackModel::new(config, &device)?;
+-        model.set_quaternion_weights(QuaternionWeights::SpiralcoreFbs)?;
+-        model.set_native_vector_head(8)?;
+-        let batch = 16;
+-        let time = 384;
+-        // Deterministic fixture token IDs, not a corpus or quality panel.
+-        let cycle = [0u32, 1, 0, 2, 1, 3, 2, 4];
+-        let next_cycle = [1u32, 0, 2, 1, 3, 2, 4, 5];
+-        let ids = (0..batch * time)
+-            .map(|i| cycle[i % cycle.len()])
+-            .collect::<Vec<_>>();
+-        let targets = (0..batch * time)
+-            .map(|i| next_cycle[i % next_cycle.len()])
+-            .collect::<Vec<_>>();
+-        let loss = model.loss(&ids, &targets, batch, time)?;
+-        assert!(loss.to_scalar::<f32>()?.is_finite());
+-        let gradients = loss.backward()?;
+-        for (name, variable) in model.variables() {
+-            let gradient = gradients
+-                .get(variable.as_tensor())
+-                .ok_or_else(|| invalid(format!("ordinary rung0 credit missing: {name}")))?;
+-            assert!(
+-                gradient.device().is_cuda(),
+-                "gradient moved off CUDA: {name}"
+-            );
+-            assert_eq!(gradient.shape(), variable.shape(), "gradient shape: {name}");
+-            assert_eq!(
+-                gradient.abs()?.le(f32::MAX)?.min_all()?.to_scalar::<u8>()?,
+-                1,
+-                "nonfinite ordinary rung0 credit: {name}"
+-            );
+-            if name.ends_with("rec.decay") || name.ends_with("rec.gate.spiralcore_fbs") {
+-                assert!(
+-                    gradient.abs()?.sum_all()?.to_scalar::<f32>()? > 0.0,
+-                    "geometric rate/opening credit disconnected at fresh initialization: {name}"
+-                );
+-            }
+-        }
+-        Ok(())
+-    }
+-
+-    #[cfg(feature = "cuda")]
+-    #[test]
+-    fn geometric_cuda_clipping_matches_stored_analytic_values() -> Result<()> {
+-        let device = Device::new_cuda(0)?;
+-        let first = Tensor::from_vec(vec![3.0f32], 1, &device)?;
+-        let second = Tensor::from_vec(vec![4.0f32], 1, &device)?;
+-        let (norm, scale) = cuda_gradient_clip(&[&first, &second], 2.5)?;
+-        assert!(norm.device().is_cuda() && scale.device().is_cuda());
+-        assert_eq!(norm.to_scalar::<f32>()?, 5.0);
+-        assert_eq!(scale.to_scalar::<f32>()?, 0.5);
+-        assert_eq!(first.broadcast_mul(&scale)?.to_vec1::<f32>()?, vec![1.5]);
+-        assert_eq!(second.broadcast_mul(&scale)?.to_vec1::<f32>()?, vec![2.0]);
+-        for limit in [0.0, 10.0] {
+-            let (norm, scale) = cuda_gradient_clip(&[&first, &second], limit)?;
+-            assert_eq!(norm.to_scalar::<f32>()?, 5.0);
+-            assert_eq!(scale.to_scalar::<f32>()?, 1.0);
+-        }
+-        let zero = Tensor::zeros(2, DType::F32, &device)?;
+-        let (norm, scale) = cuda_gradient_clip(&[&zero], 2.5)?;
+-        assert_eq!(norm.to_scalar::<f32>()?, 0.0);
+-        assert_eq!(scale.to_scalar::<f32>()?, 1.0);
+-        let host_constant = Tensor::from_vec(vec![3.0f32], 1, &Device::Cpu)?;
+-        assert!(cuda_gradient_clip(&[&host_constant], 2.5).is_err());
+-        assert!(cuda_gradient_clip(&[&first], f64::NAN).is_err());
+-        assert!(cuda_gradient_clip(&[&first], 1e-100).is_err());
+-        assert!(cuda_gradient_clip(&[&zero], 1e-40).is_err());
+-        assert!(cuda_gradient_clip(&[&first], f64::from(f32::MAX) * 2.0).is_err());
+-        Ok(())
+-    }
+-
+-    /// Stored zero-carrier golden: six actual recurrence/projection/MLP layers
+-    /// map zero to zero; the exact table has token0=zero and every other row=1.
+-    /// Thus all atlas cells tie, cells0..7 are admitted, emission is token0,
+-    /// and omitted target8 has token-margin2 plus address-margin1.
+-    #[cfg(feature = "cuda")]
+-    #[test]
+-    fn geometric_rung0_cuda_composition_matches_zero_carrier_golden() -> Result<()> {
+-        let device = Device::new_cuda(0)?;
+-        let mut config = StackConfig::transformer_control(42);
+-        config.arch = StackArch::Geometric;
+-        config.pattern = "rrrrrr".into();
+-        config.width = 256;
+-        config.heads = 4;
+-        config.mlp_hidden = 384;
+-        config.context = 384;
+-        config.vocab_size = 4096;
+-        config.rotation = true;
+-        config.gate = Gate::Hamilton;
+-        config.rec_gates = RecGates::Geometric;
+-        config.objective = Objective::MarginHinge { rivals: 1 };
+-        let mut model = StackModel::new(config, &device)?;
+-        model.set_quaternion_weights(QuaternionWeights::SpiralcoreFbs)?;
+-        model.set_native_vector_head(8)?;
+-        for variable in model.variables().values() {
+-            variable.set(&Tensor::zeros(variable.shape(), DType::F32, &device)?)?;
+-        }
+-        model.variables()["final_norm.weight"].set(&Tensor::ones(256, DType::F32, &device)?)?;
+-        let table = Tensor::cat(
+-            &[
+-                Tensor::zeros((1, 256), DType::F32, &device)?,
+-                Tensor::ones((4095, 256), DType::F32, &device)?,
+-            ],
+-            0,
+-        )?;
+-        model.variables()["embedding.weight"].set(&table)?;
+-        let hidden = model.hidden(&[0, 0], 1, 2)?;
+-        assert_eq!(hidden.dims(), &[2, 256]);
+-        assert_eq!(hidden.abs()?.sum_all()?.to_scalar::<f32>()?, 0.0);
+-        let writer = model.native_vector_writer()?;
+-        let candidates = writer.candidates(&hidden)?;
+-        assert_eq!(
+-            candidates.cell_ids().to_vec2::<u32>()?,
+-            vec![vec![0, 1, 2, 3, 4, 5, 6, 7]; 2]
+-        );
+-        assert_eq!(writer.write(&hidden)?.to_vec1::<u32>()?, vec![0, 0]);
+-        let admitted = writer.margin_components(&candidates, &[0, 0], 1)?;
+-        assert_eq!(admitted.token_margin.to_scalar::<f32>()?, 0.0);
+-        assert_eq!(admitted.address_margin.to_scalar::<f32>()?, 1.0);
+-        let omitted = writer.margin_components(&candidates, &[8, 8], 1)?;
+-        assert_eq!(omitted.token_margin.to_scalar::<f32>()?, 2.0);
+-        assert_eq!(omitted.address_margin.to_scalar::<f32>()?, 1.0);
+-        assert_eq!(model.loss(&[0, 0], &[8, 8], 1, 2)?.to_scalar::<f32>()?, 3.0);
+-
+-        // These mutations must refuse before their historical/read paths run.
+-        model.config.rec_gates = RecGates::Historical;
+-        assert!(model.hidden(&[0], 1, 1).is_err());
+-        assert!(model.logits_with_transport(&[0], 1, 1, None).is_err());
+-        model.config.rec_gates = RecGates::Geometric;
+-        model.config.gate = Gate::Swiglu;
+-        assert!(model.hidden(&[0], 1, 1).is_err());
+-        assert!(model.logits_with_transport(&[0], 1, 1, None).is_err());
+-        model.config.gate = Gate::Hamilton;
+-        model.config.pattern = "rrrrra".into();
+-        assert!(model.hidden(&[0], 1, 1).is_err());
+-        assert!(model.logits_with_transport(&[0], 1, 1, None).is_err());
+-        model.config.pattern = "rrrrrr".into();
+-        model.set_precision(Precision::Bf16);
+-        assert!(model.hidden(&[0], 1, 1).is_err());
+-        Ok(())
+-    }
+-
+     /// The geometric recurrence is a CUDA training path: a model-level forward
+     /// on any other device refuses loudly (D24), and a configuration that cannot
+     /// carry the 4-lane blocks is refused at validation.
+diff --git a/crates/uor-r4-training/src/native_vector_writer.rs b/crates/uor-r4-training/src/native_vector_writer.rs
+index 4ae20427d..08e65d15d 100644
+--- a/crates/uor-r4-training/src/native_vector_writer.rs
++++ b/crates/uor-r4-training/src/native_vector_writer.rs
+@@ -12,12 +12,6 @@ pub const SCHEMA: &str = "uor-r4.shared-native-vector-writer/1";
+ pub const CELLS: usize = 256;
+ pub const MAX_PER_CELL: usize = 32;
+ pub const DEFAULT_KEPT_CELLS: usize = 8;
+-/// Includes the pinned rung0 batch16 * context384 = 6144 positions.
+-/// Candidate cells and tokens per cell retain their independent bounds.
+-pub const MAX_QUERY_ROWS: usize = 8192;
+-// At most 1 GiB for each materialized F32 candidate-vector intermediate.
+-// Retained forward/backward graphs require a separately admitted GPU budget.
+-pub const MAX_CANDIDATE_VECTOR_ELEMENTS: usize = 256 * 1024 * 1024;
+ const ABSENT_SCORE: f32 = -1.0e30;
+ 
+ #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+@@ -75,28 +69,6 @@ pub struct VectorMargin {
+     pub token_margin: Tensor,
+     pub address_margin: Tensor,
+ }
+-/// Per-position losses remain on device so a rate counts positions, not an
+-/// aggregate loss. Token credit and address-surrogate credit stay distinct.
+-pub struct VectorMarginRows {
+-    pub token_margin: Tensor,
+-    pub address_margin: Tensor,
+-}
+-/// CUDA scalar losses/counts and host shape metadata only. No score vector is
+-/// downloaded for ranking, objective evaluation or finiteness arithmetic.
+-pub struct VectorMetrics {
+-    pub rows: usize,
+-    pub token_margin: Tensor,
+-    pub address_margin: Tensor,
+-    pub total_margin: Tensor,
+-    pub top1_count: Tensor,
+-    pub recall_at_k_count: Tensor,
+-    pub admitted_target_count: Tensor,
+-    /// Token-only zero-violation count, as declared by the rung0 token bar.
+-    pub unviolated_count: Tensor,
+-    pub token_unviolated_count: Tensor,
+-    /// Both token and address components are zero; separate from the token bar.
+-    pub total_unviolated_count: Tensor,
+-}
+ impl VectorMargin {
+     pub fn total(&self) -> Result<Tensor> {
+         Ok(self.token_margin.add(&self.address_margin)?)
+@@ -300,21 +272,13 @@ impl NativeVectorWriter {
+     pub fn candidates(&self, query: &Tensor) -> Result<VectorCandidates> {
+         if query.dims().len() != 2
+             || query.dim(0)? == 0
+-            || query.dim(0)? > MAX_QUERY_ROWS
++            || query.dim(0)? > 4096
+             || query.dim(1)? != self.spec.width
+         {
+             return Err(invalid(
+-                "native writer query needs 1..8192 rows of complete vector blocks",
++                "native writer query needs 1..4096 rows of complete vector blocks",
+             ));
+         }
+-        let candidate_elements = query
+-            .dim(0)?
+-            .checked_mul(self.spec.kept_cells * self.slots)
+-            .and_then(|n| n.checked_mul(self.spec.width))
+-            .ok_or_else(|| invalid("native candidate-vector inventory overflow"))?;
+-        if candidate_elements > MAX_CANDIDATE_VECTOR_ELEMENTS {
+-            return Err(invalid("native candidate-vector intermediate exceeds 1 GiB F32 bound; use explicitly weighted row chunks"));
+-        }
+         self.check(query)?;
+         let query = query.to_dtype(DType::F32)?;
+         let rows = query.dim(0)?;
+@@ -383,12 +347,12 @@ impl NativeVectorWriter {
+     }
+     /// Native loss explicitly scores an omitted target but never changes admission.
+     /// Admission margin supplies a labelled auxiliary surrogate, not hard-topK's derivative.
+-    pub fn margin_rows(
++    pub fn margin_components(
+         &self,
+         c: &VectorCandidates,
+         targets: &[u32],
+         rivals: usize,
+-    ) -> Result<VectorMarginRows> {
++    ) -> Result<VectorMargin> {
+         let rows = c.query.dim(0)?;
+         if c.table_id != self.table.id() || targets.len() != rows || !(1..=8).contains(&rivals) {
+             return Err(invalid(
+@@ -478,77 +442,9 @@ impl NativeVectorWriter {
+             .sub(&target_address)?
+             .affine(1., 1.)?
+             .maximum(&Tensor::zeros((rows, 1), DType::F32, self.table.device())?)?;
+-        Ok(VectorMarginRows {
+-            token_margin: Tensor::cat(&losses, 1)?.mean(1)?,
+-            address_margin: address_loss.squeeze(1)?,
+-        })
+-    }
+-    pub fn margin_components(
+-        &self,
+-        c: &VectorCandidates,
+-        targets: &[u32],
+-        rivals: usize,
+-    ) -> Result<VectorMargin> {
+-        let rows = self.margin_rows(c, targets, rivals)?;
+         Ok(VectorMargin {
+-            token_margin: rows.token_margin.mean_all()?,
+-            address_margin: rows.address_margin.mean_all()?,
+-        })
+-    }
+-    /// Measures bounded raw output and the exact objective components. An
+-    /// omitted target is scored by the objective but never inserted into the
+-    /// kept list, so recall and admission can remain zero even with low loss.
+-    pub fn metrics(
+-        &self,
+-        c: &VectorCandidates,
+-        targets: &[u32],
+-        rivals: usize,
+-        k: usize,
+-    ) -> Result<VectorMetrics> {
+-        let margins = self.margin_rows(c, targets, rivals)?;
+-        let rows = targets.len();
+-        let targets = Tensor::from_vec(targets.to_vec(), (rows, 1), self.table.device())?;
+-        let ranked = c.top_token_ids(k)?;
+-        let top1_count = ranked
+-            .narrow(1, 0, 1)?
+-            .eq(&targets)?
+-            .to_dtype(DType::U32)?
+-            .sum_all()?;
+-        let recall_at_k_count = ranked
+-            .broadcast_eq(&targets)?
+-            .to_dtype(DType::U32)?
+-            .sum(1)?
+-            .gt(0u32)?
+-            .to_dtype(DType::U32)?
+-            .sum_all()?;
+-        let admitted_target_count = c
+-            .token_ids
+-            .broadcast_eq(&targets)?
+-            .mul(&c.valid)?
+-            .to_dtype(DType::U32)?
+-            .sum(1)?
+-            .gt(0u32)?
+-            .to_dtype(DType::U32)?
+-            .sum_all()?;
+-        let token_zero = margins.token_margin.eq(0f32)?;
+-        let token_unviolated_count = token_zero.to_dtype(DType::U32)?.sum_all()?;
+-        let total_unviolated_count = token_zero
+-            .mul(&margins.address_margin.eq(0f32)?)?
+-            .to_dtype(DType::U32)?
+-            .sum_all()?;
+-        let token_margin = margins.token_margin.mean_all()?;
+-        let address_margin = margins.address_margin.mean_all()?;
+-        Ok(VectorMetrics {
+-            rows,
+-            total_margin: token_margin.add(&address_margin)?,
+-            token_margin,
+-            address_margin,
+-            top1_count,
+-            recall_at_k_count,
+-            admitted_target_count,
+-            unviolated_count: token_unviolated_count.clone(),
+-            token_unviolated_count,
+-            total_unviolated_count,
++            token_margin: Tensor::cat(&losses, 1)?.mean_all()?,
++            address_margin: address_loss.mean_all()?,
+         })
+     }
+     pub fn margin(&self, c: &VectorCandidates, targets: &[u32], rivals: usize) -> Result<Tensor> {
+@@ -817,100 +713,6 @@ mod cuda_tests {
+         Ok(())
+     }
+ 
+-    #[test]
+-    fn device_metrics_keep_token_and_address_bars_distinct() -> Result<()> {
+-        let (_, w) = fixture(257, 8, 8)?;
+-        let q = Tensor::zeros((4, 8), DType::F32, w.table.device())?;
+-        let candidates = w.candidates(&q)?;
+-        let metrics = w.metrics(&candidates, &[0, 7, 8, 256], 1, 8)?;
+-        assert_eq!(metrics.rows, 4);
+-        assert_eq!(metrics.token_margin.to_scalar::<f32>()?, 1.);
+-        assert_eq!(metrics.address_margin.to_scalar::<f32>()?, 1.);
+-        assert_eq!(metrics.total_margin.to_scalar::<f32>()?, 2.);
+-        // Zero query: all address and token scores tie. Admission is cells0..7,
+-        // shortlist0..7; collision256 is admitted but outside recall@8.
+-        assert_eq!(metrics.top1_count.to_scalar::<u32>()?, 1);
+-        assert_eq!(metrics.recall_at_k_count.to_scalar::<u32>()?, 2);
+-        assert_eq!(metrics.admitted_target_count.to_scalar::<u32>()?, 3);
+-        assert_eq!(metrics.unviolated_count.to_scalar::<u32>()?, 0);
+-        assert_eq!(metrics.total_unviolated_count.to_scalar::<u32>()?, 0);
+-
+-        let dev = w.table.device();
+-        let table = Tensor::cat(
+-            &[
+-                Tensor::zeros((1, 8), DType::F32, dev)?,
+-                Tensor::full(2f32, (255, 8), dev)?,
+-            ],
+-            0,
+-        )?;
+-        let separated = NativeVectorWriter::new(
+-            &table,
+-            WriterSpec {
+-                vocabulary: 256,
+-                width: 8,
+-                kept_cells: 8,
+-            },
+-        )?;
+-        let query = Tensor::zeros((1, 8), DType::F32, dev)?;
+-        let metrics = separated.metrics(&separated.candidates(&query)?, &[0], 1, 8)?;
+-        assert_eq!(metrics.token_margin.to_scalar::<f32>()?, 0.);
+-        assert_eq!(metrics.address_margin.to_scalar::<f32>()?, 1.);
+-        assert_eq!(metrics.token_unviolated_count.to_scalar::<u32>()?, 1);
+-        assert_eq!(metrics.unviolated_count.to_scalar::<u32>()?, 1);
+-        assert_eq!(metrics.total_unviolated_count.to_scalar::<u32>()?, 0);
+-
+-        let (_, singleton) = fixture(256, 8, 1)?;
+-        let singleton_query = Tensor::zeros((1, 8), DType::F32, singleton.table.device())?;
+-        let only = singleton.candidates(&singleton_query)?;
+-        assert!(singleton.margin(&only, &[0], 1).is_err());
+-        assert!(singleton.metrics(&only, &[0], 1, 1).is_err());
+-        assert!(only.top_token_ids(2).is_err());
+-        Ok(())
+-    }
+-
+-    #[test]
+-    fn rung0_full_batch_writer_forward_backward_without_updates() -> Result<()> {
+-        // Exact pinned head shape, independently of a whole-trunk fixture.
+-        // 6144*128*256 F32 values = 768MiB per materialized vector intermediate;
+-        // declared retained-graph budget is separate from this 1GiB guard.
+-        let (table, writer) = fixture(4096, 256, 8)?;
+-        let dev = writer.table.device();
+-        let rows = 16 * 384;
+-        let query = Var::from_tensor(&Tensor::full(0.5f32, (rows, 256), dev)?)?;
+-        let candidates = writer.candidates(query.as_tensor())?;
+-        assert_eq!(candidates.raw_scores.dims(), [rows, 128]);
+-        assert_eq!(
+-            candidates
+-                .raw_scores
+-                .affine(1., 0.5)?
+-                .abs()?
+-                .max_all()?
+-                .to_scalar::<f32>()?,
+-            0.
+-        );
+-        let metrics = writer.metrics(&candidates, &vec![0; rows], 8, 8)?;
+-        assert_eq!(metrics.rows, rows);
+-        assert_eq!(metrics.token_margin.to_scalar::<f32>()?, 1.);
+-        let gradients = metrics.total_margin.backward()?;
+-        for parameter in [query.as_tensor(), table.as_tensor()] {
+-            let gradient = gradients
+-                .get(parameter)
+-                .ok_or_else(|| invalid("full-shape writer parameter gradient absent"))?;
+-            assert_eq!(gradient.dims(), parameter.dims());
+-            assert_eq!(
+-                gradient.abs()?.le(1.0e6f32)?.min_all()?.to_scalar::<u8>()?,
+-                1
+-            );
+-        }
+-        // No optimizer exists in this test. GPU checks verify unchanged values.
+-        assert_eq!(table.abs()?.max_all()?.to_scalar::<f32>()?, 0.);
+-        assert_eq!(query.eq(0.5f32)?.min_all()?.to_scalar::<u8>()?, 1);
+-        assert!(writer
+-            .candidates(&Tensor::zeros((MAX_QUERY_ROWS + 1, 256), DType::F32, dev)?)
+-            .is_err());
+-        Ok(())
+-    }
+-
+     #[test]
+     fn actual_stack_store_channel_and_artifact_identity() -> Result<()> {
+         use crate::geometric_stack::{QuaternionWeights, StackArch, StackConfig, StackModel};

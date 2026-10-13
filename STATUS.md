@@ -15,8 +15,10 @@ No softmax/softplus/sigmoid/tanh or equivalent squashing anywhere in an executed
 model/objective/gradient/output/teacher/comparator path; no dense matrix
 multiplication in training or serving; model/reference compute is GPU-only with
 host fallback refused. Scalar float geometric GPU learning is distinct from D11
-integer/table, multiplier-free serving. No current training configuration has
-whole-path compliance qualification.
+integer/table, multiplier-free serving. The declared recurrence-only path has finite CUDA forward/backward/output
+qualification at its actual rung-0 shape. The optimizer update is compiled and
+source-reviewed, not executed. The corrected Amendment4 sheet has prospective
+scientific FIT; explicit owner release still remains.
 The owner clarified that both model lines share one directly learned native
 geometric vector representation and writer, using E8/SpiralCore/icosian/FSB
 plus flock/murmuration attention. Total block count is unqualified; the historical
@@ -33,18 +35,24 @@ replaces the dense quaternion contraction, with owner-authorized bounded pod
 build/kernel qualification; training remains held. The [OP3a product head and shared native vector writer](docs/labs/geometric-head-shared-writer-2026-10-13/README.md)
 now use the same embedding Tensor/Var across token input, raw-distance output and
 the compiler/store/emitter vector channel; five finite CUDA controls pass.
-Kimi's recurrence source #2293 is integrated but not device-qualified by this
-unit. The complete trunk, learned intent compiler and D11 serving remain
-unqualified. Protected delivery of the head/writer unit is pending. The
-rank-margin objective is source, not a language result. Numerical replacement quality bars remain pending amended
-registration; tokens/s uses the same CUDA harness.
+The predecessor's head-only tests did not qualify recurrence. The composed
+successor now has finite forward/backward/output qualification; trained language,
+learned intent/compiler use and D11 serving remain unqualified. The head/writer unit delivered as #2301, merge `d41dc422f`.
+[Complete-path repairs](docs/labs/rung0-complete-path-2026-10-13/README.md) are
+implemented and finite CUDA-qualified at source `05c84bece50789163bd0f049a2ae76b8a314ef45`;
+all 18 controls pass. The corrected Amendment4 sheet has prospective scientific
+FIT with unchanged bars. Protected delivery through [#2318](https://github.com/UOR-Foundation/uor-r4/pull/2318);
+actual merge proof is appended after verification. Training remains HELD.
+The rank-margin objective is source, not a language result. The active sheet
+pins the existing rank/anti-vacuity bars, units and paired seeds; tokens/s uses
+the same synchronized CUDA harness. No model training or quality run occurred.
 
 ## Measured positions and next source dependencies
 
 | Line | Retained reading and limitation | Current next dependency |
 | --- | --- | --- |
 | M1 language base | Historical v5 memory20/40, reply37/232 (targets34/40 and116/232); historical19.9M served0.886838 BPB at512 windows ([protocol](docs/labs/criterion2-protocol-pin-2026-10-09/README.md)). No new quality result | Kimi operator source; DeepSeek GPU-native addressed router/memory source; no old mixture/pointer campaign restart |
-| M2 grounded reply | Saved437/512 development + opened0/128 transfer diagnostic remain panel fitting; genuinely fresh qualification NOT_RUN. [Whole-path recovery source](docs/labs/whole-path-recovery-2026-10-12/README.md) delivered; CUDA execution unqualified; sampled law refuses. Head/shared vector channel finite CUDA-qualified; full M2 remains unqualified. Unified line count9/3 on completed delivery, no reset | Codex completes protected head/writer delivery; coherent intent/compiler/model path, device/data/FIT and owner hold release remain dependencies |
+| M2 grounded reply | Saved437/512 development + opened0/128 transfer diagnostic remain panel fitting; genuinely fresh qualification NOT_RUN. [Whole-path recovery source](docs/labs/whole-path-recovery-2026-10-12/README.md) delivered; CUDA execution unqualified; sampled law refuses. Head/shared vector channel finite CUDA-qualified; full M2 remains unqualified. Unified line count 9/3 → 10/3 on this successor delivery, no reset | Codex completes protected delivery through #2318; corrected-sheet prospective FIT recorded; coherent full-M2 intent/compiler path and explicit owner hold release remain dependencies |
 | M3 durable memory | Evaluator/session delivered; unqualified | Preserve interfaces; no automatic experiment when M2 is held |
 | M4 one served model | Historical D11 bit-exact artifacts and rank-read components retained; default artifacts include prohibited paths. [Starling bootstrap](docs/labs/starling-bootstrap-2026-10-12/README.md) is inactive evidence | Claude teacher-free starling/murmuration source; compliant trunk → resumed rung0 → rung0b GPU read/gradient → starling |
 

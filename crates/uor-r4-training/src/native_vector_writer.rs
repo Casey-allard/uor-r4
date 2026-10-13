@@ -12,6 +12,12 @@ pub const SCHEMA: &str = "uor-r4.shared-native-vector-writer/1";
 pub const CELLS: usize = 256;
 pub const MAX_PER_CELL: usize = 32;
 pub const DEFAULT_KEPT_CELLS: usize = 8;
+/// Includes the pinned rung0 batch16 * context384 = 6144 positions.
+/// Candidate cells and tokens per cell retain their independent bounds.
+pub const MAX_QUERY_ROWS: usize = 8192;
+// At most 1 GiB for each materialized F32 candidate-vector intermediate.
+// Retained forward/backward graphs require a separately admitted GPU budget.
+pub const MAX_CANDIDATE_VECTOR_ELEMENTS: usize = 256 * 1024 * 1024;
 const ABSENT_SCORE: f32 = -1.0e30;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -68,6 +74,28 @@ pub struct VectorCandidates {
 pub struct VectorMargin {
     pub token_margin: Tensor,
     pub address_margin: Tensor,
+}
+/// Per-position losses remain on device so a rate counts positions, not an
+/// aggregate loss. Token credit and address-surrogate credit stay distinct.
+pub struct VectorMarginRows {
+    pub token_margin: Tensor,
+    pub address_margin: Tensor,
+}
+/// CUDA scalar losses/counts and host shape metadata only. No score vector is
+/// downloaded for ranking, objective evaluation or finiteness arithmetic.
+pub struct VectorMetrics {
+    pub rows: usize,
+    pub token_margin: Tensor,
+    pub address_margin: Tensor,
+    pub total_margin: Tensor,
+    pub top1_count: Tensor,
+    pub recall_at_k_count: Tensor,
+    pub admitted_target_count: Tensor,
+    /// Token-only zero-violation count, as declared by the rung0 token bar.
+    pub unviolated_count: Tensor,
+    pub token_unviolated_count: Tensor,
+    /// Both token and address components are zero; separate from the token bar.
+    pub total_unviolated_count: Tensor,
 }
 impl VectorMargin {
     pub fn total(&self) -> Result<Tensor> {
@@ -272,12 +300,20 @@ impl NativeVectorWriter {
     pub fn candidates(&self, query: &Tensor) -> Result<VectorCandidates> {
         if query.dims().len() != 2
             || query.dim(0)? == 0
-            || query.dim(0)? > 4096
+            || query.dim(0)? > MAX_QUERY_ROWS
             || query.dim(1)? != self.spec.width
         {
             return Err(invalid(
-                "native writer query needs 1..4096 rows of complete vector blocks",
+                "native writer query needs 1..8192 rows of complete vector blocks",
             ));
+        }
+        let candidate_elements = query
+            .dim(0)?
+            .checked_mul(self.spec.kept_cells * self.slots)
+            .and_then(|n| n.checked_mul(self.spec.width))
+            .ok_or_else(|| invalid("native candidate-vector inventory overflow"))?;
+        if candidate_elements > MAX_CANDIDATE_VECTOR_ELEMENTS {
+            return Err(invalid("native candidate-vector intermediate exceeds 1 GiB F32 bound; use explicitly weighted row chunks"));
         }
         self.check(query)?;
         let query = query.to_dtype(DType::F32)?;
@@ -347,12 +383,12 @@ impl NativeVectorWriter {
     }
     /// Native loss explicitly scores an omitted target but never changes admission.
     /// Admission margin supplies a labelled auxiliary surrogate, not hard-topK's derivative.
-    pub fn margin_components(
+    pub fn margin_rows(
         &self,
         c: &VectorCandidates,
         targets: &[u32],
         rivals: usize,
-    ) -> Result<VectorMargin> {
+    ) -> Result<VectorMarginRows> {
         let rows = c.query.dim(0)?;
         if c.table_id != self.table.id() || targets.len() != rows || !(1..=8).contains(&rivals) {
             return Err(invalid(
@@ -442,9 +478,77 @@ impl NativeVectorWriter {
             .sub(&target_address)?
             .affine(1., 1.)?
             .maximum(&Tensor::zeros((rows, 1), DType::F32, self.table.device())?)?;
+        Ok(VectorMarginRows {
+            token_margin: Tensor::cat(&losses, 1)?.mean(1)?,
+            address_margin: address_loss.squeeze(1)?,
+        })
+    }
+    pub fn margin_components(
+        &self,
+        c: &VectorCandidates,
+        targets: &[u32],
+        rivals: usize,
+    ) -> Result<VectorMargin> {
+        let rows = self.margin_rows(c, targets, rivals)?;
         Ok(VectorMargin {
-            token_margin: Tensor::cat(&losses, 1)?.mean_all()?,
-            address_margin: address_loss.mean_all()?,
+            token_margin: rows.token_margin.mean_all()?,
+            address_margin: rows.address_margin.mean_all()?,
+        })
+    }
+    /// Measures bounded raw output and the exact objective components. An
+    /// omitted target is scored by the objective but never inserted into the
+    /// kept list, so recall and admission can remain zero even with low loss.
+    pub fn metrics(
+        &self,
+        c: &VectorCandidates,
+        targets: &[u32],
+        rivals: usize,
+        k: usize,
+    ) -> Result<VectorMetrics> {
+        let margins = self.margin_rows(c, targets, rivals)?;
+        let rows = targets.len();
+        let targets = Tensor::from_vec(targets.to_vec(), (rows, 1), self.table.device())?;
+        let ranked = c.top_token_ids(k)?;
+        let top1_count = ranked
+            .narrow(1, 0, 1)?
+            .eq(&targets)?
+            .to_dtype(DType::U32)?
+            .sum_all()?;
+        let recall_at_k_count = ranked
+            .broadcast_eq(&targets)?
+            .to_dtype(DType::U32)?
+            .sum(1)?
+            .gt(0u32)?
+            .to_dtype(DType::U32)?
+            .sum_all()?;
+        let admitted_target_count = c
+            .token_ids
+            .broadcast_eq(&targets)?
+            .mul(&c.valid)?
+            .to_dtype(DType::U32)?
+            .sum(1)?
+            .gt(0u32)?
+            .to_dtype(DType::U32)?
+            .sum_all()?;
+        let token_zero = margins.token_margin.eq(0f32)?;
+        let token_unviolated_count = token_zero.to_dtype(DType::U32)?.sum_all()?;
+        let total_unviolated_count = token_zero
+            .mul(&margins.address_margin.eq(0f32)?)?
+            .to_dtype(DType::U32)?
+            .sum_all()?;
+        let token_margin = margins.token_margin.mean_all()?;
+        let address_margin = margins.address_margin.mean_all()?;
+        Ok(VectorMetrics {
+            rows,
+            total_margin: token_margin.add(&address_margin)?,
+            token_margin,
+            address_margin,
+            top1_count,
+            recall_at_k_count,
+            admitted_target_count,
+            unviolated_count: token_unviolated_count.clone(),
+            token_unviolated_count,
+            total_unviolated_count,
         })
     }
     pub fn margin(&self, c: &VectorCandidates, targets: &[u32], rivals: usize) -> Result<Tensor> {
@@ -710,6 +814,100 @@ mod cuda_tests {
             .is_err());
         assert!(w.encode(&[256]).is_err());
         assert!(w.encode(&[]).is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn device_metrics_keep_token_and_address_bars_distinct() -> Result<()> {
+        let (_, w) = fixture(257, 8, 8)?;
+        let q = Tensor::zeros((4, 8), DType::F32, w.table.device())?;
+        let candidates = w.candidates(&q)?;
+        let metrics = w.metrics(&candidates, &[0, 7, 8, 256], 1, 8)?;
+        assert_eq!(metrics.rows, 4);
+        assert_eq!(metrics.token_margin.to_scalar::<f32>()?, 1.);
+        assert_eq!(metrics.address_margin.to_scalar::<f32>()?, 1.);
+        assert_eq!(metrics.total_margin.to_scalar::<f32>()?, 2.);
+        // Zero query: all address and token scores tie. Admission is cells0..7,
+        // shortlist0..7; collision256 is admitted but outside recall@8.
+        assert_eq!(metrics.top1_count.to_scalar::<u32>()?, 1);
+        assert_eq!(metrics.recall_at_k_count.to_scalar::<u32>()?, 2);
+        assert_eq!(metrics.admitted_target_count.to_scalar::<u32>()?, 3);
+        assert_eq!(metrics.unviolated_count.to_scalar::<u32>()?, 0);
+        assert_eq!(metrics.total_unviolated_count.to_scalar::<u32>()?, 0);
+
+        let dev = w.table.device();
+        let table = Tensor::cat(
+            &[
+                Tensor::zeros((1, 8), DType::F32, dev)?,
+                Tensor::full(2f32, (255, 8), dev)?,
+            ],
+            0,
+        )?;
+        let separated = NativeVectorWriter::new(
+            &table,
+            WriterSpec {
+                vocabulary: 256,
+                width: 8,
+                kept_cells: 8,
+            },
+        )?;
+        let query = Tensor::zeros((1, 8), DType::F32, dev)?;
+        let metrics = separated.metrics(&separated.candidates(&query)?, &[0], 1, 8)?;
+        assert_eq!(metrics.token_margin.to_scalar::<f32>()?, 0.);
+        assert_eq!(metrics.address_margin.to_scalar::<f32>()?, 1.);
+        assert_eq!(metrics.token_unviolated_count.to_scalar::<u32>()?, 1);
+        assert_eq!(metrics.unviolated_count.to_scalar::<u32>()?, 1);
+        assert_eq!(metrics.total_unviolated_count.to_scalar::<u32>()?, 0);
+
+        let (_, singleton) = fixture(256, 8, 1)?;
+        let singleton_query = Tensor::zeros((1, 8), DType::F32, singleton.table.device())?;
+        let only = singleton.candidates(&singleton_query)?;
+        assert!(singleton.margin(&only, &[0], 1).is_err());
+        assert!(singleton.metrics(&only, &[0], 1, 1).is_err());
+        assert!(only.top_token_ids(2).is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn rung0_full_batch_writer_forward_backward_without_updates() -> Result<()> {
+        // Exact pinned head shape, independently of a whole-trunk fixture.
+        // 6144*128*256 F32 values = 768MiB per materialized vector intermediate;
+        // declared retained-graph budget is separate from this 1GiB guard.
+        let (table, writer) = fixture(4096, 256, 8)?;
+        let dev = writer.table.device();
+        let rows = 16 * 384;
+        let query = Var::from_tensor(&Tensor::full(0.5f32, (rows, 256), dev)?)?;
+        let candidates = writer.candidates(query.as_tensor())?;
+        assert_eq!(candidates.raw_scores.dims(), [rows, 128]);
+        assert_eq!(
+            candidates
+                .raw_scores
+                .affine(1., 0.5)?
+                .abs()?
+                .max_all()?
+                .to_scalar::<f32>()?,
+            0.
+        );
+        let metrics = writer.metrics(&candidates, &vec![0; rows], 8, 8)?;
+        assert_eq!(metrics.rows, rows);
+        assert_eq!(metrics.token_margin.to_scalar::<f32>()?, 1.);
+        let gradients = metrics.total_margin.backward()?;
+        for parameter in [query.as_tensor(), table.as_tensor()] {
+            let gradient = gradients
+                .get(parameter)
+                .ok_or_else(|| invalid("full-shape writer parameter gradient absent"))?;
+            assert_eq!(gradient.dims(), parameter.dims());
+            assert_eq!(
+                gradient.abs()?.le(1.0e6f32)?.min_all()?.to_scalar::<u8>()?,
+                1
+            );
+        }
+        // No optimizer exists in this test. GPU checks verify unchanged values.
+        assert_eq!(table.abs()?.max_all()?.to_scalar::<f32>()?, 0.);
+        assert_eq!(query.eq(0.5f32)?.min_all()?.to_scalar::<u8>()?, 1);
+        assert!(writer
+            .candidates(&Tensor::zeros((MAX_QUERY_ROWS + 1, 256), DType::F32, dev)?)
+            .is_err());
         Ok(())
     }
 

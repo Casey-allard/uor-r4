@@ -1,5 +1,17 @@
 # Branch archive
 
+## October 13 — pre-repair rung0 path (Codex)
+
+[Restoration patch](rung0-pre-repair-inactive-20261013.patch), SHA256
+`ac72df2ae916cc783f2a0b649355fdec5e30a0a464dc57d6a5a9e86e5400ffa5`,
+restores the training crate from qualified source `05c84bece` to canonical
+pre-repair base `d4dd3caa9`. It retains the old recurrence dispatch, rate credit,
+initialization, CLI evaluator and writer boundaries as **inactive source only**.
+The historical initializer and historical kernels also remain in their original
+branches; this patch is no permission to execute a prohibited configuration.
+An isolated Git-index application restores the complete base tree exactly.
+All earlier source, artifacts, measurements and other labs' work are preserved.
+
 ## October 13 — retired whole-path probability writer (Codex)
 
 [Restoration patch](whole-path-probability-writer-inactive-20261013.patch), SHA256

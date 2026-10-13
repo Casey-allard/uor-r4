@@ -55,7 +55,7 @@ raw-distance output and compiler/store/emitter vector channels. Typed candidate
 IDs/masks, omitted-target score credit and auxiliary address margin are
 implemented; five finite CUDA controls pass. Native head artifacts bind source,
 compiler geometry and shape; probability-path admission/selection/loss refuse.
-Protected delivery is pending. This qualifies finite vector interfaces, not a
+Protected #2301 delivery is verified at `d41dc422f`. This qualifies finite vector interfaces, not a
 learned intent compiler, complete GPU learning/output path or D11 serving.
 
 The [native projection replacement](../labs/spiralcore-fbs-projection-2026-10-12/README.md)
@@ -63,10 +63,30 @@ uses both SpiralCore BFS and the Atomic Ternary FBS binder abstraction. OP2's
 former all-input quaternion sum and expansion are inactive preserved source.
 Bounded CUDA development/build/kernel tests for this claim are owner-authorized;
 training remains held. OP3a and the common vector channel are now implemented
-and finite CUDA-qualified in the record above. Kimi's recurrence source #2293
-is integrated, but this unit does not device-qualify it. Complete-path dispatch,
-optimizer/objective/output qualification and explicit owner hold release remain
-before any training; no language result follows from these operator tests.
+and finite CUDA-qualified in the head/writer record above. Those predecessor
+controls did not qualify recurrence; the composed successor below now qualifies
+its finite forward/backward/output boundaries. Optimizer update is source-only,
+and final scientific FIT plus explicit owner release remain before training.
+No language result follows from operator controls.
+
+### Composed rung-0 path — source repair, October 13
+
+[Source `05c84bece50789163bd0f049a2ae76b8a314ef45`](../labs/rung0-complete-path-2026-10-13/README.md) repairs the
+ordinary geometric recurrence dispatch, signed rate-table credit, direct rate
+initialization, device clipping, 6144-row head admission and actual CLI/dev
+metrics. It adds complete masked-response coverage with BOS resets and tail
+context; the UORT payload is 42856 tokens with a 64-byte header, 111 global blocks
+and 232 tail tokens, 14287 eligible targets. These are source/metadata findings. Eighteen finite controls pass, including the
+actual batch 16×context 384 six-recurrence forward/backward, useful rate credit,
+6144-row writer, device clipping and native dev/artifact metrics. Optimizer update
+is compiled/source-reviewed only. The corrected Amendment4 sheet has prospective
+scientific FIT with unchanged bars, source/data/CLI/init pins and paired seeds1/2.
+Kimi ratifies the source/data policy; scoped correction coordination is retained.
+Protected delivery through [#2318](https://github.com/UOR-Foundation/uor-r4/pull/2318);
+actual merge proof is appended after verification. The owner can then consider
+explicit hold release; training and separate M2 holds remain HELD. No test or delivery
+automatically releases training. Shared intent/compiler/full M2 and D11 remain
+separate unqualified obligations.
 
 ## Active programme — grounded conversation and durable memory, October 1
 

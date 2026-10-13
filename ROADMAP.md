@@ -26,7 +26,14 @@ owner's current clarification (E8/SpiralCore/icosian/FSB and flock/murmuration).
 Existing 8D structural blocks do not freeze total width or import a MiniLM 384D
 dependency. The [OP3a/shared writer](docs/labs/geometric-head-shared-writer-2026-10-13/README.md)
 uses one learned table across Stack and compiler/store/emitter adapters; finite
-CUDA controls pass, protected delivery pending. Complete model use, capacity,
+CUDA controls pass and protected #2301 delivery is verified at `d41dc422f`.
+The [complete-path repair](docs/labs/rung0-complete-path-2026-10-13/README.md)
+implements ordinary recurrence dispatch, rate credit, CLI/row-cap/dev-metric
+repairs at `05c84bece50789163bd0f049a2ae76b8a314ef45`;18 finite controls pass at the
+actual rung-0 shape. Corrected Amendment4 has prospective scientific FIT, with
+unchanged bars. Protected delivery through [#2318](https://github.com/UOR-Foundation/uor-r4/pull/2318); actual merge
+proof is appended after verification. Training/M2 holds remain HELD.
+Complete model use, capacity,
 intent compilation and D11 serving remain unqualified.
 
 ## Milestones
@@ -37,8 +44,8 @@ closes only when its acceptance is met on the saved model.
 
 | | Milestone | Status | Goal and acceptance summary | Latest result |
 |---|---|---|---|---|
-| M1 | [Language base](https://github.com/UOR-Foundation/uor-r4/issues/2029) (Kimi, DeepSeek; Claude read source) | in progress; training held | Existing language/chat/memory obligations unchanged; obsolete metric clauses need prospective owner amendment | Historical memory20/40, reply37/232; historical19.9M served0.886838 BPB at512 windows; OP1 local Hamilton gate retained; OP2 dense quaternion contraction replaced by SpiralCore/FBS geometry (#2279); OP3a/shared writer #2301 landed (merge d41dc422f), finite CUDA-qualified; recurrence geometric gates #2293 landed and integrated, squash-free by source sweep; this unit does not device-qualify recurrence, complete trunk qualification pending; no new quality result |
-| M2 | [Grounded reply from exact memory](https://github.com/UOR-Foundation/uor-r4/issues/2030) (Codex) | in progress; training/rental held | Saved≥256/512 AND genuinely fresh≥40%, existing panels/graders unchanged | Saved437/512 + opened0/128 remain panel fitting; fresh NOT_RUN. Whole-path recovery source delivered; sampled law refuses; shared vector infrastructure finite CUDA-qualified, full M2 unqualified, count9/3 on completed delivery with no reset |
+| M1 | [Language base](https://github.com/UOR-Foundation/uor-r4/issues/2029) (Kimi, DeepSeek; Claude read source) | in progress; training held | Existing language/chat/memory obligations unchanged; obsolete metric clauses need prospective owner amendment | Historical memory20/40, reply37/232; historical19.9M served0.886838 BPB at512 windows; OP1 local Hamilton gate retained; OP2 dense quaternion contraction replaced by SpiralCore/FBS geometry (#2279); OP3a/shared writer finite CUDA-qualified and delivered #2301 (merge d41dc422f); composed rung-0 source/18 finite controls pass (11 CUDA,7 metadata), corrected Amendment4 prospective FIT; protected delivery through #2318, actual merge proof follows verification; recurrence geometric gates #2293 landed and integrated, squash-free by source sweep; complete declared recurrence-only forward/backward/output qualifies at its fixed scope; optimizer update not executed; no new quality result |
+| M2 | [Grounded reply from exact memory](https://github.com/UOR-Foundation/uor-r4/issues/2030) (Codex) | in progress; training/rental held | Saved≥256/512 AND genuinely fresh≥40%, existing panels/graders unchanged | Saved437/512 + opened0/128 remain panel fitting; fresh NOT_RUN. Whole-path recovery source delivered; sampled law refuses; shared vector infrastructure finite CUDA-qualified, full M2 unqualified, count 9/3 → 10/3 on composed-path successor delivery with no reset |
 | M3 | [Durable conversation memory](https://github.com/UOR-Foundation/uor-r4/issues/2031) | in progress | Memory persists across sessions and answers stay grounded | evaluator and session delivered; not qualified |
 | M4 | [One served model, D11 and CLI](https://github.com/UOR-Foundation/uor-r4/issues/2032) (Claude read source) | in progress; compute blocked | One model under D11 and full D23–D25 compliance; old runtime-only/metric clauses require prospective owner amendment | Historical artifacts/components retained; default prohibited paths remain. No old SoftSort/dense-bootstrap/teacher follow-up; compliant trunk/rung0b precede teacher-free starling |
 | M5 | [Laptop cost, D5](https://github.com/UOR-Foundation/uor-r4/issues/2033) | not started | Measured J/token, RSS and tokens/s on the M1 with selected parameter access | none |

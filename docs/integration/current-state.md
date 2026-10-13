@@ -1,3 +1,60 @@
+## 2026-10-13 — The ordinary rung-0 path has concrete source repairs; finite CUDA controls pass (Codex, #2029)
+
+The [complete-path record](../labs/rung0-complete-path-2026-10-13/README.md)
+anchors final source `05c84bece50789163bd0f049a2ae76b8a314ef45`. The audit found actual CLI/dispatch
+failures that the delivered #2301 head-only tests could not qualify: missing
+`rec_gates`, ordinary geometric calls reaching the historical fused recurrence,
+4096-row cap below the declared 6144 rows, likelihood/host-sampling evaluation
+fallthrough, and unsigned lower-edge rate secant credit. Source now routes the
+ordinary recurrence through the composed geometric law, fixes signed table
+credit, initializes direct rate parameters at `((lane %16) +0.5)/16` (0.03125..0.96875; historical initializer unchanged), clips gradients
+on CUDA and records native token/address metrics with no likelihood scorer.
+Native host tensor diagnostics refuse; a healthy run extends a self-set
+`max_seconds` estimate. Step timing synchronizes the actual complete step.
+
+Kimi [ratifies the fixes and dev policy](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6139449267)
+and retains the amended sheet; [finite FIT](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6139464540)
+permits named fixed implementation controls only. Rust metadata inventory finds
+85776 physical dev bytes =64-byte UORT header +42856 u16 tokens,42856 mask bytes,
+14287 eligible masked targets across 400 documents. The 111 global 384-token
+blocks have 232 tail tokens. The earlier 42888 count included 32 header words;
+input corpora/tars remain unchanged. BOS resolves from the pinned tokenizer;
+all eligible masked positions and the tail are scored once with document resets.
+The raw count reference uses the entire decoded stream and reports count units
+separately from learned mean-L1 score units.
+
+**All 18 final finite controls PASS (11 library:10 CUDA+1 metadata; CLI 6 metadata+1 CUDA).
+Final CUDA library compilation6.02s, CLI compilation4.79s. Protected delivery
+through [#2318](https://github.com/UOR-Foundation/uor-r4/pull/2318); actual merge
+proof is appended after verification. Training and the separate M2 training/rental hold remain.** The actual batch 16×context 384 six-recurrence 256D/384MLP/V=4096 forward/backward
+has finite CUDA gradients and nonzero opening/decay credit in all six layers;
+6144-row head, stored composed/rate/clipping answers, exact masked dev/count
+metrics and native artifact reload/binding refusals pass. Review also closed a
+diagnostic `composed_logits`/helper bypass. Earlier setup/compiler/fixture
+failures remain preserved, not mechanism negatives; no optimizer step, CPU model reference, corpus/quality
+run or generation campaign. Optimizer update is compiled/source-reviewed only;
+the clipping helper has its own device control. Corrected Amendment4 has prospective scientific rung-0 FIT against its exact
+sheet/source/device identity, with unchanged acceptance bars; no FIT verdict releases a hold. Head/writer #2301
+already delivered at `d41dc422f`; its dated pre-merge record is preserved.
+
+Line: unified geometric route/action/learning integration · count 9/3 → 10/3 on
+completed delivery, no reset · M1 memory20/40, reply37/232 and M2 saved437/512,
+opened0/128, fresh NOT_RUN unchanged.
+
+**Next:** the [corrected active sheet](../harness/prep/m1-rank-margin-rung0-2026-10-13.md)
+is prospectively FIT for rung0, with protected delivery through #2318.
+Actual merge/source/tree proof is recorded on the milestone and in the preserved
+delivery appendix after verification. Explicit owner release is still required before
+training; implementation/FIT readiness releases no hold.
+The scoped Amendment4 corrects UORT accounting, paired seeds1/2, verified
+tokenizer restoration and exact qualified source/CLI/init pins without changing
+bars; [coordination6140439165](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6140439165)
+preserves Kimi's stale claim (stale is not idle). The
+[header correction6139637354](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6139637354)
+is applied to the active sheet; no hold is released.
+Shared native intent/compiler/full M2, D11 serving and language/energy results
+remain unqualified.
+
 ## 2026-10-13 — `status` section 3 lands, and the check catches itself about to recommend a destructive command (lead, tooling)
 
 The last substantial gap in clause (a): **DELIVERY now renders in Rust, resolved from local git alone.** It reports the checked-out branch, `origin/main`'s commit and subject, the note that the ref is a **last-fetched** value, the branches holding **only finished work** (with the exact delete command), the branches with **unmerged work** (live, their owners decide), and — stated rather than omitted — that it **cannot name the merging PR**, because it proves a branch is finished by content (`git cherry`) and not by asking GitHub. That is a deliberate trade, not a shortcut: a lab offline, on a pod, or rate-limited still learns whether finished work is sitting on a branch, which is the question the owner's delete-after-merge rule makes load-bearing. **The check immediately found real drift** — four local branches (`bpb-split`, `inference-fix`, `pcopy-accessor`, `repro-fix`) hold **zero** commits main lacks and are still present; `AGENTS.md` separately names `bpb-split` as outstanding. **And it caught itself about to be dangerous:** the first version classified `codex/geometric-path-repair` as finished and offered a delete, because its commits are all upstream — while its **worktree holds twelve uncommitted changes**. Finished-by-commits is not safe-to-delete. Held branches are now reported under a **"do NOT delete"** heading **with no fix command**, since a fix line under that heading is what a lab would paste; the rule is enforced by a test that asserts the renderer never emits a fix for a held branch.
