@@ -2418,7 +2418,7 @@ fn test_bf16_training_1000_steps_is_finite() -> uor_r4_training::Result<()> {
 #[test]
 fn test_step7a_read_lineage_parity() -> uor_r4_training::Result<()> {
     use uor_r4_training::geometric_stack::{
-        ReadLineage, ReadScore, StackArch, StackConfig, StackModel,
+        Gate, ReadLineage, ReadScore, StackArch, StackConfig, StackModel,
     };
     let cuda = match candle_core::Device::new_cuda(0) {
         Ok(device) => device,

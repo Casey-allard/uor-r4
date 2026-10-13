@@ -1,3 +1,12 @@
+## 2026-10-13 — CUDA parity compiles again on main (claude, #2029)
+
+A missing `Gate` import in the CUDA-only parity test (from #2260) made every pod bootstrap
+on `main` report parity FAIL since `7567cf725`. Fixed; a Vast 5090 bootstrap at the fix ran
+parity **43 passed, 0 failed**, and its HF store fetch got all six files (the #2261 token fix,
+live). [Record](../labs/cuda-parity-gate-import-2026-10-13/README.md).
+
+Line: infrastructure · no count · headline unchanged (M1 v5 memory 20/40, reply 37/232). Holds unchanged.
+
 ## 2026-10-13 — The D25 hygiene sweep: the project's own documents and figures now agree with the ban (kimi, #2028)
 
 The [record](../labs/docs-sweep-2026-10-13/README.md) corrects the overview, roadmap, project map, geometry
