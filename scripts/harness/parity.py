@@ -583,6 +583,79 @@ def status_receipts_agreement(binary: Path) -> list[str]:
     return findings
 
 
+def brief_agreement(binary: Path) -> list[str]:
+    """The brief's title, section 1 and owner rules must be identical in both implementations.
+
+    Compared against Python's REAL `brief` output, because the brief is what a lab reads to learn what
+    its task is. The token counts are compared too: they are a rough cost estimate, and a brief whose
+    reported cost disagrees with the tool that produced it is a brief nobody can budget from.
+    """
+    import subprocess
+
+    findings: list[str] = []
+    code, rust_out, err = run([str(binary), "brief", "--repo", str(REPO), "-m", "m1"])
+    if code != 0:
+        findings.append(f"brief agreement: the Rust brief exited {code}: {err[:200]}")
+        return findings
+    proc = subprocess.run(
+        [sys.executable, str(REPO / "scripts" / "harness" / "cli.py"), "brief", "-m", "m1"],
+        cwd=REPO, capture_output=True, text=True, timeout=600,
+    )
+    if proc.returncode != 0:
+        findings.append(f"brief agreement: the Python brief failed: {proc.stderr[:200]}")
+        return findings
+
+    def content_blocks(text: str) -> list[str]:
+        """The title and `## heading` bodies, excluding the provenance footer and anything after."""
+        out = []
+        for line in text.splitlines():
+            if line.startswith("---"):
+                break
+            if line.startswith("*Not ported to Rust yet:*"):
+                break
+            out.append(line)
+        return out
+
+    pys = content_blocks(proc.stdout)
+    rss = content_blocks(rust_out)
+    if not pys:
+        findings.append("brief agreement: Python produced no brief content")
+        return findings
+    # Python carries sections this port does not; compare the blocks BOTH provide.
+    rust_headings = {l[3:].strip() for l in rss if l.startswith("## ")}
+    py_lines: list[str] = []
+    skip = False
+    for line in pys:
+        if line.startswith("## "):
+            skip = line[3:].strip() not in rust_headings
+        if not skip:
+            py_lines.append(line)
+    if rust_headings and py_lines != rss:
+        where = "length differs"
+        for i in range(max(len(py_lines), len(rss))):
+            a = py_lines[i] if i < len(py_lines) else "<nothing>"
+            b = rss[i] if i < len(rss) else "<nothing>"
+            if a != b:
+                where = f"line {i + 1}: python {a[:100]!r} != rust {b[:100]!r}"
+                break
+        findings.append(f"brief agreement: shared sections differ - {where}")
+
+    # Token counts for the shared sources must agree exactly.
+    def src_tokens(text: str) -> dict[str, str]:
+        out: dict[str, str] = {}
+        for line in text.splitlines():
+            if line.startswith("- `docs/harness/milestones.json`"):
+                out[line] = ""
+        return out
+
+    if src_tokens(proc.stdout) != src_tokens(rust_out):
+        findings.append(
+            f"brief agreement: milestone source token counts differ "
+            f"(python {sorted(src_tokens(proc.stdout))} != rust {sorted(src_tokens(rust_out))})"
+        )
+    return findings
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Check Rust/Python harness parity on shared state.")
     ap.add_argument("--build", action="store_true", help="build the Rust binary first")
@@ -678,6 +751,8 @@ def main(argv: list[str] | None = None) -> int:
     findings.extend(status_cmp)
     receipts_cmp = status_receipts_agreement(binary)
     findings.extend(receipts_cmp)
+    brief_cmp = brief_agreement(binary)
+    findings.extend(brief_cmp)
 
     if args.json:
         print(json.dumps({
@@ -690,6 +765,7 @@ def main(argv: list[str] | None = None) -> int:
             "render_agreement": "ok" if not render else "FAILED",
             "status_agreement": "ok" if not status_cmp else "FAILED",
             "status_receipts_agreement": "ok" if not receipts_cmp else "FAILED",
+            "brief_agreement": "ok" if not brief_cmp else "FAILED",
             "state_valid": not invalid,
             "binary": str(binary),
             "formats": len(r_formats),
@@ -728,6 +804,10 @@ def main(argv: list[str] | None = None) -> int:
         print(
             "  status RECEIPTS aggregation identical: "
             + ("ok" if not receipts_cmp else f"FAILED ({len(receipts_cmp)})")
+        )
+        print(
+            "  brief shared sections and token counts identical: "
+            + ("ok" if not brief_cmp else f"FAILED ({len(brief_cmp)})")
         )
     return 1 if findings else 0
 

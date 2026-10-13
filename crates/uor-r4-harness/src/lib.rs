@@ -20,6 +20,7 @@
 //! assert!(report.formats_checked > 0);
 //! ```
 
+pub mod briefing;
 pub mod contract;
 pub mod onboard;
 pub mod prep;
@@ -30,6 +31,7 @@ pub mod shards;
 pub mod state;
 pub mod status;
 
+pub use briefing::{assemble, human_tokens, ContextPack};
 pub use contract::{Contract, FormatSpec, Kind, Shape, Violation};
 pub use onboard::{onboard, Finding, Level, Report};
 pub use prep::{check_all, check_sheet, test_fitness, SheetReport};

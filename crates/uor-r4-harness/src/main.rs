@@ -11,6 +11,7 @@
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
+use uor_r4_harness::briefing;
 use uor_r4_harness::onboard::{detect_runtime, onboard};
 use uor_r4_harness::prep::{check_all, SheetReport};
 use uor_r4_harness::presence::{heartbeat, Presence};
@@ -101,6 +102,8 @@ COMMANDS:
                 parity.py, because the headline is the number a run is scored on.
     prep-render Render a pre-registration sheet to stdout without writing it. The
                 WRITE half of the D22 gate, checked byte-for-byte against Python.
+    brief       The context pack for a task. Section 1 (state) and the owner rules
+                are ported; the rest is listed as unported rather than omitted.
     shard-check Refuse a ledger shard that lost lines. A shard may grow and
                 may never shrink; exits 1 on a lost receipt. Compares the
                 working tree against --base (default origin/main).
@@ -209,6 +212,7 @@ fn main() -> ExitCode {
         Some("prep-check") => cmd_prep_check(&repo, json),
         Some("registry") => cmd_registry(&repo, json),
         Some("prep-render") => cmd_prep_render(&repo, &rest),
+        Some("brief") => cmd_brief(&repo, &rest),
         Some("shard-check") => cmd_shard_check(&repo, &rest, json),
         Some("status") => cmd_status(&repo, &rest),
         Some(other) => {
@@ -363,6 +367,32 @@ fn cmd_heartbeat(repo: &Path, args: &[String], json: bool) -> ExitCode {
             );
         }
     }
+    ExitCode::SUCCESS
+}
+
+fn cmd_brief(repo: &Path, args: &[String]) -> ExitCode {
+    let paths = StatePaths::from_env(repo);
+    let regs = match Registries::load(&paths) {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("uor-harness: {e}");
+            return ExitCode::from(2);
+        }
+    };
+    let milestone = flag_value(args, "--milestone").or_else(|| flag_value(args, "-m"));
+    let query = flag_value(args, "--query")
+        .or_else(|| flag_value(args, "-q"))
+        .unwrap_or_default();
+    let pack = briefing::assemble(&regs, milestone.as_deref(), &query);
+    print!("{}", pack.render());
+    // The sections this port does not provide are STATED, not silently absent: a brief that omitted
+    // the session contract would read as a brief with no session contract.
+    println!();
+    println!(
+        "*Not ported to Rust yet:* the session contract, the lab prompt, the governance decisions, \
+         the mechanism briefs and the receipt tail. `scripts/harness/cli.py brief` remains \
+         authoritative for those."
+    );
     ExitCode::SUCCESS
 }
 
