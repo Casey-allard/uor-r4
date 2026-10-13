@@ -131,6 +131,7 @@ def python_presence() -> dict:
         "rows=multilab.all_presence(p);"
         "print(json.dumps({'labs': sorted(r.lab for r in rows),"
         " 'via': {r.lab: r.source for r in rows},"
+        " 'age_seconds': {r.lab: (int(r.age_minutes * 60) if r.age_minutes is not None else None) for r in rows},"
         " 'stale': sorted(r.lab for r in rows if r.stale)}))",
     ])
     if code != 0:
@@ -243,9 +244,28 @@ def main(argv: list[str] | None = None) -> int:
         findings.append(f"presence labs: rust {sorted(r_via)} != python {sorted(p_pres.get('labs', []))}")
     if r_via != p_pres.get("via"):
         findings.append(f"presence tier answered: rust {r_via} != python {p_pres.get('via')}")
+    # Staleness is time-dependent and the two implementations read the clock seconds apart, so a
+    # record sitting exactly on the TTL boundary will legitimately flap. That is timing jitter, not
+    # a divergence - but a disagreement *away* from the boundary is a real bug (this check found
+    # exactly that: Rust truncated the age to whole minutes before comparing, so a record aged
+    # 30m25s read live while Python read stale).
     r_stale = sorted(row["lab"] for row in r_pres.get("labs", []) if row.get("stale"))
-    if r_stale != sorted(p_pres.get("stale", [])):
-        findings.append(f"presence staleness: rust {r_stale} != python {sorted(p_pres.get('stale', []))}")
+    p_stale = sorted(p_pres.get("stale", []))
+    if r_stale != p_stale:
+        p_ages = p_pres.get("age_seconds", {})
+        only_rust = set(r_stale) - set(p_stale)
+        only_py = set(p_stale) - set(r_stale)
+        boundary = (r_pres.get("ttl_minutes", 30) * 60)
+        jitter = {lab for lab in (only_rust | only_py)
+                  if abs((p_ages.get(lab) or 0) - boundary) <= 60}
+        real = (only_rust | only_py) - jitter
+        if real:
+            findings.append(
+                f"presence staleness: rust {r_stale} != python {p_stale} "
+                f"(away from the {boundary}s TTL boundary: {sorted(real)})"
+            )
+        elif not args.json:
+            print(f"  (note: {sorted(jitter)} sits within 60s of the TTL boundary - timing jitter, not divergence)")
 
     controlled = controlled_cases(binary)
     findings.extend(controlled)

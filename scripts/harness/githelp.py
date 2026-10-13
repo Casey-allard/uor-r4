@@ -572,3 +572,58 @@ def cmd_clean_merged(args: argparse.Namespace, paths: HarnessPaths) -> int:
     print()
     print(f"deleted {removed} merged branch(es); worktrees were untouched")
     return 0
+
+def remote_branches_without_pr(paths, limit: int = 20) -> list[dict]:
+    """Remote branches that have no PR and are not merged into origin/main.
+
+    `branches_with_merged_pr` answers "did this land?"; this answers the other half, which is what
+    a stale branch list is usually made of: work that was pushed and then never opened as a PR. It
+    is deliberately advisory - such a branch holds unmerged work, so the answer is archive-or-PR,
+    never delete, and only its owner can decide which.
+    """
+    import json as _json
+    import subprocess
+
+    def _run(*args: str) -> str:
+        try:
+            return subprocess.run(
+                ["git", "-C", str(paths.repo), *args],
+                capture_output=True, text=True, timeout=30, check=False,
+            ).stdout.strip()
+        except (OSError, subprocess.SubprocessError):
+            return ""
+
+    listing = _run(
+        "for-each-ref", "--sort=-committerdate", "--format=%(refname:short)|%(committerdate:short)",
+        "refs/remotes/origin/",
+    )
+    out: list[dict] = []
+    for line in listing.splitlines():
+        if "|" not in line:
+            continue
+        ref, updated = line.split("|", 1)
+        name = ref[len("origin/"):]
+        if name in ("main", "HEAD", "gh-pages") or name.startswith("HEAD"):
+            # gh-pages is published by GitHub itself, not delivery transport; flagging it would be
+            # noise that trains people to ignore this rule.
+            continue
+        ahead = _run("rev-list", "--count", f"origin/main..origin/{name}")
+        behind = _run("rev-list", "--count", f"origin/{name}..origin/main")
+        if not ahead.isdigit() or int(ahead) == 0:
+            continue  # nothing ahead of main: fully merged, safe to remove on its own merits
+        # gh_json lives in status.py; import it lazily so this module stays importable on its own.
+        try:
+            from status import gh_json as _gh_json
+        except ImportError:  # pragma: no cover - status ships with the harness
+            return out
+        ok, data, _err = _gh_json(
+            ["pr", "list", "--head", name, "--state", "all", "--limit", "1", "--json", "number"],
+            paths.repo,
+        )
+        if ok and data:
+            continue  # it has a PR; that path is handled by the merged-PR check
+        out.append({"branch": name, "ahead": int(ahead), "behind": int(behind) if behind.isdigit() else 0,
+                    "updated": updated})
+        if len(out) >= limit:
+            break
+    return out

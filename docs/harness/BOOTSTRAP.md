@@ -85,3 +85,117 @@ REPORT BACK, in this order:
 One foreign lab, one session: claims visible to peers, presence published and visible, the tool
 running on that lab's own interpreter, and no record anywhere attributed to a lab that did not run
 it. That is the whole test. Anything else is a finding.
+
+---
+
+# Installing the harness on your lab
+
+This is the per-lab install. **One command for the required part; two optional commands for the
+conveniences.** Nothing here needs admin, a package manager, or a network fetch beyond the repo you
+already have.
+
+## Every lab: identity (required)
+
+```sh
+export UOR_LAB=<kimi|claude|codex|deepseek>
+```
+
+Put it where your runtime sets its environment so it is present in every session — a shell rc, the
+runtime's own config, or your lab's startup file. **Without it your receipts are recorded but
+attributed to nobody**, and no other lab can see who did the work. The harness prints a loud warning
+rather than letting that pass silently, because an unattributed record is worse than an absent one.
+
+Verify:
+
+```sh
+python3 scripts/harness/cli.py --repo <repo> heartbeat -m m1 --print
+```
+
+`--print` shows the card without recording a receipt. If you see the `NO LAB IDENTITY` warning, the
+export did not reach that shell.
+
+## Optional: the liveness hook (Kimi only, so far)
+
+Kimi is the only runtime on this machine with a per-prompt hook, so it is the only lab that can
+appear live without anyone typing anything. If your runtime has an equivalent, this is the shape:
+
+```
+UserPromptSubmit  ->  python3 <repo>/scripts/harness/cli.py multilab touch --lab <your-lab>
+```
+
+`touch` refreshes your timestamp, **preserves** the intent your last `heartbeat` published, and
+writes only the uncommitted live tier — so a prompt never dirties the repository. Measured at 0.061s
+against a 5s hook timeout.
+
+Kimi's is installed at `~/.kimi-code/bin/uor-context-hook`, registered in `~/.kimi-code/config.toml`,
+backed up at `~/.kimi-code/bin/uor-context-hook.bak-20261012`. If your lab has no hook, your presence
+is per-session and that is expected — check in with `heartbeat` and you are visible.
+
+## Optional: the pre-commit branch check
+
+Refuses a commit on a branch another lab has claimed:
+
+```sh
+python3 scripts/harness/cli.py --repo <repo> git install-hooks
+```
+
+## Verify the install
+
+```sh
+python3 scripts/harness/cli.py --repo <repo> check --only arena     # the tool runs here
+python3 scripts/harness/cli.py --repo <repo> multilab presence      # you can see the other labs
+python3 scripts/harness/cli.py --repo <repo> heartbeat -m <milestone>
+python3 scripts/harness/cli.py --repo <repo> multilab presence      # you now appear "via live"
+```
+
+Success is: the tool runs on **your** interpreter, you can see the other labs, and after your
+heartbeat you appear on the board yourself. Then read
+[BOOTSTRAP.md](BOOTSTRAP.md) above and run it once.
+
+## Python version
+
+Declared floor **3.9**. Verified on 3.9.6 and 3.15.0. Note `python3` differs by shell on this
+machine — `/etc/zprofile` reorders PATH, so a login shell gets Homebrew's and an agent shell may get
+`/usr/bin`. Both work; if you hit a version error, the tool names the requirement rather than
+failing obscurely.
+
+## Where the shared state lives
+
+| tier | path | what it is |
+|---|---|---|
+| **live** | `~/.local/share/uor-r4/harness/` (`$UOR_HARNESS_LIVE`) | what peers see now. Uncommitted, cleared routinely — treat as advisory, never as history |
+| **durable** | `docs/harness/` in the repo | the record. Survives restarts and reaches `git` |
+
+Readers prefer live and fall back to durable, and always say which answered (`via live` /
+`via durable`).
+
+---
+
+# For the project manager: where decisions are kept
+
+Kimi is the project manager, so its decisions have to be **durable and findable by the other labs**,
+not held in a session. Four places, in order of authority:
+
+1. **`docs/integration/DECISIONS.md`** — the canonical decision register (`D1`…`D27`). A decision
+   that binds the project belongs here, by its own number.
+2. **The milestone issue on GitHub** — the working authority the labs actually read each session.
+   `#2028` is the tracker; `#2029`–`#2036` are the milestones.
+3. **`docs/integration/current-state.md`** — what changed, newest first, with a **Next:** line.
+4. **`docs/labs/<topic>-<date>/README.md`** — the dated record for a unit of work.
+
+A decision filed *only* in a chat session is not findable by the other labs, and it will be
+re-litigated. If it binds anyone else, it goes in one of the four above **and** is cited from the PR
+that acts on it.
+
+The reverse direction — reaching a lab directly — is file-based, because there is no socket or
+daemon and the retired `lab-runner coord` must not be recreated:
+
+- **Kimi reads** `~/.kimi-code/UOR-R4-HANDOFF.md` at session start (a stale navigation aid; the repo
+  is authoritative) and `~/.kimi-code/UOR-R4-START.md` when the owner runs the `/goal` command.
+- **This lab publishes** those files, so a request can be queued for Kimi's next session.
+- Backups are kept beside each (`*.bak-*`) and one `cp` reverts them.
+
+**Test-result convention for the PM.** A lab's claims about its own results are not evidence. The
+receipts in `docs/harness/ledger/<lab>-<month>.jsonl` and the merged PR are the record, and
+`multilab presence` says who is live. When a milestone turns on a number, read the number in the
+artifact rather than the summary in the message.

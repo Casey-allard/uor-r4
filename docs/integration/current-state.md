@@ -1,3 +1,41 @@
+## 2026-10-13 — The harness becomes installable: branch rule, per-lab install, and where the PM's decisions live (lead, tooling)
+
+Three gaps that would stop the next lab picking the harness up without being told by hand, closed in
+[the record](../labs/harness-install-2026-10-13/README.md). **Branch removal is now an explicit
+rule** in AGENTS.md, because GitHub's `delete_branch_on_merge` is off and cannot be turned on
+without an org admin, so removal is manual forever and a habit is not a rule; `check` already reports
+every orphan as `status.no_orphan_branches` with the exact command. That rule was **incomplete and
+the owner's screenshot showed it**: of four branches on GitHub, two have merged PRs (#2247, #2237)
+and are simply removable, while `claude/starling-language` and `claude/starling-confirm` have **no PR
+at all** and hold real unmerged work - `starling_bootstrap_pure` exists only in those branches and
+nowhere on main, plus +165 lines in `examples/geometric-stack.rs` and +77 in
+`src/geometric_stack.rs`. Deleting them would destroy evidence. The rule now has a second half
+(`githelp.remote_branches_without_pr`) that finds remote branches with no PR and commits ahead of
+main and reports each as "it needs a decision, not deletion" - archive or open a PR - with `gh-pages`
+excluded because GitHub publishes it. Both belong to the Claude lab, and a worktree named
+`claude/archive-starling-branches-2026-10-13` already exists for them; the harness reports rather
+than deleting another lab's unmerged work. **A per-lab install** now lives
+in BOOTSTRAP.md and at `~/.local/share/uor-r4/harness/INSTALL.md`, readable by any lab without
+cloning: one required line (`export UOR_LAB`), the optional liveness hook whose shape another runtime
+can copy, the optional pre-commit branch check, a verify sequence, the 3.9 floor, and where the two
+state tiers live - every command run before it was written down, which caught two doc errors (no
+`--dry-run`, and `install-hooks` is a `git` subcommand). **The project manager's decisions** now have
+four stated homes in order of authority (DECISIONS.md, the milestone issue, current-state.md, the
+dated `docs/labs/` record), the file-based route back to the labs, and the convention that a lab's
+claims about its own results are not evidence. The parity check from the previous unit then found a
+**second real divergence against live state**: Rust truncated `age_minutes` before comparing, so a
+record aged 30m25s read live while Python read STALE - two implementations disagreeing about whether
+a lab is live. Judged in seconds now, with a boundary test (30m25s stale, exactly 30m00s not).
+`parity.py` also learned to separate that class of bug from clock jitter: it notes a disagreement
+within 60s of the TTL boundary and only fails when the two disagree away from it, because a flaky
+check gets ignored. 281 tests pass on both 3.9.6 and 3.15.0, 19 on the Rust side, clippy clean.
+
+Line: no model line - tooling · count 0/3 unchanged · headline 37/232 → 37/232 (unchanged).
+
+**Next:** wire the Rust crate and `parity.py` into CI (both are outside it today), then port behaviour
+against the Python suite as the conformance oracle - claims and presence first - and cut over once the
+Rust path passes the same rules.
+
 ## 2026-10-13 — The Rust harness reads the frozen state, and parity is checked rather than assumed (lead, tooling)
 
 Step 2 of the [Rust port](../labs/harness-rust-port-2026-10-13/README.md): `crates/uor-r4-harness`

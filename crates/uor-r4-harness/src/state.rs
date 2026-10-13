@@ -148,20 +148,32 @@ impl Presence {
         Self::read(&paths.durable_presence(lab), "durable")
     }
 
-    /// How old this check-in is, in minutes, or `None` when the timestamp cannot be parsed.
+    /// How old this check-in is, in whole minutes, or `None` when the timestamp cannot be parsed.
     ///
     /// An unparseable timestamp must read as unknown rather than as fresh: a presence record whose
     /// time cannot be trusted is not evidence that a lab is working.
     pub fn age_minutes(&self, now_unix: i64) -> Option<i64> {
-        let unix = parse_iso_unix(&self.updated)?;
-        Some((now_unix - unix) / 60)
+        self.age_seconds(now_unix).map(|s| s / 60)
     }
 
-    /// Stale means the record is older than the TTL, or its time cannot be read at all.
+    /// The exact age in seconds. Staleness must be judged on this, not on `age_minutes`.
+    pub fn age_seconds(&self, now_unix: i64) -> Option<i64> {
+        let unix = parse_iso_unix(&self.updated)?;
+        Some(now_unix - unix)
+    }
+
+    /// Stale means the record is older than the TTL by more than a second, or its time cannot be
+    /// read at all.
+    ///
+    /// **Judged in seconds, never on `age_minutes`.** Truncating to whole minutes first puts a
+    /// record aged 30m25s at "30 minutes" and calls it live, while the Python implementation -
+    /// which keeps the fraction - calls it stale. Two implementations disagreeing about whether a
+    /// lab is live is exactly the divergence the parity check exists to catch, and it caught this
+    /// one against real state rather than a constructed case.
     pub fn is_stale(&self, now_unix: i64, ttl_minutes: i64) -> bool {
-        match self.age_minutes(now_unix) {
+        match self.age_seconds(now_unix) {
             None => true,
-            Some(age) => age > ttl_minutes,
+            Some(age) => age > ttl_minutes * 60,
         }
     }
 }
@@ -313,6 +325,34 @@ mod tests {
         assert!(
             p.is_stale(0, 30),
             "unreadable time reads as stale, never live"
+        );
+    }
+
+    /// The boundary that exposed the divergence: an age of 30m25s is STALE, and truncating to
+    /// "30 minutes" before comparing would wrongly call it live.
+    #[test]
+    fn staleness_does_not_truncate_before_comparing() {
+        let now = parse_iso_unix("2026-10-12T12:00:00Z").expect("now");
+        let just_over = Presence {
+            updated: "2026-10-12T11:29:35Z".into(),
+            ..Default::default()
+        };
+        assert_eq!(just_over.age_seconds(now), Some(30 * 60 + 25));
+        assert_eq!(
+            just_over.age_minutes(now),
+            Some(30),
+            "truncated for display"
+        );
+        assert!(just_over.is_stale(now, 30), "30m25s is past a 30m TTL");
+
+        let exactly_on = Presence {
+            updated: "2026-10-12T11:30:00Z".into(),
+            ..Default::default()
+        };
+        assert_eq!(exactly_on.age_seconds(now), Some(30 * 60));
+        assert!(
+            !exactly_on.is_stale(now, 30),
+            "exactly at the TTL is not yet stale"
         );
     }
 

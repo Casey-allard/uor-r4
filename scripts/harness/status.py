@@ -1757,6 +1757,43 @@ def _rule_no_orphan_branches(paths: HarnessPaths, reg: Registry) -> list[RuleRes
                 path=str(paths.repo),
             )
         )
+    # Branches on the remote that were never a PR and are not merged. These are invisible to the
+    # merged-PR check above, and they are what "the repository should hold minimum state" is about:
+    # a branch with unmerged work needs a decision (archive it, or open a PR), and a branch whose
+    # work is already in main by another route is simply finished. Owners decide; the check reports.
+    try:
+        import githelp
+
+        merged_now = set(delivery.get("merged_local_branches") or [])
+        for rb in githelp.remote_branches_without_pr(paths) if hasattr(githelp, "remote_branches_without_pr") else []:
+            out.append(
+                RuleResult(
+                    rule_id="status.no_orphan_branches",
+                    severity="warn",
+                    ok=False,
+                    message=(
+                        f"remote branch {rb['branch']} has no PR and is not merged into main "
+                        f"({rb['ahead']} commit(s) ahead, {rb['behind']} behind, last updated "
+                        f"{rb['updated']}) - it needs a decision, not deletion"
+                    ),
+                    path=str(paths.repo),
+                    fix=(
+                        f"archive it (docs/history/branch-archive/ + an INDEX row) or open a PR; "
+                        f"do not delete unmerged work. Local copy: git branch -D {rb['branch']}"
+                    ),
+                    meta={"kind": "remote-branch-no-pr", "branch": rb["branch"], "ahead": rb["ahead"]},
+                )
+            )
+    except Exception as exc:  # noqa: BLE001 - advisory rule, never fatal
+        out.append(
+            RuleResult(
+                rule_id="status.no_orphan_branches",
+                severity="info",
+                ok=True,
+                message=f"remote-branch check skipped: {type(exc).__name__}: {exc}",
+                path=str(paths.repo),
+            )
+        )
     worktrees = delivery.get("worktrees") or {}
     if worktrees.get("available"):
         for c in worktrees.get("cleanup_candidates") or []:

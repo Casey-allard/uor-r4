@@ -836,5 +836,39 @@ class GitHelpStatusTest(unittest.TestCase):
         self.assertIn("git push", payload["next_command"])
 
 
+class TestRemoteBranchesWithoutPr(unittest.TestCase):
+    """The half of the branch list the merged-PR check cannot see: work that was pushed and never
+    opened as a PR. Such a branch holds unmerged work, so the answer is archive-or-PR, never delete.
+    """
+
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory(prefix="harness-branch-test-")
+        self.addCleanup(self._tmp.cleanup)
+        self.repo = Path(self._tmp.name)
+        (self.repo / "docs" / "harness" / "ledger").mkdir(parents=True, exist_ok=True)
+        self.paths = HarnessPaths.discover(repo=self.repo, state=self.repo / ".harness")
+
+    def _rows(self) -> list:
+        return githelp.remote_branches_without_pr(self.paths)
+
+    def test_it_never_returns_a_fully_merged_branch(self) -> None:
+        """A branch with nothing ahead of main is finished on its own merits; the merged-PR path
+        handles it, and reporting it here would double-count."""
+        for r in self._rows():
+            self.assertGreater(r["ahead"], 0, f"{r['branch']} is not ahead of main")
+
+    def test_the_published_pages_branch_is_excluded(self) -> None:
+        """gh-pages is published by GitHub, not delivery transport. Flagging it is noise that
+        trains people to ignore the rule."""
+        self.assertNotIn("gh-pages", [r["branch"] for r in self._rows()])
+
+    def test_it_is_advisory_and_never_raises(self) -> None:
+        """A advisory rule must not fail a check when git or gh is unavailable."""
+        try:
+            self._rows()
+        except Exception as exc:  # noqa: BLE001
+            self.fail(f"the branch scan raised {type(exc).__name__}: {exc}")
+
+
 if __name__ == "__main__":  # pragma: no cover
     unittest.main()

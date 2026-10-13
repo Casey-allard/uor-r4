@@ -221,6 +221,28 @@ RDC/DeepSeek/OpenCode sessions, inherit these rules through this file.
 (whose model is Sol). The harness is the shared plane: it records who holds which branch, what each
 lab is doing, and what actually ran — across labs, in one place.
 
+**Every lab removes its own branch after merging — there is no auto-delete.** GitHub's
+`delete_branch_on_merge` is off and cannot be turned on (it needs an organization admin). So the
+rule is manual, and it is a rule, not a preference: **after your protected merge, verify the merge
+commit on a fresh `origin/main`, then delete the branch on both sides.**
+
+```sh
+git fetch origin && git checkout main && git reset --hard origin/main
+python3 scripts/harness/cli.py git clean-merged          # proof it is safe to delete
+python3 scripts/harness/cli.py git clean-merged --apply  # deletes proven-merged local branches
+git push origin --delete <branch>                        # the remote copy is yours to remove
+```
+
+`clean-merged` proves a branch is merged by **content** — comparing the merged PR's merge-commit
+tree against the branch tree — because a squash merge leaves no ancestry link and
+`merge-base --is-ancestor` would wrongly call it unmerged. A branch that is not proven merged is kept
+and its owner decides.
+
+**Why this matters: the repository should hold minimum state.** A merged branch is not a research
+authority — `main` is. `check` reports every orphan as `status.no_orphan_branches` with the exact
+command, so a forgotten branch shows up on the next run rather than accumulating. Two are currently
+outstanding (`deepseek/invariant-router`, `bpb-split`); they belong to their owners.
+
 **Identify yourself first.** One line, once per session:
 
 ```sh
