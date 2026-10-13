@@ -178,9 +178,14 @@ impl Presence {
     }
 }
 
-/// One receipt line from a per-lab ledger shard.
+/// One receipt line READ from a per-lab ledger shard.
+///
+/// Distinct from [`crate::receipt::Receipt`], which is the thing you WRITE. Keeping them apart is
+/// deliberate: a reader must tolerate every row the ledger already holds, including historical ones
+/// that predate a field, while a writer must produce exactly what the contract requires. One type
+/// serving both would have to be as loose as the reader and as strict as the writer.
 #[derive(Debug, Clone, Default, Deserialize)]
-pub struct Receipt {
+pub struct ReceiptRow {
     #[serde(default)]
     pub lab: String,
     #[serde(default)]
@@ -205,14 +210,14 @@ pub struct Receipt {
     pub note: Option<String>,
 }
 
-impl Receipt {
-    pub fn from_line(line: &str) -> Option<Receipt> {
+impl ReceiptRow {
+    pub fn from_line(line: &str) -> Option<ReceiptRow> {
         serde_json::from_str(line).ok()
     }
 }
 
 /// Read every receipt in the sharded ledger, in file order.
-pub fn read_ledger(paths: &StatePaths) -> Vec<Receipt> {
+pub fn read_ledger(paths: &StatePaths) -> Vec<ReceiptRow> {
     let dir = paths.ledger_dir();
     let Ok(entries) = std::fs::read_dir(&dir) else {
         return Vec::new();
@@ -232,7 +237,7 @@ pub fn read_ledger(paths: &StatePaths) -> Vec<Receipt> {
             if line.trim().is_empty() {
                 continue;
             }
-            if let Some(r) = Receipt::from_line(line) {
+            if let Some(r) = ReceiptRow::from_line(line) {
                 out.push(r);
             }
         }
@@ -375,8 +380,8 @@ mod tests {
     #[test]
     fn a_ledger_line_reads_with_either_count_shape() {
         let heart =
-            Receipt::from_line(r#"{"lab":"kimi","kind":"heartbeat","ts":"t","count":"1/3"}"#);
-        let team = Receipt::from_line(r#"{"lab":"kimi","kind":"team","ts":"t","count":3}"#);
+            ReceiptRow::from_line(r#"{"lab":"kimi","kind":"heartbeat","ts":"t","count":"1/3"}"#);
+        let team = ReceiptRow::from_line(r#"{"lab":"kimi","kind":"team","ts":"t","count":3}"#);
         assert!(matches!(
             heart.unwrap().count,
             Some(serde_json::Value::String(_))

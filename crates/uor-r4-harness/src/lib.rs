@@ -22,8 +22,10 @@
 
 pub mod contract;
 pub mod onboard;
+pub mod receipt;
 pub mod state;
 
 pub use contract::{Contract, FormatSpec, Kind, Shape, Violation};
 pub use onboard::{onboard, Finding, Level, Report};
-pub use state::{Presence, Receipt, StatePaths};
+pub use receipt::{append, shard_path, Receipt};
+pub use state::{Presence, ReceiptRow, StatePaths};

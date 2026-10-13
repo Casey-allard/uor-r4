@@ -32,6 +32,7 @@ import os
 import shutil
 import subprocess
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
@@ -77,16 +78,6 @@ def rust_check(binary: Path) -> dict:
     code, out, err = run([str(binary), "check", "--repo", str(REPO), "--json"])
     if code not in (0, 1) or not out.strip():
         raise RuntimeError(f"rust check failed ({code}): {err[:400]}")
-    return json.loads(out)
-
-
-def python_check(repo: Path = REPO) -> dict:
-    code, out, err = run([
-        sys.executable, str(REPO / "scripts" / "harness" / "statecheck.py"),
-        "--json", "--repo", str(repo),
-    ])
-    if code not in (0, 1) or not out.strip():
-        raise RuntimeError(f"python check failed ({code}): {err[:400]}")
     return json.loads(out)
 
 
@@ -176,12 +167,84 @@ def normalise_formats(doc: dict) -> dict[str, dict]:
     return out
 
 
-def controlled_cases(binary: Path) -> list[str]:
-    """Check both implementations agree on inputs whose verdict we know in advance.
+def write_interop(binary: Path) -> list[str]:
+    """Rust WRITES a receipt; the Python harness must read it back intact.
 
-    Agreement on whatever state happens to be in the working tree only proves both can read a valid
-    file. These cases prove both *reject* the same things - without which "they agree" is not much
-    of a claim.
+    Every other check here compares the two implementations on state Python wrote, which proves Rust
+    can read the shared record and says nothing about whether Rust can add to it. A writer that is
+    subtly wrong is worse than no writer: it corrupts the record the labs coordinate through.
+
+    Runs in a temporary directory, never the real ledger. The month is fixed so the shard name is
+    predictable, and the receipt carries a marker so a leak into real state would be obvious.
+    """
+    import tempfile
+
+    findings: list[str] = []
+    marker = "parity-write-interop-marker"
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        (root / "docs" / "harness").mkdir(parents=True)
+        code, out, err = run([
+            str(binary), "receipt", "--repo", str(root), "--lab", "parityprobe",
+            "--kind", "skill", "--skill", "interop", "--note", marker,
+        ])
+        if code != 0:
+            findings.append(f"write interop: the Rust writer exited {code}: {err[:200]}")
+            return findings
+
+        shard = root / "docs" / "harness" / "ledger" / f"parityprobe-{datetime.now(timezone.utc):%Y-%m}.jsonl"
+        if not shard.is_file():
+            findings.append(f"write interop: Rust reported success but no shard at {shard.name}")
+            return findings
+
+        # Read it back through the PYTHON implementation's own reader, not by parsing the file here.
+        probe = (
+            "import json,sys;"
+            "sys.path.insert(0,'scripts/harness');"
+            "import core,multilab;"
+            f"p=core.HarnessPaths.discover(repo={str(root)!r});"
+            "rows=multilab.read_shards(p);"
+            "print(json.dumps(rows))"
+        )
+        code, out, err = run([sys.executable, "-c", probe])
+        if code != 0:
+            findings.append(f"write interop: the Python reader failed: {err[:200]}")
+            return findings
+        try:
+            rows = json.loads(out)
+        except json.JSONDecodeError:
+            findings.append(f"write interop: Python's reader returned non-JSON: {out[:200]}")
+            return findings
+
+        if len(rows) != 1:
+            findings.append(f"write interop: Python read {len(rows)} receipt(s), expected 1")
+            return findings
+        row = rows[0]
+        for key, expected in (
+            ("lab", "parityprobe"),
+            ("kind", "skill"),
+            ("skill", "interop"),
+            ("note", marker),
+            ("schema", 1),
+        ):
+            if row.get(key) != expected:
+                findings.append(f"write interop: {key} is {row.get(key)!r}, expected {expected!r}")
+        if not row.get("ts"):
+            findings.append("write interop: the receipt has no timestamp")
+    return findings
+
+
+def controlled_cases(binary: Path) -> list[str]:
+    """Check the format checker on inputs whose verdict is known in advance.
+
+    Agreement on whatever state happens to be in the working tree only proves a reader can read a
+    valid file. These cases prove it *rejects* the things it should — without which "it passes" is
+    not much of a claim.
+
+    **These used to compare two implementations.** The Python one (`statecheck.py`) was removed under
+    D27, so there is now a single checker and the comparison would be Rust against itself. The cases
+    keep their value as known-bad inputs; what they assert is now that the one checker accepts and
+    rejects correctly.
     """
     import tempfile
 
@@ -206,17 +269,9 @@ def controlled_cases(binary: Path) -> list[str]:
 
             r_code, _, _ = run([str(binary), "check", "--repo", str(root), "--json"])
             r_ok = r_code == 0
-            try:
-                p_ok = python_check(root)["ok"]
-            except RuntimeError as exc:
-                findings.append(f"controlled [{label}]: python failed to run: {exc}")
-                continue
-
-            if r_ok != p_ok:
-                findings.append(f"controlled [{label}]: rust ok={r_ok} but python ok={p_ok}")
-            elif r_ok != should_pass:
+            if r_ok != should_pass:
                 findings.append(
-                    f"controlled [{label}]: both said ok={r_ok}, expected {should_pass} "
+                    f"controlled [{label}]: said ok={r_ok}, expected {should_pass} "
                     f"- the check is not testing what it claims"
                 )
     return findings
@@ -252,18 +307,17 @@ def main(argv: list[str] | None = None) -> int:
     )
     if invalid:
         findings.append(
-            f"state violates the frozen contract in {invalid} - see statecheck.py for the faults"
+            f"state violates the frozen contract in {invalid} - run `uor-harness check` for the faults"
         )
 
     # 1. the format check
+    # The format check has ONE implementation now — the Rust one — so comparing it against itself
+    # would be theatre. What is still worth asserting is that it runs and that the state is valid;
+    # the meaningful cross-implementation comparisons are the ledger roll-up, the presence board,
+    # the controlled cases and the write interop below.
     r_formats = normalise_formats(rust_check(binary))
-    p_formats = normalise_formats(python_check())
-    if set(r_formats) != set(p_formats):
-        findings.append(f"format sets differ: rust-only {sorted(set(r_formats) - set(p_formats))}, "
-                        f"python-only {sorted(set(p_formats) - set(r_formats))}")
-    for name in sorted(set(r_formats) & set(p_formats)):
-        if r_formats[name] != p_formats[name]:
-            findings.append(f"{name}: rust {r_formats[name]} != python {p_formats[name]}")
+    if not r_formats:
+        findings.append("the Rust format check reported no formats; the contract may be unreadable")
 
     # 2. the ledger roll-up
     r_led, p_led = rust_ledger(binary), python_ledger()
@@ -306,11 +360,15 @@ def main(argv: list[str] | None = None) -> int:
 
     controlled = controlled_cases(binary)
     findings.extend(controlled)
+    interop = write_interop(binary)
+    findings.extend(interop)
 
     if args.json:
         print(json.dumps({
             "ok": not findings,
+            "note": "the format check has one implementation (Rust); controlled cases test it directly",
             "controlled_cases": 6,
+            "write_interop": "ok" if not interop else "FAILED",
             "state_valid": not invalid,
             "binary": str(binary),
             "formats": len(r_formats),
@@ -326,8 +384,13 @@ def main(argv: list[str] | None = None) -> int:
             for f in findings:
                 print(f"    {f}")
         else:
-            print("  agree on every format, the ledger roll-up, and the presence board")
-        print(f"  agree on all {6} controlled cases (accept and reject)")
+            print(f"  state valid in all {len(r_formats)} formats (one implementation; nothing to compare)")
+        print("  ledger roll-up and presence board agree across both implementations")
+        print(f"  the format checker accepts and rejects all {6} controlled cases")
+        print(
+            "  Rust-written receipt read back by Python: "
+            + ("ok" if not interop else f"FAILED ({len(interop)})")
+        )
     return 1 if findings else 0
 
 

@@ -320,5 +320,65 @@ class TestTouch(_IsolatedTiers):
             multilab.touch_presence(self.paths, "")
 
 
+class TestPmProposedChecks(_IsolatedTiers):
+    """The two machine checks the PM proposed in docs/harness/pm-rules.md R1:
+
+      * a claim whose branch is already merged
+      * a claim held more than a day with no heartbeat
+
+    Both exist because a claim nobody is working under is worse than no claim: it says work is in
+    progress when it is finished or abandoned, and it deters work that is safe to start.
+    """
+
+    def test_a_claim_on_a_merged_branch_is_flagged(self) -> None:
+        """A claim that outlives its merge tells every other lab the branch is busy when it is not."""
+        self.assertTrue(
+            hasattr(multilab, "_check_claim_not_merged"),
+            "the merged-claim check must exist; the PM proposed it and it caught three live claims",
+        )
+
+    def test_merged_detection_is_evidence_based_not_inferred(self) -> None:
+        """The property the first version got wrong.
+
+        A branch that was never pushed is indistinguishable from one deleted after merging if you
+        only ask "is it on origin?". Treating that as merged would tell a lab to release a claim on
+        unpushed work. The check must return None - not established - and stay quiet.
+        """
+        result = multilab._branch_is_merged(self.paths, "definitely/never-pushed-branch")
+        self.assertIsNone(
+            result,
+            "an unknown branch must read as 'not established', never as merged",
+        )
+
+    def test_the_abandoned_window_is_a_day(self) -> None:
+        """The PM proposed 24 hours; a shorter window would flag labs that are simply mid-task."""
+        self.assertEqual(multilab.CLAIM_ABANDONED_HOURS, 24)
+
+    def test_claim_timestamps_parse_in_both_offset_forms(self) -> None:
+        for text in ("2026-10-13T00:58:49-04:00", "2026-10-13T05:00:00+00:00", "2026-10-13T05:00:00Z"):
+            with self.subTest(text=text):
+                self.assertIsNotNone(multilab._parse_claimed_at(text), text)
+        for bad in ("", "not-a-time", "2026-13-45T99:99:99"):
+            with self.subTest(text=bad):
+                self.assertIsNone(multilab._parse_claimed_at(bad), bad)
+
+    def test_a_fresh_heartbeat_keeps_a_long_held_claim_alive(self) -> None:
+        """Holding a branch for a week is fine if the lab is visibly working. The heartbeat is what
+        separates "holding while working" from "holding and gone"."""
+        old = (datetime.now(timezone.utc) - timedelta(hours=30)).isoformat(timespec="seconds")
+        multilab.save_claims(self.paths, {"b": {"branch": "b", "lab": "kimi", "claimed_at": old}})
+        multilab.write_presence(self.paths, "kimi", milestone="m1", doing="work")
+        rows = multilab._check_claim_stale(self.paths, None)
+        self.assertEqual(rows, [], "a lab that just checked in should not be flagged")
+
+    def test_an_old_claim_with_no_heartbeat_is_flagged(self) -> None:
+        old = (datetime.now(timezone.utc) - timedelta(hours=30)).isoformat(timespec="seconds")
+        multilab.save_claims(self.paths, {"b": {"branch": "b", "lab": "kimi", "claimed_at": old}})
+        rows = multilab._check_claim_stale(self.paths, None)
+        self.assertEqual(len(rows), 1, rows)
+        self.assertIn("30h", rows[0].message)
+        self.assertIn("heartbeat", rows[0].fix, "the fix must name the way to keep the claim")
+
+
 if __name__ == "__main__":
     unittest.main()

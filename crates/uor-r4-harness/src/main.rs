@@ -12,8 +12,36 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use uor_r4_harness::onboard::{detect_runtime, onboard};
+use uor_r4_harness::receipt::{append, current_month, Receipt as NewReceipt};
 use uor_r4_harness::state::{read_ledger, Presence, StatePaths};
 use uor_r4_harness::Contract;
+
+/// Flags that only a subcommand understands, forwarded rather than rejected at the top level.
+const SUBCOMMAND_FLAGS: [&str; 10] = [
+    "--kind",
+    "--milestone",
+    "--skill",
+    "--role",
+    "--branch",
+    "--note",
+    "--outcome",
+    "--mechanism",
+    "--run",
+    "--dry-run",
+];
+
+/// The subset that takes a value, so the value is not mistaken for a command.
+const SUBCOMMAND_VALUE_FLAGS: [&str; 9] = [
+    "--kind",
+    "--milestone",
+    "--skill",
+    "--role",
+    "--branch",
+    "--note",
+    "--outcome",
+    "--mechanism",
+    "--run",
+];
 
 const USAGE: &str = "\
 uor-harness - the multi-lab research harness (Rust side of the port)
@@ -30,6 +58,8 @@ COMMANDS:
     presence    What each lab is doing now. Live tier first, durable as the
                 fallback, reporting which answered.
     ledger      Receipt counts by lab and kind.
+    receipt     Append one receipt to this lab's shard. The first WRITE on the
+                Rust side; use --dry-run to see the line without recording it.
     help        This text.
 
 The Python harness owns behaviour until this path passes the same checks; the
@@ -41,14 +71,24 @@ fn main() -> ExitCode {
     let mut command: Option<String> = None;
     let mut repo: Option<PathBuf> = None;
     let mut json = false;
+    let mut rest: Vec<String> = Vec::new();
 
     let mut i = 0;
     while i < args.len() {
         match args[i].as_str() {
             "--repo" => {
-                i += 1;
-                match args.get(i) {
-                    Some(p) => repo = Some(PathBuf::from(p)),
+                match args.get(i + 1) {
+                    Some(p) => {
+                        repo = Some(PathBuf::from(p));
+                        // Forwarded as well as consumed: a subcommand that reads more of its own
+                        // arguments (`receipt`) needs to know which repository it is writing to.
+                        rest.push("--repo".to_string());
+                        rest.push(p.clone());
+                        // Advance past the value here; the loop's own increment then moves to the
+                        // next flag or command word. Incrementing twice skipped the command
+                        // entirely, so `--repo DIR receipt ...` ran nothing and printed usage.
+                        i += 1;
+                    }
                     None => {
                         eprintln!("uor-harness: --repo needs a directory");
                         return ExitCode::from(2);
@@ -56,13 +96,41 @@ fn main() -> ExitCode {
                 }
             }
             "--json" => json = true,
+            "--lab" => {
+                match args.get(i + 1) {
+                    Some(v) => {
+                        // A global flag that subcommands also read. Forwarded as well as accepted,
+                        // because `receipt` needs the lab to choose the shard it writes.
+                        rest.push("--lab".to_string());
+                        rest.push(v.clone());
+                        i += 1;
+                    }
+                    None => {
+                        eprintln!("uor-harness: --lab needs a lab name");
+                        return ExitCode::from(2);
+                    }
+                }
+            }
             "-h" | "--help" | "help" => {
                 print!("{USAGE}");
                 return ExitCode::SUCCESS;
             }
+            // Flags belonging to a subcommand are collected and handed to it, not rejected here:
+            // `receipt` takes many optional fields and the top-level loop cannot know them all.
             other if other.starts_with('-') => {
-                eprintln!("uor-harness: unknown option {other}\n\n{USAGE}");
-                return ExitCode::from(2);
+                if SUBCOMMAND_FLAGS.contains(&other) {
+                    rest.push(other.to_string());
+                    // A value-taking subcommand flag carries the next token with it.
+                    if !other.contains('=') && SUBCOMMAND_VALUE_FLAGS.contains(&other) {
+                        if let Some(v) = args.get(i + 1) {
+                            rest.push(v.clone());
+                            i += 1;
+                        }
+                    }
+                } else {
+                    eprintln!("uor-harness: unknown option {other}\n\n{USAGE}");
+                    return ExitCode::from(2);
+                }
             }
             other => command = Some(other.to_string()),
         }
@@ -85,6 +153,7 @@ fn main() -> ExitCode {
         Some("check") => cmd_check(&repo, json),
         Some("presence") => cmd_presence(&repo, json),
         Some("ledger") => cmd_ledger(&repo, json),
+        Some("receipt") => cmd_receipt(&repo, &rest, json),
         Some(other) => {
             eprintln!("uor-harness: unknown command {other}\n\n{USAGE}");
             ExitCode::from(2)
@@ -152,6 +221,79 @@ fn cmd_onboard(repo: &Path, json: bool) -> ExitCode {
         // Distinct from `check`'s exit 1 so CI can tell "state drifted" from "this machine is not
         // onboarded"; both are failures, but they need different fixes.
         ExitCode::from(3)
+    }
+}
+
+fn flag_value(args: &[String], name: &str) -> Option<String> {
+    let mut i = 0;
+    while i < args.len() {
+        if args[i] == name {
+            return args.get(i + 1).cloned();
+        }
+        i += 1;
+    }
+    None
+}
+
+fn cmd_receipt(repo: &Path, args: &[String], json: bool) -> ExitCode {
+    let paths = StatePaths::from_env(repo);
+    let lab = flag_value(args, "--lab")
+        .or_else(|| std::env::var("UOR_LAB").ok())
+        .unwrap_or_default();
+    if lab.trim().is_empty() {
+        eprintln!(
+            "uor-harness: no lab identity. Pass --lab <lab> or export UOR_LAB; a receipt with no \
+             lab is preserved but attributed to nobody."
+        );
+        return ExitCode::from(2);
+    }
+    let kind = flag_value(args, "--kind").unwrap_or_else(|| "receipt".to_string());
+    let dry_run = args.iter().any(|a| a == "--dry-run");
+
+    let mut r = NewReceipt::new(kind, lab.clone());
+    for key in [
+        "milestone",
+        "skill",
+        "role",
+        "branch",
+        "note",
+        "outcome",
+        "mechanism",
+        "run",
+    ] {
+        if let Some(v) = flag_value(args, &format!("--{key}")) {
+            r = r.with(key, v);
+        }
+    }
+    if let Err(e) = r.validate() {
+        eprintln!("uor-harness: {e}");
+        return ExitCode::from(2);
+    }
+
+    if dry_run {
+        // The line that WOULD be written. Nothing touches the ledger.
+        println!("{}", r.to_line());
+        return ExitCode::SUCCESS;
+    }
+    match append(&paths, &r, &current_month()) {
+        Ok(shard) => {
+            if json {
+                println!(
+                    "{{\"lab\": {:?}, \"kind\": {:?}, \"shard\": {:?}, \"line\": {:?}}}",
+                    lab,
+                    r.kind,
+                    shard.display().to_string(),
+                    r.to_line()
+                );
+            } else {
+                println!("receipt recorded: {} in {}", shard.display(), r.ts);
+            }
+            ExitCode::SUCCESS
+        }
+        Err(e) => {
+            eprintln!("uor-harness: {e}");
+            ExitCode::from(1)
+        }
     }
 }
 

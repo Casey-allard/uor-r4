@@ -5,6 +5,10 @@ name: harness
 # authoritative and keeps running here; the Rust crate is checked alongside it, and
 # `parity.py` fails the build when the two disagree about the shared record.
 #
+# The format check itself is Rust (`crates/uor-r4-harness`): D27 puts new tooling there, and the
+# Python duplicate was removed. The `rust-harness` job builds the binary and then runs the rule that
+# needs it, so the check executes in CI rather than only locally.
+#
 # Path-filtered so it never competes with the shared `required-transport` runner slot
 # on unrelated PRs.
 on:
@@ -138,8 +142,12 @@ jobs:
             echo 'Agreement about reading state. The Python harness still owns behaviour.'
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Frozen state formats
+      - name: Harness rules with the Rust binary present
+        # `check` includes `harness.state_formats`, which the Rust implementation performs. The
+        # `harness` job runs `check` without a binary and skips that one rule; here it runs for real.
+        env:
+          CARGO_TARGET_DIR: local/harness-target
         shell: bash
         run: |
           set -euo pipefail
-          python3 scripts/harness/statecheck.py
+          python3 scripts/harness/cli.py check --only harness.state_formats

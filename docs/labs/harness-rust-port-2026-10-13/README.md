@@ -151,3 +151,22 @@ The symlink is not mine to delete and was left alone.
 **Next:** port behaviour against the Python suite as the conformance oracle — claims and presence
 first, since those are what the labs actually depend on — then cut CI over once the Rust path passes
 the same rules. The grandfather keeps Python working throughout.
+
+## Correction, later the same day: the Python format checker has been removed
+
+This record describes `scripts/harness/statecheck.py` as the enforcement for the frozen contract. That
+file **no longer exists**, and the record is left as written because it was true when it was written.
+
+It was new Python added *after* D27 (`56350f55a`, 13 October) said new tooling goes in Rust, and it
+duplicated a check the Rust crate already performed in `contract.rs`. Two implementations of one rule
+is how they drift apart, and it was ~250 lines in the language the project had just decided against.
+
+The check is now the Rust implementation alone, surfaced as the `harness.state_formats` rule through
+`scripts/harness/stateformats.py` — a thin adapter, not a second implementation. The `rust-harness` CI
+job builds the binary and then runs the rule, so it executes in CI; the `harness` job, which has no
+binary, skips that one rule and says so rather than failing a check nobody broke.
+
+The parity comparison lost its format half as a result. Comparing Rust against a Python checker that
+no longer exists would be comparing Rust with itself, so that section now asserts what is still
+meaningful: the state is valid, the checker accepts and rejects six known inputs correctly, the ledger
+and presence boards agree across both implementations, and a Rust-written receipt is read back intact.
