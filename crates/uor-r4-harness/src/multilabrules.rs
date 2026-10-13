@@ -8,8 +8,8 @@
 //! | `multilab.claims_one_owner` | error | **yes** |
 //! | `multilab.claim_stale` | warn | **yes** |
 //! | `multilab.claim_not_merged` | warn | **yes** |
-//! | `multilab.no_shared_ledger` | warn | no |
-//! | `multilab.ledger_lab_recorded` | warn | no |
+//! | `multilab.no_shared_ledger` | warn | **yes** |
+//! | `multilab.ledger_lab_recorded` | warn | **yes** |
 //!
 //! ## `claim_not_merged` and the ordering that must not be lost
 //!
@@ -376,12 +376,130 @@ pub fn claim_not_merged(paths: &StatePaths) -> Vec<Finding> {
     out
 }
 
+/// Unsharded ledgers from before sharding: `<YYYY-MM>.jsonl` with no lab prefix.
+///
+/// **Sharding exists so concurrent PRs never conflict on one file.** A leftover unsharded ledger is
+/// therefore not just clutter: it is a file two labs will both append to, which is the conflict the
+/// sharding removed — and it stays writable, so the conflict can come back.
+pub fn legacy_ledgers(paths: &StatePaths) -> Vec<std::path::PathBuf> {
+    let dir = ledger_dir(paths);
+    let Ok(entries) = std::fs::read_dir(&dir) else {
+        return Vec::new();
+    };
+    let mut out: Vec<std::path::PathBuf> = entries
+        .flatten()
+        .map(|e| e.path())
+        .filter(|p| {
+            let Some(name) = p.file_name().and_then(|n| n.to_str()) else {
+                return false;
+            };
+            // `YYYY-MM.jsonl` exactly: four digits, dash, two digits, `.jsonl`. A shard is
+            // `<lab>-YYYY-MM.jsonl`, so it has a lab prefix and cannot match.
+            // `YYYY-MM.jsonl` is 13 bytes, not 12 - **I asserted 12 and the off-by-one silently
+            // matched nothing**, so the rule reported no legacy ledgers at all. The length is now
+            // derived from the shape rather than restated as a number, because **a hand-written length
+            // is the same class of mistake as a hand-written date: it is a guess wearing a check's
+            // clothes, and I have now made it twice in this port.**
+            let bytes = name.as_bytes();
+            let shape_len = 4 + 1 + 2 + ".jsonl".len();
+            bytes.len() == shape_len
+                && bytes[..4].iter().all(u8::is_ascii_digit)
+                && bytes[4] == b'-'
+                && bytes[5..7].iter().all(u8::is_ascii_digit)
+                && &name[7..] == ".jsonl"
+        })
+        .collect();
+    out.sort();
+    out
+}
+
+fn ledger_dir(paths: &StatePaths) -> std::path::PathBuf {
+    paths.repo.join("docs").join("harness").join("ledger")
+}
+
+/// `multilab.no_shared_ledger` — receipts are sharded per lab, not written to one shared file.
+pub fn no_shared_ledger(paths: &StatePaths) -> Vec<Finding> {
+    let legacy = legacy_ledgers(paths);
+    if legacy.is_empty() {
+        return Vec::new();
+    }
+    let names: Vec<String> = legacy
+        .iter()
+        .take(3)
+        .filter_map(|p| p.file_name().map(|n| n.to_string_lossy().to_string()))
+        .collect();
+    vec![warn(
+        "multilab.no_shared_ledger",
+        format!(
+            "{} unsharded ledger file(s) remain: {}",
+            legacy.len(),
+            names.join(", ")
+        ),
+        "docs/harness/ledger".into(),
+        "run: uor-harness multilab migrate-ledger   (moves receipts into per-lab shards, keeping          history)"
+            .into(),
+    )]
+}
+
+/// `multilab.ledger_lab_recorded` — every sharded receipt names its lab.
+///
+/// **Identity comes from `--lab` or `$UOR_LAB`.** A receipt with no lab is worse than an absent one:
+/// **absence is visible, an unattributed record is not** — it looks like evidence while proving
+/// nothing about who did the work, which is exactly what the ledger is for.
+pub fn ledger_lab_recorded(paths: &StatePaths) -> Vec<Finding> {
+    let dir = ledger_dir(paths);
+    let Ok(entries) = std::fs::read_dir(&dir) else {
+        return Vec::new();
+    };
+    let mut out = Vec::new();
+    let mut files: Vec<std::path::PathBuf> = entries
+        .flatten()
+        .map(|e| e.path())
+        .filter(|p| p.extension().is_some_and(|x| x == "jsonl"))
+        .collect();
+    files.sort();
+    for f in files {
+        let name = f
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_default();
+        let Ok(text) = std::fs::read_to_string(&f) else {
+            continue;
+        };
+        for line in text.lines() {
+            let line = line.trim();
+            if line.is_empty() {
+                continue;
+            }
+            let Ok(v) = serde_json::from_str::<serde_json::Value>(line) else {
+                // A line that will not parse is a different rule's problem.
+                continue;
+            };
+            let lab = v.get("lab").and_then(|l| l.as_str()).unwrap_or("");
+            if !lab.trim().is_empty() {
+                continue;
+            }
+            let kind = v.get("kind").and_then(|k| k.as_str()).unwrap_or("?");
+            let ts = v.get("ts").and_then(|t| t.as_str()).unwrap_or("?");
+            out.push(warn(
+                "multilab.ledger_lab_recorded",
+                format!("{name}: a receipt has no lab ({kind} at {ts})"),
+                format!("docs/harness/ledger/{name}"),
+                "identity comes from `--lab` or $UOR_LAB; pass one when recording".into(),
+            ));
+        }
+    }
+    out
+}
+
 /// Every `multilab` rule ported in this unit.
 pub fn all(paths: &StatePaths, now: i64) -> Vec<Finding> {
     let mut out = presence_fresh(paths, now);
     out.extend(claims_one_owner(paths));
     out.extend(claim_stale(paths, now));
     out.extend(claim_not_merged(paths));
+    out.extend(no_shared_ledger(paths));
+    out.extend(ledger_lab_recorded(paths));
     out
 }
 
@@ -682,6 +800,93 @@ mod tests {
         );
         assert!(f[0].message.contains("already/in-main"), "{}", f[0].message);
         assert!(f[0].fix.contains("team release"), "{}", f[0].fix);
+    }
+
+    /// A leftover unsharded ledger is the file two labs both append to - **the conflict sharding
+    /// removed, still writable.**
+    #[test]
+    fn an_unsharded_ledger_is_reported_and_a_shard_is_not() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let root = dir.path();
+        let l = root.join("docs/harness/ledger");
+        std::fs::create_dir_all(&l).expect("mkdir");
+        std::fs::write(l.join("2026-10.jsonl"), "{}\n").expect("write");
+        std::fs::write(l.join("deepseek-2026-10.jsonl"), "{}\n").expect("write");
+        let f = no_shared_ledger(&paths_of(root));
+        assert_eq!(f.len(), 1, "{f:?}");
+        assert!(f[0].message.contains("2026-10.jsonl"), "{}", f[0].message);
+        // The shard must NOT be named: a lab-prefixed file is the correct shape.
+        assert!(
+            !f[0].message.contains("deepseek-2026-10"),
+            "{}",
+            f[0].message
+        );
+    }
+
+    /// The date pattern is exact, so a lab whose name happens to be digits is not mistaken for a
+    /// legacy ledger.
+    #[test]
+    fn only_the_exact_year_month_shape_counts_as_legacy() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let root = dir.path();
+        let l = root.join("docs/harness/ledger");
+        std::fs::create_dir_all(&l).expect("mkdir");
+        for name in [
+            "2026-10.jsonl",
+            "2026-1.jsonl",
+            "20261-10.jsonl",
+            "2026-10.json",
+            "kimi-2026-10.jsonl",
+        ] {
+            std::fs::write(l.join(name), "{}\n").expect("write");
+        }
+        let legacy: Vec<String> = legacy_ledgers(&paths_of(root))
+            .iter()
+            .filter_map(|p| p.file_name().map(|n| n.to_string_lossy().to_string()))
+            .collect();
+        assert_eq!(
+            legacy,
+            vec!["2026-10.jsonl".to_string()],
+            "only one matches the pattern"
+        );
+    }
+
+    /// **An unattributed receipt looks like evidence while proving nothing about who did the work.**
+    #[test]
+    fn a_receipt_with_no_lab_is_reported_with_its_kind_and_time() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let root = dir.path();
+        let l = root.join("docs/harness/ledger");
+        std::fs::create_dir_all(&l).expect("mkdir");
+        std::fs::write(
+            l.join("kimi-2026-10.jsonl"),
+            "{\"kind\":\"skill\",\"ts\":\"2026-10-13T12:00:00Z\"}\n\
+             {\"kind\":\"heartbeat\",\"lab\":\"kimi\",\"ts\":\"2026-10-13T12:01:00Z\"}\n",
+        )
+        .expect("write");
+        let f = ledger_lab_recorded(&paths_of(root));
+        assert_eq!(f.len(), 1, "only the unattributed line: {f:?}");
+        assert!(f[0].message.contains("skill"), "{}", f[0].message);
+        assert!(
+            f[0].message.contains("2026-10-13T12:00:00Z"),
+            "{}",
+            f[0].message
+        );
+    }
+
+    /// A blank line and an unparseable line are not unattributed receipts.
+    #[test]
+    fn blank_and_unparseable_lines_are_not_reported() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let root = dir.path();
+        let l = root.join("docs/harness/ledger");
+        std::fs::create_dir_all(&l).expect("mkdir");
+        std::fs::write(
+            l.join("kimi-2026-10.jsonl"),
+            "\n{\"kind\":\"skill\",\"lab\":\"kimi\"}\nnot json\n",
+        )
+        .expect("write");
+        assert!(ledger_lab_recorded(&paths_of(root)).is_empty());
     }
 
     /// The real repo runs through the rules without panicking on real data.
