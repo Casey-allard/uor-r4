@@ -427,6 +427,15 @@ def cmd_git(args: argparse.Namespace, paths: HarnessPaths, reg: Registry) -> int
         return G.status(args, paths)
     if args.action == "clean-merged":
         return G.cmd_clean_merged(args, paths)
+    if args.action == "switch":
+        result = G.checkout_preserving_claims(paths, args.target, create=getattr(args, "create", False))
+        if getattr(args, "json", False):
+            print(json.dumps(result, indent=2))
+        elif result["switched"]:
+            print(f"on {result['target']}: {result['note']}")
+        else:
+            print(f"could not switch to {result['target']}: {result.get('error', '')}")
+        return 0 if result["switched"] else 1
     if args.action == "delete-merged":
         result = G.delete_merged_branch(paths, args.branch, apply=getattr(args, "apply", False))
         if getattr(args, "json", False):
@@ -677,6 +686,13 @@ def build_parser() -> argparse.ArgumentParser:
     s.set_defaults(fn=cmd_git)
     s = sub2.add_parser("clean-merged", help="remove local branches already merged into origin/main")
     s.add_argument("--apply", action="store_true", help="actually delete (default: report)")
+    s.set_defaults(fn=cmd_git)
+    s = sub2.add_parser(
+        "switch",
+        help="check out a branch without losing an uncommitted claim",
+    )
+    s.add_argument("target")
+    s.add_argument("--create", action="store_true", help="create the branch")
     s.set_defaults(fn=cmd_git)
     s = sub2.add_parser(
         "delete-merged",

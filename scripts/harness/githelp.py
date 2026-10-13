@@ -770,3 +770,59 @@ def remote_branches_without_pr(paths, limit: int = 20) -> list[dict]:
         if len(out) >= limit:
             break
     return out
+
+def checkout_preserving_claims(paths: HarnessPaths, target: str, create: bool = False) -> dict:
+    """Switch branches without losing an uncommitted claim.
+
+    `docs/harness/claims.json` is TRACKED, because a claim has to reach the other labs, and it is
+    APPENDED to by every `team claim` and `team release`. So the ordinary sequence — claim a branch,
+    then check something out — fails with:
+
+        error: Your local changes to the following files would be overwritten by checkout:
+            docs/harness/claims.json
+
+    That happened three times in one session, and each time the workaround was to copy the file
+    aside by hand. It is worth a command because **the wrong workaround is the easy one**:
+    `git checkout -f` or `git checkout -- docs/harness/claims.json` discards the claim, and a claim
+    nobody has committed is still a lab saying "I am working here". Silently dropping it is exactly
+    the collision this plane exists to prevent.
+
+    So: read the modified claims, check out, write them back. The claim survives on the new branch,
+    still uncommitted, exactly as the caller left it.
+    """
+    import subprocess
+
+    import multilab
+
+    # `claims_file` lives in multilab, which resolves it to the MAIN checkout so a claim made from a
+    # linked worktree still lands in the shared store.
+    claims = multilab.claims_file(paths)
+    preserved: str | None = None
+    if claims.is_file():
+        rc, dirty = _git_raw(["git", "-C", str(paths.repo), "status", "--porcelain", "--", str(claims)])
+        if rc == 0 and dirty.strip():
+            preserved = claims.read_text(encoding="utf-8")
+
+    args = ["git", "-C", str(paths.repo), "checkout"]
+    if create:
+        args += ["-b", target]
+    else:
+        args.append(target)
+    rc, out = _git_raw(args)
+    if rc != 0:
+        return {"target": target, "switched": False, "claims_preserved": False, "error": out.strip()}
+
+    restored = False
+    if preserved is not None:
+        claims.write_text(preserved, encoding="utf-8")
+        restored = True
+    return {
+        "target": target,
+        "switched": True,
+        "claims_preserved": restored,
+        "note": (
+            "an uncommitted claim was carried across the checkout"
+            if restored
+            else "no uncommitted claim to carry"
+        ),
+    }

@@ -954,5 +954,53 @@ class TestGuardedBranchDelete(unittest.TestCase):
                 self.assertNotIn("merged as", r["reason"], f"{branch}: reason claims a merge")
 
 
+class TestClaimsPreservingCheckout(unittest.TestCase):
+    """`git switch` must not discard an uncommitted claim.
+
+    `docs/harness/claims.json` is tracked (so a claim reaches the other labs) and appended to by
+    every claim/release, so the ordinary "claim, then check something out" sequence fails with
+    "local changes would be overwritten". The easy workaround - `git checkout -f` - discards the
+    claim, and an uncommitted claim is still a lab saying "I am working here".
+    """
+
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory(prefix="harness-switch-test-")
+        self.addCleanup(self._tmp.cleanup)
+        self.repo = Path(self._tmp.name)
+        (self.repo / "docs" / "harness").mkdir(parents=True, exist_ok=True)
+        subprocess.run(["git", "init", "-q"], cwd=self.repo, check=False)
+        subprocess.run(["git", "config", "user.email", "t@t"], cwd=self.repo, check=False)
+        subprocess.run(["git", "config", "user.name", "t"], cwd=self.repo, check=False)
+        (self.repo / "README").write_text("x", encoding="utf-8")
+        self.paths = HarnessPaths.discover(repo=self.repo, state=self.repo / ".harness")
+        subprocess.run(["git", "add", "-A"], cwd=self.repo, check=False)
+        subprocess.run(["git", "commit", "-qm", "init"], cwd=self.repo, check=False)
+        self.claims = self.repo / "docs" / "harness" / "claims.json"
+        self.claims.write_text('{"a/b": {"branch": "a/b", "lab": "kimi"}}', encoding="utf-8")
+        subprocess.run(["git", "add", "-A"], cwd=self.repo, check=False)
+        subprocess.run(["git", "commit", "-qm", "claims"], cwd=self.repo, check=False)
+        subprocess.run(["git", "branch", "other"], cwd=self.repo, check=False)
+
+    def test_an_uncommitted_claim_survives_a_checkout(self) -> None:
+        """The property the command exists for."""
+        self.claims.write_text('{"a/b": {"branch": "a/b", "lab": "kimi"}, "mine/x": {"branch": "mine/x", "lab": "deepseek"}}', encoding="utf-8")
+        r = githelp.checkout_preserving_claims(self.paths, "other")
+        self.assertTrue(r["switched"], r)
+        self.assertTrue(r["claims_preserved"], r)
+        self.assertIn("mine/x", self.claims.read_text(encoding="utf-8"), "the uncommitted claim must survive")
+
+    def test_a_clean_tree_is_not_disturbed(self) -> None:
+        r = githelp.checkout_preserving_claims(self.paths, "other")
+        self.assertTrue(r["switched"], r)
+        self.assertFalse(r["claims_preserved"], "nothing was uncommitted, so nothing needed carrying")
+        self.assertIn("a/b", self.claims.read_text(encoding="utf-8"))
+
+    def test_a_failed_checkout_reports_it(self) -> None:
+        """A switch that did not happen must say so rather than reporting success."""
+        r = githelp.checkout_preserving_claims(self.paths, "no-such-branch")
+        self.assertFalse(r["switched"], r)
+        self.assertIn("error", r)
+
+
 if __name__ == "__main__":  # pragma: no cover
     unittest.main()
