@@ -1,47 +1,59 @@
-//! Is this binary the current one?
+//! Is this checkout behind, and when was this binary built?
 //!
-//! **A stale `uor-harness` cost a lab real time on 13 October.** Claude's machine ran an old build and
-//! it failed with `unknown option --line` — an error describing the SYMPTOM (a flag newer source
-//! accepts) and pointing nowhere near the CAUSE (the binary predates the flag). Nothing in the harness
-//! knew which commit it had been built from, so nothing could say "you are behind".
+//! **Two designs were tried and both were wrong; the failures are recorded because the second looked
+//! correct until it was measured.**
 //!
-//! [`stale`] answers that, and `onboard` and `heartbeat` report it. The check is deliberately
-//! **advisory**: a lab with no network, or working on an unmerged branch ahead of `origin/main`, must
-//! not be blocked or nagged wrongly. It speaks only when it can prove the binary is behind.
+//! The first baked the build commit into the binary via `build.rs` and compared it against
+//! `origin/main`. `rerun-if-changed=../../.git/HEAD` was supposed to keep it fresh — but `.git/HEAD`
+//! holds `ref: refs/heads/main`, a ref *name*, so **a fast-forward never modifies it**, and in a
+//! linked worktree that path does not exist because the git dir is elsewhere.
+//!
+//! The second declared `rerun-if-changed=build.rs`. Cargo compiles a build script and **caches its
+//! output**, re-running it only when a declared input changes — and nothing declared had. Same
+//! staleness, one indirection deeper. Both designs were measured against a real repository with two
+//! commits on `main`; the reported commit followed neither.
+//!
+//! So the commit is read **at runtime, from the repository being inspected**. That is the only form
+//! that cannot go stale, because there is nothing cached to go stale.
+//!
+//! # The consequence, stated because it is a real loss
+//!
+//! This reports whether **the checkout** is behind `origin/main`, not whether **the binary** predates
+//! the checkout. A binary built from an older commit, sitting in a newer checkout, is no longer
+//! detected — which was the original case that motivated the warning. What remains detectable is the
+//! common one: a lab that has not pulled or rebuilt, whose binary then rejects a flag the docs
+//! describe.
 
 use std::path::Path;
 use std::process::Command;
 
-/// The commit this binary was built from, or empty when it was built outside a git checkout.
-pub const BUILD_COMMIT: &str = env!("UOR_BUILD_COMMIT");
-
-/// Whether the working tree had uncommitted changes at build time.
-pub const BUILD_DIRTY: bool = matches!(env!("UOR_BUILD_DIRTY").as_bytes(), b"1");
-
-/// When the binary was built, UTC.
+/// When this binary was built, UTC. **The one baked fact, and it cannot go stale**, because the
+/// binary does not change after it is written.
 pub const BUILT_AT: &str = env!("UOR_BUILD_AT");
 
-/// A short form of [`BUILD_COMMIT`] for display.
-pub fn short_commit() -> &'static str {
-    if BUILD_COMMIT.is_empty() {
+/// A short sha, for display.
+pub fn short(sha: &str) -> &str {
+    if sha.is_empty() {
         "unknown"
     } else {
-        &BUILD_COMMIT[..BUILD_COMMIT.len().min(9)]
+        &sha[..sha.len().min(9)]
     }
 }
 
 /// What the staleness check concluded.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Staleness {
-    /// The binary is at, or ahead of, `origin/main`.
+    /// The checkout is at, or ahead of, `origin/main`.
     Current { commit: String },
-    /// The binary is behind `origin/main`, which is the case worth reporting.
+    /// The checkout is behind, which is the case worth reporting.
     Behind {
         built: String,
         main: String,
         behind: usize,
     },
-    /// Cannot tell: no git, no `origin/main`, or a binary with no recorded commit. **Not a warning.**
+    /// Cannot tell: no git, no `origin/main`, or a detached state not in main. **Not a warning** — a
+    /// shallow clone and an unmerged branch are both normal, and warning on them would train labs to
+    /// ignore the warning that matters.
     Unknown { why: String },
 }
 
@@ -54,32 +66,26 @@ impl Staleness {
     /// One line for a human, or `None` when there is nothing worth saying.
     pub fn line(&self) -> Option<String> {
         match self {
-            Staleness::Behind {
-                built,
-                main,
-                behind,
-            } => Some(format!(
-                "this uor-harness was built from {built}, which is {behind} commit(s) behind \
-                 origin/main ({main}) - rebuild it: \
-                 CARGO_TARGET_DIR=local/harness-target cargo build -p uor-r4-harness \
-                 (a stale binary reports `unknown option <flag>` for flags newer source accepts)"
+            Staleness::Behind { built, main, behind } => Some(format!(
+                "this checkout is {behind} commit(s) behind origin/main (HEAD {built}, main {main}) - \
+                 if your uor-harness rejects a flag the docs describe, rebuild it: \
+                 CARGO_TARGET_DIR=local/harness-target cargo build -p uor-r4-harness"
             )),
             _ => None,
         }
     }
 }
 
-/// Compare the build commit against `origin/main`.
-///
-/// Says [`Staleness::Unknown`] rather than guessing: a missing `origin/main`, a shallow clone or a
-/// binary built from a tarball are all normal, and warning on them would train labs to ignore the
-/// warning that matters.
+/// Compare the checkout's HEAD against `origin/main`.
 pub fn stale(repo: &Path) -> Staleness {
-    if BUILD_COMMIT.is_empty() {
-        return Staleness::Unknown {
-            why: "the binary records no build commit".into(),
-        };
-    }
+    let head = match git(repo, &["rev-parse", "HEAD"]) {
+        Some(h) => h,
+        None => {
+            return Staleness::Unknown {
+                why: "no git HEAD here".into(),
+            }
+        }
+    };
     let main = match git(repo, &["rev-parse", "origin/main"]) {
         Some(s) => s,
         None => {
@@ -88,39 +94,35 @@ pub fn stale(repo: &Path) -> Staleness {
             }
         }
     };
-    if main == BUILD_COMMIT {
+    if main == head {
         return Staleness::Current {
-            commit: short_commit().to_string(),
+            commit: short(&head).to_string(),
         };
     }
-    // A binary built from a commit that is NOT an ancestor of origin/main is on an unmerged branch or
-    // a detached state - ahead, not behind. That is normal during development and not a warning.
-    if git(
-        repo,
-        &["merge-base", "--is-ancestor", BUILD_COMMIT, "origin/main"],
-    )
-    .is_none()
-    {
+    // A checkout that is not an ancestor of origin/main is ahead, or on a branch. Normal during
+    // development, and not a warning.
+    if git(repo, &["merge-base", "--is-ancestor", &head, "origin/main"]).is_none() {
         return Staleness::Unknown {
-            why: format!("the build commit {} is not in origin/main", short_commit()),
+            why: format!("HEAD {} is not in origin/main", short(&head)),
         };
     }
     // Counted, so the report can say how far behind rather than only that it is.
     let behind = git(
         repo,
-        &[
-            "rev-list",
-            "--count",
-            &format!("{BUILD_COMMIT}..origin/main"),
-        ],
+        &["rev-list", "--count", &format!("{head}..origin/main")],
     )
     .and_then(|s| s.parse::<usize>().ok())
     .unwrap_or(0);
     Staleness::Behind {
-        built: short_commit().to_string(),
-        main: main[..main.len().min(9)].to_string(),
+        built: short(&head).to_string(),
+        main: short(&main).to_string(),
         behind,
     }
+}
+
+/// The checkout's HEAD, for display. Empty when git cannot answer.
+pub fn head(repo: &Path) -> String {
+    git(repo, &["rev-parse", "HEAD"]).unwrap_or_default()
 }
 
 /// Run a git command, returning trimmed stdout when it succeeds.
@@ -140,23 +142,21 @@ fn git(repo: &Path, args: &[&str]) -> Option<String> {
 mod tests {
     use super::*;
 
-    /// The constants are baked, so this asserts the wiring works rather than any particular commit.
+    /// The build time is the one baked fact, and it cannot go stale because the binary does not
+    /// change after it is written.
     #[test]
-    fn the_build_commit_is_recorded_or_honestly_absent() {
-        // Either a real commit or the empty string; never a placeholder like "unknown", which would
-        // make `stale` compare a fake value against origin/main and report nonsense.
-        assert!(
-            BUILD_COMMIT.is_empty() || BUILD_COMMIT.len() == 40,
-            "BUILD_COMMIT should be a full sha or empty, got {BUILD_COMMIT:?}"
-        );
+    fn the_build_time_is_recorded() {
         assert!(!BUILT_AT.is_empty(), "the build time is always recorded");
     }
 
     #[test]
-    fn short_commit_is_readable_and_safe_when_absent() {
-        let s = short_commit();
-        assert!(s.len() <= 9, "{s}");
-        assert!(BUILD_COMMIT.is_empty() || s.len() == 9, "{s}");
+    fn short_is_readable_and_safe_when_absent() {
+        assert_eq!(short(""), "unknown");
+        assert_eq!(
+            short("0123456789abcdef"),
+            "012345678",
+            "a short sha is nine characters"
+        );
     }
 
     /// Only "behind" is worth a lab's attention. Reporting "unknown" would train labs to ignore the
@@ -191,7 +191,7 @@ mod tests {
             "the fix must be in the message: {line}"
         );
         assert!(
-            line.contains("unknown option"),
+            line.contains("rejects a flag"),
             "it must name the symptom a stale binary produces: {line}"
         );
     }
@@ -202,18 +202,17 @@ mod tests {
         assert!(Staleness::Unknown { why: "x".into() }.line().is_none());
     }
 
-    /// The one case that matters, against a REAL repository rather than a mock.
+    /// Against a REAL repository, because that is where both wrong designs passed.
     ///
-    /// A binary built from a commit that is an ancestor of `origin/main` must report how far behind it
-    /// is. Proven on a detached worktree at an older commit, so the check is exercised against actual
-    /// git behaviour - a shallow clone, a missing `origin/main` and an unmerged branch all take the
-    /// Unknown path, and only this one warns.
+    /// Two commits on `main`, `origin/main` at the second: a checkout at the first is Behind by one,
+    /// at the second is Current, and a branch ahead of main is Unknown rather than Behind. This is
+    /// the assertion the baked-in design never had, and it is the one that would have failed.
     #[test]
-    fn a_build_from_an_older_commit_reports_how_far_behind() {
+    fn a_checkout_is_measured_against_origin_main() {
         let dir = tempfile::tempdir().expect("tempdir");
         let repo = dir.path();
         let run = |args: &[&str]| {
-            std::process::Command::new("git")
+            Command::new("git")
                 .args(args)
                 .current_dir(repo)
                 .output()
@@ -225,27 +224,55 @@ mod tests {
         std::fs::write(repo.join("f"), "1").expect("write");
         run(&["add", "f"]);
         run(&["commit", "-qm", "one"]);
-        let first = git(repo, &["rev-parse", "HEAD"]).expect("first sha");
+        let first = git(repo, &["rev-parse", "HEAD"]).expect("first");
         std::fs::write(repo.join("f"), "2").expect("write");
         run(&["commit", "-qam", "two"]);
-        run(&["update-ref", "refs/remotes/origin/main", "HEAD"]);
+        let second = git(repo, &["rev-parse", "HEAD"]).expect("second");
+        run(&["update-ref", "refs/remotes/origin/main", &second]);
 
-        // A build from `first`, compared against a main that has moved on: BEHIND, counted.
-        let behind = Command::new("git")
-            .args(["merge-base", "--is-ancestor", &first, "origin/main"])
-            .current_dir(repo)
-            .status()
-            .expect("git");
+        run(&["checkout", "-q", &first]);
+        match stale(repo) {
+            Staleness::Behind { behind, .. } => assert_eq!(behind, 1),
+            other => panic!("expected Behind by one, got {other:?}"),
+        }
+        run(&["checkout", "-q", &second]);
         assert!(
-            behind.success(),
-            "the older commit is an ancestor of origin/main"
+            matches!(stale(repo), Staleness::Current { .. }),
+            "at main is current"
         );
-        let n = git(
-            repo,
-            &["rev-list", "--count", &format!("{first}..origin/main")],
-        )
-        .and_then(|s| s.parse::<usize>().ok())
-        .expect("count");
-        assert_eq!(n, 1, "one commit behind");
+
+        // A branch ahead of main is Unknown, not Behind: normal development is not a warning.
+        run(&["checkout", "-qb", "feature"]);
+        std::fs::write(repo.join("f"), "3").expect("write");
+        run(&["commit", "-qam", "three"]);
+        assert!(
+            matches!(stale(repo), Staleness::Unknown { .. }),
+            "ahead is not behind"
+        );
+    }
+
+    /// No `origin/main` at all is Unknown, not a failure: a fresh clone of a fork and a tarball
+    /// checkout are both normal.
+    #[test]
+    fn no_origin_main_is_unknown() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let repo = dir.path();
+        let run = |args: &[&str]| {
+            Command::new("git")
+                .args(args)
+                .current_dir(repo)
+                .output()
+                .expect("git")
+        };
+        run(&["init", "-q", "-b", "main"]);
+        run(&["config", "user.email", "t@t"]);
+        run(&["config", "user.name", "t"]);
+        std::fs::write(repo.join("f"), "1").expect("write");
+        run(&["add", "f"]);
+        run(&["commit", "-qm", "one"]);
+        match stale(repo) {
+            Staleness::Unknown { why } => assert!(why.contains("origin/main"), "{why}"),
+            other => panic!("expected Unknown, got {other:?}"),
+        }
     }
 }

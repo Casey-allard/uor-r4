@@ -577,14 +577,9 @@ fn cmd_team(repo: &Path, args: &[String], json: bool) -> ExitCode {
 fn cmd_version(repo: &Path) -> ExitCode {
     let s = uor_r4_harness::version::stale(repo);
     println!(
-        "uor-harness built from {} at {}{}",
-        uor_r4_harness::version::short_commit(),
+        "uor-harness binary built at {}; this checkout is at {}",
         uor_r4_harness::version::BUILT_AT,
-        if uor_r4_harness::version::BUILD_DIRTY {
-            " (working tree dirty at build)"
-        } else {
-            ""
-        }
+        uor_r4_harness::version::short(&uor_r4_harness::version::head(repo))
     );
     match &s {
         uor_r4_harness::version::Staleness::Behind { behind, main, .. } => {

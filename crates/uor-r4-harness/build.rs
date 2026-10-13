@@ -1,41 +1,31 @@
-//! Record the commit this binary was built from, so a stale build can say so.
+//! Record WHEN this binary was built. Nothing else belongs here.
 //!
-//! **A stale binary cost a lab real time on 13 October.** Claude's machine had an old `uor-harness`
-//! and it failed with `unknown option --line` — an error that describes the SYMPTOM (a flag the newer
-//! source accepts) and points nowhere near the CAUSE (the binary predates the flag). The fix is not a
-//! better error message for that one flag: it is for the binary to know which commit it came from and
-//! to compare that against `origin/main` when asked.
+//! **The commit it was built from was baked in first, and that was the wrong design.** Cargo caches a
+//! build script's output and re-runs it only when a declared input changes, so a fast-forward that
+//! does not touch the source leaves the recorded commit stale. Two fixes were tried and MEASURED
+//! against a real repository, and both failed:
 //!
-//! This runs at build time and only reads git; it never fails the build. A binary built outside a git
-//! checkout gets an empty commit rather than an error, because not knowing is a state the warning
-//! below can report honestly.
+//! 1. `rerun-if-changed=../../.git/HEAD` - `.git/HEAD` holds `ref: refs/heads/main`, a ref NAME, so
+//!    moving the branch never modifies it. And in a linked worktree that path does not exist at all,
+//!    because the git dir is elsewhere.
+//! 2. `rerun-if-changed=build.rs` - cargo compiles the script and caches its OUTPUT; re-running
+//!    happens only when a declared input changes, and nothing declared had. Same staleness, one
+//!    indirection deeper.
+//!
+//! Removing every directive uses cargo's default (re-run when the package changes), which still does
+//! not cover a commit that touches nothing in this crate.
+//!
+//! So the commit is read AT RUNTIME, from the repository being inspected (`crate::version::stale`),
+//! which is the only form that cannot go stale. What is left here is the build time: a fact about
+//! this artefact that cannot change after it is written.
+//!
+//! Consequence, stated because it is a real loss: the check now reports whether **the checkout** is
+//! behind `origin/main`, not whether **the binary** predates the checkout. A binary built from an
+//! older commit by a newer checkout is no longer detected.
 
 use std::process::Command;
 
 fn main() {
-    let commit = Command::new("git")
-        .args(["rev-parse", "HEAD"])
-        .output()
-        .ok()
-        .filter(|o| o.status.success())
-        .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
-        .unwrap_or_default();
-    println!("cargo:rustc-env=UOR_BUILD_COMMIT={commit}");
-
-    // Dirty means the binary does not correspond to any commit, which is worth saying separately:
-    // "built from X" would be a lie about working-tree state.
-    let dirty = Command::new("git")
-        .args(["status", "--porcelain"])
-        .output()
-        .ok()
-        .filter(|o| o.status.success())
-        .map(|o| !o.stdout.is_empty())
-        .unwrap_or(false);
-    println!(
-        "cargo:rustc-env=UOR_BUILD_DIRTY={}",
-        if dirty { "1" } else { "0" }
-    );
-
     let built_at = Command::new("date")
         .args(["-u", "+%Y-%m-%dT%H:%M:%SZ"])
         .output()
@@ -43,7 +33,4 @@ fn main() {
         .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
         .unwrap_or_default();
     println!("cargo:rustc-env=UOR_BUILD_AT={built_at}");
-
-    // Rebuild when HEAD moves, so the recorded commit is never stale relative to the source.
-    println!("cargo:rerun-if-changed=../../.git/HEAD");
 }
