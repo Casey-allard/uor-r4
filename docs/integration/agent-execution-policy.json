@@ -275,13 +275,37 @@
     "adoption": "docs/integration/DECISIONS.md#d19--grounded-conversation-and-durable-memory-first",
     "immediate_dependency": "docs/labs/operator-phase-2026-10-12/README.md",
     "operator_build_order": [
-      "OP2_Hamilton_kernel",
+      "OP2_SpiralCore_BFS_Atomic_Ternary_FBS_projection",
       "OP1_G2_gate",
       "OP3a_product_key_head",
       "compliant_rung0_after_hold_release",
       "OP4_rung0b_rank_read_gradient"
     ],
-    "op3b": "later_research_after_OP3a_not_rung0_prerequisite"
+    "op3b": "later_research_after_OP3a_not_rung0_prerequisite",
+    "projection_kernel_authorization": {
+      "claim": "2029#6136794551",
+      "scope": "current Codex pod development build and finite kernel tests only",
+      "training_hold": "unchanged",
+      "toolkit": "CUDA12.8+ devel Ubuntu24",
+      "mechanisms": [
+        "SpiralCore_BFS",
+        "Atomic_Ternary_FBS_binder_abstraction"
+      ],
+      "record": "docs/labs/spiralcore-fbs-projection-2026-10-12/README.md"
+    },
+    "pod_setup_storage": {
+      "repository": "caseyallard/uor-r4-store",
+      "repository_type": "private_dataset",
+      "authorized": [
+        "bootstrap_fixes",
+        "verified_toolchain_and_binary_caches",
+        "training_models",
+        "required_setup_artifacts"
+      ],
+      "identity": "source_image_compiler_architecture_checksums_and_verified_roundtrip",
+      "training_hold": "unchanged",
+      "source_authority": "origin/main"
+    }
   },
   "research": {
     "broad_mapping_default": "reuse_existing_history_and_source_audits_expand_only_for_a_decision_relevant_unknown",

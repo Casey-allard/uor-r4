@@ -32,7 +32,8 @@
       "mechanisms": [
         "exact-addressed-memory",
         "pointer-identity-key",
-        "read-binding"
+        "read-binding",
+        "spiralcore-fbs-projection"
       ],
       "lines": [
         {
@@ -48,7 +49,7 @@
           "note": "Recorded operator card6134571032; no reset by instruction repair."
         }
       ],
-      "next": "OP2 Hamilton kernel source first, then OP1 G2-only gate and OP3a geometric head; full-path qualification and amended FIT. Training held; G1 withdrawn, OP3b later research. No old campaign restart.",
+      "next": "OP2 SpiralCore BFS plus retained Atomic Ternary FBS projection qualified at finite-kernel scope; local G2 retained. OP3a geometric head and complete lawful GPU path/shared writer remain dependencies. Training held; no old campaign restart.",
       "project_manager": "kimi",
       "training_hold": true
     },
@@ -79,19 +80,21 @@
       "base_artifact": "saved437 parent; linked unified-bound-content-437 NOT_RUN",
       "mechanisms": [
         "protected-legal-construction",
-        "unified-geometric-carrier-credit"
+        "unified-geometric-carrier-credit",
+        "spiralcore-fbs-projection"
       ],
       "lines": [
         {
           "name": "unified geometric route/action/learning integration",
-          "count": 7,
+          "count": 8,
           "of": 3,
-          "note": "Carried #2246 source count6/3 to7/3 for owner-directed static signed-axis source removal; no headline reset, model run or hold release. Earlier constructor remains inactive/unfinished."
+          "note": "Owner-requested dense quaternion replacement with actual SpiralCore BFS plus retained FBS; count7/3 to8/3, finite CUDA qualification only, no headline reset or training hold release. Previous source/results preserved."
         }
       ],
-      "next": "Preserve source and training/rental hold. Sampled law blocked; CUDA/device/optimizer/data/FIT unqualified. No automatic constructor/fit/fresh draw/third prep loop.",
+      "next": "Preserve source and training/rental holds. Named owner-authorized projection pod build/tests complete; finite operator qualified. OP3a/full-path GPU compliance, common vector writer, model/data/FIT and applicable hold release remain dependencies; no automatic fit/fresh-draw campaign.",
       "training_hold": true,
-      "rental_hold": true
+      "rental_hold": true,
+      "projection_kernel_authorization": "Current Codex claim2029#6136794551 only; build and finite GPU tests authorized, completed, own pod deleted. Training remains held."
     },
     "m3": {
       "issue": 2031,

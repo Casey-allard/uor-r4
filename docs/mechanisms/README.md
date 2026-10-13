@@ -20,6 +20,7 @@ The labs work from these, not only from milestone headline numbers. Every pre-re
 | Live factual/local H4 and Generate prototype learning credit | M2 #2030 | [unified-geometric-carrier-credit.md](unified-geometric-carrier-credit.md) |
 | Starling read: ~7 topological neighbours on the 600-cell, no softmax | M4 #2032 | [starling-read.md](starling-read.md) |
 | E8 orbit memory: an exact-E8-addressed memory in place of the MLP, no softmax | M4 #2032 | [e8-orbit-memory.md](e8-orbit-memory.md) |
+| SpiralCore BFS plus retained ternary FBS projection | M1 #2029 / M2 #2030 | [spiralcore-fbs-projection.md](spiralcore-fbs-projection.md) |
 | Spin-native weights: quaternion and icosian maps (Cayley-table products) | M4 #2032 | [spin-native-weights.md](spin-native-weights.md) |
 | Ternary / XOR arithmetic: a multiplier-free weight alphabet (owner-suggested, not adopted) | M4 #2032, M5 #2033 | [ternary-xor-arithmetic.md](ternary-xor-arithmetic.md) |
 | Invariant-addressed read: route a query to an address instead of scoring every earlier position | M1 #2029 | [invariant-addressed-read.md](invariant-addressed-read.md) |

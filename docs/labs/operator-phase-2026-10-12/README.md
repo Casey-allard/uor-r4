@@ -15,7 +15,9 @@ CPU/cuBLAS comparator permissions and mixed-unit quality bars; it is **not FIT c
 
 ## Current decision and holds
 
-**Training remains held.** M2's separate training/rental hold also remains.
+**Training remains held.** M2's separate training/rental hold remains; the owner
+authorized bounded pod development/build/finite kernel tests for the named
+Codex projection claim, without releasing either training hold.
 OP1–OP3 are source/kernel implementation dependencies, not separate training
 campaigns on an otherwise prohibited trunk. No full-model training, evaluation,
 benchmark or generation runs until the entire executed path complies, its source
@@ -25,7 +27,7 @@ An isolated lawful GPU kernel qualification requires a separate named decision,
 prospective FIT and resource admission; it cannot contain banned operations,
 execute a CPU model reference or become an implicit training run.
 
-Current source still contains unconditional SwiGLU, dense projections and a dense
+Retained/default source still contains prohibited squashes, dense projections and a dense
 vocabulary head. The margin objective's delivery does not make those paths lawful.
 Every executed forward/backward/objective/output/auxiliary path must exclude
 softmax, softplus, sigmoid, tanh, their equivalents and dense matrix contractions;
@@ -53,26 +55,38 @@ analytically specified expected values; no CPU reference forward or fresh banned
 SwiGLU comparator. **No OP1 language fit on a partial trunk. OP2 is implemented first; OP3a
 and the rest of the lawful path must exist before integrated training.**
 
-## OP2 — native Hamilton projection source
+## OP2 — SpiralCore BFS plus retained Atomic Ternary FBS projection
 
-`quaternion_weights=all` currently expresses Hamilton blocks through dense GEMM.
-Implement native structured Hamilton forward and gradient kernels instead, covering
-all embedding/trunk/gate/head-facing projections reached by the chosen path.
-Name each remaining dense or fallback site; one fast forward kernel is incomplete
-if the optimizer's graph calls a banned backward contraction.
+The owner explicitly required both supplied mechanisms together, replacing the
+handwritten dense quaternion contraction too. The former `quaternion_weights=all`
+implementation in #2262 was an all-input learned contraction even after GEMM
+was removed. Its CPU/CUDA forward/adjoints, dense expansion and old comparator
+source are [preserved inactive](../../history/branch-archive/INDEX.md).
 
-Scalar floating-point geometric products in GPU learning are allowed. D11
-serving still requires exact snapped/table/additive geometric execution with no
-float or multiplier instruction. The existing quaternion export refusal is an
-unfinished dependency, not evidence of served compliance.
+[The replacement](../spiralcore-fbs-projection-2026-10-12/README.md) uses
+`projection=spiralcore_fbs`: retained ordered ternary children and forest frontier
+admit an exact 8D carrier; actual BFS edges on the SpiralCore signed-action graph
+compose its transport. F32 query points select geometric roots; carrier storage
+is F32/BF16. One carrier is transported per output block, with no learned
+input/output coefficient grid or all-input sum. The input adjoint is exact;
+the query pullback is an explicitly declared root-edge secant surrogate, not
+the exact derivative of discontinuous selection. The FBS binder abstraction is
+coupled to this graph by the new design; it is not the full marked FBS object
+or a theorem providing semantic distance.
 
-Qualification compares lawful GPU kernels against analytically specified values
-or already retained, identity-bound pre-ban outputs. Do not run cuBLAS, a
-handwritten dense comparator or a CPU model reference. If stored values do not
-exist at the matched shape/dtype, parity is **UNAVAILABLE**, not PASS. Report max
-absolute/relative error and exact shape/dtype/source; numeric tolerances and speed
-bars are fixed in the amended prospective kernel card before execution. A kernel
-wiring/numerical failure is a blocker to repair, not a mechanism negative.
+The owner authorized development/build/finite kernel tests for this claim on a
+CUDA 12.8+ devel Ubuntu24 pod. The [prospective kernel FIT](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6137419532)
+uses fixed GPU gather/sign and secant controls, complete child traversal,
+F32/BF16 and loud CPU/numerical refusals. It does not permit a CPU model
+reference, dense comparator, optimizer update, corpus campaign or training.
+Numerical/tooling failures are blockers to repair, not mechanism negatives.
+
+Native artifacts bind source, retained children, graph tables, BFS histories,
+compiler/kernel hashes and query shapes. Old dense artifacts cannot silently
+convert or execute. Native vocabulary/NoRead 2D fallthrough refuses execution;
+OP3a and other prohibited full-path sites remain dependencies. Local G2
+Hamilton rotation is retained. D11 integer/table serving remains unqualified.
+No whole-model compliance, shared-writer integration or language result follows.
 
 ## OP3 — geometric head source (OP3a first; OP3b later research)
 
@@ -135,7 +149,7 @@ reviewed admission bars.
 
 ## Sequence, owners and resources
 
-1. **Preparation:** Kimi implements OP2 → OP1 G2 → OP3a; OP3b stays later research; Codex maintains enforcement
+1. **Preparation:** Kimi coordinates OP2 → OP1 G2 → OP3a; Codex delivers the owner-requested SpiralCore/FBS OP2 replacement on its exclusive claim; OP3b stays later research; Codex maintains enforcement
    and M2 source dependencies; Claude retains starling/murmuration source and
    DeepSeek retains invariant-addressed router/memory source. Claims identify
    exclusive paths; no takeover, duplicate campaign or peer cleanup.
@@ -152,7 +166,8 @@ planning context, not admission or a new spend authorization. Changing projectio
 and head may change parameter count. Each amended card projects source/build,
 qualification/fit/controls/evaluation/retries/storage cost on the actual design.
 Pods use uor-pod, one job/GPU, existing ≤4 pods and ≤$8/h caps, no new spending
-class; existing holds win. This repair spends **$0 on GPU and runs no model**.
+class; existing holds win. The original plan repair spent **$0 on GPU and ran no model**. The separately
+authorized projection qualification carries its actual pod costs in its record.
 
 Dtype intent: f32 masters/optimizer moments, bf16 activation storage with declared
 CUDA accumulation, u16 disk tokens/u32 index tensor, TF32 off. Any precision arm

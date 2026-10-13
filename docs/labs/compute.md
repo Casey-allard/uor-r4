@@ -205,6 +205,15 @@ Owner-approved 7 October 2026 (#1750).
   datacenters (`EXTRA_VOLUME_DCS`) follow, ordered by stock. Every pod outside
   EUR-NO-1 is non-canonical: it starts with an empty `/workspace`, and its
   results must be archived before `down` (see Placement above).
+- **Owner clarification, October12 (Codex chat):** the private HF store may also
+  preserve bootstrap fixes, verified toolchain/binary caches, training models
+  and other required pod setup material. Bind source/image/compiler/architecture
+  and checksum manifests; verify download round-trips. This is storage permission,
+  not a training-hold release or permission for compute outside `uor-pod`.
+  [Qualified SpiralCore/FBS setup](spiralcore-fbs-projection-2026-10-12/README.md)
+  is stored under `pod-setup/spiralcore-fbs/20261012-0a889bb19`; CUDA comes from
+  the verified12.8 devel Ubuntu24 image. Its bootstrap recipe is build-only,
+  and the broad historical CPU-reference parity suite is excluded.
 - **HF store.** A private Hugging Face dataset, `caseyallard/uor-r4-store`,
   holds `data/*` and the base `bases/geo-214m-e448de86/{model/,report.json}`.
   On a non-canonical pod the bootstrap (`--non-canonical`) downloads the

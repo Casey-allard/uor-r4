@@ -311,126 +311,253 @@ pub(super) fn hamilton_gate_bwd(
     ))
 }
 
-/// Threads of one warp: the Hamilton projection's kernels reduce four
-/// accumulators across a warp, so every launch is a whole number of warps.
-const WARP: usize = 32;
+// ---------------------------------------------------------------------------
+// Exact selected SpiralCore/FBS transport. Static compiled metadata is cached per
+// CUDA context/plan, never rebuilt from model activations or copied to the host.
 
-/// The `(out/4, in/4)` block shape of a compact quaternion map.
-fn hamilton_linear_blocks(dims: &[usize]) -> CResult<(usize, usize)> {
-    match dims {
-        [out, input, 4] => Ok((*out, *input)),
-        dims => candle_core::bail!("a compact quaternion map is [out/4, in/4, 4], not {dims:?}"),
-    }
+struct SpiralcoreFbsDevicePlan {
+    nodes: CudaSlice<u32>,
+    frontier: CudaSlice<u32>,
+    axes: CudaSlice<u32>,
+    compose: CudaSlice<u32>,
+    root_of_state: CudaSlice<u32>,
+    bfs_actions: CudaSlice<u32>,
+    branch_targets: CudaSlice<u32>,
+    roots: CudaSlice<f32>,
 }
 
-/// The activation width of a compact quaternion map's input and the rows of a
-/// `[.., in]` activation: `(rows, out/4, in/4)`.
-fn hamilton_linear_rows(
-    weight: &[usize],
-    input: &[usize],
-    elems: usize,
-) -> CResult<(usize, usize, usize)> {
-    let (out_blocks, in_blocks) = hamilton_linear_blocks(weight)?;
-    let in_features = 4 * in_blocks;
-    if out_blocks == 0 || in_blocks == 0 {
-        candle_core::bail!("the Hamilton projection needs whole quaternion blocks");
+fn spiralcore_fbs_device_plan(
+    plan: &crate::spiralcore_fbs::ProjectionPlan,
+    device: &CudaDevice,
+) -> CResult<Arc<SpiralcoreFbsDevicePlan>> {
+    type Cache = std::collections::HashMap<String, Arc<SpiralcoreFbsDevicePlan>>;
+    static CACHE: std::sync::OnceLock<std::sync::Mutex<Cache>> = std::sync::OnceLock::new();
+    let mut cache = CACHE
+        .get_or_init(Default::default)
+        .lock()
+        .map_err(|_| candle_core::Error::Msg("native projection metadata cache poisoned".into()))?;
+    let key = format!("{:?}/{}", device.id(), plan.fingerprint);
+    if let Some(value) = cache.get(&key) {
+        return Ok(Arc::clone(value));
     }
-    if elems % in_features != 0 || input.last() != Some(&in_features) {
+    let g = &plan.geometry;
+    let roots: Vec<f32> = g.roots.iter().flatten().map(|&x| f32::from(x)).collect();
+    let buffers = Arc::new(SpiralcoreFbsDevicePlan {
+        nodes: device.clone_htod(&plan.node_words())?,
+        frontier: device.clone_htod(&plan.frontier)?,
+        axes: device.clone_htod(&g.axes)?,
+        compose: device.clone_htod(&g.compose)?,
+        root_of_state: device.clone_htod(&g.root_of_state)?,
+        bfs_actions: device.clone_htod(&g.bfs_actions)?,
+        branch_targets: device.clone_htod(&g.branch_targets)?,
+        roots: device.clone_htod(&roots)?,
+    });
+    cache.insert(key, Arc::clone(&buffers));
+    Ok(buffers)
+}
+
+fn spiralcore_fbs_rows(
+    plan: &crate::spiralcore_fbs::ProjectionPlan,
+    q: &[usize],
+    x: &[usize],
+    elements: usize,
+) -> CResult<usize> {
+    if q != plan.query_shape() || x.last() != Some(&(plan.input_blocks * 8)) || elements == 0 {
+        candle_core::bail!("native projection buffers disagree with their static plan");
+    }
+    let rows = elements / (plan.input_blocks * 8);
+    let threads = rows
+        .checked_mul(plan.output_blocks)
+        .ok_or_else(|| candle_core::Error::Msg("native projection launch size overflow".into()))?;
+    u32_of(threads, "native projection carriers")?;
+    Ok(rows)
+}
+
+fn spiralcore_fbs_metadata<'a>(
+    plan: &crate::spiralcore_fbs::ProjectionPlan,
+    b: &'a SpiralcoreFbsDevicePlan,
+) -> Vec<Arg<'a>> {
+    let _ = plan;
+    vec![
+        Arg::u(&b.nodes),
+        Arg::u(&b.frontier),
+        Arg::u(&b.axes),
+        Arg::u(&b.compose),
+        Arg::u(&b.root_of_state),
+        Arg::u(&b.bfs_actions),
+        Arg::u(&b.branch_targets),
+        Arg::f(&b.roots),
+    ]
+}
+
+fn spiralcore_fbs_dimensions(
+    plan: &crate::spiralcore_fbs::ProjectionPlan,
+    rows: usize,
+) -> CResult<Vec<Arg<'static>>> {
+    Ok(vec![
+        Arg::U32(u32_of(rows, "rows")?),
+        Arg::U32(u32_of(plan.output_blocks, "outputs")?),
+        Arg::U32(u32_of(plan.input_blocks, "inputs")?),
+        Arg::U32(u32_of(plan.stages, "stages")?),
+        Arg::U32(u32_of(plan.frontier.len(), "frontier")?),
+        Arg::U32(plan.geometry.identity),
+    ])
+}
+
+fn spiralcore_fbs_device_error(device: &CudaDevice, flag: &CudaSlice<u32>) -> CResult<()> {
+    // One device validation code; no model scoring/normalization on the host.
+    let values = device.clone_dtoh(flag)?;
+    if values.first().copied() != Some(0) {
         candle_core::bail!(
-            "the Hamilton projection reads an activation of width {in_features}, not {input:?}"
+            "native SpiralCore/FBS projection rejected non-finite data or invalid route: {:?}",
+            values
         );
     }
-    Ok((elems / in_features, out_blocks, in_blocks))
+    Ok(())
 }
 
-pub(super) fn hamilton_linear_fwd(
-    s1: &CudaStorage,
-    l1: &Layout,
-    s2: &CudaStorage,
-    l2: &Layout,
-) -> Forward {
-    if s1.dtype() == DType::BF16 {
-        return super::cuda_ops_bf16::hamilton_linear_fwd(s1, l1, s2, l2);
+fn spiralcore_fbs_activation<'a>(s: &'a CudaStorage, l: &Layout) -> CResult<Arg<'a>> {
+    if !l.is_contiguous() {
+        candle_core::bail!("native projection needs contiguous carriers; no host fallback");
     }
-    let (rows, out_blocks, in_blocks) = hamilton_linear_rows(
-        l1.shape().dims(),
-        l2.shape().dims(),
-        l2.shape().elem_count(),
-    )?;
-    let (Some(weight), Some(input)) = (input(s1, l1)?, input(s2, l2)?) else {
-        candle_core::bail!("the Hamilton projection needs contiguous F32 tensors");
-    };
-    let device = &s1.device;
-    let out = uninit::<f32>(device, rows * out_blocks * 4)?;
-    launch(
-        device,
-        "hamilton_linear_fwd",
-        rows * out_blocks * WARP,
-        &[
-            Arg::F(weight),
-            Arg::F(input),
-            Arg::f(&out),
-            Arg::U32(u32_of(rows, "rows")?),
-            Arg::U32(u32_of(out_blocks, "out blocks")?),
-            Arg::U32(u32_of(in_blocks, "in blocks")?),
-        ],
-    )?;
-    let mut dims = l2.shape().dims().to_vec();
-    let last = dims.len() - 1;
-    dims[last] = 4 * out_blocks;
-    Ok((storage(out, device), Shape::from_dims(&dims)))
+    let range = l.start_offset()..l.start_offset() + l.shape().elem_count();
+    match s.dtype() {
+        DType::F32 => Ok(Arg::F(
+            s.as_cuda_slice::<f32>()?.try_slice(range).ok_or_else(|| {
+                candle_core::Error::Msg("carrier range outside CUDA buffer".into())
+            })?,
+        )),
+        DType::BF16 => Ok(Arg::B(
+            s.as_cuda_slice::<half::bf16>()?
+                .try_slice(range)
+                .ok_or_else(|| {
+                    candle_core::Error::Msg("carrier range outside CUDA buffer".into())
+                })?,
+        )),
+        _ => candle_core::bail!("native carriers must be F32 or BF16"),
+    }
 }
 
-pub(super) fn hamilton_linear_bwd(
+pub(crate) fn spiralcore_fbs_fwd(
+    plan: &crate::spiralcore_fbs::ProjectionPlan,
+    q: &CudaStorage,
+    ql: &Layout,
+    x: &CudaStorage,
+    xl: &Layout,
+) -> Forward {
+    if q.device.id() != x.device.id() {
+        candle_core::bail!("native routing points and carriers need the same CUDA context");
+    }
+    let rows = spiralcore_fbs_rows(
+        plan,
+        ql.shape().dims(),
+        xl.shape().dims(),
+        xl.shape().elem_count(),
+    )?;
+    let Some(query) = input(q, ql)? else {
+        candle_core::bail!("native queries need contiguous F32 masters");
+    };
+    let device = &q.device;
+    let metadata = spiralcore_fbs_device_plan(plan, device)?;
+    let error = zeros::<u32>(device, 1)?;
+    let threads = rows * plan.output_blocks;
+    let mut dims = xl.shape().dims().to_vec();
+    let last = dims.len() - 1;
+    dims[last] = 8 * plan.output_blocks;
+    let mut args = vec![Arg::F(query), spiralcore_fbs_activation(x, xl)?];
+    args.extend(spiralcore_fbs_metadata(plan, &metadata));
+    let storage = match x.dtype() {
+        DType::F32 => {
+            let out = uninit::<f32>(device, threads * 8)?;
+            args.push(Arg::f(&out));
+            args.push(Arg::u(&error));
+            args.extend(spiralcore_fbs_dimensions(plan, rows)?);
+            launch(device, "spiralcore_fbs_fwd", threads, &args)?;
+            drop(args);
+            storage(out, device)
+        }
+        DType::BF16 => {
+            let out = uninit::<half::bf16>(device, threads * 8)?;
+            args.push(Arg::b(&out));
+            args.push(Arg::u(&error));
+            args.extend(spiralcore_fbs_dimensions(plan, rows)?);
+            crate::cuda_stack_kernels::cuda::launch_bf16(
+                device,
+                "spiralcore_fbs_fwd",
+                threads,
+                &args,
+            )?;
+            drop(args);
+            CudaStorage::wrap_cuda_slice(out, device.clone())
+        }
+        _ => candle_core::bail!("native carriers must be F32 or BF16"),
+    };
+    spiralcore_fbs_device_error(device, &error)?;
+    Ok((storage, Shape::from_dims(&dims)))
+}
+
+pub(crate) fn spiralcore_fbs_bwd(
+    plan: &crate::spiralcore_fbs::ProjectionPlan,
     device: &CudaDevice,
-    weight: &Tensor,
-    input: &Tensor,
+    q: &Tensor,
+    x: &Tensor,
     grad: &Tensor,
 ) -> CResult<(Tensor, Tensor)> {
-    if weight.dtype() == DType::BF16 {
-        return super::cuda_ops_bf16::hamilton_linear_bwd(device, weight, input, grad);
+    let (q, x, grad) = (q.contiguous()?, x.contiguous()?, grad.contiguous()?);
+    let rows = spiralcore_fbs_rows(plan, q.dims(), x.dims(), x.elem_count())?;
+    let mut output_dims = x.dims().to_vec();
+    let last = output_dims.len() - 1;
+    output_dims[last] = plan.output_blocks * 8;
+    if grad.dims() != output_dims || grad.dtype() != x.dtype() {
+        candle_core::bail!("native projection gradient shape/dtype differs from its output");
     }
-    let (w, x, d) = (ready(weight)?, ready(input)?, ready(grad)?);
-    let (rows, out_blocks, in_blocks) = hamilton_linear_rows(w.dims(), x.dims(), x.elem_count())?;
-    if d.elem_count() != rows * out_blocks * 4 {
-        candle_core::bail!("the Hamilton projection's gradient does not match its output");
-    }
-    let (ws, wl) = w.storage_and_layout();
+    let (qs, ql) = q.storage_and_layout();
     let (xs, xl) = x.storage_and_layout();
-    let (ds, dl) = d.storage_and_layout();
-    let d_weight = uninit::<f32>(device, out_blocks * in_blocks * 4)?;
-    let d_input = uninit::<f32>(device, x.elem_count())?;
-    let args = [
-        Arg::F(view(&xs, xl)?),
-        Arg::F(view(&ds, dl)?),
-        Arg::f(&d_weight),
-        Arg::U32(u32_of(rows, "rows")?),
-        Arg::U32(u32_of(out_blocks, "out blocks")?),
-        Arg::U32(u32_of(in_blocks, "in blocks")?),
+    let (gs, gl) = grad.storage_and_layout();
+    let (Storage::Cuda(qs), Storage::Cuda(xs), Storage::Cuda(gs)) = (&*qs, &*xs, &*gs) else {
+        candle_core::bail!("native adjoint is CUDA-only; no host fallback");
+    };
+    if qs.device.id() != device.id()
+        || xs.device.id() != device.id()
+        || gs.device.id() != device.id()
+    {
+        candle_core::bail!("native adjoint tensors need the same CUDA context");
+    }
+    let Some(query) = input(qs, ql)? else {
+        candle_core::bail!("native query adjoint needs F32 masters");
+    };
+    let metadata = spiralcore_fbs_device_plan(plan, device)?;
+    let dq = zeros::<f32>(device, q.elem_count())?;
+    let dx = zeros::<f32>(device, x.elem_count())?;
+    let error = zeros::<u32>(device, 1)?;
+    let mut args = vec![
+        Arg::F(query),
+        spiralcore_fbs_activation(xs, xl)?,
+        spiralcore_fbs_activation(gs, gl)?,
     ];
-    launch(
-        device,
-        "hamilton_linear_bwd_w",
-        out_blocks * in_blocks * WARP,
-        &args,
-    )?;
-    let args = [
-        Arg::F(view(&ws, wl)?),
-        Arg::F(view(&ds, dl)?),
-        Arg::f(&d_input),
-        Arg::U32(u32_of(rows, "rows")?),
-        Arg::U32(u32_of(out_blocks, "out blocks")?),
-        Arg::U32(u32_of(in_blocks, "in blocks")?),
-    ];
-    launch(
-        device,
-        "hamilton_linear_bwd_x",
-        rows * in_blocks * WARP,
-        &args,
-    )?;
+    args.extend(spiralcore_fbs_metadata(plan, &metadata));
+    args.extend([Arg::f(&dq), Arg::f(&dx), Arg::u(&error)]);
+    args.extend(spiralcore_fbs_dimensions(plan, rows)?);
+    if x.dtype() == DType::BF16 {
+        crate::cuda_stack_kernels::cuda::launch_bf16(
+            device,
+            "spiralcore_fbs_bwd",
+            rows * plan.output_blocks,
+            &args,
+        )?;
+    } else {
+        launch(
+            device,
+            "spiralcore_fbs_bwd",
+            rows * plan.output_blocks,
+            &args,
+        )?;
+    }
+    drop(args);
+    spiralcore_fbs_device_error(device, &error)?;
     Ok((
-        tensor(d_weight, device, weight.shape()),
-        tensor(d_input, device, input.shape()),
+        tensor(dq, device, q.shape()),
+        tensor(dx, device, x.shape()).to_dtype(x.dtype())?,
     ))
 }
 

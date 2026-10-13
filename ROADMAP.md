@@ -16,7 +16,7 @@ tracker [#2028](https://github.com/UOR-Foundation/uor-r4/issues/2028); each mile
 Kimi is project manager; no softmax/softplus/sigmoid/tanh or equivalent squashing,
 no dense matrix multiplication in training/serving, GPU-only model/reference
 compute and no host fallback. **Training and M2 training/rental remain held.**
-[OP2 Hamilton projections → OP1 G2 gate → OP3a geometric head](docs/labs/operator-phase-2026-10-12/README.md)
+[OP2 SpiralCore/FBS projection → OP1 G2 gate → OP3a geometric head](docs/labs/operator-phase-2026-10-12/README.md)
 are source dependencies, followed by complete-path/device qualification, amended
 prospective FIT and explicit release of the applicable owner hold before training.
 No partial-trunk fit or fresh prohibited comparator. Rung0 is suspended; rung0b
@@ -34,8 +34,8 @@ closes only when its acceptance is met on the saved model.
 
 | | Milestone | Status | Goal and acceptance summary | Latest result |
 |---|---|---|---|---|
-| M1 | [Language base](https://github.com/UOR-Foundation/uor-r4/issues/2029) (Kimi, DeepSeek; Claude read source) | in progress; training held | Existing language/chat/memory obligations unchanged; obsolete metric clauses need prospective owner amendment | Historical memory20/40, reply37/232; historical19.9M served0.886838 BPB at512 windows; OP1 Hamilton gate and OP2 fused Hamilton-projection operator merged; operator preparation continues, no new result |
-| M2 | [Grounded reply from exact memory](https://github.com/UOR-Foundation/uor-r4/issues/2030) (Codex) | in progress; training/rental held | Saved≥256/512 AND genuinely fresh≥40%, existing panels/graders unchanged | Saved437/512 + opened0/128 remain panel fitting; fresh NOT_RUN. Whole-path recovery source delivered; sampled law blocked, CUDA execution unqualified, count7/3 with no reset |
+| M1 | [Language base](https://github.com/UOR-Foundation/uor-r4/issues/2029) (Kimi, DeepSeek; Claude read source) | in progress; training held | Existing language/chat/memory obligations unchanged; obsolete metric clauses need prospective owner amendment | Historical memory20/40, reply37/232; historical19.9M served0.886838 BPB at512 windows; OP1 local Hamilton gate retained; OP2 dense quaternion contraction replaced by SpiralCore/FBS geometry; operator preparation continues, no new result |
+| M2 | [Grounded reply from exact memory](https://github.com/UOR-Foundation/uor-r4/issues/2030) (Codex) | in progress; training/rental held | Saved≥256/512 AND genuinely fresh≥40%, existing panels/graders unchanged | Saved437/512 + opened0/128 remain panel fitting; fresh NOT_RUN. Whole-path recovery source delivered; sampled law blocked, CUDA execution unqualified, count8/3 with no reset |
 | M3 | [Durable conversation memory](https://github.com/UOR-Foundation/uor-r4/issues/2031) | in progress | Memory persists across sessions and answers stay grounded | evaluator and session delivered; not qualified |
 | M4 | [One served model, D11 and CLI](https://github.com/UOR-Foundation/uor-r4/issues/2032) (Claude read source) | in progress; compute blocked | One model under D11 and full D23–D25 compliance; old runtime-only/metric clauses require prospective owner amendment | Historical artifacts/components retained; default prohibited paths remain. No old SoftSort/dense-bootstrap/teacher follow-up; compliant trunk/rung0b precede teacher-free starling |
 | M5 | [Laptop cost, D5](https://github.com/UOR-Foundation/uor-r4/issues/2033) | not started | Measured J/token, RSS and tokens/s on the M1 with selected parameter access | none |

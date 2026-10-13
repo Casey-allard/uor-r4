@@ -94,6 +94,7 @@ pub mod reference_campaign;
 pub mod reference_eval;
 pub mod relation_compiler;
 pub mod s8_panel_count;
+pub mod spiralcore_fbs;
 pub mod stack_address;
 pub mod stack_aerm;
 pub mod stack_checkpoint;

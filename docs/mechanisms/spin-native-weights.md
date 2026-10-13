@@ -2,7 +2,13 @@
 
 **Milestone:** M4 #2032 (served cost). **Lab:** claude. **Design:** [spin-native model](https://github.com/UOR-Foundation/uor-r4/issues/2032#issuecomment-6104974064).
 
-## The idea
+**Current direction:** the dense quaternion contraction/expansion is inactive
+under D25, including handwritten CUDA sums. Preserve all results below at their
+original scope; none authorizes another dense comparator or teacher. The owner
+requested [SpiralCore BFS plus retained ternary FBS projection](spiralcore-fbs-projection.md).
+Local Hamilton rotations remain geometric operators; whole-path training is held.
+
+## The historical idea
 
 The model's dense projection matrices are 87.6 % of its per-token arithmetic, while its geometry (the quaternion rotation) is 0.06 %. The bridge has two steps:
 1. **Quaternion weights.** Every 4×4 block of a matrix becomes one quaternion acting by the Hamilton product the recurrence already uses. That gives 4× fewer weights and 4× fewer bytes read per token.

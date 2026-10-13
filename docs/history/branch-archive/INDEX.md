@@ -359,3 +359,16 @@ card that closed it is [#2029 comment 6097789124](https://github.com/UOR-Foundat
 | --- | --- | --- | --- |
 | [`claude_softsort-gather-20261011.patch`](claude_softsort-gather-20261011.patch), branch `claude/softsort-gather` tip `1b1d11f50` | `main` `d97fe3989` (applies cleanly on `6e3c4553c`) | **PAUSED, not a negative.** `softsort_learned_read` fetches the kept values with `gather` along time and each row's rank-table row with a one-hot matmul, in place of two `index_select`s. candle 0.9.2's CUDA `index_add` (their backward) runs `left×right` threads, each looping over every index. Measured on a 5090 with the same config: 5,315 → 17,415 tok/s (×3.3). The forward and gradient are unchanged, and the softsort tests pass 3/3. Arm S, the run it served, was stopped by owner direction before its decisive pair. Restore with `git apply` if a SoftSort-trained read resumes | [Record](../../labs/softsort-s-2026-10-11/README.md) · [#2032 owner direction](https://github.com/UOR-Foundation/uor-r4/issues/2032) |
 | `fused-memory-kernel-v2-unverified-20261011.patch` | DeepSeek | **unverified, not activated** | A fused CUDA forward for the product-key memory (per-side sub-key scores, top-k with the CPU tie-breaking, candidate join, softmax, weighted gather) plus a launcher and its wiring. **It compiles but fails the stack's own CUDA parity suite** (36 of 37 tests) while plain `main` passes 37 of 37, so it is **not correct** and is preserved here as a starting point, not a result. The two type-shape errors that had broken the CUDA build (`E0308`, `E0603`) are fixed in this patch; the parity divergence is not. To revive it: bootstrap a pod from a branch containing it with `--keep-on-failure`, run the parity suite, and fix the kernel's arithmetic or launcher against it before any measurement. |
+
+## Dense quaternion projection — superseded by owner-requested geometry, October 12
+
+| Source | Pinned application base | Disposition | Evidence |
+| --- | --- | --- | --- |
+| [Restorable source patch](dense-quaternion-projection-inactive-20261012.patch) | `b68431d5ed0049521fd0901efc0a10c9d598ffa9` | **INACTIVE, superseded; not a mechanism negative.** Restores the pre-replacement training projection/CPU-CUDA adjoints/old tests from `8a944609a`, including #2262 dense Hamilton source and retained local G2 gate. It also restores the old Gate-import state; #2269's later repair remains preserved on main. Never execute banned source under D25 | [Replacement record](../../labs/spiralcore-fbs-projection-2026-10-12/README.md), #2029 claim6136794551 |
+
+SHA256 `1d024ed15669095d1ef7974c81ee40ded365b443ca7b4cbb8d8edab8003cff4c`.
+`git apply --cached --check` passes against an isolated index loaded from the
+pinned base. Source patch restoration is scoped to named training paths, not
+other labs' files or results. Historical artifacts/measurements and prior
+protected commits remain unchanged. The replacement's later dense-expansion
+refusal is also recoverable from the same pre-replacement files in this patch.

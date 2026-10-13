@@ -26,6 +26,12 @@ The owner-directed mode is `native_geometric_ai`. The
 historical ladders; [current-state.md](current-state.md) owns measured results.
 The [machine policy](agent-execution-policy.json) captures stable invariants.
 
+For the current Codex projection claim, the owner explicitly authorizes pod
+mechanism development, build and finite GPU kernel tests with CUDA 12.8+ on
+Ubuntu24. Use both SpiralCore BFS and the Atomic Ternary FBS binder abstraction.
+This scoped authorization does not release training or another rental campaign.
+[Source, controls and limits](../labs/spiralcore-fbs-projection-2026-10-12/README.md).
+
 ## Shared native vectors and writer — current owner clarification
 
 Both language-stack and compiler/exact-store/emitter paths must directly learn,

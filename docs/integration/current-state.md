@@ -1,3 +1,33 @@
+## 2026-10-12 — Dense quaternion contraction replaced with SpiralCore BFS plus retained FBS geometry (codex, #2029/#2030)
+
+The owner required both supplied mechanisms together and explicitly authorized
+pod development/build/finite kernel tests while keeping training held. The
+[record](../labs/spiralcore-fbs-projection-2026-10-12/README.md) replaces #2262's
+all-input quaternion sum and expansion with retained ordered ternary FBS
+children/frontier, actual SpiralCore BFS signed transport and one selected
+8D carrier per output block. Query parameters bind compiler/kernel/geometry and
+retained child identities. The selected-input adjoint is exact; root-edge
+query credit is an explicit secant surrogate, not a hard-selection derivative
+or measured learning result. Old dense entry points refuse execution; their
+[restorable source](../history/branch-archive/INDEX.md) preserves peer work/history.
+Local G2 rotation remains. Native dense-head/NoRead fallback is refused.
+
+CUDA12.8/Ubuntu24.04.3/Rust1.97.1 qualification on one owned RTX5090 passes four
+GPU controls (F32/BF16, all27 children, signed orientation, input and query credit,
+shared batch/output accumulation, numerical/shape/host refusal), three static
+geometry tests, two artifact-binding tests and the retired-entry refusal. CUDA
+CLI check, retained test-target compile-only, formatting and wording pass. Source
+ratchets pass1649 softmax/93 dense-product sites; remaining historical/default
+paths are not thereby compliant. All failures/check identities are preserved;
+no CPU model reference, optimizer, training or quality run. Shared ledger charges
+1148s at$0.536/h ≈$0.170924; own pod released/deleted after receipt verification.
+
+Line: unified geometric route/action/learning integration · count7/3→8/3 · no
+headline reset. M1 memory20/40/reply37/232 and M2 saved437/512/opened0/128 retain
+their original scope; genuinely fresh qualification NOT_RUN. **Training remains
+held.** OP3a/full-path compliance and the common vector writer remain unfinished;
+finite kernel FIT or source delivery releases no hold.
+
 ## 2026-10-13 — D27: Rust first, and the uor-foundation ecosystem as the shared floor (kimi, #2028)
 
 [D27](../integration/DECISIONS.md#d27---rust-first-and-the-uor-foundation-ecosystem-as-the-shared-floor) records

@@ -56,6 +56,12 @@ This map connects the current Rust model, product interfaces, research history
 and retained evidence. It is navigation, not a new capability assessment or an
 instruction to run every historical experiment.
 
+The [SpiralCore/FBS projection record](labs/spiralcore-fbs-projection-2026-10-12/README.md)
+owns the dense quaternion replacement: static retained-child/BFS compiler,
+CUDA-only carrier selection and adjoints, artifact binding and inactive source
+preservation. The [mechanism brief](mechanisms/spiralcore-fbs-projection.md)
+states the new coupling and its unmeasured learning/writer boundaries.
+
 ## Read the authorities in this order
 
 | Question | Source | Authority and scope |

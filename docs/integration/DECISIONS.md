@@ -1292,6 +1292,18 @@ the preparation/admission boundary. This is agent governance, not a claim that
 existing executables enforce all prohibitions or that a compliant model exists.
 
 
+### Later owner clarification in the Codex session — October 12
+
+Use SpiralCore's actual BFS transport together with the Atomic Ternary FBS
+binder/frontier abstraction; a dense quaternion sum over every input remains
+prohibited. The owner explicitly authorizes developing, building and testing
+this mechanism on a CUDA 12.8+ devel Ubuntu24 pod through `uor-pod`. This named
+build/kernel qualification permission releases no training hold or unrelated
+rental campaign. [The projection record](../labs/spiralcore-fbs-projection-2026-10-12/README.md)
+binds implementation, prospective finite-kernel FIT, preservation and limits.
+The OP2 dependency is native SpiralCore/FBS geometry; local OP1 G2 rotation
+remains, and OP3a/full-path/shared-writer qualification still follows.
+
 ## D26 - Vast.ai is the default provider for new pods
 
 **Authority, October 13:** Casey, in the Claude session: "backend first, setup

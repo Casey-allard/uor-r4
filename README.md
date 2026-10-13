@@ -19,6 +19,11 @@ M1-class laptop. It is built from geometry instead of a transformer's run-time
 machinery, and it is served with no floating point and no multiplier
 instruction (the D11 contract), at lower energy than a comparable model.
 
+The [native SpiralCore/FBS projection](docs/labs/spiralcore-fbs-projection-2026-10-12/README.md)
+replaces the dense quaternion projection with retained ternary carrier selection
+and actual BFS signed transport. It is an operator implementation; shared native
+writer integration, language capability and full-path compliance remain open.
+
 The geometry is R4/S3/H4 quaternion state and transport, prime (UOR)
 addressing, exact `Z[phi]` arithmetic and fixed zeta-zero phases, combined with
 exact addressed memory and learned typed operators. Training is offline Rust,

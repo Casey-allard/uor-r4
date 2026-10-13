@@ -10,7 +10,7 @@
 > remains integer/table based with no floating point or multiplier instruction.
 > Kimi is the current project manager; the owner retains strategic authority.
 > The [operator plan](docs/labs/operator-phase-2026-10-12/README.md) is the one
-> immediate dependency: implement OP2 Hamilton projections → OP1 G2 gate → OP3a
+> immediate dependency: implement OP2 SpiralCore/FBS projection → OP1 G2 gate → OP3a
 > geometric head, then review the complete executed learning/output path before
 > any training. G2 is the only OP1 arm; G1 is withdrawn. Geometric feed-forward
 > blocks are permitted. OP3b is later research, not a rung0 prerequisite. The
@@ -18,6 +18,14 @@
 > are deferred proposal cards except cost/safety. OP1–OP3 preparation is not
 > permission to train a partial trunk.
 > **The global training hold and the separate M2 training/rental hold remain.**
+> For this Codex projection claim, the owner explicitly authorized development,
+> build and finite kernel tests on a CUDA 12.8+ Ubuntu24 pod. This scoped
+> permission uses both SpiralCore BFS and Atomic Ternary FBS; it releases no
+> training hold or unrelated rental campaign. See the [projection record](docs/labs/spiralcore-fbs-projection-2026-10-12/README.md).
+> The owner also authorizes the private HF store for bootstrap fixes, verified
+> binaries/toolchains, training models and other needed pod setup material.
+> Preserve source identities/checksums and verify round-trips; storage permission
+> releases no training hold. See [compute storage](docs/labs/compute.md).
 > A FIT review does not lift an owner hold. Local source/build/document work is
 > allowed; CPU model/reference execution and new prohibited comparators are not.
 > Preserve historical source, measurements, checkpoints and other labs' work.

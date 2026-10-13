@@ -14,7 +14,7 @@
   "crates/uor-r4-training/src/geometric_no_read.rs": 2,
   "crates/uor-r4-training/src/geometric_potential_q4.rs": 1,
   "crates/uor-r4-training/src/geometric_read_feedback.rs": 2,
-  "crates/uor-r4-training/src/geometric_stack.rs": 24,
+  "crates/uor-r4-training/src/geometric_stack.rs": 22,
   "crates/uor-r4-training/src/geometric_value_producer.rs": 1,
   "crates/uor-r4-training/src/joint_model.rs": 12,
   "crates/uor-r4-training/src/kappa_llama.rs": 6,

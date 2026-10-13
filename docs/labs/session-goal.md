@@ -58,7 +58,7 @@ has the surface, [docs/harness/CONTRACT.md](../harness/CONTRACT.md) every rule a
    GPU-only model compute, no host fallback. Scalar float geometric GPU learning
    is distinct from D11 integer/table, multiplier-free serving.
 4. Pick one bounded source dependency in the [operator plan](operator-phase-2026-10-12/README.md).
-   OP2 Hamilton projections → OP1 G2 gate → OP3a geometric head precede integrated
+   OP2 SpiralCore/FBS projection → OP1 G2 gate → OP3a geometric head precede integrated
    training. G1 is withdrawn; geometric feed-forward blocks are permitted. OP3b
    is later research. Constraints are frozen through the first compliant rung0
    result; new concerns are deferred proposal cards except cost/safety.
@@ -118,7 +118,7 @@ no host fallback or CPU learner. Offline scalar float geometric GPU arithmetic
 is allowed; served D11 kernels remain integer/table and multiplier-free.
 
 Claim ONE bounded source dependency with explicit file ownership; coordinate
-collisions with Kimi. OP2 Hamilton-projection source -> OP1 G2 gate source -> OP3a
+collisions with Kimi. OP2 SpiralCore/FBS projection source -> OP1 G2 gate source -> OP3a
 geometric-head source -> full executed-path/device qualification and prospective
 FIT. G2 only; G1 withdrawn. Geometric feed-forward blocks allowed; OP3b later.
 Constraints are frozen until the first compliant rung0 reports; new concerns are
@@ -165,7 +165,7 @@ through source preparation. Latest bindings and artifacts come from current stat
 
 ```text
 Apply the common start prompt and current D25 contract above. You are Kimi PM:
-coordinate exclusive claims and implement OP2 Hamilton CUDA kernel first, OP1 G2
+coordinate exclusive claims and implement OP2 SpiralCore BFS/FBS CUDA projection first, OP1 G2
 only, then OP3a geometric head. G1 withdrawn; geometric feed-forward allowed;
 OP3b later research. Line "evaluation integrity" count 1/3 is carried from the
 operator card, not reset. M1 reply37/232, memory20/40 unchanged. Training and M2

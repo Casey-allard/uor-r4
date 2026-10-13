@@ -300,6 +300,8 @@ pub enum QuaternionWeights {
     None,
     /// Every map of [`QUATERNION_MAPS`] quaternion-valued.
     All,
+    /// Exact 8D SpiralCore BFS transport through retained FBS binders.
+    SpiralcoreFbs,
 }
 
 impl QuaternionWeights {
@@ -307,6 +309,7 @@ impl QuaternionWeights {
         match self {
             Self::None => "none",
             Self::All => "all",
+            Self::SpiralcoreFbs => "spiralcore_fbs",
         }
     }
 
@@ -314,8 +317,9 @@ impl QuaternionWeights {
         match text {
             "none" => Ok(Self::None),
             "all" => Ok(Self::All),
+            "spiralcore_fbs" => Ok(Self::SpiralcoreFbs),
             other => Err(invalid(format!(
-                "invalid quaternion_weights={other} (none or all)"
+                "invalid projection mode={other} (none, all, or spiralcore_fbs)"
             ))),
         }
     }
@@ -719,44 +723,12 @@ fn quaternion_shape(name: &str, shape: &[usize]) -> Result<Vec<usize>> {
     }
 }
 
-/// The signed basis of the Hamilton left-multiplication matrix: row `c` holds
-/// the 4x4 matrix `P_c` (row-major) with `L(q) = sum_c q_c P_c`, where
-/// `L(a, b, c, d) = [[a,-b,-c,-d],[b,a,-d,c],[c,d,a,-b],[d,-c,b,a]]` so that
-/// `L(q) x = q ⊗ x`.
-const HAMILTON_BASIS: [[f32; 16]; 4] = [
-    [
-        1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 1.,
-    ],
-    [
-        0., -1., 0., 0., 1., 0., 0., 0., 0., 0., 0., -1., 0., 0., 1., 0.,
-    ],
-    [
-        0., 0., -1., 0., 0., 0., 0., 1., 1., 0., 0., 0., 0., -1., 0., 0.,
-    ],
-    [
-        0., 0., 0., -1., 0., 0., -1., 0., 0., 1., 0., 0., 1., 0., 0., 0.,
-    ],
-];
-
-/// The dense map `W` `[4 out, 4 in]` of the compact quaternion map `compact`
-/// `[out, in, 4]`: `W[4i + r, 4j + s] = L(compact[i, j])[r, s]`. One matrix
-/// product with the fixed [`HAMILTON_BASIS`] (`[out*in, 4] @ [4, 16]`), then a
-/// block transpose, so gradients reach `compact` by ordinary autodiff.
-pub fn quaternion_dense_weight(compact: &Tensor) -> Result<Tensor> {
-    let (out, input, four) = compact.dims3()?;
-    if four != 4 {
-        return Err(invalid("a compact quaternion map's last dimension is 4"));
-    }
-    let basis = Tensor::from_iter(HAMILTON_BASIS.into_iter().flatten(), compact.device())?
-        .reshape((4, 16))?
-        .to_dtype(compact.dtype())?;
-    Ok(compact
-        .reshape((out * input, 4))?
-        .matmul(&basis)?
-        .reshape((out, input, 4, 4))?
-        .permute((0, 2, 1, 3))?
-        .contiguous()?
-        .reshape((4 * out, 4 * input))?)
+/// Retained API name for old artifact/source callers. Expanding quaternion
+/// parameters into a dense learned map is prohibited and cannot execute.
+pub fn quaternion_dense_weight(_compact: &Tensor) -> Result<Tensor> {
+    Err(invalid(
+        "dense quaternion expansion is forbidden; use native SpiralCore/FBS geometry",
+    ))
 }
 
 /// The per-head logits of [`ReadWeighting::LearnedRank`] in each read layer.
@@ -3148,6 +3120,39 @@ fn quaternion_shapes(shapes: BTreeMap<String, Vec<usize>>) -> Result<BTreeMap<St
         .collect()
 }
 
+type NativePlans = BTreeMap<(usize, usize), Arc<crate::spiralcore_fbs::ProjectionPlan>>;
+fn spiralcore_fbs_shapes(
+    shapes: BTreeMap<String, Vec<usize>>,
+) -> Result<(BTreeMap<String, Vec<usize>>, NativePlans)> {
+    let mut native = BTreeMap::new();
+    let mut plans = BTreeMap::new();
+    for (name, shape) in shapes {
+        if quaternion_name(&name).is_some() {
+            let [out, input] = shape.as_slice() else {
+                return Err(invalid("native projection requires fresh dense-shape metadata, never old learned quaternion arrays"));
+            };
+            let plan = crate::spiralcore_fbs::ProjectionPlan::new(*input, *out)?;
+            let stem = name
+                .strip_suffix(".weight")
+                .ok_or_else(|| invalid("invalid projection variable name"))?;
+            native.insert(
+                format!("{stem}.spiralcore_fbs"),
+                plan.query_shape().to_vec(),
+            );
+            plans.insert((*input, *out), plan);
+        } else {
+            native.insert(name, shape);
+        }
+    }
+    Ok((native, plans))
+}
+
+fn spiralcore_fbs_binding(plans: &NativePlans) -> serde_json::Value {
+    serde_json::json!({"schema": crate::spiralcore_fbs::SCHEMA,
+        "fbs_source_sha256": crate::spiralcore_fbs::FBS_SOURCE_SHA256,
+        "plans": plans.iter().map(|(&(input, output), plan)| (format!("{input}/{output}"), plan.fingerprint.clone())).collect::<BTreeMap<_, _>>()})
+}
+
 /// `quaternion_weights=all` with `export`, D11, `qat=true` or `transport_snap`.
 pub fn quaternion_served_refusal() -> crate::TrainingError {
     invalid("quaternion weights have no served form yet")
@@ -3325,6 +3330,7 @@ pub struct StackModel {
     /// Whether the projection maps are quaternion-valued
     /// ([`Self::set_quaternion_weights`]).
     quaternion_weights: QuaternionWeights,
+    spiralcore_fbs_plans: BTreeMap<(usize, usize), Arc<crate::spiralcore_fbs::ProjectionPlan>>,
     /// Trained-in icosian snap of every quaternion map ([`Self::set_quaternion_snap`]).
     quaternion_snap: QuaternionSnap,
     /// Evaluation-only probe ([`Self::set_activation_snap`]): every projection input lane is
@@ -3391,6 +3397,7 @@ impl StackModel {
             pointer_span_extract: None,
             copy_span_oracle: None,
             quaternion_weights: QuaternionWeights::None,
+            spiralcore_fbs_plans: BTreeMap::new(),
             quaternion_snap: QuaternionSnap::None,
         })
     }
@@ -3757,28 +3764,37 @@ impl StackModel {
     /// The tensors a forward pass reads: the variables, or in served mode the
     /// served view of their current values.
     fn params(&self) -> Result<Params<'_>> {
+        if self.quaternion_weights == QuaternionWeights::SpiralcoreFbs
+            && (self.activation_snap != ActivationSnap::None
+                || self.quaternion_snap != QuaternionSnap::None)
+        {
+            return Err(invalid(
+                "native SpiralCore/FBS does not accept an activation or quaternion snap",
+            ));
+        }
+        if self.quaternion_weights == QuaternionWeights::SpiralcoreFbs && !self.device.is_cuda() {
+            return Err(invalid(
+                "native SpiralCore/FBS model execution requires CUDA; no CPU/Metal fallback",
+            ));
+        }
         if let Some(config) = &self.geometric_address {
             self.validate_geometric_address(config)?;
         }
         match &self.served {
-            None if self.quaternion_weights == QuaternionWeights::All => {
-                // Each quaternion map snapped once per forward pass, in its
-                // compact form: `linear` executes it as a Hamilton product, so
-                // no dense expansion is built at all.
-                let mut compact_maps = BTreeMap::new();
-                for (name, var) in &self.variables {
-                    if let Some(dense) = quaternion_dense_name(name) {
-                        compact_maps.insert(
-                            dense,
-                            quaternion_snap_straight_through(
-                                var.as_tensor(),
-                                self.quaternion_snap,
-                            )?,
-                        );
-                    }
-                }
-                Ok(Params::Quaternion(&self.variables, compact_maps))
+            None if self.quaternion_weights == QuaternionWeights::SpiralcoreFbs => {
+                let routes = self
+                    .variables
+                    .iter()
+                    .filter_map(|(name, var)| {
+                        name.strip_suffix(".spiralcore_fbs")
+                            .map(|stem| (format!("{stem}.weight"), var.as_tensor().clone()))
+                    })
+                    .collect();
+                Ok(Params::Quaternion(&self.variables, routes))
             }
+            None if self.quaternion_weights == QuaternionWeights::All => Err(invalid(
+                "dense quaternion artifacts are retained inactive; their model path is forbidden",
+            )),
             None => Ok(Params::Float(&self.variables)),
             Some(state) => Ok(Params::Served(self.served_view(state)?)),
         }
@@ -3915,23 +3931,26 @@ impl StackModel {
     }
 
     fn linear(&self, input: &Tensor, weight: &Tensor) -> Result<Tensor> {
-        // A compact quaternion map ([`QuaternionWeights::All`]) is executed as a
-        // fused Hamilton product; every other map keeps the dense product below,
-        // byte for byte.
-        let snapped_compact;
         if weight.dims().len() == 3 {
-            let input = if self.activation_snap != ActivationSnap::None {
-                snapped_compact = self.snap_activation(input)?;
-                &snapped_compact
-            } else {
-                input
-            };
-            let weight = if self.precision.is_bf16() {
-                weight.to_dtype(DType::BF16)?
-            } else {
-                weight.clone()
-            };
-            return hamilton_linear(&weight, input);
+            if self.quaternion_weights != QuaternionWeights::SpiralcoreFbs {
+                return hamilton_linear(weight, input);
+            }
+            let input_width = *input
+                .dims()
+                .last()
+                .ok_or_else(|| invalid("native projection needs a carrier axis"))?;
+            let output_width = weight
+                .dim(0)?
+                .checked_mul(8)
+                .ok_or_else(|| invalid("native projection width overflow"))?;
+            let plan = self
+                .spiralcore_fbs_plans
+                .get(&(input_width, output_width))
+                .ok_or_else(|| invalid("missing artifact-bound SpiralCore/FBS projection plan"))?;
+            return plan.forward(weight, input);
+        }
+        if self.quaternion_weights == QuaternionWeights::SpiralcoreFbs {
+            return Err(invalid("native SpiralCore/FBS projections cannot fall through to a dense head/null map; OP3a and whole-path qualification remain required"));
         }
         let snapped;
         // Only the quaternion maps' inputs: not the tied head ([vocab, width])
@@ -5706,7 +5725,47 @@ impl StackModel {
                 "a quaternion-valued model has no dense form to return to",
             ));
         }
+        if self.quaternion_weights != QuaternionWeights::None {
+            return Err(invalid("projection artifact formats cannot be converted in place; preserve the old artifact and construct a fresh native one"));
+        }
         check_quaternion_arch(&self.config)?;
+        if mode == QuaternionWeights::SpiralcoreFbs {
+            if self.quaternion_weights != QuaternionWeights::None
+                || self.quaternion_snap != QuaternionSnap::None
+                || self.activation_snap != ActivationSnap::None
+                || self.served.is_some()
+                || self.transport.is_some()
+            {
+                return Err(invalid("SpiralCore/FBS needs a fresh unsnapped native projection construction; old artifacts remain inactive"));
+            }
+            let shapes = self
+                .variables
+                .iter()
+                .map(|(name, var)| (name.clone(), var.dims().to_vec()))
+                .collect();
+            let (shapes, plans) = spiralcore_fbs_shapes(shapes)?;
+            let mut rng = Initializer(self.config.seed ^ 0x5350_4952_4642_5301);
+            let mut replacements = Vec::new();
+            for (name, shape) in &shapes {
+                if let Some(stem) = name.strip_suffix(".spiralcore_fbs") {
+                    let values = (0..shape.iter().product::<usize>())
+                        .map(|_| rng.normal() as f32)
+                        .collect::<Vec<_>>();
+                    replacements.push((
+                        format!("{stem}.weight"),
+                        name.clone(),
+                        Var::from_vec(values, shape.as_slice(), &self.device)?,
+                    ));
+                }
+            }
+            for (old, new, variable) in replacements {
+                self.variables.remove(&old);
+                self.variables.insert(new, variable);
+            }
+            self.spiralcore_fbs_plans = plans;
+            self.quaternion_weights = mode;
+            return Ok(());
+        }
         if self.served.is_some() || self.transport.is_some() {
             return Err(quaternion_served_refusal());
         }
@@ -11677,6 +11736,10 @@ impl StackModel {
             // Only when set, so every dense model keeps its exact bytes.
             let mut with_field: serde_json::Value = serde_json::from_slice(&config)?;
             with_field[QUATERNION_WEIGHTS_FIELD] = serde_json::to_value(self.quaternion_weights)?;
+            if self.quaternion_weights == QuaternionWeights::SpiralcoreFbs {
+                with_field["spiralcore_fbs_projection"] =
+                    spiralcore_fbs_binding(&self.spiralcore_fbs_plans);
+            }
             config = serde_json::to_vec_pretty(&with_field)?;
         }
         if let Some(route) = self.read_route {
@@ -11772,15 +11835,29 @@ impl StackModel {
     /// The quaternion-weights mode `directory`'s `config.json` records
     /// ([`Self::set_quaternion_weights`]). Absent means
     /// [`QuaternionWeights::None`], as for every model saved before the field
-    /// existed; only `"all"` is ever written, so any other value is refused.
+    /// existed. Native mode writes `"spiralcore_fbs"` with its bound geometry;
+    /// retained `"all"` artifacts remain inactive.
     pub fn saved_quaternion_weights(directory: &Path) -> Result<QuaternionWeights> {
         let config: serde_json::Value =
             serde_json::from_slice(&fs::read(directory.join("config.json"))?)?;
+        if config.get("spiralcore_fbs_projection").is_some()
+            && config
+                .get(QUATERNION_WEIGHTS_FIELD)
+                .and_then(|v| v.as_str())
+                != Some("spiralcore_fbs")
+        {
+            return Err(invalid(
+                "native projection binding requires the declared SpiralCore/FBS mode",
+            ));
+        }
         match config.get(QUATERNION_WEIGHTS_FIELD) {
             None => Ok(QuaternionWeights::None),
             Some(value) if value.as_str() == Some("all") => Ok(QuaternionWeights::All),
+            Some(value) if value.as_str() == Some("spiralcore_fbs") => {
+                Ok(QuaternionWeights::SpiralcoreFbs)
+            }
             Some(_) => Err(invalid(format!(
-                "config.json's {QUATERNION_WEIGHTS_FIELD} must be absent or \"all\""
+                "config.json's {QUATERNION_WEIGHTS_FIELD} must be absent, all, or spiralcore_fbs"
             ))),
         }
     }
@@ -12107,6 +12184,20 @@ impl StackModel {
             shapes.extend(learned_rank_shapes(&config)?);
         }
         let quaternion_weights = Self::saved_quaternion_weights(directory)?;
+        let mut native_plans = BTreeMap::new();
+        if quaternion_weights == QuaternionWeights::SpiralcoreFbs {
+            check_quaternion_arch(&config)?;
+            let (native_shapes, plans) = spiralcore_fbs_shapes(shapes)?;
+            shapes = native_shapes;
+            let saved: serde_json::Value =
+                serde_json::from_slice(&fs::read(directory.join("config.json"))?)?;
+            if saved.get("spiralcore_fbs_projection") != Some(&spiralcore_fbs_binding(&plans)) {
+                return Err(invalid(
+                    "native projection compiler/operator/FBS identity is missing or stale",
+                ));
+            }
+            native_plans = plans;
+        }
         if quaternion_weights == QuaternionWeights::All {
             check_quaternion_arch(&config)?;
             shapes = quaternion_shapes(shapes)?;
@@ -12167,6 +12258,7 @@ impl StackModel {
             pointer_span_extract: None,
             copy_span_oracle: None,
             quaternion_weights,
+            spiralcore_fbs_plans: native_plans,
             quaternion_snap: QuaternionSnap::None,
         };
         model.set_transport_snap(Self::saved_transport_snap(directory)?)?;
@@ -12216,6 +12308,14 @@ impl StackModel {
         }
         model.set_read_weighting(read_weighting)?;
         model.set_read_route(read_route)?;
+        if model.quaternion_weights == QuaternionWeights::SpiralcoreFbs
+            && (model.activation_snap != ActivationSnap::None
+                || model.quaternion_snap != QuaternionSnap::None)
+        {
+            return Err(invalid(
+                "native projection artifact carries an unsupported snap",
+            ));
+        }
         Ok(model)
     }
 
@@ -13397,9 +13497,9 @@ enum Params<'a> {
     Served(Arc<BTreeMap<String, Tensor>>),
     // Ordinary float semantics with immutable, graph-detached parameters.
     Frozen(BTreeMap<String, Tensor>),
-    /// The variables, with each quaternion map ([`QuaternionWeights::All`]) read
-    /// compact (`[out/4, in/4, 4]`) under its dense name: `linear` executes it as
-    /// a Hamilton product ([`hamilton_linear`]), never as an expanded matrix.
+    /// Native query points under the stable projection call names. `linear`
+    /// dispatches only to the bound SpiralCore/FBS carrier plan; old dense
+    /// quaternion mode is refused before this view is constructed.
     Quaternion(&'a BTreeMap<String, Var>, BTreeMap<String, Tensor>),
 }
 
@@ -18082,266 +18182,12 @@ pub fn hamilton_gate(gate: &Tensor, up: &Tensor) -> Result<Tensor> {
 }
 
 // ---------------------------------------------------------------------------
-// The fused Hamilton projection ([`QuaternionWeights::All`]'s execution path).
-//
-// `y_j = Σ_k W_jk ⊗ x_k` over quaternion blocks: the weight is the compact map
-// `[out/4, in/4, 4]`, the activation is `[.., in]` read as `in/4` quaternion
-// blocks, and every term is one Hamilton product (16 products, 12 sums). No
-// dense matrix product is called in either direction, which is what makes the
-// quaternion-valued projections legal under the no-matmul rule.
+// Dense quaternion projection retained only as an inactive source archive.
 
-/// The Hamilton product of two 4-vectors in `f64` (the CPU reference path).
-#[inline]
-fn hamilton_product_f64(a: [f64; 4], b: [f64; 4]) -> [f64; 4] {
-    [
-        a[0] * b[0] - a[1] * b[1] - a[2] * b[2] - a[3] * b[3],
-        a[0] * b[1] + a[1] * b[0] + a[2] * b[3] - a[3] * b[2],
-        a[0] * b[2] - a[1] * b[3] + a[2] * b[0] + a[3] * b[1],
-        a[0] * b[3] + a[1] * b[2] - a[2] * b[1] + a[3] * b[0],
-    ]
-}
-
-/// The conjugate of an `f64` 4-vector.
-#[inline]
-fn conjugate_f64(a: [f64; 4]) -> [f64; 4] {
-    [a[0], -a[1], -a[2], -a[3]]
-}
-
-/// The `(out/4, in/4)` block shape of a compact quaternion map `[out/4, in/4, 4]`.
-fn hamilton_linear_blocks(weight: &Tensor) -> Result<(usize, usize)> {
-    match weight.dims() {
-        [out, input, 4] => Ok((*out, *input)),
-        dims => Err(invalid(format!(
-            "a compact quaternion map is [out/4, in/4, 4] with a 4-long block, not {dims:?}"
-        ))),
-    }
-}
-
-struct HamiltonLinear;
-
-impl CustomOp2 for HamiltonLinear {
-    fn name(&self) -> &'static str {
-        "geometric-stack-hamilton-linear"
-    }
-
-    fn cpu_fwd(
-        &self,
-        s1: &CpuStorage,
-        l1: &Layout,
-        s2: &CpuStorage,
-        l2: &Layout,
-    ) -> candle_core::Result<(CpuStorage, Shape)> {
-        if s1.dtype() != DType::F32 || s2.dtype() != DType::F32 {
-            candle_core::bail!("the CPU Hamilton projection needs F32; bf16 is a device precision");
-        }
-        let (weight, input) = (contiguous(s1, l1)?, contiguous(s2, l2)?);
-        let (out_blocks, in_blocks) = match l1.shape().dims() {
-            [out, input, 4] => (*out, *input),
-            dims => {
-                candle_core::bail!("a compact quaternion map is [out/4, in/4, 4], not {dims:?}")
-            }
-        };
-        let in_features = 4 * in_blocks;
-        if in_features == 0 || input.len() % in_features != 0 {
-            candle_core::bail!(
-                "the Hamilton projection's activation width must be a multiple of {in_features}"
-            );
-        }
-        if l2.shape().dims().last() != Some(&in_features) {
-            candle_core::bail!(
-                "the Hamilton projection's last dimension must be {in_features}, not {:?}",
-                l2.shape().dims()
-            );
-        }
-        let rows = input.len() / in_features;
-        // One task per output quaternion, each accumulating over k in f64.
-        let mut out = vec![0f32; rows * out_blocks * 4];
-        out.par_chunks_mut(4).enumerate().for_each(|(q, o)| {
-            let (row, j) = (q / out_blocks, q % out_blocks);
-            let mut acc = [0f64; 4];
-            for k in 0..in_blocks {
-                let w = &weight[(j * in_blocks + k) * 4..][..4];
-                let x = &input[row * in_features + k * 4..][..4];
-                let (w, x) = (
-                    [
-                        f64::from(w[0]),
-                        f64::from(w[1]),
-                        f64::from(w[2]),
-                        f64::from(w[3]),
-                    ],
-                    [
-                        f64::from(x[0]),
-                        f64::from(x[1]),
-                        f64::from(x[2]),
-                        f64::from(x[3]),
-                    ],
-                );
-                let term = hamilton_product_f64(w, x);
-                for c in 0..4 {
-                    acc[c] += term[c];
-                }
-            }
-            for c in 0..4 {
-                o[c] = acc[c] as f32;
-            }
-        });
-        let mut dims = l2.shape().dims().to_vec();
-        let last = dims.len() - 1;
-        dims[last] = 4 * out_blocks;
-        Ok((CpuStorage::F32(out), Shape::from_dims(&dims)))
-    }
-
-    #[cfg(feature = "metal")]
-    fn metal_fwd(
-        &self,
-        _s1: &MetalStorage,
-        _l1: &Layout,
-        _s2: &MetalStorage,
-        _l2: &Layout,
-    ) -> candle_core::Result<(MetalStorage, Shape)> {
-        candle_core::bail!("the Hamilton projection has no Metal kernel yet")
-    }
-
-    #[cfg(feature = "cuda")]
-    fn cuda_fwd(
-        &self,
-        s1: &CudaStorage,
-        l1: &Layout,
-        s2: &CudaStorage,
-        l2: &Layout,
-    ) -> candle_core::Result<(CudaStorage, Shape)> {
-        cuda_ops::hamilton_linear_fwd(s1, l1, s2, l2)
-    }
-
-    fn bwd(
-        &self,
-        weight: &Tensor,
-        input: &Tensor,
-        _out: &Tensor,
-        grad: &Tensor,
-    ) -> candle_core::Result<(Option<Tensor>, Option<Tensor>)> {
-        #[cfg(feature = "cuda")]
-        if let Device::Cuda(device) = weight.device() {
-            let (d_weight, d_input) = cuda_ops::hamilton_linear_bwd(device, weight, input, grad)?;
-            return Ok((Some(d_weight), Some(d_input)));
-        }
-        #[cfg(feature = "metal")]
-        if weight.device().is_metal() {
-            candle_core::bail!("the Hamilton projection has no Metal kernel yet");
-        }
-        let (out_blocks, in_blocks) = match weight.dims() {
-            [out, input, 4] => (*out, *input),
-            dims => {
-                candle_core::bail!("a compact quaternion map is [out/4, in/4, 4], not {dims:?}")
-            }
-        };
-        let (ws, xs, gs) = (
-            weight.flatten_all()?.to_vec1::<f32>()?,
-            input.flatten_all()?.to_vec1::<f32>()?,
-            grad.flatten_all()?.to_vec1::<f32>()?,
-        );
-        let in_features = 4 * in_blocks;
-        if xs.len() % in_features != 0 || gs.len() % (4 * out_blocks) != 0 {
-            candle_core::bail!("the Hamilton projection's gradient shapes do not match");
-        }
-        let rows = xs.len() / in_features;
-        if gs.len() != rows * 4 * out_blocks {
-            candle_core::bail!("the Hamilton projection's gradient rows do not match");
-        }
-        // dW_jk = Σ_rows dy_j ⊗ conj(x_k).
-        let mut d_weight = vec![0f32; out_blocks * in_blocks * 4];
-        d_weight.par_chunks_mut(4).enumerate().for_each(|(jk, o)| {
-            let (j, k) = (jk / in_blocks, jk % in_blocks);
-            let mut acc = [0f64; 4];
-            for row in 0..rows {
-                let dy = &gs[(row * out_blocks + j) * 4..][..4];
-                let x = &xs[row * in_features + k * 4..][..4];
-                let (dy, x) = (
-                    [
-                        f64::from(dy[0]),
-                        f64::from(dy[1]),
-                        f64::from(dy[2]),
-                        f64::from(dy[3]),
-                    ],
-                    [
-                        f64::from(x[0]),
-                        f64::from(x[1]),
-                        f64::from(x[2]),
-                        f64::from(x[3]),
-                    ],
-                );
-                let term = hamilton_product_f64(dy, conjugate_f64(x));
-                for c in 0..4 {
-                    acc[c] += term[c];
-                }
-            }
-            for c in 0..4 {
-                o[c] = acc[c] as f32;
-            }
-        });
-        // dx_k = Σ_j conj(W_jk) ⊗ dy_j.
-        let mut d_input = vec![0f32; rows * in_features];
-        d_input.par_chunks_mut(4).enumerate().for_each(|(rk, o)| {
-            let (row, k) = (rk / in_blocks, rk % in_blocks);
-            let mut acc = [0f64; 4];
-            for j in 0..out_blocks {
-                let w = &ws[(j * in_blocks + k) * 4..][..4];
-                let dy = &gs[(row * out_blocks + j) * 4..][..4];
-                let (w, dy) = (
-                    [
-                        f64::from(w[0]),
-                        f64::from(w[1]),
-                        f64::from(w[2]),
-                        f64::from(w[3]),
-                    ],
-                    [
-                        f64::from(dy[0]),
-                        f64::from(dy[1]),
-                        f64::from(dy[2]),
-                        f64::from(dy[3]),
-                    ],
-                );
-                let term = hamilton_product_f64(conjugate_f64(w), dy);
-                for c in 0..4 {
-                    acc[c] += term[c];
-                }
-            }
-            for c in 0..4 {
-                o[c] = acc[c] as f32;
-            }
-        });
-        Ok((
-            Some(Tensor::from_vec(d_weight, weight.shape(), weight.device())?),
-            Some(Tensor::from_vec(d_input, input.shape(), input.device())?),
-        ))
-    }
-}
-
-/// Fused Hamilton projection: `y_j = Σ_k W_jk ⊗ x_k` for a compact quaternion
-/// map `weight` `[out/4, in/4, 4]` and an activation `input` `[.., in]`.
-pub fn hamilton_linear(weight: &Tensor, input: &Tensor) -> Result<Tensor> {
-    if !matches!(weight.dtype(), DType::F32 | DType::BF16) || weight.dtype() != input.dtype() {
-        return Err(invalid(
-            "hamilton_linear needs one f32 or bf16 dtype on the weight and the activation",
-        ));
-    }
-    let (out_blocks, in_blocks) = hamilton_linear_blocks(weight)?;
-    let in_features = 4 * in_blocks;
-    if weight.elem_count() == 0 || input.elem_count() == 0 {
-        return Err(invalid("hamilton_linear requires non-empty tensors"));
-    }
-    if input.dims().last() != Some(&in_features) {
-        return Err(invalid(format!(
-            "hamilton_linear reads an activation of width {in_features}, not {:?}",
-            input.dims()
-        )));
-    }
-    if in_blocks == 0 || out_blocks == 0 {
-        return Err(invalid("hamilton_linear requires whole quaternion blocks"));
-    }
-    Ok(weight
-        .contiguous()?
-        .apply_op2(&input.contiguous()?, HamiltonLinear)?)
+/// Historical API retained for callers, never an executable dense projection.
+/// New native artifacts must explicitly choose SpiralCore/FBS routing points.
+pub fn hamilton_linear(_weight: &Tensor, _input: &Tensor) -> Result<Tensor> {
+    Err(invalid("dense quaternion contraction is forbidden; use a newly constructed SpiralCore/FBS projection, not an old-weight conversion"))
 }
 
 // ---------------------------------------------------------------------------
@@ -33972,6 +33818,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "inactive dense comparator; model execution prohibited"]
     fn quaternion_weights_dense_map_is_the_hamilton_product() -> Result<()> {
         let model = StackModel::new(quaternion_tiny(), &cpu())?;
         let mut rng = Initializer(17);
@@ -34010,171 +33857,116 @@ mod tests {
         Ok(())
     }
 
-    /// The fused Hamilton projection on a hand-computed two-block case: two
-    /// output blocks over two input blocks, with the quaternion products worked
-    /// out in the test.
     #[test]
-    fn the_hamilton_projection_matches_a_hand_computation() -> Result<()> {
-        // W[0,0] = W[0,1] = 1 (the identity), W[1,0] = i, W[1,1] = k.
-        let weight = Tensor::from_vec(
-            vec![
-                1.0f32, 0.0, 0.0, 0.0, //
-                1.0, 0.0, 0.0, 0.0, //
-                0.0, 1.0, 0.0, 0.0, //
-                0.0, 0.0, 0.0, 1.0,
-            ],
-            (2, 2, 4),
-            &cpu(),
-        )?;
-        let input = Tensor::from_vec(
-            vec![
-                1.0f32, 2.0, 3.0, 4.0, 0.0, 1.0, 0.0, -1.0, // row 0
-                0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, // row 1
-            ],
-            (2, 8),
-            &cpu(),
-        )?;
-        let out = hamilton_linear(&weight, &input)?
-            .flatten_all()?
-            .to_vec1::<f32>()?;
-        // Row 0: y_0 = 1⊗(1,2,3,4) + 1⊗(0,1,0,-1) = (1,3,3,3) and
-        // y_1 = i⊗(1,2,3,4) + k⊗(0,1,0,-1) = (-2,1,-4,3) + (1,0,1,0).
-        // Row 1: y_0 = 1⊗(1,0,0,0) = (1,0,0,0) and y_1 = k⊗(1,0,0,0).
-        let want = [
-            1.0f32, 3.0, 3.0, 3.0, -1.0, 1.0, -3.0, 3.0, //
-            1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0,
-        ];
-        assert_eq!(out.len(), want.len());
-        for (i, (got, w)) in out.iter().zip(want).enumerate() {
-            assert!((got - w).abs() < 1e-6, "slot {i}: {out:?} vs {want:?}");
-        }
-        Ok(())
-    }
-
-    /// The fused projection computes what the dense Hamilton matrix does: the
-    /// same compact weight expanded by [`quaternion_dense_weight`] and
-    /// multiplied as a matrix gives the same values.
-    #[test]
-    fn the_hamilton_projection_matches_the_dense_expansion() -> Result<()> {
-        let mut rng = Initializer(83);
-        for (out_blocks, in_blocks, rows) in [(2usize, 3usize, 5usize), (4, 1, 7), (1, 5, 2)] {
-            let compact = random(&mut rng, &[out_blocks, in_blocks, 4], 1.0);
-            let input = random(&mut rng, &[rows, 4 * in_blocks], 1.0);
-            let fused = hamilton_linear(&compact, &input)?
-                .flatten_all()?
-                .to_vec1::<f32>()?;
-            let dense = input
-                .matmul(&quaternion_dense_weight(&compact)?.t()?)?
-                .flatten_all()?
-                .to_vec1::<f32>()?;
-            assert_eq!(fused.len(), dense.len());
-            let peak = dense.iter().fold(0f32, |m, v| m.max(v.abs()));
-            let gap = fused
-                .iter()
-                .zip(&dense)
-                .fold(0f32, |m, (a, b)| m.max((a - b).abs()));
-            assert!(
-                gap < 1e-5,
-                "{out_blocks}x{in_blocks} blocks, {rows} rows: gap {gap} against a peak of {peak}"
-            );
-        }
-        Ok(())
-    }
-
-    /// The fused projection's weight and activation gradients against central
-    /// differences.
-    #[test]
-    fn the_hamilton_projection_gradients_match_central_differences() -> Result<()> {
-        let mut rng = Initializer(67);
-        let weight = Var::from_tensor(&random(&mut rng, &[2, 3, 4], 1.0))?;
-        let input = Var::from_tensor(&random(&mut rng, &[4, 12], 1.0))?;
-        let weights = random(&mut rng, &[4, 8], 1.0);
-        check_gradient(
-            &[weight.clone(), input.clone()],
-            || {
-                Ok(hamilton_linear(weight.as_tensor(), input.as_tensor())?
-                    .mul(&weights)?
-                    .sum_all()?)
-            },
-            1e-2,
-        )
-    }
-
-    /// The fused projection refuses a partial quaternion block and a dtype the
-    /// CPU reference cannot run.
-    #[test]
-    fn the_hamilton_projection_refuses_what_it_cannot_run() -> Result<()> {
-        let weight = Tensor::from_vec(vec![0.5f32; 8], (2, 1, 4), &cpu())?;
-        let input = Tensor::from_vec(vec![0.5f32; 4], (1, 4), &cpu())?;
-        assert!(hamilton_linear(&weight, &input).is_ok(), "one block runs");
-        let partial = Tensor::from_vec(vec![0.5f32; 6], (2, 3), &cpu())?;
-        assert!(
-            hamilton_linear(&partial, &input).is_err(),
-            "a weight block is [out/4, in/4, 4]"
-        );
-        let short = Tensor::from_vec(vec![0.5f32; 4], (2, 2), &cpu())?;
-        assert!(
-            hamilton_linear(&short, &input).is_err(),
-            "the activation width must be whole input blocks"
-        );
-        let wide = Tensor::from_vec(vec![0.5f32; 6], (1, 6), &cpu())?;
-        assert!(
-            hamilton_linear(&weight, &wide).is_err(),
-            "the activation width must match the weight"
-        );
-        assert!(
-            hamilton_linear(
-                &weight.to_dtype(DType::BF16)?,
-                &input.to_dtype(DType::BF16)?
-            )
-            .is_err(),
-            "the CPU reference is f32; bf16 is a device precision"
-        );
-        assert!(
-            hamilton_linear(&weight.to_dtype(DType::U32)?, &input).is_err(),
-            "f32 or bf16 only"
-        );
-        Ok(())
-    }
-
-    /// A quaternion-weights model runs its whole forward and backward through
-    /// the fused projections: every compact map gets a finite gradient.
-    #[test]
-    fn a_quaternion_weights_model_runs_the_fused_projection() -> Result<()> {
-        let mut model = StackModel::new(quaternion_tiny(), &cpu())?;
-        model.set_quaternion_weights(QuaternionWeights::All)?;
-        let ids = [3u32, 9, 4, 12, 7, 1, 30, 5];
-        let targets = [9u32, 4, 12, 7, 1, 30, 5, 22];
-        let loss = model.loss(&ids, &targets, 1, ids.len())?;
-        let value = loss.to_scalar::<f32>()?;
-        assert!(value.is_finite() && value > 0.0, "loss {value}");
-        let grads = loss.backward()?;
-        let maps: Vec<String> = model
-            .variables()
-            .keys()
-            .filter(|name| name.ends_with(".quaternion"))
-            .cloned()
+    fn native_projection_shapes_bind_source_geometry_and_retained_children() -> Result<()> {
+        let mut config = quaternion_tiny();
+        config.width = 32;
+        config.mlp_hidden = 64;
+        let (shapes, plans) = spiralcore_fbs_shapes(config.shapes())?;
+        let native: Vec<_> = shapes
+            .iter()
+            .filter(|(name, _)| name.ends_with(".spiralcore_fbs"))
             .collect();
-        // Three recurrence maps and three MLP maps on the `r` layer, four read
-        // maps and three MLP maps on the `a` layer.
-        assert_eq!(maps.len(), 13, "{maps:?}");
-        for name in &maps {
-            let var = &model.variables()[name];
-            let grad = grads
-                .get(var.as_tensor())
-                .ok_or_else(|| invalid(format!("no gradient for {name}")))?
-                .flatten_all()?
-                .to_vec1::<f32>()?;
-            assert!(grad.iter().all(|v| v.is_finite()), "{name} is not finite");
-            assert!(
-                grad.iter().any(|&v| v != 0.0),
-                "{name} gets no gradient through the fused projection"
-            );
+        assert_eq!(native.len(), 13);
+        for (name, shape) in native {
+            assert_eq!(shape[2], 8, "{name}");
+            assert!(shape[1] <= crate::spiralcore_fbs::MAX_LEVELS);
+            assert!(!shapes.contains_key(&name.replace(".spiralcore_fbs", ".weight")));
+            assert!(!shapes.contains_key(&name.replace(".spiralcore_fbs", ".quaternion")));
         }
+        let binding = spiralcore_fbs_binding(&plans);
+        assert_eq!(binding["schema"], crate::spiralcore_fbs::SCHEMA);
+        assert_eq!(
+            binding["fbs_source_sha256"],
+            crate::spiralcore_fbs::FBS_SOURCE_SHA256
+        );
+        assert_eq!(
+            binding,
+            spiralcore_fbs_binding(&spiralcore_fbs_shapes(config.shapes())?.1)
+        );
+        assert_eq!(
+            QuaternionWeights::parse("spiralcore_fbs")?,
+            QuaternionWeights::SpiralcoreFbs
+        );
+        Ok(())
+    }
+
+    // Parameter preparation and artifact I/O only. No forward/loss/optimizer.
+    #[test]
+    fn native_projection_artifact_round_trip_and_binding_refusals() -> Result<()> {
+        let mut config = quaternion_tiny();
+        config.width = 32;
+        config.mlp_hidden = 64;
+        let mut model = StackModel::new(config, &cpu())?;
+        model.set_quaternion_weights(QuaternionWeights::SpiralcoreFbs)?;
+        let base = std::env::var_os("CARGO_TARGET_DIR")
+            .map(std::path::PathBuf::from)
+            .unwrap_or_else(|| std::path::PathBuf::from("target"));
+        fs::create_dir_all(&base)?;
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_err(|e| invalid(e.to_string()))?
+            .as_nanos();
+        let root = base.join(format!(
+            "native-projection-artifact-{}-{nonce}",
+            std::process::id()
+        ));
+        fs::create_dir(&root)?; // Exclusive fixture root before save or load.
+        model.save(&root)?;
+        let loaded = StackModel::load(&root, &cpu())?;
+        assert_eq!(
+            loaded.quaternion_weights(),
+            QuaternionWeights::SpiralcoreFbs
+        );
+        for (name, var) in model.variables() {
+            assert_eq!(var.dims(), loaded.variables()[name].dims());
+            assert!(same_bits(
+                &var.flatten_all()?.to_vec1::<f32>()?,
+                &loaded.variables()[name].flatten_all()?.to_vec1::<f32>()?
+            ));
+        }
+        let path = root.join("config.json");
+        let original: serde_json::Value = serde_json::from_slice(&fs::read(&path)?)?;
+        let mut corrupt = original.clone();
+        corrupt["spiralcore_fbs_projection"]["schema"] = serde_json::json!("wrong");
+        fs::write(&path, serde_json::to_vec(&corrupt)?)?;
+        assert!(StackModel::load(&root, &cpu()).is_err());
+        corrupt = original.clone();
+        corrupt
+            .as_object_mut()
+            .ok_or_else(|| invalid("config object"))?
+            .remove("spiralcore_fbs_projection");
+        fs::write(&path, serde_json::to_vec(&corrupt)?)?;
+        assert!(StackModel::load(&root, &cpu()).is_err());
+        corrupt = original.clone();
+        corrupt
+            .as_object_mut()
+            .ok_or_else(|| invalid("config object"))?
+            .remove(QUATERNION_WEIGHTS_FIELD);
+        fs::write(&path, serde_json::to_vec(&corrupt)?)?;
+        assert!(StackModel::load(&root, &cpu()).is_err());
+        corrupt = original;
+        corrupt[ACTIVATION_SNAP_FIELD] = serde_json::json!("icosian_pair");
+        fs::write(&path, serde_json::to_vec(&corrupt)?)?;
+        assert!(StackModel::load(&root, &cpu()).is_err());
+        fs::remove_dir_all(&root)?;
         Ok(())
     }
 
     #[test]
+    fn retired_dense_quaternion_projection_is_always_refused() -> Result<()> {
+        let weight = Tensor::zeros((2, 2, 4), DType::F32, &cpu())?;
+        let input = Tensor::zeros((1, 8), DType::F32, &cpu())?;
+        assert!(quaternion_dense_weight(&weight).is_err());
+        assert!(hamilton_linear(&weight, &input)
+            .unwrap_err()
+            .to_string()
+            .contains("forbidden"));
+        Ok(())
+    }
+
+    #[test]
+    #[ignore = "inactive dense quaternion model; execution prohibited, source retained"]
     fn quaternion_weights_gradient_matches_central_differences() -> Result<()> {
         let mut model = StackModel::new(quaternion_tiny(), &cpu())?;
         model.set_quaternion_weights(QuaternionWeights::All)?;
@@ -34240,6 +34032,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "inactive dense quaternion model; execution prohibited, source retained"]
     fn quaternion_weights_round_trip_keeps_logits_and_compact_shapes() -> Result<()> {
         let mut model = StackModel::new(quaternion_tiny(), &cpu())?;
         model.set_quaternion_weights(QuaternionWeights::All)?;

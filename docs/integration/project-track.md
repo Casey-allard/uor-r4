@@ -16,7 +16,7 @@ objectives/geometric operators/CUDA. These are current assignments, not authorit
 run a suspended registration or alter another lab's work.
 
 The [repaired operator plan](../labs/operator-phase-2026-10-12/README.md) is the shared
-immediate dependency: **OP2 Hamilton-projection source → OP1 G2 gate source → OP3a geometric
+immediate dependency: **OP2 SpiralCore/FBS projection source → OP1 G2 gate source → OP3a geometric
 head source → whole-path source/device qualification and prospective FIT**. G2 is the sole gate arm; G1 is withdrawn, and geometric feed-forward blocks are
 permitted. The late owner clarification puts OP2 first and OP3b later, after
 OP3a. The constraint set is frozen through the first compliant rung0 result;
@@ -51,6 +51,14 @@ teacher width. Historical MiniLM tables are inactive retrieval evidence. No new
 width/quality bar, fit or hold release is adopted. OP2/G2/OP3a and the complete
 GPU learning/output path remain dependencies; no separate dense head or hidden
 probability helper can implement the common writer.
+
+The [native projection replacement](../labs/spiralcore-fbs-projection-2026-10-12/README.md)
+uses both SpiralCore BFS and the Atomic Ternary FBS binder abstraction. OP2's
+former all-input quaternion sum and expansion are inactive preserved source.
+Bounded CUDA development/build/kernel tests for this claim are owner-authorized;
+training remains held. OP3a and all remaining dense/host/squashing sites still
+need replacement and complete-path qualification; this operator is not the
+shared writer or a language result.
 
 ## Active programme — grounded conversation and durable memory, October 1
 

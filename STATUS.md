@@ -24,11 +24,14 @@ MiniLM 384D teacher width is not a dependency. The [signed-axis source repair](d
 is static geometry construction, not unified-writer/model qualification.
 
 The [operator phase](docs/labs/operator-phase-2026-10-12/README.md) is source first:
-OP2 Hamilton projections → OP1 G2 gate → OP3a geometric head → complete-path
+OP2 SpiralCore/FBS projection → OP1 G2 gate → OP3a geometric head → complete-path
 source/device qualification and prospective FIT. Training additionally needs
 explicit release of the applicable owner hold. No partial-trunk OP1 fit, new
 prohibited comparator or CPU model reference; no FIT or source delivery releases
-a hold. The rank-margin objective is delivered source, not a compliant trunk or
+a hold. The [SpiralCore/FBS projection](docs/labs/spiralcore-fbs-projection-2026-10-12/README.md)
+replaces the dense quaternion contraction, with owner-authorized bounded pod
+build/kernel qualification; training remains held. It does not qualify the
+shared writer, remaining dense head or full trunk. The rank-margin objective is delivered source, not a compliant trunk or
 a language result. Numerical replacement quality bars remain pending amended
 registration; tokens/s uses the same CUDA harness.
 
@@ -37,7 +40,7 @@ registration; tokens/s uses the same CUDA harness.
 | Line | Retained reading and limitation | Current next dependency |
 | --- | --- | --- |
 | M1 language base | Historical v5 memory20/40, reply37/232 (targets34/40 and116/232); historical19.9M served0.886838 BPB at512 windows ([protocol](docs/labs/criterion2-protocol-pin-2026-10-09/README.md)). No new quality result | Kimi operator source; DeepSeek GPU-native addressed router/memory source; no old mixture/pointer campaign restart |
-| M2 grounded reply | Saved437/512 development + opened0/128 transfer diagnostic remain panel fitting; genuinely fresh qualification NOT_RUN. [Whole-path recovery source](docs/labs/whole-path-recovery-2026-10-12/README.md) delivered; CUDA execution unqualified; sampled law blocked. Unified line count6/3, no reset | Codex preserves source and training/rental hold; lawful sampled learning/device/data/FIT remain dependencies, not automatic next runs |
+| M2 grounded reply | Saved437/512 development + opened0/128 transfer diagnostic remain panel fitting; genuinely fresh qualification NOT_RUN. [Whole-path recovery source](docs/labs/whole-path-recovery-2026-10-12/README.md) delivered; CUDA execution unqualified; sampled law blocked. Unified line count8/3, no reset | Codex preserves source and training/rental hold; lawful sampled learning/device/data/FIT remain dependencies, not automatic next runs |
 | M3 durable memory | Evaluator/session delivered; unqualified | Preserve interfaces; no automatic experiment when M2 is held |
 | M4 one served model | Historical D11 bit-exact artifacts and rank-read components retained; default artifacts include prohibited paths. [Starling bootstrap](docs/labs/starling-bootstrap-2026-10-12/README.md) is inactive evidence | Claude teacher-free starling/murmuration source; compliant trunk → resumed rung0 → rung0b GPU read/gradient → starling |
 
