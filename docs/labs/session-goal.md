@@ -27,11 +27,19 @@ Three commands are required by the contract rather than merely useful: `prep new
 before compute, then `TEST FITNESS: FIT` on the milestone (clause 4); `heartbeat -m <milestone>`
 for the status card (clause 5); `lint check --body-file <body>` and `check` before opening a PR.
 
-**Visibility is part of the job.** `skill use <id>` and `team dispatch <role>` write one line to
-`docs/harness/ledger/`; in one checkout, claim your branch with
-`team claim --branch <name> --lab <lab>` (see [working-in-one-checkout.md](working-in-one-checkout.md)).
-A skill loaded, an agent dispatched or a branch used without a receipt is invisible to the owner —
-which is the failure this exists to end. When something goes wrong, `mistakes capture` records the
+**Visibility is part of the job.** Set your identity once, then everything you do is attributed:
+
+```sh
+export UOR_LAB=<kimi|claude|codex|deepseek>
+```
+
+`skill use <id>` and `team dispatch <role>` write one line to `docs/harness/ledger/<lab>-<month>.jsonl`.
+Claim your branch with `team claim --branch <name> --lab <lab>`, and see who holds what with
+`multilab claims`. `heartbeat` also publishes your presence, so `multilab presence` answers "what is
+each lab doing right now" — live tier first, committed record as the fallback. A skill loaded, an
+agent dispatched, a branch used or a check-in made without a receipt is invisible to the owner and
+to the other three labs, which is the failure this exists to end. Without `UOR_LAB` the harness
+warns loudly rather than recording you as nobody. When something goes wrong, `mistakes capture` records the
 trigger, symptom and lesson and names the rule that will catch it next time.
 
 The harness is a view over the authorities below, never a replacement for them; it runs no model

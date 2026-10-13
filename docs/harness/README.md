@@ -124,7 +124,9 @@ instead of a raw traceback.
 fails; `cli.py --repo X check` works. From a directory that is not a checkout, the tool fails
 loudly rather than guessing.
 
-Verified: all 262 tests pass on both 3.9.6 and 3.15.0.
+Verified: all 269 tests pass on both 3.9.6 and 3.15.0.
+
+**Joining for the first time?** [BOOTSTRAP.md](BOOTSTRAP.md) is a ten-minute, no-compute check that proves the tool runs on your runtime and that your claims and presence are visible to the other labs.
 
 ## Working in a multi-lab project
 

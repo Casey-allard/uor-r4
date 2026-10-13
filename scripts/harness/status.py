@@ -1417,8 +1417,20 @@ def _record_heartbeat(paths: HarnessPaths, milestone: Milestone, line_name: str,
         except Exception as exc:  # noqa: BLE001 - the card matters more than presence
             note = f"presence not published ({type(exc).__name__}: {exc})"
     else:
-        note = ("no lab identity: pass --lab <lab> or export UOR_LAB so the other labs can see "
-                "this check-in (the receipt is written to the unattributed shard)")
+        # Loud on purpose. An unattributed receipt is preserved but cannot answer "which lab did
+        # this", and a lab that silently checks in from nowhere is worse than one that is absent -
+        # absence is visible, misattribution is not.
+        note = ("NO LAB IDENTITY: this check-in is recorded under the unattributed shard, so no "
+                "other lab can see who sent it. Fix it for this session with:  export UOR_LAB=<lab>"
+                "   (kimi | claude | codex | deepseek)")
+        if not globals().get("_IDENTITY_WARNED"):
+            globals()["_IDENTITY_WARNED"] = True
+            print(
+                "uor-harness: WARNING - no lab identity. Receipts and presence will be "
+                "unattributed.\n"
+                "             export UOR_LAB=<lab>   (kimi | claude | codex | deepseek)",
+                file=sys.stderr,
+            )
     try:
         import receipts as R  # noqa: PLC0415 - optional sibling module
 

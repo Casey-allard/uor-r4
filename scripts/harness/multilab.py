@@ -587,7 +587,8 @@ def main(args: Any, paths: HarnessPaths, reg: Any) -> int:  # noqa: ANN401
             return 0
         if not rows:
             emit("no lab has published presence yet")
-            emit("  a lab publishes it by running: cli.py heartbeat -m <milestone> --lab <lab>")
+            emit("  an empty board is normal until someone checks in.")
+            emit("  publish yours with:  export UOR_LAB=<lab> && cli.py heartbeat -m <milestone>")
             return 0
         emit(f"{len(rows)} lab(s) known (stale after {PRESENCE_TTL_MINUTES}m) · live tier: {live_dir(paths)}")
         emit(f"{'lab':<12} {'state':<20} {'via':<8} {'milestone':<8} {'branch':<24} doing")
