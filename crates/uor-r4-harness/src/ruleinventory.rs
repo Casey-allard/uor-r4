@@ -46,6 +46,10 @@ pub const INVENTORY: &[(&str, &[&str])] = &[
         ],
     ),
     (
+        "status",
+        &["status.branch_claimed", "status.no_orphan_branches"],
+    ),
+    (
         "harness",
         &[
             "harness.milestones.present",
