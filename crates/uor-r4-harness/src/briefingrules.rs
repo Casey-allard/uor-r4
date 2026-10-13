@@ -151,20 +151,11 @@ pub fn declared_lines(text: &str) -> Vec<Declared> {
     // sliced `text[i..]`, which panics the moment it lands inside a multi-byte character - and this
     // file is full of them (curly quotes, the `·` separator). `char_indices` cannot produce a
     // non-boundary offset, so the whole class of bug is gone rather than guarded against.
-    for (i, _) in text.char_indices() {
-        if !text[i..].starts_with("Line") {
+    for (i_pos, _) in text.char_indices() {
+        if !text[i_pos..].starts_with("Line") {
             continue;
         }
-        // Word start: the character before must not be alphanumeric.
-        let at_word_start = i == 0
-            || !text[..i]
-                .chars()
-                .next_back()
-                .is_some_and(|c| c.is_alphanumeric());
-        if !at_word_start {
-            continue;
-        }
-        let after_line = i + "Line".len();
+        let after_line = i_pos + "Line".len();
         let rest = text[after_line..].trim_start();
         let indent = text[after_line..].len() - rest.len();
         // An opening quote must follow, or this is not a declaration. **The contract's format
@@ -191,8 +182,16 @@ pub fn declared_lines(text: &str) -> Vec<Declared> {
         let after_close = &same_line[close_rel..];
         let window: String = after_close.chars().take(81).collect();
         if let Some((count, of)) = count_pair(&window) {
+            // Python labels the two forms, and **the label is what a finding cites** - a line found
+            // via a lab prompt should say so rather than point the reader at the contract.
+            let line_start = text[..i_pos].rfind('\n').map(|n| n + 1).unwrap_or(0);
+            let where_ = if text[line_start..i_pos].contains("DIRECTION:") {
+                "lab prompt DIRECTION"
+            } else {
+                "session-goal contract"
+            };
             built.push(Declared {
-                where_: "session-goal contract".into(),
+                where_: where_.into(),
                 name,
                 count,
                 of,
