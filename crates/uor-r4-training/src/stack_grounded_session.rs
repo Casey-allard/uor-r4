@@ -1427,7 +1427,7 @@ fn check_limit(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::geometric_stack::Gate;
+    use crate::geometric_stack::{Gate, RecGates};
     use crate::geometric_stack::{PointerConfig, ReadScore, StackArch, StackConfig, TransportSnap};
     use crate::stack_checkpoint::DataIdentity;
     use serde_json::{json, Value};
@@ -1657,6 +1657,7 @@ mod tests {
                 read_router: None,
                 objective: crate::geometric_stack::Objective::Ce,
                 gate: Gate::Swiglu,
+                rec_gates: RecGates::Historical,
             },
             &Device::Cpu,
         )

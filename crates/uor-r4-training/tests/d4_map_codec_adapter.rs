@@ -7,7 +7,7 @@ use uor_r4_training::d4_codecs::{
     RecurrenceOutMinMseMapCodec,
 };
 use uor_r4_training::geometric_stack::{
-    D11Interim, Gate, MapCodec, ReadScore, StackAdamW, StackArch, StackConfig, StackModel,
+    D11Interim, Gate, MapCodec, ReadScore, RecGates, StackAdamW, StackArch, StackConfig, StackModel,
 };
 use uor_r4_training::stack_export::{
     check_export_representation, export_quantizer_method, export_stack, stack_grid_reference,
@@ -95,6 +95,7 @@ fn qat_adapters_integrate_with_stack_model_and_export_contract() -> Result<()> {
         read_router: None,
         objective: uor_r4_training::geometric_stack::Objective::Ce,
         gate: Gate::Swiglu,
+        rec_gates: RecGates::Historical,
     };
     let device = Device::Cpu;
     let mut model = StackModel::new(config, &device)?;
@@ -170,6 +171,7 @@ fn qat_head_compensated_end_to_end_export_and_exactness() -> Result<()> {
         read_router: None,
         objective: uor_r4_training::geometric_stack::Objective::Ce,
         gate: Gate::Swiglu,
+        rec_gates: RecGates::Historical,
     };
     let device = Device::Cpu;
     let mut model = StackModel::new(config, &device)?;
@@ -324,6 +326,7 @@ fn qat_min_mse_end_to_end_export_and_exactness() -> Result<()> {
         read_router: None,
         objective: uor_r4_training::geometric_stack::Objective::Ce,
         gate: Gate::Swiglu,
+        rec_gates: RecGates::Historical,
     };
     let device = Device::Cpu;
     let mut model = StackModel::new(config, &device)?;
@@ -519,6 +522,7 @@ fn test_e8_matched_bit_map_codec_qat_and_export_refusal() -> Result<()> {
         read_router: None,
         objective: uor_r4_training::geometric_stack::Objective::Ce,
         gate: Gate::Swiglu,
+        rec_gates: RecGates::Historical,
     };
     let device = Device::Cpu;
     let mut model = StackModel::new(config, &device)?;
@@ -618,6 +622,7 @@ fn test_exported_artifact_dequantized_weights_equal_served_view_element_by_eleme
             read_router: None,
             objective: uor_r4_training::geometric_stack::Objective::Ce,
             gate: Gate::Swiglu,
+            rec_gates: RecGates::Historical,
         };
         let device = Device::Cpu;
         let mut model = StackModel::new(config.clone(), &device)?;
@@ -764,6 +769,7 @@ fn qat_rec_out_min_mse_end_to_end_export_and_exactness() -> Result<()> {
         read_router: None,
         objective: uor_r4_training::geometric_stack::Objective::Ce,
         gate: Gate::Swiglu,
+        rec_gates: RecGates::Historical,
     };
     let device = Device::Cpu;
     let mut model = StackModel::new(config, &device)?;
@@ -1052,6 +1058,7 @@ fn test_export_stack_directly_refuses_e8_matched_bit() -> Result<()> {
         read_router: None,
         objective: uor_r4_training::geometric_stack::Objective::Ce,
         gate: Gate::Swiglu,
+        rec_gates: RecGates::Historical,
     };
     let device = Device::Cpu;
     let mut model = StackModel::new(config, &device)?;
@@ -1087,6 +1094,7 @@ fn test_s2_real_proportions_exported_artifact_dequantized_weights_equal_served_v
         read_router: None,
         objective: uor_r4_training::geometric_stack::Objective::Ce,
         gate: Gate::Swiglu,
+        rec_gates: RecGates::Historical,
     };
     let device = Device::Cpu;
 
@@ -1324,6 +1332,7 @@ fn test_saved_model_export_restores_codec_not_rtn() -> Result<()> {
         read_router: None,
         objective: uor_r4_training::geometric_stack::Objective::Ce,
         gate: Gate::Swiglu,
+        rec_gates: RecGates::Historical,
     };
     let device = Device::Cpu;
     let mut model = StackModel::new(config, &device)?;

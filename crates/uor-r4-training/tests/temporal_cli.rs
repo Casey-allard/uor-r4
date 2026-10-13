@@ -12,7 +12,7 @@ use uor_r4_core::native_geometric::learner::realtext_support::sha256_hex;
 use uor_r4_core::report_output;
 use uor_r4_tokenizer::ByteBpeTokenizer;
 use uor_r4_training::geometric_stack::{
-    Gate, PointerConfig, ReadScore, StackArch, StackConfig, StackModel, TransportSnap,
+    Gate, PointerConfig, ReadScore, RecGates, StackArch, StackConfig, StackModel, TransportSnap,
 };
 use uor_r4_training::relation_compiler::{CompilerSettings, Example, SavedCompiler};
 use uor_r4_training::stack_checkpoint::{
@@ -234,6 +234,7 @@ fn fitted_adapter_drives_actual_clis_and_each_fresh_process_matches_generation()
             read_router: None,
             objective: uor_r4_training::geometric_stack::Objective::Ce,
             gate: Gate::Swiglu,
+            rec_gates: RecGates::Historical,
         },
         &Device::Cpu,
     )

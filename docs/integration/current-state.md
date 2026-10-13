@@ -132,6 +132,30 @@ Line: no model line - tooling · count 0/3 unchanged · headline 37/232 → 37/2
 **Next:** port behaviour against the Python suite as the conformance oracle - claims and presence
 first, since those are what the labs depend on - then cut CI over once the Rust path passes the same
 rules. The grandfather keeps Python working throughout.
+## 2026-10-13 — Dependency 3 delivered: the training recurrence's geometric gates (kimi, #2029)
+
+The [record](../labs/recurrence-geometric-gates-2026-10-13/README.md) lands the third dependency of the
+[rung-0 sheet](../harness/prep/m1-rank-margin-rung0-2026-10-13.md): a new `rec_gates=geometric` mode on
+`StackConfig` makes the model's forward compose a **clamped-linear opening score** (`clamp(gate + raw
+per-lane decay score, 0, 1)`), an **exact table read** over the fixed dyadic rates `lambda = 2^-(s+1)` with
+`keep = sqrt(1-lambda^2)` precomputed beside them, and the **Hamilton rotation gate** (OP1) on the recurrence
+output — so the recurrence rung 0 trains has no sigmoid, `softplus`, `exp` or tanh-GELU left in either
+direction (verified by grep per arm: 0 squash-family tokens in the geometric decay arm, the output-gate arm
+and the new CUDA kernels; the two mentions in the op's documentation name what is absent). The hard
+selection's zero derivative is bridged by the same **declared geometric secant surrogate** pattern `#2279`
+landed for the projection: the selected entry's lawful neighbours contribute their complete counterfactual
+table displacement resolved along the fixed edge `1/16`. The model-level forward refuses any non-CUDA device
+loudly (D24, the ops keep host references for tests), and export/D11 and `qat=true` refuse the mode because
+the integer engine still binds the historical decay parameter — a stale binding is refused, never converted.
+`RecGates::Historical` stays the default so every existing config, checkpoint and test reproduces exactly
+(nothing was deleted, so nothing needed archiving — a deliberate deviation, stated in the record).
+Device qualification is dependency 4 and remains open; the training hold is untouched.
+
+Line: evaluation integrity · count 1/3 (source implementation, no compute) · headline: unchanged (M1 v5
+memory 20/40, reply 37/232).
+
+**Next:** dependency 4 (lawful device qualification with stored/analytic expected values), then OP3a and the
+owner's hold release. `check_no_softmax.py` stays at 1649 and `check_no_matmul.py` at 93.
 
 ## 2026-10-13 — Pods bootstrap from the HF store and save to it (claude, #2028)
 

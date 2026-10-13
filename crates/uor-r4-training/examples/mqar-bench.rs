@@ -83,7 +83,7 @@ use uor_r4_core::report_output;
 use uor_r4_training::geometric_stack::quaternion_j_left;
 use uor_r4_training::geometric_stack::{
     parse_pointer_route, parse_pointer_select, parse_read_route, Gate, PointerConfig,
-    PointerSelect, PrimeRoute, ReadBinding, ReadBindingTarget, ReadLineage, ReadScore,
+    PointerSelect, PrimeRoute, ReadBinding, ReadBindingTarget, ReadLineage, ReadScore, RecGates,
     RotationGroup, StackAdamW, StackArch, StackConfig, StackModel, StarlingRoute,
 };
 use uor_r4_training::{Result, TrainingError};
@@ -677,6 +677,7 @@ fn reference_config(
         read_router: None,
         objective: uor_r4_training::geometric_stack::Objective::Ce,
         gate: Gate::Swiglu,
+        rec_gates: RecGates::Historical,
     };
     config.validate()?;
     Ok(config)
@@ -965,6 +966,7 @@ impl ArmSpec {
                     read_router: None,
                     objective: uor_r4_training::geometric_stack::Objective::Ce,
                     gate: Gate::Swiglu,
+                    rec_gates: RecGates::Historical,
                 };
                 config.validate()?;
                 Ok(config)
@@ -1005,6 +1007,7 @@ impl ArmSpec {
                     read_router: None,
                     objective: uor_r4_training::geometric_stack::Objective::Ce,
                     gate: Gate::Swiglu,
+                    rec_gates: RecGates::Historical,
                 };
                 control.mlp_hidden = match mlp_hidden {
                     Some(explicit) => *explicit,
@@ -3700,6 +3703,7 @@ mod tests {
             read_router: None,
             objective: uor_r4_training::geometric_stack::Objective::Ce,
             gate: Gate::Swiglu,
+            rec_gates: RecGates::Historical,
         }
     }
 

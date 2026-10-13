@@ -367,11 +367,11 @@ use uor_r4_training::dialogue_episodes::{EpisodeIndex, PrefixPolicy, EPISODE_CON
 use uor_r4_training::flock::FlockSelect;
 use uor_r4_training::geometric_stack::{
     average_replica_gradients, gate_served_refusal, logits_cross_entropy, parse_flock_select,
-    parse_pointer_route, parse_pointer_select, quaternion_served_refusal, ActivationSnap,
-    D11Interim, Gate, MapCodec, Objective, PointerConfig, PointerIdentity, PointerSelect,
-    Precision, PrimeRoute, QuaternionSnap, QuaternionWeights, ReadLineage, ReadScore,
-    ReadWeighting, RotationGroup, ServedStatistics, StackAdamW, StackArch, StackConfig, StackModel,
-    TransportSnap, TransportUsage,
+    parse_pointer_route, parse_pointer_select, quaternion_served_refusal, rec_gates_served_refusal,
+    ActivationSnap, D11Interim, Gate, MapCodec, Objective, PointerConfig, PointerIdentity,
+    PointerSelect, Precision, PrimeRoute, QuaternionSnap, QuaternionWeights, ReadLineage,
+    ReadScore, ReadWeighting, RecGates, RotationGroup, ServedStatistics, StackAdamW, StackArch,
+    StackConfig, StackModel, TransportSnap, TransportUsage,
 };
 use uor_r4_training::lut_export::export_llama;
 use uor_r4_training::stack_address::{RouteConfig, RouteNull};
@@ -1115,6 +1115,9 @@ fn check_qat_config(config: &StackConfig) -> Result<()> {
     }
     if config.gate != Gate::Swiglu {
         return Err(gate_served_refusal(config.gate));
+    }
+    if config.rec_gates != RecGates::Historical {
+        return Err(rec_gates_served_refusal(config.rec_gates));
     }
     Ok(())
 }

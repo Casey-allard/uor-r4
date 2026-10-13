@@ -1132,7 +1132,7 @@ pub fn compare_reference(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::geometric_stack::Gate;
+    use crate::geometric_stack::{Gate, RecGates};
     use crate::geometric_stack::{ReadIdentityLatch, ReadScore, StackArch, StackConfig};
     use candle_core::Device;
     use std::path::PathBuf;
@@ -1182,6 +1182,7 @@ mod tests {
             read_router: None,
             objective: crate::geometric_stack::Objective::Ce,
             gate: Gate::Swiglu,
+            rec_gates: RecGates::Historical,
         };
         let mut model = StackModel::new(config, &Device::Cpu)?;
         model.set_read_identity_latch(ReadIdentityLatch::Held)?;

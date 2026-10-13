@@ -2455,8 +2455,8 @@ mod tests {
     use super::*;
     use crate::geometric_event::EventWeights;
     use crate::geometric_span::GeometricSpanConfig;
-    use crate::geometric_stack::Gate;
     use crate::geometric_stack::{logits_cross_entropy, ReadIdentityLatch, ReadScore, StackArch};
+    use crate::geometric_stack::{Gate, RecGates};
     use std::path::PathBuf;
     use std::sync::atomic::{AtomicU64, Ordering};
     fn norm(values: &[f32]) -> f64 {
@@ -2896,6 +2896,7 @@ mod tests {
             read_router: None,
             objective: crate::geometric_stack::Objective::Ce,
             gate: Gate::Swiglu,
+            rec_gates: RecGates::Historical,
         };
         let mut model = StackModel::new(config, &Device::Cpu)?;
         model.set_read_identity_latch(ReadIdentityLatch::Held)?;

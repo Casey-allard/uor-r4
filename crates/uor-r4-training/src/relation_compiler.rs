@@ -2493,7 +2493,7 @@ pub fn score(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::geometric_stack::Gate;
+    use crate::geometric_stack::{Gate, RecGates};
     use crate::milestone_world_v2::{Category2, Tag};
     use crate::stack_grounded_session::CompiledAction;
 
@@ -2988,6 +2988,7 @@ mod tests {
                 read_router: None,
                 objective: crate::geometric_stack::Objective::Ce,
                 gate: Gate::Swiglu,
+                rec_gates: RecGates::Historical,
             },
             &candle_core::Device::Cpu,
         )?;

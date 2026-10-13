@@ -43,7 +43,7 @@ use serde_json::{json, Value};
 use uor_r4_core::report_output;
 use uor_r4_tokenizer::dialogue::{DialogueProtocol, Message};
 use uor_r4_tokenizer::ByteBpeTokenizer;
-use uor_r4_training::geometric_stack::{Gate, ReadScore, StackArch, StackConfig};
+use uor_r4_training::geometric_stack::{Gate, ReadScore, RecGates, StackArch, StackConfig};
 use uor_r4_training::stack_aerm::{
     evaluate_dialogues, free_running, text_nll, train_aerm, AermConfig, AermModel, QueryClass,
     RelationWorld,
@@ -252,6 +252,7 @@ fn run(args: &Args, out: &Path) -> Result<()> {
         read_router: None,
         objective: uor_r4_training::geometric_stack::Objective::Ce,
         gate: Gate::Swiglu,
+        rec_gates: RecGates::Historical,
     };
     template.validate()?;
     let train_template = AermConfig {

@@ -45,7 +45,7 @@ use std::time::Instant;
 use candle_core::Device;
 use serde_json::{json, Value};
 use uor_r4_core::report_output;
-use uor_r4_training::geometric_stack::{Gate, ReadScore, StackArch, StackConfig};
+use uor_r4_training::geometric_stack::{Gate, ReadScore, RecGates, StackArch, StackConfig};
 use uor_r4_training::stack_tracking::{
     a5_stack_accuracy, context_transport_witness, evaluate, story_accuracy, text_nll, train,
     train_mixed, train_stories, A5Task, LaneAutomaton, LaneConfig, LaneKind, LaneModel,
@@ -363,6 +363,7 @@ fn mixed(args: &Args, out: &Path) -> Result<()> {
         read_router: None,
         objective: uor_r4_training::geometric_stack::Objective::Ce,
         gate: Gate::Swiglu,
+        rec_gates: RecGates::Historical,
     };
     stack_template.validate()?;
     let mixed_template = MixedConfig {
@@ -611,6 +612,7 @@ fn stories(args: &Args, out: &Path) -> Result<()> {
         read_router: None,
         objective: uor_r4_training::geometric_stack::Objective::Ce,
         gate: Gate::Swiglu,
+        rec_gates: RecGates::Historical,
     };
     stack_template.validate()?;
     let story_template = StoryConfig {

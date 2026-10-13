@@ -1180,7 +1180,7 @@ mod tests {
     use crate::geometric_address::GeometricAddressConfig;
     use crate::geometric_potential_native::PotentialSourceBinding;
     use crate::geometric_span::GeometricSpanConfig;
-    use crate::geometric_stack::Gate;
+    use crate::geometric_stack::{Gate, RecGates};
     use crate::geometric_stack::{ReadIdentityLatch, ReadScore};
     use std::path::PathBuf;
     use std::sync::atomic::{AtomicU64, Ordering};
@@ -1235,6 +1235,7 @@ mod tests {
             read_router: None,
             objective: crate::geometric_stack::Objective::Ce,
             gate: Gate::Swiglu,
+            rec_gates: RecGates::Historical,
         };
         let mut model = StackModel::new(config, &Device::Cpu)?;
         model.set_read_identity_latch(ReadIdentityLatch::Held)?;

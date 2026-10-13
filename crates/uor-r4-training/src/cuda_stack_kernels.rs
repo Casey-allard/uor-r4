@@ -320,6 +320,66 @@ extern "C" __global__ void hamilton_gate_bwd(
 }
 
 // ---------------------------------------------------------------------------
+// 2d. Exact rate selection (the geometric recurrence's decay): the score picks
+// one entry of the fixed dyadic table `lambda = 2^-(s+1)` with
+// `keep = sqrt(1 - lambda^2)`. The forward is a threshold and a table read -
+// `lambda` is built from its exact f32 bit pattern, never by an exponential -
+// and the backward is the declared geometric secant surrogate over the selected
+// entry's lawful neighbours at the fixed edge `1/16` (the same rule the host op
+// documents). No exponential of any kind appears in either direction.
+// ---------------------------------------------------------------------------
+#define RATE_ENTRIES 16u
+
+__device__ __forceinline__ float rate_entry(uint index) {
+    // 2^-(index+1) as an exact f32 bit pattern (index < 16, no subnormals).
+    uint bits = ((127u - (index + 1u)) << 23);
+    return __uint_as_float(bits);
+}
+
+__device__ __forceinline__ float keep_entry(uint index) {
+    float rate = rate_entry(index);
+    return sqrtf(1.0f - rate * rate);
+}
+
+__device__ __forceinline__ uint rate_index_of(float score) {
+    uint index = (uint)(score * (float)RATE_ENTRIES);
+    return index < RATE_ENTRIES ? index : RATE_ENTRIES - 1u;
+}
+
+extern "C" __global__ void rate_select_fwd(
+    const act_t* score, act_t* out, uint total
+) {
+    uint id = blockIdx.x * blockDim.x + threadIdx.x;
+    if (id >= total) return;
+    uint index = rate_index_of(act_to_f(score[id]));
+    out[2 * id] = act_from_f(rate_entry(index));
+    out[2 * id + 1] = act_from_f(keep_entry(index));
+}
+
+extern "C" __global__ void rate_select_bwd(
+    const act_t* score, const act_t* grad, act_t* d_score, uint total
+) {
+    uint id = blockIdx.x * blockDim.x + threadIdx.x;
+    if (id >= total) return;
+    uint index = rate_index_of(act_to_f(score[id]));
+    float d_lambda = act_to_f(grad[2 * id]);
+    float d_keep = act_to_f(grad[2 * id + 1]);
+    float credit = 0.0f;
+    float sides = 0.0f;
+    if (index > 0u) {
+        credit += d_lambda * (rate_entry(index - 1u) - rate_entry(index))
+                + d_keep * (keep_entry(index - 1u) - keep_entry(index));
+        sides += 1.0f;
+    }
+    if (index + 1u < RATE_ENTRIES) {
+        credit += d_lambda * (rate_entry(index + 1u) - rate_entry(index))
+                + d_keep * (keep_entry(index + 1u) - keep_entry(index));
+        sides += 1.0f;
+    }
+    if (sides > 0.0f) credit /= sides;
+    d_score[id] = act_from_f(credit * (float)RATE_ENTRIES);
+}
+// ---------------------------------------------------------------------------
 // 3. RMSNorm: f64 statistics as the CPU; one block per row. The input, the
 // output and the gradients are activation storage, the gain and its gradient
 // are f32 parameters, and the statistics are f64 in both builds.

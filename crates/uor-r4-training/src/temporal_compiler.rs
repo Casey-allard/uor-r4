@@ -648,7 +648,7 @@ fn same_action(a: &CompiledAction, b: &CompiledAction) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::geometric_stack::Gate;
+    use crate::geometric_stack::{Gate, RecGates};
     use candle_core::Device;
     use std::fs;
     use std::path::{Path, PathBuf};
@@ -1037,6 +1037,7 @@ mod tests {
                 read_router: None,
                 objective: crate::geometric_stack::Objective::Ce,
                 gate: Gate::Swiglu,
+                rec_gates: RecGates::Historical,
             },
             &Device::Cpu,
         )

@@ -561,6 +561,64 @@ pub(crate) fn spiralcore_fbs_bwd(
     ))
 }
 
+/// Exact rate selection on the device: one thread per score, two activation
+/// values out (rate, keep). The kernel builds each entry from its exact f32 bit
+/// pattern, so no exponential and no table load are involved.
+pub(super) fn rate_select_fwd(s: &CudaStorage, l: &Layout) -> Forward {
+    if s.dtype() == DType::BF16 {
+        return super::cuda_ops_bf16::rate_select_fwd(s, l);
+    }
+    let Some(score) = input(s, l)? else {
+        candle_core::bail!("rate selection needs a contiguous F32 score");
+    };
+    let device = &s.device;
+    let total = l.shape().elem_count();
+    let out = uninit::<f32>(device, total * 2)?;
+    launch(
+        device,
+        "rate_select_fwd",
+        total,
+        &[
+            Arg::F(score),
+            Arg::f(&out),
+            Arg::U32(u32_of(total, "size")?),
+        ],
+    )?;
+    let mut dims = l.shape().dims().to_vec();
+    dims.push(2);
+    Ok((storage(out, device), Shape::from_dims(&dims)))
+}
+
+pub(super) fn rate_select_bwd(
+    device: &CudaDevice,
+    score: &Tensor,
+    grad: &Tensor,
+) -> CResult<Tensor> {
+    if score.dtype() == DType::BF16 {
+        return super::cuda_ops_bf16::rate_select_bwd(device, score, grad);
+    }
+    let (s, g) = (ready(score)?, ready(grad)?);
+    let total = s.elem_count();
+    if g.elem_count() != total * 2 {
+        candle_core::bail!("rate selection's gradient must be [.., lanes, 2]");
+    }
+    let (ss, sl) = s.storage_and_layout();
+    let (gs, gl) = g.storage_and_layout();
+    let d_score = uninit::<f32>(device, total)?;
+    launch(
+        device,
+        "rate_select_bwd",
+        total,
+        &[
+            Arg::F(view(&ss, sl)?),
+            Arg::F(view(&gs, gl)?),
+            Arg::f(&d_score),
+            Arg::U32(u32_of(total, "size")?),
+        ],
+    )?;
+    Ok(tensor(d_score, device, score.shape()))
+}
+
 /// Threads per block of the row reductions (a multiple of 32).
 const ROW_THREADS: usize = 256;
 /// Rows per partial sum of the RMSNorm weight gradient.

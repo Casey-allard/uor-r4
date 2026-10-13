@@ -7,7 +7,7 @@ use serde_json::{json, Value};
 use std::{fs, path::Path, time::Instant};
 use uor_r4_core::report_output;
 use uor_r4_training::geometric_stack::{
-    Gate, ReadBinding, ReadBindingTarget, ReadScore, StackAdamW, StackArch, StackConfig,
+    Gate, ReadBinding, ReadBindingTarget, ReadScore, RecGates, StackAdamW, StackArch, StackConfig,
     StackModel, StackSite,
 };
 use uor_r4_training::{Result, TrainingError};
@@ -197,6 +197,7 @@ fn run(
                     read_router: None,
                     objective: uor_r4_training::geometric_stack::Objective::Ce,
                     gate: Gate::Swiglu,
+                    rec_gates: RecGates::Historical,
                 };
                 let mut model = StackModel::new(config, &Device::Cpu)?;
                 model.set_read_identity_carry(carry)?;

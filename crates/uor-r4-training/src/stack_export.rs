@@ -334,6 +334,11 @@ pub fn check_export_config_weighted(config: &StackConfig, weighting: ReadWeighti
     if config.gate != crate::geometric_stack::Gate::Swiglu {
         return Err(crate::geometric_stack::gate_served_refusal(config.gate));
     }
+    if config.rec_gates != crate::geometric_stack::RecGates::Historical {
+        return Err(crate::geometric_stack::rec_gates_served_refusal(
+            config.rec_gates,
+        ));
+    }
     Ok(())
 }
 

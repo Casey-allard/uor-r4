@@ -1406,6 +1406,40 @@ impl Gate {
     }
 }
 
+/// The trained recurrence's squash mechanism. [`Self::Historical`] is the
+/// exponential chain every existing artifact was trained with - a sigmoid
+/// opening, an `exp`/`softplus` decay rate and a tanh-GELU output gate. It is
+/// retained so those artifacts load and reproduce exactly, it is prohibited for
+/// new runs, and it is not the executed path of rung 0. [`Self::Geometric`] is
+/// the squash-free form: a clamped-linear opening score selects one entry of the
+/// fixed dyadic rate table ([`RATE_TABLE`] with [`KEEP_TABLE`] beside it), and
+/// the output gate is the Hamilton rotation ([`hamilton_gate`]).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RecGates {
+    /// Sigmoid opening, `exp` rate, tanh-GELU output gate.
+    #[default]
+    Historical,
+    /// Clamped-linear opening, exact dyadic rate selection, Hamilton gate.
+    Geometric,
+}
+
+impl RecGates {
+    /// The mode's own name, for reports, flags and validation errors.
+    pub fn name(self) -> &'static str {
+        match self {
+            RecGates::Historical => "historical",
+            RecGates::Geometric => "geometric",
+        }
+    }
+
+    /// [`RecGates::Historical`], the serialization default (only the geometric
+    /// form writes the config field, so older configs stay byte-identical).
+    pub fn is_historical(&self) -> bool {
+        matches!(self, RecGates::Historical)
+    }
+}
+
 /// The CUDA kernels that run the recurrence core (a training-speed choice;
 /// both compute the same values, bit for bit).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -2567,6 +2601,12 @@ pub struct StackConfig {
     /// only an exponential-free gate writes the field.
     #[serde(default, skip_serializing_if = "Gate::is_swiglu")]
     pub gate: Gate,
+    /// The recurrence's squash mechanism ([`RecGates`]): absent from
+    /// configurations saved before the control existed, which keep the
+    /// historical exponential chain exactly as before; only the geometric form
+    /// writes the field.
+    #[serde(default, skip_serializing_if = "RecGates::is_historical")]
+    pub rec_gates: RecGates,
 }
 
 impl StackConfig {
@@ -2590,6 +2630,7 @@ impl StackConfig {
             read_router: None,
             objective: Objective::Ce,
             gate: Gate::Swiglu,
+            rec_gates: RecGates::Historical,
         }
     }
 
@@ -2631,6 +2672,7 @@ impl StackConfig {
             read_router: None,
             objective: Objective::Ce,
             gate: Gate::Swiglu,
+            rec_gates: RecGates::Historical,
         };
         config.validate()?;
         Ok(config)
@@ -2753,6 +2795,13 @@ impl StackConfig {
                     ));
                 }
             }
+        }
+        if self.rec_gates == RecGates::Geometric
+            && (self.arch != StackArch::Geometric || self.width % 4 != 0)
+        {
+            return Err(invalid(
+                "the geometric recurrence gates need arch=geometric and a width divisible by 4",
+            ));
         }
         if self.gate == Gate::Hamilton && self.mlp_hidden % 4 != 0 {
             return Err(invalid(
@@ -3156,6 +3205,21 @@ fn spiralcore_fbs_binding(plans: &NativePlans) -> serde_json::Value {
 /// `quaternion_weights=all` with `export`, D11, `qat=true` or `transport_snap`.
 pub fn quaternion_served_refusal() -> crate::TrainingError {
     invalid("quaternion weights have no served form yet")
+}
+
+/// A [`RecGates::Geometric`] recurrence with `export`, D11 or `qat=true`: the
+/// integer engine binds the *historical* decay parameter (its `DecayRate` codec
+/// encodes `8 softplus(-decay)`), so exporting a geometric-recurrence model
+/// would silently reinterpret its `rec.decay` values as rate scores. Refused
+/// until the table read has its own declared served binding; a stale or
+/// undeclared binding is refused, never converted.
+pub fn rec_gates_served_refusal(mode: RecGates) -> crate::TrainingError {
+    invalid(format!(
+        "the {} recurrence gates have no served binding yet: the integer engine binds the \
+         historical decay parameter, so an export would reinterpret it. Train this form in float \
+         until the served table read lands",
+        mode.name()
+    ))
 }
 
 /// A [`Gate`] other than the historical one with `export`, D11 or `qat=true`:
@@ -3779,6 +3843,12 @@ impl StackModel {
         }
         if let Some(config) = &self.geometric_address {
             self.validate_geometric_address(config)?;
+        }
+        if self.config.rec_gates == RecGates::Geometric && !self.device.is_cuda() {
+            return Err(invalid(
+                "the geometric recurrence gates are a CUDA training path; no CPU or Metal model \
+                 execution (D24). The ops keep host references for unit tests only",
+            ));
         }
         match &self.served {
             None if self.quaternion_weights == QuaternionWeights::SpiralcoreFbs => {
@@ -12479,24 +12549,40 @@ impl StackModel {
         let gates = self
             .linear(&u, p.layer(layer, "rec.gate.weight")?)?
             .broadcast_add(p.layer(layer, "rec.gate.bias")?)?;
-        let opening = candle_nn::ops::sigmoid(&gates.narrow(2, 0, lanes)?)?;
-        // log a = -softplus(-decay) keeps a in (0, 1); log lambda = c r log a.
-        let log_a = p
-            .layer(layer, "rec.decay")?
-            .to_dtype(DType::F64)?
-            .neg()?
-            .exp()?
-            .affine(1.0, 1.0)?
-            .log()?
-            .neg()?
-            .to_dtype(DType::F32)?;
-        let log_lambda = opening.broadcast_mul(&log_a)?.affine(DECAY_EXPONENT, 0.0)?;
-        let lambda = log_lambda.exp()?.unsqueeze(3)?;
-        let keep = lambda
-            .sqr()?
-            .affine(-1.0, 1.0)?
-            .clamp(1e-6f32, 1f32)?
-            .sqrt()?;
+        // The decay rate. `RecGates::Geometric`: a clamped-linear opening score
+        // plus the per-lane decay parameter read **raw** as a rate score selects
+        // one entry of the fixed dyadic table ([`rate_select`]); no sigmoid, no
+        // softplus and no `exp` in either direction. `RecGates::Historical`
+        // keeps the exponential chain so existing configs and checkpoints
+        // reproduce exactly (prohibited for new runs).
+        let (lambda, keep) = if self.config.rec_gates == RecGates::Geometric {
+            let score = gates
+                .narrow(2, 0, lanes)?
+                .broadcast_add(&p.layer(layer, "rec.decay")?.reshape((1, 1, lanes))?)?
+                .clamp(0.0, 1.0)?;
+            let selected = rate_select(&score)?;
+            (selected.narrow(3, 0, 1)?, selected.narrow(3, 1, 1)?)
+        } else {
+            let opening = candle_nn::ops::sigmoid(&gates.narrow(2, 0, lanes)?)?;
+            // log a = -softplus(-decay) keeps a in (0, 1); log lambda = c r log a.
+            let log_a = p
+                .layer(layer, "rec.decay")?
+                .to_dtype(DType::F64)?
+                .neg()?
+                .exp()?
+                .affine(1.0, 1.0)?
+                .log()?
+                .neg()?
+                .to_dtype(DType::F32)?;
+            let log_lambda = opening.broadcast_mul(&log_a)?.affine(DECAY_EXPONENT, 0.0)?;
+            let lambda = log_lambda.exp()?.unsqueeze(3)?;
+            let keep = lambda
+                .sqr()?
+                .affine(-1.0, 1.0)?
+                .clamp(1e-6f32, 1f32)?
+                .sqrt()?;
+            (lambda, keep)
+        };
         let transition = if self.config.rotation {
             let raw = gates
                 .narrow(2, lanes, width)?
@@ -12529,10 +12615,15 @@ impl StackModel {
             .broadcast_mul(&keep)?;
         let state = quaternion_scan(&transition.contiguous()?, &drive.contiguous()?)?
             .reshape((batch, time, width))?;
-        self.linear(
-            &state.mul(&gate.gelu()?)?,
-            p.layer(layer, "rec.out.weight")?,
-        )
+        // The output gate. `RecGates::Geometric` rotates the recurrence output
+        // by the gate's 4-lane quaternions ([`hamilton_gate`], OP1); the
+        // historical mode keeps the tanh-GELU gate.
+        let mixed = if self.config.rec_gates == RecGates::Geometric {
+            hamilton_gate(&gate, &state)?
+        } else {
+            state.mul(&gate.gelu()?)?
+        };
+        self.linear(&mixed, p.layer(layer, "rec.out.weight")?)
     }
 }
 
@@ -18182,6 +18273,194 @@ pub fn hamilton_gate(gate: &Tensor, up: &Tensor) -> Result<Tensor> {
 }
 
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Exact rate selection: the geometric recurrence's decay. A per-lane score
+// selects one entry of a fixed dyadic table, `lambda = 2^-(s+1)` with
+// `keep = sqrt(1 - lambda^2)` precomputed beside it in the same table, so no
+// `exp`, `softplus` or any other exponential-family operation appears in either
+// direction of the executed path. The forward is a threshold and a table read;
+// the backward is the declared **geometric secant surrogate** described on
+// [`RateSelect`].
+
+/// The exact dyadic decay rates `2^-(s+1)` for `s = 0..16`. The forward reads
+/// this table and never computes an exponential; the entries are exact powers of
+/// two in f32.
+pub const RATE_TABLE: [f32; 16] = [
+    0.5,
+    0.25,
+    0.125,
+    0.0625,
+    0.03125,
+    0.015625,
+    0.0078125,
+    0.00390625,
+    0.001953125,
+    0.0009765625,
+    0.00048828125,
+    0.000244140625,
+    0.0001220703125,
+    6.103515625e-05,
+    3.0517578125e-05,
+    1.52587890625e-05,
+];
+
+/// `keep = sqrt(1 - lambda^2)` of [`RATE_TABLE`], precomputed to the nearest
+/// f32 so the host and the device read identical bit patterns (`|keep^2 +
+/// lambda^2 - 1| <= 6e-8` for every entry). The last four entries round to `1`
+/// because `1 - 2^-26` is below f32 resolution.
+pub const KEEP_TABLE: [f32; 16] = [
+    0.8660253882408142,
+    0.9682458639144897,
+    0.9921567440032959,
+    0.9980449676513672,
+    0.9995115995407104,
+    0.9998779296875,
+    0.999969482421875,
+    0.9999923706054688,
+    0.9999980926513672,
+    0.9999995231628418,
+    0.9999998807907104,
+    0.9999999403953552,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+];
+
+/// The number of rate-table entries: the index is `floor(score * RATE_ENTRIES)`
+/// clamped to the last entry, so a score of exactly `k / RATE_ENTRIES` selects
+/// entry `k`.
+pub const RATE_ENTRIES: usize = 16;
+
+/// The table index a clamped score selects.
+#[inline]
+pub fn rate_index(score: f32) -> usize {
+    let index = (score * RATE_ENTRIES as f32) as usize;
+    index.min(RATE_ENTRIES - 1)
+}
+
+/// Exact rate selection. Forward: `score -> (lambda, keep)` by table read.
+///
+/// **Backward: a declared geometric secant surrogate, not the derivative of the
+/// discontinuous selection** (whose exact derivative is zero almost everywhere,
+/// so nothing would train). The rule follows the pattern landed for the native
+/// projection in #2279: for the selected entry's lawful neighbours it pairs the
+/// incoming adjoints `(d lambda, d keep)` with the neighbours' complete
+/// counterfactual table displacement `(lambda_s' - lambda_s, keep_s' - keep_s)`
+/// and resolves that loss contrast along the fixed edge between the entries
+/// (`1 / RATE_ENTRIES`), one half to each side and the whole weight to a lone
+/// neighbour at either end of the table. No probability, no exponential and no
+/// learned coefficient appears: the surrogate is a secant over a fixed table.
+struct RateSelect;
+
+impl candle_core::CustomOp1 for RateSelect {
+    fn name(&self) -> &'static str {
+        "geometric-stack-rate-select"
+    }
+
+    fn cpu_fwd(
+        &self,
+        storage: &CpuStorage,
+        layout: &Layout,
+    ) -> candle_core::Result<(CpuStorage, Shape)> {
+        if storage.dtype() != DType::F32 {
+            candle_core::bail!("rate selection needs F32; bf16 is a device precision");
+        }
+        let score = contiguous(storage, layout)?;
+        let mut out = vec![0f32; score.len() * 2];
+        out.par_chunks_mut(2)
+            .zip(score.par_chunks(1))
+            .for_each(|(o, q)| {
+                let index = rate_index(q[0]);
+                o[0] = RATE_TABLE[index];
+                o[1] = KEEP_TABLE[index];
+            });
+        let mut dims = layout.shape().dims().to_vec();
+        dims.push(2);
+        Ok((CpuStorage::F32(out), Shape::from_dims(&dims)))
+    }
+
+    #[cfg(feature = "metal")]
+    fn metal_fwd(
+        &self,
+        _storage: &MetalStorage,
+        _layout: &Layout,
+    ) -> candle_core::Result<(MetalStorage, Shape)> {
+        candle_core::bail!("rate selection has no Metal kernel yet")
+    }
+
+    #[cfg(feature = "cuda")]
+    fn cuda_fwd(
+        &self,
+        storage: &CudaStorage,
+        layout: &Layout,
+    ) -> candle_core::Result<(CudaStorage, Shape)> {
+        cuda_ops::rate_select_fwd(storage, layout)
+    }
+
+    fn bwd(
+        &self,
+        score: &Tensor,
+        _out: &Tensor,
+        grad: &Tensor,
+    ) -> candle_core::Result<Option<Tensor>> {
+        #[cfg(feature = "cuda")]
+        if let Device::Cuda(device) = score.device() {
+            return Ok(Some(cuda_ops::rate_select_bwd(device, score, grad)?));
+        }
+        #[cfg(feature = "metal")]
+        if score.device().is_metal() {
+            candle_core::bail!("rate selection has no Metal kernel yet");
+        }
+        let scores = score.flatten_all()?.to_vec1::<f32>()?;
+        let grads = grad.flatten_all()?.to_vec1::<f32>()?;
+        if grads.len() != scores.len() * 2 {
+            candle_core::bail!("rate selection's gradient must be [.., lanes, 2]");
+        }
+        let mut d_score = vec![0f32; scores.len()];
+        d_score.par_iter_mut().enumerate().for_each(|(i, d)| {
+            let s = rate_index(scores[i]);
+            let (d_lambda, d_keep) = (grads[2 * i], grads[2 * i + 1]);
+            let mut credit = 0.0f64;
+            let mut sides = 0.0f64;
+            for neighbour in [s.checked_sub(1), Some(s + 1).filter(|n| *n < RATE_ENTRIES)]
+                .into_iter()
+                .flatten()
+            {
+                let contrast = f64::from(d_lambda)
+                    * f64::from(RATE_TABLE[neighbour] - RATE_TABLE[s])
+                    + f64::from(d_keep) * f64::from(KEEP_TABLE[neighbour] - KEEP_TABLE[s]);
+                credit += contrast;
+                sides += 1.0;
+            }
+            if sides > 0.0 {
+                credit /= sides;
+            }
+            *d = (credit * RATE_ENTRIES as f64) as f32;
+        });
+        Ok(Some(Tensor::from_vec(
+            d_score,
+            score.shape(),
+            score.device(),
+        )?))
+    }
+}
+
+/// Exact rate selection: `score [.., lanes] -> (lambda, keep) [.., lanes, 2]`,
+/// each entry read from the fixed dyadic table ([`RATE_TABLE`],
+/// [`KEEP_TABLE`]). The score is expected clamped to `[0, 1]` by the caller, so
+/// the selection threshold is exact and the clamp's own subgradient carries the
+/// gradient back to the raw score.
+pub fn rate_select(score: &Tensor) -> Result<Tensor> {
+    if score.dtype() != DType::F32 {
+        return Err(invalid("rate_select requires F32 tensors"));
+    }
+    if score.elem_count() == 0 {
+        return Err(invalid("rate_select requires non-empty scores"));
+    }
+    Ok(score.contiguous()?.apply_op1(RateSelect)?)
+}
+
 // Dense quaternion projection retained only as an inactive source archive.
 
 /// Historical API retained for callers, never an executable dense projection.
@@ -20193,6 +20472,7 @@ mod tests {
             read_router: None,
             objective: Objective::Ce,
             gate: Gate::Swiglu,
+            rec_gates: RecGates::Historical,
         };
         let model = StackModel::new(config, &Device::Cpu)?;
         let ids = vec![1, 2, 3, 4];
@@ -20241,6 +20521,7 @@ mod tests {
             read_router: None,
             objective: Objective::Ce,
             gate: Gate::Swiglu,
+            rec_gates: RecGates::Historical,
         };
         let model = StackModel::new(config, &Device::Cpu)?;
         let ids = vec![1, 2];
@@ -21485,6 +21766,7 @@ mod tests {
             read_router: None,
             objective: Objective::Ce,
             gate: Gate::Swiglu,
+            rec_gates: RecGates::Historical,
         }
     }
 
@@ -21591,6 +21873,220 @@ mod tests {
             config.validate().is_err(),
             "a margin objective refuses a pointer head for now"
         );
+        Ok(())
+    }
+
+    /// The rate table is exact dyadic, strictly decreasing in `lambda` and
+    /// strictly increasing in `keep`, with `keep^2 + lambda^2 = 1` per entry.
+    #[test]
+    fn the_rate_table_is_exact_dyadic_and_monotone() {
+        for (index, (&rate, &keep)) in RATE_TABLE.iter().zip(KEEP_TABLE.iter()).enumerate() {
+            let expected = 2f32.powi(-(index as i32) - 1);
+            assert_eq!(
+                rate, expected,
+                "entry {index} is not the exact power of two"
+            );
+            assert!(
+                (f64::from(keep) * f64::from(keep) + f64::from(rate) * f64::from(rate) - 1.0).abs()
+                    <= 1e-7,
+                "entry {index}: keep^2 + lambda^2 is not 1"
+            );
+        }
+        assert!(
+            RATE_TABLE.windows(2).all(|w| w[0] > w[1]),
+            "rates must fall with the index"
+        );
+        // The keep column never falls; its last four entries are a plateau at
+        // `1.0`, because `1 - 2^-26` is below f32 resolution (the table's own
+        // documentation says so).
+        assert!(
+            KEEP_TABLE.windows(2).all(|w| w[0] <= w[1]),
+            "keeps must never fall with the index"
+        );
+        assert_eq!(KEEP_TABLE[15], 1.0, "the tail is the documented plateau");
+    }
+
+    /// Rate selection on fixed scores, by hand: the index is
+    /// `floor(score * 16)` clamped to the last entry.
+    #[test]
+    fn the_rate_selection_matches_a_hand_computation() -> Result<()> {
+        let scores = Tensor::from_vec(
+            vec![0.0f32, 0.0625, 0.5, 0.999, 1.0, 0.9999],
+            (1, 6),
+            &cpu(),
+        )?;
+        let selected = rate_select(&scores)?.flatten_all()?.to_vec1::<f32>()?;
+        let expected = [
+            (0.5f32, 0.8660253882408142f32),   // 0.0    -> entry 0
+            (0.25, 0.9682458639144897),        // 0.0625 -> entry 1
+            (0.001953125, 0.9999980926513672), // 0.5    -> entry 8
+            (1.52587890625e-05, 1.0),          // 0.999  -> entry 15
+            (1.52587890625e-05, 1.0),          // 1.0    -> entry 15 (clamped)
+            (1.52587890625e-05, 1.0),          // above  -> entry 15
+        ];
+        for (i, (rate, keep)) in expected.iter().enumerate() {
+            assert_eq!(selected[2 * i], *rate, "slot {i} rate");
+            assert_eq!(selected[2 * i + 1], *keep, "slot {i} keep");
+        }
+        assert_eq!(rate_index(0.0624), 0);
+        assert_eq!(rate_index(0.0625), 1);
+        Ok(())
+    }
+
+    /// The secant surrogate allocates credit to the selected entry's two lawful
+    /// neighbours at the fixed edge `1/16`, and to the single neighbour at the
+    /// table's ends, by hand.
+    #[test]
+    fn the_secant_credit_matches_a_hand_computation() -> Result<()> {
+        // Interior: score 0.5 selects entry 8; neighbours 7 and 9, one half each.
+        let scores = Var::from_tensor(&Tensor::from_vec(vec![0.5f32], 1, &cpu())?)?;
+        let selected = rate_select(scores.as_tensor())?;
+        let (d_lambda, d_keep) = (3.0f32, -2.0f32);
+        let grad = Tensor::from_vec(vec![d_lambda, d_keep], (1, 2), &cpu())?;
+        let d_score = selected
+            .mul(&grad)?
+            .sum_all()?
+            .backward()?
+            .get(scores.as_tensor())
+            .ok_or_else(|| invalid("no rate-score gradient"))?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        let mut want = 0.0f64;
+        for neighbour in [7usize, 9] {
+            want += 0.5
+                * (f64::from(d_lambda) * f64::from(RATE_TABLE[neighbour] - RATE_TABLE[8])
+                    + f64::from(d_keep) * f64::from(KEEP_TABLE[neighbour] - KEEP_TABLE[8]));
+        }
+        want *= RATE_ENTRIES as f64;
+        assert!(
+            (f64::from(d_score[0]) - want).abs() <= 1e-6 * want.abs().max(1.0),
+            "interior credit {} vs hand {want}",
+            d_score[0]
+        );
+        // Boundary: score 0 selects entry 0, which has one neighbour at full weight.
+        let scores = Var::from_tensor(&Tensor::from_vec(vec![0.0f32], 1, &cpu())?)?;
+        let selected = rate_select(scores.as_tensor())?;
+        let grad = Tensor::from_vec(vec![1.0f32, 1.0f32], (1, 2), &cpu())?;
+        let d_score = selected
+            .mul(&grad)?
+            .sum_all()?
+            .backward()?
+            .get(scores.as_tensor())
+            .ok_or_else(|| invalid("no rate-score gradient"))?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        let want = (f64::from(RATE_TABLE[1] - RATE_TABLE[0])
+            + f64::from(KEEP_TABLE[1] - KEEP_TABLE[0]))
+            * RATE_ENTRIES as f64;
+        assert!(
+            (f64::from(d_score[0]) - want).abs() <= 1e-6 * want.abs().max(1.0),
+            "boundary credit {} vs hand {want}",
+            d_score[0]
+        );
+        Ok(())
+    }
+
+    /// The clamped-linear opening carries the surrogate credit inside `(0, 1)`
+    /// and nothing outside it (the exact subgradient of the projection onto the
+    /// segment).
+    #[test]
+    fn the_clamped_opening_keeps_its_exact_subgradient() -> Result<()> {
+        let raw = Var::from_tensor(&Tensor::from_vec(vec![-1.0f32, 0.5, 2.0], 3, &cpu())?)?;
+        let opening = raw.as_tensor().clamp(0.0, 1.0)?;
+        let selected = rate_select(&opening)?;
+        let grad = selected.sum_all()?.backward()?;
+        let d_raw = grad
+            .get(raw.as_tensor())
+            .ok_or_else(|| invalid("no opening gradient"))?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        assert_eq!(d_raw[0], 0.0, "below the segment the projection is flat");
+        assert_eq!(d_raw[2], 0.0, "above the segment the projection is flat");
+        // Inside, the credit reaches the raw score (the selected entry is 8 at
+        // 0.5, whose neighbours move the table entries).
+        assert!(
+            d_raw[1] != 0.0,
+            "inside the segment the credit must reach the raw score"
+        );
+        Ok(())
+    }
+
+    /// The geometric recurrence is a CUDA training path: a model-level forward
+    /// on any other device refuses loudly (D24), and a configuration that cannot
+    /// carry the 4-lane blocks is refused at validation.
+    #[test]
+    fn the_geometric_recurrence_refuses_what_it_cannot_run() -> Result<()> {
+        let mut config = tiny(StackArch::Geometric, "rr", ReadScore::Lorentz, true);
+        config.rec_gates = RecGates::Geometric;
+        assert!(config.validate().is_ok(), "width 16 is whole 4-blocks");
+        let model = StackModel::new(config.clone(), &cpu())?;
+        let ids = [1u32, 2, 3, 4];
+        let error = model
+            .forward(&ids, 1, ids.len())
+            .err()
+            .ok_or_else(|| invalid("a CPU forward must refuse the geometric recurrence"))?;
+        assert!(
+            error.to_string().contains("CUDA"),
+            "the refusal must name the device: {error}"
+        );
+        let mut transformer = config.clone();
+        transformer.arch = StackArch::Transformer;
+        assert!(
+            transformer.validate().is_err(),
+            "no recurrence on the control"
+        );
+        let mut narrow = config;
+        narrow.width = 18;
+        assert!(narrow.validate().is_err(), "18 is not whole 4-blocks");
+        Ok(())
+    }
+
+    /// The geometric recurrence's decay and output gate, composed as the model
+    /// composes them, on a hand-computed one-step case: the table entry follows
+    /// the clamped score, and the Hamilton output gate preserves the output
+    /// block's norm.
+    #[test]
+    fn the_geometric_recurrence_ops_match_a_hand_computation() -> Result<()> {
+        // Two lanes: scores 0.0 (entry 0) and 0.75 (entry 12).
+        let raw = Tensor::from_vec(vec![0.0f32, 0.75], (1, 2), &cpu())?;
+        let selected = rate_select(&raw.clamp(0.0, 1.0)?)?;
+        assert_eq!(selected.dims(), &[1, 2, 2]);
+        let values = selected.flatten_all()?.to_vec1::<f32>()?;
+        assert_eq!(values.len(), 4, "two scores, two table values each");
+        assert_eq!(values[..2], [0.5, 0.8660253882408142]);
+        // score 0.75 -> entry 12: lambda = 2^-13, keep on the documented plateau.
+        assert_eq!(values[2], 0.0001220703125);
+        assert_eq!(values[3], 1.0);
+        // The output gate: the gate tensor's 4-blocks rotate the state, so every
+        // block keeps its norm (a rotation, not a squash).
+        let gate = Tensor::from_vec(vec![0.0f32, 0.0, 0.0, 1.0], (1, 1, 4), &cpu())?;
+        let state = Tensor::from_vec(vec![1.0f32, 2.0, 3.0, 4.0], (1, 1, 4), &cpu())?;
+        let out = hamilton_gate(&gate, &state)?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        let norm = |v: &[f32]| v.iter().map(|x| x * x).sum::<f32>().sqrt();
+        assert!(
+            (norm(&out) - norm(&[1.0, 2.0, 3.0, 4.0])).abs() < 1e-5,
+            "the output gate rotates: |out| {} vs |state| {}",
+            norm(&out),
+            norm(&[1.0, 2.0, 3.0, 4.0])
+        );
+        Ok(())
+    }
+
+    /// The mode round-trips through the config, and the historical form writes
+    /// no field (so older configs stay byte-identical).
+    #[test]
+    fn the_rec_gates_mode_round_trips_and_leaves_legacy_configs_alone() -> Result<()> {
+        let mut config = tiny(StackArch::Geometric, "rr", ReadScore::Lorentz, true);
+        let saved = serde_json::to_string(&config)?;
+        assert!(!saved.contains("rec_gates"), "{saved}");
+        config.rec_gates = RecGates::Geometric;
+        let text = serde_json::to_string(&config)?;
+        assert!(text.contains(r#""rec_gates":"geometric""#), "{text}");
+        let back: StackConfig = serde_json::from_str(&text)?;
+        assert_eq!(back.rec_gates, RecGates::Geometric);
+        assert_eq!(back, config);
         Ok(())
     }
 
@@ -28271,6 +28767,7 @@ mod tests {
             read_router: None,
             objective: Objective::Ce,
             gate: Gate::Swiglu,
+            rec_gates: RecGates::Historical,
         }
     }
 

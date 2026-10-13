@@ -525,7 +525,7 @@ mod tests {
     use crate::geometric_context::{ContextSourcePaths, ContextWeights};
     use crate::geometric_event::EventWeights;
     use crate::geometric_span::GeometricSpanConfig;
-    use crate::geometric_stack::Gate;
+    use crate::geometric_stack::{Gate, RecGates};
     use crate::geometric_stack::{ReadIdentityLatch, ReadScore, StackArch, StackConfig};
     use crate::geometric_value_producer::ValueProducerWeights;
     use candle_core::{Device, Tensor};
@@ -629,6 +629,7 @@ mod tests {
             read_router: None,
             objective: crate::geometric_stack::Objective::Ce,
             gate: Gate::Swiglu,
+            rec_gates: RecGates::Historical,
         };
         let mut model = StackModel::new(config, &Device::Cpu)?;
         model.set_read_identity_latch(ReadIdentityLatch::Held)?;

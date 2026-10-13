@@ -304,6 +304,57 @@ pub(super) fn hamilton_gate_bwd(
     ))
 }
 
+/// The bf16 twin of [`rate_select_fwd`](super::cuda_ops::rate_select_fwd): the
+/// same kernel from the bf16 module of the shared CUDA source.
+pub(super) fn rate_select_fwd(s: &CudaStorage, l: &Layout) -> Forward {
+    let Some(score) = bf_input(s, l)? else {
+        candle_core::bail!("bf16 rate selection needs a contiguous bf16 score");
+    };
+    let device = &s.device;
+    let total = l.shape().elem_count();
+    let out = uninit::<bf16>(device, total * 2)?;
+    launch_bf16(
+        device,
+        "rate_select_fwd",
+        total,
+        &[
+            Arg::B(score),
+            Arg::b(&out),
+            Arg::U32(u32_of(total, "size")?),
+        ],
+    )?;
+    let mut dims = l.shape().dims().to_vec();
+    dims.push(2);
+    Ok((storage_bf(out, device), Shape::from_dims(&dims)))
+}
+
+pub(super) fn rate_select_bwd(
+    device: &CudaDevice,
+    score: &Tensor,
+    grad: &Tensor,
+) -> CResult<Tensor> {
+    let (s, g) = (ready_bf(score)?, ready_bf(grad)?);
+    let total = s.elem_count();
+    if g.elem_count() != total * 2 {
+        candle_core::bail!("rate selection's gradient must be [.., lanes, 2]");
+    }
+    let (ss, sl) = s.storage_and_layout();
+    let (gs, gl) = g.storage_and_layout();
+    let d_score = uninit::<bf16>(device, total)?;
+    launch_bf16(
+        device,
+        "rate_select_bwd",
+        total,
+        &[
+            Arg::B(bf_view(&ss, sl)?),
+            Arg::B(bf_view(&gs, gl)?),
+            Arg::b(&d_score),
+            Arg::U32(u32_of(total, "size")?),
+        ],
+    )?;
+    Ok(tensor_bf(d_score, device, score.shape()))
+}
+
 /// Threads per block of the row reductions (a multiple of 32).
 const ROW_THREADS: usize = 256;
 /// Rows per partial sum of the RMSNorm weight gradient.
