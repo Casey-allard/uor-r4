@@ -185,6 +185,40 @@ def write_interop(binary: Path) -> list[str]:
     import tempfile
 
     findings: list[str] = []
+
+    # 0b. THE PORT'S OWN COVERAGE. `check`'s rule set is a MOVING TARGET: while the D30 port runs
+    #     module by module, other labs register rules into the same modules. A module is not done
+    #     because it matched Python at one instant - if a rule is added afterwards, the Rust module is
+    #     short and NOTHING REPORTS IT, so the port would look complete while checking less.
+    #
+    #     Rust declares what it implements (`uor-harness check-rules --json`); this compares that
+    #     declaration against the rules Python actually registers. It fails in BOTH directions:
+    #     a registered rule with no Rust implementation, and a declared rule Python does not register
+    #     (which would inflate the count in the direction that flatters the port).
+    #
+    #     This is reported as a NOTE, not a failure, while the port is incomplete - the port is
+    #     deliberately partial, and failing CI for that would block every other lab. It becomes a
+    #     FAILURE the moment `check` stops delegating, which is the only claim it exists to protect.
+    inventory = rust_inventory(binary)
+    if inventory is not None:
+        declared = {i for ids in inventory.get("ported", {}).values() for i in ids}
+        registered = python_registered_rules()
+        if registered is not None:
+            unimplemented = sorted(registered - declared)
+            phantom = sorted(declared - registered)
+            module_counts = ", ".join(
+                f"{m} {len(ids)}" for m, ids in sorted(inventory.get("ported", {}).items())
+            )
+            print(f"rule inventory: {len(declared)} implemented ({module_counts}); "
+                  f"{len(unimplemented)} Python rule(s) still in Python")
+            if phantom:
+                findings.append(
+                    "the Rust rule inventory declares rules Python does not register: "
+                    + ", ".join(phantom)
+                    + " - a declared rule that does not exist inflates coverage"
+                )
+            if not unimplemented and not phantom:
+                print("rule inventory: COMPLETE - every registered rule has a Rust implementation")
     marker = "parity-write-interop-marker"
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
@@ -719,6 +753,36 @@ def constants_agreement(binary: Path) -> list[str]:
             f"record its own checker refuses."
         )
     return findings
+
+
+def rust_inventory(binary: Path) -> dict[str, object] | None:
+    """What the Rust side says it implements, or None if the command is missing."""
+    try:
+        out = subprocess.run(
+            [str(binary), "check-rules", "--json"],
+            capture_output=True, text=True, timeout=60, check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if out.returncode != 0 or not out.stdout.strip():
+        return None
+    try:
+        return json.loads(out.stdout)
+    except json.JSONDecodeError:
+        return None
+
+
+def python_registered_rules() -> set[str] | None:
+    """Every rule id the Python `check` registers, or None if it cannot be imported."""
+    sys.path.insert(0, str(REPO / "scripts" / "harness"))
+    try:
+        import checkrules  # type: ignore import-not-found
+    except ImportError:
+        return None
+    try:
+        return {r.id for r in checkrules.rules()}
+    except Exception:  # a registry that will not load is another rule's problem
+        return None
 
 
 def main(argv: list[str] | None = None) -> int:

@@ -34,6 +34,7 @@ pub mod presence;
 pub mod ratchet;
 pub mod receipt;
 pub mod registries;
+pub mod ruleinventory;
 pub mod shards;
 pub mod skills;
 pub mod state;

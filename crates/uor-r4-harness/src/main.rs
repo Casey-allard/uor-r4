@@ -45,7 +45,7 @@ const PYTHON_PASSTHROUGH_VALUE_FLAGS: [&str; 1] = ["--only"];
 /// BEFORE flag parsing: an unported command's flags are unknown to this binary, and rejecting one
 /// meant delegation only worked for commands whose flags happened to be in the lists - `check --only`
 /// failed with "unknown option --only" before it could delegate. Which defeats the point.
-const PORTED_COMMANDS: [&str; 22] = [
+const PORTED_COMMANDS: [&str; 23] = [
     "onboard",
     "check-formats",
     "presence",
@@ -68,6 +68,7 @@ const PORTED_COMMANDS: [&str; 22] = [
     "shard-check",
     "status",
     "ratchet",
+    "check-rules",
 ];
 
 const SUBCOMMAND_FLAGS: [&str; 31] = [
@@ -349,6 +350,23 @@ fn main() -> ExitCode {
         Some("shard-check") => cmd_shard_check(&repo, &rest, json),
         Some("status") => cmd_status(&repo, &rest),
         Some("ratchet") => cmd_ratchet(&repo, &rest),
+        Some("check-rules") => {
+            // The port's coverage record. `parity.py` compares this against Python's registered
+            // rules, because `check`'s rule set changes while the port is in progress and a module
+            // that matched once can fall behind silently.
+            if json {
+                print!("{}", uor_r4_harness::ruleinventory::to_json());
+            } else {
+                println!(
+                    "check rules implemented in Rust ({} total):",
+                    uor_r4_harness::ruleinventory::all_ids().len()
+                );
+                for (m, n) in uor_r4_harness::ruleinventory::counts() {
+                    println!("  {m:<12} {n}");
+                }
+            }
+            ExitCode::SUCCESS
+        }
         // A command this binary has not ported yet runs the Python implementation BENEATH this
         // entry point, and says so on every call.
         //
