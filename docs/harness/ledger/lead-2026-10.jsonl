@@ -1,0 +1,10 @@
+{"actor": "lead", "event": "harness_skill_used", "kind": "skill", "lab": "lead", "note": "architectural review: registry contract vs AGENTS.md, D21-D24 and the 2026-10-12 rule freeze", "outcome": "completed", "schema": 1, "skill": "uor-research-architect", "ts": "2026-10-12T20:53:02-04:00"}
+{"actor": "lead", "event": "harness_skill_used", "kind": "skill", "lab": "lead", "note": "architectural review: registry contract vs AGENTS.md, D21-D24 and the 2026-10-12 rule freeze", "outcome": "completed", "schema": 1, "skill": "uor-research-architect", "ts": "2026-10-12T20:53:02-04:00"}
+{"branch": "owner/matmul-ruling-storage", "kind": "release", "lab": "lead", "schema": 1, "ts": "2026-10-12T21:41:06-04:00"}
+{"branch": "owner/matmul-ruling-storage", "kind": "release", "lab": "lead", "schema": 1, "ts": "2026-10-12T21:41:06-04:00"}
+{"branch": "owner/matmul-ruling-storage", "kind": "claim", "lab": "lead", "note": "owner ruling + storage move", "schema": 1, "ts": "2026-10-12T21:41:11-04:00"}
+{"branch": "owner/matmul-ruling-storage", "kind": "claim", "lab": "lead", "note": "owner ruling + storage move", "schema": 1, "ts": "2026-10-12T21:41:11-04:00"}
+{"branch": "owner/matmul-ruling-storage", "kind": "release", "lab": "lead", "schema": 1, "ts": "2026-10-12T21:41:16-04:00"}
+{"branch": "owner/matmul-ruling-storage", "kind": "release", "lab": "lead", "schema": 1, "ts": "2026-10-12T21:41:16-04:00"}
+{"branch": "owner/matmul-ruling-storage", "kind": "claim", "lab": "lead", "schema": 1, "ts": "2026-10-12T21:41:17-04:00"}
+{"branch": "owner/matmul-ruling-storage", "kind": "claim", "lab": "lead", "schema": 1, "ts": "2026-10-12T21:41:17-04:00"}

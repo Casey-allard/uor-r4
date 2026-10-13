@@ -1395,6 +1395,30 @@ def _how_headline_moves(milestone: Milestone) -> str:
 
 
 def _record_heartbeat(paths: HarnessPaths, milestone: Milestone, line_name: str, count: str, next_text: str, card: str, posted: bool) -> tuple[dict[str, Any] | None, str]:
+    """Record the receipt AND publish presence, so checking in makes a lab visible.
+
+    Presence is published here deliberately rather than behind its own command: a lab that
+    checks in every 90 minutes as the contract requires is then visible to the other labs for
+    free, and one that never checks in is visibly absent rather than silently unknown.
+    """
+    note = ""
+    lab = _lab_identity()
+    if lab:
+        try:
+            import multilab  # noqa: PLC0415 - optional sibling module
+
+            multilab.write_presence(
+                paths,
+                lab,
+                milestone=milestone.key,
+                doing=f"{line_name} {count}",
+                next_step=next_text,
+            )
+        except Exception as exc:  # noqa: BLE001 - the card matters more than presence
+            note = f"presence not published ({type(exc).__name__}: {exc})"
+    else:
+        note = ("no lab identity: pass --lab <lab> or export UOR_LAB so the other labs can see "
+                "this check-in (the receipt is written to the unattributed shard)")
     try:
         import receipts as R  # noqa: PLC0415 - optional sibling module
 
@@ -1408,11 +1432,17 @@ def _record_heartbeat(paths: HarnessPaths, milestone: Milestone, line_name: str,
             next=next_text,
             posted=bool(posted),
         )
-        return (record if isinstance(record, dict) else None), ""
+        return (record if isinstance(record, dict) else None), note
     except ImportError:
         return None, "receipts module not present; heartbeat not recorded in docs/harness/ledger/"
     except Exception as exc:  # noqa: BLE001 - the card matters more than the ledger
         return None, f"receipt not recorded ({type(exc).__name__}: {exc})"
+
+
+def _lab_identity() -> str:
+    import os
+
+    return os.environ.get("UOR_LAB", "").strip()
 
 
 def _post_card(paths: HarnessPaths, issue: int, card: str) -> tuple[bool, str, str]:

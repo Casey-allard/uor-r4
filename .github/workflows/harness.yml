@@ -14,6 +14,9 @@ on:
 
 permissions:
   contents: read
+  # the reconciliation step reads the live milestone issues; nothing is written
+  issues: read
+  pull-requests: read
 
 concurrency:
   group: harness-${{ github.ref }}
@@ -37,6 +40,17 @@ jobs:
           git rev-parse HEAD
           python3 -V
           python3 scripts/harness/cli.py check
+
+      - name: Reconcile with live GitHub
+        # The harness registry is a cache of the milestone contract. This step fails the PR when
+        # the registry disagrees with the live issues, which is what makes `main` converge no
+        # matter which lab opened the pull request. It reads GitHub and writes nothing.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/harness/cli.py check --only status.registry_vs_github
 
       - name: Harness tests
         shell: bash

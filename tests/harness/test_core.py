@@ -98,10 +98,31 @@ class TestReceipts(unittest.TestCase):
             receipts.record(self.paths, "nonsense")
 
     def test_secret_like_fields_are_dropped(self) -> None:
+        """No token-shaped value may reach any shard, whatever file it lands in."""
         rec = receipts.record(self.paths, "team", role="systems-cost", token="ghp_abcdefghijklmnop")
         self.assertNotIn("token", rec)
-        raw = (self.paths.ledger_dir / f"{core.month()}.jsonl").read_text()
-        self.assertNotIn("ghp_", raw)
+        shards = sorted(self.paths.ledger_dir.glob("*.jsonl"))
+        self.assertTrue(shards, "record() wrote a shard")
+        for shard in shards:
+            self.assertNotIn("ghp_", shard.read_text(), f"{shard.name} carries a token")
+
+    def test_receipts_are_sharded_per_lab(self) -> None:
+        """Two labs must never write the same ledger file; that is what sharding is for."""
+        import os
+
+        os.environ["UOR_LAB"] = "lab-a"
+        try:
+            receipts.record(self.paths, "skill", skill="a")
+            os.environ["UOR_LAB"] = "lab-b"
+            receipts.record(self.paths, "skill", skill="b")
+        finally:
+            os.environ.pop("UOR_LAB", None)
+        names = {p.name for p in self.paths.ledger_dir.glob("*.jsonl")}
+        self.assertIn(f"lab-a-{core.month()}.jsonl", names)
+        self.assertIn(f"lab-b-{core.month()}.jsonl", names)
+        # and both are readable through the one public reader
+        back = receipts.read(self.paths)
+        self.assertEqual({r.get("skill") for r in back}, {"a", "b"})
 
     def test_summarize_counts_by_kind(self) -> None:
         receipts.record(self.paths, "skill", skill="a")

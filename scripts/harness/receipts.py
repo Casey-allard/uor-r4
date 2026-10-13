@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 import json
+import re
 
 from core import HarnessPaths, append_jsonl, now_iso, read_jsonl, redact, run
 from checkrules import Rule, RuleResult, register as register_rule
@@ -44,21 +45,50 @@ def record(paths: HarnessPaths, kind: str, **fields: Any) -> dict[str, Any]:
         if value in (None, "", [], {}):
             continue
         rec[key] = redact(str(value)) if isinstance(value, str) else value
-    append_jsonl(ledger_path(paths), rec)
+    # Sharded per lab so two labs never write the same file. Falls back to the unsharded
+    # month file only if multilab is unavailable, so an older checkout still records.
+    lab = str(rec.get("lab") or "")
+    try:
+        import multilab
+
+        if not lab:
+            rec["lab"] = _lab_identity()
+        multilab.append_receipt(paths, rec.get("lab", ""), rec)
+    except ImportError:  # pragma: no cover - multilab ships with the harness
+        append_jsonl(ledger_path(paths), rec)
     return rec
+
+
+def _lab_identity() -> str:
+    """This lab's name: $UOR_LAB if set, else empty (which the reader reports as a gap)."""
+    import os
+
+    return os.environ.get("UOR_LAB", "").strip()
 
 
 def read(paths: HarnessPaths, month: str | None = None, kinds: Iterable[str] | None = None) -> list[dict[str, Any]]:
     """Read receipts for one month (default: all months present), oldest first."""
+    want = set(kinds) if kinds else set(KINDS)
+    out: list[dict[str, Any]] = []
+    try:
+        import multilab
+
+        for rec in multilab.read_shards(paths, month):
+            if rec.get("kind") not in want:
+                continue
+            out.append(rec)
+    except ImportError:  # pragma: no cover
+        pass
+    # legacy unsharded files, kept readable so no earlier receipt is lost
     if month:
         files = [ledger_path(paths, month)]
     else:
         files = sorted(paths.ledger_dir.glob("*.jsonl")) if paths.ledger_dir.is_dir() else []
-    want = set(kinds) if kinds else None
-    out: list[dict[str, Any]] = []
     for f in files:
+        if not re.fullmatch(r"\d{4}-\d{2}\.jsonl", f.name):
+            continue
         for rec in read_jsonl(f):
-            if want and rec.get("kind") not in want:
+            if rec.get("kind") not in want:
                 continue
             rec.setdefault("_file", f.name)
             out.append(rec)
@@ -254,31 +284,53 @@ def main(args: Any, paths: HarnessPaths, reg: Any) -> int:  # noqa: ANN401 - arg
 # --------------------------------------------------------------------- branch claims
 #
 # Owner direction, 12 October 2026: labs work in one checkout, so a branch is claimed
-# rather than owned by a directory. A claim is a *.gitignored* runtime file because git
-# cannot store state about the worktree it is being committed from, and committing it
-# would create the churn it exists to prevent. `check` reports the state on every run.
+# rather than owned by a directory.
+#
+# REVISED for multiple labs: claims now live in the COMMITTED `docs/harness/claims.json`
+# (see multilab.py). The original `.harness/claims.json` was gitignored, which was right for
+# one lab and wrong for four - a claim nobody else can read cannot prevent a collision. These
+# functions remain as a thin compatibility layer over the committed store, and fall back to
+# the local file only if multilab is unavailable.
 
 CLAIMS_FILE = "claims.json"
 CLAIM_KINDS = ("claim", "release")
 
 
 def claims_path(paths: HarnessPaths) -> Path:
-    return paths.state / CLAIMS_FILE
+    """The committed claims store, so every lab can see who holds what."""
+    try:
+        import multilab
+
+        return multilab.claims_file(paths)
+    except ImportError:  # pragma: no cover
+        return paths.state / CLAIMS_FILE
 
 
 def load_claims(paths: HarnessPaths) -> dict[str, Any]:
-    path = claims_path(paths)
-    if not path.exists():
-        return {}
     try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return {}
-    return data if isinstance(data, dict) else {}
+        import multilab
+
+        return multilab.load_claims(paths)
+    except ImportError:  # pragma: no cover
+        path = paths.state / CLAIMS_FILE
+        if not path.exists():
+            return {}
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return {}
+        return data if isinstance(data, dict) else {}
 
 
 def _save_claims(paths: HarnessPaths, claims: dict[str, Any]) -> None:
-    path = claims_path(paths)
+    try:
+        import multilab
+
+        multilab.save_claims(paths, claims)
+        return
+    except ImportError:  # pragma: no cover
+        pass
+    path = paths.state / CLAIMS_FILE
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(".tmp")
     tmp.write_text(json.dumps(claims, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
@@ -286,6 +338,7 @@ def _save_claims(paths: HarnessPaths, claims: dict[str, Any]) -> None:
 
 
 def current_branch(paths: HarnessPaths) -> str:
+    """The checked-out branch. Used by the claim rule and by the CLI."""
     rc, out = run(["git", "-C", str(paths.repo), "branch", "--show-current"], timeout=10)
     return out.strip() if rc == 0 else ""
 
@@ -342,7 +395,7 @@ def _check_branch_claimed(paths: HarnessPaths, reg: Any) -> list[RuleResult]:  #
             severity="warn",
             ok=False,
             message=f"branch {branch!r} is checked out but not claimed by any lab",
-            path=".harness/claims.json",
+            path="docs/harness/claims.json",
             fix=f"python3 scripts/harness/cli.py team claim --branch {branch} --lab <lab>",
         )
     ]

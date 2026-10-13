@@ -29,6 +29,9 @@ queryable surface and emits **receipts** so orchestration is visible after the f
 | `mistakes/<id>.md` | one durable lesson: trigger, symptom, lesson, and a machine-checkable guard |
 | `panels/*.json` | the acceptance panels and their frozen targets |
 | `arena.json` | the lineage of evaluated configurations and every bar's direction |
+| `presence/<lab>.json` | where each lab is and when it last checked in (committed) |
+| `claims.json` | one owner per branch, visible to every lab (committed) |
+| `ledger/<lab>-<month>.jsonl` | one receipt shard per lab, so concurrent PRs never conflict |
 
 `docs/mechanisms/` (the idea-level briefs) stays where it is and is cited by skills.
 
@@ -50,6 +53,7 @@ uor-harness mistakes list|find          durable lessons, selected for the files 
 uor-harness prep new|fit                the pre-registration sheet, and its TEST FITNESS review
 uor-harness panel show|score            the frozen acceptance panels
 uor-harness arena board|compare|lineage  the lineage of evaluated configurations, compared row by row
+uor-harness multilab presence|claims    what each lab last published, and who holds which branch
 uor-harness budget show|scan            cumulative cost, and the pod specs of running jobs
 uor-harness lint check|format           lint a PR body against the contract; render a compliant one
 uor-harness heartbeat --milestone m1    emit the 90-minute status card
@@ -88,6 +92,87 @@ so direction is data in [`arena.json`](arena.json) and an undeclared bar is repo
 catalogue and the archive INDEX are reachable only by already knowing they exist, and
 `current-state.md` is chronological. `docs/harness/mistakes/` is the topic index, and
 it is deliberately small: one entry per lesson that has a guard or a named trigger.
+
+## Getting started (any lab, no install)
+
+The harness is standard-library Python with **no dependencies and no setup step**. From a
+checkout of this repository:
+
+```sh
+export UOR_LAB=<your lab>          # kimi | claude | codex | deepseek
+python3 scripts/harness/cli.py status
+```
+
+That is the whole bootstrap. Two details are worth knowing because they are the only things
+that ever go wrong:
+
+**Interpreter discovery, not Python version, is the real risk.** On this machine `python3`
+resolves to **3.9.6 in a login shell** (`/etc/zprofile` puts `/usr/bin` first) and **3.15.0 in a
+non-login shell** (an agent tool's PATH puts `/opt/homebrew/bin` first). Both work — the
+declared floor is 3.9 and every interpreter present is above it — but if you want one
+reproducible answer, pin it:
+
+```sh
+/usr/bin/python3 scripts/harness/cli.py status        # system python, always 3.9+
+uv run --python 3.12 scripts/harness/cli.py status    # or a uv-managed 3.12
+```
+
+An interpreter below 3.9 now gets an explicit message naming the interpreter and the fix,
+instead of a raw traceback.
+
+**`--repo` is a global option and must come before the subcommand.** `cli.py check --repo X`
+fails; `cli.py --repo X check` works. From a directory that is not a checkout, the tool fails
+loudly rather than guessing.
+
+Verified: all 262 tests pass on both 3.9.6 and 3.15.0.
+
+## Working in a multi-lab project
+
+Four labs work this repository. Each runs its own copy of the CLI, and **nothing here is a
+socket or a daemon** — GitHub is the bus and `main` is the truth. What the harness adds is the
+part GitHub alone does not give: a committed record of who holds what, and what each lab is
+doing between merges.
+
+| question | command | where it reads from |
+|---|---|---|
+| what is each lab doing? | `multilab presence` | `docs/harness/presence/<lab>.json`, **committed** |
+| who holds this branch? | `multilab claims` | `docs/harness/claims.json`, **committed** |
+| what actually ran? | `status` (section 2) | `docs/harness/ledger/<lab>-<month>.jsonl`, sharded |
+
+**Presence is published by `heartbeat`**, deliberately: the session contract already requires a
+card every 90 minutes, so a lab that follows the contract becomes visible for free and one that
+never checks in is *visibly absent* rather than silently unknown. A file older than 30 minutes
+reads `STALE`, and STALE is not "idle" — it means the lab may be working without checking in,
+which is what the contract forbids.
+
+**Identity.** Set `UOR_LAB` once per session, or pass `--lab`:
+
+```
+export UOR_LAB=kimi        # or: cli.py --lab kimi ...
+```
+
+Without it, receipts land in `ledger/unknown-<month>.jsonl` and are attributed to nobody. They
+are never dropped, but they cannot answer "which lab did this", which is the whole point.
+
+**The ledger is sharded per lab** so two labs never write the same file. One shared ledger
+conflicts on every concurrent PR; that was resolved by hand twice in a single session, which is
+why it is now one file per lab per month. `multilab migrate-ledger` moves any older unsharded
+receipts across without losing a line.
+
+**Why claims moved into the committed tree.** They used to live in a gitignored
+`.harness/claims.json`, which is right for one checkout and useless for four: a claim nobody else
+can read cannot prevent the collision it exists to prevent. The committed store still cannot
+*lock* anything — a filesystem cannot stop another vendor's CLI — so what enforces it is
+`status.branch_claimed` on every `check`, the pre-commit hook, and the one-checkout policy in
+[docs/labs/working-in-one-checkout.md](../labs/working-in-one-checkout.md).
+
+**What this cannot do, stated plainly:**
+
+- It is not real-time. Presence is as fresh as the last check-in.
+- It cannot see a lab that never runs the harness. Absence is not evidence of idleness.
+- It cannot cross vendor CLIs. There is no shared runtime, no push channel, and each vendor's
+  session state is private by design.
+- A lab that ignores a claim can still work the branch. The harness reports; it does not police.
 
 ## Rule engine
 

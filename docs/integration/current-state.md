@@ -133,6 +133,31 @@ memory 20/40, reply 37/232).
 needs a prospective kernel card and TEST FITNESS first, and training stays held.
 
 
+## 2026-10-12 — The harness becomes multi-lab: committed presence and claims, sharded ledger, and a CI reconciliation gate (lead, tooling)
+
+The [record](../labs/multilab-harness-2026-10-12/README.md) fixes the three things that break when four labs
+(Kimi as PM, Claude/Sol on research and synthesis) share one coordination layer. **Claims were invisible** — they
+lived in a gitignored per-worktree file, so a claim nobody could read could not prevent the collision it existed
+for; they are now committed in `docs/harness/claims.json`, stale after half a day, releasable only by the holder.
+**Nothing said what a lab was doing** — a receipt exists only after a PR merges; `heartbeat` now also publishes
+`docs/harness/presence/<lab>.json`, so a lab following the 90-minute contract becomes visible for free and one
+that never checks in is visibly absent rather than silently unknown. **One ledger, every lab appending** conflicted
+on every concurrent PR (resolved by hand twice in one session); receipts are now sharded per lab per month, with a
+migration that quarantines an unreadable line rather than dropping it. `.github/workflows/harness.yml` now
+reconciles the milestone registry against the live issues and fails the PR on disagreement, so `main` converges
+whichever lab opened it. Reconnaissance also established that **"the mesh" has no referent in this repository**
+(100 tracked hits, all geometric or unrelated service-mesh catalog entries) and that the retired `lab-runner coord`
+is not to be recreated, so GitHub remains the bus. A measured defect was fixed on the way:
+`mistakes.stale_check` walked 11,171 files with three fnmatch calls per pair and took **46.5s on Python 3.9**,
+dominating `check`; it now uses `git ls-files` and resolves literals first — **46.5s → 0.43s**, and the full suite
+on 3.9 went **205s → 20s**. 262 tests pass on both 3.9.6 and 3.15.0.
+
+Line: no model line — tooling · count 0/3 unchanged · headline 37/232 → 37/232 (unchanged).
+
+**Next:** labs should `export UOR_LAB=<lab>` at session start so receipts and presence are attributed; the session
+contract should name `multilab presence` alongside `team claim`; and a non-Claude lab needs a scheduled entry point
+before presence can be continuous rather than per-session.
+
 ## 2026-10-12 — The regression arena, and the harness as the session entry point (lead, tooling)
 
 The [record](../labs/regression-arena-2026-10-12/README.md) adds the other half of the frozen panels: the

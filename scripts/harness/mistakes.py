@@ -254,30 +254,84 @@ def resolve_path(paths: HarnessPaths, value: str) -> Path | None:
     return None
 
 
+#: directories a lesson never needs to match against. Excluding them keeps the set small even
+#: when the checkout carries large dormant trees (research/ alone is ~11k files).
+_INDEX_SKIP = (".git", "target", "node_modules", ".venv", "__pycache__", ".worktrees", "local", ".harness")
+
+
 def _file_index(paths: HarnessPaths) -> list[str]:
-    """Every tracked-ish path under the repo, for the stale check."""
-    skip = {".git", "target", "node_modules", ".venv", "__pycache__", ".worktrees", "local", ".harness"}
+    """Repo paths for the stale check, from git rather than the filesystem.
+
+    This used to `rglob("*")` the whole tree - about 11k files - and then run three fnmatch
+    calls per file for every lesson, which took ~46 seconds on Python 3.9 and dominated the
+    entire `check`. `git ls-files` is the already-built index of exactly the files that matter,
+    and it excludes ignored build output and scratch state for free.
+    """
+    import subprocess
+
+    try:
+        proc = subprocess.run(
+            ["git", "-C", str(paths.repo), "ls-files", "-z", "--cached", "--others", "--exclude-standard"],
+            capture_output=True, text=True, timeout=30, check=False,
+        )
+        if proc.returncode == 0 and proc.stdout:
+            out = []
+            for rel in proc.stdout.split("\0"):
+                if not rel:
+                    continue
+                if any(part in _INDEX_SKIP for part in rel.split("/")):
+                    continue
+                out.append(rel)
+            return out
+    except (OSError, subprocess.SubprocessError):  # pragma: no cover - environment
+        pass
+    # fallback: the filesystem walk, if git is unavailable for any reason
     root = paths.repo
-    out: list[str] = []
+    out = []
     for p in root.rglob("*"):
         if not p.is_file():
             continue
         rel = p.relative_to(root)
-        if any(part in skip for part in rel.parts):
+        if any(part in _INDEX_SKIP for part in rel.parts):
             continue
         out.append(rel.as_posix())
     return out
 
 
-def _match_any(rel: str, patterns: Iterable[str]) -> bool:
-    for pat in patterns:
-        pat = str(pat).strip().lstrip("./")
+def _patterns_match_index(index: Iterable[str], patterns: Iterable[str]) -> bool:
+    """Does any pattern match any indexed path? Cheap checks first.
+
+    The hot path is: 20 lessons x 11k paths. The original form ran three fnmatch calls per
+    (path, pattern) pair, which is tens of millions of calls. Most patterns are plain literal
+    paths or directory prefixes, so those resolve with `in` / `startswith` before any glob is
+    attempted, and a glob is only tried when the pattern actually contains a wildcard.
+    """
+    pats: list[tuple[str, str | None]] = []
+    globs: list[str] = []
+    for raw in patterns:
+        pat = str(raw).strip().lstrip("./")
         if not pat:
             continue
-        if fnmatch.fnmatch(rel, pat) or fnmatch.fnmatch(pat, f"*{rel}*") or fnmatch.fnmatch(rel, f"*{pat}*"):
-            return True
-        if pat.endswith("/**") and rel.startswith(pat[:-3].rstrip("/") + "/"):
-            return True
+        if "*" in pat or "?" in pat or "[" in pat:
+            if pat.endswith("/**"):
+                pats.append((pat, pat[:-3].rstrip("/") + "/"))
+            else:
+                globs.append(pat)
+        else:
+            pats.append((pat, None))
+    if not pats and not globs:
+        return True  # an empty pattern list is not a staleness finding
+    paths = list(index)
+    for pat, prefix in pats:
+        for rel in paths:
+            if rel == pat or rel.endswith("/" + pat) or (prefix and rel.startswith(prefix)):
+                return True
+            if pat in rel:
+                return True
+    for glob in globs:
+        for rel in paths:
+            if fnmatch.fnmatch(rel, glob):
+                return True
     return False
 
 
@@ -385,7 +439,7 @@ def _check_stale(paths: HarnessPaths, reg: Registry) -> list[RuleResult]:
     for lesson in load_lessons(paths):
         if lesson.errors or not lesson.paths:
             continue
-        if not any(_match_any(rel, lesson.paths) for rel in index):
+        if not _patterns_match_index(index, lesson.paths):
             out.append(
                 RuleResult(
                     rule_id="mistakes.stale_check",

@@ -16,8 +16,24 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
+
+#: The floor is 3.8 (Path.unlink(missing_ok=True) in mistakes.py is the only hard requirement),
+#: but 3.9 is declared because it is the last interpreter guaranteed present on macOS and 3.8 is
+#: end-of-life. Every other modern feature in this package is annotation-only and neutralised by
+#: `from __future__ import annotations`, so this floor does not constrain the code.
+MIN_PYTHON = (3, 9)
+
+if sys.version_info < MIN_PYTHON:
+    sys.stderr.write(
+        f"uor-harness: needs Python {MIN_PYTHON[0]}.{MIN_PYTHON[1]} or newer, "
+        f"but this is {sys.version.split()[0]} at {sys.executable}\n"
+        f"  try: /usr/bin/python3 scripts/harness/cli.py ...   (macOS system python)\n"
+        f"  or:  uv run --python 3.12 scripts/harness/cli.py ...\n"
+    )
+    raise SystemExit(2)
 
 HERE = Path(__file__).resolve().parent
 if str(HERE) not in sys.path:
@@ -39,6 +55,11 @@ def _add_common(p: argparse.ArgumentParser) -> None:
     p.add_argument("--repo", default=None, help="repo root (default: discovered from cwd)")
     p.add_argument("--json", action="store_true", help="machine-readable output")
     p.add_argument("--quiet", action="store_true", help="suppress notes on stderr")
+    p.add_argument(
+        "--lab",
+        default=None,
+        help="this lab's identity; defaults to $UOR_LAB. Required to attribute receipts and presence.",
+    )
 
 
 def _stub(name: str):
@@ -321,6 +342,12 @@ def cmd_prep(args: argparse.Namespace, paths: HarnessPaths, reg: Registry) -> in
 # ---------------------------------------------------------------------------- panel
 
 
+def cmd_multilab(args: argparse.Namespace, paths: HarnessPaths, reg: Registry) -> int:
+    import multilab
+
+    return multilab.main(args, paths, reg)
+
+
 def cmd_arena(args: argparse.Namespace, paths: HarnessPaths, reg: Registry) -> int:
     import arena
 
@@ -444,7 +471,7 @@ def build_parser() -> argparse.ArgumentParser:
         prog="uor-harness",
         description="Research harness for UOR-R4: milestones, skills, expert team, lessons, budgets, PR lint.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="Commands: status, brief, skill, team, mistakes, prep, panel, arena, budget, lint, heartbeat, git, check",
+        epilog="Commands: status, brief, skill, team, mistakes, prep, panel, arena, multilab, budget, lint, heartbeat, git, check",
     )
     _add_common(p)
     sub = p.add_subparsers(dest="command")
@@ -557,6 +584,15 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub2.add_parser("list")
     s.set_defaults(fn=cmd_prep)
 
+    sp = sub.add_parser("multilab", help="presence, committed claims and ledger shards across labs")
+    sub2 = sp.add_subparsers(dest="action", required=True)
+    s = sub2.add_parser("presence", help="what each lab last published")
+    s.set_defaults(fn=cmd_multilab)
+    s = sub2.add_parser("claims", help="committed branch claims, visible to every lab")
+    s.set_defaults(fn=cmd_multilab)
+    s = sub2.add_parser("migrate-ledger", help="move unsharded receipts into per-lab shards")
+    s.set_defaults(fn=cmd_multilab)
+
     sp = sub.add_parser("arena", help="the lineage of evaluated configurations (a regression check, not a leaderboard)")
     sub2 = sp.add_subparsers(dest="action", required=True)
     s = sub2.add_parser("board", help="every evaluated configuration and its parent")
@@ -645,6 +681,8 @@ def main(argv: list[str] | None = None) -> int:
         return EXIT_USAGE
     # `--json` is accepted before or after the subcommand; normalise the tri-state.
     args.json = bool(getattr(args, "json", False))
+    # lab identity: explicit flag, else $UOR_LAB, else empty (the shard reader then reports the gap)
+    args.lab = (getattr(args, "lab", None) or os.environ.get("UOR_LAB") or "").strip()
     try:
         paths = HarnessPaths.discover(repo=args.repo)
     except Exception as exc:  # noqa: BLE001
