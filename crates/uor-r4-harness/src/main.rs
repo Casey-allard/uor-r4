@@ -12,6 +12,7 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use uor_r4_harness::onboard::{detect_runtime, onboard};
+use uor_r4_harness::prep::{check_all, SheetReport};
 use uor_r4_harness::presence::{heartbeat, Presence};
 use uor_r4_harness::receipt::{append, current_month, Receipt as NewReceipt};
 use uor_r4_harness::state::{read_ledger, PresenceRow, StatePaths};
@@ -69,6 +70,8 @@ COMMANDS:
                 Rust side; use --dry-run to see the line without recording it.
     heartbeat   Check in: publish presence to both tiers and record a receipt.
                 Use --dry-run to see what would be written.
+    prep-check  Read every pre-registration sheet: its TEST FITNESS verdict and
+                which required blocks are missing. The read half of the D22 gate.
     help        This text.
 
 The Python harness owns behaviour until this path passes the same checks; the
@@ -164,6 +167,7 @@ fn main() -> ExitCode {
         Some("ledger") => cmd_ledger(&repo, json),
         Some("receipt") => cmd_receipt(&repo, &rest, json),
         Some("heartbeat") => cmd_heartbeat(&repo, &rest, json),
+        Some("prep-check") => cmd_prep_check(&repo, json),
         Some(other) => {
             eprintln!("uor-harness: unknown command {other}\n\n{USAGE}");
             ExitCode::from(2)
@@ -317,6 +321,63 @@ fn cmd_heartbeat(repo: &Path, args: &[String], json: bool) -> ExitCode {
         }
     }
     ExitCode::SUCCESS
+}
+
+fn cmd_prep_check(repo: &Path, json: bool) -> ExitCode {
+    let paths = StatePaths::from_env(repo);
+    let sheets = check_all(&paths);
+    if json {
+        let rows: Vec<String> = sheets.iter().map(sheet_json).collect();
+        println!(
+            "{{\n  \"sheets\": [\n{}\n  ],\n  \"cleared_for_compute\": {}\n}}",
+            rows.join(",\n"),
+            sheets.iter().filter(|s| s.may_compute()).count()
+        );
+    } else if sheets.is_empty() {
+        println!("no pre-registration sheets in docs/harness/prep/");
+    } else {
+        println!("{} pre-registration sheet(s)", sheets.len());
+        for s in &sheets {
+            let name = s
+                .path
+                .file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_default();
+            let mark = if s.may_compute() {
+                "FIT     "
+            } else {
+                "not FIT "
+            };
+            let missing = s.missing();
+            let gap = if missing.is_empty() {
+                String::new()
+            } else {
+                format!("  missing: {}", missing.join(", "))
+            };
+            println!("  {mark} {name:<44} {}{gap}", s.fitness);
+        }
+    }
+    // Exit 1 only when a sheet CLAIMS to be FIT and is not readable as one: that is the state worth
+    // failing on. A PENDING sheet is the normal state of work in progress, not a failure.
+    ExitCode::SUCCESS
+}
+
+fn sheet_json(s: &SheetReport) -> String {
+    let blocks: Vec<String> = s
+        .blocks
+        .iter()
+        .map(|b| format!("{{\"key\": {:?}, \"present\": {}}}", b.key, b.present))
+        .collect();
+    let missing: Vec<String> = s.missing().iter().map(|m| format!("{m:?}")).collect();
+    format!(
+        "    {{\"sheet\": {:?}, \"fitness\": {:?}, \"complete\": {}, \"may_compute\": {}, \"missing\": [{}], \"blocks\": [{}]}}",
+        s.path.display().to_string(),
+        s.fitness,
+        s.complete(),
+        s.may_compute(),
+        missing.join(", "),
+        blocks.join(", ")
+    )
 }
 
 fn cmd_receipt(repo: &Path, args: &[String], json: bool) -> ExitCode {

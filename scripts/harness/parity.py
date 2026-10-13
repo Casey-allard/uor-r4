@@ -277,6 +277,63 @@ def controlled_cases(binary: Path) -> list[str]:
     return findings
 
 
+def prep_agreement(binary: Path) -> list[str]:
+    """The Rust and Python readers must agree about every pre-registration sheet.
+
+    The D22 gate turns on a sheet's TEST FITNESS verdict, so a reader that disagrees about one is a
+    gate that opens for one implementation and not the other. This compares the verdict and the
+    missing-block list per sheet, read through each implementation's own parser.
+    """
+    import glob
+
+    findings: list[str] = []
+    sheets = sorted(glob.glob("docs/harness/prep/*.md"))
+    if not sheets:
+        return findings  # a checkout with no sheets is not a disagreement
+
+    code, out, err = run([
+        str(binary), "prep-check", "--repo", str(REPO), "--json",
+    ])
+    if code != 0:
+        findings.append(f"prep agreement: the Rust prep check exited {code}: {err[:200]}")
+        return findings
+    try:
+        rust_rows = {Path(r["sheet"]).name: r for r in json.loads(out)["sheets"]}
+    except (json.JSONDecodeError, KeyError, TypeError) as exc:
+        findings.append(f"prep agreement: could not read the Rust output ({exc}): {out[:200]}")
+        return findings
+
+    probe = (
+        "import json,sys,pathlib;"
+        "sys.path.insert(0,'scripts/harness');"
+        "import core,prep;"
+        "p=core.HarnessPaths.discover(repo='.');"
+        "reqs=prep.sheet_requirements(p);"
+        "out={};"
+        "[out.update({f.name:{'fitness':prep.test_fitness(f.read_text(encoding='utf-8')),"
+        "'missing':[n for k,(n,pred) in reqs.items() if not pred(prep.sections(f.read_text(encoding='utf-8')), f.read_text(encoding='utf-8'))]}})"
+        " for f in sorted(pathlib.Path('docs/harness/prep').glob('*.md'))];"
+        "print(json.dumps(out))"
+    )
+    code, out, err = run([sys.executable, "-c", probe])
+    if code != 0:
+        findings.append(f"prep agreement: the Python reader failed: {err[:200]}")
+        return findings
+    py_rows = json.loads(out)
+
+    if set(rust_rows) != set(py_rows):
+        findings.append(f"prep agreement: sheet sets differ (rust {sorted(rust_rows)}, python {sorted(py_rows)})")
+    for name in sorted(set(rust_rows) & set(py_rows)):
+        r, q = rust_rows[name], py_rows[name]
+        if r["fitness"] != q["fitness"]:
+            findings.append(f"prep {name}: rust says {r['fitness']}, python says {q['fitness']}")
+        if sorted(r.get("missing", [])) != sorted(q.get("missing", [])):
+            findings.append(
+                f"prep {name}: missing blocks differ (rust {r.get('missing')}, python {q.get('missing')})"
+            )
+    return findings
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Check Rust/Python harness parity on shared state.")
     ap.add_argument("--build", action="store_true", help="build the Rust binary first")
@@ -362,6 +419,8 @@ def main(argv: list[str] | None = None) -> int:
     findings.extend(controlled)
     interop = write_interop(binary)
     findings.extend(interop)
+    prep = prep_agreement(binary)
+    findings.extend(prep)
 
     if args.json:
         print(json.dumps({
@@ -369,6 +428,7 @@ def main(argv: list[str] | None = None) -> int:
             "note": "the format check has one implementation (Rust); controlled cases test it directly",
             "controlled_cases": 6,
             "write_interop": "ok" if not interop else "FAILED",
+            "prep_agreement": "ok" if not prep else "FAILED",
             "state_valid": not invalid,
             "binary": str(binary),
             "formats": len(r_formats),
@@ -391,6 +451,7 @@ def main(argv: list[str] | None = None) -> int:
             "  Rust-written receipt read back by Python: "
             + ("ok" if not interop else f"FAILED ({len(interop)})")
         )
+        print("  prep sheets read identically by both: " + ("ok" if not prep else f"FAILED ({len(prep)})"))
     return 1 if findings else 0
 
 

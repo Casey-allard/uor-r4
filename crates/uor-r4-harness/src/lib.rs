@@ -22,12 +22,14 @@
 
 pub mod contract;
 pub mod onboard;
+pub mod prep;
 pub mod presence;
 pub mod receipt;
 pub mod state;
 
 pub use contract::{Contract, FormatSpec, Kind, Shape, Violation};
 pub use onboard::{onboard, Finding, Level, Report};
+pub use prep::{check_all, check_sheet, test_fitness, SheetReport};
 pub use presence::{heartbeat, Presence, PRESENCE_TTL_MINUTES};
 pub use receipt::{append, shard_path, Receipt};
 pub use state::{PresenceRow, ReceiptRow, StatePaths};
