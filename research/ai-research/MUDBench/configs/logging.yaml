@@ -1,4 +1,0 @@
-# Phase 0 placeholder logging configuration
-logging:
-  level: INFO
-  format: text

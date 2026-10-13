@@ -13,10 +13,12 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Iterable
 
-from core import HarnessPaths, append_jsonl, now_iso, read_jsonl, redact
+import json
+
+from core import HarnessPaths, append_jsonl, now_iso, read_jsonl, redact, run
 from checkrules import Rule, RuleResult, register as register_rule
 
-KINDS = ("skill", "team", "heartbeat", "context", "prep", "pr", "check")
+KINDS = ("skill", "team", "heartbeat", "context", "prep", "pr", "check", "claim", "release")
 EVENT_TYPES = {"skill": "harness_skill_used", "team": "harness_team_dispatched", "heartbeat": "harness_heartbeat"}
 
 #: fields that are never worth storing, and must never be stored if they look secret
@@ -144,6 +146,16 @@ def register_rules() -> list[Rule]:
         ),
         register_rule(
             Rule(
+                id="status.branch_claimed",
+                description="the checked-out branch is claimed by a lab, under the one-checkout policy",
+                severity="warn",
+                check=_check_branch_claimed,
+                rationale="docs/labs/working-in-one-checkout.md: one checkout means one branch owner at a time",
+                mistake="shared-checkout-branch-collision",
+            )
+        ),
+        register_rule(
+            Rule(
                 id="receipts.ledger_present",
                 description="the ledger directory is tracked and readable",
                 severity="warn",
@@ -237,3 +249,100 @@ def main(args: Any, paths: HarnessPaths, reg: Any) -> int:  # noqa: ANN401 - arg
         for kind, n in s["by_kind"].items():
             emit(f"  {kind:<10} {n}")
     return 0
+
+
+# --------------------------------------------------------------------- branch claims
+#
+# Owner direction, 12 October 2026: labs work in one checkout, so a branch is claimed
+# rather than owned by a directory. A claim is a *.gitignored* runtime file because git
+# cannot store state about the worktree it is being committed from, and committing it
+# would create the churn it exists to prevent. `check` reports the state on every run.
+
+CLAIMS_FILE = "claims.json"
+CLAIM_KINDS = ("claim", "release")
+
+
+def claims_path(paths: HarnessPaths) -> Path:
+    return paths.state / CLAIMS_FILE
+
+
+def load_claims(paths: HarnessPaths) -> dict[str, Any]:
+    path = claims_path(paths)
+    if not path.exists():
+        return {}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def _save_claims(paths: HarnessPaths, claims: dict[str, Any]) -> None:
+    path = claims_path(paths)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text(json.dumps(claims, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    tmp.replace(path)
+
+
+def current_branch(paths: HarnessPaths) -> str:
+    rc, out = run(["git", "-C", str(paths.repo), "branch", "--show-current"], timeout=10)
+    return out.strip() if rc == 0 else ""
+
+
+def claim_branch(paths: HarnessPaths, branch: str, lab: str, note: str = "") -> tuple[bool, dict[str, Any]]:
+    """Claim a branch for a lab. Refuses when another lab already holds it."""
+    if not branch:
+        raise ValueError("a branch name is required")
+    if not lab:
+        raise ValueError("a lab is required (--lab), because a claim without an owner is not a claim")
+    claims = load_claims(paths)
+    existing = claims.get(branch)
+    if existing and existing.get("lab") and existing["lab"] != lab:
+        return False, existing
+    entry = {"branch": branch, "lab": lab, "head": "", "claimed_at": now_iso(), "note": note}
+    rc, out = run(["git", "-C", str(paths.repo), "rev-parse", "--short", "HEAD"], timeout=10)
+    if rc == 0:
+        entry["head"] = out.strip()
+    claims[branch] = entry
+    _save_claims(paths, claims)
+    # NB: `record` must stay the imported function here; shadowing it was a real bug.
+    record(paths, "claim", branch=branch, lab=lab, note=note)
+    return True, entry
+
+
+def release_branch(paths: HarnessPaths, branch: str, lab: str = "") -> tuple[bool, dict[str, Any]]:
+    claims = load_claims(paths)
+    existing = claims.get(branch)
+    if not existing:
+        return False, {}
+    if lab and existing.get("lab") and existing["lab"] != lab:
+        return False, existing
+    del claims[branch]
+    _save_claims(paths, claims)
+    record(paths, "release", branch=branch, lab=lab or existing.get("lab", ""))
+    return True, existing
+
+
+def claim_for_current_branch(paths: HarnessPaths) -> dict[str, Any] | None:
+    return load_claims(paths).get(current_branch(paths))
+
+
+def _check_branch_claimed(paths: HarnessPaths, reg: Any) -> list[RuleResult]:  # noqa: ANN401
+    """Under the one-checkout policy a branch should be claimed before work starts."""
+    branch = current_branch(paths)
+    if not branch or branch in ("main", "master"):
+        return []
+    claims = load_claims(paths)
+    if branch in claims:
+        return []
+    return [
+        RuleResult(
+            rule_id="status.branch_claimed",
+            severity="warn",
+            ok=False,
+            message=f"branch {branch!r} is checked out but not claimed by any lab",
+            path=".harness/claims.json",
+            fix=f"python3 scripts/harness/cli.py team claim --branch {branch} --lab <lab>",
+        )
+    ]

@@ -1,1 +1,0 @@
-C^2 vs C^3 vs C^4 multiscale quotient comparison.

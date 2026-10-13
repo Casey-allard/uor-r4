@@ -1,0 +1,192 @@
+#!/usr/bin/env python3
+"""research-data: the retrieval path for research material held in the iCloud store.
+
+Owner direction, 12 October 2026: labs work in one checkout, and the large binary
+material under `research/` is archived rather than tracked, so every checkout stops
+carrying ~1 GB it almost never reads.
+
+The bytes are in the MD5-verified store (`cloud-store`, index at
+`icloud:UOR-R4/index/`). This tool reports what is archived, what is missing locally,
+and prints the exact restore command. It never fetches or deletes by itself.
+
+    scripts/storage/research-data status          # archived vs present, with sizes
+    scripts/storage/research-data manifest         # regenerate the committed manifest
+    scripts/storage/research-data restore <name>   # print (and with --run, execute) the fetch
+
+A restore is a plain, reversible operation:
+
+    ~/.local/share/uor-r4/bin/cloud-store fetch <name> <checkout-root>
+
+which downloads the tar, verifies it against the index MD5, and extracts it in place
+(root-relative; `research/prime-analysis` is restored by fetching `prime-analysis`).
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+CLOUD_STORE = Path.home() / ".local/share/uor-r4/bin/cloud-store"
+MANIFEST = "docs/harness/research-data.json"
+TIMEOUT = 120
+
+
+def run(args: list[str], timeout: int = TIMEOUT) -> tuple[int, str]:
+    try:
+        p = subprocess.run(args, capture_output=True, text=True, timeout=timeout, check=False)
+        return p.returncode, (p.stdout or "") + (p.stderr or "")
+    except (OSError, subprocess.SubprocessError) as exc:
+        return 127, str(exc)
+
+
+def repo_root() -> Path:
+    rc, out = run(["git", "rev-parse", "--show-toplevel"])
+    if rc != 0:
+        print("research-data: not inside a git repository", file=sys.stderr)
+        raise SystemExit(2)
+    return Path(out.strip())
+
+
+def index() -> dict[str, dict]:
+    """Read the cloud-store index (one TSV per object: name, bytes, md5, path, utc, lab)."""
+    if not CLOUD_STORE.exists():
+        return {}
+    rc, out = run(["rclone", "cat", "--log-level", "ERROR", "--include", "*.tsv", "icloud:UOR-R4/index"], timeout=300)
+    if rc != 0:
+        print(f"research-data: cannot read the store index: {out.strip()}", file=sys.stderr)
+        return {}
+    objects: dict[str, dict] = {}
+    for line in out.splitlines():
+        parts = line.rstrip("\n").split("\t")
+        if len(parts) < 5:
+            continue
+        name, size, md5, remote, when = parts[0], parts[1], parts[2], parts[3], parts[4]
+        lab = parts[5] if len(parts) > 5 else ""
+        try:
+            size_i = int(size)
+        except ValueError:
+            continue
+        objects[name] = {"name": name, "bytes": size_i, "md5": md5, "remote": remote, "uploaded": when, "lab": lab}
+    return objects
+
+
+def load_manifest(root: Path) -> dict:
+    path = root / MANIFEST
+    if not path.exists():
+        return {"schema": 1, "entries": []}
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {"schema": 1, "entries": []}
+
+
+def human(n: int) -> str:
+    return f"{n / 1073741824:.2f} GB" if n >= 1073741824 else f"{n / 1048576:.0f} MB"
+
+
+def cmd_status(root: Path, args: argparse.Namespace) -> int:
+    man = load_manifest(root)
+    entries = man.get("entries", [])
+    if not entries:
+        print("research-data: no manifest entries yet (run `research-data manifest` after archiving)")
+        return 0
+    print("archived research material (iCloud, MD5-verified) and its local presence")
+    print()
+    print(f"{'path':<34} {'archived':>9}  {'local':>10}  status")
+    print("-" * 78)
+    total = 0
+    for e in entries:
+        local = root / e["path"]
+        present = local.exists()
+        size = 0
+        if present:
+            rc, out = run(["du", "-sk", str(local)], timeout=180)
+            if rc == 0 and out.strip():
+                try:
+                    size = int(out.split()[0]) * 1024
+                except (ValueError, IndexError):
+                    size = 0
+        total += e.get("bytes", 0)
+        state = "present locally" if present else "ARCHIVED ONLY - restore to use"
+        print(f"{e['path']:<34} {human(e.get('bytes', 0)):>9}  {human(size) if size else '-':>10}  {state}")
+    print("-" * 78)
+    print(f"{'total archived':<34} {human(total):>9}")
+    print()
+    print("restore:  scripts/storage/research-data restore <name> --run")
+    return 0
+
+
+def cmd_manifest(root: Path, args: argparse.Namespace) -> int:
+    man = load_manifest(root)
+    objects = index()
+    if not objects:
+        print("research-data: the store index is empty or unreadable; refusing to write an empty manifest", file=sys.stderr)
+        return 2
+    entries = []
+    for e in man.get("entries", []):
+        name = e["name"]
+        obj = objects.get(name)
+        if obj is None:
+            print(f"research-data: {name} is in the manifest but not in the store index - keeping the entry", file=sys.stderr)
+            entries.append(e)
+            continue
+        entries.append({**e, "bytes": obj["bytes"], "md5": obj["md5"], "remote": obj["remote"], "uploaded": obj["uploaded"]})
+    man = {"schema": 1, "entries": entries, "generated_at": _now()}
+    path = root / MANIFEST
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(man, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    print(f"wrote {MANIFEST} with {len(entries)} entr{'y' if len(entries) == 1 else 'ies'}")
+    return 0
+
+
+def cmd_restore(root: Path, args: argparse.Namespace) -> int:
+    man = load_manifest(root)
+    entry = next((e for e in man.get("entries", []) if e["name"] == args.name or e["path"] == args.name), None)
+    if entry is None:
+        known = ", ".join(e["name"] for e in man.get("entries", [])) or "(none)"
+        print(f"research-data: unknown archive {args.name!r}; known: {known}", file=sys.stderr)
+        return 2
+    cmd = [str(CLOUD_STORE), "fetch", entry["name"], str(root)]
+    print(f"would run: {' '.join(cmd)}")
+    print(f"  restores {entry['path']} ({human(entry.get('bytes', 0))}, md5 {entry.get('md5', '?')})")
+    print("  the fetch verifies the download against the index MD5 before extracting")
+    if not args.run:
+        print("\n(pass --run to execute)")
+        return 0
+    rc, out = run(cmd, timeout=3600)
+    print(out.strip())
+    return rc
+
+
+def _now() -> str:
+    from datetime import datetime, timezone
+
+    return datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
+
+
+def main(argv: list[str] | None = None) -> int:
+    ap = argparse.ArgumentParser(description="Report and restore archived research material (read-only by default).")
+    ap.add_argument("--repo", default=None)
+    sub = ap.add_subparsers(dest="action")
+    s = sub.add_parser("status")
+    s.set_defaults(fn=cmd_status)
+    s = sub.add_parser("manifest")
+    s.set_defaults(fn=cmd_manifest)
+    s = sub.add_parser("restore")
+    s.add_argument("name")
+    s.add_argument("--run", action="store_true", help="actually fetch (default: print the command)")
+    s.set_defaults(fn=cmd_restore)
+    args = ap.parse_args(argv)
+    if not getattr(args, "fn", None):
+        ap.print_help()
+        return 2
+    root = Path(args.repo).resolve() if args.repo else repo_root()
+    return int(args.fn(root, args))
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

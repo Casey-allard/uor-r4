@@ -1,0 +1,259 @@
+#!/usr/bin/env python3
+"""worktree-audit: what every worktree costs, what is safe to remove, and what is not.
+
+Read-only. It never removes anything; it prints the exact commands and the recovery
+path for each candidate. Owner direction, 9 October 2026: `origin/main` and iCloud are
+the durable stores and the laptop holds only live work, so this tool exists to make the
+cost of each lab's workspace visible and its cleanup decidable.
+
+    scripts/storage/worktree-audit                 # the table
+    scripts/storage/worktree-audit --json          # machine-readable
+    scripts/storage/worktree-audit --plan          # table + the removal plan
+
+Why it is careful: a worktree holds three different things, and only one of them is
+free to delete.
+
+  * ``target/`` and other build output - regenerable. Deleting it costs build time
+    and nothing else, provided no cargo/rustc is using it.
+  * tracked files - a full second checkout of the repository. ``research/`` alone is
+    about 0.98 GB and is byte-identical in every worktree.
+  * uncommitted or untracked files - unique work. This is the only real risk, and it
+    is why nothing is removed automatically.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+TIMEOUT = 60
+
+#: local scratch root (gitignored); never /tmp, per AGENTS.md
+LOCAL = Path(os.environ.get("UOR_LOCAL", str(Path.home() / "uor-r4-local")))
+
+#: set in main(); the main worktree, used to label and protect it
+MAIN: Path | None = None
+
+
+def run(args: list[str], cwd: Path | None = None, timeout: int = TIMEOUT) -> tuple[int, str]:
+    try:
+        p = subprocess.run(args, cwd=str(cwd) if cwd else None, capture_output=True, text=True, timeout=timeout, check=False)
+        return p.returncode, (p.stdout or "") + (p.stderr or "")
+    except (OSError, subprocess.SubprocessError) as exc:
+        return 127, str(exc)
+
+
+def du_kb(path: Path) -> int:
+    """Size in KiB, without following other worktrees. Uses du for speed on large trees."""
+    if not path.exists():
+        return 0
+    rc, out = run(["du", "-sk", str(path)], timeout=180)
+    if rc != 0 or not out.strip():
+        return 0
+    try:
+        return int(out.split()[0])
+    except (ValueError, IndexError):
+        return 0
+
+
+def repo_root() -> Path:
+    rc, out = run(["git", "rev-parse", "--show-toplevel"])
+    if rc != 0:
+        print("worktree-audit: not inside a git repository", file=sys.stderr)
+        raise SystemExit(2)
+    return Path(out.strip())
+
+
+def worktrees(root: Path) -> list[dict]:
+    """Parse `git worktree list --porcelain` into records."""
+    rc, out = run(["git", "worktree", "list", "--porcelain"], cwd=root)
+    if rc != 0:
+        print(f"worktree-audit: git worktree list failed: {out.strip()}", file=sys.stderr)
+        raise SystemExit(2)
+    records: list[dict] = []
+    current: dict = {}
+    for line in out.splitlines():
+        if line.startswith("worktree "):
+            if current:
+                records.append(current)
+            current = {"path": line[len("worktree ") :].strip()}
+        elif line.startswith("HEAD "):
+            current["head"] = line[len("HEAD ") :].strip()
+        elif line.startswith("branch "):
+            current["branch"] = line[len("branch ") :].strip().removeprefix("refs/heads/")
+        elif line.strip() == "detached":
+            current["branch"] = "(detached)"
+        elif line.strip() == "bare":
+            current["bare"] = True
+    if current:
+        records.append(current)
+    return records
+
+
+def cargo_busy() -> bool:
+    rc, out = run(["ps", "-axo", "comm="])
+    if rc != 0:
+        return False
+    return any(Path(line.strip()).name in ("cargo", "rustc") for line in out.splitlines() if line.strip())
+
+
+def analyse(root: Path, entry: dict) -> dict:
+    wt = Path(entry["path"])
+    # compare against git's own main worktree rather than string equality: the main
+    # checkout can be spelled several ways (symlink, trailing slash, /private/var).
+    main_root = globals().get("MAIN") or root
+    is_main = str(wt.resolve()) == str(Path(main_root).resolve())
+    rec: dict = {
+        "path": str(wt),
+        "name": "(main)" if is_main else wt.name,
+        "branch": entry.get("branch", "?"),
+        "head": entry.get("head", "")[:9],
+        "is_main": is_main,
+        "exists": wt.exists(),
+    }
+    if not rec["exists"]:
+        rec["state"] = "missing"
+        return rec
+
+    total = du_kb(wt)
+    target = du_kb(wt / "target")
+    rec["total_kb"] = total
+    rec["target_kb"] = target
+    rec["other_kb"] = max(0, total - target)
+    rec["target_pct"] = round(100 * target / total) if total else 0
+    if total == 0 and rec["exists"]:
+        # du returns nothing when this program cannot measure the tree; say so rather
+        # than reporting a confident 0 MB.
+        rec["unmeasurable"] = True
+
+    rc, out = run(["git", "-C", str(wt), "status", "--short", "--untracked-files=all"])
+    dirty = [l for l in out.splitlines() if l.strip()] if rc == 0 else []
+    rec["dirty_count"] = len(dirty)
+    rec["dirty_sample"] = dirty[:5]
+
+    if rec["is_main"]:
+        rec["state"] = "main checkout (never removed)"
+        return rec
+
+    # unique commits vs origin/main
+    rc, out = run(["git", "-C", str(wt), "log", "--oneline", "origin/main..HEAD"])
+    ahead = [l for l in out.splitlines() if l.strip()] if rc == 0 else []
+    rec["unmerged_commits"] = len(ahead)
+    rec["unmerged_sample"] = ahead[:3]
+
+    rc, out = run(["git", "-C", str(wt), "log", "-1", "--format=%cI"])
+    rec["head_date"] = out.strip() if rc == 0 else ""
+
+    if dirty:
+        rec["state"] = "UNIQUE WORK - do not remove"
+    elif ahead:
+        rec["state"] = "unmerged commits - patch or push first"
+    else:
+        rec["state"] = "clean + fully in origin/main - removable"
+    return rec
+
+
+def human(kb: int) -> str:
+    return f"{kb / 1048576:.2f} GB" if kb >= 1048576 else f"{kb / 1024:.0f} MB"
+
+
+def render(rows: list[dict], root: Path) -> str:
+    out: list[str] = []
+    out.append("worktree-audit - what each workspace costs (read-only)")
+    out.append("")
+    out.append(f"{'worktree':<34} {'size':>9} {'build':>9} {'unique':>8}  {'commits':>7}  state")
+    out.append("-" * 104)
+    tot = tgt = other = 0
+    for r in rows:
+        if not r.get("exists"):
+            out.append(f"{r['name']:<34} {'-':>9} {'-':>9} {'-':>8}  {'-':>7}  missing on disk")
+            continue
+        tot += r["total_kb"]
+        tgt += r["target_kb"]
+        other += r["other_kb"]
+        if r.get("unmeasurable"):
+            out.append(f"{r['name']:<34} {'n/a':>9} {'n/a':>9} {'n/a':>8}  {r.get('unmerged_commits', 0):>7}  {r['state']}")
+            continue
+        out.append(
+            f"{r['name']:<34} {human(r['total_kb']):>9} {human(r['target_kb']):>9} "
+            f"{human(r['other_kb']):>8}  {r.get('unmerged_commits', 0):>7}  {r['state']}"
+        )
+    out.append("-" * 104)
+    out.append(f"{'TOTAL':<34} {human(tot):>9} {human(tgt):>9} {human(other):>8}")
+    out.append("")
+    out.append(f"build output is {human(tgt)} of {human(tot)} ({round(100 * tgt / tot) if tot else 0}%): regenerable, costs only build time.")
+    out.append(f"the rest is {human(other)} of source, docs and data re-checked-out per worktree.")
+    busy = cargo_busy()
+    out.append(f"cargo/rustc running: {'YES - do not delete any target/' if busy else 'no'}")
+    return "\n".join(out)
+
+
+def plan(rows: list[dict], root: Path) -> str:
+    out: list[str] = ["", "removal plan (nothing here has been executed)", ""]
+    busy = cargo_busy()
+    removable = [r for r in rows if r.get("state", "").startswith("clean + fully")]
+    build = [r for r in rows if r.get("exists") and r["target_kb"] > 0 and not r["is_main"]]
+    if build:
+        out.append("1. Reclaim build output (regenerable; run only when no cargo/rustc is active):")
+        for r in build:
+            warn = "   # cargo is RUNNING - wait" if busy else ""
+            out.append(f"     rm -rf {r['path']}/target{'  # ' + human(r['target_kb'])}{warn}")
+    if removable:
+        out.append("")
+        out.append("2. Remove worktrees that are clean and fully contained in origin/main:")
+        for r in removable:
+            out.append(f"     git worktree remove {r['path']}")
+            if r.get("branch") and r["branch"] not in ("(detached)", "?"):
+                out.append(f"     git branch -d {r['branch']}   # -d refuses if not merged; that is the safety check")
+    keep = [r for r in rows if r.get("state", "").startswith(("UNIQUE", "unmerged"))]
+    if keep:
+        out.append("")
+        out.append("3. Preserve these before touching them (unique or unmerged work):")
+        for r in keep:
+            out.append(f"     {r['name']}: {r['dirty_count']} uncommitted file(s), {r.get('unmerged_commits', 0)} unmerged commit(s)")
+            out.append(f"       head {r.get('head_date', '?')}  # {r['path']}")
+            if r.get("unmerged_commits"):
+                out.append(f"       git -C {r['path']} format-patch origin/main..HEAD -o {LOCAL}/patches-{r['name']}")
+            if r.get("dirty_count"):
+                out.append(f"       git -C {r['path']} status --short   # inspect before removing anything")
+    out.append("")
+    out.append("After every merge: scripts/storage/uor-hygiene --apply")
+    return "\n".join(out)
+
+
+def main(argv: list[str] | None = None) -> int:
+    ap = argparse.ArgumentParser(description="Audit worktree cost and cleanup safety (read-only).")
+    ap.add_argument("--json", action="store_true")
+    ap.add_argument("--plan", action="store_true")
+    ap.add_argument("--repo", default=None)
+    args = ap.parse_args(argv)
+
+    root = Path(args.repo).resolve() if args.repo else repo_root()
+    if not (root / ".git").exists():
+        print(f"worktree-audit: {root} is not a git checkout", file=sys.stderr)
+        return 2
+
+    # the main worktree is the first entry `git worktree list` reports
+    global MAIN
+    listed = worktrees(root)
+    MAIN = Path(listed[0]["path"]).resolve() if listed else root
+
+    rows = [analyse(root, e) for e in listed]
+    rows.sort(key=lambda r: (not r.get("is_main"), -r.get("total_kb", 0)))
+
+    if args.json:
+        print(json.dumps({"repo": str(root), "worktrees": rows, "cargo_busy": cargo_busy()}, indent=2))
+        return 0
+
+    print(render(rows, root))
+    if args.plan:
+        print(plan(rows, root))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

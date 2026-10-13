@@ -57,7 +57,7 @@
       "id": "M2",
       "title": "Grounded reply from exact memory: the native learner completes correct replies",
       "lab": "codex",
-      "status": "in-progress",
+      "status": "blocked-on-owner",
       "headline": {
         "label": "complete correct replies (dev)",
         "current": 437,
@@ -98,7 +98,7 @@
       "id": "M3",
       "title": "Durable conversation memory: provenance, conflict, abstention, reset and restart",
       "lab": "codex",
-      "status": "in-progress",
+      "status": "paused",
       "headline": {
         "label": "typed outcomes qualified on the saved model",
         "current": 0,
@@ -126,7 +126,7 @@
       "id": "M4",
       "title": "One served model: the chosen model through D11 integer serving and a CLI",
       "lab": "claude",
-      "status": "in-progress",
+      "status": "blocked-on-owner",
       "headline": {
         "label": "softmax at runtime",
         "text": "softmax at runtime: yes",
@@ -168,6 +168,94 @@
       ],
       "next": "Preserve teacher-free starling/murmuration source; after compliant operator phase and explicit hold release, rung0 then rung0b GPU read/gradient. Old dense bootstrap/teacher follow-ups inactive.",
       "training_hold": true
+    },
+    "m5": {
+      "issue": 2033,
+      "id": "M5",
+      "title": "Laptop cost (D5): full-path M1 cost and selected parameter access",
+      "lab": "",
+      "status": "not-started",
+      "headline": {
+        "label": "full-path cost and selected parameter access qualified",
+        "current": 0,
+        "target": 1,
+        "of": 1,
+        "unit": "qualified milestone",
+        "vacuous": true
+      },
+      "secondary": [],
+      "panel": "m5-cost",
+      "base_artifact": "depends on M4; accounting may advance with #1512, performance qualification needs a useful saved artifact from #973/#964",
+      "mechanisms": [],
+      "lines": [],
+      "next": "Design/accounting can advance now against #1512. Measure ingestion, compiler/router/... on the selected model once a useful saved artifact exists (D5). Note: the owner's current constraint set (D23/D24/D25) changes what 'full-path cost' can be measured on; no CPU model compute.",
+      "carried_from": "#963"
+    },
+    "m6": {
+      "issue": 2034,
+      "id": "M6",
+      "title": "Reasoning and coding on the same native model",
+      "lab": "",
+      "status": "not-started",
+      "headline": {
+        "label": "unseen compositions and changed constraints on one model",
+        "current": 0,
+        "target": 1,
+        "of": 1,
+        "unit": "qualified milestone",
+        "vacuous": true
+      },
+      "secondary": [],
+      "panel": "m6-reasoning",
+      "base_artifact": "depends on #973 shared usable model, #954 grounding, #962 memory",
+      "mechanisms": [],
+      "lines": [],
+      "next": "Evaluate unseen compositions and changed constraints with causal intermediate-state controls and independent task checks. Early small reasoning probes may guide representation, but familiar arithmetic is not generalised reasoning. No second model is adopted.",
+      "carried_from": "#955, #1088"
+    },
+    "m7": {
+      "issue": 2035,
+      "id": "M7",
+      "title": "Distribution: capability API, WASM runtime and the Pages Studio",
+      "lab": "",
+      "status": "not-started",
+      "headline": {
+        "label": "native model served through the API, WASM and Studio",
+        "current": 0,
+        "target": 1,
+        "of": 1,
+        "unit": "qualified milestone",
+        "vacuous": true
+      },
+      "secondary": [],
+      "panel": "m7-distribution",
+      "base_artifact": "a local Rust API exists (capability API tests in uor-r4-integer); WASM qualification not started; no Studio deployment of the native model",
+      "mechanisms": [],
+      "lines": [],
+      "next": "WASM qualification and a Studio deployment of the native model; depends on M4 serving under D11.",
+      "carried_from": "#1172, #1173"
+    },
+    "m8": {
+      "issue": 2036,
+      "id": "M8",
+      "title": "Alpha release: the same model for conversation, memory and coding",
+      "lab": "",
+      "status": "not-started",
+      "headline": {
+        "label": "one labelled release on the same native path",
+        "current": 0,
+        "target": 1,
+        "of": 1,
+        "unit": "qualified milestone",
+        "vacuous": true
+      },
+      "secondary": [],
+      "panel": "m8-alpha",
+      "base_artifact": "follows #962/#954/#964 and #955/#1088 on the same native path, with #963 cost evidence and #1172/#1173 distribution scope",
+      "mechanisms": [],
+      "lines": [],
+      "next": "A clearly labelled release; depends on M3-M7. Not startable under the current training hold.",
+      "carried_from": "#965"
     }
   },
   "owner_rules": [
@@ -203,9 +291,9 @@
     },
     {
       "id": "OWNER-2026-10-12-NO-MATMUL",
-      "rule": "No dense matrix multiplication in training or serving. D25 reconciles the machine/readable policy; scalar geometric GPU arithmetic remains allowed.",
+      "rule": "No matmul and no softmax anywhere, including GPU training: the owner ruled on 12 October 'no matmul at all anywhere, same with softmax - there is a ternary alternative with xor that may work'. The earlier conflict with agent-execution-policy.json is resolved by that ruling; the policy file's 'training may use matrix multiplication' sentence is stale and should be corrected.",
       "scope": "all",
-      "source": "https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6135511346"
+      "source": "https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6135511346; owner ruling recorded in DECISIONS.md D25 (harness session, 12 October 2026)"
     },
     {
       "id": "OWNER-2026-10-12-GEOMETRY-ONLY",
@@ -230,6 +318,12 @@
       "rule": "Current geometric operator phase: OP2 first -> OP1 G2 only -> OP3a -> lawful rung0 after hold release -> OP4/rung0b; OP3b later research. Training and independent M2 rental hold remain. FIT lifts no hold; preserve peer work and frozen constraint set.",
       "scope": "all",
       "source": "docs/integration/DECISIONS.md"
+    },
+    {
+      "id": "OWNER-2026-10-12-TERNARY-XOR",
+      "rule": "Ternary/XOR is an owner-suggested candidate replacement arithmetic, not an adopted mechanism and not yet shown to be geometric. It enters as a proposal under the D25 rule freeze; it is unimplemented, unmeasured and must pass a prospective TEST FITNESS review before any compute. See docs/mechanisms/ternary-xor-arithmetic.md.",
+      "scope": "all",
+      "source": "Owner ruling, 12 October 2026 (harness session); DECISIONS.md D25"
     }
   ],
   "constraint_freeze": {

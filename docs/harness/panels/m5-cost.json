@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "note": "Acceptance panels. A panel is frozen only when its milestone has started and its bar is pre-registered; D21/D22 freeze the panel before the run it scores.",
+  "panels": {
+    "m5-cost": {
+      "title": "M5 Laptop cost (D5)",
+      "milestone": "m5",
+      "frozen": false,
+      "grader": "",
+      "source": "GitHub issue #2033 (milestone not started; acceptance carried over, no panel pre-registered)",
+      "noise": "unstated - a bar must not be narrower than it",
+      "seeds": ">= 2 for a decisive run",
+      "rows": ">= 200 fresh rows for a decisive run",
+      "bars": [],
+      "note": "This milestone has not started and its acceptance criteria are carried over from an earlier issue. There is no pre-registered panel, so the panel is deliberately NOT frozen and carries no bars. Freeze it before the first run this panel would score, and change frozen to true at that point."
+    }
+  }
+}

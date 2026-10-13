@@ -64,6 +64,36 @@ memory 20/40, reply 37/232).
 needs a prospective kernel card and TEST FITNESS first, and training stays held.
 
 
+## 2026-10-12 — Owner rules matmul out everywhere; the ternary/XOR alternative assessed and the lab data moved out of every checkout (lead, governance + workspace)
+
+The [record](../labs/owner-ruling-and-storage-2026-10-12/README.md) covers two owner-approved units.
+**Ruling:** asked to resolve the last reading under which GPU training might keep dense GEMM, the owner
+answered "no matmul at all anywhere, same with softmax - there is a ternary alternative with xor that
+may work." Recorded in [D25](../integration/DECISIONS.md#d25---geometric-operator-phase-and-current-lab-direction);
+it closes the training-lane exemption and adds no fourth restriction. **Assessment:** the
+[ternary/XOR brief](../mechanisms/ternary-xor-arithmetic.md) finds the ternary half true (remove the
+multiplier) and the XOR half false as stated (XOR is addition in GF(2), whose only coefficients are
+{0,1}; the exact result is `popcount(P & X) − popcount(N & X)` over disjoint weight bitplanes against a
+*binary* operand, re-verified here at 5,000/5,000 trials). It removes the multiplier, not the matmul, so
+it answers D11 rather than D25 and collides with OP2; it is a quantisation lever, not a geometric
+mechanism, and icosian-mantissa already measures better (1.5148 vs 1.5136 BPB). It enters as a proposal
+under the rule freeze. **Workspace:** 14 GB of regenerable build caches and one orphan index were
+removed, then `research/{prime-analysis,ai-research,archives}` — 999 MB, 11,179 files — were archived
+to the MD5-verified iCloud store and untracked, after a restore of `prime-analysis` proved byte-identical
+content (7,713 files, matching digest) before anything was deleted. Disk went 31 → 45 GiB free. New:
+`scripts/storage/research-data` (status/manifest/restore) and `scripts/storage/worktree-audit`;
+[working-in-one-checkout.md](../labs/working-in-one-checkout.md) with a real `team claim` guard and a
+`status.branch_claimed` rule. M5–M8 are in the harness registry with their real statuses; their panels
+are deliberately unfrozen because an unstarted milestone has no pre-registered acceptance.
+
+Line: no model line - governance and workspace · count 0/3 unchanged · headline 37/232 → 37/232 (unchanged).
+
+**Next:** two labs are mid-work and hold worktrees with uncommitted files; each should commit and switch
+into the single checkout when its unit lands, and `claude-starling3` (clean, fully in main) is removable by
+its owner. The ternary/XOR proposal needs an owner decision: carry it as a labelled non-geometric
+arithmetic substitution, or pursue the geometric version where the three alphabet values are actual group
+elements rather than a truncation.
+
 ## 2026-10-12 — OP1 implemented G2-only: the Hamilton rotation gate and its CUDA kernels (kimi, #2029)
 
 The [record](../labs/gate-ops-2026-10-12/README.md) lands the operator phase's gate under the
@@ -5061,3 +5091,4 @@ contracts are in the [history file](../history/current-state-2026-09-25-to-2026-
   [decisions](DECISIONS.md) and the exact source/artifacts for the active rung.
   **Pre-alpha; no useful general-language, coding, frontier, geometric-advantage or
   full-path energy qualification.**
+

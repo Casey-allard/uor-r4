@@ -1265,6 +1265,27 @@ training hold and preserve everyone's work. The reconciliation claim is
   mechanism retirement or count reset is adopted by this reconciliation.
 - Preserve every lab's unique source, artifacts, jobs, leases and worktrees;
   cleanup is limited to the deliverer's verified redundant workspace/branch.
+- **Owner ruling, 12 October 2026 (late, in the harness session) - no matmul and
+  no softmax, anywhere.** Asked to resolve the last reading under which the GPU
+  training lane might still use dense GEMM, the owner answered: *"no matmul at all
+  anywhere, same with softmax - there is a ternary alternative with xor that may
+  work."* This adds no fourth restriction; it confirms and widens the scope of D23
+  and D25, which already prohibited softmax and dense matrix multiplication in the
+  executed path, and it removes the training-lane exemption.
+  - **Ternary/XOR is an owner-suggested candidate, not an adopted mechanism.** The
+    owner offers a ternary weight representation combined with XOR as a possible
+    replacement arithmetic. It has not been designed, pre-registered, reviewed for
+    TEST FITNESS, or measured here, and the owner's belief is not evidence. Under
+    D25's rule freeze it enters as a proposal and changes nothing until the first
+    compliant rung0 result reports. Brief:
+    [ternary-xor-arithmetic.md](../mechanisms/ternary-xor-arithmetic.md).
+  - It is **not yet established as a geometric mechanism.** D25 withdrew the
+    rectified-square gate for being non-geometric, so a ternary/XOR scheme must
+    justify itself on the same ground or be carried explicitly as a labelled
+    non-geometric arithmetic substitution. The brief records which side it falls on
+    and what a fair test needs.
+  - No result that needs matmul or softmax anywhere counts as progress on any line.
+    Historical measurements keep their scope as inactive evidence.
 
 The [repaired operator plan](../labs/operator-phase-2026-10-12/README.md) defines
 the preparation/admission boundary. This is agent governance, not a claim that

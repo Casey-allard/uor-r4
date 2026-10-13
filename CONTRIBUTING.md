@@ -125,6 +125,27 @@ See [docs/harness/README.md](docs/harness/README.md) for the surface and
 [docs/harness/CONTRACT.md](docs/harness/CONTRACT.md) for every rule and its rationale.
 The harness is tooling: it runs no model compute, and its own output is never model evidence.
 
+## One checkout, and no duplicated data (owner direction, 12 October 2026)
+
+Labs work in `~/uor-r4` rather than each keeping a full worktree, so the same ~1 GB of
+tracked material is not checked out five times. Before you start:
+
+```sh
+python3 scripts/harness/cli.py team claim --branch <your-branch> --lab <lab>
+```
+
+The rules, the handover format and the cases where a worktree is still correct are in
+[docs/labs/working-in-one-checkout.md](docs/labs/working-in-one-checkout.md). One branch
+has one owner at a time; keep the tree clean between sessions; serialise `cargo` builds.
+`scripts/storage/worktree-audit` reports what each workspace costs and what is safe to
+remove, and `scripts/storage/uor-hygiene --apply` removes only worktrees that are clean,
+free of ignored data, and already in `origin/main`.
+
+Large binary material is **archived, not tracked**: `research/prime-analysis`,
+`research/ai-research` and `research/archives` live in the MD5-verified iCloud store.
+`scripts/storage/research-data status` shows what is where and
+`scripts/storage/research-data restore <name> --run` brings one back in about a minute.
+
 ## Data, artifacts and compute
 
 - Results and large artifacts go to iCloud with `cloud-store put <lab> <dir>` (MD5 round-trip),

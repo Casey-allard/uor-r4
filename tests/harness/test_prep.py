@@ -446,7 +446,23 @@ class TestCommittedPanels(unittest.TestCase):
             self.assertEqual(panel.milestone, milestone.key, panel.id)
 
     def test_every_panel_is_frozen_with_a_grader_and_bars(self) -> None:
+        """A frozen panel must be complete. A not-started milestone's panel is exempt.
+
+        Freezing is required before the first run a panel would score (D21/D22), not
+        before the milestone it belongs to has started; an unstarted milestone has no
+        pre-registered acceptance to encode. Those panels are asserted unfrozen below so
+        the exemption cannot be used to smuggle in an incomplete frozen panel.
+        """
+        unstarted = {
+            m.panel
+            for m in self.reg.milestones.all()
+            if str(m.status).lower() in ("not-started", "not started", "proposed")
+        }
         for panel in self.reg.panels:
+            if panel.id in unstarted:
+                self.assertFalse(panel.frozen, f"{panel.id} belongs to a not-started milestone but claims to be frozen")
+                self.assertFalse(panel.bars, f"{panel.id} has no pre-registered acceptance, so it must carry no bars")
+                continue
             self.assertTrue(panel.frozen, panel.id)
             self.assertTrue(panel.grader, panel.id)
             self.assertTrue(panel.bars, panel.id)
@@ -465,9 +481,20 @@ class TestCommittedPanels(unittest.TestCase):
         self.assertEqual(m4["softmax-at-runtime"]["target"], 0)
 
     def test_panel_frozen_rule_passes_on_the_committed_tree(self) -> None:
+        """No panel violation may be an error on the committed tree.
+
+        Not-started milestones (M5-M8) legitimately carry an unfrozen panel with no bars;
+        those are reported as warnings so they are visible and must be frozen before the
+        first run they would score. Any error here means a started milestone is missing a
+        frozen panel, which is a real failure.
+        """
         results = prep_rule(checkrules.run(self.paths, self.reg, only=["prep"]), "prep.panel_frozen")
         self.assertTrue(results)
-        self.assertTrue(all(r.ok for r in results), [r.message for r in results])
+        errors = [r for r in results if not r.ok and r.severity == "error"]
+        self.assertEqual(errors, [], [r.message for r in errors])
+        warnings = [r for r in results if not r.ok and r.severity == "warn"]
+        for r in warnings:
+            self.assertIn("not-started", r.message, r.message)
 
     def test_milestone_numbers_match_the_committed_panels(self) -> None:
         """Where a milestone states a numeric headline, the panel's headline bar must agree.
@@ -477,8 +504,13 @@ class TestCommittedPanels(unittest.TestCase):
         """
         compared: list[str] = []
         skipped: list[tuple[str, str]] = []
+        unstarted: list[str] = []
         for milestone in self.reg.milestones.all():
             panel = registries.find_panel(self.reg.panels, milestone.panel)
+            if str(milestone.status).lower() in ("not-started", "not started", "proposed"):
+                # no pre-registered acceptance exists yet, so there is nothing to compare
+                unstarted.append(milestone.id)
+                continue
             if milestone.headline.get("current") is None:
                 skipped.append((milestone.id, str(milestone.headline.get("text", milestone.headline.get("label", "")))))
                 continue
@@ -489,6 +521,7 @@ class TestCommittedPanels(unittest.TestCase):
         self.assertEqual(compared, ["M1", "M2", "M3"], "the numeric headlines are M1-M3")
         self.assertEqual([m for m, _ in skipped], ["M4"], "M4's headline is qualitative: no numeric current")
         self.assertTrue(skipped[0][1], "the skipped milestone must name its qualitative headline text")
+        self.assertEqual(unstarted, ["M5", "M6", "M7", "M8"], "the unstarted milestones carry no frozen panel to compare")
 
     def test_a_qualitative_headline_is_not_compared_to_a_bar(self) -> None:
         """The skip above is a real rule, not an accident of the current registry."""

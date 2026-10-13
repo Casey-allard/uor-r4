@@ -21,5 +21,6 @@ The labs work from these, not only from milestone headline numbers. Every pre-re
 | Starling read: ~7 topological neighbours on the 600-cell, no softmax | M4 #2032 | [starling-read.md](starling-read.md) |
 | E8 orbit memory: an exact-E8-addressed memory in place of the MLP, no softmax | M4 #2032 | [e8-orbit-memory.md](e8-orbit-memory.md) |
 | Spin-native weights: quaternion and icosian maps (Cayley-table products) | M4 #2032 | [spin-native-weights.md](spin-native-weights.md) |
+| Ternary / XOR arithmetic: a multiplier-free weight alphabet (owner-suggested, not adopted) | M4 #2032, M5 #2033 | [ternary-xor-arithmetic.md](ternary-xor-arithmetic.md) |
 
 The Claude lab drafted these on 10 October from the source and the records, at the owner's request. Correct them in place when a mechanism's understanding changes. The owner does not need to write them.

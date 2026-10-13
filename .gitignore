@@ -51,3 +51,14 @@ Claude outputs/
 # Python bytecode from harness runs.
 __pycache__/
 *.pyc
+
+# Large binary research material archived to the iCloud store (owner direction,
+# 12 October 2026: labs work in one checkout and duplicate no data). ~1 GB that
+# every checkout used to carry. The bytes are MD5-verified in the store; restore
+# one with:  scripts/storage/research-data restore <name> --run
+#   prime-analysis  566 MB  7713 files
+#   ai-research     378 MB  3337 files
+#   archives        103 MB   129 files
+/research/prime-analysis/
+/research/ai-research/
+/research/archives/

@@ -1,84 +1,34 @@
-# UOR-R4 Geometric Language Model — research archive
+# research/
 
-Consolidated research supporting the UOR-R4 Geometric Language Model. This tree is
-**not** part of the Rust workspace (see `exclude` in the root `Cargo.toml`)
-and is excluded from crate build, lint, and claim-wording gates.
+Research material collected during the project. Most of it is small and tracked.
 
-For geometric-decoder work, `research/ai-research/ai-router/router-research/`
-is the canonical research snapshot. The `ai-router` copies nested under
-`research/prime-analysis/` are historical source snapshots with overlapping
-and sometimes divergent results; do not treat three copies as independent
-replication or edit them in parallel.
+Three directories were **archived to the iCloud store and untracked on 12 October 2026**
+(owner direction: labs work in one checkout and duplicate no data). Together they were
+about 1 GB of mostly binary material — a 53 MB `.npz` (twice), 20 MB CSVs and 14–23 MB
+PDFs — that every worktree and clone used to carry:
 
-Research is adopted into the native model through the
-[canonical plan](../docs/integration/project-track.md) and measured implementation
-in [current-state](../docs/integration/current-state.md), under programme root
-[#820](https://github.com/UOR-Foundation/uor-r4/issues/820).
-That programme turns selected results into explicit route, serialization,
-attention, inference, correctness, or reasoning contracts. Everything else in
-this tree remains preserved research input: useful evidence and mechanism
-proposals, but not a claim about what the current engine can do.
+| archive | path | size | files |
+|---|---|---|---|
+| `prime-analysis` | `research/prime-analysis` | 566 MB | 7,713 |
+| `ai-research` | `research/ai-research` | 378 MB | 3,337 |
+| `archives` | `research/archives` | 103 MB | 129 |
 
-The archive is intentionally broader than the active implementation. It keeps
-the project’s prime, semiprime, zeta-grid, torsion, Hopf, spherical-harmonic,
-golden-radial, Riemannian, networking, graph-compiler, and formal work available
-for synthesis. Inclusion here does not promote a formula to a product guarantee;
-promotion requires a named consumer and an explicit, witnessed contract in the
-active programme.
+They are not lost. Each is a tar in the MD5-verified store, indexed at
+`icloud:UOR-R4/index/<name>.tsv`, and restorable in about a minute:
 
-The [current occurrence-reader synthesis](../docs/integration/occurrence-reader-review-2026-09-20.md) connects retained exact-memory/geometry source with sparse-memory and induction research. Its experiment is specified, not executed; the archive does not establish success for that new integration.
+```sh
+scripts/storage/research-data status                  # what is archived, what is present
+scripts/storage/research-data restore prime-analysis --run
+```
 
-## Finding sources, artifacts and results
+`restore` downloads the tar, verifies it against the index MD5, and extracts it in place.
+The manifest with sizes and checksums is [docs/harness/research-data.json](../docs/harness/research-data.json).
 
-The [project map](../docs/PROJECT_MAP.md) and
-[model direction](../docs/integration/model-direction-2026-09.md) connect this
-archive to the active Rust core. The
-[architecture audit](../docs/integration/architecture-2026-09/README.md) and
-[source inventory](../docs/integration/architecture-2026-09/source-inventory.json)
-identify original angular/prime routers, UOR standards, contributor imports,
-Spin/Hopf/fiber and mathematical tracks at their reviewed source scope.
+One detail, stated because it is a real difference: the tar round trip normalises the
+encoding of non-ASCII filenames. Verified before the local copies were removed, the
+restored `prime-analysis` tree had the same 7,713 files and a byte-identical content
+digest; two filenames in `research/theoretical-mathematics/prime-number-theory/` come back
+with normalised Unicode. Contents are unaffected.
 
-Tracked research source belongs here; append-only measurements and compact
-receipts are indexed by [docs/RESEARCH.md](../docs/RESEARCH.md). Bulk local
-training data, retained checkpoints and cumulative resource receipts live in
-the ignored `.uor-models/` store; follow the exact paths and identities in
-current-state and the named evidence record. A Git clone does not imply those
-local artifacts or LFS payloads are present. The
-[local knowledge index](../tools/uor-knowledge/README.md) supports discovery of
-source snapshots and relationships; it does not replace live source verification.
-
-Historical imports retain their own names, licenses and internal instructions.
-Their proofs, simulations, dense references and benchmark outcomes are scoped
-evidence, not a general-prose or general-reasoning claim for the native model.
-
-## Contents
-
-- `ai-research/` — snapshot of the `Sky-Metrix/AI-Research` monorepo: the
-  geometric-routing research program (`ai-router/`), the MUDBench agent
-  benchmark, `ramsey/`, preprints, and experiment outputs.
-- `prime-analysis/` — snapshot of the `Casey-allard/Prime-Analysis` repository:
-  spectral / prime-structure research, `theoretical-mathematics/` including the
-  `formal-math-lean/` Lean sources and the vendored `UOR-Framework/lean4`,
-  routing-infrastructure prototypes, and manuscripts.
-- `prime-analysis/photos/` — supporting figure/slide images (Git LFS).
-- [archives/](archives/README.md) — preserved development sandboxes and early router sources.
-- [riemann-lean/](riemann-lean/README.md) — imported Riemann/Lean research and its stated proof boundaries.
-- [msa/](msa/README.md) — retained MSA research at its documented scope.
-- [spiralcore-v68/](spiralcore-v68/README.md) — preserved SpiralCore v68 HTML and
-  Atomic Ternary FBS revision 3.1 PDF, with scoped source consultation and provenance.
-
-## Provenance and handling
-
-- Original repositories are retained upstream and were not deleted; this is an
-  additive consolidation.
-- **Full commit history** of each source repository is preserved on the refs
-  `archive/ai-research-history` and `archive/prime-analysis-history` in this
-  repository (media blobs over 1 MB stripped from those history refs to keep
-  the object store lean; full-fidelity media remains in the originals).
-- Binary media (images, PDFs, `.npz`/`.npy`, office documents, model blobs) is
-  stored via **Git LFS**; text, code, CSV, and Lean sources are stored normally.
-- Excluded from this snapshot: committed virtualenvs, `__pycache__`,
-  `node_modules`, and OS junk (not research content); and — deliberately — any
-  material under a separate confidentiality hold (e.g. unpublished MSA papers,
-  personal/legal documents, and packaged artifacts), none of which were tracked
-  in the source repositories.
+The bytes still exist in this repository's git history; they are simply no longer checked
+out. This is a working-copy change, not a history rewrite, so it is reversible.

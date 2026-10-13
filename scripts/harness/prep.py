@@ -930,6 +930,10 @@ def _check_panel_frozen(paths: HarnessPaths, reg: Registry) -> list[RuleResult]:
         if m.panel:
             seen.append((m.panel, m))
     # a panel present in a file but referenced by no milestone is not a violation here.
+    # A milestone that has not started has no pre-registered acceptance, so its panel is
+    # legitimately unfrozen: freezing is required before the run the panel would score, not
+    # before the milestone exists. Those are reported as warnings, never errors.
+    not_started_states = {"not-started", "not started", "proposed"}
     for panel_id, milestone in seen:
         rel = f"docs/harness/panels (referenced by {milestone.id} #{milestone.issue} as {panel_id!r})"
         panel = find_panel(reg.panels, panel_id)
@@ -944,6 +948,28 @@ def _check_panel_frozen(paths: HarnessPaths, reg: Registry) -> list[RuleResult]:
                     fix=f"add docs/harness/panels/{slug(panel_id)}.json with a frozen panel id {panel_id!r}",
                 )
             )
+            continue
+        pending = str(getattr(milestone, "status", "")).lower() in not_started_states
+        if pending:
+            gaps = []
+            if not panel.frozen:
+                gaps.append("not marked frozen")
+            if not panel.grader:
+                gaps.append("no grader")
+            if not panel.bars:
+                gaps.append("no bars")
+            if gaps:
+                out.append(
+                    RuleResult(
+                        rule_id="prep.panel_frozen",
+                        severity="warn",
+                        ok=False,
+                        message=(f"panel {panel.id} ({milestone.id} is {milestone.status}): {', '.join(gaps)}; "
+                                 "freeze it before the first run it would score"),
+                        path=f"docs/harness/panels/{panel.id}.json",
+                        fix=f"set frozen=true, a grader and at least one bar with current and target in docs/harness/panels/{panel.id}.json",
+                    )
+                )
             continue
         problems: list[str] = []
         if not panel.frozen:

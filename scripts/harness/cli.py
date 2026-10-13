@@ -179,6 +179,50 @@ def cmd_skill(args: argparse.Namespace, paths: HarnessPaths, reg: Registry) -> i
 def cmd_team(args: argparse.Namespace, paths: HarnessPaths, reg: Registry) -> int:
     from registries import find_role
     from receipts import record
+    import receipts as R
+
+    if args.action == "claim":
+        try:
+            ok, rec = R.claim_branch(paths, args.branch, args.lab, args.note or "")
+        except ValueError as exc:
+            emit(f"team claim: {exc}", sys.stderr)
+            return EXIT_USAGE
+        if not ok:
+            emit(f"team claim: {args.branch} is already held by lab {rec.get('lab')!r} since {rec.get('claimed_at')}", sys.stderr)
+            emit("  use a different branch, or release it with: team release --branch <name>", sys.stderr)
+            return EXIT_FAIL
+        if args.json:
+            emit(json.dumps(rec, indent=2))
+        else:
+            emit(f"claimed {rec['branch']} for lab {rec['lab']} at {rec['claimed_at']}")
+            emit(f"  head {rec.get('head', '?')} · {R.claims_path(paths)}")
+        return EXIT_OK
+
+    if args.action == "release":
+        ok, rec = R.release_branch(paths, args.branch, args.lab or "")
+        if not ok:
+            emit(f"team release: no claim on {args.branch!r}", sys.stderr)
+            return EXIT_FAIL
+        if args.json:
+            emit(json.dumps(rec, indent=2))
+        else:
+            emit(f"released {rec.get('branch')} (was held by {rec.get('lab')})")
+        return EXIT_OK
+
+    if args.action == "claims":
+        claims = R.load_claims(paths)
+        cur = R.current_branch(paths)
+        if args.json:
+            emit(json.dumps({"current_branch": cur, "claims": claims}, indent=2))
+        elif not claims:
+            emit(f"no branch claims recorded · current branch {cur or '(detached)'}")
+            emit("claim one with: cli.py team claim --branch <name> --lab <lab>")
+        else:
+            emit(f"branch claims ({len(claims)}) · current branch {cur or '(detached)'}")
+            for br, rec in sorted(claims.items()):
+                mark = "  <- current" if br == cur else ""
+                emit(f"  {br:<44} lab={rec.get('lab', '?'):<10} since {rec.get('claimed_at', '?')}{mark}")
+        return EXIT_OK
 
     if args.action == "roster":
         if args.json:
@@ -430,6 +474,17 @@ def build_parser() -> argparse.ArgumentParser:
     sp = sub.add_parser("team", help="the dispatchable expert team")
     sub2 = sp.add_subparsers(dest="action", required=True)
     s = sub2.add_parser("roster")
+    s.set_defaults(fn=cmd_team)
+    s = sub2.add_parser("claim", help="claim a branch for a lab (one checkout, one owner)")
+    s.add_argument("--branch", required=True)
+    s.add_argument("--lab", required=True)
+    s.add_argument("--note", default=None)
+    s.set_defaults(fn=cmd_team)
+    s = sub2.add_parser("release", help="release a branch claim")
+    s.add_argument("--branch", required=True)
+    s.add_argument("--lab", default=None)
+    s.set_defaults(fn=cmd_team)
+    s = sub2.add_parser("claims", help="list branch claims and the current branch")
     s.set_defaults(fn=cmd_team)
     s = sub2.add_parser("dispatch", help="record a real dispatch and its route")
     s.add_argument("role", nargs="?")
