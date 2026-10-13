@@ -1,3 +1,31 @@
+## 2026-10-13 — Onboarding verifies instead of asserting: a Rust `onboard` command (lead, tooling)
+
+[`uor-harness onboard`](../labs/harness-onboard-2026-10-13/README.md), in the Rust crate because D27
+makes Rust the default for new tooling, answers "can THIS machine use the harness?" by running the
+checks rather than printing a checklist — the previous unit shipped two documented commands that did
+not exist, and prose cannot catch that. It is **read-only** (no receipt, claim, presence write or
+commit; verified by test that the receipt count is unchanged), reports five findings in the order
+things actually fail (python → identity → claims → ledger → harness), exits **0** ready and **3** on
+failure — distinct from `check`'s 1 so automation can tell "not onboarded" from "state drifted". A
+missing `UOR_LAB` is a FAIL because everything downstream is worthless without it; an unfamiliar lab
+name only warns, since joining is a decision. **A test I wrote wrong found a real correctness bug:**
+my first version warned on any `UOR_LAB` outside the four known names, and a test asserting
+`DeepSeek` warned **failed** — correctly, because the harness slugs a lab name into every path it
+touches (`presence/<lab>.json`, `ledger/<lab>-<month>.jsonl`, the receipt's `lab` field), so
+`DeepSeek` and `deepseek` are one lab. Comparison now happens after slugging, with two tests where
+there was one: a case variant must be accepted and slug identically, an unfamiliar name must warn
+without blocking. It deliberately does not write a heartbeat (that would be a state change on a
+command whose value is being safe to repeat) and does not guess your lab identity from the
+environment, because a blank beats a wrong name in an evidence record.
+
+Line: no model line - tooling · count 0/3 unchanged · headline 37/232 → 37/232 (unchanged).
+
+**Next:** `team dispatch` and `prep new` still have **zero foreign receipts** — the weakest evidence
+class, and `prep new` is the D22 gate standing between a lab and prohibited compute, so a lab that
+did not write it should exercise it next. Then `scripts/harness/doccheck.py`, which would have caught
+both broken commands automatically: it works but still reports false positives, and a checker that
+cries wolf is worse than none.
+
 ## 2026-10-13 — CI learns about the Rust harness, and the parity gate is fixed before it ships (lead, tooling)
 
 `.github/workflows/harness.yml` gains a `rust-harness` job (pinned Rust, cached cargo, `fmt --check`,

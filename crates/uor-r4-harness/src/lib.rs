@@ -21,7 +21,9 @@
 //! ```
 
 pub mod contract;
+pub mod onboard;
 pub mod state;
 
 pub use contract::{Contract, FormatSpec, Kind, Shape, Violation};
+pub use onboard::{onboard, Finding, Level, Report};
 pub use state::{Presence, Receipt, StatePaths};

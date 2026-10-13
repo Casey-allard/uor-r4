@@ -11,6 +11,7 @@
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
+use uor_r4_harness::onboard::{detect_runtime, onboard};
 use uor_r4_harness::state::{read_ledger, Presence, StatePaths};
 use uor_r4_harness::Contract;
 
@@ -21,6 +22,9 @@ USAGE:
     uor-harness <COMMAND> [--repo DIR]
 
 COMMANDS:
+    onboard     Verify this machine can use the harness, and say what to do
+                next. Read-only: records nothing, claims nothing. Exits 1 if
+                anything FAILs.
     check       Check persisted state against the frozen contract
                 (docs/harness/state-formats.json). Exits 1 on drift.
     presence    What each lab is doing now. Live tier first, durable as the
@@ -77,6 +81,7 @@ fn main() -> ExitCode {
     };
 
     match command.as_deref() {
+        Some("onboard") => cmd_onboard(&repo, json),
         Some("check") => cmd_check(&repo, json),
         Some("presence") => cmd_presence(&repo, json),
         Some("ledger") => cmd_ledger(&repo, json),
@@ -88,6 +93,65 @@ fn main() -> ExitCode {
             eprint!("{USAGE}");
             ExitCode::from(2)
         }
+    }
+}
+
+fn cmd_onboard(repo: &Path, json: bool) -> ExitCode {
+    let report = onboard(repo, std::env::var("UOR_LAB").ok());
+    if json {
+        let findings: Vec<String> = report
+            .findings
+            .iter()
+            .map(|f| {
+                format!(
+                    "    {{\"name\": {:?}, \"level\": {:?}, \"detail\": {:?}, \"fix\": {:?}}}",
+                    f.name,
+                    format!("{:?}", f.level).to_lowercase(),
+                    f.detail,
+                    f.fix
+                )
+            })
+            .collect();
+        let steps: Vec<String> = report.next_steps.iter().map(|s| format!("{s:?}")).collect();
+        println!(
+            "{{\n  \"ready\": {},\n  \"lab\": {:?},\n  \"repo\": {:?},\n  \"failures\": {},\n  \"findings\": [\n{}\n  ],\n  \"next_steps\": [{}]\n}}",
+            report.ready(),
+            report.lab,
+            report.repo.display().to_string(),
+            report.failures(),
+            findings.join(",\n"),
+            steps.join(", ")
+        );
+    } else {
+        println!("uor-harness onboard - can this machine use the harness?");
+        println!("  repo:      {}", report.repo.display());
+        println!("  live tier: {}", report.live_tier.display());
+        if let Some(runtime) = detect_runtime() {
+            println!("  runtime:   {runtime} (detected; advisory only)");
+        }
+        println!();
+        for f in &report.findings {
+            println!("  {} {:<10} {}", f.level.mark(), f.name, f.detail);
+            if !f.fix.is_empty() {
+                println!("       -> {}", f.fix);
+            }
+        }
+        println!();
+        if report.ready() {
+            println!("READY. Nothing failed. Next:");
+        } else {
+            println!("NOT READY: {} check(s) failed. Next:", report.failures());
+        }
+        for step in &report.next_steps {
+            println!("  - {step}");
+        }
+    }
+    if report.ready() {
+        ExitCode::SUCCESS
+    } else {
+        // Distinct from `check`'s exit 1 so CI can tell "state drifted" from "this machine is not
+        // onboarded"; both are failures, but they need different fixes.
+        ExitCode::from(3)
     }
 }
 

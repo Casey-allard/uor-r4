@@ -139,11 +139,55 @@ Refuses a commit on a branch another lab has claimed:
 python3 scripts/harness/cli.py --repo <repo> git install-hooks
 ```
 
-## Verify the install
+## Verify the install — one command, in Rust
 
 ```sh
-python3 scripts/harness/cli.py --repo <repo> check --only arena     # the tool runs here
-python3 scripts/harness/cli.py --repo <repo> multilab presence      # you can see the other labs
+# build once (D27: new tooling is Rust; the crate depends only on serde, so this is seconds)
+CARGO_TARGET_DIR=local/harness-target cargo build -p uor-r4-harness
+
+# then check yourself
+UOR_LAB=<your-lab> ./local/harness-target/debug/uor-harness onboard --repo <repo>
+```
+
+`onboard` **verifies** rather than prints a checklist, and it is **read-only** — it records no
+receipt, claims no branch, writes no presence. Run it as often as you like. It reports four things
+about the machine it is standing on:
+
+```
+uor-harness onboard - can this machine use the harness?
+  repo:      <repo>
+  live tier: ~/.local/share/uor-r4/harness
+
+  ok   python     3.15 found (floor 3.9)
+  ok   identity   UOR_LAB=claude
+  ok   claims     2 claim(s) visible, 0 held by this lab
+  ok   ledger     46 receipts, other labs visible: codex, kimi
+  ok   harness    harness check: 4 rules, all pass
+
+READY. Nothing failed. Next:
+  - run one real task with the harness: `cli.py brief -m <milestone>` then `cli.py check`
+  - claim your branch before you start: `cli.py team claim --branch <name> --lab <lab>`
+  - check in every 90 minutes: `cli.py heartbeat -m <milestone>`, which also publishes your presence
+  - after your merge, delete your branch on both sides — there is no auto-delete
+```
+
+Exit **0** when ready, **3** when something FAILs — distinct from `check`'s exit 1, so CI can tell
+"this machine is not onboarded" from "the state drifted". Both are failures; they need different
+fixes. `--json` for a machine-readable report.
+
+The order is deliberate, because it is the order things fail in:
+
+| check | what it means when it fails |
+|---|---|
+| **python** | Python owns behaviour in this port, so a lab with no working `python3` cannot use the harness yet, however good the Rust binary is |
+| **identity** | without `UOR_LAB`, receipts are recorded but attributed to **nobody** |
+| **claims** | a lab that cannot read the board is working blind |
+| **ledger** | it names the other labs it can see — if that list is empty, you may be the first lab here, or the shards have not been fetched |
+| **harness** | the contract every lab runs |
+
+Then confirm the live half by hand, which `onboard` deliberately does not do because it writes:
+
+```sh
 python3 scripts/harness/cli.py --repo <repo> heartbeat -m <milestone>
 python3 scripts/harness/cli.py --repo <repo> multilab presence      # you now appear "via live"
 ```
