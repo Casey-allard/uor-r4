@@ -106,6 +106,36 @@ class TestReceipts(unittest.TestCase):
         for shard in shards:
             self.assertNotIn("ghp_", shard.read_text(), f"{shard.name} carries a token")
 
+    def test_an_unattributed_receipt_warns_loudly(self) -> None:
+        """Thirteen receipts accumulated unattributed before anything said so. A record that
+        cannot name its lab defeats the visibility the shards exist for, so the warning is
+        part of the contract, not a nicety."""
+        import contextlib
+        import io
+        import os
+
+        os.environ.pop("UOR_LAB", None)
+        receipts._UNATTRIBUTED_WARNED[0] = False
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            rec = receipts.record(self.paths, "skill", skill="a")
+        self.assertFalse(rec.get("lab"), "no lab, so the record is honest about it")
+        self.assertIn("no lab identity", err.getvalue())
+        self.assertIn("UOR_LAB", err.getvalue(), "the warning must name the fix")
+
+    def test_the_warning_is_not_repeated_all_session(self) -> None:
+        import contextlib
+        import io
+        import os
+
+        os.environ.pop("UOR_LAB", None)
+        receipts._UNATTRIBUTED_WARNED[0] = False
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            receipts.record(self.paths, "skill", skill="a")
+            receipts.record(self.paths, "skill", skill="b")
+        self.assertEqual(err.getvalue().count("no lab identity"), 1, "one warning per process, not per record")
+
     def test_receipts_are_sharded_per_lab(self) -> None:
         """Two labs must never write the same ledger file; that is what sharding is for."""
         import os

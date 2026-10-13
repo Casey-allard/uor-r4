@@ -53,10 +53,34 @@ def record(paths: HarnessPaths, kind: str, **fields: Any) -> dict[str, Any]:
 
         if not lab:
             rec["lab"] = _lab_identity()
+        if not rec.get("lab"):
+            # Loud, once per process. A receipt with no lab is preserved but cannot answer
+            # "which lab did this", which is the visibility the shards exist for. Thirteen
+            # receipts accumulated unattributed before this warning existed, and nothing
+            # said so at the time.
+            _warn_unattributed()
         multilab.append_receipt(paths, rec.get("lab", ""), rec)
     except ImportError:  # pragma: no cover - multilab ships with the harness
         append_jsonl(ledger_path(paths), rec)
     return rec
+
+
+def _warn_unattributed() -> None:
+    """Tell the session, once, that this receipt will be attributed to nobody."""
+    if _UNATTRIBUTED_WARNED[0]:
+        return
+    _UNATTRIBUTED_WARNED[0] = True
+    import sys
+
+    print(
+        "uor-harness: WARNING - no lab identity, so this record is attributed to nobody and no\n"
+        "             other lab can see who did it. Fix it for this session with:\n"
+        "             export UOR_LAB=<kimi|claude|codex|deepseek>",
+        file=sys.stderr,
+    )
+
+
+_UNATTRIBUTED_WARNED = [False]
 
 
 def _lab_identity() -> str:
