@@ -119,3 +119,32 @@ release; and migration preserves every receipt including an unreadable one.
 attributed; `docs/labs/session-goal.md` should name `multilab presence` alongside `team claim`; and
 a non-Claude lab needs a scheduled entry point before presence can be continuous rather than
 per-session.
+
+## Correction: another lab HAS used the harness
+
+An earlier revision of this record, and two reports to the owner, said no other lab had ever run
+this. **That was wrong.** Tracing the committed receipts shows otherwise:
+
+| receipt | branch claimed | outcome |
+|---|---|---|
+| `2026-10-12T23:15:06` `claim` lab=kimi | `kimi/rung0-prep-2026-10-13` | PR **#2272** merged |
+| `2026-10-12T23:44:17` `claim` lab=kimi | `kimi/d27-rust-first-2026-10-13` | PR **#2278** merged |
+| `2026-10-12T22:10:42` `skill` x2 lab=kimi | — | the no-matmul interlock record (PR #2265) |
+| `2026-10-12T22:44:16` `skill` x2 lab=kimi | — | the D25 hygiene docs sweep (PR #2268) |
+
+The Kimi lab claimed two branches through `team claim` before pushing them, and both PRs merged.
+Those branch names are Kimi's own work; they are not strings this author produced. So the claim
+path, the sharded ledger and the heartbeat path have all been exercised by a lab that did not
+write them.
+
+**What that does and does not establish.** It establishes that a foreign lab can run the tool, claim
+a branch, and have the record land in the sharded ledger — which is the adoption question this
+record was written to answer. It does **not** establish that presence was seen by a peer while Kimi
+was live, because the presence files for that period were the fabricated ones removed in #2275, and
+the live tier holds nothing now.
+
+**A real gap this exposed.** Claims are written to the committed store, but the claim receipts above
+exist while `docs/harness/claims.json` is empty. So a lab can claim a branch through
+`team claim --lab`, have the receipt recorded, and still leave no claim in the shared store — which
+means the next lab cannot see that the branch was ever held. That defeats the purpose of moving
+claims into git, and it is not fixed by this record.

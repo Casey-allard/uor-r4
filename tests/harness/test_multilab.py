@@ -112,6 +112,18 @@ class TestPresence(_IsolatedTiers):
 
 class TestCommittedClaims(_IsolatedTiers):
 
+    def test_claims_always_land_in_the_main_checkout(self) -> None:
+        """A claim written into a linked worktree is invisible to every other lab and dies with
+        the worktree. Two Kimi claims from 12 October proved that: their receipts are in the
+        ledger while the shared store stayed empty."""
+        store = multilab.claims_file(self.paths)
+        self.assertEqual(store, multilab.main_worktree(self.paths) / "docs" / "harness" / "claims.json")
+        self.assertNotIn("/.worktrees/", str(store), "never a worktree-local store")
+
+    def test_main_worktree_falls_back_to_the_caller_root(self) -> None:
+        """Outside a git repo there is nothing to resolve; the caller's root is correct then."""
+        self.assertTrue(multilab.main_worktree(self.paths).is_dir())
+
     def test_a_claim_is_written_to_the_committed_store(self) -> None:
         ok, rec = multilab.claim(self.paths, "branch-a", "kimi")
         self.assertTrue(ok)

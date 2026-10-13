@@ -75,8 +75,31 @@ def presence_path(paths: HarnessPaths, lab: str) -> Path:
     return presence_dir(paths) / f"{slug(lab)}.json"
 
 
+def main_worktree(paths: HarnessPaths) -> Path:
+    """The main checkout's root, even when called from a linked worktree.
+
+    Claims must land in ONE shared, committable store. A claim written into a worktree's own
+    `docs/harness/claims.json` is invisible to every other lab, and the worktree -- and with it
+    the claim -- is deleted by routine cleanup. That is measured, not theoretical: two Kimi
+    claims from 12 October left receipts in `kimi-2026-10.jsonl` while the shared store stayed
+    empty, because the claim lived and died with a worktree.
+
+    `git worktree list` reports the main worktree first. On any failure, fall back to the
+    caller's own root, which is correct when that already is the main checkout.
+    """
+    rc, out = run(["git", "-C", str(paths.repo), "worktree", "list", "--porcelain"], timeout=20)
+    if rc == 0:
+        for line in out.splitlines():
+            if line.startswith("worktree "):
+                candidate = Path(line[len("worktree ") :].strip())
+                if candidate.is_dir():
+                    return candidate
+    return paths.repo
+
+
 def claims_file(paths: HarnessPaths) -> Path:
-    return paths.harness / "claims.json"
+    """The committed claims store, always in the main checkout so every lab can see it."""
+    return main_worktree(paths) / "docs" / "harness" / "claims.json"
 
 
 def shard_path(paths: HarnessPaths, lab: str, month: str | None = None) -> Path:
