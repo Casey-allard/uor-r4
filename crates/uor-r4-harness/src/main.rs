@@ -39,7 +39,7 @@ const PYTHON_PASSTHROUGH_VALUE_FLAGS: [&str; 1] = ["--only"];
 /// BEFORE flag parsing: an unported command's flags are unknown to this binary, and rejecting one
 /// meant delegation only worked for commands whose flags happened to be in the lists - `check --only`
 /// failed with "unknown option --only" before it could delegate. Which defeats the point.
-const PORTED_COMMANDS: [&str; 15] = [
+const PORTED_COMMANDS: [&str; 16] = [
     "onboard",
     "check-formats",
     "presence",
@@ -55,9 +55,10 @@ const PORTED_COMMANDS: [&str; 15] = [
     "brief",
     "shard-check",
     "status",
+    "ratchet",
 ];
 
-const SUBCOMMAND_FLAGS: [&str; 27] = [
+const SUBCOMMAND_FLAGS: [&str; 30] = [
     "--kind",
     "--milestone",
     "-m",
@@ -85,6 +86,9 @@ const SUBCOMMAND_FLAGS: [&str; 27] = [
     "--cached",
     "--mark-seen",
     "--no-notes",
+    "--update-baseline",
+    "--list",
+    "--quiet",
 ];
 
 /// The subset that takes a value, so the value is not mistaken for a command.
@@ -161,6 +165,10 @@ COMMANDS:
                 working tree against --base (default origin/main).
     status      What is true now. Sections 1 (milestones) and 2 (receipts) are
                 ported; section 3 (delivery) says so rather than rendering blank.
+    ratchet     d23|d25   (or the banned word each one counts) [--update-baseline] [--list] [--quiet]
+                The D23/D25 ratchets (Rust port of the scripts/check_no_*.py pair,
+                same baselines). Exits 1 when a count grew; --update-baseline
+                may only lower counts.
     help        This text.
 
 The Python harness owns behaviour until this path passes the same checks; the
@@ -301,6 +309,7 @@ fn main() -> ExitCode {
         Some("brief") => cmd_brief(&repo, &rest),
         Some("shard-check") => cmd_shard_check(&repo, &rest, json),
         Some("status") => cmd_status(&repo, &rest),
+        Some("ratchet") => cmd_ratchet(&repo, &rest),
         // A command this binary has not ported yet runs the Python implementation BENEATH this
         // entry point, and says so on every call.
         //
@@ -1287,6 +1296,113 @@ fn cmd_ledger(repo: &Path, json: bool) -> ExitCode {
     for (lab, kinds) in &by_lab {
         let ks: Vec<String> = kinds.iter().map(|(k, n)| format!("{k} {n}")).collect();
         println!("  {lab:<10} {}", ks.join(", "));
+    }
+    ExitCode::SUCCESS
+}
+
+/// `ratchet d23|d25`: the D23/D25 interlocks, same scan and baselines as the Python scripts.
+fn cmd_ratchet(repo: &Path, args: &[String]) -> ExitCode {
+    use uor_r4_harness::ratchet::{self, Kind, Update};
+    let Some(kind) = args.iter().find_map(|a| Kind::parse(a)) else {
+        eprintln!("uor-harness: ratchet needs `d23` or `d25`");
+        return ExitCode::from(2);
+    };
+    let flag = |f: &str| args.iter().any(|a| a == f);
+    let (what, rule, fix) = match kind {
+        Kind::NormExp => (
+            uor_r4_harness::ratchet::D23_WORD,
+            "D23",
+            "Replace it with a geometric mechanism,\nor get an owner decision; do not raise the baseline.",
+        ),
+        Kind::Matmul => (
+            "dense matrix product call sites",
+            "D25",
+            "Replace it with a structured geometric\nproduct, or get an owner decision; do not raise the baseline.",
+        ),
+    };
+    let current = match ratchet::scan(repo, kind) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("uor-harness: {e}");
+            return ExitCode::from(2);
+        }
+    };
+    let total = current.total();
+    if flag("--list") && kind == Kind::Matmul {
+        println!("dense matrix product call sites in code (D25):");
+        for (path, sites) in &current.detail {
+            for s in sites {
+                println!("  {path}:{}: [{}] {}", s.line, s.kind, s.text);
+            }
+        }
+        println!("  {total} sites in {} files", current.detail.len());
+    }
+    if flag("--update-baseline") {
+        return match ratchet::update_baseline(repo, kind, &current.counts) {
+            Ok(Update::Written {
+                first,
+                files,
+                total,
+            }) => {
+                if first {
+                    println!("first run: setting the ratchet at the current counts");
+                }
+                println!("baseline written: {files} files, {total} sites");
+                ExitCode::SUCCESS
+            }
+            Ok(Update::Refused(raised)) => {
+                eprintln!("REFUSED: --update-baseline may only lower counts. Raised:");
+                for (p, o, n) in raised {
+                    eprintln!("  {p}: {o} -> {n}");
+                }
+                eprintln!("Remove the new {what}, or justify it as an owner decision first.");
+                ExitCode::from(1)
+            }
+            Err(e) => {
+                eprintln!("uor-harness: {e}");
+                ExitCode::from(2)
+            }
+        };
+    }
+    let baseline = match ratchet::load_baseline(repo, kind) {
+        Ok(Some(b)) if !(kind == Kind::NormExp && b.is_empty()) => b,
+        Ok(_) => {
+            eprintln!("FAIL: no baseline. Run `uor-harness ratchet {} --update-baseline` once to set the ratchet.",
+                if kind == Kind::NormExp { "d23" } else { "d25" });
+            return ExitCode::from(1);
+        }
+        Err(e) => {
+            eprintln!("uor-harness: {e}");
+            return ExitCode::from(2);
+        }
+    };
+    let grew = ratchet::growth(&current.counts, &baseline);
+    let base_total: u64 = baseline.values().sum();
+    if !grew.is_empty() {
+        eprintln!("FAIL: {what} added to executable source ({rule} prohibits it):");
+        for (p, b, n) in &grew {
+            eprintln!("  {p}: {b} -> {n} (+{})", n - b);
+        }
+        eprintln!("\ntotal {base_total} -> {total}. {fix}");
+        return ExitCode::from(1);
+    }
+    if !flag("--quiet") {
+        println!(
+            "OK: no {what} added. {total} remaining across {} files (baseline {base_total}).",
+            current.counts.len()
+        );
+        let removed = ratchet::removed(&current.counts, &baseline);
+        if removed > 0 {
+            println!(
+                "    {removed} removed since the baseline: run --update-baseline to lock it in."
+            );
+        }
+        if kind == Kind::Matmul {
+            println!(
+                "    informational: {} tensor-core intrinsic sites (fragment and sync intrinsics) across {} files — not gated.",
+                current.tensor_core, current.tensor_files
+            );
+        }
     }
     ExitCode::SUCCESS
 }

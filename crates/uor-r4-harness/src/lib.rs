@@ -26,6 +26,7 @@ pub mod notes;
 pub mod onboard;
 pub mod prep;
 pub mod presence;
+pub mod ratchet;
 pub mod receipt;
 pub mod registries;
 pub mod shards;

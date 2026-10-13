@@ -59,8 +59,7 @@ compiled ahead of time without NVRTC?
 - **Local (Mac):** the crate checks without CUDA; interlocks 1–3 pass, and fail on the planted token;
   `cargo fmt` is clean.
 - **Ratchets:** no-softmax measured **1647** against its 1648 ceiling; no-matmul is 93/93. The
-  per-file baseline is **not** lowered here, because its only updater is the Python script and the owner
-  has ruled out Python. It is lowered when DeepSeek's Rust port of the ratchets lands.
+  per-file baseline was lowered to 1647 by the Rust ratchet port ([record](../rust-ratchets-2026-10-13/README.md)).
 - **GPU (Vast RTX 5090 `vast-55769892`, nvcc 12.8, rustc 1.97.1, source `8db5ccb4a`):**
   - all five ahead-of-time modules build;
   - **D29 interlock 4/4 PASS, including the PTX instruction scan**;

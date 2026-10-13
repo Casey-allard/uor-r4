@@ -101,7 +101,7 @@
   "crates/uor-r4-training/examples/tracking-lanes.rs": 1,
   "crates/uor-r4-training/src/cache_memory.rs": 2,
   "crates/uor-r4-training/src/clause_probe.rs": 1,
-  "crates/uor-r4-training/src/cuda_stack_kernels.rs": 6,
+  "crates/uor-r4-training/src/cuda_stack_kernels.rs": 5,
   "crates/uor-r4-training/src/e8_memory.rs": 1,
   "crates/uor-r4-training/src/flock.rs": 20,
   "crates/uor-r4-training/src/flock_transport.rs": 10,

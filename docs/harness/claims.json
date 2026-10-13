@@ -1,11 +1,4 @@
 {
-  "claude/starling-rank-read-2026-10-13": {
-    "branch": "claude/starling-rank-read-2026-10-13",
-    "claimed_at": "2026-10-13T08:18:33-04:00",
-    "head": "9556c1bd3",
-    "lab": "claude",
-    "note": "M4 starling/murmuration rank read"
-  },
   "codex/count-reference-closeout-20261013": {
     "branch": "codex/count-reference-closeout-20261013",
     "claimed_at": "2026-10-13T09:34:41-04:00",

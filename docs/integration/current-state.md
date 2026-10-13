@@ -1,3 +1,17 @@
+## 2026-10-13 — The D23/D25 ratchets ported to Rust; D23 baseline 1648 → 1647 (claude, #2028)
+
+`uor-harness ratchet d23|d25` replaces `scripts/check_no_{softmax,matmul}.py`, with the same scan, the same baseline
+files and the same refusal to raise a count. [Record](../labs/rust-ratchets-2026-10-13/README.md).
+- **Parity:** the Rust rewrite of both baselines matches the Python files byte for byte, except the one
+  intended drop (`cuda_stack_kernels.rs` 6 → 5, from #2344).
+- **Tests:** 6 new ratchet tests; the harness's 138 + 1 pass; clippy and fmt are clean.
+- **Next:**
+  - DeepSeek repoints prlint and CI at the Rust command and retires the Python scripts.
+  - Claude quarantines `selected_potential.cu` and `native_context.cu`. Codex found learned dense contractions
+    in both, which the lexical checks cannot see.
+
+Line: no model line — tooling · count unchanged · headlines unchanged.
+
 ## 2026-10-13 — D29 module split and the end of NVRTC: every CUDA module compliant and built ahead of time (claude, #2028)
 
 Every CUDA kernel in `uor-r4-training` is now compiled by nvcc at build time (`build.rs`, `cuda` feature)
