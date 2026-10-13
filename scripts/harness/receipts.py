@@ -346,6 +346,23 @@ def load_claims(paths: HarnessPaths) -> dict[str, Any]:
         return data if isinstance(data, dict) else {}
 
 
+def _publish_claims_live(paths: HarnessPaths, claims: dict[str, Any]) -> None:
+    """Mirror the claims into the live tier so labs see them before the PR merges.
+
+    `team claim` reaches the store through THIS module, not through `multilab.claim`, so the mirror
+    has to be published here too. Missing it meant `multilab.claim` mirrored and `team claim` - the
+    command labs actually run - did not, which is the kind of split that makes a feature look like it
+    works while the real path does nothing. Best-effort: a read-only live tier must not cost the
+    committed copy, which is the authority.
+    """
+    try:
+        import multilab
+
+        multilab.publish_claims_live(paths, claims)
+    except (ImportError, OSError):  # pragma: no cover - the durable copy already landed
+        pass
+
+
 def _save_claims(paths: HarnessPaths, claims: dict[str, Any]) -> None:
     try:
         import multilab
@@ -383,6 +400,7 @@ def claim_branch(paths: HarnessPaths, branch: str, lab: str, note: str = "") -> 
         entry["head"] = out.strip()
     claims[branch] = entry
     _save_claims(paths, claims)
+    _publish_claims_live(paths, claims)
     # NB: `record` must stay the imported function here; shadowing it was a real bug.
     record(paths, "claim", branch=branch, lab=lab, note=note)
     return True, entry
@@ -397,6 +415,8 @@ def release_branch(paths: HarnessPaths, branch: str, lab: str = "") -> tuple[boo
         return False, existing
     del claims[branch]
     _save_claims(paths, claims)
+    # Sync the REMOVAL as well: a mirror only ever added to resurrects released claims.
+    _publish_claims_live(paths, claims)
     record(paths, "release", branch=branch, lab=lab or existing.get("lab", ""))
     return True, existing
 

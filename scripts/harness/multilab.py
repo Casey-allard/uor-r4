@@ -98,7 +98,37 @@ def main_worktree(paths: HarnessPaths) -> Path:
 
 
 def claims_file(paths: HarnessPaths) -> Path:
-    """The committed claims store, always in the main checkout so every lab can see it."""
+    """The claims store a WRITE goes to: the caller's own checkout (R10, owner decision 13 Oct).
+
+    This used to resolve to the main worktree so every lab could see one shared file. That is a real
+    need, and the old docstring gave the measured reason for it: a claim written into a worktree is
+    invisible, and the worktree -- with the claim -- is deleted by routine cleanup. Two Kimi claims
+    from 12 October died exactly that way.
+
+    But resolving to the main worktree means **every claim writes to the owner's checkout**, which
+    R10 forbids: `~/uor-r4` is read-only for every lab. Those two rules cannot both hold, and the
+    owner chose which gives way: **the claim is written where the lab works, and it reaches the other
+    labs through the delivery PR** -- the same mechanism receipts already use.
+
+    So the old concern is answered rather than ignored. A claim is not lost to cleanup because it is
+    COMMITTED on the lab's branch before the worktree goes; `load_claims` merges the committed store
+    with the live tier and the main checkout, so a claim is visible from the moment it is written
+    rather than only after its PR merges.
+    """
+    return paths.repo / "docs" / "harness" / "claims.json"
+
+
+def live_claims_file(paths: HarnessPaths) -> Path:
+    """The out-of-tree claims overlay: real-time, uncommitted, advisory.
+
+    Mirrors the presence tier. A claim here is visible to every lab immediately without any
+    checkout being written, which is what lets R10 hold without hiding work in progress.
+    """
+    return live_dir(paths) / "claims.json"
+
+
+def shared_claims_file(paths: HarnessPaths) -> Path:
+    """Main's committed claims, the fallback for a lab that has never written its own."""
     return main_worktree(paths) / "docs" / "harness" / "claims.json"
 
 
@@ -116,6 +146,28 @@ def _load(path: Path) -> dict[str, Any]:
     except (OSError, json.JSONDecodeError):
         return {}
     return data if isinstance(data, dict) else {}
+
+
+#: Keys this module adds when READING a claim from a tier. They describe where a record came from,
+#: not what it says, so they must never be written back: the first version persisted `_tier` into the
+#: committed store, annotating every existing claim as though the annotation were part of the claim.
+_TIER_KEYS = ("_tier",)
+
+
+def _strip_annotations(claims: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    """The claims as they should be WRITTEN: without read-time annotations, and without empties.
+
+    A claim that loses its last field should lose the key, not persist as `{}` - an empty claim is
+    indistinguishable from a malformed one.
+    """
+    out: dict[str, dict[str, Any]] = {}
+    for branch, rec in claims.items():
+        if not isinstance(rec, dict):
+            continue
+        clean = {k: v for k, v in rec.items() if k not in _TIER_KEYS}
+        if clean:
+            out[branch] = clean
+    return out
 
 
 def _save(path: Path, data: dict[str, Any]) -> None:
@@ -385,12 +437,132 @@ class Claim:
         return age is not None and age > CLAIM_STALE_MINUTES
 
 
+def _claim_tier(paths: HarnessPaths, path: Path, tier: str) -> dict[str, dict[str, Any]]:
+    out: dict[str, dict[str, Any]] = {}
+    for branch, rec in _load(path).items():
+        if isinstance(rec, dict):
+            rec = dict(rec)
+            rec.setdefault("_tier", tier)
+            out[branch] = rec
+    return out
+
+
 def load_claims(paths: HarnessPaths) -> dict[str, dict[str, Any]]:
-    return _load(claims_file(paths))
+    """Every claim, with the COMMITTED copy authoritative and the live tier filling gaps.
+
+    Three places can hold a claim and each answers a different question:
+
+      * **the caller's own checkout** - committed, and riding the delivery PR. This is the authority
+        for every branch it names.
+      * **main's committed store** - what the other labs have merged. Consulted for a branch the
+        caller's store does not name, so a fresh worktree still sees the shared picture.
+      * **live** (`~/.local/share/uor-r4/harness/claims.json`) - real time, uncommitted, advisory.
+        Consulted ONLY for a branch neither committed store names, so a claim is visible before its
+        PR lands without ever outvoting the committed record.
+
+    One arbiter per branch, and it is the committed one. An earlier version merged the tiers
+    newest-wins and that was wrong: `claim` stamps one entry into two tiers, so the copies tie, then
+    diverge under a hand edit, and "newest" cannot choose between two claims that are both current.
+    """
+    merged: dict[str, dict[str, Any]] = {}
+    # Weakest first, strongest last: the committed caller's store overwrites everything it names.
+    for tier, path in (
+        ("live", live_claims_file(paths)),
+        ("shared", shared_claims_file(paths)),
+        ("worktree", claims_file(paths)),
+    ):
+        if tier == "shared" and shared_claims_file(paths) == claims_file(paths):
+            continue  # the caller IS the main checkout; do not read one file twice
+        merged.update(_claim_tier(paths, path, tier))
+    return merged
+
+
+#: Tier precedence for an EXACT tie on `claimed_at`, most authoritative first.
+#:
+#: A tie is not a rare edge: `claim` writes the same entry to the checkout and the live tier with
+#: one timestamp, so every claim it makes ties with itself. Order matters because the two copies can
+#: then DIVERGE - an operator edits the committed claim, or a lab reverts one - and "newest wins by
+#: timestamp" cannot choose between copies that share a timestamp.
+#:
+#: Committed beats live, because the committed copy is the one that was reviewed and merged. The
+#: live tier is an advisory overlay: it exists so a claim is visible before its PR lands, not so it
+#: can outvote the record the other labs merged.
+_TIER_RANK = {"shared": 0, "worktree": 1, "live": 2}
+
+
+def _instant(stamp: Any) -> datetime | None:
+    """Parse an ISO-8601 stamp to an aware instant, or None.
+
+    Timestamps in this repository carry DIFFERENT UTC OFFSETS and both must be compared correctly:
+    the harness writes local Eastern (`-04:00`) while a hand edit or another tool may write UTC
+    (`+00:00`). Comparing those as strings is wrong and silently so - `"2026-10-11T12:38:52+00:00"`
+    sorts AFTER `"2026-10-13T08:38:52-04:00"`, because `"11"` > `"13"` is false but the offset is
+    never consulted, so the later instant loses to the earlier one.
+
+    `Z` is normalised because `datetime.fromisoformat` rejects it before Python 3.11, and this file
+    is imported on the declared 3.9 floor.
+    """
+    text = str(stamp or "").strip()
+    if not text:
+        return None
+    if text.endswith("Z"):
+        text = text[:-1] + "+00:00"
+    try:
+        when = datetime.fromisoformat(text)
+    except ValueError:
+        return None
+    return when if when.tzinfo else when.replace(tzinfo=timezone.utc)
+
+
+def _supersedes(candidate: dict[str, Any], prior: dict[str, Any]) -> bool:
+    """Whether `candidate` should replace `prior` for the same branch.
+
+    Newest instant wins. When the instants are EQUAL - which they are for every claim `claim()`
+    writes, since it stamps one entry into both tiers - tier precedence decides, because the copies
+    can then diverge and a tie cannot be broken by time.
+    """
+    cand_at, prior_at = _instant(candidate.get("claimed_at")), _instant(prior.get("claimed_at"))
+    if cand_at is not None and prior_at is not None:
+        if cand_at != prior_at:
+            return cand_at > prior_at
+    else:
+        # An unreadable stamp must still order deterministically rather than by accident.
+        cand_raw, prior_raw = str(candidate.get("claimed_at", "")), str(prior.get("claimed_at", ""))
+        if cand_raw != prior_raw:
+            return cand_raw > prior_raw
+    cand_rank = _TIER_RANK.get(str(candidate.get("_tier", "")), 9)
+    prior_rank = _TIER_RANK.get(str(prior.get("_tier", "")), 9)
+    return cand_rank < prior_rank
 
 
 def save_claims(paths: HarnessPaths, claims: dict[str, dict[str, Any]]) -> None:
-    _save(claims_file(paths), claims)
+    """Write the claim to the COMMITTED copy, which is the single authority.
+
+    Writing both tiers was the first attempt and it was wrong, for a reason worth recording: the two
+    copies immediately diverge under normal use. An operator ages a claim by editing the file, a lab
+    reverts one, a branch is re-claimed - and the tiers then hold different claims for the same
+    branch with no rule that can pick correctly, because both are "current". The live copy silently
+    won and kept a two-day-old claim blocking, which is the opposite of what the staleness rule is
+    for.
+
+    So the live tier is a MIRROR, not a second authority: `claim` publishes there for immediacy, and
+    `load_claims` reads a live entry ONLY for a branch no committed store holds. One arbiter per
+    branch, and it is the copy that was reviewed and merged.
+    """
+    _save(claims_file(paths), _strip_annotations(claims))
+
+
+def publish_claims_live(paths: HarnessPaths, claims: dict[str, dict[str, Any]]) -> bool:
+    """Mirror the claims into the live tier so other labs see them before the PR merges.
+
+    Advisory and best-effort: a read-only or absent live tier reduces immediacy, and must never cost
+    the durable copy, which is the one that survives review and cleanup.
+    """
+    try:
+        _save(live_claims_file(paths), _strip_annotations(claims))
+        return True
+    except OSError:
+        return False
 
 
 def claim(paths: HarnessPaths, branch: str, lab: str, note: str = "") -> tuple[bool, dict[str, Any]]:
@@ -416,6 +588,8 @@ def claim(paths: HarnessPaths, branch: str, lab: str, note: str = "") -> tuple[b
     }
     claims[branch] = entry
     save_claims(paths, claims)
+    # Mirror for immediacy: the committed copy is authoritative, this only makes it visible sooner.
+    publish_claims_live(paths, claims)
     return True, entry
 
 
@@ -428,6 +602,10 @@ def release(paths: HarnessPaths, branch: str, lab: str = "") -> tuple[bool, dict
         return False, held
     del claims[branch]
     save_claims(paths, claims)
+    # Sync the mirror, including the REMOVAL. A mirror that is only ever added to resurrects
+    # released claims: the committed copy drops the branch, the stale live copy still names it, and
+    # the next `load_claims` reads it back. That is what made `release` appear not to work.
+    publish_claims_live(paths, claims)
     return True, held
 
 

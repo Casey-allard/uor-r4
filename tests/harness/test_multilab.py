@@ -112,13 +112,90 @@ class TestPresence(_IsolatedTiers):
 
 class TestCommittedClaims(_IsolatedTiers):
 
-    def test_claims_always_land_in_the_main_checkout(self) -> None:
-        """A claim written into a linked worktree is invisible to every other lab and dies with
-        the worktree. Two Kimi claims from 12 October proved that: their receipts are in the
-        ledger while the shared store stayed empty."""
+    def test_a_claim_lands_in_the_callers_own_checkout(self) -> None:
+        """R10 makes the owner checkout read-only, so a claim must be written where the lab works -
+        and reach the other labs through the delivery PR, as receipts already do.
+
+        Older behaviour resolved to the MAIN worktree so one shared file served every lab. That is
+        why every claim dirtied `~/uor-r4`, and the owner chose which rule gives way: the claim is
+        written in the caller's checkout and merged like any other committed file.
+        """
         store = multilab.claims_file(self.paths)
-        self.assertEqual(store, multilab.main_worktree(self.paths) / "docs" / "harness" / "claims.json")
-        self.assertNotIn("/.worktrees/", str(store), "never a worktree-local store")
+        self.assertEqual(store, self.paths.repo / "docs" / "harness" / "claims.json")
+        # The distinguishing property is that the write target follows the CALLER, not that the two
+        # paths differ: in a scratch directory with no git repo, `main_worktree` falls back to the
+        # caller and they legitimately coincide. Asserting `assertNotEqual` here failed for that
+        # reason and was testing the fixture, not the rule.
+        self.assertNotIn(
+            "/.worktrees/",
+            str(store),
+            "a claim is written in the lab's own checkout, which may be a worktree",
+        )
+
+    def test_the_live_mirror_is_not_a_second_authority(self) -> None:
+        """The committed copy arbitrates; the live mirror only fills gaps.
+
+        `claim` stamps ONE entry into both tiers, so the copies tie on `claimed_at` immediately and
+        then diverge under a hand edit. A newest-wins merge cannot choose between two claims that are
+        both current - and picking the live one let a two-day-old claim keep blocking, which is the
+        opposite of what staleness is for.
+        """
+        multilab.claim(self.paths, "branch-a", "kimi")
+        # Age the COMMITTED copy only, as an operator would.
+        committed = multilab.claims_file(self.paths)
+        data = json.loads(committed.read_text())
+        data["branch-a"]["claimed_at"] = (
+            datetime.now(timezone.utc) - timedelta(days=2)
+        ).isoformat(timespec="seconds")
+        committed.write_text(json.dumps(data), encoding="utf-8")
+
+        merged = multilab.load_claims(self.paths)["branch-a"]
+        self.assertEqual(merged["_tier"], "worktree", "the committed copy is the arbiter")
+        self.assertTrue(
+            multilab.Claim(
+                **{k: v for k, v in merged.items() if k in multilab.Claim.__dataclass_fields__}
+            ).stale,
+            "and the aged copy is what the reader sees",
+        )
+
+    def test_a_live_claim_is_visible_without_being_committed(self) -> None:
+        """The mirror is why R10 can hold without hiding work in progress: a claim is visible to
+        every lab the moment it is made, before any PR merges."""
+        live = multilab.live_claims_file(self.paths)
+        live.parent.mkdir(parents=True, exist_ok=True)
+        live.write_text(
+            json.dumps(
+                {
+                    "peer/branch": {
+                        "branch": "peer/branch",
+                        "lab": "kimi",
+                        "claimed_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                    }
+                }
+            ),
+            encoding="utf-8",
+        )
+        merged = multilab.load_claims(self.paths)
+        self.assertIn("peer/branch", merged, "a live claim is visible immediately")
+        self.assertEqual(merged["peer/branch"]["_tier"], "live")
+
+    def test_a_committed_claim_outranks_a_stale_live_copy(self) -> None:
+        """Once committed, the reviewed copy decides - a leftover mirror entry cannot override it."""
+        multilab.claim(self.paths, "branch-a", "kimi")
+        committed = multilab.claims_file(self.paths)
+        data = json.loads(committed.read_text())
+        data["branch-a"]["lab"] = "claude"
+        committed.write_text(json.dumps(data), encoding="utf-8")
+        self.assertEqual(multilab.load_claims(self.paths)["branch-a"]["lab"], "claude")
+
+    def test_release_removes_the_mirror_entry_too(self) -> None:
+        """A mirror that is only added to resurrects released claims - which is what made `release`
+        look broken: the committed copy dropped the branch and the stale live copy read it back."""
+        multilab.claim(self.paths, "branch-a", "kimi")
+        multilab.release(self.paths, "branch-a", "kimi")
+        live = multilab.live_claims_file(self.paths)
+        self.assertNotIn("branch-a", json.loads(live.read_text()))
+        self.assertIsNone(multilab.claim_of(self.paths, "branch-a"))
 
     def test_main_worktree_falls_back_to_the_caller_root(self) -> None:
         """Outside a git repo there is nothing to resolve; the caller's root is correct then."""
