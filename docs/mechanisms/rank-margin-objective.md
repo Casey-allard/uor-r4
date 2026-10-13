@@ -69,16 +69,19 @@ BPB at all. Its reports carry raw-score measures with their exact panel, unit an
 
 ## What success looks like
 
-An arm works iff it clears, on **both** seeds, all three clauses of the rung-0 sheet's bar (amended
-2026-10-13): the final dev margin loss is **< 0.5 raw-score units** (an absolute floor), the
-unviolated-target rate is **≥ max(5× the same-seed untrained constant, 1%)** (the 1% floor is declared
-as an anti-vacuity device, not a quality claim), and the dev curve is monotone within a stated 2%
-tolerance with the final-third mean below the first-third. The sheet fixes the exact numbers before
-compute; the two arms are the same recipe at 1 and 8 declared rivals.
+An arm works iff, on **both** seeds, it clears the rung-0 sheet's two decisive **rank** bars (Amendment 2,
+2026-10-13): raw-score top-1 and recall@8 over the head's declared kept list (`top_token_ids(8)`) each beat
+a **token-frequency count predictor** computed on the same dev windows by **≥ 5 percentage points**. The
+earlier absolute floors are kept alongside as anti-vacuity guards (final dev token-margin hinge loss
+< 0.5 raw-score units; unviolated-target rate ≥ max(5× the same-seed untrained constant, 1%), where the
+1% floor is the operative device because the untrained constant is ≈ 0), and the hinge loss, unviolated
+rate, post-warmup monotone curve and mean table L1 norm are reported diagnostics. Every bar and diagnostic
+reads the objective's **token_margin** term alone, never token+address. The sheet fixes the exact numbers
+before compute; the two arms are the same recipe at 1 and 8 declared rivals.
 
 ## What failure looks like
 
-- **One seed passing, or a ratio in the 2–5× range**, is *iterate*: the configuration (objective scale, dose,
+- **One seed passing, or a positive but sub-bar margin on the rank measures**, is *iterate*: the configuration (objective scale, dose,
   initialization) is diagnosed, and one revised run needs a new sheet.
 - **Divergence, a non-finite loss, a kernel defect or an observed host fallback** is a **tooling blocker to
   fix**, not a mechanism negative (D22 §1–§2).

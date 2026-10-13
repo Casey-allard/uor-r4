@@ -8,7 +8,8 @@ replacement satisfies the plan's OP2 source entry. Recurrence geometric gates
 landed (#2293), making the declared recurrence squash-free by source sweep.
 OP3a and the shared native vector writer are Codex-owned under the ratified
 split, implemented and finite CUDA-qualified on source
-`09b3ee6df084beba1b9c6e98ef1e597bf2dc82bb`; protected delivery is pending.
+`09b3ee6df084beba1b9c6e98ef1e597bf2dc82bb`; protected delivery merged as
+[#2301](https://github.com/UOR-Foundation/uor-r4/pull/2301) (`d41dc422f`).
 The [head/writer record](../geometric-head-shared-writer-2026-10-13/README.md)
 retains the five-test device qualification and limits. It does not qualify
 Kimi's recurrence or the complete trunk. The rung-0 sheet
