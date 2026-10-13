@@ -13,7 +13,7 @@ No model compute was run.
 ## Why freeze first
 
 A port is only worth anything if both implementations read and write the same state. Without a
-frozen contract, "port" quietly becomes "rewrite with a new schema", and the record four labs
+frozen contract, "port" quietly becomes "rewrite with a new schema", and the record the labs
 already share becomes readable by only one of them. So the formats were recorded *before* any
 porting began.
 

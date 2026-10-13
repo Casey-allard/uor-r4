@@ -7,7 +7,7 @@ reconciles them, and the Rust port now under way. They are **frozen**.
 **Why frozen, and why now.** On 13 October 2026 the owner directed that the harness be ported to
 Rust (D27: Rust first, including tooling). A port is only trustworthy if both implementations read
 and write the *same* state, so the formats were recorded before any porting began. Without this,
-the port becomes a rewrite with a new schema, and the record the four labs already share would be
+the port becomes a rewrite with a new schema, and the record the labs already share would be
 readable by only one of them.
 
 ## The contract
@@ -65,7 +65,7 @@ wherever the harness runs.
 It guarantees that a reader written against the contract can read the state, and that the Python and
 Rust implementations agree about what the state means.
 
-It does **not** guarantee that the four labs' state is correct, that a lab checked in, or that a
+It does **not** guarantee that the labs' state is correct, that a lab checked in, or that a
 record is truthful. Those are different problems with different checks — presence freshness is
 `multilab.presence_fresh`, claims ownership is `multilab.claims_one_owner`, and whether a record was
 fabricated is not machine-checkable at all, which is why `presence/README.md` forbids test data

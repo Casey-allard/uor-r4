@@ -32,7 +32,7 @@ reads as confusing - a confusing result is the finding.
      python3 -V
      python3 scripts/harness/cli.py --repo "$(git rev-parse --show-toplevel)" check --only arena
 
-3. Read the state you now share with three other labs:
+3. Read the state you now share with the other labs:
 
      python3 scripts/harness/cli.py --repo "$(git rev-parse --show-toplevel)" multilab presence
      python3 scripts/harness/cli.py --repo "$(git rev-parse --show-toplevel)" multilab claims

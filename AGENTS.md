@@ -217,8 +217,8 @@ RDC/DeepSeek/OpenCode sessions, inherit these rules through this file.
 
 ## Research harness — start here, do not reconstruct the rules
 
-**Four labs share this repository** (Kimi as project manager, Claude and Sol on research and
-synthesis, DeepSeek). The harness is the shared plane: it records who holds which branch, what each
+**Three labs share this repository, plus this one** — Kimi (project manager), Claude, and Codex
+(whose model is Sol). The harness is the shared plane: it records who holds which branch, what each
 lab is doing, and what actually ran — across labs, in one place.
 
 **Identify yourself first.** One line, once per session:
@@ -233,7 +233,7 @@ record is worse than an absent one, because absence is visible.
 
 **Joining for the first time:** [docs/harness/BOOTSTRAP.md](docs/harness/BOOTSTRAP.md) is a
 ten-minute, no-compute check that proves the tool runs on your runtime and that your claims and
-presence are visible to the other three labs.
+presence are visible to the other labs.
 
 Then, across labs rather than within one:
 

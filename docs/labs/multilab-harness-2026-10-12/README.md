@@ -1,7 +1,8 @@
 # The multi-lab harness: presence, committed claims, and a reconciliation gate
 
-**Question.** The harness was built for one lab. Four labs use this repository (Claude, Codex,
-Kimi, DeepSeek), with Kimi as project manager and Claude/Sol carrying research and synthesis.
+**Question.** The harness was built for one lab. Three labs use this repository, plus this one:
+Kimi (project manager), Claude, and Codex — whose model is Sol, so "Sol" and "Codex" are the same
+lab, not two.
 What actually breaks when four separate vendor CLIs share one coordination layer, and what can a
 harness enforce without inventing a runtime that does not exist?
 
@@ -33,7 +34,7 @@ uv-managed ones) runs the tool successfully. The declared floor is 3.9 — set b
 `Path.unlink(missing_ok=True)` at 3.8, rounded up because 3.8 is end-of-life — so nothing needed
 raising and no feature had to be dropped.
 
-## Three failures at four labs, and the fixes
+## Three failures at several labs, and the fixes
 
 **1. Claims were invisible.** They lived in a gitignored `.harness/claims.json`, one per worktree,
 so lab B could not see that lab A held a branch. That is right for one checkout and useless for
@@ -92,7 +93,7 @@ bootstrap from a foreign cwd, --repo before the subcommand    -> works
 cli.py multilab presence                                      -> prints per-lab state, stale last
 ```
 
-16 new tests cover the properties that matter at four labs: presence is committed rather than
+16 new tests cover the properties that matter with several labs sharing the record: presence is committed rather than
 hidden in state; a stale presence never reads live; an unparseable timestamp is stale; another lab
 is refused a branch it does not hold; a stale claim does not block forever; only the holder can
 release; and migration preserves every receipt including an unreadable one.
@@ -120,10 +121,21 @@ attributed; `docs/labs/session-goal.md` should name `multilab presence` alongsid
 a non-Claude lab needs a scheduled entry point before presence can be continuous rather than
 per-session.
 
-## Correction: another lab HAS used the harness
+## Correction: TWO labs have used the harness, not zero
 
-An earlier revision of this record, and two reports to the owner, said no other lab had ever run
-this. **That was wrong.** Tracing the committed receipts shows otherwise:
+An earlier revision of this record — and two reports to the owner — said no other lab had ever run
+this. **That was wrong, and it understated the adoption badly.** Counting the committed receipts by
+lab:
+
+| lab | receipts | what it did | foreign? |
+|---|---|---|---|
+| `kimi` | 9 | 4 skill, 3 heartbeat, 2 claim | **yes** |
+| `codex` | 3 | 1 claim, 1 heartbeat, 1 release | **yes** |
+| `lead` | 10 | this lab | no |
+| `unknown` | 24 | 22 team, 1 prep, 1 heartbeat | unattributed |
+
+**Twelve foreign receipts across two labs.** Both claim paths, both heartbeat paths and the release
+path have been exercised by labs that did not write this code.
 
 | receipt | branch claimed | outcome |
 |---|---|---|
@@ -137,9 +149,24 @@ Those branch names are Kimi's own work; they are not strings this author produce
 path, the sharded ledger and the heartbeat path have all been exercised by a lab that did not
 write them.
 
-**What that does and does not establish.** It establishes that a foreign lab can run the tool, claim
-a branch, and have the record land in the sharded ledger — which is the adoption question this
-record was written to answer. It does **not** establish that presence was seen by a peer while Kimi
+The Codex receipts are a complete, correct lifecycle:
+
+```
+claim    codex/spiralcore-fbs-projection-20261012
+         "Existing #2029 claim predates this harness; registering final delivery
+          reconciliation, PR2279."
+heartbeat m2 "unified geometric route/action/learning integration"
+          "PR2279 final review/protected merge; CUDA4/static3/artifact2/refusal1 pass;
+           pod closed, iCloud/HF verified, training held."
+release  codex/spiralcore-fbs-projection-20261012
+```
+
+That is a real lab using the harness exactly as designed — including a note that its branch claim
+predated the tool, which is the migration case the design has to handle and it did.
+
+**What that does and does not establish.** It establishes that foreign labs can run the tool, claim
+a branch, check in and release, and have the record land in the sharded ledger. That is the adoption
+question this record was written to answer, and the answer is yes, twice over. It does **not** establish that presence was seen by a peer while Kimi
 was live, because the presence files for that period were the fabricated ones removed in #2275, and
 the live tier holds nothing now.
 

@@ -130,7 +130,7 @@ Verified: all 269 tests pass on both 3.9.6 and 3.15.0.
 
 ## Working in a multi-lab project
 
-Four labs work this repository. Each runs its own copy of the CLI, and **nothing here is a
+Three labs work this repository, plus this one. Each runs its own copy of the CLI, and **nothing here is a
 socket or a daemon** — GitHub is the bus and `main` is the truth. What the harness adds is the
 part GitHub alone does not give: a committed record of who holds what, and what each lab is
 doing between merges.
@@ -143,7 +143,7 @@ doing between merges.
 
 ### Two tiers: live and durable
 
-All four labs run on one machine, so cross-lab state has two homes with different jobs:
+All these labs run on one machine, so cross-lab state has two homes with different jobs:
 
 | tier | path | purpose | in git? |
 |---|---|---|---|
