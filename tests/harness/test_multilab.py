@@ -40,14 +40,22 @@ def _paths(tmp: Path) -> core.HarnessPaths:
     return core.HarnessPaths(repo=tmp, harness=harness, state=tmp / ".harness")
 
 
-class TestPresence(unittest.TestCase):
+class _IsolatedTiers(unittest.TestCase):
+    """Every test gets its own live tier. Without this, a test writes to the machine's real
+    shared directory and a later test reads a peer's leftovers."""
+
     def setUp(self) -> None:
         self.tmp = tempfile.TemporaryDirectory()
         self.paths = _paths(Path(self.tmp.name))
+        self.live = Path(self.tmp.name) / "live"
+        os.environ[multilab.LIVE_ENV] = str(self.live)
 
     def tearDown(self) -> None:
+        os.environ.pop(multilab.LIVE_ENV, None)
         self.tmp.cleanup()
 
+
+class TestPresence(_IsolatedTiers):
     def test_presence_is_committed_not_hidden_in_state(self) -> None:
         """A presence file a lab cannot see is not presence."""
         multilab.write_presence(self.paths, "kimi", milestone="m1", doing="OP2 kernel")
@@ -66,20 +74,14 @@ class TestPresence(unittest.TestCase):
     def test_a_stale_presence_never_reads_as_live(self) -> None:
         """The important one: an abandoned lab must not look like a running lab."""
         multilab.write_presence(self.paths, "claude", milestone="m1")
-        path = multilab.presence_path(self.paths, "claude")
-        data = json.loads(path.read_text())
-        data["updated"] = (datetime.now(timezone.utc) - timedelta(hours=3)).isoformat(timespec="seconds")
-        path.write_text(json.dumps(data), encoding="utf-8")
+        self.age_both_tiers("claude", hours=3)
         p = multilab.read_presence(self.paths, "claude")
         self.assertTrue(p.stale)
         self.assertIn("STALE", p.state)
 
     def test_an_unparseable_timestamp_is_stale_not_live(self) -> None:
         multilab.write_presence(self.paths, "codex", milestone="m1")
-        path = multilab.presence_path(self.paths, "codex")
-        data = json.loads(path.read_text())
-        data["updated"] = "not-a-timestamp"
-        path.write_text(json.dumps(data), encoding="utf-8")
+        self.age_both_tiers("codex", stamp="not-a-timestamp")
         self.assertTrue(multilab.read_presence(self.paths, "codex").stale)
 
     def test_presence_requires_a_lab(self) -> None:
@@ -89,21 +91,26 @@ class TestPresence(unittest.TestCase):
     def test_all_presence_lists_every_lab_stale_last(self) -> None:
         multilab.write_presence(self.paths, "kimi", milestone="m1")
         multilab.write_presence(self.paths, "claude", milestone="m1")
-        path = multilab.presence_path(self.paths, "claude")
-        data = json.loads(path.read_text())
-        data["updated"] = (datetime.now(timezone.utc) - timedelta(hours=5)).isoformat(timespec="seconds")
-        path.write_text(json.dumps(data), encoding="utf-8")
+        self.age_both_tiers("claude", hours=5)
         rows = multilab.all_presence(self.paths)
         self.assertEqual([r.lab for r in rows], ["kimi", "claude"], "live labs first, stale last")
 
+    def age_both_tiers(self, lab: str, *, hours: float = 3.0, stamp: str | None = None) -> None:
+        """Age every tier a reader could consult.
 
-class TestCommittedClaims(unittest.TestCase):
-    def setUp(self) -> None:
-        self.tmp = tempfile.TemporaryDirectory()
-        self.paths = _paths(Path(self.tmp.name))
+        Aging only the committed copy leaves the live copy fresh, and the reader prefers live -
+        so the test would be asserting against a record nothing reads.
+        """
+        when = stamp or (datetime.now(timezone.utc) - timedelta(hours=hours)).isoformat(timespec="seconds")
+        for path in (multilab.presence_path(self.paths, lab), multilab.live_presence_path(self.paths, lab)):
+            if not path.exists():
+                continue
+            data = json.loads(path.read_text())
+            data["updated"] = when
+            path.write_text(json.dumps(data), encoding="utf-8")
 
-    def tearDown(self) -> None:
-        self.tmp.cleanup()
+
+class TestCommittedClaims(_IsolatedTiers):
 
     def test_a_claim_is_written_to_the_committed_store(self) -> None:
         ok, rec = multilab.claim(self.paths, "branch-a", "kimi")
@@ -149,13 +156,7 @@ class TestCommittedClaims(unittest.TestCase):
         self.assertIsNotNone(multilab.claim_of(self.paths, "branch-a"))
 
 
-class TestShardedLedger(unittest.TestCase):
-    def setUp(self) -> None:
-        self.tmp = tempfile.TemporaryDirectory()
-        self.paths = _paths(Path(self.tmp.name))
-
-    def tearDown(self) -> None:
-        self.tmp.cleanup()
+class TestShardedLedger(_IsolatedTiers):
 
     def test_two_labs_write_different_files(self) -> None:
         os.environ["UOR_LAB"] = "kimi"
@@ -203,6 +204,68 @@ class TestShardedLedger(unittest.TestCase):
         quarantine = self.paths.ledger_dir / f"unreadable-{core.month()}.jsonl"
         self.assertTrue(quarantine.exists(), "an unreadable line must be quarantined, not dropped")
         self.assertIn("not json", quarantine.read_text())
+
+
+class TestTwoTierState(_IsolatedTiers):
+    """Live (machine-local) and durable (committed) presence must not contradict each other.
+
+    The design: every heartbeat writes both tiers from one record, so they cannot disagree
+    about what a lab is doing; the reader prefers live because it is fresher by construction.
+    """
+
+    def test_a_check_in_writes_both_tiers(self) -> None:
+        multilab.write_presence(self.paths, "kimi", milestone="m1", doing="work")
+        self.assertTrue(multilab.live_presence_path(self.paths, "kimi").exists(), "live tier written")
+        self.assertTrue(multilab.presence_path(self.paths, "kimi").exists(), "durable tier written")
+
+    def test_the_reader_prefers_live(self) -> None:
+        multilab.write_presence(self.paths, "kimi", milestone="m1", doing="work")
+        p = multilab.read_presence(self.paths, "kimi")
+        self.assertEqual(p.source, "live")
+
+    def test_durable_is_the_fallback_when_live_is_absent(self) -> None:
+        multilab.write_presence(self.paths, "kimi", milestone="m1", doing="work")
+        for f in (self.live / "presence").glob("*.json"):
+            f.unlink()
+        p = multilab.read_presence(self.paths, "kimi")
+        self.assertIsNotNone(p, "the committed record still answers when the live share is gone")
+        self.assertEqual(p.source, "durable")
+
+    def test_live_wins_a_tie_instead_of_being_mislabelled(self) -> None:
+        """Both tiers carry the same instant; calling that 'durable' would be wrong."""
+        multilab.write_presence(self.paths, "kimi", milestone="m1", doing="work")
+        rows = {p.lab: p for p in multilab.all_presence(self.paths)}
+        self.assertEqual(rows["kimi"].source, "live")
+
+    def test_a_genuinely_newer_durable_record_wins(self) -> None:
+        multilab.write_presence(self.paths, "kimi", milestone="m1", doing="old")
+        path = multilab.presence_path(self.paths, "kimi")
+        data = json.loads(path.read_text())
+        data["updated"] = "2099-01-01T00:00:00+00:00"
+        data["doing"] = "newer"
+        path.write_text(json.dumps(data), encoding="utf-8")
+        rows = {p.lab: p for p in multilab.all_presence(self.paths)}
+        self.assertEqual(rows["kimi"].source, "durable")
+        self.assertEqual(rows["kimi"].doing, "newer")
+
+    def test_sync_copies_live_into_the_committed_tier(self) -> None:
+        multilab.write_presence(self.paths, "kimi", milestone="m1", doing="work")
+        # a lab that only ran live: remove the durable copy, then sync
+        multilab.presence_path(self.paths, "kimi").unlink()
+        result = multilab.sync_live_to_durable(self.paths)
+        self.assertIn("kimi", result["synced"])
+        self.assertTrue(multilab.presence_path(self.paths, "kimi").exists())
+
+    def test_a_read_only_live_share_does_not_break_a_check_in(self) -> None:
+        """The committed record must still be written if the shared dir cannot be."""
+        (self.live / "presence").mkdir(parents=True, exist_ok=True)
+        (self.live / "presence").chmod(0o500)
+        try:
+            rec = multilab.write_presence(self.paths, "kimi", milestone="m1", doing="work")
+            self.assertTrue(multilab.presence_path(self.paths, "kimi").exists(), "durable still written")
+            self.assertEqual(rec.lab, "kimi")
+        finally:
+            (self.live / "presence").chmod(0o700)
 
 
 if __name__ == "__main__":

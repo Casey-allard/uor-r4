@@ -590,6 +590,8 @@ def build_parser() -> argparse.ArgumentParser:
     s.set_defaults(fn=cmd_multilab)
     s = sub2.add_parser("claims", help="committed branch claims, visible to every lab")
     s.set_defaults(fn=cmd_multilab)
+    s = sub2.add_parser("sync-live", help="copy live (machine-local) presence into the committed record")
+    s.set_defaults(fn=cmd_multilab)
     s = sub2.add_parser("migrate-ledger", help="move unsharded receipts into per-lab shards")
     s.set_defaults(fn=cmd_multilab)
 

@@ -53,7 +53,7 @@ uor-harness mistakes list|find          durable lessons, selected for the files 
 uor-harness prep new|fit                the pre-registration sheet, and its TEST FITNESS review
 uor-harness panel show|score            the frozen acceptance panels
 uor-harness arena board|compare|lineage  the lineage of evaluated configurations, compared row by row
-uor-harness multilab presence|claims    what each lab last published, and who holds which branch
+uor-harness multilab presence|claims|sync-live   what each lab published, who holds which branch
 uor-harness budget show|scan            cumulative cost, and the pod specs of running jobs
 uor-harness lint check|format           lint a PR body against the contract; render a compliant one
 uor-harness heartbeat --milestone m1    emit the 90-minute status card
@@ -138,6 +138,33 @@ doing between merges.
 | what is each lab doing? | `multilab presence` | `docs/harness/presence/<lab>.json`, **committed** |
 | who holds this branch? | `multilab claims` | `docs/harness/claims.json`, **committed** |
 | what actually ran? | `status` (section 2) | `docs/harness/ledger/<lab>-<month>.jsonl`, sharded |
+
+### Two tiers: live and durable
+
+All four labs run on one machine, so cross-lab state has two homes with different jobs:
+
+| tier | path | purpose | in git? |
+|---|---|---|---|
+| **live** | `~/.local/share/uor-r4/harness/` (override with `$UOR_HARNESS_LIVE`) | what peers see *now* — a check-in is visible in the second it is written | no |
+| **durable** | `docs/harness/presence/<lab>.json`, `docs/harness/claims.json` | the record — survives restarts, reaches `git`, visible to any future reader | yes |
+
+**Every heartbeat writes both, from one record**, so the tiers cannot disagree about what a lab
+is doing. The reader prefers **live** because it is fresher by construction, falls back to
+**durable** when the shared directory is absent, and always reports which one answered:
+
+```
+$ python3 scripts/harness/cli.py multilab presence
+2 lab(s) known (stale after 30m) · live tier: /Users/casey.allard/.local/share/uor-r4/harness
+lab          state                via      milestone branch       doing
+kimi         live (0m ago)        live     m1        main         evaluation integrity 1/3
+```
+
+`multilab sync-live` copies the live tier into the committed record — deliberately explicit
+rather than automatic, because the live tier is written on every check-in (cheap, uncommitted)
+while the record is refreshed when a lab wants the record to show it.
+
+A read-only or missing live directory cannot break a check-in: the durable write happens
+regardless, and the live write is skipped.
 
 **Presence is published by `heartbeat`**, deliberately: the session contract already requires a
 card every 90 minutes, so a lab that follows the contract becomes visible for free and one that

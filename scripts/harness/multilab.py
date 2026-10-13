@@ -44,6 +44,14 @@ from checkrules import Rule, RuleResult, register as register_rule
 
 #: a presence file older than this is reported STALE, never as a live lab
 PRESENCE_TTL_MINUTES = 30
+
+#: The live tier. All four labs run on one machine here, so they can share a real-time
+#: directory that git never sees - no commit lag, no merge conflicts, and a peer's state is
+#: visible within the second it is written. The durable tier (docs/harness/) remains the
+#: record, refreshed from here. Live is preferred when present; durable is the fallback, and
+#: the reader always says which one it used.
+LIVE_ENV = "UOR_HARNESS_LIVE"
+LIVE_DEFAULT = ("~/.local/share/uor-r4/harness")
 #: labs known to the project. A lab may still identify itself; this is for reporting order.
 KNOWN_LABS = ("kimi", "claude", "codex", "deepseek")
 
@@ -104,6 +112,66 @@ def _age_minutes(stamp: str) -> float | None:
     return (datetime.now(timezone.utc) - when).total_seconds() / 60.0
 
 
+# --------------------------------------------------------------------------- live tier
+
+
+def live_dir(paths: HarnessPaths) -> Path:
+    """Where live cross-lab state lives. Shared by every lab on this machine."""
+    import os
+
+    raw = os.environ.get(LIVE_ENV) or LIVE_DEFAULT
+    return Path(raw).expanduser()
+
+
+def live_presence_path(paths: HarnessPaths, lab: str) -> Path:
+    return live_dir(paths) / "presence" / f"{slug(lab)}.json"
+
+
+def publish_live(paths: HarnessPaths, rec: Presence) -> Path:
+    """Write one lab's live presence atomically (rename, so a reader never sees a half file)."""
+    target = live_presence_path(paths, rec.lab)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    tmp = target.with_suffix(".tmp")
+    tmp.write_text(json.dumps(asdict(rec), ensure_ascii=False, sort_keys=True) + "\n", encoding="utf-8")
+    tmp.replace(target)
+    return target
+
+
+def read_live(paths: HarnessPaths, lab: str) -> Presence | None:
+    data = _load(live_presence_path(paths, lab))
+    return _to_presence(data) if data else None
+
+
+def all_live(paths: HarnessPaths) -> list[Presence]:
+    d = live_dir(paths) / "presence"
+    if not d.is_dir():
+        return []
+    out = []
+    for f in sorted(d.glob("*.json")):
+        data = _load(f)
+        if data:
+            out.append(_to_presence(data))
+    return out
+
+
+def live_claims_path(paths: HarnessPaths) -> Path:
+    return live_dir(paths) / "claims.json"
+
+
+def sync_live_to_durable(paths: HarnessPaths) -> dict[str, Any]:
+    """Copy live presence into the committed tier, so it survives a restart and reaches git.
+
+    This is the bridge between the two tiers. It is deliberately explicit rather than
+    automatic: the live tier is written on every heartbeat (cheap, uncommitted), and the
+    durable tier is refreshed when a lab wants the record to show it.
+    """
+    written = []
+    for p in all_live(paths):
+        _save(presence_path(paths, p.lab), asdict(p))
+        written.append(p.lab)
+    return {"synced": written, "live_dir": str(live_dir(paths))}
+
+
 # ------------------------------------------------------------------------------ presence
 
 
@@ -119,6 +187,8 @@ class Presence:
     host: str = ""
     session: str = ""
     schema: int = 1
+    #: which tier answered this read: "live" or "durable". Reporting only, never saved.
+    source: str = ""
 
     @property
     def age_minutes(self) -> float | None:
@@ -164,26 +234,54 @@ def write_presence(
         host=_hostname(),
         session=session,
     )
+    # Durable tier is the record; the live tier is what peers see immediately. Both are
+    # written from the same record, so they cannot disagree about what a lab is doing.
     _save(presence_path(paths, lab), asdict(rec))
+    try:
+        publish_live(paths, rec)
+    except OSError:  # pragma: no cover - a read-only or absent share must not break a check-in
+        pass
     return rec
 
 
 def read_presence(paths: HarnessPaths, lab: str) -> Presence | None:
+    """Live tier first (fresher, uncommitted), durable second. `source` says which answered."""
+    live = read_live(paths, lab)
+    if live is not None:
+        live.source = "live"
+        return live
     data = _load(presence_path(paths, lab))
     if not data:
         return None
-    return _to_presence(data)
+    durable = _to_presence(data)
+    durable.source = "durable"
+    return durable
 
 
 def all_presence(paths: HarnessPaths) -> list[Presence]:
-    if not presence_dir(paths).is_dir():
-        return []
-    out = []
-    for f in sorted(presence_dir(paths).glob("*.json")):
-        data = _load(f)
-        if data:
-            out.append(_to_presence(data))
-    return sorted(out, key=lambda p: (p.stale, p.lab))
+    """Every lab from both tiers, newest record wins, stale last."""
+    merged: dict[str, Presence] = {}
+    for p in all_live(paths):
+        p.source = "live"
+        merged[p.lab] = p
+    if presence_dir(paths).is_dir():
+        for f in sorted(presence_dir(paths).glob("*.json")):
+            data = _load(f)
+            if not data:
+                continue
+            p = _to_presence(data)
+            p.source = "durable"
+            prior = merged.get(p.lab)
+            if prior is None:
+                merged[p.lab] = p
+                continue
+            # Live wins ties: it is the fresher channel by construction, and only the durable
+            # copy can be older than the file it mirrors. Replacing on equal age would label a
+            # live record "durable", which is what this comment is here to prevent.
+            prior_age, durable_age = prior.age_minutes or 1e9, p.age_minutes or 1e9
+            if durable_age < prior_age - 1e-6:
+                merged[p.lab] = p
+    return sorted(merged.values(), key=lambda p: (p.stale, p.lab))
 
 
 def _to_presence(data: dict[str, Any]) -> Presence:
@@ -491,11 +589,11 @@ def main(args: Any, paths: HarnessPaths, reg: Any) -> int:  # noqa: ANN401
             emit("no lab has published presence yet")
             emit("  a lab publishes it by running: cli.py heartbeat -m <milestone> --lab <lab>")
             return 0
-        emit(f"{len(rows)} lab(s) known (stale after {PRESENCE_TTL_MINUTES}m)")
-        emit(f"{'lab':<12} {'state':<22} {'milestone':<8} {'branch':<28} doing")
-        emit("-" * 104)
+        emit(f"{len(rows)} lab(s) known (stale after {PRESENCE_TTL_MINUTES}m) · live tier: {live_dir(paths)}")
+        emit(f"{'lab':<12} {'state':<20} {'via':<8} {'milestone':<8} {'branch':<24} doing")
+        emit("-" * 108)
         for p in rows:
-            emit(f"{p.lab:<12} {p.state:<22} {p.milestone:<8} {p.branch[:28]:<28} {p.doing[:34]}")
+            emit(f"{p.lab:<12} {p.state:<20} {p.source:<8} {p.milestone:<8} {p.branch[:24]:<24} {p.doing[:28]}")
         return 0
 
     if action == "claims":
@@ -510,6 +608,17 @@ def main(args: Any, paths: HarnessPaths, reg: Any) -> int:  # noqa: ANN401
         for br, held in sorted(claims.items()):
             flag = " STALE" if Claim(**{k: v for k, v in held.items() if k in Claim.__dataclass_fields__}).stale else ""
             emit(f"  {br:<44} lab={held.get('lab', '?'):<10} since {held.get('claimed_at', '?')}{flag}")
+        return 0
+
+    if action == "sync-live":
+        result = sync_live_to_durable(paths)
+        if getattr(args, "json", False):
+            emit(json.dumps(result, indent=2))
+        else:
+            if result["synced"]:
+                emit(f"copied live presence for {', '.join(result['synced'])} into the committed tier")
+            else:
+                emit(f"no live presence to sync (looked in {result['live_dir']})")
         return 0
 
     if action == "migrate-ledger":
