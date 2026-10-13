@@ -226,3 +226,37 @@ come from the owner through the PM.
   have not been established has no authority. Every failure gets an external full-context review
   before it counts — and the first question that review answers is whether the test should have been
   run at all.
+
+## R13 — Discrete learning path: rung re-registration and the instrument boundary (implements D32)
+
+**Authority, October 13:** owner delegation in session — "choose what is best for the project
+overall in the sense of what our ultimate goal is — a working geometric language model... make
+the best choice among the allowed." This rule is the PM's ruling under that delegation, within
+D32 and all standing decisions.
+
+- **Ruling 1 — rung 0 re-registers as a new sheet on a compliant discrete learning law.**
+  The frozen F32 sheet (`docs/harness/prep/m1-rank-margin-rung0-2026-10-13.md`, FIT at
+  Amendment 6, frozen by Amendment 7) remains the design record and correctness baseline. Its
+  lawful pins carry over to the successor sheet where they survive the substrate change: the
+  pinned panel and data hashes, seed discipline, the count-predictor reference class, anti-vacuity
+  guards, the dev evaluation policy and scale-invariant rank measures. The learning law,
+  optimizer and instruments are redesigned discrete: admissible-move selection and local credit
+  over the geometry-preserving SpiralCore/FBS transport, no floating-point optimizer, no dense
+  learned maps as a prerequisite.
+- **Ruling 2 — no floating point in instruments that verify the model path.** Qualification of
+  discrete kernels uses exact integer/rational arithmetic, stored expected values, analytic exact
+  values, or exhaustive enumeration over small discrete state spaces. No floating-point oracle,
+  on any device, even test-only. For a discrete law an exact check is always available in
+  principle; if a future check appears to genuinely require floating point to evaluate, it does
+  not run — it returns to the owner as a named exception request with the reason. Rationale: D32
+  is a clean break; an FP oracle would reintroduce the exact ambiguity class it removed, and
+  "instrument-only FP" is how the F32/F64 path grew back the last time.
+- **Unchanged:** D24's compute placement (harness, docs, source review and grading of stored
+  replies on the laptop are not model compute); R12's four authority questions and attribution
+  order, applied to the discrete instruments; D31's instrument-defect rule; the frozen-bar
+  discipline. A discrete instrument's defect is still repaired as instrumentation, never as a
+  mechanism edit.
+- **Sequencing:** Codex specifies the discrete learning law for review (D32 item 6); the PM owns
+  the successor rung-0 sheet and requests TEST FITNESS from Claude only when the law is pinned
+  in source with exact expected-value controls. No compute before FIT, and no FIT releases the
+  training hold — the owner does.
