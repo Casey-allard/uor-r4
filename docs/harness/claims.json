@@ -6,10 +6,17 @@
     "lab": "claude",
     "note": "README, geometry page and figures"
   },
-  "kimi/rung0-sheet-amend5-20261013": {
-    "branch": "kimi/rung0-sheet-amend5-20261013",
-    "claimed_at": "2026-10-13T08:36:28-04:00",
-    "head": "841d15714",
+  "codex/count-reference-closeout-20261013": {
+    "branch": "codex/count-reference-closeout-20261013",
+    "claimed_at": "2026-10-13T09:34:41-04:00",
+    "head": "9e904a834",
+    "lab": "codex",
+    "note": ""
+  },
+  "kimi/rung0-sheet-amend6-20261013": {
+    "branch": "kimi/rung0-sheet-amend6-20261013",
+    "claimed_at": "2026-10-13T09:46:17-04:00",
+    "head": "9e904a834",
     "lab": "kimi",
     "note": ""
   }
