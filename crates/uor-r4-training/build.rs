@@ -27,7 +27,7 @@ struct Module {
     options: &'static [&'static str],
 }
 
-const MODULES: [Module; 5] = [
+const MODULES: [Module; 3] = [
     Module {
         sources: &["src/cuda_stack.cu", "src/spiralcore_fbs.cu"],
         ptx: "cuda_stack_f32.ptx",
@@ -42,16 +42,6 @@ const MODULES: [Module; 5] = [
             "-prec-sqrt=true",
             "-DUOR_STORAGE_BF16",
         ],
-    },
-    Module {
-        sources: &["src/native_context.cu"],
-        ptx: "native_context.ptx",
-        options: &PRECISE,
-    },
-    Module {
-        sources: &["src/selected_potential.cu"],
-        ptx: "selected_potential.ptx",
-        options: &PRECISE,
     },
     Module {
         sources: &["src/starling_native.cu"],

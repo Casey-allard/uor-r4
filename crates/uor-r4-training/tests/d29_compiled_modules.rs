@@ -11,11 +11,9 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 /// The sources build.rs compiles (keep in step with its `MODULES`).
-const COMPILED: [&str; 5] = [
+const COMPILED: [&str; 3] = [
     "src/cuda_stack.cu",
     "src/spiralcore_fbs.cu",
-    "src/native_context.cu",
-    "src/selected_potential.cu",
     "src/starling_native.cu",
 ];
 
@@ -172,8 +170,6 @@ fn built_ptx_modules_carry_no_banned_instruction() {
     let modules = [
         "cuda_stack_f32.ptx",
         "cuda_stack_bf16.ptx",
-        "native_context.ptx",
-        "selected_potential.ptx",
         "starling_native.ptx",
     ];
     let instructions = [
@@ -195,6 +191,50 @@ fn built_ptx_modules_carry_no_banned_instruction() {
                 assert!(
                     !line.starts_with(instruction.as_str()),
                     "{module} contains the instruction `{line}`"
+                );
+            }
+        }
+    }
+}
+
+/// Modules quarantined after Codex's review (#2028 comments 6149477404 and
+/// 6149949044): each hides a learned dense contraction in scalar loops, which
+/// the token and PTX scans above cannot see. They stay out of the build, their
+/// source stays in the evidence directory, and none of their kernels returns to a
+/// compiled source.
+#[test]
+fn quarantined_dense_contraction_modules_stay_out_of_the_build() {
+    let quarantined = [
+        ("native_context", "native_context_quarantined.cu"),
+        ("selected_potential", "selected_potential_quarantined.cu"),
+    ];
+    let build = fs::read_to_string(crate_path("build.rs")).expect("build.rs");
+    for (module, evidence) in quarantined {
+        assert!(
+            !crate_path(&format!("src/{module}.cu")).exists(),
+            "src/{module}.cu is back in the crate"
+        );
+        assert!(
+            !build.contains(&format!("{module}.cu")) && !build.contains(&format!("{module}.ptx")),
+            "build.rs compiles quarantined {module}"
+        );
+        let source = fs::read_to_string(crate_path(&format!(
+            "../../docs/history/d29-excluded-kernels-2026-10-13/{evidence}"
+        )))
+        .expect("quarantined evidence file");
+        let names: Vec<&str> = source
+            .split("__global__ void ")
+            .skip(1)
+            .filter_map(|rest| rest.split('(').next())
+            .map(str::trim)
+            .collect();
+        assert!(!names.is_empty(), "{evidence} lost its kernels");
+        for compiled in COMPILED {
+            let text = code(&fs::read_to_string(crate_path(compiled)).expect(compiled));
+            for name in &names {
+                assert!(
+                    !text.contains(&format!("__global__ void {name}(")),
+                    "{compiled} defines quarantined `{name}`"
                 );
             }
         }

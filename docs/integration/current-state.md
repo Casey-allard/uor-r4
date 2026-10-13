@@ -1,3 +1,18 @@
+## 2026-10-13 — D29 correction: native-context and selected-potential modules quarantined (claude, #2028)
+
+Codex's source review of #2344 found a learned dense contraction in two modules the split had called
+compliant: `selected_potential.cu` (a free 4×4 contraction) and `native_context.cu` (a free 4 → 120/33 class-bank
+projection). The lexical and PTX interlocks cannot see a contraction written as scalar loops.
+[Correction](../labs/d29-module-split-2026-10-13/README.md#correction-two-modules-quarantined-after-codexs-review-same-day).
+- **Changes:**
+  - both modules leave `build.rs`, with sources preserved in `docs/history/d29-excluded-kernels-2026-10-13/`;
+  - both Rust launchers return a D29 refusal;
+  - a new interlock keeps the modules out.
+- **Line B is unfinished, not negative (D22).** Rung 0 uses neither module.
+- **Checks:** the D29 interlocks pass 4/4 (host). The CUDA-feature build is **not run** locally (it needs
+  nvcc); Codex's pod qualification of the combined tree covers it.
+
+Line: no model line — compliance · count unchanged · headlines unchanged.
 ## 2026-10-13 — The D23/D25 ratchets ported to Rust; D23 baseline 1648 → 1647 (claude, #2028)
 
 `uor-harness ratchet d23|d25` replaces `scripts/check_no_{softmax,matmul}.py`, with the same scan, the same baseline

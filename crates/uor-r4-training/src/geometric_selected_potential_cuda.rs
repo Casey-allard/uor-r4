@@ -103,11 +103,14 @@ pub(super) fn utilities(
         false,
     ))
 }
-/// The ahead-of-time PTX of `selected_potential.cu` (build.rs, nvcc); NVRTC
-/// is banned (owner, 13 October 2026).
+/// D29 quarantine (Codex review, #2028 comment 6149477404, accepted 13 October
+/// 2026): `selected_utilities` applies 16 freely learned coefficients as a dense
+/// 4x4 contraction. The module is no longer compiled; its source is evidence in
+/// `docs/history/d29-excluded-kernels-2026-10-13/selected_potential_quarantined.cu`
+/// until a geometric replacement is designed.
 fn ptx() -> Result<&'static str> {
-    Ok(include_str!(concat!(
-        env!("OUT_DIR"),
-        "/selected_potential.ptx"
-    )))
+    Err(invalid(
+        "D29: the selected-potential CUDA module is quarantined (a learned dense 4x4 \
+         contraction); see docs/history/d29-excluded-kernels-2026-10-13/",
+    ))
 }

@@ -23,8 +23,8 @@ compiled ahead of time without NVRTC?
 | Module | Before | After |
 |---|---|---|
 | Geometric stack, F32 and BF16 storage | NVRTC, 57 kernels | **nvcc ahead of time** (`build.rs`), 24 kernels: Hamilton gate, rate select, RMS norm, quaternion scan (forward and backward), the margin-rank hinge, the clean recurrence scan and tile pieces, AdamW, the norm reductions, the poison diagnostic and SpiralCore/FBS |
-| Native context (Line B) | NVRTC, 17 kernels | nvcc ahead of time, 14 kernels |
-| Selected potential | NVRTC, 1 kernel | nvcc ahead of time, 1 kernel |
+| Native context (Line B) | NVRTC, 17 kernels | nvcc ahead of time, 14 kernels; **quarantined, not compiled**, see the correction below |
+| Selected potential | NVRTC, 1 kernel | nvcc ahead of time, 1 kernel; **quarantined, not compiled**, see the correction below |
 | Starling K1 (rung 0b) | already nvcc ahead of time | unchanged |
 
 - **Excluded families.** The families D29 names are excluded from every compiled module:
@@ -83,3 +83,26 @@ compiled ahead of time without NVRTC?
 
 D29 assigns re-qualification of the rung-0 path to Codex. This PR is source plus the interlocks. Rung 0
 waits on Codex's re-qualification, DeepSeek's bootstrap fix and the owner's hold release.
+
+## Correction: two modules quarantined after Codex's review (same day)
+
+Codex's independent source review (#2028 [6149477404](https://github.com/UOR-Foundation/uor-r4/issues/2028#issuecomment-6149477404),
+[6149949044](https://github.com/UOR-Foundation/uor-r4/issues/2028#issuecomment-6149949044)) found a learned dense
+contraction in two modules this split had listed as compliant:
+- **`selected_potential.cu`:** `selected_utilities` applies 16 freely learned coefficients as a 4×4 contraction.
+- **`native_context.cu`:** `score()` dots the query with freely learned per-class coefficients over the
+  120/120/33 class banks, and `readout_credit`/`transition_credit` train each coefficient independently. That is
+  a learned dense 4 → 120/33 projection.
+
+The interlocks above are lexical and instruction-level, so they cannot see a contraction written as scalar
+loops. Their PASS did not cover this, and the claim that every module was compliant was wrong. Both modules
+are now quarantined:
+- removed from `build.rs`;
+- sources preserved verbatim as `native_context_quarantined.cu` and `selected_potential_quarantined.cu` in
+  [docs/history/d29-excluded-kernels-2026-10-13/](../../history/d29-excluded-kernels-2026-10-13/);
+- every launch through either Rust launcher returns a D29 refusal;
+- a new interlock (`quarantined_dense_contraction_modules_stay_out_of_the_build`) keeps them out.
+
+Line B (native context) stays **unfinished, not negative** (D22): it needs a typed geometric readout. Rung 0
+uses neither module. The compiled surface is now the geometric stack (F32/BF16, 24 kernels plus
+SpiralCore/FBS) and starling K1.
