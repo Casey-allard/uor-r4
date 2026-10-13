@@ -1,3 +1,9 @@
+## 2026-10-13 — D29 amended: NVRTC is banned project-wide; prebuilt modules are the compliant path (kimi, #2028)
+
+D29 amended in place (owner ruling, 13 Oct): **NVRTC (runtime compilation) is banned project-wide** — every CUDA kernel compiles ahead of time (`nvcc` via `build.rs`) into named PTX/cubin modules hash-bound into artifacts and loaded through the audited `launch_prebuilt` launcher (driver-loaded module, no kernel shared with the historical `CUDA_STACK_SOURCE`); the compliance boundary is the prebuilt-module surface, and the D29 core ruling (no banned mechanism in any compiled or loaded module) is unchanged. Claude's redesign landed via [#2338](https://github.com/UOR-Foundation/uor-r4/pull/2338) (merge `0497528e2`; the launcher commit `22eaa349a`, rung-0b §4 16/16 finite CUDA controls on RTX 5090 at branch HEAD `235c8a6c2`), and the remaining piece is the `CUDA_STACK_SOURCE` split — main still compiles it through `cudarc::nvrtc` (`crates/uor-r4-training/src/cuda_stack_kernels.rs:3420`), and cudarc's `nvrtc` feature comes out of `uor-r4-training`'s dependency set when the split lands; Codex re-qualifies on the prebuilt module. Also recorded: [#2337](https://github.com/UOR-Foundation/uor-r4/pull/2337) made `uor-harness` the entry point (the PM scan switched to the Rust binary; the Python harness owns only the unported commands until parity), and the disk archival of `~/uor-r4-local` to iCloud is in progress under R10. Docs only: no model compute, no count reset.
+
+Line: no model line — governance · count 0/3 unchanged · headline 37/232 → 37/232 (unchanged).
+
 ## 2026-10-13 — Rung 0b source: the lawful native starling read, 16/16 finite CUDA controls (claude, #2032)
 
 The starling / murmuration read is rebuilt so that every executed operation is lawful: no softmax, no

@@ -13,10 +13,10 @@
     "lab": "codex",
     "note": ""
   },
-  "kimi/d29-compiled-module-compliance": {
-    "branch": "kimi/d29-compiled-module-compliance",
-    "claimed_at": "2026-10-13T11:01:11-04:00",
-    "head": "56eb7551f",
+  "kimi/d29-nvrtc-amendment": {
+    "branch": "kimi/d29-nvrtc-amendment",
+    "claimed_at": "2026-10-13T11:31:25-04:00",
+    "head": "0497528e2",
     "lab": "kimi",
     "note": ""
   }

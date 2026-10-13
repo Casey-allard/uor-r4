@@ -1402,28 +1402,38 @@ end system"* ([#2028 comment 6147245657](https://github.com/UOR-Foundation/uor-r
 
 **Authority, October 13:** Casey, relayed via the Kimi PM. Extends D23/D24: it is
 not sufficient that a banned kernel is never launched.
+**Amended 13 Oct (owner): NVRTC itself banned** - supersedes this decision's
+original "NVRTC remains the CUDA compiler" clause; the prebuilt module, not the
+runtime compiler, is the compliance surface.
 
-- **Banned mechanisms must not exist in any NVRTC-compiled module, linked vendor
+- **Banned mechanisms must not exist in any compiled or loaded module, linked vendor
   call path (cuBLAS/cuDNN) or executed host fallback** - softmax, softplus,
   sigmoid, tanh and exp-family squashing; matmul/dense GEMM including tensor-core
-  `mma`/`wmma` contractions. **The compiled-module surface is the compliance
-  boundary: presence counts, not only execution.**
-- **NVRTC remains the CUDA compiler** for the compliant kernels; what is
-  eliminated is banned content inside compiled sources. `CUDA_STACK_SOURCE`
-  (`crates/uor-r4-training/src/cuda_stack_kernels.rs`) is split so the rung-0
-  module compiles only compliant kernels; historical kernels (read/flash softmax,
-  cross-entropy, fused sigmoid/exp/GELU recurrence, pointer mixture) are excluded
-  from compiled modules and preserved as source evidence. **Nothing is deleted.**
+  `mma`/`wmma` contractions. **The prebuilt module surface is the compliance
+  boundary (amended): what `nvcc` compiles at build time is exactly what the driver
+  may load, and presence counts, not only execution.**
+- **NVRTC (runtime compilation) is banned project-wide** - no runtime compiler
+  anywhere in the chain. All CUDA kernels compile ahead of time (`nvcc` via
+  `build.rs`) into named PTX/cubin modules, hash-bound into artifacts, and load
+  through the audited prebuilt-module launcher (`launch_prebuilt` pattern:
+  driver-loaded module, no kernel shared with the historical `CUDA_STACK_SOURCE`).
+  `CUDA_STACK_SOURCE` (`crates/uor-r4-training/src/cuda_stack_kernels.rs`) is split
+  so prebuilt modules carry only compliant kernels; historical kernels (read/flash
+  softmax, cross-entropy, fused sigmoid/exp/GELU recurrence, pointer mixture) are
+  excluded from compiled modules and preserved as source evidence. **Nothing is
+  deleted.**
 - **Every track is in scope**: the rung-0 trunk, the Line-B native learner
   (`crates/uor-r4-core/src/native_geometric`), D11's integer-engine exp-table
   masses, and tooling. Historical/retired arms remain reachable only through
   configs the guards reject, and are D23/D25/D29-prohibited for new runs.
 - **Enforcement (in progress on DeepSeek's harness line).**
   `scripts/check_no_matmul.py` is wired into prlint and CI, and the semantic path
-  checker extends to CUDA raw-string kernel sources so NVRTC content is
+  checker extends to CUDA raw-string kernel sources so compiled content is
   semantically gated, not only word-counted.
-- **Consequence.** Rung-0 execution waits for the compliant-module split (or an
-  explicit owner waiver); the FIT sheet pins source identity at execution, and the
-  executed module must not contain banned kernels.
+- **Consequence.** Rung-0 execution waits for Claude's prebuilt-module split - the
+  NVRTC path is retired, not merely trimmed; Codex re-qualifies on the prebuilt
+  module, and cudarc's `nvrtc` feature comes out of `uor-r4-training`'s dependency
+  set when the split lands. The FIT sheet pins source identity at execution, and
+  the executed module must not contain banned kernels.
 - **Assignments.** Claude builds the replacements and the module split; Codex
   reviews and re-qualifies; the Kimi PM routes.
