@@ -27,7 +27,8 @@ queryable surface and emits **receipts** so orchestration is visible after the f
 | `skills/<id>/SKILL.md` | one research skill, [Agent Skills](https://code.claude.com/docs/en/skills) front matter + protocol |
 | `roles.json` | the expert team: dispatchable roles, their default model route and their seat |
 | `mistakes/<id>.md` | one durable lesson: trigger, symptom, lesson, and a machine-checkable guard |
-| `panels/v5.json` | the acceptance panels and their frozen targets |
+| `panels/*.json` | the acceptance panels and their frozen targets |
+| `arena.json` | the lineage of evaluated configurations and every bar's direction |
 
 `docs/mechanisms/` (the idea-level briefs) stays where it is and is cited by skills.
 
@@ -48,6 +49,7 @@ uor-harness team roster|dispatch        dispatchable roles, and a receipt for di
 uor-harness mistakes list|find          durable lessons, selected for the files you are about to touch
 uor-harness prep new|fit                the pre-registration sheet, and its TEST FITNESS review
 uor-harness panel show|score            the frozen acceptance panels
+uor-harness arena board|compare|lineage  the lineage of evaluated configurations, compared row by row
 uor-harness budget show|scan            cumulative cost, and the pod specs of running jobs
 uor-harness lint check|format           lint a PR body against the contract; render a compliant one
 uor-harness heartbeat --milestone m1    emit the 90-minute status card
@@ -69,6 +71,18 @@ door, not a fourth store. Use what is already here, through it:
 | `scripts/research-lab-context.sh` | read-only session-start receipt (HEAD, SHA-256 of authority files, disk) | run alongside `status`; it is the machine receipt, `status` is the project view |
 | `~/.local/share/uor-r4/ledger/` + `compute/ledger.jsonl` | 357 closeout receipts and the append-only compute ledger | the authoritative cumulative cost; `budget show` reads it rather than inventing a total |
 | `scripts/pod/uor-pod` | the only sanctioned GPU path | `budget scan` reads its status; it is never wrapped or bypassed |
+
+**The regression arena** ([ARENA.md](ARENA.md)) is the other half of the panels. A panel says
+what a number has to reach; the arena records what each evaluated configuration actually scored,
+against which parent, at what scope — and reports the comparison **row by row**, never as an
+average. It holds no transformer or dense row by design (D23/D25, and the owner's 3 October
+direction), so it cannot answer "is this better than a transformer" and does not try. Its job is
+to catch a capability that was already won being silently lost.
+
+Every bar declares its direction. That is not fastidiousness: the first version compared raw
+numbers, and reported the starling readout's move from 36 to 69 candidates per query as a *gain*
+— a 92% cost increase, congratulated. An instrument that praises a regression will be believed,
+so direction is data in [`arena.json`](arena.json) and an undeclared bar is reported as neither.
 
 **Known gap, stated rather than hidden:** there is no topic index over failures. The
 catalogue and the archive INDEX are reachable only by already knowing they exist, and

@@ -321,6 +321,12 @@ def cmd_prep(args: argparse.Namespace, paths: HarnessPaths, reg: Registry) -> in
 # ---------------------------------------------------------------------------- panel
 
 
+def cmd_arena(args: argparse.Namespace, paths: HarnessPaths, reg: Registry) -> int:
+    import arena
+
+    return arena.main(args, paths, reg)
+
+
 def cmd_panel(args: argparse.Namespace, paths: HarnessPaths, reg: Registry) -> int:
     import prep as P
 
@@ -436,7 +442,7 @@ def build_parser() -> argparse.ArgumentParser:
         prog="uor-harness",
         description="Research harness for UOR-R4: milestones, skills, expert team, lessons, budgets, PR lint.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="Commands: status, brief, skill, team, mistakes, prep, panel, budget, lint, heartbeat, git, check",
+        epilog="Commands: status, brief, skill, team, mistakes, prep, panel, arena, budget, lint, heartbeat, git, check",
     )
     _add_common(p)
     sub = p.add_subparsers(dest="command")
@@ -548,6 +554,17 @@ def build_parser() -> argparse.ArgumentParser:
     s.set_defaults(fn=cmd_prep)
     s = sub2.add_parser("list")
     s.set_defaults(fn=cmd_prep)
+
+    sp = sub.add_parser("arena", help="the lineage of evaluated configurations (a regression check, not a leaderboard)")
+    sub2 = sp.add_subparsers(dest="action", required=True)
+    s = sub2.add_parser("board", help="every evaluated configuration and its parent")
+    s.set_defaults(fn=cmd_arena)
+    s = sub2.add_parser("compare", help="row-by-row comparison of one candidate against its parent")
+    s.add_argument("id")
+    s.set_defaults(fn=cmd_arena)
+    s = sub2.add_parser("lineage", help="the chain of configurations a candidate descends from")
+    s.add_argument("id")
+    s.set_defaults(fn=cmd_arena)
 
     sp = sub.add_parser("panel", help="the frozen acceptance panels")
     sub2 = sp.add_subparsers(dest="action", required=True)

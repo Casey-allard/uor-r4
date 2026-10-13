@@ -1,0 +1,149 @@
+{
+  "schema": 1,
+  "note": "The lineage of evaluated geometric configurations. Not a leaderboard: every row names the configuration it was derived from, and the report compares row-by-row against that parent. Rows are added as configurations are actually measured; the ids and numbers below come from merged records, named in each row's 'record'. Every bar's direction and unit is declared in 'bars'; the comparison uses it, so an increased cost is reported as a regression and never as a gain.",
+  "limits": "This arena cannot measure what no row records. It has no transformer or dense comparator by design (D23/D25, and the owner's 3 October direction), so it cannot answer 'is this better than a transformer' and does not try. It reports only what the frozen panels score. A row with confidence 'scoped-reading' or 'provisional' is a reading, not a decision. It does not run a model, choose a candidate, retire a mechanism, or count toward D21. Rows whose scope differs from the parent are flagged, never silently compared.",
+  "candidates": [
+    {
+      "id": "base-d10",
+      "artifact": "D10 base, 10% recall dose (adopted under D22 5f)",
+      "milestone": "m1",
+      "date": "2026-10-10",
+      "parent": null,
+      "verdict": "KEEP",
+      "confidence": "provisional",
+      "mechanism": "exact-addressed-memory",
+      "panel": "v5-reply",
+      "seeds": 1,
+      "rows": 40,
+      "scope": "D10 10% recall dose, fine-tune stream, v5 memory panel 20/40, reply 37/232; one seed; wrong-value failures 47 of 120 on the same protocol",
+      "scores": {
+        "memory": 20,
+        "reply": 37,
+        "wrong_value_failures": 47
+      },
+      "notes": "The adopted base for M1. Root row: there is no parent to regress against.",
+      "record": "docs/labs/mixture-dose-2026-10-10/README.md"
+    },
+    {
+      "id": "addressed-read",
+      "artifact": "product-key memory at the answer layer, trained in from step 0",
+      "milestone": "m1",
+      "date": "2026-10-11",
+      "parent": "base-d10",
+      "verdict": "KEEP",
+      "confidence": "provisional",
+      "mechanism": "exact-addressed-memory",
+      "panel": "v5-reply",
+      "seeds": 1,
+      "rows": 120,
+      "scope": "same recipe as the parent; wrong-value failures on the 120-row wrong-value set",
+      "scores": {
+        "wrong_value_failures": 34,
+        "memory": 20
+      },
+      "notes": "-90% per-token compute on that layer, but +36.9M params and a 20x training wall as implemented; BPB pending because the pod was reaped before its evaluations.",
+      "record": "docs/labs/addressed-read-2026-10-11/README.md"
+    },
+    {
+      "id": "starling-tree",
+      "artifact": "starling read with a persistent base-3 tree (HoloBox/FBS)",
+      "milestone": "m4",
+      "date": "2026-10-12",
+      "parent": null,
+      "verdict": "KEEP",
+      "confidence": "provisional",
+      "mechanism": "starling-read",
+      "panel": "m4-served",
+      "seeds": 3,
+      "rows": 1536,
+      "scope": "mqar at context 1536, 3 seeds; hit rate and recall per seed against softmax L",
+      "scores": {
+        "hit_rate": 0.99,
+        "recall": 0.329,
+        "candidates_per_query": 36
+      },
+      "notes": "Root row for the murmuration ladder: retention fixed (recall flat to d1000) but the readout limits. The tree met its own mechanism target, so it is KEEP under D22 section 2.",
+      "record": "docs/labs/starling-tree-2026-10-12/README.md"
+    },
+    {
+      "id": "starling-readout-distill",
+      "artifact": "readout self-distillation with the tree",
+      "milestone": "m4",
+      "date": "2026-10-12",
+      "parent": "starling-tree",
+      "verdict": "NOT_YET_PROMOTED",
+      "confidence": "provisional",
+      "mechanism": "starling-read",
+      "panel": "m4-served",
+      "seeds": 3,
+      "rows": 1536,
+      "scope": "mqar at 1536 over 3 seeds; recall per seed against WT 0.329",
+      "scores": {
+        "hit_rate": 0.99,
+        "recall": 0.377,
+        "candidates_per_query": 69
+      },
+      "notes": "One seed reaches 0.964 (softmax-level, flat to d1000, held-out 0.955) at 68.9 candidates per query; two seeds never learn the task. Mean 0.377 against WT 0.329. The limit is learning reliability, not the mechanism.",
+      "record": "docs/labs/starling-readout-2026-10-12/README.md"
+    },
+    {
+      "id": "m2-whole-path",
+      "artifact": "whole-path compiler/store/E8/native-emitter source reference",
+      "milestone": "m2",
+      "date": "2026-10-12",
+      "parent": null,
+      "verdict": "NOT_RUN",
+      "confidence": "provisional",
+      "mechanism": "unified-geometric-carrier-credit",
+      "panel": "m2-reply512",
+      "seeds": 0,
+      "rows": 0,
+      "scope": "connected CPU source reference; 15 tiny whole-path fixtures and 7 native-bank regressions pass; no optimizer or training was run",
+      "scores": {},
+      "notes": "Recorded so the lineage is honest rather than empty: this is a source reference, not a trained model, language or transfer result. The training hold is in force.",
+      "record": "docs/labs/whole-path-implementation-2026-10-12/README.md"
+    }
+  ],
+  "bars": {
+    "memory": {
+      "direction": "higher_is_better",
+      "unit": "rows passed",
+      "panel": "v5-reply"
+    },
+    "reply": {
+      "direction": "higher_is_better",
+      "unit": "acceptable replies",
+      "panel": "v5-reply"
+    },
+    "wrong_value_failures": {
+      "direction": "lower_is_better",
+      "unit": "failures",
+      "panel": "v5-reply"
+    },
+    "recall": {
+      "direction": "higher_is_better",
+      "unit": "mqar recall",
+      "panel": "m4-served"
+    },
+    "hit_rate": {
+      "direction": "higher_is_better",
+      "unit": "mqar hit rate",
+      "panel": "m4-served"
+    },
+    "candidates_per_query": {
+      "direction": "lower_is_better",
+      "unit": "candidates scored per query",
+      "panel": "m4-served"
+    },
+    "bpb": {
+      "direction": "lower_is_better",
+      "unit": "bits per byte",
+      "panel": "m4-served"
+    },
+    "tokens_per_second": {
+      "direction": "higher_is_better",
+      "unit": "tok/s on the same CUDA harness",
+      "panel": "m4-served"
+    }
+  }
+}

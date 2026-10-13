@@ -20,6 +20,7 @@ Standard library only. No network at import time. No model code. Never read secr
 | `mistakes.py` | lesson selection and capture; writes `docs/harness/mistakes/` |
 | `receipts.py` | skill/team/heartbeat receipts; writes `docs/harness/ledger/` |
 | `prep.py` | pre-registration sheet, FIT review, panels |
+| `arena.py` | `arena.json` lineage and direction-aware row-by-row comparison |
 | `prlint.py` | PR body parse/check/render |
 | `status.py` | `status` view and the 90-minute card |
 | `budget.py` | cumulative cost, pod specs, disk floor |
@@ -118,6 +119,10 @@ prep.fit_review(args, paths, reg) -> int     # args: milestone, verdict, sheet, 
 prep.list_sheets(args, paths, reg) -> int
 prep.show_panel(args, paths, reg) -> int     # args: milestone, json
 prep.score_panel(args, paths, reg) -> int    # args: panel, value, bar, label, json
+
+arena.load(paths) -> Arena                       # rows + declared bar directions
+arena.compare(paths, reg, cid) -> dict          # row-by-row vs the parent, never an aggregate
+arena.main(args, paths, reg) -> int             # args: action (board|compare|lineage), id, json
 
 budget.show(args, paths, reg) -> int
 budget.scan(args, paths, reg) -> int         # read-only: pod specs of running jobs

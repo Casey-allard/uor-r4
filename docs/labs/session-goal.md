@@ -7,6 +7,37 @@ preserved in [the pre-reconciliation revision](https://github.com/UOR-Foundation
 They cannot reactivate a constructor run, SoftSort arm, dense bootstrap or CPU learner.
 A prompt does not start a client by itself or lift an owner hold.
 
+## Start here: the harness
+
+Do not re-derive the rules from prose, and do not carry them in your head. Before the first
+status card, run these three — read-only, seconds each, and every fact in them cites the file or
+issue it came from:
+
+```sh
+python3 scripts/harness/cli.py status            # the headline, the line counts, what actually ran
+python3 scripts/harness/cli.py brief -m <your milestone>   # the context for this task, with sources
+python3 scripts/harness/cli.py mistakes find -f <files you will touch>   # what went wrong here before
+```
+
+`brief` assembles the milestone state, the owner rules in force, the contract below, the mechanism
+briefs, the frozen panel and the lessons that apply to your files — and it lists what it loaded,
+why, and what it left out.
+
+Three commands are required by the contract rather than merely useful: `prep new -m <milestone>`
+before compute, then `TEST FITNESS: FIT` on the milestone (clause 4); `heartbeat -m <milestone>`
+for the status card (clause 5); `lint check --body-file <body>` and `check` before opening a PR.
+
+**Visibility is part of the job.** `skill use <id>` and `team dispatch <role>` write one line to
+`docs/harness/ledger/`; in one checkout, claim your branch with
+`team claim --branch <name> --lab <lab>` (see [working-in-one-checkout.md](working-in-one-checkout.md)).
+A skill loaded, an agent dispatched or a branch used without a receipt is invisible to the owner —
+which is the failure this exists to end. When something goes wrong, `mistakes capture` records the
+trigger, symptom and lesson and names the rule that will catch it next time.
+
+The harness is a view over the authorities below, never a replacement for them; it runs no model
+compute, and its own output is never model evidence. [docs/harness/README.md](../harness/README.md)
+has the surface, [docs/harness/CONTRACT.md](../harness/CONTRACT.md) every rule and its rationale.
+
 ## The contract
 
 1. **Your number.** Read fresh main's AGENTS, current plan/state, D23–D25, your milestone and its

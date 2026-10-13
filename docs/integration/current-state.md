@@ -79,6 +79,28 @@ memory 20/40, reply 37/232).
 needs a prospective kernel card and TEST FITNESS first, and training stays held.
 
 
+## 2026-10-12 — The regression arena, and the harness as the session entry point (lead, tooling)
+
+The [record](../labs/regression-arena-2026-10-12/README.md) adds the other half of the frozen panels: the
+[arena](../harness/ARENA.md) records what each evaluated configuration actually scored, against which parent and at
+what scope, and reports the comparison **row by row** — never as an average. Five real rows are recorded, each citing
+its merged record (the D10 base, the addressed read, the starling tree, the starling readout self-distillation, and
+the M2 whole-path source reference as `NOT_RUN`). It holds no transformer or dense row by design (D23/D25, and the
+owner's 3 October direction), so it cannot answer "better than a transformer" and does not try; its job is to catch a
+capability already won being silently lost. The unit found and fixed a real defect in its own instrument: the first
+version reported the starling readout's move from 36 to 69 candidates per query — a 92% cost increase — as a *gain*.
+Direction and unit are now declared per bar, an equal value is neither a gain nor a regression, and an undeclared bar
+is reported as unknown rather than guessed; all three paths are tested. The [session contract](../labs/session-goal.md)
+now opens with a **Start here: the harness** section naming the three read-only commands to run before the first
+status card, the three the contract already requires, and the visibility habit, so a session no longer has to already
+know the harness exists.
+
+Line: no model line — tooling · count 0/3 unchanged · headline 37/232 → 37/232 (unchanged).
+
+**Next:** have `prep new` offer to append an arena row when a sheet is scored, closing the loop between
+pre-registration and lineage; and the two labs still holding worktrees with uncommitted files should commit and
+switch into the single checkout.
+
 ## 2026-10-12 — Research material removed from the repository was restored byte-exact; the disk problem is solved with skip-worktree instead (lead, repository integrity)
 
 The [record](../labs/repository-integrity-2026-10-12/README.md) corrects a mistake in PR #2263, which removed
