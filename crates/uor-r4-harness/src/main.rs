@@ -333,28 +333,47 @@ fn cmd_prep_check(repo: &Path, json: bool) -> ExitCode {
             rows.join(",\n"),
             sheets.iter().filter(|s| s.may_compute()).count()
         );
-    } else if sheets.is_empty() {
-        println!("no pre-registration sheets in docs/harness/prep/");
     } else {
-        println!("{} pre-registration sheet(s)", sheets.len());
-        for s in &sheets {
+        // A view of the GATE, not a dump of the files: a lab wants to know what may be computed
+        // against and what is missing, and nothing else. Rows are ordered FIT first, because the one
+        // question anyone brings here is "is there a sheet I can run against".
+        let mut rows: Vec<&SheetReport> = sheets.iter().collect();
+        rows.sort_by_key(|s| (!s.may_compute(), s.path.clone()));
+        let cleared = rows.iter().filter(|s| s.may_compute()).count();
+        println!(
+            "{} pre-registration sheet(s); {cleared} cleared for compute (D22 requires TEST FITNESS: FIT)",
+            rows.len()
+        );
+        println!(
+            "{:<9} {:<8} {:<9} {:<44} missing",
+            "state", "verdict", "complete", "sheet"
+        );
+        println!("{}", "-".repeat(104));
+        for s in rows {
             let name = s
                 .path
                 .file_name()
                 .map(|n| n.to_string_lossy().to_string())
                 .unwrap_or_default();
-            let mark = if s.may_compute() {
-                "FIT     "
-            } else {
-                "not FIT "
-            };
+            let state = if s.may_compute() { "FIT" } else { "not FIT" };
+            let complete = if s.complete() { "yes" } else { "no" };
             let missing = s.missing();
             let gap = if missing.is_empty() {
-                String::new()
+                "-".to_string()
             } else {
-                format!("  missing: {}", missing.join(", "))
+                missing.join(", ")
             };
-            println!("  {mark} {name:<44} {}{gap}", s.fitness);
+            println!("{state:<9} {:<8} {complete:<9} {name:<44} {gap}", s.fitness);
+        }
+        if cleared == 0 {
+            println!();
+            println!(
+                "Nothing here is cleared for compute. A complete sheet with a PENDING verdict is"
+            );
+            println!(
+                "still not FIT: completeness is the form being filled in, fitness is a reviewer"
+            );
+            println!("saying the bar is testable (D22).");
         }
     }
     // Exit 1 only when a sheet CLAIMS to be FIT and is not readable as one: that is the state worth
