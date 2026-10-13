@@ -24,6 +24,8 @@
 
 use std::path::{Path, PathBuf};
 
+use crate::preprules::Finding;
+
 use crate::state::StatePaths;
 
 /// One lesson from `docs/harness/mistakes/`.
@@ -41,6 +43,15 @@ pub struct Mistake {
     pub trigger: Vec<String>,
     pub milestones: Vec<String>,
     pub evidence: Vec<String>,
+    /// Why this file is not a valid lesson, if it is not.
+    ///
+    /// **The Rust parser was permissive and never rejected anything, so `mistakes.registry_valid`
+    /// had nothing to report** — the port could not carry the rule that catches a malformed lesson.
+    /// The checks here mirror the Python reader's, including the reason each one exists.
+    ///
+    /// A lesson with errors is still returned: **reporting the file is the point, and dropping it
+    /// would make a broken lesson invisible instead of loud.**
+    pub errors: Vec<String>,
     pub path: PathBuf,
 }
 
@@ -86,6 +97,218 @@ pub fn load(paths: &StatePaths) -> Vec<Mistake> {
 }
 
 /// Parse one lesson file.
+/// `severity` values a lesson may declare.
+pub const SEVERITIES: [&str; 3] = ["block", "warn", "info"];
+/// `class` values a lesson may declare.
+pub const CLASSES: [&str; 7] = [
+    "process",
+    "evidence",
+    "compute",
+    "measurement",
+    "delivery",
+    "coordination",
+    "assumption",
+];
+/// `status` values a lesson may declare.
+pub const STATUSES: [&str; 3] = ["active", "resolved", "superseded"];
+
+/// Why `text` is not a valid lesson file, in the Python reader's own terms.
+///
+/// **Every check here has a reason, and the reasons are the rule.** The id must equal the file stem
+/// because the registry is navigated by filename; `trigger` needs two phrases because one phrase
+/// matches everything and therefore retrieves nothing; `paths` must be non-empty because **a lesson
+/// that no path matches can never be recalled** — it is a note filed where nothing looks.
+pub fn validation_errors(stem: &str, text: &str, fm: &[(String, String)]) -> Vec<String> {
+    let mut errors = Vec::new();
+    let get = |k: &str| -> String {
+        fm.iter()
+            .find(|(key, _)| key == k)
+            .map(|(_, v)| v.clone())
+            .unwrap_or_default()
+    };
+    if !text.trim_start().starts_with("---") {
+        errors.push("no front matter: the file must start with '---'".to_string());
+        return errors;
+    }
+    for key in [
+        "id", "title", "date", "severity", "class", "trigger", "paths", "evidence", "status",
+    ] {
+        if get(key).trim().is_empty() || get(key).trim() == "[]" {
+            errors.push(format!("front matter is missing '{key}'"));
+        }
+    }
+    let id = get("id");
+    if !id.is_empty() && id.to_lowercase() != stem.to_lowercase() {
+        errors.push(format!("id {id:?} must equal the file stem {stem:?}"));
+    }
+    if !id.is_empty() && !kebab_case_id(&id) {
+        errors.push(format!("id {id:?} is not a kebab-case id"));
+    }
+    let sev = get("severity");
+    if !sev.is_empty() && !SEVERITIES.contains(&sev.as_str()) {
+        errors.push(format!(
+            "severity must be one of {SEVERITIES:?}, got {sev:?}"
+        ));
+    }
+    let class = get("class");
+    if !class.is_empty() && !CLASSES.contains(&class.as_str()) {
+        errors.push(format!("class must be one of {CLASSES:?}, got {class:?}"));
+    }
+    let status = get("status");
+    if !status.is_empty() && !STATUSES.contains(&status.as_str()) {
+        errors.push(format!(
+            "status must be one of {STATUSES:?}, got {status:?}"
+        ));
+    }
+    let date = get("date");
+    if !date.is_empty() && !is_ymd(&date) {
+        errors.push(format!("date must be YYYY-MM-DD, got {date:?}"));
+    }
+    let guard = get("guard");
+    if !guard.is_empty() && !guard.starts_with("none") && !guard.contains('.') {
+        errors.push(format!(
+            "guard {guard:?} must be a dotted rule id or 'none: <reason>'"
+        ));
+    }
+    errors
+}
+
+/// `^[a-z0-9][a-z0-9-]{2,63}$` — at least three characters, kebab-case.
+fn kebab_case_id(id: &str) -> bool {
+    let b = id.as_bytes();
+    if b.len() < 3 || b.len() > 64 {
+        return false;
+    }
+    if !(b[0].is_ascii_lowercase() || b[0].is_ascii_digit()) {
+        return false;
+    }
+    b[1..]
+        .iter()
+        .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || *c == b'-')
+}
+
+/// Resolve an evidence/record path relative to the repo, then the lesson directory.
+///
+/// **Two bases, because a lesson cites a path the way a reader would**: `docs/labs/...` from the repo
+/// root, or a sibling file in the lesson's own directory. An absolute path is taken as-is. A path that
+/// resolves nowhere is what `mistakes.evidence_exists` reports — **a citation to a file that does not
+/// exist is worse than no citation, because it reads as evidence.**
+pub fn resolve_path(paths: &StatePaths, value: &str) -> Option<PathBuf> {
+    if value.trim().is_empty() {
+        return None;
+    }
+    let p = Path::new(value);
+    if p.is_absolute() {
+        return if p.exists() {
+            Some(p.to_path_buf())
+        } else {
+            None
+        };
+    }
+    let direct = paths.repo.join(p);
+    if direct.exists() {
+        return Some(direct);
+    }
+    let in_dir = dir(paths).join(p);
+    if in_dir.exists() {
+        return Some(in_dir);
+    }
+    None
+}
+
+/// `mistakes.registry_valid` — every lesson file parses, ids are unique, and the front matter is valid.
+///
+/// **Two distinct failures, kept apart because the fixes differ:** a file whose *front matter* is
+/// wrong (the reader's own errors, reported verbatim) and **a duplicate id** across files, which makes
+/// the registry ambiguous — a lookup by id returns whichever file was read first.
+pub fn registry_valid(paths: &StatePaths) -> Vec<Finding> {
+    let mut out = Vec::new();
+    let mut seen: std::collections::HashMap<String, String> = std::collections::HashMap::new();
+    for lesson in load(paths) {
+        let name = lesson
+            .path
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_default();
+        for error in &lesson.errors {
+            out.push(Finding {
+                rule_id: "mistakes.registry_valid",
+                severity: "error",
+                message: format!("{name}: {error}"),
+                path: lesson.path.display().to_string(),
+                fix: "fix the front matter: see docs/harness/mistakes/README.md for the exact template"
+                    .into(),
+            });
+        }
+        if let Some(prior) = seen.get(&lesson.id) {
+            out.push(Finding {
+                rule_id: "mistakes.registry_valid",
+                severity: "error",
+                message: format!("duplicate lesson id {:?} in {name} and {prior}", lesson.id),
+                path: lesson.path.display().to_string(),
+                fix: "give one of them a unique id (the file stem must equal the id)".into(),
+            });
+        } else {
+            seen.insert(lesson.id.clone(), name);
+        }
+    }
+    out
+}
+
+/// `mistakes.evidence_exists` — every cited evidence path exists on disk.
+pub fn evidence_exists(paths: &StatePaths) -> Vec<Finding> {
+    let mut out = Vec::new();
+    for lesson in load(paths) {
+        // An unreadable file is `registry_valid`'s finding; reporting its (empty) evidence here would
+        // be a second finding for one fault.
+        if !lesson.errors.is_empty() && lesson.evidence.is_empty() {
+            continue;
+        }
+        for value in &lesson.evidence {
+            if resolve_path(paths, value).is_none() {
+                out.push(Finding {
+                    rule_id: "mistakes.evidence_exists",
+                    severity: "error",
+                    message: format!("{}: evidence path {value} does not exist", lesson.id),
+                    path: lesson.path.display().to_string(),
+                    fix: "cite a path that exists (repo-relative), or remove the claim".into(),
+                });
+            }
+        }
+    }
+    out
+}
+
+/// `mistakes.guard_covered` — NOT ported, and the reason is a bug I found by comparing.
+///
+/// **The Python checks a guard against the ids the ENGINE registers (40). `ruleinventory` is the ids
+/// the PORT has implemented (16).** My first version used the inventory, so **a lesson guarding on
+/// `multilab.claim_not_merged` — a rule that exists and runs — was reported as "not a rule this engine
+/// registers".** Rust said **4**; Python said **0**.
+///
+/// The two sets are different questions with the same shape, and I reached for the wrong one because it
+/// was the one I had just built. **A guard check against an incomplete port is not a weaker check, it is
+/// a wrong one** — it would tell authors to delete guards on real rules, and it would stop being wrong
+/// only when the port finished, which is exactly when the check stops mattering.
+///
+/// Porting it needs **the full registered-id set**, which means either enumerating the rules in Rust
+/// (including the ones not yet ported) or embedding the id list as data beside the patterns file. That
+/// is its own small unit, and shipping the wrong check now would be worse than shipping none.
+///
+/// **This function is deliberately absent rather than approximate.** A caller that needs it must not
+/// find a stub that returns nothing — that is the silent-clean failure this line keeps producing.
+///
+/// `^\d{4}-\d{2}-\d{2}$`.
+fn is_ymd(date: &str) -> bool {
+    let b = date.as_bytes();
+    b.len() == 10
+        && b[..4].iter().all(u8::is_ascii_digit)
+        && b[4] == b'-'
+        && b[5..7].iter().all(u8::is_ascii_digit)
+        && b[7] == b'-'
+        && b[8..].iter().all(u8::is_ascii_digit)
+}
+
 pub fn parse(stem: &str, text: &str, path: &Path) -> Mistake {
     let fm = frontmatter(text);
     let get = |k: &str| {
@@ -112,7 +335,9 @@ pub fn parse(stem: &str, text: &str, path: &Path) -> Mistake {
             v
         }
     };
+    let errors = validation_errors(stem, text, &fm);
     Mistake {
+        errors,
         id,
         title: get("title"),
         severity,
@@ -474,5 +699,97 @@ mod tests {
             !hits.is_empty(),
             "no lesson applies to the harness source - the registry or the matcher is wrong"
         );
+    }
+}
+
+#[cfg(test)]
+mod rule_tests {
+    use super::*;
+    use crate::state::StatePaths;
+
+    fn fixture() -> (tempfile::TempDir, StatePaths) {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let d = dir.path().join("docs/harness/mistakes");
+        std::fs::create_dir_all(&d).expect("mkdir");
+        let p = StatePaths::resolve(dir.path(), None, Some("/nonexistent-live"));
+        (dir, p)
+    }
+
+    fn lesson(stem: &str, body: &str) -> String {
+        format!(
+            "---\nid: {stem}\ntitle: t\ndate: 2026-10-13\nseverity: block\nclass: process\n\
+             status: active\nguard: prlint.record\ntrigger: [one, two]\npaths: [\"crates/*.rs\"]\n\
+             evidence: [Cargo.toml]\n---\n\n{body}\n"
+        )
+    }
+
+    /// The real registry is valid — the validator must not be stricter than Python's.
+    #[test]
+    fn the_real_registry_has_no_validation_errors() {
+        let repo = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let p = StatePaths::resolve(&repo, None, Some("/nonexistent-live"));
+        let f = registry_valid(&p);
+        assert!(f.is_empty(), "the real registry must be valid: {f:?}");
+    }
+
+    /// **A duplicate id makes the registry ambiguous** — a lookup by id returns whichever file was
+    /// read first, which is not a rule anyone can reason about.
+    #[test]
+    fn a_duplicate_lesson_id_is_an_error_naming_both_files() {
+        let (d, p) = fixture();
+        let dir = d.path().join("docs/harness/mistakes");
+        std::fs::write(dir.join("dup.md"), lesson("dup", "one")).expect("write");
+        std::fs::write(dir.join("other.md"), lesson("dup", "two")).expect("write");
+        let f = registry_valid(&p);
+        assert!(
+            f.iter().any(|x| x.message.contains("duplicate lesson id")),
+            "a duplicate id must be reported: {f:?}"
+        );
+        assert!(f.iter().any(|x| x.message.contains("dup.md")), "{f:?}");
+    }
+
+    /// A file whose id does not equal its stem is invalid: the registry is navigated by filename.
+    #[test]
+    fn an_id_that_does_not_match_the_stem_is_reported() {
+        let (d, p) = fixture();
+        std::fs::write(
+            d.path().join("docs/harness/mistakes/wrong-stem.md"),
+            lesson("a-different-id", "x"),
+        )
+        .expect("write");
+        let f = registry_valid(&p);
+        assert!(
+            f.iter()
+                .any(|x| x.message.contains("must equal the file stem")),
+            "{f:?}"
+        );
+    }
+
+    /// **A citation to a file that does not exist is worse than no citation, because it reads as
+    /// evidence.**
+    #[test]
+    fn a_missing_evidence_path_is_an_error() {
+        let (d, p) = fixture();
+        std::fs::write(
+            d.path().join("docs/harness/mistakes/cite.md"),
+            lesson("cite", "x")
+                .replace("evidence: [Cargo.toml]", "evidence: [docs/nowhere/none.md]"),
+        )
+        .expect("write");
+        let f = evidence_exists(&p);
+        assert_eq!(f.len(), 1, "{f:?}");
+        assert!(f[0].message.contains("does not exist"), "{}", f[0].message);
+    }
+
+    #[test]
+    fn an_existing_evidence_path_is_accepted() {
+        let (d, p) = fixture();
+        std::fs::write(d.path().join("Cargo.toml"), "[workspace]\n").expect("write");
+        std::fs::write(
+            d.path().join("docs/harness/mistakes/ok.md"),
+            lesson("ok", "x"),
+        )
+        .expect("write");
+        assert!(evidence_exists(&p).is_empty(), "{:?}", evidence_exists(&p));
     }
 }
