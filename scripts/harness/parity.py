@@ -139,14 +139,39 @@ def python_presence() -> dict:
     return json.loads(out)
 
 
+def _normalise_problem(text: str) -> str:
+    """Strip the leading path so Rust and Python violations can be compared.
+
+    Rust reports `docs/harness/ledger/x.jsonl:11.ts: ...` and Python reports `x.jsonl:11.ts: ...`
+    for the same fault, because one is handed a path relative to the repo and the other a bare
+    filename. Comparing the text without that prefix is what makes this a parity check on the
+    FAULT rather than on how each implementation happens to spell a location.
+    """
+    tail = text.split(": ", 1)
+    if len(tail) != 2:
+        return text.strip()
+    loc, problem = tail
+    # Collapse quote style: Python renders a repr as 'ts' and Rust as "ts" for the same fault.
+    # Comparing that difference would make this a check on each language's formatting rather than
+    # on what was found, and it is exactly the kind of noise that gets a gate ignored.
+    problem = problem.replace("'", '"')
+    return f"{loc.rsplit('/', 1)[-1]}: {problem.strip()}"
+
+
 def normalise_formats(doc: dict) -> dict[str, dict]:
-    """Format name -> {files, rows, problems}. Deliberately ignores ordering and prose."""
+    """Format name -> {files, rows, problems}.
+
+    `problems` is the normalised fault text, not a count. Counting was a real defect: both
+    implementations reported the same two violations and the check called it agreement, so a state
+    file that violated the contract passed this gate. Agreement has to be about WHAT was found.
+    """
     out = {}
     for f in doc["formats"]:
+        raw = f.get("violations", f.get("problems", []))
         out[f["format"]] = {
             "files": f.get("files", 0),
             "rows": f.get("rows", 0),
-            "problem_count": len(f.get("violations", f.get("problems", []))),
+            "problems": sorted(_normalise_problem(str(x)) for x in raw),
         }
     return out
 
@@ -218,6 +243,18 @@ def main(argv: list[str] | None = None) -> int:
 
     findings: list[str] = []
 
+    # 0. A gate that only compares implementations passes whenever BOTH are wrong together. State
+    #    that violates the frozen contract must fail here regardless of agreement, because that is
+    #    what this job exists to catch.
+    invalid = sorted(
+        f["format"] for f in rust_check(binary)["formats"]
+        if f.get("violations") or f.get("problems")
+    )
+    if invalid:
+        findings.append(
+            f"state violates the frozen contract in {invalid} - see statecheck.py for the faults"
+        )
+
     # 1. the format check
     r_formats = normalise_formats(rust_check(binary))
     p_formats = normalise_formats(python_check())
@@ -274,6 +311,7 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps({
             "ok": not findings,
             "controlled_cases": 6,
+            "state_valid": not invalid,
             "binary": str(binary),
             "formats": len(r_formats),
             "ledger_receipts": r_led["receipts"],

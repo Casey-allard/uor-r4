@@ -1,3 +1,32 @@
+## 2026-10-13 — CI learns about the Rust harness, and the parity gate is fixed before it ships (lead, tooling)
+
+`.github/workflows/harness.yml` gains a `rust-harness` job (pinned Rust, cached cargo, `fmt --check`,
+`clippy -D warnings`, `cargo test --locked`, `parity.py`, `statecheck.py`), with the path filter
+extended to `crates/uor-r4-harness/**` and the cargo files, so **the job validates itself on the PR
+that introduces it**. Wiring it up exposed that
+[the parity gate did not work](../labs/harness-ci-2026-10-13/README.md): `parity.py` compared
+violations **by count, not content**, and never failed on invalid state, so a ledger row missing its
+required `ts` key made both implementations report the same two violations while the check printed
+"agree on every format..." and **exited 0**. A gate that only compares two implementations passes
+whenever both are wrong together. It now compares the normalised fault text and fails outright when
+state violates the contract, verified in both directions (valid state exits 0; a row missing `ts`
+exits 1). Quote style is normalised too, since Python renders `'ts'` and Rust `"ts"` for the same
+fault and flagging that would make this a check on formatting rather than on the fault. Every CI step
+was run locally from a **cold** build directory (cold build 5.7 s); `CARGO_TARGET_DIR=local/harness-target`
+is set on every step because `target/` in the owner's checkout is a broken symlink to a removed
+archive. Also removed, with proof, my own stale worktree `deepseek/invariant-router` (1.3 GB): no
+claim on it, clean tree, and both its commits superseded by content - the `read_router` literals are
+in main's three test files via #2245 and the `CellTree::route` change via #2247 - archived as a
+restorable patch with an INDEX row and SHA256. Removing it cleared a warning (7 → 6 failures).
+Disk is **33 GiB free**, near the 30 GB floor.
+
+Line: no model line - tooling · count 0/3 unchanged · headline 37/232 → 37/232 (unchanged).
+
+**Next:** port behaviour against the Python suite as the conformance oracle, claims and presence
+first, then cut the labs over once the Rust path passes the same rules. Codex's
+`geometric-path-repair` worktree still holds 12 uncommitted files, so the next safe disk reclaim
+depends on Codex committing.
+
 ## 2026-10-13 — The harness becomes installable: branch rule, per-lab install, and where the PM's decisions live (lead, tooling)
 
 Three gaps that would stop the next lab picking the harness up without being told by hand, closed in

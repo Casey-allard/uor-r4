@@ -1,0 +1,169 @@
+From b76cba9e42df90a3f3ab406f8bc8aa1556682c2d Mon Sep 17 00:00:00 2001
+From: Casey Allard <casey.allard@amnhealthcare.com>
+Date: Mon, 12 Oct 2026 03:09:41 -0400
+Subject: [PATCH 1/2] Add read_router to StackConfig literals in tests (fixes
+ CUDA parity compile) (References #2029)
+
+---
+ .../tests/cuda_stack_ops_parity.rs             |  2 ++
+ .../tests/d4_map_codec_adapter.rs              | 18 ++++++++++++++++++
+ crates/uor-r4-training/tests/temporal_cli.rs   |  2 ++
+ 3 files changed, 22 insertions(+)
+
+diff --git a/crates/uor-r4-training/tests/cuda_stack_ops_parity.rs b/crates/uor-r4-training/tests/cuda_stack_ops_parity.rs
+index 94a732384..54541ed2c 100644
+--- a/crates/uor-r4-training/tests/cuda_stack_ops_parity.rs
++++ b/crates/uor-r4-training/tests/cuda_stack_ops_parity.rs
+@@ -2259,6 +2259,7 @@ fn bf16_model_config(seed: u64) -> uor_r4_training::geometric_stack::StackConfig
+         memory: None,
+         select: None,
+         pointer: None,
++        read_router: None,
+     }
+ }
+ 
+@@ -2437,6 +2438,7 @@ fn test_step7a_read_lineage_parity() -> uor_r4_training::Result<()> {
+         memory: None,
+         select: None,
+         pointer: None,
++        read_router: None,
+     };
+     let (batch, time) = (2usize, 48usize);
+     let ids: Vec<u32> = (0..batch * time)
+diff --git a/crates/uor-r4-training/tests/d4_map_codec_adapter.rs b/crates/uor-r4-training/tests/d4_map_codec_adapter.rs
+index 1b62591e6..788e7da16 100644
+--- a/crates/uor-r4-training/tests/d4_map_codec_adapter.rs
++++ b/crates/uor-r4-training/tests/d4_map_codec_adapter.rs
+@@ -91,6 +91,8 @@ fn qat_adapters_integrate_with_stack_model_and_export_contract() -> Result<()> {
+         memory: None,
+         select: None,
+         pointer: None,
++
++        read_router: None,
+     };
+     let device = Device::Cpu;
+     let mut model = StackModel::new(config, &device)?;
+@@ -162,6 +164,8 @@ fn qat_head_compensated_end_to_end_export_and_exactness() -> Result<()> {
+         memory: None,
+         select: None,
+         pointer: None,
++
++        read_router: None,
+     };
+     let device = Device::Cpu;
+     let mut model = StackModel::new(config, &device)?;
+@@ -312,6 +316,8 @@ fn qat_min_mse_end_to_end_export_and_exactness() -> Result<()> {
+         memory: None,
+         select: None,
+         pointer: None,
++
++        read_router: None,
+     };
+     let device = Device::Cpu;
+     let mut model = StackModel::new(config, &device)?;
+@@ -503,6 +509,8 @@ fn test_e8_matched_bit_map_codec_qat_and_export_refusal() -> Result<()> {
+         memory: None,
+         select: None,
+         pointer: None,
++
++        read_router: None,
+     };
+     let device = Device::Cpu;
+     let mut model = StackModel::new(config, &device)?;
+@@ -598,6 +606,8 @@ fn test_exported_artifact_dequantized_weights_equal_served_view_element_by_eleme
+             memory: None,
+             select: None,
+             pointer: None,
++
++            read_router: None,
+         };
+         let device = Device::Cpu;
+         let mut model = StackModel::new(config.clone(), &device)?;
+@@ -740,6 +750,8 @@ fn qat_rec_out_min_mse_end_to_end_export_and_exactness() -> Result<()> {
+         memory: None,
+         select: None,
+         pointer: None,
++
++        read_router: None,
+     };
+     let device = Device::Cpu;
+     let mut model = StackModel::new(config, &device)?;
+@@ -1024,6 +1036,8 @@ fn test_export_stack_directly_refuses_e8_matched_bit() -> Result<()> {
+         memory: None,
+         select: None,
+         pointer: None,
++
++        read_router: None,
+     };
+     let device = Device::Cpu;
+     let mut model = StackModel::new(config, &device)?;
+@@ -1055,6 +1069,8 @@ fn test_s2_real_proportions_exported_artifact_dequantized_weights_equal_served_v
+         memory: None,
+         select: None,
+         pointer: None,
++
++        read_router: None,
+     };
+     let device = Device::Cpu;
+ 
+@@ -1288,6 +1304,8 @@ fn test_saved_model_export_restores_codec_not_rtn() -> Result<()> {
+         memory: None,
+         select: None,
+         pointer: None,
++
++        read_router: None,
+     };
+     let device = Device::Cpu;
+     let mut model = StackModel::new(config, &device)?;
+diff --git a/crates/uor-r4-training/tests/temporal_cli.rs b/crates/uor-r4-training/tests/temporal_cli.rs
+index 0c5c40abb..142532f17 100644
+--- a/crates/uor-r4-training/tests/temporal_cli.rs
++++ b/crates/uor-r4-training/tests/temporal_cli.rs
+@@ -230,6 +230,8 @@ fn fitted_adapter_drives_actual_clis_and_each_fresh_process_matches_generation()
+             memory: None,
+             select: None,
+             pointer: Some(PointerConfig::new(4)),
++
++            read_router: None,
+         },
+         &Device::Cpu,
+     )
+-- 
+2.54.0 (Apple Git-157)
+
+
+From caef102cccf07efa7b1d3a8bb344490f9244d772 Mon Sep 17 00:00:00 2001
+From: Casey Allard <casey.allard@amnhealthcare.com>
+Date: Mon, 12 Oct 2026 03:38:57 -0400
+Subject: [PATCH 2/2] Optimize CellTree::route: drop the O(k) duplicate scan
+ (References #2029)
+
+---
+ crates/uor-r4-training/src/stack_address.rs | 8 +++++++-
+ 1 file changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/crates/uor-r4-training/src/stack_address.rs b/crates/uor-r4-training/src/stack_address.rs
+index 0322a6297..ea95d7b69 100644
+--- a/crates/uor-r4-training/src/stack_address.rs
++++ b/crates/uor-r4-training/src/stack_address.rs
+@@ -474,10 +474,16 @@ impl CellTree {
+             };
+         }
+         order.extend(self.children[query as usize].iter().copied());
++        // order is the query's path (query -> root) plus its children: each
++        // cell appears exactly once, so a candidate (one cell) matches at most
++        // one cell and no duplicate check is needed. The linear contains scan
++        // over the written prefix was O(k) per candidate, which made the walk
++        // O(|order| * window * k); without it the walk is O(|order| * window),
++        // still not O(1).
+         let mut written = 0usize;
+         for cell in order {
+             for (index, &candidate) in candidates.iter().enumerate() {
+-                if candidate == cell && !out[..written].contains(&index) {
++                if candidate == cell {
+                     if written == out.len() {
+                         return written;
+                     }
+-- 
+2.54.0 (Apple Git-157)
+

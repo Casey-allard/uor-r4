@@ -390,3 +390,11 @@ pinned base. Source patch restoration is scoped to named training paths, not
 other labs' files or results. Historical artifacts/measurements and prior
 protected commits remain unchanged. The replacement's later dense-expansion
 refusal is also recoverable from the same pre-replacement files in this patch.
+| [Restorable source patch](deepseek_invariant-router-20261013.patch) | `b76cba9e42df90a3f3ab406f8bc8aa1556682c2d`..`caef102cc` | **SUPERSEDED, archived on removal.** Two commits from `deepseek/invariant-router`: the `read_router` literals in three training tests, and the `CellTree::route` duplicate-scan removal. **Both changes are already in `main`** — the test literals arrived via #2245 (verified present in `cuda_stack_ops_parity.rs`, `temporal_cli.rs`, `d4_map_codec_adapter.rs`) and the route optimisation via #2247. Archived rather than cited because an archived branch's work is not a research authority; `main` is. Restorable with `git apply` if the exact historical form is ever needed | #2029 |
+
+SHA256 `d0d16ef190b6d243009f6789edde77cd041ac2fd90e59213683a0a1c0656e34c`.
+Archived 13 October 2026 when the owning worktree (`.worktrees/agent-deepseek-router`) was
+removed: the branch was 40 commits behind `main`, so its file-level diff was dominated by
+`main` having moved on rather than by anything the branch held. The two commits it did hold
+are superseded, which is what makes removal safe rather than merely convenient.
+

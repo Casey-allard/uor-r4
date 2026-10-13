@@ -1,14 +1,21 @@
 name: harness
 
-# The research harness is a standard-library Python tool: no Rust toolchain, no
-# fetch, a few seconds of runtime. It is path-filtered so it never competes with
-# the shared `required-transport` runner slot on unrelated PRs.
+# The research harness is being ported to Rust (owner decision, 13 October 2026, D27:
+# Rust is the default for all new code including tooling). The Python tool remains
+# authoritative and keeps running here; the Rust crate is checked alongside it, and
+# `parity.py` fails the build when the two disagree about the shared record.
+#
+# Path-filtered so it never competes with the shared `required-transport` runner slot
+# on unrelated PRs.
 on:
   pull_request:
     paths:
       - 'scripts/harness/**'
       - 'docs/harness/**'
       - 'tests/harness/**'
+      - 'crates/uor-r4-harness/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
       - '.github/workflows/harness.yml'
   workflow_dispatch:
 
@@ -65,3 +72,74 @@ jobs:
             echo 'These checks cover the harness tooling only. They are not model compute,'
             echo 'not a language result, and not a capability claim.'
           } >> "$GITHUB_STEP_SUMMARY"
+
+  rust-harness:
+    # The Rust side of the port. It reads the same frozen contract and must agree with
+    # Python about the shared record, so this job both builds it and runs the parity
+    # check against the Python implementation. A longer timeout than the Python job
+    # because it compiles; still short, because the crate depends only on serde.
+    name: Rust harness and Python parity
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+          show-progress: false
+
+      - name: Install pinned Rust
+        run: rustup show active-toolchain
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            local/harness-target
+          key: cargo-harness-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
+          restore-keys: cargo-harness-${{ runner.os }}-
+
+      - name: Format
+        # CARGO_TARGET_DIR is set for every cargo invocation: this checkout's `target`
+        # is a symlink in the owner's working copy and must never be relied on.
+        env:
+          CARGO_TARGET_DIR: local/harness-target
+        run: cargo fmt -p uor-r4-harness -- --check
+
+      - name: Clippy
+        env:
+          CARGO_TARGET_DIR: local/harness-target
+        run: cargo clippy -p uor-r4-harness --locked --all-targets -- -D warnings
+
+      - name: Rust harness tests
+        env:
+          CARGO_TARGET_DIR: local/harness-target
+        run: cargo test --locked -p uor-r4-harness
+
+      - name: Python and Rust agree about the shared record
+        # The point of the port: two implementations, one contract. This compares
+        # structured output across every format, the ledger roll-up and the presence
+        # board, plus controlled cases with verdicts known in advance - so it proves
+        # both implementations REJECT the same things, not merely that both can read a
+        # valid file.
+        env:
+          CARGO_TARGET_DIR: local/harness-target
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo build --locked -p uor-r4-harness
+          python3 scripts/harness/parity.py --json | tee "$RUNNER_TEMP/parity.json"
+          {
+            echo '### Rust/Python harness parity'
+            echo '```json'
+            cat "$RUNNER_TEMP/parity.json"
+            echo '```'
+            echo 'Agreement about reading state. The Python harness still owns behaviour.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Frozen state formats
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/harness/statecheck.py
