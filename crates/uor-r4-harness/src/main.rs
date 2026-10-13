@@ -12,6 +12,7 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use uor_r4_harness::briefing;
+use uor_r4_harness::multilab;
 use uor_r4_harness::notes;
 use uor_r4_harness::onboard::{detect_runtime, onboard};
 use uor_r4_harness::prep::{check_all, SheetReport};
@@ -40,7 +41,7 @@ const PYTHON_PASSTHROUGH_VALUE_FLAGS: [&str; 1] = ["--only"];
 /// BEFORE flag parsing: an unported command's flags are unknown to this binary, and rejecting one
 /// meant delegation only worked for commands whose flags happened to be in the lists - `check --only`
 /// failed with "unknown option --only" before it could delegate. Which defeats the point.
-const PORTED_COMMANDS: [&str; 17] = [
+const PORTED_COMMANDS: [&str; 18] = [
     "onboard",
     "check-formats",
     "presence",
@@ -51,6 +52,7 @@ const PORTED_COMMANDS: [&str; 17] = [
     "notes",
     "version",
     "team",
+    "multilab",
     "prep-check",
     "registry",
     "prep-render",
@@ -145,6 +147,8 @@ COMMANDS:
                 Rust side; use --dry-run to see the line without recording it.
     heartbeat   Check in: publish presence and append a receipt, both to the LIVE
                 tier, so a check-in never dirties a working checkout (R10).
+    multilab    The shared board: presence, claims, touch. `touch` refreshes
+                liveness for hooks WITHOUT changing what the lab is doing.
     team        Branch claims: claim, release, claims, roster.
                 `team claim --branch B --lab L` before you start work.
     version     The commit this binary was built from, and whether it is
@@ -308,6 +312,7 @@ fn main() -> ExitCode {
         Some("notes") => cmd_notes(&repo, &rest, json),
         Some("version") => cmd_version(&repo),
         Some("team") => cmd_team(&repo, &rest, json),
+        Some("multilab") => cmd_multilab(&repo, &rest, json),
         Some("prep-check") => cmd_prep_check(&repo, json),
         Some("registry") => cmd_registry(&repo, json),
         Some("prep-render") => cmd_prep_render(&repo, &rest),
@@ -420,18 +425,155 @@ fn action_word(args: &[String]) -> &str {
         if a.starts_with('-') {
             // A value-taking flag consumes the next token even when written `--flag value`.
             //
-            // `--repo` is listed explicitly because it is consumed by the TOP-LEVEL parser and pushed
-            // into `rest` for the subcommand's benefit, so it never had to appear in
-            // SUBCOMMAND_VALUE_FLAGS. That made its path a candidate action, and `team --repo <dir>
-            // claims` answered `unknown action "<path>"`.
-            let takes_value =
-                a == "--repo" || (SUBCOMMAND_VALUE_FLAGS.contains(&a.as_str()) && !a.contains('='));
+            // GLOBAL value-taking flags are consumed by the top-level parser and pushed into `rest`
+            // for the subcommand's benefit, so they never had to appear in SUBCOMMAND_VALUE_FLAGS -
+            // and their VALUES then became candidate actions. `--repo <dir>` produced
+            // `unknown action "<path>"` and `--lab <name>` produced `unknown action "deepseek"`.
+            // Every global value-taking flag belongs in this list, and a new one added to the parser
+            // must be added here too.
+            const GLOBAL_VALUE_FLAGS: [&str; 2] = ["--repo", "--lab"];
+            let takes_value = GLOBAL_VALUE_FLAGS.contains(&a.as_str())
+                || (SUBCOMMAND_VALUE_FLAGS.contains(&a.as_str()) && !a.contains('='));
             skip_next = takes_value && !a.contains('=');
             continue;
         }
         return a;
     }
     ""
+}
+
+/// `multilab <action>` - the shared board (D30 port of the Python `multilab`).
+///
+/// `presence`, `claims` and `touch` are Rust. `sync-live` and `migrate-ledger` still delegate by
+/// name, so each remaining action says so individually.
+fn cmd_multilab(repo: &Path, args: &[String], json: bool) -> ExitCode {
+    let paths = StatePaths::from_env(repo);
+    let action = action_word(args);
+    let lab = flag_value(args, "--lab")
+        .or_else(|| std::env::var("UOR_LAB").ok())
+        .unwrap_or_default();
+
+    match action {
+        "touch" => {
+            if lab.trim().is_empty() {
+                eprintln!("uor-harness multilab touch: {}", multilab::no_lab_message());
+                return ExitCode::from(2);
+            }
+            match multilab::touch(&paths, &lab) {
+                Ok(p) => {
+                    if json {
+                        println!(
+                            "{}",
+                            serde_json::to_string_pretty(&p.to_json()).unwrap_or_default()
+                        );
+                    } else {
+                        println!("{}: live, updated {}", p.lab, p.updated);
+                    }
+                    ExitCode::SUCCESS
+                }
+                Err(e) => {
+                    eprintln!("uor-harness multilab touch: {e}");
+                    ExitCode::from(1)
+                }
+            }
+        }
+        "presence" => {
+            let now = now_unix();
+            let rows = multilab::board(&paths, now);
+            if json {
+                let mut items: Vec<String> = Vec::new();
+                for e in &rows {
+                    items.push(format!(
+                        "    {{\"lab\": {:?}, \"updated\": {:?}, \"milestone\": {:?}, \"branch\": {:?}, \"worktree\": {:?}, \"doing\": {:?}, \"next\": {:?}, \"host\": {:?}, \"session\": {:?}, \"source\": {:?}, \"state\": {:?}}}",
+                        e.row.lab, e.row.updated, e.row.milestone, e.row.branch, e.row.worktree,
+                        e.row.doing, e.row.next, e.row.host, e.row.session, e.source, e.state()
+                    ));
+                }
+                println!("[\n{}\n]", items.join(",\n"));
+            } else if rows.is_empty() {
+                println!("no lab has published presence yet");
+                println!("  publish yours with:  export UOR_LAB=<lab> && uor-harness heartbeat -m <milestone>");
+            } else {
+                println!(
+                    "{} lab(s) known (stale after {}m) · live tier: {}",
+                    rows.len(),
+                    uor_r4_harness::presence::PRESENCE_TTL_MINUTES,
+                    paths.live.display()
+                );
+                println!(
+                    "  {:<12} {:<20} {:<8} {:<9} {:<20} doing",
+                    "lab", "state", "via", "milestone", "branch"
+                );
+                println!("  {}", multilab::separator());
+                for e in &rows {
+                    let branch = if e.row.branch.is_empty() {
+                        "-"
+                    } else {
+                        &e.row.branch
+                    };
+                    println!(
+                        "  {:<12} {:<20} {:<8} {:<9} {:<20} {}",
+                        e.row.lab,
+                        e.state(),
+                        e.source,
+                        e.row.milestone,
+                        branch,
+                        e.row.doing
+                    );
+                }
+            }
+            ExitCode::SUCCESS
+        }
+        "claims" => {
+            let claims = multilab::claims(&paths);
+            let cur = team::current_branch(repo);
+            if json {
+                let obj: serde_json::Map<String, serde_json::Value> = claims
+                    .iter()
+                    .map(|(k, v)| (k.clone(), v.to_json()))
+                    .collect();
+                let body = serde_json::json!({
+                    "current_branch": cur,
+                    "claims": serde_json::Value::Object(obj),
+                });
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&body).unwrap_or_default()
+                );
+            } else if claims.is_empty() {
+                println!(
+                    "no branch claims recorded · current branch {}",
+                    if cur.is_empty() { "(detached)" } else { &cur }
+                );
+            } else {
+                println!(
+                    "branch claims ({}) · current branch {}",
+                    claims.len(),
+                    if cur.is_empty() { "(detached)" } else { &cur }
+                );
+                for (br, rec) in &claims {
+                    let mark = if *br == cur { "  <- current" } else { "" };
+                    println!(
+                        "  {br:<44} lab={:<10} since {}{mark}",
+                        rec.lab, rec.claimed_at
+                    );
+                }
+            }
+            ExitCode::SUCCESS
+        }
+        // Not ported yet, and each says so individually.
+        "sync-live" | "migrate-ledger" => delegate_to_python(repo, "multilab", args),
+        "" => {
+            eprintln!("uor-harness multilab: which action? presence, claims, touch, sync-live, migrate-ledger");
+            ExitCode::from(2)
+        }
+        other => {
+            eprintln!(
+                "uor-harness multilab: unknown action {other:?}; try presence, claims, touch"
+            );
+            ExitCode::from(2)
+        }
+    }
 }
 
 /// `team <action>` - branch claims (D30 port of the Python `team`).

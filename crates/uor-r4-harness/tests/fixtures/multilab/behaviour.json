@@ -1,0 +1,58 @@
+{
+  "_": [
+    "Golden behaviour of the Python `multilab` command, captured 13 October 2026 BEFORE porting it.",
+    "",
+    "Trap-1 mitigation from docs/labs/d30-no-python-2026-10-13: parity.py compares Rust against",
+    "Python, so it dies when Python does. Once multilab is Rust there is no second opinion, so the",
+    "behaviour that mattered is frozen here and asserted by crates/uor-r4-harness/src/multilab.rs.",
+    "",
+    "Captured by running the Python harness against a throwaway git repo with an empty claims store and",
+    "an isolated live tier. Timestamps, hostnames and paths are environment-dependent and asserted by",
+    "SHAPE; every other field is asserted exactly."
+  ],
+
+  "touch_writes_these_keys": [
+    "branch", "doing", "host", "lab", "milestone", "next",
+    "schema", "session", "source", "updated", "worktree"
+  ],
+
+  "touch_defaults": {
+    "doing": "",
+    "milestone": "",
+    "next": "",
+    "schema": 1,
+    "session": "",
+    "source": "live",
+    "_branch": "the current git branch, or empty when detached",
+    "_updated": "ISO 8601 with the LOCAL offset, e.g. 2026-10-13T13:54:41-04:00"
+  },
+
+  "touch_stdout": "deepseek: live, updated 2026-10-13T13:54:41-04:00",
+  "touch_writes_to": "the LIVE tier only: <live>/presence/<lab>.json - never a checkout (R10)",
+
+  "presence_empty_stdout_json": [],
+
+  "presence_entry_keys": [
+    "lab", "updated", "milestone", "branch", "worktree",
+    "doing", "next", "host", "session", "schema", "source", "state"
+  ],
+
+  "presence_entry_example": {
+    "lab": "deepseek",
+    "milestone": "",
+    "branch": "main",
+    "doing": "",
+    "next": "",
+    "schema": 1,
+    "source": "live",
+    "state": "live (0m ago)"
+  },
+
+  "rules_that_are_not_obvious": {
+    "touch_preserves_what_the_lab_is_doing": "touch exists for hooks - it refreshes the TIMESTAMP and must NOT blank `doing`/`milestone`/`next` that a heartbeat set. Blanking them would make a hook-driven lab look idle.",
+    "source_says_which_tier_answered": "source is `live` for a live-tier entry and `committed` for the durable fallback, so a reader can tell real-time from stale",
+    "state_is_derived": "state is `live (Nm ago)` or `STALE (Nm ago)` from PRESENCE_TTL_MINUTES, computed at read time, never stored",
+    "live_wins_over_committed": "when both tiers hold a lab, the live entry is shown and source says live",
+    "committed_is_the_fallback": "a lab with no live entry but a committed presence file is still shown, with source=committed"
+  }
+}

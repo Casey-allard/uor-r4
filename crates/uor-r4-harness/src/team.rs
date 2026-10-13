@@ -212,6 +212,9 @@ fn git(repo: &Path, args: &[&str]) -> Option<String> {
 
 /// Now, as ISO 8601 with the local UTC offset — the format the committed store already carries.
 ///
+/// Public because `multilab` and the board tests need the same notion of "now" that `team` writes.
+/// Two timestamp formats in one repository is how a reader comes to mis-parse one of them.
+///
 /// Not `chrono`: the offset has to come from the system, and the harness deliberately has a small
 /// dependency set. `date` is asked because it is the only thing that knows the local zone.
 pub fn now_iso() -> String {

@@ -22,6 +22,7 @@
 
 pub mod briefing;
 pub mod contract;
+pub mod multilab;
 pub mod notes;
 pub mod onboard;
 pub mod prep;
