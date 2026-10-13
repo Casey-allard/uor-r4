@@ -14,9 +14,9 @@ status card, run these three — read-only, seconds each, and every fact in them
 issue it came from:
 
 ```sh
-python3 scripts/harness/cli.py status            # the headline, the line counts, what actually ran
-python3 scripts/harness/cli.py brief -m <your milestone>   # the context for this task, with sources
-python3 scripts/harness/cli.py mistakes find -f <files you will touch>   # what went wrong here before
+uor-harness status            # the headline, the line counts, what actually ran
+uor-harness brief -m <your milestone>   # the context for this task, with sources
+uor-harness mistakes find -f <files you will touch>   # what went wrong here before
 ```
 
 `brief` assembles the milestone state, the owner rules in force, the contract below, the mechanism

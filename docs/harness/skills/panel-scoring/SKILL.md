@@ -23,7 +23,7 @@ power) and §4 (transfer before KEEP); the panel itself is frozen in
 ## Do this
 
 1. **Locate the panel and its bar before scoring anything.**
-   `python3 scripts/harness/cli.py panel show --milestone m1` prints the panel id,
+   `uor-harness panel show --milestone m1` prints the panel id,
    grader, bars, noise, seeds and rows for the milestone's
    `panel` field in [milestones.json](../../milestones.json). Copy the current
    headline from the milestone issue, not from memory.
@@ -41,7 +41,7 @@ power) and §4 (transfer before KEEP); the panel itself is frozen in
    their mean, so the spread can be seen. Use the frozen grader identity and
    record it; a new grader is a new panel and needs an owner decision.
 5. **Score it.**
-   `python3 scripts/harness/cli.py panel score --panel v5-reply --value <measured> --bar <bar> --label <what was measured>`
+   `uor-harness panel score --panel v5-reply --value <measured> --bar <bar> --label <what was measured>`
    Compare against the bar: `KEEP` only if the pre-registered bar is met outside
    its noise. A result that improves the headline but misses its bar is kept as
    the line's new base (D22 §2), not discarded.

@@ -40,10 +40,10 @@ they forbid does not get a run either.
 
 ## How to apply
 
-- Write the sheet first: `python3 scripts/harness/cli.py prep new -m <milestone>`; then get
+- Write the sheet first: `uor-harness prep new -m <milestone>`; then get
   `TEST FITNESS: FIT` recorded on the issue (`prep fit -m <milestone> --verdict FIT`).
 - Cite it in the PR body: `Prereg: #issuecomment-<id>` or `TEST FITNESS: FIT`. A body that
   reports numbers without one fails `prlint.prereg_before_compute`.
-- Keep the panel and its noise fixed: `python3 scripts/harness/cli.py panel show -m <m>`.
+- Keep the panel and its noise fixed: `uor-harness panel show -m <m>`.
 - If the run is already done, record it as unpromoted and re-register the next one; do not
   back-date the bar.

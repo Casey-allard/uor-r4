@@ -38,9 +38,9 @@ were compared in neither.
 
 ## How to apply
 
-- Generate the body instead of retyping it: `python3 scripts/harness/cli.py lint format
+- Generate the body instead of retyping it: `uor-harness lint format
   --body-file <last-body>` prints the compliant template with your fields.
-- Check before opening: `python3 scripts/harness/cli.py lint check --body-file <body>`.
+- Check before opening: `uor-harness lint check --body-file <body>`.
   It warns `prlint.headline_vs_registry` when `after` is neither the registry's value nor
   a stated move, and `prlint.count_matches_registry` when the count is below the
   registry's for the named line.

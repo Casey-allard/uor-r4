@@ -105,11 +105,11 @@ before are all queryable. Do not rebuild them from prose each session, and do no
 in your head:
 
 ```
-python3 scripts/harness/cli.py status              # what is true now
-python3 scripts/harness/cli.py brief -m m1         # the context for this task, with sources
-python3 scripts/harness/cli.py prep new -m m1      # pre-register before any compute
-python3 scripts/harness/cli.py lint check --body-file <pr body>
-python3 scripts/harness/cli.py check               # every machine-checkable rule
+uor-harness status              # what is true now
+uor-harness brief -m m1         # the context for this task, with sources
+uor-harness prep new -m m1      # pre-register before any compute
+uor-harness lint check --body-file <pr body>
+uor-harness check               # every machine-checkable rule
 ```
 
 Two habits keep it honest, and both are cheap:
@@ -131,7 +131,7 @@ Labs work in `~/uor-r4` rather than each keeping a full worktree, so the same ~1
 tracked material is not checked out five times. Before you start:
 
 ```sh
-python3 scripts/harness/cli.py team claim --branch <your-branch> --lab <lab>
+uor-harness team claim --branch <your-branch> --lab <lab>
 ```
 
 The rules, the handover format and the cases where a worktree is still correct are in

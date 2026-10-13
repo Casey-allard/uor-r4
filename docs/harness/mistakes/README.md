@@ -3,7 +3,7 @@
 One file per durable lesson: `docs/harness/mistakes/<id>.md`. A lesson is **stored once,
 retrieved automatically** when a future task touches the same files, topic or milestone,
 and - where a machine can decide it - **becomes a guard rule** that runs in
-`python3 scripts/harness/cli.py check`.
+`uor-harness check`.
 
 This is how the project stops re-learning the same failure. The rules these files cite
 (`prlint.pivot_at_three`, `prlint.prereg_before_compute`, ...) are the guards; the
@@ -30,14 +30,14 @@ that checks nothing.
 ## Use it
 
 ```bash
-python3 scripts/harness/cli.py mistakes list                      # all lessons, block first
-python3 scripts/harness/cli.py mistakes find -f <files you touch> # what applies here, and why
-python3 scripts/harness/cli.py mistakes show <id>                 # the whole lesson
-python3 scripts/harness/cli.py mistakes capture --id <id> --title "<short>" \
+uor-harness mistakes list                      # all lessons, block first
+uor-harness mistakes find -f <files you touch> # what applies here, and why
+uor-harness mistakes show <id>                 # the whole lesson
+uor-harness mistakes capture --id <id> --title "<short>" \
     --severity block --class measurement --trigger "<phrase>" "<phrase>" \
     --paths 'docs/labs/**' --evidence docs/labs/<topic>-<date>/README.md \
     --guard prlint.prereg_before_compute
-python3 scripts/harness/cli.py check --only mistakes              # keep the registry honest
+uor-harness check --only mistakes              # keep the registry honest
 ```
 
 `mistakes capture` refuses to write a file that fails `mistakes.registry_valid`, and

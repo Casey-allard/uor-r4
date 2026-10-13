@@ -34,7 +34,7 @@ The closure rules are D22 §1–§2 in
      field, a host fallback. A **blocker to fix**, not a negative; it does not
      count toward D21's three.
 2. **Capture the mistake** with its observable parts:
-   `python3 scripts/harness/cli.py mistakes capture --id <kebab-id> --title "<one line>" --severity warn --class process --trigger "<phrase a task description would contain>" --paths <glob> --milestones m1 --mechanism <mechanism id or none> --guard "<rule id>" --symptom "<what was seen in output or review>" --lesson "<what to do instead>"`
+   `uor-harness mistakes capture --id <kebab-id> --title "<one line>" --severity warn --class process --trigger "<phrase a task description would contain>" --paths <glob> --milestones m1 --mechanism <mechanism id or none> --guard "<rule id>" --symptom "<what was seen in output or review>" --lesson "<what to do instead>"`
    `--trigger` and `--paths` are how the lesson is found again: they are matched
    against a task description and the files about to be edited.
 3. **Write the four headings** in `docs/harness/mistakes/<id>.md`, in this order:
@@ -50,8 +50,8 @@ The closure rules are D22 §1–§2 in
    implied. Do not edit `checkrules.py` from this skill's scope in another
    project's harness — propose the rule where that file is owned.
 5. **Prove the guard fires.** Run it against the current tree:
-   `python3 scripts/harness/cli.py check`
-   and, where the rule is staged-scope, `python3 scripts/harness/cli.py check --staged`.
+   `uor-harness check`
+   and, where the rule is staged-scope, `uor-harness check --staged`.
    A rule that cannot fail is not a guard. Report the rule id and the output in
    the PR that adds it.
 6. **Cite the mistake from the record.** The dated record of the unit that made

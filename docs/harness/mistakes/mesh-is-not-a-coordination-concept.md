@@ -63,9 +63,9 @@ Anything daemon-shaped was ruled out on **policy** grounds, not on effort.
 Do not build or propose a mesh, broker, daemon or socket to connect the labs. Read coordination as:
 
 ```sh
-python3 scripts/harness/cli.py multilab presence   # who is doing what, live tier first
-python3 scripts/harness/cli.py multilab claims     # who holds which branch
-python3 scripts/harness/cli.py heartbeat -m m1     # publish yourself
+uor-harness multilab presence   # who is doing what, live tier first
+uor-harness multilab claims     # who holds which branch
+uor-harness heartbeat -m m1     # publish yourself
 ```
 
 If a future direction genuinely needs something more than the repository, it needs an **owner

@@ -26,7 +26,7 @@ its milestone before compute") and session-goal.md rule 4.
    fair test needs" before writing the bar. A run that is not tied to a brief is
    an ordinary lever, and ordinary levers cannot be a novel line's decisive run.
 2. **Draft the sheet** with all nine fields:
-   `python3 scripts/harness/cli.py prep new --milestone m1 --mechanism exact-addressed-memory --run "<one line>" --bar "<metric and threshold>" --seeds 2 --rows 0 --base "<artifact id>" --split "<train/eval split>" --steps "<count>" --stop "<rule>" --cost "<GPU-hours, pods, USD, local time, storage>"`.
+   `uor-harness prep new --milestone m1 --mechanism exact-addressed-memory --run "<one line>" --bar "<metric and threshold>" --seeds 2 --rows 0 --base "<artifact id>" --split "<train/eval split>" --steps "<count>" --stop "<rule>" --cost "<GPU-hours, pods, USD, local time, storage>"`.
    A missing field is a defect in the sheet, not a detail for the run log.
 3. **Fill each field from a source, not from memory.**
    - **Bar:** one number and its unit, with the comparison it is against.
@@ -65,7 +65,7 @@ its milestone before compute") and session-goal.md rule 4.
    Fix every one of these before posting, then post the sheet on the milestone
    issue and ask for the review as a comment on that same issue. Record the
    verdict explicitly:
-   `python3 scripts/harness/cli.py prep fit --milestone m1 --verdict FIT --sheet <id> --reviewer <name>`
+   `uor-harness prep fit --milestone m1 --verdict FIT --sheet <id> --reviewer <name>`
    (a harness receipt; the review comment on the milestone is what actually gates
    the run).
 5. **Only then run.** Model compute starts after the `TEST FITNESS: FIT` comment

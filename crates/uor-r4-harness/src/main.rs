@@ -26,6 +26,36 @@ use uor_r4_harness::status;
 use uor_r4_harness::Contract;
 
 /// Flags that only a subcommand understands, forwarded rather than rejected at the top level.
+/// Flags a PORTED command shares with its Python original, forwarded rather than interpreted.
+///
+/// `check` is delegated (57 rules), so `check --only <rule>` must reach Python intact. Without this
+/// the flag was forwarded alone and its value became the next command word.
+const PYTHON_PASSTHROUGH_FLAGS: [&str; 1] = ["--only"];
+const PYTHON_PASSTHROUGH_VALUE_FLAGS: [&str; 1] = ["--only"];
+
+/// Commands this binary implements. Anything else is delegated to the Python harness verbatim.
+///
+/// Declared here rather than inferred from the dispatch below, because the decision must be made
+/// BEFORE flag parsing: an unported command's flags are unknown to this binary, and rejecting one
+/// meant delegation only worked for commands whose flags happened to be in the lists - `check --only`
+/// failed with "unknown option --only" before it could delegate. Which defeats the point.
+const PORTED_COMMANDS: [&str; 14] = [
+    "onboard",
+    "check-formats",
+    "presence",
+    "ledger",
+    "receipt",
+    "heartbeat",
+    "ledger-sync",
+    "notes",
+    "prep-check",
+    "registry",
+    "prep-render",
+    "brief",
+    "shard-check",
+    "status",
+];
+
 const SUBCOMMAND_FLAGS: [&str; 27] = [
     "--kind",
     "--milestone",
@@ -96,8 +126,11 @@ COMMANDS:
     onboard     Verify this machine can use the harness, and say what to do
                 next. Read-only: records nothing, claims nothing. Exits 1 if
                 anything FAILs.
-    check       Check persisted state against the frozen contract
-                (docs/harness/state-formats.json). Exits 1 on drift.
+    check       RUNS THE FULL RULE SET (delegated to Python until every rule
+                is ported). 57 rules; exits 1 on any error.
+    check-formats  Check only the state formats against the frozen contract
+                (docs/harness/state-formats.json). One rule of the 57 - use
+                `check` unless you specifically want this one.
     presence    What each lab is doing now. Live tier first, durable as the
                 fallback, reporting which answered.
     ledger      Receipt counts by lab and kind.
@@ -197,6 +230,23 @@ fn main() -> ExitCode {
                             i += 1;
                         }
                     }
+                } else if command
+                    .as_deref()
+                    .is_none_or(|c| !PORTED_COMMANDS.contains(&c))
+                    || PYTHON_PASSTHROUGH_FLAGS.contains(&other)
+                {
+                    // An unported command's flags are the PYTHON parser's business, and so are the
+                    // few flags a ported command shares with its Python original. Forward the token
+                    // AND ITS VALUE: forwarding only the flag left the value to be read as the next
+                    // command word, so `check --only harness.state_formats` delegated the command
+                    // `harness.state_formats`.
+                    rest.push(other.to_string());
+                    if PYTHON_PASSTHROUGH_VALUE_FLAGS.contains(&other) {
+                        if let Some(v) = args.get(i + 1) {
+                            rest.push(v.clone());
+                            i += 1;
+                        }
+                    }
                 } else {
                     eprintln!("uor-harness: unknown option {other}\n\n{USAGE}");
                     return ExitCode::from(2);
@@ -220,7 +270,12 @@ fn main() -> ExitCode {
 
     match command.as_deref() {
         Some("onboard") => cmd_onboard(&repo, json),
-        Some("check") => cmd_check(&repo, json),
+        // NOT `check`. The Rust checker validates state formats - ONE rule of the 57 the Python
+        // `check` runs. Exposing it as `check` would mean a lab runs `uor-harness check`, sees
+        // "state formats ok", and believes it has validated its work while 56 rules never ran.
+        // That is the worst possible outcome for the command labs trust most, so the full check
+        // stays delegated and the Rust one is explicit: `check-formats`.
+        Some("check-formats") => cmd_check(&repo, json),
         Some("presence") => cmd_presence(&repo, json),
         Some("ledger") => cmd_ledger(&repo, json),
         Some("receipt") => cmd_receipt(&repo, &rest, json),
@@ -233,10 +288,19 @@ fn main() -> ExitCode {
         Some("brief") => cmd_brief(&repo, &rest),
         Some("shard-check") => cmd_shard_check(&repo, &rest, json),
         Some("status") => cmd_status(&repo, &rest),
-        Some(other) => {
-            eprintln!("uor-harness: unknown command {other}\n\n{USAGE}");
-            ExitCode::from(2)
-        }
+        // A command this binary has not ported yet runs the Python implementation BENEATH this
+        // entry point, and says so on every call.
+        //
+        // This is the half of the port that was missing: `cli.py` was still the front door, so four
+        // labs typed `python3` forty times a day and could not tell whether they were using the Rust
+        // harness or not. Now `uor-harness` is the interface and Python is an implementation detail
+        // that announces itself - the same honesty `brief` uses for its unported sections.
+        //
+        // The notice goes to stderr and is not suppressible, deliberately: a lab should know when it
+        // is still on the old path, and a silent delegation would make the remaining work invisible
+        // again - which is exactly how it stayed unfinished.
+        Some(other) => delegate_to_python(&repo, other, &rest),
+
         None => {
             eprint!("{USAGE}");
             ExitCode::from(2)
@@ -312,6 +376,57 @@ fn flag_value(args: &[String], name: &str) -> Option<String> {
         i += 1;
     }
     None
+}
+
+/// Run an unported command through the Python harness, announcing that it is unported.
+///
+/// The Rust binary is the entry point; Python is a fallback implementation. A command that is missing
+/// from the Rust match above is forwarded verbatim, so every documented invocation works while the
+/// port continues - and each one prints which path it took.
+fn delegate_to_python(repo: &Path, command: &str, rest: &[String]) -> ExitCode {
+    let script = repo.join("scripts").join("harness").join("cli.py");
+    if !script.is_file() {
+        eprintln!(
+            "uor-harness: {command:?} is not ported yet, and {} is not present to run it.\n\
+             \x20            This binary is the entry point; the remaining commands run through the \
+             Python harness until they are ported.",
+            script.display()
+        );
+        return ExitCode::from(2);
+    }
+    eprintln!(
+        "uor-harness: note - {command:?} is not ported to Rust yet; running {} {command}",
+        script.display()
+    );
+    // `--repo` is added here, so a copy forwarded into `rest` must be dropped rather than passed
+    // twice: argparse rejects the duplicate and the delegation fails with "unrecognized arguments".
+    let mut forwarded: Vec<&String> = Vec::new();
+    let mut skip_next = false;
+    for a in rest {
+        if skip_next {
+            skip_next = false;
+            continue;
+        }
+        if a == "--repo" {
+            skip_next = true;
+            continue;
+        }
+        forwarded.push(a);
+    }
+    let status = std::process::Command::new("python3")
+        .arg(&script)
+        .arg("--repo")
+        .arg(repo)
+        .arg(command)
+        .args(forwarded)
+        .status();
+    match status {
+        Ok(s) => ExitCode::from(s.code().unwrap_or(1) as u8),
+        Err(e) => {
+            eprintln!("uor-harness: cannot run python3: {e}");
+            ExitCode::from(2)
+        }
+    }
 }
 
 /// `notes [--lab L] [--cached|--mark-seen]` - what other labs said that this lab has not seen.

@@ -45,5 +45,5 @@ deleted) and recorded as a configuration cancellation, not a negative.
 - State the CPU/GPU split in the record: data preparation and grading are CPU work on the
   owner's laptop; training, evaluation and every part of the forward that scoring or the
   value mix touches are GPU work through `scripts/pod/uor-pod`.
-- `python3 scripts/harness/cli.py lint check` raises `prlint.no_cpu_model_compute` on a
+- `uor-harness lint check` raises `prlint.no_cpu_model_compute` on a
   body that presents CPU or host-fallback model compute as an accepted result.

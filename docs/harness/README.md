@@ -101,7 +101,7 @@ checkout of this repository:
 
 ```sh
 export UOR_LAB=<your lab>          # kimi | claude | codex | deepseek
-python3 scripts/harness/cli.py status
+uor-harness status
 ```
 
 That is the whole bootstrap. Two details are worth knowing because they are the only things
@@ -114,7 +114,7 @@ declared floor is 3.9 and every interpreter present is above it — but if you w
 reproducible answer, pin it:
 
 ```sh
-/usr/bin/python3 scripts/harness/cli.py status        # system python, always 3.9+
+/usr/bin/uor-harness status        # system python, always 3.9+
 uv run --python 3.12 scripts/harness/cli.py status    # or a uv-managed 3.12
 ```
 
@@ -156,7 +156,7 @@ is doing. The reader prefers **live** because it is fresher by construction, fal
 **durable** when the shared directory is absent, and always reports which one answered:
 
 ```
-$ python3 scripts/harness/cli.py multilab presence
+$ uor-harness multilab presence
 2 lab(s) known (stale after 30m) · live tier: /Users/casey.allard/.local/share/uor-r4/harness
 lab          state                via      milestone branch       doing
 kimi         live (0m ago)        live     m1        main         evaluation integrity 1/3

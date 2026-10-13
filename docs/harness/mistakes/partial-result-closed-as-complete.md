@@ -42,6 +42,6 @@ the merge is verified on fresh `origin/main` with the delivered tree, and not be
   verify the merge commit and the tree on fresh `origin/main` before writing `Closes`.
 - Put the honest qualifier in the record's first sentence
   (`UNFINISHED_NOT_NEGATIVE`, `NOT TRAINING READY`) and name the gates that remain.
-- `python3 scripts/harness/cli.py lint check` raises `prlint.org_rules` (info) when a body
+- `uor-harness lint check` raises `prlint.org_rules` (info) when a body
   links no issue at all - an unlinked PR is invisible to the audit.
 - Do not start the dependent successor while the delivery is unmerged.

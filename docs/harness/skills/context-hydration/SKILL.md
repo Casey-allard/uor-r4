@@ -38,7 +38,7 @@ every source you are working from was refreshed in this session.
    been tried, and **what a fair test needs**. Read that page before the
    pre-registration, and cite it in the sheet.
 4. **Run the harness brief** for the milestone and your files:
-   `python3 scripts/harness/cli.py brief --milestone m1 --files <paths you will touch> --query "<your task in one line>"`
+   `uor-harness brief --milestone m1 --files <paths you will touch> --query "<your task in one line>"`
    The pack prints every source with why it was selected and what was left out.
    It is the starting context; it performs no network access and no model compute.
 5. **Read only what the task needs.** Minimum set: the milestone issue's newest

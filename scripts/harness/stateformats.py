@@ -53,7 +53,11 @@ def check_contract(repo: Path, timeout: int = 120) -> tuple[str, str]:
         )
     try:
         proc = subprocess.run(
-            [str(binary), "check", "--repo", str(repo)],
+            # `check-formats`, NOT `check`. Python's `check` runs this rule; the Rust `check` is the
+            # full 57-rule set and DELEGATES BACK to Python - so naming `check` here made the two
+            # implementations call each other until the 120-second timeout fired. A recursion rather
+            # than a wrong answer, which is the kinder of the two failures.
+            [str(binary), "check-formats", "--repo", str(repo)],
             capture_output=True, text=True, timeout=timeout, check=False,
         )
     except (OSError, subprocess.SubprocessError) as exc:

@@ -62,8 +62,8 @@ regardless of the PR state.
 Delete with the guarded command, never with a raw `git push --delete`:
 
 ```sh
-python3 scripts/harness/cli.py git delete-merged --branch <name>          # report and refuse
-python3 scripts/harness/cli.py git delete-merged --branch <name> --apply  # delete only if proven
+uor-harness git delete-merged --branch <name>          # report and refuse
+uor-harness git delete-merged --branch <name> --apply  # delete only if proven
 ```
 
 It refuses unless a merged PR's merge commit is an ancestor of `origin/main`, and it refuses equally

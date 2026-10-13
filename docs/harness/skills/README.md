@@ -9,9 +9,9 @@ Load one by id; the body is the protocol, the front matter is what the harness
 matches:
 
 ```
-python3 scripts/harness/cli.py skill list
-python3 scripts/harness/cli.py skill show research-plan-cycle
-python3 scripts/harness/cli.py skill use research-plan-cycle -m m1
+uor-harness skill list
+uor-harness skill show research-plan-cycle
+uor-harness skill use research-plan-cycle -m m1
 ```
 
 `skill use` appends one receipt line to `docs/harness/ledger/<YYYY-MM>.jsonl`, so
@@ -34,6 +34,6 @@ stay authoritative, and a skill cannot change a criterion, a panel or a cap.
 | [`lesson-and-guard`](lesson-and-guard/SKILL.md) | When something failed twice, a line closed, or a review found a breach a document did not prevent. | `docs/harness/mistakes/<id>.md` with Trigger/Symptom/Lesson/Guard, a rule id that fires, and the citation from the record. |
 
 The dispatchable roles that carry these skills, with their default model routes,
-are in [roles.json](../roles.json) (`python3 scripts/harness/cli.py team roster`).
+are in [roles.json](../roles.json) (`uor-harness team roster`).
 The harness as a whole is described in [docs/harness/README.md](../README.md) and
 frozen in [CONTRACT.md](../CONTRACT.md).

@@ -30,12 +30,12 @@ reads as confusing - a confusing result is the finding.
 2. Confirm the tool runs on your interpreter. Report the version and the exit code:
 
      python3 -V
-     python3 scripts/harness/cli.py --repo "$(git rev-parse --show-toplevel)" check --only arena
+     uor-harness --repo "$(git rev-parse --show-toplevel)" check --only arena
 
 3. Read the state you now share with the other labs:
 
-     python3 scripts/harness/cli.py --repo "$(git rev-parse --show-toplevel)" multilab presence
-     python3 scripts/harness/cli.py --repo "$(git rev-parse --show-toplevel)" multilab claims
+     uor-harness --repo "$(git rev-parse --show-toplevel)" multilab presence
+     uor-harness --repo "$(git rev-parse --show-toplevel)" multilab claims
 
    Report: which labs appear, which tier answered ("via"), and whether the board is empty. An empty
    board is the EXPECTED result - no lab has checked in yet. Say so rather than reporting a fault.
@@ -43,17 +43,17 @@ reads as confusing - a confusing result is the finding.
 4. Claim a scratch branch and check it is visible to peers (this is the point of the exercise):
 
      git checkout -b bootstrap/<your-lab>
-     python3 scripts/harness/cli.py team claim --branch bootstrap/<your-lab> --lab "$UOR_LAB"
-     python3 scripts/harness/cli.py multilab claims
+     uor-harness team claim --branch bootstrap/<your-lab> --lab "$UOR_LAB"
+     uor-harness multilab claims
 
    Report the claim line exactly as printed. Then release it and delete the branch:
 
-     python3 scripts/harness/cli.py team release --branch bootstrap/<your-lab> --lab "$UOR_LAB"
+     uor-harness team release --branch bootstrap/<your-lab> --lab "$UOR_LAB"
      git checkout main && git branch -D bootstrap/<your-lab>
 
 5. Check in once, so the other labs can see you:
 
-     python3 scripts/harness/cli.py heartbeat -m <your milestone> --next "<your next step>"
+     uor-harness heartbeat -m <your milestone> --next "<your next step>"
 
    Then run `multilab presence` again and confirm YOUR lab appears, with `via live`.
 
@@ -108,7 +108,7 @@ rather than letting that pass silently, because an unattributed record is worse 
 Verify:
 
 ```sh
-python3 scripts/harness/cli.py --repo <repo> heartbeat -m m1 --print
+uor-harness --repo <repo> heartbeat -m m1 --print
 ```
 
 `--print` shows the card without recording a receipt. If you see the `NO LAB IDENTITY` warning, the
@@ -136,7 +136,7 @@ is per-session and that is expected — check in with `heartbeat` and you are vi
 Refuses a commit on a branch another lab has claimed:
 
 ```sh
-python3 scripts/harness/cli.py --repo <repo> git install-hooks
+uor-harness --repo <repo> git install-hooks
 ```
 
 ## Verify the install — one command, in Rust
@@ -188,8 +188,8 @@ The order is deliberate, because it is the order things fail in:
 Then confirm the live half by hand, which `onboard` deliberately does not do because it writes:
 
 ```sh
-python3 scripts/harness/cli.py --repo <repo> heartbeat -m <milestone>
-python3 scripts/harness/cli.py --repo <repo> multilab presence      # you now appear "via live"
+uor-harness --repo <repo> heartbeat -m <milestone>
+uor-harness --repo <repo> multilab presence      # you now appear "via live"
 ```
 
 Success is: the tool runs on **your** interpreter, you can see the other labs, and after your

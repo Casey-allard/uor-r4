@@ -11,9 +11,9 @@ it does not try. What the project needs is a regression check, because the dange
 being slower than something else: it is silently losing a capability that was already won.
 
 ```
-python3 scripts/harness/cli.py arena board            # every row and its parent
-python3 scripts/harness/cli.py arena compare <id>     # row-by-row against the parent
-python3 scripts/harness/cli.py arena lineage <id>     # the chain a candidate descends from
+uor-harness arena board            # every row and its parent
+uor-harness arena compare <id>     # row-by-row against the parent
+uor-harness arena lineage <id>     # the chain a candidate descends from
 ```
 
 ## A row

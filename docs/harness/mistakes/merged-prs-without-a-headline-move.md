@@ -43,9 +43,9 @@ maintained by hand in PR prose, which is why it drifted - it is now checked.
 - Every PR declares `Line: <name> · count n/3 · headline <before> → <after>`
   ([session goal](../../labs/session-goal.md) §3).
 - At 3/3, announce the pivot in the body before opening another same-line PR:
-  `python3 scripts/harness/cli.py lint check --body-file <body>` fails
+  `uor-harness lint check --body-file <body>` fails
   `prlint.pivot_at_three` when a body is at or over 3/3 with no pivot announced.
 - Read the current counts, not your memory of them:
-  `python3 scripts/harness/cli.py status` and `docs/harness/milestones.json`.
+  `uor-harness status` and `docs/harness/milestones.json`.
 - Before opening, ask the contract's question: if this came out the other way, would the
   next step differ? If not, the PR cannot change a decision.

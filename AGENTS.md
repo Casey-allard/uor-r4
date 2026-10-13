@@ -228,8 +228,8 @@ commit on a fresh `origin/main`, then delete the branch on both sides.**
 
 ```sh
 git fetch origin && git checkout main && git reset --hard origin/main
-python3 scripts/harness/cli.py git clean-merged          # proof it is safe to delete
-python3 scripts/harness/cli.py git clean-merged --apply  # deletes proven-merged local branches
+uor-harness git clean-merged          # proof it is safe to delete
+uor-harness git clean-merged --apply  # deletes proven-merged local branches
 git push origin --delete <branch>                        # the remote copy is yours to remove
 ```
 
@@ -261,13 +261,13 @@ labs, and that `prep new` (the D22 pre-training gate) works for a lab that did n
 
 Then, across labs rather than within one:
 
-- `python3 scripts/harness/cli.py multilab presence` — what each lab is doing now. Live tier first
+- `uor-harness multilab presence` — what each lab is doing now. Live tier first
   (`~/.local/share/uor-r4/harness/`, real-time, uncommitted), committed record as the fallback; the
   board always says which answered. A lab older than 30 minutes reads **STALE**, and stale is not
   "idle" — it means that lab is working without checking in.
-- `python3 scripts/harness/cli.py multilab claims` — who holds which branch, visible to every lab.
+- `uor-harness multilab claims` — who holds which branch, visible to every lab.
   Claim yours with `team claim --branch <name> --lab <lab>` before you start.
-- `python3 scripts/harness/cli.py heartbeat -m <milestone>` — the required check-in, which also
+- `uor-harness heartbeat -m <milestone>` — the required check-in, which also
   publishes your presence. There is no separate step to forget. **Check in at least every five
   minutes**: presence is live-tier, so a check-in is visible to every other lab immediately, and the
   board marks a lab STALE once it has been quiet for longer than that. The command runs the Rust
@@ -278,15 +278,15 @@ The plan, the milestone headline, the skills, the expert team, the acceptance pa
 pre-registrations and the lessons from past mistakes are queryable rather than prose to be
 re-derived each session. Read [docs/harness/README.md](docs/harness/README.md) once, then use it:
 
-- `python3 scripts/harness/cli.py status` — what is true now: headline, lines, receipts, delivery.
-- `python3 scripts/harness/cli.py brief -m m1` — the context for the task, with every source named.
-- `python3 scripts/harness/cli.py prep new -m m1` — the pre-registration sheet; get it to
+- `uor-harness status` — what is true now: headline, lines, receipts, delivery.
+- `uor-harness brief -m m1` — the context for the task, with every source named.
+- `uor-harness prep new -m m1` — the pre-registration sheet; get it to
   `TEST FITNESS: FIT` on the milestone before any compute (D22).
-- `python3 scripts/harness/cli.py check` — every machine-checkable rule, with the fix for each.
-- `python3 scripts/harness/cli.py skill use <id>` / `team dispatch <role>` — one receipt line in
+- `uor-harness check` — every machine-checkable rule, with the fix for each.
+- `uor-harness skill use <id>` / `team dispatch <role>` — one receipt line in
   `docs/harness/ledger/<lab>-<month>.jsonl` (sharded per lab, so concurrent PRs never conflict),
   so the owner and the other labs can see what was actually loaded and deployed.
-- `python3 scripts/harness/cli.py mistakes find -f <files>` — what went wrong here before.
+- `uor-harness mistakes find -f <files>` — what went wrong here before.
 
 The harness is a view over the authorities named in this file, never a replacement for them: the
 milestone issues, `DECISIONS.md`, `docs/mechanisms/` and the dated `docs/labs/` records stay

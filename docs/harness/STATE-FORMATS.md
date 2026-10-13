@@ -18,7 +18,7 @@ the real files, so it cannot describe a shape that does not exist.
 ```
 uor-harness check --repo .            # check every format (Rust)
 uor-harness check --repo . --json     # machine-readable
-python3 scripts/harness/cli.py check --only harness.state_formats   # the same rule via the harness
+uor-harness check --only harness.state_formats   # the same rule via the harness
 ```
 
 The check lives in `crates/uor-r4-harness` (`contract.rs`). D27 puts new tooling in Rust, and an

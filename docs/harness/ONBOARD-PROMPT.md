@@ -43,14 +43,14 @@ that fails or reads as confusing — a confusing result is the finding.
    itself is Python, so you are not blocked:
 
      export UOR_LAB=<LAB>
-     python3 scripts/harness/cli.py check --only arena
-     python3 scripts/harness/cli.py multilab presence
-     python3 scripts/harness/cli.py multilab claims
+     uor-harness check --only arena
+     uor-harness multilab presence
+     uor-harness multilab claims
 
 3. Look at the state you now share with the other labs:
 
-     python3 scripts/harness/cli.py multilab claims
-     python3 scripts/harness/cli.py multilab presence
+     uor-harness multilab claims
+     uor-harness multilab presence
 
    Report which branches are claimed, by whom, and whether any lab reads STALE. Stale is not
    idle — it means that lab is working without checking in.
@@ -60,7 +60,7 @@ that fails or reads as confusing — a confusing result is the finding.
    before any compute. Pick a milestone you are actually working toward and generate the
    sheet, but DO NOT fill it in and DO NOT run compute:
 
-     python3 scripts/harness/cli.py prep new -m <milestone>
+     uor-harness prep new -m <milestone>
 
    It writes `docs/harness/prep/<milestone>-<mechanism>-<date>.md`. Report: did it produce a
    sheet, is the output clear, and is it obvious what you would have to fill in before the
@@ -69,8 +69,8 @@ that fails or reads as confusing — a confusing result is the finding.
 
 5. EXERCISE `team dispatch` — the other path with no foreign receipts:
 
-     python3 scripts/harness/cli.py team roster
-     python3 scripts/harness/cli.py team dispatch <a role you would actually use>
+     uor-harness team roster
+     uor-harness team dispatch <a role you would actually use>
 
    Report whether the role you wanted existed and whether dispatching it recorded what you
    expected.
@@ -78,14 +78,14 @@ that fails or reads as confusing — a confusing result is the finding.
 6. Claim a scratch branch and confirm peers can see it, then release it:
 
      git checkout -b onboard/<LAB>
-     python3 scripts/harness/cli.py team claim --branch onboard/<LAB> --lab "$UOR_LAB"
-     python3 scripts/harness/cli.py multilab claims
-     python3 scripts/harness/cli.py team release --branch onboard/<LAB> --lab "$UOR_LAB"
+     uor-harness team claim --branch onboard/<LAB> --lab "$UOR_LAB"
+     uor-harness multilab claims
+     uor-harness team release --branch onboard/<LAB> --lab "$UOR_LAB"
      git checkout main && git branch -D onboard/<LAB>
 
 7. Check in once, so the others can see you are alive:
 
-     python3 scripts/harness/cli.py heartbeat -m <your milestone>
+     uor-harness heartbeat -m <your milestone>
 
    Then run `multilab presence` again and confirm your lab appears.
 

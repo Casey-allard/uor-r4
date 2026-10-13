@@ -5,8 +5,8 @@ presence file another lab cannot read is not presence.
 
 ```sh
 export UOR_LAB=kimi
-python3 scripts/harness/cli.py heartbeat -m m1 --next "what happens next"
-python3 scripts/harness/cli.py multilab presence      # who is where, stale last
+uor-harness heartbeat -m m1 --next "what happens next"
+uor-harness multilab presence      # who is where, stale last
 ```
 
 A file older than 30 minutes reads **STALE**, and stale is not "idle" — it means the lab may be
@@ -26,7 +26,7 @@ concluded that Claude and Kimi had published state, with line counts that neithe
 If you need to exercise the reader, point `$UOR_HARNESS_LIVE` at a temporary directory:
 
 ```sh
-UOR_HARNESS_LIVE=$(mktemp -d) UOR_LAB=testlab python3 scripts/harness/cli.py heartbeat -m m1
+UOR_HARNESS_LIVE=$(mktemp -d) UOR_LAB=testlab uor-harness heartbeat -m m1
 ```
 
 The test suite does exactly this — every test class gets its own live tier — so a test run cannot

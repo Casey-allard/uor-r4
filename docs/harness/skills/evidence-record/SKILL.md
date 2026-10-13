@@ -65,7 +65,7 @@ pass later.
    in its existing sections — never as a dated log.
 7. **Declare the line in the PR body**: `Line: <name> · count n/3 · headline
    before → after`, and check it with
-   `python3 scripts/harness/cli.py lint check --body-file <pr-body.md>`.
+   `uor-harness lint check --body-file <pr-body.md>`.
 8. **Land the artifact**: move used results to iCloud
    (`cloud-store put <lab> <dir>`), keep local-only data gitignored, and record the
    retained-evidence size and the disk floor in the record.

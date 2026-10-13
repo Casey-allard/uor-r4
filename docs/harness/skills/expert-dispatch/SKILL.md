@@ -19,7 +19,7 @@ an architecture review, a source falsification, a cost check, an independent
 reading of a result. Do not dispatch to look busy: a dispatch must produce an
 artifact a decision can use. Roles and their default routes are in
 [roles.json](../../roles.json); the roster is readable with
-`python3 scripts/harness/cli.py team roster`.
+`uor-harness team roster`.
 
 ## Do this
 
@@ -40,7 +40,7 @@ artifact a decision can use. Roles and their default routes are in
    Advisory overlap is not a lock — check the shared task list and the actual
    paths before starting.
 5. **Record the dispatch**, so the roster's use is auditable:
-   `python3 scripts/harness/cli.py team dispatch <role-id> --milestone m1 --task "<one line>" --scope <paths> --count 1`
+   `uor-harness team dispatch <role-id> --milestone m1 --task "<one line>" --scope <paths> --count 1`
    The receipt is the answer to "did an agent actually get deployed", and the
    role's route is frozen in it.
 6. **Collect and verify the artifact, not the summary.** Open the file the

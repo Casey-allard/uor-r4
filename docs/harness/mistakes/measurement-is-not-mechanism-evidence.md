@@ -45,7 +45,7 @@ failures stayed at 30/120, so it was REJECT on the pre-registered bar.
 - A mechanism negative needs the mechanism trained in (>= 2 seeds or >= 200 fresh rows),
   scored on the frozen acceptance panel, at the pre-registered bar.
 - Report the mechanism reading and the outcome decision as separate lines, with the
-  decision taken from the bar (`python3 scripts/harness/cli.py panel score
+  decision taken from the bar (`uor-harness panel score
   --panel <id> --value <v>`).
 - Diagnosis, readings, plans and attribution PRs count toward the three (D21 §1): they
   are not free.

@@ -40,6 +40,6 @@ because the count was maintained by hand in PR prose and nothing checked it.
 - State the failure as a blocker with the exact error, and name who can remove it.
 - Do not increment the line count; do not close the mechanism (stopping a novel
   mechanism needs the owner).
-- The PR body must still cite its pre-registration: `python3 scripts/harness/cli.py lint
+- The PR body must still cite its pre-registration: `uor-harness lint
   check --body-file <body>` fails `prlint.prereg_before_compute` when a body reports
   numbers without one.

@@ -16,7 +16,7 @@ Line:  · count /3 · headline  →
 
 ## Checklist
 
-- [ ] `python3 scripts/harness/cli.py check` passes, and `python3 scripts/harness/cli.py lint check --body <this body>` reports no unresolved finding
+- [ ] `uor-harness check` passes, and `uor-harness lint check --body <this body>` reports no unresolved finding
 - [ ] Any model compute here is covered by a linked pre-registration carrying `TEST FITNESS: FIT` (D22)
 - [ ] Checks run at this exact head (commands and outcomes posted on this PR)
 - [ ] Research record: `docs/labs/<topic>-<YYYY-MM-DD>/README.md` (or `docs/evidence/…`)

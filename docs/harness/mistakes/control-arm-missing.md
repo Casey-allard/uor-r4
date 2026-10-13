@@ -37,7 +37,7 @@ row against each prior artifact; an aggregate can hide the rows the mechanism di
 ## How to apply
 
 - Include the no-memory/matched control in the pre-registration before compute
-  (`python3 scripts/harness/cli.py prep new -m m1`); it is part of "what a fair test needs"
+  (`uor-harness prep new -m m1`); it is part of "what a fair test needs"
   in [the mechanism brief](../../mechanisms/exact-addressed-memory.md).
 - Report the control arm beside the treatment arm, same panel, same rows.
 - Compare row by row against each prior artifact, not only against the parent or a mean.

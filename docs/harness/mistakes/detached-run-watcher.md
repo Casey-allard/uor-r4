@@ -39,6 +39,6 @@ Never promise a check-in time without a watcher behind it.
    `DONE` marker.
 2. In the same command block, arm the watcher and note its job id.
 3. When the watcher fires: report the result, release the lease, then `uor-pod down` if no other
-   session holds it. `python3 scripts/harness/cli.py budget scan` shows live pods and cost.
+   session holds it. `uor-harness budget scan` shows live pods and cost.
 4. A self-set budget running out is never a reason to kill a healthy run (AGENTS.md); extend
    and renew instead, but if the job *finished*, release at once.

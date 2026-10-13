@@ -29,14 +29,14 @@ bounded experiment, use `experiment-prereg` instead; for governance, `research-p
 2. Load the rest of the context first so the judgement is against the live repo, not memory:
 
    ```
-   python3 scripts/harness/cli.py brief -m <milestone>
-   python3 scripts/harness/cli.py status
+   uor-harness brief -m <milestone>
+   uor-harness status
    ```
 
 3. Record the review as a receipt so the owner can see it happened:
 
    ```
-   python3 scripts/harness/cli.py skill use uor-research-architect -m <milestone> --outcome completed --note "<question>"
+   uor-harness skill use uor-research-architect -m <milestone> --outcome completed --note "<question>"
    ```
 
 ## Output

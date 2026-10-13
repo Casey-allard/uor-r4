@@ -75,7 +75,12 @@ def run(cmd: list[str]) -> tuple[int, str, str]:
 
 
 def rust_check(binary: Path) -> dict:
-    code, out, err = run([str(binary), "check", "--repo", str(REPO), "--json"])
+    # `check-formats`, not `check`. The Rust checker validates state formats; the full `check` is 57
+    # rules and is DELEGATED to Python through the entry point, so asking for `check --json` now runs
+    # the Python implementation - which has no `--json` and prints prose, which is what broke this
+    # comparison in CI. This function exists to compare the Rust state-format checker against Python,
+    # so it names that checker explicitly.
+    code, out, err = run([str(binary), "check-formats", "--repo", str(REPO), "--json"])
     if code not in (0, 1) or not out.strip():
         raise RuntimeError(f"rust check failed ({code}): {err[:400]}")
     return json.loads(out)
@@ -267,7 +272,7 @@ def controlled_cases(binary: Path) -> list[str]:
             shutil.copy(contract_src, root / "docs" / "harness" / "state-formats.json")
             (root / "docs" / "harness" / "ledger" / "probe-2026-10.jsonl").write_text(row + "\n")
 
-            r_code, _, _ = run([str(binary), "check", "--repo", str(root), "--json"])
+            r_code, _, _ = run([str(binary), "check-formats", "--repo", str(root), "--json"])
             r_ok = r_code == 0
             if r_ok != should_pass:
                 findings.append(

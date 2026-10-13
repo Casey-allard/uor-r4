@@ -105,10 +105,15 @@ def discover_docs(repo: Path = REPO) -> list[str]:
 #: Kept as a named constant for the tests and for anyone reading this expecting a list.
 DOCS = ("AGENTS.md",)  # superseded by discover_docs(); see the docstring above
 
-#: `cli.py` followed by the first token (a command word, or a flag with its value) and the rest of
-#: the line, which the tokeniser walks.
+#: The entry point followed by the first token (a command word, or a flag with its value) and the
+#: rest of the line, which the tokeniser walks.
+#:
+#: `uor-harness` is the harness's interface; `cli.py` still matches so a stale invocation is DETECTED
+#: by `check` rather than silently passing as unchecked prose. The old form is a rule violation now -
+#: see `stale_cli_invocations` - because leaving it in normative docs is what kept four labs typing
+#: `python3` for a whole port.
 _COMMAND_RE = re.compile(
-    r"cli\.py\s+"
+    r"(?:uor-harness|cli\.py)\s+"
     r"(?P<first>--?[A-Za-z][A-Za-z-]*(?:=\S+)?|[a-z][a-z-]*)"
     r"(?P<rest>[^\n`]*)"
 )
@@ -178,6 +183,27 @@ def _is_value(token: str) -> bool:
     )
 
 
+#: Commands the RUST entry point implements and Python does not.
+#:
+#: The checker walks Python's argparse tree, so a doc naming a Rust-only command looked like a
+#: broken invocation - `uor-harness onboard` was reported as `unknown subcommand 'onboard'` in six
+#: places. The interface is the Rust binary now, so its commands are valid by definition; this set is
+#: what keeps the checker measuring the INTERFACE rather than one implementation of it.
+RUST_ONLY_COMMANDS = frozenset(
+    {
+        "onboard",
+        "presence",  # Rust `presence`; Python spells it `multilab presence`
+        "registry",
+        "prep-render",
+        "prep-check",
+        "shard-check",
+        "check-formats",
+        "ledger-sync",
+        "notes",
+    }
+)
+
+
 def _resolve(parser: argparse.ArgumentParser, words: list[str], flags: list[str]) -> tuple[bool, str]:
     """Walk the parser tree. Returns (found, explanation).
 
@@ -189,6 +215,8 @@ def _resolve(parser: argparse.ArgumentParser, words: list[str], flags: list[str]
     * **Flags interleaved with command words are tolerated**, because
       `cli.py --repo <path> multilab presence` is a valid invocation the naive tokeniser splits.
     """
+    if words and words[0] in RUST_ONLY_COMMANDS:
+        return True, ""
     node = parser
     rest = list(words)
     while rest:
@@ -241,7 +269,7 @@ def _tokenise(text: list[str]) -> tuple[list[str], list[str]]:
 
 
 def commands_in_text(text: str, parser: argparse.ArgumentParser) -> list[dict]:
-    """Every `cli.py ...` command in one line of documentation. Used by the tests."""
+    """Every harness invocation in one line of documentation. Used by the tests."""
     out: list[dict] = []
     for match in _COMMAND_RE.finditer(text):
         rest = _SUBSTITUTION.sub("$(...)", match.group("rest"))
@@ -250,12 +278,12 @@ def commands_in_text(text: str, parser: argparse.ArgumentParser) -> list[dict]:
         if not words:
             continue
         ok, why = _resolve(parser, words, flags)
-        out.append({"command": "cli.py " + " ".join(words + flags), "ok": ok, "problem": why})
+        out.append({"command": "uor-harness " + " ".join(words + flags), "ok": ok, "problem": why})
     return out
 
 
 def documented_commands(repo: Path = REPO, parser: argparse.ArgumentParser | None = None) -> list[dict]:
-    """Every `cli.py ...` command in the docs, with the file and line it appears on."""
+    """Every harness invocation in the docs, with the file and line it appears on."""
     parser = parser or _build_parser()
     found: list[dict] = []
     seen: set[tuple[str, str]] = set()
@@ -271,6 +299,29 @@ def documented_commands(repo: Path = REPO, parser: argparse.ArgumentParser | Non
                 seen.add(key)
                 found.append({"doc": rel, "line": lineno, **row})
     return found
+
+
+def stale_cli_invocations(repo: Path = REPO) -> list[dict]:
+    """Normative docs that still invoke `python3 scripts/harness/cli.py`.
+
+    **`uor-harness` is the interface.** `cli.py` still exists as an implementation, and the Rust
+    entry point delegates to it for the commands that are not ported - but a doc that tells a lab to
+    run it puts Python back in front of them, which is what the port was for and what it did not
+    achieve for eleven units. A rule rather than a note, because "remember to use the new command"
+    is exactly the kind of instruction that decays.
+
+    Dated `docs/labs/<topic>-<date>/` records are excluded by `discover_docs`: they are evidence of
+    what was run at the time and rewriting them would falsify the record.
+    """
+    out: list[dict] = []
+    for rel in discover_docs(repo):
+        path = repo / rel
+        if not path.is_file():
+            continue
+        for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            if "python3 scripts/harness/cli.py" in line:
+                out.append({"doc": rel, "line": lineno, "text": line.strip()[:120]})
+    return out
 
 
 def check(json_out: bool = False, repo: Path = REPO) -> int:
@@ -338,7 +389,51 @@ def register_rules():  # noqa: ANN201 - returns list[checkrules.Rule]
             )
         ]
 
+    def _check_entry_point(paths, reg=None):  # noqa: ANN001
+        """No normative doc may invoke the Python entry point."""
+        stale = stale_cli_invocations(paths.repo)
+        if not stale:
+            return [
+                RuleResult(
+                    rule_id="harness.entry_point",
+                    severity="warn",
+                    ok=True,
+                    message="no normative doc invokes the Python entry point",
+                    path=str(paths.repo),
+                )
+            ]
+        return [
+            RuleResult(
+                rule_id="harness.entry_point",
+                severity="error",
+                ok=False,
+                message=(
+                    f"{len(stale)} normative doc line(s) still invoke `python3 scripts/harness/cli.py`: "
+                    + "; ".join(f"{r['doc']}:{r['line']}" for r in stale[:4])
+                ),
+                path=str(paths.repo),
+                fix=(
+                    "use `uor-harness <command>` - the Rust binary is the interface and delegates to "
+                    "Python for commands that are not ported yet. Dated docs/labs/<topic>-<date>/ "
+                    "records are exempt: they are evidence of what was run at the time"
+                ),
+            )
+        ]
+
     return [
+        Rule(
+            id="harness.entry_point",
+            description="normative docs invoke uor-harness, not the Python entry point",
+            severity="error",
+            check=_check_entry_point,
+            rationale=(
+                "`uor-harness` is the harness interface; `cli.py` is an implementation detail behind "
+                "it. For eleven units the port left Python as the front door, so four labs typed "
+                "python3 forty times a day and could not tell whether they were using the port at "
+                "all. A rule rather than a note, because 'remember the new command' is exactly the "
+                "instruction that decays."
+            ),
+        ),
         Rule(
             id="harness.documented_commands",
             description="commands named in the docs exist in the argument parser",

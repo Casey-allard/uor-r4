@@ -41,7 +41,7 @@ independent initialization variance.
 ## How to apply
 
 - Before publishing, check the number against the panel's own noise field
-  (`python3 scripts/harness/cli.py panel show -m m4`), and against every seed in the arm.
+  (`uor-harness panel show -m m4`), and against every seed in the arm.
 - Report per-seed values, not only the mean; state which variance the spread measures.
 - A single-seed KEEP is not a KEEP: rerun with >= 2 seeds, or mark it NOT YET PROMOTED.
 - Fix the lottery rather than averaging over it (the dense bootstrap and the KL during
