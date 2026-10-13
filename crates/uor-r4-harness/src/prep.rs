@@ -417,6 +417,14 @@ pub const COST_BUCKETS: [&str; 6] = [
 
 /// Owner rules that apply to every pre-registration.
 ///
+/// **D31 and D32 were added the day they were issued, and that is the point.** D32 **supersedes
+/// D25's floating-point allowance** and D31 governs what happens when an instrument check fails —
+/// **both change what a pre-registration may propose.** A sheet that omitted them would send a lab
+/// to work under a rule the owner had already replaced, **which is exactly the defect that put a
+/// banned grader on a sheet**: the rule text a lab reads is the rule text it follows.
+///
+/// **Kept equal to Python's tuple, and `parity.render_agreement` is what keeps them equal.**
+///
 /// **A copy of Python's `prep.APPLICABLE_RULES`, and it drifted — which `parity.py` caught the moment
 /// the Python list was corrected.** The Rust port carried `D21..D24` from before the port began while
 /// the owner had added **D28** (the rule that blocks the v5 reply panel's neural grader) and **D29**.
@@ -426,7 +434,9 @@ pub const COST_BUCKETS: [&str; 6] = [
 /// **Two lists of one rule is the defect class this whole line keeps producing.** The durable fix is
 /// to render from the registry rather than a constant, so there is one list; until then, this one is
 /// kept equal to Python's by `parity.render_agreement`, which is why the drift was found at all.
-pub const APPLICABLE_RULES: [&str; 7] = ["D21", "D22", "D23", "D24", "D25", "D28", "D29"];
+pub const APPLICABLE_RULES: [&str; 9] = [
+    "D21", "D22", "D23", "D24", "D25", "D28", "D29", "D31", "D32",
+];
 
 /// D22 section 3: the minimum test power a decisive run must state.
 pub const MIN_SEEDS: u32 = 2;
@@ -804,4 +814,52 @@ fn mechanism_path(paths: &StatePaths, mechanism: &str) -> String {
 /// pre-registration belongs to. The receipt keeps the local offset for readability.
 pub fn today() -> String {
     crate::receipt::now_rfc3339()[..10].to_string()
+}
+
+#[cfg(test)]
+mod applicable_rules_tests {
+    use super::*;
+
+    /// **The sheet must cite every rule the owner has in force**, and the two newest were added the
+    /// day they were issued. A missing rule is not a cosmetic gap: D32 **supersedes** D25's
+    /// floating-point allowance, so a sheet citing only D25 would send a lab to work under a
+    /// replaced rule — the same failure that put a banned grader on a sheet.
+    #[test]
+    fn the_applicable_rules_include_the_current_owner_rules() {
+        for rid in [
+            "D21", "D22", "D23", "D24", "D25", "D28", "D29", "D31", "D32",
+        ] {
+            assert!(
+                APPLICABLE_RULES.contains(&rid),
+                "{rid} is an owner rule and must appear on every pre-registration"
+            );
+        }
+        assert_eq!(
+            APPLICABLE_RULES.len(),
+            9,
+            "the set is nine ids, asserted so a drift fails loudly"
+        );
+    }
+
+    /// Every cited rule must have text in the registry, or the sheet prints a hole where a rule
+    /// should be — which reads as "no rule applies" rather than "the registry is missing one".
+    #[test]
+    fn every_applicable_rule_has_registry_text() {
+        use crate::registries::Registries;
+        use crate::state::StatePaths;
+        let repo = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let p = StatePaths::resolve(&repo, None, Some("/nonexistent-live"));
+        let regs = Registries::load(&p).expect("registry");
+        let ids: Vec<String> = regs
+            .owner_rules
+            .iter()
+            .filter_map(|r| r.get("id").and_then(|i| i.as_str()).map(str::to_string))
+            .collect();
+        for rid in APPLICABLE_RULES {
+            assert!(
+                ids.iter().any(|i| i == rid),
+                "{rid} is cited but has no text in the registry"
+            );
+        }
+    }
 }

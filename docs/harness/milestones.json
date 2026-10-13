@@ -339,6 +339,18 @@
       "rule": "No banned mechanism may exist in any compiled or loaded module - presence counts, not only execution. NVRTC (runtime compilation) is banned project-wide; all CUDA kernels compile ahead of time via nvcc into named PTX/cubin modules. Interlock: `uor-harness ratchet d25` and the d29_compiled_modules test.",
       "scope": "all",
       "source": "docs/integration/DECISIONS.md"
+    },
+    {
+      "id": "D31",
+      "rule": "No result is ruled out on an instrument technicality. A check must answer the four authority questions in pm-rules.md R12 before it has veto power; when a check fails anyway, the instrument artefact is diagnosed and repaired rather than reported as a model negative. Supersedes older text that allows a first-failure stop or treats an instrument artefact as a code blocker.",
+      "scope": "all",
+      "source": "docs/integration/DECISIONS.md"
+    },
+    {
+      "id": "D32",
+      "rule": "Discrete geometric substrate: model computation AND its instruments, including learning, are discrete/exact and GPU-only - no floating-point forward, gradients, optimizer or numerical model instrument, and no matrix multiplication. Use native SpiralCore/E8/FBS geometry with one integer input/carry/output writer. Supersedes D25's offline scalar floating-point allowance, which is now inactive. Both training holds remain HELD; a FIT review releases neither.",
+      "scope": "all",
+      "source": "docs/integration/DECISIONS.md"
     }
   ],
   "constraint_freeze": {
