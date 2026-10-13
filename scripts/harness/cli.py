@@ -410,9 +410,55 @@ def cmd_lint(args: argparse.Namespace, paths: HarnessPaths, reg: Registry) -> in
 
 
 def cmd_heartbeat(args: argparse.Namespace, paths: HarnessPaths, reg: Registry) -> int:
-    import status as S
+    """Check in through the RUST harness. One implementation, not two.
 
-    return S.heartbeat(args, paths, reg)
+    The five-minute cadence (`PRESENCE_TTL_MINUTES = 5`) and the live-tier write path exist only in
+    the Rust harness. Keeping a Python heartbeat beside it produced exactly the failure this is meant
+    to avoid: two check-ins that record different things, with no way to tell which one a lab ran.
+    **`cli.py heartbeat` is now a thin transport to `uor-harness heartbeat`.**
+
+    Returns a usage error naming the build command when the binary is missing, rather than silently
+    falling back - a fallback would run the old behaviour and the lab would believe it had checked in.
+    """
+    import subprocess
+
+    binary = _harness_binary(paths)
+    if binary is None:
+        emit(
+            "heartbeat now runs in the Rust harness, which is not built here.\n"
+            "  build it once:\n"
+            "    CARGO_TARGET_DIR=local/harness-target cargo build -p uor-r4-harness\n"
+            "  then run the documented path, or re-run this command.\n"
+            "  See docs/harness/BOOTSTRAP.md.",
+            sys.stderr,
+        )
+        return EXIT_USAGE
+    argv = [str(binary), "heartbeat", "--repo", str(paths.repo)]
+    for flag, value in (
+        ("--milestone", getattr(args, "milestone", None)),
+        ("--line", getattr(args, "line", None)),
+        ("--count", getattr(args, "count", None)),
+        ("--next", getattr(args, "next_step", None)),
+    ):
+        if value:
+            argv += [flag, str(value)]
+    if getattr(args, "lab", None):
+        argv += ["--lab", str(args.lab)]
+    proc = subprocess.run(argv, check=False)
+    return proc.returncode
+
+
+def _harness_binary(paths: HarnessPaths) -> Path | None:
+    """The built Rust harness, release preferred.
+
+    Release first: `heartbeat` runs every five minutes on every lab, so it is the last command that
+    should pay for a debug build.
+    """
+    for profile in ("release", "debug"):
+        candidate = paths.repo / "local" / "harness-target" / profile / "uor-harness"
+        if candidate.is_file() and os.access(candidate, os.X_OK):
+            return candidate
+    return None
 
 
 # ------------------------------------------------------------------------------ git

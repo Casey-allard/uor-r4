@@ -167,7 +167,7 @@ uor-harness onboard - can this machine use the harness?
 READY. Nothing failed. Next:
   - run one real task with the harness: `cli.py brief -m <milestone>` then `cli.py check`
   - claim your branch before you start: `cli.py team claim --branch <name> --lab <lab>`
-  - check in every 90 minutes: `cli.py heartbeat -m <milestone>`, which also publishes your presence
+  - check in at least every five minutes: `cli.py heartbeat -m <milestone>`, which also publishes your presence (it runs the Rust harness, so build it first)
   - after your merge, delete your branch on both sides — there is no auto-delete
 ```
 

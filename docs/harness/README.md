@@ -57,7 +57,7 @@ uor-harness arena board|compare|lineage  the lineage of evaluated configurations
 uor-harness multilab presence|claims|sync-live   what each lab published, who holds which branch
 uor-harness budget show|scan            cumulative cost, and the pod specs of running jobs
 uor-harness lint check|format           lint a PR body against the contract; render a compliant one
-uor-harness heartbeat --milestone m1    emit the 90-minute status card
+uor-harness heartbeat --milestone m1    check in (live tier; 5-minute window)
 uor-harness git install-hooks|status    the pre-commit guard, and this branch's delivery state
 uor-harness check [--staged]            every machine-checkable rule in one pass
 ```

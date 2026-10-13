@@ -25,7 +25,7 @@ use uor_r4_harness::status;
 use uor_r4_harness::Contract;
 
 /// Flags that only a subcommand understands, forwarded rather than rejected at the top level.
-const SUBCOMMAND_FLAGS: [&str; 23] = [
+const SUBCOMMAND_FLAGS: [&str; 24] = [
     "--kind",
     "--milestone",
     "-m",
@@ -38,6 +38,7 @@ const SUBCOMMAND_FLAGS: [&str; 23] = [
     "--run",
     "--dry-run",
     "--doing",
+    "--line",
     "--next",
     "--date",
     "--mechanism",
@@ -52,7 +53,7 @@ const SUBCOMMAND_FLAGS: [&str; 23] = [
 ];
 
 /// The subset that takes a value, so the value is not mistaken for a command.
-const SUBCOMMAND_VALUE_FLAGS: [&str; 23] = [
+const SUBCOMMAND_VALUE_FLAGS: [&str; 26] = [
     "--kind",
     "--milestone",
     "-m",
@@ -76,6 +77,9 @@ const SUBCOMMAND_VALUE_FLAGS: [&str; 23] = [
     "--seeds",
     "--rows",
     "--at",
+    "--count",
+    "--headline",
+    "--line",
 ];
 
 const USAGE: &str = "\
@@ -362,7 +366,10 @@ fn cmd_heartbeat(repo: &Path, args: &[String], json: bool) -> ExitCode {
         .or_else(|| flag_value(args, "-m"))
         .unwrap_or_default();
     let mut p = Presence::new(&paths, &lab, &milestone);
-    if let Some(v) = flag_value(args, "--doing") {
+    // `--line` is the session contract's name (every PR declares its line and count); `--doing` is
+    // the older spelling. Both are accepted so a lab following the contract does not hit an unknown
+    // option on the command it must run every few minutes.
+    if let Some(v) = flag_value(args, "--line").or_else(|| flag_value(args, "--doing")) {
         p = p.with_doing(v);
     }
     if let Some(v) = flag_value(args, "--next") {
@@ -384,6 +391,14 @@ fn cmd_heartbeat(repo: &Path, args: &[String], json: bool) -> ExitCode {
     }
     if !p.next.is_empty() {
         r = r.with("next", p.next.clone());
+    }
+    // The D21 count and headline are what the owner reads to see whether a line is moving. They were
+    // dropped from the receipt, so a Rust check-in recorded less than the Python one it replaces.
+    if let Some(v) = flag_value(args, "--count") {
+        r = r.with("count", v);
+    }
+    if let Some(v) = flag_value(args, "--headline") {
+        r = r.with("headline", v);
     }
     let month = current_month();
     // LIVE shard: a check-in every five minutes must never dirty a working checkout. `ledger sync`

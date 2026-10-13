@@ -268,7 +268,11 @@ Then, across labs rather than within one:
 - `python3 scripts/harness/cli.py multilab claims` — who holds which branch, visible to every lab.
   Claim yours with `team claim --branch <name> --lab <lab>` before you start.
 - `python3 scripts/harness/cli.py heartbeat -m <milestone>` — the required check-in, which also
-  publishes your presence. There is no separate step to forget.
+  publishes your presence. There is no separate step to forget. **Check in at least every five
+  minutes**: presence is live-tier, so a check-in is visible to every other lab immediately, and the
+  board marks a lab STALE once it has been quiet for longer than that. The command runs the Rust
+  harness (`uor-harness heartbeat`), which is the only implementation; it needs the binary built
+  (`CARGO_TARGET_DIR=local/harness-target cargo build -p uor-r4-harness`) and says so if it is not.
 
 The plan, the milestone headline, the skills, the expert team, the acceptance panels, the
 pre-registrations and the lessons from past mistakes are queryable rather than prose to be
