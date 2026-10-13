@@ -35,6 +35,14 @@ pub const INVENTORY: &[(&str, &[&str])] = &[
         ],
     ),
     (
+        "multilab",
+        &[
+            "multilab.presence_fresh",
+            "multilab.claims_one_owner",
+            "multilab.claim_stale",
+        ],
+    ),
+    (
         "harness",
         &[
             "harness.milestones.present",

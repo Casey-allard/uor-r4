@@ -26,6 +26,7 @@ pub mod githelp;
 pub mod harnessrules;
 pub mod mistakes;
 pub mod multilab;
+pub mod multilabrules;
 pub mod notes;
 pub mod onboard;
 pub mod prep;
