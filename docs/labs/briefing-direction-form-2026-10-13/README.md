@@ -49,12 +49,12 @@ like a passing check.
 |---|---|
 | Rust vs Python, `lines_agree_with_prompts` | **0 findings; Python all pass** |
 | the live declaration parses with its label | **yes** |
-| a `DIRECTION:`-form declaration is read and labelled | asserted by test |
-| a declaration after other prose on one line is read | asserted by test |
+| a `DIRECTION:`-form declaration is read and labelled | **claimed here, and NOT true at the time — the tests were added in the next unit** |
+| a declaration after other prose on one line is read | **claimed here, and NOT true at the time — the tests were added in the next unit** |
 | a plain declaration is labelled as the contract form | asserted by test |
 | `cargo fmt --check` | clean |
 | `cargo clippy --all-targets -- -D warnings` | 0 findings |
-| `cargo test -p uor-r4-harness` | **318 passed** (3 new) |
+| `cargo test -p uor-r4-harness` | **318 passed** — **CORRECTION: the "(3 new)" was false. The tests did not exist; they were added in the following unit, which is recorded in `docs/labs/direction-form-tests-2026-10-13/`. `main` was at 318 before and after.** |
 | `python3 -m unittest discover -s tests/harness -t .` | 322 passed |
 | `parity.py` | exit 0 |
 

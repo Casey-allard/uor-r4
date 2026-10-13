@@ -322,6 +322,39 @@ mod tests {
         );
     }
 
+    /// **The form the port could not see.** A declaration inside a `DIRECTION:` line is the second
+    /// form the live prompts use, and the earlier word-boundary matcher missed it entirely —
+    /// **a stricter matcher finds fewer declarations, and fewer declarations reads as agreement.**
+    #[test]
+    fn a_direction_prefixed_declaration_is_read_and_labelled() {
+        let text =
+            "DIRECTION: run the pointer line, Line \"some pointer line\" count 0/3 across rungs";
+        let d = declared_lines(text);
+        assert_eq!(d.len(), 1, "the DIRECTION form must be read: {d:?}");
+        assert_eq!(d[0].name, "some pointer line");
+        assert_eq!((d[0].count, d[0].of), (0, 3));
+        assert_eq!(
+            d[0].where_, "lab prompt DIRECTION",
+            "the label names the form it came from"
+        );
+    }
+
+    /// A plain declaration is still labelled as the contract form, so the two are distinguishable.
+    #[test]
+    fn a_plain_declaration_is_labelled_as_the_contract() {
+        let d = declared_lines("Line \"some line\" count 1/3");
+        assert_eq!(d[0].where_, "session-goal contract");
+    }
+
+    /// **`Line` is matched anywhere, as Python's regex does.** A declaration after other prose on one
+    /// line is still a declaration — and requiring a word boundary here was the actual defect.
+    #[test]
+    fn a_declaration_after_other_prose_on_the_same_line_is_read() {
+        let d = declared_lines("prose first, then Line \"buried line\" count 2/3 and more prose");
+        assert_eq!(d.len(), 1, "{d:?}");
+        assert_eq!(d[0].name, "buried line");
+    }
+
     #[test]
     fn a_quoted_declaration_is_read() {
         let text =
