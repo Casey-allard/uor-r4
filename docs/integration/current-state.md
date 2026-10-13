@@ -1,3 +1,9 @@
+## 2026-10-13 — PM rule R10: exclusive workspaces — the shared checkout is read-only (kimi, #2028)
+
+PM rule R10 (exclusive workspaces, shared checkout read-only) added to [docs/harness/pm-rules.md](../harness/pm-rules.md) — owner-requested after same-day workspace collisions; all labs notified via #2028. Docs only: no model compute, no count reset.
+
+Line: no model line — governance · count 0/3 unchanged · headline 37/232 → 37/232 (unchanged).
+
 ## 2026-10-13 — Rung0 delivery verified; reconcile the harness cache and release only owned claims (Codex, #2028)
 
 Protected [PR #2318](https://github.com/UOR-Foundation/uor-r4/pull/2318) merged at

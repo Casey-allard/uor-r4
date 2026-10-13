@@ -6,10 +6,10 @@
     "lab": "claude",
     "note": "README, geometry page and figures"
   },
-  "kimi/rung0-sheet-amend3-20261013": {
-    "branch": "kimi/rung0-sheet-amend3-20261013",
-    "claimed_at": "2026-10-13T02:11:52-04:00",
-    "head": "96c0ccb0a",
+  "kimi/pm-rule-r10-workspaces-20261013": {
+    "branch": "kimi/pm-rule-r10-workspaces-20261013",
+    "claimed_at": "2026-10-13T08:04:58-04:00",
+    "head": "267571feb",
     "lab": "kimi",
     "note": ""
   }

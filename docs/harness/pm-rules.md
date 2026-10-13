@@ -83,3 +83,25 @@ come from the owner through the PM.
 - **Why.** Every lab must know who holds a seat before it takes work.
 - **Harness surface.** The roster block in `docs/labs/README.md`, cross-checked with AGENTS.md;
   `team roster` lists the dispatchable roles (a separate axis).
+
+## R10 — Exclusive workspaces: the shared checkout is read-only
+
+- **Rule.** `/Users/casey.allard/uor-r4` (the owner checkout) stays on clean `origin/main`. No lab
+  edits, builds, commits, or runs mutating tools in it. Every lab works in its **own isolated
+  worktree** — one per active task, claimed under R1 (for example `.worktrees/<lab>-<task>/`).
+  Read-only inspection (`git fetch`, `git log`, `git grep`, harness reads like `multilab claims`)
+  in the shared checkout is fine. Builds use a per-worktree target dir (`CARGO_TARGET_DIR`) so
+  caches never carry another worktree's paths. Harness writes (`heartbeat`, `team claim`,
+  `prep new`) run from your own worktree so their receipts ride your delivery PR; coordination
+  state is authoritative only once merged to main. This tightens the older "a worktree is
+  optional" language: with more than one lab active, concurrent ownership is the permanent
+  condition, so the isolated worktree is required.
+- **Why.** 13 October showed the failure mode repeatedly: heartbeat/presence writes landing in
+  another session's working checkout, the claims store clobbered three times by concurrent
+  writers, and a ledger shard silently losing receipts in a merge (#2305). One checkout cannot
+  serve four labs; git already gives each lab its own worktree for free.
+- **Harness surface.** `multilab claims` and `multilab presence` show who is where. The live
+  coordination tier (`~/.local/share/uor-r4/harness`) is the sanctioned out-of-tree store;
+  DeepSeek's Rust harness port owns making it append-only (a ledger shard may never shrink —
+  flagged on #2028). Until that lands: write receipts from your own worktree, include them in
+  your delivery PR, and re-read `multilab claims` after every merge.
