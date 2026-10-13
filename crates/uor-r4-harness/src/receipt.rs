@@ -311,3 +311,300 @@ mod tests {
         );
     }
 }
+
+// ------------------------------------------------------------------------ live tier and sync
+//
+// A receipt is written to the LIVE tier first, for the same reason presence is: a check-in every few
+// minutes must not dirty a working checkout. The committed shard is then updated at DELIVERY, from a
+// command the lab runs before opening its PR.
+//
+// This is not "the ledger moved out of tree". The committed shard remains the authority and my
+// shard-integrity guard still compares it against `origin/main`; the live tier is the write path, and
+// the sync is what carries receipts into the record review actually sees.
+
+/// The live ledger directory: `~/.local/share/uor-r4/harness/ledger`.
+pub fn live_ledger_dir(paths: &StatePaths) -> PathBuf {
+    paths.live.join("ledger")
+}
+
+/// The live shard for a lab and month.
+pub fn live_shard_path(paths: &StatePaths, lab: &str, month: &str) -> PathBuf {
+    let name = if slug(lab).is_empty() {
+        "unknown".to_string()
+    } else {
+        slug(lab)
+    };
+    live_ledger_dir(paths).join(format!("{name}-{month}.jsonl"))
+}
+
+/// Append a receipt to the LIVE shard.
+///
+/// Appends rather than rewriting, so two labs checking in at once cannot clobber each other's lines.
+pub fn append_live(paths: &StatePaths, receipt: &Receipt, month: &str) -> Result<PathBuf, String> {
+    receipt.validate()?;
+    let shard = live_shard_path(paths, &receipt.lab, month);
+    if let Some(parent) = shard.parent() {
+        std::fs::create_dir_all(parent)
+            .map_err(|e| format!("cannot create {}: {e}", parent.display()))?;
+    }
+    let line = receipt.to_line();
+    let mut file = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&shard)
+        .map_err(|e| format!("cannot open {}: {e}", shard.display()))?;
+    use std::io::Write;
+    writeln!(file, "{line}").map_err(|e| format!("cannot append to {}: {e}", shard.display()))?;
+    Ok(shard)
+}
+
+/// What a sync did, so the caller can report it rather than guess.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct SyncReport {
+    pub shard: String,
+    /// Receipts the live tier held that the committed shard did not.
+    pub added: usize,
+    /// Live receipts already present in the committed shard, by timestamp and kind.
+    pub already_committed: usize,
+    /// False when there was nothing live to sync.
+    pub wrote: bool,
+}
+
+/// Copy live receipts into the committed shard, APPEND-ONLY.
+///
+/// Identity is `(ts, kind)` within the lab's own shard. A lab does not record two receipts of the
+/// same kind in the same second through the harness — every receipt carries a distinct `event` or
+/// action — so this does not collapse distinct work, and it makes the sync idempotent: running it
+/// twice adds nothing the second time.
+///
+/// **Committed lines are never rewritten or removed.** The sync only appends, which is the property
+/// the shard guard enforces and the reason #2305's data loss was possible at all.
+pub fn sync_live_to_committed(
+    paths: &StatePaths,
+    lab: &str,
+    month: &str,
+) -> Result<SyncReport, String> {
+    let live = live_shard_path(paths, lab, month);
+    let committed = shard_path(paths, lab, month);
+    let mut report = SyncReport {
+        shard: committed.display().to_string(),
+        ..Default::default()
+    };
+    let Ok(live_text) = std::fs::read_to_string(&live) else {
+        return Ok(report); // nothing live: not an error, just nothing to carry
+    };
+    let committed_text = std::fs::read_to_string(&committed).unwrap_or_default();
+    let have: std::collections::BTreeSet<String> = committed_text
+        .lines()
+        .filter(|l| !l.trim().is_empty())
+        .map(|l| {
+            serde_json::from_str::<serde_json::Value>(l)
+                .ok()
+                .map(|v| format!("{}|{}", key_of(&v, "ts"), key_of(&v, "kind")))
+                .unwrap_or_else(|| l.trim().to_string())
+        })
+        .collect();
+
+    let mut add: Vec<String> = Vec::new();
+    for line in live_text.lines().filter(|l| !l.trim().is_empty()) {
+        let key = serde_json::from_str::<serde_json::Value>(line)
+            .ok()
+            .map(|v| format!("{}|{}", key_of(&v, "ts"), key_of(&v, "kind")))
+            .unwrap_or_else(|| line.trim().to_string());
+        if have.contains(&key) {
+            report.already_committed += 1;
+        } else {
+            add.push(line.trim().to_string());
+        }
+    }
+    if add.is_empty() {
+        return Ok(report);
+    }
+    if let Some(parent) = committed.parent() {
+        std::fs::create_dir_all(parent)
+            .map_err(|e| format!("cannot create {}: {e}", parent.display()))?;
+    }
+    let mut file = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&committed)
+        .map_err(|e| format!("cannot open {}: {e}", committed.display()))?;
+    use std::io::Write;
+    for line in &add {
+        writeln!(file, "{line}").map_err(|e| format!("cannot append: {e}"))?;
+    }
+    report.added = add.len();
+    report.wrote = true;
+    Ok(report)
+}
+
+fn key_of(v: &serde_json::Value, field: &str) -> String {
+    v.get(field)
+        .and_then(|x| x.as_str())
+        .unwrap_or("")
+        .to_string()
+}
+
+#[cfg(test)]
+mod live_tier_tests {
+    use super::*;
+
+    struct Fixture {
+        /// Held so the scratch directory outlives the test; never read.
+        _dir: tempfile::TempDir,
+        paths: StatePaths,
+    }
+
+    impl Fixture {
+        fn new() -> Fixture {
+            let dir = tempfile::tempdir().expect("tempdir");
+            let repo = dir.path().join("repo");
+            let live = dir.path().join("live");
+            std::fs::create_dir_all(&repo).expect("repo");
+            std::fs::create_dir_all(&live).expect("live");
+            let paths = StatePaths::resolve(&repo, None, Some(live.to_str().expect("utf8")));
+            Fixture { _dir: dir, paths }
+        }
+    }
+
+    fn receipt(lab: &str, kind: &str, ts: &str) -> Receipt {
+        Receipt {
+            ts: ts.into(),
+            lab: lab.into(),
+            kind: kind.into(),
+            fields: Default::default(),
+        }
+    }
+
+    /// The reason the live tier exists: a check-in every five minutes must not dirty a checkout.
+    #[test]
+    fn a_receipt_appends_to_the_live_shard_not_a_checkout() {
+        let f = Fixture::new();
+        let r = receipt("deepseek", "heartbeat", "2026-10-13T09:00:00-04:00");
+        let shard = append_live(&f.paths, &r, "2026-10").expect("append");
+        assert!(
+            shard.starts_with(live_ledger_dir(&f.paths)),
+            "{}",
+            shard.display()
+        );
+        assert!(shard.is_file());
+        // And nothing was created inside the repo.
+        let committed = shard_path(&f.paths, "deepseek", "2026-10");
+        assert!(!committed.exists(), "the checkout must stay untouched");
+    }
+
+    /// Appending twice keeps both lines: two labs checking in at once must not clobber each other.
+    #[test]
+    fn the_live_shard_only_ever_grows() {
+        let f = Fixture::new();
+        for ts in ["2026-10-13T09:00:00-04:00", "2026-10-13T09:05:00-04:00"] {
+            append_live(&f.paths, &receipt("deepseek", "heartbeat", ts), "2026-10")
+                .expect("append");
+        }
+        let text = std::fs::read_to_string(live_shard_path(&f.paths, "deepseek", "2026-10"))
+            .expect("read");
+        assert_eq!(text.lines().filter(|l| !l.trim().is_empty()).count(), 2);
+    }
+
+    /// The delivery step: live receipts reach the committed shard that review sees.
+    #[test]
+    fn sync_carries_live_receipts_into_the_committed_shard() {
+        let f = Fixture::new();
+        append_live(
+            &f.paths,
+            &receipt("deepseek", "heartbeat", "2026-10-13T09:00:00-04:00"),
+            "2026-10",
+        )
+        .expect("append");
+        let report = sync_live_to_committed(&f.paths, "deepseek", "2026-10").expect("sync");
+        assert_eq!(report.added, 1);
+        assert!(report.wrote);
+        let committed =
+            std::fs::read_to_string(shard_path(&f.paths, "deepseek", "2026-10")).expect("read");
+        assert!(
+            committed.contains("2026-10-13T09:00:00-04:00"),
+            "{committed}"
+        );
+    }
+
+    /// Running the sync twice adds nothing the second time. A delivery step that is not idempotent
+    /// gets run twice by someone in a hurry and duplicates the record.
+    #[test]
+    fn sync_is_idempotent() {
+        let f = Fixture::new();
+        append_live(
+            &f.paths,
+            &receipt("deepseek", "heartbeat", "2026-10-13T09:00:00-04:00"),
+            "2026-10",
+        )
+        .expect("append");
+        let first = sync_live_to_committed(&f.paths, "deepseek", "2026-10").expect("sync");
+        assert_eq!(first.added, 1);
+        let second = sync_live_to_committed(&f.paths, "deepseek", "2026-10").expect("sync");
+        assert_eq!(second.added, 0, "the second run must add nothing");
+        assert_eq!(second.already_committed, 1);
+        let committed =
+            std::fs::read_to_string(shard_path(&f.paths, "deepseek", "2026-10")).expect("read");
+        assert_eq!(
+            committed.lines().filter(|l| l.contains("09:00:00")).count(),
+            1,
+            "the receipt must not be duplicated: {committed}"
+        );
+    }
+
+    /// **The property the shard guard enforces.** A sync must never rewrite or drop committed lines —
+    /// appending is what makes the ledger safe, and rewriting is how #2305 lost Kimi's receipts.
+    #[test]
+    fn sync_never_rewrites_or_drops_committed_lines() {
+        let f = Fixture::new();
+        let committed_path = shard_path(&f.paths, "deepseek", "2026-10");
+        std::fs::create_dir_all(committed_path.parent().expect("parent")).expect("dir");
+        let existing =
+            "{\"ts\":\"2026-10-01T00:00:00-04:00\",\"kind\":\"skill\",\"lab\":\"deepseek\"}\n";
+        std::fs::write(&committed_path, existing).expect("seed");
+        append_live(
+            &f.paths,
+            &receipt("deepseek", "heartbeat", "2026-10-13T09:00:00-04:00"),
+            "2026-10",
+        )
+        .expect("append");
+        sync_live_to_committed(&f.paths, "deepseek", "2026-10").expect("sync");
+        let after = std::fs::read_to_string(&committed_path).expect("read");
+        assert!(
+            after.starts_with(existing),
+            "existing committed lines must be untouched and first: {after}"
+        );
+        assert!(
+            after.contains("09:00:00"),
+            "and the live line appended after them"
+        );
+    }
+
+    /// Nothing live is not an error: a lab that has not checked in has nothing to carry.
+    #[test]
+    fn syncing_with_no_live_shard_is_a_no_op_not_a_failure() {
+        let f = Fixture::new();
+        let report = sync_live_to_committed(&f.paths, "deepseek", "2026-10").expect("sync");
+        assert_eq!(report.added, 0);
+        assert!(!report.wrote);
+    }
+
+    /// Each lab syncs its OWN shard. A sync that wrote into another lab's shard would attribute one
+    /// lab's work to another.
+    #[test]
+    fn sync_is_scoped_to_one_lab() {
+        let f = Fixture::new();
+        append_live(
+            &f.paths,
+            &receipt("kimi", "heartbeat", "2026-10-13T09:00:00-04:00"),
+            "2026-10",
+        )
+        .expect("append");
+        let report = sync_live_to_committed(&f.paths, "deepseek", "2026-10").expect("sync");
+        assert_eq!(
+            report.added, 0,
+            "kimi's receipts are not deepseek's to carry"
+        );
+        assert!(report.shard.contains("deepseek"));
+    }
+}

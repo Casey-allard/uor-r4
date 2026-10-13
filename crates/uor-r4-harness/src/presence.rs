@@ -24,7 +24,13 @@ use serde_json::{Map, Value};
 use crate::state::{slug, StatePaths};
 
 /// A presence record older than this reads STALE, never live.
-pub const PRESENCE_TTL_MINUTES: i64 = 30;
+/// How long a check-in stays current.
+///
+/// **Five minutes**, on the owner's direction (13 October): every lab checks in at least this often
+/// so every other lab can see its status, and the board calls a lab STALE when it goes quiet for
+/// longer. Thirty minutes was too coarse - it made a lab that stopped checking in look present while
+/// three other labs had moved on.
+pub const PRESENCE_TTL_MINUTES: i64 = 5;
 
 /// The per-lab check-in.
 #[derive(Debug, Clone)]
@@ -137,10 +143,16 @@ pub fn heartbeat(
     presence: &Presence,
 ) -> Result<(bool, std::path::PathBuf), String> {
     presence.validate()?;
-    let durable = paths.durable_presence(&presence.lab);
-    publish_durable(paths, presence)?;
-    let live_ok = publish_live(paths, presence).is_ok();
-    Ok((live_ok, durable))
+    // LIVE TIER ONLY. A check-in every few minutes must never dirty a working checkout: the live
+    // directory is shared by every lab on this machine, so a write there is immediately visible to
+    // all of them, and the owner checkout stays clean (R10).
+    //
+    // The durable presence file is no longer written. It was a second copy of a record that is
+    // already durable elsewhere - the ledger shard, which rides the delivery PR - so writing it
+    // bought nothing and cost a checkout modification on every check-in.
+    let live = paths.live_presence(&presence.lab);
+    publish_live(paths, presence)?;
+    Ok((true, live))
 }
 
 /// The current git branch, or an empty string when it cannot be read.
@@ -205,21 +217,26 @@ mod tests {
     /// The committed record is the commitment; the live tier is an optimisation. A read-only or
     /// missing shared directory must never fail a lab's check-in.
     #[test]
-    fn an_unwritable_live_tier_does_not_fail_the_check_in() {
-        // The paths from the helper are replaced below; only the scratch dir is needed.
+    fn an_unwritable_live_tier_is_an_error_not_a_silent_success() {
+        // The live tier is now the ONLY write path. When it cannot be written there is no record at
+        // all, so the check-in must FAIL rather than report success - a check-in that says "checked
+        // in" while recording nothing is worse than one that refuses, because the lab believes it is
+        // visible when no other lab can see it.
+        //
+        // This replaced a test asserting the opposite, from when a durable tier still existed as a
+        // fallback. Removing that fallback is what makes this an error.
         let (_, dir) = tmp_paths("readonly");
         // Point the live tier at a path that cannot be created: a file where a directory must be.
         let blocked = dir.join("blocked");
         fs::write(&blocked, "not a directory").expect("scratch file");
         let paths = StatePaths::resolve(&dir, None, Some(blocked.to_str().unwrap()));
         let p = Presence::new(&paths, "kimi", "m1");
-        let (live_ok, durable) = heartbeat(&paths, &p).expect("a check-in must still succeed");
+        let err =
+            heartbeat(&paths, &p).expect_err("an unwritable live tier must not report success");
         assert!(
-            !live_ok,
-            "the live write should be reported as failed, not fatal"
+            err.contains("presence") || err.contains("blocked"),
+            "the error must name the path that failed: {err}"
         );
-        assert!(durable.is_file(), "the record must still be written");
-        let _ = fs::remove_dir_all(&dir);
     }
 
     #[test]
@@ -286,7 +303,7 @@ mod tests {
         let (paths, dir) = tmp_paths("atomic");
         let p = Presence::new(&paths, "kimi", "m1");
         heartbeat(&paths, &p).expect("heartbeat");
-        let leftovers: Vec<_> = fs::read_dir(paths.durable_presence_dir())
+        let leftovers: Vec<_> = fs::read_dir(paths.live_presence_dir())
             .expect("dir")
             .flatten()
             .filter(|e| e.path().extension().is_some_and(|x| x == "tmp"))

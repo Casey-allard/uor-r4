@@ -15,7 +15,9 @@ use uor_r4_harness::briefing;
 use uor_r4_harness::onboard::{detect_runtime, onboard};
 use uor_r4_harness::prep::{check_all, SheetReport};
 use uor_r4_harness::presence::{heartbeat, Presence};
-use uor_r4_harness::receipt::{append, current_month, Receipt as NewReceipt};
+use uor_r4_harness::receipt::{
+    append, append_live, current_month, sync_live_to_committed, Receipt as NewReceipt,
+};
 use uor_r4_harness::registries::Registries;
 use uor_r4_harness::shards;
 use uor_r4_harness::state::{read_ledger, PresenceRow, StatePaths};
@@ -93,7 +95,10 @@ COMMANDS:
     ledger      Receipt counts by lab and kind.
     receipt     Append one receipt to this lab's shard. The first WRITE on the
                 Rust side; use --dry-run to see the line without recording it.
-    heartbeat   Check in: publish presence to both tiers and record a receipt.
+    heartbeat   Check in: publish presence and append a receipt, both to the LIVE
+                tier, so a check-in never dirties a working checkout (R10).
+    ledger-sync Append this lab's live receipts into the committed shard. Run
+                before opening a PR so the record reaches review. Append-only.
                 Use --dry-run to see what would be written.
     prep-check  Read every pre-registration sheet: its TEST FITNESS verdict and
                 which required blocks are missing. The read half of the D22 gate.
@@ -209,6 +214,7 @@ fn main() -> ExitCode {
         Some("ledger") => cmd_ledger(&repo, json),
         Some("receipt") => cmd_receipt(&repo, &rest, json),
         Some("heartbeat") => cmd_heartbeat(&repo, &rest, json),
+        Some("ledger-sync") => cmd_ledger_sync(&repo, &rest, json),
         Some("prep-check") => cmd_prep_check(&repo, json),
         Some("registry") => cmd_registry(&repo, json),
         Some("prep-render") => cmd_prep_render(&repo, &rest),
@@ -296,6 +302,50 @@ fn flag_value(args: &[String], name: &str) -> Option<String> {
     None
 }
 
+/// `ledger sync [--lab L] [--month M]` - append live receipts into the committed shard.
+///
+/// The delivery step. Run it before opening a PR so the receipts recorded since the last delivery
+/// reach the committed record that review sees.
+fn cmd_ledger_sync(repo: &Path, args: &[String], json: bool) -> ExitCode {
+    let paths = StatePaths::from_env(repo);
+    let month = flag_value(args, "--month").unwrap_or_else(current_month);
+    let lab = match flag_value(args, "--lab").or_else(|| std::env::var("UOR_LAB").ok()) {
+        Some(l) if !l.trim().is_empty() => l,
+        _ => {
+            eprintln!(
+                "uor-harness: which lab? pass --lab or set UOR_LAB. A sync with no lab would carry \
+                 nobody's receipts and report success."
+            );
+            return ExitCode::from(2);
+        }
+    };
+    match sync_live_to_committed(&paths, &lab, &month) {
+        Ok(r) => {
+            if json {
+                println!(
+                    "{{\"shard\": {:?}, \"added\": {}, \"already_committed\": {}, \"wrote\": {}}}",
+                    r.shard, r.added, r.already_committed, r.wrote
+                );
+            } else if r.added == 0 {
+                println!(
+                    "ledger sync: nothing to add for {lab} in {month} ({} live receipt(s) already committed)",
+                    r.already_committed
+                );
+            } else {
+                println!(
+                    "ledger sync: appended {} receipt(s) to {} ({} already committed)",
+                    r.added, r.shard, r.already_committed
+                );
+            }
+            ExitCode::SUCCESS
+        }
+        Err(e) => {
+            eprintln!("uor-harness: {e}");
+            ExitCode::from(1)
+        }
+    }
+}
+
 fn cmd_heartbeat(repo: &Path, args: &[String], json: bool) -> ExitCode {
     let paths = StatePaths::from_env(repo);
     let lab = flag_value(args, "--lab")
@@ -336,7 +386,9 @@ fn cmd_heartbeat(repo: &Path, args: &[String], json: bool) -> ExitCode {
         r = r.with("next", p.next.clone());
     }
     let month = current_month();
-    let shard = match append(&paths, &r, &month) {
+    // LIVE shard: a check-in every five minutes must never dirty a working checkout. `ledger sync`
+    // carries these lines into the committed shard before a PR, so the record still reaches review.
+    let shard = match append_live(&paths, &r, &month) {
         Ok(s) => s,
         Err(e) => {
             eprintln!("uor-harness: {e}");
