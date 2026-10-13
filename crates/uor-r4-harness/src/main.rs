@@ -20,7 +20,7 @@ use uor_r4_harness::state::{read_ledger, PresenceRow, StatePaths};
 use uor_r4_harness::Contract;
 
 /// Flags that only a subcommand understands, forwarded rather than rejected at the top level.
-const SUBCOMMAND_FLAGS: [&str; 13] = [
+const SUBCOMMAND_FLAGS: [&str; 23] = [
     "--kind",
     "--milestone",
     "-m",
@@ -34,10 +34,20 @@ const SUBCOMMAND_FLAGS: [&str; 13] = [
     "--dry-run",
     "--doing",
     "--next",
+    "--date",
+    "--mechanism",
+    "--bar",
+    "--base",
+    "--split",
+    "--steps",
+    "--stop",
+    "--cost",
+    "--seeds",
+    "--rows",
 ];
 
 /// The subset that takes a value, so the value is not mistaken for a command.
-const SUBCOMMAND_VALUE_FLAGS: [&str; 12] = [
+const SUBCOMMAND_VALUE_FLAGS: [&str; 22] = [
     "--kind",
     "--milestone",
     "-m",
@@ -50,6 +60,16 @@ const SUBCOMMAND_VALUE_FLAGS: [&str; 12] = [
     "--run",
     "--doing",
     "--next",
+    "--date",
+    "--mechanism",
+    "--bar",
+    "--base",
+    "--split",
+    "--steps",
+    "--stop",
+    "--cost",
+    "--seeds",
+    "--rows",
 ];
 
 const USAGE: &str = "\
@@ -76,6 +96,8 @@ COMMANDS:
     registry    The milestone registry as this implementation reads it: headline,
                 panel and line counts per milestone. Compared against Python by
                 parity.py, because the headline is the number a run is scored on.
+    prep-render Render a pre-registration sheet to stdout without writing it. The
+                WRITE half of the D22 gate, checked byte-for-byte against Python.
     help        This text.
 
 The Python harness owns behaviour until this path passes the same checks; the
@@ -173,6 +195,7 @@ fn main() -> ExitCode {
         Some("heartbeat") => cmd_heartbeat(&repo, &rest, json),
         Some("prep-check") => cmd_prep_check(&repo, json),
         Some("registry") => cmd_registry(&repo, json),
+        Some("prep-render") => cmd_prep_render(&repo, &rest),
         Some(other) => {
             eprintln!("uor-harness: unknown command {other}\n\n{USAGE}");
             ExitCode::from(2)
@@ -325,6 +348,47 @@ fn cmd_heartbeat(repo: &Path, args: &[String], json: bool) -> ExitCode {
             );
         }
     }
+    ExitCode::SUCCESS
+}
+
+fn cmd_prep_render(repo: &Path, args: &[String]) -> ExitCode {
+    use uor_r4_harness::prep::{render_sheet, NewSheet};
+
+    let paths = StatePaths::from_env(repo);
+    let regs = match Registries::load(&paths) {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("uor-harness: {e}");
+            return ExitCode::from(2);
+        }
+    };
+    let key = flag_value(args, "--milestone")
+        .or_else(|| flag_value(args, "-m"))
+        .unwrap_or_default();
+    let Some(m) = regs.milestone(&key) else {
+        eprintln!("uor-harness: no milestone {key:?}; try `uor-harness registry`");
+        return ExitCode::from(2);
+    };
+    let panel = regs.panel_for(m);
+    let sheet = NewSheet {
+        date: flag_value(args, "--date").unwrap_or_default(),
+        mechanism: flag_value(args, "--mechanism").unwrap_or_default(),
+        run: flag_value(args, "--run").unwrap_or_default(),
+        bar: flag_value(args, "--bar").unwrap_or_default(),
+        base: flag_value(args, "--base").unwrap_or_default(),
+        split: flag_value(args, "--split").unwrap_or_default(),
+        steps: flag_value(args, "--steps").unwrap_or_default(),
+        stop: flag_value(args, "--stop").unwrap_or_default(),
+        cost: flag_value(args, "--cost").unwrap_or_default(),
+        seeds: flag_value(args, "--seeds").and_then(|v| v.parse().ok()),
+        rows: flag_value(args, "--rows").and_then(|v| v.parse().ok()),
+    };
+    // Prints, never writes. `prep new` writing files is a separate decision, and a renderer that
+    // writes on its first outing is one nobody can inspect before it does.
+    print!(
+        "{}",
+        render_sheet(&sheet, m, panel, &|id| regs.rule(id), &paths)
+    );
     ExitCode::SUCCESS
 }
 

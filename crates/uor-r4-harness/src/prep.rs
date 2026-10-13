@@ -402,3 +402,330 @@ TEST FITNESS: FIT
         }
     }
 }
+
+// ---------------------------------------------------------------------------------- rendering
+
+/// The cost buckets a run must charge, in the session-goal contract's own breakdown.
+pub const COST_BUCKETS: [&str; 6] = [
+    "preparation",
+    "run",
+    "controls",
+    "evaluation",
+    "retries",
+    "storage",
+];
+
+/// Owner rules that apply to every pre-registration.
+pub const APPLICABLE_RULES: [&str; 4] = ["D21", "D22", "D23", "D24"];
+
+/// D22 section 3: the minimum test power a decisive run must state.
+pub const MIN_SEEDS: u32 = 2;
+pub const MIN_ROWS: u32 = 200;
+
+/// Owner caps (AGENTS.md "GPU pods").
+pub const POD_CAP: u32 = 4;
+pub const RATE_CAP_USD_PER_H: f64 = 8.00;
+pub const STORAGE_MARGIN_MIB: u32 = 128;
+
+/// What a lab supplies for a new sheet. Every field is optional; a missing one renders as
+/// `MISSING`, which is the point — the sheet shows what still has to be decided.
+#[derive(Debug, Clone, Default)]
+pub struct NewSheet {
+    /// Empty means "today", which the renderer fills in. A caller that has to supply the date is a
+    /// caller that can get it wrong, and the date is part of the sheet's identity.
+    pub date: String,
+    pub mechanism: String,
+    pub run: String,
+    pub bar: String,
+    pub base: String,
+    pub split: String,
+    pub steps: String,
+    pub stop: String,
+    pub cost: String,
+    pub seeds: Option<u32>,
+    pub rows: Option<u32>,
+}
+
+/// Whether the sheet describes model work, which decides the D24 placement text.
+///
+/// A heuristic over the lab's own words, and deliberately crude: the alternative is asking for a
+/// flag, and a lab that forgot the flag would get the wrong placement text on the one document that
+/// exists to fix the plan before compute.
+fn looks_like_model_work(s: &NewSheet) -> bool {
+    let text = format!("{} {} {} {} {}", s.run, s.steps, s.bar, s.mechanism, s.stop).to_lowercase();
+    [
+        "train",
+        "fit",
+        "finetune",
+        "fine-tune",
+        "gpu",
+        "cuda",
+        "seed",
+        "checkpoint",
+    ]
+    .iter()
+    .any(|t| text.contains(t))
+}
+
+/// Render a pre-registration sheet.
+///
+/// Byte-for-byte the same text Python produces for the same inputs — that is the property the port
+/// is verified on, because a sheet is a document two implementations must agree about. It is
+/// compared in `parity.py`, not assumed.
+pub fn render_sheet(
+    sheet: &NewSheet,
+    milestone: &crate::registries::Milestone,
+    panel: Option<&crate::registries::Panel>,
+    rules: &dyn Fn(&str) -> String,
+    paths: &StatePaths,
+) -> String {
+    let missing = |v: &str| -> String {
+        if v.trim().is_empty() {
+            "MISSING".to_string()
+        } else {
+            v.to_string()
+        }
+    };
+    let mechanism = sheet.mechanism.trim().to_string();
+    let line = milestone.lines.first();
+    let line_name = line
+        .map(|l| l.name.clone())
+        .unwrap_or_else(|| "MISSING".into());
+    let line_count = line
+        .map(|l| crate::registries::fmt_num(&l.count))
+        .unwrap_or_else(|| "MISSING".into());
+    let line_of = line
+        .map(|l| crate::registries::fmt_num(&l.of))
+        .unwrap_or_else(|| "3".into());
+
+    let mut out: Vec<String> = vec![
+        format!("# Pre-registration - {} ({})", milestone.id, missing(&mechanism)),
+        String::new(),
+        format!("- date: {}", if sheet.date.trim().is_empty() { today() } else { sheet.date.trim().to_string() }),
+        format!("- milestone: {} #{} - {}", milestone.id, milestone.issue, milestone.title),
+        format!("- mechanism: {}", missing(&mechanism)),
+        format!("- mechanism brief: {}", mechanism_path(paths, &mechanism)),
+        format!("- run: {}", missing(&sheet.run)),
+        format!(
+            "- line: {line_name} - count {line_count}/{line_of} (D21/D22 count is owned by the milestone, not this sheet)"
+        ),
+        String::new(),
+    ];
+
+    // Bar
+    out.push("## Bar (pre-registered)".into());
+    if sheet.bar.trim().is_empty() {
+        out.push("- bar: MISSING - a run without a pre-registered bar cannot be scored".into());
+    } else {
+        out.push(format!("- bar: {}", sheet.bar.trim()));
+    }
+    match panel {
+        Some(p) => {
+            out.push(format!(
+                "- panel: `{}` (grader: {}, frozen: {})",
+                p.id,
+                if p.grader.is_empty() {
+                    "MISSING"
+                } else {
+                    &p.grader
+                },
+                if p.frozen { "yes" } else { "NO" }
+            ));
+            out.push(format!(
+                "- panel noise: {}",
+                if p.noise.is_empty() {
+                    "MISSING"
+                } else {
+                    &p.noise
+                }
+            ));
+            out.extend(p.lines());
+            out.push("- no bar in this sheet may be narrower than the panel noise above (D22 section 3).".into());
+        }
+        None => out.push("- panel: MISSING - the milestone names no frozen panel".into()),
+    }
+
+    out.push(String::new());
+    out.push("## Base artifact".into());
+    let base = if !sheet.base.trim().is_empty() {
+        sheet.base.trim().to_string()
+    } else if !milestone.base_artifact.is_empty() {
+        milestone.base_artifact.clone()
+    } else {
+        "MISSING".into()
+    };
+    out.push(format!("- base: {base}"));
+    out.push(String::new());
+    out.push("## Data split".into());
+    out.push(format!("- split: {}", missing(&sheet.split)));
+    out.push(
+        "- training data never includes the frozen panel rows; scoring uses the frozen panel and, for a KEEP, a fresh held-out draw (D22 section 4)"
+            .into(),
+    );
+    out.push(String::new());
+    out.push("## Steps".into());
+    out.push(format!("- steps: {}", missing(&sheet.steps)));
+    out.push(String::new());
+
+    // Power (D22 section 3, explicit and checkable)
+    let decisive = sheet.seeds.unwrap_or(0) >= MIN_SEEDS || sheet.rows.unwrap_or(0) >= MIN_ROWS;
+    out.push("## Minimum test power (D22 section 3)".into());
+    out.push(format!(
+        "- seeds: {} (>= {MIN_SEEDS} seeds for a decisive run)",
+        sheet
+            .seeds
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| "MISSING".into())
+    ));
+    out.push(format!(
+        "- fresh rows: {} (>= {MIN_ROWS} fresh rows for a decisive run)",
+        sheet
+            .rows
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| "MISSING".into())
+    ));
+    out.push(format!(
+        "- decisive run: {} - D22 section 3 needs >= 2 seeds OR >= 200 fresh rows{}",
+        if decisive { "YES" } else { "NO" },
+        if decisive {
+            ""
+        } else {
+            " (raise --seeds or --rows before compute)"
+        }
+    ));
+    out.push(format!(
+        "- trained in rather than bolted on: {} - state the pretraining or the full fine-tune that gives the base time to adapt (a short add-on is a probe, not a decisive run)",
+        if decisive { "YES" } else { "MISSING" }
+    ));
+    out.push("- fresh-transfer plan for a KEEP: MISSING - every development KEEP also reports a fresh, held-out transfer number (D22 section 4)".into());
+    out.push("- noise floor: the bars above must not be narrower than the panel's stated noise; a single-row bar is not a bar".into());
+    out.push(String::new());
+
+    // Cost
+    let token = missing(&sheet.cost);
+    out.push("## Cost (charged cumulatively, before execution)".into());
+    for (bucket, detail) in [
+        ("preparation", "(context/data windows, threads, peak RAM)"),
+        ("run", "(wall time and steps; the whole job, not the first attempt)"),
+        ("controls", "(the no-mechanism control at the same recipe, steps and seeds)"),
+        ("evaluation", "(each checkpoint scored, plus the fresh held-out draw for a KEEP)"),
+        ("retries", "(diagnose, correct and retry within the remaining budget; a self-set budget is not a stop rule)"),
+        ("storage", "(temporary, retained, and the 128 MiB storage stop margin)"),
+    ] {
+        debug_assert!(COST_BUCKETS.contains(&bucket));
+        let _ = STORAGE_MARGIN_MIB;
+        out.push(format!("- {bucket}: {token} {detail}"));
+    }
+    if looks_like_model_work(sheet) {
+        out.push(
+            "- placement (D24): model compute is GPU work only - lease the GPUs you use through `scripts/pod/uor-pod run POD --lab L --session S --gpu K -- CMD`; no CPU model compute and no host fallback (a fallback is a defect to fix, not a cost to report)".into(),
+        );
+    } else {
+        out.push(
+            "- placement (D24): no model compute is planned; CPU-bound preparation, grading and checks run on the owner's laptop, and no GPU is requested for work that cannot change a decision".into(),
+        );
+    }
+    out.push("- pod/lease plan: MISSING - name the pod, the GPUs leased, `--hours` set to the whole job plus margin, the renew cadence, and the release-then-down step".into());
+    out.push(format!(
+        "- owner caps: <= {POD_CAP} running pods and <= ${RATE_CAP_USD_PER_H:.2}/h across all labs, all sessions; no new spending class without an owner decision (AGENTS.md, docs/labs/compute.md section Caps)"
+    ));
+    out.push(String::new());
+
+    out.push("## Stop rule".into());
+    out.push(format!("- stop: {}", missing(&sheet.stop)));
+    out.push("- self-set step/wall budgets are estimates, not stop rules: extend and renew rather than cancel a healthy run; the only hard stops are the owner caps, the disk floor and a failed or diverged run".into());
+    out.push(String::new());
+    out.push("## Owner rules that apply".into());
+    for rid in APPLICABLE_RULES {
+        let text = rules(rid);
+        if text.is_empty() {
+            out.push(format!(
+                "- {rid}: MISSING from docs/harness/milestones.json"
+            ));
+        } else {
+            out.push(format!("- {rid}: {text}"));
+        }
+    }
+    out.push("- D22: a negative closes this configuration only, never the mechanism; stopping a mechanism needs the owner.".into());
+    out.push(String::new());
+    out.push("## Panel target (milestone registry)".into());
+    out.push(format!("- headline: {}", milestone.headline_line()));
+    out.push(format!(
+        "- panel: {}",
+        if milestone.panel.is_empty() {
+            "MISSING"
+        } else {
+            &milestone.panel
+        }
+    ));
+    out.push(format!(
+        "- source: docs/harness/milestones.json (issue #{})",
+        milestone.issue
+    ));
+    out.push(String::new());
+    out.push("## Verdict".into());
+    out.push("TEST FITNESS: PENDING".into());
+
+    let mut text = out.join("\n");
+    text.push('\n');
+    text
+}
+
+/// The default filename for a new sheet: `<milestone>-<mechanism>-<date>.md`.
+pub fn default_sheet_name(milestone_key: &str, mechanism: &str, date: &str) -> String {
+    let m = crate::state::slug(milestone_key);
+    let mech = if mechanism.trim().is_empty() {
+        "no-mechanism".to_string()
+    } else {
+        crate::state::slug(mechanism)
+    };
+    format!("{m}-{mech}-{date}.md")
+}
+
+/// Where a mechanism's brief is, or why it is missing.
+///
+/// Python checks the file: a sheet that cites a brief which does not exist reads as prepared when it
+/// is not, and the brief is where the mechanism's idea and the fair test are stated. My first
+/// version returned the path whenever the mechanism name was non-empty — which is exactly the
+/// "looks fine, is wrong" failure a pre-registration exists to prevent.
+///
+/// The known briefs are listed on a miss, because the usual cause is a name that does not match one.
+fn mechanism_path(paths: &StatePaths, mechanism: &str) -> String {
+    if mechanism.is_empty() {
+        return "MISSING".to_string();
+    }
+    let rel = format!("docs/mechanisms/{mechanism}.md");
+    let dir = paths.repo.join("docs").join("mechanisms");
+    if dir.join(format!("{mechanism}.md")).is_file() {
+        return rel;
+    }
+    let mut known: Vec<String> = std::fs::read_dir(&dir)
+        .into_iter()
+        .flatten()
+        .flatten()
+        .filter(|e| e.path().extension().is_some_and(|x| x == "md"))
+        .filter_map(|e| {
+            e.path()
+                .file_stem()
+                .map(|s| s.to_string_lossy().to_string())
+        })
+        .collect();
+    known.sort();
+    format!(
+        "MISSING (no brief at {rel}; known: {})",
+        if known.is_empty() {
+            "none".to_string()
+        } else {
+            known.join(", ")
+        }
+    )
+}
+
+/// Today, in UTC, as `YYYY-MM-DD`.
+///
+/// UTC rather than local time, matching the shard-month rule: the sheet's date is part of its
+/// filename and its identity, and two labs on different offsets must not disagree about which day a
+/// pre-registration belongs to. The receipt keeps the local offset for readability.
+pub fn today() -> String {
+    crate::receipt::now_rfc3339()[..10].to_string()
+}

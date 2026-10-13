@@ -383,6 +383,54 @@ def registry_agreement(binary: Path) -> list[str]:
     return findings
 
 
+def render_agreement(binary: Path) -> list[str]:
+    """A rendered pre-registration sheet must be byte-identical in both implementations.
+
+    A sheet is a DOCUMENT two implementations must agree about — a lab may read one written by either,
+    and the D22 gate scores against it. A one-character difference in a bar or a target is a different
+    pre-registration, so this compares the whole text rather than selected fields.
+    """
+    import subprocess
+
+    findings: list[str] = []
+    code, rust_text, err = run([str(binary), "prep-render", "--repo", str(REPO), "-m", "m1",
+                                "--mechanism", "parity-probe"])
+    if code != 0:
+        findings.append(f"render agreement: the Rust renderer exited {code}: {err[:200]}")
+        return findings
+
+    probe = (
+        "import sys,types;"
+        "sys.path.insert(0,'scripts/harness');"
+        "import core,registries,prep;"
+        "p=core.HarnessPaths.discover(repo='.');"
+        "reg=registries.Registry.load(p);"
+        "m=reg.milestones.get('m1');"
+        "panel=registries.find_panel(reg.panels,m.panel) if m.panel else None;"
+        "a=types.SimpleNamespace(mechanism='parity-probe',run='',bar='',base='',split='',steps='',"
+        "stop='',cost='',seeds=None,rows=None);"
+        "sys.stdout.write(prep.render_sheet(a,p,reg,m,panel))"
+    )
+    proc = subprocess.run([sys.executable, "-c", probe], cwd=REPO, capture_output=True, text=True, timeout=300)
+    if proc.returncode != 0:
+        findings.append(f"render agreement: the Python renderer failed: {proc.stderr[:200]}")
+        return findings
+    py_text = proc.stdout
+
+    if rust_text != py_text:
+        # Report the first differing line: the whole diff is 4.7KB of prose and unreadable in a log.
+        r_lines, p_lines = rust_text.splitlines(), py_text.splitlines()
+        where = "length differs"
+        for i in range(max(len(r_lines), len(p_lines))):
+            r = r_lines[i] if i < len(r_lines) else "<nothing>"
+            q = p_lines[i] if i < len(p_lines) else "<nothing>"
+            if r != q:
+                where = f"line {i + 1}: rust {r[:90]!r} != python {q[:90]!r}"
+                break
+        findings.append(f"render agreement: sheets differ - {where}")
+    return findings
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Check Rust/Python harness parity on shared state.")
     ap.add_argument("--build", action="store_true", help="build the Rust binary first")
@@ -472,6 +520,8 @@ def main(argv: list[str] | None = None) -> int:
     findings.extend(prep)
     registry = registry_agreement(binary)
     findings.extend(registry)
+    render = render_agreement(binary)
+    findings.extend(render)
 
     if args.json:
         print(json.dumps({
@@ -481,6 +531,7 @@ def main(argv: list[str] | None = None) -> int:
             "write_interop": "ok" if not interop else "FAILED",
             "prep_agreement": "ok" if not prep else "FAILED",
             "registry_agreement": "ok" if not registry else "FAILED",
+            "render_agreement": "ok" if not render else "FAILED",
             "state_valid": not invalid,
             "binary": str(binary),
             "formats": len(r_formats),
@@ -507,6 +558,10 @@ def main(argv: list[str] | None = None) -> int:
         print(
             "  milestone headlines and line counts identical: "
             + ("ok" if not registry else f"FAILED ({len(registry)})")
+        )
+        print(
+            "  rendered pre-registration sheet identical: "
+            + ("ok" if not render else f"FAILED ({len(render)})")
         )
     return 1 if findings else 0
 
