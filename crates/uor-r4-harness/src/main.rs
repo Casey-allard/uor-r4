@@ -383,15 +383,19 @@ fn cmd_brief(repo: &Path, args: &[String]) -> ExitCode {
     let query = flag_value(args, "--query")
         .or_else(|| flag_value(args, "-q"))
         .unwrap_or_default();
-    let pack = briefing::assemble(&regs, milestone.as_deref(), &query);
+    let pack = if flag_value(args, "--section1-only").is_some() {
+        briefing::assemble(&regs, milestone.as_deref(), &query)
+    } else {
+        briefing::assemble_full(&regs, &paths, milestone.as_deref(), &query)
+    };
     print!("{}", pack.render());
     // The sections this port does not provide are STATED, not silently absent: a brief that omitted
     // the session contract would read as a brief with no session contract.
     println!();
     println!(
-        "*Not ported to Rust yet:* the session contract, the lab prompt, the governance decisions, \
-         the mechanism briefs and the receipt tail. `scripts/harness/cli.py brief` remains \
-         authoritative for those."
+        "*Not ported to Rust yet:* the lessons that apply (7) and the skills (8), which need the \
+         mistakes and skills registries. `scripts/harness/cli.py brief` remains authoritative for \
+         those two."
     );
     ExitCode::SUCCESS
 }

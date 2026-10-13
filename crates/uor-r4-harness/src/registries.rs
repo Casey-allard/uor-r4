@@ -224,6 +224,8 @@ pub struct Registries {
     pub owner_rules: Vec<Value>,
     pub milestones: Vec<Milestone>,
     pub panels: Vec<Panel>,
+    /// Owner decisions, parsed from `DECISIONS.md` (a view; the file is authoritative).
+    pub decisions: Vec<Decision>,
 }
 
 impl Registries {
@@ -262,6 +264,7 @@ impl Registries {
                 .unwrap_or_default(),
             milestones,
             panels: load_panels(paths),
+            decisions: load_decisions(paths),
         })
     }
 
@@ -646,5 +649,168 @@ mod tests {
     fn a_missing_registry_is_an_error() {
         let paths = StatePaths::resolve("/nonexistent-repo", None, Some("/nonexistent-live"));
         assert!(Registries::load(&paths).is_err());
+    }
+}
+
+// --------------------------------------------------------------------------- decisions
+//
+// `DECISIONS.md` headings parsed into a view. The FILE stays authoritative - this is a reader, and
+// the brief cites each decision by the line number it came from so a lab can go and read the source
+// rather than trusting the excerpt.
+
+/// One owner decision.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Decision {
+    pub id: String,
+    pub title: String,
+    /// 1-based line of the heading in `DECISIONS.md`.
+    pub line: usize,
+    pub body: String,
+    pub date: String,
+}
+
+/// `## D21 — title`, `## D21 - title` or `## D21: title`.
+///
+/// The separator varies in the file, so all three are accepted; a decision whose heading uses one
+/// the parser does not know would silently vanish from every brief that cites it.
+fn is_decision_heading(line: &str) -> Option<(String, String)> {
+    let rest = line.strip_prefix("## ")?;
+    let rest = rest.trim();
+    // The id is `D` followed by digits, optionally one lowercase letter (`D0-b` style is not used,
+    // but `D21a` is).
+    let mut chars = rest.char_indices();
+    let mut end = 0;
+    for (i, c) in chars.by_ref() {
+        if i == 0 && c != 'D' {
+            return None;
+        }
+        if i == 0 {
+            continue;
+        }
+        if c.is_ascii_digit() {
+            end = i + c.len_utf8();
+            continue;
+        }
+        if c.is_ascii_lowercase() && end > 0 {
+            end = i + c.len_utf8();
+        }
+        break;
+    }
+    if end == 0 {
+        return None;
+    }
+    let id = rest[..end].to_string();
+    let tail = rest[end..].trim_start();
+    let title = tail
+        .strip_prefix('—')
+        .or_else(|| tail.strip_prefix("--"))
+        .or_else(|| tail.strip_prefix('-'))
+        .or_else(|| tail.strip_prefix(':'))
+        .unwrap_or(tail)
+        .trim()
+        .to_string();
+    if title.is_empty() {
+        return None;
+    }
+    Some((id, title))
+}
+
+/// Parse `DECISIONS.md` into decisions. Empty when the file is absent, which is not an error: a
+/// checkout without it has no decisions to cite.
+pub fn load_decisions(paths: &StatePaths) -> Vec<Decision> {
+    let path = paths
+        .repo
+        .join("docs")
+        .join("integration")
+        .join("DECISIONS.md");
+    let Ok(text) = std::fs::read_to_string(&path) else {
+        return Vec::new();
+    };
+    parse_decisions(&text)
+}
+
+/// Split `DECISIONS.md` text into decisions.
+pub fn parse_decisions(text: &str) -> Vec<Decision> {
+    let lines: Vec<&str> = text.lines().collect();
+    let mut marks: Vec<(usize, String, String)> = Vec::new();
+    for (i, line) in lines.iter().enumerate() {
+        if let Some((id, title)) = is_decision_heading(line) {
+            marks.push((i, id, title));
+        }
+    }
+    let mut out = Vec::with_capacity(marks.len());
+    for (idx, (line_no, id, title)) in marks.iter().enumerate() {
+        let end = marks
+            .get(idx + 1)
+            .map(|(n, _, _)| *n)
+            .unwrap_or(lines.len());
+        let body = lines[line_no + 1..end].join("\n").trim().to_string();
+        // A date near the top of the body, as the file writes it (`13 October 2026`).
+        let date = body
+            .chars()
+            .take(400)
+            .collect::<String>()
+            .split_whitespace()
+            .collect::<Vec<_>>()
+            .windows(3)
+            .find(|w| {
+                w[0].chars().next().is_some_and(|c| c.is_ascii_digit())
+                    && w[2].len() == 4
+                    && w[2].starts_with("20")
+                    && w[1].chars().next().is_some_and(|c| c.is_ascii_alphabetic())
+            })
+            .map(|w| w.join(" "))
+            .unwrap_or_default();
+        out.push(Decision {
+            id: id.clone(),
+            title: title.clone(),
+            line: line_no + 1,
+            body,
+            date,
+        });
+    }
+    out
+}
+
+impl Registries {
+    /// A decision by id, case-insensitively.
+    pub fn decision(&self, key: &str) -> Option<&Decision> {
+        let k = key.trim().to_ascii_uppercase();
+        self.decisions
+            .iter()
+            .find(|d| d.id.to_ascii_uppercase() == k)
+    }
+
+    /// Decisions that plausibly govern a milestone: the owner rules' own ids first, then any decision
+    /// whose body names the milestone's issue or opens with its id.
+    ///
+    /// Two passes because they answer different questions. The first is "which rules are in force",
+    /// which is exact. The second is "what else talks about this milestone", which is a search and
+    /// therefore looser - so it only adds, and never displaces a named rule.
+    pub fn decisions_for(&self, milestone: Option<&Milestone>) -> Vec<&Decision> {
+        let mut out: Vec<&Decision> = Vec::new();
+        for rule in &self.owner_rules {
+            let Some(id) = rule.get("id").and_then(Value::as_str) else {
+                continue;
+            };
+            if let Some(d) = self.decision(id) {
+                if !out.iter().any(|x| x.id == d.id) {
+                    out.push(d);
+                }
+            }
+        }
+        if let Some(m) = milestone {
+            let issue = format!("#{}", m.issue);
+            for d in &self.decisions {
+                if out.iter().any(|x| x.id == d.id) {
+                    continue;
+                }
+                let head: String = d.body.chars().take(200).collect();
+                if d.body.contains(&issue) || head.contains(&m.id) {
+                    out.push(d);
+                }
+            }
+        }
+        out
     }
 }

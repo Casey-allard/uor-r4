@@ -242,6 +242,429 @@ pub fn assemble(regs: &Registries, milestone: Option<&str>, query: &str) -> Cont
     pack
 }
 
+// ------------------------------------------------------------------- prose extraction
+//
+// The rest of the brief is cut out of two prose documents. These are the readers. They are written to
+// FAIL LOUDLY by returning empty rather than by guessing: a contract that could not be found is
+// reported as missing, not rendered as a plausible-looking blank.
+
+/// The body of `## <heading>` (or `###`/`####`), or empty.
+///
+/// **A heading inside a blockquote, a fenced code block or an HTML comment is not a boundary.**
+/// `session-goal.md` carries `## Owner direction` lines inside quoted context, and treating those as
+/// boundaries truncates the contract mid-sentence — which would ship a brief that looks complete and
+/// is missing its binding clauses.
+pub fn first_markdown_section(text: &str, heading: &str) -> String {
+    let want = heading.trim().to_ascii_lowercase();
+    let lines: Vec<&str> = text.lines().collect();
+    let mut start: Option<usize> = None;
+    for (i, line) in lines.iter().enumerate() {
+        let t = line.trim();
+        let hashes = t.len() - t.trim_start_matches('#').len();
+        if (2..=4).contains(&hashes) {
+            let h = t[hashes..].trim();
+            if h.eq_ignore_ascii_case(&want) {
+                start = Some(i + 1);
+                break;
+            }
+        }
+    }
+    let Some(start) = start else {
+        return String::new();
+    };
+    let mut out: Vec<&str> = Vec::new();
+    let mut in_fence = false;
+    let mut in_comment = false;
+    for line in &lines[start..] {
+        let stripped = line.trim();
+        if stripped.starts_with("<!--") {
+            in_comment = true;
+        }
+        if in_comment {
+            out.push(line);
+            if stripped.contains("-->") {
+                in_comment = false;
+            }
+            continue;
+        }
+        if stripped.starts_with("```") {
+            in_fence = !in_fence;
+            out.push(line);
+            continue;
+        }
+        if line.starts_with('>') {
+            out.push(line);
+            continue;
+        }
+        let is_heading = {
+            let h = line.len() - line.trim_start_matches('#').len();
+            (2..=4).contains(&h) && line.trim_start_matches('#').starts_with(' ')
+        };
+        let indented_code = line.len() - line.trim_start_matches(' ').len() >= 4;
+        if !in_fence && is_heading && !indented_code {
+            break;
+        }
+        out.push(line);
+    }
+    out.join("\n").trim().to_string()
+}
+
+/// Split `text` on a marker, keeping the marker at the start of each piece.
+///
+/// A marker at position 0 does not split, or every list would begin with an empty piece.
+fn split_keep(text: &str, marker: &str) -> Vec<String> {
+    let mut parts: Vec<String> = Vec::new();
+    let mut last = 0usize;
+    let mut search = 0usize;
+    while let Some(rel) = text[search..].find(marker) {
+        let at = search + rel;
+        if at != 0 {
+            parts.push(text[last..at].to_string());
+            last = at;
+        }
+        search = at + marker.len();
+    }
+    parts.push(text[last..].to_string());
+    parts.into_iter().filter(|p| !p.trim().is_empty()).collect()
+}
+
+/// Clauses 1-10 of the session contract, reflowed one per line.
+///
+/// The source is one flowing paragraph per clause region with nested bullets inline. Reflowing is not
+/// cosmetic: unflowed, the contract renders as a wall that a lab skips, and the contract is the thing
+/// that binds the session.
+pub fn contract_list(session_goal: &str) -> String {
+    let mut body = first_markdown_section(session_goal, "The contract");
+    if body.is_empty() {
+        return String::new();
+    }
+    // The contract ends at the horizontal rule before the lab prompts.
+    if let Some(at) = body.lines().position(|l| {
+        let t = l.trim();
+        (t.len() >= 3) && (t.chars().all(|c| c == '-') || t.chars().all(|c| c == '*'))
+    }) {
+        let keep: Vec<&str> = body.lines().take(at).collect();
+        body = keep.join("\n");
+    }
+    let mut out: Vec<String> = Vec::new();
+    // Paragraphs, split on a blank line.
+    for para in body.split("\n\n") {
+        let trimmed = para.trim();
+        if trimmed.starts_with('|') || trimmed.starts_with('#') {
+            continue;
+        }
+        let joined = trimmed.split_whitespace().collect::<Vec<_>>().join(" ");
+        // Split so each clause STARTS with its own full stop. Splitting on `". **"` and keeping the
+        // marker (as Python does) leaves the stop on the front of each piece, so `1. **` needs no
+        // repair; adding one produced "1 . . **Your number.**". The separator is the leading space of
+        // `" . **"` - the same boundary, consumed instead of kept.
+        for chunk in split_keep(&joined, " . **") {
+            let chunk = chunk.trim();
+            if chunk.is_empty() {
+                continue;
+            }
+            let bullet_parts = split_keep(chunk, "- **");
+            let first = bullet_parts.first().cloned().unwrap_or_default();
+            let first = first.trim();
+            if !first.is_empty() {
+                out.push(first.to_string());
+            }
+            for b in bullet_parts.iter().skip(1) {
+                out.push(format!("   - {}", b.trim().trim_start_matches('-').trim()));
+            }
+        }
+    }
+    out.join("\n").trim().to_string()
+}
+
+/// The fenced ```text prompt for one lab.
+pub fn lab_prompt(session_goal: &str, lab: &str) -> String {
+    if lab.is_empty() {
+        return String::new();
+    }
+    let lowered = session_goal.to_ascii_lowercase();
+    let mut idx: Option<usize> = None;
+    for marker in [
+        format!("prompt for the {} lab", lab.to_ascii_lowercase()),
+        format!(
+            "prompt for the {} lab",
+            capitalize(lab).to_ascii_lowercase()
+        ),
+    ] {
+        if let Some(at) = lowered.find(&marker) {
+            idx = Some(at);
+            break;
+        }
+    }
+    let Some(idx) = idx else { return String::new() };
+    // Fences at or after the marker; the prompt is between the first pair.
+    let fences: Vec<usize> = session_goal
+        .match_indices("```")
+        .map(|(i, _)| i)
+        .filter(|i| *i >= idx)
+        .collect();
+    if fences.len() < 2 {
+        return String::new();
+    }
+    // The prompt body starts just after the opening fence's ``` - INCLUDING its language tag. The
+    // rendered brief begins "text Apply the common start prompt...", which reads oddly and is what
+    // Python produces; stripping the tag would be a silent difference between two tools that are
+    // supposed to agree about the same document.
+    let after_open = fences[0] + 3;
+    if after_open > fences[1] {
+        return String::new();
+    }
+    session_goal[after_open..fences[1]].trim().to_string()
+}
+
+fn capitalize(s: &str) -> String {
+    let mut c = s.chars();
+    match c.next() {
+        Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
+        None => String::new(),
+    }
+}
+
+/// Section size limits, matching the Python assembler. They bound how much of a prose document the
+/// brief quotes, so the pack stays readable in one sitting.
+pub const LIMIT_SESSION_GOAL: usize = 5200;
+pub const LIMIT_DECISION: usize = 2600;
+pub const LIMIT_PROMPT: usize = 2600;
+pub const LIMIT_MECHANISM: usize = 2000;
+pub const DEFAULT_BUDGET: usize = 14000;
+
+fn read_doc(path: &std::path::Path) -> String {
+    std::fs::read_to_string(path).unwrap_or_default()
+}
+
+/// The sections this port provides, in the order Python assembles them.
+///
+/// Sections 7 and 8 (the lessons and the skills) are NOT here: they need the mistakes and skills
+/// registries, which are separate Python modules and separate units of the port. The caller reports
+/// the remainder rather than letting the brief look complete.
+pub fn assemble_full(
+    regs: &Registries,
+    paths: &crate::state::StatePaths,
+    milestone: Option<&str>,
+    query: &str,
+) -> ContextPack {
+    let ms = milestone.and_then(|m| regs.milestone(m));
+    let mut pack = assemble(regs, milestone, query);
+
+    let session_goal_path = paths.repo.join("docs").join("labs").join("session-goal.md");
+    let session_goal = read_doc(&session_goal_path);
+
+    // 3. the contract
+    let contract = contract_list(&session_goal);
+    if !contract.is_empty() {
+        pack.add(
+            "Session contract (docs/labs/session-goal.md, clauses 1-10)",
+            &truncate(&contract, LIMIT_SESSION_GOAL),
+            "docs/labs/session-goal.md",
+            "binding on every session",
+        );
+    }
+    if let Some(m) = ms {
+        let prompt = lab_prompt(&session_goal, &m.lab);
+        if !prompt.is_empty() {
+            pack.add(
+                format!("The {} lab prompt (the FINISH LINE clause)", m.lab),
+                &truncate(&prompt, LIMIT_PROMPT),
+                "docs/labs/session-goal.md",
+                &format!("this milestone's lab is {}", m.lab),
+            );
+        }
+    }
+
+    // 4. governance
+    for d in regs.decisions_for(ms) {
+        pack.add(
+            format!("Decision {} - {}", d.id, d.title),
+            &truncate(&d.body, LIMIT_DECISION),
+            &format!("docs/integration/DECISIONS.md#L{}", d.line),
+            "governs this milestone",
+        );
+    }
+
+    // 5. the mechanisms
+    if let Some(m) = ms {
+        for mech in &m.mechanisms {
+            let brief = paths
+                .repo
+                .join("docs")
+                .join("mechanisms")
+                .join(format!("{mech}.md"));
+            let text = read_doc(&brief);
+            if text.is_empty() {
+                pack.dropped.push((
+                    format!("docs/mechanisms/{mech}.md"),
+                    "brief not found".to_string(),
+                ));
+                continue;
+            }
+            let mut body = truncate(&text, LIMIT_MECHANISM);
+            let fair = first_markdown_section(&text, "A fair test needs");
+            if !fair.is_empty() {
+                body.push_str(&format!(
+                    "\n\n### A fair test needs (verbatim)\n\n{}",
+                    truncate(&fair, 900)
+                ));
+            }
+            pack.add(
+                format!("Mechanism brief: {mech}"),
+                &body,
+                &format!("docs/mechanisms/{mech}.md"),
+                "named by the milestone",
+            );
+        }
+    }
+
+    // 6. the panel
+    if let Some(m) = ms {
+        match regs.panel_for(m) {
+            Some(panel) => {
+                let mut rows = vec![
+                    format!(
+                        "- Panel `{}` - {} (frozen: {})",
+                        panel.id,
+                        panel.title,
+                        if panel.frozen { "True" } else { "False" }
+                    ),
+                    format!("- Grader: `{}`", panel.grader),
+                ];
+                if !panel.noise.is_empty() {
+                    rows.push(format!("- Panel noise: {}", panel.noise));
+                }
+                if !panel.seeds.is_empty() {
+                    rows.push(format!("- Seeds: {}", panel.seeds));
+                }
+                if !panel.rows.is_empty() {
+                    rows.push(format!("- Rows: {}", panel.rows));
+                }
+                for bar in &panel.bars {
+                    let of = if bar.of.is_null() || bar.of.as_str() == Some("") {
+                        String::new()
+                    } else {
+                        format!("/{}", crate::registries::fmt_num(&bar.of))
+                    };
+                    rows.push(format!(
+                        "- Bar `{}`: {} {}{of} -> target {}{of}",
+                        bar.id,
+                        bar.label,
+                        crate::registries::fmt_num(&bar.current),
+                        crate::registries::fmt_num(&bar.target)
+                    ));
+                }
+                pack.add(
+                    "Frozen acceptance panel",
+                    &rows.join("\n"),
+                    &format!("docs/harness/panels/{}.json", panel.id),
+                    "scores this milestone",
+                );
+            }
+            None => pack.dropped.push((
+                format!("panel {}", m.panel),
+                "no panel file found under docs/harness/panels/".to_string(),
+            )),
+        }
+    }
+
+    // 9. what is being worked on right now
+    let now = crate::receipt::now_rfc3339();
+    let recent =
+        crate::status::receipt_rows(paths, &now[..7], &crate::status::previous_month(&now[..7]));
+    let cutoff = crate::state::parse_iso_unix(&now).unwrap_or(0) - 24 * 3600;
+    let in_24h: Vec<&Value> = recent
+        .iter()
+        .filter(|r| {
+            r.get("ts")
+                .and_then(Value::as_str)
+                .and_then(crate::state::parse_iso_unix)
+                .is_some_and(|t| t >= cutoff)
+        })
+        .collect();
+    if !in_24h.is_empty() {
+        let rows: Vec<String> = in_24h
+            .iter()
+            .rev()
+            .take(6)
+            .rev()
+            .map(|r| {
+                let fields: Vec<String> = r
+                    .as_object()
+                    .map(|o| {
+                        o.iter()
+                            .filter(|(k, _)| {
+                                !["ts", "kind", "schema", "event", "_file"].contains(&k.as_str())
+                            })
+                            .map(|(k, v)| {
+                                // Rendered the way Python's f-string renders it: `True`, not `true`.
+                                // A brief that says `posted=false` where the other tool says
+                                // `posted=False` is two tools disagreeing about the same receipt.
+                                let v = match v {
+                                    Value::String(s) => s.clone(),
+                                    Value::Bool(b) => {
+                                        if *b {
+                                            "True".into()
+                                        } else {
+                                            "False".into()
+                                        }
+                                    }
+                                    other => other.to_string(),
+                                };
+                                format!("{k}={v}")
+                            })
+                            .collect()
+                    })
+                    .unwrap_or_default();
+                format!(
+                    "- {} `{}` {}",
+                    r.get("ts").and_then(Value::as_str).unwrap_or("?"),
+                    r.get("kind").and_then(Value::as_str).unwrap_or(""),
+                    fields.join(" ")
+                )
+            })
+            .collect();
+        pack.add(
+            "Receipts in the last 24h (what actually ran)",
+            &rows.join("\n"),
+            "docs/harness/ledger/",
+            "orchestration visibility",
+        );
+    }
+
+    // 10. the task itself, and the loop
+    if !query.is_empty() {
+        pack.add(
+            "The task as stated",
+            query,
+            "cli --query",
+            "supplied by the caller",
+        );
+    }
+    pack.add(
+        "How to use this brief",
+        "1. Post a status card on the milestone issue before changing anything.\n\
+         2. Load the skills listed above with `skill use` so the work is visible.\n\
+         3. Pre-register any compute with `prep new`, and get `TEST FITNESS: FIT` before running it.\n\
+         4. When done, write the dated record and the current-state entry, then `lint check` the PR body.",
+        "docs/harness/README.md",
+        "the loop",
+    );
+
+    if pack.tokens() > DEFAULT_BUDGET {
+        pack.dropped.push((
+            "budget".to_string(),
+            format!(
+                "pack is ~{} tokens against a {DEFAULT_BUDGET} budget; drop the lowest-value section \
+                 (mechanism detail first) or raise --budget-tokens",
+                pack.tokens()
+            ),
+        ));
+    }
+    pack
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
