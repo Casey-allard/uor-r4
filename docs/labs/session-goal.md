@@ -86,9 +86,11 @@ has the surface, [docs/harness/CONTRACT.md](../harness/CONTRACT.md) every rule a
    preserve the owner-directed operator implementation dependency without a
    count reset. Do not split a diagnosis into endless preparation PRs; every source deliverable
    names the integrated dependency it unblocks. Existing D21 pivot obligations stay.
-9. Status every 90 minutes or three merged PRs: headline · count · blocker · next
-   decision/dependency. Claims/heartbeats/checkpoints follow the protocol (5/20/30
-   minutes) without heartbeat spam on milestones; pod leases go to #2037.
+9. Status at least every five minutes while active (live-tier since #2327; the
+   Rust `uor-harness heartbeat` is the only implementation): headline · count ·
+   blocker · next decision/dependency. Claims/heartbeats/checkpoints follow the
+   protocol (5/20/30 minutes) without heartbeat spam on milestones; pod leases go
+   to #2037.
 
 10. **Delivery rules stay as they are**: retain protected delivery, source-bound
     checks/review, no main bypass, verified preservation and owned cleanup.

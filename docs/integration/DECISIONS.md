@@ -1397,3 +1397,33 @@ end system"* ([#2028 comment 6147245657](https://github.com/UOR-Foundation/uor-r
   older instruction implying a transformer baseline arm in active rungs.
 - **Nothing here is retroactive.** Historical transformer-comparator evidence keeps
   its scope as dated records, and nothing is deleted.
+
+## D29 — No banned mechanism in any compiled or loaded module; vendor-runtime content counts
+
+**Authority, October 13:** Casey, relayed via the Kimi PM. Extends D23/D24: it is
+not sufficient that a banned kernel is never launched.
+
+- **Banned mechanisms must not exist in any NVRTC-compiled module, linked vendor
+  call path (cuBLAS/cuDNN) or executed host fallback** - softmax, softplus,
+  sigmoid, tanh and exp-family squashing; matmul/dense GEMM including tensor-core
+  `mma`/`wmma` contractions. **The compiled-module surface is the compliance
+  boundary: presence counts, not only execution.**
+- **NVRTC remains the CUDA compiler** for the compliant kernels; what is
+  eliminated is banned content inside compiled sources. `CUDA_STACK_SOURCE`
+  (`crates/uor-r4-training/src/cuda_stack_kernels.rs`) is split so the rung-0
+  module compiles only compliant kernels; historical kernels (read/flash softmax,
+  cross-entropy, fused sigmoid/exp/GELU recurrence, pointer mixture) are excluded
+  from compiled modules and preserved as source evidence. **Nothing is deleted.**
+- **Every track is in scope**: the rung-0 trunk, the Line-B native learner
+  (`crates/uor-r4-core/src/native_geometric`), D11's integer-engine exp-table
+  masses, and tooling. Historical/retired arms remain reachable only through
+  configs the guards reject, and are D23/D25/D29-prohibited for new runs.
+- **Enforcement (in progress on DeepSeek's harness line).**
+  `scripts/check_no_matmul.py` is wired into prlint and CI, and the semantic path
+  checker extends to CUDA raw-string kernel sources so NVRTC content is
+  semantically gated, not only word-counted.
+- **Consequence.** Rung-0 execution waits for the compliant-module split (or an
+  explicit owner waiver); the FIT sheet pins source identity at execution, and the
+  executed module must not contain banned kernels.
+- **Assignments.** Claude builds the replacements and the module split; Codex
+  reviews and re-qualifies; the Kimi PM routes.

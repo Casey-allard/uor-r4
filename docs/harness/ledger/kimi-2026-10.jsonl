@@ -29,3 +29,4 @@
 {"branch": "kimi/rung0-sheet-amend5-20261013", "kind": "claim", "lab": "kimi", "schema": 1, "ts": "2026-10-13T08:36:28-04:00"}
 {"count": "1/3", "event": "harness_heartbeat", "headline": "M1: reply acceptable 37/232 -> target 116/232", "kind": "heartbeat", "lab": "kimi", "line": "evaluation integrity", "milestone": "m1", "next": "Amendment 5: count-predictor reference rescoped to train-split response-target frequencies per Claude's verified CONTEST; verdict reverts to PENDING pending the code fix + re-review", "posted": false, "schema": 1, "ts": "2026-10-13T08:36:29-04:00"}
 {"branch": "kimi/rung0-sheet-amend6-20261013", "kind": "claim", "lab": "kimi", "schema": 1, "ts": "2026-10-13T09:46:17-04:00"}
+{"branch": "kimi/d29-compiled-module-compliance", "kind": "claim", "lab": "kimi", "schema": 1, "ts": "2026-10-13T11:01:11-04:00"}

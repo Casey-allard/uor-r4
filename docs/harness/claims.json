@@ -13,10 +13,10 @@
     "lab": "codex",
     "note": ""
   },
-  "kimi/d28-r3-sync-20261013": {
-    "branch": "kimi/d28-r3-sync-20261013",
-    "claimed_at": "2026-10-13T10:00:56-04:00",
-    "head": "be5d8cd6e",
+  "kimi/d29-compiled-module-compliance": {
+    "branch": "kimi/d29-compiled-module-compliance",
+    "claimed_at": "2026-10-13T11:01:11-04:00",
+    "head": "56eb7551f",
     "lab": "kimi",
     "note": ""
   }

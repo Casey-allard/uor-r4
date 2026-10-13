@@ -9,7 +9,7 @@ Every three hours, an audit run checks **all labs, the Claude lab included**, ag
 
 ## What each run checks, per lab, since the previous audit card
 
-1. **Status cards:** a card on the lab's milestone issue at least every 90 minutes while it is merging PRs.
+1. **Status cards:** a card on the lab's milestone issue at least every five minutes while active (live-tier heartbeats since #2327; the Rust `uor-harness heartbeat` is the only implementation).
 2. **Line declaration:** every PR states `Line · count n/3 · headline before → after`.
 3. **Count:**
    - no line goes past 3/3 without a pivot card;
