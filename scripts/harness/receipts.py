@@ -19,7 +19,19 @@ import re
 from core import HarnessPaths, append_jsonl, now_iso, read_jsonl, redact, run
 from checkrules import Rule, RuleResult, register as register_rule
 
-KINDS = ("skill", "team", "heartbeat", "context", "prep", "pr", "check", "claim", "release")
+#: The kinds a receipt may carry. AUTHORITATIVE - the Rust side, the readers and the tests all
+#: resolve against this one tuple.
+#:
+#: `receipt` is the generic kind: what `uor-harness receipt` records when the caller supplies no
+#: `--kind`. It was missing, which made the generic command emit a record this validator REJECTS -
+#: every time it ran without an explicit kind, including the onboarding exercise. Codex found it as
+#: `unknown kind receipt` failing advisory CI on #2328.
+#:
+#: The fix is here rather than in the default, and the reason matters: `receipt` is documented as a
+#: kind in the Rust source, the generic command exists for exactly this, and parity.py already drives
+#: it. Renaming the default would have been a second name for the same thing. **A command must never
+#: be able to create a record its own checker rejects.**
+KINDS = ("skill", "team", "heartbeat", "context", "prep", "pr", "check", "claim", "release", "receipt")
 EVENT_TYPES = {"skill": "harness_skill_used", "team": "harness_team_dispatched", "heartbeat": "harness_heartbeat"}
 
 #: fields that are never worth storing, and must never be stored if they look secret

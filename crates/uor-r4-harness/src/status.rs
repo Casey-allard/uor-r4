@@ -622,7 +622,7 @@ pub const RECEIPT_KINDS: [&str; 6] = ["skill", "team", "heartbeat", "context", "
 
 /// Kinds `receipts.read` accepts. Wider than the counted set on purpose: claim/release/check are
 /// recorded but roll into `other` in the view.
-pub const ALL_KINDS: [&str; 9] = [
+pub const ALL_KINDS: [&str; 10] = [
     "skill",
     "team",
     "heartbeat",
@@ -632,6 +632,11 @@ pub const ALL_KINDS: [&str; 9] = [
     "check",
     "claim",
     "release",
+    // The generic kind the Rust `receipt` command records when no `--kind` is given. It was missing
+    // here AND from the Python set, so this reader silently dropped one receipt the Python reader
+    // counted - a one-row difference in the roll-up that `parity.py` caught the moment the Python
+    // set was corrected. Mirrors `receipts.KINDS`, which is authoritative.
+    "receipt",
 ];
 
 /// Hours after which a milestone with no receipt is flagged. The owner's check-in cadence is 90

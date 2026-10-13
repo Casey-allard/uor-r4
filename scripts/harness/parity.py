@@ -656,6 +656,66 @@ def brief_agreement(binary: Path) -> list[str]:
     return findings
 
 
+def constants_agreement(binary: Path) -> list[str]:
+    """Shared constants must be equal in both implementations, and both must accept every kind.
+
+    These are the values two implementations hand to labs. When they disagree, the DISAGREEMENT is
+    invisible - each side is self-consistent - and the lab believes whichever one it happened to read.
+    Two real defects arrived this way on 13 October:
+
+      * `presence` printed "stale after 30m" from a hardcoded local constant while the heartbeat used
+        five, so the same question had two answers; and
+      * the Rust `receipt` command defaulted to kind `receipt`, which this repository's authoritative
+        kind set did not accept - so the generic command emitted a record its own checker rejected,
+        every time it ran without an explicit kind.
+    """
+    findings: list[str] = []
+    code, out, err = run([str(binary), "presence", "--repo", str(REPO), "--json"])
+    if code != 0:
+        findings.append(f"constants: presence exited {code}: {err[:200]}")
+        return findings
+    try:
+        rust_ttl = int(json.loads(out).get("ttl_minutes", -1))
+    except (json.JSONDecodeError, TypeError, ValueError) as exc:
+        findings.append(f"constants: cannot read the Rust TTL from presence ({exc})")
+        return findings
+
+    probe = (
+        "import sys;sys.path.insert(0,'scripts/harness');"
+        "import multilab,receipts,json;"
+        "print(json.dumps({'ttl':multilab.PRESENCE_TTL_MINUTES,'kinds':list(receipts.KINDS)}))"
+    )
+    code, out, err = run([sys.executable, "-c", probe])
+    if code != 0:
+        findings.append(f"constants: the Python side failed: {err[:200]}")
+        return findings
+    py = json.loads(out)
+
+    if rust_ttl != py["ttl"]:
+        findings.append(
+            f"constants: PRESENCE_TTL_MINUTES differs - rust presence says {rust_ttl}, "
+            f"python says {py['ttl']}. Both are self-consistent, so only the lab reading one of them "
+            f"can tell."
+        )
+
+    # The generic kind the Rust receipt command defaults to must be one the authoritative set accepts.
+    default_probe = (
+        "import sys,re,pathlib;"
+        "src=pathlib.Path('crates/uor-r4-harness/src/main.rs').read_text();"
+        "m=re.search(r'flag_value\(args, \"--kind\"\)\.unwrap_or_else\(\|\| \"(\w+)\"', src);"
+        "print(m.group(1) if m else '')"
+    )
+    code, out, err = run([sys.executable, "-c", default_probe])
+    default_kind = out.strip() if code == 0 else ""
+    if default_kind and default_kind not in py["kinds"]:
+        findings.append(
+            f"constants: the Rust `receipt` command defaults --kind to {default_kind!r}, which the "
+            f"authoritative kind set rejects ({py['kinds']}). The generic command would create a "
+            f"record its own checker refuses."
+        )
+    return findings
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Check Rust/Python harness parity on shared state.")
     ap.add_argument("--build", action="store_true", help="build the Rust binary first")
@@ -753,6 +813,8 @@ def main(argv: list[str] | None = None) -> int:
     findings.extend(receipts_cmp)
     brief_cmp = brief_agreement(binary)
     findings.extend(brief_cmp)
+    const_cmp = constants_agreement(binary)
+    findings.extend(const_cmp)
 
     if args.json:
         print(json.dumps({
@@ -766,6 +828,7 @@ def main(argv: list[str] | None = None) -> int:
             "status_agreement": "ok" if not status_cmp else "FAILED",
             "status_receipts_agreement": "ok" if not receipts_cmp else "FAILED",
             "brief_agreement": "ok" if not brief_cmp else "FAILED",
+            "constants_agreement": "ok" if not const_cmp else "FAILED",
             "state_valid": not invalid,
             "binary": str(binary),
             "formats": len(r_formats),
@@ -808,6 +871,10 @@ def main(argv: list[str] | None = None) -> int:
         print(
             "  brief shared sections and token counts identical: "
             + ("ok" if not brief_cmp else f"FAILED ({len(brief_cmp)})")
+        )
+        print(
+            "  shared constants agree (TTL, receipt kinds): "
+            + ("ok" if not const_cmp else f"FAILED ({len(const_cmp)})")
         )
     return 1 if findings else 0
 

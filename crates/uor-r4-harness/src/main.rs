@@ -846,7 +846,12 @@ fn known_labs(paths: &StatePaths) -> Vec<String> {
 fn cmd_presence(repo: &Path, json: bool) -> ExitCode {
     let paths = StatePaths::from_env(repo);
     let now = now_unix();
-    const TTL_MINUTES: i64 = 30;
+    // ONE source for the window. This was a local `const TTL_MINUTES: i64 = 30` while the presence
+    // module and the heartbeat documented five, so this command told labs they had thirty minutes
+    // and the check-in told them five - two answers to the same question, and the stale one was the
+    // one a lab reads when deciding whether a peer is still working. Codex reported it after
+    // onboarding. A test pins the two constants together.
+    let ttl_minutes = uor_r4_harness::presence::PRESENCE_TTL_MINUTES;
     let labs = known_labs(&paths);
 
     if labs.is_empty() {
@@ -867,7 +872,7 @@ fn cmd_presence(repo: &Path, json: bool) -> ExitCode {
     for lab in &labs {
         if let Some(p) = PresenceRow::read_lab(&paths, lab) {
             let age = p.age_minutes(now);
-            let stale = p.is_stale(now, TTL_MINUTES);
+            let stale = p.is_stale(now, ttl_minutes);
             rows.push((lab.clone(), p, age, stale));
         }
     }
@@ -888,7 +893,7 @@ fn cmd_presence(repo: &Path, json: bool) -> ExitCode {
             })
             .collect();
         println!(
-            "{{\n  \"live_tier\": {:?},\n  \"ttl_minutes\": {TTL_MINUTES},\n  \"labs\": [\n{}\n  ]\n}}",
+            "{{\n  \"live_tier\": {:?},\n  \"ttl_minutes\": {ttl_minutes},\n  \"labs\": [\n{}\n  ]\n}}",
             paths.live.display().to_string(),
             items.join(",\n")
         );
@@ -896,7 +901,7 @@ fn cmd_presence(repo: &Path, json: bool) -> ExitCode {
     }
 
     println!(
-        "{} lab(s) known (stale after {TTL_MINUTES}m) · live tier: {}",
+        "{} lab(s) known (stale after {ttl_minutes}m) · live tier: {}",
         rows.len(),
         paths.live.display()
     );

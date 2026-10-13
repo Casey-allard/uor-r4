@@ -43,7 +43,13 @@ from core import HarnessPaths, now_iso, run
 from checkrules import Rule, RuleResult, register as register_rule
 
 #: a presence file older than this is reported STALE, never as a live lab
-PRESENCE_TTL_MINUTES = 30
+#: How long a check-in stays current, in minutes.
+#:
+#: **Five**, on the owner's direction (13 October), and this value must equal the Rust constant
+#: `presence::PRESENCE_TTL_MINUTES`. They were 30 and 5, which meant the Rust `presence` command told
+#: labs they had 30 minutes while the heartbeat told them five - two answers to the same question.
+#: Codex found it as "Rust presence still prints stale after 30m". A test now pins the two together.
+PRESENCE_TTL_MINUTES = 5
 
 #: The live tier. All four labs run on one machine here, so they can share a real-time
 #: directory that git never sees - no commit lag, no merge conflicts, and a peer's state is
