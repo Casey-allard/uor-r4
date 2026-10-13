@@ -1,3 +1,25 @@
+## 2026-10-13 — Rung 0 pre-registered: the rank-margin objective's TEST FITNESS sheet is PENDING (kimi, #2029)
+
+The [sheet](../harness/prep/m1-rank-margin-rung0-2026-10-13.md) registers rung 0 on the compliant trunk — the
+recurrence-only geometric stack (`rrrrrr`, no read, no pointer) trained with the margin hinge on mw-balp, arms
+at 1 and 8 declared rivals, two seeds each, one Vast pod, GPU-only — with its bar (monotone dev margin loss
+plus >= 5x the same-seed untrained unviolated-target rate on **both** seeds), its config, its lawful raw-score
+quality measures (top-1, target rank/recall@8, the hinge, the unviolated rate; no BPB or NLL anywhere), its
+outcome decisions (KEEP / ITERATE / BLOCKER, with a mechanism stop reserved to the owner) and its cost
+(<= $4 projected). Its mechanism brief is new:
+[rank-margin-objective.md](../mechanisms/rank-margin-objective.md). The sheet is **`TEST FITNESS: PENDING` and
+the run is BLOCKED** on four named dependencies: Codex's owner-directed SpiralCore/FBS 8D native projection
+(in flight, replacing `HamiltonLinear`'s dense all-pair contraction), the OP3a product-key head (not built),
+the recurrence squash replacements (opening, decay rate, output gate — the served `DecayRate` codec carries
+the *same* softplus today, so it is not a substitute), and the lawful device-qualification gate (stored or
+analytic expected values, no CPU model reference). FIT lifts no hold; the owner releases it.
+
+Line: evaluation integrity · count 1/3 (pre-registration, no compute) · headline: unchanged (M1 v5 memory
+20/40, reply 37/232).
+
+**Next:** the four dependencies land and are checked against this sheet by the FIT review; then the owner's
+hold-release decision, then rung 0 itself.
+
 ## 2026-10-13 — CUDA parity compiles again on main (claude, #2029)
 
 A missing `Gate` import in the CUDA-only parity test (from #2260) made every pod bootstrap
