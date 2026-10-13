@@ -179,22 +179,37 @@ mod tests {
     use super::*;
     use std::process::Command;
 
-    /// An ISO timestamp `hours` in the past, in the same format `Presence` writes.
+    /// An ISO timestamp `hours` in the past, formatted WITHOUT shelling out to `date`.
+    ///
+    /// **This was `date -r <epoch>` and it broke CI.** `-r` is BSD syntax meaning "format this
+    /// epoch"; on GNU/Linux it is `--reference=FILE`, so the test asked `date` to stat a *file* named
+    /// `1750000000` and the split panicked. It passed on macOS and failed on the Ubuntu runner.
+    ///
+    /// **That fix did not land the first time.** It was a second commit on the port-2 branch, and the
+    /// branch was deleted after the merge without confirming the commit was in the merged tree, so
+    /// `main` kept the broken helper and CI kept failing. It is here now, in a commit whose file set
+    /// is checked against `main` rather than assumed.
+    ///
+    /// The test is about staleness arithmetic, so it depends on no `date` dialect at all: the
+    /// civil-from-days conversion is done here. The arithmetic was checked against `date -u -r` as an
+    /// oracle at seven offsets (0, 1h, 2h, 1d, 400y, 12345s, 3*365d) and all seven match.
     fn old_iso(hours: i64) -> String {
         let now = crate::state::parse_iso_unix(&crate::team::now_iso()).expect("now parses");
         let then = now - hours * 3600;
-        // Reuse `date` so the offset form matches what the rest of the harness writes.
-        let out = Command::new("date")
-            .args(["-r", &then.to_string(), "+%Y-%m-%dT%H:%M:%S %z"])
-            .output()
-            .expect("date");
-        let raw = String::from_utf8_lossy(&out.stdout).trim().to_string();
-        let (stamp, offset) = raw.split_once(' ').expect("date output");
-        if offset.len() == 5 {
-            format!("{stamp}{}:{}", &offset[..3], &offset[3..])
-        } else {
-            format!("{stamp}{offset}")
-        }
+        let days = then.div_euclid(86_400);
+        let secs = then.rem_euclid(86_400);
+        let (h, mi, sec) = (secs / 3600, (secs % 3600) / 60, secs % 60);
+        let z = days + 719_468;
+        let era = z.div_euclid(146_097);
+        let doe = z.rem_euclid(146_097);
+        let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
+        let y = yoe + era * 400;
+        let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+        let mp = (5 * doy + 2) / 153;
+        let d = doy - (153 * mp + 2) / 5 + 1;
+        let m = if mp < 10 { mp + 3 } else { mp - 9 };
+        let y = if m <= 2 { y + 1 } else { y };
+        format!("{y:04}-{m:02}-{d:02}T{h:02}:{mi:02}:{sec:02}Z")
     }
 
     struct Fixture {

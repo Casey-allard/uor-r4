@@ -12,6 +12,7 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use uor_r4_harness::briefing;
+use uor_r4_harness::githelp;
 use uor_r4_harness::multilab;
 use uor_r4_harness::notes;
 use uor_r4_harness::onboard::{detect_runtime, onboard};
@@ -41,7 +42,7 @@ const PYTHON_PASSTHROUGH_VALUE_FLAGS: [&str; 1] = ["--only"];
 /// BEFORE flag parsing: an unported command's flags are unknown to this binary, and rejecting one
 /// meant delegation only worked for commands whose flags happened to be in the lists - `check --only`
 /// failed with "unknown option --only" before it could delegate. Which defeats the point.
-const PORTED_COMMANDS: [&str; 18] = [
+const PORTED_COMMANDS: [&str; 19] = [
     "onboard",
     "check-formats",
     "presence",
@@ -53,6 +54,7 @@ const PORTED_COMMANDS: [&str; 18] = [
     "version",
     "team",
     "multilab",
+    "git",
     "prep-check",
     "registry",
     "prep-render",
@@ -62,7 +64,7 @@ const PORTED_COMMANDS: [&str; 18] = [
     "ratchet",
 ];
 
-const SUBCOMMAND_FLAGS: [&str; 30] = [
+const SUBCOMMAND_FLAGS: [&str; 31] = [
     "--kind",
     "--milestone",
     "-m",
@@ -93,6 +95,7 @@ const SUBCOMMAND_FLAGS: [&str; 30] = [
     "--update-baseline",
     "--list",
     "--quiet",
+    "--apply",
 ];
 
 /// The subset that takes a value, so the value is not mistaken for a command.
@@ -147,6 +150,8 @@ COMMANDS:
                 Rust side; use --dry-run to see the line without recording it.
     heartbeat   Check in: publish presence and append a receipt, both to the LIVE
                 tier, so a check-in never dirties a working checkout (R10).
+    git         Branch hygiene: clean-merged lists local branches already
+                merged into origin/main, --apply deletes the proven ones.
     multilab    The shared board: presence, claims, touch. `touch` refreshes
                 liveness for hooks WITHOUT changing what the lab is doing.
     team        Branch claims: claim, release, claims, roster.
@@ -313,6 +318,7 @@ fn main() -> ExitCode {
         Some("version") => cmd_version(&repo),
         Some("team") => cmd_team(&repo, &rest, json),
         Some("multilab") => cmd_multilab(&repo, &rest, json),
+        Some("git") => cmd_git(&repo, &rest, json),
         Some("prep-check") => cmd_prep_check(&repo, json),
         Some("registry") => cmd_registry(&repo, json),
         Some("prep-render") => cmd_prep_render(&repo, &rest),
@@ -440,6 +446,97 @@ fn action_word(args: &[String]) -> &str {
         return a;
     }
     ""
+}
+
+/// `git <action>` - branch hygiene (D30 port of the Python `git`).
+///
+/// `clean-merged` is Rust. `install-hooks`, `status`, `switch` and `delete-merged` still delegate by
+/// name; `switch` and `delete-merged` carry more guards than they look like they do, and porting them
+/// without their tests would move the risk rather than the code.
+fn cmd_git(repo: &Path, args: &[String], json: bool) -> ExitCode {
+    let action = action_word(args);
+    match action {
+        "clean-merged" => {
+            let apply = args.iter().any(|a| a == "--apply");
+            let states = githelp::branch_states(repo);
+            let removable: Vec<&githelp::BranchState> =
+                states.iter().filter(|s| s.removable).collect();
+            let held = states.iter().filter(|s| s.checked_out).count();
+            let unmerged = states
+                .iter()
+                .filter(|s| s.state == githelp::MergeState::Unmerged)
+                .count();
+
+            if json {
+                let rows: Vec<String> = states
+                    .iter()
+                    .map(|s| {
+                        format!(
+                            "    {{\"branch\": {:?}, \"state\": {:?}, \"checked_out\": {}, \"removable\": {}, \"reason\": {:?}}}",
+                            s.branch,
+                            match s.state {
+                                githelp::MergeState::Merged => "merged",
+                                githelp::MergeState::Unmerged => "unmerged",
+                                githelp::MergeState::Unknown => "unknown",
+                            },
+                            s.checked_out, s.removable, s.reason
+                        )
+                    })
+                    .collect();
+                println!("{{\n  \"branches\": [\n{}\n  ]\n}}", rows.join(",\n"));
+                return ExitCode::SUCCESS;
+            }
+
+            println!(
+                "local branches: {} merged into origin/main and not checked out, {} in a worktree, {} unmerged",
+                removable.len(),
+                held,
+                unmerged
+            );
+            if !removable.is_empty() {
+                println!();
+                println!("merged and safe to delete:");
+                for s in &removable {
+                    println!("  {}", s.branch);
+                }
+            }
+            let kept: Vec<&githelp::BranchState> = states.iter().filter(|s| !s.removable).collect();
+            if !kept.is_empty() {
+                println!();
+                println!("NOT deleted - kept, their owners decide:");
+                for s in kept {
+                    println!("  {:<44} {}", s.branch, s.reason);
+                }
+            }
+            if !apply {
+                if !removable.is_empty() {
+                    println!();
+                    println!("delete them with:  uor-harness git clean-merged --apply");
+                }
+                return ExitCode::SUCCESS;
+            }
+            // Re-checked inside `apply`, because a state computed before a worktree was added would
+            // delete a branch that is now held.
+            let (deleted, refused) = githelp::apply(repo, &states);
+            println!();
+            println!("deleted {} branch(es)", deleted.len());
+            for (b, why) in refused {
+                eprintln!("  refused {b}: {why}");
+            }
+            ExitCode::SUCCESS
+        }
+        "install-hooks" | "status" | "switch" | "delete-merged" => {
+            delegate_to_python(repo, "git", args)
+        }
+        "" => {
+            eprintln!("uor-harness git: which action? install-hooks, status, clean-merged, switch, delete-merged");
+            ExitCode::from(2)
+        }
+        other => {
+            eprintln!("uor-harness git: unknown action {other:?}; try clean-merged");
+            ExitCode::from(2)
+        }
+    }
 }
 
 /// `multilab <action>` - the shared board (D30 port of the Python `multilab`).

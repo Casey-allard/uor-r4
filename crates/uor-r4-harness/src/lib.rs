@@ -22,6 +22,7 @@
 
 pub mod briefing;
 pub mod contract;
+pub mod githelp;
 pub mod multilab;
 pub mod notes;
 pub mod onboard;
