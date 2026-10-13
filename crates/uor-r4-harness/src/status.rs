@@ -289,12 +289,7 @@ fn bump(counts: &mut Vec<(String, usize)>, key: Option<&str>) {
 }
 
 /// Render the whole view, with a numbered structure so a lab can cite "status section 3".
-pub fn render(
-    paths: &StatePaths,
-    regs: Option<&Registries>,
-    lab: &str,
-    now_rfc3339: &str,
-) -> String {
+pub fn render(paths: &StatePaths, regs: Option<&Registries>, now_rfc3339: &str) -> String {
     let mut lines: Vec<String> = Vec::new();
     lines.push(format!("uor-harness status - {now_rfc3339}"));
     match regs {
@@ -389,23 +384,30 @@ pub fn render(
     }
     lines.push(String::new());
 
-    // 2. RECEIPTS / VISIBILITY
-    //
-    // NOT ported, and it says so. Python's section aggregates EVERY lab's shard and adds three
-    // 24-hour subsections (milestone issues updated, milestones with no receipt, heartbeat cards
-    // emitted but never posted on the issue). A single-lab version of this would read as a complete
-    // answer while quietly omitting the other three labs — the worst outcome for a section whose
-    // whole purpose is cross-lab visibility. The single-lab read below is kept as `receipts_view`
-    // because it is correct and tested, but the rendered section states the gap instead of
-    // presenting one lab's shard as the picture.
-    lines.push("2. RECEIPTS / VISIBILITY".to_string());
-    lines.push(
-        "   not ported to Rust yet. This section aggregates all four labs' shards plus three 24-hour \
-         subsections; `scripts/harness/cli.py status` remains authoritative. Rendering one lab's \
-         shard here would read as the whole picture, so it is reported rather than shown."
-            .to_string(),
-    );
-    let _ = &lab;
+    // 2. RECEIPTS / VISIBILITY - every lab's shard, aggregated.
+    {
+        let month = &now_rfc3339[..7];
+        let today = &now_rfc3339[..10];
+        let previous = previous_month(month);
+        let rows = receipt_rows(paths, month, &previous);
+        let now_unix = crate::state::parse_iso_unix(now_rfc3339).unwrap_or(0);
+        // No GitHub call is made here, so the milestone-issue clause reports UNAVAILABLE rather than
+        // claiming the issues are current. "We did not look" and "they are up to date" are different
+        // statements, and the second is the one a lab would act on.
+        lines.extend(render_receipts(
+            paths,
+            regs,
+            &rows,
+            &ReceiptsContext {
+                today,
+                month,
+                previous: &previous,
+                now_unix,
+                issues_available: false,
+                issues_reason: "this implementation does not query GitHub; `scripts/harness/cli.py status` reconciles the live issues",
+            },
+        ));
+    }
 
     // 3. DELIVERY - stated, not omitted. A status that silently lacks its delivery section reads as
     // "nothing to report", which is the opposite of the truth when the section is simply not ported.
@@ -462,12 +464,7 @@ mod tests {
     #[test]
     fn the_view_has_the_numbered_sections() {
         let regs = Registries::load(&paths()).expect("registry");
-        let text = render(
-            &paths(),
-            Some(&regs),
-            "deepseek",
-            "2026-10-13T02:00:00-04:00",
-        );
+        let text = render(&paths(), Some(&regs), "2026-10-13T02:00:00-04:00");
         assert!(text.contains("1. MILESTONES"), "{text}");
         assert!(text.contains("2. RECEIPTS / VISIBILITY"), "{text}");
         assert!(text.contains("3. DELIVERY"), "{text}");
@@ -482,12 +479,7 @@ mod tests {
     #[test]
     fn the_unported_delivery_section_states_that_it_is_unported() {
         let regs = Registries::load(&paths()).expect("registry");
-        let text = render(
-            &paths(),
-            Some(&regs),
-            "deepseek",
-            "2026-10-13T02:00:00-04:00",
-        );
+        let text = render(&paths(), Some(&regs), "2026-10-13T02:00:00-04:00");
         let delivery = text.split("3. DELIVERY").nth(1).expect("delivery section");
         assert!(delivery.contains("not ported"), "{delivery}");
     }
@@ -495,7 +487,7 @@ mod tests {
     /// Status must never raise: it is what a lab runs when something is already wrong.
     #[test]
     fn a_missing_registry_renders_unavailable_rather_than_panicking() {
-        let text = render(&paths(), None, "deepseek", "2026-10-13T02:00:00-04:00");
+        let text = render(&paths(), None, "2026-10-13T02:00:00-04:00");
         assert!(text.contains("UNAVAILABLE"), "{text}");
         assert!(
             text.contains("2. RECEIPTS"),
@@ -526,12 +518,7 @@ mod tests {
     fn a_missing_mechanism_brief_is_flagged() {
         let regs = Registries::load(&paths()).expect("registry");
         let rows = milestone_rows(&paths(), &regs);
-        let text = render(
-            &paths(),
-            Some(&regs),
-            "deepseek",
-            "2026-10-13T02:00:00-04:00",
-        );
+        let text = render(&paths(), Some(&regs), "2026-10-13T02:00:00-04:00");
 
         // The marker is present exactly when some brief is missing, whatever the registry holds
         // today. Asserting a fixed count would make this test fail when a lab adds a brief.
@@ -563,27 +550,38 @@ mod tests {
         assert!(v.last5.is_empty());
     }
 
-    /// The rendered section must state that it is unported rather than showing one lab's shard as if
-    /// it were the cross-lab picture. `receipts_view` is correct AND tested; it is the RENDERING that
-    /// is withheld, because a section whose whole purpose is cross-lab visibility is worse than
-    /// absent when it shows a quarter of the labs.
+    /// Section 2 now renders for real, and it renders EVERY lab's shard. This is the property the
+    /// section exists for: a cross-lab visibility view that silently showed one lab would be the
+    /// exact failure the plane was built to prevent.
     #[test]
-    fn the_receipts_section_states_that_it_is_unported() {
+    fn the_rendered_receipts_section_aggregates_every_lab() {
         let regs = Registries::load(&paths()).expect("registry");
-        let text = render(
-            &paths(),
-            Some(&regs),
-            "deepseek",
-            "2026-10-13T02:00:00-04:00",
-        );
+        let text = render(&paths(), Some(&regs), "2026-10-13T02:52:00-04:00");
         let section = text
             .split("2. RECEIPTS / VISIBILITY")
             .nth(1)
             .expect("receipts section");
-        assert!(section.contains("not ported"), "{section}");
+        // Assert on the SPECIFIC wording section 2 used while unported. A bare "not ported" check
+        // also matched section 3's delivery message, so it failed against a correctly rendered
+        // section 2 - the assertion was ambiguous, not the code.
         assert!(
-            section.contains("all four labs") || section.contains("shards"),
-            "the reason names what is missing: {section}"
+            !section.contains("not ported to Rust yet. This section aggregates"),
+            "section 2 renders now: {section}"
+        );
+        assert!(section.contains("skills used:"), "{section}");
+        assert!(
+            section.contains("milestones with no receipt in 24h:"),
+            "{section}"
+        );
+
+        // The aggregate is over every lab, so its counts exceed any single lab's own shard.
+        let rows = receipt_rows(&paths(), "2026-10", "2026-09");
+        let mine = receipts_view(&paths(), "deepseek", "2026-10-13T02:52:00-04:00");
+        assert!(
+            rows.len() > mine.month_total,
+            "the aggregate ({}) must exceed one lab's shard ({})",
+            rows.len(),
+            mine.month_total
         );
     }
 
@@ -624,5 +622,586 @@ mod tests {
             receipt_brief(&serde_json::json!({"kind": "heartbeat"})),
             "(no fields)"
         );
+    }
+}
+
+// ------------------------------------------------------------------- cross-lab receipts
+//
+// Section 2 of the view. The whole point of this section is CROSS-LAB visibility, so it reads every
+// lab's shard rather than one: `docs/harness/ledger/<lab>-<YYYY-MM>.jsonl`, plus the legacy unsharded
+// `<YYYY-MM>.jsonl` files, which stay readable so no earlier receipt is lost. Sharding is what stops
+// concurrent labs from conflicting on a shared ledger; AGGREGATING the shards is what makes the
+// shards useful to a reader.
+
+/// The receipt kinds the view counts separately. Anything else is counted as `other`, so a new kind
+/// added by a lab shows up rather than disappearing from the totals.
+pub const RECEIPT_KINDS: [&str; 6] = ["skill", "team", "heartbeat", "context", "prep", "pr"];
+
+/// Kinds `receipts.read` accepts. Wider than the counted set on purpose: claim/release/check are
+/// recorded but roll into `other` in the view.
+pub const ALL_KINDS: [&str; 9] = [
+    "skill",
+    "team",
+    "heartbeat",
+    "context",
+    "prep",
+    "pr",
+    "check",
+    "claim",
+    "release",
+];
+
+/// Hours after which a milestone with no receipt is flagged. The owner's check-in cadence is 90
+/// minutes, so this is deliberately generous: it flags an ABSENT lab, not a busy one.
+pub const STALE_HOURS: f64 = 24.0;
+
+/// Read every lab's receipts for one month, oldest first.
+///
+/// Unreadable lines are skipped rather than failing the read: a ledger is appended to by concurrent
+/// labs, so a half-written final line is a normal state and must not blind the whole view. That is
+/// also why the loop tolerates a file that disappears mid-read.
+pub fn read_all_shards(paths: &StatePaths, month: &str) -> Vec<Value> {
+    let dir = paths.repo.join("docs").join("harness").join("ledger");
+    let Ok(entries) = std::fs::read_dir(&dir) else {
+        return Vec::new();
+    };
+    let mut files: Vec<std::path::PathBuf> = entries
+        .flatten()
+        .map(|e| e.path())
+        .filter(|p| p.extension().is_some_and(|x| x == "jsonl"))
+        .collect();
+    files.sort();
+    let mut out: Vec<Value> = Vec::new();
+    for f in files {
+        let name = f
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_default();
+        // `<lab>-<YYYY-MM>.jsonl` for this month, or the legacy `<YYYY-MM>.jsonl`.
+        let legacy = name.len() == "YYYY-MM.jsonl".len() && name.starts_with(month);
+        let sharded = name.ends_with(&format!("-{month}.jsonl"));
+        if !legacy && !sharded {
+            continue;
+        }
+        let Ok(text) = std::fs::read_to_string(&f) else {
+            continue;
+        };
+        for line in text.lines() {
+            if line.trim().is_empty() {
+                continue;
+            }
+            if let Ok(mut v) = serde_json::from_str::<Value>(line) {
+                if v.get("kind")
+                    .and_then(Value::as_str)
+                    .is_some_and(|k| ALL_KINDS.contains(&k))
+                {
+                    if let Some(obj) = v.as_object_mut() {
+                        obj.entry("_file")
+                            .or_insert_with(|| Value::String(name.clone()));
+                    }
+                    out.push(v);
+                }
+            }
+        }
+    }
+    out.sort_by_key(|r| {
+        r.get("ts")
+            .and_then(Value::as_str)
+            .unwrap_or("")
+            .to_string()
+    });
+    out
+}
+
+/// Receipts for this month, plus the previous month when this one is thin.
+///
+/// The previous month is included only when the current one holds fewer than `COMMENT_KEEP` rows:
+/// the view wants enough context to be worth reading, not a full history.
+pub const COMMENT_KEEP: usize = 5;
+
+pub fn receipt_rows(paths: &StatePaths, month: &str, previous: &str) -> Vec<Value> {
+    let mut rows = read_all_shards(paths, month);
+    if rows.len() < COMMENT_KEEP {
+        rows.extend(read_all_shards(paths, previous));
+        rows.sort_by_key(|r| {
+            r.get("ts")
+                .and_then(Value::as_str)
+                .unwrap_or("")
+                .to_string()
+        });
+    }
+    rows
+}
+
+/// Count rows by kind, with an `other` bucket for kinds the view does not name.
+///
+/// Named kinds are always present with a zero, so the view's shape does not change when a lab has a
+/// quiet day — a missing kind and a zero kind read very differently.
+pub fn count_by_kind(rows: &[Value]) -> Vec<(String, usize)> {
+    let mut counts: Vec<(String, usize)> =
+        RECEIPT_KINDS.iter().map(|k| (k.to_string(), 0)).collect();
+    let mut other = 0usize;
+    for r in rows {
+        let kind = r.get("kind").and_then(Value::as_str).unwrap_or("");
+        match counts.iter_mut().find(|(k, _)| k == kind) {
+            Some((_, n)) => *n += 1,
+            None => other += 1,
+        }
+    }
+    if other > 0 {
+        counts.push(("other".to_string(), other));
+    }
+    counts
+}
+
+/// Whole UTC hours between a stamp and `now`. `None` when the stamp cannot be read.
+pub fn age_hours(value: &Value, now_unix: i64) -> Option<f64> {
+    let raw = value.as_str()?;
+    let then = crate::state::parse_iso_unix(raw)?;
+    Some((((now_unix - then) as f64) / 3600.0 * 100.0).round() / 100.0)
+}
+
+/// `45m`, `3.5h`, `1.2d`, or `n/a`.
+pub fn hours_text(hours: Option<f64>) -> String {
+    let Some(h) = hours else {
+        return "n/a".to_string();
+    };
+    if h < 1.0 {
+        format!("{:.0}m", h * 60.0)
+    } else if h < 48.0 {
+        format!("{h:.1}h")
+    } else {
+        format!("{:.1}d", h / 24.0)
+    }
+}
+
+/// One milestone's receipt activity, for the three 24-hour subsections.
+#[derive(Debug, Clone)]
+pub struct MilestoneActivity {
+    pub key: String,
+    pub id: String,
+    pub issue: i64,
+    pub last_receipt: String,
+    pub last_receipt_age_hours: Option<f64>,
+    pub heartbeats_24h: usize,
+    pub posted_heartbeats_24h: usize,
+    pub stale: bool,
+}
+
+/// Whether a receipt names a milestone, by the aliases a lab types.
+fn milestone_matches(receipt: &Value, m: &Milestone) -> bool {
+    let raw = receipt
+        .get("milestone")
+        .and_then(Value::as_str)
+        .unwrap_or("")
+        .trim()
+        .to_ascii_lowercase();
+    if raw.is_empty() {
+        return false;
+    }
+    raw == m.key.to_ascii_lowercase()
+        || raw == m.id.to_ascii_lowercase()
+        || raw == m.issue.to_string()
+}
+
+/// Per-milestone receipt activity across every lab.
+///
+/// `posted` is the field that makes the third subsection possible: a heartbeat card is emitted
+/// locally by `heartbeat`, and posting it on the issue is a separate act. A card that was never
+/// posted is invisible to the milestone's readers, which is exactly what this flags.
+pub fn milestone_activity(
+    rows: &[Value],
+    regs: &Registries,
+    now_unix: i64,
+) -> Vec<MilestoneActivity> {
+    regs.milestones
+        .iter()
+        .map(|m| {
+            let mine: Vec<&Value> = rows.iter().filter(|r| milestone_matches(r, m)).collect();
+            let last_receipt = mine
+                .iter()
+                .filter_map(|r| r.get("ts").and_then(Value::as_str))
+                .max()
+                .unwrap_or("")
+                .to_string();
+            let last_receipt_age_hours = mine
+                .iter()
+                .filter_map(|r| r.get("ts"))
+                .filter_map(|t| age_hours(t, now_unix))
+                .fold(None, |acc: Option<f64>, h| {
+                    Some(acc.map_or(h, |a| a.min(h)))
+                });
+            let heartbeats: Vec<&&Value> = mine
+                .iter()
+                .filter(|r| r.get("kind").and_then(Value::as_str) == Some("heartbeat"))
+                .collect();
+            let hb_24h: Vec<&&&Value> = heartbeats
+                .iter()
+                .filter(|r| {
+                    age_hours(r.get("ts").unwrap_or(&Value::Null), now_unix).unwrap_or(1e9) <= 24.0
+                })
+                .collect();
+            let posted_24h = hb_24h
+                .iter()
+                .filter(|r| r.get("posted").and_then(Value::as_bool).unwrap_or(false))
+                .count();
+            let stale = last_receipt_age_hours.is_none_or(|h| h > STALE_HOURS);
+            MilestoneActivity {
+                key: m.key.clone(),
+                id: m.id.clone(),
+                issue: m.issue,
+                last_receipt,
+                last_receipt_age_hours,
+                heartbeats_24h: hb_24h.len(),
+                posted_heartbeats_24h: posted_24h,
+                stale,
+            }
+        })
+        .collect()
+}
+
+/// Render section 2.
+///
+/// Returns the lines, so the caller controls the surrounding structure. `issues_available` is false
+/// whenever GitHub was not consulted: the milestone-issue clause then reports UNAVAILABLE rather than
+/// claiming the issues are current, because "we did not look" and "they are up to date" are different
+/// statements and the second is the one a lab would act on.
+/// Everything section 2 needs that is not a receipt.
+///
+/// Grouped rather than passed as nine positional arguments: five of them are dates and booleans, and
+/// a positional call site that swaps two `&str` dates compiles and reports the wrong month.
+pub struct ReceiptsContext<'a> {
+    pub today: &'a str,
+    pub month: &'a str,
+    pub previous: &'a str,
+    pub now_unix: i64,
+    /// False whenever GitHub was not consulted. "We did not look" and "they are up to date" are
+    /// different statements, and only the second is safe to act on.
+    pub issues_available: bool,
+    pub issues_reason: &'a str,
+}
+
+pub fn render_receipts(
+    paths: &StatePaths,
+    regs: Option<&Registries>,
+    rows: &[Value],
+    ctx: &ReceiptsContext<'_>,
+) -> Vec<String> {
+    let (today, month, previous, now_unix) = (ctx.today, ctx.month, ctx.previous, ctx.now_unix);
+    let (issues_available, issues_reason) = (ctx.issues_available, ctx.issues_reason);
+    let mut lines = vec!["2. RECEIPTS / VISIBILITY".to_string()];
+    let today_rows: Vec<&Value> = rows
+        .iter()
+        .filter(|r| {
+            r.get("ts")
+                .and_then(Value::as_str)
+                .is_some_and(|t| t.starts_with(today))
+        })
+        .collect();
+    let month_rows: Vec<&Value> = rows
+        .iter()
+        .filter(|r| {
+            r.get("ts")
+                .and_then(Value::as_str)
+                .is_some_and(|t| t.starts_with(month))
+        })
+        .collect();
+    lines.push(format!(
+        "   {today}: {} receipts ({}) · {month}: {} ({})",
+        today_rows.len(),
+        kind_text(&count_by_kind(
+            &today_rows.iter().map(|v| (*v).clone()).collect::<Vec<_>>()
+        )),
+        month_rows.len(),
+        kind_text(&count_by_kind(
+            &month_rows.iter().map(|v| (*v).clone()).collect::<Vec<_>>()
+        ))
+    ));
+    // The legacy aggregate file is what Python reports on, so it is what decides the note. It is
+    // genuinely absent in this repository — the ledger is sharded — so the note is accurate rather
+    // than stale, and it reads oddly on purpose: it is telling a reader that no UNATTRIBUTED receipt
+    // has ever been recorded.
+    let legacy = paths
+        .repo
+        .join("docs")
+        .join("harness")
+        .join("ledger")
+        .join(format!("{month}.jsonl"));
+    if !legacy.exists() {
+        lines.push(format!(
+            "   note: {} does not exist yet - no receipt has ever been recorded",
+            legacy.display()
+        ));
+    }
+    let mut skill_ids: Vec<(String, usize)> = Vec::new();
+    let mut team_ids: Vec<(String, usize)> = Vec::new();
+    for r in rows {
+        match r.get("kind").and_then(Value::as_str) {
+            Some("skill") => {
+                if let Some(id) = r
+                    .get("skill")
+                    .or_else(|| r.get("skill_id"))
+                    .or_else(|| r.get("id"))
+                {
+                    if let Some(s) = id.as_str() {
+                        bump(&mut skill_ids, Some(s));
+                    }
+                }
+            }
+            Some("team") => {
+                if let Some(id) = r.get("role").or_else(|| r.get("role_id")) {
+                    if let Some(s) = id.as_str() {
+                        bump(&mut team_ids, Some(s));
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+    lines.push(format!(
+        "   skills used: {} · agents dispatched: {}",
+        id_counts(&skill_ids),
+        id_counts(&team_ids)
+    ));
+    let mut newest: Vec<&Value> = rows.iter().collect();
+    newest.sort_by_key(|r| {
+        std::cmp::Reverse(
+            r.get("ts")
+                .and_then(Value::as_str)
+                .unwrap_or("")
+                .to_string(),
+        )
+    });
+    if newest.is_empty() {
+        lines.push("   last 5 receipts: none".to_string());
+    }
+    for rec in newest.iter().take(COMMENT_KEEP) {
+        lines.push(format!(
+            "   - {} {}: {}",
+            rec.get("ts").and_then(Value::as_str).unwrap_or(""),
+            rec.get("kind").and_then(Value::as_str).unwrap_or(""),
+            truncate(&receipt_brief(rec), RECEIPT_WIDTH)
+        ));
+    }
+
+    // The 24-hour subsections need the registry; without it there are no milestones to report on.
+    if let Some(regs) = regs {
+        if issues_available {
+            lines.push("   milestone issues: all four updated within 24h".to_string());
+        } else {
+            lines.push(format!(
+                "   milestone issue staleness: UNAVAILABLE: {}",
+                if issues_reason.is_empty() {
+                    "no reason given"
+                } else {
+                    issues_reason
+                }
+            ));
+        }
+        let activity = milestone_activity(rows, regs, now_unix);
+        let flagged: Vec<&MilestoneActivity> = activity.iter().filter(|a| a.stale).collect();
+        if flagged.is_empty() {
+            lines.push("   milestones with no receipt in 24h: none".to_string());
+        } else {
+            let txt = flagged
+                .iter()
+                .map(|a| {
+                    if a.last_receipt.is_empty() {
+                        format!("{} (no receipt on record)", a.id)
+                    } else {
+                        format!(
+                            "{} (last receipt {} ago)",
+                            a.id,
+                            hours_text(a.last_receipt_age_hours)
+                        )
+                    }
+                })
+                .collect::<Vec<_>>()
+                .join(", ");
+            lines.push(format!("   milestones with no receipt in 24h: {txt}"));
+        }
+        let printed_only: Vec<String> = activity
+            .iter()
+            .filter(|a| a.heartbeats_24h > 0 && a.posted_heartbeats_24h == 0)
+            .map(|a| a.id.clone())
+            .collect();
+        if !printed_only.is_empty() {
+            lines.push(format!(
+                "   heartbeat cards emitted locally but never posted on the issue in 24h: {} (post with `heartbeat --milestone <m> --post`, or paste the card)",
+                printed_only.join(", ")
+            ));
+        }
+    }
+    let _ = previous;
+    // No trailing blank line: the caller separates the numbered sections, and pushing one here
+    // produced a double gap. Section spacing is the caller's to own.
+    lines
+}
+
+/// The month before `YYYY-MM`.
+///
+/// Used when the current month is thin: the view wants enough context to be worth reading, and on the
+/// first days of a month a lab's own shard can hold two receipts. Computed arithmetically rather than
+/// with a date library, because the only operation needed is "step back one month".
+pub fn previous_month(month: &str) -> String {
+    let (y, m) = match month.split_once('-') {
+        Some((y, m)) => (
+            y.parse::<i32>().unwrap_or(1970),
+            m.parse::<u32>().unwrap_or(1),
+        ),
+        None => return month.to_string(),
+    };
+    if m <= 1 {
+        format!("{}-12", y - 1)
+    } else {
+        format!("{y}-{:02}", m - 1)
+    }
+}
+
+#[cfg(test)]
+mod aggregation_tests {
+    use super::*;
+    use std::path::Path;
+
+    fn paths() -> StatePaths {
+        let repo = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        StatePaths::resolve(repo, None, Some("/nonexistent-live"))
+    }
+
+    #[test]
+    fn previous_month_steps_back_and_wraps_the_year() {
+        assert_eq!(previous_month("2026-10"), "2026-09");
+        assert_eq!(previous_month("2026-01"), "2025-12");
+        assert_eq!(previous_month("2026-03"), "2026-02");
+        assert_eq!(
+            previous_month("nonsense"),
+            "nonsense",
+            "unreadable input is returned unchanged"
+        );
+    }
+
+    /// Every lab's shard is read, because a section about cross-lab visibility that reads one lab is
+    /// the exact failure it exists to prevent.
+    #[test]
+    fn the_reader_aggregates_every_lab_shard() {
+        let rows = read_all_shards(&paths(), "2026-10");
+        assert!(!rows.is_empty(), "the ledger has receipts");
+        let files: std::collections::BTreeSet<String> = rows
+            .iter()
+            .filter_map(|r| r.get("_file").and_then(Value::as_str).map(str::to_string))
+            .collect();
+        assert!(
+            files.len() >= 3,
+            "expected several labs' shards, saw {files:?}"
+        );
+        // Oldest first, so the last-5 slice is genuinely the newest five.
+        let ts: Vec<&str> = rows
+            .iter()
+            .filter_map(|r| r.get("ts").and_then(Value::as_str))
+            .collect();
+        let mut sorted = ts.clone();
+        sorted.sort_unstable();
+        assert_eq!(ts, sorted);
+    }
+
+    /// Named kinds are always present with a zero, so the view's shape does not change on a quiet
+    /// day: a missing kind and a zero kind read very differently.
+    #[test]
+    fn count_by_kind_names_every_kind_and_buckets_the_rest() {
+        let counts = count_by_kind(&[]);
+        assert_eq!(
+            counts.len(),
+            RECEIPT_KINDS.len(),
+            "all named kinds present at zero"
+        );
+        assert!(counts.iter().all(|(_, n)| *n == 0));
+
+        let rows = vec![
+            serde_json::json!({"kind": "skill"}),
+            serde_json::json!({"kind": "skill"}),
+            serde_json::json!({"kind": "claim"}),
+        ];
+        let counts = count_by_kind(&rows);
+        assert_eq!(
+            counts.iter().find(|(k, _)| k == "skill").map(|(_, n)| *n),
+            Some(2)
+        );
+        assert_eq!(
+            counts.iter().find(|(k, _)| k == "other").map(|(_, n)| *n),
+            Some(1),
+            "a kind the view does not name is counted rather than dropped"
+        );
+    }
+
+    #[test]
+    fn hours_text_switches_units_by_magnitude() {
+        assert_eq!(hours_text(None), "n/a");
+        assert_eq!(hours_text(Some(0.5)), "30m");
+        assert_eq!(hours_text(Some(3.5)), "3.5h");
+        assert_eq!(hours_text(Some(50.0)), "2.1d");
+    }
+
+    #[test]
+    fn age_hours_reads_a_stamp_and_refuses_a_bad_one() {
+        let now = crate::state::parse_iso_unix("2026-10-13T00:00:00Z").expect("now");
+        let v = Value::String("2026-10-12T22:00:00Z".into());
+        assert_eq!(age_hours(&v, now), Some(2.0));
+        assert_eq!(age_hours(&Value::String("not a date".into()), now), None);
+        assert_eq!(age_hours(&Value::Null, now), None);
+    }
+
+    /// The three 24-hour clauses are computed from local receipts, and this is the one that catches a
+    /// card emitted by `heartbeat` but never posted where the milestone's readers can see it.
+    #[test]
+    fn milestone_activity_flags_unposted_cards_and_stale_milestones() {
+        let regs = Registries::load(&paths()).expect("registry");
+        let now = crate::state::parse_iso_unix("2026-10-13T03:00:00Z").expect("now");
+        let rows = vec![
+            serde_json::json!({"kind": "heartbeat", "milestone": "m1", "ts": "2026-10-13T02:00:00Z"}),
+            serde_json::json!({"kind": "heartbeat", "milestone": "m1", "ts": "2026-10-13T02:30:00Z", "posted": true}),
+            serde_json::json!({"kind": "heartbeat", "milestone": "m1", "ts": "2026-10-13T02:45:00Z"}),
+        ];
+        let activity = milestone_activity(&rows, &regs, now);
+        let m1 = activity.iter().find(|a| a.id == "M1").expect("M1");
+        assert_eq!(m1.heartbeats_24h, 3);
+        assert_eq!(m1.posted_heartbeats_24h, 1, "one card was posted");
+        assert!(!m1.stale, "M1 has a receipt an hour old");
+        assert!(
+            m1.last_receipt_age_hours.unwrap() < 1.0,
+            "the newest receipt decides the age"
+        );
+
+        // A milestone with no receipt at all is stale, and that is the distinction the view draws
+        // between "quiet" and "silent".
+        let quiet = activity.iter().find(|a| a.last_receipt.is_empty());
+        if let Some(q) = quiet {
+            assert!(q.stale, "{} has no receipt on record", q.id);
+        }
+    }
+
+    /// Not looking and finding everything current are different statements, and only one of them is
+    /// safe to act on.
+    #[test]
+    fn the_github_clause_reports_unavailable_rather_than_claiming_freshness() {
+        let regs = Registries::load(&paths()).expect("registry");
+        let lines = render_receipts(
+            &paths(),
+            Some(&regs),
+            &[],
+            &ReceiptsContext {
+                today: "2026-10-13",
+                month: "2026-10",
+                previous: "2026-09",
+                now_unix: 0,
+                issues_available: false,
+                issues_reason: "no GitHub here",
+            },
+        );
+        let clause = lines
+            .iter()
+            .find(|l| l.contains("milestone issue"))
+            .expect("clause");
+        assert!(clause.contains("UNAVAILABLE"), "{clause}");
+        assert!(!clause.contains("all four updated"), "{clause}");
     }
 }

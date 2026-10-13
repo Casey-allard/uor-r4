@@ -365,11 +365,10 @@ fn cmd_status(repo: &Path, args: &[String]) -> ExitCode {
     let paths = StatePaths::from_env(repo);
     // A caller may pin the timestamp so two implementations can be compared; otherwise it is now.
     let now = flag_value(args, "--at").unwrap_or_else(uor_r4_harness::receipt::now_rfc3339);
-    let lab = flag_value(args, "--lab")
-        .or_else(|| std::env::var("UOR_LAB").ok())
-        .unwrap_or_else(|| "unknown".to_string());
+    // No `--lab`: section 2 aggregates EVERY lab's shard, so the view has no "whose receipts"
+    // question to answer.
     let regs = Registries::load(&paths).ok();
-    print!("{}", status::render(&paths, regs.as_ref(), &lab, &now));
+    print!("{}", status::render(&paths, regs.as_ref(), &now));
     ExitCode::SUCCESS
 }
 

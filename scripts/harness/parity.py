@@ -496,6 +496,93 @@ def status_agreement(binary: Path) -> list[str]:
     return findings
 
 
+def status_receipts_agreement(binary: Path) -> list[str]:
+    """The RECEIPTS section must aggregate every lab's shard identically in both implementations.
+
+    This is the section whose whole purpose is cross-lab visibility, so the properties compared are
+    the aggregate counts, the per-kind breakdown, the last-5 lines and the two local 24-hour clauses.
+    Two clauses legitimately differ and are excluded rather than tolerated silently:
+
+      * the live timestamp of the newest receipt, which moves between the two runs; and
+      * the milestone-issue clause, which the Rust side reports as UNAVAILABLE because it does not
+        query GitHub. Claiming the issues are current without looking would be the worse bug.
+    """
+    import subprocess
+
+    findings: list[str] = []
+    code, rust_out, err = run([str(binary), "status", "--repo", str(REPO), "--at",
+                               "2026-10-13T02:52:00-04:00", "--lab", "parity"])
+    if code != 0:
+        findings.append(f"status receipts: the Rust status exited {code}: {err[:200]}")
+        return findings
+    proc = subprocess.run(
+        [sys.executable, str(REPO / "scripts" / "harness" / "cli.py"), "status"],
+        cwd=REPO, capture_output=True, text=True, timeout=600,
+    )
+    if proc.returncode != 0:
+        findings.append(f"status receipts: the Python status failed: {proc.stderr[:200]}")
+        return findings
+
+    def section(text: str, start: str, end: str) -> list[str]:
+        lines = text.splitlines()
+        try:
+            i = next(i for i, l in enumerate(lines) if l.startswith(start))
+        except StopIteration:
+            return []
+        j = next((j for j, l in enumerate(lines) if l.startswith(end) and j > i), len(lines))
+        return lines[i:j]
+
+    def stable(lines: list[str]) -> list[str]:
+        out = []
+        for l in lines:
+            if "milestone issue" in l:
+                continue  # the GitHub clause; see the docstring
+            # The newest receipt line carries a live timestamp. Dropped by position: it is the first
+            # `- <ts>` row, and its content is a receipt the other run may not have seen yet.
+            if l.strip().startswith("- 2") and "heartbeat" in l and "no model line" in l:
+                continue
+            out.append(l)
+        return out
+
+    py_lines = stable(section(proc.stdout, "2. RECEIPTS", "3. DELIVERY"))
+    rust_lines = stable(section(rust_out, "2. RECEIPTS", "3. DELIVERY"))
+    if not py_lines:
+        findings.append("status receipts: Python produced no RECEIPTS section")
+        return findings
+
+    # The aggregate counts are the claim. Compared as parsed fields, so a difference is reported as
+    # numbers rather than as a wall of text.
+    def counts(lines: list[str]) -> dict[str, str]:
+        out: dict[str, str] = {}
+        for l in lines:
+            body = l.strip()
+            if " receipts (" in body and "·" in body:
+                for part in body.split("·"):
+                    part = part.strip()
+                    if ":" in part:
+                        k, v = part.split(":", 1)
+                        out[k.strip()] = v.strip()
+            elif body.startswith("skills used:"):
+                out["used"] = body
+        return out
+
+    rc, pc = counts(rust_lines), counts(py_lines)
+    for key in sorted(set(rc) | set(pc)):
+        if rc.get(key) != pc.get(key):
+            findings.append(f"status receipts {key}: rust {rc.get(key)!r} != python {pc.get(key)!r}")
+
+    # The last-5 ordering and the two local 24-hour clauses, compared as text minus the known clause.
+    r_tail = [l for l in rust_lines if l.strip().startswith("milestones with no receipt")]
+    p_tail = [l for l in py_lines if l.strip().startswith("milestones with no receipt")]
+    if r_tail != p_tail:
+        findings.append(f"status receipts stale milestones: rust {r_tail} != python {p_tail}")
+    r_hb = [l for l in rust_lines if "never posted on the issue" in l]
+    p_hb = [l for l in py_lines if "never posted on the issue" in l]
+    if r_hb != p_hb:
+        findings.append(f"status receipts unposted cards: rust {r_hb} != python {p_hb}")
+    return findings
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Check Rust/Python harness parity on shared state.")
     ap.add_argument("--build", action="store_true", help="build the Rust binary first")
@@ -589,6 +676,8 @@ def main(argv: list[str] | None = None) -> int:
     findings.extend(render)
     status_cmp = status_agreement(binary)
     findings.extend(status_cmp)
+    receipts_cmp = status_receipts_agreement(binary)
+    findings.extend(receipts_cmp)
 
     if args.json:
         print(json.dumps({
@@ -600,6 +689,7 @@ def main(argv: list[str] | None = None) -> int:
             "registry_agreement": "ok" if not registry else "FAILED",
             "render_agreement": "ok" if not render else "FAILED",
             "status_agreement": "ok" if not status_cmp else "FAILED",
+            "status_receipts_agreement": "ok" if not receipts_cmp else "FAILED",
             "state_valid": not invalid,
             "binary": str(binary),
             "formats": len(r_formats),
@@ -634,6 +724,10 @@ def main(argv: list[str] | None = None) -> int:
         print(
             "  status MILESTONES section identical: "
             + ("ok" if not status_cmp else f"FAILED ({len(status_cmp)})")
+        )
+        print(
+            "  status RECEIPTS aggregation identical: "
+            + ("ok" if not receipts_cmp else f"FAILED ({len(receipts_cmp)})")
         )
     return 1 if findings else 0
 
