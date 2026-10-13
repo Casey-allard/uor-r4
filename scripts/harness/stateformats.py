@@ -87,12 +87,22 @@ def register_rules():  # noqa: ANN201 - returns list[checkrules.Rule]
                 )
             ]
         if status == "skipped":
+            # **A check that cannot run is not a check that passed.** This was `info`/`ok=True`,
+            # so a machine without the Rust binary got a green `check` on the one rule whose whole
+            # job is to notice that persisted state drifted from its frozen contract.
+            #
+            # `warn` rather than `error` deliberately: a lab that has not built the binary is not
+            # violating anything, and a permanently-red check gets ignored. **What changes is that
+            # it is now VISIBLE** - a warning the reader can act on rather than a green line that
+            # says the contract was verified when nothing was verified.
             return [
                 RuleResult(
                     rule_id="harness.state_formats",
-                    severity="info",
-                    ok=True,
-                    message=detail,
+                    severity="warn",
+                    ok=False,
+                    message=(
+                        "the frozen contract was NOT checked: " + detail
+                    ),
                     fix="run `cargo build -p uor-r4-harness` to enable this check",
                 )
             ]
