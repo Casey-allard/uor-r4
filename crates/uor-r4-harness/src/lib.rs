@@ -22,6 +22,7 @@
 
 pub mod briefing;
 pub mod contract;
+pub mod notes;
 pub mod onboard;
 pub mod prep;
 pub mod presence;
@@ -33,6 +34,7 @@ pub mod status;
 
 pub use briefing::{assemble, human_tokens, ContextPack};
 pub use contract::{Contract, FormatSpec, Kind, Shape, Violation};
+pub use notes::{Markers, Note, Unread};
 pub use onboard::{onboard, Finding, Level, Report};
 pub use prep::{check_all, check_sheet, test_fitness, SheetReport};
 pub use presence::{heartbeat, Presence, PRESENCE_TTL_MINUTES};

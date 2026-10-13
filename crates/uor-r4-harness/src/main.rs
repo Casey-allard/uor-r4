@@ -12,6 +12,7 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use uor_r4_harness::briefing;
+use uor_r4_harness::notes;
 use uor_r4_harness::onboard::{detect_runtime, onboard};
 use uor_r4_harness::prep::{check_all, SheetReport};
 use uor_r4_harness::presence::{heartbeat, Presence};
@@ -25,7 +26,7 @@ use uor_r4_harness::status;
 use uor_r4_harness::Contract;
 
 /// Flags that only a subcommand understands, forwarded rather than rejected at the top level.
-const SUBCOMMAND_FLAGS: [&str; 24] = [
+const SUBCOMMAND_FLAGS: [&str; 27] = [
     "--kind",
     "--milestone",
     "-m",
@@ -50,6 +51,9 @@ const SUBCOMMAND_FLAGS: [&str; 24] = [
     "--cost",
     "--seeds",
     "--rows",
+    "--cached",
+    "--mark-seen",
+    "--no-notes",
 ];
 
 /// The subset that takes a value, so the value is not mistaken for a command.
@@ -101,6 +105,9 @@ COMMANDS:
                 Rust side; use --dry-run to see the line without recording it.
     heartbeat   Check in: publish presence and append a receipt, both to the LIVE
                 tier, so a check-in never dirties a working checkout (R10).
+    notes       Unread notes: comments on the milestone issues this lab has
+                not seen. Refreshes from GitHub by default; --cached skips the
+                network. A marker per lab lives in the live tier (R10-clean).
     ledger-sync Append this lab's live receipts into the committed shard. Run
                 before opening a PR so the record reaches review. Append-only.
                 Use --dry-run to see what would be written.
@@ -219,6 +226,7 @@ fn main() -> ExitCode {
         Some("receipt") => cmd_receipt(&repo, &rest, json),
         Some("heartbeat") => cmd_heartbeat(&repo, &rest, json),
         Some("ledger-sync") => cmd_ledger_sync(&repo, &rest, json),
+        Some("notes") => cmd_notes(&repo, &rest, json),
         Some("prep-check") => cmd_prep_check(&repo, json),
         Some("registry") => cmd_registry(&repo, json),
         Some("prep-render") => cmd_prep_render(&repo, &rest),
@@ -304,6 +312,122 @@ fn flag_value(args: &[String], name: &str) -> Option<String> {
         i += 1;
     }
     None
+}
+
+/// `notes [--lab L] [--cached|--mark-seen]` - what other labs said that this lab has not seen.
+///
+/// **Presence without awareness is half the plane.** The board says who is working; it does not say
+/// that a CONTEST was posted twenty minutes ago and nobody has read it. That happened twice on
+/// 13 October, and this is the durable fix: the check-in itself reports what you have missed.
+///
+/// Default refreshes from GitHub. `--cached` reads the cache and makes no network call (for a
+/// check-in that must be instant); `--mark-seen` advances the marker without printing, for when the
+/// notes have been read.
+fn cmd_notes(repo: &Path, args: &[String], json: bool) -> ExitCode {
+    let paths = StatePaths::from_env(repo);
+    let lab = match flag_value(args, "--lab").or_else(|| std::env::var("UOR_LAB").ok()) {
+        Some(l) if !l.trim().is_empty() => l,
+        _ => {
+            eprintln!(
+                "uor-harness: which lab? pass --lab or set UOR_LAB - a marker with no owner would \
+                 mark another lab's notes read."
+            );
+            return ExitCode::from(2);
+        }
+    };
+    let regs = Registries::load(&paths).ok();
+    let issues = notes::watched_issues(regs.as_ref());
+
+    let mut fetched = 0usize;
+    if !args.iter().any(|a| a == "--cached") {
+        for issue in &issues {
+            match fetch_issue_notes(*issue) {
+                Some(found) => match notes::cache_append(&paths, &lab, &found) {
+                    Ok(n) => fetched += n,
+                    Err(e) => eprintln!("uor-harness: notes cache: {e}"),
+                },
+                // A fetch failure is reported but NOT fatal: a lab with no network must still be able
+                // to read what it already knows, and a check-in must never be blocked by GitHub.
+                None => eprintln!("uor-harness: could not read #{issue} (no network or no gh)"),
+            }
+        }
+    }
+
+    let cached = notes::read_cache(&paths, &lab);
+    let mut markers = notes::Markers::load(&paths, &lab);
+    let unread = markers.unread(&cached);
+    let items = notes::summarise(&unread);
+
+    if args.iter().any(|a| a == "--mark-seen") {
+        markers.advance(&cached);
+        let saved = markers.save(&paths);
+        if !json {
+            println!(
+                "notes: marked {} note(s) seen for {lab}{}",
+                unread.len(),
+                if saved {
+                    ""
+                } else {
+                    " (marker not saved: live tier unwritable)"
+                }
+            );
+        }
+        return ExitCode::SUCCESS;
+    }
+
+    if json {
+        let rows: Vec<String> = items
+            .iter()
+            .map(|u| {
+                format!(
+                    "    {{\"issue\": {}, \"count\": {}, \"latest_id\": {}, \"latest_author\": {:?}, \"latest_first_line\": {:?}}}",
+                    u.issue, u.count, u.latest.id, u.latest.author, u.latest.first_line
+                )
+            })
+            .collect();
+        println!(
+            "{{\n  \"lab\": {:?},\n  \"fetched\": {fetched},\n  \"cached\": {},\n  \"unread\": {},\n  \"notes\": [\n{}\n  ]\n}}",
+            lab,
+            cached.len(),
+            unread.len(),
+            rows.join(",\n")
+        );
+    } else {
+        for line in notes::render(&items) {
+            println!("{line}");
+        }
+        if items.is_empty() {
+            println!("notes: nothing unread");
+        } else {
+            println!();
+            println!("Open them on the issue, then run: uor-harness notes --mark-seen");
+        }
+    }
+    ExitCode::SUCCESS
+}
+
+/// Fetch one issue's comments as `id<TAB>author<TAB>created_at<TAB>body-first-line`.
+///
+/// `gh` does the authentication and the JSON; this reads four tab-separated fields rather than take a
+/// dependency on walking a dynamic tree. `None` means the call failed, which the caller reports and
+/// survives - **a check-in must never be blocked by GitHub.**
+fn fetch_issue_notes(issue: i64) -> Option<Vec<notes::Note>> {
+    let out = std::process::Command::new("gh")
+        .args([
+            "api",
+            &format!("repos/UOR-Foundation/uor-r4/issues/{issue}/comments?per_page=100"),
+            "--jq",
+            ".[] | [(.id|tostring), .user.login, .created_at, (.body|split(\"\\n\")|.[0])] | @tsv",
+        ])
+        .output()
+        .ok()?;
+    if !out.status.success() {
+        return None;
+    }
+    Some(notes::parse_tsv(
+        issue,
+        &String::from_utf8_lossy(&out.stdout),
+    ))
 }
 
 /// `ledger sync [--lab L] [--month M]` - append live receipts into the committed shard.
@@ -410,6 +534,18 @@ fn cmd_heartbeat(repo: &Path, args: &[String], json: bool) -> ExitCode {
             return ExitCode::from(1);
         }
     };
+    // Surface unread notes as part of the check-in: presence without awareness is half the plane.
+    // Read from the CACHE, not the network - a check-in must stay instant, and `notes` refreshes.
+    if !args.iter().any(|a| a == "--no-notes") {
+        let cached = notes::read_cache(&paths, &lab);
+        if !cached.is_empty() {
+            let markers = notes::Markers::load(&paths, &lab);
+            let items = notes::summarise(&markers.unread(&cached));
+            for line in notes::render(&items) {
+                eprintln!("{line}");
+            }
+        }
+    }
     let (live_ok, durable) = match heartbeat(&paths, &p) {
         Ok(v) => v,
         Err(e) => {
