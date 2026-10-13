@@ -27,6 +27,7 @@ pub mod budgetrules;
 pub mod contract;
 pub mod githelp;
 pub mod harnessrules;
+pub mod harnessrules_stateformats;
 pub mod mistakes;
 pub mod multilab;
 pub mod multilabrules;

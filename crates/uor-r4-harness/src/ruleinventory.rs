@@ -79,6 +79,7 @@ pub const INVENTORY: &[(&str, &[&str])] = &[
             "harness.milestones.present",
             "harness.skills.nonempty",
             "harness.mistakes.have_guards",
+            "harness.state_formats",
         ],
     ),
 ];
