@@ -1467,3 +1467,42 @@ this wins.
   run on the pod when the kernel work needs the CUDA toolkit or the target GPU;
   per the D29 amendment, kernels ship as prebuilt modules (no NVRTC), so pod
   builds produce the module artifacts that get hash-bound and qualified.
+
+## D31 — No result is ruled out on an instrument technicality
+
+**Authority, October 13:** Casey, relayed from the owner's session to the Kimi PM
+("file it now") and to Codex for the running murmuration qualification (#2028,
+comment 6153979044). Companion to PM rule R12 (`docs/harness/pm-rules.md`), which
+carries the four authority questions every check must answer before it has veto
+power; D31 binds what happens when a check fails anyway. Where older text allows
+a first-failure stop or treats an instrument artefact as a code blocker, this
+wins.
+
+1. **Classify a failing check before stopping on it.** Decide whether the check
+   failed because of the mechanism or code under test, or because of the
+   instrument: the test's own measurement precision, a reduction or cancellation
+   artefact, the harness, setup, the driver, or tolerance bookkeeping. When a
+   magnitude analysis shows the instrument can reject a correct result (as in
+   murmuration control 11: two F32 global sums differing by about 8e-5 against
+   about 1e-6 of rounding — the 0.002 relative bar admitted less than one F32
+   spacing of numerator error), it is an **instrument defect** at once. It is not
+   an open "hypothesis" that keeps the result blocked.
+2. **An instrument defect is never a BLOCKER on the code, a negative or a stop.**
+   Repair the instrument without changing the registered law, bar, step or
+   fixture, and re-run. It never counts toward D21, never closes a configuration
+   (D22), and never appears in a record as a code or mechanism failure.
+3. **A qualification runs every independent registered control in one pass** and
+   reports all failures together. One control's failure, of either kind, never
+   leaves the rest NOT_RUN. Stopping at the first failure is reserved for setup
+   or safety failures that make the remaining results meaningless: a missing
+   binary, a source-pin mismatch, a D29 refusal on a required path, or a resource
+   cap.
+4. **Bars stay frozen.** This rule widens no tolerance. It forbids treating an
+   instrument's own error as the measured object's failure.
+
+First application: the murmuration control-11 secant failure is an instrument
+defect, not a numerical BLOCKER on S1; the repaired device-F64 secant passed the
+unchanged bar (analytic 0.041992284 vs F64 secant 0.042009846 at the disputed
+point) and the qualification runs all 33 controls in one pass at the repaired
+pin. R12's build-first and solvability questions still govern whether a check
+should have run at all; D31 governs what a failure may mean once it has run.
