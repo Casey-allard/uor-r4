@@ -14,7 +14,7 @@
     "softmax_equivalent_implementations_allowed": false,
     "softmax_historical_evidence": "preserve_inactive_not_authorized_for_execution",
     "softmax_replacement_required": "designed_geometric_mechanism_with_prospective_test_fitness",
-    "softmax_interlock": "scripts/check_no_softmax.py",
+    "softmax_interlock": "uor-harness ratchet d23|d25",
     "current_serving_design": "deterministic_geometric_addressing_and_shared_typed_operators",
     "dense_transformer_disguised_as_lookup_allowed": false,
     "expert_gating": "conditional_future_option_not_current_design",

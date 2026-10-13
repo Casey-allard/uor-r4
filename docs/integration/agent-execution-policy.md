@@ -260,7 +260,8 @@ time are wrong.
 **GPU time goes only where it can change a decision.** A configuration the rules
 already exclude, or a comparison whose baseline they forbid, does not get a run.
 
-**Interlock.** `scripts/check_no_softmax.py` ratchets the executable tree against
+**Interlock.** `uor-harness ratchet d23` (Rust, #2346; supersedes the retired
+`scripts/check_no_softmax.py`) ratchets the executable tree against
 `scripts/no-softmax-baseline.json`: a softmax site may not be added and the
 baseline may only decrease. D23 recorded that no interlock existed; this is it. It
 does not claim project-wide removal is complete.

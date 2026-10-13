@@ -1192,7 +1192,8 @@ governance block; D23 carries the softmax prohibition, this carries the rest.
   exact `Z[phi]`/zeta-phase interference, typed H4/icosian pairing, Lorentz or
   address geometry, or exact hard selection by address - with a prospective TEST
   FITNESS review before model compute, per D23.
-- **Interlock.** `scripts/check_no_softmax.py` ratchets the executable tree against
+- **Interlock.** `uor-harness ratchet d23` (Rust, #2346; supersedes the retired
+  `scripts/check_no_softmax.py`) ratchets the executable tree against
   `scripts/no-softmax-baseline.json`: a softmax site may not be added, and the
   baseline may only decrease. D23 recorded that no interlock existed; this is it.
   It is not a claim that project-wide removal is complete.
@@ -1426,15 +1427,18 @@ runtime compiler, is the compliance surface.
   (`crates/uor-r4-core/src/native_geometric`), D11's integer-engine exp-table
   masses, and tooling. Historical/retired arms remain reachable only through
   configs the guards reject, and are D23/D25/D29-prohibited for new runs.
-- **Enforcement (in progress on DeepSeek's harness line).**
-  `scripts/check_no_matmul.py` is wired into prlint and CI, and the semantic path
+- **Enforcement.** The D23/D25 ratchets are Rust (`uor-harness ratchet d23|d25`,
+  #2346, per-file parity with the retired Python scripts); DeepSeek's harness line
+  repoints prlint/CI at them and retires the Python scripts, and the semantic path
   checker extends to CUDA raw-string kernel sources so compiled content is
   semantically gated, not only word-counted.
-- **Consequence.** Rung-0 execution waits for Claude's prebuilt-module split - the
-  NVRTC path is retired, not merely trimmed; Codex re-qualifies on the prebuilt
-  module, and cudarc's `nvrtc` feature comes out of `uor-r4-training`'s dependency
-  set when the split lands. The FIT sheet pins source identity at execution, and
-  the executed module must not contain banned kernels.
+- **Consequence.** Rung-0 execution waits for the D29 vendor boundary to close:
+  Claude's prebuilt-module split landed (#2344, NVRTC removed; the two learned
+  contractions Codex found are quarantined in #2347), and Codex's vendor-boundary
+  repair (#2345) runs its composed CUDA qualification (31 controls) after its F1
+  guard fix; Codex re-qualifies on the prebuilt module, and cudarc's `nvrtc`
+  feature is out of `uor-r4-training`'s dependency set. The FIT sheet pins source
+  identity at execution, and the executed module must not contain banned kernels.
 - **Assignments.** Claude builds the replacements and the module split; Codex
   reviews and re-qualifies; the Kimi PM routes.
 

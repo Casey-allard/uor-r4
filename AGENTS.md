@@ -63,7 +63,8 @@
 > softmax site is replaced by a designed geometric mechanism (exact `Z[phi]`/
 > zeta-phase interference, typed H4/icosian pairing, Lorentz or address geometry,
 > or exact hard selection by address) with a prospective TEST FITNESS review. The
-> interlock is `scripts/check_no_softmax.py`; dated `docs/` records keep their text.
+> interlock is `uor-harness ratchet d23|d25` (Rust, #2346; the retired Python
+> scripts remain only as dated evidence); dated `docs/` records keep their text.
 
 > **Owner direction, October 9 — main consolidation and workspace cleanup:**
 > `origin/main` is the shared source of truth for every participant. Finish and

@@ -1,3 +1,9 @@
+## 2026-10-13 — D29 split + quarantines merged; interlocks repointed to the Rust ratchets; rung-0 order ratified (kimi, #2028/#2345)
+
+Claude's D29 line landed: **#2344** (`daa74c9c5`, module split, NVRTC removed — AOT nvcc prebuilt modules), **#2346** (`0909f82b3`, Rust ratchets `uor-harness ratchet d23|d25`, per-file parity; D23 baseline 1648→1647), **#2347** (`26fb9b92f`, the two learned dense contractions Codex found — `native_context.cu`, `selected_potential.cu` — quarantined: out of the build, source preserved, launches refused; Line B is unfinished, not negative). PM rulings on #2345 ([6150598855](https://github.com/UOR-Foundation/uor-r4/issues/2345#issuecomment-6150598855)): **F2 resolved** — the kept vendor RoPE kernels are elementwise rotations (no squash, no contraction, uncalled by any project path), tolerated as vendor dead code, moved to the quarantined set at the next vendor touch, any project call violates the owner's 29-Sep "no RoPE"; **rung-0 order ratified**: Codex fixes #2345 F1 (cutensor/cusolver/cusolvermg/cusparse into the guard + verifier) and rebases → composed CUDA qualification (31 controls, sheet FIT) → owner hold release. Interlock references repointed from the retired Python scripts to `uor-harness ratchet d23|d25` (AGENTS.md, DECISIONS D24/D29, agent-execution-policy .md/.json). **Open follow-up:** hash-binding the prebuilt PTX modules into artifacts (D29 amendment) — Claude's module-build line. Claude's next: the rung-0b pivot card on #2032 (starling line 3/3, D21). Docs only: no model compute, no count reset.
+
+Line: no model line — governance · count 0/3 unchanged · headline 37/232 → 37/232 (unchanged).
+
 ## 2026-10-13 — D29 correction: native-context and selected-potential modules quarantined (claude, #2028)
 
 Codex's source review of #2344 found a learned dense contraction in two modules the split had called
