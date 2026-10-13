@@ -9,6 +9,24 @@ This is how the project stops re-learning the same failure. The rules these file
 (`prlint.pivot_at_three`, `prlint.prereg_before_compute`, ...) are the guards; the
 evidence paths are the records that prove the lesson really happened.
 
+## `class: assumption` - ruled-out beliefs, not just mistakes
+
+Most entries record something that went wrong. Some record something that was **believed and turned
+out false**, and those are worth keeping for the opposite reason: the next lab would otherwise
+re-derive them. "The mesh does not exist as a coordination concept" is the type specimen - a tracked
+search settles it in a minute, and without an entry here every new lab spends that minute again.
+
+They use the same four sections, so `mistakes find` retrieves them beside the lessons:
+
+- **What happened** becomes what was assumed, and by whom.
+- **Symptom** is how the false belief shows up - a plan that depends on it, a question asked twice.
+- **Lesson** is what the search actually showed, with the method, so it can be re-checked.
+- **How to apply** is what to do instead of re-investigating.
+
+An assumption entry should say **how it was checked**, not just that it is false. `guard: none` is
+normal: a negative finding has nothing to intercept, and inventing a rule for one would be a rule
+that checks nothing.
+
 ## Use it
 
 ```bash

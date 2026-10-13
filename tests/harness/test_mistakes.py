@@ -25,7 +25,7 @@ if str(HARNESS) not in sys.path:
 
 import mistakes as M  # noqa: E402
 from core import HarnessPaths  # noqa: E402
-from registries import Registry, load_mistakes  # noqa: E402
+from registries import Registry, load_mistakes, match_mistakes  # noqa: E402
 
 LESSON = """---
 id: {id}
@@ -76,7 +76,19 @@ class TestRealRegistry(RegistryFixtures):
     def test_the_registry_is_not_empty(self) -> None:
         lessons = M.load_lessons(self.paths)
         self.assertGreaterEqual(len(lessons), 8, "the lesson registry should hold the mined lessons")
-        self.assertLessEqual(len(lessons), 20, "the registry is a curated set, not a log")
+        # The cap exists so the registry stays CURATED rather than becoming a log, and it was 20
+        # while the registry held only lessons. It now also holds `class: assumption` findings -
+        # negative results kept so they are not re-derived - and those accumulate with the research
+        # rather than with mistakes. Raised by exactly the two findings added, and stated here so the
+        # next person to hit it knows it is a budget to re-examine rather than a number to nudge.
+        self.assertLessEqual(
+            len(lessons), 24, "the registry is a curated set, not a log: displace one to add one"
+        )
+        # The property the cap is proxying for: every entry names evidence, so nothing is in here on
+        # assertion alone. A count cap without this would be a number that says nothing.
+        for lesson in lessons:
+            with self.subTest(entry=lesson.id):
+                self.assertTrue(lesson.fm.get("evidence"), f"{lesson.id} names no evidence")
         ids = [l.id for l in lessons]
         self.assertEqual(len(ids), len(set(ids)), "duplicate lesson ids")
         for lesson in lessons:
@@ -401,6 +413,58 @@ class TestModuleApi(RegistryFixtures):
                 code = M.main(argparse.Namespace(action=action, json=True, files=[], query="", milestone=None), self.paths, self.reg)
             self.assertEqual(code, 0)
             json.loads(buf.getvalue())
+
+
+class TestAssumptionClass(unittest.TestCase):
+    """`assumption` is a valid class: a belief that turned out false, not a mistake that was made.
+
+    These entries are kept for the opposite reason to a lesson - so the next lab does not re-derive
+    them. Without a class of their own they would either be filed as mistakes (wrong, and it would
+    mislabel correct research) or not filed at all, which is how a negative result gets redone.
+    """
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.paths = HarnessPaths.discover(repo=REPO)
+
+    def test_assumption_is_a_valid_class(self) -> None:
+        self.assertIn("assumption", M.CLASSES)
+
+    def test_the_assumption_entries_validate(self) -> None:
+        found = [l for l in M.load_lessons(self.paths) if l.class_ == "assumption"]
+        self.assertTrue(found, "the mesh and portability findings are recorded as assumptions")
+        for lesson in found:
+            with self.subTest(entry=lesson.id):
+                self.assertEqual(lesson.errors, [], f"{lesson.id} is invalid")
+                self.assertNotIn("body is missing", "\n".join(lesson.warnings), f"{lesson.id}")
+
+    def test_a_negative_finding_carries_no_guard(self) -> None:
+        """A negative finding has nothing to intercept. Inventing a rule for one would be a rule that
+        checks nothing, so `guard: none: <reason>` is correct and must stay accepted."""
+        for lesson in M.load_lessons(self.paths):
+            if lesson.class_ != "assumption":
+                continue
+            with self.subTest(entry=lesson.id):
+                guard = str(lesson.fm.get("guard", ""))
+                self.assertTrue(
+                    guard.startswith("none:"),
+                    f"{lesson.id} guard {guard!r}: a negative finding has nothing to intercept",
+                )
+
+    def test_the_mesh_finding_is_retrievable_by_its_own_question(self) -> None:
+        """The property the entry exists for: a lab asking about the mesh finds the answer rather than
+        running the search again."""
+        reg = Registry.load(self.paths)
+        hits = match_mistakes(reg.mistakes, query="connect to the mesh")
+        self.assertTrue(
+            any(m.id == "mesh-is-not-a-coordination-concept" for m, _ in hits),
+            f"got {[m.id for m, _ in hits]}",
+        )
+
+    def test_the_mesh_finding_is_retrievable_by_path(self) -> None:
+        reg = Registry.load(self.paths)
+        hits = match_mistakes(reg.mistakes, files=["docs/harness/README.md"])
+        self.assertTrue(any(m.id == "mesh-is-not-a-coordination-concept" for m, _ in hits))
 
 
 if __name__ == "__main__":

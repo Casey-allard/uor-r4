@@ -41,7 +41,12 @@ from registries import Mistake, Registry, match_mistakes
 from util import truncate
 
 SEVERITIES = ("block", "warn", "info")
-CLASSES = ("process", "evidence", "compute", "measurement", "delivery", "coordination")
+#: What kind of thing went wrong. `assumption` is the odd one out and deliberately so: it is not a
+#: mistake that was made but a BELIEF THAT TURNED OUT FALSE, recorded so the next lab does not
+#: re-derive it. Retrieval, the four required sections and the evidence path all work the same, so a
+#: ruled-out assumption is found exactly where a lesson is found - which is the point, because a
+#: negative result nobody can query is a negative result that gets redone.
+CLASSES = ("process", "evidence", "compute", "measurement", "delivery", "coordination", "assumption")
 STATUSES = ("active", "resolved", "superseded")
 SECTIONS = ("What happened", "Symptom", "Lesson", "How to apply")
 READMES = ("README.md", "README.MD", "readme.md")
