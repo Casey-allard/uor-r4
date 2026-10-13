@@ -27,6 +27,7 @@ pub mod presence;
 pub mod receipt;
 pub mod registries;
 pub mod state;
+pub mod status;
 
 pub use contract::{Contract, FormatSpec, Kind, Shape, Violation};
 pub use onboard::{onboard, Finding, Level, Report};
@@ -35,3 +36,4 @@ pub use presence::{heartbeat, Presence, PRESENCE_TTL_MINUTES};
 pub use receipt::{append, shard_path, Receipt};
 pub use registries::{fmt_num, Milestone, Panel, Registries};
 pub use state::{PresenceRow, ReceiptRow, StatePaths};
+pub use status::{milestone_rows, render as render_status, MilestoneRow};

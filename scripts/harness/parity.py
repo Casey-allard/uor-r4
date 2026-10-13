@@ -431,6 +431,71 @@ def render_agreement(binary: Path) -> list[str]:
     return findings
 
 
+def status_agreement(binary: Path) -> list[str]:
+    """The rendered MILESTONES section must be identical in both implementations.
+
+    Compared against Python's REAL `status` output rather than a Python helper, because the helpers
+    are not what a lab reads. This is the section that carries the headline acceptance number, the
+    line counts and the panel every lab works against, so a difference here is a lab reading a
+    different milestone than the one being graded.
+    """
+    import subprocess
+
+    findings: list[str] = []
+    code, rust_out, err = run([str(binary), "status", "--repo", str(REPO), "--at",
+                               "2026-10-13T02:52:00-04:00", "--lab", "parity"])
+    if code != 0:
+        findings.append(f"status agreement: the Rust status exited {code}: {err[:200]}")
+        return findings
+
+    proc = subprocess.run(
+        [sys.executable, str(REPO / "scripts" / "harness" / "cli.py"), "status"],
+        cwd=REPO, capture_output=True, text=True, timeout=600,
+    )
+    if proc.returncode != 0:
+        findings.append(f"status agreement: the Python status failed: {proc.stderr[:200]}")
+        return findings
+
+    def section(text: str, start: str, end: str) -> list[str]:
+        lines = text.splitlines()
+        try:
+            i = next(i for i, l in enumerate(lines) if l.startswith(start))
+        except StopIteration:
+            return []
+        j = next((j for j, l in enumerate(lines) if l.startswith(end) and j > i), len(lines))
+        return [l for l in lines[i:j]]
+
+    rust_lines = section(rust_out, "1. MILESTONES", "2. RECEIPTS")
+    py_lines = section(proc.stdout, "1. MILESTONES", "2. RECEIPTS")
+    if not py_lines:
+        findings.append("status agreement: Python produced no MILESTONES section to compare")
+        return findings
+    if rust_lines != py_lines:
+        where = "length differs"
+        for i in range(max(len(rust_lines), len(py_lines))):
+            r = rust_lines[i] if i < len(rust_lines) else "<nothing>"
+            q = py_lines[i] if i < len(py_lines) else "<nothing>"
+            if r != q:
+                where = f"line {i + 1}: rust {r[:110]!r} != python {q[:110]!r}"
+                break
+        findings.append(f"status agreement: MILESTONES differ - {where}")
+
+    # The source line carries the registry note, which is where a lab learns which owner direction
+    # the cache was reconciled to. Compared without the timestamp, which is the only variable part.
+    def source_line(text: str) -> str:
+        for line in text.splitlines():
+            if line.startswith("source: "):
+                return line
+        return ""
+
+    if source_line(rust_out) != source_line(proc.stdout):
+        findings.append(
+            f"status agreement: source line differs (rust {source_line(rust_out)[:120]!r} != "
+            f"python {source_line(proc.stdout)[:120]!r})"
+        )
+    return findings
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Check Rust/Python harness parity on shared state.")
     ap.add_argument("--build", action="store_true", help="build the Rust binary first")
@@ -522,6 +587,8 @@ def main(argv: list[str] | None = None) -> int:
     findings.extend(registry)
     render = render_agreement(binary)
     findings.extend(render)
+    status_cmp = status_agreement(binary)
+    findings.extend(status_cmp)
 
     if args.json:
         print(json.dumps({
@@ -532,6 +599,7 @@ def main(argv: list[str] | None = None) -> int:
             "prep_agreement": "ok" if not prep else "FAILED",
             "registry_agreement": "ok" if not registry else "FAILED",
             "render_agreement": "ok" if not render else "FAILED",
+            "status_agreement": "ok" if not status_cmp else "FAILED",
             "state_valid": not invalid,
             "binary": str(binary),
             "formats": len(r_formats),
@@ -562,6 +630,10 @@ def main(argv: list[str] | None = None) -> int:
         print(
             "  rendered pre-registration sheet identical: "
             + ("ok" if not render else f"FAILED ({len(render)})")
+        )
+        print(
+            "  status MILESTONES section identical: "
+            + ("ok" if not status_cmp else f"FAILED ({len(status_cmp)})")
         )
     return 1 if findings else 0
 

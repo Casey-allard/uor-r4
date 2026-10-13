@@ -17,6 +17,7 @@ use uor_r4_harness::presence::{heartbeat, Presence};
 use uor_r4_harness::receipt::{append, current_month, Receipt as NewReceipt};
 use uor_r4_harness::registries::Registries;
 use uor_r4_harness::state::{read_ledger, PresenceRow, StatePaths};
+use uor_r4_harness::status;
 use uor_r4_harness::Contract;
 
 /// Flags that only a subcommand understands, forwarded rather than rejected at the top level.
@@ -47,7 +48,7 @@ const SUBCOMMAND_FLAGS: [&str; 23] = [
 ];
 
 /// The subset that takes a value, so the value is not mistaken for a command.
-const SUBCOMMAND_VALUE_FLAGS: [&str; 22] = [
+const SUBCOMMAND_VALUE_FLAGS: [&str; 23] = [
     "--kind",
     "--milestone",
     "-m",
@@ -70,6 +71,7 @@ const SUBCOMMAND_VALUE_FLAGS: [&str; 22] = [
     "--cost",
     "--seeds",
     "--rows",
+    "--at",
 ];
 
 const USAGE: &str = "\
@@ -98,6 +100,8 @@ COMMANDS:
                 parity.py, because the headline is the number a run is scored on.
     prep-render Render a pre-registration sheet to stdout without writing it. The
                 WRITE half of the D22 gate, checked byte-for-byte against Python.
+    status      What is true now. Sections 1 (milestones) and 2 (receipts) are
+                ported; section 3 (delivery) says so rather than rendering blank.
     help        This text.
 
 The Python harness owns behaviour until this path passes the same checks; the
@@ -156,10 +160,15 @@ fn main() -> ExitCode {
             // Flags belonging to a subcommand are collected and handed to it, not rejected here:
             // `receipt` takes many optional fields and the top-level loop cannot know them all.
             other if other.starts_with('-') => {
-                if SUBCOMMAND_FLAGS.contains(&other) {
+                // A flag is known if it takes a value OR is a bare switch. Checking only the switch
+                // list silently rejected every value-only flag: `--at` was added to the value list
+                // and still failed with "unknown option", because the two lists were consulted as if
+                // the first were the complete set.
+                let takes_value = SUBCOMMAND_VALUE_FLAGS.contains(&other);
+                if SUBCOMMAND_FLAGS.contains(&other) || takes_value {
                     rest.push(other.to_string());
                     // A value-taking subcommand flag carries the next token with it.
-                    if !other.contains('=') && SUBCOMMAND_VALUE_FLAGS.contains(&other) {
+                    if !other.contains('=') && takes_value {
                         if let Some(v) = args.get(i + 1) {
                             rest.push(v.clone());
                             i += 1;
@@ -196,6 +205,7 @@ fn main() -> ExitCode {
         Some("prep-check") => cmd_prep_check(&repo, json),
         Some("registry") => cmd_registry(&repo, json),
         Some("prep-render") => cmd_prep_render(&repo, &rest),
+        Some("status") => cmd_status(&repo, &rest),
         Some(other) => {
             eprintln!("uor-harness: unknown command {other}\n\n{USAGE}");
             ExitCode::from(2)
@@ -348,6 +358,18 @@ fn cmd_heartbeat(repo: &Path, args: &[String], json: bool) -> ExitCode {
             );
         }
     }
+    ExitCode::SUCCESS
+}
+
+fn cmd_status(repo: &Path, args: &[String]) -> ExitCode {
+    let paths = StatePaths::from_env(repo);
+    // A caller may pin the timestamp so two implementations can be compared; otherwise it is now.
+    let now = flag_value(args, "--at").unwrap_or_else(uor_r4_harness::receipt::now_rfc3339);
+    let lab = flag_value(args, "--lab")
+        .or_else(|| std::env::var("UOR_LAB").ok())
+        .unwrap_or_else(|| "unknown".to_string());
+    let regs = Registries::load(&paths).ok();
+    print!("{}", status::render(&paths, regs.as_ref(), &lab, &now));
     ExitCode::SUCCESS
 }
 

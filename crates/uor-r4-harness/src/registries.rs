@@ -218,6 +218,8 @@ impl Panel {
 /// The whole registry: the milestone table, the owner rules, and the panels.
 #[derive(Debug, Clone, Default)]
 pub struct Registries {
+    /// The registry's own top-level note. Rides on the status source line.
+    pub note: String,
     pub tracker: Value,
     pub owner_rules: Vec<Value>,
     pub milestones: Vec<Milestone>,
@@ -247,6 +249,11 @@ impl Registries {
         milestones.sort_by_key(|m| m.issue);
 
         Ok(Registries {
+            note: data
+                .get("note")
+                .and_then(Value::as_str)
+                .unwrap_or("")
+                .to_string(),
             tracker: data.get("tracker").cloned().unwrap_or(Value::Null),
             owner_rules: data
                 .get("owner_rules")
