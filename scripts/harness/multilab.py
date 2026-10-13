@@ -244,6 +244,41 @@ def write_presence(
     return rec
 
 
+def touch_presence(paths: HarnessPaths, lab: str, *, session: str = "") -> Presence:
+    """Refresh a lab's timestamp without changing what it is doing.
+
+    This is what a per-prompt hook needs: a cheap "still here" that does not overwrite the
+    intent published by the last `heartbeat`. `write_presence` with no `doing` would inherit
+    the existing text anyway, so the difference is honesty about intent - a touch says only
+    "this session is active", not "this is what it is working on".
+
+    Never raises for a missing live directory: a hook running on every prompt must not break
+    the prompt.
+    """
+    if not lab:
+        raise ValueError("a lab name is required")
+    current = read_presence(paths, lab)
+    rec = Presence(
+        lab=slug(lab),
+        updated=now_iso(),
+        milestone=current.milestone if current else "",
+        branch=_current_branch(paths),
+        worktree=str(paths.repo),
+        doing=current.doing if current else "",
+        next=current.next if current else "",
+        host=_hostname(),
+        session=session or (current.session if current else ""),
+        source="live",
+    )
+    try:
+        publish_live(paths, rec)
+    except OSError:
+        pass
+    # the durable tier is deliberately NOT written here: a per-prompt touch would churn a
+    # committed file on every keystroke. `heartbeat` owns the record; `sync-live` bridges.
+    return rec
+
+
 def read_presence(paths: HarnessPaths, lab: str) -> Presence | None:
     """Live tier first (fresher, uncommitted), durable second. `source` says which answered."""
     live = read_live(paths, lab)
@@ -609,6 +644,18 @@ def main(args: Any, paths: HarnessPaths, reg: Any) -> int:  # noqa: ANN401
         for br, held in sorted(claims.items()):
             flag = " STALE" if Claim(**{k: v for k, v in held.items() if k in Claim.__dataclass_fields__}).stale else ""
             emit(f"  {br:<44} lab={held.get('lab', '?'):<10} since {held.get('claimed_at', '?')}{flag}")
+        return 0
+
+    if action == "touch":
+        lab = getattr(args, "lab", "") or ""
+        if not lab:
+            emit("multilab touch: --lab or $UOR_LAB is required", file=__import__("sys").stderr)
+            return 2
+        rec = touch_presence(paths, lab, session=getattr(args, "session", "") or "")
+        if getattr(args, "json", False):
+            emit(json.dumps(asdict(rec), indent=2))
+        else:
+            emit(f"{rec.lab}: live, updated {rec.updated}" + (f" (doing: {rec.doing})" if rec.doing else ""))
         return 0
 
     if action == "sync-live":

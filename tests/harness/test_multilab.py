@@ -268,5 +268,45 @@ class TestTwoTierState(_IsolatedTiers):
             (self.live / "presence").chmod(0o700)
 
 
+class TestTouch(_IsolatedTiers):
+    """`touch` is what a per-prompt hook calls. It must be cheap, must not overwrite intent,
+    and must never write a committed file - a prompt must not dirty the repository."""
+
+    def test_touch_creates_live_presence_without_a_heartbeat(self) -> None:
+        rec = multilab.touch_presence(self.paths, "kimi")
+        self.assertTrue(multilab.live_presence_path(self.paths, "kimi").exists())
+        self.assertEqual(rec.lab, "kimi")
+
+    def test_touch_preserves_what_the_lab_is_doing(self) -> None:
+        """The point of the distinction: a touch says 'alive', not 'working on this'."""
+        multilab.write_presence(self.paths, "kimi", milestone="m1", doing="OP2 kernel", next_step="parity receipt")
+        multilab.touch_presence(self.paths, "kimi")
+        p = multilab.read_presence(self.paths, "kimi")
+        self.assertEqual(p.doing, "OP2 kernel")
+        self.assertEqual(p.milestone, "m1")
+        self.assertEqual(p.next, "parity receipt")
+
+    def test_touch_writes_no_committed_file(self) -> None:
+        multilab.write_presence(self.paths, "kimi", milestone="m1", doing="work")
+        durable = multilab.presence_path(self.paths, "kimi")
+        before = durable.read_text()
+        multilab.touch_presence(self.paths, "kimi")
+        self.assertEqual(durable.read_text(), before, "a per-prompt touch must not churn the record")
+
+    def test_touch_never_raises_when_the_live_tier_is_unwritable(self) -> None:
+        live = self.live / "presence"
+        live.mkdir(parents=True, exist_ok=True)
+        live.chmod(0o500)
+        try:
+            rec = multilab.touch_presence(self.paths, "kimi")
+            self.assertEqual(rec.lab, "kimi")
+        finally:
+            live.chmod(0o700)
+
+    def test_touch_requires_a_lab(self) -> None:
+        with self.assertRaises(ValueError):
+            multilab.touch_presence(self.paths, "")
+
+
 if __name__ == "__main__":
     unittest.main()
