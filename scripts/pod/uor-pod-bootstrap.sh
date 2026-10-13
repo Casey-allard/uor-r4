@@ -259,6 +259,11 @@ if [ "$NONCANON" = 1 ] || [ -n "$ARG_HF_STORE" ]; then
   if [ -n "$missing" ]; then
     store=${ARG_HF_STORE:-${UOR_HF_STORE:-caseyallard/uor-r4-store}}
     log "non-canonical volume: fetching$missing from HF dataset $store"
+    # uor-pod copies the token to /root (the pod's own disk); the image's HF_HOME
+    # (/workspace/.cache/huggingface/, where hf looks by default) is a shared
+    # volume on Runpod, so point hf at the private copy instead (13 October:
+    # without this the store answered 401 although the token was valid)
+    if [ -f /root/.cache/huggingface/token ]; then export HF_TOKEN_PATH=/root/.cache/huggingface/token; fi
     if pip install -q --break-system-packages "huggingface_hub[cli]" &&
        hf download "$store" --repo-type dataset $(for f in $missing; do printf -- "--include data/%s " "$f"; done) --local-dir /workspace/uor-r4/; then
       fetched=''

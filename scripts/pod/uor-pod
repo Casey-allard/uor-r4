@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # uor-pod — the one shared tool every UOR-R4 lab session uses to see, lease,
-# create, share and delete Runpod GPU pods (#820). Rules: docs/labs/compute.md.
+# create, share and delete GPU pods (#820). Rules: docs/labs/compute.md.
+# Providers: Vast.ai (default for new pods, owner 2026-10-13, D26) and Runpod
+# (UOR_POD_PROVIDER=runpod or `up --provider runpod`). A Vast pod's id is
+# vast-<contract>; every command takes either kind.
 # Identity on every mutating command: --lab L --session S (or UOR_POD_SESSION=S).
 #
 #   uor-pod                                    the rules (one screen)
@@ -9,7 +12,7 @@
 #   uor-pod up --lab L --session S --purpose "..." --hours H [--gpu KEY: default ladder 5090 -> 4090 -> pro6000] [--count 2]
 #              [--card URL] [--wait [--wait-hours 2]] [--ref SHA|main] [--with-ollama]
 #              [--test] [--allow-off-volume] [--no-bootstrap] [--keep-on-failure] [--owner-approved]
-#              [--force-retry]   every argument is checked before the Runpod API is called;
+#              [--force-retry] [--provider vast|runpod]   every argument is checked before a provider API is called;
 #              2 failed `up` of one lab+session within 60 min block a third without --force-retry
 #   uor-pod lease   POD --lab L --session S --gpus 0,1 --purpose "..." --hours H [--card URL] [--gpu KEY]
 #   uor-pod renew   POD --lab L --session S [--hours H]
@@ -18,7 +21,7 @@
 #   uor-pod run     POD --lab L --session S --gpu K[,K2] -- CMD...
 #   uor-pod register POD --lab L --session S --purpose "..." [--gpu KEY] [--keep REASON]
 #   uor-pod keep|unkeep POD [--purpose REASON]   protect a pod with unique data from down/reap
-#   uor-pod prune-stopped [--older-than 24h] [--yes]   list (and with --yes delete) stopped pods
+#   uor-pod prune-stopped [--older-than 24h] [--yes] [--confirm-archived]   list (and with --yes delete) stopped pods
 #   uor-pod ssh     POD [CMD...]
 #   uor-pod bootstrap POD [--ref SHA|main] [--with-ollama] [--force]
 #   uor-pod seed    POD [--with-ollama] [--via CANONPOD]   copy the hot set (hot-set.txt)
@@ -45,7 +48,8 @@
 # Face dataset the bootstrap fetches data from; passed as --hf-store).
 # Config file: ${UOR_POD_CONFIG:-~/.config/uor-pod/config}, sourced when it
 # exists. It uses the form `: "${VAR:=value}"`, so the environment wins.
-# Secrets: this tool never reads ~/.runpod/config.toml and never prints pod env.
+# Secrets: this tool never reads ~/.runpod/config.toml or ~/.config/vastai/vast_api_key,
+# never prints pod env, and discards the instance key Vast returns on create.
 set -euo pipefail
 
 UOR_POD_CONFIG=${UOR_POD_CONFIG:-$HOME/.config/uor-pod/config}
@@ -91,31 +95,48 @@ WAIT_INTERVAL=${UOR_POD_WAIT_INTERVAL:-60}
 CONTAINER_DISK_GB=60
 OFF_VOLUME_DISK_GB=150
 SSH_WAIT_SECONDS=${UOR_POD_SSH_WAIT:-900}
+# Provider for new pods (owner 2026-10-13: Vast.ai; Runpod stays available).
+PROVIDER=${UOR_POD_PROVIDER:-vast}
+case $PROVIDER in vast|runpod) ;; *) echo "uor-pod: UOR_POD_PROVIDER must be vast or runpod (got '$PROVIDER')" >&2; exit 1;; esac
+# Providers this account uses: each one's pods are listed and counted toward the
+# caps, so a missing CLI or a failed listing is an error for `up`. An account
+# with one provider sets UOR_POD_PROVIDERS to it (scripts/pod/config.example).
+PROVIDERS=${UOR_POD_PROVIDERS:-vast runpod}
+# Vast offers `up` accepts: verified datacenter hosts only (no community hosts:
+# their operator holds the disk and our HF token), CUDA 12.8+, enough disk and
+# bandwidth; the cheapest wins. A Vast pod has no shared network volume: its
+# /workspace is the instance disk, archived by `down` (VAST_ARCHIVE_MAX_MB).
+VAST_DISK_GB=${UOR_POD_VAST_DISK_GB:-$OFF_VOLUME_DISK_GB}
+VAST_MIN_REL=${UOR_POD_VAST_MIN_RELIABILITY:-0.98}
+VAST_MIN_INET=${UOR_POD_VAST_MIN_INET_MBPS:-200}
+VAST_ARCHIVE_MAX_MB=${UOR_POD_VAST_ARCHIVE_MAX_MB:-5120}
+VAST_ARCHIVE_DIRS='uor-r4/jobs uor-r4/pods uor-r4/runs uor-r4/evals'
+VAST_POLL_S=${UOR_POD_VAST_POLL_S:-5}   # destroy confirmation: 8 listings this far apart
 HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 
 # ---------------------------------------------------------------- GPU policy
-# key|Runpod gpuId|CUDA_COMPUTE_CAP|tier   (docs/labs/compute.md "GPU policy")
+# key|Runpod gpuId|CUDA_COMPUTE_CAP|tier|Vast gpu_name   (docs/labs/compute.md "GPU policy")
 # default: the only automatic choice (owner decision 2026-10-05: 5090 is
 # ~1.7-2x a 4090 per 96M step and ~25% cheaper per job); explicit: only with
 # --gpu KEY; forbidden: never automatic, refused without --owner-approved (the
 # FP32/TF32 trainer measured A100 at 0.6-0.75x a 4090; revisit after bf16 Phase 2).
-GPU_POLICY='5090|NVIDIA GeForce RTX 5090|120|default
-4090|NVIDIA GeForce RTX 4090|89|explicit
-l40s|NVIDIA L40S|89|explicit
-6000ada|NVIDIA RTX 6000 Ada Generation|89|explicit
-pro6000|NVIDIA RTX PRO 6000 Blackwell Server Edition|120|explicit
-a100|NVIDIA A100 80GB PCIe|80|forbidden
-a100sxm|NVIDIA A100-SXM4-80GB|80|forbidden
-h100|NVIDIA H100 80GB HBM3|90|forbidden
-h100pcie|NVIDIA H100 PCIe|90|forbidden
-h200|NVIDIA H200|90|forbidden
-b200|NVIDIA B200|100|forbidden'
+GPU_POLICY='5090|NVIDIA GeForce RTX 5090|120|default|RTX 5090
+4090|NVIDIA GeForce RTX 4090|89|explicit|RTX 4090
+l40s|NVIDIA L40S|89|explicit|L40S
+6000ada|NVIDIA RTX 6000 Ada Generation|89|explicit|RTX 6000Ada
+pro6000|NVIDIA RTX PRO 6000 Blackwell Server Edition|120|explicit|RTX PRO 6000 S
+a100|NVIDIA A100 80GB PCIe|80|forbidden|A100 PCIE
+a100sxm|NVIDIA A100-SXM4-80GB|80|forbidden|A100 SXM4
+h100|NVIDIA H100 80GB HBM3|90|forbidden|H100 SXM
+h100pcie|NVIDIA H100 PCIe|90|forbidden|H100 PCIE
+h200|NVIDIA H200|90|forbidden|H200
+b200|NVIDIA B200|100|forbidden|B200'
 
 # `up` without --gpu walks this ladder (owner decision 2026-10-07: 5090, then
 # 4090, then RTX PRO 6000); an explicit --gpu KEY tries that GPU only.
 GPU_LADDER='5090 4090 pro6000'
 
-gpu_field() {  # gpu_field KEY N -> field N (2 id, 3 cap, 4 tier)
+gpu_field() {  # gpu_field KEY N -> field N (2 id, 3 cap, 4 tier, 5 Vast gpu_name)
   printf '%s\n' "$GPU_POLICY" | awk -F'|' -v k="$1" -v n="$2" '$1==k {print $n}'
 }
 gpu_key_of_name() {  # Runpod gpuId or nvidia-smi name -> policy key
@@ -187,8 +208,11 @@ check_who() {
   esac
   ID="$LAB-$SESSION" WHO="$LAB/$SESSION"
 }
-check_pod_id() {
-  case $1 in ''|*[!a-z0-9]*) die "pod id must be alphanumeric (got '$1')";; esac
+check_pod_id() {  # a Runpod id (alphanumeric) or a Vast pod vast-<contract number>
+  case $1 in
+    vast-*) case ${1#vast-} in ''|*[!0-9]*) die "a Vast pod id is vast-<contract number> (got '$1')";; esac;;
+    ''|*[!a-z0-9]*) die "pod id must be alphanumeric, or vast-<number> for a Vast pod (got '$1')";;
+  esac
 }
 check_hours() {
   jq -en --arg h "$1" '($h | tonumber) > 0 and ($h | tonumber) <= 24' >/dev/null 2>&1 ||
@@ -235,10 +259,111 @@ board() {  # board TEXT -> one-line comment on the Compute board issue
     warn "could not post to Compute board #$BOARD (event is in the ledger)"
 }
 
-# ---------------------------------------------------------------- Runpod API (env never printed)
-pods_all() { runpodctl pod list --all -o json | jq '[.[] | del(.env)]'; }
-pod_get()  { runpodctl pod get "$1" -o json 2>/dev/null | jq 'del(.env)'; }
-gpu_stock() { runpodctl gpu list --include-unavailable -o json; }
+# ---------------------------------------------------------------- provider APIs (env never printed)
+# Pods of both providers are listed in Runpod's shape, which the rest of this
+# tool reads: id, name, desiredStatus (RUNNING or not), gpuCount, costPerHr,
+# uptimeSeconds, lastStatusChange, runtimeStatus, networkVolumeId, ssh {ip, port}.
+is_vast() { case $1 in vast-*) return 0;; *) return 1;; esac; }
+have_runpod() { command -v runpodctl >/dev/null 2>&1; }
+have_vast() { command -v vastai >/dev/null 2>&1; }
+# A Vast instance as a Runpod-shaped pod. RUNNING unless it was asked to stop;
+# a loading instance already bills, so it counts toward the caps.
+# shellcheck disable=SC2016  # jq source, not shell
+VAST_NORM='def vnorm: select(type == "object" and .id != null) | {
+    id: ("vast-" + (.id | tostring)), name: (.label // ""), provider: "vast",
+    desiredStatus: (if (.intended_status // "running") == "stopped" or (.cur_state // "") == "stopped" then "EXITED" else "RUNNING" end),
+    gpuCount: (.num_gpus // 0), costPerHr: ((.dph_total // 0) * 1000 | round / 1000),
+    uptimeSeconds: (if (.start_date | type) == "number" then (now - .start_date | floor) else 0 end),
+    lastStatusChange: ("vast: " + (.actual_status // "pending")),
+    runtimeStatus: ("vast-" + (.actual_status // "pending")),
+    location: (.geolocation // ""), gpuName: (.gpu_name // "")}
+  + (if .actual_status != "running" then {}
+     elif (.public_ipaddr // "") != "" and ((.ports["22/tcp"] // [])[0].HostPort // "") != ""
+       then {ssh: {ip: .public_ipaddr, port: (.ports["22/tcp"][0].HostPort | tonumber)}}
+     elif (.ssh_host // "") != "" then {ssh: {ip: .ssh_host, port: .ssh_port}}
+     else {} end);'
+# A listing that is not a JSON array (an API error printed with exit 0) is a
+# failure, and so is an empty one (jq prints nothing for empty input and exits 0).
+rp_pods_all() { runpodctl pod list --all -o json | jq 'if type == "array" then [.[] | del(.env)] else error("not a pod list") end'; }
+vast_pods_all() { vastai show instances --raw | jq "$VAST_NORM"'if type == "array" then [.[] | vnorm] else error("not an instance list") end'; }
+uses() { case " $PROVIDERS " in *" $1 "*) return 0;; *) return 1;; esac; }
+list_miss() {  # STRICT PROVIDER REASON
+  if [ "$1" = strict ]; then
+    die "$2: $3, so the caps cannot be checked (UOR_POD_PROVIDERS lists the providers this account uses: $PROVIDERS)"
+  fi
+  warn "$2: $3; its pods are not shown"
+}
+# list_pods [strict] -> PODS_JSON (pods of every provider in PROVIDERS) and
+# LISTED (the providers whose listing succeeded). It runs in the caller's shell,
+# so a caller can tell "not listed" from "gone": only a provider in LISTED may
+# have its missing pods' leases archived. `strict` (`up`) dies on any miss.
+PODS_JSON='[]' LISTED=''
+list_pods() {
+  local mode=${1:-} out
+  PODS_JSON='[]' LISTED=''
+  if uses runpod; then
+    if ! have_runpod; then list_miss "$mode" Runpod "runpodctl is not installed"
+    elif out=$(rp_pods_all 2>/dev/null) && [ -n "$out" ]; then LISTED="$LISTED runpod"; PODS_JSON=$(jq -n --argjson a "$PODS_JSON" --argjson b "$out" '$a + $b')
+    else list_miss "$mode" Runpod "the pod listing failed"; fi
+  fi
+  if uses vast; then
+    if ! have_vast; then list_miss "$mode" Vast "vastai is not installed"
+    elif out=$(vast_pods_all 2>/dev/null) && [ -n "$out" ]; then LISTED="$LISTED vast"; PODS_JSON=$(jq -n --argjson a "$PODS_JSON" --argjson b "$out" '$a + $b')
+    else list_miss "$mode" Vast "the instance listing failed"; fi
+  fi
+  return 0
+}
+pods_all() { list_pods; echo "$PODS_JSON"; }
+listed() {  # POD -> 0 when the last list_pods listed POD's provider successfully
+  if is_vast "$1"; then case " $LISTED " in *" vast "*) return 0;; esac
+  else case " $LISTED " in *" runpod "*) return 0;; esac; fi
+  return 1
+}
+pod_get() {  # POD -> the pod object, or nothing when the provider does not know it
+  if is_vast "$1"; then
+    vastai show instance "${1#vast-}" --raw 2>/dev/null | jq "$VAST_NORM"'vnorm' 2>/dev/null
+  else
+    runpodctl pod get "$1" -o json 2>/dev/null | jq 'del(.env)'
+  fi
+}
+gpu_stock() { if have_runpod; then runpodctl gpu list --include-unavailable -o json; else echo '[]'; fi; }
+
+# vast_offers KEY COUNT -> JSON [{id, dph, n, loc, rel}] cheapest first (machine $/h)
+vast_offers() {
+  local name out
+  name=$(gpu_field "$1" 5)
+  [ -n "$name" ] || { echo '[]'; return 0; }
+  out=$(vastai search offers "gpu_name=${name// /_} num_gpus=$2 datacenter=true verified=true rentable=true reliability>$VAST_MIN_REL cuda_vers>=12.8 disk_space>=$VAST_DISK_GB inet_down>=$VAST_MIN_INET" \
+    --storage "$VAST_DISK_GB" -o dph_total --raw 2>/dev/null | jq -c '[.[]? | {id, dph: (.dph_total * 1000 | round / 1000), n: .num_gpus, loc: (.geolocation // "?"), rel: .reliability2}] | sort_by(.dph)' 2>/dev/null) || out=''
+  echo "${out:-[]}"
+}
+print_vast_stock() {  # [KEYS] -> one line per GPU: offers and the cheapest $/GPU/h
+  local k o
+  have_vast || return 0
+  echo "Vast offers (verified datacenter hosts, reliability > $VAST_MIN_REL; \$/GPU/h, 1 GPU):"
+  for k in ${1:-5090 4090}; do
+    o=$(vast_offers "$k" 1)
+    echo "$o" | jq -r --arg k "$k" 'if length == 0 then "  \($k): no offer" else "  \($k): \(length) offers, cheapest $\(.[0].dph) (\(.[0].loc))" end'
+  done
+}
+delete_hint() { if is_vast "$1"; then echo "echo y | vastai destroy instance ${1#vast-}"; else echo "runpodctl pod delete $1"; fi; }
+# The CLI asks [y/N] and aborts when nobody answers, so the answer is piped in;
+# the instance must then be gone from the listing (a failed listing proves nothing).
+vast_destroy() {  # POD -> 0 once the instance is no longer listed
+  local n=${1#vast-} list
+  echo y | vastai destroy instance "$n" >/dev/null 2>&1 || true
+  for _ in 1 2 3 4 5 6 7 8; do
+    if list=$(vastai show instances --raw 2>/dev/null) &&
+       echo "$list" | jq -e --argjson n "$n" 'type == "array" and (any(.[]; .id == $n) | not)' >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep "$VAST_POLL_S"
+  done
+  return 1
+}
+pod_delete() {  # POD (dry runs print the call instead)
+  if is_vast "$1"; then mut vast_destroy "$1"; else mut runpodctl pod delete "$1"; fi
+}
 
 cache_get() { jq -c --arg p "$1" '.[$p] // {}' "$STATE/pods.json"; }
 cache_put() {  # cache_put POD JSON-OBJECT (merged); caller holds the lock
@@ -378,7 +503,7 @@ format_free() {  # gpu_free_lines output on stdin -> summary lines
 }
 no_gpu_guidance() {  # printed whenever a lease/up attempt is refused
   echo "  No free GPU? If the pod/rate caps allow it, spin up your own pod: uor-pod up --lab L --session S --purpose ... --hours H" >&2
-  echo "  (2 x RTX 5090; EUR-NO-1 -> EU-RO-1 -> EUR-IS-1). Never fall back to the laptop CPU, never use another session's GPU." >&2
+  echo "  (2 x RTX 5090; provider $PROVIDER). Never fall back to the laptop CPU, never use another session's GPU." >&2
 }
 
 mirror_lease() {  # POD ID  -> copy the laptop lease to /root/leases/<lab>-<session>.json (best effort)
@@ -435,6 +560,8 @@ parse() {
       --du) DU=1; shift;;
       --test) UP_TEST=1; shift;;
       --keep) KEEP_REASON=${2:?}; shift 2;;
+      --provider) PROVIDER=${2:?--provider needs vast or runpod}; shift 2
+        case $PROVIDER in vast|runpod) ;; *) die "--provider must be vast or runpod (got '$PROVIDER')";; esac;;
       --) shift; POS+=("$@"); break;;
       -*) die "unknown option $1";;
       *) POS+=("$1"); shift;;
@@ -457,12 +584,13 @@ UOR-R4 shared GPU pods — rules (docs/labs/compute.md; AGENTS.md "GPU pods")
  3. Another session's GPU is never yours, even when idle: only its holder
     (release) or expiry frees it. An EXPIRED lease may be taken over after a
     probe shows no live job. Never touch another session's lease or KEEP_ALIVE.
- 4. No free GPU and caps allow (<= $MAX_PODS pods, <= \$$MAX_RATE/h, all labs together):
-    uor-pod up --lab L --session S --purpose ... --hours H  (2 x RTX 5090;
-    EUR-NO-1 -> EU-RO-1 -> EUR-IS-1). Never fall back to the laptop CPU.
+ 4. No free GPU and caps allow (<= $MAX_PODS pods, <= \$$MAX_RATE/h, all labs and providers together):
+    uor-pod up --lab L --session S --purpose ... --hours H  (2 x RTX 5090 on
+    $( [ "$PROVIDER" = vast ] && echo 'Vast.ai, cheapest verified datacenter host' || echo 'Runpod, EUR-NO-1 -> EU-RO-1 -> EUR-IS-1')). Never fall back to the laptop CPU.
     Caps reached and nothing free: wait for an expiry or ask the owner.
  5. One job per GPU: uor-pod run POD --lab L --session S --gpu K -- CMD (device=cuda).
- 6. Durable output only on /workspace (network volume). No stopped pods as storage.
+ 6. Durable output only on /workspace (Runpod network volume; on a Vast pod
+    'down' archives it to the laptop). No stopped pods as storage.
  7. Done: release, then 'uor-pod down POD' if no other session holds it.
     Never print API keys or ~/.runpod/config.toml.
 RULES
@@ -473,7 +601,7 @@ cmd_status() {
   local pods total=0 n_run=0 n_cap=0 id states freelines='' free keep stopped=0 badlines=''
   print_rules
   echo
-  pods=$(pods_all)
+  list_pods; pods=$PODS_JSON
   echo "Pods (caps: <= $MAX_PODS running pods, <= \$$MAX_RATE/h; idle reap after $IDLE_MIN min without a live lease)"
   for id in $(echo "$pods" | jq -r '.[].id'); do
     local p name st n cost up leases cache gtype live flag probe line
@@ -496,7 +624,7 @@ cmd_status() {
       flag="  <-- CLEANUP: stopped since $(echo "$p" | jq -r '.lastStatusChange // "?"' | sed 's/^[^:]*: //; s/ GMT.*//'); bills container disk. Copy what matters to the volume, then delete (uor-pod prune-stopped)"
     fi
     printf '%s %-24s %-8s %sx%-7s $%-5s/h up %sh vol=%s%s\n' "$id" "$name" "$st" "$n" "$gtype" "$cost" "$up" \
-      "$(echo "$cache" | jq -r 'if .off_volume then "OFF" elif .volume == false then "none" elif .canonical == false then "non-canonical" elif .volume then "yes" else "?" end')" "$flag"
+      "$(is_vast "$id" && echo vast-disk || echo "$cache" | jq -r 'if .off_volume then "OFF" elif .volume == false then "none" elif .canonical == false then "non-canonical" elif .volume then "yes" else "?" end')" "$flag"
     [ -z "$keep" ] || echo "    KEEP (never down/reap): $keep"
     echo "$leases" | jq -r '.[] | "    lease \(.lab)/\(.session // "-") gpus=\(.gpus | map(tostring) | join(",")) until \(.expires)\(if (.bad | length) > 0 then " [MALFORMED: treated as LIVE]" else "" end) \(if .live then "" else "EXPIRED (abandoned: may be taken over once a probe shows no live job)" end) — \(.purpose)\(if (.card // "") != "" then " [" + .card + "]" else "" end)"'
     badlines="$badlines$(echo "$leases" | jq -r '.[] | select((.bad | length) > 0) | "  \(.file): \(.bad | join("; "))"')
@@ -532,12 +660,14 @@ cmd_status() {
     [ -d "$d" ] || continue
     gone=$(basename "$d")
     if ! echo "$pods" | jq -e --arg i "$gone" 'any(.[]; .id == $i)' >/dev/null; then
-      if ls "$d"*.json >/dev/null 2>&1 && ! is_dry; then
+      # only the listing this status was built from counts: a provider that was
+      # not listed then says nothing about whether its pod is gone
+      if ls "$d"*.json >/dev/null 2>&1 && ! is_dry && listed "$gone"; then
         lock_acquire
         mkdir -p "$STATE/gone"; mv "$d" "$STATE/gone/$gone-$(date -u +%Y%m%dT%H%M%SZ)"
-        ledger gone '' "$gone" '{"note": "pod no longer listed by Runpod; lease files archived"}'
+        ledger gone '' "$gone" '{"note": "pod no longer listed by its provider; lease files archived"}'
         lock_release
-        echo "$gone: gone from Runpod; its lease files were archived under $STATE/gone/"
+        echo "$gone: gone from its provider; its lease files were archived under $STATE/gone/"
       fi
     fi
   done
@@ -563,6 +693,7 @@ cmd_status() {
     echo "Free GPUs you can lease now: none. Spin up your own pod: uor-pod up --lab L --session S --purpose ... --hours H. Never fall back to the laptop CPU."
   fi
   print_stock_table "$(gpu_stock)" "5090 4090"
+  print_vast_stock "5090 4090"
   if [ "$DU" = 1 ]; then
     local vp
     vp=$(volume_pod "$pods") || { echo "Volume $VOLUME_ID: no running pod mounts it; usage unknown"; return 0; }
@@ -593,10 +724,13 @@ cmd_prune_stopped() {
       "${since:-?}" "$( [ "$age" -ge 0 ] && echo $((age / 3600)) || echo '?')" "${keep:+  KEEP: $keep}"
     if [ "$YES" != 1 ]; then continue; fi
     if [ -n "$keep" ]; then echo "  skipped: marked KEEP"; continue; fi
+    if is_vast "$id" && [ "$CONFIRM_ARCHIVED" != 1 ]; then
+      echo "  skipped: a Vast pod's disk holds its only copy of /workspace; archive it ('uor-pod down $id', which copies the results), or re-run with --confirm-archived"; continue
+    fi
     if [ "$age" -lt "$secs" ]; then echo "  skipped: stopped for less than $OLDER"; continue; fi
-    mut runpodctl pod delete "$id" >/dev/null
+    pod_delete "$id" >/dev/null || { warn "delete of $id not confirmed: $(delete_hint "$id")"; continue; }
     lock_acquire; ledger prune-stopped "${LAB:-}" "$id" "{\"stopped_s\": $age}"; lock_release
-    board "prune-stopped $id (stopped $((age / 3600)) h; durable data belongs on the volume)${LAB:+ by=$LAB/${SESSION:-}}"
+    board "prune-stopped $id (stopped $((age / 3600)) h; $(is_vast "$id" && echo 'results confirmed archived' || echo 'durable data belongs on the volume'))${LAB:+ by=$LAB/${SESSION:-}}"
     echo "  deleted"
   done
   [ "$YES" = 1 ] || echo "Listed only. Confirm nothing unique is on them (owner approval for pods with data), then re-run with --yes."
@@ -659,7 +793,8 @@ ensure_volume() {  # DC -> volume id; creates uor-shared-<DC> (100 GB, owner-app
 up_attempt() {
   local req=$1 count=$2 pods stock id free gtype probe states n_run rate gid price dc='' off=0 add
   UP_CAPMSG=''
-  pods=$(pods_all); stock=$(gpu_stock)
+  list_pods strict; pods=$PODS_JSON
+  if [ "$PROVIDER" = vast ]; then stock='[]'; else stock=$(gpu_stock); fi
 
   # 1. a free leased-compatible GPU already exists? (same GPU type, or type not yet known)
   for id in $(echo "$pods" | jq -r '.[] | select(.desiredStatus == "RUNNING") | .id'); do
@@ -695,6 +830,7 @@ up_attempt() {
     fi
     die "cap reached ($n_run of $MAX_PODS pods) and no GPU is free: wait for a lease to expire (uor-pod status) or ask the owner. Do not fall back to the laptop CPU because of the cap."
   fi
+  if [ "$PROVIDER" = vast ]; then vast_attempt "$req" "$count" "$rate"; return; fi
   gid=$(gpu_field "$req" 2); price=$(price_of "$stock" "$gid")
   if [ -z "$price" ] && [ "$LADDER" = 1 ]; then info "no secure-cloud listing for $gid"; UP_STOCK=$(print_stock_table "$stock"); return 2; fi
   [ -n "$price" ] || { lock_release; die "no secure-cloud price listed for $gid"; }
@@ -728,6 +864,74 @@ up_attempt() {
   return 0
 }
 
+# Vast placement (caller holds the lock): the cheapest verified datacenter
+# offers for COUNT x REQ that keep the total under the rate cap. Sets UP_CANDS
+# (up to 3 offer ids, tried in turn by vast_create), UP_OFFERS, UP_ADD; returns 2
+# when no offer fits (a ladder miss, like a rung without stock).
+vast_attempt() {  # REQ COUNT RUNNING-RATE
+  local req=$1 count=$2 rate=$3 offers fit
+  offers=$(vast_offers "$req" "$count")
+  UP_STOCK="Vast: $(echo "$offers" | jq -r --arg r "$req" --argjson c "$count" 'if length == 0 then "no \($c) x \($r) offer" else "\(length) offer(s) for \($c) x \($r), cheapest $\(.[0].dph)/h (\(.[0].loc))" end')"
+  if [ "$(echo "$offers" | jq length)" = 0 ]; then info "no Vast offer for $count x $req"; return 2; fi
+  if [ "$OWNER_OK" = 1 ]; then fit=$offers
+  else fit=$(echo "$offers" | jq -c --argjson r "$rate" --argjson m "$MAX_RATE" '[.[] | select($r + .dph <= $m)]'); fi
+  if [ "$(echo "$fit" | jq length)" = 0 ]; then
+    UP_CAPMSG="cap: running \$$rate/h + new \$$(echo "$offers" | jq '.[0].dph')/h exceeds \$$MAX_RATE/h; needs --owner-approved"
+    if [ "$LADDER" = 1 ]; then info "$count x $req: $UP_CAPMSG"; return 2; fi
+    lock_release; die "$UP_CAPMSG"
+  fi
+  UP_OFFERS=$(echo "$fit" | jq -c '.[:3]')
+  UP_CANDS=$(echo "$UP_OFFERS" | jq -r '.[].id' | tr '\n' ' ')
+  UP_ADD=$(echo "$UP_OFFERS" | jq '.[0].dph') UP_GID=$(gpu_field "$req" 5)
+  return 0
+}
+
+# Rent the first offer that is still available (caller holds the lock). Sets
+# POD_JSON ({"id": "vast-<contract>"}), UP_DC (the host's location), UP_OFF=1,
+# UP_VOL=''. The create response also carries an instance-scoped API key: only
+# the contract number is kept, nothing else is printed, logged or stored.
+vast_create() {  # COUNT NAME REQ
+  local count=$1 name=$2 req=$3 id off out c msg tried=''
+  for id in $UP_CANDS; do
+    off=$(echo "$UP_OFFERS" | jq -c --argjson i "$id" '.[] | select(.id == $i)')
+    UP_DC="Vast $(echo "$off" | jq -r .loc)" UP_OFF=1 UP_VOL='' UP_ADD=$(echo "$off" | jq .dph)
+    local args=(create instance "$id" --image "$IMAGE" --disk "$VAST_DISK_GB" --ssh --direct --label "$name" --raw)
+    echo "Creating $count x $req$( [ "${LADDER:-0}" = 1 ] && echo ' (ladder)') (\$$UP_ADD/h) on $UP_DC, offer $id, for $WHO: $PURPOSE"
+    if is_dry; then
+      echo "DRY-RUN: vastai ${args[*]}" >&2
+      POD_JSON='{"id":"vast-0"}'
+      return 0
+    fi
+    out=$(vastai "${args[@]}" 2>"$STATE/.create-err.$$") || true
+    c=$(printf '%s' "$out" | jq -r 'select(type == "object" and .success == true) | .new_contract // empty' 2>/dev/null || true)
+    if [ -n "$c" ]; then
+      out=''; rm -f "$STATE/.create-err.$$"
+      POD_JSON=$(jq -cn --arg i "vast-$c" '{id: $i}')
+      return 0
+    fi
+    msg=$(printf '%s' "$out" | jq -r '.msg // .error // empty' 2>/dev/null || true)
+    [ -n "$msg" ] || msg=$(tail -1 "$STATE/.create-err.$$" 2>/dev/null | cut -c1-200)
+    out=''; rm -f "$STATE/.create-err.$$"
+    # a rental that succeeded but did not parse must not lead to a second one:
+    # look for an instance with this pod's label before trying the next offer
+    local mine raw
+    raw=$(vastai show instances --raw 2>/dev/null) || raw=''
+    if echo "$raw" | jq -e 'type == "array"' >/dev/null 2>&1; then
+      mine=$(echo "$raw" | jq -r --arg l "$name" '[.[] | select(.label == $l) | .id | tostring] | join(" ")')
+    else mine='?'; fi
+    if [ -n "$mine" ]; then
+      lock_release
+      [ "$mine" = '?' ] && die "Vast offer $id: no contract in the reply and the instance listing failed, so a rental cannot be ruled out: check 'vastai show instances' for label $name before retrying"
+      die "Vast offer $id: no contract in the reply, but instance(s) $mine labelled $name exist and bill. Register them (uor-pod register vast-N ...) or destroy them ($(delete_hint "vast-${mine%% *}")) before retrying"
+    fi
+    warn "Vast offer $id was not rented (${msg:-no contract returned}); trying the next offer"
+    tried="$tried $id"
+  done
+  UP_STOCK="${UP_STOCK:-}
+Vast create found no instance in offers:$tried (taken after the search)"
+  return 2
+}
+
 # Stock errors from `pod create`: the datacenter ran out between the stock
 # listing and the request. Anything else is a real failure and stops `up`.
 NO_STOCK_RE='no longer any instances available|no instances (are )?(currently )?available|not enough (free )?(gpus|instances)|insufficient (capacity|resources)|out of stock|no available (gpus|machines)'
@@ -737,6 +941,7 @@ NO_STOCK_RE='no longer any instances available|no instances (are )?(currently )?
 # every candidate reported no stock; any other create error is fatal.
 up_create() {  # COUNT NAME REQ
   local count=$1 name=$2 req=$3 cand dc off vol args created tried='' where new_vol
+  if [ "$PROVIDER" = vast ]; then vast_create "$@"; return; fi
   for cand in $UP_CANDS; do
     dc=${cand%:*} off=${cand#*:} vol='' new_vol=0
     if [ "$off" = 0 ]; then
@@ -790,7 +995,7 @@ pod create found no instances in:$tried (stock changed after the listing)"
 # Options `up` accepts. Anything else (a typo, an option of another subcommand,
 # a stray positional word) is refused before the Runpod API is called: it would
 # otherwise be ignored silently or surface only on the billed pod.
-UP_OPTS=' --lab --session --purpose --hours --card --gpu --count --wait --wait-hours --ref --with-ollama --test --allow-off-volume --no-bootstrap --keep-on-failure --owner-approved --force-retry '
+UP_OPTS=' --lab --session --purpose --hours --card --gpu --count --wait --wait-hours --ref --with-ollama --test --allow-off-volume --no-bootstrap --keep-on-failure --owner-approved --force-retry --provider '
 check_up_args() {
   local o
   for o in $OPTS_SEEN; do
@@ -890,6 +1095,9 @@ cmd_up() {
     # every rung (and the 1x fallback) failed only on the rate cap
     [ "$cap_only" = 0 ] || die "$UP_CAPMSG"
     echo "$UP_STOCK"
+    if [ "$WAIT" != 1 ] && [ "$PROVIDER" = vast ]; then
+      die "no Vast offer for $want (verified datacenter, reliability > $VAST_MIN_REL, CUDA 12.8+). Re-run with --wait (retries every minute for --wait-hours, default 2), or --provider runpod"
+    fi
     if [ "$WAIT" != 1 ]; then
       die "no $want stock in $VOLUME_DCS${EXTRA_VOLUME_DCS:+ $EXTRA_VOLUME_DCS}. Re-run with --wait (retries every minute for --wait-hours, default 2)$([ "$req" = 5090 ] && echo ', or choose --gpu 4090 explicitly'); --allow-off-volume places it without a volume"
     fi
@@ -910,13 +1118,15 @@ cmd_up() {
   if is_dry; then lock_release; return 0; fi
   [ "$UP_DC" = "$CANONICAL_DC" ] && [ "$UP_OFF" = 0 ] && canon=true
   local where="$UP_DC"
-  if [ "$UP_OFF" = 1 ]; then where="$UP_DC OFF-VOLUME"; elif [ "$canon" = false ]; then where="$UP_DC volume $UP_VOL (non-canonical)"; fi
+  if [ "$PROVIDER" = vast ]; then where="$UP_DC (instance disk)"
+  elif [ "$UP_OFF" = 1 ]; then where="$UP_DC OFF-VOLUME"; elif [ "$canon" = false ]; then where="$UP_DC volume $UP_VOL (non-canonical)"; fi
   local created=$POD_JSON pod
   pod=$(echo "$created" | jq -r '.id // empty' 2>/dev/null)
   [ -n "$pod" ] || { lock_release; die "pod create returned no id: $(echo "$created" | head -3)"; }
   cache_put "$pod" "$(jq -cn --arg g "$req" --argjson cap "$(gpu_field "$req" 3)" --arg dc "$UP_DC" --arg v "$UP_VOL" \
     --argjson off "$( [ "$UP_OFF" = 1 ] && echo true || echo false)" --argjson canon "$canon" --arg lab "$LAB" --arg t "$(now_iso)" \
-    '{gpu: $g, cap: $cap, dc: $dc, volume_id: $v, volume: ($off | not), off_volume: $off, canonical: $canon, tool: true, created_by: $lab, created: $t}')"
+    --arg prov "$PROVIDER" \
+    '{gpu: $g, cap: $cap, dc: $dc, volume_id: $v, volume: ($off | not), off_volume: $off, canonical: $canon, tool: true, created_by: $lab, created: $t, provider: $prov}')"
   mkdir -p "$STATE/leases/$pod"
   write_lease "$pod" "$ID" "$(jq -cn --argjson c "$count" '[range(0; $c)]')"
   ledger up "$LAB" "$pod" "$(jq -cn --arg g "$req" --argjson c "$count" --arg dc "$UP_DC" --argjson usd "$UP_ADD" \
@@ -939,7 +1149,8 @@ cmd_up() {
   while :; do
     addr=$(pod_addr "$pod" || true)
     if [ -n "$addr" ] && pod_ssh "$pod" true </dev/null 2>/dev/null; then break; fi
-    if [ "$(now_epoch)" -ge "$stall_until" ] && [ -z "$addr" ]; then
+    # (a Vast instance pulls its image while "loading": only the deadline applies)
+    if ! is_vast "$pod" && [ "$(now_epoch)" -ge "$stall_until" ] && [ -z "$addr" ]; then
       runtime=$(pod_get "$pod" 2>/dev/null | jq -r '.runtimeStatus // "unknown"' 2>/dev/null || echo unknown)
       if [ "$runtime" = "initializing" ] || [ "$runtime" = "unknown" ]; then
         warn "pod $pod stalled: runtimeStatus=$runtime, no SSH after ${stall_after}s (host never started the container)"
@@ -958,7 +1169,9 @@ cmd_up() {
   lock_acquire; ledger ssh-ready "$LAB" "$pod" "{\"create_to_ssh_s\": $t_ssh}"; lock_release
   mirror_lease "$pod" "$ID"
   # the Hugging Face token (private store caseyallard/uor-r4-store) goes over
-  # stdin, never on a command line or in a log
+  # stdin, never on a command line or in a log. It stays on the pod's own disk
+  # (/root): the image's HF_HOME is on /workspace, a shared network volume on
+  # Runpod, so the bootstrap points the hf CLI at this file with HF_TOKEN_PATH.
   if ! is_dry && [ -f "$HOME/.cache/huggingface/token" ]; then
     if pod_ssh "$pod" 'mkdir -p /root/.cache/huggingface && umask 077 && cat > /root/.cache/huggingface/token' < "$HOME/.cache/huggingface/token"; then
       info "hf token copied"
@@ -966,7 +1179,11 @@ cmd_up() {
       warn "hf token copy to $pod failed (the bootstrap's store fetch will be skipped)"
     fi
   fi
-  if [ "$canon" = false ]; then
+  if is_vast "$pod"; then
+    # a Vast pod builds its toolchain in ~2 min and fetches data/* from the HF
+    # store (--non-canonical); relaying the hot set through the laptop is slower
+    info "Vast pod: no hot-set seeding (the bootstrap builds the toolchain and fetches data from the HF store)"
+  elif [ "$canon" = false ]; then
     # a non-canonical /workspace starts empty: copy the hot set before bootstrap
     # (toolchain and cached binaries make the bootstrap warm). Best effort.
     do_seed "$pod" || warn "hot-set seeding incomplete: run 'uor-pod seed $pod' once a canonical pod is up, or copy from the laptop"
@@ -999,7 +1216,7 @@ up_failed() {  # POD REASON -> show why, keep the log, delete the new pod so not
   print_boot_tail
   if [ -n "$BOOT_LOG_LOCAL" ]; then last=$(boot_last_line || true); fi
   warn "$2: deleting pod $1"
-  runpodctl pod delete "$1" >/dev/null 2>&1 || warn "DELETE FAILED for $1 — delete it by hand now: runpodctl pod delete $1"
+  pod_delete "$1" >/dev/null 2>&1 || warn "DELETE FAILED for $1 — delete it by hand now: $(delete_hint "$1")"
   lock_acquire
   rm -rf "${STATE:?}/leases/$1"; cache_put "$1" '{"deleted": true}'
   ledger up-failed "$LAB" "$1" "$(jq -cn --arg r "$2" --arg l "$BOOT_LOG_REMOTE" --arg ll "$BOOT_LOG_LOCAL" --arg last "$last" \
@@ -1166,6 +1383,32 @@ cmd_release() {
 }
 
 # ---------------------------------------------------------------- down
+# A Vast pod's /workspace is its instance disk: before it is destroyed, the
+# result directories are copied to $STATE/vast-archive/<pod>/ on this laptop
+# (move them on to iCloud with cloud-store). Results above VAST_ARCHIVE_MAX_MB
+# are refused: the laptop disk is small, so those go to the store by hand.
+vast_archive() {  # POD -> 0 when archived (or nothing to archive)
+  local pod=$1 have kb dest
+  # (the loop ends `true`: a missing last directory is not an SSH failure)
+  have=$(pod_ssh "$pod" "cd /workspace 2>/dev/null || exit 0; for d in $VAST_ARCHIVE_DIRS; do [ -e \"\$d\" ] && echo \"\$d\"; done; true" </dev/null) ||
+    { warn "cannot reach $pod over SSH to archive its results"; return 1; }
+  if [ -z "$have" ]; then info "$pod: no result directories to archive"; return 0; fi
+  # shellcheck disable=SC2086  # one path per word
+  kb=$(pod_ssh "$pod" "cd /workspace && du -sk $(echo $have) | awk '{s += \$1} END {print s + 0}'" </dev/null) || kb=''
+  case $kb in ''|*[!0-9]*) warn "cannot size the results on $pod"; return 1;; esac
+  if [ "$kb" -gt $((VAST_ARCHIVE_MAX_MB * 1024)) ]; then
+    warn "$pod holds $((kb / 1024)) MB of results (over $VAST_ARCHIVE_MAX_MB MB for the laptop)"; return 1
+  fi
+  dest=$STATE/vast-archive/$pod
+  if is_dry; then echo "DRY-RUN: archive $pod:/workspace/{$(echo $have | tr ' ' ',')} ($kb KB) -> $dest" >&2; return 0; fi
+  mkdir -p "$dest"
+  # shellcheck disable=SC2086
+  pod_ssh "$pod" "cd /workspace && tar -cf - $(echo $have)" </dev/null | tar -xf - -C "$dest" ||
+    { warn "copying the results of $pod failed (partial copy in $dest)"; return 1; }
+  lock_acquire; ledger vast-archive "${LAB:-?}" "$pod" "$(jq -cn --arg d "$dest" --argjson kb "$kb" '{dest: $d, kb: $kb}')"; lock_release
+  echo "Archived $((kb / 1024)) MB of $pod results to $dest (move them to iCloud: cloud-store put <lab> $dest)"
+}
+
 cmd_down() {
   local pod=${POS[0]:-} others p cache probe kb
   check_pod_id "$pod"; check_who
@@ -1192,7 +1435,10 @@ cmd_down() {
       die "/root/runs holds ${kb} KB on the container disk (lost on delete). Copy what matters to /workspace, then re-run with --discard-local"
     fi
   fi
-  if [ "$CONFIRM_ARCHIVED" != 1 ]; then
+  if is_vast "$pod" && [ "$CONFIRM_ARCHIVED" != 1 ]; then
+    vast_archive "$pod" ||
+      die "$pod: results not archived (see above), nothing deleted. Archive them yourself (cloud-store or the HF store), record where, then re-run with --confirm-archived"
+  elif [ "$CONFIRM_ARCHIVED" != 1 ]; then
     local net
     net=$(echo "$p" | jq -r '.networkVolumeId // ""')
     if [ -z "$net" ]; then
@@ -1202,7 +1448,7 @@ cmd_down() {
       die "$pod uses non-canonical volume $net: archive its results to the canonical $CANONICAL_DC volume ('uor-pod push $pod PATH...') or the laptop, record where, then re-run with --confirm-archived"
     fi
   fi
-  mut runpodctl pod delete "$pod" >/dev/null
+  pod_delete "$pod" >/dev/null || die "delete of $pod not confirmed: check by hand ($(delete_hint "$pod")); its leases are kept"
   lock_acquire
   if ! is_dry; then rm -rf "${STATE:?}/leases/$pod" "$STATE/idle/$pod"; cache_put "$pod" '{"deleted": true}'; fi
   ledger down "$LAB" "$pod" "$(jq -cn --argjson usd "$(echo "$p" | jq '.costPerHr // 0')" --argjson up "$(echo "$p" | jq '.uptimeSeconds // 0')" '{usd_per_h: $usd, uptime_s: $up}')"
@@ -1232,7 +1478,8 @@ cmd_reap() {
       continue
     fi
     echo "$id: no live lease, idle $(( (now - since) / 60 )) min — deleting"
-    mut runpodctl pod delete "$id" >/dev/null
+    if is_vast "$id"; then vast_archive "$id" || warn "$id: archive failed; reaping anyway (idle with no live lease: durable output belongs off the pod)"; fi
+    pod_delete "$id" >/dev/null || { warn "delete of $id not confirmed: $(delete_hint "$id")"; continue; }
     lock_acquire
     if ! is_dry; then rm -f "$f"; cache_put "$id" '{"deleted": true}'; fi
     ledger reap "${LAB:-any}" "$id" "{\"idle_min\": $(( (now - since) / 60 ))}"
@@ -1344,7 +1591,7 @@ bootstrap_args() {  # SHA POD OFF-VOLUME(true|false) [CANONICAL(true|false)] -> 
 preflight_bootstrap_args() {  # SHA -> dies unless the bootstrap accepts every argument vector `up` may pass
   local off out
   local canon
-  for off in false $( [ "$OFF_VOLUME" = 1 ] && echo true ); do
+  for off in false $( { [ "$OFF_VOLUME" = 1 ] || [ "$PROVIDER" = vast ]; } && echo true ); do
     for canon in true false; do  # placement decides canonical only after create
       bootstrap_args "$1" preflightpod "$off" "$canon"
       out=$(bash "$HERE/uor-pod-bootstrap.sh" --check-args "${BOOT_ARGS[@]}" 2>&1) ||

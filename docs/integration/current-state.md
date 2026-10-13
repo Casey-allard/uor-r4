@@ -1,3 +1,18 @@
+## 2026-10-13 — Vast.ai is the default provider for new pods (claude, #2028)
+
+Owner direction [D26](DECISIONS.md#d26---vastai-is-the-default-provider-for-new-pods):
+`uor-pod up` now rents the cheapest verified datacenter host on Vast.ai (a 5090 at
+$0.469–0.536/h against Runpod's $1.19/h); Runpod stays available with
+`--provider runpod`, and the caps count both providers. A Vast pod gets its data
+from the HF store and `down` archives its results to the laptop before destroying.
+A live `up → run → down` on a Vast 5090 passed (parity 38/38, reaper `api-ok`,
+$0.05). [Record](../labs/vast-provider-2026-10-13/README.md).
+
+Line: infrastructure · no count · headline: unchanged (M1 v5 memory 20/40, reply 37/232).
+Holds unchanged: training and M2 rental remain held.
+
+**Next:** resume the operator plan (OP2 Hamilton kernel first) under Kimi as PM.
+
 ## 2026-10-13 — SpiralCore composition and E8 root-table construction use exact signed-axis transport (Codex, #2029)
 
 The [source record](../labs/native-vector-transport-2026-10-12/README.md) removes

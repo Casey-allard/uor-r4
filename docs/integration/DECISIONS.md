@@ -1291,3 +1291,28 @@ The [repaired operator plan](../labs/operator-phase-2026-10-12/README.md) define
 the preparation/admission boundary. This is agent governance, not a claim that
 existing executables enforce all prohibitions or that a compliant model exists.
 
+
+## D26 - Vast.ai is the default provider for new pods
+
+**Authority, October 13:** Casey, in the Claude session: "backend first, setup
+the new pods to vastai the n go ahead and continue from kimi afterward",
+following the owner's request to move GPU rental from Runpod to the cheaper
+Vast.ai. The owner opened and funded the Vast.ai account (prepaid) and approved
+a one-hour trial, which passed (13 October, 01:07–01:15Z).
+
+- `uor-pod up` rents new pods on Vast.ai by default. Runpod stays an authorized
+  provider (`up --provider runpod`, `UOR_POD_PROVIDER=runpod`); no other
+  provider is authorized. Both go through `scripts/pod/uor-pod` only.
+- Only verified datacenter hosts are rented (no community hosts). The owner caps
+  are unchanged and count both providers together: ≤ 4 running pods, ≤ $8/h.
+- A Vast pod has no shared network volume. Its data comes from the private HF
+  store and `down` archives its results to the laptop before the instance is
+  destroyed; iCloud stays the durable result store.
+- Existing holds are unchanged: this decision releases no training or M2
+  rental hold, and D24/D25 still decide what may run on a pod.
+- The Runpod network volume and its pods are not retired by this decision;
+  retiring the volume is a later owner step, after its data is confirmed in
+  iCloud or the HF store.
+
+The [delivery record](../labs/vast-provider-2026-10-13/README.md) has the
+trial and live-smoke measurements and the limits.

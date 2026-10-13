@@ -5,8 +5,10 @@
 #
 #   uor-reaper.sh --loop    every 60 s: when no /root/leases/*.json is unexpired
 #                           AND the GPUs have been idle >= UOR_REAPER_IDLE_MIN
-#                           (default 20) minutes, delete this pod through the
-#                           Runpod API with the pod's own RUNPOD_API_KEY
+#                           (default 20) minutes, delete this pod through its
+#                           provider's API with the pod's own key: Runpod
+#                           (RUNPOD_API_KEY, RUNPOD_POD_ID) or Vast.ai
+#                           (CONTAINER_API_KEY, CONTAINER_ID: instance-scoped)
 #   uor-reaper.sh --check   verify that key can read this pod (prints api-ok/FAILED)
 #
 # Busy = any GPU above 2 % utilisation, any CUDA compute process, or a held
@@ -21,6 +23,14 @@ LOG=/workspace/uor-r4/pods/reaper.log
 SINCE=/root/.uor-idle-since
 env1() { tr '\0' '\n' < /proc/1/environ | sed -n "s/^$1=//p" | head -1; }
 log() { echo "$(date -u +%FT%TZ) pod=$POD $*" >> "$LOG"; }
+
+# Vast.ai injects CONTAINER_ID and an instance-scoped CONTAINER_API_KEY; the
+# REST API destroys the instance (DELETE /instances/ID/). The key goes to curl
+# on stdin, never in argv, a file or the log.
+vast_api() {  # vast_api METHOD -> response body for this instance
+  printf 'Authorization: Bearer %s\n' "$(env1 CONTAINER_API_KEY)" |
+    curl -sS -H @- -X "$1" --max-time 30 "https://console.vast.ai/api/v0/instances/$(env1 CONTAINER_ID)/"
+}
 
 # The pod's own RUNPOD_API_KEY is accepted by the GraphQL API (verified
 # 2026-10-05) but refused by REST v1 (HTTP 403), so both calls use GraphQL.
@@ -66,7 +76,8 @@ sys.exit(1)
 PY
 }
 if [ "${1:-}" = --live-lease ]; then live_lease; exit; fi  # test hook: exit 0 = a live lease exists
-POD=$(env1 RUNPOD_POD_ID)
+POD=$(env1 RUNPOD_POD_ID) PROVIDER=runpod
+if [ -z "$POD" ] && [ -n "$(env1 CONTAINER_ID)" ]; then POD=vast-$(env1 CONTAINER_ID) PROVIDER=vast; fi
 mkdir -p "$(dirname "$LOG")"
 
 busy() {
@@ -83,7 +94,14 @@ busy() {
 
 case ${1:-} in
   --check)
-    [ -n "$POD" ] || { echo "api-FAILED (no RUNPOD_POD_ID)"; exit 1; }
+    if [ "$PROVIDER" = vast ]; then
+      [ -n "$(env1 CONTAINER_API_KEY)" ] || { echo "api-FAILED (no CONTAINER_API_KEY in the pod environment)"; exit 1; }
+      body=$(vast_api GET 2>&1)
+      case $body in *"\"id\": ${POD#vast-}"*|*"\"id\":${POD#vast-}"*) echo api-ok; exit 0;; esac
+      # (the instance record can carry tokens: report the failure, not the body)
+      echo "api-FAILED (the Vast API did not return instance ${POD#vast-}; ${#body} bytes)"; exit 1
+    fi
+    [ -n "$POD" ] || { echo "api-FAILED (no RUNPOD_POD_ID or CONTAINER_ID)"; exit 1; }
     [ -n "$(env1 RUNPOD_API_KEY)" ] || { echo "api-FAILED (no RUNPOD_API_KEY in the pod environment)"; exit 1; }
     body=$(gql "query { pod(input: {podId: \\\"$POD\\\"}) { id } }" 2>&1)
     case $body in *"\"id\":\"$POD\""*) echo api-ok; exit 0;; esac
@@ -101,8 +119,13 @@ while :; do
     idle=$(( $(date +%s) - $(cat "$SINCE" 2>/dev/null || date +%s) ))
     if [ "$idle" -ge $(( IDLE_MIN * 60 )) ]; then
       log "no live lease and GPUs idle $(( idle / 60 )) min: deleting this pod"
-      body=$(gql "mutation { podTerminate(input: {podId: \\\"$POD\\\"}) }" 2>&1)
-      log "podTerminate response: $(echo "$body" | head -c 200)"
+      if [ "$PROVIDER" = vast ]; then
+        body=$(vast_api DELETE 2>&1)
+        case $body in *'"success": true'*|*'"success":true'*) log "Vast destroy accepted";; *) log "Vast destroy not confirmed (${#body} bytes)"; body='';; esac
+      else
+        body=$(gql "mutation { podTerminate(input: {podId: \\\"$POD\\\"}) }" 2>&1)
+        log "podTerminate response: $(echo "$body" | head -c 200)"
+      fi
       case $body in *'"errors"'*|'') sleep 120;; *) sleep 600;; esac
     fi
   fi

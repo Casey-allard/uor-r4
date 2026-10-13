@@ -4,6 +4,12 @@
 # environment wins over this file. With no file, uor-pod uses the project's
 # own account values. Quick start: docs/compute/pods-quickstart.md.
 
+# Provider. This file describes a Runpod account; the UOR-R4 project itself
+# rents on Vast.ai by default (D26). UOR_POD_PROVIDERS lists every provider whose
+# pods count toward your caps, so a single-provider account names just that one.
+: "${UOR_POD_PROVIDER:=runpod}"
+: "${UOR_POD_PROVIDERS:=runpod}"
+
 # Your network volume (Runpod > Storage) and the datacenter it lives in.
 : "${UOR_POD_VOLUME_ID:=YOUR_VOLUME_ID}"
 : "${UOR_POD_CANONICAL_DC:=YOUR_DC}"          # for example EUR-NO-1

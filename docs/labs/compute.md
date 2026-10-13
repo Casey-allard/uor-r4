@@ -4,7 +4,8 @@
 Every lab session (Claude, Codex/GPT, OpenCode/DeepSeek and any lab that joins
 later; several sessions of one lab may run at once) uses the same tool,
 `scripts/pod/uor-pod`, and the same cadence to see, lease, create, share and
-delete the owner's Runpod GPU pods. The goals: no pod idles, no session is
+delete the owner's GPU pods: Vast.ai by default since 13 October 2026
+([D26](../integration/DECISIONS.md#d26---vastai-is-the-default-provider-for-new-pods)), Runpod with `--provider runpod`. The goals: no pod idles, no session is
 surprised by another's pod, and any session can take over a pod whose lease
 expired. The source of truth is the laptop state directory below. The
 [Compute board #2037](https://github.com/UOR-Foundation/uor-r4/issues/2037) is
@@ -216,6 +217,57 @@ Owner-approved 7 October 2026 (#1750).
 - **One-off pod-to-pod copies.** `runpodctl send FILE` on the source pod
   prints a code; run `runpodctl receive CODE` on the destination.
 
+## Vast.ai (default provider, 13 October 2026)
+
+Owner direction, 13 October 2026 ([D26](../integration/DECISIONS.md#d26---vastai-is-the-default-provider-for-new-pods)):
+new pods go to Vast.ai, a marketplace that was 40–60 % cheaper per GPU-hour than
+Runpod Secure Cloud for the GPUs this project uses (a verified datacenter RTX 5090
+was $0.469/h against Runpod's $1.19/h on 13 October). Runpod stays available with
+`up --provider runpod` or `UOR_POD_PROVIDER=runpod`; every other command takes
+either kind of pod.
+
+- **Ids.** A Vast pod is `vast-<contract number>` in every command, lease, ledger
+  line and cache entry. `status` lists both providers in one table (`vol=vast-disk`)
+  and adds the cheapest Vast offer per GPU next to the Runpod stock table.
+- **Placement.** `up` searches Vast for verified **datacenter** hosts only
+  (reliability > 0.98, CUDA 12.8+, 150 GB disk, ≥ 200 Mbit/s) on the usual ladder
+  5090 → 4090 → PRO 6000 (Vast's `RTX PRO 6000 S`), 2 GPUs then 1, and rents the
+  cheapest offer that keeps the total under the rate cap. An offer taken between the
+  search and the rental moves on to the next cheapest (up to three). Community hosts
+  are not used: their operator holds the disk, the HF token and our results.
+- **Caps.** ≤ 4 running pods and ≤ $8/h count **both providers together**; a Vast
+  instance that is still loading already bills and counts. `up` refuses when either
+  provider's listing fails, because the caps could not be checked.
+- **Data.** There is no shared network volume (Vast volumes belong to one machine).
+  The bootstrap runs with `--off-volume --non-canonical`: it builds the toolchain
+  (~2 min on 16 cores) and fetches `data/*` from the HF store with the token `up`
+  copies from `~/.cache/huggingface/token` (the owner's `hf auth login`). The
+  image sets `HF_HOME=/workspace/.cache/huggingface/`, where the `hf` CLI looks
+  by default; the token stays on the pod's own disk (`/root/.cache/huggingface/`,
+  never the shared Runpod volume) and the bootstrap points `hf` at it with
+  `HF_TOKEN_PATH`. Before 13 October it did not, and a fetch got HTTP 401 and fell
+  back to nothing, on Runpod non-canonical pods too. The fetch is a warning on
+  failure: check the bootstrap log's `HF store fetched:` line. The
+  Runpod hot-set relay is skipped for Vast pods.
+- **Results.** `down` copies `/workspace/uor-r4/{jobs,pods,runs,evals}` to
+  `~/.local/share/uor-r4/compute/vast-archive/<pod>/` before it destroys the
+  instance, and records the archive in the ledger; move it to iCloud with
+  `cloud-store put`. Above 5 GB (`UOR_POD_VAST_ARCHIVE_MAX_MB`) it refuses: archive
+  large results yourself, then `down --confirm-archived`. `reap` archives what it
+  can before destroying an idle unleased Vast pod.
+- **Destroy.** `vastai destroy instance` asks `[y/N]` and aborts when nobody
+  answers; the tool answers it and then confirms the instance is gone from the
+  listing. By hand: `echo y | vastai destroy instance N`.
+- **Reaper.** The pod-side reaper uses the instance-scoped `CONTAINER_ID` and
+  `CONTAINER_API_KEY` Vast injects, and destroys the instance through Vast's REST
+  API after 20 idle minutes without a live lease. Verified live on 13 October:
+  with the lease released and the idle limit at 0, the reaper destroyed its own
+  instance within seconds.
+- **Account.** The owner's account, prepaid; the CLI is `vastai` (installed with
+  `pipx install --python python3.14 vastai`; Python 3.15 has no Pillow wheel yet)
+  and its key lives in `~/.config/vastai/vast_api_key`, written by the owner with
+  `vastai set api-key`. The account's SSH key is `~/.ssh/uor_compute`.
+
 ## Layout of `/workspace` (canonical volume)
 
 | Path | Contents | Owner |
@@ -317,7 +369,8 @@ validation pods are left out of the pod count (not out of $/h).
 owner's decision is cited in the card. The owner decides: raising the caps,
 anything above $8/h, GPU types outside the policy table (and any use of the
 forbidden tier), new network volumes beyond `uor-shared-EU-RO-1` and
-`uor-shared-EUR-IS-1`, other providers and community cloud.
+`uor-shared-EUR-IS-1`, providers other than Vast.ai and Runpod (D26), and
+community or unverified hosts.
 
 ## Takeover
 
@@ -334,8 +387,11 @@ keep their owner.
 
 ## Security
 
-* Never read, print or copy `~/.runpod/config.toml` or any API key. Use
-  `runpodctl` and `gh`. The tool strips `env` from every pod record it shows.
+* Never read, print or copy `~/.runpod/config.toml`, `~/.config/vastai/vast_api_key`
+  or any API key. Use `runpodctl`, `vastai` and `gh`. The tool strips `env` from
+  every Runpod record, reduces every Vast record to the fields it needs (a Vast
+  record carries a Jupyter token), and discards the instance key `vastai create`
+  returns.
 * No unauthenticated Jupyter. Use the standard template; never set a weak
   `JUPYTER_PASSWORD` or expose 8888 publicly.
 * The account SSH key for pods is `~/.ssh/uor_compute`

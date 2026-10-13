@@ -263,8 +263,8 @@ global 15-minute cutoff or one-retry quota. Avoid unchanged blind retries,
 extend estimates and renew leases rather than cancelling a healthy owner-admitted
 run; only owner holds/caps, disk floors or failure/divergence require stopping.
 Apply the standing local-extension authorization before a necessary cumulative
-increase. GPU spending follows uor-pod caps and applicable holds; a new external
-spending class requires owner authorization. Reuse measurements and checkpoints
+increase. GPU spending follows uor-pod caps and applicable holds (Vast.ai and Runpod
+count together, D26); a new external spending class requires owner authorization. Reuse measurements and checkpoints
 when their inputs remain valid.
 
 Open development evaluation is part of learning. Keep final held-out evaluation
