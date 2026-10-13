@@ -489,8 +489,15 @@ def merged_branches(root: Path) -> dict[str, list[str]]:
             removable.append(b)          # a real merge: the head is in main
             continue
         if b in gone:
-            # squash-merged: the remote branch was deleted after the PR merged
-            removable.append(b)
+            # A squash-merged branch is not an ancestor of main, so it has to be verified by
+            # CONTENT: if a merged PR for this branch exists and that PR's merge commit carries
+            # exactly the branch's tree, then everything on the branch is already in main and
+            # nothing unique is lost. Without that proof the branch is left alone.
+            verdict = _squash_merged_proof(root, b)
+            if verdict is True:
+                removable.append(b)
+            else:
+                unmerged.append(b)
             continue
         unmerged.append(b)
     return {
@@ -499,6 +506,33 @@ def merged_branches(root: Path) -> dict[str, list[str]]:
         "unmerged": sorted(unmerged),
         "stale_worktree_refs": prunable_worktrees,
     }
+
+
+def _squash_merged_proof(root: Path, branch: str) -> bool:
+    """True when a merged PR exists for `branch` and its merge commit carries the same tree.
+
+    This is the check that makes deleting a squash-merged branch safe. `git branch -d` cannot
+    do it - it only understands ancestry, and a squash merge has none.
+    """
+    rc, out = _git_raw(["gh", "pr", "list", "--head", branch, "--state", "merged",
+                        "--json", "number,mergeCommit", "--limit", "1"], root)
+    if rc != 0 or not out.strip():
+        return False
+    try:
+        data = json.loads(out)
+    except json.JSONDecodeError:
+        return False
+    if not data:
+        return False
+    mc = (data[0].get("mergeCommit") or {}).get("oid")
+    if not mc:
+        return False
+    rc, _ = _git_raw(["git", "-C", str(root), "cat-file", "-e", f"{mc}^{{tree}}"])
+    if rc != 0:
+        return False
+    rc, bt = _git_raw(["git", "-C", str(root), "rev-parse", f"{branch}^{{tree}}"])
+    rc2, mt = _git_raw(["git", "-C", str(root), "rev-parse", f"{mc}^{{tree}}"])
+    return rc == 0 and rc2 == 0 and bt.strip() == mt.strip()
 
 
 def cmd_clean_merged(args: argparse.Namespace, paths: HarnessPaths) -> int:
@@ -525,9 +559,11 @@ def cmd_clean_merged(args: argparse.Namespace, paths: HarnessPaths) -> int:
         return 0
     removed = 0
     for b in state["removable"]:
-        # -d, not -D: it refuses if git does not agree the branch is merged. The belt to
-        # the merge-base brace above.
-        rc, out = _git_raw(["git", "-C", str(paths.repo), "branch", "-d", b])
+        # `git branch -d` understands ancestry only and so refuses every squash-merged branch,
+        # which is most of them here. The removal decision was already made above, on proof:
+        # an ancestor head, or a merged PR whose merge commit carries this exact tree. -D
+        # applies that decision; reflog and origin keep the commits recoverable.
+        rc, out = _git_raw(["git", "-C", str(paths.repo), "branch", "-D", b])
         if rc == 0:
             removed += 1
             print(f"  deleted {b}")
