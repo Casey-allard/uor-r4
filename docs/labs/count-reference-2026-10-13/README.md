@@ -4,12 +4,13 @@ References #2029, #2028 and #2030. Frozen source
 `2fd6358bbc52d2a202a872ad0954ebb12894606f` implements the owner's requested
 response-masked TRAIN frequency reference, separate diagnostic DEV response
 oracle, exclusion control and reference/input binding. **Qualification:11 finite controls PASS at this frozen source (9 metadata,2 CUDA).**
-Protected delivery is pending. No training or optimizer update is authorized
+Protected [PR #2328](https://github.com/UOR-Foundation/uor-r4/pull/2328) merged at `9e904a83448c451f738d5c1d45224dfdf73eb84e`. No training or optimizer update is authorized
 or executed by this unit. Global training and the separate M2 training/rental
 holds remain **HELD**.
 
 Line: unified geometric route/action/learning integration, count **11/3 →12/3
-on completed protected delivery**, no reset. M1 memory20/40, reply37/232; M2
+in protected source PR2328**; documentation closeout belongs to this same
+integrated unit with no additional increment, no reset. M1 memory20/40, reply37/232; M2
 saved437/512, opened0/128 and genuinely fresh transfer NOT_RUN remain unchanged.
 
 ## Current decision and mechanism
@@ -23,10 +24,17 @@ now requires the primary reference to use **response-masked targets from the
 TRAIN split**, with a within-document predecessor. Development response counts
 are a separate diagnostic oracle, never the decisive reference. The +5pp rank
 bars, token-only anti-vacuity floors, paired seeds1/2 and other acceptance bars
-remain unchanged. **Scientific TEST FITNESS is PENDING** for Amendment5 until
-protected delivery and Claude's subsequent CONFIRM
-under [PM board6146134405](https://github.com/UOR-Foundation/uor-r4/issues/2028#issuecomment-6146134405). The former Amendment4
-FIT remains a historical verdict at its original reference scope.
+remain unchanged. **Independent scientific CONFIRM FIT is recorded** by the
+[Claude non-author review6146716704](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6146716704)
+at `origin/main` `9e904a834`/#2328 plus Amendment5/#2322. The reviewer confirms
+masked TRAIN-only counts, no DEV leakage, smallest-ID ties, the actual GPU
+exclusion receipt, diagnostic DEV oracle and artifact/input binding. An
+independent data-only check confirms2,425,925 eligible TRAIN targets.
+The **physical sheet verdict remains PENDING** until Kimi adds the mechanical
+TRAIN-mask path/checksum, expected-count/CLI/new-source pins and restores FIT
+under [PM board6146134405](https://github.com/UOR-Foundation/uor-r4/issues/2028#issuecomment-6146134405).
+This confirmation does not rewrite Kimi's sheet or release an owner hold. The
+former Amendment4 FIT remains historical at its original reference scope.
 
 The previous [complete-path unit](../rung0-complete-path-2026-10-13/README.md)
 was protected-merged in #2318 at `5b22739a31eafb131d25e098bb7f02ab803d4fe7`,
@@ -135,11 +143,12 @@ The refreshed peer base has no changes to `Cargo.toml`, `Cargo.lock`, training,
 core/integer/model-source crates or third-party sources relative to the build
 base `3c8ef2e85e1e9af413311f34b4dd7d63cb9bac2b`; the owning session verified
 that scope. The preserved frozen source
-and executable/control identities remain the qualification authority. Final
-protected merge source/tree equality will be verified separately.
+and executable/control identities remain the qualification authority. Actual protected merge source/tree equality is verified below.
 
-Owned worktree `codex-rung0-standby-20261013-1217`, branch
-`codex/rung0-count-reference-20261013`; Kimi's sheet and every peer's source,
+Owned worktree `codex-rung0-standby-20261013-1217`; source delivery branch
+`codex/rung0-count-reference-20261013` is released and deleted remotely/locally.
+Claimed branch `codex/count-reference-closeout-20261013` carries this same unit's
+living record corrections; Kimi's sheet and every peer's source,
 claims, jobs and artifacts remain preserved. Root owned the scoped CUDA build
 and finite qualification pod, now released/deleted. Pod closeout is
 2026-10-13 at13:17:31Z:1371 seconds at$0.536/h, estimated$0.2041266667 before
@@ -169,8 +178,29 @@ The iCloud `cloud-store put codex` bundle
 `codex-rung0-count-reference-20261013.tar`,6508544 bytes, MD5
 `c3116f90d70007c81a138ee7950e8b5c`, passes tool round-trip and exact index
 verification. Source and failed/corrected attempts remain recoverable.
-Protected merge proof and Amendment5 scientific CONFIRM remain pending.
-Only the named finite qualification is scoped work; all training and separate
+Protected source PR2328 merge is `9e904a83448c451f738d5c1d45224dfdf73eb84e`
+at2026-10-13 13:30:26Z, reviewed head
+`4f1c08b3bd5d421f3bc5ed538e98e0499019bc65`. Fresh main contains it; actual
+merge/full reviewed tree `ad87c29fb7d864467f39db3f48bdb78c3fb2f2f3` matches the
+expected tree. Training source tree `85817cc162028b07476f3b3732818964b5c0fe58`
+equals frozen source2fd. [Coordination6146731834](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6146731834)
+requests Claude CONFIRM and Kimi's exact TRAIN-mask/CLI/new-source pins.
+Amendment5 independent scientific CONFIRM FIT is recorded above; Kimi's
+mechanical sheet pins and physical FIT verdict restoration remain next.
+
+**Advisory harness CI: `receipts.parse` FAIL, preserved.** Rust `cmd_receipt`
+defaults to kind `receipt`; the Python checker rejects it as `unknown kind receipt`.
+The standalone onboarding invocation emitted that generic row at12:36:36Z in
+Codex shard27. Rewriting the committed row would violate the append-only
+multiset contract, so the row/source/logs remain unchanged and preserved in
+main and the verified qualification bundle. [Report6146770185](https://github.com/UOR-Foundation/uor-r4/issues/2028#issuecomment-6146770185)
+requests compatibility repair by the owning tooling line. This documentation
+closeout changes no harness source, claims no parser fix and does not relabel
+the advisory failure as PASS. Compiler and the11 geometry/interface controls
+are separately qualified.
+The independent confirmation accepts the delivered reference law; it is not
+a language/quality result. Only the named finite qualification is scoped work; all training and separate
 M2 holds remain HELD. Scientific FIT cannot release them. Delivery through a
-protected PR and fresh main/source verification precede cleanup of owned
-transport material.
+protected source merge and fresh main/source verification are complete;
+closeout record delivery precedes cleanup of its redundant owned transport
+material.

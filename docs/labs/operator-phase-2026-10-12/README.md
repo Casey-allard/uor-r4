@@ -20,15 +20,18 @@ including ordinary dispatch, signed rate credit, GPU clipping and native
 CLI/masked dev metrics:18 final controls pass at the actual rung-0 shape.
 Optimizer update is compiled/source-reviewed only. Protected #2318 merge is
 verified at `5b22739a31eafb131d25e098bb7f02ab803d4fe7`; its Amendment4 FIT
-retains its original reference scope. Current Amendment5 is scientific
-**PENDING**, with unchanged bars: the primary count reference must use masked
+retains its original reference scope. Current Amendment5 has independent
+scientific [Claude CONFIRM FIT6146716704](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6146716704), with unchanged bars. The physical
+sheet remains PENDING for Kimi's mechanical TRAIN-mask/SHA/CLI/source pins
+and FIT verdict restoration: the primary count reference must use masked
 TRAIN targets, and the masked DEV oracle is diagnostic only. The
 [reference/input-binding repair](../count-reference-2026-10-13/README.md)
 is implemented at frozen source `2fd6358bbc52d2a202a872ad0954ebb12894606f`;
-11 new finite controls PASS (9 metadata,2 CUDA); protected delivery pending.
+11 new finite controls PASS (9 metadata,2 CUDA); protected [PR #2328](https://github.com/UOR-Foundation/uor-r4/pull/2328) merged at `9e904a83448c451f738d5c1d45224dfdf73eb84e`.
 [PM board6146134405](https://github.com/UOR-Foundation/uor-r4/issues/2028#issuecomment-6146134405)
-requires protected delivery of the qualified repair, then Claude's CONFIRM before
-any owner hold-release decision. Global training and the separate M2
+now requires Kimi's mechanical sheet pins/verdict restoration, followed by
+any explicit owner hold-release decision; Claude's source/design confirmation
+is recorded above. Global training and the separate M2
 training/rental hold remain HELD; scientific FIT cannot release them.
 
 The original 2026-10-12 registration and repair are linked below as historical

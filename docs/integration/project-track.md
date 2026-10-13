@@ -81,15 +81,17 @@ actual batch 16×context 384 six-recurrence forward/backward, useful rate credit
 6144-row writer, device clipping and native dev/artifact metrics. Optimizer update
 is compiled/source-reviewed only. Protected #2318 merge is verified at
 `5b22739a31eafb131d25e098bb7f02ab803d4fe7`. The predecessor Amendment4 FIT
-retains its original scope; current Amendment5 is scientific **PENDING**, with
-unchanged bars and paired seeds1/2. The
+retains its original scope; current Amendment5 has independent scientific
+[Claude CONFIRM FIT6146716704](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6146716704), with unchanged bars and paired seeds1/2. The physical
+sheet remains PENDING until Kimi adds mechanical TRAIN-mask/SHA/CLI/source
+pins and restores FIT. The
 [masked TRAIN count-reference repair](../labs/count-reference-2026-10-13/README.md)
 is implemented at frozen source `2fd6358bbc52d2a202a872ad0954ebb12894606f`;
-11 new finite controls PASS (9 metadata,2 CUDA); protected delivery pending. One TRAIN
+11 new finite controls PASS (9 metadata,2 CUDA); protected [PR #2328](https://github.com/UOR-Foundation/uor-r4/pull/2328) merged at `9e904a83448c451f738d5c1d45224dfdf73eb84e`. One TRAIN
 stream and response mask bind the primary reference; the DEV response oracle
-is diagnostic only. Next: protected delivery, then Claude's
-CONFIRM under [PM board6146134405](https://github.com/UOR-Foundation/uor-r4/issues/2028#issuecomment-6146134405)
-before any owner hold-release decision. Training and separate M2 holds remain HELD. No test or delivery
+is diagnostic only. Next: Kimi's mechanical sheet pins and FIT verdict
+restoration under [PM board6146134405](https://github.com/UOR-Foundation/uor-r4/issues/2028#issuecomment-6146134405),
+then any explicit owner hold-release decision. Training and separate M2 holds remain HELD. No test or delivery
 automatically releases training. Shared intent/compiler/full M2 and D11 remain
 separate unqualified obligations.
 

@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "note": "Cache prepared for masked TRAIN count-reference protected delivery (source2fd6358bb); 11 finite controls PASS (9 metadata,2 CUDA) and Amendment5 scientific PENDING. GitHub and main authorities remain authoritative. Historical counts/headlines are not reset; all training holds remain.",
+  "note": "Cache reconciled after protected masked TRAIN count-reference source PR2328 merge9e904a834 (source2fd6358bb); 11 finite controls PASS (9 metadata,2 CUDA) and Amendment5 independent Claude CONFIRM FIT6146716704; physical sheet PENDING for Kimi mechanical pins/verdict restoration. GitHub and main authorities remain authoritative. Historical counts/headlines are not reset; all training holds remain.",
   "tracker": {
     "issue": 2028,
     "title": "[Roadmap] UOR-R4 - path to a native conversation and memory alpha"
@@ -49,7 +49,7 @@
           "note": "Recorded operator card6134571032; no reset by instruction repair."
         }
       ],
-      "next": "OP1/OP2/OP3a and complete native path predecessor delivered in PR2318;18 prior controls remain scoped evidence. Masked TRAIN-reference/separate diagnostic DEV-oracle repair implemented at2fd6358bb; 11 finite controls PASS (9 metadata,2 CUDA), Amendment5 scientific PENDING. Next protected delivery, then Claude CONFIRM per PM6146134405; explicit owner release/resource admission still required before any training.",
+      "next": "OP1/OP2/OP3a and complete native path predecessor delivered in PR2318;18 prior controls remain scoped evidence. Masked TRAIN-reference/separate diagnostic DEV-oracle repair implemented at2fd6358bb; 11 finite controls PASS (9 metadata,2 CUDA), Amendment5 independent Claude CONFIRM FIT6146716704; physical sheet PENDING. Protected PR2328 merge9e904a834 verified. Next Kimi mechanical TRAIN-mask/SHA/CLI/source pins and FIT verdict restoration per PM6146134405; explicit owner release/resource admission still required before any training.",
       "project_manager": "kimi",
       "training_hold": true
     },
@@ -88,10 +88,10 @@
           "name": "unified geometric route/action/learning integration",
           "count": 12,
           "of": 3,
-          "note": "Projection PR2279 count8, head/writer PR2301 count9, complete-path PR2318 count10, metadata PR2319 count11; masked TRAIN-reference repair count12 on completed protected delivery. No model-quality gain or headline reset; all prior source/results and training/M2 holds preserved."
+          "note": "Projection PR2279 count8, head/writer PR2301 count9, complete-path PR2318 count10, metadata PR2319 count11; masked TRAIN-reference repair count12 in protected source PR2328 merge9e904a834; documentation closeout is the same integrated unit, no additional increment. No model-quality gain or headline reset; all prior source/results and training/M2 holds preserved."
         }
       ],
-      "next": "Masked TRAIN count-reference repair at2fd6358bb implemented; 11 finite controls PASS (9 metadata,2 CUDA), Amendment5 scientific PENDING. Protected-deliver it, then Claude CONFIRM per PM6146134405; global training and separate M2 training/rental holds HELD. Full M2 learned intent/compiler, fresh transfer and D11 remain unqualified; no automatic campaign.",
+      "next": "Masked TRAIN count-reference repair at2fd6358bb implemented; 11 finite controls PASS (9 metadata,2 CUDA), Amendment5 independent Claude CONFIRM FIT6146716704; physical sheet PENDING. Protected PR2328 merge9e904a834 verified; next Kimi mechanical TRAIN-mask/SHA/CLI/source pins and FIT verdict restoration per PM6146134405; global training and separate M2 training/rental holds HELD. Full M2 learned intent/compiler, fresh transfer and D11 remain unqualified; no automatic campaign.",
       "training_hold": true,
       "rental_hold": true,
       "projection_kernel_authorization": "Current Codex claim2029#6136794551 only; build and finite GPU tests authorized, completed, own pod deleted. Training remains held."

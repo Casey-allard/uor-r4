@@ -54,14 +54,17 @@ implements the actual native learning/evaluation wiring at `05c84bece50789163bd0
 18 finite controls pass at the declared rung-0 shape. Optimizer update is
 compiled/source-reviewed only. Protected #2318 merge is verified at
 `5b22739a31eafb131d25e098bb7f02ab803d4fe7`; its Amendment4 FIT retains its
-original scope. Current Amendment5 is scientific PENDING with unchanged bars.
+original scope. Current Amendment5 has independent scientific [Claude CONFIRM FIT6146716704](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6146716704)
+with unchanged bars; the physical sheet verdict remains PENDING for Kimi's
+mechanical TRAIN-mask/SHA/CLI/source pins and FIT restoration.
 The [masked TRAIN count-reference repair](../labs/count-reference-2026-10-13/README.md)
 at frozen source `2fd6358bbc52d2a202a872ad0954ebb12894606f` is implemented;
-11 new finite controls PASS (9 metadata,2 CUDA); protected delivery pending. TRAIN tokens,
+11 new finite controls PASS (9 metadata,2 CUDA); protected [PR #2328](https://github.com/UOR-Foundation/uor-r4/pull/2328) merged at `9e904a83448c451f738d5c1d45224dfdf73eb84e`. TRAIN tokens,
 response mask and reference policy bind native settings/checkpoints/artifacts;
 the masked DEV oracle is diagnostic only. Finite controls and protected merge
-precede Claude's CONFIRM under PM board6146134405, then explicit owner hold
-release/resource admission remains required. Training/M2 holds remain HELD.
+#2328 and Claude's independent CONFIRM FIT are verified. Kimi's mechanical
+sheet pins/verdict restoration under PM board6146134405 remain next, then
+explicit owner hold release/resource admission remains required. Training/M2 holds remain HELD.
 This implementation status changes no invariant or hold.
 
 ## Durable autonomous labs — current owner charter, September 29
