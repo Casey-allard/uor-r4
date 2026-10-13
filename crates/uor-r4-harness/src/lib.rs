@@ -35,6 +35,7 @@ pub mod onboard;
 pub mod prep;
 pub mod preprules;
 pub mod presence;
+pub mod prlintrules;
 pub mod ratchet;
 pub mod receipt;
 pub mod receiptsrules;

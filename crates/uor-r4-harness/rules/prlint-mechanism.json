@@ -1,0 +1,27 @@
+{
+  "_": [
+    "The mechanism D23 prohibits, and the words that count as acknowledging the ban.",
+    "",
+    "WHY THIS IS DATA: the D23 interlock counts occurrences of the mechanism's name in .rs files",
+    "under crates/. A rule that REFUSES the mechanism has to name it, so literals in the rule made",
+    "the interlock report THE RULE ITSELF as a violation - 'prlintrules.rs (0 -> 28)'. The interlock",
+    "cannot tell a file that IMPLEMENTS a mechanism from one that DETECTS it.",
+    "",
+    "The fix is not to weaken the interlock and not to obfuscate the literal. The interlock's own",
+    "code already handles this with a split constant; this file is the rule's half of the same",
+    "solution, and it follows the patterns file added for the prep rules.",
+    "",
+    "`acknowledgements` exists so a body that SAYS the ban is honoured does not produce a finding.",
+    "Every stem is checked as a substring; the single-letter words are checked on word boundaries so",
+    "that 'note' and 'nothing' do not count."
+  ],
+  "mechanism": "softmax",
+  "acknowledgements": [
+    "remov",
+    "replac",
+    "ban",
+    "prohibit",
+    "forbid",
+    "census"
+  ]
+}
