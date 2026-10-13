@@ -680,25 +680,35 @@ def delete_merged_branch(paths: HarnessPaths, branch: str, apply: bool = False) 
         result["reason"] = "the status module is unavailable, so the merge cannot be proven"
         return result
 
-    # 2. even with a merged PR, the remote ref must actually be gone-or-equal, not different work
-    # The branch must hold nothing main lacks. Compared with a DIRECT diff, not ancestry or a
-    # merge-base diff, because a squash merge leaves the branch's commits with no ancestor in main:
-    # `rev-list --count main..branch` reports 2 and `git diff main...branch` reports 9 lines for a
-    # branch whose content is byte-identical to main. Both would refuse forever.
+    # 2. even with a merged PR, the branch must not carry commits main lacks.
+    # Does the branch hold any commit main lacks? `git cherry` answers exactly that: '-' means the
+    # commit's changes are already upstream, '+' means they are not.
     #
-    # `git diff main..branch` is empty exactly when the branch adds nothing, which is the property
-    # that makes deleting it safe - and it is the same content proof `clean-merged` already uses.
+    # Two earlier attempts at this were both wrong, in opposite directions, which is why the test is
+    # worth naming:
+    #
+    #   * `rev-list --count main..branch` (ancestry): a SQUASH merge leaves no ancestor, so it
+    #     reported 2 commits for a branch byte-identical to main and refused every squash-merged
+    #     branch - most of them here.
+    #   * `git diff --stat main..branch` (whole-tree): a branch that is merely BEHIND main shows as
+    #     removing main's newer files, so it refused a branch whose PR had just merged, flagging
+    #     five files belonging to other labs that this branch never touched.
+    #
+    # `git cherry` is the question the guard actually means to ask: does this branch introduce
+    # anything that is not already upstream?
     rc, out = git("rev-parse", "--verify", "--quiet", f"refs/remotes/origin/{branch}")
     if rc == 0:
-        rc2, diff = git("diff", "--stat", f"origin/main..origin/{branch}")
-        if rc2 == 0 and diff.strip():
-            result["reason"] = (
-                f"origin/{branch} holds content main does not ({diff.splitlines()[-1].strip()}) - "
-                f"the merge did not carry it"
-            )
-            result["merged"] = False
-            result["safe_to_delete"] = False
-            return result
+        rc2, cherry = git("cherry", "origin/main", f"origin/{branch}")
+        if rc2 == 0:
+            unpushed = [ln for ln in cherry.splitlines() if ln.startswith("+")]
+            if unpushed:
+                result["reason"] = (
+                    f"origin/{branch} holds {len(unpushed)} commit(s) whose changes are not in main "
+                    f"- the merge did not carry them"
+                )
+                result["merged"] = False
+                result["safe_to_delete"] = False
+                return result
 
     if not apply:
         return result
