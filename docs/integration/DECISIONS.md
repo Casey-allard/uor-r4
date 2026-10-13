@@ -1566,3 +1566,12 @@ own vector/spinor/flock/FBS geometry. This decision is the answer made binding.
 Where any older decision, sheet, rung plan or operator card assumes a
 floating-point training law or floating-point model computation, D32 wins.
 D23/D29/D30 remain fully in force and are not widened by this decision.
+
+**Owner clarification, October 13 (#2032, comment 6154472370):** "hamming
+distance is just one factor of the geometric routing." Carry the architecture
+intact: SpiralCore preserves E8 geometry through transport; FBS provides
+binding, frontier and routing structure; Hamming distance contributes as one
+routing factor alongside the geometric structure, never as its sole
+definition. The same native vector writer serves input, carry and output.
+This corrects an overly narrow reading of item 3 as Hamming-encoding design;
+it is not permission to replace transport with a Hamming-only model.
