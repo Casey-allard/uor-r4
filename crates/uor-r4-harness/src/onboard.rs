@@ -143,22 +143,26 @@ pub fn parse_python_version(text: &str) -> Option<(u32, u32)> {
     Some(digits)
 }
 
-/// Whether the harness answers to this interpreter in this repository.
+/// Whether the harness answers IN THIS REPOSITORY - checked in-process, not by shelling out.
+///
+/// This used to run `python3 scripts/harness/cli.py check --only arena` and read its output. Two
+/// things were wrong with that: it asked the PYTHON harness whether the harness works, so a broken
+/// Rust binary still reported ok; and it tested one trivial rule, so a repository whose real state
+/// was broken passed the check that exists to catch that.
+///
+/// The entry point is this binary, so the honest question is "does the format checker accept this
+/// repository", and it can be asked directly.
 pub fn harness_answers(repo: &Path) -> Result<String, String> {
-    let out = Command::new("python3")
-        .args(["scripts/harness/cli.py", "check", "--only", "arena"])
-        .current_dir(repo)
-        .output()
-        .map_err(|e| format!("could not run the harness: {e}"))?;
-    let text = String::from_utf8_lossy(&out.stdout).trim().to_string();
-    if out.status.success() {
-        Ok(text.lines().last().unwrap_or("ok").to_string())
+    let contract = crate::contract::Contract::load(repo)?;
+    let report = contract.check(repo);
+    let bad = report.total_violations();
+    if bad == 0 {
+        Ok(format!(
+            "state formats ok ({} format(s))",
+            report.formats.len()
+        ))
     } else {
-        Err(text
-            .lines()
-            .last()
-            .unwrap_or("the harness exited non-zero")
-            .to_string())
+        Err(format!("{bad} format violation(s)"))
     }
 }
 
@@ -200,6 +204,38 @@ pub fn onboard(repo: &Path, lab_env: Option<String>) -> Report {
         }
     };
 
+    // 1b. is the entry point reachable?
+    //
+    // `uor-harness` is the harness's interface now; `python3 scripts/harness/cli.py` is an
+    // implementation behind it. A lab that has not built the binary, or whose shell cannot find it,
+    // has NO harness - and every documented command would fail with "command not found" rather than
+    // a diagnosis. This is the check that turns that into an instruction.
+    match which_uor_harness() {
+        Some(path) => findings.push(Finding::ok(
+            "entry point",
+            format!("uor-harness is on PATH ({})", path.display()),
+        )),
+        None => findings.push(Finding::warn(
+            "entry point",
+            "uor-harness is NOT on PATH, so every documented `uor-harness <cmd>` fails here",
+            "build and expose it: CARGO_TARGET_DIR=local/harness-target cargo build --release \
+             -p uor-r4-harness, then export PATH=\"$PWD/local/harness-target/release:$PATH\"",
+        )),
+    }
+
+    // 1c. is this binary the current one?
+    //
+    // A stale build fails with "unknown option <flag>" for flags newer source accepts, which points
+    // at the symptom and nowhere near the cause. Only a PROVEN-behind build warns; no network, a
+    // shallow clone or an unmerged branch are all normal and say nothing.
+    if let Some(line) = crate::version::stale(repo).line() {
+        findings.push(Finding::warn(
+            "build",
+            line,
+            "rebuild: CARGO_TARGET_DIR=local/harness-target cargo build -p uor-r4-harness",
+        ));
+    }
+
     // 2. the identity
     let lab = lab_env.unwrap_or_default();
     let slug = crate::state::slug(&lab);
@@ -237,7 +273,7 @@ pub fn onboard(repo: &Path, lab_env: Option<String>) -> Report {
                     findings.push(Finding::warn(
                         "claims",
                         "no branch is claimed by anyone right now",
-                        "claim yours before starting: cli.py team claim --branch <name> --lab <lab>",
+                        "claim yours before starting: uor-harness team claim --branch <name> --lab <lab>",
                     ));
                 }
             }
@@ -302,8 +338,8 @@ pub fn onboard(repo: &Path, lab_env: Option<String>) -> Report {
             Ok(line) => findings.push(Finding::ok("harness", line)),
             Err(line) => findings.push(Finding::fail(
                 "harness",
-                format!("`cli.py check` did not pass: {line}"),
-                "run `python3 scripts/harness/cli.py check` for the full list and the fix for each",
+                format!("the format check did not pass: {line}"),
+                "run `uor-harness check` for the full list and the fix for each",
             )),
         }
     }
@@ -311,15 +347,18 @@ pub fn onboard(repo: &Path, lab_env: Option<String>) -> Report {
     let mut next_steps = Vec::new();
     if report_ready(&findings) {
         next_steps.push(
-            "run one real task with the harness: `cli.py brief -m <milestone>` then `cli.py check`"
+            "run one real task with the harness: `uor-harness brief -m <milestone>` then `uor-harness check`"
                 .to_string(),
         );
         next_steps.push(
-            "claim your branch before you start: `cli.py team claim --branch <name> --lab <lab>`"
+            "claim your branch before you start: `uor-harness team claim --branch <name> --lab <lab>`"
                 .to_string(),
         );
         next_steps.push(
-            "check in every 90 minutes: `cli.py heartbeat -m <milestone>`, which also publishes your presence"
+            // FIVE minutes, not ninety. The 90-minute figure was wrong for a whole port: R3 and the
+            // live tier settled on five, and onboard kept telling every new lab the old number.
+            "check in at least every five minutes: `uor-harness heartbeat -m <milestone>`, which also \
+             publishes your live-tier presence"
                 .to_string(),
         );
         next_steps.push(
@@ -365,6 +404,21 @@ pub fn detect_runtime() -> Option<&'static str> {
     }
     if std::env::var_os("KIMI_HOME").is_some() {
         return Some("kimi");
+    }
+    None
+}
+
+/// The `uor-harness` the shell would run, if any.
+///
+/// Walks `PATH` rather than running `which`, because `which` is not guaranteed present and its
+/// absence would be reported as "no entry point" — a false alarm on a machine that has one.
+fn which_uor_harness() -> Option<std::path::PathBuf> {
+    let path = std::env::var_os("PATH")?;
+    for dir in std::env::split_paths(&path) {
+        let candidate = dir.join("uor-harness");
+        if candidate.is_file() {
+            return Some(candidate);
+        }
     }
     None
 }

@@ -31,6 +31,7 @@ pub mod registries;
 pub mod shards;
 pub mod state;
 pub mod status;
+pub mod version;
 
 pub use briefing::{assemble, human_tokens, ContextPack};
 pub use contract::{Contract, FormatSpec, Kind, Shape, Violation};

@@ -39,7 +39,7 @@ const PYTHON_PASSTHROUGH_VALUE_FLAGS: [&str; 1] = ["--only"];
 /// BEFORE flag parsing: an unported command's flags are unknown to this binary, and rejecting one
 /// meant delegation only worked for commands whose flags happened to be in the lists - `check --only`
 /// failed with "unknown option --only" before it could delegate. Which defeats the point.
-const PORTED_COMMANDS: [&str; 14] = [
+const PORTED_COMMANDS: [&str; 15] = [
     "onboard",
     "check-formats",
     "presence",
@@ -48,6 +48,7 @@ const PORTED_COMMANDS: [&str; 14] = [
     "heartbeat",
     "ledger-sync",
     "notes",
+    "version",
     "prep-check",
     "registry",
     "prep-render",
@@ -138,6 +139,8 @@ COMMANDS:
                 Rust side; use --dry-run to see the line without recording it.
     heartbeat   Check in: publish presence and append a receipt, both to the LIVE
                 tier, so a check-in never dirties a working checkout (R10).
+    version     The commit this binary was built from, and whether it is
+                behind origin/main - answers why a flag was rejected.
     notes       Unread notes: comments on the milestone issues this lab has
                 not seen. Refreshes from GitHub by default; --cached skips the
                 network. A marker per lab lives in the live tier (R10-clean).
@@ -252,7 +255,16 @@ fn main() -> ExitCode {
                     return ExitCode::from(2);
                 }
             }
-            other => command = Some(other.to_string()),
+            // The FIRST non-flag word is the command; later ones are its arguments.
+            //
+            // This used to overwrite unconditionally, so a subcommand group lost its head:
+            // `uor-harness multilab touch` set the command to "multilab" and then to "touch", and
+            // delegated a bare `touch` - which Python rejects as `invalid choice: 'touch'`. The group
+            // word is part of the invocation and has to survive to the delegate.
+            other => match command {
+                Some(_) => rest.push(other.to_string()),
+                None => command = Some(other.to_string()),
+            },
         }
         i += 1;
     }
@@ -282,6 +294,7 @@ fn main() -> ExitCode {
         Some("heartbeat") => cmd_heartbeat(&repo, &rest, json),
         Some("ledger-sync") => cmd_ledger_sync(&repo, &rest, json),
         Some("notes") => cmd_notes(&repo, &rest, json),
+        Some("version") => cmd_version(&repo),
         Some("prep-check") => cmd_prep_check(&repo, json),
         Some("registry") => cmd_registry(&repo, json),
         Some("prep-render") => cmd_prep_render(&repo, &rest),
@@ -378,6 +391,34 @@ fn flag_value(args: &[String], name: &str) -> Option<String> {
     None
 }
 
+/// `version` - which commit this binary came from, and whether it is behind `origin/main`.
+///
+/// Exists because the alternative was a lab reading `unknown option --line` and having to guess that
+/// its binary predated the flag. Asking directly is cheaper than diagnosing.
+fn cmd_version(repo: &Path) -> ExitCode {
+    let s = uor_r4_harness::version::stale(repo);
+    println!(
+        "uor-harness built from {} at {}{}",
+        uor_r4_harness::version::short_commit(),
+        uor_r4_harness::version::BUILT_AT,
+        if uor_r4_harness::version::BUILD_DIRTY {
+            " (working tree dirty at build)"
+        } else {
+            ""
+        }
+    );
+    match &s {
+        uor_r4_harness::version::Staleness::Behind { behind, main, .. } => {
+            println!("  BEHIND origin/main ({main}) by {behind} commit(s) - rebuild before trusting a flag error");
+        }
+        uor_r4_harness::version::Staleness::Current { .. } => {
+            println!("  current with origin/main")
+        }
+        uor_r4_harness::version::Staleness::Unknown { why } => println!("  cannot tell: {why}"),
+    }
+    ExitCode::SUCCESS
+}
+
 /// Run an unported command through the Python harness, announcing that it is unported.
 ///
 /// The Rust binary is the entry point; Python is a fallback implementation. A command that is missing
@@ -454,18 +495,29 @@ fn cmd_notes(repo: &Path, args: &[String], json: bool) -> ExitCode {
     let issues = notes::watched_issues(regs.as_ref());
 
     let mut fetched = 0usize;
+    // Whether the read covered everything. A `--cached` call or a failed fetch does not know what it
+    // missed, and the report says "at least" rather than presenting a floor as the truth.
+    let mut exact = true;
     if !args.iter().any(|a| a == "--cached") {
         for issue in &issues {
             match fetch_issue_notes(*issue) {
                 Some(found) => match notes::cache_append(&paths, &lab, &found) {
                     Ok(n) => fetched += n,
-                    Err(e) => eprintln!("uor-harness: notes cache: {e}"),
+                    Err(e) => {
+                        exact = false;
+                        eprintln!("uor-harness: notes cache: {e}");
+                    }
                 },
                 // A fetch failure is reported but NOT fatal: a lab with no network must still be able
                 // to read what it already knows, and a check-in must never be blocked by GitHub.
-                None => eprintln!("uor-harness: could not read #{issue} (no network or no gh)"),
+                None => {
+                    exact = false;
+                    eprintln!("uor-harness: could not read #{issue} (no network or no gh)");
+                }
             }
         }
+    } else {
+        exact = false;
     }
 
     let cached = notes::read_cache(&paths, &lab);
@@ -508,7 +560,7 @@ fn cmd_notes(repo: &Path, args: &[String], json: bool) -> ExitCode {
             rows.join(",\n")
         );
     } else {
-        for line in notes::render(&items) {
+        for line in notes::render(&items, exact) {
             println!("{line}");
         }
         if items.is_empty() {
@@ -530,6 +582,11 @@ fn fetch_issue_notes(issue: i64) -> Option<Vec<notes::Note>> {
     let out = std::process::Command::new("gh")
         .args([
             "api",
+            // `--paginate`, because ONE PAGE IS NOT THE ISSUE. Without it this read only the first
+            // 100 comments, so on #2029 (231 comments) it reported an old note as "latest" and missed
+            // every recent one - the exact failure the command exists to prevent, in the command
+            // itself. Claude reported it after #2029/#2030/#2032 all showed stale "latest" ids.
+            "--paginate",
             &format!("repos/UOR-Foundation/uor-r4/issues/{issue}/comments?per_page=100"),
             "--jq",
             ".[] | [(.id|tostring), .user.login, .created_at, (.body|split(\"\\n\")|.[0])] | @tsv",
@@ -649,6 +706,11 @@ fn cmd_heartbeat(repo: &Path, args: &[String], json: bool) -> ExitCode {
             return ExitCode::from(1);
         }
     };
+    // A stale binary is worth one line at check-in: it is the moment a lab is already reading output,
+    // and a build that predates a flag fails with "unknown option" rather than anything useful.
+    if let Some(line) = uor_r4_harness::version::stale(repo).line() {
+        eprintln!("uor-harness: {line}");
+    }
     // Surface unread notes as part of the check-in: presence without awareness is half the plane.
     // Read from the CACHE, not the network - a check-in must stay instant, and `notes` refreshes.
     if !args.iter().any(|a| a == "--no-notes") {
@@ -656,7 +718,9 @@ fn cmd_heartbeat(repo: &Path, args: &[String], json: bool) -> ExitCode {
         if !cached.is_empty() {
             let markers = notes::Markers::load(&paths, &lab);
             let items = notes::summarise(&markers.unread(&cached));
-            for line in notes::render(&items) {
+            // The heartbeat reads the CACHE, so it cannot know what a failed refresh missed: the
+            // count it prints is a floor and says so.
+            for line in notes::render(&items, false) {
                 eprintln!("{line}");
             }
         }

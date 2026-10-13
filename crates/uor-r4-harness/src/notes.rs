@@ -214,11 +214,11 @@ pub struct Unread {
     pub latest: Note,
 }
 
-/// The most comments one issue read can return, set by GitHub's `per_page` maximum.
+/// The per-page size for a comment read. **Pagination follows it, so this is not a ceiling.**
 ///
-/// **A report showing this many unread is a FLOOR, not a count.** An issue with 400 comments and no
-/// marker reports 100, and a lab reading "100 unread" would think it had seen the whole backlog when
-/// it had seen the most recent page. The renderer says so rather than letting the number stand alone.
+/// It used to be a ceiling: the fetch asked for one page of 100 and stopped, so on #2029 (231
+/// comments) the command reported an old note as "latest" and missed every recent one. `--paginate`
+/// fixed the read; this constant is now only the page size.
 pub const PAGE_LIMIT: usize = 100;
 
 /// Group unread notes by issue, newest first within each.
@@ -246,17 +246,17 @@ pub fn summarise(unread: &[&Note]) -> Vec<Unread> {
 /// One line per issue, because a lab needs to know **where** the unread notes are before it needs to
 /// know what they say. Empty when there is nothing to report — a check-in that always prints
 /// "0 unread" trains the reader to skip the line it exists to deliver.
-pub fn render(items: &[Unread]) -> Vec<String> {
+///
+/// `exact` says whether the read was complete. A paginated fetch is complete and the count is the
+/// truth; a cached read after a failed fetch does not know what it missed, so it says "at least".
+/// Reporting a floor as a fact is worse than reporting it as a floor.
+pub fn render(items: &[Unread], exact: bool) -> Vec<String> {
     items
         .iter()
         .map(|u| {
             format!(
                 "{}{} unread note(s) on #{} (latest: {}, {}, \"{}\")",
-                if u.count >= PAGE_LIMIT {
-                    "at least "
-                } else {
-                    ""
-                },
+                if exact { "" } else { "at least " },
                 u.count,
                 u.issue,
                 u.latest.id,
@@ -515,7 +515,23 @@ mod tests {
     /// skip the line it exists to deliver.
     #[test]
     fn nothing_unread_renders_nothing() {
-        assert!(render(&[]).is_empty());
+        assert!(render(&[], true).is_empty());
+    }
+
+    /// A complete read reports the count as a fact; an incomplete one says "at least". Reporting a
+    /// floor as a fact is worse than reporting it as a floor.
+    #[test]
+    fn an_incomplete_read_says_at_least() {
+        let n = note(5, 2029, "kimi");
+        let items = summarise(&[&n]);
+        assert!(
+            render(&items, true)[0].starts_with("1 unread"),
+            "exact read states the count"
+        );
+        assert!(
+            render(&items, false)[0].starts_with("at least 1"),
+            "a read that does not know what it missed must not present a floor as the truth"
+        );
     }
 
     #[test]
@@ -528,7 +544,7 @@ mod tests {
             first_line: "Claude's CONTEST is answered".into(),
         };
         let items = summarise(&[&n]);
-        let lines = render(&items);
+        let lines = render(&items, true);
         assert_eq!(lines.len(), 1);
         let l = &lines[0];
         assert!(l.contains("1 unread note(s)"), "{l}");

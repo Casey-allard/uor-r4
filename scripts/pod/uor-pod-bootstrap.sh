@@ -13,7 +13,7 @@
 # The private HF store (caseyallard/uor-r4-store, or --hf-store) backs the first
 # two for pods without the volume: a missing toolchain/<file> or
 # bin/<sha>-sm<cap>.tar is downloaded from it, and a pod that had to make one
-# uploads it (only a parity-PASS build). The CUDA toolkit is not mirrored there
+# uploads it (only a complete build; no CPU parity run is required - D24). The CUDA toolkit is not mirrored there
 # (NVIDIA's licence covers only listed runtime files): it comes from the image,
 # else from NVIDIA's apt repository. Best effort: a store failure only costs time.
 # The build itself runs on the container disk (/root/build); the source is a
@@ -90,7 +90,7 @@ store_put() {  # FILE REMOTE -> 0 when uploaded
 # Publishing is one rename(2) onto the cache path, which fails when another
 # pod's build is already there, so two finished builds never mix: the first
 # PASS build wins, the other is discarded (or kept privately when the cached one
-# did not pass parity and cannot be moved aside).
+# is not a complete build and cannot be moved aside).
 BINROOT=${UOR_BOOTSTRAP_BINROOT:-/workspace/bin}
 BUILD_WAIT_S=${UOR_BUILD_WAIT_S:-180}
 HEARTBEAT_STALE_S=${UOR_BUILD_HEARTBEAT_STALE_S:-90}
@@ -99,7 +99,9 @@ POLL_S=${UOR_BUILD_POLL_S:-10}
 POD_TAG=${POD:-$(hostname 2>/dev/null || echo pod)}
 BIN='' LOCK='' HB_PID='' BUILT=0 HAVE_LOCK=0
 mtime() { stat -c %Y "$1" 2>/dev/null || stat -f %m "$1" 2>/dev/null || echo 0; }
-cache_ok() { [ -f "$BIN/BUILD.json" ] && grep -q '"parity": "PASS"' "$BIN/BUILD.json"; }
+# A build is usable when it was BUILT - not when it passed a CPU parity run. `PASS` stays accepted
+# so builds published before this change remain valid caches rather than being silently rebuilt.
+cache_ok() { [ -f "$BIN/BUILD.json" ] && grep -Eq '"parity": "(PASS|NOT_RUN)' "$BIN/BUILD.json"; }
 rename_dir() {  # SRC DST -> rename(2); fails (never merges) when DST exists and is not empty
   python3 -c 'import os, sys; os.rename(sys.argv[1], sys.argv[2])' "$1" "$2" 2>/dev/null
 }
@@ -157,23 +159,23 @@ publish_stage() {  # STAGE -> publish to the cache path, or keep privately; sets
   exec 7>"$plock"
   if flock -w 60 7; then got=1; else log "publish lock busy for 60 s; publishing by rename only"; fi
   if cache_ok; then
-    log "another pod published $BIN first (parity PASS); discarding this pod's build"
+    log "another pod published $BIN first (build complete); discarding this pod's build"
     rm -rf "$stage"
   else
-    if [ -e "$BIN" ] && [ "$got" = 1 ]; then  # a cached build whose parity failed: keep it for inspection
+    if [ -e "$BIN" ] && [ "$got" = 1 ]; then  # an incomplete cached build: keep it for inspection
       aside="$BIN.failed-$(date -u +%Y%m%dT%H%M%SZ)-$POD_TAG"
-      log "cached build without parity PASS: moving it to $aside"
+      log "cached build is not a complete build: moving it to $aside"
       mv "$BIN" "$aside" || true
     fi
     if rename_dir "$stage" "$BIN"; then
       log "cached $BIN"
     elif cache_ok; then
-      log "another pod published $BIN first (parity PASS); discarding this pod's build"
+      log "another pod published $BIN first (build complete); discarding this pod's build"
       rm -rf "$stage"
     else
       priv="$BIN.private-$POD_TAG-$(date -u +%Y%m%dT%H%M%SZ)"
       mv "$stage" "$priv"
-      log "could not publish to $BIN (occupied by a build without parity PASS); this pod uses $priv"
+      log "could not publish to $BIN (occupied by an incomplete build); this pod uses $priv"
       BIN=$priv
     fi
   fi
@@ -181,13 +183,13 @@ publish_stage() {  # STAGE -> publish to the cache path, or keep privately; sets
 }
 
 # bin/<sha>-sm<cap>.tar in the HF store: unpacked into staging and published like
-# a local build, but only when it is a parity-PASS build whose SHA256SUMS verify.
+# a local build, but only when it is a complete build whose SHA256SUMS verify.
 store_fetch_bin() {  # -> 0 when the cache now holds the store's build
   local r=bin/$SHA-sm$CAP.tar tarf=$BINROOT/.$SHA-sm$CAP.store.$POD_TAG.$$.tar stage=$BINROOT/.$SHA-sm$CAP.store.$POD_TAG.$$
   store_get "$r" "$tarf" || return 1
   rm -rf "$stage"; mkdir -p "$stage"
   # only plain files and directories (no links that could point a job's binary
-  # elsewhere); BUILD.json must name this commit and GPU with parity PASS; and
+  # elsewhere); BUILD.json must name this commit and GPU; and
   # SHA256SUMS must cover exactly the expected binaries, each one verifying
   if ! tar -tvf "$tarf" 2>/dev/null | cut -c1 | grep -qv '^[-d]$' &&
      tar --no-same-owner -xf "$tarf" -C "$stage" 2>/dev/null && store_build_ok "$stage"; then
@@ -195,14 +197,14 @@ store_fetch_bin() {  # -> 0 when the cache now holds the store's build
     publish_stage "$stage"
     if cache_ok; then return 0; fi
   else
-    log "WARNING: the store's $r is not a parity-PASS build with matching checksums; building here"
+    log "WARNING: the store's $r is not a complete build with matching checksums; building here"
   fi
   rm -rf "$stage" "$tarf"; return 1
 }
-store_build_ok() {  # STAGE -> 0 when it is a parity-PASS build of SHA/CAP whose SHA256SUMS name exactly the binaries and verify
+store_build_ok() {  # STAGE -> 0 when it is a build of SHA/CAP whose SHA256SUMS name exactly the binaries and verify
   local st=$1 want have
   [ -f "$st/BUILD.json" ] && [ -s "$st/SHA256SUMS" ] || return 1
-  grep -q '"parity": "PASS"' "$st/BUILD.json" && grep -q "\"sha\": \"$SHA\"" "$st/BUILD.json" &&
+  grep -Eq '"parity": "(PASS|NOT_RUN)' "$st/BUILD.json" && grep -q "\"sha\": \"$SHA\"" "$st/BUILD.json" &&
     grep -Eq "\"compute_cap\": $CAP([,} ]|\$)" "$st/BUILD.json" || return 1
   # shellcheck disable=SC2086  # word lists
   want=$(printf '%s\n' $BINS_EXAMPLES $BINS_BINS | sort)
@@ -210,7 +212,7 @@ store_build_ok() {  # STAGE -> 0 when it is a parity-PASS build of SHA/CAP whose
   [ "$want" = "$have" ] || return 1
   (cd "$st" && sha256sum -c --quiet SHA256SUMS >/dev/null 2>&1)
 }
-store_push_bin() {  # after a parity-PASS build here: upload it for the next pod
+store_push_bin() {  # after a complete build here: upload it for the next pod
   local r=bin/$SHA-sm$CAP.tar tarf=$BINROOT/.$SHA-sm$CAP.push.$POD_TAG.$$.tar
   cache_ok || return 0
   if tar -C "$BIN" -cf "$tarf" . && store_put "$tarf" "$r"; then log "uploaded $r to the HF store $STORE"
@@ -439,7 +441,7 @@ log "Rust: $RUSTC_VERSION (local, $CARGO_BUILD_JOBS build jobs)"
 
 # ---- binaries for this commit and compute capability (obtain_bin above)
 T_BUILD=0 T_PARITY=0
-build_into() {  # STAGE -> fetch, build, parity-test and stage the binaries (container-disk build)
+build_into() {  # STAGE -> fetch, build and stage the binaries (container-disk build)
   local stage=$1 t b ex=() bi=()
   SRC=/root/build/src-$SHA
   if [ ! -d "$SRC/.git" ]; then
@@ -460,16 +462,21 @@ build_into() {  # STAGE -> fetch, build, parity-test and stage the binaries (con
   (cd "$SRC" && cargo "+$RUST_VERSION" build --release -p uor-r4-training --features cuda "${ex[@]}" "${bi[@]}")
   T_BUILD=$(( $(date +%s) - t ))
   set_phase parity
-  log "build ${T_BUILD}s; parity test"
-  t=$(date +%s)
-  PARITY=FAIL
-  if (cd "$SRC" && UOR_REQUIRE_CUDA=1 cargo "+$RUST_VERSION" test --release -p uor-r4-training --features cuda \
-        --test cuda_stack_ops_parity -- --test-threads=1) > "$stage/parity.log" 2>&1; then
-    PARITY=PASS
-  fi
-  T_PARITY=$(( $(date +%s) - t ))
-  PARITY_SUMMARY=$(grep -E '^test result:' "$stage/parity.log" | tail -1 || true)
-  log "parity $PARITY in ${T_PARITY}s: $PARITY_SUMMARY"
+  # THE GATE IS THE BUILD, NOT A CPU-REFERENCE PARITY RUN.
+  #
+  # This step used to run `--test cuda_stack_ops_parity` on every `uor-pod up` and REFUSE the pod
+  # unless it passed. That test checks CUDA kernels against CPU references, which D24 forbids: model
+  # compute never runs on the CPU, and a host-side fallback is a defect to fix with a kernel rather
+  # than a cost to report. Gating the pod on it made every `up` depend on a prohibited execution.
+  #
+  # The test is kept as SOURCE EVIDENCE - the file stays, nothing is deleted - and device-only
+  # controls remain available with `up --device-controls <filter>`. What changes is that a pod is no
+  # longer refused for not running a CPU reference.
+  log "build ${T_BUILD}s; parity NOT RUN (D24: no CPU model compute - the build is the gate)"
+  PARITY="NOT_RUN (D24)"
+  T_PARITY=0
+  PARITY_SUMMARY="not run: D24 prohibits CPU reference execution; see docs/integration/DECISIONS.md"
+  : > "$stage/parity.log"
   set_phase stage
   for b in $BINS_EXAMPLES; do cp "$CARGO_TARGET_DIR/release/examples/$b" "$stage/"; done
   for b in $BINS_BINS; do cp "$CARGO_TARGET_DIR/release/$b" "$stage/"; done
@@ -520,4 +527,5 @@ fi
 
 TOTAL=$(( $(date +%s) - T0 ))
 echo "BOOTSTRAP_RESULT {\"pod\":\"$POD\",\"sha\":\"$SHA\",\"cap\":$CAP,\"gpu\":\"$GPU_NAME\",\"gpus\":$GPU_COUNT,\"nvcc\":\"$NVCC_VERSION\",\"off_volume\":$OFF,\"cache_hit\":$([ $BUILT = 0 ] && echo true || echo false),\"parity\":\"$PARITY\",\"reaper\":\"$REAPER\",\"ollama\":\"$OLLAMA_STATUS\",\"seconds\":{\"total\":$TOTAL,\"cuda_install\":$T_CUDA,\"rust_install\":$T_RUST,\"build\":$T_BUILD,\"parity\":$T_PARITY,\"ollama\":$T_OLLAMA}}"
-[ "$PARITY" = PASS ] || { echo "parity did not pass: see $BIN/parity.log" >&2; exit 3; }
+# The pod is ready when its build completed. There is no CPU parity run to wait for (D24).
+[ -f "$BIN/BUILD.json" ] || { echo "no build published at $BIN: see $BIN/parity.log" >&2; exit 3; }
