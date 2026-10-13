@@ -21,7 +21,7 @@ SEVERITIES = ("error", "warn", "info")
 SEVERITY_ORDER = {"error": 0, "warn": 1, "info": 2}
 
 #: feature modules that contribute rules
-RULE_MODULES = ("briefing", "mistakes", "receipts", "prep", "prlint", "status", "budget", "arena", "multilab", "statecheck")
+RULE_MODULES = ("briefing", "mistakes", "receipts", "prep", "prlint", "status", "budget", "arena", "multilab", "statecheck", "doccheck")
 
 
 @dataclass
