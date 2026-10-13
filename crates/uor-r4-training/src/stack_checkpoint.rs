@@ -820,6 +820,7 @@ fn load_memory(
 
 #[cfg(test)]
 mod tests {
+    use crate::geometric_stack::Gate;
     use std::path::PathBuf;
 
     use serde_json::json;
@@ -907,6 +908,7 @@ mod tests {
             pointer: None,
             read_router: None,
             objective: crate::geometric_stack::Objective::Ce,
+            gate: Gate::Swiglu,
         };
         StackModel::new(config, &Device::Cpu).expect("tiny stack")
     }
@@ -1433,6 +1435,7 @@ mod tests {
             pointer: None,
             read_router: None,
             objective: crate::geometric_stack::Objective::Ce,
+            gate: Gate::Swiglu,
         };
         let mut model = StackModel::new(config, &Device::Cpu).expect("stack");
         for (name, snap) in [("free", None), ("snapped", Some(TransportSnap::Icosian))] {

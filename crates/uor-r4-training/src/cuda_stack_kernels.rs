@@ -262,6 +262,63 @@ extern "C" __global__ void swiglu_bwd(
 }
 
 // ---------------------------------------------------------------------------
+// 2b. The Hamilton rotation gate (the owner rule of 2026-10-12, G2 only after
+// the owner's amendment of 2026-10-13): no exponential enters either direction.
+// ---------------------------------------------------------------------------
+// The Hamilton gate, one thread per 4-block: the gate block is a quaternion,
+// unit-normalized (r carries a 1e-12 guard, exactly as the CPU), and the up
+// block is rotated by it. total is the element count, a multiple of 4.
+extern "C" __global__ void hamilton_gate_fwd(
+    const act_t* gate, const act_t* up, act_t* out, uint total
+) {
+    uint block = blockIdx.x * blockDim.x + threadIdx.x;
+    uint i = block * 4;
+    if (i >= total) return;
+    float g0 = act_to_f(gate[i]), g1 = act_to_f(gate[i + 1]);
+    float g2 = act_to_f(gate[i + 2]), g3 = act_to_f(gate[i + 3]);
+    float u0 = act_to_f(up[i]), u1 = act_to_f(up[i + 1]);
+    float u2 = act_to_f(up[i + 2]), u3 = act_to_f(up[i + 3]);
+    float r = sqrtf(g0 * g0 + g1 * g1 + g2 * g2 + g3 * g3 + 1e-12f);
+    float q0 = g0 / r, q1 = g1 / r, q2 = g2 / r, q3 = g3 / r;
+    out[i] = act_from_f(q0 * u0 - q1 * u1 - q2 * u2 - q3 * u3);
+    out[i + 1] = act_from_f(q0 * u1 + q1 * u0 + q2 * u3 - q3 * u2);
+    out[i + 2] = act_from_f(q0 * u2 - q1 * u3 + q2 * u0 + q3 * u1);
+    out[i + 3] = act_from_f(q0 * u3 + q1 * u2 - q2 * u1 + q3 * u0);
+}
+
+// Backward: du = conj(q) * d and dq = d * conj(u) (the Hamilton adjoints),
+// then the normalization Jacobian dg = (dq - q (q . dq)) / r.
+extern "C" __global__ void hamilton_gate_bwd(
+    const act_t* gate, const act_t* up, const act_t* grad,
+    act_t* d_gate, act_t* d_up, uint total
+) {
+    uint block = blockIdx.x * blockDim.x + threadIdx.x;
+    uint i = block * 4;
+    if (i >= total) return;
+    float g0 = act_to_f(gate[i]), g1 = act_to_f(gate[i + 1]);
+    float g2 = act_to_f(gate[i + 2]), g3 = act_to_f(gate[i + 3]);
+    float u0 = act_to_f(up[i]), u1 = act_to_f(up[i + 1]);
+    float u2 = act_to_f(up[i + 2]), u3 = act_to_f(up[i + 3]);
+    float d0 = act_to_f(grad[i]), d1 = act_to_f(grad[i + 1]);
+    float d2 = act_to_f(grad[i + 2]), d3 = act_to_f(grad[i + 3]);
+    float r = sqrtf(g0 * g0 + g1 * g1 + g2 * g2 + g3 * g3 + 1e-12f);
+    float q0 = g0 / r, q1 = g1 / r, q2 = g2 / r, q3 = g3 / r;
+    d_up[i] = act_from_f(q0 * d0 + q1 * d1 + q2 * d2 + q3 * d3);
+    d_up[i + 1] = act_from_f(q0 * d1 - q1 * d0 - q2 * d3 + q3 * d2);
+    d_up[i + 2] = act_from_f(q0 * d2 + q1 * d3 - q2 * d0 - q3 * d1);
+    d_up[i + 3] = act_from_f(q0 * d3 - q1 * d2 + q2 * d1 - q3 * d0);
+    float s0 = d0 * u0 + d1 * u1 + d2 * u2 + d3 * u3;
+    float s1 = -d0 * u1 + d1 * u0 - d2 * u3 + d3 * u2;
+    float s2 = -d0 * u2 + d1 * u3 + d2 * u0 - d3 * u1;
+    float s3 = -d0 * u3 - d1 * u2 + d2 * u1 + d3 * u0;
+    float dot = q0 * s0 + q1 * s1 + q2 * s2 + q3 * s3;
+    d_gate[i] = act_from_f((s0 - q0 * dot) / r);
+    d_gate[i + 1] = act_from_f((s1 - q1 * dot) / r);
+    d_gate[i + 2] = act_from_f((s2 - q2 * dot) / r);
+    d_gate[i + 3] = act_from_f((s3 - q3 * dot) / r);
+}
+
+// ---------------------------------------------------------------------------
 // 3. RMSNorm: f64 statistics as the CPU; one block per row. The input, the
 // output and the gradients are activation storage, the gain and its gradient
 // are f32 parameters, and the statistics are f64 in both builds.

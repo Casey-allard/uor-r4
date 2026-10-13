@@ -234,6 +234,76 @@ pub(super) fn swiglu_bwd(
     ))
 }
 
+pub(super) fn hamilton_gate_fwd(
+    s1: &CudaStorage,
+    l1: &Layout,
+    s2: &CudaStorage,
+    l2: &Layout,
+) -> Forward {
+    if l1.shape() != l2.shape() {
+        candle_core::bail!("Hamilton gate inputs must match");
+    }
+    let (Some(gate), Some(up)) = (bf_input(s1, l1)?, bf_input(s2, l2)?) else {
+        candle_core::bail!("bf16 Hamilton gate needs contiguous bf16 tensors");
+    };
+    let device = &s1.device;
+    let total = l1.shape().elem_count();
+    if total % 4 != 0 {
+        candle_core::bail!("the Hamilton gate rotates 4-blocks");
+    }
+    let out = uninit::<bf16>(device, total)?;
+    launch_bf16(
+        device,
+        "hamilton_gate_fwd",
+        total / 4,
+        &[
+            Arg::B(gate),
+            Arg::B(up),
+            Arg::b(&out),
+            Arg::U32(u32_of(total, "size")?),
+        ],
+    )?;
+    Ok((storage_bf(out, device), l1.shape().clone()))
+}
+
+pub(super) fn hamilton_gate_bwd(
+    device: &CudaDevice,
+    gate: &Tensor,
+    up: &Tensor,
+    grad: &Tensor,
+) -> CResult<(Tensor, Tensor)> {
+    if gate.shape() != up.shape() || grad.shape() != gate.shape() {
+        candle_core::bail!("CUDA Hamilton gate backward inputs must match");
+    }
+    let (g, u, d) = (ready_bf(gate)?, ready_bf(up)?, ready_bf(grad)?);
+    let total = g.elem_count();
+    if total % 4 != 0 {
+        candle_core::bail!("the Hamilton gate rotates 4-blocks");
+    }
+    let (gs, gl) = g.storage_and_layout();
+    let (us, ul) = u.storage_and_layout();
+    let (ds, dl) = d.storage_and_layout();
+    let d_gate = uninit::<bf16>(device, total)?;
+    let d_up = uninit::<bf16>(device, total)?;
+    launch_bf16(
+        device,
+        "hamilton_gate_bwd",
+        total / 4,
+        &[
+            Arg::B(bf_view(&gs, gl)?),
+            Arg::B(bf_view(&us, ul)?),
+            Arg::B(bf_view(&ds, dl)?),
+            Arg::b(&d_gate),
+            Arg::b(&d_up),
+            Arg::U32(u32_of(total, "size")?),
+        ],
+    )?;
+    Ok((
+        tensor_bf(d_gate, device, gate.shape()),
+        tensor_bf(d_up, device, up.shape()),
+    ))
+}
+
 /// Threads per block of the row reductions (a multiple of 32).
 const ROW_THREADS: usize = 256;
 /// Rows per partial sum of the RMSNorm weight gradient.

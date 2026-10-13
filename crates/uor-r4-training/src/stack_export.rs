@@ -260,8 +260,10 @@ fn quantize_matrix_compensated_packed(values: &[f32], rows: usize, cols: usize) 
 /// head with its own selection, a prime route or a token-identity term (the
 /// integer engines keep every source, scored by the learned dot or Lorentz
 /// score), a pointer on the transformer control (its Llama export has no
-/// pointer head), or a flock selection of the reads (compare-and-select, but no
-/// export or engine implements it). A plain pointer on a geometric stack
+/// pointer head), a flock selection of the reads (compare-and-select, but no
+/// export or engine implements it), or a gate other than the historical one
+/// (the engines implement that gate's scalar-sigmoid mix, and no other gate's
+/// serving form exists yet). A plain pointer on a geometric stack
 /// exports ([`export_stack`]) and both integer engines serve its mixture. Every
 /// export path calls this before it writes.
 pub fn check_export_config(config: &StackConfig) -> Result<()> {
@@ -328,6 +330,9 @@ pub fn check_export_config_weighted(config: &StackConfig, weighting: ReadWeighti
         return Err(invalid(
             "the U(1) transport is a float ablation control with no integer export or engine",
         ));
+    }
+    if config.gate != crate::geometric_stack::Gate::Swiglu {
+        return Err(crate::geometric_stack::gate_served_refusal(config.gate));
     }
     Ok(())
 }

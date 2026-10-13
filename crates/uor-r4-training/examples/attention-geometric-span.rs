@@ -8,8 +8,8 @@ use uor_r4_core::report_output;
 use uor_r4_training::geometric_address::GeometricAddressConfig;
 use uor_r4_training::geometric_span::GeometricSpanConfig;
 use uor_r4_training::geometric_stack::{
-    logits_cross_entropy, ReadBinding, ReadBindingTarget, ReadIdentityLatch, ReadScore, StackAdamW,
-    StackArch, StackConfig, StackModel,
+    logits_cross_entropy, Gate, ReadBinding, ReadBindingTarget, ReadIdentityLatch, ReadScore,
+    StackAdamW, StackArch, StackConfig, StackModel,
 };
 use uor_r4_training::{Result, TrainingError};
 fn invalid(s: impl Into<String>) -> TrainingError {
@@ -385,6 +385,7 @@ fn run(
 
                 read_router: None,
                 objective: uor_r4_training::geometric_stack::Objective::Ce,
+                gate: Gate::Swiglu,
             };
             let mut model = StackModel::new(config, &Device::Cpu)?;
             model.set_read_identity_latch(mode)?;

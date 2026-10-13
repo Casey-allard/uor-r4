@@ -2261,6 +2261,7 @@ fn bf16_model_config(seed: u64) -> uor_r4_training::geometric_stack::StackConfig
         pointer: None,
         read_router: None,
         objective: uor_r4_training::geometric_stack::Objective::Ce,
+        gate: uor_r4_training::geometric_stack::Gate::Swiglu,
     }
 }
 
@@ -2441,6 +2442,7 @@ fn test_step7a_read_lineage_parity() -> uor_r4_training::Result<()> {
         pointer: None,
         read_router: None,
         objective: uor_r4_training::geometric_stack::Objective::Ce,
+        gate: Gate::Swiglu,
     };
     let (batch, time) = (2usize, 48usize);
     let ids: Vec<u32> = (0..batch * time)
@@ -3187,5 +3189,192 @@ fn test_margin_objective_parity() -> uor_r4_training::Result<()> {
         }
     }
     std::fs::remove_dir_all(&dir)?;
+    Ok(())
+}
+
+/// The Hamilton gate: the same f32 tensors give the same forward (the rotation
+/// of every 4-block) and the same input gradients on the CPU and on CUDA.
+#[cfg(feature = "cuda")]
+#[test]
+fn test_hamilton_gate_parity() -> uor_r4_training::Result<()> {
+    let cuda_dev = match candle_core::Device::new_cuda(0) {
+        Ok(dev) => dev,
+        Err(e) => return no_device(e),
+    };
+    let cpu_dev = candle_core::Device::Cpu;
+
+    // 512 is whole 4-blocks; the gate's own quaternions are far from the
+    // norm's singularity.
+    let len = 512;
+    let gate_data: Vec<f32> = (0..len)
+        .map(|i| (i as f32 * 0.017 - 1.5).sin() + 0.3)
+        .collect();
+    let up_data: Vec<f32> = (0..len).map(|i| (i as f32 * 0.03 + 0.5).cos()).collect();
+    let grad_data: Vec<f32> = (0..len).map(|i| (i as f32 * 0.01).cos()).collect();
+
+    let mut forwards = Vec::new();
+    let mut backwards = Vec::new();
+    for device in [&cpu_dev, &cuda_dev] {
+        let g = candle_core::Var::from_tensor(&candle_core::Tensor::from_vec(
+            gate_data.clone(),
+            (1, len),
+            device,
+        )?)?;
+        let u = candle_core::Var::from_tensor(&candle_core::Tensor::from_vec(
+            up_data.clone(),
+            (1, len),
+            device,
+        )?)?;
+        let out = uor_r4_training::geometric_stack::hamilton_gate(g.as_tensor(), u.as_tensor())?;
+        let weights = candle_core::Tensor::from_vec(grad_data.clone(), (1, len), device)?;
+        let grads = out.mul(&weights)?.sum_all()?.backward()?;
+        let d_gate = grads
+            .get(g.as_tensor())
+            .expect("Hamilton d_gate")
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        let d_up = grads
+            .get(u.as_tensor())
+            .expect("Hamilton d_up")
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        forwards.push(values(&out)?);
+        backwards.push((d_gate, d_up));
+    }
+    compare(&forwards[0], &forwards[1], 1e-4, "hamilton_gate forward");
+    compare(
+        &backwards[0].0,
+        &backwards[1].0,
+        1e-4,
+        "hamilton_gate d_gate",
+    );
+    compare(&backwards[0].1, &backwards[1].1, 1e-4, "hamilton_gate d_up");
+    Ok(())
+}
+
+/// The Hamilton gate through the model's dispatch: the same saved model gives
+/// the same weighted loss and the same gradients on the CPU and on CUDA, so the
+/// MLP's gate reaches the kernels and computes the same model.
+#[cfg(feature = "cuda")]
+#[test]
+fn test_hamilton_gate_model_parity() -> uor_r4_training::Result<()> {
+    use uor_r4_training::geometric_stack::{Gate, StackModel};
+
+    let cuda = match candle_core::Device::new_cuda(0) {
+        Ok(dev) => dev,
+        Err(e) => return no_device(e),
+    };
+    let cpu = candle_core::Device::Cpu;
+    let (batch, time) = (2usize, 48usize);
+    let ids: Vec<u32> = (0..batch * time)
+        .map(|i| ((i * 31 + 7) % 97) as u32)
+        .collect();
+    let targets: Vec<u32> = (0..batch * time)
+        .map(|i| ((i * 17 + 3) % 97) as u32)
+        .collect();
+    let weights: Vec<f32> = (0..batch * time)
+        .map(|i| {
+            if i % 5 == 0 {
+                0.0
+            } else {
+                0.5 + (i % 7) as f32 * 0.25
+            }
+        })
+        .collect();
+    let dir = std::env::temp_dir().join(format!("cuda-gate-parity-{}", std::process::id()));
+    for gate in [Gate::Hamilton] {
+        let mut config = crate::bf16_model_config(5);
+        config.vocab_size = 97;
+        config.context = 48;
+        config.pattern = "rrrr".into();
+        config.read_router = None;
+        config.gate = gate;
+        StackModel::new(config.clone(), &cpu)?.save(&dir)?;
+        let mut runs = Vec::new();
+        for device in [&cpu, &cuda] {
+            let model = StackModel::load(&dir, device)?;
+            assert_eq!(model.config.gate, gate);
+            let loss = model.weighted_loss(&ids, &targets, &weights, batch, time)?;
+            let grads = loss.backward()?;
+            let mut variable_grads = Vec::new();
+            for (name, var) in model.variables() {
+                let mlp = name.ends_with("mlp.gate.weight")
+                    || name.ends_with("mlp.up.weight")
+                    || name.ends_with("mlp.down.weight");
+                if name.starts_with("embedding.") || name.starts_with("head.") || mlp {
+                    let grad = grads.get(var.as_tensor()).expect("gate gradient");
+                    variable_grads.push((name.clone(), values(grad)?));
+                }
+            }
+            runs.push((values(&loss)?, variable_grads));
+        }
+        compare(
+            &runs[0].0,
+            &runs[1].0,
+            1e-4,
+            &format!("{} model loss", gate.name()),
+        );
+        assert_eq!(runs[0].1.len(), runs[1].1.len());
+        assert!(runs[0].1.len() > 8, "the MLP maps are compared too");
+        for ((n0, g0), (n1, g1)) in runs[0].1.iter().zip(&runs[1].1) {
+            assert_eq!(n0, n1);
+            compare(g0, g1, 1e-3, &format!("{} model grad {n0}", gate.name()));
+        }
+    }
+    std::fs::remove_dir_all(&dir)?;
+    Ok(())
+}
+
+/// The Hamilton gate under `precision=bf16`: each gate's bf16 trunk against its
+/// own f32 trunk on the same window (the historical gate included as the
+/// control), so the MLP's gate reaches the bf16 kernels instead of falling over
+/// the f32 wrapper.
+#[cfg(feature = "cuda")]
+#[test]
+fn test_bf16_hamilton_gate_model_parity() -> uor_r4_training::Result<()> {
+    use uor_r4_training::geometric_stack::{Gate, Precision, StackModel};
+
+    let cuda = match candle_core::Device::new_cuda(0) {
+        Ok(dev) => dev,
+        Err(e) => return no_device(e),
+    };
+    let (batch, time) = (2usize, 16usize);
+    for gate in [Gate::Swiglu, Gate::Hamilton] {
+        let mut config = crate::bf16_model_config(11);
+        config.gate = gate;
+        let vocabulary = config.vocab_size as u32;
+        let mut rng = crate::Bf16Rng(99);
+        let (ids, targets) = rng.batch(batch, time, vocabulary);
+        let mut model = StackModel::new(config, &cuda)?;
+        let f32_logits = model.forward(&ids, batch, time)?;
+        let f32_loss = model
+            .loss(&ids, &targets, batch, time)?
+            .to_scalar::<f32>()?;
+        model.set_precision(Precision::Bf16);
+        let bf16_logits = model.forward(&ids, batch, time)?;
+        let bf16_loss = model
+            .loss(&ids, &targets, batch, time)?
+            .to_scalar::<f32>()?;
+        let worst = assert_bf16_close(
+            &f32_logits.flatten_all()?.to_vec1::<f32>()?,
+            &bf16_logits
+                .to_dtype(candle_core::DType::F32)?
+                .flatten_all()?
+                .to_vec1::<f32>()?,
+            5e-2,
+            2e-2,
+            &format!("StackModel {} logits bf16", gate.name()),
+        );
+        let loss_diff = (f32_loss - bf16_loss).abs();
+        assert!(
+            loss_diff <= 5e-2 + 2e-2 * f32_loss.abs(),
+            "{}: bf16 model loss differs by {loss_diff} (f32 {f32_loss}, bf16 {bf16_loss})",
+            gate.name()
+        );
+        println!(
+            "{}: bf16 StackModel logits max |diff| {worst:e}; loss f32 {f32_loss} bf16 {bf16_loss}",
+            gate.name()
+        );
+    }
     Ok(())
 }

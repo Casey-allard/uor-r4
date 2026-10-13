@@ -132,9 +132,11 @@ widening canonical or integer loaders.
 
 `geometric_stack` is a multi-layer native model trained a whole window at a
 time: quaternion-transport recurrences and Lorentz or Dot reads with NoRead and
-age terms, each followed by a SwiGLU MLP, beside a transformer control with
-#1017's shape. Its recurrence core, read, RMSNorm, SwiGLU and cross-entropy are
-fused ops with exact backward passes; `StackAdamW` resumes exactly.
+age terms, each followed by a gated MLP (the historical SwiGLU by default;
+`gate=hamilton` selects the exponential-free rotation gate), beside a transformer
+control with #1017's shape. Its recurrence core, read, RMSNorm, the gate and
+cross-entropy are fused ops with exact backward passes; `StackAdamW` resumes
+exactly.
 `stack_export` writes D10 integer artifacts (4-bit table weight maps, optionally
 GPTQ-calibrated) for `uor_r4_lut::stack`, and renames the control for the Llama
 exporter. `stack_dialogue` reads the prepared literal-role dialogue corpus into

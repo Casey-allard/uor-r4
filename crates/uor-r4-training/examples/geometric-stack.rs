@@ -287,6 +287,18 @@
 //! pointer (`pointer=` other than `none`) and carries a CUDA f32 kernel
 //! (Metal is refused for now). The saved `config.json` records the objective,
 //! every load restores it, and the report's config carries it.
+//! `gate=swiglu|hamilton` (`train` and `dialogue-train`) sets the MLP's gate
+//! (`StackConfig::gate`): `swiglu` is the historical gate built on a scalar
+//! sigmoid (existing artifacts only); `hamilton` reads each 4-lane gate block
+//! as a quaternion, unit-normalizes it and rotates the up block by it
+//! (`mlp_hidden` must then be divisible by 4). No exponential of any kind
+//! enters the Hamilton gate's forward or gradient, and the owner's amendment
+//! of 2026-10-13 (`#issuecomment-6135511346`) withdrew the rectified-square
+//! arm, so `hamilton` is the only geometric gate. A gate other than `swiglu`
+//! refuses `qat=true` and the export path (the integer engines implement the
+//! historical gate only; the Hamilton gate's serving form is a later rung).
+//! The saved `config.json` records the gate, every load restores it, and the
+//! report's config carries it.
 //! `quaternion_weights=none|all` (`train`) makes every learned projection map
 //! of a geometric stack quaternion-valued (`StackModel::set_quaternion_weights`):
 //! each 4x4 block of `rec.in/gate/out`, `read.query/key/value/out` and
@@ -356,12 +368,12 @@ use uor_r4_training::dialogue_development;
 use uor_r4_training::dialogue_episodes::{EpisodeIndex, PrefixPolicy, EPISODE_CONTEXT};
 use uor_r4_training::flock::FlockSelect;
 use uor_r4_training::geometric_stack::{
-    average_replica_gradients, logits_cross_entropy, parse_flock_select, parse_pointer_route,
-    parse_pointer_select, quaternion_served_refusal, ActivationSnap, D11Interim, MapCodec,
-    Objective, PointerConfig, PointerIdentity, PointerSelect, Precision, PrimeRoute,
-    QuaternionSnap, QuaternionWeights, ReadLineage, ReadScore, ReadWeighting, RotationGroup,
-    ServedStatistics, StackAdamW, StackArch, StackConfig, StackModel, TransportSnap,
-    TransportUsage,
+    average_replica_gradients, gate_served_refusal, logits_cross_entropy, parse_flock_select,
+    parse_pointer_route, parse_pointer_select, quaternion_served_refusal, ActivationSnap,
+    D11Interim, Gate, MapCodec, Objective, PointerConfig, PointerIdentity, PointerSelect,
+    Precision, PrimeRoute, QuaternionSnap, QuaternionWeights, ReadLineage, ReadScore,
+    ReadWeighting, RotationGroup, ServedStatistics, StackAdamW, StackArch, StackConfig, StackModel,
+    TransportSnap, TransportUsage,
 };
 use uor_r4_training::lut_export::export_llama;
 use uor_r4_training::stack_address::{RouteConfig, RouteNull};
@@ -1103,6 +1115,9 @@ fn check_qat_config(config: &StackConfig) -> Result<()> {
             uor_r4_lut::GROUP
         )));
     }
+    if config.gate != Gate::Swiglu {
+        return Err(gate_served_refusal(config.gate));
+    }
     Ok(())
 }
 
@@ -1621,6 +1636,22 @@ fn stack_config(args: &Args, vocab: Option<usize>) -> Result<StackConfig> {
         Some(other) => {
             return Err(invalid(format!(
                 "invalid objective={other} (ce, hinge or hinge8)"
+            )))
+        }
+    };
+    // The MLP's gate (the owner rule of 2026-10-12, D23's mechanism side, and
+    // the owner's amendment of 2026-10-13): `swiglu` is the historical
+    // exponential-family gate over a scalar sigmoid (existing artifacts only);
+    // `hamilton` rotates each 4-lane up block by the unit quaternion its gate
+    // block names. The rectified-square arm is withdrawn, so `hamilton` is the
+    // only geometric gate; it has no served form yet, so `qat=true` and the
+    // export path refuse it.
+    config.gate = match args.optional("gate").as_deref() {
+        None | Some("swiglu") => Gate::Swiglu,
+        Some("hamilton") => Gate::Hamilton,
+        Some(other) => {
+            return Err(invalid(format!(
+                "invalid gate={other} (swiglu or hamilton)"
             )))
         }
     };
@@ -5079,6 +5110,7 @@ fn dialogue_train_mode(arguments: &[String]) -> Result<()> {
             "read_weighting",
             "read_lineage",
             "objective",
+            "gate",
             "select",
             "pointer",
             "pointer_score",
@@ -6766,6 +6798,7 @@ fn main() -> Result<()> {
                     "select",
                     "read_weighting",
                     "objective",
+                    "gate",
                     "quaternion_weights",
                     "quaternion_snap",
                     "activation_snap",

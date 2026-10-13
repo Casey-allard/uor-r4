@@ -648,6 +648,7 @@ fn same_action(a: &CompiledAction, b: &CompiledAction) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::geometric_stack::Gate;
     use candle_core::Device;
     use std::fs;
     use std::path::{Path, PathBuf};
@@ -1035,6 +1036,7 @@ mod tests {
                 pointer: Some(PointerConfig::new(4)),
                 read_router: None,
                 objective: crate::geometric_stack::Objective::Ce,
+                gate: Gate::Swiglu,
             },
             &Device::Cpu,
         )

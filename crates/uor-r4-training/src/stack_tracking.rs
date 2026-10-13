@@ -2037,6 +2037,7 @@ pub fn context_transport_witness(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::geometric_stack::Gate;
 
     #[test]
     fn a5_task_has_sixty_paired_classes_and_a_generating_triple() -> Result<()> {
@@ -2134,6 +2135,7 @@ mod tests {
             pointer: None,
             read_router: None,
             objective: crate::geometric_stack::Objective::Ce,
+            gate: Gate::Swiglu,
         };
         let tracked = TrackedStack::new(config, None, &task, 5, &device)?;
         let ids: Vec<u32> = (0..16).map(|i| (i * 257 % 4099) as u32).collect();
@@ -2235,6 +2237,7 @@ mod tests {
             pointer: None,
             read_router: None,
             objective: crate::geometric_stack::Objective::Ce,
+            gate: Gate::Swiglu,
         };
         let tracked = TrackedStack::new(config, None, &task, 7, &device)?.with_context_lanes(
             LaneKind::ReflectionPair,

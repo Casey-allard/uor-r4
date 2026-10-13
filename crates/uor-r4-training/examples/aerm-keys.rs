@@ -2708,7 +2708,7 @@ mod tests {
     use std::cell::RefCell;
     use std::collections::{BTreeSet, HashMap};
 
-    use uor_r4_training::geometric_stack::{ReadScore, StackArch, StackConfig};
+    use uor_r4_training::geometric_stack::{Gate, ReadScore, StackArch, StackConfig};
 
     use super::*;
 
@@ -2763,6 +2763,7 @@ mod tests {
 
             read_router: None,
             objective: uor_r4_training::geometric_stack::Objective::Ce,
+            gate: Gate::Swiglu,
         };
         config.validate()?;
         StackModel::new(config, &Device::Cpu)

@@ -623,6 +623,7 @@ mod tests {
     use crate::geometric_potential_native::{CompiledGeometricPotentials, PotentialSourceBinding};
     use crate::geometric_span::GeometricSpanConfig;
     use crate::geometric_span_native::{CompiledSpanActions, SpanSourceBinding};
+    use crate::geometric_stack::Gate;
     use crate::geometric_stack::{
         ReadIdentityLatch, ReadScore, StackArch, StackConfig, StackModel,
     };
@@ -766,6 +767,7 @@ mod tests {
             pointer: None,
             read_router: None,
             objective: crate::geometric_stack::Objective::Ce,
+            gate: Gate::Swiglu,
         };
         let mut model = StackModel::new(config, &Device::Cpu)?;
         model.set_read_identity_latch(ReadIdentityLatch::Held)?;

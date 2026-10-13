@@ -1398,6 +1398,42 @@ impl Objective {
     }
 }
 
+/// The MLP's gate (the owner's amendment of 2026-10-13,
+/// `#issuecomment-6135511346`: geometry only — the rectified-square arm G1 is
+/// withdrawn, with no non-geometric fallback). `Swiglu` is the historical gate
+/// (`silu(g) · u` — a scalar sigmoid), kept so existing artifacts load and
+/// reproduce exactly as they did; it is prohibited for new runs. `Hamilton`
+/// reads the gate projection as one quaternion per 4-block, unit-normalizes it
+/// and *rotates* the up-projection by it (`q(g) ⊗ u`): the gate is a rotation
+/// of the value, not a squash.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Gate {
+    /// `silu(g) · u` (implicit sigmoid; prohibited for new runs and retained
+    /// so existing artifacts load and reproduce).
+    #[default]
+    Swiglu,
+    /// `(g / |g|) ⊗ u` per 4-block — a rotation gate with no exponential of
+    /// any kind; the hidden width must be divisible by 4.
+    Hamilton,
+}
+
+impl Gate {
+    /// The gate's own name, for reports, flags and validation errors.
+    pub fn name(self) -> &'static str {
+        match self {
+            Gate::Swiglu => "swiglu",
+            Gate::Hamilton => "hamilton",
+        }
+    }
+
+    /// [`Gate::Swiglu`], the serialization default (a `Swiglu` configuration
+    /// writes no field, so older configs stay byte-identical).
+    pub fn is_swiglu(&self) -> bool {
+        matches!(self, Gate::Swiglu)
+    }
+}
+
 /// The CUDA kernels that run the recurrence core (a training-speed choice;
 /// both compute the same values, bit for bit).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -2554,6 +2590,11 @@ pub struct StackConfig {
     /// writes the field.
     #[serde(default, skip_serializing_if = "Objective::is_ce")]
     pub objective: Objective,
+    /// The MLP's gate ([`Gate`]): absent from configurations saved before the
+    /// control existed, which keep the historical SwiGLU exactly as before;
+    /// only an exponential-free gate writes the field.
+    #[serde(default, skip_serializing_if = "Gate::is_swiglu")]
+    pub gate: Gate,
 }
 
 impl StackConfig {
@@ -2576,6 +2617,7 @@ impl StackConfig {
             pointer: None,
             read_router: None,
             objective: Objective::Ce,
+            gate: Gate::Swiglu,
         }
     }
 
@@ -2616,6 +2658,7 @@ impl StackConfig {
             pointer: None,
             read_router: None,
             objective: Objective::Ce,
+            gate: Gate::Swiglu,
         };
         config.validate()?;
         Ok(config)
@@ -2738,6 +2781,11 @@ impl StackConfig {
                     ));
                 }
             }
+        }
+        if self.gate == Gate::Hamilton && self.mlp_hidden % 4 != 0 {
+            return Err(invalid(
+                "the Hamilton gate rotates 4-blocks: mlp_hidden must be divisible by 4",
+            ));
         }
         Ok(())
     }
@@ -3103,6 +3151,19 @@ fn quaternion_shapes(shapes: BTreeMap<String, Vec<usize>>) -> Result<BTreeMap<St
 /// `quaternion_weights=all` with `export`, D11, `qat=true` or `transport_snap`.
 pub fn quaternion_served_refusal() -> crate::TrainingError {
     invalid("quaternion weights have no served form yet")
+}
+
+/// A [`Gate`] other than the historical one with `export`, D11 or `qat=true`:
+/// the integer engines implement the historical gate's scalar-sigmoid mix and
+/// nothing else yet, so their forward would not compute the model that was
+/// trained. The new gates' serving form is a later rung.
+pub fn gate_served_refusal(gate: Gate) -> crate::TrainingError {
+    invalid(format!(
+        "the {} gate has no served form yet: the integer engines implement the historical \
+         exponential-family gate only, so export, D11 and qat=true refuse it (train it in float \
+         with gate=swiglu, or keep this gate for float training)",
+        gate.name()
+    ))
 }
 
 fn pointer_served_refusal() -> crate::TrainingError {
@@ -3931,7 +3992,16 @@ impl StackModel {
         }
         let gate = self.linear(&u, p.layer(layer, "mlp.gate.weight")?)?;
         let up = self.linear(&u, p.layer(layer, "mlp.up.weight")?)?;
-        let mixed = gate.contiguous()?.apply_op2(&up.contiguous()?, SwiGlu)?;
+        // The gate map is applied as the op itself, not through the public
+        // `hamilton_gate` wrapper: that keeps the f32 contract of [`swiglu`],
+        // while the trunk's activations are its own dtype (`precision=bf16`
+        // included), exactly as the historical gate runs.
+        let mixed = match self.config.gate {
+            Gate::Swiglu => gate.contiguous()?.apply_op2(&up.contiguous()?, SwiGlu)?,
+            Gate::Hamilton => gate
+                .contiguous()?
+                .apply_op2(&up.contiguous()?, HamiltonGate)?,
+        };
         tap(capture, StackSite::Down(layer), || Ok(mixed.clone()))?;
         self.linear(&mixed, p.layer(layer, "mlp.down.weight")?)
     }
@@ -13378,6 +13448,9 @@ impl StackModel {
             Some(_) if self.quaternion_weights != QuaternionWeights::None => {
                 return Err(quaternion_served_refusal());
             }
+            Some(_) if self.config.gate != Gate::Swiglu => {
+                return Err(gate_served_refusal(self.config.gate));
+            }
             Some(codec) => {
                 let plan = served_plan(&self.config)?;
                 self.check_served_plan(&plan)?;
@@ -17826,6 +17899,161 @@ pub fn swiglu(gate: &Tensor, up: &Tensor) -> Result<Tensor> {
 }
 
 // ---------------------------------------------------------------------------
+// The Hamilton rotation gate (the owner rule of 2026-10-12 and the amendment of
+// 2026-10-13: geometry only, G2 is the only gate arm): `(g / |g|) ⊗ u` per
+// 4-block. No exponential of any kind enters either direction. Metal is refused
+// for now (the margin objective's documented-gap pattern).
+
+/// The Hamilton product of two 4-vectors.
+#[inline]
+fn hamilton_product(a: [f32; 4], b: [f32; 4]) -> [f32; 4] {
+    [
+        a[0] * b[0] - a[1] * b[1] - a[2] * b[2] - a[3] * b[3],
+        a[0] * b[1] + a[1] * b[0] + a[2] * b[3] - a[3] * b[2],
+        a[0] * b[2] - a[1] * b[3] + a[2] * b[0] + a[3] * b[1],
+        a[0] * b[3] + a[1] * b[2] - a[2] * b[1] + a[3] * b[0],
+    ]
+}
+
+/// `(gate / |gate|) ⊗ up` per 4-block: the gate block is a quaternion,
+/// unit-normalized (the norm carries a 1e-12 guard, exactly as the CUDA
+/// kernel), and the up block is rotated by it.
+struct HamiltonGate;
+
+impl CustomOp2 for HamiltonGate {
+    fn name(&self) -> &'static str {
+        "geometric-stack-hamilton-gate"
+    }
+
+    fn cpu_fwd(
+        &self,
+        s1: &CpuStorage,
+        l1: &Layout,
+        s2: &CpuStorage,
+        l2: &Layout,
+    ) -> candle_core::Result<(CpuStorage, Shape)> {
+        let (gate, up) = (contiguous(s1, l1)?, contiguous(s2, l2)?);
+        if l1.shape() != l2.shape() {
+            candle_core::bail!("Hamilton gate inputs must match");
+        }
+        if gate.len() % 4 != 0 {
+            candle_core::bail!("the Hamilton gate rotates 4-blocks");
+        }
+        let mut out = vec![0f32; gate.len()];
+        out.par_chunks_mut(4096)
+            .zip(gate.par_chunks(4096).zip(up.par_chunks(4096)))
+            .for_each(|(out, (gate, up))| {
+                for i in (0..gate.len()).step_by(4) {
+                    let g = [gate[i], gate[i + 1], gate[i + 2], gate[i + 3]];
+                    let r = (g[0] * g[0] + g[1] * g[1] + g[2] * g[2] + g[3] * g[3] + 1e-12).sqrt();
+                    let q = [g[0] / r, g[1] / r, g[2] / r, g[3] / r];
+                    let o = hamilton_product(q, [up[i], up[i + 1], up[i + 2], up[i + 3]]);
+                    out[i..i + 4].copy_from_slice(&o);
+                }
+            });
+        Ok((CpuStorage::F32(out), l1.shape().clone()))
+    }
+
+    #[cfg(feature = "metal")]
+    fn metal_fwd(
+        &self,
+        _s1: &MetalStorage,
+        _l1: &Layout,
+        _s2: &MetalStorage,
+        _l2: &Layout,
+    ) -> candle_core::Result<(MetalStorage, Shape)> {
+        candle_core::bail!("the Hamilton gate has no Metal kernel yet")
+    }
+
+    #[cfg(feature = "cuda")]
+    fn cuda_fwd(
+        &self,
+        s1: &CudaStorage,
+        l1: &Layout,
+        s2: &CudaStorage,
+        l2: &Layout,
+    ) -> candle_core::Result<(CudaStorage, Shape)> {
+        cuda_ops::hamilton_gate_fwd(s1, l1, s2, l2)
+    }
+
+    fn bwd(
+        &self,
+        gate: &Tensor,
+        up: &Tensor,
+        _out: &Tensor,
+        grad: &Tensor,
+    ) -> candle_core::Result<(Option<Tensor>, Option<Tensor>)> {
+        #[cfg(feature = "cuda")]
+        if let Device::Cuda(device) = gate.device() {
+            let (first, second) = cuda_ops::hamilton_gate_bwd(device, gate, up, grad)?;
+            return Ok((Some(first), Some(second)));
+        }
+        #[cfg(feature = "metal")]
+        if gate.device().is_metal() {
+            candle_core::bail!("the Hamilton gate has no Metal kernel yet");
+        }
+        let gs = gate.flatten_all()?.to_vec1::<f32>()?;
+        let us = up.flatten_all()?.to_vec1::<f32>()?;
+        let ds = grad.flatten_all()?.to_vec1::<f32>()?;
+        let mut d_gate = vec![0f32; gs.len()];
+        let mut d_up = vec![0f32; gs.len()];
+        d_gate
+            .par_chunks_mut(4096)
+            .zip(d_up.par_chunks_mut(4096))
+            .zip(
+                gs.par_chunks(4096)
+                    .zip(us.par_chunks(4096))
+                    .zip(ds.par_chunks(4096)),
+            )
+            .for_each(|((d_gate, d_up), ((g, u), d))| {
+                for i in (0..g.len()).step_by(4) {
+                    let gv = [g[i], g[i + 1], g[i + 2], g[i + 3]];
+                    let uv = [u[i], u[i + 1], u[i + 2], u[i + 3]];
+                    let dv = [d[i], d[i + 1], d[i + 2], d[i + 3]];
+                    let r = (gv[0] * gv[0] + gv[1] * gv[1] + gv[2] * gv[2] + gv[3] * gv[3] + 1e-12)
+                        .sqrt();
+                    let q = [gv[0] / r, gv[1] / r, gv[2] / r, gv[3] / r];
+                    // du = conj(q) ⊗ d (the Hamilton adjoint of left-multiplication).
+                    let conj_q = [q[0], -q[1], -q[2], -q[3]];
+                    let du = hamilton_product(conj_q, dv);
+                    // dq = d ⊗ conj(u) (the adjoint of right-multiplication by u).
+                    let conj_u = [uv[0], -uv[1], -uv[2], -uv[3]];
+                    let s = hamilton_product(dv, conj_u);
+                    // The normalization's Jacobian: dg = (dq − q (q · dq)) / r.
+                    let dot = q[0] * s[0] + q[1] * s[1] + q[2] * s[2] + q[3] * s[3];
+                    for j in 0..4 {
+                        d_gate[i + j] = (s[j] - q[j] * dot) / r;
+                        d_up[i + j] = du[j];
+                    }
+                }
+            });
+        Ok((
+            Some(Tensor::from_vec(d_gate, gate.shape(), gate.device())?),
+            Some(Tensor::from_vec(d_up, up.shape(), up.device())?),
+        ))
+    }
+}
+
+/// Fused Hamilton gate: `(gate / |gate|) ⊗ up` per 4-block.
+pub fn hamilton_gate(gate: &Tensor, up: &Tensor) -> Result<Tensor> {
+    if gate.dtype() != DType::F32 || up.dtype() != DType::F32 {
+        return Err(invalid("hamilton_gate requires F32 tensors"));
+    }
+    if gate.shape() != up.shape() {
+        return Err(invalid("hamilton_gate gate and up shapes must match"));
+    }
+    if gate.elem_count() == 0 {
+        return Err(invalid("hamilton_gate inputs must not be empty"));
+    }
+    if gate.elem_count() % 4 != 0 {
+        return Err(invalid("hamilton_gate rotates 4-blocks"));
+    }
+    Ok(gate
+        .contiguous()?
+        .apply_op2(&up.contiguous()?, HamiltonGate)?)
+}
+
+// ---------------------------------------------------------------------------
 // Fused cross-entropy.
 
 /// Mean next-token cross-entropy of [rows, vocabulary] logits, parallel over rows.
@@ -19827,6 +20055,7 @@ mod tests {
             pointer: None,
             read_router: None,
             objective: Objective::Ce,
+            gate: Gate::Swiglu,
         };
         let model = StackModel::new(config, &Device::Cpu)?;
         let ids = vec![1, 2, 3, 4];
@@ -19874,6 +20103,7 @@ mod tests {
             pointer: None,
             read_router: None,
             objective: Objective::Ce,
+            gate: Gate::Swiglu,
         };
         let model = StackModel::new(config, &Device::Cpu)?;
         let ids = vec![1, 2];
@@ -20929,12 +21159,18 @@ mod tests {
         let config = tiny(StackArch::Geometric, "rra", ReadScore::Lorentz, true);
         let saved = serde_json::to_string(&config).map_err(|e| invalid(e.to_string()))?;
         assert!(!saved.contains("rotation_group"), "{saved}");
+        assert!(!saved.contains("gate"), "{saved}");
         // A config.json as written before this field existed.
         let legacy = r#"{"arch":"geometric","vocab_size":37,"width":16,"heads":2,"mlp_hidden":24,"context":12,"pattern":"rra","read":"lorentz","rotation":true,"seed":5}"#;
         let loaded: StackConfig =
             serde_json::from_str(legacy).map_err(|e| invalid(e.to_string()))?;
         assert_eq!(loaded, config);
         assert_eq!(loaded.rotation_group, RotationGroup::Quaternion);
+        assert_eq!(
+            loaded.gate,
+            Gate::Swiglu,
+            "a config.json without the field keeps the historical gate"
+        );
         assert_eq!(
             serde_json::to_string(&loaded).map_err(|e| invalid(e.to_string()))?,
             legacy
@@ -20959,8 +21195,10 @@ mod tests {
         let mut control = config;
         control.read = ReadScore::L2;
         control.rotation_group = RotationGroup::U1;
+        control.gate = Gate::Hamilton;
         let text = serde_json::to_string(&control).map_err(|e| invalid(e.to_string()))?;
         assert!(text.contains(r#""read":"l2""#) && text.contains(r#""rotation_group":"u1""#));
+        assert!(text.contains(r#""gate":"hamilton""#), "{text}");
         let back: StackConfig = serde_json::from_str(&text).map_err(|e| invalid(e.to_string()))?;
         assert_eq!(back, control);
         Ok(())
@@ -21109,6 +21347,7 @@ mod tests {
             pointer: None,
             read_router: None,
             objective: Objective::Ce,
+            gate: Gate::Swiglu,
         }
     }
 
@@ -21215,6 +21454,223 @@ mod tests {
             config.validate().is_err(),
             "a margin objective refuses a pointer head for now"
         );
+        Ok(())
+    }
+
+    /// The Hamilton gate on one 4-block with known values: the gate block is a
+    /// quaternion, the up block is rotated by it (so its norm is preserved),
+    /// the product is the hand-computed one, and the backward is the hand
+    /// computation of the rotation's adjoint and the normalization Jacobian.
+    #[test]
+    fn the_hamilton_gate_rotates_each_block_by_its_gate_quaternion() -> Result<()> {
+        let up_block = [1.0f32, 2.0, 3.0, 4.0];
+        let gate = Tensor::from_vec(
+            vec![
+                0.0f32, 0.0, 0.0, 1.0, // k
+                0.0, 1.0, 0.0, 0.0, // i
+                2.0, 0.0, 0.0, 0.0, // a non-unit positive multiple of the identity
+                0.0, 0.0, 0.0, 0.0, // the zero block
+            ],
+            16,
+            &cpu(),
+        )?;
+        let up = Tensor::from_vec(up_block.repeat(4), 16, &cpu())?;
+        let out = hamilton_gate(&gate, &up)?.to_vec1::<f32>()?;
+        // k ⊗ (1,2,3,4) = (-4,-3,2,1) and i ⊗ (1,2,3,4) = (-2,1,-4,3); the
+        // gate's positive scale cancels in the normalization, so that block is
+        // the up block; and the zero block stays zero (the norm's guard).
+        let want = [
+            -4.0f32, -3.0, 2.0, 1.0, //
+            -2.0, 1.0, -4.0, 3.0, //
+            1.0, 2.0, 3.0, 4.0, //
+            0.0, 0.0, 0.0, 0.0,
+        ];
+        for (i, (got, w)) in out.iter().zip(want).enumerate() {
+            assert!((got - w).abs() < 1e-5, "slot {i}: {out:?} vs {want:?}");
+        }
+        let norm = |v: &[f32]| v.iter().map(|x| x * x).sum::<f32>().sqrt();
+        for block in 0..3 {
+            let span = block * 4..block * 4 + 4;
+            assert!(
+                (norm(&out[span]) - norm(&up_block[..])).abs() < 1e-5,
+                "block {block}: |out| {} vs |up| {}",
+                norm(&out[block * 4..block * 4 + 4]),
+                norm(&up_block[..])
+            );
+        }
+        // Backward at the k block with d = e_0, by hand: du = conj(q) ⊗ d
+        // = (0,0,0,-1) and dg = (dq - q (q · dq)) / r = (1,-2,-3,0).
+        let g = Var::from_tensor(&Tensor::from_vec(vec![0.0f32, 0.0, 0.0, 1.0], 4, &cpu())?)?;
+        let u = Var::from_tensor(&Tensor::from_vec(up_block.to_vec(), 4, &cpu())?)?;
+        let d = Tensor::from_vec(vec![1.0f32, 0.0, 0.0, 0.0], 4, &cpu())?;
+        let grads = hamilton_gate(g.as_tensor(), u.as_tensor())?
+            .mul(&d)?
+            .sum_all()?
+            .backward()?;
+        let d_gate = grads
+            .get(g.as_tensor())
+            .ok_or_else(|| invalid("Hamilton d_gate"))?
+            .to_vec1::<f32>()?;
+        let d_up = grads
+            .get(u.as_tensor())
+            .ok_or_else(|| invalid("Hamilton d_up"))?
+            .to_vec1::<f32>()?;
+        for (i, (got, w)) in d_gate.iter().zip([1.0f32, -2.0, -3.0, 0.0]).enumerate() {
+            assert!((got - w).abs() < 1e-5, "d_gate slot {i}: {d_gate:?}");
+        }
+        for (i, (got, w)) in d_up.iter().zip([0.0f32, 0.0, 0.0, -1.0]).enumerate() {
+            assert!((got - w).abs() < 1e-5, "d_up slot {i}: {d_up:?}");
+        }
+        Ok(())
+    }
+
+    /// The Hamilton gate's gradient against central differences: a weighted sum
+    /// over small tensors through the same [`check_gradient`] the other fused
+    /// ops use.
+    #[test]
+    fn the_hamilton_gate_gradient_matches_central_differences() -> Result<()> {
+        let mut rng = Initializer(41);
+        let weights = random(&mut rng, &[4, 8], 1.0);
+        let gate = Var::from_tensor(&random(&mut rng, &[4, 8], 1.5))?;
+        let up = Var::from_tensor(&random(&mut rng, &[4, 8], 1.0))?;
+        check_gradient(
+            &[gate.clone(), up.clone()],
+            || {
+                Ok(hamilton_gate(gate.as_tensor(), up.as_tensor())?
+                    .mul(&weights)?
+                    .sum_all()?)
+            },
+            1e-2,
+        )
+    }
+
+    /// The Hamilton gate rotates whole 4-blocks: a count that is not a multiple
+    /// of 4 is refused, and a whole block still needs matching inputs.
+    #[test]
+    fn the_hamilton_gate_refuses_a_partial_block() -> Result<()> {
+        let six = Tensor::from_vec(vec![0.5f32; 6], 6, &cpu())?;
+        let gate = Tensor::from_vec(vec![1.0f32; 6], 6, &cpu())?;
+        assert!(
+            hamilton_gate(&gate, &six).is_err(),
+            "6 elements are not whole 4-blocks"
+        );
+        let four = Tensor::from_vec(vec![0.5f32; 4], 4, &cpu())?;
+        assert!(hamilton_gate(&four, &four).is_ok(), "one whole block runs");
+        assert!(
+            hamilton_gate(&four, &six).is_err(),
+            "the gate and the up projection still have to match"
+        );
+        Ok(())
+    }
+
+    /// The gate's wire names, its round-trip and the Hamilton width rule.
+    #[test]
+    fn the_gate_round_trips_and_validates() -> Result<()> {
+        for (gate, wire) in [(Gate::Swiglu, "swiglu"), (Gate::Hamilton, "hamilton")] {
+            let text = serde_json::to_string(&gate)?;
+            assert_eq!(text, format!("\"{wire}\""));
+            let back: Gate = serde_json::from_str(&text)?;
+            assert_eq!(gate, back, "{text}");
+            assert_eq!(gate.name(), wire);
+        }
+        let mut config = tiny(StackArch::Geometric, "rra", ReadScore::Lorentz, true);
+        assert_eq!(
+            config.gate,
+            Gate::Swiglu,
+            "the historical gate is the default"
+        );
+        config.gate = Gate::Hamilton;
+        config.mlp_hidden = 24;
+        assert!(config.validate().is_ok(), "24 is six 4-blocks");
+        config.mlp_hidden = 26;
+        assert!(
+            config.validate().is_err(),
+            "26 is not whole 4-blocks, so the Hamilton gate is refused"
+        );
+        Ok(())
+    }
+
+    /// The Hamilton gate runs a whole MLP step on CPU: a tiny model's forward,
+    /// its loss and its backward, with the gate projection's own gradient.
+    #[test]
+    fn the_hamilton_gate_runs_a_model_step() -> Result<()> {
+        let ids: Vec<u32> = (0..16).map(|i| (i * 7 % 37) as u32).collect();
+        let targets: Vec<u32> = ids.iter().map(|&i| (i + 1) % 37).collect();
+        for gate in [Gate::Hamilton] {
+            let mut config = tiny(StackArch::Geometric, "rra", ReadScore::Lorentz, true);
+            assert_eq!(
+                config.mlp_hidden % 4,
+                0,
+                "the fixture's width suits the Hamilton gate"
+            );
+            config.gate = gate;
+            let model = StackModel::new(config, &cpu())?;
+            let loss = model.loss(&ids, &targets, 2, 8)?;
+            let value = loss.to_scalar::<f32>()?;
+            assert!(value.is_finite() && value > 0.0, "{}: {value}", gate.name());
+            let grads = loss.backward()?;
+            let mut seen = 0;
+            for (name, var) in model.variables() {
+                if !name.ends_with("mlp.gate.weight") {
+                    continue;
+                }
+                let grad = grads
+                    .get(var.as_tensor())
+                    .ok_or_else(|| invalid("the gate projection's gradient"))?
+                    .flatten_all()?
+                    .to_vec1::<f32>()?;
+                assert!(
+                    grad.iter().all(|v| v.is_finite()),
+                    "{name} is not finite under {}",
+                    gate.name()
+                );
+                assert!(
+                    grad.iter().any(|&v| v != 0.0),
+                    "{name} gets no gradient under {}",
+                    gate.name()
+                );
+                seen += 1;
+            }
+            assert!(seen > 0, "no mlp.gate.weight under {}", gate.name());
+        }
+        Ok(())
+    }
+
+    /// A saved gate survives the round trip: the loaded model's config and its
+    /// logits are the trained model's, so a resumed run cannot silently revert
+    /// to the historical gate.
+    #[test]
+    fn a_non_default_gate_survives_save_and_load() -> Result<()> {
+        let ids = [3u32, 9, 4, 12, 7, 1, 30, 5];
+        for gate in [Gate::Hamilton] {
+            let mut config = tiny(StackArch::Geometric, "rra", ReadScore::Lorentz, true);
+            config.gate = gate;
+            let model = StackModel::new(config, &cpu())?;
+            let dir = std::env::temp_dir().join(format!(
+                "gate-save-{}-{}",
+                gate.name(),
+                std::process::id()
+            ));
+            let _ = fs::remove_dir_all(&dir);
+            fs::create_dir_all(&dir)?;
+            model.save(&dir)?;
+            let saved: serde_json::Value =
+                serde_json::from_slice(&fs::read(dir.join("config.json"))?)?;
+            assert_eq!(saved["gate"], serde_json::json!(gate.name()), "{saved}");
+            let loaded = StackModel::load(&dir, &cpu())?;
+            assert_eq!(loaded.config.gate, gate);
+            assert!(same_bits(
+                &model
+                    .forward(&ids, 1, ids.len())?
+                    .flatten_all()?
+                    .to_vec1::<f32>()?,
+                &loaded
+                    .forward(&ids, 1, ids.len())?
+                    .flatten_all()?
+                    .to_vec1::<f32>()?
+            ));
+            fs::remove_dir_all(&dir)?;
+        }
         Ok(())
     }
 
@@ -27677,6 +28133,7 @@ mod tests {
             pointer: None,
             read_router: None,
             objective: Objective::Ce,
+            gate: Gate::Swiglu,
         }
     }
 

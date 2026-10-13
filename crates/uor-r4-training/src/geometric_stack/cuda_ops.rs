@@ -235,6 +235,82 @@ pub(super) fn swiglu_bwd(
     ))
 }
 
+pub(super) fn hamilton_gate_fwd(
+    s1: &CudaStorage,
+    l1: &Layout,
+    s2: &CudaStorage,
+    l2: &Layout,
+) -> Forward {
+    if s1.dtype() == DType::BF16 {
+        return super::cuda_ops_bf16::hamilton_gate_fwd(s1, l1, s2, l2);
+    }
+    if l1.shape() != l2.shape() {
+        candle_core::bail!("Hamilton gate inputs must match");
+    }
+    let (Some(gate), Some(up)) = (input(s1, l1)?, input(s2, l2)?) else {
+        candle_core::bail!("the Hamilton gate needs contiguous F32 tensors");
+    };
+    let device = &s1.device;
+    let total = l1.shape().elem_count();
+    if total % 4 != 0 {
+        candle_core::bail!("the Hamilton gate rotates 4-blocks");
+    }
+    let out = uninit::<f32>(device, total)?;
+    launch(
+        device,
+        "hamilton_gate_fwd",
+        total / 4,
+        &[
+            Arg::F(gate),
+            Arg::F(up),
+            Arg::f(&out),
+            Arg::U32(u32_of(total, "size")?),
+        ],
+    )?;
+    Ok((storage(out, device), l1.shape().clone()))
+}
+
+pub(super) fn hamilton_gate_bwd(
+    device: &CudaDevice,
+    gate: &Tensor,
+    up: &Tensor,
+    grad: &Tensor,
+) -> CResult<(Tensor, Tensor)> {
+    if gate.dtype() == DType::BF16 {
+        return super::cuda_ops_bf16::hamilton_gate_bwd(device, gate, up, grad);
+    }
+    if gate.shape() != up.shape() || grad.shape() != gate.shape() {
+        candle_core::bail!("CUDA Hamilton gate backward inputs must match");
+    }
+    let (g, u, d) = (ready(gate)?, ready(up)?, ready(grad)?);
+    let total = g.elem_count();
+    if total % 4 != 0 {
+        candle_core::bail!("the Hamilton gate rotates 4-blocks");
+    }
+    let (gs, gl) = g.storage_and_layout();
+    let (us, ul) = u.storage_and_layout();
+    let (ds, dl) = d.storage_and_layout();
+    let d_gate = uninit::<f32>(device, total)?;
+    let d_up = uninit::<f32>(device, total)?;
+    launch(
+        device,
+        "hamilton_gate_bwd",
+        total / 4,
+        &[
+            Arg::F(view(&gs, gl)?),
+            Arg::F(view(&us, ul)?),
+            Arg::F(view(&ds, dl)?),
+            Arg::f(&d_gate),
+            Arg::f(&d_up),
+            Arg::U32(u32_of(total, "size")?),
+        ],
+    )?;
+    Ok((
+        tensor(d_gate, device, gate.shape()),
+        tensor(d_up, device, up.shape()),
+    ))
+}
+
 /// Threads per block of the row reductions (a multiple of 32).
 const ROW_THREADS: usize = 256;
 /// Rows per partial sum of the RMSNorm weight gradient.
