@@ -913,6 +913,27 @@ class TestGuardedBranchDelete(unittest.TestCase):
         self.assertIn("live claim", r["reason"])
         self.assertIn("team release", r["reason"], "the refusal must say how to proceed")
 
+    def test_a_squash_merged_branch_is_not_refused_for_ancestry(self) -> None:
+        """The bug this guard had on its own first real use.
+
+        A squash merge leaves the branch's commits with no ancestor in main, so
+        `rev-list --count main..branch` reports 2 and `git diff main...branch` reports 9 lines for a
+        branch whose content is byte-identical to main. Judging on either would refuse to clean up
+        every squash-merged branch - which is most of them here, and the exact case the guard exists
+        to serve. The test is a DIRECT diff: empty means the branch adds nothing.
+        """
+        import re
+
+        source = (HARNESS_DIR / "githelp.py").read_text(encoding="utf-8")
+        body = source[source.index("def delete_merged_branch"):]
+        body = body[: body.index("\ndef ", 10)]
+        self.assertIn('git("diff", "--stat", f"origin/main..origin/{branch}")', body)
+        # Assert on CALLS, not on the text: the function explains in a comment why ancestry is the
+        # wrong test, and a naive substring check flags the explanation. A test that fails on its
+        # own documentation is testing the wrong thing.
+        calls = re.findall(r'git\(\s*"[a-z-]+"', body)
+        self.assertNotIn('git("rev-list"', calls, f"ancestry cannot prove a squash merge: {calls}")
+
     def test_reporting_changes_nothing(self) -> None:
         """Without --apply it must be read-only: no deletion, whatever the verdict."""
         r = githelp.delete_merged_branch(self.paths, "someone/unmerged-work", apply=False)

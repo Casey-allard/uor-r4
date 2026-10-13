@@ -432,13 +432,21 @@ def cmd_git(args: argparse.Namespace, paths: HarnessPaths, reg: Registry) -> int
         if getattr(args, "json", False):
             print(json.dumps(result, indent=2))
         elif result.get("safe_to_delete"):
-            verb = "deleted" if result.get("deleted") else "would delete"
-            remote = ""
-            if result.get("deleted"):
-                remote = " (remote: " + ("deleted" if result.get("remote_deleted") else "NOT deleted") + ")"
-            print(f"{verb} {result['branch']}: {result['reason']}{remote}")
-            if not result.get("apply") and not result.get("deleted"):
-                print(f"  run with --apply to delete it")
+            if result.get("deleted") or result.get("remote_deleted"):
+                # Report each side separately. A partial delete that reads as a success is how you
+                # end up believing a branch is gone when it is not.
+                local = "deleted" if result.get("deleted") else f"NOT deleted ({result.get('local_error', '?')})"
+                remote = "deleted" if result.get("remote_deleted") else "NOT deleted"
+                if result.get("remote_error"):
+                    remote += f" ({result['remote_error']})"
+                print(f"{result['branch']}: local {local}; remote {remote}")
+            else:
+                print(f"would delete {result['branch']}: {result['reason']}")
+            for key in ("local_error", "remote_error"):
+                if result.get(key) and not result.get("deleted") and not result.get("remote_deleted"):
+                    print(f"  {result[key]}")
+            if not result.get("deleted") and not result.get("remote_deleted"):
+                print("  run with --apply to delete it")
         else:
             print(f"REFUSED to delete {result['branch']}: {result['reason']}")
             print("  an unmerged remote branch is usually the only copy of that work")

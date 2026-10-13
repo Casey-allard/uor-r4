@@ -681,13 +681,20 @@ def delete_merged_branch(paths: HarnessPaths, branch: str, apply: bool = False) 
         return result
 
     # 2. even with a merged PR, the remote ref must actually be gone-or-equal, not different work
+    # The branch must hold nothing main lacks. Compared with a DIRECT diff, not ancestry or a
+    # merge-base diff, because a squash merge leaves the branch's commits with no ancestor in main:
+    # `rev-list --count main..branch` reports 2 and `git diff main...branch` reports 9 lines for a
+    # branch whose content is byte-identical to main. Both would refuse forever.
+    #
+    # `git diff main..branch` is empty exactly when the branch adds nothing, which is the property
+    # that makes deleting it safe - and it is the same content proof `clean-merged` already uses.
     rc, out = git("rev-parse", "--verify", "--quiet", f"refs/remotes/origin/{branch}")
     if rc == 0:
-        rc2, ahead = git("rev-list", "--count", f"origin/main..origin/{branch}")
-        if rc2 == 0 and ahead.isdigit() and int(ahead) > 0:
+        rc2, diff = git("diff", "--stat", f"origin/main..origin/{branch}")
+        if rc2 == 0 and diff.strip():
             result["reason"] = (
-                f"origin/{branch} has {ahead} commit(s) not in main - it holds work the "
-                f"merge did not carry"
+                f"origin/{branch} holds content main does not ({diff.splitlines()[-1].strip()}) - "
+                f"the merge did not carry it"
             )
             result["merged"] = False
             result["safe_to_delete"] = False
