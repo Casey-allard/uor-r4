@@ -70,7 +70,13 @@ name = "geometric-stack"
 path = "examples/geometric-stack-native.rs"
 required-features = ["native-rung0"]
 
+[[bin]]
+name = "chat-grade"
+path = "src/bin/chat-grade.rs"
+required-features = ["native-rung0"]
+
 [[test]]
 name = "d29_compiled_modules"
 path = "tests/d29_compiled_modules.rs"
 required-features = ["cuda"]
+

@@ -19,7 +19,8 @@
           "target": 116,
           "of": 232,
           "unit": "acceptable replies",
-          "direction": "open"
+          "direction": "open",
+          "note": "HEADLINE SUSPENDED UNDER R14 (#2029 comment 6154755982, PR #2373), WITH NO TARGET. The retired qwen2.5:7b 116/232 target is banned under D28, and the v1 deterministic 88-row re-score is a diagnostic measurement whose raw headline is vacuous (Claude audit #2029 comment 6154573629 / #2365 comments 6154574078, 6154783818): grade-replies' default constant \"I'm not sure. Can you tell me more about what you mean?\" scores 40/88 (all 40 abstain_exact rows; paired McNemar p = 3.8e-11 vs D10's 1/88, discriminates: false; categories_model_beats_best_constant is empty for every open-panel category, F3), and under D31 the 0/27 clarify and 0/40 abstain_exact counts contain instrument false negatives (7 target-behaviour clarification/request rows and 6 bare-salutation rows on D10, F5) that are not model failures. Audited diagnostic figures on the v1 table (88 checked + 144 BLOCKED): D10 = 1/88 PASS (ask-08), 87/88 FAIL, 144/232 BLOCKED; parent 29M = 2/88 PASS (ask-03, ask-06); D0 = 1/88 PASS (ask-05); D25 = 0/88 PASS (F1/F2/F7). Numeric current/target/of fields remain schema placeholders only; no M1 reply target exists until the v2 check table lands with frozen positive controls, per-category best-constant/copy-control pairing, and abstention-as-discrimination scoring."
         },
         {
           "id": "v5-memory-check-pass",
@@ -29,11 +30,12 @@
           "of": 40,
           "unit": "check_pass rows",
           "direction": "open",
-          "noise": "+/-3 rows (bench noise; not a stated panel sigma)"
+          "noise": "+/-3 rows (bench noise; not a stated panel sigma)",
+          "note": "HEADLINE SUSPENDED UNDER R14 (#2029 comment 6154755982, PR #2373), WITH NO TARGET. 100% deterministic under D28 (40 multi_turn_memory exact rows + 24 unknowable_or_impossible abstain_exact rows, 0 BLOCKED). Audited diagnostic measurement (#2365 comment 6154574078, F3/F4): on multi_turn_memory, copy_last_stated and copy_first_stated each score 20/40; D10 (20/40) and D25 (20/40) each pass 14/20 rows where the asked value was stated last and 6/20 where it was stated first (paired against copy_last_stated, discordant rows are 6 vs 6: indistinguishable from recency-copying; the grader's current headline rule pairs only against constants at 0/40, so 'multi_turn_memory beats best constant' carries this caveat); D0 scores 5/40. On the 24 unknowable_or_impossible rows, the default constant \"I'm not sure. Can you tell me more about what you mean?\" scores 24/24 (D10 = 0/24, D0 = 0/24, D25 = 15/24)."
         }
       ],
       "grader_blocked_by": "D28",
-      "grader_deterministic_alternative": "docs/integration/DECISIONS.md D28 - panels are scored with deterministic checks only"
+      "grader_deterministic_alternative": "chat-grade grade-replies (crates/uor-r4-training/src/bin/chat-grade.rs; data/panels/reply-panel-checks.tsv + data/panels/conversational-v5-checks.tsv; docs/labs/m1-deterministic-reply-grader-2026-10-13/README.md) — grader code audited FIT (#2365 comment 6154574078); M1 reply headline suspended under R14 (#2029 comment 6154755982) with no target pending the v2 check table"
     }
   }
 }

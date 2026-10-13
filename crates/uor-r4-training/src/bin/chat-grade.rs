@@ -122,20 +122,117 @@ use std::process::ExitCode;
 use std::time::Instant;
 
 use candle_core::Device;
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use uor_r4_core::native_geometric::mmap_corpus::MmapCorpusReader;
 use uor_r4_core::report_output;
-use uor_r4_tokenizer::dialogue::DialogueProtocol;
+use uor_r4_tokenizer::dialogue::{DialogueEncoder, DialogueProtocol};
 use uor_r4_tokenizer::ByteBpeTokenizer;
-use uor_r4_training::geometric_stack::StackModel;
 use uor_r4_training::sha256_file;
-use uor_r4_training::stack_dialogue::{
-    annotate_turn_costs, check_panel, greedy_reply_with, load_requests, reply_panel, Request,
-    TurnCost,
-};
-use uor_r4_training::stack_tracking::Rng;
 
 type Error = Box<dyn std::error::Error>;
+
+/// One request of a reply panel: user turns answered in order, the format of
+/// the retained study's request files.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Request {
+    id: String,
+    category: String,
+    user_turns: Vec<String>,
+}
+
+const MAX_REQUESTS: usize = 128;
+const MAX_USER_TURNS: usize = 8;
+const MAX_NEW_TOKENS: usize = 128;
+
+/// Read a request panel: 1 to [`MAX_REQUESTS`] requests with distinct ids,
+/// each with 1 to [`MAX_USER_TURNS`] nonblank user turns.
+fn load_requests(path: &Path) -> Result<Vec<Request>, Error> {
+    let requests: Vec<Request> = serde_json::from_slice(&fs::read(path)?)?;
+    let ids: BTreeSet<&str> = requests.iter().map(|r| r.id.as_str()).collect();
+    if requests.is_empty()
+        || requests.len() > MAX_REQUESTS
+        || ids.len() != requests.len()
+        || requests.iter().any(|r| {
+            r.user_turns.is_empty()
+                || r.user_turns.len() > MAX_USER_TURNS
+                || r.user_turns.iter().any(|t| t.trim().is_empty())
+        })
+    {
+        return Err(format!(
+            "a request panel needs 1 to {MAX_REQUESTS} requests with distinct ids, each with 1 to \
+             {MAX_USER_TURNS} nonblank user turns"
+        )
+        .into());
+    }
+    Ok(requests)
+}
+
+/// Check that the whole panel can be answered before anything is generated:
+/// a positive cap of at most [`MAX_NEW_TOKENS`], every user turn one protocol
+/// turn with no special tokens, and every request's history within `context`
+/// even if each reply reaches the cap and is closed with EOS by the caller.
+fn check_panel(
+    encoder: &DialogueEncoder<'_>,
+    requests: &[Request],
+    context: usize,
+    max_new_tokens: usize,
+) -> Result<(), Error> {
+    if max_new_tokens == 0 || max_new_tokens > MAX_NEW_TOKENS {
+        return Err(format!("max_new_tokens must be 1 to {MAX_NEW_TOKENS}").into());
+    }
+    for request in requests {
+        let mut longest = 1usize;
+        for (turn, user) in request.user_turns.iter().enumerate() {
+            let prefix = encoder.encode_user_prefix(user, turn != 0);
+            if prefix.emitted_turns != 1 || prefix.special_token_occurrences != 0 {
+                return Err(format!(
+                    "request {}: turn {} is not one plain user turn",
+                    request.id,
+                    turn + 1
+                )
+                .into());
+            }
+            longest += prefix.tokens.len() + max_new_tokens;
+            if longest > context {
+                return Err(format!(
+                    "request {}: with every reply at {max_new_tokens} ids the history reaches \
+                     {longest} of {context} positions by turn {}",
+                    request.id,
+                    turn + 1
+                )
+                .into());
+            }
+            if turn + 1 < request.user_turns.len() {
+                longest += 1;
+            }
+        }
+    }
+    Ok(())
+}
+
+/// SplitMix64: deterministic initialisation and data.
+#[derive(Clone, Copy, Debug)]
+struct Rng(u64);
+
+impl Rng {
+    fn new(seed: u64) -> Self {
+        Self(seed ^ 0x6A09_E667_F3BC_C909)
+    }
+
+    fn next_u64(&mut self) -> u64 {
+        self.0 = self.0.wrapping_add(0x9E37_79B9_7F4A_7C15);
+        let mut z = self.0;
+        z = (z ^ (z >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+        z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
+        z ^ (z >> 31)
+    }
+
+    fn below(&mut self, bound: usize) -> usize {
+        (self.next_u64() % bound.max(1) as u64) as usize
+    }
+}
 
 fn main() -> ExitCode {
     match run() {
@@ -147,6 +244,7 @@ fn main() -> ExitCode {
     }
 }
 
+#[allow(dead_code)]
 struct Args(BTreeMap<String, String>);
 
 impl Args {
@@ -163,6 +261,7 @@ impl Args {
         Ok(Self(pairs))
     }
 
+    #[allow(dead_code)]
     fn optional(&self, key: &str) -> Option<String> {
         self.0.get(key).cloned()
     }
@@ -182,15 +281,39 @@ impl Args {
     }
 
     /// `device=cpu|cuda|metal` (default cpu): its name and the opened device.
+    #[allow(dead_code)]
     fn device(&self) -> Result<(&'static str, Device), Error> {
         let name = device_name(self.0.get("device").map(String::as_str))?;
-        let device = uor_r4_training::baseline_protocol::device(name)?;
-        candle_core::cuda::set_gemm_reduced_precision_f32(false);
+        let device = match name {
+            "cpu" => Device::Cpu,
+            "metal" => {
+                #[cfg(feature = "metal")]
+                {
+                    Device::new_metal(0)?
+                }
+                #[cfg(not(feature = "metal"))]
+                {
+                    return Err("Metal requested without compiled Metal feature".into());
+                }
+            }
+            "cuda" => {
+                #[cfg(feature = "cuda")]
+                {
+                    Device::new_cuda(0)?
+                }
+                #[cfg(not(feature = "cuda"))]
+                {
+                    return Err("CUDA requested without compiled CUDA feature".into());
+                }
+            }
+            _ => unreachable!(),
+        };
         Ok((name, device))
     }
 }
 
 /// The name of `device=`, default `cpu`; anything else is refused.
+#[allow(dead_code)]
 fn device_name(given: Option<&str>) -> Result<&'static str, Error> {
     match given {
         None | Some("cpu") => Ok("cpu"),
@@ -203,6 +326,7 @@ fn device_name(given: Option<&str>) -> Result<&'static str, Error> {
 }
 
 /// The report record of where the replies were generated.
+#[allow(dead_code)]
 fn device_record(name: &str) -> Value {
     json!({
         "device": name,
@@ -309,119 +433,34 @@ fn extract(arguments: &[String]) -> Result<(), Error> {
     Ok(())
 }
 
-/// Grades from the local Ollama judge.
-struct Grader {
-    url: String,
-    model: String,
-}
+/// Default reason for panel rows that have no exact deterministic check under D28.
+const BLOCKED_REASON: &str = "open_ended_no_exact_anchor";
 
-impl Grader {
-    fn ask(&self, prompt: &str) -> Result<String, Error> {
-        use std::io::Write;
-        let body = json!({
-            "model": self.model,
-            "messages": [{"role": "user", "content": prompt}],
-            "stream": false,
-            "options": {"temperature": 0.0, "seed": 1, "num_predict": 4},
-        });
-        let mut child = std::process::Command::new("curl")
-            .args(["-sS", "--fail", "-H", "Content-Type: application/json"])
-            .args(["--data-binary", "@-"])
-            .arg(format!("{}/api/chat", self.url))
-            .stdin(std::process::Stdio::piped())
-            .stdout(std::process::Stdio::piped())
-            .spawn()?;
-        child
-            .stdin
-            .take()
-            .ok_or("curl has no stdin")?
-            .write_all(body.to_string().as_bytes())?;
-        let output = child.wait_with_output()?;
-        if !output.status.success() {
-            return Err(format!("ollama failed: {}", output.status).into());
-        }
-        let reply: Value = serde_json::from_slice(&output.stdout)?;
-        Ok(reply["message"]["content"]
-            .as_str()
-            .ok_or("ollama returned no message")?
-            .to_owned())
-    }
-
-    fn digest(&self) -> Result<String, Error> {
-        let output = std::process::Command::new("curl")
-            .args(["-sS", "--fail"])
-            .arg(format!("{}/api/tags", self.url))
-            .output()?;
-        let tags: Value = serde_json::from_slice(&output.stdout)?;
-        tags["models"]
-            .as_array()
-            .and_then(|m| m.iter().find(|m| m["name"] == self.model.as_str()))
-            .and_then(|m| m["digest"].as_str())
-            .map(str::to_owned)
-            .ok_or_else(|| format!("ollama has no model {}", self.model).into())
-    }
-
-    /// One yes/no judgement of the last reply of `text`, with worked
-    /// examples on topics outside the panel. Returns the verdict (or `None`
-    /// when the answer has neither word) and the raw answer.
-    fn judge(
-        &self,
-        text: &str,
-        question: &str,
-        examples: &str,
-    ) -> Result<(Option<bool>, String), Error> {
-        let prompt = format!(
-            "You check replies written by a small chat assistant. Answer with one word: yes or no.\n\n\
-             {examples}\nNow this conversation:\n{text}\nQuestion: {question}\nAnswer:"
+/// Refuse any neural grader argument (`grader=` or `ollama_url=`) under D28.
+fn refuse_neural_grader(args: &Args) -> Result<(), Error> {
+    if args.0.contains_key("grader") || args.0.contains_key("ollama_url") {
+        return Err(
+            "D28: neural graders (grader= / ollama_url= / qwen2.5) are banned; score replies \
+             deterministically with `chat-grade grade-replies` and exact row checks"
+                .into(),
         );
-        let answer = self.ask(&prompt)?;
-        Ok((parse_yes_no(&answer), answer))
     }
-
-    /// Fluency and relevance verdicts for the final reply of `conversation`,
-    /// with the raw answers.
-    fn grade(&self, conversation: &[(String, String)]) -> Result<Grades, Error> {
-        let mut text = String::new();
-        for (user, assistant) in conversation {
-            text.push_str(&format!("User: {user}\nAssistant: {assistant}\n"));
-        }
-        let (fluent, fluent_raw) = self.judge(&text, FLUENT_QUESTION, FLUENT_EXAMPLES)?;
-        let (relevant, relevant_raw) = self.judge(&text, RELEVANT_QUESTION, RELEVANT_EXAMPLES)?;
-        Ok(Grades {
-            fluent,
-            relevant,
-            raw: [fluent_raw, relevant_raw],
-        })
-    }
+    Ok(())
 }
 
-const FLUENT_QUESTION: &str =
-    "Is the last Assistant reply written in clear, correct, sensible English sentences?";
-const FLUENT_EXAMPLES: &str = "Example:\nUser: Do you like trains?\nAssistant: Yes, I think trains are fun to ride.\n\
-     Question: Is the last Assistant reply written in clear, correct, sensible English sentences?\nAnswer: yes\n\n\
-     Example:\nUser: Do you like trains?\nAssistant: The train train is of the a ride ride.\n\
-     Question: Is the last Assistant reply written in clear, correct, sensible English sentences?\nAnswer: no\n";
-const RELEVANT_QUESTION: &str =
-    "Does the last Assistant reply respond sensibly to the user's last message?";
-const RELEVANT_EXAMPLES: &str = "Example:\nUser: What color is grass?\nAssistant: Grass is usually green.\n\
-     Question: Does the last Assistant reply respond sensibly to the user's last message?\nAnswer: yes\n\n\
-     Example:\nUser: What color is grass?\nAssistant: I had pancakes for breakfast today.\n\
-     Question: Does the last Assistant reply respond sensibly to the user's last message?\nAnswer: no\n";
-
-/// Two yes/no verdicts and the grader's raw answers.
+/// Verdicts of a graded row. Under D28 deterministic grading (`deterministic = true`),
+/// `fluent` and `relevant` are `None` and acceptability is determined strictly by the row's
+/// deterministic check (`PASS` -> acceptable, `FAIL` or `BLOCKED` -> not acceptable).
 struct Grades {
+    deterministic: bool,
     fluent: Option<bool>,
     relevant: Option<bool>,
+    #[allow(dead_code)]
     raw: [String; 2],
 }
 
-impl Grades {
-    fn record(&self) -> Value {
-        json!({"fluent": self.fluent, "relevant": self.relevant, "raw": self.raw})
-    }
-}
-
 /// The verdict of a yes/no answer: its first word, `yes` or `no`.
+#[allow(dead_code)]
 fn parse_yes_no(answer: &str) -> Option<bool> {
     let first: String = answer
         .trim_start()
@@ -495,14 +534,21 @@ fn mcnemar_exact(b: u64, c: u64) -> f64 {
     (2.0 * tail).min(1.0)
 }
 
-/// A row's acceptability: fluent and relevant, and passing its frozen check
-/// when it has one (`check` is `None` for an unchecked row).
+/// A row's acceptability: under deterministic D28 grading (`grades.deterministic`),
+/// a row is acceptable iff it has a frozen deterministic check and passes it (`check == Some(true)`);
+/// blocked (`None`) rows never pass. For legacy pre-D28 reports with fluent/relevant verdicts,
+/// preserves the historical rule.
 fn acceptable(grades: &Grades, check: Option<bool>) -> bool {
-    grades.acceptable() && check != Some(false)
+    if grades.deterministic {
+        check == Some(true)
+    } else {
+        grades.acceptable() && check != Some(false)
+    }
 }
 
-const ACCEPTABLE_RULE: &str = "judged both fluent and relevant (an unparsed answer counts as no) \
-     and, on a row with a frozen check, passing that check";
+const ACCEPTABLE_RULE: &str = "under D28 deterministic grading, a row is PASS (acceptable) iff it \
+     carries a frozen deterministic check and passes it; unchecked open-ended rows are BLOCKED \
+     (open_ended_no_exact_anchor) and never counted as PASS";
 
 #[derive(Default)]
 struct Tally {
@@ -523,18 +569,24 @@ impl Tally {
         self.relevant += usize::from(grades.relevant == Some(true));
         self.fluent_and_relevant += usize::from(grades.acceptable());
         self.acceptable += usize::from(acceptable(grades, check));
-        self.unparsed +=
-            usize::from(grades.fluent.is_none()) + usize::from(grades.relevant.is_none());
+        if !grades.deterministic {
+            self.unparsed +=
+                usize::from(grades.fluent.is_none()) + usize::from(grades.relevant.is_none());
+        }
         self.checked += usize::from(check.is_some());
         self.check_pass += usize::from(check == Some(true));
     }
 
     fn record(&self) -> Value {
+        let check_fail = self.checked.saturating_sub(self.check_pass);
+        let blocked_rows = self.replies.saturating_sub(self.checked);
         json!({
             "replies": self.replies, "fluent": self.fluent, "relevant": self.relevant,
             "fluent_and_relevant": self.fluent_and_relevant,
             "acceptable": self.acceptable, "unparsed_answers": self.unparsed,
             "checked_rows": self.checked, "check_pass": self.check_pass,
+            "check_fail": check_fail, "blocked_rows": blocked_rows,
+            "blocked_reason": (blocked_rows > 0).then_some(BLOCKED_REASON),
             "acceptable_rule": ACCEPTABLE_RULE,
         })
     }
@@ -964,6 +1016,67 @@ impl RowCheck {
             CheckKind::AbstainExact => !forbidden && abstention_fault(users, reply).is_none(),
         }
     }
+
+    /// Why a reply failed this deterministic check.
+    fn fail_reason(&self, users: &[&str], reply: &str) -> &'static str {
+        let reply_words = words(reply);
+        let forbidden = self.forbid.iter().any(|t| contains_phrase(&reply_words, t));
+        let has_key = self.keys.iter().any(|t| contains_phrase(&reply_words, t));
+        match &self.kind {
+            CheckKind::Any(_) => "missing_required_term",
+            CheckKind::Abstain => "no_abstain_phrase",
+            CheckKind::Question => "missing_question_mark",
+            CheckKind::Exact(_) | CheckKind::ReplyExact(_) => {
+                if forbidden {
+                    "contains_forbidden_term"
+                } else if has_key {
+                    "contains_distractor_key"
+                } else {
+                    "missing_expected_value"
+                }
+            }
+            CheckKind::Clarify(_) => {
+                if !reply.contains('?') {
+                    "missing_question_mark"
+                } else if forbidden {
+                    "contains_forbidden_term"
+                } else if has_key {
+                    "contains_distractor_key"
+                } else {
+                    "missing_clarify_phrase"
+                }
+            }
+            CheckKind::AbstainExact => {
+                if forbidden {
+                    "contains_forbidden_term"
+                } else {
+                    abstention_fault(users, reply).unwrap_or("failed_abstain_exact")
+                }
+            }
+        }
+    }
+}
+
+/// Deterministic per-row classification (`PASS`, `FAIL`, or `BLOCKED`).
+struct RowVerdict {
+    status: &'static str,
+    check_kind: Option<&'static str>,
+    check_pass: Option<bool>,
+    reason: &'static str,
+}
+
+impl RowVerdict {
+    fn record(&self) -> Value {
+        json!({
+            "status": self.status,
+            "check_kind": self.check_kind,
+            "check_pass": self.check_pass,
+            "reason": self.reason,
+            "fluent": Value::Null,
+            "relevant": Value::Null,
+            "raw": [],
+        })
+    }
 }
 
 /// The row checks of a run and where they came from.
@@ -974,20 +1087,50 @@ struct Checks {
 
 impl Checks {
     /// The check result of `reply` on row `id` (whose user turns are
-    /// `users`), or `None` for an unchecked row.
+    /// `users`), or `None` for an unchecked (`BLOCKED`) row.
     fn of(&self, id: &str, users: &[&str], reply: &str) -> Option<bool> {
         self.rows.get(id).map(|c| c.passes(users, reply))
+    }
+
+    /// Deterministic verdict (`PASS`, `FAIL`, or `BLOCKED`) for `reply` on row `id`.
+    fn verdict(&self, id: &str, users: &[&str], reply: &str) -> RowVerdict {
+        match self.rows.get(id) {
+            None => RowVerdict {
+                status: "BLOCKED",
+                check_kind: None,
+                check_pass: None,
+                reason: BLOCKED_REASON,
+            },
+            Some(check) => {
+                if check.passes(users, reply) {
+                    RowVerdict {
+                        status: "PASS",
+                        check_kind: Some(check.kind.name()),
+                        check_pass: Some(true),
+                        reason: "passed_deterministic_check",
+                    }
+                } else {
+                    RowVerdict {
+                        status: "FAIL",
+                        check_kind: Some(check.kind.name()),
+                        check_pass: Some(false),
+                        reason: check.fail_reason(users, reply),
+                    }
+                }
+            }
+        }
     }
 }
 
 /// A checks file: tab-separated `id kind history terms [forbid [keys]]` per line
 /// (`#` comments and blank lines ignored). `kind` is `any`, `abstain`,
-/// `question`, `exact` or `abstain_exact`; `history` is `none`, `recall`,
-/// `derived` or `topic`; `terms` is `|`-separated words or phrases for `any`
-/// and `exact` and `-` otherwise; `forbid` (default `-`) is `|`-separated
-/// words or phrases that fail an `exact` or `abstain_exact` check and must be
-/// `-` for the other kinds; `keys` (default `-`, `exact` only) is `|`-separated
-/// words of the distractor's key, which also fail an `exact` check.
+/// `question`, `exact`, `reply_exact`, `clarify` or `abstain_exact`; `history`
+/// is `none`, `recall`, `derived` or `topic`; `terms` is `|`-separated words or
+/// phrases for `any`, `exact`, `reply_exact` and `clarify` and `-` otherwise;
+/// `forbid` (default `-`) is `|`-separated words or phrases that fail an
+/// `exact`, `reply_exact`, `clarify` or `abstain_exact` check and must be `-`
+/// for the other kinds; `keys` (default `-`) is `|`-separated words of the
+/// distractor's key, which also fail an `exact`, `reply_exact` or `clarify` check.
 fn parse_checks(text: &str) -> Result<BTreeMap<String, RowCheck>, Error> {
     let mut rows = BTreeMap::new();
     for (number, line) in text.lines().enumerate() {
@@ -1124,11 +1267,12 @@ fn parse_checks(text: &str) -> Result<BTreeMap<String, RowCheck>, Error> {
     Ok(rows)
 }
 
-/// The tier C row checks of each conversational panel, embedded so a graded
-/// report is bound to them unless `checks=` overrides. The panels' ids are
-/// disjoint (`conv-*` in v2, `conv-v3-*` in v3, `conv-v4-*` in v4), so the
-/// default is their union and a v2 report keeps its v2 checks.
-const EMBEDDED_CHECKS: [(&str, &str); 3] = [
+/// The frozen deterministic row checks of the conversational and open reply
+/// panels, embedded so a graded report is bound to them unless `checks=`
+/// overrides. The panels' ids are disjoint (`conv-*` in v2, `conv-v3-*` in v3,
+/// `conv-v4-*` in v4, `conv-v5-*` in v5, and `talk-*`/`ask-*`/`do-*`/`follow-*`/`heldout-*`
+/// in `reply-panel-checks.tsv`), so the default is their union.
+const EMBEDDED_CHECKS: [(&str, &str); 5] = [
     (
         "data/panels/conversational-v2-checks.tsv",
         include_str!("../../../../data/panels/conversational-v2-checks.tsv"),
@@ -1140,6 +1284,14 @@ const EMBEDDED_CHECKS: [(&str, &str); 3] = [
     (
         "data/panels/conversational-v4-checks.tsv",
         include_str!("../../../../data/panels/conversational-v4-checks.tsv"),
+    ),
+    (
+        "data/panels/conversational-v5-checks.tsv",
+        include_str!("../../../../data/panels/conversational-v5-checks.tsv"),
+    ),
+    (
+        "data/panels/reply-panel-checks.tsv",
+        include_str!("../../../../data/panels/reply-panel-checks.tsv"),
     ),
 ];
 
@@ -1191,17 +1343,21 @@ const CHECK_RULE: &str = "words are lowercased and split at anything not a lette
      contains '?'; exact = the reply contains one spelling of the expected value and none of the \
      forbidden values (the conversation's distractor values and, for a closed class, its other \
      members) and none of the distractor's key words: a wrong value, both values, the value \
-     bound to the distractor's key, or no value fails; abstain_exact = the reply contains an \
-     abstain phrase not followed by 'wait', no agreement phrase (or 'sure' not after 'not'), no \
-     guess marker in a sentence that is neither a question nor contains an invitation phrase, \
-     nothing after 'but' in a sentence unless that clause abstains, invites or is a question, \
-     none of the row's forbidden words, no digit, and no capitalised word that is not a word of \
-     the user turns, I or OK, or a listed sentence opener at the start of a sentence";
+     bound to the distractor's key, or no value fails; reply_exact = exact without the multi-turn \
+     recall precondition; clarify = the reply contains '?', one of the row's clarify phrases \
+     naming the missing material, and none of the forbidden/key words; abstain_exact = the reply \
+     contains an abstain phrase not followed by 'wait', no agreement phrase (or 'sure' not after \
+     'not'), no guess marker in a sentence that is neither a question nor contains an invitation \
+     phrase, nothing after 'but' in a sentence unless that clause abstains, invites or is a \
+     question, none of the row's forbidden words, no digit, and no capitalised word that is not a \
+     word of the user turns, I or OK, or a listed sentence opener at the start of a sentence; \
+     rows with no deterministic check are classified BLOCKED (open_ended_no_exact_anchor)";
 
 fn checks_record(checks: &Checks) -> Value {
     json!({
         "source": checks.source,
         "rule": CHECK_RULE,
+        "blocked_reason": BLOCKED_REASON,
         "abstain_phrases": ABSTAIN_PHRASES,
         "abstain_exact": {
             "not_inability_after": NOT_INABILITY_AFTER,
@@ -1387,46 +1543,41 @@ fn validate_checks(checks: &Checks, requests: &[Request]) -> Result<Vec<String>,
         .collect())
 }
 
-fn grader_from(args: &Args) -> Grader {
-    Grader {
-        url: args
-            .0
-            .get("ollama_url")
-            .cloned()
-            .unwrap_or_else(|| "http://127.0.0.1:11434".into()),
-        model: args
-            .0
-            .get("grader")
-            .cloned()
-            .unwrap_or_else(|| "qwen2.5:1.5b".into()),
-    }
-}
-
-/// Everything a grading run is judged with, besides the replies.
+/// Everything a deterministic grading run is judged with, besides the replies.
 struct Judging<'a> {
-    grader: &'a Grader,
     ill: &'a IdList,
     checks: &'a Checks,
     constants: &'a Constants,
 }
 
 impl Judging<'_> {
-    fn grader_record(&self) -> Result<Value, Error> {
-        Ok(json!({
-            "engine": "ollama (local)", "model": self.grader.model, "digest": self.grader.digest()?,
-            "role": "offline judge only; it never serves", "temperature": 0, "seed": 1,
-            "questions": [FLUENT_QUESTION, RELEVANT_QUESTION],
-        }))
+    fn grader_record(&self) -> Value {
+        json!({
+            "engine": "deterministic (chat-grade exact checks)",
+            "model": "deterministic-exact-checks/1",
+            "digest": self.checks.source,
+            "role": "D28 deterministic exact-check grader; zero neural models or external services",
+            "blocked_reason": BLOCKED_REASON,
+        })
     }
 
-    /// Grade the panel and return the report fields shared by `grade` and
-    /// `grade-replies`.
+    /// Grade the panel deterministically and return the report fields for `grade-replies`.
     fn judge(&self, panel: &Value) -> Result<serde_json::Map<String, Value>, Error> {
-        let rows = judge_panel(panel, self.grader, &self.constants.replies)?;
+        let rows = judge_panel(panel, self.checks, &self.constants.replies)?;
         let overall = summarize(&rows, self.checks, &self.constants.replies)?;
         let per_tier = tier_summary(&rows, &self.ill.ids, self.checks, &self.constants.replies)?;
+        let requests: Vec<Request> = panel_conversations(panel)?
+            .into_iter()
+            .map(|(id, category, turns)| Request {
+                id,
+                category,
+                user_turns: turns.into_iter().map(|(u, _)| u).collect(),
+            })
+            .collect();
+        let per_cat_check_only =
+            check_only_controls(&requests, self.checks, &self.constants.replies)?;
         let mut fields = serde_json::Map::new();
-        fields.insert("grader".into(), self.grader_record()?);
+        fields.insert("grader".into(), self.grader_record());
         for key in [
             "actual",
             "control_derangement",
@@ -1447,6 +1598,10 @@ impl Judging<'_> {
         fields.insert(
             "per_category_controls".into(),
             overall["per_category"].clone(),
+        );
+        fields.insert(
+            "per_category_check_only_controls".into(),
+            per_cat_check_only,
         );
         fields.insert("rows".into(), Value::Array(rows));
         fields.insert("headline".into(), headline_of(&per_tier));
@@ -1484,195 +1639,19 @@ fn headline_of(per_tier: &Value) -> Value {
     })
 }
 
-const CONTROL_RULE: &str = "derangement: each reply graded as the answer to the next request's \
-     conversation (and checked with that row's check); relevance must fall for the grader to be \
-     measuring relevance. constants: each row graded (and checked) with every constant reply in \
+const CONTROL_RULE: &str = "derangement: each reply checked against the next request's \
+     deterministic check; constants: each row checked with every constant reply in \
      place of the model's; a category the model does not beat its constants on measures nothing \
      about the model. check-only controls: each row's check applied to its last user turn \
-     (echo_last) and to all its user turns joined (echo_history), with no grader";
+     (echo_last) and to all its user turns joined (echo_history), with no neural grader";
 
-fn grade(arguments: &[String]) -> Result<(), Error> {
-    let started = Instant::now();
-    let args = Args::parse(
-        arguments,
-        &[
-            "out",
-            "model",
-            "tokenizer",
-            "requests",
-            "protocol",
-            "max_new_tokens",
-            "grader",
-            "ollama_url",
-            "exclude",
-            "ill_posed",
-            "checks",
-            "constants",
-            "device",
-        ],
-    )?;
-    let out = PathBuf::from(args.required("out")?);
-    let exclude = optional_id_list(&args, "exclude")?;
-    let ill = ill_posed(&args)?;
-    let checks = load_checks(&args)?;
-    let constants = constants(&args)?;
-    let model_dir = PathBuf::from(args.required("model")?);
-    let tokenizer_path = PathBuf::from(args.required("tokenizer")?);
-    let request_paths = split_paths(&args.required("requests")?);
-    let version: u8 = args.number("protocol", 2)?;
-    let max_new_tokens: usize = args.number("max_new_tokens", 64)?;
-    let device = args.device()?;
-    let grader = grader_from(&args);
-    let judging = Judging {
-        grader: &grader,
-        ill: &ill,
-        checks: &checks,
-        constants: &constants,
-    };
-    report_output::claim(&out)?;
-    let result = grade_into(
-        &out,
-        &model_dir,
-        &tokenizer_path,
-        &request_paths,
-        version,
-        max_new_tokens,
-        &device,
-        &judging,
-        exclude.as_ref(),
-        started,
-    );
-    if let Err(error) = &result {
-        fs::write(
-            out.join("error.json"),
-            serde_json::to_vec_pretty(&json!({"error": error.to_string()}))?,
-        )?;
-    }
-    report_output::seal(&out)?;
-    report_output::verify(&out)?;
-    result
-}
-
-/// A panel answered greedily by a saved float model.
-struct Answered {
-    protocol: DialogueProtocol,
-    requests: Vec<Request>,
-    model: StackModel,
-    /// The `reply_panel` record with each reply's cost.
-    panel: Value,
-    generation_seconds: f64,
-    /// The copy-span oracle's per-turn record (empty when the oracle is off).
-    copy_oracle_record: Vec<Value>,
-}
-
-/// Answer every request greedily (`reply_panel` over `greedy_reply`) and
-/// record each reply's generated ids and seconds.
-/// `pointer_gate_floor`: the serving-time copy-gate floor
-/// ([`StackModel::set_pointer_gate_floor`]) applied after the model loads and
-/// before any reply is generated. `0.0`, the default, leaves every reply bit
-/// for bit as it was; a positive floor makes the copy branch participate in the
-/// mixture even where the learned gate is shut, which is the forced-copy oracle
-/// of the pointer mechanism brief (a read-out change: no parameter, no gradient,
-/// no training path).
-/// `copy_oracle_checks`: the span half of the forced-copy oracle. When set,
-/// each checked `exact` row's expected value is located in the row's own
-/// history (its last occurrence, by decoded text) and the model's copy-span
-/// oracle ([`StackModel::set_copy_span_oracle`]) is set to that span for the
-/// row's replies, so the copy branch reads exactly the stated value while the
-/// head and the gate stay the model's own; every row's span (or its absence)
-/// is recorded. Rows without an `exact` check run plain.
-#[allow(clippy::too_many_arguments)]
-fn answer(
-    model_dir: &Path,
-    tokenizer_path: &Path,
-    request_paths: &[PathBuf],
-    version: u8,
-    max_new_tokens: usize,
-    exclude: Option<&IdList>,
-    device: &Device,
-    cycle_repeats: usize,
-    pointer_gate_floor: f64,
-    pointer_gate_ceiling: f64,
-    read_silence_layer: Option<usize>,
-    copy_oracle_checks: Option<&Checks>,
-) -> Result<Answered, Error> {
-    let tokenizer = load_tokenizer(tokenizer_path)?;
-    let protocol = DialogueProtocol::literal_roles_version(&tokenizer, version)?;
-    let encoder = protocol.bind(&tokenizer)?;
-    let requests = load_panels(request_paths, exclude)?.0;
-    let mut model = StackModel::load(model_dir, device)?;
-    model.set_pointer_gate_floor(pointer_gate_floor)?;
-    model.set_pointer_gate_ceiling(pointer_gate_ceiling)?;
-    model.set_read_silence(read_silence_layer)?;
-    let oracle_values: Option<BTreeMap<String, Vec<String>>> = copy_oracle_checks.map(|checks| {
-        checks
-            .rows
-            .iter()
-            .filter_map(|(id, check)| match &check.kind {
-                CheckKind::Exact(terms) => Some((
-                    id.clone(),
-                    terms.iter().map(|phrase| phrase.join(" ")).collect(),
-                )),
-                _ => None,
-            })
-            .collect()
-    });
-    let mut costs = Vec::new();
-    let mut oracle_cursor = (0usize, 0usize);
-    let mut oracle_record: Vec<Value> = Vec::new();
-    let clock = Instant::now();
-    let mut panel = reply_panel(
-        &encoder,
-        &protocol,
-        &requests,
-        model.config.context,
-        max_new_tokens,
-        &|ids| tokenizer.decode(ids),
-        &mut |history, cap| {
-            if let Some(values) = &oracle_values {
-                let (row, _) = oracle_cursor;
-                let id = requests[row].id.as_str();
-                let span = values.get(id).and_then(|alternatives| {
-                    find_value_span(history, &|ids| tokenizer.decode(ids), alternatives)
-                });
-                model.set_copy_span_oracle(span)?;
-                oracle_record.push(json!({
-                    "id": id,
-                    "span": span,
-                    "note": if span.is_some() {
-                        "the copy branch reads the value's last occurrence; head and gate are the model's own"
-                    } else {
-                        "no exact-check value or the value is not stated in the window; the row runs plain"
-                    },
-                }));
-            }
-            let started = Instant::now();
-            let reply = greedy_reply_with(&model, history, cap, protocol.eos_id, cycle_repeats)?;
-            costs.push(TurnCost {
-                ids: reply.ids.len(),
-                seconds: started.elapsed().as_secs_f64(),
-            });
-            if oracle_values.is_some() {
-                let (row, turn) = oracle_cursor;
-                oracle_cursor = if turn + 1 == requests[row].user_turns.len() {
-                    (row + 1, 0)
-                } else {
-                    (row, turn + 1)
-                };
-            }
-            Ok(reply)
-        },
-    )?;
-    let generation_seconds = clock.elapsed().as_secs_f64();
-    annotate_turn_costs(&mut panel, &costs)?;
-    Ok(Answered {
-        protocol,
-        requests,
-        model,
-        panel,
-        generation_seconds,
-        copy_oracle_record: oracle_record,
-    })
+fn grade(_arguments: &[String]) -> Result<(), Error> {
+    Err(
+        "D28/D29: `chat-grade grade` (combined historical CPU model generation + Ollama neural \
+         grading) is retired; score recorded replies deterministically with `chat-grade \
+         grade-replies`"
+            .into(),
+    )
 }
 
 /// The window span of a value's last occurrence in `history`, by decoded text
@@ -1683,6 +1662,7 @@ fn answer(
 /// over every alternative spelling wins; a value that is not stated in the
 /// window has no span. This is the copy-span oracle's source map: it reads
 /// the frozen check's expected value and the row's own history, nothing else.
+#[allow(dead_code)]
 fn find_value_span(
     history: &[u32],
     decode: &dyn Fn(&[u32]) -> String,
@@ -1719,202 +1699,14 @@ fn find_value_span(
     (start < end).then_some((start, end))
 }
 
-/// `reply`: the greedy replies alone, with their costs; no grader.
-fn reply(arguments: &[String]) -> Result<(), Error> {
-    let started = Instant::now();
-    let args = Args::parse(
-        arguments,
-        &[
-            "out",
-            "model",
-            "tokenizer",
-            "requests",
-            "protocol",
-            "max_new_tokens",
-            "exclude",
-            "device",
-            "cycle_repeats",
-            "pointer_gate_floor",
-            "pointer_gate_ceiling",
-            "read_silence_layer",
-            "copy_oracle",
-            "checks",
-        ],
-    )?;
-    let out = PathBuf::from(args.required("out")?);
-    let cycle_repeats: usize = args.number("cycle_repeats", 3)?;
-    if !(2..=64).contains(&cycle_repeats) {
-        return Err("cycle_repeats must be an integer in 2..=64".into());
-    }
-    let exclude = optional_id_list(&args, "exclude")?;
-    let model_dir = PathBuf::from(args.required("model")?);
-    let tokenizer_path = PathBuf::from(args.required("tokenizer")?);
-    let request_paths = split_paths(&args.required("requests")?);
-    let version: u8 = args.number("protocol", 2)?;
-    let max_new_tokens: usize = args.number("max_new_tokens", 64)?;
-    let pointer_gate_floor: f64 = args.number("pointer_gate_floor", 0.0)?;
-    if !pointer_gate_floor.is_finite() || !(0.0..=1.0).contains(&pointer_gate_floor) {
-        return Err("pointer_gate_floor must be a probability in [0, 1]".into());
-    }
-    let pointer_gate_ceiling: f64 = args.number("pointer_gate_ceiling", 1.0)?;
-    if !pointer_gate_ceiling.is_finite() || !(0.0..=1.0).contains(&pointer_gate_ceiling) {
-        return Err("pointer_gate_ceiling must be a probability in [0, 1]".into());
-    }
-    if pointer_gate_ceiling < pointer_gate_floor {
-        return Err("pointer_gate_ceiling must not be below pointer_gate_floor".into());
-    }
-    let read_silence_layer: Option<usize> = match args.optional("read_silence_layer") {
-        None => None,
-        Some(text) => Some(
-            text.parse()
-                .map_err(|_| format!("read_silence_layer={text} is not a layer index"))?,
-        ),
-    };
-    let copy_oracle = match args.optional("copy_oracle").as_deref() {
-        None => None,
-        Some("span") => Some(()),
-        Some(other) => return Err(format!("copy_oracle={other} is not a mode (span)").into()),
-    };
-    let copy_oracle_checks = if copy_oracle.is_some() {
-        if args.optional("checks").is_none() {
-            return Err("copy_oracle=span needs the panel's checks= file (the oracle reads the expected values from it)".into());
-        }
-        Some(load_checks(&args)?)
-    } else {
-        None
-    };
-    let (device_label, device) = args.device()?;
-    report_output::claim(&out)?;
-    let result = (|| -> Result<(), Error> {
-        let answered = answer(
-            &model_dir,
-            &tokenizer_path,
-            &request_paths,
-            version,
-            max_new_tokens,
-            exclude.as_ref(),
-            &device,
-            cycle_repeats,
-            pointer_gate_floor,
-            pointer_gate_ceiling,
-            read_silence_layer,
-            copy_oracle_checks.as_ref(),
-        )?;
-        let mut report = json!({
-            "schema": "uor-r4.chat-grade-reply/1",
-            "model": model_dir.display().to_string(),
-            "model_sha256": sha256_file(&model_dir.join("model.safetensors")).ok(),
-            "parameters": answered.model.parameter_count(),
-            "tokenizer_sha256": sha256_file(&tokenizer_path)?,
-            "protocol": answered.protocol.schema,
-            "requests": request_paths.iter().map(|p| json!({"path": p.display().to_string(), "sha256": sha256_file(p).ok()})).collect::<Vec<_>>(),
-            "max_new_tokens": max_new_tokens,
-            "pointer_gate_floor": pointer_gate_floor,
-            "pointer_gate_ceiling": pointer_gate_ceiling,
-            "read_silence_layer": read_silence_layer,
-            "copy_oracle": if copy_oracle.is_some() { json!("span") } else { Value::Null },
-            "copy_oracle_checks": copy_oracle_checks.as_ref().map(|c| c.source.clone()),
-            "decoding": "greedy over the float model's next-token scores (a pointer model's mixture), ties to the lower id; each step recomputes the whole window",
-            "device": device_record(device_label),
-            "panel": answered.panel,
-            "generation_seconds": answered.generation_seconds,
-            "excluded": exclude.as_ref().map(|e| e.source.clone()),
-            "executable_sha256": sha256_file(&std::env::current_exe()?)?,
-            "wall_seconds": started.elapsed().as_secs_f64(),
-        });
-        if cycle_repeats != 3 {
-            report["cycle_repeats"] = json!(cycle_repeats);
-        }
-        if !answered.copy_oracle_record.is_empty() {
-            report["copy_oracle_spans"] = json!(answered.copy_oracle_record);
-        }
-        fs::write(
-            out.join("replies.json"),
-            serde_json::to_vec_pretty(&report)?,
-        )?;
-        println!(
-            "{} replies, {}",
-            answered.requests.len(),
-            report["panel"]["cost"]
-        );
-        Ok(())
-    })();
-    if let Err(error) = &result {
-        fs::write(
-            out.join("error.json"),
-            serde_json::to_vec_pretty(&json!({"error": error.to_string()}))?,
-        )?;
-    }
-    report_output::seal(&out)?;
-    report_output::verify(&out)?;
-    result
-}
-
-#[allow(clippy::too_many_arguments)]
-fn grade_into(
-    out: &Path,
-    model_dir: &Path,
-    tokenizer_path: &Path,
-    request_paths: &[PathBuf],
-    version: u8,
-    max_new_tokens: usize,
-    (device_label, device): &(&'static str, Device),
-    judging: &Judging<'_>,
-    exclude: Option<&IdList>,
-    started: Instant,
-) -> Result<(), Error> {
-    let Answered {
-        protocol,
-        requests: _,
-        model,
-        panel,
-        generation_seconds,
-        copy_oracle_record: _,
-    } = answer(
-        model_dir,
-        tokenizer_path,
-        request_paths,
-        version,
-        max_new_tokens,
-        exclude,
-        device,
-        3,
-        0.0,
-        1.0,
-        None,
-        None,
-    )?;
-    let judged = judging.judge(&panel)?;
-    let mut report = json!({
-        "schema": "uor-r4.chat-grade/1",
-        "model": model_dir.display().to_string(),
-        "model_sha256": sha256_file(&model_dir.join("model.safetensors")).ok(),
-        "parameters": model.parameter_count(),
-        "tokenizer_sha256": sha256_file(tokenizer_path)?,
-        "protocol": protocol.schema,
-        "requests": request_paths.iter().map(|p| json!({"path": p.display().to_string(), "sha256": sha256_file(p).ok()})).collect::<Vec<_>>(),
-        "max_new_tokens": max_new_tokens,
-        "decoding": "greedy",
-        "device": device_record(device_label),
-        "generation_seconds": generation_seconds,
-        "excluded": exclude.map(|e| e.source.clone()),
-    });
-    let object = report.as_object_mut().ok_or("report is not an object")?;
-    object.extend(judged);
-    object.insert(
-        "executable_sha256".into(),
-        json!(sha256_file(&std::env::current_exe()?)?),
-    );
-    object.insert(
-        "wall_seconds".into(),
-        json!(started.elapsed().as_secs_f64()),
-    );
-    fs::write(out.join("report.json"), serde_json::to_vec_pretty(&report)?)?;
-    println!(
-        "actual {} | control {}",
-        report["actual"], report["control_derangement"]
-    );
-    Ok(())
+/// `reply`: retired in `chat-grade` under D24/D29 (historical CPU/Candle `StackModel` is quarantined).
+fn reply(_arguments: &[String]) -> Result<(), Error> {
+    Err(
+        "D24/D29: historical CPU/Candle StackModel reply generation in `chat-grade reply` is \
+         retired; generate replies on the admitted native GPU path and score them deterministically \
+         with `chat-grade grade-replies`"
+            .into(),
+    )
 }
 
 /// Each panel row's id, category and conversation as (user, reply) pairs,
@@ -1954,51 +1746,44 @@ fn panel_conversations(
         .collect()
 }
 
-/// `conversation` with its last reply replaced by `reply`.
-fn with_last_reply(conversation: &[(String, String)], reply: &str) -> Vec<(String, String)> {
-    let mut swapped = conversation.to_vec();
-    if let Some(last) = swapped.last_mut() {
-        last.1 = reply.to_owned();
-    }
-    swapped
-}
-
-/// Grade every conversation of a `reply_panel` record, its derangement
-/// control (the reply graded as the answer to the next request's
+/// Grade every conversation of a `reply_panel` record deterministically under D28,
+/// along with its derangement control (the reply checked against the next request's
 /// conversation) and each constant reply in place of the model's. Returns the
 /// graded rows in panel order; [`summarize`] turns them into tallies.
-fn judge_panel(panel: &Value, grader: &Grader, constants: &[String]) -> Result<Vec<Value>, Error> {
+fn judge_panel(panel: &Value, checks: &Checks, constants: &[String]) -> Result<Vec<Value>, Error> {
     let conversations = panel_conversations(panel)?;
     let n = conversations.len();
     let mut graded_rows = Vec::new();
     for (i, (id, category, conversation)) in conversations.iter().enumerate() {
-        let grades = grader.grade(conversation)?;
-        let reply = conversation
-            .last()
-            .map(|(_, r)| r.clone())
-            .unwrap_or_default();
-        let control_grades =
-            grader.grade(&with_last_reply(&conversations[(i + 1) % n].2, &reply))?;
-        let constant_grades = constants
+        let users: Vec<&str> = conversation.iter().map(|(u, _)| u.as_str()).collect();
+        let reply = conversation.last().map(|(_, r)| r.as_str()).unwrap_or("");
+        let verdict = checks.verdict(id, &users, reply);
+        let (next_id, _, next_conv) = &conversations[(i + 1) % n];
+        let next_users: Vec<&str> = next_conv.iter().map(|(u, _)| u.as_str()).collect();
+        let control_verdict = checks.verdict(next_id, &next_users, reply);
+        let constant_grades: Vec<Value> = constants
             .iter()
-            .map(|c| Ok(grader.grade(&with_last_reply(conversation, c))?.record()))
-            .collect::<Result<Vec<Value>, Error>>()?;
+            .map(|c| checks.verdict(id, &users, c).record())
+            .collect();
         graded_rows.push(json!({
-            "id": id, "category": category,
+            "id": id,
+            "category": category,
+            "status": verdict.status,
+            "check_kind": verdict.check_kind,
+            "check_pass": verdict.check_pass,
+            "reason": verdict.reason,
             "conversation": conversation.iter().map(|(u, a)| json!({"user": u, "assistant": a})).collect::<Vec<_>>(),
-            "grades": grades.record(),
-            "control_grades": control_grades.record(),
+            "grades": verdict.record(),
+            "control_grades": control_verdict.record(),
             "constant_grades": constant_grades,
         }));
     }
     Ok(graded_rows)
 }
 
-/// `grade-replies`: grade replies another tool already produced -- a
-/// `chat-grade reply` `replies.json` (`panel`) or a `geometric-stack lut-chat`
-/// `chat.json` (`record`, an integer engine's replies) -- with the same
-/// grader, checks, controls and paired tests as `grade`, so a served integer
-/// artifact and its float model are judged identically.
+/// `grade-replies`: deterministically grade replies another tool already produced --
+/// a `replies.json` (`panel`) or a `geometric-stack lut-chat` `chat.json` (`record`).
+/// Any neural `grader=` or `ollama_url=` argument is refused under D28.
 fn grade_replies(arguments: &[String]) -> Result<(), Error> {
     let started = Instant::now();
     let args = Args::parse(
@@ -2013,14 +1798,13 @@ fn grade_replies(arguments: &[String]) -> Result<(), Error> {
             "constants",
         ],
     )?;
+    refuse_neural_grader(&args)?;
     let out = PathBuf::from(args.required("out")?);
     let ill = ill_posed(&args)?;
     let checks = load_checks(&args)?;
     let constants = constants(&args)?;
     let replies_path = PathBuf::from(args.required("replies")?);
-    let grader = grader_from(&args);
     let judging = Judging {
-        grader: &grader,
         ill: &ill,
         checks: &checks,
         constants: &constants,
@@ -2555,6 +2339,7 @@ fn row_grades(record: &Value) -> Result<Grades, Error> {
     Ok(Grades {
         fluent: verdict("fluent")?,
         relevant: verdict("relevant")?,
+        deterministic: record.get("status").is_some(),
         raw: [String::new(), String::new()],
     })
 }
@@ -5306,5 +5091,160 @@ mod tests {
             sentences("One. Two! Three? four"),
             ["One.", "Two!", "Three?", "four"]
         );
+    }
+
+    #[test]
+    fn d28_refuses_neural_grader_and_cpu_reply() {
+        let with_grader = Args::parse(&["grader=qwen2.5:7b".to_owned()], &["grader"]).unwrap();
+        let err = refuse_neural_grader(&with_grader).unwrap_err().to_string();
+        assert!(err.contains("D28"), "{err}");
+
+        let with_ollama = Args::parse(
+            &["ollama_url=http://127.0.0.1:11434".to_owned()],
+            &["ollama_url"],
+        )
+        .unwrap();
+        let err = refuse_neural_grader(&with_ollama).unwrap_err().to_string();
+        assert!(err.contains("D28"), "{err}");
+
+        let clean = Args::parse(&[], &["grader", "ollama_url"]).unwrap();
+        assert!(refuse_neural_grader(&clean).is_ok());
+
+        let grade_err = grade(&[]).unwrap_err().to_string();
+        assert!(grade_err.contains("D28"), "{grade_err}");
+
+        let reply_err = reply(&[]).unwrap_err().to_string();
+        assert!(reply_err.contains("D24"), "{reply_err}");
+    }
+
+    #[test]
+    fn deterministic_judge_panel_and_blocked_rows() {
+        let checks = embedded_checks().unwrap();
+        let panel_input = json!({
+            "rows": [
+                {
+                    "id": "ask-02",
+                    "category": "simple_question",
+                    "turns": [{"user": "What does a bee make?", "reply": "Bees make honey."}]
+                },
+                {
+                    "id": "ask-06",
+                    "category": "simple_question",
+                    "turns": [{"user": "Name a farm animal.", "reply": "A lion is an animal."}]
+                },
+                {
+                    "id": "talk-01",
+                    "category": "smalltalk",
+                    "turns": [{"user": "Good morning!", "reply": "Good morning! How are you?"}]
+                }
+            ]
+        });
+        let ill = IdList {
+            ids: BTreeSet::new(),
+            source: json!("none"),
+        };
+        let constants = Constants {
+            replies: vec!["I don't know.".to_owned()],
+            source: json!("test"),
+        };
+        let judging = Judging {
+            ill: &ill,
+            checks: &checks,
+            constants: &constants,
+        };
+        let report_fields = judging.judge(&panel_input).unwrap();
+        let report = Value::Object(report_fields);
+        let rows = judged_rows(&report).unwrap();
+        assert_eq!(rows.len(), 3);
+
+        assert_eq!(rows[0]["status"], "PASS");
+        assert_eq!(rows[0]["check_kind"], "any");
+        assert_eq!(rows[0]["check_pass"], true);
+        assert_eq!(rows[0]["reason"], "passed_deterministic_check");
+
+        assert_eq!(rows[1]["status"], "FAIL");
+        assert_eq!(rows[1]["check_kind"], "reply_exact");
+        assert_eq!(rows[1]["check_pass"], false);
+        assert_eq!(rows[1]["reason"], "contains_forbidden_term");
+
+        assert_eq!(rows[2]["status"], "BLOCKED");
+        assert!(rows[2]["check_kind"].is_null());
+        assert!(rows[2]["check_pass"].is_null());
+        assert_eq!(rows[2]["reason"], "open_ended_no_exact_anchor");
+
+        let actual = &report["actual"];
+        assert_eq!(actual["replies"], 3);
+        assert_eq!(actual["checked_rows"], 2);
+        assert_eq!(actual["check_pass"], 1);
+        assert_eq!(actual["check_fail"], 1);
+        assert_eq!(actual["blocked_rows"], 1);
+        assert_eq!(actual["blocked_reason"], "open_ended_no_exact_anchor");
+        assert_eq!(actual["acceptable"], 1);
+    }
+
+    #[test]
+    fn panel_v5_and_reply_panel_negative_controls() {
+        let parse = |text: &str| serde_json::from_str::<Vec<Request>>(text).unwrap();
+        let checks = embedded_checks().unwrap();
+
+        // 1. Open reply panel checks (88 checked rows out of 232 total panel rows; 144 BLOCKED).
+        let reply_checks = parse_checks(include_str!(
+            "../../../../data/panels/reply-panel-checks.tsv"
+        ))
+        .unwrap();
+        assert_eq!(reply_checks.len(), 88);
+
+        let mut checked_by_kind: BTreeMap<&str, usize> = BTreeMap::new();
+        for check in reply_checks.values() {
+            *checked_by_kind.entry(check.kind.name()).or_default() += 1;
+        }
+        assert_eq!(
+            checked_by_kind,
+            BTreeMap::from([
+                ("abstain_exact", 40),
+                ("any", 16),
+                ("clarify", 27),
+                ("reply_exact", 5),
+            ])
+        );
+
+        let parse_lines = |text: &str| -> Vec<String> {
+            text.lines()
+                .map(str::trim)
+                .filter(|l| !l.is_empty() && !l.starts_with('#'))
+                .map(str::to_owned)
+                .collect()
+        };
+        let canned = parse_lines(include_str!(
+            "../../../../data/panels/reply-panel-canned.txt"
+        ));
+        let controls = parse_lines(include_str!(
+            "../../../../data/panels/reply-panel-controls.txt"
+        ));
+        assert!(!canned.is_empty());
+        assert!(!controls.is_empty());
+        for constant in canned.iter().chain(&controls) {
+            let mut pass = 0usize;
+            for id in reply_checks.keys() {
+                if checks.of(id, &[], constant) == Some(true) {
+                    pass += 1;
+                }
+            }
+            assert_eq!(pass, 0, "constant should score 0/88: {constant}");
+        }
+
+        // 2. Frozen conversational-v5 panel (64 rows = 40 exact + 24 abstain_exact, 0 BLOCKED).
+        let v5_all = parse(include_str!(
+            "../../../../data/panels/conversational-v5.json"
+        ));
+        assert_eq!(v5_all.len(), 64);
+        let default_constants: Vec<String> =
+            DEFAULT_CONSTANTS.iter().map(|c| (*c).to_owned()).collect();
+        let v5_controls = check_only_controls(&v5_all, &checks, &default_constants).unwrap();
+        let v5_mem = &v5_controls["multi_turn_memory"];
+        assert_eq!(v5_mem["binding_swap"]["checked_rows"], 40);
+        assert_eq!(v5_mem["binding_swap"]["check_pass"], 0);
+        assert_eq!(v5_mem["expected_value"]["checked_rows"], 40);
+        assert_eq!(v5_mem["expected_value"]["check_pass"], 40);
     }
 }
