@@ -14,6 +14,8 @@ import importlib
 from dataclasses import dataclass, field
 from typing import Any, Callable, Iterable
 
+from pathlib import Path
+
 from core import HarnessPaths
 from registries import Registry
 
@@ -195,6 +197,109 @@ def _own_rules() -> list[Rule]:
             check=_check_mistake_guards,
             rationale="a lesson without a guard is a note that will be forgotten again",
         ),
+        Rule(
+            id="harness.owner_rules_applied",
+            description="every owner rule scoped to everything appears on a pre-registration sheet",
+            severity="warn",
+            check=_check_owner_rules_applied,
+            rationale=(
+                "the rule text a lab reads IS the rule text it follows. D31 and D32 were both "
+                "issued and neither reached the sheet: D32 supersedes D25's floating-point "
+                "allowance, so a sheet citing D25 and not D32 told a lab that scalar "
+                "floating-point GPU work was PERMITTED - the opposite of the rule in force. "
+                "That is not a missing footnote, it is an instruction to do the prohibited thing, "
+                "and nothing compared the two lists."
+            ),
+        ),
+    ]
+
+
+def _applicable_rules_from_source() -> tuple[str, ...]:
+    """The rule ids `prep` puts on a sheet, read out of its source.
+
+    **Read from source rather than imported**, because the point of the check is to compare the
+    sheet's list against the registry - importing the same tuple would compare a value with itself.
+    The tuple is a literal in `prep.py`; if it stops being one, this returns empty and the rule
+    says so rather than passing.
+    """
+    import re
+
+    prep = Path(__file__).with_name("prep.py")
+    try:
+        text = prep.read_text(encoding="utf-8")
+    except OSError:
+        return ()
+    match = re.search(r"APPLICABLE_RULES\s*=\s*\(([^)]*)\)", text)
+    if not match:
+        return ()
+    return tuple(re.findall(r'"([^"]+)"', match.group(1)))
+
+
+def _check_owner_rules_applied(paths: HarnessPaths, reg: Registry) -> list[RuleResult]:
+    """Every owner rule scoped to `all` must appear on a pre-registration sheet.
+
+    **This is the durable fix for D31 and D32 going missing.** Both were issued and neither
+    reached the sheet - and the reason nothing caught it is that **no rule compared the sheet's
+    list against the registry.** `parity` keeps the two implementations' tuples equal to each
+    other; nothing kept either equal to the registry.
+
+    Scoped to `all` deliberately: a rule scoped to one milestone or one lab is not owed a place on
+    every sheet, so requiring it would produce findings that are wrong rather than missing.
+
+    **`OWNER-*` entries are excluded, and that exclusion is a standing question rather than a
+    decision.** Five of them are scoped `all` and none reaches a sheet: no activations, no matmul,
+    MLP scope, rule freeze, ternary/XOR. They are **sub-clauses of D23 and D25's subject matter**,
+    and the sheet lists the `D`-rules as the index - so omitting them may be the design. **But a lab
+    reading the sheet cannot tell the difference between "covered by D23" and "nobody added it."**
+    The clean resolution is a distinct scope value (a clause, not a rule a lab must be handed), and
+    that is a registry change affecting every lab, so this rule exempts them and **names them here
+    rather than hiding the question behind a green check.**
+    """
+    if reg is None or reg.milestones is None:
+        return []
+    owed = sorted(
+        str(r.get("id", ""))
+        for r in reg.milestones.owner_rules
+        if isinstance(r, dict)
+        and str(r.get("scope", "")) == "all"
+        and r.get("id")
+        # See the docstring: owned as a question, not settled here.
+        and not str(r.get("id", "")).startswith("OWNER-")
+    )
+    applied = _applicable_rules_from_source()
+    if not applied:
+        return [
+            RuleResult(
+                rule_id="harness.owner_rules_applied",
+                severity="warn",
+                ok=False,
+                message=(
+                    "could not read APPLICABLE_RULES from scripts/harness/prep.py, so no sheet "
+                    "list could be compared against the registry"
+                ),
+                path="scripts/harness/prep.py",
+                fix="restore the APPLICABLE_RULES tuple literal, or teach this rule its new shape",
+            )
+        ]
+    missing = [rid for rid in owed if rid not in applied]
+    if not missing:
+        return []
+    return [
+        RuleResult(
+            rule_id="harness.owner_rules_applied",
+            severity="warn",
+            ok=False,
+            message=(
+                f"owner rule(s) scoped to everything are absent from a pre-registration sheet: "
+                f"{', '.join(missing)} - the sheet a lab follows does not state them"
+            ),
+            path="scripts/harness/prep.py",
+            fix=(
+                "add them to APPLICABLE_RULES in BOTH scripts/harness/prep.py and "
+                "crates/uor-r4-harness/src/prep.rs, and give each text in "
+                "docs/harness/milestones.json's owner_rules"
+            ),
+        )
     ]
 
 

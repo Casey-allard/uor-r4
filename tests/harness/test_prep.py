@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import pathlib
 import sys
 import tempfile
 import unittest
@@ -589,3 +590,56 @@ def capture_rc(fn) -> int:
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestOwnerRulesApplied(unittest.TestCase):
+    """`harness.owner_rules_applied` - the durable fix for D31 and D32 going missing.
+
+    Both rules were issued and neither reached a pre-registration sheet, and nothing caught it
+    because **no rule compared the sheet's list against the registry**. `parity` keeps the two
+    implementations' tuples equal to each other; nothing kept either equal to the registry.
+    """
+
+    def _paths(self):
+        """Paths for the REAL repo, so the rule runs against the committed registry."""
+        repo = pathlib.Path(__file__).resolve().parents[2]
+        return core.HarnessPaths(
+            repo=repo, harness=repo / "docs" / "harness", state=repo / ".harness"
+        )
+
+    def _run(self):
+        import checkrules
+
+        paths = self._paths()
+        reg = registries.Registry.load(paths)
+        rule = next(r for r in checkrules.rules() if r.id == "harness.owner_rules_applied")
+        return [r for r in rule.check(paths, reg) if not r.ok]
+
+    def test_the_sheet_cites_every_owner_rule_scoped_to_all(self):
+        self.assertEqual(self._run(), [])
+
+    def test_the_rule_reads_the_sheet_list_from_source(self):
+        """**From source, not by import.** Importing the same tuple would compare a value with
+        itself, and the check would pass no matter what the registry said."""
+        import checkrules
+
+        applied = checkrules._applicable_rules_from_source()
+        self.assertIn("D32", applied, "D32 is an owner rule scoped to all")
+        self.assertIn("D31", applied)
+        self.assertGreaterEqual(len(applied), 9)
+
+    def test_a_dropped_rule_is_reported(self):
+        """The probe that proves the rule can fail: with the tuple shortened, D32 must be named."""
+        import checkrules
+
+        rule = next(r for r in checkrules.rules() if r.id == "harness.owner_rules_applied")
+        original = checkrules._applicable_rules_from_source
+        try:
+            checkrules._applicable_rules_from_source = lambda: tuple(
+                r for r in original() if r != "D32"
+            )
+            paths = self._paths()
+            found = rule.check(paths, registries.Registry.load(paths))
+            self.assertTrue(any("D32" in r.message for r in found), found)
+        finally:
+            checkrules._applicable_rules_from_source = original
