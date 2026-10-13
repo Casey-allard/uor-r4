@@ -1,5 +1,23 @@
 # Branch archive
 
+## October 13 — Claude starling branches with softmax-based training aids (inactive under D23)
+
+[Patch](claude_starling-language-softmax-inactive-20261013.patch), sha256
+`5de976dc28565293c0c8ebcfcc6b367ec5507e5d10d2fd6d47e80a020a0d8415`, `git diff 503a6d0b5 7bdc5393e` of
+branch `claude/starling-language` (tip `7bdc5393e` "geometric-stack starling: refuse qat/transport_snap
+with a route; …", merge base `503a6d0b5`, two commits, 1 file / 165 added lines): the
+`read_route=starling:…` trainer flag and the starling training-only aids — a softmax-over-kept gradient
+surrogate (`starling_surrogate`), selector KL distillation from the dense content teacher
+(`starling_distill`), tree-salience and rank-readout regression. [Patch](claude_starling-confirm-softmax-inactive-20261013.patch),
+sha256 `d094e44f15340f7babcaf3f4fd33d09cd72605202ae4804ba1810a3ac7aa1e5e`, `git diff 503a6d0b5 b6ab5af2d`
+of branch `claude/starling-confirm` (tip `b6ab5af2d` "Isolation knob: starling_bootstrap_pure …", three
+commits, 2 files / 91 added, 8 removed): a device-side teacher age table, its test, and a knob that mutes
+the starling read during the dense bootstrap. **Disposition: inactive evidence, not merged.** Both depend
+on a normalized-exponential teacher, surrogate or dense bootstrap, which D23 prohibits in training; the
+starling line resumes after rung 0b's rank-consistent gradient. The measured results they produced stay
+in their merged records (#2222, #2230, #2233, #2241, #2249) at their original scope. Both remote branches
+were deleted after this archive merged (owner: no branch sprawl, 13 October 2026).
+
 ## October 13 — superseded Kimi D23 learning-law draft branch
 
 [Patch](kimi_d23-learning-law-superseded-20261012.patch), sha256

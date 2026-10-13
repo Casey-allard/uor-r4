@@ -1,0 +1,254 @@
+diff --git a/crates/uor-r4-training/examples/geometric-stack.rs b/crates/uor-r4-training/examples/geometric-stack.rs
+index ac20f18e9..726b051b6 100644
+--- a/crates/uor-r4-training/examples/geometric-stack.rs
++++ b/crates/uor-r4-training/examples/geometric-stack.rs
+@@ -350,7 +350,7 @@ use uor_r4_training::geometric_stack::{
+     parse_pointer_select, quaternion_served_refusal, ActivationSnap, D11Interim, MapCodec,
+     PointerConfig, PointerIdentity, PointerSelect, Precision, PrimeRoute, QuaternionSnap,
+     QuaternionWeights, ReadLineage, ReadScore, ReadWeighting, RotationGroup, ServedStatistics,
+-    StackAdamW, StackArch, StackConfig, StackModel, TransportSnap, TransportUsage,
++    StackAdamW, StackArch, StackConfig, StackModel, StarlingRoute, TransportSnap, TransportUsage,
+ };
+ use uor_r4_training::lut_export::export_llama;
+ use uor_r4_training::stack_address::{RouteConfig, RouteNull};
+@@ -784,6 +784,23 @@ struct Settings {
+     /// quaternion map input snapped to the weights' exact set
+     /// (straight-through); saved in the model; `none` (default).
+     activation_snap: ActivationSnap,
++    /// `read_route=starling:M:K[:content][:shared][:ranked][:tree]`: every read
++    /// is the starling read (600-cell vertex lookup, no softmax at runtime),
++    /// saved in the model; `none` (default) keeps the read.
++    read_route: Option<StarlingRoute>,
++    /// Training-only starling aids, as in `mqar-bench` (never saved):
++    /// `starling_surrogate=true` (softmax-over-kept gradient through q.k);
++    /// `starling_anneal=F` (the address helper, annealed to zero at F of the
++    /// steps); `starling_distill=W` with `starling_distill_start=F` (the
++    /// selector KL from the dense content teacher, from F of the steps);
++    /// `starling_salience=W` (tree salience regression, with the KL);
++    /// `starling_rank_distill=W` (readout regression, with the KL).
++    starling_surrogate: bool,
++    starling_anneal: Option<f64>,
++    starling_distill: Option<f64>,
++    starling_distill_start: f64,
++    starling_salience: Option<f64>,
++    starling_rank_distill: Option<f64>,
+     /// `e8_memory=LAYERS:HEADS:K`: those layers' MLPs become E8 orbit
+     /// memories ([`StackModel::set_e8_memory`]); `none` (default) keeps them.
+     e8_memory: Option<uor_r4_training::e8_memory::E8MemoryConfig>,
+@@ -1258,6 +1275,15 @@ impl Settings {
+             "quaternion_snap": self.quaternion_snap.name(),
+             "activation_snap": self.activation_snap.trained_name().unwrap_or("none"),
+             "e8_memory": self.e8_memory.as_ref().map(|e8| e8.name()),
++            "read_route": self.read_route.map(|route| route.name()),
++            "starling_training": json!({
++                "surrogate": self.starling_surrogate,
++                "anneal": self.starling_anneal,
++                "distill": self.starling_distill,
++                "distill_start": self.starling_distill_start,
++                "salience": self.starling_salience,
++                "rank_distill": self.starling_rank_distill,
++            }),
+             "softsort_tau": self.softsort_tau.map(|(start, end)| json!({"start": start, "end": end, "schedule": "geometric over steps, training forward only"})),
+             "steps": self.steps, "batch": self.batch, "lr": self.lr,
+             "warmup": self.warmup, "min_lr": self.min_lr, "weight_decay": self.weight_decay,
+@@ -1809,6 +1835,33 @@ fn train_settings(args: &Args) -> Result<Settings> {
+         e8_memory: uor_r4_training::e8_memory::E8MemoryConfig::parse(
+             args.optional("e8_memory").as_deref().unwrap_or("none"),
+         )?,
++        read_route: uor_r4_training::geometric_stack::parse_read_route(
++            args.optional("read_route").as_deref().unwrap_or("none"),
++        )?,
++        starling_surrogate: args.number("starling_surrogate", false)?,
++        starling_anneal: optional_fraction(args, "starling_anneal")?,
++        starling_distill: args
++            .optional("starling_distill")
++            .map(|text| {
++                text.parse::<f64>()
++                    .map_err(|_| invalid(format!("invalid starling_distill={text}")))
++            })
++            .transpose()?,
++        starling_distill_start: args.number("starling_distill_start", 0.0f64)?,
++        starling_salience: args
++            .optional("starling_salience")
++            .map(|text| {
++                text.parse::<f64>()
++                    .map_err(|_| invalid(format!("invalid starling_salience={text}")))
++            })
++            .transpose()?,
++        starling_rank_distill: args
++            .optional("starling_rank_distill")
++            .map(|text| {
++                text.parse::<f64>()
++                    .map_err(|_| invalid(format!("invalid starling_rank_distill={text}")))
++            })
++            .transpose()?,
+         softsort_tau: softsort_tau_arg(args)?,
+         steps: args.number("steps", 7324)?,
+         batch: args.number("batch", 16)?,
+@@ -2273,6 +2326,67 @@ fn load_checkpoint(
+     ))
+ }
+ 
++/// An optional fraction of the steps in (0, 1] (`starling_anneal=`).
++fn optional_fraction(args: &Args, key: &str) -> Result<Option<f64>> {
++    match args.optional(key) {
++        None => Ok(None),
++        Some(text) => match text.parse::<f64>() {
++            Ok(value) if value > 0.0 && value <= 1.0 => Ok(Some(value)),
++            _ => Err(invalid(format!(
++                "{key} is a fraction in (0, 1], not {text}"
++            ))),
++        },
++    }
++}
++
++/// Applies the starling read and its training-only aids (`read_route=` and
++/// the `starling_*` settings). A fresh model takes the route before its
++/// optimizer is built (the route adds variables); a loaded model must
++/// already carry the same route. Never with a replica or bf16.
++fn apply_starling(settings: &Settings, model: &mut StackModel) -> Result<()> {
++    let Some(route) = settings.read_route else {
++        let any = settings.starling_surrogate
++            || settings.starling_anneal.is_some()
++            || settings.starling_distill.is_some()
++            || settings.starling_salience.is_some()
++            || settings.starling_rank_distill.is_some();
++        if any {
++            return Err(invalid(
++                "the starling_* settings need read_route=starling:...",
++            ));
++        }
++        return Ok(());
++    };
++    if settings.qat || settings.transport_snap.is_some() {
++        return Err(invalid(
++            "read_route=starling runs without qat and transport_snap",
++        ));
++    }
++    if model.read_route().is_some_and(|saved| saved != route) {
++        return Err(invalid(
++            "the model already carries a different starling route",
++        ));
++    }
++    if settings.data_parallel != 1 || settings.precision.is_bf16() {
++        return Err(invalid(
++            "read_route=starling runs with data_parallel=1 and precision=f32",
++        ));
++    }
++    if !(0.0..1.0).contains(&settings.starling_distill_start)
++        || (settings.starling_distill_start > 0.0 && settings.starling_distill.is_none())
++    {
++        return Err(invalid(
++            "starling_distill_start is a fraction in [0, 1) and needs starling_distill",
++        ));
++    }
++    model.set_read_route(Some(route))?;
++    model.set_starling_surrogate(settings.starling_surrogate)?;
++    model.set_starling_distill(settings.starling_distill)?;
++    model.set_starling_salience(settings.starling_salience)?;
++    model.set_starling_rank_distill(settings.starling_rank_distill)?;
++    Ok(())
++}
++
+ fn train(settings: &Settings, out: &Path) -> Result<()> {
+     let device = settings.device.clone();
+     // `init=`'s files are hashed once, here, before the model is loaded.
+@@ -2359,6 +2473,7 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
+                 }
+                 model.set_e8_memory(e8.clone())?;
+             }
++            apply_starling(settings, &mut model)?;
+             let optimizer = StackAdamW::new(&model, settings.weight_decay, settings.clip)?;
+             let progress = Progress {
+                 step: 0,
+@@ -2377,6 +2492,13 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
+             if model.e8_memory() != settings.e8_memory.as_ref() {
+                 return Err(invalid("a resume keeps the checkpoint's e8_memory"));
+             }
++            let mut model = model;
++            // A resume keeps the checkpoint's route: its optimizer state was
++            // built with exactly that route's variables.
++            if model.read_route() != settings.read_route {
++                return Err(invalid("a resume keeps the checkpoint's read_route"));
++            }
++            apply_starling(settings, &mut model)?;
+             (model, optimizer, progress, Some(state))
+         }
+     };
+@@ -2443,6 +2565,8 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
+         progress.curve.push(point);
+     }
+     let mut window_loss = (0f64, 0usize);
++    // The starling auxiliary terms over the window (training only).
++    let mut starling_aux_window = 0f64;
+     let mut stopped_early = false;
+     // This process's updates: their seconds, and the served representation's
+     // work inside them.
+@@ -2480,6 +2604,36 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
+         }
+         let served_before = model.served_statistics()?;
+         let (value, grads) = match &replica {
++            None if model.read_route().is_some() => {
++                // The starling read's training-only aids: the annealed
++                // address helper, the KL from its start, and the auxiliary
++                // terms added to the language loss (reported on their own).
++                let step = progress.step;
++                if let Some(fraction) = settings.starling_anneal {
++                    let span = (fraction * settings.steps as f64).max(1.0);
++                    let alpha = (1.0 - step as f64 / span).max(0.0);
++                    model.set_starling_dense((alpha > 0.0).then_some(alpha))?;
++                }
++                if settings.starling_distill.is_some() {
++                    let on = step as f64 >= settings.starling_distill_start * settings.steps as f64;
++                    model.set_starling_distill(settings.starling_distill.filter(|_| on))?;
++                }
++                uor_r4_training::geometric_stack::starling_aux_take();
++                uor_r4_training::geometric_stack::starling_training_forward(true);
++                let loss = model.loss(&ids, &targets, settings.batch, time);
++                uor_r4_training::geometric_stack::starling_training_forward(false);
++                model.set_starling_dense(None)?;
++                let language = loss?;
++                let value = f64::from(language.to_scalar::<f32>()?);
++                let total = match uor_r4_training::geometric_stack::starling_aux_take() {
++                    Some(aux) => {
++                        starling_aux_window += f64::from(aux.detach().to_scalar::<f32>()?);
++                        language.add(&aux)?
++                    }
++                    None => language,
++                };
++                (value, total.backward()?)
++            }
+             None => {
+                 let loss = model.loss(&ids, &targets, settings.batch, time)?;
+                 (f64::from(loss.to_scalar::<f32>()?), loss.backward()?)
+@@ -2555,6 +2709,8 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
+             let mut point = json!({
+                 "step": progress.step, "tokens": tokens, "lr": lr,
+                 "train_loss": window_loss.0 / window_loss.1.max(1) as f64,
++                "starling_aux": (model.read_route().is_some())
++                    .then(|| starling_aux_window / window_loss.1.max(1) as f64),
+                 "dev": evaluation.record(), "grad_norm": grad_norm,
+                 "train_seconds": progress.train_seconds,
+                 "tokens_per_second": tokens as f64 / progress.train_seconds,
+@@ -2566,6 +2722,7 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
+             eprintln!("{point}");
+             progress.curve.push(point);
+             window_loss = (0.0, 0);
++            starling_aux_window = 0.0;
+         }
+         if settings.checkpoint_every > 0
+             && progress.step % settings.checkpoint_every == 0
+@@ -6743,6 +6900,13 @@ fn main() -> Result<()> {
+                     "e8_memory",
+                     "softsort_tau_start",
+                     "softsort_tau_end",
++                    "read_route",
++                    "starling_surrogate",
++                    "starling_anneal",
++                    "starling_distill",
++                    "starling_distill_start",
++                    "starling_salience",
++                    "starling_rank_distill",
+                     "data_parallel",
+                     "tf32",
+                     "precision",
