@@ -1,6 +1,6 @@
 # UOR-R4 Geometric Language Model - roadmap
 
-Updated 12 October 2026. **Pre-alpha.** Useful conversation, broad reasoning, coding, frontier
+Updated 13 October 2026. **Pre-alpha.** Useful conversation, broad reasoning, coding, frontier
 capability and lower complete-path energy are not established.
 
 Milestones M1-M8 below, with the standing serving rules in section 0. Live status and claims:
@@ -34,8 +34,8 @@ closes only when its acceptance is met on the saved model.
 
 | | Milestone | Status | Goal and acceptance summary | Latest result |
 |---|---|---|---|---|
-| M1 | [Language base](https://github.com/UOR-Foundation/uor-r4/issues/2029) (Kimi, DeepSeek; Claude read source) | in progress; training held | Existing language/chat/memory obligations unchanged; obsolete metric clauses need prospective owner amendment | Historical memory20/40, reply37/232; historical19.9M served0.886838 BPB at512 windows; operator preparation, no new result |
-| M2 | [Grounded reply from exact memory](https://github.com/UOR-Foundation/uor-r4/issues/2030) (Codex) | in progress; training/rental held | Saved≥256/512 AND genuinely fresh≥40%, existing panels/graders unchanged | Saved437/512 + opened0/128 remain panel fitting; fresh NOT_RUN. Whole-path recovery source delivered; sampled law blocked, CUDA execution unqualified, count6/3 with no reset |
+| M1 | [Language base](https://github.com/UOR-Foundation/uor-r4/issues/2029) (Kimi, DeepSeek; Claude read source) | in progress; training held | Existing language/chat/memory obligations unchanged; obsolete metric clauses need prospective owner amendment | Historical memory20/40, reply37/232; historical19.9M served0.886838 BPB at512 windows; OP1 Hamilton gate and OP2 fused Hamilton-projection operator merged; operator preparation continues, no new result |
+| M2 | [Grounded reply from exact memory](https://github.com/UOR-Foundation/uor-r4/issues/2030) (Codex) | in progress; training/rental held | Saved≥256/512 AND genuinely fresh≥40%, existing panels/graders unchanged | Saved437/512 + opened0/128 remain panel fitting; fresh NOT_RUN. Whole-path recovery source delivered; sampled law blocked, CUDA execution unqualified, count7/3 with no reset |
 | M3 | [Durable conversation memory](https://github.com/UOR-Foundation/uor-r4/issues/2031) | in progress | Memory persists across sessions and answers stay grounded | evaluator and session delivered; not qualified |
 | M4 | [One served model, D11 and CLI](https://github.com/UOR-Foundation/uor-r4/issues/2032) (Claude read source) | in progress; compute blocked | One model under D11 and full D23–D25 compliance; old runtime-only/metric clauses require prospective owner amendment | Historical artifacts/components retained; default prohibited paths remain. No old SoftSort/dense-bootstrap/teacher follow-up; compliant trunk/rung0b precede teacher-free starling |
 | M5 | [Laptop cost, D5](https://github.com/UOR-Foundation/uor-r4/issues/2033) | not started | Measured J/token, RSS and tokens/s on the M1 with selected parameter access | none |

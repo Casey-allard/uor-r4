@@ -173,4 +173,5 @@
 <text x="520" y="598" font-size="12.5" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">rank-table weight</text>
 <text x="40" y="648" font-size="14" fill="#5f6b7a">Rank weights come from a fixed table indexed by rank; the sign-bit codes use the shared BitCode primitive (planned).</text>
 <text x="40" y="669" font-size="14" fill="#5f6b7a">Contrast: today's read uses exp-table-emulated softmax over Lorentz/Dot scores.</text>
+<text x="40" y="690" font-size="14" fill="#7a4f00">Pre-registered mechanism (M1 #2029), not a measured current path: no run of this read has reported.</text>
 </svg>

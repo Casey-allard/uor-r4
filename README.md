@@ -92,13 +92,15 @@ Tracker: [#2028](https://github.com/UOR-Foundation/uor-r4/issues/2028). Measured
 
 ## How it works
 
-> **Mechanism briefs:** [docs/mechanisms/](docs/mechanisms/README.md) has one page per novel mechanism under test: flock/rank-table reads, exact addressed memory, the identity-keyed pointer, read binding and protected legal construction. Each states the idea, what has been tried, and what a fair test needs.
+> **Mechanism briefs:** [docs/mechanisms/](docs/mechanisms/README.md) has one page per novel mechanism under test: flock/rank-table reads, exact addressed memory, the identity-keyed pointer, read binding, protected legal construction, the invariant-addressed read and the ternary/XOR evidence fact sheet. Each states the idea, what has been tried, and what a fair test needs.
 
 <img src="docs/figures/geometry-stack.svg" alt="The geometry stack: prime addressing, zeta phases, R4/S3 state, H4 and icosian structure with exact Z[phi]" width="100%">
 
 *Figure 2. The geometric mechanisms and where each is used.*
 
-For an illustrated walkthrough of the geometry, see [docs/geometry.md](docs/geometry.md).
+For an illustrated walkthrough of the geometry, see [docs/geometry.md](docs/geometry.md) — the float
+training form, marked historical wherever it shows a pre-D23 path (softmax reads and head, sigmoid copy
+gate, SwiGLU MLP).
 
 For one token end to end (embedding, quaternion recurrence, Lorentz read, copy head, integer serving), see
 [How the next token is predicted](docs/geometry.md#how-the-next-token-is-predicted).
@@ -111,6 +113,11 @@ How primes, K6, the icosians, the octonions and Fano plane, E8 and the Hopf map 
 
 Each mechanism lists its implemented role and its status. Architectural priority
 does not imply measured predictive advantage.
+
+Every measurement in the list below comes from the **pre-D25 float form**: floating-point training,
+dense matrix multiplication and, for the read and the head, a softmax. Those numbers keep their exact
+artifact, data and configuration scope as historical evidence; they are not a statement that the path
+still runs, and training is held (see [Training](#training)).
 
 - **R4/S3 quaternion state and transport.** The stack's recurrence (`r` layers) moves its
   quaternion state by a learned unit quaternion each step:
@@ -434,14 +441,15 @@ Other third-party corpora are linked above, not republished. The dataset card's 
 
 ## How the project is run
 
-- **Labs.** Claude, Codex and DeepSeek work as autonomous labs under the owner's direction;
-  any lab may join, leave and return ([docs/labs/README.md](docs/labs/README.md)).
+- **Labs.** Claude, Codex, DeepSeek and Kimi work as autonomous labs under the owner's direction;
+  any lab may join, leave and return ([docs/labs/README.md](docs/labs/README.md)). Kimi is the current
+  project manager (owner-appointed, 12 October 2026).
 - **One source of truth.** `origin/main` is authoritative. Work is claimed on a milestone issue,
   delivered by short-lived branch and protected PR, merged, and the branch and worktree deleted.
   Negative or unmerged work lands as an archive patch.
 - **Evidence.** Numbers come from committed code run into sealed report directories; experiments
   state a gate before running; a kill ends an experiment, not a mechanism family (D12).
-- **Decisions.** D0-b to D20 in [DECISIONS.md](docs/integration/DECISIONS.md).
+- **Decisions.** D0-b to D25 in [DECISIONS.md](docs/integration/DECISIONS.md).
 
 The full procedure is in [CONTRIBUTING.md](CONTRIBUTING.md); the rules for agents are in [AGENTS.md](AGENTS.md).
 
@@ -493,7 +501,7 @@ reference for teacher models), [`docs/`](docs), [`scripts/`](scripts), [`researc
 - **Gerrit** (DarkUnicorn, [LinkedIn](https://www.linkedin.com/in/gerrit-b%C3%B6hme-36b3a9413)): author of GoldSnnail and goldworm-coder, reviewed as external sources whose state-layout patterns and evaluation ideas (contamination canary, Goodhart audit set, hash-chained gate log, score-then-verify coding loop) inform the gate and coding-loop plans.
 - **Wil Dahn** ([W33-Theory](https://github.com/wilcompute/W33-Theory)): theory discussions on the high-level geometry and its allowed pathing; author of W33-Theory, the W(3,3) corpus reviewed in the [external research audit](docs/integration/external-research-audit.md) and the [2026-10-12 overview](docs/research/w33-overview-2026-10-12.md).
 - **John Haines**: theory discussions on the high-level geometry and its allowed pathing.
-- **The AI research labs** (Claude, Codex, DeepSeek), which do most implementation under the owner's direction; owner and principal investigator Casey Allard.
+- **The AI research labs** (Claude, Codex, DeepSeek, Kimi), which do most implementation under the owner's direction; owner and principal investigator Casey Allard.
 
 ## Citation
 

@@ -15,3 +15,4 @@
 {"branch": "owner/matmul-ruling-storage", "kind": "release", "lab": "lead", "schema": 1, "ts": "2026-10-12T21:41:16-04:00"}
 {"branch": "owner/matmul-ruling-storage", "kind": "claim", "lab": "lead", "schema": 1, "ts": "2026-10-12T21:41:17-04:00"}
 {"actor": "kimi", "event": "harness_skill_used", "kind": "skill", "milestone": "m1", "note": "no-matmul interlock record: dated README + newest-first current-state entry, Line/count in the PR body", "outcome": "completed", "schema": 1, "skill": "evidence-record", "ts": "2026-10-12T22:10:42-04:00"}
+{"actor": "kimi", "event": "harness_skill_used", "kind": "skill", "milestone": "m1", "note": "D25 hygiene docs/figures sweep: dated record + newest-first current-state entry, per-item dispositions", "outcome": "completed", "schema": 1, "skill": "evidence-record", "ts": "2026-10-12T22:44:16-04:00"}

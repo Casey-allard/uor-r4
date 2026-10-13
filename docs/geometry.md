@@ -1,5 +1,20 @@
 # The geometry, illustrated
 
+> **Historical float form (pre-D23).** This page documents the geometric stack's *float training form as
+> it was built before the rules of 12 October 2026*. Read as the current contract it is wrong in three
+> ways: it shows softmax reads and a softmax output head, a sigmoid copy gate, and a SwiGLU MLP over
+> dense projections. [D23](../docs/integration/DECISIONS.md#d23---no-softmax-anywhere-in-the-active-project)
+> and [D25](../docs/integration/DECISIONS.md#d25---geometric-operator-phase-and-current-lab-direction)
+> now prohibit every one of those anywhere in an executed path — softmax, softplus, sigmoid and tanh,
+> and dense matrix multiplication in training as well as serving — so the path descriptions below are
+> the historical construction, not the target. The *mechanisms* the page illustrates (quaternions and
+> S³ state, the 120 icosians and exact `Z[phi]`, prime addressing and exact memory, Hopf observation
+> with its kept fiber, zeta phases, VSA/Hamming, SpiralCore) remain the project's architectural
+> reference, and each section is annotated where its executed form changed. Current state: the Hamilton
+> rotation gate (OP1) and the fused Hamilton-projection operator (OP2) are merged; the dense all-pair
+> projection form is under owner-directed replacement; the head and the remaining dense sites follow.
+> **No training configuration is compliant yet and training is held.**
+
 This page is a picture-first tour of the geometric objects the UOR-R4 Geometric Language Model is
 built from. "Geometric" here means that the model's state and memory live on exact geometric
 objects (unit quaternions, a fixed 120-element icosian table, exact golden-ratio integers, prime
@@ -36,12 +51,22 @@ geometric objects in detail; [Life of one token](#life-of-one-token) lists the s
 3. **Read the past (`a` layers).** The layer scores earlier positions with a Dot or a Lorentz
    (hyperbolic) score, −β·arcosh(1+e), adds an age term and a NoRead slot, and a softmax mixes the
    earlier states: h_t ← Σ_s softmax(score)_s · h_s.
-4. **MLP and residual.** Every layer ends in a SwiGLU MLP with a residual connection. The 16 layers
+   *Historical (pre-D23): the softmax mix is banned in executed paths. The trainer already carries
+   exponential-free read weightings (`read_weighting=rank|hamming_rank|learned_rank`); which one the
+   compliant trunk trains is still being settled.*
+4. **MLP and residual.** Every layer ends in a SwiGLU MLP with a residual connection.
+   *Current: the gate is selectable (OP1, merged) — `gate=swiglu|hamilton`, where `swiglu` exists only
+   so existing artifacts reproduce and `hamilton` rotates each 4-lane value block by the unit quaternion
+   its gate block names. D25 bans the dense SwiGLU block as the executed form; a geometric feed-forward
+   block (Hamilton gate over Hamilton projections, OP2 merged for the quaternion-valued maps) replaces
+   it.* The 16 layers
    follow the pattern `rrarrarrarrarrar` (r = recurrence, a = read).
 5. **Logits.** A final norm, then z_t = norm(h_t) · Eᵀ, with the output head tied to the embedding E
    (float form; the served form has its own head). In the float form a softmax over the 4,096 tokens
    gives p_soft = softmax(z_t).
-6. **Optional copy head.** A gate g_t = sigmoid(w_g·h_t + b_g) mixes in a copy distribution:
+6. **Optional copy head.** *Historical (pre-D23): both the sigmoid gate and the softmax-shaped mixture
+   below are banned in executed paths.* A gate g_t = sigmoid(w_g·h_t + b_g) mixes in a copy
+   distribution:
    p(v) = (1−g_t)·softmax(z_t)[v] + g_t·p_copy(v), where p_copy sums attention over earlier positions
    that hold token v. The sources are chosen by a learned score or by the exact prime route: gcd of the
    prime products of the last ≤ 6 tokens against earlier windows, or the longest n-let
@@ -58,6 +83,11 @@ transformers. The output softmax is standard: the geometry is in how state is ca
 rotation), how the past is read (Lorentz score) and how exact copying is routed (primes).
 
 ### Softmax at runtime: where it is gone and where it is still emulated
+
+> **Historical reading (pre-D23/D25).** This table records what the D11 integer engine did at the time
+> of writing, including rows where it *emulated* softmax with a table and a row where a softmax-shaped
+> mixture survived. Under D23/D25 those rows are open non-compliance, not an acceptable end state: a
+> table-emulated softmax is the same banned operation.
 
 | Place | What the served engine does | Status |
 |---|---|---|
@@ -100,7 +130,7 @@ recurrence; the backward pass is the reverse scan. The `a` layer is the other te
 multi-head read over positions up to t, scored by a Lorentz (hyperbolic) or Dot score, with a learned
 age term per head and distance, and a NoRead slot whose value is zero. The layer pattern letters
 (for example `rrarrarr…`) choose the mixer per layer; every layer ends with a SwiGLU MLP and a
-residual connection. Code: `geometric_stack.rs` (header; `layer_kind`, `fused_read`).
+residual connection (historical pre-D25; the merged OP1 gate replaces it, see the banner). Code: `geometric_stack.rs` (header; `layer_kind`, `fused_read`).
 
 **Status.** Trained and served.
 
@@ -424,6 +454,10 @@ unchanged reload; prior negatives and accepted 8/512 stand.
 
 ## Life of one token
 
+> **Historical float walkthrough (pre-D23).** The steps below repeat the float path above, including the
+> softmax read, the SwiGLU MLP, the softmax head and the sigmoid copy gate; the banner at the top states
+> the current contract.
+
 Follow one byte-BPE token through the stack (text path):
 
 1. **Embed.** The token id selects a row of `embedding.weight` (width d; tied with the output head in
@@ -435,7 +469,8 @@ Follow one byte-BPE token through the stack (text path):
 4. **Transport** (sections 1 and 2). h_t = λ_t (u_t · h_{t−1}) + √(1−λ_t²) a_t.
 5. **Read** (section 2). An `a` layer reads positions up to t with a Lorentz or Dot score, an age term
    and a NoRead slot; then the SwiGLU MLP and residual.
-6. **Logits.** A final norm, then logits z_t = norm(h_t) · embeddingᵀ (tied), then softmax.
+6. **Logits.** A final norm, then logits z_t = norm(h_t) · embeddingᵀ (tied), then softmax
+   (historical; the head's compliant form is the next rung).
 7. **Copy (optional)** (section 7). A pointer head computes a query, keys and a gate g_t; attention
    over earlier positions uses a learned score or the exact prime route (gcd of window products, or
    longest n-let), with `ln gcd` plus recency and sharpness 4.

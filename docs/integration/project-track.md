@@ -27,8 +27,10 @@ explicit units; numerical quality bars need an amended registration, not the for
 “BPB within 0.02 nats” clause. Tokens/s uses the same CUDA harness.
 
 Only explicit release of the applicable owner hold can then enable the compliant rung 0.
-Rung 0 is suspended, not withdrawn; its metric/control clauses must be amended before
-FIT. Rung 0b rank-read CUDA/gradient work follows the operator phase and resumed rung 0,
+Rung 0 is suspended, not withdrawn; per [Amendment 3](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6136219130)
+the pre-registration [6124773996](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6124773996)
+**resumes unchanged once the stack it trains is compliant**. The earlier "amend its metric and control
+clauses before FIT" reading is superseded. Rung 0b rank-read CUDA/gradient work follows the operator phase and resumed rung 0,
 then margin-trained starling. Historical schedules and comparators below remain evidence
 and cannot reactivate themselves. Preservation and protected delivery remain mandatory.
 
@@ -145,6 +147,13 @@ backend conversion presented as chat. The existing relation/act/span compiler is
 reused; do not build a duplicate. The current grounded emitter and strict native
 attention component have different admitted shapes and callers, so joining them
 requires a learned language interface, not dimension padding.
+
+*Historical (D19-era division of labour, kept as evidence): the lane table below records the 1 October
+assignments. It is superseded by the [operator plan](../labs/operator-phase-2026-10-12/README.md) and by
+D25's current assignments — Kimi (project manager) on the objective layer, geometric operators and CUDA
+kernels; Codex on enforcement/ratchets and M2; Claude on starling/murmuration reads and the pod
+migration; DeepSeek on the invariant-addressed router/memory and the harness. A row here cannot
+reactivate a lane.*
 
 | Lane | Responsibility and decision boundary |
 |---|---|

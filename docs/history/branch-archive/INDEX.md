@@ -1,5 +1,21 @@
 # Branch archive
 
+## October 13 — superseded Kimi D23 learning-law draft branch
+
+[Patch](kimi_d23-learning-law-superseded-20261012.patch), sha256
+`c5d3a1b25f4e5bee9a8a0635f4c2873da127efadf8c39fb93e5cbcff4fdc7247`, `git diff fe8b076a1 158077125`
+of branch `kimi/d23-learning-law-2026-10-12` (tip `158077125` "D23 replacement learning law: design and
+rung-0 pre-registration (References #2029)", merge base `fe8b076a1`, one commit, 4 files / 395 added
+lines). **Disposition: superseded, inactive evidence.** `docs/labs/d23-learning-law-design-2026-10-12/README.md`
+is on main in a newer rewrite (`bbbdd362a`, 2026-10-12); `docs/labs/softmax-census-2026-10-12/README.md`
+and `scripts/softmax_path_check.py` landed on main byte-identically (`3f6d97bc4`), and the branch's
+`current-state.md` hunk is a snapshot of a ledger main has since rewritten. The patch therefore holds
+the branch's own draft of the design doc and that snapshot, restorable at the pinned base; it does not
+apply to current main (the ledger moved and the design doc already exists there). Verified: with a
+throwaway index at `fe8b076a1` the patch applies cleanly and the resulting tree equals the branch tip
+tree `3de881cadc19329368eccbe6c1be0dea8e55f500` byte-for-byte. The remote branch stays until the owner
+deletes it; archival preserves source, it does not activate it.
+
 ## October 12 — superseded generic SpiralCore contraction source
 
 [Native vector transport source record](../../labs/native-vector-transport-2026-10-12/README.md):

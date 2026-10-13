@@ -1,0 +1,421 @@
+diff --git a/docs/integration/current-state.md b/docs/integration/current-state.md
+index 3ee9f8546..a3037510d 100644
+--- a/docs/integration/current-state.md
++++ b/docs/integration/current-state.md
+@@ -1,3 +1,20 @@
++## 2026-10-12 — D23 replacement learning law: design and rung-0 pre-registration (kimi, #2029)
++
++The [design](../labs/d23-learning-law-design-2026-10-12/README.md) answers the owner-named next source task
++after the [verified incident note](https://github.com/UOR-Foundation/uor-r4/issues/2028#issuecomment-6124719596):
++the starling/murmuration machinery is intact in-tree; the drift was the training method (softmax surrogate,
++distillation, dense bootstrap), and the structural cause is that no wired non-softmax objective exists in
++Line A ([census](../softmax-census-2026-10-12/README.md)). The proposed law: a **rank/margin objective**
++(hard hinge or the in-tree `rank_softplus`, no normalized exponential), **sparsemax** as the only normalized
++operator where a simplex is required (piecewise-linear, exp-free), and **rank-margin address credit** for the
++murmuration read — no teacher of any kind. Rung 0 is pre-registered on
++[#2029 comment 6124773996](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6124773996)
++(M1/M8/M1s arms × 2 seeds, one pod ≤ $3, bars fixed in advance, no CE arm per D24) and waits for TEST FITNESS.
++
++Line: evaluation integrity · count 1/3 · headline: unchanged (M1 v5 memory 20/40, reply 37/232).
++
++**Next:** TEST FITNESS on the rung; the objective implementation as the preparation PR; the run on one pod.
++
+ ## October 12: no CPU model compute, and the softmax rule gets an interlock
+ 
+ [D24](DECISIONS.md#d24---no-cpu-model-compute-and-no-gpu-on-non-decisive-work) adds the
+diff --git a/docs/labs/d23-learning-law-design-2026-10-12/README.md b/docs/labs/d23-learning-law-design-2026-10-12/README.md
+new file mode 100644
+index 000000000..973d2c0f2
+--- /dev/null
++++ b/docs/labs/d23-learning-law-design-2026-10-12/README.md
+@@ -0,0 +1,109 @@
++# The D23 replacement learning law: a softmax-free objective, read and output path — design and first rung
++
++References #2028 (claim, [comment 6124719596](https://github.com/UOR-Foundation/uor-r4/issues/2028#issuecomment-6124719596)),
++[D23](../../integration/DECISIONS.md#d23---no-softmax-anywhere-in-the-active-project),
++[D24](../../integration/DECISIONS.md#d24---no-cpu-model-compute-and-no-gpu-on-non-decisive-work),
++the [softmax census](../softmax-census-2026-10-12/README.md). Lab: Kimi, session `kimi/s1`, 2026-10-12.
++Design only: no training, no pod, no model run. Everything here is a proposal; the run waits for TEST
++FITNESS, and the law itself is shared infrastructure for every lab, not a Kimi-only line.
++
++> **One line.** Softmax does three jobs in this project — the training objective, the read's weighting, and
++> the served output distribution — and D23/D24 remove all three at once. The replacement is a family, built
++> from pieces that are already in the tree or have direct literature backing and need no normalized
++> exponential anywhere: **a rank/margin objective** (target-vs-strongest-rival, with the in-tree
++> `rank_softplus` as its soft form), **sparsemax** as the only normalized operator where a true probability
++> simplex is required (piecewise-linear, no exponential), and **rank-margin credit** for the murmuration
++> read's addresses (no teacher of any kind).
++
++## 1. What must be replaced (from the census)
++
++| role | today (banned) | candidate replacement | in-tree / literature anchor |
++|---|---|---|---|
++| Training objective | cross-entropy over softmax logits (LSE fwd, `exp(v−lse)` bwd) | **rank/margin**: `Σ_v relu(m − z_t + z_v)` or `softplus(m − z_t + max_{v≠t} z_v)` | `rank_softplus` (`cross_state_completion.rs:586-630`); raw-score margin API (`geometric_generate_learning.rs:1421`); the competing-mass hinge that already worked on the read (`read_binding_competing_margin`) |
++| Read weighting | causal softmax + NoRead | already served softmax-free: rank / Hamming-rank / learned-rank tables | `rank_weights` (`geometric_stack.rs:15585-15600`), Q31 D11 rank read (`stack/session.rs:227-275`), the export gate (`stack_export.rs:268-321`) |
++| Murmuration address learning | softmax surrogate, KL distillation, dense bootstrap (all banned) | **rank-margin on address scores** (true cell out-scores rivals by a margin) + non-softmax straight-through on the hard selection | the read-binding supervision lineage; delta-rule / sparsemax literature (below) |
++| Served output distribution | `softmax(z)` head + mixture | greedy argmax over raw scores (already the served decode); where a distribution is needed, **sparsemax** | `sampling.rs:101-148` (already clean); Martins & Astudillo 2016 (arXiv:1602.02068) |
++| Evaluation scoring | LSE-based NLL | margin loss + accuracy/recall panels; **no LSE-based NLL in new runs** | the frozen panels' deterministic checks |
++
++Notes on the carve-outs D23 names: `softplus` and `sigmoid` are scalar exponentials, not softmax; the
++carve-out does not automatically prohibit them, but the design prefers the pure-hinge form so the question
++never arises. `sparsemax`'s α=2 entmax is piecewise-linear with a Euclidean projection — no exponential of
++any kind; α=1.5 uses fractional powers, still exp-free, kept as the fallback.
++
++## 2. The objective: rank/margin instead of cross-entropy
++
++For each target position with gold token `t` and logits `z`:
++
++- **Hard form:** `L = mean_v relu(m − z_t + z_v)` over the top few rivals (or only the strongest rival,
++  `v* = argmax_{v≠t} z_v`). Gradient is 0/±1 on violated pairs — no normalization anywhere.
++- **Soft form:** `L = softplus(m − z_t + z_v*)`, the in-tree `rank_softplus` shape. Smoother early training;
++  flagged for owner confirmation because `softplus` is a scalar exponential (allowed by the carve-out, but
++  the hard form avoids the question entirely).
++
++The objective trains the *whole* model — recurrence, reads, pointer, head — through the same margin the
++answer is judged by, which is also the honest fix for a known measurement problem: this project has never
++had an objective that matches what its panels score. Known risks, stated now: (a) margin losses are not
++calibrated NLLs, so **BPB/NLL comparisons to historical CE artifacts are invalid by construction** — the
++rung reports margin curves and panel accuracy only, and says so; (b) a margin can under-train the long tail
++of the vocabulary (only rivals near the boundary get gradient) — the rung watches the unviolated-target
++rate; (c) rival selection (strongest-only vs top-k) is a real hyperparameter, swept at k ∈ {1, 8} in the
++rung at trivial added cost.
++
++## 3. The murmuration read's addresses, without any teacher
++
++The starling ladder's actual blocker — hard selection gives no gradient to dropped candidates — was what
++the banned softmax aids were papering over. The lawful mechanism:
++
++1. **Address credit by margin:** for each query whose true source is known (the bench supplies it, as the
++   distillation arms already used), a hinge `relu(m − s(true_cell) + s(rival_cell))` on the address scores
++   over the candidate cells. This is exactly the read-binding supervision that worked on the softmax read
++   (bound mass 0.73 → 0.90+), re-pointed at addresses instead of values — and it needs no probabilities,
++   no teacher and no normalization.
++2. **Readout stays the rank table** (already served softmax-free).
++3. **The hard selection's gradient:** a non-softmax straight-through — the forward is the hard 600-cell
++   keep, the backward passes the *identity* (or a finite-difference slope) to the address maps rather than a
++   softmax relaxation. The linear STE is the weakest part of the design and is named as such; if it
++   under-trains, the fallback is sparsemax-over-cells as the *selection* operator (still exp-free), which
++   gives a real subgradient.
++
++## 4. First rung (pre-registered for TEST FITNESS)
++
++**Question:** does a margin objective train a small geometric stack to attempt the recall task at all —
++and does the rank-margin address credit move the murmuration read's hit rate without a teacher?
++
++- **Model:** geometric stack, width 256, pattern `rrarra`, 4 heads, MLP 384, context 384, vocab 4096,
++  pointer dim 16 (the smoke-validated 4.4M configuration from the held oracle prep; MLP retained for rung 0
++  — the owner's MLP-removal direction is rung 2+ via the E8/product-key line, kept separate so the objective
++  question is not confounded).
++- **Data:** the project's published memory-dialogue train (`mw-balp`, 7,512,797 tokens) + dev split.
++- **Arms (2 seeds each, one pod, GPU only per D24):**
++  - **M1:** hard-hinge objective, strongest-rival.
++  - **M8:** hard-hinge objective, top-8 rivals.
++  - **M1s:** softplus-margin, strongest-rival (the carve-out check).
++  - **No CE arm** — re-running softmax for a baseline is itself prohibited (D24); the comparison reference
++    is the historical recorded numbers of the preserved CE artifacts at their exact scope, quoted as
++    cross-objective readings, never as like-for-like baselines.
++- **Readouts:** dev margin loss and unviolated-target rate per arm; the frozen v5 memory panel's
++  deterministic checks (40 rows, the same scorer the records use); mqar hit rate with the address credit
++  on/off within each arm.
++- **Bars (fixed in advance, noise posted):** an arm **works** if (a) the margin loss falls monotonically
++  and the unviolated-target rate on dev exceeds the panel's no-model constant rate by ≥ 5×, on both seeds,
++  and (b) the address credit lifts the mqar hit rate by ≥ +10 points over the same arm without it, on both
++  seeds. Anything short of (a) is a tooling/objective blocker to fix, not a mechanism negative (D22).
++- **Cost:** one 1×4090 pod, ≤ $3, leased/released per the pod rules; coordinate on #2037.
++- **Stop rule:** three arms × two seeds, one run each; no silent arm additions.
++
++## 5. What this is not
++
++- Not a claim that a margin objective reaches CE-level language quality — that is exactly what the rung
++  measures at its scope, with panel accuracy and margin curves instead of incomparable NLLs.
++- Not a relaxation of D23/D24: no softmax, no softmax-shaped comparator, no CPU compute, no teacher.
++- Not a replacement for the starling/SpiralCore track — it is the piece that track is blocked on.
++
++## Next
++
++1. This design, with the pre-registration, to TEST FITNESS on #2029.
++2. Implementation of the three objectives (hard hinge k∈{1,8}, softplus-margin) behind a config flag —
++   the in-tree `rank_softplus` and margin APIs are the starting points — with focused gradient/causality
++   tests, as the preparation PR.
++3. The rung on one pod, then the result record with KEEP/REJECT per arm.
+diff --git a/docs/labs/softmax-census-2026-10-12/README.md b/docs/labs/softmax-census-2026-10-12/README.md
+new file mode 100644
+index 000000000..8f1b41955
+--- /dev/null
++++ b/docs/labs/softmax-census-2026-10-12/README.md
+@@ -0,0 +1,114 @@
++# The D23 softmax census: where normalized exponentials actually live, and the checker for compliance claims
++
++References #2028 (owner direction of 12 October), [D23](../../integration/DECISIONS.md#d23---no-softmax-anywhere-in-the-active-project),
++[#2251](https://github.com/UOR-Foundation/uor-r4/pull/2251) (the rule's delivery). Lab: Kimi, session
++`kimi/s1`, 2026-10-12. Source work only: no training, no pod, no model run; claimed on
++[#2028 comment 6124257305](https://github.com/UOR-Foundation/uor-r4/issues/2028#issuecomment-6124257305).
++
++> **One line.** D23 says to inspect the complete executed output/objective/gradient path before claiming
++> compliance. This record is that inspection for the whole project: **every active executed path — the Line A
++> objective, the stack's serving mixture, the D11 serving engine, the native learner's objectives and the
++> training aids — computes a normalized exponential today**, and there is an executable checker
++> (`scripts/softmax_path_check.py`) so a compliance claim carries evidence instead of inspection alone.
++
++## The instrument
++
++`python3 scripts/softmax_path_check.py [--path NAME] [--self-test]` scans an executed path's source for
++banned ops (softmax / log-softmax / log-sum-exp normalization / softmax cross-entropy / exp-normalize
++forms), skipping test modules and comments, and prints CLEAN or the file:line hit list. Scalar exponentials
++that are not a softmax (sigmoid/tanh gates, exp tables as tables) are recorded separately so a reviewer
++confirms the classification rather than trusting it. Current verdict at this record's head:
++
++| executed path | verdict | banned-op sites |
++|---|---|---:|
++| `stack-objective` (Line A `train` / `dialogue-train`, CPU + CUDA + Metal) | VIOLATIONS | 14 |
++| `stack-serve` (host serving mixture and scoring) | VIOLATIONS | 14 |
++| `d11-serve` (the integer engine) | VIOLATIONS | 7 |
++| `native-learner` (Line B `native_geometric`) | VIOLATIONS | 21 |
++| `training-aids` (surrogates, distillations, comparators) | VIOLATIONS | 63 |
++
++The checker is the operative definition for compliance claims; the map below is the narrative reading of
++where those sites sit and what each one does (full class-by-class enumeration in the session's sweep).
++
++## The map
++
++**1. The Line A objective (every `train` / `dialogue-train` run).** `StackModel::weighted_loss` → the
++`CrossEntropy` op: `row_log_sum_exp` in the forward (`geometric_stack.rs:17764`), `exp(v − lse)` in the
++backward (`:17947`); the same structure in the CUDA kernels (`cuda_stack_kernels.rs:414, 446`) and Metal
++(`metal_stack_kernels.rs:314, 380`). The pointer arm's `PointerMixture` op is the same shape with the copy
++mixture inside (`:18564-18574`, backward `:18778`). **There is no non-softmax objective in Line A today.**
++The turn compiler's `softmax_ce` (`geometric_turn_compiler.rs:480-493`) is the compiler path's own.
++
++**2. The read.** The fused read computes a causal row softmax with the NoRead slot inside
++(`geometric_stack.rs:15995-16004`; CUDA `read_softmax_warp` at `cuda_stack_kernels.rs:1279-1331`; Metal
++`metal_stack_kernels.rs:837-870`). **The softmax-free alternatives exist and are served**: the
++rank/Hamming-rank/learned-rank weightings (`rank_weights`, "no exponential enters the forward weights",
++`geometric_stack.rs:15585-15600`), the Q31 integer rank read in the D11 session (`stack/session.rs:227-275`,
++`2495-2507`), and the export gate that already refuses to export a softmax read to the D11 engine
++(`stack_export.rs:268-321`, with the parity test `tests/stack_softmax_free_export.rs`). They are a
++configuration, not the default.
++
++**3. The serving mixture (host).** `next_scores_pointer_scores` computes `lse = row_log_sum_exp(&logits)`
++and mixes `(1−g)·exp(z−lse) + g·p_copy` (`geometric_stack.rs:11269-11273`) — the served model's `softmax(z)`
++at the head; `read_span_probe` (`:10492-10497`) and the LSE-based scoring (`:11124, 18177`) likewise.
++
++**4. The D11 engine.** The sealed `exp` table exists precisely to normalize at serving: read masses
++(`model.rs:3086, 3590`), vocabulary masses (`:3118, 3811`), the served pointer mixture
++(`stack/session.rs:2781-2817`), and the served read row (`:2511-2526`). The **sampler itself is clean**
++(greedy argmax and the Q48 ticket draw, `sampling.rs:101-148` compute no normalized exponential) — but the
++masses it draws from are softmax products (`softmax_into`, `model.rs:4541-4579`).
++
++**5. Training aids.** Starling surrogate (softmax-over-kept gradient, `geometric_stack.rs:4458-4465`),
++readout self-distillation (`:4416-4436`) and selector KL (`:4534-4549`), the compiler `Softmax`/
++`SparseSoftmax` heads (`relation_compiler.rs:353-362`, `temporal_compiler.rs:186-554`), the κ teacher
++(`kappa_llama.rs:909, 1228`), and the surrogate STEs across the geometric_* credit modules — all prohibited
++by D23 as teachers, auxiliary losses or comparators, whatever their forward does.
++
++**6. The native learner (Line B).** The Line-B objective family is softmax-shaped throughout:
++`addressed_attention/training.rs:97-195` (categorical weights + CE with softmax derivative), the pooled
++episode objective's log-mean-exp (`cross_state_completion.rs:640-718`), the low-bit/integrated/JEPA/prior
++learners (`learner/*` — ~21 checker sites), and the blocked sampled law (`whole_path_learning.rs:1749`,
++already BLOCKED under D23).
++
++**7. Already softmax-free (the replacement inventory).** The rank-family reads and their D11 serving path
++(above); greedy decoding; the copy-span oracle's uniform forced attention (`geometric_stack.rs:11245-11260`);
++hard native bank/occurrence generation (`geometric_bank_generate.rs`, "no action softmax"); the A3 sieve in
++`mqar-bench`; the E8 orbit memory's gate mixing (`e8_memory.rs`); the VSA integer rectified-quadratic scoring
++(`vsa/attention.rs`); and rank/margin objectives — `rank_softplus` in the frozen-map-fit rank loss
++(`cross_state_completion.rs:586-630`) and the raw-score margin API (`geometric_generate_learning.rs:1421`) —
++which exist today only as diagnostics, not as wired objectives. Note for the replacement design: `softplus`
++and `sigmoid` are scalar exponentials, which D23's carve-out does not automatically prohibit; a rank/hinge
++objective family is the in-tree starting point that stays inside the rule.
++
++**8. Retired scope (not in the active-path verdict).** `uor-r4-lut` (frozen comparator): 9 sites. The
++`uor-r4-graph-*` crates: zero.
++
++## What this means for the next source task
++
++D23's replacement must cover, in one design: a softmax-free **objective** (class 1 — the largest gap; no
++wired non-softmax objective exists), a softmax-free **output distribution** for serving (classes 3–4 — the
++head and the pointer mixture), the **read** (already solved as a configuration, class 2), **sampling**
++(clean, class 4/6), and the **training aids** (class 5 — every current surrogate/teacher is prohibited, so
++starling-class reads need either a non-softmax teacher or none). The copy-span oracle and the rank objectives
++are the only delivered building blocks that are clean by construction.
++
++## Verification and limits
++
++- The checker is a source scan, not a model run; it is evidence about source, and a compliance claim still
++  needs the complete executed path reviewed per D23 (the checker's profiles are the named starting points).
++- `--self-test` passes; the checker's per-path verdicts were cross-read against an independent line-by-line
++  sweep of the same tree (the session's census sweep, ~150 read hits).
++- Retired crates (`uor-r4-lut`, `uor-r4-graph-*`) are outside the active-path verdict by construction.
++
++## Cost
++
++| | |
++|---|---|
++| compute | laptop CPU only (source scan and review); no pod, no training, no model run |
++| external | none |
++
++## Next
++
++The replacement learning law is the owner's next source task; when it lands, this checker is the compliance
++gate for its TEST FITNESS review, and the Kimi lab's held runs (span oracle, bench re-baseline) re-register
++against the compliant objective.
+diff --git a/scripts/softmax_path_check.py b/scripts/softmax_path_check.py
+new file mode 100644
+index 000000000..ee8ea65cc
+--- /dev/null
++++ b/scripts/softmax_path_check.py
+@@ -0,0 +1,155 @@
++#!/usr/bin/env python3
++"""D23 softmax-path check (owner decision D23, 2026-10-12: no softmax anywhere).
++
++Answers, for a named executed path: does this path's source compute a
++normalized exponential — softmax, log-softmax, softmax cross-entropy,
++log-sum-exp normalization, or a table/renamed equivalent? D23 covers training,
++serving, sampling, objectives, auxiliary losses and teachers, including the
++implicit softmax inside cross-entropy and exp-table serving normalization.
++
++A compliance claim attaches this report; the report is evidence about source,
++not about a model run. The scan skips test modules and comments, and it does
++not flag scalar exponentials that are not a softmax (sigmoid/tanh gates, KL
++temperatures) — those are recorded separately as scalar-exp sites so a
++reviewer can confirm the classification instead of trusting it.
++
++  python3 scripts/softmax_path_check.py                 every profile
++  python3 scripts/softmax_path_check.py --path d11-serve
++  python3 scripts/softmax_path_check.py --self-test
++"""
++import re
++import sys
++from pathlib import Path
++
++ROOT = Path(__file__).resolve().parent.parent
++
++# Banned-op patterns, each with the census class it belongs to. Definition and
++# call sites are both hits: a path that computes, or calls into, one of these
++# computes a normalized exponential.
++BANNED = [
++    ("softmax-op", re.compile(r"\bsoftmax(?:_last_dim|_into|_over_support)?\s*\(", re.I)),
++    ("log-softmax", re.compile(r"\blog_softmax\b", re.I)),
++    ("logsumexp-norm", re.compile(r"\b(?:row_)?log_?sum_?exp\b", re.I)),
++    ("softmax-ce", re.compile(r"\bcross_entropy\b|\bsoftmax_ce\b", re.I)),
++    ("exp-normalize", re.compile(r"\.exp\(\)\s*/\s*\w+\.sum|/\s*\w+\.exp\(\)\.sum|softmax_weights|admitted_softmax", re.I)),
++]
++
++# Scalar exponentials that are not a softmax by themselves (sigmoid/tanh
++# gates, exp tables as tables). Recorded, not flagged.
++SCALAR = re.compile(r"\b(?:sigmoid|tanh|stack_exp_neg|exp_table|stack_sigmoid_q31)\b", re.I)
++
++# The executed-path profiles. Each maps a name to (search root, file globs).
++PROFILES = {
++    "stack-objective": [
++        ("crates/uor-r4-training/src", ["geometric_stack.rs", "geometric_stack/**/*.rs"]),
++        ("crates/uor-r4-training/src", ["cuda_stack_kernels.rs", "metal_stack_kernels.rs"]),
++    ],
++    "stack-serve": [
++        ("crates/uor-r4-training/src", ["geometric_stack.rs", "stack_dialogue.rs"]),
++    ],
++    "d11-serve": [
++        ("crates/uor-r4-integer/src", ["**/*.rs"]),
++    ],
++    "native-learner": [
++        ("crates/uor-r4-core/src/native_geometric", ["**/*.rs"]),
++    ],
++    "training-aids": [
++        ("crates/uor-r4-training/src", ["**/*.rs"]),
++    ],
++}
++
++TEST_MARK = re.compile(r"^\s*#\[cfg\(test\)\]")
++
++
++def scan_file(path):
++    """Yield (line_number, class, text) for banned ops outside tests/comments."""
++    try:
++        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
++    except OSError:
++        return
++    in_tests = False
++    depth = 0
++    for number, line in enumerate(lines, 1):
++        if TEST_MARK.match(line):
++            in_tests = True
++            depth = 0
++        stripped = line.split("//", 1)[0] if not line.lstrip().startswith(("///", "//!")) else ""
++        if in_tests:
++            depth += line.count("{") - line.count("}")
++            if depth <= 0 and "}" in line:
++                in_tests = False
++            continue
++        if not stripped.strip():
++            continue
++        for class_name, pattern in BANNED:
++            if pattern.search(stripped):
++                yield (number, class_name, line.strip())
++                break
++
++
++def scalar_sites(path):
++    try:
++        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
++    except OSError:
++        return
++    for number, line in enumerate(lines, 1):
++        if SCALAR.search(line) and not line.lstrip().startswith(("///", "//!")):
++            yield (number, line.strip())
++
++
++def run_profile(name):
++    hits, scalar = [], []
++    for root, globs in PROFILES[name]:
++        base = ROOT / root
++        for pattern in globs:
++            for path in sorted(base.glob(pattern)):
++                if path.is_file():
++                    hits.extend((path.relative_to(ROOT), n, c, t) for n, c, t in scan_file(path))
++                    scalar.extend((path.relative_to(ROOT), n, t) for n, t in scalar_sites(path))
++    return hits, scalar
++
++
++def main():
++    args = sys.argv[1:]
++    if args == ["--self-test"]:
++        return self_test()
++    names = list(PROFILES)
++    if args[:1] == ["--path"]:
++        if len(args) != 2 or args[1] not in PROFILES:
++            print(f"usage: --path <{'|'.join(PROFILES)}>", file=sys.stderr)
++            return 2
++        names = [args[1]]
++    dirty = False
++    for name in names:
++        hits, scalar = run_profile(name)
++        status = "VIOLATIONS" if hits else "CLEAN"
++        dirty = dirty or bool(hits)
++        print(f"== {name}: {status} ({len(hits)} banned-op sites, {len(scalar)} scalar-exp sites recorded)")
++        for path, number, class_name, text in hits:
++            print(f"   {path}:{number} [{class_name}] {text[:120]}")
++    return 1 if dirty else 0
++
++
++def self_test():
++    fixture = ROOT / "target" / "softmax-path-check-fixture.rs"
++    fixture.parent.mkdir(parents=True, exist_ok=True)
++    fixture.write_text(
++        "fn loss(z: &[f32]) -> f32 {\n"
++        "    let lse = row_log_sum_exp(z);\n"
++        "    z[0] - lse\n"
++        "}\n"
++        "#[cfg(test)]\n"
++        "mod tests {\n"
++        "    fn uses_softmax() { softmax(&x); }\n"
++        "}\n",
++        encoding="utf-8",
++    )
++    hits = list(scan_file(fixture))
++    fixture.unlink()
++    assert len(hits) == 1 and hits[0][1] == "logsumexp-norm", hits
++    print("self-test: pass (one banned site found, the test module ignored)")
++    return 0
++
++
++if __name__ == "__main__":
++    sys.exit(main())

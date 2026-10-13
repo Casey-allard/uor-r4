@@ -1,3 +1,26 @@
+## 2026-10-13 — The D25 hygiene sweep: the project's own documents and figures now agree with the ban (kimi, #2028)
+
+The [record](../labs/docs-sweep-2026-10-13/README.md) corrects the overview, roadmap, project map, geometry
+page, lab roster, mechanism index, project track, six figures and one archived branch so a reader cannot
+mistake pre-D25 material for the current contract. Nothing was deleted: `docs/geometry.md` gets a
+**Historical float form (pre-D23)** banner plus seven scoped notes (softmax read/head, sigmoid copy gate,
+SwiGLU MLP, and the runtime table re-labelled as open non-compliance); the figures get corrected numbers
+(served `0.886838 BPB`, dev `437/512`), the `lut-stack/3` schema and in-figure `historical (pre-D25)` /
+`held under D25` notes; `assets/images/README.md` captions the Studio-era concept art as preserved history.
+Code-level items: `README` lost the "D0-b to D20" range (now D25) and its mechanism list gained the
+invariant-addressed read and the ternary/XOR fact sheet, `ROADMAP` moved to `count7/3` and notes OP1/OP2
+merged, `PROJECT_MAP`'s three "training may use matmul" statements are corrected, the D19 lane table is
+marked historical, and the rung-0 wording is reconciled with Amendment 3 (the pre-registration resumes
+unchanged once the stack it trains is compliant). The superseded draft branch
+`kimi/d23-learning-law-2026-10-12` is preserved as a patch whose application at its pinned base reproduces
+the branch tip tree byte-for-byte. Checks: `check_no_softmax.py` **OK 1649**, `check_no_matmul.py` **OK 95**,
+claim wording PASS, all 20 figures parse as XML, and **no Rust source was touched**.
+
+Line: no model line — repository hygiene · count 0/3 · headline 37/232 → 37/232 (unchanged).
+
+**Next:** OP3a (the product-key head) after the merged OP1/OP2, then rung 0 once the whole executed path is
+lawful, device-qualified, FIT and released; revisit the remaining dense-path documentation as each rung lands.
+
 ## 2026-10-13 — Vast.ai is the default provider for new pods (claude, #2028)
 
 Owner direction [D26](DECISIONS.md#d26---vastai-is-the-default-provider-for-new-pods):
