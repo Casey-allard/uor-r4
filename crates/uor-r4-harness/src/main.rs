@@ -13,6 +13,7 @@ use std::process::ExitCode;
 
 use uor_r4_harness::briefing;
 use uor_r4_harness::githelp;
+use uor_r4_harness::mistakes;
 use uor_r4_harness::multilab;
 use uor_r4_harness::notes;
 use uor_r4_harness::onboard::{detect_runtime, onboard};
@@ -43,7 +44,7 @@ const PYTHON_PASSTHROUGH_VALUE_FLAGS: [&str; 1] = ["--only"];
 /// BEFORE flag parsing: an unported command's flags are unknown to this binary, and rejecting one
 /// meant delegation only worked for commands whose flags happened to be in the lists - `check --only`
 /// failed with "unknown option --only" before it could delegate. Which defeats the point.
-const PORTED_COMMANDS: [&str; 20] = [
+const PORTED_COMMANDS: [&str; 21] = [
     "onboard",
     "check-formats",
     "presence",
@@ -55,6 +56,7 @@ const PORTED_COMMANDS: [&str; 20] = [
     "version",
     "team",
     "skill",
+    "mistakes",
     "multilab",
     "git",
     "prep-check",
@@ -101,7 +103,7 @@ const SUBCOMMAND_FLAGS: [&str; 31] = [
 ];
 
 /// The subset that takes a value, so the value is not mistaken for a command.
-const SUBCOMMAND_VALUE_FLAGS: [&str; 26] = [
+const SUBCOMMAND_VALUE_FLAGS: [&str; 29] = [
     "--kind",
     "--milestone",
     "-m",
@@ -128,6 +130,9 @@ const SUBCOMMAND_VALUE_FLAGS: [&str; 26] = [
     "--count",
     "--headline",
     "--line",
+    "-f",
+    "--files",
+    "--actor",
 ];
 
 const USAGE: &str = "\
@@ -156,6 +161,9 @@ COMMANDS:
                 merged into origin/main, --apply deletes the proven ones.
     multilab    The shared board: presence, claims, touch. `touch` refreshes
                 liveness for hooks WITHOUT changing what the lab is doing.
+    mistakes    Lessons from what went wrong here before: list, find -f <files>.
+                Run `find` before editing - a lesson that does not surface at
+                the moment someone repeats it is a lesson nobody reads.
     skill       Skills: list, show, match, use. `use` records a receipt line
                 saying a skill was actually loaded and deployed.
     team        Branch claims: claim, release, claims, roster.
@@ -322,6 +330,7 @@ fn main() -> ExitCode {
         Some("version") => cmd_version(&repo),
         Some("team") => cmd_team(&repo, &rest, json),
         Some("skill") => cmd_skill(&repo, &rest, json),
+        Some("mistakes") => cmd_mistakes(&repo, &rest, json),
         Some("multilab") => cmd_multilab(&repo, &rest, json),
         Some("git") => cmd_git(&repo, &rest, json),
         Some("prep-check") => cmd_prep_check(&repo, json),
@@ -451,6 +460,93 @@ fn action_word(args: &[String]) -> &str {
         return a;
     }
     ""
+}
+
+/// `mistakes <action>` - lessons from what went wrong here before (D30 port).
+///
+/// `list` and `find` are Rust. `show` and `capture` still delegate by name: `capture` writes a
+/// **lesson file plus a guard**, which is a bigger surface than reading one and belongs in its own
+/// unit rather than bolted on here.
+fn cmd_mistakes(repo: &Path, args: &[String], json: bool) -> ExitCode {
+    let paths = StatePaths::from_env(repo);
+    let action = action_word(args);
+    let ms = mistakes::load(&paths);
+
+    match action {
+        "list" => {
+            if json {
+                let rows: Vec<String> = ms
+                    .iter()
+                    .map(|m| {
+                        format!(
+                            "    {{\"id\": {:?}, \"title\": {:?}, \"severity\": {:?}, \"status\": {:?}, \"guard\": {:?}}}",
+                            m.id, m.title, m.severity, m.status, m.guard
+                        )
+                    })
+                    .collect();
+                println!("{{\n  \"mistakes\": [\n{}\n  ]\n}}", rows.join(",\n"));
+            } else {
+                println!("{} lessons in docs/harness/mistakes/\n", ms.len());
+                for m in &ms {
+                    println!("  {:<12} {:<52} {}", m.severity, m.id, m.title);
+                }
+            }
+            ExitCode::SUCCESS
+        }
+        "find" => {
+            let files = flag_values(args, "--files", "-f");
+            let query = flag_value(args, "--query").unwrap_or_default();
+            let milestone = flag_value(args, "--milestone").unwrap_or_default();
+            let milestones: Vec<String> = if milestone.is_empty() {
+                Vec::new()
+            } else {
+                vec![milestone]
+            };
+            let hits = mistakes::match_lessons(&ms, &files, &query, &milestones);
+
+            if json {
+                let rows: Vec<String> = hits
+                    .iter()
+                    .map(|h| {
+                        format!(
+                            "    {{\"id\": {:?}, \"title\": {:?}, \"severity\": {:?}, \"class\": {:?}, \"guard\": {:?}, \"why\": {:?}, \"path\": {:?}}}",
+                            h.mistake.id, h.mistake.title, h.mistake.severity, h.mistake.class,
+                            h.mistake.guard, h.why, h.mistake.path.display().to_string()
+                        )
+                    })
+                    .collect();
+                println!("{{\n  \"matches\": [\n{}\n  ]\n}}", rows.join(",\n"));
+            } else if hits.is_empty() {
+                println!("no lesson applies to that");
+            } else {
+                println!("{} lesson(s) apply:\n", hits.len());
+                for h in &hits {
+                    // The `why` names WHICH rule fired. A lesson surfaced for the wrong reason
+                    // teaches the wrong thing, so it is printed rather than inferred.
+                    println!(
+                        "  [{}] {} - {}",
+                        h.mistake.severity, h.mistake.id, h.mistake.title
+                    );
+                    println!("      why: {}", h.why);
+                    if !h.mistake.guard.is_empty() {
+                        println!("      guard: {}", h.mistake.guard);
+                    }
+                }
+            }
+            ExitCode::SUCCESS
+        }
+        // `capture` writes a lesson file plus a guard; `show` reads one body. Both are a bigger
+        // surface than the query path and say so individually.
+        "show" | "capture" => delegate_to_python(repo, "mistakes", args),
+        "" => {
+            eprintln!("uor-harness mistakes: which action? list, find, show, capture");
+            ExitCode::from(2)
+        }
+        other => {
+            eprintln!("uor-harness mistakes: unknown action {other:?}; try list, find");
+            ExitCode::from(2)
+        }
+    }
 }
 
 /// `skill <action>` - the skill registry (D30 port of the Python `skill`).

@@ -132,6 +132,20 @@ fn read_tier(path: &Path) -> BTreeMap<String, Claim> {
         .collect()
 }
 
+/// The COMMITTED store alone - what the write path must load.
+///
+/// **The distinction is the whole bug this function exists to fix.** `load_claims` merges the live
+/// tier in for READING, which is right: a peer's claim should be visible before its PR lands. But
+/// writing that merged view back to the committed store **imports every peer's live claim into the
+/// file that gets reviewed and merged** — a release by one lab committed ten other labs' transient
+/// claims, and the working tree went dirty on a command that should not have touched it.
+///
+/// Reported by Antigravity after running the onboarding exercise, with Codex seeing the same on
+/// #2029. It is the defect class this line keeps producing: **a read view used as a write source.**
+pub fn load_committed(paths: &StatePaths) -> BTreeMap<String, Claim> {
+    read_tier(&claims_file(paths))
+}
+
 /// Every claim, committed authoritative and live filling gaps.
 pub fn load_claims(paths: &StatePaths) -> BTreeMap<String, Claim> {
     let mut merged = BTreeMap::new();
@@ -262,8 +276,12 @@ pub fn claim_branch(
             "a lab is required (--lab), because a claim without an owner is not a claim".into(),
         ));
     }
-    let mut claims = load_claims(paths);
-    if let Some(existing) = claims.get(branch) {
+    // COMMITTED ONLY for the write. Reading the merged view here was the bug: it put every peer's
+    // live claim into the file this writes.
+    let mut claims = load_committed(paths);
+    // The CONFLICT check uses the merged view, because refusing a branch a peer holds only in the
+    // live tier would be wrong - that is exactly what the live mirror is for.
+    if let Some(existing) = load_claims(paths).get(branch) {
         if !existing.lab.is_empty() && existing.lab != lab {
             return Err(ClaimError::Held(existing.clone()));
         }
@@ -287,10 +305,14 @@ pub fn claim_branch(
 /// **The live mirror is republished on release.** A mirror that is only ever added to resurrects
 /// released claims, which is the bug the Python version hit.
 pub fn release_branch(paths: &StatePaths, branch: &str, lab: &str) -> Result<Claim, ClaimError> {
-    let mut claims = load_claims(paths);
-    let Some(existing) = claims.get(branch).cloned() else {
+    // COMMITTED ONLY for the write, for the reason on `load_committed`.
+    let mut claims = load_committed(paths);
+    let Some(existing) = load_claims(paths).get(branch).cloned() else {
         return Err(ClaimError::NotHeld(branch.to_string()));
     };
+    // Releasing a claim that exists only in the live tier must still remove it there, so the
+    // committed store keeps whatever it had and the mirror is republished from it below.
+    claims.remove(branch);
     if !lab.is_empty() && !existing.lab.is_empty() && existing.lab != lab {
         return Err(ClaimError::Held(existing));
     }
@@ -543,6 +565,64 @@ mod tests {
         let a = text.find("alpha").expect("alpha");
         let z = text.find("zeta").expect("zeta");
         assert!(a < z, "keys are sorted: {text}");
+    }
+
+    /// **The regression Antigravity found.** A live-tier peer claim must NOT be imported into the
+    /// committed store by a local claim or release. Before the fix, one lab releasing its own branch
+    /// committed ten other labs' transient claims and dirtied the tree.
+    #[test]
+    fn a_live_peer_claim_is_never_written_into_the_committed_store() {
+        let f = Fixture::new();
+        let p = f.paths();
+        // A peer's claim exists ONLY in the live tier.
+        std::fs::create_dir_all(p.live.clone()).expect("live");
+        std::fs::write(
+            live_claims_file(&p),
+            r#"{"peer/branch":{"branch":"peer/branch","lab":"kimi","head":"","claimed_at":"2026-01-01T00:00:00+00:00","note":""}}"#,
+        )
+        .expect("write live");
+        std::fs::write(claims_file(&p), "{}\n").expect("write committed");
+
+        // It IS visible for reading, which is what the live mirror is for.
+        assert!(
+            load_claims(&p).contains_key("peer/branch"),
+            "the live tier is readable"
+        );
+
+        // A local claim must not commit it.
+        claim_branch(&p, "mine", "deepseek", "").expect("claim");
+        let committed = std::fs::read_to_string(claims_file(&p)).expect("read");
+        assert!(
+            !committed.contains("peer/branch"),
+            "a peer's live claim was imported into the committed store: {committed}"
+        );
+
+        // And a release must not either.
+        release_branch(&p, "mine", "deepseek").expect("release");
+        let committed = std::fs::read_to_string(claims_file(&p)).expect("read");
+        assert!(
+            !committed.contains("peer/branch"),
+            "a release imported a peer's live claim: {committed}"
+        );
+    }
+
+    /// A peer holding a branch ONLY in the live tier is still refused - that is what the mirror is
+    /// for, and it must not become the reason a claim succeeds.
+    #[test]
+    fn a_live_tier_peer_claim_still_refuses_a_conflicting_claim() {
+        let f = Fixture::new();
+        let p = f.paths();
+        std::fs::create_dir_all(p.live.clone()).expect("live");
+        std::fs::write(
+            live_claims_file(&p),
+            r#"{"b":{"branch":"b","lab":"kimi","head":"","claimed_at":"2026-01-01T00:00:00+00:00","note":""}}"#,
+        )
+        .expect("write live");
+        std::fs::write(claims_file(&p), "{}\n").expect("write committed");
+        match claim_branch(&p, "b", "deepseek", "") {
+            Err(ClaimError::Held(c)) => assert_eq!(c.lab, "kimi"),
+            other => panic!("expected Held from the live tier, got {other:?}"),
+        }
     }
 
     #[test]

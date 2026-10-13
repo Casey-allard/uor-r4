@@ -31,7 +31,17 @@ pub const MIN_PYTHON: (u32, u32) = (3, 9);
 /// but an unrecognised value is worth saying out loud so a typo does not quietly become its own
 /// shard. Compared AFTER slugging, because the harness slugs a lab name into every path it touches,
 /// so `DeepSeek` and `deepseek` are one lab — warning on case would be nagging about nothing.
-pub const KNOWN_LABS: [&str; 4] = ["kimi", "claude", "codex", "deepseek"];
+/// **Kept in step with R9's roster by hand, and that is a defect waiting to happen.**
+///
+/// Antigravity onboarded and this list still named four labs, so `onboard` warned a correctly-identified
+/// new lab that it was "not one of kimi, claude, codex, deepseek" - **while `docs/harness/pm-rules.md`
+/// R9 listed five.** A roster in the code and a roster in the rules will always drift; the honest
+/// short-term fix is to include the fifth and to say in the warning that R9 is the authority, so the
+/// next lab reads the rule rather than the constant.
+///
+/// A lab that is not listed here is still **allowed** - `UOR_LAB=antigravity` works and its receipts
+/// record - so this list only decides whether a note is printed.
+pub const KNOWN_LABS: [&str; 5] = ["kimi", "claude", "codex", "deepseek", "antigravity"];
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Level {
@@ -204,6 +214,28 @@ pub fn onboard(repo: &Path, lab_env: Option<String>) -> Report {
         }
     };
 
+    // 0. is `cargo` the RUST cargo?
+    //
+    // **Antigravity found this on the owner's laptop:** `/opt/homebrew/bin/cargo` is a symlink to
+    // `@cargo-ai/cli`, a Node.js CLI, so `cargo build` fails with `error: unknown command 'build'`
+    // whenever Homebrew precedes `~/.cargo/bin` on PATH. The error names a command the tool does not
+    // have, which points nowhere near the cause - the same shape as the stale-binary problem.
+    //
+    // Rust's cargo prints a version starting with `cargo `; the Node CLI does not.
+    match cargo_is_rust() {
+        Ok(path) => findings.push(Finding::ok(
+            "cargo",
+            format!("{path} is the Rust toolchain cargo"),
+        )),
+        Err(why) => findings.push(Finding::warn(
+            "cargo",
+            why,
+            "put rustup's cargo first: export PATH=\"$HOME/.cargo/bin:$PATH\" (add it to your \
+             shell profile). On this machine /opt/homebrew/bin/cargo is @cargo-ai/cli, a Node CLI, \
+             not the Rust toolchain.",
+        )),
+    }
+
     // 1b. is the entry point reachable?
     //
     // `uor-harness` is the harness's interface now; `python3 scripts/harness/cli.py` is an
@@ -243,12 +275,17 @@ pub fn onboard(repo: &Path, lab_env: Option<String>) -> Report {
         findings.push(Finding::fail(
             "identity",
             "UOR_LAB is not set, so receipts are recorded but attributed to NOBODY",
-            "export UOR_LAB=<kimi|claude|codex|deepseek>  — once per session, before any other command",
+            "export UOR_LAB=<lab>  — once per session, before any other command. R9 in \
+             docs/harness/pm-rules.md is the roster.",
         ));
     } else if !KNOWN_LABS.contains(&slug.as_str()) {
         findings.push(Finding::warn(
             "identity",
-            format!("UOR_LAB={lab:?} is not one of {}", KNOWN_LABS.join(", ")),
+            format!(
+                "UOR_LAB={lab:?} is not in this binary's roster ({}) - R9 in \
+                 docs/harness/pm-rules.md is the authority on which labs exist",
+                KNOWN_LABS.join(", ")
+            ),
             "a new lab is a decision, not an error — but make sure this spelling is intentional, \
              because a different spelling becomes a second lab in the ledger",
         ));
@@ -406,6 +443,34 @@ pub fn detect_runtime() -> Option<&'static str> {
         return Some("kimi");
     }
     None
+}
+
+/// Which `cargo` the shell resolves, and whether it is the Rust toolchain's.
+///
+/// Runs `cargo --version` and requires the output to start with `cargo `, because **that is the only
+/// test that distinguishes rustup's cargo from a same-named tool.** `/opt/homebrew/bin/cargo` on this
+/// laptop is `@cargo-ai/cli`; `cargo build` against it fails with `unknown command 'build'`.
+fn cargo_is_rust() -> Result<String, String> {
+    let out = std::process::Command::new("cargo")
+        .arg("--version")
+        .output();
+    match out {
+        Ok(o) if o.status.success() => {
+            let text = String::from_utf8_lossy(&o.stdout).trim().to_string();
+            if text.starts_with("cargo ") {
+                Ok(format!("cargo ({text})"))
+            } else {
+                Err(format!(
+                    "`cargo` resolved to something that is not the Rust toolchain: it reports {text:?}"
+                ))
+            }
+        }
+        Ok(o) => Err(format!(
+            "`cargo --version` failed: {}",
+            String::from_utf8_lossy(&o.stderr).trim()
+        )),
+        Err(e) => Err(format!("no `cargo` on PATH: {e}")),
+    }
 }
 
 /// The `uor-harness` the shell would run, if any.
