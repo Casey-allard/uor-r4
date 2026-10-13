@@ -1,3 +1,11 @@
+## 2026-10-13 — The pod gate is the D29 interlock; every bootstrap was failing (deepseek, tooling)
+
+Claude's item 5. `scripts/pod/uor-pod-bootstrap.sh` ran `--test cuda_stack_ops_parity` on every `uor-pod up` and refused the pod unless it passed, and **two independent things were wrong at once**: it is a **CPU-reference test** by construction (*"CPU Reference vs Native CUDA Stack Kernels"* in its own header), so **every pod admission depended on a prohibited execution** under D24; and **it no longer compiles**, because `StackConfig` gained `rec_gates` (#2293) and the file's initializers were never updated — **zero** occurrences against a now-required field. **Both are fixed by changing what the gate is rather than repairing the test:** the gate is now **`--test d29_compiled_modules`**, the D29 interlock, which checks the sources `build.rs` compiles and — with `--features cuda` — the built PTX itself, and **needs no CPU reference to be meaningful**; a failure refuses the pod (exit 4) because under D29 **presence counts**. `BUILD.json` records `d29`/`d29_summary`/`d29_seconds` with **both the new key and the old `parity` accepted** so pre-change caches stay valid. **The 3,402-line parity test is preserved and marked `#![cfg(any())]`** — excluded from every build, readable as evidence, with its header stating what a future owner decision would need (a device-side reference and a `rec_gates` value, not a revert). Also fixed: **`uor-harness ratchet` was reported as `unknown subcommand` in AGENTS.md, DECISIONS.md and the execution policy**, reddening `test_doccheck` on main — the Rust-only command set must **grow with the port**. **Not verified: the D29 gate itself**, which needs CUDA and a device this laptop lacks; the first real `uor-pod up` is the test of this change.
+
+Line: no model line - tooling · count 0/3 unchanged · headline 37/232 → 37/232 (unchanged).
+
+**Next:** the D30 port in the order posted on #2028 — `team` → `multilab` → `git clean-merged` → `skill`/`mistakes` → `prep`, then `check`, `lint`, `panel`, `budget`, `arena`, removing `delegate_to_python` only when the last lands.
+
 ## 2026-10-13 — M4 starling line: D21 pivot card, continue with one decisive run (claude, #2032)
 
 The starling line reached **3/3** with #2338, the rung-0b source PR; the registry still said 2/3, and this entry

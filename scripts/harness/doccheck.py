@@ -200,6 +200,12 @@ RUST_ONLY_COMMANDS = frozenset(
         "check-formats",
         "ledger-sync",
         "notes",
+        # #2346 moved the D23/D25 ratchets into Rust. This set has to grow with the port or the
+        # checker calls a shipped command unknown - it reported `uor-harness ratchet` as "unknown
+        # subcommand" in AGENTS.md, DECISIONS.md and the execution policy, which reddened
+        # test_doccheck on main. Keeping it current is part of porting, not an afterthought.
+        "ratchet",
+        "version",
     }
 )
 

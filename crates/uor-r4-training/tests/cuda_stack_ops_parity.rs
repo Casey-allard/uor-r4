@@ -1,3 +1,24 @@
+//! **NEVER COMPILED - retained as evidence. Do not re-enable.**
+//!
+//! Two independent reasons, either of which is sufficient:
+//!
+//! 1. **D24.** This is a CPU-reference test by construction ("CPU Reference vs Native CUDA Stack
+//!    Kernels"). Model compute never runs on the CPU, so the configuration it exercises is one the
+//!    rules already forbid. `scripts/pod/uor-pod-bootstrap.sh` gated every `uor-pod up` on it until
+//!    13 October, which made every pod admission depend on a prohibited execution.
+//! 2. **It does not compile.** `StackConfig` gained `rec_gates` (#2293) and this file's initializers
+//!    were not updated, so a `--features cuda` build of it fails. That is what broke every bootstrap.
+//!
+//! `#![cfg(any())]` is always false, so this file is excluded from every build while its text stays
+//! readable - the same treatment D29 gives the historical kernels: preserved as source evidence,
+//! absent from anything compiled. The compliant replacement is
+//! `tests/d29_compiled_modules.rs`, which checks the compiled modules and needs no CPU reference.
+//!
+//! If a future owner decision wants numerical parity again, it needs a device-side reference and a
+//! `rec_gates` value - not a revert of this line.
+
+#![cfg(any())]
+
 //! Numerical Parity Tests: CPU Reference vs Native CUDA Stack Kernels.
 //!
 //! Mirrors `metal_stack_ops_parity.rs` (same shapes and tolerances) for the

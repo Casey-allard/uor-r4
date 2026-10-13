@@ -8,7 +8,7 @@
 # Everything slow is cached on /workspace (the shared network volume on Runpod,
 # the instance disk on Vast) so the second pod of a kind starts in seconds:
 #   /workspace/toolchain/rust-<ver>-x86_64.tar, cargo-registry.tar   Rust, unpacked to /root
-#   /workspace/bin/<sha>-sm<cap>/          release binaries + BUILD.json + parity.log
+#   /workspace/bin/<sha>-sm<cap>/          release binaries + BUILD.json + d29.log
 #   /workspace/toolchain/ollama, /workspace/ollama   Ollama binary and models (--with-ollama)
 # The private HF store (caseyallard/uor-r4-store, or --hf-store) backs the first
 # two for pods without the volume: a missing toolchain/<file> or
@@ -99,9 +99,10 @@ POLL_S=${UOR_BUILD_POLL_S:-10}
 POD_TAG=${POD:-$(hostname 2>/dev/null || echo pod)}
 BIN='' LOCK='' HB_PID='' BUILT=0 HAVE_LOCK=0
 mtime() { stat -c %Y "$1" 2>/dev/null || stat -f %m "$1" 2>/dev/null || echo 0; }
-# A build is usable when it was BUILT - not when it passed a CPU parity run. `PASS` stays accepted
-# so builds published before this change remain valid caches rather than being silently rebuilt.
-cache_ok() { [ -f "$BIN/BUILD.json" ] && grep -Eq '"parity": "(PASS|NOT_RUN)' "$BIN/BUILD.json"; }
+# A build is usable when it was BUILT and its compiled modules passed the D29 interlock. `PASS` and the
+# older `parity` key both stay accepted so builds published before this change remain valid caches
+# rather than being silently rebuilt.
+cache_ok() { [ -f "$BIN/BUILD.json" ] && grep -Eq '"(parity|d29)": "(PASS|NOT_RUN)' "$BIN/BUILD.json"; }
 rename_dir() {  # SRC DST -> rename(2); fails (never merges) when DST exists and is not empty
   python3 -c 'import os, sys; os.rename(sys.argv[1], sys.argv[2])' "$1" "$2" 2>/dev/null
 }
@@ -204,7 +205,7 @@ store_fetch_bin() {  # -> 0 when the cache now holds the store's build
 store_build_ok() {  # STAGE -> 0 when it is a build of SHA/CAP whose SHA256SUMS name exactly the binaries and verify
   local st=$1 want have
   [ -f "$st/BUILD.json" ] && [ -s "$st/SHA256SUMS" ] || return 1
-  grep -Eq '"parity": "(PASS|NOT_RUN)' "$st/BUILD.json" && grep -q "\"sha\": \"$SHA\"" "$st/BUILD.json" &&
+  grep -Eq '"(parity|d29)": "(PASS|NOT_RUN)' "$st/BUILD.json" && grep -q "\"sha\": \"$SHA\"" "$st/BUILD.json" &&
     grep -Eq "\"compute_cap\": $CAP([,} ]|\$)" "$st/BUILD.json" || return 1
   # shellcheck disable=SC2086  # word lists
   want=$(printf '%s\n' $BINS_EXAMPLES $BINS_BINS | sort)
@@ -461,22 +462,38 @@ build_into() {  # STAGE -> fetch, build and stage the binaries (container-disk b
   t=$(date +%s)
   (cd "$SRC" && cargo "+$RUST_VERSION" build --release -p uor-r4-training --features cuda "${ex[@]}" "${bi[@]}")
   T_BUILD=$(( $(date +%s) - t ))
-  set_phase parity
-  # THE GATE IS THE BUILD, NOT A CPU-REFERENCE PARITY RUN.
+  set_phase d29
+  # THE GATE IS THE D29 INTERLOCK, NOT A CPU-REFERENCE PARITY RUN.
   #
   # This step used to run `--test cuda_stack_ops_parity` on every `uor-pod up` and REFUSE the pod
-  # unless it passed. That test checks CUDA kernels against CPU references, which D24 forbids: model
-  # compute never runs on the CPU, and a host-side fallback is a defect to fix with a kernel rather
-  # than a cost to report. Gating the pod on it made every `up` depend on a prohibited execution.
+  # unless it passed. Two things were wrong with that:
   #
-  # The test is kept as SOURCE EVIDENCE - the file stays, nothing is deleted - and device-only
-  # controls remain available with `up --device-controls <filter>`. What changes is that a pod is no
-  # longer refused for not running a CPU reference.
-  log "build ${T_BUILD}s; parity NOT RUN (D24: no CPU model compute - the build is the gate)"
-  PARITY="NOT_RUN (D24)"
-  T_PARITY=0
-  PARITY_SUMMARY="not run: D24 prohibits CPU reference execution; see docs/integration/DECISIONS.md"
-  : > "$stage/parity.log"
+  #   1. It is a CPU-reference test - "CPU Reference vs Native CUDA Stack Kernels" in its own header -
+  #      so gating on it made every `up` depend on a prohibited execution (D24).
+  #   2. It no longer compiles on main: two `StackConfig` initializers lack `rec_gates` (#2293), so the
+  #      bootstrap failed before it could publish anything. **Every bootstrap was failing.**
+  #
+  # `d29_compiled_modules` is the compliant replacement and the stronger gate: it checks the sources
+  # build.rs compiles for banned families, and with `--features cuda` it checks the built PTX itself.
+  # It needs no CPU reference to be meaningful.
+  log "build ${T_BUILD}s; D29 interlock (compiled modules, no runtime compiler)"
+  t=$(date +%s)
+  D29=FAIL
+  if (cd "$SRC" && cargo "+$RUST_VERSION" test --release -p uor-r4-training --features cuda \
+        --test d29_compiled_modules -- --test-threads=1) > "$stage/d29.log" 2>&1; then
+    D29=PASS
+  fi
+  T_PARITY=$(( $(date +%s) - t ))
+  PARITY_SUMMARY=$(grep -E '^test result:' "$stage/d29.log" | tail -1 || true)
+  log "d29 $D29 in ${T_PARITY}s: $PARITY_SUMMARY"
+  # A pod whose compiled modules contain a banned mechanism is not usable for D29 work, so this gate
+  # REFUSES rather than warning - the whole point of the interlock is that presence counts.
+  if [ "$D29" != PASS ]; then
+    echo "D29 interlock did not pass: see $stage/d29.log" >&2
+    grep -E 'panicked|assertion|FAILED' "$stage/d29.log" | head -5 >&2 || true
+    exit 4
+  fi
+  PARITY="$D29"
   set_phase stage
   for b in $BINS_EXAMPLES; do cp "$CARGO_TARGET_DIR/release/examples/$b" "$stage/"; done
   for b in $BINS_BINS; do cp "$CARGO_TARGET_DIR/release/$b" "$stage/"; done
@@ -488,8 +505,8 @@ json.dump({
   "sha": "$SHA", "compute_cap": $CAP, "gpu": "$GPU_NAME", "rustc": "$RUSTC_VERSION",
   "nvcc": "$NVCC_VERSION", "features": "cuda", "profile": "release",
   "examples": "$BINS_EXAMPLES".split(), "bins": "$BINS_BINS".split(),
-  "build_seconds": $T_BUILD, "parity": "$PARITY", "parity_summary": "$PARITY_SUMMARY",
-  "parity_seconds": $T_PARITY, "built_on_pod": "$POD", "built_at": "$(date -u +%FT%TZ)",
+  "build_seconds": $T_BUILD, "d29": "$PARITY", "d29_summary": "$PARITY_SUMMARY",
+  "d29_seconds": $T_PARITY, "built_on_pod": "$POD", "built_at": "$(date -u +%FT%TZ)",
 }, open(sys.argv[1], "w"), indent=1)
 PY
   if tar -C "$CARGO_HOME" -cf "$REG_TAR.tmp.$POD_TAG.$$" registry git 2>/dev/null; then
@@ -500,7 +517,13 @@ PY
   fi
 }
 obtain_bin
-PARITY=$(python3 -c "import json; print(json.load(open('$BIN/BUILD.json'))['parity'])")
+# The key was `parity` before the D29 gate; both are read so a cached BUILD.json written by an older
+# bootstrap still reports rather than raising KeyError on a pod that has been up for hours.
+PARITY=$(python3 -c "
+import json
+d = json.load(open('$BIN/BUILD.json'))
+print(d.get('d29', d.get('parity', 'UNKNOWN')))
+")
 
 # ---- optional: Ollama judge (binary and models on the volume; never fatal)
 if [ "$OLLAMA" = 1 ]; then ollama_step; fi
@@ -528,4 +551,4 @@ fi
 TOTAL=$(( $(date +%s) - T0 ))
 echo "BOOTSTRAP_RESULT {\"pod\":\"$POD\",\"sha\":\"$SHA\",\"cap\":$CAP,\"gpu\":\"$GPU_NAME\",\"gpus\":$GPU_COUNT,\"nvcc\":\"$NVCC_VERSION\",\"off_volume\":$OFF,\"cache_hit\":$([ $BUILT = 0 ] && echo true || echo false),\"parity\":\"$PARITY\",\"reaper\":\"$REAPER\",\"ollama\":\"$OLLAMA_STATUS\",\"seconds\":{\"total\":$TOTAL,\"cuda_install\":$T_CUDA,\"rust_install\":$T_RUST,\"build\":$T_BUILD,\"parity\":$T_PARITY,\"ollama\":$T_OLLAMA}}"
 # The pod is ready when its build completed. There is no CPU parity run to wait for (D24).
-[ -f "$BIN/BUILD.json" ] || { echo "no build published at $BIN: see $BIN/parity.log" >&2; exit 3; }
+[ -f "$BIN/BUILD.json" ] || { echo "no build published at $BIN: see $BIN/d29.log" >&2; exit 3; }
