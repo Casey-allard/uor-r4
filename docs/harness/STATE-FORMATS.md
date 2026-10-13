@@ -22,8 +22,14 @@ python3 scripts/harness/statecheck.py --json   # machine-readable
 
 **A key without an `optional` mark must appear in every document of that format. A key marked
 `optional` appears in some and not others.** A kind of `mixed` means the key carries more than one
-JSON type across records — `count` is a string in heartbeat receipts and a number in team receipts —
-and a reader must handle both. An empty array matches any item shape.
+JSON type across records, listed in the key's `types` array; `count` is a string in heartbeat
+receipts and a number in team receipts, so `types` is `["number", "string"]` and a reader must
+handle both. **A value outside `types` is drift.** An empty array matches any item shape.
+
+That last clause was added after the parity check caught both implementations accepting an object
+for `count`: treating `mixed` as "anything" is not the same as "these types", and a real reader
+cannot handle a type that was never observed. See
+[the parity check](#two-implementations-one-contract) below.
 
 | format | file | holds |
 |---|---|---|
@@ -59,6 +65,31 @@ it deliberately and review it.
 **Never regenerate to silence a failure you have not understood.** An unintended shape change is
 precisely the drift this file exists to catch, and `statecheck.py` is wired into `check`, so it runs
 wherever the harness runs.
+
+## Two implementations, one contract
+
+The Rust port reads the same contract file. `scripts/harness/parity.py` is the regression test that
+the two agree:
+
+```
+$ python3 scripts/harness/parity.py
+parity: rust (uor-harness) vs python, 8 formats, 46 receipts, 2 lab(s) with presence
+  agree on every format, the ledger roll-up, and the presence board
+  agree on all 6 controlled cases (accept and reject)
+```
+
+It compares **structured output**, not prose, and it includes controlled cases with verdicts known
+in advance — a valid row, a timestamp as a number, a missing required key, `count` as a number, and
+`count` as an object. Agreement on whatever state happens to be in the working tree would only prove
+both can read a *valid* file; the controlled cases prove both **reject** the same things.
+
+Both implementations also accept `--repo`, so either can be pointed at any checkout. That is what
+makes a controlled comparison possible at all: before this, `statecheck.py` could only ever check
+the checkout it lived in.
+
+**What parity does not prove.** Agreement about *reading* state is not agreement about behaviour.
+The Python harness owns behaviour — writing claims, publishing presence, the rule engine — until
+those are ported and compared the same way. This is the first such comparison, not the last.
 
 ## What the freeze guarantees, and what it does not
 

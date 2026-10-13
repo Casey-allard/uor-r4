@@ -3185,6 +3185,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "uor-r4-harness"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "uor-r4-integer"
 version = "0.1.0"
 dependencies = [

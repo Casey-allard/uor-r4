@@ -88,3 +88,66 @@ Rust path passes the same checks.
 
 **Next:** the Rust crate. Its first test is that it reads every file in `state-formats.json` and
 agrees with the contract — the same contract, checked by two languages.
+
+## Step 2: the Rust crate reads the frozen state
+
+`crates/uor-r4-harness` now reads and validates the state the Python harness writes, against the
+same contract file. It does not write, and it is not on the labs' path — the Python harness owns
+behaviour until this passes the same checks.
+
+```
+$ CARGO_TARGET_DIR=local/harness-target cargo test -p uor-r4-harness --offline
+test result: ok. 18 passed; 0 failed          (+ 1 doc-test)
+```
+
+Three commands, all reading real state:
+
+```
+$ uor-harness check --repo .        # state against the frozen contract, exit 1 on drift
+$ uor-harness presence --repo .     # what each lab is doing, live tier first
+$ uor-harness ledger --repo .       # receipts by lab and kind
+```
+
+### `scripts/harness/parity.py` — the regression test that the two agree
+
+Two implementations that disagree are worse than one, because the shared record then says different
+things depending on which tool a lab runs. So agreement is checked, not assumed:
+
+```
+$ python3 scripts/harness/parity.py
+parity: rust (uor-harness) vs python, 8 formats, 46 receipts, 2 lab(s) with presence
+  agree on every format, the ledger roll-up, and the presence board
+  agree on all 6 controlled cases (accept and reject)
+```
+
+It compares **structured output**, not prose, so a wording change cannot fail it and a real
+disagreement cannot hide behind one. And it includes **controlled cases** with verdicts known in
+advance, because agreeing on whatever state is in the working tree only proves both can read a
+*valid* file. The cases: a valid row, a timestamp as a number, a missing required key, `count` as a
+number, `count` as an object, and non-JSON.
+
+### The parity check immediately found a bug in both implementations
+
+The `count`-as-an-object case **passed in both** when the expectation was rejection. The `mixed`
+kind was implemented as "accept anything", which is not what it means: `mixed` means the key carries
+more than one *recorded* type — `count` is a string in heartbeat receipts and a number in team
+receipts — and a value outside that set is drift. A real reader cannot handle a type that was never
+observed, so both implementations were silently accepting state neither could read.
+
+Fixed in both, by recording the observed types in the contract itself (`types: ["number", "string"]`
+for `count`) rather than hard-coding them in either language. `statecheck.py` also gained `--repo`,
+without which it could only ever check the checkout it lived in and a controlled comparison was
+impossible.
+
+That is the argument for building the parity check before porting behaviour: it found a
+two-implementation disagreement on the very first run, in code that had tests and had passed them.
+
+### A note on this checkout
+
+`target/` in this checkout is a **broken symlink** to a removed archive on an external volume, so
+`cargo` cannot use it. Builds here use `CARGO_TARGET_DIR=local/harness-target`, which is gitignored.
+The symlink is not mine to delete and was left alone.
+
+**Next:** port behaviour against the Python suite as the conformance oracle — claims and presence
+first, since those are what the labs actually depend on — then cut CI over once the Rust path passes
+the same rules. The grandfather keeps Python working throughout.

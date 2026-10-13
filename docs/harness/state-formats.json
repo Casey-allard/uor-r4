@@ -1,6 +1,6 @@
 {
   "schema": 2,
-  "note": "The frozen interface between the harness and its persisted state. A Rust port (owner decision, 13 October 2026, D27) must read and produce exactly these, so the two implementations are interchangeable. A key marked optional is present in some documents and absent in others; a key WITHOUT that mark must be present in every one. An empty array matches any item shape. scripts/harness/statecheck.py checks this against the real files. A kind of 'mixed' means the key carries more than one JSON type across records (for example `count` is a string in heartbeat receipts and a number in team receipts); a reader must handle both.",
+  "note": "The frozen interface between the harness and its persisted state. A Rust port (owner decision, 13 October 2026, D27) must read and produce exactly these, so the two implementations are interchangeable. A key marked optional is present in some documents and absent in others; a key WITHOUT that mark must be present in every one. An empty array matches any item shape. scripts/harness/statecheck.py checks this against the real files. A kind of 'mixed' means the key carries more than one JSON type across records, listed in `types`; a value whose type is not in that list is drift (for example `count` is a string in heartbeat receipts and a number in team receipts); a reader must handle both.",
   "formats": {
     "milestones": {
       "pattern": "docs/harness/milestones.json",
@@ -1522,7 +1522,11 @@
           },
           "count": {
             "type": "mixed",
-            "optional": true
+            "optional": true,
+            "types": [
+              "number",
+              "string"
+            ]
           },
           "event": {
             "type": "string",

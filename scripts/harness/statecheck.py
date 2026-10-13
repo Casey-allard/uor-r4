@@ -23,8 +23,10 @@ import json
 import sys
 from pathlib import Path
 
+#: Default repository root. Overridable with --repo so this checker can be pointed at any
+#: checkout -- which is what lets the Rust port and this implementation be compared on the same
+#: controlled input rather than only on whatever state happens to be in the working tree.
 REPO = Path(__file__).resolve().parents[2]
-CONTRACT = REPO / "docs" / "harness" / "state-formats.json"
 
 
 def value_kind(value: object) -> str:
@@ -61,9 +63,17 @@ def compare(actual: dict, expected: dict, where: str, problems: list[str]) -> No
     changed kind breaks readers, so those fail.
     """
     atype, etype = actual.get("type"), expected.get("type")
-    if etype in ("nullable", "mixed"):
-        # 'nullable': any value. 'mixed': the contract recorded more than one observed type for
-        # this key, so any of them is expected - the point is that the port handles the union.
+    if etype == "nullable":
+        # 'nullable' genuinely accepts any value.
+        return
+    if etype == "mixed":
+        # 'mixed' means the contract observed more than one type for this key. It does NOT mean
+        # "anything": the contract lists the types in `types`, and a value outside that list is
+        # drift. Accepting everything here silently passed an object for `count`, which a real
+        # reader would then have to handle and cannot.
+        allowed = expected.get("types")
+        if allowed and atype not in allowed:
+            problems.append(f"{where}: kind {atype} not in the recorded mixed types {allowed}")
         return
     if atype != etype:
         problems.append(f"{where}: kind changed {etype} -> {atype}")
@@ -86,14 +96,20 @@ def compare(actual: dict, expected: dict, where: str, problems: list[str]) -> No
             compare(actual["items"], sub, f"{where}[]", problems)
 
 
-def check(json_out: bool = False) -> int:
+def contract_path(repo: Path | None = None) -> Path:
+    return (repo or REPO) / "docs" / "harness" / "state-formats.json"
+
+
+def check(json_out: bool = False, repo: Path | None = None) -> int:
+    root = repo or REPO
+    CONTRACT = contract_path(root)
     if not CONTRACT.exists():
-        print("statecheck: docs/harness/state-formats.json is missing", file=sys.stderr)
+        print(f"statecheck: {CONTRACT} is missing", file=sys.stderr)
         return 2
     contract = json.loads(CONTRACT.read_text(encoding="utf-8"))
     results = []
     for name, entry in contract["formats"].items():
-        paths = sorted(glob.glob(str(REPO / entry["pattern"])))
+        paths = sorted(glob.glob(str(root / entry["pattern"])))
         if not paths:
             results.append({"format": name, "files": 0, "problems": [], "note": "no file present"})
             continue
@@ -133,10 +149,14 @@ def check(json_out: bool = False) -> int:
             results.append({"format": name, "files": len(paths), "problems": problems})
     failed = [r for r in results if r["problems"]]
     if json_out:
-        print(json.dumps({"contract": str(CONTRACT.relative_to(REPO)), "formats": results,
+        try:
+            label = str(CONTRACT.relative_to(root))
+        except ValueError:
+            label = str(CONTRACT)
+        print(json.dumps({"contract": label, "root": str(root), "formats": results,
                           "ok": not failed}, indent=2))
     else:
-        print(f"state formats: {len(results)} checked against {CONTRACT.relative_to(REPO)}")
+        print(f"state formats: {len(results)} checked against {contract_path(root)}")
         for r in results:
             state = "ok" if not r["problems"] else f"{len(r['problems'])} PROBLEM(S)"
             extra = f" ({r.get('rows', r['files'])} rows)" if "rows" in r else f" ({r['files']} file(s))"
@@ -162,10 +182,11 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Check harness state against the frozen format contract.")
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--regen", action="store_true", help="re-freeze the contract (review the diff)")
+    ap.add_argument("--repo", default=None, help="repository root (default: this checkout)")
     args = ap.parse_args(argv)
     if args.regen:
         return regen()
-    return check(json_out=args.json)
+    return check(json_out=args.json, repo=Path(args.repo).resolve() if args.repo else None)
 
 
 # --- rule-engine integration ---------------------------------------------------------------

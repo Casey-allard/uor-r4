@@ -1,0 +1,19 @@
+[package]
+name = "uor-r4-harness"
+license = "MIT"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "The multi-lab research harness. Reads and validates the frozen harness state (docs/harness/state-formats.json) that the Python implementation also reads, so the two agree about what the shared record says. Owner decision 13 October 2026 (D27): Rust is the default for new project code including tooling; the Python harness is grandfathered and remains authoritative until this path passes the same checks."
+
+[lib]
+name = "uor_r4_harness"
+path = "src/lib.rs"
+
+[[bin]]
+name = "uor-harness"
+path = "src/main.rs"
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"

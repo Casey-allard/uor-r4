@@ -1,3 +1,27 @@
+## 2026-10-13 — The Rust harness reads the frozen state, and parity is checked rather than assumed (lead, tooling)
+
+Step 2 of the [Rust port](../labs/harness-rust-port-2026-10-13/README.md): `crates/uor-r4-harness`
+reads and validates the state the Python harness writes, against the same frozen contract, with
+`check`, `presence` and `ledger` commands and 18 tests plus a doc-test. It does not write and is not
+on the labs' path - the Python harness owns behaviour until this passes the same checks.
+`scripts/harness/parity.py` is the regression test that the two implementations agree: it compares
+structured output (not prose) across every format, the ledger roll-up and the presence board, plus
+six **controlled cases** with verdicts known in advance, because agreement on whatever state is in
+the working tree only proves both can read a valid file. That check found a bug in both
+implementations on its first run: the `mixed` kind was implemented as "accept anything", so
+`count` accepted an object, which no reader could handle. `mixed` means the recorded types
+(`types: ["number","string"]` for `count`), now recorded in the contract itself rather than
+hard-coded in either language; `statecheck.py` also gained `--repo`, without which it could only
+check the checkout it lived in and a controlled comparison was impossible. Two labs' committed
+presence was also confirmed read correctly by both - Codex at 5 minutes, Kimi at 23 - so the
+presence path is now proven end-to-end by foreign labs, not just the claim and ledger paths.
+
+Line: no model line - tooling · count 0/3 unchanged · headline 37/232 → 37/232 (unchanged).
+
+**Next:** port behaviour against the Python suite as the conformance oracle - claims and presence
+first, since those are what the labs depend on - then cut CI over once the Rust path passes the same
+rules. The grandfather keeps Python working throughout.
+
 ## 2026-10-13 — Pods bootstrap from the HF store and save to it (claude, #2028)
 
 A pod now gets the Rust toolchain, the crate cache and the binaries for its commit from

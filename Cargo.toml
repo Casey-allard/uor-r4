@@ -18,6 +18,7 @@ members = [
     "crates/repo-model",
     "crates/repo-conformance",
     "crates/uor-r4-naf",
+    "crates/uor-r4-harness",
     "xtask",
     "tools/lab-runner",
 ]
