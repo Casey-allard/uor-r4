@@ -985,7 +985,7 @@
       "shape": {
         "type": "object",
         "keys": {
-          "kimi/d27-rust-first-2026-10-13": {
+          "kimi/pm-rules-2026-10-13": {
             "type": "object",
             "keys": {
               "branch": {
@@ -1003,7 +1003,8 @@
               "note": {
                 "type": "string"
               }
-            }
+            },
+            "optional": true
           }
         }
       },

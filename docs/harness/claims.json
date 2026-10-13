@@ -1,15 +1,8 @@
 {
-  "kimi/d27-rust-first-2026-10-13": {
-    "branch": "kimi/d27-rust-first-2026-10-13",
-    "claimed_at": "2026-10-12T23:44:17-04:00",
-    "head": "06731f803",
-    "lab": "kimi",
-    "note": ""
-  },
-  "kimi/rung0-sheet-bars-2026-10-13": {
-    "branch": "kimi/rung0-sheet-bars-2026-10-13",
-    "claimed_at": "2026-10-13T00:37:05-04:00",
-    "head": "be742611a",
+  "kimi/pm-rules-2026-10-13": {
+    "branch": "kimi/pm-rules-2026-10-13",
+    "claimed_at": "2026-10-13T00:58:49-04:00",
+    "head": "d7934bf03",
     "lab": "kimi",
     "note": ""
   }

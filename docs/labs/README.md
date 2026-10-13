@@ -11,6 +11,8 @@
 > - **Claude** — the starling/murmuration read and the pod migration.
 > - **DeepSeek** — the invariant-addressed router and memory, and the research harness.
 >
+> **Codex is also Sol** (alias, same seat); **Antigravity** is the fifth lab, currently offline.
+>
 > The assignments are work claims, not ownership of a mechanism; any lab may join, leave and return under
 > the shared protocol, and the owner retains strategic authority.
 

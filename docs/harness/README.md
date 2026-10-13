@@ -32,6 +32,7 @@ queryable surface and emits **receipts** so orchestration is visible after the f
 | `presence/<lab>.json` | where each lab is and when it last checked in (committed) |
 | `claims.json` | one owner per branch, visible to every lab (committed) |
 | `ledger/<lab>-<month>.jsonl` | one receipt shard per lab, so concurrent PRs never conflict |
+| `pm-rules.md` | the PM operating rules every lab follows through the harness (R1–R9) |
 
 `docs/mechanisms/` (the idea-level briefs) stays where it is and is cited by skills.
 
