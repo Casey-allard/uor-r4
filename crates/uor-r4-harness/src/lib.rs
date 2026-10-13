@@ -22,6 +22,7 @@
 
 pub mod arenarules;
 pub mod briefing;
+pub mod budgetrules;
 pub mod contract;
 pub mod githelp;
 pub mod harnessrules;

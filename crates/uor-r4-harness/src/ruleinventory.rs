@@ -62,6 +62,7 @@ pub const INVENTORY: &[(&str, &[&str])] = &[
             "arena.knows_what_it_cannot_measure",
         ],
     ),
+    ("budget", &["budget.receipts_parse", "budget.disk_floor"]),
     (
         "harness",
         &[
