@@ -32,6 +32,7 @@ pub mod ratchet;
 pub mod receipt;
 pub mod registries;
 pub mod shards;
+pub mod skills;
 pub mod state;
 pub mod status;
 pub mod team;

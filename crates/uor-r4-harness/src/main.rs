@@ -23,6 +23,7 @@ use uor_r4_harness::receipt::{
 };
 use uor_r4_harness::registries::Registries;
 use uor_r4_harness::shards;
+use uor_r4_harness::skills;
 use uor_r4_harness::state::{read_ledger, PresenceRow, StatePaths};
 use uor_r4_harness::status;
 use uor_r4_harness::team;
@@ -42,7 +43,7 @@ const PYTHON_PASSTHROUGH_VALUE_FLAGS: [&str; 1] = ["--only"];
 /// BEFORE flag parsing: an unported command's flags are unknown to this binary, and rejecting one
 /// meant delegation only worked for commands whose flags happened to be in the lists - `check --only`
 /// failed with "unknown option --only" before it could delegate. Which defeats the point.
-const PORTED_COMMANDS: [&str; 19] = [
+const PORTED_COMMANDS: [&str; 20] = [
     "onboard",
     "check-formats",
     "presence",
@@ -53,6 +54,7 @@ const PORTED_COMMANDS: [&str; 19] = [
     "notes",
     "version",
     "team",
+    "skill",
     "multilab",
     "git",
     "prep-check",
@@ -154,6 +156,8 @@ COMMANDS:
                 merged into origin/main, --apply deletes the proven ones.
     multilab    The shared board: presence, claims, touch. `touch` refreshes
                 liveness for hooks WITHOUT changing what the lab is doing.
+    skill       Skills: list, show, match, use. `use` records a receipt line
+                saying a skill was actually loaded and deployed.
     team        Branch claims: claim, release, claims, roster.
                 `team claim --branch B --lab L` before you start work.
     version     The commit this binary was built from, and whether it is
@@ -317,6 +321,7 @@ fn main() -> ExitCode {
         Some("notes") => cmd_notes(&repo, &rest, json),
         Some("version") => cmd_version(&repo),
         Some("team") => cmd_team(&repo, &rest, json),
+        Some("skill") => cmd_skill(&repo, &rest, json),
         Some("multilab") => cmd_multilab(&repo, &rest, json),
         Some("git") => cmd_git(&repo, &rest, json),
         Some("prep-check") => cmd_prep_check(&repo, json),
@@ -446,6 +451,208 @@ fn action_word(args: &[String]) -> &str {
         return a;
     }
     ""
+}
+
+/// `skill <action>` - the skill registry (D30 port of the Python `skill`).
+///
+/// `use` is the one labs invoke every session: it validates the id and writes **one receipt line**
+/// saying the skill was loaded. **An unknown id refuses rather than recording**, because a receipt
+/// naming a skill that does not exist is worse than no receipt — the record would claim a skill was
+/// used.
+fn cmd_skill(repo: &Path, args: &[String], json: bool) -> ExitCode {
+    let paths = StatePaths::from_env(repo);
+    let action = action_word(args);
+    let skills = skills::load(&paths);
+    let id = action_word_after(args, &["show", "use", "match"]);
+
+    match action {
+        "list" => {
+            if json {
+                let rows: Vec<String> = skills
+                    .iter()
+                    .map(|s| {
+                        format!(
+                            "    {{\"id\": {:?}, \"description\": {:?}, \"milestones\": {:?}, \"version\": {:?}}}",
+                            s.id, s.description, s.milestones, s.version
+                        )
+                    })
+                    .collect();
+                println!("{{\n  \"skills\": [\n{}\n  ]\n}}", rows.join(",\n"));
+            } else {
+                println!("{} skills in docs/harness/skills/\n", skills.len());
+                for s in &skills {
+                    println!("  {:<26} v{:<3} {}", s.id, s.version, s.description);
+                }
+            }
+            ExitCode::SUCCESS
+        }
+        "show" => match skills::find(&skills, &id) {
+            Some(s) => {
+                if json {
+                    let body = serde_json::json!({
+                        "id": s.id, "name": s.name, "description": s.description,
+                        "when": s.when, "applies_to": s.applies_to, "requires": s.requires,
+                        "outputs": s.outputs, "forbidden": s.forbidden,
+                        "milestones": s.milestones, "path": s.path.display().to_string(),
+                    });
+                    println!(
+                        "{}",
+                        serde_json::to_string_pretty(&body).unwrap_or_default()
+                    );
+                } else {
+                    println!("{}  ({})", s.id, s.path.display());
+                    println!("  {}", s.description);
+                    if !s.when.is_empty() {
+                        println!("  when: {}", s.when.join(", "));
+                    }
+                    if !s.applies_to.is_empty() {
+                        println!("  applies to: {}", s.applies_to.join(", "));
+                    }
+                    if !s.forbidden.is_empty() {
+                        println!("  forbidden: {}", s.forbidden.join(", "));
+                    }
+                }
+                ExitCode::SUCCESS
+            }
+            None => {
+                eprintln!("unknown skill {id:?}");
+                ExitCode::from(2)
+            }
+        },
+        "match" => {
+            let files = flag_values(args, "--files", "-f");
+            let hits = skills::matching(&skills, &files);
+            if json {
+                let rows: Vec<String> = hits
+                    .iter()
+                    .map(|s| format!("    {{\"id\": {:?}}}", s.id))
+                    .collect();
+                println!("{{\n  \"matches\": [\n{}\n  ]\n}}", rows.join(",\n"));
+            } else if hits.is_empty() {
+                println!("no skill applies to those files");
+            } else {
+                for s in &hits {
+                    println!("  {:<26} {}", s.id, s.description);
+                }
+            }
+            ExitCode::SUCCESS
+        }
+        "use" => {
+            // Validate BEFORE writing. A receipt for a skill that does not exist would record that
+            // something was loaded when nothing was.
+            let Some(skill) = skills::find(&skills, &id) else {
+                eprintln!("unknown skill {id:?}");
+                eprintln!("  list them with: uor-harness skill list");
+                return ExitCode::from(2);
+            };
+            let lab = flag_value(args, "--lab")
+                .or_else(|| std::env::var("UOR_LAB").ok())
+                .unwrap_or_default();
+            if lab.trim().is_empty() {
+                // The Python harness warns loudly rather than refusing, and the receipt is still
+                // written - an unattributed record is worse than an absent one, but refusing here
+                // would lose the record entirely.
+                eprintln!(
+                    "uor-harness: no lab identity. Pass --lab <lab> or export UOR_LAB; the receipt \
+                     is recorded but attributed to nobody, and no other lab can see who did the work."
+                );
+            }
+            let mut r = NewReceipt::new("skill", lab.clone());
+            r = r.with("skill", skill.id.clone());
+            for key in ["milestone", "actor", "outcome", "note"] {
+                if let Some(v) = flag_value(args, &format!("--{key}")) {
+                    r = r.with(key, v);
+                } else if key == "outcome" {
+                    r = r.with("outcome", "started");
+                }
+            }
+            if let Err(e) = r.validate() {
+                eprintln!("uor-harness: {e}");
+                return ExitCode::from(2);
+            }
+            match append(&paths, &r, &current_month()) {
+                Ok(shard) => {
+                    if json {
+                        println!(
+                            "{{\"skill\": {:?}, \"lab\": {:?}, \"shard\": {:?}}}",
+                            skill.id,
+                            lab,
+                            shard.display().to_string()
+                        );
+                    } else {
+                        println!("skill used: {} ({})", skill.id, shard.display());
+                    }
+                    ExitCode::SUCCESS
+                }
+                Err(e) => {
+                    eprintln!("uor-harness: {e}");
+                    ExitCode::from(1)
+                }
+            }
+        }
+        "" => {
+            eprintln!("uor-harness skill: which action? list, show, match, use");
+            ExitCode::from(2)
+        }
+        other => {
+            eprintln!("uor-harness skill: unknown action {other:?}; try list, show, match, use");
+            ExitCode::from(2)
+        }
+    }
+}
+
+/// The first bare word AFTER `markers` in `args` - the positional argument of a grouped command.
+///
+/// `action_word` returns the action; this finds what follows it. Both step over value-taking flags,
+/// because a repo path or lab name is a bare word too and was mistaken for the action three times.
+fn action_word_after(args: &[String], markers: &[&str]) -> String {
+    let mut seen = false;
+    let mut skip_next = false;
+    for a in args {
+        if skip_next {
+            skip_next = false;
+            continue;
+        }
+        if a.starts_with('-') {
+            const GLOBAL_VALUE_FLAGS: [&str; 2] = ["--repo", "--lab"];
+            skip_next = GLOBAL_VALUE_FLAGS.contains(&a.as_str())
+                || (SUBCOMMAND_VALUE_FLAGS.contains(&a.as_str()) && !a.contains('='));
+            continue;
+        }
+        if !seen {
+            if markers.contains(&a.as_str()) {
+                seen = true;
+            }
+            continue;
+        }
+        return a.clone();
+    }
+    String::new()
+}
+
+/// Every value given to a repeatable flag.
+fn flag_values(args: &[String], long: &str, short: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut i = 0;
+    while i < args.len() {
+        let a = &args[i];
+        if a == long || a == short {
+            if let Some(v) = args.get(i + 1) {
+                // A comma-separated list is accepted too, because that is how a lab writes several
+                // files on one line.
+                for part in v.split(',') {
+                    let t = part.trim();
+                    if !t.is_empty() {
+                        out.push(t.to_string());
+                    }
+                }
+            }
+            i += 2;
+            continue;
+        }
+        i += 1;
+    }
+    out
 }
 
 /// `git <action>` - branch hygiene (D30 port of the Python `git`).
