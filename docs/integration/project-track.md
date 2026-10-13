@@ -12,7 +12,7 @@ D11 integer/table, multiplier-free serving remains the target.
 **Training remains held, including the separate M2 training/rental hold.** Kimi is the
 current project manager. Claude owns starling/murmuration reads, DeepSeek
 invariant-addressed router/memory, Codex enforcement and M2 grounded reply, and Kimi
-objectives/geometric operators/CUDA. These are current assignments, not authority to
+objectives/recurrence gates/CUDA. Codex owns the ratified OP3a head/shared vector writer claim. These are current assignments, not authority to
 run a suspended registration or alter another lab's work.
 
 The [repaired operator plan](../labs/operator-phase-2026-10-12/README.md) is the shared
@@ -48,17 +48,25 @@ canonical operator tables; it is not a unified model or writer qualification.
 The existing 8D geometry is the structural building block; total block count is
 unqualified, chosen for a material capacity/cost need rather than MiniLM's 384D
 teacher width. Historical MiniLM tables are inactive retrieval evidence. No new
-width/quality bar, fit or hold release is adopted. OP2/G2/OP3a and the complete
-GPU learning/output path remain dependencies; no separate dense head or hidden
-probability helper can implement the common writer.
+width/quality bar, fit or hold release is adopted. The
+[OP3a/shared native vector writer](../labs/geometric-head-shared-writer-2026-10-13/README.md)
+now binds the same learned embedding Tensor/Var to token input, addressed
+raw-distance output and compiler/store/emitter vector channels. Typed candidate
+IDs/masks, omitted-target score credit and auxiliary address margin are
+implemented; five finite CUDA controls pass. Native head artifacts bind source,
+compiler geometry and shape; probability-path admission/selection/loss refuse.
+Protected delivery is pending. This qualifies finite vector interfaces, not a
+learned intent compiler, complete GPU learning/output path or D11 serving.
 
 The [native projection replacement](../labs/spiralcore-fbs-projection-2026-10-12/README.md)
 uses both SpiralCore BFS and the Atomic Ternary FBS binder abstraction. OP2's
 former all-input quaternion sum and expansion are inactive preserved source.
 Bounded CUDA development/build/kernel tests for this claim are owner-authorized;
-training remains held. OP3a and all remaining dense/host/squashing sites still
-need replacement and complete-path qualification; this operator is not the
-shared writer or a language result.
+training remains held. OP3a and the common vector channel are now implemented
+and finite CUDA-qualified in the record above. Kimi's recurrence source #2293
+is integrated, but this unit does not device-qualify it. Complete-path dispatch,
+optimizer/objective/output qualification and explicit owner hold release remain
+before any training; no language result follows from these operator tests.
 
 ## Active programme — grounded conversation and durable memory, October 1
 

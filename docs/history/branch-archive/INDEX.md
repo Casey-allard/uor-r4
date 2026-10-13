@@ -1,5 +1,19 @@
 # Branch archive
 
+## October 13 — retired whole-path probability writer (Codex)
+
+[Restoration patch](whole-path-probability-writer-inactive-20261013.patch), SHA256
+`905e363b4dc3829d3106a5e470c28922f33b635c3f4288d1663aa012090f4563`, restores
+`crates/uor-r4-training/src/whole_path_device.rs` from this delivery to its
+pre-unit source at `5c0cf2945`. This includes probability prototype selection,
+sampled choices, exponential/table alias pooling and their loss. The new
+admission and old choice/pool/objective entries refuse; the shared vector
+channel replaces the writer interface, with no silent artifact conversion.
+**Inactive evidence only.** Independent isolated-index application restores
+the original file SHA256 `0c8ef618f22fc1b4ecec454b8e7d05b4ffa3b4c4325b012fa3d3ec0f26a5bcf7`.
+Historical source, measurements, accepted/negative artifacts and peer work stay
+preserved. Qualification and exclusions: [canonical record](../../labs/geometric-head-shared-writer-2026-10-13/README.md).
+
 ## October 13 — Claude starling branches with softmax-based training aids (inactive under D23)
 
 [Patch](claude_starling-language-softmax-inactive-20261013.patch), sha256

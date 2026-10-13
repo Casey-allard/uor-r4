@@ -1,6 +1,6 @@
 # Status
 
-Updated 12 October 2026. **Pre-alpha: no model holds a useful conversation yet.**
+Updated 13 October 2026. **Pre-alpha: no model holds a useful conversation yet.**
 Broad reasoning, coding, frontier capability and complete-path energy savings
 remain unestablished. Results/artifact identities are in [current state](docs/integration/current-state.md);
 [ROADMAP](ROADMAP.md) owns milestones and [#2028](https://github.com/UOR-Foundation/uor-r4/issues/2028)
@@ -30,9 +30,13 @@ explicit release of the applicable owner hold. No partial-trunk OP1 fit, new
 prohibited comparator or CPU model reference; no FIT or source delivery releases
 a hold. The [SpiralCore/FBS projection](docs/labs/spiralcore-fbs-projection-2026-10-12/README.md)
 replaces the dense quaternion contraction, with owner-authorized bounded pod
-build/kernel qualification; training remains held. It does not qualify the
-shared writer, remaining dense head or full trunk. The rank-margin objective is delivered source, not a compliant trunk or
-a language result. Numerical replacement quality bars remain pending amended
+build/kernel qualification; training remains held. The [OP3a product head and shared native vector writer](docs/labs/geometric-head-shared-writer-2026-10-13/README.md)
+now use the same embedding Tensor/Var across token input, raw-distance output and
+the compiler/store/emitter vector channel; five finite CUDA controls pass.
+Kimi's recurrence source #2293 is integrated but not device-qualified by this
+unit. The complete trunk, learned intent compiler and D11 serving remain
+unqualified. Protected delivery of the head/writer unit is pending. The
+rank-margin objective is source, not a language result. Numerical replacement quality bars remain pending amended
 registration; tokens/s uses the same CUDA harness.
 
 ## Measured positions and next source dependencies
@@ -40,7 +44,7 @@ registration; tokens/s uses the same CUDA harness.
 | Line | Retained reading and limitation | Current next dependency |
 | --- | --- | --- |
 | M1 language base | Historical v5 memory20/40, reply37/232 (targets34/40 and116/232); historical19.9M served0.886838 BPB at512 windows ([protocol](docs/labs/criterion2-protocol-pin-2026-10-09/README.md)). No new quality result | Kimi operator source; DeepSeek GPU-native addressed router/memory source; no old mixture/pointer campaign restart |
-| M2 grounded reply | Saved437/512 development + opened0/128 transfer diagnostic remain panel fitting; genuinely fresh qualification NOT_RUN. [Whole-path recovery source](docs/labs/whole-path-recovery-2026-10-12/README.md) delivered; CUDA execution unqualified; sampled law blocked. Unified line count8/3, no reset | Codex preserves source and training/rental hold; lawful sampled learning/device/data/FIT remain dependencies, not automatic next runs |
+| M2 grounded reply | Saved437/512 development + opened0/128 transfer diagnostic remain panel fitting; genuinely fresh qualification NOT_RUN. [Whole-path recovery source](docs/labs/whole-path-recovery-2026-10-12/README.md) delivered; CUDA execution unqualified; sampled law refuses. Head/shared vector channel finite CUDA-qualified; full M2 remains unqualified. Unified line count9/3 on completed delivery, no reset | Codex completes protected head/writer delivery; coherent intent/compiler/model path, device/data/FIT and owner hold release remain dependencies |
 | M3 durable memory | Evaluator/session delivered; unqualified | Preserve interfaces; no automatic experiment when M2 is held |
 | M4 one served model | Historical D11 bit-exact artifacts and rank-read components retained; default artifacts include prohibited paths. [Starling bootstrap](docs/labs/starling-bootstrap-2026-10-12/README.md) is inactive evidence | Claude teacher-free starling/murmuration source; compliant trunk → resumed rung0 → rung0b GPU read/gradient → starling |
 

@@ -2,12 +2,27 @@
 
 ## Status 2026-10-13
 
-OP1 G2 Hamilton gate landed (#2260); OP2's dense HamiltonLinear was superseded by the owner-directed SpiralCore BFS + retained FBS projection (#2279) — the plan's OP2 entry is satisfied by that replacement, not by the original dense form; recurrence geometric gates landed (#2293), making the executed recurrence squash-free; OP3a head is Codex-owned and in flight; the rung-0 sheet (docs/harness/prep/m1-rank-margin-rung0-2026-10-13.md) carries the live bars and dependency list.
+OP1 G2 Hamilton gate landed (#2260). OP2's dense HamiltonLinear was superseded
+by the owner-directed SpiralCore BFS + retained FBS projection (#2279); that
+replacement satisfies the plan's OP2 source entry. Recurrence geometric gates
+landed (#2293), making the declared recurrence squash-free by source sweep.
+OP3a and the shared native vector writer are Codex-owned under the ratified
+split, implemented and finite CUDA-qualified on source
+`09b3ee6df084beba1b9c6e98ef1e597bf2dc82bb`; protected delivery is pending.
+The [head/writer record](../geometric-head-shared-writer-2026-10-13/README.md)
+retains the five-test device qualification and limits. It does not qualify
+Kimi's recurrence or the complete trunk. The rung-0 sheet
+[retains its live bars and dependency list](../../harness/prep/m1-rank-margin-rung0-2026-10-13.md).
+Complete-path source/device qualification remains before any training, and a
+FIT verdict releases no owner hold. Training and the separate M2
+training/rental hold remain.
 
-*Everything below this section is the 2026-10-12 registration and repair text, kept as history.*
+The original 2026-10-12 registration and repair are linked below as historical
+evidence; this living plan includes the newer source and qualification status.
 
-References #2029 (M1) and #2032 (M4). Kimi is project manager and owns the operator
-implementation. This record is repaired under the owner's
+References #2029 (M1) and #2032 (M4). Kimi is project manager and owns
+recurrence/gate source; Codex owns OP2/OP3a and the shared writer under the
+[ratified split](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6138381873). This record is repaired under the owner's
 [D25 direction](../../integration/DECISIONS.md#d25---geometric-operator-phase-and-current-lab-direction).
 The [late owner clarification](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6135511346)
 sets **OP2 first, G2-only OP1, OP3a, rung0, then OP4/rung0b**; OP3b stays later
@@ -23,7 +38,8 @@ CPU/cuBLAS comparator permissions and mixed-unit quality bars; it is **not FIT c
 
 **Training remains held.** M2's separate training/rental hold remains; the owner
 authorized bounded pod development/build/finite kernel tests for the named
-Codex projection claim, without releasing either training hold.
+Codex projection claim and the subsequently owner-requested head/shared writer
+finite qualification, without releasing either training hold.
 OP1–OP3 are source/kernel implementation dependencies, not separate training
 campaigns on an otherwise prohibited trunk. No full-model training, evaluation,
 benchmark or generation runs until the entire executed path complies, its source
@@ -33,8 +49,10 @@ An isolated lawful GPU kernel qualification requires a separate named decision,
 prospective FIT and resource admission; it cannot contain banned operations,
 execute a CPU model reference or become an implicit training run.
 
-Retained/default source still contains prohibited squashes, dense projections and a dense
-vocabulary head. The margin objective's delivery does not make those paths lawful.
+Retained/default historical source contains prohibited paths. The declared
+native configuration replaces the dense projection/head; Kimi recurrence source
+#2293 is integrated. Those deliveries and the margin objective do not establish
+complete-path compliance or authorize a model run.
 Every executed forward/backward/objective/output/auxiliary path must exclude
 softmax, softplus, sigmoid, tanh, their equivalents and dense matrix contractions;
 model compute is GPU-only with host fallback refused. Replacing cuBLAS with a
@@ -90,25 +108,40 @@ Numerical/tooling failures are blockers to repair, not mechanism negatives.
 Native artifacts bind source, retained children, graph tables, BFS histories,
 compiler/kernel hashes and query shapes. Old dense artifacts cannot silently
 convert or execute. Native vocabulary/NoRead 2D fallthrough refuses execution;
-OP3a and other prohibited full-path sites remain dependencies. Local G2
-Hamilton rotation is retained. D11 integer/table serving remains unqualified.
-No whole-model compliance, shared-writer integration or language result follows.
+OP3a and the common vector channel now have the finite qualification recorded
+below; complete-path qualification remains a dependency. Local G2 Hamilton
+rotation is retained. D11 integer/table serving remains unqualified. No
+whole-model compliance or language result follows from OP2 alone.
 
 ## OP3 — geometric head source (OP3a first; OP3b later research)
 
-- **OP3a product-key head proposal:** specify the actual addressed/factorized
-  scoring, candidate admission, omitted-target handling, full learning credit and
-  CUDA forward/backward. A factorized pair of dense GEMMs is still prohibited.
-  There is no low-risk or automatic shipping claim before this design is reviewed.
+- **OP3a product-cell head implemented:** `head=spiralcore_product` requires
+  `projection=spiralcore_fbs`. The first/last 8D query ports score fixed SpiralCore
+  atlas product cells; exact identity modulo 256 partitions address slots and
+  supplies no semantic metric. Up to16 cells×32 slots are admitted, default 8
+  cells/128 comparisons atV=4096. Typed IDs/masks accompany negative mean-L1 raw
+  token-vector scores at fixed scale 1; ties choose smallest identity and padding
+  cannot emit. Native token input, head and compiler/store/emitter channel borrow
+  the same embedding Tensor/Var. The target receives explicit raw-score credit
+  even when omitted; candidates remain uninjected. Token and auxiliary address
+  margins have weight 1 each. Address credit is a surrogate, not the hard top-K
+  derivative. Five finite CUDA controls pass under the
+  [prospective FIT](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6138479221);
+  [source, controls and limits](../geometric-head-shared-writer-2026-10-13/README.md).
+  Artifacts bind source/compiler geometry/shape and refuse missing/stale head
+  bindings; the former probability producer refuses with indexed restoration
+  source preserved. Protected delivery is pending. These interfaces do not
+  qualify full-trunk learning, a learned intent compiler or D11 serving.
 - **OP3b murmuration fixed-address proposal:** token addresses use the
   prime-indexed H4/icosian codebook; quaternion correlation and hard/rank selection
   produce raw scores without exponential normalization. Preserve token identity,
   chirality/orientation, codebook collision handling and target credit. The full
   vocabulary score pass touches V addresses; report that scan and its cost.
 
-Both proposals need an objective over the actual admitted candidates and raw
-scores, a declared treatment of targets outside the kept list, and GPU credit
-through the complete learning path. Greedy decoding uses raw-score selection.
+Every head needs an objective over actual admitted candidates and raw scores,
+explicit omitted-target treatment and GPU credit through the complete learning
+path. OP3a's finite head/interface tests resolve that boundary, not the complete
+trunk's credit/optimizer qualification. OP3b retains these prospective obligations. Greedy decoding uses raw-score selection.
 OP3a is the owner-directed first head implementation; it must itself meet the
 existing compliance/FIT requirements. OP3b is later research, not a required
 pre-rung0 head comparison. Source delivery or a configuration miss retires no
@@ -155,7 +188,7 @@ reviewed admission bars.
 
 ## Sequence, owners and resources
 
-1. **Preparation:** Kimi coordinates OP2 → OP1 G2 → OP3a; Codex delivers the owner-requested SpiralCore/FBS OP2 replacement on its exclusive claim; OP3b stays later research; Codex maintains enforcement
+1. **Preparation:** Kimi coordinates OP2 → OP1 G2 → OP3a; Codex delivers OP2 and the ratified OP3a/shared writer claim with finite CUDA controls; Kimi recurrence source #2293 is integrated; OP3b stays later research; Codex maintains enforcement
    and M2 source dependencies; Claude retains starling/murmuration source and
    DeepSeek retains invariant-addressed router/memory source. Claims identify
    exclusive paths; no takeover, duplicate campaign or peer cleanup.

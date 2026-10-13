@@ -798,6 +798,7 @@ struct Settings {
     read_weighting: Option<ReadWeighting>,
     /// `quaternion_weights=`; `None` keeps the model's own.
     quaternion_weights: Option<QuaternionWeights>,
+    native_vector_head: bool,
     /// `quaternion_snap=icosian`: train with every quaternion map snapped to
     /// norm x nearest unit icosian (straight-through); `none` (default).
     quaternion_snap: QuaternionSnap,
@@ -1282,6 +1283,7 @@ impl Settings {
             "select": self.config.select,
             "read_weighting": self.read_weighting,
             "quaternion_weights": self.quaternion_weights,
+            "head": self.native_vector_head.then_some("spiralcore_product"),
             "quaternion_snap": self.quaternion_snap.name(),
             "activation_snap": self.activation_snap.trained_name().unwrap_or("none"),
             "e8_memory": self.e8_memory.as_ref().map(|e8| e8.name()),
@@ -1818,6 +1820,19 @@ fn train_settings(args: &Args) -> Result<Settings> {
             .unwrap_or("none"),
     )?;
     let quaternion_weights = quaternion_weights_arg(args)?;
+    let native_vector_head =
+        match args.optional("head").as_deref() {
+            None => false,
+            Some("spiralcore_product") => true,
+            Some(_) => return Err(invalid(
+                "head accepts spiralcore_product; historical dense heads are not a new alternative",
+            )),
+        };
+    if native_vector_head && quaternion_weights != Some(QuaternionWeights::SpiralcoreFbs) {
+        return Err(invalid(
+            "head=spiralcore_product needs projection=spiralcore_fbs",
+        ));
+    }
     if matches!(
         quaternion_weights,
         Some(QuaternionWeights::All | QuaternionWeights::SpiralcoreFbs)
@@ -1873,6 +1888,7 @@ fn train_settings(args: &Args) -> Result<Settings> {
         read_weighting: read_weighting_arg(args)?,
         quaternion_weights,
         quaternion_snap,
+        native_vector_head,
         activation_snap,
         e8_memory: uor_r4_training::e8_memory::E8MemoryConfig::parse(
             args.optional("e8_memory").as_deref().unwrap_or("none"),
@@ -2404,6 +2420,11 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
                 &mut model,
                 settings.init.is_none(),
             )?;
+            if settings.native_vector_head {
+                model.set_native_vector_head(
+                    uor_r4_training::native_vector_writer::DEFAULT_KEPT_CELLS,
+                )?;
+            }
             if settings.quaternion_snap != QuaternionSnap::None {
                 if settings.data_parallel != 1 {
                     return Err(invalid("quaternion_snap runs with data_parallel=1"));
@@ -2487,6 +2508,9 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
         replica.set_read_key_shift(model.read_key_shift())?;
         replica.set_read_weighting(model.read_weighting())?;
         replica.set_quaternion_weights(model.quaternion_weights())?;
+        if let Some(spec) = model.native_vector_head_spec() {
+            replica.set_native_vector_head(spec.kept_cells)?;
+        }
         replica.copy_variables_from(&model)?;
         eprintln!(
             "data parallel: replica on GPU 1, batch halves of {}",
@@ -6811,6 +6835,7 @@ fn main() -> Result<()> {
                     "gate",
                     "quaternion_weights",
                     "projection",
+                    "head",
                     "quaternion_snap",
                     "activation_snap",
                     "e8_memory",

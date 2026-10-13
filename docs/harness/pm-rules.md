@@ -42,7 +42,7 @@ come from the owner through the PM.
 
 ## R5 — Ratchets stay green on every PR
 
-- **Rule.** Every PR keeps the ratchets green: `scripts/check_no_softmax.py` (baseline 1649),
+- **Rule.** Every PR keeps the ratchets green: `scripts/check_no_softmax.py` (baseline 1648),
   `scripts/check_no_matmul.py` (93 sites / 26 files), `scripts/check_claim_wording.py`.
 - **Why.** The bans erode one "temporary" site at a time; a baseline is a floor, not a budget.
 - **Harness surface.** `lint check` invokes the D23 interlock on any PR body that names the operation;

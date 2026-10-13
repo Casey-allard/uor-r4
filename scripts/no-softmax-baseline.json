@@ -140,7 +140,6 @@
   "crates/uor-r4-training/src/stack_memory.rs": 3,
   "crates/uor-r4-training/src/stack_snap_parity.rs": 7,
   "crates/uor-r4-training/src/temporal_compiler.rs": 8,
-  "crates/uor-r4-training/src/whole_path_device.rs": 1,
   "crates/uor-r4-training/src/whole_path_learning.rs": 3,
   "crates/uor-r4-training/tests/cuda_stack_ops_parity.rs": 2,
   "crates/uor-r4-training/tests/stack_softmax_free_export.rs": 11

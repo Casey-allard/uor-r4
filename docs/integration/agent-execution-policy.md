@@ -45,6 +45,11 @@ addresses. Existing 8D blocks do not fix total width or adopt MiniLM's historica
 clarification adopts no new numeric bar or hold release. See the
 [current plan](project-track.md#shared-native-vectorwriter-requirement--current-owner-clarification)
 and [source record](../labs/native-vector-transport-2026-10-12/README.md).
+The [OP3a/common vector channel](../labs/geometric-head-shared-writer-2026-10-13/README.md)
+now shares one embedding Tensor/Var across Stack and compiler/store/emitter
+adapters, with finite CUDA qualification and protected delivery pending.
+Complete intent compilation, trunk compliance, quality/capacity and D11 serving
+remain unqualified. This implementation status changes no invariant or hold.
 
 ## Durable autonomous labs — current owner charter, September 29
 

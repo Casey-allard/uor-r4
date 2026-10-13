@@ -1,3 +1,47 @@
+## 2026-10-13 — OP3a and one native vector writer pass finite CUDA boundaries (Codex, #2029/#2030)
+
+The [head/shared-writer record](../labs/geometric-head-shared-writer-2026-10-13/README.md)
+binds final GPU source `09b3ee6df084beba1b9c6e98ef1e597bf2dc82bb`, with peer source through
+`84287b397` integrated. `head=spiralcore_product` plus `projection=spiralcore_fbs`
+uses one embedding Tensor/Var for token input, addressed raw-distance output and
+compiler/exact-store/emitter vector channels. Fixed SpiralCore product ports
+admit bounded identity cells: modulo 256 is address metadata, never a semantic
+metric. Default 8 cells gives 128 token-vector comparisons atV=4096, bounded above
+by 16×32=512; a compatibility full-V score allocation remains. Typed IDs/masks,
+smallest-ID tie breaks and padding refusal preserve exact token identity.
+Negative mean-L1 scores use fixed scale 1; omitted targets receive explicit score
+credit without insertion into inference candidates. Token and address margins
+have weight 1 each; address credit is an auxiliary surrogate, not hard top-K's
+derivative. Exact occurrence/version remains separate from vector transport.
+
+The final five tests PASS in 1.45s (static binding/CPU refusal plus four finite CUDA
+controls), exercising actual Stack/store/channel/artifact interfaces, FBS
+transport, distance adjoints, omitted-target/address credit, ties/padding and
+numerical/device boundaries. Final CUDA CLI compile PASS 3.83s and library-test
+compile `--no-run` PASS 10.76s. The named
+[finite FIT](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6138479221)
+releases no hold. The former probability producer's artifact admission,
+sampling, exponential table pool and probability loss refuse; removed source is
+preserved as an indexed restoration patch. Review found host-score trace-helper, mutable carried identity and reverse-order
+pointer/public-config validation bypasses. Corrected source
+`09b3ee6df084beba1b9c6e98ef1e597bf2dc82bb` retains the model arithmetic; final
+production qualification passes and exact-source review records no blocker.
+The initial `84b1a530f` qualification is preserved as superseded evidence. Kimi's recurrence #2293 is integrated
+but not device-qualified by this unit. Pod `vast-55678610`, RTX 5090 $0.536/h,
+Ubuntu 24.04.3/CUDA12.8.93/Rust 1.97.1; manual build-only setup stopped before old
+CPU parity, target 7.1GiB, peak RSS unmeasured. No optimizer, training, CPU model
+reference, full-trunk/corpus/quality run or new BPB result.
+
+Line: unified geometric route/action/learning integration · count 8/3 → 9/3 on
+completed delivery, no reset · M1 memory20/40, reply37/232; M2 saved437/512,
+opened0/128 and fresh NOT_RUN unchanged. **Protected delivery pending; training
+and the separate M2 training/rental hold remain.**
+
+**Next:** exact-head review and protected delivery; then freeze and qualify the
+complete declared learning/output path before any owner hold-release decision.
+The common channel remains vector infrastructure: learned intent compilation,
+full-model quality/capacity and D11 serving remain unqualified.
+
 ## 2026-10-13 — The plan documents catch up: projection and recurrence gates landed, OP3a is Codex's (kimi, #2029)
 
 Dependencies **1 and 3 of the rung-0 board are landed**: [the sheet](../harness/prep/m1-rank-margin-rung0-2026-10-13.md) now records Codex's SpiralCore/FBS projection (#2279, `c6cd409da`) and the recurrence geometric gates ([#2293](https://github.com/UOR-Foundation/uor-r4/pull/2293), merge `d7934bf03`: `rec_gates=geometric` — clamped-linear opening, exact dyadic rate-select table λ=2^-(s+1), Hamilton output gate, geometric secant surrogate credit; the executed recurrence is squash-free by source sweep, and `RecGates::Historical` is preserved as the reproduction path, prohibited for new runs). **Dependencies 2 and 4 are Codex-owned and in flight** per the [ratified ownership split](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6138381873), with the head/writer's finite kernel card FIT (self-review under the exact-head rule, [#2029 comment 6138479221](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6138479221)). The sheet keeps its one `TEST FITNESS: PENDING` verdict line and its amended bars; the [operator plan](../labs/operator-phase-2026-10-12/README.md) gains a dated status header above its registration text, and the roadmap's M1 row names both landings and the in-flight head. Docs only: no model compute, no count reset, no hold change.

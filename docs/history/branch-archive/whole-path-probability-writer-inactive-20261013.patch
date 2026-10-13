@@ -1,0 +1,232 @@
+diff --git b/crates/uor-r4-training/src/whole_path_device.rs a/crates/uor-r4-training/src/whole_path_device.rs
+index cb2194389..f89b11256 100644
+--- b/crates/uor-r4-training/src/whole_path_device.rs
++++ a/crates/uor-r4-training/src/whole_path_device.rs
+@@ -4,10 +4,11 @@
+ use super::*;
+ #[path = "whole_path_device_ops.rs"]
+ mod ops;
+-pub(super) fn prototype_choice(_probability: &Tensor, _u: f64) -> Result<usize> {
+-    Err(invalid(
+-        "retired probability prototype writer; use the shared native vector channel",
+-    ))
++pub(super) fn prototype_choice(probability: &Tensor, u: f64) -> Result<usize> {
++    Ok(ops::cdf(probability)?
++        .gt(u)?
++        .argmax(0)?
++        .to_scalar::<u32>()? as usize)
+ }
+ 
+ const Q25: f64 = 33554432.;
+@@ -876,14 +877,6 @@ impl WholePathCudaProducer {
+         Ok(producer)
+     }
+     pub(super) fn admit(
+-        _revision: &WholePathRevision,
+-        _params: BTreeMap<String, Var>,
+-        _sampling: Sampling,
+-    ) -> Result<Self> {
+-        Err(invalid("retired whole-path probability artifact; use native_vector_channel with the shared vector head; no conversion or fallback"))
+-    }
+-    #[allow(dead_code)]
+-    fn retained_inactive_admit(
+         revision: &WholePathRevision,
+         params: BTreeMap<String, Var>,
+         sampling: Sampling,
+@@ -1222,10 +1215,47 @@ impl WholePathCudaProducer {
+     }
+     /// Choice is a device tensor. The last class owns any F32 cumsum tail, so
+     /// rounding cannot produce an all-false mask that defaults to class zero.
+-    pub fn choose(&mut self, _logits: &Tensor, _temperature: bool) -> Result<DeviceChoice> {
+-        Err(invalid(
+-            "retired probability choice; use raw shared-vector selection",
+-        ))
++    pub fn choose(&mut self, logits: &Tensor, temperature: bool) -> Result<DeviceChoice> {
++        if logits.dtype() != DType::F32
++            || logits.dims().len() != 1
++            || logits.elem_count() == 0
++            || !logits.device().same_device(&self.device)
++            || self.decisions >= self.sampling.maximum_decisions
++        {
++            return Err(invalid("device decision admission differs"));
++        }
++        let n = logits.elem_count();
++        if self.greedy {
++            return Ok(DeviceChoice {
++                index: logits.argmax(0)?.reshape(1)?,
++                log_probability: Tensor::new(0f32, &self.device)?,
++            });
++        }
++        let scale = if temperature {
++            1. / f64::from(self.sampling.temperature)
++        } else {
++            1.
++        };
++        let centered = logits.broadcast_sub(&logits.max(0)?.detach())?;
++        let p = candle_nn::ops::softmax(&centered.affine(scale, 0.)?, 0)?.affine(
++            1. - f64::from(self.sampling.exploration),
++            f64::from(self.sampling.exploration) / n as f64,
++        )?;
++        self.rng = self.rng.wrapping_add(0x9e3779b97f4a7c15);
++        let mut z = self.rng;
++        z = (z ^ (z >> 30)).wrapping_mul(0xbf58476d1ce4e5b9);
++        z = (z ^ (z >> 27)).wrapping_mul(0x94d049bb133111eb);
++        z ^= z >> 31;
++        let u = (z >> 11) as f64 / (1u64 << 53) as f64;
++        let index = ops::cdf(&p)?.gt(u)?.argmax(0)?.reshape(1)?;
++        let log_probability = p.index_select(&index, 0)?.sum_all()?.log()?;
++        self.logs.push(log_probability.clone());
++        self.choices.push(index.detach());
++        self.decisions += 1;
++        Ok(DeviceChoice {
++            index,
++            log_probability,
++        })
+     }
+     pub(super) fn context_scores(
+         &self,
+@@ -1862,23 +1892,80 @@ impl WholePathCudaProducer {
+     /// law, not a replacement for native integer Q31 served token selection.
+     pub fn pooled_token(
+         &mut self,
+-        _generated: &Tensor,
+-        _copy: &Tensor,
+-        _copy_ids: &[u32],
++        generated: &Tensor,
++        copy: &Tensor,
++        copy_ids: &[u32],
+     ) -> Result<DeviceChoice> {
+-        Err(invalid(
+-            "retired alias probability pool; use the shared native vector channel",
+-        ))
+-    }
+-    fn native_pool(&self, _step: &DeviceEmissionStep) -> Result<(Tensor, Tensor)> {
+-        Err(invalid(
+-            "retired table-exponential writer; no implicit fallback",
+-        ))
+-    }
+-    fn ranking_loss(&self, _step: &DeviceEmissionStep, _target: u32) -> Result<Tensor> {
+-        Err(invalid(
+-            "retired probability objective; native vectors use explicit target-address margin",
+-        ))
++        if generated.dims() != [self.vocab]
++            || copy.dims() != [copy_ids.len()]
++            || copy_ids.iter().any(|&id| id as usize >= self.vocab)
++        {
++            return Err(invalid("device alias pool inventory"));
++        }
++        let raw = Tensor::cat(&[generated, copy], 0)?
++            .clamp(-8f32, 8f32)?
++            .affine(1. / f64::from(self.sampling.temperature), 0.)?;
++        self.choose(&ops::log_masses(&raw, self.vocab, copy_ids)?, false)
++    }
++    fn native_pool(&self, step: &DeviceEmissionStep) -> Result<(Tensor, Tensor)> {
++        let scores = Tensor::cat(&[&step.generated_native_q24, &step.copied_native_q24], 0)?
++            .clamp(-8. * Q24, 8. * Q24)?;
++        let reference = scores.max(0)?;
++        let gap = scores.broadcast_sub(&reference)?.neg()?;
++        let at = gap.affine(1. / 65536., 0.)?.floor()?.to_dtype(DType::U32)?;
++        let frac = (&gap - at.to_dtype(DType::F64)?.affine(65536., 0.)?)?;
++        let a = self.exp.index_select(&at, 0)?;
++        let b = self.exp.index_select(
++            &(&at + Tensor::ones(at.shape(), DType::U32, &self.device)?)?,
++            0,
++        )?;
++        // Canonical integer interpolation. All operands/products/sums are
++        // exact F64 integers below2^53, with floor implementing the shift.
++        let weights = (&a - ((&a - &b)? * &frac)?.affine(1. / 65536., 0.)?.floor()?)?;
++        let masses = ops::native_masses(&weights, self.vocab, &step.copy_ids)?;
++        Ok((weights, masses))
++    }
++    fn ranking_loss(&self, step: &DeviceEmissionStep, target: u32) -> Result<Tensor> {
++        if target as usize >= self.vocab {
++            return Err(invalid("device target outside vocabulary"));
++        }
++        let (weights, masses) = self.native_pool(step)?;
++        let ids = u32_indices(&self.device, (0..self.vocab as u32).collect())?;
++        let mask = ids.ne(target)?;
++        let rivals = mask.where_cond(&masses, &Tensor::full(-1f64, self.vocab, &self.device)?)?;
++        let rival = rivals.argmax(0)?.reshape(1)?;
++        let target_mass = masses.i(target as usize)?;
++        let rival_mass = masses.index_select(&rival, 0)?.sum_all()?;
++        let hard = (&target_mass.log()? - rival_mass.log()?)?.to_dtype(DType::F32)?;
++        let raw = Tensor::cat(&[&step.generated, &step.copied], 0)?.clamp(-8f32, 8f32)?;
++        let action_ids = u32_indices(
++            &self.device,
++            (0..self.vocab as u32)
++                .chain(step.copy_ids.iter().copied())
++                .collect(),
++        )?;
++        let target_mask = action_ids.eq(target)?.to_dtype(DType::F64)?;
++        let rival_id = rival.broadcast_as(action_ids.shape())?;
++        let rival_mask = action_ids.eq(&rival_id)?.to_dtype(DType::F64)?;
++        let coeff = ((&weights * &target_mask)?.broadcast_div(&target_mass)?
++            - (&weights * &rival_mask)?.broadcast_div(&rival_mass)?)?
++        .to_dtype(DType::F32)?
++        .detach();
++        let partial = (&raw * &coeff)?.sum_all()?;
++        let margin = (&hard + (&partial - partial.detach())?)?;
++        // Stable softplus(-margin), preserving the hard native value and the
++        // existing clipped-score pooled target/strongest-rival partial.
++        let zero = Tensor::new(0f32, &self.device)?;
++        let value = (margin.neg()?.maximum(&zero)?
++            + margin.abs()?.neg()?.exp()?.affine(1., 1.)?.log()?)?
++        .detach();
++        let e = margin.abs()?.neg()?.exp()?;
++        let den = e.affine(1., 1.)?;
++        let positive = (&e / &den)?.neg()?;
++        let negative = den.recip()?.neg()?;
++        let slope = margin.ge(0f32)?.where_cond(&positive, &negative)?.detach();
++        let partial = (&margin * &slope)?;
++        Ok((&value + (&partial - partial.detach())?)?)
+     }
+     pub fn teacher_objective(
+         &mut self,
+@@ -2368,47 +2455,3 @@ impl WholePathCudaProducer {
+         })
+     }
+ }
+-
+-/// New compiler/exact-store/emitter writer entry, sharing the stack's actual
+-/// learned embedding parameter. Old whole-path probability artifacts cannot
+-/// be silently adopted or converted into this vector channel.
+-pub fn native_vector_channel(
+-    model: &crate::geometric_stack::StackModel,
+-) -> Result<crate::native_vector_writer::NativeVectorChannel> {
+-    model.native_vector_channel()
+-}
+-
+-/// Host exact-store metadata selects a record; all vector lookup stays on CUDA.
+-/// Record/version and per-record occurrence survive independently of geometry.
+-pub struct DeviceVectorStoreValue {
+-    pub record: u64,
+-    pub commit: u64,
+-    pub update: crate::stack_store::Update,
+-    pub conflict: bool,
+-    pub tokens: Vec<crate::native_vector_writer::CarriedVectorToken>,
+-}
+-pub enum DeviceVectorStoreRead {
+-    Found(DeviceVectorStoreValue),
+-    Absent,
+-    NoHistory,
+-    Evicted,
+-}
+-pub fn carry_native_store_read(
+-    channel: &crate::native_vector_writer::NativeVectorChannel,
+-    read: &crate::stack_store::StoreRead,
+-) -> Result<DeviceVectorStoreRead> {
+-    Ok(match read {
+-        crate::stack_store::StoreRead::Found(value) => {
+-            DeviceVectorStoreRead::Found(DeviceVectorStoreValue {
+-                record: value.record,
+-                commit: value.commit,
+-                update: value.update,
+-                conflict: value.conflict,
+-                tokens: channel.compile_tokens(&value.tokens, 0, value.commit)?,
+-            })
+-        }
+-        crate::stack_store::StoreRead::Absent => DeviceVectorStoreRead::Absent,
+-        crate::stack_store::StoreRead::NoHistory => DeviceVectorStoreRead::NoHistory,
+-        crate::stack_store::StoreRead::Evicted => DeviceVectorStoreRead::Evicted,
+-    })
+-}

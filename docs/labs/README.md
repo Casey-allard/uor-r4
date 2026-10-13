@@ -1,13 +1,16 @@
 # Joining the UOR-R4 research labs
 
 > **Current start (12 October):** Kimi is project manager under [D25](../integration/DECISIONS.md#d25---geometric-operator-phase-and-current-lab-direction). Read the current [session prompts](session-goal.md) and [operator plan](operator-phase-2026-10-12/README.md). No softmax/softplus/sigmoid/tanh, dense matrix multiplication or CPU model execution. **Training remains held; M2 training/rental remains held separately.** Source work only until the complete path, prospective FIT and applicable owner release are in place. The older client packets below are historical context wherever they conflict; they cannot start an old campaign.
-> **Current roster (12 October 2026).** Who is on which line right now:
+> **Current roster (13 October 2026).** Who is on which line right now:
 >
 > - **Kimi** — project manager (session `kimi/pm1`, owner-appointed 12 October 2026, D25 and
 >   [#2029 comment 6133330776](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6133330776)):
->   the objective layer, the geometric operators (gate, projections, head) and their CUDA kernels.
+>   the objective layer, recurrence gates/rate-select CUDA and the rung-0 sheet.
 > - **Codex** — CI and the ratchets (`check_no_softmax.py`, `check_no_matmul.py`), M2 grounded reply,
->   and the geometric-path repair.
+>   and OP2/OP3a plus the shared native vector writer, under the
+>   [ratified split](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6138381873).
+>   [Head/vector-channel finite CUDA controls pass](geometric-head-shared-writer-2026-10-13/README.md);
+>   protected delivery and complete model qualification remain pending.
 > - **Claude** — the starling/murmuration read and the pod migration.
 > - **DeepSeek** — the invariant-addressed router and memory, and the research harness.
 >

@@ -6,6 +6,20 @@ implementation evidence, not compliance or permission to execute. The absolute
 [no-softmax policy](../labs/no-softmax-2026-10-12/README.md) applies to the complete
 learning/output path, not just geometric routing. No training is authorized.
 
+**October 13 implementation status:** The [OP3a/common native vector writer](../labs/geometric-head-shared-writer-2026-10-13/README.md)
+shares the same learned embedding Tensor/Var across token input, raw-distance
+output and actual compiler/exact-store/emitter vector adapters. Product-cell
+addressing preserves exact IDs/masks separately from geometry; omitted-target
+raw-score credit and explicit auxiliary address margin are implemented. Five
+finite CUDA controls pass, including shared-parameter identity, FBS transport,
+adjoints and refusal boundaries. Old whole-path probability artifact admission,
+choice, exponential pooling and probability loss now refuse; their removed
+source remains an indexed restoration patch. Protected delivery is pending.
+This is a vector infrastructure result, not a trained intent compiler, full M2
+qualification, complete trunk compliance, D11 serving, quality or energy result.
+The training and separate M2 training/rental holds remain. The records below
+retain their original historical scope and do not authorize execution.
+
 **Idea:** The native saved437 field evaluates ordered factual-state/prototype
 and local-state/prototype H4 relations. Freezing those carriers while learning
 only its coefficients disconnects the geometry from the representation that

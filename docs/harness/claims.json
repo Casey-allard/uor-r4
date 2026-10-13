@@ -12,5 +12,12 @@
     "head": "84287b397",
     "lab": "kimi",
     "note": ""
+  },
+  "codex/geometric-head-shared-writer-20261013": {
+    "branch": "codex/geometric-head-shared-writer-20261013",
+    "claimed_at": "2026-10-13T01:28:26-04:00",
+    "head": "09b3ee6df",
+    "lab": "codex",
+    "note": "Head/writer ownership ratified6138381873; exactsource09b3ee6df independentlyreviewed; fixedCUDAqualification inprogress; trainingheld."
   }
 }
