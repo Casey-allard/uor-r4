@@ -49,6 +49,7 @@ pub const INVENTORY: &[(&str, &[&str])] = &[
         "mistakes",
         &["mistakes.registry_valid", "mistakes.evidence_exists"],
     ),
+    ("receipts", &["receipts.parse", "receipts.ledger_present"]),
     (
         "status",
         &["status.branch_claimed", "status.no_orphan_branches"],

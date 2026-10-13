@@ -37,6 +37,7 @@ pub mod preprules;
 pub mod presence;
 pub mod ratchet;
 pub mod receipt;
+pub mod receiptsrules;
 pub mod registries;
 pub mod ruleinventory;
 pub mod shards;
