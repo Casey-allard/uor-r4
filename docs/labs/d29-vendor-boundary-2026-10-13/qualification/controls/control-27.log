@@ -1,0 +1,12 @@
+command: /workspace/codex-d29-build-20261013-g/target/debug/deps/d29_compiled_modules-564b575ba8766ec4 ["compiled_sources_carry_no_banned_operation", "--exact", "--nocapture", "--test-threads=1"]
+status: exit status: 0
+elapsed_s: 0.006206
+stdout:
+
+running 1 test
+test compiled_sources_carry_no_banned_operation ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s
+
+
+stderr:

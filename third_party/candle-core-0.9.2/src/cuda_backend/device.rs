@@ -10,6 +10,37 @@ use std::sync::{Arc, Mutex, RwLock};
 
 use super::{CudaError, CudaStorage, CudaStorageSlice, WrapErr};
 
+/// Refuse legacy aliases and unavailable module descriptors before consulting
+/// a cache or invoking the CUDA driver. The lawful tensor primitives retain
+/// their original kernel names and arithmetic.
+fn admit_cuda_kernel(name: &str, available: bool) -> Result<()> {
+    const SQUASH_PREFIXES: [&str; 8] = [
+        "uexp_",
+        "ulog_",
+        "utanh_",
+        "usigmoid_",
+        "usilu_",
+        "ugelu_",
+        "ugelu_erf_",
+        "uelu_",
+    ];
+    if !available
+        || SQUASH_PREFIXES
+            .iter()
+            .any(|prefix| name.starts_with(prefix))
+        || name.contains("softmax")
+        || name.contains("gemm")
+        || name.contains("matmul")
+        || name.contains("mul_mat")
+        || name.contains("mmvq")
+        || name.contains("mmq")
+        || name.contains("moe")
+    {
+        crate::bail!("D29: CUDA kernel `{name}` is prohibited or its module is unavailable; no vendor or host fallback")
+    }
+    Ok(())
+}
+
 /// Unique identifier for cuda devices.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct DeviceId(usize);
@@ -37,7 +68,6 @@ pub struct CudaDevice {
     modules: Arc<std::sync::RwLock<ModuleStore>>,
     custom_modules: Arc<std::sync::RwLock<HashMap<String, Arc<cudarc::driver::CudaModule>>>>,
     stream: Arc<cudarc::driver::CudaStream>,
-    pub(crate) blas: Arc<cudarc::cublas::CudaBlas>,
     curand: Arc<Mutex<CudaRng>>,
     seed_value: Arc<RwLock<u64>>,
 }
@@ -179,20 +209,8 @@ impl CudaDevice {
         func_name: &'static str,
         kernel: candle_ug::lang::ssa::Kernel,
     ) -> Result<CudaFunc> {
-        let mut buf = vec![];
-        candle_ug::cuda::code_gen::gen(&mut buf, func_name, &kernel)?;
-        let cuda_code = String::from_utf8(buf)?;
-        let opts = cudarc::nvrtc::CompileOptions {
-            use_fast_math: Some(true),
-            ..Default::default()
-        };
-        let ptx = cudarc::nvrtc::safe::compile_ptx_with_opts(cuda_code, opts).w()?;
-        let module = self.context.load_module(ptx).w()?;
-        let func = module.load_function(func_name).w()?;
-        Ok(CudaFunc {
-            func,
-            stream: self.stream.clone(),
-        })
+        let _ = (func_name, kernel);
+        crate::bail!("D29: CUDA runtime compilation is forbidden; load a pinned ahead-of-time lawful PTX module")
     }
 
     pub fn id(&self) -> DeviceId {
@@ -205,6 +223,7 @@ impl CudaDevice {
         module_name: &str,
         ptx: &str,
     ) -> Result<CudaFunc> {
+        admit_cuda_kernel(fn_name, true)?;
         let ms = self.custom_modules.read().unwrap();
         if let Some(mdl) = ms.get(module_name).as_ref() {
             let func = mdl.load_function(fn_name).w()?;
@@ -225,6 +244,7 @@ impl CudaDevice {
     }
 
     pub fn get_or_load_func(&self, fn_name: &str, mdl: &kernels::Module) -> Result<CudaFunc> {
+        admit_cuda_kernel(fn_name, mdl.is_available())?;
         let ms = self.modules.read().unwrap();
         if let Some(mdl) = ms.mdls[mdl.index()].as_ref() {
             let func = mdl.load_function(fn_name).w()?;
@@ -243,17 +263,12 @@ impl CudaDevice {
             stream: self.stream.clone(),
         })
     }
-
-    pub fn cublas_handle(&self) -> Arc<cudarc::cublas::CudaBlas> {
-        self.blas.clone()
-    }
 }
 
 impl CudaDevice {
     pub fn new_with_stream(ordinal: usize) -> Result<Self> {
         let context = cudarc::driver::CudaContext::new(ordinal).w()?;
         let stream = context.new_stream().w()?;
-        let blas = cudarc::cublas::CudaBlas::new(stream.clone()).w()?;
         let curand = cudarc::curand::CudaRng::new(299792458, stream.clone()).w()?;
         let module_store = ModuleStore {
             mdls: [const { None }; kernels::ALL_IDS.len()],
@@ -262,7 +277,6 @@ impl CudaDevice {
             id: DeviceId::new(),
             context,
             stream,
-            blas: Arc::new(blas),
             curand: Arc::new(Mutex::new(CudaRng(curand))),
             modules: Arc::new(std::sync::RwLock::new(module_store)),
             custom_modules: Arc::new(std::sync::RwLock::new(HashMap::new())),
@@ -277,7 +291,6 @@ impl BackendDevice for CudaDevice {
     fn new(ordinal: usize) -> Result<Self> {
         let context = cudarc::driver::CudaContext::new(ordinal).w()?;
         let stream = context.default_stream();
-        let blas = cudarc::cublas::CudaBlas::new(stream.clone()).w()?;
         let curand = cudarc::curand::CudaRng::new(299792458, stream.clone()).w()?;
         let module_store = ModuleStore {
             mdls: [const { None }; kernels::ALL_IDS.len()],
@@ -286,7 +299,6 @@ impl BackendDevice for CudaDevice {
             id: DeviceId::new(),
             context,
             stream,
-            blas: Arc::new(blas),
             curand: Arc::new(Mutex::new(CudaRng(curand))),
             modules: Arc::new(std::sync::RwLock::new(module_store)),
             custom_modules: Arc::new(std::sync::RwLock::new(HashMap::new())),
@@ -706,5 +718,39 @@ impl BackendDevice for CudaDevice {
     fn synchronize(&self) -> Result<()> {
         self.stream.synchronize().map_err(crate::Error::wrap)?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod d29_contract_tests {
+    use super::admit_cuda_kernel;
+    #[test]
+    fn kernel_admission_refuses_legacy_aliases_and_unavailable_modules() {
+        for name in [
+            "usigmoid_f32",
+            "ugelu_erf_f32",
+            "uexp_f64",
+            "softmax_reduce_f32",
+            "dequantize_mul_mat_vec_q4_0",
+            "indexed_moe_forward_q4k_q8_1",
+            "gemm_f32",
+        ] {
+            assert!(admit_cuda_kernel(name, true).is_err(), "{name}");
+        }
+        // Even a lawful name cannot load a descriptor retained as inactive.
+        assert!(admit_cuda_kernel("ucopy_f32", false).is_err());
+        for name in [
+            "ucopy_f32",
+            "usqr_f32",
+            "usqrt_f32",
+            "uabs_f32",
+            "sum_f32",
+            "scatter_add_f32",
+            "index_select_f32",
+            "hamilton_gate_fwd",
+            "recurrence_tile_expand",
+        ] {
+            assert!(admit_cuda_kernel(name, true).is_ok(), "{name}");
+        }
     }
 }

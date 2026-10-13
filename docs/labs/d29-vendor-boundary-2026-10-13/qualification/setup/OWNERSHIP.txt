@@ -1,0 +1,6 @@
+lab=codex
+session=d29-qual-20261013
+source=1f1547bfd70f01edc9aa36d34a46e5bc43edc34c
+rust=1.97.1
+arch=compute_89
+build_root=/workspace/codex-d29-build-20261013-g

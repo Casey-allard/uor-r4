@@ -13,6 +13,7 @@ edition = "2021"
 observation-blas-exception = []
 
 [dependencies]
+uor-r4-source-interface = { version = "0.1.0", path = "../uor-r4-source-interface" }
 safetensors = { version = "0.6", default-features = false, features = ["std"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"

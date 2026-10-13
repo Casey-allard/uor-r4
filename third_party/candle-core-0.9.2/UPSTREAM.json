@@ -115,5 +115,17 @@
     "Cargo.lock (unused package-local lock; workspace owns resolution)"
   ],
   "second_changed_source": "src/backprop.rs",
-  "second_changed_file_sha256": "50bb84380e9d2502a1d660f966302efc7952b98c770bd4ea0cb971b3c59c74c3"
+  "second_changed_file_sha256": "50bb84380e9d2502a1d660f966302efc7952b98c770bd4ea0cb971b3c59c74c3",
+  "native_vendor_boundary_patch": {
+    "policy": "D24/D29",
+    "date": "2026-10-13",
+    "pre_unit_source_commit": "0497528e20a9cc764628c170c0c2895bf24acb8e",
+    "original_hashes_are_provenance_only": true,
+    "active_cpu_scope": "host typed storage, raw copies and serialization; model arithmetic and custom callbacks refuse",
+    "active_cuda_scope": "lawful prebuilt primitives; no BLAS, dense contractions, prohibited squash or runtime compiler fallback",
+    "refused_compatibility_features": ["metal", "accelerate", "mkl", "cudnn"],
+    "refused_feature_vendor_edges_removed": true,
+    "historical_source_paths": ["historical/d29-upstream", "historical/d29-scalar-quantized"],
+    "qualification": "NOT_RUN: owning lab must compile and qualify exact CUDA source"
+  }
 }

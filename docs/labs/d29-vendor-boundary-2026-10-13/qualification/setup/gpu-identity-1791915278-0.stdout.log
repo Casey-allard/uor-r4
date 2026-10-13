@@ -1,0 +1,2 @@
+name, driver_version, pci.bus_id, compute_cap
+NVIDIA GeForce RTX 4090, 575.57.08, 00000000:81:00.0, 8.9

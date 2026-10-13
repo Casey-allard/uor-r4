@@ -1,0 +1,196 @@
+use std::sync::Arc;
+
+use crate::driver::{result, sys};
+
+use super::{CudaStream, DriverError};
+
+/// Represents a replay-able Cuda Graph. Create with [CudaStream::begin_capture()] and [CudaStream::end_capture()].
+///
+/// Once created you can replay with [CudaGraph::launch()].
+///
+/// # On Thread safety
+///
+/// This object is **NOT** thread safe.
+///
+/// From official docs:
+///
+/// > Graph objects (cudaGraph_t, CUgraph) are not internally synchronized and must not be accessed concurrently from multiple threads. API calls accessing the same graph object must be serialized externally.
+/// >
+/// > Note that this includes APIs which may appear to be read-only, such as cudaGraphClone() (cuGraphClone()) and cudaGraphInstantiate() (cuGraphInstantiate()). No API or pair of APIs is guaranteed to be safe to call on the same graph object from two different threads without serialization.
+///
+/// <https://docs.nvidia.com/cuda/cuda-driver-api/graphs-thread-safety.html#graphs-thread-safety>
+pub struct CudaGraph {
+    cu_graph: sys::CUgraph,
+    cu_graph_exec: sys::CUgraphExec,
+    stream: Arc<CudaStream>,
+}
+
+impl Drop for CudaGraph {
+    fn drop(&mut self) {
+        let ctx = &self.stream.ctx;
+
+        let cu_graph_exec = std::mem::replace(&mut self.cu_graph_exec, std::ptr::null_mut());
+        if !cu_graph_exec.is_null() {
+            ctx.record_err(unsafe { result::graph::exec_destroy(cu_graph_exec) });
+        }
+
+        let cu_graph = std::mem::replace(&mut self.cu_graph, std::ptr::null_mut());
+        if !cu_graph.is_null() {
+            ctx.record_err(unsafe { result::graph::destroy(cu_graph) });
+        }
+    }
+}
+
+impl CudaStream {
+    /// See [cuda docs](https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__STREAM.html#group__CUDA__STREAM_1g767167da0bbf07157dc20b6c258a2143)
+    pub fn begin_capture(&self, mode: sys::CUstreamCaptureMode) -> Result<(), DriverError> {
+        self.ctx.bind_to_thread()?;
+        unsafe { result::stream::begin_capture(self.cu_stream, mode) }
+    }
+
+    /// See [cuda docs](https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__STREAM.html#group__CUDA__STREAM_1g03dab8b2ba76b00718955177a929970c)
+    ///
+    /// `flags` is passed to [cuGraphInstantiate](https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__GRAPH.html#group__CUDA__GRAPH_1gb53b435e178cccfa37ac87285d2c3fa1)
+    /// Pass `sys::CUgraphInstantiate_flags(0)` for default behavior, or combine flags with `|`.
+    pub fn end_capture(
+        self: &Arc<Self>,
+        flags: sys::CUgraphInstantiate_flags,
+    ) -> Result<Option<CudaGraph>, DriverError> {
+        self.ctx.bind_to_thread()?;
+        let cu_graph = unsafe { result::stream::end_capture(self.cu_stream) }?;
+        if cu_graph.is_null() {
+            return Ok(None);
+        }
+        let cu_graph_exec = match unsafe { result::graph::instantiate(cu_graph, flags) } {
+            Ok(exec) => exec,
+            Err(error) => {
+                self.ctx
+                    .record_err(unsafe { result::graph::destroy(cu_graph) });
+                return Err(error);
+            }
+        };
+        Ok(Some(CudaGraph {
+            cu_graph,
+            cu_graph_exec,
+            stream: self.clone(),
+        }))
+    }
+
+    /// See [cuda docs](https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__STREAM.html#group__CUDA__STREAM_1g37823c49206e3704ae23c7ad78560bca)
+    pub fn capture_status(&self) -> Result<sys::CUstreamCaptureStatus, DriverError> {
+        self.ctx.bind_to_thread()?;
+        unsafe { result::stream::is_capturing(self.cu_stream) }
+    }
+}
+
+impl CudaGraph {
+    /// See [cuda docs](https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__GRAPH.html#group__CUDA__GRAPH_1g6b2dceb3901e71a390d2bd8b0491e471)
+    pub fn launch(&self) -> Result<(), DriverError> {
+        self.stream.ctx.bind_to_thread()?;
+        unsafe { result::graph::launch(self.cu_graph_exec, self.stream.cu_stream) }
+    }
+
+    /// Pre-uploads the graph's resources to the device so that the
+    /// first [CudaGraph::launch()] does not incur setup overhead.
+    ///
+    /// See [cuda docs](https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__GRAPH.html#group__CUDA__GRAPH_1gdb81438b083d42a26693f6f2bce150cd)
+    pub fn upload(&self) -> Result<(), DriverError> {
+        self.stream.ctx.bind_to_thread()?;
+        unsafe { result::graph::upload(self.cu_graph_exec, self.stream.cu_stream) }
+    }
+
+    /// Get the underlying [sys::CUgraph].
+    ///
+    /// # Safety
+    /// While this function is marked as safe, actually using the
+    /// returned object is unsafe.
+    ///
+    /// **You must not destroy the graph**, as it is still
+    /// owned by the [CudaGraph].
+    pub fn cu_graph(&self) -> sys::CUgraph {
+        self.cu_graph
+    }
+
+    /// Get the underlying [sys::CUgraphExec].
+    ///
+    /// # Safety
+    /// While this function is marked as safe, actually using the
+    /// returned object is unsafe.
+    ///
+    /// **You must not destroy the graph exec**, as it is still
+    /// owned by the [CudaGraph].
+    pub fn cu_graph_exec(&self) -> sys::CUgraphExec {
+        self.cu_graph_exec
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::driver::{sys::CUgraphInstantiate_flags as Flags, CudaContext};
+
+    #[test]
+    fn test_end_capture_flags() {
+        let ctx = CudaContext::new(0).unwrap();
+        // All accesses use one stream; avoid waits on events recorded outside capture.
+        unsafe { ctx.disable_event_tracking() };
+        let stream = ctx.new_stream().unwrap();
+        let flags = [
+            Flags(0),
+            Flags::CUDA_GRAPH_INSTANTIATE_FLAG_AUTO_FREE_ON_LAUNCH,
+            #[cfg(not(any(
+                feature = "cuda-11040",
+                feature = "cuda-11050",
+                feature = "cuda-11060"
+            )))]
+            {
+                Flags::CUDA_GRAPH_INSTANTIATE_FLAG_AUTO_FREE_ON_LAUNCH
+                    | Flags::CUDA_GRAPH_INSTANTIATE_FLAG_USE_NODE_PRIORITY
+            },
+        ];
+        for flags in flags {
+            let mut data = stream.clone_htod(&[1u32; 4]).unwrap();
+            stream.synchronize().unwrap();
+            stream
+                .begin_capture(sys::CUstreamCaptureMode::CU_STREAM_CAPTURE_MODE_THREAD_LOCAL)
+                .unwrap();
+            stream.memset_zeros(&mut data).unwrap();
+            let graph = stream.end_capture(flags).unwrap().unwrap();
+
+            graph.launch().unwrap();
+            assert_eq!(stream.clone_dtoh(&data).unwrap(), [0; 4]);
+            stream.memcpy_htod(&[2u32; 4], &mut data).unwrap();
+            graph.launch().unwrap();
+            assert_eq!(stream.clone_dtoh(&data).unwrap(), [0; 4]);
+        }
+    }
+
+    #[test]
+    #[cfg(not(any(
+        feature = "cuda-11040",
+        feature = "cuda-11050",
+        feature = "cuda-11060",
+        feature = "cuda-11070",
+        feature = "cuda-11080"
+    )))]
+    fn test_end_capture_invalid_flags() {
+        let ctx = CudaContext::new(0).unwrap();
+        let stream = ctx.new_stream().unwrap();
+        stream
+            .begin_capture(sys::CUstreamCaptureMode::CU_STREAM_CAPTURE_MODE_THREAD_LOCAL)
+            .unwrap();
+        let flags = Flags::CUDA_GRAPH_INSTANTIATE_FLAG_AUTO_FREE_ON_LAUNCH
+            | Flags::CUDA_GRAPH_INSTANTIATE_FLAG_DEVICE_LAUNCH;
+        assert!(matches!(
+            stream.end_capture(flags),
+            Err(DriverError(sys::CUresult::CUDA_ERROR_INVALID_VALUE))
+        ));
+
+        stream
+            .begin_capture(sys::CUstreamCaptureMode::CU_STREAM_CAPTURE_MODE_THREAD_LOCAL)
+            .unwrap();
+        let graph = stream.end_capture(Flags(0)).unwrap().unwrap();
+        graph.launch().unwrap();
+        stream.synchronize().unwrap();
+    }
+}

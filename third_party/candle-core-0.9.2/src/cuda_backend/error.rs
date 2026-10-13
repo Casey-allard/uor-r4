@@ -7,12 +7,6 @@ pub enum CudaError {
     Cuda(#[from] cudarc::driver::DriverError),
 
     #[error(transparent)]
-    Compiler(#[from] cudarc::nvrtc::CompileError),
-
-    #[error(transparent)]
-    Cublas(#[from] cudarc::cublas::result::CublasError),
-
-    #[error(transparent)]
     Curand(#[from] cudarc::curand::result::CurandError),
 
     #[error("missing kernel '{module_name}'")]

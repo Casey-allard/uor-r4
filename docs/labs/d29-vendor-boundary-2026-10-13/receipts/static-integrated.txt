@@ -1,0 +1,5 @@
+PASS: explicit nine-module compiler list
+PASS: active vendor CUDA source/header token census and no historical FFI
+PASS: vendor patches and direct selected CUDA cudarc feature declarations
+PASS: supplied resolved-feature text (producer/source binding checked separately)
+Static scope PASS. Runtime qualification UNVERIFIED: run frozen named GPU controls separately; this tool runs no model. No proof against arbitrary renamed/semantic equivalents. Omitted optional artifacts NOT_CHECKED.

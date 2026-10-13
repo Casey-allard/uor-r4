@@ -1,0 +1,484 @@
+    Checking candle-core v0.9.2 (/Users/casey.allard/uor-r4/.worktrees/codex-rung0-standby-20261013-1217/third_party/candle-core-0.9.2)
+warning: unused imports: `DType` and `D`
+ --> third_party/candle-core-0.9.2/src/quantized/mod.rs:2:42
+  |
+2 |     backend::BackendStorage, CpuStorage, DType, Device, Result, Shape, Storage, Tensor, D,
+  |                                          ^^^^^                                          ^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `backend::BackendStorage`
+ --> third_party/candle-core-0.9.2/src/quantized/mod.rs:2:5
+  |
+2 |     backend::BackendStorage, CpuStorage, DType, Device, Result, Shape, Storage, Tensor, D,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `crate::backend::BackendDevice`
+ --> third_party/candle-core-0.9.2/src/cpu_backend/mod.rs:3:5
+  |
+3 | use crate::backend::BackendDevice;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused variable: `vs`
+ --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:7:19
+  |
+7 |     fn map(&self, vs: &C, layout: &Layout) -> Result<C> {
+  |                   ^^ help: if this is intentional, prefix it with an underscore: `_vs`
+  |
+  = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `layout`
+ --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:7:27
+  |
+7 |     fn map(&self, vs: &C, layout: &Layout) -> Result<C> {
+  |                           ^^^^^^ help: if this is intentional, prefix it with an underscore: `_layout`
+
+warning: unused variable: `vs`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:14:19
+   |
+14 |     fn map(&self, vs: &C, layout: &Layout) -> Result<C> {
+   |                   ^^ help: if this is intentional, prefix it with an underscore: `_vs`
+
+warning: unused variable: `layout`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:14:27
+   |
+14 |     fn map(&self, vs: &C, layout: &Layout) -> Result<C> {
+   |                           ^^^^^^ help: if this is intentional, prefix it with an underscore: `_layout`
+
+warning: unused variable: `v1`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:22:19
+   |
+22 |     fn map(&self, v1: &C, l1: &Layout, v2: &C, l2: &Layout) -> Result<C> {
+   |                   ^^ help: if this is intentional, prefix it with an underscore: `_v1`
+
+warning: unused variable: `l1`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:22:27
+   |
+22 |     fn map(&self, v1: &C, l1: &Layout, v2: &C, l2: &Layout) -> Result<C> {
+   |                           ^^ help: if this is intentional, prefix it with an underscore: `_l1`
+
+warning: unused variable: `v2`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:22:40
+   |
+22 |     fn map(&self, v1: &C, l1: &Layout, v2: &C, l2: &Layout) -> Result<C> {
+   |                                        ^^ help: if this is intentional, prefix it with an underscore: `_v2`
+
+warning: unused variable: `l2`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:22:48
+   |
+22 |     fn map(&self, v1: &C, l1: &Layout, v2: &C, l2: &Layout) -> Result<C> {
+   |                                                ^^ help: if this is intentional, prefix it with an underscore: `_l2`
+
+warning: unused variable: `v1`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:30:19
+   |
+30 |     fn map(&self, v1: &mut C, l1: &Layout, v2: &C, l2: &Layout) -> Result<()> {
+   |                   ^^ help: if this is intentional, prefix it with an underscore: `_v1`
+
+warning: unused variable: `l1`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:30:31
+   |
+30 |     fn map(&self, v1: &mut C, l1: &Layout, v2: &C, l2: &Layout) -> Result<()> {
+   |                               ^^ help: if this is intentional, prefix it with an underscore: `_l1`
+
+warning: unused variable: `v2`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:30:44
+   |
+30 |     fn map(&self, v1: &mut C, l1: &Layout, v2: &C, l2: &Layout) -> Result<()> {
+   |                                            ^^ help: if this is intentional, prefix it with an underscore: `_v2`
+
+warning: unused variable: `l2`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:30:52
+   |
+30 |     fn map(&self, v1: &mut C, l1: &Layout, v2: &C, l2: &Layout) -> Result<()> {
+   |                                                    ^^ help: if this is intentional, prefix it with an underscore: `_l2`
+
+warning: unused variable: `v1`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:38:19
+   |
+38 |     fn map(&self, v1: &C, l1: &Layout, v2: &C, l2: &Layout) -> Result<C> {
+   |                   ^^ help: if this is intentional, prefix it with an underscore: `_v1`
+
+warning: unused variable: `l1`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:38:27
+   |
+38 |     fn map(&self, v1: &C, l1: &Layout, v2: &C, l2: &Layout) -> Result<C> {
+   |                           ^^ help: if this is intentional, prefix it with an underscore: `_l1`
+
+warning: unused variable: `v2`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:38:40
+   |
+38 |     fn map(&self, v1: &C, l1: &Layout, v2: &C, l2: &Layout) -> Result<C> {
+   |                                        ^^ help: if this is intentional, prefix it with an underscore: `_v2`
+
+warning: unused variable: `l2`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:38:48
+   |
+38 |     fn map(&self, v1: &C, l1: &Layout, v2: &C, l2: &Layout) -> Result<C> {
+   |                                                ^^ help: if this is intentional, prefix it with an underscore: `_l2`
+
+warning: method `offsets_b` is never used
+   --> third_party/candle-core-0.9.2/src/layout.rs:224:19
+    |
+ 12 | impl Layout {
+    | ----------- method in this implementation
+...
+224 |     pub(crate) fn offsets_b(&self) -> Option<ContiguousOffsetsWithBroadcast> {
+    |                   ^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `qzeros` is never used
+  --> third_party/candle-core-0.9.2/src/quantized/mod.rs:52:8
+   |
+51 | impl Device {
+   | ----------- method in this implementation
+52 |     fn qzeros(&self, elem_count: usize, dtype: GgmlDType) -> Result<QStorage> {
+   |        ^^^^^^
+
+warning: methods `quantize`, `quantize_imatrix`, `quantize_onto`, `quantize_imatrix_onto`, and `dequantize` are never used
+   --> third_party/candle-core-0.9.2/src/quantized/mod.rs:150:8
+    |
+ 76 | impl QStorage {
+    | ------------- methods in this implementation
+...
+150 |     fn quantize(&mut self, src: &Storage) -> Result<()> {
+    |        ^^^^^^^^
+...
+157 |     fn quantize_imatrix(
+    |        ^^^^^^^^^^^^^^^^
+...
+169 |     fn quantize_onto(&mut self, src: &Storage) -> Result<()> {
+    |        ^^^^^^^^^^^^^
+...
+176 |     fn quantize_imatrix_onto(
+    |        ^^^^^^^^^^^^^^^^^^^^^
+...
+188 |     fn dequantize(&self, elem_count: usize) -> Result<Storage> {
+    |        ^^^^^^^^^^
+
+warning: `candle-core` (lib) generated 22 warnings (run `cargo fix --lib -p candle-core` to apply 17 suggestions)
+    Checking candle-nn v0.9.2 (/Users/casey.allard/uor-r4/.worktrees/codex-rung0-standby-20261013-1217/third_party/candle-nn-0.9.2)
+warning: unused import: `rayon::prelude::*`
+ --> third_party/candle-nn-0.9.2/src/rotary_emb.rs:4:5
+  |
+4 | use rayon::prelude::*;
+  |     ^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `x`
+  --> third_party/candle-nn-0.9.2/src/conv.rs:56:23
+   |
+56 |     fn forward(&self, x: &Tensor) -> Result<Tensor> {
+   |                       ^ help: if this is intentional, prefix it with an underscore: `_x`
+   |
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `x`
+   --> third_party/candle-nn-0.9.2/src/conv.rs:112:23
+    |
+112 |     fn forward(&self, x: &Tensor) -> Result<Tensor> {
+    |                       ^ help: if this is intentional, prefix it with an underscore: `_x`
+
+warning: unused variable: `x`
+   --> third_party/candle-nn-0.9.2/src/conv.rs:188:23
+    |
+188 |     fn forward(&self, x: &Tensor) -> Result<Tensor> {
+    |                       ^ help: if this is intentional, prefix it with an underscore: `_x`
+
+warning: unused variable: `x`
+   --> third_party/candle-nn-0.9.2/src/conv.rs:243:23
+    |
+243 |     fn forward(&self, x: &Tensor) -> Result<Tensor> {
+    |                       ^ help: if this is intentional, prefix it with an underscore: `_x`
+
+warning: unused variable: `x`
+  --> third_party/candle-nn-0.9.2/src/linear.rs:43:23
+   |
+43 |     fn forward(&self, x: &Tensor) -> candle::Result<Tensor> {
+   |                       ^ help: if this is intentional, prefix it with an underscore: `_x`
+
+warning: unused variable: `inp`
+  --> third_party/candle-nn-0.9.2/src/loss.rs:14:12
+   |
+14 | pub fn nll(inp: &Tensor, target: &Tensor) -> Result<Tensor> {
+   |            ^^^ help: if this is intentional, prefix it with an underscore: `_inp`
+
+warning: unused variable: `target`
+  --> third_party/candle-nn-0.9.2/src/loss.rs:14:26
+   |
+14 | pub fn nll(inp: &Tensor, target: &Tensor) -> Result<Tensor> {
+   |                          ^^^^^^ help: if this is intentional, prefix it with an underscore: `_target`
+
+warning: unused variable: `inp`
+  --> third_party/candle-nn-0.9.2/src/loss.rs:27:22
+   |
+27 | pub fn cross_entropy(inp: &Tensor, target: &Tensor) -> Result<Tensor> {
+   |                      ^^^ help: if this is intentional, prefix it with an underscore: `_inp`
+
+warning: unused variable: `target`
+  --> third_party/candle-nn-0.9.2/src/loss.rs:27:36
+   |
+27 | pub fn cross_entropy(inp: &Tensor, target: &Tensor) -> Result<Tensor> {
+   |                                    ^^^^^^ help: if this is intentional, prefix it with an underscore: `_target`
+
+warning: unused variable: `inp`
+  --> third_party/candle-nn-0.9.2/src/loss.rs:46:40
+   |
+46 | pub fn binary_cross_entropy_with_logit(inp: &Tensor, target: &Tensor) -> Result<Tensor> {
+   |                                        ^^^ help: if this is intentional, prefix it with an underscore: `_inp`
+
+warning: unused variable: `target`
+  --> third_party/candle-nn-0.9.2/src/loss.rs:46:54
+   |
+46 | pub fn binary_cross_entropy_with_logit(inp: &Tensor, target: &Tensor) -> Result<Tensor> {
+   |                                                      ^^^^^^ help: if this is intentional, prefix it with an underscore: `_target`
+
+warning: unused variable: `s1`
+  --> third_party/candle-nn-0.9.2/src/ops.rs:96:9
+   |
+96 |         s1: &CpuStorage,
+   |         ^^ help: if this is intentional, prefix it with an underscore: `_s1`
+
+warning: unused variable: `l1`
+  --> third_party/candle-nn-0.9.2/src/ops.rs:97:9
+   |
+97 |         l1: &Layout,
+   |         ^^ help: if this is intentional, prefix it with an underscore: `_l1`
+
+warning: unused variable: `s2`
+  --> third_party/candle-nn-0.9.2/src/ops.rs:98:9
+   |
+98 |         s2: &CpuStorage,
+   |         ^^ help: if this is intentional, prefix it with an underscore: `_s2`
+
+warning: unused variable: `l2`
+  --> third_party/candle-nn-0.9.2/src/ops.rs:99:9
+   |
+99 |         l2: &Layout,
+   |         ^^ help: if this is intentional, prefix it with an underscore: `_l2`
+
+warning: unused variable: `s1`
+   --> third_party/candle-nn-0.9.2/src/ops.rs:264:9
+    |
+264 |         s1: &CpuStorage,
+    |         ^^ help: if this is intentional, prefix it with an underscore: `_s1`
+
+warning: unused variable: `l1`
+   --> third_party/candle-nn-0.9.2/src/ops.rs:265:9
+    |
+265 |         l1: &Layout,
+    |         ^^ help: if this is intentional, prefix it with an underscore: `_l1`
+
+warning: unused variable: `s2`
+   --> third_party/candle-nn-0.9.2/src/ops.rs:266:9
+    |
+266 |         s2: &CpuStorage,
+    |         ^^ help: if this is intentional, prefix it with an underscore: `_s2`
+
+warning: unused variable: `l2`
+   --> third_party/candle-nn-0.9.2/src/ops.rs:267:9
+    |
+267 |         l2: &Layout,
+    |         ^^ help: if this is intentional, prefix it with an underscore: `_l2`
+
+warning: unused variable: `s3`
+   --> third_party/candle-nn-0.9.2/src/ops.rs:268:9
+    |
+268 |         s3: &CpuStorage,
+    |         ^^ help: if this is intentional, prefix it with an underscore: `_s3`
+
+warning: unused variable: `l3`
+   --> third_party/candle-nn-0.9.2/src/ops.rs:269:9
+    |
+269 |         l3: &Layout,
+    |         ^^ help: if this is intentional, prefix it with an underscore: `_l3`
+
+warning: unused variable: `input`
+   --> third_party/candle-nn-0.9.2/src/rnn.rs:210:20
+    |
+210 |     fn step(&self, input: &Tensor, in_state: &Self::State) -> Result<Self::State> {
+    |                    ^^^^^ help: if this is intentional, prefix it with an underscore: `_input`
+
+warning: unused variable: `in_state`
+   --> third_party/candle-nn-0.9.2/src/rnn.rs:210:36
+    |
+210 |     fn step(&self, input: &Tensor, in_state: &Self::State) -> Result<Self::State> {
+    |                                    ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_in_state`
+
+warning: unused variable: `input`
+   --> third_party/candle-nn-0.9.2/src/rnn.rs:342:20
+    |
+342 |     fn step(&self, input: &Tensor, in_state: &Self::State) -> Result<Self::State> {
+    |                    ^^^^^ help: if this is intentional, prefix it with an underscore: `_input`
+
+warning: unused variable: `in_state`
+   --> third_party/candle-nn-0.9.2/src/rnn.rs:342:36
+    |
+342 |     fn step(&self, input: &Tensor, in_state: &Self::State) -> Result<Self::State> {
+    |                                    ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_in_state`
+
+warning: unused variable: `s1`
+  --> third_party/candle-nn-0.9.2/src/rotary_emb.rs:21:9
+   |
+21 |         s1: &CpuStorage,
+   |         ^^ help: if this is intentional, prefix it with an underscore: `_s1`
+
+warning: unused variable: `l1`
+  --> third_party/candle-nn-0.9.2/src/rotary_emb.rs:22:9
+   |
+22 |         l1: &Layout,
+   |         ^^ help: if this is intentional, prefix it with an underscore: `_l1`
+
+warning: unused variable: `s2`
+  --> third_party/candle-nn-0.9.2/src/rotary_emb.rs:23:9
+   |
+23 |         s2: &CpuStorage,
+   |         ^^ help: if this is intentional, prefix it with an underscore: `_s2`
+
+warning: unused variable: `l2`
+  --> third_party/candle-nn-0.9.2/src/rotary_emb.rs:24:9
+   |
+24 |         l2: &Layout,
+   |         ^^ help: if this is intentional, prefix it with an underscore: `_l2`
+
+warning: unused variable: `s3`
+  --> third_party/candle-nn-0.9.2/src/rotary_emb.rs:25:9
+   |
+25 |         s3: &CpuStorage,
+   |         ^^ help: if this is intentional, prefix it with an underscore: `_s3`
+
+warning: unused variable: `l3`
+  --> third_party/candle-nn-0.9.2/src/rotary_emb.rs:26:9
+   |
+26 |         l3: &Layout,
+   |         ^^ help: if this is intentional, prefix it with an underscore: `_l3`
+
+warning: unused variable: `s1`
+   --> third_party/candle-nn-0.9.2/src/rotary_emb.rs:243:9
+    |
+243 |         s1: &CpuStorage,
+    |         ^^ help: if this is intentional, prefix it with an underscore: `_s1`
+
+warning: unused variable: `l1`
+   --> third_party/candle-nn-0.9.2/src/rotary_emb.rs:244:9
+    |
+244 |         l1: &Layout,
+    |         ^^ help: if this is intentional, prefix it with an underscore: `_l1`
+
+warning: unused variable: `s2`
+   --> third_party/candle-nn-0.9.2/src/rotary_emb.rs:245:9
+    |
+245 |         s2: &CpuStorage,
+    |         ^^ help: if this is intentional, prefix it with an underscore: `_s2`
+
+warning: unused variable: `l2`
+   --> third_party/candle-nn-0.9.2/src/rotary_emb.rs:246:9
+    |
+246 |         l2: &Layout,
+    |         ^^ help: if this is intentional, prefix it with an underscore: `_l2`
+
+warning: unused variable: `s3`
+   --> third_party/candle-nn-0.9.2/src/rotary_emb.rs:247:9
+    |
+247 |         s3: &CpuStorage,
+    |         ^^ help: if this is intentional, prefix it with an underscore: `_s3`
+
+warning: unused variable: `l3`
+   --> third_party/candle-nn-0.9.2/src/rotary_emb.rs:248:9
+    |
+248 |         l3: &Layout,
+    |         ^^ help: if this is intentional, prefix it with an underscore: `_l3`
+
+warning: unused variable: `s1`
+   --> third_party/candle-nn-0.9.2/src/rotary_emb.rs:451:9
+    |
+451 |         s1: &CpuStorage,
+    |         ^^ help: if this is intentional, prefix it with an underscore: `_s1`
+
+warning: unused variable: `l1`
+   --> third_party/candle-nn-0.9.2/src/rotary_emb.rs:452:9
+    |
+452 |         l1: &Layout,
+    |         ^^ help: if this is intentional, prefix it with an underscore: `_l1`
+
+warning: unused variable: `s2`
+   --> third_party/candle-nn-0.9.2/src/rotary_emb.rs:453:9
+    |
+453 |         s2: &CpuStorage,
+    |         ^^ help: if this is intentional, prefix it with an underscore: `_s2`
+
+warning: unused variable: `l2`
+   --> third_party/candle-nn-0.9.2/src/rotary_emb.rs:454:9
+    |
+454 |         l2: &Layout,
+    |         ^^ help: if this is intentional, prefix it with an underscore: `_l2`
+
+warning: unused variable: `s3`
+   --> third_party/candle-nn-0.9.2/src/rotary_emb.rs:455:9
+    |
+455 |         s3: &CpuStorage,
+    |         ^^ help: if this is intentional, prefix it with an underscore: `_s3`
+
+warning: unused variable: `l3`
+   --> third_party/candle-nn-0.9.2/src/rotary_emb.rs:456:9
+    |
+456 |         l3: &Layout,
+    |         ^^ help: if this is intentional, prefix it with an underscore: `_l3`
+
+warning: field `eps` is never read
+  --> third_party/candle-nn-0.9.2/src/ops.rs:86:5
+   |
+85 | struct RmsNorm {
+   |        ------- field in this struct
+86 |     eps: f32,
+   |     ^^^
+   |
+   = note: `RmsNorm` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: field `eps` is never read
+   --> third_party/candle-nn-0.9.2/src/ops.rs:254:5
+    |
+253 | struct LayerNorm {
+    |        --------- field in this struct
+254 |     eps: f32,
+    |     ^^^
+    |
+    = note: `LayerNorm` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: fields `w_ih`, `w_hh`, `b_ih`, and `b_hh` are never read
+   --> third_party/candle-nn-0.9.2/src/rnn.rs:122:5
+    |
+121 | pub struct LSTM {
+    |            ---- fields in this struct
+122 |     w_ih: Tensor,
+    |     ^^^^
+123 |     w_hh: Tensor,
+    |     ^^^^
+124 |     b_ih: Option<Tensor>,
+    |     ^^^^
+125 |     b_hh: Option<Tensor>,
+    |     ^^^^
+    |
+    = note: `LSTM` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+
+warning: fields `w_ih`, `w_hh`, `b_ih`, and `b_hh` are never read
+   --> third_party/candle-nn-0.9.2/src/rnn.rs:271:5
+    |
+270 | pub struct GRU {
+    |            --- fields in this struct
+271 |     w_ih: Tensor,
+    |     ^^^^
+272 |     w_hh: Tensor,
+    |     ^^^^
+273 |     b_ih: Option<Tensor>,
+    |     ^^^^
+274 |     b_hh: Option<Tensor>,
+    |     ^^^^
+    |
+    = note: `GRU` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+
+warning: `candle-nn` (lib) generated 48 warnings (run `cargo fix --lib -p candle-nn` to apply 44 suggestions)
+    Finished `dev` profile [unoptimized] target(s) in 3.40s

@@ -5,23 +5,21 @@ version = "0.1.0"
 edition = "2021"
 description = "Core R4 engine: geometric routing mathematics and integrated transformerless local inference"
 
+[lib]
+path = "src/native_support.rs"
+
 [dependencies]
 uor-r4-integer = { version = "0.1.0", path = "../uor-r4-integer" }
 uor-r4-tokenizer = { version = "0.1.0", path = "../uor-r4-tokenizer" }
-uor-r4-graph-format = { version = "0.1.0", path = "../uor-r4-graph-format" }
-uor-r4-model-source = { version = "0.1.0", path = "../uor-r4-model-source" }
+# Numerical source executors are preserved in place but excluded from this crate.
+uor-r4-source-interface = { version = "0.1.0", path = "../uor-r4-source-interface" }
 sha2 = "0.10.8"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0", features = ["float_roundtrip"] }
-hex = "0.4.3"
 blake3 = "=1.5.0"
-ciborium = "0.2"
-uor-r4-graph-runtime = { version = "0.1.0", path = "../uor-r4-graph-runtime" }
-uor-addr = { version = "0.2.0", git = "https://github.com/UOR-Foundation/uor-addr.git", rev = "165b51e3e2113ee5d032730cde709335d4fe9b60", default-features = false, features = ["alloc"] }
-tracing = { version = "0.1", default-features = false, features = ["std"] }
+uor-addr = { version = "0.2.0", path = "../../third_party/uor-addr-0.2.0", default-features = false, features = ["alloc"] }
 libm = "0.2"
 memmap2 = "0.9"
-rayon = "1.10.0"
 
 [features]
 # Explicit CPU floating-point research boundary; never enabled by default.

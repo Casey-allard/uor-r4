@@ -1,0 +1,8 @@
+407fd49aac6c857f8cfcf034fea4cc7ed212e6501d683eb2d48b1fb55815cf51  docs/history/d29-excluded-lut-2026-10-13/src/engine.rs
+747f33783c8e3109f31084b15b21a5b280e679ec1b310e2afe0aae827fa4da40  docs/history/d29-excluded-lut-2026-10-13/src/format.rs
+b0c1b424d7030a283103bc31c4f0108d5485c4abfab5a17accf2098b357daffb  docs/history/d29-excluded-lut-2026-10-13/src/kernels.rs
+fcb71cd14621a3a2d46e1c24584f36fe6c47709029a0f66244a02ff5abd8d5b0  docs/history/d29-excluded-lut-2026-10-13/src/lib.rs
+b3796955184cfb4d1c76e98627b193a0fe6bd12cf001722f0aead87a7643e524  docs/history/d29-excluded-lut-2026-10-13/src/sampling.rs
+489b3456ded78c893056cfd75fb79623516660948b6a1a3b6d4c2f89b55cfefa  docs/history/d29-excluded-lut-2026-10-13/src/stack.rs
+ed544f6b6663d24cadcabb7c6e651a3242184837108ccc2588e2d4052904a4ca  docs/history/d29-excluded-lut-2026-10-13/src/bin/lut-chat.rs
+4338c222eac0e53ba30bce3a7870ad4616e171eff293c63b5007ec6b9043e571  docs/history/d29-excluded-lut-2026-10-13/Cargo.toml

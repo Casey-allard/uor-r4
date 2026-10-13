@@ -9,18 +9,20 @@ and its linked experiment records retain all historical readings.
 
 ## Current dependency and hold
 
+**Current compiled boundary:** the native-only source cut, corrected and frozen at `1f1547bfd70f01edc9aa36d34a46e5bc43edc34c`, passes CUDA compilation and all 31 exact finite controls on RTX4090, nvcc12.8.93, compute_89, Rust1.97.1. It excludes historical core/integer model executors, teachers, LUT engines and exporters; `geometric-stack` now selects the native train/evaluate CLI and lineage/optimizer admission refusals. The vendor PTX export/instruction census, selected dependency/features, four executable import checks and five project interlocks pass, with exactly three project PTX modules. Earlier setup/driver/controller and clipping failures are preserved as corrected blockers. Protected delivery is pending; no optimizer update/corpus/training/CPU model ran. Earlier 18/11-control results below retain their original source scope. [D29 record](docs/labs/d29-vendor-boundary-2026-10-13/README.md). Independent Amendment6 FIT and the separate finite FIT sheet release no hold.
+
 **Training remains held; M2 training/rental remains held separately.** Kimi is
 project manager under [D25](docs/integration/DECISIONS.md#d25---geometric-operator-phase-and-current-lab-direction).
 No softmax/softplus/sigmoid/tanh or equivalent squashing anywhere in an executed
 model/objective/gradient/output/teacher/comparator path; no dense matrix
 multiplication in training or serving; model/reference compute is GPU-only with
 host fallback refused. Scalar float geometric GPU learning is distinct from D11
-integer/table, multiplier-free serving. The declared recurrence-only path has finite CUDA forward/backward/output
-qualification at its actual rung-0 shape. The optimizer update is compiled and
+integer/table, multiplier-free serving. The predecessor declared recurrence-only path has finite CUDA forward/backward/output
+qualification at its original rung-0 source/shape; it does not qualify the new compiled boundary. The optimizer update is compiled and
 source-reviewed, not executed. Amendment5 supersedes the whole-DEV count-reference scope and has independent
 scientific [Claude CONFIRM FIT6146716704](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6146716704) on merged source #2328. The physical
-sheet verdict remains PENDING until Kimi records the required mechanical
-TRAIN-mask/checksum/CLI/source pins and restores FIT. Explicit owner release
+sheet verdict is **FIT** under Kimi's Amendment6 mechanical TRAIN-mask/checksum/CLI pins
+and independent Claude confirmation, at the declared prior source scope. Explicit owner release
 still remains required.
 The owner clarified that both model lines share one directly learned native
 geometric vector representation and writer, using E8/SpiralCore/icosian/FSB
@@ -38,8 +40,8 @@ replaces the dense quaternion contraction, with owner-authorized bounded pod
 build/kernel qualification; training remains held. The [OP3a product head and shared native vector writer](docs/labs/geometric-head-shared-writer-2026-10-13/README.md)
 now use the same embedding Tensor/Var across token input, raw-distance output and
 the compiler/store/emitter vector channel; five finite CUDA controls pass.
-The predecessor's head-only tests did not qualify recurrence. The composed
-successor now has finite forward/backward/output qualification; trained language,
+The predecessor's head-only tests did not qualify recurrence. The earlier composed
+successor has finite forward/backward/output qualification at its named source below; trained language,
 learned intent/compiler use and D11 serving remain unqualified. The head/writer unit delivered as #2301, merge `d41dc422f`.
 [Complete-path repairs](docs/labs/rung0-complete-path-2026-10-13/README.md) are
 implemented and finite CUDA-qualified at source `05c84bece50789163bd0f049a2ae76b8a314ef45`;
@@ -47,7 +49,7 @@ all 18 predecessor controls pass. Protected #2318 merge is verified at
 `5b22739a31eafb131d25e098bb7f02ab803d4fe7`. The new
 [masked TRAIN count-reference repair](docs/labs/count-reference-2026-10-13/README.md)
 is implemented at source `2fd6358bbc52d2a202a872ad0954ebb12894606f`; 11 new finite controls PASS (9 metadata,2 CUDA); protected [PR #2328](https://github.com/UOR-Foundation/uor-r4/pull/2328) merged at `9e904a83448c451f738d5c1d45224dfdf73eb84e`. Amendment5 has independent [Claude CONFIRM FIT6146716704](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6146716704), with unchanged bars;
-the physical sheet remains PENDING pending Kimi's mechanical pins/verdict update.
+Kimi's Amendment6 records the mechanical pins and restores the physical sheet's FIT verdict.
 Its DEV response oracle is diagnostic only. Training remains HELD.
 The rank-margin objective is source, not a language result. The active sheet
 pins the existing rank/anti-vacuity bars, units and paired seeds; tokens/s uses
@@ -57,10 +59,10 @@ the same synchronized CUDA harness. No model training or quality run occurred.
 
 | Line | Retained reading and limitation | Current next dependency |
 | --- | --- | --- |
-| M1 language base | Historical v5 memory20/40, reply37/232 (targets34/40 and116/232); historical19.9M served0.886838 BPB at512 windows ([protocol](docs/labs/criterion2-protocol-pin-2026-10-09/README.md)). No new quality result | Kimi operator source; DeepSeek GPU-native addressed router/memory source; no old mixture/pointer campaign restart |
-| M2 grounded reply | Saved437/512 development + opened0/128 transfer diagnostic remain panel fitting; genuinely fresh qualification NOT_RUN. [Whole-path recovery source](docs/labs/whole-path-recovery-2026-10-12/README.md) delivered; CUDA execution unqualified; sampled law refuses. Head/shared vector channel finite CUDA-qualified; full M2 remains unqualified. Unified line count12/3 after masked-reference source delivery #2328 (previous11/3 retained; closeout is the same unit), no reset | Masked TRAIN-reference repair delivered in #2328; Claude CONFIRM FIT recorded; Kimi mechanical sheet pins/verdict restoration remain; coherent full-M2 intent/compiler path and explicit owner hold release remain dependencies |
+| M1 language base | Historical v5 memory20/40, reply37/232 (targets34/40 and116/232); historical19.9M served0.886838 BPB at512 windows ([protocol](docs/labs/criterion2-protocol-pin-2026-10-09/README.md)). No new quality result | D29 qualification preservation/final-source review/protected delivery, then applicable explicit owner hold release; other native router/memory work retains its own ownership |
+| M2 grounded reply | Saved437/512 development + opened0/128 transfer diagnostic remain panel fitting; genuinely fresh qualification NOT_RUN. [Whole-path recovery source](docs/labs/whole-path-recovery-2026-10-12/README.md) delivered; CUDA execution unqualified; sampled law refuses. Head/shared vector channel and the repaired compiled boundary have finite CUDA qualification at `1f1547bfd`; full M2 remains unqualified. Unified line count12/3 after masked-reference source delivery #2328 (previous11/3 retained; closeout is the same unit), no reset | Masked TRAIN-reference repair delivered in #2328; Claude CONFIRM FIT recorded; D29 finite qualification passes; protected delivery remains; coherent full-M2 intent/compiler path and explicit owner hold release remain dependencies |
 | M3 durable memory | Evaluator/session delivered; unqualified | Preserve interfaces; no automatic experiment when M2 is held |
-| M4 one served model | Historical D11 bit-exact artifacts and rank-read components retained; default artifacts include prohibited paths. [Starling bootstrap](docs/labs/starling-bootstrap-2026-10-12/README.md) is inactive evidence | Claude teacher-free starling/murmuration source; compliant trunk → resumed rung0 → rung0b GPU read/gradient → starling |
+| M4 one served model | Historical D11 bit-exact artifacts and rank-read components retained; historical artifacts include prohibited paths; their model executors are excluded from the selected build. [Starling bootstrap](docs/labs/starling-bootstrap-2026-10-12/README.md) is inactive evidence | Claude teacher-free starling/murmuration source; compliant trunk → resumed rung0 → rung0b GPU read/gradient → starling |
 
 Historical BPB/NLL is preserved at its original scope and cannot authorize a new
 normalized-exponential evaluator. Raw-score/answer quality and speed are separate;

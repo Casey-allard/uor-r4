@@ -1,0 +1,19 @@
+command: /workspace/codex-d29-build-20261013-g/target/debug/examples/geometric_stack-43ea48ba348da2e3 ["--list"]
+status: exit status: 0
+elapsed_s: 0.007852
+stdout:
+native_rung0::cuda_fixed_tests::cuda_document_evaluator_known_answers_and_native_artifact_roundtrip: test
+native_rung0::cuda_fixed_tests::cuda_masked_train_reference_excludes_unmasked_ids_and_separates_dev_oracle: test
+native_rung0::tests::document_boundaries_and_overlap_tail_score_every_mask_once: test
+native_rung0::tests::exact_window_and_shifted_mask_contract_is_metadata_only: test
+native_rung0::tests::masked_count_inventory_is_validated_metadata_only: test
+native_rung0::tests::uort_header_inventory_is_not_token_payload_or_tail: test
+native_rung0_argument_tests::complete_native_argument_contract_refuses_legacy_modes: test
+native_rung0_argument_tests::native_metric_record_never_mislabels_raw_margins_as_likelihood: test
+native_rung0_argument_tests::native_process_flags_refuse_sampling_host_diagnostics_and_bad_estimates: test
+native_rung0_argument_tests::native_reference_metadata_rejects_invalid_masks_and_count_claims: test
+native_rung0_argument_tests::native_train_reference_arguments_require_one_masked_stream_and_positive_count: test
+
+11 tests, 0 benchmarks
+
+stderr:

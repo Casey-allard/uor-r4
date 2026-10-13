@@ -1,0 +1,51 @@
+cudarc v0.19.10 (/Users/casey.allard/uor-r4/.worktrees/codex-rung0-standby-20261013-1217/third_party/cudarc-0.19.10)
+├── cudarc feature "cuda-version-from-build-system"
+│   ├── candle-core v0.9.2 (/Users/casey.allard/uor-r4/.worktrees/codex-rung0-standby-20261013-1217/third_party/candle-core-0.9.2)
+│   │   ├── candle-nn v0.9.2 (/Users/casey.allard/uor-r4/.worktrees/codex-rung0-standby-20261013-1217/third_party/candle-nn-0.9.2)
+│   │   │   └── uor-r4-training v0.1.0 (/Users/casey.allard/uor-r4/.worktrees/codex-rung0-standby-20261013-1217/crates/uor-r4-training)
+│   │   │       ├── uor-r4-training feature "cuda" (command-line)
+│   │   │       └── uor-r4-training feature "default" (command-line)
+│   │   │   └── candle-nn feature "cuda"
+│   │   │       └── uor-r4-training feature "cuda" (command-line)
+│   │   └── uor-r4-training v0.1.0 (/Users/casey.allard/uor-r4/.worktrees/codex-rung0-standby-20261013-1217/crates/uor-r4-training) (*)
+│   │   ├── candle-core feature "cuda"
+│   │   │   ├── uor-r4-training feature "cuda" (command-line)
+│   │   │   └── candle-nn feature "cuda" (*)
+│   │   └── candle-core feature "cudarc"
+│   │       └── candle-core feature "cuda" (*)
+│   ├── float8 v0.6.1 (/Users/casey.allard/uor-r4/.worktrees/codex-rung0-standby-20261013-1217/third_party/float8-0.6.1)
+│   │   ├── float8 feature "cuda"
+│   │   │   └── candle-core feature "cuda" (*)
+│   │   ├── float8 feature "cuda-dynamic"
+│   │   │   └── float8 feature "cuda" (*)
+│   │   ├── float8 feature "default"
+│   │   │   └── candle-core v0.9.2 (/Users/casey.allard/uor-r4/.worktrees/codex-rung0-standby-20261013-1217/third_party/candle-core-0.9.2) (*)
+│   │   ├── float8 feature "num-traits"
+│   │   │   └── candle-core v0.9.2 (/Users/casey.allard/uor-r4/.worktrees/codex-rung0-standby-20261013-1217/third_party/candle-core-0.9.2) (*)
+│   │   ├── float8 feature "rand_distr"
+│   │   │   └── candle-core v0.9.2 (/Users/casey.allard/uor-r4/.worktrees/codex-rung0-standby-20261013-1217/third_party/candle-core-0.9.2) (*)
+│   │   └── float8 feature "std"
+│   │       ├── float8 feature "default" (*)
+│   │       └── float8 feature "rand_distr" (*)
+│   └── uor-r4-training v0.1.0 (/Users/casey.allard/uor-r4/.worktrees/codex-rung0-standby-20261013-1217/crates/uor-r4-training) (*)
+├── cudarc feature "curand"
+│   ├── candle-core v0.9.2 (/Users/casey.allard/uor-r4/.worktrees/codex-rung0-standby-20261013-1217/third_party/candle-core-0.9.2) (*)
+│   └── float8 v0.6.1 (/Users/casey.allard/uor-r4/.worktrees/codex-rung0-standby-20261013-1217/third_party/float8-0.6.1) (*)
+├── cudarc feature "driver"
+│   ├── candle-core v0.9.2 (/Users/casey.allard/uor-r4/.worktrees/codex-rung0-standby-20261013-1217/third_party/candle-core-0.9.2) (*)
+│   ├── float8 v0.6.1 (/Users/casey.allard/uor-r4/.worktrees/codex-rung0-standby-20261013-1217/third_party/float8-0.6.1) (*)
+│   └── uor-r4-training v0.1.0 (/Users/casey.allard/uor-r4/.worktrees/codex-rung0-standby-20261013-1217/crates/uor-r4-training) (*)
+│   └── cudarc feature "curand" (*)
+├── cudarc feature "dynamic-linking"
+│   ├── candle-core v0.9.2 (/Users/casey.allard/uor-r4/.worktrees/codex-rung0-standby-20261013-1217/third_party/candle-core-0.9.2) (*)
+│   └── uor-r4-training v0.1.0 (/Users/casey.allard/uor-r4/.worktrees/codex-rung0-standby-20261013-1217/crates/uor-r4-training) (*)
+│   └── float8 feature "cuda-dynamic" (*)
+├── cudarc feature "f16"
+│   ├── candle-core v0.9.2 (/Users/casey.allard/uor-r4/.worktrees/codex-rung0-standby-20261013-1217/third_party/candle-core-0.9.2) (*)
+│   └── float8 v0.6.1 (/Users/casey.allard/uor-r4/.worktrees/codex-rung0-standby-20261013-1217/third_party/float8-0.6.1) (*)
+├── cudarc feature "f8"
+│   └── candle-core v0.9.2 (/Users/casey.allard/uor-r4/.worktrees/codex-rung0-standby-20261013-1217/third_party/candle-core-0.9.2) (*)
+└── cudarc feature "std"
+    ├── candle-core v0.9.2 (/Users/casey.allard/uor-r4/.worktrees/codex-rung0-standby-20261013-1217/third_party/candle-core-0.9.2) (*)
+    ├── float8 v0.6.1 (/Users/casey.allard/uor-r4/.worktrees/codex-rung0-standby-20261013-1217/third_party/float8-0.6.1) (*)
+    └── uor-r4-training v0.1.0 (/Users/casey.allard/uor-r4/.worktrees/codex-rung0-standby-20261013-1217/crates/uor-r4-training) (*)

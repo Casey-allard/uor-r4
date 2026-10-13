@@ -1,0 +1,205 @@
+   Compiling libc v0.2.186
+   Compiling cfg-if v1.0.4
+   Compiling zerocopy v0.8.55
+   Compiling getrandom v0.3.4
+   Compiling rand_core v0.9.5
+   Compiling libm v0.2.16
+   Compiling serde_core v1.0.228
+   Compiling ppv-lite86 v0.2.21
+   Compiling rand_chacha v0.9.0
+   Compiling crossbeam-utils v0.8.22
+   Compiling equivalent v1.0.2
+   Compiling crossbeam-epoch v0.9.20
+   Compiling rand v0.9.5
+   Compiling num-traits v0.2.19
+   Compiling memchr v2.8.3
+   Compiling rand_distr v0.5.1
+   Compiling crossbeam-deque v0.8.7
+   Compiling zmij v1.0.23
+   Compiling stable_deref_trait v1.2.1
+   Compiling foldhash v0.2.0
+   Compiling allocator-api2 v0.2.21
+   Compiling itoa v1.0.18
+   Compiling hashbrown v0.17.1
+   Compiling hashbrown v0.16.1
+   Compiling indexmap v2.14.0
+   Compiling serde_json v1.0.150
+   Compiling serde v1.0.228
+   Compiling zerofrom v0.1.8
+   Compiling half v2.7.1
+   Compiling rayon-core v1.13.0
+   Compiling crc32fast v1.5.2
+   Compiling typed-path v0.12.3
+   Compiling either v1.16.0
+   Compiling rayon v1.12.0
+   Compiling zip v7.2.0
+   Compiling thiserror v2.0.19
+   Compiling yoke v0.8.3
+   Compiling float8 v0.6.1 (/Users/casey.allard/uor-r4/.worktrees/codex-rung0-standby-20261013-1217/third_party/float8-0.6.1)
+   Compiling safetensors v0.7.0
+   Compiling memmap2 v0.9.11
+   Compiling num_cpus v1.17.0
+   Compiling byteorder v1.5.0
+   Compiling candle-core v0.9.2 (/Users/casey.allard/uor-r4/.worktrees/codex-rung0-standby-20261013-1217/third_party/candle-core-0.9.2)
+warning: unused imports: `DType` and `D`
+ --> third_party/candle-core-0.9.2/src/quantized/mod.rs:2:42
+  |
+2 |     backend::BackendStorage, CpuStorage, DType, Device, Result, Shape, Storage, Tensor, D,
+  |                                          ^^^^^                                          ^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `backend::BackendStorage`
+ --> third_party/candle-core-0.9.2/src/quantized/mod.rs:2:5
+  |
+2 |     backend::BackendStorage, CpuStorage, DType, Device, Result, Shape, Storage, Tensor, D,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused variable: `vs`
+ --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:7:19
+  |
+7 |     fn map(&self, vs: &C, layout: &Layout) -> Result<C> {
+  |                   ^^ help: if this is intentional, prefix it with an underscore: `_vs`
+  |
+  = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `layout`
+ --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:7:27
+  |
+7 |     fn map(&self, vs: &C, layout: &Layout) -> Result<C> {
+  |                           ^^^^^^ help: if this is intentional, prefix it with an underscore: `_layout`
+
+warning: unused variable: `vs`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:14:19
+   |
+14 |     fn map(&self, vs: &C, layout: &Layout) -> Result<C> {
+   |                   ^^ help: if this is intentional, prefix it with an underscore: `_vs`
+
+warning: unused variable: `layout`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:14:27
+   |
+14 |     fn map(&self, vs: &C, layout: &Layout) -> Result<C> {
+   |                           ^^^^^^ help: if this is intentional, prefix it with an underscore: `_layout`
+
+warning: unused variable: `v1`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:22:19
+   |
+22 |     fn map(&self, v1: &C, l1: &Layout, v2: &C, l2: &Layout) -> Result<C> {
+   |                   ^^ help: if this is intentional, prefix it with an underscore: `_v1`
+
+warning: unused variable: `l1`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:22:27
+   |
+22 |     fn map(&self, v1: &C, l1: &Layout, v2: &C, l2: &Layout) -> Result<C> {
+   |                           ^^ help: if this is intentional, prefix it with an underscore: `_l1`
+
+warning: unused variable: `v2`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:22:40
+   |
+22 |     fn map(&self, v1: &C, l1: &Layout, v2: &C, l2: &Layout) -> Result<C> {
+   |                                        ^^ help: if this is intentional, prefix it with an underscore: `_v2`
+
+warning: unused variable: `l2`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:22:48
+   |
+22 |     fn map(&self, v1: &C, l1: &Layout, v2: &C, l2: &Layout) -> Result<C> {
+   |                                                ^^ help: if this is intentional, prefix it with an underscore: `_l2`
+
+warning: unused variable: `v1`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:30:19
+   |
+30 |     fn map(&self, v1: &mut C, l1: &Layout, v2: &C, l2: &Layout) -> Result<()> {
+   |                   ^^ help: if this is intentional, prefix it with an underscore: `_v1`
+
+warning: unused variable: `l1`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:30:31
+   |
+30 |     fn map(&self, v1: &mut C, l1: &Layout, v2: &C, l2: &Layout) -> Result<()> {
+   |                               ^^ help: if this is intentional, prefix it with an underscore: `_l1`
+
+warning: unused variable: `v2`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:30:44
+   |
+30 |     fn map(&self, v1: &mut C, l1: &Layout, v2: &C, l2: &Layout) -> Result<()> {
+   |                                            ^^ help: if this is intentional, prefix it with an underscore: `_v2`
+
+warning: unused variable: `l2`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:30:52
+   |
+30 |     fn map(&self, v1: &mut C, l1: &Layout, v2: &C, l2: &Layout) -> Result<()> {
+   |                                                    ^^ help: if this is intentional, prefix it with an underscore: `_l2`
+
+warning: unused variable: `v1`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:38:19
+   |
+38 |     fn map(&self, v1: &C, l1: &Layout, v2: &C, l2: &Layout) -> Result<C> {
+   |                   ^^ help: if this is intentional, prefix it with an underscore: `_v1`
+
+warning: unused variable: `l1`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:38:27
+   |
+38 |     fn map(&self, v1: &C, l1: &Layout, v2: &C, l2: &Layout) -> Result<C> {
+   |                           ^^ help: if this is intentional, prefix it with an underscore: `_l1`
+
+warning: unused variable: `v2`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:38:40
+   |
+38 |     fn map(&self, v1: &C, l1: &Layout, v2: &C, l2: &Layout) -> Result<C> {
+   |                                        ^^ help: if this is intentional, prefix it with an underscore: `_v2`
+
+warning: unused variable: `l2`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:38:48
+   |
+38 |     fn map(&self, v1: &C, l1: &Layout, v2: &C, l2: &Layout) -> Result<C> {
+   |                                                ^^ help: if this is intentional, prefix it with an underscore: `_l2`
+
+warning: method `offsets_b` is never used
+   --> third_party/candle-core-0.9.2/src/layout.rs:224:19
+    |
+ 12 | impl Layout {
+    | ----------- method in this implementation
+...
+224 |     pub(crate) fn offsets_b(&self) -> Option<ContiguousOffsetsWithBroadcast> {
+    |                   ^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `qzeros` is never used
+  --> third_party/candle-core-0.9.2/src/quantized/mod.rs:53:8
+   |
+52 | impl Device {
+   | ----------- method in this implementation
+53 |     fn qzeros(&self, elem_count: usize, dtype: GgmlDType) -> Result<QStorage> {
+   |        ^^^^^^
+
+warning: methods `quantize`, `quantize_imatrix`, `quantize_onto`, `quantize_imatrix_onto`, and `dequantize` are never used
+   --> third_party/candle-core-0.9.2/src/quantized/mod.rs:151:8
+    |
+ 77 | impl QStorage {
+    | ------------- methods in this implementation
+...
+151 |     fn quantize(&mut self, src: &Storage) -> Result<()> {
+    |        ^^^^^^^^
+...
+158 |     fn quantize_imatrix(
+    |        ^^^^^^^^^^^^^^^^
+...
+170 |     fn quantize_onto(&mut self, src: &Storage) -> Result<()> {
+    |        ^^^^^^^^^^^^^
+...
+177 |     fn quantize_imatrix_onto(
+    |        ^^^^^^^^^^^^^^^^^^^^^
+...
+189 |     fn dequantize(&self, elem_count: usize) -> Result<Storage> {
+    |        ^^^^^^^^^^
+
+warning: `candle-core` (lib test) generated 21 warnings (run `cargo fix --lib -p candle-core --tests` to apply 17 suggestions)
+    Finished `test` profile [unoptimized] target(s) in 10.41s
+     Running unittests src/lib.rs (local/vendor-check-target/debug/deps/candle_core-0768ec5ef3dd8edf)
+
+running 2 tests
+test cpu_backend::d29_contract_tests::host_custom_callback_is_never_dispatched ... ok
+test cpu_backend::d29_contract_tests::host_storage_retains_bytes_and_cpu_math_refuses ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.00s
+

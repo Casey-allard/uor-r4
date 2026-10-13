@@ -165,7 +165,7 @@ impl crate::CustomOp1 for ArgSort {
         Ok((dst, layout.shape().clone()))
     }
 
-    #[cfg(feature = "metal")]
+    #[cfg(any())] // D29: historical Metal implementation is excluded.
     fn metal_fwd(
         &self,
         storage: &crate::MetalStorage,

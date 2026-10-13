@@ -1,0 +1,8 @@
+command: nvidia-smi ["--query-gpu=name,uuid,driver_version,memory.total", "--format=csv"]
+status: exit status: 0
+elapsed_s: 0.027773
+stdout:
+name, uuid, driver_version, memory.total [MiB]
+NVIDIA GeForce RTX 4090, GPU-494cf136-4a85-b823-00f7-af2801405222, 575.57.08, 24564 MiB
+
+stderr:

@@ -1,0 +1,35 @@
+command: /workspace/codex-d29-build-20261013-g/target/debug/deps/uor_r4_training-1a37e7e50e596616 ["--list"]
+status: exit status: 0
+elapsed_s: 0.005879
+stdout:
+geometric_stack::tests::geometric_cuda_clipping_matches_stored_analytic_values: test
+geometric_stack::tests::geometric_rate_cuda_uses_signed_edges_and_exact_keep_table: test
+geometric_stack::tests::geometric_rung0_cuda_composition_matches_zero_carrier_golden: test
+geometric_stack::tests::geometric_rung0_cuda_ordinary_path_has_learning_credit: test
+native_vector_writer::contract_tests::binding_and_cpu_refusal: test
+native_vector_writer::cuda_tests::actual_stack_store_channel_and_artifact_identity: test
+native_vector_writer::cuda_tests::device_metrics_keep_token_and_address_bars_distinct: test
+native_vector_writer::cuda_tests::local_distance_adjoints_and_omitted_target: test
+native_vector_writer::cuda_tests::numerical_and_device_boundaries: test
+native_vector_writer::cuda_tests::rung0_full_batch_writer_forward_backward_without_updates: test
+native_vector_writer::cuda_tests::ties_identity_and_shared_channel: test
+spiralcore_fbs::native_cuda_tests::native_cuda_complete_ternary_children_and_signed_orientation: test
+spiralcore_fbs::native_cuda_tests::native_cuda_frontier_forward_exact_input_adjoint_and_secant: test
+spiralcore_fbs::native_cuda_tests::native_cuda_numerical_and_shape_refusals: test
+spiralcore_fbs::native_cuda_tests::native_cuda_shared_batch_and_output_credit: test
+spiralcore_fbs::static_plan_tests::bfs_keeps_actual_edge_history_operator_and_inverse: test
+spiralcore_fbs::static_plan_tests::cpu_model_entry_is_refused_before_any_carrier_arithmetic: test
+spiralcore_fbs::static_plan_tests::retained_frontier_has_every_atom_once_without_padding: test
+stack_store::tests::a_correction_and_a_bare_contradiction_differ_in_the_conflict_mark: test
+stack_store::tests::absent_differs_from_no_history_and_pinned_views_hide_later_writes: test
+stack_store::tests::load_rejects_foreign_lineage_malformed_bytes_and_records_not_token_encoded: test
+stack_store::tests::previous_record_and_previous_distinct_differ_after_a_reassertion: test
+stack_store::tests::rejects_empty_addresses_zero_capacity_and_out_of_vocabulary_tokens: test
+stack_store::tests::save_then_load_gives_identical_reads_at_every_pin_and_identical_later_behaviour: test
+stack_store::tests::scopes_entities_and_relations_are_independent_injective_addresses: test
+stack_store::tests::the_status_vocabulary_is_fixed_and_round_trips: test
+stack_store::tests::views_answer_the_declared_distinction_for_every_history: test
+
+27 tests, 0 benchmarks
+
+stderr:

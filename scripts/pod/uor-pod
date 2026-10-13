@@ -271,7 +271,14 @@ board() {  # board TEXT -> one-line comment on the Compute board issue
 # uptimeSeconds, lastStatusChange, runtimeStatus, networkVolumeId, ssh {ip, port}.
 is_vast() { case $1 in vast-*) return 0;; *) return 1;; esac; }
 have_runpod() { command -v runpodctl >/dev/null 2>&1; }
-have_vast() { command -v vastai >/dev/null 2>&1; }
+# D30: provider protocol is Rust. Never fall back to the Python vastai CLI.
+# An explicit path supports an owned build or a fixture-only test adapter.
+VAST_RUST=${UOR_POD_VAST_BIN:-$HERE/../../local/pod-provider-target/debug/uor-r4-pod-provider}
+have_vast() { [ -x "$VAST_RUST" ]; }
+vastai() {
+  have_vast || die "Rust Vast adapter missing: CARGO_TARGET_DIR=local/pod-provider-target cargo build -p uor-r4-pod-provider (or set UOR_POD_VAST_BIN)"
+  "$VAST_RUST" "$@"
+}
 # A Vast instance as a Runpod-shaped pod. RUNNING unless it was asked to stop;
 # a loading instance already bills, so it counts toward the caps.
 # shellcheck disable=SC2016  # jq source, not shell
@@ -313,7 +320,7 @@ list_pods() {
     else list_miss "$mode" Runpod "the pod listing failed"; fi
   fi
   if uses vast; then
-    if ! have_vast; then list_miss "$mode" Vast "vastai is not installed"
+    if ! have_vast; then list_miss "$mode" Vast "Rust adapter missing; build uor-r4-pod-provider with CARGO_TARGET_DIR=local/pod-provider-target"
     elif out=$(vast_pods_all 2>/dev/null) && [ -n "$out" ]; then LISTED="$LISTED vast"; PODS_JSON=$(jq -n --argjson a "$PODS_JSON" --argjson b "$out" '$a + $b')
     else list_miss "$mode" Vast "the instance listing failed"; fi
   fi
@@ -444,24 +451,79 @@ wait_ssh() {  # POD SECONDS -> 0 once `ssh true` works
   done
 }
 
-# One read-only probe: GPUs, compute apps, reaper, held GPU locks, unmirrored /root/runs.
+# One bounded probe: GPUs, apps, reaper, locks and unmirrored /root/runs.
+# It writes exclusive command receipts; failed probes retain them on /workspace.
 # shellcheck disable=SC2016  # expanded on the pod, not here
-PROBE='nvidia-smi --query-gpu=index,name,utilization.gpu,memory.used,uuid --format=csv,noheader,nounits 2>/dev/null | sed "s/^/gpu=/"
-nvidia-smi --query-compute-apps=gpu_uuid --format=csv,noheader 2>/dev/null | sed "s/^/app=/"
+PROBE='probe_root=/workspace/uor-r4/jobs/probes
+mkdir -p "$probe_root" || exit 1
+probe_dir=$(mktemp -d "$probe_root/probe.XXXXXX") || exit 1
+# Regular files, not command-substitution pipes: a killed-but-D-state driver
+# child must not retain the SSH output pipe and block this probe indefinitely.
+probe_gpu_failed=0
+if timeout -k 2s 15s nvidia-smi --query-gpu=index,name,utilization.gpu,memory.used,uuid --format=csv,noheader,nounits >"$probe_dir/gpu" 2>"$probe_dir/gpu.err" </dev/null; then
+  if awk -F", *" '\''NF != 5 || $1 !~ /^[0-9]+$/ || $3 !~ /^[0-9]+$/ || $4 !~ /^[0-9]+$/ || $5 !~ /^GPU-/ { bad = 1 } END { exit bad || NR == 0 }'\'' "$probe_dir/gpu"; then
+    sed "s/^/gpu=/" "$probe_dir/gpu"
+  else
+    echo probe_gpu_failed=query_gpu_invalid
+    probe_gpu_failed=1
+  fi
+else
+  probe_rc=$?
+  echo "probe_gpu_failed=query_gpu:$probe_rc"
+  probe_gpu_failed=1
+fi
+if [ "$probe_gpu_failed" = 0 ]; then
+  if timeout -k 2s 15s nvidia-smi --query-compute-apps=gpu_uuid --format=csv,noheader >"$probe_dir/app" 2>"$probe_dir/app.err" </dev/null; then
+    sed "s/^/app=/" "$probe_dir/app"
+  else
+    probe_rc=$?
+    echo "probe_gpu_failed=query_apps:$probe_rc"
+    probe_gpu_failed=1
+  fi
+fi
 [ -f /root/.uor-idle-since ] && echo "idle_since=$(cat /root/.uor-idle-since)"
 if pgrep -f "uor-reaper[.]sh --loop" >/dev/null 2>&1; then echo reaper=1; else echo reaper=0; fi
 for f in /root/gpu*.lock; do [ -e "$f" ] || continue; flock -n "$f" true || echo "busy_lock=$f"; done
-if [ -d /root/runs ]; then echo "root_runs_kb=$(du -sk /root/runs 2>/dev/null | cut -f1)"; fi
+probe_metadata_failed=0
+if [ -d /root/runs ]; then
+  if timeout -k 2s 10s du -sk /root/runs >"$probe_dir/runs" 2>"$probe_dir/runs.err" </dev/null; then
+    echo "root_runs_kb=$(cut -f1 "$probe_dir/runs")"
+  else
+    echo probe_metadata_failed=root_runs
+    probe_metadata_failed=1
+  fi
+fi
 if mountpoint -q /workspace 2>/dev/null; then echo workspace_mount=1; fi
-echo probe_ok=1'
+[ "$probe_metadata_failed" = 0 ] && echo probe_metadata_ok=1
+if [ "$probe_gpu_failed" = 0 ] && [ "$probe_metadata_failed" = 0 ]; then
+  echo probe_ok=1
+  rm -rf "$probe_dir"
+else
+  echo "probe_receipts=$probe_dir"
+fi'
 probe_pod() { pod_ssh "$1" "$PROBE" 2>/dev/null </dev/null || true; }
 probe_val() { printf '%s\n' "$1" | sed -n "s/^$2=//p"; }
 probe_idle() {  # PROBE-OUTPUT -> 0 when every GPU is at <=2 % and no compute process runs
   local out=$1
   [ -n "$(probe_val "$out" probe_ok)" ] || return 1
+  [ -z "$(probe_val "$out" probe_gpu_failed)" ] || return 1
+  [ -n "$(probe_val "$out" gpu)" ] || return 1
   [ -z "$(probe_val "$out" app)" ] || return 1
   [ -z "$(probe_val "$out" busy_lock)" ] || return 1
   probe_val "$out" gpu | awk -F', *' '$3 > 2 { busy = 1 } END { exit busy }'
+}
+
+# Failed-driver retirement is an explicit preservation/ownership recovery,
+# never evidence that an unknown GPU is free. A complete metadata probe plus
+# the caller's valid live lease excludes SSH-only failure and unowned pods.
+failed_driver_retirement() {  # POD PROBE-OUTPUT -> recovery admission only
+  [ "$FORCE" = 1 ] && [ "$CONFIRM_ARCHIVED" = 1 ] || return 1
+  [ -n "$(probe_val "$2" probe_gpu_failed)" ] || return 1
+  [ -n "$(probe_val "$2" probe_metadata_ok)" ] || return 1
+  [ -z "$(probe_val "$2" probe_ok)" ] || return 1
+  live_leases_json "$1" | jq -e --arg id "$ID" --arg lab "$LAB" --arg session "$SESSION" '
+    length == 1 and .[0].id == $id and .[0].lab == $lab and .[0].session == $session
+    and .[0].live == true and ((.[0].bad // []) | length) == 0' >/dev/null
 }
 
 # Per-GPU state from one probe: busy = >= 5 % utilisation, a compute process on
@@ -657,7 +719,13 @@ cmd_status() {
           if [ -n "$gtype" ]; then lock_acquire; cache_put "$id" "{\"gpu\":\"$gtype\"}"; lock_release; fi
         fi
       else
-        echo "    (SSH probe failed: GPU use unknown)"
+        if [ -n "$(probe_val "$probe" probe_gpu_failed)" ]; then
+          echo "    (GPU probe failed: $(probe_val "$probe" probe_gpu_failed); GPU use unknown)"
+          [ -z "$(probe_val "$probe" probe_receipts)" ] || echo "    failed probe receipts: $(probe_val "$probe" probe_receipts)"
+          [ -z "$(probe_val "$probe" busy_lock)" ] || echo "    retained locks: $(probe_val "$probe" busy_lock | tr '\n' ' ')"
+        else
+          echo "    (SSH or metadata probe failed: GPU use unknown)"
+        fi
       fi
     fi
   done
@@ -1197,7 +1265,7 @@ cmd_up() {
   # stdin, never on a command line or in a log. It stays on the pod's own disk
   # (/root): the image's HF_HOME is on /workspace, a shared network volume on
   # Runpod, so the bootstrap points the hf CLI at this file with HF_TOKEN_PATH.
-  if ! is_dry && [ -f "$HOME/.cache/huggingface/token" ]; then
+  if [ "$NO_BOOT" != 1 ] && ! is_dry && [ -f "$HOME/.cache/huggingface/token" ]; then
     if pod_ssh "$pod" 'mkdir -p /root/.cache/huggingface && umask 077 && cat > /root/.cache/huggingface/token' < "$HOME/.cache/huggingface/token"; then
       info "hf token copied"
     else
@@ -1453,7 +1521,7 @@ vast_archive_store() {  # POD DIRS KB -> 0 when every directory was uploaded
 }
 
 cmd_down() {
-  local pod=${POS[0]:-} others p cache probe kb
+  local pod=${POS[0]:-} others p cache probe kb failed_driver_recovery=0
   check_pod_id "$pod"; check_who
   p=$(pod_get "$pod"); [ -n "$p" ] && [ "$p" != null ] || die "no pod $pod in the account"
   others=$(live_leases_json "$pod" | jq -c --arg l "$ID" '[.[] | select((.id // .lab) != $l)]')
@@ -1471,7 +1539,12 @@ cmd_down() {
       [ "$FORCE" = 1 ] || die "cannot probe $pod over SSH (jobs/unsaved results unknown); re-run with --force to delete anyway"
     fi
     if [ -n "$(probe_val "$probe" busy_lock)" ]; then
-      die "jobs still hold $(probe_val "$probe" busy_lock | tr '\n' ' ')— stop or wait for them first"
+      if failed_driver_retirement "$pod" "$probe"; then
+        failed_driver_recovery=1
+        warn "FORCED FAILED-DRIVER RETIREMENT of $pod by $WHO: GPU state remains UNKNOWN; bypassing retained locks $(probe_val "$probe" busy_lock | tr '\n' ' '). --force --confirm-archived confirms owned work is stopped and unique data preserved; this does not make GPUs free."
+      else
+        die "jobs still hold $(probe_val "$probe" busy_lock | tr '\n' ' ')— stop or wait for them first; failed-driver recovery requires --force --confirm-archived, a complete failed-GPU probe and your sole valid live lease"
+      fi
     fi
     kb=$(probe_val "$probe" root_runs_kb)
     if [ -n "$kb" ] && [ "$kb" -gt 4 ] && [ "$DISCARD_LOCAL" != 1 ]; then
@@ -1493,6 +1566,11 @@ cmd_down() {
     if [ "$net" != "$VOLUME_ID" ]; then
       die "$pod uses non-canonical volume $net: archive its results to the canonical $CANONICAL_DC volume ('uor-pod push $pod PATH...') or the laptop, record where, then re-run with --confirm-archived"
     fi
+  fi
+  if [ "$failed_driver_recovery" = 1 ]; then
+    lock_acquire
+    ledger down-failed-driver-recovery "$LAB" "$pod" "$(jq -cn --arg failure "$(probe_val "$probe" probe_gpu_failed)" --arg locks "$(probe_val "$probe" busy_lock)" --arg holder "$WHO" '{gpu_state: "unknown", gpu_failure: $failure, retained_locks: $locks, holder: $holder, force: true, confirmed_archived: true, phase: "delete_attempt"}')"
+    lock_release
   fi
   pod_delete "$pod" >/dev/null || die "delete of $pod not confirmed: check by hand ($(delete_hint "$pod")); its leases are kept"
   lock_acquire
@@ -1555,7 +1633,7 @@ cmd_run() {
   b64=$(printf '%s' "$cmd" | base64 | tr -d '\n')
   local remote
   remote="set -e; ts=\$(date -u +%Y%m%dT%H%M%SZ); d=/workspace/uor-r4/jobs/$LAB; mkdir -p \$d; log=\$d/\$ts-$SESSION-gpu${GPU//,/-}.log
-cat > /tmp/uor-job-\$ts.sh <<'JOB'
+cat > \$d/\$ts-$SESSION-gpu${GPU//,/-}.sh <<'JOB'
 CMD=\$(echo $b64 | base64 -d)
 echo \"# uor-pod job by=$WHO pod=$pod gpu=$GPU queued \$(date -u +%FT%TZ)\"
 echo \"# cmd: \$CMD\"
@@ -1567,7 +1645,7 @@ CUDA_VISIBLE_DEVICES=$GPU bash -c \"\$CMD\"
 rc=\$?
 echo \"# exit=\$rc end=\$(date -u +%FT%TZ)\"
 JOB
-nohup setsid bash /tmp/uor-job-\$ts.sh > \$log 2>&1 < /dev/null &
+nohup setsid bash \$d/\$ts-$SESSION-gpu${GPU//,/-}.sh > \$log 2>&1 < /dev/null &
 echo \$log"
   if is_dry; then echo "DRY-RUN: on $pod: $remote" >&2; return 0; fi
   local log

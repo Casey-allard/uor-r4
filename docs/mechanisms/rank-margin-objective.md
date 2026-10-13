@@ -35,7 +35,13 @@ The consequence for evaluation is as important as the training change: a complia
 BPB at all. Its reports carry raw-score measures with their exact panel, unit and tie rule
 ([operator card § Whole-path admission](../labs/operator-phase-2026-10-12/README.md#whole-path-admission-and-quality-measures)).
 
-## Where it lives in code
+## Current native implementation
+
+The selected `geometric_stack_native.rs` keeps `Objective::MarginHinge { rivals }` metadata and dispatches native learning through `NativeVectorWriter::margin_rows`/`margin`: CUDA raw negative mean-L1 token scores at fixed scale1, with an independently labelled address margin, coefficient1 each. Omitted targets receive explicit score credit without insertion into the candidate set; exact ties use smallest token IDs. The training objective is token plus address margin; the rung0 quality/anti-vacuity bars read token margin alone. Candidate-selection credit remains the declared geometric surrogate, not a derivative of hard top-K.
+
+The registered CLI is `examples/geometric-stack-native.rs`, reusing its native rung0 evaluator. Its primary reference counts response-masked **TRAIN** targets on CUDA; the masked **DEV** oracle is diagnostic only. TRAIN/mask/tokenizer content identities and policy bind lineage `/2` and artifacts; mismatched model config or optimizer settings refuse before resumed evaluation/update. NLL/BPB, host count arithmetic, sampling and historical raw-logit/CPU margin implementations are excluded from this path. Independent sheet Amendment6 FIT retains unchanged bars and paired seeds; corrected source `1f1547bfd` passes CUDA compilation and all 31 finite controls on RTX4090, pending protected delivery. Failed setup/clipping attempts remain preserved; no optimizer update, corpus evaluation, training or CPU model/reference ran. Training holds remain HELD. [Boundary record](../labs/d29-vendor-boundary-2026-10-13/README.md).
+
+## Historical implementation locations (inactive)
 
 - `Objective::MarginHinge { rivals }` — `crates/uor-r4-training/src/geometric_stack.rs:1374` (the enum; `Ce`
   stays the serialization default so existing artifacts reproduce), dispatched into the fused op at
@@ -71,7 +77,7 @@ BPB at all. Its reports carry raw-score measures with their exact panel, unit an
 
 An arm works iff, on **both** seeds, it clears the rung-0 sheet's two decisive **rank** bars (Amendment 2,
 2026-10-13): raw-score top-1 and recall@8 over the head's declared kept list (`top_token_ids(8)`) each beat
-a **token-frequency count predictor** computed on the same dev windows by **≥ 5 percentage points**. The
+a **response-masked TRAIN token-frequency count predictor**, scored on the same dev targets, by **≥ 5 percentage points**. The DEV count oracle is diagnostic only (sheet Amendments5–6). The
 earlier absolute floors are kept alongside as anti-vacuity guards (final dev token-margin hinge loss
 < 0.5 raw-score units; unviolated-target rate ≥ max(5× the same-seed untrained constant, 1%), where the
 1% floor is the operative device because the untrained constant is ≈ 0), and the hinge loss, unviolated

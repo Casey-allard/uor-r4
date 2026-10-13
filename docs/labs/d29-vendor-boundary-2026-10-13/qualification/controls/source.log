@@ -1,0 +1,7 @@
+command: git ["rev-parse", "HEAD"]
+status: exit status: 0
+elapsed_s: 0.005076
+stdout:
+1f1547bfd70f01edc9aa36d34a46e5bc43edc34c
+
+stderr:

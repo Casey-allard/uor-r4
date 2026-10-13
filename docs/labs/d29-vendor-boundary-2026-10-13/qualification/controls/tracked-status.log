@@ -1,0 +1,6 @@
+command: git ["status", "--porcelain", "--untracked-files=no"]
+status: exit status: 0
+elapsed_s: 0.017566
+stdout:
+
+stderr:

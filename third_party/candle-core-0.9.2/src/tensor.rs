@@ -115,8 +115,8 @@ macro_rules! binary_op_scalar {
             let rhs = match rhs.to_tensor_scalar()? {
                 crate::scalar::TensorScalar::Tensor(rhs) => rhs,
                 crate::scalar::TensorScalar::Scalar(rhs) => rhs
-                    .to_dtype(self.dtype())?
                     .to_device(self.device())?
+                    .to_dtype(self.dtype())?
                     .broadcast_as(self.shape())?,
             };
             let shape = self.same_shape_binary_op(&rhs, stringify!($fn_name))?;
@@ -1126,8 +1126,8 @@ impl Tensor {
         let rhs = match rhs.to_tensor_scalar()? {
             crate::scalar::TensorScalar::Tensor(rhs) => rhs,
             crate::scalar::TensorScalar::Scalar(rhs) => rhs
-                .to_dtype(self.dtype())?
                 .to_device(self.device())?
+                .to_dtype(self.dtype())?
                 .broadcast_as(self.shape())?,
         };
         let shape = self.same_shape_binary_op(&rhs, "cmp")?;

@@ -1,5 +1,7 @@
 # UOR-R4 Geometric Language Model — project map
 
+> **Current compiled navigation, 13 October — D29:** selected training uses `geometric_stack_native.rs`, `native_vector_writer.rs`, `native_vector_channel.rs`, `spiralcore_fbs.rs`, `stack_store.rs` and the registered `examples/geometric-stack-native.rs` train/evaluate CLI. Core and integer select `native_support.rs` and `native_geometry.rs`; tokenizer/source-ingest metadata comes from the shared source-interface crate. Historical model-source/GEMM, learner, integer model/CLI, teacher, exporter and LUT runtime descriptions below are navigation to preserved inactive source, not available selected APIs. Corrected source `1f1547bfd` passes CUDA compilation and all 31 finite controls on RTX4090; protected delivery is pending. Failed setup/clipping attempts are retained, not model negatives. [Boundary record](labs/d29-vendor-boundary-2026-10-13/README.md). All holds remain HELD.
+
 > **October 1 navigation:** [active plan](integration/project-track.md),
 > [current evidence](integration/grounded-memory-evidence-2026-10-01.md),
 > [admissibility](integration/mechanism-admissibility-2026-10.md), and

@@ -1,0 +1,9 @@
+command: sha256sum ["/workspace/codex-d29-build-20261013-g/target/debug/deps/uor_r4_training-1a37e7e50e596616", "/workspace/codex-d29-build-20261013-g/target/debug/examples/geometric_stack-43ea48ba348da2e3", "/workspace/codex-d29-build-20261013-g/target/debug/deps/d29_compiled_modules-564b575ba8766ec4"]
+status: exit status: 0
+elapsed_s: 0.158186
+stdout:
+1fb7a2f8b22b99a9823c44b42d889979c6e137ac0615a875eb699130d6c82045  /workspace/codex-d29-build-20261013-g/target/debug/deps/uor_r4_training-1a37e7e50e596616
+e581a62f9bc3a5ee321b85301b3e1a0211b3c51c73fcea003da221bd8286b540  /workspace/codex-d29-build-20261013-g/target/debug/examples/geometric_stack-43ea48ba348da2e3
+5adb7138bee490a40b7dd4933d11b9b77cfca0580b838cba04cd9124fdb6710a  /workspace/codex-d29-build-20261013-g/target/debug/deps/d29_compiled_modules-564b575ba8766ec4
+
+stderr:

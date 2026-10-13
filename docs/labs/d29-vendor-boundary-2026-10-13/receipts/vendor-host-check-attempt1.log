@@ -1,0 +1,182 @@
+   Compiling proc-macro2 v1.0.106
+   Compiling unicode-ident v1.0.24
+   Compiling quote v1.0.46
+   Compiling libc v0.2.186
+   Compiling syn v2.0.119
+    Checking cfg-if v1.0.4
+   Compiling getrandom v0.3.4
+   Compiling zerocopy v0.8.55
+   Compiling syn v3.0.3
+   Compiling serde_core v1.0.228
+   Compiling crossbeam-utils v0.8.22
+   Compiling zerocopy-derive v0.8.55
+   Compiling autocfg v1.5.1
+   Compiling libm v0.2.16
+   Compiling num-traits v0.2.19
+    Checking rand_core v0.9.5
+   Compiling crossbeam-epoch v0.9.20
+   Compiling synstructure v0.14.0
+    Checking ppv-lite86 v0.2.21
+    Checking rand_chacha v0.9.0
+    Checking equivalent v1.0.2
+   Compiling zmij v1.0.23
+   Compiling crossbeam-deque v0.8.7
+    Checking rand v0.9.5
+   Compiling rayon-core v1.13.0
+   Compiling crc32fast v1.5.2
+   Compiling serde v1.0.228
+    Checking memchr v2.8.3
+   Compiling serde_json v1.0.150
+    Checking rand_distr v0.5.1
+   Compiling zerofrom-derive v0.1.8
+   Compiling serde_derive v1.0.228
+    Checking hashbrown v0.17.1
+    Checking allocator-api2 v0.2.21
+    Checking foldhash v0.2.0
+    Checking itoa v1.0.18
+    Checking stable_deref_trait v1.2.1
+   Compiling thiserror v2.0.19
+    Checking hashbrown v0.16.1
+    Checking indexmap v2.14.0
+    Checking zerofrom v0.1.8
+    Checking half v2.7.1
+   Compiling yoke-derive v0.8.3
+   Compiling thiserror-impl v2.0.19
+    Checking either v1.16.0
+    Checking typed-path v0.12.3
+    Checking rayon v1.12.0
+    Checking zip v7.2.0
+    Checking yoke v0.8.3
+    Checking float8 v0.6.1 (/Users/casey.allard/uor-r4/.worktrees/codex-rung0-standby-20261013-1217/third_party/float8-0.6.1)
+    Checking safetensors v0.7.0
+    Checking memmap2 v0.9.11
+    Checking num_cpus v1.17.0
+    Checking byteorder v1.5.0
+    Checking candle-core v0.9.2 (/Users/casey.allard/uor-r4/.worktrees/codex-rung0-standby-20261013-1217/third_party/candle-core-0.9.2)
+error[E0425]: cannot find value `mkn` in this scope
+   --> third_party/candle-core-0.9.2/src/quantized/k_quants.rs:252:14
+    |
+252 |     let _ = (mkn, lhs, rhs_t, dst);
+    |              ^^^ not found in this scope
+
+warning: unused imports: `DType` and `D`
+ --> third_party/candle-core-0.9.2/src/quantized/mod.rs:2:42
+  |
+2 |     backend::BackendStorage, CpuStorage, DType, Device, Result, Shape, Storage, Tensor, D,
+  |                                          ^^^^^                                          ^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `backend::BackendStorage`
+ --> third_party/candle-core-0.9.2/src/quantized/mod.rs:2:5
+  |
+2 |     backend::BackendStorage, CpuStorage, DType, Device, Result, Shape, Storage, Tensor, D,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `crate::backend::BackendDevice`
+ --> third_party/candle-core-0.9.2/src/cpu_backend/mod.rs:3:5
+  |
+3 | use crate::backend::BackendDevice;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused variable: `vs`
+ --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:7:19
+  |
+7 |     fn map(&self, vs: &C, layout: &Layout) -> Result<C> {
+  |                   ^^ help: if this is intentional, prefix it with an underscore: `_vs`
+  |
+  = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `layout`
+ --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:7:27
+  |
+7 |     fn map(&self, vs: &C, layout: &Layout) -> Result<C> {
+  |                           ^^^^^^ help: if this is intentional, prefix it with an underscore: `_layout`
+
+warning: unused variable: `vs`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:14:19
+   |
+14 |     fn map(&self, vs: &C, layout: &Layout) -> Result<C> {
+   |                   ^^ help: if this is intentional, prefix it with an underscore: `_vs`
+
+warning: unused variable: `layout`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:14:27
+   |
+14 |     fn map(&self, vs: &C, layout: &Layout) -> Result<C> {
+   |                           ^^^^^^ help: if this is intentional, prefix it with an underscore: `_layout`
+
+warning: unused variable: `v1`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:22:19
+   |
+22 |     fn map(&self, v1: &C, l1: &Layout, v2: &C, l2: &Layout) -> Result<C> {
+   |                   ^^ help: if this is intentional, prefix it with an underscore: `_v1`
+
+warning: unused variable: `l1`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:22:27
+   |
+22 |     fn map(&self, v1: &C, l1: &Layout, v2: &C, l2: &Layout) -> Result<C> {
+   |                           ^^ help: if this is intentional, prefix it with an underscore: `_l1`
+
+warning: unused variable: `v2`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:22:40
+   |
+22 |     fn map(&self, v1: &C, l1: &Layout, v2: &C, l2: &Layout) -> Result<C> {
+   |                                        ^^ help: if this is intentional, prefix it with an underscore: `_v2`
+
+warning: unused variable: `l2`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:22:48
+   |
+22 |     fn map(&self, v1: &C, l1: &Layout, v2: &C, l2: &Layout) -> Result<C> {
+   |                                                ^^ help: if this is intentional, prefix it with an underscore: `_l2`
+
+warning: unused variable: `v1`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:30:19
+   |
+30 |     fn map(&self, v1: &mut C, l1: &Layout, v2: &C, l2: &Layout) -> Result<()> {
+   |                   ^^ help: if this is intentional, prefix it with an underscore: `_v1`
+
+warning: unused variable: `l1`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:30:31
+   |
+30 |     fn map(&self, v1: &mut C, l1: &Layout, v2: &C, l2: &Layout) -> Result<()> {
+   |                               ^^ help: if this is intentional, prefix it with an underscore: `_l1`
+
+warning: unused variable: `v2`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:30:44
+   |
+30 |     fn map(&self, v1: &mut C, l1: &Layout, v2: &C, l2: &Layout) -> Result<()> {
+   |                                            ^^ help: if this is intentional, prefix it with an underscore: `_v2`
+
+warning: unused variable: `l2`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:30:52
+   |
+30 |     fn map(&self, v1: &mut C, l1: &Layout, v2: &C, l2: &Layout) -> Result<()> {
+   |                                                    ^^ help: if this is intentional, prefix it with an underscore: `_l2`
+
+warning: unused variable: `v1`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:38:19
+   |
+38 |     fn map(&self, v1: &C, l1: &Layout, v2: &C, l2: &Layout) -> Result<C> {
+   |                   ^^ help: if this is intentional, prefix it with an underscore: `_v1`
+
+warning: unused variable: `l1`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:38:27
+   |
+38 |     fn map(&self, v1: &C, l1: &Layout, v2: &C, l2: &Layout) -> Result<C> {
+   |                           ^^ help: if this is intentional, prefix it with an underscore: `_l1`
+
+warning: unused variable: `v2`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:38:40
+   |
+38 |     fn map(&self, v1: &C, l1: &Layout, v2: &C, l2: &Layout) -> Result<C> {
+   |                                        ^^ help: if this is intentional, prefix it with an underscore: `_v2`
+
+warning: unused variable: `l2`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:38:48
+   |
+38 |     fn map(&self, v1: &C, l1: &Layout, v2: &C, l2: &Layout) -> Result<C> {
+   |                                                ^^ help: if this is intentional, prefix it with an underscore: `_l2`
+
+For more information about this error, try `rustc --explain E0425`.
+warning: `candle-core` (lib) generated 19 warnings
+error: could not compile `candle-core` (lib) due to 1 previous error; 19 warnings emitted

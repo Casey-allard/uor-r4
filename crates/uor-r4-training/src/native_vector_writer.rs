@@ -920,6 +920,10 @@ mod cuda_tests {
         let dev = Device::new_cuda(0)?;
         let mut config = StackConfig::transformer_control(3);
         config.arch = StackArch::Geometric;
+        // Parameter preparation uses the same admitted geometric recurrence as
+        // the native trunk; the historical initializer is excluded under D29.
+        config.rec_gates = crate::geometric_stack::RecGates::Geometric;
+        config.gate = crate::geometric_stack::Gate::Hamilton;
         config.pattern = "r".into();
         config.width = 32;
         config.heads = 4;

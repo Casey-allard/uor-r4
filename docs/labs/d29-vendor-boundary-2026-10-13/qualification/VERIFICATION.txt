@@ -1,0 +1,36 @@
+Archive SHA256: 28c356d733e136de1300d58804ffbafb7fed3af4d2b6c7a09b0483c91b03d245
+Source: 1f1547bfd70f01edc9aa36d34a46e5bc43edc34c
+Receipt verification only; no model or test execution.
+PASS 01 geometric_stack::tests::geometric_rate_cuda_uses_signed_edges_and_exact_keep_table: exit0/exact1/passed1/failed0/ignored0/list1
+PASS 02 geometric_stack::tests::geometric_cuda_clipping_matches_stored_analytic_values: exit0/exact1/passed1/failed0/ignored0/list1
+PASS 03 geometric_stack::tests::geometric_rung0_cuda_composition_matches_zero_carrier_golden: exit0/exact1/passed1/failed0/ignored0/list1
+PASS 04 geometric_stack::tests::geometric_rung0_cuda_ordinary_path_has_learning_credit: exit0/exact1/passed1/failed0/ignored0/list1
+PASS 05 native_vector_writer::contract_tests::binding_and_cpu_refusal: exit0/exact1/passed1/failed0/ignored0/list1
+PASS 06 native_vector_writer::cuda_tests::ties_identity_and_shared_channel: exit0/exact1/passed1/failed0/ignored0/list1
+PASS 07 native_vector_writer::cuda_tests::local_distance_adjoints_and_omitted_target: exit0/exact1/passed1/failed0/ignored0/list1
+PASS 08 native_vector_writer::cuda_tests::numerical_and_device_boundaries: exit0/exact1/passed1/failed0/ignored0/list1
+PASS 09 native_vector_writer::cuda_tests::device_metrics_keep_token_and_address_bars_distinct: exit0/exact1/passed1/failed0/ignored0/list1
+PASS 10 native_vector_writer::cuda_tests::rung0_full_batch_writer_forward_backward_without_updates: exit0/exact1/passed1/failed0/ignored0/list1
+PASS 11 native_vector_writer::cuda_tests::actual_stack_store_channel_and_artifact_identity: exit0/exact1/passed1/failed0/ignored0/list1
+PASS 12 spiralcore_fbs::native_cuda_tests::native_cuda_frontier_forward_exact_input_adjoint_and_secant: exit0/exact1/passed1/failed0/ignored0/list1
+PASS 13 spiralcore_fbs::native_cuda_tests::native_cuda_complete_ternary_children_and_signed_orientation: exit0/exact1/passed1/failed0/ignored0/list1
+PASS 14 spiralcore_fbs::native_cuda_tests::native_cuda_shared_batch_and_output_credit: exit0/exact1/passed1/failed0/ignored0/list1
+PASS 15 spiralcore_fbs::native_cuda_tests::native_cuda_numerical_and_shape_refusals: exit0/exact1/passed1/failed0/ignored0/list1
+PASS 16 native_rung0::tests::document_boundaries_and_overlap_tail_score_every_mask_once: exit0/exact1/passed1/failed0/ignored0/list1
+PASS 17 native_rung0::tests::exact_window_and_shifted_mask_contract_is_metadata_only: exit0/exact1/passed1/failed0/ignored0/list1
+PASS 18 native_rung0::tests::masked_count_inventory_is_validated_metadata_only: exit0/exact1/passed1/failed0/ignored0/list1
+PASS 19 native_rung0::tests::uort_header_inventory_is_not_token_payload_or_tail: exit0/exact1/passed1/failed0/ignored0/list1
+PASS 20 native_rung0_argument_tests::complete_native_argument_contract_refuses_legacy_modes: exit0/exact1/passed1/failed0/ignored0/list1
+PASS 21 native_rung0_argument_tests::native_metric_record_never_mislabels_raw_margins_as_likelihood: exit0/exact1/passed1/failed0/ignored0/list1
+PASS 22 native_rung0_argument_tests::native_process_flags_refuse_sampling_host_diagnostics_and_bad_estimates: exit0/exact1/passed1/failed0/ignored0/list1
+PASS 23 native_rung0_argument_tests::native_reference_metadata_rejects_invalid_masks_and_count_claims: exit0/exact1/passed1/failed0/ignored0/list1
+PASS 24 native_rung0_argument_tests::native_train_reference_arguments_require_one_masked_stream_and_positive_count: exit0/exact1/passed1/failed0/ignored0/list1
+PASS 25 native_rung0::cuda_fixed_tests::cuda_masked_train_reference_excludes_unmasked_ids_and_separates_dev_oracle: exit0/exact1/passed1/failed0/ignored0/list1
+PASS 26 native_rung0::cuda_fixed_tests::cuda_document_evaluator_known_answers_and_native_artifact_roundtrip: exit0/exact1/passed1/failed0/ignored0/list1
+PASS 27 compiled_sources_carry_no_banned_operation: exit0/exact1/passed1/failed0/ignored0/list1
+PASS 28 no_excluded_historical_kernel_is_compiled: exit0/exact1/passed1/failed0/ignored0/list1
+PASS 29 nothing_in_the_crate_calls_a_runtime_compiler: exit0/exact1/passed1/failed0/ignored0/list1
+PASS 30 quarantined_dense_contraction_modules_stay_out_of_the_build: exit0/exact1/passed1/failed0/ignored0/list1
+PASS 31 built_ptx_modules_carry_no_banned_instruction: exit0/exact1/passed1/failed0/ignored0/list1
+31/31 receipt checks PASS; unique names31; sampled observations72; sampled maximum9192MiB.
+Raw files copied byte-exact: 97; bytes: 37271.

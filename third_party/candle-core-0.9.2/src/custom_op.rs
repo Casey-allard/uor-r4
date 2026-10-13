@@ -381,7 +381,7 @@ pub struct UgIOp1 {
     name: &'static str,
     #[cfg(feature = "cuda")]
     func: cudarc::driver::CudaFunction,
-    #[cfg(feature = "metal")]
+    #[cfg(any())] // D29: historical Metal implementation is excluded.
     func: candle_metal_kernels::metal::ComputePipeline,
 }
 
@@ -403,13 +403,13 @@ impl UgIOp1 {
                 func: func.into_cuda_function(),
             })
         }
-        #[cfg(feature = "metal")]
+        #[cfg(any())] // D29: historical Metal implementation is excluded.
         {
             let device = device.as_metal_device()?;
             let func = device.compile(name, kernel)?;
             Ok(Self { name, func })
         }
-        #[cfg(not(any(feature = "cuda", feature = "metal")))]
+        #[cfg(not(feature = "cuda"))]
         {
             Ok(Self { name })
         }
@@ -426,7 +426,7 @@ impl InplaceOp1 for UgIOp1 {
         crate::bail!("ug ops are only supported on metal/cuda at the moment")
     }
 
-    #[cfg(feature = "metal")]
+    #[cfg(any())] // D29: historical Metal implementation is excluded.
     fn metal_fwd(&self, sto: &mut MetalStorage, layout: &Layout) -> Result<()> {
         use crate::backend::BackendStorage;
         use objc2_metal;

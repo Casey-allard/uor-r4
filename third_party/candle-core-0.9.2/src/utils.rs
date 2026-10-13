@@ -25,7 +25,7 @@ pub fn cuda_is_available() -> bool {
 }
 
 pub fn metal_is_available() -> bool {
-    cfg!(feature = "metal")
+    false // D29: historical Metal backend is unavailable.
 }
 
 pub fn with_avx() -> bool {

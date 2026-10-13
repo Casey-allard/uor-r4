@@ -1,9 +1,9 @@
-//! Offline differentiable references for UOR-R4 research.
+//! Native CUDA geometric learning operators, shared vector writer and storage.
 //!
-//! The first reference reproduces the retained #1017 dense Llama checkpoint.
-//! It is an explicitly floating-point transformer comparator, never a native
-//! serving path. Its purpose is to establish a real language-loss gradient
-//! through attention before building and measuring a discrete bridge.
+//! The selected graph excludes the preserved historical dense references,
+//! teachers, exporter and scalar model runtimes. Their source remains inactive
+//! evidence; no compatibility feature can reactivate it. Build admission and
+//! finite qualification do not release the owner's training holds.
 
 // Without the `cuda` feature the crate forbids unsafe code. With it, only the
 // CUDA kernel launchers (`cuda_stack_kernels::cuda` and
@@ -11,109 +11,217 @@
 #![cfg_attr(not(feature = "cuda"), forbid(unsafe_code))]
 #![cfg_attr(feature = "cuda", deny(unsafe_code))]
 
+#[cfg(any(
+    feature = "historical-reference",
+    feature = "metal",
+    feature = "cpu-accelerate",
+    feature = "reference-accelerate"
+))]
+compile_error!("D29/D30: historical teacher/reference and Metal/CPU acceleration features are unavailable; use the admitted native CUDA path");
+
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod addressing_arms;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod b3_e8_codecs;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod baseline_counts;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod baseline_protocol;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod binding_probe;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod cache_memory;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod clause_probe;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod copy_identity;
 pub mod cuda_stack_kernels;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod d4_codecs;
 #[cfg(feature = "cuda")]
 #[allow(unsafe_code)]
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub(crate) mod native_geometric_cuda_kernels;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub use d4_codecs::{codec_by_name, HeadCompensatedMapCodec, RecurrenceOutMinMseMapCodec};
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod dialogue_artifact;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod dialogue_child_artifact;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod dialogue_development;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod dialogue_episodes;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod dialogue_learning;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod dialogue_rounding;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod dialogue_rounding_artifact;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod e8_memory;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod flock;
+#[cfg(any())] // Historical CPU teacher transport; source retained, never compiled.
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod flock_transport;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod geometric_address;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod geometric_age_source;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod geometric_attention_native;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod geometric_composition;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod geometric_composition_native;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod geometric_context;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod geometric_context_credit;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod geometric_event;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod geometric_event_credit;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod geometric_no_read;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod geometric_no_read_native;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod geometric_occurrence_consumer;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod geometric_potential_native;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod geometric_potential_q4;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod geometric_read;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod geometric_read_feedback;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod geometric_read_native;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod geometric_source_actions;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod geometric_source_emission_view;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod geometric_span;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod geometric_span_native;
+#[path = "geometric_stack_native.rs"]
 pub mod geometric_stack;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod geometric_turn_compiler;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod geometric_value_native;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod geometric_value_producer;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod geometric_value_producer_native;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod grounded_session_eval;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod joint_admission;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod joint_bounded_campaign;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod joint_campaign;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod joint_comparison;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod joint_evaluation;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod joint_integer;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod joint_integer_evaluation;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod joint_integer_math;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod joint_integer_tables;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod joint_model;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod joint_optimizer;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod joint_parallel;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod joint_quantization;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod joint_reader_comparison;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod joint_rounding;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod joint_rounding_campaign;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod joint_transfer;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod kappa_llama;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod knowledge_corpus;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod lut_export;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod metal_stack_kernels;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod milestone_world;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod milestone_world_v2;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod milestone_world_v2_probe;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod native_grounded_session;
 pub mod native_vector_writer;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod ngram;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod paraphrase_review;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod read_localize;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod reference_campaign;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod reference_eval;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod relation_compiler;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod s8_panel_count;
 pub mod spiralcore_fbs;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod stack_address;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod stack_aerm;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod stack_checkpoint;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod stack_dialogue;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod stack_export;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod stack_grounded_session;
-pub mod starling_native;
+pub mod native_starling_spec;
+/// Canonical read-spec metadata; historical numerical source remains inactive.
+pub mod starling_native {
+    pub use crate::native_starling_spec::*;
+}
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod whole_path_learning;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub use stack_export::export_quantizer_method;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod stack_memory;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod stack_memory_replies;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod stack_prime_route;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod stack_snap_parity;
 pub mod stack_store;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod stack_tracking;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod temporal_compiler;
 
 #[cfg(test)]
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 mod native_h4_contract;
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -121,13 +229,11 @@ use std::fmt;
 use std::fs;
 use std::io::Read;
 use std::path::{Path, PathBuf};
-use std::time::Instant;
 
 use candle_core::{Device, Tensor, Var};
 use safetensors::{Dtype as SafeDtype, SafeTensors};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use uor_r4_model_source::{BehaviorSource, ExactBackendReport, HuggingFaceLlamaOracle};
 
 pub const CANDLE_VERSION: &str = "0.9.2";
 pub const REFERENCE_WEIGHTS_SHA256: &str =
@@ -144,6 +250,7 @@ pub enum TrainingError {
     Json(serde_json::Error),
     Tensor(candle_core::Error),
     Safetensors(safetensors::SafeTensorError),
+    #[cfg(any())]
     Optimizer(joint_optimizer::OptimizerError),
     Integer(uor_r4_integer::IntegerError),
     Invalid(String),
@@ -156,6 +263,7 @@ impl fmt::Display for TrainingError {
             Self::Json(error) => write!(f, "JSON: {error}"),
             Self::Tensor(error) => write!(f, "autodiff tensor: {error}"),
             Self::Safetensors(error) => write!(f, "safetensors: {error}"),
+            #[cfg(any())]
             Self::Optimizer(error) => write!(f, "optimizer: {error}"),
             Self::Integer(error) => write!(f, "{error}"),
             Self::Invalid(error) => write!(f, "invalid reference request: {error}"),
@@ -177,6 +285,7 @@ convert!(std::io::Error, Io);
 convert!(serde_json::Error, Json);
 convert!(candle_core::Error, Tensor);
 convert!(safetensors::SafeTensorError, Safetensors);
+#[cfg(any())]
 convert!(joint_optimizer::OptimizerError, Optimizer);
 convert!(uor_r4_integer::IntegerError, Integer);
 pub type Result<T> = std::result::Result<T, TrainingError>;
@@ -282,11 +391,13 @@ impl ReferenceConfig {
 }
 
 /// Reusable differentiable dense comparator; no tokenizer or serving fallback.
+#[cfg(any())] // Retained dense teacher code; no compiled reference model.
 pub struct ReferenceModel {
     pub config: ReferenceConfig,
     variables: BTreeMap<String, Var>,
     device: Device,
 }
+#[cfg(any())]
 impl ReferenceModel {
     /// Safe in-memory safetensors deserialization. No pickle, mmap, network or unsafe code.
     pub fn load_pinned(snapshot: &Path, device: &Device) -> Result<Self> {
@@ -602,6 +713,7 @@ pub struct PositionParity {
     pub max_absolute_delta: f64,
 }
 
+#[cfg(any())] // Historical dense/CPU reference integrity receipt, inactive.
 #[derive(Debug, Serialize)]
 pub struct IntegrityReport {
     pub schema: &'static str,
@@ -628,6 +740,7 @@ pub struct IntegrityReport {
     pub status: &'static str,
 }
 
+#[cfg(any())] // Host score arithmetic belonged only to the inactive integrity path.
 fn top1(values: &[f32]) -> Result<usize> {
     let mut best = None;
     for (index, &value) in values.iter().enumerate() {
@@ -643,6 +756,7 @@ fn top1(values: &[f32]) -> Result<usize> {
 
 /// Bounded integrity evaluation. Temporary finite-difference perturbations are restored.
 /// No optimizer update, saved candidate, corpus run or serving change occurs here.
+#[cfg(any())] // Preserved reference implementation; no model-source dependency in native builds.
 pub fn run_integrity(request: &IntegrityRequest) -> Result<IntegrityReport> {
     request.validate()?;
     let started = Instant::now();
@@ -842,13 +956,30 @@ pub fn run_integrity(request: &IntegrityRequest) -> Result<IntegrityReport> {
     })
 }
 
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod geometric_bank_generate;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod geometric_continuation_learning;
 
 #[cfg(feature = "cuda")]
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 mod geometric_generate_cuda;
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod geometric_generate_learning;
 
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod geometric_read_state_bridge;
 
+#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod geometric_transport_state_credit;
+
+pub mod native_vector_channel;
+/// Exact shared writer/store path retained under its established public namespace.
+pub mod whole_path_learning {
+    pub mod device {
+        pub use crate::native_vector_channel::{
+            carry_native_store_read, native_vector_channel, DeviceVectorStoreRead,
+            DeviceVectorStoreValue,
+        };
+    }
+}

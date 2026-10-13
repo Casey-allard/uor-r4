@@ -1,0 +1,12 @@
+command: /workspace/codex-d29-build-20261013-g/target/debug/deps/uor_r4_training-1a37e7e50e596616 ["native_vector_writer::cuda_tests::ties_identity_and_shared_channel", "--exact", "--nocapture", "--test-threads=1"]
+status: exit status: 0
+elapsed_s: 0.547948
+stdout:
+
+running 1 test
+test native_vector_writer::cuda_tests::ties_identity_and_shared_channel ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 26 filtered out; finished in 0.39s
+
+
+stderr:

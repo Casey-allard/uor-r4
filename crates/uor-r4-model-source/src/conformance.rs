@@ -58,55 +58,8 @@ pub const SOURCE_MANIFEST_SCHEMA: &str = "uor-r4-source-manifest/1";
 #[cfg(not(target_arch = "wasm32"))]
 pub const SOURCE_MANIFEST_FILE_NAME: &str = "source_manifest.json";
 
-/// One configuration feature the adapter declares support for. Named inside
-/// [`SourceIngestKind::UnsupportedConfigFeature`] so every rejection is
-/// focused on the exact feature that fell outside the declaration.
 #[cfg(not(target_arch = "wasm32"))]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum AdapterFeature {
-    /// `model_type` — the architecture family label.
-    ModelType,
-    /// `hidden_act` — the MLP activation function.
-    Activation,
-    /// `rms_norm_eps` — the RMSNorm epsilon (the executor's is fixed).
-    NormEpsilon,
-    /// `rope_interleaved` / `rope_scaling` — the RoPE application mode.
-    RopeMode,
-    /// `rope_theta` — the RoPE base frequency.
-    RopeTheta,
-    /// `num_attention_heads` / `num_key_value_heads` / `hidden_size` —
-    /// the GQA/MQA head geometry.
-    HeadGeometry,
-    /// `attention_bias` — Q/K/V/output projection biases.
-    AttentionBias,
-    /// `mlp_bias` — MLP projection biases.
-    MlpBias,
-    /// `tie_word_embeddings` — embedding/lm-head tying.
-    TiedEmbeddings,
-    /// `bos_token_id` / `eos_token_id` — the special-token policy.
-    TokenPolicy,
-    /// `chat_template` — the chat-template policy.
-    ChatTemplate,
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-impl std::fmt::Display for AdapterFeature {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(match self {
-            Self::ModelType => "model-type",
-            Self::Activation => "activation",
-            Self::NormEpsilon => "norm-epsilon",
-            Self::RopeMode => "rope-mode",
-            Self::RopeTheta => "rope-theta",
-            Self::HeadGeometry => "head-geometry",
-            Self::AttentionBias => "attention-bias",
-            Self::MlpBias => "mlp-bias",
-            Self::TiedEmbeddings => "tied-embeddings",
-            Self::TokenPolicy => "token-policy",
-            Self::ChatTemplate => "chat-template",
-        })
-    }
-}
+pub use uor_r4_source_interface::AdapterFeature;
 
 /// How rotary position embeddings are applied to a head.
 #[cfg(not(target_arch = "wasm32"))]

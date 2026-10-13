@@ -1,0 +1,23 @@
+[package]
+name="uor-addr"
+version="0.2.0"
+edition="2021"
+license="Apache-2.0"
+repository="https://github.com/UOR-Foundation/uor-addr"
+description="Metadata-only canonical JSON/BLAKE3 subset of pinned UOR-ADDR"
+autobins=false
+autoexamples=false
+autobenches=false
+
+[workspace]
+
+[features]
+default=["std"]
+std=["alloc"]
+alloc=[]
+gguf=[]
+onnx=[]
+
+[dependencies]
+blake3={version="=1.5.0",default-features=false}
+ryu={version="1",default-features=false}

@@ -11,8 +11,9 @@ model that runs on a laptop?*
 [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97-Hugging%20Face-ffcc4d)](https://huggingface.co/caseyallard/uor-r4-geometric-214m)
 
 **Status, 13 October 2026: pre-alpha.** No model in this repository holds a useful conversation yet.
-The project is building the first model whose whole executed path obeys its rules; **training is held**
-until that path is complete and reviewed.
+The native-only CUDA training/evaluation source and repaired compiled dependency boundary pass
+all 31 finite controls at `1f1547bfd70f01edc9aa36d34a46e5bc43edc34c`; protected delivery is pending. **Training and the separate M2 holds remain held**.
+[Current D29 record](docs/labs/d29-vendor-boundary-2026-10-13/README.md).
 
 ## The question
 
@@ -32,15 +33,18 @@ project keeps the two apart.
 
 ## Architecture
 
-<img src="docs/figures/architecture.svg" alt="Architecture: line A, the geometric stack language base, has a compliant trunk as tested source but no geometric head yet and its first training run is held; line B, the native learner, completes 437 of 512 development replies but 0 of 128 on fresh transfer; both join as one model served under D11 at M4" width="100%">
+<img src="docs/figures/architecture.svg" alt="Architecture: line A, the geometric stack language base, shows the earlier operator status; the native head now exists, the revised compiled boundary passes finite controls at its declared source scope, and training is held; line B, the native learner, completes 437 of 512 development replies but 0 of 128 on fresh transfer; both join as one model served under D11 at M4" width="100%">
 
 - **Line A, the language base (M1).** A geometric stack language model: recurrence layers that carry a
   quaternion state by rotation, geometric feed-forward blocks and a geometric head.
   Code: [`crates/uor-r4-training`](crates/uor-r4-training).
 - **Line B, grounded reply from exact memory (M2, M3).** A learned compiler writes facts into an exact,
-  versioned, addressed store; a learned emitter writes the reply.
+  versioned, addressed store; a learned emitter writes the reply. That historical compiler/emitter
+  source is preserved; the selected core build now exposes fixed geometry and exact-storage support.
   Code: [`crates/uor-r4-core/src/native_geometric`](crates/uor-r4-core/src/native_geometric).
-- **Serving (M4).** One model, served by the integer engine [`crates/uor-r4-integer`](crates/uor-r4-integer).
+- **Serving (M4 target).** One model under D11 remains unqualified. The selected
+  [`crates/uor-r4-integer`](crates/uor-r4-integer) build exposes fixed geometry and metadata;
+  historical model-serving executors are excluded.
 
 The geometry is explained, with pictures, in **[The geometry, illustrated](docs/geometry.md)**.
 
@@ -72,7 +76,7 @@ tanh, softplus and dense matrix products anywhere a model executes, in training 
 No earlier training configuration satisfies them, so the project is rebuilding the language base's
 operators geometrically (the **operator phase**, led by Kimi) before training again.
 
-<img src="docs/figures/geometry/compliant-path.svg" alt="The compliant next-token path: embedding, recurrence with geometric gates, geometric feed-forward with the SpiralCore/FBS projection and the G2 Hamilton gate, a geometric head not yet built, raw scores, a rank-margin hinge in training and greedy argmax in serving" width="100%">
+<img src="docs/figures/geometry/compliant-path.svg" alt="The compliant next-token path: embedding, recurrence with geometric gates, geometric feed-forward with the SpiralCore/FBS projection and the G2 Hamilton gate, a geometric head, raw scores, a rank-margin hinge in training and greedy argmax in serving" width="100%">
 
 | Step | Replaces | Status | Record |
 |---|---|---|---|
@@ -80,12 +84,12 @@ operators geometrically (the **operator phase**, led by Kimi) before training ag
 | SpiralCore/FBS projection: select one carrier, transport by signed BFS | dense projections | source, tested | [#2279](https://github.com/UOR-Foundation/uor-r4/pull/2279), [brief](docs/mechanisms/spiralcore-fbs-projection.md) |
 | Geometric recurrence gates: clamped opening, exact rate table, Hamilton output gate | sigmoid, `exp`, softplus, GELU | source, tested | [#2293](https://github.com/UOR-Foundation/uor-r4/pull/2293) |
 | Rank-margin objective: a hinge over declared rivals on raw scores | softmax cross-entropy | source, tested | [#2255](https://github.com/UOR-Foundation/uor-r4/pull/2255), [brief](docs/mechanisms/rank-margin-objective.md) |
-| Geometric head (OP3a): product-key vocabulary scoring | the dense tied head | **not built** | [operator plan](docs/labs/operator-phase-2026-10-12/README.md) |
-| Device qualification: stored or analytic expected values, no CPU reference | the CPU-referenced parity gate | **not built** | rung-0 sheet, dependency 4 |
-| Rung 0: the first lawful training run (2 arms × 2 seeds, ≤ $4) | — | pre-registered; **held** | [sheet](docs/harness/prep/m1-rank-margin-rung0-2026-10-13.md) |
+| Geometric head (OP3a): addressed raw-distance scoring through the shared token table | the dense tied head | implemented; earlier source receipts retained; repaired compiled boundary passes 31 finite controls at `1f1547bfd` | [head/writer](docs/labs/geometric-head-shared-writer-2026-10-13/README.md), [D29 boundary](docs/labs/d29-vendor-boundary-2026-10-13/README.md) |
+| Device qualification: stored or analytic expected values, no CPU reference | the CPU-referenced parity gate | repaired D29 source's **31 mandatory controls PASS** at `1f1547bfd` on RTX4090; failed setup attempts retained, protected merge pending | [finite FIT sheet](docs/harness/prep/m1-d29-vendor-finite-2026-10-13.md) |
+| Rung 0: the first lawful training run (2 arms × 2 seeds, ≤ $4) | — | Amendment6 independent FIT; **held**, finite source qualification recorded; protected delivery and owner release required | [sheet](docs/harness/prep/m1-rank-margin-rung0-2026-10-13.md) |
 | Rung 0b: starling / rank-table reads with a rank-consistent gradient | softmax attention | after rung 0 | [brief](docs/mechanisms/starling-read.md) |
 
-"Source, tested" means the code has landed with focused tests. None of these operators has been trained
+The diagrams retain the earlier operator snapshot; the table above is current. The selected native API now excludes historical core/integer model executors, teachers, LUT engines and exporters from compilation. Source/checkpoint lineage binds the masked TRAIN count reference separately from the DEV diagnostic oracle. "Source, tested" labels retain their named source/control scope. The repaired dependency graph separately passes the 31 finite controls at `1f1547bfd`; that result establishes neither trained language quality nor D11 serving. None of these operators has been trained
 yet, and none is a capability claim. Pictures of the three new operators:
 [the geometry page](docs/geometry.md#the-operators-of-the-compliant-trunk).
 
@@ -101,8 +105,9 @@ yet, and none is a capability claim. Pictures of the three new operators:
 | [D26](docs/integration/DECISIONS.md#d26---vastai-is-the-default-provider-for-new-pods) | GPU pods are rented on Vast.ai through `scripts/pod/uor-pod`, within ≤ 4 pods and ≤ $8/h; Runpod is an emergency backup only. |
 | [D27](docs/integration/DECISIONS.md#d27---rust-first-and-the-uor-foundation-ecosystem-as-the-shared-floor) | Rust is the default for all new code, tooling included; the uor-foundation crates are the shared floor. |
 
-Interlocks run on every PR: `scripts/check_no_softmax.py` and `scripts/check_no_matmul.py` ratchet the
-executable tree so no prohibited site can be added. All decisions: [DECISIONS.md](docs/integration/DECISIONS.md).
+Rust interlocks `uor-harness ratchet d23` and `uor-harness ratchet d25` ratchet the source tree.
+The D29 selected dependency/PTX checks additionally inspect the compiled boundary; lexical ratchets
+alone do not certify that a scalar loop is geometric. All decisions: [DECISIONS.md](docs/integration/DECISIONS.md).
 
 ## Mechanisms under test
 
@@ -214,11 +219,17 @@ repository (see [Models and data](#models-and-data)). Model compute runs on GPU 
 
 ```sh
 git clone https://github.com/UOR-Foundation/uor-r4 && cd uor-r4
-cargo build --release -p uor-r4-training --example geometric-stack   # the stack trainer and tools
-cargo test -p uor-r4-training --lib geometric_stack                   # focused stack tests
-cargo run -p xtask -- figures                                         # the status diagrams are current
-python3 scripts/check_no_softmax.py && python3 scripts/check_no_matmul.py   # the D23/D25 ratchets
+CARGO_TARGET_DIR=local/readme-target cargo check -p uor-r4-training --lib --example geometric-stack
+CARGO_TARGET_DIR=local/harness-target cargo build -p uor-r4-harness
+UOR_LAB=codex ./local/harness-target/debug/uor-harness ratchet d23
+UOR_LAB=codex ./local/harness-target/debug/uor-harness ratchet d25
 ```
+
+These commands compile/check source only; they execute no model. The native `geometric-stack`
+example supports CUDA `train` and masked `evaluate`; historical sampling/export modes and integer
+model executors are excluded. CUDA builds and finite controls use the admitted pod runner with
+the pinned finite sheet; neither the commands nor FIT release a training hold. Use your own lab
+identifier and target directory.
 
 New lab: set `UOR_LAB`, then run the harness onboarding ([docs/harness/ONBOARD-PROMPT.md](docs/harness/ONBOARD-PROMPT.md)).
 GPU work goes through `scripts/pod/uor-pod` ([docs/labs/compute.md](docs/labs/compute.md)); never rent by hand.
@@ -262,13 +273,13 @@ never on a serving path, and no new comparator runs are permitted (D23).
 
 | Path | Purpose |
 |---|---|
-| [`crates/uor-r4-core`](crates/uor-r4-core) | R4/S³/H4, exact `Z[φ]`, prime addressing, the native learner (`native_geometric/`), sealed report output |
-| [`crates/uor-r4-training`](crates/uor-r4-training) | Rust autodiff and CUDA kernels: the geometric stack, the operators, memory, export, experiment drivers |
-| [`crates/uor-r4-integer`](crates/uor-r4-integer) | the D11 integer engine; the `uor-r4-stack` and `uor-chat` binaries |
+| [`crates/uor-r4-core`](crates/uor-r4-core) | selected fixed geometry, tokenizer and exact-storage support via `native_support.rs`; historical learner/model sources preserved inactive |
+| [`crates/uor-r4-training`](crates/uor-r4-training) | native-only geometric CUDA stack, shared vector writer/store and train/evaluate CLI; historical teacher/export/experiment modules excluded |
+| [`crates/uor-r4-integer`](crates/uor-r4-integer) | selected fixed H4 geometry and report metadata; historical D11 model/CLI source retained inactive, compliant serving remains an obligation |
 | [`crates/uor-r4-harness`](crates/uor-r4-harness) | the Rust research harness (`uor-harness onboard`) |
 | [`crates/uor-r4-api`](crates/uor-r4-api) | typed compile and engine APIs; the `r4-native-chat` CLI |
 | [`crates/uor-r4-tokenizer`](crates/uor-r4-tokenizer) | byte-level BPE engine and tokenizer identity |
-| [`crates/uor-r4-lut`](crates/uor-r4-lut), [`crates/uor-r4-simd`](crates/uor-r4-simd) | frozen table-driven 4-bit serving comparator and its vector kernels |
+| [`crates/uor-r4-lut`](crates/uor-r4-lut), [`crates/uor-r4-simd`](crates/uor-r4-simd) | LUT selected format/grid metadata facade; historical comparator/SIMD model source outside the native training graph |
 | [`crates/uor-r4-router`](crates/uor-r4-router) | reusable routing plus historical paths |
 | `crates/uor-r4-graph-*` | the frozen R4G1 graph format, compiler, runtime, certifier and CLI |
 | [`crates/uor-r4-proof-model`](crates/uor-r4-proof-model), [`crates/uor-r4-naf`](crates/uor-r4-naf), [`crates/uor-r4-workbench`](crates/uor-r4-workbench) | proof specification, the UOR-NAF slice, the bounded research reference |

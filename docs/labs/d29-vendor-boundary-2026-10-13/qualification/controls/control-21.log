@@ -1,0 +1,12 @@
+command: /workspace/codex-d29-build-20261013-g/target/debug/examples/geometric_stack-43ea48ba348da2e3 ["native_rung0_argument_tests::native_metric_record_never_mislabels_raw_margins_as_likelihood", "--exact", "--nocapture", "--test-threads=1"]
+status: exit status: 0
+elapsed_s: 0.005930
+stdout:
+
+running 1 test
+test native_rung0_argument_tests::native_metric_record_never_mislabels_raw_margins_as_likelihood ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 10 filtered out; finished in 0.00s
+
+
+stderr:

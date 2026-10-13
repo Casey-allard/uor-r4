@@ -1,5 +1,9 @@
 # Offline Rust training foundation
 
+> **Selected API, 13 October — D29:** the default native graph selects `src/geometric_stack_native.rs`, the shared vector writer/store/channel and `examples/geometric-stack-native.rs` registered as `geometric-stack`. CUDA `train` and masked `evaluate` retain content-bound TRAIN reference/DEV oracle and checkpoint lineage `/2`; incompatible model/optimizer/reference metadata refuses. Historical learner, teacher, bank and export modules/targets below remain source evidence, excluded from this build. Corrected source `1f1547bfd` passes CUDA compilation and all 31 finite controls on RTX4090; protected delivery is pending. Earlier setup/clipping blockers remain preserved; no optimizer update/corpus/training/CPU model ran. Training and M2 holds remain HELD. [Boundary record](../../docs/labs/d29-vendor-boundary-2026-10-13/README.md).
+
+## Historical implementation and evidence
+
 This crate contains the offline recurrent-memory learner, its matched transport control, and differentiable research references. No serving crate depends on it. The recurrent learner trains state, causal memory reads/writes and token output jointly. The separate reference modes reproduce the retained #1017 ordinary transformer. The shared integer runtime executes accepted packed codes; standalone generation lives in [`uor-r4-integer`](../uor-r4-integer/README.md).
 
 **Memory profile: allocation-conscious offline computation.** Construction,

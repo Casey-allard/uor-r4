@@ -47,8 +47,14 @@
 //! - [candle-transformers](https://docs.rs/candle-transformers/). Candle implementation of many published transformer models.
 //!
 
-#[cfg(feature = "accelerate")]
-mod accelerate;
+#[cfg(any(
+    feature = "metal",
+    feature = "accelerate",
+    feature = "mkl",
+    feature = "cudnn"
+))]
+compile_error!("D29: metal, accelerate, mkl and cudnn are historical prohibited backends; select the admitted native CUDA primitives without these features");
+
 pub mod backend;
 pub mod backprop;
 pub mod conv;
@@ -67,10 +73,8 @@ mod dummy_metal_backend;
 pub mod error;
 mod indexer;
 pub mod layout;
-#[cfg(feature = "metal")]
+#[cfg(any())] // D29: historical Metal implementation is excluded.
 pub mod metal_backend;
-#[cfg(feature = "mkl")]
-mod mkl;
 pub mod npy;
 pub mod op;
 pub mod pickle;
@@ -88,8 +92,7 @@ pub mod test_utils;
 pub mod utils;
 mod variable;
 
-#[cfg(feature = "cudnn")]
-pub use cuda_backend::cudnn;
+// D29: historical cuDNN is not an exported active backend.
 
 pub use cpu_backend::{CpuStorage, CpuStorageRef};
 #[cfg(feature = "ug")]
@@ -116,17 +119,11 @@ pub use dummy_cuda_backend as cuda;
 
 pub use cuda::{CudaDevice, CudaStorage};
 
-#[cfg(feature = "metal")]
+#[cfg(any())] // D29: historical Metal implementation is excluded.
 pub use metal_backend::{MetalDevice, MetalError, MetalStorage};
 
-#[cfg(not(feature = "metal"))]
+#[cfg(all())] // D29: always use the unavailable Metal adapter.
 pub use dummy_metal_backend::{MetalDevice, MetalError, MetalStorage};
-
-#[cfg(feature = "mkl")]
-extern crate intel_mkl_src;
-
-#[cfg(feature = "accelerate")]
-extern crate accelerate_src;
 
 pub trait ToUsize2 {
     fn to_usize2(self) -> (usize, usize);

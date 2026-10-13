@@ -1,5 +1,18 @@
 # Branch archive
 
+## October 13 — pre-D29 Candle computational backend (Codex)
+
+[Restoration patch](candle-core-pre-d29-inactive-20261013.patch), SHA256
+`071a2734b06dd76a4dac5a1071e03328a08575082844d17776ed06c8a82385ca`,
+restores the tracked Candle-core vendor source from this repair to its exact
+bytes at `0497528e20a9cc764628c170c0c2895bf24acb8e`. An isolated Git-index
+application restores every tracked vendor path exactly. It preserves the
+former CPU/SIMD/scalar/GGML and CUDA/BLAS implementations as **inactive evidence**,
+not execution permission. New vendor packages retain licenses, upstream archive
+identities and historical originals; see the
+[repair record](../../labs/d29-vendor-boundary-2026-10-13/README.md).
+Composed CUDA qualification remains pending; no prior model result is promoted.
+
 ## October 13 — retired whole-DEV count reference (Codex)
 
 [Restoration patch](rung0-whole-dev-count-oracle-inactive-20261013.patch), SHA256
@@ -443,3 +456,25 @@ removed: the branch was 40 commits behind `main`, so its file-level diff was dom
 `main` having moved on rather than by anything the branch held. The two commits it did hold
 are superseded, which is what makes removal safe rather than merely convenient.
 
+
+## D29 native dependency boundary — original source restoration, October 13
+
+| Source | Historical restoration target | Disposition | Evidence |
+| --- | --- | --- | --- |
+| [Reverse patch for original extraction paths](d29-native-dependency-originals-20261013.patch) | `fa9294a5afafea12ecb2a4bd779d1c9217ccf362`, twelve named original core/integer/model-source/training paths | **INACTIVE, preserved original source; not a model negative.** Applying to the corresponding repaired paths restores the original manifests, source-interface declarations/imports, historical module declarations, teacher test, writer fixture and original shared device-channel definitions. New native source files and root Cargo/lock are deliberately outside this patch. Restoration is evidence only; D29/D30 and training holds still forbid executing prohibited historical math. | [Canonical record](../../labs/d29-vendor-boundary-2026-10-13/README.md) |
+| [Original LUT source snapshot](../d29-excluded-lut-2026-10-13/) | Original manifest/source/README from the same dependency repair parent | **INACTIVE.** Retired LUT engine, stack, sampling and CLI source plus the original format/grid files are retained byte-for-byte; active crate is format/grid metadata only. Original checksums are in `SHA256SUMS`; moved from the crate's `historical/` directory into dated docs history to avoid active ratchet sites. | Manifest SHA-256 `4716d47ff5dccd58d3ea3fed2187e091f5fd389521986efd87915a127f0f042c` |
+| [Original uor-addr package](../../../third_party/uor-addr-0.2.0/historical/upstream/) | Git revision `165b51e3e2113ee5d032730cde709335d4fe9b60` | **INACTIVE original package/workspace metadata.** The selected facade preserves canonical JSON/NFC/BLAKE3 label bytes without Prism numerical dependencies; no excluded witness is fabricated. Original Apache-2.0 license and package checksums remain. | `UPSTREAM-SHA256SUMS` SHA-256 `678d9122df6768bea93992375d371f27ad5436282dff92c487b06d93a4bf9d36` |
+
+Reverse-patch SHA-256: `b9a2b73b4174d6ad83d4334201766933f4b511a95f5278bca504196360bfc9bf`.
+Resealed against repaired original paths at `9b987c092c504d2900dbb1d4247c30ee51576a35`,
+including the explicit CUDA `d29_compiled_modules` test registration omitted when
+automatic historical test discovery was disabled. The twelve-path scope and
+historical restoration target are unchanged.
+The patch was checked and applied only to an isolated Git index loaded with the
+repair parent and then populated with the twelve repaired original files.
+`git apply --cached --check` **PASS**; after application, `git diff --cached
+--exit-code fa9294a5afafea12ecb2a4bd779d1c9217ccf362` **PASS**, proving exact original
+tracked bytes for all named paths without mutating the working tree or shared index.
+The new native facade/model/CLI files remain separate delivery source. Historical
+model/CLI bodies not changed by extraction remain on disk, excluded from the selected
+compiled graph. Preserve earlier source/configuration/artifact evidence at its own scope.

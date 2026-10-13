@@ -1,0 +1,138 @@
+[package]
+name = "cudarc"
+version = "0.19.10"
+edition = "2021"
+authors = ["Chelsea Lowman <clowman1993@gmail.com>"]
+license = "MIT OR Apache-2.0"
+
+description = "Safe and minimal CUDA bindings"
+homepage = "https://github.com/chelsea0x3b/cudarc"
+documentation = "https://docs.rs/cudarc"
+repository = "https://github.com/chelsea0x3b/cudarc"
+readme = "README.md"
+
+keywords = ["cuda", "nvidia", "gpu", "cudnn", "cublas"]
+categories = [
+    "api-bindings",
+    "hardware-support",
+    "memory-management",
+    "no-std",
+    "science",
+]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[package.metadata.docs.rs]
+features = [
+    "cuda-13040",
+    "f16",
+    "cudnn",
+    "nccl",
+    "cupti",
+    "cusparse",
+    "cusolver",
+    "cusolvermg",
+    "cufile",
+    "nvtx",
+    "cupti",
+    "cutensor",
+    "cufft",
+]
+
+[features]
+default = [
+    "std",
+    "cublas",
+    "cublaslt",
+    "curand",
+    "driver",
+    "runtime",
+    "nvrtc",
+    "fallback-dynamic-loading",
+]
+
+fallback-latest = []
+
+cuda-version-from-build-system = []
+cuda-11040 = []
+cuda-11050 = []
+cuda-11060 = []
+cuda-11070 = []
+cuda-11080 = []
+cuda-12000 = []
+cuda-12010 = []
+cuda-12020 = []
+cuda-12030 = []
+cuda-12040 = []
+cuda-12050 = []
+cuda-12060 = []
+cuda-12080 = []
+cuda-12090 = []
+cuda-13000 = []
+cuda-13010 = []
+cuda-13020 = []
+cuda-13030 = []
+cuda-13040 = []
+
+fallback-dynamic-loading = []
+dynamic-loading = []
+dynamic-linking = []
+static-linking = []
+
+driver = []
+nvrtc = []
+cublas = ["driver"]
+cublaslt = ["driver"]
+runtime = ["driver"]
+curand = ["driver"]
+cusparse = ["driver"]
+cusolver = ["driver", "cublas", "cublaslt", "cusparse"]
+cusolvermg = ["cusolver"]
+cufile = ["driver"]
+nvtx = ["driver"]
+cupti = ["runtime", "driver"]
+cufft = ["driver"]
+
+nccl-version-from-build-system = []
+nccl-02018 = ["driver"]
+nccl-02019 = ["driver"]
+nccl-02020 = ["driver"]
+nccl-02021 = ["driver"]
+nccl-02022 = ["driver"]
+nccl-02024 = ["driver"]
+nccl-02025 = ["driver"]
+nccl-02026 = ["driver"]
+nccl-02027 = ["driver"]
+nccl-02028 = ["driver"]
+nccl-02029 = ["driver"]
+nccl-02030 = ["driver"]
+nccl = ["nccl-02030"]
+
+cudnn-version-from-build-system = []
+cudnn-08009 = ["driver"]
+cudnn-09010 = ["driver"]
+cudnn-09021 = ["driver"]
+cudnn = ["cudnn-09021"]
+
+cutensor-version-from-build-system = []
+cutensor-02003 = ["driver"]
+cutensor-02004 = ["driver"]
+cutensor-02005 = ["driver"]
+cutensor-02006 = ["driver"]
+cutensor = ["cutensor-02006"]
+
+std = []
+no-std = ["no-std-compat/std"]
+f16 = ["dep:half"]
+f8 = ["dep:float8"]
+f4 = ["dep:float4"]
+
+[dependencies]
+no-std-compat = { version = "0.4.1", optional = true, features = ["alloc"] }
+half = { version = "2", optional = true, default-features = false, features = [
+    "num-traits",
+    "rand_distr",
+] }
+float8 = { version = "0.7.0", optional = true }
+float4 = { version = "0.2.0", optional = true }
+libloading = "0.9.0"

@@ -204,10 +204,7 @@ impl Storage {
 
     pub(crate) fn apply_op1(&self, l: &Layout, c: &dyn CustomOp1) -> Result<(Self, Shape)> {
         match self {
-            Self::Cpu(storage) => {
-                let (storage, shape) = c.cpu_fwd(storage, l)?;
-                Ok((Self::Cpu(storage), shape))
-            }
+            Self::Cpu(_) => crate::cpu_backend::refuse_cpu(),
             Self::Cuda(storage) => {
                 let (storage, shape) = c.cuda_fwd(storage, l)?;
                 Ok((Self::Cuda(storage), shape))
@@ -228,10 +225,7 @@ impl Storage {
     ) -> Result<(Self, Shape)> {
         self.same_device(t2, c.name())?;
         match (self, t2) {
-            (Self::Cpu(s1), Self::Cpu(s2)) => {
-                let (s, shape) = c.cpu_fwd(s1, l1, s2, l2)?;
-                Ok((Self::Cpu(s), shape))
-            }
+            (Self::Cpu(_), Self::Cpu(_)) => crate::cpu_backend::refuse_cpu(),
             (Self::Cuda(s1), Self::Cuda(s2)) => {
                 let (s, shape) = c.cuda_fwd(s1, l1, s2, l2)?;
                 Ok((Self::Cuda(s), shape))
@@ -256,10 +250,7 @@ impl Storage {
         self.same_device(t2, c.name())?;
         self.same_device(t3, c.name())?;
         match (self, t2, t3) {
-            (Self::Cpu(s1), Self::Cpu(s2), Self::Cpu(s3)) => {
-                let (s, shape) = c.cpu_fwd(s1, l1, s2, l2, s3, l3)?;
-                Ok((Self::Cpu(s), shape))
-            }
+            (Self::Cpu(_), Self::Cpu(_), Self::Cpu(_)) => crate::cpu_backend::refuse_cpu(),
             (Self::Cuda(s1), Self::Cuda(s2), Self::Cuda(s3)) => {
                 let (s, shape) = c.cuda_fwd(s1, l1, s2, l2, s3, l3)?;
                 Ok((Self::Cuda(s), shape))
@@ -274,7 +265,7 @@ impl Storage {
 
     pub(crate) fn inplace_op1(&mut self, l: &Layout, c: &dyn InplaceOp1) -> Result<()> {
         match self {
-            Self::Cpu(storage) => c.cpu_fwd(storage, l),
+            Self::Cpu(_) => crate::cpu_backend::refuse_cpu(),
             Self::Cuda(storage) => c.cuda_fwd(storage, l),
             Self::Metal(storage) => c.metal_fwd(storage, l),
         }
@@ -289,7 +280,7 @@ impl Storage {
     ) -> Result<()> {
         self.same_device(t2, c.name())?;
         match (self, t2) {
-            (Self::Cpu(s1), Self::Cpu(s2)) => c.cpu_fwd(s1, l1, s2, l2),
+            (Self::Cpu(_), Self::Cpu(_)) => crate::cpu_backend::refuse_cpu(),
             (Self::Cuda(s1), Self::Cuda(s2)) => c.cuda_fwd(s1, l1, s2, l2),
             (Self::Metal(s1), Self::Metal(s2)) => c.metal_fwd(s1, l1, s2, l2),
             _ => unreachable!(),
@@ -308,7 +299,7 @@ impl Storage {
         self.same_device(t2, c.name())?;
         self.same_device(t3, c.name())?;
         match (self, t2, t3) {
-            (Self::Cpu(s1), Self::Cpu(s2), Self::Cpu(s3)) => c.cpu_fwd(s1, l1, s2, l2, s3, l3),
+            (Self::Cpu(_), Self::Cpu(_), Self::Cpu(_)) => crate::cpu_backend::refuse_cpu(),
             (Self::Cuda(s1), Self::Cuda(s2), Self::Cuda(s3)) => c.cuda_fwd(s1, l1, s2, l2, s3, l3),
             (Self::Metal(s1), Self::Metal(s2), Self::Metal(s3)) => {
                 c.metal_fwd(s1, l1, s2, l2, s3, l3)

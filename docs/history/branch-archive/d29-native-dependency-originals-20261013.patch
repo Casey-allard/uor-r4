@@ -1,0 +1,1231 @@
+diff --git b/crates/uor-r4-core/Cargo.toml a/crates/uor-r4-core/Cargo.toml
+index 10a9287d0..3f99ac0e7 100644
+--- b/crates/uor-r4-core/Cargo.toml
++++ a/crates/uor-r4-core/Cargo.toml
+@@ -5,21 +5,23 @@ version = "0.1.0"
+ edition = "2021"
+ description = "Core R4 engine: geometric routing mathematics and integrated transformerless local inference"
+ 
+-[lib]
+-path = "src/native_support.rs"
+-
+ [dependencies]
+ uor-r4-integer = { version = "0.1.0", path = "../uor-r4-integer" }
+ uor-r4-tokenizer = { version = "0.1.0", path = "../uor-r4-tokenizer" }
+-# Numerical source executors are preserved in place but excluded from this crate.
+-uor-r4-source-interface = { version = "0.1.0", path = "../uor-r4-source-interface" }
++uor-r4-graph-format = { version = "0.1.0", path = "../uor-r4-graph-format" }
++uor-r4-model-source = { version = "0.1.0", path = "../uor-r4-model-source" }
+ sha2 = "0.10.8"
+ serde = { version = "1.0", features = ["derive"] }
+ serde_json = { version = "1.0", features = ["float_roundtrip"] }
++hex = "0.4.3"
+ blake3 = "=1.5.0"
+-uor-addr = { version = "0.2.0", path = "../../third_party/uor-addr-0.2.0", default-features = false, features = ["alloc"] }
++ciborium = "0.2"
++uor-r4-graph-runtime = { version = "0.1.0", path = "../uor-r4-graph-runtime" }
++uor-addr = { version = "0.2.0", git = "https://github.com/UOR-Foundation/uor-addr.git", rev = "165b51e3e2113ee5d032730cde709335d4fe9b60", default-features = false, features = ["alloc"] }
++tracing = { version = "0.1", default-features = false, features = ["std"] }
+ libm = "0.2"
+ memmap2 = "0.9"
++rayon = "1.10.0"
+ 
+ [features]
+ # Explicit CPU floating-point research boundary; never enabled by default.
+diff --git b/crates/uor-r4-core/src/transformerless/hf_bpe.rs a/crates/uor-r4-core/src/transformerless/hf_bpe.rs
+index aa79efaee..8c8abce2d 100644
+--- b/crates/uor-r4-core/src/transformerless/hf_bpe.rs
++++ a/crates/uor-r4-core/src/transformerless/hf_bpe.rs
+@@ -52,16 +52,14 @@ impl HfBpeTokenizer {
+     ///
+     /// Host-ingestion boundary: a missing file or a `tokenizer.json` that is not
+     /// a valid byte-level BPE tokenizer both report the sanctioned
+-    /// [`uor_r4_source_interface::SourceUnavailable`] — the tokenizer source could
++    /// [`uor_r4_model_source::SourceUnavailable`] — the tokenizer source could
+     /// not be ingested — carrying the path/diagnostic.
+     #[cfg(not(target_arch = "wasm32"))]
+-    pub fn from_dir(
+-        dir: &std::path::Path,
+-    ) -> Result<Self, uor_r4_source_interface::SourceUnavailable> {
++    pub fn from_dir(dir: &std::path::Path) -> Result<Self, uor_r4_model_source::SourceUnavailable> {
+         let path = dir.join("tokenizer.json");
+         let bytes = std::fs::read(&path)?;
+         Self::from_tokenizer_json_bytes(&bytes).ok_or_else(|| {
+-            uor_r4_source_interface::SourceUnavailable::new(format!(
++            uor_r4_model_source::SourceUnavailable::new(format!(
+                 "{}: not a valid byte-level BPE tokenizer",
+                 path.display()
+             ))
+@@ -174,11 +172,11 @@ impl TokenizerModel for HfBpeTokenizer {
+ 
+ /// A registered adapter constructor: parse raw tokenizer definition bytes
+ /// into the family's [`TokenizerModel`]. Parse failures retain their focused
+-/// [`uor_r4_source_interface::SourceUnavailable`] diagnostic rather than being
++/// [`uor_r4_model_source::SourceUnavailable`] diagnostic rather than being
+ /// collapsed to `None` at the registry boundary.
+ #[cfg(not(target_arch = "wasm32"))]
+ pub type AdapterConstructor =
+-    fn(&[u8]) -> Result<Box<dyn TokenizerModel>, uor_r4_source_interface::SourceUnavailable>;
++    fn(&[u8]) -> Result<Box<dyn TokenizerModel>, uor_r4_model_source::SourceUnavailable>;
+ 
+ /// The versioned tokenizer-adapter registry (#601): map `(family,
+ /// version)` to the constructor that implements it. Registered families are
+@@ -187,7 +185,7 @@ pub type AdapterConstructor =
+ /// ([`super::sentencepiece::SentencePieceUnigramTokenizer`]). Every pair
+ /// outside the registry — including a bumped version of a registered family —
+ /// is refused by name on the sanctioned
+-/// [`uor_r4_source_interface::SourceUnavailable`] surface
++/// [`uor_r4_model_source::SourceUnavailable`] surface
+ /// (`SourceIngestKind::UnknownTokenizerAdapter`), matching the module's
+ /// existing host-ingestion convention ([`HfBpeTokenizer::from_dir`])
+ /// and the #600 geometry registry: never guessed, never approximated
+@@ -196,14 +194,14 @@ pub type AdapterConstructor =
+ pub fn adapter_constructor(
+     family: &str,
+     version: u32,
+-) -> Result<AdapterConstructor, uor_r4_source_interface::SourceUnavailable> {
++) -> Result<AdapterConstructor, uor_r4_model_source::SourceUnavailable> {
+     match (family, version) {
+         (TokenizerAdapter::HF_BYTE_BPE_FAMILY, TokenizerAdapter::HF_BYTE_BPE_VERSION) => {
+             Ok(|bytes| {
+                 HfBpeTokenizer::from_tokenizer_json_bytes(bytes)
+                     .map(|tokenizer| Box::new(tokenizer) as Box<dyn TokenizerModel>)
+                     .ok_or_else(|| {
+-                        uor_r4_source_interface::SourceUnavailable::new(
++                        uor_r4_model_source::SourceUnavailable::new(
+                             "tokenizer.json: not a valid hf-byte-bpe/1 definition",
+                         )
+                     })
+@@ -224,7 +222,7 @@ pub fn adapter_constructor(
+                 .map(|tokenizer| Box::new(tokenizer) as Box<dyn TokenizerModel>)
+         }),
+         _ => Err(
+-            uor_r4_source_interface::SourceIngestKind::UnknownTokenizerAdapter {
++            uor_r4_model_source::SourceIngestKind::UnknownTokenizerAdapter {
+                 family: family.to_owned(),
+                 version,
+             }
+@@ -289,7 +287,7 @@ impl TokenizerAdapterKey {
+ pub fn resolve_source_tokenizer(
+     dir: &std::path::Path,
+     selection: Option<&TokenizerAdapterKey>,
+-) -> Result<TokenizerKind, uor_r4_source_interface::SourceUnavailable> {
++) -> Result<TokenizerKind, uor_r4_model_source::SourceUnavailable> {
+     let tokenizer_json = dir.join("tokenizer.json");
+     let spiece_model = dir.join("spiece.model");
+     let has_bpe_definition = tokenizer_definition_present(&tokenizer_json)?;
+@@ -301,14 +299,14 @@ pub fn resolve_source_tokenizer(
+             (true, false) => TokenizerAdapterKey::hf_byte_bpe_v1(),
+             (false, true) => TokenizerAdapterKey::sentencepiece_unigram_current(),
+             (true, true) => {
+-                return Err(uor_r4_source_interface::SourceUnavailable::new(format!(
++                return Err(uor_r4_model_source::SourceUnavailable::new(format!(
+                     "{} presents both tokenizer.json and spiece.model; select an explicit \
+                      tokenizer adapter family/version",
+                     dir.display()
+                 )));
+             }
+             (false, false) => {
+-                return Err(uor_r4_source_interface::SourceUnavailable::new(format!(
++                return Err(uor_r4_model_source::SourceUnavailable::new(format!(
+                     "{} has no registered tokenizer definition (expected tokenizer.json or \
+                      spiece.model)",
+                     dir.display()
+@@ -333,14 +331,14 @@ pub fn resolve_source_tokenizer(
+         // boundary, so even an internal metadata inconsistency is a focused
+         // refusal rather than a panic.
+         _ => {
+-            return Err(uor_r4_source_interface::SourceUnavailable::new(format!(
++            return Err(uor_r4_model_source::SourceUnavailable::new(format!(
+                 "tokenizer adapter {}/{} is registered but has no source-definition mapping",
+                 selected.family, selected.version
+             )));
+         }
+     };
+     let bytes = std::fs::read(definition).map_err(|error| {
+-        uor_r4_source_interface::SourceUnavailable::new(format!(
++        uor_r4_model_source::SourceUnavailable::new(format!(
+             "{} selected as {}/{}: {error}",
+             definition.display(),
+             selected.family,
+@@ -348,7 +346,7 @@ pub fn resolve_source_tokenizer(
+         ))
+     })?;
+     let tokenizer =
+-        constructor(&bytes).map_err(|error| uor_r4_source_interface::SourceUnavailable {
++        constructor(&bytes).map_err(|error| uor_r4_model_source::SourceUnavailable {
+             reason: format!(
+                 "{} selected as {}/{}: {}",
+                 definition.display(),
+@@ -364,26 +362,26 @@ pub fn resolve_source_tokenizer(
+ #[cfg(not(target_arch = "wasm32"))]
+ fn tokenizer_definition_present(
+     path: &std::path::Path,
+-) -> Result<bool, uor_r4_source_interface::SourceUnavailable> {
++) -> Result<bool, uor_r4_model_source::SourceUnavailable> {
+     match std::fs::symlink_metadata(path) {
+         Ok(metadata) if metadata.file_type().is_symlink() => match std::fs::metadata(path) {
+             Ok(target) if target.is_file() => Ok(true),
+-            Ok(_) => Err(uor_r4_source_interface::SourceUnavailable::new(format!(
++            Ok(_) => Err(uor_r4_model_source::SourceUnavailable::new(format!(
+                 "{} is a symlink to a non-regular tokenizer definition",
+                 path.display()
+             ))),
+-            Err(error) => Err(uor_r4_source_interface::SourceUnavailable::new(format!(
++            Err(error) => Err(uor_r4_model_source::SourceUnavailable::new(format!(
+                 "{} is a dangling or unreadable tokenizer-definition symlink: {error}",
+                 path.display()
+             ))),
+         },
+         Ok(metadata) if metadata.is_file() => Ok(true),
+-        Ok(_) => Err(uor_r4_source_interface::SourceUnavailable::new(format!(
++        Ok(_) => Err(uor_r4_model_source::SourceUnavailable::new(format!(
+             "{} exists but is not a regular tokenizer-definition file",
+             path.display()
+         ))),
+         Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(false),
+-        Err(error) => Err(uor_r4_source_interface::SourceUnavailable::new(format!(
++        Err(error) => Err(uor_r4_model_source::SourceUnavailable::new(format!(
+             "{} tokenizer definition cannot be inspected: {error}",
+             path.display()
+         ))),
+diff --git b/crates/uor-r4-core/src/transformerless/sentencepiece.rs a/crates/uor-r4-core/src/transformerless/sentencepiece.rs
+index 2831f106b..fa2c8c5db 100644
+--- b/crates/uor-r4-core/src/transformerless/sentencepiece.rs
++++ a/crates/uor-r4-core/src/transformerless/sentencepiece.rs
+@@ -27,7 +27,7 @@
+ 
+ use std::collections::{HashMap, VecDeque};
+ 
+-use uor_r4_source_interface::SourceUnavailable;
++use uor_r4_model_source::SourceUnavailable;
+ 
+ use super::hf_bpe::{TokenizerAdapter, TokenizerAdapterPolicy, TokenizerModel};
+ use super::scenarios::{
+diff --git b/crates/uor-r4-integer/Cargo.toml a/crates/uor-r4-integer/Cargo.toml
+index 56e716e39..d7e892ed3 100644
+--- b/crates/uor-r4-integer/Cargo.toml
++++ a/crates/uor-r4-integer/Cargo.toml
+@@ -4,14 +4,6 @@ version = "0.1.0"
+ edition = "2021"
+ license = "MIT"
+ description = "Standalone integer execution of retained UOR-R4 recurrent attention models"
+-autobins = false
+-
+-[lib]
+-path = "src/native_geometry.rs"
+-
+-[features]
+-# Compatibility name only: selecting historical executors fails at compile time.
+-historical-runtime = []
+ 
+ [dependencies]
+ serde = { version = "1.0", features = ["derive"] }
+@@ -19,24 +11,22 @@ serde_json = "1.0"
+ sha2 = "0.10.8"
+ hex = "0.4.3"
+ blake3 = "=1.5.0"
++rayon = "1.10"
+ 
++uor-r4-tokenizer = { path = "../uor-r4-tokenizer" }
+ 
+ [[bin]]
+ name = "uor-chat"
+ path = "src/bin/uor-chat.rs"
+-required-features = ["historical-runtime"]
+ 
+ [[bin]]
+ name = "uor-r4-integer"
+ path = "src/bin/uor-r4-integer.rs"
+-required-features = ["historical-runtime"]
+ 
+ [[bin]]
+ name = "verify-integer"
+ path = "src/bin/verify-integer.rs"
+-required-features = ["historical-runtime"]
+ 
+ [[bin]]
+ name = "uor-r4-stack"
+ path = "src/bin/uor-r4-stack.rs"
+-required-features = ["historical-runtime"]
+diff --git b/crates/uor-r4-model-source/Cargo.toml a/crates/uor-r4-model-source/Cargo.toml
+index a9005f759..3dee5223b 100644
+--- b/crates/uor-r4-model-source/Cargo.toml
++++ a/crates/uor-r4-model-source/Cargo.toml
+@@ -13,7 +13,6 @@ edition = "2021"
+ observation-blas-exception = []
+ 
+ [dependencies]
+-uor-r4-source-interface = { version = "0.1.0", path = "../uor-r4-source-interface" }
+ safetensors = { version = "0.6", default-features = false, features = ["std"] }
+ serde = { version = "1.0", features = ["derive"] }
+ serde_json = "1.0"
+diff --git b/crates/uor-r4-model-source/src/conformance.rs a/crates/uor-r4-model-source/src/conformance.rs
+index 976dc41de..84aa9faad 100644
+--- b/crates/uor-r4-model-source/src/conformance.rs
++++ a/crates/uor-r4-model-source/src/conformance.rs
+@@ -58,8 +58,55 @@ pub const SOURCE_MANIFEST_SCHEMA: &str = "uor-r4-source-manifest/1";
+ #[cfg(not(target_arch = "wasm32"))]
+ pub const SOURCE_MANIFEST_FILE_NAME: &str = "source_manifest.json";
+ 
++/// One configuration feature the adapter declares support for. Named inside
++/// [`SourceIngestKind::UnsupportedConfigFeature`] so every rejection is
++/// focused on the exact feature that fell outside the declaration.
+ #[cfg(not(target_arch = "wasm32"))]
+-pub use uor_r4_source_interface::AdapterFeature;
++#[derive(Debug, Clone, Copy, PartialEq, Eq)]
++pub enum AdapterFeature {
++    /// `model_type` — the architecture family label.
++    ModelType,
++    /// `hidden_act` — the MLP activation function.
++    Activation,
++    /// `rms_norm_eps` — the RMSNorm epsilon (the executor's is fixed).
++    NormEpsilon,
++    /// `rope_interleaved` / `rope_scaling` — the RoPE application mode.
++    RopeMode,
++    /// `rope_theta` — the RoPE base frequency.
++    RopeTheta,
++    /// `num_attention_heads` / `num_key_value_heads` / `hidden_size` —
++    /// the GQA/MQA head geometry.
++    HeadGeometry,
++    /// `attention_bias` — Q/K/V/output projection biases.
++    AttentionBias,
++    /// `mlp_bias` — MLP projection biases.
++    MlpBias,
++    /// `tie_word_embeddings` — embedding/lm-head tying.
++    TiedEmbeddings,
++    /// `bos_token_id` / `eos_token_id` — the special-token policy.
++    TokenPolicy,
++    /// `chat_template` — the chat-template policy.
++    ChatTemplate,
++}
++
++#[cfg(not(target_arch = "wasm32"))]
++impl std::fmt::Display for AdapterFeature {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        f.write_str(match self {
++            Self::ModelType => "model-type",
++            Self::Activation => "activation",
++            Self::NormEpsilon => "norm-epsilon",
++            Self::RopeMode => "rope-mode",
++            Self::RopeTheta => "rope-theta",
++            Self::HeadGeometry => "head-geometry",
++            Self::AttentionBias => "attention-bias",
++            Self::MlpBias => "mlp-bias",
++            Self::TiedEmbeddings => "tied-embeddings",
++            Self::TokenPolicy => "token-policy",
++            Self::ChatTemplate => "chat-template",
++        })
++    }
++}
+ 
+ /// How rotary position embeddings are applied to a head.
+ #[cfg(not(target_arch = "wasm32"))]
+diff --git b/crates/uor-r4-model-source/src/lib.rs a/crates/uor-r4-model-source/src/lib.rs
+index 4ccb78a8f..e60adbfc2 100644
+--- b/crates/uor-r4-model-source/src/lib.rs
++++ a/crates/uor-r4-model-source/src/lib.rs
+@@ -2693,9 +2693,111 @@ pub struct HuggingFaceLlamaOracle {
+     fast_matmul: bool,
+ }
+ 
+-pub use uor_r4_source_interface::SourceUnavailable;
++/// The sanctioned host-ingestion boundary error (R5).
++///
++/// A declared external source artifact — a teacher directory, its
++/// `model.safetensors`, `config.json`, an indexed shard set, or a named
++/// tensor within — could not be ingested into a valid teacher at
++/// construction. This is the host-side analogue of graph-format's
++/// `NotAProduct`: the only reportable condition is that the requested object
++/// does not exist as a valid product, reported at construction. It carries
++/// the operator-facing diagnostic (which file, which tensor, what dtype)
++/// rather than discarding it, and — since #598 — the structured
++/// [`SourceIngestKind`] classifying which ingestion check refused the
++/// artifact, so callers and tests can assert the exact failure class without
++/// this crate growing a second error surface.
++#[cfg(not(target_arch = "wasm32"))]
++#[derive(Debug, Clone)]
++pub struct SourceUnavailable {
++    /// Human-facing description of why the source could not be ingested.
++    pub reason: String,
++    /// The #598 ingestion failure class, when a validation-boundary check
++    /// produced this error; [`SourceIngestKind::Unspecified`] otherwise
++    /// (I/O, JSON, or legacy construction sites).
++    pub kind: SourceIngestKind,
++}
++
++#[cfg(not(target_arch = "wasm32"))]
++impl SourceUnavailable {
++    /// Construct from any displayable reason (failure class
++    /// [`SourceIngestKind::Unspecified`]).
++    pub fn new(reason: impl std::fmt::Display) -> Self {
++        Self {
++            reason: reason.to_string(),
++            kind: SourceIngestKind::Unspecified,
++        }
++    }
++}
++
+ #[cfg(not(target_arch = "wasm32"))]
+-pub use uor_r4_source_interface::SourceIngestKind;
++impl std::fmt::Display for SourceUnavailable {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        write!(f, "source unavailable: {}", self.reason)
++    }
++}
++
++#[cfg(not(target_arch = "wasm32"))]
++impl std::error::Error for SourceUnavailable {}
++
++#[cfg(not(target_arch = "wasm32"))]
++impl From<std::io::Error> for SourceUnavailable {
++    fn from(error: std::io::Error) -> Self {
++        Self::new(error)
++    }
++}
++
++#[cfg(not(target_arch = "wasm32"))]
++impl From<serde_json::Error> for SourceUnavailable {
++    fn from(error: serde_json::Error) -> Self {
++        Self::new(error)
++    }
++}
++
++#[cfg(not(target_arch = "wasm32"))]
++impl From<safetensors::SafeTensorError> for SourceUnavailable {
++    fn from(error: safetensors::SafeTensorError) -> Self {
++        Self::new(error)
++    }
++}
++
++#[cfg(not(target_arch = "wasm32"))]
++impl From<SourceIngestKind> for SourceUnavailable {
++    fn from(kind: SourceIngestKind) -> Self {
++        Self {
++            reason: kind.to_string(),
++            kind,
++        }
++    }
++}
++
++/// Filesystem-free counterpart of the sanctioned source-unavailable error.
++/// Browser serving never performs host ingestion, but portable production
++/// admission still needs the same typed failure boundary for malformed or
++/// mismatched in-memory components.
++#[cfg(target_arch = "wasm32")]
++#[derive(Debug, Clone)]
++pub struct SourceUnavailable {
++    pub reason: String,
++}
++
++#[cfg(target_arch = "wasm32")]
++impl SourceUnavailable {
++    pub fn new(reason: impl std::fmt::Display) -> Self {
++        Self {
++            reason: reason.to_string(),
++        }
++    }
++}
++
++#[cfg(target_arch = "wasm32")]
++impl std::fmt::Display for SourceUnavailable {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        write!(f, "source unavailable: {}", self.reason)
++    }
++}
++
++#[cfg(target_arch = "wasm32")]
++impl std::error::Error for SourceUnavailable {}
+ 
+ /// Exact-widening source codecs (#598): BF16, F16, and F32 → `f32`.
+ ///
+@@ -2823,7 +2925,271 @@ impl SourceDtype {
+     }
+ }
+ 
+-// SourceIngestKind lives in the executor-independent source interface.
++/// The #598 source-ingestion failure class: one variant per check at the
++/// [`SafetensorsSnapshot::open`] validation boundary, all detected before
++/// any model construction. This is NOT a second error surface — the one
++/// sanctioned host-ingestion error remains [`SourceUnavailable`] (R5);
++/// this enum rides inside it as the structured `kind` field, so each
++/// variant names the offending object and callers/tests can still assert
++/// the exact failure class.
++#[cfg(not(target_arch = "wasm32"))]
++#[derive(Debug, Clone, PartialEq, Eq)]
++pub enum SourceIngestKind {
++    /// No structured ingestion class: the error came from a plain I/O,
++    /// JSON, or legacy construction site ([`SourceUnavailable::new`]).
++    Unspecified,
++    /// A snapshot file exists but could not be read or parsed (I/O error,
++    /// malformed JSON header or index, non-portable shard name).
++    Unreadable {
++        /// The file (or file: tensor context) that failed.
++        path: String,
++        /// The underlying parse or I/O diagnostic.
++        reason: String,
++    },
++    /// A shard file referenced by the index (or the single
++    /// `model.safetensors`) is absent from the snapshot directory.
++    MissingShardFile {
++        /// The missing shard's file name.
++        shard: String,
++    },
++    /// A tensor is declared (by the index or by the model geometry) but the
++    /// shard that should carry it does not.
++    MissingTensor {
++        /// The declared tensor name.
++        tensor: String,
++        /// Where the tensor was expected (a shard file, or the index/single
++        /// file for a geometry-required tensor missing everywhere).
++        shard: String,
++    },
++    /// A tensor is claimed more than once: two shard headers both declare
++    /// it, or the raw index JSON maps the same name twice.
++    DuplicateTensor {
++        /// The doubly-claimed tensor name.
++        tensor: String,
++        /// The first claimant (shard file, or the index file itself).
++        first_shard: String,
++        /// The second claimant.
++        second_shard: String,
++    },
++    /// A shard header declares a tensor the index does not assign to any
++    /// shard. Only possible in indexed mode; a single-file snapshot has no
++    /// index, so extra tensors there are ignored exactly as before #598.
++    UnexpectedTensor {
++        /// The unindexed tensor name.
++        tensor: String,
++        /// The shard whose header declares it.
++        shard: String,
++    },
++    /// A geometry-required tensor's declared shape does not match the shape
++    /// `config.json` implies.
++    ShapeMismatch {
++        /// The tensor name.
++        tensor: String,
++        /// The shape the model geometry requires.
++        expected: Vec<usize>,
++        /// The shape the shard header declares.
++        actual: Vec<usize>,
++    },
++    /// A declared byte length is inconsistent: a tensor's data span differs
++    /// from shape × dtype size, the data spans are not contiguous, or the
++    /// shard file's size differs from what its header claims.
++    ByteLengthMismatch {
++        /// Which check failed (shard file, or shard file + tensor).
++        context: String,
++        /// The byte length the header/shape claims.
++        expected: u64,
++        /// The byte length actually found.
++        actual: u64,
++    },
++    /// The same tensor name is declared with two different dtypes.
++    DtypeInconsistency {
++        /// The tensor name.
++        tensor: String,
++        /// First declaration, as `DTYPE (in <shard>)`.
++        first: String,
++        /// Conflicting declaration, as `DTYPE (in <shard>)`.
++        second: String,
++    },
++    /// A tensor declares a dtype outside BF16/F16/F32 — e.g. quantized I8,
++    /// U8, or GPTQ/AWQ-style packed formats. Rejected by name, never
++    /// silently approximated (#598 non-goal).
++    UnsupportedDtype {
++        /// The tensor name.
++        tensor: String,
++        /// The declared dtype/format string from the shard header.
++        dtype: String,
++    },
++    /// #599 adapter-conformance gate: the parsed `config.json` declares a
++    /// feature outside the adapter's typed
++    /// [`conformance::AdapterFeatures`] declaration — an activation, norm
++    /// epsilon, RoPE mode, head geometry, bias, embedding-tying, or token
++    /// policy the source executor would otherwise silently misinterpret.
++    /// Detected at oracle construction, before any tensor is read and
++    /// before any observation can be generated (fail-closed).
++    UnsupportedConfigFeature {
++        /// Which declared feature the configuration falls outside of.
++        feature: conformance::AdapterFeature,
++        /// What the adapter declares it supports for this feature.
++        declared: String,
++        /// What `config.json` actually contains.
++        actual: String,
++    },
++    /// #600 geometry registry: a caller named a source→compiled geometry
++    /// projection `(id, version)` outside the versioned registry
++    /// ([`geometry::projection_implementation`]), so no implementation
++    /// exists to interpret it. Refused by name, never approximated by a
++    /// "closest" algorithm or version.
++    UnknownGeometryProjection {
++        /// The requested projection algorithm id.
++        id: String,
++        /// The requested projection version.
++        version: u32,
++    },
++    /// #601 tokenizer-adapter registry: a caller named a tokenizer
++    /// adapter `(family, version)` outside the versioned registry
++    /// (`uor_r4_core::transformerless::hf_bpe::adapter_constructor`),
++    /// so no constructor exists to interpret it. Refused by name, never
++    /// approximated by a "closest" family or version. Registered entries
++    /// include `hf-byte-bpe/1` plus frozen `sentencepiece-unigram/1` and
++    /// current `sentencepiece-unigram/2`; any unregistered family/version pair
++    /// is rejected here.
++    UnknownTokenizerAdapter {
++        /// The requested adapter family.
++        family: String,
++        /// The requested adapter version.
++        version: u32,
++    },
++    /// #602 attention-operator registry: a caller named a source
++    /// attention operator `(id, version)` outside the versioned registry
++    /// ([`attention::operator_spec`]), so no specification exists to
++    /// interpret it. Refused by name, never approximated by a "closest"
++    /// operator or version.
++    UnknownAttentionOperator {
++        /// The requested operator id.
++        id: String,
++        /// The requested operator version.
++        version: u32,
++    },
++    /// Source-dense operator registry: a caller named an `(id, version)`
++    /// outside [`dense::operator_spec`]. Unknown entries are never
++    /// approximated by a nearby arithmetic version.
++    UnknownDenseOperator {
++        /// The requested dense operator id.
++        id: String,
++        /// The requested dense operator version.
++        version: u32,
++    },
++}
++
++#[cfg(not(target_arch = "wasm32"))]
++impl std::fmt::Display for SourceIngestKind {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        match self {
++            Self::Unspecified => write!(f, "no structured ingestion class"),
++            Self::Unreadable { path, reason } => write!(f, "{path}: {reason}"),
++            Self::MissingShardFile { shard } => {
++                write!(
++                    f,
++                    "shard file {shard} is absent from the snapshot directory"
++                )
++            }
++            Self::MissingTensor { tensor, shard } => {
++                write!(f, "tensor {tensor} is declared but absent from {shard}")
++            }
++            Self::DuplicateTensor {
++                tensor,
++                first_shard,
++                second_shard,
++            } => write!(
++                f,
++                "tensor {tensor} is claimed twice ({first_shard} and {second_shard})"
++            ),
++            Self::UnexpectedTensor { tensor, shard } => write!(
++                f,
++                "tensor {tensor} appears in shard {shard} but not in the index"
++            ),
++            Self::ShapeMismatch {
++                tensor,
++                expected,
++                actual,
++            } => write!(
++                f,
++                "tensor {tensor} has shape {actual:?}, expected {expected:?}"
++            ),
++            Self::ByteLengthMismatch {
++                context,
++                expected,
++                actual,
++            } => write!(
++                f,
++                "byte-length mismatch at {context}: expected {expected} bytes, found {actual}"
++            ),
++            Self::DtypeInconsistency {
++                tensor,
++                first,
++                second,
++            } => write!(f, "tensor {tensor} is declared {first} and {second}"),
++            Self::UnsupportedDtype { tensor, dtype } => write!(
++                f,
++                "tensor {tensor} is {dtype}; supported source dtypes are BF16, F16, F32 \
++                 (quantized formats are rejected, not approximated)"
++            ),
++            Self::UnsupportedConfigFeature {
++                feature,
++                declared,
++                actual,
++            } => write!(
++                f,
++                "config.json feature {feature} is outside the adapter's declared support: \
++                 adapter declares {declared}, configuration has {actual} \
++                 (rejected before any observation)"
++            ),
++            Self::UnknownGeometryProjection { id, version } => write!(
++                f,
++                "geometry projection {id}/{version} is not in the versioned projection \
++                 registry (known: {}/{})",
++                geometry::GeometryProjection::BUCKET_AVERAGE_ID,
++                geometry::GeometryProjection::BUCKET_AVERAGE_VERSION,
++            ),
++            Self::UnknownTokenizerAdapter { family, version } => write!(
++                f,
++                "tokenizer adapter {family}/{version} is not in the versioned adapter \
++                 registry (registered entries include hf-byte-bpe/1, \
++                 sentencepiece-unigram/1, and sentencepiece-unigram/2; unknown families or \
++                 versions are never approximated)"
++            ),
++            Self::UnknownAttentionOperator { id, version } => write!(
++                f,
++                "attention operator {id}/{version} is not in the versioned operator \
++                 registry (registered entries include {}/{}, {}/{}, {}/{}, {}/{}, \
++                 {}/{}, {}/{}, and {}/{})",
++                attention::AttentionOperatorSpec::STANDARD_ID,
++                attention::AttentionOperatorSpec::STANDARD_V1_VERSION,
++                attention::AttentionOperatorSpec::STANDARD_ID,
++                attention::AttentionOperatorSpec::STANDARD_V2_VERSION,
++                attention::AttentionOperatorSpec::EXPERIMENTAL_R4_ID,
++                attention::AttentionOperatorSpec::EXPERIMENTAL_R4_V1_VERSION,
++                attention::AttentionOperatorSpec::EXPERIMENTAL_R4_ID,
++                attention::AttentionOperatorSpec::EXPERIMENTAL_R4_V2_VERSION,
++                attention::AttentionOperatorSpec::LEARNED_ABSOLUTE_ID,
++                attention::AttentionOperatorSpec::LEARNED_ABSOLUTE_V1_VERSION,
++                attention::AttentionOperatorSpec::LEARNED_ABSOLUTE_ID,
++                attention::AttentionOperatorSpec::LEARNED_ABSOLUTE_V2_VERSION,
++                attention::AttentionOperatorSpec::R4_ROUTE_ID,
++                attention::AttentionOperatorSpec::R4_ROUTE_VERSION,
++            ),
++            Self::UnknownDenseOperator { id, version } => write!(
++                f,
++                "dense operator {id}/{version} is not in the versioned operator registry \
++                 (registered entries: {}/{}, {}/{})",
++                dense::DenseOperatorSpec::GPT2_ID,
++                dense::DenseOperatorSpec::GPT2_V1_VERSION,
++                dense::DenseOperatorSpec::GPT2_ID,
++                dense::DenseOperatorSpec::GPT2_V2_VERSION,
++            ),
++        }
++    }
++}
+ 
+ /// One tensor the model geometry requires from a snapshot: its name and the
+ /// shape `config.json` implies. [`SafetensorsSnapshot::open`] verifies
+diff --git b/crates/uor-r4-training/Cargo.toml a/crates/uor-r4-training/Cargo.toml
+index d552a5cc7..168a0e472 100644
+--- b/crates/uor-r4-training/Cargo.toml
++++ a/crates/uor-r4-training/Cargo.toml
+@@ -4,59 +4,43 @@ version = "0.1.0"
+ edition = "2021"
+ license = "MIT"
+ description = "Offline Rust autodiff and reference evaluation tools for UOR-R4 research"
+-# Historical targets remain source evidence. Native qualification explicitly
+-# selects the library and the native geometric-stack example below.
+-autobins = false
+-autoexamples = false
+-autotests = false
+-autobenches = false
+ 
+ [features]
+ # The parquet reader for `prepare-chat-parquet` and `prepare-text-parquet` only; no model or training path uses it.
+ parquet-input = ["dep:parquet"]
+-default = ["native-rung0"]
+-native-rung0 = []
+-metal = []
+-cuda = ["native-rung0", "candle-core/cuda", "candle-nn/cuda", "dep:cudarc"]
+-cpu-accelerate = []
+-reference-accelerate = []
+-# Compatibility marker for retained teacher/integrity targets. Selecting this
+-# feature is a compile-time refusal, not a way to reactivate historical math.
+-historical-reference = ["dep:microlp"]
++default = []
++metal = [
++    "candle-core/metal",
++    "candle-nn/metal",
++    "dep:candle-metal-kernels",
++    "dep:objc2-metal",
++]
++cuda = ["candle-core/cuda", "candle-nn/cuda", "dep:cudarc"]
++cpu-accelerate = ["candle-core/accelerate", "candle-nn/accelerate"]
++reference-accelerate = ["uor-r4-model-source/observation-blas-exception"]
+ 
+ [dependencies]
+ # Offline bounded legal-set constructor; never linked by native serving crates.
+-microlp = { version = "=0.6.0", optional = true }
++microlp = "=0.6.0"
+ uor-r4-integer = { version = "0.1.0", path = "../uor-r4-integer" }
+ candle-core = { version = "=0.9.2", default-features = false }
+ candle-nn = { version = "=0.9.2", default-features = false }
++candle-metal-kernels = { version = "=0.9.2", optional = true }
++objc2-metal = { version = "=0.3.2", optional = true }
+ cudarc = { version = "0.19.0", default-features = false, features = ["std", "driver", "cuda-version-from-build-system", "dynamic-linking"], optional = true }
+ safetensors = { version = "=0.6.2", default-features = false, features = ["std"] }
+ serde = { version = "1.0", features = ["derive"] }
+ serde_json = "1.0"
+ sha2 = "0.10.8"
+ hex = "0.4.3"
++uor-r4-model-source = { path = "../uor-r4-model-source" }
+ uor-r4-core = { path = "../uor-r4-core" }
++uor-r4-lut = { path = "../uor-r4-lut" }
+ uor-r4-tokenizer = { path = "../uor-r4-tokenizer" }
+ rayon = "1.10"
+ parquet = { version = "60.0.0", default-features = false, features = ["snap", "zstd"], optional = true }
+ half = "2.7.1"
+ 
+-[[bin]]
+-name = "uor-r4-training"
+-path = "src/main.rs"
+-required-features = ["historical-reference"]
+-
+-[[example]]
+-name = "geometric-frozen-map-fit"
+-path = "examples/geometric-frozen-map-fit.rs"
+-required-features = ["historical-reference"]
+-
+-[[bin]]
+-name = "teacher-paraphrase"
+-path = "src/bin/teacher-paraphrase.rs"
+-required-features = ["historical-reference"]
+-
+ [[bin]]
+ name = "prepare-chat-parquet"
+ required-features = ["parquet-input"]
+@@ -64,13 +48,3 @@ required-features = ["parquet-input"]
+ [[bin]]
+ name = "prepare-text-parquet"
+ required-features = ["parquet-input"]
+-
+-[[example]]
+-name = "geometric-stack"
+-path = "examples/geometric-stack-native.rs"
+-required-features = ["native-rung0"]
+-
+-[[test]]
+-name = "d29_compiled_modules"
+-path = "tests/d29_compiled_modules.rs"
+-required-features = ["cuda"]
+diff --git b/crates/uor-r4-training/src/kappa_llama.rs a/crates/uor-r4-training/src/kappa_llama.rs
+index f086bc2d3..05cdf8a1e 100644
+--- b/crates/uor-r4-training/src/kappa_llama.rs
++++ a/crates/uor-r4-training/src/kappa_llama.rs
+@@ -1843,7 +1843,6 @@ mod tests {
+ 
+     #[test]
+     #[ignore = "needs the pinned SmolLM2 checkpoint and u16 token file: UOR_B0_MODEL=/path UOR_B0_TOKENS=/path/x.u16 UOR_B0_HELD_OUT=1200000 cargo test -p uor-r4-training --release --offline --lib g1a -- --ignored --nocapture; the exact oracle takes about two hours over 4x512 positions on 8 cores (the default), or set UOR_B0_ORACLE_WORKERS=1 for one worker"]
+-    #[cfg(any())] // Historical CPU teacher/comparator; not part of native test binaries.
+     fn g1a_dense_path_matches_the_exact_f32_oracle() {
+         use uor_r4_model_source::{BehaviorSource, HuggingFaceLlamaOracle, TeacherExecutionConfig};
+ 
+diff --git b/crates/uor-r4-training/src/lib.rs a/crates/uor-r4-training/src/lib.rs
+index db432b2b5..bac1e7455 100644
+--- b/crates/uor-r4-training/src/lib.rs
++++ a/crates/uor-r4-training/src/lib.rs
+@@ -1,9 +1,9 @@
+-//! Native CUDA geometric learning operators, shared vector writer and storage.
++//! Offline differentiable references for UOR-R4 research.
+ //!
+-//! The selected graph excludes the preserved historical dense references,
+-//! teachers, exporter and scalar model runtimes. Their source remains inactive
+-//! evidence; no compatibility feature can reactivate it. Build admission and
+-//! finite qualification do not release the owner's training holds.
++//! The first reference reproduces the retained #1017 dense Llama checkpoint.
++//! It is an explicitly floating-point transformer comparator, never a native
++//! serving path. Its purpose is to establish a real language-loss gradient
++//! through attention before building and measuring a discrete bridge.
+ 
+ // Without the `cuda` feature the crate forbids unsafe code. With it, only the
+ // CUDA kernel launchers (`cuda_stack_kernels::cuda` and
+@@ -11,217 +11,109 @@
+ #![cfg_attr(not(feature = "cuda"), forbid(unsafe_code))]
+ #![cfg_attr(feature = "cuda", deny(unsafe_code))]
+ 
+-#[cfg(any(
+-    feature = "historical-reference",
+-    feature = "metal",
+-    feature = "cpu-accelerate",
+-    feature = "reference-accelerate"
+-))]
+-compile_error!("D29/D30: historical teacher/reference and Metal/CPU acceleration features are unavailable; use the admitted native CUDA path");
+-
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod addressing_arms;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod b3_e8_codecs;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod baseline_counts;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod baseline_protocol;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod binding_probe;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod cache_memory;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod clause_probe;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod copy_identity;
+ pub mod cuda_stack_kernels;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod d4_codecs;
+ #[cfg(feature = "cuda")]
+ #[allow(unsafe_code)]
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub(crate) mod native_geometric_cuda_kernels;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub use d4_codecs::{codec_by_name, HeadCompensatedMapCodec, RecurrenceOutMinMseMapCodec};
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod dialogue_artifact;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod dialogue_child_artifact;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod dialogue_development;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod dialogue_episodes;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod dialogue_learning;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod dialogue_rounding;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod dialogue_rounding_artifact;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod e8_memory;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod flock;
+-#[cfg(any())] // Historical CPU teacher transport; source retained, never compiled.
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod flock_transport;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod geometric_address;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod geometric_age_source;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod geometric_attention_native;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod geometric_composition;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod geometric_composition_native;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod geometric_context;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod geometric_context_credit;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod geometric_event;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod geometric_event_credit;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod geometric_no_read;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod geometric_no_read_native;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod geometric_occurrence_consumer;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod geometric_potential_native;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod geometric_potential_q4;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod geometric_read;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod geometric_read_feedback;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod geometric_read_native;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod geometric_source_actions;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod geometric_source_emission_view;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod geometric_span;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod geometric_span_native;
+-#[path = "geometric_stack_native.rs"]
+ pub mod geometric_stack;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod geometric_turn_compiler;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod geometric_value_native;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod geometric_value_producer;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod geometric_value_producer_native;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod grounded_session_eval;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod joint_admission;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod joint_bounded_campaign;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod joint_campaign;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod joint_comparison;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod joint_evaluation;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod joint_integer;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod joint_integer_evaluation;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod joint_integer_math;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod joint_integer_tables;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod joint_model;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod joint_optimizer;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod joint_parallel;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod joint_quantization;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod joint_reader_comparison;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod joint_rounding;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod joint_rounding_campaign;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod joint_transfer;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod kappa_llama;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod knowledge_corpus;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod lut_export;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod metal_stack_kernels;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod milestone_world;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod milestone_world_v2;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod milestone_world_v2_probe;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod native_grounded_session;
+ pub mod native_vector_writer;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod ngram;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod paraphrase_review;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod read_localize;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod reference_campaign;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod reference_eval;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod relation_compiler;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod s8_panel_count;
+ pub mod spiralcore_fbs;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod stack_address;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod stack_aerm;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod stack_checkpoint;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod stack_dialogue;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod stack_export;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod stack_grounded_session;
+-pub mod native_starling_spec;
+-/// Canonical read-spec metadata; historical numerical source remains inactive.
+-pub mod starling_native {
+-    pub use crate::native_starling_spec::*;
+-}
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
++pub mod starling_native;
+ pub mod whole_path_learning;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub use stack_export::export_quantizer_method;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod stack_memory;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod stack_memory_replies;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod stack_prime_route;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod stack_snap_parity;
+ pub mod stack_store;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod stack_tracking;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod temporal_compiler;
+ 
+ #[cfg(test)]
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ mod native_h4_contract;
+ 
+ use std::collections::{BTreeMap, BTreeSet};
+@@ -229,11 +121,13 @@ use std::fmt;
+ use std::fs;
+ use std::io::Read;
+ use std::path::{Path, PathBuf};
++use std::time::Instant;
+ 
+ use candle_core::{Device, Tensor, Var};
+ use safetensors::{Dtype as SafeDtype, SafeTensors};
+ use serde::{Deserialize, Serialize};
+ use sha2::{Digest, Sha256};
++use uor_r4_model_source::{BehaviorSource, ExactBackendReport, HuggingFaceLlamaOracle};
+ 
+ pub const CANDLE_VERSION: &str = "0.9.2";
+ pub const REFERENCE_WEIGHTS_SHA256: &str =
+@@ -250,7 +144,6 @@ pub enum TrainingError {
+     Json(serde_json::Error),
+     Tensor(candle_core::Error),
+     Safetensors(safetensors::SafeTensorError),
+-    #[cfg(any())]
+     Optimizer(joint_optimizer::OptimizerError),
+     Integer(uor_r4_integer::IntegerError),
+     Invalid(String),
+@@ -263,7 +156,6 @@ impl fmt::Display for TrainingError {
+             Self::Json(error) => write!(f, "JSON: {error}"),
+             Self::Tensor(error) => write!(f, "autodiff tensor: {error}"),
+             Self::Safetensors(error) => write!(f, "safetensors: {error}"),
+-            #[cfg(any())]
+             Self::Optimizer(error) => write!(f, "optimizer: {error}"),
+             Self::Integer(error) => write!(f, "{error}"),
+             Self::Invalid(error) => write!(f, "invalid reference request: {error}"),
+@@ -285,7 +177,6 @@ convert!(std::io::Error, Io);
+ convert!(serde_json::Error, Json);
+ convert!(candle_core::Error, Tensor);
+ convert!(safetensors::SafeTensorError, Safetensors);
+-#[cfg(any())]
+ convert!(joint_optimizer::OptimizerError, Optimizer);
+ convert!(uor_r4_integer::IntegerError, Integer);
+ pub type Result<T> = std::result::Result<T, TrainingError>;
+@@ -391,13 +282,11 @@ impl ReferenceConfig {
+ }
+ 
+ /// Reusable differentiable dense comparator; no tokenizer or serving fallback.
+-#[cfg(any())] // Retained dense teacher code; no compiled reference model.
+ pub struct ReferenceModel {
+     pub config: ReferenceConfig,
+     variables: BTreeMap<String, Var>,
+     device: Device,
+ }
+-#[cfg(any())]
+ impl ReferenceModel {
+     /// Safe in-memory safetensors deserialization. No pickle, mmap, network or unsafe code.
+     pub fn load_pinned(snapshot: &Path, device: &Device) -> Result<Self> {
+@@ -713,7 +602,6 @@ pub struct PositionParity {
+     pub max_absolute_delta: f64,
+ }
+ 
+-#[cfg(any())] // Historical dense/CPU reference integrity receipt, inactive.
+ #[derive(Debug, Serialize)]
+ pub struct IntegrityReport {
+     pub schema: &'static str,
+@@ -740,7 +628,6 @@ pub struct IntegrityReport {
+     pub status: &'static str,
+ }
+ 
+-#[cfg(any())] // Host score arithmetic belonged only to the inactive integrity path.
+ fn top1(values: &[f32]) -> Result<usize> {
+     let mut best = None;
+     for (index, &value) in values.iter().enumerate() {
+@@ -756,7 +643,6 @@ fn top1(values: &[f32]) -> Result<usize> {
+ 
+ /// Bounded integrity evaluation. Temporary finite-difference perturbations are restored.
+ /// No optimizer update, saved candidate, corpus run or serving change occurs here.
+-#[cfg(any())] // Preserved reference implementation; no model-source dependency in native builds.
+ pub fn run_integrity(request: &IntegrityRequest) -> Result<IntegrityReport> {
+     request.validate()?;
+     let started = Instant::now();
+@@ -956,30 +842,13 @@ pub fn run_integrity(request: &IntegrityRequest) -> Result<IntegrityReport> {
+     })
+ }
+ 
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod geometric_bank_generate;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod geometric_continuation_learning;
+ 
+ #[cfg(feature = "cuda")]
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ mod geometric_generate_cuda;
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod geometric_generate_learning;
+ 
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod geometric_read_state_bridge;
+ 
+-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+ pub mod geometric_transport_state_credit;
+-
+-pub mod native_vector_channel;
+-/// Exact shared writer/store path retained under its established public namespace.
+-pub mod whole_path_learning {
+-    pub mod device {
+-        pub use crate::native_vector_channel::{
+-            carry_native_store_read, native_vector_channel, DeviceVectorStoreRead,
+-            DeviceVectorStoreValue,
+-        };
+-    }
+-}
+diff --git b/crates/uor-r4-training/src/native_vector_writer.rs a/crates/uor-r4-training/src/native_vector_writer.rs
+index f22f7937f..4ae20427d 100644
+--- b/crates/uor-r4-training/src/native_vector_writer.rs
++++ a/crates/uor-r4-training/src/native_vector_writer.rs
+@@ -920,10 +920,6 @@ mod cuda_tests {
+         let dev = Device::new_cuda(0)?;
+         let mut config = StackConfig::transformer_control(3);
+         config.arch = StackArch::Geometric;
+-        // Parameter preparation uses the same admitted geometric recurrence as
+-        // the native trunk; the historical initializer is excluded under D29.
+-        config.rec_gates = crate::geometric_stack::RecGates::Geometric;
+-        config.gate = crate::geometric_stack::Gate::Hamilton;
+         config.pattern = "r".into();
+         config.width = 32;
+         config.heads = 4;
+diff --git b/crates/uor-r4-training/src/whole_path_device.rs a/crates/uor-r4-training/src/whole_path_device.rs
+index 493ec031f..cb2194389 100644
+--- b/crates/uor-r4-training/src/whole_path_device.rs
++++ a/crates/uor-r4-training/src/whole_path_device.rs
+@@ -2369,4 +2369,46 @@ impl WholePathCudaProducer {
+     }
+ }
+ 
+-pub use crate::native_vector_channel::{native_vector_channel,carry_native_store_read,DeviceVectorStoreRead,DeviceVectorStoreValue};
++/// New compiler/exact-store/emitter writer entry, sharing the stack's actual
++/// learned embedding parameter. Old whole-path probability artifacts cannot
++/// be silently adopted or converted into this vector channel.
++pub fn native_vector_channel(
++    model: &crate::geometric_stack::StackModel,
++) -> Result<crate::native_vector_writer::NativeVectorChannel> {
++    model.native_vector_channel()
++}
++
++/// Host exact-store metadata selects a record; all vector lookup stays on CUDA.
++/// Record/version and per-record occurrence survive independently of geometry.
++pub struct DeviceVectorStoreValue {
++    pub record: u64,
++    pub commit: u64,
++    pub update: crate::stack_store::Update,
++    pub conflict: bool,
++    pub tokens: Vec<crate::native_vector_writer::CarriedVectorToken>,
++}
++pub enum DeviceVectorStoreRead {
++    Found(DeviceVectorStoreValue),
++    Absent,
++    NoHistory,
++    Evicted,
++}
++pub fn carry_native_store_read(
++    channel: &crate::native_vector_writer::NativeVectorChannel,
++    read: &crate::stack_store::StoreRead,
++) -> Result<DeviceVectorStoreRead> {
++    Ok(match read {
++        crate::stack_store::StoreRead::Found(value) => {
++            DeviceVectorStoreRead::Found(DeviceVectorStoreValue {
++                record: value.record,
++                commit: value.commit,
++                update: value.update,
++                conflict: value.conflict,
++                tokens: channel.compile_tokens(&value.tokens, 0, value.commit)?,
++            })
++        }
++        crate::stack_store::StoreRead::Absent => DeviceVectorStoreRead::Absent,
++        crate::stack_store::StoreRead::NoHistory => DeviceVectorStoreRead::NoHistory,
++        crate::stack_store::StoreRead::Evicted => DeviceVectorStoreRead::Evicted,
++    })
++}

@@ -1843,6 +1843,7 @@ mod tests {
 
     #[test]
     #[ignore = "needs the pinned SmolLM2 checkpoint and u16 token file: UOR_B0_MODEL=/path UOR_B0_TOKENS=/path/x.u16 UOR_B0_HELD_OUT=1200000 cargo test -p uor-r4-training --release --offline --lib g1a -- --ignored --nocapture; the exact oracle takes about two hours over 4x512 positions on 8 cores (the default), or set UOR_B0_ORACLE_WORKERS=1 for one worker"]
+    #[cfg(any())] // Historical CPU teacher/comparator; not part of native test binaries.
     fn g1a_dense_path_matches_the_exact_f32_oracle() {
         use uor_r4_model_source::{BehaviorSource, HuggingFaceLlamaOracle, TeacherExecutionConfig};
 

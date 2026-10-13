@@ -16,7 +16,7 @@ macro_rules! test_device {
             $fn_name(&Device::new_cuda(0)?)
         }
 
-        #[cfg(feature = "metal")]
+        #[cfg(any())] // D29: historical Metal implementation is excluded.
         #[test]
         fn $test_metal() -> Result<()> {
             $fn_name(&Device::new_metal(0)?)

@@ -1,0 +1,5 @@
+source=1f1547bfd70f01edc9aa36d34a46e5bc43edc34c
+FIT=https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6150514242
+training=HELD
+optimizer_updates=0
+controls=31

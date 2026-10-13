@@ -1,5 +1,9 @@
 # UOR-R4 Geometric Language Model: integer serving
 
+> **Selected API, 13 October — D29:** Cargo selects `src/native_geometry.rs`, exposing fixed H4 geometry, checked integer primitives and report/config metadata. The historical model/stack/sampling executors and generation binaries described below remain source evidence and are excluded; `historical-runtime` fails compilation. The composed native CUDA graph at `1f1547bfd` passes 31 finite controls on RTX4090, pending protected delivery. No compliant D11 language-serving model is qualified by this facade or those controls; all training holds remain. [Boundary record](../../docs/labs/d29-vendor-boundary-2026-10-13/README.md).
+
+## Historical implementation and evidence
+
 This crate serves the retained learned recurrent model with full causal context,
 integer model arithmetic, and integer token selection. It supports the quaternion
 model and the matched Householder-pair control, with the retained dot-product

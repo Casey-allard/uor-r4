@@ -4,17 +4,16 @@ use crate::{
 use k_quants::*;
 use std::borrow::Cow;
 
-#[cfg(target_feature = "avx2")]
-pub mod avx;
 mod dummy_cuda;
 mod dummy_metal;
 pub mod ggml_file;
 pub mod gguf_file;
 pub mod imatrix_file;
 pub mod k_quants;
-#[cfg(feature = "metal")]
+// Historical Metal contractions remain source evidence; the project-specific
+// feature guard refuses activation and this module is never compiled.
+#[cfg(any())]
 pub mod metal;
-#[cfg(not(feature = "metal"))]
 mod metal {
     pub use super::dummy_metal::*;
 }
@@ -25,11 +24,6 @@ mod cuda {
     pub use super::dummy_cuda::*;
 }
 
-#[cfg(target_feature = "neon")]
-pub mod neon;
-#[cfg(target_feature = "simd128")]
-pub mod simd128;
-pub mod utils;
 use half::{bf16, f16};
 
 pub use k_quants::GgmlType;
@@ -153,78 +147,49 @@ impl QStorage {
         }
     }
 
+    #[allow(unused_variables)]
     fn quantize(&mut self, src: &Storage) -> Result<()> {
-        match (self, src) {
-            (QStorage::Cpu(storage), Storage::Cpu(src)) => {
-                storage.from_float(src.as_slice::<f32>()?);
-            }
-            (QStorage::Metal(storage), Storage::Metal(src)) => storage.quantize(src)?,
-            (QStorage::Cuda(storage), Storage::Cuda(src)) => storage.quantize(src)?,
-            _ => crate::bail!("Invalid quantize storage locations do not match"),
-        }
-        Ok(())
+        crate::bail!(
+            "D29: quantized model compute is unavailable; no host, dense or vendor fallback"
+        )
     }
 
+    #[allow(unused_variables)]
     fn quantize_imatrix(
         &mut self,
         src: &Storage,
         imatrix_weights: &[f32],
         n_per_row: usize,
     ) -> Result<()> {
-        match (self, src) {
-            (QStorage::Cpu(storage), Storage::Cpu(src)) => {
-                storage.from_float_imatrix(src.as_slice::<f32>()?, imatrix_weights, n_per_row);
-            }
-            (QStorage::Metal(storage), Storage::Metal(src)) => {
-                storage.quantize_imatrix(src, imatrix_weights, n_per_row)?
-            }
-            (QStorage::Cuda(storage), Storage::Cuda(src)) => {
-                storage.quantize_imatrix(src, imatrix_weights, n_per_row)?
-            }
-            _ => crate::bail!("Invalid quantize storage locations do not match"),
-        }
-        Ok(())
+        crate::bail!(
+            "D29: quantized model compute is unavailable; no host, dense or vendor fallback"
+        )
     }
 
+    #[allow(unused_variables)]
     fn quantize_onto(&mut self, src: &Storage) -> Result<()> {
-        match (self, src) {
-            (QStorage::Cpu(storage), Storage::Cpu(src)) => {
-                storage.from_float(src.as_slice::<f32>()?);
-            }
-            (QStorage::Metal(storage), Storage::Cpu(src)) => storage.quantize_onto(src)?,
-            (QStorage::Cuda(storage), Storage::Cpu(src)) => storage.quantize_onto(src)?,
-            _ => crate::bail!("Invalid quantize source storage locations: not on cpu"),
-        }
-        Ok(())
+        crate::bail!(
+            "D29: quantized model compute is unavailable; no host, dense or vendor fallback"
+        )
     }
 
+    #[allow(unused_variables)]
     fn quantize_imatrix_onto(
         &mut self,
         src: &Storage,
         imatrix_weights: &[f32],
         n_per_row: usize,
     ) -> Result<()> {
-        match (self, src) {
-            (QStorage::Cpu(storage), Storage::Cpu(src)) => {
-                storage.from_float_imatrix(src.as_slice::<f32>()?, imatrix_weights, n_per_row);
-            }
-            (QStorage::Metal(storage), Storage::Cpu(src)) => {
-                storage.quantize_imatrix_onto(src, imatrix_weights, n_per_row)?
-            }
-            (QStorage::Cuda(storage), Storage::Cpu(src)) => {
-                storage.quantize_imatrix_onto(src, imatrix_weights, n_per_row)?
-            }
-            _ => crate::bail!("Invalid quantize storage locations do not match"),
-        }
-        Ok(())
+        crate::bail!(
+            "D29: quantized model compute is unavailable; no host, dense or vendor fallback"
+        )
     }
 
+    #[allow(unused_variables)]
     fn dequantize(&self, elem_count: usize) -> Result<Storage> {
-        match self {
-            QStorage::Cpu(storage) => Ok(Storage::Cpu(storage.dequantize(elem_count)?)),
-            QStorage::Metal(storage) => Ok(Storage::Metal(storage.dequantize(elem_count)?)),
-            QStorage::Cuda(storage) => Ok(Storage::Cuda(storage.dequantize(elem_count)?)),
-        }
+        crate::bail!(
+            "D29: quantized model compute is unavailable; no host, dense or vendor fallback"
+        )
     }
 
     fn data(&self) -> Result<Cow<'_, [u8]>> {
@@ -393,7 +358,8 @@ impl GgmlDType {
     }
 }
 
-// A version of GgmlType without `vec_dot` so that it can be dyn boxed.
+// Raw block storage can be boxed and loaded. Its computational methods return
+// recoverable refusals; no scalar codec or contraction implementation remains.
 pub trait QuantizedType: Send + Sync {
     fn dtype(&self) -> GgmlDType;
     fn matmul_t(&self, mkn: (usize, usize, usize), lhs: &[f32], dst: &mut [f32]) -> Result<()>;
@@ -402,10 +368,6 @@ pub trait QuantizedType: Send + Sync {
     fn storage_size_in_bytes(&self) -> usize;
     fn as_ptr(&self) -> *const u8;
     fn block_size(&self) -> usize;
-    #[allow(clippy::wrong_self_convention)]
-    fn from_float(&mut self, xs: &[f32]);
-    #[allow(clippy::wrong_self_convention)]
-    fn from_float_imatrix(&mut self, xs: &[f32], imatrix_weights: &[f32], n_per_row: usize);
     fn size(&self) -> usize;
 }
 
@@ -421,14 +383,6 @@ impl<T: k_quants::GgmlType + Send + Sync> QuantizedType for Vec<T> {
         self.len() * core::mem::size_of::<T>()
     }
 
-    fn from_float(&mut self, xs: &[f32]) {
-        T::from_float(xs, self)
-    }
-
-    fn from_float_imatrix(&mut self, xs: &[f32], imatrix_weights: &[f32], n_per_row: usize) {
-        T::from_float_imatrix(xs, self, imatrix_weights, n_per_row)
-    }
-
     fn dtype(&self) -> GgmlDType {
         T::DTYPE
     }
@@ -437,10 +391,11 @@ impl<T: k_quants::GgmlType + Send + Sync> QuantizedType for Vec<T> {
         T::BLCK_SIZE
     }
 
+    #[allow(unused_variables)]
     fn dequantize(&self, elem_count: usize) -> Result<CpuStorage> {
-        let mut ys = vec![0.0f32; elem_count];
-        T::to_float(self.as_slice(), &mut ys);
-        Ok(CpuStorage::F32(ys))
+        crate::bail!(
+            "D29: quantized model compute is unavailable; no host, dense or vendor fallback"
+        )
     }
 
     fn storage_size_in_bytes(&self) -> usize {
@@ -479,130 +434,43 @@ impl QTensor {
         Ok(Self { storage, shape })
     }
 
+    #[allow(unused_variables)]
     pub fn quantize(src: &Tensor, dtype: GgmlDType) -> Result<Self> {
-        let shape = src.shape();
-        let block_size = dtype.block_size();
-        check_shape(shape, block_size)?;
-        let src = src.to_dtype(crate::DType::F32)?.flatten_all()?;
-        let elem_count = shape.elem_count();
-        if !elem_count.is_multiple_of(block_size) {
-            crate::bail!(
-                "tensor size ({shape:?}) is not divisible by block size {}",
-                block_size
-            )
-        }
-        let mut storage = src.device().qzeros(elem_count, dtype)?;
-        storage.quantize(&src.storage())?;
-        Ok(Self {
-            storage,
-            shape: shape.clone(),
-        })
+        crate::bail!(
+            "D29: quantized model compute is unavailable; no host, dense or vendor fallback"
+        )
     }
 
+    #[allow(unused_variables)]
     pub fn quantize_imatrix(
         src: &Tensor,
         imatrix_weights: &[f32],
         dtype: GgmlDType,
     ) -> Result<Self> {
-        // (n_per_row/QK_K-1)*QK_K+(QK_K/32-1)*32+32=n_per_row
-        // Size of imatrix == last dim of tensor
-        let n_per_row = src.dim(D::Minus1)?;
-        if imatrix_weights.len() != n_per_row {
-            crate::bail!(
-                "imatrix weights must have the same length {} as the last dim of src {}",
-                imatrix_weights.len(),
-                src.dim(D::Minus1)?
-            );
-        }
-
-        let shape = src.shape();
-        let block_size = dtype.block_size();
-        check_shape(shape, block_size)?;
-        let src = src.to_dtype(crate::DType::F32)?.flatten_all()?;
-        let elem_count = shape.elem_count();
-        if !elem_count.is_multiple_of(block_size) {
-            crate::bail!(
-                "tensor size ({shape:?}) is not divisible by block size {}",
-                block_size
-            );
-        }
-        let mut storage = src.device().qzeros(elem_count, dtype)?;
-        storage.quantize_imatrix(&src.storage(), imatrix_weights, n_per_row)?;
-        Ok(Self {
-            storage,
-            shape: shape.clone(),
-        })
+        crate::bail!(
+            "D29: quantized model compute is unavailable; no host, dense or vendor fallback"
+        )
     }
 
     /// Quantize `src` (currently on the CPU) to a QTensor on `dev`
+    #[allow(unused_variables)]
     pub fn quantize_imatrix_onto(
         src: &Tensor,
         imatrix_weights: &[f32],
         dtype: GgmlDType,
         dev: &Device,
     ) -> Result<Self> {
-        if !src.device().is_cpu() {
-            crate::bail!(
-                "`quantize_onto` expects a `src` to be on the cpu, got {:?}.",
-                src.device()
-            )
-        }
-        // (n_per_row/QK_K-1)*QK_K+(QK_K/32-1)*32+32=n_per_row
-        // Size of imatrix == last dim of tensor
-        let n_per_row = src.dim(D::Minus1)?;
-        if imatrix_weights.len() != n_per_row {
-            crate::bail!(
-                "imatrix weights must have the same length {} as the last dim of src {}",
-                imatrix_weights.len(),
-                src.dim(D::Minus1)?
-            );
-        }
-        let shape = src.shape();
-        let block_size = dtype.block_size();
-        check_shape(shape, block_size)?;
-        let src = src.to_dtype(crate::DType::F32)?.flatten_all()?;
-        let elem_count = shape.elem_count();
-        if !elem_count.is_multiple_of(block_size) {
-            crate::bail!(
-                "tensor size ({shape:?}) is not divisible by block size {}",
-                block_size
-            )
-        }
-        // storage is on the `dev`, src is on `cpu`
-        let mut storage = dev.qzeros(elem_count, dtype)?;
-        storage.quantize_imatrix_onto(&src.storage(), imatrix_weights, n_per_row)?;
-        Ok(Self {
-            storage,
-            shape: shape.clone(),
-        })
+        crate::bail!(
+            "D29: quantized model compute is unavailable; no host, dense or vendor fallback"
+        )
     }
 
     /// Quantize `src` (currently on the CPU) to a QTensor on `dev`
+    #[allow(unused_variables)]
     pub fn quantize_onto(src: &Tensor, dtype: GgmlDType, dev: &Device) -> Result<Self> {
-        if !src.device().is_cpu() {
-            crate::bail!(
-                "`quantize_onto` expects a `src` to be on the cpu, got {:?}.",
-                src.device()
-            )
-        }
-        let shape = src.shape();
-        let block_size = dtype.block_size();
-        check_shape(shape, block_size)?;
-        let src = src.to_dtype(crate::DType::F32)?.flatten_all()?;
-        let elem_count = shape.elem_count();
-        if !elem_count.is_multiple_of(block_size) {
-            crate::bail!(
-                "tensor size ({shape:?}) is not divisible by block size {}",
-                block_size
-            )
-        }
-        // storage is on the `dev`, src is on `cpu`
-        let mut storage = dev.qzeros(elem_count, dtype)?;
-        storage.quantize_onto(&src.storage())?;
-        Ok(Self {
-            storage,
-            shape: shape.clone(),
-        })
+        crate::bail!(
+            "D29: quantized model compute is unavailable; no host, dense or vendor fallback"
+        )
     }
 
     pub fn dtype(&self) -> GgmlDType {
@@ -621,27 +489,18 @@ impl QTensor {
         &self.shape
     }
 
+    #[allow(unused_variables)]
     pub fn dequantize(&self, device: &Device) -> Result<Tensor> {
-        let storage = self.storage.dequantize(self.shape.elem_count())?;
-        let none = crate::op::BackpropOp::none();
-        crate::tensor::from_storage(storage, self.shape.clone(), none, false).to_device(device)
+        crate::bail!(
+            "D29: quantized model compute is unavailable; no host, dense or vendor fallback"
+        )
     }
 
+    #[allow(unused_variables)]
     pub fn dequantize_f16(&self, device: &Device) -> Result<Tensor> {
-        // In the CUDA case, we have a specialized kernel as this can be useful for volta
-        // architectures. https://github.com/huggingface/candle/issues/2136
-        match &self.storage {
-            QStorage::Cuda(s) => {
-                let s = s.dequantize_f16(self.shape.elem_count())?;
-                let none = crate::op::BackpropOp::none();
-                crate::tensor::from_storage(Storage::Cuda(s), self.shape.clone(), none, false)
-                    .to_device(device)
-            }
-            _ => {
-                let s = self.dequantize(device)?.to_dtype(crate::DType::F16)?;
-                Ok(s)
-            }
-        }
+        crate::bail!(
+            "D29: quantized model compute is unavailable; no host, dense or vendor fallback"
+        )
     }
 
     pub fn storage_size_in_bytes(&self) -> usize {
@@ -652,32 +511,11 @@ impl QTensor {
         self.storage.data()
     }
 
+    #[allow(unused_variables)]
     pub fn indexed_moe_forward(&self, x: &Tensor, ids: &Tensor) -> Result<Tensor> {
-        match &self.storage {
-            QStorage::Cuda(s) => match (&*x.storage(), &*ids.storage()) {
-                (Storage::Cuda(x_storage), Storage::Cuda(ids_storage)) => {
-                    let (storage, out_shape) = s.indexed_moe_forward(
-                        self.shape(),
-                        x_storage,
-                        x.layout(),
-                        ids_storage,
-                        ids.layout(),
-                    )?;
-                    Ok(crate::tensor::from_storage(
-                        Storage::Cuda(storage),
-                        out_shape,
-                        crate::op::BackpropOp::none(),
-                        false,
-                    ))
-                }
-                _ => {
-                    panic!("Non-cuda indexed_moe_forward is not implemented!");
-                }
-            },
-            _ => {
-                panic!("indexed_moe_forward is not implemented in this platform!");
-            }
-        }
+        crate::bail!(
+            "D29: quantized model compute is unavailable; no host, dense or vendor fallback"
+        )
     }
 
     pub fn device_ptr(&self) -> Result<*const u8> {
@@ -741,32 +579,25 @@ impl QMatMul {
         Self::from_arc(std::sync::Arc::new(qtensor))
     }
 
+    #[allow(unused_variables)]
     pub fn dequantize_f16(&self) -> Result<Tensor> {
-        match self {
-            Self::QTensor(t) => t.dequantize_f16(&t.device()),
-            Self::Tensor(t) => t.to_dtype(DType::F16),
-            Self::TensorF16(t) => Ok(t.clone()),
-        }
+        crate::bail!(
+            "D29: quantized model compute is unavailable; no host, dense or vendor fallback"
+        )
     }
 
+    #[allow(unused_variables)]
     pub fn forward_via_f16(&self, xs: &Tensor) -> Result<Tensor> {
-        let w = self.dequantize_f16()?;
-        let in_dtype = xs.dtype();
-        let w = match *xs.dims() {
-            [b1, b2, _, _] => w.broadcast_left((b1, b2))?.t()?,
-            [bsize, _, _] => w.broadcast_left(bsize)?.t()?,
-            _ => w.t()?,
-        };
-        xs.to_dtype(DType::F16)?.matmul(&w)?.to_dtype(in_dtype)
+        crate::bail!(
+            "D29: quantized model compute is unavailable; no host, dense or vendor fallback"
+        )
     }
 
+    #[allow(unused_variables)]
     pub fn indexed_moe_forward(&self, x: &Tensor, ids: &Tensor) -> Result<Tensor> {
-        match self {
-            Self::QTensor(t) => t.indexed_moe_forward(x, ids),
-            _ => {
-                panic!("Not implemented!")
-            }
-        }
+        crate::bail!(
+            "D29: quantized model compute is unavailable; no host, dense or vendor fallback"
+        )
     }
 }
 
@@ -775,107 +606,45 @@ impl crate::CustomOp1 for QTensor {
         "qmatmul"
     }
 
+    #[allow(unused_variables)]
     fn cpu_fwd(
         &self,
         storage: &crate::CpuStorage,
         layout: &crate::Layout,
     ) -> Result<(crate::CpuStorage, Shape)> {
-        if !layout.is_contiguous() {
-            crate::bail!("input tensor is not contiguous {layout:?}")
-        }
-        let src_shape = layout.shape();
-        // self is transposed so n is first then k.
-        let (n, k) = self.shape.dims2()?;
-        if src_shape.rank() < 2 {
-            crate::bail!("input tensor has only one dimension {layout:?}")
-        }
-        let mut dst_shape = src_shape.dims().to_vec();
-        let last_k = dst_shape.pop().unwrap();
-        if last_k != k {
-            crate::bail!("input tensor {layout:?} incompatible with {:?}", self.shape)
-        }
-        dst_shape.push(n);
-        let dst_shape = Shape::from(dst_shape);
-        #[allow(clippy::infallible_destructuring_match)]
-        let self_storage = match &self.storage {
-            QStorage::Cpu(storage) => storage,
-            QStorage::Metal(_) | QStorage::Cuda(_) => crate::bail!("Invalid storage"),
-        };
-        match storage.dtype() {
-            DType::F32 => {
-                let slice = storage.as_slice::<f32>()?;
-                let slice =
-                    &slice[layout.start_offset()..layout.start_offset() + src_shape.elem_count()];
-                let mut dst_storage = vec![0f32; dst_shape.elem_count()];
-                self_storage.matmul_t(
-                    (dst_shape.elem_count() / n, k, n),
-                    slice,
-                    &mut dst_storage,
-                )?;
-                Ok((crate::CpuStorage::F32(dst_storage), dst_shape))
-            }
-            DType::F16 => {
-                let slice = storage.as_slice::<f16>()?;
-                let slice =
-                    &slice[layout.start_offset()..layout.start_offset() + src_shape.elem_count()];
-                let mut dst_storage = vec![f16::ZERO; dst_shape.elem_count()];
-                self_storage.matmul_t_f16(
-                    (dst_shape.elem_count() / n, k, n),
-                    slice,
-                    &mut dst_storage,
-                )?;
-                Ok((crate::CpuStorage::F16(dst_storage), dst_shape))
-            }
-            _ => crate::bail!("Expected f32/f16"),
-        }
+        crate::bail!(
+            "D29: quantized model compute is unavailable; no host, dense or vendor fallback"
+        )
     }
 
+    #[allow(unused_variables)]
     fn metal_fwd(
         &self,
         storage: &crate::MetalStorage,
         layout: &crate::Layout,
     ) -> Result<(crate::MetalStorage, Shape)> {
-        let self_storage = match &self.storage {
-            QStorage::Metal(metal) => metal,
-            _ => unreachable!("Cannot call metal matmul on non metal QTensor"),
-        };
-        self_storage.fwd(&self.shape, storage, layout)
+        crate::bail!(
+            "D29: quantized model compute is unavailable; no host, dense or vendor fallback"
+        )
     }
 
+    #[allow(unused_variables)]
     fn cuda_fwd(
         &self,
         storage: &crate::CudaStorage,
         layout: &crate::Layout,
     ) -> Result<(crate::CudaStorage, Shape)> {
-        let self_storage = match &self.storage {
-            QStorage::Cuda(cuda) => cuda,
-            _ => unreachable!("Cannot call cuda matmul on non cuda QTensor"),
-        };
-        self_storage.fwd(&self.shape, storage, layout)
+        crate::bail!(
+            "D29: quantized model compute is unavailable; no host, dense or vendor fallback"
+        )
     }
 }
 
 impl crate::Module for QMatMul {
+    #[allow(unused_variables)]
     fn forward(&self, xs: &Tensor) -> Result<Tensor> {
-        match self {
-            Self::QTensor(t) => xs.apply_op1_no_bwd(t.as_ref()),
-            Self::Tensor(w) => {
-                let w = match *xs.dims() {
-                    [b1, b2, _, _] => w.broadcast_left((b1, b2))?.t()?,
-                    [bsize, _, _] => w.broadcast_left(bsize)?.t()?,
-                    _ => w.t()?,
-                };
-                xs.matmul(&w)
-            }
-            Self::TensorF16(w) => {
-                let in_dtype = xs.dtype();
-                let w = match *xs.dims() {
-                    [b1, b2, _, _] => w.broadcast_left((b1, b2))?.t()?,
-                    [bsize, _, _] => w.broadcast_left(bsize)?.t()?,
-                    _ => w.t()?,
-                };
-                xs.to_dtype(DType::F16)?.matmul(&w)?.to_dtype(in_dtype)
-            }
-        }
+        crate::bail!(
+            "D29: quantized model compute is unavailable; no host, dense or vendor fallback"
+        )
     }
 }

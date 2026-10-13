@@ -4,42 +4,58 @@ version = "0.1.0"
 edition = "2021"
 license = "MIT"
 description = "Offline Rust autodiff and reference evaluation tools for UOR-R4 research"
+# Historical targets remain source evidence. Native qualification explicitly
+# selects the library and the native geometric-stack example below.
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 
 [features]
 # The parquet reader for `prepare-chat-parquet` and `prepare-text-parquet` only; no model or training path uses it.
 parquet-input = ["dep:parquet"]
-default = []
-metal = [
-    "candle-core/metal",
-    "candle-nn/metal",
-    "dep:candle-metal-kernels",
-    "dep:objc2-metal",
-]
-cuda = ["candle-core/cuda", "candle-nn/cuda", "dep:cudarc"]
-cpu-accelerate = ["candle-core/accelerate", "candle-nn/accelerate"]
-reference-accelerate = ["uor-r4-model-source/observation-blas-exception"]
+default = ["native-rung0"]
+native-rung0 = []
+metal = []
+cuda = ["native-rung0", "candle-core/cuda", "candle-nn/cuda", "dep:cudarc"]
+cpu-accelerate = []
+reference-accelerate = []
+# Compatibility marker for retained teacher/integrity targets. Selecting this
+# feature is a compile-time refusal, not a way to reactivate historical math.
+historical-reference = ["dep:microlp"]
 
 [dependencies]
 # Offline bounded legal-set constructor; never linked by native serving crates.
-microlp = "=0.6.0"
+microlp = { version = "=0.6.0", optional = true }
 uor-r4-integer = { version = "0.1.0", path = "../uor-r4-integer" }
 candle-core = { version = "=0.9.2", default-features = false }
 candle-nn = { version = "=0.9.2", default-features = false }
-candle-metal-kernels = { version = "=0.9.2", optional = true }
-objc2-metal = { version = "=0.3.2", optional = true }
 cudarc = { version = "0.19.0", default-features = false, features = ["std", "driver", "cuda-version-from-build-system", "dynamic-linking"], optional = true }
 safetensors = { version = "=0.6.2", default-features = false, features = ["std"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 sha2 = "0.10.8"
 hex = "0.4.3"
-uor-r4-model-source = { path = "../uor-r4-model-source" }
 uor-r4-core = { path = "../uor-r4-core" }
-uor-r4-lut = { path = "../uor-r4-lut" }
 uor-r4-tokenizer = { path = "../uor-r4-tokenizer" }
 rayon = "1.10"
 parquet = { version = "60.0.0", default-features = false, features = ["snap", "zstd"], optional = true }
 half = "2.7.1"
+
+[[bin]]
+name = "uor-r4-training"
+path = "src/main.rs"
+required-features = ["historical-reference"]
+
+[[example]]
+name = "geometric-frozen-map-fit"
+path = "examples/geometric-frozen-map-fit.rs"
+required-features = ["historical-reference"]
+
+[[bin]]
+name = "teacher-paraphrase"
+path = "src/bin/teacher-paraphrase.rs"
+required-features = ["historical-reference"]
 
 [[bin]]
 name = "prepare-chat-parquet"
@@ -48,3 +64,13 @@ required-features = ["parquet-input"]
 [[bin]]
 name = "prepare-text-parquet"
 required-features = ["parquet-input"]
+
+[[example]]
+name = "geometric-stack"
+path = "examples/geometric-stack-native.rs"
+required-features = ["native-rung0"]
+
+[[test]]
+name = "d29_compiled_modules"
+path = "tests/d29_compiled_modules.rs"
+required-features = ["cuda"]

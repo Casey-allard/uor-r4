@@ -1,0 +1,74 @@
+[workspace]
+resolver = "2"
+members = ["crates/uor-addr", "crates/uor-addr-c", "crates/uor-addr-wasm"]
+
+# ─── Single source of truth for the release version ────────────────
+#
+# Every crate in this workspace inherits its version + shared package
+# metadata from this table via `version.workspace = true` (etc.) in
+# the per-crate `[package]` section. Inter-crate dependencies pick up
+# the same version through `[workspace.dependencies]` below.
+#
+# The non-Rust binding versions (`bindings/npm/package.json`,
+# `bindings/python/pyproject.toml`) sync from this same version via
+# `tools/sync-versions.py`. CI enforces the sync in `--check` mode;
+# bumping the release version means: edit the `version` field below,
+# then `python3 tools/sync-versions.py`, then commit. Tag and push;
+# the release workflow validates that the pushed tag matches.
+[workspace.package]
+version       = "0.2.0"
+edition       = "2021"
+authors       = ["The UOR Foundation <https://uor.foundation>"]
+license       = "Apache-2.0"
+repository    = "https://github.com/UOR-Foundation/uor-addr"
+homepage      = "https://github.com/UOR-Foundation/uor-addr"
+rust-version  = "1.83"
+
+[workspace.dependencies]
+# Internal workspace crates — version pinned here, inherited by
+# downstream crates via `{ workspace = true }`. The version literal
+# tracks `workspace.package.version`; `tools/sync-versions.py`
+# updates both in lockstep.
+#
+# `default-features = false` is set at the workspace level so per-
+# consumer feature overrides take effect (without it, cargo would
+# silently ignore consumers' `default-features = false` declarations).
+# Each downstream crate opts into the features it needs through its
+# own `features = […]` clause or via its own feature graph.
+uor-addr      = { path = "crates/uor-addr",      version = "0.2.0", default-features = false }
+uor-addr-c    = { path = "crates/uor-addr-c",    version = "0.2.0", default-features = false }
+uor-addr-wasm = { path = "crates/uor-addr-wasm", version = "0.2.0", default-features = false }
+
+# External UOR-Foundation crates.
+# Façade — re-exports the foundation substrate plus the four Layer-3
+# axis sub-crates (`prism::crypto`, `prism::numerics`, `prism::tensor`,
+# `prism::fhe`) and the TC-05 replay surface (`prism::replay`,
+# `prism::seal`). Per ADR-031, downstream Prism applications consume
+# this façade rather than the substrate directly.
+uor-prism          = { version = "0.4", default-features = false }
+# Explicit dep for the GGUF / ONNX realizations' tensor element-type
+# alphabet (`prism::tensor::dtype::TensorDtypeRegistry` + the per-dtype
+# `BLOCK_BYTES` / `BLOCK_ELEMS` metadata). Pulled in only when the
+# `gguf` or `onnx` feature is enabled.
+uor-prism-tensor   = { version = "0.4", default-features = false }
+# Substrate kept as a direct dep because the SDK macros emit code
+# referencing absolute `::uor_foundation::*` paths. This is the same
+# dependency posture every Prism application that uses the SDK macros
+# follows; the façade re-exports cover the import surface, the
+# substrate covers the macro-emission target.
+uor-foundation     = { version = "0.5.2" }
+uor-foundation-sdk = { version = "0.5.2" }
+
+[profile.release]
+opt-level     = 3
+lto           = true
+codegen-units = 1
+panic         = "abort"
+
+[profile.dev]
+opt-level = 0
+debug     = true
+panic     = "abort"
+
+[profile.test]
+opt-level = 1

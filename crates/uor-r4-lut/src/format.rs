@@ -7,7 +7,8 @@
 //!
 //! Two headers share this container: [`Header`] (schema [`SCHEMA`], a converted
 //! Llama checkpoint) and [`StackHeader`] (schema [`STACK_SCHEMA`], the lab's
-//! geometric stack, served by [`crate::stack`]).
+//! geometric stack). Historical serving engines are excluded under D29;
+//! this facade reads and writes their retained metadata only.
 
 use std::path::Path;
 

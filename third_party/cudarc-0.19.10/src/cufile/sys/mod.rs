@@ -1,0 +1,3054 @@
+#![cfg_attr(feature = "no-std", no_std)]
+#![allow(non_camel_case_types)]
+#![allow(non_snake_case)]
+#![allow(dead_code)]
+use std::sync::OnceLock;
+#[cfg(feature = "no-std")]
+extern crate alloc;
+#[cfg(feature = "no-std")]
+extern crate no_std_compat as std;
+#[cfg(feature = "dynamic-loading")]
+fn load<F: Copy>(name: &str) -> F {
+    unsafe { *culib().get::<F>(name.as_bytes()).unwrap_or_else(|e| panic!("Missing symbol {name}: {e}")) }
+}
+pub use self::cudaError_enum as CUresult;
+#[cfg(any(feature = "cuda-11060", feature = "cuda-11070", feature = "cuda-11080", feature = "cuda-12000", feature = "cuda-12010", feature = "cuda-12020", feature = "cuda-12030", feature = "cuda-12040", feature = "cuda-12050", feature = "cuda-12060", feature = "cuda-12080", feature = "cuda-12090", feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+pub use self::cufileBatchMode as CUfileBatchMode_t;
+#[cfg(any(feature = "cuda-11060", feature = "cuda-11070", feature = "cuda-11080", feature = "cuda-12000", feature = "cuda-12010", feature = "cuda-12020", feature = "cuda-12030", feature = "cuda-12040", feature = "cuda-12050", feature = "cuda-12060", feature = "cuda-12080", feature = "cuda-12090", feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+pub use self::CUFILEStatus_enum as CUfileStatus_t;
+pub use self::CUfileDriverControlFlags as CUfileDriverControlFlags_t;
+pub use self::CUfileDriverStatusFlags as CUfileDriverStatusFlags_t;
+pub use self::CUfileFeatureFlags as CUfileFeatureFlags_t;
+#[cfg(any(feature = "cuda-11060", feature = "cuda-11070", feature = "cuda-11080", feature = "cuda-12000", feature = "cuda-12010", feature = "cuda-12020", feature = "cuda-12030", feature = "cuda-12040", feature = "cuda-12050", feature = "cuda-12060", feature = "cuda-12080", feature = "cuda-12090", feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+pub use self::CUfileOpcode as CUfileOpcode_t;
+#[cfg(any(feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+pub use self::CUfileP2PFlags as CUfileP2PFlags_t;
+#[cfg(any(feature = "cuda-11060", feature = "cuda-11070", feature = "cuda-11080", feature = "cuda-12000", feature = "cuda-12010", feature = "cuda-12020", feature = "cuda-12030", feature = "cuda-12040", feature = "cuda-12050", feature = "cuda-12060", feature = "cuda-12080", feature = "cuda-12090", feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+pub type CUfileBatchHandle_t = *mut ::core::ffi::c_void;
+pub type CUfileDrvProps_t = CUfileDrvProps;
+pub type CUfileError_t = CUfileError;
+pub type CUfileFSOps_t = CUfileFSOps;
+pub type CUfileHandle_t = *mut ::core::ffi::c_void;
+#[cfg(any(feature = "cuda-11060", feature = "cuda-11070", feature = "cuda-11080", feature = "cuda-12000", feature = "cuda-12010", feature = "cuda-12020", feature = "cuda-12030", feature = "cuda-12040", feature = "cuda-12050", feature = "cuda-12060", feature = "cuda-12080", feature = "cuda-12090", feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+pub type CUfileIOEvents_t = CUfileIOEvents;
+#[cfg(any(feature = "cuda-11060", feature = "cuda-11070", feature = "cuda-11080", feature = "cuda-12000", feature = "cuda-12010", feature = "cuda-12020", feature = "cuda-12030", feature = "cuda-12040", feature = "cuda-12050", feature = "cuda-12060", feature = "cuda-12080", feature = "cuda-12090", feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+pub type CUfileIOParams_t = CUfileIOParams;
+#[cfg(any(feature = "cuda-13040"))]
+pub type CUfileIOVec_t = CUfileIOVec;
+#[cfg(any(feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+pub type CUfileOpCounter_t = CUfileOpCounter;
+#[cfg(any(feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+pub type CUfilePerGpuStats_t = CUfilePerGpuStats;
+#[cfg(any(feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+pub type CUfileStatsLevel1_t = CUfileStatsLevel1;
+#[cfg(any(feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+pub type CUfileStatsLevel2_t = CUfileStatsLevel2;
+#[cfg(any(feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+pub type CUfileStatsLevel3_t = CUfileStatsLevel3;
+#[cfg(any(feature = "cuda-12020", feature = "cuda-12030", feature = "cuda-12040", feature = "cuda-12050", feature = "cuda-12060", feature = "cuda-12080", feature = "cuda-12090", feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+pub type CUstream = *mut CUstream_st;
+pub type __loff_t = __off64_t;
+pub type __off64_t = ::core::ffi::c_long;
+pub type __off_t = ::core::ffi::c_long;
+#[cfg(any(feature = "cuda-11060", feature = "cuda-11070", feature = "cuda-11080", feature = "cuda-12000", feature = "cuda-12010", feature = "cuda-12020", feature = "cuda-12030", feature = "cuda-12040", feature = "cuda-12050", feature = "cuda-12060", feature = "cuda-12080", feature = "cuda-12090", feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+pub type __syscall_slong_t = ::core::ffi::c_long;
+#[cfg(any(feature = "cuda-11060", feature = "cuda-11070", feature = "cuda-11080", feature = "cuda-12000", feature = "cuda-12010", feature = "cuda-12020", feature = "cuda-12030", feature = "cuda-12040", feature = "cuda-12050", feature = "cuda-12060", feature = "cuda-12080", feature = "cuda-12090", feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+pub type __time_t = ::core::ffi::c_long;
+pub type cufileRDMAInfo_t = cufileRDMAInfo;
+pub type loff_t = __loff_t;
+pub type off_t = __off_t;
+pub type sa_family_t = ::core::ffi::c_ushort;
+pub type sockaddr_t = sockaddr;
+#[cfg(any(feature = "cuda-11060", feature = "cuda-11070", feature = "cuda-11080", feature = "cuda-12000", feature = "cuda-12010", feature = "cuda-12020", feature = "cuda-12030", feature = "cuda-12040", feature = "cuda-12050", feature = "cuda-12060", feature = "cuda-12080", feature = "cuda-12090", feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub enum CUFILEStatus_enum {
+    CUFILE_WAITING = 1,
+    CUFILE_PENDING = 2,
+    CUFILE_INVALID = 4,
+    CUFILE_CANCELED = 8,
+    CUFILE_COMPLETE = 16,
+    CUFILE_TIMEOUT = 32,
+    CUFILE_FAILED = 64,
+}
+#[cfg(any(feature = "cuda-13000", feature = "cuda-13010"))]
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub enum CUFileArrayConfigParameter_t {
+    CUFILE_PARAM_POSIX_POOL_SLAB_SIZE_KB = 0,
+    CUFILE_PARAM_POSIX_POOL_SLAB_COUNT = 1,
+}
+#[cfg(any(feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub enum CUFileArrayConfigParameter_t {
+    CUFILE_PARAM_POSIX_POOL_SLAB_SIZE_KB = 0,
+    CUFILE_PARAM_POSIX_POOL_SLAB_COUNT = 1,
+    CUFILE_PARAM_GPU_BOUNCE_BUFFER_SLAB_SIZE_KB = 2,
+    CUFILE_PARAM_GPU_BOUNCE_BUFFER_SLAB_COUNT = 3,
+}
+#[cfg(any(feature = "cuda-12090", feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030"))]
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub enum CUFileBoolConfigParameter_t {
+    CUFILE_PARAM_PROPERTIES_USE_POLL_MODE = 0,
+    CUFILE_PARAM_PROPERTIES_ALLOW_COMPAT_MODE = 1,
+    CUFILE_PARAM_FORCE_COMPAT_MODE = 2,
+    CUFILE_PARAM_FS_MISC_API_CHECK_AGGRESSIVE = 3,
+    CUFILE_PARAM_EXECUTION_PARALLEL_IO = 4,
+    CUFILE_PARAM_PROFILE_NVTX = 5,
+    CUFILE_PARAM_PROPERTIES_ALLOW_SYSTEM_MEMORY = 6,
+    CUFILE_PARAM_USE_PCIP2PDMA = 7,
+    CUFILE_PARAM_PREFER_IO_URING = 8,
+    CUFILE_PARAM_FORCE_ODIRECT_MODE = 9,
+    CUFILE_PARAM_SKIP_TOPOLOGY_DETECTION = 10,
+    CUFILE_PARAM_STREAM_MEMOPS_BYPASS = 11,
+}
+#[cfg(any(feature = "cuda-13040"))]
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub enum CUFileBoolConfigParameter_t {
+    CUFILE_PARAM_PROPERTIES_USE_POLL_MODE = 0,
+    CUFILE_PARAM_PROPERTIES_ALLOW_COMPAT_MODE = 1,
+    CUFILE_PARAM_FORCE_COMPAT_MODE = 2,
+    CUFILE_PARAM_FS_MISC_API_CHECK_AGGRESSIVE = 3,
+    CUFILE_PARAM_EXECUTION_PARALLEL_IO = 4,
+    CUFILE_PARAM_PROFILE_NVTX = 5,
+    CUFILE_PARAM_PROPERTIES_ALLOW_SYSTEM_MEMORY = 6,
+    CUFILE_PARAM_USE_PCIP2PDMA = 7,
+    CUFILE_PARAM_PREFER_IO_URING = 8,
+    CUFILE_PARAM_FORCE_ODIRECT_MODE = 9,
+    CUFILE_PARAM_SKIP_TOPOLOGY_DETECTION = 10,
+    CUFILE_PARAM_STREAM_MEMOPS_BYPASS = 11,
+    CUFILE_PARAM_PROPERTIES_POSIX_IO_MODE = 12,
+    CUFILE_PARAM_GDS_FALLBACK_IO = 13,
+}
+#[cfg(any(feature = "cuda-12090", feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub enum CUFileSizeTConfigParameter_t {
+    CUFILE_PARAM_PROFILE_STATS = 0,
+    CUFILE_PARAM_EXECUTION_MAX_IO_QUEUE_DEPTH = 1,
+    CUFILE_PARAM_EXECUTION_MAX_IO_THREADS = 2,
+    CUFILE_PARAM_EXECUTION_MIN_IO_THRESHOLD_SIZE_KB = 3,
+    CUFILE_PARAM_EXECUTION_MAX_REQUEST_PARALLELISM = 4,
+    CUFILE_PARAM_PROPERTIES_MAX_DIRECT_IO_SIZE_KB = 5,
+    CUFILE_PARAM_PROPERTIES_MAX_DEVICE_CACHE_SIZE_KB = 6,
+    CUFILE_PARAM_PROPERTIES_PER_BUFFER_CACHE_SIZE_KB = 7,
+    CUFILE_PARAM_PROPERTIES_MAX_DEVICE_PINNED_MEM_SIZE_KB = 8,
+    CUFILE_PARAM_PROPERTIES_IO_BATCHSIZE = 9,
+    CUFILE_PARAM_POLLTHRESHOLD_SIZE_KB = 10,
+    CUFILE_PARAM_PROPERTIES_BATCH_IO_TIMEOUT_MS = 11,
+}
+#[cfg(any(feature = "cuda-12090", feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030"))]
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub enum CUFileStringConfigParameter_t {
+    CUFILE_PARAM_LOGGING_LEVEL = 0,
+    CUFILE_PARAM_ENV_LOGFILE_PATH = 1,
+    CUFILE_PARAM_LOG_DIR = 2,
+}
+#[cfg(any(feature = "cuda-13040"))]
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub enum CUFileStringConfigParameter_t {
+    CUFILE_PARAM_LOGGING_LEVEL = 0,
+    CUFILE_PARAM_ENV_LOGFILE_PATH = 1,
+    CUFILE_PARAM_LOG_DIR = 2,
+    CUFILE_PARAM_RDMA_TRANSPORT = 3,
+}
+#[cfg(any(feature = "cuda-11040", feature = "cuda-11050", feature = "cuda-11060", feature = "cuda-11070", feature = "cuda-11080", feature = "cuda-12000", feature = "cuda-12010", feature = "cuda-12020", feature = "cuda-12030", feature = "cuda-12040", feature = "cuda-12050", feature = "cuda-12060", feature = "cuda-12080", feature = "cuda-12090", feature = "cuda-13000", feature = "cuda-13010"))]
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub enum CUfileDriverControlFlags {
+    CU_FILE_USE_POLL_MODE = 0,
+    CU_FILE_ALLOW_COMPAT_MODE = 1,
+}
+#[cfg(any(feature = "cuda-13020", feature = "cuda-13030"))]
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub enum CUfileDriverControlFlags {
+    CU_FILE_USE_POLL_MODE = 0,
+    CU_FILE_ALLOW_COMPAT_MODE = 1,
+    CU_FILE_POSIX_IO_MODE = 2,
+    CU_FILE_FALLBACK_IO_MODE = 4,
+}
+#[cfg(any(feature = "cuda-13040"))]
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub enum CUfileDriverControlFlags {
+    CU_FILE_USE_POLL_MODE = 0,
+    CU_FILE_ALLOW_COMPAT_MODE = 1,
+    CU_FILE_VANILLA_POSIX_IO_MODE = 2,
+    CU_FILE_FALLBACK_IO_MODE = 4,
+}
+#[cfg(any(feature = "cuda-11040"))]
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub enum CUfileDriverStatusFlags {
+    CU_FILE_LUSTRE_SUPPORTED = 0,
+    CU_FILE_WEKAFS_SUPPORTED = 1,
+    CU_FILE_NFS_SUPPORTED = 2,
+    CU_FILE_GPFS_SUPPORTED = 3,
+    CU_FILE_NVME_SUPPORTED = 4,
+    CU_FILE_NVMEOF_SUPPORTED = 5,
+    CU_FILE_SCSI_SUPPORTED = 6,
+    CU_FILE_SCALEFLUX_CSD_SUPPORTED = 7,
+    CU_FILE_NVMESH_SUPPORTED = 8,
+}
+#[cfg(any(feature = "cuda-11050", feature = "cuda-11060", feature = "cuda-11070", feature = "cuda-11080", feature = "cuda-12000", feature = "cuda-12010", feature = "cuda-12020", feature = "cuda-12030", feature = "cuda-12040", feature = "cuda-12050", feature = "cuda-12060"))]
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub enum CUfileDriverStatusFlags {
+    CU_FILE_LUSTRE_SUPPORTED = 0,
+    CU_FILE_WEKAFS_SUPPORTED = 1,
+    CU_FILE_NFS_SUPPORTED = 2,
+    CU_FILE_GPFS_SUPPORTED = 3,
+    CU_FILE_NVME_SUPPORTED = 4,
+    CU_FILE_NVMEOF_SUPPORTED = 5,
+    CU_FILE_SCSI_SUPPORTED = 6,
+    CU_FILE_SCALEFLUX_CSD_SUPPORTED = 7,
+    CU_FILE_NVMESH_SUPPORTED = 8,
+    CU_FILE_BEEGFS_SUPPORTED = 9,
+}
+#[cfg(any(feature = "cuda-12080"))]
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub enum CUfileDriverStatusFlags {
+    CU_FILE_LUSTRE_SUPPORTED = 0,
+    CU_FILE_WEKAFS_SUPPORTED = 1,
+    CU_FILE_NFS_SUPPORTED = 2,
+    CU_FILE_GPFS_SUPPORTED = 3,
+    CU_FILE_NVME_SUPPORTED = 4,
+    CU_FILE_NVMEOF_SUPPORTED = 5,
+    CU_FILE_SCSI_SUPPORTED = 6,
+    CU_FILE_SCALEFLUX_CSD_SUPPORTED = 7,
+    CU_FILE_NVMESH_SUPPORTED = 8,
+    CU_FILE_BEEGFS_SUPPORTED = 9,
+    CU_FILE_NVME_P2P_SUPPORTED = 11,
+}
+#[cfg(any(feature = "cuda-12090", feature = "cuda-13000"))]
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub enum CUfileDriverStatusFlags {
+    CU_FILE_LUSTRE_SUPPORTED = 0,
+    CU_FILE_WEKAFS_SUPPORTED = 1,
+    CU_FILE_NFS_SUPPORTED = 2,
+    CU_FILE_GPFS_SUPPORTED = 3,
+    CU_FILE_NVME_SUPPORTED = 4,
+    CU_FILE_NVMEOF_SUPPORTED = 5,
+    CU_FILE_SCSI_SUPPORTED = 6,
+    CU_FILE_SCALEFLUX_CSD_SUPPORTED = 7,
+    CU_FILE_NVMESH_SUPPORTED = 8,
+    CU_FILE_BEEGFS_SUPPORTED = 9,
+    CU_FILE_NVME_P2P_SUPPORTED = 11,
+    CU_FILE_SCATEFS_SUPPORTED = 12,
+}
+#[cfg(any(feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030"))]
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub enum CUfileDriverStatusFlags {
+    CU_FILE_LUSTRE_SUPPORTED = 0,
+    CU_FILE_WEKAFS_SUPPORTED = 1,
+    CU_FILE_NFS_SUPPORTED = 2,
+    CU_FILE_GPFS_SUPPORTED = 3,
+    CU_FILE_NVME_SUPPORTED = 4,
+    CU_FILE_NVMEOF_SUPPORTED = 5,
+    CU_FILE_SCSI_SUPPORTED = 6,
+    CU_FILE_SCALEFLUX_CSD_SUPPORTED = 7,
+    CU_FILE_NVMESH_SUPPORTED = 8,
+    CU_FILE_BEEGFS_SUPPORTED = 9,
+    CU_FILE_NVME_P2P_SUPPORTED = 11,
+    CU_FILE_SCATEFS_SUPPORTED = 12,
+    CU_FILE_VIRTIOFS_SUPPORTED = 13,
+    CU_FILE_MAX_TARGET_TYPES = 14,
+}
+#[cfg(any(feature = "cuda-13040"))]
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub enum CUfileDriverStatusFlags {
+    CU_FILE_LUSTRE_SUPPORTED = 0,
+    CU_FILE_WEKAFS_SUPPORTED = 1,
+    CU_FILE_NFS_SUPPORTED = 2,
+    CU_FILE_GPFS_SUPPORTED = 3,
+    CU_FILE_NVME_SUPPORTED = 4,
+    CU_FILE_NVMEOF_SUPPORTED = 5,
+    CU_FILE_SCSI_SUPPORTED = 6,
+    CU_FILE_SCALEFLUX_CSD_SUPPORTED = 7,
+    CU_FILE_NVMESH_SUPPORTED = 8,
+    CU_FILE_BEEGFS_SUPPORTED = 9,
+    CU_FILE_NVME_P2P_SUPPORTED = 11,
+    CU_FILE_SCATEFS_SUPPORTED = 12,
+    CU_FILE_VIRTIOFS_SUPPORTED = 13,
+    CU_FILE_PANFS_SUPPORTED = 14,
+    CU_FILE_MAX_TARGET_TYPES = 15,
+}
+#[cfg(any(feature = "cuda-11040", feature = "cuda-11050", feature = "cuda-11060", feature = "cuda-11070", feature = "cuda-11080", feature = "cuda-12000", feature = "cuda-12010", feature = "cuda-12020"))]
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub enum CUfileFeatureFlags {
+    CU_FILE_DYN_ROUTING_SUPPORTED = 0,
+    CU_FILE_BATCH_IO_SUPPORTED = 1,
+    CU_FILE_STREAMS_SUPPORTED = 2,
+}
+#[cfg(any(feature = "cuda-12030", feature = "cuda-12040", feature = "cuda-12050", feature = "cuda-12060", feature = "cuda-12080", feature = "cuda-12090", feature = "cuda-13000"))]
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub enum CUfileFeatureFlags {
+    CU_FILE_DYN_ROUTING_SUPPORTED = 0,
+    CU_FILE_BATCH_IO_SUPPORTED = 1,
+    CU_FILE_STREAMS_SUPPORTED = 2,
+    CU_FILE_PARALLEL_IO_SUPPORTED = 3,
+}
+#[cfg(any(feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub enum CUfileFeatureFlags {
+    CU_FILE_DYN_ROUTING_SUPPORTED = 0,
+    CU_FILE_BATCH_IO_SUPPORTED = 1,
+    CU_FILE_STREAMS_SUPPORTED = 2,
+    CU_FILE_PARALLEL_IO_SUPPORTED = 3,
+    CU_FILE_P2P_SUPPORTED = 4,
+}
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub enum CUfileFileHandleType {
+    CU_FILE_HANDLE_TYPE_OPAQUE_FD = 1,
+    CU_FILE_HANDLE_TYPE_OPAQUE_WIN32 = 2,
+    CU_FILE_HANDLE_TYPE_USERSPACE_FS = 3,
+}
+#[cfg(any(feature = "cuda-11040"))]
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub enum CUfileOpError {
+    CU_FILE_SUCCESS = 0,
+    CU_FILE_DRIVER_NOT_INITIALIZED = 5001,
+    CU_FILE_DRIVER_INVALID_PROPS = 5002,
+    CU_FILE_DRIVER_UNSUPPORTED_LIMIT = 5003,
+    CU_FILE_DRIVER_VERSION_MISMATCH = 5004,
+    CU_FILE_DRIVER_VERSION_READ_ERROR = 5005,
+    CU_FILE_DRIVER_CLOSING = 5006,
+    CU_FILE_PLATFORM_NOT_SUPPORTED = 5007,
+    CU_FILE_IO_NOT_SUPPORTED = 5008,
+    CU_FILE_DEVICE_NOT_SUPPORTED = 5009,
+    CU_FILE_NVFS_DRIVER_ERROR = 5010,
+    CU_FILE_CUDA_DRIVER_ERROR = 5011,
+    CU_FILE_CUDA_POINTER_INVALID = 5012,
+    CU_FILE_CUDA_MEMORY_TYPE_INVALID = 5013,
+    CU_FILE_CUDA_POINTER_RANGE_ERROR = 5014,
+    CU_FILE_CUDA_CONTEXT_MISMATCH = 5015,
+    CU_FILE_INVALID_MAPPING_SIZE = 5016,
+    CU_FILE_INVALID_MAPPING_RANGE = 5017,
+    CU_FILE_INVALID_FILE_TYPE = 5018,
+    CU_FILE_INVALID_FILE_OPEN_FLAG = 5019,
+    CU_FILE_DIO_NOT_SET = 5020,
+    CU_FILE_INVALID_VALUE = 5022,
+    CU_FILE_MEMORY_ALREADY_REGISTERED = 5023,
+    CU_FILE_MEMORY_NOT_REGISTERED = 5024,
+    CU_FILE_PERMISSION_DENIED = 5025,
+    CU_FILE_DRIVER_ALREADY_OPEN = 5026,
+    CU_FILE_HANDLE_NOT_REGISTERED = 5027,
+    CU_FILE_HANDLE_ALREADY_REGISTERED = 5028,
+    CU_FILE_DEVICE_NOT_FOUND = 5029,
+    CU_FILE_INTERNAL_ERROR = 5030,
+    CU_FILE_GETNEWFD_FAILED = 5031,
+    CU_FILE_NVFS_SETUP_ERROR = 5033,
+    CU_FILE_IO_DISABLED = 5034,
+}
+#[cfg(any(feature = "cuda-11050"))]
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub enum CUfileOpError {
+    CU_FILE_SUCCESS = 0,
+    CU_FILE_DRIVER_NOT_INITIALIZED = 5001,
+    CU_FILE_DRIVER_INVALID_PROPS = 5002,
+    CU_FILE_DRIVER_UNSUPPORTED_LIMIT = 5003,
+    CU_FILE_DRIVER_VERSION_MISMATCH = 5004,
+    CU_FILE_DRIVER_VERSION_READ_ERROR = 5005,
+    CU_FILE_DRIVER_CLOSING = 5006,
+    CU_FILE_PLATFORM_NOT_SUPPORTED = 5007,
+    CU_FILE_IO_NOT_SUPPORTED = 5008,
+    CU_FILE_DEVICE_NOT_SUPPORTED = 5009,
+    CU_FILE_NVFS_DRIVER_ERROR = 5010,
+    CU_FILE_CUDA_DRIVER_ERROR = 5011,
+    CU_FILE_CUDA_POINTER_INVALID = 5012,
+    CU_FILE_CUDA_MEMORY_TYPE_INVALID = 5013,
+    CU_FILE_CUDA_POINTER_RANGE_ERROR = 5014,
+    CU_FILE_CUDA_CONTEXT_MISMATCH = 5015,
+    CU_FILE_INVALID_MAPPING_SIZE = 5016,
+    CU_FILE_INVALID_MAPPING_RANGE = 5017,
+    CU_FILE_INVALID_FILE_TYPE = 5018,
+    CU_FILE_INVALID_FILE_OPEN_FLAG = 5019,
+    CU_FILE_DIO_NOT_SET = 5020,
+    CU_FILE_INVALID_VALUE = 5022,
+    CU_FILE_MEMORY_ALREADY_REGISTERED = 5023,
+    CU_FILE_MEMORY_NOT_REGISTERED = 5024,
+    CU_FILE_PERMISSION_DENIED = 5025,
+    CU_FILE_DRIVER_ALREADY_OPEN = 5026,
+    CU_FILE_HANDLE_NOT_REGISTERED = 5027,
+    CU_FILE_HANDLE_ALREADY_REGISTERED = 5028,
+    CU_FILE_DEVICE_NOT_FOUND = 5029,
+    CU_FILE_INTERNAL_ERROR = 5030,
+    CU_FILE_GETNEWFD_FAILED = 5031,
+    CU_FILE_NVFS_SETUP_ERROR = 5033,
+    CU_FILE_IO_DISABLED = 5034,
+    CU_FILE_IO_MAX_ERROR = 5035,
+}
+#[cfg(any(feature = "cuda-11060", feature = "cuda-11070", feature = "cuda-11080"))]
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub enum CUfileOpError {
+    CU_FILE_SUCCESS = 0,
+    CU_FILE_DRIVER_NOT_INITIALIZED = 5001,
+    CU_FILE_DRIVER_INVALID_PROPS = 5002,
+    CU_FILE_DRIVER_UNSUPPORTED_LIMIT = 5003,
+    CU_FILE_DRIVER_VERSION_MISMATCH = 5004,
+    CU_FILE_DRIVER_VERSION_READ_ERROR = 5005,
+    CU_FILE_DRIVER_CLOSING = 5006,
+    CU_FILE_PLATFORM_NOT_SUPPORTED = 5007,
+    CU_FILE_IO_NOT_SUPPORTED = 5008,
+    CU_FILE_DEVICE_NOT_SUPPORTED = 5009,
+    CU_FILE_NVFS_DRIVER_ERROR = 5010,
+    CU_FILE_CUDA_DRIVER_ERROR = 5011,
+    CU_FILE_CUDA_POINTER_INVALID = 5012,
+    CU_FILE_CUDA_MEMORY_TYPE_INVALID = 5013,
+    CU_FILE_CUDA_POINTER_RANGE_ERROR = 5014,
+    CU_FILE_CUDA_CONTEXT_MISMATCH = 5015,
+    CU_FILE_INVALID_MAPPING_SIZE = 5016,
+    CU_FILE_INVALID_MAPPING_RANGE = 5017,
+    CU_FILE_INVALID_FILE_TYPE = 5018,
+    CU_FILE_INVALID_FILE_OPEN_FLAG = 5019,
+    CU_FILE_DIO_NOT_SET = 5020,
+    CU_FILE_INVALID_VALUE = 5022,
+    CU_FILE_MEMORY_ALREADY_REGISTERED = 5023,
+    CU_FILE_MEMORY_NOT_REGISTERED = 5024,
+    CU_FILE_PERMISSION_DENIED = 5025,
+    CU_FILE_DRIVER_ALREADY_OPEN = 5026,
+    CU_FILE_HANDLE_NOT_REGISTERED = 5027,
+    CU_FILE_HANDLE_ALREADY_REGISTERED = 5028,
+    CU_FILE_DEVICE_NOT_FOUND = 5029,
+    CU_FILE_INTERNAL_ERROR = 5030,
+    CU_FILE_GETNEWFD_FAILED = 5031,
+    CU_FILE_NVFS_SETUP_ERROR = 5033,
+    CU_FILE_IO_DISABLED = 5034,
+    CU_FILE_BATCH_SUBMIT_FAILED = 5035,
+    CU_FILE_GPU_MEMORY_PINNING_FAILED = 5036,
+    CU_FILE_IO_MAX_ERROR = 5037,
+}
+#[cfg(any(feature = "cuda-12000", feature = "cuda-12010"))]
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub enum CUfileOpError {
+    CU_FILE_SUCCESS = 0,
+    CU_FILE_DRIVER_NOT_INITIALIZED = 5001,
+    CU_FILE_DRIVER_INVALID_PROPS = 5002,
+    CU_FILE_DRIVER_UNSUPPORTED_LIMIT = 5003,
+    CU_FILE_DRIVER_VERSION_MISMATCH = 5004,
+    CU_FILE_DRIVER_VERSION_READ_ERROR = 5005,
+    CU_FILE_DRIVER_CLOSING = 5006,
+    CU_FILE_PLATFORM_NOT_SUPPORTED = 5007,
+    CU_FILE_IO_NOT_SUPPORTED = 5008,
+    CU_FILE_DEVICE_NOT_SUPPORTED = 5009,
+    CU_FILE_NVFS_DRIVER_ERROR = 5010,
+    CU_FILE_CUDA_DRIVER_ERROR = 5011,
+    CU_FILE_CUDA_POINTER_INVALID = 5012,
+    CU_FILE_CUDA_MEMORY_TYPE_INVALID = 5013,
+    CU_FILE_CUDA_POINTER_RANGE_ERROR = 5014,
+    CU_FILE_CUDA_CONTEXT_MISMATCH = 5015,
+    CU_FILE_INVALID_MAPPING_SIZE = 5016,
+    CU_FILE_INVALID_MAPPING_RANGE = 5017,
+    CU_FILE_INVALID_FILE_TYPE = 5018,
+    CU_FILE_INVALID_FILE_OPEN_FLAG = 5019,
+    CU_FILE_DIO_NOT_SET = 5020,
+    CU_FILE_INVALID_VALUE = 5022,
+    CU_FILE_MEMORY_ALREADY_REGISTERED = 5023,
+    CU_FILE_MEMORY_NOT_REGISTERED = 5024,
+    CU_FILE_PERMISSION_DENIED = 5025,
+    CU_FILE_DRIVER_ALREADY_OPEN = 5026,
+    CU_FILE_HANDLE_NOT_REGISTERED = 5027,
+    CU_FILE_HANDLE_ALREADY_REGISTERED = 5028,
+    CU_FILE_DEVICE_NOT_FOUND = 5029,
+    CU_FILE_INTERNAL_ERROR = 5030,
+    CU_FILE_GETNEWFD_FAILED = 5031,
+    CU_FILE_NVFS_SETUP_ERROR = 5033,
+    CU_FILE_IO_DISABLED = 5034,
+    CU_FILE_BATCH_SUBMIT_FAILED = 5035,
+    CU_FILE_GPU_MEMORY_PINNING_FAILED = 5036,
+    CU_FILE_BATCH_FULL = 5037,
+    CU_FILE_IO_MAX_ERROR = 5038,
+}
+#[cfg(any(feature = "cuda-12020", feature = "cuda-12030", feature = "cuda-12040", feature = "cuda-12050", feature = "cuda-12060", feature = "cuda-12080", feature = "cuda-12090"))]
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub enum CUfileOpError {
+    CU_FILE_SUCCESS = 0,
+    CU_FILE_DRIVER_NOT_INITIALIZED = 5001,
+    CU_FILE_DRIVER_INVALID_PROPS = 5002,
+    CU_FILE_DRIVER_UNSUPPORTED_LIMIT = 5003,
+    CU_FILE_DRIVER_VERSION_MISMATCH = 5004,
+    CU_FILE_DRIVER_VERSION_READ_ERROR = 5005,
+    CU_FILE_DRIVER_CLOSING = 5006,
+    CU_FILE_PLATFORM_NOT_SUPPORTED = 5007,
+    CU_FILE_IO_NOT_SUPPORTED = 5008,
+    CU_FILE_DEVICE_NOT_SUPPORTED = 5009,
+    CU_FILE_NVFS_DRIVER_ERROR = 5010,
+    CU_FILE_CUDA_DRIVER_ERROR = 5011,
+    CU_FILE_CUDA_POINTER_INVALID = 5012,
+    CU_FILE_CUDA_MEMORY_TYPE_INVALID = 5013,
+    CU_FILE_CUDA_POINTER_RANGE_ERROR = 5014,
+    CU_FILE_CUDA_CONTEXT_MISMATCH = 5015,
+    CU_FILE_INVALID_MAPPING_SIZE = 5016,
+    CU_FILE_INVALID_MAPPING_RANGE = 5017,
+    CU_FILE_INVALID_FILE_TYPE = 5018,
+    CU_FILE_INVALID_FILE_OPEN_FLAG = 5019,
+    CU_FILE_DIO_NOT_SET = 5020,
+    CU_FILE_INVALID_VALUE = 5022,
+    CU_FILE_MEMORY_ALREADY_REGISTERED = 5023,
+    CU_FILE_MEMORY_NOT_REGISTERED = 5024,
+    CU_FILE_PERMISSION_DENIED = 5025,
+    CU_FILE_DRIVER_ALREADY_OPEN = 5026,
+    CU_FILE_HANDLE_NOT_REGISTERED = 5027,
+    CU_FILE_HANDLE_ALREADY_REGISTERED = 5028,
+    CU_FILE_DEVICE_NOT_FOUND = 5029,
+    CU_FILE_INTERNAL_ERROR = 5030,
+    CU_FILE_GETNEWFD_FAILED = 5031,
+    CU_FILE_NVFS_SETUP_ERROR = 5033,
+    CU_FILE_IO_DISABLED = 5034,
+    CU_FILE_BATCH_SUBMIT_FAILED = 5035,
+    CU_FILE_GPU_MEMORY_PINNING_FAILED = 5036,
+    CU_FILE_BATCH_FULL = 5037,
+    CU_FILE_ASYNC_NOT_SUPPORTED = 5038,
+    CU_FILE_IO_MAX_ERROR = 5039,
+}
+#[cfg(any(feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub enum CUfileOpError {
+    CU_FILE_SUCCESS = 0,
+    CU_FILE_DRIVER_NOT_INITIALIZED = 5001,
+    CU_FILE_DRIVER_INVALID_PROPS = 5002,
+    CU_FILE_DRIVER_UNSUPPORTED_LIMIT = 5003,
+    CU_FILE_DRIVER_VERSION_MISMATCH = 5004,
+    CU_FILE_DRIVER_VERSION_READ_ERROR = 5005,
+    CU_FILE_DRIVER_CLOSING = 5006,
+    CU_FILE_PLATFORM_NOT_SUPPORTED = 5007,
+    CU_FILE_IO_NOT_SUPPORTED = 5008,
+    CU_FILE_DEVICE_NOT_SUPPORTED = 5009,
+    CU_FILE_NVFS_DRIVER_ERROR = 5010,
+    CU_FILE_CUDA_DRIVER_ERROR = 5011,
+    CU_FILE_CUDA_POINTER_INVALID = 5012,
+    CU_FILE_CUDA_MEMORY_TYPE_INVALID = 5013,
+    CU_FILE_CUDA_POINTER_RANGE_ERROR = 5014,
+    CU_FILE_CUDA_CONTEXT_MISMATCH = 5015,
+    CU_FILE_INVALID_MAPPING_SIZE = 5016,
+    CU_FILE_INVALID_MAPPING_RANGE = 5017,
+    CU_FILE_INVALID_FILE_TYPE = 5018,
+    CU_FILE_INVALID_FILE_OPEN_FLAG = 5019,
+    CU_FILE_DIO_NOT_SET = 5020,
+    CU_FILE_INVALID_VALUE = 5022,
+    CU_FILE_MEMORY_ALREADY_REGISTERED = 5023,
+    CU_FILE_MEMORY_NOT_REGISTERED = 5024,
+    CU_FILE_PERMISSION_DENIED = 5025,
+    CU_FILE_DRIVER_ALREADY_OPEN = 5026,
+    CU_FILE_HANDLE_NOT_REGISTERED = 5027,
+    CU_FILE_HANDLE_ALREADY_REGISTERED = 5028,
+    CU_FILE_DEVICE_NOT_FOUND = 5029,
+    CU_FILE_INTERNAL_ERROR = 5030,
+    CU_FILE_GETNEWFD_FAILED = 5031,
+    CU_FILE_NVFS_SETUP_ERROR = 5033,
+    CU_FILE_IO_DISABLED = 5034,
+    CU_FILE_BATCH_SUBMIT_FAILED = 5035,
+    CU_FILE_GPU_MEMORY_PINNING_FAILED = 5036,
+    CU_FILE_BATCH_FULL = 5037,
+    CU_FILE_ASYNC_NOT_SUPPORTED = 5038,
+    CU_FILE_INTERNAL_BATCH_SETUP_ERROR = 5039,
+    CU_FILE_INTERNAL_BATCH_SUBMIT_ERROR = 5040,
+    CU_FILE_INTERNAL_BATCH_GETSTATUS_ERROR = 5041,
+    CU_FILE_INTERNAL_BATCH_CANCEL_ERROR = 5042,
+    CU_FILE_NOMEM_ERROR = 5043,
+    CU_FILE_IO_ERROR = 5044,
+    CU_FILE_INTERNAL_BUF_REGISTER_ERROR = 5045,
+    CU_FILE_HASH_OPR_ERROR = 5046,
+    CU_FILE_INVALID_CONTEXT_ERROR = 5047,
+    CU_FILE_NVFS_INTERNAL_DRIVER_ERROR = 5048,
+    CU_FILE_BATCH_NOCOMPAT_ERROR = 5049,
+    CU_FILE_IO_MAX_ERROR = 5050,
+}
+#[cfg(any(feature = "cuda-11060", feature = "cuda-11070", feature = "cuda-11080", feature = "cuda-12000", feature = "cuda-12010", feature = "cuda-12020", feature = "cuda-12030", feature = "cuda-12040", feature = "cuda-12050", feature = "cuda-12060", feature = "cuda-12080", feature = "cuda-12090", feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub enum CUfileOpcode {
+    CUFILE_READ = 0,
+    CUFILE_WRITE = 1,
+}
+#[cfg(any(feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub enum CUfileP2PFlags {
+    CUFILE_P2PDMA = 0,
+    CUFILE_NVFS = 1,
+    CUFILE_DMABUF = 2,
+    CUFILE_C2C = 3,
+    CUFILE_NVIDIA_PEERMEM = 4,
+}
+#[cfg(any(feature = "cuda-11040", feature = "cuda-11050", feature = "cuda-11060"))]
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub enum cudaError_enum {
+    CUDA_SUCCESS = 0,
+    CUDA_ERROR_INVALID_VALUE = 1,
+    CUDA_ERROR_OUT_OF_MEMORY = 2,
+    CUDA_ERROR_NOT_INITIALIZED = 3,
+    CUDA_ERROR_DEINITIALIZED = 4,
+    CUDA_ERROR_PROFILER_DISABLED = 5,
+    CUDA_ERROR_PROFILER_NOT_INITIALIZED = 6,
+    CUDA_ERROR_PROFILER_ALREADY_STARTED = 7,
+    CUDA_ERROR_PROFILER_ALREADY_STOPPED = 8,
+    CUDA_ERROR_STUB_LIBRARY = 34,
+    CUDA_ERROR_NO_DEVICE = 100,
+    CUDA_ERROR_INVALID_DEVICE = 101,
+    CUDA_ERROR_DEVICE_NOT_LICENSED = 102,
+    CUDA_ERROR_INVALID_IMAGE = 200,
+    CUDA_ERROR_INVALID_CONTEXT = 201,
+    CUDA_ERROR_CONTEXT_ALREADY_CURRENT = 202,
+    CUDA_ERROR_MAP_FAILED = 205,
+    CUDA_ERROR_UNMAP_FAILED = 206,
+    CUDA_ERROR_ARRAY_IS_MAPPED = 207,
+    CUDA_ERROR_ALREADY_MAPPED = 208,
+    CUDA_ERROR_NO_BINARY_FOR_GPU = 209,
+    CUDA_ERROR_ALREADY_ACQUIRED = 210,
+    CUDA_ERROR_NOT_MAPPED = 211,
+    CUDA_ERROR_NOT_MAPPED_AS_ARRAY = 212,
+    CUDA_ERROR_NOT_MAPPED_AS_POINTER = 213,
+    CUDA_ERROR_ECC_UNCORRECTABLE = 214,
+    CUDA_ERROR_UNSUPPORTED_LIMIT = 215,
+    CUDA_ERROR_CONTEXT_ALREADY_IN_USE = 216,
+    CUDA_ERROR_PEER_ACCESS_UNSUPPORTED = 217,
+    CUDA_ERROR_INVALID_PTX = 218,
+    CUDA_ERROR_INVALID_GRAPHICS_CONTEXT = 219,
+    CUDA_ERROR_NVLINK_UNCORRECTABLE = 220,
+    CUDA_ERROR_JIT_COMPILER_NOT_FOUND = 221,
+    CUDA_ERROR_UNSUPPORTED_PTX_VERSION = 222,
+    CUDA_ERROR_JIT_COMPILATION_DISABLED = 223,
+    CUDA_ERROR_UNSUPPORTED_EXEC_AFFINITY = 224,
+    CUDA_ERROR_INVALID_SOURCE = 300,
+    CUDA_ERROR_FILE_NOT_FOUND = 301,
+    CUDA_ERROR_SHARED_OBJECT_SYMBOL_NOT_FOUND = 302,
+    CUDA_ERROR_SHARED_OBJECT_INIT_FAILED = 303,
+    CUDA_ERROR_OPERATING_SYSTEM = 304,
+    CUDA_ERROR_INVALID_HANDLE = 400,
+    CUDA_ERROR_ILLEGAL_STATE = 401,
+    CUDA_ERROR_NOT_FOUND = 500,
+    CUDA_ERROR_NOT_READY = 600,
+    CUDA_ERROR_ILLEGAL_ADDRESS = 700,
+    CUDA_ERROR_LAUNCH_OUT_OF_RESOURCES = 701,
+    CUDA_ERROR_LAUNCH_TIMEOUT = 702,
+    CUDA_ERROR_LAUNCH_INCOMPATIBLE_TEXTURING = 703,
+    CUDA_ERROR_PEER_ACCESS_ALREADY_ENABLED = 704,
+    CUDA_ERROR_PEER_ACCESS_NOT_ENABLED = 705,
+    CUDA_ERROR_PRIMARY_CONTEXT_ACTIVE = 708,
+    CUDA_ERROR_CONTEXT_IS_DESTROYED = 709,
+    CUDA_ERROR_ASSERT = 710,
+    CUDA_ERROR_TOO_MANY_PEERS = 711,
+    CUDA_ERROR_HOST_MEMORY_ALREADY_REGISTERED = 712,
+    CUDA_ERROR_HOST_MEMORY_NOT_REGISTERED = 713,
+    CUDA_ERROR_HARDWARE_STACK_ERROR = 714,
+    CUDA_ERROR_ILLEGAL_INSTRUCTION = 715,
+    CUDA_ERROR_MISALIGNED_ADDRESS = 716,
+    CUDA_ERROR_INVALID_ADDRESS_SPACE = 717,
+    CUDA_ERROR_INVALID_PC = 718,
+    CUDA_ERROR_LAUNCH_FAILED = 719,
+    CUDA_ERROR_COOPERATIVE_LAUNCH_TOO_LARGE = 720,
+    CUDA_ERROR_NOT_PERMITTED = 800,
+    CUDA_ERROR_NOT_SUPPORTED = 801,
+    CUDA_ERROR_SYSTEM_NOT_READY = 802,
+    CUDA_ERROR_SYSTEM_DRIVER_MISMATCH = 803,
+    CUDA_ERROR_COMPAT_NOT_SUPPORTED_ON_DEVICE = 804,
+    CUDA_ERROR_MPS_CONNECTION_FAILED = 805,
+    CUDA_ERROR_MPS_RPC_FAILURE = 806,
+    CUDA_ERROR_MPS_SERVER_NOT_READY = 807,
+    CUDA_ERROR_MPS_MAX_CLIENTS_REACHED = 808,
+    CUDA_ERROR_MPS_MAX_CONNECTIONS_REACHED = 809,
+    CUDA_ERROR_STREAM_CAPTURE_UNSUPPORTED = 900,
+    CUDA_ERROR_STREAM_CAPTURE_INVALIDATED = 901,
+    CUDA_ERROR_STREAM_CAPTURE_MERGE = 902,
+    CUDA_ERROR_STREAM_CAPTURE_UNMATCHED = 903,
+    CUDA_ERROR_STREAM_CAPTURE_UNJOINED = 904,
+    CUDA_ERROR_STREAM_CAPTURE_ISOLATION = 905,
+    CUDA_ERROR_STREAM_CAPTURE_IMPLICIT = 906,
+    CUDA_ERROR_CAPTURED_EVENT = 907,
+    CUDA_ERROR_STREAM_CAPTURE_WRONG_THREAD = 908,
+    CUDA_ERROR_TIMEOUT = 909,
+    CUDA_ERROR_GRAPH_EXEC_UPDATE_FAILURE = 910,
+    CUDA_ERROR_EXTERNAL_DEVICE = 911,
+    CUDA_ERROR_UNKNOWN = 999,
+}
+#[cfg(any(feature = "cuda-11070"))]
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub enum cudaError_enum {
+    CUDA_SUCCESS = 0,
+    CUDA_ERROR_INVALID_VALUE = 1,
+    CUDA_ERROR_OUT_OF_MEMORY = 2,
+    CUDA_ERROR_NOT_INITIALIZED = 3,
+    CUDA_ERROR_DEINITIALIZED = 4,
+    CUDA_ERROR_PROFILER_DISABLED = 5,
+    CUDA_ERROR_PROFILER_NOT_INITIALIZED = 6,
+    CUDA_ERROR_PROFILER_ALREADY_STARTED = 7,
+    CUDA_ERROR_PROFILER_ALREADY_STOPPED = 8,
+    CUDA_ERROR_STUB_LIBRARY = 34,
+    CUDA_ERROR_DEVICE_UNAVAILABLE = 46,
+    CUDA_ERROR_NO_DEVICE = 100,
+    CUDA_ERROR_INVALID_DEVICE = 101,
+    CUDA_ERROR_DEVICE_NOT_LICENSED = 102,
+    CUDA_ERROR_INVALID_IMAGE = 200,
+    CUDA_ERROR_INVALID_CONTEXT = 201,
+    CUDA_ERROR_CONTEXT_ALREADY_CURRENT = 202,
+    CUDA_ERROR_MAP_FAILED = 205,
+    CUDA_ERROR_UNMAP_FAILED = 206,
+    CUDA_ERROR_ARRAY_IS_MAPPED = 207,
+    CUDA_ERROR_ALREADY_MAPPED = 208,
+    CUDA_ERROR_NO_BINARY_FOR_GPU = 209,
+    CUDA_ERROR_ALREADY_ACQUIRED = 210,
+    CUDA_ERROR_NOT_MAPPED = 211,
+    CUDA_ERROR_NOT_MAPPED_AS_ARRAY = 212,
+    CUDA_ERROR_NOT_MAPPED_AS_POINTER = 213,
+    CUDA_ERROR_ECC_UNCORRECTABLE = 214,
+    CUDA_ERROR_UNSUPPORTED_LIMIT = 215,
+    CUDA_ERROR_CONTEXT_ALREADY_IN_USE = 216,
+    CUDA_ERROR_PEER_ACCESS_UNSUPPORTED = 217,
+    CUDA_ERROR_INVALID_PTX = 218,
+    CUDA_ERROR_INVALID_GRAPHICS_CONTEXT = 219,
+    CUDA_ERROR_NVLINK_UNCORRECTABLE = 220,
+    CUDA_ERROR_JIT_COMPILER_NOT_FOUND = 221,
+    CUDA_ERROR_UNSUPPORTED_PTX_VERSION = 222,
+    CUDA_ERROR_JIT_COMPILATION_DISABLED = 223,
+    CUDA_ERROR_UNSUPPORTED_EXEC_AFFINITY = 224,
+    CUDA_ERROR_INVALID_SOURCE = 300,
+    CUDA_ERROR_FILE_NOT_FOUND = 301,
+    CUDA_ERROR_SHARED_OBJECT_SYMBOL_NOT_FOUND = 302,
+    CUDA_ERROR_SHARED_OBJECT_INIT_FAILED = 303,
+    CUDA_ERROR_OPERATING_SYSTEM = 304,
+    CUDA_ERROR_INVALID_HANDLE = 400,
+    CUDA_ERROR_ILLEGAL_STATE = 401,
+    CUDA_ERROR_NOT_FOUND = 500,
+    CUDA_ERROR_NOT_READY = 600,
+    CUDA_ERROR_ILLEGAL_ADDRESS = 700,
+    CUDA_ERROR_LAUNCH_OUT_OF_RESOURCES = 701,
+    CUDA_ERROR_LAUNCH_TIMEOUT = 702,
+    CUDA_ERROR_LAUNCH_INCOMPATIBLE_TEXTURING = 703,
+    CUDA_ERROR_PEER_ACCESS_ALREADY_ENABLED = 704,
+    CUDA_ERROR_PEER_ACCESS_NOT_ENABLED = 705,
+    CUDA_ERROR_PRIMARY_CONTEXT_ACTIVE = 708,
+    CUDA_ERROR_CONTEXT_IS_DESTROYED = 709,
+    CUDA_ERROR_ASSERT = 710,
+    CUDA_ERROR_TOO_MANY_PEERS = 711,
+    CUDA_ERROR_HOST_MEMORY_ALREADY_REGISTERED = 712,
+    CUDA_ERROR_HOST_MEMORY_NOT_REGISTERED = 713,
+    CUDA_ERROR_HARDWARE_STACK_ERROR = 714,
+    CUDA_ERROR_ILLEGAL_INSTRUCTION = 715,
+    CUDA_ERROR_MISALIGNED_ADDRESS = 716,
+    CUDA_ERROR_INVALID_ADDRESS_SPACE = 717,
+    CUDA_ERROR_INVALID_PC = 718,
+    CUDA_ERROR_LAUNCH_FAILED = 719,
+    CUDA_ERROR_COOPERATIVE_LAUNCH_TOO_LARGE = 720,
+    CUDA_ERROR_NOT_PERMITTED = 800,
+    CUDA_ERROR_NOT_SUPPORTED = 801,
+    CUDA_ERROR_SYSTEM_NOT_READY = 802,
+    CUDA_ERROR_SYSTEM_DRIVER_MISMATCH = 803,
+    CUDA_ERROR_COMPAT_NOT_SUPPORTED_ON_DEVICE = 804,
+    CUDA_ERROR_MPS_CONNECTION_FAILED = 805,
+    CUDA_ERROR_MPS_RPC_FAILURE = 806,
+    CUDA_ERROR_MPS_SERVER_NOT_READY = 807,
+    CUDA_ERROR_MPS_MAX_CLIENTS_REACHED = 808,
+    CUDA_ERROR_MPS_MAX_CONNECTIONS_REACHED = 809,
+    CUDA_ERROR_STREAM_CAPTURE_UNSUPPORTED = 900,
+    CUDA_ERROR_STREAM_CAPTURE_INVALIDATED = 901,
+    CUDA_ERROR_STREAM_CAPTURE_MERGE = 902,
+    CUDA_ERROR_STREAM_CAPTURE_UNMATCHED = 903,
+    CUDA_ERROR_STREAM_CAPTURE_UNJOINED = 904,
+    CUDA_ERROR_STREAM_CAPTURE_ISOLATION = 905,
+    CUDA_ERROR_STREAM_CAPTURE_IMPLICIT = 906,
+    CUDA_ERROR_CAPTURED_EVENT = 907,
+    CUDA_ERROR_STREAM_CAPTURE_WRONG_THREAD = 908,
+    CUDA_ERROR_TIMEOUT = 909,
+    CUDA_ERROR_GRAPH_EXEC_UPDATE_FAILURE = 910,
+    CUDA_ERROR_EXTERNAL_DEVICE = 911,
+    CUDA_ERROR_UNKNOWN = 999,
+}
+#[cfg(any(feature = "cuda-11080"))]
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub enum cudaError_enum {
+    CUDA_SUCCESS = 0,
+    CUDA_ERROR_INVALID_VALUE = 1,
+    CUDA_ERROR_OUT_OF_MEMORY = 2,
+    CUDA_ERROR_NOT_INITIALIZED = 3,
+    CUDA_ERROR_DEINITIALIZED = 4,
+    CUDA_ERROR_PROFILER_DISABLED = 5,
+    CUDA_ERROR_PROFILER_NOT_INITIALIZED = 6,
+    CUDA_ERROR_PROFILER_ALREADY_STARTED = 7,
+    CUDA_ERROR_PROFILER_ALREADY_STOPPED = 8,
+    CUDA_ERROR_STUB_LIBRARY = 34,
+    CUDA_ERROR_DEVICE_UNAVAILABLE = 46,
+    CUDA_ERROR_NO_DEVICE = 100,
+    CUDA_ERROR_INVALID_DEVICE = 101,
+    CUDA_ERROR_DEVICE_NOT_LICENSED = 102,
+    CUDA_ERROR_INVALID_IMAGE = 200,
+    CUDA_ERROR_INVALID_CONTEXT = 201,
+    CUDA_ERROR_CONTEXT_ALREADY_CURRENT = 202,
+    CUDA_ERROR_MAP_FAILED = 205,
+    CUDA_ERROR_UNMAP_FAILED = 206,
+    CUDA_ERROR_ARRAY_IS_MAPPED = 207,
+    CUDA_ERROR_ALREADY_MAPPED = 208,
+    CUDA_ERROR_NO_BINARY_FOR_GPU = 209,
+    CUDA_ERROR_ALREADY_ACQUIRED = 210,
+    CUDA_ERROR_NOT_MAPPED = 211,
+    CUDA_ERROR_NOT_MAPPED_AS_ARRAY = 212,
+    CUDA_ERROR_NOT_MAPPED_AS_POINTER = 213,
+    CUDA_ERROR_ECC_UNCORRECTABLE = 214,
+    CUDA_ERROR_UNSUPPORTED_LIMIT = 215,
+    CUDA_ERROR_CONTEXT_ALREADY_IN_USE = 216,
+    CUDA_ERROR_PEER_ACCESS_UNSUPPORTED = 217,
+    CUDA_ERROR_INVALID_PTX = 218,
+    CUDA_ERROR_INVALID_GRAPHICS_CONTEXT = 219,
+    CUDA_ERROR_NVLINK_UNCORRECTABLE = 220,
+    CUDA_ERROR_JIT_COMPILER_NOT_FOUND = 221,
+    CUDA_ERROR_UNSUPPORTED_PTX_VERSION = 222,
+    CUDA_ERROR_JIT_COMPILATION_DISABLED = 223,
+    CUDA_ERROR_UNSUPPORTED_EXEC_AFFINITY = 224,
+    CUDA_ERROR_INVALID_SOURCE = 300,
+    CUDA_ERROR_FILE_NOT_FOUND = 301,
+    CUDA_ERROR_SHARED_OBJECT_SYMBOL_NOT_FOUND = 302,
+    CUDA_ERROR_SHARED_OBJECT_INIT_FAILED = 303,
+    CUDA_ERROR_OPERATING_SYSTEM = 304,
+    CUDA_ERROR_INVALID_HANDLE = 400,
+    CUDA_ERROR_ILLEGAL_STATE = 401,
+    CUDA_ERROR_NOT_FOUND = 500,
+    CUDA_ERROR_NOT_READY = 600,
+    CUDA_ERROR_ILLEGAL_ADDRESS = 700,
+    CUDA_ERROR_LAUNCH_OUT_OF_RESOURCES = 701,
+    CUDA_ERROR_LAUNCH_TIMEOUT = 702,
+    CUDA_ERROR_LAUNCH_INCOMPATIBLE_TEXTURING = 703,
+    CUDA_ERROR_PEER_ACCESS_ALREADY_ENABLED = 704,
+    CUDA_ERROR_PEER_ACCESS_NOT_ENABLED = 705,
+    CUDA_ERROR_PRIMARY_CONTEXT_ACTIVE = 708,
+    CUDA_ERROR_CONTEXT_IS_DESTROYED = 709,
+    CUDA_ERROR_ASSERT = 710,
+    CUDA_ERROR_TOO_MANY_PEERS = 711,
+    CUDA_ERROR_HOST_MEMORY_ALREADY_REGISTERED = 712,
+    CUDA_ERROR_HOST_MEMORY_NOT_REGISTERED = 713,
+    CUDA_ERROR_HARDWARE_STACK_ERROR = 714,
+    CUDA_ERROR_ILLEGAL_INSTRUCTION = 715,
+    CUDA_ERROR_MISALIGNED_ADDRESS = 716,
+    CUDA_ERROR_INVALID_ADDRESS_SPACE = 717,
+    CUDA_ERROR_INVALID_PC = 718,
+    CUDA_ERROR_LAUNCH_FAILED = 719,
+    CUDA_ERROR_COOPERATIVE_LAUNCH_TOO_LARGE = 720,
+    CUDA_ERROR_NOT_PERMITTED = 800,
+    CUDA_ERROR_NOT_SUPPORTED = 801,
+    CUDA_ERROR_SYSTEM_NOT_READY = 802,
+    CUDA_ERROR_SYSTEM_DRIVER_MISMATCH = 803,
+    CUDA_ERROR_COMPAT_NOT_SUPPORTED_ON_DEVICE = 804,
+    CUDA_ERROR_MPS_CONNECTION_FAILED = 805,
+    CUDA_ERROR_MPS_RPC_FAILURE = 806,
+    CUDA_ERROR_MPS_SERVER_NOT_READY = 807,
+    CUDA_ERROR_MPS_MAX_CLIENTS_REACHED = 808,
+    CUDA_ERROR_MPS_MAX_CONNECTIONS_REACHED = 809,
+    CUDA_ERROR_MPS_CLIENT_TERMINATED = 810,
+    CUDA_ERROR_STREAM_CAPTURE_UNSUPPORTED = 900,
+    CUDA_ERROR_STREAM_CAPTURE_INVALIDATED = 901,
+    CUDA_ERROR_STREAM_CAPTURE_MERGE = 902,
+    CUDA_ERROR_STREAM_CAPTURE_UNMATCHED = 903,
+    CUDA_ERROR_STREAM_CAPTURE_UNJOINED = 904,
+    CUDA_ERROR_STREAM_CAPTURE_ISOLATION = 905,
+    CUDA_ERROR_STREAM_CAPTURE_IMPLICIT = 906,
+    CUDA_ERROR_CAPTURED_EVENT = 907,
+    CUDA_ERROR_STREAM_CAPTURE_WRONG_THREAD = 908,
+    CUDA_ERROR_TIMEOUT = 909,
+    CUDA_ERROR_GRAPH_EXEC_UPDATE_FAILURE = 910,
+    CUDA_ERROR_EXTERNAL_DEVICE = 911,
+    CUDA_ERROR_INVALID_CLUSTER_SIZE = 912,
+    CUDA_ERROR_UNKNOWN = 999,
+}
+#[cfg(any(feature = "cuda-12000"))]
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub enum cudaError_enum {
+    CUDA_SUCCESS = 0,
+    CUDA_ERROR_INVALID_VALUE = 1,
+    CUDA_ERROR_OUT_OF_MEMORY = 2,
+    CUDA_ERROR_NOT_INITIALIZED = 3,
+    CUDA_ERROR_DEINITIALIZED = 4,
+    CUDA_ERROR_PROFILER_DISABLED = 5,
+    CUDA_ERROR_PROFILER_NOT_INITIALIZED = 6,
+    CUDA_ERROR_PROFILER_ALREADY_STARTED = 7,
+    CUDA_ERROR_PROFILER_ALREADY_STOPPED = 8,
+    CUDA_ERROR_STUB_LIBRARY = 34,
+    CUDA_ERROR_DEVICE_UNAVAILABLE = 46,
+    CUDA_ERROR_NO_DEVICE = 100,
+    CUDA_ERROR_INVALID_DEVICE = 101,
+    CUDA_ERROR_DEVICE_NOT_LICENSED = 102,
+    CUDA_ERROR_INVALID_IMAGE = 200,
+    CUDA_ERROR_INVALID_CONTEXT = 201,
+    CUDA_ERROR_CONTEXT_ALREADY_CURRENT = 202,
+    CUDA_ERROR_MAP_FAILED = 205,
+    CUDA_ERROR_UNMAP_FAILED = 206,
+    CUDA_ERROR_ARRAY_IS_MAPPED = 207,
+    CUDA_ERROR_ALREADY_MAPPED = 208,
+    CUDA_ERROR_NO_BINARY_FOR_GPU = 209,
+    CUDA_ERROR_ALREADY_ACQUIRED = 210,
+    CUDA_ERROR_NOT_MAPPED = 211,
+    CUDA_ERROR_NOT_MAPPED_AS_ARRAY = 212,
+    CUDA_ERROR_NOT_MAPPED_AS_POINTER = 213,
+    CUDA_ERROR_ECC_UNCORRECTABLE = 214,
+    CUDA_ERROR_UNSUPPORTED_LIMIT = 215,
+    CUDA_ERROR_CONTEXT_ALREADY_IN_USE = 216,
+    CUDA_ERROR_PEER_ACCESS_UNSUPPORTED = 217,
+    CUDA_ERROR_INVALID_PTX = 218,
+    CUDA_ERROR_INVALID_GRAPHICS_CONTEXT = 219,
+    CUDA_ERROR_NVLINK_UNCORRECTABLE = 220,
+    CUDA_ERROR_JIT_COMPILER_NOT_FOUND = 221,
+    CUDA_ERROR_UNSUPPORTED_PTX_VERSION = 222,
+    CUDA_ERROR_JIT_COMPILATION_DISABLED = 223,
+    CUDA_ERROR_UNSUPPORTED_EXEC_AFFINITY = 224,
+    CUDA_ERROR_INVALID_SOURCE = 300,
+    CUDA_ERROR_FILE_NOT_FOUND = 301,
+    CUDA_ERROR_SHARED_OBJECT_SYMBOL_NOT_FOUND = 302,
+    CUDA_ERROR_SHARED_OBJECT_INIT_FAILED = 303,
+    CUDA_ERROR_OPERATING_SYSTEM = 304,
+    CUDA_ERROR_INVALID_HANDLE = 400,
+    CUDA_ERROR_ILLEGAL_STATE = 401,
+    CUDA_ERROR_NOT_FOUND = 500,
+    CUDA_ERROR_NOT_READY = 600,
+    CUDA_ERROR_ILLEGAL_ADDRESS = 700,
+    CUDA_ERROR_LAUNCH_OUT_OF_RESOURCES = 701,
+    CUDA_ERROR_LAUNCH_TIMEOUT = 702,
+    CUDA_ERROR_LAUNCH_INCOMPATIBLE_TEXTURING = 703,
+    CUDA_ERROR_PEER_ACCESS_ALREADY_ENABLED = 704,
+    CUDA_ERROR_PEER_ACCESS_NOT_ENABLED = 705,
+    CUDA_ERROR_PRIMARY_CONTEXT_ACTIVE = 708,
+    CUDA_ERROR_CONTEXT_IS_DESTROYED = 709,
+    CUDA_ERROR_ASSERT = 710,
+    CUDA_ERROR_TOO_MANY_PEERS = 711,
+    CUDA_ERROR_HOST_MEMORY_ALREADY_REGISTERED = 712,
+    CUDA_ERROR_HOST_MEMORY_NOT_REGISTERED = 713,
+    CUDA_ERROR_HARDWARE_STACK_ERROR = 714,
+    CUDA_ERROR_ILLEGAL_INSTRUCTION = 715,
+    CUDA_ERROR_MISALIGNED_ADDRESS = 716,
+    CUDA_ERROR_INVALID_ADDRESS_SPACE = 717,
+    CUDA_ERROR_INVALID_PC = 718,
+    CUDA_ERROR_LAUNCH_FAILED = 719,
+    CUDA_ERROR_COOPERATIVE_LAUNCH_TOO_LARGE = 720,
+    CUDA_ERROR_NOT_PERMITTED = 800,
+    CUDA_ERROR_NOT_SUPPORTED = 801,
+    CUDA_ERROR_SYSTEM_NOT_READY = 802,
+    CUDA_ERROR_SYSTEM_DRIVER_MISMATCH = 803,
+    CUDA_ERROR_COMPAT_NOT_SUPPORTED_ON_DEVICE = 804,
+    CUDA_ERROR_MPS_CONNECTION_FAILED = 805,
+    CUDA_ERROR_MPS_RPC_FAILURE = 806,
+    CUDA_ERROR_MPS_SERVER_NOT_READY = 807,
+    CUDA_ERROR_MPS_MAX_CLIENTS_REACHED = 808,
+    CUDA_ERROR_MPS_MAX_CONNECTIONS_REACHED = 809,
+    CUDA_ERROR_MPS_CLIENT_TERMINATED = 810,
+    CUDA_ERROR_CDP_NOT_SUPPORTED = 811,
+    CUDA_ERROR_CDP_VERSION_MISMATCH = 812,
+    CUDA_ERROR_STREAM_CAPTURE_UNSUPPORTED = 900,
+    CUDA_ERROR_STREAM_CAPTURE_INVALIDATED = 901,
+    CUDA_ERROR_STREAM_CAPTURE_MERGE = 902,
+    CUDA_ERROR_STREAM_CAPTURE_UNMATCHED = 903,
+    CUDA_ERROR_STREAM_CAPTURE_UNJOINED = 904,
+    CUDA_ERROR_STREAM_CAPTURE_ISOLATION = 905,
+    CUDA_ERROR_STREAM_CAPTURE_IMPLICIT = 906,
+    CUDA_ERROR_CAPTURED_EVENT = 907,
+    CUDA_ERROR_STREAM_CAPTURE_WRONG_THREAD = 908,
+    CUDA_ERROR_TIMEOUT = 909,
+    CUDA_ERROR_GRAPH_EXEC_UPDATE_FAILURE = 910,
+    CUDA_ERROR_EXTERNAL_DEVICE = 911,
+    CUDA_ERROR_INVALID_CLUSTER_SIZE = 912,
+    CUDA_ERROR_UNKNOWN = 999,
+}
+#[cfg(any(feature = "cuda-12010", feature = "cuda-12020"))]
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub enum cudaError_enum {
+    CUDA_SUCCESS = 0,
+    CUDA_ERROR_INVALID_VALUE = 1,
+    CUDA_ERROR_OUT_OF_MEMORY = 2,
+    CUDA_ERROR_NOT_INITIALIZED = 3,
+    CUDA_ERROR_DEINITIALIZED = 4,
+    CUDA_ERROR_PROFILER_DISABLED = 5,
+    CUDA_ERROR_PROFILER_NOT_INITIALIZED = 6,
+    CUDA_ERROR_PROFILER_ALREADY_STARTED = 7,
+    CUDA_ERROR_PROFILER_ALREADY_STOPPED = 8,
+    CUDA_ERROR_STUB_LIBRARY = 34,
+    CUDA_ERROR_DEVICE_UNAVAILABLE = 46,
+    CUDA_ERROR_NO_DEVICE = 100,
+    CUDA_ERROR_INVALID_DEVICE = 101,
+    CUDA_ERROR_DEVICE_NOT_LICENSED = 102,
+    CUDA_ERROR_INVALID_IMAGE = 200,
+    CUDA_ERROR_INVALID_CONTEXT = 201,
+    CUDA_ERROR_CONTEXT_ALREADY_CURRENT = 202,
+    CUDA_ERROR_MAP_FAILED = 205,
+    CUDA_ERROR_UNMAP_FAILED = 206,
+    CUDA_ERROR_ARRAY_IS_MAPPED = 207,
+    CUDA_ERROR_ALREADY_MAPPED = 208,
+    CUDA_ERROR_NO_BINARY_FOR_GPU = 209,
+    CUDA_ERROR_ALREADY_ACQUIRED = 210,
+    CUDA_ERROR_NOT_MAPPED = 211,
+    CUDA_ERROR_NOT_MAPPED_AS_ARRAY = 212,
+    CUDA_ERROR_NOT_MAPPED_AS_POINTER = 213,
+    CUDA_ERROR_ECC_UNCORRECTABLE = 214,
+    CUDA_ERROR_UNSUPPORTED_LIMIT = 215,
+    CUDA_ERROR_CONTEXT_ALREADY_IN_USE = 216,
+    CUDA_ERROR_PEER_ACCESS_UNSUPPORTED = 217,
+    CUDA_ERROR_INVALID_PTX = 218,
+    CUDA_ERROR_INVALID_GRAPHICS_CONTEXT = 219,
+    CUDA_ERROR_NVLINK_UNCORRECTABLE = 220,
+    CUDA_ERROR_JIT_COMPILER_NOT_FOUND = 221,
+    CUDA_ERROR_UNSUPPORTED_PTX_VERSION = 222,
+    CUDA_ERROR_JIT_COMPILATION_DISABLED = 223,
+    CUDA_ERROR_UNSUPPORTED_EXEC_AFFINITY = 224,
+    CUDA_ERROR_UNSUPPORTED_DEVSIDE_SYNC = 225,
+    CUDA_ERROR_INVALID_SOURCE = 300,
+    CUDA_ERROR_FILE_NOT_FOUND = 301,
+    CUDA_ERROR_SHARED_OBJECT_SYMBOL_NOT_FOUND = 302,
+    CUDA_ERROR_SHARED_OBJECT_INIT_FAILED = 303,
+    CUDA_ERROR_OPERATING_SYSTEM = 304,
+    CUDA_ERROR_INVALID_HANDLE = 400,
+    CUDA_ERROR_ILLEGAL_STATE = 401,
+    CUDA_ERROR_NOT_FOUND = 500,
+    CUDA_ERROR_NOT_READY = 600,
+    CUDA_ERROR_ILLEGAL_ADDRESS = 700,
+    CUDA_ERROR_LAUNCH_OUT_OF_RESOURCES = 701,
+    CUDA_ERROR_LAUNCH_TIMEOUT = 702,
+    CUDA_ERROR_LAUNCH_INCOMPATIBLE_TEXTURING = 703,
+    CUDA_ERROR_PEER_ACCESS_ALREADY_ENABLED = 704,
+    CUDA_ERROR_PEER_ACCESS_NOT_ENABLED = 705,
+    CUDA_ERROR_PRIMARY_CONTEXT_ACTIVE = 708,
+    CUDA_ERROR_CONTEXT_IS_DESTROYED = 709,
+    CUDA_ERROR_ASSERT = 710,
+    CUDA_ERROR_TOO_MANY_PEERS = 711,
+    CUDA_ERROR_HOST_MEMORY_ALREADY_REGISTERED = 712,
+    CUDA_ERROR_HOST_MEMORY_NOT_REGISTERED = 713,
+    CUDA_ERROR_HARDWARE_STACK_ERROR = 714,
+    CUDA_ERROR_ILLEGAL_INSTRUCTION = 715,
+    CUDA_ERROR_MISALIGNED_ADDRESS = 716,
+    CUDA_ERROR_INVALID_ADDRESS_SPACE = 717,
+    CUDA_ERROR_INVALID_PC = 718,
+    CUDA_ERROR_LAUNCH_FAILED = 719,
+    CUDA_ERROR_COOPERATIVE_LAUNCH_TOO_LARGE = 720,
+    CUDA_ERROR_NOT_PERMITTED = 800,
+    CUDA_ERROR_NOT_SUPPORTED = 801,
+    CUDA_ERROR_SYSTEM_NOT_READY = 802,
+    CUDA_ERROR_SYSTEM_DRIVER_MISMATCH = 803,
+    CUDA_ERROR_COMPAT_NOT_SUPPORTED_ON_DEVICE = 804,
+    CUDA_ERROR_MPS_CONNECTION_FAILED = 805,
+    CUDA_ERROR_MPS_RPC_FAILURE = 806,
+    CUDA_ERROR_MPS_SERVER_NOT_READY = 807,
+    CUDA_ERROR_MPS_MAX_CLIENTS_REACHED = 808,
+    CUDA_ERROR_MPS_MAX_CONNECTIONS_REACHED = 809,
+    CUDA_ERROR_MPS_CLIENT_TERMINATED = 810,
+    CUDA_ERROR_CDP_NOT_SUPPORTED = 811,
+    CUDA_ERROR_CDP_VERSION_MISMATCH = 812,
+    CUDA_ERROR_STREAM_CAPTURE_UNSUPPORTED = 900,
+    CUDA_ERROR_STREAM_CAPTURE_INVALIDATED = 901,
+    CUDA_ERROR_STREAM_CAPTURE_MERGE = 902,
+    CUDA_ERROR_STREAM_CAPTURE_UNMATCHED = 903,
+    CUDA_ERROR_STREAM_CAPTURE_UNJOINED = 904,
+    CUDA_ERROR_STREAM_CAPTURE_ISOLATION = 905,
+    CUDA_ERROR_STREAM_CAPTURE_IMPLICIT = 906,
+    CUDA_ERROR_CAPTURED_EVENT = 907,
+    CUDA_ERROR_STREAM_CAPTURE_WRONG_THREAD = 908,
+    CUDA_ERROR_TIMEOUT = 909,
+    CUDA_ERROR_GRAPH_EXEC_UPDATE_FAILURE = 910,
+    CUDA_ERROR_EXTERNAL_DEVICE = 911,
+    CUDA_ERROR_INVALID_CLUSTER_SIZE = 912,
+    CUDA_ERROR_UNKNOWN = 999,
+}
+#[cfg(any(feature = "cuda-12030"))]
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub enum cudaError_enum {
+    CUDA_SUCCESS = 0,
+    CUDA_ERROR_INVALID_VALUE = 1,
+    CUDA_ERROR_OUT_OF_MEMORY = 2,
+    CUDA_ERROR_NOT_INITIALIZED = 3,
+    CUDA_ERROR_DEINITIALIZED = 4,
+    CUDA_ERROR_PROFILER_DISABLED = 5,
+    CUDA_ERROR_PROFILER_NOT_INITIALIZED = 6,
+    CUDA_ERROR_PROFILER_ALREADY_STARTED = 7,
+    CUDA_ERROR_PROFILER_ALREADY_STOPPED = 8,
+    CUDA_ERROR_STUB_LIBRARY = 34,
+    CUDA_ERROR_DEVICE_UNAVAILABLE = 46,
+    CUDA_ERROR_NO_DEVICE = 100,
+    CUDA_ERROR_INVALID_DEVICE = 101,
+    CUDA_ERROR_DEVICE_NOT_LICENSED = 102,
+    CUDA_ERROR_INVALID_IMAGE = 200,
+    CUDA_ERROR_INVALID_CONTEXT = 201,
+    CUDA_ERROR_CONTEXT_ALREADY_CURRENT = 202,
+    CUDA_ERROR_MAP_FAILED = 205,
+    CUDA_ERROR_UNMAP_FAILED = 206,
+    CUDA_ERROR_ARRAY_IS_MAPPED = 207,
+    CUDA_ERROR_ALREADY_MAPPED = 208,
+    CUDA_ERROR_NO_BINARY_FOR_GPU = 209,
+    CUDA_ERROR_ALREADY_ACQUIRED = 210,
+    CUDA_ERROR_NOT_MAPPED = 211,
+    CUDA_ERROR_NOT_MAPPED_AS_ARRAY = 212,
+    CUDA_ERROR_NOT_MAPPED_AS_POINTER = 213,
+    CUDA_ERROR_ECC_UNCORRECTABLE = 214,
+    CUDA_ERROR_UNSUPPORTED_LIMIT = 215,
+    CUDA_ERROR_CONTEXT_ALREADY_IN_USE = 216,
+    CUDA_ERROR_PEER_ACCESS_UNSUPPORTED = 217,
+    CUDA_ERROR_INVALID_PTX = 218,
+    CUDA_ERROR_INVALID_GRAPHICS_CONTEXT = 219,
+    CUDA_ERROR_NVLINK_UNCORRECTABLE = 220,
+    CUDA_ERROR_JIT_COMPILER_NOT_FOUND = 221,
+    CUDA_ERROR_UNSUPPORTED_PTX_VERSION = 222,
+    CUDA_ERROR_JIT_COMPILATION_DISABLED = 223,
+    CUDA_ERROR_UNSUPPORTED_EXEC_AFFINITY = 224,
+    CUDA_ERROR_UNSUPPORTED_DEVSIDE_SYNC = 225,
+    CUDA_ERROR_INVALID_SOURCE = 300,
+    CUDA_ERROR_FILE_NOT_FOUND = 301,
+    CUDA_ERROR_SHARED_OBJECT_SYMBOL_NOT_FOUND = 302,
+    CUDA_ERROR_SHARED_OBJECT_INIT_FAILED = 303,
+    CUDA_ERROR_OPERATING_SYSTEM = 304,
+    CUDA_ERROR_INVALID_HANDLE = 400,
+    CUDA_ERROR_ILLEGAL_STATE = 401,
+    CUDA_ERROR_LOSSY_QUERY = 402,
+    CUDA_ERROR_NOT_FOUND = 500,
+    CUDA_ERROR_NOT_READY = 600,
+    CUDA_ERROR_ILLEGAL_ADDRESS = 700,
+    CUDA_ERROR_LAUNCH_OUT_OF_RESOURCES = 701,
+    CUDA_ERROR_LAUNCH_TIMEOUT = 702,
+    CUDA_ERROR_LAUNCH_INCOMPATIBLE_TEXTURING = 703,
+    CUDA_ERROR_PEER_ACCESS_ALREADY_ENABLED = 704,
+    CUDA_ERROR_PEER_ACCESS_NOT_ENABLED = 705,
+    CUDA_ERROR_PRIMARY_CONTEXT_ACTIVE = 708,
+    CUDA_ERROR_CONTEXT_IS_DESTROYED = 709,
+    CUDA_ERROR_ASSERT = 710,
+    CUDA_ERROR_TOO_MANY_PEERS = 711,
+    CUDA_ERROR_HOST_MEMORY_ALREADY_REGISTERED = 712,
+    CUDA_ERROR_HOST_MEMORY_NOT_REGISTERED = 713,
+    CUDA_ERROR_HARDWARE_STACK_ERROR = 714,
+    CUDA_ERROR_ILLEGAL_INSTRUCTION = 715,
+    CUDA_ERROR_MISALIGNED_ADDRESS = 716,
+    CUDA_ERROR_INVALID_ADDRESS_SPACE = 717,
+    CUDA_ERROR_INVALID_PC = 718,
+    CUDA_ERROR_LAUNCH_FAILED = 719,
+    CUDA_ERROR_COOPERATIVE_LAUNCH_TOO_LARGE = 720,
+    CUDA_ERROR_NOT_PERMITTED = 800,
+    CUDA_ERROR_NOT_SUPPORTED = 801,
+    CUDA_ERROR_SYSTEM_NOT_READY = 802,
+    CUDA_ERROR_SYSTEM_DRIVER_MISMATCH = 803,
+    CUDA_ERROR_COMPAT_NOT_SUPPORTED_ON_DEVICE = 804,
+    CUDA_ERROR_MPS_CONNECTION_FAILED = 805,
+    CUDA_ERROR_MPS_RPC_FAILURE = 806,
+    CUDA_ERROR_MPS_SERVER_NOT_READY = 807,
+    CUDA_ERROR_MPS_MAX_CLIENTS_REACHED = 808,
+    CUDA_ERROR_MPS_MAX_CONNECTIONS_REACHED = 809,
+    CUDA_ERROR_MPS_CLIENT_TERMINATED = 810,
+    CUDA_ERROR_CDP_NOT_SUPPORTED = 811,
+    CUDA_ERROR_CDP_VERSION_MISMATCH = 812,
+    CUDA_ERROR_STREAM_CAPTURE_UNSUPPORTED = 900,
+    CUDA_ERROR_STREAM_CAPTURE_INVALIDATED = 901,
+    CUDA_ERROR_STREAM_CAPTURE_MERGE = 902,
+    CUDA_ERROR_STREAM_CAPTURE_UNMATCHED = 903,
+    CUDA_ERROR_STREAM_CAPTURE_UNJOINED = 904,
+    CUDA_ERROR_STREAM_CAPTURE_ISOLATION = 905,
+    CUDA_ERROR_STREAM_CAPTURE_IMPLICIT = 906,
+    CUDA_ERROR_CAPTURED_EVENT = 907,
+    CUDA_ERROR_STREAM_CAPTURE_WRONG_THREAD = 908,
+    CUDA_ERROR_TIMEOUT = 909,
+    CUDA_ERROR_GRAPH_EXEC_UPDATE_FAILURE = 910,
+    CUDA_ERROR_EXTERNAL_DEVICE = 911,
+    CUDA_ERROR_INVALID_CLUSTER_SIZE = 912,
+    CUDA_ERROR_UNKNOWN = 999,
+}
+#[cfg(any(feature = "cuda-12040", feature = "cuda-12050", feature = "cuda-12060"))]
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub enum cudaError_enum {
+    CUDA_SUCCESS = 0,
+    CUDA_ERROR_INVALID_VALUE = 1,
+    CUDA_ERROR_OUT_OF_MEMORY = 2,
+    CUDA_ERROR_NOT_INITIALIZED = 3,
+    CUDA_ERROR_DEINITIALIZED = 4,
+    CUDA_ERROR_PROFILER_DISABLED = 5,
+    CUDA_ERROR_PROFILER_NOT_INITIALIZED = 6,
+    CUDA_ERROR_PROFILER_ALREADY_STARTED = 7,
+    CUDA_ERROR_PROFILER_ALREADY_STOPPED = 8,
+    CUDA_ERROR_STUB_LIBRARY = 34,
+    CUDA_ERROR_DEVICE_UNAVAILABLE = 46,
+    CUDA_ERROR_NO_DEVICE = 100,
+    CUDA_ERROR_INVALID_DEVICE = 101,
+    CUDA_ERROR_DEVICE_NOT_LICENSED = 102,
+    CUDA_ERROR_INVALID_IMAGE = 200,
+    CUDA_ERROR_INVALID_CONTEXT = 201,
+    CUDA_ERROR_CONTEXT_ALREADY_CURRENT = 202,
+    CUDA_ERROR_MAP_FAILED = 205,
+    CUDA_ERROR_UNMAP_FAILED = 206,
+    CUDA_ERROR_ARRAY_IS_MAPPED = 207,
+    CUDA_ERROR_ALREADY_MAPPED = 208,
+    CUDA_ERROR_NO_BINARY_FOR_GPU = 209,
+    CUDA_ERROR_ALREADY_ACQUIRED = 210,
+    CUDA_ERROR_NOT_MAPPED = 211,
+    CUDA_ERROR_NOT_MAPPED_AS_ARRAY = 212,
+    CUDA_ERROR_NOT_MAPPED_AS_POINTER = 213,
+    CUDA_ERROR_ECC_UNCORRECTABLE = 214,
+    CUDA_ERROR_UNSUPPORTED_LIMIT = 215,
+    CUDA_ERROR_CONTEXT_ALREADY_IN_USE = 216,
+    CUDA_ERROR_PEER_ACCESS_UNSUPPORTED = 217,
+    CUDA_ERROR_INVALID_PTX = 218,
+    CUDA_ERROR_INVALID_GRAPHICS_CONTEXT = 219,
+    CUDA_ERROR_NVLINK_UNCORRECTABLE = 220,
+    CUDA_ERROR_JIT_COMPILER_NOT_FOUND = 221,
+    CUDA_ERROR_UNSUPPORTED_PTX_VERSION = 222,
+    CUDA_ERROR_JIT_COMPILATION_DISABLED = 223,
+    CUDA_ERROR_UNSUPPORTED_EXEC_AFFINITY = 224,
+    CUDA_ERROR_UNSUPPORTED_DEVSIDE_SYNC = 225,
+    CUDA_ERROR_INVALID_SOURCE = 300,
+    CUDA_ERROR_FILE_NOT_FOUND = 301,
+    CUDA_ERROR_SHARED_OBJECT_SYMBOL_NOT_FOUND = 302,
+    CUDA_ERROR_SHARED_OBJECT_INIT_FAILED = 303,
+    CUDA_ERROR_OPERATING_SYSTEM = 304,
+    CUDA_ERROR_INVALID_HANDLE = 400,
+    CUDA_ERROR_ILLEGAL_STATE = 401,
+    CUDA_ERROR_LOSSY_QUERY = 402,
+    CUDA_ERROR_NOT_FOUND = 500,
+    CUDA_ERROR_NOT_READY = 600,
+    CUDA_ERROR_ILLEGAL_ADDRESS = 700,
+    CUDA_ERROR_LAUNCH_OUT_OF_RESOURCES = 701,
+    CUDA_ERROR_LAUNCH_TIMEOUT = 702,
+    CUDA_ERROR_LAUNCH_INCOMPATIBLE_TEXTURING = 703,
+    CUDA_ERROR_PEER_ACCESS_ALREADY_ENABLED = 704,
+    CUDA_ERROR_PEER_ACCESS_NOT_ENABLED = 705,
+    CUDA_ERROR_PRIMARY_CONTEXT_ACTIVE = 708,
+    CUDA_ERROR_CONTEXT_IS_DESTROYED = 709,
+    CUDA_ERROR_ASSERT = 710,
+    CUDA_ERROR_TOO_MANY_PEERS = 711,
+    CUDA_ERROR_HOST_MEMORY_ALREADY_REGISTERED = 712,
+    CUDA_ERROR_HOST_MEMORY_NOT_REGISTERED = 713,
+    CUDA_ERROR_HARDWARE_STACK_ERROR = 714,
+    CUDA_ERROR_ILLEGAL_INSTRUCTION = 715,
+    CUDA_ERROR_MISALIGNED_ADDRESS = 716,
+    CUDA_ERROR_INVALID_ADDRESS_SPACE = 717,
+    CUDA_ERROR_INVALID_PC = 718,
+    CUDA_ERROR_LAUNCH_FAILED = 719,
+    CUDA_ERROR_COOPERATIVE_LAUNCH_TOO_LARGE = 720,
+    CUDA_ERROR_NOT_PERMITTED = 800,
+    CUDA_ERROR_NOT_SUPPORTED = 801,
+    CUDA_ERROR_SYSTEM_NOT_READY = 802,
+    CUDA_ERROR_SYSTEM_DRIVER_MISMATCH = 803,
+    CUDA_ERROR_COMPAT_NOT_SUPPORTED_ON_DEVICE = 804,
+    CUDA_ERROR_MPS_CONNECTION_FAILED = 805,
+    CUDA_ERROR_MPS_RPC_FAILURE = 806,
+    CUDA_ERROR_MPS_SERVER_NOT_READY = 807,
+    CUDA_ERROR_MPS_MAX_CLIENTS_REACHED = 808,
+    CUDA_ERROR_MPS_MAX_CONNECTIONS_REACHED = 809,
+    CUDA_ERROR_MPS_CLIENT_TERMINATED = 810,
+    CUDA_ERROR_CDP_NOT_SUPPORTED = 811,
+    CUDA_ERROR_CDP_VERSION_MISMATCH = 812,
+    CUDA_ERROR_STREAM_CAPTURE_UNSUPPORTED = 900,
+    CUDA_ERROR_STREAM_CAPTURE_INVALIDATED = 901,
+    CUDA_ERROR_STREAM_CAPTURE_MERGE = 902,
+    CUDA_ERROR_STREAM_CAPTURE_UNMATCHED = 903,
+    CUDA_ERROR_STREAM_CAPTURE_UNJOINED = 904,
+    CUDA_ERROR_STREAM_CAPTURE_ISOLATION = 905,
+    CUDA_ERROR_STREAM_CAPTURE_IMPLICIT = 906,
+    CUDA_ERROR_CAPTURED_EVENT = 907,
+    CUDA_ERROR_STREAM_CAPTURE_WRONG_THREAD = 908,
+    CUDA_ERROR_TIMEOUT = 909,
+    CUDA_ERROR_GRAPH_EXEC_UPDATE_FAILURE = 910,
+    CUDA_ERROR_EXTERNAL_DEVICE = 911,
+    CUDA_ERROR_INVALID_CLUSTER_SIZE = 912,
+    CUDA_ERROR_FUNCTION_NOT_LOADED = 913,
+    CUDA_ERROR_INVALID_RESOURCE_TYPE = 914,
+    CUDA_ERROR_INVALID_RESOURCE_CONFIGURATION = 915,
+    CUDA_ERROR_UNKNOWN = 999,
+}
+#[cfg(any(feature = "cuda-12080", feature = "cuda-12090"))]
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub enum cudaError_enum {
+    CUDA_SUCCESS = 0,
+    CUDA_ERROR_INVALID_VALUE = 1,
+    CUDA_ERROR_OUT_OF_MEMORY = 2,
+    CUDA_ERROR_NOT_INITIALIZED = 3,
+    CUDA_ERROR_DEINITIALIZED = 4,
+    CUDA_ERROR_PROFILER_DISABLED = 5,
+    CUDA_ERROR_PROFILER_NOT_INITIALIZED = 6,
+    CUDA_ERROR_PROFILER_ALREADY_STARTED = 7,
+    CUDA_ERROR_PROFILER_ALREADY_STOPPED = 8,
+    CUDA_ERROR_STUB_LIBRARY = 34,
+    CUDA_ERROR_DEVICE_UNAVAILABLE = 46,
+    CUDA_ERROR_NO_DEVICE = 100,
+    CUDA_ERROR_INVALID_DEVICE = 101,
+    CUDA_ERROR_DEVICE_NOT_LICENSED = 102,
+    CUDA_ERROR_INVALID_IMAGE = 200,
+    CUDA_ERROR_INVALID_CONTEXT = 201,
+    CUDA_ERROR_CONTEXT_ALREADY_CURRENT = 202,
+    CUDA_ERROR_MAP_FAILED = 205,
+    CUDA_ERROR_UNMAP_FAILED = 206,
+    CUDA_ERROR_ARRAY_IS_MAPPED = 207,
+    CUDA_ERROR_ALREADY_MAPPED = 208,
+    CUDA_ERROR_NO_BINARY_FOR_GPU = 209,
+    CUDA_ERROR_ALREADY_ACQUIRED = 210,
+    CUDA_ERROR_NOT_MAPPED = 211,
+    CUDA_ERROR_NOT_MAPPED_AS_ARRAY = 212,
+    CUDA_ERROR_NOT_MAPPED_AS_POINTER = 213,
+    CUDA_ERROR_ECC_UNCORRECTABLE = 214,
+    CUDA_ERROR_UNSUPPORTED_LIMIT = 215,
+    CUDA_ERROR_CONTEXT_ALREADY_IN_USE = 216,
+    CUDA_ERROR_PEER_ACCESS_UNSUPPORTED = 217,
+    CUDA_ERROR_INVALID_PTX = 218,
+    CUDA_ERROR_INVALID_GRAPHICS_CONTEXT = 219,
+    CUDA_ERROR_NVLINK_UNCORRECTABLE = 220,
+    CUDA_ERROR_JIT_COMPILER_NOT_FOUND = 221,
+    CUDA_ERROR_UNSUPPORTED_PTX_VERSION = 222,
+    CUDA_ERROR_JIT_COMPILATION_DISABLED = 223,
+    CUDA_ERROR_UNSUPPORTED_EXEC_AFFINITY = 224,
+    CUDA_ERROR_UNSUPPORTED_DEVSIDE_SYNC = 225,
+    CUDA_ERROR_CONTAINED = 226,
+    CUDA_ERROR_INVALID_SOURCE = 300,
+    CUDA_ERROR_FILE_NOT_FOUND = 301,
+    CUDA_ERROR_SHARED_OBJECT_SYMBOL_NOT_FOUND = 302,
+    CUDA_ERROR_SHARED_OBJECT_INIT_FAILED = 303,
+    CUDA_ERROR_OPERATING_SYSTEM = 304,
+    CUDA_ERROR_INVALID_HANDLE = 400,
+    CUDA_ERROR_ILLEGAL_STATE = 401,
+    CUDA_ERROR_LOSSY_QUERY = 402,
+    CUDA_ERROR_NOT_FOUND = 500,
+    CUDA_ERROR_NOT_READY = 600,
+    CUDA_ERROR_ILLEGAL_ADDRESS = 700,
+    CUDA_ERROR_LAUNCH_OUT_OF_RESOURCES = 701,
+    CUDA_ERROR_LAUNCH_TIMEOUT = 702,
+    CUDA_ERROR_LAUNCH_INCOMPATIBLE_TEXTURING = 703,
+    CUDA_ERROR_PEER_ACCESS_ALREADY_ENABLED = 704,
+    CUDA_ERROR_PEER_ACCESS_NOT_ENABLED = 705,
+    CUDA_ERROR_PRIMARY_CONTEXT_ACTIVE = 708,
+    CUDA_ERROR_CONTEXT_IS_DESTROYED = 709,
+    CUDA_ERROR_ASSERT = 710,
+    CUDA_ERROR_TOO_MANY_PEERS = 711,
+    CUDA_ERROR_HOST_MEMORY_ALREADY_REGISTERED = 712,
+    CUDA_ERROR_HOST_MEMORY_NOT_REGISTERED = 713,
+    CUDA_ERROR_HARDWARE_STACK_ERROR = 714,
+    CUDA_ERROR_ILLEGAL_INSTRUCTION = 715,
+    CUDA_ERROR_MISALIGNED_ADDRESS = 716,
+    CUDA_ERROR_INVALID_ADDRESS_SPACE = 717,
+    CUDA_ERROR_INVALID_PC = 718,
+    CUDA_ERROR_LAUNCH_FAILED = 719,
+    CUDA_ERROR_COOPERATIVE_LAUNCH_TOO_LARGE = 720,
+    CUDA_ERROR_TENSOR_MEMORY_LEAK = 721,
+    CUDA_ERROR_NOT_PERMITTED = 800,
+    CUDA_ERROR_NOT_SUPPORTED = 801,
+    CUDA_ERROR_SYSTEM_NOT_READY = 802,
+    CUDA_ERROR_SYSTEM_DRIVER_MISMATCH = 803,
+    CUDA_ERROR_COMPAT_NOT_SUPPORTED_ON_DEVICE = 804,
+    CUDA_ERROR_MPS_CONNECTION_FAILED = 805,
+    CUDA_ERROR_MPS_RPC_FAILURE = 806,
+    CUDA_ERROR_MPS_SERVER_NOT_READY = 807,
+    CUDA_ERROR_MPS_MAX_CLIENTS_REACHED = 808,
+    CUDA_ERROR_MPS_MAX_CONNECTIONS_REACHED = 809,
+    CUDA_ERROR_MPS_CLIENT_TERMINATED = 810,
+    CUDA_ERROR_CDP_NOT_SUPPORTED = 811,
+    CUDA_ERROR_CDP_VERSION_MISMATCH = 812,
+    CUDA_ERROR_STREAM_CAPTURE_UNSUPPORTED = 900,
+    CUDA_ERROR_STREAM_CAPTURE_INVALIDATED = 901,
+    CUDA_ERROR_STREAM_CAPTURE_MERGE = 902,
+    CUDA_ERROR_STREAM_CAPTURE_UNMATCHED = 903,
+    CUDA_ERROR_STREAM_CAPTURE_UNJOINED = 904,
+    CUDA_ERROR_STREAM_CAPTURE_ISOLATION = 905,
+    CUDA_ERROR_STREAM_CAPTURE_IMPLICIT = 906,
+    CUDA_ERROR_CAPTURED_EVENT = 907,
+    CUDA_ERROR_STREAM_CAPTURE_WRONG_THREAD = 908,
+    CUDA_ERROR_TIMEOUT = 909,
+    CUDA_ERROR_GRAPH_EXEC_UPDATE_FAILURE = 910,
+    CUDA_ERROR_EXTERNAL_DEVICE = 911,
+    CUDA_ERROR_INVALID_CLUSTER_SIZE = 912,
+    CUDA_ERROR_FUNCTION_NOT_LOADED = 913,
+    CUDA_ERROR_INVALID_RESOURCE_TYPE = 914,
+    CUDA_ERROR_INVALID_RESOURCE_CONFIGURATION = 915,
+    CUDA_ERROR_KEY_ROTATION = 916,
+    CUDA_ERROR_UNKNOWN = 999,
+}
+#[cfg(any(feature = "cuda-13000"))]
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub enum cudaError_enum {
+    CUDA_SUCCESS = 0,
+    CUDA_ERROR_INVALID_VALUE = 1,
+    CUDA_ERROR_OUT_OF_MEMORY = 2,
+    CUDA_ERROR_NOT_INITIALIZED = 3,
+    CUDA_ERROR_DEINITIALIZED = 4,
+    CUDA_ERROR_PROFILER_DISABLED = 5,
+    CUDA_ERROR_PROFILER_NOT_INITIALIZED = 6,
+    CUDA_ERROR_PROFILER_ALREADY_STARTED = 7,
+    CUDA_ERROR_PROFILER_ALREADY_STOPPED = 8,
+    CUDA_ERROR_STUB_LIBRARY = 34,
+    CUDA_ERROR_CALL_REQUIRES_NEWER_DRIVER = 36,
+    CUDA_ERROR_DEVICE_UNAVAILABLE = 46,
+    CUDA_ERROR_NO_DEVICE = 100,
+    CUDA_ERROR_INVALID_DEVICE = 101,
+    CUDA_ERROR_DEVICE_NOT_LICENSED = 102,
+    CUDA_ERROR_INVALID_IMAGE = 200,
+    CUDA_ERROR_INVALID_CONTEXT = 201,
+    CUDA_ERROR_CONTEXT_ALREADY_CURRENT = 202,
+    CUDA_ERROR_MAP_FAILED = 205,
+    CUDA_ERROR_UNMAP_FAILED = 206,
+    CUDA_ERROR_ARRAY_IS_MAPPED = 207,
+    CUDA_ERROR_ALREADY_MAPPED = 208,
+    CUDA_ERROR_NO_BINARY_FOR_GPU = 209,
+    CUDA_ERROR_ALREADY_ACQUIRED = 210,
+    CUDA_ERROR_NOT_MAPPED = 211,
+    CUDA_ERROR_NOT_MAPPED_AS_ARRAY = 212,
+    CUDA_ERROR_NOT_MAPPED_AS_POINTER = 213,
+    CUDA_ERROR_ECC_UNCORRECTABLE = 214,
+    CUDA_ERROR_UNSUPPORTED_LIMIT = 215,
+    CUDA_ERROR_CONTEXT_ALREADY_IN_USE = 216,
+    CUDA_ERROR_PEER_ACCESS_UNSUPPORTED = 217,
+    CUDA_ERROR_INVALID_PTX = 218,
+    CUDA_ERROR_INVALID_GRAPHICS_CONTEXT = 219,
+    CUDA_ERROR_NVLINK_UNCORRECTABLE = 220,
+    CUDA_ERROR_JIT_COMPILER_NOT_FOUND = 221,
+    CUDA_ERROR_UNSUPPORTED_PTX_VERSION = 222,
+    CUDA_ERROR_JIT_COMPILATION_DISABLED = 223,
+    CUDA_ERROR_UNSUPPORTED_EXEC_AFFINITY = 224,
+    CUDA_ERROR_UNSUPPORTED_DEVSIDE_SYNC = 225,
+    CUDA_ERROR_CONTAINED = 226,
+    CUDA_ERROR_INVALID_SOURCE = 300,
+    CUDA_ERROR_FILE_NOT_FOUND = 301,
+    CUDA_ERROR_SHARED_OBJECT_SYMBOL_NOT_FOUND = 302,
+    CUDA_ERROR_SHARED_OBJECT_INIT_FAILED = 303,
+    CUDA_ERROR_OPERATING_SYSTEM = 304,
+    CUDA_ERROR_INVALID_HANDLE = 400,
+    CUDA_ERROR_ILLEGAL_STATE = 401,
+    CUDA_ERROR_LOSSY_QUERY = 402,
+    CUDA_ERROR_NOT_FOUND = 500,
+    CUDA_ERROR_NOT_READY = 600,
+    CUDA_ERROR_ILLEGAL_ADDRESS = 700,
+    CUDA_ERROR_LAUNCH_OUT_OF_RESOURCES = 701,
+    CUDA_ERROR_LAUNCH_TIMEOUT = 702,
+    CUDA_ERROR_LAUNCH_INCOMPATIBLE_TEXTURING = 703,
+    CUDA_ERROR_PEER_ACCESS_ALREADY_ENABLED = 704,
+    CUDA_ERROR_PEER_ACCESS_NOT_ENABLED = 705,
+    CUDA_ERROR_PRIMARY_CONTEXT_ACTIVE = 708,
+    CUDA_ERROR_CONTEXT_IS_DESTROYED = 709,
+    CUDA_ERROR_ASSERT = 710,
+    CUDA_ERROR_TOO_MANY_PEERS = 711,
+    CUDA_ERROR_HOST_MEMORY_ALREADY_REGISTERED = 712,
+    CUDA_ERROR_HOST_MEMORY_NOT_REGISTERED = 713,
+    CUDA_ERROR_HARDWARE_STACK_ERROR = 714,
+    CUDA_ERROR_ILLEGAL_INSTRUCTION = 715,
+    CUDA_ERROR_MISALIGNED_ADDRESS = 716,
+    CUDA_ERROR_INVALID_ADDRESS_SPACE = 717,
+    CUDA_ERROR_INVALID_PC = 718,
+    CUDA_ERROR_LAUNCH_FAILED = 719,
+    CUDA_ERROR_COOPERATIVE_LAUNCH_TOO_LARGE = 720,
+    CUDA_ERROR_TENSOR_MEMORY_LEAK = 721,
+    CUDA_ERROR_NOT_PERMITTED = 800,
+    CUDA_ERROR_NOT_SUPPORTED = 801,
+    CUDA_ERROR_SYSTEM_NOT_READY = 802,
+    CUDA_ERROR_SYSTEM_DRIVER_MISMATCH = 803,
+    CUDA_ERROR_COMPAT_NOT_SUPPORTED_ON_DEVICE = 804,
+    CUDA_ERROR_MPS_CONNECTION_FAILED = 805,
+    CUDA_ERROR_MPS_RPC_FAILURE = 806,
+    CUDA_ERROR_MPS_SERVER_NOT_READY = 807,
+    CUDA_ERROR_MPS_MAX_CLIENTS_REACHED = 808,
+    CUDA_ERROR_MPS_MAX_CONNECTIONS_REACHED = 809,
+    CUDA_ERROR_MPS_CLIENT_TERMINATED = 810,
+    CUDA_ERROR_CDP_NOT_SUPPORTED = 811,
+    CUDA_ERROR_CDP_VERSION_MISMATCH = 812,
+    CUDA_ERROR_STREAM_CAPTURE_UNSUPPORTED = 900,
+    CUDA_ERROR_STREAM_CAPTURE_INVALIDATED = 901,
+    CUDA_ERROR_STREAM_CAPTURE_MERGE = 902,
+    CUDA_ERROR_STREAM_CAPTURE_UNMATCHED = 903,
+    CUDA_ERROR_STREAM_CAPTURE_UNJOINED = 904,
+    CUDA_ERROR_STREAM_CAPTURE_ISOLATION = 905,
+    CUDA_ERROR_STREAM_CAPTURE_IMPLICIT = 906,
+    CUDA_ERROR_CAPTURED_EVENT = 907,
+    CUDA_ERROR_STREAM_CAPTURE_WRONG_THREAD = 908,
+    CUDA_ERROR_TIMEOUT = 909,
+    CUDA_ERROR_GRAPH_EXEC_UPDATE_FAILURE = 910,
+    CUDA_ERROR_EXTERNAL_DEVICE = 911,
+    CUDA_ERROR_INVALID_CLUSTER_SIZE = 912,
+    CUDA_ERROR_FUNCTION_NOT_LOADED = 913,
+    CUDA_ERROR_INVALID_RESOURCE_TYPE = 914,
+    CUDA_ERROR_INVALID_RESOURCE_CONFIGURATION = 915,
+    CUDA_ERROR_KEY_ROTATION = 916,
+    CUDA_ERROR_UNKNOWN = 999,
+}
+#[cfg(any(feature = "cuda-13010", feature = "cuda-13020"))]
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub enum cudaError_enum {
+    CUDA_SUCCESS = 0,
+    CUDA_ERROR_INVALID_VALUE = 1,
+    CUDA_ERROR_OUT_OF_MEMORY = 2,
+    CUDA_ERROR_NOT_INITIALIZED = 3,
+    CUDA_ERROR_DEINITIALIZED = 4,
+    CUDA_ERROR_PROFILER_DISABLED = 5,
+    CUDA_ERROR_PROFILER_NOT_INITIALIZED = 6,
+    CUDA_ERROR_PROFILER_ALREADY_STARTED = 7,
+    CUDA_ERROR_PROFILER_ALREADY_STOPPED = 8,
+    CUDA_ERROR_STUB_LIBRARY = 34,
+    CUDA_ERROR_CALL_REQUIRES_NEWER_DRIVER = 36,
+    CUDA_ERROR_DEVICE_UNAVAILABLE = 46,
+    CUDA_ERROR_NO_DEVICE = 100,
+    CUDA_ERROR_INVALID_DEVICE = 101,
+    CUDA_ERROR_DEVICE_NOT_LICENSED = 102,
+    CUDA_ERROR_INVALID_IMAGE = 200,
+    CUDA_ERROR_INVALID_CONTEXT = 201,
+    CUDA_ERROR_CONTEXT_ALREADY_CURRENT = 202,
+    CUDA_ERROR_MAP_FAILED = 205,
+    CUDA_ERROR_UNMAP_FAILED = 206,
+    CUDA_ERROR_ARRAY_IS_MAPPED = 207,
+    CUDA_ERROR_ALREADY_MAPPED = 208,
+    CUDA_ERROR_NO_BINARY_FOR_GPU = 209,
+    CUDA_ERROR_ALREADY_ACQUIRED = 210,
+    CUDA_ERROR_NOT_MAPPED = 211,
+    CUDA_ERROR_NOT_MAPPED_AS_ARRAY = 212,
+    CUDA_ERROR_NOT_MAPPED_AS_POINTER = 213,
+    CUDA_ERROR_ECC_UNCORRECTABLE = 214,
+    CUDA_ERROR_UNSUPPORTED_LIMIT = 215,
+    CUDA_ERROR_CONTEXT_ALREADY_IN_USE = 216,
+    CUDA_ERROR_PEER_ACCESS_UNSUPPORTED = 217,
+    CUDA_ERROR_INVALID_PTX = 218,
+    CUDA_ERROR_INVALID_GRAPHICS_CONTEXT = 219,
+    CUDA_ERROR_NVLINK_UNCORRECTABLE = 220,
+    CUDA_ERROR_JIT_COMPILER_NOT_FOUND = 221,
+    CUDA_ERROR_UNSUPPORTED_PTX_VERSION = 222,
+    CUDA_ERROR_JIT_COMPILATION_DISABLED = 223,
+    CUDA_ERROR_UNSUPPORTED_EXEC_AFFINITY = 224,
+    CUDA_ERROR_UNSUPPORTED_DEVSIDE_SYNC = 225,
+    CUDA_ERROR_CONTAINED = 226,
+    CUDA_ERROR_INVALID_SOURCE = 300,
+    CUDA_ERROR_FILE_NOT_FOUND = 301,
+    CUDA_ERROR_SHARED_OBJECT_SYMBOL_NOT_FOUND = 302,
+    CUDA_ERROR_SHARED_OBJECT_INIT_FAILED = 303,
+    CUDA_ERROR_OPERATING_SYSTEM = 304,
+    CUDA_ERROR_INVALID_HANDLE = 400,
+    CUDA_ERROR_ILLEGAL_STATE = 401,
+    CUDA_ERROR_LOSSY_QUERY = 402,
+    CUDA_ERROR_NOT_FOUND = 500,
+    CUDA_ERROR_NOT_READY = 600,
+    CUDA_ERROR_ILLEGAL_ADDRESS = 700,
+    CUDA_ERROR_LAUNCH_OUT_OF_RESOURCES = 701,
+    CUDA_ERROR_LAUNCH_TIMEOUT = 702,
+    CUDA_ERROR_LAUNCH_INCOMPATIBLE_TEXTURING = 703,
+    CUDA_ERROR_PEER_ACCESS_ALREADY_ENABLED = 704,
+    CUDA_ERROR_PEER_ACCESS_NOT_ENABLED = 705,
+    CUDA_ERROR_PRIMARY_CONTEXT_ACTIVE = 708,
+    CUDA_ERROR_CONTEXT_IS_DESTROYED = 709,
+    CUDA_ERROR_ASSERT = 710,
+    CUDA_ERROR_TOO_MANY_PEERS = 711,
+    CUDA_ERROR_HOST_MEMORY_ALREADY_REGISTERED = 712,
+    CUDA_ERROR_HOST_MEMORY_NOT_REGISTERED = 713,
+    CUDA_ERROR_HARDWARE_STACK_ERROR = 714,
+    CUDA_ERROR_ILLEGAL_INSTRUCTION = 715,
+    CUDA_ERROR_MISALIGNED_ADDRESS = 716,
+    CUDA_ERROR_INVALID_ADDRESS_SPACE = 717,
+    CUDA_ERROR_INVALID_PC = 718,
+    CUDA_ERROR_LAUNCH_FAILED = 719,
+    CUDA_ERROR_COOPERATIVE_LAUNCH_TOO_LARGE = 720,
+    CUDA_ERROR_TENSOR_MEMORY_LEAK = 721,
+    CUDA_ERROR_NOT_PERMITTED = 800,
+    CUDA_ERROR_NOT_SUPPORTED = 801,
+    CUDA_ERROR_SYSTEM_NOT_READY = 802,
+    CUDA_ERROR_SYSTEM_DRIVER_MISMATCH = 803,
+    CUDA_ERROR_COMPAT_NOT_SUPPORTED_ON_DEVICE = 804,
+    CUDA_ERROR_MPS_CONNECTION_FAILED = 805,
+    CUDA_ERROR_MPS_RPC_FAILURE = 806,
+    CUDA_ERROR_MPS_SERVER_NOT_READY = 807,
+    CUDA_ERROR_MPS_MAX_CLIENTS_REACHED = 808,
+    CUDA_ERROR_MPS_MAX_CONNECTIONS_REACHED = 809,
+    CUDA_ERROR_MPS_CLIENT_TERMINATED = 810,
+    CUDA_ERROR_CDP_NOT_SUPPORTED = 811,
+    CUDA_ERROR_CDP_VERSION_MISMATCH = 812,
+    CUDA_ERROR_STREAM_CAPTURE_UNSUPPORTED = 900,
+    CUDA_ERROR_STREAM_CAPTURE_INVALIDATED = 901,
+    CUDA_ERROR_STREAM_CAPTURE_MERGE = 902,
+    CUDA_ERROR_STREAM_CAPTURE_UNMATCHED = 903,
+    CUDA_ERROR_STREAM_CAPTURE_UNJOINED = 904,
+    CUDA_ERROR_STREAM_CAPTURE_ISOLATION = 905,
+    CUDA_ERROR_STREAM_CAPTURE_IMPLICIT = 906,
+    CUDA_ERROR_CAPTURED_EVENT = 907,
+    CUDA_ERROR_STREAM_CAPTURE_WRONG_THREAD = 908,
+    CUDA_ERROR_TIMEOUT = 909,
+    CUDA_ERROR_GRAPH_EXEC_UPDATE_FAILURE = 910,
+    CUDA_ERROR_EXTERNAL_DEVICE = 911,
+    CUDA_ERROR_INVALID_CLUSTER_SIZE = 912,
+    CUDA_ERROR_FUNCTION_NOT_LOADED = 913,
+    CUDA_ERROR_INVALID_RESOURCE_TYPE = 914,
+    CUDA_ERROR_INVALID_RESOURCE_CONFIGURATION = 915,
+    CUDA_ERROR_KEY_ROTATION = 916,
+    CUDA_ERROR_STREAM_DETACHED = 917,
+    CUDA_ERROR_UNKNOWN = 999,
+}
+#[cfg(any(feature = "cuda-13030"))]
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub enum cudaError_enum {
+    CUDA_SUCCESS = 0,
+    CUDA_ERROR_INVALID_VALUE = 1,
+    CUDA_ERROR_OUT_OF_MEMORY = 2,
+    CUDA_ERROR_NOT_INITIALIZED = 3,
+    CUDA_ERROR_DEINITIALIZED = 4,
+    CUDA_ERROR_PROFILER_DISABLED = 5,
+    CUDA_ERROR_PROFILER_NOT_INITIALIZED = 6,
+    CUDA_ERROR_PROFILER_ALREADY_STARTED = 7,
+    CUDA_ERROR_PROFILER_ALREADY_STOPPED = 8,
+    CUDA_ERROR_STUB_LIBRARY = 34,
+    CUDA_ERROR_CALL_REQUIRES_NEWER_DRIVER = 36,
+    CUDA_ERROR_DEVICE_UNAVAILABLE = 46,
+    CUDA_ERROR_NO_DEVICE = 100,
+    CUDA_ERROR_INVALID_DEVICE = 101,
+    CUDA_ERROR_DEVICE_NOT_LICENSED = 102,
+    CUDA_ERROR_INVALID_IMAGE = 200,
+    CUDA_ERROR_INVALID_CONTEXT = 201,
+    CUDA_ERROR_CONTEXT_ALREADY_CURRENT = 202,
+    CUDA_ERROR_MAP_FAILED = 205,
+    CUDA_ERROR_UNMAP_FAILED = 206,
+    CUDA_ERROR_ARRAY_IS_MAPPED = 207,
+    CUDA_ERROR_ALREADY_MAPPED = 208,
+    CUDA_ERROR_NO_BINARY_FOR_GPU = 209,
+    CUDA_ERROR_ALREADY_ACQUIRED = 210,
+    CUDA_ERROR_NOT_MAPPED = 211,
+    CUDA_ERROR_NOT_MAPPED_AS_ARRAY = 212,
+    CUDA_ERROR_NOT_MAPPED_AS_POINTER = 213,
+    CUDA_ERROR_ECC_UNCORRECTABLE = 214,
+    CUDA_ERROR_UNSUPPORTED_LIMIT = 215,
+    CUDA_ERROR_CONTEXT_ALREADY_IN_USE = 216,
+    CUDA_ERROR_PEER_ACCESS_UNSUPPORTED = 217,
+    CUDA_ERROR_INVALID_PTX = 218,
+    CUDA_ERROR_INVALID_GRAPHICS_CONTEXT = 219,
+    CUDA_ERROR_NVLINK_UNCORRECTABLE = 220,
+    CUDA_ERROR_JIT_COMPILER_NOT_FOUND = 221,
+    CUDA_ERROR_UNSUPPORTED_PTX_VERSION = 222,
+    CUDA_ERROR_JIT_COMPILATION_DISABLED = 223,
+    CUDA_ERROR_UNSUPPORTED_EXEC_AFFINITY = 224,
+    CUDA_ERROR_UNSUPPORTED_DEVSIDE_SYNC = 225,
+    CUDA_ERROR_CONTAINED = 226,
+    CUDA_ERROR_INVALID_SOURCE = 300,
+    CUDA_ERROR_FILE_NOT_FOUND = 301,
+    CUDA_ERROR_SHARED_OBJECT_SYMBOL_NOT_FOUND = 302,
+    CUDA_ERROR_SHARED_OBJECT_INIT_FAILED = 303,
+    CUDA_ERROR_OPERATING_SYSTEM = 304,
+    CUDA_ERROR_INVALID_HANDLE = 400,
+    CUDA_ERROR_ILLEGAL_STATE = 401,
+    CUDA_ERROR_LOSSY_QUERY = 402,
+    CUDA_ERROR_NOT_FOUND = 500,
+    CUDA_ERROR_NOT_READY = 600,
+    CUDA_ERROR_ILLEGAL_ADDRESS = 700,
+    CUDA_ERROR_LAUNCH_OUT_OF_RESOURCES = 701,
+    CUDA_ERROR_LAUNCH_TIMEOUT = 702,
+    CUDA_ERROR_LAUNCH_INCOMPATIBLE_TEXTURING = 703,
+    CUDA_ERROR_PEER_ACCESS_ALREADY_ENABLED = 704,
+    CUDA_ERROR_PEER_ACCESS_NOT_ENABLED = 705,
+    CUDA_ERROR_PRIMARY_CONTEXT_ACTIVE = 708,
+    CUDA_ERROR_CONTEXT_IS_DESTROYED = 709,
+    CUDA_ERROR_ASSERT = 710,
+    CUDA_ERROR_TOO_MANY_PEERS = 711,
+    CUDA_ERROR_HOST_MEMORY_ALREADY_REGISTERED = 712,
+    CUDA_ERROR_HOST_MEMORY_NOT_REGISTERED = 713,
+    CUDA_ERROR_HARDWARE_STACK_ERROR = 714,
+    CUDA_ERROR_ILLEGAL_INSTRUCTION = 715,
+    CUDA_ERROR_MISALIGNED_ADDRESS = 716,
+    CUDA_ERROR_INVALID_ADDRESS_SPACE = 717,
+    CUDA_ERROR_INVALID_PC = 718,
+    CUDA_ERROR_LAUNCH_FAILED = 719,
+    CUDA_ERROR_COOPERATIVE_LAUNCH_TOO_LARGE = 720,
+    CUDA_ERROR_TENSOR_MEMORY_LEAK = 721,
+    CUDA_ERROR_NOT_PERMITTED = 800,
+    CUDA_ERROR_NOT_SUPPORTED = 801,
+    CUDA_ERROR_SYSTEM_NOT_READY = 802,
+    CUDA_ERROR_SYSTEM_DRIVER_MISMATCH = 803,
+    CUDA_ERROR_COMPAT_NOT_SUPPORTED_ON_DEVICE = 804,
+    CUDA_ERROR_MPS_CONNECTION_FAILED = 805,
+    CUDA_ERROR_MPS_RPC_FAILURE = 806,
+    CUDA_ERROR_MPS_SERVER_NOT_READY = 807,
+    CUDA_ERROR_MPS_MAX_CLIENTS_REACHED = 808,
+    CUDA_ERROR_MPS_MAX_CONNECTIONS_REACHED = 809,
+    CUDA_ERROR_MPS_CLIENT_TERMINATED = 810,
+    CUDA_ERROR_CDP_NOT_SUPPORTED = 811,
+    CUDA_ERROR_CDP_VERSION_MISMATCH = 812,
+    CUDA_ERROR_STREAM_CAPTURE_UNSUPPORTED = 900,
+    CUDA_ERROR_STREAM_CAPTURE_INVALIDATED = 901,
+    CUDA_ERROR_STREAM_CAPTURE_MERGE = 902,
+    CUDA_ERROR_STREAM_CAPTURE_UNMATCHED = 903,
+    CUDA_ERROR_STREAM_CAPTURE_UNJOINED = 904,
+    CUDA_ERROR_STREAM_CAPTURE_ISOLATION = 905,
+    CUDA_ERROR_STREAM_CAPTURE_IMPLICIT = 906,
+    CUDA_ERROR_CAPTURED_EVENT = 907,
+    CUDA_ERROR_STREAM_CAPTURE_WRONG_THREAD = 908,
+    CUDA_ERROR_TIMEOUT = 909,
+    CUDA_ERROR_GRAPH_EXEC_UPDATE_FAILURE = 910,
+    CUDA_ERROR_EXTERNAL_DEVICE = 911,
+    CUDA_ERROR_INVALID_CLUSTER_SIZE = 912,
+    CUDA_ERROR_FUNCTION_NOT_LOADED = 913,
+    CUDA_ERROR_INVALID_RESOURCE_TYPE = 914,
+    CUDA_ERROR_INVALID_RESOURCE_CONFIGURATION = 915,
+    CUDA_ERROR_KEY_ROTATION = 916,
+    CUDA_ERROR_STREAM_DETACHED = 917,
+    CUDA_ERROR_GRAPH_RECAPTURE_FAILURE = 918,
+    CUDA_ERROR_UNKNOWN = 999,
+}
+#[cfg(any(feature = "cuda-13040"))]
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub enum cudaError_enum {
+    CUDA_SUCCESS = 0,
+    CUDA_ERROR_INVALID_VALUE = 1,
+    CUDA_ERROR_OUT_OF_MEMORY = 2,
+    CUDA_ERROR_NOT_INITIALIZED = 3,
+    CUDA_ERROR_DEINITIALIZED = 4,
+    CUDA_ERROR_PROFILER_DISABLED = 5,
+    CUDA_ERROR_PROFILER_NOT_INITIALIZED = 6,
+    CUDA_ERROR_PROFILER_ALREADY_STARTED = 7,
+    CUDA_ERROR_PROFILER_ALREADY_STOPPED = 8,
+    CUDA_ERROR_STUB_LIBRARY = 34,
+    CUDA_ERROR_CALL_REQUIRES_NEWER_DRIVER = 36,
+    CUDA_ERROR_DEVICE_UNAVAILABLE = 46,
+    CUDA_ERROR_MULTICAST_RESOURCE_FULL = 47,
+    CUDA_ERROR_NO_DEVICE = 100,
+    CUDA_ERROR_INVALID_DEVICE = 101,
+    CUDA_ERROR_DEVICE_NOT_LICENSED = 102,
+    CUDA_ERROR_INVALID_IMAGE = 200,
+    CUDA_ERROR_INVALID_CONTEXT = 201,
+    CUDA_ERROR_CONTEXT_ALREADY_CURRENT = 202,
+    CUDA_ERROR_MAP_FAILED = 205,
+    CUDA_ERROR_UNMAP_FAILED = 206,
+    CUDA_ERROR_ARRAY_IS_MAPPED = 207,
+    CUDA_ERROR_ALREADY_MAPPED = 208,
+    CUDA_ERROR_NO_BINARY_FOR_GPU = 209,
+    CUDA_ERROR_ALREADY_ACQUIRED = 210,
+    CUDA_ERROR_NOT_MAPPED = 211,
+    CUDA_ERROR_NOT_MAPPED_AS_ARRAY = 212,
+    CUDA_ERROR_NOT_MAPPED_AS_POINTER = 213,
+    CUDA_ERROR_ECC_UNCORRECTABLE = 214,
+    CUDA_ERROR_UNSUPPORTED_LIMIT = 215,
+    CUDA_ERROR_CONTEXT_ALREADY_IN_USE = 216,
+    CUDA_ERROR_PEER_ACCESS_UNSUPPORTED = 217,
+    CUDA_ERROR_INVALID_PTX = 218,
+    CUDA_ERROR_INVALID_GRAPHICS_CONTEXT = 219,
+    CUDA_ERROR_NVLINK_UNCORRECTABLE = 220,
+    CUDA_ERROR_JIT_COMPILER_NOT_FOUND = 221,
+    CUDA_ERROR_UNSUPPORTED_PTX_VERSION = 222,
+    CUDA_ERROR_JIT_COMPILATION_DISABLED = 223,
+    CUDA_ERROR_UNSUPPORTED_EXEC_AFFINITY = 224,
+    CUDA_ERROR_UNSUPPORTED_DEVSIDE_SYNC = 225,
+    CUDA_ERROR_CONTAINED = 226,
+    CUDA_ERROR_INSUFFICIENT_LOADER_VERSION = 227,
+    CUDA_ERROR_INVALID_SOURCE = 300,
+    CUDA_ERROR_FILE_NOT_FOUND = 301,
+    CUDA_ERROR_SHARED_OBJECT_SYMBOL_NOT_FOUND = 302,
+    CUDA_ERROR_SHARED_OBJECT_INIT_FAILED = 303,
+    CUDA_ERROR_OPERATING_SYSTEM = 304,
+    CUDA_ERROR_INVALID_HANDLE = 400,
+    CUDA_ERROR_ILLEGAL_STATE = 401,
+    CUDA_ERROR_LOSSY_QUERY = 402,
+    CUDA_ERROR_NOT_FOUND = 500,
+    CUDA_ERROR_NOT_READY = 600,
+    CUDA_ERROR_ILLEGAL_ADDRESS = 700,
+    CUDA_ERROR_LAUNCH_OUT_OF_RESOURCES = 701,
+    CUDA_ERROR_LAUNCH_TIMEOUT = 702,
+    CUDA_ERROR_LAUNCH_INCOMPATIBLE_TEXTURING = 703,
+    CUDA_ERROR_PEER_ACCESS_ALREADY_ENABLED = 704,
+    CUDA_ERROR_PEER_ACCESS_NOT_ENABLED = 705,
+    CUDA_ERROR_PRIMARY_CONTEXT_ACTIVE = 708,
+    CUDA_ERROR_CONTEXT_IS_DESTROYED = 709,
+    CUDA_ERROR_ASSERT = 710,
+    CUDA_ERROR_TOO_MANY_PEERS = 711,
+    CUDA_ERROR_HOST_MEMORY_ALREADY_REGISTERED = 712,
+    CUDA_ERROR_HOST_MEMORY_NOT_REGISTERED = 713,
+    CUDA_ERROR_HARDWARE_STACK_ERROR = 714,
+    CUDA_ERROR_ILLEGAL_INSTRUCTION = 715,
+    CUDA_ERROR_MISALIGNED_ADDRESS = 716,
+    CUDA_ERROR_INVALID_ADDRESS_SPACE = 717,
+    CUDA_ERROR_INVALID_PC = 718,
+    CUDA_ERROR_LAUNCH_FAILED = 719,
+    CUDA_ERROR_COOPERATIVE_LAUNCH_TOO_LARGE = 720,
+    CUDA_ERROR_TENSOR_MEMORY_LEAK = 721,
+    CUDA_ERROR_NOT_PERMITTED = 800,
+    CUDA_ERROR_NOT_SUPPORTED = 801,
+    CUDA_ERROR_SYSTEM_NOT_READY = 802,
+    CUDA_ERROR_SYSTEM_DRIVER_MISMATCH = 803,
+    CUDA_ERROR_COMPAT_NOT_SUPPORTED_ON_DEVICE = 804,
+    CUDA_ERROR_MPS_CONNECTION_FAILED = 805,
+    CUDA_ERROR_MPS_RPC_FAILURE = 806,
+    CUDA_ERROR_MPS_SERVER_NOT_READY = 807,
+    CUDA_ERROR_MPS_MAX_CLIENTS_REACHED = 808,
+    CUDA_ERROR_MPS_MAX_CONNECTIONS_REACHED = 809,
+    CUDA_ERROR_MPS_CLIENT_TERMINATED = 810,
+    CUDA_ERROR_CDP_NOT_SUPPORTED = 811,
+    CUDA_ERROR_CDP_VERSION_MISMATCH = 812,
+    CUDA_ERROR_STREAM_CAPTURE_UNSUPPORTED = 900,
+    CUDA_ERROR_STREAM_CAPTURE_INVALIDATED = 901,
+    CUDA_ERROR_STREAM_CAPTURE_MERGE = 902,
+    CUDA_ERROR_STREAM_CAPTURE_UNMATCHED = 903,
+    CUDA_ERROR_STREAM_CAPTURE_UNJOINED = 904,
+    CUDA_ERROR_STREAM_CAPTURE_ISOLATION = 905,
+    CUDA_ERROR_STREAM_CAPTURE_IMPLICIT = 906,
+    CUDA_ERROR_CAPTURED_EVENT = 907,
+    CUDA_ERROR_STREAM_CAPTURE_WRONG_THREAD = 908,
+    CUDA_ERROR_TIMEOUT = 909,
+    CUDA_ERROR_GRAPH_EXEC_UPDATE_FAILURE = 910,
+    CUDA_ERROR_EXTERNAL_DEVICE = 911,
+    CUDA_ERROR_INVALID_CLUSTER_SIZE = 912,
+    CUDA_ERROR_FUNCTION_NOT_LOADED = 913,
+    CUDA_ERROR_INVALID_RESOURCE_TYPE = 914,
+    CUDA_ERROR_INVALID_RESOURCE_CONFIGURATION = 915,
+    CUDA_ERROR_KEY_ROTATION = 916,
+    CUDA_ERROR_STREAM_DETACHED = 917,
+    CUDA_ERROR_GRAPH_RECAPTURE_FAILURE = 918,
+    CUDA_ERROR_FABRIC_NOT_READY = 919,
+    CUDA_ERROR_UNKNOWN = 999,
+}
+#[cfg(any(feature = "cuda-11060", feature = "cuda-11070", feature = "cuda-11080", feature = "cuda-12000", feature = "cuda-12010", feature = "cuda-12020", feature = "cuda-12030", feature = "cuda-12040", feature = "cuda-12050", feature = "cuda-12060", feature = "cuda-12080", feature = "cuda-12090", feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub enum cufileBatchMode {
+    CUFILE_BATCH = 1,
+}
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct CUfileDescr_t {
+    pub type_: CUfileFileHandleType,
+    pub handle: CUfileDescr_t__bindgen_ty_1,
+    pub fs_ops: *const CUfileFSOps_t,
+}
+#[cfg(any(feature = "cuda-11040", feature = "cuda-11050"))]
+#[repr(C)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub struct CUfileDrvProps {
+    pub nvfs: CUfileDrvProps__bindgen_ty_1,
+    pub fflags: ::core::ffi::c_uint,
+    pub max_device_cache_size: ::core::ffi::c_uint,
+    pub per_buffer_cache_size: ::core::ffi::c_uint,
+    pub max_device_pinned_mem_size: ::core::ffi::c_uint,
+    pub max_batch_io_timeout_msecs: ::core::ffi::c_uint,
+}
+#[cfg(any(feature = "cuda-11060", feature = "cuda-11070", feature = "cuda-11080", feature = "cuda-12000", feature = "cuda-12010", feature = "cuda-12020", feature = "cuda-12030", feature = "cuda-12040", feature = "cuda-12050", feature = "cuda-12060", feature = "cuda-12080", feature = "cuda-12090", feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+#[repr(C)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub struct CUfileDrvProps {
+    pub nvfs: CUfileDrvProps__bindgen_ty_1,
+    pub fflags: ::core::ffi::c_uint,
+    pub max_device_cache_size: ::core::ffi::c_uint,
+    pub per_buffer_cache_size: ::core::ffi::c_uint,
+    pub max_device_pinned_mem_size: ::core::ffi::c_uint,
+    pub max_batch_io_size: ::core::ffi::c_uint,
+    pub max_batch_io_timeout_msecs: ::core::ffi::c_uint,
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub struct CUfileDrvProps__bindgen_ty_1 {
+    pub major_version: ::core::ffi::c_uint,
+    pub minor_version: ::core::ffi::c_uint,
+    pub poll_thresh_size: usize,
+    pub max_direct_io_size: usize,
+    pub dstatusflags: ::core::ffi::c_uint,
+    pub dcontrolflags: ::core::ffi::c_uint,
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub struct CUfileError {
+    pub err: CUfileOpError,
+    pub cu_err: CUresult,
+}
+#[cfg(any(feature = "cuda-11040", feature = "cuda-11050", feature = "cuda-11060", feature = "cuda-11070", feature = "cuda-11080", feature = "cuda-12000", feature = "cuda-12010", feature = "cuda-12020", feature = "cuda-12030", feature = "cuda-12040", feature = "cuda-12050", feature = "cuda-12060", feature = "cuda-12080", feature = "cuda-12090", feature = "cuda-13000"))]
+#[repr(C)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub struct CUfileFSOps {
+    pub fs_type: ::core::option::Option<unsafe extern "C" fn(handle: *mut ::core::ffi::c_void) -> *const ::core::ffi::c_char>,
+    pub getRDMADeviceList: ::core::option::Option<unsafe extern "C" fn(handle: *mut ::core::ffi::c_void, hostaddrs: *mut *mut sockaddr_t) -> ::core::ffi::c_int>,
+    pub getRDMADevicePriority: ::core::option::Option<unsafe extern "C" fn(handle: *mut ::core::ffi::c_void, arg1: *mut ::core::ffi::c_char, arg2: usize, arg3: loff_t, hostaddr: *mut sockaddr_t) -> ::core::ffi::c_int>,
+    pub read: ::core::option::Option<unsafe extern "C" fn(handle: *mut ::core::ffi::c_void, arg1: *mut ::core::ffi::c_char, arg2: usize, arg3: loff_t, arg4: *mut cufileRDMAInfo_t) -> isize>,
+    pub write: ::core::option::Option<unsafe extern "C" fn(handle: *mut ::core::ffi::c_void, arg1: *const ::core::ffi::c_char, arg2: usize, arg3: loff_t, arg4: *mut cufileRDMAInfo_t) -> isize>,
+}
+#[cfg(any(feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+#[repr(C)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub struct CUfileFSOps {
+    pub fs_type: ::core::option::Option<unsafe extern "C" fn(handle: *const ::core::ffi::c_void) -> *const ::core::ffi::c_char>,
+    pub getRDMADeviceList: ::core::option::Option<unsafe extern "C" fn(handle: *const ::core::ffi::c_void, hostaddrs: *mut *mut sockaddr_t) -> ::core::ffi::c_int>,
+    pub getRDMADevicePriority: ::core::option::Option<unsafe extern "C" fn(handle: *const ::core::ffi::c_void, arg1: *mut ::core::ffi::c_char, arg2: usize, arg3: loff_t, hostaddr: *const sockaddr_t) -> ::core::ffi::c_int>,
+    pub read: ::core::option::Option<unsafe extern "C" fn(handle: *const ::core::ffi::c_void, arg1: *mut ::core::ffi::c_char, arg2: usize, arg3: loff_t, arg4: *const cufileRDMAInfo_t) -> isize>,
+    pub write: ::core::option::Option<unsafe extern "C" fn(handle: *const ::core::ffi::c_void, arg1: *const ::core::ffi::c_char, arg2: usize, arg3: loff_t, arg4: *const cufileRDMAInfo_t) -> isize>,
+}
+#[cfg(any(feature = "cuda-11060", feature = "cuda-11070", feature = "cuda-11080", feature = "cuda-12000", feature = "cuda-12010", feature = "cuda-12020", feature = "cuda-12030", feature = "cuda-12040", feature = "cuda-12050", feature = "cuda-12060", feature = "cuda-12080", feature = "cuda-12090", feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+#[repr(C)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub struct CUfileIOEvents {
+    pub cookie: *mut ::core::ffi::c_void,
+    pub status: CUfileStatus_t,
+    pub ret: usize,
+}
+#[cfg(any(feature = "cuda-11060", feature = "cuda-11070", feature = "cuda-11080", feature = "cuda-12000", feature = "cuda-12010", feature = "cuda-12020", feature = "cuda-12030", feature = "cuda-12040", feature = "cuda-12050", feature = "cuda-12060", feature = "cuda-12080", feature = "cuda-12090", feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct CUfileIOParams {
+    pub mode: CUfileBatchMode_t,
+    pub u: CUfileIOParams__bindgen_ty_1,
+    pub fh: CUfileHandle_t,
+    pub opcode: CUfileOpcode_t,
+    pub cookie: *mut ::core::ffi::c_void,
+}
+#[cfg(any(feature = "cuda-11060", feature = "cuda-11070", feature = "cuda-11080", feature = "cuda-12000", feature = "cuda-12010", feature = "cuda-12020", feature = "cuda-12030", feature = "cuda-12040", feature = "cuda-12050", feature = "cuda-12060", feature = "cuda-12080", feature = "cuda-12090", feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+#[repr(C)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub struct CUfileIOParams__bindgen_ty_1__bindgen_ty_1 {
+    pub devPtr_base: *mut ::core::ffi::c_void,
+    pub file_offset: off_t,
+    pub devPtr_offset: off_t,
+    pub size: usize,
+}
+#[cfg(any(feature = "cuda-13040"))]
+#[repr(C)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub struct CUfileIOVec {
+    pub base: *mut ::core::ffi::c_void,
+    pub len: usize,
+}
+#[cfg(any(feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+#[repr(C)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub struct CUfileOpCounter {
+    pub ok: u64,
+    pub err: u64,
+}
+#[cfg(any(feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+#[repr(C)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub struct CUfilePerGpuStats {
+    pub uuid: [::core::ffi::c_char; 16usize],
+    pub read_bytes: u64,
+    pub read_bw_bytes_per_sec: u64,
+    pub read_utilization: u64,
+    pub read_duration_us: u64,
+    pub n_total_reads: u64,
+    pub n_p2p_reads: u64,
+    pub n_nvfs_reads: u64,
+    pub n_posix_reads: u64,
+    pub n_unaligned_reads: u64,
+    pub n_dr_reads: u64,
+    pub n_sparse_regions: u64,
+    pub n_inline_regions: u64,
+    pub n_reads_err: u64,
+    pub writes_bytes: u64,
+    pub write_bw_bytes_per_sec: u64,
+    pub write_utilization: u64,
+    pub write_duration_us: u64,
+    pub n_total_writes: u64,
+    pub n_p2p_writes: u64,
+    pub n_nvfs_writes: u64,
+    pub n_posix_writes: u64,
+    pub n_unaligned_writes: u64,
+    pub n_dr_writes: u64,
+    pub n_writes_err: u64,
+    pub n_mmap: u64,
+    pub n_mmap_ok: u64,
+    pub n_mmap_err: u64,
+    pub n_mmap_free: u64,
+    pub reg_bytes: u64,
+}
+#[cfg(any(feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030"))]
+#[repr(C)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub struct CUfileStatsLevel1 {
+    pub read_ops: CUfileOpCounter_t,
+    pub write_ops: CUfileOpCounter_t,
+    pub hdl_register_ops: CUfileOpCounter_t,
+    pub hdl_deregister_ops: CUfileOpCounter_t,
+    pub buf_register_ops: CUfileOpCounter_t,
+    pub buf_deregister_ops: CUfileOpCounter_t,
+    pub read_bytes: u64,
+    pub write_bytes: u64,
+    pub read_bw_bytes_per_sec: u64,
+    pub write_bw_bytes_per_sec: u64,
+    pub read_lat_avg_us: u64,
+    pub write_lat_avg_us: u64,
+    pub read_ops_per_sec: u64,
+    pub write_ops_per_sec: u64,
+    pub read_lat_sum_us: u64,
+    pub write_lat_sum_us: u64,
+    pub batch_submit_ops: CUfileOpCounter_t,
+    pub batch_complete_ops: CUfileOpCounter_t,
+    pub batch_setup_ops: CUfileOpCounter_t,
+    pub batch_cancel_ops: CUfileOpCounter_t,
+    pub batch_destroy_ops: CUfileOpCounter_t,
+    pub batch_enqueued_ops: CUfileOpCounter_t,
+    pub batch_posix_enqueued_ops: CUfileOpCounter_t,
+    pub batch_processed_ops: CUfileOpCounter_t,
+    pub batch_posix_processed_ops: CUfileOpCounter_t,
+    pub batch_nvfs_submit_ops: CUfileOpCounter_t,
+    pub batch_p2p_submit_ops: CUfileOpCounter_t,
+    pub batch_aio_submit_ops: CUfileOpCounter_t,
+    pub batch_iouring_submit_ops: CUfileOpCounter_t,
+    pub batch_mixed_io_submit_ops: CUfileOpCounter_t,
+    pub batch_total_submit_ops: CUfileOpCounter_t,
+    pub batch_read_bytes: u64,
+    pub batch_write_bytes: u64,
+    pub batch_read_bw_bytes: u64,
+    pub batch_write_bw_bytes: u64,
+    pub batch_submit_lat_avg_us: u64,
+    pub batch_completion_lat_avg_us: u64,
+    pub batch_submit_ops_per_sec: u64,
+    pub batch_complete_ops_per_sec: u64,
+    pub batch_submit_lat_sum_us: u64,
+    pub batch_completion_lat_sum_us: u64,
+    pub last_batch_read_bytes: u64,
+    pub last_batch_write_bytes: u64,
+}
+#[cfg(any(feature = "cuda-13040"))]
+#[repr(C)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub struct CUfileStatsLevel1 {
+    pub read_ops: CUfileOpCounter_t,
+    pub write_ops: CUfileOpCounter_t,
+    pub hdl_register_ops: CUfileOpCounter_t,
+    pub hdl_deregister_ops: CUfileOpCounter_t,
+    pub buf_register_ops: CUfileOpCounter_t,
+    pub buf_deregister_ops: CUfileOpCounter_t,
+    pub read_bytes: u64,
+    pub write_bytes: u64,
+    pub read_bw_bytes_per_sec: u64,
+    pub write_bw_bytes_per_sec: u64,
+    pub read_lat_avg_us: u64,
+    pub write_lat_avg_us: u64,
+    pub read_ops_per_sec: u64,
+    pub write_ops_per_sec: u64,
+    pub read_lat_sum_us: u64,
+    pub write_lat_sum_us: u64,
+    pub batch_submit_ops: CUfileOpCounter_t,
+    pub batch_complete_ops: CUfileOpCounter_t,
+    pub batch_setup_ops: CUfileOpCounter_t,
+    pub batch_cancel_ops: CUfileOpCounter_t,
+    pub batch_destroy_ops: CUfileOpCounter_t,
+    pub batch_enqueued_ops: CUfileOpCounter_t,
+    pub batch_posix_enqueued_ops: CUfileOpCounter_t,
+    pub batch_processed_ops: CUfileOpCounter_t,
+    pub batch_posix_processed_ops: CUfileOpCounter_t,
+    pub batch_nvfs_submit_ops: CUfileOpCounter_t,
+    pub batch_p2p_submit_ops: CUfileOpCounter_t,
+    pub batch_aio_submit_ops: CUfileOpCounter_t,
+    pub batch_iouring_submit_ops: CUfileOpCounter_t,
+    pub batch_mixed_io_submit_ops: CUfileOpCounter_t,
+    pub batch_total_submit_ops: CUfileOpCounter_t,
+    pub batch_read_bytes: u64,
+    pub batch_write_bytes: u64,
+    pub batch_read_bw_bytes: u64,
+    pub batch_write_bw_bytes: u64,
+    pub batch_submit_lat_avg_us: u64,
+    pub batch_completion_lat_avg_us: u64,
+    pub batch_submit_ops_per_sec: u64,
+    pub batch_complete_ops_per_sec: u64,
+    pub batch_submit_lat_sum_us: u64,
+    pub batch_completion_lat_sum_us: u64,
+    pub last_batch_read_bytes: u64,
+    pub last_batch_write_bytes: u64,
+    pub readv_ops: CUfileOpCounter_t,
+    pub writev_ops: CUfileOpCounter_t,
+    pub readv_bytes: u64,
+    pub writev_bytes: u64,
+    pub readv_bw_bytes_per_sec: u64,
+    pub writev_bw_bytes_per_sec: u64,
+    pub readv_lat_avg_us: u64,
+    pub writev_lat_avg_us: u64,
+    pub readv_ops_per_sec: u64,
+    pub writev_ops_per_sec: u64,
+    pub readv_lat_sum_us: u64,
+    pub writev_lat_sum_us: u64,
+}
+#[cfg(any(feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+#[repr(C)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub struct CUfileStatsLevel2 {
+    pub basic: CUfileStatsLevel1_t,
+    pub read_size_kb_hist: [u64; 32usize],
+    pub write_size_kb_hist: [u64; 32usize],
+}
+#[cfg(any(feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+#[repr(C)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub struct CUfileStatsLevel3 {
+    pub detailed: CUfileStatsLevel2_t,
+    pub num_gpus: u32,
+    pub per_gpu_stats: [CUfilePerGpuStats_t; 16usize],
+}
+#[cfg(any(feature = "cuda-12020", feature = "cuda-12030", feature = "cuda-12040", feature = "cuda-12050", feature = "cuda-12060", feature = "cuda-12080", feature = "cuda-12090", feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct CUstream_st {
+    _unused: [u8; 0],
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub struct cufileRDMAInfo {
+    pub version: ::core::ffi::c_int,
+    pub desc_len: ::core::ffi::c_int,
+    pub desc_str: *const ::core::ffi::c_char,
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub struct sockaddr {
+    pub sa_family: sa_family_t,
+    pub sa_data: [::core::ffi::c_char; 14usize],
+}
+#[cfg(any(feature = "cuda-11060", feature = "cuda-11070", feature = "cuda-11080", feature = "cuda-12000", feature = "cuda-12010", feature = "cuda-12020", feature = "cuda-12030", feature = "cuda-12040", feature = "cuda-12050", feature = "cuda-12060", feature = "cuda-12080", feature = "cuda-12090", feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+#[repr(C)]
+#[derive(Debug, Copy, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub struct timespec {
+    pub tv_sec: __time_t,
+    pub tv_nsec: __syscall_slong_t,
+}
+#[cfg(any(feature = "cuda-13040"))]
+impl CUfileDriverControlFlags {
+    pub const CU_FILE_POSIX_IO_MODE: CUfileDriverControlFlags = CUfileDriverControlFlags::CU_FILE_VANILLA_POSIX_IO_MODE;
+}
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub union CUfileDescr_t__bindgen_ty_1 {
+    pub fd: ::core::ffi::c_int,
+    pub handle: *mut ::core::ffi::c_void,
+}
+#[cfg(any(feature = "cuda-11060", feature = "cuda-11070", feature = "cuda-11080", feature = "cuda-12000", feature = "cuda-12010", feature = "cuda-12020", feature = "cuda-12030", feature = "cuda-12040", feature = "cuda-12050", feature = "cuda-12060", feature = "cuda-12080", feature = "cuda-12090", feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub union CUfileIOParams__bindgen_ty_1 {
+    pub batch: CUfileIOParams__bindgen_ty_1__bindgen_ty_1,
+}
+#[cfg(any(feature = "cuda-11060", feature = "cuda-11070", feature = "cuda-11080", feature = "cuda-12000", feature = "cuda-12010", feature = "cuda-12020", feature = "cuda-12030", feature = "cuda-12040", feature = "cuda-12050", feature = "cuda-12060", feature = "cuda-12080", feature = "cuda-12090", feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+pub unsafe fn cuFileBatchIOCancel(batch_idp: CUfileBatchHandle_t) -> CUfileError_t {
+    #[cfg(feature = "dynamic-loading")]
+    {
+        type _F = unsafe extern "C" fn(CUfileBatchHandle_t) -> CUfileError_t;
+        static _S: OnceLock<_F> = OnceLock::new();
+        let _f = _S.get_or_init(|| unsafe { load::<_F>("cuFileBatchIOCancel") });
+        _f(batch_idp)
+    }
+    #[cfg(not(feature = "dynamic-loading"))]
+    {
+        extern "C" {
+            fn cuFileBatchIOCancel(batch_idp: CUfileBatchHandle_t) -> CUfileError_t;
+        }
+        cuFileBatchIOCancel(batch_idp)
+    }
+}
+#[cfg(any(feature = "cuda-11060", feature = "cuda-11070", feature = "cuda-11080", feature = "cuda-12000", feature = "cuda-12010", feature = "cuda-12020", feature = "cuda-12030", feature = "cuda-12040", feature = "cuda-12050", feature = "cuda-12060", feature = "cuda-12080", feature = "cuda-12090", feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+pub unsafe fn cuFileBatchIODestroy(batch_idp: CUfileBatchHandle_t) {
+    #[cfg(feature = "dynamic-loading")]
+    {
+        type _F = unsafe extern "C" fn(CUfileBatchHandle_t);
+        static _S: OnceLock<_F> = OnceLock::new();
+        let _f = _S.get_or_init(|| unsafe { load::<_F>("cuFileBatchIODestroy") });
+        _f(batch_idp)
+    }
+    #[cfg(not(feature = "dynamic-loading"))]
+    {
+        extern "C" {
+            fn cuFileBatchIODestroy(batch_idp: CUfileBatchHandle_t);
+        }
+        cuFileBatchIODestroy(batch_idp)
+    }
+}
+#[cfg(any(feature = "cuda-11060", feature = "cuda-11070", feature = "cuda-11080", feature = "cuda-12000", feature = "cuda-12010", feature = "cuda-12020", feature = "cuda-12030", feature = "cuda-12040", feature = "cuda-12050", feature = "cuda-12060", feature = "cuda-12080", feature = "cuda-12090", feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+pub unsafe fn cuFileBatchIOGetStatus(batch_idp: CUfileBatchHandle_t, min_nr: ::core::ffi::c_uint, nr: *mut ::core::ffi::c_uint, iocbp: *mut CUfileIOEvents_t, timeout: *mut timespec) -> CUfileError_t {
+    #[cfg(feature = "dynamic-loading")]
+    {
+        type _F = unsafe extern "C" fn(CUfileBatchHandle_t, ::core::ffi::c_uint, *mut ::core::ffi::c_uint, *mut CUfileIOEvents_t, *mut timespec) -> CUfileError_t;
+        static _S: OnceLock<_F> = OnceLock::new();
+        let _f = _S.get_or_init(|| unsafe { load::<_F>("cuFileBatchIOGetStatus") });
+        _f(batch_idp, min_nr, nr, iocbp, timeout)
+    }
+    #[cfg(not(feature = "dynamic-loading"))]
+    {
+        extern "C" {
+            fn cuFileBatchIOGetStatus(batch_idp: CUfileBatchHandle_t, min_nr: ::core::ffi::c_uint, nr: *mut ::core::ffi::c_uint, iocbp: *mut CUfileIOEvents_t, timeout: *mut timespec) -> CUfileError_t;
+        }
+        cuFileBatchIOGetStatus(batch_idp, min_nr, nr, iocbp, timeout)
+    }
+}
+#[cfg(any(feature = "cuda-11060", feature = "cuda-11070", feature = "cuda-11080", feature = "cuda-12000", feature = "cuda-12010", feature = "cuda-12020", feature = "cuda-12030", feature = "cuda-12040", feature = "cuda-12050", feature = "cuda-12060", feature = "cuda-12080", feature = "cuda-12090", feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+pub unsafe fn cuFileBatchIOSetUp(batch_idp: *mut CUfileBatchHandle_t, nr: ::core::ffi::c_uint) -> CUfileError_t {
+    #[cfg(feature = "dynamic-loading")]
+    {
+        type _F = unsafe extern "C" fn(*mut CUfileBatchHandle_t, ::core::ffi::c_uint) -> CUfileError_t;
+        static _S: OnceLock<_F> = OnceLock::new();
+        let _f = _S.get_or_init(|| unsafe { load::<_F>("cuFileBatchIOSetUp") });
+        _f(batch_idp, nr)
+    }
+    #[cfg(not(feature = "dynamic-loading"))]
+    {
+        extern "C" {
+            fn cuFileBatchIOSetUp(batch_idp: *mut CUfileBatchHandle_t, nr: ::core::ffi::c_uint) -> CUfileError_t;
+        }
+        cuFileBatchIOSetUp(batch_idp, nr)
+    }
+}
+#[cfg(any(feature = "cuda-11060", feature = "cuda-11070", feature = "cuda-11080", feature = "cuda-12000", feature = "cuda-12010", feature = "cuda-12020", feature = "cuda-12030", feature = "cuda-12040", feature = "cuda-12050", feature = "cuda-12060", feature = "cuda-12080", feature = "cuda-12090", feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+pub unsafe fn cuFileBatchIOSubmit(batch_idp: CUfileBatchHandle_t, nr: ::core::ffi::c_uint, iocbp: *mut CUfileIOParams_t, flags: ::core::ffi::c_uint) -> CUfileError_t {
+    #[cfg(feature = "dynamic-loading")]
+    {
+        type _F = unsafe extern "C" fn(CUfileBatchHandle_t, ::core::ffi::c_uint, *mut CUfileIOParams_t, ::core::ffi::c_uint) -> CUfileError_t;
+        static _S: OnceLock<_F> = OnceLock::new();
+        let _f = _S.get_or_init(|| unsafe { load::<_F>("cuFileBatchIOSubmit") });
+        _f(batch_idp, nr, iocbp, flags)
+    }
+    #[cfg(not(feature = "dynamic-loading"))]
+    {
+        extern "C" {
+            fn cuFileBatchIOSubmit(batch_idp: CUfileBatchHandle_t, nr: ::core::ffi::c_uint, iocbp: *mut CUfileIOParams_t, flags: ::core::ffi::c_uint) -> CUfileError_t;
+        }
+        cuFileBatchIOSubmit(batch_idp, nr, iocbp, flags)
+    }
+}
+#[cfg(any(feature = "cuda-11040", feature = "cuda-11050", feature = "cuda-11060", feature = "cuda-11070", feature = "cuda-11080", feature = "cuda-12000", feature = "cuda-12010", feature = "cuda-12020"))]
+pub unsafe fn cuFileBufDeregister(devPtr_base: *const ::core::ffi::c_void) -> CUfileError_t {
+    #[cfg(feature = "dynamic-loading")]
+    {
+        type _F = unsafe extern "C" fn(*const ::core::ffi::c_void) -> CUfileError_t;
+        static _S: OnceLock<_F> = OnceLock::new();
+        let _f = _S.get_or_init(|| unsafe { load::<_F>("cuFileBufDeregister") });
+        _f(devPtr_base)
+    }
+    #[cfg(not(feature = "dynamic-loading"))]
+    {
+        extern "C" {
+            fn cuFileBufDeregister(devPtr_base: *const ::core::ffi::c_void) -> CUfileError_t;
+        }
+        cuFileBufDeregister(devPtr_base)
+    }
+}
+#[cfg(any(feature = "cuda-12030", feature = "cuda-12040", feature = "cuda-12050", feature = "cuda-12060", feature = "cuda-12080", feature = "cuda-12090", feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+pub unsafe fn cuFileBufDeregister(bufPtr_base: *const ::core::ffi::c_void) -> CUfileError_t {
+    #[cfg(feature = "dynamic-loading")]
+    {
+        type _F = unsafe extern "C" fn(*const ::core::ffi::c_void) -> CUfileError_t;
+        static _S: OnceLock<_F> = OnceLock::new();
+        let _f = _S.get_or_init(|| unsafe { load::<_F>("cuFileBufDeregister") });
+        _f(bufPtr_base)
+    }
+    #[cfg(not(feature = "dynamic-loading"))]
+    {
+        extern "C" {
+            fn cuFileBufDeregister(bufPtr_base: *const ::core::ffi::c_void) -> CUfileError_t;
+        }
+        cuFileBufDeregister(bufPtr_base)
+    }
+}
+#[cfg(any(feature = "cuda-11040", feature = "cuda-11050", feature = "cuda-11060", feature = "cuda-11070", feature = "cuda-11080", feature = "cuda-12000", feature = "cuda-12010", feature = "cuda-12020"))]
+pub unsafe fn cuFileBufRegister(devPtr_base: *const ::core::ffi::c_void, length: usize, flags: ::core::ffi::c_int) -> CUfileError_t {
+    #[cfg(feature = "dynamic-loading")]
+    {
+        type _F = unsafe extern "C" fn(*const ::core::ffi::c_void, usize, ::core::ffi::c_int) -> CUfileError_t;
+        static _S: OnceLock<_F> = OnceLock::new();
+        let _f = _S.get_or_init(|| unsafe { load::<_F>("cuFileBufRegister") });
+        _f(devPtr_base, length, flags)
+    }
+    #[cfg(not(feature = "dynamic-loading"))]
+    {
+        extern "C" {
+            fn cuFileBufRegister(devPtr_base: *const ::core::ffi::c_void, length: usize, flags: ::core::ffi::c_int) -> CUfileError_t;
+        }
+        cuFileBufRegister(devPtr_base, length, flags)
+    }
+}
+#[cfg(any(feature = "cuda-12030", feature = "cuda-12040", feature = "cuda-12050", feature = "cuda-12060", feature = "cuda-12080", feature = "cuda-12090", feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+pub unsafe fn cuFileBufRegister(bufPtr_base: *const ::core::ffi::c_void, length: usize, flags: ::core::ffi::c_int) -> CUfileError_t {
+    #[cfg(feature = "dynamic-loading")]
+    {
+        type _F = unsafe extern "C" fn(*const ::core::ffi::c_void, usize, ::core::ffi::c_int) -> CUfileError_t;
+        static _S: OnceLock<_F> = OnceLock::new();
+        let _f = _S.get_or_init(|| unsafe { load::<_F>("cuFileBufRegister") });
+        _f(bufPtr_base, length, flags)
+    }
+    #[cfg(not(feature = "dynamic-loading"))]
+    {
+        extern "C" {
+            fn cuFileBufRegister(bufPtr_base: *const ::core::ffi::c_void, length: usize, flags: ::core::ffi::c_int) -> CUfileError_t;
+        }
+        cuFileBufRegister(bufPtr_base, length, flags)
+    }
+}
+pub unsafe fn cuFileDriverClose() -> CUfileError_t {
+    #[cfg(feature = "dynamic-loading")]
+    {
+        type _F = unsafe extern "C" fn() -> CUfileError_t;
+        static _S: OnceLock<_F> = OnceLock::new();
+        let _f = _S.get_or_init(|| unsafe { load::<_F>("cuFileDriverClose") });
+        _f()
+    }
+    #[cfg(not(feature = "dynamic-loading"))]
+    {
+        extern "C" {
+            fn cuFileDriverClose() -> CUfileError_t;
+        }
+        cuFileDriverClose()
+    }
+}
+#[cfg(any(feature = "cuda-11080", feature = "cuda-12000", feature = "cuda-12010", feature = "cuda-12020", feature = "cuda-12030", feature = "cuda-12040", feature = "cuda-12050", feature = "cuda-12060", feature = "cuda-12080", feature = "cuda-12090", feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+pub unsafe fn cuFileDriverClose_v2() -> CUfileError_t {
+    #[cfg(feature = "dynamic-loading")]
+    {
+        type _F = unsafe extern "C" fn() -> CUfileError_t;
+        static _S: OnceLock<_F> = OnceLock::new();
+        let _f = _S.get_or_init(|| unsafe { load::<_F>("cuFileDriverClose_v2") });
+        _f()
+    }
+    #[cfg(not(feature = "dynamic-loading"))]
+    {
+        extern "C" {
+            fn cuFileDriverClose_v2() -> CUfileError_t;
+        }
+        cuFileDriverClose_v2()
+    }
+}
+#[cfg(any(feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+pub unsafe fn cuFileDriverGetP2PFlags(status_flag: CUfileDriverStatusFlags_t, p2p_flags: *mut CUfileP2PFlags_t) -> CUfileError_t {
+    #[cfg(feature = "dynamic-loading")]
+    {
+        type _F = unsafe extern "C" fn(CUfileDriverStatusFlags_t, *mut CUfileP2PFlags_t) -> CUfileError_t;
+        static _S: OnceLock<_F> = OnceLock::new();
+        let _f = _S.get_or_init(|| unsafe { load::<_F>("cuFileDriverGetP2PFlags") });
+        _f(status_flag, p2p_flags)
+    }
+    #[cfg(not(feature = "dynamic-loading"))]
+    {
+        extern "C" {
+            fn cuFileDriverGetP2PFlags(status_flag: CUfileDriverStatusFlags_t, p2p_flags: *mut CUfileP2PFlags_t) -> CUfileError_t;
+        }
+        cuFileDriverGetP2PFlags(status_flag, p2p_flags)
+    }
+}
+pub unsafe fn cuFileDriverGetProperties(props: *mut CUfileDrvProps_t) -> CUfileError_t {
+    #[cfg(feature = "dynamic-loading")]
+    {
+        type _F = unsafe extern "C" fn(*mut CUfileDrvProps_t) -> CUfileError_t;
+        static _S: OnceLock<_F> = OnceLock::new();
+        let _f = _S.get_or_init(|| unsafe { load::<_F>("cuFileDriverGetProperties") });
+        _f(props)
+    }
+    #[cfg(not(feature = "dynamic-loading"))]
+    {
+        extern "C" {
+            fn cuFileDriverGetProperties(props: *mut CUfileDrvProps_t) -> CUfileError_t;
+        }
+        cuFileDriverGetProperties(props)
+    }
+}
+pub unsafe fn cuFileDriverOpen() -> CUfileError_t {
+    #[cfg(feature = "dynamic-loading")]
+    {
+        type _F = unsafe extern "C" fn() -> CUfileError_t;
+        static _S: OnceLock<_F> = OnceLock::new();
+        let _f = _S.get_or_init(|| unsafe { load::<_F>("cuFileDriverOpen") });
+        _f()
+    }
+    #[cfg(not(feature = "dynamic-loading"))]
+    {
+        extern "C" {
+            fn cuFileDriverOpen() -> CUfileError_t;
+        }
+        cuFileDriverOpen()
+    }
+}
+pub unsafe fn cuFileDriverSetMaxCacheSize(max_cache_size: usize) -> CUfileError_t {
+    #[cfg(feature = "dynamic-loading")]
+    {
+        type _F = unsafe extern "C" fn(usize) -> CUfileError_t;
+        static _S: OnceLock<_F> = OnceLock::new();
+        let _f = _S.get_or_init(|| unsafe { load::<_F>("cuFileDriverSetMaxCacheSize") });
+        _f(max_cache_size)
+    }
+    #[cfg(not(feature = "dynamic-loading"))]
+    {
+        extern "C" {
+            fn cuFileDriverSetMaxCacheSize(max_cache_size: usize) -> CUfileError_t;
+        }
+        cuFileDriverSetMaxCacheSize(max_cache_size)
+    }
+}
+pub unsafe fn cuFileDriverSetMaxDirectIOSize(max_direct_io_size: usize) -> CUfileError_t {
+    #[cfg(feature = "dynamic-loading")]
+    {
+        type _F = unsafe extern "C" fn(usize) -> CUfileError_t;
+        static _S: OnceLock<_F> = OnceLock::new();
+        let _f = _S.get_or_init(|| unsafe { load::<_F>("cuFileDriverSetMaxDirectIOSize") });
+        _f(max_direct_io_size)
+    }
+    #[cfg(not(feature = "dynamic-loading"))]
+    {
+        extern "C" {
+            fn cuFileDriverSetMaxDirectIOSize(max_direct_io_size: usize) -> CUfileError_t;
+        }
+        cuFileDriverSetMaxDirectIOSize(max_direct_io_size)
+    }
+}
+pub unsafe fn cuFileDriverSetMaxPinnedMemSize(max_pinned_size: usize) -> CUfileError_t {
+    #[cfg(feature = "dynamic-loading")]
+    {
+        type _F = unsafe extern "C" fn(usize) -> CUfileError_t;
+        static _S: OnceLock<_F> = OnceLock::new();
+        let _f = _S.get_or_init(|| unsafe { load::<_F>("cuFileDriverSetMaxPinnedMemSize") });
+        _f(max_pinned_size)
+    }
+    #[cfg(not(feature = "dynamic-loading"))]
+    {
+        extern "C" {
+            fn cuFileDriverSetMaxPinnedMemSize(max_pinned_size: usize) -> CUfileError_t;
+        }
+        cuFileDriverSetMaxPinnedMemSize(max_pinned_size)
+    }
+}
+#[cfg(any(feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+pub unsafe fn cuFileDriverSetP2PFlags(status_flag: CUfileDriverStatusFlags_t, p2p_flags: CUfileP2PFlags_t) -> CUfileError_t {
+    #[cfg(feature = "dynamic-loading")]
+    {
+        type _F = unsafe extern "C" fn(CUfileDriverStatusFlags_t, CUfileP2PFlags_t) -> CUfileError_t;
+        static _S: OnceLock<_F> = OnceLock::new();
+        let _f = _S.get_or_init(|| unsafe { load::<_F>("cuFileDriverSetP2PFlags") });
+        _f(status_flag, p2p_flags)
+    }
+    #[cfg(not(feature = "dynamic-loading"))]
+    {
+        extern "C" {
+            fn cuFileDriverSetP2PFlags(status_flag: CUfileDriverStatusFlags_t, p2p_flags: CUfileP2PFlags_t) -> CUfileError_t;
+        }
+        cuFileDriverSetP2PFlags(status_flag, p2p_flags)
+    }
+}
+pub unsafe fn cuFileDriverSetPollMode(poll: bool, poll_threshold_size: usize) -> CUfileError_t {
+    #[cfg(feature = "dynamic-loading")]
+    {
+        type _F = unsafe extern "C" fn(bool, usize) -> CUfileError_t;
+        static _S: OnceLock<_F> = OnceLock::new();
+        let _f = _S.get_or_init(|| unsafe { load::<_F>("cuFileDriverSetPollMode") });
+        _f(poll, poll_threshold_size)
+    }
+    #[cfg(not(feature = "dynamic-loading"))]
+    {
+        extern "C" {
+            fn cuFileDriverSetPollMode(poll: bool, poll_threshold_size: usize) -> CUfileError_t;
+        }
+        cuFileDriverSetPollMode(poll, poll_threshold_size)
+    }
+}
+#[cfg(any(feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+pub unsafe fn cuFileExportPCIeTopology(filename: *const ::core::ffi::c_char) -> CUfileError_t {
+    #[cfg(feature = "dynamic-loading")]
+    {
+        type _F = unsafe extern "C" fn(*const ::core::ffi::c_char) -> CUfileError_t;
+        static _S: OnceLock<_F> = OnceLock::new();
+        let _f = _S.get_or_init(|| unsafe { load::<_F>("cuFileExportPCIeTopology") });
+        _f(filename)
+    }
+    #[cfg(not(feature = "dynamic-loading"))]
+    {
+        extern "C" {
+            fn cuFileExportPCIeTopology(filename: *const ::core::ffi::c_char) -> CUfileError_t;
+        }
+        cuFileExportPCIeTopology(filename)
+    }
+}
+#[cfg(any(feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+pub unsafe fn cuFileGetBARSizeInKB(gpuIndex: ::core::ffi::c_int, barSize: *mut usize) -> CUfileError_t {
+    #[cfg(feature = "dynamic-loading")]
+    {
+        type _F = unsafe extern "C" fn(::core::ffi::c_int, *mut usize) -> CUfileError_t;
+        static _S: OnceLock<_F> = OnceLock::new();
+        let _f = _S.get_or_init(|| unsafe { load::<_F>("cuFileGetBARSizeInKB") });
+        _f(gpuIndex, barSize)
+    }
+    #[cfg(not(feature = "dynamic-loading"))]
+    {
+        extern "C" {
+            fn cuFileGetBARSizeInKB(gpuIndex: ::core::ffi::c_int, barSize: *mut usize) -> CUfileError_t;
+        }
+        cuFileGetBARSizeInKB(gpuIndex, barSize)
+    }
+}
+#[cfg(any(feature = "cuda-12090", feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+pub unsafe fn cuFileGetParameterBool(param: CUFileBoolConfigParameter_t, value: *mut bool) -> CUfileError_t {
+    #[cfg(feature = "dynamic-loading")]
+    {
+        type _F = unsafe extern "C" fn(CUFileBoolConfigParameter_t, *mut bool) -> CUfileError_t;
+        static _S: OnceLock<_F> = OnceLock::new();
+        let _f = _S.get_or_init(|| unsafe { load::<_F>("cuFileGetParameterBool") });
+        _f(param, value)
+    }
+    #[cfg(not(feature = "dynamic-loading"))]
+    {
+        extern "C" {
+            fn cuFileGetParameterBool(param: CUFileBoolConfigParameter_t, value: *mut bool) -> CUfileError_t;
+        }
+        cuFileGetParameterBool(param, value)
+    }
+}
+#[cfg(any(feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+pub unsafe fn cuFileGetParameterGpuBounceBufferSlabArray(size_values: *mut usize, count_values: *mut usize, len: ::core::ffi::c_int) -> CUfileError_t {
+    #[cfg(feature = "dynamic-loading")]
+    {
+        type _F = unsafe extern "C" fn(*mut usize, *mut usize, ::core::ffi::c_int) -> CUfileError_t;
+        static _S: OnceLock<_F> = OnceLock::new();
+        let _f = _S.get_or_init(|| unsafe { load::<_F>("cuFileGetParameterGpuBounceBufferSlabArray") });
+        _f(size_values, count_values, len)
+    }
+    #[cfg(not(feature = "dynamic-loading"))]
+    {
+        extern "C" {
+            fn cuFileGetParameterGpuBounceBufferSlabArray(size_values: *mut usize, count_values: *mut usize, len: ::core::ffi::c_int) -> CUfileError_t;
+        }
+        cuFileGetParameterGpuBounceBufferSlabArray(size_values, count_values, len)
+    }
+}
+#[cfg(any(feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+pub unsafe fn cuFileGetParameterMinMaxValue(param: CUFileSizeTConfigParameter_t, min_value: *mut usize, max_value: *mut usize) -> CUfileError_t {
+    #[cfg(feature = "dynamic-loading")]
+    {
+        type _F = unsafe extern "C" fn(CUFileSizeTConfigParameter_t, *mut usize, *mut usize) -> CUfileError_t;
+        static _S: OnceLock<_F> = OnceLock::new();
+        let _f = _S.get_or_init(|| unsafe { load::<_F>("cuFileGetParameterMinMaxValue") });
+        _f(param, min_value, max_value)
+    }
+    #[cfg(not(feature = "dynamic-loading"))]
+    {
+        extern "C" {
+            fn cuFileGetParameterMinMaxValue(param: CUFileSizeTConfigParameter_t, min_value: *mut usize, max_value: *mut usize) -> CUfileError_t;
+        }
+        cuFileGetParameterMinMaxValue(param, min_value, max_value)
+    }
+}
+#[cfg(any(feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+pub unsafe fn cuFileGetParameterPosixPoolSlabArray(size_values: *mut usize, count_values: *mut usize, len: ::core::ffi::c_int) -> CUfileError_t {
+    #[cfg(feature = "dynamic-loading")]
+    {
+        type _F = unsafe extern "C" fn(*mut usize, *mut usize, ::core::ffi::c_int) -> CUfileError_t;
+        static _S: OnceLock<_F> = OnceLock::new();
+        let _f = _S.get_or_init(|| unsafe { load::<_F>("cuFileGetParameterPosixPoolSlabArray") });
+        _f(size_values, count_values, len)
+    }
+    #[cfg(not(feature = "dynamic-loading"))]
+    {
+        extern "C" {
+            fn cuFileGetParameterPosixPoolSlabArray(size_values: *mut usize, count_values: *mut usize, len: ::core::ffi::c_int) -> CUfileError_t;
+        }
+        cuFileGetParameterPosixPoolSlabArray(size_values, count_values, len)
+    }
+}
+#[cfg(any(feature = "cuda-12090", feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+pub unsafe fn cuFileGetParameterSizeT(param: CUFileSizeTConfigParameter_t, value: *mut usize) -> CUfileError_t {
+    #[cfg(feature = "dynamic-loading")]
+    {
+        type _F = unsafe extern "C" fn(CUFileSizeTConfigParameter_t, *mut usize) -> CUfileError_t;
+        static _S: OnceLock<_F> = OnceLock::new();
+        let _f = _S.get_or_init(|| unsafe { load::<_F>("cuFileGetParameterSizeT") });
+        _f(param, value)
+    }
+    #[cfg(not(feature = "dynamic-loading"))]
+    {
+        extern "C" {
+            fn cuFileGetParameterSizeT(param: CUFileSizeTConfigParameter_t, value: *mut usize) -> CUfileError_t;
+        }
+        cuFileGetParameterSizeT(param, value)
+    }
+}
+#[cfg(any(feature = "cuda-12090", feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+pub unsafe fn cuFileGetParameterString(param: CUFileStringConfigParameter_t, desc_str: *mut ::core::ffi::c_char, len: ::core::ffi::c_int) -> CUfileError_t {
+    #[cfg(feature = "dynamic-loading")]
+    {
+        type _F = unsafe extern "C" fn(CUFileStringConfigParameter_t, *mut ::core::ffi::c_char, ::core::ffi::c_int) -> CUfileError_t;
+        static _S: OnceLock<_F> = OnceLock::new();
+        let _f = _S.get_or_init(|| unsafe { load::<_F>("cuFileGetParameterString") });
+        _f(param, desc_str, len)
+    }
+    #[cfg(not(feature = "dynamic-loading"))]
+    {
+        extern "C" {
+            fn cuFileGetParameterString(param: CUFileStringConfigParameter_t, desc_str: *mut ::core::ffi::c_char, len: ::core::ffi::c_int) -> CUfileError_t;
+        }
+        cuFileGetParameterString(param, desc_str, len)
+    }
+}
+#[cfg(any(feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+pub unsafe fn cuFileGetStatsL1(stats: *mut CUfileStatsLevel1_t) -> CUfileError_t {
+    #[cfg(feature = "dynamic-loading")]
+    {
+        type _F = unsafe extern "C" fn(*mut CUfileStatsLevel1_t) -> CUfileError_t;
+        static _S: OnceLock<_F> = OnceLock::new();
+        let _f = _S.get_or_init(|| unsafe { load::<_F>("cuFileGetStatsL1") });
+        _f(stats)
+    }
+    #[cfg(not(feature = "dynamic-loading"))]
+    {
+        extern "C" {
+            fn cuFileGetStatsL1(stats: *mut CUfileStatsLevel1_t) -> CUfileError_t;
+        }
+        cuFileGetStatsL1(stats)
+    }
+}
+#[cfg(any(feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+pub unsafe fn cuFileGetStatsL2(stats: *mut CUfileStatsLevel2_t) -> CUfileError_t {
+    #[cfg(feature = "dynamic-loading")]
+    {
+        type _F = unsafe extern "C" fn(*mut CUfileStatsLevel2_t) -> CUfileError_t;
+        static _S: OnceLock<_F> = OnceLock::new();
+        let _f = _S.get_or_init(|| unsafe { load::<_F>("cuFileGetStatsL2") });
+        _f(stats)
+    }
+    #[cfg(not(feature = "dynamic-loading"))]
+    {
+        extern "C" {
+            fn cuFileGetStatsL2(stats: *mut CUfileStatsLevel2_t) -> CUfileError_t;
+        }
+        cuFileGetStatsL2(stats)
+    }
+}
+#[cfg(any(feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+pub unsafe fn cuFileGetStatsL3(stats: *mut CUfileStatsLevel3_t) -> CUfileError_t {
+    #[cfg(feature = "dynamic-loading")]
+    {
+        type _F = unsafe extern "C" fn(*mut CUfileStatsLevel3_t) -> CUfileError_t;
+        static _S: OnceLock<_F> = OnceLock::new();
+        let _f = _S.get_or_init(|| unsafe { load::<_F>("cuFileGetStatsL3") });
+        _f(stats)
+    }
+    #[cfg(not(feature = "dynamic-loading"))]
+    {
+        extern "C" {
+            fn cuFileGetStatsL3(stats: *mut CUfileStatsLevel3_t) -> CUfileError_t;
+        }
+        cuFileGetStatsL3(stats)
+    }
+}
+#[cfg(any(feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+pub unsafe fn cuFileGetStatsLevel(level: *mut ::core::ffi::c_int) -> CUfileError_t {
+    #[cfg(feature = "dynamic-loading")]
+    {
+        type _F = unsafe extern "C" fn(*mut ::core::ffi::c_int) -> CUfileError_t;
+        static _S: OnceLock<_F> = OnceLock::new();
+        let _f = _S.get_or_init(|| unsafe { load::<_F>("cuFileGetStatsLevel") });
+        _f(level)
+    }
+    #[cfg(not(feature = "dynamic-loading"))]
+    {
+        extern "C" {
+            fn cuFileGetStatsLevel(level: *mut ::core::ffi::c_int) -> CUfileError_t;
+        }
+        cuFileGetStatsLevel(level)
+    }
+}
+#[cfg(any(feature = "cuda-12030", feature = "cuda-12040", feature = "cuda-12050", feature = "cuda-12060", feature = "cuda-12080", feature = "cuda-12090", feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+pub unsafe fn cuFileGetVersion(version: *mut ::core::ffi::c_int) -> CUfileError_t {
+    #[cfg(feature = "dynamic-loading")]
+    {
+        type _F = unsafe extern "C" fn(*mut ::core::ffi::c_int) -> CUfileError_t;
+        static _S: OnceLock<_F> = OnceLock::new();
+        let _f = _S.get_or_init(|| unsafe { load::<_F>("cuFileGetVersion") });
+        _f(version)
+    }
+    #[cfg(not(feature = "dynamic-loading"))]
+    {
+        extern "C" {
+            fn cuFileGetVersion(version: *mut ::core::ffi::c_int) -> CUfileError_t;
+        }
+        cuFileGetVersion(version)
+    }
+}
+pub unsafe fn cuFileHandleDeregister(fh: CUfileHandle_t) {
+    #[cfg(feature = "dynamic-loading")]
+    {
+        type _F = unsafe extern "C" fn(CUfileHandle_t);
+        static _S: OnceLock<_F> = OnceLock::new();
+        let _f = _S.get_or_init(|| unsafe { load::<_F>("cuFileHandleDeregister") });
+        _f(fh)
+    }
+    #[cfg(not(feature = "dynamic-loading"))]
+    {
+        extern "C" {
+            fn cuFileHandleDeregister(fh: CUfileHandle_t);
+        }
+        cuFileHandleDeregister(fh)
+    }
+}
+pub unsafe fn cuFileHandleRegister(fh: *mut CUfileHandle_t, descr: *mut CUfileDescr_t) -> CUfileError_t {
+    #[cfg(feature = "dynamic-loading")]
+    {
+        type _F = unsafe extern "C" fn(*mut CUfileHandle_t, *mut CUfileDescr_t) -> CUfileError_t;
+        static _S: OnceLock<_F> = OnceLock::new();
+        let _f = _S.get_or_init(|| unsafe { load::<_F>("cuFileHandleRegister") });
+        _f(fh, descr)
+    }
+    #[cfg(not(feature = "dynamic-loading"))]
+    {
+        extern "C" {
+            fn cuFileHandleRegister(fh: *mut CUfileHandle_t, descr: *mut CUfileDescr_t) -> CUfileError_t;
+        }
+        cuFileHandleRegister(fh, descr)
+    }
+}
+#[cfg(any(feature = "cuda-11040", feature = "cuda-11050", feature = "cuda-11060", feature = "cuda-11070", feature = "cuda-11080", feature = "cuda-12000", feature = "cuda-12010", feature = "cuda-12020"))]
+pub unsafe fn cuFileRead(fh: CUfileHandle_t, devPtr_base: *mut ::core::ffi::c_void, size: usize, file_offset: off_t, devPtr_offset: off_t) -> isize {
+    #[cfg(feature = "dynamic-loading")]
+    {
+        type _F = unsafe extern "C" fn(CUfileHandle_t, *mut ::core::ffi::c_void, usize, off_t, off_t) -> isize;
+        static _S: OnceLock<_F> = OnceLock::new();
+        let _f = _S.get_or_init(|| unsafe { load::<_F>("cuFileRead") });
+        _f(fh, devPtr_base, size, file_offset, devPtr_offset)
+    }
+    #[cfg(not(feature = "dynamic-loading"))]
+    {
+        extern "C" {
+            fn cuFileRead(fh: CUfileHandle_t, devPtr_base: *mut ::core::ffi::c_void, size: usize, file_offset: off_t, devPtr_offset: off_t) -> isize;
+        }
+        cuFileRead(fh, devPtr_base, size, file_offset, devPtr_offset)
+    }
+}
+#[cfg(any(feature = "cuda-12030", feature = "cuda-12040", feature = "cuda-12050", feature = "cuda-12060", feature = "cuda-12080", feature = "cuda-12090", feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+pub unsafe fn cuFileRead(fh: CUfileHandle_t, bufPtr_base: *mut ::core::ffi::c_void, size: usize, file_offset: off_t, bufPtr_offset: off_t) -> isize {
+    #[cfg(feature = "dynamic-loading")]
+    {
+        type _F = unsafe extern "C" fn(CUfileHandle_t, *mut ::core::ffi::c_void, usize, off_t, off_t) -> isize;
+        static _S: OnceLock<_F> = OnceLock::new();
+        let _f = _S.get_or_init(|| unsafe { load::<_F>("cuFileRead") });
+        _f(fh, bufPtr_base, size, file_offset, bufPtr_offset)
+    }
+    #[cfg(not(feature = "dynamic-loading"))]
+    {
+        extern "C" {
+            fn cuFileRead(fh: CUfileHandle_t, bufPtr_base: *mut ::core::ffi::c_void, size: usize, file_offset: off_t, bufPtr_offset: off_t) -> isize;
+        }
+        cuFileRead(fh, bufPtr_base, size, file_offset, bufPtr_offset)
+    }
+}
+#[cfg(any(feature = "cuda-12020", feature = "cuda-12030", feature = "cuda-12040", feature = "cuda-12050", feature = "cuda-12060", feature = "cuda-12080", feature = "cuda-12090", feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+pub unsafe fn cuFileReadAsync(fh: CUfileHandle_t, bufPtr_base: *mut ::core::ffi::c_void, size_p: *mut usize, file_offset_p: *mut off_t, bufPtr_offset_p: *mut off_t, bytes_read_p: *mut isize, stream: CUstream) -> CUfileError_t {
+    #[cfg(feature = "dynamic-loading")]
+    {
+        type _F = unsafe extern "C" fn(CUfileHandle_t, *mut ::core::ffi::c_void, *mut usize, *mut off_t, *mut off_t, *mut isize, CUstream) -> CUfileError_t;
+        static _S: OnceLock<_F> = OnceLock::new();
+        let _f = _S.get_or_init(|| unsafe { load::<_F>("cuFileReadAsync") });
+        _f(fh, bufPtr_base, size_p, file_offset_p, bufPtr_offset_p, bytes_read_p, stream)
+    }
+    #[cfg(not(feature = "dynamic-loading"))]
+    {
+        extern "C" {
+            fn cuFileReadAsync(fh: CUfileHandle_t, bufPtr_base: *mut ::core::ffi::c_void, size_p: *mut usize, file_offset_p: *mut off_t, bufPtr_offset_p: *mut off_t, bytes_read_p: *mut isize, stream: CUstream) -> CUfileError_t;
+        }
+        cuFileReadAsync(fh, bufPtr_base, size_p, file_offset_p, bufPtr_offset_p, bytes_read_p, stream)
+    }
+}
+#[cfg(any(feature = "cuda-13040"))]
+pub unsafe fn cuFileReadv(fh: CUfileHandle_t, iov: *const CUfileIOVec_t, iovcnt: usize, file_offset: off_t, flags: ::core::ffi::c_uint) -> isize {
+    #[cfg(feature = "dynamic-loading")]
+    {
+        type _F = unsafe extern "C" fn(CUfileHandle_t, *const CUfileIOVec_t, usize, off_t, ::core::ffi::c_uint) -> isize;
+        static _S: OnceLock<_F> = OnceLock::new();
+        let _f = _S.get_or_init(|| unsafe { load::<_F>("cuFileReadv") });
+        _f(fh, iov, iovcnt, file_offset, flags)
+    }
+    #[cfg(not(feature = "dynamic-loading"))]
+    {
+        extern "C" {
+            fn cuFileReadv(fh: CUfileHandle_t, iov: *const CUfileIOVec_t, iovcnt: usize, file_offset: off_t, flags: ::core::ffi::c_uint) -> isize;
+        }
+        cuFileReadv(fh, iov, iovcnt, file_offset, flags)
+    }
+}
+#[cfg(any(feature = "cuda-12090", feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+pub unsafe fn cuFileSetParameterBool(param: CUFileBoolConfigParameter_t, value: bool) -> CUfileError_t {
+    #[cfg(feature = "dynamic-loading")]
+    {
+        type _F = unsafe extern "C" fn(CUFileBoolConfigParameter_t, bool) -> CUfileError_t;
+        static _S: OnceLock<_F> = OnceLock::new();
+        let _f = _S.get_or_init(|| unsafe { load::<_F>("cuFileSetParameterBool") });
+        _f(param, value)
+    }
+    #[cfg(not(feature = "dynamic-loading"))]
+    {
+        extern "C" {
+            fn cuFileSetParameterBool(param: CUFileBoolConfigParameter_t, value: bool) -> CUfileError_t;
+        }
+        cuFileSetParameterBool(param, value)
+    }
+}
+#[cfg(any(feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+pub unsafe fn cuFileSetParameterGpuBounceBufferSlabArray(size_values: *const usize, count_values: *const usize, len: ::core::ffi::c_int) -> CUfileError_t {
+    #[cfg(feature = "dynamic-loading")]
+    {
+        type _F = unsafe extern "C" fn(*const usize, *const usize, ::core::ffi::c_int) -> CUfileError_t;
+        static _S: OnceLock<_F> = OnceLock::new();
+        let _f = _S.get_or_init(|| unsafe { load::<_F>("cuFileSetParameterGpuBounceBufferSlabArray") });
+        _f(size_values, count_values, len)
+    }
+    #[cfg(not(feature = "dynamic-loading"))]
+    {
+        extern "C" {
+            fn cuFileSetParameterGpuBounceBufferSlabArray(size_values: *const usize, count_values: *const usize, len: ::core::ffi::c_int) -> CUfileError_t;
+        }
+        cuFileSetParameterGpuBounceBufferSlabArray(size_values, count_values, len)
+    }
+}
+#[cfg(any(feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+pub unsafe fn cuFileSetParameterPosixPoolSlabArray(size_values: *const usize, count_values: *const usize, len: ::core::ffi::c_int) -> CUfileError_t {
+    #[cfg(feature = "dynamic-loading")]
+    {
+        type _F = unsafe extern "C" fn(*const usize, *const usize, ::core::ffi::c_int) -> CUfileError_t;
+        static _S: OnceLock<_F> = OnceLock::new();
+        let _f = _S.get_or_init(|| unsafe { load::<_F>("cuFileSetParameterPosixPoolSlabArray") });
+        _f(size_values, count_values, len)
+    }
+    #[cfg(not(feature = "dynamic-loading"))]
+    {
+        extern "C" {
+            fn cuFileSetParameterPosixPoolSlabArray(size_values: *const usize, count_values: *const usize, len: ::core::ffi::c_int) -> CUfileError_t;
+        }
+        cuFileSetParameterPosixPoolSlabArray(size_values, count_values, len)
+    }
+}
+#[cfg(any(feature = "cuda-12090", feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+pub unsafe fn cuFileSetParameterSizeT(param: CUFileSizeTConfigParameter_t, value: usize) -> CUfileError_t {
+    #[cfg(feature = "dynamic-loading")]
+    {
+        type _F = unsafe extern "C" fn(CUFileSizeTConfigParameter_t, usize) -> CUfileError_t;
+        static _S: OnceLock<_F> = OnceLock::new();
+        let _f = _S.get_or_init(|| unsafe { load::<_F>("cuFileSetParameterSizeT") });
+        _f(param, value)
+    }
+    #[cfg(not(feature = "dynamic-loading"))]
+    {
+        extern "C" {
+            fn cuFileSetParameterSizeT(param: CUFileSizeTConfigParameter_t, value: usize) -> CUfileError_t;
+        }
+        cuFileSetParameterSizeT(param, value)
+    }
+}
+#[cfg(any(feature = "cuda-12090", feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+pub unsafe fn cuFileSetParameterString(param: CUFileStringConfigParameter_t, desc_str: *const ::core::ffi::c_char) -> CUfileError_t {
+    #[cfg(feature = "dynamic-loading")]
+    {
+        type _F = unsafe extern "C" fn(CUFileStringConfigParameter_t, *const ::core::ffi::c_char) -> CUfileError_t;
+        static _S: OnceLock<_F> = OnceLock::new();
+        let _f = _S.get_or_init(|| unsafe { load::<_F>("cuFileSetParameterString") });
+        _f(param, desc_str)
+    }
+    #[cfg(not(feature = "dynamic-loading"))]
+    {
+        extern "C" {
+            fn cuFileSetParameterString(param: CUFileStringConfigParameter_t, desc_str: *const ::core::ffi::c_char) -> CUfileError_t;
+        }
+        cuFileSetParameterString(param, desc_str)
+    }
+}
+#[cfg(any(feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+pub unsafe fn cuFileSetStatsLevel(level: ::core::ffi::c_int) -> CUfileError_t {
+    #[cfg(feature = "dynamic-loading")]
+    {
+        type _F = unsafe extern "C" fn(::core::ffi::c_int) -> CUfileError_t;
+        static _S: OnceLock<_F> = OnceLock::new();
+        let _f = _S.get_or_init(|| unsafe { load::<_F>("cuFileSetStatsLevel") });
+        _f(level)
+    }
+    #[cfg(not(feature = "dynamic-loading"))]
+    {
+        extern "C" {
+            fn cuFileSetStatsLevel(level: ::core::ffi::c_int) -> CUfileError_t;
+        }
+        cuFileSetStatsLevel(level)
+    }
+}
+#[cfg(any(feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+pub unsafe fn cuFileStatsReset() -> CUfileError_t {
+    #[cfg(feature = "dynamic-loading")]
+    {
+        type _F = unsafe extern "C" fn() -> CUfileError_t;
+        static _S: OnceLock<_F> = OnceLock::new();
+        let _f = _S.get_or_init(|| unsafe { load::<_F>("cuFileStatsReset") });
+        _f()
+    }
+    #[cfg(not(feature = "dynamic-loading"))]
+    {
+        extern "C" {
+            fn cuFileStatsReset() -> CUfileError_t;
+        }
+        cuFileStatsReset()
+    }
+}
+#[cfg(any(feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+pub unsafe fn cuFileStatsStart() -> CUfileError_t {
+    #[cfg(feature = "dynamic-loading")]
+    {
+        type _F = unsafe extern "C" fn() -> CUfileError_t;
+        static _S: OnceLock<_F> = OnceLock::new();
+        let _f = _S.get_or_init(|| unsafe { load::<_F>("cuFileStatsStart") });
+        _f()
+    }
+    #[cfg(not(feature = "dynamic-loading"))]
+    {
+        extern "C" {
+            fn cuFileStatsStart() -> CUfileError_t;
+        }
+        cuFileStatsStart()
+    }
+}
+#[cfg(any(feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+pub unsafe fn cuFileStatsStop() -> CUfileError_t {
+    #[cfg(feature = "dynamic-loading")]
+    {
+        type _F = unsafe extern "C" fn() -> CUfileError_t;
+        static _S: OnceLock<_F> = OnceLock::new();
+        let _f = _S.get_or_init(|| unsafe { load::<_F>("cuFileStatsStop") });
+        _f()
+    }
+    #[cfg(not(feature = "dynamic-loading"))]
+    {
+        extern "C" {
+            fn cuFileStatsStop() -> CUfileError_t;
+        }
+        cuFileStatsStop()
+    }
+}
+#[cfg(any(feature = "cuda-12020", feature = "cuda-12030", feature = "cuda-12040", feature = "cuda-12050", feature = "cuda-12060", feature = "cuda-12080", feature = "cuda-12090", feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+pub unsafe fn cuFileStreamDeregister(stream: CUstream) -> CUfileError_t {
+    #[cfg(feature = "dynamic-loading")]
+    {
+        type _F = unsafe extern "C" fn(CUstream) -> CUfileError_t;
+        static _S: OnceLock<_F> = OnceLock::new();
+        let _f = _S.get_or_init(|| unsafe { load::<_F>("cuFileStreamDeregister") });
+        _f(stream)
+    }
+    #[cfg(not(feature = "dynamic-loading"))]
+    {
+        extern "C" {
+            fn cuFileStreamDeregister(stream: CUstream) -> CUfileError_t;
+        }
+        cuFileStreamDeregister(stream)
+    }
+}
+#[cfg(any(feature = "cuda-12020", feature = "cuda-12030", feature = "cuda-12040", feature = "cuda-12050", feature = "cuda-12060", feature = "cuda-12080", feature = "cuda-12090", feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+pub unsafe fn cuFileStreamRegister(stream: CUstream, flags: ::core::ffi::c_uint) -> CUfileError_t {
+    #[cfg(feature = "dynamic-loading")]
+    {
+        type _F = unsafe extern "C" fn(CUstream, ::core::ffi::c_uint) -> CUfileError_t;
+        static _S: OnceLock<_F> = OnceLock::new();
+        let _f = _S.get_or_init(|| unsafe { load::<_F>("cuFileStreamRegister") });
+        _f(stream, flags)
+    }
+    #[cfg(not(feature = "dynamic-loading"))]
+    {
+        extern "C" {
+            fn cuFileStreamRegister(stream: CUstream, flags: ::core::ffi::c_uint) -> CUfileError_t;
+        }
+        cuFileStreamRegister(stream, flags)
+    }
+}
+#[cfg(any(feature = "cuda-11080", feature = "cuda-12000", feature = "cuda-12010", feature = "cuda-12020", feature = "cuda-12030", feature = "cuda-12040", feature = "cuda-12050", feature = "cuda-12060", feature = "cuda-12080", feature = "cuda-12090", feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+pub unsafe fn cuFileUseCount() -> ::core::ffi::c_long {
+    #[cfg(feature = "dynamic-loading")]
+    {
+        type _F = unsafe extern "C" fn() -> ::core::ffi::c_long;
+        static _S: OnceLock<_F> = OnceLock::new();
+        let _f = _S.get_or_init(|| unsafe { load::<_F>("cuFileUseCount") });
+        _f()
+    }
+    #[cfg(not(feature = "dynamic-loading"))]
+    {
+        extern "C" {
+            fn cuFileUseCount() -> ::core::ffi::c_long;
+        }
+        cuFileUseCount()
+    }
+}
+#[cfg(any(feature = "cuda-11040", feature = "cuda-11050", feature = "cuda-11060", feature = "cuda-11070", feature = "cuda-11080", feature = "cuda-12000", feature = "cuda-12010", feature = "cuda-12020"))]
+pub unsafe fn cuFileWrite(fh: CUfileHandle_t, devPtr_base: *const ::core::ffi::c_void, size: usize, file_offset: off_t, devPtr_offset: off_t) -> isize {
+    #[cfg(feature = "dynamic-loading")]
+    {
+        type _F = unsafe extern "C" fn(CUfileHandle_t, *const ::core::ffi::c_void, usize, off_t, off_t) -> isize;
+        static _S: OnceLock<_F> = OnceLock::new();
+        let _f = _S.get_or_init(|| unsafe { load::<_F>("cuFileWrite") });
+        _f(fh, devPtr_base, size, file_offset, devPtr_offset)
+    }
+    #[cfg(not(feature = "dynamic-loading"))]
+    {
+        extern "C" {
+            fn cuFileWrite(fh: CUfileHandle_t, devPtr_base: *const ::core::ffi::c_void, size: usize, file_offset: off_t, devPtr_offset: off_t) -> isize;
+        }
+        cuFileWrite(fh, devPtr_base, size, file_offset, devPtr_offset)
+    }
+}
+#[cfg(any(feature = "cuda-12030", feature = "cuda-12040", feature = "cuda-12050", feature = "cuda-12060", feature = "cuda-12080", feature = "cuda-12090", feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+pub unsafe fn cuFileWrite(fh: CUfileHandle_t, bufPtr_base: *const ::core::ffi::c_void, size: usize, file_offset: off_t, bufPtr_offset: off_t) -> isize {
+    #[cfg(feature = "dynamic-loading")]
+    {
+        type _F = unsafe extern "C" fn(CUfileHandle_t, *const ::core::ffi::c_void, usize, off_t, off_t) -> isize;
+        static _S: OnceLock<_F> = OnceLock::new();
+        let _f = _S.get_or_init(|| unsafe { load::<_F>("cuFileWrite") });
+        _f(fh, bufPtr_base, size, file_offset, bufPtr_offset)
+    }
+    #[cfg(not(feature = "dynamic-loading"))]
+    {
+        extern "C" {
+            fn cuFileWrite(fh: CUfileHandle_t, bufPtr_base: *const ::core::ffi::c_void, size: usize, file_offset: off_t, bufPtr_offset: off_t) -> isize;
+        }
+        cuFileWrite(fh, bufPtr_base, size, file_offset, bufPtr_offset)
+    }
+}
+#[cfg(any(feature = "cuda-12020", feature = "cuda-12030", feature = "cuda-12040", feature = "cuda-12050", feature = "cuda-12060", feature = "cuda-12080", feature = "cuda-12090", feature = "cuda-13000", feature = "cuda-13010", feature = "cuda-13020", feature = "cuda-13030", feature = "cuda-13040"))]
+pub unsafe fn cuFileWriteAsync(fh: CUfileHandle_t, bufPtr_base: *mut ::core::ffi::c_void, size_p: *mut usize, file_offset_p: *mut off_t, bufPtr_offset_p: *mut off_t, bytes_written_p: *mut isize, stream: CUstream) -> CUfileError_t {
+    #[cfg(feature = "dynamic-loading")]
+    {
+        type _F = unsafe extern "C" fn(CUfileHandle_t, *mut ::core::ffi::c_void, *mut usize, *mut off_t, *mut off_t, *mut isize, CUstream) -> CUfileError_t;
+        static _S: OnceLock<_F> = OnceLock::new();
+        let _f = _S.get_or_init(|| unsafe { load::<_F>("cuFileWriteAsync") });
+        _f(fh, bufPtr_base, size_p, file_offset_p, bufPtr_offset_p, bytes_written_p, stream)
+    }
+    #[cfg(not(feature = "dynamic-loading"))]
+    {
+        extern "C" {
+            fn cuFileWriteAsync(fh: CUfileHandle_t, bufPtr_base: *mut ::core::ffi::c_void, size_p: *mut usize, file_offset_p: *mut off_t, bufPtr_offset_p: *mut off_t, bytes_written_p: *mut isize, stream: CUstream) -> CUfileError_t;
+        }
+        cuFileWriteAsync(fh, bufPtr_base, size_p, file_offset_p, bufPtr_offset_p, bytes_written_p, stream)
+    }
+}
+#[cfg(any(feature = "cuda-13040"))]
+pub unsafe fn cuFileWritev(fh: CUfileHandle_t, iov: *const CUfileIOVec_t, iovcnt: usize, file_offset: off_t, flags: ::core::ffi::c_uint) -> isize {
+    #[cfg(feature = "dynamic-loading")]
+    {
+        type _F = unsafe extern "C" fn(CUfileHandle_t, *const CUfileIOVec_t, usize, off_t, ::core::ffi::c_uint) -> isize;
+        static _S: OnceLock<_F> = OnceLock::new();
+        let _f = _S.get_or_init(|| unsafe { load::<_F>("cuFileWritev") });
+        _f(fh, iov, iovcnt, file_offset, flags)
+    }
+    #[cfg(not(feature = "dynamic-loading"))]
+    {
+        extern "C" {
+            fn cuFileWritev(fh: CUfileHandle_t, iov: *const CUfileIOVec_t, iovcnt: usize, file_offset: off_t, flags: ::core::ffi::c_uint) -> isize;
+        }
+        cuFileWritev(fh, iov, iovcnt, file_offset, flags)
+    }
+}
+#[cfg(feature = "dynamic-loading")]
+pub unsafe fn is_culib_present() -> bool {
+    let lib_names = ["cufile"];
+    let choices = lib_names.iter().map(|l| crate::get_lib_name_candidates(l)).flatten();
+    for choice in choices {
+        if ::libloading::Library::new(choice).is_ok() {
+            return true;
+        }
+    }
+    false
+}
+#[cfg(feature = "dynamic-loading")]
+pub unsafe fn culib() -> &'static ::libloading::Library {
+    static LIB: OnceLock<::libloading::Library> = OnceLock::new();
+    LIB.get_or_init(|| {
+        let lib_names = std::vec!["cufile"];
+        let choices: std::vec::Vec<_> = lib_names.iter().map(|l| crate::get_lib_name_candidates(l)).flatten().collect();
+        for choice in choices.iter() {
+            if let Ok(lib) = ::libloading::Library::new(choice) {
+                return lib;
+            }
+        }
+        crate::panic_no_lib_found(lib_names[0], &choices);
+    })
+}

@@ -27,7 +27,7 @@
 
 use std::collections::{HashMap, VecDeque};
 
-use uor_r4_model_source::SourceUnavailable;
+use uor_r4_source_interface::SourceUnavailable;
 
 use super::hf_bpe::{TokenizerAdapter, TokenizerAdapterPolicy, TokenizerModel};
 use super::scenarios::{

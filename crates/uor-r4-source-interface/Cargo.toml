@@ -1,0 +1,10 @@
+[package]
+name = "uor-r4-source-interface"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Raw source-ingestion error metadata, independent of model execution"
+
+[dependencies]
+serde_json = "1.0"
+safetensors = { version = "0.6", default-features = false, features = ["std"] }

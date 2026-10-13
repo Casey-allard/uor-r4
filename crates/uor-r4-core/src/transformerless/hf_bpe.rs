@@ -52,14 +52,16 @@ impl HfBpeTokenizer {
     ///
     /// Host-ingestion boundary: a missing file or a `tokenizer.json` that is not
     /// a valid byte-level BPE tokenizer both report the sanctioned
-    /// [`uor_r4_model_source::SourceUnavailable`] — the tokenizer source could
+    /// [`uor_r4_source_interface::SourceUnavailable`] — the tokenizer source could
     /// not be ingested — carrying the path/diagnostic.
     #[cfg(not(target_arch = "wasm32"))]
-    pub fn from_dir(dir: &std::path::Path) -> Result<Self, uor_r4_model_source::SourceUnavailable> {
+    pub fn from_dir(
+        dir: &std::path::Path,
+    ) -> Result<Self, uor_r4_source_interface::SourceUnavailable> {
         let path = dir.join("tokenizer.json");
         let bytes = std::fs::read(&path)?;
         Self::from_tokenizer_json_bytes(&bytes).ok_or_else(|| {
-            uor_r4_model_source::SourceUnavailable::new(format!(
+            uor_r4_source_interface::SourceUnavailable::new(format!(
                 "{}: not a valid byte-level BPE tokenizer",
                 path.display()
             ))
@@ -172,11 +174,11 @@ impl TokenizerModel for HfBpeTokenizer {
 
 /// A registered adapter constructor: parse raw tokenizer definition bytes
 /// into the family's [`TokenizerModel`]. Parse failures retain their focused
-/// [`uor_r4_model_source::SourceUnavailable`] diagnostic rather than being
+/// [`uor_r4_source_interface::SourceUnavailable`] diagnostic rather than being
 /// collapsed to `None` at the registry boundary.
 #[cfg(not(target_arch = "wasm32"))]
 pub type AdapterConstructor =
-    fn(&[u8]) -> Result<Box<dyn TokenizerModel>, uor_r4_model_source::SourceUnavailable>;
+    fn(&[u8]) -> Result<Box<dyn TokenizerModel>, uor_r4_source_interface::SourceUnavailable>;
 
 /// The versioned tokenizer-adapter registry (#601): map `(family,
 /// version)` to the constructor that implements it. Registered families are
@@ -185,7 +187,7 @@ pub type AdapterConstructor =
 /// ([`super::sentencepiece::SentencePieceUnigramTokenizer`]). Every pair
 /// outside the registry — including a bumped version of a registered family —
 /// is refused by name on the sanctioned
-/// [`uor_r4_model_source::SourceUnavailable`] surface
+/// [`uor_r4_source_interface::SourceUnavailable`] surface
 /// (`SourceIngestKind::UnknownTokenizerAdapter`), matching the module's
 /// existing host-ingestion convention ([`HfBpeTokenizer::from_dir`])
 /// and the #600 geometry registry: never guessed, never approximated
@@ -194,14 +196,14 @@ pub type AdapterConstructor =
 pub fn adapter_constructor(
     family: &str,
     version: u32,
-) -> Result<AdapterConstructor, uor_r4_model_source::SourceUnavailable> {
+) -> Result<AdapterConstructor, uor_r4_source_interface::SourceUnavailable> {
     match (family, version) {
         (TokenizerAdapter::HF_BYTE_BPE_FAMILY, TokenizerAdapter::HF_BYTE_BPE_VERSION) => {
             Ok(|bytes| {
                 HfBpeTokenizer::from_tokenizer_json_bytes(bytes)
                     .map(|tokenizer| Box::new(tokenizer) as Box<dyn TokenizerModel>)
                     .ok_or_else(|| {
-                        uor_r4_model_source::SourceUnavailable::new(
+                        uor_r4_source_interface::SourceUnavailable::new(
                             "tokenizer.json: not a valid hf-byte-bpe/1 definition",
                         )
                     })
@@ -222,7 +224,7 @@ pub fn adapter_constructor(
                 .map(|tokenizer| Box::new(tokenizer) as Box<dyn TokenizerModel>)
         }),
         _ => Err(
-            uor_r4_model_source::SourceIngestKind::UnknownTokenizerAdapter {
+            uor_r4_source_interface::SourceIngestKind::UnknownTokenizerAdapter {
                 family: family.to_owned(),
                 version,
             }
@@ -287,7 +289,7 @@ impl TokenizerAdapterKey {
 pub fn resolve_source_tokenizer(
     dir: &std::path::Path,
     selection: Option<&TokenizerAdapterKey>,
-) -> Result<TokenizerKind, uor_r4_model_source::SourceUnavailable> {
+) -> Result<TokenizerKind, uor_r4_source_interface::SourceUnavailable> {
     let tokenizer_json = dir.join("tokenizer.json");
     let spiece_model = dir.join("spiece.model");
     let has_bpe_definition = tokenizer_definition_present(&tokenizer_json)?;
@@ -299,14 +301,14 @@ pub fn resolve_source_tokenizer(
             (true, false) => TokenizerAdapterKey::hf_byte_bpe_v1(),
             (false, true) => TokenizerAdapterKey::sentencepiece_unigram_current(),
             (true, true) => {
-                return Err(uor_r4_model_source::SourceUnavailable::new(format!(
+                return Err(uor_r4_source_interface::SourceUnavailable::new(format!(
                     "{} presents both tokenizer.json and spiece.model; select an explicit \
                      tokenizer adapter family/version",
                     dir.display()
                 )));
             }
             (false, false) => {
-                return Err(uor_r4_model_source::SourceUnavailable::new(format!(
+                return Err(uor_r4_source_interface::SourceUnavailable::new(format!(
                     "{} has no registered tokenizer definition (expected tokenizer.json or \
                      spiece.model)",
                     dir.display()
@@ -331,14 +333,14 @@ pub fn resolve_source_tokenizer(
         // boundary, so even an internal metadata inconsistency is a focused
         // refusal rather than a panic.
         _ => {
-            return Err(uor_r4_model_source::SourceUnavailable::new(format!(
+            return Err(uor_r4_source_interface::SourceUnavailable::new(format!(
                 "tokenizer adapter {}/{} is registered but has no source-definition mapping",
                 selected.family, selected.version
             )));
         }
     };
     let bytes = std::fs::read(definition).map_err(|error| {
-        uor_r4_model_source::SourceUnavailable::new(format!(
+        uor_r4_source_interface::SourceUnavailable::new(format!(
             "{} selected as {}/{}: {error}",
             definition.display(),
             selected.family,
@@ -346,7 +348,7 @@ pub fn resolve_source_tokenizer(
         ))
     })?;
     let tokenizer =
-        constructor(&bytes).map_err(|error| uor_r4_model_source::SourceUnavailable {
+        constructor(&bytes).map_err(|error| uor_r4_source_interface::SourceUnavailable {
             reason: format!(
                 "{} selected as {}/{}: {}",
                 definition.display(),
@@ -362,26 +364,26 @@ pub fn resolve_source_tokenizer(
 #[cfg(not(target_arch = "wasm32"))]
 fn tokenizer_definition_present(
     path: &std::path::Path,
-) -> Result<bool, uor_r4_model_source::SourceUnavailable> {
+) -> Result<bool, uor_r4_source_interface::SourceUnavailable> {
     match std::fs::symlink_metadata(path) {
         Ok(metadata) if metadata.file_type().is_symlink() => match std::fs::metadata(path) {
             Ok(target) if target.is_file() => Ok(true),
-            Ok(_) => Err(uor_r4_model_source::SourceUnavailable::new(format!(
+            Ok(_) => Err(uor_r4_source_interface::SourceUnavailable::new(format!(
                 "{} is a symlink to a non-regular tokenizer definition",
                 path.display()
             ))),
-            Err(error) => Err(uor_r4_model_source::SourceUnavailable::new(format!(
+            Err(error) => Err(uor_r4_source_interface::SourceUnavailable::new(format!(
                 "{} is a dangling or unreadable tokenizer-definition symlink: {error}",
                 path.display()
             ))),
         },
         Ok(metadata) if metadata.is_file() => Ok(true),
-        Ok(_) => Err(uor_r4_model_source::SourceUnavailable::new(format!(
+        Ok(_) => Err(uor_r4_source_interface::SourceUnavailable::new(format!(
             "{} exists but is not a regular tokenizer-definition file",
             path.display()
         ))),
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(false),
-        Err(error) => Err(uor_r4_model_source::SourceUnavailable::new(format!(
+        Err(error) => Err(uor_r4_source_interface::SourceUnavailable::new(format!(
             "{} tokenizer definition cannot be inspected: {error}",
             path.display()
         ))),

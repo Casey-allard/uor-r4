@@ -258,7 +258,7 @@ impl Tensor {
                     Device::Cuda(_) => {
                         return Err(Error::Msg("CUDA support not compiled".to_string()));
                     }
-                    #[cfg(feature = "metal")]
+                    #[cfg(any())] // D29: historical Metal implementation is excluded.
                     Device::Metal(device) => {
                         let buffer = device.new_buffer_with_data(data)?;
 
@@ -270,7 +270,7 @@ impl Tensor {
                         );
                         Storage::Metal(storage)
                     }
-                    #[cfg(not(feature = "metal"))]
+                    #[cfg(all())] // D29: always use the unavailable Metal adapter.
                     Device::Metal(_) => {
                         return Err(Error::Msg("Metal support not compiled".to_string()));
                     }
@@ -358,7 +358,7 @@ fn convert_dummy(view: &st::TensorView<'_>, device: &Device) -> Result<Tensor> {
         Device::Cuda(_) => {
             return Err(Error::Msg("CUDA support not compiled".to_string()));
         }
-        #[cfg(feature = "metal")]
+        #[cfg(any())] // D29: historical Metal implementation is excluded.
         Device::Metal(device) => {
             let buffer = device.new_buffer_with_data(data)?;
 
@@ -366,7 +366,7 @@ fn convert_dummy(view: &st::TensorView<'_>, device: &Device) -> Result<Tensor> {
                 crate::metal_backend::MetalStorage::new(buffer, device.clone(), data.len(), dtype);
             Storage::Metal(storage)
         }
-        #[cfg(not(feature = "metal"))]
+        #[cfg(all())] // D29: always use the unavailable Metal adapter.
         Device::Metal(_) => {
             return Err(Error::Msg("Metal support not compiled".to_string()));
         }
