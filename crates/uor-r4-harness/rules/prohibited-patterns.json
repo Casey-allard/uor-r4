@@ -1,0 +1,40 @@
+{
+  "_": [
+    "Detection patterns for the pre-registration rules, kept as DATA rather than as literals in",
+    "Rust source.",
+    "",
+    "WHY THIS FILE EXISTS: `scripts/check_no_softmax.py` counts occurrences of a banned token in",
+    "`.rs`/`.cu`/`.cuh`/`.wgsl` files under `crates/`. A rule that REFUSES a prohibited teacher has",
+    "to name what it refuses, so putting those names in source made the D23 interlock report the",
+    "RULE FILE as a violation - it cannot tell a file that IMPLEMENTS a mechanism from one that",
+    "DETECTS it.",
+    "",
+    "The fix is not to weaken the interlock or to obfuscate the literal. The patterns are data: they",
+    "are what the rules match against, they belong beside the rules as a reviewed file, and the",
+    "harness already renders its rule text from registries rather than from constants.",
+    "",
+    "How to describe a new prohibited teacher: add a phrase here, in lower case, as it would appear",
+    "in a pre-registration sheet. A sheet that STATES the prohibition is not proposing it - the rule",
+    "skips a match whose surrounding text acknowledges D23/D25."
+  ],
+  "prohibited_teachers": [
+    "softmax teacher",
+    "softmax target",
+    "softmax supervis",
+    "softmax distill",
+    "distil from softmax",
+    "transformer baseline",
+    "transformer control",
+    "transformer comparator",
+    "transformer teacher"
+  ],
+  "acknowledgements": [
+    "d23",
+    "d25",
+    "prohibited",
+    "not permitted",
+    "forbidden",
+    "no softmax",
+    "rule freeze"
+  ]
+}

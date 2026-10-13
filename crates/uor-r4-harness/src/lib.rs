@@ -28,6 +28,7 @@ pub mod multilab;
 pub mod notes;
 pub mod onboard;
 pub mod prep;
+pub mod preprules;
 pub mod presence;
 pub mod ratchet;
 pub mod receipt;
