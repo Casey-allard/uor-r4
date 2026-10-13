@@ -3614,6 +3614,53 @@ extern "C" __global__ void sq_tree(
         group: (usize, usize, usize),
         args: &[Arg<'_>],
     ) -> Result<()> {
+        dispatch_module(
+            device,
+            storage.module(),
+            ptx(storage)?,
+            name,
+            groups,
+            group,
+            args,
+        )
+    }
+
+    /// One thread per element of `threads` from an **ahead-of-time** PTX
+    /// module (nvcc at build time, `build.rs`), loaded by the driver under its
+    /// own module name: no runtime compiler (owner, 13 October 2026: NVRTC is
+    /// banned project-wide) and no kernel shared with `CUDA_STACK_SOURCE`.
+    pub fn launch_prebuilt(
+        device: &CudaDevice,
+        module: &str,
+        ptx: &str,
+        name: &str,
+        threads: usize,
+        args: &[Arg<'_>],
+    ) -> Result<()> {
+        if threads == 0 {
+            return Ok(());
+        }
+        let blocks = threads.div_ceil(BLOCK);
+        dispatch_module(
+            device,
+            module,
+            ptx,
+            name,
+            (blocks, 1, 1),
+            (BLOCK, 1, 1),
+            args,
+        )
+    }
+
+    fn dispatch_module(
+        device: &CudaDevice,
+        module: &str,
+        ptx: &str,
+        name: &str,
+        groups: (usize, usize, usize),
+        group: (usize, usize, usize),
+        args: &[Arg<'_>],
+    ) -> Result<()> {
         let config = LaunchConfig {
             grid_dim: (
                 dim(groups.0, i32::MAX as usize, "grid x")?,
@@ -3627,7 +3674,7 @@ extern "C" __global__ void sq_tree(
             ),
             shared_mem_bytes: 0,
         };
-        let function = device.get_or_load_custom_func(name, storage.module(), ptx(storage)?)?;
+        let function = device.get_or_load_custom_func(name, module, ptx)?;
         let started = profiling().then(std::time::Instant::now);
         let mut builder = function.builder();
         for arg in args {
@@ -3658,8 +3705,8 @@ extern "C" __global__ void sq_tree(
                 }
             }
         }
-        // SAFETY: every kernel in CUDA_STACK_SOURCE takes exactly the
-        // arguments its Rust caller passes, in order (device pointers for
+        // SAFETY: every kernel in CUDA_STACK_SOURCE and in each prebuilt
+        // module takes exactly the arguments its Rust caller passes, in order (device pointers for
         // buffers, `uint`s, and `ReadDims`/`Geom`/`AdamConstants` structs of
         // 4-byte words matching the `[u32; N]` arrays); callers size every
         // buffer for the kernel's index range and bounds-check the grid.

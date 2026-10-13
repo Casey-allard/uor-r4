@@ -14,7 +14,11 @@ SpiralCore's Kuramoto witness shows the principle: local coupling over 60 geomet
 
 ## In code
 
-`read_route=starling:M:K`: `crates/uor-r4-training/src/geometric_stack.rs` (`StarlingRoute`, `starling_select`, `starling_read`). Also in `mqar-bench`.
+- **Historical:** `read_route=starling:M:K`: `crates/uor-r4-training/src/geometric_stack.rs` (`StarlingRoute`, `starling_select`, `starling_read`). Also in `mqar-bench`. It selects on the host and gates with a sigmoid or tanh, so under D23–D25 it is inactive evidence.
+- **Native, rung 0b:** `native_read=starling_native:M:K:E` on the native trunk. Source: `crates/uor-r4-training/src/starling_native.{rs,cu}`; wiring: `StackModel::set_native_starling_read`.
+  - Kernel K1 selects neighbours on the GPU. It is built ahead of time by nvcc into its own module (`build.rs`; no NVRTC).
+  - The read is a hard rank read over the kept slots, with a learned null score.
+  - Its declared credit, injected in backward (`CreditCapture`): a pairwise hinge over utility-ordered kept, exploration and null candidates, and an address margin toward an off-home helpful candidate.
 
 ## Tried
 
@@ -31,6 +35,14 @@ SpiralCore's Kuramoto witness shows the principle: local coupling over 60 geomet
   - It teaches content selection: the source is ranked first 0.55–0.78 of the time when kept, against 0.03–0.12 without it.
   - With a shared kept set, recall lifts off chance unevenly (0.044, 0.288, 0.091).
   - Below the pre-registered reading-2 bar, so the line goes to the owner.
+
+Rungs 1–3, the pivot and the surrogate were measured beside softmax helpers, surrogates or teachers. Under D23 they are inactive evidence: they stay recorded and are not to be rerun.
+
+- **Rung 0b, the lawful native read: design and source.** Card [#2032 6146209361](https://github.com/UOR-Foundation/uor-r4/issues/2032#issuecomment-6146209361), amendment [A1](https://github.com/UOR-Foundation/uor-r4/issues/2032#issuecomment-6147797508), §4 finite controls [FIT](https://github.com/UOR-Foundation/uor-r4/issues/2032#issuecomment-6148141029); [record](../labs/starling-rung0b-source-2026-10-13/README.md).
+  - It replaces the softmax surrogate's competitive gradient with a rank-consistent hinge whose order comes from each slot's stopped-gradient utility `u = -<g, v>`.
+  - The null is a utility-0 candidate, so abstention is learned through truncation.
+  - Exploration slots (zero forward weight) give near-miss keys credit, fixing rung 1's "keys outside the kept set get no gradient".
+  - The decisive §5 run (in-context recall top-1 on copyable dev targets against rung 0) needs its own sheet after rung 0 reports.
 
 ## A fair test needs
 

@@ -814,6 +814,9 @@ struct Settings {
     /// `quaternion_weights=`; `None` keeps the model's own.
     quaternion_weights: Option<QuaternionWeights>,
     native_vector_head: bool,
+    /// `native_read=starling_native:M:K:E`: the native starling read of every
+    /// read layer (rung 0b), with its declared `starling_credit=`.
+    native_read: Option<(String, uor_r4_training::starling_native::Credit)>,
     /// `quaternion_snap=icosian`: train with every quaternion map snapped to
     /// norm x nearest unit icosian (straight-through); `none` (default).
     quaternion_snap: QuaternionSnap,
@@ -1916,6 +1919,7 @@ fn require_native_training_config(
     config: &StackConfig,
     native_head: bool,
     projection: Option<QuaternionWeights>,
+    native_read: bool,
 ) -> Result<()> {
     if !native_head
         || projection != Some(QuaternionWeights::SpiralcoreFbs)
@@ -1927,9 +1931,13 @@ fn require_native_training_config(
         || config.select.is_some()
         || config.memory.is_some()
         || config.pattern.is_empty()
-        || config.pattern.chars().any(|c| c != 'r')
+        || config
+            .pattern
+            .chars()
+            .any(|c| c != 'r' && !(c == 'a' && native_read))
+        || (native_read && !config.pattern.contains('a'))
     {
-        return Err(invalid("new train runs require the native recurrence-only path: arch=geometric, pattern=rrrrrr, gate=hamilton, rec_gates=geometric, projection=spiralcore_fbs, head=spiralcore_product, objective=hinge|hinge8; no pointer/read/memory or historical fallback"));
+        return Err(invalid("new train runs require the native path: arch=geometric, pattern of r (plus a only with native_read=starling_native:M:K:E), gate=hamilton, rec_gates=geometric, projection=spiralcore_fbs, head=spiralcore_product, objective=hinge|hinge8; no pointer/historical read/memory or historical fallback"));
     }
     uor_r4_training::native_vector_writer::WriterSpec {
         vocabulary: config.vocab_size,
@@ -2000,7 +2008,49 @@ fn train_settings(args: &Args) -> Result<Settings> {
             return Err(quaternion_served_refusal());
         }
     }
-    require_native_training_config(&config, native_vector_head, quaternion_weights)?;
+    let native_read = match args.optional("native_read") {
+        None => {
+            if args.optional("starling_credit").is_some() {
+                return Err(invalid("starling_credit needs native_read"));
+            }
+            None
+        }
+        Some(route) => {
+            if !native_vector_head {
+                return Err(invalid("native_read needs head=spiralcore_product"));
+            }
+            // The run declares its surrogate constants; no silent fixture default.
+            let text = args.optional("starling_credit").ok_or_else(|| {
+                invalid("native_read needs starling_credit=MU:DELTA:MU_A:RANK:ADDRESS")
+            })?;
+            let values = text
+                .split(':')
+                .map(|v| v.parse::<f32>())
+                .collect::<std::result::Result<Vec<_>, _>>()
+                .map_err(|_| invalid(format!("invalid starling_credit={text}")))?;
+            let [margin, delta, address_margin, rank, address] = values.as_slice() else {
+                return Err(invalid(
+                    "starling_credit needs five values MU:DELTA:MU_A:RANK:ADDRESS",
+                ));
+            };
+            let credit = uor_r4_training::starling_native::Credit {
+                margin: *margin,
+                delta: *delta,
+                address_margin: *address_margin,
+                rank: *rank,
+                address: *address,
+            };
+            // Shape and constants validated now; the tokenizer's BOS binds below.
+            uor_r4_training::starling_native::NativeStarling::parse(&route, 0, credit)?;
+            Some((route, credit))
+        }
+    };
+    require_native_training_config(
+        &config,
+        native_vector_head,
+        quaternion_weights,
+        native_read.is_some(),
+    )?;
     let key_shift = key_shift_arg(args)?;
     if key_shift.enabled() && (config.arch != StackArch::Geometric || !config.pattern.contains('a'))
     {
@@ -2062,6 +2112,7 @@ fn train_settings(args: &Args) -> Result<Settings> {
         quaternion_weights,
         quaternion_snap,
         native_vector_head,
+        native_read,
         activation_snap,
         e8_memory: uor_r4_training::e8_memory::E8MemoryConfig::parse(
             args.optional("e8_memory").as_deref().unwrap_or("none"),
@@ -2715,6 +2766,15 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
                     uor_r4_training::native_vector_writer::DEFAULT_KEPT_CELLS,
                 )?;
             }
+            if let Some((route, credit)) = &settings.native_read {
+                let bos = settings
+                    .native_bos_id
+                    .ok_or_else(|| invalid("native_read needs the tokenizer's BOS identity"))?;
+                model.set_native_starling_read(
+                    uor_r4_training::starling_native::NativeStarling::parse(route, bos, *credit)?,
+                )?;
+                model.set_native_starling_credit(true)?;
+            }
             if settings.quaternion_snap != QuaternionSnap::None {
                 if settings.data_parallel != 1 {
                     return Err(invalid("quaternion_snap runs with data_parallel=1"));
@@ -2805,6 +2865,10 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
         replica.set_quaternion_weights(model.quaternion_weights())?;
         if let Some(spec) = model.native_vector_head_spec() {
             replica.set_native_vector_head(spec.kept_cells)?;
+        }
+        if let Some(read) = model.native_starling_read() {
+            replica.set_native_starling_read(read)?;
+            replica.set_native_starling_credit(true)?;
         }
         replica.copy_variables_from(&model)?;
         eprintln!(
@@ -7291,6 +7355,8 @@ fn main() -> Result<()> {
                     "quaternion_weights",
                     "projection",
                     "head",
+                    "native_read",
+                    "starling_credit",
                     "quaternion_snap",
                     "activation_snap",
                     "e8_memory",
@@ -8019,11 +8085,17 @@ mod native_rung0_argument_tests {
     #[test]
     fn complete_native_argument_contract_refuses_legacy_modes() -> Result<()> {
         let config = native_config()?;
-        require_native_training_config(&config, true, Some(QuaternionWeights::SpiralcoreFbs))?;
+        require_native_training_config(
+            &config,
+            true,
+            Some(QuaternionWeights::SpiralcoreFbs),
+            false,
+        )?;
         assert!(require_native_training_config(
             &config,
             false,
-            Some(QuaternionWeights::SpiralcoreFbs)
+            Some(QuaternionWeights::SpiralcoreFbs),
+            false
         )
         .is_err());
         let mut historical = config.clone();
@@ -8031,21 +8103,36 @@ mod native_rung0_argument_tests {
         assert!(require_native_training_config(
             &historical,
             true,
-            Some(QuaternionWeights::SpiralcoreFbs)
+            Some(QuaternionWeights::SpiralcoreFbs),
+            false
         )
         .is_err());
         let mut ce = config.clone();
         ce.objective = Objective::Ce;
-        assert!(
-            require_native_training_config(&ce, true, Some(QuaternionWeights::SpiralcoreFbs))
-                .is_err()
-        );
-        let mut read = config;
+        assert!(require_native_training_config(
+            &ce,
+            true,
+            Some(QuaternionWeights::SpiralcoreFbs),
+            false
+        )
+        .is_err());
+        let mut read = config.clone();
         read.pattern = "rrarra".into();
         assert!(require_native_training_config(
             &read,
             true,
-            Some(QuaternionWeights::SpiralcoreFbs)
+            Some(QuaternionWeights::SpiralcoreFbs),
+            false
+        )
+        .is_err());
+        // Read layers are admitted only through the declared native read,
+        // and the native read only with a read layer.
+        require_native_training_config(&read, true, Some(QuaternionWeights::SpiralcoreFbs), true)?;
+        assert!(require_native_training_config(
+            &config,
+            true,
+            Some(QuaternionWeights::SpiralcoreFbs),
+            true
         )
         .is_err());
         Ok(())

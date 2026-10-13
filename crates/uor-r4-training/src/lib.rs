@@ -102,6 +102,7 @@ pub mod stack_checkpoint;
 pub mod stack_dialogue;
 pub mod stack_export;
 pub mod stack_grounded_session;
+pub mod starling_native;
 pub mod whole_path_learning;
 pub use stack_export::export_quantizer_method;
 pub mod stack_memory;

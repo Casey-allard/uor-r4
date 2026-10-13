@@ -1,0 +1,251 @@
+# uor-pod job by=claude/starling-0b pod=vast-55762148 gpu=0 queued 2026-10-13T15:17:03Z
+# cmd: bash -c set -o pipefail; export PATH=/root/.cargo/bin:/usr/local/cuda-12.8/bin:$PATH LD_LIBRARY_PATH=/usr/local/cuda-12.8/lib64 CUDA_COMPUTE_CAP=120 CARGO_TARGET_DIR=/root/build/target-sm120 UOR_NVCC_ARCH=compute_80; D=/root/build/src-9e185c88dc312443c0329729f53a90ad48549a0c; mkdir -p $D && cd $D && git init -q && git fetch -q --depth 1 https://github.com/UOR-Foundation/uor-r4.git 9e185c88dc312443c0329729f53a90ad48549a0c && git checkout -q FETCH_HEAD && echo "SOURCE $(git rev-parse HEAD)" && nvcc --version | tail -2 && nvidia-smi --query-gpu=name,driver_version,compute_cap --format=csv,noheader && cargo +1.97.1 test --release -p uor-r4-training --features cuda --lib --no-run 2>&1 | grep -E 'Executable|error' ; echo BUILD_DONE && cargo +1.97.1 test --release -p uor-r4-training --features cuda --lib -- starling_native:: native_starling_read_cuda_integration_control --test-threads=1; echo "QUALIFICATION_RC=$?"
+# start 2026-10-13T15:17:03Z (holding /root/gpu0.lock)
+BASH=/usr/bin/bash
+BASHOPTS=checkwinsize:cmdhist:complete_fullquote:extquote:force_fignore:globasciiranges:globskipdots:hostcomplete:interactive_comments:patsub_replacement:progcomp:promptvars:sourcepath
+BASH_ALIASES=()
+BASH_ARGC=()
+BASH_ARGV=()
+BASH_CMDS=()
+BASH_EXECUTION_STRING=set
+BASH_LINENO=()
+BASH_LOADABLES_PATH=/usr/local/lib/bash:/usr/lib/bash:/opt/local/lib/bash:/usr/pkg/lib/bash:/opt/pkg/lib/bash:.
+BASH_SOURCE=()
+BASH_VERSINFO=([0]="5" [1]="2" [2]="21" [3]="1" [4]="release" [5]="x86_64-pc-linux-gnu")
+BASH_VERSION='5.2.21(1)-release'
+CUDA_VERSION=12.8.1
+CUDA_VISIBLE_DEVICES=0
+DEBIAN_FRONTEND=noninteractive
+DIRSTACK=()
+EUID=0
+GROUPS=()
+HF_HOME=/workspace/.cache/huggingface/
+HF_HUB_ENABLE_HF_TRANSFER=1
+HF_XET_HIGH_PERFORMANCE=1
+HOME=/root
+HOSTNAME=c0ee1afde150
+HOSTTYPE=x86_64
+IFS=$' \t\n'
+LANG=C.UTF-8
+LD_LIBRARY_PATH=/usr/local/cuda/lib64
+LIBRARY_PATH=/usr/local/cuda/lib64/stubs
+LOGNAME=root
+MACHTYPE=x86_64-pc-linux-gnu
+NCCL_VERSION=2.25.1-1
+NVARCH=x86_64
+NVIDIA_DRIVER_CAPABILITIES=compute,utility
+NVIDIA_PRODUCT_NAME=CUDA
+NVIDIA_REQUIRE_CUDA='cuda>=12.8 brand=unknown,driver>=470,driver<471 brand=grid,driver>=470,driver<471 brand=tesla,driver>=470,driver<471 brand=nvidia,driver>=470,driver<471 brand=quadro,driver>=470,driver<471 brand=quadrortx,driver>=470,driver<471 brand=nvidiartx,driver>=470,driver<471 brand=vapps,driver>=470,driver<471 brand=vpc,driver>=470,driver<471 brand=vcs,driver>=470,driver<471 brand=vws,driver>=470,driver<471 brand=cloudgaming,driver>=470,driver<471 brand=unknown,driver>=535,driver<536 brand=grid,driver>=535,driver<536 brand=tesla,driver>=535,driver<536 brand=nvidia,driver>=535,driver<536 brand=quadro,driver>=535,driver<536 brand=quadrortx,driver>=535,driver<536 brand=nvidiartx,driver>=535,driver<536 brand=vapps,driver>=535,driver<536 brand=vpc,driver>=535,driver<536 brand=vcs,driver>=535,driver<536 brand=vws,driver>=535,driver<536 brand=cloudgaming,driver>=535,driver<536 brand=unknown,driver>=550,driver<551 brand=grid,driver>=550,driver<551 brand=tesla,driver>=550,driver<551 brand=nvidia,driver>=550,driver<551 brand=quadro,driver>=550,driver<551 brand=quadrortx,driver>=550,driver<551 brand=nvidiartx,driver>=550,driver<551 brand=vapps,driver>=550,driver<551 brand=vpc,driver>=550,driver<551 brand=vcs,driver>=550,driver<551 brand=vws,driver>=550,driver<551 brand=cloudgaming,driver>=550,driver<551 brand=unknown,driver>=560,driver<561 brand=grid,driver>=560,driver<561 brand=tesla,driver>=560,driver<561 brand=nvidia,driver>=560,driver<561 brand=quadro,driver>=560,driver<561 brand=quadrortx,driver>=560,driver<561 brand=nvidiartx,driver>=560,driver<561 brand=vapps,driver>=560,driver<561 brand=vpc,driver>=560,driver<561 brand=vcs,driver>=560,driver<561 brand=vws,driver>=560,driver<561 brand=cloudgaming,driver>=560,driver<561 brand=unknown,driver>=565,driver<566 brand=grid,driver>=565,driver<566 brand=tesla,driver>=565,driver<566 brand=nvidia,driver>=565,driver<566 brand=quadro,driver>=565,driver<566 brand=quadrortx,driver>=565,driver<566 brand=nvidiartx,driver>=565,driver<566 brand=vapps,driver>=565,driver<566 brand=vpc,driver>=565,driver<566 brand=vcs,driver>=565,driver<566 brand=vws,driver>=565,driver<566 brand=cloudgaming,driver>=565,driver<566'
+NVIDIA_VISIBLE_DEVICES=all
+NV_CUDA_CUDART_DEV_VERSION=12.8.90-1
+NV_CUDA_CUDART_VERSION=12.8.90-1
+NV_CUDA_LIB_VERSION=12.8.1-1
+NV_CUDA_NSIGHT_COMPUTE_DEV_PACKAGE=cuda-nsight-compute-12-8=12.8.1-1
+NV_CUDA_NSIGHT_COMPUTE_VERSION=12.8.1-1
+NV_CUDNN_PACKAGE=libcudnn9-cuda-12=9.8.0.87-1
+NV_CUDNN_PACKAGE_DEV=libcudnn9-dev-cuda-12=9.8.0.87-1
+NV_CUDNN_PACKAGE_NAME=libcudnn9-cuda-12
+NV_CUDNN_VERSION=9.8.0.87-1
+NV_LIBCUBLAS_DEV_PACKAGE=libcublas-dev-12-8=12.8.4.1-1
+NV_LIBCUBLAS_DEV_PACKAGE_NAME=libcublas-dev-12-8
+NV_LIBCUBLAS_DEV_VERSION=12.8.4.1-1
+NV_LIBCUBLAS_PACKAGE=libcublas-12-8=12.8.4.1-1
+NV_LIBCUBLAS_PACKAGE_NAME=libcublas-12-8
+NV_LIBCUBLAS_VERSION=12.8.4.1-1
+NV_LIBCUSPARSE_DEV_VERSION=12.5.8.93-1
+NV_LIBCUSPARSE_VERSION=12.5.8.93-1
+NV_LIBNCCL_DEV_PACKAGE=libnccl-dev=2.25.1-1+cuda12.8
+NV_LIBNCCL_DEV_PACKAGE_NAME=libnccl-dev
+NV_LIBNCCL_DEV_PACKAGE_VERSION=2.25.1-1
+NV_LIBNCCL_PACKAGE=libnccl2=2.25.1-1+cuda12.8
+NV_LIBNCCL_PACKAGE_NAME=libnccl2
+NV_LIBNCCL_PACKAGE_VERSION=2.25.1-1
+NV_LIBNPP_DEV_PACKAGE=libnpp-dev-12-8=12.3.3.100-1
+NV_LIBNPP_DEV_VERSION=12.3.3.100-1
+NV_LIBNPP_PACKAGE=libnpp-12-8=12.3.3.100-1
+NV_LIBNPP_VERSION=12.3.3.100-1
+NV_NVML_DEV_VERSION=12.8.90-1
+NV_NVPROF_DEV_PACKAGE=cuda-nvprof-12-8=12.8.90-1
+NV_NVPROF_VERSION=12.8.90-1
+NV_NVTX_VERSION=12.8.90-1
+OPTERR=1
+OPTIND=1
+OSTYPE=linux-gnu
+PATH=/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+PIP_BREAK_SYSTEM_PACKAGES=1
+PIP_CACHE_DIR=/workspace/.cache/pip/
+PIP_ROOT_USER_ACTION=ignore
+PPID=5267
+PS4='+ '
+PWD=/root
+PYTHONUNBUFFERED=True
+RP_WORKSPACE=/workspace
+SHELL=/bin/bash
+SHELLOPTS=braceexpand:hashall:interactive-comments
+SHLVL=4
+SSH_CLIENT='72.83.92.189 56134 22'
+SSH_CONNECTION='72.83.92.189 56134 172.17.0.4 22'
+TERM=dumb
+TZ=Etc/UTC
+UID=0
+USER=root
+UV_CACHE_DIR=/workspace/.cache/uv/
+VIRTUALENV_OVERRIDE_APP_DATA=/workspace/.cache/virtualenv/
+_=/usr/bin/bash
+SOURCE 9e185c88dc312443c0329729f53a90ad48549a0c
+Cuda compilation tools, release 12.8, V12.8.93
+Build cuda_12.8.r12.8/compiler.35583870_0
+NVIDIA GeForce RTX 5090, 595.84, 12.0
+  Executable unittests src/lib.rs (/root/build/target-sm120/release/deps/uor_r4_training-d92daac1975a872a)
+BUILD_DONE
+warning: method `score_source_cue` is never used
+   --> crates/uor-r4-integer/src/geometric_cue_carrier.rs:389:19
+    |
+280 | impl<'a> NativeCueCarrier<'a> {
+    | ----------------------------- method in this implementation
+...
+389 |     pub(crate) fn score_source_cue(
+    |                   ^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `uor-r4-integer` (lib) generated 1 warning
+warning: method `position` is never used
+   --> crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs:175:8
+    |
+168 | impl ObservedSpan {
+    | ----------------- method in this implementation
+...
+175 |     fn position(&self) -> (u32, u32, usize) {
+    |        ^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `example` is never used
+    --> crates/uor-r4-core/src/native_geometric/learner/transferable_lexical.rs:1590:8
+     |
+1405 | impl TlTrainer {
+     | -------------- method in this implementation
+...
+1590 |     fn example(&self, q: &TlQuant, ex: &TlExample) -> TlGrads {
+     |        ^^^^^^^
+
+warning: `uor-r4-core` (lib) generated 2 warnings
+warning: duplicated attribute
+     --> crates/uor-r4-training/src/geometric_stack.rs:28641:5
+      |
+28641 |     #[test]
+      |     ^^^^^^^
+      |
+      = note: `#[warn(duplicate_macro_attributes)]` on by default
+
+warning: duplicated attribute
+    --> crates/uor-r4-training/src/stack_export.rs:1967:5
+     |
+1967 |     #[test]
+     |     ^^^^^^^
+
+warning: variable does not need to be mutable
+     --> crates/uor-r4-training/src/geometric_stack.rs:27364:17
+      |
+27364 |             let mut value = |delta: f32| -> Result<f32> {
+      |                 ----^^^^^
+      |                 |
+      |                 help: remove this `mut`
+      |
+      = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: fields `sources` and `response` are never read
+    --> crates/uor-r4-training/src/geometric_source_realizer.rs:7322:5
+     |
+7320 | struct ComposedCopyAssembly {
+     |        -------------------- fields in this struct
+7321 |     context: crate::geometric_context::ContextQ4Output,
+7322 |     sources: Vec<crate::geometric_context::ContextQ4Output>,
+     |     ^^^^^^^
+7323 |     response: Option<crate::geometric_context::ContextQ4Output>,
+     |     ^^^^^^^^
+     |
+     = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: associated function `no_device_kernel` is never used
+     --> crates/uor-r4-training/src/geometric_stack.rs:19329:8
+      |
+19325 | impl MarginRank {
+      | --------------- associated function in this implementation
+...
+19329 |     fn no_device_kernel<T>(device: &str) -> candle_core::Result<T> {
+      |        ^^^^^^^^^^^^^^^^
+
+warning: function `read_binding_labels_leave_language_and_its_gradient_unchanged` is never used
+     --> crates/uor-r4-training/src/geometric_stack.rs:28670:8
+      |
+28670 |     fn read_binding_labels_leave_language_and_its_gradient_unchanged() -> Result<()> {
+      |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `recall_cue` is never used
+    --> crates/uor-r4-training/src/relation_compiler.rs:1282:4
+     |
+1282 | fn recall_cue(source: &str) -> bool {
+     |    ^^^^^^^^^^
+
+warning: function `phrase_words` is never used
+    --> crates/uor-r4-training/src/relation_compiler.rs:1303:4
+     |
+1303 | fn phrase_words(span_text: &str, phrase: &str) -> bool {
+     |    ^^^^^^^^^^^^
+
+warning: function `export_refuses_an_in_memory_transport_snap` is never used
+    --> crates/uor-r4-training/src/stack_export.rs:1991:8
+     |
+1991 |     fn export_refuses_an_in_memory_transport_snap() {
+     |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: methods `context_scores` and `continuation_scores` are never used
+    --> crates/uor-r4-training/src/whole_path_device.rs:1230:19
+     |
+ 819 | impl WholePathCudaProducer {
+     | -------------------------- methods in this implementation
+...
+1230 |     pub(super) fn context_scores(
+     |                   ^^^^^^^^^^^^^^
+...
+1570 |     fn continuation_scores(&self, post: &Tensor, local: &Tensor) -> Result<Tensor> {
+     |        ^^^^^^^^^^^^^^^^^^^
+
+warning: `uor-r4-training` (lib test) generated 10 warnings (run `cargo fix --lib -p uor-r4-training --tests` to apply 1 suggestion)
+    Finished `release` profile [optimized] target(s) in 0.23s
+     Running unittests src/lib.rs (/root/build/target-sm120/release/deps/uor_r4_training-d92daac1975a872a)
+
+running 16 tests
+test geometric_stack::tests::native_starling_read_cuda_integration_control ... FAILED
+test starling_native::cuda_tests::credit_capture_passes_the_read_gradient_bit_exactly ... ok
+test starling_native::cuda_tests::k1_batch_and_head_isolation ... ok
+test starling_native::cuda_tests::k1_document_reset_isolates_documents ... ok
+test starling_native::cuda_tests::k1_refuses_non_finite_addresses ... ok
+test starling_native::cuda_tests::k1_ring_ties_neighbours_and_far_cells ... ok
+test starling_native::cuda_tests::k3a_active_hinge_known_answers ... ok
+test starling_native::cuda_tests::k3b_tie_and_empty_pair_set_give_zero ... ok
+test starling_native::cuda_tests::k3c_address_credit_off_home ... ok
+test starling_native::cuda_tests::k3c_composed_normalisation_gradient ... ok
+test starling_native::cuda_tests::k3d_home_or_unhelpful_gives_no_address_credit ... ok
+test starling_native::spec_tests::codebook_has_120_vertices_with_12_neighbours ... ok
+test starling_native::spec_tests::cpu_entry_is_refused_before_any_model_arithmetic ... ok
+test starling_native::spec_tests::kernel_and_module_carry_no_prohibited_operation_or_runtime_compiler ... ok
+test starling_native::spec_tests::reset_mask_marks_document_starts_only ... ok
+test starling_native::spec_tests::route_parses_and_refuses_bad_shapes ... ok
+
+failures:
+
+---- geometric_stack::tests::native_starling_read_cuda_integration_control stdout ----
+Error: Invalid("exact read gradient missing: layers.01.read.native_starling.key_address.spiralcore_fbs")
+
+
+failures:
+    geometric_stack::tests::native_starling_read_cuda_integration_control
+
+test result: FAILED. 15 passed; 1 failed; 0 ignored; 0 measured; 1004 filtered out; finished in 2.92s
+
+error: test failed, to rerun pass `-p uor-r4-training --lib`
+QUALIFICATION_RC=101
+# exit=0 end=2026-10-13T15:20:19Z

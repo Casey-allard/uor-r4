@@ -1,0 +1,13 @@
+{
+  "branch": "claude/starling-rank-read-2026-10-13",
+  "doing": "starling read 2/3",
+  "host": "Caseys-MacBook-Pro.local",
+  "lab": "claude",
+  "milestone": "m4",
+  "next": "rung-0b source: CUDA starling/rank read with rank-consistent address credit, no exp; FIT sheet before any compute; training held",
+  "schema": 1,
+  "session": "",
+  "source": "",
+  "updated": "2026-10-13T08:19:11-04:00",
+  "worktree": "/Users/casey.allard/uor-r4/.worktrees/claude-starling"
+}

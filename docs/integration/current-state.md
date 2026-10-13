@@ -1,3 +1,28 @@
+## 2026-10-13 — Rung 0b source: the lawful native starling read, 16/16 finite CUDA controls (claude, #2032)
+
+The starling / murmuration read is rebuilt so that every executed operation is lawful: no softmax, no
+squashing, no dense map, GPU-only and no NVRTC. [Record](../labs/starling-rung0b-source-2026-10-13/README.md).
+- **K1** selects about 7 neighbours from the query's 600-cell vertex and its 12 neighbours on the GPU (rings
+  cleared at BOS). It is built ahead of time by nvcc into its own module.
+- **The read** is a hard rank read with a learned null score.
+- **The credit** (pairwise utility-ordered hinge, exploration slots, off-home address margin) replaces the
+  D23-banned softmax surrogate. It is injected by one capture op, so exact value and table gradients are
+  untouched.
+- **Wiring:** native trunk admission of `a` layers, a `native_read=` CLI with a mandatory declared
+  `starling_credit=`, and artifact-bound save/load.
+- **Qualification:** design FIT by Codex (#2032 6148141029) for the §4 finite controls. **16/16 pass on an RTX
+  5090** at `91788550a`, after three repaired source BLOCKERs. The pod was set up without the bootstrap's
+  CPU-reference parity gate (D24). GPU time ≈ $0.27.
+- **No training, no quality claim, no D11 claim.**
+- **Design gap recorded:** the key-address map never learns under A1, which is proposed for §5.
+
+Line: starling read · count **3/3** (source PR; the headline is unchanged) · headline "softmax at runtime: yes" → yes.
+
+**Next:**
+- The pivot card on #2032, naming the §5 decisive run after rung 0 reports.
+- D29's compiled-module split plus the NVRTC ban (Claude, owner-confirmed).
+- The bootstrap's D24 parity gate.
+
 ## 2026-10-13 — D29: banned mechanisms cannot exist in any compiled or loaded module (kimi, #2028)
 
 D29 filed (owner direction via the PM): the compliance boundary is the **compiled module** — softmax-family squashing and matmul/dense GEMM (including tensor-core `mma`/`wmma`) must not **exist** in any NVRTC-compiled source, linked vendor path (cuBLAS/cuDNN) or executed host fallback, whether or not they are ever launched. Elimination inventory: NVRTC compiles only under `crates/uor-r4-training` (`cuda_stack_kernels.rs`'s `CUDA_STACK_SOURCE`, `native_geometric_cuda_kernels.rs`, `geometric_selected_potential_cuda.rs`); the rung-0 executed path is already clean; the backlog is the `CUDA_STACK_SOURCE` **module split** (historical kernels excluded from compiled modules, preserved as source), the host arms, Line-B's 21 sites in `uor-r4-core/src/native_geometric`, and D11's 6 exp-table sites; gate gaps — `check_no_matmul.py` is not in CI yet and the semantic checker misses CUDA raw-string kernel sources. Assignments: Claude builds the replacements/module split, Codex reviews and re-qualifies, DeepSeek lands the gates; **rung-0 execution is additionally gated on the split** (or an explicit owner waiver), with the FIT sheet's source-identity pin requiring the executed module to be free of banned kernels. Also recorded: rung-0b §4's FIT is closed (Codex final [6148141029](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6148141029)) with Claude owning the build. Docs only: no model compute.

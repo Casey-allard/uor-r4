@@ -438,6 +438,130 @@ fn spiralcore_fbs_activation<'a>(s: &'a CudaStorage, l: &Layout) -> CResult<Arg<
     }
 }
 
+/// The ahead-of-time PTX of kernel K1 (build.rs) and its module name.
+const STARLING_NATIVE_PTX: &str = include_str!(concat!(env!("OUT_DIR"), "/starling_native.ptx"));
+const STARLING_NATIVE_MODULE: &str = "uor_r4_starling_native";
+
+/// The contiguous u32 elements of a CUDA storage.
+fn input_u32<'a>(storage: &'a CudaStorage, layout: &Layout) -> CResult<CudaView<'a, u32>> {
+    if !layout.is_contiguous() || storage.dtype() != DType::U32 {
+        candle_core::bail!("expected a contiguous U32 CUDA tensor");
+    }
+    let slice = storage.as_cuda_slice::<u32>()?;
+    let start = layout.start_offset();
+    let len = layout.shape().elem_count();
+    match slice.try_slice(start..start + len) {
+        Some(view) => Ok(view),
+        None => candle_core::bail!("CUDA input layout exceeds its buffer"),
+    }
+}
+
+/// The 600-cell codebook on one device: roots `[120, 4]`, neighbours `[120, 12]`.
+type StarlingGeometry = (CudaSlice<f32>, CudaSlice<u32>);
+
+fn starling_native_geometry(device: &CudaDevice) -> CResult<Arc<StarlingGeometry>> {
+    type Cache = std::collections::HashMap<String, Arc<StarlingGeometry>>;
+    static CACHE: std::sync::OnceLock<std::sync::Mutex<Cache>> = std::sync::OnceLock::new();
+    let mut cache = CACHE
+        .get_or_init(Default::default)
+        .lock()
+        .map_err(|_| candle_core::Error::Msg("starling codebook cache poisoned".into()))?;
+    let key = format!("{:?}", device.id());
+    if let Some(value) = cache.get(&key) {
+        return Ok(Arc::clone(value));
+    }
+    let (roots, adjacency) =
+        crate::starling_native::geometry().map_err(|e| candle_core::Error::Msg(e.to_string()))?;
+    let buffers = Arc::new((device.clone_htod(&roots)?, device.clone_htod(&adjacency)?));
+    cache.insert(key, Arc::clone(&buffers));
+    Ok(buffers)
+}
+
+/// Rung-0b kernel K1 ([`crate::starling_native::select`]): neighbour
+/// selection on the device, one thread per (batch row, head). Only a
+/// validation word returns to the host.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn starling_native_select(
+    spec: &crate::starling_native::NativeStarling,
+    heads: usize,
+    query: &CudaStorage,
+    ql: &Layout,
+    key: &CudaStorage,
+    kl: &Layout,
+    reset: &CudaStorage,
+    rl: &Layout,
+) -> Forward {
+    let device = &query.device;
+    if key.device.id() != device.id() || reset.device.id() != device.id() {
+        candle_core::bail!("starling addresses and reset mask need the same CUDA context");
+    }
+    let (rows, time) = match ql.shape().dims() {
+        [rows, time, 4] => (*rows, *time),
+        _ => candle_core::bail!("starling query addresses must be [rows, time, 4]"),
+    };
+    if kl.shape().dims() != ql.shape().dims()
+        || heads == 0
+        || rows % heads != 0
+        || rl.shape().dims() != [rows / heads, time]
+    {
+        candle_core::bail!("starling key addresses or reset mask disagree with the queries");
+    }
+    let (Some(q), Some(k)) = (input(query, ql)?, input(key, kl)?) else {
+        candle_core::bail!("starling addresses must be contiguous F32");
+    };
+    let r = input_u32(reset, rl)?;
+    let geometry = starling_native_geometry(device)?;
+    let cells = crate::starling_native::CELLS;
+    let slots = spec.slots();
+    let ring = zeros::<u32>(device, rows * cells * spec.depth)?;
+    let ring_len = zeros::<u32>(device, rows * cells)?;
+    let ring_head = zeros::<u32>(device, rows * cells)?;
+    let out = zeros::<u32>(device, rows * time * (slots + 2))?;
+    let error = zeros::<u32>(device, 1)?;
+    let narrow = |v: usize| -> CResult<u32> {
+        u32::try_from(v).map_err(|_| candle_core::Error::Msg("starling dimension overflow".into()))
+    };
+    // The nvcc-built PTX in its own module: no runtime compiler (NVRTC is
+    // banned, owner 13 October 2026) and no other kernel in the module.
+    let args = [
+        Arg::F(q),
+        Arg::F(k),
+        Arg::U(r),
+        Arg::f(&geometry.0),
+        Arg::u(&geometry.1),
+        Arg::u(&ring),
+        Arg::u(&ring_len),
+        Arg::u(&ring_head),
+        Arg::u(&out),
+        Arg::u(&error),
+        Arg::U32(narrow(rows)?),
+        Arg::U32(narrow(time)?),
+        Arg::U32(narrow(heads)?),
+        Arg::U32(narrow(spec.depth)?),
+        Arg::U32(narrow(slots)?),
+    ];
+    crate::cuda_stack_kernels::cuda::launch_prebuilt(
+        device,
+        STARLING_NATIVE_MODULE,
+        STARLING_NATIVE_PTX,
+        "starling_native_select",
+        rows,
+        &args,
+    )?;
+    drop(args);
+    let flag = device.clone_dtoh(&error)?;
+    if flag.first().copied() != Some(0) {
+        candle_core::bail!(
+            "starling selection rejected non-finite addresses or an invalid route: {:?}",
+            flag
+        );
+    }
+    Ok((
+        CudaStorage::wrap_cuda_slice(out, device.clone()),
+        Shape::from_dims(&[rows, time, slots + 2]),
+    ))
+}
+
 pub(crate) fn spiralcore_fbs_fwd(
     plan: &crate::spiralcore_fbs::ProjectionPlan,
     q: &CudaStorage,

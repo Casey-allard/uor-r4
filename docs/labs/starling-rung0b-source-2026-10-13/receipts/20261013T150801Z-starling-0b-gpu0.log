@@ -1,0 +1,370 @@
+# uor-pod job by=claude/starling-0b pod=vast-55762148 gpu=0 queued 2026-10-13T15:08:01Z
+# cmd: bash -c set -o pipefail; export PATH=/root/.cargo/bin:/usr/local/cuda-12.8/bin:$PATH LD_LIBRARY_PATH=/usr/local/cuda-12.8/lib64:${LD_LIBRARY_PATH:-} CUDA_COMPUTE_CAP=120 CARGO_TARGET_DIR=/root/build/target-sm120 UOR_NVCC_ARCH=compute_80; cd /root/build/src-87fe3ea57a59eb5e3dc3d81381daca2c6e4a1f45 && echo "SOURCE $(git rev-parse HEAD)" && nvcc --version | tail -2 && nvidia-smi --query-gpu=name,driver_version,compute_cap --format=csv,noheader && rustc +1.97.1 --version && echo "BUILD_START $(date -u +%FT%TZ)" && cargo +1.97.1 test --release -p uor-r4-training --features cuda --lib --no-run && echo "BUILD_DONE $(date -u +%FT%TZ)" && cargo +1.97.1 test --release -p uor-r4-training --features cuda --lib -- starling_native:: native_starling_read_cuda_integration_control --test-threads=1; echo "QUALIFICATION_RC=$?"
+# start 2026-10-13T15:08:01Z (holding /root/gpu0.lock)
+BASH=/usr/bin/bash
+BASHOPTS=checkwinsize:cmdhist:complete_fullquote:extquote:force_fignore:globasciiranges:globskipdots:hostcomplete:interactive_comments:patsub_replacement:progcomp:promptvars:sourcepath
+BASH_ALIASES=()
+BASH_ARGC=()
+BASH_ARGV=()
+BASH_CMDS=()
+BASH_EXECUTION_STRING=set
+BASH_LINENO=()
+BASH_LOADABLES_PATH=/usr/local/lib/bash:/usr/lib/bash:/opt/local/lib/bash:/usr/pkg/lib/bash:/opt/pkg/lib/bash:.
+BASH_SOURCE=()
+BASH_VERSINFO=([0]="5" [1]="2" [2]="21" [3]="1" [4]="release" [5]="x86_64-pc-linux-gnu")
+BASH_VERSION='5.2.21(1)-release'
+CUDA_VERSION=12.8.1
+CUDA_VISIBLE_DEVICES=0
+DEBIAN_FRONTEND=noninteractive
+DIRSTACK=()
+EUID=0
+GROUPS=()
+HF_HOME=/workspace/.cache/huggingface/
+HF_HUB_ENABLE_HF_TRANSFER=1
+HF_XET_HIGH_PERFORMANCE=1
+HOME=/root
+HOSTNAME=c0ee1afde150
+HOSTTYPE=x86_64
+IFS=$' \t\n'
+LANG=C.UTF-8
+LD_LIBRARY_PATH=/usr/local/cuda/lib64
+LIBRARY_PATH=/usr/local/cuda/lib64/stubs
+LOGNAME=root
+MACHTYPE=x86_64-pc-linux-gnu
+NCCL_VERSION=2.25.1-1
+NVARCH=x86_64
+NVIDIA_DRIVER_CAPABILITIES=compute,utility
+NVIDIA_PRODUCT_NAME=CUDA
+NVIDIA_REQUIRE_CUDA='cuda>=12.8 brand=unknown,driver>=470,driver<471 brand=grid,driver>=470,driver<471 brand=tesla,driver>=470,driver<471 brand=nvidia,driver>=470,driver<471 brand=quadro,driver>=470,driver<471 brand=quadrortx,driver>=470,driver<471 brand=nvidiartx,driver>=470,driver<471 brand=vapps,driver>=470,driver<471 brand=vpc,driver>=470,driver<471 brand=vcs,driver>=470,driver<471 brand=vws,driver>=470,driver<471 brand=cloudgaming,driver>=470,driver<471 brand=unknown,driver>=535,driver<536 brand=grid,driver>=535,driver<536 brand=tesla,driver>=535,driver<536 brand=nvidia,driver>=535,driver<536 brand=quadro,driver>=535,driver<536 brand=quadrortx,driver>=535,driver<536 brand=nvidiartx,driver>=535,driver<536 brand=vapps,driver>=535,driver<536 brand=vpc,driver>=535,driver<536 brand=vcs,driver>=535,driver<536 brand=vws,driver>=535,driver<536 brand=cloudgaming,driver>=535,driver<536 brand=unknown,driver>=550,driver<551 brand=grid,driver>=550,driver<551 brand=tesla,driver>=550,driver<551 brand=nvidia,driver>=550,driver<551 brand=quadro,driver>=550,driver<551 brand=quadrortx,driver>=550,driver<551 brand=nvidiartx,driver>=550,driver<551 brand=vapps,driver>=550,driver<551 brand=vpc,driver>=550,driver<551 brand=vcs,driver>=550,driver<551 brand=vws,driver>=550,driver<551 brand=cloudgaming,driver>=550,driver<551 brand=unknown,driver>=560,driver<561 brand=grid,driver>=560,driver<561 brand=tesla,driver>=560,driver<561 brand=nvidia,driver>=560,driver<561 brand=quadro,driver>=560,driver<561 brand=quadrortx,driver>=560,driver<561 brand=nvidiartx,driver>=560,driver<561 brand=vapps,driver>=560,driver<561 brand=vpc,driver>=560,driver<561 brand=vcs,driver>=560,driver<561 brand=vws,driver>=560,driver<561 brand=cloudgaming,driver>=560,driver<561 brand=unknown,driver>=565,driver<566 brand=grid,driver>=565,driver<566 brand=tesla,driver>=565,driver<566 brand=nvidia,driver>=565,driver<566 brand=quadro,driver>=565,driver<566 brand=quadrortx,driver>=565,driver<566 brand=nvidiartx,driver>=565,driver<566 brand=vapps,driver>=565,driver<566 brand=vpc,driver>=565,driver<566 brand=vcs,driver>=565,driver<566 brand=vws,driver>=565,driver<566 brand=cloudgaming,driver>=565,driver<566'
+NVIDIA_VISIBLE_DEVICES=all
+NV_CUDA_CUDART_DEV_VERSION=12.8.90-1
+NV_CUDA_CUDART_VERSION=12.8.90-1
+NV_CUDA_LIB_VERSION=12.8.1-1
+NV_CUDA_NSIGHT_COMPUTE_DEV_PACKAGE=cuda-nsight-compute-12-8=12.8.1-1
+NV_CUDA_NSIGHT_COMPUTE_VERSION=12.8.1-1
+NV_CUDNN_PACKAGE=libcudnn9-cuda-12=9.8.0.87-1
+NV_CUDNN_PACKAGE_DEV=libcudnn9-dev-cuda-12=9.8.0.87-1
+NV_CUDNN_PACKAGE_NAME=libcudnn9-cuda-12
+NV_CUDNN_VERSION=9.8.0.87-1
+NV_LIBCUBLAS_DEV_PACKAGE=libcublas-dev-12-8=12.8.4.1-1
+NV_LIBCUBLAS_DEV_PACKAGE_NAME=libcublas-dev-12-8
+NV_LIBCUBLAS_DEV_VERSION=12.8.4.1-1
+NV_LIBCUBLAS_PACKAGE=libcublas-12-8=12.8.4.1-1
+NV_LIBCUBLAS_PACKAGE_NAME=libcublas-12-8
+NV_LIBCUBLAS_VERSION=12.8.4.1-1
+NV_LIBCUSPARSE_DEV_VERSION=12.5.8.93-1
+NV_LIBCUSPARSE_VERSION=12.5.8.93-1
+NV_LIBNCCL_DEV_PACKAGE=libnccl-dev=2.25.1-1+cuda12.8
+NV_LIBNCCL_DEV_PACKAGE_NAME=libnccl-dev
+NV_LIBNCCL_DEV_PACKAGE_VERSION=2.25.1-1
+NV_LIBNCCL_PACKAGE=libnccl2=2.25.1-1+cuda12.8
+NV_LIBNCCL_PACKAGE_NAME=libnccl2
+NV_LIBNCCL_PACKAGE_VERSION=2.25.1-1
+NV_LIBNPP_DEV_PACKAGE=libnpp-dev-12-8=12.3.3.100-1
+NV_LIBNPP_DEV_VERSION=12.3.3.100-1
+NV_LIBNPP_PACKAGE=libnpp-12-8=12.3.3.100-1
+NV_LIBNPP_VERSION=12.3.3.100-1
+NV_NVML_DEV_VERSION=12.8.90-1
+NV_NVPROF_DEV_PACKAGE=cuda-nvprof-12-8=12.8.90-1
+NV_NVPROF_VERSION=12.8.90-1
+NV_NVTX_VERSION=12.8.90-1
+OPTERR=1
+OPTIND=1
+OSTYPE=linux-gnu
+PATH=/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+PIP_BREAK_SYSTEM_PACKAGES=1
+PIP_CACHE_DIR=/workspace/.cache/pip/
+PIP_ROOT_USER_ACTION=ignore
+PPID=1065
+PS4='+ '
+PWD=/root
+PYTHONUNBUFFERED=True
+RP_WORKSPACE=/workspace
+SHELL=/bin/bash
+SHELLOPTS=braceexpand:hashall:interactive-comments
+SHLVL=4
+SSH_CLIENT='72.83.92.189 52829 22'
+SSH_CONNECTION='72.83.92.189 52829 172.17.0.4 22'
+TERM=dumb
+TZ=Etc/UTC
+UID=0
+USER=root
+UV_CACHE_DIR=/workspace/.cache/uv/
+VIRTUALENV_OVERRIDE_APP_DATA=/workspace/.cache/virtualenv/
+_=/usr/bin/bash
+SOURCE 87fe3ea57a59eb5e3dc3d81381daca2c6e4a1f45
+Cuda compilation tools, release 12.8, V12.8.93
+Build cuda_12.8.r12.8/compiler.35583870_0
+NVIDIA GeForce RTX 5090, 595.84, 12.0
+rustc 1.97.1 (8bab26f4f 2026-07-14)
+BUILD_START 2026-10-13T15:08:01Z
+   Compiling proc-macro2 v1.0.106
+   Compiling quote v1.0.46
+   Compiling unicode-ident v1.0.24
+   Compiling cfg-if v1.0.4
+   Compiling libm v0.2.16
+   Compiling libc v0.2.186
+   Compiling autocfg v1.5.1
+   Compiling crossbeam-utils v0.8.22
+   Compiling version_check v0.9.5
+   Compiling crossbeam-epoch v0.9.20
+   Compiling crossbeam-deque v0.8.7
+   Compiling rayon-core v1.13.0
+   Compiling zerocopy v0.8.55
+   Compiling getrandom v0.3.4
+   Compiling serde_core v1.0.228
+   Compiling either v1.16.0
+   Compiling typenum v1.20.1
+   Compiling shlex v2.0.1
+   Compiling serde v1.0.228
+   Compiling find-msvc-tools v0.1.9
+   Compiling once_cell v1.21.4
+   Compiling zmij v1.0.23
+   Compiling generic-array v0.14.7
+   Compiling paste v1.0.15
+   Compiling num-traits v0.2.19
+   Compiling pulp v0.22.3
+   Compiling cc v1.2.67
+   Compiling arrayref v0.3.9 (/root/build/src-87fe3ea57a59eb5e3dc3d81381daca2c6e4a1f45/third_party/arrayref)
+   Compiling constant_time_eq v0.3.1
+   Compiling bitflags v2.13.1
+   Compiling serde_json v1.0.150
+   Compiling arrayvec v0.7.8
+   Compiling memchr v2.8.3
+   Compiling raw-cpuid v11.6.0
+   Compiling dyn-stack-macros v0.1.3
+   Compiling reborrow v0.5.5
+   Compiling itoa v1.0.18
+   Compiling pulp-wasm-simd-flag v0.1.1
+   Compiling cpufeatures v0.2.17
+   Compiling seq-macro v0.3.6
+   Compiling keccak v0.1.6
+   Compiling equivalent v1.0.2
+   Compiling syn v2.0.119
+   Compiling syn v3.0.3
+   Compiling uor-foundation v0.5.2 (https://github.com/UOR-Foundation/UOR-Framework.git?rev=51c01382200b0179d6640b07e9c8119364ab69a1#51c01382)
+   Compiling rand_core v0.9.5
+   Compiling crypto-common v0.1.7
+   Compiling block-buffer v0.10.4
+   Compiling glob v0.3.4
+   Compiling blake3 v1.5.0
+   Compiling digest v0.10.7
+   Compiling num_cpus v1.17.0
+   Compiling rayon v1.12.0
+   Compiling sha2 v0.10.9
+   Compiling sha3 v0.10.9
+   Compiling matrixmultiply v0.3.11
+   Compiling crc32fast v1.5.2
+   Compiling stable_deref_trait v1.2.1
+   Compiling cudarc v0.19.10
+   Compiling libloading v0.9.0
+   Compiling thiserror v2.0.19
+   Compiling hex v0.4.3
+   Compiling allocator-api2 v0.2.21
+   Compiling foldhash v0.2.0
+   Compiling hashbrown v0.17.1
+   Compiling rawpointer v0.2.1
+   Compiling ryu v1.0.23
+   Compiling hashbrown v0.16.1
+   Compiling memmap2 v0.9.11
+   Compiling synstructure v0.14.0
+   Compiling num-integer v0.1.47
+   Compiling indexmap v2.14.0
+   Compiling typed-path v0.12.3
+   Compiling ciborium-io v0.2.2
+   Compiling tracing-core v0.1.36
+   Compiling pin-project-lite v0.2.17
+   Compiling byteorder v1.5.0
+   Compiling smallvec v1.15.2
+   Compiling uor-r4-simd v0.1.0 (/root/build/src-87fe3ea57a59eb5e3dc3d81381daca2c6e4a1f45/crates/uor-r4-simd)
+   Compiling bindgen_cuda v0.1.6
+   Compiling uor-r4-training v0.1.0 (/root/build/src-87fe3ea57a59eb5e3dc3d81381daca2c6e4a1f45/crates/uor-r4-training)
+   Compiling log v0.4.33
+   Compiling web-time v1.1.0
+   Compiling tracing v0.1.44
+   Compiling bytemuck_derive v1.12.0
+   Compiling zerofrom-derive v0.1.8
+   Compiling yoke-derive v0.8.3
+   Compiling thiserror-impl v2.0.19
+   Compiling candle-kernels v0.9.2
+   Compiling zerocopy-derive v0.8.55
+   Compiling serde_derive v1.0.228
+   Compiling uor-foundation-sdk v0.5.2 (https://github.com/UOR-Foundation/UOR-Framework.git?rev=51c01382200b0179d6640b07e9c8119364ab69a1#51c01382)
+   Compiling zip v7.2.0
+   Compiling zerofrom v0.1.8
+   Compiling yoke v0.8.3
+   Compiling bytemuck v1.25.2
+   Compiling num-complex v0.4.6
+   Compiling dyn-stack v0.13.2
+   Compiling uor-matmul-core v0.1.0 (https://github.com/UOR-Foundation/uor-matmul.git?rev=b13c98449948174f590e337c4dc25dfc394a07d0#b13c9844)
+   Compiling uor-matmul-codec v0.1.0 (https://github.com/UOR-Foundation/uor-matmul.git?rev=b13c98449948174f590e337c4dc25dfc394a07d0#b13c9844)
+   Compiling uor-matmul-kernels v0.1.0 (https://github.com/UOR-Foundation/uor-matmul.git?rev=b13c98449948174f590e337c4dc25dfc394a07d0#b13c9844)
+   Compiling ndarray v0.17.2
+   Compiling uor-r4-tokenizer v0.1.0 (/root/build/src-87fe3ea57a59eb5e3dc3d81381daca2c6e4a1f45/crates/uor-r4-tokenizer)
+   Compiling safetensors v0.7.0
+   Compiling safetensors v0.6.2
+   Compiling uor-r4-integer v0.1.0 (/root/build/src-87fe3ea57a59eb5e3dc3d81381daca2c6e4a1f45/crates/uor-r4-integer)
+   Compiling uor-r4-lut v0.1.0 (/root/build/src-87fe3ea57a59eb5e3dc3d81381daca2c6e4a1f45/crates/uor-r4-lut)
+   Compiling ppv-lite86 v0.2.21
+   Compiling rand_chacha v0.9.0
+   Compiling rand v0.9.5
+   Compiling uor-matmul-gemm v0.1.0 (https://github.com/UOR-Foundation/uor-matmul.git?rev=b13c98449948174f590e337c4dc25dfc394a07d0#b13c9844)
+   Compiling rand_distr v0.5.1
+   Compiling uor-prism-numerics v0.4.0
+   Compiling uor-prism-fhe v0.4.0
+   Compiling uor-prism-crypto v0.4.0
+   Compiling sprs v0.11.5
+   Compiling half v2.7.1
+   Compiling uor-prism-tensor v0.4.0
+   Compiling uor-prism v0.4.0
+   Compiling uor-matmul v0.1.0 (https://github.com/UOR-Foundation/uor-matmul.git?rev=b13c98449948174f590e337c4dc25dfc394a07d0#b13c9844)
+   Compiling uor-addr v0.2.0 (https://github.com/UOR-Foundation/uor-addr.git?rev=165b51e3e2113ee5d032730cde709335d4fe9b60#165b51e3)
+   Compiling gemm-common v0.19.0
+   Compiling float8 v0.7.0
+   Compiling ciborium-ll v0.2.2
+   Compiling uor-r4-model-source v0.1.0 (/root/build/src-87fe3ea57a59eb5e3dc3d81381daca2c6e4a1f45/crates/uor-r4-model-source)
+   Compiling ciborium v0.2.2
+   Compiling gemm-f32 v0.19.0
+   Compiling gemm-c32 v0.19.0
+   Compiling gemm-f64 v0.19.0
+   Compiling gemm-f16 v0.19.0
+   Compiling gemm-c64 v0.19.0
+   Compiling microlp v0.6.0
+   Compiling uor-r4-graph-format v0.1.0 (/root/build/src-87fe3ea57a59eb5e3dc3d81381daca2c6e4a1f45/crates/uor-r4-graph-format)
+warning: method `score_source_cue` is never used
+   --> crates/uor-r4-integer/src/geometric_cue_carrier.rs:389:19
+    |
+280 | impl<'a> NativeCueCarrier<'a> {
+    | ----------------------------- method in this implementation
+...
+389 |     pub(crate) fn score_source_cue(
+    |                   ^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+   Compiling float8 v0.6.1
+   Compiling gemm v0.19.0
+   Compiling uor-r4-graph-runtime v0.1.0 (/root/build/src-87fe3ea57a59eb5e3dc3d81381daca2c6e4a1f45/crates/uor-r4-graph-runtime)
+   Compiling uor-r4-core v0.1.0 (/root/build/src-87fe3ea57a59eb5e3dc3d81381daca2c6e4a1f45/crates/uor-r4-core)
+warning: `uor-r4-integer` (lib) generated 1 warning
+warning: method `position` is never used
+   --> crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs:175:8
+    |
+168 | impl ObservedSpan {
+    | ----------------- method in this implementation
+...
+175 |     fn position(&self) -> (u32, u32, usize) {
+    |        ^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `example` is never used
+    --> crates/uor-r4-core/src/native_geometric/learner/transferable_lexical.rs:1590:8
+     |
+1405 | impl TlTrainer {
+     | -------------- method in this implementation
+...
+1590 |     fn example(&self, q: &TlQuant, ex: &TlExample) -> TlGrads {
+     |        ^^^^^^^
+
+   Compiling candle-core v0.9.2 (/root/build/src-87fe3ea57a59eb5e3dc3d81381daca2c6e4a1f45/third_party/candle-core-0.9.2)
+   Compiling candle-nn v0.9.2
+warning: `uor-r4-core` (lib) generated 2 warnings
+error: usage of an `unsafe` block
+   --> crates/uor-r4-training/src/geometric_stack/cuda_ops.rs:566:9
+    |
+566 |         unsafe { builder.launch(config) }.map_err(|e| candle_core::Error::Cuda(Box::new(e)))?;
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+note: the lint level is defined here
+   --> crates/uor-r4-training/src/lib.rs:12:36
+    |
+ 12 | #![cfg_attr(feature = "cuda", deny(unsafe_code))]
+    |                                    ^^^^^^^^^^^
+
+warning: duplicated attribute
+     --> crates/uor-r4-training/src/geometric_stack.rs:28634:5
+      |
+28634 |     #[test]
+      |     ^^^^^^^
+      |
+      = note: `#[warn(duplicate_macro_attributes)]` on by default
+
+warning: duplicated attribute
+    --> crates/uor-r4-training/src/stack_export.rs:1967:5
+     |
+1967 |     #[test]
+     |     ^^^^^^^
+
+warning: variable does not need to be mutable
+     --> crates/uor-r4-training/src/geometric_stack.rs:27357:17
+      |
+27357 |             let mut value = |delta: f32| -> Result<f32> {
+      |                 ----^^^^^
+      |                 |
+      |                 help: remove this `mut`
+      |
+      = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: fields `sources` and `response` are never read
+    --> crates/uor-r4-training/src/geometric_source_realizer.rs:7322:5
+     |
+7320 | struct ComposedCopyAssembly {
+     |        -------------------- fields in this struct
+7321 |     context: crate::geometric_context::ContextQ4Output,
+7322 |     sources: Vec<crate::geometric_context::ContextQ4Output>,
+     |     ^^^^^^^
+7323 |     response: Option<crate::geometric_context::ContextQ4Output>,
+     |     ^^^^^^^^
+     |
+     = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: associated function `no_device_kernel` is never used
+     --> crates/uor-r4-training/src/geometric_stack.rs:19322:8
+      |
+19318 | impl MarginRank {
+      | --------------- associated function in this implementation
+...
+19322 |     fn no_device_kernel<T>(device: &str) -> candle_core::Result<T> {
+      |        ^^^^^^^^^^^^^^^^
+
+warning: function `read_binding_labels_leave_language_and_its_gradient_unchanged` is never used
+     --> crates/uor-r4-training/src/geometric_stack.rs:28663:8
+      |
+28663 |     fn read_binding_labels_leave_language_and_its_gradient_unchanged() -> Result<()> {
+      |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `recall_cue` is never used
+    --> crates/uor-r4-training/src/relation_compiler.rs:1282:4
+     |
+1282 | fn recall_cue(source: &str) -> bool {
+     |    ^^^^^^^^^^
+
+warning: function `phrase_words` is never used
+    --> crates/uor-r4-training/src/relation_compiler.rs:1303:4
+     |
+1303 | fn phrase_words(span_text: &str, phrase: &str) -> bool {
+     |    ^^^^^^^^^^^^
+
+warning: function `export_refuses_an_in_memory_transport_snap` is never used
+    --> crates/uor-r4-training/src/stack_export.rs:1991:8
+     |
+1991 |     fn export_refuses_an_in_memory_transport_snap() {
+     |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: methods `context_scores` and `continuation_scores` are never used
+    --> crates/uor-r4-training/src/whole_path_device.rs:1230:19
+     |
+ 819 | impl WholePathCudaProducer {
+     | -------------------------- methods in this implementation
+...
+1230 |     pub(super) fn context_scores(
+     |                   ^^^^^^^^^^^^^^
+...
+1570 |     fn continuation_scores(&self, post: &Tensor, local: &Tensor) -> Result<Tensor> {
+     |        ^^^^^^^^^^^^^^^^^^^
+
+warning: `uor-r4-training` (lib test) generated 10 warnings
+error: could not compile `uor-r4-training` (lib test) due to 1 previous error; 10 warnings emitted
+QUALIFICATION_RC=101
+# exit=0 end=2026-10-13T15:10:31Z
