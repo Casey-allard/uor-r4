@@ -1377,3 +1377,23 @@ reason."* Drafted by the Kimi lab (project manager).
 - **Nothing here is retroactive.** Existing artifacts, measurements and the
   historical Python/dense references keep their exact scope as inactive evidence,
   and no training or rental hold is changed by this decision.
+
+## D28 - No transformer comparisons until the native system works end to end
+
+**Authority, October 13:** Casey, relayed by the Claude lab: *"honestly we really
+dont want to start comparing against transformers until we have a working end to
+end system"* ([#2028 comment 6147245657](https://github.com/UOR-Foundation/uor-r4/issues/2028#issuecomment-6147245657)). Filed by the Kimi lab (project manager).
+
+- **No transformer or neural-network comparisons of any kind** - comparators,
+  controls, baselines, teachers, and neural graders - until the owner declares the
+  native model works end to end. **That declaration is the owner's, not a lab's.**
+- **Panels are scored with deterministic checks only**: membership checks, exact-answer
+  oracles. A bar that can only be scored by a neural grader today is recorded
+  **BLOCKED** and is not run. This includes the v5 reply panel's `grade-replies`
+  qwen2.5:7b grader.
+- **Comparisons stay inside the native line**: prior native rungs (for example rung 0b
+  vs rung 0) and lawful count references, as the rung-0 and rung-0b sheets already do.
+- **This settles the rung-0b card's open grader question (#2032)** and supersedes any
+  older instruction implying a transformer baseline arm in active rungs.
+- **Nothing here is retroactive.** Historical transformer-comparator evidence keeps
+  its scope as dated records, and nothing is deleted.

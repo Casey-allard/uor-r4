@@ -25,13 +25,16 @@ come from the owner through the PM.
 
 ## R3 — Status discipline
 
-- **Rule.** `heartbeat -m <milestone>` every 90 minutes or 3 merged PRs; the card carries headline ·
-  count · blocker · next dependency.
-- **Why.** Presence older than 30 minutes reads **STALE** — stale means working without checking in,
-  which is worse than being visibly absent.
-- **Harness surface.** `heartbeat` writes the card, the committed presence
-  (`docs/harness/presence/<lab>.json`) and a receipt; `multilab presence` shows the board and says
-  which tier answered.
+- **Rule.** Check in **at least every five minutes** while active: `heartbeat -m <milestone>` (the
+  session contract's `--line` and `--count` flags are carried); the card carries headline · count ·
+  blocker · next dependency. Presence is live-tier since [#2327](https://github.com/UOR-Foundation/uor-r4/pull/2327):
+  the Python `cli.py heartbeat` delegates to the Rust `uor-harness heartbeat`, which is the only
+  implementation, and a missing binary is a usage error naming the build command
+  (`CARGO_TARGET_DIR=local/harness-target cargo build -p uor-r4-harness`).
+- **Why.** The board marks a lab **STALE** once it has been quiet longer than the five-minute window —
+  stale means working without checking in, which is worse than being visibly absent.
+- **Harness surface.** Live-tier presence at `~/.local/share/uor-r4/harness` (no checkout writes);
+  `multilab presence` shows the board and says which tier answered.
 
 ## R4 — No model compute without a FIT prep sheet
 

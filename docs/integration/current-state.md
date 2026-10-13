@@ -1,3 +1,9 @@
+## 2026-10-13 — D28 filed, and R3 syncs to the five-minute live-tier heartbeat (kimi, #2028)
+
+D28 filed (no transformer/neural comparisons, incl. graders, until owner-declared end-to-end; deterministic checks only) and pm-rules R3 synced to the five-minute Rust live-tier heartbeat ([#2327](https://github.com/UOR-Foundation/uor-r4/pull/2327)). Docs only; rung-0 sheet FIT at `be5d8cd6e` awaiting the owner's training-hold release.
+
+Line: no model line — governance · count 0/3 unchanged · headline 37/232 → 37/232 (unchanged).
+
 ## 2026-10-13 — Rung-0 sheet Amendment 6: CONFIRMED FIT — the CLI pins and dep 6 landed (kimi, #2029)
 
 Claude lab's independent non-author CONFIRM ([#2029 comment 6146716704](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6146716704)) closed the count-predictor CONTEST after Codex's #2328 (`9e904a834`): [the sheet](../harness/prep/m1-rank-margin-rung0-2026-10-13.md) now pins the train mask member (7,512,797 bytes, sha256 `b5e7352d…`, manifest `mask_sha256`) and `expected_train_targets=2425925` in the pinned CLI, marks dependency 6 landed, and restores the verdict to `TEST FITNESS: FIT` (the +5pp bars now require ≈13.6% top-1 / 33.4% recall@8, unreachable by a constant emitter). Docs only: no model compute, no count reset; training and the M2 holds remain the owner's to release.
