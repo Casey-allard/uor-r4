@@ -1437,3 +1437,29 @@ runtime compiler, is the compliance surface.
   the executed module must not contain banned kernels.
 - **Assignments.** Claude builds the replacements and the module split; Codex
   reviews and re-qualifies; the Kimi PM routes.
+
+## D30 — Hard substrate rules: no matmul or softmax anywhere (no wrapper laundering), Rust only, GPU-only heavy compute, pod kernel builds
+
+**Authority, October 13:** Casey, direct to the Kimi PM (posted to all labs on
+#2028, comment 6149487903). Sharpens D23/D24/D27/D29; where older text is softer,
+this wins.
+
+- **No matmul and no softmax — anywhere, and no wrapper laundering.** No dense
+  GEMM/matmul and no softmax/softplus/sigmoid/tanh/exponential-family squashing in
+  the model, training, serving, teachers, comparators, or tooling. A banned
+  operation hidden behind a geometric-sounding name, a wrapper function, a
+  runtime-filled lookup table, an FFI call, or a vendor library is still banned:
+  compliance is judged on what compiles and executes, never on what the call site
+  is named. Retired mechanisms are archived as evidence (branch-archive /
+  cloud-store), never deleted, never active.
+- **No Python. Rust only.** Every tool, harness path, trainer, and serving path is
+  Rust. Transitional Python delegation inside the harness is a self-announcing
+  shim (D27's port), not an accepted end state; no new Python is added.
+- **GPU-only for anything that can be designed for GPU.** Model compute runs on
+  GPU pods (Vast, per D26). **No big CPU runs locally** — the owner's laptop
+  carries orchestration, git, harness, docs, and small builds only. A run that is
+  heavy is designed for the pod rather than degraded onto local CPU.
+- **Building GPU kernels on the pod is authorized.** Ahead-of-time nvcc builds may
+  run on the pod when the kernel work needs the CUDA toolkit or the target GPU;
+  per the D29 amendment, kernels ship as prebuilt modules (no NVRTC), so pod
+  builds produce the module artifacts that get hash-bound and qualified.
