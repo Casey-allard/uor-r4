@@ -857,6 +857,22 @@ def _build_rules() -> list[Rule]:
         ),
         register_rule(
             Rule(
+                id="prep.panel_grader_permitted",
+                description="no panel's grader is a neural grader prohibited by D28",
+                severity="error",
+                check=_check_panel_grader_permitted,
+                rationale=(
+                    "D28 prohibits neural graders until the owner declares the native model works end "
+                    "to end, and names the v5 reply panel's qwen2.5:7b grader. A panel grader is what "
+                    "SCORES the bar, so a prohibited grader in the registry makes every sheet that "
+                    "cites that panel cite a forbidden configuration - which is how Defect 6 reached "
+                    "a lab. Text in the registry is not a guard; this rule is."
+                ),
+                mistake="host-fallback-is-a-defect",
+            )
+        ),
+        register_rule(
+            Rule(
                 id="prep.panel_frozen",
                 description="every panel referenced by milestones.json exists, is frozen, and carries a grader and a bar",
                 severity="error",
@@ -928,6 +944,79 @@ def _check_fit_before_run(paths: HarnessPaths, reg: Registry) -> list[RuleResult
                 meta={"verdict": verdict},
             )
         )
+    return out
+
+
+#: grader strings that name a neural model. Deliberately narrow: it targets a GRADER FIELD naming a
+#: model, not the word appearing in a note about why the grader is blocked.
+_NEURAL_GRADER = (
+    re.compile(r"\bqwen[0-9.]*(?::[0-9]+b)?\b", re.IGNORECASE),
+    re.compile(r"\bllama[0-9.]*(?::[0-9]+b)?\b", re.IGNORECASE),
+    re.compile(r"\bgpt-[0-9a-z.]+\b", re.IGNORECASE),
+    re.compile(r"\bclaude-[0-9a-z.-]+\b", re.IGNORECASE),
+    re.compile(r"\b(?:neural|llm|model)[- ](?:grader|judge)\b", re.IGNORECASE),
+)
+
+#: a grader field that SAYS it is blocked is honouring D28, not violating it.
+_GRADER_BLOCKED = ("blocked", "d28", "not run", "prohibited")
+
+
+def _check_panel_grader_permitted(paths: HarnessPaths, reg: Registry) -> list[RuleResult]:
+    """D28: no panel may carry a neural grader as its live grader.
+
+    **Why this is a rule and not a note.** The registry's `grader` field is what a pre-registration
+    sheet prints, so a prohibited grader there propagates into every sheet that cites the panel. When
+    `v5-reply` carried `qwen2.5:7b`, a lab reading `prep new -m m1` saw a forbidden configuration
+    presented as the panel's grader - with `frozen: yes` beside it, which reads as approved. That is
+    Defect 6, reported by Antigravity.
+
+    The text was corrected; **text is not a guard.** This rule fails if a neural grader returns.
+    """
+    out: list[RuleResult] = []
+    panels_dir = paths.repo / "docs" / "harness" / "panels"
+    if not panels_dir.is_dir():
+        return out
+    for f in sorted(panels_dir.glob("*.json")):
+        rel = _rel(f, paths.repo)
+        try:
+            data = json.loads(read_text(f) or "{}")
+        except (json.JSONDecodeError, OSError):
+            continue  # a file that will not parse is another rule's problem
+        for pid, panel in (data.get("panels") or {}).items():
+            if not isinstance(panel, dict):
+                continue
+            grader = str(panel.get("grader") or "")
+            if not grader:
+                continue
+            lower = grader.lower()
+            # A grader that states it is BLOCKED is honouring D28.
+            if any(marker in lower for marker in _GRADER_BLOCKED):
+                continue
+            for pattern in _NEURAL_GRADER:
+                m = pattern.search(grader)
+                if not m:
+                    continue
+                out.append(
+                    RuleResult(
+                        rule_id="prep.panel_grader_permitted",
+                        severity="error",
+                        ok=False,
+                        message=(
+                            f"{rel}: panel {pid!r} names a neural grader ({m.group(0)!r}) as its "
+                            "grader. D28 prohibits neural graders until the owner declares the "
+                            "native model works end to end, and names this class of grader "
+                            "specifically - a panel grader is what SCORES the bar, so every sheet "
+                            "citing this panel would cite a forbidden configuration."
+                        ),
+                        path=rel,
+                        fix=(
+                            "record the grader as BLOCKED with the D28 reason and the deterministic "
+                            "alternative (membership checks, exact-answer oracles), or replace it "
+                            "with a deterministic grader"
+                        ),
+                    )
+                )
+                break
     return out
 
 
