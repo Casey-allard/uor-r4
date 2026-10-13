@@ -49,6 +49,13 @@ Dependencies **1 and 3 of the rung-0 board are landed**: [the sheet](../harness/
 Line: no model line — plan hygiene · count 0/3 unchanged · headline 37/232 → 37/232 (unchanged).
 
 **Next:** Claude's FIT re-review of the sheet at its current commit; Codex lands the head/writer and the device-qualification gate (dependency 4), then the owner's hold-release decision.
+## 2026-10-13 — Heartbeat and presence move to Rust, and Python reads a Rust check-in (lead, tooling)
+
+The owner's direction is to stop using Python at all, not merely to thin it, so the port now covers the command labs run most. `uor-harness heartbeat` publishes presence to **both tiers** and records a receipt, writing them from one record so they cannot disagree; `presence` and the atomic-rename write are in `crates/uor-r4-harness/src/presence.rs`. **Verified cross-language:** Rust's heartbeat in a scratch repo produced `docs/harness/presence/<lab>.json`, a live-tier copy and a ledger shard, and **Python read all three back** with `doing`, `next`, `milestone` and `via=durable` intact — the same interop proof the receipt writer got, now for the check-in path. 44 Rust tests, clippy clean. Three things worth recording: the write path is **atomic via rename** so a reader never sees a partial file; an unwritable live tier **does not fail the check-in**, because the committed record is the commitment and the live tier is an optimisation; and the writer never asserts `source`, which is a read-time label saying which tier answered — a writer claiming it would be claiming how it will be read. Two bugs of my own: `cargo fmt` had reformatted the subcommand flag arrays into one-per-line form, so **three earlier string-replacement edits silently did nothing** and `-m` was rejected as an unknown option with a usage dump rather than an error — editing source by matching formatted text is the mistake. And a latent difference found while testing: Python canonicalises symlinks in the repo root (`/var` → `/private/var`) while Rust uses `--repo` verbatim, so the strings differ on macOS although they resolve to the same directory.
+
+Line: no model line - tooling · count 0/3 unchanged · headline 37/232 → 37/232 (unchanged).
+
+**Next:** the port is **2,404 Rust lines against 11,566 Python** across 19 modules — heartbeat, presence, receipt and the format check are Rust now; `check`'s 51 rules, `prep`, `status`, `briefing`, `mistakes`, `prlint` and `arena` are not. Continue module by module, each verified against the Python suite, keeping the Python harness authoritative until the Rust path passes the same checks.
 
 ## 2026-10-13 — The README, the geometry page and the figures reflect the current path (claude, #2028)
 

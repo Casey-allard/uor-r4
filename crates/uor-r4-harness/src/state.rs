@@ -104,9 +104,14 @@ pub fn slug(lab: &str) -> String {
     out
 }
 
-/// A per-lab check-in.
+/// A per-lab check-in READ from disk.
+///
+/// Distinct from [`crate::presence::Presence`], which is the thing you WRITE — the same split as
+/// [`ReceiptRow`] and [`crate::receipt::Receipt`]. A reader must tolerate every record the tiers
+/// already hold, including historical ones; a writer must produce exactly what the contract
+/// requires. One type serving both would be as loose as the reader and as strict as the writer.
 #[derive(Debug, Clone, Default, Deserialize)]
-pub struct Presence {
+pub struct PresenceRow {
     #[serde(default)]
     pub lab: String,
     #[serde(default)]
@@ -132,16 +137,16 @@ pub struct Presence {
     pub source: String,
 }
 
-impl Presence {
-    pub fn read(path: &Path, source: &str) -> Option<Presence> {
+impl PresenceRow {
+    pub fn read(path: &Path, source: &str) -> Option<PresenceRow> {
         let text = std::fs::read_to_string(path).ok()?;
-        let mut p: Presence = serde_json::from_str(&text).ok()?;
+        let mut p: PresenceRow = serde_json::from_str(&text).ok()?;
         p.source = source.to_string();
         Some(p)
     }
 
     /// Read a lab's presence, preferring the live tier and falling back to the durable record.
-    pub fn read_lab(paths: &StatePaths, lab: &str) -> Option<Presence> {
+    pub fn read_lab(paths: &StatePaths, lab: &str) -> Option<PresenceRow> {
         if let Some(p) = Self::read(&paths.live_presence(lab), "live") {
             return Some(p);
         }
@@ -323,7 +328,7 @@ mod tests {
             "month out of range"
         );
         assert_eq!(parse_iso_unix(""), None);
-        let p = Presence {
+        let p = PresenceRow {
             updated: "not-a-timestamp".into(),
             ..Default::default()
         };
@@ -338,7 +343,7 @@ mod tests {
     #[test]
     fn staleness_does_not_truncate_before_comparing() {
         let now = parse_iso_unix("2026-10-12T12:00:00Z").expect("now");
-        let just_over = Presence {
+        let just_over = PresenceRow {
             updated: "2026-10-12T11:29:35Z".into(),
             ..Default::default()
         };
@@ -350,7 +355,7 @@ mod tests {
         );
         assert!(just_over.is_stale(now, 30), "30m25s is past a 30m TTL");
 
-        let exactly_on = Presence {
+        let exactly_on = PresenceRow {
             updated: "2026-10-12T11:30:00Z".into(),
             ..Default::default()
         };
@@ -364,13 +369,13 @@ mod tests {
     #[test]
     fn age_and_staleness_follow_the_ttl() {
         let now = parse_iso_unix("2026-10-12T12:00:00Z").expect("now");
-        let fresh = Presence {
+        let fresh = PresenceRow {
             updated: "2026-10-12T11:50:00Z".into(),
             ..Default::default()
         };
         assert_eq!(fresh.age_minutes(now), Some(10));
         assert!(!fresh.is_stale(now, 30));
-        let old = Presence {
+        let old = PresenceRow {
             updated: "2026-10-12T10:00:00Z".into(),
             ..Default::default()
         };

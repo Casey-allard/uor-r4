@@ -12,14 +12,16 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use uor_r4_harness::onboard::{detect_runtime, onboard};
+use uor_r4_harness::presence::{heartbeat, Presence};
 use uor_r4_harness::receipt::{append, current_month, Receipt as NewReceipt};
-use uor_r4_harness::state::{read_ledger, Presence, StatePaths};
+use uor_r4_harness::state::{read_ledger, PresenceRow, StatePaths};
 use uor_r4_harness::Contract;
 
 /// Flags that only a subcommand understands, forwarded rather than rejected at the top level.
-const SUBCOMMAND_FLAGS: [&str; 10] = [
+const SUBCOMMAND_FLAGS: [&str; 13] = [
     "--kind",
     "--milestone",
+    "-m",
     "--skill",
     "--role",
     "--branch",
@@ -28,12 +30,15 @@ const SUBCOMMAND_FLAGS: [&str; 10] = [
     "--mechanism",
     "--run",
     "--dry-run",
+    "--doing",
+    "--next",
 ];
 
 /// The subset that takes a value, so the value is not mistaken for a command.
-const SUBCOMMAND_VALUE_FLAGS: [&str; 9] = [
+const SUBCOMMAND_VALUE_FLAGS: [&str; 12] = [
     "--kind",
     "--milestone",
+    "-m",
     "--skill",
     "--role",
     "--branch",
@@ -41,6 +46,8 @@ const SUBCOMMAND_VALUE_FLAGS: [&str; 9] = [
     "--outcome",
     "--mechanism",
     "--run",
+    "--doing",
+    "--next",
 ];
 
 const USAGE: &str = "\
@@ -60,6 +67,8 @@ COMMANDS:
     ledger      Receipt counts by lab and kind.
     receipt     Append one receipt to this lab's shard. The first WRITE on the
                 Rust side; use --dry-run to see the line without recording it.
+    heartbeat   Check in: publish presence to both tiers and record a receipt.
+                Use --dry-run to see what would be written.
     help        This text.
 
 The Python harness owns behaviour until this path passes the same checks; the
@@ -154,6 +163,7 @@ fn main() -> ExitCode {
         Some("presence") => cmd_presence(&repo, json),
         Some("ledger") => cmd_ledger(&repo, json),
         Some("receipt") => cmd_receipt(&repo, &rest, json),
+        Some("heartbeat") => cmd_heartbeat(&repo, &rest, json),
         Some(other) => {
             eprintln!("uor-harness: unknown command {other}\n\n{USAGE}");
             ExitCode::from(2)
@@ -233,6 +243,80 @@ fn flag_value(args: &[String], name: &str) -> Option<String> {
         i += 1;
     }
     None
+}
+
+fn cmd_heartbeat(repo: &Path, args: &[String], json: bool) -> ExitCode {
+    let paths = StatePaths::from_env(repo);
+    let lab = flag_value(args, "--lab")
+        .or_else(|| std::env::var("UOR_LAB").ok())
+        .unwrap_or_default();
+    if lab.trim().is_empty() {
+        eprintln!(
+            "uor-harness: WARNING - no lab identity. This check-in would be attributed to nobody.\n\
+             \x20            export UOR_LAB=<kimi|claude|codex|deepseek>"
+        );
+        return ExitCode::from(2);
+    }
+    let milestone = flag_value(args, "--milestone")
+        .or_else(|| flag_value(args, "-m"))
+        .unwrap_or_default();
+    let mut p = Presence::new(&paths, &lab, &milestone);
+    if let Some(v) = flag_value(args, "--doing") {
+        p = p.with_doing(v);
+    }
+    if let Some(v) = flag_value(args, "--next") {
+        p = p.with_next(v);
+    }
+    if args.iter().any(|a| a == "--dry-run") {
+        println!("{}", p.line());
+        return ExitCode::SUCCESS;
+    }
+
+    // The receipt and the presence are written from ONE record, so they cannot disagree about what
+    // this lab is doing.
+    let mut r = NewReceipt::new("heartbeat", lab.clone());
+    if !p.milestone.is_empty() {
+        r = r.with("milestone", p.milestone.clone());
+    }
+    if !p.doing.is_empty() {
+        r = r.with("line", p.doing.clone());
+    }
+    if !p.next.is_empty() {
+        r = r.with("next", p.next.clone());
+    }
+    let month = current_month();
+    let shard = match append(&paths, &r, &month) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("uor-harness: {e}");
+            return ExitCode::from(1);
+        }
+    };
+    let (live_ok, durable) = match heartbeat(&paths, &p) {
+        Ok(v) => v,
+        Err(e) => {
+            eprintln!("uor-harness: {e}");
+            return ExitCode::from(1);
+        }
+    };
+    if json {
+        println!(
+            "{{\"lab\": {:?}, \"presence\": {:?}, \"receipt\": {:?}, \"live_tier\": {}}}",
+            lab,
+            durable.display().to_string(),
+            shard.display().to_string(),
+            live_ok
+        );
+    } else {
+        println!("checked in: {} at {}", durable.display(), p.updated);
+        if !live_ok {
+            // Say so rather than pretend: peers will not see this until they fetch the record.
+            println!(
+                "  note: the live tier could not be written, so peers see this on their next fetch"
+            );
+        }
+    }
+    ExitCode::SUCCESS
 }
 
 fn cmd_receipt(repo: &Path, args: &[String], json: bool) -> ExitCode {
@@ -408,7 +492,7 @@ fn cmd_presence(repo: &Path, json: bool) -> ExitCode {
 
     let mut rows = Vec::new();
     for lab in &labs {
-        if let Some(p) = Presence::read_lab(&paths, lab) {
+        if let Some(p) = PresenceRow::read_lab(&paths, lab) {
             let age = p.age_minutes(now);
             let stale = p.is_stale(now, TTL_MINUTES);
             rows.push((lab.clone(), p, age, stale));
